@@ -16,8 +16,8 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 
 ## 打赏赞助
 <div>
-    <img src=".image/微信支付.jpg" alt="微信支付">
-    <img src=".image/支付宝支付.jpg" alt="支付宝支付">
+    <img src=".image/微信支付.jpg" alt="微信支付" width="30%" height="30%">
+    <img src=".image/支付宝支付.jpg" alt="支付宝支付" width="30%" height="10%">
 </div>
 
 ## 演示环境（开源版暂不提供演示环境）
