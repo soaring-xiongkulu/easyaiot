@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
  * 默认的 DataPermissionRuleFactoryImpl 实现类
  * 支持通过 {@link DataPermissionContextHolder} 过滤数据权限
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @RequiredArgsConstructor
 public class DataPermissionRuleFactoryImpl implements DataPermissionRuleFactory {

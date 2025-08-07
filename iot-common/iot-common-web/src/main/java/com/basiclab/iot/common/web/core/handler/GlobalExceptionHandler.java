@@ -39,7 +39,7 @@ import static com.basiclab.iot.common.exception.enums.GlobalErrorCodeConstants.*
 /**
  * 全局异常处理器，将 Exception 翻译成 CommonResult + 对应的异常编号
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @RestControllerAdvice
 @AllArgsConstructor

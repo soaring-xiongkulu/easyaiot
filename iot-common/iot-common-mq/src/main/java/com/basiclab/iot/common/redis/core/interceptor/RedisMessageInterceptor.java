@@ -7,7 +7,7 @@ import com.basiclab.iot.common.redis.core.message.AbstractRedisMessage;
  * 通过拦截器，作为插件机制，实现拓展。
  * 例如说，多租户场景下的 MQ 消息处理
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public interface RedisMessageInterceptor {
 

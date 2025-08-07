@@ -17,7 +17,7 @@ import static com.basiclab.iot.common.web.core.util.WebFrameworkUtils.HEADER_TEN
  *
  * Consumer 消费消息时，将消息的 Header 的租户编号，添加到 {@link TenantContextHolder} 中，通过 {@link InvocableHandlerMethod} 实现
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public class TenantRocketMQConsumeMessageHook implements ConsumeMessageHook {
 

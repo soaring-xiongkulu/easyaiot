@@ -51,7 +51,7 @@ import static cn.hutool.core.date.DatePattern.NORM_DATETIME_MS_FORMATTER;
  *
  * TODO 芋艿：如果网关执行异常，不会记录访问日志，后续研究下 https://github.com/Silvmike/webflux-demo/blob/master/tests/src/test/java/ru/hardcoders/demo/webflux/web_handler/filters/logging
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Slf4j
 @Component

@@ -11,7 +11,7 @@ import static com.basiclab.iot.common.web.core.util.WebFrameworkUtils.HEADER_TEN
  *
  * Producer 发送消息时，将 {@link TenantContextHolder} 租户编号，添加到消息的 Header 中
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public class TenantRocketMQSendMessageHook implements SendMessageHook {
 

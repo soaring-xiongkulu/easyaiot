@@ -6,7 +6,7 @@ import java.util.List;
  * {@link DataPermissionRule} 工厂接口
  * 作为 {@link DataPermissionRule} 的容器，提供管理能力
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public interface DataPermissionRuleFactory {
 

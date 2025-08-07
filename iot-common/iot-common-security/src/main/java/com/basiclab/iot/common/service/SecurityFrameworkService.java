@@ -3,7 +3,7 @@ package com.basiclab.iot.common.service;
 /**
  * Security 框架 Service 接口，定义权限相关的校验操作
  *
- * @author 安徽上洲智能科技源码
+ * @author 深圳市深度智核科技有限责任公司源码
  */
 public interface SecurityFrameworkService {
 

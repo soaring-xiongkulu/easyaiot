@@ -40,7 +40,7 @@ import static com.basiclab.iot.common.utils.collection.CollectionUtils.convertLi
 /**
  * 自定义的 Spring Security 配置适配器实现
  *
- * @author 安徽上洲智能科技源码
+ * @author 深圳市深度智核科技有限责任公司源码
  */
 @AutoConfiguration
 @AutoConfigureOrder(-1) // 目的：先于 Spring Security 自动配置，避免一键改包后，org.* 基础包无法生效

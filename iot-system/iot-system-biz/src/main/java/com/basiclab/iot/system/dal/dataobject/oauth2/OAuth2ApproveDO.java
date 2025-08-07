@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
  *
  * 用户在 sso.vue 界面时，记录接受的 scope 列表
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @TableName(value = "system_oauth2_approve", autoResultMap = true)
 @KeySequence("system_oauth2_approve_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。

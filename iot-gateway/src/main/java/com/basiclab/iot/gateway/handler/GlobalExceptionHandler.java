@@ -20,7 +20,7 @@ import static com.basiclab.iot.common.exception.enums.GlobalErrorCodeConstants.I
  *
  * 在功能上，和 iot-spring-boot-starter-web 的 GlobalExceptionHandler 类是一致的
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Component
 @Order(-1) // 保证优先级高于默认的 Spring Cloud Gateway 的 ErrorWebExceptionHandler 实现

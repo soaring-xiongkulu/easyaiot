@@ -11,7 +11,7 @@ import org.aspectj.lang.JoinPoint;
  *
  * 为了避免 Key 过长，使用 MD5 进行“压缩”
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public class DefaultIdempotentKeyResolver implements IdempotentKeyResolver {
 

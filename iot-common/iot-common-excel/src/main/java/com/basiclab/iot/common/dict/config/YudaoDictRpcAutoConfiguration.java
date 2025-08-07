@@ -7,7 +7,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 /**
  * 字典用到 Feign 的配置项
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @AutoConfiguration
 @EnableFeignClients(clients = DictDataApi.class) // 主要是引入相关的 API 服务

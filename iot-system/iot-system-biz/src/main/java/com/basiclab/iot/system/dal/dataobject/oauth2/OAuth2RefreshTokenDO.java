@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * OAuth2 刷新令牌
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @TableName(value = "system_oauth2_refresh_token", autoResultMap = true)
 // 由于 Oracle 的 SEQ 的名字长度有限制，所以就先用 system_oauth2_access_token_seq 吧，反正也没啥问题

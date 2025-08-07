@@ -12,7 +12,7 @@ import org.springframework.web.socket.handler.WebSocketHandlerDecorator;
  * 1. {@link WebSocketSession} 连接或关闭时，使用 {@link #sessionManager} 进行管理
  * 2. 封装 {@link WebSocketSession} 支持并发操作
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public class WebSocketSessionHandlerDecorator extends WebSocketHandlerDecorator {
 

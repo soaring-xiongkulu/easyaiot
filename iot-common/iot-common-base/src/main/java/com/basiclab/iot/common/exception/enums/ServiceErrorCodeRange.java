@@ -25,7 +25,7 @@ package com.basiclab.iot.common.exception.enums;
  *       不限制规则。
  *       一般建议，每个模块自增。
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public class ServiceErrorCodeRange {
 

@@ -30,7 +30,7 @@ import java.nio.charset.StandardCharsets;
  * Token 过滤器，验证 token 的有效性
  * 验证通过后，获得 {@link LoginUser} 信息，并加入到 Spring Security 上下文
  *
- * @author 安徽上洲智能科技源码
+ * @author 深圳市深度智核科技有限责任公司源码
  */
 @RequiredArgsConstructor
 @Slf4j

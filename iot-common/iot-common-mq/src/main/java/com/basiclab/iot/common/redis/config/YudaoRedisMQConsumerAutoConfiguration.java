@@ -33,7 +33,7 @@ import java.util.Properties;
 /**
  * Redis 消息队列 Consumer 配置类
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Slf4j
 @EnableScheduling // 启用定时任务，用于 RedisPendingMessageResendJob 重发消息

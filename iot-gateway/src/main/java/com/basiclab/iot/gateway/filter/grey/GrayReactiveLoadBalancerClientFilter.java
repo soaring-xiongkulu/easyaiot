@@ -33,7 +33,7 @@ import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.*
  * 1. https://www.jianshu.com/p/6db15bc0be8f
  * 2. https://cloud.tencent.com/developer/article/1620795
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Component
 @AllArgsConstructor

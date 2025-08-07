@@ -19,7 +19,7 @@ import static com.basiclab.iot.system.dal.redis.RedisKeyConstants.OAUTH2_ACCESS_
 /**
  * {@link OAuth2AccessTokenDO} 的 RedisDAO
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Repository
 public class OAuth2AccessTokenRedisDAO {

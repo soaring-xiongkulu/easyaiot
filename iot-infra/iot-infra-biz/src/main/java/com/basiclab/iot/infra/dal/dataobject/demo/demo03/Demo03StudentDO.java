@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 /**
  * 学生 DO
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @TableName("yudao_demo03_student")
 @KeySequence("yudao_demo03_student_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。

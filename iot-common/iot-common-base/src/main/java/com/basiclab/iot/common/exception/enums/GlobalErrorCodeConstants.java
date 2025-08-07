@@ -10,7 +10,7 @@ import com.basiclab.iot.common.exception.ErrorCode;
  * 虽然说，HTTP 响应状态码作为业务使用表达能力偏弱，但是使用在系统层面还是非常不错的
  * 比较特殊的是，因为之前一直使用 0 作为成功，就不使用 200 啦。
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public interface GlobalErrorCodeConstants {
 

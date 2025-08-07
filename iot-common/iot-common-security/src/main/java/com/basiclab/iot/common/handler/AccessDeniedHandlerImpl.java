@@ -22,7 +22,7 @@ import static com.basiclab.iot.common.exception.enums.GlobalErrorCodeConstants.F
  * <p>
  * 补充：Spring Security 通过 {@link ExceptionTranslationFilter#handleAccessDeniedException(HttpServletRequest, HttpServletResponse, FilterChain, AccessDeniedException)} 方法，调用当前类
  *
- * @author 安徽上洲智能科技源码
+ * @author 深圳市深度智核科技有限责任公司源码
  */
 @Slf4j
 @SuppressWarnings("JavadocReference")

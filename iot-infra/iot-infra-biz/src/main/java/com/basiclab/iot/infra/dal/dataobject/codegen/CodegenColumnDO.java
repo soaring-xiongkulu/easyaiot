@@ -14,7 +14,7 @@ import lombok.experimental.Accessors;
 /**
  * 代码生成 column 字段定义
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @TableName(value = "infra_codegen_column", autoResultMap = true)
 @KeySequence("infra_codegen_column_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。

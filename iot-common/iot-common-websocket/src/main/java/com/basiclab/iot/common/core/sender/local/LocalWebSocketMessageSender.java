@@ -9,7 +9,7 @@ import com.basiclab.iot.common.core.session.WebSocketSessionManager;
  *
  * 注意：仅仅适合单机场景！！！
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public class LocalWebSocketMessageSender extends AbstractWebSocketMessageSender {
 

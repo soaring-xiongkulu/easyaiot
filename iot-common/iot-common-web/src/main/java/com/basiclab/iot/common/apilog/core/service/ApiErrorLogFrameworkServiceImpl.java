@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.Async;
  *
  * 基于 {@link ApiErrorLogApi} 服务，记录错误日志
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @RequiredArgsConstructor
 public class ApiErrorLogFrameworkServiceImpl implements ApiErrorLogFrameworkService {

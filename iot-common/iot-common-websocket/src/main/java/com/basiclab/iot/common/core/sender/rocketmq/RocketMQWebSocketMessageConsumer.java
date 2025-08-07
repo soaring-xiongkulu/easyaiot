@@ -8,7 +8,7 @@ import org.apache.rocketmq.spring.core.RocketMQListener;
 /**
  * {@link RocketMQWebSocketMessage} 广播消息的消费者，真正把消息发送出去
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @RocketMQMessageListener( // 重点：添加 @RocketMQMessageListener 注解，声明消费的 topic
         topic = "${iot.websocket.sender-rocketmq.topic}",

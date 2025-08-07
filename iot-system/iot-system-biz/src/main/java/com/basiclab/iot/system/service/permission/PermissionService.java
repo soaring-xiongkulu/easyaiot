@@ -12,7 +12,7 @@ import static java.util.Collections.singleton;
  * <p>
  * 提供用户-角色、角色-菜单、角色-部门的关联权限处理
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public interface PermissionService {
 

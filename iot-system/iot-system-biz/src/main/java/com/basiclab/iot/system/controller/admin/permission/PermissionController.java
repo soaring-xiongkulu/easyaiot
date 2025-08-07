@@ -23,7 +23,7 @@ import static com.basiclab.iot.common.domain.CommonResult.success;
 /**
  * 权限 Controller，提供赋予用户、角色的权限的 API 接口
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Tag(name = "管理后台 - 权限")
 @RestController

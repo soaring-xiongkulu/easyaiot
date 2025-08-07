@@ -7,7 +7,7 @@ import java.io.Serializable;
 /**
  * RabbitMQ 广播 WebSocket 的消息
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Data
 public class RabbitMQWebSocketMessage implements Serializable {

@@ -12,7 +12,7 @@ import java.io.IOException;
 /**
  * Redis 测试 Configuration，主要实现内嵌 Redis 的启动
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Configuration(proxyBeanMethods = false)
 @Lazy(false) // 禁止延迟加载

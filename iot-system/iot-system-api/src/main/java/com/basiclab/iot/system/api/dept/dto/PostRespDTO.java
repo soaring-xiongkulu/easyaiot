@@ -6,7 +6,7 @@ import lombok.Data;
 /**
  * 岗位 Response DTO
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Schema(description = "RPC 服务 - 岗位 Response DTO")
 @Data

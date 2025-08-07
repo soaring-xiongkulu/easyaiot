@@ -6,6 +6,6 @@
  * 2. 城市功能：查询城市编码对应的城市信息
  *      基于 https://github.com/modood/Administrative-divisions-of-China 实现
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 package com.basiclab.iot.common.ip;

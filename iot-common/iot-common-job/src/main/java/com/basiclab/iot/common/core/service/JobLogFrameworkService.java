@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 /**
  * Job 日志 Framework Service 接口
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public interface JobLogFrameworkService {
 

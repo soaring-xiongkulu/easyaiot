@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 /**
  * {@link OAuth2ApproveServiceImpl} 的单元测试类
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Import(OAuth2ApproveServiceImpl.class)
 public class OAuth2ApproveServiceImplTest extends BaseDbUnitTest {

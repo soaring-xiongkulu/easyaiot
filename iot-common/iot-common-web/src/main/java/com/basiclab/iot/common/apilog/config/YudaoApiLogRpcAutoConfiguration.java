@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 /**
  * API 日志使用到 Feign 的配置项
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @AutoConfiguration
 @EnableFeignClients(clients = {ApiAccessLogApi.class, // 主要是引入相关的 API 服务

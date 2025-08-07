@@ -121,7 +121,7 @@ public class AliyunSmsClient extends AbstractSmsClient {
      *
      * 参见 <a href="https://help.aliyun.com/document_detail/101867.html">文档</a>
      *
-     * @author 安徽上洲智能科技
+     * @author 深圳市深度智核科技有限责任公司
      */
     @Data
     public static class SmsReceiveStatus {

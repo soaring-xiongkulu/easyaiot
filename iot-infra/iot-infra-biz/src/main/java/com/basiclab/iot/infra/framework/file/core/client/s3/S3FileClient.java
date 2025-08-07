@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * S3 协议的客户端，采用亚马逊提供的 software.amazon.awssdk.s3 库
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public class S3FileClient extends AbstractFileClient<S3FileClientConfig> {
 

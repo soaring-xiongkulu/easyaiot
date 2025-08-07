@@ -31,7 +31,7 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.SOCIAL_USER_NOT_F
 /**
  * 社交用户 Service 实现类
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Service
 @Validated

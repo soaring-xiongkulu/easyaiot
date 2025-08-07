@@ -15,7 +15,7 @@ import static com.basiclab.iot.common.core.util.EnvUtils.HOST_NAME_VALUE;
  * 多环境的 {@link EnvEnvironmentPostProcessor} 实现类
  * 将 iot.env.tag 设置到 nacos 等组件对应的 tag 配置项，当且仅当它们不存在时
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public class EnvEnvironmentPostProcessor implements EnvironmentPostProcessor {
 

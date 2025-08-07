@@ -25,7 +25,7 @@ import java.util.function.Consumer;
  *
  * 基于 {@link JsonWebSocketMessage#getType()} 消息类型，调度到对应的 {@link WebSocketMessageListener} 监听器。
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Slf4j
 public class JsonWebSocketMessageHandler extends TextWebSocketHandler {

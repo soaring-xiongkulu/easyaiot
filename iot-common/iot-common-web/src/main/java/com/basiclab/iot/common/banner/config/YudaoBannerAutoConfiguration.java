@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Bean;
 /**
  * Banner 的自动配置类
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @AutoConfiguration
 public class YudaoBannerAutoConfiguration {

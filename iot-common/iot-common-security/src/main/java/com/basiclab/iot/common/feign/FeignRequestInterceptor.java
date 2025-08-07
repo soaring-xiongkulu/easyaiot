@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * feign 请求拦截器
  * 
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Component
 public class FeignRequestInterceptor implements RequestInterceptor

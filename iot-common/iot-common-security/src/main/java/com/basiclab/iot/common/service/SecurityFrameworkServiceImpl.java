@@ -19,7 +19,7 @@ import static com.basiclab.iot.common.utils.cache.CacheUtils.buildCache;
 /**
  * 默认的 {@link SecurityFrameworkService} 实现类
  *
- * @author 安徽上洲智能科技源码
+ * @author 深圳市深度智核科技有限责任公司源码
  */
 @AllArgsConstructor
 public class SecurityFrameworkServiceImpl implements SecurityFrameworkService {

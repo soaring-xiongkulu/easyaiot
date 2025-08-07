@@ -8,7 +8,7 @@ import java.lang.annotation.*;
  * 自定义feign注解
  * 添加basePackages路径
  * 
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

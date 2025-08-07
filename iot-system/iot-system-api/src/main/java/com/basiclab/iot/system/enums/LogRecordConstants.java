@@ -4,7 +4,7 @@ package com.basiclab.iot.system.enums;
  * System 操作日志枚举
  * 目的：统一管理，也减少 Service 里各种“复杂”字符串
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public interface LogRecordConstants {
 

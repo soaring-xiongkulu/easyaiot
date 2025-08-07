@@ -18,7 +18,7 @@ import java.util.Map;
  *
  * 目的：在非 prod 环境时，打印 request 和 response 两条日志到日志文件（控制台）中。
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Slf4j
 public class ApiAccessLogInterceptor implements HandlerInterceptor {

@@ -11,7 +11,7 @@ import lombok.*;
  * 社交用户的绑定
  * 即 {@link SocialUserDO} 与 UserDO 的关联表
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @TableName(value = "system_social_user_bind", autoResultMap = true)
 @KeySequence("system_social_user_bind_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。

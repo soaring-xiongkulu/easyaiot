@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * 注意，需要保证 JobHandler 的幂等性。因为 Job 因为某个租户执行失败重试时，之前执行成功的租户也会再次执行。
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Aspect
 @RequiredArgsConstructor

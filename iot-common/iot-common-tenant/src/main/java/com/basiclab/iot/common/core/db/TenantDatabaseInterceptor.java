@@ -13,7 +13,7 @@ import java.util.Set;
 /**
  * 基于 MyBatis Plus 多租户的功能，实现 DB 层面的多租户的功能
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public class TenantDatabaseInterceptor implements TenantLineHandler {
 

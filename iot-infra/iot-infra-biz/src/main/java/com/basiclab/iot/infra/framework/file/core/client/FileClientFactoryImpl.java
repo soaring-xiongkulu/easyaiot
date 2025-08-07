@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * 文件客户端的工厂实现类
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @Slf4j
 public class FileClientFactoryImpl implements FileClientFactory {

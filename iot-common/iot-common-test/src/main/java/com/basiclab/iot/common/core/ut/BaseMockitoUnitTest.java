@@ -6,7 +6,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 /**
  * 纯 Mockito 的单元测试
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 @ExtendWith(MockitoExtension.class)
 public class BaseMockitoUnitTest {

@@ -11,7 +11,7 @@ import org.springframework.cloud.loadbalancer.support.LoadBalancerClientFactory;
  * 多环境的 {@link LoadBalancerClientFactory} 实现类
  * 目的：在创建 {@link ReactiveLoadBalancer} 时，会额外增加 {@link EnvLoadBalancerClient} 代理，用于 tag 过滤服务实例
  *
- * @author 安徽上洲智能科技
+ * @author 深圳市深度智核科技有限责任公司
  */
 public class EnvLoadBalancerClientFactory extends LoadBalancerClientFactory {
 
