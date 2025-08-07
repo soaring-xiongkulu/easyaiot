@@ -168,13 +168,18 @@ pnpm dev
 </div>
 
 ## 联系方式
+- 邮箱：andywebjava@163.com(本项目相关问题请走issue流程，否则恕不邮件答复)
+- 请关注微信公众号获取最新消息推送：
 <div>
-    <img src=".image/联系方式.jpg" alt="联系方式" width="49%">
+    <img src=".image/公众号.jpg" alt="知识星球" width="30%">
+</div>
+- 也可以自愿有偿加入知识星球咨询、获取资料以及加入微信技术群：
+<div>
+    <img src=".image/知识星球.jpg" alt="知识星球" width="30%">
 </div>
 
-## 代码仓库
-- Github仓库：https://github.com/soaring-xiongkulu/easyaiot
-- Gitee仓库：https://gitee.com/soaring-xiongkulu/easyaiot
+## 致谢
+感谢以下各位对本项目包括但不限于代码贡献、问题反馈、资金捐赠等各种方式的支持！以下排名不分先后：
 
 ## 开源协议
 [MIT LICENSE](LICENSE)
