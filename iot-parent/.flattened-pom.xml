@@ -8,7 +8,7 @@
   <packaging>pom</packaging>
   <name>${project.artifactId}</name>
   <description>基础 bom 文件，管理整个项目的依赖版本</description>
-  <url>https://gitee.com/DEEP-VISION-MACHINE/LF-AI-STREAM</url>
+  <url>https://github.com/soaring-xiongkulu/easyaiot</url>
   <properties>
     <tika-core.version>2.9.1</tika-core.version>
     <podam.version>7.2.11.RELEASE</podam.version>
