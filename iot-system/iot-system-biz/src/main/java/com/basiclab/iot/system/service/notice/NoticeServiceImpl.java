@@ -17,7 +17,7 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.NOTICE_NOT_FOUND;
 /**
  * 通知公告 Service 实现类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Service
 public class NoticeServiceImpl implements NoticeService {

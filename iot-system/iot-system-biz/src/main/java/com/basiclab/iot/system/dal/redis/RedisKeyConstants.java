@@ -5,7 +5,7 @@ import com.basiclab.iot.system.dal.dataobject.oauth2.OAuth2AccessTokenDO;
 /**
  * System Redis Key 枚举类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public interface RedisKeyConstants {
 

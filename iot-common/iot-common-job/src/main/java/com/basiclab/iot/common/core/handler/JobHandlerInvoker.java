@@ -21,7 +21,7 @@ import static cn.hutool.core.exceptions.ExceptionUtil.getRootCauseMessage;
 /**
  * 基础 Job 调用者，负责调用 {@link JobHandler#execute(String)} 执行任务
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @DisallowConcurrentExecution
 @PersistJobDataAfterExecution

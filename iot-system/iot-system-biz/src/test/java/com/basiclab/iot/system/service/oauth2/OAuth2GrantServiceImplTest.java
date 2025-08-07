@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 /**
  * {@link OAuth2GrantServiceImpl} 的单元测试
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public class OAuth2GrantServiceImplTest extends BaseMockitoUnitTest {
 

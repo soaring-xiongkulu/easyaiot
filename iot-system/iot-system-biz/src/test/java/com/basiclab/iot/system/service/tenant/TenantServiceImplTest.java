@@ -47,7 +47,7 @@ import static org.mockito.Mockito.*;
 /**
  * {@link TenantServiceImpl} 的单元测试类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Import(TenantServiceImpl.class)
 public class TenantServiceImplTest extends BaseDbUnitTest {

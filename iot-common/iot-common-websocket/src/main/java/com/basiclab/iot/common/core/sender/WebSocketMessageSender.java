@@ -5,7 +5,7 @@ import com.basiclab.iot.common.utils.json.JsonUtils;
 /**
  * WebSocket 消息的发送器接口
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public interface WebSocketMessageSender {
 

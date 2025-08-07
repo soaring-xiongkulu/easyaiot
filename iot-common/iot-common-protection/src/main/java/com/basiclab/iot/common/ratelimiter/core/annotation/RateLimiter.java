@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * 限流注解
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

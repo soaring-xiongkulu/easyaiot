@@ -14,7 +14,7 @@ import java.io.ByteArrayOutputStream;
 /**
  * Ftp 文件客户端
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public class FtpFileClient extends AbstractFileClient<FtpFileClientConfig> {
 

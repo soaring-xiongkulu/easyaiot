@@ -17,7 +17,7 @@ import java.lang.reflect.Method;
 /**
  * 基于 Spring EL 表达式，
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public class ExpressionIdempotentKeyResolver implements IdempotentKeyResolver {
 

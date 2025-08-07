@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 /**
  * 访问日志注解
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

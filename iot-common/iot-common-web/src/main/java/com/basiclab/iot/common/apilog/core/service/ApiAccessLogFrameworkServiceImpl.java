@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
  *
  * 基于 {@link ApiAccessLogApi} 服务，记录访问日志
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @RequiredArgsConstructor
 public class ApiAccessLogFrameworkServiceImpl implements ApiAccessLogFrameworkService {

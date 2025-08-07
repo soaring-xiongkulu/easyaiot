@@ -8,7 +8,7 @@ import javax.validation.constraints.NotEmpty;
 /**
  * Swagger 配置属性
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @ConfigurationProperties("iot.swagger")
 @Data

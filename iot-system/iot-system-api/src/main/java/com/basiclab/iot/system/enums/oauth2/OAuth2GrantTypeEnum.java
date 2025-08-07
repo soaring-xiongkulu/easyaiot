@@ -7,7 +7,7 @@ import lombok.Getter;
 /**
  * OAuth2 授权类型（模式）的枚举
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @AllArgsConstructor
 @Getter

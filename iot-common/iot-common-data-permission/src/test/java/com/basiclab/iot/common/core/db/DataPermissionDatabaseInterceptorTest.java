@@ -34,7 +34,7 @@ import static org.mockito.Mockito.*;
  * 和 {@link DataPermissionDatabaseInterceptor#beforeUpdate(Executor, MappedStatement, Object)}
  * 以及在这个过程中，ContextHolder 和 MappedStatementCache
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public class DataPermissionDatabaseInterceptorTest extends BaseMockitoUnitTest {
 

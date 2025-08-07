@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Bean;
 /**
  * 多环境的 Web 组件的自动配置
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)

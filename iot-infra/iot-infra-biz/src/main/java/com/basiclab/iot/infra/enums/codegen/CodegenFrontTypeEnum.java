@@ -6,7 +6,7 @@ import lombok.Getter;
 /**
  * 代码生成的前端类型枚举
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @AllArgsConstructor
 @Getter

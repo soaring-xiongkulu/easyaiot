@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * 代码生成 Service 接口
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public interface CodegenService {
 

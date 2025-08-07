@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 /**
  * {@link SocialUserServiceImpl} 的单元测试类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Import(SocialUserServiceImpl.class)
 public class SocialUserServiceImplTest extends BaseDbUnitTest {

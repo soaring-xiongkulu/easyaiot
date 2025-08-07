@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * 环境配置
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @ConfigurationProperties(prefix = "iot.env")
 @Data

@@ -9,7 +9,7 @@ import java.math.RoundingMode;
 /**
  * 金额工具类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public class MoneyUtils {
 

@@ -17,7 +17,7 @@ import java.util.List;
 /**
  * 多环境的 RPC 组件的自动配置
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @AutoConfiguration
 @EnableConfigurationProperties(EnvProperties.class)

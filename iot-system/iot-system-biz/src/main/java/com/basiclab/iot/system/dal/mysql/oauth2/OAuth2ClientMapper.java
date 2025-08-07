@@ -11,7 +11,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * OAuth2 客户端 Mapper
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Mapper
 public interface OAuth2ClientMapper extends BaseMapperX<OAuth2ClientDO> {

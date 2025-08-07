@@ -10,7 +10,7 @@ import java.util.Arrays;
 /**
  * 通用状态枚举
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Getter
 @AllArgsConstructor

@@ -25,7 +25,7 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.except
 /**
  * 学生 Service 实现类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Service
 @Validated

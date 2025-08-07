@@ -43,33 +43,33 @@ spring:
       datasource:
         master:
           driver-class-name: org.postgresql.Driver
-          url: jdbc:postgresql://iot.basiclab.top:5432/iot-device?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
+          url: jdbc:postgresql://127.0.0.1:5432/iot-device6?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
           username: postgres
           password: basiclab@iot45722414822
 
   # Redis 配置。Redisson 默认的配置足够使用，一般不需要进行调优
   redis:
-    host: iot.basiclab.top # 地址
+    host: 127.0.0.1 # 地址
     port: 6379 # 端口
-    database: 1 # 数据库索引
+    database: 3 # 数据库索引
     password: basiclab@iot975248395 # 密码，建议生产环境开启
 
 --- #################### MQ 消息队列相关配置 ####################
 
 # rocketmq 配置项，对应 RocketMQProperties 配置类
 rocketmq:
-  name-server: iot.basiclab.top:9876 # RocketMQ Namesrv
+  name-server: 127.0.0.1:9876 # RocketMQ Namesrv
 
 spring:
   # RabbitMQ 配置项，对应 RabbitProperties 配置类
   rabbitmq:
-    host: iot.basiclab.top # RabbitMQ 服务的地址
+    host: 127.0.0.1 # RabbitMQ 服务的地址
     port: 5672 # RabbitMQ 服务的端口
     username: guest # RabbitMQ 服务的账号
     password: guest # RabbitMQ 服务的密码
   # Kafka 配置项，对应 KafkaProperties 配置类
   kafka:
-    bootstrap-servers: iot.basiclab.top:9092 # 指定 Kafka Broker 地址，可以设置多个，以逗号分隔
+    bootstrap-servers: 127.0.0.1:9092 # 指定 Kafka Broker 地址，可以设置多个，以逗号分隔
 
 --- #################### 定时任务相关配置 ####################
 
@@ -195,7 +195,7 @@ justauth:
     timeout: 24h # 超时时长，目前只对 Redis 缓存生效，默认 3 分钟
 
 emqx:
-  serverURIs: tcp://iot.basiclab.top:1883
+  serverURIs: tcp://127.0.0.1:1883
   username: admin
   password: public
   qos: 1
@@ -207,7 +207,7 @@ emqx:
   timeout: 100
 
 kafka:
-  servers: iot.basiclab.top:9092
+  servers: 127.0.0.1:9092
   topicPattern: device-data
   topic: device-data
   acks: -1

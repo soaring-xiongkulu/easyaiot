@@ -3,7 +3,7 @@ spring:
     name: device-server
 
   profiles:
-    active: local
+    active: dev
 
 server:
   port: 48083

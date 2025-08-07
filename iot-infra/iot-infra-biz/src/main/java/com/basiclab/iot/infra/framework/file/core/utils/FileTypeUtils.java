@@ -13,7 +13,7 @@ import java.net.URLEncoder;
 /**
  * 文件类型 Utils
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public class FileTypeUtils {
 

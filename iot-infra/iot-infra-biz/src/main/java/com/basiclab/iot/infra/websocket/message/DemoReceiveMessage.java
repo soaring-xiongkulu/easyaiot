@@ -5,7 +5,7 @@ import lombok.Data;
 /**
  * 示例：server -> client 同步消息
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Data
 public class DemoReceiveMessage {

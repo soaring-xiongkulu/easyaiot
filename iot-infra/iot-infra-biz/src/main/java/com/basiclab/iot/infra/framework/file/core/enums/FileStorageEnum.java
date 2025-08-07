@@ -19,7 +19,7 @@ import lombok.Getter;
 /**
  * 文件存储器枚举
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @AllArgsConstructor
 @Getter

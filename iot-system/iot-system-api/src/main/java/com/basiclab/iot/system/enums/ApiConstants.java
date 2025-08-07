@@ -5,7 +5,7 @@ import com.basiclab.iot.common.enums.RpcConstants;
 /**
  * API 相关的枚举
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public class ApiConstants {
 

@@ -5,7 +5,7 @@ import com.basiclab.iot.infra.framework.file.core.client.s3.FilePresignedUrlResp
 /**
  * 文件客户端
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public interface FileClient {
 

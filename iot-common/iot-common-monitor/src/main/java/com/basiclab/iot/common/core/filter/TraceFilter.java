@@ -12,7 +12,7 @@ import java.io.IOException;
 /**
  * Trace 过滤器，打印 traceId 到 header 中返回
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public class TraceFilter extends OncePerRequestFilter {
 

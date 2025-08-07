@@ -9,7 +9,7 @@ import java.io.InputStream;
 /**
  * IO 工具类，用于 {@link cn.hutool.core.io.IoUtil} 缺失的方法
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public class IoUtils {
 

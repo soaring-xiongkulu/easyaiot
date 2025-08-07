@@ -44,7 +44,7 @@ import static org.mockito.Mockito.*;
 /**
  * {@link SocialClientServiceImpl} 的单元测试类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Import(SocialClientServiceImpl.class)
 public class SocialClientServiceImplTest extends BaseDbUnitTest {

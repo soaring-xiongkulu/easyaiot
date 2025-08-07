@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 /**
  * API 访问日志 Mapper
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Mapper
 public interface ApiAccessLogMapper extends BaseMapperX<ApiAccessLogDO> {

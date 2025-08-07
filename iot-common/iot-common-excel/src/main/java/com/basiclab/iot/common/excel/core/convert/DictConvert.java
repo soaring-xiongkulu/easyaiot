@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Excel 数据字典转换器
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Slf4j
 public class DictConvert implements Converter<Object> {

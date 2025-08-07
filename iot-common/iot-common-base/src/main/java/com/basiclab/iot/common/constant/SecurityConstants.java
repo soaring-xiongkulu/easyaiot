@@ -3,7 +3,7 @@ package com.basiclab.iot.common.constant;
 /**
  * 权限相关通用常量
  * 
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public class SecurityConstants
 {

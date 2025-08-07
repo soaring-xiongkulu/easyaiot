@@ -35,7 +35,7 @@ import static org.mockito.Mockito.when;
 /**
  * {@link OAuth2TokenServiceImpl} 的单元测试类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Import({OAuth2TokenServiceImpl.class, OAuth2AccessTokenRedisDAO.class})
 public class OAuth2TokenServiceImplTest extends BaseDbAndRedisUnitTest {

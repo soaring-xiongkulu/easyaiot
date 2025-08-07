@@ -6,7 +6,7 @@ import lombok.Getter;
 /**
  * 短信的接收状态枚举
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  * @date 2021/2/1 13:39
  */
 @Getter

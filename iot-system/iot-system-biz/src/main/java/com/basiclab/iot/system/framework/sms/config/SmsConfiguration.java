@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 /**
  * 短信配置类，包括短信客户端、短信验证码两部分
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(SmsCodeProperties.class)

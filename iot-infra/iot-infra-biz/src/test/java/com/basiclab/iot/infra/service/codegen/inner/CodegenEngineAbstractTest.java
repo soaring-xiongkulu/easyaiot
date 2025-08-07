@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * {@link CodegenEngine} 的单元测试抽象基类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public abstract class CodegenEngineAbstractTest extends BaseMockitoUnitTest {
 

@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * {@link OAuth2CodeServiceImpl} 的单元测试类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Import(OAuth2CodeServiceImpl.class)
 class OAuth2CodeServiceImplTest extends BaseDbUnitTest {

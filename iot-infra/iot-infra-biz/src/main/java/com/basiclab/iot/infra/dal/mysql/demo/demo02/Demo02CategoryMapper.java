@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * 示例分类 Mapper
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Mapper
 public interface Demo02CategoryMapper extends BaseMapperX<Demo02CategoryDO> {

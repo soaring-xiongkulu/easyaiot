@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * 基于部门的数据权限 AutoConfiguration
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @AutoConfiguration
 @ConditionalOnClass(LoginUser.class)

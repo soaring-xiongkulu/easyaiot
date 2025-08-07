@@ -16,7 +16,7 @@ import reactor.core.publisher.Mono;
 /**
  * 跨域 Filter
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Component
 @Slf4j

@@ -43,7 +43,7 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
 /**
  * Auth Service 实现类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Service
 @Slf4j

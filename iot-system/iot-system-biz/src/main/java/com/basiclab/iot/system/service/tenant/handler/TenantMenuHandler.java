@@ -6,7 +6,7 @@ import java.util.Set;
  * 租户菜单处理
  * 目的：尽量减少租户逻辑耦合到系统中
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public interface TenantMenuHandler {
 

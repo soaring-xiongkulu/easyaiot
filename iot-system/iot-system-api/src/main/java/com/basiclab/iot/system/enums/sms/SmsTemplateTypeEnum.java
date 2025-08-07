@@ -6,7 +6,7 @@ import lombok.Getter;
 /**
  * 短信的模板类型枚举
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Getter
 @AllArgsConstructor

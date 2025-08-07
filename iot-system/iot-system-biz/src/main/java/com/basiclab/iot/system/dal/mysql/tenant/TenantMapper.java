@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * 租户 Mapper
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Mapper
 public interface TenantMapper extends BaseMapperX<TenantDO> {

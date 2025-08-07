@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 /**
  * Redis Channel Message 抽象类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public abstract class AbstractRedisChannelMessage extends AbstractRedisMessage {
 

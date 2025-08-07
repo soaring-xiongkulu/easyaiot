@@ -14,7 +14,7 @@ import java.io.InputStreamReader;
 /**
  *  Request Body 缓存 Wrapper
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public class CacheRequestBodyWrapper extends HttpServletRequestWrapper {
 

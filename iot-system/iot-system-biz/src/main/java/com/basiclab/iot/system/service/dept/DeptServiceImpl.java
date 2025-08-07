@@ -27,7 +27,7 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
 /**
  * 部门 Service 实现类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Service
 @Validated

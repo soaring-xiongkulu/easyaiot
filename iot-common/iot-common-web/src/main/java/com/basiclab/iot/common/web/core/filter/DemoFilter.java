@@ -15,7 +15,7 @@ import static com.basiclab.iot.common.exception.enums.GlobalErrorCodeConstants.D
 /**
  * 演示 Filter，禁止用户发起写操作，避免影响测试数据
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public class DemoFilter extends OncePerRequestFilter {
 

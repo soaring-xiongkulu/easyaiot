@@ -3,7 +3,7 @@ spring:
     name: gateway-server
 
   profiles:
-    active: local
+    active: dev
 
 server:
   port: 48080

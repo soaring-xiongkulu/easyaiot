@@ -12,7 +12,7 @@ import javax.validation.constraints.NotNull;
 /**
  * S3 文件客户端的配置类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Data
 public class S3FileClientConfig implements FileClientConfig {

@@ -38,7 +38,7 @@ import static com.basiclab.iot.system.enums.LogRecordConstants.*;
 /**
  * 角色 Service 实现类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Service
 @Slf4j

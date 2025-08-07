@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 /**
  * 数据库配置类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @AutoConfiguration
 @EnableTransactionManagement(proxyTargetClass = true) // 启动事务管理

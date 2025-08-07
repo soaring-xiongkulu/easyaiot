@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * 短信发送消息
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Data
 public class SmsSendMessage {

@@ -3,7 +3,7 @@ spring:
     name: stream-server
 
   profiles:
-    active: local
+    active: dev
 
 server:
   port: 48084

@@ -10,7 +10,7 @@ import java.util.Arrays;
 /**
  * 用户短信验证码发送场景的枚举
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Getter
 @AllArgsConstructor

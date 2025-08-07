@@ -3,7 +3,7 @@ package com.basiclab.iot.system.enums;
 /**
  * System 字典类型的枚举类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public interface DictTypeConstants {
 

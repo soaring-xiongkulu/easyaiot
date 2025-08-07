@@ -29,7 +29,7 @@ import static com.basiclab.iot.common.utils.collection.CollectionUtils.containsA
 /**
  * 定时任务 Service 实现类
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Service
 @Validated

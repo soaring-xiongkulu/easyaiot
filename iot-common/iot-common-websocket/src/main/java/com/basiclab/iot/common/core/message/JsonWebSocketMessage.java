@@ -8,7 +8,7 @@ import java.io.Serializable;
 /**
  * JSON 格式的 WebSocket 消息帧
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @Data
 public class JsonWebSocketMessage implements Serializable {

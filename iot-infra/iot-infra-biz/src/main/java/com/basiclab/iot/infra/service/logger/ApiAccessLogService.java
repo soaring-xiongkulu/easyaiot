@@ -8,7 +8,7 @@ import com.basiclab.iot.infra.dal.dataobject.logger.ApiAccessLogDO;
 /**
  * API 访问日志 Service 接口
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public interface ApiAccessLogService {
 

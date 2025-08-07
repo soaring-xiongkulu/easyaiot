@@ -11,7 +11,7 @@ import static org.mockito.Mockito.mock;
 /**
  * {@link DataPermissionContextHolder} 的单元测试
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 class DataPermissionContextHolderTest {
 

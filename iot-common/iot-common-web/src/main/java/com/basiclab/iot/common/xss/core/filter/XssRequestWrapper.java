@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * Xss 请求 Wrapper
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 public class XssRequestWrapper extends HttpServletRequestWrapper {
 

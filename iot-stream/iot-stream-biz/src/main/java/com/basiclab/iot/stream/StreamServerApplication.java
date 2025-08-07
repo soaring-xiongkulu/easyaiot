@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
  * 项目的启动类
  * <p>
  *
- * @author 深圳市深度智核科技有限责任公司
+ * @author EasyAIoT
  */
 @EnableCustomConfig
 @EnableCustomSwagger2
