@@ -1,3 +1,3 @@
-com.basiclab.iot.common.mq.redis.config.YudaoRedisMQProducerAutoConfiguration
-com.basiclab.iot.common.mq.redis.config.YudaoRedisMQConsumerAutoConfiguration
-com.basiclab.iot.common.mq.rabbitmq.config.YudaoRabbitMQAutoConfiguration
+com.basiclab.iot.common.redis.config.YudaoRedisMQProducerAutoConfiguration
+com.basiclab.iot.common.redis.config.YudaoRedisMQConsumerAutoConfiguration
+com.basiclab.iot.common.rabbitmq.config.YudaoRabbitMQAutoConfiguration
