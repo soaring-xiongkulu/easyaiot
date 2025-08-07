@@ -12,7 +12,7 @@
   <version>1.0.0</version>
   <name>${project.artifactId}</name>
   <description>定义基础 pojo 类、枚举、工具类等等</description>
-  <url>https://gitee.com/sdjlkfdskl/lf-ai-stream</url>
+  <url>https://github.com/soaring-xiongkulu/easyaiot</url>
   <dependencies>
     <dependency>
       <groupId>org.springframework</groupId>

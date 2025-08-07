@@ -25,9 +25,9 @@ public class BannerApplicationRunner implements ApplicationRunner {
                             "开发文档: \t{} \n\t" +
                             "视频教程: \t{} \n" +
                             "----------------------------------------------------------",
-                    "https://gitee.com/sdjlkfdskl/lf-ai-stream",
-                    "https://gitee.com/sdjlkfdskl/lf-ai-stream",
-                    "https://gitee.com/sdjlkfdskl/lf-ai-stream");
+                    "https://github.com/soaring-xiongkulu/easyaiot",
+                    "https://github.com/soaring-xiongkulu/easyaiot",
+                    "https://github.com/soaring-xiongkulu/easyaiot");
         });
     }
 

@@ -1,20 +1,19 @@
 {
-  "name": "LF-AI-STREAM-web",
+  "name": "easyaiot-web",
   "version": "2.1.0-snapshot",
   "packageManager": "pnpm@9.0.4",
   "author": {
-    "name": "LF",
-    "email": "853017739@qq.com",
-    "url": "https://gitee.com/vegetable-chicken-blog/LF-AI-STREAM"
+    "name": "easyaiot",
+    "url": "https://github.com/soaring-xiongkulu/easyaiot"
   },
   "license": "Apache-2.0",
   "homepage": "https://vegetable-chicken.blog.csdn.net/",
   "repository": {
     "type": "git",
-    "url": "git+https://gitee.com/vegetable-chicken-blog/LF-AI-STREAM.git"
+    "url": "git+hhttps://github.com/soaring-xiongkulu/easyaiot"
   },
   "bugs": {
-    "url": "https://gitee.com/vegetable-chicken-blog/LF-AI-STREAM/issues"
+    "url": "https://github.com/soaring-xiongkulu/easyaiot/issues"
   },
   "engines": {
     "node": "^18.0.0 || >=20.0.0",

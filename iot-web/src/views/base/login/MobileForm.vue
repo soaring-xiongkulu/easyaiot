@@ -36,7 +36,7 @@ const verify = ref()
 const captchaType = ref('blockPuzzle') // blockPuzzle 滑块 clickWord 点击文字
 
 const formData = reactive({
-  tenantName: 'LF-AI-STREAM',
+  tenantName: 'easyaiot',
   mobile: '',
   mobileCode: '',
   captchaVerification: '',

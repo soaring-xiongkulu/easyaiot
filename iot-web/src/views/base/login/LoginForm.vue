@@ -42,7 +42,7 @@ const verify = ref()
 const captchaType = ref('blockPuzzle') // blockPuzzle 滑块 clickWord 点击文字
 
 const formData = reactive({
-  tenantName: 'LF-AI-STREAM',
+  tenantName: 'easyaiot',
   username: 'admin',
   password: 'admin123',
   captchaVerification: '',
@@ -211,16 +211,16 @@ async function handleLogin(params) {
       萌新必读
     </Divider>
     <div class="enter-x flex justify-evenly" :class="`${prefixCls}-sign-in-way`">
-      <a-button href="https://gitee.com/vegetable-chicken-blog/LF-AI-STREAM/raw/master/iot-web/public/resource/img/wechart.jpg" target="_blank" class="w-1/4">
+      <a-button href="https://github.com/soaring-xiongkulu/easyaiot/raw/master/iot-web/public/resource/img/wechart.jpg" target="_blank" class="w-1/4">
         📚开发指南
       </a-button>
-      <a-button href="https://gitee.com/vegetable-chicken-blog/LF-AI-STREAM/raw/master/iot-web/public/resource/img/wechart.jpg" target="_blank" class="w-1/4 pl-1">
+      <a-button href="https://github.com/soaring-xiongkulu/easyaiot/raw/master/iot-web/public/resource/img/wechart.jpg" target="_blank" class="w-1/4 pl-1">
         🔥视频教程
       </a-button>
-      <a-button href="https://gitee.com/vegetable-chicken-blog/LF-AI-STREAM/raw/master/iot-web/public/resource/img/wechart.jpg" target="_blank" class="w-1/4 pl-1">
+      <a-button href="https://github.com/soaring-xiongkulu/easyaiot/raw/master/iot-web/public/resource/img/wechart.jpg" target="_blank" class="w-1/4 pl-1">
         ⚡面试手册
       </a-button>
-      <a-button href="https://gitee.com/vegetable-chicken-blog/LF-AI-STREAM/raw/master/iot-web/public/resource/img/wechart.jpg" target="_blank" class="w-1/4 pl-1">
+      <a-button href="https://github.com/soaring-xiongkulu/easyaiot/raw/master/iot-web/public/resource/img/wechart.jpg" target="_blank" class="w-1/4 pl-1">
         🤝外包咨询
       </a-button>
     </div>

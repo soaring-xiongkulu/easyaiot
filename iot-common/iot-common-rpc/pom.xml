@@ -15,7 +15,7 @@
     <description>
         OpenFeign：提供 RESTful API 的调用
     </description>
-    <url>https://gitee.com/sdjlkfdskl/lf-ai-stream</url>
+    <url>https://github.com/soaring-xiongkulu/easyaiot</url>
 
     <dependencies>
         <dependency>

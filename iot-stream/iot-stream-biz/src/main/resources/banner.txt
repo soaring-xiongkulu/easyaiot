@@ -1,4 +1,4 @@
-LF-AI-STREAM源码 https://gitee.com/sdjlkfdskl/lf-ai-stream
+LF-AI-STREAM源码 https://github.com/soaring-xiongkulu/easyaiot
 Application Version: ${iot.info.version}
 Spring Boot Version: ${spring-boot.version}
 

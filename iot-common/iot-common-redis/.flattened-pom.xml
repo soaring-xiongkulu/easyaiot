@@ -12,7 +12,7 @@
   <version>1.0.0</version>
   <name>${project.artifactId}</name>
   <description>Redis 封装拓展</description>
-  <url>https://gitee.com/sdjlkfdskl/lf-ai-stream</url>
+  <url>https://github.com/soaring-xiongkulu/easyaiot</url>
   <dependencies>
     <dependency>
       <groupId>com.basiclab.iot</groupId>
