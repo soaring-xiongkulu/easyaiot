@@ -1,0 +1,34 @@
+package com.basiclab.iot.infra.dal.mysql.demo;
+
+import java.util.*;
+
+import pojo.com.basiclab.iot.common.PageResult;
+import query.core.mybatis.com.basiclab.iot.common.LambdaQueryWrapperX;
+import mapper.core.mybatis.com.basiclab.iot.common.BaseMapperX;
+import com.basiclab.iot.infra.dal.dataobject.demo.InfraCategoryDO;
+import org.apache.ibatis.annotations.Mapper;
+import com.basiclab.iot.infra.controller.admin.demo.vo.*;
+
+/**
+ * 分类 Mapper
+ *
+ * @author 安徽上洲智能科技
+ */
+@Mapper
+public interface InfraCategoryMapper extends BaseMapperX<InfraCategoryDO> {
+
+    default List<InfraCategoryDO> selectList(InfraCategoryListReqVO reqVO) {
+        return selectList(new LambdaQueryWrapperX<InfraCategoryDO>()
+                .likeIfPresent(InfraCategoryDO::getName, reqVO.getName())
+                .orderByDesc(InfraCategoryDO::getId));
+    }
+
+	default InfraCategoryDO selectByParentIdAndName(Long parentId, String name) {
+	    return selectOne(InfraCategoryDO::getParentId, parentId, InfraCategoryDO::getName, name);
+	}
+
+    default Long selectCountByParentId(Long parentId) {
+        return selectCount(InfraCategoryDO::getParentId, parentId);
+    }
+
+}

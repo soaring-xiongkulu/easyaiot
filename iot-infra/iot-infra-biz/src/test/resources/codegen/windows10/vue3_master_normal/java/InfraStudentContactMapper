@@ -1,0 +1,28 @@
+package com.basiclab.iot.infra.dal.mysql.demo;
+
+import java.util.*;
+
+import pojo.com.basiclab.iot.common.PageResult;
+import pojo.com.basiclab.iot.common.PageParam;
+import query.core.mybatis.com.basiclab.iot.common.LambdaQueryWrapperX;
+import mapper.core.mybatis.com.basiclab.iot.common.BaseMapperX;
+import com.basiclab.iot.infra.dal.dataobject.demo.InfraStudentContactDO;
+import org.apache.ibatis.annotations.Mapper;
+
+/**
+ * 学生联系人 Mapper
+ *
+ * @author 安徽上洲智能科技
+ */
+@Mapper
+public interface InfraStudentContactMapper extends BaseMapperX<InfraStudentContactDO> {
+
+    default List<InfraStudentContactDO> selectListByStudentId(Long studentId) {
+        return selectList(InfraStudentContactDO::getStudentId, studentId);
+    }
+
+    default int deleteByStudentId(Long studentId) {
+        return delete(InfraStudentContactDO::getStudentId, studentId);
+    }
+
+}
