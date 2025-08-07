@@ -20,7 +20,7 @@
     </modules>
 
     <name>${project.artifactId}</name>
-    <description>BasicLab项目基础脚手架</description>
+    <description>EasyAIoT项目基础脚手架</description>
     <url>https://github.com/soaring-xiongkulu/easyaiot</url>
 
     <properties>
