@@ -1,0 +1,2 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+  com.basiclab.iot.common.mybatis.config.IdTypeEnvironmentPostProcessor
