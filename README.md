@@ -1,7 +1,7 @@
 # EasyAIoT（深度智核AI云平台）
 
 <div align="center">
-    <img src=".image/logo.png" width="50%" height="50%" alt="EasyAIoT">
+    <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
 #### 深度融合，赋能万物智视：EasyAIoT 构筑了物联网设备（尤其是海量摄像头）的高效接入与管控网络。我们深度融合流媒体实时传输技术与前沿人工智能（AI），打造一体化服务核心。这套方案不仅打通了异构设备的互联互通，更将高清视频流与强大的AI解析引擎深度集成，赋予监控系统“智能之眼”——精准实现人脸识别、异常行为分析、风险人员布控及周界入侵检测。
