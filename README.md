@@ -1,4 +1,4 @@
-# EasyAIoT（鸾鳳深度视觉AI平台）
+# EasyAIoT（深度智核视觉AI云平台）
 
 <div align="center">
     <img src=".image/logo.png" width="50%" height="50%" alt="EasyAIoT">****
@@ -68,7 +68,7 @@ pnpm install
 pnpm dev
 ```
 
-## 鸾鳳深度视觉AI平台【开源版】
+## 深度智核视觉AI云平台【开源版】
 <div>
   <img src=".image/banner/banner1001.png" alt="图片1" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1002.png" alt="图片1" width="49%">
@@ -82,7 +82,7 @@ pnpm dev
   <img src=".image/banner/banner1006.png" alt="图片1" width="49%">
 </div>
 
-## 鸾鳳AI-BOX边缘平台【商业版】
+## 深度智核视觉AI边缘平台【商业版】
 <div>
   <img src=".image/banner/banner99.png" alt="图片1" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner100.png" alt="图片1" width="49%">
@@ -108,7 +108,7 @@ pnpm dev
   <img src=".image/banner/banner62.png" alt="图片1" width="49%">
 </div>
 
-## 鸾鳳深度视觉AI平台【商业版】
+## 深度智核视觉AI云平台【商业版】
 <div>
     <img src=".image/banner/banner1.png" alt="图片1" width="49%" style="margin-right: 10px">
     <img src=".image/banner/banner3.png" alt="图片2" width="49%" style="margin-right: 10px">
