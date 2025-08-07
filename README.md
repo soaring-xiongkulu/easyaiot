@@ -169,10 +169,12 @@ pnpm dev
 
 ## 联系方式
 - 邮箱：andywebjava@163.com(本项目相关问题请走issue流程，否则恕不邮件答复)
+
 - 微信号（技术交流请加入星球后拉入微信技术群）：
 <div>
     <img src=".image/联系方式.jpg" alt="联系方式" width="30%">
 </div>
+
 - 也可以自愿有偿加入知识星球咨询、获取资料以及加入微信技术群：
 <div>
     <img src=".image/知识星球.jpg" alt="知识星球" width="30%">
