@@ -1,0 +1,2 @@
+com.basiclab.iot.common.quartz.config.YudaoQuartzAutoConfiguration
+com.basiclab.iot.common.quartz.config.YudaoAsyncAutoConfiguration

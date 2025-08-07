@@ -1,0 +1,2 @@
+com.basiclab.iot.common.config.YudaoRedisAutoConfiguration
+com.basiclab.iot.common.config.YudaoCacheAutoConfiguration

@@ -1,0 +1,6 @@
+com.basiclab.iot.common.apilog.config.YudaoApiLogAutoConfiguration
+com.basiclab.iot.common.jackson.config.YudaoJacksonAutoConfiguration
+com.basiclab.iot.common.swagger.config.YudaoSwaggerAutoConfiguration
+com.basiclab.iot.common.web.config.YudaoWebAutoConfiguration
+com.basiclab.iot.common.apilog.config.YudaoApiLogRpcAutoConfiguration
+com.basiclab.iot.common.banner.config.YudaoBannerAutoConfiguration

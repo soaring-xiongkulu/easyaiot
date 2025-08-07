@@ -1,0 +1,2 @@
+com.basiclab.iot.common.config.YudaoTracerAutoConfiguration
+com.basiclab.iot.common.config.YudaoMetricsAutoConfiguration
