@@ -90,13 +90,13 @@
             <version>1.20.0</version>
         </dependency>
         <!-- 加载lib目录下的opencv包 -->
-        <dependency>
-            <groupId>org.opencv</groupId>
-            <artifactId>opencv</artifactId>
-            <version>4.10.0</version>
-            <scope>system</scope>
-            <systemPath>/projects/opencv-4.10.0/install/share/java/opencv4/opencv-4100.jar</systemPath>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.opencv</groupId>-->
+<!--            <artifactId>opencv</artifactId>-->
+<!--            <version>4.10.0</version>-->
+<!--            <scope>system</scope>-->
+<!--            <systemPath>/projects/opencv-4.10.0/install/share/java/opencv4/opencv-4100.jar</systemPath>-->
+<!--        </dependency>-->
 
         <!--http客户端工具-->
         <dependency>

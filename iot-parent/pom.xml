@@ -186,12 +186,6 @@
             </dependency>
 
             <dependency>
-                <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-common-websocket</artifactId>
-                <version>${revision}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>com.github.xiaoymin</groupId>
                 <artifactId>knife4j-spring-boot-starter</artifactId>
                 <version>${swagger.start.version}</version>
@@ -423,14 +417,6 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-
-            <!-- 监控相关 -->
-            <dependency>
-                <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-common-monitor</artifactId>
-                <version>${revision}</version>
-            </dependency>
-
             <dependency>
                 <groupId>org.apache.skywalking</groupId>
                 <artifactId>apm-toolkit-trace</artifactId>

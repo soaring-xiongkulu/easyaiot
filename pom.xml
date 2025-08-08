@@ -90,11 +90,6 @@
             </dependency>
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-common-monitor</artifactId>
-                <version>${revision}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.basiclab.iot</groupId>
                 <artifactId>iot-common-mq</artifactId>
                 <version>${revision}</version>
             </dependency>
@@ -136,11 +131,6 @@
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
                 <artifactId>iot-common-web</artifactId>
-                <version>${revision}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-common-websocket</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
