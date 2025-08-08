@@ -1,0 +1,24 @@
+-- 菜单 SQL
+INSERT INTO system_menu(
+    id, name, permission, type, sort, parent_id,
+    path, icon, component, status, component_name
+)
+VALUES (
+    nextval('system_menu_seq'), '${table.classComment}管理', '', 2, 0, ${table.parentMenuId},
+    '${simpleClassName_strikeCase}', '', '${table.moduleName}/${table.businessName}/index', 0, '${table.className}'
+);
+
+-- 按钮 SQL
+#set ($functionNames = ['查询', '创建', '更新', '删除', '导出'])
+#set ($functionOps = ['query', 'create', 'update', 'delete', 'export'])
+#foreach ($functionName in $functionNames)
+#set ($index = $foreach.count - 1)
+INSERT INTO system_menu(
+    id, name, permission, type, sort, parent_id,
+    path, icon, component, status
+)
+VALUES (
+    nextval('system_menu_seq'), '${table.classComment}${functionName}', '${permissionPrefix}:${functionOps.get($index)}', 3, $foreach.count, (select min(id) from system_menu where name='${table.classComment}管理') ,
+    '', '', '', 0
+);
+#end

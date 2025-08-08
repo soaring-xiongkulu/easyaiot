@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--日志的级别以及优先级排序: OFF > FATAL > ERROR > WARN > INFO > DEBUG > TRACE > ALL -->
+<!-- Configuration后面的status，这个用于设置log4j2自身内部的信息输出，可以不设置，当设置成trace时，
+     你会看到log4j2内部各种详细输出。可以设置成OFF(关闭) 或 Error(只输出错误信息)。
+-->
+<!--monitorInterval：Log4j能够自动检测修改配置 文件和重新配置本身，设置间隔秒数-->
+<configuration status="WARN" monitorInterval="30">
+
+    <Properties>
+        <Property name="log.path">${ctx:logDir:-/usr/local/logs}</Property>
+        <Property name="moduleName">${ctx:appName:-swkj}</Property>
+        <Property name="podIp">${ctx:podIp}</Property>
+        <Property name="appEnv">${ctx:appEnv}</Property>
+        <Property name="logging.swkj.pattern">
+            [%date{yyyy-MM-dd HH:mm:ss.SSS}][${appEnv}][${moduleName}][${podIp}][%level][%traceId][%thread][%C][%M][%line][%X{X-B3-TraceId} %X{X-B3-SpanId} %X{X-B3-ParentSpanId}]-%m%n
+        </Property>
+    </Properties>
+
+    <Appenders>
+        <!-- 输出控制台日志的配置 -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <!--控制台只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+            <ThresholdFilter level="debug" onMatch="ACCEPT" onMismatch="DENY"/>
+            <!-- 输出日志的格式 -->
+            <PatternLayout pattern="${logging.swkj.pattern}"/>
+        </Console>
+
+        <RollingRandomAccessFile name="debugRollingFile" fileName="${log.path}/${moduleName}/${appEnv}_${moduleName}.log"
+                                 filePattern="${log.path}/${moduleName}/backup/${appEnv}_${moduleName}.%d{yyyyMMddHH}.zip">
+            <ThresholdFilter level="debug" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout charset="UTF-8" pattern="${logging.swkj.pattern}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="100 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingRandomAccessFile>
+
+        <RollingRandomAccessFile name="errorRollingFile" fileName="${log.path}/${moduleName}/${appEnv}_${moduleName}.log"
+                                 filePattern="${log.path}/${moduleName}/backup/${appEnv}_${moduleName}.%d{yyyyMMddHH}.zip">
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout charset="UTF-8" pattern="${logging.swkj.pattern}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="100 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingRandomAccessFile>
+
+        <GRPCLogClientAppender name="grpc-log">
+            <PatternLayout pattern="${logging.swkj.pattern}"/>
+        </GRPCLogClientAppender>
+    </Appenders>
+    <Loggers>
+        <logger name="RocketmqRemoting" level="warn" additivity="false"/>
+        <!-- ALL < TRACE < DEBUG < INFO < WARN < ERROR < FATAL < OFF -->
+<!--        <Logger name="com.swkj.sys" level="debug"/>-->
+<!--        <Logger name="org.apache.kafka" level="warn"/>-->
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="debugRollingFile"/>
+            <AppenderRef ref="errorRollingFile"/>
+            <AppenderRef ref="grpc-log"/>
+        </Root>
+    </Loggers>
+</configuration>

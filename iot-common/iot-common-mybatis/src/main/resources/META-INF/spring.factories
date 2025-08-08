@@ -1,0 +1,6 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.basiclab.iot.common.utils.SpringUtils
+org.springframework.boot.env.EnvironmentPostProcessor=\
+  com.basiclab.iot.common.config.IdTypeEnvironmentPostProcessor
+
+

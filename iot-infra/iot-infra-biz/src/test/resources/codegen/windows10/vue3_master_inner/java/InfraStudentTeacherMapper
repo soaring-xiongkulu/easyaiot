@@ -1,0 +1,28 @@
+package com.basiclab.iot.infra.dal.pgsql.demo;
+
+import java.util.*;
+
+import pojo.com.basiclab.iot.mybatis.common.PageResult;
+import pojo.com.basiclab.iot.mybatis.common.PageParam;
+import query.core.mybatis.com.basiclab.iot.mybatis.LambdaQueryWrapperX;
+import mapper.core.mybatis.com.basiclab.iot.mybatis.BaseMapperX;
+import com.basiclab.iot.infra.dal.dataobject.demo.InfraStudentTeacherDO;
+import org.apache.ibatis.annotations.Mapper;
+
+/**
+ * 学生班主任 Mapper
+ *
+ * @author IoT
+ */
+@Mapper
+public interface InfraStudentTeacherMapper extends BaseMapperX<InfraStudentTeacherDO> {
+
+    default InfraStudentTeacherDO selectByStudentId(Long studentId) {
+        return selectOne(InfraStudentTeacherDO::getStudentId, studentId);
+    }
+
+    default int deleteByStudentId(Long studentId) {
+        return delete(InfraStudentTeacherDO::getStudentId, studentId);
+    }
+
+}

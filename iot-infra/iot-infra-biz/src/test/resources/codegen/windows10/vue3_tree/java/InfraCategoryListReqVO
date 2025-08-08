@@ -1,0 +1,15 @@
+package com.basiclab.iot.infra.controller.admin.demo.vo;
+
+import lombok.*;
+import java.util.*;
+import io.swagger.v3.oas.annotations.media.Schema;
+import pojo.com.basiclab.iot.mybatis.common.PageParam;
+
+@Schema(description = "管理后台 - 分类列表 Request VO")
+@Data
+public class InfraCategoryListReqVO {
+
+    @Schema(description = "名字", example = "芋头")
+    private String name;
+
+}
