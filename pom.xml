@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.basiclab.iot</groupId>
-    <artifactId>easyaiot</artifactId>
+    <artifactId>iot</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
 
@@ -38,12 +38,11 @@
         <module>iot-infra</module>
         <module>iot-device</module>
         <module>iot-things</module>
-        <module>iot-stream</module>
     </modules>
 
     <name>${project.artifactId}</name>
     <description>BasicLab项目基础脚手架</description>
-    <url>https://gitee.com/sdjlkfdskl/lf-ai-stream</url>
+    <url>https://github.com/soaring-xiongkulu/easyaiot</url>
 
     <dependencyManagement>
         <dependencies>

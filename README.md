@@ -33,30 +33,6 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 - **数据操作**：MyBatis-Plus
 - **数据库**：PostgreSQL
 
-
-## 部署安装
-##### 后端程序打包
-```
-mvn clean package -Dmaven.test.skip=true
-```
-##### 启动MQTT服务端
-```
-# 端口：8885，Topic：device/data/#
-nohup java -server -Xms512m -Xmx1024m -Djava.io.tmpdir=/var/tmp -Duser.timezone=Asia/Shanghai -jar iot-things*.jar --spring.profiles.active=dev  >iot-things.log &
-```
-##### 后端业务部署
-```
-nohup java -server -Xms512m -Xmx1024m -Djava.io.tmpdir=/var/tmp -Duser.timezone=Asia/Shanghai -jar iot-device*.jar --spring.profiles.active=dev  >iot-device.log &
-nohup java -server -Xms512m -Xmx1024m -Djava.io.tmpdir=/var/tmp -Duser.timezone=Asia/Shanghai -jar iot-gateway*.jar --spring.profiles.active=dev  >iot-gateway.log &
-nohup java -server -Xms512m -Xmx1024m -Djava.io.tmpdir=/var/tmp -Duser.timezone=Asia/Shanghai -jar iot-infra*.jar --spring.profiles.active=dev  >iot-infra.log &
-nohup java -server -Xms512m -Xmx1024m -Djava.io.tmpdir=/var/tmp -Duser.timezone=Asia/Shanghai -jar iot-system*.jar --spring.profiles.active=dev  >iot-system.log &
-```
-##### 前端部署
-```
-pnpm install
-pnpm dev
-```
-
 ## 截图
 <div>
   <img src=".image/banner/banner1001.png" alt="图片1" width="49%" style="margin-right: 10px">
