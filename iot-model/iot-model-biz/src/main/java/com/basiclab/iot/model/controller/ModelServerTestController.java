@@ -36,14 +36,14 @@ public class ModelServerTestController {
 
     @PostMapping("/create")
     @Operation(summary = "创建模型测试服务")
-    // @PreAuthorize("@ss.hasPermission('model:server-test:create')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test:create')")
     public CommonResult<Long> createModelServerTest(@Valid @RequestBody ModelServerTestSaveReqVO createReqVO) {
         return success(modelServerTestService.createModelServerTest(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新模型测试服务")
-    // @PreAuthorize("@ss.hasPermission('model:server-test:update')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test:update')")
     public CommonResult<Boolean> updateModelServerTest(@Valid @RequestBody ModelServerTestSaveReqVO updateReqVO) {
         modelServerTestService.updateModelServerTest(updateReqVO);
         return success(true);
@@ -52,7 +52,7 @@ public class ModelServerTestController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除模型测试服务")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('model:server-test:delete')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test:delete')")
     public CommonResult<Boolean> deleteModelServerTest(@RequestParam("id") Long id) {
         modelServerTestService.deleteModelServerTest(id);
         return success(true);
@@ -61,7 +61,7 @@ public class ModelServerTestController {
     @GetMapping("/get")
     @Operation(summary = "获得模型测试服务")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('model:server-test:query')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test:query')")
     public CommonResult<ModelServerTestRespVO> getModelServerTest(@RequestParam("id") Long id) {
         ModelServerTestDO serverTest = modelServerTestService.getModelServerTest(id);
         return success(BeanUtils.toBean(serverTest, ModelServerTestRespVO.class));
@@ -69,7 +69,7 @@ public class ModelServerTestController {
 
     @GetMapping("/page")
     @Operation(summary = "获得模型测试服务分页")
-    // @PreAuthorize("@ss.hasPermission('model:server-test:query')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test:query')")
     public CommonResult<PageResult<ModelServerTestRespVO>> getModelServerTestPage(@Valid ModelServerTestPageReqVO pageReqVO) {
         PageResult<ModelServerTestDO> pageResult = modelServerTestService.getModelServerTestPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, ModelServerTestRespVO.class));
@@ -77,7 +77,7 @@ public class ModelServerTestController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出模型测试服务 Excel")
-    // @PreAuthorize("@ss.hasPermission('model:server-test:export')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportModelServerTestExcel(@Valid ModelServerTestPageReqVO pageReqVO,
                                            HttpServletResponse response) throws IOException {

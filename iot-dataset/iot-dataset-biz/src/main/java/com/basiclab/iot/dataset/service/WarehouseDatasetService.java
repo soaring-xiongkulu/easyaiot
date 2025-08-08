@@ -10,7 +10,7 @@ import javax.validation.Valid;
 /**
  * 数据仓数据集关联 Service 接口
  *
- * @author IoT
+ * @author EasyAIoT
  */
 public interface WarehouseDatasetService {
 

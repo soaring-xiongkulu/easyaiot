@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 /**
  * Bean 工具类
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class BeanUtils extends org.springframework.beans.BeanUtils
 {

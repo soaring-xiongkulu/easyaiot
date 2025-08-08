@@ -9,7 +9,7 @@ import com.basiclab.iot.system.dal.dataobject.logger.OperateLogDO;
 /**
  * 操作日志 Service 接口
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public interface OperateLogService {
 

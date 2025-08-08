@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * {@link DataPermissionRuleFactoryImpl} 单元测试
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 class DataPermissionRuleFactoryImplTest extends BaseMockitoUnitTest {
 

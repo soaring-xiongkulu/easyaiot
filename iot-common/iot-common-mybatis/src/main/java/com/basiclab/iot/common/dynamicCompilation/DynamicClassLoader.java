@@ -7,8 +7,8 @@ import java.net.URLClassLoader;
  * 自定义类加载器，用于动态加载类 
  * </BR>继承自 @see URLClassLoader
  *
- * @author EasyIoT
- * @date 2024-07-04
+ * @author EasyAIoT
+ * @date 2025-07-04
  *
  */
 public class DynamicClassLoader extends URLClassLoader {

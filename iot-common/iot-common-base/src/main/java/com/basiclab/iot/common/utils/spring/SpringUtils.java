@@ -7,7 +7,7 @@ import java.util.Objects;
 /**
  * Spring 工具类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class SpringUtils extends SpringUtil {
 

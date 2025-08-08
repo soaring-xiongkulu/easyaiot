@@ -13,9 +13,9 @@ import javax.annotation.PostConstruct;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc    场景规则处理实例工厂
- * @created 2024-07-10
+ * @created 2025-07-10
  */
 @Component
 @Slf4j

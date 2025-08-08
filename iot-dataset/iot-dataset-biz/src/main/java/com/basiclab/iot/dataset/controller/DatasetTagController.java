@@ -35,14 +35,14 @@ public class DatasetTagController {
 
     @PostMapping("/create")
     @Operation(summary = "创建数据集标签")
-    // @PreAuthorize("@ss.hasPermission('dataset:tag:create')")
+    //@PreAuthorize("@ss.hasPermission('dataset:tag:create')")
     public CommonResult<Long> createDatasetTag(@Valid @RequestBody DatasetTagSaveReqVO createReqVO) {
         return success(datasetTagService.createDatasetTag(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新数据集标签")
-    // @PreAuthorize("@ss.hasPermission('dataset:tag:update')")
+    //@PreAuthorize("@ss.hasPermission('dataset:tag:update')")
     public CommonResult<Boolean> updateDatasetTag(@Valid @RequestBody DatasetTagSaveReqVO updateReqVO) {
         datasetTagService.updateDatasetTag(updateReqVO);
         return success(true);
@@ -51,7 +51,7 @@ public class DatasetTagController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除数据集标签")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('dataset:tag:delete')")
+    //@PreAuthorize("@ss.hasPermission('dataset:tag:delete')")
     public CommonResult<Boolean> deleteDatasetTag(@RequestParam("id") Long id) {
         datasetTagService.deleteDatasetTag(id);
         return success(true);
@@ -60,7 +60,7 @@ public class DatasetTagController {
     @GetMapping("/get")
     @Operation(summary = "获得数据集标签")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('dataset:tag:query')")
+    //@PreAuthorize("@ss.hasPermission('dataset:tag:query')")
     public CommonResult<DatasetTagRespVO> getDatasetTag(@RequestParam("id") Long id) {
         DatasetTagDO tag = datasetTagService.getDatasetTag(id);
         return success(BeanUtils.toBean(tag, DatasetTagRespVO.class));
@@ -68,7 +68,7 @@ public class DatasetTagController {
 
     @GetMapping("/page")
     @Operation(summary = "获得数据集标签分页")
-    // @PreAuthorize("@ss.hasPermission('dataset:tag:query')")
+    //@PreAuthorize("@ss.hasPermission('dataset:tag:query')")
     public CommonResult<PageResult<DatasetTagRespVO>> getDatasetTagPage(@Valid DatasetTagPageReqVO pageReqVO) {
         PageResult<DatasetTagDO> pageResult = datasetTagService.getDatasetTagPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, DatasetTagRespVO.class));
@@ -76,7 +76,7 @@ public class DatasetTagController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出数据集标签 Excel")
-    // @PreAuthorize("@ss.hasPermission('dataset:tag:export')")
+    //@PreAuthorize("@ss.hasPermission('dataset:tag:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportDatasetTagExcel(@Valid DatasetTagPageReqVO pageReqVO,
                                       HttpServletResponse response) throws IOException {

@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * 模型测试图片 Mapper
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Mapper
 public interface ModelServerTestImageMapper extends BaseMapperX<ModelServerTestImageDO> {

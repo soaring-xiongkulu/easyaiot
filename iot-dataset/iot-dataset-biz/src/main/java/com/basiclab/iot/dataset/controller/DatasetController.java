@@ -39,14 +39,14 @@ public class DatasetController {
 
     @PostMapping("/create")
     @Operation(summary = "创建数据集")
-    // @PreAuthorize("@ss.hasPermission('dataset::create')")
+    //@PreAuthorize("@ss.hasPermission('dataset::create')")
     public CommonResult<Long> createDataset(@Valid @RequestBody DatasetSaveReqVO createReqVO) {
         return success(datasetService.createDataset(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新数据集")
-    // @PreAuthorize("@ss.hasPermission('dataset::update')")
+    //@PreAuthorize("@ss.hasPermission('dataset::update')")
     public CommonResult<Boolean> updateDataset(@Valid @RequestBody DatasetSaveReqVO updateReqVO) {
         datasetService.updateDataset(updateReqVO);
         return success(true);
@@ -55,7 +55,7 @@ public class DatasetController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除数据集")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('dataset::delete')")
+    //@PreAuthorize("@ss.hasPermission('dataset::delete')")
     public CommonResult<Boolean> deleteDataset(@RequestParam("id") Long id) {
         datasetService.deleteDataset(id);
         return success(true);
@@ -64,7 +64,7 @@ public class DatasetController {
     @GetMapping("/get")
     @Operation(summary = "获得数据集")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('dataset::query')")
+    //@PreAuthorize("@ss.hasPermission('dataset::query')")
     public CommonResult<DatasetRespVO> getDataset(@RequestParam("id") Long id) {
         DatasetDO dataset = datasetService.getDataset(id);
         return success(BeanUtils.toBean(dataset, DatasetRespVO.class));
@@ -72,14 +72,14 @@ public class DatasetController {
 
     @GetMapping("/page")
     @Operation(summary = "获得数据集分页")
-    // @PreAuthorize("@ss.hasPermission('dataset::query')")
+    //@PreAuthorize("@ss.hasPermission('dataset::query')")
     public PageInfo<DatasetDO> getDatasetPage(@Valid DatasetPageReqVO pageReqVO) {
         return datasetService.getDatasetPage(pageReqVO);
     }
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出数据集 Excel")
-    // @PreAuthorize("@ss.hasPermission('dataset::export')")
+    //@PreAuthorize("@ss.hasPermission('dataset::export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportDatasetExcel(@Valid DatasetPageReqVO pageReqVO,
                                    HttpServletResponse response) throws IOException {

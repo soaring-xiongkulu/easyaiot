@@ -23,7 +23,7 @@ public class FilePageReqVO extends PageParam {
     @Schema(description = "文件类型，模糊匹配", example = "jpg")
     private String type;
 
-    @Schema(description = "创建时间", example = "[2024-07-01 00:00:00, 2024-07-01 23:59:59]")
+    @Schema(description = "创建时间", example = "[2025-07-01 00:00:00, 2025-07-01 23:59:59]")
     @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)
     private LocalDateTime[] createTime;
 

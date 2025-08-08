@@ -322,6 +322,6 @@ python:
     streamPushServer: rtmp://192.168.0.249:1935/stream/live/
     streamSign: 69db35390ddad33f83944f44b8b75plk
   work:
-    adminEmailAddress: 853017739@qq.com
+    adminEmailAddress: andywebjava@163.com
     dir: /data/iot
     restartCountThreshold: 17

@@ -11,7 +11,7 @@ import java.util.Arrays;
  *
  * 用于实现数据级别的权限
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Getter
 @AllArgsConstructor

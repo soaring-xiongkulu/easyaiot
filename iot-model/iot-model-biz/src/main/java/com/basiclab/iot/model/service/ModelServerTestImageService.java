@@ -10,7 +10,7 @@ import javax.validation.Valid;
 /**
  * 模型测试图片 Service 接口
  *
- * @author IoT
+ * @author EasyAIoT
  */
 public interface ModelServerTestImageService {
 

@@ -9,7 +9,7 @@ import com.basiclab.iot.dataset.domain.dataset.vo.DatasetTagSaveReqVO;
 /**
  * 数据集标签 Service 接口
  *
- * @author IoT
+ * @author EasyAIoT
  */
 public interface DatasetTagService {
 

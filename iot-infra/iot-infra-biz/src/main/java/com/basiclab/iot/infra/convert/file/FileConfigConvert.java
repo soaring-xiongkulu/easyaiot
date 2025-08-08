@@ -9,7 +9,7 @@ import org.mapstruct.factory.Mappers;
 /**
  * 文件配置 Convert
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Mapper
 public interface FileConfigConvert {

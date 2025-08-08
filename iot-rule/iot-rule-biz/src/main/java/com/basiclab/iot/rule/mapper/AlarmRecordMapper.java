@@ -4,9 +4,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.basiclab.iot.rule.domain.AlarmRecord;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc
- * @created 2024-07-18
+ * @created 2025-07-18
  */
 public interface AlarmRecordMapper extends BaseMapper<AlarmRecord> {
 }

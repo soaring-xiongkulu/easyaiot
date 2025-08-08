@@ -10,7 +10,7 @@ import pojo.com.basiclab.iot.mybatis.common.PageParam;
 /**
  * 学生 Service 接口
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public interface InfraStudentService {
 

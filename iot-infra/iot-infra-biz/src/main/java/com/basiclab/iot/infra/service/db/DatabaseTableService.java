@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * 数据库表 Service
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public interface DatabaseTableService {
 

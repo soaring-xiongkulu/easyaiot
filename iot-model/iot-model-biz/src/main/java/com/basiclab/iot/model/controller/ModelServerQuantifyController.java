@@ -37,14 +37,14 @@ public class ModelServerQuantifyController {
 
     @PostMapping("/create")
     @Operation(summary = "创建模型量化服务")
-    // @PreAuthorize("@ss.hasPermission('model:server-quantify:create')")
+    //@PreAuthorize("@ss.hasPermission('model:server-quantify:create')")
     public CommonResult<Long> createModelServerQuantify(@Valid @RequestBody ModelServerQuantifySaveReqVO createReqVO) {
         return success(modelServerQuantifyService.createServerQuantify(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新模型量化服务")
-    // @PreAuthorize("@ss.hasPermission('model:server-quantify:update')")
+    //@PreAuthorize("@ss.hasPermission('model:server-quantify:update')")
     public CommonResult<Boolean> updateModelServerQuantify(@Valid @RequestBody ModelServerQuantifySaveReqVO updateReqVO) {
         modelServerQuantifyService.updateServerQuantify(updateReqVO);
         return success(true);
@@ -53,7 +53,7 @@ public class ModelServerQuantifyController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除模型量化服务")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('model:server-quantify:delete')")
+    //@PreAuthorize("@ss.hasPermission('model:server-quantify:delete')")
     public CommonResult<Boolean> deleteModelServerQuantify(@RequestParam("id") Long id) {
         modelServerQuantifyService.deleteServerQuantify(id);
         return success(true);
@@ -62,7 +62,7 @@ public class ModelServerQuantifyController {
     @GetMapping("/get")
     @Operation(summary = "获得模型量化服务")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('model:server-quantify:query')")
+    //@PreAuthorize("@ss.hasPermission('model:server-quantify:query')")
     public CommonResult<ModelServerQuantifyRespVO> getModelServerQuantify(@RequestParam("id") Long id) {
         ModelServerQuantifyDO serverQuantify = modelServerQuantifyService.getServerQuantify(id);
         return success(BeanUtils.toBean(serverQuantify, ModelServerQuantifyRespVO.class));
@@ -70,7 +70,7 @@ public class ModelServerQuantifyController {
 
     @GetMapping("/page")
     @Operation(summary = "获得模型量化服务分页")
-    // @PreAuthorize("@ss.hasPermission('model:server-quantify:query')")
+    //@PreAuthorize("@ss.hasPermission('model:server-quantify:query')")
     public CommonResult<PageResult<ModelServerQuantifyRespVO>> getModelServerQuantifyPage(@Valid ModelServerQuantifyPageReqVO pageReqVO) {
         PageResult<ModelServerQuantifyDO> pageResult = modelServerQuantifyService.getServerQuantifyPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, ModelServerQuantifyRespVO.class));
@@ -78,7 +78,7 @@ public class ModelServerQuantifyController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出模型量化服务 Excel")
-    // @PreAuthorize("@ss.hasPermission('model:server-quantify:export')")
+    //@PreAuthorize("@ss.hasPermission('model:server-quantify:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportModelServerQuantifyExcel(@Valid ModelServerQuantifyPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {

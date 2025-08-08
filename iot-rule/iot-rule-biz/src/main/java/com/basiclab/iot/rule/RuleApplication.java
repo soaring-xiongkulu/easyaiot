@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 /**
  * Rule
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @EnableCustomConfig
 @EnableCustomSwagger2

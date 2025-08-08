@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * 视频数据集 Mapper
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Mapper
 public interface DatasetVideoMapper extends BaseMapperX<DatasetVideoDO> {

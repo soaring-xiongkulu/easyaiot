@@ -5,7 +5,7 @@ import com.basiclab.iot.common.utils.StringUtils;
 /**
  * 分页数据
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class PageDomain
 {

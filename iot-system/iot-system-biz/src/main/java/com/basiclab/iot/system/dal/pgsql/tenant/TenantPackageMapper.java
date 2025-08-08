@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * 租户套餐 Mapper
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Mapper
 public interface TenantPackageMapper extends BaseMapperX<TenantPackageDO> {

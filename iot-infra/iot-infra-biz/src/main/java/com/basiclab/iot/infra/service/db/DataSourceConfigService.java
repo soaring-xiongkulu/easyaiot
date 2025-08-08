@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * 数据源配置 Service 接口
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public interface DataSourceConfigService {
 

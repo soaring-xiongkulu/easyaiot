@@ -6,9 +6,9 @@ import com.basiclab.iot.rule.domain.RuleLog;
 import java.util.List;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc
- * @created 2024-07-11
+ * @created 2025-07-11
  */
 public interface RuleLogService extends IService<RuleLog> {
     /**

@@ -24,12 +24,11 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * @program: basiclab
+ * @program: EasyAIoT
  * @description: ${description}
  * @packagename: com.mqttsnet.iot.rule.service.impl
- * @Author: Basiclab
- * @e-mainl: 853017739@qq.com
- * @date: 2024-07-21 18:47
+ * @author EasyAIoT
+ * @date: 2025-07-21 18:47
  **/
 @Slf4j
 @Service

@@ -15,12 +15,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * @program: basiclab
+ * @program: EasyAIoT
  * @description: ${description}
  * @packagename: com.mqttsnet.iot.rule.service
- * @Author: Basiclab
- * @e-mainl: 853017739@qq.com
- * @date: 2024-12-04 21:39
+ * @author EasyAIoT
+ * @date: 2025-12-04 21:39
  **/
 @Service
 public class ActionCommandsServiceImpl extends ServiceImpl<ActionCommandsMapper, RuleActionCommands> implements ActionCommandsService {

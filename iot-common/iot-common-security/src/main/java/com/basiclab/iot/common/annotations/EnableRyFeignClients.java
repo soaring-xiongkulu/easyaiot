@@ -8,7 +8,7 @@ import java.lang.annotation.*;
  * 自定义feign注解
  * 添加basePackages路径
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

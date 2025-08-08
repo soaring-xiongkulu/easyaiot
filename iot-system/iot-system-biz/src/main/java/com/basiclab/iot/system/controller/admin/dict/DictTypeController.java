@@ -39,7 +39,7 @@ public class DictTypeController {
 
     @PostMapping("/create")
     @Operation(summary = "创建字典类型")
-    // @PreAuthorize("@ss.hasPermission('system:dict:create')")
+    //@PreAuthorize("@ss.hasPermission('system:dict:create')")
     public CommonResult<Long> createDictType(@Valid @RequestBody DictTypeSaveReqVO createReqVO) {
         Long dictTypeId = dictTypeService.createDictType(createReqVO);
         return success(dictTypeId);
@@ -47,7 +47,7 @@ public class DictTypeController {
 
     @PutMapping("/update")
     @Operation(summary = "修改字典类型")
-    // @PreAuthorize("@ss.hasPermission('system:dict:update')")
+    //@PreAuthorize("@ss.hasPermission('system:dict:update')")
     public CommonResult<Boolean> updateDictType(@Valid @RequestBody DictTypeSaveReqVO updateReqVO) {
         dictTypeService.updateDictType(updateReqVO);
         return success(true);
@@ -56,7 +56,7 @@ public class DictTypeController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除字典类型")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('system:dict:delete')")
+    //@PreAuthorize("@ss.hasPermission('system:dict:delete')")
     public CommonResult<Boolean> deleteDictType(Long id) {
         dictTypeService.deleteDictType(id);
         return success(true);
@@ -64,7 +64,7 @@ public class DictTypeController {
 
     @GetMapping("/page")
     @Operation(summary = "获得字典类型的分页列表")
-    // @PreAuthorize("@ss.hasPermission('system:dict:query')")
+    //@PreAuthorize("@ss.hasPermission('system:dict:query')")
     public CommonResult<PageResult<DictTypeRespVO>> pageDictTypes(@Valid DictTypePageReqVO pageReqVO) {
         PageResult<DictTypeDO> pageResult = dictTypeService.getDictTypePage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, DictTypeRespVO.class));
@@ -73,7 +73,7 @@ public class DictTypeController {
     @Operation(summary = "/查询字典类型详细")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @GetMapping(value = "/get")
-    // @PreAuthorize("@ss.hasPermission('system:dict:query')")
+    //@PreAuthorize("@ss.hasPermission('system:dict:query')")
     public CommonResult<DictTypeRespVO> getDictType(@RequestParam("id") Long id) {
         DictTypeDO dictType = dictTypeService.getDictType(id);
         return success(BeanUtils.toBean(dictType, DictTypeRespVO.class));
@@ -89,7 +89,7 @@ public class DictTypeController {
 
     @Operation(summary = "导出数据类型")
     @GetMapping("/export")
-    // @PreAuthorize("@ss.hasPermission('system:dict:query')")
+    //@PreAuthorize("@ss.hasPermission('system:dict:query')")
     // @ApiAccessLog(operateType = EXPORT)
     public void export(HttpServletResponse response, @Valid DictTypePageReqVO exportReqVO) throws IOException {
         exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);

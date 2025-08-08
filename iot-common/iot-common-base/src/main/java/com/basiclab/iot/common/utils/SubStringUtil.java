@@ -2,13 +2,9 @@ package com.basiclab.iot.common.utils;
 
 /**
  * @Description: 字符串工具类-智能截取
- * @Author: Basiclab
- * @E-mail: 853017739@qq.com
- * @CreateDate: 2021/11/15$ 19:03$
- * @UpdateUser: ShiHuan Sun
- * @UpdateDate: 2021/11/15$ 19:03$
- * @UpdateRemark: 修改内容
- * @Version: 1.0
+ * @author EasyAIoT
+ * @CreateDate: 2024/11/15$ 19:03$
+ * @UpdateDate: 2024/11/15$ 19:03$
  */
 public class SubStringUtil {
     /**

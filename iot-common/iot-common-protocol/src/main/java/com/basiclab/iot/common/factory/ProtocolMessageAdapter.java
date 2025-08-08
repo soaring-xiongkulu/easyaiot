@@ -14,11 +14,10 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 /**
- * @program: basiclab
+ * @program: EasyAIoT
  * @description: 协议信息适配器
  * @packagename: com.basiclab.iot.mqtt.handler
- * @Author: Basiclab
- * @e-mainl: 853017739@qq.com
+ * @author EasyAIoT
  * @date: 2023-05-30 15:08
  **/
 @Slf4j

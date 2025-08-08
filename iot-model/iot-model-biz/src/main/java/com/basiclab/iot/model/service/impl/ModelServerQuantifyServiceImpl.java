@@ -18,7 +18,7 @@ import static com.basiclab.iot.model.enums.ErrorCodeConstants.MODEL_SERVER_QUANT
 /**
  * 模型量化服务 Service 实现类
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Service
 @Validated

@@ -27,7 +27,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * 本地文件存储
  * 
- * @author IoT
+ * @author EasyAIoT
  */
 @RefreshScope
 //@Primary

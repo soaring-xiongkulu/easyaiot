@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * 图片数据集 Mapper
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Mapper
 public interface DatasetImageMapper extends BaseMapperX<DatasetImageDO> {

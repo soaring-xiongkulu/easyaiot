@@ -47,7 +47,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @PostMapping("/create")
     @Operation(summary = "创建${table.classComment}")
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:create')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:create')")
 #end
     public CommonResult<${primaryColumn.javaType}> create${simpleClassName}(@Valid @RequestBody ${sceneEnum.prefixClass}${table.className}SaveReqVO createReqVO) {
         return success(${classNameVar}Service.create${simpleClassName}(createReqVO));
@@ -56,7 +56,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @PutMapping("/update")
     @Operation(summary = "更新${table.classComment}")
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:update')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:update')")
 #end
     public CommonResult<Boolean> update${simpleClassName}(@Valid @RequestBody ${sceneEnum.prefixClass}${table.className}SaveReqVO updateReqVO) {
         ${classNameVar}Service.update${simpleClassName}(updateReqVO);
@@ -67,7 +67,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @Operation(summary = "删除${table.classComment}")
     @Parameter(name = "id", description = "编号", required = true)
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:delete')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:delete')")
 #end
     public CommonResult<Boolean> delete${simpleClassName}(@RequestParam("id") ${primaryColumn.javaType} id) {
         ${classNameVar}Service.delete${simpleClassName}(id);
@@ -78,7 +78,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @Operation(summary = "获得${table.classComment}")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
 #end
     public CommonResult<${sceneEnum.prefixClass}${table.className}RespVO> get${simpleClassName}(@RequestParam("id") ${primaryColumn.javaType} id) {
         ${table.className}DO ${classNameVar} = ${classNameVar}Service.get${simpleClassName}(id);
@@ -89,7 +89,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @GetMapping("/page")
     @Operation(summary = "获得${table.classComment}分页")
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
 #end
     public CommonResult<PageResult<${sceneEnum.prefixClass}${table.className}RespVO>> get${simpleClassName}Page(@Valid ${sceneEnum.prefixClass}${table.className}PageReqVO pageReqVO) {
         PageResult<${table.className}DO> pageResult = ${classNameVar}Service.get${simpleClassName}Page(pageReqVO);
@@ -101,7 +101,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @GetMapping("/list")
     @Operation(summary = "获得${table.classComment}列表")
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
 #end
     public CommonResult<List<${sceneEnum.prefixClass}${table.className}RespVO>> get${simpleClassName}List(@Valid ${sceneEnum.prefixClass}${table.className}ListReqVO listReqVO) {
         List<${table.className}DO> list = ${classNameVar}Service.get${simpleClassName}List(listReqVO);
@@ -112,7 +112,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @GetMapping("/export-excel")
     @Operation(summary = "导出${table.classComment} Excel")
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:export')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:export')")
 #end
     // @ApiAccessLog(operateType = EXPORT)
 #if ( $table.templateType != 2 )
@@ -153,7 +153,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @Operation(summary = "获得${subTable.classComment}分页")
     @Parameter(name = "${subJoinColumn.javaField}", description = "${subJoinColumn.columnComment}")
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
 #end
     public CommonResult<PageResult<${subTable.className}DO>> get${subSimpleClassName}Page(PageParam pageReqVO,
                                                                                         @RequestParam("${subJoinColumn.javaField}") ${subJoinColumn.javaType} ${subJoinColumn.javaField}) {
@@ -167,7 +167,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @Operation(summary = "获得${subTable.classComment}列表")
     @Parameter(name = "${subJoinColumn.javaField}", description = "${subJoinColumn.columnComment}")
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
 #end
     public CommonResult<List<${subTable.className}DO>> get${subSimpleClassName}ListBy${SubJoinColumnName}(@RequestParam("${subJoinColumn.javaField}") ${subJoinColumn.javaType} ${subJoinColumn.javaField}) {
         return success(${classNameVar}Service.get${subSimpleClassName}ListBy${SubJoinColumnName}(${subJoinColumn.javaField}));
@@ -178,7 +178,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @Operation(summary = "获得${subTable.classComment}")
     @Parameter(name = "${subJoinColumn.javaField}", description = "${subJoinColumn.columnComment}")
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
 #end
     public CommonResult<${subTable.className}DO> get${subSimpleClassName}By${SubJoinColumnName}(@RequestParam("${subJoinColumn.javaField}") ${subJoinColumn.javaType} ${subJoinColumn.javaField}) {
         return success(${classNameVar}Service.get${subSimpleClassName}By${SubJoinColumnName}(${subJoinColumn.javaField}));
@@ -191,7 +191,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @PostMapping("/${subSimpleClassName_strikeCase}/create")
     @Operation(summary = "创建${subTable.classComment}")
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:create')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:create')")
 #end
     public CommonResult<${subPrimaryColumn.javaType}> create${subSimpleClassName}(@Valid @RequestBody ${subTable.className}DO ${subClassNameVar}) {
         return success(${classNameVar}Service.create${subSimpleClassName}(${subClassNameVar}));
@@ -200,7 +200,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @PutMapping("/${subSimpleClassName_strikeCase}/update")
     @Operation(summary = "更新${subTable.classComment}")
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:update')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:update')")
 #end
     public CommonResult<Boolean> update${subSimpleClassName}(@Valid @RequestBody ${subTable.className}DO ${subClassNameVar}) {
         ${classNameVar}Service.update${subSimpleClassName}(${subClassNameVar});
@@ -211,7 +211,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
     @Parameter(name = "id", description = "编号", required = true)
     @Operation(summary = "删除${subTable.classComment}")
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:delete')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:delete')")
 #end
     public CommonResult<Boolean> delete${subSimpleClassName}(@RequestParam("id") ${subPrimaryColumn.javaType} id) {
         ${classNameVar}Service.delete${subSimpleClassName}(id);
@@ -222,7 +222,7 @@ public class ${sceneEnum.prefixClass}${table.className}Controller {
 	@Operation(summary = "获得${subTable.classComment}")
 	@Parameter(name = "id", description = "编号", required = true)
 #if ($sceneEnum.scene == 1)
-    // @PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
+    //@PreAuthorize("@ss.hasPermission('${permissionPrefix}:query')")
 #end
 	public CommonResult<${subTable.className}DO> get${subSimpleClassName}(@RequestParam("id") ${subPrimaryColumn.javaType} id) {
 	    return success(${classNameVar}Service.get${subSimpleClassName}(id));

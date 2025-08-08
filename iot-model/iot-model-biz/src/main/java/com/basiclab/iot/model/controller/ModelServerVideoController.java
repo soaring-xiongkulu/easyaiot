@@ -36,14 +36,14 @@ public class ModelServerVideoController {
 
     @PostMapping("/create")
     @Operation(summary = "创建模型服务视频")
-    // @PreAuthorize("@ss.hasPermission('model:server-video:create')")
+    //@PreAuthorize("@ss.hasPermission('model:server-video:create')")
     public CommonResult<Long> createModelServerVideo(@Valid @RequestBody ModelServerVideoSaveReqVO createReqVO) {
         return success(modelServerVideoService.createModelServerVideo(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新模型服务视频")
-    // @PreAuthorize("@ss.hasPermission('model:server-video:update')")
+    //@PreAuthorize("@ss.hasPermission('model:server-video:update')")
     public CommonResult<Boolean> updateModelServerVideo(@Valid @RequestBody ModelServerVideoSaveReqVO updateReqVO) {
         modelServerVideoService.updateModelServerVideo(updateReqVO);
         return success(true);
@@ -52,7 +52,7 @@ public class ModelServerVideoController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除模型服务视频")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('model:server-video:delete')")
+    //@PreAuthorize("@ss.hasPermission('model:server-video:delete')")
     public CommonResult<Boolean> deleteModelServerVideo(@RequestParam("id") Long id) {
         modelServerVideoService.deleteModelServerVideo(id);
         return success(true);
@@ -61,7 +61,7 @@ public class ModelServerVideoController {
     @GetMapping("/get")
     @Operation(summary = "获得模型服务视频")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('model:server-video:query')")
+    //@PreAuthorize("@ss.hasPermission('model:server-video:query')")
     public CommonResult<ModelServerVideoRespVO> getModelServerVideo(@RequestParam("id") Long id) {
         ModelServerVideoDO serverVideo = modelServerVideoService.getModelServerVideo(id);
         return success(BeanUtils.toBean(serverVideo, ModelServerVideoRespVO.class));
@@ -69,7 +69,7 @@ public class ModelServerVideoController {
 
     @GetMapping("/page")
     @Operation(summary = "获得模型服务视频分页")
-    // @PreAuthorize("@ss.hasPermission('model:server-video:query')")
+    //@PreAuthorize("@ss.hasPermission('model:server-video:query')")
     public CommonResult<PageResult<ModelServerVideoRespVO>> getModelServerVideoPage(@Valid ModelServerVideoPageReqVO pageReqVO) {
         PageResult<ModelServerVideoDO> pageResult = modelServerVideoService.getModelServerVideoPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, ModelServerVideoRespVO.class));
@@ -77,7 +77,7 @@ public class ModelServerVideoController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出模型服务视频 Excel")
-    // @PreAuthorize("@ss.hasPermission('model:server-video:export')")
+    //@PreAuthorize("@ss.hasPermission('model:server-video:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportModelServerVideoExcel(@Valid ModelServerVideoPageReqVO pageReqVO,
                                             HttpServletResponse response) throws IOException {

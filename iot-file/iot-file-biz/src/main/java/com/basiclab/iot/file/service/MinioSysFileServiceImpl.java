@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Minio 文件存储
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @RefreshScope
 @Primary

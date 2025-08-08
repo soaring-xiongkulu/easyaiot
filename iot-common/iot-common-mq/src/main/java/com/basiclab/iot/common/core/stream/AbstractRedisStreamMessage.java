@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 /**
  * Redis Stream Message 抽象类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public abstract class AbstractRedisStreamMessage extends AbstractRedisMessage {
 

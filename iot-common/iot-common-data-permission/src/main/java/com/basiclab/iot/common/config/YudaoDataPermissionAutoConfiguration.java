@@ -1,12 +1,12 @@
 package com.basiclab.iot.common.config;
 
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.basiclab.iot.common.core.aop.DataPermissionAnnotationAdvisor;
 import com.basiclab.iot.common.core.db.DataPermissionDatabaseInterceptor;
 import com.basiclab.iot.common.core.rule.DataPermissionRule;
 import com.basiclab.iot.common.core.rule.DataPermissionRuleFactory;
 import com.basiclab.iot.common.core.rule.DataPermissionRuleFactoryImpl;
 import com.basiclab.iot.common.core.util.MyBatisUtils;
-import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 
@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * 数据权限的自动配置类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @AutoConfiguration
 public class YudaoDataPermissionAutoConfiguration {

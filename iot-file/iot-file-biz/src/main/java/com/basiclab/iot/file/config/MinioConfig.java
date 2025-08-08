@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Primary;
 /**
  * Minio 配置信息
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Configuration
 @ConfigurationProperties(prefix = "minio")

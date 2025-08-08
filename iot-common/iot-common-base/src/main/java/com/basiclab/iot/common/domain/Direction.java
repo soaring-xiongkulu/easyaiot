@@ -6,9 +6,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @author EasyIoT
+ * @author EasyAIoT
  * @desc
- * @created 2024-05-27
+ * @created 2025-05-27
  */
 public enum Direction {
     ASC("ASC", "升序"),

@@ -10,7 +10,7 @@ import javax.validation.Valid;
 /**
  * 视频数据集 Service 接口
  *
- * @author IoT
+ * @author EasyAIoT
  */
 public interface DatasetVideoService {
 

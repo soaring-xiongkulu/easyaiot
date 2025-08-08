@@ -48,7 +48,7 @@ import static java.util.Collections.singleton;
 /**
  * 租户 Service 实现类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Service
 @Validated

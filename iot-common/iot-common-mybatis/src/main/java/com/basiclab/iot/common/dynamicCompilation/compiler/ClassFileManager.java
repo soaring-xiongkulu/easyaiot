@@ -11,8 +11,8 @@ import java.io.IOException;
  * 类文件管理器 * 用于JavaCompiler将编译好后的class,保存到jclassObject中
  *
  *
- * @author EasyIoT
- * @date 2024-07-04
+ * @author EasyAIoT
+ * @date 2025-07-04
  *
  */
 public class ClassFileManager extends ForwardingJavaFileManager<StandardJavaFileManager> {

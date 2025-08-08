@@ -28,7 +28,7 @@ import java.util.List;
 /**
  * 规则处理类
  *
- * @author shisen
+ * @author EasyAIoT
  */
 @Tag(name  = "规则管理")
 @RestController
@@ -52,7 +52,7 @@ public class RuleController extends BaseController {
      * 查询规则管理列表
      */
     @ApiOperation("查询规则管理列表")
-    // @PreAuthorize(hasPermi = "rule:rule:list")
+    //@PreAuthorize(hasPermi = "rule:rule:list")
     @GetMapping("/list")
     public TableDataInfo list(Rule rule) {
         startPage();
@@ -64,7 +64,7 @@ public class RuleController extends BaseController {
     /**
      * 获取规则详细信息
      */
-    // @PreAuthorize(hasPermi = "rule:rule:query")
+    //@PreAuthorize(hasPermi = "rule:rule:query")
     @ApiOperation("获取规则详细信息")
     @GetMapping(value = "/{id}")
     public AjaxResult getInfo(@PathVariable("id") Long id) {
@@ -74,7 +74,7 @@ public class RuleController extends BaseController {
     /**
      * 获取规则详细信息
      */
-    // @PreAuthorize(hasPermi = "rule:rule:query")
+    //@PreAuthorize(hasPermi = "rule:rule:query")
     @ApiOperation("获取规则详细信息")
     @GetMapping(value = "/getFullInfo/{id}")
     public AjaxResult getFullInfo(@PathVariable("id") Long id) {
@@ -86,8 +86,8 @@ public class RuleController extends BaseController {
      * 新增规则
      */
     @NoRepeatSubmit
-    // @PreAuthorize(hasPermi = "rule:rule:add")
-    //@Log(title = "新增规则", businessType = BusinessType.INSERT)
+    //@PreAuthorize(hasPermi = "rule:rule:add")
+    ////@Log(title = "新增规则", businessType = BusinessType.INSERT)
     @PostMapping
     @ApiOperation("新增规则")
     public AjaxResult add(@RequestBody Rule rule) {
@@ -98,8 +98,8 @@ public class RuleController extends BaseController {
      * 修改规则
      */
     @NoRepeatSubmit
-//    // @PreAuthorize(hasPermi = "rule:rule:edit")
-    //@Log(title = "规则管理", businessType = BusinessType.UPDATE)
+//    //@PreAuthorize(hasPermi = "rule:rule:edit")
+    ////@Log(title = "规则管理", businessType = BusinessType.UPDATE)
     @PutMapping
     @ApiOperation("修改规则")
     public AjaxResult edit(@RequestBody Rule rule) {
@@ -128,8 +128,8 @@ public class RuleController extends BaseController {
     /**
      * 删除规则管理
      */
-//    // @PreAuthorize(hasPermi = "rule:rule:remove")
-    //@Log(title = "规则删除", businessType = BusinessType.DELETE)
+//    //@PreAuthorize(hasPermi = "rule:rule:remove")
+    ////@Log(title = "规则删除", businessType = BusinessType.DELETE)
     @DeleteMapping("/{id}")
     @ApiOperation("删除规则管理")
     public AjaxResult remove(@PathVariable Long id) {
@@ -155,7 +155,7 @@ public class RuleController extends BaseController {
      * 修改场景联动状态
      */
     @ApiOperation("修改场景联动状态")
-    //@Log(title = "场景联动", businessType = BusinessType.UPDATE)
+    ////@Log(title = "场景联动", businessType = BusinessType.UPDATE)
     @PutMapping("/updateStatus")
     public AjaxResult updateStatus(@RequestBody Rule rule) {
 

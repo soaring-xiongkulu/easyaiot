@@ -3,7 +3,7 @@ package com.basiclab.iot.common.constant;
 /**
  * 返回状态码
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class HeaderConstants {
 

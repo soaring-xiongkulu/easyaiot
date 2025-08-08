@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * 标注任务用户 Mapper
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Mapper
 public interface DatasetTaskUserMapper extends BaseMapperX<DatasetTaskUserDO> {

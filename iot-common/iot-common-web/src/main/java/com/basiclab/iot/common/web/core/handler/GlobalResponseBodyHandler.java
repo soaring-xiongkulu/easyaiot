@@ -18,7 +18,6 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
  * 原因是，GlobalResponseBodyHandler 本质上是 AOP，它不应该改变 Controller 返回的数据结构
  *
  * 目前，GlobalResponseBodyHandler 的主要作用是，记录 Controller 的返回结果，
- * 方便 {@link com.basiclab.iot.common.apilog.core.filter.ApiAccessLogFilter} 记录访问日志
  */
 @ControllerAdvice
 public class GlobalResponseBodyHandler implements ResponseBodyAdvice {

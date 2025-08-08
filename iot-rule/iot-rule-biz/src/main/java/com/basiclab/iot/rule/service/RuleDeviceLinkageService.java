@@ -3,12 +3,11 @@ package com.basiclab.iot.rule.service;
 import com.basiclab.iot.common.domain.R;
 
 /**
- * @program: basiclab
+ * @program: EasyAIoT
  * @description: 规则设备联动业务层接口
  * @packagename: com.mqttsnet.iot.rule.service
- * @Author: Basiclab
- * @e-mainl: 853017739@qq.com
- * @date: 2024-11-03 18:44
+ * @author EasyAIoT
+ * @date: 2025-11-03 18:44
  **/
 public interface RuleDeviceLinkageService {
 

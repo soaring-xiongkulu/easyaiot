@@ -34,14 +34,14 @@ public class TenantPackageController {
 
     @PostMapping("/create")
     @Operation(summary = "创建租户套餐")
-    // @PreAuthorize("@ss.hasPermission('system:tenant-package:create')")
+    //@PreAuthorize("@ss.hasPermission('system:tenant-package:create')")
     public CommonResult<Long> createTenantPackage(@Valid @RequestBody TenantPackageSaveReqVO createReqVO) {
         return success(tenantPackageService.createTenantPackage(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新租户套餐")
-    // @PreAuthorize("@ss.hasPermission('system:tenant-package:update')")
+    //@PreAuthorize("@ss.hasPermission('system:tenant-package:update')")
     public CommonResult<Boolean> updateTenantPackage(@Valid @RequestBody TenantPackageSaveReqVO updateReqVO) {
         tenantPackageService.updateTenantPackage(updateReqVO);
         return success(true);
@@ -50,7 +50,7 @@ public class TenantPackageController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除租户套餐")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('system:tenant-package:delete')")
+    //@PreAuthorize("@ss.hasPermission('system:tenant-package:delete')")
     public CommonResult<Boolean> deleteTenantPackage(@RequestParam("id") Long id) {
         tenantPackageService.deleteTenantPackage(id);
         return success(true);
@@ -59,7 +59,7 @@ public class TenantPackageController {
     @GetMapping("/get")
     @Operation(summary = "获得租户套餐")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('system:tenant-package:query')")
+    //@PreAuthorize("@ss.hasPermission('system:tenant-package:query')")
     public CommonResult<TenantPackageRespVO> getTenantPackage(@RequestParam("id") Long id) {
         TenantPackageDO tenantPackage = tenantPackageService.getTenantPackage(id);
         return success(BeanUtils.toBean(tenantPackage, TenantPackageRespVO.class));
@@ -67,7 +67,7 @@ public class TenantPackageController {
 
     @GetMapping("/page")
     @Operation(summary = "获得租户套餐分页")
-    // @PreAuthorize("@ss.hasPermission('system:tenant-package:query')")
+    //@PreAuthorize("@ss.hasPermission('system:tenant-package:query')")
     public CommonResult<PageResult<TenantPackageRespVO>> getTenantPackagePage(@Valid TenantPackagePageReqVO pageVO) {
         PageResult<TenantPackageDO> pageResult = tenantPackageService.getTenantPackagePage(pageVO);
         return success(BeanUtils.toBean(pageResult, TenantPackageRespVO.class));

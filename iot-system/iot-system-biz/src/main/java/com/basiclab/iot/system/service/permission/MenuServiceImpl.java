@@ -29,7 +29,7 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
 /**
  * 菜单 Service 实现
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Service
 @Slf4j

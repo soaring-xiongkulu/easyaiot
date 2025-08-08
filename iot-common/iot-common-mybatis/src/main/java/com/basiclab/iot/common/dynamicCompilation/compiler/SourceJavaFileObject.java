@@ -7,8 +7,8 @@ import java.net.URI;
  * 存放java源码的JavaFileObject
  *
  *
- * @author EasyIoT
- * @date 2024-07-04
+ * @author EasyAIoT
+ * @date 2025-07-04
  */
 public class SourceJavaFileObject extends SimpleJavaFileObject {
     private String content;

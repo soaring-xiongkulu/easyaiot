@@ -3,7 +3,7 @@ package com.basiclab.iot.common.exception.file;
 /**
  * 文件名大小限制异常类
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class FileSizeLimitExceededException extends FileException
 {

@@ -14,9 +14,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc   设备动作
- * @created 2024-07-10
+ * @created 2025-07-10
  */
 @Slf4j
 @Component

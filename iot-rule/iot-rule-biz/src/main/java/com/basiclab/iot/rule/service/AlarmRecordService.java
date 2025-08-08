@@ -4,9 +4,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.basiclab.iot.rule.domain.AlarmRecord;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc
- * @created 2024-07-18
+ * @created 2025-07-18
  */
 public interface AlarmRecordService extends IService<AlarmRecord> {
 }

@@ -10,9 +10,9 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * @author EasyIoT
+ * @author EasyAIoT
  * @desc
- * @created 2024-05-27
+ * @created 2025-05-27
  */
 @Data
 public class BasePo implements Serializable {

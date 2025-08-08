@@ -27,7 +27,7 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
  * 邮箱发送 Service 实现类
  *
  * @author wangjingyi
- * @since 2024-03-21
+ * @since 2025-03-21
  */
 @Service
 @Validated

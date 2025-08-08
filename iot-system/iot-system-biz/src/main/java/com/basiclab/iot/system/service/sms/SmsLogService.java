@@ -12,7 +12,7 @@ import java.util.Map;
  * 短信日志 Service 接口
  *
  * @author zzf
- * @date 13:48 2021/3/2
+ * @date 13:48 2024/3/2
  */
 public interface SmsLogService {
 

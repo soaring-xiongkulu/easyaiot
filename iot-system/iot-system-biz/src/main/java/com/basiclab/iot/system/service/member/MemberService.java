@@ -3,7 +3,7 @@ package com.basiclab.iot.system.service.member;
 /**
  * Member Service 接口
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public interface MemberService {
 

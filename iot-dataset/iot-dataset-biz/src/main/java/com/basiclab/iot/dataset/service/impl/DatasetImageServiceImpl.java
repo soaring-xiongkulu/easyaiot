@@ -38,7 +38,7 @@ import static com.basiclab.iot.dataset.enums.ErrorCodeConstants.*;
 /**
  * 图片数据集 Service 实现类
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Service
 @Validated

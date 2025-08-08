@@ -31,7 +31,7 @@ public class MailLogController {
 
     @GetMapping("/page")
     @Operation(summary = "获得邮箱日志分页")
-    // @PreAuthorize("@ss.hasPermission('system:mail-log:query')")
+    //@PreAuthorize("@ss.hasPermission('system:mail-log:query')")
     public CommonResult<PageResult<MailLogRespVO>> getMailLogPage(@Valid MailLogPageReqVO pageVO) {
         PageResult<MailLogDO> pageResult = mailLogService.getMailLogPage(pageVO);
         return success(BeanUtils.toBean(pageResult, MailLogRespVO.class));
@@ -40,7 +40,7 @@ public class MailLogController {
     @GetMapping("/get")
     @Operation(summary = "获得邮箱日志")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('system:mail-log:query')")
+    //@PreAuthorize("@ss.hasPermission('system:mail-log:query')")
     public CommonResult<MailLogRespVO> getMailTemplate(@RequestParam("id") Long id) {
         MailLogDO log = mailLogService.getMailLog(id);
         return success(BeanUtils.toBean(log, MailLogRespVO.class));

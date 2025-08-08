@@ -13,7 +13,7 @@ import java.util.Map;
  * 邮件模版 Service 接口
  *
  * @author wangjingyi
- * @since 2024-03-21
+ * @since 2025-03-21
  */
 public interface MailTemplateService {
 

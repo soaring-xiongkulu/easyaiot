@@ -19,7 +19,7 @@ import static com.basiclab.iot.dataset.enums.ErrorCodeConstants.WAREHOUSE_DATASE
 /**
  * 数据仓数据集关联 Service 实现类
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Service
 @Validated

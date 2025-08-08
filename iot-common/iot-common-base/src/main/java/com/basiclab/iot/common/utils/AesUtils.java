@@ -9,12 +9,9 @@ import java.security.SecureRandom;
 
 /**
  * @Description: AES加密
- * @Author: Basiclab
- * @CreateDate: 2021/9/8$ 14:49$
- * @UpdateUser: ShiHuan Sun
- * @UpdateDate: 2021/9/8$ 14:49$
- * @UpdateRemark: 修改内容
- * @Version: 1.0
+ * @author EasyAIoT
+ * @CreateDate: 2024/9/8$ 14:49$
+ * @UpdateDate: 2024/9/8$ 14:49$
  */
 public class AesUtils {
     public static void main(String[] args) throws Exception {

@@ -41,7 +41,7 @@ public class DatasetFrameTaskController {
 
     @PostMapping("/create")
     @Operation(summary = "创建视频流帧捕获任务")
-    // @PreAuthorize("@ss.hasPermission('dataset:frame-task:create')")
+    //@PreAuthorize("@ss.hasPermission('dataset:frame-task:create')")
     public CommonResult<Long> createDatasetFrameTask(@Valid @RequestBody DatasetFrameTaskSaveReqVO createReqVO) {
         Long ret = frameTaskService.createDatasetFrameTask(createReqVO);
         streamUrlCache.manualRefresh();
@@ -50,7 +50,7 @@ public class DatasetFrameTaskController {
 
     @PutMapping("/update")
     @Operation(summary = "更新视频流帧捕获任务")
-    // @PreAuthorize("@ss.hasPermission('dataset:frame-task:update')")
+    //@PreAuthorize("@ss.hasPermission('dataset:frame-task:update')")
     public CommonResult<Boolean> updateDatasetFrameTask(@Valid @RequestBody DatasetFrameTaskSaveReqVO updateReqVO) {
         frameTaskService.updateDatasetFrameTask(updateReqVO);
         streamUrlCache.manualRefresh();
@@ -60,7 +60,7 @@ public class DatasetFrameTaskController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除视频流帧捕获任务")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('dataset:frame-task:delete')")
+    //@PreAuthorize("@ss.hasPermission('dataset:frame-task:delete')")
     public CommonResult<Boolean> deleteDatasetFrameTask(@RequestParam("id") Long id) {
         frameTaskService.deleteDatasetFrameTask(id);
         streamUrlCache.manualRefresh();
@@ -70,7 +70,7 @@ public class DatasetFrameTaskController {
     @GetMapping("/get")
     @Operation(summary = "获得视频流帧捕获任务")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('dataset:frame-task:query')")
+    //@PreAuthorize("@ss.hasPermission('dataset:frame-task:query')")
     public CommonResult<DatasetFrameTaskRespVO> getDatasetFrameTask(@RequestParam("id") Long id) {
         DatasetFrameTaskDO frameTask = frameTaskService.getDatasetFrameTask(id);
         return success(BeanUtils.toBean(frameTask, DatasetFrameTaskRespVO.class));
@@ -78,7 +78,7 @@ public class DatasetFrameTaskController {
 
     @GetMapping("/page")
     @Operation(summary = "获得视频流帧捕获任务分页")
-    // @PreAuthorize("@ss.hasPermission('dataset:frame-task:query')")
+    //@PreAuthorize("@ss.hasPermission('dataset:frame-task:query')")
     public CommonResult<PageResult<DatasetFrameTaskRespVO>> getDatasetFrameTaskPage(@Valid DatasetFrameTaskPageReqVO pageReqVO) {
         PageResult<DatasetFrameTaskDO> pageResult = frameTaskService.getDatasetFrameTaskPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, DatasetFrameTaskRespVO.class));
@@ -86,7 +86,7 @@ public class DatasetFrameTaskController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出视频流帧捕获任务 Excel")
-    // @PreAuthorize("@ss.hasPermission('dataset:frame-task:export')")
+    //@PreAuthorize("@ss.hasPermission('dataset:frame-task:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportDatasetFrameTaskExcel(@Valid DatasetFrameTaskPageReqVO pageReqVO,
                                             HttpServletResponse response) throws IOException {

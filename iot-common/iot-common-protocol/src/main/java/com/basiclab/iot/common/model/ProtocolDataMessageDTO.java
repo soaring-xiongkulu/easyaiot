@@ -19,7 +19,7 @@ import lombok.experimental.Accessors;
  * ProtocolDataMessage
  * -----------------------------------------------------------------------------
  *
- * @author ShiHuan Sun
+ * @author EasyAIoT
  * @version 1.0
  * -----------------------------------------------------------------------------
  * Revision History:
@@ -27,7 +27,7 @@ import lombok.experimental.Accessors;
  * --------      --------     -------   --------------------
  * <p>
  * -----------------------------------------------------------------------------
- * @email 853017739@qq.com
+ * @email andywebjava@163.com
  * @date 2023-11-12 01:50
  */
 @Data

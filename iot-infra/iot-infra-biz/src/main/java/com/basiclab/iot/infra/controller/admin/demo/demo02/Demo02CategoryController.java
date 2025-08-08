@@ -36,14 +36,14 @@ public class Demo02CategoryController {
 
     @PostMapping("/create")
     @Operation(summary = "创建示例分类")
-    // @PreAuthorize("@ss.hasPermission('infra:demo02-category:create')")
+    //@PreAuthorize("@ss.hasPermission('infra:demo02-category:create')")
     public CommonResult<Long> createDemo02Category(@Valid @RequestBody Demo02CategorySaveReqVO createReqVO) {
         return success(demo02CategoryService.createDemo02Category(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新示例分类")
-    // @PreAuthorize("@ss.hasPermission('infra:demo02-category:update')")
+    //@PreAuthorize("@ss.hasPermission('infra:demo02-category:update')")
     public CommonResult<Boolean> updateDemo02Category(@Valid @RequestBody Demo02CategorySaveReqVO updateReqVO) {
         demo02CategoryService.updateDemo02Category(updateReqVO);
         return success(true);
@@ -52,7 +52,7 @@ public class Demo02CategoryController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除示例分类")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('infra:demo02-category:delete')")
+    //@PreAuthorize("@ss.hasPermission('infra:demo02-category:delete')")
     public CommonResult<Boolean> deleteDemo02Category(@RequestParam("id") Long id) {
         demo02CategoryService.deleteDemo02Category(id);
         return success(true);
@@ -61,7 +61,7 @@ public class Demo02CategoryController {
     @GetMapping("/get")
     @Operation(summary = "获得示例分类")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('infra:demo02-category:query')")
+    //@PreAuthorize("@ss.hasPermission('infra:demo02-category:query')")
     public CommonResult<Demo02CategoryRespVO> getDemo02Category(@RequestParam("id") Long id) {
         Demo02CategoryDO demo02Category = demo02CategoryService.getDemo02Category(id);
         return success(BeanUtils.toBean(demo02Category, Demo02CategoryRespVO.class));
@@ -69,7 +69,7 @@ public class Demo02CategoryController {
 
     @GetMapping("/list")
     @Operation(summary = "获得示例分类列表")
-    // @PreAuthorize("@ss.hasPermission('infra:demo02-category:query')")
+    //@PreAuthorize("@ss.hasPermission('infra:demo02-category:query')")
     public CommonResult<List<Demo02CategoryRespVO>> getDemo02CategoryList(@Valid Demo02CategoryListReqVO listReqVO) {
         List<Demo02CategoryDO> list = demo02CategoryService.getDemo02CategoryList(listReqVO);
         return success(BeanUtils.toBean(list, Demo02CategoryRespVO.class));
@@ -77,7 +77,7 @@ public class Demo02CategoryController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出示例分类 Excel")
-    // @PreAuthorize("@ss.hasPermission('infra:demo02-category:export')")
+    //@PreAuthorize("@ss.hasPermission('infra:demo02-category:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportDemo02CategoryExcel(@Valid Demo02CategoryListReqVO listReqVO,
               HttpServletResponse response) throws IOException {

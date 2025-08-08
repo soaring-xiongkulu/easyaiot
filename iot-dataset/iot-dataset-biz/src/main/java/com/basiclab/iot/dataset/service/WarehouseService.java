@@ -9,7 +9,7 @@ import com.basiclab.iot.dataset.domain.warehouse.vo.WarehouseSaveReqVO;
 /**
  * 数据仓 Service 接口
  *
- * @author IoT
+ * @author EasyAIoT
  */
 public interface WarehouseService {
 

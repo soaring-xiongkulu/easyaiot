@@ -17,7 +17,7 @@ import java.util.List;
  * 短信模板 DO
  *
  * @author zzf
- * @since 2024-01-25
+ * @since 2025-01-25
  */
 @TableName(value = "system_sms_template", autoResultMap = true)
 @KeySequence("system_sms_template_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。

@@ -16,11 +16,9 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
-* @program: basiclab
 * @description: ${description}
-* @Author: Basiclab
-* @e-mainl: 853017739@qq.com
-* @date: 2024-07-21 18:50
+* @author EasyIoT
+* @date: 2025-07-21 18:50
 **/
 
 /**

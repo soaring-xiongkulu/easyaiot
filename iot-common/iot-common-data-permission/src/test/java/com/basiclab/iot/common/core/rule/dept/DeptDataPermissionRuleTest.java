@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
 /**
  * {@link DeptDataPermissionRule} 的单元测试
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 class DeptDataPermissionRuleTest extends BaseMockitoUnitTest {
 

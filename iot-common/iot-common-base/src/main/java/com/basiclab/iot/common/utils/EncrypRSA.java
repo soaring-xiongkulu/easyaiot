@@ -14,13 +14,9 @@ import java.util.Collection;
 
 /**
  * @Description: RSA加密工具类
- * @Author: Basiclab
- * @E-mail: 853017739@qq.com
+ * @author EasyAIoT
  * @CreateDate: 2024/09/15$ 19:03$
- * @UpdateUser: ShiHuan Sun
  * @UpdateDate: 2024/09/15$ 19:03$
- * @UpdateRemark: 修改内容
- * @Version: 1.0
  */
 public class EncrypRSA {
     private static final String PUBLIC = "PUBLIC";

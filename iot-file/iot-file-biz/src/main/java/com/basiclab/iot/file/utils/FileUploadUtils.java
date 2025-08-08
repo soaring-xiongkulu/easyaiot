@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * 文件上传工具类
  * 
- * @author IoT
+ * @author EasyAIoT
  */
 public class FileUploadUtils
 {

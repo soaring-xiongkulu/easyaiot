@@ -30,9 +30,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc 告警动作
- * @created 2024-07-10
+ * @created 2025-07-10
  */
 @Component
 @Slf4j

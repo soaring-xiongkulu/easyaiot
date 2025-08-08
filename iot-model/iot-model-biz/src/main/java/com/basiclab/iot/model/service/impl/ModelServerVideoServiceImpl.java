@@ -18,7 +18,7 @@ import static com.basiclab.iot.model.enums.ErrorCodeConstants.MODEL_SERVER_VIDEO
 /**
  * 模型服务视频 Service 实现类
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Service
 @Validated

@@ -2,8 +2,8 @@ package com.basiclab.iot.common.dynamicCompilation.bytecode;
 
 /**
  * Class文件修改器
- * @author EasyIoT
- * @date 2024-07-04
+ * @author EasyAIoT
+ * @date 2025-07-04
  */
 public class ClassModifier {
     private static final int CONSTANT_POOL_COUNT_INDEX = 8;

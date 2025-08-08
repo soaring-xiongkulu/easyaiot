@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * 限流 Redis Mapper
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @AllArgsConstructor
 public class RateLimiterRedisDAO {

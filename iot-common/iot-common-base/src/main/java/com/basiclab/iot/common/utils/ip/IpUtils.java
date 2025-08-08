@@ -9,7 +9,7 @@ import com.basiclab.iot.common.utils.StringUtils;
 /**
  * 获取IP方法
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class IpUtils
 {

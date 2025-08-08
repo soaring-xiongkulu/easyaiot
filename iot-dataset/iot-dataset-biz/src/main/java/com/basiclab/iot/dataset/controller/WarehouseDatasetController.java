@@ -37,14 +37,14 @@ public class WarehouseDatasetController {
 
     @PostMapping("/create")
     @Operation(summary = "创建数据仓数据集关联")
-    // @PreAuthorize("@ss.hasPermission('warehouse:dataset:create')")
+    //@PreAuthorize("@ss.hasPermission('warehouse:dataset:create')")
     public CommonResult<Long> createWarehouseDataset(@Valid @RequestBody WarehouseDatasetSaveReqVO createReqVO) {
         return success(warehouseDatasetService.createWarehouseDataset(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新数据仓数据集关联")
-    // @PreAuthorize("@ss.hasPermission('warehouse:dataset:update')")
+    //@PreAuthorize("@ss.hasPermission('warehouse:dataset:update')")
     public CommonResult<Boolean> updateWarehouseDataset(@Valid @RequestBody WarehouseDatasetSaveReqVO updateReqVO) {
         warehouseDatasetService.updateWarehouseDataset(updateReqVO);
         return success(true);
@@ -53,7 +53,7 @@ public class WarehouseDatasetController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除数据仓数据集关联")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('warehouse:dataset:delete')")
+    //@PreAuthorize("@ss.hasPermission('warehouse:dataset:delete')")
     public CommonResult<Boolean> deleteWarehouseDataset(@RequestParam("id") Long id) {
         warehouseDatasetService.deleteWarehouseDataset(id);
         return success(true);
@@ -62,7 +62,7 @@ public class WarehouseDatasetController {
     @GetMapping("/get")
     @Operation(summary = "获得数据仓数据集关联")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('warehouse:dataset:query')")
+    //@PreAuthorize("@ss.hasPermission('warehouse:dataset:query')")
     public CommonResult<WarehouseDatasetRespVO> getWarehouseDataset(@RequestParam("id") Long id) {
         WarehouseDatasetDO dataset = warehouseDatasetService.getWarehouseDataset(id);
         return success(BeanUtils.toBean(dataset, WarehouseDatasetRespVO.class));
@@ -70,7 +70,7 @@ public class WarehouseDatasetController {
 
     @GetMapping("/page")
     @Operation(summary = "获得数据仓数据集关联分页")
-    // @PreAuthorize("@ss.hasPermission('warehouse:dataset:query')")
+    //@PreAuthorize("@ss.hasPermission('warehouse:dataset:query')")
     public CommonResult<PageResult<WarehouseDatasetRespVO>> getWarehouseDatasetPage(@Valid WarehouseDatasetPageReqVO pageReqVO) {
         PageResult<WarehouseDatasetDO> pageResult = warehouseDatasetService.getWarehouseDatasetPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, WarehouseDatasetRespVO.class));
@@ -78,7 +78,7 @@ public class WarehouseDatasetController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出数据仓数据集关联 Excel")
-    // @PreAuthorize("@ss.hasPermission('warehouse:dataset:export')")
+    //@PreAuthorize("@ss.hasPermission('warehouse:dataset:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportWarehouseDatasetExcel(@Valid WarehouseDatasetPageReqVO pageReqVO,
                                             HttpServletResponse response) throws IOException {

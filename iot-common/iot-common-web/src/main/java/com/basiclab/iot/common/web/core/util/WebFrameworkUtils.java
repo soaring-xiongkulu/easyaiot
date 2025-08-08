@@ -1,10 +1,10 @@
 package com.basiclab.iot.common.web.core.util;
 
 import cn.hutool.core.util.NumberUtil;
+import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.enums.RpcConstants;
 import com.basiclab.iot.common.enums.TerminalEnum;
 import com.basiclab.iot.common.enums.UserTypeEnum;
-import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.web.config.WebProperties;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -29,8 +29,6 @@ public class WebFrameworkUtils {
 
     /**
      * 终端的 Header
-     *
-     * @see com.basiclab.iot.common.common.enums.TerminalEnum
      */
     public static final String HEADER_TERMINAL = "terminal";
 
@@ -59,7 +57,7 @@ public class WebFrameworkUtils {
     /**
      * 设置用户类型
      *
-     * @param request 请求
+     * @param request  请求
      * @param userType 用户类型
      */
     public static void setLoginUserType(ServletRequest request, Integer userType) {
@@ -154,7 +152,7 @@ public class WebFrameworkUtils {
 
     /**
      * 判断是否为 RPC 请求
-     *
+     * <p>
      * 约定大于配置，只要以 Api 结尾，都认为是 RPC 接口
      *
      * @param className 类名

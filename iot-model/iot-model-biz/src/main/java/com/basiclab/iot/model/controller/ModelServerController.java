@@ -38,14 +38,14 @@ public class ModelServerController {
 
     @PostMapping("/create")
     @Operation(summary = "创建模型服务")
-    // @PreAuthorize("@ss.hasPermission('model:server:create')")
+    //@PreAuthorize("@ss.hasPermission('model:server:create')")
     public CommonResult<Long> createServer(@Valid @RequestBody ModelServerSaveReqVO createReqVO) {
         return success(serverService.createServer(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新模型服务")
-    // @PreAuthorize("@ss.hasPermission('model:server:update')")
+    //@PreAuthorize("@ss.hasPermission('model:server:update')")
     public CommonResult<Boolean> updateServer(@Valid @RequestBody ModelServerSaveReqVO updateReqVO) {
         serverService.updateServer(updateReqVO);
         return success(true);
@@ -54,7 +54,7 @@ public class ModelServerController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除模型服务")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('model:server:delete')")
+    //@PreAuthorize("@ss.hasPermission('model:server:delete')")
     public CommonResult<Boolean> deleteServer(@RequestParam("id") Long id) {
         serverService.deleteServer(id);
         return success(true);
@@ -63,7 +63,7 @@ public class ModelServerController {
     @GetMapping("/get")
     @Operation(summary = "获得模型服务")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('model:server:query')")
+    //@PreAuthorize("@ss.hasPermission('model:server:query')")
     public CommonResult<ModelServerRespVO> getServer(@RequestParam("id") Long id) {
         ModelServerDO server = serverService.getServer(id);
         return success(BeanUtils.toBean(server, ModelServerRespVO.class));
@@ -71,7 +71,7 @@ public class ModelServerController {
 
     @GetMapping("/page")
     @Operation(summary = "获得模型服务分页")
-    // @PreAuthorize("@ss.hasPermission('model:server:query')")
+    //@PreAuthorize("@ss.hasPermission('model:server:query')")
     public CommonResult<PageResult<ModelServerRespVO>> getServerPage(@Valid ModelServerPageReqVO pageReqVO) {
         PageResult<ModelServerDO> pageResult = serverService.getServerPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, ModelServerRespVO.class));
@@ -79,7 +79,7 @@ public class ModelServerController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出模型服务 Excel")
-    // @PreAuthorize("@ss.hasPermission('model:server:export')")
+    //@PreAuthorize("@ss.hasPermission('model:server:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportServerExcel(@Valid ModelServerPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {

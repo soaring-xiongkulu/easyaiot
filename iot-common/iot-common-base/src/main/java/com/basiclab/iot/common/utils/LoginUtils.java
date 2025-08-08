@@ -12,7 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * 登录工具
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class LoginUtils {
 

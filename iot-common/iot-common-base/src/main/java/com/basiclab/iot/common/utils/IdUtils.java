@@ -5,7 +5,7 @@ import com.basiclab.iot.common.text.UUID;
 /**
  * ID生成器工具类
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class IdUtils
 {

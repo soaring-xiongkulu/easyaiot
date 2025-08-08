@@ -2,8 +2,8 @@ package com.basiclab.iot.common.dynamicCompilation.bytecode;
 
 /**
  * 字节处理工具类
- * @author EasyIoT
- * @date 2024-07-04
+ * @author EasyAIoT
+ * @date 2025-07-04
  */
 public class ByteUtils {
     public static int bytes2Int(byte[] b, int start, int len) {

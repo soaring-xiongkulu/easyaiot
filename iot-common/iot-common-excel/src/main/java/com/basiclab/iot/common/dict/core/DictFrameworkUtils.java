@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * 字典工具类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Slf4j
 public class DictFrameworkUtils {

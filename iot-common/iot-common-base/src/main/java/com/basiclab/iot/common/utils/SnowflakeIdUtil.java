@@ -3,18 +3,17 @@ package com.basiclab.iot.common.utils;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * @program: basiclab-util-pro
+ * @program: easyaiot-util-pro
  * @description: SnowflakeIdUtil 是一个基于雪花算法的唯一 ID 生成工具类。 雪花算法可以保证生成的 ID 全局唯一且趋势递增。
  * @packagename: com.mqttsnet.basic.utils
- * @Author: Basiclab
- * @e-mainl: 853017739@qq.com
+ * @author EasyAIoT
  * @date: 2023-05-03 13:15
  **/
 public class SnowflakeIdUtil {
 
     private static final SnowflakeIdUtil INSTANCE = new SnowflakeIdUtil();
 
-    // 开始时间戳 (2024-01-01)
+    // 开始时间戳 (2025-01-01)
     private static final long START_TIMESTAMP = 1672444800000L;
 
     // 工作器 ID 和数据中心 ID 的位数

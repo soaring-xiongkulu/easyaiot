@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc
- * @created 2024-07-18
+ * @created 2025-07-18
  */
 @Tag(name  = "告警信息管理")
 @RestController

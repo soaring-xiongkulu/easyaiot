@@ -36,14 +36,14 @@ public class WarehouseController {
 
     @PostMapping("/create")
     @Operation(summary = "创建数据仓")
-    // @PreAuthorize("@ss.hasPermission('warehouse::create')")
+    //@PreAuthorize("@ss.hasPermission('warehouse::create')")
     public CommonResult<Long> createWarehouse(@Valid @RequestBody WarehouseSaveReqVO createReqVO) {
         return success(warehouseService.createWarehouse(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新数据仓")
-    // @PreAuthorize("@ss.hasPermission('warehouse::update')")
+    //@PreAuthorize("@ss.hasPermission('warehouse::update')")
     public CommonResult<Boolean> updateWarehouse(@Valid @RequestBody WarehouseSaveReqVO updateReqVO) {
         warehouseService.updateWarehouse(updateReqVO);
         return success(true);
@@ -52,7 +52,7 @@ public class WarehouseController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除数据仓")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('warehouse::delete')")
+    //@PreAuthorize("@ss.hasPermission('warehouse::delete')")
     public CommonResult<Boolean> deleteWarehouse(@RequestParam("id") Long id) {
         warehouseService.deleteWarehouse(id);
         return success(true);
@@ -61,7 +61,7 @@ public class WarehouseController {
     @GetMapping("/get")
     @Operation(summary = "获得数据仓")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('warehouse::query')")
+    //@PreAuthorize("@ss.hasPermission('warehouse::query')")
     public CommonResult<WarehouseRespVO> getWarehouse(@RequestParam("id") Long id) {
         WarehouseDO warehouse = warehouseService.getWarehouse(id);
         return success(BeanUtils.toBean(warehouse, WarehouseRespVO.class));
@@ -69,7 +69,7 @@ public class WarehouseController {
 
     @GetMapping("/page")
     @Operation(summary = "获得数据仓分页")
-    // @PreAuthorize("@ss.hasPermission('warehouse::query')")
+    //@PreAuthorize("@ss.hasPermission('warehouse::query')")
     public CommonResult<PageResult<WarehouseRespVO>> getWarehousePage(@Valid WarehousePageReqVO pageReqVO) {
         PageResult<WarehouseDO> pageResult = warehouseService.getWarehousePage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, WarehouseRespVO.class));
@@ -77,7 +77,7 @@ public class WarehouseController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出数据仓 Excel")
-    // @PreAuthorize("@ss.hasPermission('warehouse::export')")
+    //@PreAuthorize("@ss.hasPermission('warehouse::export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportWarehouseExcel(@Valid WarehousePageReqVO pageReqVO,
                             HttpServletResponse response) throws IOException {

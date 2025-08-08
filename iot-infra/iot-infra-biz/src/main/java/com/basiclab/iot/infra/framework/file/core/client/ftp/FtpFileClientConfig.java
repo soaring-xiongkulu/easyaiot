@@ -10,7 +10,7 @@ import javax.validation.constraints.NotNull;
 /**
  * Ftp 文件客户端的配置类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Data
 public class FtpFileClientConfig implements FileClientConfig {

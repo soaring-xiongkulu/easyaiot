@@ -13,9 +13,9 @@ import lombok.experimental.Accessors;
 import java.text.MessageFormat;
 
 /**
- * @author EasyIoT
+ * @author EasyAIoT
  * @desc
- * @created 2024-05-27
+ * @created 2025-05-27
  */
 @Data
 @Accessors(chain = true)

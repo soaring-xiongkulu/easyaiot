@@ -7,9 +7,9 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 import java.util.List;
 
 /**
- * @author EasyIoT
+ * @author EasyAIoT
  * @desc  spel 表达式比较运算符工具类
- * @created 2024-07-11
+ * @created 2025-07-11
  */
 public class SpelComparisonUtil {
     private static SpelExpressionParser parser;

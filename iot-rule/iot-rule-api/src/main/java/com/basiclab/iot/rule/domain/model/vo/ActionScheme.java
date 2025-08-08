@@ -4,9 +4,9 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc    动作内容
- * @created 2024-07-15
+ * @created 2025-07-15
  */
 @Data
 public class ActionScheme {

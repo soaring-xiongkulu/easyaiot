@@ -12,7 +12,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * 学生联系人 Mapper
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Mapper
 public interface InfraStudentContactMapper extends BaseMapperX<InfraStudentContactDO> {

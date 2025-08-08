@@ -36,14 +36,14 @@ public class DatasetTaskUserController {
 
     @PostMapping("/create")
     @Operation(summary = "创建标注任务用户")
-    // @PreAuthorize("@ss.hasPermission('dataset:task-user:create')")
+    //@PreAuthorize("@ss.hasPermission('dataset:task-user:create')")
     public CommonResult<Long> createDatasetTaskUser(@Valid @RequestBody DatasetTaskUserSaveReqVO createReqVO) {
         return success(datasetTaskUserService.createDatasetTaskUser(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新标注任务用户")
-    // @PreAuthorize("@ss.hasPermission('dataset:task-user:update')")
+    //@PreAuthorize("@ss.hasPermission('dataset:task-user:update')")
     public CommonResult<Boolean> updateDatasetTaskUser(@Valid @RequestBody DatasetTaskUserSaveReqVO updateReqVO) {
         datasetTaskUserService.updateDatasetTaskUser(updateReqVO);
         return success(true);
@@ -52,7 +52,7 @@ public class DatasetTaskUserController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除标注任务用户")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('dataset:task-user:delete')")
+    //@PreAuthorize("@ss.hasPermission('dataset:task-user:delete')")
     public CommonResult<Boolean> deleteDatasetTaskUser(@RequestParam("id") Long id) {
         datasetTaskUserService.deleteDatasetTaskUser(id);
         return success(true);
@@ -61,7 +61,7 @@ public class DatasetTaskUserController {
     @GetMapping("/get")
     @Operation(summary = "获得标注任务用户")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('dataset:task-user:query')")
+    //@PreAuthorize("@ss.hasPermission('dataset:task-user:query')")
     public CommonResult<DatasetTaskUserRespVO> getDatasetTaskUser(@RequestParam("id") Long id) {
         DatasetTaskUserDO taskUser = datasetTaskUserService.getDatasetTaskUser(id);
         return success(BeanUtils.toBean(taskUser, DatasetTaskUserRespVO.class));
@@ -69,7 +69,7 @@ public class DatasetTaskUserController {
 
     @GetMapping("/page")
     @Operation(summary = "获得标注任务用户分页")
-    // @PreAuthorize("@ss.hasPermission('dataset:task-user:query')")
+    //@PreAuthorize("@ss.hasPermission('dataset:task-user:query')")
     public CommonResult<PageResult<DatasetTaskUserRespVO>> getDatasetTaskUserPage(@Valid DatasetTaskUserPageReqVO pageReqVO) {
         PageResult<DatasetTaskUserDO> pageResult = datasetTaskUserService.getDatasetTaskUserPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, DatasetTaskUserRespVO.class));
@@ -77,7 +77,7 @@ public class DatasetTaskUserController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出标注任务用户 Excel")
-    // @PreAuthorize("@ss.hasPermission('dataset:task-user:export')")
+    //@PreAuthorize("@ss.hasPermission('dataset:task-user:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportDatasetTaskUserExcel(@Valid DatasetTaskUserPageReqVO pageReqVO,
                                            HttpServletResponse response) throws IOException {

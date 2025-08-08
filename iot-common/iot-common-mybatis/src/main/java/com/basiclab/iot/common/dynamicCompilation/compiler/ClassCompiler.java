@@ -8,8 +8,8 @@ import java.util.List;
 /**
  * 类编译器
  *
- * @author EasyIoT
- * @date 2024-07-04
+ * @author EasyAIoT
+ * @date 2025-07-04
  *
  */
 public class ClassCompiler {

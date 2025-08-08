@@ -23,7 +23,7 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
 /**
  * 租户套餐 Service 实现类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Service
 @Validated

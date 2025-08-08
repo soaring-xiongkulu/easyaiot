@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 /**
  * 跨域 Filter
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Component
 public class CorsFilter implements WebFilter {

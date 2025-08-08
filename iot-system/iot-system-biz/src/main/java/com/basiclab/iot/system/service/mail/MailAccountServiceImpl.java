@@ -24,7 +24,7 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.MAIL_ACCOUNT_RELA
  * 邮箱账号 Service 实现类
  *
  * @author wangjingyi
- * @since 2024-03-21
+ * @since 2025-03-21
  */
 @Service
 @Validated

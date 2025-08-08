@@ -4,9 +4,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.basiclab.iot.rule.domain.RuleLog;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc
- * @created 2024-07-11
+ * @created 2025-07-11
  */
 public interface RuleLogMapper extends BaseMapper<RuleLog> {
 }

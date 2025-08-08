@@ -36,14 +36,14 @@ public class DatasetVideoController {
 
     @PostMapping("/create")
     @Operation(summary = "创建视频数据集")
-    // @PreAuthorize("@ss.hasPermission('dataset:video:create')")
+    //@PreAuthorize("@ss.hasPermission('dataset:video:create')")
     public CommonResult<Long> createDatasetVideo(@Valid @RequestBody DatasetVideoSaveReqVO createReqVO) {
         return success(datasetVideoService.createDatasetVideo(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新视频数据集")
-    // @PreAuthorize("@ss.hasPermission('dataset:video:update')")
+    //@PreAuthorize("@ss.hasPermission('dataset:video:update')")
     public CommonResult<Boolean> updateDatasetVideo(@Valid @RequestBody DatasetVideoSaveReqVO updateReqVO) {
         datasetVideoService.updateDatasetVideo(updateReqVO);
         return success(true);
@@ -52,7 +52,7 @@ public class DatasetVideoController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除视频数据集")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('dataset:video:delete')")
+    //@PreAuthorize("@ss.hasPermission('dataset:video:delete')")
     public CommonResult<Boolean> deleteDatasetVideo(@RequestParam("id") Long id) {
         datasetVideoService.deleteDatasetVideo(id);
         return success(true);
@@ -61,7 +61,7 @@ public class DatasetVideoController {
     @GetMapping("/get")
     @Operation(summary = "获得视频数据集")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('dataset:video:query')")
+    //@PreAuthorize("@ss.hasPermission('dataset:video:query')")
     public CommonResult<DatasetVideoRespVO> getDatasetVideo(@RequestParam("id") Long id) {
         DatasetVideoDO video = datasetVideoService.getDatasetVideo(id);
         return success(BeanUtils.toBean(video, DatasetVideoRespVO.class));
@@ -69,7 +69,7 @@ public class DatasetVideoController {
 
     @GetMapping("/page")
     @Operation(summary = "获得视频数据集分页")
-    // @PreAuthorize("@ss.hasPermission('dataset:video:query')")
+    //@PreAuthorize("@ss.hasPermission('dataset:video:query')")
     public CommonResult<PageResult<DatasetVideoRespVO>> getDatasetVideoPage(@Valid DatasetVideoPageReqVO pageReqVO) {
         PageResult<DatasetVideoDO> pageResult = datasetVideoService.getDatasetVideoPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, DatasetVideoRespVO.class));
@@ -77,7 +77,7 @@ public class DatasetVideoController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出视频数据集 Excel")
-    // @PreAuthorize("@ss.hasPermission('dataset:video:export')")
+    //@PreAuthorize("@ss.hasPermission('dataset:video:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportDatasetVideoExcel(@Valid DatasetVideoPageReqVO pageReqVO,
                                         HttpServletResponse response) throws IOException {

@@ -3,7 +3,7 @@ package com.basiclab.iot.common.adapter;
 /**
  * Excel数据格式处理适配器
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public interface ExcelHandlerAdapter
 {

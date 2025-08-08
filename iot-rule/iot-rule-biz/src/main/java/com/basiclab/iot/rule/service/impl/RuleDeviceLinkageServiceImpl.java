@@ -44,12 +44,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * @program: basiclab
+ * @program: EasyAIoT
  * @description: 规则设备联动业务层接口实现类
  * @packagename: com.mqttsnet.iot.rule.service.impl
- * @Author: Basiclab
- * @e-mainl: 853017739@qq.com
- * @date: 2024-11-03 18:50
+ * @author EasyAIoT
+ * @date: 2025-11-03 18:50
  **/
 @Slf4j
 @Service

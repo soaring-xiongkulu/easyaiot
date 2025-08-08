@@ -53,7 +53,7 @@ public class SocialUserController {
     @GetMapping("/get")
     @Operation(summary = "获得社交用户")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('system:social-user:query')")
+    //@PreAuthorize("@ss.hasPermission('system:social-user:query')")
     public CommonResult<SocialUserRespVO> getSocialUser(@RequestParam("id") Long id) {
         SocialUserDO socialUser = socialUserService.getSocialUser(id);
         return success(BeanUtils.toBean(socialUser, SocialUserRespVO.class));
@@ -61,7 +61,7 @@ public class SocialUserController {
 
     @GetMapping("/page")
     @Operation(summary = "获得社交用户分页")
-    // @PreAuthorize("@ss.hasPermission('system:social-user:query')")
+    //@PreAuthorize("@ss.hasPermission('system:social-user:query')")
     public CommonResult<PageResult<SocialUserRespVO>> getSocialUserPage(@Valid SocialUserPageReqVO pageVO) {
         PageResult<SocialUserDO> pageResult = socialUserService.getSocialUserPage(pageVO);
         return success(BeanUtils.toBean(pageResult, SocialUserRespVO.class));

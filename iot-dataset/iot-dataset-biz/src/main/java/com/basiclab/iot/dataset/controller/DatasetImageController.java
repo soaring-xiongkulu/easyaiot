@@ -39,14 +39,14 @@ public class DatasetImageController {
 
     @PostMapping("/create")
     @Operation(summary = "创建图片数据集")
-    // @PreAuthorize("@ss.hasPermission('dataset:image:create')")
+    //@PreAuthorize("@ss.hasPermission('dataset:image:create')")
     public CommonResult<Long> createDatasetImage(@Valid @RequestBody DatasetImageSaveReqVO createReqVO) {
         return success(datasetImageService.createDatasetImage(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新图片数据集")
-    // @PreAuthorize("@ss.hasPermission('dataset:image:update')")
+    //@PreAuthorize("@ss.hasPermission('dataset:image:update')")
     public CommonResult<Boolean> updateDatasetImage(@Valid @RequestBody DatasetImageSaveReqVO updateReqVO) {
         datasetImageService.updateDatasetImage(updateReqVO);
         return success(true);
@@ -55,7 +55,7 @@ public class DatasetImageController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除图片数据集")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('dataset:image:delete')")
+    //@PreAuthorize("@ss.hasPermission('dataset:image:delete')")
     public CommonResult<Boolean> deleteDatasetImage(@RequestParam("id") Long id) {
         datasetImageService.deleteDatasetImage(id);
         return success(true);
@@ -73,7 +73,7 @@ public class DatasetImageController {
     @GetMapping("/get")
     @Operation(summary = "获得图片数据集")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('dataset:image:query')")
+    //@PreAuthorize("@ss.hasPermission('dataset:image:query')")
     public CommonResult<DatasetImageRespVO> getDatasetImage(@RequestParam("id") Long id) {
         DatasetImageDO image = datasetImageService.getDatasetImage(id);
         return success(BeanUtils.toBean(image, DatasetImageRespVO.class));
@@ -81,7 +81,7 @@ public class DatasetImageController {
 
     @GetMapping("/page")
     @Operation(summary = "获得图片数据集分页")
-    // @PreAuthorize("@ss.hasPermission('dataset:image:query')")
+    //@PreAuthorize("@ss.hasPermission('dataset:image:query')")
     public CommonResult<PageResult<DatasetImageRespVO>> getDatasetImagePage(@Valid DatasetImagePageReqVO pageReqVO) {
         PageResult<DatasetImageDO> pageResult = datasetImageService.getDatasetImagePage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, DatasetImageRespVO.class));
@@ -89,7 +89,7 @@ public class DatasetImageController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出图片数据集 Excel")
-    // @PreAuthorize("@ss.hasPermission('dataset:image:export')")
+    //@PreAuthorize("@ss.hasPermission('dataset:image:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportDatasetImageExcel(@Valid DatasetImagePageReqVO pageReqVO,
                                         HttpServletResponse response) throws IOException {

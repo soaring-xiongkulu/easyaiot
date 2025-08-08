@@ -7,12 +7,11 @@ import com.basiclab.iot.rule.domain.RuleActionCommands;
 import com.basiclab.iot.rule.domain.model.ActionCommandsModel;
 
 /**
- * @program: basiclab
+ * @program: EasyAIoT
  * @description: ${description}
  * @packagename: com.mqttsnet.iot.rule.service.impl
- * @Author: Basiclab
- * @e-mainl: 853017739@qq.com
- * @date: 2024-12-04 21:39
+ * @author EasyAIoT
+ * @date: 2025-12-04 21:39
  **/
 public interface ActionCommandsService extends IService<RuleActionCommands> {
 

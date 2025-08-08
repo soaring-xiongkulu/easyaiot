@@ -8,8 +8,8 @@ import java.lang.reflect.Method;
 /**
  * Class执行器
  *
- * @author EasyIoT
- * @date 2024-07-04
+ * @author EasyAIoT
+ * @date 2025-07-04
  */
 public class ClassExecutor {
 

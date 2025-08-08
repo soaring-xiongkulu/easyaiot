@@ -17,7 +17,7 @@ import java.util.Map;
  * 记录每一次邮件的发送
  *
  * @author wangjingyi
- * @since 2024-03-21
+ * @since 2025-03-21
  */
 @TableName(value = "system_mail_log", autoResultMap = true)
 @Data

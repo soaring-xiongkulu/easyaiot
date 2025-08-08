@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * 图片数据集 Service 接口
  *
- * @author IoT
+ * @author EasyAIoT
  */
 public interface DatasetImageService {
 

@@ -1,9 +1,9 @@
 package com.basiclab.iot.rule.domain.model.enums;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc
- * @created 2024-07-30
+ * @created 2025-07-30
  */
 public enum RuleLogStatusEnum {
 

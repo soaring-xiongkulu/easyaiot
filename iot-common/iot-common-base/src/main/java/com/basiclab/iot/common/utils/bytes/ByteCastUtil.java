@@ -5,7 +5,7 @@ import io.netty.buffer.ByteBuf;
 /**
  * @author qyb
  * @description: TODO
- * @date 2021/11/30 11:15
+ * @date 2024/11/30 11:15
  */
 public class ByteCastUtil {
     //byte[]——>hexString

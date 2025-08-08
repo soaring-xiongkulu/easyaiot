@@ -28,7 +28,7 @@ import reactor.core.publisher.Mono;
 /**
  * 客户端工具类
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class ServletUtils
 {

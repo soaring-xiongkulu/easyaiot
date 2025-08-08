@@ -38,7 +38,7 @@ public class SmsLogController {
 
     @GetMapping("/page")
     @Operation(summary = "获得短信日志分页")
-    // @PreAuthorize("@ss.hasPermission('system:sms-log:query')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-log:query')")
     public CommonResult<PageResult<SmsLogRespVO>> getSmsLogPage(@Valid SmsLogPageReqVO pageReqVO) {
         PageResult<SmsLogDO> pageResult = smsLogService.getSmsLogPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, SmsLogRespVO.class));
@@ -46,7 +46,7 @@ public class SmsLogController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出短信日志 Excel")
-    // @PreAuthorize("@ss.hasPermission('system:sms-log:export')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-log:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportSmsLogExcel(@Valid SmsLogPageReqVO exportReqVO,
                                   HttpServletResponse response) throws IOException {

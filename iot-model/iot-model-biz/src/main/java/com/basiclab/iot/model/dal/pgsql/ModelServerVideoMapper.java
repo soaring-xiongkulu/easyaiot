@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * 模型服务视频 Mapper
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Mapper
 public interface ModelServerVideoMapper extends BaseMapperX<ModelServerVideoDO> {

@@ -14,7 +14,7 @@ import java.io.File;
 /**
  * 文件工具类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class FileUtils {
 

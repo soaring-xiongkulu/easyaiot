@@ -21,7 +21,7 @@ import java.util.List;
 /**
  * JSON 工具类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Slf4j
 public class JsonUtils {

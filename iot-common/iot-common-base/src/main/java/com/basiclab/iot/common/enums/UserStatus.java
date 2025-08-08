@@ -3,7 +3,7 @@ package com.basiclab.iot.common.enums;
 /**
  * 用户状态
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public enum UserStatus
 {

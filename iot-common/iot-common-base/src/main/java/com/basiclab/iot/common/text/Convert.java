@@ -12,7 +12,7 @@ import com.basiclab.iot.common.utils.StringUtils;
 /**
  * 类型转换器
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class Convert
 {

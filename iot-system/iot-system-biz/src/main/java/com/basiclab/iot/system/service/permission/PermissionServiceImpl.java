@@ -39,7 +39,7 @@ import static com.basiclab.iot.common.utils.json.JsonUtils.toJsonString;
 /**
  * 权限 Service 实现类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Service
 @Slf4j

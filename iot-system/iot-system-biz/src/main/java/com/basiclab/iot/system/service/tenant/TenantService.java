@@ -15,7 +15,7 @@ import java.util.Set;
 /**
  * 租户 Service 接口
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public interface TenantService {
 

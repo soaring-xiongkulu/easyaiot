@@ -32,7 +32,7 @@ public class OAuth2TokenController {
 
     @GetMapping("/page")
     @Operation(summary = "获得访问令牌分页", description = "只返回有效期内的")
-    // @PreAuthorize("@ss.hasPermission('system:oauth2-token:page')")
+    //@PreAuthorize("@ss.hasPermission('system:oauth2-token:page')")
     public CommonResult<PageResult<OAuth2AccessTokenRespVO>> getAccessTokenPage(@Valid OAuth2AccessTokenPageReqVO reqVO) {
         PageResult<OAuth2AccessTokenDO> pageResult = oauth2TokenService.getAccessTokenPage(reqVO);
         return success(BeanUtils.toBean(pageResult, OAuth2AccessTokenRespVO.class));
@@ -41,7 +41,7 @@ public class OAuth2TokenController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除访问令牌")
     @Parameter(name = "accessToken", description = "访问令牌", required = true, example = "tudou")
-    // @PreAuthorize("@ss.hasPermission('system:oauth2-token:delete')")
+    //@PreAuthorize("@ss.hasPermission('system:oauth2-token:delete')")
     public CommonResult<Boolean> deleteAccessToken(@RequestParam("accessToken") String accessToken) {
         authService.logout(accessToken, LoginLogTypeEnum.LOGOUT_DELETE.getType());
         return success(true);

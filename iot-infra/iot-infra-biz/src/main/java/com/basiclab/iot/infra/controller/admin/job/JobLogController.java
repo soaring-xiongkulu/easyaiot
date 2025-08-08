@@ -41,7 +41,7 @@ public class JobLogController {
     @GetMapping("/get")
     @Operation(summary = "获得定时任务日志")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('infra:job:query')")
+    //@PreAuthorize("@ss.hasPermission('infra:job:query')")
     public CommonResult<JobLogRespVO> getJobLog(@RequestParam("id") Long id) {
         JobLogDO jobLog = jobLogService.getJobLog(id);
         return success(BeanUtils.toBean(jobLog, JobLogRespVO.class));
@@ -49,7 +49,7 @@ public class JobLogController {
 
     @GetMapping("/page")
     @Operation(summary = "获得定时任务日志分页")
-    // @PreAuthorize("@ss.hasPermission('infra:job:query')")
+    //@PreAuthorize("@ss.hasPermission('infra:job:query')")
     public CommonResult<PageResult<JobLogRespVO>> getJobLogPage(@Valid JobLogPageReqVO pageVO) {
         PageResult<JobLogDO> pageResult = jobLogService.getJobLogPage(pageVO);
         return success(BeanUtils.toBean(pageResult, JobLogRespVO.class));
@@ -57,7 +57,7 @@ public class JobLogController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出定时任务日志 Excel")
-    // @PreAuthorize("@ss.hasPermission('infra:job:export')")
+    //@PreAuthorize("@ss.hasPermission('infra:job:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportJobLogExcel(@Valid JobLogPageReqVO exportReqVO,
                                   HttpServletResponse response) throws IOException {

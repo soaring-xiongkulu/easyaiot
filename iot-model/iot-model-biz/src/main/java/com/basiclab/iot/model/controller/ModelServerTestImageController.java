@@ -36,14 +36,14 @@ public class ModelServerTestImageController {
 
     @PostMapping("/create")
     @Operation(summary = "创建模型测试图片")
-    // @PreAuthorize("@ss.hasPermission('model:server-test-image:create')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test-image:create')")
     public CommonResult<Long> createServerTestImage(@Valid @RequestBody ModelServerTestImageSaveReqVO createReqVO) {
         return success(serverTestImageService.createModelServerTestImage(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新模型测试图片")
-    // @PreAuthorize("@ss.hasPermission('model:server-test-image:update')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test-image:update')")
     public CommonResult<Boolean> updateServerTestImage(@Valid @RequestBody ModelServerTestImageSaveReqVO updateReqVO) {
         serverTestImageService.updateModelServerTestImage(updateReqVO);
         return success(true);
@@ -52,7 +52,7 @@ public class ModelServerTestImageController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除模型测试图片")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('model:server-test-image:delete')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test-image:delete')")
     public CommonResult<Boolean> deleteServerTestImage(@RequestParam("id") Long id) {
         serverTestImageService.deleteModelServerTestImage(id);
         return success(true);
@@ -61,7 +61,7 @@ public class ModelServerTestImageController {
     @GetMapping("/get")
     @Operation(summary = "获得模型测试图片")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('model:server-test-image:query')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test-image:query')")
     public CommonResult<ModelServerTestImageRespVO> getServerTestImage(@RequestParam("id") Long id) {
         ModelServerTestImageDO serverTestImage = serverTestImageService.getModelServerTestImage(id);
         return success(BeanUtils.toBean(serverTestImage, ModelServerTestImageRespVO.class));
@@ -69,7 +69,7 @@ public class ModelServerTestImageController {
 
     @GetMapping("/page")
     @Operation(summary = "获得模型测试图片分页")
-    // @PreAuthorize("@ss.hasPermission('model:server-test-image:query')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test-image:query')")
     public CommonResult<PageResult<ModelServerTestImageRespVO>> getServerTestImagePage(@Valid ModelServerTestImagePageReqVO pageReqVO) {
         PageResult<ModelServerTestImageDO> pageResult = serverTestImageService.getModelServerTestImagePage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, ModelServerTestImageRespVO.class));
@@ -77,7 +77,7 @@ public class ModelServerTestImageController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出模型测试图片 Excel")
-    // @PreAuthorize("@ss.hasPermission('model:server-test-image:export')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test-image:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportServerTestImageExcel(@Valid ModelServerTestImagePageReqVO pageReqVO,
                                            HttpServletResponse response) throws IOException {

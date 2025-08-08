@@ -40,14 +40,14 @@ public class ConfigController {
 
     @PostMapping("/create")
     @Operation(summary = "创建参数配置")
-    // @PreAuthorize("@ss.hasPermission('infra:config:create')")
+    //@PreAuthorize("@ss.hasPermission('infra:config:create')")
     public CommonResult<Long> createConfig(@Valid @RequestBody ConfigSaveReqVO createReqVO) {
         return success(configService.createConfig(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "修改参数配置")
-    // @PreAuthorize("@ss.hasPermission('infra:config:update')")
+    //@PreAuthorize("@ss.hasPermission('infra:config:update')")
     public CommonResult<Boolean> updateConfig(@Valid @RequestBody ConfigSaveReqVO updateReqVO) {
         configService.updateConfig(updateReqVO);
         return success(true);
@@ -56,7 +56,7 @@ public class ConfigController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除参数配置")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('infra:config:delete')")
+    //@PreAuthorize("@ss.hasPermission('infra:config:delete')")
     public CommonResult<Boolean> deleteConfig(@RequestParam("id") Long id) {
         configService.deleteConfig(id);
         return success(true);
@@ -65,7 +65,7 @@ public class ConfigController {
     @GetMapping(value = "/get")
     @Operation(summary = "获得参数配置")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('infra:config:query')")
+    //@PreAuthorize("@ss.hasPermission('infra:config:query')")
     public CommonResult<ConfigRespVO> getConfig(@RequestParam("id") Long id) {
         return success(ConfigConvert.INSTANCE.convert(configService.getConfig(id)));
     }
@@ -86,7 +86,7 @@ public class ConfigController {
 
     @GetMapping("/page")
     @Operation(summary = "获取参数配置分页")
-    // @PreAuthorize("@ss.hasPermission('infra:config:query')")
+    //@PreAuthorize("@ss.hasPermission('infra:config:query')")
     public CommonResult<PageResult<ConfigRespVO>> getConfigPage(@Valid ConfigPageReqVO pageReqVO) {
         PageResult<ConfigDO> page = configService.getConfigPage(pageReqVO);
         return success(ConfigConvert.INSTANCE.convertPage(page));
@@ -94,7 +94,7 @@ public class ConfigController {
 
     @GetMapping("/export")
     @Operation(summary = "导出参数配置")
-    // @PreAuthorize("@ss.hasPermission('infra:config:export')")
+    //@PreAuthorize("@ss.hasPermission('infra:config:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportConfig(@Valid ConfigPageReqVO exportReqVO,
                              HttpServletResponse response) throws IOException {

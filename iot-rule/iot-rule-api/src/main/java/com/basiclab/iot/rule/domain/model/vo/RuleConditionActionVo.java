@@ -7,9 +7,9 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc
- * @created 2024-07-15
+ * @created 2025-07-15
  */
 @Data
 @ApiModel("规则条件和动作传输对象")

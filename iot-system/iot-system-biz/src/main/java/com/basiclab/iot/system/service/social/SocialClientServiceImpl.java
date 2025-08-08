@@ -52,7 +52,7 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
 /**
  * 社交应用 Service 实现类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Service
 @Slf4j

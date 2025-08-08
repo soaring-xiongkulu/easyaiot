@@ -6,8 +6,8 @@ import lombok.Getter;
 /**
  * 短信的接收状态枚举
  *
- * @author EasyIoT
- * @date 2021/2/1 13:39
+ * @author EasyAIoT
+ * @date 2024/2/1 13:39
  */
 @Getter
 @AllArgsConstructor

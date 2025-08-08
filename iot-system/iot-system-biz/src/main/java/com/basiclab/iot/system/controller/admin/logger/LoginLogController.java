@@ -38,7 +38,7 @@ public class LoginLogController {
 
     @GetMapping("/page")
     @Operation(summary = "获得登录日志分页列表")
-    // @PreAuthorize("@ss.hasPermission('system:login-log:query')")
+    //@PreAuthorize("@ss.hasPermission('system:login-log:query')")
     public CommonResult<PageResult<LoginLogRespVO>> getLoginLogPage(@Valid LoginLogPageReqVO pageReqVO) {
         PageResult<LoginLogDO> pageResult = loginLogService.getLoginLogPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, LoginLogRespVO.class));
@@ -46,7 +46,7 @@ public class LoginLogController {
 
     @GetMapping("/export")
     @Operation(summary = "导出登录日志 Excel")
-    // @PreAuthorize("@ss.hasPermission('system:login-log:export')")
+    //@PreAuthorize("@ss.hasPermission('system:login-log:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportLoginLog(HttpServletResponse response, @Valid LoginLogPageReqVO exportReqVO) throws IOException {
         exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);

@@ -9,12 +9,11 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 /**
- * @program: basiclab
+ * @program: EasyAIoT
  * @description: ${description}
  * @packagename: com.mqttsnet.iot.rule.mapper
- * @Author: Basiclab
- * @e-mainl: 853017739@qq.com
- * @date: 2024-07-21 18:50
+ * @author EasyAIoT
+ * @date: 2025-07-21 18:50
  **/
 @Mapper
 public interface RuleConditionsMapper extends BaseMapper<RuleConditions> {

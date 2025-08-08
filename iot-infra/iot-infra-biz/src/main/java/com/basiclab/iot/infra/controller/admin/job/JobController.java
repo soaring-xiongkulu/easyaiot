@@ -43,7 +43,7 @@ public class JobController {
 
     @PostMapping("/create")
     @Operation(summary = "创建定时任务")
-    // @PreAuthorize("@ss.hasPermission('infra:job:create')")
+    //@PreAuthorize("@ss.hasPermission('infra:job:create')")
     public CommonResult<Long> createJob(@Valid @RequestBody JobSaveReqVO createReqVO)
             throws SchedulerException {
         return success(jobService.createJob(createReqVO));
@@ -51,7 +51,7 @@ public class JobController {
 
     @PutMapping("/update")
     @Operation(summary = "更新定时任务")
-    // @PreAuthorize("@ss.hasPermission('infra:job:update')")
+    //@PreAuthorize("@ss.hasPermission('infra:job:update')")
     public CommonResult<Boolean> updateJob(@Valid @RequestBody JobSaveReqVO updateReqVO)
             throws SchedulerException {
         jobService.updateJob(updateReqVO);
@@ -64,7 +64,7 @@ public class JobController {
             @Parameter(name = "id", description = "编号", required = true, example = "1024"),
             @Parameter(name = "status", description = "状态", required = true, example = "1"),
     })
-    // @PreAuthorize("@ss.hasPermission('infra:job:update')")
+    //@PreAuthorize("@ss.hasPermission('infra:job:update')")
     public CommonResult<Boolean> updateJobStatus(@RequestParam(value = "id") Long id, @RequestParam("status") Integer status)
             throws SchedulerException {
         jobService.updateJobStatus(id, status);
@@ -74,7 +74,7 @@ public class JobController {
 	@DeleteMapping("/delete")
     @Operation(summary = "删除定时任务")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-	// @PreAuthorize("@ss.hasPermission('infra:job:delete')")
+	//@PreAuthorize("@ss.hasPermission('infra:job:delete')")
     public CommonResult<Boolean> deleteJob(@RequestParam("id") Long id)
             throws SchedulerException {
         jobService.deleteJob(id);
@@ -84,7 +84,7 @@ public class JobController {
     @PutMapping("/trigger")
     @Operation(summary = "触发定时任务")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('infra:job:trigger')")
+    //@PreAuthorize("@ss.hasPermission('infra:job:trigger')")
     public CommonResult<Boolean> triggerJob(@RequestParam("id") Long id) throws SchedulerException {
         jobService.triggerJob(id);
         return success(true);
@@ -92,7 +92,7 @@ public class JobController {
 
     @PostMapping("/sync")
     @Operation(summary = "同步定时任务")
-    // @PreAuthorize("@ss.hasPermission('infra:job:create')")
+    //@PreAuthorize("@ss.hasPermission('infra:job:create')")
     public CommonResult<Boolean> syncJob() throws SchedulerException {
         jobService.syncJob();
         return success(true);
@@ -101,7 +101,7 @@ public class JobController {
     @GetMapping("/get")
     @Operation(summary = "获得定时任务")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('infra:job:query')")
+    //@PreAuthorize("@ss.hasPermission('infra:job:query')")
     public CommonResult<JobRespVO> getJob(@RequestParam("id") Long id) {
         JobDO job = jobService.getJob(id);
         return success(BeanUtils.toBean(job, JobRespVO.class));
@@ -109,7 +109,7 @@ public class JobController {
 
     @GetMapping("/page")
     @Operation(summary = "获得定时任务分页")
-    // @PreAuthorize("@ss.hasPermission('infra:job:query')")
+    //@PreAuthorize("@ss.hasPermission('infra:job:query')")
     public CommonResult<PageResult<JobRespVO>> getJobPage(@Valid JobPageReqVO pageVO) {
         PageResult<JobDO> pageResult = jobService.getJobPage(pageVO);
         return success(BeanUtils.toBean(pageResult, JobRespVO.class));
@@ -117,7 +117,7 @@ public class JobController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出定时任务 Excel")
-    // @PreAuthorize("@ss.hasPermission('infra:job:export')")
+    //@PreAuthorize("@ss.hasPermission('infra:job:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportJobExcel(@Valid JobPageReqVO exportReqVO,
                                HttpServletResponse response) throws IOException {
@@ -134,7 +134,7 @@ public class JobController {
             @Parameter(name = "id", description = "编号", required = true, example = "1024"),
             @Parameter(name = "count", description = "数量", example = "5")
     })
-    // @PreAuthorize("@ss.hasPermission('infra:job:query')")
+    //@PreAuthorize("@ss.hasPermission('infra:job:query')")
     public CommonResult<List<LocalDateTime>> getJobNextTimes(
             @RequestParam("id") Long id,
             @RequestParam(value = "count", required = false, defaultValue = "5") Integer count) {

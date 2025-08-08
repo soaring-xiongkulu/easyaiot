@@ -6,7 +6,7 @@ import com.basiclab.iot.common.exception.ErrorCode;
  * Model 字典类型的枚举类
  * model 系统，使用 1-003-000-000 段
  *
- * @author IoT
+ * @author EasyAIoT
  */
 public interface ErrorCodeConstants {
 

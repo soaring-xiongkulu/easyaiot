@@ -32,14 +32,14 @@ public class SmsChannelController {
 
     @PostMapping("/create")
     @Operation(summary = "创建短信渠道")
-    // @PreAuthorize("@ss.hasPermission('system:sms-channel:create')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-channel:create')")
     public CommonResult<Long> createSmsChannel(@Valid @RequestBody SmsChannelSaveReqVO createReqVO) {
         return success(smsChannelService.createSmsChannel(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新短信渠道")
-    // @PreAuthorize("@ss.hasPermission('system:sms-channel:update')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-channel:update')")
     public CommonResult<Boolean> updateSmsChannel(@Valid @RequestBody SmsChannelSaveReqVO updateReqVO) {
         smsChannelService.updateSmsChannel(updateReqVO);
         return success(true);
@@ -48,7 +48,7 @@ public class SmsChannelController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除短信渠道")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('system:sms-channel:delete')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-channel:delete')")
     public CommonResult<Boolean> deleteSmsChannel(@RequestParam("id") Long id) {
         smsChannelService.deleteSmsChannel(id);
         return success(true);
@@ -57,7 +57,7 @@ public class SmsChannelController {
     @GetMapping("/get")
     @Operation(summary = "获得短信渠道")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('system:sms-channel:query')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-channel:query')")
     public CommonResult<SmsChannelRespVO> getSmsChannel(@RequestParam("id") Long id) {
         SmsChannelDO channel = smsChannelService.getSmsChannel(id);
         return success(BeanUtils.toBean(channel, SmsChannelRespVO.class));
@@ -65,7 +65,7 @@ public class SmsChannelController {
 
     @GetMapping("/page")
     @Operation(summary = "获得短信渠道分页")
-    // @PreAuthorize("@ss.hasPermission('system:sms-channel:query')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-channel:query')")
     public CommonResult<PageResult<SmsChannelRespVO>> getSmsChannelPage(@Valid SmsChannelPageReqVO pageVO) {
         PageResult<SmsChannelDO> pageResult = smsChannelService.getSmsChannelPage(pageVO);
         return success(BeanUtils.toBean(pageResult, SmsChannelRespVO.class));

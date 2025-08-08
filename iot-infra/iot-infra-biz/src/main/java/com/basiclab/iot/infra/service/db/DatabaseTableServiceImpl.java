@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 /**
  * 数据库表 Service 实现类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Service
 public class DatabaseTableServiceImpl implements DatabaseTableService {

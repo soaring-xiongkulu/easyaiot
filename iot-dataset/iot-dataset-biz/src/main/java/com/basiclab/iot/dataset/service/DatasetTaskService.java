@@ -9,7 +9,7 @@ import com.basiclab.iot.dataset.domain.dataset.vo.DatasetTaskSaveReqVO;
 /**
  * 标注任务 Service 接口
  *
- * @author IoT
+ * @author EasyAIoT
  */
 public interface DatasetTaskService {
 

@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 /**
  * Job 日志 Service 实现类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Service
 @Validated

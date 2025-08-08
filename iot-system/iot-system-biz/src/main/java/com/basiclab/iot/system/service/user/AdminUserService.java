@@ -21,7 +21,7 @@ import java.util.Map;
 /**
  * 后台用户 Service 接口
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public interface AdminUserService {
 

@@ -6,8 +6,8 @@ import lombok.Getter;
 /**
  * 数据集审批状态
  *
- * @author IoT
- * @date 2021-10-22
+ * @author EasyAIoT
+ * @date 2024-10-22
  */
 @Getter
 @AllArgsConstructor

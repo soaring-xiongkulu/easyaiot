@@ -3,7 +3,7 @@ package com.basiclab.iot.common.utils.sign;
 /**
  * Base64工具类
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public final class Base64
 {

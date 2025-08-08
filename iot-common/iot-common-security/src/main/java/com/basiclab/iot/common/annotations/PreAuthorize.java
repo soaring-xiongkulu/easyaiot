@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * 权限注解
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Target({ ElementType.TYPE, ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)

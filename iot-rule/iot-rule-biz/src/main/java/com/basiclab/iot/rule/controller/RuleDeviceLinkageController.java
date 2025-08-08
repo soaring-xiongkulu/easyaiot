@@ -11,12 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * @program: basiclab
+ * @program: EasyAIoT
  * @description: 设备联动Controller
  * @packagename: com.mqttsnet.iot.rule.controller
- * @Author: Basiclab
- * @e-mainl: 853017739@qq.com
- * @date: 2024-08-07 20:31
+ * @author EasyAIoT
+ * @date: 2025-08-07 20:31
  **/
 @RestController
 @RequestMapping("/ruleDeviceLinkage")

@@ -7,7 +7,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /**
  * swagger 资源映射路径
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Configuration
 public class SwaggerWebConfiguration implements WebMvcConfigurer

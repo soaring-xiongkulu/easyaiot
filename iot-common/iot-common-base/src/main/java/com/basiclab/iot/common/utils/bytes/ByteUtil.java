@@ -10,15 +10,10 @@ import java.util.List;
 import java.util.TimeZone;
 
 /**
- * @Description: java类作用描述
- * @Author: Basiclab
- * @E-mail: 853017739@qq.com
+ * @author EasyAIoT
  * @Website: http://mqtts.net
- * @CreateDate: 2021/11/23$ 11:37$
- * @UpdateUser: ShiHuan Sun
- * @UpdateDate: 2021/11/23$ 11:37$
- * @UpdateRemark: 修改内容
- * @Version: 1.0
+ * @CreateDate: 2024/11/23$ 11:37$
+ * @UpdateDate: 2024/11/23$ 11:37$
  */
 public class ByteUtil {
 

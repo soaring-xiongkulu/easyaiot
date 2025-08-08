@@ -1,9 +1,9 @@
 package com.basiclab.iot.rule.context;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc    上下文数据
- * @created 2024-07-18
+ * @created 2025-07-18
  */
 public class Context {
 

@@ -6,8 +6,8 @@ import lombok.Getter;
 /**
  * 触发机制
  *
- * @author shisen
- * @date 2024-8-7
+ * @author EasyAIoT
+ * @date 2025-8-7
  */
 @Getter
 @AllArgsConstructor

@@ -21,7 +21,7 @@ import static cn.hutool.core.exceptions.ExceptionUtil.getRootCauseMessage;
  * 邮件日志 Service 实现类
  *
  * @author wangjingyi
- * @since 2024-03-21
+ * @since 2025-03-21
  */
 @Service
 @Validated

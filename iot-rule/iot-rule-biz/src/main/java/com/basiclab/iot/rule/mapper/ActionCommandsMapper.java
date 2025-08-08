@@ -8,12 +8,10 @@ import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 /**
-* @program: basiclab
 * @description: ${description}
 * @packagename: com.mqttsnet.iot.rule.mapper
-* @Author: Basiclab
-* @e-mainl: 853017739@qq.com
-* @date: 2024-12-04 21:39
+* @author EasyIoT
+* @date: 2025-12-04 21:39
 **/
 @Mapper
 public interface ActionCommandsMapper  extends BaseMapper<RuleActionCommands> {

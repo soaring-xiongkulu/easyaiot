@@ -5,7 +5,7 @@ import lombok.Data;
 /**
  * 短信发送 Response DTO
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Data
 public class SmsSendRespDTO {

@@ -38,7 +38,7 @@ public class ActionCommandsController extends BaseController {
     }
 
 
-    //    // @PreAuthorize(hasPermi = "rule:rule:list")
+    //    //@PreAuthorize(hasPermi = "rule:rule:list")
     @GetMapping("/list")
     @ApiOperation("规则动作列表")
     public TableDataInfo list(RuleActionCommands ruleActionCommands) {
@@ -51,8 +51,8 @@ public class ActionCommandsController extends BaseController {
      * 批量新增执行动作命令
      */
     @NoRepeatSubmit
-//    // @PreAuthorize(hasPermi = "rule:actionCommands:add")
-    //@Log(title = "执行动作命令", businessType = BusinessType.INSERT)
+//    //@PreAuthorize(hasPermi = "rule:actionCommands:add")
+    ////@Log(title = "执行动作命令", businessType = BusinessType.INSERT)
     @PostMapping("/batchInsert")
     @ApiOperation("批量新增执行动作命令")
     public AjaxResult batchInsert(@RequestBody List<RuleActionCommands> ruleActionCommandsList) {
@@ -63,8 +63,8 @@ public class ActionCommandsController extends BaseController {
      * 批量编辑执行动作命令
      */
     @NoRepeatSubmit
-//    // @PreAuthorize(hasPermi = "rule:actionCommands:edit")
-    //@Log(title = "执行动作命令", businessType = BusinessType.UPDATE)
+//    //@PreAuthorize(hasPermi = "rule:actionCommands:edit")
+    ////@Log(title = "执行动作命令", businessType = BusinessType.UPDATE)
     @PutMapping("/batchEdit")
     @ApiOperation("批量编辑执行动作命令")
     public AjaxResult updateBatch(@RequestBody List<RuleActionCommands> ruleActionCommandsList) {
@@ -77,8 +77,8 @@ public class ActionCommandsController extends BaseController {
      * @param ids
      * @return
      */
-//    // @PreAuthorize(hasPermi = "link:actionCommands:remove")
-    //@Log(title = "执行动作命令", businessType = BusinessType.DELETE)
+//    //@PreAuthorize(hasPermi = "link:actionCommands:remove")
+    ////@Log(title = "执行动作命令", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     @ApiOperation("批量删除执行动作命令")
     public AjaxResult remove(@PathVariable Long[] ids) {

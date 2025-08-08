@@ -9,7 +9,7 @@ import java.time.ZonedDateTime;
 /**
  * 桶信息
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Data
 @ApiModel(value = "桶对象", description = "桶Vo")

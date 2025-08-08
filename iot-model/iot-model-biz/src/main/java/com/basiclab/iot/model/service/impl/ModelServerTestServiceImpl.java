@@ -18,7 +18,7 @@ import static com.basiclab.iot.model.enums.ErrorCodeConstants.MODEL_SERVER_TEST_
 /**
  * 模型测试服务 Service 实现类
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Service
 @Validated

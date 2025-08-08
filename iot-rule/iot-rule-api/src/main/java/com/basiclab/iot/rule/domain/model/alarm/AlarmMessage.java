@@ -7,9 +7,9 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc 告警通知消息
- * @created 2024-07-18
+ * @created 2025-07-18
  */
 @Data
 @ApiModel("告警通知消息")

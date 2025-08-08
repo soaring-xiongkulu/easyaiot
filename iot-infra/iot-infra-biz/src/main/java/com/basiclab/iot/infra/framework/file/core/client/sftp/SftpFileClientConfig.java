@@ -10,7 +10,7 @@ import javax.validation.constraints.NotNull;
 /**
  * Sftp 文件客户端的配置类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Data
 public class SftpFileClientConfig implements FileClientConfig {

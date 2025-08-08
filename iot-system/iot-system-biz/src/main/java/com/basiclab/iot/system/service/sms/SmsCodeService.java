@@ -10,7 +10,7 @@ import javax.validation.Valid;
 /**
  * 短信验证码 Service 接口
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public interface SmsCodeService {
 

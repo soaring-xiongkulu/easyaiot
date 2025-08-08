@@ -24,7 +24,7 @@ public class LoginLogPageReqVO extends PageParam {
     @Schema(description = "操作状态", example = "true")
     private Boolean status;
 
-    @Schema(description = "登录时间", example = "[2024-07-01 00:00:00,2024-07-01 23:59:59]")
+    @Schema(description = "登录时间", example = "[2025-07-01 00:00:00,2025-07-01 23:59:59]")
     @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)
     private LocalDateTime[] createTime;
 

@@ -1,14 +1,14 @@
 package com.basiclab.iot.common.core.security;
 
 import cn.hutool.core.collection.CollUtil;
+import com.basiclab.iot.common.config.TenantProperties;
 import com.basiclab.iot.common.core.context.TenantContextHolder;
 import com.basiclab.iot.common.core.service.TenantFrameworkService;
-import com.basiclab.iot.common.exception.GlobalErrorStatus;
 import com.basiclab.iot.common.domain.CommonResult;
-import com.basiclab.iot.common.utils.servlet.ServletUtils;
 import com.basiclab.iot.common.domain.LoginUser;
+import com.basiclab.iot.common.exception.GlobalErrorStatus;
 import com.basiclab.iot.common.utils.SecurityFrameworkUtils;
-import com.basiclab.iot.common.config.TenantProperties;
+import com.basiclab.iot.common.utils.servlet.ServletUtils;
 import com.basiclab.iot.common.web.config.WebProperties;
 import com.basiclab.iot.common.web.core.filter.ApiRequestFilter;
 import com.basiclab.iot.common.web.core.handler.GlobalExceptionHandler;
@@ -28,7 +28,7 @@ import java.util.Objects;
  * 2. 如果请求未带租户的编号，检查是否是忽略的 URL，否则也不允许访问。
  * 3. 校验租户是合法，例如说被禁用、到期
  *
- * @author EasyIoT
+ * @author IoT
  */
 @Slf4j
 public class TenantSecurityWebFilter extends ApiRequestFilter {
@@ -62,7 +62,7 @@ public class TenantSecurityWebFilter extends ApiRequestFilter {
             if (tenantId == null) {
                 tenantId = user.getTenantId();
                 TenantContextHolder.setTenantId(tenantId);
-            // 如果传递了租户编号，则进行比对租户编号，避免越权问题
+                // 如果传递了租户编号，则进行比对租户编号，避免越权问题
             } else if (!Objects.equals(user.getTenantId(), TenantContextHolder.getTenantId())) {
                 log.error("[doFilterInternal][租户({}) User({}/{}) 越权访问租户({}) URL({}/{})]",
                         user.getTenantId(), user.getId(), user.getUserType(),

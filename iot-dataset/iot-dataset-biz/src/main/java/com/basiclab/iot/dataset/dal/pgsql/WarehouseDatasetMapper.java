@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * 数据仓数据集关联 Mapper
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Mapper
 public interface WarehouseDatasetMapper extends BaseMapperX<WarehouseDatasetDO> {

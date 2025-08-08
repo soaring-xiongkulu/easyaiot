@@ -12,12 +12,9 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * @Description: 国密SM4分组密码算法工具类（对称加密）
- * @Author: Basiclab
- * @CreateDate: 2021/8/25$ 15:27$
- * @UpdateUser: ShiHuan Sun
- * @UpdateDate: 2021/8/25$ 15:27$
- * @UpdateRemark: 修改内容
- * @Version: 1.0
+ * @author EasyAIoT
+ * @CreateDate: 2024/8/25$ 15:27$
+ * @UpdateDate: 2024/8/25$ 15:27$
  */
 public class Sm4Utils {
     /**

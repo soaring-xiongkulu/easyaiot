@@ -18,7 +18,7 @@ import static com.basiclab.iot.model.enums.ErrorCodeConstants.MODEL_NOT_EXISTS;
 /**
  * 模型 Service 实现类
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Service
 @Validated

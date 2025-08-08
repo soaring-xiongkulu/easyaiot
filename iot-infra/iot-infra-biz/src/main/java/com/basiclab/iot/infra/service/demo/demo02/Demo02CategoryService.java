@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 示例分类 Service 接口
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public interface Demo02CategoryService {
 

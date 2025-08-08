@@ -1,9 +1,9 @@
 package com.basiclab.iot.rule.context;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc    条件执行上下文
- * @created 2024-07-18
+ * @created 2025-07-18
  */
 public class ConditionContext {
 

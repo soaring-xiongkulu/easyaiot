@@ -7,9 +7,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc    规则动作定义
- * @created 2024-07-10
+ * @created 2025-07-10
  */
 public interface IAction {
 

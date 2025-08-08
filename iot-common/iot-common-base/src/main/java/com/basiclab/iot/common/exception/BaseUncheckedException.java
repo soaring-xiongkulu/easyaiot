@@ -7,7 +7,7 @@ import lombok.Getter;
 /**
  * 非运行期异常基类，所有自定义非运行时异常继承该类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  * @version 1.0
  * @see RuntimeException
  */

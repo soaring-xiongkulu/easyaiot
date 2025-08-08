@@ -31,7 +31,7 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.MAIL_TEMPLATE_NOT
  * 邮箱模版 Service 实现类
  *
  * @author wangjingyi
- * @since 2024-03-21
+ * @since 2025-03-21
  */
 @Service
 @Validated

@@ -32,7 +32,7 @@ public class RuleConditionsController extends BaseController {
     private RuleConditionsService ruleConditionsService;
 
 
-//    // @PreAuthorize(hasPermi = "rule:rule:list")
+//    //@PreAuthorize(hasPermi = "rule:rule:list")
     @GetMapping("/list")
     @ApiOperation("触发条件列表")
     public TableDataInfo list(RuleConditions ruleConditions) {
@@ -53,8 +53,8 @@ public class RuleConditionsController extends BaseController {
      * 批量添加触发条件
      */
     @NoRepeatSubmit
-//    // @PreAuthorize(hasPermi = "rule:ruleConditions:add")
-    //@Log(title = "触发条件", businessType = BusinessType.INSERT)
+//    //@PreAuthorize(hasPermi = "rule:ruleConditions:add")
+    ////@Log(title = "触发条件", businessType = BusinessType.INSERT)
     @PostMapping("/batchInsert")
     @ApiOperation("批量添加触发条件")
     public AjaxResult add(@RequestBody List<RuleConditions> ruleConditions) {
@@ -65,8 +65,8 @@ public class RuleConditionsController extends BaseController {
      * 新增触发条件
      */
     @NoRepeatSubmit
-//    // @PreAuthorize(hasPermi = "rule:ruleConditions:edit")
-    //@Log(title = "规则条件", businessType = BusinessType.UPDATE)
+//    //@PreAuthorize(hasPermi = "rule:ruleConditions:edit")
+    ////@Log(title = "规则条件", businessType = BusinessType.UPDATE)
     @PutMapping
     @ApiOperation("批量更新触发条件")
     public AjaxResult edit(@RequestBody List<RuleConditions> ruleConditions) {
@@ -76,8 +76,8 @@ public class RuleConditionsController extends BaseController {
      * 新增触发条件
      */
     @NoRepeatSubmit
-//    // @PreAuthorize(hasPermi = "rule:ruleConditions:edit")
-    //@Log(title = "触发条件", businessType = BusinessType.UPDATE)
+//    //@PreAuthorize(hasPermi = "rule:ruleConditions:edit")
+    ////@Log(title = "触发条件", businessType = BusinessType.UPDATE)
     @PutMapping("/batchEdit")
     @ApiOperation("编辑触发条件")
     public AjaxResult batchEdit(@RequestBody List<RuleConditions> ruleConditions) {
@@ -89,8 +89,8 @@ public class RuleConditionsController extends BaseController {
      * @param ids
      * @return
      */
-//    // @PreAuthorize(hasPermi = "link:ruleConditions:remove")
-    //@Log(title = "触发条件", businessType = BusinessType.DELETE)
+//    //@PreAuthorize(hasPermi = "link:ruleConditions:remove")
+    ////@Log(title = "触发条件", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     @ApiOperation("批量删除触发条件")
     public AjaxResult remove(@PathVariable Long[] ids) {
@@ -103,8 +103,8 @@ public class RuleConditionsController extends BaseController {
      * 保存或更新规则条件和动作
      */
     @NoRepeatSubmit
-//    // @PreAuthorize(hasPermi = "rule:ruleConditionVo:add")
-    //@Log(title = "保存或更新规则条件和动作", businessType = BusinessType.INSERT)
+//    //@PreAuthorize(hasPermi = "rule:ruleConditionVo:add")
+    ////@Log(title = "保存或更新规则条件和动作", businessType = BusinessType.INSERT)
     @PostMapping("/updateRuleConditionAction")
     @ApiOperation("保存或更新规则条件和动作")
     public AjaxResult updateRuleConditionAction(@RequestBody RuleConditionActionVo ruleConditionVo) {

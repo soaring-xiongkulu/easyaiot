@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * 环境 Utils
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class EnvUtils {
 

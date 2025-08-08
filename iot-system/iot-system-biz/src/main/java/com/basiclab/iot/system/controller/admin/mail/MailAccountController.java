@@ -32,14 +32,14 @@ public class MailAccountController {
 
     @PostMapping("/create")
     @Operation(summary = "创建邮箱账号")
-    // @PreAuthorize("@ss.hasPermission('system:mail-account:create')")
+    //@PreAuthorize("@ss.hasPermission('system:mail-account:create')")
     public CommonResult<Long> createMailAccount(@Valid @RequestBody MailAccountSaveReqVO createReqVO) {
         return success(mailAccountService.createMailAccount(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "修改邮箱账号")
-    // @PreAuthorize("@ss.hasPermission('system:mail-account:update')")
+    //@PreAuthorize("@ss.hasPermission('system:mail-account:update')")
     public CommonResult<Boolean> updateMailAccount(@Valid @RequestBody MailAccountSaveReqVO updateReqVO) {
         mailAccountService.updateMailAccount(updateReqVO);
         return success(true);
@@ -48,7 +48,7 @@ public class MailAccountController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除邮箱账号")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('system:mail-account:delete')")
+    //@PreAuthorize("@ss.hasPermission('system:mail-account:delete')")
     public CommonResult<Boolean> deleteMailAccount(@RequestParam Long id) {
         mailAccountService.deleteMailAccount(id);
         return success(true);
@@ -57,7 +57,7 @@ public class MailAccountController {
     @GetMapping("/get")
     @Operation(summary = "获得邮箱账号")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('system:mail-account:query')")
+    //@PreAuthorize("@ss.hasPermission('system:mail-account:query')")
     public CommonResult<MailAccountRespVO> getMailAccount(@RequestParam("id") Long id) {
         MailAccountDO account = mailAccountService.getMailAccount(id);
         return success(BeanUtils.toBean(account, MailAccountRespVO.class));
@@ -65,7 +65,7 @@ public class MailAccountController {
 
     @GetMapping("/page")
     @Operation(summary = "获得邮箱账号分页")
-    // @PreAuthorize("@ss.hasPermission('system:mail-account:query')")
+    //@PreAuthorize("@ss.hasPermission('system:mail-account:query')")
     public CommonResult<PageResult<MailAccountRespVO>> getMailAccountPage(@Valid MailAccountPageReqVO pageReqVO) {
         PageResult<MailAccountDO> pageResult = mailAccountService.getMailAccountPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, MailAccountRespVO.class));

@@ -1,9 +1,9 @@
 package com.basiclab.iot.rule.controller;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc
- * @created 2024-07-11
+ * @created 2025-07-11
  */
 public class RuleLogController {
 

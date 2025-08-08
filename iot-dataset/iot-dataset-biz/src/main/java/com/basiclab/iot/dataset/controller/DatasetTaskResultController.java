@@ -36,14 +36,14 @@ public class DatasetTaskResultController {
 
     @PostMapping("/create")
     @Operation(summary = "创建标注任务结果")
-    // @PreAuthorize("@ss.hasPermission('dataset:task-result:create')")
+    //@PreAuthorize("@ss.hasPermission('dataset:task-result:create')")
     public CommonResult<Long> createDatasetTaskResult(@Valid @RequestBody DatasetTaskResultSaveReqVO createReqVO) {
         return success(datasetTaskResultService.createDatasetTaskResult(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新标注任务结果")
-    // @PreAuthorize("@ss.hasPermission('dataset:task-result:update')")
+    //@PreAuthorize("@ss.hasPermission('dataset:task-result:update')")
     public CommonResult<Boolean> updateDatasetTaskResult(@Valid @RequestBody DatasetTaskResultSaveReqVO updateReqVO) {
         datasetTaskResultService.updateDatasetTaskResult(updateReqVO);
         return success(true);
@@ -52,7 +52,7 @@ public class DatasetTaskResultController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除标注任务结果")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('dataset:task-result:delete')")
+    //@PreAuthorize("@ss.hasPermission('dataset:task-result:delete')")
     public CommonResult<Boolean> deleteDatasetTaskResult(@RequestParam("id") Long id) {
         datasetTaskResultService.deleteDatasetTaskResult(id);
         return success(true);
@@ -61,7 +61,7 @@ public class DatasetTaskResultController {
     @GetMapping("/get")
     @Operation(summary = "获得标注任务结果")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('dataset:task-result:query')")
+    //@PreAuthorize("@ss.hasPermission('dataset:task-result:query')")
     public CommonResult<DatasetTaskResultRespVO> getDatasetTaskResult(@RequestParam("id") Long id) {
         DatasetTaskResultDO taskResult = datasetTaskResultService.getDatasetTaskResult(id);
         return success(BeanUtils.toBean(taskResult, DatasetTaskResultRespVO.class));
@@ -69,7 +69,7 @@ public class DatasetTaskResultController {
 
     @GetMapping("/page")
     @Operation(summary = "获得标注任务结果分页")
-    // @PreAuthorize("@ss.hasPermission('dataset:task-result:query')")
+    //@PreAuthorize("@ss.hasPermission('dataset:task-result:query')")
     public CommonResult<PageResult<DatasetTaskResultRespVO>> getDatasetTaskResultPage(@Valid DatasetTaskResultPageReqVO pageReqVO) {
         PageResult<DatasetTaskResultDO> pageResult = datasetTaskResultService.getDatasetTaskResultPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, DatasetTaskResultRespVO.class));
@@ -77,7 +77,7 @@ public class DatasetTaskResultController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出标注任务结果 Excel")
-    // @PreAuthorize("@ss.hasPermission('dataset:task-result:export')")
+    //@PreAuthorize("@ss.hasPermission('dataset:task-result:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportDatasetTaskResultExcel(@Valid DatasetTaskResultPageReqVO pageReqVO,
                                              HttpServletResponse response) throws IOException {

@@ -9,7 +9,7 @@ import java.util.concurrent.Callable;
 /**
  * 数据权限 Util
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class DataPermissionUtils {
 

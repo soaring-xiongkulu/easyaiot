@@ -15,9 +15,9 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc
- * @created 2024-07-18
+ * @created 2025-07-18
  */
 @ApiModel(value = "告警信息表")
 @Data

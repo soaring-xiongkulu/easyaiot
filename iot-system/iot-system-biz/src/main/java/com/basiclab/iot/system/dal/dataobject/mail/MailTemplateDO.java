@@ -14,7 +14,7 @@ import java.util.List;
  * 邮件模版 DO
  *
  * @author wangjingyi
- * @since 2024-03-21
+ * @since 2025-03-21
  */
 @TableName(value = "system_mail_template", autoResultMap = true)
 @Data

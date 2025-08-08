@@ -9,7 +9,7 @@ import java.util.Set;
 /**
  * 多租户配置
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @ConfigurationProperties(prefix = "iot.tenant")
 @Data

@@ -8,12 +8,11 @@ import com.basiclab.iot.rule.domain.model.vo.RuleConditionActionVo;
 import java.util.List;
 
 /**
- * @program: basiclab
+ * @program: EasyAIoT
  * @description: ${description}
  * @packagename: com.mqttsnet.iot.rule.service
- * @Author: Basiclab
- * @e-mainl: 853017739@qq.com
- * @date: 2024-07-21 18:47
+ * @author EasyAIoT
+ * @date: 2025-07-21 18:47
  **/
 public interface RuleConditionsService extends IService<RuleConditions> {
 

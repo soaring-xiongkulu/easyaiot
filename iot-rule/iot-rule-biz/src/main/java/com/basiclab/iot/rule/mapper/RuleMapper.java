@@ -10,12 +10,11 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 /**
- * @program: basiclab
+ * @program: EasyAIoT
  * @description: ${description}
  * @packagename: com.mqttsnet.iot.rule.mapper
- * @Author: Basiclab
- * @e-mainl: 853017739@qq.com
- * @date: 2024-11-18 20:39
+ * @author EasyAIoT
+ * @date: 2025-11-18 20:39
  **/
 @Mapper
 @Repository

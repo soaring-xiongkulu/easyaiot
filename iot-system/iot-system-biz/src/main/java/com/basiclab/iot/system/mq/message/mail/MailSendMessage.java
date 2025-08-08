@@ -8,7 +8,7 @@ import javax.validation.constraints.NotNull;
 /**
  * 邮箱发送消息
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Data
 public class MailSendMessage {

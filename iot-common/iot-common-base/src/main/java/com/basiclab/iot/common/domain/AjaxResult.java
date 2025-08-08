@@ -8,7 +8,7 @@ import com.basiclab.iot.common.utils.StringUtils;
 /**
  * 操作消息提醒
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class AjaxResult extends HashMap<String, Object>
 {

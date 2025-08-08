@@ -38,14 +38,14 @@ public class Demo01ContactController {
 
     @PostMapping("/create")
     @Operation(summary = "创建示例联系人")
-    // @PreAuthorize("@ss.hasPermission('infra:demo01-contact:create')")
+    //@PreAuthorize("@ss.hasPermission('infra:demo01-contact:create')")
     public CommonResult<Long> createDemo01Contact(@Valid @RequestBody Demo01ContactSaveReqVO createReqVO) {
         return success(demo01ContactService.createDemo01Contact(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新示例联系人")
-    // @PreAuthorize("@ss.hasPermission('infra:demo01-contact:update')")
+    //@PreAuthorize("@ss.hasPermission('infra:demo01-contact:update')")
     public CommonResult<Boolean> updateDemo01Contact(@Valid @RequestBody Demo01ContactSaveReqVO updateReqVO) {
         demo01ContactService.updateDemo01Contact(updateReqVO);
         return success(true);
@@ -54,7 +54,7 @@ public class Demo01ContactController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除示例联系人")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('infra:demo01-contact:delete')")
+    //@PreAuthorize("@ss.hasPermission('infra:demo01-contact:delete')")
     public CommonResult<Boolean> deleteDemo01Contact(@RequestParam("id") Long id) {
         demo01ContactService.deleteDemo01Contact(id);
         return success(true);
@@ -63,7 +63,7 @@ public class Demo01ContactController {
     @GetMapping("/get")
     @Operation(summary = "获得示例联系人")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('infra:demo01-contact:query')")
+    //@PreAuthorize("@ss.hasPermission('infra:demo01-contact:query')")
     public CommonResult<Demo01ContactRespVO> getDemo01Contact(@RequestParam("id") Long id) {
         Demo01ContactDO demo01Contact = demo01ContactService.getDemo01Contact(id);
         return success(BeanUtils.toBean(demo01Contact, Demo01ContactRespVO.class));
@@ -71,7 +71,7 @@ public class Demo01ContactController {
 
     @GetMapping("/page")
     @Operation(summary = "获得示例联系人分页")
-    // @PreAuthorize("@ss.hasPermission('infra:demo01-contact:query')")
+    //@PreAuthorize("@ss.hasPermission('infra:demo01-contact:query')")
     public CommonResult<PageResult<Demo01ContactRespVO>> getDemo01ContactPage(@Valid Demo01ContactPageReqVO pageReqVO) {
         PageResult<Demo01ContactDO> pageResult = demo01ContactService.getDemo01ContactPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, Demo01ContactRespVO.class));
@@ -79,7 +79,7 @@ public class Demo01ContactController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出示例联系人 Excel")
-    // @PreAuthorize("@ss.hasPermission('infra:demo01-contact:export')")
+    //@PreAuthorize("@ss.hasPermission('infra:demo01-contact:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportDemo01ContactExcel(@Valid Demo01ContactPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {

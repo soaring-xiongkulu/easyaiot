@@ -14,7 +14,7 @@ import java.math.RoundingMode;
  *
  * 金额单位：分
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class MoneyConvert implements Converter<Integer> {
 

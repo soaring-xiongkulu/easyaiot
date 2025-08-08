@@ -32,14 +32,14 @@ public class MailTemplateController {
 
     @PostMapping("/create")
     @Operation(summary = "创建邮件模版")
-    // @PreAuthorize("@ss.hasPermission('system:mail-template:create')")
+    //@PreAuthorize("@ss.hasPermission('system:mail-template:create')")
     public CommonResult<Long> createMailTemplate(@Valid @RequestBody MailTemplateSaveReqVO createReqVO){
         return success(mailTempleService.createMailTemplate(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "修改邮件模版")
-    // @PreAuthorize("@ss.hasPermission('system:mail-template:update')")
+    //@PreAuthorize("@ss.hasPermission('system:mail-template:update')")
     public CommonResult<Boolean> updateMailTemplate(@Valid @RequestBody MailTemplateSaveReqVO updateReqVO){
         mailTempleService.updateMailTemplate(updateReqVO);
         return success(true);
@@ -48,7 +48,7 @@ public class MailTemplateController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除邮件模版")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('system:mail-template:delete')")
+    //@PreAuthorize("@ss.hasPermission('system:mail-template:delete')")
     public CommonResult<Boolean> deleteMailTemplate(@RequestParam("id") Long id) {
         mailTempleService.deleteMailTemplate(id);
         return success(true);
@@ -57,7 +57,7 @@ public class MailTemplateController {
     @GetMapping("/get")
     @Operation(summary = "获得邮件模版")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('system:mail-template:query')")
+    //@PreAuthorize("@ss.hasPermission('system:mail-template:query')")
     public CommonResult<MailTemplateRespVO> getMailTemplate(@RequestParam("id") Long id) {
         MailTemplateDO template = mailTempleService.getMailTemplate(id);
         return success(BeanUtils.toBean(template, MailTemplateRespVO.class));
@@ -65,7 +65,7 @@ public class MailTemplateController {
 
     @GetMapping("/page")
     @Operation(summary = "获得邮件模版分页")
-    // @PreAuthorize("@ss.hasPermission('system:mail-template:query')")
+    //@PreAuthorize("@ss.hasPermission('system:mail-template:query')")
     public CommonResult<PageResult<MailTemplateRespVO>> getMailTemplatePage(@Valid MailTemplatePageReqVO pageReqVO) {
         PageResult<MailTemplateDO> pageResult = mailTempleService.getMailTemplatePage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, MailTemplateRespVO.class));
@@ -80,7 +80,7 @@ public class MailTemplateController {
 
     @PostMapping("/send-mail")
     @Operation(summary = "发送短信")
-    // @PreAuthorize("@ss.hasPermission('system:mail-template:send-mail')")
+    //@PreAuthorize("@ss.hasPermission('system:mail-template:send-mail')")
     public CommonResult<Long> sendMail(@Valid @RequestBody MailTemplateSendReqVO sendReqVO) {
         return success(mailSendService.sendSingleMailToAdmin(sendReqVO.getMail(), getLoginUserId(),
                 sendReqVO.getTemplateCode(), sendReqVO.getTemplateParams()));

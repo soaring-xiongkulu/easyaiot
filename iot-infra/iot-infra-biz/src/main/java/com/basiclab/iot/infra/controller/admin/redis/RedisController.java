@@ -28,7 +28,7 @@ public class RedisController {
 
     @GetMapping("/get-monitor-info")
     @Operation(summary = "获得 Redis 监控信息")
-    // @PreAuthorize("@ss.hasPermission('infra:redis:get-monitor-info')")
+    //@PreAuthorize("@ss.hasPermission('infra:redis:get-monitor-info')")
     public CommonResult<RedisMonitorRespVO> getRedisMonitorInfo() {
         // 获得 Redis 统计信息
         Properties info = stringRedisTemplate.execute((RedisCallback<Properties>) RedisServerCommands::info);

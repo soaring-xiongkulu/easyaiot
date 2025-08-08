@@ -6,7 +6,7 @@ import com.basiclab.iot.common.utils.StringUtils;
 /**
  * sql操作工具类
  * 
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class SqlUtil
 {

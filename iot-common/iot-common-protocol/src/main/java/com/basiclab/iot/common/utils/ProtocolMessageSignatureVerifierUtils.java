@@ -12,11 +12,10 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * @program: basiclab-util-pro
+ * @program: easyaiot-util-pro
  * @description: 协议消息处理Utils
  * @packagename: com.mqttsnet.basic.utils
- * @Author: Basiclab
- * @e-mainl: 853017739@qq.com
+ * @author EasyAIoT
  * @date: 2023-05-07 00:12
  **/
 @Slf4j

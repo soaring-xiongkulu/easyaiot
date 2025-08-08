@@ -9,7 +9,7 @@ import java.util.Arrays;
 /**
  * 区域类型枚举
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @AllArgsConstructor
 @Getter

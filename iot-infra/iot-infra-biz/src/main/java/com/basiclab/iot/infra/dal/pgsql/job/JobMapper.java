@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * 定时任务 Mapper
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Mapper
 public interface JobMapper extends BaseMapperX<JobDO> {

@@ -17,9 +17,9 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc    规则日志
- * @created 2024-07-11
+ * @created 2025-07-11
  */
 @Data
 @NoArgsConstructor

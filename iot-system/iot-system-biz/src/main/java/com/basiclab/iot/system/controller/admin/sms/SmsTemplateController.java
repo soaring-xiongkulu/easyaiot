@@ -40,14 +40,14 @@ public class SmsTemplateController {
 
     @PostMapping("/create")
     @Operation(summary = "创建短信模板")
-    // @PreAuthorize("@ss.hasPermission('system:sms-template:create')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-template:create')")
     public CommonResult<Long> createSmsTemplate(@Valid @RequestBody SmsTemplateSaveReqVO createReqVO) {
         return success(smsTemplateService.createSmsTemplate(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新短信模板")
-    // @PreAuthorize("@ss.hasPermission('system:sms-template:update')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-template:update')")
     public CommonResult<Boolean> updateSmsTemplate(@Valid @RequestBody SmsTemplateSaveReqVO updateReqVO) {
         smsTemplateService.updateSmsTemplate(updateReqVO);
         return success(true);
@@ -56,7 +56,7 @@ public class SmsTemplateController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除短信模板")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('system:sms-template:delete')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-template:delete')")
     public CommonResult<Boolean> deleteSmsTemplate(@RequestParam("id") Long id) {
         smsTemplateService.deleteSmsTemplate(id);
         return success(true);
@@ -65,7 +65,7 @@ public class SmsTemplateController {
     @GetMapping("/get")
     @Operation(summary = "获得短信模板")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('system:sms-template:query')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-template:query')")
     public CommonResult<SmsTemplateRespVO> getSmsTemplate(@RequestParam("id") Long id) {
         SmsTemplateDO template = smsTemplateService.getSmsTemplate(id);
         return success(BeanUtils.toBean(template, SmsTemplateRespVO.class));
@@ -73,7 +73,7 @@ public class SmsTemplateController {
 
     @GetMapping("/page")
     @Operation(summary = "获得短信模板分页")
-    // @PreAuthorize("@ss.hasPermission('system:sms-template:query')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-template:query')")
     public CommonResult<PageResult<SmsTemplateRespVO>> getSmsTemplatePage(@Valid SmsTemplatePageReqVO pageVO) {
         PageResult<SmsTemplateDO> pageResult = smsTemplateService.getSmsTemplatePage(pageVO);
         return success(BeanUtils.toBean(pageResult, SmsTemplateRespVO.class));
@@ -81,7 +81,7 @@ public class SmsTemplateController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出短信模板 Excel")
-    // @PreAuthorize("@ss.hasPermission('system:sms-template:export')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-template:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportSmsTemplateExcel(@Valid SmsTemplatePageReqVO exportReqVO,
                                        HttpServletResponse response) throws IOException {
@@ -94,7 +94,7 @@ public class SmsTemplateController {
 
     @PostMapping("/send-sms")
     @Operation(summary = "发送短信")
-    // @PreAuthorize("@ss.hasPermission('system:sms-template:send-sms')")
+    //@PreAuthorize("@ss.hasPermission('system:sms-template:send-sms')")
     public CommonResult<Long> sendSms(@Valid @RequestBody SmsTemplateSendReqVO sendReqVO) {
         return success(smsSendService.sendSingleSmsToAdmin(sendReqVO.getMobile(), null,
                 sendReqVO.getTemplateCode(), sendReqVO.getTemplateParams()));

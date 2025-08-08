@@ -130,7 +130,7 @@ export const formSchema: FormSchema[] = [
     label: '权限标识',
     field: 'permission',
     component: 'Input',
-    helpMessage: 'Controller 方法上的权限字符，如：@PreAuthorize(`@ss.hasPermission("system:user:list")`)',
+    helpMessage: 'Controller 方法上的权限字符，如：//@PreAuthorize(`@ss.hasPermission("system:user:list")`)',
     ifShow: ({ values }) => values.type !== SystemMenuTypeEnum.DIR,
   },
   {

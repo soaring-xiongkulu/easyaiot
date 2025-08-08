@@ -18,7 +18,7 @@ import java.util.Map;
 /**
  * 文件服务
  * 
- * @author IoT
+ * @author EasyAIoT
  */
 @FeignClient(contextId = "remoteFileService", value = ServiceNameConstants.IOT_FILE, fallbackFactory = RemoteFileFallbackFactory.class)
 public interface RemoteFileService

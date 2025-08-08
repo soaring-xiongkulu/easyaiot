@@ -37,14 +37,14 @@ public class ModelServerTestVideoController {
 
     @PostMapping("/create")
     @Operation(summary = "创建模型测试视频")
-    // @PreAuthorize("@ss.hasPermission('model:server-test-video:create')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test-video:create')")
     public CommonResult<Long> createModelServerTestVideo(@Valid @RequestBody ModelServerTestVideoSaveReqVO createReqVO) {
         return success(modelServerTestVideoService.createModelServerTestVideo(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新模型测试视频")
-    // @PreAuthorize("@ss.hasPermission('model:server-test-video:update')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test-video:update')")
     public CommonResult<Boolean> updateModelServerTestVideo(@Valid @RequestBody ModelServerTestVideoSaveReqVO updateReqVO) {
         modelServerTestVideoService.updateModelServerTestVideo(updateReqVO);
         return success(true);
@@ -53,7 +53,7 @@ public class ModelServerTestVideoController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除模型测试视频")
     @Parameter(name = "id", description = "编号", required = true)
-    // @PreAuthorize("@ss.hasPermission('model:server-test-video:delete')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test-video:delete')")
     public CommonResult<Boolean> deleteModelServerTestVideo(@RequestParam("id") Long id) {
         modelServerTestVideoService.deleteModelServerTestVideo(id);
         return success(true);
@@ -62,7 +62,7 @@ public class ModelServerTestVideoController {
     @GetMapping("/get")
     @Operation(summary = "获得模型测试视频")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-    // @PreAuthorize("@ss.hasPermission('model:server-test-video:query')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test-video:query')")
     public CommonResult<ModelServerTestVideoRespVO> getModelServerTestVideo(@RequestParam("id") Long id) {
         ModelServerTestVideoDO serverTestVideo = modelServerTestVideoService.getModelServerTestVideo(id);
         return success(BeanUtils.toBean(serverTestVideo, ModelServerTestVideoRespVO.class));
@@ -70,7 +70,7 @@ public class ModelServerTestVideoController {
 
     @GetMapping("/page")
     @Operation(summary = "获得模型测试视频分页")
-    // @PreAuthorize("@ss.hasPermission('model:server-test-video:query')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test-video:query')")
     public CommonResult<PageResult<ModelServerTestVideoRespVO>> getModelServerTestVideoPage(@Valid ModelServerTestVideoPageReqVO pageReqVO) {
         PageResult<ModelServerTestVideoDO> pageResult = modelServerTestVideoService.getModelServerTestVideoPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, ModelServerTestVideoRespVO.class));
@@ -78,7 +78,7 @@ public class ModelServerTestVideoController {
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出模型测试视频 Excel")
-    // @PreAuthorize("@ss.hasPermission('model:server-test-video:export')")
+    //@PreAuthorize("@ss.hasPermission('model:server-test-video:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportModelServerTestVideoExcel(@Valid ModelServerTestVideoPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {

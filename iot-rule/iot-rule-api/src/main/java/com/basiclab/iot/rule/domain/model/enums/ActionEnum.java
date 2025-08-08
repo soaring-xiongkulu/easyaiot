@@ -1,9 +1,9 @@
 package com.basiclab.iot.rule.domain.model.enums;
 
 /**
- * @author IoT
+ * @author EasyAIoT
  * @desc    场景动作类型枚举
- * @created 2024-07-10
+ * @created 2025-07-10
  */
 public enum ActionEnum {
     /**

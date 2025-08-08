@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * 视频流帧捕获任务 Mapper
  *
- * @author IoT
+ * @author EasyAIoT
  */
 @Mapper
 public interface DatasetFrameTaskMapper extends BaseMapperX<DatasetFrameTaskDO> {

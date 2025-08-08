@@ -10,7 +10,7 @@ import javax.validation.Valid;
 /**
  * 模型 Service 接口
  *
- * @author IoT
+ * @author EasyAIoT
  */
 public interface ModelService {
 

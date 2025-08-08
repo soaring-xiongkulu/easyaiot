@@ -6,7 +6,7 @@ import lombok.Getter;
 /**
  * 通知类型
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Getter
 @AllArgsConstructor

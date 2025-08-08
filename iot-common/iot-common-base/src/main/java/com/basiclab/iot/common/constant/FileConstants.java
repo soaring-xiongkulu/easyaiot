@@ -1,7 +1,7 @@
 package com.basiclab.iot.common.constant;
 
 /**
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class FileConstants {
 

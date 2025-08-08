@@ -10,7 +10,7 @@ import java.io.File;
 /**
  * Sftp 文件客户端
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 public class SftpFileClient extends AbstractFileClient<SftpFileClientConfig> {
 

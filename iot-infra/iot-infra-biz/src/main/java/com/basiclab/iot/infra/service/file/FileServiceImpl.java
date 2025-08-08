@@ -25,7 +25,7 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.except
 /**
  * 文件 Service 实现类
  *
- * @author EasyIoT
+ * @author EasyAIoT
  */
 @Service
 public class FileServiceImpl implements FileService {

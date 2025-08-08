@@ -12,7 +12,7 @@ import java.util.List;
  * 邮箱账号 Service 接口
  *
  * @author wangjingyi
- * @since 2024-03-21
+ * @since 2025-03-21
  */
 public interface MailAccountService {
 
