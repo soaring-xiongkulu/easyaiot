@@ -14,27 +14,9 @@
 
 EasyAIoT is an open-source learning project with no commercial affiliation. Users must comply with laws and regulations and refrain from illegal activities. If EasyAIoT discovers any unlawful user behavior, it will cooperate with authorities in investigations and report to government agencies. Users bear full legal responsibility for any violations. If user actions cause harm to third parties, users shall provide compensation as required by law. All resources related to EasyAIoT are used at the user's own risk.
 
-## Demo Environment (Open-source version currently unavailable; under development)
-- Cloud Platform Demo: http://pro.basiclab.top:8888  
-  Account: admin  
-  Password: admin123
-
-- Edge Platform Demo: http://234604e8d1b148c2.pro.rknn.net:8088  
-  Account: admin  
-  Password: admin123
-
-## Tech Stack
-
-### Frontend
-- **Core Framework**: Vue 3.3.8
-- **Language**: TypeScript 5.2.2
-- **Build Tool**: Vite 4.5.0
-- **UI Library**: Ant Design Vue 4.0.7
-- **State Management**: Pinia 2.1.7
-- **Routing**: Vue Router 4.2.5
-- **HTTP Client**: Axios/Alova 1.6.1
-- **CSS**: UnoCSS 0.57.3
-- **Package Manager**: pnpm 9.0.4
+## Frontend Project URL
+- Gitee: https://gitee.com/soaring-xiongkulu/easyaiot-web
+- Github: https://github.com/soaring-xiongkulu/easyaiot-web
 
 ### Backend
 - **Core Framework**: Spring Boot 2.7.18

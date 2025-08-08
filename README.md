@@ -14,6 +14,10 @@
 
 EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该项目时，应遵循法律法规，不得进行非法活动。如果EasyAIoT发现用户有违法行为，将会配合相关机关进行调查并向政府部门举报。用户因非法行为造成的任何法律责任均由用户自行承担，如因用户使用造成第三方损害的，用户应当依法予以赔偿。使用EasyAIoT所有相关资源均由用户自行承担风险.
 
+## 前端项目地址
+- Gitee：https://gitee.com/soaring-xiongkulu/easyaiot-web
+- Github：https://github.com/soaring-xiongkulu/easyaiot-web
+
 ## 技术栈
 - **核心框架**：Spring Boot 2.7.18
 - **安全框架**：Spring Boot Starter Security
@@ -53,7 +57,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 ## 致谢
 感谢以下各位对本项目包括但不限于代码贡献、问题反馈、资金捐赠等各种方式的支持！以下排名不分先后：
 - shup 派大星 棒槌 憨憨 一往无前 文艺小青年 lion 汪汪队立大功 春生 二群主 hao_chen yuer629 kong 岁月静好 Kunkka 李江峰 左耳向右 Chao. 灬 
-- Mr.LuCkY
+- Mr.LuCkY Kosho 小菜鸟先飞 追溯未来-_-
 
 ## 开源协议
 [MIT LICENSE](LICENSE)
