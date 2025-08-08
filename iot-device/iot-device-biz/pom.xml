@@ -173,18 +173,6 @@
             <artifactId>spring-test</artifactId>
             <version>5.0.5.RELEASE</version>
         </dependency>
-        <!--        <dependency>-->
-        <!--            <groupId>com.basiclab.iot</groupId>-->
-        <!--            <artifactId>iot-job-api</artifactId>-->
-        <!--            <version>1.0.0</version>-->
-        <!--            <scope>compile</scope>-->
-        <!--        </dependency>-->
-        <!--        <dependency>-->
-        <!--            <groupId>com.basiclab.iot</groupId>-->
-        <!--            <artifactId>iot-message-api</artifactId>-->
-        <!--            <version>1.0.0</version>-->
-        <!--            <scope>compile</scope>-->
-        <!--        </dependency>-->
         <dependency>
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils</artifactId>

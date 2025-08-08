@@ -55,16 +55,6 @@
             <artifactId>iot-rule-api</artifactId>
             <version>${revision}</version>
         </dependency>
-        <dependency>
-            <groupId>com.basiclab.iot</groupId>
-            <artifactId>iot-message-api</artifactId>
-            <version>${revision}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.basiclab.iot</groupId>
-            <artifactId>iot-job-api</artifactId>
-            <version>${revision}</version>
-        </dependency>
 
         <!-- 业务组件 -->
         <dependency>
