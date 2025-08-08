@@ -1,3 +1,0 @@
-com.basiclab.iot.common.idempotent.config.YudaoIdempotentConfiguration
-com.basiclab.iot.common.lock4j.config.YudaoLock4jConfiguration
-com.basiclab.iot.common.ratelimiter.config.YudaoRateLimiterConfiguration

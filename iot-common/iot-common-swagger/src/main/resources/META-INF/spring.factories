@@ -1,3 +1,0 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  com.basiclab.iot.common.config.SwaggerAutoConfiguration,\
-  com.basiclab.iot.common.config.SwaggerWebConfiguration

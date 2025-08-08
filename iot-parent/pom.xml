@@ -11,11 +11,20 @@
 
     <name>${project.artifactId}</name>
     <description>基础 bom 文件，管理整个项目的依赖版本</description>
-    <url>https://github.com/soaring-xiongkulu/easyaiot</url>
+    <url>https://gitee.com/sdjlkfdskl/lf-ai-stream</url>
 
     <properties>
         <revision>1.0.0</revision>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
+        <!-- Maven 相关 -->
+        <java.version>1.8</java.version>
+        <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
+        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <swagger.start.version>3.0</swagger.start.version>
+        <swagger.core.version>1.6.2</swagger.core.version>
+        <dockerfile-maven-plugin.version>1.4.12</dockerfile-maven-plugin.version>
+        <docker.image.prefix>basiclab</docker.image.prefix>
         <!-- 统一依赖管理 -->
         <spring.boot.version>2.7.18</spring.boot.version>
         <spring.cloud.version>2021.0.5</spring.cloud.version>
@@ -24,8 +33,8 @@
         <servlet.versoin>2.5</servlet.versoin>
         <springdoc.version>1.6.15</springdoc.version>
         <knife4j.version>4.3.0</knife4j.version>
-        <swagger.start.version>3.0</swagger.start.version>
         <!-- DB 相关 -->
+        <postgresql.version>42.5.0</postgresql.version>
         <druid.version>1.2.21</druid.version>
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
         <mybatis-plus-generator.version>3.5.5</mybatis-plus-generator.version>
@@ -36,9 +45,8 @@
         <dm8.jdbc.version>8.1.3.62</dm8.jdbc.version>
         <!-- 消息队列 -->
         <rocketmq-spring.version>2.2.3</rocketmq-spring.version>
+        <kafka-spring.version>3.1.4</kafka-spring.version>
         <!-- RPC 相关 -->
-        <paho.client.version>1.2.4</paho.client.version>
-        <kafka.client.version>3.4.0</kafka.client.version>
         <!-- Config 配置中心相关 -->
         <apollo.version>1.9.2</apollo.version>
         <!-- Job 定时任务相关 -->
@@ -74,6 +82,15 @@
         <ip2region.version>2.7.0</ip2region.version>
         <bizlog-sdk.version>3.0.6</bizlog-sdk.version>
         <reflections.version>0.10.2</reflections.version>
+        <jackson.version>2.13.3</jackson.version>
+        <openfeign.version>3.1.2</openfeign.version>
+        <tdEngine.version>3.1.0</tdEngine.version>
+        <pagehelper.boot.version>1.4.1</pagehelper.boot.version>
+        <poi.version>4.1.2</poi.version>
+        <javacv.version>1.5.7</javacv.version>
+        <netty.version>4.1.77.Final</netty.version>
+        <commons.fileupload.version>1.4</commons.fileupload.version>
+        <tobato.version>1.27.2</tobato.version>
         <!-- 三方云服务相关 -->
         <okio.version>3.5.0</okio.version>
         <okhttp3.version>4.11.0</okhttp3.version>
@@ -127,17 +144,17 @@
             </dependency>
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-biz-tenant</artifactId>
+                <artifactId>iot-common-tenant</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-biz-data-permission</artifactId>
+                <artifactId>iot-common-data-permission</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-biz-ip</artifactId>
+                <artifactId>iot-common-ip</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -151,27 +168,39 @@
 
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-env</artifactId>
+                <artifactId>iot-common-env</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- Web 相关 -->
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-web</artifactId>
+                <artifactId>iot-common-web</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-security</artifactId>
+                <artifactId>iot-common-security</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-websocket</artifactId>
+                <artifactId>iot-common-websocket</artifactId>
                 <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.xiaoymin</groupId>
+                <artifactId>knife4j-spring-boot-starter</artifactId>
+                <version>${swagger.start.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.swagger</groupId>
+                <artifactId>swagger-annotations</artifactId>
+                <version>${swagger.core.version}</version>
             </dependency>
 
             <dependency>
@@ -189,24 +218,23 @@
                 <artifactId>knife4j-gateway-spring-boot-starter</artifactId>
                 <version>${knife4j.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.github.xiaoymin</groupId>
-                <artifactId>knife4j-spring-boot-starter</artifactId>
-                <version>${swagger.start.version}</version>
-            </dependency>
 
             <!-- DB 相关 -->
             <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${postgresql.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-mybatis</artifactId>
+                <artifactId>iot-common-mybatis</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
-                <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-webflux-ui</artifactId>
-                <version>${springdoc.version}</version>
+                <groupId>com.basiclab.iot</groupId>
+                <artifactId>iot-common-protocol</artifactId>
+                <version>${revision}</version>
             </dependency>
-
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>druid-spring-boot-starter</artifactId>
@@ -232,15 +260,20 @@
                 <artifactId>mybatis-plus-join-boot-starter</artifactId> <!-- MyBatis 联表查询 -->
                 <version>${mybatis-plus-join.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-redis</artifactId>
+                <artifactId>iot-common-redis</artifactId>
                 <version>${revision}</version>
             </dependency>
-
             <dependency>
-                <groupId>com.fhs-opensource</groupId> <!-- VO 数据翻译 -->
+                <groupId>com.taosdata.jdbc</groupId>
+                <artifactId>taos-jdbcdriver</artifactId>
+                <version>${tdEngine.version}</version>
+            </dependency>
+
+            <!-- VO 数据翻译 -->
+            <dependency>
+                <groupId>com.fhs-opensource</groupId>
                 <artifactId>easy-trans-spring-boot-starter</artifactId>
                 <version>${easy-trans.version}</version>
                 <exclusions>
@@ -280,7 +313,7 @@
             <!-- RPC 远程调用相关 -->
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-rpc</artifactId>
+                <artifactId>iot-common-rpc</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -296,27 +329,86 @@
             </dependency>
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-job</artifactId>
+                <artifactId>iot-common-job</artifactId>
                 <version>${revision}</version>
+            </dependency>
+
+            <!-- excel工具 -->
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-ooxml</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-ooxml-schemas</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+
+            <!-- 图像处理 -->
+            <dependency>
+                <groupId>org.bytedeco</groupId>
+                <artifactId>javacv-platform</artifactId>
+                <version>${javacv.version}</version>
+            </dependency>
+
+            <!-- Netty工具 -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+
+            <!-- 文件上传工具类 -->
+            <dependency>
+                <groupId>commons-fileupload</groupId>
+                <artifactId>commons-fileupload</artifactId>
+                <version>${commons.fileupload.version}</version>
             </dependency>
 
             <!-- 消息队列相关 -->
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-mq</artifactId>
+                <artifactId>iot-common-mq</artifactId>
                 <version>${revision}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-spring-boot-starter</artifactId>
                 <version>${rocketmq-spring.version}</version>
             </dependency>
 
+            <!-- 数据集与模型训练 -->
+            <dependency>
+                <groupId>com.basiclab.iot</groupId>
+                <artifactId>iot-dataset-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.basiclab.iot</groupId>
+                <artifactId>iot-model-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.basiclab.iot</groupId>
+                <artifactId>iot-studio-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.basiclab.iot</groupId>
+                <artifactId>iot-system-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
             <!-- 服务保障相关 -->
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-protection</artifactId>
+                <artifactId>iot-common-protection</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -335,7 +427,7 @@
             <!-- 监控相关 -->
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-monitor</artifactId>
+                <artifactId>iot-common-monitor</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -381,23 +473,6 @@
             </dependency>
 
             <dependency>
-                <groupId>org.eclipse.paho</groupId>
-                <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
-                <version>${paho.client.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.kafka</groupId>
-                <artifactId>kafka-clients</artifactId>
-                <version>${kafka.client.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.kafka</groupId>
-                <artifactId>kafka-streams</artifactId>
-                <version>${kafka.client.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>de.codecentric</groupId>
                 <artifactId>spring-boot-admin-starter-server</artifactId> <!-- 实现 Spring Boot Admin Server 服务端 -->
                 <version>${spring-boot-admin.version}</version>
@@ -411,7 +486,7 @@
             <!-- Test 测试相关 -->
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-test</artifactId>
+                <artifactId>iot-common-test</artifactId>
                 <version>${revision}</version>
                 <scope>test</scope>
             </dependency>
@@ -466,16 +541,14 @@
             <!-- 工具类相关 -->
             <dependency>
                 <groupId>com.basiclab.iot</groupId>
-                <artifactId>iot-spring-boot-starter-excel</artifactId>
+                <artifactId>iot-common-excel</artifactId>
                 <version>${revision}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.mapstruct</groupId>
                 <artifactId>mapstruct</artifactId> <!-- use mapstruct-jdk8 for Java 8 or higher -->
@@ -491,94 +564,69 @@
                 <artifactId>mapstruct-processor</artifactId>
                 <version>${mapstruct.version}</version>
             </dependency>
-
+            <!-- Minio -->
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
+            </dependency>
             <dependency>
                 <groupId>cn.hutool</groupId>
                 <artifactId>hutool-all</artifactId>
                 <version>${hutool.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>easyexcel</artifactId>
                 <version>${easyexcel.verion}</version>
             </dependency>
-
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.apache.tika</groupId>
                 <artifactId>tika-core</artifactId> <!-- 文件类型的识别 -->
                 <version>${tika-core.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.apache.velocity</groupId>
                 <artifactId>velocity-engine-core</artifactId>
                 <version>${velocity.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
                 <version>${fastjson.version}</version>
             </dependency>
-
-            <dependency>
-                <groupId>cn.smallbun.screw</groupId>
-                <artifactId>screw-core</artifactId> <!-- 实现数据库文档 -->
-                <version>${screw.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.freemarker</groupId>
-                        <artifactId>freemarker</artifactId> <!-- 移除 Freemarker 依赖，采用 Velocity 作为模板引擎 -->
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.alibaba</groupId>
-                        <artifactId>fastjson</artifactId> <!-- 最新版screw-core1.0.5依赖fastjson1.2.73存在漏洞，移除。 -->
-                    </exclusion>
-                </exclusions>
-            </dependency>
-
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
             </dependency>
-
-            <dependency>
-                <groupId>com.google.inject</groupId>
-                <artifactId>guice</artifactId>
-                <version>${guice.version}</version>
-            </dependency>
-
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>transmittable-thread-local</artifactId> <!-- 解决 ThreadLocal 父子线程的传值问题 -->
                 <version>${transmittable-thread-local.version}</version>
             </dependency>
-
+            <!-- 解决 ftp 连接 -->
             <dependency>
                 <groupId>commons-net</groupId>
-                <artifactId>commons-net</artifactId> <!-- 解决 ftp 连接 -->
+                <artifactId>commons-net</artifactId>
                 <version>${commons-net.version}</version>
             </dependency>
+            <!-- 解决 sftp 连接 -->
             <dependency>
                 <groupId>com.jcraft</groupId>
-                <artifactId>jsch</artifactId> <!-- 解决 sftp 连接 -->
+                <artifactId>jsch</artifactId>
                 <version>${jsch.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>com.xingyuv</groupId>
                 <artifactId>spring-boot-starter-captcha-plus</artifactId>
                 <version>${captcha-plus.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.lionsoul</groupId>
                 <artifactId>ip2region</artifactId>
@@ -595,6 +643,19 @@
                 <groupId>org.reflections</groupId>
                 <artifactId>reflections</artifactId>
                 <version>${reflections.version}</version>
+            </dependency>
+
+            <!-- pagehelper 分页插件 -->
+            <dependency>
+                <groupId>com.github.pagehelper</groupId>
+                <artifactId>pagehelper-spring-boot-starter</artifactId>
+                <version>${pagehelper.boot.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.mybatis</groupId>
+                        <artifactId>mybatis-spring</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <!-- 三方云服务相关 -->
@@ -687,39 +748,6 @@
                 <artifactId>xercesImpl</artifactId>
                 <version>${xercesImpl.version}</version>
             </dependency>
-
         </dependencies>
     </dependencyManagement>
-
-    <build>
-        <plugins>
-            <!-- 统一 revision 版本 -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>flatten-maven-plugin</artifactId>
-                <version>${flatten-maven-plugin.version}</version>
-                <configuration>
-                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
-                    <updatePomFile>true</updatePomFile>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>flatten</goal>
-                        </goals>
-                        <id>flatten</id>
-                        <phase>process-resources</phase>
-                    </execution>
-                    <execution>
-                        <goals>
-                            <goal>clean</goal>
-                        </goals>
-                        <id>flatten.clean</id>
-                        <phase>clean</phase>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
-
 </project>

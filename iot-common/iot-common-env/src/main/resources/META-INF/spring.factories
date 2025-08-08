@@ -1,2 +1,0 @@
-org.springframework.boot.env.EnvironmentPostProcessor=\
-    com.basiclab.iot.common.config.EnvEnvironmentPostProcessor

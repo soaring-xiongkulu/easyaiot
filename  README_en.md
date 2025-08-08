@@ -78,21 +78,6 @@ pnpm dev
   <img src=".image/banner/banner1006.png" alt="Image6" width="49%">
 </div>
 
-## DeepAI Hub Edge Platform [Commercial Edition]
-<div>
-  <img src=".image/banner/banner99.png" alt="Image7" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner100.png" alt="Image8" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner69.png" alt="Image9" width="49%">
-  <img src=".image/banner/ai-box.gif" alt="AI-Box Demo" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner60.png" alt="Image10" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner61.png" alt="Image11" width="49%">
-</div>
-<!-- Additional banner sections follow same pattern -->
-
 ## Contact
 ### Email:
 andywebjava@163.com (For project issues, please use GitHub Issues)

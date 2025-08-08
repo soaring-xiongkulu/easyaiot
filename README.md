@@ -14,15 +14,6 @@
 
 EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该项目时，应遵循法律法规，不得进行非法活动。如果EasyAIoT发现用户有违法行为，将会配合相关机关进行调查并向政府部门举报。用户因非法行为造成的任何法律责任均由用户自行承担，如因用户使用造成第三方损害的，用户应当依法予以赔偿。使用EasyAIoT所有相关资源均由用户自行承担风险.
 
-## 演示环境（开源版暂不提供演示环境，因为还没写完）
-云平台演示：http://pro.basiclab.top:8888
-账号：admin
-密码：admin123
-
-边缘平台演示：http://234604e8d1b148c2.pro.rknn.net:8088
-账号：admin
-密码：admin123
-
 ## 技术栈
 
 ### 前端
@@ -66,7 +57,7 @@ pnpm install
 pnpm dev
 ```
 
-## 深度智核AI云平台【开源版】
+## 截图
 <div>
   <img src=".image/banner/banner1001.png" alt="图片1" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1002.png" alt="图片1" width="49%">
@@ -78,86 +69,6 @@ pnpm dev
 <div>
   <img src=".image/banner/banner1005.png" alt="图片1" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1006.png" alt="图片1" width="49%">
-</div>
-
-## 深度智核AI边缘平台【商业版】
-<div>
-  <img src=".image/banner/banner99.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner100.png" alt="图片1" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner69.png" alt="图片1" width="49%">
-  <img src=".image/banner/ai-box.gif" alt="图片1" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner60.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner61.png" alt="图片1" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner66.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner63.png" alt="图片1" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner64.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner67.png" alt="图片1" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner65.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner62.png" alt="图片1" width="49%">
-</div>
-
-## 深度智核AI云平台【商业版】
-<div>
-    <img src=".image/banner/banner1.png" alt="图片1" width="49%" style="margin-right: 10px">
-    <img src=".image/banner/banner3.png" alt="图片2" width="49%" style="margin-right: 10px">
-</div>
-<div>
-    <img src=".image/banner/banner2.png" alt="图片1" width="49%">
-    <img src=".image/banner/banner4.png" alt="图片2" width="49%" style="margin-right: 10px">
-</div>
-<div>
-  <img src=".image/banner/banner31.png" alt="图片2" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner8.png" alt="图片2" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner33.png" alt="图片3" width="49%">
-<img src=".image/banner/banner45.png" alt="图片2" width="49%" style="margin-right: 10px">
-</div>
-<div>
-  <img src=".image/banner/banner51.png" alt="图片2" width="49%">
-  <img src=".image/banner/banner46.png" alt="图片2" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner47.png" alt="图片2" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner48.png" alt="图片2" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner34.png" alt="图片3" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner3.png" alt="图片3" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner50.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner35.png" alt="图片2" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner70.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner71.png" alt="图片2" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner72.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner73.png" alt="图片2" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner78.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner79.png" alt="图片2" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner74.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner75.png" alt="图片2" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner76.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner77.png" alt="图片2" width="49%">
 </div>
 
 ## 联系方式

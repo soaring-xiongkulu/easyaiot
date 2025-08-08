@@ -7,6 +7,28 @@
     <artifactId>easyaiot</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
+
+    <properties>
+        <revision>1.0.0</revision>
+        <spring.boot.version>2.7.18</spring.boot.version>
+        <!-- Maven编译时的依赖 -->
+        <java.version>1.8</java.version>
+        <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
+        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
+        <swagger.start.version>3.0</swagger.start.version>
+        <dockerfile-maven-plugin.version>1.4.12</dockerfile-maven-plugin.version>
+        <docker.image.prefix>basiclab</docker.image.prefix>
+        <lombok.version>1.18.30</lombok.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <!-- 编译时的编码 -->
+        <maven.compiler.encoding>UTF-8</maven.compiler.encoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+
     <modules>
         <module>iot-parent</module>
         <module>iot-gateway</module>
@@ -20,24 +42,8 @@
     </modules>
 
     <name>${project.artifactId}</name>
-    <description>EasyAIoT项目基础脚手架</description>
-    <url>https://github.com/soaring-xiongkulu/easyaiot</url>
-
-    <properties>
-        <revision>1.0.0</revision>
-        <!-- Maven 相关 -->
-        <java.version>1.8</java.version>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-        <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
-        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-        <!-- 看看咋放到 bom 里 -->
-        <lombok.version>1.18.30</lombok.version>
-        <spring.boot.version>2.7.18</spring.boot.version>
-        <mapstruct.version>1.5.5.Final</mapstruct.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <takari-cpsuite.version>1.2.7</takari-cpsuite.version>
-    </properties>
+    <description>BasicLab项目基础脚手架</description>
+    <url>https://gitee.com/sdjlkfdskl/lf-ai-stream</url>
 
     <dependencyManagement>
         <dependencies>
@@ -139,20 +145,55 @@
                 <artifactId>iot-common-swagger</artifactId>
                 <version>${revision}</version>
             </dependency>
-            <dependency>
-                <groupId>io.takari.junit</groupId>
-                <artifactId>takari-cpsuite</artifactId>
-                <version>${takari-cpsuite.version}</version>
-                <scope>test</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>junit</groupId>
-                        <artifactId>junit</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <profiles>
+        <profile>
+            <!-- 本地环境 -->
+            <id>dev</id>
+            <properties>
+                <spring.profile>dev</spring.profile>
+            </properties>
+            <activation>
+                <!-- 是否默认激活 -->
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+        <profile>
+            <!-- 测试环境 -->
+            <id>test</id>
+            <properties>
+                <spring.profile>test</spring.profile>
+            </properties>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+        </profile>
+        <profile>
+            <!-- 生产环境 -->
+            <id>prod</id>
+            <properties>
+                <spring.profile>prod</spring.profile>
+            </properties>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+        </profile>
+        <profile>
+            <id>release</id>
+            <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/java</directory>
+                        <includes>
+                            <include>**/*.properties</include>
+                        </includes>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+    </profiles>
 
     <build>
         <pluginManagement>
@@ -171,6 +212,9 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven-compiler-plugin.version}</version>
                     <configuration>
+                        <source>${maven.compiler.source}</source>
+                        <target>${maven.compiler.target}</target>
+                        <encoding>${project.build.sourceEncoding}</encoding>
                         <annotationProcessorPaths>
                             <path>
                                 <groupId>org.springframework.boot</groupId>
@@ -192,20 +236,65 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+
+        <plugins>
+            <!-- 统一 revision 版本 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>${flatten-maven-plugin.version}</version>
+                <configuration>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                    <updatePomFile>true</updatePomFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                    </execution>
+                    <execution>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
 
-    <!-- 使用 huawei / aliyun 的 Maven 源，提升下载速度 -->
     <repositories>
         <repository>
-            <id>huaweicloud</id>
-            <name>huawei</name>
-            <url>https://mirrors.huaweicloud.com/repository/maven/</url>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
         </repository>
         <repository>
-            <id>aliyunmaven</id>
+            <id>aliyun</id>
             <name>aliyun</name>
-            <url>https://maven.aliyun.com/repository/public</url>
+            <url>https://maven.aliyun.com/nexus/content/groups/public/</url>
+        </repository>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/libs-milestone</url>
+        </repository>
+        <repository>
+            <id>oss-public</id>
+            <url>https://oss.sonatype.org/content/repositories/public</url>
         </repository>
     </repositories>
 
+    <pluginRepositories>
+        <pluginRepository>
+            <id>aliyun-plugin</id>
+            <url>https://maven.aliyun.com/nexus/content/groups/public/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 </project>
