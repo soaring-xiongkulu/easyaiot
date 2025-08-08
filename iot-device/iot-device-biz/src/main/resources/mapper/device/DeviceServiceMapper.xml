@@ -1,0 +1,504 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.device.dal.pgsql.device.DeviceServiceMapper">
+    <resultMap id="BaseResultMap" type="com.basiclab.iot.device.domain.device.vo.DeviceServiceRecord">
+        <!--@mbg.generated-->
+        <!--@Table device_service_records-->
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="device_identification" jdbcType="VARCHAR" property="deviceIdentification"/>
+        <result column="service_code" jdbcType="VARCHAR" property="serviceCode"/>
+        <result column="command_code" jdbcType="VARCHAR" property="commandCode"/>
+        <result column="command_name" jdbcType="VARCHAR" property="commandName"/>
+        <result column="protocol_type" jdbcType="VARCHAR" property="protocolType"/>
+        <result column="message_id" jdbcType="VARCHAR" property="messageId"/>
+        <result column="topic" jdbcType="VARCHAR" property="topic"/>
+        <result column="request" jdbcType="LONGVARCHAR" property="request"/>
+        <result column="message" jdbcType="LONGVARCHAR" property="message"/>
+        <result column="status" jdbcType="INTEGER" property="status"/>
+        <result column="report_time" jdbcType="TIMESTAMP" property="reportTime"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        <!--@mbg.generated-->
+        id,
+        device_identification,
+        service_code,
+        command_code,
+        command_name,
+        protocol_type,
+        message_id,
+        topic,
+        request,
+        message,
+        "status",
+        report_time,
+        create_time
+    </sql>
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from device_service_records
+        where id = #{id,jdbcType=BIGINT}
+    </select>
+    <select id="selectDeviceServiceRecordList"
+            resultType="com.basiclab.iot.device.domain.device.vo.DeviceServiceRecord">
+        select
+        <include refid="Base_Column_List"/>
+        from
+        device_service_records
+        <where>
+            <if test="deviceIdentification != null and deviceIdentification != ''">
+                and device_identification = #{deviceIdentification}
+            </if>
+            <if test="messageId != null and messageId != ''">
+                and message_id = #{messageId}
+            </if>
+            <if test="topic != null and topic != ''">
+                and topic = #{topic}
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+            <if test="serviceCode != null and serviceCode != ''">
+                and service_code = #{serviceCode}
+            </if>
+            <if test="commandCode != null and commandCode != ''">
+                and command_code = #{commandCode}
+            </if>
+            <if test="commandName != null and commandName != ''">
+                and command_name = #{commandName}
+            </if>
+            <if test="protocolType != null and protocolType != ''">
+                and protocol_type = #{protocolType}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+    <select id="selectDeviceServiceRecordById"
+            resultType="com.basiclab.iot.device.domain.device.vo.DeviceServiceRecord">
+        select
+        <include refid="Base_Column_List"/>
+        from
+        device_service_records
+        where id = #{id}
+    </select>
+    <select id="selectByIdentificationAndTime"
+            resultType="com.basiclab.iot.device.domain.device.vo.DeviceServiceRecord">
+        select
+            <include refid="Base_Column_List"/>
+        from
+        device_service_records
+        <where>
+            device_identification = #{deviceIdentification}
+        and create_time between #{startTime} and #{endTime}
+        and status != 2
+        </where>
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        <!--@mbg.generated-->
+        delete
+        from device_service_records
+        where id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id,jdbcType=BIGINT}
+        </foreach>
+    </delete>
+    <insert id="insert" keyColumn="id" keyProperty="id"
+            parameterType="com.basiclab.iot.device.domain.device.vo.DeviceServiceRecord"
+            useGeneratedKeys="true">
+        <!--@mbg.generated-->
+        insert into device_service_records (device_identification,
+        service_code,
+        command_code,
+        command_name,
+        protocol_type,
+        message_id,
+        topic,
+        request,
+        message,
+        "status",
+        report_time,
+        create_time)
+        values (#{deviceIdentification,jdbcType=VARCHAR},
+        #{serviceCode,jdbcType=VARCHAR},
+        #{commandCode,jdbcType=VARCHAR},
+        #{commandName,jdbcType=VARCHAR},
+        #{protocolType,jdbcType=VARCHAR},
+        #{messageId,jdbcType=VARCHAR},
+        #{topic,jdbcType=VARCHAR},
+        #{request,jdbcType=VARCHAR},
+        #{message,jdbcType=LONGVARCHAR},
+        #{status,jdbcType=INTEGER},
+        #{reportTime,jdbcType=TIMESTAMP},
+        #{createTime,jdbcType=TIMESTAMP})
+    </insert>
+    <insert id="insertSelective" keyColumn="id" keyProperty="id"
+            parameterType="com.basiclab.iot.device.domain.device.vo.DeviceServiceRecord" useGeneratedKeys="true">
+        <!--@mbg.generated-->
+        insert into device_service_records
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="deviceIdentification != null">
+                device_identification,
+            </if>
+            <if test="protocolType != null">
+                protocol_type,
+            </if>
+            <if test="messageId != null">
+                message_id,
+            </if>
+            <if test="topic != null">
+                topic,
+            </if>
+            <if test="message != null">
+                message,
+            </if>
+            <if test="status != null">
+                "status",
+            </if>
+            <if test="reportTime != null">
+                report_time,
+            </if>
+            create_time,
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="deviceIdentification != null">
+                #{deviceIdentification,jdbcType=VARCHAR},
+            </if>
+            <if test="protocolType != null">
+                #{protocolType,jdbcType=VARCHAR},
+            </if>
+            <if test="messageId != null">
+                #{messageId,jdbcType=VARCHAR},
+            </if>
+            <if test="topic != null">
+                #{topic,jdbcType=VARCHAR},
+            </if>
+            <if test="message != null">
+                #{message,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="status != null">
+                #{status,jdbcType=INTEGER},
+            </if>
+            <if test="reportTime != null">
+                #{reportTime,jdbcType=TIMESTAMP},
+            </if>
+            #{createTime,jdbcType=TIMESTAMP},
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective" parameterType="com.basiclab.iot.device.domain.device.vo.DeviceServiceRecord">
+        <!--@mbg.generated-->
+        update device_service_records
+        <set>
+            <if test="deviceIdentification != null">
+                device_identification = #{deviceIdentification,jdbcType=VARCHAR},
+            </if>
+            <if test="serviceCode != null">
+                service_code = #{serviceCode,jdbcType=VARCHAR},
+            </if>
+            <if test="commandCode != null">
+                command_code = #{commandCode,jdbcType=VARCHAR},
+            </if>
+            <if test="commandName != null">
+                command_name = #{commandName,jdbcType=VARCHAR},
+            </if>
+            <if test="protocolType != null">
+                protocol_type = #{protocolType,jdbcType=VARCHAR},
+            </if>
+            <if test="messageId != null">
+                message_id = #{messageId,jdbcType=VARCHAR},
+            </if>
+            <if test="topic != null">
+                topic = #{topic,jdbcType=VARCHAR},
+            </if>
+            <if test="request != null">
+                request = #{request,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="message != null">
+                message = #{message,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="status != null">
+                "status" = #{status,jdbcType=INTEGER},
+            </if>
+            <if test="reportTime != null">
+                report_time = #{reportTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=TIMESTAMP},
+            </if>
+        </set>
+        where id = #{id,jdbcType=BIGINT}
+    </update>
+    <update id="updateByPrimaryKey" parameterType="com.basiclab.iot.device.domain.device.vo.DeviceServiceRecord">
+        <!--@mbg.generated-->
+        update device_service_records
+        set device_identification = #{deviceIdentification,jdbcType=VARCHAR},
+            protocol_type         = #{protocolType,jdbcType=VARCHAR},
+            message_id            = #{messageId,jdbcType=VARCHAR},
+            topic                 = #{topic,jdbcType=VARCHAR},
+            message               = #{message,jdbcType=LONGVARCHAR},
+            "status"              = #{status,jdbcType=INTEGER},
+            report_time           = #{reportTime,jdbcType=TIMESTAMP},
+            create_time           = #{createTime,jdbcType=TIMESTAMP}
+        where id = #{id,jdbcType=BIGINT}
+    </update>
+    <update id="updateBatch" parameterType="java.util.List">
+        <!--@mbg.generated-->
+        update device_service_records
+        <trim prefix="set" suffixOverrides=",">
+            <trim prefix="device_identification = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    when id = #{item.id,jdbcType=BIGINT} then #{item.deviceIdentification,jdbcType=VARCHAR}
+                </foreach>
+            </trim>
+            <trim prefix="protocol_type = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    when id = #{item.id,jdbcType=BIGINT} then #{item.protocolType,jdbcType=VARCHAR}
+                </foreach>
+            </trim>
+            <trim prefix="message_id = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    when id = #{item.id,jdbcType=BIGINT} then #{item.messageId,jdbcType=VARCHAR}
+                </foreach>
+            </trim>
+            <trim prefix="topic = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    when id = #{item.id,jdbcType=BIGINT} then #{item.topic,jdbcType=VARCHAR}
+                </foreach>
+            </trim>
+            <trim prefix="message = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    when id = #{item.id,jdbcType=BIGINT} then #{item.message,jdbcType=LONGVARCHAR}
+                </foreach>
+            </trim>
+            <trim prefix="'status' = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    when id = #{item.id,jdbcType=BIGINT} then #{item.status,jdbcType=INTEGER}
+                </foreach>
+            </trim>
+            <trim prefix="report_time = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    when id = #{item.id,jdbcType=BIGINT} then #{item.reportTime,jdbcType=TIMESTAMP}
+                </foreach>
+            </trim>
+            <trim prefix="create_time = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    when id = #{item.id,jdbcType=BIGINT} then #{item.createTime,jdbcType=TIMESTAMP}
+                </foreach>
+            </trim>
+        </trim>
+        where id in
+        <foreach close=")" collection="list" item="item" open="(" separator=", ">
+            #{item.id,jdbcType=BIGINT}
+        </foreach>
+    </update>
+    <update id="updateBatchSelective" parameterType="java.util.List">
+        <!--@mbg.generated-->
+        update device_service_records
+        <trim prefix="set" suffixOverrides=",">
+            <trim prefix="device_identification = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.deviceIdentification != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.deviceIdentification,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="protocol_type = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.protocolType != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.protocolType,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="message_id = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.messageId != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.messageId,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="topic = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.topic != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.topic,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="message = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.message != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.message,jdbcType=LONGVARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="'status' = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.status != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.status,jdbcType=INTEGER}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="report_time = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.reportTime != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.reportTime,jdbcType=TIMESTAMP}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="create_time = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.createTime != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.createTime,jdbcType=TIMESTAMP}
+                    </if>
+                </foreach>
+            </trim>
+        </trim>
+        where id in
+        <foreach close=")" collection="list" item="item" open="(" separator=", ">
+            #{item.id,jdbcType=BIGINT}
+        </foreach>
+    </update>
+    <insert id="batchInsert" keyColumn="id" keyProperty="id" parameterType="map" useGeneratedKeys="true">
+        <!--@mbg.generated-->
+        insert into device_service_records
+        (device_identification, protocol_type, message_id, topic, message, "status", report_time,
+         create_time)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.deviceIdentification,jdbcType=VARCHAR}, #{item.protocolType,jdbcType=VARCHAR},
+             #{item.messageId,jdbcType=VARCHAR}, #{item.topic,jdbcType=VARCHAR}, #{item.message,jdbcType=LONGVARCHAR},
+             #{item.status,jdbcType=INTEGER}, #{item.reportTime,jdbcType=TIMESTAMP},
+             #{item.createTime,jdbcType=TIMESTAMP})
+        </foreach>
+    </insert>
+    <insert id="insertOrUpdate" keyColumn="id" keyProperty="id"
+            parameterType="com.basiclab.iot.device.domain.device.vo.DeviceServiceRecord" useGeneratedKeys="true">
+        <!--@mbg.generated-->
+        insert into device_service_records
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            device_identification,
+            protocol_type,
+            message_id,
+            topic,
+            message,
+            "status",
+            report_time,
+            create_time,
+        </trim>
+        values
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=BIGINT},
+            </if>
+            #{deviceIdentification,jdbcType=VARCHAR},
+            #{protocolType,jdbcType=VARCHAR},
+            #{messageId,jdbcType=VARCHAR},
+            #{topic,jdbcType=VARCHAR},
+            #{message,jdbcType=LONGVARCHAR},
+            #{status,jdbcType=INTEGER},
+            #{reportTime,jdbcType=TIMESTAMP},
+            #{createTime,jdbcType=TIMESTAMP},
+        </trim>
+        ON CONFLICT (id) DO UPDATE SET
+        <trim suffixOverrides=",">
+            device_identification = EXCLUDED.device_identification,
+            protocol_type         = EXCLUDED.protocol_type,
+            message_id            = EXCLUDED.message_id,
+            topic                 = EXCLUDED.topic,
+            message               = EXCLUDED.message,
+            "status"              = EXCLUDED.status,
+            report_time           = EXCLUDED.report_time,
+            create_time           = EXCLUDED.create_time,
+        </trim>
+    </insert>
+    <insert id="insertOrUpdateSelective" keyColumn="id" keyProperty="id"
+            parameterType="com.basiclab.iot.device.domain.device.vo.DeviceServiceRecord" useGeneratedKeys="true">
+        <!--@mbg.generated-->
+        insert into device_service_records
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="deviceIdentification != null">
+                device_identification,
+            </if>
+            <if test="protocolType != null">
+                protocol_type,
+            </if>
+            <if test="messageId != null">
+                message_id,
+            </if>
+            <if test="topic != null">
+                topic,
+            </if>
+            <if test="message != null">
+                message,
+            </if>
+            <if test="status != null">
+                "status",
+            </if>
+            <if test="reportTime != null">
+                report_time,
+            </if>
+            create_time,
+        </trim>
+        values
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=BIGINT},
+            </if>
+            <if test="deviceIdentification != null">
+                #{deviceIdentification,jdbcType=VARCHAR},
+            </if>
+            <if test="protocolType != null">
+                #{protocolType,jdbcType=VARCHAR},
+            </if>
+            <if test="messageId != null">
+                #{messageId,jdbcType=VARCHAR},
+            </if>
+            <if test="topic != null">
+                #{topic,jdbcType=VARCHAR},
+            </if>
+            <if test="message != null">
+                #{message,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="status != null">
+                #{status,jdbcType=INTEGER},
+            </if>
+            <if test="reportTime != null">
+                #{reportTime,jdbcType=TIMESTAMP},
+            </if>
+            #{createTime,jdbcType=TIMESTAMP},
+        </trim>
+        ON CONFLICT (id) DO UPDATE SET
+        <trim suffixOverrides=",">
+            <if test="deviceIdentification != null">
+                device_identification = EXCLUDED.device_identification,
+            </if>
+            <if test="protocolType != null">
+                protocol_type = EXCLUDED.protocol_type,
+            </if>
+            <if test="messageId != null">
+                message_id = EXCLUDED.message_id,
+            </if>
+            <if test="topic != null">
+                topic = EXCLUDED.topic,
+            </if>
+            <if test="message != null">
+                message = EXCLUDED.message,
+            </if>
+            <if test="status != null">
+                "status" = EXCLUDED.status,
+            </if>
+            <if test="reportTime != null">
+                report_time = EXCLUDED.report_time,
+            </if>
+            <if test="createTime != null">
+                create_time = EXCLUDED.create_time,
+            </if>
+        </trim>
+    </insert>
+</mapper>

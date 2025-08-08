@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.basiclab.iot</groupId>
+        <artifactId>iot</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <modules>
+        <module>iot-device-api</module>
+        <module>iot-device-biz</module>
+    </modules>
+    <artifactId>iot-device</artifactId>
+    <packaging>pom</packaging>
+
+    <name>${project.artifactId}</name>
+    <description>
+        device 模块下，我们放物联网业务，支撑上层的核心业务。
+        例如说：设备、产品、物模型、设备影子
+    </description>
+
+</project>

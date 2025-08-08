@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.basiclab.iot</groupId>
+        <artifactId>iot-device</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>iot-device-biz</artifactId>
+    <packaging>jar</packaging>
+
+    <name>${project.artifactId}</name>
+    <description>
+        device 模块下，我们放物联网业务，支撑上层的核心业务。
+        例如说：设备、产品、物模型、设备影子
+    </description>
+
+    <dependencies>
+        <!-- Spring Cloud 基础 -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-bootstrap</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-env</artifactId>
+        </dependency>
+
+        <!-- 依赖服务 -->
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-device-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-infra-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-broker-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-file-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-tdengine-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <!-- 业务组件 -->
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-data-permission</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-tenant</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-ip</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-protocol</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-mq</artifactId>
+        </dependency>
+
+        <!-- Minio -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+        </dependency>
+
+        <!-- ONNX -->
+        <dependency>
+            <groupId>com.microsoft.onnxruntime</groupId>
+            <artifactId>onnxruntime</artifactId>
+            <version>1.20.0</version>
+        </dependency>
+        <!-- 加载lib目录下的opencv包 -->
+        <dependency>
+            <groupId>org.opencv</groupId>
+            <artifactId>opencv</artifactId>
+            <version>4.10.0</version>
+            <scope>system</scope>
+            <systemPath>/projects/opencv-4.10.0/install/share/java/opencv4/opencv-4100.jar</systemPath>
+        </dependency>
+
+        <!--http客户端工具-->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpmime</artifactId>
+            <version>4.5.4</version>
+        </dependency>
+
+        <!-- commons-lang3 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+
+        <!-- Web 相关 -->
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-web</artifactId>
+        </dependency>
+
+        <!-- DB 相关 -->
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-mybatis</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-redis</artifactId>
+        </dependency>
+
+        <!-- RPC 远程调用相关 -->
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-rpc</artifactId>
+        </dependency>
+
+        <!-- Registry 注册中心相关 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!-- Config 配置中心相关 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+
+        <!-- Test 测试相关 -->
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- 工具类相关 -->
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-excel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>logging-interceptor</artifactId>
+        </dependency>
+        <!--MockMultipartFile 依赖-->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>5.0.5.RELEASE</version>
+        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>com.basiclab.iot</groupId>-->
+        <!--            <artifactId>iot-job-api</artifactId>-->
+        <!--            <version>1.0.0</version>-->
+        <!--            <scope>compile</scope>-->
+        <!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>com.basiclab.iot</groupId>-->
+        <!--            <artifactId>iot-message-api</artifactId>-->
+        <!--            <version>1.0.0</version>-->
+        <!--            <scope>compile</scope>-->
+        <!--        </dependency>-->
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>1.9.4</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- 设置构建的 jar 包名 -->
+        <finalName>${project.artifactId}</finalName>
+        <plugins>
+            <!-- 打包 -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring.boot.version}</version>
+                <configuration>
+                    <includeSystemScope>true</includeSystemScope>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal> <!-- 将引入的 jar 打入其中 -->
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

@@ -1,0 +1,1696 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.device.dal.pgsql.device.DeviceMapper">
+    <resultMap id="BaseResultMap" type="com.basiclab.iot.device.domain.device.vo.Device">
+        <!--@mbg.generated-->
+        <!--@Table device-->
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="client_id" jdbcType="VARCHAR" property="clientId"/>
+        <result column="app_id" jdbcType="VARCHAR" property="appId"/>
+        <result column="device_identification" jdbcType="VARCHAR" property="deviceIdentification"/>
+        <result column="device_name" jdbcType="VARCHAR" property="deviceName"/>
+        <result column="device_description" jdbcType="VARCHAR" property="deviceDescription"/>
+        <result column="device_status" jdbcType="VARCHAR" property="deviceStatus"/>
+        <result column="connect_status" jdbcType="VARCHAR" property="connectStatus"/>
+        <result column="is_will" jdbcType="VARCHAR" property="isWill"/>
+        <result column="product_identification" jdbcType="VARCHAR" property="productIdentification"/>
+        <result column="create_by" jdbcType="VARCHAR" property="createBy"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_by" jdbcType="VARCHAR" property="updateBy"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="remark" jdbcType="VARCHAR" property="remark"/>
+        <result column="device_version" jdbcType="VARCHAR" property="deviceVersion"/>
+        <result column="device_sn" jdbcType="VARCHAR" property="deviceSn"/>
+        <result column="ip_address" jdbcType="VARCHAR" property="ipAddress"/>
+        <result column="activated_time" jdbcType="TIMESTAMP" property="activatedTime"/>
+        <result column="last_online_time" jdbcType="TIMESTAMP" property="lastOnlineTime"/>
+        <result column="mac_address" jdbcType="VARCHAR" property="macAddress"/>
+        <result column="active_status" jdbcType="VARCHAR" property="activeStatus"/>
+        <result column="extension" jdbcType="VARCHAR" property="extension"/>
+        <result column="device_type" jdbcType="VARCHAR" property="deviceType"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        <!--@mbg.generated-->
+        id,
+        client_id,
+        app_id,
+        device_identification,
+        device_name,
+        device_description,
+        device_status,
+        connect_status,
+        is_will,
+        product_identification,
+        create_by,
+        create_time,
+        update_by,
+        update_time,
+        remark,
+        device_version,
+        device_sn,
+        ip_address,
+        mac_address,
+        active_status,
+        extension,
+        activated_time,
+        last_online_time,
+        device_type
+    </sql>
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        where id = #{id,jdbcType=BIGINT}
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        <!--@mbg.generated-->
+        delete
+        from device
+        where id = #{id,jdbcType=BIGINT}
+    </delete>
+    <insert id="insert" keyColumn="id" keyProperty="id"
+            parameterType="com.basiclab.iot.device.domain.device.vo.Device" useGeneratedKeys="true">
+        <!--@mbg.generated-->
+        insert into device (client_id,
+        app_id, device_identification,
+        device_name, device_description,
+        device_status, connect_status, is_will,
+        product_identification,
+        create_by, create_time,
+        update_by, update_time, remark)
+        values (#{clientId,jdbcType=VARCHAR},
+        #{appId,jdbcType=VARCHAR}, #{deviceIdentification,jdbcType=VARCHAR},
+        #{deviceName,jdbcType=VARCHAR}, #{deviceDescription,jdbcType=VARCHAR},
+        #{deviceStatus,jdbcType=VARCHAR}, #{connectStatus,jdbcType=VARCHAR}, #{isWill,jdbcType=VARCHAR},
+        #{productIdentification,jdbcType=VARCHAR},
+        #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP},
+        #{updateBy,jdbcType=VARCHAR}, #{updateTime,jdbcType=TIMESTAMP}, #{remark,jdbcType=VARCHAR})
+    </insert>
+    <insert id="insertSelective" keyColumn="id" keyProperty="id"
+            parameterType="com.basiclab.iot.device.domain.device.vo.Device" useGeneratedKeys="true">
+        <!--@mbg.generated-->
+        insert into device
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="clientId != null">
+                client_id,
+            </if>
+            <if test="appId != null">
+                app_id,
+            </if>
+            <if test="deviceIdentification != null">
+                device_identification,
+            </if>
+            <if test="deviceName != null">
+                device_name,
+            </if>
+            <if test="deviceDescription != null">
+                device_description,
+            </if>
+            <if test="deviceStatus != null">
+                device_status,
+            </if>
+            <if test="connectStatus != null">
+                connect_status,
+            </if>
+            <if test="isWill != null">
+                is_will,
+            </if>
+            <if test="productIdentification != null">
+                product_identification,
+            </if>
+            create_by,
+            create_time,
+            update_by,
+            update_time,
+            <if test="remark != null">
+                remark,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="clientId != null">
+                #{clientId,jdbcType=VARCHAR},
+            </if>
+            <if test="appId != null">
+                #{appId,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceIdentification != null">
+                #{deviceIdentification,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceName != null">
+                #{deviceName,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceDescription != null">
+                #{deviceDescription,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceStatus != null">
+                #{deviceStatus,jdbcType=VARCHAR},
+            </if>
+            <if test="connectStatus != null">
+                #{connectStatus,jdbcType=VARCHAR},
+            </if>
+            <if test="isWill != null">
+                #{isWill,jdbcType=VARCHAR},
+            </if>
+            <if test="productIdentification != null">
+                #{productIdentification,jdbcType=VARCHAR},
+            </if>
+            #{createBy,jdbcType=VARCHAR},
+            #{createTime,jdbcType=TIMESTAMP},
+            #{updateBy,jdbcType=VARCHAR},
+            #{updateTime,jdbcType=TIMESTAMP},
+            <if test="remark != null">
+                #{remark,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective"
+            parameterType="com.basiclab.iot.device.domain.device.vo.Device">
+        <!--@mbg.generated-->
+        update device
+        <set>
+            <if test="clientId != null">
+                client_id = #{clientId,jdbcType=VARCHAR},
+            </if>
+            <if test="appId != null">
+                app_id = #{appId,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceIdentification != null">
+                device_identification = #{deviceIdentification,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceName != null">
+                device_name = #{deviceName,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceDescription != null">
+                device_description = #{deviceDescription,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceStatus != null">
+                device_status = #{deviceStatus,jdbcType=VARCHAR},
+            </if>
+            <if test="connectStatus != null">
+                connect_status = #{connectStatus,jdbcType=VARCHAR},
+            </if>
+            <if test="isWill != null">
+                is_will = #{isWill,jdbcType=VARCHAR},
+            </if>
+            <if test="productIdentification != null">
+                product_identification = #{productIdentification,jdbcType=VARCHAR},
+            </if>
+            <if test="createBy != null">
+                create_by = #{createBy,jdbcType=VARCHAR},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="updateBy != null">
+                update_by = #{updateBy,jdbcType=VARCHAR},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="remark != null">
+                remark = #{remark,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{id,jdbcType=BIGINT}
+    </update>
+    <update id="updateByPrimaryKey" parameterType="com.basiclab.iot.device.domain.device.vo.Device">
+        <!--@mbg.generated-->
+        update device
+        set client_id              = #{clientId,jdbcType=VARCHAR},
+            app_id                 = #{appId,jdbcType=VARCHAR},
+            device_identification  = #{deviceIdentification,jdbcType=VARCHAR},
+            device_name            = #{deviceName,jdbcType=VARCHAR},
+            device_description     = #{deviceDescription,jdbcType=VARCHAR},
+            device_status          = #{deviceStatus,jdbcType=VARCHAR},
+            connect_status         = #{connectStatus,jdbcType=VARCHAR},
+            is_will                = #{isWill,jdbcType=VARCHAR},
+            product_identification = #{productIdentification,jdbcType=VARCHAR},
+            create_by              = #{createBy,jdbcType=VARCHAR},
+            create_time            = #{createTime,jdbcType=TIMESTAMP},
+            update_by              = #{updateBy,jdbcType=VARCHAR},
+            update_time            = #{updateTime,jdbcType=TIMESTAMP},
+            remark                 = #{remark,jdbcType=VARCHAR}
+        where id = #{id,jdbcType=BIGINT}
+    </update>
+    <update id="updateBatch" parameterType="java.util.List">
+        <!--@mbg.generated-->
+        <foreach collection="list" item="device" separator=";">
+            UPDATE device
+            SET
+            <if test="device.clientId != null">
+                client_id = #{device.clientId},
+            </if>
+            <if test="device.appId != null">
+                app_id = #{device.appId},
+            </if>
+            <if test="device.deviceIdentification != null">
+                device_identification = #{device.deviceIdentification},
+            </if>
+            <if test="device.deviceName != null">
+                device_name = #{device.deviceName},
+            </if>
+            <if test="device.deviceDescription != null">
+                device_description = #{device.deviceDescription},
+            </if>
+            <if test="device.deviceStatus != null">
+                device_status = #{device.deviceStatus},
+            </if>
+            <if test="device.connectStatus != null">
+                connect_status = #{device.connectStatus},
+            </if>
+            <if test="device.isWill != null">
+                is_will = #{device.isWill},
+            </if>
+            <if test="device.productIdentification != null">
+                product_identification = #{device.productIdentification},
+            </if>
+            <if test="device.deviceVersion != null">
+                device_version = #{device.deviceVersion},
+            </if>
+            <if test="device.deviceSn != null">
+                device_sn = #{device.deviceSn},
+            </if>
+            <if test="device.ipAddress != null">
+                ip_address = #{device.ipAddress},
+            </if>
+            <if test="device.activatedTime != null">
+                activated_time = #{device.activatedTime},
+            </if>
+            <if test="device.lastOnlineTime != null">
+                last_online_time = #{device.lastOnlineTime},
+            </if>
+            <if test="device.macAddress != null">
+                mac_address = #{device.macAddress},
+            </if>
+            <if test="device.activeStatus != null">
+                active_status = #{device.activeStatus},
+            </if>
+            <if test="device.extension != null">
+                extension = #{device.extension},
+            </if>
+            <if test="device.parentIdentification != null">
+                parent_identification = #{device.parentIdentification},
+            </if>
+            update_by = #{device.updateBy},
+            update_time = #{device.updateTime}
+            WHERE id = #{device.id}
+        </foreach>
+    </update>
+    <update id="updateBatchSelective" parameterType="java.util.List">
+        <!--@mbg.generated-->
+        update device
+        <trim prefix="set" suffixOverrides=",">
+            <trim prefix="client_id = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.clientId != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.clientId,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="user_name = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.userName != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.userName,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="'password' = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.password != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.password,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="app_id = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.appId != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.appId,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="auth_mode = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.authMode != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.authMode,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="device_identification = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.deviceIdentification != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.deviceIdentification,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="device_name = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.deviceName != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.deviceName,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="connector = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.connector != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.connector,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="device_description = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.deviceDescription != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.deviceDescription,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="device_status = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.deviceStatus != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.deviceStatus,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="connect_status = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.connectStatus != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.connectStatus,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="is_will = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.isWill != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.isWill,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="device_tags = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.deviceTags != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.deviceTags,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="product_identification = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.productIdentification != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.productIdentification,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="protocol_type = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.protocolType != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.protocolType,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="device_type = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.deviceType != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.deviceType,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="encrypt_key = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.encryptKey != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.encryptKey,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="encrypt_vector = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.encryptVector != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.encryptVector,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="sign_key = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.signKey != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.signKey,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="encrypt_method = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.encryptMethod != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.encryptMethod,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="sw_version = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.swVersion != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.swVersion,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="fw_version = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.fwVersion != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.fwVersion,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="device_sdk_version = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.deviceSdkVersion != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.deviceSdkVersion,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="create_by = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.createBy != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.createBy,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="create_time = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.createTime != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.createTime,jdbcType=TIMESTAMP}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="update_by = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.updateBy != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.updateBy,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="update_time = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.updateTime != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.updateTime,jdbcType=TIMESTAMP}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="remark = case" suffix="end,">
+                <foreach collection="list" index="index" item="item">
+                    <if test="item.remark != null">
+                        when id = #{item.id,jdbcType=BIGINT} then #{item.remark,jdbcType=VARCHAR}
+                    </if>
+                </foreach>
+            </trim>
+        </trim>
+        where id in
+        <foreach close=")" collection="list" item="item" open="(" separator=", ">
+            #{item.id,jdbcType=BIGINT}
+        </foreach>
+    </update>
+    <insert id="batchInsert" keyProperty="id" useGeneratedKeys="true">
+        <!--@mbg.generated-->
+        insert into device
+        (
+        app_id,
+        device_identification,
+        device_name,
+        product_identification,
+        create_by,
+        device_sn,
+        device_type
+        )
+        values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.appId,jdbcType=VARCHAR},
+            #{item.deviceIdentification,jdbcType=VARCHAR},
+            #{item.deviceName,jdbcType=VARCHAR},
+            #{item.productIdentification,jdbcType=VARCHAR},
+            #{item.createBy,jdbcType=VARCHAR},
+            #{item.deviceSn,jdbcType=VARCHAR},
+            #{item.deviceType,jdbcType=VARCHAR}
+            )
+        </foreach>
+    </insert>
+    <insert id="insertOrUpdate" keyColumn="id" keyProperty="id"
+            parameterType="com.basiclab.iot.device.domain.device.vo.Device" useGeneratedKeys="true">
+        <!--@mbg.generated-->
+        insert into device
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            client_id,
+            user_name,
+            "password",
+            app_id,
+            auth_mode,
+            device_identification,
+            device_name,
+            connector,
+            device_description,
+            device_status,
+            connect_status,
+            is_will,
+            device_tags,
+            product_identification,
+            protocol_type,
+            device_type,
+            encrypt_key,
+            encrypt_vector,
+            sign_key,
+            encrypt_method,
+            sw_version,
+            fw_version,
+            device_sdk_version,
+            create_by,
+            create_time,
+            update_by,
+            update_time,
+            remark,
+        </trim>
+        values
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=BIGINT},
+            </if>
+            #{clientId,jdbcType=VARCHAR},
+            #{userName,jdbcType=VARCHAR},
+            #{password,jdbcType=VARCHAR},
+            #{appId,jdbcType=VARCHAR},
+            #{authMode,jdbcType=VARCHAR},
+            #{deviceIdentification,jdbcType=VARCHAR},
+            #{deviceName,jdbcType=VARCHAR},
+            #{connector,jdbcType=VARCHAR},
+            #{deviceDescription,jdbcType=VARCHAR},
+            #{deviceStatus,jdbcType=VARCHAR},
+            #{connectStatus,jdbcType=VARCHAR},
+            #{isWill,jdbcType=VARCHAR},
+            #{deviceTags,jdbcType=VARCHAR},
+            #{productIdentification,jdbcType=VARCHAR},
+            #{protocolType,jdbcType=VARCHAR},
+            #{deviceType,jdbcType=VARCHAR},
+            #{encryptKey,jdbcType=VARCHAR},
+            #{encryptVector,jdbcType=VARCHAR},
+            #{signKey,jdbcType=VARCHAR},
+            #{encryptMethod,jdbcType=VARCHAR},
+            #{swVersion,jdbcType=VARCHAR},
+            #{fwVersion,jdbcType=VARCHAR},
+            #{deviceSdkVersion,jdbcType=VARCHAR},
+            #{createBy,jdbcType=VARCHAR},
+            #{createTime,jdbcType=TIMESTAMP},
+            #{updateBy,jdbcType=VARCHAR},
+            #{updateTime,jdbcType=TIMESTAMP},
+            #{remark,jdbcType=VARCHAR},
+        </trim>
+        ON CONFLICT (id) DO UPDATE SET
+        <trim suffixOverrides=",">
+            client_id              = EXCLUDED.client_id,
+            user_name              = EXCLUDED.user_name,
+            "password"             = EXCLUDED.password,
+            app_id                 = EXCLUDED.app_id,
+            auth_mode              = EXCLUDED.auth_mode,
+            device_identification  = EXCLUDED.device_identification,
+            device_name            = EXCLUDED.device_name,
+            connector              = EXCLUDED.connector,
+            device_description     = EXCLUDED.device_description,
+            device_status          = EXCLUDED.device_status,
+            connect_status         = EXCLUDED.connect_status,
+            is_will                = EXCLUDED.is_will,
+            device_tags            = EXCLUDED.device_tags,
+            product_identification = EXCLUDED.product_identification,
+            protocol_type          = EXCLUDED.protocol_type,
+            device_type            = EXCLUDED.device_type,
+            encrypt_key            = EXCLUDED.encrypt_key,
+            encrypt_vector         = EXCLUDED.encrypt_vector,
+            sign_key               = EXCLUDED.sign_key,
+            encrypt_method         = EXCLUDED.encrypt_method,
+            sw_version             = EXCLUDED.sw_version,
+            fw_version             = EXCLUDED.fw_version,
+            device_sdk_version     = EXCLUDED.device_sdk_version,
+            create_by              = EXCLUDED.create_by,
+            create_time            = EXCLUDED.create_time,
+            update_by              = EXCLUDED.update_by,
+            update_time            = EXCLUDED.update_time,
+            remark                 = EXCLUDED.remark,
+        </trim>
+    </insert>
+    <insert id="insertOrUpdateSelective" keyColumn="id" keyProperty="id"
+            parameterType="com.basiclab.iot.device.domain.device.vo.Device" useGeneratedKeys="true">
+        <!--@mbg.generated-->
+        insert into device
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="clientId != null">
+                client_id,
+            </if>
+            <if test="appId != null">
+                app_id,
+            </if>
+            <if test="deviceIdentification != null">
+                device_identification,
+            </if>
+            <if test="deviceName != null">
+                device_name,
+            </if>
+            <if test="deviceDescription != null">
+                device_description,
+            </if>
+            <if test="deviceStatus != null">
+                device_status,
+            </if>
+            <if test="connectStatus != null">
+                connect_status,
+            </if>
+            <if test="isWill != null">
+                is_will,
+            </if>
+            <if test="productIdentification != null">
+                product_identification,
+            </if>
+            <if test="deviceVersion != null">
+                device_version,
+            </if>
+            <if test="deviceSn != null">
+                device_sn,
+            </if>
+            <if test="remark != null">
+                remark,
+            </if>
+            <if test="ipAddress != null">
+                ip_address,
+            </if>
+            <if test="activatedTime != null">
+                activated_time,
+            </if>
+            <if test="lastOnlineTime != null">
+                last_online_time,
+            </if>
+            <if test="macAddress != null">
+                mac_address,
+            </if>
+            <if test="activeStatus != null">
+                active_status,
+            </if>
+            <if test="extension != null">
+                extension,
+            </if>
+            <if test="deviceType != null">
+                device_type,
+            </if>
+            create_by,
+            create_time,
+            update_by,
+            update_time,
+        </trim>
+        values
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=BIGINT},
+            </if>
+            <if test="clientId != null">
+                #{clientId,jdbcType=VARCHAR},
+            </if>
+            <if test="appId != null">
+                #{appId,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceIdentification != null">
+                #{deviceIdentification,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceName != null">
+                #{deviceName,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceDescription != null">
+                #{deviceDescription,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceStatus != null">
+                #{deviceStatus,jdbcType=VARCHAR},
+            </if>
+            <if test="connectStatus != null">
+                #{connectStatus,jdbcType=VARCHAR},
+            </if>
+            <if test="isWill != null">
+                #{isWill,jdbcType=VARCHAR},
+            </if>
+            <if test="productIdentification != null">
+                #{productIdentification,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceVersion != null">
+                #{deviceVersion,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceSn != null">
+                #{deviceSn,jdbcType=VARCHAR},
+            </if>
+            <if test="remark != null">
+                #{remark,jdbcType=VARCHAR},
+            </if>
+            <if test="ipAddress != null">
+                #{ipAddress,jdbcType=VARCHAR},
+            </if>
+            <if test="activatedTime != null">
+                #{activatedTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="lastOnlineTime != null">
+                #{lastOnlineTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="macAddress != null">
+                #{macAddress,jdbcType=VARCHAR},
+            </if>
+            <if test="activeStatus != null">
+                #{activeStatus,jdbcType=VARCHAR},
+            </if>
+            <if test="extension != null">
+                #{extension,jdbcType=VARCHAR},
+            </if>
+            <if test="deviceType != null">
+                #{deviceType,jdbcType=VARCHAR},
+            </if>
+            #{createBy,jdbcType=VARCHAR},
+            #{createTime,jdbcType=TIMESTAMP},
+            #{updateBy,jdbcType=VARCHAR},
+            #{updateTime,jdbcType=TIMESTAMP},
+        </trim>
+        ON CONFLICT (id) DO UPDATE SET
+        <trim suffixOverrides=",">
+            <if test="clientId != null">
+                client_id = EXCLUDED.client_id,
+            </if>
+            <if test="appId != null">
+                app_id = EXCLUDED.app_id,
+            </if>
+            <if test="deviceIdentification != null">
+                device_identification = EXCLUDED.device_identification,
+            </if>
+            <if test="deviceName != null">
+                device_name = EXCLUDED.device_name,
+            </if>
+            <if test="deviceDescription != null">
+                device_description = EXCLUDED.device_description,
+            </if>
+            <if test="deviceStatus != null">
+                device_status = EXCLUDED.device_status,
+            </if>
+            <if test="connectStatus != null">
+                connect_status = EXCLUDED.connect_status,
+            </if>
+            <if test="isWill != null">
+                is_will = EXCLUDED.is_will,
+            </if>
+            <if test="productIdentification != null">
+                product_identification = EXCLUDED.product_identification,
+            </if>
+            <if test="deviceVersion != null">
+                device_version = EXCLUDED.device_version,
+            </if>
+            <if test="deviceSn != null">
+                device_sn = EXCLUDED.device_sn,
+            </if>
+            <if test="remark != null">
+                remark = EXCLUDED.remark,
+            </if>
+            <if test="createBy != null">
+                create_by = EXCLUDED.create_by,
+            </if>
+            <if test="createTime != null">
+                create_time = EXCLUDED.create_time,
+            </if>
+            <if test="updateBy != null">
+                update_by = EXCLUDED.update_by,
+            </if>
+            <if test="updateTime != null">
+                update_time = EXCLUDED.update_time,
+            </if>
+            <if test="ipAddress != null">
+                ip_address = EXCLUDED.ip_address,
+            </if>
+            <if test="activatedTime != null">
+                activated_time = EXCLUDED.activated_time,
+            </if>
+            <if test="lastOnlineTime != null">
+                last_online_time = EXCLUDED.last_online_time,
+            </if>
+            <if test="macAddress != null">
+                mac_address = EXCLUDED.mac_address,
+            </if>
+            <if test="activeStatus != null">
+                active_status = EXCLUDED.active_status,
+            </if>
+            <if test="extension != null">
+                extension = EXCLUDED.extension,
+            </if>
+        </trim>
+    </insert>
+
+    <!--auto shihuan sun  e-mail: 853017739@qq.com on 2021-12-26-->
+    <update id="updateConnectStatusByClientId">
+        update device
+        set connect_status=#{updatedConnectStatus,jdbcType=VARCHAR}
+        <where>
+            <if test="clientId != null and clientId != ''">
+                and client_id = #{clientId,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </update>
+
+
+    <!--auto shihuan sun  e-mail: 853017739@qq.com on 2021-12-26-->
+    <select id="findOneByClientIdAndUserNameAndPasswordAndDeviceStatusAndProtocolType" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        <where>
+            <if test="clientId != null and clientId != ''">
+                and client_id = #{clientId,jdbcType=VARCHAR}
+            </if>
+            <if test="userName != null and userName != ''">
+                and user_name = #{userName,jdbcType=VARCHAR}
+            </if>
+            <if test="password != null and password != ''">
+                and "password" = #{password,jdbcType=VARCHAR}
+            </if>
+            <if test="deviceStatus != null and deviceStatus != ''">
+                and device_status = #{deviceStatus,jdbcType=VARCHAR}
+            </if>
+            <if test="protocolType != null and protocolType != ''">
+                and protocol_type = #{protocolType,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+
+    <!--auto shihuan sun  e-mail: 853017739@qq.com on 2021-12-26-->
+    <select id="findByAll" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        <where>
+            <if test="id != null">
+                and id = #{id,jdbcType=BIGINT}
+            </if>
+            <if test="clientId != null and clientId != ''">
+                and client_id = #{clientId,jdbcType=VARCHAR}
+            </if>
+            <if test="userName != null and userName != ''">
+                and user_name = #{userName,jdbcType=VARCHAR}
+            </if>
+            <if test="password != null and password != ''">
+                and "password" = #{password,jdbcType=VARCHAR}
+            </if>
+            <if test="appId != null and appId != ''">
+                and app_id = #{appId,jdbcType=VARCHAR}
+            </if>
+            <if test="authMode != null and authMode != ''">
+                and auth_mode = #{authMode,jdbcType=VARCHAR}
+            </if>
+            <if test="deviceIdentification != null and deviceIdentification != ''">
+                and device_identification = #{deviceIdentification,jdbcType=VARCHAR}
+            </if>
+            <if test="deviceName != null and deviceName != ''">
+                and device_name = #{deviceName,jdbcType=VARCHAR}
+            </if>
+            <if test="connector != null and connector != ''">
+                and connector = #{connector,jdbcType=VARCHAR}
+            </if>
+            <if test="deviceDescription != null and deviceDescription != ''">
+                and device_description = #{deviceDescription,jdbcType=VARCHAR}
+            </if>
+            <if test="deviceStatus != null and deviceStatus != ''">
+                and device_status = #{deviceStatus,jdbcType=VARCHAR}
+            </if>
+            <if test="connectStatus != null and connectStatus != ''">
+                and connect_status = #{connectStatus,jdbcType=VARCHAR}
+            </if>
+            <if test="isWill != null and isWill != ''">
+                and is_will = #{isWill,jdbcType=VARCHAR}
+            </if>
+            <if test="deviceTags != null and deviceTags != ''">
+                and device_tags = #{deviceTags,jdbcType=VARCHAR}
+            </if>
+            <if test="productIdentification != null and productIdentification != ''">
+                and product_identification = #{productIdentification,jdbcType=VARCHAR}
+            </if>
+            <if test="protocolType != null and protocolType != ''">
+                and protocol_type = #{protocolType,jdbcType=VARCHAR}
+            </if>
+            <if test="deviceType != null and deviceType != ''">
+                and device_type = #{deviceType,jdbcType=VARCHAR}
+            </if>
+            <if test="encryptKey != null and encryptKey != ''">
+                and encrypt_key = #{encryptKey,jdbcType=VARCHAR}
+            </if>
+            <if test="encryptVector != null and encryptVector != ''">
+                and encrypt_vector = #{encryptVector,jdbcType=VARCHAR}
+            </if>
+            <if test="signKey != null and signKey != ''">
+                and sign_key = #{signKey,jdbcType=VARCHAR}
+            </if>
+            <if test="encryptMethod != null and encryptMethod != ''">
+                and encrypt_method = #{encryptMethod,jdbcType=VARCHAR}
+            </if>
+            <if test="swVersion != null and swVersion != ''">
+                and sw_version = #{swVersion,jdbcType=VARCHAR}
+            </if>
+            <if test="fwVersion != null and fwVersion != ''">
+                and fw_version = #{fwVersion,jdbcType=VARCHAR}
+            </if>
+            <if test="deviceSdkVersion != null and deviceSdkVersion != ''">
+                and device_sdk_version = #{deviceSdkVersion,jdbcType=VARCHAR}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                and create_by = #{createBy,jdbcType=VARCHAR}
+            </if>
+            <if test="createTime != null">
+                and create_time = #{createTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="updateBy != null and updateBy != ''">
+                and update_by = #{updateBy,jdbcType=VARCHAR}
+            </if>
+            <if test="updateTime != null">
+                and update_time = #{updateTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="remark != null and remark != ''">
+                and remark = #{remark,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+
+    <!--auto shihuan sun  e-mail: 853017739@qq.com on 2021-12-26-->
+    <select id="findOneById" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        <where>
+            <if test="id != null">
+                and id = #{id,jdbcType=BIGINT}
+            </if>
+        </where>
+    </select>
+    <sql id="selectDeviceVo">
+        select id,
+               client_id,
+               app_id,
+               device_identification,
+               device_name,
+               device_description,
+               device_status,
+               connect_status,
+               is_will,
+               product_identification,
+               create_by,
+               create_time,
+               update_by,
+               update_time,
+               remark,
+               device_version,
+               device_sn,
+               ip_address,
+               activated_time,
+               last_online_time,
+               mac_address,
+               active_status,
+               extension,
+               device_type
+        from device
+    </sql>
+
+    <select id="selectDeviceList" parameterType="com.basiclab.iot.device.domain.device.vo.Device"
+            resultMap="BaseResultMap">
+        <include refid="selectDeviceVo"/>
+        <where>
+            <if test="appId != null  and appId != ''">
+                and app_id = #{appId}
+            </if>
+            <if test="clientId != null  and clientId != ''">
+                and client_id like concat('%', #{clientId}::varchar, '%')
+            </if>
+            <if test="deviceIdentification != null  and deviceIdentification != ''">
+                and device_identification like concat('%', #{deviceIdentification}::varchar, '%')
+            </if>
+            <if test="deviceName != null  and deviceName != ''">
+                and device_name like concat('%', #{deviceName}::varchar, '%')
+            </if>
+            <if test="deviceStatus != null  and deviceStatus != ''">
+                and device_status = #{deviceStatus}
+            </if>
+            <if test="connectStatus != null  and connectStatus != ''">
+                and connect_status = #{connectStatus}
+            </if>
+            <if test="isWill != null  and isWill != ''">
+                and is_will = #{isWill}
+            </if>
+            <if test="productIdentification != null  and productIdentification != ''">
+                and product_identification = #{productIdentification}
+            </if>
+            <if test="createBy != null  and createBy != ''">
+                and create_by = #{createBy}
+            </if>
+            <if test="createTime != null">
+                and create_time = #{createTime}
+            </if>
+            <if test="deviceVersion != null  and deviceVersion != ''">
+                and device_version = #{deviceVersion}
+            </if>
+            <if test="deviceSn != null  and deviceSn != ''">
+                and device_sn = #{deviceSn}
+            </if>
+            <if test="ipAddress != null  and ipAddress != ''">
+                and ip_address = #{ipAddress}
+            </if>
+            <if test="activatedTime != null  and activatedTime != ''">
+                and activated_time = #{activatedTime}
+            </if>
+            <if test="lastOnlineTime != null  and lastOnlineTime != ''">
+                and last_online_time = #{lastOnlineTime}
+            </if>
+            <if test="macAddress != null  and macAddress != ''">
+                and mac_address = #{macAddress}
+            </if>
+            <if test="activeStatus != null  and activeStatus != ''">
+                and active_status = #{activeStatus}
+            </if>
+            <if test="parentIdentification != null and parentIdentification != ''">
+                and parent_identification = #{parentIdentification}
+            </if>
+            <if test="deviceType != null and deviceType != ''">
+                and device_type = #{deviceType}
+            </if>
+            <if test="isAssociated != null and isAssociated == true">
+                and parent_identification is not null
+            </if>
+            <if test="isAssociated != null and isAssociated == false">
+                and (parent_identification is null or parent_identification = '')
+            </if>
+        </where>
+        order by update_time desc
+    </select>
+
+    <select id="selectDeviceById" parameterType="Long" resultMap="BaseResultMap">
+        <include refid="selectDeviceVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertDevice" parameterType="com.basiclab.iot.device.domain.device.vo.Device"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into device
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="clientId != null and clientId != ''">
+                client_id,
+            </if>
+            <if test="userName != null and userName != ''">
+                user_name,
+            </if>
+            <if test="password != null and password != ''">
+                password,
+            </if>
+            <if test="appId != null and appId != ''">
+                app_id,
+            </if>
+            <if test="authMode != null and authMode != ''">
+                auth_mode,
+            </if>
+            <if test="deviceIdentification != null and deviceIdentification != ''">
+                device_identification,
+            </if>
+            <if test="deviceName != null and deviceName != ''">
+                device_name,
+            </if>
+            <if test="connector != null and connector != ''">
+                connector,
+            </if>
+            <if test="deviceDescription != null">
+                device_description,
+            </if>
+            <if test="deviceStatus != null and deviceStatus != ''">
+                device_status,
+            </if>
+            <if test="connectStatus != null and connectStatus != ''">
+                connect_status,
+            </if>
+            <if test="isWill != null">
+                is_will,
+            </if>
+            <if test="deviceTags != null and deviceTags != ''">
+                device_tags,
+            </if>
+            <if test="productIdentification != null and productIdentification != ''">
+                product_identification,
+            </if>
+            <if test="protocolType != null and protocolType != ''">
+                protocol_type,
+            </if>
+            <if test="deviceType != null and deviceType != ''">
+                device_type,
+            </if>
+            <if test="encryptKey != null">
+                encrypt_key,
+            </if>
+            <if test="encryptVector != null">
+                encrypt_vector,
+            </if>
+            <if test="signKey != null">
+                sign_key,
+            </if>
+            <if test="encryptMethod != null">
+                encrypt_method,
+            </if>
+            <if test="swVersion != null">
+                sw_version,
+            </if>
+            <if test="fwVersion != null">
+                fw_version,
+            </if>
+            <if test="deviceSdkVersion != null">
+                device_sdk_version,
+            </if>
+            create_by,
+            create_time,
+            update_by,
+            update_time,
+            <if test="remark != null">
+                remark,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="clientId != null and clientId != ''">
+                #{clientId},
+            </if>
+            <if test="userName != null and userName != ''">
+                #{userName},
+            </if>
+            <if test="password != null and password != ''">
+                #{password},
+            </if>
+            <if test="appId != null and appId != ''">
+                #{appId},
+            </if>
+            <if test="authMode != null and authMode != ''">
+                #{authMode},
+            </if>
+            <if test="deviceIdentification != null and deviceIdentification != ''">
+                #{deviceIdentification},
+            </if>
+            <if test="deviceName != null and deviceName != ''">
+                #{deviceName},
+            </if>
+            <if test="connector != null and connector != ''">
+                #{connector},
+            </if>
+            <if test="deviceDescription != null">
+                #{deviceDescription},
+            </if>
+            <if test="deviceStatus != null and deviceStatus != ''">
+                #{deviceStatus},
+            </if>
+            <if test="connectStatus != null and connectStatus != ''">
+                #{connectStatus},
+            </if>
+            <if test="isWill != null">
+                #{isWill},
+            </if>
+            <if test="deviceTags != null and deviceTags != ''">
+                #{deviceTags},
+            </if>
+            <if test="productIdentification != null and productIdentification != ''">
+                #{productIdentification},
+            </if>
+            <if test="protocolType != null and protocolType != ''">
+                #{protocolType},
+            </if>
+            <if test="deviceType != null and deviceType != ''">
+                #{deviceType},
+            </if>
+            <if test="encryptKey != null">
+                #{encryptKey},
+            </if>
+            <if test="encryptVector != null">
+                #{encryptVector},
+            </if>
+            <if test="signKey != null">
+                #{signKey},
+            </if>
+            <if test="encryptMethod != null">
+                #{encryptMethod},
+            </if>
+            <if test="swVersion != null">
+                #{swVersion},
+            </if>
+            <if test="fwVersion != null">
+                #{fwVersion},
+            </if>
+            <if test="deviceSdkVersion != null">
+                #{deviceSdkVersion},
+            </if>
+            #{createBy},
+            <if test="createTime != null">
+                #{createTime},
+            </if>
+            #{updateBy},
+            <if test="updateTime != null">
+                #{updateTime},
+            </if>
+            <if test="remark != null">
+                #{remark},
+            </if>
+        </trim>
+    </insert>
+
+    <update id="updateDevice" parameterType="com.basiclab.iot.device.domain.device.vo.Device">
+        update device
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="clientId != null and clientId != ''">
+                client_id = #{clientId},
+            </if>
+            <if test="appId != null and appId != ''">
+                app_id = #{appId},
+            </if>
+            <if test="deviceIdentification != null and deviceIdentification != ''">
+                device_identification = #{deviceIdentification},
+            </if>
+            <if test="deviceName != null and deviceName != ''">
+                device_name = #{deviceName},
+            </if>
+            <if test="deviceDescription != null">
+                device_description = #{deviceDescription},
+            </if>
+            <if test="deviceStatus != null and deviceStatus != ''">
+                device_status = #{deviceStatus},
+            </if>
+            <if test="connectStatus != null and connectStatus != ''">
+                connect_status = #{connectStatus},
+            </if>
+            <if test="isWill != null">
+                is_will = #{isWill},
+            </if>
+            <if test="productIdentification != null and productIdentification != ''">
+                product_identification = #{productIdentification},
+            </if>
+            <if test="createBy != null">
+                create_by = #{createBy},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime},
+            </if>
+            update_by = #{updateBy},
+            update_time = #{updateTime},
+            <if test="remark != null">
+                remark = #{remark},
+            </if>
+            <if test="deviceVersion != null">
+                device_version = #{deviceVersion},
+            </if>
+            <if test="deviceSn != null">
+                device_sn = #{deviceSn},
+            </if>
+            <if test="ipAddress != null">
+                ip_address = #{ipAddress},
+            </if>
+            <if test="activatedTime != null">
+                activated_time = #{activatedTime},
+            </if>
+            <if test="lastOnlineTime != null">
+                last_online_time = #{lastOnlineTime},
+            </if>
+            <if test="macAddress != null">
+                mac_address = #{macAddress},
+            </if>
+            <if test="activeStatus != null">
+                active_status = #{activeStatus},
+            </if>
+            <if test="extension != null">
+                extension = #{extension},
+            </if>
+
+        </trim>
+        where id = #{id}
+    </update>
+
+    <update id="updateDevice" parameterType="com.basiclab.iot.device.domain.device.vo.Device">
+        update device
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="clientId != null and clientId != ''">
+                client_id = #{clientId},
+            </if>
+            <if test="appId != null and appId != ''">
+                app_id = #{appId},
+            </if>
+            <if test="deviceIdentification != null and deviceIdentification != ''">
+                device_identification = #{deviceIdentification},
+            </if>
+            <if test="deviceName != null and deviceName != ''">
+                device_name = #{deviceName},
+            </if>
+            <if test="deviceDescription != null">
+                device_description = #{deviceDescription},
+            </if>
+            <if test="deviceStatus != null and deviceStatus != ''">
+                device_status = #{deviceStatus},
+            </if>
+            <if test="connectStatus != null and connectStatus != ''">
+                connect_status = #{connectStatus},
+            </if>
+            <if test="isWill != null">
+                is_will = #{isWill},
+            </if>
+            <if test="productIdentification != null and productIdentification != ''">
+                product_identification = #{productIdentification},
+            </if>
+            <if test="createBy != null">
+                create_by = #{createBy},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime},
+            </if>
+            update_by = #{updateBy},
+            update_time = #{updateTime},
+            <if test="remark != null">
+                remark = #{remark},
+            </if>
+            <if test="deviceVersion != null">
+                device_version = #{deviceVersion},
+            </if>
+            <if test="deviceSn != null">
+                device_sn = #{deviceSn},
+            </if>
+            <if test="ipAddress != null">
+                ip_address = #{ipAddress},
+            </if>
+            <if test="activatedTime != null">
+                activated_time = #{activatedTime},
+            </if>
+            <if test="lastOnlineTime != null">
+                last_online_time = #{lastOnlineTime},
+            </if>
+            <if test="macAddress != null">
+                mac_address = #{macAddress},
+            </if>
+            <if test="activeStatus != null">
+                active_status = #{activeStatus},
+            </if>
+            <if test="extension != null">
+                extension = #{extension},
+            </if>
+
+        </trim>
+        where id = #{id}
+    </update>
+
+    <update id="updateDeviceBySys" parameterType="com.basiclab.iot.device.domain.device.vo.Device">
+        update device
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="clientId != null and clientId != ''">
+                client_id = #{clientId},
+            </if>
+            <if test="appId != null and appId != ''">
+                app_id = #{appId},
+            </if>
+            <if test="deviceIdentification != null and deviceIdentification != ''">
+                device_identification = #{deviceIdentification},
+            </if>
+            <if test="deviceName != null and deviceName != ''">
+                device_name = #{deviceName},
+            </if>
+            <if test="deviceDescription != null">
+                device_description = #{deviceDescription},
+            </if>
+            <if test="deviceStatus != null and deviceStatus != ''">
+                device_status = #{deviceStatus},
+            </if>
+            <if test="connectStatus != null and connectStatus != ''">
+                connect_status = #{connectStatus},
+            </if>
+            <if test="isWill != null">
+                is_will = #{isWill},
+            </if>
+            <if test="productIdentification != null and productIdentification != ''">
+                product_identification = #{productIdentification},
+            </if>
+            <if test="createBy != null">
+                create_by = #{createBy},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime},
+            </if>
+            <if test="updateBy != null">
+                update_by = #{updateBy},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime},
+            </if>
+            <if test="remark != null">
+                remark = #{remark},
+            </if>
+            <if test="deviceVersion != null">
+                device_version = #{deviceVersion},
+            </if>
+            <if test="deviceSn != null">
+                device_sn = #{deviceSn},
+            </if>
+            <if test="ipAddress != null">
+                ip_address = #{ipAddress},
+            </if>
+            <if test="activatedTime != null">
+                activated_time = #{activatedTime},
+            </if>
+            <if test="lastOnlineTime != null">
+                last_online_time = #{lastOnlineTime},
+            </if>
+            <if test="macAddress != null">
+                mac_address = #{macAddress},
+            </if>
+            <if test="activeStatus != null">
+                active_status = #{activeStatus},
+            </if>
+            <if test="extension != null">
+                extension = #{extension},
+            </if>
+
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteDeviceById" parameterType="Long">
+        delete from device where id = #{id}
+    </delete>
+
+    <delete id="deleteDeviceByIds" parameterType="String">
+        delete from device where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!--Author By ShiHuan Sun  E-mail: 853017739@qq.com   on 2024-02-18-->
+    <select id="findOneByClientId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        <where>
+            <if test="clientId != null">
+                and client_id= #{clientId,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+
+    <!--Author By ShiHuan Sun  E-mail: 853017739@qq.com   on 2024-02-18-->
+    <select id="findOneByClientIdAndDeviceIdentification" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        <where>
+            <if test="clientId != null">
+                and client_id=#{clientId}
+            </if>
+            <if test="deviceIdentification != null">
+                and device_identification=#{deviceIdentification}
+            </if>
+        </where>
+    </select>
+
+    <!--Author By ShiHuan Sun  E-mail: 853017739@qq.com   on 2024-02-18-->
+    <select id="findOneByDeviceIdentification" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        <where>
+            <if test="deviceIdentification != null">
+                and device_identification=#{deviceIdentification}
+            </if>
+        </where>
+    </select>
+
+    <!--Author By ShiHuan Sun  E-mail: 853017739@qq.com   on 2024-02-18-->
+    <select id="findOneByClientIdOrderByDeviceIdentification" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        <where>
+            <if test="clientId != null">
+                and client_id=#{clientId}
+            </if>
+        </where>
+        order by device_identification asc
+    </select>
+
+    <!--Author By ShiHuan Sun  E-mail: 853017739@qq.com   on 2024-02-18-->
+    <select id="findOneByClientIdOrDeviceIdentification" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        <where>
+            <if test="clientId != null">
+                and client_id=#{clientId}
+            </if>
+            <if test="deviceIdentification != null">
+                or device_identification=#{deviceIdentification}
+            </if>
+        </where>
+    </select>
+
+    <!--Author By ShiHuan Sun  E-mail: 853017739@qq.com   on 2024-05-04-->
+    <select id="countDistinctClientIdByConnectStatus" resultType="java.lang.Long">
+        select count(distinct(client_id))
+        from device
+        <where>
+            <if test="connectStatus != null">
+                and connect_status=#{connectStatus}
+            </if>
+        </where>
+    </select>
+
+    <select id="findAllByIdInAndStatus" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        <where>
+            <if test="idCollection != null and idCollection.size() > 0">
+                and id in
+                <foreach item="item" index="index" collection="idCollection"
+                         open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            and "device_status"=#{deviceStatus,jdbcType=VARCHAR}
+        </where>
+    </select>
+
+    <!--Author By ShiHuan Sun  E-mail: 853017739@qq.com   on 2024-06-10-->
+    <select id="findAllByIdIn" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        <where>
+            <if test="idCollection != null and idCollection.size() > 0">
+                and id in
+                <foreach item="item" index="index" collection="idCollection"
+                         open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <!--Author  By ShiHuan Sun  E-mail: 853017739@qq.com on 2024-07-05-->
+    <select id="findAllByProductIdentification" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        where product_identification=#{productIdentification}
+    </select>
+
+    <!--Author  By Menffy on 2023-08-21-->
+    <select id="selectByProductIdentificationAndDeviceIdentification" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        where product_identification=#{productIdentification} and device_identification=#{deviceIdentification} limit 1
+    </select>
+
+    <select id="selectDeviceByDeviceIdentificationList" resultMap="BaseResultMap">
+        select
+            <include refid="Base_Column_List"/>
+        from
+            device
+        <where>
+            <if test="deviceIdentificationList != null">
+                and device_identification in
+                <foreach collection="deviceIdentificationList" open="(" close=")" separator="," item="item">
+                        #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="selectByDeviceSnList" resultMap="BaseResultMap">
+        select
+        device_sn, device_name, device_identification
+        from
+        device
+        <where>
+            device_sn in
+            <foreach collection="deviceSnList" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </where>
+    </select>
+
+    <select id="findDeviceTotal" resultType="java.lang.Long">
+        select count(*) from device
+    </select>
+
+    <select id="findDevices" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM device
+    </select>
+
+
+    <select id="getDevicePackageListByCondition" resultMap="BaseResultMap"
+            parameterType="com.basiclab.iot.device.domain.device.vo.Device">
+        SELECT
+        d.id,
+        d.device_identification,
+        d.product_id,
+        d.batch_id,
+        d.device_sn,
+        d.ip_address,
+        d.device_version,
+        d.device_os_version,
+        d.activated_time,
+        d.last_online_time,
+        d.mac_address,
+        d.status,
+        d.created_by,
+        d.created_time,
+        d.updated_by,
+        d.updated_time
+        FROM dm_device d
+        <where>
+            <if test="deviceIdentificationList != null and deviceIdentificationList.size() > 0">
+                and d.deviceIdentification in
+                <foreach collection="deviceIdentificationList" item="deviceIdentification" index="index" open="(" separator="," close=")">
+                    #{deviceIdentification}
+                </foreach>
+            </if>
+        </where>
+        ORDER BY d.updated_time DESC
+    </select>
+    <select id="getConnectStatusStatistics"
+            resultType="com.basiclab.iot.device.domain.device.vo.ConnectStatusStatisticsVo">
+        select
+            sum(case when connect_status = 'ONLINE' then 1 else 0 end) as onlineStatusAmount,
+            sum(case when (connect_status = 'OFFLINE' or connect_status is null) then 1 else 0 end) as offlineStatusAmount
+        from device
+    </select>
+    <select id="getDeviceStatistics" resultType="com.basiclab.iot.device.domain.device.vo.DeviceStatisticsVo">
+        select
+            sum(case when device_type = 'COMMON' then 1 else 0 end) as commonDeviceAmount,
+            sum(case when device_type = 'GATEWAY' then 1 else 0 end) as gatewayDeviceAmount,
+            sum(case when device_type = 'SUBSET' then 1 else 0 end) as subsetDeviceAmount
+        from device
+    </select>
+    <select id="getDeviceStatusStatistics" resultType="com.basiclab.iot.device.domain.device.vo.DeviceStatusStatisticsVo">
+        select
+            sum(case when active_status = 1 then 1 else 0 end) as activatedAmount,
+            sum(case when active_status = 0 then 1 else 0 end) as inactivatedAmount
+        from device
+    </select>
+
+
+</mapper>

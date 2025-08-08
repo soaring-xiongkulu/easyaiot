@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.device.dal.pgsql.device.DeviceBatchMapper">
+
+    <resultMap type="com.basiclab.iot.device.domain.device.vo.DeviceBatch" id="DeviceBatchMap">
+        <result property="id" column="id" jdbcType="INTEGER"/>
+        <result property="batchNumber" column="batch_number" jdbcType="VARCHAR"/>
+        <result property="productName" column="product_name" jdbcType="VARCHAR"/>
+        <result property="applyAmount" column="apply_amount" jdbcType="INTEGER"/>
+        <result property="successAmount" column="success_amount" jdbcType="INTEGER"/>
+        <result property="createBy" column="create_by" jdbcType="VARCHAR"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!--查询单个-->
+    <select id="queryById" resultMap="DeviceBatchMap">
+        select id,batch_number,product_name,apply_amount,success_amount,create_by,create_time
+        from device_batch
+        where id = #{id}
+    </select>
+
+    <!--查询指定行数据-->
+    <select id="queryList" resultMap="DeviceBatchMap">
+        select
+        id,batch_number,product_name,apply_amount,success_amount,create_by,create_time
+        from device_batch
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="batchNumber != null and batchNumber != ''">
+                and batch_number = #{batchNumber}
+            </if>
+            <if test="productName != null and productName != ''">
+                and product_name = #{productName}
+            </if>
+            <if test="applyAmount != null">
+                and apply_amount = #{applyAmount}
+            </if>
+            <if test="successAmount != null">
+                and success_amount = #{successAmount}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                and create_by = #{createBy}
+            </if>
+            <if test="createTime != null">
+                and create_time = #{createTime}
+            </if>
+        </where>
+    </select>
+
+    <!--统计总行数-->
+    <select id="count" resultType="java.lang.Long">
+        select count(1)
+        from device_batch
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="batchNumber != null and batchNumber != ''">
+                and batch_number = #{batchNumber}
+            </if>
+            <if test="productName != null and productName != ''">
+                and product_name = #{productName}
+            </if>
+            <if test="applyAmount != null">
+                and apply_amount = #{applyAmount}
+            </if>
+            <if test="successAmount != null">
+                and success_amount = #{successAmount}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                and create_by = #{createBy}
+            </if>
+            <if test="createTime != null">
+                and create_time = #{createTime}
+            </if>
+        </where>
+    </select>
+
+    <!--新增所有列-->
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        insert into device_batch(batch_number,product_name,apply_amount,success_amount,create_by,create_time)
+        values (#{batchNumber},#{productName},#{applyAmount},#{successAmount},#{createBy},#{createTime})
+    </insert>
+
+    <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into device_batch(batch_number,product_name,apply_amount,success_amount,create_by,create_time)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.batchNumber},#{entity.productName},#{entity.applyAmount},#{entity.successAmount},#{entity.createBy},#{entity.createTime})
+        </foreach>
+    </insert>
+
+    <insert id="insertOrUpdateBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into device_batch(batch_number,product_name,apply_amount,success_amount,create_by,create_time)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.batchNumber},#{entity.productName},#{entity.applyAmount},#{entity.successAmount},#{entity.createBy},#{entity.createTime})
+        </foreach>
+        on duplicate key update
+        batch_number = values(batch_number)product_name = values(product_name)apply_amount =
+        values(apply_amount)success_amount = values(success_amount)create_by = values(create_by)create_time =
+        values(create_time)
+    </insert>
+
+    <!--通过主键修改数据-->
+    <update id="updateByBatchNumber">
+        update device_batch
+        <set>
+            <if test="batchNumber != null and batchNumber != ''">
+                batch_number = #{batchNumber},
+            </if>
+            <if test="productName != null and productName != ''">
+                product_name = #{productName},
+            </if>
+            <if test="applyAmount != null">
+                apply_amount = #{applyAmount},
+            </if>
+            <if test="successAmount != null">
+                success_amount = #{successAmount},
+            </if>
+            <if test="fileUrl != null">
+                file_url = #{fileUrl},
+            </if>
+            <if test="createBy != null and createBy != ''">
+                create_by = #{createBy},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime},
+            </if>
+        </set>
+        where batch_number = #{batchNumber}
+    </update>
+
+    <!--通过主键删除-->
+    <delete id="deleteById">
+        delete
+        from device_batch
+        where id = #{id}
+    </delete>
+
+</mapper>
+

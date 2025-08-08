@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.device.dal.pgsql.product.ProductEventResponseMapper">
+
+    <resultMap type="com.basiclab.iot.device.domain.device.vo.ProductEventResponse" id="ProductEventResponseMap">
+        <result property="id" column="id" jdbcType="INTEGER"/>
+        <result property="eventId" column="event_id" jdbcType="INTEGER"/>
+        <result property="datatype" column="datatype" jdbcType="VARCHAR"/>
+        <result property="enumlist" column="enumlist" jdbcType="VARCHAR"/>
+        <result property="max" column="max" jdbcType="VARCHAR"/>
+        <result property="maxlength" column="maxlength" jdbcType="VARCHAR"/>
+        <result property="min" column="min" jdbcType="VARCHAR"/>
+        <result property="parameterDescription" column="parameter_description" jdbcType="VARCHAR"/>
+        <result property="parameterName" column="parameter_name" jdbcType="VARCHAR"/>
+        <result property="required" column="required" jdbcType="VARCHAR"/>
+        <result property="step" column="step" jdbcType="VARCHAR"/>
+        <result property="unit" column="unit" jdbcType="VARCHAR"/>
+        <result property="createBy" column="create_by" jdbcType="VARCHAR"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="updateBy" column="update_by" jdbcType="VARCHAR"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!--查询单个-->
+    <select id="queryById" resultMap="ProductEventResponseMap">
+        select id,event_id,datatype,enumlist,max,maxlength,min,parameter_description,parameter_name,required,step,unit,create_by,create_time,update_by,update_time
+        from product_event_response
+        where id = #{id}
+    </select>
+
+    <!--查询指定行数据-->
+    <select id="selectList" resultMap="ProductEventResponseMap">
+        select
+        id,event_id,datatype,enumlist,max,maxlength,min,parameter_description,parameter_name,required,step,unit,create_by,create_time,update_by,update_time
+        from product_event_response
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="eventId != null">
+                and event_id = #{eventId}
+            </if>
+            <if test="datatype != null and datatype != ''">
+                and datatype = #{datatype}
+            </if>
+            <if test="enumlist != null and enumlist != ''">
+                and enumlist = #{enumlist}
+            </if>
+            <if test="max != null and max != ''">
+                and max = #{max}
+            </if>
+            <if test="maxlength != null and maxlength != ''">
+                and maxlength = #{maxlength}
+            </if>
+            <if test="min != null and min != ''">
+                and min = #{min}
+            </if>
+            <if test="parameterDescription != null and parameterDescription != ''">
+                and parameter_description = #{parameterDescription}
+            </if>
+            <if test="parameterName != null and parameterName != ''">
+                and parameter_name = #{parameterName}
+            </if>
+            <if test="required != null and required != ''">
+                and required = #{required}
+            </if>
+            <if test="step != null and step != ''">
+                and step = #{step}
+            </if>
+            <if test="unit != null and unit != ''">
+                and unit = #{unit}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                and create_by = #{createBy}
+            </if>
+            <if test="createTime != null">
+                and create_time = #{createTime}
+            </if>
+            <if test="updateBy != null and updateBy != ''">
+                and update_by = #{updateBy}
+            </if>
+            <if test="updateTime != null">
+                and update_time = #{updateTime}
+            </if>
+        </where>
+        order by update_time desc
+    </select>
+
+    <!--统计总行数-->
+    <select id="count" resultType="java.lang.Long">
+        select count(1)
+        from product_event_response
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="eventId != null">
+                and event_id = #{eventId}
+            </if>
+            <if test="datatype != null and datatype != ''">
+                and datatype = #{datatype}
+            </if>
+            <if test="enumlist != null and enumlist != ''">
+                and enumlist = #{enumlist}
+            </if>
+            <if test="max != null and max != ''">
+                and max = #{max}
+            </if>
+            <if test="maxlength != null and maxlength != ''">
+                and maxlength = #{maxlength}
+            </if>
+            <if test="min != null and min != ''">
+                and min = #{min}
+            </if>
+            <if test="parameterDescription != null and parameterDescription != ''">
+                and parameter_description = #{parameterDescription}
+            </if>
+            <if test="parameterName != null and parameterName != ''">
+                and parameter_name = #{parameterName}
+            </if>
+            <if test="required != null and required != ''">
+                and required = #{required}
+            </if>
+            <if test="step != null and step != ''">
+                and step = #{step}
+            </if>
+            <if test="unit != null and unit != ''">
+                and unit = #{unit}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                and create_by = #{createBy}
+            </if>
+            <if test="createTime != null">
+                and create_time = #{createTime}
+            </if>
+            <if test="updateBy != null and updateBy != ''">
+                and update_by = #{updateBy}
+            </if>
+            <if test="updateTime != null">
+                and update_time = #{updateTime}
+            </if>
+        </where>
+    </select>
+
+    <!--新增所有列-->
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        insert into product_event_response(event_id,datatype,enumlist,max,maxlength,min,parameter_description,parameter_name,required,step,unit,create_by,create_time,update_by,update_time)
+        values (#{eventId},#{datatype},#{enumlist},#{max},#{maxlength},#{min},#{parameterDescription},#{parameterName},#{required},#{step},#{unit},#{createBy},#{createTime},#{updateBy},#{updateTime})
+    </insert>
+
+    <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into
+        product_event_response(event_id,datatype,enumlist,max,maxlength,min,parameter_description,parameter_name,required,step,unit,create_by,create_time,update_by,update_time)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.eventId},#{entity.datatype},#{entity.enumlist},#{entity.max},#{entity.maxlength},#{entity.min},#{entity.parameterDescription},#{entity.parameterName},#{entity.required},#{entity.step},#{entity.unit},#{entity.createBy},#{entity.createTime},#{entity.updateBy},#{entity.updateTime})
+        </foreach>
+    </insert>
+
+    <insert id="insertOrUpdateBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into
+        product_event_response(event_id,datatype,enumlist,max,maxlength,min,parameter_description,parameter_name,required,step,unit,create_by,create_time,update_by,update_time)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.eventId},#{entity.datatype},#{entity.enumlist},#{entity.max},#{entity.maxlength},#{entity.min},#{entity.parameterDescription},#{entity.parameterName},#{entity.required},#{entity.step},#{entity.unit},#{entity.createBy},#{entity.createTime},#{entity.updateBy},#{entity.updateTime})
+        </foreach>
+        on duplicate key update
+        event_id = values(event_id)service_id = values(service_id)datatype = values(datatype)enumlist =
+        values(enumlist)max = values(max)maxlength = values(maxlength)min = values(min)parameter_description =
+        values(parameter_description)parameter_name = values(parameter_name)required = values(required)step =
+        values(step)unit = values(unit)create_by = values(create_by)create_time = values(create_time)update_by =
+        values(update_by)update_time = values(update_time)
+    </insert>
+
+    <!--通过主键修改数据-->
+    <update id="update">
+        update product_event_response
+        <set>
+            <if test="eventId != null">
+                event_id = #{eventId},
+            </if>
+            <if test="datatype != null and datatype != ''">
+                datatype = #{datatype},
+            </if>
+            <if test="enumlist != null and enumlist != ''">
+                enumlist = #{enumlist},
+            </if>
+            <if test="max != null and max != ''">
+                max = #{max},
+            </if>
+            <if test="maxlength != null and maxlength != ''">
+                maxlength = #{maxlength},
+            </if>
+            <if test="min != null and min != ''">
+                min = #{min},
+            </if>
+            <if test="parameterDescription != null and parameterDescription != ''">
+                parameter_description = #{parameterDescription},
+            </if>
+            <if test="parameterName != null and parameterName != ''">
+                parameter_name = #{parameterName},
+            </if>
+            <if test="required != null and required != ''">
+                required = #{required},
+            </if>
+            <if test="step != null and step != ''">
+                step = #{step},
+            </if>
+            <if test="unit != null and unit != ''">
+                unit = #{unit},
+            </if>
+            <if test="createBy != null and createBy != ''">
+                create_by = #{createBy},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime},
+            </if>
+            update_by = #{updateBy},
+            update_time = #{updateTime},
+        </set>
+        where id = #{id}
+    </update>
+
+    <!--通过主键删除-->
+    <delete id="deleteByIds">
+        delete
+        from product_event_response
+        where id in
+            <foreach collection="ids" item="id" open="(" close=")" separator=",">
+                #{id}
+            </foreach>
+    </delete>
+
+</mapper>
+

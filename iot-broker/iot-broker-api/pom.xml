@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.basiclab.iot</groupId>
+        <artifactId>iot-broker</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>iot-broker-api</artifactId>
+    <packaging>jar</packaging>
+
+    <name>${project.artifactId}</name>
+    <description>
+        iot-broker-api 模块 API，暴露给其它模块调用
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-mybatis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-device-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <!-- Web 相关 -->
+         <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-ui</artifactId>
+        </dependency>
+        <!-- 参数校验 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <!-- RPC 远程调用相关 -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+    </dependencies>
+</project>

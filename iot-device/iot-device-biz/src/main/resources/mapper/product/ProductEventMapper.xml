@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.device.dal.pgsql.product.ProductEventMapper">
+
+    <resultMap type="com.basiclab.iot.device.domain.device.vo.ProductEvent" id="ProductEventMap">
+        <result property="id" column="id" jdbcType="INTEGER"/>
+        <result property="eventName" column="event_name" jdbcType="VARCHAR"/>
+        <result property="eventCode" column="event_code" jdbcType="VARCHAR"/>
+        <result property="eventType" column="event_type" jdbcType="VARCHAR"/>
+        <result property="templateIdentification" column="template_identification" jdbcType="VARCHAR"/>
+        <result property="productIdentification" column="product_identification" jdbcType="VARCHAR"/>
+        <result property="status" column="status" jdbcType="VARCHAR"/>
+        <result property="description" column="description" jdbcType="VARCHAR"/>
+        <result property="createBy" column="create_by" jdbcType="VARCHAR"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="updateBy" column="update_by" jdbcType="VARCHAR"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!--查询单个-->
+    <select id="queryById" resultMap="ProductEventMap">
+        select id,
+               event_name,
+               event_code,
+               event_type,
+               template_identification,
+               product_identification,
+               status,
+               description,
+               create_by,
+               create_time,
+               update_by,
+               update_time
+        from product_event
+        where id = #{id}
+    </select>
+
+    <!--查询指定行数据-->
+    <select id="selectEvenList" resultMap="ProductEventMap">
+        select
+        id,event_name,event_code,event_type,template_identification,product_identification,status,description,create_by,create_time,update_by,update_time
+
+        from product_event
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="eventName != null and eventName != ''">
+                and event_name = #{eventName}
+            </if>
+            <if test="eventCode != null and eventCode != ''">
+                and event_code = #{eventCode}
+            </if>
+            <if test="eventType != null and eventType != ''">
+                and event_type = #{eventType}
+            </if>
+            <choose>
+                <when test="templateIdentification != null and productIdentification != null">
+                    and (template_identification = #{templateIdentification} or product_identification = #{productIdentification})
+                </when>
+                <when test="templateIdentification != null">
+                    and template_identification = #{templateIdentification}
+                </when>
+                <when test="productIdentification != null">
+                    and product_identification = #{productIdentification}
+                </when>
+            </choose>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+            <if test="description != null and description != ''">
+                and description = #{description}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                and create_by = #{createBy}
+            </if>
+            <if test="createTime != null">
+                and create_time = #{createTime}
+            </if>
+            <if test="updateBy != null and updateBy != ''">
+                and update_by = #{updateBy}
+            </if>
+            <if test="updateTime != null">
+                and update_time = #{updateTime}
+            </if>
+        </where>
+        order by update_time desc
+    </select>
+
+    <!--统计总行数-->
+    <select id="count" resultType="java.lang.Long">
+        select count(1)
+        from product_event
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="eventName != null and eventName != ''">
+                and event_name = #{eventName}
+            </if>
+            <if test="eventCode != null and eventCode != ''">
+                and event_code = #{eventCode}
+            </if>
+            <if test="eventType != null and eventType != ''">
+                and event_type = #{eventType}
+            </if>
+            <choose>
+                <when test="templateIdentification != null and productIdentification != null">
+                    and (template_identification = #{templateIdentification} or product_identification = #{productIdentification})
+                </when>
+                <when test="templateIdentification != null">
+                    and template_identification = #{templateIdentification}
+                </when>
+                <when test="productIdentification != null">
+                    and product_identification = #{productIdentification}
+                </when>
+            </choose>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+            <if test="description != null and description != ''">
+                and description = #{description}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                and create_by = #{createBy}
+            </if>
+            <if test="createTime != null">
+                and create_time = #{createTime}
+            </if>
+            <if test="updateBy != null and updateBy != ''">
+                and update_by = #{updateBy}
+            </if>
+            <if test="updateTime != null">
+                and update_time = #{updateTime}
+            </if>
+        </where>
+    </select>
+
+    <!--新增所有列-->
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        insert into product_event(event_name, event_code, event_type, template_identification,
+                                  product_identification, status, description, create_by, create_time, update_by,
+                                  update_time)
+        values (#{eventName}, #{eventCode}, #{eventType}, #{templateIdentification}, #{productIdentification},
+                #{status}, #{description}, #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
+    </insert>
+
+    <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into
+        product_event(event_name, event_code, event_type, template_identification,
+        product_identification, status, description, create_by, create_time, update_by,
+        update_time)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.eventName},#{entity.eventCode},#{entity.eventType},#{entity.templateIdentification},#{entity.productIdentification},#{entity.status},#{entity.description},#{entity.createBy},#{entity.createTime},#{entity.updateBy},#{entity.updateTime})
+        </foreach>
+    </insert>
+
+    <insert id="insertOrUpdateBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into
+        product_event(event_name, event_code, event_type, template_identification,
+        product_identification, status, description, create_by, create_time, update_by,
+        update_time)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.eventName},#{entity.eventCode},#{entity.eventType},#{entity.templateIdentification},#{entity.productIdentification},#{entity.status},#{entity.description},#{entity.createBy},#{entity.createTime},#{entity.updateBy},#{entity.updateTime})
+        </foreach>
+        on duplicate key update
+        event_name = values(event_name)event_code = values(event_code)event_type =
+        values(event_type)template_identification = values(template_identification)product_identification =
+        values(product_identification)output_data = values(output_data)status = values(status)description =
+        values(description)create_by = values(create_by)create_time = values(create_time)update_by =
+        values(update_by)update_time = values(update_time)
+    </insert>
+
+    <!--通过主键修改数据-->
+    <update id="update">
+        update product_event
+        <set>
+            <if test="eventName != null and eventName != ''">
+                event_name = #{eventName},
+            </if>
+            <if test="eventCode != null and eventCode != ''">
+                event_code = #{eventCode},
+            </if>
+            <if test="eventType != null and eventType != ''">
+                event_type = #{eventType},
+            </if>
+            <if test="templateIdentification != null and templateIdentification != ''">
+                template_identification = #{templateIdentification},
+            </if>
+            <if test="productIdentification != null and productIdentification != ''">
+                product_identification = #{productIdentification},
+            </if>
+            <if test="status != null and status != ''">
+                status = #{status},
+            </if>
+            <if test="description != null and description != ''">
+                description = #{description},
+            </if>
+            <if test="createBy != null and createBy != ''">
+                create_by = #{createBy},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime},
+            </if>
+            update_by = #{updateBy},
+            update_time = #{updateTime},
+        </set>
+        where id = #{id}
+    </update>
+
+    <!--通过主键删除-->
+    <delete id="deleteById">
+        delete
+        from product_event
+        where id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>
+

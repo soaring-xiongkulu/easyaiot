@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.device.dal.pgsql.device.DeviceBatchDetailMapper">
+
+    <resultMap type="com.basiclab.iot.device.domain.device.vo.DeviceBatchDetail" id="DeviceBatchDetailMap">
+        <result property="id" column="id" jdbcType="INTEGER"/>
+        <result property="batchNumber" column="batch_number" jdbcType="INTEGER"/>
+        <result property="deviceName" column="device_name" jdbcType="VARCHAR"/>
+        <result property="deviceSn" column="device_sn" jdbcType="VARCHAR"/>
+        <result property="deviceIdentification" column="device_identification" jdbcType="VARCHAR"/>
+        <result property="createStatus" column="create_status" jdbcType="INTEGER"/>
+        <result property="failureCase" column="failure_case" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!--查询单个-->
+    <select id="queryById" resultMap="DeviceBatchDetailMap">
+        select id, batch_number, device_name, device_sn, device_identification, create_status, failure_case
+        from device_batch_detail
+        where id = #{id}
+    </select>
+
+    <!--查询指定行数据-->
+    <select id="queryList" resultMap="DeviceBatchDetailMap">
+        select
+        id, batch_number, device_name, device_sn, device_identification, create_status, failure_case
+        from device_batch_detail
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="batchNumber != null">
+                and batch_number = #{batchNumber}
+            </if>
+            <if test="deviceName != null and deviceName != ''">
+                and device_name = #{deviceName}
+            </if>
+            <if test="deviceSn != null and deviceSn != ''">
+                and device_sn = #{deviceSn}
+            </if>
+            <if test="deviceIdentification != null and deviceIdentification != ''">
+                and device_identification = #{deviceIdentification}
+            </if>
+            <if test="createStatus != null">
+                and create_status = #{createStatus}
+            </if>
+            <if test="failureCase != null and failureCase != ''">
+                and failure_case = #{failureCase}
+            </if>
+        </where>
+    </select>
+
+    <!--统计总行数-->
+    <select id="count" resultType="java.lang.Long">
+        select count(1)
+        from device_batch_detail
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="batchNumber != null">
+                and batch_number = #{batchNumber}
+            </if>
+            <if test="deviceName != null and deviceName != ''">
+                and device_name = #{deviceName}
+            </if>
+            <if test="deviceSn != null and deviceSn != ''">
+                and device_sn = #{deviceSn}
+            </if>
+            <if test="deviceIdentification != null and deviceIdentification != ''">
+                and device_identification = #{deviceIdentification}
+            </if>
+            <if test="createStatus != null">
+                and create_status = #{createStatus}
+            </if>
+            <if test="failureCase != null and failureCase != ''">
+                and failure_case = #{failureCase}
+            </if>
+        </where>
+    </select>
+
+    <!--新增所有列-->
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        insert into device_batch_detail(batch_number, device_name, device_sn, device_identification, create_status, failure_case)
+        values (#{batchNumber}, #{deviceName}, #{deviceSn}, #{deviceIdentification}, #{createStatus}, #{failureCase})
+    </insert>
+
+    <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into
+        device_batch_detail(batch_number, device_name, device_sn, device_identification, create_status, failure_case)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.batchNumber}, #{entity.deviceName}, #{entity.deviceSn}, #{entity.deviceIdentification}, #{entity.createStatus}, #{entity.failureCase})
+        </foreach>
+    </insert>
+
+    <insert id="insertOrUpdateBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into
+        device_batch_detail(batch_number, device_name, device_sn, device_identification, create_status, failure_case)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.batchNumber}#{entity.deviceName}#{entity.deviceSn}#{entity.deviceIdentification}#{entity.createStatus}#{entity.failureCase})
+        </foreach>
+        on duplicate key update
+        batch_number = values(batch_number)device_name = values(device_name)device_sn =
+        values(device_sn)device_identification = values(device_identification)create_status =
+        values(create_status)failure_case = values(failure_case)
+    </insert>
+
+    <!--通过主键修改数据-->
+    <update id="update">
+        update device_batch_detail
+        <set>
+            <if test="batchNumber != null">
+                batch_number = #{batchNumber},
+            </if>
+            <if test="deviceName != null and deviceName != ''">
+                device_name = #{deviceName},
+            </if>
+            <if test="deviceSn != null and deviceSn != ''">
+                device_sn = #{deviceSn},
+            </if>
+            <if test="deviceIdentification != null and deviceIdentification != ''">
+                device_identification = #{deviceIdentification},
+            </if>
+            <if test="createStatus != null">
+                create_status = #{createStatus},
+            </if>
+            <if test="failureCase != null and failureCase != ''">
+                failure_case = #{failureCase},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <!--通过主键删除-->
+    <delete id="deleteById">
+        delete
+        from device_batch_detail
+        where id = #{id}
+    </delete>
+
+</mapper>
+
