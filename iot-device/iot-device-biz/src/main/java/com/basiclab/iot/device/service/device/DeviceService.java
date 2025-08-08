@@ -1,15 +1,22 @@
 package com.basiclab.iot.device.service.device;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.basiclab.iot.device.domain.device.qo.DeviceIsExistQo;
+import com.basiclab.iot.device.domain.device.vo.Device;
 import com.basiclab.iot.device.domain.device.vo.*;
+import com.basiclab.iot.device.domain.device.oo.DeviceReportOo;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
- * @author EasyAIoT
+ * @author IoT
  */
-public interface DeviceService {
+public interface DeviceService extends IService<Device> {
+
+    Boolean isExist(DeviceIsExistQo deviceIsExistQo);
 
     int deleteByPrimaryKey(Long id);
 
@@ -31,9 +38,30 @@ public interface DeviceService {
 
     int updateBatchSelective(List<Device> list);
 
+    /**
+     * 批量添加设备
+     *
+     * @param req      批量添加请求
+     * @param response
+     * @return 添加成功数量
+     */
+    int batchInsert(DeviceBatchInsertReq req, HttpServletResponse response);
+
+
+    /**
+     * 批量导入设备
+     *
+     * @param req      请求
+     * @param response
+     * @return 成功数量
+     */
+    Integer batchImport(DeviceBatchInsertReq req, HttpServletResponse response);
+
     int updateConnectStatusByClientId(String updatedConnectStatus, String clientId);
 
     Device findOneByClientIdAndUserNameAndPasswordAndDeviceStatusAndProtocolType(String clientId, String userName, String password, String deviceStatus, String protocolType);
+
+    List<Device> findByAll(Device device);
 
     Device findOneById(Long id);
 
@@ -44,7 +72,7 @@ public interface DeviceService {
      * @param id 设备管理主键
      * @return 设备管理
      */
-    Device selectDeviceById(Long id);
+    public Device selectDeviceById(Long id);
 
     /**
      * 查询设备管理列表
@@ -52,7 +80,7 @@ public interface DeviceService {
      * @param device 设备管理
      * @return 设备管理集合
      */
-    List<Device> selectDeviceList(Device device);
+    public List<Device> selectDeviceList(Device device);
 
     /**
      * 新增设备管理
@@ -60,7 +88,7 @@ public interface DeviceService {
      * @param deviceParams 设备管理
      * @return 结果
      */
-    int insertDevice(Device deviceParams) throws Exception;
+    public int insertDevice(Device deviceParams) throws Exception;
 
     /**
      * 修改设备管理
@@ -68,7 +96,10 @@ public interface DeviceService {
      * @param device 设备管理
      * @return 结果
      */
-    int updateDevice(Device device) throws Exception;
+    public int updateDevice(Device device) throws Exception;
+
+
+    void updateDeviceBySys(Device device);
 
     /**
      * 批量删除设备管理
@@ -76,7 +107,7 @@ public interface DeviceService {
      * @param ids 需要删除的设备管理主键集合
      * @return 结果
      */
-    int deleteDeviceByIds(Long[] ids);
+    public int deleteDeviceByIds(Long[] ids);
 
     /**
      * 删除设备管理信息
@@ -84,7 +115,7 @@ public interface DeviceService {
      * @param id 设备管理主键
      * @return 结果
      */
-    int deleteDeviceById(Long id);
+    public int deleteDeviceById(Long id);
 
 
     Device findOneByClientId(String clientId);
@@ -155,9 +186,19 @@ public interface DeviceService {
      * @param id
      * @return
      */
-    DeviceParams selectDeviceModelById(Long id);
+    public DeviceParams selectDeviceModelById(Long id);
 
-    List<Device> selectDeviceByDeviceIdentificationList(List<String> deviceIdentificationList);
+    /**
+     * 查询普通设备影子数据
+     *
+     * @param ids       需要查询的普通设备id
+     * @param startTime 开始时间 格式：yyyy-MM-dd HH:mm:ss
+     * @param endTime   结束时间 格式：yyyy-MM-dd HH:mm:ss
+     * @return 普通设备影子数据
+     */
+    public Map<String, List<Map<String, Object>>> getDeviceShadow(String ids, String startTime, String endTime);
+
+    public List<Device> selectDeviceByDeviceIdentificationList(List<String> deviceIdentificationList);
 
     /**
      * MQTT协议下上报设备数据
@@ -198,5 +239,49 @@ public interface DeviceService {
 
     List<Device> findDevices();
 
+    /**
+     * 设备上报信息
+     * @param deviceReportOo
+     */
+    void report(DeviceReportOo deviceReportOo);
+
+    /**
+     * 处理连接
+     * @param params
+     */
+    void handleConnected(Map<String, Object> params);
+
+    /**
+     * 处理断开连接
+     * @param params
+     */
+    void handleDisConnected(Map<String, Object> params);
+
+    /**
+     * 处理订阅
+     * @param params
+     */
+    void handleSubscribe(Map<String, Object> params);
+
+    /**
+     * 关联设备网关
+     * @param idList 设备id列表
+     * @param targetDeviceIdentification 目标网关设备标识
+     * @return 关联成功数量
+     */
+    int associateGateway(List<Long> idList, String targetDeviceIdentification);
+
+    /**
+     * 解除关联
+     * @param idList 设备id列表
+     * @return 成功数量
+     */
+    int disassociateGateway(List<Long> idList);
+
+    ConnectStatusStatisticsVo getConnectStatusStatistics();
+
+    DeviceStatisticsVo getDeviceStatistics();
+
+    DeviceStatusStatisticsVo getDeviceStatusStatistics();
 }
 

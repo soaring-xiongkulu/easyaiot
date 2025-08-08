@@ -1,4 +1,4 @@
-package com.basiclab.iot.device.mapper.product;
+package com.basiclab.iot.device.dal.pgsql.product;
 
 import com.basiclab.iot.device.domain.device.vo.ProductCommandsRequests;
 import org.apache.ibatis.annotations.Mapper;

@@ -1,12 +1,11 @@
 package com.basiclab.iot.device.service.product.impl;
 
-import com.basiclab.iot.common.utils.DateUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.List;
 
-import com.basiclab.iot.device.mapper.product.ProductCommandsRequestsMapper;
+import com.basiclab.iot.device.dal.pgsql.product.ProductCommandsRequestsMapper;
 import com.basiclab.iot.device.domain.device.vo.ProductCommandsRequests;
 import com.basiclab.iot.device.service.product.ProductCommandsRequestsService;
 

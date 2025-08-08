@@ -1,20 +1,24 @@
-package com.basiclab.iot.device.mapper.device;
+package com.basiclab.iot.device.dal.pgsql.device;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.basiclab.iot.common.core.aop.TenantIgnore;
 import com.basiclab.iot.device.domain.device.vo.Device;
+import com.basiclab.iot.device.dal.dataobject.DmDevicePackagePo;
+import com.basiclab.iot.device.domain.device.vo.ConnectStatusStatisticsVo;
+import com.basiclab.iot.device.domain.device.vo.DeviceStatisticsVo;
+import com.basiclab.iot.device.domain.device.vo.DeviceStatusStatisticsVo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Collection;
 import java.util.List;
 
+
 /**
- * @author: EasyAIoT
- * @email: andywebjava@163.com
- * @CreateDate: 2024/12/26$ 1:42$
- * @UpdateDate: 2024/12/26$ 1:42$
+ * @author IoT
  */
 @Mapper
-public interface DeviceMapper {
+public interface DeviceMapper extends BaseMapper<Device> {
     /**
      * delete by primary key
      *
@@ -67,7 +71,7 @@ public interface DeviceMapper {
      */
     int updateByPrimaryKey(Device record);
 
-    int updateBatch(List<Device> list);
+    int updateBatch(@Param("list") List<Device> list);
 
     int updateBatchSelective(List<Device> list);
 
@@ -75,9 +79,10 @@ public interface DeviceMapper {
 
     /**
      * @return
-     * @author: EasyAIoT
+     * @Author: Basiclab
+     * @E-mail: 853017739@qq.com
      * @Description: 更新设备在线状态
-     * @CreateDate: 2024/12/26 1:01
+     * @CreateDate: 2021/12/26 1:01
      * @Version: V1.0
      * @Param: updatedConnect_status 设备状态值
      * client_id 客户端ID
@@ -121,7 +126,17 @@ public interface DeviceMapper {
      * @param device 设备管理
      * @return 结果
      */
+    @TenantIgnore
     public int updateDevice(Device device);
+
+    /**
+     * 修改设备管理
+     *
+     * @param device 设备管理
+     * @return 结果
+     */
+    @TenantIgnore
+    public int updateDeviceBySys(Device device);
 
     /**
      * 删除设备管理
@@ -165,10 +180,27 @@ public interface DeviceMapper {
 
     List<Device> selectDeviceByDeviceIdentificationList(@Param("deviceIdentificationList") List<String> deviceIdentificationList);
 
+    /**
+     * 通过
+     * @param deviceSnList 设备sn列表
+     * @return 设备sn列表
+     */
+    List<Device> selectByDeviceSnList(@Param("deviceSnList") List<String> deviceSnList);
+
 
     Long findDeviceTotal();
 
 
 
     List<Device> findDevices();
+
+
+    List<DmDevicePackagePo> getDevicePackageListByCondition(DmDevicePackagePo dmDevicePackagePo);
+
+
+    ConnectStatusStatisticsVo getConnectStatusStatistics();
+
+    DeviceStatisticsVo getDeviceStatistics();
+
+    DeviceStatusStatisticsVo getDeviceStatusStatistics();
 }

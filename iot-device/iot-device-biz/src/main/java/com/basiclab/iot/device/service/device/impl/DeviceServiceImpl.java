@@ -1,26 +1,53 @@
 package com.basiclab.iot.device.service.device.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.support.ExcelTypeEnum;
+import com.alibaba.fastjson2.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.basiclab.iot.broker.RemoteMqttBrokerOpenApi;
 import com.basiclab.iot.common.constant.CacheConstants;
+import com.basiclab.iot.common.constant.Constants;
+import com.basiclab.iot.common.core.aop.TenantIgnore;
 import com.basiclab.iot.common.domain.R;
 import com.basiclab.iot.common.enums.ResultEnum;
 import com.basiclab.iot.common.service.RedisService;
 import com.basiclab.iot.common.utils.DateUtils;
+import com.basiclab.iot.common.utils.SnowflakeIdUtil;
 import com.basiclab.iot.common.utils.StringUtils;
 import com.basiclab.iot.common.utils.bean.BeanPlusUtil;
+import com.basiclab.iot.common.utils.tdengine.TdUtils;
+import com.basiclab.iot.device.constant.DeviceStatusConstant;
+import com.basiclab.iot.device.constant.RedisPrefixConst;
+import com.basiclab.iot.device.dal.pgsql.device.DeviceMapper;
+import com.basiclab.iot.device.domain.device.oo.DeviceReportOo;
+import com.basiclab.iot.device.domain.device.qo.DeviceIsExistQo;
 import com.basiclab.iot.device.domain.device.vo.*;
 import com.basiclab.iot.device.enums.device.DeviceConnectStatusEnum;
 import com.basiclab.iot.device.enums.device.DeviceTopicEnum;
 import com.basiclab.iot.device.enums.device.DeviceType;
 import com.basiclab.iot.device.enums.device.MqttProtocolTopoStatusEnum;
-import com.basiclab.iot.device.mapper.device.DeviceMapper;
+import com.basiclab.iot.device.hooks.BaseHook;
+import com.basiclab.iot.device.hooks.ConnectedHook;
+import com.basiclab.iot.device.hooks.DisconnectedHook;
 import com.basiclab.iot.device.service.device.DeviceLocationService;
 import com.basiclab.iot.device.service.device.DeviceService;
 import com.basiclab.iot.device.service.device.DeviceTopicService;
 import com.basiclab.iot.device.service.product.ProductService;
+import com.basiclab.iot.device.service.product.ProductServicesService;
+import com.basiclab.iot.file.RemoteFileService;
+import com.basiclab.iot.file.domain.vo.SysFileVo;
+import com.basiclab.iot.tdengine.RemoteTdEngineService;
+import com.basiclab.iot.tdengine.domain.SelectDto;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileItemFactory;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.lang3.ObjectUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,26 +55,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.commons.CommonsMultipartFile;
 
 import javax.annotation.Resource;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import javax.servlet.http.HttpServletResponse;
+import java.io.OutputStream;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.basiclab.iot.common.utils.StringUtils.isEmpty;
 
-/**
- * @Description: 设备管理业务层接口实现类
- * @author: EasyAIoT
- * @email: andywebjava@163.com
- */
 @Service
 @Slf4j
 @Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-public class DeviceServiceImpl implements DeviceService {
+public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> implements DeviceService {
 
     @Resource
     private DeviceMapper deviceMapper;
@@ -61,9 +86,41 @@ public class DeviceServiceImpl implements DeviceService {
     private ProductService productService;
     @Autowired
     private DeviceLocationService deviceLocationService;
-
-    @Value("${spring.datasource.dynamic.datasource.master.dbName:easyaiot}")
+    @Autowired
+    private ProductServicesService productServicesService;
+    @Resource
+    private RemoteTdEngineService remoteTdEngineService;
+    @Resource
+    private RemoteFileService remoteFileService;
+    @Value("${spring.datasource.dynamic.datasource.master.dbName:iot}")
     private String dataBaseName;
+
+    @Override
+    public Boolean isExist(DeviceIsExistQo deviceIsExistQo) {
+        //deviceIdentification和deviceSN有其中一个就判断一个，否则两个同时判断是否存在
+        Boolean flag = false;
+        if (!isEmpty(deviceIsExistQo.getDeviceIdentification())) {
+            LambdaQueryWrapper<Device> wrapper = Wrappers.lambdaQuery();
+            wrapper.eq(Device::getDeviceIdentification, deviceIsExistQo.getDeviceIdentification());
+            Device device = this.baseMapper.selectOne(wrapper);
+            if (!ObjectUtils.isEmpty(device)) {
+                flag = true;
+            } else {
+                flag = false;
+            }
+        }
+        if (!isEmpty(deviceIsExistQo.getDeviceSn())) {
+            LambdaQueryWrapper<Device> wrapper = Wrappers.lambdaQuery();
+            wrapper.eq(Device::getDeviceSn, deviceIsExistQo.getDeviceSn());
+            Device device = this.baseMapper.selectOne(wrapper);
+            if (!ObjectUtils.isEmpty(device)) {
+                flag = true;
+            } else {
+                flag = false;
+            }
+        }
+        return flag;
+    }
 
     @Override
     public int deleteByPrimaryKey(Long id) {
@@ -123,6 +180,161 @@ public class DeviceServiceImpl implements DeviceService {
         return deviceMapper.updateBatchSelective(list);
     }
 
+    @Override
+    public int batchInsert(DeviceBatchInsertReq req, HttpServletResponse response) {
+        Product product = productService.selectByProductIdentification(req.getProductIdentification());
+        ArrayList<Device> devices = new ArrayList<>();
+        ArrayList<DeviceBatchDetail> deviceBatchDetails = new ArrayList<>();
+
+        //创建设备和批次详情记录，分别存放在devices和deviceBatchDetails
+        this.buildDeviceAndBatchDetail(req, product, devices, deviceBatchDetails, null);
+        //分批插入设备、批次详情记录并更新批次表
+        return insertDeviceAndRecord(req, devices, deviceBatchDetails, response);
+    }
+
+    @Override
+    public Integer batchImport(DeviceBatchInsertReq req, HttpServletResponse response) {
+        Product product = productService.selectByProductIdentification(req.getProductIdentification());
+        ArrayList<Device> devices = new ArrayList<>();
+        ArrayList<DeviceBatchDetail> deviceBatchDetails = new ArrayList<>();
+        List<UploadData> deviceList = redisService.setMembers(RedisPrefixConst.DEVICE_BATCH_IMPORT + req.getFileId())
+                .stream()
+                .map(item -> JSONObject.parseObject(item, UploadData.class))
+                .collect(Collectors.toList());
+        //检查输入的sn在数据库中是否存在
+        List<String> deviceSnList = deviceList.stream().map(UploadData::getDeviceSn).collect(Collectors.toList());
+        List<Device> existDeviceList = deviceMapper.selectByDeviceSnList(deviceSnList);
+        List<String> existList = existDeviceList.stream().map(Device::getDeviceSn).collect(Collectors.toList());
+        //过滤已存在的设备
+        deviceList = deviceList.stream().filter(item -> !existList.contains(item.getDeviceSn())).collect(Collectors.toList());
+        //创建设备和批次详情记录，分别存放在devices和deviceBatchDetails
+        this.buildDeviceAndBatchDetail(req, product, devices, deviceBatchDetails, deviceList);
+        //创建异常批次详情记录
+        for (Device device : existDeviceList) {
+            DeviceBatchDetail deviceBatchDetail = getDeviceBatchDetail(req, device, DeviceBatchDetail.CreateStatusEnum.FAILURE.getStatus());
+            deviceBatchDetails.add(deviceBatchDetail);
+        }
+        //分批插入设备、批次详情记录并更新批次表
+        return insertDeviceAndRecord(req, devices, deviceBatchDetails, response);
+    }
+
+
+    /**
+     * 分批插入设备、批次详情记录并更新批次表
+     *
+     * @param req                请求
+     * @param devices            设备列表
+     * @param deviceBatchDetails 设备批次详情列表
+     * @param response
+     * @return 插入成功数量
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public int insertDeviceAndRecord(DeviceBatchInsertReq req, ArrayList<Device> devices, ArrayList<DeviceBatchDetail> deviceBatchDetails, HttpServletResponse response) {
+        if (devices.isEmpty() && deviceBatchDetails.isEmpty()) {
+            return 0;
+        }
+        return this.insert(devices, deviceBatchDetails);
+    }
+
+    private int insert(ArrayList<Device> devices, ArrayList<DeviceBatchDetail> deviceBatchDetails) {
+        return deviceMapper.batchInsert(devices);
+    }
+
+    private R<SysFileVo> upload(List<DeviceMassProductionVo> deviceMassProductionVos) {
+        String fileName = "Equipment_Mass_Production_Information_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")) + ".xlsx";
+        FileItemFactory factory = new DiskFileItemFactory(16, null);
+        FileItem fileItem = factory.createItem("textField", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", true, fileName);
+        MultipartFile multipartFile;
+        try {
+            OutputStream os = fileItem.getOutputStream();
+            EasyExcel.write(os, DeviceMassProductionVo.class)
+                    .excelType(ExcelTypeEnum.XLSX)
+                    .sheet("info")
+                    .doWrite(deviceMassProductionVos);
+            os.close();
+            //FileItem转MultipartFile
+            multipartFile = new CommonsMultipartFile(fileItem);
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("文件生成失败");
+            throw new RuntimeException(e.getMessage());
+        }
+        //上传minio
+        R<SysFileVo> upload = remoteFileService.upload(multipartFile);
+        return upload;
+    }
+
+    /**
+     * 创建设备和批次详情记录，分别存放在devices和deviceBatchDetails
+     *
+     * @param req                请求
+     * @param product            产品信息
+     * @param devices            设备列表
+     * @param deviceBatchDetails 设备批次列表
+     * @param uploadData         UploadData实体，记录了deviceSn
+     */
+    private void buildDeviceAndBatchDetail(DeviceBatchInsertReq req, Product product, ArrayList<Device> devices, ArrayList<DeviceBatchDetail> deviceBatchDetails, List<UploadData> uploadData) {
+        if (req.getDeviceCount() != null && req.getDeviceCount() != 0) {
+            //自动生成
+            for (int i = 0; i < req.getDeviceCount(); i++) {
+                build(req, product, devices, deviceBatchDetails, null);
+            }
+        } else if (uploadData != null && !uploadData.isEmpty()) {
+            //批量导入
+            for (UploadData uploadDatum : uploadData) {
+                build(req, product, devices, deviceBatchDetails, uploadDatum);
+            }
+        } else {
+            log.warn("无需要生成的设备记录");
+        }
+
+    }
+
+    private void build(DeviceBatchInsertReq req, Product product, ArrayList<Device> devices, ArrayList<DeviceBatchDetail> deviceBatchDetails, UploadData uploadData) {
+        String deviceIdentification = SnowflakeIdUtil.nextId();
+        String deviceName = product.getProductName() + "-" + deviceIdentification.substring(deviceIdentification.length() - 4);
+        String deviceSn;
+        if (uploadData != null) {
+            deviceSn = uploadData.getDeviceSn();
+        } else {
+            deviceSn = SnowflakeIdUtil.nextId();
+        }
+        Device device = getDevice(product, deviceIdentification, deviceName, deviceSn);
+        devices.add(device);
+        DeviceBatchDetail deviceBatchDetail = getDeviceBatchDetail(req, device, DeviceBatchDetail.CreateStatusEnum.SUCCESS.getStatus());
+        deviceBatchDetails.add(deviceBatchDetail);
+    }
+
+    @NotNull
+    private static Device getDevice(Product product, String deviceIdentification, String deviceName, String deviceSn) {
+        Device device = new Device();
+        device.setClientId("DEFAULT");
+        device.setAppId("DEFAULT");
+        device.setDeviceIdentification(deviceIdentification);
+        device.setDeviceName(deviceName);
+        device.setDeviceStatus("ENABLE");
+        device.setConnectStatus("OFFLINE");
+        device.setProductIdentification(product.getProductIdentification());
+        device.setDeviceSn(deviceSn);
+        device.setAppId("默认场景");
+        device.setDeviceType(product.getProductType());
+        return device;
+    }
+
+    @NotNull
+    private DeviceBatchDetail getDeviceBatchDetail(DeviceBatchInsertReq req, Device device, Integer createStatus) {
+        DeviceBatchDetail deviceBatchDetail = new DeviceBatchDetail();
+        deviceBatchDetail.setBatchNumber(req.getBatchNumber());
+        deviceBatchDetail.setDeviceName(device.getDeviceName());
+        deviceBatchDetail.setDeviceSn(device.getDeviceSn());
+        deviceBatchDetail.setDeviceIdentification(device.getDeviceIdentification());
+        deviceBatchDetail.setCreateStatus(createStatus);
+        if (DeviceBatchDetail.CreateStatusEnum.FAILURE.getStatus().equals(createStatus)) {
+            deviceBatchDetail.setFailureCase("添加设备失败，原因：设备sn重复");
+        }
+        return deviceBatchDetail;
+    }
+
 
     @Override
     public int updateConnectStatusByClientId(String updatedConnectStatus, String clientId) {
@@ -134,6 +346,11 @@ public class DeviceServiceImpl implements DeviceService {
     @Override
     public Device findOneByClientIdAndUserNameAndPasswordAndDeviceStatusAndProtocolType(String clientId, String userName, String password, String deviceStatus, String protocolType) {
         return deviceMapper.findOneByClientIdAndUserNameAndPasswordAndDeviceStatusAndProtocolType(clientId, userName, password, deviceStatus, protocolType);
+    }
+
+    @Override
+    public List<Device> findByAll(Device device) {
+        return deviceMapper.findByAll(device);
     }
 
     @Override
@@ -166,21 +383,27 @@ public class DeviceServiceImpl implements DeviceService {
     /**
      * 新增设备管理
      *
-     * @param deviceParams 设备管理
+     * @param device 设备管理
      * @return 结果
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public int insertDevice(Device deviceParams) throws Exception {
-        Device device = new Device();
-        BeanUtils.copyProperties(deviceParams, device);
-        device.setConnectStatus(DeviceConnectStatusEnum.INIT.getValue());
-        device.setCreateBy("admin");
+    public int insertDevice(Device device) throws Exception {
+        Product product = productService.selectByProductIdentification(device.getProductIdentification());
+        device.setConnectStatus(DeviceConnectStatusEnum.OFFLINE.getValue());
+        device.setDeviceType(product.getProductType());
         final int insertDeviceCount = deviceMapper.insertOrUpdateSelective(device);
+
         if (insertDeviceCount > 0) {
+            //设备位置信息存储
+            /*DeviceLocation deviceLocation = new DeviceLocation();
+            BeanUtils.copyProperties(deviceParams.getDeviceLocation(), deviceLocation);
+            deviceLocation.setDeviceIdentification(device.getDeviceIdentification());
+            deviceLocationService.insertOrUpdateSelective(deviceLocation);*/
+
             //基础TOPIC集合
             Map<String, String> topicMap = new HashMap<>();
-            if (DeviceType.GATEWAY.getValue().equals(device.getDeviceType())) {
+            if (DeviceType.GATEWAY.getValue().equals(product.getProductType())) {
                 topicMap.put("/" + "v1" + "/devices/" + device.getDeviceIdentification() + "/topo/add", "边设备添加子设备");
                 topicMap.put("/" + "v1" + "/devices/" + device.getDeviceIdentification() + "/topo/addResponse", "物联网平台返回的添加子设备的响应");
                 topicMap.put("/" + "v1" + "/devices/" + device.getDeviceIdentification() + "/topo/delete", "边设备删除子设备");
@@ -207,7 +430,7 @@ public class DeviceServiceImpl implements DeviceService {
                 topicMap.put("/" + "v1" + "/devices/" + device.getDeviceIdentification() + "/topo/otaRead", "物联网平台读取设备软固件版本");
                 topicMap.put("/" + "v1" + "/devices/" + device.getDeviceIdentification() + "/topo/otaReadResponse", "网关设备回复物联网平台读取设备固件版本指令");
 
-            } else if (DeviceType.COMMON.getValue().equals(device.getDeviceType())) {
+            } else if (DeviceType.COMMON.getValue().equals(product.getProductType())) {
                 topicMap.put("/" + "v1" + "/devices/" + device.getDeviceIdentification() + "/datas", "普通设备上报数据");
                 topicMap.put("/" + "v1" + "/devices/" + device.getDeviceIdentification() + "/command", "物联网平台给普通设备下发命令");
                 topicMap.put("/" + "v1" + "/devices/" + device.getDeviceIdentification() + "/commandResponse", "普通设备返回给物联网平台的命令响应");
@@ -248,7 +471,6 @@ public class DeviceServiceImpl implements DeviceService {
                     deviceTopic.setSubscriber("物联网平台");
                 }
                 deviceTopic.setRemark(entry.getValue());
-                deviceTopic.setCreateBy("admin");
                 deviceTopicService.insertSelective(deviceTopic);
             }
         }
@@ -258,17 +480,25 @@ public class DeviceServiceImpl implements DeviceService {
     /**
      * 修改设备管理
      *
-     * @param deviceParams 设备管理
+     * @param device 设备管理
      * @return 结果
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public int updateDevice(Device deviceParams) throws Exception {
-        Device device = new Device();
-        BeanUtils.copyProperties(deviceParams, device);
-        device.setUpdateBy("admin");
-        final int insertDeviceCount = deviceMapper.insertOrUpdateSelective(device);
+    public int updateDevice(Device device) throws Exception {
+//        final int insertDeviceCount = deviceMapper.insertOrUpdateSelective(device);
+        /*if (insertDeviceCount > 0) {
+            //设备位置信息存储
+            DeviceLocation deviceLocation = new DeviceLocation();
+            BeanUtils.copyProperties(deviceParams.getDeviceLocation(), deviceLocation);
+            deviceLocationService.insertOrUpdateSelective(deviceLocation);
+        }*/
         return deviceMapper.updateDevice(device);
+    }
+
+    @Override
+    public void updateDeviceBySys(Device device) {
+        deviceMapper.updateDeviceBySys(device);
     }
 
     /**
@@ -303,6 +533,7 @@ public class DeviceServiceImpl implements DeviceService {
         return deviceMapper.findOneByClientIdAndDeviceIdentification(clientId, deviceIdentification);
     }
 
+    @TenantIgnore
     @Override
     public Device findOneByDeviceIdentification(String deviceIdentification) {
         return deviceMapper.findOneByDeviceIdentification(deviceIdentification);
@@ -420,10 +651,73 @@ public class DeviceServiceImpl implements DeviceService {
         return deviceParams;
     }
 
+    /**
+     * 查询普通设备影子数据
+     *
+     * @param ids       需要查询的普通设备id
+     * @param startTime 开始时间 格式：yyyy-MM-dd HH:mm:ss
+     * @param endTime   结束时间 格式：yyyy-MM-dd HH:mm:ss
+     * @return 普通设备影子数据
+     */
+    @Override
+    public Map<String, List<Map<String, Object>>> getDeviceShadow(String ids, String startTime, String endTime) {
+        List<Long> idCollection = Arrays.stream(ids.split(",")).mapToLong(Long::parseLong).boxed().collect(Collectors.toList());
+        List<Device> devices = deviceMapper.findAllByIdInAndStatus(idCollection, "ENABLE");
+        if (StringUtils.isNull(devices)) {
+            log.error("查询普通设备影子数据失败，普通设备不存在");
+            return null;
+        }
+        Map<String, List<Map<String, Object>>> map = new HashMap<>();
+        devices.forEach(device -> {
+            Product product = productService.selectByProductIdentification(device.getProductIdentification());
+            if (StringUtils.isNull(product)) {
+                log.error("查询普通设备影子数据失败，设备对应的产品不存在");
+                return;
+            }
+            List<ProductServices> productServicesLis = productServicesService.findAllByProductIdentificationIdAndStatus(product.getProductIdentification(), Constants.ENABLE);
+            if (StringUtils.isNull(productServicesLis)) {
+                log.error("查询普通设备影子数据失败，普通设备services不存在");
+                return;
+            }
+            productServicesLis.forEach(productServices -> {
+                String superTableName = TdUtils.getSuperTableName(product.getProductType(), product.getProductIdentification(), productServices.getServiceCode());
+                String shadowTableName = TdUtils.getSubTableName(superTableName, device.getDeviceIdentification());
+                SelectDto selectDto = new SelectDto();
+                selectDto.setDataBaseName(dataBaseName);
+                selectDto.setTableName(shadowTableName);
+                if (StringUtils.isNotEmpty(startTime) && StringUtils.isNotEmpty(endTime)) {
+                    selectDto.setFieldName("ts");
+                    selectDto.setStartTime(DateUtils.localDateTime2Millis(DateUtils.dateToLocalDateTime(DateUtils.strToDate(startTime))));
+                    selectDto.setEndTime(DateUtils.localDateTime2Millis(DateUtils.dateToLocalDateTime(DateUtils.strToDate(endTime))));
+                    R<?> dataByTimestamp = remoteTdEngineService.getDataByTimestamp(selectDto);
+                    if (StringUtils.isNull(dataByTimestamp)) {
+                        log.error("查询普通设备影子数据失败，普通设备影子数据不存在");
+                    } else {
+                        map.put(shadowTableName, (List<Map<String, Object>>) dataByTimestamp.getData());
+                        log.info("查询普通设备影子数据成功，普通设备影子数据：{}", dataByTimestamp.getData());
+
+                    }
+                } else {
+                    R<?> lastData = remoteTdEngineService.getLastData(selectDto);
+                    if (StringUtils.isNull(lastData)) {
+                        log.error("查询普通设备影子数据失败，普通设备影子数据不存在");
+                    } else {
+                        map.put(shadowTableName, (List<Map<String, Object>>) lastData.getData());
+                        log.info("查询普通设备影子数据成功，普通设备影子数据：{}", lastData.getData());
+
+                    }
+                }
+
+            });
+        });
+        return map;
+    }
+
 
     public List<Device> selectDeviceByDeviceIdentificationList(List<String> deviceIdentificationList) {
         return deviceMapper.selectDeviceByDeviceIdentificationList(deviceIdentificationList);
     }
+
 
     /**
      * MQTT协议下上报设备数据
@@ -525,12 +819,6 @@ public class DeviceServiceImpl implements DeviceService {
         return deviceMapper.findDevices();
     }
 
-    private String getCaCertificate() throws IOException {
-        //TODO 从数据库获取CA证书 验证
-        byte[] bytes = Files.readAllBytes(Paths.get(""));
-        return Base64.getEncoder().encodeToString(bytes);
-    }
-
     /**
      * Transforms a device object into a DeviceCacheVO object with associated product data.
      *
@@ -549,5 +837,132 @@ public class DeviceServiceImpl implements DeviceService {
 
         return deviceCacheVO;
     }
+
+    @Override
+    public void report(DeviceReportOo deviceReportOo) {
+        //todo  设置需要手动设置的属性
+        String deviceIdentification = deviceReportOo.getDeviceIdentification();
+        Device device = findOneByDeviceIdentification(deviceIdentification);
+        if (Objects.isNull(device)) {
+            //只有第一次需要处理的属性
+            device = new Device();
+            device.setActiveStatus(1);
+            device.setActivatedTime(LocalDateTime.now());
+        }
+        BeanUtils.copyProperties(deviceReportOo, device);
+        device.setConnectStatus("ONLINE");
+        device.setUpdateTime(LocalDateTime.now());
+        device.setLastOnlineTime(LocalDateTime.now());
+        saveOrUpdate(device);
+    }
+
+
+    @Override
+    public void handleSubscribe(Map<String, Object> params) {
+
+    }
+
+    @Override
+    public int associateGateway(List<Long> idList, String targetDeviceIdentification) {
+        //校验目标设备是否是网关
+        Device device = deviceMapper.findOneByDeviceIdentification(targetDeviceIdentification);
+        if (!Device.deviceTypeEnum.GATEWAY.getType().equals(device.getDeviceType())) {
+            throw new RuntimeException("目标关联设备非网关设备");
+        }
+        //校验设备id列表是否全部是子设备 todo
+        ArrayList<Device> devices = new ArrayList<>();
+        for (Long id : idList) {
+            Device deviceTmp = new Device();
+            deviceTmp.setId(id);
+            deviceTmp.setParentIdentification(targetDeviceIdentification);
+            devices.add(deviceTmp);
+        }
+        return deviceMapper.updateBatch(devices);
+    }
+
+    @Override
+    public int disassociateGateway(List<Long> idList) {
+        ArrayList<Device> devices = new ArrayList<>();
+        for (Long id : idList) {
+            Device deviceTmp = new Device();
+            deviceTmp.setId(id);
+            deviceTmp.setParentIdentification("");
+            devices.add(deviceTmp);
+        }
+        return deviceMapper.updateBatch(devices);
+    }
+
+    @Override
+    public ConnectStatusStatisticsVo getConnectStatusStatistics() {
+        return deviceMapper.getConnectStatusStatistics();
+    }
+
+    @Override
+    public DeviceStatisticsVo getDeviceStatistics() {
+        DeviceStatisticsVo deviceStatistics = deviceMapper.getDeviceStatistics();
+        deviceStatistics.setDeviceTotal(deviceStatistics.getCommonDeviceAmount() + deviceStatistics.getGatewayDeviceAmount() + deviceStatistics.getSubsetDeviceAmount());
+        return deviceStatistics;
+    }
+
+    @Override
+    public DeviceStatusStatisticsVo getDeviceStatusStatistics() {
+        return deviceMapper.getDeviceStatusStatistics();
+    }
+
+
+    @Override
+    public void handleConnected(Map<String, Object> params) {
+        ConnectedHook model = new ConnectedHook(params);
+        String clientId = model.getClientId();
+        if (clientId.startsWith(DeviceStatusConstant.DEVICE_CLIENT_HEAD)) {
+            log.info("EMQX客户端认证完成并成功接入系统, params=" + JSONObject.toJSONString(model));
+            handleConnection(model, DeviceConnectStatusEnum.ONLINE.getValue());
+        }
+    }
+
+    @Override
+    public void handleDisConnected(Map<String, Object> params) {
+        DisconnectedHook model = new DisconnectedHook(params);
+        String clientId = model.getClientId();
+        if (clientId.startsWith(DeviceStatusConstant.DEVICE_CLIENT_HEAD)) {
+            log.info("EMQX客户端连接层在准备关闭, params=" + JSONObject.toJSONString(model));
+            handleConnection(model, DeviceConnectStatusEnum.OFFLINE.getValue());
+        }
+    }
+
+
+    /**
+     * 调用消息中心公共逻辑处理
+     *
+     * @param hook
+     * @param status 是否在线
+     * @return
+     */
+    private boolean handleConnection(BaseHook hook, String status) {
+        String deviceIdentification = hook.getClientId().substring(7);
+        updateDeviceStatus(deviceIdentification, status);
+        return true;
+    }
+
+    /**
+     * 更新设备对应状态
+     *
+     * @param deviceIdentification 设备标识
+     * @param status               是否上线状态
+     */
+    private void updateDeviceStatus(String deviceIdentification, String status) {
+        LambdaUpdateWrapper<Device> wrapper = Wrappers.lambdaUpdate();
+        wrapper.eq(Device::getDeviceIdentification, deviceIdentification);
+        wrapper.set(Device::getConnectStatus, status);
+        if (DeviceConnectStatusEnum.OFFLINE.getValue().equals(status)) {
+            wrapper.set(Device::getLastOnlineTime, LocalDateTime.now());
+        }
+        if (DeviceConnectStatusEnum.ONLINE.getValue().equals(status)) {
+            wrapper.set(Device::getLastOnlineTime, LocalDateTime.now());
+        }
+        super.update(wrapper);
+    }
+
+
 }
 

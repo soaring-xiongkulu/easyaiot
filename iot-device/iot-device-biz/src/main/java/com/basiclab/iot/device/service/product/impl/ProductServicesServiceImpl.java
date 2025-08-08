@@ -1,7 +1,7 @@
 package com.basiclab.iot.device.service.product.impl;
 
 import com.basiclab.iot.device.domain.device.vo.ProductServices;
-import com.basiclab.iot.device.mapper.product.ProductServicesMapper;
+import com.basiclab.iot.device.dal.pgsql.product.ProductServicesMapper;
 import com.basiclab.iot.device.service.product.ProductServicesService;
 import org.springframework.stereotype.Service;
 

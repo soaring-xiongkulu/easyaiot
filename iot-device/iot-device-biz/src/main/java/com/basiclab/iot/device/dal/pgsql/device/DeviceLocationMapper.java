@@ -1,4 +1,4 @@
-package com.basiclab.iot.device.mapper.device;
+package com.basiclab.iot.device.dal.pgsql.device;
 
 import com.basiclab.iot.device.domain.device.vo.DeviceLocation;
 import org.apache.ibatis.annotations.Mapper;

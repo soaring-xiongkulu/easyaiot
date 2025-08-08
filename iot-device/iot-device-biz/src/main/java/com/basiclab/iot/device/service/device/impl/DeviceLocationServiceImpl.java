@@ -2,7 +2,7 @@ package com.basiclab.iot.device.service.device.impl;
 
 import com.basiclab.iot.common.utils.SecurityUtils;
 import com.basiclab.iot.device.domain.device.vo.DeviceLocation;
-import com.basiclab.iot.device.mapper.device.DeviceLocationMapper;
+import com.basiclab.iot.device.dal.pgsql.device.DeviceLocationMapper;
 import com.basiclab.iot.device.service.device.DeviceLocationService;
 import org.springframework.stereotype.Service;
 

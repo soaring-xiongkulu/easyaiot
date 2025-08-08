@@ -15,6 +15,7 @@ import com.basiclab.iot.common.utils.bean.BeanPlusUtil;
 import com.basiclab.iot.common.utils.bean.BeanUtils;
 import com.basiclab.iot.device.cache.helper.CacheDataHelper;
 import com.basiclab.iot.device.constant.EmpowermentStatusEnum;
+import com.basiclab.iot.device.dal.pgsql.product.ProductMapper;
 import com.basiclab.iot.device.domain.device.vo.*;
 import com.basiclab.iot.device.domain.product.model.ProductModel;
 import com.basiclab.iot.device.domain.product.model.Properties;
@@ -23,7 +24,8 @@ import com.basiclab.iot.device.domain.product.vo.param.*;
 import com.basiclab.iot.device.domain.product.vo.result.ProductResultVO;
 import com.basiclab.iot.device.enums.device.DataTypeEnum;
 import com.basiclab.iot.device.enums.product.ProductTypeEnum;
-import com.basiclab.iot.device.mapper.product.ProductMapper;
+import com.basiclab.iot.device.service.device.DeviceCommandService;
+import com.basiclab.iot.device.service.device.DeviceService;
 import com.basiclab.iot.device.service.product.*;
 import com.basiclab.iot.tdengine.RemoteTdEngineService;
 import com.basiclab.iot.tdengine.constant.TdsConstants;
@@ -58,10 +60,14 @@ import java.util.stream.Collectors;
 
 /**
  * @Description: 产品模型业务层
- * @author: EasyAIoT
+ * @Author: Basiclab
  * @E-mail: 853017739@qq.com
  * @Website: http://iot.mqttsnet.com
- * @UpdateUser: EasyAIoT
+ * @CreateDate: 2021/12/25$ 23:52$
+ * @UpdateUser: ShiHuan Sun
+ * @UpdateDate: 2021/12/25$ 23:52$
+ * @UpdateRemark: 修改内容
+ * @Version: 1.0
  */
 @Service
 @Slf4j
@@ -90,6 +96,11 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     private CacheDataHelper cacheDataHelper;
+
+    @Resource
+    private DeviceCommandService deviceCommandService;
+    @Resource
+    private DeviceService deviceService;
 
     /**
      * 数据库名称
@@ -706,8 +717,8 @@ public class ProductServiceImpl implements ProductService {
         // TODO save empowerment records to database
         log.info("Empowerment records: {}, count: {}", empowermentRecordResultVOS, empowermentRecordResultVOS.size());
         return "Empowerment process completed. Total records: " + empowermentRecordResultVOS.size();
-    }
 
+    }
 
     private String createNewSuperTableStructure(ProductServiceParamVO service, String superTableName) {
         StringBuilder feedback = new StringBuilder("Creating new super table: ").append(superTableName).append(". ");

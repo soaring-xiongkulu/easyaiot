@@ -1,5 +1,7 @@
-package com.basiclab.iot.device.mapper.product;
+package com.basiclab.iot.device.dal.pgsql.product;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.basiclab.iot.common.core.aop.TenantIgnore;
 import com.basiclab.iot.device.domain.device.vo.Product;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -7,14 +9,15 @@ import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 /**
+ * @program: basiclab
  * @description: ${description}
  * @packagename: com.basiclab.iot.device.mapper.product
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * @Author: Basiclab
+ * @e-mainl: 853017739@qq.com
  * @date: 2024-11-18 20:37
  **/
 @Mapper
-public interface ProductMapper {
+public interface ProductMapper extends BaseMapper<Product> {
     /**
      * delete by primary key
      *
@@ -34,13 +37,6 @@ public interface ProductMapper {
     int insertOrUpdate(Product record);
 
     int insertOrUpdateSelective(Product record);
-
-    /**
-     * 通过id查询标识，
-     * @param ids id列表
-     * @return 产品标识列表
-     */
-    List<String> selectIdentificationByIds(@Param("ids") Long[] ids);
 
     /**
      * insert record to table selective
@@ -94,6 +90,7 @@ public interface ProductMapper {
      * @param productIdentification 产品标识
      * @return 产品管理
      */
+    @TenantIgnore
     Product selectByProductIdentification(String productIdentification);
 
     /**
@@ -159,4 +156,11 @@ public interface ProductMapper {
     Long findProductTotal();
 
     List<Product> findProductsByPage(@Param("offset") int offset, @Param("pageSize") int pageSize);
+
+    /**
+     * 通过id查询标识，
+     * @param ids id列表
+     * @return 产品标识列表
+     */
+    List<String> selectIdentificationByIds(@Param("ids") Long[] ids);
 }

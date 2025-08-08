@@ -6,9 +6,9 @@ import lombok.*;
 import lombok.experimental.Accessors;
 
 /**
- * @author EasyAIoT
+ * @author IoT
  * @desc
- * @created 2025-06-07
+ * @created 2024-06-07
  */
 
 @Data

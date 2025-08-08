@@ -1,15 +1,13 @@
 package com.basiclab.iot.device.service.product.impl;
 
-import com.basiclab.iot.common.utils.DateUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.List;
 
-import com.basiclab.iot.device.mapper.product.ProductPropertiesMapper;
+import com.basiclab.iot.device.dal.pgsql.product.ProductPropertiesMapper;
 import com.basiclab.iot.device.domain.device.vo.ProductProperties;
 import com.basiclab.iot.device.service.product.ProductPropertiesService;
-import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * @author: EasyAIoT

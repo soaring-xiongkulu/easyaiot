@@ -1,6 +1,6 @@
 package com.basiclab.iot.device.service.product;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import com.basiclab.iot.common.domain.AjaxResult;
 import com.basiclab.iot.device.domain.device.vo.Product;
 import com.basiclab.iot.device.domain.product.model.ProductModel;
@@ -12,8 +12,14 @@ import java.util.List;
 
 /**
  * @Description: 产品服务接口
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * @Author: Basiclab
+ * @E-mail: 853017739@qq.com
+ * @Website: http://iot.mqttsnet.com
+ * @CreateDate: 2021/12/25$ 23:52$
+ * @UpdateUser: ShiHuan Sun
+ * @UpdateDate: 2021/12/25$ 23:52$
+ * @UpdateRemark: 修改内容
+ * @Version: 1.0
  */
 public interface ProductService {
 
@@ -53,6 +59,7 @@ public interface ProductService {
      */
     AjaxResult importProductJson(MultipartFile file, Boolean updateSupport, String appId, String templateIdentification, String status) throws Exception;
 
+
     /**
      * 解析产品模型数据
      *
@@ -63,7 +70,7 @@ public interface ProductService {
      * @return 解析结果
      * @throws Exception
      */
-    public AjaxResult productJsonDataAnalysis(com.alibaba.fastjson2.JSONObject content, String appId, String templateIdentification, String status) throws Exception;
+    public AjaxResult productJsonDataAnalysis(JSONObject content, String appId, String templateIdentification, String status) throws Exception;
 
     /**
      * 查询产品管理

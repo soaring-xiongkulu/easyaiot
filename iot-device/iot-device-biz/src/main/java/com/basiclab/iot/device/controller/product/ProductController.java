@@ -6,18 +6,27 @@ import com.basiclab.iot.common.annotation.NoRepeatSubmit;
 import com.basiclab.iot.common.domain.AjaxResult;
 import com.basiclab.iot.common.domain.R;
 import com.basiclab.iot.common.domain.TableDataInfo;
+import com.basiclab.iot.common.service.RedisService;
 import com.basiclab.iot.common.utils.StringUtils;
 import com.basiclab.iot.common.web.controller.BaseController;
+import com.basiclab.iot.device.domain.device.vo.CommandWrapperParamReq;
 import com.basiclab.iot.device.domain.device.vo.Product;
 import com.basiclab.iot.device.domain.product.model.ProductModel;
 import com.basiclab.iot.device.service.product.ProductService;
+import com.basiclab.iot.file.RemoteFileService;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +34,9 @@ import java.util.Map;
 /**
  * (product)产品表控制层
  *
- * @author EasyAIoT
+ * @author IoT
  */
+@Tag(name = "产品管理")
 @RestController
 @RequestMapping("/product")
 @Slf4j
@@ -36,6 +46,10 @@ public class ProductController extends BaseController {
      */
     @Resource
     private ProductService productService;
+    @Resource
+    private RemoteFileService remoteFileService;
+    @Autowired
+    private RedisService redisService;
 
     /**
      * 通过主键查询单条数据
@@ -70,8 +84,8 @@ public class ProductController extends BaseController {
      * @return AjaxResult
      * @throws Exception
      */
-    //@PreAuthorize(hasPermi = "link:product:import")
-    //@Log(title = "产品管理", businessType = BusinessType.IMPORT)
+    // @PreAuthorize("@ss.hasPermission('link:product:import')")
+    ////@Log(title = "产品管理", businessType = BusinessType.IMPORT)
     @PostMapping("/importProductJsonFile")
     public AjaxResult importProductJson(MultipartFile file,
                                         Boolean updateSupport,
@@ -88,7 +102,14 @@ public class ProductController extends BaseController {
     /**
      * 查询产品管理列表
      */
-    //@PreAuthorize(hasPermi = "link:product:list")
+    @ApiOperation("查询产品列表")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "pageNum", value = "页码", dataType = "int", dataTypeClass = Integer.class, paramType = "query", example = "1", required = true),
+            @ApiImplicitParam(name = "pageSize", value = "每页显示记录数", dataType = "int", dataTypeClass = Integer.class, paramType = "query", example = "10", required = true),
+            @ApiImplicitParam(name = "orderByColumn", value = "排序字段", dataType = "string", dataTypeClass = String.class, paramType = "query"),
+            @ApiImplicitParam(name = "isAsc", value = "排序方式（asc/desc）", dataType = "string", dataTypeClass = String.class, paramType = "query")
+    })
+    // @PreAuthorize("@ss.hasPermission('link:product:list')")
     @GetMapping("/list")
     public TableDataInfo list(Product product) {
         startPage();
@@ -99,8 +120,8 @@ public class ProductController extends BaseController {
     /**
      * 导出产品管理列表
      */
-    //@PreAuthorize(hasPermi = "link:product:export")
-    //@Log(title = "产品管理", businessType = BusinessType.EXPORT)
+    // @PreAuthorize("@ss.hasPermission('link:product:export')")
+    ////@Log(title = "产品管理", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, Product product) throws IOException {
         List<Product> list = productService.selectProductList(product);
@@ -111,7 +132,8 @@ public class ProductController extends BaseController {
     /**
      * 获取产品管理详细信息
      */
-    //@PreAuthorize(hasPermi = "link:product:query")
+    @ApiOperation("获取产品详细信息")
+    // @PreAuthorize("@ss.hasPermission('link:product:query')")
     @GetMapping(value = "/{id}")
     public AjaxResult getInfo(@PathVariable("id") Long id) {
         return AjaxResult.success(productService.selectProductById(id));
@@ -120,7 +142,7 @@ public class ProductController extends BaseController {
     /**
      * 获取产品管理详细信息
      */
-    //@PreAuthorize(hasPermi = "link:product:query")
+    // @PreAuthorize("@ss.hasPermission('link:product:query')")
     @GetMapping(value = "/getFullInfo/{id}")
     public AjaxResult getFullInfo(@PathVariable("id") Long id) {
         ProductModel productModel = productService.selectFullProductById(id);
@@ -130,9 +152,10 @@ public class ProductController extends BaseController {
     /**
      * 新增产品管理
      */
+    @ApiOperation("添加产品")
     @NoRepeatSubmit
-    //@PreAuthorize(hasPermi = "link:product:add")
-    //@Log(title = "产品管理", businessType = BusinessType.INSERT)
+    // @PreAuthorize("@ss.hasPermission('link:product:add')")
+    ////@Log(title = "产品管理", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@RequestBody Product product) {
 
@@ -148,9 +171,10 @@ public class ProductController extends BaseController {
     /**
      * 修改产品管理
      */
+    @ApiOperation("编辑产品")
     @NoRepeatSubmit
-    //@PreAuthorize(hasPermi = "link:product:edit")
-    //@Log(title = "产品管理", businessType = BusinessType.UPDATE)
+    // @PreAuthorize("@ss.hasPermission('link:product:edit')")
+    ////@Log(title = "产品管理", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@RequestBody Product product) {
         return toAjax(productService.updateProduct(product));
@@ -159,8 +183,9 @@ public class ProductController extends BaseController {
     /**
      * 删除产品管理
      */
-    //@PreAuthorize(hasPermi = "link:product:remove")
-    //@Log(title = "产品管理", businessType = BusinessType.DELETE)
+    @ApiOperation("删除产品")
+    // @PreAuthorize("@ss.hasPermission('link:product:remove')")
+    ////@Log(title = "产品管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public AjaxResult remove(@PathVariable Long[] ids) {
         return toAjax(productService.deleteProductByIds(ids));
@@ -190,8 +215,8 @@ public class ProductController extends BaseController {
      * @throws Exception
      */
     @NoRepeatSubmit
-    //@PreAuthorize(hasPermi = "link:product:generate")
-    //@Log(title = "产品管理", businessType = BusinessType.INSERT)
+    // @PreAuthorize("@ss.hasPermission('link:product:generate')")
+    ////@Log(title = "产品管理", businessType = BusinessType.INSERT)
     @PostMapping("/generateProductJson")
     public AjaxResult generateProductJson(@RequestBody Map<String, Object> params) throws Exception {
         final Object content = params.get("content");
@@ -220,9 +245,10 @@ public class ProductController extends BaseController {
     }
 
 
-    //    //@PreAuthorize(hasPermi = "link:product:empowerment")
-    @ApiOperation(value = "产品赋能", httpMethod = "GET", notes = "产品赋能")
-    //@Log(title = "产品管理", businessType = BusinessType.OTHER)
+//    // @PreAuthorize("@ss.hasPermission('link:product:empowerment')")
+//    @ApiOperation(value = "产品赋能", httpMethod = "GET", notes = "产品赋能")
+
+    /// /@Log(title = "产品管理", businessType = BusinessType.OTHER)
     @GetMapping(value = "/productEmpowerment/{productIds}")
     public AjaxResult productEmpowerment(@PathVariable("productIds") Long[] productIds) {
         try {
@@ -232,5 +258,4 @@ public class ProductController extends BaseController {
         }
         return AjaxResult.error("产品赋能异常,请联系管理员");
     }
-
 }

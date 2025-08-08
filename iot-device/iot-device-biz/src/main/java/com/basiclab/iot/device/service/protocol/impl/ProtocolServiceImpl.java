@@ -5,7 +5,7 @@ import com.basiclab.iot.common.constant.Constants;
 import com.basiclab.iot.common.service.RedisService;
 import com.basiclab.iot.device.domain.device.vo.Device;
 import com.basiclab.iot.device.domain.device.vo.Protocol;
-import com.basiclab.iot.device.mapper.protocol.ProtocolMapper;
+import com.basiclab.iot.device.dal.pgsql.protocol.ProtocolMapper;
 import com.basiclab.iot.device.service.device.DeviceService;
 import com.basiclab.iot.device.service.product.ProductService;
 import com.basiclab.iot.device.service.protocol.ProtocolService;

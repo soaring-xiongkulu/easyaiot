@@ -9,7 +9,7 @@ import com.basiclab.iot.device.domain.device.vo.ProductTemplate;
 import com.basiclab.iot.device.domain.product.model.ProductTemplateModel;
 import com.basiclab.iot.device.domain.product.model.Properties;
 import com.basiclab.iot.device.domain.product.model.Services;
-import com.basiclab.iot.device.mapper.product.ProductTemplateMapper;
+import com.basiclab.iot.device.dal.pgsql.product.ProductTemplateMapper;
 import com.basiclab.iot.device.service.product.ProductPropertiesService;
 import com.basiclab.iot.device.service.product.ProductServicesService;
 import com.basiclab.iot.device.service.product.ProductTemplateService;
