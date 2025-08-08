@@ -24,29 +24,7 @@ EasyAIoT is an open-source learning project with no commercial affiliation. User
 - **ORM**: MyBatis-Plus
 - **Database**: PostgreSQL
 
-## Deployment
-```
-mvn clean package -Dmaven.test.skip=true
-```
-##### Start MQTT Server
-```
-# Port：8885，Topic：device/data/#
-nohup java -server -Xms512m -Xmx1024m -Djava.io.tmpdir=/var/tmp -Duser.timezone=Asia/Shanghai -jar iot-things*.jar --spring.profiles.active=dev  >iot-things.log &
-```
-##### Package Backend
-```
-nohup java -server -Xms512m -Xmx1024m -Djava.io.tmpdir=/var/tmp -Duser.timezone=Asia/Shanghai -jar iot-device*.jar --spring.profiles.active=dev  >iot-device.log &
-nohup java -server -Xms512m -Xmx1024m -Djava.io.tmpdir=/var/tmp -Duser.timezone=Asia/Shanghai -jar iot-gateway*.jar --spring.profiles.active=dev  >iot-gateway.log &
-nohup java -server -Xms512m -Xmx1024m -Djava.io.tmpdir=/var/tmp -Duser.timezone=Asia/Shanghai -jar iot-infra*.jar --spring.profiles.active=dev  >iot-infra.log &
-nohup java -server -Xms512m -Xmx1024m -Djava.io.tmpdir=/var/tmp -Duser.timezone=Asia/Shanghai -jar iot-system*.jar --spring.profiles.active=dev  >iot-system.log &
-```
-##### Deploy Backend Services
-```
-pnpm install
-pnpm dev
-```
-
-## DeepAI Hub Cloud Platform [Open-source Edition]
+## Screenshots
 <div>
   <img src=".image/banner/banner1001.png" alt="Image1" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1002.png" alt="Image2" width="49%">
