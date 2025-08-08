@@ -398,6 +398,11 @@
                 <artifactId>iot-system-api</artifactId>
                 <version>${revision}</version>
             </dependency>
+            <dependency>
+                <groupId>com.basiclab.iot</groupId>
+                <artifactId>iot-broker-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
 
             <!-- 服务保障相关 -->
             <dependency>

@@ -36,7 +36,6 @@
         <module>iot-system</module>
         <module>iot-infra</module>
         <module>iot-file</module>
-        <module>iot-rule</module>
         <module>iot-model</module>
         <module>iot-dataset</module>
         <module>iot-device</module>

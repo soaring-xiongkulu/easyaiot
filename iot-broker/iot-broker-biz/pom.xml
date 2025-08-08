@@ -97,12 +97,6 @@
             <groupId>com.basiclab.iot</groupId>
             <artifactId>iot-common-mq</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.basiclab.iot</groupId>
-            <artifactId>iot-rule-api</artifactId>
-            <version>1.0.0</version>
-            <scope>compile</scope>
-        </dependency>
     </dependencies>
 
     <build>
