@@ -23,13 +23,6 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 账号：admin
 密码：admin123
 
-
-## 打赏赞助（已辞职，全力开源）
-<div>
-    <img src=".image/微信支付.jpg" alt="微信支付" width="30%" height="30%">
-    <img src=".image/支付宝支付.jpg" alt="支付宝支付" width="30%" height="10%">
-</div>
-
 ## 技术栈
 
 ### 前端
@@ -178,6 +171,12 @@ andywebjava@163.com(本项目相关问题请走issue流程，否则恕不邮件�
 <p>
 <img src=".image/知识星球.jpg" alt="知识星球" width="30%">
 </p>
+
+## 打赏赞助
+<div>
+    <img src=".image/微信支付.jpg" alt="微信支付" width="30%" height="30%">
+    <img src=".image/支付宝支付.jpg" alt="支付宝支付" width="30%" height="10%">
+</div>
 
 ## 致谢
 感谢以下各位对本项目包括但不限于代码贡献、问题反馈、资金捐赠等各种方式的支持！以下排名不分先后：
