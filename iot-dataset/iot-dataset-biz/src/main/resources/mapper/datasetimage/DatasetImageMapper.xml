@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.dataset.dal.pgsql.DatasetImageMapper">
+
+    <!--
+        一般情况下，尽可能使用 Mapper 进行 CRUD 增删改查即可。
+        无法满足的场景，例如说多表关联查询，才使用 XML 编写 SQL。
+        代码生成器暂时只生成 Mapper XML 文件本身，更多推荐 MybatisX 快速开发插件来生成查询。
+     -->
+
+    <!-- 随机获取图片ID -->
+    <select id="selectImageIdsByDatasetId" resultType="java.lang.Long">
+        SELECT id FROM dataset_image
+        WHERE dataset_id = #{datasetId}
+        ORDER BY RANDOM()
+    </select>
+
+    <!-- 批量更新用途字段 -->
+    <update id="batchUpdateUsage">
+        UPDATE dataset_image
+        SET
+        is_train = CASE id
+        <foreach collection="imageIds" item="id">
+            WHEN #{id} THEN #{isTrain}
+        </foreach>
+        ELSE is_train
+        END,
+        is_validation = CASE id
+        <foreach collection="imageIds" item="id">
+            WHEN #{id} THEN #{isValidation}
+        </foreach>
+        ELSE is_validation
+        END,
+        is_test = CASE id
+        <foreach collection="imageIds" item="id">
+            WHEN #{id} THEN #{isTest}
+        </foreach>
+        ELSE is_test
+        END
+        WHERE id IN
+        <foreach collection="imageIds" item="id"
+                 open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- 重置用途字段 -->
+    <update id="resetUsageByDatasetId">
+        UPDATE dataset_image
+        SET
+            is_train = 0,
+            is_validation = 0,
+            is_test = 0
+        WHERE dataset_id = #{datasetId}
+    </update>
+
+    <!-- DatasetImageMapper.xml 新增查询 -->
+    <select id="selectByDatasetId" resultType="com.basiclab.iot.dataset.dal.dataobject.DatasetImageDO">
+        SELECT * FROM dataset_image
+        WHERE dataset_id = #{datasetId}
+    </select>
+</mapper>

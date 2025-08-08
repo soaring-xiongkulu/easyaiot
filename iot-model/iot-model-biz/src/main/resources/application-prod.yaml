@@ -1,0 +1,217 @@
+server:
+  port: 48086
+# 注释
+endpoints:
+  health:
+    sensitive: false
+  session:
+    web:
+      enabled: true
+
+management:
+  security:
+    enabled: false
+    # contextPath: /monitor
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  boot:
+    admin:
+      client:
+        url: http://localhost:64000 # 向服务端注册的地址
+        instance:
+          prefer-ip: true # 解决windows下运行时无法识别主机名的问题
+  freemarker:
+    suffix: .ftl
+    content-type: text/html; charset=utf-8
+    cache: false
+    template-loader-path:
+      - classpath:/templates
+  mqtt:
+    username: admin
+    password: admin
+    url: tcp://localhost:1883
+    lora-bridge-url: tcp://localhost:7883
+    active-url: tcp://localhost:61616
+    #    username: zealpane
+    #    password: zealpane@17
+    #    url: tcp://112.74.181.112:1883
+    client:
+      id: iot-service
+    default:
+      topic: topic
+  activemq:
+    broker-url: tcp://localhost:61616
+    user: admin
+    password: admin
+  session:
+    store-type: redis
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  redis:
+    host: localhost
+    #    host: localhost
+    #    host: 112.74.181.112
+    port: 6379
+    password: Sa0230**
+  #    password: redis_f_6379
+  datasource:
+    name: test
+    #    url: jdbc:mysql://localhost:3306/lock_db?characterEncoding=utf8&zeroDateTimeBehavior=convertToNull
+    #    url: jdbc:mysql://localhost:3306/iot_temp?characterEncoding=utf8&zeroDateTimeBehavior=convertToNull
+    url: jdbc:mysql://localhost:3306/iot-dataset?characterEncoding=utf8&zeroDateTimeBehavior=convertToNull
+    username: root
+    # 使用druid数据源
+    password: sa0230**
+    #    password: Root123!
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.jdbc.Driver
+    filters: stat
+    maxActive: 20
+    initialSize: 1
+    maxWait: 6000
+    minIdle: 1
+    timeBetweenEvictionRunsMillis: 60000
+    minEvictableIdleTimeMillis: 300000
+    validationQuery: select 'x'
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+    poolPreparedStatements: true
+    maxOpenPreparedStatements: 20
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/iot-tenant
+#      uri: mongodb://localhost:27027/iot-tenant
+#      uri: mongodb://localhost:27017/iot-tenant
+#      uri: mongodb://admin:password22@localhost:27027/iot-tenant
+
+
+mybatis-plus:
+  configuration:
+    call-setters-on-nulls: true
+  mapperLocations: classpath*:com/gdata/biz/**/mapper/xml/*Mapper.xml
+  # typeEnumsPackage: com.gdata.utils.enu.AlarmType
+  global-config:
+    #主键类型  0:"数据库ID自增", 1:"用户输入ID",2:"全局唯一ID (数字类型唯一ID)", 3:"全局唯一ID UUID";
+    id-type: 0
+    #字段策略 0:"忽略判断",1:"非 NULL 判断"),2:"非空判断"
+    #    field-strategy: 2
+    #驼峰下划线转换
+    db-column-underline: true
+    #刷新mapper 调试神器
+    refresh-mapper: true
+    #数据库大写下划线转换
+    capital-mode: true
+    #序列接口实现类配置,不在推荐使用此方式进行配置,请使用自定义bean注入
+    # key-generator: com.baomidou.mybatisplus.incrementer.H2KeyGenerator
+    #逻辑删除配置（下面3个配置）
+    logic-delete-value: 0
+    logic-not-delete-value: 1
+    configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+beetl:
+  suffix: html
+rocketmq:
+  name-server: localhost:9876
+  producer:
+    group: events-mq-msg
+iot:
+  fileDir: D:/TT/fileTest/
+  fileUpUrl:
+  port:
+    wsPush: 8868
+  api-url: http://localhost:18994/doc.html
+minio:
+  endpoint: http://iot.basiclab.top:9000
+  access-key-id: minio_root
+  secret-access-key: minio_123456
+security:
+  oauth2:
+    client:
+      registered-redirect-uri:
+        - http://192.168.1.169:8082/#/auth
+      client-id: experiment-teaching
+      client-secret: experiment-teaching-secret-8888
+      user-authorization-uri: http://192.168.1.168:6001/oauth/authorize
+      access-token-uri: http://192.168.1.168:6001/oauth/token
+    resource:
+      id: experiment-teaching
+      jwt:
+        key-uri: http://192.168.1.168:6001/oauth/token_key
+z:
+  auth:
+    ptloginDomain: http://ptlogin.yun.gdatacloud.com/api
+uniauth:
+  #  page-api-base: http://u-dev.yun.gdatacloud.com
+  #  open-api-base: http://u-dev-api.yun.gdatacloud.com:31743/api/
+  #page-api-base: http://u.gdatacloud.com
+  #open-api-base: http://u-api.yun.gdatacloud.com/api/
+  #内网地址
+  page-api-base: http://zzu.gdatacloud.com
+  open-api-base: http://auth-open.zzu.gdatacloud.com/api/
+#  open-api-base: http://localhost:9525/api/
+
+model:
+  #  path: http://192.168.167.131:30923/api/
+  #  path: http://model-service-to-user-api-v1.ai-model:8080/api/
+  path: http://127.0.0.1:9635/ai/
+  adminPath: http://127.0.0.1:9635/ai/
+domain:
+  url: .192.168.1.103:8081/
+
+logging:
+  level:
+    org.springframework.data.mongodb: debug
+
+--- #################### 接口文档配置 ####################
+springdoc:
+  api-docs:
+    enabled: true # 1. 是否开启 Swagger 接文档的元数据
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true # 2.1 是否开启 Swagger 文档的官方 UI 界面
+    path: /swagger-ui.html
+  default-flat-param-object: true # 参见 https://doc.xiaominfo.com/docs/faq/v4/knife4j-parameterobject-flat-param 文档
+
+knife4j:
+  enable: true # 2.2 是否开启 Swagger 文档的 Knife4j UI 界面
+  setting:
+    language: zh_cn
+
+--- #################### BasicLab相关配置 ####################
+
+iot:
+  info:
+    version: 1.0.0
+    base-package: com.basiclab.iot.studio
+  web:
+    admin-ui:
+      url: http://dashboard.iot.iocoder.cn # Admin 管理后台 UI 的地址
+  swagger:
+    title: 管理后台
+    description: 提供管理员管理的所有功能
+    version: ${iot.info.version}
+    base-package: ${iot.info.base-package}
+  captcha:
+    enable: true # 验证码的开关，默认为 true；
+  tenant: # 多租户相关配置项
+    enable: true
+    ignore-urls:
+    ignore-tables:
+  sms-code: # 短信验证码相关的配置项
+    expire-times: 10m
+    send-frequency: 1m
+    send-maximum-quantity-per-day: 10
+    begin-code: 9999 # 这里配置 9999 的原因是，测试方便。
+    end-code: 9999 # 这里配置 9999 的原因是，测试方便。
+
+debug: false
