@@ -52,7 +52,8 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 
 ## 致谢
 感谢以下各位对本项目包括但不限于代码贡献、问题反馈、资金捐赠等各种方式的支持！以下排名不分先后：
-- shup 派大星 棒槌 憨憨 一往无前 文艺小青年 lion 汪汪队立大功 春生 二群主 hao_chen yuer629 kong 岁月静好 Kunkka 李江峰 左耳向右 Chao. 灬
+- shup 派大星 棒槌 憨憨 一往无前 文艺小青年 lion 汪汪队立大功 春生 二群主 hao_chen yuer629 kong 岁月静好 Kunkka 李江峰 左耳向右 Chao. 灬 
+- Mr.LuCkY
 
 ## 开源协议
 [MIT LICENSE](LICENSE)
