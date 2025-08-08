@@ -39,7 +39,7 @@ import static com.basiclab.iot.common.utils.collection.CollectionUtils.convertSe
 /**
  * 代码生成 Service 实现类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Service
 public class CodegenServiceImpl implements CodegenService {

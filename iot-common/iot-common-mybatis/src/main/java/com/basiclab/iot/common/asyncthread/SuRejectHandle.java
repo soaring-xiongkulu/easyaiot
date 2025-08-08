@@ -9,7 +9,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * 异步@Async多线程自定义拒绝策略
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Component
 @Slf4j

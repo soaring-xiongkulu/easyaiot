@@ -7,7 +7,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 /**
  * 字典用到 Feign 的配置项
  *
- * @author IoT
+ * @author EasyIoT
  */
 @AutoConfiguration
 @EnableFeignClients(clients = DictDataApi.class) // 主要是引入相关的 API 服务

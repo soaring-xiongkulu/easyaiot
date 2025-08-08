@@ -6,7 +6,7 @@ import lombok.Getter;
 /**
  * 文档地址
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Getter
 @AllArgsConstructor

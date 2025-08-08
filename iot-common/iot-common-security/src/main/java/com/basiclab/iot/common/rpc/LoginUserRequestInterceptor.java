@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * LoginUser 的 RequestInterceptor 实现类：Feign 请求时，将 {@link LoginUser} 设置到 header 中，继续透传给被调用的服务
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Slf4j
 public class LoginUserRequestInterceptor implements RequestInterceptor {

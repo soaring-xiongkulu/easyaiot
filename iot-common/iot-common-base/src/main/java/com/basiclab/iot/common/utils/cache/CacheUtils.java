@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
 /**
  * Cache 工具类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class CacheUtils {
 

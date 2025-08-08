@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * {@link CodegenEngine} 的 Vue2 + Element UI 单元测试
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Disabled
 public class CodegenEngineVue2Test extends CodegenEngineAbstractTest {

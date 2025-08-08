@@ -3,7 +3,7 @@ package com.basiclab.iot.common.exception;
 /**
  * 检查异常
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public class CheckedException extends RuntimeException
 {

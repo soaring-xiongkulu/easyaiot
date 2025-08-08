@@ -15,7 +15,7 @@ import static com.basiclab.iot.common.utils.cache.CacheUtils.buildAsyncReloading
 /**
  * Tenant 框架 Service 实现类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @RequiredArgsConstructor
 public class TenantFrameworkServiceImpl implements TenantFrameworkService {

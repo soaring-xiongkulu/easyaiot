@@ -3,7 +3,7 @@ package com.basiclab.iot.common.core.handler;
 /**
  * 任务处理器
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface JobHandler {
 

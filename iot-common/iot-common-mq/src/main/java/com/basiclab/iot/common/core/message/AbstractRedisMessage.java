@@ -8,7 +8,7 @@ import java.util.Map;
 /**
  * Redis 消息抽象基类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Data
 public abstract class AbstractRedisMessage {

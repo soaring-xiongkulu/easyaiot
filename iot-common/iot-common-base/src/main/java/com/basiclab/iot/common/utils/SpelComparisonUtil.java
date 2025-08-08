@@ -7,7 +7,7 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 import java.util.List;
 
 /**
- * @author IoT
+ * @author EasyIoT
  * @desc  spel 表达式比较运算符工具类
  * @created 2024-07-11
  */

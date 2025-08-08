@@ -11,7 +11,7 @@ import com.basiclab.iot.common.exception.UtilException;
 /**
  * 提供通用唯一识别码（universally unique identifier）（UUID）实现
  *
- * @author IoT
+ * @author EasyIoT
  */
 public final class UUID implements java.io.Serializable, Comparable<UUID>
 {

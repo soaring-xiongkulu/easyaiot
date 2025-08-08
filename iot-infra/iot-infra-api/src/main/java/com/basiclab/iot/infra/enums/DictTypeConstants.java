@@ -3,7 +3,7 @@ package com.basiclab.iot.infra.enums;
 /**
  * Infra 字典类型的枚举类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface DictTypeConstants {
 

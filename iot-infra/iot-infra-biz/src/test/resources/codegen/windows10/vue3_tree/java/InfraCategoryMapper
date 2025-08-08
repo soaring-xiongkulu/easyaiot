@@ -12,7 +12,7 @@ import com.basiclab.iot.infra.controller.admin.demo.vo.*;
 /**
  * 分类 Mapper
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Mapper
 public interface InfraCategoryMapper extends BaseMapperX<InfraCategoryDO> {

@@ -13,7 +13,7 @@ import java.util.*;
 /**
  * OAuth2 相关的工具类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class OAuth2Utils {
 

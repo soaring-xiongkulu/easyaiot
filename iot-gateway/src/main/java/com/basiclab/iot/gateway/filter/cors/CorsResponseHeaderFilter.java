@@ -16,7 +16,7 @@ import java.util.ArrayList;
  *
  * 参考文档：<a href="https://blog.csdn.net/zimou5581/article/details/90043178" />
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Component
 public class CorsResponseHeaderFilter implements GlobalFilter, Ordered {

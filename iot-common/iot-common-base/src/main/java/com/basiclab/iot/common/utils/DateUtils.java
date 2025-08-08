@@ -16,7 +16,7 @@ import java.util.*;
 /**
  * 时间工具类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class DateUtils extends org.apache.commons.lang3.time.DateUtils {
     public static String YYYY = "yyyy";

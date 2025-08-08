@@ -27,7 +27,7 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
 /**
  * 部门 Service 实现类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Service
 @Validated

@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Tenant 框架 Service 接口，定义获取租户信息
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface TenantFrameworkService {
 

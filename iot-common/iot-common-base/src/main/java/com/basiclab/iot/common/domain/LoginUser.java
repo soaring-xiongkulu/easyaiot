@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * 登录用户信息
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Data
 public class LoginUser {

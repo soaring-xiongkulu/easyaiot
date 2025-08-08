@@ -5,7 +5,7 @@ import java.lang.annotation.*;
 /**
  * 内部认证注解
  * 
- * @author IoT
+ * @author EasyIoT
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

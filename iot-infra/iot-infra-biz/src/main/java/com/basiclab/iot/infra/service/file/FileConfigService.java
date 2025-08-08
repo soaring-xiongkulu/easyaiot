@@ -12,7 +12,7 @@ import javax.validation.Valid;
 /**
  * 文件配置 Service 接口
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface FileConfigService {
 

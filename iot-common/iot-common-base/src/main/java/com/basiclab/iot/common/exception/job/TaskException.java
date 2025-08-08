@@ -3,7 +3,7 @@ package com.basiclab.iot.common.exception.job;
 /**
  * 计划策略异常
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public class TaskException extends Exception
 {

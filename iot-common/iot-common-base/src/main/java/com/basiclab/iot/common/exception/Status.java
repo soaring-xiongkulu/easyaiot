@@ -1,7 +1,7 @@
 package com.basiclab.iot.common.exception;
 
 /**
- * @author IoT
+ * @author EasyIoT
  * @desc
  * @created 2024-05-27
  */

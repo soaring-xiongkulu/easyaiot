@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 /**
  * 校验工具类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class ValidationUtils {
 

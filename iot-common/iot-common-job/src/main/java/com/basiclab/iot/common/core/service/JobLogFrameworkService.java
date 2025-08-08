@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 /**
  * Job 日志 Framework Service 接口
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface JobLogFrameworkService {
 

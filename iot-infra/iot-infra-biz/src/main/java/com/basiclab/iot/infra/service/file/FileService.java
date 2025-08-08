@@ -9,7 +9,7 @@ import com.basiclab.iot.infra.dal.dataobject.file.FileDO;
 /**
  * 文件 Service 接口
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface FileService {
 

@@ -3,7 +3,7 @@ package com.basiclab.iot.common.constant;
 /**
  * 用户常量信息
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public class UserConstants
 {

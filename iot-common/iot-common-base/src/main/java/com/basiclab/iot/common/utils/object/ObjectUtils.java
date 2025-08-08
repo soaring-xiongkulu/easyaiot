@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 /**
  * Object 工具类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class ObjectUtils {
 

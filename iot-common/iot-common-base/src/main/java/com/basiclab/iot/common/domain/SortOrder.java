@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * @author IoT
+ * @author EasyIoT
  * @desc
  * @created 2024-05-27
  */

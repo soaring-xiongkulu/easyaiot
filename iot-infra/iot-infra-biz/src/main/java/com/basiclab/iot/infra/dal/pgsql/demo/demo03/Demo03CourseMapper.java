@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * 学生课程 Mapper
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Mapper
 public interface Demo03CourseMapper extends BaseMapperX<Demo03CourseDO> {

@@ -3,7 +3,7 @@ package com.basiclab.iot.common.exception;
 /**
  * 业务异常
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public final class ServiceException extends RuntimeException
 {

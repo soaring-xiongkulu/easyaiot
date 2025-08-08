@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * 学生 Mapper
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Mapper
 public interface Demo03StudentMapper extends BaseMapperX<Demo03StudentDO> {

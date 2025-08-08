@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 /**
  * @title 16进制相关工具类
  * @discribtion 本着依赖最少原则，封装常用工具类
- * @author IoT
+ * @author EasyIoT
  * @Date 2020年5月21日 下午4:31:17
  * @vision V1.0
  */

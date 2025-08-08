@@ -14,7 +14,7 @@ import static java.util.Collections.singletonList;
 /**
  * {@link PageParam} 工具类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class PageUtils {
 

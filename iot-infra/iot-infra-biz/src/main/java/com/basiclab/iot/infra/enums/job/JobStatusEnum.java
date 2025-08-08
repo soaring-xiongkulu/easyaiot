@@ -11,7 +11,7 @@ import java.util.Set;
 /**
  * 任务状态的枚举
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Getter
 @AllArgsConstructor

@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * VO 数据翻译 Utils
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class TranslateUtils {
 

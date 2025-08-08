@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 /**
  * 随机工具类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class RandomUtils {
 

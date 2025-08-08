@@ -15,7 +15,6 @@
         <java.version>1.8</java.version>
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-        <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
         <swagger.start.version>3.0</swagger.start.version>
         <dockerfile-maven-plugin.version>1.4.12</dockerfile-maven-plugin.version>
         <docker.image.prefix>basiclab</docker.image.prefix>
@@ -36,12 +35,10 @@
         <!--  各种 module 拓展 -->
         <module>iot-system</module>
         <module>iot-infra</module>
-        <module>iot-device</module>
-        <module>iot-things</module>
     </modules>
 
     <name>${project.artifactId}</name>
-    <description>BasicLab项目基础脚手架</description>
+    <description>EasyAIoT</description>
     <url>https://github.com/soaring-xiongkulu/easyaiot</url>
 
     <dependencyManagement>

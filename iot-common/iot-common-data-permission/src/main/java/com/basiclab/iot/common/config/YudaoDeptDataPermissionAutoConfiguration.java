@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * 基于部门的数据权限 AutoConfiguration
  *
- * @author IoT
+ * @author EasyIoT
  */
 @AutoConfiguration
 @ConditionalOnClass(LoginUser.class)

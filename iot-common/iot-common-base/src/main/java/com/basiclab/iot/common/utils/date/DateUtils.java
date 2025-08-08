@@ -9,7 +9,7 @@ import java.util.Date;
 /**
  * 时间工具类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class DateUtils {
 

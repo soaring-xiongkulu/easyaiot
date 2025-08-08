@@ -3,7 +3,7 @@ package com.basiclab.iot.common.constant;
 /**
  * 服务名称
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public class ServiceNameConstants
 {

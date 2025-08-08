@@ -6,7 +6,7 @@ import lombok.Getter;
 /**
  * 性别的枚举值
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Getter
 @AllArgsConstructor

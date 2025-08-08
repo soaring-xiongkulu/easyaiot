@@ -20,7 +20,7 @@ import static enums.com.basiclab.iot.infra.ErrorCodeConstants.*;
 /**
  * 学生 Service 实现类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Service
 @Validated

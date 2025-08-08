@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 /**
  * Excel相关处理
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public class ExcelUtil<T>
 {

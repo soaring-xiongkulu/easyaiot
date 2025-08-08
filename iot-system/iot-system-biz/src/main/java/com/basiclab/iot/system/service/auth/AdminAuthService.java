@@ -11,7 +11,7 @@ import javax.validation.Valid;
  *
  * 提供用户的登录、登出的能力
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface AdminAuthService {
 

@@ -5,7 +5,7 @@ import com.basiclab.iot.common.utils.ServletUtils;
 /**
  * 表格数据处理
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public class TableSupport
 {

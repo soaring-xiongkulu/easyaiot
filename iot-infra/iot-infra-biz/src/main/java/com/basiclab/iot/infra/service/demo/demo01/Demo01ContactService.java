@@ -10,7 +10,7 @@ import javax.validation.Valid;
 /**
  * 示例联系人 Service 接口
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface Demo01ContactService {
 

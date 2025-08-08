@@ -12,7 +12,7 @@ import org.springframework.aop.support.annotation.AnnotationMatchingPointcut;
 /**
  * {@link DataPermission} 注解的 Advisor 实现类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Getter
 @EqualsAndHashCode(callSuper = true)

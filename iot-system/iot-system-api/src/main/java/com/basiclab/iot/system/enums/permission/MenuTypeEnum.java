@@ -6,7 +6,7 @@ import lombok.Getter;
 /**
  * 菜单类型枚举类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Getter
 @AllArgsConstructor

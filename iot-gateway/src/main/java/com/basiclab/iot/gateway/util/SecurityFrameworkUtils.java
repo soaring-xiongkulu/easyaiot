@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
  *
  * copy from iot-spring-boot-starter-security 的 SecurityFrameworkUtils 类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Slf4j
 public class SecurityFrameworkUtils {

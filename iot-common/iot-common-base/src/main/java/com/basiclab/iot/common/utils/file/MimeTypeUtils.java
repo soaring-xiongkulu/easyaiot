@@ -3,7 +3,7 @@ package com.basiclab.iot.common.utils.file;
 /**
  * 媒体类型工具类
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public class MimeTypeUtils
 {

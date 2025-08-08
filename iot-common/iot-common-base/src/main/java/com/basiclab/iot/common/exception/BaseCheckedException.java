@@ -3,7 +3,7 @@ package com.basiclab.iot.common.exception;
 /**
  * 运行期异常基类
  *
- * @author IoT
+ * @author EasyIoT
  * @version 1.0
  */
 public abstract class BaseCheckedException extends BaseException {

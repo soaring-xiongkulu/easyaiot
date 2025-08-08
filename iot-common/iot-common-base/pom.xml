@@ -158,6 +158,13 @@
             <artifactId>netty-all</artifactId>
             <version>4.1.77.Final</version>
         </dependency>
+        <!--  lombok配置      -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.32</version>
+            <optional>true</optional>
+        </dependency>
         <!-- Test 测试相关 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

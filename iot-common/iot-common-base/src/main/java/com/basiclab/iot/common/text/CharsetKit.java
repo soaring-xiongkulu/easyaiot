@@ -10,7 +10,7 @@ import com.basiclab.iot.common.utils.StringUtils;
 /**
  * 字符集工具类
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public class CharsetKit
 {

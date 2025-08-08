@@ -15,7 +15,7 @@ import static java.util.Arrays.asList;
 /**
  * Collection 工具类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class CollectionUtils {
 

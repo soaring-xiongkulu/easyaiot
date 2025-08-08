@@ -6,7 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * 文件类型工具类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class FileTypeUtils
 {

@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 /**
  * 任务日志 Mapper
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Mapper
 public interface JobLogMapper extends BaseMapperX<JobLogDO> {

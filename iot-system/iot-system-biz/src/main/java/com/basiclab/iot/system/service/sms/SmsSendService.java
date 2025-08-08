@@ -8,7 +8,7 @@ import java.util.Map;
 /**
  * 短信发送 Service 接口
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface SmsSendService {
 

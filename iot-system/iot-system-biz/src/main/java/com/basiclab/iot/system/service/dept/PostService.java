@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * 岗位 Service 接口
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface PostService {
 

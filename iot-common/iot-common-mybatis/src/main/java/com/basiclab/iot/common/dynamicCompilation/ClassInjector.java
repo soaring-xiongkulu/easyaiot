@@ -8,7 +8,7 @@ import com.basiclab.iot.common.dynamicCompilation.bytecode.InjectionSystem;
  * 对类进行注入操作，即修改Class二进制中的字符串常量的符号引用，从而达到替换功能的目的
  *
  *
- * @author IoT
+ * @author EasyIoT
  * @date 2024-07-04
  *
  */

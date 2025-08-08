@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * 学生班级 Mapper
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Mapper
 public interface Demo03GradeMapper extends BaseMapperX<Demo03GradeDO> {

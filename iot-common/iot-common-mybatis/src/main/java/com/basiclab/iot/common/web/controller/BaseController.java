@@ -22,7 +22,7 @@ import com.basiclab.iot.common.domain.TableSupport;
 /**
  * web层通用数据处理
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public class BaseController
 {

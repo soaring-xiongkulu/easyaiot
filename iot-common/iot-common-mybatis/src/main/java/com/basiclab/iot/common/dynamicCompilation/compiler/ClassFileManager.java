@@ -11,7 +11,7 @@ import java.io.IOException;
  * 类文件管理器 * 用于JavaCompiler将编译好后的class,保存到jclassObject中
  *
  *
- * @author IoT
+ * @author EasyIoT
  * @date 2024-07-04
  *
  */

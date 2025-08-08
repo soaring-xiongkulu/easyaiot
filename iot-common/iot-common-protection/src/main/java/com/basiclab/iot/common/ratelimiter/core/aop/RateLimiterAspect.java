@@ -19,7 +19,7 @@ import java.util.Map;
 /**
  * 拦截声明了 {@link RateLimiter} 注解的方法，实现限流操作
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Aspect
 @Slf4j

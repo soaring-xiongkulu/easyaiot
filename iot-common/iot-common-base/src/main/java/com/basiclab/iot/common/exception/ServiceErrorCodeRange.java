@@ -25,7 +25,7 @@ package com.basiclab.iot.common.exception;
  *       不限制规则。
  *       一般建议，每个模块自增。
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class ServiceErrorCodeRange {
 

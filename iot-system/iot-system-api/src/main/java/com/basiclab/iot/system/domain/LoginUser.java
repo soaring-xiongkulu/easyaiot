@@ -7,7 +7,7 @@ import java.util.Set;
 /**
  * 用户信息
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class LoginUser implements Serializable
 {

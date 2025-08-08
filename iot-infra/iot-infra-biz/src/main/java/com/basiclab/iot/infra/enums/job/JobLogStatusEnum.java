@@ -6,7 +6,7 @@ import lombok.Getter;
 /**
  * 任务日志的状态枚举
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Getter
 @AllArgsConstructor

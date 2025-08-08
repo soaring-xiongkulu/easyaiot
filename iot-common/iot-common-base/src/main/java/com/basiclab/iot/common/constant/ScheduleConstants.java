@@ -3,7 +3,7 @@ package com.basiclab.iot.common.constant;
 /**
  * 任务调度通用常量
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public class ScheduleConstants
 {

@@ -8,7 +8,7 @@ import org.mapstruct.factory.Mappers;
 /**
  * 租户 Convert
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Mapper
 public interface TenantConvert {

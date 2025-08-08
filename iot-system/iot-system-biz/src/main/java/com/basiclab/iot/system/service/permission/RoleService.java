@@ -13,7 +13,7 @@ import java.util.Set;
 /**
  * 角色 Service 接口
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface RoleService {
 

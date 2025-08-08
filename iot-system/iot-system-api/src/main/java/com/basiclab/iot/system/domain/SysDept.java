@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * 部门表 sys_dept
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public class SysDept extends BaseEntity
 {

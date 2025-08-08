@@ -41,7 +41,7 @@ import static org.mockito.Mockito.*;
 /**
  * {@link FileConfigServiceImpl} 的单元测试类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Import(FileConfigServiceImpl.class)
 public class FileConfigServiceImplTest extends BaseDbUnitTest {

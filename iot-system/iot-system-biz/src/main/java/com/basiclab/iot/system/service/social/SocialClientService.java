@@ -14,7 +14,7 @@ import javax.validation.Valid;
 /**
  * 社交应用 Service 接口
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface SocialClientService {
 

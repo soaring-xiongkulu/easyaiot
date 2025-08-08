@@ -10,7 +10,7 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * @author IoT
+ * @author EasyIoT
  * @desc
  * @created 2024-05-27
  */

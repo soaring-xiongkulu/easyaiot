@@ -41,7 +41,7 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
 /**
  * Auth Service 实现类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Service
 @Slf4j

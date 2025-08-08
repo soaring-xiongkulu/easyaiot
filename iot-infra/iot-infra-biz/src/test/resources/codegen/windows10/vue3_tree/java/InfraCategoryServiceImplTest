@@ -31,7 +31,7 @@ import static org.mockito.Mockito.*;
 /**
  * {@link InfraCategoryServiceImpl} 的单元测试类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Import(InfraCategoryServiceImpl.class)
 public class InfraCategoryServiceImplTest extends BaseDbUnitTest {

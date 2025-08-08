@@ -29,7 +29,7 @@ import static com.basiclab.iot.common.utils.collection.CollectionUtils.containsA
 /**
  * 定时任务 Service 实现类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Service
 @Validated

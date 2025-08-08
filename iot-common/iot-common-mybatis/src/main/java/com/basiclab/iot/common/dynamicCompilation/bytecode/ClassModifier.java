@@ -2,7 +2,7 @@ package com.basiclab.iot.common.dynamicCompilation.bytecode;
 
 /**
  * Class文件修改器
- * @author IoT
+ * @author EasyIoT
  * @date 2024-07-04
  */
 public class ClassModifier {

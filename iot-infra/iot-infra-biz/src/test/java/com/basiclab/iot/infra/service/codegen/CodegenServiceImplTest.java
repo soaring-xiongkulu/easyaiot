@@ -52,7 +52,7 @@ import static org.mockito.Mockito.when;
 /**
  * {@link CodegenServiceImpl} 的单元测试类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Import(CodegenServiceImpl.class)
 public class CodegenServiceImplTest extends BaseDbUnitTest {

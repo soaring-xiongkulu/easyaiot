@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 /**
  * 数字的工具类，补全 {@link NumberUtil} 的功能
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class NumberUtils {
 

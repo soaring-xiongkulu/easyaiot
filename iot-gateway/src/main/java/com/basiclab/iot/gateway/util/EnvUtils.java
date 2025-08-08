@@ -13,7 +13,7 @@ import java.util.Objects;
  *
  * copy from iot-spring-boot-starter-env 的 EnvUtils 类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class EnvUtils {
 

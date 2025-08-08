@@ -16,7 +16,7 @@ import java.util.function.Consumer;
 /**
  * Map 工具类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class MapUtils {
 

@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * {@link AreaUtils} 的单元测试
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class AreaUtilsTest {
 

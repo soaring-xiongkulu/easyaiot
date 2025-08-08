@@ -12,7 +12,7 @@ import javax.annotation.Resource;
 /**
  * 针对 {@link MailSendMessage} 的消费者
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Component
 @Slf4j

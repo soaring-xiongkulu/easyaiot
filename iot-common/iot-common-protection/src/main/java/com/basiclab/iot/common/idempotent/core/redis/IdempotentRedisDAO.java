@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * 幂等 Redis Mapper
  *
- * @author IoT
+ * @author EasyIoT
  */
 @AllArgsConstructor
 public class IdempotentRedisDAO {

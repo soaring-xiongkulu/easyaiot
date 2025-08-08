@@ -24,7 +24,7 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
 /**
  * 短信验证码 Service 实现类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Service
 @Validated

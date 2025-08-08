@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * 短信发送消息
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Data
 public class SmsSendMessage {

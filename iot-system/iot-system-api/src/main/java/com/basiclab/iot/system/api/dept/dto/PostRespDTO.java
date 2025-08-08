@@ -6,7 +6,7 @@ import lombok.Data;
 /**
  * 岗位 Response DTO
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Schema(description = "RPC 服务 - 岗位 Response DTO")
 @Data

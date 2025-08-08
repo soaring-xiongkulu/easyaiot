@@ -20,7 +20,7 @@ import static java.io.File.separator;
  * <p>
  * 通过修改 groupIdNew、artifactIdNew、projectBaseDirNew 三个变量
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Slf4j
 public class ProjectReactor {

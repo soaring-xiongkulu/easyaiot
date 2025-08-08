@@ -36,7 +36,7 @@ import static com.basiclab.iot.common.utils.collection.CollectionUtils.convertSe
 /**
  * OAuth2.0 Token Service 实现类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Service
 public class OAuth2TokenServiceImpl implements OAuth2TokenService {

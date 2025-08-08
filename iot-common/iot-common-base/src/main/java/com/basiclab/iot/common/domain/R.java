@@ -7,7 +7,7 @@ import com.basiclab.iot.common.constant.Constants;
 /**
  * 响应信息主体
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class R<T> implements Serializable
 {

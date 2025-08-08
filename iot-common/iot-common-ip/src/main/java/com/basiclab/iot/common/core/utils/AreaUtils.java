@@ -22,7 +22,7 @@ import static com.basiclab.iot.common.utils.collection.CollectionUtils.findFirst
 /**
  * 区域工具类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Slf4j
 public class AreaUtils {

@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 /**
  * 拓展多租户的 BaseDO 基类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

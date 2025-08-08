@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 /**
  * API 异常数据
  *
- * @author IoT
+ * @author EasyIoT
  */
 @TableName("infra_api_error_log")
 @Data

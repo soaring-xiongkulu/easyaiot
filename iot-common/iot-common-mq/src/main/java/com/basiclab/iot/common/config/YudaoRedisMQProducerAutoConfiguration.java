@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Redis 消息队列 Producer 配置类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Slf4j
 @AutoConfiguration(after = YudaoRedisAutoConfiguration.class)

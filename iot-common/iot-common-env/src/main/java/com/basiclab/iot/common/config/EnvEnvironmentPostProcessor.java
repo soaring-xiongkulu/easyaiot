@@ -13,7 +13,7 @@ import java.util.Set;
  * 多环境的 {@link EnvEnvironmentPostProcessor} 实现类
  * 将 iot.env.tag 设置到 nacos 等组件对应的 tag 配置项，当且仅当它们不存在时
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class EnvEnvironmentPostProcessor implements EnvironmentPostProcessor {
 

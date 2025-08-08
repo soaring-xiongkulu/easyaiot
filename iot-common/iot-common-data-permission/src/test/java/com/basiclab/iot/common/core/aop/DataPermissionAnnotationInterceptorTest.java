@@ -17,7 +17,7 @@ import static org.mockito.Mockito.when;
 /**
  * {@link DataPermissionAnnotationInterceptor} 的单元测试
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class DataPermissionAnnotationInterceptorTest extends BaseMockitoUnitTest {
 

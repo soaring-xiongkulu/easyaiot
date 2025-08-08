@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * 学生 Service 接口
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface Demo03StudentService {
 

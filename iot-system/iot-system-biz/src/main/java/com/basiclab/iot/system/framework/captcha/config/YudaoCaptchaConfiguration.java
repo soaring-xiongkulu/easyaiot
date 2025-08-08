@@ -11,7 +11,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 /**
  * 验证码的配置类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Configuration(proxyBeanMethods = false)
 public class YudaoCaptchaConfiguration {

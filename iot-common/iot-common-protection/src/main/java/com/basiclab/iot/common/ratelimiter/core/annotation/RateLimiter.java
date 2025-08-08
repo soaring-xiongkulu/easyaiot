@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * 限流注解
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

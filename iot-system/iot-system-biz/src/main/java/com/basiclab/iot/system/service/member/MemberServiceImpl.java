@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 /**
  * Member Service 实现类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Service
 public class MemberServiceImpl implements MemberService {

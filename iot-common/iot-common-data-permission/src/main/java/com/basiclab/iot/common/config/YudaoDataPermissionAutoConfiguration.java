@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * 数据权限的自动配置类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @AutoConfiguration
 public class YudaoDataPermissionAutoConfiguration {

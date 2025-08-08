@@ -10,7 +10,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 /**
  * 权限获取工具类
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class SecurityUtils {
     /**

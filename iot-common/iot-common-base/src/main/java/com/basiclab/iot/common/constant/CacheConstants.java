@@ -3,7 +3,7 @@ package com.basiclab.iot.common.constant;
 /**
  * redis缓存的key 常量
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class CacheConstants {
     /**

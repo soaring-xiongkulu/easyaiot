@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * 代码生成 Service 接口
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface CodegenService {
 

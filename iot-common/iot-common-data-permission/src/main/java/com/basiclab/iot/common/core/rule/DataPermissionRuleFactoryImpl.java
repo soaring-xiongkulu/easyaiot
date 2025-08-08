@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
  * 默认的 DataPermissionRuleFactoryImpl 实现类
  * 支持通过 {@link DataPermissionContextHolder} 过滤数据权限
  *
- * @author IoT
+ * @author EasyIoT
  */
 @RequiredArgsConstructor
 public class DataPermissionRuleFactoryImpl implements DataPermissionRuleFactory {

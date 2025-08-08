@@ -52,7 +52,7 @@ import static org.mockito.Mockito.when;
 /**
  * {@link OAuth2OpenController} 的单元测试
  *
- * @author IoT
+ * @author EasyIoT
  */
 public class OAuth2OpenControllerTest extends BaseMockitoUnitTest {
 

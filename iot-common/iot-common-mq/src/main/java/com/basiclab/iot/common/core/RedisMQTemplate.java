@@ -17,7 +17,7 @@ import java.util.List;
 /**
  * Redis MQ 操作模板类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @AllArgsConstructor
 public class RedisMQTemplate {

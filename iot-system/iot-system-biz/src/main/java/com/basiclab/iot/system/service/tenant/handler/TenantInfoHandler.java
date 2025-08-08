@@ -6,7 +6,7 @@ import com.basiclab.iot.system.dal.dataobject.tenant.TenantDO;
  * 租户信息处理
  * 目的：尽量减少租户逻辑耦合到系统中
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface TenantInfoHandler {
 

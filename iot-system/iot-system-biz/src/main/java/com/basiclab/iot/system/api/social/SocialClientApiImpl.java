@@ -17,7 +17,7 @@ import static com.basiclab.iot.common.domain.CommonResult.success;
 /**
  * 社交应用的 API 实现类
  *
- * @author IoT
+ * @author EasyIoT
  */
 @RestController
 @Validated

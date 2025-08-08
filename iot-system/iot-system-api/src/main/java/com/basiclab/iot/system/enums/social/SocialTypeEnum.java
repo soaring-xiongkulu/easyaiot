@@ -10,7 +10,7 @@ import java.util.Arrays;
 /**
  * 社交平台的类型枚举
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Getter
 @AllArgsConstructor

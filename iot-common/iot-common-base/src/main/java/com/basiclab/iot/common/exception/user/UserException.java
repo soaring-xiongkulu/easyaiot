@@ -5,7 +5,7 @@ import com.basiclab.iot.common.exception.BaseException;
 /**
  * 用户信息异常类
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public class UserException extends BaseException
 {

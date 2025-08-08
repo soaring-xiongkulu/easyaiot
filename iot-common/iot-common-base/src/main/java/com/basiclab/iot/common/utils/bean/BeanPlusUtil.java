@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
  * 把一个拥有对属性进行set和get方法的类，我们就可以称之为JavaBean。
  * </p>
  *
- * @author IoT
+ * @author EasyIoT
  * @since 3.1.2
  */
 public class BeanPlusUtil extends BeanUtil {

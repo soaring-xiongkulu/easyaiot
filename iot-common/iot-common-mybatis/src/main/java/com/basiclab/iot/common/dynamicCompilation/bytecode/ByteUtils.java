@@ -2,7 +2,7 @@ package com.basiclab.iot.common.dynamicCompilation.bytecode;
 
 /**
  * 字节处理工具类
- * @author IoT
+ * @author EasyIoT
  * @date 2024-07-04
  */
 public class ByteUtils {

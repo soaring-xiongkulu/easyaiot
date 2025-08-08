@@ -1,7 +1,7 @@
 package com.basiclab.iot.common.mqs;
 
 /**
- * @author IoT
+ * @author EasyIoT
  */
 public interface ProductTopicConstant {
 

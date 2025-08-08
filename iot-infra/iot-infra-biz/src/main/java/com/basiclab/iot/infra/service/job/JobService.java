@@ -11,7 +11,7 @@ import javax.validation.Valid;
 /**
  * 定时任务 Service 接口
  *
- * @author IoT
+ * @author EasyIoT
  */
 public interface JobService {
 

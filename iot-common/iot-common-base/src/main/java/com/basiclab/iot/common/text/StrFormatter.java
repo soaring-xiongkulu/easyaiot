@@ -5,7 +5,7 @@ import com.basiclab.iot.common.utils.StringUtils;
 /**
  * 字符串格式化
  * 
- * @author IoT
+ * @author EasyIoT
  */
 public class StrFormatter
 {

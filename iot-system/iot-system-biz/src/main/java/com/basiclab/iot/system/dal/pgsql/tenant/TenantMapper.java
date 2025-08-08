@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * 租户 Mapper
  *
- * @author IoT
+ * @author EasyIoT
  */
 @Mapper
 public interface TenantMapper extends BaseMapperX<TenantDO> {

@@ -9,7 +9,7 @@ import java.util.Objects;
 /**
  * 代码生成模板类型
  *
- * @author IoT
+ * @author EasyIoT
  */
 @AllArgsConstructor
 @Getter
