@@ -5,18 +5,20 @@
 </div>
 
 ## EasyAIoT = AI + IoT = Cloud-Edge Integrated Solution
-#### Supports thousands of vertical scenarios with customizable AI models and algorithm development. Deep integration empowers intelligent vision for everything: EasyAIoT constructs an efficient access and management network for IoT devices (especially massive cameras). We deeply integrate real-time streaming technology with cutting-edge AI to create a unified service core. This solution not only enables interoperability across heterogeneous devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and perimeter intrusion detection.
+#### Supports thousands of vertical scenarios with customizable AI models and algorithm development. Deep integration empowers intelligent vision for everything: EasyAIoT constructs an efficient access and management network for IoT devices (especially massive cameras). We deeply integrate real-time streaming technology with cutting-edge AI to create a unified service core. This solution not only enables interoperability across heterogeneous devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and perimeter intrusion detection[1,7](@ref).
 
-## Some Thoughts on the Project:
-I believe no single programming language excels at everything. However, blending three languages could make EasyAIoT utterly formidable – and I happen to possess precisely this capability. Java is suited for building platforms but struggles with network and AI programming. Python excels at network and AI programming but isn't ideal for high-performance task execution. C++ is perfect for high-performance task execution but not as strong at the other two roles.
-The vision for EasyAIoT is to employ Trilanguage programming (Java, Python, C++), constructing an AIoT platform that is challenging to implement yet incredibly user-friendly.
-
+## Reflections on the Project
+### No single programming language excels at everything, but combining three languages makes EasyAIoT unparalleled—a strength I uniquely possess. Java excels at platform development but not network/AI programming; Python excels at network/AI programming but not high-performance tasks; C++ excels at high-performance tasks but not the former two. EasyAIoT adopts a hybrid programming approach combining all three, building an AIoT platform that's complex to implement but extremely easy to use[3,5](@ref).
 
 ![EasyAIoT Platform Architecture](.image/EasyAIoT平台架构.jpg)
 
-## Disclaimer:
+## Disclaimer
 
-EasyAIoT is an open-source learning project unrelated to commercial activities. Users must comply with laws and regulations and refrain from illegal activities. If EasyAIoT discovers user violations, it will cooperate with authorities and report to government agencies. Users bear full legal responsibility for illegal actions and shall compensate third parties for damages caused by usage. All EasyAIoT-related resources are used at the user's own risk.
+EasyAIoT is an open-source learning project unrelated to commercial activities. Users must comply with laws and regulations and refrain from illegal activities. If EasyAIoT discovers user violations, it will cooperate with authorities and report to government agencies. Users bear full legal responsibility for illegal actions and shall compensate third parties for damages caused by usage. All EasyAIoT-related resources are used at the user's own risk[1](@ref).
+
+## Frontend Project Repositories
+- Gitee: https://gitee.com/soaring-xiongkulu/easyaiot-web
+- Github: https://github.com/soaring-xiongkulu/easyaiot-web
 
 ## Backend Project Repositories
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot
@@ -34,30 +36,36 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 - **CSS**: UnoCSS 0.57.3
 - **Package Manager**: pnpm 9.0.4
 
+### Backend
+- **Core Framework**: Spring Boot 2.7.18
+- **Security Framework**: Spring Boot Starter Security
+- **Data Operations**: MyBatis-Plus
+- **Database**: PostgreSQL[1](@ref)
+
 ## Screenshots
 <div>
-  <img src=".image/banner/banner1001.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1009.jpg" alt="图片1" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1001.png" alt="Screenshot 1" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1009.jpg" alt="Screenshot 2" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1006.jpg" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1010.jpg" alt="图片1" width="49%">
+  <img src=".image/banner/banner1006.jpg" alt="Screenshot 3" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1010.jpg" alt="Screenshot 4" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1007.jpg" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1008.jpg" alt="图片1" width="49%">
+  <img src=".image/banner/banner1007.jpg" alt="Screenshot 5" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1008.jpg" alt="Screenshot 6" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1011.jpg" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1012.jpg" alt="图片1" width="49%">
+  <img src=".image/banner/banner1011.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1012.jpg" alt="Screenshot 8" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1003.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1004.png" alt="图片1" width="49%">
+  <img src=".image/banner/banner1003.png" alt="Screenshot 9" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1004.png" alt="Screenshot 10" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1005.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1002.png" alt="图片1" width="49%">
+  <img src=".image/banner/banner1005.png" alt="Screenshot 11" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1002.png" alt="Screenshot 12" width="49%">
 </div>
 
 ## Contact Information
@@ -79,7 +87,7 @@ Voluntary paid membership for consulting, resources, and technical groups:
 ## Acknowledgements
 Thanks to the following contributors for code, feedback, donations, and support (in no particular order):
 - shup 派大星 棒槌 憨憨 一往无前 文艺小青年 lion 汪汪队立大功 春生 二群主 hao_chen yuer629 kong 岁月静好 Kunkka 李江峰 左耳向右 Chao. 灬
-- Mr.LuCkY
+- Mr.LuCkY[1](@ref)
 
 ## Open Source License
 [MIT LICENSE](LICENSE)
