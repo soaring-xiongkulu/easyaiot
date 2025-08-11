@@ -19,6 +19,11 @@ Deep integration empowers intelligent vision for everything: EasyAIoT constructs
 
 EasyAIoT is an open-source learning project unrelated to commercial activities. Users must comply with laws and regulations and refrain from illegal activities. If EasyAIoT discovers user violations, it will cooperate with authorities and report to government agencies. Users bear full legal responsibility for illegal actions and shall compensate third parties for damages caused by usage. All EasyAIoT-related resources are used at the user's own risk.
 
+## Demo Environment
+- Demo URL: http://pro.basiclab.top:8888/
+- Username: admin
+- Password: admin123
+
 ## Frontend Project Repositories
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot-web
 - Github: https://github.com/soaring-xiongkulu/easyaiot-web
@@ -57,6 +62,10 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 <div>
   <img src=".image/banner/banner1007.jpg" alt="Screenshot 5" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1008.jpg" alt="Screenshot 6" width="49%">
+</div>
+<div>
+  <img src=".image/banner/banner1013.jpg" alt="图片1" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1014.png" alt="图片1" width="49%">
 </div>
 <div>
   <img src=".image/banner/banner1011.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
