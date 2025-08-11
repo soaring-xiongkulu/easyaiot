@@ -5,7 +5,8 @@
 </div>
 
 ## Reflections on the Project
-#### No single programming language excels at everything, but combining three languages makes EasyAIoT unparalleled—a strength I uniquely possess. Java excels at platform development but not network/AI programming; Python excels at network/AI programming but not high-performance tasks; C++ excels at high-performance tasks but not the former two. EasyAIoT adopts a hybrid programming approach combining all three, building an AIoT platform that's complex to implement but extremely easy to use.
+#### No single programming language excels at everything, but combining three languages makes EasyAIoT unparalleled—a strength I uniquely possess. 
+#### Java excels at platform development but not network/AI programming; Python excels at network/AI programming but not high-performance tasks; C++ excels at high-performance tasks but not the former two. EasyAIoT adopts a hybrid programming approach combining all three, building an AIoT platform that's complex to implement but extremely easy to use.
 
 ## EasyAIoT = AI + IoT = Cloud-Edge Integrated Solution
 Supports thousands of vertical scenarios with customizable AI models and algorithm development. 
