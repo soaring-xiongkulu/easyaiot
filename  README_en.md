@@ -4,19 +4,19 @@
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
+## Reflections on the Project
+##### No single programming language excels at everything, but combining three languages makes EasyAIoT unparalleled—a strength I uniquely possess. Java excels at platform development but not network/AI programming; Python excels at network/AI programming but not high-performance tasks; C++ excels at high-performance tasks but not the former two. EasyAIoT adopts a hybrid programming approach combining all three, building an AIoT platform that's complex to implement but extremely easy to use.
+
 ## EasyAIoT = AI + IoT = Cloud-Edge Integrated Solution
 Supports thousands of vertical scenarios with customizable AI models and algorithm development. 
 
-Deep integration empowers intelligent vision for everything: EasyAIoT constructs an efficient access and management network for IoT devices (especially massive cameras). We deeply integrate real-time streaming technology with cutting-edge AI to create a unified service core. This solution not only enables interoperability across heterogeneous devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and perimeter intrusion detection[1,7](@ref).
-
-## Reflections on the Project
-No single programming language excels at everything, but combining three languages makes EasyAIoT unparalleled—a strength I uniquely possess. Java excels at platform development but not network/AI programming; Python excels at network/AI programming but not high-performance tasks; C++ excels at high-performance tasks but not the former two. EasyAIoT adopts a hybrid programming approach combining all three, building an AIoT platform that's complex to implement but extremely easy to use[3,5](@ref).
+Deep integration empowers intelligent vision for everything: EasyAIoT constructs an efficient access and management network for IoT devices (especially massive cameras). We deeply integrate real-time streaming technology with cutting-edge AI to create a unified service core. This solution not only enables interoperability across heterogeneous devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and perimeter intrusion detection.
 
 ![EasyAIoT Platform Architecture](.image/EasyAIoT平台架构.jpg)
 
 ## Disclaimer
 
-EasyAIoT is an open-source learning project unrelated to commercial activities. Users must comply with laws and regulations and refrain from illegal activities. If EasyAIoT discovers user violations, it will cooperate with authorities and report to government agencies. Users bear full legal responsibility for illegal actions and shall compensate third parties for damages caused by usage. All EasyAIoT-related resources are used at the user's own risk[1](@ref).
+EasyAIoT is an open-source learning project unrelated to commercial activities. Users must comply with laws and regulations and refrain from illegal activities. If EasyAIoT discovers user violations, it will cooperate with authorities and report to government agencies. Users bear full legal responsibility for illegal actions and shall compensate third parties for damages caused by usage. All EasyAIoT-related resources are used at the user's own risk.
 
 ## Frontend Project Repositories
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot-web
@@ -42,7 +42,7 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 - **Core Framework**: Spring Boot 2.7.18
 - **Security Framework**: Spring Boot Starter Security
 - **Data Operations**: MyBatis-Plus
-- **Database**: PostgreSQL[1](@ref)
+- **Database**: PostgreSQL
 
 ## Screenshots
 <div>
@@ -89,7 +89,7 @@ Voluntary paid membership for consulting, resources, and technical groups:
 ## Acknowledgements
 Thanks to the following contributors for code, feedback, donations, and support (in no particular order):
 - shup 派大星 棒槌 憨憨 一往无前 文艺小青年 lion 汪汪队立大功 春生 二群主 hao_chen yuer629 kong 岁月静好 Kunkka 李江峰 左耳向右 Chao. 灬
-- Mr.LuCkY[1](@ref)
+- Mr.LuCkY
 
 ## Open Source License
 [MIT LICENSE](LICENSE)
