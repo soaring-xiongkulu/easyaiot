@@ -7,8 +7,10 @@
 ## EasyAIoT = AI + IoT = Cloud-Edge Integrated Solution
 #### Supports thousands of vertical scenarios with customizable AI models and algorithm development. Deep integration empowers intelligent vision for everything: EasyAIoT constructs an efficient access and management network for IoT devices (especially massive cameras). We deeply integrate real-time streaming technology with cutting-edge AI to create a unified service core. This solution not only enables interoperability across heterogeneous devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and perimeter intrusion detection.
 
-## Project Vision:
-### No single programming language excels at everything, but combining three languages makes EasyAIoT unparalleled—a strength I uniquely possess. Java excels at platform development but not network/AI programming; Python excels at network/AI programming but not high-performance tasks; C++ excels at high-performance tasks but not the former two. EasyAIoT adopts a hybrid programming approach combining all three, building an AIoT platform that's complex to implement but extremely easy to use.
+## Some Thoughts on the Project:
+I believe no single programming language excels at everything. However, blending three languages could make EasyAIoT utterly formidable – and I happen to possess precisely this capability. Java is suited for building platforms but struggles with network and AI programming. Python excels at network and AI programming but isn't ideal for high-performance task execution. C++ is perfect for high-performance task execution but not as strong at the other two roles.
+The vision for EasyAIoT is to employ Trilanguage programming (Java, Python, C++), constructing an AIoT platform that is challenging to implement yet incredibly user-friendly.
+
 
 ![EasyAIoT Platform Architecture](.image/EasyAIoT平台架构.jpg)
 
