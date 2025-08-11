@@ -34,20 +34,20 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 
 ## 截图
 <div>
+  <img src=".image/banner/banner1001.png" alt="图片1" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1009.jpg" alt="图片1" width="49%" style="margin-right: 10px">
+</div>
+<div>
+  <img src=".image/banner/banner1006.jpg" alt="图片1" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1010.jpg" alt="图片1" width="49%">
+</div>
+<div>
   <img src=".image/banner/banner1007.jpg" alt="图片1" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1008.jpg" alt="图片1" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1009.jpg" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1010.jpg" alt="图片1" width="49%">
-</div>
-<div>
   <img src=".image/banner/banner1011.jpg" alt="图片1" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1012.jpg" alt="图片1" width="49%">
-</div>
-<div>
-  <img src=".image/banner/banner1001.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1002.png" alt="图片1" width="49%">
 </div>
 <div>
   <img src=".image/banner/banner1003.png" alt="图片1" width="49%" style="margin-right: 10px">
@@ -55,7 +55,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 </div>
 <div>
   <img src=".image/banner/banner1005.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1006.png" alt="图片1" width="49%">
+  <img src=".image/banner/banner1002.png" alt="图片1" width="49%">
 </div>
 
 ## 联系方式
