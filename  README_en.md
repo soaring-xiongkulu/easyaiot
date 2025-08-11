@@ -6,6 +6,7 @@
 
 ## EasyAIoT = AI + IoT = Cloud-Edge Integrated Solution
 Supports thousands of vertical scenarios with customizable AI models and algorithm development. 
+
 Deep integration empowers intelligent vision for everything: EasyAIoT constructs an efficient access and management network for IoT devices (especially massive cameras). We deeply integrate real-time streaming technology with cutting-edge AI to create a unified service core. This solution not only enables interoperability across heterogeneous devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and perimeter intrusion detection[1,7](@ref).
 
 ## Reflections on the Project
