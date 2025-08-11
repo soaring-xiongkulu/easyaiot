@@ -8,7 +8,7 @@ spring:
     name: system-server
 
   profiles:
-    active: local
+    active: dev
 
 server:
   port: 48099
