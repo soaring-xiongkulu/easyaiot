@@ -92,9 +92,10 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 <p><img src=".image/联系方式.jpg" alt="Contact QR Code" width="30%"></p>
 
 ### Knowledge Planet:
-Voluntary paid membership for consulting, resources, and technical groups:
-<p>
-<img src=".image/知识星球.jpg" alt="Knowledge Planet" width="30%">
+- Join Knowledge Planet voluntarily with payment for consultations, access to materials, and entry into WeChat technical groups.
+- If you are a student facing financial constraints, you may add my WeChat. Sponsor any amount to join the technical exchange group and Knowledge Planet. [Though not a bright pearl, I aspire to be fertile soil that nurtures new sprouts into pillars.]
+<p>  
+<img src=".image/知识星球.jpg" alt="Knowledge Planet" width="30%">  
 </p>
 
 ## Sponsorship
