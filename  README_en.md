@@ -4,16 +4,19 @@
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
-## Reflections on the Project
-#### No single programming language excels at everything, but combining three languages makes EasyAIoT unparalleled—a strength I uniquely possess. 
-#### Java excels at platform development but not network/AI programming; Python excels at network/AI programming but not high-performance tasks; C++ excels at high-performance tasks but not the former two. EasyAIoT adopts a hybrid programming approach combining all three, building an AIoT platform that's complex to implement but extremely easy to use.
+## Some Thoughts on the Project
+#### I believe no single programming language excels at everything. However, when three programming languages are combined, EasyAIoT will become unparalleled – and it happens that I possess this unique trait.
+Java is suitable for platform development but not for network or AI programming. Python excels at network and AI programming but is less ideal for high-performance task execution. C++ is great for high-performance tasks but struggles with the domains of the other two. EasyAIoT envisions employing trilingual hybrid coding to build an AIoT platform that is challenging to implement, but incredibly easy to use.
+![EasyAIoT Platform Architecture.jpg](.image/iframe2.jpg)
+#### EasyAIoT is not actually one project; it is five distinct projects.
+#### What's the benefit? Suppose you are on a resource-constrained device (like an RK3588). You can extract and independently deploy just one of those projects. Therefore, while this project appears to be a cloud platform, it simultaneously functions as an edge platform.
 
 ## EasyAIoT = AI + IoT = Cloud-Edge Integrated Solution
 Supports thousands of vertical scenarios with customizable AI models and algorithm development. 
 
 Deep integration empowers intelligent vision for everything: EasyAIoT constructs an efficient access and management network for IoT devices (especially massive cameras). We deeply integrate real-time streaming technology with cutting-edge AI to create a unified service core. This solution not only enables interoperability across heterogeneous devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and perimeter intrusion detection.
 
-![EasyAIoT Platform Architecture](.image/EasyAIoT平台架构.jpg)
+![EasyAIoT Platform Architecture](.image/iframe1.jpg)
 
 ## Disclaimer
 
