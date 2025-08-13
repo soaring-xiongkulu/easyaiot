@@ -1,0 +1,5 @@
+flask==2.3.2
+ultralytics==8.0.113
+minio==7.1.15
+torch==2.0.1
+torchvision==0.15.2
