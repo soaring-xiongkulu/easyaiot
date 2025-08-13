@@ -48,10 +48,8 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 - **Package Manager**: pnpm 9.0.4
 
 ### Backend
-- **Core Framework**: Spring Boot 2.7.18
-- **Security Framework**: Spring Boot Starter Security
-- **Data Operations**: MyBatis-Plus
-- **Database**: PostgreSQL
+- **DEVICE Module Framework**: Spring Boot 2.7.18、Spring Boot Starter Security、MyBatis-Plus、PostgreSQL
+- **AI Module Framework**：Python 3.9+, Flask, Flask-SQLAlchemy, threading, OpenCV (cv2), Pillow (PIL.Image), ultralytics, python-dotenv, PyYAML
 
 ## Screenshots
 <div>

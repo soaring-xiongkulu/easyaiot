@@ -48,10 +48,29 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 - **包管理器**：pnpm 9.0.4
 
 ### 后端
-- **核心框架**：Spring Boot 2.7.18
-- **安全框架**：Spring Boot Starter Security
-- **数据操作**：MyBatis-Plus
-- **数据库**：PostgreSQL
+- **DEVICE模块框架**: 
+  - Spring Boot 2.7.18
+  - Spring Boot Starter Security
+  - Gateway
+  - SkyWalking
+  - OpenFeign
+  - Sentinel
+  - Nacos
+  - Kafka
+  - TDEngine
+  - MyBatis-Plus
+  - PostgreSQL
+- **AI模块框架**：
+  - Python 3.9+
+  - Flask
+  - Flask-Cors
+  - Flask-Migrate
+  - Flask-SQLAlchemy
+  - threading
+  - OpenCV (cv2)
+  - Pillow (PIL.Image)
+  - ultralytics
+  - PyMySQL
 
 ## 截图
 <div>
