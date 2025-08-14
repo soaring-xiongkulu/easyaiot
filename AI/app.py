@@ -1,8 +1,6 @@
 from flask import Flask
 import json
-
 app = Flask(__name__)
-
 @app.route('/')
 def index_route():
     return "欢迎访问EasyAIoT平台"
