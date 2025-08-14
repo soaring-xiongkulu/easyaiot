@@ -1,4 +1,3 @@
-:/projects/easyaiot/README_en.md
 # 🚀 EasyAIoT (DeepCore AI Cloud Platform)
 ### 🌟 My vision is for this system to be accessible worldwide, achieving truly zero barriers to AI. Everyone should experience the benefits of AI, not just a privileged few.
 <div align="center">

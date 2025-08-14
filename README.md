@@ -1,4 +1,3 @@
-:/projects/easyaiot/README.md
 # 🚀 EasyAIoT（深度智核AI云平台）
 ### 🌟 我希望全世界都能使用这个系统，实现AI的真正0门槛，人人都能体验到AI带来的好处，而并不只是掌握在少数人手里。
 <div align="center">
