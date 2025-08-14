@@ -1,10 +1,10 @@
 // 模拟API调用，实际项目中应替换为真实的API端点
 
 // 获取训练状态
-export const getTrainStatus = async () => {
+export const getTrainStatus = async (taskId) => {
   // 修改为真实API调用
   try {
-    const response = await fetch('http://localhost:5000/train/status');
+    const response = await fetch(`/api/train/status/${taskId}`);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -21,7 +21,7 @@ export const getTrainStatus = async () => {
 export const startTrain = async (config) => {
   // 修改为真实API调用
   try {
-    const response = await fetch('http://localhost:5000/train/start', {
+    const response = await fetch('/api/train/start', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -41,11 +41,15 @@ export const startTrain = async (config) => {
 };
 
 // 停止训练
-export const stopTrain = async () => {
+export const stopTrain = async (taskId) => {
   // 修改为真实API调用
   try {
-    const response = await fetch('http://localhost:5000/train/stop', {
-      method: 'POST'
+    const response = await fetch(`/api/train/status/${taskId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({status: 'stopped'})
     });
     
     if (!response.ok) {
@@ -60,10 +64,10 @@ export const stopTrain = async () => {
 };
 
 // 获取训练结果
-export const getTrainResult = async () => {
+export const getTrainResult = async (taskId) => {
   // 修改为真实API调用
   try {
-    const response = await fetch('http://localhost:5000/train/result');
+    const response = await fetch(`/api/train/logs/${taskId}`);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -77,10 +81,10 @@ export const getTrainResult = async () => {
 };
 
 // 获取训练配置
-export const getTrainConfig = async () => {
+export const getTrainConfig = async (taskId) => {
   // 修改为真实API调用
   try {
-    const response = await fetch('http://localhost:5000/train/config');
+    const response = await fetch(`/api/train/config/${taskId}`);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -95,32 +99,13 @@ export const getTrainConfig = async () => {
 
 // 更新训练配置
 export const updateTrainConfig = async (config) => {
-  // 修改为真实API调用
-  try {
-    const response = await fetch('http://localhost:5000/train/config', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(config)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    throw new Error(`更新配置失败: ${error.message}`);
-  }
 };
 
 // 获取训练日志
-export const getTrainLogs = async () => {
+export const getTrainLogs = async (taskId, page = 1, perPage = 10) => {
   // 修改为真实API调用
   try {
-    const response = await fetch('http://localhost:5000/train/logs');
+    const response = await fetch(`/api/train/logs/${taskId}?page=${page}&per_page=${perPage}`);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
