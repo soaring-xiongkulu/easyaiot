@@ -1,7 +1,5 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
-# 添加导入config模块
 from config import DB_CONFIG
 
 def get_db_connection():

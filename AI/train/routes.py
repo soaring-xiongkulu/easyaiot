@@ -1,5 +1,9 @@
 from flask import Blueprint, request, jsonify
 from .service import YOLOv8TrainingService
+from .service import (log_training_step_service, get_training_logs_service, 
+                     get_current_training_step_service, get_training_config_service,
+                     update_training_status_service, list_trainings_service)
+
 import os
 
 train_bp = Blueprint('train', __name__)
@@ -49,9 +53,6 @@ def training_status(task_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-from flask import jsonify, request
-from .service import log_training_step_service, get_training_logs_service, get_current_training_step_service
-
 def log_training_step():
     try:
         data = request.get_json()
@@ -85,5 +86,43 @@ def get_current_training_step(training_id):
             return jsonify(result), 200
         else:
             return jsonify({"message": "No training logs found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 新增：获取训练配置
+def get_training_config(training_id):
+    try:
+        result = get_training_config_service(training_id)
+        if result:
+            return jsonify(result), 200
+        else:
+            return jsonify({"message": "No training config found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 新增：更新训练状态
+def update_training_status(training_id):
+    try:
+        data = request.get_json()
+        status = data.get('status')
+        
+        if not status:
+            return jsonify({"error": "status is required"}), 400
+            
+        result = update_training_status_service(training_id, status)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 新增：列出所有训练任务
+def list_trainings():
+    try:
+        # 获取分页参数
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        offset = (page - 1) * per_page
+        
+        result = list_trainings_service(page, per_page, offset)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

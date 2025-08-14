@@ -1,5 +1,6 @@
 from flask import jsonify, request
 from .service import get_model_service_service, deploy_model_service, check_model_service_status_service, list_model_services_service
+from .service import stop_model_service_service, get_model_service_detail_service
 
 def get_model_service(model_id):
     try:
@@ -31,6 +32,22 @@ def check_model_service_status(model_id):
 def list_model_services():
     try:
         result, status_code = list_model_services_service()
+        return jsonify(result), status_code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 新增：停止模型服务
+def stop_model_service(model_id):
+    try:
+        result, status_code = stop_model_service_service(model_id)
+        return jsonify(result), status_code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 新增：获取模型服务详细信息
+def get_model_service_detail(model_id):
+    try:
+        result, status_code = get_model_service_detail_service(model_id)
         return jsonify(result), status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -1,14 +1,23 @@
 from minio import Minio
 from config import Config
+# 添加 urlparse 导入
 from urllib.parse import urlparse
 
-def create_minio_client():
-    return Minio(
-        Config.MINIO_ENDPOINT,
-        access_key=Config.MINIO_ACCESS_KEY,
-        secret_key=Config.MINIO_SECRET_KEY,
-        secure=Config.MINIO_SECURE
-    )
+def get_minio_client():
+    """
+    获取MinIO客户端实例
+    """
+    try:
+        client = Minio(
+            Config.MINIO_ENDPOINT,
+            access_key=Config.MINIO_ACCESS_KEY,
+            secret_key=Config.MINIO_SECRET_KEY,
+            secure=Config.MINIO_SECURE
+        )
+        return client
+    except Exception as e:
+        print(f"MinIO客户端初始化失败: {e}")
+        return None
 
 def download_from_minio(minio_url, local_path):
     """
@@ -27,7 +36,7 @@ def download_from_minio(minio_url, local_path):
     object_name = path_parts[1]
     
     # 创建MinIO客户端
-    client = create_minio_client()
+    client = get_minio_client()
     
     # 下载文件
     client.fget_object(bucket_name, object_name, local_path)
