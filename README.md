@@ -4,7 +4,7 @@
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
-## 关于项目的一些思考
+## 🌟 关于项目的一些思考
 #### 我认为没有任何一个编程语言是擅长所有事情，但如果是3种编程语言混合，EasyAIoT将所向披靡，恰好我具备这种特质。
 #### Java适合做平台但不适合网络编程和AI编程，Python适合做网络和AI编程但不适合做高性能任务执行，C++适合做高性能任务执行但不适合做前面两者做的事情，EasyAIoT设想是采用三合一语言混编，构建一个实现不太Easy，但是使用非常Easy的AIoT平台。
 ![EasyAIoT平台架构.jpg](.image/iframe2.jpg)
