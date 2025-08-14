@@ -3,8 +3,8 @@ import subprocess
 import requests
 import time
 import zipfile
-from ..utils.database import get_db_connection
-from ..utils.minio_client import get_minio_client
+from utils.database import get_db_connection
+from utils.minio_client import get_minio_client
 # 添加nacos相关导入
 import json
 

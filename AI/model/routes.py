@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
-from .service import get_model_service_service, deploy_model_service, check_model_service_status_service, list_model_services_service
-from .service import stop_model_service_service, get_model_service_detail_service
+from model.service import get_model_service_service, deploy_model_service, check_model_service_status_service, list_model_services_service
+from model.service import stop_model_service_service, get_model_service_detail_service
 
 # 创建model蓝图
 model_bp = Blueprint('model', __name__)

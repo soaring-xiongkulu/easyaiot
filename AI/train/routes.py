@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from .service import YOLOv8TrainingService
-from .service import (log_training_step_service, get_training_logs_service, 
+from train.service import YOLOv8TrainingService
+from train.service import (log_training_step_service, get_training_logs_service, 
                      get_current_training_step_service, get_training_config_service,
                      update_training_status_service, list_trainings_service)
 

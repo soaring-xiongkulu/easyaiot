@@ -1,14 +1,14 @@
 import json
-from ..utils.database import get_db_connection
+from utils.database import get_db_connection
 # 添加YOLOv8TrainingService类的实现
 from ultralytics import YOLO
 import uuid
 import os
-from ..utils.minio_client import download_from_minio
+from utils.minio_client import download_from_minio
 import threading
 import time
 # 添加MinIO客户端相关导入
-from ..utils.minio_client import get_minio_client
+from utils.minio_client import get_minio_client
 from urllib.parse import urlparse
 
 class YOLOv8TrainingService:

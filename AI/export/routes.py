@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, send_file
-from .service import YOLOv8ExportService
+from export.service import YOLOv8ExportService
 import os
 
 export_bp = Blueprint('export', __name__)
