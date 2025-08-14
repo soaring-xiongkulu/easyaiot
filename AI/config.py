@@ -13,8 +13,8 @@ DB_CONFIG = {
 class Config:
     # MinIO配置
     MINIO_ENDPOINT = os.environ.get('MINIO_ENDPOINT', 'iot.basiclab.top:9000')
-    MINIO_ACCESS_KEY = os.environ.get('MINIO_ACCESS_KEY', 'minioadmin')
-    MINIO_SECRET_KEY = os.environ.get('MINIO_SECRET_KEY', 'minioadmin')
+    MINIO_ACCESS_KEY = os.environ.get('MINIO_ACCESS_KEY', 'minio_root')
+    MINIO_SECRET_KEY = os.environ.get('MINIO_SECRET_KEY', 'minio_123456')
     MINIO_SECURE = os.environ.get('MINIO_SECURE', False)
     
     # 应用配置
