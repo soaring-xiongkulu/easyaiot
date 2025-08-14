@@ -1,14 +1,14 @@
 <template>
   <div class="ai-models">
-    <h1>AI Models</h1>
+    <h1>AI模型</h1>
     <div class="model-list">
-      <div v-if="loading" class="loading">Loading...</div>
+      <div v-if="loading" class="loading">加载中...</div>
       <div v-else>
         <div v-for="model in models" :key="model.id" class="model-card">
           <h3>{{ model.name }}</h3>
           <p>{{ model.description }}</p>
           <div class="model-info">
-            <span class="version">Version: {{ model.version }}</span>
+            <span class="version">版本: {{ model.version }}</span>
             <span class="status" :class="model.status">{{ model.status }}</span>
           </div>
         </div>
@@ -33,7 +33,7 @@ export default {
       const response = await axios.get('/models')
       this.models = response.data
     } catch (error) {
-      console.error('Error fetching models:', error)
+      console.error('获取模型时出错:', error)
     } finally {
       this.loading = false
     }

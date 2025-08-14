@@ -16,6 +16,7 @@ const TrainModel = () => {
   const [trainLogs, setTrainLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [logInterval, setLogInterval] = useState(null);
+  const [trainingProgress, setTrainingProgress] = useState(0);
 
   // 获取训练状态
   useEffect(() => {
@@ -57,6 +58,11 @@ const TrainModel = () => {
     try {
       const logs = await getTrainLogs();
       setTrainLogs(logs);
+      
+      // 模拟训练进度更新
+      if (trainStatus === 'training') {
+        setTrainingProgress(prev => Math.min(prev + 10, 100));
+      }
     } catch (error) {
       console.error('获取训练日志失败:', error);
     }
@@ -74,6 +80,7 @@ const TrainModel = () => {
       clearInterval(logInterval);
       setLogInterval(null);
     }
+    setTrainingProgress(0);
   };
 
   const handleStartTrain = async () => {
@@ -81,9 +88,11 @@ const TrainModel = () => {
     try {
       await startTrain(trainConfig);
       setTrainStatus('training');
+      setTrainingProgress(0);
       startLogPolling();
     } catch (error) {
       console.error('启动训练失败:', error);
+      alert('启动训练失败: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -97,6 +106,7 @@ const TrainModel = () => {
       stopLogPolling();
     } catch (error) {
       console.error('停止训练失败:', error);
+      alert('停止训练失败: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -116,6 +126,7 @@ const TrainModel = () => {
       alert('配置保存成功');
     } catch (error) {
       console.error('保存配置失败:', error);
+      alert('保存配置失败: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -128,6 +139,7 @@ const TrainModel = () => {
       setTrainResult(result);
     } catch (error) {
       console.error('获取训练结果失败:', error);
+      alert('获取训练结果失败: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -141,6 +153,21 @@ const TrainModel = () => {
       <div className="status-section">
         <h3>训练状态</h3>
         <p>当前状态: {trainStatus}</p>
+        
+        {/* 训练进度条 */}
+        {trainStatus === 'training' && (
+          <div className="progress-container">
+            <label>训练进度:</label>
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ width: `${trainingProgress}%` }}
+              ></div>
+            </div>
+            <span>{trainingProgress}%</span>
+          </div>
+        )}
+        
         <div className="status-actions">
           <button 
             onClick={handleStartTrain} 
@@ -217,8 +244,8 @@ const TrainModel = () => {
         </button>
         {trainResult && (
           <div className="result-content">
-            <p>准确率: {trainResult.accuracy}</p>
-            <p>损失值: {trainResult.loss}</p>
+            <p>准确率: {(trainResult.accuracy * 100).toFixed(2)}%</p>
+            <p>损失值: {trainResult.loss.toFixed(4)}</p>
             <p>训练时间: {trainResult.training_time} 秒</p>
           </div>
         )}
@@ -227,15 +254,24 @@ const TrainModel = () => {
       {/* 训练日志 */}
       <div className="logs-section">
         <h3>训练日志</h3>
-        <button onClick={fetchTrainLogs} disabled={loading}>
-          刷新日志
-        </button>
+        <div className="logs-controls">
+          <button onClick={fetchTrainLogs} disabled={loading}>
+            刷新日志
+          </button>
+          <button onClick={() => setTrainLogs([])} disabled={trainLogs.length === 0}>
+            清空日志
+          </button>
+        </div>
         <div className="logs-content">
-          {trainLogs.map((log, index) => (
-            <div key={index} className="log-entry">
-              [{log.timestamp}] {log.message}
-            </div>
-          ))}
+          {trainLogs.length > 0 ? (
+            trainLogs.map((log, index) => (
+              <div key={index} className="log-entry">
+                [{log.timestamp}] {log.message}
+              </div>
+            ))
+          ) : (
+            <p className="no-logs">暂无日志信息</p>
+          )}
         </div>
       </div>
     </div>

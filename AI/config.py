@@ -18,9 +18,9 @@ class Config:
     MINIO_SECURE = os.environ.get('MINIO_SECURE', False)
     
     # 应用配置
-    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')
-    MODEL_FOLDER = os.environ.get('MODEL_FOLDER', 'models')
-    DATASET_FOLDER = os.environ.get('DATASET_FOLDER', 'datasets')
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'data/uploads')
+    MODEL_FOLDER = os.environ.get('MODEL_FOLDER', 'data/models')
+    DATASET_FOLDER = os.environ.get('DATASET_FOLDER', 'data/datasets')
     
     # YOLOv8配置
     DEFAULT_EPOCHS = int(os.environ.get('DEFAULT_EPOCHS', 100))

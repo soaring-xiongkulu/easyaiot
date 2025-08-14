@@ -1,38 +1,38 @@
 <template>
   <div class="task-detail">
-    <div v-if="loading" class="loading">Loading task details...</div>
+    <div v-if="loading" class="loading">加载任务详情中...</div>
     <div v-else-if="task">
       <h1>{{ task.name }}</h1>
       <div class="task-info">
-        <p><strong>Description:</strong> {{ task.description }}</p>
-        <p><strong>Model:</strong> {{ task.modelName }} (v{{ task.modelVersion }})</p>
-        <p><strong>Status:</strong> 
+        <p><strong>描述:</strong> {{ task.description }}</p>
+        <p><strong>模型:</strong> {{ task.modelName }} (v{{ task.modelVersion }})</p>
+        <p><strong>状态:</strong> 
           <span class="status" :class="task.status">{{ task.status }}</span>
         </p>
-        <p><strong>Created:</strong> {{ formatDate(task.createdTime) }}</p>
-        <p><strong>Updated:</strong> {{ formatDate(task.updatedTime) }}</p>
+        <p><strong>创建时间:</strong> {{ formatDate(task.createdTime) }}</p>
+        <p><strong>更新时间:</strong> {{ formatDate(task.updatedTime) }}</p>
       </div>
       
       <div class="task-data">
         <div class="data-section">
-          <h3>Input Data</h3>
+          <h3>输入数据</h3>
           <pre>{{ task.inputData }}</pre>
         </div>
         
         <div v-if="task.outputData" class="data-section">
-          <h3>Output Data</h3>
+          <h3>输出数据</h3>
           <pre>{{ task.outputData }}</pre>
         </div>
       </div>
       
       <div class="task-actions">
-        <button v-if="task.status === 'pending'" @click="startTask" class="start-btn">Start Task</button>
-        <button @click="refreshTask" class="refresh-btn">Refresh</button>
-        <button @click="goBack" class="back-btn">Back to Tasks</button>
+        <button v-if="task.status === 'pending'" @click="startTask" class="start-btn">开始任务</button>
+        <button @click="refreshTask" class="refresh-btn">刷新</button>
+        <button @click="goBack" class="back-btn">返回任务列表</button>
       </div>
     </div>
     <div v-else class="error">
-      Task not found
+      未找到任务
     </div>
   </div>
 </template>
@@ -58,7 +58,7 @@ export default {
         const response = await axios.get(`/tasks/${this.id}`)
         this.task = response.data
       } catch (error) {
-        console.error('Error fetching task:', error)
+        console.error('获取任务时出错:', error)
       } finally {
         this.loading = false
       }
@@ -68,8 +68,8 @@ export default {
         await axios.post(`/tasks/${this.id}/start`)
         await this.fetchTask()
       } catch (error) {
-        console.error('Error starting task:', error)
-        alert('Failed to start task')
+        console.error('启动任务时出错:', error)
+        alert('启动任务失败')
       }
     },
     async refreshTask() {

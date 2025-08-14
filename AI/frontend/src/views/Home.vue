@@ -1,10 +1,10 @@
 <template>
   <div class="home">
-    <h1>AI Platform</h1>
-    <p>Welcome to the AI Platform. You can manage AI models and tasks here.</p>
+    <h1>AI平台</h1>
+    <p>欢迎来到AI平台。您可以在此管理AI模型和任务。</p>
     <div class="actions">
-      <button @click="goToModels">Manage AI Models</button>
-      <button @click="goToTasks">View Tasks</button>
+      <button @click="goToModels">管理AI模型</button>
+      <button @click="goToTasks">查看任务</button>
     </div>
   </div>
 </template>

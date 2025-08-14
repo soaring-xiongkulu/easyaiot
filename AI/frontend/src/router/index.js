@@ -8,33 +8,38 @@ import TaskDetail from '../views/TaskDetail.vue'
 Vue.use(VueRouter)
 
 const routes = [
-  {
-    path: '/',
-    name: 'Home',
-    component: Home
-  },
-  {
-    path: '/ai-models',
-    name: 'AIModels',
-    component: AIModels
-  },
-  {
-    path: '/tasks',
-    name: 'Tasks',
-    component: Tasks
-  },
-  {
-    path: '/tasks/:id',
-    name: 'TaskDetail',
-    component: TaskDetail,
-    props: true
-  }
+    {
+        path: '/',
+        name: 'Home',
+        component: Home
+    },
+    {
+        path: '/train',
+        name: 'Train',
+        component: () => import('../views/TrainView.vue')
+    },
+    {
+        path: '/ai-models',
+        name: 'AIModels',
+        component: AIModels
+    },
+    {
+        path: '/tasks',
+        name: 'Tasks',
+        component: Tasks
+    },
+    {
+        path: '/tasks/:id',
+        name: 'TaskDetail',
+        component: TaskDetail,
+        props: true
+    }
 ]
 
 const router = new VueRouter({
-  mode: 'history',
-  base: process.env.BASE_URL,
-  routes
+    mode: 'history',
+    base: process.env.BASE_URL,
+    routes
 })
 
 export default router

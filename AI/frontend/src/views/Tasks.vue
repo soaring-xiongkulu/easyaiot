@@ -1,39 +1,39 @@
 <template>
   <div class="tasks">
-    <h1>AI Tasks</h1>
+    <h1>AI任务</h1>
     <div class="task-actions">
-      <button @click="createTask" class="create-btn">Create New Task</button>
+      <button @click="createTask" class="create-btn">创建新任务</button>
     </div>
     <div class="task-list">
-      <div v-if="loading" class="loading">Loading...</div>
+      <div v-if="loading" class="loading">加载中...</div>
       <div v-else>
         <div v-for="task in tasks" :key="task.id" class="task-card" @click="viewTask(task.id)">
           <h3>{{ task.name }}</h3>
           <p>{{ task.description }}</p>
           <div class="task-info">
-            <span class="model">Model: {{ task.modelName }}</span>
+            <span class="model">模型: {{ task.modelName }}</span>
             <span class="status" :class="task.status">{{ task.status }}</span>
           </div>
         </div>
       </div>
     </div>
     
-    <!-- Create Task Modal -->
+    <!-- 创建任务模态框 -->
     <div v-if="showModal" class="modal">
       <div class="modal-content">
         <span class="close" @click="closeModal">&times;</span>
-        <h2>Create New Task</h2>
+        <h2>创建新任务</h2>
         <form @submit.prevent="submitTask">
           <div class="form-group">
-            <label for="name">Task Name:</label>
+            <label for="name">任务名称:</label>
             <input type="text" id="name" v-model="newTask.name" required>
           </div>
           <div class="form-group">
-            <label for="description">Description:</label>
+            <label for="description">描述:</label>
             <textarea id="description" v-model="newTask.description" required></textarea>
           </div>
           <div class="form-group">
-            <label for="modelId">AI Model:</label>
+            <label for="modelId">AI模型:</label>
             <select id="modelId" v-model="newTask.modelId" required>
               <option v-for="model in models" :key="model.id" :value="model.id">
                 {{ model.name }} (v{{ model.version }})
@@ -41,10 +41,10 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="inputData">Input Data:</label>
+            <label for="inputData">输入数据:</label>
             <textarea id="inputData" v-model="newTask.inputData" required></textarea>
           </div>
-          <button type="submit" class="submit-btn">Create Task</button>
+          <button type="submit" class="submit-btn">创建任务</button>
         </form>
       </div>
     </div>
@@ -80,7 +80,7 @@ export default {
         const response = await axios.get('/tasks')
         this.tasks = response.data
       } catch (error) {
-        console.error('Error fetching tasks:', error)
+        console.error('获取任务时出错:', error)
       } finally {
         this.loading = false
       }
@@ -90,7 +90,7 @@ export default {
         const response = await axios.get('/models')
         this.models = response.data
       } catch (error) {
-        console.error('Error fetching models:', error)
+        console.error('获取模型时出错:', error)
       }
     },
     createTask() {
@@ -118,8 +118,8 @@ export default {
         this.closeModal()
         await this.fetchTasks()
       } catch (error) {
-        console.error('Error creating task:', error)
-        alert('Failed to create task')
+        console.error('创建任务时出错:', error)
+        alert('创建任务失败')
       }
     },
     viewTask(id) {
@@ -214,7 +214,7 @@ export default {
   padding: 20px;
 }
 
-/* Modal Styles */
+/* 模态框样式 */
 .modal {
   display: block;
   position: fixed;
