@@ -5,3 +5,4 @@ torch==2.0.1
 torchvision==0.15.2
 psycopg2-binary==2.9.7
 nacos-sdk-python==0.1.7
+numpy==1.26.4
