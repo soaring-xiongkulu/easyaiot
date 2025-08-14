@@ -1,0 +1,45 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ai-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/aiot_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  cloud:
+    nacos:
+      server-addr: iot.basiclab.top:8848
+      discovery:
+        namespace: local
+        metadata:
+          version: 1.0.0
+        username: nacos
+        password: basiclab@iot78475418754
+      config:
+        server-addr: iot.basiclab.top:8848
+        namespace: local
+        group: DEFAULT_GROUP
+        name: ${spring.application.name}
+        file-extension: yaml
+        username: nacos
+        password: basiclab@iot78475418754
+
+# Minio配置
+minio:
+  endpoint: http://iot.basiclab.top:9000
+  user: minio_root
+  password: minio_123456
+  bucket: ai-service-bucket
+
+logging:
+  level:
+    com.alibaba.nacos: WARN
