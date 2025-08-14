@@ -1,6 +1,15 @@
-from flask import Flask
 import json
+
+from flask import Flask
+from train.routes import train_bp
+from export.routes import export_bp
+from model.routes import model_bp
 app = Flask(__name__)
+
+app.register_blueprint(train_bp, url_prefix='/train')
+app.register_blueprint(export_bp, url_prefix='/export')
+app.register_blueprint(model_bp, url_prefix='/model')
+
 @app.route('/')
 def index_route():
     return "欢迎访问EasyAIoT平台"
