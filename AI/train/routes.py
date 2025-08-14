@@ -53,6 +53,7 @@ def training_status(task_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@train_bp.route('/log', methods=['POST'])
 def log_training_step():
     try:
         data = request.get_json()
@@ -67,6 +68,7 @@ def log_training_step():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@train_bp.route('/logs/<training_id>', methods=['GET'])
 def get_training_logs(training_id):
     try:
         # 获取分页参数
@@ -79,6 +81,7 @@ def get_training_logs(training_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@train_bp.route('/current_step/<training_id>', methods=['GET'])
 def get_current_training_step(training_id):
     try:
         result = get_current_training_step_service(training_id)
@@ -90,6 +93,7 @@ def get_current_training_step(training_id):
         return jsonify({"error": str(e)}), 500
 
 # 新增：获取训练配置
+@train_bp.route('/config/<training_id>', methods=['GET'])
 def get_training_config(training_id):
     try:
         result = get_training_config_service(training_id)
@@ -101,6 +105,7 @@ def get_training_config(training_id):
         return jsonify({"error": str(e)}), 500
 
 # 新增：更新训练状态
+@train_bp.route('/status/<training_id>', methods=['PUT'])
 def update_training_status(training_id):
     try:
         data = request.get_json()
@@ -115,6 +120,7 @@ def update_training_status(training_id):
         return jsonify({"error": str(e)}), 500
 
 # 新增：列出所有训练任务
+@train_bp.route('/list', methods=['GET'])
 def list_trainings():
     try:
         # 获取分页参数

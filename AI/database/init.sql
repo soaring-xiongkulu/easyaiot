@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS training_logs (
     id SERIAL PRIMARY KEY,
     training_id VARCHAR(100) NOT NULL,
     step INTEGER NOT NULL,
-    operation TEXT NOT NULL,
+    operation TEXT NOT NOT,
     details JSONB,
     status VARCHAR(20) DEFAULT 'running',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
