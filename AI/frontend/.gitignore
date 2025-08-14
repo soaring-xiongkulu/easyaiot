@@ -5,7 +5,6 @@ dist
 .cache
 dist
 dist.zip
-dist.tar.gz
 
 tests/server/static
 tests/server/static/upload
