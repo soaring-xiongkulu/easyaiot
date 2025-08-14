@@ -48,3 +48,42 @@ def training_status(task_id):
             return jsonify({"error": "Task not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+from flask import jsonify, request
+from .service import log_training_step_service, get_training_logs_service, get_current_training_step_service
+
+def log_training_step():
+    try:
+        data = request.get_json()
+        training_id = data['training_id']
+        step = data['step']
+        operation = data['operation']
+        details = data.get('details', {})
+        status = data.get('status', 'running')
+        
+        result = log_training_step_service(training_id, step, operation, details, status)
+        return jsonify(result), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+def get_training_logs(training_id):
+    try:
+        # 获取分页参数
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        offset = (page - 1) * per_page
+        
+        result = get_training_logs_service(training_id, page, per_page, offset)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+def get_current_training_step(training_id):
+    try:
+        result = get_current_training_step_service(training_id)
+        if result:
+            return jsonify(result), 200
+        else:
+            return jsonify({"message": "No training logs found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

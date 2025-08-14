@@ -3,3 +3,5 @@ ultralytics==8.0.113
 minio==7.1.15
 torch==2.0.1
 torchvision==0.15.2
+psycopg2-binary==2.9.7
+nacos-sdk-python==0.1.7

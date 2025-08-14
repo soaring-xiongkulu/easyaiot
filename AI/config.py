@@ -1,8 +1,18 @@
 import os
 
+# 数据库配置
+DB_CONFIG = {
+    'host': os.getenv('DB_HOST', 'iot.basiclab.top'),
+    'database': os.getenv('DB_NAME', 'iot-ai10'),
+    'user': os.getenv('DB_USER', 'postgres'),
+    'password': os.getenv('DB_PASSWORD', 'basiclab@iot45722414822'),
+    'port': os.getenv('DB_PORT', '5432')
+}
+
+
 class Config:
     # MinIO配置
-    MINIO_ENDPOINT = os.environ.get('MINIO_ENDPOINT', 'localhost:9000')
+    MINIO_ENDPOINT = os.environ.get('MINIO_ENDPOINT', 'iot.basiclab.top:9000')
     MINIO_ACCESS_KEY = os.environ.get('MINIO_ACCESS_KEY', 'minioadmin')
     MINIO_SECRET_KEY = os.environ.get('MINIO_SECRET_KEY', 'minioadmin')
     MINIO_SECURE = os.environ.get('MINIO_SECURE', False)

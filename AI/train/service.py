@@ -1,92 +1,80 @@
-from ultralytics import YOLO
-import os
-import uuid
 import json
-import threading
-from utils.minio_client import download_from_minio
-from config import Config
+from ..system import get_db_connection
 
-class YOLOv8TrainingService:
-    def __init__(self):
-        self.tasks = {}
-        
-    def start_training(self, dataset_url, model_config):
-        task_id = str(uuid.uuid4())
-        
-        # 在后台线程中启动训练
-        thread = threading.Thread(
-            target=self._train_model, 
-            args=(task_id, dataset_url, model_config)
-        )
-        thread.start()
-        
-        self.tasks[task_id] = {
-            "status": "started",
-            "progress": 0,
-            "model_path": None,
-            "error": None
+def log_training_step_service(training_id, step, operation, details, status):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        'INSERT INTO training_logs (training_id, step, operation, details, status) VALUES (%s, %s, %s, %s, %s) RETURNING id;',
+        (training_id, step, operation, json.dumps(details), status)
+    )
+    log_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    return {"id": log_id, "message": "Training log recorded successfully"}
+
+def get_training_logs_service(training_id, page, per_page, offset):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # 查询总数
+    cur.execute('SELECT COUNT(*) FROM training_logs WHERE training_id = %s;', (training_id,))
+    total = cur.fetchone()[0]
+    
+    # 查询日志记录
+    cur.execute('''SELECT id, training_id, step, operation, details, status, created_at, updated_at 
+                  FROM training_logs 
+                  WHERE training_id = %s 
+                  ORDER BY step ASC, created_at ASC 
+                  LIMIT %s OFFSET %s;''', (training_id, per_page, offset))
+    logs = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    logs_list = []
+    for log in logs:
+        logs_list.append({
+            'id': log[0],
+            'training_id': log[1],
+            'step': log[2],
+            'operation': log[3],
+            'details': log[4],
+            'status': log[5],
+            'created_at': log[6].isoformat() if log[6] else None,
+            'updated_at': log[7].isoformat() if log[7] else None
+        })
+    
+    return {
+        "logs": logs_list,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": total
         }
-        
-        return task_id
+    }
+
+def get_current_training_step_service(training_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('''SELECT step, operation, details, status, created_at 
+                  FROM training_logs 
+                  WHERE training_id = %s 
+                  ORDER BY step DESC, created_at DESC 
+                  LIMIT 1;''', (training_id,))
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
     
-    def _train_model(self, task_id, dataset_url, model_config):
-        try:
-            self.tasks[task_id]["status"] = "downloading_dataset"
-            
-            # 从MinIO下载数据集
-            dataset_path = os.path.join(Config.DATASET_FOLDER, f"{task_id}_dataset.zip")
-            download_from_minio(dataset_url, dataset_path)
-            
-            # 解压数据集
-            import zipfile
-            extract_path = os.path.join(Config.DATASET_FOLDER, task_id)
-            with zipfile.ZipFile(dataset_path, 'r') as zip_ref:
-                zip_ref.extractall(extract_path)
-            
-            # 删除压缩包
-            os.remove(dataset_path)
-            
-            self.tasks[task_id]["status"] = "training"
-            
-            # 初始化模型
-            model_type = model_config.get('model_type', 'yolov8s.pt')
-            model = YOLO(model_type)
-            
-            # 训练参数
-            epochs = model_config.get('epochs', Config.DEFAULT_EPOCHS)
-            imgsz = model_config.get('imgsz', Config.DEFAULT_IMG_SIZE)
-            batch_size = model_config.get('batch_size', 16)
-            project = os.path.join(Config.MODEL_FOLDER, task_id)
-            
-            # 数据集配置文件路径
-            data_yaml_path = os.path.join(extract_path, 'data.yaml')
-            
-            # 开始训练
-            results = model.train(
-                data=data_yaml_path,
-                epochs=epochs,
-                imgsz=imgsz,
-                batch=batch_size,
-                project=project,
-                name='train',
-                exist_ok=True
-            )
-            
-            # 保存训练好的模型路径
-            model_path = os.path.join(project, 'train', 'weights', 'best.pt')
-            
-            self.tasks[task_id].update({
-                "status": "completed",
-                "progress": 100,
-                "model_path": model_path,
-                "results": str(results) if results else None
-            })
-            
-        except Exception as e:
-            self.tasks[task_id].update({
-                "status": "failed",
-                "error": str(e)
-            })
+    if result:
+        current_step = {
+            'step': result[0],
+            'operation': result[1],
+            'details': result[2],
+            'status': result[3],
+            'timestamp': result[4].isoformat() if result[4] else None
+        }
+        return current_step
     
-    def get_training_status(self, task_id):
-        return self.tasks.get(task_id)
+    return None
