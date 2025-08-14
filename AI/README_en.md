@@ -1,4 +1,4 @@
-# AI Module
+# 🤖 AI Module
 
 AI Module is an integrated platform for AI model training, deployment, management, and serviceization. The platform supports the complete lifecycle management of YOLOv8 object detection models, including training, export, and deployment as online services.
 
