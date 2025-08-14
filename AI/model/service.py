@@ -10,8 +10,8 @@ import json
 
 # 模型服务配置
 MODEL_STORAGE_PATH = os.environ.get('MODEL_STORAGE_PATH', '/tmp/models')
-NACOS_SERVER_ADDR = os.environ.get('NACOS_SERVER_ADDR', '127.0.0.1:8848')
-SERVICE_NAMESPACE = os.environ.get('SERVICE_NAMESPACE', 'public')
+NACOS_SERVER_ADDR = os.environ.get('NACOS_SERVER_ADDR', 'iot.basiclab.top:8848')
+SERVICE_NAMESPACE = os.environ.get('SERVICE_NAMESPACE', 'local')
 
 def get_model_service_service(model_id):
     conn = get_db_connection()
