@@ -248,33 +248,33 @@ def register_service_nacos(model_id, model_name, model_version):
 def start_model_service_process(model_id, model_path, port):
     service_process = subprocess.Popen([
         'python', '-c', f'''
-from flask import Flask, request, jsonify
-import sys
-import os
-sys.path.append('{model_path}')
-app = Flask(__name__)
-
-@app.route("/predict", methods=["POST"])
-def predict():
-    # 这里应该加载模型并执行推理
-    data = request.get_json()
-    # 模拟推理结果
-    return jsonify({{"model_id": "{model_id}", "result": "prediction_result", "status": "success"}})
-
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify({{"status": "healthy"}})
-
-@app.route("/info", methods=["GET"])
-def info():
-    return jsonify({{
-        "model_id": "{model_id}",
-        "service_status": "running"
-    }})
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port={port})
-'''])
+            from flask import Flask, request, jsonify
+            import sys
+            import os
+            sys.path.append('{model_path}')
+            app = Flask(__name__)
+            
+            @app.route("/predict", methods=["POST"])
+            def predict():
+                # 这里应该加载模型并执行推理
+                data = request.get_json()
+                # 模拟推理结果
+                return jsonify({{"model_id": "{model_id}", "result": "prediction_result", "status": "success"}})
+            
+            @app.route("/health", methods=["GET"])
+            def health():
+                return jsonify({{"status": "healthy"}})
+            
+            @app.route("/info", methods=["GET"])
+            def info():
+                return jsonify({{
+                    "model_id": "{model_id}",
+                    "service_status": "running"
+                }})
+            
+            if __name__ == "__main__":
+                app.run(host="0.0.0.0", port={port})
+        '''])
     return service_process
 
 # 新增：停止模型服务
