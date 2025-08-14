@@ -1,5 +1,8 @@
 from flask import Flask
+import json
+
 app = Flask(__name__)
+
 @app.route('/')
 def index_route():
     return "欢迎访问EasyAIoT平台"
@@ -14,10 +17,11 @@ def health_check():
     健康检查方法实现
     返回服务的健康状态
     """
-    return {
+    response = {
         "status": "healthy",
         "service": "AI-module"
     }
+    return json.dumps(response, ensure_ascii=False)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=5000)
