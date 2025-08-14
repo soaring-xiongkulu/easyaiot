@@ -8,6 +8,10 @@ from app import app
 
 class ModelRoutesTestCase(unittest.TestCase):
     def setUp(self):
+        # 修复Werkzeug版本访问问题
+        import werkzeug
+        if not hasattr(werkzeug, '__version__'):
+            werkzeug.__version__ = '2.0.0'  # 设置默认版本
         self.app = app.test_client()
         self.app.testing = True
 
@@ -41,17 +45,11 @@ class ModelRoutesTestCase(unittest.TestCase):
         data = response.get_json()
         self.assertIn('message', data)
 
-    @patch('model.service.get_db_connection')
     @patch('model.service.get_minio_client')
     @patch('model.service.start_model_service_process')
     @patch('model.service.register_service_nacos')
-    def test_deploy_model_success(self, mock_register_nacos, mock_start_process, mock_minio_client, mock_db):
+    def test_deploy_model_success(self, mock_register_nacos, mock_start_process, mock_minio_client): # 删除:, mock_db):
         # 模拟数据库连接和游标
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = None  # 表示模型服务不存在
         
         # 模拟模型服务进程
         mock_process = MagicMock()
@@ -81,15 +79,9 @@ class ModelRoutesTestCase(unittest.TestCase):
         
         self.assertEqual(response.status_code, 500)  # 由于实现中的异常处理逻辑
 
-    @patch('model.service.get_db_connection')
     @patch('requests.get')
-    def test_check_model_service_status_success(self, mock_requests_get, mock_db):
+    def test_check_model_service_status_success(self, mock_requests_get): # 删除:, mock_db):
         # 模拟数据库连接
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = ['http://localhost:9000', 'running']
         
         # 模拟HTTP请求
         mock_response = MagicMock()
@@ -101,28 +93,14 @@ class ModelRoutesTestCase(unittest.TestCase):
         data = response.get_json()
         self.assertEqual(data['model_id'], 'test_model_id')
 
-    @patch('model.service.get_db_connection')
-    def test_check_model_service_status_not_found(self, mock_db):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = None
+    def test_check_model_service_status_not_found(self): # 删除:, mock_db):
         
         response = self.app.get('/model/status/nonexistent_model_id')
         self.assertEqual(response.status_code, 404)
         data = response.get_json()
         self.assertIn('error', data)
 
-    @patch('model.service.get_db_connection')
-    def test_list_model_services(self, mock_db):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchall.return_value = [
-            ('test_model_id', 'Test Model', '1.0', 'http://localhost:9000', 'running', 9000, '2023-01-01T00:00:00')
-        ]
+    def test_list_model_services(self): # 删除:, mock_db):
         
         response = self.app.get('/model/list')
         self.assertEqual(response.status_code, 200)
@@ -131,13 +109,7 @@ class ModelRoutesTestCase(unittest.TestCase):
         if data:  # 如果有数据
             self.assertEqual(data[0]['model_id'], 'test_model_id')
 
-    @patch('model.service.get_db_connection')
-    def test_stop_model_service_success(self, mock_db):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = [12345, 9000]  # pid, port
+    def test_stop_model_service_success(self): # 删除:, mock_db):
         
         with patch('os.kill') as mock_kill:
             response = self.app.post('/model/stop/test_model_id')
@@ -145,32 +117,16 @@ class ModelRoutesTestCase(unittest.TestCase):
             data = response.get_json()
             self.assertIn('message', data)
 
-    @patch('model.service.get_db_connection')
-    def test_stop_model_service_not_found(self, mock_db):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = None
+    def test_stop_model_service_not_found(self): # 删除:, mock_db):
         
         response = self.app.post('/model/stop/nonexistent_model_id')
         self.assertEqual(response.status_code, 404)
         data = response.get_json()
         self.assertIn('error', data)
 
-    @patch('model.service.get_db_connection')
     @patch('requests.get')
-    def test_get_model_service_detail_success(self, mock_requests_get, mock_db):
+    def test_get_model_service_detail_success(self, mock_requests_get): # 删除:, mock_db):
         # 模拟数据库连接
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = [
-            1, 'test_model_id', 'Test Model', '1.0', '/path/to/model',
-            'http://localhost:9000', 'running', 9000, 12345,
-            '2023-01-01T00:00:00', '2023-01-01T00:00:00'
-        ]
         
         # 模拟HTTP请求
         mock_response = MagicMock()
@@ -183,13 +139,7 @@ class ModelRoutesTestCase(unittest.TestCase):
         self.assertEqual(data['model_id'], 'test_model_id')
         self.assertIn('health_status', data)
 
-    @patch('model.service.get_db_connection')
-    def test_get_model_service_detail_not_found(self, mock_db):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = None
+    def test_get_model_service_detail_not_found(self): # 删除:, mock_db):
         
         response = self.app.get('/model/detail/nonexistent_model_id')
         self.assertEqual(response.status_code, 404)
@@ -198,3 +148,4 @@ class ModelRoutesTestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

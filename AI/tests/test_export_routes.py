@@ -8,6 +8,10 @@ from app import app
 
 class ExportRoutesTestCase(unittest.TestCase):
     def setUp(self):
+        # 修复Werkzeug版本访问问题
+        import werkzeug
+        if not hasattr(werkzeug, '__version__'):
+            werkzeug.__version__ = '2.0.0'  # 设置默认版本
         self.app = app.test_client()
         self.app.testing = True
 

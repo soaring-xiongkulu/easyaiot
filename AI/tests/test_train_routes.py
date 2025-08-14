@@ -8,20 +8,22 @@ from app import app
 
 class TrainRoutesTestCase(unittest.TestCase):
     def setUp(self):
+        # 修复Werkzeug版本访问问题
+        import werkzeug
+        if not hasattr(werkzeug, '__version__'):
+            werkzeug.__version__ = '2.0.0'  # 设置默认版本
         self.app = app.test_client()
         self.app.testing = True
 
-    @patch('train.service.get_db_connection')
-    def test_train_info(self, mock_db):
+    def test_train_info(self):
         response = self.app.get('/train/')
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertIn('message', data)
         self.assertIn('endpoints', data)
 
-    @patch('train.service.get_db_connection')
     @patch('train.service.YOLOv8TrainingService.start_training')
-    def test_start_training_success(self, mock_start_training, mock_db):
+    def test_start_training_success(self, mock_start_training):
         mock_start_training.return_value = 'test_task_id'
         
         response = self.app.post('/train/start', 
@@ -35,8 +37,7 @@ class TrainRoutesTestCase(unittest.TestCase):
         data = response.get_json()
         self.assertEqual(data['task_id'], 'test_task_id')
 
-    @patch('train.service.get_db_connection')
-    def test_start_training_missing_dataset_url(self, mock_db):
+    def test_start_training_missing_dataset_url(self):
         response = self.app.post('/train/start', 
                                 json={'model_config': {'epochs': 5}},
                                 content_type='application/json')
@@ -45,9 +46,8 @@ class TrainRoutesTestCase(unittest.TestCase):
         data = response.get_json()
         self.assertIn('error', data)
 
-    @patch('train.service.get_db_connection')
     @patch('train.service.YOLOv8TrainingService.get_training_status')
-    def test_training_status_success(self, mock_get_status, mock_db):
+    def test_training_status_success(self, mock_get_status):
         mock_get_status.return_value = {
             'step': 1,
             'operation': 'download_dataset',
@@ -61,21 +61,14 @@ class TrainRoutesTestCase(unittest.TestCase):
         data = response.get_json()
         self.assertEqual(data['step'], 1)
 
-    @patch('train.service.get_db_connection')
     @patch('train.service.YOLOv8TrainingService.get_training_status')
-    def test_training_status_not_found(self, mock_get_status, mock_db):
+    def test_training_status_not_found(self, mock_get_status):
         mock_get_status.return_value = None
         
         response = self.app.get('/train/status/nonexistent_task_id')
         self.assertEqual(response.status_code, 500)  # 由于实现中的异常处理逻辑
 
-    @patch('train.service.get_db_connection')
-    def test_log_training_step(self, mock_db):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = [1]
+    def test_log_training_step(self):
         
         response = self.app.post('/train/log',
                                 json={
@@ -90,16 +83,7 @@ class TrainRoutesTestCase(unittest.TestCase):
         data = response.get_json()
         self.assertIn('id', data)
 
-    @patch('train.service.get_db_connection')
-    def test_get_training_logs(self, mock_db):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = [10]  # Total count
-        mock_cur.fetchall.return_value = [
-            (1, 'test_id', 1, 'test_op', {}, 'running', '2023-01-01T00:00:00', '2023-01-01T00:00:00')
-        ]
+    def test_get_training_logs(self):
         
         response = self.app.get('/train/logs/test_id')
         self.assertEqual(response.status_code, 200)
@@ -107,49 +91,26 @@ class TrainRoutesTestCase(unittest.TestCase):
         self.assertIn('logs', data)
         self.assertIn('pagination', data)
 
-    @patch('train.service.get_db_connection')
-    def test_get_current_training_step(self, mock_db):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = [1, 'test_op', {}, 'running', '2023-01-01T00:00:00']
+    def test_get_current_training_step(self):
         
         response = self.app.get('/train/current_step/test_id')
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertEqual(data['step'], 1)
 
-    @patch('train.service.get_db_connection')
-    def test_get_current_training_step_not_found(self, mock_db):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = None
+    def test_get_current_training_step_not_found(self):
         
         response = self.app.get('/train/current_step/test_id')
         self.assertEqual(response.status_code, 404)
 
-    @patch('train.service.get_db_connection')
-    def test_get_training_config(self, mock_db):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = [{'epochs': 10}]
+    def test_get_training_config(self):
         
         response = self.app.get('/train/config/test_id')
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertIn('epochs', data[0])
 
-    @patch('train.service.get_db_connection')
-    def test_update_training_status(self, mock_db):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
+    def test_update_training_status(self):
         
         response = self.app.put('/train/status/test_id',
                                json={'status': 'completed'},
@@ -159,8 +120,7 @@ class TrainRoutesTestCase(unittest.TestCase):
         data = response.get_json()
         self.assertIn('message', data)
 
-    @patch('train.service.get_db_connection')
-    def test_update_training_status_missing_status(self, mock_db):
+    def test_update_training_status_missing_status(self):
         response = self.app.put('/train/status/test_id',
                                json={},
                                content_type='application/json')
@@ -169,16 +129,7 @@ class TrainRoutesTestCase(unittest.TestCase):
         data = response.get_json()
         self.assertIn('error', data)
 
-    @patch('train.service.get_db_connection')
-    def test_list_trainings(self, mock_db):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = [5]  # Total count
-        mock_cur.fetchall.return_value = [
-            ('test_id_1', 'running', '2023-01-01T00:00:00', '2023-01-01T00:00:00')
-        ]
+    def test_list_trainings(self):
         
         response = self.app.get('/train/list')
         self.assertEqual(response.status_code, 200)
@@ -188,3 +139,4 @@ class TrainRoutesTestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
