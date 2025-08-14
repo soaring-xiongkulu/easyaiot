@@ -35,11 +35,7 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 - Username: admin
 - Password: admin123
 
-## 💻 Frontend Project Repositories
-- Gitee: https://gitee.com/soaring-xiongkulu/easyaiot-web
-- Github: https://github.com/soaring-xiongkulu/easyaiot-web
-
-## ⚙️ Backend Project Repositories
+## ⚙️ Project Repositories
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot
 - Github: https://github.com/soaring-xiongkulu/easyaiot
 

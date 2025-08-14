@@ -35,11 +35,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 - 账号：admin
 - 密码：admin123
 
-## 💻 前端项目地址
-- Gitee：https://gitee.com/soaring-xiongkulu/easyaiot-web
-- Github：https://github.com/soaring-xiongkulu/easyaiot-web
-
-## ⚙️ 后端项目地址
+## ⚙️ 项目地址
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot
 - Github: https://github.com/soaring-xiongkulu/easyaiot
 
