@@ -10,7 +10,7 @@ import requests
 from flask import Flask, request, jsonify
 
 # 配置日志
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # 检查是否以root权限运行，如果不是则发出警告
@@ -42,6 +42,7 @@ def find_available_port(start_port):
     """
     import socket
     port = start_port
+    logger.info(f"开始查找可用端口，起始端口: {start_port}")
     while port < 65535:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -49,6 +50,8 @@ def find_available_port(start_port):
                 if result != 0:  # 端口可用
                     logger.info(f"找到可用端口: {port}")
                     return port
+                else:
+                    logger.debug(f"端口 {port} 已被占用，继续查找...")
         except Exception as e:
             logger.error(f"检查端口 {port} 时发生错误: {e}", exc_info=True)
         port += 1
@@ -118,17 +121,40 @@ def save_service_to_database():
     """
     try:
         import psycopg2
-        from config import DB_CONFIG
+        
+        # 尝试从项目配置中导入数据库配置
+        db_config = None
+        config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config.py')
+        
+        if os.path.exists(config_path):
+            try:
+                sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                from config import DB_CONFIG
+                db_config = DB_CONFIG
+                logger.info("成功从config.py导入数据库配置")
+            except Exception as e:
+                logger.warning(f"从config.py导入数据库配置失败: {e}")
+        
+        # 如果无法从config.py导入，则使用环境变量或默认值
+        if not db_config:
+            db_config = {
+                'host': os.getenv('DB_HOST', 'iot.basiclab.top'),
+                'database': os.getenv('DB_NAME', 'iot-ai10'),
+                'user': os.getenv('DB_USER', 'postgres'),
+                'password': os.getenv('DB_PASSWORD', 'basiclab@iot45722414822'),
+                'port': os.getenv('DB_PORT', '5432')
+            }
+            logger.info("使用环境变量或默认值作为数据库配置")
 
         logger.info("开始连接数据库...")
 
         # 数据库连接配置
         connection = psycopg2.connect(
-            host=DB_CONFIG['host'],
-            database=DB_CONFIG['database'],
-            user=DB_CONFIG['user'],
-            password=DB_CONFIG['password'],
-            port=DB_CONFIG['port']
+            host=db_config['host'],
+            database=db_config['database'],
+            user=db_config['user'],
+            password=db_config['password'],
+            port=db_config['port']
         )
 
         logger.info("数据库连接成功")
@@ -430,29 +456,25 @@ def init_service():
 
 # 修改主函数，确保在Flask直接运行时也能处理端口冲突
 if __name__ == "__main__":
-    # 检查是否在Flask CLI环境中运行
-    if os.environ.get('FLASK_RUN_FROM_CLI') == 'true':
-        logger.info("在Flask CLI环境中运行，跳过app.run()")
-    else:
-        try:
-            # 检查是否以root权限运行
-            if os.geteuid() != 0:
-                logger.warning("警告: 当前未以root用户运行，可能会导致模型服务启动失败")
-                logger.info("建议使用以下命令以root权限运行:")
-                logger.info(f"  sudo python {sys.argv[0]} {model_id} {model_path} {port}")
+    try:
+        # 检查是否以root权限运行
+        if os.geteuid() != 0:
+            logger.warning("警告: 当前未以root用户运行，可能会导致模型服务启动失败")
+            logger.info("建议使用以下命令以root权限运行:")
+            logger.info(f"  sudo python {sys.argv[0]} {model_id} {model_path} {port}")
 
-            logger.info(f"启动模型服务，模型ID: {model_id}，模型路径: {model_path}，端口: {port}")
+        logger.info(f"启动模型服务，模型ID: {model_id}，模型路径: {model_path}，端口: {port}")
 
-            # 初始化服务
-            init_service()
+        # 初始化服务
+        init_service()
 
-            # 更新服务状态
-            service_info['status'] = "running"
-            logger.info("服务状态更新为: running")
+        # 更新服务状态
+        service_info['status'] = "running"
+        logger.info("服务状态更新为: running")
 
-            # 启动Flask应用，使用找到的可用端口
-            logger.info(f"模型服务启动中，模型ID: {model_id}，端口: {port}")
-            app.run(host="0.0.0.0", port=port, debug=False)
-        except Exception as e:
-            logger.error(f"启动模型服务时发生错误: {e}", exc_info=True)
-            sys.exit(1)
+        # 启动Flask应用，使用找到的可用端口
+        logger.info(f"模型服务启动中，模型ID: {model_id}，端口: {port}")
+        app.run(host="0.0.0.0", port=port, debug=False)
+    except Exception as e:
+        logger.error(f"启动模型服务时发生错误: {e}", exc_info=True)
+        sys.exit(1)

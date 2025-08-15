@@ -8,6 +8,7 @@ import numpy as np
 from PIL import Image
 import base64
 from io import BytesIO
+import html
 
 # 测试配置
 BASE_URL = "http://localhost:5000"
@@ -19,32 +20,15 @@ def create_dummy_model():
     """
     创建一个虚拟的模型文件用于测试
     """
-    # 创建临时目录
-    temp_dir = tempfile.mkdtemp()
+    # 直接使用实际的模型文件路径
+    actual_model_path = "/projects/easyaiot/AI/yolov8n.pt"
     
-    # 创建模型文件
-    model_path = os.path.join(temp_dir, "test_model.pt")
-    with open(model_path, "w") as f:
-        f.write("# This is a dummy model file for testing purposes")
+    # 检查实际模型文件是否存在
+    if not os.path.exists(actual_model_path):
+        raise FileNotFoundError(f"实际模型文件未找到: {actual_model_path}")
     
-    # 创建配置文件
-    config_path = os.path.join(temp_dir, "model_config.json")
-    config_data = {
-        "model_id": TEST_MODEL_ID,
-        "model_name": TEST_MODEL_NAME,
-        "model_version": TEST_MODEL_VERSION,
-        "description": "Test model for deployment and inference"
-    }
-    with open(config_path, "w") as f:
-        json.dump(config_data, f, indent=2)
-    
-    # 创建zip文件
-    zip_path = os.path.join(temp_dir, f"{TEST_MODEL_ID}_{TEST_MODEL_VERSION}.zip")
-    with zipfile.ZipFile(zip_path, 'w') as zipf:
-        zipf.write(model_path, "test_model.pt")
-        zipf.write(config_path, "model_config.json")
-    
-    return zip_path
+    # 返回实际模型文件路径，而不是创建dummy模型
+    return actual_model_path
 
 def create_test_image():
     """
@@ -82,17 +66,17 @@ def test_model_deployment():
     """
     print("=== 测试模型部署 ===")
     
-    # 创建测试模型文件
-    model_zip_path = create_dummy_model()
-    print(f"创建测试模型文件: {model_zip_path}")
+    # 获取实际模型文件路径
+    model_file_path = create_dummy_model()
+    print(f"使用实际模型文件: {model_file_path}")
     
     try:
         # 准备部署数据
         files = {
             'model_file': (
-                os.path.basename(model_zip_path),
-                open(model_zip_path, 'rb'),
-                'application/zip'
+                os.path.basename(model_file_path),
+                open(model_file_path, 'rb'),
+                'application/octet-stream'
             )
         }
         
@@ -115,7 +99,12 @@ def test_model_deployment():
         
         print(f"部署请求状态码: {response.status_code}")
         if response.status_code not in [200, 201]:
-            print(f"部署失败: {response.text}")
+            error_msg = response.text
+            # 解码Unicode转义序列
+            decoded_msg = error_msg.encode('utf-8').decode('unicode_escape')
+            # 处理HTML实体编码
+            decoded_msg = html.unescape(decoded_msg)
+            print(f"部署失败: {decoded_msg}")
             return False, None
             
         deploy_result = response.json()
@@ -156,7 +145,12 @@ def test_model_status(model_id):
                 else:
                     print(f"模型服务状态: {status}，继续等待...")
             else:
-                print(f"查询状态失败: {response.text}")
+                error_msg = response.text
+                # 解码Unicode转义序列
+                decoded_msg = error_msg.encode('utf-8').decode('unicode_escape')
+                # 处理HTML实体编码
+                decoded_msg = html.unescape(decoded_msg)
+                print(f"查询状态失败: {decoded_msg}")
                 
         except requests.exceptions.RequestException as e:
             print(f"查询状态时发生错误: {e}")
@@ -191,7 +185,12 @@ def test_model_details(model_id):
             print(f"模型服务详细信息: {json.dumps(detail_data, indent=2, ensure_ascii=False)}")
             return True
         else:
-            print(f"查询详细信息失败: {response.text}")
+            error_msg = response.text
+            # 解码Unicode转义序列
+            decoded_msg = error_msg.encode('utf-8').decode('unicode_escape')
+            # 处理HTML实体编码
+            decoded_msg = html.unescape(decoded_msg)
+            print(f"查询详细信息失败: {decoded_msg}")
             return False
             
     except requests.exceptions.RequestException as e:
@@ -228,7 +227,12 @@ def test_model_inference(model_id):
             print(f"推理结果: {json.dumps(inference_result, indent=2, ensure_ascii=False)}")
             return True
         else:
-            print(f"推理失败: {response.text}")
+            error_msg = response.text
+            # 解码Unicode转义序列
+            decoded_msg = error_msg.encode('utf-8').decode('unicode_escape')
+            # 处理HTML实体编码
+            decoded_msg = html.unescape(decoded_msg)
+            print(f"推理失败: {decoded_msg}")
             # 对于新部署的模型，首次推理可能需要更多时间加载，可以重试
             print("等待一段时间后重试...")
             time.sleep(10)
@@ -244,7 +248,12 @@ def test_model_inference(model_id):
                 print(f"推理结果: {json.dumps(inference_result, indent=2, ensure_ascii=False)}")
                 return True
             else:
-                print(f"重试后仍然失败: {response.text}")
+                error_msg = response.text
+                # 解码Unicode转义序列
+                decoded_msg = error_msg.encode('utf-8').decode('unicode_escape')
+                # 处理HTML实体编码
+                decoded_msg = html.unescape(decoded_msg)
+                print(f"重试后仍然失败: {decoded_msg}")
                 return False
                 
     except requests.exceptions.RequestException as e:
@@ -266,7 +275,12 @@ def test_model_list():
             print(f"模型服务列表: {json.dumps(list_data, indent=2, ensure_ascii=False)}")
             return True
         else:
-            print(f"查询列表失败: {response.text}")
+            error_msg = response.text
+            # 解码Unicode转义序列
+            decoded_msg = error_msg.encode('utf-8').decode('unicode_escape')
+            # 处理HTML实体编码
+            decoded_msg = html.unescape(decoded_msg)
+            print(f"查询列表失败: {decoded_msg}")
             return False
             
     except requests.exceptions.RequestException as e:
@@ -288,7 +302,12 @@ def test_stop_model_service(model_id):
             print(f"停止服务结果: {json.dumps(stop_result, indent=2, ensure_ascii=False)}")
             return True
         else:
-            print(f"停止服务失败: {response.text}")
+            error_msg = response.text
+            # 解码Unicode转义序列
+            decoded_msg = error_msg.encode('utf-8').decode('unicode_escape')
+            # 处理HTML实体编码
+            decoded_msg = html.unescape(decoded_msg)
+            print(f"停止服务失败: {decoded_msg}")
             return False
             
     except requests.exceptions.RequestException as e:
@@ -318,7 +337,12 @@ def test_model_redployment(model_id):
         
         print(f"重新部署请求状态码: {response.status_code}")
         if response.status_code not in [200, 201]:
-            print(f"重新部署失败: {response.text}")
+            error_msg = response.text
+            # 解码Unicode转义序列
+            decoded_msg = error_msg.encode('utf-8').decode('unicode_escape')
+            # 处理HTML实体编码
+            decoded_msg = html.unescape(decoded_msg)
+            print(f"重新部署失败: {decoded_msg}")
             return False
             
         deploy_result = response.json()
