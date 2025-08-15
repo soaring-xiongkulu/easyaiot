@@ -90,6 +90,29 @@ class YOLOv8TrainingService:
             }, 'running', f'开始训练，共 {epochs} 轮，图像尺寸 {imgsz}，批大小 {batch_size}')
             
             # 执行训练
+            # 添加训练过程中的详细日志记录
+            training_results = []
+            
+            def on_train_epoch_end(trainer):
+                epoch = trainer.epoch
+                metrics = trainer.metrics
+                self._log_training_step(task_id, 3, 'training_epoch_end', {
+                    'epoch': epoch,
+                    'metrics': {k: float(v) for k, v in metrics.items() if isinstance(v, (int, float))}
+                }, 'running', f'训练轮次 {epoch+1} 完成')
+                
+            def on_train_batch_end(trainer):
+                batch = trainer.batch
+                if batch % 10 == 0:  # 每10个batch记录一次日志
+                    self._log_training_step(task_id, 3, 'training_batch_end', {
+                        'batch': batch,
+                        'epoch': trainer.epoch
+                    }, 'running', f'训练批次 {batch} 完成，当前轮次 {trainer.epoch+1}')
+            
+            # 注册回调函数
+            model.add_callback('on_train_epoch_end', on_train_epoch_end)
+            model.add_callback('on_train_batch_end', on_train_batch_end)
+            
             results = model.train(
                 data=dataset_path,
                 epochs=epochs,
@@ -106,6 +129,9 @@ class YOLOv8TrainingService:
                 'model_path': model_save_path,
                 'results': str(results)
             }, 'completed', f'训练完成，模型已保存至 {model_save_path}')
+            
+            # 自动保存最好的模型到数据库
+            self._save_best_model_to_db(task_id, model_save_path, model_config)
             
         except Exception as e:
             # 记录错误
@@ -222,6 +248,100 @@ class YOLOv8TrainingService:
             return current_step
         
         return None
+    
+    def _save_best_model_to_db(self, task_id, model_path, model_config):
+        """
+        将训练好的最佳模型保存到数据库和MinIO中
+        """
+        try:
+            # 生成模型ID和相关信息
+            model_id = f"model_{task_id}"
+            model_name = model_config.get('model_name', f'Trained_Model_{task_id[:8]}')
+            model_version = model_config.get('model_version', '1.0.0')
+            
+            # 记录模型保存步骤
+            self._log_training_step(task_id, 5, 'saving_best_model', {
+                'model_id': model_id,
+                'model_name': model_name,
+                'model_version': model_version
+            }, 'running', '正在保存最佳模型')
+            
+            # 创建模型zip文件
+            import zipfile
+            import shutil
+            import uuid
+            
+            # 创建临时目录
+            temp_dir = f'/tmp/model_{uuid.uuid4()}'
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # 复制模型文件到临时目录
+            model_filename = f"{model_id}.pt"
+            temp_model_path = os.path.join(temp_dir, model_filename)
+            shutil.copy2(model_path, temp_model_path)
+            
+            # 创建模型配置文件
+            config_data = {
+                'model_id': model_id,
+                'model_name': model_name,
+                'model_version': model_version,
+                'training_id': task_id,
+                'created_at': time.time()
+            }
+            config_path = os.path.join(temp_dir, 'model_config.json')
+            with open(config_path, 'w') as f:
+                json.dump(config_data, f, indent=2)
+            
+            # 压缩为zip文件
+            zip_filename = f"{model_id}_{model_version}.zip"
+            zip_path = f'/tmp/{zip_filename}'
+            with zipfile.ZipFile(zip_path, 'w') as zipf:
+                zipf.write(temp_model_path, model_filename)
+                zipf.write(config_path, 'model_config.json')
+            
+            # 上传到MinIO
+            minio_client = get_minio_client()
+            minio_model_path = f"models/{model_id}/{zip_filename}"
+            
+            # 确保存储桶存在
+            bucket_name = "ai-service-bucket"
+            try:
+                minio_client.make_bucket(bucket_name)
+            except Exception:
+                pass  # 存储桶可能已存在
+            
+            # 上传文件
+            minio_client.fput_object(bucket_name, minio_model_path, zip_path)
+            
+            # 保存模型信息到existing_models表
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute('''INSERT INTO existing_models 
+                         (model_id, model_name, model_version, model_description, model_path) 
+                         VALUES (%s, %s, %s, %s, %s) RETURNING id;''',
+                       (model_id, model_name, model_version, 
+                        f"Auto-saved best model from training {task_id}", minio_model_path))
+            model_db_id = cur.fetchone()[0]
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            # 清理临时文件
+            shutil.rmtree(temp_dir)
+            os.remove(zip_path)
+            
+            # 记录保存成功
+            self._log_training_step(task_id, 5, 'model_saved', {
+                'model_id': model_id,
+                'model_db_id': model_db_id,
+                'minio_path': minio_model_path
+            }, 'completed', f'最佳模型已保存，模型ID: {model_id}')
+            
+        except Exception as e:
+            error_msg = f"保存最佳模型失败: {str(e)}"
+            self._log_training_step(task_id, 5, 'model_save_failed', {
+                'error': str(e)
+            }, 'failed', error_msg)
 
 def log_training_step_service(training_id, step, operation, details, status):
     conn = get_db_connection()

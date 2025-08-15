@@ -10,6 +10,9 @@ import json
 # 添加推理所需导入
 import sys
 import importlib.util
+# 添加文件操作相关导入
+import shutil
+import uuid
 
 # 模型服务配置
 MODEL_STORAGE_PATH = os.environ.get('MODEL_STORAGE_PATH', '/tmp/models')
@@ -44,7 +47,7 @@ def get_model_service_service(model_id):
     else:
         return {"message": "Model service not found"}, 404
 
-def deploy_model_service(model_id, model_name, model_version, minio_model_path):
+def deploy_model_service(model_id, model_name, model_version, minio_model_path=None, local_model_path=None):
     # 检查模型服务是否已存在
     conn = get_db_connection()
     cur = conn.cursor()
@@ -90,24 +93,45 @@ def deploy_model_service(model_id, model_name, model_version, minio_model_path):
     # 确保模型存储目录存在
     os.makedirs(MODEL_STORAGE_PATH, exist_ok=True)
     
-    # 构建本地模型路径
-    local_model_filename = f"{model_id}_{model_version}.zip"
-    local_model_path = os.path.join(MODEL_STORAGE_PATH, local_model_filename)
-    
-    # 从Minio下载模型
-    minio_client = get_minio_client()
-    minio_client.fget_object(
-        "ai-service-bucket",
-        minio_model_path,
-        local_model_path
-    )
-    
-    # 解压模型文件（假设是zip格式）
+    # 处理模型文件 - 支持从MinIO下载或使用本地上传的模型
     extract_path = os.path.join(MODEL_STORAGE_PATH, model_id)
     os.makedirs(extract_path, exist_ok=True)
     
-    with zipfile.ZipFile(local_model_path, 'r') as zip_ref:
-        zip_ref.extractall(extract_path)
+    if minio_model_path:
+        # 从Minio下载模型
+        local_model_filename = f"{model_id}_{model_version}.zip"
+        local_model_path = os.path.join(MODEL_STORAGE_PATH, local_model_filename)
+        
+        minio_client = get_minio_client()
+        minio_client.fget_object(
+            "ai-service-bucket",
+            minio_model_path,
+            local_model_path
+        )
+        
+        # 解压模型文件（假设是zip格式）
+        with zipfile.ZipFile(local_model_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_path)
+    elif local_model_path:
+        # 使用本地上传的模型文件
+        if os.path.isfile(local_model_path):
+            # 如果是zip文件，解压到目标目录
+            if local_model_path.endswith('.zip'):
+                with zipfile.ZipFile(local_model_path, 'r') as zip_ref:
+                    zip_ref.extractall(extract_path)
+            else:
+                # 如果是单个文件，直接复制到目标目录
+                filename = os.path.basename(local_model_path)
+                shutil.copy2(local_model_path, os.path.join(extract_path, filename))
+        else:
+            cur.close()
+            conn.close()
+            return {"error": "本地模型文件不存在"}, 400
+    else:
+        # 既没有指定MinIO路径也没有指定本地路径
+        cur.close()
+        conn.close()
+        return {"error": "必须提供模型文件路径"}, 400
     
     # 为模型服务分配端口
     port = 9000 + int(time.time()) % 1000  # 简单的端口分配策略
@@ -116,8 +140,25 @@ def deploy_model_service(model_id, model_name, model_version, minio_model_path):
     # 例如：使用Flask或其他框架启动模型推理服务
     service_process = start_model_service_process(model_id, extract_path, port)
     
-    # 保存模型服务信息到数据库
+    # 等待服务启动
     service_url = f"http://localhost:{port}"
+    max_wait_time = 30  # 最大等待时间30秒
+    start_time = time.time()
+    service_ready = False
+    
+    while time.time() - start_time < max_wait_time:
+        try:
+            response = requests.get(f"{service_url}/health", timeout=1)
+            if response.status_code == 200:
+                service_ready = True
+                break
+        except requests.exceptions.RequestException:
+            time.sleep(1)
+    
+    if not service_ready:
+        return {"error": "Model service failed to start within timeout"}, 500
+    
+    # 保存模型服务信息到数据库
     cur.execute('''INSERT INTO model_services 
                   (model_id, model_name, model_version, model_path, service_url, status, port, pid) 
                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;''',
