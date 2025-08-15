@@ -1,4 +1,4 @@
--- 删除已存在的表（如果存在）
+-- Delete已存在的表（如果存在）
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS devices CASCADE;
 DROP TABLE IF EXISTS data_records CASCADE;
