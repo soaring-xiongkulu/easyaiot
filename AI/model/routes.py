@@ -1,6 +1,8 @@
 from flask import Blueprint, jsonify, request
 from model.service import get_model_service_service, deploy_model_service, check_model_service_status_service, list_model_services_service
 from model.service import stop_model_service_service, get_model_service_detail_service
+# 添加predict相关导入
+from model.service import predict_service
 
 # 创建model蓝图
 model_bp = Blueprint('model', __name__)
@@ -57,6 +59,16 @@ def stop_model_service(model_id):
 def get_model_service_detail(model_id):
     try:
         result, status_code = get_model_service_detail_service(model_id)
+        return jsonify(result), status_code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 新增：模型推理接口
+@model_bp.route('/<model_id>/predict', methods=['POST'])
+def predict(model_id):
+    try:
+        data = request.get_json()
+        result, status_code = predict_service(model_id, data)
         return jsonify(result), status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -10,31 +10,47 @@ import time
 # 添加MinIO客户端相关导入
 from utils.minio_client import get_minio_client
 from urllib.parse import urlparse
+# 添加线程池相关导入
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import queue
 
 class YOLOv8TrainingService:
-    def __init__(self):
+    def __init__(self, max_workers=3):
+        # 使用线程池管理训练任务
+        self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.training_tasks = {}
+        self.task_futures = {}
     
     def start_training(self, dataset_url, model_config):
         # 生成任务ID
         task_id = str(uuid.uuid4())
         
-        # 在后台线程中启动训练
-        training_thread = threading.Thread(
-            target=self._run_training, 
-            args=(task_id, dataset_url, model_config)
-        )
-        training_thread.start()
+        # 提交训练任务到线程池
+        future = self.executor.submit(self._run_training, task_id, dataset_url, model_config)
         
-        # 记录训练任务
+        # 记录训练任务和对应的future
+        self.task_futures[task_id] = future
         self.training_tasks[task_id] = {
-            'thread': training_thread,
             'status': 'started',
             'dataset_url': dataset_url,
             'model_config': model_config
         }
         
+        # 添加future完成回调
+        future.add_done_callback(lambda f: self._training_completed(task_id, f))
+        
         return task_id
+    
+    def _training_completed(self, task_id, future):
+        # 当训练任务完成时更新状态
+        try:
+            result = future.result()
+            self.training_tasks[task_id]['status'] = 'completed'
+        except Exception as e:
+            self.training_tasks[task_id]['status'] = 'failed'
+            self._log_training_step(task_id, -1, 'training_error', {
+                'error': str(e)
+            }, 'failed', f'训练出错: {str(e)}')
     
     def _run_training(self, task_id, dataset_url, model_config):
         try:
@@ -96,6 +112,7 @@ class YOLOv8TrainingService:
             self._log_training_step(task_id, -1, 'training_error', {
                 'error': str(e)
             }, 'failed', f'训练出错: {str(e)}')
+            raise e  # 重新抛出异常，以便ThreadPoolExecutor能捕获
     
     def _download_dataset(self, dataset_url, task_id):
         # 实现实际的数据集下载逻辑

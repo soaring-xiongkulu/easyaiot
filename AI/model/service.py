@@ -7,6 +7,9 @@ from utils.database import get_db_connection
 from utils.minio_client import get_minio_client
 # 添加nacos相关导入
 import json
+# 添加推理所需导入
+import sys
+import importlib.util
 
 # 模型服务配置
 MODEL_STORAGE_PATH = os.environ.get('MODEL_STORAGE_PATH', '/tmp/models')
@@ -83,56 +86,56 @@ def deploy_model_service(model_id, model_name, model_version, minio_model_path):
                 "service_url": service_url,
                 "message": "模型服务重启成功"
             }, 200
-        
-        # 确保模型存储目录存在
-        os.makedirs(MODEL_STORAGE_PATH, exist_ok=True)
-        
-        # 构建本地模型路径
-        local_model_filename = f"{model_id}_{model_version}.zip"
-        local_model_path = os.path.join(MODEL_STORAGE_PATH, local_model_filename)
-        
-        # 从Minio下载模型
-        minio_client = get_minio_client()
-        minio_client.fget_object(
-            "ai-service-bucket",
-            minio_model_path,
-            local_model_path
-        )
-        
-        # 解压模型文件（假设是zip格式）
-        extract_path = os.path.join(MODEL_STORAGE_PATH, model_id)
-        os.makedirs(extract_path, exist_ok=True)
-        
-        with zipfile.ZipFile(local_model_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_path)
-        
-        # 为模型服务分配端口
-        port = 9000 + int(time.time()) % 1000  # 简单的端口分配策略
-        
-        # 启动模型服务（这里只是一个示例，实际应根据模型类型启动相应的服务）
-        # 例如：使用Flask或其他框架启动模型推理服务
-        service_process = start_model_service_process(model_id, extract_path, port)
-        
-        # 保存模型服务信息到数据库
-        service_url = f"http://localhost:{port}"
-        cur.execute('''INSERT INTO model_services 
-                      (model_id, model_name, model_version, model_path, service_url, status, port, pid) 
-                      VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;''',
-                   (model_id, model_name, model_version, extract_path, service_url, 'running', port, service_process.pid))
-        service_id = cur.fetchone()[0]
-        conn.commit()
-        cur.close()
-        conn.close()
-        
-        # 注册到Nacos
-        register_service_nacos(model_id, model_name, model_version)
-        
-        return {
-            "id": service_id,
-            "model_id": model_id,
-            "service_url": service_url,
-            "message": "模型部署成功"
-        }, 201
+    
+    # 确保模型存储目录存在
+    os.makedirs(MODEL_STORAGE_PATH, exist_ok=True)
+    
+    # 构建本地模型路径
+    local_model_filename = f"{model_id}_{model_version}.zip"
+    local_model_path = os.path.join(MODEL_STORAGE_PATH, local_model_filename)
+    
+    # 从Minio下载模型
+    minio_client = get_minio_client()
+    minio_client.fget_object(
+        "ai-service-bucket",
+        minio_model_path,
+        local_model_path
+    )
+    
+    # 解压模型文件（假设是zip格式）
+    extract_path = os.path.join(MODEL_STORAGE_PATH, model_id)
+    os.makedirs(extract_path, exist_ok=True)
+    
+    with zipfile.ZipFile(local_model_path, 'r') as zip_ref:
+        zip_ref.extractall(extract_path)
+    
+    # 为模型服务分配端口
+    port = 9000 + int(time.time()) % 1000  # 简单的端口分配策略
+    
+    # 启动模型服务（这里只是一个示例，实际应根据模型类型启动相应的服务）
+    # 例如：使用Flask或其他框架启动模型推理服务
+    service_process = start_model_service_process(model_id, extract_path, port)
+    
+    # 保存模型服务信息到数据库
+    service_url = f"http://localhost:{port}"
+    cur.execute('''INSERT INTO model_services 
+                  (model_id, model_name, model_version, model_path, service_url, status, port, pid) 
+                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;''',
+               (model_id, model_name, model_version, extract_path, service_url, 'running', port, service_process.pid))
+    service_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    # 注册到Nacos
+    register_service_nacos(model_id, model_name, model_version)
+    
+    return {
+        "id": service_id,
+        "model_id": model_id,
+        "service_url": service_url,
+        "message": "模型部署成功"
+    }, 201
 
 def check_model_service_status_service(model_id):
     conn = get_db_connection()
@@ -244,37 +247,19 @@ def register_service_nacos(model_id, model_name, model_version):
         print(f"Nacos registration failed: {e}")
         return False
 
-# 新增：启动模型服务进程
+# 修改：启动模型服务进程
 def start_model_service_process(model_id, model_path, port):
+    # 使用独立的启动脚本启动模型服务进程
+    script_path = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'model_launcher.py')
+    
+    # 确保脚本存在
+    if not os.path.exists(script_path):
+        raise FileNotFoundError(f"Model launcher script not found at {script_path}")
+    
+    # 启动模型服务进程，传递参数
     service_process = subprocess.Popen([
-        'python', '-c', f'''
-            from flask import Flask, request, jsonify
-            import sys
-            import os
-            sys.path.append('{model_path}')
-            app = Flask(__name__)
-            
-            @app.route("/predict", methods=["POST"])
-            def predict():
-                # 这里应该加载模型并执行推理
-                data = request.get_json()
-                # 模拟推理结果
-                return jsonify({{"model_id": "{model_id}", "result": "prediction_result", "status": "success"}})
-            
-            @app.route("/health", methods=["GET"])
-            def health():
-                return jsonify({{"status": "healthy"}})
-            
-            @app.route("/info", methods=["GET"])
-            def info():
-                return jsonify({{
-                    "model_id": "{model_id}",
-                    "service_status": "running"
-                }})
-            
-            if __name__ == "__main__":
-                app.run(host="0.0.0.0", port={port})
-        '''])
+        'python', script_path, model_id, model_path, str(port)
+    ])
     return service_process
 
 # 新增：停止模型服务
@@ -362,3 +347,30 @@ def get_model_service_detail_service(model_id):
         return model_service, 200
     else:
         return {"message": "Model service not found"}, 404
+
+# 新增：模型推理服务
+def predict_service(model_id, input_data):
+    # 获取模型服务信息
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT model_path, status, service_url FROM model_services WHERE model_id = %s;", (model_id,))
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
+    
+    if not result:
+        return {"error": "Model service not found"}, 404
+    
+    model_path, status, service_url = result
+    
+    if status != 'running':
+        return {"error": "Model service is not running"}, 400
+    
+    try:
+        # 尝试调用远程服务的predict接口
+        response = requests.post(f"{service_url}/predict", json=input_data, timeout=30)
+        return response.json(), response.status_code
+    except requests.exceptions.RequestException as e:
+        return {"error": f"Failed to call model service: {str(e)}"}, 500
+    except Exception as e:
+        return {"error": f"Prediction failed: {str(e)}"}, 500
