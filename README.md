@@ -11,6 +11,15 @@
 #### EasyAIoT其实不是一个项目，而是五个项目。
 #### 好处是什么呢？假如说你在一个受限的设备上（比如RK3588），你只需要拿出其中某个项目就可以独立部署，所以看似这个项目是云平台，其实他也可以是边缘平台。
 
+## 🎯 适用场景
+![适用场景.png](.image/适用场景.png)
+
+## 🛠️ 解决方案
+<div>
+  <img src=".image/解决方案1.png" alt="Screenshot 1" width="49%" style="margin-right: 10px">
+  <img src=".image/解决方案2.png" alt="Screenshot 2" width="49%">
+</div>
+
 ## 🧩 项目结构
 EasyAIoT由五个核心项目组成：
 - **WEB模块**: 基于Vue的前端管理界面

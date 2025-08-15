@@ -1,3 +1,4 @@
+:/projects/easyaiot/README_en.md
 # EasyAIoT (DeepCore AI Cloud Platform)
 ### My vision is for this system to be accessible worldwide, achieving truly zero barriers to AI. Everyone should experience the benefits of AI, not just a privileged few.
 <div align="center">
@@ -10,6 +11,15 @@
 ![EasyAIoT Platform Architecture.jpg](.image/iframe2.jpg)
 #### EasyAIoT is not actually one project; it is five distinct projects.
 #### What's the benefit? Suppose you are on a resource-constrained device (like an RK3588). You can extract and independently deploy just one of those projects. Therefore, while this project appears to be a cloud platform, it simultaneously functions as an edge platform.
+
+## 🎯 Application Scenarios
+![Application Scenarios.png](.image/适用场景.png)
+
+## 🛠️ Solutions
+<div>
+  <img src=".image/解决方案1.png" alt="Solution 1" width="49%" style="margin-right: 10px">
+  <img src=".image/解决方案2.png" alt="Solution 2" width="49%">
+</div>
 
 ## 🧩 Project Structure
 EasyAIoT consists of five core projects:
@@ -52,8 +62,29 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 - **Package Manager**: pnpm 9.0.4
 
 ### Backend
-- **DEVICE Module Framework**: Spring Boot 2.7.18、Spring Boot Starter Security、MyBatis-Plus、PostgreSQL
-- **AI Module Framework**：Python 3.9+, Flask, Flask-SQLAlchemy, threading, OpenCV (cv2), Pillow (PIL.Image), ultralytics, python-dotenv, PyYAML
+- **DEVICE Module Framework**: 
+  - Spring Boot 2.7.18
+  - Spring Boot Starter Security
+  - Gateway
+  - SkyWalking
+  - OpenFeign
+  - Sentinel
+  - Nacos
+  - Kafka
+  - TDEngine
+  - MyBatis-Plus
+  - PostgreSQL
+- **AI Module Framework**：
+  - Python 3.9+
+  - Flask
+  - Flask-Cors
+  - Flask-Migrate
+  - Flask-SQLAlchemy
+  - threading
+  - OpenCV (cv2)
+  - Pillow (PIL.Image)
+  - ultralytics
+  - PyMySQL
 
 ## 📸 Screenshots
 <div>
@@ -65,28 +96,28 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
   <img src=".image/banner/banner1010.jpg" alt="Screenshot 4" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1015.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1016.jpg" alt="图片1" width="49%">
+  <img src=".image/banner/banner1015.png" alt="Screenshot 5" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1016.jpg" alt="Screenshot 6" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1007.jpg" alt="Screenshot 5" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1008.jpg" alt="Screenshot 6" width="49%">
+  <img src=".image/banner/banner1007.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1008.jpg" alt="Screenshot 8" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1013.jpg" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1014.png" alt="图片1" width="49%">
+  <img src=".image/banner/banner1013.jpg" alt="Screenshot 9" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1014.png" alt="Screenshot 10" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1011.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1012.jpg" alt="Screenshot 8" width="49%">
+  <img src=".image/banner/banner1011.jpg" alt="Screenshot 11" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1012.jpg" alt="Screenshot 12" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1003.png" alt="Screenshot 9" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1004.png" alt="Screenshot 10" width="49%">
+  <img src=".image/banner/banner1003.png" alt="Screenshot 13" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1004.png" alt="Screenshot 14" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1005.png" alt="Screenshot 11" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1002.png" alt="Screenshot 12" width="49%">
+  <img src=".image/banner/banner1005.png" alt="Screenshot 15" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1002.png" alt="Screenshot 16" width="49%">
 </div>
 
 ## 📞 Contact Information
