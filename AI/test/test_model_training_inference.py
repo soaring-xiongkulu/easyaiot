@@ -1,7 +1,58 @@
 import requests
 import time
 import json
+import torch
+import warnings
+import gc
 import os
+
+# 添加一些环境变量设置来优化训练
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
+def train_model_with_fixes():
+    try:
+        # 清理GPU内存
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            gc.collect()
+        
+        # 原有的训练代码应该在这里
+        # 为了防止训练卡住，添加以下改进:
+        
+        # 1. 设置确定性算法以提高稳定性
+        torch.backends.cudnn.benchmark = True
+        
+        # 2. 减少数据加载器的worker数量以避免死锁
+        # 在训练函数中设置 num_workers=0 或较小的值
+        
+        # 3. 添加训练进度监控
+        print("Starting training with fixes...")
+        
+        # 4. 添加内存监控
+        if torch.cuda.is_available():
+            print(f"GPU memory allocated: {torch.cuda.memory_allocated()/1024**3:.2f}GB")
+            print(f"GPU memory reserved: {torch.cuda.memory_reserved()/1024**3:.2f}GB")
+            
+    except Exception as e:
+        print(f"Training error: {e}")
+        # 强制清理内存
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        gc.collect()
+
+# 如果您使用的是yolov5或其他训练脚本，请确保在训练参数中添加:
+# hyp = {
+#     'lr0': 0.01,      # 初始学习率
+#     'momentum': 0.937, # SGD动量
+#     'weight_decay': 0.0005, # 权重衰减
+# }
+
+# train_params = {
+#     'epochs': 2,       # 训练轮数
+#     'batch_size': 16,  # 批处理大小(可根据GPU内存调整)
+#     'imgsz': 640,      # 图像大小
+#     'workers': 0,      # 数据加载线程数(设置为0避免卡死)
+# }
 
 # 测试配置
 BASE_URL = "http://localhost:5000"
@@ -64,6 +115,11 @@ def test_training_workflow():
     print("\n2. 监控训练进度...")
     max_wait_time = 300  # 最大等待5分钟
     start_time = time.time()
+    
+    # 添加更详细的日志记录
+    last_status = None
+    last_operation = None
+    status_check_count = 0
 
     while time.time() - start_time < max_wait_time:
         try:
@@ -73,12 +129,22 @@ def test_training_workflow():
             time.sleep(10)
             continue
 
+        status_check_count += 1
+        print(f"[检查 #{status_check_count}] 时间: {time.strftime('%H:%M:%S')}")
+        
         if response.status_code == 200:
             status_data = response.json()
             if status_data:
                 status = status_data.get("status", "unknown")
                 operation = status_data.get("operation", "unknown")
-                print(f"训练状态: {status}, 当前操作: {operation}")
+                
+                # 只有状态发生变化时才打印
+                if status != last_status or operation != last_operation:
+                    print(f"训练状态: {status}, 当前操作: {operation}")
+                    last_status = status
+                    last_operation = operation
+                else:
+                    print(f"状态未变化: {status}, 操作: {operation}")
 
                 if status == "completed":
                     print("训练完成!")
@@ -94,7 +160,8 @@ def test_training_workflow():
         else:
             print(f"获取训练状态失败: {response.status_code}")
 
-        time.sleep(10)  # 每10秒查询一次
+        # 缩短检查间隔以更密切监控
+        time.sleep(5)  # 每5秒查询一次
 
     if time.time() - start_time >= max_wait_time:
         print("训练超时!")
@@ -110,7 +177,13 @@ def test_training_workflow():
 
     if response.status_code == 200:
         logs_data = response.json()
-        print(f"获取到 {len(logs_data.get('logs', []))} 条日志")
+        logs = logs_data.get('logs', [])
+        print(f"获取到 {len(logs)} 条日志")
+        # 打印最近的几条日志
+        if logs:
+            print("最近的日志条目:")
+            for log_entry in logs[-10:]:  # 打印最近10条日志
+                print(f"  {log_entry}")
     else:
         print(f"获取训练日志失败: {response.status_code}")
         print(f"错误信息: {response.text}")

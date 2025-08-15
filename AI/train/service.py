@@ -102,7 +102,8 @@ class YOLOv8TrainingService:
                 }, 'running', f'训练轮次 {epoch+1} 完成')
                 
             def on_train_batch_end(trainer):
-                batch = trainer.batch
+                # 修复：添加对batch属性的检查，避免直接访问可能不存在的属性
+                batch = getattr(trainer, 'batch', 0)
                 if batch % 10 == 0:  # 每10个batch记录一次日志
                     self._log_training_step(task_id, 3, 'training_batch_end', {
                         'batch': batch,
@@ -122,7 +123,38 @@ class YOLOv8TrainingService:
             
             # 保存模型
             model_save_path = f'/tmp/models/{task_id}.pt'
-            model.save(model_save_path)
+            
+            # 确保模型保存目录存在
+            os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+            
+            # 使用trainer属性保存模型
+            if hasattr(model, 'trainer') and hasattr(model.trainer, 'save_model'):
+                # 修复：save_model() 方法只需要一个参数（文件路径）
+                model.trainer.save_model()  # 不再传递路径参数
+                # 将模型文件从默认保存位置复制到目标位置
+                import shutil
+                import glob
+                # 查找最新生成的模型文件
+                default_save_path = model.trainer.save_dir / 'weights' / 'best.pt'
+                if default_save_path.exists():
+                    shutil.copy2(default_save_path, model_save_path)
+                else:
+                    # 如果best.pt不存在，尝试复制last.pt
+                    default_last_path = model.trainer.save_dir / 'weights' / 'last.pt'
+                    if default_last_path.exists():
+                        shutil.copy2(default_last_path, model_save_path)
+                    else:
+                        # 回退到保存当前模型状态
+                        import torch
+                        torch.save(model.model.state_dict(), model_save_path)
+            elif hasattr(model, 'trainer') and hasattr(model.trainer, 'best'):
+                # 如果有best属性，保存最佳模型权重
+                import torch
+                torch.save(model.trainer.best, model_save_path)
+            else:
+                # 回退到保存当前模型状态
+                import torch
+                torch.save(model.model.state_dict(), model_save_path)
             
             # 训练完成
             self._log_training_step(task_id, 4, 'training_completed', {
@@ -135,9 +167,11 @@ class YOLOv8TrainingService:
             
         except Exception as e:
             # 记录错误
+            error_msg = f'训练出错: {str(e)}'
+            print(error_msg)  # 在控制台打印错误信息
             self._log_training_step(task_id, -1, 'training_error', {
                 'error': str(e)
-            }, 'failed', f'训练出错: {str(e)}')
+            }, 'failed', error_msg)
             raise e  # 重新抛出异常，以便ThreadPoolExecutor能捕获
     
     def _download_dataset(self, dataset_url, task_id):
@@ -350,11 +384,21 @@ class YOLOv8TrainingService:
                 'minio_path': minio_model_path
             }, 'completed', f'最佳模型已保存，模型ID: {model_id}')
             
+            # 返回模型信息，以便调用者可以获取模型路径
+            return {
+                'model_id': model_id,
+                'model_name': model_name,
+                'model_version': model_version,
+                'minio_model_path': minio_model_path
+            }
+            
         except Exception as e:
             error_msg = f"保存最佳模型失败: {str(e)}"
+            print(error_msg)  # 在控制台打印错误信息
             self._log_training_step(task_id, 5, 'model_save_failed', {
                 'error': str(e)
             }, 'failed', error_msg)
+            return None
 
 def log_training_step_service(training_id, step, operation, details, status):
     conn = get_db_connection()
