@@ -430,25 +430,29 @@ def init_service():
 
 # 修改主函数，确保在Flask直接运行时也能处理端口冲突
 if __name__ == "__main__":
-    try:
-        # 检查是否以root权限运行
-        if os.geteuid() != 0:
-            logger.warning("警告: 当前未以root用户运行，可能会导致模型服务启动失败")
-            logger.info("建议使用以下命令以root权限运行:")
-            logger.info(f"  sudo python {sys.argv[0]} {model_id} {model_path} {port}")
+    # 检查是否在Flask CLI环境中运行
+    if os.environ.get('FLASK_RUN_FROM_CLI') == 'true':
+        logger.info("在Flask CLI环境中运行，跳过app.run()")
+    else:
+        try:
+            # 检查是否以root权限运行
+            if os.geteuid() != 0:
+                logger.warning("警告: 当前未以root用户运行，可能会导致模型服务启动失败")
+                logger.info("建议使用以下命令以root权限运行:")
+                logger.info(f"  sudo python {sys.argv[0]} {model_id} {model_path} {port}")
 
-        logger.info(f"启动模型服务，模型ID: {model_id}，模型路径: {model_path}，端口: {port}")
+            logger.info(f"启动模型服务，模型ID: {model_id}，模型路径: {model_path}，端口: {port}")
 
-        # 初始化服务
-        init_service()
+            # 初始化服务
+            init_service()
 
-        # 更新服务状态
-        service_info['status'] = "running"
-        logger.info("服务状态更新为: running")
+            # 更新服务状态
+            service_info['status'] = "running"
+            logger.info("服务状态更新为: running")
 
-        # 启动Flask应用，使用找到的可用端口
-        logger.info(f"模型服务启动中，模型ID: {model_id}，端口: {port}")
-        app.run(host="0.0.0.0", port=port, debug=False)
-    except Exception as e:
-        logger.error(f"启动模型服务时发生错误: {e}", exc_info=True)
-        sys.exit(1)
+            # 启动Flask应用，使用找到的可用端口
+            logger.info(f"模型服务启动中，模型ID: {model_id}，端口: {port}")
+            app.run(host="0.0.0.0", port=port, debug=False)
+        except Exception as e:
+            logger.error(f"启动模型服务时发生错误: {e}", exc_info=True)
+            sys.exit(1)
