@@ -159,6 +159,19 @@ class YOLOv8TrainingService:
             # 创建MinIO客户端
             client = get_minio_client()
             
+            # 检查存储桶是否存在，不存在则创建
+            try:
+                if not client.bucket_exists(bucket_name):
+                    client.make_bucket(bucket_name)
+            except Exception as e:
+                print(f"存储桶创建失败: {e}")
+                # 记录错误
+                self._log_training_step(task_id, 1, 'download_dataset', {
+                    'error': str(e)
+                }, 'failed', f'存储桶创建失败: {str(e)}')
+                # 出现异常时回退到默认数据集
+                return 'coco128.yaml'
+            
             # 列出文件夹中的所有对象
             objects = client.list_objects(bucket_name, prefix=folder_prefix, recursive=True)
             object_list = list(objects)
