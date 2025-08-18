@@ -238,6 +238,9 @@ const transform: AxiosTransform = {
       return Promise.reject(error)
 
     try {
+      if (code === 'DEMO_DENY')
+        errMessage = t('sys.api.demoDeny')
+
       if (code === 'ECONNABORTED' && message.includes('timeout'))
         errMessage = t('sys.api.apiTimeoutMessage')
 
