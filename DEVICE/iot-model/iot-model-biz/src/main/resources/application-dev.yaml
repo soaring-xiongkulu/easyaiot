@@ -45,7 +45,7 @@ spring:
           driver-class-name: org.postgresql.Driver
           url: jdbc:postgresql://iot.basiclab.top:5432/iot-device10?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
           username: postgres
-          password: basiclab@iot45722414822
+          password: iot45722414822
 
   # Redis 配置。Redisson 默认的配置足够使用，一般不需要进行调优
   redis:
