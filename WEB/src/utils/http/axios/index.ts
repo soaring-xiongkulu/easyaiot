@@ -238,6 +238,7 @@ const transform: AxiosTransform = {
       return Promise.reject(error)
 
     try {
+      alert(code)
       if (code === 'DEMO_DENY')
         errMessage = t('sys.api.demoDeny')
 

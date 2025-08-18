@@ -60,7 +60,7 @@ public class DemoBlockFilter implements GlobalFilter, Ordered {
      * 写入拒绝响应
      */
     private Mono<Void> writeDenyResponse(ServerHttpResponse response) {
-        response.setStatusCode(HttpStatus.LOCKED); // 423 资源锁定
+        response.setStatusCode(HttpStatus.OK);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         DataBuffer buffer = response.bufferFactory()
                 .wrap(DEMO_DENY_MSG.getBytes(StandardCharsets.UTF_8));
