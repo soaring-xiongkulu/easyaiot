@@ -74,16 +74,39 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
   - MyBatis-Plus
   - PostgreSQL
 - **AI模块框架**：
-  - Python 3.9+
+  - Python 3.11+
   - Flask
   - Flask-Cors
   - Flask-Migrate
   - Flask-SQLAlchemy
-  - threading
   - OpenCV (cv2)
   - Pillow (PIL.Image)
-  - ultralytics
-  - PyMySQL
+  - Ultralytics
+  - Psycopg2-Binary
+- **VIDEO模块框架**：
+  - Python 3.11+
+  - WSDiscovery
+  - Netifaces
+  - Onvif-Zeep
+  - Pyserial
+  - Paho_Mqtt
+  - Flask
+  - Flask-Cors
+  - Flask-Migrate
+  - Flask-SQLAlchemy
+  - Psycopg2-Binary
+- **TASK模块框架**：
+  - C++17
+  - Opencv2
+  - Httplib
+  - Json
+  - Librknn
+  - Minio-Cpp
+  - Mk-Media
+  - RGA
+  - Logging
+  - Queue
+  - Thread
 
 ## 📸 截图
 <div>
