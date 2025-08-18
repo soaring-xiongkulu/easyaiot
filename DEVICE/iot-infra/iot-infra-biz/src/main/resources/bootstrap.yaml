@@ -8,7 +8,7 @@ spring:
     name: infra-server
 
   profiles:
-    active: dev
+    active: local
 
 server:
   port: 48082

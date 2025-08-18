@@ -8,7 +8,7 @@ spring:
     name: model-server
 
   profiles:
-    active: dev
+    active: local
 
 server:
   port: 48088

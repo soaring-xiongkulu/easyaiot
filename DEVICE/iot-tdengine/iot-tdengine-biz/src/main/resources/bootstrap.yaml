@@ -8,7 +8,7 @@ spring:
     name: tdengine-server
 
   profiles:
-    active: dev
+    active: local
 
 server:
   port: 48091
