@@ -36,6 +36,9 @@ Deep integration empowers intelligent vision for everything: EasyAIoT constructs
 
 ![EasyAIoT Platform Architecture](.image/iframe1.jpg)
 
+## 🚧 Project Milestones
+<img src=".image/项目里程碑.jpg" alt="Screenshot 1">
+
 ## ⚠️ Disclaimer
 
 EasyAIoT is an open-source learning project unrelated to commercial activities. Users must comply with laws and regulations and refrain from illegal activities. If EasyAIoT discovers user violations, it will cooperate with authorities and report to government agencies. Users bear full legal responsibility for illegal actions and shall compensate third parties for damages caused by usage. All EasyAIoT-related resources are used at the user's own risk.
@@ -162,7 +165,7 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 
 ## 🙏 Acknowledgements
 Thanks to the following contributors for code, feedback, donations, and support (in no particular order):
-- shup 派大星 棒槌 憨憨 一往无前 文艺小青年 lion 汪汪队立大功 春生 二群主 hao_chen yuer629 kong 岁月静好 Kunkka 李江峰 左耳向右 Chao. 灬
+- shup 派大星 棒槌 憨憨 一往无前 文艺小青年 lion 汪汪队立大功 春生 二群主 hao_chen yuer629 kong 岁月静好 Kunkka 李江峰 左耳向右 Chao. 火
 - Mr.LuCkY 泓 i 放学丶别走 Kosho 小菜鸟先飞 追溯未来-_- 贵阳王老板 kevin 青衫 贾仁超 Lee ㏒灵韵№  Fae wcj 碎碎念. 怒放de生命
 - 蓝速传媒 Dorky TAT 北街 Achieve_Xu  NicholasLD 墨白 童年 take your time or 城市稻草人 小小白
 
