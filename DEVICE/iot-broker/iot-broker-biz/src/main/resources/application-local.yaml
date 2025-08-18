@@ -43,12 +43,12 @@ spring:
       datasource:
         master:
           driver-class-name: org.postgresql.Driver
-          url: jdbc:postgresql://127.0.0.1:5432/iot-device5?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
+          url: jdbc:postgresql://iot.basiclab.top:5432/iot-device5?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
           username: postgres
           password: iot45722414822
   # Redis 配置。Redisson 默认的配置足够使用，一般不需要进行调优
   redis:
-    host: 14.18.122.2 # 地址
+    host: iot.basiclab.top # 地址
     port: 6379 # 端口
     database: 0 # 数据库索引
     password: basiclab@iot975248395 # 密码，建议生产环境开启

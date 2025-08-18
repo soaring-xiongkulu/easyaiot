@@ -634,7 +634,7 @@ public class MinioSysFileServiceImpl implements ISysFileService {
     public String getUrl(String bucketName, String objectName) throws Exception {
         Object config = getConfig();
         MinioConfig minioConfig = (MinioConfig) config;
-        MinioClient minioClient = MinioClient.builder().endpoint("14.18.122.2").credentials(minioConfig.getAccessKey(), minioConfig.getSecretKey()).build();
+        MinioClient minioClient = MinioClient.builder().endpoint("iot.basiclab.top").credentials(minioConfig.getAccessKey(), minioConfig.getSecretKey()).build();
         return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder().method(Method.GET).bucket(
                 bucketName).object(objectName).expiry(1, TimeUnit.DAYS).build());
     }

@@ -240,7 +240,7 @@ fdfs:
 # Minio配置
 minio:
   url: http://10.0.0.87:9000
-  downloadUrl: http://14.18.122.2:9001
+  downloadUrl: http://iot.basiclab.top:9001
   accessKey: minio_root
   secretKey: minio_123456
   bucketName: snap-space
