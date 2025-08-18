@@ -24,6 +24,7 @@
     "commit": "czg",
     "bootstrap": "pnpm install",
     "serve": "pnpm dev",
+    "dev": "vite",
     "front": "vite --mode front",
     "build": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 vite build && esno ./build/script/postBuild.ts",
     "build:test": "cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build --mode test && esno ./build/script/postBuild.ts",
