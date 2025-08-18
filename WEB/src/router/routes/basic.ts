@@ -1,10 +1,16 @@
 import type { AppRouteRecordRaw } from '@/router/types'
-import { EXCEPTION_COMPONENT, LAYOUT, PAGE_NOT_FOUND_NAME, REDIRECT_NAME } from '@/router/constant'
+import {
+  EXCEPTION_COMPONENT,
+  LAYOUT,
+  PAGE_NOT_FOUND_NAME,
+  PARENT_LAYOUT_NAME,
+  REDIRECT_NAME
+} from '@/router/constant'
 
 // 404 on a page
 export const PAGE_NOT_FOUND_ROUTE: AppRouteRecordRaw = {
   path: '/:path(.*)*',
-  name: PAGE_NOT_FOUND_NAME,
+  name: PARENT_LAYOUT_NAME,
   component: LAYOUT,
   meta: {
     title: 'ErrorPage',
@@ -36,7 +42,7 @@ export const REDIRECT_ROUTE: AppRouteRecordRaw = {
   },
   children: [
     {
-      path:'/redirect/:path(.*)',
+      path:'/redirect/:path(.*)/:_redirect_type(.*)/:_origin_params(.*)?',
       name: REDIRECT_NAME,
       component: () => import('@/views/base/redirect/index.vue'),
       meta: {
