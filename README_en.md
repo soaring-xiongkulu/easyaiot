@@ -12,6 +12,8 @@
 #### EasyAIoT is not actually one project; it is five distinct projects.
 #### What's the benefit? Suppose you are on a resource-constrained device (like an RK3588). You can extract and independently deploy just one of those projects. Therefore, while this project appears to be a cloud platform, it simultaneously functions as an edge platform.
 
+### 🌟 Genuine open source is rare. If you find this project useful, please star it before leaving - your support means everything to us!(In an era where fake open-source projects are rampant, this project stands out as an exception.)
+
 ## 🎯 Application Scenarios
 ![Application Scenarios.png](.image/适用场景.png)
 
