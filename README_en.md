@@ -1,4 +1,3 @@
-:/projects/easyaiot/README_en.md
 # EasyAIoT (DeepCore AI Cloud Platform)
 ### My vision is for this system to be accessible worldwide, achieving truly zero barriers to AI. Everyone should experience the benefits of AI, not just a privileged few.
 <div align="center">
@@ -44,6 +43,9 @@ Deep integration empowers intelligent vision for everything: EasyAIoT constructs
 ## ⚠️ Disclaimer
 
 EasyAIoT is an open-source learning project unrelated to commercial activities. Users must comply with laws and regulations and refrain from illegal activities. If EasyAIoT discovers user violations, it will cooperate with authorities and report to government agencies. Users bear full legal responsibility for illegal actions and shall compensate third parties for damages caused by usage. All EasyAIoT-related resources are used at the user's own risk.
+
+## 📚 Official Documentation
+- Documentation: http://pro.basiclab.top:9988/
 
 ## 🎮 Demo Environment
 - Demo URL: http://pro.basiclab.top:8888/
