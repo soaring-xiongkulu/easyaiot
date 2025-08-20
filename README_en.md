@@ -49,7 +49,7 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 - Username: admin
 - Password: admin123
 
-## 🔓 Open Source Edition
+## 🔓 Open Source Edition (Completely Free, Welcome to Use)
 - **Positioning**: Lightweight, user-friendly, and technology-driven
 - **Use Cases**: Ideal for personal learning and small-to-medium-sized projects
 - **Maintenance Commitment**: The open-source version fully meets the business needs of most companies with no feature limitations. It will continue to be actively maintained—rest assured.
@@ -57,24 +57,33 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 ## 🏢 PRO Edition (Priced at roughly one month's salary of a typical developer)
 Expands upon the open-source edition with enterprise-oriented features and performance optimizations.
 
-**Use Cases**: Meets the business and stability requirements of medium-to-large-scale projects.
+**Use Cases**:
+- Meets the business and stability requirements of medium-to-large-scale projects.
 
 **Key Extended Features Include**:
-- **NVR Module**: Supports edge recording devices, such as: police body cameras, vehicle recorders, drones, etc.;
-- **Model Hub**: Offers a wider selection of pre-trained models
-- **Vertical-Specific Solutions**: Tailored solutions for specific industries
-- **SIP Protocol**: Supports standard SIP protocol communication
-- **Cluster Deployment for Models**: Enables large-scale model cluster deployment
-- **Online Custom Operator Development**: Supports online custom operator development
-- **GPU Resource Partitioning**: Fine-grained GPU resource allocation management
-- **Camera PTZ Control**: Remote control of camera angles and positioning
-- **Cloud Video Storage**: Cloud-based video recording storage and management
-- **Batch Keyframe Extraction & Analysis**: Supports intelligent analysis via batch video keyframe extraction
+- **NVR Module**: Supports edge recording devices (e.g., police body cameras, vehicle dashcams, drones) .
+- **Model Hub**: Offers expanded pre-trained model selections.
+- **Vertical-Specific Solutions**: Tailored solutions for industries such as transportation, security, industrial, healthcare, logistics, and education.
+- **SIP Protocol**: Supports standard SIP protocol communication.
+- **Cluster Deployment for Models**: Enables large-scale model cluster deployment.
+- **Online Custom Operator Development**: Supports online custom operator development.
+- **GPU Resource Partitioning**: Fine-grained GPU resource allocation management.
+- **Camera PTZ Control**: Remote control of camera angles and positioning.
+- **Cloud Video Storage**: Cloud-based video recording storage and management.
+- **Batch Keyframe Extraction & Analysis**: Supports intelligent analysis via batch video keyframe extraction.
+- **AI Alerting**: AI-driven real-time alerting system with abnormal behavior detection and automatic alert.
+- **Lingering Detection**: Intelligently detects prolonged human presence in specific areas to identify abnormal behavior.
+- **People Counting**: Real-time statistics on personnel counts in monitored areas, generating data reports.
+- **Person Tracking**: Continuous cross-camera tracking of target individuals with trajectory recording.
+- **OCR Text Recognition**: Extracts and recognizes text from images/videos.
+- **Vehicle Recognition**: Identifies multiple vehicle types (e.g., cars, trucks, buses, motorcycles).
+- **License Plate Recognition**: Accurately identifies license plate information across multiple plate types.
 
 **Technical Support?**:  
-One year of technical support included. After purchasing a license, project-related questions will be answered one-on-one (covers basic technical issues, not custom development—please note).
+- One year of technical support included. After purchasing a license, project-related questions will be answered one-on-one (covers basic technical issues, not custom development—please note).
 
-**Invoice Provided?**: Official invoices available.
+**Invoice Provided?**: 
+- Official invoices available.
 
 ## ⚙️ Project Repositories
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot
