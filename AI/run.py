@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from nacos import NacosClient
 
-from app.blueprints import annotation, camera, dataset, export, image, inference, project, training
+from app.blueprints import annotation, dataset, export, image, inference, project, training
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -37,7 +37,6 @@ def create_app():
             print(f"建表失败: {str(e)}")
 
     app.register_blueprint(annotation.annotation_bp)
-    app.register_blueprint(camera.camera_bp)
     app.register_blueprint(dataset.dataset_bp)
     app.register_blueprint(export.export_bp)
     app.register_blueprint(image.image_bp)
