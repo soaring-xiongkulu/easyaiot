@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from nacos import NacosClient
 
-from app.blueprints import annotation, camera, dataset, export, image, inference, project, training
+from app.blueprints import camera
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -36,14 +36,7 @@ def create_app():
         except Exception as e:
             print(f"建表失败: {str(e)}")
 
-    app.register_blueprint(annotation.annotation_bp)
     app.register_blueprint(camera.camera_bp)
-    app.register_blueprint(dataset.dataset_bp)
-    app.register_blueprint(export.export_bp)
-    app.register_blueprint(image.image_bp)
-    app.register_blueprint(inference.inference_bp)
-    app.register_blueprint(project.project_bp)
-    app.register_blueprint(training.training_bp)
 
     from app.services.camera_service import CameraService
     app.camera_capture = CameraService()
@@ -65,7 +58,7 @@ def register_to_nacos():
         # 获取环境变量
         nacos_server = os.getenv('NACOS_SERVER', 'iot.basiclab.top:8848')
         namespace = os.getenv('NACOS_NAMESPACE', 'local')
-        service_name = os.getenv('SERVICE_NAME', 'easyaiot-ai')
+        service_name = os.getenv('SERVICE_NAME', 'easyaiot-video')
         ip = os.getenv('POD_IP', 'localhost')
         port = int(os.getenv('FLASK_RUN_PORT', 5000))
         username = os.getenv('NACOS_USERNAME', 'nacos')

@@ -1,6 +1,8 @@
 Flask==2.3.2
 Flask-SQLAlchemy==3.0.5
+ultralytics==8.0.113
 opencv-python==4.8.0.74
+Pillow==10.0.0
 python-dotenv==1.0.0
 PyYAML==6.0.1
 requests==2.31.0
@@ -8,3 +10,4 @@ psycopg2-binary==2.9.9
 nacos-sdk-python==2.0.9
 minio==7.2.0
 python-magic==0.4.27
+numpy==1.26.4
