@@ -1,7 +1,9 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
+from flask_sqlalchemy import SQLAlchemy
+
 db = SQLAlchemy()
+
 
 class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -25,29 +27,3 @@ class Image(db.Model):
     dataset_type = db.Column(db.String(20), default='unassigned')
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
     annotations = db.relationship('Annotation', backref='image', lazy=True, cascade='all, delete-orphan')
-
-
-class Label(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    color = db.Column(db.String(7), default='#0066ff')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
-    annotations = db.relationship('Annotation', backref='label', lazy=True)
-
-class Annotation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    image_id = db.Column(db.Integer, db.ForeignKey('image.id'), nullable=False)
-    label_id = db.Column(db.Integer, db.ForeignKey('label.id'), nullable=False)
-    x = db.Column(db.Float, nullable=False)
-    y = db.Column(db.Float, nullable=False)
-    width = db.Column(db.Float, nullable=False)
-    height = db.Column(db.Float, nullable=False)
-
-class ExportRecord(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
-    format = db.Column(db.String(50), nullable=False)
-    path = db.Column(db.String(500), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    project = db.relationship('Project', back_populates='export_records')
