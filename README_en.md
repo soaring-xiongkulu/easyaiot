@@ -37,9 +37,6 @@ Deep integration empowers intelligent vision for everything: EasyAIoT constructs
 
 ![EasyAIoT Platform Architecture](.image/iframe1.jpg)
 
-## 🚧 Project Milestones
-<img src=".image/项目里程碑.jpg" alt="Screenshot 1">
-
 ## ⚠️ Disclaimer
 
 EasyAIoT is an open-source learning project unrelated to commercial activities. Users must comply with laws and regulations and refrain from illegal activities. If EasyAIoT discovers user violations, it will cooperate with authorities and report to government agencies. Users bear full legal responsibility for illegal actions and shall compensate third parties for damages caused by usage. All EasyAIoT-related resources are used at the user's own risk.
@@ -51,6 +48,33 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 - Demo URL: http://pro.basiclab.top:8888/
 - Username: admin
 - Password: admin123
+
+### 🔓 Open Source Edition
+- **Positioning**: Lightweight, user-friendly, and technology-driven
+- **Use Cases**: Ideal for personal learning and small-to-medium-sized projects
+- **Maintenance Commitment**: The open-source version fully meets the business needs of most companies with no feature limitations. It will continue to be actively maintained—rest assured.
+
+### 🏢 PRO Edition (Priced at roughly one month's salary of a typical developer)
+Expands upon the open-source edition with enterprise-oriented features and performance optimizations.
+
+**Use Cases**: Meets the business and stability requirements of medium-to-large-scale projects.
+
+**Key Extended Features Include**:
+- **NVR Module**: Supports edge recording devices (e.g., police body cameras)
+- **Model Hub**: Offers a wider selection of pre-trained models
+- **Vertical-Specific Solutions**: Tailored solutions for specific industries
+- **SIP Protocol**: Supports standard SIP protocol communication
+- **Cluster Deployment for Models**: Enables large-scale model cluster deployment
+- **Online Custom Operator Development**: Supports online custom operator development
+- **GPU Resource Partitioning**: Fine-grained GPU resource allocation management
+- **Camera PTZ Control**: Remote control of camera angles and positioning
+- **Cloud Video Storage**: Cloud-based video recording storage and management
+- **Batch Keyframe Extraction & Analysis**: Supports intelligent analysis via batch video keyframe extraction
+
+**Technical Support?**:  
+One year of technical support included. After purchasing a license, project-related questions will be answered one-on-one (covers basic technical issues, not custom development—please note).
+
+**Invoice Provided?**: Official invoices available.
 
 ## ⚙️ Project Repositories
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot
