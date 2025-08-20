@@ -60,7 +60,7 @@ Expands upon the open-source edition with enterprise-oriented features and perfo
 **Use Cases**: Meets the business and stability requirements of medium-to-large-scale projects.
 
 **Key Extended Features Include**:
-- **NVR Module**: Supports edge recording devices (e.g., police body cameras)
+- **NVR Module**: Supports edge recording devices, such as: police body cameras, vehicle recorders, drones, etc.;
 - **Model Hub**: Offers a wider selection of pre-trained models
 - **Vertical-Specific Solutions**: Tailored solutions for specific industries
 - **SIP Protocol**: Supports standard SIP protocol communication
