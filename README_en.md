@@ -49,7 +49,7 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 - Username: admin
 - Password: admin123
 
-## 🔓 Open Source Edition
+## 🔓 Open Source Edition (Completely Free, Welcome to Use)
 - **Positioning**: Lightweight, user-friendly, and technology-driven
 - **Use Cases**: Ideal for personal learning and small-to-medium-sized projects
 - **Maintenance Commitment**: The open-source version fully meets the business needs of most companies with no feature limitations. It will continue to be actively maintained—rest assured.
@@ -57,10 +57,11 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 ## 🏢 PRO Edition (Priced at roughly one month's salary of a typical developer)
 Expands upon the open-source edition with enterprise-oriented features and performance optimizations.
 
-**Use Cases**: Meets the business and stability requirements of medium-to-large-scale projects.
+**Use Cases**:
+- Meets the business and stability requirements of medium-to-large-scale projects.
 
 **Key Extended Features Include**:
-- **NVR Module**: Supports edge recording devices, such as: police body cameras, vehicle recorders, drones, etc.;
+- **NVR Module**: Supports edge recording devices (e.g., police body cameras, vehicle dashcams, drones)
 - **Model Hub**: Offers a wider selection of pre-trained models
 - **Vertical-Specific Solutions**: Tailored solutions for specific industries
 - **SIP Protocol**: Supports standard SIP protocol communication
@@ -72,9 +73,10 @@ Expands upon the open-source edition with enterprise-oriented features and perfo
 - **Batch Keyframe Extraction & Analysis**: Supports intelligent analysis via batch video keyframe extraction
 
 **Technical Support?**:  
-One year of technical support included. After purchasing a license, project-related questions will be answered one-on-one (covers basic technical issues, not custom development—please note).
+- One year of technical support included. After purchasing a license, project-related questions will be answered one-on-one (covers basic technical issues, not custom development—please note).
 
-**Invoice Provided?**: Official invoices available.
+**Invoice Provided?**: 
+- Official invoices available.
 
 ## ⚙️ Project Repositories
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot
