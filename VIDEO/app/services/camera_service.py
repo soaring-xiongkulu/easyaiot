@@ -423,7 +423,9 @@ class CameraService:
                 return
 
             # 确保项目上传目录存在
-            project_upload_dir = ProjectService.ensure_project_upload_dir(project_id)
+            upload_dir = os.path.join(os.getcwd(), 'uploads')
+            os.makedirs(upload_dir, exist_ok=True)
+            project_upload_dir = os.path.join(os.getcwd(), 'uploads')  # 使用固定目录
 
             while (self.onvif_threads[thread_id]['running'] and
                    self.onvif_threads[thread_id]['captured_count'] < max_count):
@@ -523,7 +525,9 @@ class CameraService:
                 return
 
             # 确保项目上传目录存在
-            project_upload_dir = ProjectService.ensure_project_upload_dir(project_id)
+            upload_dir = os.path.join(os.getcwd(), 'uploads')
+            os.makedirs(upload_dir, exist_ok=True)
+            project_upload_dir = os.path.join(os.getcwd(), 'uploads')  # 使用固定目录
 
             # 记录开始时间，用于精确控制时间间隔
             start_time = time.time()
