@@ -90,7 +90,7 @@ def register_to_nacos():
                         ip=ip,
                         port=port
                     )
-                    print(f"心跳发送成功: {service_name}")
+                    # print(f"心跳发送成功: {service_name}")
                 except Exception as e:
                     print(f"心跳异常: {str(e)}")
                 time.sleep(5)  # 间隔5秒
