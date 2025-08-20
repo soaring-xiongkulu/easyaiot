@@ -49,12 +49,12 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 - Username: admin
 - Password: admin123
 
-### 🔓 Open Source Edition
+## 🔓 Open Source Edition
 - **Positioning**: Lightweight, user-friendly, and technology-driven
 - **Use Cases**: Ideal for personal learning and small-to-medium-sized projects
 - **Maintenance Commitment**: The open-source version fully meets the business needs of most companies with no feature limitations. It will continue to be actively maintained—rest assured.
 
-### 🏢 PRO Edition (Priced at roughly one month's salary of a typical developer)
+## 🏢 PRO Edition (Priced at roughly one month's salary of a typical developer)
 Expands upon the open-source edition with enterprise-oriented features and performance optimizations.
 
 **Use Cases**: Meets the business and stability requirements of medium-to-large-scale projects.
