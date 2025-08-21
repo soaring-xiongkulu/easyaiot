@@ -76,48 +76,42 @@ def models():
             'msg': '服务器内部错误'
         }), 500
 
-@model_bp.route('/model/<int:model_id>/publish', methods=['POST'])
-def publish_model(model_id):
-    """发布模型接口：从训练记录中选择模型并更新模型路径"""
-    try:
-        # 获取请求数据
-        data = request.get_json()
-        if not data:
-            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
 
+@model_bp.route('/api/model/<int:model_id>/publish', methods=['POST'])
+def publish_model(model_id):
+    try:
+        data = request.get_json()
         training_record_id = data.get('training_record_id')
+        version = data.get('version', '1.0.0')  # 获取版本号
+
         if not training_record_id:
             return jsonify({'code': 400, 'msg': '缺少训练记录ID参数'}), 400
 
-        # 获取模型和训练记录
         model = Model.query.get_or_404(model_id)
         training_record = TrainingRecord.query.get_or_404(training_record_id)
 
-        # 验证训练记录属于该模型
         if training_record.model_id != model_id:
             return jsonify({'code': 400, 'msg': '训练记录不属于该模型'}), 400
 
-        # 获取模型路径（优先使用Minio路径）
         model_path = training_record.minio_model_path or training_record.best_model_path
         if not model_path:
             return jsonify({'code': 400, 'msg': '训练记录中未找到有效模型路径'}), 400
 
-        # 更新模型信息
+        # 更新模型信息和版本号
         model.model_path = model_path
         model.training_record_id = training_record_id
+        model.version = version  # 设置新版本号
         db.session.commit()
 
-        # 记录发布日志
-        logger.info(f"模型 {model_id} 已发布，使用训练记录 {training_record_id}，路径: {model_path}")
+        logger.info(f"模型 {model_id} 版本 {version} 已发布")
 
         return jsonify({
             'code': 200,
             'msg': '模型发布成功',
             'data': {
                 'model_id': model_id,
-                'model_name': model.name,
-                'model_path': model_path,
-                'training_record_id': training_record_id
+                'version': version,
+                'model_path': model_path
             }
         })
 
@@ -208,3 +202,90 @@ def delete_model(model_id):
 
     flash(f'项目 "{model_name}" 已删除', 'success')
     return redirect(url_for('main.index'))
+
+
+@model_bp.route('/api/model/ota_check', methods=['GET'])
+def ota_check():
+    """模型OTA升级检测接口"""
+    try:
+        # 获取请求参数
+        model_name = request.args.get('model_name', '')
+        current_version = request.args.get('version', '1.0.0')
+        device_type = request.args.get('device_type', 'cpu')  # 设备类型：cpu/gpu/npu
+
+        if not model_name:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：model_name'
+            }), 400
+
+        # 查询最新版本的模型
+        latest_model = Model.query.filter(
+            Model.name == model_name,
+            Model.version > current_version  # 版本号大于当前版本
+        ).order_by(Model.created_at.desc()).first()
+
+        if not latest_model:
+            return jsonify({
+                'code': 200,
+                'msg': '当前已是最新版本',
+                'has_update': False
+            })
+
+        # 根据设备类型选择模型格式
+        model_path = select_model_format(latest_model, device_type)
+        if not model_path:
+            return jsonify({
+                'code': 404,
+                'msg': '未找到适合该设备的模型格式'
+            }), 404
+
+        # 返回升级信息
+        return jsonify({
+            'code': 200,
+            'msg': '发现新版本',
+            'has_update': True,
+            'update_info': {
+                'model_id': latest_model.id,
+                'model_name': latest_model.name,
+                'new_version': latest_model.version,
+                'release_date': latest_model.created_at.isoformat(),
+                'model_path': model_path,
+                'change_log': f"模型升级到版本 {latest_model.version}",
+                'file_size': get_model_size(model_path)  # 获取模型文件大小
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"OTA检查失败: {str(e)}")
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+def select_model_format(model, device_type):
+    """根据设备类型选择最优模型格式"""
+    # NPU设备优先使用RKNN格式
+    if device_type == 'npu' and model.rknn_model_path:
+        return model.rknn_model_path
+
+    # GPU设备优先使用TensorRT格式
+    if device_type == 'gpu' and model.tensorrt_model_path:
+        return model.tensorrt_model_path
+
+    # 通用设备使用ONNX格式
+    if model.onnx_model_path:
+        return model.onnx_model_path
+
+    # 回退到原始模型
+    return model.model_path
+
+
+def get_model_size(model_path):
+    """获取模型文件大小（模拟实现）"""
+    # 实际项目中应从Minio获取文件元数据
+    return {
+        'bytes': 1024000,  # 文件字节数
+        'human_readable': '1.02 MB'
+    }
