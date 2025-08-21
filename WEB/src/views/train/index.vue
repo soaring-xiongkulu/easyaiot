@@ -10,6 +10,8 @@
 import {reactive} from 'vue';
 import ModelCardList from "@/views/train/components/ModelCardList/index.vue";
 
+defineOptions({name: 'TRAIN'})
+
 const state = reactive({
   activeKey: '1'
 });
