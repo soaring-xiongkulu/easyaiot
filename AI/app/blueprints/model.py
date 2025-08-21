@@ -1,13 +1,11 @@
+from flask import Blueprint
+
 import logging
 import os
 import shutil
 from operator import or_
-
-from flask import Blueprint, request, jsonify
-from flask import redirect, url_for, flash
-from flask import render_template
-
-from models import db, Model
+from flask import request, jsonify, redirect, url_for, flash, render_template
+from models import db, Model, TrainingRecord
 
 model_bp = Blueprint('model', __name__)
 
@@ -73,6 +71,101 @@ def models():
 
     except Exception as e:
         logger.error(f'分页查询失败: {str(e)}')
+        return jsonify({
+            'code': 500,
+            'msg': '服务器内部错误'
+        }), 500
+
+@model_bp.route('/model/<int:model_id>/publish', methods=['POST'])
+def publish_model(model_id):
+    """发布模型接口：从训练记录中选择模型并更新模型路径"""
+    try:
+        # 获取请求数据
+        data = request.get_json()
+        if not data:
+            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
+
+        training_record_id = data.get('training_record_id')
+        if not training_record_id:
+            return jsonify({'code': 400, 'msg': '缺少训练记录ID参数'}), 400
+
+        # 获取模型和训练记录
+        model = Model.query.get_or_404(model_id)
+        training_record = TrainingRecord.query.get_or_404(training_record_id)
+
+        # 验证训练记录属于该模型
+        if training_record.model_id != model_id:
+            return jsonify({'code': 400, 'msg': '训练记录不属于该模型'}), 400
+
+        # 获取模型路径（优先使用Minio路径）
+        model_path = training_record.minio_model_path or training_record.best_model_path
+        if not model_path:
+            return jsonify({'code': 400, 'msg': '训练记录中未找到有效模型路径'}), 400
+
+        # 更新模型信息
+        model.model_path = model_path
+        model.training_record_id = training_record_id
+        db.session.commit()
+
+        # 记录发布日志
+        logger.info(f"模型 {model_id} 已发布，使用训练记录 {training_record_id}，路径: {model_path}")
+
+        return jsonify({
+            'code': 200,
+            'msg': '模型发布成功',
+            'data': {
+                'model_id': model_id,
+                'model_name': model.name,
+                'model_path': model_path,
+                'training_record_id': training_record_id
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"发布模型失败: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@model_bp.route('/model/<int:model_id>/training_records', methods=['GET'])
+def get_model_training_records(model_id):
+    """获取模型关联的训练记录"""
+    try:
+        # 分页参数
+        page_no = int(request.args.get('pageNo', 1))
+        page_size = int(request.args.get('pageSize', 10))
+
+        # 查询训练记录
+        query = TrainingRecord.query.filter_by(model_id=model_id)
+        pagination = query.paginate(page=page_no, per_page=page_size, error_out=False)
+
+        # 构建响应数据
+        records = [{
+            'id': record.id,
+            'start_time': record.start_time.isoformat(),
+            'end_time': record.end_time.isoformat() if record.end_time else None,
+            'status': record.status,
+            'minio_model_path': record.minio_model_path,
+            'best_model_path': record.best_model_path
+        } for record in pagination.items]
+
+        return jsonify({
+            'code': 200,
+            'msg': 'success',
+            'data': records,
+            'pagination': {
+                'pageNo': pagination.page,
+                'pageSize': pagination.per_page,
+                'totalItems': pagination.total,
+                'totalPages': pagination.pages
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"获取训练记录失败: {str(e)}")
         return jsonify({
             'code': 500,
             'msg': '服务器内部错误'
