@@ -1,113 +1,158 @@
 import os
+import tempfile
 
-from flask import Blueprint, jsonify
-from flask import current_app
-from flask import send_file, url_for
+from flask import Blueprint, jsonify, current_app, url_for, send_file
 from ultralytics import YOLO
 
-from models import db
+from app.services.model_service import ModelService  # Minio操作类
+from models import db, Model, ExportRecord, TrainingRecord
 
 export_bp = Blueprint('export', __name__)
 
-@export_bp.route('/api/project/<int:project_id>/export/<format>', methods=['POST'])
-def api_export_model(project_id, format):
+# 支持的导出格式映射
+SUPPORTED_FORMATS = {
+    'onnx': {'ext': '.onnx', 'mime': 'application/octet-stream'},
+    'torchscript': {'ext': '.torchscript', 'mime': 'application/octet-stream'},
+    'tensorrt': {'ext': '.engine', 'mime': 'application/octet-stream'},
+    'openvino': {'ext': '_openvino_model/', 'mime': 'application/octet-stream'}
+}
+
+
+@export_bp.route('/api/model/<int:model_id>/export/<format>', methods=['POST'])
+def api_export_model(model_id, format):
     try:
-        # 检查原始模型文件是否存在
-        model_path = os.path.join(current_app.root_path, 'data/models', str(project_id), 'train', 'weights',
-                                  'best.pt')
-        if not os.path.exists(model_path):
-            return jsonify({'success': False, 'message': '模型文件不存在，请先训练模型'})
+        # 验证格式支持
+        if format not in SUPPORTED_FORMATS:
+            return jsonify({'success': False, 'message': f'不支持的导出格式: {format}'}), 400
 
-        # 确定导出目录和文件路径
-        export_dir = os.path.join(current_app.root_path, 'data/models', str(project_id), 'export')
-        os.makedirs(export_dir, exist_ok=True)
+        # 获取模型信息
+        model_record = Model.query.get_or_404(model_id)
+        training_record = TrainingRecord.query.get(model_record.training_record_id)
 
-        export_filepath = ''
-        source_filepath = ''  # 已存在的导出文件路径
+        if not training_record or not training_record.minio_model_path:
+            return jsonify({'success': False, 'message': '模型未发布或未上传到Minio'}), 400
 
-        if format == 'onnx':
-            export_filepath = os.path.join(export_dir, 'model.onnx')
-            # 检查是否已存在导出的ONNX文件
-            existing_onnx = os.path.join(current_app.root_path, 'data/models', str(project_id), 'train', 'weights',
-                                         'best.onnx')
-            if os.path.exists(existing_onnx):
-                source_filepath = existing_onnx
-        elif format == 'torchscript':
-            export_filepath = os.path.join(export_dir, 'model.torchscript')
-        else:
-            return jsonify({'success': False, 'message': f'不支持的导出格式: {format}'})
+        # 创建临时目录
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # 步骤1：从Minio下载原始模型
+            minio_model_path = training_record.minio_model_path
+            local_pt_path = os.path.join(tmp_dir, 'model.pt')
 
-        # 如果有已存在的导出文件，直接复制
-        if source_filepath and os.path.exists(source_filepath):
-            import shutil
-            shutil.copy2(source_filepath, export_filepath)
-        # 否则重新导出
-        elif not os.path.exists(export_filepath):
-            # 加载模型
-            model = YOLO(model_path)
+            if not ModelService.download_from_minio(
+                    bucket_name="model-bucket",
+                    object_name=minio_model_path,
+                    destination_path=local_pt_path
+            ):
+                return jsonify({'success': False, 'message': '原始模型下载失败'}), 500
 
-            # 使用正确的参数进行导出
+            # 步骤2：转换模型格式
+            model = YOLO(local_pt_path)
+            export_filename = f"model{SUPPORTED_FORMATS[format]['ext']}"
+            export_local_path = os.path.join(tmp_dir, export_filename)
+
+            # 执行模型导出
+            export_params = {
+                'format': format,
+                'imgsz': 640,  # 根据需要调整
+                'optimize': True if format == 'tensorrt' else False,
+                'device': 'cpu'  # 或根据配置选择
+            }
+
+            # 特殊格式处理
+            if format == 'openvino':
+                export_params['half'] = False  # OpenVINO不支持FP16
+
+            model.export(**export_params)
+
+            # 重命名导出文件（YOLO导出有固定命名）
+            exported_files = [f for f in os.listdir(tmp_dir) if
+                              f.endswith(SUPPORTED_FORMATS[format]['ext']) or f.endswith('.engine')]
+            if not exported_files:
+                return jsonify({'success': False, 'message': '模型导出失败，未生成目标文件'}), 500
+
+            if format != 'openvino':  # 目录格式特殊处理
+                os.rename(os.path.join(tmp_dir, exported_files[0]), export_local_path)
+
+            # 步骤3：上传到Minio
+            minio_export_path = f"exports/model_{model_id}/{format}/{export_filename}"
+
+            upload_success = False
+            if format == 'openvino':
+                # 处理目录上传
+                openvino_dir = os.path.join(tmp_dir, exported_files[0])
+                upload_success = ModelService.upload_directory_to_minio(
+                    bucket_name="export-bucket",
+                    object_prefix=minio_export_path.rstrip('/') + '/',
+                    local_dir=openvino_dir
+                )
+            else:
+                upload_success = ModelService.upload_to_minio(
+                    bucket_name="export-bucket",
+                    object_name=minio_export_path,
+                    file_path=export_local_path
+                )
+
+            if not upload_success:
+                return jsonify({'success': False, 'message': '导出模型上传失败'}), 500
+
+            # 步骤4：保存导出记录
+            export_record = ExportRecord(
+                model_id=model_id,
+                format=format,
+                minio_path=minio_export_path,
+                local_path=export_local_path if format != 'openvino' else openvino_dir
+            )
+            db.session.add(export_record)
+
+            # 步骤5：更新模型表的对应字段
             if format == 'onnx':
-                # 对于ONNX导出，使用正确的参数
-                model.export(format='onnx', project=export_dir, name='model')
+                model_record.onnx_model_path = minio_export_path
             elif format == 'torchscript':
-                # 对于TorchScript导出，使用正确的参数
-                model.export(format='torchscript', project=export_dir, name='model')
+                model_record.torchscript_model_path = minio_export_path
+            elif format == 'tensorrt':
+                model_record.tensorrt_model_path = minio_export_path
+            elif format == 'openvino':
+                model_record.openvino_model_path = minio_export_path
 
-        # 保存导出记录到数据库
-        from models import ExportRecord
-        export_record = ExportRecord(
-            project_id=project_id,
-            format=format,
-            path=export_filepath
-        )
-        db.session.add(export_record)
-        db.session.commit()
+            db.session.commit()
 
-        # 生成相对于static目录的路径，用于下载
-        relative_export_path = os.path.relpath(export_filepath, current_app.root_path)
+            # 步骤6：生成下载URL
+            download_url = url_for('export.download_export', export_id=export_record.id)
 
-        return jsonify({
-            'success': True,
-            'message': '导出成功',
-            'path': export_filepath,
-            'download_url': url_for('main.download_file', filename=relative_export_path)
-        })
+            return jsonify({
+                'success': True,
+                'message': '模型导出并上传成功',
+                'minio_path': minio_export_path,
+                'download_url': download_url
+            })
+
     except Exception as e:
-        import traceback
-        error_msg = f'导出失败: {str(e)}'
-        print(f"导出错误详情: {error_msg}")
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': error_msg})
+        current_app.logger.error(f"模型导出失败: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': f'服务器内部错误: {str(e)}'
+        }), 500
 
 
-@export_bp.route('/download/<path:filename>')
-def download_file(filename):
-    # 构造完整文件路径
-    full_path = os.path.join(current_app.root_path, filename)
+@export_bp.route('/download/export/<int:export_id>')
+def download_export(export_id):
+    export_record = ExportRecord.query.get_or_404(export_id)
 
-    # 检查文件是否存在
-    if not os.path.exists(full_path):
-        return "文件不存在", 404
+    # 创建临时文件
+    tmp_file = tempfile.NamedTemporaryFile(delete=False)
 
-    # 确定文件的MIME类型和下载文件名
-    mimetype = 'application/octet-stream'
-    download_name = os.path.basename(filename)
-
-    # 根据文件扩展名设置特定的MIME类型
-    if filename.endswith('.onnx'):
-        mimetype = 'application/octet-stream'
-        download_name = filename.split('/')[-1]  # 确保获取正确的文件名
-    elif filename.endswith('.pt'):
-        mimetype = 'application/octet-stream'
-        download_name = filename.split('/')[-1]
-    elif filename.endswith('.torchscript'):
-        mimetype = 'application/octet-stream'
-        download_name = filename.split('/')[-1]
-
-    return send_file(
-        full_path,
-        as_attachment=True,
-        mimetype=mimetype,
-        download_name=download_name
-    )
+    # 从Minio下载
+    if ModelService.download_from_minio(
+            bucket_name="export-bucket",
+            object_name=export_record.minio_path,
+            destination_path=tmp_file.name
+    ):
+        # 发送文件
+        return send_file(
+            tmp_file.name,
+            as_attachment=True,
+            download_name=os.path.basename(export_record.minio_path),
+            mimetype=SUPPORTED_FORMATS.get(export_record.format, {}).get('mime', 'application/octet-stream')
+        )
+    else:
+        return "文件下载失败", 500
