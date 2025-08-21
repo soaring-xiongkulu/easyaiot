@@ -1,8 +1,14 @@
+# 基础依赖
 Flask==2.3.2
 Flask-SQLAlchemy==3.0.5
+# 模型处理
 ultralytics==8.0.113
+# RKNN转换核心库
+rknn_toolkit2==2.3.2
+# 图像处理
 opencv-python==4.8.0.74
 Pillow==10.0.0
+# 工具类
 python-dotenv==1.0.0
 PyYAML==6.0.1
 requests==2.31.0
