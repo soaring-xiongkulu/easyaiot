@@ -184,12 +184,13 @@ Expands upon the open-source edition with enterprise-oriented features and perfo
 </div>
 
 ## 📞 Contact Information
-### WeChat (Join Knowledge Planet for technical discussions):
+### WeChat:
 <p><img src=".image/联系方式.jpg" alt="Contact QR Code" width="30%"></p>
 
+### WeChat Group:
+<p><img src=".image/微信群.jpg" alt="Contact QR Code" width="30%"></p>
+
 ### Knowledge Planet:
-- Voluntarily join with payment for consultations, resource access, and entry into WeChat technical groups.
-- Students may sponsor any amount to join both the WeChat technical group and Knowledge Planet. [Though not a bright pearl, I aspire to be fertile soil that nurtures new sprouts into pillars.]
 <p>  
 <img src=".image/知识星球.jpg" alt="Knowledge Planet" width="30%">  
 </p>
