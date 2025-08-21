@@ -1,5 +1,5 @@
 # EasyAIoT（深度智核AI云平台）
-### 我希望全世界都能使用这个系统，实现AI的真正0门槛，人人都能体验到AI带来的好处，而并不只是掌握在少数人手里。
+### 我希望全世界都能使用这个系统，实现AI的真正0门槛，人人都能体验到AI带来的好处，而并不只是掌握在少数人手里。 
 <div align="center">
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
@@ -176,6 +176,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 ## ©️ 版权使用说明
 
 EasyAIoT开源平台遵循 [MIT LICENSE](LICENSE) 协议。 允许商业使用，但务必保留类作者、Copyright 信息。
+
 
 
 
