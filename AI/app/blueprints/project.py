@@ -1,7 +1,8 @@
 import os
 import shutil
+from operator import or_
 
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify
 from flask import redirect, url_for, flash
 from flask import render_template
 
@@ -9,6 +10,75 @@ from models import db, Project
 
 project_bp = Blueprint('project', __name__)
 
+@project_bp.route('/projects', methods=['GET'])
+def get_projects():
+    # 适配 pageNo 和 pageSize 参数
+    try:
+        page_no = int(request.args.get('pageNo', 1))  # 默认第1页
+        page_size = int(request.args.get('pageSize', 10))  # 默认每页10条
+        search = request.args.get('search', '').strip()
+
+        # 参数校验
+        if page_no < 1 or page_size < 1:
+            return jsonify({
+                'code': 400,
+                'msg': '参数错误：pageNo和pageSize必须为正整数'
+            }), 400
+
+        # 构建查询（支持搜索）
+        query = Project.query
+        if search:
+            query = query.filter(
+                or_(
+                    Project.name.ilike(f'%{search}%'),
+                    Project.description.ilike(f'%{search}%')
+                )
+            )
+
+        # 执行分页查询
+        pagination = query.paginate(
+            page=page_no,
+            per_page=page_size,
+            error_out=False
+        )
+
+        # 构建响应
+        project_list = [{
+            'id': p.id,
+            'name': p.name,
+            'description': p.description,
+            'created_at': p.created_at.isoformat() if p.created_at else None
+        } for p in pagination.items]
+
+        return jsonify({
+            'code': 200,
+            'msg': 'success',
+            'data': project_list,
+            'pagination': {
+                'pageNo': pagination.page,  # 当前页码
+                'pageSize': pagination.per_page,  # 每页数量
+                'totalItems': pagination.total,  # 总记录数
+                'totalPages': pagination.pages  # 总页数
+            }
+        })
+
+    except ValueError:  # 参数类型错误
+        return jsonify({
+            'code': 400,
+            'msg': '参数类型错误：pageNo和pageSize需为整数'
+        }), 400
+
+    except Exception as e:
+        current_app.logger.error(f'分页查询失败: {str(e)}')
+        return jsonify({
+            'code': 500,
+            'msg': '服务器内部错误'
+        }), 500
+
+@project_bp.route('/project/<int:project_id>')
+def project_detail(project_id):
+    project = Project.query.get_or_404(project_id)
+    return render_template('project_detail.html', project=project)
 
 @project_bp.route('/project/create', methods=['POST'])
 def create_project():
@@ -25,13 +95,6 @@ def create_project():
 
     flash(f'项目 "{name}" 创建成功', 'success')
     return redirect(url_for('main.project_detail', project_id=project.id))
-
-
-@project_bp.route('/project/<int:project_id>')
-def project_detail(project_id):
-    project = Project.query.get_or_404(project_id)
-    return render_template('project_detail.html', project=project)
-
 
 @project_bp.route('/project/<int:project_id>/delete', methods=['POST'])
 def delete_project(project_id):
