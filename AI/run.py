@@ -8,11 +8,12 @@ from dotenv import load_dotenv
 from flask import Flask
 from nacos import NacosClient
 
-from app.blueprints import annotation, dataset, export, image, inference, model, training
+from app.blueprints import export, inference, model, training, training_record
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv()
+
 
 def create_app():
     app = Flask(__name__)
@@ -36,13 +37,11 @@ def create_app():
         except Exception as e:
             print(f"建表失败: {str(e)}")
 
-    app.register_blueprint(annotation.annotation_bp)
-    app.register_blueprint(dataset.dataset_bp)
     app.register_blueprint(export.export_bp)
-    app.register_blueprint(image.image_bp)
     app.register_blueprint(inference.inference_bp)
     app.register_blueprint(model.model_bp)
     app.register_blueprint(training.training_bp)
+    app.register_blueprint(training_record.training_record_bp)
 
     @app.template_filter('beijing_time')
     def beijing_time_filter(dt):
@@ -55,6 +54,7 @@ def create_app():
         return '未知'
 
     return app
+
 
 def register_to_nacos():
     try:
