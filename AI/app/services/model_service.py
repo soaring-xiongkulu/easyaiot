@@ -6,7 +6,7 @@ from minio import Minio
 from minio.error import S3Error
 
 
-class ProjectService:
+class ModelService:
     @staticmethod
     def get_minio_client():
         """创建并返回Minio客户端"""
@@ -26,7 +26,7 @@ class ProjectService:
     def download_from_minio(bucket_name, object_name, destination_path):
         """从Minio下载文件"""
         try:
-            minio_client = ProjectService.get_minio_client()
+            minio_client = ModelService.get_minio_client()
 
             # 检查对象是否存在
             stat = minio_client.stat_object(bucket_name, object_name)
@@ -61,40 +61,40 @@ class ProjectService:
             return False
 
     @staticmethod
-    def get_project_upload_dir(project_id):
+    def get_model_upload_dir(model_id):
         """获取项目上传目录路径"""
-        return os.path.join(current_app.root_path, 'static', 'uploads', str(project_id))
+        return os.path.join(current_app.root_path, 'static', 'uploads', str(model_id))
 
     @staticmethod
-    def ensure_project_upload_dir(project_id):
+    def ensure_model_upload_dir(model_id):
         """确保项目上传目录存在"""
-        project_dir = ProjectService.get_project_upload_dir(project_id)
-        os.makedirs(project_dir, exist_ok=True)
-        return project_dir
+        model_dir = ModelService.get_model_upload_dir(model_id)
+        os.makedirs(model_dir, exist_ok=True)
+        return model_dir
 
     @staticmethod
-    def get_project_dataset_dir(project_id):
+    def get_model_dataset_dir(model_id):
         """获取项目数据集目录路径"""
-        return os.path.join(current_app.root_path, 'static', 'datasets', str(project_id))
+        return os.path.join(current_app.root_path, 'static', 'datasets', str(model_id))
 
     @staticmethod
-    def ensure_project_dataset_dir(project_id):
+    def ensure_model_dataset_dir(model_id):
         """确保项目数据集目录存在"""
-        project_dir = ProjectService.get_project_dataset_dir(project_id)
-        os.makedirs(project_dir, exist_ok=True)
-        return project_dir
+        model_dir = ModelService.get_model_dataset_dir(model_id)
+        os.makedirs(model_dir, exist_ok=True)
+        return model_dir
 
     @staticmethod
-    def get_project_model_dir(project_id):
+    def get_model_model_dir(model_id):
         """获取项目模型目录路径"""
-        return os.path.join(current_app.root_path, 'static', 'models', str(project_id))
+        return os.path.join(current_app.root_path, 'static', 'models', str(model_id))
 
     @staticmethod
-    def ensure_project_model_dir(project_id):
+    def ensure_model_model_dir(model_id):
         """确保项目模型目录存在"""
-        project_dir = ProjectService.get_project_model_dir(project_id)
-        os.makedirs(project_dir, exist_ok=True)
-        return project_dir
+        model_dir = ModelService.get_model_model_dir(model_id)
+        os.makedirs(model_dir, exist_ok=True)
+        return model_dir
 
     @staticmethod
     def get_relative_path(full_path):

@@ -4,7 +4,7 @@ from ultralytics import YOLO
 from flask import current_app
 import tempfile
 import shutil
-from app.services.project_service import ProjectService
+from app.services.model_service import ProjectService
 
 
 class InferenceService:
