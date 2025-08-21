@@ -3,6 +3,7 @@ import os
 import tempfile
 
 from rknn.api import RKNN
+from ultralytics import YOLO
 
 from app.services.model_service import ModelService
 from models import ExportRecord
@@ -16,7 +17,6 @@ SUPPORTED_FORMATS = {
     'openvino': {'ext': '_openvino_model/', 'mime': 'application/octet-stream'},
     'rknn': {'ext': '.rknn', 'mime': 'application/octet-stream'}  # 新增RKNN格式
 }
-
 
 class RknnExporter:
     """RKNN模型转换核心类"""
