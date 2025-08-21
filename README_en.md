@@ -168,7 +168,7 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 Thanks to the following contributors for code, feedback, donations, and support (in no particular order):
 - shup 派大星 棒槌 憨憨 一往无前 文艺小青年 lion 汪汪队立大功 春生 二群主 hao_chen yuer629 kong 岁月静好 Kunkka 李江峰 左耳向右 Chao. 火
 - Mr.LuCkY 泓 i 放学丶别走 Kosho 小菜鸟先飞 追溯未来-_- 贵阳王老板 kevin 青衫 贾仁超 Lee ㏒灵韵№  Fae wcj 碎碎念. 怒放de生命
-- 蓝速传媒 Dorky TAT 北街 Achieve_Xu  NicholasLD 墨白 童年 take your time or 城市稻草人 小小白
+- 蓝速传媒 Dorky TAT 北街 Achieve_Xu  NicholasLD 墨白 童年 take your time or 城市稻草人 小小白 梆硬哥
 
 ## 📄 Open Source License
 [MIT LICENSE](LICENSE)
