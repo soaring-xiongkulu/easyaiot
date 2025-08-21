@@ -31,7 +31,7 @@ def create_app():
     with app.app_context():
         try:
             print(app.config['SQLALCHEMY_DATABASE_URI'])
-            from models import Project, Image, Label, Annotation, ExportRecord
+            from models import Model, TrainingRecord, ExportRecord
             db.create_all()
         except Exception as e:
             print(f"建表失败: {str(e)}")
@@ -41,7 +41,7 @@ def create_app():
     app.register_blueprint(export.export_bp)
     app.register_blueprint(image.image_bp)
     app.register_blueprint(inference.inference_bp)
-    app.register_blueprint(project.project_bp)
+    app.register_blueprint(model.model_bp)
     app.register_blueprint(training.training_bp)
 
     @app.template_filter('beijing_time')

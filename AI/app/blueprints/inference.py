@@ -1,13 +1,13 @@
 from flask import Blueprint, request, jsonify
-from models import Project
+from models import Model
 from app.services.inference_service import InferenceService
 
 inference_bp = Blueprint('inference', __name__)
 
-@inference_bp.route('/project/<int:project_id>/inference/run', methods=['POST'])
-def run_inference(project_id):
+@inference_bp.route('/model/<int:model_id>/inference/run', methods=['POST'])
+def run_inference(model_id):
     """执行模型推理"""
-    project = Project.query.get_or_404(project_id)
+    model = Model.query.get_or_404(model_id)
 
     try:
         # 获取表单数据
@@ -22,7 +22,7 @@ def run_inference(project_id):
         rtsp_url = request.form.get('rtsp_url')
 
         # 创建推理管理器
-        inference_manager = InferenceService(project_id)
+        inference_manager = InferenceService(model_id)
 
         # 加载模型
         model = inference_manager.load_model(model_type, system_model, model_file)
