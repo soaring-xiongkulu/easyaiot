@@ -101,7 +101,7 @@ export const usePermissionStore = defineStore('app-permission', {
     },
 
     // 构建路由
-    buildRoutesAction(): Promise<AppRouteRecordRaw[]> {
+    buildRoutesAction(): AppRouteRecordRaw[] {
       const {t} = useI18n()
       const userStore = useUserStore()
       const appStore = useAppStoreWithOut()
