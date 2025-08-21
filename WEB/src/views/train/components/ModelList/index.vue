@@ -81,12 +81,12 @@
 import { reactive } from 'vue';
 import { BasicTable, TableAction, useTable } from '@/components/Table';
 import { useMessage } from '@/hooks/web/useMessage';
-import { getBasicColumns, getFormConfig } from "./Data";
-import ModelModal from "@/views/model/components/ModelModal/index.vue";
+import { getBasicColumns, getFormConfig } from "./data";
+import ModelModal from "../ModelModal/index.vue";
 import { useModal } from "@/components/Modal";
 import { useRouter } from "vue-router";
 import { deleteModel, getModelPage } from "@/api/device/model";
-import ModelCardList from "@/views/model/components/ModelCardList/index.vue";
+import ModelCardList from "../ModelCardList/index.vue";
 
 const [registerAddModel, { openModal: openAddModal }] = useModal();
 const router = useRouter();
