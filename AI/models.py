@@ -3,52 +3,38 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
-class Project(db.Model):
+class Model(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    model_path = db.Column(db.String(200), nullable=True)
+    model_path = db.Column(db.String(500), nullable=True)
+    training_record_id = db.Column(
+        db.Integer,
+        db.ForeignKey('training_record.id', ondelete="SET NULL"),
+        nullable=True
+    )
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    images = db.relationship('Image', backref='project', lazy=True, cascade='all, delete-orphan')
-    labels = db.relationship('Label', backref='project', lazy=True, cascade='all, delete-orphan')
-    export_records = db.relationship('ExportRecord', back_populates='project', lazy=True, cascade='all, delete-orphan')
+    # 关系定义
+    training_records = db.relationship('TrainingRecord', backref='model', lazy=True)
+    export_records = db.relationship('ExportRecord', back_populates='model', cascade='all, delete-orphan')
 
-
-class Image(db.Model):
+class TrainingRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    filename = db.Column(db.String(100), nullable=False)
-    original_filename = db.Column(db.String(100), nullable=False)
-    path = db.Column(db.String(200), nullable=False)
-    width = db.Column(db.Integer, nullable=False)
-    height = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    dataset_type = db.Column(db.String(20), default='unassigned')
-    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
-    annotations = db.relationship('Annotation', backref='image', lazy=True, cascade='all, delete-orphan')
-
-
-class Label(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    color = db.Column(db.String(7), default='#0066ff')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
-    annotations = db.relationship('Annotation', backref='label', lazy=True)
-
-class Annotation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    image_id = db.Column(db.Integer, db.ForeignKey('image.id'), nullable=False)
-    label_id = db.Column(db.Integer, db.ForeignKey('label.id'), nullable=False)
-    x = db.Column(db.Float, nullable=False)
-    y = db.Column(db.Float, nullable=False)
-    width = db.Column(db.Float, nullable=False)
-    height = db.Column(db.Float, nullable=False)
+    model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=False)
+    dataset_path = db.Column(db.String(200), nullable=False)
+    hyperparameters = db.Column(db.Text)
+    start_time = db.Column(db.DateTime, default=datetime.utcnow)
+    end_time = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(20), default='running')
+    train_log = db.Column(db.String(500), nullable=False)
+    checkpoint_dir = db.Column(db.String(500), nullable=False)
+    metrics_path = db.Column(db.Text)
 
 class ExportRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+    model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=False)
     format = db.Column(db.String(50), nullable=False)
     path = db.Column(db.String(500), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    project = db.relationship('Project', back_populates='export_records')
+    model = db.relationship('Model', back_populates='export_records')

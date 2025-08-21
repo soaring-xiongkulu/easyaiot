@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from nacos import NacosClient
 
-from app.blueprints import annotation, dataset, export, image, inference, project, training
+from app.blueprints import annotation, dataset, export, image, inference, model, training
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 

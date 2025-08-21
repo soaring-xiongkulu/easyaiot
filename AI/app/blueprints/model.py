@@ -9,12 +9,12 @@ from flask import render_template
 
 from models import db, Project
 
-project_bp = Blueprint('project', __name__)
+model_bp = Blueprint('model', __name__)
 
 logger = logging.getLogger(__name__)
 
-@project_bp.route('/projects', methods=['GET'])
-def projects():
+@model_bp.route('/models', methods=['GET'])
+def models():
     # 适配 pageNo 和 pageSize 参数
     try:
         page_no = int(request.args.get('pageNo', 1))  # 默认第1页
@@ -46,7 +46,7 @@ def projects():
         )
 
         # 构建响应
-        project_list = [{
+        model_list = [{
             'id': p.id,
             'name': p.name,
             'description': p.description,
@@ -56,7 +56,7 @@ def projects():
         return jsonify({
             'code': 200,
             'msg': 'success',
-            'data': project_list,
+            'data': model_list,
             'pagination': {
                 'pageNo': pagination.page,  # 当前页码
                 'pageSize': pagination.per_page,  # 每页数量
@@ -78,13 +78,13 @@ def projects():
             'msg': '服务器内部错误'
         }), 500
 
-@project_bp.route('/project/<int:project_id>')
-def project_detail(project_id):
-    project = Project.query.get_or_404(project_id)
-    return render_template('project_detail.html', project=project)
+@model_bp.route('/model/<int:model_id>')
+def model_detail(model_id):
+    model = Project.query.get_or_404(model_id)
+    return render_template('model_detail.html', model=model)
 
-@project_bp.route('/project/create', methods=['POST'])
-def create_project():
+@model_bp.route('/model/create', methods=['POST'])
+def create_model():
     name = request.form.get('name')
     description = request.form.get('description')
 
@@ -92,26 +92,26 @@ def create_project():
         flash('项目名称不能为空', 'error')
         return redirect(url_for('main.index'))
 
-    project = Project(name=name, description=description)
-    db.session.add(project)
+    model = Project(name=name, description=description)
+    db.session.add(model)
     db.session.commit()
 
     flash(f'项目 "{name}" 创建成功', 'success')
-    return redirect(url_for('main.project_detail', project_id=project.id))
+    return redirect(url_for('main.model_detail', model_id=model.id))
 
-@project_bp.route('/project/<int:project_id>/delete', methods=['POST'])
-def delete_project(project_id):
-    project = Project.query.get_or_404(project_id)
-    project_name = project.name
+@model_bp.route('/model/<int:model_id>/delete', methods=['POST'])
+def delete_model(model_id):
+    model = Project.query.get_or_404(model_id)
+    model_name = model.name
 
     # 删除项目相关的所有文件
-    project_path = os.path.join('data/datasets', str(project_id))
-    if os.path.exists(project_path):
-        shutil.rmtree(project_path)
+    model_path = os.path.join('data/datasets', str(model_id))
+    if os.path.exists(model_path):
+        shutil.rmtree(model_path)
 
     # 删除项目记录
-    db.session.delete(project)
+    db.session.delete(model)
     db.session.commit()
 
-    flash(f'项目 "{project_name}" 已删除', 'success')
+    flash(f'项目 "{model_name}" 已删除', 'success')
     return redirect(url_for('main.index'))
