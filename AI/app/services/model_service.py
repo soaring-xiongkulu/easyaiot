@@ -68,6 +68,36 @@ class ModelService:
             return False
 
     @staticmethod
+    def upload_directory_to_minio(bucket_name, object_prefix, local_dir):
+        """上传整个目录到Minio"""
+        try:
+            minio_client = ModelService.get_minio_client()
+
+            # 确保存储桶存在
+            if not minio_client.bucket_exists(bucket_name):
+                minio_client.make_bucket(bucket_name)
+
+            # 遍历目录并上传
+            for root, _, files in os.walk(local_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(file_path, local_dir)
+                    object_name = os.path.join(object_prefix, relative_path).replace("\\", "/")
+
+                    minio_client.fput_object(
+                        bucket_name, object_name, file_path
+                    )
+                    current_app.logger.info(f"已上传: {object_name}")
+
+            return True
+        except S3Error as e:
+            current_app.logger.error(f"Minio目录上传错误: {str(e)}")
+            return False
+        except Exception as e:
+            current_app.logger.error(f"Minio目录上传未知错误: {str(e)}")
+            return False
+
+    @staticmethod
     def extract_zip(zip_path, extract_path):
         """解压ZIP文件"""
         try:
