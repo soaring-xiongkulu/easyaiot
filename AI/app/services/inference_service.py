@@ -4,15 +4,15 @@ from ultralytics import YOLO
 from flask import current_app
 import tempfile
 import shutil
-from app.services.model_service import ProjectService
+from app.services.model_service import ModelService
 
 
 class InferenceService:
     def __init__(self, project_id):
         self.project_id = project_id
-        self.project_model_dir = ProjectService.get_project_model_dir(project_id)
-        self.project_dataset_dir = ProjectService.get_project_dataset_dir(project_id)
-        ProjectService.ensure_project_model_dir(project_id)
+        self.model_dir = ModelService.get_model_dir(project_id)
+        self.dataset_dir = ModelService.get_dataset_dir(project_id)
+        ModelService.ensure_model_dir(project_id)
 
     def get_system_model_path(self, model_name):
         """
@@ -24,7 +24,7 @@ class InferenceService:
         Returns:
             str: 模型文件的完整路径
         """
-        train_results_dir = os.path.join(self.project_dataset_dir, 'train_results', 'weights')
+        train_results_dir = os.path.join(self.dataset_dir, 'train_results', 'weights')
         model_path = os.path.join(train_results_dir, model_name)
         
         if os.path.exists(model_path):
@@ -53,7 +53,7 @@ class InferenceService:
         if not filename.endswith('.pt'):
             filename += '.pt' if '.' not in filename else ''
             
-        model_path = os.path.join(self.project_model_dir, filename)
+        model_path = os.path.join(self.model_dir, filename)
         model_file.save(model_path)
         
         # 确保文件已正确保存
@@ -473,7 +473,7 @@ class InferenceService:
         Returns:
             dict: 包含best.pt和last.pt模型存在状态的字典
         """
-        train_results_dir = os.path.join(self.project_dataset_dir, 'train_results', 'weights')
+        train_results_dir = os.path.join(self.dataset_dir, 'train_results', 'weights')
         
         return {
             'best_model_exists': os.path.exists(os.path.join(train_results_dir, 'best.pt')),
