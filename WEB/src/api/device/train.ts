@@ -2,7 +2,7 @@ import { defHttp } from '@/utils/http/axios';
 
 // 训练服务API路径常量
 const TrainApi = {
-  // 训练任务
+  // 模型训练
   Start: '/train/start',
   Status: '/train/status',
   Log: '/train/log',
@@ -46,7 +46,7 @@ const commonApi = (method, url, params = {}, headers = {}, isTransformResponse =
   );
 };
 
-/**************** 训练任务管理接口 ****************/
+/**************** 模型训练接口 ****************/
 export const startTraining = (params) => {
   return commonApi('post', TrainApi.Start, { data: params });
 };
@@ -83,7 +83,7 @@ export const deleteTraining = (taskId) => {
   return commonApi('delete', `${TrainApi.Status}/${taskId}`);
 };
 
-/**************** 模型服务管理接口 ****************/
+/**************** 模型服务接口 ****************/
 export const getModelService = (modelId) => {
   return commonApi('get', `${TrainApi.Model}/${modelId}`);
 };
@@ -116,7 +116,7 @@ export const getModelServiceDetail = (modelId) => {
   return commonApi('get', `${TrainApi.ModelDetail}/${modelId}`);
 };
 
-/**************** 模型导出管理接口 ****************/
+/**************** 模型导出接口 ****************/
 export const exportModel = (params) => {
   return commonApi('post', TrainApi.ExportModel, { data: params });
 };

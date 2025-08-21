@@ -1,40 +1,18 @@
 <template>
   <div class="train-wrapper">
     <div class="train-tab">
-      <Tabs
-        :animated="{ inkBar: true, tabPane: true }"
-        :activeKey="state.activeKey"
-        :tabBarGutter="60"
-        @tabClick="handleTabClick"
-      >
-        <TabPane key="1" tab="训练任务管理">
-          <TrainList></TrainList>
-        </TabPane>
-        <TabPane key="2" tab="模型服务管理">
-          <ModelList></ModelList>
-        </TabPane>
-        <TabPane key="3" tab="模型导出管理">
-          <ExportList></ExportList>
-        </TabPane>
-      </Tabs>
+      <ModelCardList></ModelCardList>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup name="TrainService">
-import { reactive } from 'vue';
-import { TabPane, Tabs } from "ant-design-vue";
-import TrainList from "./components/TrainList/index.vue";
-import ModelList from "./components/ModelList/index.vue";
-import ExportList from "./components/ExportList/index.vue";
+import {reactive} from 'vue';
+import ModelCardList from "@/views/train/components/ModelCardList/index.vue";
 
 const state = reactive({
   activeKey: '1'
 });
-
-const handleTabClick = (activeKey: string) => {
-  state.activeKey = activeKey;
-};
 </script>
 
 <style lang="less" scoped>

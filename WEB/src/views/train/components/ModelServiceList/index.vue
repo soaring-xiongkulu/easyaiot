@@ -1,9 +1,11 @@
 <template>
   <div>
     <BasicTable @register="registerTable">
+      <!-- 工具栏 -->
       <template #toolbar>
-        <a-button type="primary" @click="openStartTrainingModal">启动训练</a-button>
+        <a-button type="primary" @click="openDeployModal">部署模型</a-button>
       </template>
+      <!-- 操作列自定义渲染 -->
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'action'">
           <TableAction
@@ -11,10 +13,10 @@
               {
                 icon: 'ant-design:info-circle-filled',
                 tooltip: {
-                  title: '训练详情',
+                  title: '服务详情',
                   placement: 'top',
                 },
-                onClick: openTrainingDetail.bind(null, record),
+                onClick: openDetailModal.bind(null, record),
               },
               {
                 tooltip: {
@@ -25,11 +27,11 @@
                 onClick: handleOpenLogsModal.bind(null, record),
               },
               {
-                tooltip: record.status === 'running' ? '停止训练' : '重新开始',
+                tooltip: record.status === 'running' ? '停止服务' : '启动服务',
                 icon: record.status === 'running'
                   ? 'ant-design:pause-circle-filled'
                   : 'ant-design:play-circle-filled',
-                onClick: toggleTrainingStatus.bind(null, record),
+                onClick: toggleServiceStatus.bind(null, record),
               },
               {
                 tooltip: {
@@ -39,7 +41,7 @@
                 icon: 'material-symbols:delete-outline-rounded',
                 popConfirm: {
                   placement: 'topRight',
-                  title: '确定删除此模型训练?',
+                  title: '确定删除此服务?',
                   confirm: handleDelete.bind(null, record),
                 },
               },
@@ -48,7 +50,8 @@
         </template>
       </template>
     </BasicTable>
-    <StartTrainingModal @register="registerStartModal" @success="handleSuccess"/>
+    <DeployModelModal @register="registerDeployModal" @success="handleSuccess"/>
+    <ServiceDetailModal @register="registerServiceDetailModal"/>
     <TrainingLogsModal @register="registerLogsModal"/>
   </div>
 </template>
@@ -59,10 +62,16 @@ import {BasicTable, TableAction, useTable} from '@/components/Table';
 import {useModal} from '@/components/Modal';
 import {useRouter} from 'vue-router';
 import {useMessage} from '@/hooks/web/useMessage';
-import {deleteTraining, listTrainings, updateTrainingStatus} from '@/api/device/train';
-import StartTrainingModal from '../StartTrainingModal/index.vue';
+import {
+  deleteModelService,
+  listModelServices,
+  startModelService,
+  stopModelService
+} from '@/api/device/train';
+import DeployModelModal from '../DeployModelModal/index.vue';
+import ServiceDetailModal from '../ServiceDetailModal/index.vue';
 import TrainingLogsModal from '../TrainingLogsModal/index.vue';
-import {getSearchFormConfig, getTrainTableColumns} from './data';
+import {getModelServiceColumns, getSearchFormConfig} from './data';
 
 const {createMessage} = useMessage();
 const router = useRouter();
@@ -73,7 +82,8 @@ const state = reactive({
 });
 
 // 注册模态框
-const [registerStartModal, {openModal: openStartModal}] = useModal();
+const [registerDeployModal, {openModal: openDeployModal}] = useModal();
+const [registerServiceDetailModal, {openModal: openServiceDetailModal}] = useModal();
 const [registerLogsModal, {openModal: openLogsModal}] = useModal();
 
 // 使用useTable封装表格逻辑
@@ -83,9 +93,9 @@ const [
 ] = useTable({
   canResize: true,
   showIndexColumn: false,
-  title: '模型训练列表',
-  api: listTrainings,
-  columns: getTrainTableColumns(),
+  title: '模型服务列表',
+  api: listModelServices,
+  columns: getModelServiceColumns(),
   useSearchForm: true,
   showTableSetting: false,
   pagination: true,
@@ -94,52 +104,52 @@ const [
     listField: 'data.list',
     totalField: 'data.total',
   },
-  rowKey: 'task_id',
+  rowKey: 'model_id', // 明确指定行标识字段
 });
 
-// 打开启动训练模态框
-const openStartTrainingModal = () => {
-  openStartModal(true, {type: 'start'});
-};
-
-// 查看训练详情
-const openTrainingDetail = (record) => {
-  router.push({
-    name: 'TrainingDetail',
-    params: {id: record.task_id}
+// 查看服务详情
+const openDetailModal = (record) => {
+  openServiceDetailModal(true, {
+    service: record,
+    taskId: record.model_id,
+    taskName: record.model_name
   });
 };
 
 // 打开日志模态框
 const handleOpenLogsModal = (record) => {
   openLogsModal(true, {
-    taskId: record.task_id,
-    taskName: record.task_name
+    taskId: record.model_id,
+    taskName: record.model_name
   });
 };
 
-// 切换训练状态
-const toggleTrainingStatus = async (record) => {
+// 切换服务状态
+const toggleServiceStatus = async (record) => {
   try {
-    const newStatus = record.status === 'running' ? 'stopped' : 'running';
-    await updateTrainingStatus(record.task_id, newStatus);
-    createMessage.success(`训练已${newStatus === 'running' ? '开始' : '停止'}`);
+    if (record.status === 'running') {
+      await stopModelService(record.model_id);
+      createMessage.success('服务已停止');
+    } else {
+      await startModelService(record.model_id);
+      createMessage.success('服务已启动');
+    }
     reload();
   } catch (error) {
-    createMessage.error('状态切换失败');
-    console.error('状态切换失败:', error);
+    createMessage.error('操作失败');
+    console.error('服务状态切换失败:', error);
   }
 };
 
-// 删除模型训练
+// 删除服务
 const handleDelete = async (record) => {
   try {
-    await deleteTraining(record.task_id);
+    await deleteModelService(record.model_id);
     createMessage.success('删除成功');
     reload();
   } catch (error) {
     createMessage.error('删除失败');
-    console.error('删除失败:', error);
+    console.error('删除服务失败:', error);
   }
 };
 

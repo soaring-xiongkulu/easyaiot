@@ -2,7 +2,7 @@
 import { BasicColumn } from '@/components/Table';
 import { Progress, Tag } from 'ant-design-vue';
 
-// 训练任务表格列配置
+// 模型训练表格列配置
 export function getTrainTableColumns(): BasicColumn[] {
   return [
     {

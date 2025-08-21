@@ -1,37 +1,31 @@
 <template>
   <div>
-    <BasicTable @register="registerTable">
-      <!-- 工具栏 -->
+    <BasicTable @register="registerTable" v-if="state.isTableMode">
       <template #toolbar>
-        <a-button type="primary" @click="openDeployModal">部署模型</a-button>
+        <a-button type="primary" @click="openAddModal(true, { type: 'add' })">新增模型</a-button>
+        <a-button type="default" @click="handleClickSwap" preIcon="ant-design:swap-outlined">
+          切换视图
+        </a-button>
       </template>
-      <!-- 操作列自定义渲染 -->
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'action'">
           <TableAction
             :actions="[
               {
-                icon: 'ant-design:info-circle-filled',
+                icon: 'ant-design:eye-filled',
                 tooltip: {
-                  title: '服务详情',
+                  title: '详情',
                   placement: 'top',
                 },
-                onClick: openDetailModal.bind(null, record),
+                onClick: goModelDetail.bind(record),
               },
               {
                 tooltip: {
-                  title: '查看日志',
+                  title: '编辑',
                   placement: 'top',
                 },
-                icon: 'ant-design:file-text-filled',
-                onClick: handleOpenLogsModal.bind(null, record),
-              },
-              {
-                tooltip: record.status === 'running' ? '停止服务' : '启动服务',
-                icon: record.status === 'running'
-                  ? 'ant-design:pause-circle-filled'
-                  : 'ant-design:play-circle-filled',
-                onClick: toggleServiceStatus.bind(null, record),
+                icon: 'ant-design:edit-filled',
+                onClick: openAddModal.bind(null, true, { isEdit: true, isView: false, record }),
               },
               {
                 tooltip: {
@@ -41,7 +35,7 @@
                 icon: 'material-symbols:delete-outline-rounded',
                 popConfirm: {
                   placement: 'topRight',
-                  title: '确定删除此服务?',
+                  title: '是否确认删除？',
                   confirm: handleDelete.bind(null, record),
                 },
               },
@@ -50,116 +44,102 @@
         </template>
       </template>
     </BasicTable>
-    <DeployModelModal @register="registerDeployModal" @success="handleSuccess"/>
-    <ServiceDetailModal @register="registerServiceDetailModal"/>
-    <TrainingLogsModal @register="registerLogsModal"/>
+    <div v-else>
+      <ModelCardList :params="params" :api="getModelPage" @get-method="getMethod"
+                     @delete="handleDel" @view="handleView" @edit="handleEdit">
+        <template #header>
+          <a-button type="primary" @click="openAddModal(true, { isEdit: false, isView: false })">
+            新增模型
+          </a-button>
+          <a-button type="default" @click="handleClickSwap" preIcon="ant-design:swap-outlined">
+            切换视图
+          </a-button>
+        </template>
+      </ModelCardList>
+    </div>
+    <ModelModal @register="registerAddModel" @success="handleSuccess"/>
   </div>
 </template>
 
-<script lang="ts" setup>
-import {reactive} from 'vue';
-import {BasicTable, TableAction, useTable} from '@/components/Table';
-import {useModal} from '@/components/Modal';
-import {useRouter} from 'vue-router';
-import {useMessage} from '@/hooks/web/useMessage';
-import {
-  deleteModelService,
-  listModelServices,
-  startModelService,
-  stopModelService
-} from '@/api/device/train';
-import DeployModelModal from '../DeployModelModal/index.vue';
-import ServiceDetailModal from '../ServiceDetailModal/index.vue';
-import TrainingLogsModal from '../TrainingLogsModal/index.vue';
-import {getModelServiceColumns, getSearchFormConfig} from './data';
+<script lang="ts" setup name="modelManagement">
+import { reactive } from 'vue';
+import { BasicTable, TableAction, useTable } from '@/components/Table';
+import { useMessage } from '@/hooks/web/useMessage';
+import { getBasicColumns, getFormConfig } from "./Data";
+import ModelModal from "@/views/model/components/ModelModal/index.vue";
+import { useModal } from "@/components/Modal";
+import { useRouter } from "vue-router";
+import { deleteModel, getModelPage } from "@/api/device/model";
+import ModelCardList from "@/views/model/components/ModelCardList/index.vue";
 
-const {createMessage} = useMessage();
+const [registerAddModel, { openModal: openAddModal }] = useModal();
 const router = useRouter();
 
-// 状态管理
+defineOptions({ name: 'ModelList' })
+
 const state = reactive({
-  isTableMode: true, // 默认显示表格视图
+  isTableMode: false,
 });
 
-// 注册模态框
-const [registerDeployModal, {openModal: openDeployModal}] = useModal();
-const [registerServiceDetailModal, {openModal: openServiceDetailModal}] = useModal();
-const [registerLogsModal, {openModal: openLogsModal}] = useModal();
+const params = {};
+let cardListReload = () => {};
 
-// 使用useTable封装表格逻辑
-const [
-  registerTable,
-  {reload}
-] = useTable({
+function getMethod(m: any) {
+  cardListReload = m;
+}
+
+function handleView(record) {
+  goModelDetail(record);
+}
+
+function handleEdit(record) {
+  openAddModal(true, { isEdit: true, isView: false, record });
+}
+
+function handleDel(record) {
+  handleDelete(record);
+  cardListReload();
+}
+
+function handleClickSwap() {
+  state.isTableMode = !state.isTableMode;
+}
+
+function handleSuccess() {
+  reload({ page: 0 });
+  cardListReload();
+}
+
+const { createMessage } = useMessage();
+const [registerTable, { reload }] = useTable({
   canResize: true,
   showIndexColumn: false,
-  title: '模型服务列表',
-  api: listModelServices,
-  columns: getModelServiceColumns(),
+  title: '模型管理',
+  api: getModelPage,
+  columns: getBasicColumns(),
   useSearchForm: true,
   showTableSetting: false,
   pagination: true,
-  formConfig: getSearchFormConfig(),
+  formConfig: getFormConfig(),
   fetchSetting: {
     listField: 'data.list',
     totalField: 'data.total',
   },
-  rowKey: 'model_id', // 明确指定行标识字段
+  rowKey: 'id',
 });
 
-// 查看服务详情
-const openDetailModal = (record) => {
-  openServiceDetailModal(true, {
-    service: record,
-    taskId: record.model_id,
-    taskName: record.model_name
-  });
+const goModelDetail = async (record) => {
+  router.push({ name: 'ModelDetail', params: { id: record.id } });
 };
 
-// 打开日志模态框
-const handleOpenLogsModal = (record) => {
-  openLogsModal(true, {
-    taskId: record.model_id,
-    taskName: record.model_name
-  });
-};
-
-// 切换服务状态
-const toggleServiceStatus = async (record) => {
-  try {
-    if (record.status === 'running') {
-      await stopModelService(record.model_id);
-      createMessage.success('服务已停止');
-    } else {
-      await startModelService(record.model_id);
-      createMessage.success('服务已启动');
-    }
-    reload();
-  } catch (error) {
-    createMessage.error('操作失败');
-    console.error('服务状态切换失败:', error);
-  }
-};
-
-// 删除服务
 const handleDelete = async (record) => {
   try {
-    await deleteModelService(record.model_id);
+    await deleteModel(record.id);
     createMessage.success('删除成功');
-    reload();
+    handleSuccess();
   } catch (error) {
+    console.error(error);
     createMessage.error('删除失败');
-    console.error('删除服务失败:', error);
   }
-};
-
-// 处理成功回调
-const handleSuccess = () => {
-  reload();
-};
-
-// 切换视图
-const handleClickSwap = () => {
-  state.isTableMode = !state.isTableMode;
 };
 </script>

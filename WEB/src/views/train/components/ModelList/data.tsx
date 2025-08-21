@@ -1,87 +1,84 @@
-// src/views/model/components/modelServiceColumns.ts
-import { BasicColumn } from '@/components/Table';
-import { Tag } from 'ant-design-vue';
+import { BasicColumn, FormProps } from "@/components/Table";
+import { Tag } from "ant-design-vue";
 
-// 模型服务列表列配置
-export function getModelServiceColumns(): BasicColumn[] {
+export function getBasicColumns(): BasicColumn[] {
   return [
     {
       title: '模型ID',
-      dataIndex: 'model_id',
-      width: 100,
+      dataIndex: 'id',
+      width: 90,
     },
     {
       title: '模型名称',
-      dataIndex: 'model_name',
-      width: 150,
+      dataIndex: 'name',
+      width: 120,
     },
     {
-      title: '版本',
-      dataIndex: 'model_version',
-      width: 80,
-    },
-    {
-      title: '存储路径',
-      dataIndex: 'minio_model_path',
-      width: 200,
-      customRender: ({ text }) => {
-        if (!text) return '--';
-        // 简化长路径显示
-        const parts = text.split('/');
-        return parts.length > 3
-          ? `${parts[0]}/.../${parts.slice(-2).join('/')}`
-          : text;
-      }
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 100,
-      customRender: ({ record }) => (
-        <Tag color={record.status === 'running' ? 'green' : 'red'}>
-          {record.status === 'running' ? '运行中' : '已停止'}
-        </Tag>
-      )
+      title: '模型描述',
+      dataIndex: 'description',
+      width: 180,
+      customRender: ({ text }) => text || '--',
     },
     {
       title: '创建时间',
       dataIndex: 'created_at',
       width: 120,
-      customRender: ({ text }) => {
-        if (!text) return '--';
-        // 简化日期显示
-        return new Date(text).toLocaleDateString();
-      }
+      customRender: ({ text }) => formatDateTime(text),
     },
     {
+      title: '更新时间',
+      dataIndex: 'updated_at',
+      width: 120,
+      customRender: ({ text }) => formatDateTime(text),
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 90,
+      customRender: ({ text }) => {
+        if (text === 0) return <Tag color="blue">未部署</Tag>;
+        if (text === 1) return <Tag color="green">已部署</Tag>;
+        if (text === 2) return <Tag color="orange">训练中</Tag>;
+        return <Tag color="red">已下线</Tag>;
+      },
+    },
+    {
+      width: 90,
       title: '操作',
       dataIndex: 'action',
-      width: 120,
     },
   ];
 }
 
-// 搜索表单配置
-export function getSearchFormConfig() {
+export function getFormConfig(): Partial<FormProps> {
   return {
+    labelWidth: 80,
+    baseColProps: { span: 6 },
     schemas: [
       {
-        field: 'model_name',
-        label: '模型名称',
+        field: `name`,
+        label: `模型名称`,
         component: 'Input',
       },
       {
-        field: 'status',
-        label: '状态',
+        field: `status`,
+        label: `状态`,
         component: 'Select',
         componentProps: {
           options: [
-            { label: '全部', value: '' },
-            { label: '运行中', value: 'running' },
-            { label: '已停止', value: 'stopped' },
+            { label: '未部署', value: 0 },
+            { label: '已部署', value: 1 },
+            { label: '训练中', value: 2 },
+            { label: '已下线', value: 3 },
           ],
         },
       },
     ],
   };
+}
+
+function formatDateTime(dateString: string): string {
+  if (!dateString) return '--';
+  const date = new Date(dateString);
+  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 }
