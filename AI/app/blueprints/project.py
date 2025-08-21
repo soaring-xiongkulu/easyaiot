@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 from operator import or_
@@ -10,8 +11,10 @@ from models import db, Project
 
 project_bp = Blueprint('project', __name__)
 
+logger = logging.getLogger(__name__)
+
 @project_bp.route('/projects', methods=['GET'])
-def get_projects():
+def projects():
     # 适配 pageNo 和 pageSize 参数
     try:
         page_no = int(request.args.get('pageNo', 1))  # 默认第1页
@@ -69,7 +72,7 @@ def get_projects():
         }), 400
 
     except Exception as e:
-        current_app.logger.error(f'分页查询失败: {str(e)}')
+        logger.error(f'分页查询失败: {str(e)}')
         return jsonify({
             'code': 500,
             'msg': '服务器内部错误'
