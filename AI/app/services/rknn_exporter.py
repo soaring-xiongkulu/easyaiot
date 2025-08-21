@@ -1,11 +1,13 @@
+import logging
 import os
 import tempfile
-import subprocess
-import numpy as np
+
 from rknn.api import RKNN
+
 from app.services.model_service import ModelService
 from models import ExportRecord
 
+logger = logging.getLogger(__name__)
 
 class RknnExporter:
     """RKNN模型转换核心类"""
@@ -82,7 +84,7 @@ class RknnExporter:
         except Exception as e:
             # 记录详细错误日志
             error_msg = f"RKNN转换失败: {str(e)}"
-            current_app.logger.error(error_msg, exc_info=True)
+            logger.error(error_msg, exc_info=True)
             raise
         finally:
             # 确保释放资源

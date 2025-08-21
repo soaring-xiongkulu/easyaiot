@@ -125,26 +125,26 @@ class ModelService:
         return model_dir
 
     @staticmethod
-    def get_model_dataset_dir(model_id):
+    def get_dataset_dir(model_id):
         """获取模型数据集目录路径"""
         return os.path.join(current_app.root_path, 'static', 'datasets', str(model_id))
 
     @staticmethod
-    def ensure_model_dataset_dir(model_id):
+    def ensure_dataset_dir(model_id):
         """确保模型数据集目录存在"""
-        model_dir = ModelService.get_model_dataset_dir(model_id)
+        model_dir = ModelService.get_dataset_dir(model_id)
         os.makedirs(model_dir, exist_ok=True)
         return model_dir
 
     @staticmethod
-    def get_model_model_dir(model_id):
+    def get_model_dir(model_id):
         """获取模型存储目录路径"""
         return os.path.join(current_app.root_path, 'static', 'models', str(model_id))
 
     @staticmethod
-    def ensure_model_model_dir(model_id):
+    def ensure_model_dir(model_id):
         """确保模型存储目录存在"""
-        model_dir = ModelService.get_model_model_dir(model_id)
+        model_dir = ModelService.get_model_dir(model_id)
         os.makedirs(model_dir, exist_ok=True)
         return model_dir
 
