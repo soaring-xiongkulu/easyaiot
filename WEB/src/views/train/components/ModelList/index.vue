@@ -29,6 +29,14 @@
               },
               {
                 tooltip: {
+                  title: '训练模型',
+                  placement: 'top',
+                },
+                icon: 'ant-design:experiment-outlined', // 训练图标
+                onClick: handleTrain.bind(null, record),
+              },
+              {
+                tooltip: {
                   title: '删除',
                   placement: 'top',
                 },
@@ -38,23 +46,31 @@
                   title: '是否确认删除？',
                   confirm: handleDelete.bind(null, record),
                 },
-              },
+              }
             ]"
           />
         </template>
       </template>
     </BasicTable>
     <div v-else>
-      <ModelCardList :params="params" :api="getModelPage" @get-method="getMethod"
-                     @delete="handleDel" @view="handleView" @edit="handleEdit">
-        <template #header>
-          <a-button type="primary" @click="openAddModal(true, { isEdit: false, isView: false })">
-            新增模型
-          </a-button>
-          <a-button type="default" @click="handleClickSwap" preIcon="ant-design:swap-outlined">
-            切换视图
-          </a-button>
-        </template>
+      <ModelCardList
+        :params="params"
+        :api="getModelPage"
+        @get-method="getMethod"
+        @delete="handleDel"
+        @view="handleView"
+        @edit="handleEdit"
+        @deploy="handleDeploy"
+        @train="handleTrain" <!-- 新增train事件监听 -->
+      >
+      <template #header>
+        <a-button type="primary" @click="openAddModal(true, { isEdit: false, isView: false })">
+          新增模型
+        </a-button>
+        <a-button type="default" @click="handleClickSwap" preIcon="ant-design:swap-outlined">
+          切换视图
+        </a-button>
+      </template>
       </ModelCardList>
     </div>
     <ModelModal @register="registerAddModel" @success="handleSuccess"/>
@@ -109,6 +125,27 @@ function handleSuccess() {
   reload({ page: 0 });
   cardListReload();
 }
+
+// 新增部署处理函数
+function handleDeploy(record) {
+  console.log('处理模型部署', record);
+  // 实际部署逻辑
+}
+
+// 新增训练处理函数
+const handleTrain = async (record) => {
+  try {
+    // 使用Vue Router跳转到训练页面
+    router.push({
+      name: 'ModelTraining',
+      params: { modelId: record.id },
+      query: { modelName: record.name }
+    });
+  } catch (error) {
+    console.error('跳转到训练页面失败:', error);
+    createMessage.error('跳转到训练页面失败');
+  }
+};
 
 const { createMessage } = useMessage();
 const [registerTable, { reload }] = useTable({

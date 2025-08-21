@@ -55,6 +55,9 @@
                       <div class="btn" @click="handleEdit(item)">
                         <EditOutlined style="font-size: 16px;" />
                       </div>
+                      <div class="btn" @click="handleTrain(item)" title="训练模型">
+                        <ExperimentOutlined style="font-size: 16px;" />
+                      </div>
                       <Popconfirm
                         title="是否确认删除？"
                         ok-text="是"
@@ -66,7 +69,7 @@
                         </div>
                       </Popconfirm>
                     </div>
-                    <div class="btn" @click="handleDeploy(item)">
+                    <div class="btn" @click="handleDeploy(item)" title="部署模型">
                       <CloudUploadOutlined style="font-size: 16px;" />
                     </div>
                   </div>
@@ -87,7 +90,13 @@ import { BasicForm, useForm } from '@/components/Form';
 import { propTypes } from '@/utils/propTypes';
 import { isFunction } from '@/utils/is';
 import { useMessage } from "@/hooks/web/useMessage";
-import { EyeOutlined, EditOutlined, DeleteOutlined, CloudUploadOutlined } from '@ant-design/icons-vue';
+import {
+  EyeOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  CloudUploadOutlined,
+  ExperimentOutlined // 新增训练图标
+} from '@ant-design/icons-vue';
 
 defineOptions({ name: 'ModelCardList' })
 
@@ -99,7 +108,7 @@ const props = defineProps({
   api: propTypes.func,
 });
 
-const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'deploy']);
+const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'deploy', 'train']); // 新增train事件
 
 const data = ref([]);
 const state = reactive({
@@ -223,6 +232,11 @@ function handleEdit(record: object) {
 
 function handleDeploy(record: object) {
   emit('deploy', record);
+}
+
+// 新增训练处理函数
+function handleTrain(record: object) {
+  emit('train', record);
 }
 </script>
 
