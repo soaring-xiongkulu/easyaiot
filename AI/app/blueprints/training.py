@@ -161,6 +161,14 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 update_log(log_msg)
                 return
 
+            # data/datasets/123/
+            # ├── images /
+            # │   ├── train /
+            # │   └── val /
+            # ├── labels /
+            # │   ├── train /
+            # │   └── val /
+            # └── data.yaml
             # 检查数据集目录是否存在
             model_dir = os.path.join(application.root_path, 'data/datasets', str(model_id))
             data_yaml_path = os.path.join(model_dir, 'data.yaml')
