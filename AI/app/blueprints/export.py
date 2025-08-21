@@ -17,7 +17,6 @@ SUPPORTED_FORMATS = {
     'openvino': {'ext': '_openvino_model/', 'mime': 'application/octet-stream'}
 }
 
-
 @export_bp.route('/api/model/<int:model_id>/export/<format>', methods=['POST'])
 def api_export_model(model_id, format):
     try:
