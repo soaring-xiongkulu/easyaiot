@@ -4,16 +4,19 @@ import posixpath
 from flask import current_app
 from minio import Minio
 from minio.error import S3Error
+from dotenv import load_dotenv
 
+# 加载.env文件中的环境变量
+load_dotenv()
 
 class ModelService:
     @staticmethod
     def get_minio_client():
-        """创建并返回Minio客户端"""
-        minio_endpoint = os.environ.get('MINIO_ENDPOINT', 'localhost:9000')
-        access_key = os.environ.get('MINIO_ACCESS_KEY', 'minioadmin')
-        secret_key = os.environ.get('MINIO_SECRET_KEY', 'minioadmin')
-        secure = os.environ.get('MINIO_SECURE', 'false').lower() == 'true'
+        """创建并返回Minio客户端（从.env加载配置）"""
+        minio_endpoint = os.getenv('MINIO_ENDPOINT', 'localhost:9000')
+        access_key = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
+        secret_key = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
+        secure = os.getenv('MINIO_SECURE', 'false').lower() == 'true'
 
         return Minio(
             minio_endpoint,
@@ -24,7 +27,7 @@ class ModelService:
 
     @staticmethod
     def download_from_minio(bucket_name, object_name, destination_path):
-        """从Minio下载文件[8,10](@ref)"""
+        """从Minio下载文件"""
         try:
             minio_client = ModelService.get_minio_client()
 
@@ -47,7 +50,7 @@ class ModelService:
 
     @staticmethod
     def upload_to_minio(bucket_name, object_name, file_path):
-        """上传文件到Minio存储[8,9](@ref)"""
+        """上传文件到Minio存储"""
         try:
             minio_client = ModelService.get_minio_client()
 
