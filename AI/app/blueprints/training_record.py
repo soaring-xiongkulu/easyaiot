@@ -9,12 +9,12 @@ from sqlalchemy import desc
 
 from models import db, Model, TrainingRecord, ExportRecord
 
-training_bp = Blueprint('training', __name__, url_prefix='/training')
+training_record_bp = Blueprint('trainingRecord', __name__, url_prefix='/training')
 logger = logging.getLogger(__name__)
 
 
 # 训练记录分页查询
-@training_bp.route('/records', methods=['GET'])
+@training_record_bp.route('/records', methods=['GET'])
 def training_records():
     try:
         # 获取分页参数和模型ID过滤
@@ -91,7 +91,7 @@ def training_records():
 
 
 # 训练记录详情
-@training_bp.route('/record/<int:record_id>')
+@training_record_bp.route('/record/<int:record_id>')
 def training_detail(record_id):
     record = TrainingRecord.query.get_or_404(record_id)
     exports = ExportRecord.query.filter_by(model_id=record.model_id).all()
@@ -102,7 +102,7 @@ def training_detail(record_id):
 
 
 # 创建训练记录
-@training_bp.route('/create', methods=['POST'])
+@training_record_bp.route('/create', methods=['POST'])
 def create_training():
     try:
         data = request.json
@@ -161,7 +161,7 @@ def create_training():
 
 
 # 更新训练记录状态
-@training_bp.route('/update/<int:record_id>', methods=['POST'])
+@training_record_bp.route('/update/<int:record_id>', methods=['POST'])
 def update_training(record_id):
     try:
         record = TrainingRecord.query.get_or_404(record_id)
@@ -202,7 +202,7 @@ def update_training(record_id):
 
 
 # 删除训练记录
-@training_bp.route('/delete/<int:record_id>', methods=['DELETE'])
+@training_record_bp.route('/delete/<int:record_id>', methods=['DELETE'])
 def delete_training(record_id):
     try:
         record = TrainingRecord.query.get_or_404(record_id)
