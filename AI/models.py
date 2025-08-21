@@ -3,12 +3,12 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
-
 class Model(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    model_path = db.Column(db.String(500), nullable=True)  # 原始模型路径
+    model_path = db.Column(db.String(500), nullable=True)
+    version = db.Column(db.String(20), default="1.0.0")  # 新增版本字段
     training_record_id = db.Column(
         db.Integer,
         db.ForeignKey('training_record.id', ondelete="SET NULL"),
@@ -16,16 +16,17 @@ class Model(db.Model):
     )
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    # 导出模型路径字段（每个类型一个地址）
-    onnx_model_path = db.Column(db.String(500))  # ONNX格式路径
-    torchscript_model_path = db.Column(db.String(500))  # TorchScript格式路径
-    tensorrt_model_path = db.Column(db.String(500))  # TensorRT格式路径
-    openvino_model_path = db.Column(db.String(500))  # OpenVINO格式路径
+
+    # 导出模型路径字段
+    onnx_model_path = db.Column(db.String(500))
+    torchscript_model_path = db.Column(db.String(500))
+    tensorrt_model_path = db.Column(db.String(500))
+    openvino_model_path = db.Column(db.String(500))
+    rknn_model_path = db.Column(db.String(500))  # 新增RKNN路径
 
     # 关系定义
     training_records = db.relationship('TrainingRecord', backref='model', lazy=True)
     export_records = db.relationship('ExportRecord', back_populates='model', cascade='all, delete-orphan')
-
 
 class TrainingRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -38,14 +39,13 @@ class TrainingRecord(db.Model):
     train_log = db.Column(db.String(500), nullable=False)
     checkpoint_dir = db.Column(db.String(500), nullable=False)
     metrics_path = db.Column(db.Text)
-    minio_model_path = db.Column(db.String(500))  # Minio存储路径
-
+    minio_model_path = db.Column(db.String(500))
 
 class ExportRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=False)
-    format = db.Column(db.String(50), nullable=False)  # 导出格式
-    minio_path = db.Column(db.String(500))  # Minio存储路径（新增）
-    local_path = db.Column(db.String(500))  # 本地缓存路径（可选）
+    format = db.Column(db.String(50), nullable=False)
+    minio_path = db.Column(db.String(500))
+    local_path = db.Column(db.String(500))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     model = db.relationship('Model', back_populates='export_records')
