@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask import redirect, url_for, flash
 from flask import render_template
 
-from models import db, Project
+from models import db, Model
 
 model_bp = Blueprint('model', __name__)
 
@@ -29,12 +29,12 @@ def models():
             }), 400
 
         # 构建查询（支持搜索）
-        query = Project.query
+        query = Model.query
         if search:
             query = query.filter(
                 or_(
-                    Project.name.ilike(f'%{search}%'),
-                    Project.description.ilike(f'%{search}%')
+                    Model.name.ilike(f'%{search}%'),
+                    Model.description.ilike(f'%{search}%')
                 )
             )
 
@@ -80,7 +80,7 @@ def models():
 
 @model_bp.route('/model/<int:model_id>')
 def model_detail(model_id):
-    model = Project.query.get_or_404(model_id)
+    model = Model.query.get_or_404(model_id)
     return render_template('model_detail.html', model=model)
 
 @model_bp.route('/model/create', methods=['POST'])
@@ -92,7 +92,7 @@ def create_model():
         flash('项目名称不能为空', 'error')
         return redirect(url_for('main.index'))
 
-    model = Project(name=name, description=description)
+    model = Model(name=name, description=description)
     db.session.add(model)
     db.session.commit()
 
@@ -101,7 +101,7 @@ def create_model():
 
 @model_bp.route('/model/<int:model_id>/delete', methods=['POST'])
 def delete_model(model_id):
-    model = Project.query.get_or_404(model_id)
+    model = Model.query.get_or_404(model_id)
     model_name = model.name
 
     # 删除项目相关的所有文件
