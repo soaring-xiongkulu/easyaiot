@@ -14,7 +14,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv()
 
-
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
@@ -43,6 +42,9 @@ def create_app():
     app.register_blueprint(training.training_bp)
     app.register_blueprint(training_record.training_record_bp)
 
+    # 注册服务
+    app.nacos_client = register_to_nacos()
+
     @app.template_filter('beijing_time')
     def beijing_time_filter(dt):
         if dt:
@@ -53,8 +55,20 @@ def create_app():
             return beijing_time.strftime('%Y-%m-%d %H:%M:%S')
         return '未知'
 
-    return app
+    @app.teardown_appcontext
+    def deregister_on_shutdown(exception=None):
+        if hasattr(app, 'nacos_client') and app.nacos_client:
+            service_name = os.getenv('SERVICE_NAME', 'model-server')
+            ip = os.getenv('POD_IP', 'localhost')
+            port = int(os.getenv('FLASK_RUN_PORT', 5000))
+            app.nacos_client.remove_naming_instance(
+                service_name=service_name,
+                ip=ip,
+                port=port
+            )
+            print("✅ 服务已注销")
 
+    return app
 
 def register_to_nacos():
     try:
@@ -93,7 +107,7 @@ def register_to_nacos():
                         ip=ip,
                         port=port
                     )
-                    print(f"心跳发送成功: {service_name}")
+                    # print(f"心跳发送成功: {service_name}")
                 except Exception as e:
                     print(f"心跳异常: {str(e)}")
                 time.sleep(5)  # 间隔5秒
@@ -108,15 +122,4 @@ def register_to_nacos():
 
 if __name__ == '__main__':
     app = create_app()
-    try:
-        nacos_client = register_to_nacos()
-        app.run(host='0.0.0.0', port=5000)
-    finally:
-        # 优雅注销服务:cite[2]
-        if nacos_client:
-            nacos_client.remove_naming_instance(
-                service_name=os.getenv('SERVICE_NAME'),
-                ip=os.getenv('POD_IP'),
-                port=int(os.getenv('FLASK_RUN_PORT'))
-            )
-            print("服务已注销")
+    app.run(host='0.0.0.0', port=5000)
