@@ -4,7 +4,7 @@ enum Api {
   Model = '/model',
   ModelTraining = '/training/model',
   ModelExport = '/export/model',
-  TrainingRecord = '/trainingRecord',
+  TrainingRecord = '/training_record',
   Inference = '/model',
   Export = '/export',
   OtaCheck = '/model/ota_check',
