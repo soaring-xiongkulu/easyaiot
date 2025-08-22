@@ -9,7 +9,7 @@ from sqlalchemy import desc
 
 from models import db, Model, TrainingRecord, ExportRecord
 
-training_record_bp = Blueprint('training-record', __name__, url_prefix='/training')
+training_record_bp = Blueprint('training_record', __name__, url_prefix='/training')
 logger = logging.getLogger(__name__)
 
 
