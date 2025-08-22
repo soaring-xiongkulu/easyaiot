@@ -10,8 +10,9 @@ spring:
         - id: model-admin-api
           uri: lb://model-server
           predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
-            - Path=/model/**
+            - Path=/admin-api/model/**
           filters:
+            - StripPrefix=1
             - RewritePath=/admin-api/model/v3/api-docs, /v3/api-docs # 配置，保证转发到 /v3/api-docs
         # 模型实验服务
         - id: studio-admin-api
