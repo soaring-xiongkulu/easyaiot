@@ -61,7 +61,7 @@ def register_to_nacos():
         # 获取环境变量
         nacos_server = os.getenv('NACOS_SERVER', 'iot.basiclab.top:8848')
         namespace = os.getenv('NACOS_NAMESPACE', 'local')
-        service_name = os.getenv('SERVICE_NAME', 'easyaiot-ai')
+        service_name = os.getenv('SERVICE_NAME', 'model-server')
         ip = os.getenv('POD_IP', 'localhost')
         port = int(os.getenv('FLASK_RUN_PORT', 5000))
         username = os.getenv('NACOS_USERNAME', 'nacos')
@@ -93,7 +93,7 @@ def register_to_nacos():
                         ip=ip,
                         port=port
                     )
-                    # print(f"心跳发送成功: {service_name}")
+                    print(f"心跳发送成功: {service_name}")
                 except Exception as e:
                     print(f"心跳异常: {str(e)}")
                 time.sleep(5)  # 间隔5秒
