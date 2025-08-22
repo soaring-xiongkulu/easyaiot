@@ -50,16 +50,15 @@ accept=".pt,.pth,.h5,.onnx"
 </template>
 
 <script lang="ts" setup>
-import { computed, reactive, ref } from 'vue';
-import { BasicModal, useModalInner } from '@/components/Modal';
-import { Form, FormItem, Input, Select, Spin, Upload } from 'ant-design-vue';
-import { useMessage } from '@/hooks/web/useMessage';
-import { useI18n } from "@/hooks/web/useI18n";
-import { useUserStoreWithOut } from "@/store/modules/user";
-import { useGlobSetting } from "@/hooks/setting";
-import { createModel, updateModel } from "@/api/device/model";
+import {computed, reactive, ref} from 'vue';
+import {BasicModal, useModalInner} from '@/components/Modal';
+import {Form, FormItem, Input, Select, Spin, Upload} from 'ant-design-vue';
+import {useMessage} from '@/hooks/web/useMessage';
+import {useI18n} from "@/hooks/web/useI18n";
+import {useUserStoreWithOut} from "@/store/modules/user";
+import {useGlobSetting} from "@/hooks/setting";
+import {createModel, updateModel} from "@/api/device/model";
 
-const { t } = useI18n();
 const { createMessage } = useMessage();
 const TextArea = Input.TextArea;
 

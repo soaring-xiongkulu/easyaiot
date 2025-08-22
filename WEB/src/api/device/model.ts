@@ -38,8 +38,8 @@ export const createModel = (params) => {
   return commonApi('post', Api.Model + '/create', {params});
 };
 
-export const updateModel = (modelId: number, params: any) => {
-  return commonApi('put', `${Api.Model}/${modelId}/update`, { params });
+export const updateModel = (params) => {
+  return commonApi('put', `${Api.Model}/${params["id"]}/update`, { params });
 };
 
 

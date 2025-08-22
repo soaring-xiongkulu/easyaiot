@@ -80,18 +80,15 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue';
-import { List, Popconfirm, Spin, Tag } from 'ant-design-vue';
-import { BasicForm, useForm } from '@/components/Form';
-import { propTypes } from '@/utils/propTypes';
-import { isFunction } from '@/utils/is';
-import { useMessage } from "@/hooks/web/useMessage";
+import {onMounted, reactive, ref} from 'vue';
+import {List, Popconfirm, Spin} from 'ant-design-vue';
+import {BasicForm, useForm} from '@/components/Form';
+import {propTypes} from '@/utils/propTypes';
+import {isFunction} from '@/utils/is';
 
 const ListItem = List.Item;
 
 defineOptions({ name: 'WarehouseCardList' });
-
-const { createMessage } = useMessage();
 
 const props = defineProps({
   params: propTypes.object.def({}),
