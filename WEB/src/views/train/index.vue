@@ -1,14 +1,14 @@
 <template>
   <div class="train-wrapper">
     <div class="train-tab">
-      <ModelCardList></ModelCardList>
+      <ModelList></ModelList>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup name="TrainService">
 import {reactive} from 'vue';
-import ModelCardList from "@/views/train/components/ModelCardList/index.vue";
+import ModelList from "@/views/train/components/ModelList/index.vue";
 
 defineOptions({name: 'TRAIN'})
 

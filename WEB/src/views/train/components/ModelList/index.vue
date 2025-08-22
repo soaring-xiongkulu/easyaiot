@@ -61,7 +61,7 @@
         @view="handleView"
         @edit="handleEdit"
         @deploy="handleDeploy"
-        @train="handleTrain" <!-- 新增train事件监听 -->
+        @train="handleTrain"
       >
       <template #header>
         <a-button type="primary" @click="openAddModal(true, { isEdit: false, isView: false })">

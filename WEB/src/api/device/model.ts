@@ -38,6 +38,11 @@ export const createModel = (params) => {
   return commonApi('post', Api.Model + '/create', {params});
 };
 
+export const updateModel = (modelId: number, params: any) => {
+  return commonApi('put', `${Api.Model}/${modelId}/update`, { params });
+};
+
+
 export const deleteModel = (id) => {
   return commonApi('post', `${Api.Model}/${id}/delete`);
 };
