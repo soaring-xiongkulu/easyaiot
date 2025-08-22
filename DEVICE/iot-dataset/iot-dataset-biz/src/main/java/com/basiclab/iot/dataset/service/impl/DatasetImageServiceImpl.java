@@ -21,6 +21,7 @@ import io.minio.http.Method;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,6 +33,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -67,7 +69,10 @@ public class DatasetImageServiceImpl implements DatasetImageService {
     private DatasetTagService datasetTagService;
 
     @Resource
-    private MinioClient minioClient; // 注入Minio客户端[2,4](@ref)
+    private MinioClient minioClient;
+
+    @Resource
+    private Environment environment;
 
     @Value("${minio.bucket}") // MinIO存储桶名称
     private String minioBucket;
@@ -475,10 +480,37 @@ public class DatasetImageServiceImpl implements DatasetImageService {
     }
 
     private String parseObjectNameFromPath(String path) {
-        // 实际项目中根据存储路径格式解析
-        // 这里简化处理，假设路径格式为 /api/v1/buckets/{bucket}/objects/download?prefix={object}
-        int start = path.indexOf("prefix=") + 7;
-        return path.substring(start);
+        // 获取当前激活的profile
+        String env = environment.getActiveProfiles().length > 0 ?
+                environment.getActiveProfiles()[0] :
+                environment.getDefaultProfiles()[0];
+        // 根据环境添加前缀
+        String fullPath = path;
+        if (env.contains("local") || env.contains("dev")) {
+            fullPath = "http://iot.basiclab.top:9001" + path;
+        } else if (env.contains("prod")) {
+            fullPath = "http://10.0.0.87:9001" + path;
+        }
+        try {
+            // 解析URI获取查询参数
+            URI uri = URI.create(fullPath);
+            String query = uri.getQuery();
+            if (query != null) {
+                for (String param : query.split("&")) {
+                    if (param.startsWith("prefix=")) {
+                        return param.substring(7);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("解析URI失败，使用后备方案: {}", e.getMessage());
+        }
+        // 后备方案：直接提取prefix值
+        int start = path.indexOf("prefix=");
+        if (start != -1) {
+            return path.substring(start + 7);
+        }
+        return path;
     }
 
     private List<Map<String, Object>> parseAnnotations(String annotationsJson) {
