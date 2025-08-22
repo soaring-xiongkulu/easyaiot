@@ -17,13 +17,6 @@ training_bp = Blueprint('training', __name__)
 training_status = {}
 training_processes = {}
 
-
-def organize_dataset_directories(model_id, dataset_path=None):
-    """组织数据集目录结构（示例函数，需根据实际实现补充）"""
-    # 实际项目中应包含数据集组织逻辑
-    pass
-
-
 @training_bp.route('/api/model/<int:model_id>/train', methods=['POST'])
 def api_start_training(model_id):
     try:
@@ -213,8 +206,6 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                         # 解压数据集
                         if ModelService.extract_zip(local_zip_path, model_dir):
                             update_log("数据集解压成功")
-                            dataset_downloaded = True
-
                             # 删除压缩包释放空间
                             os.remove(local_zip_path)
                             update_log("已清理临时压缩文件")
@@ -224,15 +215,6 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                         update_log("数据集下载失败")
                 else:
                     update_log("未提供数据集Minio路径，无法下载")
-
-                # 组织数据集目录结构
-                if dataset_downloaded:
-                    update_log("重新组织数据集目录结构...")
-                    organize_dataset_directories(model_id)
-                else:
-                    error_msg = "无法获取数据集，请检查Minio配置或数据集路径"
-                    update_log(error_msg)
-                    raise Exception(error_msg)
 
             # 检查是否应该停止训练
             if training_status.get(model_id, {}).get('stop_requested'):
