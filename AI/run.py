@@ -71,15 +71,15 @@ def create_app():
     @app.teardown_appcontext
     def deregister_on_shutdown(exception=None):
         if hasattr(app, 'nacos_client') and app.nacos_client:
+            # 从应用上下文中获取注册时使用的IP
+            ip = app.registered_ip  # 新增一个变量存储注册IP
             service_name = os.getenv('SERVICE_NAME', 'model-server')
-            ip = os.getenv('POD_IP', 'localhost')
             port = int(os.getenv('FLASK_RUN_PORT', 5000))
             app.nacos_client.remove_naming_instance(
                 service_name=service_name,
-                ip=ip,
+                ip=ip,  # 使用注册时的IP
                 port=port
             )
-            print("✅ 服务已注销")
 
     return app
 
@@ -117,6 +117,9 @@ def register_to_nacos():
         )
         print(f"✅ 服务注册成功: {service_name}@{ip}:{port}")
 
+        app.registered_ip = ip  # 将注册IP存储到app对象
+        client.add_naming_instance(service_name, ip, port, ...)
+
         def heartbeat():
             while True:
                 try:
@@ -138,6 +141,15 @@ def register_to_nacos():
         return None
 
 
+def init_health_check(app):
+    from healthcheck import HealthCheck, EnvironmentDump
+    health = HealthCheck()
+    envdump = EnvironmentDump()
+    # 挂载端点
+    app.add_url_rule('/actuator/health', view_func=lambda: health.run())
+    app.add_url_rule('/actuator/info', view_func=lambda: envdump.run())
+
 if __name__ == '__main__':
     app = create_app()
+    init_health_check(app)
     app.run(host='0.0.0.0', port=5000)
