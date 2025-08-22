@@ -9,11 +9,6 @@ class Model(db.Model):
     description = db.Column(db.Text)
     model_path = db.Column(db.String(500), nullable=True)
     version = db.Column(db.String(20), default="1.0.0")  # 新增版本字段
-    training_record_id = db.Column(
-        db.Integer,
-        db.ForeignKey('training_record.id', ondelete="SET NULL"),
-        nullable=True
-    )
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -25,7 +20,12 @@ class Model(db.Model):
     rknn_model_path = db.Column(db.String(500))  # 新增RKNN路径
 
     # 关系定义
-    training_records = db.relationship('TrainingRecord', backref='model', lazy=True)
+    training_records = db.relationship(
+        'TrainingRecord',
+        foreign_keys='TrainingRecord.model_id',
+        backref=db.backref('model', lazy=True),
+        lazy='dynamic'
+    )
     export_records = db.relationship('ExportRecord', back_populates='model', cascade='all, delete-orphan')
 
 class TrainingRecord(db.Model):
