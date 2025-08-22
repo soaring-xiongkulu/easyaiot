@@ -11,7 +11,8 @@
           :pagination="paginationProp"
         >
           <template #header>
-            <div style="display: flex;align-items: center;justify-content: space-between;flex-direction: row;">
+            <div
+              style="display: flex;align-items: center;justify-content: space-between;flex-direction: row;">
               <span style="padding-left: 7px;font-size: 16px;font-weight: 500;line-height: 24px;">模型列表</span>
               <div class="space-x-2">
                 <slot name="header"></slot>
@@ -19,7 +20,8 @@
             </div>
           </template>
           <template #renderItem="{ item }">
-            <ListItem style="padding: 0; background: #FFFFFF; box-shadow: 0px 0px 4px 0px rgba(24, 24, 24, 0.1); height: 100%; transition: all 0.3s;">
+            <ListItem
+              style="padding: 0; background: #FFFFFF; box-shadow: 0px 0px 4px 0px rgba(24, 24, 24, 0.1); height: 100%; transition: all 0.3s;">
               <div class="model-card-box">
                 <div class="model-card-cont" style="padding: 15px">
                   <h6 class="model-card-title">
@@ -47,16 +49,17 @@
                     {{ item.description || '暂无描述' }}
                   </div>
 
-                  <div class="btns" style="padding-top: 15px; display: flex; justify-content: space-between;">
+                  <div class="btns"
+                       style="padding-top: 15px; display: flex; justify-content: space-between;">
                     <div class="btn-group">
                       <div class="btn" @click="handleView(item)">
-                        <EyeOutlined style="font-size: 16px;" />
+                        <EyeOutlined style="font-size: 16px;"/>
                       </div>
                       <div class="btn" @click="handleEdit(item)">
-                        <EditOutlined style="font-size: 16px;" />
+                        <EditOutlined style="font-size: 16px;"/>
                       </div>
                       <div class="btn" @click="handleTrain(item)" title="训练模型">
-                        <ExperimentOutlined style="font-size: 16px;" />
+                        <ExperimentOutlined style="font-size: 16px;"/>
                       </div>
                       <Popconfirm
                         title="是否确认删除？"
@@ -65,12 +68,12 @@
                         @confirm="handleDelete(item)"
                       >
                         <div class="btn">
-                          <DeleteOutlined style="font-size: 16px;" />
+                          <DeleteOutlined style="font-size: 16px;"/>
                         </div>
                       </Popconfirm>
                     </div>
                     <div class="btn" @click="handleDeploy(item)" title="部署模型">
-                      <CloudUploadOutlined style="font-size: 16px;" />
+                      <CloudUploadOutlined style="font-size: 16px;"/>
                     </div>
                   </div>
                 </div>
@@ -84,23 +87,21 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue';
-import { List, Popconfirm, Spin, Tag } from 'ant-design-vue';
-import { BasicForm, useForm } from '@/components/Form';
-import { propTypes } from '@/utils/propTypes';
-import { isFunction } from '@/utils/is';
-import { useMessage } from "@/hooks/web/useMessage";
+import {onMounted, reactive, ref} from 'vue';
+import {List, Popconfirm, Spin, Tag} from 'ant-design-vue';
+import {BasicForm, useForm} from '@/components/Form';
+import {propTypes} from '@/utils/propTypes';
+import {isFunction} from '@/utils/is';
 import {
-  EyeOutlined,
-  EditOutlined,
-  DeleteOutlined,
   CloudUploadOutlined,
-  ExperimentOutlined // 新增训练图标
+  DeleteOutlined,
+  EditOutlined,
+  ExperimentOutlined,
+  EyeOutlined
 } from '@ant-design/icons-vue';
 
-defineOptions({ name: 'ModelCardList' })
+defineOptions({name: 'ModelCardList'})
 
-const { createMessage } = useMessage()
 const ListItem = List.Item;
 
 const props = defineProps({
@@ -115,7 +116,7 @@ const state = reactive({
   loading: true,
 });
 
-const [registerForm, { validate }] = useForm({
+const [registerForm, {validate}] = useForm({
   schemas: [
     {
       field: `name`,
@@ -128,17 +129,17 @@ const [registerForm, { validate }] = useForm({
       component: 'Select',
       componentProps: {
         options: [
-          { label: '未部署', value: 0 },
-          { label: '已部署', value: 1 },
-          { label: '训练中', value: 2 },
-          { label: '已下线', value: 3 },
+          {label: '未部署', value: 0},
+          {label: '已部署', value: 1},
+          {label: '训练中', value: 2},
+          {label: '已下线', value: 3},
         ],
       },
     },
   ],
   labelWidth: 80,
-  baseColProps: { span: 6 },
-  actionColOptions: { span: 18 },
+  baseColProps: {span: 6},
+  actionColOptions: {span: 18},
   autoSubmitOnEnter: true,
   submitFunc: handleSubmit,
 });
@@ -154,9 +155,9 @@ async function handleSubmit() {
 }
 
 async function fetch(p = {}) {
-  const { api, params } = props;
+  const {api, params} = props;
   if (api && isFunction(api)) {
-    const res = await api({ ...params, pageNo: page.value, pageSize: pageSize.value, ...p });
+    const res = await api({...params, pageNo: page.value, pageSize: pageSize.value, ...p});
     data.value = res.data.list;
     total.value = res.data.total;
     hideLoading();
@@ -193,22 +194,32 @@ function pageSizeChange(_current, size: number) {
 }
 
 function getStatusColor(status: number) {
-  switch(status) {
-    case 0: return '#8c8c8c'; // 未部署
-    case 1: return '#52c41a'; // 已部署
-    case 2: return '#fa8c16'; // 训练中
-    case 3: return '#ff4d4f'; // 已下线
-    default: return '#d9d9d9';
+  switch (status) {
+    case 0:
+      return '#8c8c8c'; // 未部署
+    case 1:
+      return '#52c41a'; // 已部署
+    case 2:
+      return '#fa8c16'; // 训练中
+    case 3:
+      return '#ff4d4f'; // 已下线
+    default:
+      return '#d9d9d9';
   }
 }
 
 function getStatusText(status: number) {
-  switch(status) {
-    case 0: return '未部署';
-    case 1: return '已部署';
-    case 2: return '训练中';
-    case 3: return '已下线';
-    default: return '未知';
+  switch (status) {
+    case 0:
+      return '未部署';
+    case 1:
+      return '已部署';
+    case 2:
+      return '训练中';
+    case 3:
+      return '已下线';
+    default:
+      return '未知';
   }
 }
 

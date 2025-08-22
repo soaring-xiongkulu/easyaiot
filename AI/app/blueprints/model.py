@@ -186,6 +186,66 @@ def create_model():
     flash(f'项目 "{name}" 创建成功', 'success')
     return redirect(url_for('main.model_detail', model_id=model.id))
 
+@model_bp.route('/api/model/<int:model_id>/update', methods=['PUT'])
+def update_model(model_id):
+    """更新模型信息接口"""
+    try:
+        # 获取请求数据
+        data = request.get_json()
+        if not data:
+            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
+
+        # 获取模型记录
+        model = Model.query.get_or_404(model_id)
+
+        # 允许更新的字段列表
+        allowed_fields = ['name', 'description', 'version']
+
+        # 更新允许的字段
+        for field in allowed_fields:
+            if field in data:
+                setattr(model, field, data[field])
+
+        # 处理特殊字段更新
+        if 'training_record_id' in data:
+            # 验证训练记录是否存在且属于该模型
+            training_record = TrainingRecord.query.get(data['training_record_id'])
+            if training_record and training_record.model_id == model_id:
+                model.training_record_id = training_record.id
+                model.model_path = training_record.minio_model_path or training_record.best_model_path
+            else:
+                return jsonify({
+                    'code': 400,
+                    'msg': '无效的训练记录ID或记录不属于该模型'
+                }), 400
+
+        # 保存更改
+        db.session.commit()
+
+        # 返回更新后的模型信息
+        updated_model = {
+            'id': model.id,
+            'name': model.name,
+            'description': model.description,
+            'version': model.version,
+            'training_record_id': model.training_record_id,
+            'model_path': model.model_path
+        }
+
+        return jsonify({
+            'code': 200,
+            'msg': '模型更新成功',
+            'data': updated_model
+        })
+
+    except Exception as e:
+        logger.error(f"模型更新失败: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
 @model_bp.route('/model/<int:model_id>/delete', methods=['POST'])
 def delete_model(model_id):
     model = Model.query.get_or_404(model_id)
