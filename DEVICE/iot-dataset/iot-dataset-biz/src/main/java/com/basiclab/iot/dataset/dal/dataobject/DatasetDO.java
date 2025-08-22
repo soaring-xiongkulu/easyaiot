@@ -1,6 +1,7 @@
 package com.basiclab.iot.dataset.dal.dataobject;
 
 import com.basiclab.iot.common.domain.BaseEntity;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import com.baomidou.mybatisplus.annotation.*;
 import com.basiclab.iot.common.core.dataobject.BaseDO;
@@ -65,6 +66,10 @@ public class DatasetDO extends BaseEntity {
      * 是否已生成数据集到Minio[0:否,1:是]
      */
     private Integer isSyncMinio;
+    /**
+     * 数据集压缩包下载地址
+     */
+    private String zipUrl;
     /**
      * 图片总数
      */

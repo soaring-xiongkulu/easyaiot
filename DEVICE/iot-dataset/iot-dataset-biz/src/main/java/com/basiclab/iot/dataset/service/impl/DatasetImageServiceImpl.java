@@ -4,20 +4,27 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.basiclab.iot.common.domain.PageResult;
 import com.basiclab.iot.common.text.UUID;
 import com.basiclab.iot.common.utils.object.BeanUtils;
+import com.basiclab.iot.dataset.dal.dataobject.DatasetDO;
 import com.basiclab.iot.dataset.dal.dataobject.DatasetImageDO;
+import com.basiclab.iot.dataset.dal.dataobject.DatasetTagDO;
 import com.basiclab.iot.dataset.dal.pgsql.DatasetImageMapper;
+import com.basiclab.iot.dataset.dal.pgsql.DatasetMapper;
 import com.basiclab.iot.dataset.domain.dataset.vo.DatasetImagePageReqVO;
 import com.basiclab.iot.dataset.domain.dataset.vo.DatasetImageSaveReqVO;
+import com.basiclab.iot.dataset.domain.dataset.vo.DatasetTagPageReqVO;
 import com.basiclab.iot.dataset.service.DatasetImageService;
+import com.basiclab.iot.dataset.service.DatasetTagService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
+import io.minio.http.Method;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
+import org.yaml.snakeyaml.Yaml;
 
 import javax.annotation.Resource;
 import java.io.ByteArrayInputStream;
@@ -25,11 +32,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.exception;
 import static com.basiclab.iot.dataset.enums.ErrorCodeConstants.*;
@@ -48,6 +59,12 @@ public class DatasetImageServiceImpl implements DatasetImageService {
 
     @Resource
     private DatasetImageMapper datasetImageMapper;
+
+    @Resource
+    private DatasetMapper datasetMapper;
+
+    @Resource
+    private DatasetTagService datasetTagService;
 
     @Resource
     private MinioClient minioClient; // 注入Minio客户端[2,4](@ref)
@@ -184,33 +201,225 @@ public class DatasetImageServiceImpl implements DatasetImageService {
     }
 
     @Override
-    public void syncToMinio(Long datasetId) {
-        // 1. 查询数据集下所有图片
+    public String syncToMinio(Long datasetId) {
         List<DatasetImageDO> images = datasetImageMapper.selectList(
                 new LambdaQueryWrapper<DatasetImageDO>()
                         .eq(DatasetImageDO::getDatasetId, datasetId));
-
-        // 2. 创建Minio存储桶
-        String bucketName = "dataset-" + datasetId;
-        createBucketIfNotExists(bucketName);
-
-        // 3. 遍历所有图片并同步
+        Path tempDir = createTempDirectoryStructure(datasetId);
         for (DatasetImageDO image : images) {
-            // 确定存储路径
             String usageType = getUsageType(image);
             String imageName = image.getName();
+            Path imagePath = tempDir.resolve("images/" + usageType + "/" + imageName);
+            String labelFileName = imageName.substring(0, imageName.lastIndexOf('.')) + ".txt";
+            Path labelPath = tempDir.resolve("labels/" + usageType + "/" + labelFileName);
+            downloadImageToTemp(image, imagePath);
+            createLabelFile(image, labelPath);
+        }
+        generateDataYaml(datasetId, tempDir);
+        Path zipPath = compressDirectory(tempDir, datasetId);
+        String zipUrl = uploadZipToMinio(zipPath, datasetId);
+        cleanupTempFiles(tempDir, zipPath);
+        // 更新数据集压缩包地址
+        DatasetDO updateDO = new DatasetDO();
+        updateDO.setId(datasetId);
+        updateDO.setZipUrl(zipUrl);
+        datasetMapper.updateById(updateDO);
+        return zipUrl;
+    }
 
-            // 图片存储路径
-            String imagePath = String.format("%s/images/%s", usageType, imageName);
-            // 标注文件存储路径
-            String labelPath = String.format("%s/labels/%s.txt", usageType,
-                    imageName.substring(0, imageName.lastIndexOf('.')));
+    private Path createTempDirectoryStructure(Long datasetId) {
+        try {
+            Path tempDir = Files.createTempDirectory("dataset-" + datasetId);
+            Files.createDirectories(tempDir.resolve("images/train"));
+            Files.createDirectories(tempDir.resolve("images/val"));
+            Files.createDirectories(tempDir.resolve("images/test"));
+            Files.createDirectories(tempDir.resolve("labels/train"));
+            Files.createDirectories(tempDir.resolve("labels/val"));
+            Files.createDirectories(tempDir.resolve("labels/test"));
+            return tempDir;
+        } catch (IOException e) {
+            throw new RuntimeException("创建临时目录失败", e);
+        }
+    }
 
-            // 复制图片到新位置
-            copyImageToMinio(image.getPath(), bucketName, imagePath);
+    private void downloadImageToTemp(DatasetImageDO image, Path targetPath) {
+        try {
+            String sourceObject = parseObjectNameFromPath(image.getPath());
+            try (InputStream in = minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(minioBucket)
+                            .object(sourceObject)
+                            .build())) {
+                Files.copy(in, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("下载图片失败: " + image.getPath(), e);
+        }
+    }
 
-            // 生成并上传标注文件
-            createAndUploadLabelFile(image, bucketName, labelPath);
+    private void createLabelFile(DatasetImageDO image, Path labelPath) {
+        try {
+            String labelContent = generateLabelContent(image.getAnnotations());
+            Files.write(labelPath, labelContent.getBytes(StandardCharsets.UTF_8),
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        } catch (Exception e) {
+            throw new RuntimeException("生成标签文件失败", e);
+        }
+    }
+
+    private String generateLabelContent(String annotationsJson) {
+        try {
+            // 解析标注信息
+            List<Map<String, Object>> annotations = parseAnnotations(annotationsJson);
+            StringBuilder labelContent = new StringBuilder();
+
+            for (Map<String, Object> annotation : annotations) {
+                // 获取标签ID（类别）
+                Object labelObj = annotation.get("label");
+                Integer label = null;
+                if (labelObj instanceof Integer) {
+                    label = (Integer) labelObj;
+                } else if (labelObj instanceof String) {
+                    label = Integer.parseInt((String) labelObj);
+                } else {
+                    // 处理无法识别的标签类型
+                    logger.warn("无法识别的标签类型: {}", labelObj);
+                    continue;
+                }
+
+                // 获取矩形框的四个顶点（归一化坐标）
+                List<Map<String, Double>> points = (List<Map<String, Double>>) annotation.get("points");
+                if (points == null || points.size() != 4) {
+                    logger.warn("无效的标注点数量: {}", points != null ? points.size() : 0);
+                    continue;
+                }
+
+                // 提取四个顶点的坐标
+                double[] xCoords = new double[4];
+                double[] yCoords = new double[4];
+                for (int i = 0; i < 4; i++) {
+                    Map<String, Double> point = points.get(i);
+                    xCoords[i] = point.get("x");
+                    yCoords[i] = point.get("y");
+                }
+
+                // 计算边界框的最小/最大坐标
+                double minX = Arrays.stream(xCoords).min().getAsDouble();
+                double minY = Arrays.stream(yCoords).min().getAsDouble();
+                double maxX = Arrays.stream(xCoords).max().getAsDouble();
+                double maxY = Arrays.stream(yCoords).max().getAsDouble();
+
+                // 计算YOLO格式的中心点坐标和宽高（归一化值）
+                double centerX = (minX + maxX) / 2.0;
+                double centerY = (minY + maxY) / 2.0;
+                double width = maxX - minX;
+                double height = maxY - minY;
+
+                // 格式化边界框信息 (保留5位小数)
+                // YOLO格式: <class_id> <center_x> <center_y> <width> <height>
+                labelContent.append(String.format("%d %.5f %.5f %.5f %.5f\n",
+                        label, centerX, centerY, width, height));
+            }
+
+            return labelContent.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("生成标注文件内容失败", e);
+        }
+    }
+
+    private void generateDataYaml(Long datasetId, Path tempDir) {
+        try {
+            List<String> classNames = getClassNames(datasetId);
+            Map<String, Object> yamlData = new LinkedHashMap<>();
+            yamlData.put("names", classNames);
+            yamlData.put("nc", classNames.size());
+            yamlData.put("path", tempDir.toAbsolutePath().toString());
+            yamlData.put("train", "images/train");
+            yamlData.put("val", "images/val");
+            yamlData.put("test", "images/test");
+            Yaml yaml = new Yaml();
+            String yamlContent = yaml.dump(yamlData);
+            Files.write(tempDir.resolve("data.yaml"), yamlContent.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            throw new RuntimeException("生成data.yaml失败", e);
+        }
+    }
+
+    private List<String> getClassNames(Long datasetId) {
+        DatasetTagPageReqVO reqVO = new DatasetTagPageReqVO();
+        reqVO.setDatasetId(datasetId);
+        PageResult<DatasetTagDO> result = datasetTagService.getDatasetTagPage(reqVO);
+
+        return result.getList().stream()
+                .map(DatasetTagDO::getName)
+                .sorted().collect(Collectors.toList());
+    }
+
+    private Path compressDirectory(Path sourceDir, Long datasetId) {
+        Path zipPath = Paths.get(sourceDir.getParent().toString(), "dataset-" + datasetId + ".zip");
+
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(zipPath))) {
+            Files.walkFileTree(sourceDir, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Path relativePath = sourceDir.relativize(file);
+                    ZipEntry zipEntry = new ZipEntry(relativePath.toString().replace("\\", "/"));
+                    zos.putNextEntry(zipEntry);
+                    Files.copy(file, zos);
+                    zos.closeEntry();
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+            return zipPath;
+        } catch (IOException e) {
+            throw new RuntimeException("压缩目录失败", e);
+        }
+    }
+
+    private void cleanupTempFiles(Path tempDir, Path zipPath) {
+        try {
+            Files.walkFileTree(tempDir, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.delete(file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+            Files.deleteIfExists(zipPath);
+        } catch (IOException e) {
+            logger.error("清理临时文件失败: {}", e.getMessage());
+        }
+    }
+
+    private String uploadZipToMinio(Path zipPath, Long datasetId) {
+        try (InputStream is = Files.newInputStream(zipPath)) {
+            String objectName = "datasets/dataset-" + datasetId + ".zip";
+
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(minioBucket)
+                            .object(objectName)
+                            .stream(is, Files.size(zipPath), -1)
+                            .contentType("application/zip")
+                            .build());
+
+            // 返回公开访问URL（需配置存储桶策略）
+            int expirySeconds = 10 * 365 * 24 * 60 * 60;
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(minioBucket)
+                            .object(objectName)
+                            .expiry(expirySeconds, TimeUnit.DAYS) // 7天有效
+                            .build());
+        } catch (Exception e) {
+            throw new RuntimeException("上传ZIP到MinIO失败", e);
         }
     }
 
@@ -265,79 +474,11 @@ public class DatasetImageServiceImpl implements DatasetImageService {
         throw new IllegalStateException("图片未划分用途");
     }
 
-    private void copyImageToMinio(String sourcePath, String bucketName, String objectName) {
-        try {
-            // 解析原始路径获取对象信息
-            String sourceObject = parseObjectNameFromPath(sourcePath);
-
-            // 执行复制操作
-            minioClient.copyObject(CopyObjectArgs.builder()
-                    .source(CopySource.builder()
-                            .bucket(minioBucket)
-                            .object(sourceObject)
-                            .build())
-                    .bucket(bucketName)
-                    .object(objectName)
-                    .build());
-        } catch (Exception e) {
-            throw new RuntimeException("复制图片到Minio失败", e);
-        }
-    }
-
     private String parseObjectNameFromPath(String path) {
         // 实际项目中根据存储路径格式解析
         // 这里简化处理，假设路径格式为 /api/v1/buckets/{bucket}/objects/download?prefix={object}
         int start = path.indexOf("prefix=") + 7;
         return path.substring(start);
-    }
-
-    private void createAndUploadLabelFile(DatasetImageDO image, String bucketName, String objectName) {
-        try {
-            // 解析标注信息
-            List<Map<String, Object>> annotations = parseAnnotations(image.getAnnotations());
-
-            // 生成标注文件内容
-            StringBuilder labelContent = new StringBuilder();
-            for (Map<String, Object> annotation : annotations) {
-                Object labelObj = annotation.get("label");
-                Integer label = null;
-                if (labelObj instanceof Integer) {
-                    label = (Integer) labelObj;
-                } else if (labelObj instanceof String) {
-                    label = Integer.parseInt((String) labelObj);
-                }
-                List<Map<String, Double>> points = (List<Map<String, Double>>) annotation.get("points");
-                // 计算边界框
-                double minX = Double.MAX_VALUE;
-                double minY = Double.MAX_VALUE;
-                double maxX = Double.MIN_VALUE;
-                double maxY = Double.MIN_VALUE;
-
-                for (Map<String, Double> point : points) {
-                    double x = point.get("x");
-                    double y = point.get("y");
-                    minX = Math.min(minX, x);
-                    minY = Math.min(minY, y);
-                    maxX = Math.max(maxX, x);
-                    maxY = Math.max(maxY, y);
-                }
-
-                // 格式化边界框信息 (保留5位小数)
-                labelContent.append(String.format("%s %.5f %.5f %.5f %.5f\n",
-                        label, minX, minY, maxX, maxY));
-            }
-
-            // 上传标注文件
-            minioClient.putObject(PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectName)
-                    .stream(new ByteArrayInputStream(labelContent.toString().getBytes()),
-                            labelContent.length(), -1)
-                    .contentType("text/plain")
-                    .build());
-        } catch (Exception e) {
-            throw new RuntimeException("生成标注文件失败", e);
-        }
     }
 
     private List<Map<String, Object>> parseAnnotations(String annotationsJson) {

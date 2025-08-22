@@ -35,4 +35,6 @@ public class DatasetSaveReqVO {
     @Schema(description = "审核驳回理由", example = "不好")
     private String reason;
 
+    @Schema(description = "数据集压缩包下载地址")
+    private String zipUrl;
 }
