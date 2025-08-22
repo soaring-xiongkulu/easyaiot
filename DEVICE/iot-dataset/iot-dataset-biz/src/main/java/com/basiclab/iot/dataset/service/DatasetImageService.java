@@ -101,5 +101,5 @@ public interface DatasetImageService {
      *
      * @param datasetId 数据集ID
      */
-    void syncToMinio(Long datasetId);
+    String syncToMinio(Long datasetId);
 }
