@@ -1,4 +1,5 @@
 import os
+import socket
 import sys
 import threading
 import time
@@ -13,6 +14,18 @@ from app.blueprints import export, inference, model, training, training_record
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv()
+def get_local_ip():
+    """获取本机局域网IP地址"""
+    try:
+        # 创建UDP套接字连接到外部地址
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))  # 使用Google DNS
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = '127.0.0.1'  # 失败时使用回环地址
+    finally:
+        s.close()
+    return ip
 
 def create_app():
     app = Flask(__name__)
@@ -76,10 +89,15 @@ def register_to_nacos():
         nacos_server = os.getenv('NACOS_SERVER', 'iot.basiclab.top:8848')
         namespace = os.getenv('NACOS_NAMESPACE', 'local')
         service_name = os.getenv('SERVICE_NAME', 'model-server')
-        ip = os.getenv('POD_IP', 'localhost')
         port = int(os.getenv('FLASK_RUN_PORT', 5000))
         username = os.getenv('NACOS_USERNAME', 'nacos')
         password = os.getenv('NACOS_PASSWORD', 'basiclab@iot78475418754')
+
+        # 获取IP：优先使用环境变量，否则自动获取
+        ip = os.getenv('POD_IP')
+        if not ip:
+            ip = get_local_ip()
+            print(f"⚠️ 未配置POD_IP，自动获取局域网IP: {ip}")
 
         # 创建客户端
         client = NacosClient(
