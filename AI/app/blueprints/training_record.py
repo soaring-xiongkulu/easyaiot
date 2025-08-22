@@ -9,12 +9,12 @@ from sqlalchemy import desc
 
 from models import db, Model, TrainingRecord, ExportRecord
 
-training_record_bp = Blueprint('trainingRecord', __name__, url_prefix='/training')
+training_record_bp = Blueprint('training-record', __name__, url_prefix='/training')
 logger = logging.getLogger(__name__)
 
 
 # 训练记录分页查询
-@training_record_bp.route('/records', methods=['GET'])
+@training_record_bp.route('/list', methods=['GET'])
 def training_records():
     try:
         # 获取分页参数和模型ID过滤
@@ -91,7 +91,7 @@ def training_records():
 
 
 # 训练记录详情
-@training_record_bp.route('/record/<int:record_id>')
+@training_record_bp.route('/<int:record_id>')
 def training_detail(record_id):
     record = TrainingRecord.query.get_or_404(record_id)
     exports = ExportRecord.query.filter_by(model_id=record.model_id).all()

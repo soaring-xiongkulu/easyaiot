@@ -11,7 +11,7 @@ model_bp = Blueprint('model', __name__)
 
 logger = logging.getLogger(__name__)
 
-@model_bp.route('/models', methods=['GET'])
+@model_bp.route('/list', methods=['GET'])
 def models():
     # 适配 pageNo 和 pageSize 参数
     try:
@@ -77,7 +77,7 @@ def models():
         }), 500
 
 
-@model_bp.route('/api/model/<int:model_id>/publish', methods=['POST'])
+@model_bp.route('/<int:model_id>/publish', methods=['POST'])
 def publish_model(model_id):
     try:
         data = request.get_json()
@@ -124,7 +124,7 @@ def publish_model(model_id):
         }), 500
 
 
-@model_bp.route('/model/<int:model_id>/training_records', methods=['GET'])
+@model_bp.route('/<int:model_id>/training_records', methods=['GET'])
 def get_model_training_records(model_id):
     """获取模型关联的训练记录"""
     try:
@@ -165,12 +165,12 @@ def get_model_training_records(model_id):
             'msg': '服务器内部错误'
         }), 500
 
-@model_bp.route('/model/<int:model_id>')
+@model_bp.route('/<int:model_id>')
 def model_detail(model_id):
     model = Model.query.get_or_404(model_id)
     return render_template('model_detail.html', model=model)
 
-@model_bp.route('/model/create', methods=['POST'])
+@model_bp.route('/create', methods=['POST'])
 def create_model():
     name = request.form.get('name')
     description = request.form.get('description')
@@ -186,7 +186,7 @@ def create_model():
     flash(f'项目 "{name}" 创建成功', 'success')
     return redirect(url_for('main.model_detail', model_id=model.id))
 
-@model_bp.route('/api/model/<int:model_id>/update', methods=['PUT'])
+@model_bp.route('/<int:model_id>/update', methods=['PUT'])
 def update_model(model_id):
     """更新模型信息接口"""
     try:
@@ -246,7 +246,7 @@ def update_model(model_id):
             'msg': f'服务器内部错误: {str(e)}'
         }), 500
 
-@model_bp.route('/model/<int:model_id>/delete', methods=['POST'])
+@model_bp.route('/<int:model_id>/delete', methods=['POST'])
 def delete_model(model_id):
     model = Model.query.get_or_404(model_id)
     model_name = model.name
@@ -264,7 +264,7 @@ def delete_model(model_id):
     return redirect(url_for('main.index'))
 
 
-@model_bp.route('/api/model/ota_check', methods=['GET'])
+@model_bp.route('/ota_check', methods=['GET'])
 def ota_check():
     """模型OTA升级检测接口"""
     try:

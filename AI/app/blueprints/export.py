@@ -13,7 +13,7 @@ export_bp = Blueprint('export', __name__)
 logger = logging.getLogger(__name__)
 
 
-@export_bp.route('/api/model/<int:model_id>/export/<format>', methods=['POST'])
+@export_bp.route('/model/<int:model_id>/export/<format>', methods=['POST'])
 def api_export_model(model_id, format):
     try:
         # 验证格式支持
