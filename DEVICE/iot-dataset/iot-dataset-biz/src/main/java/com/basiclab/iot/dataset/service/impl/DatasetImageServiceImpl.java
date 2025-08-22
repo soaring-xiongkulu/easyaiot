@@ -17,6 +17,7 @@ import com.basiclab.iot.dataset.service.DatasetTagService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
+import io.minio.errors.ErrorResponseException;
 import io.minio.http.Method;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -211,14 +213,23 @@ public class DatasetImageServiceImpl implements DatasetImageService {
                 new LambdaQueryWrapper<DatasetImageDO>()
                         .eq(DatasetImageDO::getDatasetId, datasetId));
         Path tempDir = createTempDirectoryStructure(datasetId);
+        int skippedCount = 0;
         for (DatasetImageDO image : images) {
             String usageType = getUsageType(image);
             String imageName = image.getName();
             Path imagePath = tempDir.resolve("images/" + usageType + "/" + imageName);
             String labelFileName = imageName.substring(0, imageName.lastIndexOf('.')) + ".txt";
             Path labelPath = tempDir.resolve("labels/" + usageType + "/" + labelFileName);
-            downloadImageToTemp(image, imagePath);
-            createLabelFile(image, labelPath);
+            try {
+                downloadImageToTemp(image, imagePath);
+                createLabelFile(image, labelPath);
+            } catch (Exception e) {
+                skippedCount++;
+                logger.warn("跳过文件 {}: {}", image.getName(), e.getMessage());
+            }
+        }
+        if (skippedCount > 0) {
+            logger.warn("数据集 {} 打包完成，跳过 {} 个缺失文件", datasetId, skippedCount);
         }
         generateDataYaml(datasetId, tempDir);
         Path zipPath = compressDirectory(tempDir, datasetId);
@@ -255,10 +266,17 @@ public class DatasetImageServiceImpl implements DatasetImageService {
                             .bucket(minioBucket)
                             .object(sourceObject)
                             .build())) {
+                Files.createDirectories(targetPath.getParent()); // 确保目录存在
                 Files.copy(in, targetPath, StandardCopyOption.REPLACE_EXISTING);
             }
+        } catch (ErrorResponseException e) {
+            if ("NoSuchKey".equals(e.errorResponse().code())) {
+                logger.warn("文件不存在，跳过下载: {}", image.getPath());
+            } else {
+                logger.error("MinIO访问异常: {}", image.getPath(), e);
+            }
         } catch (Exception e) {
-            throw new RuntimeException("下载图片失败: " + image.getPath(), e);
+            logger.error("下载图片失败: {}", image.getPath(), e);
         }
     }
 
@@ -415,13 +433,12 @@ public class DatasetImageServiceImpl implements DatasetImageService {
                             .build());
 
             // 返回公开访问URL（需配置存储桶策略）
-            int expirySeconds = 10 * 365 * 24 * 60 * 60;
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
                             .bucket(minioBucket)
                             .object(objectName)
-                            .expiry(expirySeconds, TimeUnit.DAYS) // 7天有效
+                            .expiry(7, TimeUnit.DAYS) // 7天有效
                             .build());
         } catch (Exception e) {
             throw new RuntimeException("上传ZIP到MinIO失败", e);
@@ -480,37 +497,22 @@ public class DatasetImageServiceImpl implements DatasetImageService {
     }
 
     private String parseObjectNameFromPath(String path) {
-        // 获取当前激活的profile
-        String env = environment.getActiveProfiles().length > 0 ?
-                environment.getActiveProfiles()[0] :
-                environment.getDefaultProfiles()[0];
-        // 根据环境添加前缀
-        String fullPath = path;
-        if (env.contains("local") || env.contains("dev")) {
-            fullPath = "http://iot.basiclab.top:9001" + path;
-        } else if (env.contains("prod")) {
-            fullPath = "http://10.0.0.87:9001" + path;
-        }
         try {
-            // 解析URI获取查询参数
-            URI uri = URI.create(fullPath);
+            URI uri = new URI(path);
             String query = uri.getQuery();
             if (query != null) {
-                for (String param : query.split("&")) {
-                    if (param.startsWith("prefix=")) {
-                        return param.substring(7);
-                    }
-                }
+                return Arrays.stream(query.split("&"))
+                        .filter(param -> param.startsWith("prefix="))
+                        .map(param -> param.substring(7))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid path format"));
             }
-        } catch (Exception e) {
-            logger.warn("解析URI失败，使用后备方案: {}", e.getMessage());
+        } catch (URISyntaxException e) {
+            logger.warn("路径解析异常: {}", path, e);
         }
-        // 后备方案：直接提取prefix值
-        int start = path.indexOf("prefix=");
-        if (start != -1) {
-            return path.substring(start + 7);
-        }
-        return path;
+        // 兼容旧逻辑
+        int start = path.indexOf("prefix=") + 7;
+        return start >= 7 ? path.substring(start) : path;
     }
 
     private List<Map<String, Object>> parseAnnotations(String annotationsJson) {
