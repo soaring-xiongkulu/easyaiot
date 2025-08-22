@@ -76,8 +76,10 @@ public class DatasetImageServiceImpl implements DatasetImageService {
     @Resource
     private Environment environment;
 
-    @Value("${minio.bucket}") // MinIO存储桶名称
+    @Value("${minio.bucket}")
     private String minioBucket;
+
+    private static final String minioDatasetsBucket = "datasets";
 
     @Override
     public Long createDatasetImage(DatasetImageSaveReqVO createReqVO) {
@@ -282,11 +284,12 @@ public class DatasetImageServiceImpl implements DatasetImageService {
 
     private void createLabelFile(DatasetImageDO image, Path labelPath) {
         try {
+            Files.createDirectories(labelPath.getParent());
             String labelContent = generateLabelContent(image.getAnnotations());
             Files.write(labelPath, labelContent.getBytes(StandardCharsets.UTF_8),
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (Exception e) {
-            throw new RuntimeException("生成标签文件失败", e);
+            logger.error("生成标签文件失败: {}", labelPath, e);
         }
     }
 
@@ -356,9 +359,8 @@ public class DatasetImageServiceImpl implements DatasetImageService {
             Map<String, Object> yamlData = new LinkedHashMap<>();
             yamlData.put("names", classNames);
             yamlData.put("nc", classNames.size());
-            yamlData.put("path", tempDir.toAbsolutePath().toString());
             yamlData.put("train", "images/train");
-            yamlData.put("val", "images/val");
+            yamlData.put("val", "images/val");  // 注意此处保持为val
             yamlData.put("test", "images/test");
             Yaml yaml = new Yaml();
             String yamlContent = yaml.dump(yamlData);
@@ -422,24 +424,16 @@ public class DatasetImageServiceImpl implements DatasetImageService {
 
     private String uploadZipToMinio(Path zipPath, Long datasetId) {
         try (InputStream is = Files.newInputStream(zipPath)) {
-            String objectName = "datasets/dataset-" + datasetId + ".zip";
-
+            String objectName = "dataset-" + datasetId + ".zip";
             minioClient.putObject(
                     PutObjectArgs.builder()
-                            .bucket(minioBucket)
+                            .bucket(minioDatasetsBucket)
                             .object(objectName)
                             .stream(is, Files.size(zipPath), -1)
                             .contentType("application/zip")
                             .build());
 
-            // 返回公开访问URL（需配置存储桶策略）
-            return minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .method(Method.GET)
-                            .bucket(minioBucket)
-                            .object(objectName)
-                            .expiry(7, TimeUnit.DAYS) // 7天有效
-                            .build());
+            return "/api/v1/buckets/" + minioBucket + "/objects/download?prefix=" + objectName;
         } catch (Exception e) {
             throw new RuntimeException("上传ZIP到MinIO失败", e);
         }
@@ -491,7 +485,7 @@ public class DatasetImageServiceImpl implements DatasetImageService {
 
     private String getUsageType(DatasetImageDO image) {
         if (image.getIsTrain() == 1) return "train";
-        if (image.getIsValidation() == 1) return "valid";
+        if (image.getIsValidation() == 1) return "val";
         if (image.getIsTest() == 1) return "test";
         throw new IllegalStateException("图片未划分用途");
     }
