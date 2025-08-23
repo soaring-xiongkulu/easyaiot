@@ -147,7 +147,7 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
   <img src=".image/banner/banner1002.png" alt="Screenshot 16" width="49%">
 </div>
 
-## 📞 Contact Information
+## 📞 Contact Information(You must read the group announcement when joining the group, otherwise you will be kicked out of the group)
 <div>
   <img src=".image/联系方式.jpg" alt="联系方式" width="30%" style="margin-right: 10px">
   <img src=".image/微信群.jpg" alt="联系方式" width="30%" style="margin-right: 10px">
