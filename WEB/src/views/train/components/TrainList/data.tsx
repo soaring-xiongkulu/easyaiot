@@ -1,9 +1,7 @@
-// src/views/train/data.tsx
-import { BasicColumn } from '@/components/Table';
-import { Progress, Tag } from 'ant-design-vue';
+import {BasicColumn, FormProps} from '@/components/Table';
+import {Progress, Tag} from 'ant-design-vue';
 
-// 模型训练表格列配置
-export function getTrainTableColumns(): BasicColumn[] {
+export function getBasicColumns(): BasicColumn[] {
   return [
     {
       title: '任务ID',
@@ -19,7 +17,7 @@ export function getTrainTableColumns(): BasicColumn[] {
       title: '模型配置',
       dataIndex: 'model_config',
       width: 150,
-      customRender: ({ text }) => {
+      customRender: ({text}) => {
         return text ? JSON.stringify(text) : '--';
       }
     },
@@ -32,7 +30,7 @@ export function getTrainTableColumns(): BasicColumn[] {
       title: '当前状态',
       dataIndex: 'status',
       width: 100,
-      customRender: ({ record }) => {
+      customRender: ({record}) => {
         const statusColorMap = {
           running: 'blue',
           completed: 'green',
@@ -58,7 +56,7 @@ export function getTrainTableColumns(): BasicColumn[] {
       title: '进度',
       dataIndex: 'progress',
       width: 120,
-      customRender: ({ record }) => {
+      customRender: ({record}) => {
         const percent = record.progress || 0;
         const status = record.status === 'running' ? 'active' : 'normal';
 
@@ -79,9 +77,10 @@ export function getTrainTableColumns(): BasicColumn[] {
   ];
 }
 
-// 搜索表单配置
-export function getSearchFormConfig() {
+export function getFormConfig(): Partial<FormProps> {
   return {
+    labelWidth: 80,
+    baseColProps: {span: 6},
     schemas: [
       {
         field: 'status',
@@ -89,11 +88,11 @@ export function getSearchFormConfig() {
         component: 'Select',
         componentProps: {
           options: [
-            { label: '全部', value: '' },
-            { label: '运行中', value: 'running' },
-            { label: '已完成', value: 'completed' },
-            { label: '失败', value: 'failed' },
-            { label: '已停止', value: 'stopped' },
+            {label: '全部', value: ''},
+            {label: '运行中', value: 'running'},
+            {label: '已完成', value: 'completed'},
+            {label: '失败', value: 'failed'},
+            {label: '已停止', value: 'stopped'},
           ],
         },
       },
