@@ -47,7 +47,7 @@ def api_start_training(model_id):
 
         # 检查是否已有训练在进行
         if model_id in training_status and training_status[model_id]['status'] in ['preparing', 'training']:
-            return jsonify({'success': False, 'message': '训练已在进行中'}), 200
+            return jsonify({'success': False, 'code': 0, 'msg': '训练已在进行中'}), 200
 
         # 重置训练状态
         training_status[model_id] = {
@@ -66,9 +66,9 @@ def api_start_training(model_id):
         training_thread.daemon = True
         training_thread.start()
 
-        return jsonify({'success': True, 'message': '训练已启动'}), 200
+        return jsonify({'success': True, 'code': 0, 'msg': '训练已启动'}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': f'启动训练失败: {str(e)}'}), 400
+        return jsonify({'success': False, 'code': 400, 'msg':  f'启动训练失败: {str(e)}'}), 400
 
 def get_project_root():
     """获取项目根目录"""
@@ -89,10 +89,10 @@ def api_stop_training(model_id):
         if model_id in training_processes:
             pass
 
-        return jsonify({'success': True, 'message': '停止请求已发送'}), 200
+        return jsonify({'success': True, 'code': 0, 'msg': '停止请求已发送'}), 200
     else:
         print("没有找到训练状态")
-        return jsonify({'success': False, 'message': '没有正在进行的训练'}), 200
+        return jsonify({'success': False, 'code': 0, 'msg': '没有正在进行的训练'}), 200
 
 
 @training_bp.route('/<int:model_id>/train/status')
@@ -104,7 +104,7 @@ def api_train_status(model_id):
         'progress': 0
     })
     print(f"返回训练状态: {status}")
-    return jsonify(status), 200
+    return jsonify({'status': status, 'code': 0, 'msg': '没有正在进行的训练'}), 200
 
 
 def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
