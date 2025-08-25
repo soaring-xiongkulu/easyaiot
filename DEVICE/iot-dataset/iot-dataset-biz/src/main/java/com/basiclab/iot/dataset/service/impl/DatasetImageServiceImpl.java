@@ -76,6 +76,9 @@ public class DatasetImageServiceImpl implements DatasetImageService {
     @Resource
     private Environment environment;
 
+    @Value("${minio.bucket}")
+    private String minioBucket;
+
     private static final String minioDatasetsBucket = "datasets";
 
     @Override
@@ -124,7 +127,7 @@ public class DatasetImageServiceImpl implements DatasetImageService {
                 String objectPath = parseObjectNameFromPath(image.getPath());
                 minioClient.removeObject(
                         RemoveObjectArgs.builder()
-                                .bucket(minioDatasetsBucket)
+                                .bucket(minioBucket)
                                 .object(objectPath)
                                 .build()
                 );
@@ -262,7 +265,7 @@ public class DatasetImageServiceImpl implements DatasetImageService {
             String sourceObject = parseObjectNameFromPath(image.getPath());
             try (InputStream in = minioClient.getObject(
                     GetObjectArgs.builder()
-                            .bucket(minioDatasetsBucket)
+                            .bucket(minioBucket)
                             .object(sourceObject)
                             .build())) {
                 Files.createDirectories(targetPath.getParent()); // 确保目录存在
@@ -604,7 +607,7 @@ public class DatasetImageServiceImpl implements DatasetImageService {
             DatasetImageDO image = new DatasetImageDO();
             image.setDatasetId(datasetId);
             image.setName(originalFilename);
-            image.setPath("/api/v1/buckets/" + minioDatasetsBucket + "/objects/download?prefix=" + storagePath);
+            image.setPath("/api/v1/buckets/" + minioBucket + "/objects/download?prefix=" + storagePath);
             image.setSize((long) fileData.length);
             image.setIsTrain(0);
             image.setIsValidation(0);
@@ -625,7 +628,7 @@ public class DatasetImageServiceImpl implements DatasetImageService {
         try (InputStream inputStream = new ByteArrayInputStream(content)) {
             minioClient.putObject(
                     PutObjectArgs.builder()
-                            .bucket(minioDatasetsBucket)
+                            .bucket(minioBucket)
                             .object(objectName)
                             .stream(inputStream, content.length, -1)
                             .contentType(contentType)

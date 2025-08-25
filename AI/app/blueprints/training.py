@@ -36,28 +36,21 @@ def api_start_training(model_id):
         if not model_arch or model_arch == 'yolov8n.pt':
             model_arch = os.path.join('model', 'yolov8n.pt')
 
-        # 从URL中解析出Minio对象路径
-        dataset_zip_path = None
-        if dataset_url:
-            parsed_url = urlparse(dataset_url)
-            query_params = parse_qs(parsed_url.query)
-            dataset_zip_path = query_params.get('prefix', [None])[0]
-
+        # 从URL解析Minio对象路径
+        dataset_zip_path = dataset_url
         use_gpu = data.get('use_gpu', True)  # 默认使用GPU
 
         # 检查是否已有训练在进行
         if model_id in training_status and training_status[model_id]['status'] in ['preparing', 'training']:
             return jsonify({'success': False, 'code': 0, 'msg': '训练已在进行中'}), 200
 
-        # ⭐ 修复点：将训练记录创建移到条件判断外部 ⭐
+        # 立即保存数据集路径到数据库
         training_record = None
         if record_id:
-            # 覆盖现有记录
             training_record = TrainingRecord.query.get(record_id)
             if training_record:
-                # 重置记录状态
+                training_record.dataset_path = dataset_zip_path  # 保存Minio路径
                 training_record.start_time = datetime.utcnow()
-                training_record.end_time = None
                 training_record.status = 'preparing'
                 training_record.train_log = ''
                 training_record.error_log = None
@@ -71,11 +64,10 @@ def api_start_training(model_id):
                 })
                 db.session.commit()
 
-        # 如果没有提供record_id或找不到记录，则创建新记录
         if not training_record:
             training_record = TrainingRecord(
                 model_id=model_id,
-                dataset_path='',
+                dataset_path=dataset_zip_path,  # ⭐ 直接保存Minio路径 ⭐
                 hyperparameters=json.dumps({
                     'epochs': epochs,
                     'model_arch': model_arch,
@@ -120,7 +112,7 @@ def api_start_training(model_id):
 
 def get_project_root():
     """获取项目根目录"""
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 
 @training_bp.route('/<int:model_id>/train/stop', methods=['POST'])
 def api_stop_training(model_id):
@@ -166,28 +158,12 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
         application = create_app()
 
         with application.app_context():
-            # 初始化训练记录
-            training_record = TrainingRecord(
-                model_id=model_id,
-                dataset_path='',
-                hyperparameters=json.dumps({
-                    'epochs': epochs,
-                    'model_arch': model_arch,
-                    'img_size': img_size,
-                    'batch_size': batch_size,
-                    'use_gpu': use_gpu
-                }),
-                start_time=datetime.utcnow(),
-                status='preparing',
-                train_log='',
-                checkpoint_dir=''
-            )
-            db.session.add(training_record)
-            db.session.commit()
+            # 在函数内部通过record_id获取训练记录
+            training_record = TrainingRecord.query.get(record_id)
 
             # 更新日志函数
             def update_log(message, progress=None):
-                print(f"[训练日志 {model_id}] {message}")
+                print(f"[训练日志-模型ID:{model_id}] {message}")
                 training_status[model_id]['log'] += message + '\n'
 
                 training_record.train_log += message + '\n'
@@ -203,6 +179,9 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             if not model:
                 error_msg = "项目不存在"
                 update_log(error_msg)
+                training_record.status = 'error'
+                training_record.error_log = error_msg
+                db.session.commit()
                 raise Exception(error_msg)
 
             update_log(f"获取项目信息成功，项目名称: {model.name}")
@@ -219,10 +198,6 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 update_log(log_msg)
                 return
 
-            # 检查数据集目录是否存在
-            model_dir = os.path.join(get_project_root(), 'data/datasets', str(model_id))
-            data_yaml_path = os.path.join(model_dir, 'data.yaml')
-
             # data/datasets/123/
             # ├── images /
             # │   ├── train /
@@ -231,14 +206,23 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             # │   ├── train /
             # │   └── val /
             # └── data.yaml
+            # 检查数据集目录是否存在
+            model_dir = os.path.join(get_project_root(), 'data/datasets', str(model_id))
+            data_yaml_path = os.path.join(model_dir, 'data.yaml')
 
-            # 更新训练记录中的数据集路径
-            training_record.dataset_path = data_yaml_path
-            db.session.commit()
+            # 检查数据集目录结构完整性
+            required_dirs = ['images/train', 'images/val',  'images/test', 'labels/train', 'labels/val', 'labels/test']
+            all_dirs_exist = all(os.path.exists(os.path.join(model_dir, d)) for d in required_dirs)
+
+            if os.path.exists(data_yaml_path) and all_dirs_exist:
+                # 更新训练记录中的数据集路径
+                training_record.dataset_path = data_yaml_path
+                db.session.commit()
+                update_log(f"数据集验证成功，路径已更新: {data_yaml_path}")
+                print(f"数据集验证成功，路径已更新: {data_yaml_path}")
 
             update_log(f"项目目录: {model_dir}")
             update_log(f"数据配置文件路径: {data_yaml_path}")
-
             update_log("检查数据集配置文件...")
 
             # 数据集不存在处理逻辑
@@ -256,14 +240,26 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
 
                 # 从Minio下载数据集
                 if dataset_zip_path:
+                    # 解析URL获取bucket和object信息
+                    parsed_url = urlparse(dataset_zip_path)
+                    query_params = parse_qs(parsed_url.query)
+                    object_key = query_params.get('prefix', [None])[0]
+
+                    # 从路径中提取bucket名称（关键修复）
+                    path_parts = parsed_url.path.split('/')
+                    if len(path_parts) >= 5 and path_parts[3] == 'buckets':
+                        bucket_name = path_parts[4]  # /api/v1/buckets/<bucket_name>/objects...
+                    else:
+                        bucket_name = "datasets"  # 默认值
+
                     # 本地压缩包路径
                     local_zip_path = os.path.join(model_dir, 'dataset.zip')
 
-                    # Minio下载
-                    update_log(f"从Minio下载数据集: {dataset_zip_path}")
+                    # Minio下载（使用解析出的bucket和object）
+                    update_log(f"从Minio下载数据集: bucket={bucket_name}, object={object_key}")
                     if ModelService.download_from_minio(
-                            bucket_name="dataset-bucket",
-                            object_name=dataset_zip_path,
+                            bucket_name=bucket_name,  # 使用解析出的bucket
+                            object_name=object_key,  # 使用prefix参数值
                             destination_path=local_zip_path
                     ):
                         update_log("数据集下载成功，开始解压...")
@@ -297,6 +293,9 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             if not os.path.exists(data_yaml_path):
                 error_msg = "数据集配置文件不存在"
                 update_log(error_msg)
+                training_record.status = 'error'
+                training_record.error_log = error_msg
+                db.session.commit()
                 raise Exception(error_msg)
 
             # 更新状态：开始加载模型
@@ -441,6 +440,9 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             else:
                 error_msg = "未找到训练完成的最佳模型文件"
                 update_log(error_msg)
+                training_record.status = 'error'
+                training_record.error_log = error_msg
+                db.session.commit()
                 raise Exception(error_msg)
 
             # 更新训练状态 - 完成
@@ -471,6 +473,9 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
 
             error_msg = f'训练出错: {str(e)}'
             print(error_msg)
+            training_record.status = 'error'
+            training_record.error_log = error_msg
+            db.session.commit()
             traceback.print_exc()
 
             try:
