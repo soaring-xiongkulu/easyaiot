@@ -18,13 +18,13 @@ training_bp = Blueprint('training', __name__)
 training_status = {}
 training_processes = {}
 
-
 @training_bp.route('/<int:model_id>/train', methods=['POST'])
 def api_start_training(model_id):
     try:
         # 获取训练参数
         data = request.get_json()
 
+        record_id = data.get('taskId')  # 获取前端传递的taskId
         # 参数映射（前端 -> 后端）
         epochs = data.get('epochs', 20)
         batch_size = data.get('batch_size', 16)
@@ -49,6 +49,48 @@ def api_start_training(model_id):
         if model_id in training_status and training_status[model_id]['status'] in ['preparing', 'training']:
             return jsonify({'success': False, 'code': 0, 'msg': '训练已在进行中'}), 200
 
+        # ⭐ 修复点：将训练记录创建移到条件判断外部 ⭐
+        training_record = None
+        if record_id:
+            # 覆盖现有记录
+            training_record = TrainingRecord.query.get(record_id)
+            if training_record:
+                # 重置记录状态
+                training_record.start_time = datetime.utcnow()
+                training_record.end_time = None
+                training_record.status = 'preparing'
+                training_record.train_log = ''
+                training_record.error_log = None
+                training_record.progress = 0
+                training_record.hyperparameters = json.dumps({
+                    'epochs': epochs,
+                    'model_arch': model_arch,
+                    'img_size': img_size,
+                    'batch_size': batch_size,
+                    'use_gpu': use_gpu
+                })
+                db.session.commit()
+
+        # 如果没有提供record_id或找不到记录，则创建新记录
+        if not training_record:
+            training_record = TrainingRecord(
+                model_id=model_id,
+                dataset_path='',
+                hyperparameters=json.dumps({
+                    'epochs': epochs,
+                    'model_arch': model_arch,
+                    'img_size': img_size,
+                    'batch_size': batch_size,
+                    'use_gpu': use_gpu
+                }),
+                start_time=datetime.utcnow(),
+                status='preparing',
+                train_log='',
+                checkpoint_dir=''
+            )
+            db.session.add(training_record)
+            db.session.commit()
+
         # 重置训练状态
         training_status[model_id] = {
             'status': 'preparing',
@@ -58,15 +100,21 @@ def api_start_training(model_id):
             'stop_requested': False
         }
 
-        # 在后台线程中启动训练
+        # 在后台线程中启动训练，传递training_record.id
         training_thread = threading.Thread(
             target=train_model,
-            args=(model_id, epochs, model_arch, img_size, batch_size, use_gpu, dataset_zip_path)
+            args=(model_id, epochs, model_arch, img_size, batch_size,
+                  use_gpu, dataset_zip_path, training_record.id)  # 添加record_id参数
         )
         training_thread.daemon = True
         training_thread.start()
 
-        return jsonify({'success': True, 'code': 0, 'msg': '训练已启动'}), 200
+        return jsonify({
+            'success': True,
+            'code': 0,
+            'msg': '训练已启动',
+            'record_id': training_record.id  # 返回记录ID给前端
+        }), 200
     except Exception as e:
         return jsonify({'success': False, 'code': 400, 'msg':  f'启动训练失败: {str(e)}'}), 400
 
@@ -108,12 +156,13 @@ def api_train_status(model_id):
 
 
 def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
-                img_size=640, batch_size=16, use_gpu=True, dataset_zip_path=None):
+                img_size=640, batch_size=16, use_gpu=True,
+                dataset_zip_path=None, record_id=None):
     """增强版训练函数，集成数据集下载和解压功能"""
     print(f"训练函数被调用，项目ID: {model_id}")
 
-    # 创建训练记录对象
-    training_record = None
+    # 在函数内部通过record_id获取训练记录
+    training_record = TrainingRecord.query.get(record_id)
 
     try:
         from run import create_app
