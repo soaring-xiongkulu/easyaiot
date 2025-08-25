@@ -66,7 +66,7 @@ def training_records():
             })
 
         return jsonify({
-            'code': 200,
+            'code': 0,
             'msg': 'success',
             'data': records,
             'pagination': {
@@ -188,7 +188,7 @@ def update_training(record_id):
         db.session.commit()
 
         return jsonify({
-            'code': 200,
+            'code': 0,
             'msg': '训练记录更新成功'
         })
 
@@ -222,7 +222,7 @@ def delete_training(record_id):
         db.session.commit()
 
         return jsonify({
-            'code': 200,
+            'code': 0,
             'msg': '训练记录删除成功'
         })
 
