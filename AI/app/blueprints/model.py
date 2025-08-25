@@ -209,25 +209,25 @@ def upload_model_file():
             'msg': f'服务器内部错误: {str(e)}'
         }), 500
 
-
-# 修改创建模型接口
 @model_bp.route('/create', methods=['POST'])
 def create_model():
     try:
-        # 获取JSON数据
         data = request.get_json()
-        if not data:
-            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
-
         name = data.get('name')
         description = data.get('description', '')
-        file_path = data.get('filePath', '')  # 获取Minio objectKey
+        file_path = data.get('filePath', '')
+        image_url = data.get('imageUrl', '')  # 新增图片URL字段
 
         if not name:
             return jsonify({'code': 400, 'msg': '模型名称不能为空'}), 400
 
         # 创建模型记录
-        model = Model(name=name, description=description, model_path=file_path)
+        model = Model(
+            name=name,
+            description=description,
+            model_path=file_path,
+            image_url=image_url  # 保存图片URL
+        )
         db.session.add(model)
         db.session.commit()
 
@@ -237,7 +237,8 @@ def create_model():
             'data': {
                 'id': model.id,
                 'name': model.name,
-                'filePath': model.model_path
+                'filePath': model.model_path,
+                'imageUrl': model.image_url  # 返回图片URL
             }
         })
 
@@ -248,8 +249,6 @@ def create_model():
             'msg': f'服务器内部错误: {str(e)}'
         }), 500
 
-
-# 修改更新模型接口
 @model_bp.route('/<int:model_id>/update', methods=['PUT'])
 def update_model(model_id):
     try:
@@ -264,8 +263,10 @@ def update_model(model_id):
             model.name = data['name']
         if 'description' in data:
             model.description = data['description']
-        if 'filePath' in data:  # 更新Minio objectKey
+        if 'filePath' in data:
             model.model_path = data['filePath']
+        if 'imageUrl' in data:
+            model.image_url = data['imageUrl']
 
         db.session.commit()
 
@@ -275,7 +276,8 @@ def update_model(model_id):
             'data': {
                 'id': model.id,
                 'name': model.name,
-                'filePath': model.model_path
+                'filePath': model.model_path,
+                'imageUrl': model.image_url
             }
         })
 
