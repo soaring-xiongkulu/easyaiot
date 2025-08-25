@@ -1,4 +1,4 @@
-package com.basiclab.iot.dataset.api;
+package com.basiclab.iot.dataset;
 
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.dataset.domain.dataset.vo.DatasetTagRespVO;
@@ -23,10 +23,4 @@ public interface RemoteDatasetTagApi {
     CommonResult<List<DatasetTagRespVO>> listTagsByDataset(
             @Parameter(description = "数据集ID", required = true)
             @RequestParam("datasetId") Long datasetId);
-
-    @GetMapping(PREFIX + "/list-by-warehouse")
-    @Operation(summary = "根据数据仓ID获取标签列表")
-    CommonResult<List<DatasetTagRespVO>> listTagsByWarehouse(
-            @Parameter(description = "数据仓ID", required = true)
-            @RequestParam("warehouseId") Long warehouseId);
 }
