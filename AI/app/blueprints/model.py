@@ -1,4 +1,3 @@
-# model_bp.py
 import logging
 import os
 import shutil
