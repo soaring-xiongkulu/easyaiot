@@ -57,12 +57,7 @@ def models():
             'code': 0,
             'msg': 'success',
             'data': model_list,
-            'pagination': {
-                'pageNo': pagination.page,  # 当前页码
-                'pageSize': pagination.per_page,  # 每页数量
-                'totalItems': pagination.total,  # 总记录数
-                'totalPages': pagination.pages  # 总页数
-            }
+            'total': pagination.total
         })
 
     except ValueError:  # 参数类型错误
@@ -152,12 +147,7 @@ def get_model_training_records(model_id):
             'code': 0,
             'msg': 'success',
             'data': records,
-            'pagination': {
-                'pageNo': pagination.page,
-                'pageSize': pagination.per_page,
-                'totalItems': pagination.total,
-                'totalPages': pagination.pages
-            }
+            'total': pagination.total
         })
 
     except Exception as e:

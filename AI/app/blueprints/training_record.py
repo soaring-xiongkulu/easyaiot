@@ -69,12 +69,7 @@ def training_records():
             'code': 0,
             'msg': 'success',
             'data': records,
-            'pagination': {
-                'pageNo': pagination.page,
-                'pageSize': pagination.per_page,
-                'totalItems': pagination.total,
-                'totalPages': pagination.pages
-            }
+            'total': pagination.total
         })
 
     except ValueError:
