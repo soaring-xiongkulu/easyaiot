@@ -178,7 +178,7 @@ model_bp = Blueprint('model', __name__)
 
 
 # 新增模型文件上传接口
-@model_bp.route('/model/upload', methods=['POST'])
+@model_bp.route('/upload', methods=['POST'])
 def upload_model_file():
     if 'file' not in request.files:
         return jsonify({'code': 400, 'msg': '未找到文件'}), 400
