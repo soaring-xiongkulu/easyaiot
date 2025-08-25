@@ -54,7 +54,7 @@ def models():
         } for p in pagination.items]
 
         return jsonify({
-            'code': 200,
+            'code': 0,
             'msg': 'success',
             'data': model_list,
             'pagination': {
@@ -108,7 +108,7 @@ def publish_model(model_id):
         logger.info(f"模型 {model_id} 版本 {version} 已发布")
 
         return jsonify({
-            'code': 200,
+            'code': 0,
             'msg': '模型发布成功',
             'data': {
                 'model_id': model_id,
@@ -149,7 +149,7 @@ def get_model_training_records(model_id):
         } for record in pagination.items]
 
         return jsonify({
-            'code': 200,
+            'code': 0,
             'msg': 'success',
             'data': records,
             'pagination': {
@@ -172,9 +172,6 @@ def get_model_training_records(model_id):
 def model_detail(model_id):
     model = Model.query.get_or_404(model_id)
     return render_template('model_detail.html', model=model)
-
-
-model_bp = Blueprint('model', __name__)
 
 
 # 新增模型文件上传接口
@@ -206,7 +203,7 @@ def upload_model_file():
             # 清理临时文件
             os.remove(temp_path)
             return jsonify({
-                'code': 200,
+                'code': 0,
                 'msg': '文件上传成功',
                 'data': {
                     'objectKey': object_key,
@@ -245,7 +242,7 @@ def create_model():
         db.session.commit()
 
         return jsonify({
-            'code': 200,
+            'code': 0,
             'msg': '模型创建成功',
             'data': {
                 'id': model.id,
@@ -283,7 +280,7 @@ def update_model(model_id):
         db.session.commit()
 
         return jsonify({
-            'code': 200,
+            'code': 0,
             'msg': '模型更新成功',
             'data': {
                 'id': model.id,
@@ -341,7 +338,7 @@ def ota_check():
 
         if not latest_model:
             return jsonify({
-                'code': 200,
+                'code': 0,
                 'msg': '当前已是最新版本',
                 'has_update': False
             })
@@ -356,7 +353,7 @@ def ota_check():
 
         # 返回升级信息
         return jsonify({
-            'code': 200,
+            'code': 0,
             'msg': '发现新版本',
             'has_update': True,
             'update_info': {
