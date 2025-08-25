@@ -36,7 +36,7 @@
         <div class="param-group">
           <label>预训练模型</label>
           <select v-model="selectedModel" class="resource-select">
-            <option value="">默认模型 (yolov8n)</option>
+            <option value="">默认模型 (yolov8n.pt)</option>
             <option v-for="model in modelList"
                     :key="model.id"
                     :value="model.model_path">
