@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.baomidou.mybatisplus.extension.toolkit.Db.saveOrUpdateBatch;
 import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.exception;
 import static com.basiclab.iot.dataset.enums.ErrorCodeConstants.DATASET_TAG_NOT_EXISTS;
 import static com.basiclab.iot.dataset.enums.ErrorCodeConstants.DATASET_TAG_NUMBER_EXISTS;
@@ -113,7 +114,7 @@ public class DatasetTagServiceImpl implements DatasetTagService {
                         .select(DatasetImageDO::getId, DatasetImageDO::getAnnotations)
         );
 
-        // 2. 并行处理JSON更新（利用多核CPU）
+        // 2. 并行处理JSON更新并过滤未变更记录
         List<DatasetImageDO> batchToUpdate = images.parallelStream()
                 .map(image -> {
                     String updatedAnnotations = updateAnnotationsJson(
@@ -121,7 +122,6 @@ public class DatasetTagServiceImpl implements DatasetTagService {
                             oldTag.getShortcut(),
                             newTag.getShortcut()
                     );
-                    // 仅当标注内容变化时标记更新
                     if (!updatedAnnotations.equals(image.getAnnotations())) {
                         image.setAnnotations(updatedAnnotations);
                         return image;
@@ -131,22 +131,14 @@ public class DatasetTagServiceImpl implements DatasetTagService {
                 .filter(image -> image != null)
                 .collect(Collectors.toList());
 
-        // 3. 分批次批量更新（每批500条）
+        // 3. 使用 saveOrUpdateBatch 批量更新
         if (!batchToUpdate.isEmpty()) {
+            // 分批次调用 saveOrUpdateBatch（每批500条）
             int batchSize = 500;
             for (int i = 0; i < batchToUpdate.size(); i += batchSize) {
                 List<DatasetImageDO> subList = batchToUpdate.subList(i, Math.min(i + batchSize, batchToUpdate.size()));
-                // 使用MyBatis-Plus的saveOrUpdateBatch方法（需开启批处理模式）
-                boolean success = SqlHelper.executeBatch(
-                        DatasetImageDO.class,
-                        (Log) logger,
-                        subList,
-                        batchSize,
-                        (sqlSession, entity) -> datasetImageMapper.updateById(entity)
-                );
-                if (!success) {
-                    throw new RuntimeException("批量更新失败");
-                }
+                // 关键替换：直接调用 MyBatis-Plus 的批量方法
+                saveOrUpdateBatch(subList, batchSize); // 自动判断主键是否存在并执行插入/更新
             }
         }
     }
