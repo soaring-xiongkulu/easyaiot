@@ -1,20 +1,12 @@
 <template>
   <div class="device-wrapper">
     <div class="device-tab">
-      <Tabs
-        :animated="{ inkBar: true, tabPane: true }"
-        :activeKey="state.activeKey"
-        :tabBarGutter="60"
-        @tabClick="handleTabClick"
-      >
-        <DatasetList></DatasetList>
-      </Tabs>
+      <DatasetList></DatasetList>
     </div>
   </div>
 </template>
 <script lang="ts" setup name="noticeSetting">
 import {reactive} from 'vue';
-import {Tabs} from "ant-design-vue";
 import DatasetList from "@/views/dataset/components/DatasetList/index.vue";
 
 defineOptions({name: 'DATASET'})
@@ -26,10 +18,6 @@ const state = reactive({
   historyActiveKey: '1',
   SmsActiveKey: '1',
 });
-
-const handleTabClick = (activeKey) => {
-  state.activeKey = activeKey;
-};
 </script>
 
 <style lang="less" scoped>
