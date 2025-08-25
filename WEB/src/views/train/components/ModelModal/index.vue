@@ -29,7 +29,32 @@
               :disabled="state.isView"
             />
           </FormItem>
-          <!-- 新增模型文件上传 -->
+
+          <!-- 模型图片上传 -->
+          <FormItem label="模型图片" name="imageUrl">
+            <Upload
+              name="image"
+              :action="state.imageUploadUrl"
+              :headers="headers"
+              :showUploadList="false"
+              accept=".jpg,.jpeg,.png,.webp"
+              :disabled="state.isView"
+              @change="handleImageUpload"
+            >
+              <a-button type="primary" :disabled="state.isView">
+                {{ state.isView ? '已上传' : '上传模型图片' }}
+              </a-button>
+            </Upload>
+            <div v-if="modelRef.imageUrl" style="margin-top: 8px">
+              <img
+                :src="modelRef.imageUrl"
+                alt="模型图片预览"
+                style="max-height: 200px; max-width: 100%;"
+              />
+            </div>
+          </FormItem>
+
+          <!-- 模型文件上传 -->
           <FormItem label="模型文件" name="filePath">
             <Upload
               name="file"
@@ -73,6 +98,7 @@ const { uploadUrl } = useGlobSetting();
 
 const state = reactive({
   modelUploadUrl: `${uploadUrl}/model/upload`, // 模型文件上传接口
+  imageUploadUrl: `${uploadUrl}/model/image_upload`, // 模型图片上传接口
   isEdit: false,
   isView: false,
   editLoading: false,
@@ -90,6 +116,7 @@ const modelRef = reactive({
   description: '',
   status: 0,
   filePath: '', // 存储Minio返回的objectKey
+  imageUrl: '', // 存储模型图片URL
 });
 
 const getTitle = computed(() => (state.isEdit ? '编辑模型' : state.isView ? '查看模型' : '新增模型'));
@@ -108,7 +135,7 @@ const [register, { closeModal }] = useModalInner((data) => {
 
 const emits = defineEmits(['success']);
 
-// 移除filePath的必填验证
+// 表单验证规则
 const rulesRef = reactive({
   name: [{ required: true, message: '请输入模型名称', trigger: ['blur', 'change'] }],
   status: [{ required: true, message: '请选择状态', trigger: ['blur', 'change'] }],
@@ -133,7 +160,7 @@ function handleCancel() {
   closeModal();
 }
 
-// 处理文件上传事件
+// 处理模型文件上传事件
 function handleFileUpload(info) {
   if (info.file.status === 'done') {
     const response = info.file.response;
@@ -145,6 +172,21 @@ function handleFileUpload(info) {
     }
   } else if (info.file.status === 'error') {
     createMessage.error('文件上传失败');
+  }
+}
+
+// 处理模型图片上传事件
+function handleImageUpload(info) {
+  if (info.file.status === 'done') {
+    const response = info.file.response;
+    if (response && response.code === 0) {
+      modelRef.imageUrl = response.data.url;
+      createMessage.success('模型图片上传成功');
+    } else {
+      createMessage.error(response?.msg || '图片上传失败');
+    }
+  } else if (info.file.status === 'error') {
+    createMessage.error('图片上传失败');
   }
 }
 
@@ -160,7 +202,8 @@ function handleOk() {
         name: modelRef.name,
         description: modelRef.description,
         status: modelRef.status,
-        filePath: modelRef.filePath // 包含Minio objectKey
+        filePath: modelRef.filePath, // 包含Minio objectKey
+        imageUrl: modelRef.imageUrl  // 包含图片URL
       };
 
       await api(payload);
