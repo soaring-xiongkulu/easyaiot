@@ -1,9 +1,11 @@
 import {BasicColumn, FormProps} from '@/components/Table';
 import {Progress, Tag} from 'ant-design-vue';
 
-const getGradientColor = (percent) => {
-  const hue = 120 * (1 - percent/100);
-  return `hsl(${hue}, 80%, 45%)`;
+const getProgressColor = (percent) => {
+  // 色相：120°(绿)固定，饱和度80%恒定
+  // 亮度：随进度从45%线性增加到75%（100%时为柔光浅绿）
+  const lightness = 45 + (percent / 100) * 30;
+  return `hsl(120, 80%, ${lightness}%)`;
 };
 
 export function getBasicColumns(): BasicColumn[] {
@@ -81,39 +83,24 @@ export function getBasicColumns(): BasicColumn[] {
     {
       title: '训练进度',
       dataIndex: 'progress',
-      width: 140,
+      width: 160,  // 增加宽度容纳文本
       align: 'center',
       customRender: ({ record }) => {
         const progress = record.progress || 0;
-
-        // 动态文字颜色（保持原逻辑）
-        const getTextColor = (percent) => percent > 75 ? '#ffffff' : '#000000A6';
-
         return (
-          <div class="progress-container" style={{ position: 'relative' }}>
-            <Progress
-              percent={progress}
-              strokeColor={getGradientColor(progress)}
-              strokeWidth={12}
-              strokeLinecap="butt"
-              showInfo={false}
-              class="dynamic-progress"
-            />
-            <div
-              class="progress-text"
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                fontWeight: 600,
-                fontSize: '14px',
-                color: getTextColor(progress),
-                textShadow: progress > 75
-                  ? '0 0 2px rgba(0,0,0,0.7)'
-                  : '0 0 1px rgba(255,255,255,0.8)'
-              }}
-            >
+          <div class="flex items-center w-full gap-2">
+            {/* 进度条容器（占主要空间） */}
+            <div class="flex-1">
+              <Progress
+                percent={progress}
+                strokeColor={getProgressColor(progress)}
+                strokeWidth={12}
+                strokeLinecap="butt"
+                showInfo={false}
+                class="dynamic-progress"
+              />
+            </div>
+            <div class="text-black font-medium min-w-[40px] text-right">
               {progress}%
             </div>
           </div>
