@@ -7,21 +7,15 @@
         :tabBarGutter="60"
         @tabClick="handleTabClick"
       >
-        <TabPane key="1" tab="数据集管理">
-          <DatasetList></DatasetList>
-        </TabPane>
-        <TabPane key="2" tab="数据仓管理">
-          <WarehouseList></WarehouseList>
-        </TabPane>
+        <DatasetList></DatasetList>
       </Tabs>
     </div>
   </div>
 </template>
 <script lang="ts" setup name="noticeSetting">
 import {reactive} from 'vue';
-import {TabPane, Tabs} from "ant-design-vue";
+import {Tabs} from "ant-design-vue";
 import DatasetList from "@/views/dataset/components/DatasetList/index.vue";
-import WarehouseList from "@/views/dataset/components/WarehouseList/index.vue";
 
 defineOptions({name: 'DATASET'})
 
