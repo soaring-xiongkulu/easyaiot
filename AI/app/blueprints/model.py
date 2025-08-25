@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError
 model_bp = Blueprint('model', __name__)
 logger = logging.getLogger(__name__)
 
+
 @model_bp.route('/list', methods=['GET'])
 def models():
     try:
@@ -41,6 +42,7 @@ def models():
         model_list = [{
             'id': p.id,
             'name': p.name,
+            'version': p.version,
             'description': p.description,
             'created_at': p.created_at.isoformat() if p.created_at else None,
             'imageUrl': p.image_url
@@ -79,6 +81,19 @@ def publish_model(model_id):
         model_path = training_record.minio_model_path or training_record.best_model_path
         if not model_path:
             return jsonify({'code': 400, 'msg': '训练记录中未找到有效模型路径'}), 400
+
+        # 检查模型名称+版本是否已存在（排除自身）
+        existing_model = Model.query.filter(
+            db.func.lower(Model.name) == db.func.lower(model.name),
+            Model.version == version,
+            Model.id != model_id
+        ).first()
+
+        if existing_model:
+            return jsonify({
+                'code': 400,
+                'msg': f'模型"{model.name}"版本"{version}"已存在，请使用其他版本号'
+            }), 400
 
         model.model_path = model_path
         model.training_record_id = training_record_id
@@ -130,6 +145,7 @@ def get_model_training_records(model_id):
     except Exception as e:
         logger.error(f"获取训练记录失败: {str(e)}")
         return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
+
 
 @model_bp.route('/image_upload', methods=['POST'])
 def upload_model_file():
@@ -184,6 +200,7 @@ def upload_model_file():
             except OSError as e:
                 logger.error(f"删除临时文件失败: {temp_path}, 错误: {str(e)}")
 
+
 @model_bp.route('/create', methods=['POST'])
 def create_model():
     try:
@@ -192,16 +209,21 @@ def create_model():
         description = data.get('description', '')
         file_path = data.get('filePath', '')
         image_url = data.get('imageUrl', '')
+        version = data.get('version', 'V1.0.0')
 
         if not name:
             return jsonify({'code': 400, 'msg': '模型名称不能为空'}), 400
 
-        # 检查名称是否已存在（不区分大小写）
-        existing_model = Model.query.filter(db.func.lower(Model.name) == db.func.lower(name)).first()
+        # 检查模型名称+版本是否已存在
+        existing_model = Model.query.filter(
+            db.func.lower(Model.name) == db.func.lower(name),
+            Model.version == version
+        ).first()
+
         if existing_model:
             return jsonify({
                 'code': 400,
-                'msg': f'模型名称"{name}"已存在，请使用其他名称'
+                'msg': f'模型"{name}"版本"{version}"已存在，请使用其他名称或版本号'
             }), 400
 
         # 创建模型记录
@@ -209,7 +231,8 @@ def create_model():
             name=name,
             description=description,
             model_path=file_path,
-            image_url=image_url
+            image_url=image_url,
+            version=version
         )
         db.session.add(model)
         db.session.commit()
@@ -220,6 +243,7 @@ def create_model():
             'data': {
                 'id': model.id,
                 'name': model.name,
+                'version': model.version,
                 'filePath': model.model_path,
                 'imageUrl': model.image_url
             }
@@ -230,7 +254,7 @@ def create_model():
         logger.error(f"模型名称冲突: {str(e)}")
         return jsonify({
             'code': 400,
-            'msg': f'模型名称"{name}"已存在，请使用其他名称'
+            'msg': f'模型名称"{name}"版本"{version}"已存在，请使用其他名称或版本号'
         }), 400
 
     except Exception as e:
@@ -250,25 +274,28 @@ def update_model(model_id):
             return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
 
         model = Model.query.get_or_404(model_id)
-        new_name = data.get('name')
+        new_name = data.get('name', model.name)
+        new_version = data.get('version', model.version)
 
-        # 如果名称有变化，检查新名称是否已存在（排除自身）
-        if new_name and new_name != model.name:
-            # 检查新名称是否已存在（不区分大小写）
+        # 检查模型名称+版本是否已存在（排除自身）
+        if new_name != model.name or new_version != model.version:
             existing_model = Model.query.filter(
                 db.func.lower(Model.name) == db.func.lower(new_name),
+                Model.version == new_version,
                 Model.id != model_id
             ).first()
 
             if existing_model:
                 return jsonify({
                     'code': 400,
-                    'msg': f'模型名称"{new_name}"已存在，请使用其他名称'
+                    'msg': f'模型"{new_name}"版本"{new_version}"已存在，请使用其他名称或版本号'
                 }), 400
 
         # 更新允许的字段
         if 'name' in data:
             model.name = data['name']
+        if 'version' in data:
+            model.version = data['version']
         if 'description' in data:
             model.description = data['description']
         if 'filePath' in data:
@@ -284,6 +311,7 @@ def update_model(model_id):
             'data': {
                 'id': model.id,
                 'name': model.name,
+                'version': model.version,
                 'filePath': model.model_path,
                 'imageUrl': model.image_url
             }
@@ -294,7 +322,7 @@ def update_model(model_id):
         logger.error(f"模型名称冲突: {str(e)}")
         return jsonify({
             'code': 400,
-            'msg': f'模型名称"{new_name}"已存在，请使用其他名称'
+            'msg': f'模型名称"{new_name}"版本"{new_version}"已存在，请使用其他名称或版本号'
         }), 400
 
     except Exception as e:
@@ -376,6 +404,7 @@ def select_model_format(model, device_type):
     if model.onnx_model_path:
         return model.onnx_model_path
     return model.model_path
+
 
 def get_model_size(model_path):
     return {

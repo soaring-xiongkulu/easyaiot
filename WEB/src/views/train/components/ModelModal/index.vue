@@ -18,6 +18,12 @@
           <FormItem label="模型名称" name="name" v-bind="validateInfos.name">
             <Input v-model:value="modelRef.name" placeholder="请输入模型名称" />
           </FormItem>
+          <FormItem label="模型版本" name="version" v-bind="validateInfos.version">
+            <Input
+              v-model:value="modelRef.version"
+              placeholder="请输入模型版本（例如：1.0.0）"
+            />
+          </FormItem>
           <FormItem label="模型描述" name="description" v-bind="validateInfos.description">
             <TextArea v-model:value="modelRef.description" placeholder="请输入模型描述" :rows="4" />
           </FormItem>
@@ -113,6 +119,7 @@ const state = reactive({
 const modelRef = reactive({
   id: null,
   name: '',
+  version: '',
   description: '',
   status: 0,
   filePath: '', // 存储Minio返回的objectKey
@@ -138,6 +145,7 @@ const emits = defineEmits(['success']);
 // 表单验证规则
 const rulesRef = reactive({
   name: [{ required: true, message: '请输入模型名称', trigger: ['blur', 'change'] }],
+  version: [{ required: true, message: '请输入模型版本', trigger: ['blur', 'change'] }],
   status: [{ required: true, message: '请选择状态', trigger: ['blur', 'change'] }],
   imageUrl: [{ required: true, message: '请上传模型图片', trigger: 'change' }]
 });
@@ -202,6 +210,7 @@ function handleOk() {
       const payload = {
         id: modelRef.id,
         name: modelRef.name,
+        version: modelRef.version,
         description: modelRef.description,
         status: modelRef.status,
         filePath: modelRef.filePath, // 包含Minio objectKey

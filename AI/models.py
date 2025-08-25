@@ -9,7 +9,7 @@ class Model(db.Model):
     description = db.Column(db.Text)
     model_path = db.Column(db.String(500), nullable=True)
     image_url = db.Column(db.String(500))
-    version = db.Column(db.String(20), default="1.0.0")
+    version = db.Column(db.String(20), default="V1.0.0")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
