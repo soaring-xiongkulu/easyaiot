@@ -49,4 +49,6 @@ class ExportRecord(db.Model):
     minio_path = db.Column(db.String(500))
     local_path = db.Column(db.String(500))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='PENDING')  # 新增状态字段
+    message = db.Column(db.Text)  # 新增错误信息字段
     model = db.relationship('Model', back_populates='export_records')

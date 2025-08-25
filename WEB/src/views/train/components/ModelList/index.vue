@@ -17,7 +17,7 @@
                   title: '详情',
                   placement: 'top',
                 },
-                onClick: goModelDetail.bind(record),
+                onClick: goTrainDetail.bind(record),
               },
               {
                 tooltip: {
@@ -105,7 +105,7 @@ function getMethod(m: any) {
 }
 
 function handleView(record) {
-  goModelDetail(record);
+  goTrainDetail(record);
 }
 
 function handleEdit(record) {
@@ -165,8 +165,8 @@ const [registerTable, { reload }] = useTable({
   rowKey: 'id',
 });
 
-const goModelDetail = async (record) => {
-  router.push({ name: 'ModelDetail', params: { id: record.id } });
+const goTrainDetail = async (record) => {
+  router.push({ name: 'TrainDetail', params: { modelId: record.id } });
 };
 
 const handleDelete = async (record) => {

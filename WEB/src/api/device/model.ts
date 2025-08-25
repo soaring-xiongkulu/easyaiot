@@ -120,11 +120,24 @@ export const runInference = (modelId, formData: FormData) => {
   });
 };
 
-// ================= 导出接口 =================
+// ================= 导出接口优化 =================
 export const exportModel = (modelId, format, params) => {
   return commonApi('post', `${Api.Export}/model/${modelId}/export/${format}`, { data: params });
 };
 
-export const downloadExport = (exportId) => {
+export const downloadExportedModel = (exportId) => {
   return commonApi('get', `${Api.Export}/download/${exportId}`);
 };
+
+export const deleteExportedModel = (exportId) => {
+  return commonApi('delete', `${Api.Export}/delete/${exportId}`);
+};
+
+export const getExportModelList = (params) => {
+  return commonApi('get', `${Api.Export}/list`, { params });
+};
+
+export const getExportStatus = (exportId) => {
+  return commonApi('get', `${Api.Export}/status/${exportId}`);
+};
+
