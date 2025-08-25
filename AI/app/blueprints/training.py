@@ -161,9 +161,6 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
     """增强版训练函数，集成数据集下载和解压功能"""
     print(f"训练函数被调用，项目ID: {model_id}")
 
-    # 在函数内部通过record_id获取训练记录
-    training_record = TrainingRecord.query.get(record_id)
-
     try:
         from run import create_app
         application = create_app()
