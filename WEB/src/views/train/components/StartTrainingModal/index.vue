@@ -75,10 +75,26 @@ import {BasicModal, useModalInner} from '@/components/Modal'
 import {getModelPage} from '@/api/device/model'
 import {getDatasetPage} from '@/api/device/dataset'
 import {useMessage} from "@/hooks/web/useMessage";
+import {t} from "@/hooks/web/useI18n";
 
-const {createMessage, notification} = useMessage()
+// 定义模型项类型
+interface ModelItem {
+  id: string | number;
+  name: string;
+  version: string;
+  model_path: string;
+}
 
-const [registerModal, {closeModal}] = useModalInner((data) => {
+interface DatasetItem {
+  id: string | number;
+  name: string;
+  description: string;
+  zipUrl: string;
+}
+
+const { createMessage, notification } = useMessage()
+
+const [registerModal, { closeModal }] = useModalInner(() => {
   loadModels()
   loadDatasets()
 })
@@ -90,20 +106,20 @@ const params = reactive({
   imgsz: 640
 })
 
-const modelList = ref([])
-const datasetList = ref([])
+const modelList = ref<ModelItem[]>([])
+const datasetList = ref<DatasetItem[]>([])
 const selectedModel = ref('')
 const selectedDataset = ref('')
-const maxBatchSize = ref(64) // 根据设备显存动态调整
+const maxBatchSize = ref(64)
 
 const emit = defineEmits(['success'])
 
 // 加载模型列表
 const loadModels = async () => {
   try {
-    const res = await getModelPage({page: 1, size: 100})
+    const res = await getModelPage({ page: 1, size: 100 })
     modelList.value = res.data || []
-    selectedModel.value = ''; // 初始化为空
+    selectedModel.value = ''
   } catch (e) {
     createMessage.error(t('加载模型列表失败'))
     console.error('加载模型列表失败', e)
@@ -113,7 +129,7 @@ const loadModels = async () => {
 // 加载数据集列表
 const loadDatasets = async () => {
   try {
-    const res = await getDatasetPage({page: 1, size: 100})
+    const res = await getDatasetPage({ page: 1, size: 100 })
     datasetList.value = res.data.list || []
     if (datasetList.value.length) {
       selectedDataset.value = datasetList.value[0].zipUrl
@@ -130,7 +146,7 @@ const startTraining = () => {
     createMessage.warn(t('请先选择数据集'))
     return
   }
-  const modelPath = selectedModel.value || 'yolov8n.pt';
+  const modelPath = selectedModel.value || 'yolov8n.pt'
   const config = {
     ...params,
     modelPath,
@@ -140,9 +156,9 @@ const startTraining = () => {
   closeModal()
 }
 
-// 模态框控制
 const handleCancel = () => closeModal()
 </script>
+
 
 <style scoped>
 /* 基础容器 */

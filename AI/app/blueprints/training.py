@@ -19,6 +19,7 @@ training_bp = Blueprint('training', __name__)
 training_status = {}
 training_processes = {}
 
+
 @training_bp.route('/<int:model_id>/train', methods=['POST'])
 def api_start_training(model_id):
     try:
@@ -109,22 +110,24 @@ def api_start_training(model_id):
             'record_id': training_record.id  # 返回记录ID给前端
         }), 200
     except Exception as e:
-        return jsonify({'success': False, 'code': 400, 'msg':  f'启动训练失败: {str(e)}'}), 400
+        return jsonify({'success': False, 'code': 400, 'msg': f'启动训练失败: {str(e)}'}), 400
+
 
 def get_project_root():
     """获取项目根目录"""
     return os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 
+
 @training_bp.route('/<int:model_id>/train/stop', methods=['POST'])
 def api_stop_training(model_id):
-    print(f"收到停止训练请求，项目ID: {model_id}")
+    update_log(f"收到停止训练请求，项目ID: {model_id}", model_id)
 
     # 设置停止请求标志
     if model_id in training_status:
         training_status[model_id]['stop_requested'] = True
         training_status[model_id]['status'] = 'stopping'
         training_status[model_id]['message'] = '正在停止训练...'
-        print("设置停止请求标志")
+        update_log("设置停止请求标志", model_id)
 
         # 尝试停止训练进程（如果可能）
         if model_id in training_processes:
@@ -132,26 +135,49 @@ def api_stop_training(model_id):
 
         return jsonify({'success': True, 'code': 0, 'msg': '停止请求已发送'}), 200
     else:
-        print("没有找到训练状态")
+        update_log("没有找到训练状态", model_id)
         return jsonify({'success': False, 'code': 0, 'msg': '没有正在进行的训练'}), 200
 
 
 @training_bp.route('/<int:model_id>/train/status')
 def api_train_status(model_id):
-    print(f"收到训练状态查询请求，项目ID: {model_id}")
+    update_log(f"收到训练状态查询请求，项目ID: {model_id}", model_id)
     status = training_status.get(model_id, {
         'status': 'idle',
         'message': '等待开始',
         'progress': 0
     })
-    print(f"返回训练状态: {status}")
+    update_log(f"返回训练状态: {status}", model_id)
     return jsonify({'status': status, 'code': 0, 'msg': '没有正在进行的训练'}), 200
+
+
+def update_log(message, model_id=None, progress=None, training_record=None):
+    """统一的日志记录函数"""
+    log_message = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}"
+    print(log_message)
+
+    # 如果提供了model_id，更新训练状态
+    if model_id is not None and model_id in training_status:
+        training_status[model_id]['log'] += log_message + '\n'
+        if progress is not None:
+            training_status[model_id]['progress'] = progress
+
+    # 如果提供了training_record，更新数据库记录
+    if training_record is not None:
+        training_record.train_log += log_message + '\n'
+        if progress is not None:
+            training_record.progress = progress
+        try:
+            db.session.commit()
+        except Exception as e:
+            print(f"数据库提交失败: {str(e)}")
+
 
 def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 img_size=640, batch_size=16, use_gpu=True,
                 dataset_zip_path=None, record_id=None):
     """增强版训练函数，集成数据集下载和解压功能"""
-    print(f"训练函数被调用，项目ID: {model_id}")
+    update_log(f"训练函数被调用，项目ID: {model_id}", model_id)
 
     try:
         from run import create_app
@@ -162,29 +188,22 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             training_record = TrainingRecord.query.get(record_id)
 
             # 更新日志函数
-            def update_log(message, progress=None):
-                print(f"[训练日志-模型ID:{model_id}] {message}")
-                training_status[model_id]['log'] += message + '\n'
+            def update_log_local(message, progress=None):
+                update_log(message, model_id, progress, training_record)
 
-                training_record.train_log += message + '\n'
-                if progress is not None:
-                    training_record.progress = progress
-                    training_status[model_id]['progress'] = progress
-                db.session.commit()
-
-            update_log(f"开始准备训练数据，项目ID: {model_id}")
+            update_log_local(f"开始准备训练数据，项目ID: {model_id}")
 
             # 获取项目信息
             model = Model.query.get(model_id)
             if not model:
                 error_msg = "项目不存在"
-                update_log(error_msg)
+                update_log_local(error_msg)
                 training_record.status = 'error'
                 training_record.error_log = error_msg
                 db.session.commit()
                 raise Exception(error_msg)
 
-            update_log(f"获取项目信息成功，项目名称: {model.name}")
+            update_log_local(f"获取项目信息成功，项目名称: {model.name}")
 
             # 检查是否应该停止训练
             if training_status.get(model_id, {}).get('stop_requested'):
@@ -195,7 +214,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     'progress': 0,
                     'log': training_status[model_id].get('log', '') + log_msg + '\n'
                 }
-                update_log(log_msg)
+                update_log_local(log_msg)
                 return
 
             # data/datasets/123/
@@ -211,19 +230,18 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             data_yaml_path = os.path.join(model_dir, 'data.yaml')
 
             # 检查数据集目录结构完整性
-            required_dirs = ['images/train', 'images/val',  'images/test', 'labels/train', 'labels/val', 'labels/test']
+            required_dirs = ['images/train', 'images/val', 'images/test', 'labels/train', 'labels/val', 'labels/test']
             all_dirs_exist = all(os.path.exists(os.path.join(model_dir, d)) for d in required_dirs)
 
             if os.path.exists(data_yaml_path) and all_dirs_exist:
                 # 更新训练记录中的数据集路径
                 training_record.dataset_path = data_yaml_path
                 db.session.commit()
-                update_log(f"数据集验证成功，路径已更新: {data_yaml_path}")
-                print(f"数据集验证成功，路径已更新: {data_yaml_path}")
+                update_log_local(f"数据集验证成功，路径已更新: {data_yaml_path}")
 
-            update_log(f"项目目录: {model_dir}")
-            update_log(f"数据配置文件路径: {data_yaml_path}")
-            update_log("检查数据集配置文件...")
+            update_log_local(f"项目目录: {model_dir}")
+            update_log_local(f"数据配置文件路径: {data_yaml_path}")
+            update_log_local("检查数据集配置文件...")
 
             # 数据集不存在处理逻辑
             dataset_downloaded = False
@@ -233,7 +251,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     'message': '正在下载数据集...',
                     'progress': 5
                 })
-                update_log(log_msg, progress=5)
+                update_log_local(log_msg, progress=5)
 
                 # 确保数据集目录存在
                 os.makedirs(model_dir, exist_ok=True)
@@ -256,26 +274,26 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     local_zip_path = os.path.join(model_dir, 'dataset.zip')
 
                     # Minio下载（使用解析出的bucket和object）
-                    update_log(f"从Minio下载数据集: bucket={bucket_name}, object={object_key}")
+                    update_log_local(f"从Minio下载数据集: bucket={bucket_name}, object={object_key}")
                     if ModelService.download_from_minio(
                             bucket_name=bucket_name,  # 使用解析出的bucket
                             object_name=object_key,  # 使用prefix参数值
                             destination_path=local_zip_path
                     ):
-                        update_log("数据集下载成功，开始解压...")
+                        update_log_local("数据集下载成功，开始解压...")
 
                         # 解压数据集
                         if ModelService.extract_zip(local_zip_path, model_dir):
-                            update_log("数据集解压成功")
+                            update_log_local("数据集解压成功")
                             # 删除压缩包释放空间
                             os.remove(local_zip_path)
-                            update_log("已清理临时压缩文件")
+                            update_log_local("已清理临时压缩文件")
                         else:
-                            update_log("数据集解压失败")
+                            update_log_local("数据集解压失败")
                     else:
-                        update_log("数据集下载失败")
+                        update_log_local("数据集下载失败")
                 else:
-                    update_log("未提供数据集Minio路径，无法下载")
+                    update_log_local("未提供数据集Minio路径，无法下载")
 
             # 检查是否应该停止训练
             if training_status.get(model_id, {}).get('stop_requested'):
@@ -286,13 +304,13 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     'progress': 0,
                     'log': training_status[model_id].get('log', '') + log_msg + '\n'
                 }
-                update_log(log_msg)
+                update_log_local(log_msg)
                 return
 
             # 检查data.yaml文件是否存在
             if not os.path.exists(data_yaml_path):
                 error_msg = "数据集配置文件不存在"
-                update_log(error_msg)
+                update_log_local(error_msg)
                 training_record.status = 'error'
                 training_record.error_log = error_msg
                 db.session.commit()
@@ -303,13 +321,13 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 'message': '加载预训练模型...',
                 'progress': 10
             })
-            update_log("加载预训练YOLOv8模型...", progress=10)
+            update_log_local("加载预训练YOLOv8模型...", progress=10)
 
             # 开始训练
             model_path = os.path.join(get_project_root(), model_arch)
-            update_log(f"尝试加载预训练模型: {model_path}")
+            update_log_local(f"尝试加载预训练模型: {model_path}")
             model = YOLO(model_path)
-            update_log(f"预训练模型加载成功! 模型路径: {model_path}")
+            update_log_local(f"预训练模型加载成功! 模型路径: {model_path}")
 
             # 保存模型引用以便可能的停止操作
             training_processes[model_id] = model
@@ -320,30 +338,30 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 'message': '正在训练模型...',
                 'progress': 15
             })
-            update_log(f"开始训练模型，共{epochs}个epochs...", progress=15)
+            update_log_local(f"开始训练模型，共{epochs}个epochs...", progress=15)
 
             # 训练模型
-            update_log(
+            update_log_local(
                 f"开始训练模型，配置: 数据文件={data_yaml_path}, epochs={epochs}, 图像尺寸={img_size}x{img_size}, 批次大小={batch_size}")
 
             # 在训练函数开始处添加GPU状态检查
             gpu_status = check_gpu_status()
-            update_log(f"GPU状态检查: {json.dumps(gpu_status, indent=2)}")
+            update_log_local(f"GPU状态检查: {json.dumps(gpu_status, indent=2)}")
 
             # 确定训练设备
             if use_gpu:
                 if torch.cuda.is_available():
                     device = 0
-                    update_log(f"使用GPU进行训练: {torch.cuda.get_device_name(0)}")
+                    update_log_local(f"使用GPU进行训练: {torch.cuda.get_device_name(0)}")
                 else:
                     device = 'cpu'
-                    update_log("警告: 请求使用GPU，但CUDA不可用。使用CPU进行训练。")
+                    update_log_local("警告: 请求使用GPU，但CUDA不可用。使用CPU进行训练。")
                     # 记录详细原因
-                    update_log(
+                    update_log_local(
                         f"可能的原因: PyTorch版本={torch.__version__}, CUDA编译版本={getattr(torch.version, 'cuda', '未知')}")
             else:
                 device = 'cpu'
-                update_log("使用CPU进行训练")
+                update_log_local("使用CPU进行训练")
 
             # 设置检查点目录
             checkpoint_dir = os.path.join(model_dir, 'train_results', 'checkpoints')
@@ -363,8 +381,8 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 device=device,
                 save_period=5
             )
-            update_log("模型训练完成!")
-            update_log(f"训练结果保存路径: {os.path.join(model_dir, 'train_results')}")
+            update_log_local("模型训练完成!")
+            update_log_local(f"训练结果保存路径: {os.path.join(model_dir, 'train_results')}")
 
             # 检查是否应该停止训练
             if training_status.get(model_id, {}).get('stop_requested'):
@@ -375,7 +393,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     'progress': 0,
                     'log': training_status[model_id].get('log', '') + log_msg + '\n'
                 }
-                update_log(log_msg)
+                update_log_local(log_msg)
                 return
 
             # 更新训练状态 - 训练完成
@@ -384,14 +402,14 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 'message': '训练完成，正在保存结果...',
                 'progress': 90
             })
-            update_log("训练完成，正在保存结果...", progress=90)
+            update_log_local("训练完成，正在保存结果...", progress=90)
 
             # 保存最佳模型
             best_model_path = os.path.join(model_dir, 'train_results', 'weights', 'best.pt')
-            update_log(f"检查最佳模型文件是否存在: {best_model_path}")
+            update_log_local(f"检查最佳模型文件是否存在: {best_model_path}")
 
             if os.path.exists(best_model_path):
-                update_log(f"找到最佳模型文件，开始复制到保存目录: {best_model_path}")
+                update_log_local(f"找到最佳模型文件，开始复制到保存目录: {best_model_path}")
 
                 # 将最佳模型复制到模型存储目录
                 model_save_dir = os.path.join(current_app.root_path, 'static', 'models', str(model_id), 'train',
@@ -400,7 +418,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 local_model_path = os.path.join(model_save_dir, 'best.pt')
                 shutil.copy(best_model_path, local_model_path)
 
-                update_log(f"模型文件已成功复制到保存目录: {model_save_dir}")
+                update_log_local(f"模型文件已成功复制到保存目录: {model_save_dir}")
 
                 # 更新项目信息
                 model.model_path = local_model_path
@@ -408,7 +426,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 db.session.commit()
 
                 # ================= Minio上传功能 =================
-                update_log("开始上传最佳模型到Minio...", progress=95)
+                update_log_local("开始上传最佳模型到Minio...", progress=95)
 
                 # 上传最佳模型
                 minio_model_path = f"models/model_{model_id}/train_{training_record.id}/best.pt"
@@ -419,10 +437,10 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 )
 
                 if minio_success:
-                    update_log(f"模型已成功上传至Minio: {minio_model_path}")
+                    update_log_local(f"模型已成功上传至Minio: {minio_model_path}")
                     training_record.minio_model_path = minio_model_path
                 else:
-                    update_log("模型上传Minio失败，请检查日志")
+                    update_log_local("模型上传Minio失败，请检查日志")
 
                 # 上传训练日志
                 log_content = training_record.train_log
@@ -438,10 +456,10 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 )
 
                 if log_success:
-                    update_log(f"训练日志已上传至Minio: {minio_log_path}")
+                    update_log_local(f"训练日志已上传至Minio: {minio_log_path}")
                     training_record.minio_log_path = minio_log_path
                 else:
-                    update_log("训练日志上传Minio失败，请检查日志")
+                    update_log_local("训练日志上传Minio失败，请检查日志")
                 # ================= Minio上传完成 =================
 
                 # 更新训练记录中的本地模型路径
@@ -449,7 +467,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
 
             else:
                 error_msg = "未找到训练完成的最佳模型文件"
-                update_log(error_msg)
+                update_log_local(error_msg)
                 training_record.status = 'error'
                 training_record.error_log = error_msg
                 db.session.commit()
@@ -468,8 +486,8 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             training_record.progress = 100
             db.session.commit()
 
-            update_log("模型训练完成并已保存", progress=100)
-            update_log(f"训练流程结束，最终状态: {training_status[model_id]}")
+            update_log_local("模型训练完成并已保存", progress=100)
+            update_log_local(f"训练流程结束，最终状态: {training_status[model_id]}")
 
     except Exception as e:
         from run import create_app
@@ -482,10 +500,11 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 db.session.commit()
 
             error_msg = f'训练出错: {str(e)}'
-            print(error_msg)
-            training_record.status = 'error'
-            training_record.error_log = error_msg
-            db.session.commit()
+            update_log(error_msg, model_id)
+            if training_record:
+                training_record.status = 'error'
+                training_record.error_log = error_msg
+                db.session.commit()
             traceback.print_exc()
 
             try:
@@ -507,7 +526,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     model.last_error = str(e)
                     db.session.commit()
             except Exception as inner_e:
-                print(f'在异常处理中获取应用上下文失败: {str(inner_e)}')
+                update_log(f'在异常处理中获取应用上下文失败: {str(inner_e)}', model_id)
                 training_status[model_id].update({
                     'status': 'error',
                     'message': f'严重错误: {str(e)}',
@@ -519,6 +538,8 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
     finally:
         if model_id in training_processes:
             del training_processes[model_id]
+
+
 def check_gpu_status():
     """检查并记录GPU状态"""
     import torch
