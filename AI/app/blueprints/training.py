@@ -307,7 +307,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             update_log("加载预训练YOLOv8模型...", progress=10)
 
             # 开始训练
-            model_path = model_arch
+            model_path = os.path.join(get_project_root(), model_arch)
             update_log(f"尝试加载预训练模型: {model_path}")
             model = YOLO(model_path)
             update_log(f"预训练模型加载成功! 模型路径: {model_path}")
@@ -329,6 +329,8 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
 
             # 在训练函数开始处添加GPU状态检查
             gpu_status = check_gpu_status()
+            update_log(f"GPU状态检查: {json.dumps(gpu_status, indent=2)}")
+
             # 确定训练设备
             if use_gpu:
                 if torch.cuda.is_available():
