@@ -166,6 +166,9 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 
 ## 🙏 Acknowledgements
 Thanks to the following contributors for code, feedback, donations, and support (in no particular order):
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px; margin: 20px 0;">
   <a href="https://gitee.com/huangzhen1993" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/黄振.jpg" alt="黄振" title="黄振" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
   <a href="https://github.com/xu756" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/碎碎念..jpg" alt="碎碎念." title="碎碎念." style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
@@ -203,6 +206,7 @@ Thanks to the following contributors for code, feedback, donations, and support 
   <a href="https://gitee.com/lhyicn" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/童年.jpg" alt="童年" title="童年" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
   <a href="https://gitee.com/dongxinji" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/take%20your%20time%20or.jpg" alt="take your time or" title="take your time or" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
 </div>
+<!-- ALL-CONTRIBUTORS-LIST:END -->
 
 ## 📄 Open Source License
 [MIT LICENSE](LICENSE)
