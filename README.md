@@ -168,7 +168,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 
 ## 🙏 致谢
 感谢以下各位对本项目包括但不限于代码贡献、问题反馈、资金捐赠等各种方式的支持！以下排名不分先后：
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px; margin: 20px 0;">
+<div style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 15px; margin: 20px 0;">
   <a href="https://gitee.com/huangzhen1993" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/黄振.jpg" alt="黄振" title="黄振" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
   <a href="https://github.com/xu756" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/碎碎念..jpg" alt="碎碎念." title="碎碎念." style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
   <a href="https://gitee.com/shup092_admin" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/shup.jpg" alt="shup" title="shup" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
