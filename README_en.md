@@ -166,41 +166,42 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 
 ## 🙏 Acknowledgements
 Thanks to the following contributors for code, feedback, donations, and support (in no particular order):
-<div class="contributors-grid">
-  <a href="https://gitee.com/huangzhen1993" target="_blank"><img src="./.image/sponsor/黄振.jpg" alt="黄振" title="黄振"></a>
-  <a href="https://gitee.com/shup092_admin" target="_blank"><img src="./.image/sponsor/shup.jpg" alt="shup" title="shup"></a>
-  <a href="https://github.com/派大星" target="_blank"><img src="./.image/sponsor/派大星.jpg" alt="派大星" title="派大星"></a>
-  <a href="https://gitee.com/wz_vue_gitee_181" target="_blank"><img src="./.image/sponsor/棒槌🧿🍹🍹🧿.jpg" alt="棒槌🧿🍹🍹🧿" title="棒槌🧿🍹🍹🧿"></a>
-  <a href="https://gitee.com/huang-xiangtai" target="_blank"><img src="./.image/sponsor/憨憨.jpg" alt="憨憨" title="憨憨"></a>
-  <a href="https://gitee.com/gu-beichen-starlight" target="_blank"><img src="./.image/sponsor/文艺小青年.jpg" alt="文艺小青年" title="文艺小青年"></a>
-  <a href="https://github.com/zhangnanchao" target="_blank"><img src="./.image/sponsor/lion.jpg" alt="lion" title="lion"></a>
-  <a href="https://gitee.com/yupccc" target="_blank"><img src="./.image/sponsor/汪汪队立大功.jpg" alt="汪汪队立大功" title="汪汪队立大功"></a>
-  <a href="https://github.com/fengchunshen" target="_blank"><img src="./.image/sponsor/春生.jpg" alt="春生" title="春生"></a>
-  <a href="https://gitee.com/mrfox_wang" target="_blank"><img src="./.image/sponsor/贵阳王老板.jpg" alt="贵阳王老板" title="贵阳王老板"></a>
-  <a href="https://gitee.com/haobaby" target="_blank"><img src="./.image/sponsor/hao_chen.jpg" alt="hao_chen" title="hao_chen"></a>
-  <a href="https://gitee.com/yuer629" target="_blank"><img src="./.image/sponsor/yuer629.jpg" alt="yuer629" title="yuer629"></a>
-  <a href="https://gitee.com/cai-peikai/ai-project" target="_blank"><img src="./.image/sponsor/kong.jpg" alt="kong" title="kong"></a>
-  <a href="https://gitee.com/HB1731276584" target="_blank"><img src="./.image/sponsor/岁月静好.jpg" alt="岁月静好" title="岁月静好"></a>
-  <a href="https://gitee.com/hy5128" target="_blank"><img src="./.image/sponsor/Kunkka.jpg" alt="Kunkka" title="Kunkka"></a>
-  <a href="https://gitee.com/cnlijf" target="_blank"><img src="./.image/sponsor/李江峰.jpg" alt="李江峰" title="李江峰"></a>
-  <a href="https://gitee.com/Yang619" target="_blank"><img src="./.image/sponsor/Chao..jpg" alt="Chao." title="Chao."></a>
-  <a href="https://gitee.com/guo-dida" target="_blank"><img src="./.image/sponsor/灬.jpg" alt="灬" title="灬"></a>
-  <a href="https://github.com/XyhBill" target="_blank"><img src="./.image/sponsor/Mr.LuCkY.jpg" alt="Mr.LuCkY" title="Mr.LuCkY"></a>
-  <a href="https://gitee.com/timeforeverz" target="_blank"><img src="./.image/sponsor/泓.jpg" alt="泓" title="泓"></a>
-  <a href="https://gitee.com/mySia" target="_blank"><img src="./.image/sponsor/i.jpg" alt="i" title="i"></a>
-  <a href="https://gitee.com/baobaomo" target="_blank"><img src="./.image/sponsor/放学丶别走.jpg" alt="放学丶别走" title="放学丶别走"></a>
-  <a href="https://gitee.com/sunbirder" target="_blank"><img src="./.image/sponsor/小菜鸟先飞.jpg" alt="小菜鸟先飞" title="小菜鸟先飞"></a>
-  <a href="https://gitee.com/mmy0" target="_blank"><img src="./.image/sponsor/追溯未来-_-.jpg" alt="追溯未来-_-" title="追溯未来-_-"></a>
-  <a href="https://gitee.com/ccqingshan" target="_blank"><img src="./.image/sponsor/青衫.jpg" alt="青衫" title="青衫"></a>
-  <a href="https://gitee.com/jiangchunJava" target="_blank"><img src="./.image/sponsor/Fae.jpg" alt="Fae" title="Fae"></a>
-  <a href="https://gitee.com/wcjjjjjjj" target="_blank"><img src="./.image/sponsor/wcj.jpg" alt="wcj" title="wcj"></a>
-  <a href="https://gitee.com/hufanglei" target="_blank"><img src="./.image/sponsor/🌹怒放de生命😋.jpg" alt="怒放de生命" title="怒放de生命"></a>
-  <a href="https://gitee.com/juyunsuan" target="_blank"><img src="./.image/sponsor/蓝速传媒.jpg" alt="蓝速传媒" title="蓝速传媒"></a>
-  <a href="https://gitee.com/achieve275" target="_blank"><img src="./.image/sponsor/Achieve_Xu.jpg" alt="Achieve_Xu" title="Achieve_Xu"></a>
-  <a href="https://gitee.com/nicholasld" target="_blank"><img src="./.image/sponsor/NicholasLD.jpg" alt="NicholasLD" title="NicholasLD"></a>
-  <a href="https://gitee.com/Mo_bai1016" target="_blank"><img src="./.image/sponsor/Bug写手墨白.jpg" alt="Bug写手墨白" title="Bug写手墨白"></a>
-  <a href="https://gitee.com/lhyicn" target="_blank"><img src="./.image/sponsor/童年.jpg" alt="童年" title="童年"></a>
-  <a href="https://gitee.com/dongxinji" target="_blank"><img src="./.image/sponsor/take%20your%20time%20or.jpg" alt="take your time or" title="take your time or"></a>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px; margin: 20px 0;">
+  <a href="https://gitee.com/huangzhen1993" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/黄振.jpg" alt="黄振" title="黄振" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://github.com/xu756" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/碎碎念..jpg" alt="碎碎念." title="碎碎念." style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/shup092_admin" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/shup.jpg" alt="shup" title="shup" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://github.com/派大星" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/派大星.jpg" alt="派大星" title="派大星" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/wz_vue_gitee_181" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/棒槌🧿🍹🍹🧿.jpg" alt="棒槌🧿🍹🍹🧿" title="棒槌🧿🍹🍹🧿" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/huang-xiangtai" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/憨憨.jpg" alt="憨憨" title="憨憨" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/gu-beichen-starlight" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/文艺小青年.jpg" alt="文艺小青年" title="文艺小青年" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://github.com/zhangnanchao" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/lion.jpg" alt="lion" title="lion" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/yupccc" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/汪汪队立大功.jpg" alt="汪汪队立大功" title="汪汪队立大功" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://github.com/fengchunshen" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/春生.jpg" alt="春生" title="春生" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/mrfox_wang" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/贵阳王老板.jpg" alt="贵阳王老板" title="贵阳王老板" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/haobaby" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/hao_chen.jpg" alt="hao_chen" title="hao_chen" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/yuer629" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/yuer629.jpg" alt="yuer629" title="yuer629" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/cai-peikai/ai-project" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/kong.jpg" alt="kong" title="kong" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/HB1731276584" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/岁月静好.jpg" alt="岁月静好" title="岁月静好" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/hy5128" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/Kunkka.jpg" alt="Kunkka" title="Kunkka" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/cnlijf" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/李江峰.jpg" alt="李江峰" title="李江峰" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/Yang619" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/Chao..jpg" alt="Chao." title="Chao." style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/guo-dida" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/灬.jpg" alt="灬" title="灬" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://github.com/XyhBill" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/Mr.LuCkY.jpg" alt="Mr.LuCkY" title="Mr.LuCkY" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/timeforeverz" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/泓.jpg" alt="泓" title="泓" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/mySia" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/i.jpg" alt="i" title="i" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/baobaomo" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/放学丶别走.jpg" alt="放学丶别走" title="放学丶别走" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/sunbirder" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/小菜鸟先飞.jpg" alt="小菜鸟先飞" title="小菜鸟先飞" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/mmy0" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/追溯未来-_-.jpg" alt="追溯未来-_-" title="追溯未来-_-" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/ccqingshan" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/青衫.jpg" alt="青衫" title="青衫" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/jiangchunJava" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/Fae.jpg" alt="Fae" title="Fae" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/wcjjjjjjj" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/wcj.jpg" alt="wcj" title="wcj" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/hufanglei" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/🌹怒放de生命😋.jpg" alt="怒放de生命" title="怒放de生命" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/juyunsuan" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/蓝速传媒.jpg" alt="蓝速传媒" title="蓝速传媒" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/achieve275" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/Achieve_Xu.jpg" alt="Achieve_Xu" title="Achieve_Xu" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/nicholasld" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/NicholasLD.jpg" alt="NicholasLD" title="NicholasLD" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/Mo_bai1016" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/Bug写手墨白.jpg" alt="Bug写手墨白" title="Bug写手墨白" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/lhyicn" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/童年.jpg" alt="童年" title="童年" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
+  <a href="https://gitee.com/dongxinji" target="_blank" style="display: flex; flex-direction: column; align-items: center; text-decoration: none;"><img src="./.image/sponsor/take%20your%20time%20or.jpg" alt="take your time or" title="take your time or" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></a>
 </div>
 
 ## 📄 Open Source License
@@ -209,34 +210,5 @@ Thanks to the following contributors for code, feedback, donations, and support 
 ## ©️ Copyright Notice
 EasyAIoT follows the [MIT LICENSE](LICENSE). Commercial use is permitted provided original author/copyright information is retained.
 
-<style>
-.contributors-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 15px;
-  margin: 20px 0;
-}
-.contributors-grid a {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-decoration: none;
-}
-.contributors-grid img {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #eee;
-  transition: transform 0.3s;
-}
-.contributors-grid img:hover {
-  transform: scale(1.1);
-}
-.contributors-grid span {
-  margin-top: 5px;
-  font-size: 12px;
-  color: #666;
-  text-align: center;
-}
-</style>
+## 🌟 Star Growth Trend Chart
+[![Stargazers over time](https://starchart.cc/soaring-xiongkulu/easyaiot.svg?variant=adaptive)](https://starchart.cc/soaring-xiongkulu/easyaiot)
