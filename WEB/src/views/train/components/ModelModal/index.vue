@@ -142,7 +142,7 @@ const emits = defineEmits(['success']);
 const rulesRef = reactive({
   name: [{ required: true, message: '请输入模型名称', trigger: ['blur', 'change'] }],
   status: [{ required: true, message: '请选择状态', trigger: ['blur', 'change'] }],
-  imageUrl: [{ required: true, message: '请上传模型图片', trigger: 'change' }] // 新增图片必传规则
+  imageUrl: [{ required: true, message: '请上传模型图片', trigger: 'change' }]
 });
 
 const useForm = Form.useForm;
