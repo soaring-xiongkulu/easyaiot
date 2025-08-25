@@ -31,7 +31,7 @@
           </FormItem>
 
           <!-- 模型图片上传 -->
-          <FormItem label="模型图片" name="imageUrl">
+          <FormItem label="模型图片" name="imageUrl" v-bind="validateInfos.imageUrl">
             <Upload
               name="image"
               :action="state.imageUploadUrl"
@@ -51,6 +51,9 @@
                 alt="模型图片预览"
                 style="max-height: 200px; max-width: 100%;"
               />
+            </div>
+            <div v-else style="color: #ff4d4f; margin-top: 8px">
+              请上传模型图片
             </div>
           </FormItem>
 
@@ -139,6 +142,7 @@ const emits = defineEmits(['success']);
 const rulesRef = reactive({
   name: [{ required: true, message: '请输入模型名称', trigger: ['blur', 'change'] }],
   status: [{ required: true, message: '请选择状态', trigger: ['blur', 'change'] }],
+  imageUrl: [{ required: true, message: '请上传模型图片', trigger: 'change' }] // 新增图片必传规则
 });
 
 const useForm = Form.useForm;
