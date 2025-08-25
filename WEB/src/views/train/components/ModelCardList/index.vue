@@ -24,7 +24,8 @@
               style="padding: 0; background: #FFFFFF; box-shadow: 0px 0px 4px 0px rgba(24, 24, 24, 0.1); height: 100%; transition: all 0.3s;">
               <div class="model-card-box">
                 <div class="model-card-cont" style="padding: 15px">
-                  <div class="model-image-container">
+                  <!-- 正方形图片容器 -->
+                  <div class="model-image-container" @click="handleView(item)">
                     <img
                       :src="item.imageUrl"
                       alt="模型图片"
@@ -37,49 +38,37 @@
                     <a>{{ item.name }}</a>
                   </h6>
 
-                  <div class="model-meta">
-                    <div class="model-meta-item">
-                      <span class="meta-label">ID:</span>
-                      <span>{{ item.id }}</span>
-                    </div>
-                    <div class="model-meta-item">
-                      <span class="meta-label">状态:</span>
-                      <Tag :color="getStatusColor(item.status)">
-                        {{ getStatusText(item.status) }}
-                      </Tag>
-                    </div>
-                    <div class="model-meta-item">
-                      <span class="meta-label">创建时间:</span>
-                      <span>{{ formatDate(item.created_at) }}</span>
-                    </div>
+                  <!-- 标签区域 -->
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;">
+                    <Tag color="#1890ff">ID: {{ item.id }}</Tag>
+                    <Tag :color="getStatusColor(item.status)">{{ getStatusText(item.status) }}</Tag>
+                    <Tag color="#8c8c8c">{{ formatDate(item.created_at) }}</Tag>
                   </div>
 
                   <div class="model-description">
                     {{ item.description || '暂无描述' }}
                   </div>
 
-                  <div class="btns"
-                       style="padding-top: 15px; display: flex; justify-content: space-between;">
+                  <!-- 优化后的按钮区域 -->
+                  <div class="btns">
                     <div class="btn-group">
-                      <div class="btn" @click="handleView(item)">
-                        <EyeOutlined style="font-size: 16px;"/>
-                      </div>
-                      <div class="btn" @click="handleEdit(item)">
-                        <EditOutlined style="font-size: 16px;"/>
-                      </div>
-                      <div class="btn" @click="handleTrain(item)" title="训练模型">
-                        <ExperimentOutlined style="font-size: 16px;"/>
-                      </div>
                       <Popconfirm
                         title="是否确认删除？"
-                        ok-text="是"
-                        cancel-text="否"
                         @confirm="handleDelete(item)"
                       >
                         <div class="btn">
                           <DeleteOutlined style="font-size: 16px;"/>
                         </div>
                       </Popconfirm>
+                      <div class="btn" @click="handleEdit(item)" title="编辑模型">
+                        <EditOutlined style="font-size: 16px;"/>
+                      </div>
+                      <div class="btn" @click="handleTrain(item)" title="训练模型">
+                        <ExperimentOutlined style="font-size: 16px;"/>
+                      </div>
+                      <div class="btn" @click="handleView(item)" title="查看详情">
+                        <EyeOutlined style="font-size: 16px;"/>
+                      </div>
                     </div>
                     <div class="btn" @click="handleDeploy(item)" title="部署模型">
                       <CloudUploadOutlined style="font-size: 16px;"/>
@@ -96,11 +85,11 @@
 </template>
 
 <script lang="ts" setup>
-import {onMounted, reactive, ref} from 'vue';
-import {List, Popconfirm, Spin, Tag} from 'ant-design-vue';
-import {BasicForm, useForm} from '@/components/Form';
-import {propTypes} from '@/utils/propTypes';
-import {isFunction} from '@/utils/is';
+import { onMounted, reactive, ref } from 'vue';
+import { List, Popconfirm, Spin, Tag } from 'ant-design-vue';
+import { BasicForm, useForm } from '@/components/Form';
+import { propTypes } from '@/utils/propTypes';
+import { isFunction } from '@/utils/is';
 import {
   CloudUploadOutlined,
   DeleteOutlined,
@@ -109,7 +98,7 @@ import {
   EyeOutlined
 } from '@ant-design/icons-vue';
 
-defineOptions({name: 'ModelCardList'})
+defineOptions({ name: 'ModelCardList' })
 
 const ListItem = List.Item;
 
@@ -125,7 +114,7 @@ const state = reactive({
   loading: true,
 });
 
-const [registerForm, {validate}] = useForm({
+const [registerForm, { validate }] = useForm({
   schemas: [
     {
       field: `name`,
@@ -138,17 +127,17 @@ const [registerForm, {validate}] = useForm({
       component: 'Select',
       componentProps: {
         options: [
-          {label: '未部署', value: 0},
-          {label: '已部署', value: 1},
-          {label: '训练中', value: 2},
-          {label: '已下线', value: 3},
+          { label: '未部署', value: 0 },
+          { label: '已部署', value: 1 },
+          { label: '训练中', value: 2 },
+          { label: '已下线', value: 3 },
         ],
       },
     },
   ],
   labelWidth: 80,
-  baseColProps: {span: 6},
-  actionColOptions: {span: 18},
+  baseColProps: { span: 6 },
+  actionColOptions: { span: 18 },
   autoSubmitOnEnter: true,
   submitFunc: handleSubmit,
 });
@@ -159,14 +148,14 @@ onMounted(() => {
 });
 
 async function handleSubmit() {
-  const data = await validate();
-  await fetch(data);
+  const formData = await validate();
+  await fetch(formData);
 }
 
 async function fetch(p = {}) {
-  const {api, params} = props;
+  const { api, params } = props;
   if (api && isFunction(api)) {
-    const res = await api({...params, pageNo: page.value, pageSize: pageSize.value, ...p});
+    const res = await api({ ...params, pageNo: page.value, pageSize: pageSize.value, ...p });
     data.value = res.data;
     total.value = res.total;
     hideLoading();
@@ -197,45 +186,33 @@ function pageChange(p: number, pz: number) {
   fetch();
 }
 
-function pageSizeChange(_current, size: number) {
+function pageSizeChange(_current: number, size: number) {
   pageSize.value = size;
   fetch();
 }
 
 function getStatusColor(status: number) {
   switch (status) {
-    case 0:
-      return '#8c8c8c'; // 未部署
-    case 1:
-      return '#52c41a'; // 已部署
-    case 2:
-      return '#fa8c16'; // 训练中
-    case 3:
-      return '#ff4d4f'; // 已下线
-    default:
-      return '#d9d9d9';
+    case 0: return '#8c8c8c';
+    case 1: return '#52c41a';
+    case 2: return '#fa8c16';
+    case 3: return '#ff4d4f';
+    default: return '#d9d9d9';
   }
 }
 
 function getStatusText(status: number) {
   switch (status) {
-    case 0:
-      return '未部署';
-    case 1:
-      return '已部署';
-    case 2:
-      return '训练中';
-    case 3:
-      return '已下线';
-    default:
-      return '未知';
+    case 0: return '未部署';
+    case 1: return '已部署';
+    case 2: return '训练中';
+    case 3: return '已下线';
+    default: return '未知';
   }
 }
 
 function formatDate(dateString: string) {
-  if (!dateString) return '--';
-  const date = new Date(dateString);
-  return date.toLocaleDateString();
+  return dateString ? new Date(dateString).toLocaleDateString() : '--';
 }
 
 function handleDelete(record: object) {
@@ -258,9 +235,9 @@ function handleTrain(record: object) {
   emit('train', record);
 }
 
-// 图片错误处理
-function handleImageError(e) {
-  e.target.src = 'placeholder.jpg';
+function handleImageError(e: Event) {
+  const target = e.target as HTMLImageElement;
+  target.src = 'placeholder.jpg';
 }
 </script>
 
@@ -288,23 +265,6 @@ function handleImageError(e) {
   margin-bottom: 12px;
 }
 
-.model-meta {
-  margin-bottom: 12px;
-
-  .model-meta-item {
-    display: flex;
-    margin-bottom: 6px;
-    font-size: 13px;
-    color: #595959;
-
-    .meta-label {
-      font-weight: 500;
-      margin-right: 6px;
-      min-width: 60px;
-    }
-  }
-}
-
 .model-description {
   font-size: 14px;
   color: #8c8c8c;
@@ -316,49 +276,68 @@ function handleImageError(e) {
   overflow: hidden;
 }
 
+/* 优化后的按钮区域 */
 .btns {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-top: 15px;
+}
 
-  .btn-group {
-    display: flex;
-    gap: 8px;
+.btn-group {
+  display: flex;
+  gap: 8px; /* 统一按钮间距 */
+}
+
+.btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover {
+    background: #e6f7ff;
+    color: #1890ff;
   }
 
-  .btn {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f5f5f5;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.3s;
-
-    &:hover {
-      background: #e6f7ff;
-      color: #1890ff;
-    }
+  .anticon {
+    color: #266CFB; /* 蓝色图标 */
+    font-size: 16px;
   }
 }
 
-/* 新增图片容器样式 */
+/* 图片容器 */
 .model-image-container {
-  height: 180px;
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
   overflow: hidden;
   margin-bottom: 12px;
   border-radius: 4px;
   background-color: #f5f5f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  cursor: pointer;
 }
 
 .model-image {
-  max-height: 100%;
-  max-width: 100%;
-  object-fit: contain;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 标签样式 */
+:deep(.ant-tag) {
+  border-radius: 4px;
+  font-size: 12px;
+  padding: 0 8px;
+  height: 24px;
+  line-height: 22px;
 }
 </style>
