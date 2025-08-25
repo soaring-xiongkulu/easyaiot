@@ -76,9 +76,6 @@ public class DatasetImageServiceImpl implements DatasetImageService {
     @Resource
     private Environment environment;
 
-    @Value("${minio.bucket}")
-    private String minioBucket;
-
     private static final String minioDatasetsBucket = "datasets";
 
     @Override
@@ -127,7 +124,7 @@ public class DatasetImageServiceImpl implements DatasetImageService {
                 String objectPath = parseObjectNameFromPath(image.getPath());
                 minioClient.removeObject(
                         RemoveObjectArgs.builder()
-                                .bucket(minioBucket)
+                                .bucket(minioDatasetsBucket)
                                 .object(objectPath)
                                 .build()
                 );
@@ -265,7 +262,7 @@ public class DatasetImageServiceImpl implements DatasetImageService {
             String sourceObject = parseObjectNameFromPath(image.getPath());
             try (InputStream in = minioClient.getObject(
                     GetObjectArgs.builder()
-                            .bucket(minioBucket)
+                            .bucket(minioDatasetsBucket)
                             .object(sourceObject)
                             .build())) {
                 Files.createDirectories(targetPath.getParent()); // 确保目录存在
@@ -433,7 +430,7 @@ public class DatasetImageServiceImpl implements DatasetImageService {
                             .contentType("application/zip")
                             .build());
 
-            return "/api/v1/buckets/" + minioBucket + "/objects/download?prefix=" + objectName;
+            return "/api/v1/buckets/" + minioDatasetsBucket + "/objects/download?prefix=" + objectName;
         } catch (Exception e) {
             throw new RuntimeException("上传ZIP到MinIO失败", e);
         }
@@ -607,7 +604,7 @@ public class DatasetImageServiceImpl implements DatasetImageService {
             DatasetImageDO image = new DatasetImageDO();
             image.setDatasetId(datasetId);
             image.setName(originalFilename);
-            image.setPath("/api/v1/buckets/" + minioBucket + "/objects/download?prefix=" + storagePath);
+            image.setPath("/api/v1/buckets/" + minioDatasetsBucket + "/objects/download?prefix=" + storagePath);
             image.setSize((long) fileData.length);
             image.setIsTrain(0);
             image.setIsValidation(0);
@@ -628,7 +625,7 @@ public class DatasetImageServiceImpl implements DatasetImageService {
         try (InputStream inputStream = new ByteArrayInputStream(content)) {
             minioClient.putObject(
                     PutObjectArgs.builder()
-                            .bucket(minioBucket)
+                            .bucket(minioDatasetsBucket)
                             .object(objectName)
                             .stream(inputStream, content.length, -1)
                             .contentType(contentType)
