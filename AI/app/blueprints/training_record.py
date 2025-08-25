@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask import render_template
 from sqlalchemy import desc
 
+from app.blueprints.training import training_status, training_processes
 from models import db, Model, TrainingRecord, ExportRecord
 
 training_record_bp = Blueprint('training_record', __name__, url_prefix='/training')
@@ -59,7 +60,9 @@ def training_records():
                 'model_id': record.model_id,
                 'model_name': record.model.name if record.model else '',
                 'dataset_path': record.dataset_path,
+                'hyperparameters': record.hyperparameters,
                 'start_time': record.start_time.isoformat() if record.start_time else None,
+                'progress': record.progress,
                 'end_time': record.end_time.isoformat() if record.end_time else None,
                 'status': record.status,
                 'metrics': record.metrics_path
@@ -202,6 +205,9 @@ def delete_training(record_id):
     try:
         record = TrainingRecord.query.get_or_404(record_id)
 
+        # 清理全局训练状态
+        cleanup_training_status(record.model_id)
+
         # 删除关联文件
         if os.path.exists(record.train_log):
             os.remove(record.train_log)
@@ -228,3 +234,12 @@ def delete_training(record_id):
             'code': 500,
             'msg': '服务器内部错误'
         }), 500
+
+def cleanup_training_status(model_id):
+    """清理与模型关联的全局训练状态"""
+    if model_id in training_status:
+        del training_status[model_id]  # 删除状态字典中的条目
+    if model_id in training_processes:
+        # 若存在训练进程，尝试终止（此处需根据实际训练框架补充终止逻辑）
+        # 例如：training_processes[model_id].terminate()
+        del training_processes[model_id]

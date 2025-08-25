@@ -32,6 +32,7 @@ class Model(db.Model):
 class TrainingRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=False)
+    progress = db.Column(db.Integer, default=0)
     dataset_path = db.Column(db.String(200), nullable=False)
     hyperparameters = db.Column(db.Text)
     start_time = db.Column(db.DateTime, default=datetime.utcnow)

@@ -11,64 +11,48 @@
       </template>
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'action'">
-          <div class="flex space-x-2">
-            <a-tooltip title="训练详情" placement="top">
-              <a-button
-                type="text"
-                shape="circle"
-                class="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                @click="openTrainingDetail(record)"
-              >
-                <i class="ant-design:info-circle-filled text-lg"></i>
-              </a-button>
-            </a-tooltip>
-            <a-tooltip title="查看日志" placement="top">
-              <a-button
-                type="text"
-                shape="circle"
-                class="text-green-500 hover:text-green-700 hover:bg-green-50"
-                @click="handleOpenTrainingLogsModal(record)"
-              >
-                <i class="ant-design:file-text-filled text-lg"></i>
-              </a-button>
-            </a-tooltip>
-            <a-tooltip :title="record.status === 'running' ? '停止训练' : '重新开始'"
-                       placement="top">
-              <a-button
-                type="text"
-                shape="circle"
-                :class="record.status === 'running'
-                  ? 'text-yellow-500 hover:text-yellow-700 hover:bg-yellow-50'
-                  : 'text-green-500 hover:text-green-700 hover:bg-green-50'"
-                @click="toggleTrainingStatus(record)"
-              >
-                <i
-                  :class="record.status === 'running'
-                    ? 'ant-design:pause-circle-filled'
-                    : 'ant-design:play-circle-filled'"
-                  class="text-lg"
-                ></i>
-              </a-button>
-            </a-tooltip>
-
-            <a-popconfirm
-              title="确定删除此模型训练?"
-              placement="topRight"
-              ok-text="确定"
-              cancel-text="取消"
-              @confirm="handleDelete(record)"
-            >
-              <a-tooltip title="删除" placement="top">
-                <a-button
-                  type="text"
-                  shape="circle"
-                  class="text-red-500 hover:text-red-700 hover:bg-red-50"
-                >
-                  <i class="material-symbols:delete-outline-rounded text-lg"></i>
-                </a-button>
-              </a-tooltip>
-            </a-popconfirm>
-          </div>
+          <TableAction
+            :actions="[
+              {
+                label: '训练详情',
+                tooltip: { title: '训练详情', placement: 'top' },
+                onClick: () => openTrainingDetail(record),
+                style: 'color: #1890ff; padding: 0 2px; font-size: 12px;'
+              },
+              {
+                label: '查看日志',
+                tooltip: { title: '查看日志', placement: 'top' },
+                onClick: () => handleOpenTrainingLogsModal(record),
+                style: 'color: #1890ff; padding: 0 2px; font-size: 12px;'
+              },
+              {
+                label: record.status === 'running' ? '停止' : '开始', // 缩短文字
+                tooltip: {
+                  title: record.status === 'running' ? '停止训练' : '重新开始',
+                  placement: 'top'
+                },
+                onClick: () => toggleTrainingStatus(record),
+                style: `color: ${record.status === 'running' ? '#faad14' : '#52c41a'}; padding: 0 2px; font-size: 12px;` // 动态颜色
+              },
+              {
+                label: '删除',
+                tooltip: { title: '删除', placement: 'top' },
+                popConfirm: {
+                  placement: 'topRight',
+                  title: '确定删除此模型训练?',
+                  confirm: () => handleDelete(record)
+                },
+                style: 'color: #ff4d4f; padding: 0 2px; font-size: 12px;'
+              }
+            ]"
+                    :action-style="{
+              display: 'flex',
+              flexWrap: 'nowrap', // 禁止换行
+              gap: '4px',         // 最小间隙
+              marginRight: '0',
+              '&:hover': { backgroundColor: 'transparent' }
+            }"
+          />
         </template>
       </template>
     </BasicTable>
@@ -79,7 +63,7 @@
 
 <script lang="ts" setup>
 import {ref, watch} from 'vue';
-import {BasicTable, useTable} from '@/components/Table';
+import {BasicTable, TableAction, useTable} from '@/components/Table';
 import {useRoute, useRouter} from 'vue-router';
 import {useMessage} from '@/hooks/web/useMessage';
 import {useModal} from '@/components/Modal';
@@ -91,8 +75,7 @@ import {
 } from '@/api/device/model';
 import StartTrainingModal from '../StartTrainingModal/index.vue';
 import TrainingLogsModal from '../TrainingLogsModal/index.vue';
-import {getFormConfig} from './data';
-import {getBasicColumns} from "@/views/dataset/components/DatasetList/Data";
+import {getBasicColumns, getFormConfig} from './Data';
 
 const {createMessage} = useMessage();
 const router = useRouter();
@@ -115,9 +98,9 @@ function handleSuccess() {
 // 处理开始训练
 const handleStartTraining = async (config) => {
   try {
-    console.log(JSON.stringify(config))
-    await startTraining(modelId.value, config);
-    createMessage.success('训练任务已启动');
+    await startTraining(modelId.value, config).then((data)=>{
+      createMessage.success(data['msg']);
+    });
     startModalVisible.value = false;
     reload();
   } catch (error) {
@@ -142,7 +125,7 @@ const toggleTrainingStatus = async (record) => {
       await stopTraining(modelId.value);
       createMessage.success('训练已停止');
     } else {
-      await startTraining(modelId.value, {task_id: record.task_id});
+      await startTraining(modelId.value, {taskId: record.task_id});
       createMessage.success('训练已开始');
     }
     reload();
@@ -155,7 +138,7 @@ const toggleTrainingStatus = async (record) => {
 // 删除模型训练
 const handleDelete = async (record) => {
   try {
-    await deleteTrainingRecord(record.task_id);
+    await deleteTrainingRecord(record.id);
     createMessage.success('删除成功');
     reload();
   } catch (error) {
@@ -199,9 +182,9 @@ const [registerTable, {reload}] = useTable({
   pagination: true,
   formConfig: getFormConfig(),
   fetchSetting: {
-    listField: 'data.list',
-    totalField: 'data.total',
+    listField: 'data',
+    totalField: 'total',
   },
-  rowKey: 'task_id',
+  rowKey: 'id',
 });
 </script>
