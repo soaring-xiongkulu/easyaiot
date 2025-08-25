@@ -66,15 +66,10 @@ def training_records():
             })
 
         return jsonify({
-            'code': 200,
+            'code': 0,
             'msg': 'success',
             'data': records,
-            'pagination': {
-                'pageNo': pagination.page,
-                'pageSize': pagination.per_page,
-                'totalItems': pagination.total,
-                'totalPages': pagination.pages
-            }
+            'total': pagination.total
         })
 
     except ValueError:
@@ -188,7 +183,7 @@ def update_training(record_id):
         db.session.commit()
 
         return jsonify({
-            'code': 200,
+            'code': 0,
             'msg': '训练记录更新成功'
         })
 
@@ -222,7 +217,7 @@ def delete_training(record_id):
         db.session.commit()
 
         return jsonify({
-            'code': 200,
+            'code': 0,
             'msg': '训练记录删除成功'
         })
 

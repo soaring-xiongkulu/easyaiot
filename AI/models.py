@@ -5,10 +5,11 @@ db = SQLAlchemy()
 
 class Model(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(db.Text)
     model_path = db.Column(db.String(500), nullable=True)
-    version = db.Column(db.String(20), default="1.0.0")  # 新增版本字段
+    image_url = db.Column(db.String(500))
+    version = db.Column(db.String(20), default="V1.0.0")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -17,7 +18,7 @@ class Model(db.Model):
     torchscript_model_path = db.Column(db.String(500))
     tensorrt_model_path = db.Column(db.String(500))
     openvino_model_path = db.Column(db.String(500))
-    rknn_model_path = db.Column(db.String(500))  # 新增RKNN路径
+    rknn_model_path = db.Column(db.String(500))
 
     # 关系定义
     training_records = db.relationship(

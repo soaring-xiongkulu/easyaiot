@@ -159,8 +159,8 @@ const [registerTable, { reload }] = useTable({
   pagination: true,
   formConfig: getFormConfig(),
   fetchSetting: {
-    listField: 'data.list',
-    totalField: 'data.total',
+    listField: 'data',
+    totalField: 'total',
   },
   rowKey: 'id',
 });
