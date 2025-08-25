@@ -33,11 +33,11 @@
           <!-- 模型图片上传 -->
           <FormItem label="模型图片" name="imageUrl" v-bind="validateInfos.imageUrl">
             <Upload
-              name="image"
+              name="file"
               :action="state.imageUploadUrl"
               :headers="headers"
               :showUploadList="false"
-              accept=".jpg,.jpeg,.png,.webp"
+              accept=".jpg,.jpeg,.png"
               :disabled="state.isView"
               @change="handleImageUpload"
             >
@@ -180,6 +180,7 @@ function handleFileUpload(info) {
 function handleImageUpload(info) {
   if (info.file.status === 'done') {
     const response = info.file.response;
+    console.log('response', JSON.stringify(response));
     if (response && response.code === 0) {
       modelRef.imageUrl = response.data.url;
       createMessage.success('模型图片上传成功');

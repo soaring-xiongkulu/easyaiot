@@ -42,7 +42,8 @@ def models():
             'id': p.id,
             'name': p.name,
             'description': p.description,
-            'created_at': p.created_at.isoformat() if p.created_at else None
+            'created_at': p.created_at.isoformat() if p.created_at else None,
+            'imageUrl': p.image_url
         } for p in pagination.items]
 
         return jsonify({
@@ -130,7 +131,7 @@ def get_model_training_records(model_id):
         logger.error(f"获取训练记录失败: {str(e)}")
         return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
 
-@model_bp.route('/upload', methods=['POST'])
+@model_bp.route('/image_upload', methods=['POST'])
 def upload_model_file():
     if 'file' not in request.files:
         return jsonify({'code': 400, 'msg': '未找到文件'}), 400
@@ -149,20 +150,25 @@ def upload_model_file():
         file.save(temp_path)
 
         bucket_name = 'models'
-        object_key = f"models/{unique_filename}"
+        object_key = f"images/{unique_filename}"
 
+        # 上传到 MinIO
         if ModelService.upload_to_minio(bucket_name, object_key, temp_path):
             os.remove(temp_path)
+
+            # 生成目标格式的 URL（直接拼接字符串）
+            download_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={object_key}"
+
             return jsonify({
                 'code': 0,
                 'msg': '文件上传成功',
                 'data': {
-                    'objectKey': object_key,
+                    'url': download_url,  # 返回新格式的 URL
                     'fileName': file.filename
                 }
             })
         else:
-            return jsonify({'code': 500, 'msg': '文件上传到Minio失败'}), 500
+            return jsonify({'code': 500, 'msg': '文件上传到 Minio 失败'}), 500
 
     except Exception as e:
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
