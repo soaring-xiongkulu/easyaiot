@@ -147,7 +147,6 @@ def api_train_status(model_id):
     print(f"返回训练状态: {status}")
     return jsonify({'status': status, 'code': 0, 'msg': '没有正在进行的训练'}), 200
 
-
 def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 img_size=640, batch_size=16, use_gpu=True,
                 dataset_zip_path=None, record_id=None):
