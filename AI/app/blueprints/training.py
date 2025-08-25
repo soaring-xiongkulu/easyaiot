@@ -6,6 +6,7 @@ import traceback
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 
+import torch
 from flask import current_app, jsonify, Blueprint, request
 from ultralytics import YOLO
 
@@ -326,11 +327,21 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             update_log(
                 f"开始训练模型，配置: 数据文件={data_yaml_path}, epochs={epochs}, 图像尺寸={img_size}x{img_size}, 批次大小={batch_size}")
 
+            # 在训练函数开始处添加GPU状态检查
+            gpu_status = check_gpu_status()
+            update_log(f"GPU状态检查: {json.dumps(gpu_status, indent=2)}")
+
             # 确定训练设备
-            import torch
-            if use_gpu and torch.cuda.is_available():
-                device = 0
-                update_log("使用GPU进行训练")
+            if use_gpu:
+                if torch.cuda.is_available():
+                    device = 0
+                    update_log(f"使用GPU进行训练: {torch.cuda.get_device_name(0)}")
+                else:
+                    device = 'cpu'
+                    update_log("警告: 请求使用GPU，但CUDA不可用。使用CPU进行训练。")
+                    # 记录详细原因
+                    update_log(
+                        f"可能的原因: PyTorch版本={torch.__version__}, CUDA编译版本={getattr(torch.version, 'cuda', '未知')}")
             else:
                 device = 'cpu'
                 update_log("使用CPU进行训练")
@@ -509,3 +520,19 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
     finally:
         if model_id in training_processes:
             del training_processes[model_id]
+def check_gpu_status():
+    """检查并记录GPU状态"""
+    import torch
+    status = {
+        'pytorch_version': torch.__version__,
+        'cuda_available': torch.cuda.is_available(),
+        'cuda_version': torch.version.cuda if hasattr(torch.version, 'cuda') else '未知',
+        'device_count': torch.cuda.device_count() if torch.cuda.is_available() else 0,
+    }
+
+    if torch.cuda.is_available():
+        for i in range(torch.cuda.device_count()):
+            status[f'device_{i}_name'] = torch.cuda.get_device_name(i)
+            status[f'device_{i}_capability'] = torch.cuda.get_device_capability(i)
+
+    return status
