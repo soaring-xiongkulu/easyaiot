@@ -78,16 +78,20 @@ import LineChart from '../LineChart/index.vue'
 import {debounce} from 'lodash-es'
 import {getTrainingDetail} from '@/api/device/model'
 
-const props = defineProps({
-  taskId: String,
-  taskName: String
-})
+const state = reactive({
+  taskId: '',
+  taskName: ''
+});
 
 const emit = defineEmits(['close'])
 
 // 使用useModalInner注册模态框
-const [registerModal, {closeModal}] = useModalInner(() => {
-  if (props.taskId) {
+const [registerModal, {closeModal}] = useModalInner((data) => {
+  const {record} = data;
+  state.taskId = record.id;
+  state.taskName = record.model_name;
+  console.log('Modal opened with data:', JSON.stringify(data))
+  if (record.id) {
     loadLogs()
   }
 })
@@ -133,7 +137,7 @@ const exportLogs = () => {
 
   const a = document.createElement('a')
   a.href = url
-  a.download = `${props.taskName}_logs_${new Date().toISOString().slice(0, 10)}.txt`
+  a.download = `${state.taskName}_logs_${new Date().toISOString().slice(0, 10)}.txt`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
@@ -143,10 +147,10 @@ const exportLogs = () => {
 // 加载日志数据
 const loadLogs = async () => {
   try {
-    if (!props.taskId) return
+    if (!state.taskId) return
 
     // 实际API调用 - 确保路径匹配后端接口
-    const response = await getTrainingDetail(props.taskId)
+    const response = await getTrainingDetail(state.taskId)
 
     // 处理实际API返回的数据
     logs.value = response.logs.map((log: any) => ({
@@ -195,12 +199,12 @@ const extractMetrics = (logs: any[]) => {
 }
 
 // 监听taskId变化
-watch(() => props.taskId, (newId) => {
+watch(() => state.taskId, (newId) => {
   if (newId) loadLogs()
 })
 
 onMounted(() => {
-  if (props.taskId) {
+  if (state.taskId) {
     loadLogs()
   }
 })

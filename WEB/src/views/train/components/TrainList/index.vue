@@ -151,8 +151,8 @@ const handleDelete = async (record) => {
   }
 };
 
-const handleOpenTrainingLogsModal = () => {
-  openTrainingLogsModal(true);
+const handleOpenTrainingLogsModal = (record) => {
+  openTrainingLogsModal(true, {record});
 };
 
 // 模态框状态
