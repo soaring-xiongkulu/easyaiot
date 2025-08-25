@@ -2,6 +2,7 @@ package com.basiclab.iot.dataset.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
 import com.basiclab.iot.common.domain.PageResult;
 import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.dataset.dal.dataobject.DatasetImageDO;
@@ -14,6 +15,7 @@ import com.basiclab.iot.dataset.service.DatasetTagService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.ibatis.logging.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import org.springframework.validation.annotation.Validated;
 import javax.annotation.Resource;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.exception;
 import static com.basiclab.iot.dataset.enums.ErrorCodeConstants.DATASET_TAG_NOT_EXISTS;
@@ -76,7 +79,7 @@ public class DatasetTagServiceImpl implements DatasetTagService {
         tagMapper.updateById(updateObj);
         // 若标签索引变更，同步更新图片标注
         if (!oldTag.getShortcut().equals(updateReqVO.getShortcut())) {
-            updateImageAnnotationsByTagId(updateReqVO.getId(), oldTag, updateReqVO);
+            updateImageAnnotationsByTagId(updateReqVO.getDatasetId(), oldTag, updateReqVO);
         }
     }
 
@@ -102,24 +105,50 @@ public class DatasetTagServiceImpl implements DatasetTagService {
      * 更新所有使用该标签的图片标注
      */
     private void updateImageAnnotationsByTagId(Long datasetId, DatasetTagDO oldTag, DatasetTagSaveReqVO newTag) {
-        // 1. 查询所有使用该标签的图片
+        // 1. 仅查询必要字段（ID和标注内容）
         List<DatasetImageDO> images = datasetImageMapper.selectList(
                 new LambdaQueryWrapper<DatasetImageDO>()
                         .eq(DatasetImageDO::getDatasetId, datasetId)
                         .isNotNull(DatasetImageDO::getAnnotations)
-                        .like(DatasetImageDO::getAnnotations, "\"label\":\"" + oldTag.getShortcut() + "\"")
+                        .select(DatasetImageDO::getId, DatasetImageDO::getAnnotations)
         );
 
-        // 2. 批量更新标注中的标签信息
-        images.forEach(image -> {
-            String updatedAnnotations = updateAnnotationsJson(
-                    image.getAnnotations(),
-                    oldTag.getShortcut(),
-                    newTag.getShortcut()
-            );
-            image.setAnnotations(updatedAnnotations);
-            datasetImageMapper.updateById(image);
-        });
+        // 2. 并行处理JSON更新（利用多核CPU）
+        List<DatasetImageDO> batchToUpdate = images.parallelStream()
+                .map(image -> {
+                    String updatedAnnotations = updateAnnotationsJson(
+                            image.getAnnotations(),
+                            oldTag.getShortcut(),
+                            newTag.getShortcut()
+                    );
+                    // 仅当标注内容变化时标记更新
+                    if (!updatedAnnotations.equals(image.getAnnotations())) {
+                        image.setAnnotations(updatedAnnotations);
+                        return image;
+                    }
+                    return null;
+                })
+                .filter(image -> image != null)
+                .collect(Collectors.toList());
+
+        // 3. 分批次批量更新（每批500条）
+        if (!batchToUpdate.isEmpty()) {
+            int batchSize = 500;
+            for (int i = 0; i < batchToUpdate.size(); i += batchSize) {
+                List<DatasetImageDO> subList = batchToUpdate.subList(i, Math.min(i + batchSize, batchToUpdate.size()));
+                // 使用MyBatis-Plus的saveOrUpdateBatch方法（需开启批处理模式）
+                boolean success = SqlHelper.executeBatch(
+                        DatasetImageDO.class,
+                        (Log) logger,
+                        subList,
+                        batchSize,
+                        (sqlSession, entity) -> datasetImageMapper.updateById(entity)
+                );
+                if (!success) {
+                    throw new RuntimeException("批量更新失败");
+                }
+            }
+        }
     }
 
     /**
