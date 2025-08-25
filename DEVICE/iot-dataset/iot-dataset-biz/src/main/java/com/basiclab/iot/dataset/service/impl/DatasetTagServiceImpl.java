@@ -74,10 +74,9 @@ public class DatasetTagServiceImpl implements DatasetTagService {
         // 更新
         DatasetTagDO updateObj = BeanUtils.toBean(updateReqVO, DatasetTagDO.class);
         tagMapper.updateById(updateObj);
-        // 若标签名称或ID变更，同步更新图片标注
-        if (!oldTag.getName().equals(updateReqVO.getName())
-                || !oldTag.getId().equals(updateReqVO.getId())) {
-            updateImageAnnotationsByTagId(oldTag.getId(), updateReqVO);
+        // 若标签索引变更，同步更新图片标注
+        if (!oldTag.getShortcut().equals(updateReqVO.getShortcut())) {
+            updateImageAnnotationsByTagId(updateReqVO.getId(), oldTag, updateReqVO);
         }
     }
 
@@ -102,21 +101,21 @@ public class DatasetTagServiceImpl implements DatasetTagService {
     /**
      * 更新所有使用该标签的图片标注
      */
-    private void updateImageAnnotationsByTagId(Long oldTagId, DatasetTagSaveReqVO newTag) {
+    private void updateImageAnnotationsByTagId(Long datasetId, DatasetTagDO oldTag, DatasetTagSaveReqVO newTag) {
         // 1. 查询所有使用该标签的图片
         List<DatasetImageDO> images = datasetImageMapper.selectList(
                 new LambdaQueryWrapper<DatasetImageDO>()
+                        .eq(DatasetImageDO::getDatasetId, datasetId)
                         .isNotNull(DatasetImageDO::getAnnotations)
-                        .like(DatasetImageDO::getAnnotations, "\"label\":\"" + oldTagId + "\"")
+                        .like(DatasetImageDO::getAnnotations, "\"label\":\"" + oldTag.getShortcut() + "\"")
         );
 
         // 2. 批量更新标注中的标签信息
         images.forEach(image -> {
             String updatedAnnotations = updateAnnotationsJson(
                     image.getAnnotations(),
-                    oldTagId,
-                    newTag.getId(),
-                    newTag.getName()
+                    oldTag.getShortcut(),
+                    newTag.getShortcut()
             );
             image.setAnnotations(updatedAnnotations);
             datasetImageMapper.updateById(image);
@@ -126,7 +125,7 @@ public class DatasetTagServiceImpl implements DatasetTagService {
     /**
      * 替换标注JSON中的标签信息
      */
-    private String updateAnnotationsJson(String json, Long oldTagId, Long newTagId, String newTagName) {
+    private String updateAnnotationsJson(String json, Integer oldTag, Integer newTag) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             // 显式指定泛型类型
@@ -137,9 +136,8 @@ public class DatasetTagServiceImpl implements DatasetTagService {
             );
             annotations.forEach(annotation -> {
                 Object labelObj = annotation.get("label");
-                if (labelObj != null && labelObj.toString().equals(oldTagId.toString())) {
-                    annotation.put("label", newTagId);
-                    annotation.put("labelName", newTagName);
+                if (labelObj != null && labelObj.toString().equals(oldTag.toString())) {
+                    annotation.put("label", newTag);
                 }
             });
             return mapper.writeValueAsString(annotations);
