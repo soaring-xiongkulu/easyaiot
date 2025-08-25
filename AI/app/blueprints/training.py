@@ -329,8 +329,6 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
 
             # 在训练函数开始处添加GPU状态检查
             gpu_status = check_gpu_status()
-            update_log(f"GPU状态检查: {json.dumps(gpu_status, indent=2)}")
-
             # 确定训练设备
             if use_gpu:
                 if torch.cuda.is_available():
