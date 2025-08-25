@@ -29,7 +29,7 @@ const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url, params = {}, 
 
 // ================= 模型管理接口 =================
 export const getModelPage = (params) => {
-  return commonApi('get', `${Api.Model}/list`, { params }, {}, false);
+  return commonApi('get', `${Api.Model}/list`, { params });
 };
 
 export const createModel = (params) => {
@@ -49,7 +49,7 @@ export const getModelDetail = (modelId) => {
 };
 
 export const getModelTrainingRecords = (modelId, params) => {
-  return commonApi('get', `${Api.Model}/${modelId}/training_records`, { params }, {}, false);
+  return commonApi('get', `${Api.Model}/${modelId}/training_records`, { params });
 };
 
 // 模型发布接口
@@ -59,7 +59,7 @@ export const publishModel = (modelId, params) => {
 
 // 模型OTA检测接口
 export const otaCheck = (params) => {
-  return commonApi('get', `${Api.Model}/ota_check`, { params }, {}, false);
+  return commonApi('get', `${Api.Model}/ota_check`, { params });
 };
 
 // 模型文件上传接口 (特殊处理)
@@ -89,7 +89,7 @@ export const getTrainingStatus = (modelId) => {
 
 // ================= 训练记录管理接口 =================
 export const getTrainingRecordPage = (params) => {
-  return commonApi('get', `${Api.TrainingRecord}/list`, { params }, {}, false);
+  return commonApi('get', `${Api.TrainingRecord}/list`, { params });
 };
 
 export const getTrainingDetail = (recordId) => {
