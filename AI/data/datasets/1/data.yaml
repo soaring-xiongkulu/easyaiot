@@ -1,5 +1,0 @@
-names: [人]
-nc: 1
-train: images/train
-val: images/val
-test: images/test
