@@ -140,10 +140,13 @@ def upload_model_file():
     if file.filename == '':
         return jsonify({'code': 400, 'msg': '未选择文件'}), 400
 
+    # 初始化变量
+    temp_path = None
     try:
         ext = os.path.splitext(file.filename)[1]
         unique_filename = f"{uuid.uuid4().hex}{ext}"
 
+        # 创建临时目录和文件
         temp_dir = 'temp_uploads'
         os.makedirs(temp_dir, exist_ok=True)
         temp_path = os.path.join(temp_dir, unique_filename)
@@ -152,26 +155,34 @@ def upload_model_file():
         bucket_name = 'models'
         object_key = f"images/{unique_filename}"
 
-        # 上传到 MinIO
+        # 上传到MinIO
         if ModelService.upload_to_minio(bucket_name, object_key, temp_path):
-            os.remove(temp_path)
-
-            # 生成目标格式的 URL（直接拼接字符串）
+            # 生成URL（直接拼接字符串）
             download_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={object_key}"
 
             return jsonify({
                 'code': 0,
                 'msg': '文件上传成功',
                 'data': {
-                    'url': download_url,  # 返回新格式的 URL
+                    'url': download_url,
                     'fileName': file.filename
                 }
             })
         else:
-            return jsonify({'code': 500, 'msg': '文件上传到 Minio 失败'}), 500
+            return jsonify({'code': 500, 'msg': '文件上传到MinIO失败'}), 500
 
     except Exception as e:
+        logger.error(f"图片上传失败: {str(e)}")
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+    finally:
+        # 确保删除临时文件（无论上传成功与否）
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+                logger.info(f"临时文件已删除: {temp_path}")
+            except OSError as e:
+                logger.error(f"删除临时文件失败: {temp_path}, 错误: {str(e)}")
 
 @model_bp.route('/create', methods=['POST'])
 def create_model():
