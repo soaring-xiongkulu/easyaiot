@@ -24,6 +24,16 @@
               style="padding: 0; background: #FFFFFF; box-shadow: 0px 0px 4px 0px rgba(24, 24, 24, 0.1); height: 100%; transition: all 0.3s;">
               <div class="model-card-box">
                 <div class="model-card-cont" style="padding: 15px">
+                  <!-- 模型图片展示 -->
+                  <div class="model-image-container">
+                    <img
+                      :src="item.imageUrl || 'placeholder.jpg'"
+                      alt="模型图片"
+                      class="model-image"
+                      @error="handleImageError"
+                    />
+                  </div>
+
                   <h6 class="model-card-title">
                     <a>{{ item.name }}</a>
                   </h6>
@@ -109,7 +119,7 @@ const props = defineProps({
   api: propTypes.func,
 });
 
-const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'deploy', 'train']); // 新增train事件
+const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'deploy', 'train']);
 
 const data = ref([]);
 const state = reactive({
@@ -158,8 +168,8 @@ async function fetch(p = {}) {
   const {api, params} = props;
   if (api && isFunction(api)) {
     const res = await api({...params, pageNo: page.value, pageSize: pageSize.value, ...p});
-    data.value = res.data.list;
-    total.value = res.data.total;
+    data.value = res.data;
+    total.value = res.total;
     hideLoading();
   }
 }
@@ -245,9 +255,13 @@ function handleDeploy(record: object) {
   emit('deploy', record);
 }
 
-// 新增训练处理函数
 function handleTrain(record: object) {
   emit('train', record);
+}
+
+// 图片错误处理
+function handleImageError(e) {
+  e.target.src = 'placeholder.jpg';
 }
 </script>
 
@@ -329,5 +343,23 @@ function handleTrain(record: object) {
       color: #1890ff;
     }
   }
+}
+
+/* 新增图片容器样式 */
+.model-image-container {
+  height: 180px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.model-image {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
 }
 </style>
