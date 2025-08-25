@@ -24,10 +24,9 @@
               style="padding: 0; background: #FFFFFF; box-shadow: 0px 0px 4px 0px rgba(24, 24, 24, 0.1); height: 100%; transition: all 0.3s;">
               <div class="model-card-box">
                 <div class="model-card-cont" style="padding: 15px">
-                  <!-- 模型图片展示 -->
                   <div class="model-image-container">
                     <img
-                      :src="item.imageUrl || 'placeholder.jpg'"
+                      :src="item.imageUrl"
                       alt="模型图片"
                       class="model-image"
                       @error="handleImageError"
