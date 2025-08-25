@@ -89,7 +89,6 @@ export function getBasicColumns(): BasicColumn[] {
         const progress = record.progress || 0;
         return (
           <div class="flex items-center w-full gap-2">
-            {/* 进度条容器（占主要空间） */}
             <div class="flex-1">
               <Progress
                 percent={progress}
