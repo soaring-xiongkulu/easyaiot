@@ -52,9 +52,6 @@
                 style="max-height: 200px; max-width: 100%;"
               />
             </div>
-            <div v-else style="color: #ff4d4f; margin-top: 8px">
-              请上传模型图片
-            </div>
           </FormItem>
 
           <!-- 模型文件上传 -->
