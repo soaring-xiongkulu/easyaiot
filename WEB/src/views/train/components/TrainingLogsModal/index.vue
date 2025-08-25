@@ -11,7 +11,7 @@
     <div class="modal-content">
       <div class="control-bar">
         <div class="filter-group">
-          <label>日志级别：</label>
+          <label class="filter-label">日志级别：</label>
           <select v-model="filters.level" class="filter-select">
             <option value="all">全部</option>
             <option value="info">信息</option>
@@ -37,7 +37,7 @@
         <!-- 指标可视化 -->
         <div class="metrics-visualization" v-if="metricsData.length">
           <div class="chart-container">
-            <LineChart :data="metricsData" title="训练指标变化"/>
+            <LineChart :data="metricsData" theme="dark" title="训练指标变化"/>
           </div>
         </div>
 
@@ -51,7 +51,7 @@
           >
             <span class="timestamp">{{ log.timestamp }}</span>
             <span class="level-tag" :class="log.level">{{ log.level.toUpperCase() }}</span>
-            <span class="message">{{ log.message }}</span>
+            <pre class="message">{{ log.message }}</pre>
 
             <!-- 指标数据展示 -->
             <div v-if="log.metrics" class="metrics">
@@ -72,10 +72,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
-import { BasicModal, useModalInner } from '@/components/Modal'
+import {computed, onMounted, reactive, ref, watch} from 'vue'
+import {BasicModal, useModalInner} from '@/components/Modal'
 import LineChart from '../LineChart/index.vue'
-import { debounce } from 'lodash-es'
+import {debounce} from 'lodash-es'
+import {getTrainingDetail} from '@/api/device/model'
 
 const props = defineProps({
   taskId: String,
@@ -85,30 +86,27 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 // 使用useModalInner注册模态框
-const [registerModal, { closeModal }] = useModalInner((data) => {
-  // 当模态框打开时加载日志
+const [registerModal, {closeModal}] = useModalInner(() => {
   if (props.taskId) {
     loadLogs()
   }
 })
 
 // 日志数据
-const logs = ref([])
+const logs = ref<Array<any>>([])
 // 筛选条件
 const filters = reactive({
   level: 'all',
   keyword: ''
 })
 // 指标数据（用于可视化）
-const metricsData = ref([])
-const logContainer = ref(null)
+const metricsData = ref<Array<any>>([])
+const logContainer = ref<HTMLElement | null>(null)
 
 // 筛选后的日志
 const filteredLogs = computed(() => {
   return logs.value.filter(log => {
-    // 日志级别筛选
     const levelMatch = filters.level === 'all' || log.level === filters.level
-    // 关键词筛选
     const keywordMatch = !filters.keyword ||
       log.message.toLowerCase().includes(filters.keyword.toLowerCase()) ||
       (log.metrics && Object.keys(log.metrics).some(key =>
@@ -120,6 +118,7 @@ const filteredLogs = computed(() => {
 
 // 防抖搜索
 const debouncedFilter = debounce(() => {
+  // 实际过滤由computed属性处理
 }, 300)
 
 // 导出日志
@@ -144,62 +143,23 @@ const exportLogs = () => {
 // 加载日志数据
 const loadLogs = async () => {
   try {
-    // 模拟API请求：实际项目中替换为真实API调用
-    // 这里使用模拟数据
-    const mockData = {
-      logs: [
-        {
-          timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-          level: 'info',
-          message: '训练任务开始初始化',
-          metrics: null
-        },
-        {
-          timestamp: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
-          level: 'info',
-          message: '加载预训练模型完成',
-          metrics: null
-        },
-        {
-          timestamp: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
-          level: 'info',
-          message: '开始第1轮训练',
-          metrics: {epoch: 1, loss: 0.85, accuracy: 0.65}
-        },
-        {
-          timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
-          level: 'info',
-          message: '第1轮训练完成',
-          metrics: {epoch: 1, loss: 0.72, accuracy: 0.72}
-        },
-        {
-          timestamp: new Date(Date.now() - 1000 * 60 * 1).toISOString(),
-          level: 'warning',
-          message: '学习率调整: 0.01 -> 0.008',
-          metrics: null
-        },
-        {
-          timestamp: new Date().toISOString(),
-          level: 'info',
-          message: '开始第2轮训练',
-          metrics: {epoch: 2, loss: 0.68, accuracy: 0.75}
-        }
-      ]
-    };
+    if (!props.taskId) return
 
-    logs.value = mockData.logs.map(log => ({
+    // 实际API调用 - 确保路径匹配后端接口
+    const response = await getTrainingDetail(props.taskId)
+
+    // 处理实际API返回的数据
+    logs.value = response.logs.map((log: any) => ({
       ...log,
       timestamp: new Date(log.timestamp).toLocaleTimeString()
     }))
 
     // 提取指标数据用于可视化
-    metricsData.value = extractMetrics(mockData.logs)
+    metricsData.value = extractMetrics(response.logs)
 
     // 滚动到底部
-    if (logContainer.value) {
-      logContainer.value.scrollTop = logContainer.value.scrollHeight
-    }
-  } catch (error) {
+    scrollToBottom()
+  } catch (error: any) {
     console.error('加载日志失败:', error)
     logs.value = [{
       timestamp: new Date().toLocaleTimeString(),
@@ -209,9 +169,18 @@ const loadLogs = async () => {
   }
 }
 
+// 滚动到底部
+const scrollToBottom = () => {
+  if (logContainer.value) {
+    setTimeout(() => {
+      logContainer.value!.scrollTop = logContainer.value!.scrollHeight
+    }, 100)
+  }
+}
+
 // 从日志中提取指标数据
-const extractMetrics = (logs) => {
-  const metrics = []
+const extractMetrics = (logs: any[]) => {
+  const metrics: any[] = []
 
   logs.forEach(log => {
     if (log.metrics) {
@@ -229,22 +198,33 @@ const extractMetrics = (logs) => {
 watch(() => props.taskId, (newId) => {
   if (newId) loadLogs()
 })
+
+onMounted(() => {
+  if (props.taskId) {
+    loadLogs()
+  }
+})
 </script>
 
 <style scoped>
+/* 基础布局 */
 .modal-content {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background-color: #121212; /* 深空黑背景 */
+  color: #e0e0e0; /* 浅灰文字 */
+  font-family: 'Consolas', 'Monaco', monospace; /* 等宽字体 */
 }
 
+/* 控制栏样式 */
 .control-bar {
   padding: 16px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  background: #1e1e1e; /* 深灰背景 */
+  border-bottom: 1px solid #333;
   flex-wrap: wrap;
   gap: 16px;
 }
@@ -255,50 +235,45 @@ watch(() => props.taskId, (newId) => {
   gap: 12px;
 }
 
-.filter-group label {
+.filter-label {
   font-weight: 500;
-  color: #374151;
+  color: #a0a0a0;
 }
 
-.filter-select {
+.filter-select, .search-input {
   padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: white;
-  color: #374151;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #2d2d2d;
+  color: #f0f0f0;
+  outline: none;
 }
 
 .search-input {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
   width: 250px;
-  font-size: 14px;
 }
 
 .search-input:focus {
-  outline: none;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 .export-button {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
+  background: #1e3a8a;
+  color: white;
+  border: none;
   padding: 8px 16px;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
   font-weight: 500;
   transition: all 0.2s;
 }
 
 .export-button:hover {
-  background: #dbeafe;
-  border-color: #93c5fd;
+  background: #3b82f6;
 }
 
+/* 日志容器 */
 .log-container {
   display: flex;
   flex-direction: column;
@@ -307,72 +282,54 @@ watch(() => props.taskId, (newId) => {
 }
 
 .metrics-visualization {
-  padding: 16px 24px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 16px;
+  border-bottom: 1px solid #333;
   height: 250px;
-  background: #fafafa;
+  background: #1a1a1a;
 }
 
 .chart-container {
   height: 100%;
-  background: white;
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #0a0a0a;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
+/* 日志列表 */
 .log-list {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 24px;
-  max-height: 40vh;
-  background: #fafafa;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  color: #9ca3af;
-  text-align: center;
+  padding: 16px;
+  background: #0a0a0a;
 }
 
 .log-item {
   padding: 12px 16px;
-  border-bottom: 1px solid #f0f4f8;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 13px;
-  line-height: 1.5;
-  border-left: 3px solid transparent;
-  background: white;
   margin-bottom: 8px;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  background: #1a1a1a;
+  border-left: 3px solid transparent;
+  transition: all 0.2s;
 }
 
-.log-item:last-child {
-  border-bottom: none;
-}
-
-.log-item.error {
-  border-left-color: #ef4444;
-  background-color: #fef2f2;
-}
-
-.log-item.warning {
-  border-left-color: #f59e0b;
-  background-color: #fffbeb;
+.log-item:hover {
+  background: #252525;
 }
 
 .log-item.info {
-  border-left-color: #3b82f6;
-  background-color: #eff6ff;
+  border-left-color: #3b82f6; /* 信息蓝 */
+}
+
+.log-item.warning {
+  border-left-color: #f59e0b; /* 警告黄 */
+}
+
+.log-item.error {
+  border-left-color: #ef4444; /* 错误红 */
 }
 
 .timestamp {
-  color: #6b7280;
+  color: #9ca3af;
   margin-right: 15px;
   font-size: 12px;
 }
@@ -386,25 +343,33 @@ watch(() => props.taskId, (newId) => {
 }
 
 .level-tag.info {
-  background-color: #dbeafe;
-  color: #1d4ed8;
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
 }
 
 .level-tag.warning {
-  background-color: #fef3c7;
-  color: #d97706;
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
 }
 
 .level-tag.error {
-  background-color: #fee2e2;
-  color: #dc2626;
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.message {
+  margin: 8px 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #d4d4d4;
+  line-height: 1.5;
 }
 
 .metrics {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px dashed #e5e7eb;
-  color: #6b7280;
+  border-top: 1px dashed #333;
+  color: #9ca3af;
   display: flex;
   gap: 15px;
   flex-wrap: wrap;
@@ -412,9 +377,20 @@ watch(() => props.taskId, (newId) => {
 }
 
 .metrics strong {
-  color: #374151;
+  color: #d4d4d4;
 }
 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* 响应式调整 */
 @media (max-width: 968px) {
   .modal-content {
     width: 95%;
