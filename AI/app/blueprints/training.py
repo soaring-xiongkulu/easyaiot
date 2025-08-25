@@ -17,7 +17,7 @@ training_bp = Blueprint('training', __name__)
 training_status = {}
 training_processes = {}
 
-@training_bp.route('/model/<int:model_id>/train', methods=['POST'])
+@training_bp.route('/<int:model_id>/train', methods=['POST'])
 def api_start_training(model_id):
     try:
         # 获取训练参数
@@ -55,7 +55,7 @@ def api_start_training(model_id):
         return jsonify({'success': False, 'message': f'启动训练失败: {str(e)}'})
 
 
-@training_bp.route('/model/<int:model_id>/train/stop', methods=['POST'])
+@training_bp.route('/<int:model_id>/train/stop', methods=['POST'])
 def api_stop_training(model_id):
     print(f"收到停止训练请求，项目ID: {model_id}")
 
@@ -76,7 +76,7 @@ def api_stop_training(model_id):
         return jsonify({'success': False, 'message': '没有正在进行的训练'})
 
 
-@training_bp.route('/model/<int:model_id>/train/status')
+@training_bp.route('/<int:model_id>/train/status')
 def api_train_status(model_id):
     print(f"收到训练状态查询请求，项目ID: {model_id}")
     status = training_status.get(model_id, {

@@ -67,11 +67,11 @@ def create_app():
             print(f"❌ 建表失败: {str(e)}")
 
     # 注册蓝图
-    app.register_blueprint(export.export_bp, url_prefix='/export')
-    app.register_blueprint(inference.inference_bp, url_prefix='/inference')
+    app.register_blueprint(export.export_bp, url_prefix='/model/export')
+    app.register_blueprint(inference.inference_bp, url_prefix='/model/inference')
     app.register_blueprint(model.model_bp, url_prefix='/model')
-    app.register_blueprint(training.training_bp, url_prefix='/training')
-    app.register_blueprint(training_record.training_record_bp, url_prefix='/training_record')
+    app.register_blueprint(training.training_bp, url_prefix='/model/training')
+    app.register_blueprint(training_record.training_record_bp, url_prefix='/model/training_record')
 
     # 健康检查路由初始化
     def init_health_check(app):
