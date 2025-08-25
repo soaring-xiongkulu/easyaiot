@@ -4,6 +4,7 @@ import shutil
 import threading
 import traceback
 from datetime import datetime
+from urllib.parse import urlparse, parse_qs
 
 from flask import current_app, jsonify, Blueprint, request
 from ultralytics import YOLO
@@ -17,21 +18,36 @@ training_bp = Blueprint('training', __name__)
 training_status = {}
 training_processes = {}
 
+
 @training_bp.route('/<int:model_id>/train', methods=['POST'])
 def api_start_training(model_id):
     try:
         # 获取训练参数
         data = request.get_json()
+
+        # 参数映射（前端 -> 后端）
         epochs = data.get('epochs', 20)
-        model_arch = data.get('model_arch', 'yolov8n.pt')
-        img_size = data.get('img_size', 640)
         batch_size = data.get('batch_size', 16)
-        use_gpu = data.get('use_gpu', True)
-        dataset_zip_path = data.get('dataset_zip_path')  # 新增：Minio中的数据集压缩包路径
+        img_size = data.get('imgsz', 640)  # 注意前端参数名为imgsz
+        model_arch = data.get('modelPath', 'yolov8n.pt')
+        dataset_url = data.get('datasetPath')  # 前端传递的下载URL
+
+        # 处理模型路径 - 使用相对于根路径的model/yolov8n.pt
+        if not model_arch or model_arch == 'yolov8n.pt':
+            model_arch = os.path.join('model', 'yolov8n.pt')
+
+        # 从URL中解析出Minio对象路径
+        dataset_zip_path = None
+        if dataset_url:
+            parsed_url = urlparse(dataset_url)
+            query_params = parse_qs(parsed_url.query)
+            dataset_zip_path = query_params.get('prefix', [None])[0]
+
+        use_gpu = data.get('use_gpu', True)  # 默认使用GPU
 
         # 检查是否已有训练在进行
         if model_id in training_status and training_status[model_id]['status'] in ['preparing', 'training']:
-            return jsonify({'success': False, 'message': '训练已在进行中'})
+            return jsonify({'success': False, 'message': '训练已在进行中'}), 200
 
         # 重置训练状态
         training_status[model_id] = {
@@ -50,10 +66,13 @@ def api_start_training(model_id):
         training_thread.daemon = True
         training_thread.start()
 
-        return jsonify({'success': True, 'message': '训练已启动'})
+        return jsonify({'success': True, 'message': '训练已启动'}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': f'启动训练失败: {str(e)}'})
+        return jsonify({'success': False, 'message': f'启动训练失败: {str(e)}'}), 400
 
+def get_project_root():
+    """获取项目根目录"""
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 @training_bp.route('/<int:model_id>/train/stop', methods=['POST'])
 def api_stop_training(model_id):
@@ -70,10 +89,10 @@ def api_stop_training(model_id):
         if model_id in training_processes:
             pass
 
-        return jsonify({'success': True, 'message': '停止请求已发送'})
+        return jsonify({'success': True, 'message': '停止请求已发送'}), 200
     else:
         print("没有找到训练状态")
-        return jsonify({'success': False, 'message': '没有正在进行的训练'})
+        return jsonify({'success': False, 'message': '没有正在进行的训练'}), 200
 
 
 @training_bp.route('/<int:model_id>/train/status')
@@ -85,7 +104,7 @@ def api_train_status(model_id):
         'progress': 0
     })
     print(f"返回训练状态: {status}")
-    return jsonify(status)
+    return jsonify(status), 200
 
 
 def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
@@ -97,7 +116,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
     training_record = None
 
     try:
-        from app import create_app
+        from run import create_app
         application = create_app()
 
         with application.app_context():
@@ -155,7 +174,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 return
 
             # 检查数据集目录是否存在
-            model_dir = os.path.join(application.root_path, 'data/datasets', str(model_id))
+            model_dir = os.path.join(get_project_root(), 'data/datasets', str(model_id))
             data_yaml_path = os.path.join(model_dir, 'data.yaml')
 
             # data/datasets/123/
@@ -395,20 +414,20 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             update_log(f"训练流程结束，最终状态: {training_status[model_id]}")
 
     except Exception as e:
-        if training_record:
-            training_record.status = 'error'
-            training_record.end_time = datetime.utcnow()
-            training_record.error_log = f"{str(e)}\n{traceback.format_exc()}"
-            db.session.commit()
+        from run import create_app
+        application = create_app()
+        with application.app_context():
+            if training_record:
+                training_record.status = 'error'
+                training_record.end_time = datetime.utcnow()
+                training_record.error_log = f"{str(e)}\n{traceback.format_exc()}"
+                db.session.commit()
 
-        error_msg = f'训练出错: {str(e)}'
-        print(error_msg)
-        traceback.print_exc()
+            error_msg = f'训练出错: {str(e)}'
+            print(error_msg)
+            traceback.print_exc()
 
-        try:
-            from app import create_app
-            application = create_app()
-            with application.app_context():
+            try:
                 log_msg = f'训练出错: {str(e)}'
                 training_status[model_id].update({
                     'status': 'error',
@@ -426,16 +445,16 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 if model:
                     model.last_error = str(e)
                     db.session.commit()
-        except Exception as inner_e:
-            print(f'在异常处理中获取应用上下文失败: {str(inner_e)}')
-            training_status[model_id].update({
-                'status': 'error',
-                'message': f'严重错误: {str(e)}',
-                'progress': 0,
-                'error_details': str(e),
-                'traceback': traceback.format_exc(),
-                'log': training_status[model_id].get('log', '') + f'严重错误: {str(e)}\n' + traceback.format_exc()
-            })
+            except Exception as inner_e:
+                print(f'在异常处理中获取应用上下文失败: {str(inner_e)}')
+                training_status[model_id].update({
+                    'status': 'error',
+                    'message': f'严重错误: {str(e)}',
+                    'progress': 0,
+                    'error_details': str(e),
+                    'traceback': traceback.format_exc(),
+                    'log': training_status[model_id].get('log', '') + f'严重错误: {str(e)}\n' + traceback.format_exc()
+                })
     finally:
         if model_id in training_processes:
             del training_processes[model_id]

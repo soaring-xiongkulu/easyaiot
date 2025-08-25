@@ -129,7 +129,7 @@ const [registerForm, { validate }] = useForm({
   ],
   labelWidth: 80,
   baseColProps: { span: 6 },
-  actionColOptions: { span: 18 },
+  actionColOptions: { span: 12 },
   autoSubmitOnEnter: true,
   submitFunc: handleSubmit,
 });
