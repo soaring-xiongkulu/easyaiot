@@ -1,6 +1,11 @@
 import {BasicColumn, FormProps} from '@/components/Table';
 import {Progress, Tag} from 'ant-design-vue';
 
+const getGradientColor = (percent) => {
+  const hue = 120 * (1 - percent/100);
+  return `hsl(${hue}, 80%, 45%)`;
+};
+
 export function getBasicColumns(): BasicColumn[] {
   return [
     {
@@ -76,30 +81,23 @@ export function getBasicColumns(): BasicColumn[] {
     {
       title: '训练进度',
       dataIndex: 'progress',
-      width: 120,
+      width: 140,
+      align: 'center',
       customRender: ({ record }) => {
-        // 获取进度值（0-100）
         const progress = record.progress || 0;
 
-        // 动态颜色逻辑（默认规则）
-        const getProgressColor = (percent) => {
-          return percent < 50 ? '#52C41A' :
-            percent < 75 ? '#FAAD14' : '#FF4D4F';
-        };
-
-        // 动态文字颜色
-        const getTextColor = (percent) => {
-          return percent > 75 ? '#ffffff' : '#000000A6';
-        };
+        // 动态文字颜色（保持原逻辑）
+        const getTextColor = (percent) => percent > 75 ? '#ffffff' : '#000000A6';
 
         return (
-          <div class="progress-container" style={{ position: 'relative', width: '100%' }}>
+          <div class="progress-container" style={{ position: 'relative' }}>
             <Progress
               percent={progress}
-              strokeColor={getProgressColor(progress)}
+              strokeColor={getGradientColor(progress)}
+              strokeWidth={12}
+              strokeLinecap="butt"
               showInfo={false}
-              strokeLinecap="square"
-              size="small"
+              class="dynamic-progress"
             />
             <div
               class="progress-text"
@@ -108,9 +106,12 @@ export function getBasicColumns(): BasicColumn[] {
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
-                fontSize: '12px',
+                fontWeight: 600,
+                fontSize: '14px',
                 color: getTextColor(progress),
-                fontWeight: 500
+                textShadow: progress > 75
+                  ? '0 0 2px rgba(0,0,0,0.7)'
+                  : '0 0 1px rgba(255,255,255,0.8)'
               }}
             >
               {progress}%
