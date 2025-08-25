@@ -41,7 +41,7 @@
                   <!-- 标签区域 -->
                   <div style="display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;">
                     <Tag color="#1890ff">ID: {{ item.id }}</Tag>
-                    <Tag :color="getStatusColor(item.status)">{{ getStatusText(item.status) }}</Tag>
+                    <Tag color="#52c41a">版本: {{ item.version || '未指定' }}</Tag>
                     <Tag color="#8c8c8c">{{ formatDate(item.created_at) }}</Tag>
                   </div>
 
@@ -122,17 +122,9 @@ const [registerForm, { validate }] = useForm({
       component: 'Input',
     },
     {
-      field: `status`,
-      label: `状态`,
-      component: 'Select',
-      componentProps: {
-        options: [
-          { label: '未部署', value: 0 },
-          { label: '已部署', value: 1 },
-          { label: '训练中', value: 2 },
-          { label: '已下线', value: 3 },
-        ],
-      },
+      field: `version`,
+      label: `模型版本`,
+      component: 'Input',
     },
   ],
   labelWidth: 80,
