@@ -13,7 +13,7 @@ export_bp = Blueprint('export', __name__)
 logger = logging.getLogger(__name__)
 
 
-@export_bp.route('/model/<int:model_id>/export/<format>', methods=['POST'])
+@export_bp.route('/<int:model_id>/export/<format>', methods=['POST'])
 def api_export_model(model_id, format):
     try:
         # 验证格式支持
@@ -151,7 +151,7 @@ def api_export_model(model_id, format):
         }), 500
 
 
-@export_bp.route('/download/export/<int:export_id>')
+@export_bp.route('/download/<int:export_id>')
 def download_export(export_id):
     export_record = ExportRecord.query.get_or_404(export_id)
 

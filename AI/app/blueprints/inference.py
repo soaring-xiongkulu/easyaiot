@@ -4,7 +4,7 @@ from app.services.inference_service import InferenceService
 
 inference_bp = Blueprint('inference', __name__)
 
-@inference_bp.route('/model/<int:model_id>/inference/run', methods=['POST'])
+@inference_bp.route('/<int:model_id>/inference/run', methods=['POST'])
 def run_inference(model_id):
     """执行模型推理"""
     model = Model.query.get_or_404(model_id)

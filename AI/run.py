@@ -1,34 +1,48 @@
+import atexit
 import os
 import socket
 import sys
 import threading
 import time
+import netifaces
 import pytz
-import atexit
-import logging
 from dotenv import load_dotenv
-from flask import Flask, current_app, jsonify
-from nacos import NacosClient
+from flask import Flask
 from healthcheck import HealthCheck, EnvironmentDump
-from app.blueprints import export, inference, model, training, training_record
+from nacos import NacosClient
 from sqlalchemy import text
+
+from app.blueprints import export, inference, model, training, training_record
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv()
 
-def get_local_ip():
-    """获取本机局域网IP地址"""
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        ip = s.getsockname()[0]
-    except Exception:
-        ip = '127.0.0.1'
-    finally:
-        s.close()
-    return ip
 
+def get_local_ip():
+    # 方案1: 环境变量优先
+    if ip := os.getenv('POD_IP'):
+        return ip
+
+    # 方案2: 多网卡探测
+    for iface in netifaces.interfaces():
+        addrs = netifaces.ifaddresses(iface).get(netifaces.AF_INET, [])
+        for addr in addrs:
+            ip = addr['addr']
+            if ip != '127.0.0.1' and not ip.startswith('169.254.'):
+                return ip
+
+    # 方案3: 原始方式（仅在无代理时启用）
+    if not (os.getenv('HTTP_PROXY') or os.getenv('HTTPS_PROXY')):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(('8.8.8.8', 80))
+            ip = s.getsockname()[0]
+        finally:
+            s.close()
+        return ip
+
+    raise RuntimeError("无法确定本地IP，请配置POD_IP环境变量")
 
 def send_heartbeat(client, ip, port, stop_event):
     """独立的心跳发送函数（支持安全停止）"""
@@ -67,11 +81,11 @@ def create_app():
             print(f"❌ 建表失败: {str(e)}")
 
     # 注册蓝图
-    app.register_blueprint(export.export_bp, url_prefix='/export')
-    app.register_blueprint(inference.inference_bp, url_prefix='/inference')
+    app.register_blueprint(export.export_bp, url_prefix='/model/export')
+    app.register_blueprint(inference.inference_bp, url_prefix='/model/inference')
     app.register_blueprint(model.model_bp, url_prefix='/model')
-    app.register_blueprint(training.training_bp, url_prefix='/training')
-    app.register_blueprint(training_record.training_record_bp, url_prefix='/training_record')
+    app.register_blueprint(training.training_bp, url_prefix='/model/training')
+    app.register_blueprint(training_record.training_record_bp, url_prefix='/model/training_record')
 
     # 健康检查路由初始化
     def init_health_check(app):

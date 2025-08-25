@@ -19,3 +19,5 @@ python-magic==0.4.27
 numpy==1.26.4
 # 提供标准化健康检查端点
 py-healthcheck==1.10.0
+# 网卡探测
+netifaces==0.11.0
