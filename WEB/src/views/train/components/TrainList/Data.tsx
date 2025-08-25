@@ -76,7 +76,7 @@ export function getBasicColumns(): BasicColumn[] {
     {
       title: '训练进度',
       dataIndex: 'progress',
-      width: 180,
+      width: 120,
       customRender: ({ record }) => {
         // 获取进度值（0-100）
         const progress = record.progress || 0;
@@ -122,7 +122,7 @@ export function getBasicColumns(): BasicColumn[] {
     {
       title: '当前状态',
       dataIndex: 'status',
-      width: 120,
+      width: 90,
       customRender: ({ record }) => {
         // 状态映射配置
         const statusConfig = {
@@ -141,8 +141,8 @@ export function getBasicColumns(): BasicColumn[] {
         };
 
         return (
-          <div class="flex items-center">
-            <a-icon type={config.icon} style={{ color: config.color, marginRight: 6 }} />
+          <div class="items-center">
+            <a-icon type={config.icon} style={{ color: config.color}} />
             <Tag color={config.color}>
               {config.text}
             </Tag>
@@ -153,7 +153,7 @@ export function getBasicColumns(): BasicColumn[] {
     {
       title: '操作',
       dataIndex: 'action',
-      width: 150,
+      width: 90,
     },
   ];
 }

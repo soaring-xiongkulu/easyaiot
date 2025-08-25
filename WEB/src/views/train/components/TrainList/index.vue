@@ -14,43 +14,47 @@
           <TableAction
             :actions="[
               {
-                label: '训练详情',
+                icon: 'mdi:information-outline', // 训练详情图标
                 tooltip: { title: '训练详情', placement: 'top' },
                 onClick: () => openTrainingDetail(record),
-                style: 'color: #1890ff; padding: 0 2px; font-size: 12px;'
+                style: 'color: #1890ff; padding: 0 8px; font-size: 16px;'
               },
               {
-                label: '查看日志',
+                icon: 'mdi:file-document-outline', // 查看日志图标
                 tooltip: { title: '查看日志', placement: 'top' },
                 onClick: () => handleOpenTrainingLogsModal(record),
-                style: 'color: #1890ff; padding: 0 2px; font-size: 12px;'
+                style: 'color: #1890ff; padding: 0 8px; font-size: 16px;'
               },
               {
-                label: record.status === 'running' ? '停止' : '开始', // 缩短文字
+                icon: record.status === 'running'
+                  ? 'mdi:stop-circle-outline'  // 停止图标
+                  : 'mdi:play-circle-outline', // 开始图标
                 tooltip: {
                   title: record.status === 'running' ? '停止训练' : '重新开始',
                   placement: 'top'
                 },
                 onClick: () => toggleTrainingStatus(record),
-                style: `color: ${record.status === 'running' ? '#faad14' : '#52c41a'}; padding: 0 2px; font-size: 12px;` // 动态颜色
+                style: `color: ${record.status === 'running' ? '#faad14' : '#52c41a'};
+                        padding: 0 8px;
+                        font-size: 16px;`
               },
               {
-                label: '删除',
+                icon: 'mdi:delete-outline', // 删除图标
                 tooltip: { title: '删除', placement: 'top' },
                 popConfirm: {
                   placement: 'topRight',
                   title: '确定删除此模型训练?',
                   confirm: () => handleDelete(record)
                 },
-                style: 'color: #ff4d4f; padding: 0 2px; font-size: 12px;'
+                style: 'color: #ff4d4f; padding: 0 8px; font-size: 16px;'
               }
             ]"
-                    :action-style="{
+                  :action-style="{
               display: 'flex',
-              flexWrap: 'nowrap', // 禁止换行
-              gap: '4px',         // 最小间隙
-              marginRight: '0',
-              '&:hover': { backgroundColor: 'transparent' }
+              flexWrap: 'nowrap',
+              gap: '4px',
+              alignItems: 'center',
+              marginRight: '0'
             }"
           />
         </template>
