@@ -224,7 +224,6 @@ function handleOk() {
       emits('success');
     } catch (error) {
       console.error(error);
-      createMessage.error('操作失败');
     } finally {
       state.editLoading = false;
     }

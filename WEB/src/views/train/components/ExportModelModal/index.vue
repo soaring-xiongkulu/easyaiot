@@ -111,7 +111,7 @@
 
 <script setup>
 import {computed, reactive, ref} from 'vue'
-import {exportModel} from '@/api/device/train'
+import {exportModel} from '@/api/device/model'
 import {useMessage} from '@/hooks/web/useMessage'
 
 const {createMessage} = useMessage()

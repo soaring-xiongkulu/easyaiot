@@ -118,7 +118,7 @@ import { BasicForm, useForm } from '@/components/Form';
 import { propTypes } from '@/utils/propTypes';
 import { isFunction } from '@/utils/is';
 import { useMessage } from '@/hooks/web/useMessage';
-import { listModelServices, stopModelService, startModelService } from '@/api/device/train';
+import { listModelServices, stopModelService, startModelService } from '@/api/device/model';
 
 const ListItem = List.Item;
 const { createMessage } = useMessage();

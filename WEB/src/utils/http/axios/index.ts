@@ -228,11 +228,11 @@ const transform: AxiosTransform = {
     errorLogStore.addAjaxErrorInfo(error)
     const { response, code, message, config } = error || {}
     const errorMessageMode = config?.requestOptions?.errorMessageMode || 'none'
-    const msg: string = response?.data?.error?.message ?? ''
+    const msg: string = (response?.data?.error?.message || response?.data?.msg) ?? ''
     const err: string = error?.toString?.() ?? ''
     let errMessage = ''
 
-    //alert(JSON.stringify(error));
+    // console.log(msg);
 
     if (axios.isCancel(error))
       return Promise.reject(error)
