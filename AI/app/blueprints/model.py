@@ -1,11 +1,13 @@
-from flask import Blueprint
-
 import logging
 import os
 import shutil
+import uuid
 from operator import or_
-from flask import request, jsonify, redirect, url_for, flash, render_template
-from models import db, Model, TrainingRecord
+from flask import Blueprint, request, jsonify
+from flask import redirect, url_for, flash, render_template
+from app.services.model_service import ModelService
+from models import TrainingRecord
+from models import db, Model
 
 model_bp = Blueprint('model', __name__)
 
@@ -165,86 +167,138 @@ def get_model_training_records(model_id):
             'msg': '服务器内部错误'
         }), 500
 
+
 @model_bp.route('/<int:model_id>')
 def model_detail(model_id):
     model = Model.query.get_or_404(model_id)
     return render_template('model_detail.html', model=model)
 
+
+model_bp = Blueprint('model', __name__)
+
+
+# 新增模型文件上传接口
+@model_bp.route('/model/upload', methods=['POST'])
+def upload_model_file():
+    if 'file' not in request.files:
+        return jsonify({'code': 400, 'msg': '未找到文件'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'code': 400, 'msg': '未选择文件'}), 400
+
+    try:
+        # 生成唯一文件名
+        ext = os.path.splitext(file.filename)[1]
+        unique_filename = f"{uuid.uuid4().hex}{ext}"
+
+        # 临时保存文件
+        temp_dir = 'temp_uploads'
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_path = os.path.join(temp_dir, unique_filename)
+        file.save(temp_path)
+
+        # 上传到Minio
+        bucket_name = 'models'  # Minio存储桶名称
+        object_key = f"models/{unique_filename}"
+
+        if ModelService.upload_to_minio(bucket_name, object_key, temp_path):
+            # 清理临时文件
+            os.remove(temp_path)
+            return jsonify({
+                'code': 200,
+                'msg': '文件上传成功',
+                'data': {
+                    'objectKey': object_key,
+                    'fileName': file.filename
+                }
+            })
+        else:
+            return jsonify({'code': 500, 'msg': '文件上传到Minio失败'}), 500
+
+    except Exception as e:
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+# 修改创建模型接口
 @model_bp.route('/create', methods=['POST'])
 def create_model():
-    name = request.form.get('name')
-    description = request.form.get('description')
-
-    if not name:
-        flash('项目名称不能为空', 'error')
-        return redirect(url_for('main.index'))
-
-    model = Model(name=name, description=description)
-    db.session.add(model)
-    db.session.commit()
-
-    flash(f'项目 "{name}" 创建成功', 'success')
-    return redirect(url_for('main.model_detail', model_id=model.id))
-
-@model_bp.route('/<int:model_id>/update', methods=['PUT'])
-def update_model(model_id):
-    """更新模型信息接口"""
     try:
-        # 获取请求数据
+        # 获取JSON数据
         data = request.get_json()
         if not data:
             return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
 
-        # 获取模型记录
-        model = Model.query.get_or_404(model_id)
+        name = data.get('name')
+        description = data.get('description', '')
+        file_path = data.get('filePath', '')  # 获取Minio objectKey
 
-        # 允许更新的字段列表
-        allowed_fields = ['name', 'description', 'version']
+        if not name:
+            return jsonify({'code': 400, 'msg': '模型名称不能为空'}), 400
 
-        # 更新允许的字段
-        for field in allowed_fields:
-            if field in data:
-                setattr(model, field, data[field])
-
-        # 处理特殊字段更新
-        if 'training_record_id' in data:
-            # 验证训练记录是否存在且属于该模型
-            training_record = TrainingRecord.query.get(data['training_record_id'])
-            if training_record and training_record.model_id == model_id:
-                model.training_record_id = training_record.id
-                model.model_path = training_record.minio_model_path or training_record.best_model_path
-            else:
-                return jsonify({
-                    'code': 400,
-                    'msg': '无效的训练记录ID或记录不属于该模型'
-                }), 400
-
-        # 保存更改
+        # 创建模型记录
+        model = Model(name=name, description=description, model_path=file_path)
+        db.session.add(model)
         db.session.commit()
-
-        # 返回更新后的模型信息
-        updated_model = {
-            'id': model.id,
-            'name': model.name,
-            'description': model.description,
-            'version': model.version,
-            'training_record_id': model.training_record_id,
-            'model_path': model.model_path
-        }
 
         return jsonify({
             'code': 200,
-            'msg': '模型更新成功',
-            'data': updated_model
+            'msg': '模型创建成功',
+            'data': {
+                'id': model.id,
+                'name': model.name,
+                'filePath': model.model_path
+            }
         })
 
     except Exception as e:
-        logger.error(f"模型更新失败: {str(e)}")
         db.session.rollback()
         return jsonify({
             'code': 500,
             'msg': f'服务器内部错误: {str(e)}'
         }), 500
+
+
+# 修改更新模型接口
+@model_bp.route('/<int:model_id>/update', methods=['PUT'])
+def update_model(model_id):
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
+
+        model = Model.query.get_or_404(model_id)
+
+        # 更新允许的字段
+        if 'name' in data:
+            model.name = data['name']
+        if 'description' in data:
+            model.description = data['description']
+        if 'filePath' in data:  # 更新Minio objectKey
+            model.model_path = data['filePath']
+
+        db.session.commit()
+
+        return jsonify({
+            'code': 200,
+            'msg': '模型更新成功',
+            'data': {
+                'id': model.id,
+                'name': model.name,
+                'filePath': model.model_path
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
 
 @model_bp.route('/<int:model_id>/delete', methods=['POST'])
 def delete_model(model_id):
