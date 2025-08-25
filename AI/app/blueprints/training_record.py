@@ -87,16 +87,46 @@ def training_records():
             'msg': '服务器内部错误'
         }), 500
 
-
 # 训练记录详情
 @training_record_bp.route('/<int:record_id>')
 def training_detail(record_id):
-    record = TrainingRecord.query.get_or_404(record_id)
-    exports = ExportRecord.query.filter_by(model_id=record.model_id).all()
+    try:
+        # 根据ID查询训练记录
+        record = TrainingRecord.query.get(record_id)
+        if not record:
+            return jsonify({
+                'code': 404,
+                'msg': f'训练记录ID {record_id} 不存在'
+            }), 404
 
-    return render_template('training_detail.html',
-                           record=record,
-                           exports=exports)
+        # 构建响应数据
+        data = {
+            'id': record.id,
+            'model_id': record.model_id,
+            'model_name': record.model.name if record.model else '',
+            'dataset_path': record.dataset_path,
+            'hyperparameters': record.hyperparameters,
+            'start_time': record.start_time.isoformat() if record.start_time else None,
+            'end_time': record.end_time.isoformat() if record.end_time else None,
+            'status': record.status,
+            'progress': record.progress,
+            'metrics_path': record.metrics_path,
+            'train_log': record.train_log,
+            'checkpoint_dir': record.checkpoint_dir
+        }
+
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': data
+        })
+
+    except Exception as e:
+        logger.error(f'获取训练记录详情失败: {str(e)}')
+        return jsonify({
+            'code': 500,
+            'msg': '服务器内部错误'
+        }), 500
 
 
 # 创建训练记录
