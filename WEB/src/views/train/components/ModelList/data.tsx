@@ -1,5 +1,4 @@
-import { BasicColumn, FormProps } from "@/components/Table";
-import { Tag } from "ant-design-vue";
+import {BasicColumn, FormProps} from "@/components/Table";
 
 export function getBasicColumns(): BasicColumn[] {
   return [
@@ -14,33 +13,27 @@ export function getBasicColumns(): BasicColumn[] {
       width: 120,
     },
     {
+      title: '模型版本',
+      dataIndex: 'version',
+      width: 120,
+    },
+    {
       title: '模型描述',
       dataIndex: 'description',
       width: 180,
-      customRender: ({ text }) => text || '--',
+      customRender: ({text}) => text || '--',
     },
     {
       title: '创建时间',
       dataIndex: 'created_at',
       width: 120,
-      customRender: ({ text }) => formatDateTime(text),
+      customRender: ({text}) => formatDateTime(text),
     },
     {
       title: '更新时间',
       dataIndex: 'updated_at',
       width: 120,
-      customRender: ({ text }) => formatDateTime(text),
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 90,
-      customRender: ({ text }) => {
-        if (text === 0) return <Tag color="blue">未部署</Tag>;
-        if (text === 1) return <Tag color="green">已部署</Tag>;
-        if (text === 2) return <Tag color="orange">训练中</Tag>;
-        return <Tag color="red">已下线</Tag>;
-      },
+      customRender: ({text}) => formatDateTime(text),
     },
     {
       width: 90,
@@ -53,7 +46,7 @@ export function getBasicColumns(): BasicColumn[] {
 export function getFormConfig(): Partial<FormProps> {
   return {
     labelWidth: 80,
-    baseColProps: { span: 6 },
+    baseColProps: {span: 6},
     schemas: [
       {
         field: `name`,
@@ -66,10 +59,10 @@ export function getFormConfig(): Partial<FormProps> {
         component: 'Select',
         componentProps: {
           options: [
-            { label: '未部署', value: 0 },
-            { label: '已部署', value: 1 },
-            { label: '训练中', value: 2 },
-            { label: '已下线', value: 3 },
+            {label: '未部署', value: 0},
+            {label: '已部署', value: 1},
+            {label: '训练中', value: 2},
+            {label: '已下线', value: 3},
           ],
         },
       },
