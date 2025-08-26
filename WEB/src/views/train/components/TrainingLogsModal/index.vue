@@ -2,45 +2,14 @@
   <BasicModal
     @register="registerModal"
     :title="`${state.taskName} - 训练日志`"
-    :width="900"
+    :width="1200"
     :canFullscreen="true"
     :showCancelBtn="false"
     :showOkBtn="false"
     @cancel="closeModal"
   >
     <div class="modal-content">
-      <div class="control-bar">
-        <div class="filter-group">
-          <label class="filter-label">日志级别：</label>
-          <select v-model="filters.level" class="filter-select">
-            <option value="all">全部</option>
-            <option value="info">信息</option>
-            <option value="warning">警告</option>
-            <option value="error">错误</option>
-          </select>
-        </div>
-
-        <div class="search-group">
-          <input
-            type="text"
-            v-model="filters.keyword"
-            placeholder="搜索日志关键词..."
-            class="search-input"
-            @input="debouncedFilter"
-          />
-          <button @click="exportLogs" class="export-button">导出日志</button>
-        </div>
-      </div>
-
-      <!-- 日志展示区 -->
       <div class="log-container">
-        <div class="metrics-visualization" v-if="metricsData.length">
-          <div class="chart-container">
-            <LineChart :data="metricsData" theme="dark" title="训练指标变化"/>
-          </div>
-        </div>
-
-        <!-- 日志列表 -->
         <div class="log-list" ref="logContainer">
           <pre class="message">{{ logs }}</pre>
           <div v-if="logs.length === 0" class="empty-state">
@@ -54,10 +23,8 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref, watch} from 'vue'
+import {onMounted, onUnmounted, reactive, ref, watch} from 'vue'
 import {BasicModal, useModalInner} from '@/components/Modal'
-import LineChart from '../LineChart/index.vue'
-import {debounce} from 'lodash-es'
 import {getTrainingDetail} from '@/api/device/model'
 
 const state = reactive({
@@ -79,51 +46,7 @@ const [registerModal, {closeModal}] = useModalInner((data) => {
 
 // 日志数据
 const logs = ref<Array<any>>([])
-// 筛选条件
-const filters = reactive({
-  level: 'all',
-  keyword: ''
-})
-// 指标数据（用于可视化）
-const metricsData = ref<Array<any>>([])
 const logContainer = ref<HTMLElement | null>(null)
-
-// 筛选后的日志
-const filteredLogs = computed(() => {
-  return logs.value.filter(log => {
-    const levelMatch = filters.level === 'all' || log.level === filters.level
-    const keywordMatch = !filters.keyword ||
-      log.message.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-      (log.metrics && Object.keys(log.metrics).some(key =>
-          key.toLowerCase().includes(filters.keyword.toLowerCase()))
-      )
-    return levelMatch && keywordMatch
-  })
-})
-
-// 防抖搜索
-const debouncedFilter = debounce(() => {
-  // 实际过滤由computed属性处理
-}, 300)
-
-// 导出日志
-const exportLogs = () => {
-  const content = logs.value.map(log =>
-    `${log.timestamp} [${log.level.toUpperCase()}] ${log.message}` +
-    (log.metrics ? ` | METRICS: ${JSON.stringify(log.metrics)}` : '')
-  ).join('\n')
-
-  const blob = new Blob([content], {type: 'text/plain'})
-  const url = URL.createObjectURL(blob)
-
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${state.taskName}_logs_${new Date().toISOString().slice(0, 10)}.txt`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
 
 // 加载日志数据
 const loadLogs = async () => {
@@ -153,20 +76,39 @@ const loadLogs = async () => {
 // 滚动到底部
 const scrollToBottom = () => {
   if (logContainer.value) {
+    // 增加延迟确保DOM更新完成
     setTimeout(() => {
-      logContainer.value!.scrollTop = logContainer.value!.scrollHeight
+      if (logContainer.value) {
+        logContainer.value.scrollTop = logContainer.value.scrollHeight
+      }
     }, 100)
   }
 }
+
+// 监听日志变化，自动滚动到底部
+watch(() => logs.value, () => {
+  scrollToBottom()
+}, {deep: true})
 
 // 监听taskId变化
 watch(() => state.taskId, (newId) => {
   if (newId) loadLogs()
 })
 
+// 组件挂载时加载日志
 onMounted(() => {
   if (state.taskId) {
     loadLogs()
+  }
+})
+
+// 组件卸载时重置状态
+onUnmounted(() => {
+  // 清空日志数据
+  logs.value = []
+  // 重置滚动容器
+  if (logContainer.value) {
+    logContainer.value.scrollTop = 0
   }
 })
 </script>
@@ -272,6 +214,7 @@ onMounted(() => {
   width: 8px;
   background: #1a1a1a;
 }
+
 .log-list::-webkit-scrollbar-thumb {
   background: #3b82f6;
   border-radius: 4px;
