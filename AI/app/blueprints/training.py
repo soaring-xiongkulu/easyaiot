@@ -381,6 +381,63 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 device=device,
                 save_period=5
             )
+
+            # 解析训练结果（results.csv），并人性化的保存到日志中
+            results_csv_path = os.path.join(model_dir, 'train_results', 'results.csv')
+            if os.path.exists(results_csv_path):
+                import pandas as pd
+                try:
+                    # 读取CSV文件
+                    df = pd.read_csv(results_csv_path)
+                    
+                    # 生成人性化的训练报告
+                    log_lines = ["\n=== 训练结果概览 ==="]
+                    log_lines.append(f"总共完成 {len(df)} 个epochs")
+                    
+                    if not df.empty:
+                        last_epoch = df.iloc[-1]
+                        log_lines.append("\n--- 最终训练指标 ---")
+                        log_lines.append(f"Epoch: {last_epoch.get('epoch', 'N/A')}")
+                        log_lines.append(f"训练损失: {last_epoch.get('train/box_loss', 'N/A'):.6f} (边界框), "
+                                        f"{last_epoch.get('train/cls_loss', 'N/A'):.6f} (分类), "
+                                        f"{last_epoch.get('train/dfl_loss', 'N/A'):.6f} (分布焦点)")
+                        log_lines.append(f"验证损失: {last_epoch.get('val/box_loss', 'N/A'):.6f} (边界框), "
+                                        f"{last_epoch.get('val/cls_loss', 'N/A'):.6f} (分类), "
+                                        f"{last_epoch.get('val/dfl_loss', 'N/A'):.6f} (分布焦点)")
+                        
+                        # mAP指标
+                        log_lines.append("\n--- 模型性能指标 (mAP) ---")
+                        log_lines.append(f"mAP@0.5: {last_epoch.get('metrics/mAP50(B)', 'N/A'):.4f}")
+                        log_lines.append(f"mAP@0.5:0.95: {last_epoch.get('metrics/mAP50-95(B)', 'N/A'):.4f}")
+                        
+                        # 精确度和召回率
+                        log_lines.append("\n--- 精确度与召回率 ---")
+                        log_lines.append(f"精确度(Precision): {last_epoch.get('metrics/Precision(B)', 'N/A'):.4f}")
+                        log_lines.append(f"召回率(Recall): {last_epoch.get('metrics/Recall(B)', 'N/A'):.4f}")
+                        log_lines.append(f"F1-Score: {last_epoch.get('metrics/F1(B)', 'N/A'):.4f}")
+                        
+                        # 训练时间信息
+                        if 'elapsed_time' in df.columns:
+                            total_time = df['elapsed_time'].sum()
+                            log_lines.append(f"\n--- 训练时间统计 ---")
+                            log_lines.append(f"总训练时间: {total_time:.2f} 秒")
+                            log_lines.append(f"平均每个epoch耗时: {total_time/len(df):.2f} 秒")
+                        
+                        # 最佳模型信息
+                        if 'metrics/mAP50(B)' in df.columns:
+                            best_map50 = df['metrics/mAP50(B)'].max()
+                            best_epoch = df['metrics/mAP50(B)'].idxmax()
+                            log_lines.append(f"\n--- 最佳模型信息 ---")
+                            log_lines.append(f"最佳mAP@0.5: {best_map50:.4f} (在epoch {best_epoch})")
+                    
+                    log_lines.append("\n=== 训练结果解析完成 ===\n")
+                    update_log_local("\n".join(log_lines))
+                    
+                except Exception as e:
+                    update_log_local(f"解析训练结果时出错: {str(e)}")
+            else:
+                update_log_local("未找到训练结果文件 results.csv")
+
             update_log_local("模型训练完成!")
             update_log_local(f"训练结果保存路径: {os.path.join(model_dir, 'train_results')}")
 
