@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask import render_template
 from sqlalchemy import desc
 
+from app.blueprints.training import training_status, training_processes
 from models import db, Model, TrainingRecord, ExportRecord
 
 training_record_bp = Blueprint('training_record', __name__, url_prefix='/training')
@@ -59,10 +60,13 @@ def training_records():
                 'model_id': record.model_id,
                 'model_name': record.model.name if record.model else '',
                 'dataset_path': record.dataset_path,
+                'hyperparameters': record.hyperparameters,
                 'start_time': record.start_time.isoformat() if record.start_time else None,
+                'progress': record.progress,
                 'end_time': record.end_time.isoformat() if record.end_time else None,
                 'status': record.status,
-                'metrics': record.metrics_path
+                'metrics_path': record.metrics_path,
+                'train_results_path': record.train_results_path,
             })
 
         return jsonify({
@@ -84,16 +88,46 @@ def training_records():
             'msg': '服务器内部错误'
         }), 500
 
-
 # 训练记录详情
 @training_record_bp.route('/<int:record_id>')
 def training_detail(record_id):
-    record = TrainingRecord.query.get_or_404(record_id)
-    exports = ExportRecord.query.filter_by(model_id=record.model_id).all()
+    try:
+        # 根据ID查询训练记录
+        record = TrainingRecord.query.get(record_id)
+        if not record:
+            return jsonify({
+                'code': 404,
+                'msg': f'训练记录ID {record_id} 不存在'
+            }), 404
 
-    return render_template('training_detail.html',
-                           record=record,
-                           exports=exports)
+        # 构建响应数据
+        data = {
+            'id': record.id,
+            'model_id': record.model_id,
+            'model_name': record.model.name if record.model else '',
+            'dataset_path': record.dataset_path,
+            'hyperparameters': record.hyperparameters,
+            'start_time': record.start_time.isoformat() if record.start_time else None,
+            'end_time': record.end_time.isoformat() if record.end_time else None,
+            'status': record.status,
+            'progress': record.progress,
+            'metrics_path': record.metrics_path,
+            'train_log': record.train_log,
+            'checkpoint_dir': record.checkpoint_dir
+        }
+
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': data
+        })
+
+    except Exception as e:
+        logger.error(f'获取训练记录详情失败: {str(e)}')
+        return jsonify({
+            'code': 500,
+            'msg': '服务器内部错误'
+        }), 500
 
 
 # 创建训练记录
@@ -202,6 +236,9 @@ def delete_training(record_id):
     try:
         record = TrainingRecord.query.get_or_404(record_id)
 
+        # 清理全局训练状态
+        cleanup_training_status(record.model_id)
+
         # 删除关联文件
         if os.path.exists(record.train_log):
             os.remove(record.train_log)
@@ -228,3 +265,76 @@ def delete_training(record_id):
             'code': 500,
             'msg': '服务器内部错误'
         }), 500
+
+
+# 发布训练记录为正式模型
+@training_record_bp.route('/publish/<int:record_id>', methods=['POST'])
+def publish_training_record(record_id):
+    try:
+        # 获取训练记录
+        record = TrainingRecord.query.get_or_404(record_id)
+
+        # 验证训练记录状态
+        if record.status != 'completed':
+            return jsonify({
+                'code': 400,
+                'msg': '只有状态为"completed"的训练记录才能发布为正式模型'
+            }), 400
+
+        # 验证模型路径是否存在
+        if not record.minio_model_path:
+            return jsonify({
+                'code': 400,
+                'msg': '训练记录没有有效的模型路径'
+            }), 400
+
+        # 获取关联的模型
+        model = Model.query.get_or_404(record.model_id)
+
+        # 更新模型的模型路径
+        model.model_path = record.minio_model_path
+        model.updated_at = datetime.utcnow()
+
+        # 创建版本号 (格式: V年.月.序号)
+        today = datetime.utcnow()
+        year_month = today.strftime("%Y.%m")
+
+        # 查找该模型本月已有的发布次数
+        publish_count = TrainingRecord.query.filter(
+            TrainingRecord.model_id == model.id,
+            db.func.extract('year', TrainingRecord.end_time) == today.year,
+            db.func.extract('month', TrainingRecord.end_time) == today.month,
+            TrainingRecord.status == 'completed'
+        ).count()
+
+        # 生成新版本号 (格式: V年.月.序号)
+        model.version = f"V{year_month}.{publish_count + 1}"
+
+        db.session.commit()
+
+        return jsonify({
+            'code': 0,
+            'msg': '模型发布成功',
+            'data': {
+                'model_id': model.id,
+                'model_path': model.model_path,
+                'version': model.version
+            }
+        })
+
+    except Exception as e:
+        logger.error(f'发布训练记录失败: {str(e)}')
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': '服务器内部错误'
+        }), 500
+
+def cleanup_training_status(model_id):
+    """清理与模型关联的全局训练状态"""
+    if model_id in training_status:
+        del training_status[model_id]  # 删除状态字典中的条目
+    if model_id in training_processes:
+        # 若存在训练进程，尝试终止（此处需根据实际训练框架补充终止逻辑）
+        # 例如：training_processes[model_id].terminate()
+        del training_processes[model_id]

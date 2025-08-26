@@ -32,15 +32,17 @@ class Model(db.Model):
 class TrainingRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=False)
+    progress = db.Column(db.Integer, default=0)
     dataset_path = db.Column(db.String(200), nullable=False)
     hyperparameters = db.Column(db.Text)
     start_time = db.Column(db.DateTime, default=datetime.utcnow)
     end_time = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(20), default='running')
-    train_log = db.Column(db.String(500), nullable=False)
+    train_log = db.Column(db.Text, nullable=False)
     checkpoint_dir = db.Column(db.String(500), nullable=False)
     metrics_path = db.Column(db.Text)
     minio_model_path = db.Column(db.String(500))
+    train_results_path = db.Column(db.String(500))
 
 class ExportRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
