@@ -140,7 +140,7 @@ export function getBasicColumns(): BasicColumn[] {
     {
       title: '操作',
       dataIndex: 'action',
-      width: 90,
+      width: 120,
     },
   ];
 }
