@@ -19,11 +19,6 @@ training_bp = Blueprint('training', __name__)
 training_status = {}
 training_processes = {}
 
-# 日志缓冲区，用于批量提交
-log_buffer = {}
-buffer_lock = threading.Lock()
-BUFFER_FLUSH_INTERVAL = 5  # 每5秒刷新一次缓冲区
-BUFFER_MAX_SIZE = 10  # 缓冲区最大日志条数
 
 @training_bp.route('/<int:model_id>/train', methods=['POST'])
 def api_start_training(model_id):
@@ -155,51 +150,8 @@ def api_train_status(model_id):
     update_log(f"返回训练状态: {status}", model_id)
     return jsonify({'status': status, 'code': 0, 'msg': '没有正在进行的训练'}), 200
 
-def flush_log_buffer():
-    """定期刷新日志缓冲区到数据库"""
-    with buffer_lock:
-        global log_buffer
-        if not log_buffer:
-            return
 
-        try:
-            for record_id, log_data in log_buffer.items():
-                training_record = TrainingRecord.query.get(record_id)
-                if training_record:
-                    # 截断日志以避免超出字段长度限制
-                    max_log_length = 65535  # 根据您的数据库字段调整
-                    if len(log_data['log']) > max_log_length:
-                        log_data['log'] = log_data['log'][-max_log_length:]
-
-                    training_record.train_log = log_data['log']
-                    if 'progress' in log_data:
-                        training_record.progress = log_data['progress']
-
-            db.session.commit()
-            log_buffer = {}
-        except SQLAlchemyError as e:
-            print(f"刷新日志缓冲区失败: {str(e)}")
-            db.session.rollback()
-        except Exception as e:
-            print(f"刷新日志缓冲区时发生未知错误: {str(e)}")
-            db.session.rollback()
-
-
-# 启动定时刷新线程
-def start_log_flusher():
-    """启动日志缓冲区刷新线程"""
-    def flusher():
-        while True:
-            threading.Event().wait(BUFFER_FLUSH_INTERVAL)
-            flush_log_buffer()
-
-    flusher_thread = threading.Thread(target=flusher, daemon=True)
-    flusher_thread.start()
-
-# 在应用启动时启动刷新线程
-start_log_flusher()
-
-def update_log(message, model_id=None, progress=None, training_record=None, immediate=False):
+def update_log(message, model_id=None, progress=None, training_record=None):
     """统一的日志记录函数"""
     log_message = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}"
     print(log_message)
@@ -212,19 +164,13 @@ def update_log(message, model_id=None, progress=None, training_record=None, imme
 
     # 如果提供了training_record，更新数据库记录
     if training_record is not None:
-        record_id = training_record.id
-
-        with buffer_lock:
-            if record_id not in log_buffer:
-                log_buffer[record_id] = {'log': training_record.train_log or ''}
-
-            log_buffer[record_id]['log'] += log_message + '\n'
-            if progress is not None:
-                log_buffer[record_id]['progress'] = progress
-
-            # 如果立即提交或缓冲区已满，则刷新
-            if immediate or len(log_buffer[record_id]['log'].split('\n')) >= BUFFER_MAX_SIZE:
-                flush_log_buffer()
+        training_record.train_log += log_message + '\n'
+        if progress is not None:
+            training_record.progress = progress
+        try:
+            db.session.commit()
+        except Exception as e:
+            print(f"数据库提交失败: {str(e)}")
 
 
 def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
@@ -242,22 +188,22 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             training_record = TrainingRecord.query.get(record_id)
 
             # 更新日志函数
-            def update_log_local(message, progress=None, immediate=False):
-                update_log(message, model_id, progress, training_record, immediate)
+            def update_log_local(message, progress=None):
+                update_log(message, model_id, progress, training_record)
 
-            update_log_local(f"开始准备训练数据，项目ID: {model_id}", immediate=True)
+            update_log_local(f"开始准备训练数据，项目ID: {model_id}")
 
             # 获取项目信息
             model = Model.query.get(model_id)
             if not model:
                 error_msg = "项目不存在"
-                update_log_local(error_msg, immediate=True)
+                update_log_local(error_msg)
                 training_record.status = 'error'
                 training_record.error_log = error_msg
                 db.session.commit()
                 raise Exception(error_msg)
 
-            update_log_local(f"获取项目信息成功，项目名称: {model.name}", immediate=True)
+            update_log_local(f"获取项目信息成功，项目名称: {model.name}")
 
             # 检查是否应该停止训练
             if training_status.get(model_id, {}).get('stop_requested'):
@@ -268,7 +214,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     'progress': 0,
                     'log': training_status[model_id].get('log', '') + log_msg + '\n'
                 }
-                update_log_local(log_msg, immediate=True)
+                update_log_local(log_msg)
                 return
 
             # data/datasets/123/
@@ -291,11 +237,11 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 # 更新训练记录中的数据集路径
                 training_record.dataset_path = data_yaml_path
                 db.session.commit()
-                update_log_local(f"数据集验证成功，路径已更新: {data_yaml_path}", immediate=True)
+                update_log_local(f"数据集验证成功，路径已更新: {data_yaml_path}")
 
-            update_log_local(f"项目目录: {model_dir}", immediate=True)
-            update_log_local(f"数据配置文件路径: {data_yaml_path}", immediate=True)
-            update_log_local("检查数据集配置文件...", immediate=True)
+            update_log_local(f"项目目录: {model_dir}")
+            update_log_local(f"数据配置文件路径: {data_yaml_path}")
+            update_log_local("检查数据集配置文件...")
 
             # 数据集不存在处理逻辑
             dataset_downloaded = False
@@ -305,7 +251,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     'message': '正在下载数据集...',
                     'progress': 5
                 })
-                update_log_local(log_msg, progress=5, immediate=True)
+                update_log_local(log_msg, progress=5)
 
                 # 确保数据集目录存在
                 os.makedirs(model_dir, exist_ok=True)
@@ -328,26 +274,26 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     local_zip_path = os.path.join(model_dir, 'dataset.zip')
 
                     # Minio下载（使用解析出的bucket和object）
-                    update_log_local(f"从Minio下载数据集: bucket={bucket_name}, object={object_key}", immediate=True)
+                    update_log_local(f"从Minio下载数据集: bucket={bucket_name}, object={object_key}")
                     if ModelService.download_from_minio(
                             bucket_name=bucket_name,  # 使用解析出的bucket
                             object_name=object_key,  # 使用prefix参数值
                             destination_path=local_zip_path
                     ):
-                        update_log_local("数据集下载成功，开始解压...", immediate=True)
+                        update_log_local("数据集下载成功，开始解压...")
 
                         # 解压数据集
                         if ModelService.extract_zip(local_zip_path, model_dir):
-                            update_log_local("数据集解压成功", immediate=True)
+                            update_log_local("数据集解压成功")
                             # 删除压缩包释放空间
                             os.remove(local_zip_path)
-                            update_log_local("已清理临时压缩文件", immediate=True)
+                            update_log_local("已清理临时压缩文件")
                         else:
-                            update_log_local("数据集解压失败", immediate=True)
+                            update_log_local("数据集解压失败")
                     else:
-                        update_log_local("数据集下载失败", immediate=True)
+                        update_log_local("数据集下载失败")
                 else:
-                    update_log_local("未提供数据集Minio路径，无法下载", immediate=True)
+                    update_log_local("未提供数据集Minio路径，无法下载")
 
             # 检查是否应该停止训练
             if training_status.get(model_id, {}).get('stop_requested'):
@@ -358,13 +304,13 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     'progress': 0,
                     'log': training_status[model_id].get('log', '') + log_msg + '\n'
                 }
-                update_log_local(log_msg, immediate=True)
+                update_log_local(log_msg)
                 return
 
             # 检查data.yaml文件是否存在
             if not os.path.exists(data_yaml_path):
                 error_msg = "数据集配置文件不存在"
-                update_log_local(error_msg, immediate=True)
+                update_log_local(error_msg)
                 training_record.status = 'error'
                 training_record.error_log = error_msg
                 db.session.commit()
@@ -375,13 +321,13 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 'message': '加载预训练模型...',
                 'progress': 10
             })
-            update_log_local("加载预训练YOLOv8模型...", progress=10, immediate=True)
+            update_log_local("加载预训练YOLOv8模型...", progress=10)
 
             # 开始训练
             model_path = os.path.join(get_project_root(), model_arch)
-            update_log_local(f"尝试加载预训练模型: {model_path}", immediate=True)
+            update_log_local(f"尝试加载预训练模型: {model_path}")
             model = YOLO(model_path)
-            update_log_local(f"预训练模型加载成功! 模型路径: {model_path}", immediate=True)
+            update_log_local(f"预训练模型加载成功! 模型路径: {model_path}")
 
             # 保存模型引用以便可能的停止操作
             training_processes[model_id] = model
@@ -392,30 +338,30 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 'message': '正在训练模型...',
                 'progress': 15
             })
-            update_log_local(f"开始训练模型，共{epochs}个epochs...", progress=15, immediate=True)
+            update_log_local(f"开始训练模型，共{epochs}个epochs...", progress=15)
 
             # 训练模型
             update_log_local(
-                f"开始训练模型，配置: 数据文件={data_yaml_path}, epochs={epochs}, 图像尺寸={img_size}x{img_size}, 批次大小={batch_size}", immediate=True)
+                f"开始训练模型，配置: 数据文件={data_yaml_path}, epochs={epochs}, 图像尺寸={img_size}x{img_size}, 批次大小={batch_size}")
 
             # 在训练函数开始处添加GPU状态检查
             gpu_status = check_gpu_status()
-            update_log_local(f"GPU状态检查: {json.dumps(gpu_status, indent=2)}", immediate=True)
+            update_log_local(f"GPU状态检查: {json.dumps(gpu_status, indent=2)}")
 
             # 确定训练设备
             if use_gpu:
                 if torch.cuda.is_available():
                     device = 0
-                    update_log_local(f"使用GPU进行训练: {torch.cuda.get_device_name(0)}", immediate=True)
+                    update_log_local(f"使用GPU进行训练: {torch.cuda.get_device_name(0)}")
                 else:
                     device = 'cpu'
-                    update_log_local("警告: 请求使用GPU，但CUDA不可用。使用CPU进行训练。", immediate=True)
+                    update_log_local("警告: 请求使用GPU，但CUDA不可用。使用CPU进行训练。")
                     # 记录详细原因
                     update_log_local(
-                        f"可能的原因: PyTorch版本={torch.__version__}, CUDA编译版本={getattr(torch.version, 'cuda', '未知')}", immediate=True)
+                        f"可能的原因: PyTorch版本={torch.__version__}, CUDA编译版本={getattr(torch.version, 'cuda', '未知')}")
             else:
                 device = 'cpu'
-                update_log_local("使用CPU进行训练", immediate=True)
+                update_log_local("使用CPU进行训练")
 
             # 设置检查点目录
             checkpoint_dir = os.path.join(model_dir, 'train_results', 'checkpoints')
@@ -450,12 +396,12 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 if csv_success:
                     # 构建可访问的URL路径供后续使用，参照png的处理方式
                     accessible_csv_url = f"/api/v1/buckets/model-train/objects/download?prefix={minio_csv_path}"
-                    update_log_local(f"训练结果CSV已上传至Minio: {accessible_csv_url}", immediate=True)
+                    update_log_local(f"训练结果CSV已上传至Minio: {accessible_csv_url}")
                     training_record.metrics_path = accessible_csv_url
                 else:
-                    update_log_local("训练结果CSV上传Minio失败，请检查日志", immediate=True)
+                    update_log_local("训练结果CSV上传Minio失败，请检查日志")
             else:
-                update_log_local("未找到训练结果CSV文件", immediate=True)
+                update_log_local("未找到训练结果CSV文件")
 
             # 存储results.png（上传Minio），然后路径存到数据库train_results_path
             results_png_path = os.path.join(model_dir, 'train_results', 'results.png')
@@ -471,12 +417,12 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 if png_success:
                     # 构建可访问的URL路径供后续使用
                     accessible_url = f"/api/v1/buckets/model-train/objects/download?prefix={minio_png_path}"
-                    update_log_local(f"训练结果图表已上传至Minio: {accessible_url}", immediate=True)
+                    update_log_local(f"训练结果图表已上传至Minio: {accessible_url}")
                     training_record.train_results_path = accessible_url
                 else:
-                    update_log_local("训练结果图表上传Minio失败，请检查日志", immediate=True)
+                    update_log_local("训练结果图表上传Minio失败，请检查日志")
             else:
-                update_log_local("未找到训练结果图表文件", immediate=True)
+                update_log_local("未找到训练结果图表文件")
 
             # 检查是否应该停止训练
             if training_status.get(model_id, {}).get('stop_requested'):
@@ -487,7 +433,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     'progress': 0,
                     'log': training_status[model_id].get('log', '') + log_msg + '\n'
                 }
-                update_log_local(log_msg, immediate=True)
+                update_log_local(log_msg)
                 return
 
             # 更新训练状态 - 训练完成
@@ -496,17 +442,17 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 'message': '训练完成，正在保存结果...',
                 'progress': 90
             })
-            update_log_local("训练完成，正在保存结果...", progress=90, immediate=True)
+            update_log_local("训练完成，正在保存结果...", progress=90)
 
-            update_log_local("模型训练完成!", immediate=True)
-            update_log_local(f"训练结果保存路径: {os.path.join(model_dir, 'train_results')}", immediate=True)
+            update_log_local("模型训练完成!")
+            update_log_local(f"训练结果保存路径: {os.path.join(model_dir, 'train_results')}")
 
             # 保存最佳模型
             best_model_path = os.path.join(model_dir, 'train_results', 'weights', 'best.pt')
-            update_log_local(f"检查最佳模型文件是否存在: {best_model_path}", immediate=True)
+            update_log_local(f"检查最佳模型文件是否存在: {best_model_path}")
 
             if os.path.exists(best_model_path):
-                update_log_local(f"找到最佳模型文件，开始复制到保存目录: {best_model_path}", immediate=True)
+                update_log_local(f"找到最佳模型文件，开始复制到保存目录: {best_model_path}")
 
                 # 将最佳模型复制到模型存储目录
                 model_save_dir = os.path.join(current_app.root_path, 'static', 'models', str(model_id), 'train', 'weights')
@@ -514,7 +460,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 local_model_path = os.path.join(model_save_dir, 'best.pt')
                 shutil.copy(best_model_path, local_model_path)
 
-                update_log_local(f"模型文件已成功复制到保存目录: {model_save_dir}", immediate=True)
+                update_log_local(f"模型文件已成功复制到保存目录: {model_save_dir}")
 
                 # 更新项目信息
                 model.model_path = local_model_path
@@ -522,7 +468,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 db.session.commit()
 
                 # ================= Minio上传功能 =================
-                update_log_local("开始上传最佳模型到Minio...", progress=95, immediate=True)
+                update_log_local("开始上传最佳模型到Minio...", progress=95)
 
                 # 上传最佳模型
                 minio_model_path = f"models/model_{model_id}/train_{training_record.id}/best.pt"
@@ -535,10 +481,10 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 if model_success:
                     # 构建可访问的URL路径供后续使用
                     accessible_model_url = f"/api/v1/buckets/models/objects/download?prefix={minio_model_path}"
-                    update_log_local(f"模型已成功上传至Minio: {accessible_model_url}", immediate=True)
+                    update_log_local(f"模型已成功上传至Minio: {accessible_model_url}")
                     training_record.minio_model_path = accessible_model_url  # 保存URL而不是路径
                 else:
-                    update_log_local("模型上传Minio失败，请检查日志", immediate=True)
+                    update_log_local("模型上传Minio失败，请检查日志")
 
                 # 上传训练日志，参照results.png的写法
                 log_content = training_record.train_log
@@ -556,10 +502,10 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 if log_success:
                     # 构建可访问的URL路径供后续使用，参照results.png的URL结构
                     accessible_log_url = f"/api/v1/buckets/log-bucket/objects/download?prefix={minio_log_path}"
-                    update_log_local(f"训练日志已上传至Minio: {accessible_log_url}", immediate=True)
+                    update_log_local(f"训练日志已上传至Minio: {accessible_log_url}")
                     training_record.minio_log_path = accessible_log_url  # 保存URL而不是路径
                 else:
-                    update_log_local("训练日志上传Minio失败，请检查日志", immediate=True)
+                    update_log_local("训练日志上传Minio失败，请检查日志")
                 # ================= Minio上传完成 =================
 
                 # 更新训练记录中的本地模型路径
@@ -567,7 +513,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
 
             else:
                 error_msg = "未找到训练完成的最佳模型文件"
-                update_log_local(error_msg, immediate=True)
+                update_log_local(error_msg)
                 training_record.status = 'error'
                 training_record.error_log = error_msg
                 db.session.commit()
@@ -585,7 +531,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             training_record.end_time = datetime.utcnow()
             training_record.progress = 100
             db.session.commit()
-            update_log_local("模型训练完成并已保存", progress=100, immediate=True)
+            update_log_local("模型训练完成并已保存", progress=100)
 
     except Exception as e:
         from run import create_app
