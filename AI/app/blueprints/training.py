@@ -577,19 +577,21 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
 
                 # 上传最佳模型
                 minio_model_path = f"models/model_{model_id}/train_{training_record.id}/best.pt"
-                minio_success = ModelService.upload_to_minio(
-                    bucket_name="model-bucket",
+                model_success = ModelService.upload_to_minio(
+                    bucket_name="models",
                     object_name=minio_model_path,
                     file_path=local_model_path
                 )
 
-                if minio_success:
-                    update_log_local(f"模型已成功上传至Minio: {minio_model_path}")
-                    training_record.minio_model_path = minio_model_path
+                if model_success:
+                    # 构建可访问的URL路径供后续使用
+                    accessible_model_url = f"/api/v1/buckets/models/objects/download?prefix={minio_model_path}"
+                    update_log_local(f"模型已成功上传至Minio: {accessible_model_url}")
+                    training_record.minio_model_path = accessible_model_url  # 保存URL而不是路径
                 else:
                     update_log_local("模型上传Minio失败，请检查日志")
 
-                # 上传训练日志
+                # 上传训练日志，参照results.png的写法
                 log_content = training_record.train_log
                 log_path = os.path.join(model_save_dir, f"training_log_{training_record.id}.txt")
                 with open(log_path, 'w') as f:
@@ -603,8 +605,10 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 )
 
                 if log_success:
-                    update_log_local(f"训练日志已上传至Minio: {minio_log_path}")
-                    training_record.minio_log_path = minio_log_path
+                    # 构建可访问的URL路径供后续使用，参照results.png的URL结构
+                    accessible_log_url = f"/api/v1/buckets/log-bucket/objects/download?prefix={minio_log_path}"
+                    update_log_local(f"训练日志已上传至Minio: {accessible_log_url}")
+                    training_record.minio_log_path = accessible_log_url  # 保存URL而不是路径
                 else:
                     update_log_local("训练日志上传Minio失败，请检查日志")
                 # ================= Minio上传完成 =================

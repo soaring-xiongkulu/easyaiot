@@ -65,7 +65,8 @@ def training_records():
                 'progress': record.progress,
                 'end_time': record.end_time.isoformat() if record.end_time else None,
                 'status': record.status,
-                'metrics': record.metrics_path
+                'metrics_path': record.metrics_path,
+                'train_results_path': record.train_results_path,
             })
 
         return jsonify({
