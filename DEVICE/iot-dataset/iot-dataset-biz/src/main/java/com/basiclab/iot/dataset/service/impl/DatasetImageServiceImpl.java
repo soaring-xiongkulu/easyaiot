@@ -433,7 +433,7 @@ public class DatasetImageServiceImpl implements DatasetImageService {
                             .contentType("application/zip")
                             .build());
 
-            return "/api/v1/buckets/" + minioBucket + "/objects/download?prefix=" + objectName;
+            return "/api/v1/buckets/" + minioDatasetsBucket + "/objects/download?prefix=" + objectName;
         } catch (Exception e) {
             throw new RuntimeException("上传ZIP到MinIO失败", e);
         }

@@ -1,229 +1,243 @@
 <template>
-  <Teleport to="body">
-    <Transition name="modal-fade">
-      <div v-if="visible" class="modal-overlay" @click.self="closeModal">
-        <div class="modal-content">
-          <!-- 头部区域 -->
-          <div class="modal-header">
-            <h3>{{ taskName }} - 训练日志</h3>
-            <button class="close-button" @click="closeModal">×</button>
+  <BasicModal
+    @register="registerModal"
+    @cancel="handleCancel"
+    :title="`${state.taskName} - 训练日志`"
+    :width="1200"
+    :canFullscreen="true"
+    :showCancelBtn="false"
+    :showOkBtn="false"
+  >
+    <div class="modal-content">
+      <div class="control-bar">
+        <div class="control-right">
+          <button class="export-button" @click="refreshLogs">刷新日志</button>
+        </div>
+      </div>
+
+      <div class="log-container">
+        <div class="log-list" ref="logContainer">
+          <div>
+            <pre class="message">{{ logs }}</pre>
           </div>
-
-          <!-- 控制栏：筛选和搜索 -->
-          <div class="control-bar">
-            <div class="filter-group">
-              <label>日志级别：</label>
-              <select v-model="filters.level">
-                <option value="all">全部</option>
-                <option value="info">信息</option>
-                <option value="warning">警告</option>
-                <option value="error">错误</option>
-              </select>
-            </div>
-
-            <div class="search-group">
-              <input
-                type="text"
-                v-model="filters.keyword"
-                placeholder="搜索日志关键词..."
-                @input="debouncedFilter"
-              />
-              <button @click="exportLogs">导出日志</button>
-            </div>
-          </div>
-
-          <!-- 日志展示区 -->
-          <div class="log-container">
-            <!-- 指标可视化 -->
-            <div class="metrics-visualization" v-if="metricsData.length">
-              <div class="chart-container">
-                <LineChart :data="metricsData" title="训练指标变化" />
-              </div>
-            </div>
-
-            <!-- 日志列表 -->
-            <div class="log-list" ref="logContainer">
-              <div
-                v-for="(log, index) in filteredLogs"
-                :key="index"
-                class="log-item"
-                :class="log.level"
-              >
-                <span class="timestamp">{{ log.timestamp }}</span>
-                <span class="level-tag" :class="log.level">{{ log.level.toUpperCase() }}</span>
-                <span class="message">{{ log.message }}</span>
-
-                <!-- 指标数据展示 -->
-                <div v-if="log.metrics" class="metrics">
-                  <span v-for="(value, key) in log.metrics" :key="key">
-                    {{ key }}: <strong>{{ value }}</strong>
-                  </span>
-                </div>
-              </div>
-            </div>
+          <div v-if="logs.length === 0" class="empty-state">
+            <i class="el-icon-document text-4xl text-blue-200 mb-2"></i>
+            <p>暂无日志数据</p>
           </div>
         </div>
       </div>
-    </Transition>
-  </Teleport>
+    </div>
+  </BasicModal>
 </template>
 
-<script setup>
-import { ref, computed, reactive, watch, onMounted } from 'vue'
-import LineChart from '../LineChart/index.vue' // 可视化图表组件
-import { debounce } from 'lodash-es'
+<script setup lang="ts">
+import {onMounted, onUnmounted, reactive, ref, watch, computed} from 'vue'
+import {BasicModal, useModalInner} from '@/components/Modal'
+import {getTrainingLogs} from '@/api/device/model'
 
-const props = defineProps({
-  visible: Boolean,
-  taskId: String,
-  taskName: String
+const state = reactive({
+  taskId: '',
+  modelId: '',
+  taskName: '',
+  pollingInterval: null as number | null
+});
+
+const emit = defineEmits(['close', 'success']);
+
+// 使用useModalInner注册模态框
+const [registerModal, {closeModal}] = useModalInner((data) => {
+  const {record} = data;
+  state.taskId = record.id;
+  state.modelId = record.model_id;
+  state.taskName = record.model_name;
+  if (record.id) {
+    startPolling();
+  }
 })
 
-const emit = defineEmits(['close'])
+const handleCancel = () => {
+  stopPolling();
+  closeModal();
+  emit('close'); // 通知父组件销毁
+};
 
-// 日志数据
-const logs = ref([])
-// 筛选条件
-const filters = reactive({
-  level: 'all',
-  keyword: ''
-})
-// 指标数据（用于可视化）
-const metricsData = ref([])
+// 日志数据和过滤
+const logs = ref<Array<any>>([])
+const filterLevel = ref('all')
+const logContainer = ref<HTMLElement | null>(null)
 
-// 筛选后的日志
+// 过滤后的日志
 const filteredLogs = computed(() => {
-  return logs.value.filter(log => {
-    // 日志级别筛选
-    const levelMatch = filters.level === 'all' || log.level === filters.level
-    // 关键词筛选
-    const keywordMatch = !filters.keyword ||
-      log.message.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-      (log.metrics && Object.keys(log.metrics).some(key =>
-          key.toLowerCase().includes(filters.keyword.toLowerCase()))
-      )
-    return levelMatch && keywordMatch
-  })
-})
+  if (filterLevel.value === 'all') {
+    return logs.value;
+  }
+  return logs.value.filter(log => log.level === filterLevel.value);
+});
 
-// 防抖搜索
-const debouncedFilter = debounce(() => {}, 300)
-
-// 关闭模态框
-const closeModal = () => {
-  emit('close')
-}
-
-// 导出日志
-const exportLogs = () => {
-  const content = logs.value.map(log =>
-    `${log.timestamp} [${log.level.toUpperCase()}] ${log.message}` +
-    (log.metrics ? ` | METRICS: ${JSON.stringify(log.metrics)}` : '')
-  ).join('\n')
-
-  const blob = new Blob([content], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${props.taskName}_logs_${new Date().toISOString().slice(0, 10)}.txt`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
+// 格式化时间戳
+const formatTimestamp = (timestamp) => {
+  if (!timestamp) return '';
+  return new Date(timestamp).toLocaleString();
+};
 
 // 加载日志数据
 const loadLogs = async () => {
   try {
-    // 模拟API请求：实际项目中替换为真实API调用
-    const response = await fetch(`/api/training/logs/${props.taskId}`)
-    const data = await response.json()
+    if (!state.modelId) return
 
-    logs.value = data.logs.map(log => ({
-      ...log,
-      timestamp: new Date(log.timestamp).toLocaleTimeString()
-    }))
+    // 使用新的训练状态接口
+    const data = await getTrainingLogs(state.modelId, state.taskId)
 
-    // 提取指标数据用于可视化
-    metricsData.value = extractMetrics(data.logs)
-  } catch (error) {
+    // 根据后端返回的数据结构调整
+    if (data) {
+      logs.value = data;
+    }
+
+    // 滚动到底部
+    scrollToBottom()
+  } catch (error: any) {
     console.error('加载日志失败:', error)
     logs.value = [{
-      timestamp: new Date().toLocaleTimeString(),
+      timestamp: new Date().toISOString(),
       level: 'error',
       message: '加载日志失败: ' + error.message
     }]
   }
 }
 
-// 从日志中提取指标数据
-const extractMetrics = (logs) => {
-  const metrics = []
+// 刷新日志
+const refreshLogs = () => {
+  loadLogs();
+};
 
-  logs.forEach(log => {
-    if (log.metrics) {
-      metrics.push({
-        timestamp: log.timestamp,
-        ...log.metrics
-      })
-    }
-  })
+// 启动轮询
+const startPolling = () => {
+  loadLogs(); // 立即加载一次
+  // 每10秒刷新一次日志
+  state.pollingInterval = window.setInterval(loadLogs, 10000);
+};
 
-  return metrics
+// 停止轮询
+const stopPolling = () => {
+  if (state.pollingInterval) {
+    clearInterval(state.pollingInterval);
+    state.pollingInterval = null;
+  }
+};
+
+// 滚动到底部
+const scrollToBottom = () => {
+  if (logContainer.value) {
+    // 增加延迟确保DOM更新完成
+    setTimeout(() => {
+      if (logContainer.value) {
+        logContainer.value.scrollTop = logContainer.value.scrollHeight
+      }
+    }, 100)
+  }
 }
 
-// 监听taskId变化
-watch(() => props.taskId, (newId) => {
-  if (newId) loadLogs()
-})
+// 监听日志变化，自动滚动到底部
+watch(() => logs.value, () => {
+  scrollToBottom()
+}, {deep: true})
 
-// 监听可见状态
-watch(() => props.visible, (visible) => {
-  if (visible && props.taskId) {
-    loadLogs()
+// 监听modelId变化
+watch(() => state.modelId, (newId) => {
+  if (newId) {
+    stopPolling();
+    startPolling();
   }
 })
+
+// 组件挂载时加载日志
+onMounted(() => {
+  if (state.modelId) {
+    startPolling();
+  }
+})
+
+// 组件卸载时重置状态
+onUnmounted(() => {
+  stopPolling();
+  logs.value = [];
+  if (logContainer.value) {
+    logContainer.value.scrollTop = 0;
+  }
+});
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+.control-bar {
+  padding: 16px 24px;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
+  background: #1e1e1e;
+  border-bottom: 1px solid #333;
 }
 
+.control-left, .control-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-label {
+  font-weight: 500;
+  color: #a0a0a0;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #2d2d2d;
+  color: #f0f0f0;
+  outline: none;
+}
+
+.export-button {
+  background: #1e3a8a;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.export-button:hover {
+  background: #3b82f6;
+}
+
+.log-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* 基础布局 */
 .modal-content {
-  background: white;
-  border-radius: 8px;
-  width: 800px;
-  max-height: 80vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  height: 100%;
+  background-color: #121212; /* 深空黑背景 */
+  color: #e0e0e0; /* 浅灰文字 */
+  font-family: 'Consolas', 'Monaco', monospace; /* 等宽字体 */
 }
 
-.modal-header {
+/* 控制栏样式 */
+.control-bar {
   padding: 16px 24px;
-  border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.control-bar {
-  padding: 12px 24px;
-  display: flex;
-  justify-content: space-between;
-  background: #f8f9fa;
-  border-bottom: 1px solid #eee;
+  background: #1e1e1e; /* 深灰背景 */
+  border-bottom: 1px solid #333;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .filter-group, .search-group {
@@ -232,13 +246,45 @@ watch(() => props.visible, (visible) => {
   gap: 12px;
 }
 
-.search-group input {
+.filter-label {
+  font-weight: 500;
+  color: #a0a0a0;
+}
+
+.filter-select, .search-input {
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #444;
   border-radius: 4px;
+  background: #2d2d2d;
+  color: #f0f0f0;
+  outline: none;
+}
+
+.search-input {
   width: 250px;
 }
 
+.search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.export-button {
+  background: #1e3a8a;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.export-button:hover {
+  background: #3b82f6;
+}
+
+/* 日志容器 */
 .log-container {
   display: flex;
   flex-direction: column;
@@ -248,92 +294,170 @@ watch(() => props.visible, (visible) => {
 
 .metrics-visualization {
   padding: 16px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #333;
   height: 250px;
+  background: #1a1a1a;
 }
 
 .chart-container {
   height: 100%;
+  background: #0a0a0a;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
+/* 日志列表 */
 .log-list {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  max-height: 50vh;
+  background: #0a0a0a;
+}
+
+.log-list::-webkit-scrollbar {
+  width: 8px;
+  background: #1a1a1a;
+}
+
+.log-list::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 4px;
 }
 
 .log-item {
-  padding: 12px;
-  border-bottom: 1px solid #f0f0f0;
-  font-family: monospace;
-  font-size: 14px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  background: #1a1a1a;
+  border-left: 3px solid transparent;
+  transition: all 0.2s;
 }
 
-.log-item.error {
-  background-color: #fff0f0;
-}
-
-.log-item.warning {
-  background-color: #fff9e6;
+.log-item:hover {
+  background: #252525;
 }
 
 .log-item.info {
-  background-color: #f0f8ff;
+  border-left-color: #3b82f6; /* 信息蓝 */
+}
+
+.log-item.warning {
+  border-left-color: #f59e0b; /* 警告黄 */
+}
+
+.log-item.error {
+  border-left-color: #ef4444; /* 错误红 */
 }
 
 .timestamp {
-  color: #666;
+  color: #9ca3af;
   margin-right: 15px;
+  font-size: 12px;
 }
 
 .level-tag {
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 4px;
-  font-size: 0.8em;
+  font-size: 0.75em;
+  font-weight: 600;
   margin-right: 10px;
 }
 
 .level-tag.info {
-  background-color: #e6f4ff;
-  color: #1890ff;
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
 }
 
 .level-tag.warning {
-  background-color: #fff7e6;
-  color: #fa8c16;
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
 }
 
 .level-tag.error {
-  background-color: #fff1f0;
-  color: #f5222d;
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.message {
+  margin: 8px 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #d4d4d4;
+  line-height: 1.5;
 }
 
 .metrics {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px dashed #eee;
-  color: #666;
+  border-top: 1px dashed #333;
+  color: #9ca3af;
   display: flex;
   gap: 15px;
+  flex-wrap: wrap;
+  font-size: 12px;
 }
 
-.close-button {
-  background: none;
-  border: none;
-  font-size: 1.5em;
-  cursor: pointer;
-  color: #999;
+.metrics strong {
+  color: #d4d4d4;
 }
 
-/* 过渡动画 */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.3s ease;
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6b7280;
+  text-align: center;
 }
 
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
+/* 响应式调整 */
+@media (max-width: 968px) {
+  .modal-content {
+    width: 95%;
+    margin: 20px auto;
+    max-height: 90vh;
+  }
+
+  .control-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .search-group {
+    width: 100%;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .metrics-visualization {
+    height: 200px;
+  }
+}
+
+@media (max-width: 640px) {
+  .control-bar {
+    padding: 12px 16px;
+  }
+
+  .log-list {
+    padding: 12px 16px;
+  }
+
+  .log-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .timestamp {
+    margin-bottom: 4px;
+  }
+
+  .metrics {
+    flex-direction: column;
+    gap: 4px;
+  }
 }
 </style>

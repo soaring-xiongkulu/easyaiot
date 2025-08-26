@@ -29,7 +29,7 @@
               },
               {
                 tooltip: {
-                  title: '训练模型',
+                  title: '部署模型',
                   placement: 'top',
                 },
                 icon: 'ant-design:experiment-outlined', // 训练图标

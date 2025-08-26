@@ -49,9 +49,17 @@
                     {{ item.description || '暂无描述' }}
                   </div>
 
-                  <!-- 优化后的按钮区域 -->
                   <div class="btns">
                     <div class="btn-group">
+                      <div class="btn" @click="handleView(item)" title="查看详情">
+                        <EyeOutlined style="font-size: 16px;"/>
+                      </div>
+                      <div class="btn" @click="handleEdit(item)" title="编辑模型">
+                        <EditOutlined style="font-size: 16px;"/>
+                      </div>
+                      <div class="btn" @click="handleDeploy(item)" title="部署模型">
+                        <ExperimentOutlined style="font-size: 16px;"/>
+                      </div>
                       <Popconfirm
                         title="是否确认删除？"
                         @confirm="handleDelete(item)"
@@ -60,18 +68,6 @@
                           <DeleteOutlined style="font-size: 16px;"/>
                         </div>
                       </Popconfirm>
-                      <div class="btn" @click="handleEdit(item)" title="编辑模型">
-                        <EditOutlined style="font-size: 16px;"/>
-                      </div>
-                      <div class="btn" @click="handleTrain(item)" title="训练模型">
-                        <ExperimentOutlined style="font-size: 16px;"/>
-                      </div>
-                      <div class="btn" @click="handleView(item)" title="查看详情">
-                        <EyeOutlined style="font-size: 16px;"/>
-                      </div>
-                    </div>
-                    <div class="btn" @click="handleDeploy(item)" title="部署模型">
-                      <CloudUploadOutlined style="font-size: 16px;"/>
                     </div>
                   </div>
                 </div>
@@ -85,20 +81,14 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue';
-import { List, Popconfirm, Spin, Tag } from 'ant-design-vue';
-import { BasicForm, useForm } from '@/components/Form';
-import { propTypes } from '@/utils/propTypes';
-import { isFunction } from '@/utils/is';
-import {
-  CloudUploadOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  ExperimentOutlined,
-  EyeOutlined
-} from '@ant-design/icons-vue';
+import {onMounted, reactive, ref} from 'vue';
+import {List, Popconfirm, Spin, Tag} from 'ant-design-vue';
+import {BasicForm, useForm} from '@/components/Form';
+import {propTypes} from '@/utils/propTypes';
+import {isFunction} from '@/utils/is';
+import {DeleteOutlined, EditOutlined, ExperimentOutlined, EyeOutlined} from '@ant-design/icons-vue';
 
-defineOptions({ name: 'ModelCardList' })
+defineOptions({name: 'ModelCardList'})
 
 const ListItem = List.Item;
 
@@ -114,7 +104,7 @@ const state = reactive({
   loading: true,
 });
 
-const [registerForm, { validate }] = useForm({
+const [registerForm, {validate}] = useForm({
   schemas: [
     {
       field: `name`,
@@ -128,8 +118,8 @@ const [registerForm, { validate }] = useForm({
     },
   ],
   labelWidth: 80,
-  baseColProps: { span: 6 },
-  actionColOptions: { span: 18 },
+  baseColProps: {span: 6},
+  actionColOptions: {span: 12},
   autoSubmitOnEnter: true,
   submitFunc: handleSubmit,
 });
@@ -145,9 +135,9 @@ async function handleSubmit() {
 }
 
 async function fetch(p = {}) {
-  const { api, params } = props;
+  const {api, params} = props;
   if (api && isFunction(api)) {
-    const res = await api({ ...params, pageNo: page.value, pageSize: pageSize.value, ...p });
+    const res = await api({...params, pageNo: page.value, pageSize: pageSize.value, ...p});
     data.value = res.data;
     total.value = res.total;
     hideLoading();
@@ -185,21 +175,31 @@ function pageSizeChange(_current: number, size: number) {
 
 function getStatusColor(status: number) {
   switch (status) {
-    case 0: return '#8c8c8c';
-    case 1: return '#52c41a';
-    case 2: return '#fa8c16';
-    case 3: return '#ff4d4f';
-    default: return '#d9d9d9';
+    case 0:
+      return '#8c8c8c';
+    case 1:
+      return '#52c41a';
+    case 2:
+      return '#fa8c16';
+    case 3:
+      return '#ff4d4f';
+    default:
+      return '#d9d9d9';
   }
 }
 
 function getStatusText(status: number) {
   switch (status) {
-    case 0: return '未部署';
-    case 1: return '已部署';
-    case 2: return '训练中';
-    case 3: return '已下线';
-    default: return '未知';
+    case 0:
+      return '未部署';
+    case 1:
+      return '已部署';
+    case 2:
+      return '训练中';
+    case 3:
+      return '已下线';
+    default:
+      return '未知';
   }
 }
 

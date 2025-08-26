@@ -108,6 +108,14 @@ export const deleteTrainingRecord = (recordId) => {
   return commonApi('delete', `${Api.TrainingRecord}/delete/${recordId}`);
 };
 
+export const publishTrainingRecord = (recordId: number) => {
+  return commonApi('post', `${Api.TrainingRecord}/publish/${recordId}`);
+};
+
+export const getTrainingLogs = (modelId, taskId) => {
+  return commonApi('get', `${Api.Training}/${modelId}/train/${taskId}/logs`);
+};
+
 // ================= 推理接口 =================
 export const runInference = (modelId, formData: FormData) => {
   return defHttp.post({

@@ -5,6 +5,16 @@
 *.log
 .idea
 
+# data
+data
+data/*
+data/**
+
+# static
+static
+static/*
+static/**
+
 # BlueJ files
 *.ctxt
 
