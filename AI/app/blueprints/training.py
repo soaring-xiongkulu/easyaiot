@@ -149,23 +149,27 @@ def api_train_status(model_id):
     update_log(f"返回训练状态: {status}", model_id)
     return jsonify({'status': status, 'code': 0, 'msg': '没有正在进行的训练'}), 200
 
-
-@training_bp.route('/<int:model_id>/train/logs')
-def api_train_log(model_id):
-    """训练日志轮询接口，直接返回内存中的日志数据"""
+@training_bp.route('/<int:model_id>/train/<int:task_id>/logs')
+def api_train_log(model_id, task_id):
+    """训练日志轮询接口，先返回内存中的日志数据，如果为空则查询数据库"""
     # 获取内存中的训练状态
-    status = training_status.get(model_id, {})
-    
+    log_content = training_status.get(model_id, {}).get('log', '') if training_status.get(model_id) else ''
+
+    # 如果缓存中日志为空，则从数据库查询最新训练记录
+    if not log_content:
+        try:
+            training_record = TrainingRecord.query.filter_by(id=task_id).first()
+            if training_record:
+                log_content = training_record.train_log or ''
+
+        except Exception as e:
+            current_app.logger.error(f"查询训练记录失败: {str(e)}")
+
     # 返回日志数据
     return jsonify({
         'success': True,
         'code': 0,
-        'data': {
-            'log': status.get('log', ''),
-            'status': status.get('status', 'idle'),
-            'progress': status.get('progress', 0),
-            'message': status.get('message', '等待开始')
-        }
+        'data': log_content
     }), 200
 
 

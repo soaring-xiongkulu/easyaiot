@@ -112,8 +112,8 @@ export const publishTrainingRecord = (recordId: number) => {
   return commonApi('post', `${Api.TrainingRecord}/publish/${recordId}`);
 };
 
-export const getTrainingLogs = (modelId) => {
-  return commonApi('get', `${Api.Training}/${modelId}/train/logs`);
+export const getTrainingLogs = (modelId, taskId) => {
+  return commonApi('get', `${Api.Training}/${modelId}/train/${taskId}/logs`);
 };
 
 // ================= 推理接口 =================

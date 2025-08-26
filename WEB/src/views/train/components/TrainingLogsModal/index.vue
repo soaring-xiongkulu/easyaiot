@@ -17,14 +17,10 @@
 
       <div class="log-container">
         <div class="log-list" ref="logContainer">
-          <div v-for="(log, index) in filteredLogs" :key="index" :class="['log-item', log.level]">
-            <div class="log-header">
-              <span class="timestamp">{{ formatTimestamp(log.timestamp) }}</span>
-              <span :class="['level-tag', log.level]">{{ log.level.toUpperCase() }}</span>
-            </div>
-            <pre class="message">{{ log.message }}</pre>
+          <div>
+            <pre class="message">{{ logs }}</pre>
           </div>
-          <div v-if="filteredLogs.length === 0" class="empty-state">
+          <div v-if="logs.length === 0" class="empty-state">
             <i class="el-icon-document text-4xl text-blue-200 mb-2"></i>
             <p>暂无日志数据</p>
           </div>
@@ -40,6 +36,7 @@ import {BasicModal, useModalInner} from '@/components/Modal'
 import {getTrainingLogs} from '@/api/device/model'
 
 const state = reactive({
+  taskId: '',
   modelId: '',
   taskName: '',
   pollingInterval: null as number | null
@@ -50,7 +47,8 @@ const emit = defineEmits(['close', 'success']);
 // 使用useModalInner注册模态框
 const [registerModal, {closeModal}] = useModalInner((data) => {
   const {record} = data;
-  state.modelId = record.id;
+  state.taskId = record.id;
+  state.modelId = record.model_id;
   state.taskName = record.model_name;
   if (record.id) {
     startPolling();
@@ -88,15 +86,11 @@ const loadLogs = async () => {
     if (!state.modelId) return
 
     // 使用新的训练状态接口
-    const response = await getTrainingLogs(state.modelId)
+    const data = await getTrainingLogs(state.modelId, state.taskId)
 
     // 根据后端返回的数据结构调整
-    // 假设后端返回 { code: 0, data: { logs: [...] } }
-    if (response.code === 0 && response.data && response.data.logs) {
-      logs.value = response.data.logs;
-    } else {
-      // 如果后端返回的数据结构不同，请根据实际情况调整
-      console.warn('日志数据结构不符合预期:', response);
+    if (data) {
+      logs.value = data;
     }
 
     // 滚动到底部
@@ -119,8 +113,8 @@ const refreshLogs = () => {
 // 启动轮询
 const startPolling = () => {
   loadLogs(); // 立即加载一次
-  // 每5秒刷新一次日志
-  state.pollingInterval = window.setInterval(loadLogs, 5000);
+  // 每10秒刷新一次日志
+  state.pollingInterval = window.setInterval(loadLogs, 10000);
 };
 
 // 停止轮询
