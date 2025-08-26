@@ -181,6 +181,54 @@ const handleLogsModalClose = () => {
   showLogsModal.value = false;
 };
 
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+
+const pollingInterval = ref<number>(3000); // 默认3秒
+const pollingTimer = ref<NodeJS.Timeout | null>(null);
+const isPollingActive = ref<boolean>(true); // 轮询开关
+
+const startPolling = async () => {
+  if (!isPollingActive.value) return;
+
+  try {
+    await reload(); // 调用表格刷新方法
+  } catch (error) {
+    console.error('轮询请求失败:', error);
+  } finally {
+    pollingTimer.value = setTimeout(startPolling, pollingInterval.value);
+  }
+};
+
+// 启动轮询
+onMounted(() => {
+  startPolling();
+});
+
+// 组件销毁时停止轮询
+onBeforeUnmount(() => {
+  if (pollingTimer.value) {
+    clearTimeout(pollingTimer.value);
+    pollingTimer.value = null;
+  }
+});
+
+// 根据训练状态动态调整轮询
+const handleStartTraining = async (config) => {
+  try {
+    await startTraining(modelId.value, config);
+    isPollingActive.value = true; // 启动新训练时开启轮询
+    reload();
+  } catch (error) {
+    createMessage.error('启动训练失败');
+  }
+};
+
+// 检查所有任务是否完成（停止轮询条件）
+const checkTrainingStatus = () => {
+  const hasRunningTasks = tableData.value.some(item => item.status === '训练中');
+  isPollingActive.value = hasRunningTasks; // 无任务时停止轮询
+};
+
 // 模态框状态
 const startModalVisible = ref(false);
 

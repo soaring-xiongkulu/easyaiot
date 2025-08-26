@@ -90,6 +90,47 @@ const scrollToBottom = () => {
   }
 }
 
+// 轮询状态管理
+const pollingTimer = ref<NodeJS.Timeout | null>(null)
+const isPollingActive = ref(true)
+let retryCount = 0
+
+const startPolling = async () => {
+  if (!isPollingActive.value) return
+  try {
+    await loadLogs()
+    retryCount = 0 // 成功时重置重试计数
+    pollingTimer.value = setTimeout(startPolling, 3000)
+  } catch (error) {
+    const backoff = Math.min(1000 * Math.pow(2, retryCount), 30000)
+    pollingTimer.value = setTimeout(startPolling, backoff)
+    retryCount++
+  }
+}
+
+// 生命周期钩子
+onMounted(() => state.taskId && startPolling())
+onUnmounted(() => {
+  if (pollingTimer.value) clearTimeout(pollingTimer.value)
+  logs.value = []
+})
+
+// 停止轮询
+const stopPolling = () => {
+  if (pollingTimer.value) {
+    clearTimeout(pollingTimer.value)
+    pollingTimer.value = null
+  }
+}
+
+// 监听任务完成状态
+watch(logs, (newLogs) => {
+  if (newLogs.some(log => log.message.includes('Training completed'))) {
+    isPollingActive.value = false
+    stopPolling()
+  }
+})
+
 // 监听日志变化，自动滚动到底部
 watch(() => logs.value, () => {
   scrollToBottom()
