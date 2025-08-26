@@ -6,6 +6,7 @@
     >
       <template #toolbar>
         <a-button type="primary" @click="openAddModal(true,{isEdit: false, isView: false})">
+          <Icon icon="ant-design:plus-circle-outlined" />
           启动新训练
         </a-button>
       </template>
@@ -24,19 +25,6 @@
                 tooltip: { title: '查看训练结果', placement: 'top' },
                 onClick: () => handleViewTrainResults(record),
                 style: 'color: #1890ff; padding: 0 8px; font-size: 16px;'
-              },
-              {
-                icon: record.status === 'running'
-                  ? 'mdi:stop-circle-outline'
-                  : 'mdi:play-circle-outline',
-                tooltip: {
-                  title: record.status === 'running' ? '停止训练' : '重新开始',
-                  placement: 'top'
-                },
-                onClick: () => toggleTrainingStatus(record),
-                style: `color: ${record.status === 'running' ? '#faad14' : '#52c41a'};
-                        padding: 0 8px;
-                        font-size: 16px;`
               },
               {
                 icon: 'mdi:cloud-upload-outline',
@@ -81,9 +69,9 @@
       :footer="null"
       width="80%"
     >
-      <img :src="currentImageUrl" style="width: 100%" v-if="currentImageUrl" />
+      <img :src="currentImageUrl" style="width: 100%" v-if="currentImageUrl"/>
       <div v-else class="text-center py-8">
-        <a-empty description="暂无训练结果图片" />
+        <a-empty description="暂无训练结果图片"/>
       </div>
     </a-modal>
   </div>
@@ -98,14 +86,14 @@ import {useModal} from '@/components/Modal';
 import {
   deleteTrainingRecord,
   getTrainingRecordPage,
-  startTraining,
-  stopTraining,
-  publishTrainingRecord // 新增API方法
+  publishTrainingRecord,
+  startTraining
 } from '@/api/device/model';
 import StartTrainingModal from '../StartTrainingModal/index.vue';
 import TrainingLogsModal from '../TrainingLogsModal/index.vue';
 import {getBasicColumns, getFormConfig} from './Data';
-import { Empty as AEmpty, Modal as AModal } from 'ant-design-vue'; // 引入新组件
+import {Empty as AEmpty, Modal as AModal} from 'ant-design-vue';
+import {Icon} from "@/components/Icon"; // 引入新组件
 
 const {createMessage} = useMessage();
 const router = useRouter();
@@ -132,7 +120,7 @@ function handleSuccess() {
 // 处理开始训练
 const handleStartTraining = async (config) => {
   try {
-    await startTraining(modelId.value, config).then((data)=>{
+    await startTraining(modelId.value, config).then((data) => {
       createMessage.success(data['msg']);
     });
     startModalVisible.value = false;
@@ -158,33 +146,15 @@ const handlePublish = async (recordId) => {
   try {
     const response = await publishTrainingRecord(recordId);
     if (response.code === 0) {
-      message.success('模型发布成功');
+      createMessage.success('模型发布成功');
       // 刷新数据
       reload();
     } else {
-      message.error(response.msg || '发布失败');
+      createMessage.error(response.msg || '发布失败');
     }
   } catch (error) {
-    message.error('发布失败');
+    createMessage.error('发布失败');
     console.error('发布失败:', error);
-  }
-};
-
-// 切换训练状态
-const toggleTrainingStatus = async (record) => {
-  try {
-    if (record.status === 'running') {
-      await stopTraining(modelId.value);
-      createMessage.success('训练已停止');
-    } else {
-      // 使用训练记录ID重新开始训练
-      await startTraining(modelId.value, { taskId: record.id });
-      createMessage.success('训练已开始');
-    }
-    reload();
-  } catch (error) {
-    createMessage.error('状态切换失败');
-    console.error('状态切换失败:', error);
   }
 };
 
@@ -203,7 +173,7 @@ const handleDelete = async (record) => {
 const handleOpenTrainingLogsModal = (record) => {
   showLogsModal.value = true;
   nextTick(() => {
-    openTrainingLogsModal(true, { record });
+    openTrainingLogsModal(true, {record});
   });
 };
 
@@ -213,7 +183,6 @@ const handleLogsModalClose = () => {
 
 // 模态框状态
 const startModalVisible = ref(false);
-const startModalTitle = ref('启动新训练');
 
 // 获取路由参数 modelId
 const modelId = ref<string>(route.params.modelId?.toString() || '');
