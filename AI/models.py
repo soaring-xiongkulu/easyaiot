@@ -42,6 +42,7 @@ class TrainingRecord(db.Model):
     checkpoint_dir = db.Column(db.String(500), nullable=False)
     metrics_path = db.Column(db.Text)
     minio_model_path = db.Column(db.String(500))
+    train_results_path = db.Column(db.String(500))
 
 class ExportRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
