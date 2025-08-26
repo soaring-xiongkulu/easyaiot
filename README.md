@@ -125,28 +125,40 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
   <img src=".image/banner/banner1010.jpg" alt="Screenshot 4" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1015.png" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1016.jpg" alt="图片1" width="49%">
+  <img src=".image/banner/banner1015.png" alt="Screenshot 5" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1016.jpg" alt="Screenshot 6" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1007.jpg" alt="Screenshot 5" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1008.jpg" alt="Screenshot 6" width="49%">
+  <img src=".image/banner/banner1007.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1008.jpg" alt="Screenshot 8" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1013.jpg" alt="图片1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1014.png" alt="图片1" width="49%">
+  <img src=".image/banner/banner1019.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1020.jpg" alt="Screenshot 8" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1011.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1012.jpg" alt="Screenshot 8" width="49%">
+  <img src=".image/banner/banner1017.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1018.jpg" alt="Screenshot 8" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1003.png" alt="Screenshot 9" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1004.png" alt="Screenshot 10" width="49%">
+  <img src=".image/banner/banner1021.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1022.jpg" alt="Screenshot 8" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1005.png" alt="Screenshot 11" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1002.png" alt="Screenshot 12" width="49%">
+  <img src=".image/banner/banner1013.jpg" alt="Screenshot 9" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1014.png" alt="Screenshot 10" width="49%">
+</div>
+<div>
+  <img src=".image/banner/banner1011.jpg" alt="Screenshot 11" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1012.jpg" alt="Screenshot 12" width="49%">
+</div>
+<div>
+  <img src=".image/banner/banner1003.png" alt="Screenshot 13" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1004.png" alt="Screenshot 14" width="49%">
+</div>
+<div>
+  <img src=".image/banner/banner1005.png" alt="Screenshot 15" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1002.png" alt="Screenshot 16" width="49%">
 </div>
 
 ## 📞 联系方式（进群必看群公告，不看真踢）
