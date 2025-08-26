@@ -120,11 +120,10 @@ function handleSuccess() {
 // 处理开始训练
 const handleStartTraining = async (config) => {
   try {
-    alert(111)
     await startTraining(modelId.value, config).then((data) => {
       createMessage.success(data['msg']);
     });
-    isPollingActive.value = true; // 启动新训练时开启轮询
+    isPollingActive.value = true;
     startModalVisible.value = false;
     reload();
   } catch (error) {
