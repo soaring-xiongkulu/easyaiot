@@ -398,23 +398,71 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                         last_epoch = df.iloc[-1]
                         log_lines.append("\n--- 最终训练指标 ---")
                         log_lines.append(f"Epoch: {last_epoch.get('epoch', 'N/A')}")
-                        log_lines.append(f"训练损失: {last_epoch.get('train/box_loss', 'N/A'):.6f} (边界框), "
-                                        f"{last_epoch.get('train/cls_loss', 'N/A'):.6f} (分类), "
-                                        f"{last_epoch.get('train/dfl_loss', 'N/A'):.6f} (分布焦点)")
-                        log_lines.append(f"验证损失: {last_epoch.get('val/box_loss', 'N/A'):.6f} (边界框), "
-                                        f"{last_epoch.get('val/cls_loss', 'N/A'):.6f} (分类), "
-                                        f"{last_epoch.get('val/dfl_loss', 'N/A'):.6f} (分布焦点)")
+
+                        # 训练损失
+                        box_loss = last_epoch.get('train/box_loss', 'N/A')
+                        cls_loss = last_epoch.get('train/cls_loss', 'N/A')
+                        dfl_loss = last_epoch.get('train/dfl_loss', 'N/A')
+                        if isinstance(box_loss, (int, float)):
+                            log_lines.append(f"训练损失: {box_loss:.6f} (边界框), ", end="")
+                        else:
+                            log_lines.append(f"训练损失: {box_loss} (边界框), ", end="")
+                        if isinstance(cls_loss, (int, float)):
+                            log_lines.append(f"{cls_loss:.6f} (分类), ", end="")
+                        else:
+                            log_lines.append(f"{cls_loss} (分类), ", end="")
+                        if isinstance(dfl_loss, (int, float)):
+                            log_lines.append(f"{dfl_loss:.6f} (分布焦点)")
+                        else:
+                            log_lines.append(f"{dfl_loss} (分布焦点)")
+                        
+                        # 验证损失
+                        val_box_loss = last_epoch.get('val/box_loss', 'N/A')
+                        val_cls_loss = last_epoch.get('val/cls_loss', 'N/A')
+                        val_dfl_loss = last_epoch.get('val/dfl_loss', 'N/A')
+                        if isinstance(val_box_loss, (int, float)):
+                            log_lines.append(f"验证损失: {val_box_loss:.6f} (边界框), ", end="")
+                        else:
+                            log_lines.append(f"验证损失: {val_box_loss} (边界框), ", end="")
+                        if isinstance(val_cls_loss, (int, float)):
+                            log_lines.append(f"{val_cls_loss:.6f} (分类), ", end="")
+                        else:
+                            log_lines.append(f"{val_cls_loss} (分类), ", end="")
+                        if isinstance(val_dfl_loss, (int, float)):
+                            log_lines.append(f"{val_dfl_loss:.6f} (分布焦点)")
+                        else:
+                            log_lines.append(f"{val_dfl_loss} (分布焦点)")
                         
                         # mAP指标
                         log_lines.append("\n--- 模型性能指标 (mAP) ---")
-                        log_lines.append(f"mAP@0.5: {last_epoch.get('metrics/mAP50(B)', 'N/A'):.4f}")
-                        log_lines.append(f"mAP@0.5:0.95: {last_epoch.get('metrics/mAP50-95(B)', 'N/A'):.4f}")
+                        map50 = last_epoch.get('metrics/mAP50(B)', 'N/A')
+                        map50_95 = last_epoch.get('metrics/mAP50-95(B)', 'N/A')
+                        if isinstance(map50, (int, float)):
+                            log_lines.append(f"mAP@0.5: {map50:.4f}")
+                        else:
+                            log_lines.append(f"mAP@0.5: {map50}")
+                        if isinstance(map50_95, (int, float)):
+                            log_lines.append(f"mAP@0.5:0.95: {map50_95:.4f}")
+                        else:
+                            log_lines.append(f"mAP@0.5:0.95: {map50_95}")
                         
                         # 精确度和召回率
                         log_lines.append("\n--- 精确度与召回率 ---")
-                        log_lines.append(f"精确度(Precision): {last_epoch.get('metrics/Precision(B)', 'N/A'):.4f}")
-                        log_lines.append(f"召回率(Recall): {last_epoch.get('metrics/Recall(B)', 'N/A'):.4f}")
-                        log_lines.append(f"F1-Score: {last_epoch.get('metrics/F1(B)', 'N/A'):.4f}")
+                        precision = last_epoch.get('metrics/Precision(B)', 'N/A')
+                        recall = last_epoch.get('metrics/Recall(B)', 'N/A')
+                        f1 = last_epoch.get('metrics/F1(B)', 'N/A')
+                        if isinstance(precision, (int, float)):
+                            log_lines.append(f"精确度(Precision): {precision:.4f}")
+                        else:
+                            log_lines.append(f"精确度(Precision): {precision}")
+                        if isinstance(recall, (int, float)):
+                            log_lines.append(f"召回率(Recall): {recall:.4f}")
+                        else:
+                            log_lines.append(f"召回率(Recall): {recall}")
+                        if isinstance(f1, (int, float)):
+                            log_lines.append(f"F1-Score: {f1:.4f}")
+                        else:
+                            log_lines.append(f"F1-Score: {f1}")
                         
                         # 训练时间信息
                         if 'elapsed_time' in df.columns:
@@ -427,8 +475,9 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                         if 'metrics/mAP50(B)' in df.columns:
                             best_map50 = df['metrics/mAP50(B)'].max()
                             best_epoch = df['metrics/mAP50(B)'].idxmax()
-                            log_lines.append(f"\n--- 最佳模型信息 ---")
-                            log_lines.append(f"最佳mAP@0.5: {best_map50:.4f} (在epoch {best_epoch})")
+                            if isinstance(best_map50, (int, float)):
+                                log_lines.append(f"\n--- 最佳模型信息 ---")
+                                log_lines.append(f"最佳mAP@0.5: {best_map50:.4f} (在epoch {best_epoch})")
                     
                     log_lines.append("\n=== 训练结果解析完成 ===\n")
                     update_log_local("\n".join(log_lines))
@@ -583,9 +632,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             training_record.end_time = datetime.utcnow()
             training_record.progress = 100
             db.session.commit()
-
             update_log_local("模型训练完成并已保存", progress=100)
-            update_log_local(f"训练流程结束，最终状态: {training_status[model_id]}")
 
     except Exception as e:
         from run import create_app
