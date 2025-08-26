@@ -6,7 +6,7 @@
     >
       <template #toolbar>
         <a-button type="primary" @click="openAddModal(true,{isEdit: false, isView: false})">
-          <Icon icon="ant-design:plus-circle-outlined" />
+          <Icon icon="ant-design:plus-circle-outlined"/>
           启动新训练
         </a-button>
       </template>
@@ -78,7 +78,7 @@
 </template>
 
 <script lang="ts" setup>
-import {nextTick, ref, watch} from 'vue';
+import {nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue';
 import {BasicTable, TableAction, useTable} from '@/components/Table';
 import {useRoute, useRouter} from 'vue-router';
 import {useMessage} from '@/hooks/web/useMessage';
@@ -145,17 +145,13 @@ const handleViewTrainResults = (record) => {
 // 发布为正式模型
 const handlePublish = async (record) => {
   try {
-    const response = await publishTrainingRecord(record.id);
-    if (response.code === 0) {
+    publishTrainingRecord(record.id).then(() => {
       createMessage.success('模型发布成功');
-      // 刷新数据
       reload();
-    } else {
-      createMessage.error(response.msg || '发布失败');
-    }
+    });
   } catch (error) {
-    createMessage.error('发布失败');
-    console.error('发布失败:', error);
+    createMessage.error('模型发布失败');
+    console.error('模型发布失败:', error);
   }
 };
 
@@ -181,8 +177,6 @@ const handleOpenTrainingLogsModal = (record) => {
 const handleLogsModalClose = () => {
   showLogsModal.value = false;
 };
-
-import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 const pollingInterval = ref<number>(10000); // 默认10秒
 const pollingTimer = ref<NodeJS.Timeout | null>(null);
