@@ -184,7 +184,7 @@ const handleLogsModalClose = () => {
 
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 
-const pollingInterval = ref<number>(3000); // 默认3秒
+const pollingInterval = ref<number>(5000); // 默认5秒
 const pollingTimer = ref<NodeJS.Timeout | null>(null);
 const isPollingActive = ref<boolean>(true); // 轮询开关
 
