@@ -9,10 +9,22 @@
     :showOkBtn="false"
   >
     <div class="modal-content">
+      <div class="control-bar">
+        <div class="control-right">
+          <button class="export-button" @click="refreshLogs">刷新日志</button>
+        </div>
+      </div>
+
       <div class="log-container">
         <div class="log-list" ref="logContainer">
-          <pre class="message">{{ logs }}</pre>
-          <div v-if="logs.length === 0" class="empty-state">
+          <div v-for="(log, index) in filteredLogs" :key="index" :class="['log-item', log.level]">
+            <div class="log-header">
+              <span class="timestamp">{{ formatTimestamp(log.timestamp) }}</span>
+              <span :class="['level-tag', log.level]">{{ log.level.toUpperCase() }}</span>
+            </div>
+            <pre class="message">{{ log.message }}</pre>
+          </div>
+          <div v-if="filteredLogs.length === 0" class="empty-state">
             <i class="el-icon-document text-4xl text-blue-200 mb-2"></i>
             <p>暂无日志数据</p>
           </div>
@@ -23,13 +35,14 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, onUnmounted, reactive, ref, watch} from 'vue'
+import {onMounted, onUnmounted, reactive, ref, watch, computed} from 'vue'
 import {BasicModal, useModalInner} from '@/components/Modal'
-import {getTrainingDetail} from '@/api/device/model'
+import {getTrainingLogs} from '@/api/device/model'
 
 const state = reactive({
-  taskId: '',
-  taskName: ''
+  modelId: '',
+  taskName: '',
+  pollingInterval: null as number | null
 });
 
 const emit = defineEmits(['close', 'success']);
@@ -37,46 +50,86 @@ const emit = defineEmits(['close', 'success']);
 // 使用useModalInner注册模态框
 const [registerModal, {closeModal}] = useModalInner((data) => {
   const {record} = data;
-  state.taskId = record.id;
+  state.modelId = record.id;
   state.taskName = record.model_name;
   if (record.id) {
-    loadLogs()
+    startPolling();
   }
 })
 
 const handleCancel = () => {
+  stopPolling();
   closeModal();
   emit('close'); // 通知父组件销毁
 };
 
-// 日志数据
+// 日志数据和过滤
 const logs = ref<Array<any>>([])
+const filterLevel = ref('all')
 const logContainer = ref<HTMLElement | null>(null)
+
+// 过滤后的日志
+const filteredLogs = computed(() => {
+  if (filterLevel.value === 'all') {
+    return logs.value;
+  }
+  return logs.value.filter(log => log.level === filterLevel.value);
+});
+
+// 格式化时间戳
+const formatTimestamp = (timestamp) => {
+  if (!timestamp) return '';
+  return new Date(timestamp).toLocaleString();
+};
 
 // 加载日志数据
 const loadLogs = async () => {
   try {
-    if (!state.taskId) return
+    if (!state.modelId) return
 
-    // 实际API调用 - 确保路径匹配后端接口
-    const data = await getTrainingDetail(state.taskId)
+    // 使用新的训练状态接口
+    const response = await getTrainingLogs(state.modelId)
 
-    console.log('日志数据:', JSON.stringify(data['train_log']))
-
-    // 处理实际API返回的数据
-    logs.value = data['train_log']
+    // 根据后端返回的数据结构调整
+    // 假设后端返回 { code: 0, data: { logs: [...] } }
+    if (response.code === 0 && response.data && response.data.logs) {
+      logs.value = response.data.logs;
+    } else {
+      // 如果后端返回的数据结构不同，请根据实际情况调整
+      console.warn('日志数据结构不符合预期:', response);
+    }
 
     // 滚动到底部
     scrollToBottom()
   } catch (error: any) {
     console.error('加载日志失败:', error)
     logs.value = [{
-      timestamp: new Date().toLocaleTimeString(),
+      timestamp: new Date().toISOString(),
       level: 'error',
       message: '加载日志失败: ' + error.message
     }]
   }
 }
+
+// 刷新日志
+const refreshLogs = () => {
+  loadLogs();
+};
+
+// 启动轮询
+const startPolling = () => {
+  loadLogs(); // 立即加载一次
+  // 每5秒刷新一次日志
+  state.pollingInterval = window.setInterval(loadLogs, 5000);
+};
+
+// 停止轮询
+const stopPolling = () => {
+  if (state.pollingInterval) {
+    clearInterval(state.pollingInterval);
+    state.pollingInterval = null;
+  }
+};
 
 // 滚动到底部
 const scrollToBottom = () => {
@@ -95,20 +148,24 @@ watch(() => logs.value, () => {
   scrollToBottom()
 }, {deep: true})
 
-// 监听taskId变化
-watch(() => state.taskId, (newId) => {
-  if (newId) loadLogs()
+// 监听modelId变化
+watch(() => state.modelId, (newId) => {
+  if (newId) {
+    stopPolling();
+    startPolling();
+  }
 })
 
 // 组件挂载时加载日志
 onMounted(() => {
-  if (state.taskId) {
-    loadLogs()
+  if (state.modelId) {
+    startPolling();
   }
 })
 
 // 组件卸载时重置状态
 onUnmounted(() => {
+  stopPolling();
   logs.value = [];
   if (logContainer.value) {
     logContainer.value.scrollTop = 0;
@@ -117,6 +174,56 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.control-bar {
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e1e1e;
+  border-bottom: 1px solid #333;
+}
+
+.control-left, .control-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-label {
+  font-weight: 500;
+  color: #a0a0a0;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #2d2d2d;
+  color: #f0f0f0;
+  outline: none;
+}
+
+.export-button {
+  background: #1e3a8a;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.export-button:hover {
+  background: #3b82f6;
+}
+
+.log-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
 /* 基础布局 */
 .modal-content {
   display: flex;

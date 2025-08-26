@@ -19,7 +19,6 @@ training_bp = Blueprint('training', __name__)
 training_status = {}
 training_processes = {}
 
-
 @training_bp.route('/<int:model_id>/train', methods=['POST'])
 def api_start_training(model_id):
     try:
@@ -151,6 +150,25 @@ def api_train_status(model_id):
     return jsonify({'status': status, 'code': 0, 'msg': '没有正在进行的训练'}), 200
 
 
+@training_bp.route('/<int:model_id>/train/logs')
+def api_train_log(model_id):
+    """训练日志轮询接口，直接返回内存中的日志数据"""
+    # 获取内存中的训练状态
+    status = training_status.get(model_id, {})
+    
+    # 返回日志数据
+    return jsonify({
+        'success': True,
+        'code': 0,
+        'data': {
+            'log': status.get('log', ''),
+            'status': status.get('status', 'idle'),
+            'progress': status.get('progress', 0),
+            'message': status.get('message', '等待开始')
+        }
+    }), 200
+
+
 def update_log(message, model_id=None, progress=None, training_record=None):
     """统一的日志记录函数"""
     log_message = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}"
@@ -234,10 +252,8 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             all_dirs_exist = all(os.path.exists(os.path.join(model_dir, d)) for d in required_dirs)
 
             if os.path.exists(data_yaml_path) and all_dirs_exist:
-                # 更新训练记录中的数据集路径
-                training_record.dataset_path = data_yaml_path
-                db.session.commit()
-                update_log_local(f"数据集验证成功，路径已更新: {data_yaml_path}")
+                # 不再更新训练记录中的数据集路径，保持原始URL
+                update_log_local(f"数据集验证成功，使用原始路径: {dataset_zip_path}")
 
             update_log_local(f"项目目录: {model_dir}")
             update_log_local(f"数据配置文件路径: {data_yaml_path}")

@@ -126,7 +126,7 @@ def process_export_async(model_id, format, rknn_config, export_id, task_id):
             db.session.commit()
 
             if not ModelService.download_from_minio(
-                    bucket_name="model-bucket",
+                    bucket_name="model-train",
                     object_name=minio_model_path,
                     destination_path=local_pt_path
             ):
