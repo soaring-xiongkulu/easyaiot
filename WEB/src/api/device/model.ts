@@ -112,6 +112,10 @@ export const publishTrainingRecord = (recordId: number) => {
   return commonApi('post', `${Api.TrainingRecord}/publish/${recordId}`);
 };
 
+export const getTrainingLogs = (modelId) => {
+  return commonApi('get', `${Api.Training}/${modelId}/train/logs`);
+};
+
 // ================= 推理接口 =================
 export const runInference = (modelId, formData: FormData) => {
   return defHttp.post({
