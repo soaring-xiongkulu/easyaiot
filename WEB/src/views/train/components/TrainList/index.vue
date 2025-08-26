@@ -123,6 +123,7 @@ const handleStartTraining = async (config) => {
     await startTraining(modelId.value, config).then((data) => {
       createMessage.success(data['msg']);
     });
+    isPollingActive.value = true; // 启动新训练时开启轮询
     startModalVisible.value = false;
     reload();
   } catch (error) {
@@ -211,23 +212,6 @@ onBeforeUnmount(() => {
     pollingTimer.value = null;
   }
 });
-
-// 根据训练状态动态调整轮询
-const handleStartTraining = async (config) => {
-  try {
-    await startTraining(modelId.value, config);
-    isPollingActive.value = true; // 启动新训练时开启轮询
-    reload();
-  } catch (error) {
-    createMessage.error('启动训练失败');
-  }
-};
-
-// 检查所有任务是否完成（停止轮询条件）
-const checkTrainingStatus = () => {
-  const hasRunningTasks = tableData.value.some(item => item.status === '训练中');
-  isPollingActive.value = hasRunningTasks; // 无任务时停止轮询
-};
 
 // 模态框状态
 const startModalVisible = ref(false);
