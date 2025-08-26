@@ -100,7 +100,7 @@ const startPolling = async () => {
   try {
     await loadLogs()
     retryCount = 0 // 成功时重置重试计数
-    pollingTimer.value = setTimeout(startPolling, 3000)
+    pollingTimer.value = setTimeout(startPolling, 5000)
   } catch (error) {
     const backoff = Math.min(1000 * Math.pow(2, retryCount), 30000)
     pollingTimer.value = setTimeout(startPolling, backoff)
