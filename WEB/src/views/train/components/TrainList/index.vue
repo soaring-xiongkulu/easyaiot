@@ -14,21 +14,21 @@
           <TableAction
             :actions="[
               {
-                icon: 'mdi:information-outline', // 训练详情图标
-                tooltip: { title: '训练详情', placement: 'top' },
-                onClick: () => openTrainingDetail(record),
-                style: 'color: #1890ff; padding: 0 8px; font-size: 16px;'
-              },
-              {
-                icon: 'mdi:file-document-outline', // 查看日志图标
+                icon: 'mdi:file-document-outline',
                 tooltip: { title: '查看日志', placement: 'top' },
                 onClick: () => handleOpenTrainingLogsModal(record),
                 style: 'color: #1890ff; padding: 0 8px; font-size: 16px;'
               },
               {
+                icon: 'mdi:image-outline',
+                tooltip: { title: '查看训练结果', placement: 'top' },
+                onClick: () => handleViewTrainResults(record),
+                style: 'color: #1890ff; padding: 0 8px; font-size: 16px;'
+              },
+              {
                 icon: record.status === 'running'
-                  ? 'mdi:stop-circle-outline'  // 停止图标
-                  : 'mdi:play-circle-outline', // 开始图标
+                  ? 'mdi:stop-circle-outline'
+                  : 'mdi:play-circle-outline',
                 tooltip: {
                   title: record.status === 'running' ? '停止训练' : '重新开始',
                   placement: 'top'
@@ -39,7 +39,13 @@
                         font-size: 16px;`
               },
               {
-                icon: 'mdi:delete-outline', // 删除图标
+                icon: 'mdi:cloud-upload-outline',
+                tooltip: { title: '发布为正式模型', placement: 'top' },
+                onClick: () => handlePublish(record),
+                style: 'color: #1890ff; padding: 0 8px; font-size: 16px;'
+              },
+              {
+                icon: 'mdi:delete-outline',
                 tooltip: { title: '删除', placement: 'top' },
                 popConfirm: {
                   placement: 'topRight',
@@ -49,7 +55,7 @@
                 style: 'color: #ff4d4f; padding: 0 8px; font-size: 16px;'
               }
             ]"
-                  :action-style="{
+            :action-style="{
               display: 'flex',
               flexWrap: 'nowrap',
               gap: '4px',
@@ -67,6 +73,19 @@
       @success="handleSuccess"
       @close="handleLogsModalClose"
     />
+
+    <!-- 新增训练结果图片模态框 -->
+    <a-modal
+      v-model:visible="showResultsModal"
+      title="训练结果"
+      :footer="null"
+      width="80%"
+    >
+      <img :src="currentImageUrl" style="width: 100%" v-if="currentImageUrl" />
+      <div v-else class="text-center py-8">
+        <a-empty description="暂无训练结果图片" />
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -80,17 +99,21 @@ import {
   deleteTrainingRecord,
   getTrainingRecordPage,
   startTraining,
-  stopTraining
+  stopTraining,
+  publishTrainingRecord // 新增API方法
 } from '@/api/device/model';
 import StartTrainingModal from '../StartTrainingModal/index.vue';
 import TrainingLogsModal from '../TrainingLogsModal/index.vue';
 import {getBasicColumns, getFormConfig} from './Data';
+import { Empty as AEmpty, Modal as AModal } from 'ant-design-vue'; // 引入新组件
 
 const {createMessage} = useMessage();
 const router = useRouter();
 const route = useRoute();
 
 const showLogsModal = ref(false);
+const showResultsModal = ref(false); // 控制训练结果图片模态框
+const currentImageUrl = ref(''); // 当前展示的图片URL
 
 const [registerAddModel, {openModal: openAddModal}] = useModal();
 
@@ -120,13 +143,31 @@ const handleStartTraining = async (config) => {
   }
 };
 
-// 查看训练详情
-const openTrainingDetail = (record) => {
-  router.push({
-    name: 'TrainingDetail',
-    params: {id: record.task_id},
-    query: {modelId: modelId.value}
-  });
+// 查看训练结果图片
+const handleViewTrainResults = (record) => {
+  if (record.train_results_path) {
+    currentImageUrl.value = record.train_results_path;
+    showResultsModal.value = true;
+  } else {
+    createMessage.warning('此训练记录没有结果图片');
+  }
+};
+
+// 发布为正式模型
+const handlePublish = async (recordId) => {
+  try {
+    const response = await publishTrainingRecord(recordId);
+    if (response.code === 0) {
+      message.success('模型发布成功');
+      // 刷新数据
+      reload();
+    } else {
+      message.error(response.msg || '发布失败');
+    }
+  } catch (error) {
+    message.error('发布失败');
+    console.error('发布失败:', error);
+  }
 };
 
 // 切换训练状态
@@ -136,7 +177,8 @@ const toggleTrainingStatus = async (record) => {
       await stopTraining(modelId.value);
       createMessage.success('训练已停止');
     } else {
-      await startTraining(modelId.value, {taskId: record.task_id});
+      // 使用训练记录ID重新开始训练
+      await startTraining(modelId.value, { taskId: record.id });
       createMessage.success('训练已开始');
     }
     reload();
@@ -160,13 +202,13 @@ const handleDelete = async (record) => {
 
 const handleOpenTrainingLogsModal = (record) => {
   showLogsModal.value = true;
-  nextTick(() => { // 确保DOM更新后打开
+  nextTick(() => {
     openTrainingLogsModal(true, { record });
   });
 };
 
 const handleLogsModalClose = () => {
-  showLogsModal.value = false; // 触发组件销毁
+  showLogsModal.value = false;
 };
 
 // 模态框状态
