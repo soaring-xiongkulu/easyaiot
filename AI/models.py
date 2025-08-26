@@ -38,7 +38,7 @@ class TrainingRecord(db.Model):
     start_time = db.Column(db.DateTime, default=datetime.utcnow)
     end_time = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(20), default='running')
-    train_log = db.Column(db.Text, nullable=False)
+    train_log = db.Column(db.Text, nullable=True)
     checkpoint_dir = db.Column(db.String(500), nullable=False)
     metrics_path = db.Column(db.Text)
     minio_model_path = db.Column(db.String(500))
