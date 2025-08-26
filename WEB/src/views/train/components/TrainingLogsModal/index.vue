@@ -1,7 +1,7 @@
 <template>
   <BasicModal
     @register="registerModal"
-    :title="`${taskName} - 训练日志`"
+    :title="`${state.taskName} - 训练日志`"
     :width="900"
     :canFullscreen="true"
     :showCancelBtn="false"
@@ -34,7 +34,6 @@
 
       <!-- 日志展示区 -->
       <div class="log-container">
-        <!-- 指标可视化 -->
         <div class="metrics-visualization" v-if="metricsData.length">
           <div class="chart-container">
             <LineChart :data="metricsData" theme="dark" title="训练指标变化"/>
@@ -43,25 +42,8 @@
 
         <!-- 日志列表 -->
         <div class="log-list" ref="logContainer">
-          <div
-            v-for="(log, index) in filteredLogs"
-            :key="index"
-            class="log-item"
-            :class="log.level"
-          >
-            <span class="timestamp">{{ log.timestamp }}</span>
-            <span class="level-tag" :class="log.level">{{ log.level.toUpperCase() }}</span>
-            <pre class="message">{{ log.message }}</pre>
-
-            <!-- 指标数据展示 -->
-            <div v-if="log.metrics" class="metrics">
-              <span v-for="(value, key) in log.metrics" :key="key">
-                {{ key }}: <strong>{{ value }}</strong>
-              </span>
-            </div>
-          </div>
-
-          <div v-if="filteredLogs.length === 0" class="empty-state">
+          <pre class="message">{{ logs }}</pre>
+          <div v-if="logs.length === 0" class="empty-state">
             <i class="el-icon-document text-4xl text-blue-200 mb-2"></i>
             <p>暂无日志数据</p>
           </div>
@@ -90,7 +72,6 @@ const [registerModal, {closeModal}] = useModalInner((data) => {
   const {record} = data;
   state.taskId = record.id;
   state.taskName = record.model_name;
-  console.log('Modal opened with data:', JSON.stringify(data))
   if (record.id) {
     loadLogs()
   }
@@ -150,16 +131,12 @@ const loadLogs = async () => {
     if (!state.taskId) return
 
     // 实际API调用 - 确保路径匹配后端接口
-    const response = await getTrainingDetail(state.taskId)
+    const data = await getTrainingDetail(state.taskId)
+
+    console.log('日志数据:', JSON.stringify(data['train_log']))
 
     // 处理实际API返回的数据
-    logs.value = response.logs.map((log: any) => ({
-      ...log,
-      timestamp: new Date(log.timestamp).toLocaleTimeString()
-    }))
-
-    // 提取指标数据用于可视化
-    metricsData.value = extractMetrics(response.logs)
+    logs.value = data['train_log']
 
     // 滚动到底部
     scrollToBottom()
@@ -180,22 +157,6 @@ const scrollToBottom = () => {
       logContainer.value!.scrollTop = logContainer.value!.scrollHeight
     }, 100)
   }
-}
-
-// 从日志中提取指标数据
-const extractMetrics = (logs: any[]) => {
-  const metrics: any[] = []
-
-  logs.forEach(log => {
-    if (log.metrics) {
-      metrics.push({
-        timestamp: log.timestamp,
-        ...log.metrics
-      })
-    }
-  })
-
-  return metrics
 }
 
 // 监听taskId变化
@@ -305,6 +266,15 @@ onMounted(() => {
   overflow-y: auto;
   padding: 16px;
   background: #0a0a0a;
+}
+
+.log-list::-webkit-scrollbar {
+  width: 8px;
+  background: #1a1a1a;
+}
+.log-list::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 4px;
 }
 
 .log-item {
