@@ -424,9 +424,6 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             else:
                 update_log_local("未找到训练结果图表文件")
 
-            update_log_local("模型训练完成!")
-            update_log_local(f"训练结果保存路径: {os.path.join(model_dir, 'train_results')}")
-
             # 检查是否应该停止训练
             if training_status.get(model_id, {}).get('stop_requested'):
                 log_msg = '训练已停止'
@@ -446,6 +443,9 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 'progress': 90
             })
             update_log_local("训练完成，正在保存结果...", progress=90)
+
+            update_log_local("模型训练完成!")
+            update_log_local(f"训练结果保存路径: {os.path.join(model_dir, 'train_results')}")
 
             # 保存最佳模型
             best_model_path = os.path.join(model_dir, 'train_results', 'weights', 'best.pt')
