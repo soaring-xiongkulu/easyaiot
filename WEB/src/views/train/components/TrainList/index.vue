@@ -143,9 +143,9 @@ const handleViewTrainResults = (record) => {
 };
 
 // 发布为正式模型
-const handlePublish = async (recordId) => {
+const handlePublish = async (record) => {
   try {
-    const response = await publishTrainingRecord(recordId);
+    const response = await publishTrainingRecord(record.id);
     if (response.code === 0) {
       createMessage.success('模型发布成功');
       // 刷新数据
@@ -184,7 +184,7 @@ const handleLogsModalClose = () => {
 
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 
-const pollingInterval = ref<number>(5000); // 默认5秒
+const pollingInterval = ref<number>(10000); // 默认10秒
 const pollingTimer = ref<NodeJS.Timeout | null>(null);
 const isPollingActive = ref<boolean>(true); // 轮询开关
 
