@@ -1,12 +1,12 @@
 <template>
   <BasicModal
     @register="registerModal"
+    @cancel="handleCancel"
     :title="`${state.taskName} - 训练日志`"
     :width="1200"
     :canFullscreen="true"
     :showCancelBtn="false"
     :showOkBtn="false"
-    @cancel="closeModal"
   >
     <div class="modal-content">
       <div class="log-container">
@@ -32,7 +32,7 @@ const state = reactive({
   taskName: ''
 });
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'success']);
 
 // 使用useModalInner注册模态框
 const [registerModal, {closeModal}] = useModalInner((data) => {
@@ -43,6 +43,11 @@ const [registerModal, {closeModal}] = useModalInner((data) => {
     loadLogs()
   }
 })
+
+const handleCancel = () => {
+  closeModal();
+  emit('close'); // 通知父组件销毁
+};
 
 // 日志数据
 const logs = ref<Array<any>>([])
@@ -104,13 +109,11 @@ onMounted(() => {
 
 // 组件卸载时重置状态
 onUnmounted(() => {
-  // 清空日志数据
-  logs.value = []
-  // 重置滚动容器
+  logs.value = [];
   if (logContainer.value) {
-    logContainer.value.scrollTop = 0
+    logContainer.value.scrollTop = 0;
   }
-})
+});
 </script>
 
 <style scoped>

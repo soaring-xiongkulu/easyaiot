@@ -61,12 +61,17 @@
       </template>
     </BasicTable>
     <StartTrainingModal @register="registerAddModel" @success="handleStartTraining"/>
-    <TrainingLogsModal @register="registerTrainingLogsModal" @success="handleSuccess"/>
+    <TrainingLogsModal
+      v-if="showLogsModal"
+      @register="registerTrainingLogsModal"
+      @success="handleSuccess"
+      @close="handleLogsModalClose"
+    />
   </div>
 </template>
 
 <script lang="ts" setup>
-import {ref, watch} from 'vue';
+import {nextTick, ref, watch} from 'vue';
 import {BasicTable, TableAction, useTable} from '@/components/Table';
 import {useRoute, useRouter} from 'vue-router';
 import {useMessage} from '@/hooks/web/useMessage';
@@ -84,6 +89,8 @@ import {getBasicColumns, getFormConfig} from './Data';
 const {createMessage} = useMessage();
 const router = useRouter();
 const route = useRoute();
+
+const showLogsModal = ref(false);
 
 const [registerAddModel, {openModal: openAddModal}] = useModal();
 
@@ -152,7 +159,14 @@ const handleDelete = async (record) => {
 };
 
 const handleOpenTrainingLogsModal = (record) => {
-  openTrainingLogsModal(true, {record});
+  showLogsModal.value = true;
+  nextTick(() => { // 确保DOM更新后打开
+    openTrainingLogsModal(true, { record });
+  });
+};
+
+const handleLogsModalClose = () => {
+  showLogsModal.value = false; // 触发组件销毁
 };
 
 // 模态框状态
