@@ -5,10 +5,15 @@
 *.log
 .idea
 
-# BlueJ backup files
+# data
 data
 data/*
 data/**
+
+# static
+static
+static/*
+static/**
 
 # BlueJ files
 *.ctxt
