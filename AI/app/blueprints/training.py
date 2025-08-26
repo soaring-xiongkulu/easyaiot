@@ -438,6 +438,48 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             else:
                 update_log_local("未找到训练结果文件 results.csv")
 
+            # 存储results.csv文件（上传Minio），然后路径存到数据库metrics_path
+            results_csv_path = os.path.join(model_dir, 'train_results', 'results.csv')
+            if os.path.exists(results_csv_path):
+                # 上传results.csv到Minio
+                minio_csv_path = f"models/model_{model_id}/train_{training_record.id}/results.csv"
+                csv_success = ModelService.upload_to_minio(
+                    bucket_name="model-train",
+                    object_name=minio_csv_path,
+                    file_path=results_csv_path
+                )
+                
+                if csv_success:
+                    # 构建可访问的URL路径供后续使用，参照png的处理方式
+                    accessible_csv_url = f"/api/v1/buckets/model-train/objects/download?prefix={minio_csv_path}"
+                    update_log_local(f"训练结果CSV已上传至Minio: {accessible_csv_url}")
+                    training_record.metrics_path = accessible_csv_url
+                else:
+                    update_log_local("训练结果CSV上传Minio失败，请检查日志")
+            else:
+                update_log_local("未找到训练结果CSV文件")
+
+            # 存储results.png（上传Minio），然后路径存到数据库train_results_path
+            results_png_path = os.path.join(model_dir, 'train_results', 'results.png')
+            if os.path.exists(results_png_path):
+                # 上传results.png到Minio，使用指定的bucket和object key格式
+                minio_png_path = f"models/model_{model_id}/train_{training_record.id}/results.png"
+                png_success = ModelService.upload_to_minio(
+                    bucket_name="model-train",
+                    object_name=minio_png_path,
+                    file_path=results_png_path
+                )
+                
+                if png_success:
+                    # 构建可访问的URL路径供后续使用
+                    accessible_url = f"/api/v1/buckets/model-train/objects/download?prefix={minio_png_path}"
+                    update_log_local(f"训练结果图表已上传至Minio: {accessible_url}")
+                    training_record.train_results_path = accessible_url
+                else:
+                    update_log_local("训练结果图表上传Minio失败，请检查日志")
+            else:
+                update_log_local("未找到训练结果图表文件")
+
             update_log_local("模型训练完成!")
             update_log_local(f"训练结果保存路径: {os.path.join(model_dir, 'train_results')}")
 
@@ -469,8 +511,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 update_log_local(f"找到最佳模型文件，开始复制到保存目录: {best_model_path}")
 
                 # 将最佳模型复制到模型存储目录
-                model_save_dir = os.path.join(current_app.root_path, 'static', 'models', str(model_id), 'train',
-                                              'weights')
+                model_save_dir = os.path.join(current_app.root_path, 'static', 'models', str(model_id), 'train', 'weights')
                 os.makedirs(model_save_dir, exist_ok=True)
                 local_model_path = os.path.join(model_save_dir, 'best.pt')
                 shutil.copy(best_model_path, local_model_path)
