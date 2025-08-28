@@ -8,7 +8,7 @@
 ### 「I love writing code, finding great joy in it and never tiring of it」
 ### 「I love contributing to open source, taking delight in it」
 ### I strive diligently in Shenzhen, working diligently at a small company morning, noon, and night, and contributing to open source in the evenings.
-### If this project has been valuable to you, remember to ​​Star​​ and follow it—this is tremendous encouragement and support for me.
+### If this project has been valuable to you, remember to Star and follow it—this is tremendous encouragement and support for me.
 
 ## 🌟 Some Thoughts on the Project
 #### I believe no single programming language excels at everything. However, when three programming languages are combined, EasyAIoT will become unparalleled – and it happens that I possess this unique trait.
