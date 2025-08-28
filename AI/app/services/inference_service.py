@@ -4,7 +4,8 @@ import shutil
 import subprocess
 import tempfile
 import threading
-from datetime import datetime, time
+import time
+from datetime import datetime
 
 import cv2
 import torch
@@ -19,17 +20,30 @@ from models import Model, InferenceRecord, db
 class InferenceService:
     def __init__(self, model_id):
         self.model_id = model_id
-        self.model_dir = ModelService.get_model_dir(model_id)
+        self.model_dir = self._get_model_dir()
         self.minio_bucket = "ai-models"
         self.device = self._select_device()
+        self.model_cache = {}  # 模型实例缓存
+        self.media_server = self._get_media_server_url()  # 从环境变量获取推流服务器地址
 
-        # 多进程共享资源
-        self.frame_queue = multiprocessing.Queue(maxsize=10)
-        self.result_queue = multiprocessing.Queue(maxsize=10)
-        self.stop_event = multiprocessing.Event()
+    def _get_media_server_url(self):
+        """从环境变量获取推流服务器地址"""
+        push_url = os.getenv('MODEL_AI_PUSH_URL', 'pro.basiclab.top:1935')
+        # 确保URL格式正确
+        if not push_url.startswith('rtmp://'):
+            push_url = f'rtmp://{push_url}'
+        return push_url.rstrip('/')  # 移除末尾斜杠
 
-        # 模型实例缓存（避免重复加载）
-        self.model_cache = {}
+    def _get_model_dir(self):
+        """获取模型存储目录路径"""
+        return os.path.join(
+            current_app.root_path,
+            'static',
+            'models',
+            str(self.model_id),
+            'train',
+            'weights'
+        )
 
     def _select_device(self):
         """自动选择最优计算设备"""
@@ -54,77 +68,52 @@ class InferenceService:
         self.model_cache[model_path] = model
         return model
 
-    def _download_model_if_missing(self):
-        """检查并下载缺失的模型"""
-        model_files = ['best.pt', 'best.onnx']
-        model_path = None
-
-        # 检查本地模型文件
-        for file in model_files:
-            candidate_path = os.path.join(self.model_dir, file)
-            if os.path.exists(candidate_path):
-                model_path = candidate_path
-                break
-
-        # 从Minio下载缺失模型
-        if not model_path:
-            model = Model.query.get(self.model_id)
-            if model.minio_model_path:
-                object_name = model.minio_model_path.split('/')[-1]
-                local_path = os.path.join(self.model_dir, object_name)
-
-                if ModelService.download_from_minio(
-                        self.minio_bucket,
-                        model.minio_model_path,
-                        local_path
-                ):
-                    # 解压ZIP格式模型
-                    if local_path.endswith('.zip'):
-                        ModelService.extract_zip(local_path, self.model_dir)
-                        os.remove(local_path)
-                    model_path = self._find_model_file()
-
-        return model_path
-
-    def _find_model_file(self):
-        """在目录中查找模型文件"""
+    def _find_local_model(self):
+        """在本地目录查找模型文件"""
+        model_exts = ('.pt', '.onnx', '.engine')
         for file in os.listdir(self.model_dir):
-            if file.endswith(('.pt', '.onnx')):
+            if file.endswith(model_exts):
                 return os.path.join(self.model_dir, file)
         return None
 
+    def _download_model_from_minio(self):
+        """从Minio下载模型文件"""
+        model = Model.query.get(self.model_id)
+        if not model or not model.minio_model_path:
+            return None
+
+        # 下载模型文件
+        filename = model.minio_model_path.split('/')[-1]
+        local_path = os.path.join(self.model_dir, filename)
+
+        if ModelService.download_from_minio(
+                self.minio_bucket,
+                model.minio_model_path,
+                local_path
+        ):
+            # 处理压缩文件
+            if filename.endswith('.zip'):
+                ModelService.extract_zip(local_path, self.model_dir)
+                os.remove(local_path)
+                return self._find_local_model()  # 返回解压后的模型文件
+            return local_path
+        return None
+
     def load_model(self, model_type, system_model=None, model_file=None):
-        """加载模型（带缓存和自动下载）"""
-        model_path = None
+        """
+        智能加载模型（优先级：本地缓存 > 本地文件 > Minio下载）
+        """
+        # 1. 优先检查本地模型文件
+        model_path = self._find_local_model()
 
-        if model_type == 'system':
-            if not system_model:
-                raise ValueError('未指定系统模型')
-            model_path = os.path.join(self.model_dir, 'train', 'weights', system_model)
-        elif model_type == 'upload':
-            if not model_file or not model_file.filename:
-                raise ValueError('未提供上传的模型文件')
-            model_path = self._save_uploaded_model(model_file)
-        else:
-            raise ValueError(f'不支持的模型类型: {model_type}')
-
-        # 检查模型是否存在
-        if not os.path.exists(model_path):
-            model_path = self._download_model_if_missing()
+        # 2. 本地不存在则从Minio下载
+        if not model_path:
+            model_path = self._download_model_from_minio()
             if not model_path:
-                raise FileNotFoundError(f"模型文件不存在: {model_path}")
+                raise FileNotFoundError(f"Model not found for ID {self.model_id}")
 
+        # 3. 加载模型
         return self._load_model(model_path)
-
-    # === 异步处理框架 ===
-    def _start_processing_thread(self, process_func):
-        """启动后台处理线程"""
-        processor = threading.Thread(
-            target=process_func,
-            daemon=True
-        )
-        processor.start()
-        return processor
 
     # === 图片推理优化 ===
     def inference_image(self, model, image_file):
@@ -161,10 +150,14 @@ class InferenceService:
             record.error_message = str(e)
             db.session.commit()
             raise
+        finally:
+            # 显式释放显存
+            if 'cuda' in self.device:
+                torch.cuda.empty_cache()
 
     # === 视频推理优化 ===
     def inference_video(self, model, video_file):
-        """多进程视频处理框架"""
+        """多进程视频处理框架（避免显存泄漏）"""
         record = InferenceRecord(
             model_id=self.model_id,
             inference_type='video',
@@ -180,7 +173,7 @@ class InferenceService:
             video_file.save(temp_video.name)
             temp_video.close()
 
-            # 启动处理进程
+            # 启动处理进程（多进程隔离显存）
             processor = multiprocessing.Process(
                 target=self._video_processor,
                 args=(model, temp_video.name, record.id)
@@ -199,7 +192,7 @@ class InferenceService:
             raise
 
     def _video_processor(self, model, video_path, record_id):
-        """视频处理子进程（避免显存泄漏）"""
+        """视频处理子进程（显存自动回收）"""
         try:
             # 创建临时目录
             temp_dir = tempfile.mkdtemp()
@@ -251,10 +244,19 @@ class InferenceService:
                 record.processing_time = time.time() - record.start_time.timestamp()
                 db.session.commit()
 
+        except Exception as e:
+            with current_app.app_context():
+                record = InferenceRecord.query.get(record_id)
+                record.status = 'FAILED'
+                record.error_message = str(e)
+                db.session.commit()
         finally:
             # 清理资源
             shutil.rmtree(temp_dir, ignore_errors=True)
             os.unlink(video_path)
+            # 显式释放显存
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
     # === RTSP流处理优化 ===
     def inference_rtsp(self, model, rtsp_url):
@@ -269,8 +271,9 @@ class InferenceService:
         db.session.commit()
 
         try:
-            # 生成唯一推流地址
-            output_url = f"rtmp://media-server/live/stream_{self.model_id}_{record.id}"
+            # 生成唯一推流地址（使用环境变量配置的媒体服务器）
+            stream_name = f"stream_{self.model_id}_{int(time.time())}"
+            output_url = f"{self.media_server}/live/{stream_name}"
 
             # 启动异步处理线程
             threading.Thread(
@@ -290,38 +293,95 @@ class InferenceService:
             raise
 
     def _rtsp_processor(self, model, input_url, output_url, record_id):
-        """RTSP处理线程（FFmpeg管道）"""
+        """RTSP处理线程（OpenCV+FFmpeg管道）"""
+        cap = None
+        process = None
         try:
-            # FFmpeg处理管道
+            # 强制使用TCP传输避免丢包
+            cap = cv2.VideoCapture(input_url, cv2.CAP_FFMPEG)
+            cap.set(cv2.CAP_PROP_RTSP_TRANSPORT, cv2.CAP_RTSP_TRANSPORT_TCP)  # TCP协议
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区大小降低延迟
+
+            # 获取视频参数（分辨率、帧率）
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            if fps <= 0:
+                fps = 30  # 默认帧率
+
+            # 构建FFmpeg推流命令（低延迟优化）
             command = [
                 'ffmpeg',
-                '-i', input_url,
-                '-vf', f"yolov8={model}",
-                '-c:v', 'libx264',
-                '-f', 'flv',
+                '-y',
+                '-f', 'rawvideo',  # 输入原始帧
+                '-vcodec', 'rawvideo',  # 原始视频编码
+                '-pix_fmt', 'bgr24',  # OpenCV帧格式
+                '-s', f'{width}x{height}',  # 分辨率
+                '-r', str(fps),  # 帧率
+                '-i', '-',  # 从标准输入读取
+                '-c:v', 'libx264',  # H.264编码
+                '-preset', 'ultrafast',  # 低延迟预设
+                '-tune', 'zerolatency',  # 零延迟优化
+                '-f', 'flv',  # FLV输出格式
+                '-rtsp_transport', 'tcp',  # 强制TCP传输
                 output_url
             ]
 
             # 启动FFmpeg进程
-            process = subprocess.Popen(command, stderr=subprocess.PIPE)
+            process = subprocess.Popen(
+                command,
+                stdin=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
 
-            # 监控进程状态
-            while process.poll() is None:
-                time.sleep(1)
+            # 更新记录状态为运行中
+            with current_app.app_context():
+                record = InferenceRecord.query.get(record_id)
+                record.stream_output_url = output_url
+                record.status = 'RUNNING'
+                db.session.commit()
 
-            # 更新记录状态
+            # 逐帧处理并推流
+            frame_count = 0
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
+                # 跳帧策略（每2帧处理1次）
+                if frame_count % 2 == 0:
+                    # YOLOv8推理
+                    results = model(frame)
+                    frame = results[0].plot()  # 绘制检测框
+
+                # 将帧写入FFmpeg管道
+                process.stdin.write(frame.tobytes())
+                frame_count += 1
+
+            # 流正常结束时标记为完成
             with current_app.app_context():
                 record = InferenceRecord.query.get(record_id)
                 record.status = 'COMPLETED'
-                record.stream_output_url = output_url
+                record.processing_time = time.time() - record.start_time.timestamp()
                 db.session.commit()
 
         except Exception as e:
+            # 异常时更新状态
             with current_app.app_context():
                 record = InferenceRecord.query.get(record_id)
                 record.status = 'FAILED'
                 record.error_message = str(e)
                 db.session.commit()
+        finally:
+            # 清理资源
+            if cap and cap.isOpened():
+                cap.release()
+            if process:
+                process.stdin.close()
+                process.terminate()
+            # 显式释放显存
+            if 'cuda' in self.device:
+                torch.cuda.empty_cache()
 
     # === 辅助方法 ===
     def _process_and_upload(self, results, filename):
@@ -339,10 +399,3 @@ class InferenceService:
         shutil.rmtree(temp_dir)
 
         return f"{current_app.config['MINIO_PUBLIC_URL']}/{minio_path}"
-
-    def _save_uploaded_model(self, model_file):
-        """保存上传的模型文件"""
-        filename = secure_filename(model_file.filename)
-        model_path = os.path.join(self.model_dir, filename)
-        model_file.save(model_path)
-        return model_path
