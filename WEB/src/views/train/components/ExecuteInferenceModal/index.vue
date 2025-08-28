@@ -72,7 +72,7 @@
 <script lang="ts" setup>
 import { reactive, ref } from 'vue';
 import { Form, FormItem, Input, Select, SelectOption, Upload } from 'ant-design-vue';
-import ApiSelect from '@/components/ApiSelect.vue'; // 需替换为实际路径
+import ApiSelect from '@/components/Form/src/components/ApiSelect.vue';
 const InputTextArea = Input.TextArea;
 
 // 使用Form.useForm进行表单验证
