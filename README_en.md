@@ -4,6 +4,12 @@
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
+### Serious Declaration: Now and in the future, there will be no commercial version; all code is fully open-source!
+### 「I love writing code and find great joy in it」
+### 「I love contributing to open source and take delight in it」
+### I 🐶 am striving hard in Shenzhen, working diligently at a small company morning, noon, and night, and contributing to open source in the evenings.
+### If this project has been valuable to you, remember to Star and follow it—this is tremendous encouragement and support for me.
+
 ## 🌟 Some Thoughts on the Project
 #### I believe no single programming language excels at everything. However, when three programming languages are combined, EasyAIoT will become unparalleled – and it happens that I possess this unique trait.
 #### Java is suitable for platform development but not for network or AI programming. Python excels at network and AI programming but is less ideal for high-performance task execution. C++ is great for high-performance tasks but struggles with the domains of the other two. EasyAIoT envisions employing trilingual hybrid coding to build an AIoT platform that is challenging to implement, but incredibly easy to use.
