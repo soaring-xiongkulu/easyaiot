@@ -25,14 +25,12 @@
 </div>
 
 ## 🧩 Project Structure
-EasyAIoT consists of seven core projects:
+EasyAIoT consists of five core projects:
 - **WEB Module**: Frontend management interface based on Vue
 - **DEVICE Module**: Java-based device management module responsible for IoT device access and management
 - **VIDEO Module**: Python-based video processing module responsible for video stream processing and transmission
 - **AI Module**: Python-based artificial intelligence processing module responsible for video analysis and AI algorithm execution
 - **TASK Module**: C++-based high-performance task processing module responsible for compute-intensive task execution
-- **NVR Module**: Supports device recording and alarm functions, such as: public security law enforcement recorders, vehicle recorders, drones, etc.;
-- **CLUSTER Module**: AI service clustering based on Kubernetes, which can be horizontally scaled to support simultaneous inference of thousands of devices
 
 ## ☁️ EasyAIoT = AI + IoT = Cloud-Edge Integrated Solution
 Supports thousands of vertical scenarios with customizable AI models and algorithm development. 
