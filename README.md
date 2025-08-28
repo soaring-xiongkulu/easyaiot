@@ -169,7 +169,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
   <img src=".image/banner/banner1002.png" alt="Screenshot 16" width="49%">
 </div>
 
-## 📞 联系方式（进群必看群公告，不看真踢）
+## 📞 联系方式
 <div>
   <img src=".image/联系方式.jpg" alt="联系方式" width="30%" style="margin-right: 10px">
   <img src=".image/微信群.jpg" alt="联系方式" width="30%" style="margin-right: 10px">
