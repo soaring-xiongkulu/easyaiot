@@ -11,8 +11,9 @@
 ### If this project has been valuable to you, remember to Star and follow it—this is tremendous encouragement and support for me.
 
 ## 🌟 Some Thoughts on the Project
-#### I believe no single programming language excels at everything. However, when three programming languages are combined, EasyAIoT will become unparalleled – and it happens that I possess this unique trait.
-#### Java is suitable for platform development but not for network or AI programming. Python excels at network and AI programming but is less ideal for high-performance task execution. C++ is great for high-performance tasks but struggles with the domains of the other two. EasyAIoT envisions employing trilingual hybrid coding to build an AIoT platform that is challenging to implement, but incredibly easy to use.
+### Project Positioning: Supports high-concurrency inference, capture, analysis, alerting, and storage for a large number of cameras. Leverages Kubernetes-native cloud programming to achieve GPU pooling/slicing, model quantization, custom operators, and clustered deployment of AI services (supporting both vision and text tasks).
+### I believe no single programming language excels at everything, but a combination of three languages would make EasyAIoT unbeatable—and it just so happens that I possess this exact trait.
+### Java is suitable for platform development but not ideal for network programming or AI tasks. Python excels in network and AI programming but falls short in high-performance execution. C++ is great for high-performance execution but lacks strengths in the other two areas. The vision for EasyAIoT is to blend these three languages into one integrated system, building an AIoT platform that may be challenging to implement—but incredibly easy to use.
 ![EasyAIoT Platform Architecture.jpg](.image/iframe2.jpg)
 #### Data flow between modules is as follows:
 ![EasyAIoT Platform Architecture.jpg](.image/iframe3.jpg)
