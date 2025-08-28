@@ -37,7 +37,7 @@ def create_inference_record():
         return jsonify({'error': f'数据库错误: {str(e)}'}), 500
 
 
-@inference_bp.route('/inference_records/<int:record_id>', methods=['PATCH'])
+@inference_bp.route('/inference_records/<int:record_id>', methods=['PUT'])
 def update_inference_record(record_id):
     """更新推理记录状态和进度"""
     record = InferenceRecord.query.get_or_404(record_id)
