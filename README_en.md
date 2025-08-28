@@ -4,11 +4,11 @@
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
-### Serious Declaration: Now and in the future, there will be no commercial version; all code is fully open-source!
+## 🐶 Serious Declaration: Now and in the future, there will be no commercial version; all code is fully open-source! (Salute to Yudao Source)
 ### 「I love writing code and find great joy in it」
 ### 「I love contributing to open source and take delight in it」
-### I 🐶 am striving hard in Shenzhen, working diligently at a small company morning, noon, and night, and contributing to open source in the evenings.
-### If this project has been valuable to you, remember to Star and follow it—this is tremendous encouragement and support for me.
+### I strive diligently in Shenzhen, working at a small company morning, noon, and night, and contributing to open source in the evenings.
+### If this project has been valuable to you, remember to ​​Star​​ and follow it—this is tremendous encouragement and support for me.
 
 ## 🌟 Some Thoughts on the Project
 #### I believe no single programming language excels at everything. However, when three programming languages are combined, EasyAIoT will become unparalleled – and it happens that I possess this unique trait.
