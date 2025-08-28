@@ -20,12 +20,30 @@
           部署新服务
         </a-button>
         <a-button
-          @click="handleClickSwap"
+          @click="toggleViewMode"
           class="flex items-center border border-gray-300 hover:bg-gray-50"
         >
           <i :class="state.isTableMode ? 'el-icon-menu' : 'el-icon-s-grid'" class="mr-2"></i>
           {{ state.isTableMode ? '卡片视图' : '表格视图' }}
         </a-button>
+      </div>
+    </div>
+
+    <!-- 服务状态概览卡片 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div
+        v-for="(stat, index) in serviceStats"
+        :key="index"
+        class="bg-gray-50 p-4 rounded-lg shadow-sm border-l-4"
+        :class="{
+          'border-blue-500': stat.type === 'running',
+          'border-green-500': stat.type === 'deployed',
+          'border-yellow-500': stat.type === 'pending',
+          'border-red-500': stat.type === 'error'
+        }"
+      >
+        <div class="text-sm text-gray-500">{{ stat.label }}</div>
+        <div class="text-2xl font-bold mt-1">{{ stat.value }}</div>
       </div>
     </div>
 
@@ -36,7 +54,25 @@
       class="rounded-xl overflow-hidden border border-gray-100 shadow-sm"
     >
       <template #toolbar>
-        <!-- 搜索区域已通过配置集成 -->
+        <div class="flex items-center space-x-3">
+          <a-input-search
+            v-model:value="searchKeyword"
+            placeholder="搜索服务名称"
+            @search="handleSearch"
+            class="w-64"
+          />
+          <a-select
+            v-model:value="statusFilter"
+            placeholder="服务状态"
+            style="width: 120px"
+            @change="handleFilterChange"
+          >
+            <a-select-option value="all">全部状态</a-select-option>
+            <a-select-option v-for="(label, key) in statusLabels" :key="key" :value="key">
+              {{ label }}
+            </a-select-option>
+          </a-select>
+        </div>
       </template>
 
       <template #bodyCell="{ column, record }">
@@ -54,15 +90,38 @@
         <!-- 性能指标列 -->
         <template v-else-if="column.dataIndex === 'performance'">
           <div class="flex items-center">
-            <a-progress
-              :percent="record.cpu_usage"
-              size="small"
-              status="active"
-              stroke-color="#3498db"
-              class="w-24 mr-3"
-            />
-            <span class="text-sm text-gray-600">{{ record.latency }}ms</span>
+            <div class="w-24 mr-3">
+              <div class="flex justify-between text-xs text-gray-500 mb-1">
+                <span>CPU</span>
+                <span>{{ record.cpu_usage }}%</span>
+              </div>
+              <a-progress
+                :percent="record.cpu_usage"
+                size="small"
+                :status="getCpuStatus(record.cpu_usage)"
+                stroke-color="#3498db"
+              />
+            </div>
+            <div class="w-24">
+              <div class="flex justify-between text-xs text-gray-500 mb-1">
+                <span>显存</span>
+                <span>{{ record.gpu_mem }}%</span>
+              </div>
+              <a-progress
+                :percent="record.gpu_mem"
+                size="small"
+                :status="getGpuStatus(record.gpu_mem)"
+                stroke-color="#9b59b6"
+              />
+            </div>
           </div>
+        </template>
+
+        <!-- 推理类型列 -->
+        <template v-else-if="column.dataIndex === 'inference_type'">
+          <a-tag :color="inferenceTypeColors[record.inference_type]">
+            {{ inferenceTypeLabels[record.inference_type] }}
+          </a-tag>
         </template>
 
         <!-- 操作列美化 -->
@@ -133,7 +192,7 @@
     <!-- 卡片视图 -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       <a-card
-        v-for="service in serviceList"
+        v-for="service in filteredServices"
         :key="`${service.model_id}-${service.task_id}`"
         class="rounded-xl shadow-sm hover:shadow-md transition-shadow"
         :class="{
@@ -143,7 +202,12 @@
       >
         <template #title>
           <div class="flex justify-between items-center">
-            <span class="font-medium text-lg">{{ service.model_name }}</span>
+            <div>
+              <span class="font-medium text-lg">{{ service.model_name }}</span>
+              <div class="text-xs text-gray-500 mt-1">
+                {{ formatDateTime(service.created_at) }}
+              </div>
+            </div>
             <a-tag :color="statusColors[service.status]">
               {{ statusLabels[service.status] }}
             </a-tag>
@@ -153,22 +217,69 @@
         <div class="space-y-3">
           <div class="flex items-center text-sm">
             <i class="el-icon-cpu text-blue-500 mr-2"></i>
-            <span>CPU: {{ service.cpu_usage }}%</span>
+            <span>推理类型:
+              <a-tag :color="inferenceTypeColors[service.inference_type]" size="small">
+                {{ inferenceTypeLabels[service.inference_type] }}
+              </a-tag>
+            </span>
           </div>
 
-          <div class="flex items-center text-sm">
-            <i class="el-icon-time text-green-500 mr-2"></i>
-            <span>延迟: {{ service.latency }}ms</span>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-gray-50 p-2 rounded">
+              <div class="text-xs text-gray-500">CPU使用率</div>
+              <div class="flex items-center">
+                <a-progress
+                  :percent="service.cpu_usage"
+                  :status="getCpuStatus(service.cpu_usage)"
+                  size="small"
+                  class="flex-1 mr-2"
+                />
+                <span class="text-sm">{{ service.cpu_usage }}%</span>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 p-2 rounded">
+              <div class="text-xs text-gray-500">显存使用</div>
+              <div class="flex items-center">
+                <a-progress
+                  :percent="service.gpu_mem"
+                  :status="getGpuStatus(service.gpu_mem)"
+                  size="small"
+                  class="flex-1 mr-2"
+                />
+                <span class="text-sm">{{ service.gpu_mem }}%</span>
+              </div>
+            </div>
           </div>
 
-          <div class="flex items-center text-sm">
-            <i class="el-icon-refresh text-purple-500 mr-2"></i>
-            <span>请求量: {{ service.request_count }}/分钟</span>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-gray-50 p-2 rounded">
+              <div class="text-xs text-gray-500">延迟</div>
+              <div class="text-sm font-medium">
+                <i class="el-icon-time text-green-500 mr-1"></i>
+                {{ service.latency }}ms
+              </div>
+            </div>
+
+            <div class="bg-gray-50 p-2 rounded">
+              <div class="text-xs text-gray-500">请求量</div>
+              <div class="text-sm font-medium">
+                <i class="el-icon-refresh text-purple-500 mr-1"></i>
+                {{ service.request_count }}/分钟
+              </div>
+            </div>
           </div>
 
           <div class="flex justify-end space-x-2 mt-4">
             <a-button type="text" size="small" @click="openDetailModal(service)">
               <i class="ant-design:info-circle-filled text-blue-500"></i>
+            </a-button>
+            <a-button
+              type="text"
+              size="small"
+              @click="handleOpenLogsModal(service)"
+            >
+              <i class="ant-design:file-text-filled text-green-500"></i>
             </a-button>
             <a-button
               type="text"
@@ -194,6 +305,16 @@
       </a-card>
     </div>
 
+    <!-- 空状态提示 -->
+    <div v-if="serviceList.length === 0" class="text-center py-12">
+      <i class="el-icon-folder-opened text-4xl text-gray-300 mb-4"></i>
+      <p class="text-gray-500">暂无模型服务</p>
+      <a-button type="primary" class="mt-4" @click="handleOpenDeployModal">
+        <i class="el-icon-circle-plus mr-2"></i>
+        部署新服务
+      </a-button>
+    </div>
+
     <!-- 模态框组件 -->
     <DeployModelModal @register="registerDeployModal" @success="handleSuccess"/>
     <ServiceDetailModal @register="registerServiceDetailModal"/>
@@ -202,20 +323,21 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, computed } from 'vue';
 import { BasicTable, useTable } from '@/components/Table';
 import { useModal } from '@/components/Modal';
 import { useMessage } from '@/hooks/web/useMessage';
 import {
-  getTrainingRecordPage,
-  startTraining,
-  stopTraining,
-  deleteTrainingRecord
+  getModelServices,
+  startService,
+  stopService,
+  deleteService
 } from '@/api/device/model';
-import DeployModelModal from '../DeployModelModal/index.vue';
-import ServiceDetailModal from '../ServiceDetailModal/index.vue';
-import TrainingLogsModal from '../TrainingLogsModal/index.vue';
+import DeployModelModal from './DeployModelModal.vue';
+import ServiceDetailModal from './ServiceDetailModal.vue';
+import TrainingLogsModal from './TrainingLogsModal.vue';
 import { getModelServiceColumns, getSearchFormConfig } from './data';
+import dayjs from 'dayjs';
 
 const { createMessage } = useMessage();
 
@@ -244,12 +366,62 @@ const statusLabels = {
   pending: '等待启动'
 };
 
+// 推理类型配置
+const inferenceTypeColors = {
+  image: 'green',
+  video: 'blue',
+  rtsp: 'purple',
+  text: 'orange'
+};
+
+const inferenceTypeLabels = {
+  image: '图片推理',
+  video: '视频推理',
+  rtsp: '实时流推理',
+  text: '文本推理'
+};
+
+// 服务统计信息
+const serviceStats = computed(() => {
+  const stats = {
+    running: 0,
+    deployed: 0,
+    pending: 0,
+    error: 0
+  };
+
+  serviceList.value.forEach(service => {
+    if (service.status === 'running') stats.running++;
+    if (service.status === 'stopped') stats.deployed++;
+    if (service.status === 'pending') stats.pending++;
+    if (service.status === 'error') stats.error++;
+  });
+
+  return [
+    { label: '运行中服务', value: stats.running, type: 'running' },
+    { label: '已部署服务', value: stats.deployed, type: 'deployed' },
+    { label: '待启动服务', value: stats.pending, type: 'pending' },
+    { label: '异常服务', value: stats.error, type: 'error' }
+  ];
+});
+
 // 状态管理
 const state = reactive({
   isTableMode: true,
 });
 
 const serviceList = ref<any[]>([]);
+const searchKeyword = ref('');
+const statusFilter = ref('all');
+
+// 过滤后的服务列表（卡片视图用）
+const filteredServices = computed(() => {
+  return serviceList.value.filter(service => {
+    const matchesSearch = service.model_name.toLowerCase().includes(searchKeyword.value.toLowerCase());
+    const matchesStatus = statusFilter.value === 'all' || service.status === statusFilter.value;
+    return matchesSearch && matchesStatus;
+  });
+});
 
 // 注册模态框
 const [registerDeployModal, { openModal: openDeployModalHandler }] = useModal();
@@ -262,14 +434,16 @@ const [registerTable, { reload, getDataSource }] = useTable({
   showIndexColumn: false,
   title: '',
   api: async (params) => {
-    // 处理时间范围参数
-    const requestParams = { ...params };
-    if (params.timeRange && params.timeRange.length === 2) {
-      requestParams.startTimeFrom = params.timeRange[0];
-      requestParams.startTimeTo = params.timeRange[1];
-      delete requestParams.timeRange;
-    }
-    return getTrainingRecordPage({ ...requestParams }); // 使用正确的API
+    const response = await getModelServices({
+      ...params,
+      keyword: searchKeyword.value,
+      status: statusFilter.value === 'all' ? undefined : statusFilter.value
+    });
+    serviceList.value = response.data || [];
+    return {
+      list: serviceList.value,
+      total: serviceList.value.length
+    };
   },
   columns: getModelServiceColumns(),
   useSearchForm: true,
@@ -279,7 +453,6 @@ const [registerTable, { reload, getDataSource }] = useTable({
     ...getSearchFormConfig(),
     schemas: [
       ...getSearchFormConfig().schemas,
-      // 新增服务状态筛选
       {
         field: 'status',
         label: '服务状态',
@@ -287,6 +460,7 @@ const [registerTable, { reload, getDataSource }] = useTable({
         componentProps: {
           placeholder: '请选择状态',
           options: [
+            { label: '全部状态', value: 'all' },
             { label: '运行中', value: 'running' },
             { label: '已停止', value: 'stopped' },
             { label: '部署中', value: 'deploying' },
@@ -296,7 +470,6 @@ const [registerTable, { reload, getDataSource }] = useTable({
         },
         colProps: { span: 6 },
       },
-      // 新增时间范围筛选
       {
         field: 'timeRange',
         label: '创建时间',
@@ -311,14 +484,10 @@ const [registerTable, { reload, getDataSource }] = useTable({
     ],
   },
   fetchSetting: {
-    listField: 'data.list',
-    totalField: 'data.total',
+    listField: 'list',
+    totalField: 'total',
   },
-  rowKey: (record) => `${record.model_id}-${record.task_id}`, // 确保唯一键值
-  afterFetch: (res) => {
-    serviceList.value = res.data.list || [];
-    return res;
-  }
+  rowKey: (record) => `${record.model_id}-${record.task_id}`,
 });
 
 // 打开部署模态框
@@ -338,38 +507,45 @@ const openDetailModal = (record) => {
 // 打开日志模态框
 const handleOpenLogsModal = (record) => {
   openLogsModal(true, {
-    taskId: record.task_id, // 使用正确的参数名
+    taskId: record.task_id,
     modelId: record.model_id,
     taskName: record.task_name
   });
 };
 
-// 切换服务状态（修正API调用）
+// 切换服务状态
 const toggleServiceStatus = async (record) => {
   try {
     if (record.status === 'running') {
-      // 使用正确的API和参数
-      await stopTraining(record.model_id, record.task_id);
+      await stopService(record.model_id, record.task_id);
       createMessage.success('服务已停止');
     } else {
-      // 使用正确的API和参数
-      await startTraining(record.model_id, { task_id: record.task_id });
+      await startService(record.model_id, record.task_id);
       createMessage.success('服务已启动');
     }
-    reload();
+    // 更新本地状态避免重新加载整个列表
+    const index = serviceList.value.findIndex(s =>
+      s.model_id === record.model_id && s.task_id === record.task_id
+    );
+    if (index !== -1) {
+      serviceList.value[index].status =
+        record.status === 'running' ? 'stopped' : 'running';
+    }
   } catch (error) {
     createMessage.error('操作失败');
     console.error('服务状态切换失败:', error);
   }
 };
 
-// 删除服务（修正API调用）
+// 删除服务
 const handleDelete = async (record) => {
   try {
-    // 使用正确的API
-    await deleteTrainingRecord(record.task_id);
+    await deleteService(record.task_id);
     createMessage.success('删除成功');
-    reload();
+    // 更新本地列表
+    serviceList.value = serviceList.value.filter(s =>
+      s.task_id !== record.task_id
+    );
   } catch (error) {
     createMessage.error('删除失败');
     console.error('删除服务失败:', error);
@@ -382,9 +558,41 @@ const handleSuccess = () => {
 };
 
 // 切换视图
-const handleClickSwap = () => {
+const toggleViewMode = () => {
   state.isTableMode = !state.isTableMode;
 };
+
+// 处理搜索
+const handleSearch = () => {
+  reload();
+};
+
+// 处理筛选条件变化
+const handleFilterChange = () => {
+  reload();
+};
+
+// 获取CPU状态
+const getCpuStatus = (usage: number) => {
+  if (usage > 80) return 'exception';
+  if (usage > 60) return 'active';
+  return 'normal';
+};
+
+// 获取GPU状态
+const getGpuStatus = (usage: number) => {
+  if (usage > 85) return 'exception';
+  if (usage > 70) return 'active';
+  return 'normal';
+};
+
+// 格式化日期时间
+const formatDateTime = (date: string) => {
+  return dayjs(date).format('YYYY-MM-DD HH:mm');
+};
+
+// 初始化加载数据
+reload();
 </script>
 
 <style lang="less" scoped>
