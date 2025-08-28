@@ -54,3 +54,23 @@ class ExportRecord(db.Model):
     status = db.Column(db.String(20), default='PENDING')  # 新增状态字段
     message = db.Column(db.Text)  # 新增错误信息字段
     model = db.relationship('Model', back_populates='export_records')
+
+
+class InferenceRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=False)
+    inference_type = db.Column(db.String(20), nullable=False)  # image/video/rtsp
+    input_source = db.Column(db.String(500))  # 原始文件路径或RTSP地址
+    output_path = db.Column(db.String(500))  # 处理后文件在Minio的路径
+    processed_frames = db.Column(db.Integer)  # 视频/流处理帧数
+    start_time = db.Column(db.DateTime, default=datetime.utcnow)
+    end_time = db.Column(db.DateTime)
+    status = db.Column(db.String(20), default='PROCESSING')  # PROCESSING/COMPLETED/FAILED
+    error_message = db.Column(db.Text)
+    processing_time = db.Column(db.Float)  # 单位：秒
+    # 与Model关系
+    model = db.relationship('Model', backref=db.backref('inference_records', lazy=True))
+    # 新增推流地址字段
+    stream_output_url = db.Column(db.String(500))
+    def __repr__(self):
+        return f'<InferenceRecord {self.id} for Model {self.model_id}>'
