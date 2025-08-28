@@ -8,7 +8,9 @@
 #### I believe no single programming language excels at everything. However, when three programming languages are combined, EasyAIoT will become unparalleled – and it happens that I possess this unique trait.
 #### Java is suitable for platform development but not for network or AI programming. Python excels at network and AI programming but is less ideal for high-performance task execution. C++ is great for high-performance tasks but struggles with the domains of the other two. EasyAIoT envisions employing trilingual hybrid coding to build an AIoT platform that is challenging to implement, but incredibly easy to use.
 ![EasyAIoT Platform Architecture.jpg](.image/iframe2.jpg)
-#### EasyAIoT is not actually one project; it is five distinct projects.
+#### Data flow between modules is as follows:
+![EasyAIoT Platform Architecture.jpg](.image/iframe3.jpg)
+#### EasyAIoT is not actually one project; it is seven distinct projects.
 #### What's the benefit? Suppose you are on a resource-constrained device (like an RK3588). You can extract and independently deploy just one of those projects. Therefore, while this project appears to be a cloud platform, it simultaneously functions as an edge platform.
 
 ### 🌟 Genuine open source is rare. If you find this project useful, please star it before leaving - your support means everything to us!(In an era where fake open-source projects are rampant, this project stands out as an exception.)
@@ -23,12 +25,14 @@
 </div>
 
 ## 🧩 Project Structure
-EasyAIoT consists of five core projects:
+EasyAIoT consists of seven core projects:
 - **WEB Module**: Frontend management interface based on Vue
 - **DEVICE Module**: Java-based device management module responsible for IoT device access and management
 - **VIDEO Module**: Python-based video processing module responsible for video stream processing and transmission
 - **AI Module**: Python-based artificial intelligence processing module responsible for video analysis and AI algorithm execution
 - **TASK Module**: C++-based high-performance task processing module responsible for compute-intensive task execution
+- **NVR Module**: Supports device recording and alarm functions, such as: public security law enforcement recorders, vehicle recorders, drones, etc.;
+- **CLUSTER Module**: AI service clustering based on Kubernetes, which can be horizontally scaled to support simultaneous inference of thousands of devices
 
 ## ☁️ EasyAIoT = AI + IoT = Cloud-Edge Integrated Solution
 Supports thousands of vertical scenarios with customizable AI models and algorithm development. 
