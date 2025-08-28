@@ -4,12 +4,7 @@
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
-## 🐶 Serious Declaration: Now and in the future, there will be no commercial version; all code is fully open-source! (To preserve and pass on the legacy of open-source knowledge, saluting Yudao Source)
-### 「I love writing code, finding great joy in it and never tiring of it」
-### 「I love contributing to open source, taking delight in it」
-### I strive diligently in Shenzhen, working diligently at a small company morning, noon, and night, and contributing to open source in the evenings.
-### If this project has been valuable to you, remember to Star and follow it—this is tremendous encouragement and support for me.
-
+## Now and forever, no commercial version—dedicated to revitalizing the lost tradition of Confucian scholarship.
 ## 🌟 Some Thoughts on the Project
 ### Project Positioning: Supports high-concurrency inference, capture, analysis, alerting, and storage for a large number of cameras. Leverages Kubernetes-native cloud programming to achieve GPU pooling/slicing, model quantization, custom operators, and clustered deployment of AI services (supporting both vision and text tasks).
 ### I believe no single programming language excels at everything, but a combination of three languages would make EasyAIoT unbeatable—and it just so happens that I possess this exact trait.
