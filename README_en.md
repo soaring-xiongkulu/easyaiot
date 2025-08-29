@@ -199,6 +199,19 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
   <img src=".image/banner/banner1002.png" alt="Screenshot 16" width="49%">
 </div>
 
+## 🛠️ Service Support
+
+We offer various service options to help you gain an in-depth understanding of the EasyAIoT platform and its code.
+Through product documentation, technical exchange groups, paid tutorials, and more, you will receive the following
+services:
+
+| Service Item                       | Service Content                                                                                   | Service Fee | Service Method                          |
+|------------------------------------|---------------------------------------------------------------------------------------------------|-------------|-----------------------------------------|
+| System Deployment                  | Complete EasyAIoT deployment in the customer-specified network and hardware environment           | ¥300        | Online Deployment Support               |
+| Technical Support                  | Provide solutions for issues encountered during deployment and functional usage                   | ¥100        | Online Remote Support within 30 Minutes |
+| Device Access Protocol Development | Develop and provide source code for platform protocol packages based on provided device models    | ¥3000+      | Customized Development                  |
+| Other Services                     | Customized development for vertical industry solutions; tailored duration and functional services | Negotiable  | Negotiable                              |
+
 ## 📞 Contact Information
 
 <div>
@@ -218,19 +231,6 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
     <img src=".image/微信支付.jpg" alt="WeChat Pay" width="30%" height="30%">
     <img src=".image/支付宝支付.jpg" alt="Alipay" width="30%" height="10%">
 </div>
-
-## 🛠️ Service Support
-
-We offer various service options to help you gain an in-depth understanding of the EasyAIoT platform and its code.
-Through product documentation, technical exchange groups, paid tutorials, and more, you will receive the following
-services:
-
-| Service Item                       | Service Content                                                                                   | Service Fee | Service Method                          |
-|------------------------------------|---------------------------------------------------------------------------------------------------|-------------|-----------------------------------------|
-| System Deployment                  | Complete EasyAIoT deployment in the customer-specified network and hardware environment           | ¥300        | Online Deployment Support               |
-| Technical Support                  | Provide solutions for issues encountered during deployment and functional usage                   | ¥100        | Online Remote Support within 30 Minutes |
-| Device Access Protocol Development | Develop and provide source code for platform protocol packages based on provided device models    | ¥3000+      | Customized Development                  |
-| Other Services                     | Customized development for vertical industry solutions; tailored duration and functional services | Negotiable  | Negotiable                              |
 
 ## 🙏 Acknowledgements
 
