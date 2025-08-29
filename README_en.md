@@ -1,64 +1,94 @@
 # EasyAIoT (DeepCore AI Cloud Platform)
+
 ### My vision is for this system to be accessible worldwide, achieving truly zero barriers to AI. Everyone should experience the benefits of AI, not just a privileged few.
+
 <div align="center">
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
 ## Now and forever, no commercial version—dedicated to revitalizing the lost tradition of Confucian scholarship.
+
 ## 🌟 Some Thoughts on the Project
+
 ### Project Positioning: Supports high-concurrency inference, capture, analysis, alerting, and storage for a large number of cameras. Leverages Kubernetes-native cloud programming to achieve GPU pooling/slicing, model quantization, custom operators, and clustered deployment of AI services (supporting both vision and text tasks).
+
 ### I believe no single programming language excels at everything, but a combination of three languages would make EasyAIoT unbeatable—and it just so happens that I possess this exact trait.
+
 ### Java is suitable for platform development but not ideal for network programming or AI tasks. Python excels in network and AI programming but falls short in high-performance execution. C++ is great for high-performance execution but lacks strengths in the other two areas. The vision for EasyAIoT is to blend these three languages into one integrated system, building an AIoT platform that may be challenging to implement—but incredibly easy to use.
+
 ![EasyAIoT Platform Architecture.jpg](.image/iframe2.jpg)
+
 #### Data flow between modules is as follows:
+
 ![EasyAIoT Platform Architecture.jpg](.image/iframe3.jpg)
+
 #### EasyAIoT is not actually one project; it is seven distinct projects.
+
 #### What's the benefit? Suppose you are on a resource-constrained device (like an RK3588). You can extract and independently deploy just one of those projects. Therefore, while this project appears to be a cloud platform, it simultaneously functions as an edge platform.
 
 ### 🌟 Genuine open source is rare. If you find this project useful, please star it before leaving - your support means everything to us!(In an era where fake open-source projects are rampant, this project stands out as an exception.)
 
 ## 🎯 Application Scenarios
+
 ![Application Scenarios.png](.image/适用场景.png)
 
 ## 🛠️ Solutions
+
 <div>
   <img src=".image/解决方案1.png" alt="Solution 1" width="49%" style="margin-right: 10px">
   <img src=".image/解决方案2.png" alt="Solution 2" width="49%">
 </div>
 
 ## 🧩 Project Structure
+
 EasyAIoT consists of five core projects:
+
 - **WEB Module**: Frontend management interface based on Vue
 - **DEVICE Module**: Java-based device management module responsible for IoT device access and management
 - **VIDEO Module**: Python-based video processing module responsible for video stream processing and transmission
-- **AI Module**: Python-based artificial intelligence processing module responsible for video analysis and AI algorithm execution
+- **AI Module**: Python-based artificial intelligence processing module responsible for video analysis and AI algorithm
+  execution
 - **TASK Module**: C++-based high-performance task processing module responsible for compute-intensive task execution
 
 ## ☁️ EasyAIoT = AI + IoT = Cloud-Edge Integrated Solution
-Supports thousands of vertical scenarios with customizable AI models and algorithm development. 
 
-Deep integration empowers intelligent vision for everything: EasyAIoT constructs an efficient access and management network for IoT devices (especially massive cameras). We deeply integrate real-time streaming technology with cutting-edge AI to create a unified service core. This solution not only enables interoperability across heterogeneous devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and perimeter intrusion detection.
+Supports thousands of vertical scenarios with customizable AI models and algorithm development.
+
+Deep integration empowers intelligent vision for everything: EasyAIoT constructs an efficient access and management
+network for IoT devices (especially massive cameras). We deeply integrate real-time streaming technology with
+cutting-edge AI to create a unified service core. This solution not only enables interoperability across heterogeneous
+devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "
+intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and
+perimeter intrusion detection.
 
 ![EasyAIoT Platform Architecture](.image/iframe1.jpg)
 
 ## ⚠️ Disclaimer
 
-EasyAIoT is an open-source learning project unrelated to commercial activities. Users must comply with laws and regulations and refrain from illegal activities. If EasyAIoT discovers user violations, it will cooperate with authorities and report to government agencies. Users bear full legal responsibility for illegal actions and shall compensate third parties for damages caused by usage. All EasyAIoT-related resources are used at the user's own risk.
+EasyAIoT is an open-source learning project unrelated to commercial activities. Users must comply with laws and
+regulations and refrain from illegal activities. If EasyAIoT discovers user violations, it will cooperate with
+authorities and report to government agencies. Users bear full legal responsibility for illegal actions and shall
+compensate third parties for damages caused by usage. All EasyAIoT-related resources are used at the user's own risk.
 
 ## 📚 Official Documentation
+
 - Documentation: http://pro.basiclab.top:9988/
 
 ## 🎮 Demo Environment
+
 - Demo URL: http://pro.basiclab.top:8888/
 - Username: admin
 - Password: admin123
 
 ## ⚙️ Project Repositories
+
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot
 - Github: https://github.com/soaring-xiongkulu/easyaiot
 
 ## 🛠️ Technology Stack
+
 ### Frontend
+
 - **Core Framework**: Vue 3.3.8
 - **Development Language**: TypeScript 5.2.2
 - **Build Tool**: Vite 4.5.0
@@ -70,54 +100,56 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 - **Package Manager**: pnpm 9.0.4
 
 ### Backend
-- **DEVICE Module Framework**: 
-  - Spring Boot 2.7.18
-  - Spring Boot Starter Security
-  - Gateway
-  - SkyWalking
-  - OpenFeign
-  - Sentinel
-  - Nacos
-  - Kafka
-  - TDEngine
-  - MyBatis-Plus
-  - PostgreSQL
+
+- **DEVICE Module Framework**:
+    - Spring Boot 2.7.18
+    - Spring Boot Starter Security
+    - Gateway
+    - SkyWalking
+    - OpenFeign
+    - Sentinel
+    - Nacos
+    - Kafka
+    - TDEngine
+    - MyBatis-Plus
+    - PostgreSQL
 - **AI Module Framework**：
-  - Python 3.11+
-  - Flask
-  - Flask-Cors
-  - Flask-Migrate
-  - Flask-SQLAlchemy
-  - OpenCV (cv2)
-  - Pillow (PIL.Image)
-  - Ultralytics
-  - Psycopg2-Binary
+    - Python 3.11+
+    - Flask
+    - Flask-Cors
+    - Flask-Migrate
+    - Flask-SQLAlchemy
+    - OpenCV (cv2)
+    - Pillow (PIL.Image)
+    - Ultralytics
+    - Psycopg2-Binary
 - **VIDEO Module Framework**：
-  - Python 3.11+
-  - WSDiscovery
-  - Netifaces
-  - Onvif-Zeep
-  - Pyserial
-  - Paho_Mqtt
-  - Flask
-  - Flask-Cors
-  - Flask-Migrate
-  - Flask-SQLAlchemy
-  - Psycopg2-Binary
+    - Python 3.11+
+    - WSDiscovery
+    - Netifaces
+    - Onvif-Zeep
+    - Pyserial
+    - Paho_Mqtt
+    - Flask
+    - Flask-Cors
+    - Flask-Migrate
+    - Flask-SQLAlchemy
+    - Psycopg2-Binary
 - **TASK Module Framework**：
-  - C++17
-  - Opencv2
-  - Httplib
-  - Json
-  - Librknn
-  - Minio-Cpp
-  - Mk-Media
-  - RGA
-  - Logging
-  - Queue
-  - Thread
+    - C++17
+    - Opencv2
+    - Httplib
+    - Json
+    - Librknn
+    - Minio-Cpp
+    - Mk-Media
+    - RGA
+    - Logging
+    - Queue
+    - Thread
 
 ## 📸 Screenshots
+
 <div>
   <img src=".image/banner/banner1001.png" alt="Screenshot 1" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1009.jpg" alt="Screenshot 2" width="49%">
@@ -168,33 +200,40 @@ EasyAIoT is an open-source learning project unrelated to commercial activities. 
 </div>
 
 ## 📞 Contact Information
+
 <div>
   <img src=".image/联系方式.jpg" alt="联系方式" width="30%" style="margin-right: 10px">
   <img src=".image/微信群.jpg" alt="联系方式" width="30%" style="margin-right: 10px">
 </div>
 
 ### 🪐 Knowledge Planet:
+
 <p>
   <img src=".image/知识星球.jpg" alt="知识星球" width="30%">
 </p>
 
 ## 💰 Sponsorship
+
 <div>
     <img src=".image/微信支付.jpg" alt="WeChat Pay" width="30%" height="30%">
     <img src=".image/支付宝支付.jpg" alt="Alipay" width="30%" height="10%">
 </div>
 
 ## 🛠️ Service Support
-We offer various service options to help you gain an in-depth understanding of the EasyAIoT platform and its code. Through product documentation, technical exchange groups, paid tutorials, and more, you will receive the following services:
 
-| Service Item | Service Content | Service Fee | Service Method |
-|--------------|-----------------|-------------|----------------|
-| System Deployment | Complete EasyAIoT deployment in the customer-specified network and hardware environment | ¥300 | Online Deployment Support |
-| Technical Support | Provide solutions for issues encountered during deployment and functional usage | ¥200 | Online Remote Support within 30 Minutes |
-| Device Access Protocol Development | Develop and provide source code for platform protocol packages based on provided device models | ¥3000+ | Customized Development |
-| Other Services | Customized development for vertical industry solutions; tailored duration and functional services | Negotiable | Negotiable |
+We offer various service options to help you gain an in-depth understanding of the EasyAIoT platform and its code.
+Through product documentation, technical exchange groups, paid tutorials, and more, you will receive the following
+services:
+
+| Service Item                       | Service Content                                                                                   | Service Fee | Service Method                          |
+|------------------------------------|---------------------------------------------------------------------------------------------------|-------------|-----------------------------------------|
+| System Deployment                  | Complete EasyAIoT deployment in the customer-specified network and hardware environment           | ¥300        | Online Deployment Support               |
+| Technical Support                  | Provide solutions for issues encountered during deployment and functional usage                   | ¥100        | Online Remote Support within 30 Minutes |
+| Device Access Protocol Development | Develop and provide source code for platform protocol packages based on provided device models    | ¥3000+      | Customized Development                  |
+| Other Services                     | Customized development for vertical industry solutions; tailored duration and functional services | Negotiable  | Negotiable                              |
 
 ## 🙏 Acknowledgements
+
 Thanks to the following contributors for code, feedback, donations, and support (in no particular order):
 <table>
   <tbody>
@@ -266,10 +305,14 @@ Thanks to the following contributors for code, feedback, donations, and support 
 </table>
 
 ## 📄 Open Source License
+
 [MIT LICENSE](LICENSE)
 
 ## ©️ Copyright Notice
-EasyAIoT follows the [MIT LICENSE](LICENSE). Commercial use is permitted provided original author/copyright information is retained.
+
+EasyAIoT follows the [MIT LICENSE](LICENSE). Commercial use is permitted provided original author/copyright information
+is retained.
 
 ## 🌟 Star Growth Trend Chart
+
 [![Stargazers over time](https://starchart.cc/soaring-xiongkulu/easyaiot.svg?variant=adaptive)](https://starchart.cc/soaring-xiongkulu/easyaiot)
