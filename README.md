@@ -1,35 +1,51 @@
 # EasyAIoT（深度智核AI云平台）
+
 [![Gitee star](https://gitee.com/soaring-xiongkulu/easyaiot/badge/star.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/stargazers)
 [![Gitee fork](https://gitee.com/soaring-xiongkulu/easyaiot//badge/fork.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/members)
-### 我希望全世界都能使用这个系统，实现AI的真正0门槛，人人都能体验到AI带来的好处，而并不只是掌握在少数人手里。 
+
+### 我希望全世界都能使用这个系统，实现AI的真正0门槛，人人都能体验到AI带来的好处，而并不只是掌握在少数人手里。
+
 <div align="center">
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
 ## 现在、未来都不会有商业版本，为往圣继绝学！
+
 ## 🌟 关于项目的一些思考
+
 #### 项目定位：支持大量摄像头并发推理，采集，分析，告警，存储，标注，依托于Kubernetes云原生编程，实现GPU池化/切割、模型量化、算子定制、AI服务集群化部署（支持视觉、文本）
+
 #### 我认为没有任何一个编程语言是擅长所有事情，但如果是3种编程语言混合，EasyAIoT将所向披靡，恰好我具备这种特质。
+
 #### Java适合做平台但不适合网络编程和AI编程，Python适合做网络和AI编程但不适合做高性能任务执行，C++适合做高性能任务执行但不适合做前面两者做的事情，EasyAIoT设想是采用三合一语言混编，构建一个实现不太Easy，但是使用非常Easy的AIoT平台。
+
 ![EasyAIoT平台架构.jpg](.image/iframe2.jpg)
+
 #### 模块之间的数据流转，如下：
+
 ![EasyAIoT平台架构.jpg](.image/iframe3.jpg)
+
 #### EasyAIoT其实不是一个项目，而是五个项目。
+
 #### 好处是什么呢？假如说你在一个受限的设备上（比如RK3588），你只需要拿出其中某个项目就可以独立部署，所以看似这个项目是云平台，其实他也可以是边缘平台。
 
 ### 🌟 真开源不易，如果这个项目对您有帮助，请您点亮一颗Star再离开，这将是对我最大的支持！（在这个假开源横行的时代，这个项目就是一个异类，纯靠爱来发电）
 
 ## 🎯 适用场景
+
 ![适用场景.png](.image/适用场景.png)
 
 ## 🛠️ 解决方案
+
 <div>
   <img src=".image/解决方案1.png" alt="Screenshot 1" width="49%" style="margin-right: 10px">
   <img src=".image/解决方案2.png" alt="Screenshot 2" width="49%">
 </div>
 
 ## 🧩 项目结构
+
 EasyAIoT由五个核心项目组成：
+
 - **WEB模块**: 基于Vue的前端管理界面
 - **DEVICE模块**: 基于Java的设备管理模块，负责IoT设备接入与管理
 - **VIDEO模块**: 基于Python的视频处理模块，负责视频流处理与传输
@@ -37,9 +53,12 @@ EasyAIoT由五个核心项目组成：
 - **TASK模块**: 基于C++的高性能任务处理模块，负责计算密集型任务执行
 
 ## ☁️ EasyAIoT = AI + IoT = 云边一体化解决方案
+
 支持上千种垂直场景，支持AI模型定制化和AI算法定制化开发，深度融合。
 
-赋能万物智视：EasyAIoT 构筑了物联网设备（尤其是海量摄像头）的高效接入与管控网络。我们深度融合流媒体实时传输技术与前沿人工智能（AI），打造一体化服务核心。这套方案不仅打通了异构设备的互联互通，更将高清视频流与强大的AI解析引擎深度集成，赋予监控系统"智能之眼"——精准实现人脸识别、异常行为分析、风险人员布控及周界入侵检测
+赋能万物智视：EasyAIoT
+构筑了物联网设备（尤其是海量摄像头）的高效接入与管控网络。我们深度融合流媒体实时传输技术与前沿人工智能（AI），打造一体化服务核心。这套方案不仅打通了异构设备的互联互通，更将高清视频流与强大的AI解析引擎深度集成，赋予监控系统"
+智能之眼"——精准实现人脸识别、异常行为分析、风险人员布控及周界入侵检测
 
 ![EasyAIoT平台架构.jpg](.image/iframe1.jpg)
 
@@ -48,19 +67,24 @@ EasyAIoT由五个核心项目组成：
 EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该项目时，应遵循法律法规，不得进行非法活动。如果EasyAIoT发现用户有违法行为，将会配合相关机关进行调查并向政府部门举报。用户因非法行为造成的任何法律责任均由用户自行承担，如因用户使用造成第三方损害的，用户应当依法予以赔偿。使用EasyAIoT所有相关资源均由用户自行承担风险.
 
 ## 📚 官方文档
+
 - 文档地址：http://pro.basiclab.top:9988/
 
 ## 🎮 演示环境
+
 - 演示地址：http://pro.basiclab.top:8888/
 - 账号：admin
 - 密码：admin123
 
 ## ⚙️ 项目地址
+
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot
 - Github: https://github.com/soaring-xiongkulu/easyaiot
 
 ## 🛠️ 技术栈
+
 ### 前端
+
 - **核心框架**：Vue 3.3.8
 - **开发语言**：TypeScript 5.2.2
 - **构建工具**：Vite 4.5.0
@@ -72,54 +96,56 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 - **包管理器**：pnpm 9.0.4
 
 ### 后端
-- **DEVICE模块框架**: 
-  - Spring Boot 2.7.18
-  - Spring Boot Starter Security
-  - Gateway
-  - SkyWalking
-  - OpenFeign
-  - Sentinel
-  - Nacos
-  - Kafka
-  - TDEngine
-  - MyBatis-Plus
-  - PostgreSQL
+
+- **DEVICE模块框架**:
+    - Spring Boot 2.7.18
+    - Spring Boot Starter Security
+    - Gateway
+    - SkyWalking
+    - OpenFeign
+    - Sentinel
+    - Nacos
+    - Kafka
+    - TDEngine
+    - MyBatis-Plus
+    - PostgreSQL
 - **AI模块框架**：
-  - Python 3.11+
-  - Flask
-  - Flask-Cors
-  - Flask-Migrate
-  - Flask-SQLAlchemy
-  - OpenCV (cv2)
-  - Pillow (PIL.Image)
-  - Ultralytics
-  - Psycopg2-Binary
+    - Python 3.11+
+    - Flask
+    - Flask-Cors
+    - Flask-Migrate
+    - Flask-SQLAlchemy
+    - OpenCV (cv2)
+    - Pillow (PIL.Image)
+    - Ultralytics
+    - Psycopg2-Binary
 - **VIDEO模块框架**：
-  - Python 3.11+
-  - WSDiscovery
-  - Netifaces
-  - Onvif-Zeep
-  - Pyserial
-  - Paho_Mqtt
-  - Flask
-  - Flask-Cors
-  - Flask-Migrate
-  - Flask-SQLAlchemy
-  - Psycopg2-Binary
+    - Python 3.11+
+    - WSDiscovery
+    - Netifaces
+    - Onvif-Zeep
+    - Pyserial
+    - Paho_Mqtt
+    - Flask
+    - Flask-Cors
+    - Flask-Migrate
+    - Flask-SQLAlchemy
+    - Psycopg2-Binary
 - **TASK模块框架**：
-  - C++17
-  - Opencv2
-  - Httplib
-  - Json
-  - Librknn
-  - Minio-Cpp
-  - Mk-Media
-  - RGA
-  - Logging
-  - Queue
-  - Thread
+    - C++17
+    - Opencv2
+    - Httplib
+    - Json
+    - Librknn
+    - Minio-Cpp
+    - Mk-Media
+    - RGA
+    - Logging
+    - Queue
+    - Thread
 
 ## 📸 截图
+
 <div>
   <img src=".image/banner/banner1001.png" alt="Screenshot 1" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1009.jpg" alt="Screenshot 2" width="49%">
@@ -170,23 +196,37 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 </div>
 
 ## 📞 联系方式
+
 <div>
   <img src=".image/联系方式.jpg" alt="联系方式" width="30%" style="margin-right: 10px">
   <img src=".image/微信群.jpg" alt="联系方式" width="30%" style="margin-right: 10px">
 </div>
 
 ### 🪐 知识星球：
+
 <p>
   <img src=".image/知识星球.jpg" alt="知识星球" width="30%">
 </p>
 
 ## 💰 打赏赞助
+
 <div>
     <img src=".image/微信支付.jpg" alt="微信支付" width="30%" height="30%">
     <img src=".image/支付宝支付.jpg" alt="支付宝支付" width="30%" height="10%">
 </div>
 
+## 🛠️ 服务支持
+我们提供了各种服务方式帮助您深入了解EasyAIoT平台和代码，通过产品文档、技术交流群、付费教学等方式，你将获得如下服务：
+
+| 服务项      | 服务内容                       | 服务收费   | 服务方式        |
+|----------|----------------------------|--------|-------------|
+| 系统部署     | 在客户指定的网络和硬件环境中完成EasyAIoT部署 | 300元   | 线上部署支持      |
+| 技术支持     | 提供各类部署、功能使用中遇到的问题答疑        | 200元   | 半小时内 线上远程支持 |
+| 设备接入协议开发 | 根据提供的设备型号，编写并提供接入平台协议包的源码  | 3000+元 | 定制化开发       |
+| 其他服务     | 垂直领域解决方案定制化开发；定制化时长、功能服务等  | 面议     | 面议          |
+
 ## 🙏 致谢
+
 感谢以下各位对本项目包括但不限于代码贡献、问题反馈、资金捐赠等各种方式的支持！以下排名不分先后：
 <table>
   <tbody>
@@ -258,10 +298,13 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 </table>
 
 ## 📄 开源协议
+
 [MIT LICENSE](LICENSE)
 
 ## ©️ 版权使用说明
+
 EasyAIoT开源平台遵循 [MIT LICENSE](LICENSE) 协议。 允许商业使用，但务必保留类作者、Copyright 信息。
 
 ## 🌟 Star增长趋势图
+
 [![Stargazers over time](https://starchart.cc/soaring-xiongkulu/easyaiot.svg?variant=adaptive)](https://starchart.cc/soaring-xiongkulu/easyaiot)
