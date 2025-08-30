@@ -15,7 +15,7 @@ from ultralytics import YOLO
 from werkzeug.utils import secure_filename
 
 from app.services.model_service import ModelService
-from models import Model, InferenceRecord, db
+from models import Model, InferenceTask, db
 
 
 class InferenceService:
@@ -179,7 +179,7 @@ class InferenceService:
     # === 图片推理优化 ===
     def inference_image(self, model, image_file):
         """优化后的图片推理（带显存管理）"""
-        record = InferenceRecord(
+        record = InferenceTask(
             model_id=self.model_id,
             inference_type='image',
             input_source=image_file.filename,
@@ -219,7 +219,7 @@ class InferenceService:
     # === 视频推理优化 ===
     def inference_video(self, model, video_file):
         """多进程视频处理框架（避免显存泄漏）"""
-        record = InferenceRecord(
+        record = InferenceTask(
             model_id=self.model_id,
             inference_type='video',
             input_source=video_file.filename,
@@ -299,7 +299,7 @@ class InferenceService:
 
             # 更新数据库记录
             with current_app.app_context():
-                record = InferenceRecord.query.get(record_id)
+                record = InferenceTask.query.get(record_id)
                 record.output_path = result_url
                 record.status = 'COMPLETED'
                 record.processing_time = time.time() - record.start_time.timestamp()
@@ -307,7 +307,7 @@ class InferenceService:
 
         except Exception as e:
             with current_app.app_context():
-                record = InferenceRecord.query.get(record_id)
+                record = InferenceTask.query.get(record_id)
                 record.status = 'FAILED'
                 record.error_message = str(e)
                 db.session.commit()
@@ -322,7 +322,7 @@ class InferenceService:
     # === RTSP流处理优化 ===
     def inference_rtsp(self, model, rtsp_url):
         """RTSP流异步处理（FFmpeg推流）"""
-        record = InferenceRecord(
+        record = InferenceTask(
             model_id=self.model_id,
             inference_type='rtsp',
             input_source=rtsp_url,
@@ -397,7 +397,7 @@ class InferenceService:
 
             # 更新记录状态为运行中
             with current_app.app_context():
-                record = InferenceRecord.query.get(record_id)
+                record = InferenceTask.query.get(record_id)
                 record.stream_output_url = output_url
                 record.status = 'RUNNING'
                 db.session.commit()
@@ -421,7 +421,7 @@ class InferenceService:
 
             # 流正常结束时标记为完成
             with current_app.app_context():
-                record = InferenceRecord.query.get(record_id)
+                record = InferenceTask.query.get(record_id)
                 record.status = 'COMPLETED'
                 record.processing_time = time.time() - record.start_time.timestamp()
                 db.session.commit()
@@ -429,7 +429,7 @@ class InferenceService:
         except Exception as e:
             # 异常时更新状态
             with current_app.app_context():
-                record = InferenceRecord.query.get(record_id)
+                record = InferenceTask.query.get(record_id)
                 record.status = 'FAILED'
                 record.error_message = str(e)
                 db.session.commit()

@@ -12,7 +12,8 @@ from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
 
-from app.blueprints import export, inference, model, training, inference_task
+from app.blueprints import export, inference_task, model, train, train_task
+from app.blueprints.inference_task import inference_task_bp
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -75,17 +76,17 @@ def create_app():
     with app.app_context():
         try:
             print(f"数据库连接: {app.config['SQLALCHEMY_DATABASE_URI']}")
-            from models import Model, InferenceTask, ExportRecord, InferenceRecord
+            from models import Model, TrainTask, ExportRecord, InferenceTask
             db.create_all()
         except Exception as e:
             print(f"❌ 建表失败: {str(e)}")
 
     # 注册蓝图
     app.register_blueprint(export.export_bp, url_prefix='/model/export')
-    app.register_blueprint(inference.inference_bp, url_prefix='/model/inference')
-    app.register_blueprint(model.model_bp, url_prefix='/model')
-    app.register_blueprint(training.training_bp, url_prefix='/model/training')
     app.register_blueprint(inference_task.inference_task_bp, url_prefix='/model/inference_task')
+    app.register_blueprint(model.model_bp, url_prefix='/model')
+    app.register_blueprint(train.training_bp, url_prefix='/model/training')
+    app.register_blueprint(train_task.train_task_bp, url_prefix='/model/train_task')
 
     # 健康检查路由初始化
     def init_health_check(app):

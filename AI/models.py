@@ -21,15 +21,15 @@ class Model(db.Model):
     rknn_model_path = db.Column(db.String(500))
 
     # 关系定义
-    inference_tasks = db.relationship(
-        'InferenceTask',
-        foreign_keys='InferenceTask.model_id',
+    train_tasks = db.relationship(
+        'TrainTask',
+        foreign_keys='TrainTask.model_id',
         backref=db.backref('model', lazy=True),
         lazy='dynamic'
     )
     export_records = db.relationship('ExportRecord', back_populates='model', cascade='all, delete-orphan')
 
-class InferenceTask(db.Model):
+class TrainTask(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=True)
     progress = db.Column(db.Integer, default=0)
@@ -56,7 +56,7 @@ class ExportRecord(db.Model):
     model = db.relationship('Model', back_populates='export_records')
 
 
-class InferenceRecord(db.Model):
+class InferenceTask(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=True)
     inference_type = db.Column(db.String(20), nullable=False)  # image/video/rtsp
@@ -68,7 +68,4 @@ class InferenceRecord(db.Model):
     status = db.Column(db.String(20), default='PROCESSING')  # PROCESSING/COMPLETED/FAILED
     error_message = db.Column(db.Text)
     processing_time = db.Column(db.Float)  # 单位：秒
-    # 与Model关系
-    model = db.relationship('Model', backref=db.backref('inference_records', lazy=True))
-    # 新增推流地址字段
     stream_output_url = db.Column(db.String(500))
