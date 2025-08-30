@@ -26,7 +26,7 @@ import { reactive } from 'vue';
 import { useRoute } from 'vue-router';
 import { TabPane, Tabs } from "ant-design-vue";
 import TrainList from "@/views/train/components/TrainList/index.vue";
-import ModelServiceList from "@/views/train/components/InferenceList/index.vue";
+import ModelServiceList from "@/views/train/components/InferenceTaskList/index.vue";
 import ExportList from "@/views/train/components/ExportList/index.vue";
 
 defineOptions({ name: 'TrainDetail' })

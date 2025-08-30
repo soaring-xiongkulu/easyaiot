@@ -114,14 +114,8 @@ import {getInferenceColumns, getInferenceFormConfig} from "./Data";
 import ExecuteInferenceModal from "../ExecuteInferenceModal/index.vue";
 import InferenceDetailModal from "../InferenceDetailModal/index.vue";
 import InferenceResultViewer from "../InferenceResultViewer/index.vue";
-import InferenceCardList from "../InferenceCardList/index.vue";
-import {
-  deleteInferenceRecord,
-  getInferenceTasks,
-  getModelPage,
-  runInference
-} from "@/api/device/model";
-import ModelCardList from "@/views/train/components/ModelCardList/index.vue";
+import InferenceCardList from "@/views/train/components/InferenceTaskCardList/index.vue";
+import {deleteInferenceRecord, getInferenceTasks, runInference} from "@/api/device/model";
 
 const params = {};
 
@@ -144,7 +138,7 @@ const {createMessage} = useMessage();
 const [registerTable, {reload}] = useTable({
   canResize: true,
   showIndexColumn: false,
-  title: '推理记录管理',
+  title: '推理任务列表',
   api: getInferenceTasks,
   columns: getInferenceColumns(),
   useSearchForm: true,
