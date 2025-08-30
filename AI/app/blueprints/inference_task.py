@@ -35,7 +35,7 @@ def inference_tasks():
         query = db.session.query(
             InferenceTask,
             Model.name.label('model_name')  # 明确获取模型名称
-        ).outerjoin(Model, InferenceTask.model_id == Model.id)  # 使用外连接避免丢失无关联模型的任务
+        )
 
         # 应用模型名称模糊匹配
         if model_name:

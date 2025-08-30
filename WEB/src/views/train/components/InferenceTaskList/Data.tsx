@@ -97,13 +97,15 @@ export function getInferenceColumns(): BasicColumn[] {
 
 export function getInferenceFormConfig() {
   return {
+    labelWidth: 80,
+    baseColProps: {span: 6},
     schemas: [
       {
-        field: 'model_id',
-        label: '模型ID',
+        field: 'model_name',
+        label: '模型名称',
         component: 'Input',
         componentProps: {
-          placeholder: '输入模型ID精确查询',
+          placeholder: '输入模型名称匹配查询',
         },
       },
       {
@@ -131,15 +133,6 @@ export function getInferenceFormConfig() {
             { label: '失败', value: 'FAILED' },
             { label: '等待', value: 'WAITING' },
           ],
-        },
-      },
-      {
-        field: 'time_range',
-        label: '时间范围',
-        component: 'RangePicker',
-        componentProps: {
-          showTime: true,
-          format: 'YYYY-MM-DD HH:mm',
         },
       },
     ],
