@@ -207,9 +207,10 @@ services:
 
 | Service Item                       | Service Content                                                                                   | Service Fee | Service Method                          |
 |------------------------------------|---------------------------------------------------------------------------------------------------|-------------|-----------------------------------------|
-| System Deployment                  | Complete EasyAIoT deployment in the customer-specified network and hardware environment           | ¥300        | Online Deployment Support               |
-| Technical Support                  | Provide solutions for issues encountered during deployment and functional usage                   | ¥100        | Online Remote Support within 30 Minutes |
-| Device Access Protocol Development | Develop and provide source code for platform protocol packages based on provided device models    | ¥3000+      | Customized Development                  |
+| System Deployment                  | Complete EasyAIoT deployment in the customer-specified network and hardware environment           | ¥500        | Online Deployment Support               |
+| Technical Support                  | Provide solutions for issues encountered during deployment and functional usage                   | ¥200        | Online Remote Support within 30 Minutes |
+| Model Training                     | Train business scenario recognition models                                                        | ¥2000+      | Customized Model Training                  |
+| Device Access Protocol Development | Develop and provide source code for platform protocol packages based on provided device models    | ¥5000+      | Customized Development                  |
 | Other Services                     | Customized development for vertical industry solutions; tailored duration and functional services | Negotiable  | Negotiable                              |
 
 ## 📞 Contact Information
