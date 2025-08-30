@@ -1,7 +1,7 @@
 <template xmlns="">
   <BasicModal
     @register="register"
-    :title="getTitle"
+    title="边缘云视讯"
     @cancel="handleCancel"
     :width="1200"
     @ok="handleOk"
@@ -18,7 +18,7 @@
   </BasicModal>
 </template>
 <script lang="ts" setup>
-import {computed, reactive} from 'vue';
+import {reactive} from 'vue';
 import {BasicModal, useModalInner} from '@/components/Modal';
 import {Form, Spin,} from 'ant-design-vue';
 import {useMessage} from '@/hooks/web/useMessage';
@@ -59,8 +59,6 @@ const modelRef = reactive({
   id: null,
   ai_region: null,
 });
-
-const getTitle = computed(() => (state.isEdit ? '编辑视频流' : state.isView ? '查看视频流' : '新增视频流'));
 
 const [register, {closeModal}] = useModalInner((data) => {
   const {record} = data;
