@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted, reactive, ref, watch, computed} from 'vue'
 import {BasicModal, useModalInner} from '@/components/Modal'
-import {getTrainingLogs} from '@/api/device/model'
+import {getTrainLogs} from '@/api/device/model'
 
 const state = reactive({
   taskId: '',
@@ -86,7 +86,7 @@ const loadLogs = async () => {
     if (!state.modelId) return
 
     // 使用新的训练状态接口
-    const data = await getTrainingLogs(state.modelId, state.taskId)
+    const data = await getTrainLogs(state.modelId, state.taskId)
 
     // 根据后端返回的数据结构调整
     if (data) {

@@ -17,7 +17,7 @@
               {
                 icon: 'mdi:file-document-outline',
                 tooltip: { title: '查看日志', placement: 'top' },
-                onClick: () => handleOpenTrainingLogsModal(record),
+                onClick: () => handleOpenTrainLogsModal(record),
                 style: 'color: #1890ff; padding: 0 8px; font-size: 16px;'
               },
               {
@@ -54,10 +54,10 @@
         </template>
       </template>
     </BasicTable>
-    <StartTrainingModal @register="registerAddModel" @success="handleStartTraining"/>
-    <TrainingLogsModal
+    <StartTrainModal @register="registerAddModel" @success="handleStartTrain"/>
+    <TrainLogsModal
       v-if="showLogsModal"
-      @register="registerTrainingLogsModal"
+      @register="registerTrainLogsModal"
       @success="handleSuccess"
       @close="handleLogsModalClose"
     />
@@ -85,12 +85,12 @@ import {useMessage} from '@/hooks/web/useMessage';
 import {useModal} from '@/components/Modal';
 import {
   deleteInferenceTask,
-  getTrainingPage,
+  getTrainPage,
   publishInferenceTask,
-  startTraining
+  startTrain
 } from '@/api/device/model';
-import StartTrainingModal from '@/views/train/components/StartTrainModal/index.vue';
-import TrainingLogsModal from '@/views/train/components/TrainLogsModal/index.vue';
+import StartTrainModal from '@/views/train/components/StartTrainModal/index.vue';
+import TrainLogsModal from '@/views/train/components/TrainLogsModal/index.vue';
 import {getBasicColumns, getFormConfig} from './Data';
 import {Empty as AEmpty, Modal as AModal} from 'ant-design-vue';
 import {Icon} from "@/components/Icon"; // 引入新组件
@@ -105,9 +105,9 @@ const currentImageUrl = ref(''); // 当前展示的图片URL
 
 const [registerAddModel, {openModal: openAddModal}] = useModal();
 
-const [registerTrainingLogsModal, {
-  openModal: openTrainingLogsModal,
-  closeModal: closeTrainingLogsModal
+const [registerTrainLogsModal, {
+  openModal: openTrainLogsModal,
+  closeModal: closeTrainLogsModal
 }] = useModal();
 
 // 表格刷新
@@ -118,9 +118,9 @@ function handleSuccess() {
 }
 
 // 处理开始训练
-const handleStartTraining = async (config) => {
+const handleStartTrain = async (config) => {
   try {
-    await startTraining(modelId.value, config).then((data) => {
+    await startTrain(modelId.value, config).then((data) => {
       createMessage.success(data['msg']);
     });
     isPollingActive.value = true;
@@ -167,10 +167,10 @@ const handleDelete = async (record) => {
   }
 };
 
-const handleOpenTrainingLogsModal = (record) => {
+const handleOpenTrainLogsModal = (record) => {
   showLogsModal.value = true;
   nextTick(() => {
-    openTrainingLogsModal(true, {record});
+    openTrainLogsModal(true, {record});
   });
 };
 
@@ -229,7 +229,7 @@ const [registerTable, {reload}] = useTable({
       requestParams.startTimeTo = params.timeRange[1];
       delete requestParams.timeRange;
     }
-    return getTrainingPage({...requestParams, modelId: modelId.value});
+    return getTrainPage({...requestParams, modelId: modelId.value});
   },
   columns: getBasicColumns(),
   useSearchForm: true,

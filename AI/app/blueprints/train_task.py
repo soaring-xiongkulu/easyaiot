@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask import render_template
 from sqlalchemy import desc
 
-from app.blueprints.train import training_status, training_processes
+from app.blueprints.train import train_status, train_processes
 from models import db, Model, TrainTask, ExportRecord
 
 train_task_bp = Blueprint('train_task', __name__)
@@ -94,7 +94,7 @@ def train_tasks():
 
 # 训练记录详情
 @train_task_bp.route('/<int:record_id>')
-def training_detail(record_id):
+def train_detail(record_id):
     try:
         # 根据ID查询训练记录
         record = TrainTask.query.get(record_id)
@@ -136,7 +136,7 @@ def training_detail(record_id):
 
 # 创建训练记录
 @train_task_bp.route('/create', methods=['POST'])
-def create_training():
+def create_train():
     try:
         data = request.json
         model_id = data.get('model_id')
@@ -163,8 +163,8 @@ def create_training():
             dataset_path=dataset_path,
             hyperparameters=data.get('hyperparameters', '{}'),
             status='running',
-            train_log=f"logs/training_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log",
-            checkpoint_dir=f"checkpoints/training_{datetime.now().strftime('%Y%m%d_%H%M%S')}/"
+            train_log=f"logs/train_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log",
+            checkpoint_dir=f"checkpoints/train_{datetime.now().strftime('%Y%m%d_%H%M%S')}/"
         )
 
         db.session.add(new_record)
@@ -195,7 +195,7 @@ def create_training():
 
 # 更新训练记录状态
 @train_task_bp.route('/update/<int:record_id>', methods=['POST'])
-def update_training(record_id):
+def update_train(record_id):
     try:
         record = TrainTask.query.get_or_404(record_id)
         data = request.json
@@ -206,7 +206,7 @@ def update_training(record_id):
 
         if 'metrics' in data:
             # 保存指标到文件
-            metrics_path = f"metrics/training_{record_id}.json"
+            metrics_path = f"metrics/train_{record_id}.json"
             os.makedirs(os.path.dirname(metrics_path), exist_ok=True)
             with open(metrics_path, 'w') as f:
                 f.write(data['metrics'])
@@ -236,12 +236,12 @@ def update_training(record_id):
 
 # 删除训练记录
 @train_task_bp.route('/delete/<int:record_id>', methods=['DELETE'])
-def delete_training(record_id):
+def delete_train(record_id):
     try:
         record = TrainTask.query.get_or_404(record_id)
 
         # 清理全局训练状态
-        cleanup_training_status(record.model_id)
+        cleanup_train_status(record.model_id)
 
         # 删除关联文件
         if os.path.exists(record.train_log):
@@ -334,11 +334,11 @@ def publish_train_task(record_id):
             'msg': '服务器内部错误'
         }), 500
 
-def cleanup_training_status(model_id):
+def cleanup_train_status(model_id):
     """清理与模型关联的全局训练状态"""
-    if model_id in training_status:
-        del training_status[model_id]  # 删除状态字典中的条目
-    if model_id in training_processes:
+    if model_id in train_status:
+        del train_status[model_id]  # 删除状态字典中的条目
+    if model_id in train_processes:
         # 若存在训练进程，尝试终止（此处需根据实际训练框架补充终止逻辑）
-        # 例如：training_processes[model_id].terminate()
-        del training_processes[model_id]
+        # 例如：train_processes[model_id].terminate()
+        del train_processes[model_id]
