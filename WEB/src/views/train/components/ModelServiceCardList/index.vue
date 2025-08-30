@@ -50,7 +50,9 @@
                   </div>
                   <div class="info-row">
                     <span class="info-label">存储路径：</span>
-                    <span class="info-value truncate">{{ shortenPath(item.minio_model_path) }}</span>
+                    <span class="info-value truncate">{{
+                        shortenPath(item.minio_model_path)
+                      }}</span>
                   </div>
                 </div>
 
@@ -112,16 +114,16 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue';
-import { List, Progress, Spin, Tag } from 'ant-design-vue';
-import { BasicForm, useForm } from '@/components/Form';
-import { propTypes } from '@/utils/propTypes';
-import { isFunction } from '@/utils/is';
-import { useMessage } from '@/hooks/web/useMessage';
-import { listModelServices, stopModelService, startModelService } from '@/api/device/model';
+import {onMounted, reactive, ref} from 'vue';
+import {List, Progress, Spin, Tag} from 'ant-design-vue';
+import {BasicForm, useForm} from '@/components/Form';
+import {propTypes} from '@/utils/propTypes';
+import {isFunction} from '@/utils/is';
+import {useMessage} from '@/hooks/web/useMessage';
+import {startTrain, stopTrain} from '@/api/device/model';
 
 const ListItem = List.Item;
-const { createMessage } = useMessage();
+const {createMessage} = useMessage();
 
 // 组件接收参数
 const props = defineProps({
@@ -141,7 +143,7 @@ const state = reactive({
 });
 
 // 表单
-const [registerForm, { validate }] = useForm({
+const [registerForm, {validate}] = useForm({
   schemas: [
     {
       field: 'model_name',
@@ -154,16 +156,16 @@ const [registerForm, { validate }] = useForm({
       component: 'Select',
       componentProps: {
         options: [
-          { label: '全部', value: '' },
-          { label: '运行中', value: 'running' },
-          { label: '已停止', value: 'stopped' },
+          {label: '全部', value: ''},
+          {label: '运行中', value: 'running'},
+          {label: '已停止', value: 'stopped'},
         ],
       },
     },
   ],
   labelWidth: 80,
-  baseColProps: { span: 6 },
-  actionColOptions: { span: 18 },
+  baseColProps: {span: 6},
+  actionColOptions: {span: 18},
   autoSubmitOnEnter: true,
   submitFunc: handleSubmit,
 });
@@ -184,9 +186,9 @@ onMounted(() => {
 async function fetch(p = {}) {
   try {
     state.loading = true;
-    const { api, params } = props;
+    const {api, params} = props;
     if (api && isFunction(api)) {
-      const res = await api({ ...params, ...p });
+      const res = await api({...params, ...p});
       data.value = res.data.list || res.data;
       total.value = res.data.total || res.data.length;
     }
@@ -225,10 +227,10 @@ const toggleServiceStatus = async (item) => {
   try {
     state.loading = true;
     if (item.status === 'running') {
-      await stopModelService(item.model_id);
+      await stopTrain(item.model_id);
       createMessage.success('服务已停止');
     } else {
-      await startModelService(item.model_id); // 这里调用了 startModelService
+      await startTrain(item.model_id); // 这里调用了 startTrain
       createMessage.success('服务已启动');
     }
     await fetch();

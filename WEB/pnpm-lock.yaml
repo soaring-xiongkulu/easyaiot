@@ -116,6 +116,9 @@ importers:
       iconify-icon:
         specifier: ^1.0.8
         version: 1.0.8
+      jsmpeg:
+        specifier: ^1.0.0
+        version: 1.0.0
       jszip:
         specifier: ^3.10.1
         version: 3.10.1
@@ -4019,6 +4022,9 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
+  jsmpeg@1.0.0:
+    resolution: {integrity: sha512-wlBKWVJ93NRJaCfrJ1KAgpMvZBLzpZxH3wnC1Yj7DudMDa/5hHeL1HfvW48ndR8GlI4irrqCXuOGhgayP9EbHw==}
+
   json-buffer@3.0.1:
     resolution: {integrity: sha512-4bV5BfR2mqfQTJm+V5tPPdf+ZpuhiIvTuAB5g8kcrXOZpTT/QwwVRWBywX1ozr6lEuPdbHxwaJlm9G6mI2sfSQ==}
 
@@ -5213,6 +5219,7 @@ packages:
   source-map@0.8.0-beta.0:
     resolution: {integrity: sha512-2ymg6oRBpebeZi9UUNsgQ89bhx01TcTkmNTGnNO88imTmbSgy4nfujrgVEFKWpMTEGA11EDkTt7mqObTPdigIA==}
     engines: {node: '>= 8'}
+    deprecated: The work that was done in this beta branch won't be included in future versions
 
   sourcemap-codec@1.4.8:
     resolution: {integrity: sha512-9NykojV5Uih4lgo5So5dtw+f0JgJX30KCNI8gwhz2J9A15wD0Ml6tjHKwf6fTSa6fAdVBdZeNOs9eJ71qCk8vA==}
@@ -10084,6 +10091,8 @@ snapshots:
   jsesc@3.0.2: {}
 
   jsesc@3.1.0: {}
+
+  jsmpeg@1.0.0: {}
 
   json-buffer@3.0.1: {}
 

@@ -26,7 +26,7 @@ import {computed, reactive, ref} from 'vue';
 import {BasicModal, useModalInner} from '@/components/Modal';
 import {Form, Spin,} from 'ant-design-vue';
 import {useMessage} from '@/hooks/web/useMessage';
-import {searchCamera} from "@/api/device/camera";
+import {discoverDevices} from "@/api/device/camera";
 import {BasicTable, useTable} from "@/components/Table";
 import {getOnvifBasicColumns, getOnvifFormConfig} from "./Data";
 
@@ -127,7 +127,7 @@ const [
   canResize: false,
   showIndexColumn: false,
   title: null,
-  api: searchCamera,
+  api: discoverDevices,
   columns: getOnvifBasicColumns(),
   useSearchForm: true,
   showTableSetting: false,
