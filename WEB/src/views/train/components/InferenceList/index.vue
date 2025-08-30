@@ -76,25 +76,26 @@
     <!-- 卡片视图 -->
     <div v-else class="card-view">
       <InferenceCardList
-        :records="state.records"
+        :params="params"
+        :api="getInferenceTasks"
         @view="handleViewDetail"
         @result="handleViewResult"
         @delete="handleDelete"
         @execute="handleCardExecute"
       >
-      <template #header>
-        <a-space>
-          <a-button type="primary" @click="openExecuteModal">
-            <template #icon>
-              <PlayCircleOutlined/>
-            </template>
-            执行推理
-          </a-button>
-          <a-button @click="handleClickSwap" preIcon="ant-design:swap-outlined">
-            切换视图
-          </a-button>
-        </a-space>
-      </template>
+        <template #header>
+          <a-space>
+            <a-button type="primary" @click="openExecuteModal">
+              <template #icon>
+                <PlayCircleOutlined/>
+              </template>
+              执行推理
+            </a-button>
+            <a-button @click="handleClickSwap" preIcon="ant-design:swap-outlined">
+              切换视图
+            </a-button>
+          </a-space>
+        </template>
       </InferenceCardList>
     </div>
 
@@ -106,12 +107,12 @@
 </template>
 
 <script lang="ts" setup>
-import { onBeforeUnmount, onMounted, reactive } from 'vue';
-import { PlayCircleOutlined } from '@ant-design/icons-vue';
-import { BasicTable, TableAction, useTable } from '@/components/Table';
-import { useModal } from '@/components/Modal';
-import { useMessage } from '@/hooks/web/useMessage';
-import { getInferenceColumns, getInferenceFormConfig } from "./Data";
+import {reactive} from 'vue';
+import {PlayCircleOutlined} from '@ant-design/icons-vue';
+import {BasicTable, TableAction, useTable} from '@/components/Table';
+import {useModal} from '@/components/Modal';
+import {useMessage} from '@/hooks/web/useMessage';
+import {getInferenceColumns, getInferenceFormConfig} from "./Data";
 import ExecuteInferenceModal from "../ExecuteInferenceModal/index.vue";
 import InferenceDetailModal from "../InferenceDetailModal/index.vue";
 import InferenceResultViewer from "../InferenceResultViewer/index.vue";
@@ -119,9 +120,12 @@ import InferenceCardList from "../InferenceCardList/index.vue";
 import {
   deleteInferenceRecord,
   getInferenceTasks,
-  streamInferenceProgress,
-  runInference  // 新增执行API
+  getModelPage,
+  runInference
 } from "@/api/device/model";
+import ModelCardList from "@/views/train/components/ModelCardList/index.vue";
+
+const params = {};
 
 // 状态管理
 const state = reactive({
@@ -138,8 +142,8 @@ const statusLabels = {
   FAILED: '失败'
 };
 
-const { createMessage } = useMessage();
-const [registerTable, { reload }] = useTable({
+const {createMessage} = useMessage();
+const [registerTable, {reload}] = useTable({
   canResize: true,
   showIndexColumn: false,
   title: '推理记录管理',
@@ -147,110 +151,14 @@ const [registerTable, { reload }] = useTable({
   columns: getInferenceColumns(),
   useSearchForm: true,
   formConfig: getInferenceFormConfig(),
-  pagination: { pageSize: 10 },
+  pagination: {pageSize: 10},
   rowKey: 'id',
 });
 
 // 模态框注册
-const [registerExecuteModal, { openModal: openExecuteModal }] = useModal();
-const [registerDetailModal, { openModal: openDetailModal }] = useModal();
-const [registerResultModal, { openModal: openResultModal }] = useModal();
-
-// 组件挂载时加载数据
-onMounted(() => {
-  loadRecords();
-});
-
-// 组件卸载前关闭所有SSE连接
-onBeforeUnmount(() => {
-  Object.values(state.eventSources).forEach(source => source.close());
-});
-
-// 加载推理记录
-const loadRecords = async () => {
-  try {
-    const response = await getInferenceTasks();
-    state.records = response.items.map(record => ({
-      ...record,
-      start_time: formatDateTime(record.start_time)
-    }));
-
-    // 为处理中的记录启动进度监听
-    state.records.forEach(record => {
-      if (record['status'] === 'PROCESSING') {
-        startProgressListener(record['id']);
-      }
-    });
-  } catch (error) {
-    createMessage.error('加载推理记录失败');
-    console.error('加载记录错误:', error);
-  }
-};
-
-// 启动进度监听
-const startProgressListener = (recordId: number) => {
-  // 关闭已存在的连接
-  if (state.eventSources[recordId]) {
-    state.eventSources[recordId].close();
-  }
-
-  // 创建新的EventSource连接
-  const eventSource = streamInferenceProgress(recordId);
-  state.eventSources[recordId] = eventSource;
-
-  eventSource.onmessage = (event) => {
-    const progress = JSON.parse(event.data);
-    updateRecordProgress(recordId, progress);
-  };
-
-  eventSource.onerror = (error) => {
-    console.error('SSE连接错误:', error);
-    eventSource.close();
-    delete state.eventSources[recordId];
-  };
-};
-
-// 更新记录进度
-const updateRecordProgress = (recordId: number, progress: any) => {
-  const recordIndex = state.records.findIndex(r => r['id'] === recordId);
-  if (recordIndex === -1) return;
-
-  const updatedRecord = { ...state.records[recordIndex] };
-
-  // 更新处理帧数
-  if (progress.processed_frames !== undefined) {
-    updatedRecord.processed_frames = progress.processed_frames;
-  }
-
-  // 更新总帧数（视频处理）
-  if (progress.total_frames !== undefined) {
-    updatedRecord.total_frames = progress.total_frames;
-  }
-
-  // 状态更新
-  if (progress.status && progress.status !== 'PROCESSING') {
-    updatedRecord.status = progress.status;
-    updatedRecord.end_time = formatDateTime(new Date().toISOString());
-
-    if (progress.processing_time) {
-      updatedRecord.processing_time = progress.processing_time;
-    }
-
-    // 关闭SSE连接
-    if (state.eventSources[recordId]) {
-      state.eventSources[recordId].close();
-      delete state.eventSources[recordId];
-    }
-  }
-
-  // 错误处理
-  if (progress.error_message) {
-    updatedRecord.error_message = progress.error_message;
-  }
-
-  // 更新记录
-  state.records.splice(recordIndex, 1, updatedRecord);
-};
+const [registerExecuteModal, {openModal: openExecuteModal}] = useModal();
+const [registerDetailModal, {openModal: openDetailModal}] = useModal();
+const [registerResultModal, {openModal: openResultModal}] = useModal();
 
 // 计算进度百分比
 const calculateProgress = (record): number => {
@@ -316,7 +224,7 @@ const handleExecute = async (record) => {
 
   try {
     state.executing = true;
-    createMessage.loading({ content: '任务执行中...', key: 'executing', duration: 0 });
+    createMessage.loading({content: '任务执行中...', key: 'executing', duration: 0});
 
     // 准备执行参数
     const params = {
@@ -328,7 +236,7 @@ const handleExecute = async (record) => {
     const result = await runInference(record.model_id, params);
 
     if (result.code === 0) {
-      createMessage.success({ content: '任务执行成功', key: 'executing' });
+      createMessage.success({content: '任务执行成功', key: 'executing'});
 
       // 添加新记录到列表
       const newRecord = {
@@ -341,10 +249,10 @@ const handleExecute = async (record) => {
       // 启动进度监听
       startProgressListener(newRecord.id);
     } else {
-      createMessage.error({ content: result.msg || '执行失败', key: 'executing' });
+      createMessage.error({content: result.msg || '执行失败', key: 'executing'});
     }
   } catch (error) {
-    createMessage.error({ content: `执行失败: ${error.message}`, key: 'executing' });
+    createMessage.error({content: `执行失败: ${error.message}`, key: 'executing'});
     console.error('执行错误:', error);
   } finally {
     state.executing = false;
