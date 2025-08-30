@@ -74,15 +74,16 @@ export const uploadModelFile = (formData: FormData) => {
   });
 };
 
-// ================= 模型训练管理接口 =================
-export const getTrainPage = (params) => {
-  return commonApi('get', `${Api.Train}/list`, {params});
+// ================= 模型训练任务接口 =================
+export const getTrainTaskPage = (params) => {
+  return commonApi('get', `${Api.TrainTask}/list`, {params});
 };
 
-export const getTrainDetail = (recordId) => {
-  return commonApi('get', `${Api.Train}/${recordId}`);
+export const getTrainTaskDetail = (recordId) => {
+  return commonApi('get', `${Api.TrainTask}/${recordId}`);
 };
 
+// ================= 模型训练接口 =================
 export const startTrain = (modelId, params) => {
   return commonApi('post', `${Api.Train}/${modelId}/train`, {data: params});
 };

@@ -166,7 +166,7 @@ const [registerTable, { reload }] = useTable({
 });
 
 const goTrainDetail = async (record) => {
-  router.push({ name: 'TrainDetail', params: { modelId: record.id } });
+  router.push({ name: 'TrainTaskDetail', params: { modelId: record.id } });
 };
 
 const handleDelete = async (record) => {

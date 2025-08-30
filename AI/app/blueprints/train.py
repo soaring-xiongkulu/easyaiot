@@ -581,14 +581,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     'traceback': traceback.format_exc(),
                     'log': train_status[model_id].get('log', '') + log_msg + '\n' + traceback.format_exc()
                 })
-                if train_task:
-                    train_task.train_log += log_msg + '\n' + traceback.format_exc()
-                    db.session.commit()
-
-                model = Model.query.get_or_404(model_id)
-                if model:
-                    model.last_error = str(e)
-                    db.session.commit()
+                update_log_local(log_msg)
             except Exception as inner_e:
                 update_log(f'在异常处理中获取应用上下文失败: {str(inner_e)}', model_id)
                 train_status[model_id].update({
@@ -599,6 +592,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     'traceback': traceback.format_exc(),
                     'log': train_status[model_id].get('log', '') + f'严重错误: {str(e)}\n' + traceback.format_exc()
                 })
+                update_log_local(f'严重错误: {str(e)}')
     finally:
         if model_id in train_processes:
             del train_processes[model_id]
