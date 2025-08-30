@@ -411,7 +411,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             db.session.commit()
 
             # 训练模型
-            results = model.train(
+            yolo_model.train(
                 data=data_yaml_path,
                 epochs=epochs,
                 imgsz=img_size,
