@@ -25,12 +25,16 @@ def api_register_nvr():
         return api_response(data={'id': nvr_id})
 
     except ValueError as e:  # 参数验证失败
+        logger.error(f'注册失败: {str(e)}')
         return api_response(400, str(e))
     except LookupError as e:  # 资源不存在
+        logger.error(f'注册失败: {str(e)}')
         return api_response(404, str(e))
     except RuntimeError as e:  # 操作执行失败
+        logger.error(f'注册失败: {str(e)}')
         return api_response(500, str(e))
     except Exception as e:
+        logger.error(f'注册失败: {str(e)}')
         return api_response(500, f'注册失败: {str(e)}')
 
 
@@ -42,8 +46,10 @@ def api_get_nvr_info(nvr_id):
         return api_response(data=info)
 
     except LookupError as e:  # NVR不存在
+        logger.error(f'获取信息失败: {str(e)}')
         return api_response(404, str(e))
     except Exception as e:
+        logger.error(f'获取信息失败: {str(e)}')
         return api_response(500, f'获取信息失败: {str(e)}')
 
 
@@ -55,8 +61,10 @@ def api_delete_nvr(nvr_id):
         return api_response(message='删除成功')
 
     except LookupError as e:  # NVR不存在
+        logger.error(f'删除NVR失败: {str(e)}')
         return api_response(404, str(e))
     except Exception as e:
+        logger.error(f'删除NVR失败: {str(e)}')
         return api_response(500, f'删除失败: {str(e)}')
 
 
@@ -72,10 +80,14 @@ def api_add_nvr_camera(nvr_id):
         return api_response(message='添加成功')
 
     except LookupError as e:  # NVR不存在
+        logger.error(f'添加NVR子摄像头失败: {str(e)}')
         return api_response(404, str(e))
     except ValueError as e:  # 参数错误
+        logger.error(f'添加NVR子摄像头失败: {str(e)}')
         return api_response(400, str(e))
     except RuntimeError as e:  # 操作失败
+        logger.error(f'添加NVR子摄像头失败: {str(e)}')
         return api_response(500, str(e))
     except Exception as e:
+        logger.error(f'添加NVR子摄像头失败: {str(e)}')
         return api_response(500, f'添加失败: {str(e)}')
