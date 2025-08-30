@@ -93,6 +93,7 @@ def _to_dict(camera: Device) -> dict:
         'source': camera.source,
         'rtmp_stream': camera.rtmp_stream,
         'http_stream': camera.http_stream,
+        'enable_forward': camera.enable_forward,
         'stream': camera.stream,
         'ip': camera.ip,
         'port': camera.port,
@@ -299,8 +300,8 @@ def register_camera(register_info: dict) -> str:
         id=id,  # 显式设置ID，确保使用传入的ID或生成的唯一ID
         name=register_info.get('name', f'Camera-{id[:6]}'),
         source=camera_info.get('source'),
-        rtmp_stream=f"rtmp://localhost/live/{id}",
-        http_stream=f"http://localhost/live/{id}.flv",
+        rtmp_stream=f"rtmp://localhost:1935/live/{id}",
+        http_stream=f"http://localhost:8989/live/{id}/hls.m3u8",
         stream=register_info.get('stream'),
         ip=camera_info.get('ip'),
         port=camera_info.get('port', 80),
