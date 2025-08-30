@@ -6,7 +6,7 @@ from operator import or_
 from flask import Blueprint, request, jsonify
 from flask import redirect, url_for, flash, render_template
 from app.services.model_service import ModelService
-from models import InferenceTask
+from models import TrainTask
 from models import db, Model
 from sqlalchemy.exc import IntegrityError
 
@@ -67,19 +67,19 @@ def models():
 def publish_model(model_id):
     try:
         data = request.get_json()
-        inference_task_id = data.get('inference_task_id')
+        train_task_id = data.get('train_task_id')
         version = data.get('version', '1.0.0')
 
-        if not inference_task_id:
+        if not train_task_id:
             return jsonify({'code': 400, 'msg': '缺少训练记录ID参数'}), 400
 
         model = Model.query.get_or_404(model_id)
-        inference_task = InferenceTask.query.get_or_404(inference_task_id)
+        train_task = TrainTask.query.get_or_404(train_task_id)
 
-        if inference_task.model_id != model_id:
+        if train_task.model_id != model_id:
             return jsonify({'code': 400, 'msg': '训练记录不属于该模型'}), 400
 
-        model_path = inference_task.minio_model_path or inference_task.best_model_path
+        model_path = train_task.minio_model_path or train_task.best_model_path
         if not model_path:
             return jsonify({'code': 400, 'msg': '训练记录中未找到有效模型路径'}), 400
 
@@ -97,7 +97,7 @@ def publish_model(model_id):
             }), 400
 
         model.model_path = model_path
-        model.inference_task_id = inference_task_id
+        model.train_task_id = train_task_id
         model.version = version
         db.session.commit()
 
@@ -118,13 +118,13 @@ def publish_model(model_id):
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
-@model_bp.route('/<int:model_id>/inference_tasks', methods=['GET'])
-def get_model_inference_tasks(model_id):
+@model_bp.route('/<int:model_id>/train_tasks', methods=['GET'])
+def get_model_train_tasks(model_id):
     try:
         page_no = int(request.args.get('pageNo', 1))
         page_size = int(request.args.get('pageSize', 10))
 
-        query = InferenceTask.query.filter_by(model_id=model_id)
+        query = TrainTask.query.filter_by(model_id=model_id)
         pagination = query.paginate(page=page_no, per_page=page_size, error_out=False)
 
         records = [{
