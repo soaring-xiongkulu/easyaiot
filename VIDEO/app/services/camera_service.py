@@ -359,28 +359,28 @@ def get_device_list() -> dict:
         'online': online,
     }
 
-def patch_camera(id: str, patch_info: dict):
+def update_camera(id: str, update_info: dict):
     """更新设备信息"""
     camera = _get_camera(id)
     if not camera:
         raise ValueError(f'设备 {id} 不存在，无法修改')
 
     # 过滤空值并更新字段
-    for k, v in (item for item in patch_info.items() if item[1] is not None):
+    for k, v in (item for item in update_info.items() if item[1] is not None):
         if hasattr(camera, k):
             setattr(camera, k, v)
 
     # 处理码流变更
-    if 'stream' in patch_info:
+    if 'stream' in update_info:
         try:
-            camera.source = _get_stream(camera.source, patch_info['stream'])
+            camera.source = _get_stream(camera.source, update_info['stream'])
         except Exception as e:
             raise RuntimeError(f'码流调整失败: {str(e)}')
 
     # 处理IP地址变更
-    if 'ip' in patch_info:
+    if 'ip' in update_info:
         try:
-            _update_camera_ip(camera, patch_info['ip'])
+            _update_camera_ip(camera, update_info['ip'])
         except Exception as e:
             raise RuntimeError(f'IP地址更新失败: {str(e)}')
 
