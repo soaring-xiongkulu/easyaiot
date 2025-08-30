@@ -75,7 +75,7 @@ def create_app():
     with app.app_context():
         try:
             print(f"数据库连接: {app.config['SQLALCHEMY_DATABASE_URI']}")
-            from models import Model, TrainingRecord, ExportRecord
+            from models import Model, TrainingRecord, ExportRecord, InferenceRecord
             db.create_all()
         except Exception as e:
             print(f"❌ 建表失败: {str(e)}")
