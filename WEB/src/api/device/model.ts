@@ -118,19 +118,19 @@ export const getTrainingLogs = (modelId, taskId) => {
 };
 
 // ================= 推理记录管理接口 =================
-export const createInferenceRecord = (params) => {
+export const createInferenceTask = (params) => {
   return commonApi('post', Api.InferenceRecord,{data: params},{'Content-Type': 'application/json'});
 };
 
-export const updateInferenceRecord = (recordId, params) => {
+export const updateInferenceTask = (recordId, params) => {
   return commonApi('put',`${Api.InferenceRecord}/${recordId}`,{data: params},{'Content-Type': 'application/json'});
 };
 
-export const getInferenceRecords = (params) => {
+export const getInferenceTasks = (params) => {
   return commonApi('get', Api.InferenceRecord, {params});
 };
 
-export const getInferenceRecordDetail = (recordId) => {
+export const getInferenceTaskDetail = (recordId) => {
   return commonApi('get', `${Api.InferenceRecord}/${recordId}`);
 };
 

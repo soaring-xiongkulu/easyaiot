@@ -11,7 +11,7 @@
       <Spin :spinning="state.editLoading">
         <Form
           :labelCol="{ span: 3 }"
-          :model="validateInfos"
+          :model="modelRef"
           :wrapperCol="{ span: 21 }"
           :disabled="state.isView"
         >
@@ -28,8 +28,7 @@
               label-field="name"
               value-field="id"
               :disabled="state.isView"
-            >
-            </ApiSelect>
+            />
           </FormItem>
 
           <!-- 推理类型 -->
@@ -61,7 +60,7 @@
               :action="state.uploadUrl"
               :headers="headers"
               :showUploadList="true"
-              :accept="modelRef.inference_type === 'image' ? 'image/*' : 'video/*'"
+              :accept="uploadAccept"
               :max-count="1"
               :disabled="state.isView"
               @change="handleFileUpload"
@@ -69,7 +68,7 @@
               <a-button type="primary">点击上传</a-button>
             </Upload>
             <div v-if="modelRef.input_source" style="margin-top: 8px">
-              已上传文件: {{ modelRef.input_source }}
+              已上传文件: {{ fileName }}
             </div>
           </FormItem>
 
@@ -83,6 +82,7 @@
             <Input
               v-model:value="modelRef.rtsp_url"
               :disabled="state.isView"
+              placeholder="rtsp://example.com:554/stream"
             />
           </FormItem>
         </Form>
@@ -92,40 +92,59 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, reactive, ref } from 'vue';
-import { BasicModal, useModalInner } from '@/components/Modal';
-import { Form, FormItem, Input, Select, SelectOption, Spin, Upload } from 'ant-design-vue';
+import {computed, reactive, ref} from 'vue';
+import {BasicModal, useModalInner} from '@/components/Modal';
+import {Form, FormItem, Input, Select, SelectOption, Spin, Upload} from 'ant-design-vue';
 import ApiSelect from '@/components/Form/src/components/ApiSelect.vue';
-import { useMessage } from '@/hooks/web/useMessage';
-import { getModelPage } from "@/api/device/model";
-import { createInferenceTask, updateInferenceTask } from "@/api/device/inference";
-import { useUserStoreWithOut } from "@/store/modules/user";
-import { useGlobSetting } from "@/hooks/setting";
+import {useMessage} from '@/hooks/web/useMessage';
+import {createInferenceTask, getModelPage, updateInferenceTask} from "@/api/device/model";
+import {useUserStoreWithOut} from "@/store/modules/user";
+import {useGlobSetting} from "@/hooks/setting";
 
-const { createMessage } = useMessage();
+// 定义类型
+interface InferenceModel {
+  id?: number | null;
+  model_id: number | null;
+  inference_type: 'image' | 'video' | 'rtsp';
+  input_source: string;
+  rtsp_url: string;
+}
+
+const {createMessage} = useMessage();
 
 // 获取用户token和全局设置
 const userStore = useUserStoreWithOut();
 const token = userStore.getAccessToken;
-const headers = ref({ 'Authorization': `Bearer ${token}` });
-const { uploadUrl } = useGlobSetting();
+const headers = ref({Authorization: `Bearer ${token}`});
+const {uploadUrl} = useGlobSetting();
 
 // 定义状态管理
 const state = reactive({
   editLoading: false,
   isEdit: false,
   isView: false,
-  record: null,
-  uploadUrl: `${uploadUrl}/inference/upload`, // 推理任务上传接口
+  record: null as InferenceModel | null,
+  uploadUrl: `${uploadUrl}/inference/upload`,
 });
 
 // 表单数据模型
-const modelRef = reactive({
-  id: null,
+const modelRef = reactive<InferenceModel>({
   model_id: null,
   inference_type: 'image',
   input_source: '',
   rtsp_url: '',
+});
+
+// 计算上传文件接受类型
+const uploadAccept = computed(() => {
+  return modelRef.inference_type === 'image'
+    ? 'image/*'
+    : 'video/*';
+});
+
+// 提取文件名
+const fileName = computed(() => {
+  return modelRef.input_source.split('/').pop() || modelRef.input_source;
 });
 
 // 计算标题
@@ -136,18 +155,18 @@ const getTitle = computed(() =>
 // 表单验证规则
 const rulesRef = reactive({
   model_id: [
-    { required: true, message: '请选择模型', trigger: ['blur', 'change'] }
+    {required: true, message: '请选择模型', trigger: ['blur', 'change']}
   ],
   inference_type: [
-    { required: true, message: '请选择推理类型', trigger: ['blur', 'change'] }
+    {required: true, message: '请选择推理类型', trigger: ['blur', 'change']}
   ],
   input_source: [
     {
       required: true,
       message: '请上传文件',
       trigger: 'change',
-      validator: (_, value) => {
-        if (modelRef.inference_type !== 'rtsp' && !value) {
+      validator: () => {
+        if (modelRef.inference_type !== 'rtsp' && !modelRef.input_source) {
           return Promise.reject('请上传文件');
         }
         return Promise.resolve();
@@ -159,12 +178,16 @@ const rulesRef = reactive({
       required: true,
       message: '请输入RTSP地址',
       trigger: 'blur',
-      validator: (_, value) => {
-        if (modelRef.inference_type === 'rtsp' && !value) {
-          return Promise.reject('请输入RTSP地址');
-        }
-        if (modelRef.inference_type === 'rtsp' && !/^rtsp:\/\/\w+(\.\w+)+:\d+\/\w+/.test(value)) {
-          return Promise.reject('请输入有效的RTSP地址格式（如：rtsp://example.com:554/stream）');
+      validator: () => {
+        if (modelRef.inference_type === 'rtsp') {
+          if (!modelRef.rtsp_url) {
+            return Promise.reject('请输入RTSP地址');
+          }
+          // 更完善的RTSP地址验证
+          const rtspRegex = /^rtsp:\/\/[a-zA-Z0-9.-]+(:\d+)?(\/[a-zA-Z0-9_-]+)*$/;
+          if (!rtspRegex.test(modelRef.rtsp_url)) {
+            return Promise.reject('请输入有效的RTSP地址格式（如：rtsp://example.com:554/stream）');
+          }
         }
         return Promise.resolve();
       }
@@ -174,19 +197,17 @@ const rulesRef = reactive({
 
 // 表单验证
 const useForm = Form.useForm;
-const { validate, resetFields, validateInfos } = useForm(modelRef, rulesRef);
+const {validate, resetFields, validateInfos} = useForm(modelRef, rulesRef);
 
 // 模态框注册
-const [register, { closeModal }] = useModalInner((data) => {
-  const { isEdit, isView, record } = data;
+const [register, {closeModal}] = useModalInner((data: any) => {
+  const {isEdit, isView, record} = data;
   state.isEdit = isEdit;
   state.isView = isView;
 
   if (state.isEdit || state.isView) {
     state.editLoading = true;
-    Object.keys(modelRef).forEach(key => {
-      modelRef[key] = record[key] ?? '';
-    });
+    Object.assign(modelRef, record);
     state.record = record;
     state.editLoading = false;
   } else {
@@ -204,11 +225,11 @@ function handleCancel() {
 }
 
 // 处理文件上传事件
-function handleFileUpload(info) {
+function handleFileUpload(info: any) {
   if (info.file.status === 'done') {
     const response = info.file.response;
     if (response && response.code === 0) {
-      modelRef.input_source = response.data.path; // 存储文件路径
+      modelRef.input_source = response.data.path;
       createMessage.success('文件上传成功');
     } else {
       createMessage.error(response?.msg || '文件上传失败');
@@ -219,41 +240,52 @@ function handleFileUpload(info) {
 }
 
 // 确定操作
-function handleOk() {
-  validate().then(async () => {
-    try {
-      state.editLoading = true;
-      const api = modelRef.id ? updateInferenceTask : createInferenceTask;
-      const payload = {
-        id: modelRef.id,
-        model_id: modelRef.model_id,
-        inference_type: modelRef.inference_type,
-        input_source: modelRef.input_source,
-        rtsp_url: modelRef.rtsp_url
-      };
+async function handleOk() {
+  try {
+    await validate();
+    state.editLoading = true;
 
-      const res = await api(payload);
-      if (res.code === 0) {
-        createMessage.success('操作成功');
-        closeModal();
-        resetFields();
-        emits('success');
-      } else {
-        createMessage.error(res.msg || '操作失败');
-      }
-    } catch (error) {
-      console.error(error);
-      createMessage.error('操作失败');
-    } finally {
-      state.editLoading = false;
+    const payload: Partial<InferenceModel> = {
+      model_id: modelRef.model_id,
+      inference_type: modelRef.inference_type,
+    };
+
+    // 根据推理类型设置不同的输入源
+    if (modelRef.inference_type === 'rtsp') {
+      payload.rtsp_url = modelRef.rtsp_url;
+    } else {
+      payload.input_source = modelRef.input_source;
     }
-  }).catch(err => {
+
+    // 根据是否编辑调用不同API
+    const api = state.isEdit && modelRef.id
+      ? updateInferenceTask
+      : createInferenceTask;
+
+    // 编辑时需要传递ID
+    if (state.isEdit && modelRef.id) {
+      payload.id = modelRef.id;
+    }
+
+    const res = await api(payload);
+    if (res.code === 0) {
+      createMessage.success(state.isEdit ? '更新成功' : '创建成功');
+      closeModal();
+      resetFields();
+      emits('success');
+    } else {
+      createMessage.error(res.msg || '操作失败');
+    }
+  } catch (error) {
+    console.error('表单验证或操作失败:', error);
     createMessage.error('请检查表单');
-    console.error('表单验证失败:', err);
-  });
+  } finally {
+    state.editLoading = false;
+  }
 }
 
-const handleGetModelPage = async (params?: any) => {
+// 获取模型列表
+async function handleGetModelPage(params?: any) {
   try {
     const response = await getModelPage(params);
     if (response.code === 0) {
@@ -277,7 +309,7 @@ const handleGetModelPage = async (params?: any) => {
       total: 0
     };
   }
-};
+}
 </script>
 
 <style lang="less" scoped>
