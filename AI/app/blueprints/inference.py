@@ -181,7 +181,7 @@ def get_inference_records():
     except ValueError:
         return jsonify({'code': 400, 'msg': '参数类型错误：pageNo和pageSize需为整数'}), 400
     except Exception as e:
-        logger.error(f"获取推理记录失败: {str(e)}")
+        logger.error(f"获取推理任务失败: {str(e)}")
         return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
 
 @inference_bp.route('/inference_records/<int:record_id>', methods=['GET'])
@@ -207,7 +207,7 @@ def get_inference_record_detail(record_id):
             }
         })
     except Exception as e:
-        logger.error(f"获取推理记录详情失败: {str(e)}")
+        logger.error(f"获取推理任务详情失败: {str(e)}")
         return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
 
 @inference_bp.route('/inference_records/<int:record_id>', methods=['DELETE'])
