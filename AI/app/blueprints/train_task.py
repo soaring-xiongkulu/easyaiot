@@ -10,7 +10,7 @@ from sqlalchemy import desc
 from app.blueprints.train import training_status, training_processes
 from models import db, Model, TrainTask, ExportRecord
 
-train_task_bp = Blueprint('train_task', __name__, url_prefix='/training')
+train_task_bp = Blueprint('train_task', __name__)
 logger = logging.getLogger(__name__)
 
 
