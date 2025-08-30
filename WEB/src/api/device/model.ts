@@ -2,11 +2,10 @@ import {defHttp} from '@/utils/http/axios';
 
 enum Api {
   Model = '/model',
-  Training = '/model/training',
+  Train = '/model/train',
+  TrainTask = '/model/train_task',
   InferenceTask = '/model/inference_task',
-  Inference = '/model/inference',
   Export = '/model/export',
-  InferenceRecord = '/model/inference/inference_records',
 }
 
 const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url, params = {}, headers = {}, isTransformResponse = true) => {
@@ -76,24 +75,28 @@ export const uploadModelFile = (formData: FormData) => {
 };
 
 // ================= 模型训练管理接口 =================
-export const startTraining = (modelId, params) => {
-  return commonApi('post', `${Api.Training}/${modelId}/train`, {data: params});
+export const getTrainPage = (params) => {
+  return commonApi('get', `${Api.Train}/list`, {params});
 };
 
-export const stopTraining = (modelId) => {
-  return commonApi('post', `${Api.Training}/${modelId}/train/stop`);
+export const getTrainDetail = (recordId) => {
+  return commonApi('get', `${Api.Train}/${recordId}`);
 };
 
-export const getTrainingStatus = (modelId) => {
-  return commonApi('get', `${Api.Training}/${modelId}/train/status`);
+export const startTrain = (modelId, params) => {
+  return commonApi('post', `${Api.Train}/${modelId}/train`, {data: params});
 };
 
-export const getTrainingPage = (params) => {
-  return commonApi('get', `${Api.InferenceTask}/list`, {params});
+export const stopTrain = (modelId) => {
+  return commonApi('post', `${Api.Train}/${modelId}/train/stop`);
 };
 
-export const getTrainingDetail = (recordId) => {
-  return commonApi('get', `${Api.InferenceTask}/${recordId}`);
+export const getTrainStatus = (modelId) => {
+  return commonApi('get', `${Api.Train}/${modelId}/train/status`);
+};
+
+export const getTrainingLogs = (modelId, taskId) => {
+  return commonApi('get', `${Api.Train}/${modelId}/train/${taskId}/logs`);
 };
 
 // ================= 模型推理任务接口 =================
@@ -117,39 +120,32 @@ export const publishInferenceTask = (recordId: number) => {
   return commonApi('post', `${Api.InferenceTask}/publish/${recordId}`);
 };
 
-export const getTrainingLogs = (modelId, taskId) => {
-  return commonApi('get', `${Api.Training}/${modelId}/train/${taskId}/logs`);
+export const createInferenceTask = (params) => {
+  return commonApi('post', Api.InferenceTask,{data: params},{'Content-Type': 'application/json'});
 };
 
-// ================= 模型推理记录管理接口 =================
-export const createInferenceRecord = (params) => {
-  return commonApi('post', Api.InferenceRecord,{data: params},{'Content-Type': 'application/json'});
-};
-
-export const updateInferenceRecord = (recordId, params) => {
-  return commonApi('put',`${Api.InferenceRecord}/${recordId}`,{data: params},{'Content-Type': 'application/json'});
+export const updateInferenceTask = (recordId, params) => {
+  return commonApi('put',`${Api.InferenceTask}/${recordId}`,{data: params},{'Content-Type': 'application/json'});
 };
 
 export const getInferenceRecords = (params) => {
-  return commonApi('get', Api.InferenceRecord, {params});
+  return commonApi('get', Api.InferenceTask, {params});
 };
 
 export const getInferenceTaskDetail = (recordId) => {
-  return commonApi('get', `${Api.InferenceRecord}/${recordId}`);
+  return commonApi('get', `${Api.InferenceTask}/${recordId}`);
 };
 
 export const deleteInferenceRecord = (recordId) => {
-  return commonApi('delete', `${Api.InferenceRecord}/${recordId}`);
+  return commonApi('delete', `${Api.InferenceTask}/${recordId}`);
 };
 
-// ================= 推理执行接口 =================
 export const runInference = (modelId, formData) => {
-  return commonApi('post',`${Api.Inference}/${modelId}/inference/run`,{data: formData},{'Content-Type': 'multipart/form-data'});
+  return commonApi('post',`${Api.InferenceTask}/${modelId}/inference/run`,{data: formData},{'Content-Type': 'multipart/form-data'});
 };
 
-// ================= 流式推理进度接口 =================
 export const streamInferenceProgress = (recordId: number) => {
-  return new EventSource(`${Api.InferenceRecord}/${recordId}/stream?token=${localStorage.getItem('jwt_token')}`);
+  return new EventSource(`${Api.InferenceTask}/${recordId}/stream?token=${localStorage.getItem('jwt_token')}`);
 };
 
 // ================= 导出接口优化 =================
