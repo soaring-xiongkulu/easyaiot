@@ -28,7 +28,14 @@
               label-field="name"
               value-field="id"
               :disabled="state.isView"
-            />
+            >
+              <!-- 为默认模型添加灰色样式 -->
+              <template #option="{ item }">
+                <span :style="{ color: item.id === 'default' ? 'gray' : 'inherit' }">
+                  {{ item.name }}
+                </span>
+              </template>
+            </ApiSelect>
           </FormItem>
 
           <!-- 推理类型 -->
@@ -104,7 +111,7 @@ import {useGlobSetting} from "@/hooks/setting";
 // 定义类型
 interface InferenceModel {
   id?: number | null;
-  model_id: number | null;
+  model_id: number | string | null; // 修改为支持字符串类型
   inference_type: 'image' | 'video' | 'rtsp';
   input_source: string;
   rtsp_url: string;
@@ -155,7 +162,17 @@ const getTitle = computed(() =>
 // 表单验证规则
 const rulesRef = reactive({
   model_id: [
-    {required: true, message: '请选择模型', trigger: ['blur', 'change']}
+    {
+      required: true,
+      message: '请选择模型',
+      trigger: ['blur', 'change'],
+      validator: () => {
+        if (!modelRef.model_id) {
+          return Promise.reject('请选择模型');
+        }
+        return Promise.resolve();
+      }
+    }
   ],
   inference_type: [
     {required: true, message: '请选择推理类型', trigger: ['blur', 'change']}
@@ -183,7 +200,7 @@ const rulesRef = reactive({
           if (!modelRef.rtsp_url) {
             return Promise.reject('请输入RTSP地址');
           }
-          // 更完善的RTSP地址验证
+          // RTSP地址验证
           const rtspRegex = /^rtsp:\/\/[a-zA-Z0-9.-]+(:\d+)?(\/[a-zA-Z0-9_-]+)*$/;
           if (!rtspRegex.test(modelRef.rtsp_url)) {
             return Promise.reject('请输入有效的RTSP地址格式（如：rtsp://example.com:554/stream）');
@@ -213,6 +230,7 @@ const [register, {closeModal}] = useModalInner((data: any) => {
   } else {
     resetFields();
     modelRef.inference_type = 'image';
+    modelRef.model_id = null; // 重置模型选择
   }
 });
 
@@ -244,7 +262,7 @@ async function handleOk() {
     state.editLoading = true;
 
     const payload: Partial<InferenceModel> = {
-      model_id: modelRef.model_id,
+      model_id: modelRef.model_id === 'default' ? null : modelRef.model_id, // 特殊处理默认模型
       inference_type: modelRef.inference_type,
     };
 
@@ -281,23 +299,20 @@ async function handleOk() {
   }
 }
 
-// 获取模型列表
+// 获取模型列表（关键修改）
 async function handleGetModelPage(params?: any) {
   try {
     const response = await getModelPage(params);
-    if (response.code === 0) {
-      return {
-        items: response.data,
-        total: response.total
-      };
-    } else {
-      console.error('获取模型列表失败:', response.msg);
-      createMessage.error('获取模型列表失败');
-      return {
-        items: [],
-        total: 0
-      };
+    const items = response.code === 0 ? response.data : [];
+
+    // 插入默认模型选项（唯一标识为 'default'）
+    if (!items.some(item => item.id === 'default')) {
+      items.unshift({
+        id: 'default',          // 特殊标识
+        name: '默认模型 (yolov8n.pt)' // 显示名称
+      });
     }
+    return { items, total: items.length };
   } catch (error) {
     console.error('获取模型列表异常:', error);
     createMessage.error('获取模型列表异常');

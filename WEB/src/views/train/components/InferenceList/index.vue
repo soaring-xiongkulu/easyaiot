@@ -84,17 +84,15 @@
         @execute="handleCardExecute"
       >
         <template #header>
-          <a-space>
-            <a-button type="primary" @click="openExecuteModal">
-              <template #icon>
-                <PlayCircleOutlined/>
-              </template>
-              新增推理任务
-            </a-button>
-            <a-button @click="handleClickSwap" preIcon="ant-design:swap-outlined">
-              切换视图
-            </a-button>
-          </a-space>
+          <a-button type="primary" @click="openExecuteModal">
+            <template #icon>
+              <PlayCircleOutlined/>
+            </template>
+            新增推理任务
+          </a-button>
+          <a-button @click="handleClickSwap" preIcon="ant-design:swap-outlined">
+            切换视图
+          </a-button>
         </template>
       </InferenceCardList>
     </div>
