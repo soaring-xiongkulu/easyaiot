@@ -29,12 +29,6 @@
               value-field="id"
               :disabled="state.isView"
             >
-              <!-- 为默认模型添加灰色样式 -->
-              <template #option="{ item }">
-                <span :style="{ color: item.id === 'default' ? 'gray' : 'inherit' }">
-                  {{ item.name }}
-                </span>
-              </template>
             </ApiSelect>
           </FormItem>
 
@@ -136,7 +130,7 @@ const state = reactive({
 
 // 表单数据模型
 const modelRef = reactive<InferenceModel>({
-  model_id: null,
+  model_id: 'default',
   inference_type: 'image',
   input_source: '',
   rtsp_url: '',
@@ -262,7 +256,7 @@ async function handleOk() {
     state.editLoading = true;
 
     const payload: Partial<InferenceModel> = {
-      model_id: modelRef.model_id === 'default' ? null : modelRef.model_id, // 特殊处理默认模型
+      model_id: modelRef.model_id === 'default' ? null : modelRef.model_id,
       inference_type: modelRef.inference_type,
     };
 
@@ -299,20 +293,17 @@ async function handleOk() {
   }
 }
 
-// 获取模型列表（关键修改）
+// 获取模型列表
 async function handleGetModelPage(params?: any) {
   try {
     const response = await getModelPage(params);
     const items = response.code === 0 ? response.data : [];
-
     // 插入默认模型选项（唯一标识为 'default'）
-    if (!items.some(item => item.id === 'default')) {
-      items.unshift({
-        id: 'default',          // 特殊标识
-        name: '默认模型 (yolov8n.pt)' // 显示名称
-      });
-    }
-    return { items, total: items.length };
+    items.unshift({
+      id: 'default',
+      name: '默认模型 (yolov8n.pt)'
+    });
+    return { items, total: response['total']};
   } catch (error) {
     console.error('获取模型列表异常:', error);
     createMessage.error('获取模型列表异常');
