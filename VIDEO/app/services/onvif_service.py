@@ -169,7 +169,7 @@ class OnvifCamera:
 
         # 处理认证信息嵌入
         if self._username:
-            rtsp_url = f"rtsp://{self._username}:{self._password}@{self._ip}:554{stream_uri.split('//')[1]}"
+            rtsp_url = f"rtsp://{self._username}:{self._password}@{stream_uri.split('//')[1]}"
         else:
             rtsp_url = stream_uri
 
