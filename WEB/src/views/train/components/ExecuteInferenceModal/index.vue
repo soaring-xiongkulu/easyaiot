@@ -125,7 +125,7 @@ const state = reactive({
   isEdit: false,
   isView: false,
   record: null as InferenceModel | null,
-  uploadUrl: `${uploadUrl}/inference/upload`,
+  uploadUrl: `${uploadUrl}/model/inference/upload_input`,
 });
 
 // 表单数据模型
