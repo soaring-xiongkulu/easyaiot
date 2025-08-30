@@ -171,19 +171,6 @@ const rulesRef = reactive({
   inference_type: [
     {required: true, message: '请选择推理类型', trigger: ['blur', 'change']}
   ],
-  input_source: [
-    {
-      required: true,
-      message: '请上传文件',
-      trigger: 'change',
-      validator: () => {
-        if (modelRef.inference_type !== 'rtsp' && !modelRef.input_source) {
-          return Promise.reject('请上传文件');
-        }
-        return Promise.resolve();
-      }
-    }
-  ],
   rtsp_url: [
     {
       required: true,
@@ -238,8 +225,9 @@ function handleCancel() {
 function handleFileUpload(info: any) {
   if (info.file.status === 'done') {
     const response = info.file.response;
+    alert(JSON.stringify(response))
     if (response && response.code === 0) {
-      modelRef.input_source = response.data.path;
+      modelRef.input_source = response.data.url;
       createMessage.success('文件上传成功');
     } else {
       createMessage.error(response?.msg || '文件上传失败');
