@@ -7,31 +7,21 @@ const dashboard: AppRouteModule = {
   path: '/dashboard',
   name: 'Dashboard',
   component: LAYOUT,
-  parentId: 0,
-  redirect: '/dashboard/analysis',
+  redirect: '/dashboard/index',
   meta: {
     orderNo: 10,
-    icon: 'ant-design:home-outlined',
+    icon: 'clarity:dashboard-line',
     title: t('routes.dashboard.dashboard'),
   },
   children: [
     {
-      path: 'analysis',
-      name: 'Analysis',
+      path: 'index',
+      name: '_Dashboard',
       component: () => import('@/views/dashboard/analysis/index.vue'),
       meta: {
-        // affix: true,
         title: t('routes.dashboard.analysis'),
-        icon: 'ant-design:bar-chart-outlined',
-      },
-    },
-    {
-      path: 'workbench',
-      name: 'Workbench',
-      component: () => import('@/views/dashboard/workbench/index.vue'),
-      meta: {
-        title: t('routes.dashboard.workbench'),
-        icon: 'ant-design:appstore-outlined',
+        icon: 'clarity:dashboard-line',
+        hideMenu: true,
       },
     },
   ],
