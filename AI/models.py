@@ -24,7 +24,7 @@ class Model(db.Model):
     train_tasks = db.relationship(
         'TrainTask',
         foreign_keys='TrainTask.model_id',
-        backref=db.backref('model', lazy=True),
+        backref=db.backref('model_obj', lazy=True),  # 修改反向引用名称以避免冲突
         lazy='dynamic'
     )
     export_records = db.relationship('ExportRecord', back_populates='model', cascade='all, delete-orphan')
