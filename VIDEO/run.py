@@ -1,10 +1,8 @@
-import atexit
 import os
 import socket
 import sys
 import threading
 import time
-from idlelib import run
 
 import netifaces
 import pytz
@@ -196,6 +194,7 @@ def create_app():
             except Exception as e:
                 print(f"❌ 注销异常: {str(e)}")
 
+    import atexit
     atexit.register(deregister_service)
 
     # 时间格式化过滤器
@@ -208,6 +207,15 @@ def create_app():
             beijing_time = utc_time.astimezone(beijing)
             return beijing_time.strftime('%Y-%m-%d %H:%M:%S')
         return '未知'
+
+    # 启动摄像头搜索服务
+    with app.app_context():
+        from app.services.camera_service import _start_search, scheduler
+        _start_search()
+        
+        # 确保调度器在应用退出时正确关闭
+        import atexit
+        atexit.register(lambda: scheduler.shutdown())
 
     return app
 

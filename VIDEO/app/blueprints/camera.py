@@ -16,7 +16,7 @@ from minio.error import S3Error
 from app.services.camera_service import (
     register_camera, get_camera_info, update_camera, delete_camera,
     move_camera_ptz, get_device_list, search_camera,
-    get_snapshot_uri, refresh_camera
+    get_snapshot_uri, refresh_camera, _to_dict
 )
 from models import Device, db, Image
 
@@ -65,25 +65,7 @@ def list_devices():
             error_out=False
         )
 
-        # 构建设备列表数据
-        device_list = [{
-            'id': device.id,
-            'name': device.name,
-            'source': device.source,
-            'ip': device.ip,
-            'port': device.port,
-            'manufacturer': device.manufacturer,
-            'model': device.model,
-            'firmware_version': device.firmware_version,
-            'serial_number': device.serial_number,
-            'hardware_id': device.hardware_id,
-            'support_move': device.support_move,
-            'support_zoom': device.support_zoom,
-            'created_at': device.created_at.isoformat() if device.created_at else None,
-            'updated_at': device.updated_at.isoformat() if device.updated_at else None,
-            'nvr_id': device.nvr_id if device.nvr_id else None,
-            'nvr_channel': device.nvr_channel if device.nvr_channel else None
-        } for device in pagination.items]
+        device_list = [_to_dict(device) for device in pagination.items]
 
         return jsonify({
             'code': 0,

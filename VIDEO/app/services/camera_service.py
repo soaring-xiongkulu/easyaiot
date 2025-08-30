@@ -1,5 +1,4 @@
 import concurrent.futures
-import io
 import logging
 import os
 import re
@@ -7,7 +6,8 @@ import time
 from functools import partial
 from sched import scheduler
 
-import cv2
+import tzlocal
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask import current_app
 from onvif import ONVIFCamera
 from wsdiscovery import WSDiscovery, Scope
@@ -21,7 +21,7 @@ _onvif_cameras = {}
 _monitor = IpReachabilityMonitor(os.getenv('CAMERA_ONLINE_INTERVAL', 20))
 logger = logging.getLogger(__name__)
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
-
+scheduler = BackgroundScheduler(timezone=tzlocal.get_localzone_name())
 
 def _get_onvif_camera(id: str) -> OnvifCamera:
     """获取缓存的ONVIF相机对象或创建新连接"""
@@ -227,6 +227,12 @@ def _start_search():
     scheduler.add_job(refresh_camera, 'interval', seconds=os.getenv('CAMERA_DISCOVER_INTERVAL', 120))
     logger.info('设备发现服务已启动，间隔: %d秒', os.getenv('CAMERA_DISCOVER_INTERVAL', 120))
 
+    # 在启动搜索服务时初始化所有摄像头
+    _init_all_cameras()
+
+    # 确保在线监控也被初始化
+    _add_online_monitor()
+
 
 def _init_all_cameras():
     """初始化所有摄像头连接"""
@@ -235,6 +241,9 @@ def _init_all_cameras():
             partial(_safe_create_camera, camera)
         )
     logger.info('所有设备连接已通过线程池初始化')
+
+    # 在初始化所有摄像头连接后，启动在线监控
+    _add_online_monitor()
 
 
 def _safe_create_camera(camera: Device):
@@ -271,7 +280,7 @@ def _get_stream(rtsp_url: str, stream: int) -> str:
 
 def register_camera(register_info: dict) -> str:
     """注册设备到数据库"""
-    id = register_info.get('id', str(time.time_ns()))
+    id = register_info.get('id') or str(time.time_ns())
     if _get_camera(id):
         raise ValueError('设备ID已存在，请使用唯一标识符')
 
@@ -291,7 +300,7 @@ def register_camera(register_info: dict) -> str:
     # 创建设备记录
     camera_info = onvif_cam.get_info()
     camera = Device(
-        id=id,
+        id=id,  # 显式设置ID，确保使用传入的ID或生成的唯一ID
         name=register_info.get('name', f'Camera-{id[:6]}'),
         source=camera_info.get('source'),
         rtmp_stream=f"rtmp://localhost/live/{id}",
@@ -359,6 +368,7 @@ def get_device_list() -> dict:
         'online': online,
     }
 
+
 def update_camera(id: str, update_info: dict):
     """更新设备信息"""
     camera = _get_camera(id)
@@ -390,6 +400,7 @@ def update_camera(id: str, update_info: dict):
     except Exception as e:
         db.session.rollback()
         raise RuntimeError(f'数据库更新失败: {str(e)}')
+
 
 def delete_camera(id: str):
     """删除设备"""
@@ -433,6 +444,7 @@ def move_camera_ptz(id: str, pars: dict):
                 raise RuntimeError(f'PTZ重试失败: {str(e)}')
         except Exception as e:
             raise RuntimeError(f'PTZ控制失败: {str(e)}')
+
 
 def get_snapshot_uri(ip: str, port: int, username: str, password: str) -> str:
     """
