@@ -32,11 +32,6 @@ def api_start_train(model_id):
         img_size = data.get('imgsz', 640)  # 注意前端参数名为imgsz
         model_arch = data.get('modelPath', 'yolov8n.pt')
         dataset_url = data.get('datasetPath')  # 前端传递的下载URL
-
-        # 处理模型路径 - 使用相对于根路径的model/yolov8n.pt
-        if not model_arch or model_arch == 'yolov8n.pt':
-            model_arch = os.path.join('model', 'yolov8n.pt')
-
         # 从URL解析Minio对象路径
         dataset_zip_path = dataset_url
         use_gpu = data.get('use_gpu', True)  # 默认使用GPU
@@ -195,7 +190,7 @@ def update_log(message, model_id=None, progress=None, train_task=None):
             print(f"数据库提交失败: {str(e)}")
 
 
-def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
+def train_model(model_id, epochs=20, model_arch='yolov8n.pt',
                 img_size=640, batch_size=16, use_gpu=True,
                 dataset_zip_path=None, record_id=None):
     """增强版训练函数，集成数据集下载和解压功能"""
@@ -346,22 +341,11 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             })
             update_log_local("加载预训练YOLOv8模型...", progress=10)
 
-            # 开始训练
-            model_path = os.path.join(get_project_root(), model_arch)
-            update_log_local(f"尝试加载预训练模型: {model_path}")
-            
-            # 检查模型文件是否存在且可读
-            if not os.path.exists(model_path):
-                error_msg = f"预训练模型文件不存在: {model_path}"
-                update_log_local(error_msg)
-                train_task.status = 'error'
-                train_task.error_log = error_msg
-                db.session.commit()
-                raise Exception(error_msg)
-                
+            update_log_local(f"尝试加载预训练模型: {model_arch}")
+
             try:
-                yolo_model = YOLO(model_path)
-                update_log_local(f"预训练模型加载成功! 模型路径: {model_path}")
+                yolo_model = YOLO(model_arch)
+                update_log_local(f"预训练模型加载成功!")
             except Exception as e:
                 error_msg = f"预训练模型加载失败: {str(e)}"
                 update_log_local(error_msg)
