@@ -19,7 +19,7 @@ class Device(db.Model):
     manufacturer = db.Column(db.String(100), nullable=True)
     model = db.Column(db.String(100), nullable=True)
     firmware_version = db.Column(db.String(100), nullable=True)
-    serial_number = db.Column(db.String(100), nullable=True)
+    serial_number = db.Column(db.String(300), nullable=True)
     hardware_id = db.Column(db.String(100), nullable=True)
     support_move = db.Column(db.Boolean, nullable=True)
     support_zoom = db.Column(db.Boolean, nullable=True)

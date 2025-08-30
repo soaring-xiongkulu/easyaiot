@@ -117,7 +117,8 @@ def list_devices():
             }
         })
 
-    except ValueError:
+    except ValueError as e:
+        logger.error(f'设备列表查询失败: {str(e)}')
         return jsonify({'code': 400, 'msg': '参数类型错误：pageNo和pageSize需为整数'}), 400
     except Exception as e:
         logger.error(f'设备列表查询失败: {str(e)}')
@@ -133,7 +134,8 @@ def get_device_info(device_id):
             'msg': 'success',
             'data': info
         })
-    except ValueError:
+    except ValueError as e:
+        logger.error(f'获取设备详情失败: {str(e)}')
         return jsonify({'code': 404, 'msg': f'设备 {device_id} 不存在'}), 404
     except Exception as e:
         logger.error(f'获取设备详情失败: {str(e)}')
@@ -151,8 +153,10 @@ def register_device():
             'data': {'id': device_id}
         })
     except ValueError as e:
+        logger.error(f'注册新设备失败: {str(e)}')
         return jsonify({'code': 400, 'msg': str(e)}), 400
     except RuntimeError as e:
+        logger.error(f'注册新设备失败: {str(e)}')
         return jsonify({'code': 500, 'msg': str(e)}), 500
 
 
@@ -167,8 +171,10 @@ def update_device(device_id):
             'msg': '设备信息更新成功'
         })
     except ValueError as e:
+        logger.error(f'更新设备信息失败: {str(e)}')
         return jsonify({'code': 400, 'msg': str(e)}), 400
     except RuntimeError as e:
+        logger.error(f'更新设备信息失败: {str(e)}')
         return jsonify({'code': 500, 'msg': str(e)}), 500
 
 
@@ -182,8 +188,10 @@ def delete_device(device_id):
             'msg': '设备删除成功'
         })
     except ValueError as e:
+        logger.error(f'删除设备失败: {str(e)}')
         return jsonify({'code': 404, 'msg': str(e)}), 404
     except RuntimeError as e:
+        logger.error(f'删除设备失败: {str(e)}')
         return jsonify({'code': 500, 'msg': str(e)}), 500
 
 
@@ -199,8 +207,10 @@ def control_ptz(device_id):
             'msg': 'PTZ指令已发送'
         })
     except ValueError as e:
+        logger.error(f'控制摄像头PTZ失败: {str(e)}')
         return jsonify({'code': 404, 'msg': str(e)}), 404
     except RuntimeError as e:
+        logger.error(f'控制摄像头PTZ失败: {str(e)}')
         return jsonify({'code': 500, 'msg': str(e)}), 500
 
 
