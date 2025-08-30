@@ -11,7 +11,7 @@ from flask import current_app, jsonify, Blueprint, request
 from ultralytics import YOLO
 
 from app.services.model_service import ModelService
-from models import db, Model, TrainingTask
+from models import db, Model, InferenceTask
 
 training_bp = Blueprint('training', __name__)
 
@@ -48,7 +48,7 @@ def api_start_training(model_id):
         # 立即保存数据集路径到数据库
         training_record = None
         if record_id:
-            training_record = TrainingTask.query.get(record_id)
+            training_record = InferenceTask.query.get(record_id)
             if training_record:
                 training_record.dataset_path = dataset_zip_path  # 保存Minio路径
                 training_record.start_time = datetime.utcnow()
@@ -66,7 +66,7 @@ def api_start_training(model_id):
                 db.session.commit()
 
         if not training_record:
-            training_record = TrainingTask(
+            training_record = InferenceTask(
                 model_id=model_id,
                 dataset_path=dataset_zip_path,  # ⭐ 直接保存Minio路径 ⭐
                 hyperparameters=json.dumps({
@@ -158,7 +158,7 @@ def api_train_log(model_id, task_id):
     # 如果缓存中日志为空，则从数据库查询最新训练记录
     if not log_content:
         try:
-            training_record = TrainingTask.query.filter_by(id=task_id).first()
+            training_record = InferenceTask.query.filter_by(id=task_id).first()
             if training_record:
                 log_content = training_record.train_log or ''
 
@@ -207,7 +207,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
 
         with application.app_context():
             # 在函数内部通过record_id获取训练记录
-            training_record = TrainingTask.query.get(record_id)
+            training_record = InferenceTask.query.get(record_id)
 
             # 更新日志函数
             def update_log_local(message, progress=None):

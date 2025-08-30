@@ -8,7 +8,7 @@ from flask import render_template
 from sqlalchemy import desc
 
 from app.blueprints.training import training_status, training_processes
-from models import db, Model, TrainingTask, ExportRecord
+from models import db, Model, InferenceTask, ExportRecord
 
 training_record_bp = Blueprint('training_record', __name__, url_prefix='/training')
 logger = logging.getLogger(__name__)
@@ -32,18 +32,18 @@ def training_records():
             }), 400
 
         # 构建基础查询
-        query = TrainingTask.query
+        query = InferenceTask.query
 
         # 应用模型ID过滤
         if model_id:
-            query = query.filter(TrainingTask.model_id == model_id)
+            query = query.filter(InferenceTask.model_id == model_id)
 
         # 应用状态过滤
         if status_filter in ['running', 'completed', 'failed']:
-            query = query.filter(TrainingTask.status == status_filter)
+            query = query.filter(InferenceTask.status == status_filter)
 
         # 按开始时间倒序排列
-        query = query.order_by(desc(TrainingTask.start_time))
+        query = query.order_by(desc(InferenceTask.start_time))
 
         # 执行分页
         pagination = query.paginate(
@@ -93,7 +93,7 @@ def training_records():
 def training_detail(record_id):
     try:
         # 根据ID查询训练记录
-        record = TrainingTask.query.get(record_id)
+        record = InferenceTask.query.get(record_id)
         if not record:
             return jsonify({
                 'code': 404,
@@ -154,7 +154,7 @@ def create_training():
             }), 404
 
         # 创建训练记录
-        new_record = TrainingTask(
+        new_record = InferenceTask(
             model_id=model_id,
             dataset_path=dataset_path,
             hyperparameters=data.get('hyperparameters', '{}'),
@@ -193,7 +193,7 @@ def create_training():
 @training_record_bp.route('/update/<int:record_id>', methods=['POST'])
 def update_training(record_id):
     try:
-        record = TrainingTask.query.get_or_404(record_id)
+        record = InferenceTask.query.get_or_404(record_id)
         data = request.json
 
         # 更新训练记录字段
@@ -234,7 +234,7 @@ def update_training(record_id):
 @training_record_bp.route('/delete/<int:record_id>', methods=['DELETE'])
 def delete_training(record_id):
     try:
-        record = TrainingTask.query.get_or_404(record_id)
+        record = InferenceTask.query.get_or_404(record_id)
 
         # 清理全局训练状态
         cleanup_training_status(record.model_id)
@@ -272,7 +272,7 @@ def delete_training(record_id):
 def publish_training_record(record_id):
     try:
         # 获取训练记录
-        record = TrainingTask.query.get_or_404(record_id)
+        record = InferenceTask.query.get_or_404(record_id)
 
         # 验证训练记录状态
         if record.status != 'completed':
@@ -300,11 +300,11 @@ def publish_training_record(record_id):
         year_month = today.strftime("%Y.%m")
 
         # 查找该模型本月已有的发布次数
-        publish_count = TrainingTask.query.filter(
-            TrainingTask.model_id == model.id,
-            db.func.extract('year', TrainingTask.end_time) == today.year,
-            db.func.extract('month', TrainingTask.end_time) == today.month,
-            TrainingTask.status == 'completed'
+        publish_count = InferenceTask.query.filter(
+            InferenceTask.model_id == model.id,
+            db.func.extract('year', InferenceTask.end_time) == today.year,
+            db.func.extract('month', InferenceTask.end_time) == today.month,
+            InferenceTask.status == 'completed'
         ).count()
 
         # 生成新版本号 (格式: V年.月.序号)
