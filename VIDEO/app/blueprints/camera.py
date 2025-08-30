@@ -37,7 +37,6 @@ def list_devices():
         page_no = int(request.args.get('pageNo', 1))
         page_size = int(request.args.get('pageSize', 10))
         search = request.args.get('search', '').strip()
-        status = request.args.get('status', '').strip()
 
         # 参数验证
         if page_no < 1 or page_size < 1:
@@ -58,13 +57,6 @@ def list_devices():
                     Device.ip.ilike(search_pattern)
                 )
             )
-
-        # 添加状态过滤
-        if status:
-            if status.lower() == 'online':
-                query = query.filter(Device.status == 'online')
-            elif status.lower() == 'offline':
-                query = query.filter(Device.status == 'offline')
 
         # 执行分页查询
         pagination = query.paginate(
@@ -89,7 +81,6 @@ def list_devices():
                 'hardware_id': device.hardware_id,
                 'support_move': device.support_move,
                 'support_zoom': device.support_zoom,
-                'status': device.status,
                 'created_at': device.created_at.isoformat() if device.created_at else None,
                 'updated_at': device.updated_at.isoformat() if device.updated_at else None
             }
@@ -212,22 +203,6 @@ def control_ptz(device_id):
     except RuntimeError as e:
         logger.error(f'控制摄像头PTZ失败: {str(e)}')
         return jsonify({'code': 500, 'msg': str(e)}), 500
-
-
-# ------------------------- 设备状态接口 -------------------------
-@camera_bp.route('/device/status', methods=['GET'])
-def get_device_status():
-    """获取所有设备状态统计"""
-    try:
-        status = get_device_list()
-        return jsonify({
-            'code': 0,
-            'msg': 'success',
-            'data': status
-        })
-    except Exception as e:
-        logger.error(f'获取设备状态失败: {str(e)}')
-        return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
 
 
 # ------------------------- MinIO上传服务 -------------------------
