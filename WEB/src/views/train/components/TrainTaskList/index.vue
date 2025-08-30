@@ -86,7 +86,7 @@ import {useModal} from '@/components/Modal';
 import {
   deleteInferenceTask,
   getTrainTaskPage,
-  publishInferenceTask,
+  publishTrainTask,
   startTrain
 } from '@/api/device/model';
 import StartTrainModal from '@/views/train/components/StartTrainTaskModal/index.vue';
@@ -145,7 +145,7 @@ const handleViewTrainResults = (record) => {
 // 发布为正式模型
 const handlePublish = async (record) => {
   try {
-    publishInferenceTask(record.id).then(() => {
+    publishTrainTask(record.id).then(() => {
       createMessage.success('模型发布成功');
       reload();
     });

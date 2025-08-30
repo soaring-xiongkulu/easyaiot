@@ -83,6 +83,10 @@ export const getTrainTaskDetail = (recordId) => {
   return commonApi('get', `${Api.TrainTask}/${recordId}`);
 };
 
+export const publishTrainTask = (recordId: number) => {
+  return commonApi('post', `${Api.TrainTask}/publish/${recordId}`);
+};
+
 // ================= 模型训练接口 =================
 export const startTrain = (modelId, params) => {
   return commonApi('post', `${Api.Train}/${modelId}/train`, {data: params});
@@ -115,10 +119,6 @@ export const updateInferenceTask = (recordId, params) => {
 
 export const deleteInferenceTask = (recordId) => {
   return commonApi('delete', `${Api.InferenceTask}/delete/${recordId}`);
-};
-
-export const publishInferenceTask = (recordId: number) => {
-  return commonApi('post', `${Api.InferenceTask}/publish/${recordId}`);
 };
 
 export const getInferenceRecords = (params) => {
