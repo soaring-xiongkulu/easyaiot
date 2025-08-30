@@ -5,7 +5,7 @@ import uuid
 from operator import or_
 from flask import Blueprint, request, jsonify
 from flask import redirect, url_for, flash, render_template
-from app.services.model_service import ModelService
+from app.services.minio_service import ModelService
 from models import TrainTask
 from models import db, Model
 from sqlalchemy.exc import IntegrityError

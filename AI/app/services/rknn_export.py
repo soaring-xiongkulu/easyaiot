@@ -5,7 +5,7 @@ import tempfile
 from rknn.api import RKNN
 from ultralytics import YOLO
 
-from app.services.model_service import ModelService
+from app.services.minio_service import ModelService
 from models import ExportRecord
 
 logger = logging.getLogger(__name__)

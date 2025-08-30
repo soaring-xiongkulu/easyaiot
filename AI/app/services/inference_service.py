@@ -14,7 +14,7 @@ from flask import current_app
 from ultralytics import YOLO
 from werkzeug.utils import secure_filename
 
-from app.services.model_service import ModelService
+from app.services.minio_service import ModelService
 from models import Model, InferenceTask, db
 
 

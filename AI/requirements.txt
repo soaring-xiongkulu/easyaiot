@@ -1,7 +1,7 @@
 # 基础依赖
 Flask==2.3.2
 Flask-SQLAlchemy==3.0.5
-# 模型处理
+# 模型处理get_logger
 ultralytics==8.0.113
 # RKNN转换核心库
 rknn_toolkit2==2.3.2

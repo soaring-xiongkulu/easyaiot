@@ -6,7 +6,7 @@ from flask import Blueprint, request, jsonify
 
 from app.services.inference_service import InferenceService
 from models import db, InferenceTask
-from app.services.model_service import ModelService
+from app.services.minio_service import ModelService
 
 inference_task_bp = Blueprint('inference_task', __name__)
 logger = logging.getLogger(__name__)

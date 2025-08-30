@@ -10,7 +10,7 @@ import torch
 from flask import current_app, jsonify, Blueprint, request
 from ultralytics import YOLO
 
-from app.services.model_service import ModelService
+from app.services.minio_service import ModelService
 from models import db, Model, TrainTask
 
 train_bp = Blueprint('train', __name__)
