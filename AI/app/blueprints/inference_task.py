@@ -65,7 +65,7 @@ def upload_input_file():
                 logger.error(f"删除临时文件失败: {temp_path}, 错误: {str(e)}")
 
 # ========== 推理任务管理接口 ==========
-@inference_task_bp.route('/Inference_tasks', methods=['POST'])
+@inference_task_bp.route('/create', methods=['POST'])
 def create_Inference_task():
     """创建推理任务（任务开始时调用）"""
     data = request.json
@@ -109,7 +109,7 @@ def create_Inference_task():
         logger.error(f"创建推理任务失败: {str(e)}")
         return jsonify({'code': 500, 'msg': f'数据库错误: {str(e)}'}), 500
 
-@inference_task_bp.route('/Inference_tasks/<int:record_id>', methods=['PUT'])
+@inference_task_bp.route('/update/<int:record_id>', methods=['PUT'])
 def update_Inference_task(record_id):
     """更新推理任务"""
     record = InferenceTask.query.get_or_404(record_id)
@@ -136,7 +136,7 @@ def update_Inference_task(record_id):
         logger.error(f"更新记录失败: {str(e)}")
         return jsonify({'code': 500, 'msg': f'更新失败: {str(e)}'}), 500
 
-@inference_task_bp.route('/Inference_tasks', methods=['GET'])
+@inference_task_bp.route('/list', methods=['GET'])
 def get_Inference_tasks():
     """分页查询推理任务"""
     try:
@@ -184,7 +184,7 @@ def get_Inference_tasks():
         logger.error(f"获取推理任务失败: {str(e)}")
         return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
 
-@inference_task_bp.route('/Inference_tasks/<int:record_id>', methods=['GET'])
+@inference_task_bp.route('/detail/<int:record_id>', methods=['GET'])
 def get_Inference_task_detail(record_id):
     """获取单条推理任务的详细信息"""
     try:
@@ -210,7 +210,7 @@ def get_Inference_task_detail(record_id):
         logger.error(f"获取推理任务详情失败: {str(e)}")
         return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
 
-@inference_task_bp.route('/Inference_tasks/<int:record_id>', methods=['DELETE'])
+@inference_task_bp.route('/delete/<int:record_id>', methods=['DELETE'])
 def delete_Inference_task(record_id):
     """删除推理任务"""
     try:
