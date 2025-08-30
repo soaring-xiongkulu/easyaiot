@@ -137,7 +137,7 @@ def update_Inference_task(record_id):
         return jsonify({'code': 500, 'msg': f'更新失败: {str(e)}'}), 500
 
 @inference_task_bp.route('/list', methods=['GET'])
-def get_Inference_tasks():
+def get_inference_tasks():
     """分页查询推理任务"""
     try:
         # 获取分页参数
