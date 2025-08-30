@@ -4,7 +4,7 @@ from app.services.nvr_service import *
 # 创建NVR蓝图
 nvr_bp = Blueprint('nvr', __name__)
 
-@nvr_bp.route('/nvr', methods=['POST'])
+@nvr_bp.route('/register', methods=['POST'])
 def register_nvr():
     """注册NVR"""
     try:
@@ -20,7 +20,7 @@ def register_nvr():
     except Exception as e:
         return jsonify({'success': False, 'message': f'注册失败: {str(e)}'}), 500
 
-@nvr_bp.route('/nvr/<int:nvr_id>', methods=['GET'])
+@nvr_bp.route('/info/<int:nvr_id>', methods=['GET'])
 def get_nvr_info(nvr_id):
     """获取NVR信息"""
     try:
@@ -31,7 +31,7 @@ def get_nvr_info(nvr_id):
     except Exception as e:
         return jsonify({'success': False, 'message': f'获取信息失败: {str(e)}'}), 500
 
-@nvr_bp.route('/nvr', methods=['GET'])
+@nvr_bp.route('/list', methods=['GET'])
 def get_nvr_list():
     """获取NVR列表"""
     try:
@@ -40,7 +40,7 @@ def get_nvr_list():
     except Exception as e:
         return jsonify({'success': False, 'message': f'获取列表失败: {str(e)}'}), 500
 
-@nvr_bp.route('/nvr/<int:nvr_id>', methods=['DELETE'])
+@nvr_bp.route('/delete/<int:nvr_id>', methods=['DELETE'])
 def delete_nvr(nvr_id):
     """删除NVR"""
     try:
@@ -51,7 +51,7 @@ def delete_nvr(nvr_id):
     except Exception as e:
         return jsonify({'success': False, 'message': f'删除失败: {str(e)}'}), 500
 
-@nvr_bp.route('/nvr/<int:nvr_id>', methods=['PATCH'])
+@nvr_bp.route('/update/<int:nvr_id>', methods=['PUT'])
 def patch_nvr(nvr_id):
     """修改NVR信息"""
     try:
@@ -67,7 +67,7 @@ def patch_nvr(nvr_id):
     except Exception as e:
         return jsonify({'success': False, 'message': f'修改失败: {str(e)}'}), 500
 
-@nvr_bp.route('/nvr/<int:nvr_id>/camera', methods=['POST'])
+@nvr_bp.route('/create/<int:nvr_id>/camera', methods=['POST'])
 def add_nvr_camera(nvr_id):
     """添加NVR子摄像头"""
     try:
@@ -83,7 +83,7 @@ def add_nvr_camera(nvr_id):
     except Exception as e:
         return jsonify({'success': False, 'message': f'添加失败: {str(e)}'}), 500
 
-@nvr_bp.route('/nvr/<int:nvr_id>/camera/<int:nvr_channel>', methods=['GET'])
+@nvr_bp.route('/<int:nvr_id>/camera/<int:nvr_channel>', methods=['GET'])
 def get_nvr_camera_info(nvr_id, nvr_channel):
     """获取NVR子摄像头信息"""
     try:
@@ -94,7 +94,7 @@ def get_nvr_camera_info(nvr_id, nvr_channel):
     except Exception as e:
         return jsonify({'success': False, 'message': f'获取信息失败: {str(e)}'}), 500
 
-@nvr_bp.route('/nvr/<int:nvr_id>/camera/<int:nvr_channel>', methods=['DELETE'])
+@nvr_bp.route('/delete/<int:nvr_id>/camera/<int:nvr_channel>', methods=['DELETE'])
 def delete_nvr_camera(nvr_id, nvr_channel):
     """删除NVR子摄像头"""
     try:
@@ -105,7 +105,7 @@ def delete_nvr_camera(nvr_id, nvr_channel):
     except Exception as e:
         return jsonify({'success': False, 'message': f'删除失败: {str(e)}'}), 500
 
-@nvr_bp.route('/nvr/<int:nvr_id>/camera/<int:nvr_channel>', methods=['PATCH'])
+@nvr_bp.route('/update/<int:nvr_id>/camera/<int:nvr_channel>', methods=['PUT'])
 def patch_nvr_camera(nvr_id, nvr_channel):
     """修改NVR子摄像头信息"""
     try:
