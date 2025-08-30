@@ -49,6 +49,18 @@
           </div>
 
           <div class="card-footer bg-gray-50 px-4 py-3 border-t flex justify-end space-x-2">
+            <!-- 新增执行按钮 -->
+            <a-button
+              size="small"
+              type="primary"
+              @click="handleExecute(record)"
+              preIcon="ant-design:play-circle-outlined"
+              :disabled="record.status === 'PROCESSING'"
+              v-if="record.status !== 'PROCESSING'"
+            >
+              执行
+            </a-button>
+
             <a-button
               size="small"
               @click="emit('view', record)"
@@ -94,7 +106,13 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['view', 'result', 'delete']);
+// 新增execute事件
+const emit = defineEmits(['view', 'result', 'delete', 'execute']);
+
+// 执行按钮点击处理
+const handleExecute = (record: any) => {
+  emit('execute', record);
+};
 
 const getStatusText = (status: string) => {
   const statusMap = {

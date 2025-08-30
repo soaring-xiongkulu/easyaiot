@@ -12,7 +12,6 @@ import DatasetList from "@/views/dataset/components/DatasetList/index.vue";
 defineOptions({name: 'DATASET'})
 
 const state = reactive({
-  isTableMode: true,
   activeKey: '1',
   pushActiveKey: '1',
   historyActiveKey: '1',
