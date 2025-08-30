@@ -3,26 +3,35 @@
     <BasicTable @register="registerTable">
       <template #toolbar>
         <a-button type="primary" @click="handleScanOnvif">
-          <template #icon><ScanOutlined /></template>
+          <template #icon>
+            <ScanOutlined/>
+          </template>
           扫描局域网ONVIF设备
         </a-button>
         <a-button @click="openAddModal('source')">
-          <template #icon><VideoCameraAddOutlined /></template>
+          <template #icon>
+            <VideoCameraAddOutlined/>
+          </template>
           新增视频源设备
         </a-button>
         <a-button @click="openAddModal('nvr')">
-          <template #icon><ClusterOutlined /></template>
+          <template #icon>
+            <ClusterOutlined/>
+          </template>
           新增NVR设备
         </a-button>
         <a-button @click="handleUpdateOnvifDevice">
-          <template #icon><SyncOutlined /></template>
+          <template #icon>
+            <SyncOutlined/>
+          </template>
           更新ONVIF设备
         </a-button>
       </template>
 
       <template #bodyCell="{ column, record }">
         <!-- 统一复制功能组件 -->
-        <template v-if="['id', 'name', 'model', 'source', 'rtmp_stream', 'http_stream'].includes(column.key)">
+        <template
+          v-if="['id', 'name', 'model', 'source', 'rtmp_stream', 'http_stream'].includes(column.key)">
           <span style="cursor: pointer" @click="handleCopy(record[column.key])"><Icon
             icon="tdesign:copy-filled" color="#4287FCFF"/> {{ record[column.key] }}</span>
         </template>
@@ -34,14 +43,20 @@
       </template>
     </BasicTable>
 
+    <JSMpegModal
+      @register="registerJSMpegModal"
+      :streamUrl="currentStreamUrl"
+      :title="currentStreamTitle"
+    />
     <VideoModal @register="registerAddModel" @success="handleSuccess"/>
   </div>
 </template>
 
 <script lang="ts" setup>
-import {reactive} from 'vue';
+import {reactive, ref} from 'vue';
 import {BasicTable, TableAction, useTable} from '@/components/Table';
 import {useMessage} from '@/hooks/web/useMessage';
+import JSMpegModal from './JSMpegModal/index.vue';
 import {getBasicColumns, getFormConfig} from "./Data";
 import {useModal} from "@/components/Modal";
 import VideoModal from "./VideoModal/index.vue";
@@ -53,14 +68,21 @@ import {
   VideoCameraAddOutlined
 } from '@ant-design/icons-vue';
 
-const { createMessage } = useMessage();
-const [registerAddModel, { openModal }] = useModal();
+const {createMessage} = useMessage();
+const [registerAddModel, {openModal}] = useModal();
+
+const [registerJSMpegModal, {openModal: openJSMpegModal}] = useModal();
+
+// 当前流信息
+const currentStreamUrl = ref('');
+const currentStreamTitle = ref('');
+
 
 const state = reactive({
   boxIp: '',
 });
 
-const [registerTable, { reload }] = useTable({
+const [registerTable, {reload}] = useTable({
   canResize: true,
   showIndexColumn: false,
   title: '摄像头列表',
@@ -102,6 +124,17 @@ const getTableActions = (record) => [
     }
   }
 ];
+
+const handlePlay = (record) => {
+  const streamUrl = record.rtsp_stream || record.http_stream;
+  if (!streamUrl) {
+    createMessage.error('该设备没有可用的视频流地址');
+    return;
+  }
+  currentStreamUrl.value = streamUrl;
+  currentStreamTitle.value = `视频播放 - ${record.name}`;
+  openJSMpegModal(true);
+};
 
 async function handleCopy(record: object) {
   if (navigator.clipboard) {

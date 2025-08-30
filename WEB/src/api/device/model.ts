@@ -88,8 +88,8 @@ export const publishTrainTask = (recordId: number) => {
 };
 
 // ================= 模型训练接口 =================
-export const startTrain = (modelId, params) => {
-  return commonApi('post', `${Api.Train}/${modelId}/train`, {data: params});
+export const startTrain = (modelId) => {
+  return commonApi('post', `${Api.Train}/${modelId}/train`);
 };
 
 export const stopTrain = (modelId) => {

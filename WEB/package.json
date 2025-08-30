@@ -80,6 +80,7 @@
     "gsap": "^3.11.3",
     "html2canvas": "^1.4.1",
     "iconify-icon": "^1.0.8",
+    "jsmpeg": "^1.0.0",
     "jszip": "^3.10.1",
     "keymaster": "^1.6.2",
     "lodash": "~4.17.21",
