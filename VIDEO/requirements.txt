@@ -1,8 +1,9 @@
+# 基础依赖
 Flask==2.3.2
 Flask-SQLAlchemy==3.0.5
-ultralytics==8.0.113
+# 图像处理
 opencv-python==4.8.0.74
-Pillow==10.0.0
+# 工具类
 python-dotenv==1.0.0
 PyYAML==6.0.1
 requests==2.31.0
@@ -11,3 +12,10 @@ nacos-sdk-python==2.0.9
 minio==7.2.0
 python-magic==0.4.27
 numpy==1.26.4
+# ONVIF摄像头支持
+WSDiscovery==2.1.2
+onvif-zeep==0.2.12
+# 提供标准化健康检查端点
+py-healthcheck==1.10.0
+# 网卡探测
+netifaces==0.11.0

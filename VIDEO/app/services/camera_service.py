@@ -1,702 +1,486 @@
+import concurrent.futures
+import io
+import logging
 import os
-import random
-import threading
+import re
 import time
-import xml.etree.ElementTree as ET
-from datetime import datetime
+from functools import partial
+from sched import scheduler
 
 import cv2
-import requests
-from PIL import Image as PILImage
-from requests.auth import HTTPDigestAuth, HTTPBasicAuth
+from flask import current_app
+from onvif import ONVIFCamera
+from wsdiscovery import WSDiscovery, Scope
 
-from app.services.project_service import ProjectService
-from models import db, Image
+from app.services.onvif_service import OnvifCamera
+from app.utils.ip_utils import IpReachabilityMonitor
+from models import Device, db
 
-class CameraService:
-    """摄像头截图管理器，支持RTSP和ONVIF摄像头"""
+# 全局变量定义
+_onvif_cameras = {}
+_monitor = IpReachabilityMonitor(os.getenv('CAMERA_ONLINE_INTERVAL', 20))
+logger = logging.getLogger(__name__)
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 
-    def __init__(self):
-        self.rtsp_threads = {}
-        self.onvif_threads = {}
 
-    def capture_rtsp_images(self, project_id, rtsp_url, interval, max_count):
-        """
-        从RTSP流中截取图片并保存到项目目录
-        
-        Args:
-            project_id (int): 项目ID
-            rtsp_url (str): RTSP地址
-            interval (int): 截图间隔（秒）
-            max_count (int): 最大截图数量
-        """
-        thread_id = f"rtsp_{project_id}"
-        self.rtsp_threads[thread_id] = {
-            'running': True,
-            'captured_count': 0,
-            'max_count': max_count
-        }
+def _get_onvif_camera(id: str) -> OnvifCamera:
+    """获取缓存的ONVIF相机对象或创建新连接"""
+    if id in _onvif_cameras:
+        return _onvif_cameras[id]
+    return _update_onvif_camera(id)
 
-        # 确保项目上传目录存在
-        project_upload_dir = ProjectService.ensure_project_upload_dir(project_id)
 
-        # 打开RTSP流
-        cap = cv2.VideoCapture(rtsp_url)
+def _update_onvif_camera(id: str) -> OnvifCamera:
+    """更新或创建ONVIF相机连接"""
+    camera = _get_camera(id)
+    if not camera:
+        raise ValueError(f'设备ID {id} 不存在于系统中')
 
-        # 设置缓冲区大小为1，减少延迟
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    _onvif_cameras.pop(id, None)
 
-        if not cap.isOpened():
-            self.rtsp_threads[thread_id]['error'] = "无法打开RTSP流"
-            cap.release()
-            return
+    try:
+        onvif_cam = _create_onvif_camera_from_orm(camera)
+        _onvif_cameras[id] = onvif_cam
+        return onvif_cam
+    except Exception as e:
+        raise RuntimeError(f'设备 {id} 连接失败：{str(e)}')
 
+
+def _create_onvif_camera_from_orm(camera: Device) -> OnvifCamera:
+    """从ORM对象创建ONVIF连接"""
+    return _create_onvif_camera(
+        camera.id, camera.ip, camera.port,
+        camera.username, camera.password
+    )
+
+
+def _create_onvif_camera(camera_id, *args, **kwargs) -> OnvifCamera:
+    """带超时的ONVIF连接创建"""
+
+    def connect():
+        return OnvifCamera(*args, **kwargs)
+
+    # 使用 ThreadPoolExecutor 实现超时控制
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(connect)
+        from onvif import ONVIFError
         try:
-            # 记录开始时间，用于精确控制时间间隔
-            start_time = time.time()
-
-            while (self.rtsp_threads[thread_id]['running'] and
-                   self.rtsp_threads[thread_id]['captured_count'] < max_count):
-
-                # 计算下一次截图的准确时间
-                next_capture_time = start_time + (self.rtsp_threads[thread_id]['captured_count'] + 1) * interval
-
-                # 当前时间
-                current_time = time.time()
-
-                # 如果还没到截图时间，则继续读取帧（避免灰色图片）
-                while current_time < next_capture_time:
-                    ret, frame = cap.read()
-                    if not ret:
-                        self.rtsp_threads[thread_id]['error'] = "无法读取视频帧"
-                        return
-
-                    # 更新当前时间
-                    current_time = time.time()
-
-                    # 短暂休眠以减少CPU使用
-                    time.sleep(0.01)
-
-                # 现在到了截图时间，获取最新的帧
-                ret, latest_frame = cap.read()
-                if not ret:
-                    self.rtsp_threads[thread_id]['error'] = "无法读取视频帧"
-                    break
-
-                # 检查图像是否有效（避免灰色图片）
-                if latest_frame is None or latest_frame.size == 0:
-                    self.rtsp_threads[thread_id]['error'] = "获取到无效帧"
-                    break
-
-                # 检查图像是否全黑或全白（灰色图片问题）
-                gray_frame = cv2.cvtColor(latest_frame, cv2.COLOR_BGR2GRAY)
-                if cv2.mean(gray_frame)[0] < 10:  # 几乎全黑
-                    # 再读取几帧尝试获取有效图像
-                    for _ in range(5):
-                        ret, extra_frame = cap.read()
-                        if ret and extra_frame is not None and extra_frame.size > 0:
-                            gray_extra = cv2.cvtColor(extra_frame, cv2.COLOR_BGR2GRAY)
-                            if cv2.mean(gray_extra)[0] >= 10:  # 不是全黑
-                                latest_frame = extra_frame
-                                break
-
-                # 生成文件名
-                timestamp = int(datetime.now().timestamp() * 1000)
-                filename = f"{timestamp}_rtsp.jpg"
-                file_path = os.path.join(project_upload_dir, filename)
-
-                # 保存图片
-                success = cv2.imwrite(file_path, latest_frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
-                if success:
-                    # 获取图片尺寸
-                    img = PILImage.open(file_path)
-                    width, height = img.size
-
-                    # 计算相对路径和POSIX路径
-                    relative_path = ProjectService.get_relative_path(file_path)
-                    posix_path = ProjectService.get_posix_path(relative_path)
-
-                    # 保存到数据库
-                    from app import create_app
-                    application = create_app()
-                    with application.app_context():
-                        image = Image(
-                            filename=filename,
-                            original_filename=f"rtsp_capture_{timestamp}.jpg",
-                            path=posix_path,
-                            project_id=project_id,
-                            width=width,
-                            height=height
-                        )
-                        db.session.add(image)
-                        db.session.commit()
-
-                    self.rtsp_threads[thread_id]['captured_count'] += 1
-                else:
-                    self.rtsp_threads[thread_id]['error'] = "保存图片失败"
-                    break
-
-                # 注意：这里不再使用time.sleep，而是通过计算时间来控制间隔
-
+            return future.result(timeout=5)
+        except concurrent.futures.TimeoutError:
+            raise RuntimeError('设备连接超时，请检查网络连接')
+        except ONVIFError as e:
+            error_msg = str(e).removeprefix('Unknown error: ')
+            raise RuntimeError(f'ONVIF协议错误: {error_msg}')
         except Exception as e:
-            self.rtsp_threads[thread_id]['error'] = f"截图过程中出错: {str(e)}"
-        finally:
-            cap.release()
-            self.rtsp_threads[thread_id]['running'] = False
+            raise RuntimeError(f'连接异常: {str(e)}')
 
-    def stop_rtsp_capture(self, project_id):
-        """
-        停止RTSP截图
-        
-        Args:
-            project_id (int): 项目ID
-        """
-        thread_id = f"rtsp_{project_id}"
-        if thread_id in self.rtsp_threads:
-            self.rtsp_threads[thread_id]['running'] = False
 
-    def get_rtsp_status(self, project_id):
-        """
-        获取RTSP截图状态
-        
-        Args:
-            project_id (int): 项目ID
-            
-        Returns:
-            dict: RTSP截图状态
-        """
-        thread_id = f"rtsp_{project_id}"
-        return self.rtsp_threads.get(thread_id, {})
+def _get_camera(id: str) -> Device:
+    """获取单个设备ORM对象"""
+    return Device.query.get(id)
 
-    def discover_onvif_devices(self):
-        """
-        使用WS-Discovery发现局域网内的ONVIF设备
-        
-        Returns:
-            list: 设备列表 [{ip, port, name}, ...]
-        """
-        # 实现WS-Discovery协议来发现ONVIF设备
-        import socket
-        import uuid
 
-        # WS-Discovery Probe消息
-        probe_message = f'''<?xml version="1.0" encoding="utf-8"?>
-        <soap:Envelope
-            xmlns:soap="http://www.w3.org/2003/05/soap-envelope"
-            xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing"
-            xmlns:tns="http://schemas.xmlsoap.org/ws/2005/04/discovery">
-            <soap:Header>
-                <wsa:Action>http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe</wsa:Action>
-                <wsa:MessageID>urn:uuid:{uuid.uuid4()}</wsa:MessageID>
-                <wsa:To>urn:schemas-xmlsoap-org:ws:2005:04:discovery</wsa:To>
-            </soap:Header>
-            <soap:Body>
-                <tns:Probe />
-            </soap:Body>
-        </soap:Envelope>'''
+def _get_cameras() -> list[Device]:
+    """获取所有设备"""
+    return Device.query.all()
 
-        # 创建UDP socket
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.settimeout(5)  # 5秒超时
 
-        # 设置广播
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+def _to_dict(camera: Device) -> dict:
+    """设备对象转字典"""
+    return {
+        'id': camera.id,
+        'name': camera.name,
+        'source': camera.source,
+        'rtmp_stream': camera.rtmp_stream,
+        'http_stream': camera.http_stream,
+        'stream': camera.stream,
+        'ip': camera.ip,
+        'port': camera.port,
+        'username': camera.username,
+        'mac': camera.mac,
+        'manufacturer': camera.manufacturer,
+        'model': camera.model,
+        'firmware_version': camera.firmware_version,
+        'serial_number': camera.serial_number,
+        'hardware_id': camera.hardware_id,
+        'support_move': camera.support_move,
+        'support_zoom': camera.support_zoom,
+        'nvr_id': camera.nvr_id,
+        'nvr_channel': camera.nvr_channel,
+        'online': _monitor.is_online(camera.id)
+    }
 
-        devices = []
 
-        try:
-            # 发送Probe消息到WS-Discovery多播地址
-            sock.sendto(probe_message.encode('utf-8'), ('239.255.255.250', 3702))
+def _add_online_monitor():
+    """初始化设备在线监控"""
+    for camera in _get_cameras():
+        _monitor.update(camera.id, camera.ip)
+    logger.info('设备在线状态监控服务已初始化')
 
-            # 接收响应
-            while True:
+
+def _discovery_cameras() -> list:
+    """发现网络中的ONVIF设备"""
+    wsd = WSDiscovery()
+    wsd.start()
+    onvif_cameras = []
+
+    try:
+        services = wsd.searchServices(
+            scopes=[Scope("onvif://www.onvif.org/Profile")],
+            timeout=2
+        )
+
+        for svc in services:
+            try:
+                ip_match = next(
+                    (m[1] for m in
+                     (re.search(r'(\d+\.\d+\.\d+\.\d+)', addr) for addr in svc.getXAddrs())
+                     if m), None
+                )
+                if not ip_match:
+                    continue
+
+                mac_scope = next(
+                    (str(scope).removeprefix('onvif://www.onvif.org/MAC/')
+                     for scope in svc.getScopes()
+                     if str(scope).startswith('onvif://www.onvif.org/MAC/')),
+                    None
+                )
+
+                name_scope = next(
+                    (str(scope).removeprefix('onvif://www.onvif.org/name/')
+                     for scope in svc.getScopes()
+                     if str(scope).startswith('onvif://www.onvif.org/name/')),
+                    None
+                )
+
+                onvif_cameras.append({
+                    'mac': mac_scope,
+                    'ip': ip_match,
+                    'hardware_name': name_scope
+                })
+            except Exception:
+                continue
+    finally:
+        wsd.stop()
+        if hasattr(wsd, '_stopThreads'):
+            wsd._stopThreads()
+
+    return onvif_cameras
+
+
+def _update_camera_ip(camera: Device, ip: str):
+    """更新设备IP并刷新信息"""
+    camera.ip = ip
+    try:
+        onvif_camera = _create_onvif_camera_from_orm(camera)
+        camera_info = onvif_camera.get_info()
+
+        for key, value in camera_info.items():
+            if hasattr(camera, key):
+                setattr(camera, key, value)
+
+        if camera.stream is not None:
+            try:
+                camera.source = _get_stream(camera.source, camera.stream)
+            except Exception:
+                camera.stream = None
+                logger.warning(f'设备 {camera.id} 码流调整失败，已重置为默认码流')
+
+        _monitor.update(camera.id, camera.ip)
+        db.session.commit()
+        logger.info(f'设备 {camera.id} IP地址已更新为 {ip}')
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'更新设备 {camera.id} IP失败: {str(e)}')
+        raise
+
+
+def refresh_camera():
+    """刷新设备IP信息"""
+    dis_cameras = _discovery_cameras()
+    with current_app.app_context():
+        for dis_cam in dis_cameras:
+            if not dis_cam['mac']:
+                continue
+
+            camera = Device.query.filter(Device.mac == dis_cam["mac"]).one_or_none()
+            if camera and camera.ip != dis_cam['ip']:
                 try:
-                    data, addr = sock.recvfrom(1024)
-                    response = data.decode('utf-8')
+                    old_ip = camera.ip
+                    _update_camera_ip(camera, dis_cam['ip'])
+                    logger.info(f'设备 {camera.id} IP地址已从 {old_ip} 更新为 {dis_cam["ip"]}')
+                except Exception as e:
+                    logger.error(f'刷新设备 {camera.id} IP失败: {str(e)}')
 
-                    # 解析响应，提取设备信息
-                    if 'onvif' in response.lower() or 'www.onvif.org' in response:
-                        ip, port = addr
-                        # 简化处理，实际应该解析XML获取详细信息
-                        devices.append({
-                            'ip': ip,
-                            'port': 80,  # 默认端口，实际应该从响应中解析
-                            'name': f'ONVIF_Camera_{ip}'
-                        })
-                except socket.timeout:
-                    break  # 超时后停止接收
 
-        except Exception as e:
-            print(f"设备发现过程中出错: {e}")
-        finally:
-            sock.close()
+def search_camera() -> list:
+    """搜索网络中的ONVIF设备"""
+    return _discovery_cameras()
 
-        return devices
 
-    def get_onvif_profiles(self, device_ip, device_port, username, password):
-        """
-        获取ONVIF设备的配置文件列表
-        
-        Args:
-            device_ip (str): 设备IP地址
-            device_port (int): 设备端口
-            username (str): 用户名
-            password (str): 密码
-            
-        Returns:
-            list: 配置文件列表 [{token, name}, ...]
-        """
+def _start_search():
+    """启动设备发现服务"""
+    ws_daemonlogger = logging.getLogger('daemon')
+    ws_daemonlogger.setLevel(logging.ERROR)
+
+    scheduler.add_job(refresh_camera, 'interval', seconds=os.getenv('CAMERA_DISCOVER_INTERVAL', 120))
+    logger.info('设备发现服务已启动，间隔: %d秒', os.getenv('CAMERA_DISCOVER_INTERVAL', 120))
+
+
+def _init_all_cameras():
+    """初始化所有摄像头连接"""
+    for camera in _get_cameras():
+        executor.submit(
+            partial(_safe_create_camera, camera)
+        )
+    logger.info('所有设备连接已通过线程池初始化')
+
+
+def _safe_create_camera(camera: Device):
+    """安全创建相机连接（带异常处理）"""
+    try:
+        _create_onvif_camera_from_orm(camera)
+    except Exception as e:
+        logger.error(f'初始化设备 {camera.id} 连接失败: {str(e)}')
+
+
+def _get_stream(rtsp_url: str, stream: int) -> str:
+    """根据设备类型生成指定码流URL"""
+    if stream is None:
+        return rtsp_url
+
+    # 海康威视设备
+    if re.match(r'rtsp://[^/]*/Streaming/Channels/10\d.*', rtsp_url):
+        if stream == 0:
+            stream = 1
+        elif not (1 <= stream <= 3):
+            raise ValueError('海康设备仅支持码流类型: 0[默认], 1[主码流], 2[子码流], 3[第三码流]')
+        return re.sub(r'Channels/10\d', f'Channels/10{stream}', rtsp_url)
+
+    # 大华设备
+    elif re.match(r'rtsp://[^/]*/cam/realmonitor\?channel=\d+&subtype=\d+.*', rtsp_url):
+        if stream == 0:
+            stream = 1
+        elif not (1 <= stream <= 2):
+            raise ValueError('大华设备仅支持码流类型: 0[默认], 1[主码流], 2[辅码流]')
+        return re.sub(r'subtype=\d', f'subtype={stream - 1}', rtsp_url)
+
+    raise ValueError('仅支持海康和大华设备的码流调整功能')
+
+
+def register_camera(register_info: dict) -> str:
+    """注册设备到数据库"""
+    id = register_info.get('id', str(time.time_ns()))
+    if _get_camera(id):
+        raise ValueError('设备ID已存在，请使用唯一标识符')
+
+    try:
+        onvif_cam = _create_onvif_camera(
+            id,
+            register_info['ip'],
+            register_info.get('port', 80),
+            register_info['username'],
+            register_info['password']
+        )
+    except KeyError as e:
+        raise ValueError(f'设备注册信息不完整，缺少必要字段: {str(e)}')
+    except Exception as e:
+        raise RuntimeError(f'设备注册失败: {str(e)}')
+
+    # 创建设备记录
+    camera_info = onvif_cam.get_info()
+    camera = Device(
+        id=id,
+        name=register_info.get('name', f'Camera-{id[:6]}'),
+        source=camera_info.get('source'),
+        rtmp_stream=f"rtmp://localhost/live/{id}",
+        http_stream=f"http://localhost/live/{id}.flv",
+        stream=register_info.get('stream'),
+        ip=camera_info.get('ip'),
+        port=camera_info.get('port', 80),
+        username=camera_info.get('username'),
+        password=register_info['password'],
+        mac=camera_info.get('mac'),
+        manufacturer=camera_info.get('manufacturer'),
+        model=camera_info.get('model'),
+        firmware_version=camera_info.get('firmware_version'),
+        serial_number=camera_info.get('serial_number'),
+        hardware_id=camera_info.get('hardware_id'),
+        support_move=camera_info.get('support_move', False),
+        support_zoom=camera_info.get('support_zoom', False),
+        nvr_id=register_info.get('nvr_id'),
+        nvr_channel=register_info.get('nvr_channel')
+    )
+
+    # 处理码流设置
+    if register_info.get('stream') is not None:
         try:
-            # 构建ONVIF设备服务URL
-            device_service_url = f"http://{device_ip}:{device_port}/onvif/device_service"
-
-            # 获取服务信息
-            services = self._get_onvif_services(device_service_url, username, password)
-            media_service_url = services.get('media', f"http://{device_ip}:{device_port}/onvif/media_service")
-
-            # 获取配置文件
-            profiles = self._get_profiles(media_service_url, username, password)
-            return profiles
+            camera.source = _get_stream(camera.source, register_info['stream'])
         except Exception as e:
-            print(f"获取ONVIF配置文件时出错: {e}")
-            return []
+            logger.warning(f'设备 {id} 码流设置失败: {str(e)}，使用默认码流')
 
-    def _get_onvif_services(self, device_service_url, username, password):
-        """获取ONVIF服务列表"""
-        # 构建SOAP请求
-        soap_body = '''<?xml version="1.0" encoding="UTF-8"?>
-        <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope"
-                       xmlns:tds="http://www.onvif.org/ver10/device/wsdl">
-            <soap:Header/>
-            <soap:Body>
-                <tds:GetServices>
-                    <tds:IncludeCapability>false</tds:IncludeCapability>
-                </tds:GetServices>
-            </soap:Body>
-        </soap:Envelope>'''
+    db.session.add(camera)
+    try:
+        db.session.commit()
+        _monitor.update(camera.id, camera.ip)
+        logger.info(f'设备 {id} 注册成功，IP: {camera.ip}')
+        return id
+    except Exception as e:
+        db.session.rollback()
+        raise RuntimeError(f'数据库提交失败: {str(e)}')
 
-        # 发送请求
-        response = self._send_soap_request(device_service_url, soap_body, username, password)
 
-        # 解析响应
-        services = {}
-        if response:
+def get_camera_info(id: str) -> dict:
+    """获取设备基本信息"""
+    camera = _get_camera(id)
+    if not camera:
+        raise ValueError(f'设备 {id} 不存在，请先注册')
+    return _to_dict(camera)
+
+
+def get_camera_list() -> list:
+    """获取所有设备信息列表"""
+    return [_to_dict(camera) for camera in _get_cameras()]
+
+
+def get_device_list() -> dict:
+    """从数据库获取所有设备"""
+    devices = Device.query.all()
+    device_list = [_to_dict(device) for device in devices]
+
+    # 计算统计信息
+    total = len(device_list)
+    online = sum(1 for dev in device_list if dev['online'])
+
+    return {
+        'list': device_list,
+        'total': total,
+        'online': online,
+    }
+
+def patch_camera(id: str, patch_info: dict):
+    """更新设备信息"""
+    camera = _get_camera(id)
+    if not camera:
+        raise ValueError(f'设备 {id} 不存在，无法修改')
+
+    # 过滤空值并更新字段
+    for k, v in (item for item in patch_info.items() if item[1] is not None):
+        if hasattr(camera, k):
+            setattr(camera, k, v)
+
+    # 处理码流变更
+    if 'stream' in patch_info:
+        try:
+            camera.source = _get_stream(camera.source, patch_info['stream'])
+        except Exception as e:
+            raise RuntimeError(f'码流调整失败: {str(e)}')
+
+    # 处理IP地址变更
+    if 'ip' in patch_info:
+        try:
+            _update_camera_ip(camera, patch_info['ip'])
+        except Exception as e:
+            raise RuntimeError(f'IP地址更新失败: {str(e)}')
+
+    try:
+        db.session.commit()
+        logger.info(f'设备 {id} 信息已更新')
+    except Exception as e:
+        db.session.rollback()
+        raise RuntimeError(f'数据库更新失败: {str(e)}')
+
+def delete_camera(id: str):
+    """删除设备"""
+    camera = _get_camera(id)
+    if not camera:
+        raise ValueError(f'设备 {id} 不存在，无法删除')
+
+    try:
+        _monitor.delete(camera.id)
+        _onvif_cameras.pop(id, None)
+        db.session.delete(camera)
+        db.session.commit()
+        logger.info(f'设备 {id} 已从系统中移除')
+    except Exception as e:
+        db.session.rollback()
+        raise RuntimeError(f'删除设备失败: {str(e)}')
+
+
+def move_camera_ptz(id: str, pars: dict):
+    """控制PTZ"""
+    onvif_cam = _get_onvif_camera(id)
+    translation = (pars.get('x', 0), pars.get('y', 0), pars.get('z', 0))
+
+    def move():
+        onvif_cam.move(translation)
+
+    # 使用 ThreadPoolExecutor 实现超时控制
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(move)
+        try:
+            future.result(timeout=1)
+            logger.debug(f'设备 {id} PTZ控制指令已发送: {translation}')
+        except concurrent.futures.TimeoutError:
             try:
-                # 定义命名空间
-                namespaces = {
-                    'soap': 'http://www.w3.org/2003/05/soap-envelope',
-                    'tds': 'http://www.onvif.org/ver10/device/wsdl',
-                    'tt': 'http://www.onvif.org/ver10/schema'
-                }
-
-                root = ET.fromstring(response)
-                for service in root.findall('.//tds:Service', namespaces):
-                    namespace_elem = service.find('tds:Namespace', namespaces)
-                    xaddr_elem = service.find('tds:XAddr', namespaces)
-
-                    if namespace_elem is not None and xaddr_elem is not None:
-                        ns = namespace_elem.text
-                        addr = xaddr_elem.text
-                        if ns and addr:
-                            if 'media' in ns.lower():
-                                services['media'] = addr
-                            elif 'imaging' in ns.lower():
-                                services['imaging'] = addr
+                onvif_cam = _update_onvif_camera(id)
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as retry_executor:
+                    retry_future = retry_executor.submit(move)
+                    retry_future.result(timeout=1)
+                logger.warning(f'设备 {id} PTZ控制超时，已重新连接并重试')
             except Exception as e:
-                print(f"解析服务信息时出错: {e}")
+                raise RuntimeError(f'PTZ重试失败: {str(e)}')
+        except Exception as e:
+            raise RuntimeError(f'PTZ控制失败: {str(e)}')
 
-        return services
+def get_snapshot_uri(ip: str, port: int, username: str, password: str) -> str:
+    """
+    获取ONVIF设备的快照URI
+    :param ip: 设备IP地址
+    :param port: ONVIF服务端口（默认80）
+    :param username: 认证用户名
+    :param password: 认证密码
+    :return: 快照URI字符串（包含认证信息）
+    """
+    try:
+        # 1. 创建ONVIFCamera实例
+        cam = ONVIFCamera(
+            ip, port, username, password,
+            wsdl_dir=current_app.config.get('ONVIF_WSDL_DIR', '/etc/onvif/wsdl')
+        )
 
-    def _get_profiles(self, media_service_url, username, password):
-        """获取配置文件列表"""
-        # 构建SOAP请求
-        soap_body = '''<?xml version="1.0" encoding="UTF-8"?>
-        <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope"
-                       xmlns:trt="http://www.onvif.org/ver10/media/wsdl">
-            <soap:Header/>
-            <soap:Body>
-                <trt:GetProfiles/>
-            </soap:Body>
-        </soap:Envelope>'''
+        # 2. 创建媒体服务
+        media_service = cam.create_media_service()
 
-        # 发送请求
-        response = self._send_soap_request(media_service_url, soap_body, username, password)
+        # 3. 获取配置文件（默认使用第一个Profile）
+        profiles = media_service.GetProfiles()
+        if not profiles:
+            raise ValueError("未找到有效的媒体配置文件")
+        profile_token = profiles[0].token
 
-        # 解析响应
-        profiles = []
-        if response:
-            try:
-                # 定义命名空间
-                namespaces = {
-                    'soap': 'http://www.w3.org/2003/05/soap-envelope',
-                    'trt': 'http://www.onvif.org/ver10/media/wsdl',
-                    'tt': 'http://www.onvif.org/ver10/schema'
-                }
+        # 4. 获取快照URI
+        snapshot_uri_response = media_service.GetSnapshotUri({'ProfileToken': profile_token})
+        snapshot_uri = snapshot_uri_response.Uri
 
-                root = ET.fromstring(response)
-                for profile in root.findall('.//trt:Profiles', namespaces):
-                    token = profile.get('token')
-                    name_element = profile.find('tt:Name', namespaces)
-                    name = name_element.text if name_element is not None else token
+        # 5. 注入认证信息（关键步骤）
+        if username and password:
+            if "http://" in snapshot_uri:
+                snapshot_uri = snapshot_uri.replace(
+                    "http://",
+                    f"http://{username}:{password}@",
+                    1
+                )
+            elif "https://" in snapshot_uri:
+                snapshot_uri = snapshot_uri.replace(
+                    "https://",
+                    f"https://{username}:{password}@",
+                    1
+                )
 
-                    if token:
-                        profiles.append({
-                            'token': token,
-                            'name': name
-                        })
-            except Exception as e:
-                print(f"解析配置文件时出错: {e}")
-
-        return profiles
-
-    def get_snapshot_uri(self, media_service_url, profile_token, username, password):
-        """获取快照URI"""
-        # 构建SOAP请求
-        soap_body = f'''<?xml version="1.0" encoding="UTF-8"?>
-        <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope"
-                       xmlns:trt="http://www.onvif.org/ver10/media/wsdl">
-            <soap:Header/>
-            <soap:Body>
-                <trt:GetSnapshotUri>
-                    <trt:ProfileToken>{profile_token}</trt:ProfileToken>
-                </trt:GetSnapshotUri>
-            </soap:Body>
-        </soap:Envelope>'''
-
-        # 发送请求
-        response = self._send_soap_request(media_service_url, soap_body, username, password)
-
-        # 解析响应
-        snapshot_uri = None
-        if response:
-            try:
-                # 定义命名空间
-                namespaces = {
-                    'soap': 'http://www.w3.org/2003/05/soap-envelope',
-                    'trt': 'http://www.onvif.org/ver10/media/wsdl',
-                    'tt': 'http://www.onvif.org/ver10/schema'
-                }
-
-                root = ET.fromstring(response)
-                uri_element = root.find('.//tt:Uri', namespaces)
-                if uri_element is not None:
-                    snapshot_uri = uri_element.text
-            except Exception as e:
-                print(f"解析快照URI时出错: {e}")
-
+        logger.info(f"设备 {ip} 快照URI获取成功: {snapshot_uri[:50]}...")
         return snapshot_uri
 
-    def capture_onvif_images(self, project_id, device_ip, device_port, username, password,
-                             profile_token, interval, max_count):
-        """
-        从ONVIF设备截取图片并保存到项目目录
-        
-        Args:
-            project_id (int): 项目ID
-            device_ip (str): 设备IP
-            device_port (int): 设备端口
-            username (str): 用户名
-            password (str): 密码
-            profile_token (str): 配置文件token
-            interval (int): 截图间隔（秒）
-            max_count (int): 最大截图数量
-        """
-        thread_id = f"onvif_{project_id}_{profile_token}"
-        self.onvif_threads[thread_id] = {
-            'running': True,
-            'captured_count': 0,
-            'max_count': max_count
-        }
-
-        try:
-            # 获取设备服务URL
-            device_service_url = f"http://{device_ip}:{device_port}/onvif/device_service"
-
-            # 获取媒体服务URL
-            services = self._get_onvif_services(device_service_url, username, password)
-            media_service_url = services.get('media', f"http://{device_ip}:{device_port}/onvif/media_service")
-
-            # 获取快照URI
-            snapshot_uri = self.get_snapshot_uri(media_service_url, profile_token, username, password)
-            if not snapshot_uri:
-                self.onvif_threads[thread_id]['error'] = "无法获取快照URI"
-                return
-
-            # 确保项目上传目录存在
-            upload_dir = os.path.join(os.getcwd(), 'uploads')
-            os.makedirs(upload_dir, exist_ok=True)
-            project_upload_dir = os.path.join(os.getcwd(), 'uploads')  # 使用固定目录
-
-            while (self.onvif_threads[thread_id]['running'] and
-                   self.onvif_threads[thread_id]['captured_count'] < max_count):
-
-                try:
-                    # 获取快照
-                    auth = HTTPDigestAuth(username, password)
-                    response = requests.get(snapshot_uri, auth=auth, timeout=10)
-
-                    # 如果摘要认证失败，尝试基本认证
-                    if response.status_code == 401:
-                        auth = HTTPBasicAuth(username, password)
-                        response = requests.get(snapshot_uri, auth=auth, timeout=10)
-
-                    if response.status_code == 200:
-                        # 生成文件名
-                        timestamp = int(datetime.now().timestamp() * 1000)
-                        filename = f"{timestamp}_onvif_{profile_token}.jpg"
-                        file_path = os.path.join(project_upload_dir, filename)
-
-                        # 保存图片
-                        with open(file_path, 'wb') as f:
-                            f.write(response.content)
-
-                        # 获取图片尺寸
-                        img = PILImage.open(file_path)
-                        width, height = img.size
-
-                        # 计算相对路径和POSIX路径
-                        relative_path = ProjectService.get_relative_path(file_path)
-                        posix_path = ProjectService.get_posix_path(relative_path)
-
-                        # 保存到数据库
-                        from app import create_app
-                        application = create_app()
-                        with application.app_context():
-                            image = Image(
-                                filename=filename,
-                                original_filename=f"onvif_capture_{profile_token}_{timestamp}.jpg",
-                                path=posix_path,
-                                project_id=project_id,
-                                width=width,
-                                height=height
-                            )
-                            db.session.add(image)
-                            db.session.commit()
-
-                        self.onvif_threads[thread_id]['captured_count'] += 1
-                    else:
-                        self.onvif_threads[thread_id]['error'] = f"获取快照失败: {response.status_code}"
-
-                except Exception as e:
-                    self.onvif_threads[thread_id]['error'] = f"获取快照时出错: {str(e)}"
-
-                # 等待下一次截图
-                time.sleep(interval)
-
-        except Exception as e:
-            self.onvif_threads[thread_id]['error'] = f"截图过程中出错: {str(e)}"
-        finally:
-            self.onvif_threads[thread_id]['running'] = False
-
-    def capture_onvif_images_improved(self, project_id, device_ip, device_port, username, password,
-                                      profile_token, interval, max_count):
-        """
-        从ONVIF设备截取图片并保存到项目目录（改进版，解决缓存问题）
-        
-        Args:
-            project_id (int): 项目ID
-            device_ip (str): 设备IP
-            device_port (int): 设备端口
-            username (str): 用户名
-            password (str): 密码
-            profile_token (str): 配置文件token
-            interval (int): 截图间隔（秒）
-            max_count (int): 最大截图数量
-        """
-        thread_id = f"onvif_{project_id}_{profile_token}"
-        self.onvif_threads[thread_id] = {
-            'running': True,
-            'captured_count': 0,
-            'max_count': max_count
-        }
-
-        try:
-            # 获取设备服务URL
-            device_service_url = f"http://{device_ip}:{device_port}/onvif/device_service"
-
-            # 获取媒体服务URL
-            services = self._get_onvif_services(device_service_url, username, password)
-            media_service_url = services.get('media', f"http://{device_ip}:{device_port}/onvif/media_service")
-
-            # 获取快照URI
-            snapshot_uri = self.get_snapshot_uri(media_service_url, profile_token, username, password)
-            if not snapshot_uri:
-                self.onvif_threads[thread_id]['error'] = "无法获取快照URI"
-                return
-
-            # 确保项目上传目录存在
-            upload_dir = os.path.join(os.getcwd(), 'uploads')
-            os.makedirs(upload_dir, exist_ok=True)
-            project_upload_dir = os.path.join(os.getcwd(), 'uploads')  # 使用固定目录
-
-            # 记录开始时间，用于精确控制时间间隔
-            start_time = time.time()
-
-            while (self.onvif_threads[thread_id]['running'] and
-                   self.onvif_threads[thread_id]['captured_count'] < max_count):
-
-                try:
-                    # 计算下一次截图的准确时间
-                    next_capture_time = start_time + (self.onvif_threads[thread_id]['captured_count'] + 1) * interval
-
-                    # 当前时间
-                    current_time = time.time()
-
-                    # 如果还没到截图时间，则等待
-                    if current_time < next_capture_time:
-                        sleep_time = next_capture_time - current_time
-                        time.sleep(sleep_time)
-
-                    # 添加随机延迟，避免设备返回缓存图像
-                    random_delay = random.uniform(0.1, 0.3)  # 减少随机延迟范围
-                    time.sleep(random_delay)
-
-                    # 在URL中添加随机参数，进一步避免各层缓存
-                    separator = '&' if '?' in snapshot_uri else '?'
-                    random_param = f"{separator}_={int(time.time() * 1000)}_{random.randint(1000, 9999)}"
-                    snapshot_uri_with_param = snapshot_uri + random_param
-
-                    # 获取快照
-                    auth = HTTPDigestAuth(username, password)
-                    response = requests.get(snapshot_uri_with_param, auth=auth, timeout=10)
-
-                    # 如果摘要认证失败，尝试基本认证
-                    if response.status_code == 401:
-                        auth = HTTPBasicAuth(username, password)
-                        response = requests.get(snapshot_uri_with_param, auth=auth, timeout=10)
-
-                    if response.status_code == 200:
-                        # 生成文件名
-                        timestamp = int(datetime.now().timestamp() * 1000)
-                        filename = f"{timestamp}_onvif_{profile_token}.jpg"
-                        file_path = os.path.join(project_upload_dir, filename)
-
-                        # 保存图片
-                        with open(file_path, 'wb') as f:
-                            f.write(response.content)
-
-                        # 检查文件是否有效
-                        if os.path.getsize(file_path) < 1024:  # 文件太小，可能是无效图像
-                            os.remove(file_path)  # 删除无效文件
-                            self.onvif_threads[thread_id]['error'] = "获取到无效图像文件"
-                            continue
-
-                        # 获取图片尺寸
-                        img = PILImage.open(file_path)
-                        width, height = img.size
-
-                        # 计算相对路径和POSIX路径
-                        relative_path = ProjectService.get_relative_path(file_path)
-                        posix_path = ProjectService.get_posix_path(relative_path)
-
-                        # 保存到数据库
-                        from app import create_app
-                        application = create_app()
-                        with application.app_context():
-                            image = Image(
-                                filename=filename,
-                                original_filename=f"onvif_capture_{profile_token}_{timestamp}.jpg",
-                                path=posix_path,
-                                project_id=project_id,
-                                width=width,
-                                height=height
-                            )
-                            db.session.add(image)
-                            db.session.commit()
-
-                        self.onvif_threads[thread_id]['captured_count'] += 1
-                    else:
-                        self.onvif_threads[thread_id]['error'] = f"获取快照失败: {response.status_code}"
-
-                except Exception as e:
-                    self.onvif_threads[thread_id]['error'] = f"获取快照时出错: {str(e)}"
-
-                # 注意：这里不再使用额外的time.sleep，而是通过计算时间来控制间隔
-
-        except Exception as e:
-            self.onvif_threads[thread_id]['error'] = f"截图过程中出错: {str(e)}"
-        finally:
-            self.onvif_threads[thread_id]['running'] = False
-
-    def stop_onvif_capture(self, project_id, profile_token):
-        """
-        停止ONVIF截图
-        
-        Args:
-            project_id (int): 项目ID
-            profile_token (str): 配置文件token
-        """
-        thread_id = f"onvif_{project_id}_{profile_token}"
-        if thread_id in self.onvif_threads:
-            self.onvif_threads[thread_id]['running'] = False
-
-    def start_onvif_capture(self, project_id, device_ip, device_port, username, password,
-                            profile_token, interval, max_count):
-        """
-        启动ONVIF截图（使用改进版本）
-        
-        Args:
-            project_id (int): 项目ID
-            device_ip (str): 设备IP
-            device_port (int): 设备端口
-            username (str): 用户名
-            password (str): 密码
-            profile_token (str): 配置文件token
-            interval (int): 截图间隔（秒）
-            max_count (int): 最大截图数量
-        """
-        # 启动改进版的ONVIF截图功能
-        from app import create_app
-        application = create_app()
-
-        def onvif_thread():
-            with application.app_context():
-                self.capture_onvif_images_improved(project_id, device_ip, device_port, username,
-                                                   password, profile_token, interval, max_count)
-
-        thread = threading.Thread(target=onvif_thread)
-        thread.daemon = True
-        thread.start()
-
-        return thread
-
-    def get_onvif_status(self, project_id, profile_token):
-        """
-        获取ONVIF截图状态
-        
-        Args:
-            project_id (int): 项目ID
-            profile_token (str): 配置文件token
-            
-        Returns:
-            dict: ONVIF截图状态
-        """
-        thread_id = f"onvif_{project_id}_{profile_token}"
-        return self.onvif_threads.get(thread_id, {})
-
-    def _send_soap_request(self, url, soap_body, username, password):
-        """发送SOAP请求"""
-        headers = {
-            'Content-Type': 'application/soap+xml; charset=utf-8',
-            'SOAPAction': ''
-        }
-
-        try:
-            # 尝试使用摘要认证
-            auth = HTTPDigestAuth(username, password)
-            response = requests.post(url, data=soap_body, headers=headers, auth=auth, timeout=10)
-
-            # 如果摘要认证失败，尝试基本认证
-            if response.status_code == 401:
-                auth = HTTPBasicAuth(username, password)
-                response = requests.post(url, data=soap_body, headers=headers, auth=auth, timeout=10)
-
-            if response.status_code == 200:
-                return response.text
-            else:
-                print(f"SOAP请求失败: {response.status_code}")
-                return None
-
-        except Exception as e:
-            print(f"发送SOAP请求时出错: {e}")
-            return None
+    except Exception as e:
+        logger.error(f"获取设备 {ip} 快照URI失败: {str(e)}")
+        raise RuntimeError(f"ONVIF快照URI获取失败: {str(e)}")

@@ -9,7 +9,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, current_app, url_for, send_file, request
 from ultralytics import YOLO
 
-from app.services.model_service import ModelService
+from app.services.minio_service import ModelService
 from app.services.rknn_export import SUPPORTED_FORMATS, RknnExporter
 from models import db, Model, ExportRecord, TrainTask
 
