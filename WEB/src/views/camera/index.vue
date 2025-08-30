@@ -26,12 +26,6 @@
           <span style="cursor: pointer" @click="handleCopy(record[column.key])"><Icon
             icon="tdesign:copy-filled" color="#4287FCFF"/> {{ record[column.key] }}</span>
         </template>
-
-        <template v-else-if="column.key === 'ai_project_id'">
-          <a-tag v-if="record.ai_project_id" color="blue">AI项目{{ record.ai_project_id }}</a-tag>
-          <span v-else>-</span>
-        </template>
-
         <template v-else-if="column.dataIndex === 'action'">
           <TableAction
             :actions="getTableActions(record)"
@@ -45,13 +39,13 @@
 </template>
 
 <script lang="ts" setup>
-import {onMounted, reactive} from 'vue';
+import {reactive} from 'vue';
 import {BasicTable, TableAction, useTable} from '@/components/Table';
 import {useMessage} from '@/hooks/web/useMessage';
 import {getBasicColumns, getFormConfig} from "./Data";
 import {useModal} from "@/components/Modal";
 import VideoModal from "./VideoModal/index.vue";
-import {deleteDevice, getDeviceList, refreshDevices} from '@/api/device/camera'; // 更新导入的API函数
+import {deleteDevice, getDeviceList, refreshDevices} from '@/api/device/camera';
 import {
   ClusterOutlined,
   ScanOutlined,
@@ -66,33 +60,23 @@ const state = reactive({
   boxIp: '',
 });
 
-// 表格配置
 const [registerTable, { reload }] = useTable({
-  title: '视频设备列表',
-  api: getDeviceList, // 使用新的getDeviceList API
+  canResize: true,
+  showIndexColumn: false,
+  title: '摄像头列表',
+  api: getDeviceList,
   columns: getBasicColumns(),
   useSearchForm: true,
+  showTableSetting: false,
+  pagination: true,
   formConfig: getFormConfig(),
+  fetchSetting: {
+    listField: 'data',
+    totalField: 'total',
+  },
   rowKey: 'id',
-  pagination: { pageSize: 10 },
 });
 
-// 获取智能地址
-const getSmartAddress = () => {
-  const { protocol, hostname, port } = window.location;
-  const isPrivateIP = /^(10|192\.168|172\.(1[6-9]|2\d|3[01])|127\.0)\./.test(hostname);
-  const finalPort = isPrivateIP ? '8080' : port || (protocol === 'https:' ? '443' : '80');
-
-  return isPrivateIP
-    ? `${hostname}:${finalPort}`
-    : `${hostname}${(finalPort !== "80" && finalPort !== "443") ? `:${finalPort}` : ""}`;
-};
-
-onMounted(() => {
-  state.boxIp = getSmartAddress();
-});
-
-// 表格操作按钮
 const getTableActions = (record) => [
   {
     icon: 'ant-design:eye-filled',
@@ -118,7 +102,6 @@ async function handleCopy(record: object) {
   if (navigator.clipboard) {
     await navigator.clipboard.writeText(record);
   } else {
-    // 降级方案
     const textarea = document.createElement('textarea');
     textarea.value = record;
     document.body.appendChild(textarea);

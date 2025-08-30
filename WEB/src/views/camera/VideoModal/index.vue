@@ -158,7 +158,7 @@ import {BasicModal, useModal, useModalInner} from '@/components/Modal';
 import {Col, Form, FormItem, Input, Row, Select, Spin,} from 'ant-design-vue';
 import {useMessage} from '@/hooks/web/useMessage';
 // 导入新的API函数
-import {getDeviceList, registerDevice, updateDevice} from "@/api/device/camera";
+import {discoverDevices, getDeviceList, registerDevice, updateDevice} from "@/api/device/camera";
 import {BasicTable, TableAction, useTable} from "@/components/Table";
 import {getOnvifBasicColumns, getOnvifFormConfig} from "@/views/camera/VideoModal/Data";
 import VideoRegisterModal from "@/views/camera/VideoRegisterModal/index.vue";
@@ -266,7 +266,7 @@ const [
   canResize: false,
   showIndexColumn: false,
   title: null,
-  api: () => getDeviceList({ pageNo: 1, pageSize: 5000 }),
+  api: discoverDevices,
   columns: getOnvifBasicColumns(),
   useSearchForm: true,
   showTableSetting: false,
