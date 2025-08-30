@@ -225,7 +225,6 @@ function handleCancel() {
 function handleFileUpload(info: any) {
   if (info.file.status === 'done') {
     const response = info.file.response;
-    alert(JSON.stringify(response))
     if (response && response.code === 0) {
       modelRef.input_source = response.data.url;
       createMessage.success('文件上传成功');
