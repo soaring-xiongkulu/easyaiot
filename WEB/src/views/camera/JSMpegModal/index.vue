@@ -70,7 +70,9 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 
 // 注册模态框
-const [registerModal, { closeModal }] = useModalInner();
+const [registerModal, { closeModal }] = useModalInner((record) => {
+  initializePlayer();
+})
 
 // 初始化播放器
 const initializePlayer = () => {
@@ -81,7 +83,6 @@ const initializePlayer = () => {
     player.value.destroy();
     player.value = null;
   }
-
   error.value = null;
   loading.value = true;
 
@@ -175,13 +176,6 @@ const handleCancel = () => {
 // 监听URL变化
 watch(() => props.streamUrl, (newUrl) => {
   if (newUrl) {
-    initializePlayer();
-  }
-});
-
-// 组件挂载时初始化
-onMounted(() => {
-  if (props.streamUrl) {
     initializePlayer();
   }
 });

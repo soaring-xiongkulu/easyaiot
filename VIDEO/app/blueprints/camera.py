@@ -4,6 +4,8 @@ import logging
 import threading
 import time
 import uuid
+import subprocess
+import psutil
 from operator import or_
 
 import cv2
@@ -27,6 +29,188 @@ logger = logging.getLogger(__name__)
 # 全局变量管理截图任务状态
 rtsp_tasks = {}
 onvif_tasks = {}
+# 全局变量管理FFmpeg转码进程
+ffmpeg_processes = {}
+
+
+# ------------------------- FFmpeg转发接口 -------------------------
+@camera_bp.route('/device/<string:device_id>/stream/start', methods=['POST'])
+def start_ffmpeg_stream(device_id):
+    """启动FFmpeg转发RTSP流到RTMP服务器"""
+    try:
+        device = Device.query.get_or_404(device_id)
+
+        # 检查是否已有转码进程在运行
+        if device_id in ffmpeg_processes and ffmpeg_processes[device_id]['process'] is not None:
+            process = ffmpeg_processes[device_id]['process']
+            if process.poll() is None:  # 进程仍在运行
+                return jsonify({
+                    'code': 400,
+                    'msg': '该设备的流媒体转发已在运行中'
+                }), 400
+
+        # 这里使用硬件加速（如果可用）并复制原始流以避免转码
+        ffmpeg_cmd = [
+            'ffmpeg',
+            '-rtsp_transport', 'tcp',  # 使用TCP传输，更稳定
+            '-i', device.source,  # 输入流地址
+            '-c:v', 'copy',  # 视频编码不变
+            '-c:a', 'aac',  # 音频编码为AAC
+            '-f', 'flv',  # 输出格式为FLV
+            '-y',  # 覆盖输出文件
+            device.rtmp_stream  # 输出到RTMP服务器
+        ]
+        logger.info(f"启动FFmpeg转码: {' '.join(ffmpeg_cmd)}")
+
+        # 启动FFmpeg进程
+        process = subprocess.Popen(
+            ffmpeg_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            stdin=subprocess.PIPE
+        )
+
+        # 存储进程信息
+        ffmpeg_processes[device_id] = {
+            'process': process,
+            'rtmp_url': device.rtmp_stream,
+            'start_time': datetime.datetime.now()
+        }
+        # 启动线程监控进程输出
+        threading.Thread(
+            target=monitor_ffmpeg_output,
+            args=(device_id, process),
+            daemon=True
+        ).start()
+
+        return jsonify({
+            'code': 0,
+            'msg': '流媒体转发已启动',
+            'data': {
+                'rtmp_url': device.rtmp_stream,
+                'process_id': process.pid
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"启动FFmpeg转码失败: {str(e)}", exc_info=True)
+        return jsonify({
+            'code': 500,
+            'msg': f'启动流媒体转发失败: {str(e)}'
+        }), 500
+
+
+def monitor_ffmpeg_output(device_id, process):
+    """监控FFmpeg进程输出"""
+    try:
+        # 读取stderr输出
+        for line in iter(process.stderr.readline, b''):
+            if line:
+                logger.debug(f"FFmpeg[{device_id}]: {line.decode().strip()}")
+
+        # 等待进程结束
+        process.wait()
+        return_code = process.returncode
+
+        if return_code == 0:
+            logger.info(f"FFmpeg进程正常结束，设备ID: {device_id}")
+        else:
+            logger.error(f"FFmpeg进程异常结束，返回码: {return_code}，设备ID: {device_id}")
+
+        # 清理进程记录
+        if device_id in ffmpeg_processes:
+            ffmpeg_processes[device_id]['process'] = None
+
+    except Exception as e:
+        logger.error(f"监控FFmpeg输出失败: {str(e)}", exc_info=True)
+
+
+@camera_bp.route('/device/<string:device_id>/stream/stop', methods=['POST'])
+def stop_ffmpeg_stream(device_id):
+    """停止FFmpeg转发进程"""
+    try:
+        if device_id not in ffmpeg_processes or ffmpeg_processes[device_id]['process'] is None:
+            return jsonify({
+                'code': 404,
+                'msg': '未找到运行的流媒体转发进程'
+            }), 404
+
+        process = ffmpeg_processes[device_id]['process']
+
+        # 终止进程及其所有子进程
+        if process.poll() is None:  # 进程仍在运行
+            parent = psutil.Process(process.pid)
+            children = parent.children(recursive=True)
+
+            # 先终止所有子进程
+            for child in children:
+                child.terminate()
+
+            # 等待子进程终止
+            gone, still_alive = psutil.wait_procs(children, timeout=5)
+
+            # 如果有子进程仍然存活，强制杀死
+            for child in still_alive:
+                child.kill()
+
+            # 终止父进程
+            process.terminate()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+
+        # 清理进程记录
+        ffmpeg_processes[device_id]['process'] = None
+
+        return jsonify({
+            'code': 0,
+            'msg': '流媒体转发已停止'
+        })
+
+    except Exception as e:
+        logger.error(f"停止FFmpeg转码失败: {str(e)}", exc_info=True)
+        return jsonify({
+            'code': 500,
+            'msg': f'停止流媒体转发失败: {str(e)}'
+        }), 500
+
+
+@camera_bp.route('/device/<string:device_id>/stream/status', methods=['GET'])
+def get_ffmpeg_stream_status(device_id):
+    """获取FFmpeg转发状态"""
+    try:
+        if device_id not in ffmpeg_processes or ffmpeg_processes[device_id]['process'] is None:
+            return jsonify({
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'status': 'stopped',
+                    'rtmp_url': None
+                }
+            })
+
+        process = ffmpeg_processes[device_id]['process']
+        is_running = process.poll() is None  # 如果返回None表示进程仍在运行
+
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': {
+                'status': 'running' if is_running else 'stopped',
+                'rtmp_url': ffmpeg_processes[device_id]['rtmp_url'],
+                'pid': process.pid,
+                'start_time': ffmpeg_processes[device_id]['start_time'].isoformat()
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"获取FFmpeg转码状态失败: {str(e)}", exc_info=True)
+        return jsonify({
+            'code': 500,
+            'msg': f'获取流媒体转发状态失败: {str(e)}'
+        }), 500
+
 
 # ------------------------- 设备管理接口 -------------------------
 @camera_bp.route('/list', methods=['GET'])
@@ -79,6 +263,8 @@ def list_devices():
     except Exception as e:
         logger.error(f'设备列表查询失败: {str(e)}')
         return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
+
+
 @camera_bp.route('/device/<string:device_id>', methods=['GET'])
 def get_device_info(device_id):
     """获取单个设备详情"""
@@ -95,6 +281,7 @@ def get_device_info(device_id):
     except Exception as e:
         logger.error(f'获取设备详情失败: {str(e)}')
         return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
+
 
 @camera_bp.route('/register/device', methods=['POST'])
 def register_device():
@@ -137,6 +324,12 @@ def update_device(device_id):
 def delete_device(device_id):
     """删除设备"""
     try:
+        # 先停止可能的流媒体转发
+        if device_id in ffmpeg_processes and ffmpeg_processes[device_id]['process'] is not None:
+            process = ffmpeg_processes[device_id]['process']
+            if process.poll() is None:  # 进程仍在运行
+                stop_ffmpeg_stream(device_id)
+
         delete_camera(device_id)
         return jsonify({
             'code': 0,
@@ -177,6 +370,7 @@ def get_minio_client():
     secret_key = current_app.config.get('MINIO_SECRET_KEY', 'minioadmin')
     secure = current_app.config.get('MINIO_SECURE', 'false').lower() == 'true'
     return Minio(minio_endpoint, access_key, secret_key, secure=secure)
+
 
 def upload_screenshot_to_minio(camera_id, image_data, image_format="jpg"):
     """上传摄像头截图到MinIO并存入数据库"""
@@ -236,6 +430,7 @@ def upload_screenshot_to_minio(camera_id, image_data, image_format="jpg"):
     except Exception as e:
         logger.error(f"截图上传未知错误: {str(e)}")
         return None
+
 
 # ------------------------- RTSP截图功能 -------------------------
 def rtsp_capture_task(device_id, rtsp_url, interval, max_count):

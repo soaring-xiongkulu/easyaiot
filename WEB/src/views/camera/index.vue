@@ -77,7 +77,6 @@ const [registerJSMpegModal, {openModal: openJSMpegModal}] = useModal();
 const currentStreamUrl = ref('');
 const currentStreamTitle = ref('');
 
-
 const state = reactive({
   boxIp: '',
 });
@@ -126,14 +125,14 @@ const getTableActions = (record) => [
 ];
 
 const handlePlay = (record) => {
-  const streamUrl = record.rtsp_stream || record.http_stream;
+  const streamUrl = record['source'];
   if (!streamUrl) {
     createMessage.error('该设备没有可用的视频流地址');
     return;
   }
   currentStreamUrl.value = streamUrl;
   currentStreamTitle.value = `视频播放 - ${record.name}`;
-  openJSMpegModal(true);
+  openJSMpegModal(true, {record});
 };
 
 async function handleCopy(record: object) {
