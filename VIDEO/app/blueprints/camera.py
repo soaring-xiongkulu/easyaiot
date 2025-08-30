@@ -3,6 +3,7 @@ import io
 import logging
 import threading
 import time
+import uuid
 from operator import or_
 
 import cv2
@@ -17,7 +18,7 @@ from app.services.camera_service import (
     move_camera_ptz, get_device_list, search_camera,
     get_snapshot_uri, refresh_camera
 )
-from models import Device
+from models import Device, db, Image
 
 # 创建蓝图
 camera_bp = Blueprint('camera', __name__)
@@ -228,9 +229,8 @@ def get_minio_client():
     secure = current_app.config.get('MINIO_SECURE', 'false').lower() == 'true'
     return Minio(minio_endpoint, access_key, secret_key, secure=secure)
 
-
 def upload_screenshot_to_minio(camera_id, image_data, image_format="jpg"):
-    """上传摄像头截图到MinIO"""
+    """上传摄像头截图到MinIO并存入数据库"""
     try:
         minio_client = get_minio_client()
         bucket_name = "camera-screenshots"
@@ -240,11 +240,16 @@ def upload_screenshot_to_minio(camera_id, image_data, image_format="jpg"):
             logger.info(f"创建截图存储桶: {bucket_name}")
 
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        object_name = f"{camera_id}/{timestamp}.{image_format}"
+        # 生成唯一文件名
+        unique_filename = f"{uuid.uuid4().hex}.{image_format}"
+        object_name = f"{camera_id}/{unique_filename}"
 
         success, encoded_image = cv2.imencode(f'.{image_format}', image_data)
         if not success:
             raise RuntimeError("图像编码失败")
+
+        # 获取图像尺寸
+        height, width = image_data.shape[:2]
 
         image_bytes = encoded_image.tobytes()
         minio_client.put_object(
@@ -255,20 +260,33 @@ def upload_screenshot_to_minio(camera_id, image_data, image_format="jpg"):
             content_type=f"image/{image_format}"
         )
 
-        presigned_url = minio_client.presigned_get_object(
-            bucket_name,
-            object_name,
-            expires=datetime.timedelta(days=7)
-        )
+        # 使用统一的URL格式
+        download_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={object_name}"
+
+        # 将图片信息存入数据库
+        try:
+            image_record = Image(
+                filename=unique_filename,
+                original_filename=f"{camera_id}_{timestamp}.{image_format}",
+                path=download_url,
+                width=width,
+                height=height,
+                device_id=camera_id
+            )
+            db.session.add(image_record)
+            db.session.commit()
+            logger.info(f"图片信息已存入数据库，ID: {image_record.id}")
+        except Exception as db_error:
+            db.session.rollback()
+            logger.error(f"数据库存储失败: {str(db_error)}")
         logger.info(f"截图上传成功: {bucket_name}/{object_name}")
-        return presigned_url
+        return download_url
     except S3Error as e:
         logger.error(f"MinIO上传错误: {str(e)}")
         return None
     except Exception as e:
         logger.error(f"截图上传未知错误: {str(e)}")
         return None
-
 
 # ------------------------- RTSP截图功能 -------------------------
 def rtsp_capture_task(device_id, rtsp_url, interval, max_count):

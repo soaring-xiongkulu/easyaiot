@@ -35,9 +35,7 @@ class Image(db.Model):
     width = db.Column(db.Integer, nullable=False)
     height = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    dataset_type = db.Column(db.String(50), default='unassigned')
-    project_id = db.Column(db.String(100), db.ForeignKey('device.id'), nullable=False)
-    annotations = db.relationship('Annotation', backref='image', lazy=True, cascade='all, delete-orphan')
+    device_id = db.Column(db.String(100), db.ForeignKey('device.id'))  # 添加设备ID外键
 
 class Nvr(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
