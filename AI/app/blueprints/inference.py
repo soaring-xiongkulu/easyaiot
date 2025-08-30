@@ -68,10 +68,10 @@ def upload_input_file():
                 logger.error(f"删除临时文件失败: {temp_path}, 错误: {str(e)}")
 
 
-# ========== 推理记录管理接口 ==========
+# ========== 推理任务管理接口 ==========
 @inference_bp.route('/inference_records', methods=['POST'])
 def create_inference_record():
-    """创建推理记录（任务开始时调用）"""
+    """创建推理任务（任务开始时调用）"""
     data = request.json
     required_fields = ['model_id', 'inference_type']
     if not all(field in data for field in required_fields):
@@ -102,7 +102,7 @@ def create_inference_record():
         db.session.commit()
         return jsonify({
             'code': 0,
-            'msg': '推理记录创建成功',
+            'msg': '推理任务创建成功',
             'data': {
                 'id': new_record.id,
                 'start_time': new_record.start_time.isoformat()
@@ -110,13 +110,13 @@ def create_inference_record():
         }), 201
     except Exception as e:
         db.session.rollback()
-        logger.error(f"创建推理记录失败: {str(e)}")
+        logger.error(f"创建推理任务失败: {str(e)}")
         return jsonify({'code': 500, 'msg': f'数据库错误: {str(e)}'}), 500
 
 
 @inference_bp.route('/inference_records/<int:record_id>', methods=['PUT'])
 def update_inference_record(record_id):
-    """更新推理记录"""
+    """更新推理任务"""
     record = InferenceRecord.query.get_or_404(record_id)
     data = request.json
 
@@ -144,7 +144,7 @@ def update_inference_record(record_id):
 
 @inference_bp.route('/inference_records', methods=['GET'])
 def get_inference_records():
-    """分页查询推理记录"""
+    """分页查询推理任务"""
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     model_id = request.args.get('model_id')
@@ -179,7 +179,7 @@ def get_inference_records():
 
 @inference_bp.route('/inference_records/<int:record_id>', methods=['GET'])
 def get_inference_record_detail(record_id):
-    """获取单条推理记录的详细信息"""
+    """获取单条推理任务的详细信息"""
     record = InferenceRecord.query.get_or_404(record_id)
     return jsonify({
         'id': record.id,
@@ -198,7 +198,7 @@ def get_inference_record_detail(record_id):
 
 @inference_bp.route('/inference_records/<int:record_id>', methods=['DELETE'])
 def delete_inference_record(record_id):
-    """删除推理记录"""
+    """删除推理任务"""
     record = InferenceRecord.query.get_or_404(record_id)
     try:
         db.session.delete(record)
@@ -230,7 +230,7 @@ def run_inference(model_id):
     if not all(field in data for field in required_fields):
         return jsonify({'code': 400, 'msg': '缺少必要参数'}), 400
 
-    # 创建推理记录
+    # 创建推理任务
     record_data = {
         'model_id': model_id,
         'inference_type': data['inference_type'],

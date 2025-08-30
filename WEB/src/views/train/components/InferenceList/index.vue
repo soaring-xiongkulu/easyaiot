@@ -39,10 +39,16 @@
           <span v-else>-</span>
         </template>
 
-        <!-- 操作列 -->
+        <!-- 操作列（新增执行按钮） -->
         <template v-else-if="column.dataIndex === 'action'">
           <TableAction
             :actions="[
+              {
+                icon: 'ant-design:play-circle-filled',
+                tooltip: '执行',
+                onClick: () => handleExecute(record),
+                ifShow: () => record.status !== 'PROCESSING'
+              },
               {
                 icon: 'ant-design:eye-filled',
                 tooltip: '详情',
@@ -74,20 +80,21 @@
         @view="handleViewDetail"
         @result="handleViewResult"
         @delete="handleDelete"
+        @execute="handleCardExecute"
       >
-        <template #header>
-          <a-space>
-            <a-button type="primary" @click="openExecuteModal">
-              <template #icon>
-                <PlayCircleOutlined/>
-              </template>
-              执行推理
-            </a-button>
-            <a-button @click="handleClickSwap" preIcon="ant-design:swap-outlined">
-              切换视图
-            </a-button>
-          </a-space>
-        </template>
+      <template #header>
+        <a-space>
+          <a-button type="primary" @click="openExecuteModal">
+            <template #icon>
+              <PlayCircleOutlined/>
+            </template>
+            执行推理
+          </a-button>
+          <a-button @click="handleClickSwap" preIcon="ant-design:swap-outlined">
+            切换视图
+          </a-button>
+        </a-space>
+      </template>
       </InferenceCardList>
     </div>
 
@@ -99,12 +106,12 @@
 </template>
 
 <script lang="ts" setup>
-import {onBeforeUnmount, onMounted, reactive} from 'vue';
-import {PlayCircleOutlined} from '@ant-design/icons-vue';
-import {BasicTable, TableAction, useTable} from '@/components/Table';
-import {useModal} from '@/components/Modal';
-import {useMessage} from '@/hooks/web/useMessage';
-import {getInferenceColumns, getInferenceFormConfig} from "./Data";
+import { onBeforeUnmount, onMounted, reactive } from 'vue';
+import { PlayCircleOutlined } from '@ant-design/icons-vue';
+import { BasicTable, TableAction, useTable } from '@/components/Table';
+import { useModal } from '@/components/Modal';
+import { useMessage } from '@/hooks/web/useMessage';
+import { getInferenceColumns, getInferenceFormConfig } from "./Data";
 import ExecuteInferenceModal from "../ExecuteInferenceModal/index.vue";
 import InferenceDetailModal from "../InferenceDetailModal/index.vue";
 import InferenceResultViewer from "../InferenceResultViewer/index.vue";
@@ -112,15 +119,17 @@ import InferenceCardList from "../InferenceCardList/index.vue";
 import {
   deleteInferenceRecord,
   getInferenceRecords,
-  streamInferenceProgress
+  streamInferenceProgress,
+  runInference  // 新增执行API
 } from "@/api/device/model";
 
 // 状态管理
 const state = reactive({
-  isTableMode: true,
+  isTableMode: false,
   records: [],
   currentRecord: {},
-  eventSources: {}
+  eventSources: {},
+  executing: false  // 防止重复执行
 });
 
 const statusLabels = {
@@ -129,8 +138,8 @@ const statusLabels = {
   FAILED: '失败'
 };
 
-const {createMessage} = useMessage();
-const [registerTable, {reload}] = useTable({
+const { createMessage } = useMessage();
+const [registerTable, { reload }] = useTable({
   canResize: true,
   showIndexColumn: false,
   title: '推理记录管理',
@@ -138,14 +147,14 @@ const [registerTable, {reload}] = useTable({
   columns: getInferenceColumns(),
   useSearchForm: true,
   formConfig: getInferenceFormConfig(),
-  pagination: {pageSize: 10},
+  pagination: { pageSize: 10 },
   rowKey: 'id',
 });
 
 // 模态框注册
-const [registerExecuteModal, {openModal: openExecuteModal}] = useModal();
-const [registerDetailModal, {openModal: openDetailModal}] = useModal();
-const [registerResultModal, {openModal: openResultModal}] = useModal();
+const [registerExecuteModal, { openModal: openExecuteModal }] = useModal();
+const [registerDetailModal, { openModal: openDetailModal }] = useModal();
+const [registerResultModal, { openModal: openResultModal }] = useModal();
 
 // 组件挂载时加载数据
 onMounted(() => {
@@ -206,7 +215,7 @@ const updateRecordProgress = (recordId: number, progress: any) => {
   const recordIndex = state.records.findIndex(r => r['id'] === recordId);
   if (recordIndex === -1) return;
 
-  const updatedRecord = {...state.records[recordIndex]};
+  const updatedRecord = { ...state.records[recordIndex] };
 
   // 更新处理帧数
   if (progress.processed_frames !== undefined) {
@@ -299,6 +308,52 @@ const handleDelete = async (record) => {
 // 切换视图
 const handleClickSwap = () => {
   state.isTableMode = !state.isTableMode;
+};
+
+// 执行推理任务（核心新增功能）
+const handleExecute = async (record) => {
+  if (state.executing) return;
+
+  try {
+    state.executing = true;
+    createMessage.loading({ content: '任务执行中...', key: 'executing', duration: 0 });
+
+    // 准备执行参数
+    const params = {
+      inference_type: record.inference_type,
+      input_source: record.input_source
+    };
+
+    // 调用API执行推理
+    const result = await runInference(record.model_id, params);
+
+    if (result.code === 0) {
+      createMessage.success({ content: '任务执行成功', key: 'executing' });
+
+      // 添加新记录到列表
+      const newRecord = {
+        ...result.data,
+        start_time: formatDateTime(result.data.start_time)
+      };
+
+      state.records.unshift(newRecord);
+
+      // 启动进度监听
+      startProgressListener(newRecord.id);
+    } else {
+      createMessage.error({ content: result.msg || '执行失败', key: 'executing' });
+    }
+  } catch (error) {
+    createMessage.error({ content: `执行失败: ${error.message}`, key: 'executing' });
+    console.error('执行错误:', error);
+  } finally {
+    state.executing = false;
+  }
+};
+
+// 卡片执行事件处理
+const handleCardExecute = (record) => {
+  handleExecute(record);
 };
 
 // 执行推理成功回调
