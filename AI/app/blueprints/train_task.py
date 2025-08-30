@@ -276,14 +276,6 @@ def publish_train_task(record_id):
         
         # 获取前端传入的版本号
         data = request.json
-        version = data.get('version')
-
-        # 验证训练记录状态
-        if record.status != 'completed':
-            return jsonify({
-                'code': 400,
-                'msg': '只有状态为"completed"的训练记录才能发布为正式模型'
-            }), 400
 
         # 验证模型路径是否存在
         if not record.minio_model_path:
@@ -299,15 +291,6 @@ def publish_train_task(record_id):
         model.model_path = record.minio_model_path
         model.updated_at = datetime.utcnow()
 
-        # 使用前端传入的版本号
-        if not version:
-            return jsonify({
-                'code': 400,
-                'msg': '版本号不能为空'
-            }), 400
-            
-        model.version = version
-
         db.session.commit()
 
         return jsonify({
@@ -316,7 +299,6 @@ def publish_train_task(record_id):
             'data': {
                 'model_id': model.id,
                 'model_path': model.model_path,
-                'version': model.version
             }
         })
 
