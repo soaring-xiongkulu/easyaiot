@@ -10,6 +10,15 @@
           :data-source="data"
           :pagination="paginationProp"
         >
+          <template #header>
+            <div
+              style="display: flex;align-items: center;justify-content: space-between;flex-direction: row;">
+              <span style="padding-left: 7px;font-size: 16px;font-weight: 500;line-height: 24px;">推理任务列表</span>
+              <div class="space-x-2">
+                <slot name="header"></slot>
+              </div>
+            </div>
+          </template>
           <template #renderItem="{ item }">
             <ListItem>
               <div

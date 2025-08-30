@@ -12,7 +12,7 @@
             <template #icon>
               <PlayCircleOutlined/>
             </template>
-            执行推理
+            新增推理任务
           </a-button>
           <a-button @click="handleClickSwap" preIcon="ant-design:swap-outlined">
             切换视图
@@ -89,7 +89,7 @@
               <template #icon>
                 <PlayCircleOutlined/>
               </template>
-              执行推理
+              新增推理任务
             </a-button>
             <a-button @click="handleClickSwap" preIcon="ant-design:swap-outlined">
               切换视图
@@ -100,7 +100,7 @@
     </div>
 
     <!-- 模态框组件 -->
-    <ExecuteInferenceModal @register="registerExecuteModal" @success="handleExecuteSuccess"/>
+    <ExecuteInferenceModal @register="registerExecuteModal"/>
     <InferenceDetailModal @register="registerDetailModal" :record="state.currentRecord"/>
     <InferenceResultViewer @register="registerResultModal" :record="state.currentRecord"/>
   </div>
@@ -218,7 +218,7 @@ const handleClickSwap = () => {
   state.isTableMode = !state.isTableMode;
 };
 
-// 执行推理任务（核心新增功能）
+// 新增推理任务
 const handleExecute = async (record) => {
   if (state.executing) return;
 
@@ -232,7 +232,7 @@ const handleExecute = async (record) => {
       input_source: record.input_source
     };
 
-    // 调用API执行推理
+    // 调用API新增推理任务
     const result = await runInference(record.model_id, params);
 
     if (result.code === 0) {
@@ -262,20 +262,6 @@ const handleExecute = async (record) => {
 // 卡片执行事件处理
 const handleCardExecute = (record) => {
   handleExecute(record);
-};
-
-// 执行推理成功回调
-const handleExecuteSuccess = (newRecord) => {
-  createMessage.success('推理任务已启动');
-
-  // 添加新记录到列表
-  state.records.unshift({
-    ...newRecord,
-    start_time: formatDateTime(newRecord.start_time)
-  });
-
-  // 启动进度监听
-  startProgressListener(newRecord.id);
 };
 
 // 日期时间格式化

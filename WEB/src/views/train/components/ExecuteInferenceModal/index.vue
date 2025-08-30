@@ -216,8 +216,6 @@ const [register, {closeModal}] = useModalInner((data: any) => {
   }
 });
 
-const emits = defineEmits(['success']);
-
 // 取消操作
 function handleCancel() {
   resetFields();
@@ -272,7 +270,6 @@ async function handleOk() {
       createMessage.success(state.isEdit ? '更新成功' : '创建成功');
       closeModal();
       resetFields();
-      emits('success');
     } else {
       createMessage.error(res.msg || '操作失败');
     }
