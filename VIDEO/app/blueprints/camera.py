@@ -328,10 +328,10 @@ def start_rtsp_capture(device_id):
         max_count = data.get('max_count', 100)
 
         if not rtsp_url:
-            return jsonify({'success': False, 'message': 'RTSP地址不能为空'})
+            return jsonify({'code': 400, 'msg': 'RTSP地址不能为空'}), 400
 
         if device_id in rtsp_tasks and rtsp_tasks[device_id]['running']:
-            return jsonify({'success': False, 'message': '该设备的截图任务已在运行'})
+            return jsonify({'code': 400, 'msg': '该设备的截图任务已在运行'}), 400
 
         rtsp_tasks[device_id] = {'running': True, 'thread': None}
         thread = threading.Thread(
@@ -343,12 +343,15 @@ def start_rtsp_capture(device_id):
         rtsp_tasks[device_id]['thread'] = thread
 
         return jsonify({
-            'success': True,
-            'message': 'RTSP截图任务已启动',
-            'task_id': thread.ident
+            'code': 0,
+            'msg': 'RTSP截图任务已启动',
+            'data': {
+                'task_id': thread.ident
+            }
         })
     except Exception as e:
-        return jsonify({'success': False, 'message': f'RTSP截图启动失败: {str(e)}'})
+        logger.error(f"启动RTSP截图失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': f'启动RTSP截图失败: {str(e)}'}), 500
 
 
 @camera_bp.route('/device/<int:device_id>/rtsp/stop', methods=['POST'])
@@ -359,10 +362,11 @@ def stop_rtsp_capture(device_id):
             rtsp_tasks[device_id]['running'] = False
             if rtsp_tasks[device_id]['thread']:
                 rtsp_tasks[device_id]['thread'].join(timeout=5.0)
-            return jsonify({'success': True, 'message': 'RTSP截图任务已停止'})
-        return jsonify({'success': False, 'message': '未找到运行的RTSP截图任务'})
+            return jsonify({'code': 0, 'msg': 'RTSP截图任务已停止'})
+        return jsonify({'code': 404, 'msg': '未找到运行的RTSP截图任务'}), 404
     except Exception as e:
-        return jsonify({'success': False, 'message': f'停止RTSP截图失败: {str(e)}'})
+        logger.error(f"停止RTSP截图失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': f'停止RTSP截图失败: {str(e)}'}), 500
 
 
 @camera_bp.route('/device/<int:device_id>/rtsp/status', methods=['GET'])
@@ -372,9 +376,14 @@ def rtsp_status(device_id):
         status = "stopped"
         if device_id in rtsp_tasks:
             status = "running" if rtsp_tasks[device_id]['running'] else "stopped"
-        return jsonify({'success': True, 'status': status})
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': {'status': status}
+        })
     except Exception as e:
-        return jsonify({'success': False, 'message': f'获取RTSP状态失败: {str(e)}'})
+        logger.error(f"获取RTSP状态失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': f'获取RTSP状态失败: {str(e)}'}), 500
 
 
 # ------------------------- ONVIF功能 -------------------------
@@ -424,10 +433,10 @@ def start_onvif_capture(device_id):
             device.ip, device.port, device.username, device.password
         )
         if not snapshot_uri:
-            return jsonify({'success': False, 'message': '无法获取ONVIF快照URI'})
+            return jsonify({'code': 400, 'msg': '无法获取ONVIF快照URI'}), 400
 
         if device_id in onvif_tasks and onvif_tasks[device_id]['running']:
-            return jsonify({'success': False, 'message': '该设备的ONVIF截图任务已在运行'})
+            return jsonify({'code': 400, 'msg': '该设备的ONVIF截图任务已在运行'}), 400
 
         onvif_tasks[device_id] = {'running': True, 'thread': None}
         thread = threading.Thread(
@@ -439,12 +448,15 @@ def start_onvif_capture(device_id):
         onvif_tasks[device_id]['thread'] = thread
 
         return jsonify({
-            'success': True,
-            'message': 'ONVIF截图任务已启动',
-            'task_id': thread.ident
+            'code': 0,
+            'msg': 'ONVIF截图任务已启动',
+            'data': {
+                'task_id': thread.ident
+            }
         })
     except Exception as e:
-        return jsonify({'success': False, 'message': f'ONVIF截图启动失败: {str(e)}'})
+        logger.error(f"启动ONVIF截图失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': f'启动ONVIF截图失败: {str(e)}'}), 500
 
 
 @camera_bp.route('/device/<int:device_id>/onvif/stop', methods=['POST'])
@@ -455,10 +467,11 @@ def stop_onvif_capture(device_id):
             onvif_tasks[device_id]['running'] = False
             if onvif_tasks[device_id]['thread']:
                 onvif_tasks[device_id]['thread'].join(timeout=5.0)
-            return jsonify({'success': True, 'message': 'ONVIF截图任务已停止'})
-        return jsonify({'success': False, 'message': '未找到运行的ONVIF截图任务'})
+            return jsonify({'code': 0, 'msg': 'ONVIF截图任务已停止'})
+        return jsonify({'code': 404, 'msg': '未找到运行的ONVIF截图任务'}), 404
     except Exception as e:
-        return jsonify({'success': False, 'message': f'ONVIF截图停止失败: {str(e)}'})
+        logger.error(f"停止ONVIF截图失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': f'停止ONVIF截图失败: {str(e)}'}), 500
 
 
 @camera_bp.route('/device/<int:device_id>/onvif/status', methods=['GET'])
@@ -468,9 +481,14 @@ def onvif_status(device_id):
         status = "stopped"
         if device_id in onvif_tasks:
             status = "running" if onvif_tasks[device_id]['running'] else "stopped"
-        return jsonify({'success': True, 'status': status})
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': {'status': status}
+        })
     except Exception as e:
-        return jsonify({'success': False, 'message': f'获取ONVIF截图状态失败: {str(e)}'})
+        logger.error(f"获取ONVIF截图状态失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': f'获取ONVIF截图状态失败: {str(e)}'}), 500
 
 
 # ------------------------- 设备发现接口 -------------------------
