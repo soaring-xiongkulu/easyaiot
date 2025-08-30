@@ -13,7 +13,6 @@ from nacos import NacosClient
 from sqlalchemy import text
 
 from app.blueprints import export, inference_task, model, train, train_task
-from app.blueprints.inference_task import inference_task_bp
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
