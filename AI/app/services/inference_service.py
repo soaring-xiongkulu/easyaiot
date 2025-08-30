@@ -1,3 +1,4 @@
+import logging
 import multiprocessing
 import os
 import shutil
@@ -11,6 +12,7 @@ import cv2
 import torch
 from flask import current_app
 from ultralytics import YOLO
+from werkzeug.utils import secure_filename
 
 from app.services.model_service import ModelService
 from models import Model, InferenceRecord, db
@@ -98,21 +100,81 @@ class InferenceService:
             return local_path
         return None
 
-    def load_model(self, model_type, system_model=None, model_file=None):
+    def load_model(self, model_type, system_model, model_file=None):
         """
-        智能加载模型（优先级：本地缓存 > 本地文件 > Minio下载）
+        加载模型
+        :param model_type: 模型类型
+        :param system_model: 系统模型标识
+        :param model_file: 上传的模型文件（可选）
         """
-        # 1. 优先检查本地模型文件
-        model_path = self._find_local_model()
+        try:
+            if model_file:
+                # 处理上传的模型文件
+                model_path = self.save_uploaded_model(model_file)
+                self.model = YOLO(model_path)
+            else:
+                # 处理模型路径 - 使用相对于根路径的model/yolov8n.pt
+                if not self.model_id:
+                    # 使用默认模型
+                    model_arch = os.path.join('model', 'yolov8n.pt')
+                    if not os.path.exists(model_arch):
+                        raise Exception(f"默认模型不存在于路径: {model_arch}")
+                    self.model = YOLO(model_arch)
+                else:
+                    # 从数据库获取模型路径
+                    model_record = Model.query.get(self.model_id)
+                    if not model_record or not model_record.model_path:
+                        raise Exception("未找到对应的模型记录或模型路径")
 
-        # 2. 本地不存在则从Minio下载
-        if not model_path:
-            model_path = self._download_model_from_minio()
-            if not model_path:
-                raise FileNotFoundError(f"Model not found for ID {self.model_id}")
+                    model_path = model_record.model_path
+                    if not os.path.exists(model_path):
+                        # 尝试从MinIO下载模型
+                        if not self.download_model_from_minio(model_record):
+                            raise Exception(f"模型文件不存在且无法从MinIO下载: {model_path}")
 
-        # 3. 加载模型
-        return self._load_model(model_path)
+                    self.model = YOLO(model_path)
+
+            return self.model
+
+        except Exception as e:
+            logging.error(f"加载模型失败: {str(e)}")
+            raise
+
+    def download_model_from_minio(self, model_record):
+        """
+        从MinIO下载模型文件
+        """
+        try:
+            if hasattr(model_record, 'minio_path') and model_record.minio_path:
+                local_path = model_record.model_path
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+
+                # 使用MinIO客户端下载文件
+                minio_client = ModelService.get_minio_client()
+                minio_client.fget_object(
+                    'models',  # 存储桶名称
+                    model_record.minio_path,
+                    local_path
+                )
+                return True
+        except Exception as e:
+            logging.error(f"从MinIO下载模型失败: {str(e)}")
+
+        return False
+
+    def save_uploaded_model(self, model_file):
+        """
+        保存上传的模型文件
+        """
+        # 实现文件保存逻辑
+        upload_dir = 'uploads/models'
+        os.makedirs(upload_dir, exist_ok=True)
+
+        filename = secure_filename(model_file.filename)
+        filepath = os.path.join(upload_dir, filename)
+        model_file.save(filepath)
+
+        return filepath
 
     # === 图片推理优化 ===
     def inference_image(self, model, image_file):

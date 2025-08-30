@@ -1,25 +1,99 @@
+import os
+
 from flask import Blueprint, request, jsonify
 
+from app.blueprints.export import logger
 from app.services.inference_service import InferenceService
+from app.services.model_service import ModelService
 from models import Model, InferenceRecord, db
 from datetime import datetime
 import logging
 
 inference_bp = Blueprint('inference', __name__)
 
+# ========== 新增文件上传接口 ==========
+@inference_bp.route('/upload_input', methods=['POST'])
+def upload_input_file():
+    """上传推理输入文件（图片/视频）"""
+    if 'file' not in request.files:
+        return jsonify({'code': 400, 'msg': '未找到文件'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'code': 400, 'msg': '未选择文件'}), 400
+
+    # 初始化变量
+    temp_path = None
+    try:
+        # 获取文件扩展名并生成唯一文件名
+        ext = os.path.splitext(file.filename)[1]
+        unique_filename = f"{uuid.uuid4().hex}{ext}"
+
+        # 创建临时目录和文件
+        temp_dir = 'temp_uploads'
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_path = os.path.join(temp_dir, unique_filename)
+        file.save(temp_path)
+
+        # 上传到MinIO（使用模型服务中的上传方法）
+        bucket_name = 'inference-inputs'
+        object_key = f"inputs/{unique_filename}"
+
+        if ModelService.upload_to_minio(bucket_name, object_key, temp_path):
+            # 生成URL（直接拼接字符串）
+            download_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={object_key}"
+
+            return jsonify({
+                'code': 0,
+                'msg': '文件上传成功',
+                'data': {
+                    'url': download_url,
+                    'fileName': file.filename
+                }
+            })
+        else:
+            return jsonify({'code': 500, 'msg': '文件上传到MinIO失败'}), 500
+
+    except Exception as e:
+        logger.error(f"输入文件上传失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+    finally:
+        # 确保删除临时文件（无论上传成功与否）
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+                logger.info(f"临时文件已删除: {temp_path}")
+            except OSError as e:
+                logger.error(f"删除临时文件失败: {temp_path}, 错误: {str(e)}")
+
+
 # ========== 推理记录管理接口 ==========
 @inference_bp.route('/inference_records', methods=['POST'])
 def create_inference_record():
     """创建推理记录（任务开始时调用）"""
     data = request.json
-    required_fields = ['model_id', 'inference_type', 'input_source']
+    required_fields = ['model_id', 'inference_type']
     if not all(field in data for field in required_fields):
-        return jsonify({'error': '缺少必要字段: model_id, inference_type, input_source'}), 400
+        return jsonify({'code': 400, 'msg': '缺少必要字段: model_id, inference_type'}), 400
+
+    # 根据推理类型验证输入源
+    inference_type = data['inference_type']
+    input_source = data.get('input_source', '')
+
+    if inference_type == 'rtsp':
+        if not input_source or not input_source.startswith('rtsp://'):
+            return jsonify({'code': 400, 'msg': 'RTSP流地址格式不正确'}), 400
+    elif inference_type in ['image', 'video']:
+        if not input_source:
+            return jsonify({'code': 400, 'msg': '请提供输入源URL'}), 400
+    else:
+        return jsonify({'code': 400, 'msg': f'不支持的推理类型: {inference_type}'}), 400
 
     new_record = InferenceRecord(
         model_id=data['model_id'],
-        inference_type=data['inference_type'],
-        input_source=data['input_source'],
+        inference_type=inference_type,
+        input_source=input_source,
         status='PROCESSING'  # 初始状态为处理中
     )
 
@@ -27,30 +101,33 @@ def create_inference_record():
         db.session.add(new_record)
         db.session.commit()
         return jsonify({
-            'id': new_record.id,
-            'message': '推理记录创建成功',
-            'start_time': new_record.start_time.isoformat()
+            'code': 0,
+            'msg': '推理记录创建成功',
+            'data': {
+                'id': new_record.id,
+                'start_time': new_record.start_time.isoformat()
+            }
         }), 201
     except Exception as e:
         db.session.rollback()
-        logging.error(f"创建记录失败: {str(e)}")
-        return jsonify({'error': f'数据库错误: {str(e)}'}), 500
+        logger.error(f"创建推理记录失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': f'数据库错误: {str(e)}'}), 500
 
 
 @inference_bp.route('/inference_records/<int:record_id>', methods=['PUT'])
 def update_inference_record(record_id):
-    """更新推理记录状态和进度"""
+    """更新推理记录"""
     record = InferenceRecord.query.get_or_404(record_id)
     data = request.json
 
-    # 更新核心字段
+    # 更新字段
     updatable_fields = ['status', 'processed_frames', 'output_path',
                         'stream_output_url', 'error_message']
     for field in updatable_fields:
         if field in data:
             setattr(record, field, data[field])
 
-    # 结束时更新时间和耗时
+    # 结束状态处理
     if data.get('status') in ['COMPLETED', 'FAILED']:
         record.end_time = datetime.utcnow()
         if record.start_time:
@@ -58,11 +135,11 @@ def update_inference_record(record_id):
 
     try:
         db.session.commit()
-        return jsonify({'message': '记录更新成功'}), 200
+        return jsonify({'code': 0, 'msg': '记录更新成功'}), 200
     except Exception as e:
         db.session.rollback()
-        logging.error(f"更新记录失败: {str(e)}")
-        return jsonify({'error': f'更新失败: {str(e)}'}), 500
+        logger.error(f"更新记录失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': f'更新失败: {str(e)}'}), 500
 
 
 @inference_bp.route('/inference_records', methods=['GET'])
@@ -147,87 +224,66 @@ def handle_server_error(e):
 
 @inference_bp.route('/<int:model_id>/inference/run', methods=['POST'])
 def run_inference(model_id):
-    """执行模型推理（已集成记录管理）"""
-    model = Model.query.get_or_404(model_id)
+    """执行推理任务"""
+    data = request.json
+    required_fields = ['inference_type', 'input_source']
+    if not all(field in data for field in required_fields):
+        return jsonify({'code': 400, 'msg': '缺少必要参数'}), 400
 
     # 创建推理记录
     record_data = {
         'model_id': model_id,
-        'inference_type': request.form.get('inference_type'),
-        'input_source': request.form.get('rtsp_url') or
-                        request.files.get('image_file').filename or
-                        request.files.get('video_file').filename
+        'inference_type': data['inference_type'],
+        'input_source': data['input_source']
     }
     record_resp = create_inference_record()
     if record_resp[1] != 201:
         return record_resp
-    record_id = record_resp.json['id']
+
+    record_id = record_resp.json['data']['id']
+    record = InferenceRecord.query.get(record_id)
 
     try:
-        # 获取表单数据
-        model_type = request.form.get('model_type')
-        inference_type = request.form.get('inference_type')
-        system_model = request.form.get('system_model')
+        # 初始化推理服务
+        inference_service = InferenceService(model_id)
 
-        # 获取上传的文件
-        model_file = request.files.get('model_file')
-        image_file = request.files.get('image_file')
-        video_file = request.files.get('video_file')
-        rtsp_url = request.form.get('rtsp_url')
-
-        # 创建推理管理器
-        inference_manager = InferenceService(model_id)
-
-        # 加载模型
-        model = inference_manager.load_model(model_type, system_model, model_file)
-
-        # 根据推理类型执行推理
+        # 根据类型执行推理
+        inference_type = data['inference_type']
         if inference_type == 'image':
-            if not image_file or image_file.filename == '':
-                return jsonify({
-                    'success': False,
-                    'error': '未选择图片文件'
-                })
-
-            result = inference_manager.inference_image(model, image_file)
-            return jsonify({
-                'success': True,
-                'result': result
-            })
-
+            result = inference_service.inference_image(data['input_source'])
+            record.output_path = result.get('output_path')
         elif inference_type == 'video':
-            if not video_file or video_file.filename == '':
-                return jsonify({
-                    'success': False,
-                    'error': '未选择视频文件'
-                })
-
-            result = inference_manager.inference_video(model, video_file)
-            return jsonify({
-                'success': True,
-                'result': result
-            })
-
+            result = inference_service.inference_video(data['input_source'])
+            record.output_path = result.get('output_path')
         elif inference_type == 'rtsp':
-            if not rtsp_url:
-                return jsonify({
-                    'success': False,
-                    'error': '未提供RTSP流地址'
-                })
-
-            result = inference_manager.inference_rtsp(model, rtsp_url)
-            return jsonify({
-                'success': True,
-                'result': result
-            })
-
+            result = inference_service.inference_rtsp(data['input_source'])
+            record.stream_output_url = result.get('stream_url')
         else:
-            return jsonify({
-                'success': False,
-                'error': f'不支持的推理类型: {inference_type}'
-            })
+            raise ValueError(f'不支持的推理类型: {inference_type}')
 
+        # 更新记录状态
+        record.status = 'COMPLETED' if inference_type != 'rtsp' else 'STREAMING'
+        record.end_time = datetime.utcnow()
+        db.session.commit()
+
+        return jsonify({
+            'code': 0,
+            'msg': '推理执行成功',
+            'data': {
+                'record_id': record_id,
+                'result': result
+            }
+        })
     except Exception as e:
-        # 更新记录状态为失败
-        update_inference_record(record_id, {'status': 'FAILED', 'error_message': str(e)})
-        return jsonify({'success': False, 'error': str(e)})
+        # 错误处理
+        record.status = 'FAILED'
+        record.error_message = str(e)
+        record.end_time = datetime.utcnow()
+        db.session.commit()
+
+        logger.error(f"推理失败: {str(e)}")
+        return jsonify({
+            'code': 500,
+            'msg': f'推理执行失败: {str(e)}',
+            'data': {'record_id': record_id}
+        })
