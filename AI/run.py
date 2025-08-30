@@ -85,7 +85,7 @@ def create_app():
     app.register_blueprint(export.export_bp, url_prefix='/model/export')
     app.register_blueprint(inference_task.inference_task_bp, url_prefix='/model/inference_task')
     app.register_blueprint(model.model_bp, url_prefix='/model')
-    app.register_blueprint(train.training_bp, url_prefix='/model/training')
+    app.register_blueprint(train.train_bp, url_prefix='/model/train')
     app.register_blueprint(train_task.train_task_bp, url_prefix='/model/train_task')
 
     # 健康检查路由初始化

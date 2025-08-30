@@ -95,7 +95,7 @@ export const getTrainStatus = (modelId) => {
   return commonApi('get', `${Api.Train}/${modelId}/train/status`);
 };
 
-export const getTrainingLogs = (modelId, taskId) => {
+export const getTrainLogs = (modelId, taskId) => {
   return commonApi('get', `${Api.Train}/${modelId}/train/${taskId}/logs`);
 };
 
@@ -118,14 +118,6 @@ export const deleteInferenceTask = (recordId) => {
 
 export const publishInferenceTask = (recordId: number) => {
   return commonApi('post', `${Api.InferenceTask}/publish/${recordId}`);
-};
-
-export const createInferenceTask = (params) => {
-  return commonApi('post', Api.InferenceTask,{data: params},{'Content-Type': 'application/json'});
-};
-
-export const updateInferenceTask = (recordId, params) => {
-  return commonApi('put',`${Api.InferenceTask}/${recordId}`,{data: params},{'Content-Type': 'application/json'});
 };
 
 export const getInferenceRecords = (params) => {

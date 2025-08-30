@@ -61,7 +61,7 @@
         <a-button @click="handleCancel">
           取消
         </a-button>
-        <a-button type="primary" @click="startTraining">
+        <a-button type="primary" @click="startTrain">
           开始训练
         </a-button>
       </div>
@@ -141,7 +141,7 @@ const loadDatasets = async () => {
 }
 
 // 训练启动逻辑
-const startTraining = () => {
+const startTrain = () => {
   if (!selectedDataset.value) {
     createMessage.warn(t('请先选择数据集'))
     return

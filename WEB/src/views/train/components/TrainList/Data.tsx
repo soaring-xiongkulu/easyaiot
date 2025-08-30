@@ -115,7 +115,7 @@ export function getBasicColumns(): BasicColumn[] {
         const statusConfig = {
           idle: { color: '#d9d9d9', text: '等待开始', icon: 'clock-circle' },
           preparing: { color: '#13c2c2', text: '准备中', icon: 'loading' },
-          training: { color: '#52c41a', text: `训练中 (${record.progress || 0}%)`, icon: 'sync' },
+          Train: { color: '#52c41a', text: `训练中 (${record.progress || 0}%)`, icon: 'sync' },
           completed: { color: '#1890ff', text: '已完成', icon: 'check-circle' },
           stopped: { color: '#faad14', text: '已停止', icon: 'pause-circle' },
           error: { color: '#f5222d', text: '失败', icon: 'close-circle' }
