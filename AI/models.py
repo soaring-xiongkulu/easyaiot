@@ -31,7 +31,7 @@ class Model(db.Model):
 
 class TrainingRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=False)
+    model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=True)
     progress = db.Column(db.Integer, default=0)
     dataset_path = db.Column(db.String(200), nullable=False)
     hyperparameters = db.Column(db.Text)
@@ -58,7 +58,7 @@ class ExportRecord(db.Model):
 
 class InferenceRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=False)
+    model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=True)
     inference_type = db.Column(db.String(20), nullable=False)  # image/video/rtsp
     input_source = db.Column(db.String(500))  # 原始文件路径或RTSP地址
     output_path = db.Column(db.String(500))  # 处理后文件在Minio的路径
@@ -72,5 +72,3 @@ class InferenceRecord(db.Model):
     model = db.relationship('Model', backref=db.backref('inference_records', lazy=True))
     # 新增推流地址字段
     stream_output_url = db.Column(db.String(500))
-    def __repr__(self):
-        return f'<InferenceRecord {self.id} for Model {self.model_id}>'
