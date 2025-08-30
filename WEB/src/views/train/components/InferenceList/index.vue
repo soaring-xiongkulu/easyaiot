@@ -118,7 +118,7 @@ import InferenceResultViewer from "../InferenceResultViewer/index.vue";
 import InferenceCardList from "../InferenceCardList/index.vue";
 import {
   deleteInferenceRecord,
-  getInferenceRecords,
+  getInferenceTasks,
   streamInferenceProgress,
   runInference  // 新增执行API
 } from "@/api/device/model";
@@ -143,7 +143,7 @@ const [registerTable, { reload }] = useTable({
   canResize: true,
   showIndexColumn: false,
   title: '推理记录管理',
-  api: getInferenceRecords,
+  api: getInferenceTasks,
   columns: getInferenceColumns(),
   useSearchForm: true,
   formConfig: getInferenceFormConfig(),
@@ -169,7 +169,7 @@ onBeforeUnmount(() => {
 // 加载推理记录
 const loadRecords = async () => {
   try {
-    const response = await getInferenceRecords();
+    const response = await getInferenceTasks();
     state.records = response.items.map(record => ({
       ...record,
       start_time: formatDateTime(record.start_time)
