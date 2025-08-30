@@ -360,7 +360,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 raise Exception(error_msg)
                 
             try:
-                model = YOLO(model_path)
+                yolo_model = YOLO(model_path)
                 update_log_local(f"预训练模型加载成功! 模型路径: {model_path}")
             except Exception as e:
                 error_msg = f"预训练模型加载失败: {str(e)}"
@@ -371,7 +371,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 raise Exception(error_msg)
 
             # 保存模型引用以便可能的停止操作
-            train_processes[model_id] = model
+            train_processes[model_id] = yolo_model
 
             # 更新状态：开始训练
             train_status[model_id].update({
