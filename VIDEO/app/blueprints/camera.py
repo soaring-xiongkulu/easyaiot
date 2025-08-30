@@ -246,4 +246,62 @@ def start_onvif_capture(device_id):
     except Exception as e:
         return jsonify({'success': False, 'message': f'ONVIF截图启动失败: {str(e)}'})
 
-# 其他代码保持不变...
+@camera_bp.route('/device/<int:device_id>/onvif/stop', methods=['POST'])
+def stop_onvif_capture(device_id):
+    """停止ONVIF截图"""
+    try:
+        if device_id in onvif_tasks:
+            onvif_tasks[device_id]['running'] = False
+            if onvif_tasks[device_id]['thread']:
+                onvif_tasks[device_id]['thread'].join(timeout=5.0)
+            return jsonify({'success': True, 'message': 'ONVIF截图任务已停止'})
+        return jsonify({'success': False, 'message': '未找到运行的ONVIF截图任务'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'ONVIF截图停止失败: {str(e)}'})
+
+@camera_bp.route('/device/<int:device_id>/onvif/status', methods=['GET'])
+def onvif_status(device_id):
+    """获取ONVIF截图状态"""
+    try:
+        status = "stopped"
+        if device_id in onvif_tasks:
+            status = "running" if onvif_tasks[device_id]['running'] else "stopped"
+        return jsonify({'success': True, 'status': status})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'获取ONVIF截图状态失败: {str(e)}'})
+
+@camera_bp.route('/device/onvif/<device_ip>/<int:device_port>/profiles', methods=['POST'])
+def get_onvif_profiles(device_ip, device_port):
+    """获取ONVIF设备的配置文件列表"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+
+        if not username or not password:
+            return jsonify({'success': False, 'message': '用户名和密码不能为空'})
+
+        # 创建ONVIF相机对象
+        cam = ONVIFCamera(device_ip, device_port, username, password)
+
+        # 创建媒体服务
+        media_service = cam.create_media_service()
+
+        # 获取配置文件
+        profiles = media_service.GetProfiles()
+
+        # 格式化响应
+        profile_list = []
+        for profile in profiles:
+            profile_list.append({
+                'token': profile.token,
+                'name': profile.Name,
+                'video_source': profile.VideoSourceConfiguration.SourceToken
+            })
+
+        return jsonify({
+            'success': True,
+            'profiles': profile_list
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'获取配置文件失败: {str(e)}'})
