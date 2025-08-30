@@ -137,7 +137,7 @@ const handleTrain = async (record) => {
   try {
     // 使用Vue Router跳转到训练页面
     router.push({
-      name: 'ModelTraining',
+      name: 'ModelTrain',
       params: { modelId: record.id },
       query: { modelName: record.name }
     });
