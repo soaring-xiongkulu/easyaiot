@@ -1,17 +1,17 @@
 import os
-
+import uuid
+import logging
+from datetime import datetime
 from flask import Blueprint, request, jsonify
 
-from app.blueprints.export import logger
 from app.services.inference_service import InferenceService
+from models import db, InferenceRecord
 from app.services.model_service import ModelService
-from models import Model, InferenceRecord, db
-from datetime import datetime
-import logging
 
 inference_bp = Blueprint('inference', __name__)
+logger = logging.getLogger(__name__)
 
-# ========== 新增文件上传接口 ==========
+# ========== 文件上传接口 ==========
 @inference_bp.route('/upload_input', methods=['POST'])
 def upload_input_file():
     """上传推理输入文件（图片/视频）"""
@@ -22,7 +22,6 @@ def upload_input_file():
     if file.filename == '':
         return jsonify({'code': 400, 'msg': '未选择文件'}), 400
 
-    # 初始化变量
     temp_path = None
     try:
         # 获取文件扩展名并生成唯一文件名
@@ -35,12 +34,12 @@ def upload_input_file():
         temp_path = os.path.join(temp_dir, unique_filename)
         file.save(temp_path)
 
-        # 上传到MinIO（使用模型服务中的上传方法）
+        # 上传到MinIO
         bucket_name = 'inference-inputs'
         object_key = f"inputs/{unique_filename}"
 
         if ModelService.upload_to_minio(bucket_name, object_key, temp_path):
-            # 生成URL（直接拼接字符串）
+            # 生成URL
             download_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={object_key}"
 
             return jsonify({
@@ -57,16 +56,13 @@ def upload_input_file():
     except Exception as e:
         logger.error(f"输入文件上传失败: {str(e)}")
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
     finally:
-        # 确保删除临时文件（无论上传成功与否）
+        # 确保删除临时文件
         if temp_path and os.path.exists(temp_path):
             try:
                 os.remove(temp_path)
-                logger.info(f"临时文件已删除: {temp_path}")
             except OSError as e:
                 logger.error(f"删除临时文件失败: {temp_path}, 错误: {str(e)}")
-
 
 # ========== 推理任务管理接口 ==========
 @inference_bp.route('/inference_records', methods=['POST'])
@@ -107,12 +103,11 @@ def create_inference_record():
                 'id': new_record.id,
                 'start_time': new_record.start_time.isoformat()
             }
-        }), 201
+        })
     except Exception as e:
         db.session.rollback()
         logger.error(f"创建推理任务失败: {str(e)}")
         return jsonify({'code': 500, 'msg': f'数据库错误: {str(e)}'}), 500
-
 
 @inference_bp.route('/inference_records/<int:record_id>', methods=['PUT'])
 def update_inference_record(record_id):
@@ -135,93 +130,100 @@ def update_inference_record(record_id):
 
     try:
         db.session.commit()
-        return jsonify({'code': 0, 'msg': '记录更新成功'}), 200
+        return jsonify({'code': 0, 'msg': '记录更新成功'})
     except Exception as e:
         db.session.rollback()
         logger.error(f"更新记录失败: {str(e)}")
         return jsonify({'code': 500, 'msg': f'更新失败: {str(e)}'}), 500
 
-
 @inference_bp.route('/inference_records', methods=['GET'])
 def get_inference_records():
     """分页查询推理任务"""
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)
-    model_id = request.args.get('model_id')
-    status = request.args.get('status')
+    try:
+        # 获取分页参数
+        page_no = int(request.args.get('pageNo', 1))
+        page_size = int(request.args.get('pageSize', 10))
+        model_id = request.args.get('model_id')
+        status = request.args.get('status')
 
-    query = InferenceRecord.query
+        # 参数验证
+        if page_no < 1 or page_size < 1:
+            return jsonify({'code': 400, 'msg': '参数错误：pageNo和pageSize必须为正整数'}), 400
 
-    # 构建查询条件
-    if model_id:
-        query = query.filter_by(model_id=model_id)
-    if status:
-        query = query.filter_by(status=status)
+        # 构建查询
+        query = InferenceRecord.query
+        if model_id:
+            query = query.filter_by(model_id=model_id)
+        if status:
+            query = query.filter_by(status=status)
 
-    # 执行分页查询
-    records = query.order_by(InferenceRecord.start_time.desc()).paginate(
-        page=page, per_page=per_page, error_out=False
-    )
+        # 执行分页查询
+        pagination = query.order_by(InferenceRecord.start_time.desc()).paginate(
+            page=page_no, per_page=page_size, error_out=False
+        )
 
-    return jsonify({
-        'items': [{
+        # 构建响应数据
+        records = [{
             'id': r.id,
             'model_id': r.model_id,
             'status': r.status,
             'input_source': r.input_source,
             'start_time': r.start_time.isoformat(),
             'processing_time': r.processing_time
-        } for r in records.items],
-        'total': records.total,
-        'page': records.page
-    }), 200
+        } for r in pagination.items]
 
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': records,
+            'total': pagination.total
+        })
+    except ValueError:
+        return jsonify({'code': 400, 'msg': '参数类型错误：pageNo和pageSize需为整数'}), 400
+    except Exception as e:
+        logger.error(f"获取推理记录失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
 
 @inference_bp.route('/inference_records/<int:record_id>', methods=['GET'])
 def get_inference_record_detail(record_id):
     """获取单条推理任务的详细信息"""
-    record = InferenceRecord.query.get_or_404(record_id)
-    return jsonify({
-        'id': record.id,
-        'model_id': record.model_id,
-        'input_source': record.input_source,
-        'output_path': record.output_path,
-        'stream_output_url': record.stream_output_url,
-        'status': record.status,
-        'processed_frames': record.processed_frames,
-        'start_time': record.start_time.isoformat(),
-        'end_time': record.end_time.isoformat() if record.end_time else None,
-        'processing_time': record.processing_time,
-        'error_message': record.error_message
-    }), 200
-
+    try:
+        record = InferenceRecord.query.get_or_404(record_id)
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': {
+                'id': record.id,
+                'model_id': record.model_id,
+                'input_source': record.input_source,
+                'output_path': record.output_path,
+                'stream_output_url': record.stream_output_url,
+                'status': record.status,
+                'processed_frames': record.processed_frames,
+                'start_time': record.start_time.isoformat(),
+                'end_time': record.end_time.isoformat() if record.end_time else None,
+                'processing_time': record.processing_time,
+                'error_message': record.error_message
+            }
+        })
+    except Exception as e:
+        logger.error(f"获取推理记录详情失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
 
 @inference_bp.route('/inference_records/<int:record_id>', methods=['DELETE'])
 def delete_inference_record(record_id):
     """删除推理任务"""
-    record = InferenceRecord.query.get_or_404(record_id)
     try:
+        record = InferenceRecord.query.get_or_404(record_id)
         db.session.delete(record)
         db.session.commit()
-        return jsonify({'message': '记录已删除'}), 200
+        return jsonify({'code': 0, 'msg': '记录已删除'})
     except Exception as e:
         db.session.rollback()
-        logging.error(f"删除记录失败: {str(e)}")
-        return jsonify({'error': f'删除失败: {str(e)}'}), 500
+        logger.error(f"删除记录失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': f'删除失败: {str(e)}'}), 500
 
-
-# ========== 全局异常处理 ==========
-@inference_bp.errorhandler(404)
-def handle_not_found(e):
-    return jsonify({'error': '资源不存在'}), 404
-
-
-@inference_bp.errorhandler(500)
-def handle_server_error(e):
-    logging.error(f'服务器内部错误: {str(e)}')
-    return jsonify({'error': '服务器内部错误'}), 500
-
-
+# ========== 执行推理接口 ==========
 @inference_bp.route('/<int:model_id>/inference/run', methods=['POST'])
 def run_inference(model_id):
     """执行推理任务"""
@@ -237,7 +239,7 @@ def run_inference(model_id):
         'input_source': data['input_source']
     }
     record_resp = create_inference_record()
-    if record_resp[1] != 201:
+    if record_resp[1] != 200:  # 注意状态码判断
         return record_resp
 
     record_id = record_resp.json['data']['id']
@@ -287,3 +289,13 @@ def run_inference(model_id):
             'msg': f'推理执行失败: {str(e)}',
             'data': {'record_id': record_id}
         })
+
+# ========== 全局异常处理 ==========
+@inference_bp.errorhandler(404)
+def handle_not_found(e):
+    return jsonify({'code': 404, 'msg': '资源不存在'}), 404
+
+@inference_bp.errorhandler(500)
+def handle_server_error(e):
+    logger.error(f'服务器内部错误: {str(e)}')
+    return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
