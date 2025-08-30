@@ -29,8 +29,8 @@
           <FormItem label="用户名" name="username" v-bind=validateInfos.userName>
             <Input v-model:value="modelRef.username"/>
           </FormItem>
-          <FormItem label="密码" name="password" v-bind=validateInfos.password>
-            <Input v-model:value="modelRef.password"/>
+          <FormItem label="密码" name="password" v-bind="validateInfos.password">
+            <Input.Password v-model:value="modelRef.password" />
           </FormItem>
         </Form>
       </Spin>
