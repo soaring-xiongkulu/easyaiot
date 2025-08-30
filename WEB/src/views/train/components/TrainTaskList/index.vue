@@ -89,8 +89,8 @@ import {
   publishInferenceTask,
   startTrain
 } from '@/api/device/model';
-import StartTrainModal from '@/views/train/components/StartTrainModal/index.vue';
-import TrainLogsModal from '@/views/train/components/TrainLogsModal/index.vue';
+import StartTrainModal from '@/views/train/components/StartTrainTaskModal/index.vue';
+import TrainLogsModal from '@/views/train/components/TrainTaskLogsModal/index.vue';
 import {getBasicColumns, getFormConfig} from './Data';
 import {Empty as AEmpty, Modal as AModal} from 'ant-design-vue';
 import {Icon} from "@/components/Icon"; // 引入新组件

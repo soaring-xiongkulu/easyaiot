@@ -85,7 +85,7 @@ import ExecuteInferenceModal from "../ExecuteInferenceModal/index.vue";
 import InferenceDetailModal from "../InferenceDetailModal/index.vue";
 import InferenceResultViewer from "../InferenceResultViewer/index.vue";
 import {deleteInferenceRecord, getInferenceTasks, runInference} from "@/api/device/model";
-import {getBasicColumns, getFormConfig} from "@/views/train/components/TrainList/Data";
+import {getBasicColumns, getFormConfig} from "@/views/train/components/TrainTaskList/Data";
 
 const params = {};
 
