@@ -26,6 +26,8 @@ class Device(db.Model):
     nvr_id = db.Column(db.Integer, db.ForeignKey('nvr.id', ondelete='CASCADE'), nullable=True)
     nvr_channel = db.Column(db.SmallInteger, nullable=False)
     images = db.relationship('Image', backref='project', lazy=True, cascade='all, delete-orphan')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class Image(db.Model):
     id = db.Column(db.Integer, primary_key=True)
