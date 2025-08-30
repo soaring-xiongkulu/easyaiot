@@ -277,6 +277,10 @@ def publish_train_task(record_id):
     try:
         # 获取训练记录
         record = TrainTask.query.get_or_404(record_id)
+        
+        # 获取前端传入的版本号
+        data = request.json
+        version = data.get('version')
 
         # 验证训练记录状态
         if record.status != 'completed':
@@ -299,20 +303,14 @@ def publish_train_task(record_id):
         model.model_path = record.minio_model_path
         model.updated_at = datetime.utcnow()
 
-        # 创建版本号 (格式: V年.月.序号)
-        today = datetime.utcnow()
-        year_month = today.strftime("%Y.%m")
-
-        # 查找该模型本月已有的发布次数
-        publish_count = TrainTask.query.filter(
-            TrainTask.model_id == model.id,
-            db.func.extract('year', TrainTask.end_time) == today.year,
-            db.func.extract('month', TrainTask.end_time) == today.month,
-            TrainTask.status == 'completed'
-        ).count()
-
-        # 生成新版本号 (格式: V年.月.序号)
-        model.version = f"V{year_month}.{publish_count + 1}"
+        # 使用前端传入的版本号
+        if not version:
+            return jsonify({
+                'code': 400,
+                'msg': '版本号不能为空'
+            }), 400
+            
+        model.version = version
 
         db.session.commit()
 
