@@ -79,6 +79,11 @@ const [registerTable, { reload }] = useTable({
 
 const getTableActions = (record) => [
   {
+    icon: 'ant-design:play-circle-filled',
+    tooltip: '播放RTSP流',
+    onClick: () => handlePlay(record)
+  },
+  {
     icon: 'ant-design:eye-filled',
     tooltip: '详情',
     onClick: () => openAddModal('view', record)
