@@ -214,10 +214,10 @@ async function fetch(p = {}) {
     try {
       // 处理日期范围参数
       const formattedParams = {...p};
-      if (p.start_time && Array.isArray(p.start_time)) {
-        formattedParams.start_time_from = p.start_time[0];
-        formattedParams.start_time_to = p.start_time[1];
-        delete formattedParams.start_time;
+      if (p['start_time'] && Array.isArray(p['start_time'])) {
+        formattedParams['start_time_from'] = p['start_time'][0];
+        formattedParams['start_time_to'] = p['start_time'][1];
+        delete formattedParams['start_time'];
       }
 
       const res = await api({
