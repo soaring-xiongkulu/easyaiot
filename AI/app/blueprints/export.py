@@ -40,9 +40,9 @@ def api_export_model(model_id, format):
 
         # 获取模型信息
         model_record = Model.query.get_or_404(model_id)
-        training_record = InferenceTask.query.get(model_record.training_record_id)
+        inference_task = InferenceTask.query.get(model_record.inference_task_id)
 
-        if not training_record or not training_record.minio_model_path:
+        if not inference_task or not inference_task.minio_model_path:
             return jsonify({'success': False, 'message': '模型未发布或未上传到Minio'}), 400
 
         # 获取请求参数
@@ -113,12 +113,12 @@ def process_export_async(model_id, format, rknn_config, export_id, task_id):
 
         # 获取模型信息
         model_record = Model.query.get(model_id)
-        training_record = InferenceTask.query.get(model_record.training_record_id)
+        inference_task = InferenceTask.query.get(model_record.inference_task_id)
 
         # 创建临时目录
         with tempfile.TemporaryDirectory() as tmp_dir:
             # 从Minio下载原始模型
-            minio_model_path = training_record.minio_model_path
+            minio_model_path = inference_task.minio_model_path
             local_pt_path = os.path.join(tmp_dir, 'model.pt')
 
             export_tasks[task_id]['progress'] = 20

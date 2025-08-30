@@ -12,7 +12,7 @@ from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
 
-from app.blueprints import export, inference, model, training, inference_record
+from app.blueprints import export, inference, model, training, inference_task
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -85,7 +85,7 @@ def create_app():
     app.register_blueprint(inference.inference_bp, url_prefix='/model/inference')
     app.register_blueprint(model.model_bp, url_prefix='/model')
     app.register_blueprint(training.training_bp, url_prefix='/model/training')
-    app.register_blueprint(training_record.training_record_bp, url_prefix='/model/training_record')
+    app.register_blueprint(inference_task.inference_task_bp, url_prefix='/model/inference_task')
 
     # 健康检查路由初始化
     def init_health_check(app):

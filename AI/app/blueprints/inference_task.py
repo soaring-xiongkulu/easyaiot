@@ -10,13 +10,13 @@ from sqlalchemy import desc
 from app.blueprints.training import training_status, training_processes
 from models import db, Model, InferenceTask, ExportRecord
 
-training_record_bp = Blueprint('training_record', __name__, url_prefix='/training')
+inference_task_bp = Blueprint('inference_task', __name__, url_prefix='/training')
 logger = logging.getLogger(__name__)
 
 
 # 训练记录分页查询
-@training_record_bp.route('/list', methods=['GET'])
-def training_records():
+@inference_task_bp.route('/list', methods=['GET'])
+def inference_tasks():
     try:
         # 获取分页参数和模型ID过滤
         page_no = int(request.args.get('pageNo', 1))
@@ -89,7 +89,7 @@ def training_records():
         }), 500
 
 # 训练记录详情
-@training_record_bp.route('/<int:record_id>')
+@inference_task_bp.route('/<int:record_id>')
 def training_detail(record_id):
     try:
         # 根据ID查询训练记录
@@ -131,7 +131,7 @@ def training_detail(record_id):
 
 
 # 创建训练记录
-@training_record_bp.route('/create', methods=['POST'])
+@inference_task_bp.route('/create', methods=['POST'])
 def create_training():
     try:
         data = request.json
@@ -190,7 +190,7 @@ def create_training():
 
 
 # 更新训练记录状态
-@training_record_bp.route('/update/<int:record_id>', methods=['POST'])
+@inference_task_bp.route('/update/<int:record_id>', methods=['POST'])
 def update_training(record_id):
     try:
         record = InferenceTask.query.get_or_404(record_id)
@@ -231,7 +231,7 @@ def update_training(record_id):
 
 
 # 删除训练记录
-@training_record_bp.route('/delete/<int:record_id>', methods=['DELETE'])
+@inference_task_bp.route('/delete/<int:record_id>', methods=['DELETE'])
 def delete_training(record_id):
     try:
         record = InferenceTask.query.get_or_404(record_id)
@@ -268,8 +268,8 @@ def delete_training(record_id):
 
 
 # 发布训练记录为正式模型
-@training_record_bp.route('/publish/<int:record_id>', methods=['POST'])
-def publish_training_record(record_id):
+@inference_task_bp.route('/publish/<int:record_id>', methods=['POST'])
+def publish_inference_task(record_id):
     try:
         # 获取训练记录
         record = InferenceTask.query.get_or_404(record_id)

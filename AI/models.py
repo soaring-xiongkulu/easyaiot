@@ -21,7 +21,7 @@ class Model(db.Model):
     rknn_model_path = db.Column(db.String(500))
 
     # 关系定义
-    training_records = db.relationship(
+    inference_tasks = db.relationship(
         'InferenceTask',
         foreign_keys='InferenceTask.model_id',
         backref=db.backref('model', lazy=True),
