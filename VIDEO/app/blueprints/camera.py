@@ -32,7 +32,6 @@ onvif_tasks = {}
 # 全局变量管理FFmpeg转码进程
 ffmpeg_processes = {}
 
-
 # 应用启动时自动启动需要推流的设备
 def auto_start_streaming():
     """应用启动时自动启动需要推流的设备"""

@@ -44,6 +44,7 @@ def get_local_ip():
 
     raise RuntimeError("无法确定本地IP，请配置POD_IP环境变量")
 
+
 def send_heartbeat(client, ip, port, stop_event):
     """独立的心跳发送函数（支持安全停止）"""
     service_name = os.getenv('SERVICE_NAME', 'model-server')
@@ -212,10 +213,23 @@ def create_app():
     with app.app_context():
         from app.services.camera_service import _start_search, scheduler
         _start_search()
-        
+
         # 确保调度器在应用退出时正确关闭
         import atexit
         atexit.register(lambda: scheduler.shutdown())
+
+    # 应用启动后自动启动需要推流的设备
+    with app.app_context():
+        try:
+            # 导入auto_start_streaming函数
+            from app.blueprints.camera import auto_start_streaming
+            # 调用函数启动所有需要推流的设备
+            auto_start_streaming()
+            print("✅ 已自动启动所有需要推流的设备")
+        except Exception as e:
+            print(f"❌ 自动启动推流设备失败: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     return app
 
