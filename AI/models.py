@@ -22,14 +22,14 @@ class Model(db.Model):
 
     # 关系定义
     training_records = db.relationship(
-        'TrainingRecord',
-        foreign_keys='TrainingRecord.model_id',
+        'TrainingTask',
+        foreign_keys='TrainingTask.model_id',
         backref=db.backref('model', lazy=True),
         lazy='dynamic'
     )
     export_records = db.relationship('ExportRecord', back_populates='model', cascade='all, delete-orphan')
 
-class TrainingRecord(db.Model):
+class TrainingTask(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=True)
     progress = db.Column(db.Integer, default=0)

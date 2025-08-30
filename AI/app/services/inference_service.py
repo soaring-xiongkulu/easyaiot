@@ -199,7 +199,7 @@ class InferenceService:
             # 处理结果并上传
             result_url = self._process_and_upload(results, image_file.filename)
 
-            # 更新推理记录
+            # 更新推理任务
             record.output_path = result_url
             record.status = 'COMPLETED'
             record.processing_time = time.time() - start_time

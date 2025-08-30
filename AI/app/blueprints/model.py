@@ -6,7 +6,7 @@ from operator import or_
 from flask import Blueprint, request, jsonify
 from flask import redirect, url_for, flash, render_template
 from app.services.model_service import ModelService
-from models import TrainingRecord
+from models import TrainingTask
 from models import db, Model
 from sqlalchemy.exc import IntegrityError
 
@@ -74,7 +74,7 @@ def publish_model(model_id):
             return jsonify({'code': 400, 'msg': '缺少训练记录ID参数'}), 400
 
         model = Model.query.get_or_404(model_id)
-        training_record = TrainingRecord.query.get_or_404(training_record_id)
+        training_record = TrainingTask.query.get_or_404(training_record_id)
 
         if training_record.model_id != model_id:
             return jsonify({'code': 400, 'msg': '训练记录不属于该模型'}), 400
@@ -124,7 +124,7 @@ def get_model_training_records(model_id):
         page_no = int(request.args.get('pageNo', 1))
         page_size = int(request.args.get('pageSize', 10))
 
-        query = TrainingRecord.query.filter_by(model_id=model_id)
+        query = TrainingTask.query.filter_by(model_id=model_id)
         pagination = query.paginate(page=page_no, per_page=page_size, error_out=False)
 
         records = [{
