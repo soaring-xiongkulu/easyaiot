@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 rtsp_tasks = {}
 onvif_tasks = {}
 
-
 # ------------------------- 设备管理接口 -------------------------
 @camera_bp.route('/list', methods=['GET'])
 def list_devices():
