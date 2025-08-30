@@ -1,21 +1,23 @@
-from flask import Blueprint, request, jsonify, current_app
+import datetime
+import io
+import logging
 import threading
 import time
-import logging
-from functools import partial
-from models import Device, db
+from operator import or_
+
+import cv2
+import numpy as np
+import requests
+from flask import Blueprint, request, jsonify, current_app
+from minio import Minio
+from minio.error import S3Error
+
 from app.services.camera_service import (
     register_camera, get_camera_info, update_camera, delete_camera,
     move_camera_ptz, get_device_list, search_camera,
     get_snapshot_uri, refresh_camera
 )
-from minio import Minio
-from minio.error import S3Error
-import cv2
-import numpy as np
-import requests
-import io
-import datetime
+from models import Device
 
 # 创建蓝图
 camera_bp = Blueprint('camera', __name__)
@@ -27,22 +29,99 @@ onvif_tasks = {}
 
 
 # ------------------------- 设备管理接口 -------------------------
-@camera_bp.route('/device', methods=['POST'])
-def register_device():
-    """注册新设备"""
+@camera_bp.route('/list', methods=['GET'])
+def list_devices():
+    """查询设备列表（支持分页和搜索）"""
     try:
-        data = request.get_json()
-        device_id = register_camera(data)
+        # 获取请求参数
+        page_no = int(request.args.get('pageNo', 1))
+        page_size = int(request.args.get('pageSize', 10))
+        search = request.args.get('search', '').strip()
+        status = request.args.get('status', '').strip()
+
+        # 参数验证
+        if page_no < 1 or page_size < 1:
+            return jsonify({'code': 400, 'msg': '参数错误：pageNo和pageSize必须为正整数'}), 400
+
+        # 构建基础查询
+        query = Device.query
+
+        # 添加搜索条件
+        if search:
+            search_pattern = f'%{search}%'
+            query = query.filter(
+                or_(
+                    Device.name.ilike(search_pattern),
+                    Device.model.ilike(search_pattern),
+                    Device.serial_number.ilike(search_pattern),
+                    Device.manufacturer.ilike(search_pattern),
+                    Device.ip.ilike(search_pattern)
+                )
+            )
+
+        # 添加状态过滤
+        if status:
+            if status.lower() == 'online':
+                query = query.filter(Device.status == 'online')
+            elif status.lower() == 'offline':
+                query = query.filter(Device.status == 'offline')
+
+        # 执行分页查询
+        pagination = query.paginate(
+            page=page_no,
+            per_page=page_size,
+            error_out=False
+        )
+
+        # 构建响应数据
+        device_list = []
+        for device in pagination.items:
+            device_data = {
+                'id': device.id,
+                'name': device.name,
+                'source': device.source,
+                'ip': device.ip,
+                'port': device.port,
+                'manufacturer': device.manufacturer,
+                'model': device.model,
+                'firmware_version': device.firmware_version,
+                'serial_number': device.serial_number,
+                'hardware_id': device.hardware_id,
+                'support_move': device.support_move,
+                'support_zoom': device.support_zoom,
+                'status': device.status,
+                'created_at': device.created_at.isoformat() if device.created_at else None,
+                'updated_at': device.updated_at.isoformat() if device.updated_at else None
+            }
+
+            # 添加NVR信息（如果存在）
+            if device.nvr:
+                device_data['nvr'] = {
+                    'id': device.nvr.id,
+                    'name': device.nvr.name,
+                    'ip': device.nvr.ip
+                }
+                device_data['nvr_channel'] = device.nvr_channel
+
+            device_list.append(device_data)
+
         return jsonify({
             'code': 0,
-            'msg': '设备注册成功',
-            'data': {'id': device_id}
+            'msg': 'success',
+            'data': {
+                'items': device_list,
+                'total': pagination.total,
+                'pageNo': page_no,
+                'pageSize': page_size,
+                'totalPages': pagination.pages
+            }
         })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except RuntimeError as e:
-        return jsonify({'code': 500, 'msg': str(e)}), 500
 
+    except ValueError:
+        return jsonify({'code': 400, 'msg': '参数类型错误：pageNo和pageSize需为整数'}), 400
+    except Exception as e:
+        logger.error(f'设备列表查询失败: {str(e)}')
+        return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
 
 @camera_bp.route('/device/<string:device_id>', methods=['GET'])
 def get_device_info(device_id):
@@ -59,6 +138,22 @@ def get_device_info(device_id):
     except Exception as e:
         logger.error(f'获取设备详情失败: {str(e)}')
         return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
+
+@camera_bp.route('/register/device', methods=['POST'])
+def register_device():
+    """注册新设备"""
+    try:
+        data = request.get_json()
+        device_id = register_camera(data)
+        return jsonify({
+            'code': 0,
+            'msg': '设备注册成功',
+            'data': {'id': device_id}
+        })
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except RuntimeError as e:
+        return jsonify({'code': 500, 'msg': str(e)}), 500
 
 
 @camera_bp.route('/device/<string:device_id>', methods=['PUT'])
