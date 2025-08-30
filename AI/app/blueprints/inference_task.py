@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 @inference_task_bp.route('/list', methods=['GET'])
 def inference_tasks():
     try:
-        # 获取分页参数和模型ID过滤
+        # 获取分页参数和模型名称过滤
         page_no = int(request.args.get('pageNo', 1))
         page_size = int(request.args.get('pageSize', 10))
-        model_id = request.args.get('model_id')
+        model_name = request.args.get('model_name')  # 参数名改为 model_name
         status_filter = request.args.get('status')
 
         # 参数验证
@@ -31,12 +31,16 @@ def inference_tasks():
                 'msg': '参数错误：pageNo和pageSize必须为正整数'
             }), 400
 
-        # 构建基础查询
-        query = InferenceTask.query
+        # 构建基础查询（关联 Model 表）
+        query = db.session.query(
+            InferenceTask,
+            Model.name.label('model_name')  # 明确获取模型名称
+        ).outerjoin(Model, InferenceTask.model_id == Model.id)  # 使用外连接避免丢失无关联模型的任务
 
-        # 应用模型ID过滤
-        if model_id:
-            query = query.filter(InferenceTask.model_id == model_id)
+        # 应用模型名称模糊匹配
+        if model_name:
+            # 使用 ilike 实现不区分大小写的模糊查询
+            query = query.filter(Model.name.ilike(f'%{model_name}%'))
 
         # 应用状态过滤
         if status_filter in ['running', 'completed', 'failed']:
@@ -54,19 +58,19 @@ def inference_tasks():
 
         # 构建响应数据
         records = []
-        for record in pagination.items:
+        for task, model_name in pagination.items:  # 解构查询结果
             records.append({
-                'id': record.id,
-                'model_id': record.model_id,
-                'model_name': record.model.name if record.model else '',
-                'dataset_path': record.dataset_path,
-                'hyperparameters': record.hyperparameters,
-                'start_time': record.start_time.isoformat() if record.start_time else None,
-                'progress': record.progress,
-                'end_time': record.end_time.isoformat() if record.end_time else None,
-                'status': record.status,
-                'metrics_path': record.metrics_path,
-                'train_results_path': record.train_results_path,
+                'id': task.id,
+                'model_id': task.model_id,
+                'model_name': model_name,  # 直接使用关联查询结果
+                'dataset_path': task.dataset_path,
+                'hyperparameters': task.hyperparameters,
+                'start_time': task.start_time.isoformat() if task.start_time else None,
+                'progress': task.progress,
+                'end_time': task.end_time.isoformat() if task.end_time else None,
+                'status': task.status,
+                'metrics_path': task.metrics_path,
+                'train_results_path': task.train_results_path,
             })
 
         return jsonify({
