@@ -16,11 +16,11 @@ from models import db, Model, TrainTask
 train_bp = Blueprint('train', __name__)
 
 # 全局训练状态和进程
-training_status = {}
-training_processes = {}
+train_status = {}
+train_processes = {}
 
 @train_bp.route('/<int:model_id>/train', methods=['POST'])
-def api_start_training(model_id):
+def api_start_train(model_id):
     try:
         # 获取训练参数
         data = request.get_json()
@@ -42,21 +42,21 @@ def api_start_training(model_id):
         use_gpu = data.get('use_gpu', True)  # 默认使用GPU
 
         # 检查是否已有训练在进行
-        if model_id in training_status and training_status[model_id]['status'] in ['preparing', 'training']:
+        if model_id in train_status and train_status[model_id]['status'] in ['preparing', 'train']:
             return jsonify({'success': False, 'code': 0, 'msg': '训练已在进行中'}), 200
 
         # 立即保存数据集路径到数据库
-        training_record = None
+        train_task = None
         if record_id:
-            training_record = TrainTask.query.get(record_id)
-            if training_record:
-                training_record.dataset_path = dataset_zip_path  # 保存Minio路径
-                training_record.start_time = datetime.utcnow()
-                training_record.status = 'preparing'
-                training_record.train_log = ''
-                training_record.error_log = None
-                training_record.progress = 0
-                training_record.hyperparameters = json.dumps({
+            train_task = TrainTask.query.get(record_id)
+            if train_task:
+                train_task.dataset_path = dataset_zip_path  # 保存Minio路径
+                train_task.start_time = datetime.utcnow()
+                train_task.status = 'preparing'
+                train_task.train_log = ''
+                train_task.error_log = None
+                train_task.progress = 0
+                train_task.hyperparameters = json.dumps({
                     'epochs': epochs,
                     'model_arch': model_arch,
                     'img_size': img_size,
@@ -65,8 +65,8 @@ def api_start_training(model_id):
                 })
                 db.session.commit()
 
-        if not training_record:
-            training_record = TrainTask(
+        if not train_task:
+            train_task = TrainTask(
                 model_id=model_id,
                 dataset_path=dataset_zip_path,  # ⭐ 直接保存Minio路径 ⭐
                 hyperparameters=json.dumps({
@@ -81,11 +81,11 @@ def api_start_training(model_id):
                 train_log='',
                 checkpoint_dir=''
             )
-            db.session.add(training_record)
+            db.session.add(train_task)
             db.session.commit()
 
         # 重置训练状态
-        training_status[model_id] = {
+        train_status[model_id] = {
             'status': 'preparing',
             'message': '准备训练数据...',
             'progress': 0,
@@ -93,20 +93,20 @@ def api_start_training(model_id):
             'stop_requested': False
         }
 
-        # 在后台线程中启动训练，传递training_record.id
-        training_thread = threading.Thread(
+        # 在后台线程中启动训练，传递train_task.id
+        train_thread = threading.Thread(
             target=train_model,
             args=(model_id, epochs, model_arch, img_size, batch_size,
-                  use_gpu, dataset_zip_path, training_record.id)  # 添加record_id参数
+                  use_gpu, dataset_zip_path, train_task.id)  # 添加record_id参数
         )
-        training_thread.daemon = True
-        training_thread.start()
+        train_thread.daemon = True
+        train_thread.start()
 
         return jsonify({
             'success': True,
             'code': 0,
             'msg': '训练已启动',
-            'record_id': training_record.id  # 返回记录ID给前端
+            'record_id': train_task.id  # 返回记录ID给前端
         }), 200
     except Exception as e:
         return jsonify({'success': False, 'code': 400, 'msg': f'启动训练失败: {str(e)}'}), 400
@@ -118,18 +118,18 @@ def get_project_root():
 
 
 @train_bp.route('/<int:model_id>/train/stop', methods=['POST'])
-def api_stop_training(model_id):
+def api_stop_train(model_id):
     update_log(f"收到停止训练请求，项目ID: {model_id}", model_id)
 
     # 设置停止请求标志
-    if model_id in training_status:
-        training_status[model_id]['stop_requested'] = True
-        training_status[model_id]['status'] = 'stopping'
-        training_status[model_id]['message'] = '正在停止训练...'
+    if model_id in train_status:
+        train_status[model_id]['stop_requested'] = True
+        train_status[model_id]['status'] = 'stopping'
+        train_status[model_id]['message'] = '正在停止训练...'
         update_log("设置停止请求标志", model_id)
 
         # 尝试停止训练进程（如果可能）
-        if model_id in training_processes:
+        if model_id in train_processes:
             pass
 
         return jsonify({'success': True, 'code': 0, 'msg': '停止请求已发送'}), 200
@@ -141,7 +141,7 @@ def api_stop_training(model_id):
 @train_bp.route('/<int:model_id>/train/status')
 def api_train_status(model_id):
     update_log(f"收到训练状态查询请求，项目ID: {model_id}", model_id)
-    status = training_status.get(model_id, {
+    status = train_status.get(model_id, {
         'status': 'idle',
         'message': '等待开始',
         'progress': 0
@@ -153,14 +153,14 @@ def api_train_status(model_id):
 def api_train_log(model_id, task_id):
     """训练日志轮询接口，先返回内存中的日志数据，如果为空则查询数据库"""
     # 获取内存中的训练状态
-    log_content = training_status.get(model_id, {}).get('log', '') if training_status.get(model_id) else ''
+    log_content = train_status.get(model_id, {}).get('log', '') if train_status.get(model_id) else ''
 
     # 如果缓存中日志为空，则从数据库查询最新训练记录
     if not log_content:
         try:
-            training_record = TrainTask.query.filter_by(id=task_id).first()
-            if training_record:
-                log_content = training_record.train_log or ''
+            train_task = TrainTask.query.filter_by(id=task_id).first()
+            if train_task:
+                log_content = train_task.train_log or ''
 
         except Exception as e:
             current_app.logger.error(f"查询训练记录失败: {str(e)}")
@@ -173,22 +173,22 @@ def api_train_log(model_id, task_id):
     }), 200
 
 
-def update_log(message, model_id=None, progress=None, training_record=None):
+def update_log(message, model_id=None, progress=None, train_task=None):
     """统一的日志记录函数"""
     log_message = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}"
     print(log_message)
 
     # 如果提供了model_id，更新训练状态
-    if model_id is not None and model_id in training_status:
-        training_status[model_id]['log'] += log_message + '\n'
+    if model_id is not None and model_id in train_status:
+        train_status[model_id]['log'] += log_message + '\n'
         if progress is not None:
-            training_status[model_id]['progress'] = progress
+            train_status[model_id]['progress'] = progress
 
-    # 如果提供了training_record，更新数据库记录
-    if training_record is not None:
-        training_record.train_log += log_message + '\n'
+    # 如果提供了train_task，更新数据库记录
+    if train_task is not None:
+        train_task.train_log += log_message + '\n'
         if progress is not None:
-            training_record.progress = progress
+            train_task.progress = progress
         try:
             db.session.commit()
         except Exception as e:
@@ -207,11 +207,14 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
 
         with application.app_context():
             # 在函数内部通过record_id获取训练记录
-            training_record = TrainTask.query.get(record_id)
+            train_task = TrainTask.query.get(record_id)
+            
+            # 重新获取train_task以确保在当前会话中
+            db.session.refresh(train_task)
 
             # 更新日志函数
             def update_log_local(message, progress=None):
-                update_log(message, model_id, progress, training_record)
+                update_log(message, model_id, progress, train_task)
 
             update_log_local(f"开始准备训练数据，项目ID: {model_id}")
 
@@ -220,21 +223,21 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             if not model:
                 error_msg = "项目不存在"
                 update_log_local(error_msg)
-                training_record.status = 'error'
-                training_record.error_log = error_msg
+                train_task.status = 'error'
+                train_task.error_log = error_msg
                 db.session.commit()
                 raise Exception(error_msg)
 
             update_log_local(f"获取项目信息成功，项目名称: {model.name}")
 
             # 检查是否应该停止训练
-            if training_status.get(model_id, {}).get('stop_requested'):
+            if train_status.get(model_id, {}).get('stop_requested'):
                 log_msg = '训练已停止'
-                training_status[model_id] = {
+                train_status[model_id] = {
                     'status': 'stopped',
                     'message': log_msg,
                     'progress': 0,
-                    'log': training_status[model_id].get('log', '') + log_msg + '\n'
+                    'log': train_status[model_id].get('log', '') + log_msg + '\n'
                 }
                 update_log_local(log_msg)
                 return
@@ -267,7 +270,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             dataset_downloaded = False
             if not os.path.exists(data_yaml_path):
                 log_msg = '数据集配置文件不存在，正在尝试从Minio下载数据集...'
-                training_status[model_id].update({
+                train_status[model_id].update({
                     'message': '正在下载数据集...',
                     'progress': 5
                 })
@@ -316,13 +319,13 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     update_log_local("未提供数据集Minio路径，无法下载")
 
             # 检查是否应该停止训练
-            if training_status.get(model_id, {}).get('stop_requested'):
+            if train_status.get(model_id, {}).get('stop_requested'):
                 log_msg = '训练已停止'
-                training_status[model_id] = {
+                train_status[model_id] = {
                     'status': 'stopped',
                     'message': log_msg,
                     'progress': 0,
-                    'log': training_status[model_id].get('log', '') + log_msg + '\n'
+                    'log': train_status[model_id].get('log', '') + log_msg + '\n'
                 }
                 update_log_local(log_msg)
                 return
@@ -331,13 +334,13 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             if not os.path.exists(data_yaml_path):
                 error_msg = "数据集配置文件不存在"
                 update_log_local(error_msg)
-                training_record.status = 'error'
-                training_record.error_log = error_msg
+                train_task.status = 'error'
+                train_task.error_log = error_msg
                 db.session.commit()
                 raise Exception(error_msg)
 
             # 更新状态：开始加载模型
-            training_status[model_id].update({
+            train_status[model_id].update({
                 'message': '加载预训练模型...',
                 'progress': 10
             })
@@ -346,15 +349,33 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             # 开始训练
             model_path = os.path.join(get_project_root(), model_arch)
             update_log_local(f"尝试加载预训练模型: {model_path}")
-            model = YOLO(model_path)
-            update_log_local(f"预训练模型加载成功! 模型路径: {model_path}")
+            
+            # 检查模型文件是否存在且可读
+            if not os.path.exists(model_path):
+                error_msg = f"预训练模型文件不存在: {model_path}"
+                update_log_local(error_msg)
+                train_task.status = 'error'
+                train_task.error_log = error_msg
+                db.session.commit()
+                raise Exception(error_msg)
+                
+            try:
+                model = YOLO(model_path)
+                update_log_local(f"预训练模型加载成功! 模型路径: {model_path}")
+            except Exception as e:
+                error_msg = f"预训练模型加载失败: {str(e)}"
+                update_log_local(error_msg)
+                train_task.status = 'error'
+                train_task.error_log = error_msg
+                db.session.commit()
+                raise Exception(error_msg)
 
             # 保存模型引用以便可能的停止操作
-            training_processes[model_id] = model
+            train_processes[model_id] = model
 
             # 更新状态：开始训练
-            training_status[model_id].update({
-                'status': 'training',
+            train_status[model_id].update({
+                'status': 'train',
                 'message': '正在训练模型...',
                 'progress': 15
             })
@@ -386,7 +407,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             # 设置检查点目录
             checkpoint_dir = os.path.join(model_dir, 'train_results', 'checkpoints')
             os.makedirs(checkpoint_dir, exist_ok=True)
-            training_record.checkpoint_dir = checkpoint_dir
+            train_task.checkpoint_dir = checkpoint_dir
             db.session.commit()
 
             # 训练模型
@@ -406,7 +427,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             results_csv_path = os.path.join(model_dir, 'train_results', 'results.csv')
             if os.path.exists(results_csv_path):
                 # 上传results.csv到Minio
-                minio_csv_path = f"models/model_{model_id}/train_{training_record.id}/results.csv"
+                minio_csv_path = f"models/model_{model_id}/train_{train_task.id}/results.csv"
                 csv_success = ModelService.upload_to_minio(
                     bucket_name="model-train",
                     object_name=minio_csv_path,
@@ -417,7 +438,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     # 构建可访问的URL路径供后续使用，参照png的处理方式
                     accessible_csv_url = f"/api/v1/buckets/model-train/objects/download?prefix={minio_csv_path}"
                     update_log_local(f"训练结果CSV已上传至Minio: {accessible_csv_url}")
-                    training_record.metrics_path = accessible_csv_url
+                    train_task.metrics_path = accessible_csv_url
                 else:
                     update_log_local("训练结果CSV上传Minio失败，请检查日志")
             else:
@@ -427,7 +448,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
             results_png_path = os.path.join(model_dir, 'train_results', 'results.png')
             if os.path.exists(results_png_path):
                 # 上传results.png到Minio，使用指定的bucket和object key格式
-                minio_png_path = f"models/model_{model_id}/train_{training_record.id}/results.png"
+                minio_png_path = f"models/model_{model_id}/train_{train_task.id}/results.png"
                 png_success = ModelService.upload_to_minio(
                     bucket_name="model-train",
                     object_name=minio_png_path,
@@ -438,26 +459,26 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     # 构建可访问的URL路径供后续使用
                     accessible_url = f"/api/v1/buckets/model-train/objects/download?prefix={minio_png_path}"
                     update_log_local(f"训练结果图表已上传至Minio: {accessible_url}")
-                    training_record.train_results_path = accessible_url
+                    train_task.train_results_path = accessible_url
                 else:
                     update_log_local("训练结果图表上传Minio失败，请检查日志")
             else:
                 update_log_local("未找到训练结果图表文件")
 
             # 检查是否应该停止训练
-            if training_status.get(model_id, {}).get('stop_requested'):
+            if train_status.get(model_id, {}).get('stop_requested'):
                 log_msg = '训练已停止'
-                training_status[model_id] = {
+                train_status[model_id] = {
                     'status': 'stopped',
                     'message': log_msg,
                     'progress': 0,
-                    'log': training_status[model_id].get('log', '') + log_msg + '\n'
+                    'log': train_status[model_id].get('log', '') + log_msg + '\n'
                 }
                 update_log_local(log_msg)
                 return
 
             # 更新训练状态 - 训练完成
-            training_status[model_id].update({
+            train_status[model_id].update({
                 'status': 'completed',
                 'message': '训练完成，正在保存结果...',
                 'progress': 90
@@ -491,7 +512,7 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                 update_log_local("开始上传最佳模型到Minio...", progress=95)
 
                 # 上传最佳模型
-                minio_model_path = f"models/model_{model_id}/train_{training_record.id}/best.pt"
+                minio_model_path = f"models/model_{model_id}/train_{train_task.id}/best.pt"
                 model_success = ModelService.upload_to_minio(
                     bucket_name="models",
                     object_name=minio_model_path,
@@ -502,17 +523,17 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     # 构建可访问的URL路径供后续使用
                     accessible_model_url = f"/api/v1/buckets/models/objects/download?prefix={minio_model_path}"
                     update_log_local(f"模型已成功上传至Minio: {accessible_model_url}")
-                    training_record.minio_model_path = accessible_model_url  # 保存URL而不是路径
+                    train_task.minio_model_path = accessible_model_url  # 保存URL而不是路径
                 else:
                     update_log_local("模型上传Minio失败，请检查日志")
 
                 # 上传训练日志，参照results.png的写法
-                log_content = training_record.train_log
-                log_path = os.path.join(model_save_dir, f"training_log_{training_record.id}.txt")
+                log_content = train_task.train_log
+                log_path = os.path.join(model_save_dir, f"train_log_{train_task.id}.txt")
                 with open(log_path, 'w') as f:
                     f.write(log_content)
 
-                minio_log_path = f"logs/model_{model_id}/train_{training_record.id}.txt"
+                minio_log_path = f"logs/model_{model_id}/train_{train_task.id}.txt"
                 log_success = ModelService.upload_to_minio(
                     bucket_name="log-bucket",
                     object_name=minio_log_path,
@@ -523,33 +544,33 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
                     # 构建可访问的URL路径供后续使用，参照results.png的URL结构
                     accessible_log_url = f"/api/v1/buckets/log-bucket/objects/download?prefix={minio_log_path}"
                     update_log_local(f"训练日志已上传至Minio: {accessible_log_url}")
-                    training_record.minio_log_path = accessible_log_url  # 保存URL而不是路径
+                    train_task.minio_log_path = accessible_log_url  # 保存URL而不是路径
                 else:
                     update_log_local("训练日志上传Minio失败，请检查日志")
                 # ================= Minio上传完成 =================
 
                 # 更新训练记录中的本地模型路径
-                training_record.best_model_path = local_model_path
+                train_task.best_model_path = local_model_path
 
             else:
                 error_msg = "未找到训练完成的最佳模型文件"
                 update_log_local(error_msg)
-                training_record.status = 'error'
-                training_record.error_log = error_msg
+                train_task.status = 'error'
+                train_task.error_log = error_msg
                 db.session.commit()
                 raise Exception(error_msg)
 
             # 更新训练状态 - 完成
-            training_status[model_id].update({
+            train_status[model_id].update({
                 'status': 'completed',
                 'message': '模型训练完成并已保存',
                 'progress': 100
             })
 
             # 更新训练记录状态
-            training_record.status = 'completed'
-            training_record.end_time = datetime.utcnow()
-            training_record.progress = 100
+            train_task.status = 'completed'
+            train_task.end_time = datetime.utcnow()
+            train_task.progress = 100
             db.session.commit()
             update_log_local("模型训练完成并已保存", progress=100)
 
@@ -557,51 +578,45 @@ def train_model(model_id, epochs=20, model_arch='model/yolov8n.pt',
         from run import create_app
         application = create_app()
         with application.app_context():
-            if training_record:
-                training_record.status = 'error'
-                training_record.end_time = datetime.utcnow()
-                training_record.error_log = f"{str(e)}\n{traceback.format_exc()}"
+            if train_task:
+                train_task.status = 'error'
+                train_task.end_time = datetime.utcnow()
+                train_task.error_log = f"{str(e)}\n{traceback.format_exc()}"
                 db.session.commit()
 
             error_msg = f'训练出错: {str(e)}'
             update_log(error_msg, model_id)
-            if training_record:
-                training_record.status = 'error'
-                training_record.error_log = error_msg
+            if train_task:
+                train_task.status = 'error'
+                train_task.error_log = error_msg
                 db.session.commit()
             traceback.print_exc()
 
             try:
                 log_msg = f'训练出错: {str(e)}'
-                training_status[model_id].update({
+                train_status[model_id].update({
                     'status': 'error',
                     'message': log_msg,
                     'progress': 0,
                     'error_details': str(e),
                     'traceback': traceback.format_exc(),
-                    'log': training_status[model_id].get('log', '') + log_msg + '\n' + traceback.format_exc()
+                    'log': train_status[model_id].get('log', '') + log_msg + '\n' + traceback.format_exc()
                 })
-                if training_record:
-                    training_record.train_log += log_msg + '\n' + traceback.format_exc()
-                    db.session.commit()
-
-                model = Model.query.get_or_404(model_id)
-                if model:
-                    model.last_error = str(e)
-                    db.session.commit()
+                update_log_local(log_msg)
             except Exception as inner_e:
                 update_log(f'在异常处理中获取应用上下文失败: {str(inner_e)}', model_id)
-                training_status[model_id].update({
+                train_status[model_id].update({
                     'status': 'error',
                     'message': f'严重错误: {str(e)}',
                     'progress': 0,
                     'error_details': str(e),
                     'traceback': traceback.format_exc(),
-                    'log': training_status[model_id].get('log', '') + f'严重错误: {str(e)}\n' + traceback.format_exc()
+                    'log': train_status[model_id].get('log', '') + f'严重错误: {str(e)}\n' + traceback.format_exc()
                 })
+                update_log_local(f'严重错误: {str(e)}')
     finally:
-        if model_id in training_processes:
-            del training_processes[model_id]
+        if model_id in train_processes:
+            del train_processes[model_id]
 
 
 def check_gpu_status():
