@@ -10,15 +10,6 @@
           :data-source="data"
           :pagination="paginationProp"
         >
-          <template #header>
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span style="padding-left: 7px; font-size: 16px; font-weight: 500;">推理任务</span>
-              <div class="space-x-2">
-                <slot name="header"></slot>
-              </div>
-            </div>
-          </template>
-
           <template #renderItem="{ item }">
             <ListItem>
               <div
@@ -187,18 +178,6 @@ const [registerForm, {validate}] = useForm({
         allowClear: true,
       },
     },
-    {
-      field: 'start_time',
-      label: '开始时间',
-      component: 'DatePicker',
-      componentProps: {
-        type: 'daterange',
-        rangeSeparator: '至',
-        startPlaceholder: '开始日期',
-        endPlaceholder: '结束日期',
-        valueFormat: 'YYYY-MM-DD',
-      },
-    },
   ],
   labelWidth: 80,
   baseColProps: {span: 6},
@@ -212,19 +191,10 @@ async function fetch(p = {}) {
   if (api && isFunction(api)) {
     state.loading = true;
     try {
-      // 处理日期范围参数
-      const formattedParams = {...p};
-      if (p['start_time'] && Array.isArray(p['start_time'])) {
-        formattedParams['start_time_from'] = p['start_time'][0];
-        formattedParams['start_time_to'] = p['start_time'][1];
-        delete formattedParams['start_time'];
-      }
-
       const res = await api({
         ...params,
         pageNo: page.value,
         pageSize: pageSize.value,
-        ...formattedParams
       });
       data.value = res.data;
       total.value = res.total;
