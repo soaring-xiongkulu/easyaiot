@@ -33,6 +33,67 @@ onvif_tasks = {}
 ffmpeg_processes = {}
 
 
+# 应用启动时自动启动需要推流的设备
+def auto_start_streaming():
+    """应用启动时自动启动需要推流的设备"""
+    try:
+        devices = Device.query.filter_by(enable_forward=True).all()
+        for device in devices:
+            try:
+                # 检查设备是否已经有运行的进程
+                if device.id in ffmpeg_processes and ffmpeg_processes[device.id]['process'] is not None:
+                    process = ffmpeg_processes[device.id]['process']
+                    if process.poll() is None:  # 进程仍在运行
+                        logger.info(f"设备 {device.id} 的流媒体转发已在运行中")
+                        continue
+
+                # 启动FFmpeg进程
+                ffmpeg_cmd = [
+                    'ffmpeg',
+                    '-rtsp_transport', 'tcp',
+                    '-i', device.source,
+                    '-c:v', 'copy',
+                    '-c:a', 'aac',
+                    '-f', 'flv',
+                    '-y',
+                    device.rtmp_stream
+                ]
+
+                logger.info(f"自动启动FFmpeg转码: {' '.join(ffmpeg_cmd)}")
+
+                process = subprocess.Popen(
+                    ffmpeg_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    stdin=subprocess.PIPE
+                )
+
+                # 存储进程信息
+                ffmpeg_processes[device.id] = {
+                    'process': process,
+                    'rtmp_url': device.rtmp_stream,
+                    'start_time': datetime.datetime.now()
+                }
+
+                # 启动线程监控进程输出
+                threading.Thread(
+                    target=monitor_ffmpeg_output,
+                    args=(device.id, process),
+                    daemon=True
+                ).start()
+
+                logger.info(f"设备 {device.id} 的流媒体转发已自动启动")
+
+            except Exception as e:
+                logger.error(f"自动启动设备 {device.id} 的流媒体转发失败: {str(e)}", exc_info=True)
+
+    except Exception as e:
+        logger.error(f"自动启动流媒体转发失败: {str(e)}", exc_info=True)
+
+
+# 在应用启动时调用此函数
+# 注意：这个调用应该放在应用启动的地方，例如在create_app函数中
+
 # ------------------------- FFmpeg转发接口 -------------------------
 @camera_bp.route('/device/<string:device_id>/stream/start', methods=['POST'])
 def start_ffmpeg_stream(device_id):
@@ -49,7 +110,7 @@ def start_ffmpeg_stream(device_id):
                     'msg': '该设备的流媒体转发已在运行中'
                 }), 400
 
-        # 这里使用硬件加速（如果可用）并复制原始流以避免转码
+        # 构建FFmpeg命令
         ffmpeg_cmd = [
             'ffmpeg',
             '-rtsp_transport', 'tcp',  # 使用TCP传输，更稳定
@@ -76,6 +137,11 @@ def start_ffmpeg_stream(device_id):
             'rtmp_url': device.rtmp_stream,
             'start_time': datetime.datetime.now()
         }
+
+        # 更新数据库中的enable_forward状态
+        device.enable_forward = True
+        db.session.commit()
+
         # 启动线程监控进程输出
         threading.Thread(
             target=monitor_ffmpeg_output,
@@ -117,9 +183,19 @@ def monitor_ffmpeg_output(device_id, process):
         else:
             logger.error(f"FFmpeg进程异常结束，返回码: {return_code}，设备ID: {device_id}")
 
-        # 清理进程记录
+        # 清理进程记录并更新数据库状态
         if device_id in ffmpeg_processes:
             ffmpeg_processes[device_id]['process'] = None
+
+        # 更新数据库中的enable_forward状态
+        try:
+            device = Device.query.get(device_id)
+            if device:
+                device.enable_forward = False
+                db.session.commit()
+                logger.info(f"已更新设备 {device_id} 的enable_forward状态为False")
+        except Exception as e:
+            logger.error(f"更新设备 {device_id} 的enable_forward状态失败: {str(e)}")
 
     except Exception as e:
         logger.error(f"监控FFmpeg输出失败: {str(e)}", exc_info=True)
@@ -163,6 +239,13 @@ def stop_ffmpeg_stream(device_id):
         # 清理进程记录
         ffmpeg_processes[device_id]['process'] = None
 
+        # 更新数据库中的enable_forward状态
+        device = Device.query.get(device_id)
+        if device:
+            device.enable_forward = False
+            db.session.commit()
+            logger.info(f"已更新设备 {device_id} 的enable_forward状态为False")
+
         return jsonify({
             'code': 0,
             'msg': '流媒体转发已停止'
@@ -180,27 +263,41 @@ def stop_ffmpeg_stream(device_id):
 def get_ffmpeg_stream_status(device_id):
     """获取FFmpeg转发状态"""
     try:
-        if device_id not in ffmpeg_processes or ffmpeg_processes[device_id]['process'] is None:
+        # 首先检查数据库中的enable_forward状态
+        device = Device.query.get(device_id)
+        if not device:
             return jsonify({
-                'code': 0,
-                'msg': 'success',
-                'data': {
-                    'status': 'stopped',
-                    'rtmp_url': None
-                }
-            })
+                'code': 404,
+                'msg': '设备不存在'
+            }), 404
 
-        process = ffmpeg_processes[device_id]['process']
-        is_running = process.poll() is None  # 如果返回None表示进程仍在运行
+        db_status = device.enable_forward
+
+        # 检查进程状态
+        process_status = "stopped"
+        if device_id in ffmpeg_processes and ffmpeg_processes[device_id]['process'] is not None:
+            process = ffmpeg_processes[device_id]['process']
+            process_status = "running" if process.poll() is None else "stopped"
+
+            # 如果数据库状态和进程状态不一致，更新数据库状态
+            if db_status != (process_status == "running"):
+                device.enable_forward = (process_status == "running")
+                db.session.commit()
+                logger.info(f"已同步设备 {device_id} 的enable_forward状态为{process_status == 'running'}")
 
         return jsonify({
             'code': 0,
             'msg': 'success',
             'data': {
-                'status': 'running' if is_running else 'stopped',
-                'rtmp_url': ffmpeg_processes[device_id]['rtmp_url'],
-                'pid': process.pid,
-                'start_time': ffmpeg_processes[device_id]['start_time'].isoformat()
+                'status': process_status,
+                'rtmp_url': device.rtmp_stream if process_status == "running" else None,
+                'enable_forward': device.enable_forward,
+                'pid': ffmpeg_processes[device_id]['process'].pid if device_id in ffmpeg_processes and
+                                                                     ffmpeg_processes[device_id][
+                                                                         'process'] is not None else None,
+                'start_time': ffmpeg_processes[device_id]['start_time'].isoformat() if device_id in ffmpeg_processes and
+                                                                                       ffmpeg_processes[device_id][
+                                                                                           'process'] is not None else None
             }
         })
 
