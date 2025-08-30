@@ -105,7 +105,7 @@ def _to_dict(camera: Device) -> dict:
         'hardware_id': camera.hardware_id,
         'support_move': camera.support_move,
         'support_zoom': camera.support_zoom,
-        'nvr_id': camera.nvr_id,
+        'nvr_id': camera.nvr_id if camera.nvr_id else None,
         'nvr_channel': camera.nvr_channel,
         'online': _monitor.is_online(camera.id)
     }
@@ -309,7 +309,7 @@ def register_camera(register_info: dict) -> str:
         hardware_id=camera_info.get('hardware_id'),
         support_move=camera_info.get('support_move', False),
         support_zoom=camera_info.get('support_zoom', False),
-        nvr_id=register_info.get('nvr_id'),
+        nvr_id=register_info.get('nvr_id') if register_info.get('nvr_id') else None,
         nvr_channel=register_info.get('nvr_channel')
     )
 

@@ -24,7 +24,7 @@ class Device(db.Model):
     support_move = db.Column(db.Boolean, nullable=True)
     support_zoom = db.Column(db.Boolean, nullable=True)
     nvr_id = db.Column(db.Integer, db.ForeignKey('nvr.id', ondelete='CASCADE'), nullable=True)
-    nvr_channel = db.Column(db.SmallInteger, nullable=True)
+    nvr_channel = db.Column(db.SmallInteger, nullable=False)
     images = db.relationship('Image', backref='project', lazy=True, cascade='all, delete-orphan')
 
 class Image(db.Model):
