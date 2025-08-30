@@ -1,5 +1,8 @@
 <template>
   <div class="inference-card-list-wrapper p-2">
+    <div class="p-4 bg-white" style="margin-bottom: 10px">
+      <BasicForm @register="registerForm" @reset="handleSubmit" @submit="handleSubmit"/>
+    </div>
     <div class="p-2 bg-white">
       <Spin :spinning="state.loading">
         <List
@@ -110,16 +113,18 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue';
-import { List, Spin } from 'ant-design-vue';
-import { propTypes } from '@/utils/propTypes';
-import { isFunction } from '@/utils/is';
+import {onMounted, reactive, ref} from 'vue';
+import {List, Spin} from 'ant-design-vue';
+import {propTypes} from '@/utils/propTypes';
+import {isFunction} from '@/utils/is';
+import {BasicForm, useForm} from "@/components/Form";
 
 const ListItem = List.Item;
 
 const props = defineProps({
   params: propTypes.object.def({}),
   api: propTypes.func,
+  modelOptions: propTypes.array.def([]),
 });
 
 const emit = defineEmits(['view', 'result', 'delete', 'execute', 'getMethod']);
@@ -149,16 +154,77 @@ onMounted(() => {
   emit('getMethod', fetch);
 });
 
+
+async function handleSubmit() {
+  const formData = await validate();
+  await fetch(formData);
+}
+
+// 新增表单配置
+const [registerForm, {validate}] = useForm({
+  schemas: [
+    {
+      field: 'model_id',
+      label: '模型',
+      component: 'Select',
+      componentProps: {
+        options: props.modelOptions,
+        placeholder: '请选择模型',
+        allowClear: true,
+      },
+    },
+    {
+      field: 'status',
+      label: '状态',
+      component: 'Select',
+      componentProps: {
+        options: [
+          {label: '处理中', value: 'PROCESSING'},
+          {label: '已完成', value: 'COMPLETED'},
+          {label: '失败', value: 'FAILED'},
+        ],
+        placeholder: '请选择状态',
+        allowClear: true,
+      },
+    },
+    {
+      field: 'start_time',
+      label: '开始时间',
+      component: 'DatePicker',
+      componentProps: {
+        type: 'daterange',
+        rangeSeparator: '至',
+        startPlaceholder: '开始日期',
+        endPlaceholder: '结束日期',
+        valueFormat: 'YYYY-MM-DD',
+      },
+    },
+  ],
+  labelWidth: 80,
+  baseColProps: {span: 6},
+  actionColOptions: {span: 12},
+  autoSubmitOnEnter: true,
+  submitFunc: handleSubmit,
+});
+
 async function fetch(p = {}) {
-  const { api, params } = props;
+  const {api, params} = props;
   if (api && isFunction(api)) {
     state.loading = true;
     try {
+      // 处理日期范围参数
+      const formattedParams = {...p};
+      if (p.start_time && Array.isArray(p.start_time)) {
+        formattedParams.start_time_from = p.start_time[0];
+        formattedParams.start_time_to = p.start_time[1];
+        delete formattedParams.start_time;
+      }
+
       const res = await api({
         ...params,
         pageNo: page.value,
         pageSize: pageSize.value,
-        ...p
+        ...formattedParams
       });
       data.value = res.data;
       total.value = res.total;
@@ -236,6 +302,7 @@ const calculateProgress = (record: any) => {
 .card-item {
   transition: transform 0.2s, box-shadow 0.2s;
 }
+
 .card-item:hover {
   transform: translateY(-4px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
