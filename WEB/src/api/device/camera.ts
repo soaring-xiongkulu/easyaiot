@@ -4,14 +4,14 @@ const CAMERA_PREFIX = '/video/camera';
 const NVR_PREFIX = '/video/nvr';
 
 // 通用请求封装
-const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url: string, params = {}, headers = {}) => {
+const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url: string, params = {}, headers = {}, isTransformResponse = true) => {
   defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
 
   return defHttp[method]({
     url,
     headers: { ...headers },
     ...(method === 'get' ? { params } : { data: params })
-  }, { isTransformResponse: true });
+  }, { isTransformResponse: isTransformResponse });
 };
 
 // ====================== 流媒体转发接口 ======================
@@ -21,7 +21,7 @@ const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url: string, param
  * @returns 包含RTMP URL和进程ID的响应
  */
 export const startStreamForwarding = (device_id: string) => {
-  return commonApi('post', `${CAMERA_PREFIX}/device/${device_id}/stream/start`);
+  return commonApi('post', `${CAMERA_PREFIX}/device/${device_id}/stream/start`, {}, {}, false);
 };
 
 /**
@@ -30,7 +30,7 @@ export const startStreamForwarding = (device_id: string) => {
  * @returns 操作结果
  */
 export const stopStreamForwarding = (device_id: string) => {
-  return commonApi('post', `${CAMERA_PREFIX}/device/${device_id}/stream/stop`);
+  return commonApi('post', `${CAMERA_PREFIX}/device/${device_id}/stream/stop`, {}, {}, false);
 };
 
 /**

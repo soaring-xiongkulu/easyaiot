@@ -50,32 +50,26 @@
         </template>
       </template>
     </BasicTable>
-
-    <JSMpegModal
-      @register="registerJSMpegModal"
-      :streamUrl="currentStreamUrl"
-      :title="currentStreamTitle"
-    />
+    <RtmpPlayModal @register="registerRtmpPlayModal" @success="handleSuccess"/>
     <VideoModal @register="registerAddModel" @success="handleSuccess"/>
   </div>
 </template>
 
 <script lang="ts" setup>
-import {reactive, ref, onMounted, onUnmounted} from 'vue';
+import {onMounted, onUnmounted, ref} from 'vue';
 import {BasicTable, TableAction, useTable} from '@/components/Table';
 import {useMessage} from '@/hooks/web/useMessage';
-import JSMpegModal from './JSMpegModal/index.vue';
 import {getBasicColumns, getFormConfig} from "./Data";
 import {useModal} from "@/components/Modal";
 import VideoModal from "./VideoModal/index.vue";
 import {
   deleteDevice,
+  DeviceInfo,
   getDeviceList,
+  getStreamStatus,
   refreshDevices,
   startStreamForwarding,
   stopStreamForwarding,
-  getStreamStatus,
-  DeviceInfo,
   StreamStatusResponse
 } from '@/api/device/camera';
 import {
@@ -84,11 +78,12 @@ import {
   SyncOutlined,
   VideoCameraAddOutlined
 } from '@ant-design/icons-vue';
+import RtmpPlayModal from "@/views/camera/RtmpPlayModal/index.vue";
 
 const {createMessage} = useMessage();
 const [registerAddModel, {openModal}] = useModal();
 
-const [registerJSMpegModal, {openModal: openJSMpegModal}] = useModal();
+const [registerRtmpPlayModal, {openModal: openRtmpPlayModal}] = useModal();
 
 // 当前流信息
 const currentStreamUrl = ref('');
@@ -198,7 +193,7 @@ const startStatusCheckTimer = () => {
 const getTableActions = (record) => {
   const actions = [
     {
-      icon: 'ant-design:play-circle-filled',
+      icon: 'octicon:play-16',
       tooltip: '播放RTMP流',
       onClick: () => handlePlay(record)
     },
@@ -245,22 +240,22 @@ const getTableActions = (record) => {
 // 启用RTSP转发
 const handleEnableRtsp = async (record) => {
   try {
-    createMessage.loading({ content: '正在启动RTSP转发...', key: 'rtsp' });
+    createMessage.loading({content: '正在启动RTSP转发...', key: 'rtsp'});
 
     const response = await startStreamForwarding(record.id);
     if (response.code === 0) {
-      createMessage.success({ content: 'RTSP转发已启动', key: 'rtsp' });
+      createMessage.success({content: 'RTSP转发已启动', key: 'rtsp'});
       // 更新设备状态
       deviceStreamStatuses.value[record.id] = 'running';
       // 重新加载表格数据
       reload();
     } else {
-      createMessage.error({ content: `启动失败: ${response.msg}`, key: 'rtsp' });
+      createMessage.error({content: `启动失败: ${response.data.msg}`, key: 'rtsp'});
       deviceStreamStatuses.value[record.id] = 'error';
     }
   } catch (error) {
     console.error('启动RTSP转发失败', error);
-    createMessage.error({ content: '启动RTSP转发失败', key: 'rtsp' });
+    createMessage.error({content: '启动RTSP转发失败', key: 'rtsp'});
     deviceStreamStatuses.value[record.id] = 'error';
   }
 };
@@ -268,36 +263,30 @@ const handleEnableRtsp = async (record) => {
 // 停止RTSP转发
 const handleDisableRtsp = async (record) => {
   try {
-    createMessage.loading({ content: '正在停止RTSP转发...', key: 'rtsp' });
+    createMessage.loading({content: '正在停止RTSP转发...', key: 'rtsp'});
 
     const response = await stopStreamForwarding(record.id);
     if (response.code === 0) {
-      createMessage.success({ content: 'RTSP转发已停止', key: 'rtsp' });
+      createMessage.success({content: 'RTSP转发已停止', key: 'rtsp'});
       // 更新设备状态
       deviceStreamStatuses.value[record.id] = 'stopped';
       // 重新加载表格数据
       reload();
     } else {
-      createMessage.error({ content: `停止失败: ${response.msg}`, key: 'rtsp' });
+      createMessage.error({content: `停止失败: ${response.data.msg}`, key: 'rtsp'});
       deviceStreamStatuses.value[record.id] = 'error';
     }
   } catch (error) {
     console.error('停止RTSP转发失败', error);
-    createMessage.error({ content: '停止RTSP转发失败', key: 'rtsp' });
+    createMessage.error({content: '停止RTSP转发失败', key: 'rtsp'});
     deviceStreamStatuses.value[record.id] = 'error';
   }
 };
 
-const handlePlay = (record) => {
-  const streamUrl = record['http_stream'];
-  if (!streamUrl) {
-    createMessage.error('该设备没有可用的视频流地址');
-    return;
-  }
-  currentStreamUrl.value = streamUrl;
-  currentStreamTitle.value = `视频播放 - ${record.name}`;
-  openJSMpegModal(true, {record});
-};
+//播放RTMP
+function handlePlay(record) {
+  openRtmpPlayModal(true, {isEdit: true, isView: false, record})
+}
 
 async function handleCopy(text: string) {
   if (navigator.clipboard) {

@@ -49,13 +49,18 @@ def auto_start_streaming():
                 # 启动FFmpeg进程
                 ffmpeg_cmd = [
                     'ffmpeg',
-                    '-rtsp_transport', 'tcp',
-                    '-i', device.source,
-                    '-c:v', 'copy',
-                    '-c:a', 'aac',
-                    '-f', 'flv',
-                    '-y',
-                    device.rtmp_stream
+                    '-rtsp_transport', 'tcp',  # 强制TCP传输避免UDP丢包问题
+                    '-i', device.source,  # RTSP输入源地址
+                    '-an',  # 禁用音频流（若无需音频）
+                    '-c:v', 'libx264',  # H.264视频编码
+                    '-preset', 'ultrafast',  # 最快编码速度（降低延迟）
+                    '-tune', 'zerolatency',  # 零延迟模式（实时推流关键）
+                    '-b:v', '512k',  # 目标码率512kbps
+                    '-maxrate', '512k',  # 峰值码率限制（防网络波动）
+                    '-bufsize', '1024k',  # 码率缓冲区（建议为码率2倍）
+                    '-g', '50',  # 关键帧间隔（2秒@25fps）
+                    '-f', 'flv',  # 输出FLV格式
+                    device.rtmp_stream  # RTMP推流地址
                 ]
 
                 logger.info(f"自动启动FFmpeg转码: {' '.join(ffmpeg_cmd)}")
@@ -112,16 +117,21 @@ def start_ffmpeg_stream(device_id):
         # 构建FFmpeg命令
         ffmpeg_cmd = [
             'ffmpeg',
-            '-rtsp_transport', 'tcp',  # 使用TCP传输，更稳定
-            '-i', device.source,  # 输入流地址
-            '-c:v', 'copy',  # 视频编码不变
-            '-c:a', 'aac',  # 音频编码为AAC
-            '-f', 'flv',  # 输出格式为FLV
-            '-y',  # 覆盖输出文件
-            device.rtmp_stream  # 输出到RTMP服务器
+            '-rtsp_transport', 'tcp',  # 强制TCP传输避免UDP丢包问题
+            '-i', device.source,  # RTSP输入源地址
+            '-an',  # 禁用音频流（若无需音频）
+            '-c:v', 'libx264',  # H.264视频编码
+            '-preset', 'ultrafast',  # 最快编码速度（降低延迟）
+            '-tune', 'zerolatency',  # 零延迟模式（实时推流关键）
+            '-b:v', '512k',  # 目标码率512kbps
+            '-maxrate', '512k',  # 峰值码率限制（防网络波动）
+            '-bufsize', '1024k',  # 码率缓冲区（建议为码率2倍）
+            '-g', '50',  # 关键帧间隔（2秒@25fps）
+            '-f', 'flv',  # 输出FLV格式
+            device.rtmp_stream  # RTMP推流地址
         ]
-        logger.info(f"启动FFmpeg转码: {' '.join(ffmpeg_cmd)}")
 
+        logger.info(f"启动FFmpeg转码: {' '.join(ffmpeg_cmd)}")
         # 启动FFmpeg进程
         process = subprocess.Popen(
             ffmpeg_cmd,

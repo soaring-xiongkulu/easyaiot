@@ -7,12 +7,12 @@ export function getBasicColumns(): BasicColumn[] {
     {
       title: '设备ID',
       dataIndex: 'id',
-      width: 150,
+      width: 120,
     },
     {
       title: '设备名称',
       dataIndex: 'name',
-      width: 150,
+      width: 120,
     },
     {
       title: '设备型号',
@@ -81,28 +81,6 @@ export function getBasicColumns(): BasicColumn[] {
       title: '播放地址',
       dataIndex: 'http_stream',
       width: 70,
-    },
-    {
-      title: '所属NVR',
-      dataIndex: 'nvr_id',
-      width: 70,
-      customRender: ({text}) => {
-        if (text === null) {
-          return '独立设备';
-        }
-        return text;
-      },
-    },
-    {
-      title: 'NVR通道',
-      dataIndex: 'nvr_channel',
-      width: 70,
-      customRender: ({text}) => {
-        if (text === null) {
-          return '--';
-        }
-        return text;
-      },
     },
     {
       width: 150,
