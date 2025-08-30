@@ -75,7 +75,7 @@ export const uploadModelFile = (formData: FormData) => {
   });
 };
 
-// ================= 训练管理接口 =================
+// ================= 模型训练管理接口 =================
 export const startTraining = (modelId, params) => {
   return commonApi('post', `${Api.Training}/${modelId}/train`, {data: params});
 };
@@ -88,13 +88,17 @@ export const getTrainingStatus = (modelId) => {
   return commonApi('get', `${Api.Training}/${modelId}/train/status`);
 };
 
-// ================= 训练记录管理接口 =================
-export const getInferenceTaskPage = (params) => {
+export const getTrainingPage = (params) => {
   return commonApi('get', `${Api.InferenceTask}/list`, {params});
 };
 
 export const getTrainingDetail = (recordId) => {
   return commonApi('get', `${Api.InferenceTask}/${recordId}`);
+};
+
+// ================= 模型推理任务接口 =================
+export const getInferenceTasks = (params) => {
+  return commonApi('get', `${Api.InferenceTask}/list`, {params});
 };
 
 export const createInferenceTask = (params) => {
@@ -117,16 +121,16 @@ export const getTrainingLogs = (modelId, taskId) => {
   return commonApi('get', `${Api.Training}/${modelId}/train/${taskId}/logs`);
 };
 
-// ================= 推理记录管理接口 =================
-export const createInferenceTask = (params) => {
+// ================= 模型推理记录管理接口 =================
+export const createInferenceRecord = (params) => {
   return commonApi('post', Api.InferenceRecord,{data: params},{'Content-Type': 'application/json'});
 };
 
-export const updateInferenceTask = (recordId, params) => {
+export const updateInferenceRecord = (recordId, params) => {
   return commonApi('put',`${Api.InferenceRecord}/${recordId}`,{data: params},{'Content-Type': 'application/json'});
 };
 
-export const getInferenceTasks = (params) => {
+export const getInferenceRecords = (params) => {
   return commonApi('get', Api.InferenceRecord, {params});
 };
 

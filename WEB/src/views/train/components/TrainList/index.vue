@@ -85,7 +85,7 @@ import {useMessage} from '@/hooks/web/useMessage';
 import {useModal} from '@/components/Modal';
 import {
   deleteInferenceTask,
-  getInferenceTaskPage,
+  getTrainingPage,
   publishInferenceTask,
   startTraining
 } from '@/api/device/model';
@@ -229,7 +229,7 @@ const [registerTable, {reload}] = useTable({
       requestParams.startTimeTo = params.timeRange[1];
       delete requestParams.timeRange;
     }
-    return getInferenceTaskPage({...requestParams, modelId: modelId.value});
+    return getTrainingPage({...requestParams, modelId: modelId.value});
   },
   columns: getBasicColumns(),
   useSearchForm: true,
