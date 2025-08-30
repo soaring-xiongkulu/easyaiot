@@ -84,9 +84,9 @@ import {useRoute, useRouter} from 'vue-router';
 import {useMessage} from '@/hooks/web/useMessage';
 import {useModal} from '@/components/Modal';
 import {
-  deleteTrainingRecord,
-  getTrainingRecordPage,
-  publishTrainingRecord,
+  deleteInferenceTask,
+  getInferenceTaskPage,
+  publishInferenceTask,
   startTraining
 } from '@/api/device/model';
 import StartTrainingModal from '../StartTrainingModal/index.vue';
@@ -145,7 +145,7 @@ const handleViewTrainResults = (record) => {
 // 发布为正式模型
 const handlePublish = async (record) => {
   try {
-    publishTrainingRecord(record.id).then(() => {
+    publishInferenceTask(record.id).then(() => {
       createMessage.success('模型发布成功');
       reload();
     });
@@ -158,7 +158,7 @@ const handlePublish = async (record) => {
 // 删除模型训练
 const handleDelete = async (record) => {
   try {
-    await deleteTrainingRecord(record.id);
+    await deleteInferenceTask(record.id);
     createMessage.success('删除成功');
     reload();
   } catch (error) {
@@ -229,7 +229,7 @@ const [registerTable, {reload}] = useTable({
       requestParams.startTimeTo = params.timeRange[1];
       delete requestParams.timeRange;
     }
-    return getTrainingRecordPage({...requestParams, modelId: modelId.value});
+    return getInferenceTaskPage({...requestParams, modelId: modelId.value});
   },
   columns: getBasicColumns(),
   useSearchForm: true,

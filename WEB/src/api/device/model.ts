@@ -3,7 +3,7 @@ import {defHttp} from '@/utils/http/axios';
 enum Api {
   Model = '/model',
   Training = '/model/training',
-  TrainingRecord = '/model/training_record',
+  InferenceTask = '/model/inference_task',
   Inference = '/model/inference',
   Export = '/model/export',
   InferenceRecord = '/model/inference/inference_records',
@@ -49,8 +49,8 @@ export const getModelDetail = (modelId) => {
   return commonApi('get', `${Api.Model}/${modelId}`);
 };
 
-export const getModelTrainingRecords = (modelId, params) => {
-  return commonApi('get', `${Api.Model}/${modelId}/training_records`, {params});
+export const getModelInferenceTasks = (modelId, params) => {
+  return commonApi('get', `${Api.Model}/${modelId}/inference_tasks`, {params});
 };
 
 // 模型发布接口
@@ -89,28 +89,28 @@ export const getTrainingStatus = (modelId) => {
 };
 
 // ================= 训练记录管理接口 =================
-export const getTrainingRecordPage = (params) => {
-  return commonApi('get', `${Api.TrainingRecord}/list`, {params});
+export const getInferenceTaskPage = (params) => {
+  return commonApi('get', `${Api.InferenceTask}/list`, {params});
 };
 
 export const getTrainingDetail = (recordId) => {
-  return commonApi('get', `${Api.TrainingRecord}/${recordId}`);
+  return commonApi('get', `${Api.InferenceTask}/${recordId}`);
 };
 
-export const createTrainingRecord = (params) => {
-  return commonApi('post', `${Api.TrainingRecord}/create`, {data: params});
+export const createInferenceTask = (params) => {
+  return commonApi('post', `${Api.InferenceTask}/create`, {data: params});
 };
 
-export const updateTrainingRecord = (recordId, params) => {
-  return commonApi('post', `${Api.TrainingRecord}/update/${recordId}`, {data: params});
+export const updateInferenceTask = (recordId, params) => {
+  return commonApi('post', `${Api.InferenceTask}/update/${recordId}`, {data: params});
 };
 
-export const deleteTrainingRecord = (recordId) => {
-  return commonApi('delete', `${Api.TrainingRecord}/delete/${recordId}`);
+export const deleteInferenceTask = (recordId) => {
+  return commonApi('delete', `${Api.InferenceTask}/delete/${recordId}`);
 };
 
-export const publishTrainingRecord = (recordId: number) => {
-  return commonApi('post', `${Api.TrainingRecord}/publish/${recordId}`);
+export const publishInferenceTask = (recordId: number) => {
+  return commonApi('post', `${Api.InferenceTask}/publish/${recordId}`);
 };
 
 export const getTrainingLogs = (modelId, taskId) => {
