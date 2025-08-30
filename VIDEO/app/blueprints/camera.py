@@ -65,56 +65,38 @@ def list_devices():
             error_out=False
         )
 
-        # 构建响应数据
-        device_list = []
-        for device in pagination.items:
-            device_data = {
-                'id': device.id,
-                'name': device.name,
-                'source': device.source,
-                'ip': device.ip,
-                'port': device.port,
-                'manufacturer': device.manufacturer,
-                'model': device.model,
-                'firmware_version': device.firmware_version,
-                'serial_number': device.serial_number,
-                'hardware_id': device.hardware_id,
-                'support_move': device.support_move,
-                'support_zoom': device.support_zoom,
-                'created_at': device.created_at.isoformat() if device.created_at else None,
-                'updated_at': device.updated_at.isoformat() if device.updated_at else None
-            }
-
-            # 添加NVR信息（如果存在）
-            if device.nvr:
-                device_data['nvr'] = {
-                    'id': device.nvr.id,
-                    'name': device.nvr.name,
-                    'ip': device.nvr.ip
-                }
-                device_data['nvr_channel'] = device.nvr_channel
-
-            device_list.append(device_data)
+        # 构建设备列表数据
+        device_list = [{
+            'id': device.id,
+            'name': device.name,
+            'source': device.source,
+            'ip': device.ip,
+            'port': device.port,
+            'manufacturer': device.manufacturer,
+            'model': device.model,
+            'firmware_version': device.firmware_version,
+            'serial_number': device.serial_number,
+            'hardware_id': device.hardware_id,
+            'support_move': device.support_move,
+            'support_zoom': device.support_zoom,
+            'created_at': device.created_at.isoformat() if device.created_at else None,
+            'updated_at': device.updated_at.isoformat() if device.updated_at else None,
+            'nvr_id': device.nvr_id if device.nvr_id else None,
+            'nvr_channel': device.nvr_channel if device.nvr_channel else None
+        } for device in pagination.items]
 
         return jsonify({
             'code': 0,
             'msg': 'success',
-            'data': {
-                'items': device_list,
-                'total': pagination.total,
-                'pageNo': page_no,
-                'pageSize': page_size,
-                'totalPages': pagination.pages
-            }
+            'data': device_list,
+            'total': pagination.total
         })
 
-    except ValueError as e:
-        logger.error(f'设备列表查询失败: {str(e)}')
+    except ValueError:
         return jsonify({'code': 400, 'msg': '参数类型错误：pageNo和pageSize需为整数'}), 400
     except Exception as e:
         logger.error(f'设备列表查询失败: {str(e)}')
         return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
-
 @camera_bp.route('/device/<string:device_id>', methods=['GET'])
 def get_device_info(device_id):
     """获取单个设备详情"""
