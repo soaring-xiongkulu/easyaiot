@@ -12,7 +12,7 @@ from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
 
-from app.blueprints import export, inference, model, training, training_record
+from app.blueprints import export, inference, model, training, inference_record
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -75,7 +75,7 @@ def create_app():
     with app.app_context():
         try:
             print(f"数据库连接: {app.config['SQLALCHEMY_DATABASE_URI']}")
-            from models import Model, TrainingTask, ExportRecord, InferenceRecord
+            from models import Model, InferenceTask, ExportRecord, InferenceRecord
             db.create_all()
         except Exception as e:
             print(f"❌ 建表失败: {str(e)}")
