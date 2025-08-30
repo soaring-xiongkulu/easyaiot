@@ -1,8 +1,6 @@
 <template>
   <div class="inference-container">
-    <!-- 表格视图 -->
     <BasicTable
-      v-if="state.isTableMode"
       @register="registerTable"
       :row-class-name="getRowClassName"
     >
@@ -13,9 +11,6 @@
               <PlayCircleOutlined/>
             </template>
             新增推理任务
-          </a-button>
-          <a-button @click="handleClickSwap" preIcon="ant-design:swap-outlined">
-            切换视图
           </a-button>
         </a-space>
       </template>
@@ -72,31 +67,6 @@
         </template>
       </template>
     </BasicTable>
-
-    <!-- 卡片视图 -->
-    <div v-else class="card-view">
-      <InferenceCardList
-        :params="params"
-        :api="getInferenceTasks"
-        @view="handleViewDetail"
-        @result="handleViewResult"
-        @delete="handleDelete"
-        @execute="handleCardExecute"
-      >
-        <template #header>
-          <a-button type="primary" @click="openExecuteModal">
-            <template #icon>
-              <PlayCircleOutlined/>
-            </template>
-            新增推理任务
-          </a-button>
-          <a-button @click="handleClickSwap" preIcon="ant-design:swap-outlined">
-            切换视图
-          </a-button>
-        </template>
-      </InferenceCardList>
-    </div>
-
     <!-- 模态框组件 -->
     <ExecuteInferenceModal @register="registerExecuteModal"/>
     <InferenceDetailModal @register="registerDetailModal" :record="state.currentRecord"/>
@@ -114,14 +84,13 @@ import {getInferenceColumns, getInferenceFormConfig} from "./Data";
 import ExecuteInferenceModal from "../ExecuteInferenceModal/index.vue";
 import InferenceDetailModal from "../InferenceDetailModal/index.vue";
 import InferenceResultViewer from "../InferenceResultViewer/index.vue";
-import InferenceCardList from "@/views/train/components/InferenceTaskCardList/index.vue";
 import {deleteInferenceRecord, getInferenceTasks, runInference} from "@/api/device/model";
+import {getBasicColumns, getFormConfig} from "@/views/train/components/TrainList/Data";
 
 const params = {};
 
 // 状态管理
 const state = reactive({
-  isTableMode: false,
   records: [],
   currentRecord: {},
   eventSources: {},
@@ -145,6 +114,11 @@ const [registerTable, {reload}] = useTable({
   formConfig: getInferenceFormConfig(),
   pagination: {pageSize: 10},
   rowKey: 'id',
+  showTableSetting: true,
+  fetchSetting: {
+    listField: 'data',
+    totalField: 'total',
+  },
 });
 
 // 模态框注册
@@ -196,18 +170,10 @@ const handleDelete = async (record) => {
       state.eventSources[record.id].close();
       delete state.eventSources[record.id];
     }
-
-    // 重新加载记录
-    await loadRecords();
   } catch (error) {
     console.error('删除错误:', error);
     createMessage.error('删除失败');
   }
-};
-
-// 切换视图
-const handleClickSwap = () => {
-  state.isTableMode = !state.isTableMode;
 };
 
 // 新增推理任务
@@ -237,9 +203,6 @@ const handleExecute = async (record) => {
       };
 
       state.records.unshift(newRecord);
-
-      // 启动进度监听
-      startProgressListener(newRecord.id);
     } else {
       createMessage.error({content: result.msg || '执行失败', key: 'executing'});
     }
@@ -249,11 +212,6 @@ const handleExecute = async (record) => {
   } finally {
     state.executing = false;
   }
-};
-
-// 卡片执行事件处理
-const handleCardExecute = (record) => {
-  handleExecute(record);
 };
 
 // 日期时间格式化

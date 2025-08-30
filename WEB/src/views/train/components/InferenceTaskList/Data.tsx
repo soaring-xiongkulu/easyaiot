@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 export function getInferenceColumns(): BasicColumn[] {
   return [
     {
-      title: '记录ID',
+      title: '任务ID',
       dataIndex: 'id',
       width: 100,
       fixed: 'left',
