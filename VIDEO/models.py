@@ -25,6 +25,7 @@ class Device(db.Model):
     support_zoom = db.Column(db.Boolean, nullable=True)
     nvr_id = db.Column(db.Integer, db.ForeignKey('nvr.id', ondelete='CASCADE'), nullable=True)
     nvr_channel = db.Column(db.SmallInteger, nullable=False)
+    enable_forward = db.Column(db.Boolean, nullable=True)
     images = db.relationship('Image', backref='project', lazy=True, cascade='all, delete-orphan')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

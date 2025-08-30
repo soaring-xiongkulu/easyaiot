@@ -14,6 +14,43 @@ const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url: string, param
   }, { isTransformResponse: true });
 };
 
+// ====================== 流媒体转发接口 ======================
+/**
+ * 启动FFmpeg转发RTSP流到RTMP服务器
+ * @param device_id 设备ID
+ * @returns 包含RTMP URL和进程ID的响应
+ */
+export const startStreamForwarding = (device_id: string) => {
+  return commonApi('post', `${CAMERA_PREFIX}/device/${device_id}/stream/start`);
+};
+
+/**
+ * 停止FFmpeg转发进程
+ * @param device_id 设备ID
+ * @returns 操作结果
+ */
+export const stopStreamForwarding = (device_id: string) => {
+  return commonApi('post', `${CAMERA_PREFIX}/device/${device_id}/stream/stop`);
+};
+
+/**
+ * 获取FFmpeg转发状态
+ * @param device_id 设备ID
+ * @returns 包含状态、RTMP URL和进程信息的响应
+ */
+export const getStreamStatus = (device_id: string) => {
+  return commonApi('get', `${CAMERA_PREFIX}/device/${device_id}/stream/status`);
+};
+
+/**
+ * 批量获取设备流媒体转发状态
+ * @param device_ids 设备ID数组
+ * @returns 包含所有设备流媒体状态的响应
+ */
+export const getBatchStreamStatus = (device_ids: string[]) => {
+  return Promise.all(device_ids.map(id => getStreamStatus(id)));
+};
+
 // ====================== 设备管理接口 ======================
 export const registerDevice = (data: {
   id?: string;
@@ -25,6 +62,9 @@ export const registerDevice = (data: {
   stream?: number;
   nvr_id?: string;
   nvr_channel?: number;
+  enable_forward?: boolean;
+  rtmp_stream?: string;
+  http_stream?: string;
 }) => {
   return commonApi('post', `${CAMERA_PREFIX}/register/device`, data);
 };
@@ -42,6 +82,9 @@ export const updateDevice = (device_id: string, data: {
   stream?: number;
   nvr_id?: string;
   nvr_channel?: number;
+  enable_forward?: boolean;
+  rtmp_stream?: string;
+  http_stream?: string;
 }) => {
   return commonApi('put', `${CAMERA_PREFIX}/device/${device_id}`, data);
 };
@@ -55,6 +98,7 @@ export const getDeviceList = (params: {
   pageSize?: number;
   search?: string;
   nvr_id?: string;
+  enable_forward?: boolean;
 }) => {
   return commonApi('get', `${CAMERA_PREFIX}/list`, params);
 };
@@ -158,4 +202,109 @@ export const addNvrCamera = (nvr_id: number, data: {
   stream_type?: string;
 }) => {
   return commonApi('post', `${NVR_PREFIX}/create/${nvr_id}/camera`, data);
+};
+
+// ====================== 类型定义 ======================
+export interface StreamStatusResponse {
+  code: number;
+  msg: string;
+  data: {
+    status: 'running' | 'stopped';
+    rtmp_url: string | null;
+    enable_forward: boolean;
+    pid?: number;
+    start_time?: string;
+  };
+}
+
+export interface StartStreamResponse {
+  code: number;
+  msg: string;
+  data: {
+    rtmp_url: string;
+    process_id: number;
+  };
+}
+
+export interface DeviceInfo {
+  id: string;
+  name: string;
+  source: string;
+  rtmp_stream: string;
+  http_stream: string;
+  stream: number;
+  ip: string;
+  port: number;
+  username: string;
+  password: string;
+  mac: string;
+  manufacturer: string;
+  model: string;
+  firmware_version: string;
+  serial_number: string;
+  hardware_id: string;
+  support_move: boolean;
+  support_zoom: boolean;
+  nvr_id: number | null;
+  nvr_channel: number;
+  enable_forward: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeviceListResponse {
+  code: number;
+  msg: string;
+  data: DeviceInfo[];
+  total: number;
+}
+
+// ====================== 流媒体管理工具函数 ======================
+/**
+ * 切换设备流媒体转发状态
+ * @param device_id 设备ID
+ * @param currentStatus 当前状态
+ * @returns 操作结果
+ */
+export const toggleStreamForwarding = async (device_id: string, currentStatus: boolean) => {
+  try {
+    if (currentStatus) {
+      return await stopStreamForwarding(device_id);
+    } else {
+      return await startStreamForwarding(device_id);
+    }
+  } catch (error) {
+    throw new Error(`切换流媒体转发状态失败: ${error}`);
+  }
+};
+
+/**
+ * 检查所有设备的流媒体状态
+ * @param deviceIds 设备ID数组
+ * @returns 包含所有设备状态的Promise
+ */
+export const checkAllStreamStatus = async (deviceIds: string[]) => {
+  const statusPromises = deviceIds.map(id => getStreamStatus(id));
+  return Promise.all(statusPromises);
+};
+
+/**
+ * 启动所有启用转发的设备
+ * @param devices 设备列表
+ * @returns 启动结果数组
+ */
+export const startAllEnabledDevices = async (devices: DeviceInfo[]) => {
+  const enabledDevices = devices.filter(device => device.enable_forward);
+  const startPromises = enabledDevices.map(device => startStreamForwarding(device.id));
+  return Promise.all(startPromises);
+};
+
+/**
+ * 停止所有设备的流媒体转发
+ * @param deviceIds 设备ID数组
+ * @returns 停止结果数组
+ */
+export const stopAllStreams = async (deviceIds: string[]) => {
+  const stopPromises = deviceIds.map(id => stopStreamForwarding(id));
+  return Promise.all(stopPromises);
 };
