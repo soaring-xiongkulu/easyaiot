@@ -226,11 +226,7 @@ def _start_search():
 
     scheduler.add_job(refresh_camera, 'interval', seconds=os.getenv('CAMERA_DISCOVER_INTERVAL', 120))
     logger.info('设备发现服务已启动，间隔: %d秒', os.getenv('CAMERA_DISCOVER_INTERVAL', 120))
-
-    # 在启动搜索服务时初始化所有摄像头
     _init_all_cameras()
-
-    # 确保在线监控也被初始化
     _add_online_monitor()
 
 
