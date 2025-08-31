@@ -301,7 +301,7 @@ def register_camera(register_info: dict) -> str:
         name=register_info.get('name', f'Camera-{id[:6]}'),
         source=camera_info.get('source'),
         rtmp_stream=f"rtmp://localhost:1935/live/{id}",
-        http_stream=f"http://localhost:8989/live/{id}/hls.m3u8",
+        http_stream=f"http://localhost:8989/live/{id}.flv",
         stream=register_info.get('stream'),
         ip=camera_info.get('ip'),
         port=camera_info.get('port', 80),
