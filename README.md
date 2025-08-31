@@ -147,15 +147,23 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 ## 📸 截图
 <div>
   <img src=".image/banner/banner1001.png" alt="Screenshot 1" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1009.jpg" alt="Screenshot 2" width="49%">
+  <img src=".image/banner/banner1000.png" alt="Screenshot 1" width="49%">
+</div>
+<div>
+  <img src=".image/banner/banner1009.jpg" alt="Screenshot 1" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1011.jpg" alt="Screenshot 2" width="49%">
 </div>
 <div>
   <img src=".image/banner/banner1006.jpg" alt="Screenshot 3" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1010.jpg" alt="Screenshot 4" width="49%">
+  <img src=".image/banner/banner1012.jpg" alt="Screenshot 2" width="49%">
 </div>
 <div>
   <img src=".image/banner/banner1015.png" alt="Screenshot 5" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1016.jpg" alt="Screenshot 6" width="49%">
+  <img src=".image/banner/banner1010.jpg" alt="Screenshot 3" width="49%">
+</div>
+<div>
+  <img src=".image/banner/banner1016.jpg" alt="Screenshot 6" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1027.png" alt="Screenshot 2" width="49%">
 </div>
 <div>
   <img src=".image/banner/banner1007.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
