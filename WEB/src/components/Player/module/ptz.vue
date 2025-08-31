@@ -1,23 +1,23 @@
 <template>
   <div class="ptz-wrapper" style="display: flex; justify-content: space-around;">
     <div class="control-wrapper">
-      <div class="control-btn control-top" @mousedown="ptzCamera('up')"
-           @mouseup="ptzCamera('stop')">
+      <div class="control-btn control-top" @mousedown="ptzCamera('UP')"
+           @mouseup="ptzCamera('STOP')">
         <Icon icon="material-symbols:arrows-more-up-rounded"/>
         <div class="control-inner-btn control-inner"></div>
       </div>
-      <div class="control-btn control-left" @mousedown="ptzCamera('left')"
-           @mouseup="ptzCamera('stop')">
+      <div class="control-btn control-left" @mousedown="ptzCamera('LEFT')"
+           @mouseup="ptzCamera('STOP')">
         <Icon icon="material-symbols:arrows-more-down"/>
         <div class="control-inner-btn control-inner"></div>
       </div>
-      <div class="control-btn control-bottom" @mousedown="ptzCamera('down')"
-           @mouseup="ptzCamera('stop')">
+      <div class="control-btn control-bottom" @mousedown="ptzCamera('DOWN')"
+           @mouseup="ptzCamera('STOP')">
         <Icon icon="material-symbols:arrows-more-up-rounded"/>
         <div class="control-inner-btn control-inner"></div>
       </div>
-      <div class="control-btn control-right" @mousedown="ptzCamera('right')"
-           @mouseup="ptzCamera('stop')">
+      <div class="control-btn control-right" @mousedown="ptzCamera('RIGHT')"
+           @mouseup="ptzCamera('STOP')">
         <Icon icon="material-symbols:arrows-more-up-rounded"/>
         <div class="control-inner-btn control-inner"></div>
       </div>

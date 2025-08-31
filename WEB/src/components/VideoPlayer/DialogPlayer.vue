@@ -163,7 +163,6 @@ const handlePtzCamera = (command: string, speed: number) => {
     ZOOM_IN:  { x: 0, y: 0, z: speed },
     ZOOM_OUT: { x: 0, y: 0, z: -speed }
   };
-
   // 停止指令（松开按钮时发送）
   if (command === 'STOP') {
     controlPTZ(state.deviceId, { x: 0, y: 0, z: 0 });
