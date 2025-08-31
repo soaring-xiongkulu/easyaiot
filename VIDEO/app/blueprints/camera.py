@@ -52,12 +52,12 @@ class FFmpegDaemon:
                 ffmpeg_cmd = [
                     'ffmpeg',
                     '-rtsp_transport', 'tcp',
-                    '-i', f"'{device.source}'",  # 直接使用路径
+                    '-i', device.source,  # 直接使用路径
                     '-an',  # 禁用音频
                     '-c:v', 'libx264',
                     '-b:v', '512k',
                     '-f', 'flv',
-                    f"'{device.rtmp_stream}'"  # 直接使用路径
+                    f'{device.rtmp_stream}'
                 ]
 
                 # 启动进程并捕获错误流
@@ -74,15 +74,12 @@ class FFmpegDaemon:
                     line = self.process.stderr.readline()
                     if not line:
                         break
-                    logger.debug(f"[FFmpeg:{self.device_id}] {line.decode().strip()}")
+                    logger.info(f"[FFmpeg:{self.device_id}] {line.decode().strip()}")
 
                 # 进程结束后处理
                 return_code = self.process.wait()
                 if return_code != 0:
                     logger.error(f"FFmpeg异常退出，返回码: {return_code}，设备: {self.device_id}")
-                    # 针对254错误码专项处理（常见于输入流无效）
-                    if return_code == 254:
-                        logger.error("错误码254可能原因：输入流无效/权限不足/编码器缺失")
 
                 # 按需重启
                 if not self._running:
