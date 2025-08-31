@@ -101,9 +101,9 @@ import {reactive, ref} from "vue";
 import {Select, TabPane, Tabs} from 'ant-design-vue';
 import Jessibuca from "@/components/Player/module/jessibuca.vue";
 import Ptz from "@/components/Player/module/ptz.vue";
-import {play, ptzCamera} from "@/api/device/video";
 import {copyText} from "@/utils/copyTextToClipboard";
 import {useMessage} from "@/hooks/web/useMessage";
+import {controlPTZ} from "@/api/device/camera";
 
 const {createMessage} = useMessage()
 
@@ -126,7 +126,6 @@ const state = reactive({
   mediaType: 'flv',
   videoUrlList: [{label: 'flv', value: "1"}],
   deviceId: '',
-  channelId: '',
   activeKey: 'info',
   playerOptions: {
     aspectRatio: '16:5',
@@ -137,32 +136,13 @@ const state = reactive({
   },
 })
 
-const [register, {closeModal}] = useModalInner((data) => {
-  const {deviceId, channelId} = data;
-  state.deviceId = deviceId;
-  state.channelId = channelId;
-  play(deviceId, channelId).then((data) => {
-    state.currentUrl = data['flv'];
-    state.iframeUrl = "<iframe src=\"" + data['flv'] + "\"></iframe>"
-    state.videoUrlList = [
-      {label: 'flv', value: data['flv']},
-      {label: 'ws_flv', value: data['ws_flv']},
-      {label: 'fmp4', value: data['fmp4']},
-      {label: 'https_fmp4', value: data['https_fmp4']},
-      {label: 'ws_fmp4', value: data['ws_fmp4']},
-      {label: 'wss_fmp4', value: data['wss_fmp4']},
-      {label: 'https_hls', value: data['https_hls']},
-      {label: 'ws_hls', value: data['ws_hls']},
-      {label: 'wss_hls', value: data['wss_hls']},
-      {label: 'ts', value: data['ts']},
-      {label: 'https_ts', value: data['https_ts']},
-      {label: 'ws_ts', value: data['ws_ts']},
-      {label: 'rtmp', value: data['rtmp']},
-      {label: 'rtsp', value: data['rtsp']},
-      {label: 'rtc', value: data['rtc']},
-      {label: 'rtcs', value: data['rtcs']},
-    ];
-  });
+const [register, {closeModal}] = useModalInner((record) => {
+  state.deviceId = record['id'];
+  state.currentUrl = record['http_stream'];
+  state.iframeUrl = "<iframe src=\"" + record['http_stream'] + "\"></iframe>"
+  state.videoUrlList = [
+    {label: 'http_stream', value: record['http_stream']}
+  ];
 });
 
 const handleChange = (value: string) => {
@@ -174,12 +154,22 @@ const handleCopy = (value: string) => {
 };
 
 const handlePtzCamera = (command: string, speed: number) => {
-  ptzCamera(
-    state.deviceId,
-    state.channelId,
-    command,
-    speed
-  );
+  // 方向指令映射为坐标
+  const directionMap = {
+    UP:    { x: 0, y: speed, z: 0 },
+    DOWN:  { x: 0, y: -speed, z: 0 },
+    LEFT:  { x: -speed, y: 0, z: 0 },
+    RIGHT: { x: speed, y: 0, z: 0 },
+    ZOOM_IN:  { x: 0, y: 0, z: speed },
+    ZOOM_OUT: { x: 0, y: 0, z: -speed }
+  };
+
+  // 停止指令（松开按钮时发送）
+  if (command === 'STOP') {
+    controlPTZ(state.deviceId, { x: 0, y: 0, z: 0 });
+  } else if (directionMap[command]) {
+    controlPTZ(state.deviceId, directionMap[command]);
+  }
 }
 
 function handleCancel() {

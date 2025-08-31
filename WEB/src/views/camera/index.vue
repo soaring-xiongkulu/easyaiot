@@ -50,7 +50,8 @@
         </template>
       </template>
     </BasicTable>
-    <RtmpPlayModal @register="registerRtmpPlayModal" @success="handleSuccess"/>
+    <DialogPlayer title="视频播放" @register="registerPlayerAddModel"
+                  @success="handlePlayerSuccess"/>
     <VideoModal @register="registerAddModel" @success="handleSuccess"/>
   </div>
 </template>
@@ -78,16 +79,12 @@ import {
   SyncOutlined,
   VideoCameraAddOutlined
 } from '@ant-design/icons-vue';
-import RtmpPlayModal from "@/views/camera/RtmpPlayModal/index.vue";
+import DialogPlayer from "@/components/VideoPlayer/DialogPlayer.vue";
 
 const {createMessage} = useMessage();
 const [registerAddModel, {openModal}] = useModal();
 
-const [registerRtmpPlayModal, {openModal: openRtmpPlayModal}] = useModal();
-
-// 当前流信息
-const currentStreamUrl = ref('');
-const currentStreamTitle = ref('');
+const [registerPlayerAddModel, {openModal: openPlayerAddModel}] = useModal();
 
 // 设备流状态映射
 const deviceStreamStatuses = ref<Record<string, string>>({});
@@ -260,6 +257,10 @@ const handleEnableRtsp = async (record) => {
   }
 };
 
+// 表格刷新
+function handlePlayerSuccess() {
+}
+
 // 停止RTSP转发
 const handleDisableRtsp = async (record) => {
   try {
@@ -285,7 +286,7 @@ const handleDisableRtsp = async (record) => {
 
 //播放RTMP
 function handlePlay(record) {
-  openRtmpPlayModal(true, {isEdit: true, isView: false, record})
+  openPlayerAddModel(true, record)
 }
 
 async function handleCopy(text: string) {
