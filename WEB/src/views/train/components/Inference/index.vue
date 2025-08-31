@@ -175,8 +175,8 @@
 import { ref, reactive, onMounted } from 'vue';
 import { UploadOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
-import { getProjects } from '@/api/project';
-import { runInference } from '@/api/inference';
+import { getModelPage } from '@/api/device/model';
+import { runInference } from '@/api/device/model';
 
 // 响应式状态
 const projects = ref([]);
@@ -203,7 +203,7 @@ const formState = reactive({
 // 加载项目列表
 const fetchProjects = async () => {
   try {
-    const response = await getProjects();
+    const response = await getModelPage();
     projects.value = response.data;
     if (projects.value.length > 0) {
       formState.projectId = projects.value[0].id;
