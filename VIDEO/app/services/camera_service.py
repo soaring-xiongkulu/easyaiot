@@ -23,6 +23,10 @@ logger = logging.getLogger(__name__)
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 scheduler = BackgroundScheduler(timezone=tzlocal.get_localzone_name())
 
+# 全局PTZ指令队列与锁
+ptz_queues = {}
+ptz_queue_locks = {}
+
 def _get_onvif_camera(id: str) -> OnvifCamera:
     """获取缓存的ONVIF相机对象或创建新连接"""
     if id in _onvif_cameras:
@@ -414,34 +418,6 @@ def delete_camera(id: str):
     except Exception as e:
         db.session.rollback()
         raise RuntimeError(f'删除设备失败: {str(e)}')
-
-
-def move_camera_ptz(id: str, pars: dict):
-    """控制PTZ"""
-    onvif_cam = _get_onvif_camera(id)
-    translation = (pars.get('x', 0), pars.get('y', 0), pars.get('z', 0))
-
-    def move():
-        onvif_cam.move(translation)
-
-    # 使用 ThreadPoolExecutor 实现超时控制
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(move)
-        try:
-            future.result(timeout=1)
-            logger.debug(f'设备 {id} PTZ控制指令已发送: {translation}')
-        except concurrent.futures.TimeoutError:
-            try:
-                onvif_cam = _update_onvif_camera(id)
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as retry_executor:
-                    retry_future = retry_executor.submit(move)
-                    retry_future.result(timeout=1)
-                logger.warning(f'设备 {id} PTZ控制超时，已重新连接并重试')
-            except Exception as e:
-                raise RuntimeError(f'PTZ重试失败: {str(e)}')
-        except Exception as e:
-            raise RuntimeError(f'PTZ控制失败: {str(e)}')
-
 
 def get_snapshot_uri(ip: str, port: int, username: str, password: str) -> str:
     """

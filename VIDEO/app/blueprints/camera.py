@@ -1,23 +1,22 @@
 import datetime
 import io
-import logging
 import subprocess
 import threading
-import time
 import uuid
 from operator import or_
+from typing import Optional
 
 import cv2
 import numpy as np
 import requests
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from minio import Minio
 from minio.error import S3Error
 
 from app.services.camera_service import *
 from app.services.camera_service import (
     register_camera, get_camera_info, update_camera, delete_camera,
-    move_camera_ptz, search_camera,
+    search_camera,
     get_snapshot_uri, refresh_camera, _to_dict
 )
 from models import Device, db, Image
@@ -34,6 +33,7 @@ onvif_tasks = {}
 ffmpeg_processes = {}
 ffmpeg_lock = threading.Lock()
 
+
 class FFmpegDaemon:
     """FFmpeg进程守护线程（支持自动重启）"""
 
@@ -46,6 +46,7 @@ class FFmpegDaemon:
 
     def start_daemon(self):
         device = Device.query.get(self.device_id)
+
         def daemon_task():
             while self._running:
                 # 关键修复：移除路径引号
@@ -170,6 +171,7 @@ def stop_ffmpeg_stream(device_id):
     except Exception as e:
         logger.error(f"停止失败: {str(e)}", exc_info=True)
         return jsonify({'code': 500, 'msg': f'停止失败: {str(e)}'}), 500
+
 
 # ------------------------- 设备管理接口 -------------------------
 @camera_bp.route('/list', methods=['GET'])
@@ -303,22 +305,72 @@ def delete_device(device_id):
 
 
 # ------------------------- PTZ控制接口 -------------------------
-@camera_bp.route('/device/<string:device_id>/ptz', methods=['POST'])
-def control_ptz(device_id):
-    """控制摄像头PTZ"""
+@camera_bp.route('/device/<device_id>/ptz', methods=['POST'])
+def control_ptz(device_id: str):
+    """
+    处理PTZ控制请求
+    Args:
+        device_id: 设备标识符
+    Request Body:
+        {x: number, y: number, z: number} - PTZ移动向量
+    """
     try:
+        # 解析请求数据
         data = request.get_json()
-        move_camera_ptz(device_id, data)
-        return jsonify({
-            'code': 0,
-            'msg': 'PTZ指令已发送'
-        })
-    except ValueError as e:
-        logger.error(f'控制摄像头PTZ失败: {str(e)}')
-        return jsonify({'code': 404, 'msg': str(e)}), 404
-    except RuntimeError as e:
-        logger.error(f'控制摄像头PTZ失败: {str(e)}')
-        return jsonify({'code': 500, 'msg': str(e)}), 500
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        # 提取移动向量
+        x = data.get('x', 0.0)
+        y = data.get('y', 0.0)
+        z = data.get('z', 0.0)
+
+        # 验证参数类型
+        if not all(isinstance(v, (int, float)) for v in [x, y, z]):
+            return jsonify({'error': 'Invalid parameter types'}), 400
+
+        # 根据device_id获取相机实例
+        camera = get_camera_by_id(device_id)  # 您需要实现这个函数
+
+        if not camera:
+            return jsonify({'error': 'Camera not found'}), 404
+
+        # 执行PTZ移动
+        camera.move((x, y, z))
+
+        return jsonify({'success': True, 'message': 'PTZ command executed'})
+
+    except Exception as e:
+        logger.error(f"PTZ control error: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+def get_camera_by_id(device_id: str) -> Optional[OnvifCamera]:
+    """
+    根据设备ID获取OnvifCamera实例
+    """
+    try:
+        # 从数据库获取设备信息
+        device = Device.query.get(device_id)
+        if not device:
+            logger.error(f"设备 {device_id} 不存在")
+            return None
+
+        # 检查设备是否有必要的连接信息
+        if not all([device.ip, device.port, device.username, device.password]):
+            logger.error(f"设备 {device_id} 缺少连接信息")
+            return None
+
+        # 创建OnvifCamera实例
+        return OnvifCamera(
+            ip=device.ip,
+            port=device.port,
+            username=device.username,
+            password=device.password
+        )
+    except Exception as e:
+        logger.error(f"创建相机实例失败: {str(e)}")
+        return None
 
 
 # ------------------------- MinIO上传服务 -------------------------
@@ -624,6 +676,7 @@ def refresh_devices():
         logger.error(f'设备刷新失败: {str(e)}')
         return jsonify({'code': 500, 'msg': '设备刷新失败'}), 500
 
+
 @camera_bp.route('/callback/on_publish', methods=['POST'])
 def on_publish_callback():
     try:
@@ -631,7 +684,9 @@ def on_publish_callback():
             'code': 0,
             'msg': None
         })
-    except: pass
+    except:
+        pass
+
 
 @camera_bp.route('/callback/on_dvr', methods=['POST'])
 def on_dvr_callback():
@@ -640,4 +695,5 @@ def on_dvr_callback():
             'code': 0,
             'msg': None
         })
-    except: pass
+    except:
+        pass
