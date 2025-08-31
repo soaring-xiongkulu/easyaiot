@@ -113,7 +113,7 @@ export const controlPTZ = (device_id: string, data: {
   y: number;
   z: number;
 }) => {
-  return commonApi('post', `${CAMERA_PREFIX}/device/${device_id}/ptz`, data);
+  return commonApi('post', `${CAMERA_PREFIX}/device/${device_id}/ptz`, data, {}, false);
 };
 
 // ====================== 截图任务接口 ======================
