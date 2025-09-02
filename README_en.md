@@ -10,7 +10,7 @@
 
 ## 🌟 Some Thoughts on the Project
 
-### Project Positioning: Supports high-concurrency inference, capture, analysis, alerting, and storage for a large number of cameras. Leverages Kubernetes-native cloud programming to achieve GPU pooling/slicing, model quantization, custom operators, and clustered deployment of AI services (supporting both vision and text tasks).
+#### Project Positioning: Supports access, inference, collection, analysis, alerting, storage, annotation, and deployment for less than a hundred cameras (supporting RTSP streams, video, images, text, audio, etc.)
 
 #### Note: For connecting hundreds of thousands to millions of cameras, please refer to the sibling project MegaAIoT. The scale is different, and so are the implementation difficulty and mindset.
 
