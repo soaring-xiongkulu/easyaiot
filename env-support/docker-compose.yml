@@ -1,0 +1,150 @@
+version: "3.8"
+
+services:
+  # Nacos Server
+  Nacos:
+    image: nacos/nacos-server:v2.2.3
+    container_name: nacos-server
+    restart: always
+    ports:
+      - "8848:8848"  # web 界面访问端口
+      - "9848:9848"  # 程序使用 grpc 连接的端口
+      - "9849:9849"  # 程序使用 grpc 连接的端口
+    environment:
+      - TZ=Asia/Shanghai  # 时区
+      - MODE=standalone   # 系统启动方式
+      - PREFER_HOST_MODE=hostname # 支持IP还是域名模式
+      - TOMCAT_ACCESSLOG_ENABLED=false          # 关闭tomcat 请求打印
+      - SPRING_DATASOURCE_PLATFORM=mysql        # 数据库类型：
+      - MYSQL_SERVICE_HOST=postgres-server         # 数据库系统地址
+      - MYSQL_SERVICE_PORT=3306                 # 数据库系统端口
+      - MYSQL_SERVICE_DB_NAME=nacos             # 数据库名称
+      - MYSQL_DATABASE_NUM = 1                  # 数据库编号
+      - MYSQL_SERVICE_USER=postgres             # 数据库用户名
+      - MYSQL_SERVICE_PASSWORD=SmarkWork@2025   # 数据库用户密码
+      - MYSQL_SERVICE_DB_PARAM= "characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+      - NACOS_AUTH_ENABLE=true
+      - NACOS_AUTH_IDENTITY_KEY=nacos2025
+      - NACOS_AUTH_IDENTITY_VALUE=nacos2025
+      - NACOS_AUTH_TOKEN=SecretKey345901234567890126785678901234567890123901234567890123445678
+      - JVM_XMS=512m
+      - JVM_XMX=512m
+      - JVM_XMN=256m
+      - JVM_MS=128m
+      - JVM_MMS=320m
+    volumes:
+      - ./nacos_data/logs:/home/nacos/logs
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8848/nacos/actuator/health" ]
+      interval: 1m30s
+      start_period: 10s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - postgres-server
+
+  # PostgresSQL Server
+  PostgresSQL:
+    image: postgres:16.10
+    container_name: postgres-server
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - TZ=Asia/Shanghai
+      - POSTGRES_PASSWORD=SmarkWork@2025
+    volumes:
+      - ./db_data/data:/var/lib/postgresql/data
+      - ./db_data/log:/var/log/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 5
+
+  # TDengine Server
+  TDengine:
+    image: tdengine/tdengine:3.3.0.0
+    container_name: tdengine-server
+    privileged: true
+    restart: always
+    ports:
+      - "6030:6030"
+      - "6041:6041"
+      - "6060:6060"
+      - "6043-6049:6043-6049/tcp"
+      - "6043-6049:6043-6049/udp"
+    volumes:
+      - './taos_data/data:/var/lib/taos'
+      - './taos_data/log:/var/log/taos'
+
+  # Redis Server
+  Redis:
+    image: redis:7.2.9
+    container_name: redis-server
+    restart: always
+    privileged: true
+    ports:
+      - "6379:6379"
+    environment:
+      - TZ=Asia/Shanghai
+    command: redis-server --save 60 1000 --loglevel warning --appendonly yes --requirepass SmarkWork@2025
+    volumes:
+      - './redis_data/data:/data'
+      - './redis_data/logs:/logs'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20M"
+        max-file: "10"
+
+  # kafka
+  Kafka:
+    image: apache/kafka:3.8.0
+    container_name: kafka-server
+    restart: always
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://localhost:9092'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker:29093'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: 1
+      CLUSTER_ID: '4L6g3nShT-eMCtK--X86sw'
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_DIRS: '/var/lib/kafka/data'
+    volumes:
+      - ./mq_data/data:/var/lib/kafka/data
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: "Local"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:9092"
+
+
+# 磁盘挂载
+volumes:
+  nacos_data:
+    driver: local
+  db_data:
+    driver: local
+  taos_data:
+    driver: local
+  redis_data:
+    driver: local
+  mq_data:
+    driver: local
