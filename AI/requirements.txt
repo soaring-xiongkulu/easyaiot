@@ -3,8 +3,6 @@ Flask==2.3.2
 Flask-SQLAlchemy==3.0.5
 # 模型处理get_logger
 ultralytics==8.0.113
-# RKNN转换核心库
-rknn_toolkit2==2.3.2
 # 图像处理
 opencv-python==4.8.0.74
 Pillow==10.0.0

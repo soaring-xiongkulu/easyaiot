@@ -120,7 +120,7 @@ def create_app():
         nacos_server = os.getenv('NACOS_SERVER', 'iot.basiclab.top:8848')
         namespace = os.getenv('NACOS_NAMESPACE', 'local')
         service_name = os.getenv('SERVICE_NAME', 'model-server')
-        port = int(os.getenv('FLASK_RUN_PORT', 5000))
+        port = int(os.getenv('FLASK_RUN_PORT', 5500))
         username = os.getenv('NACOS_USERNAME', 'nacos')
         password = os.getenv('NACOS_PASSWORD', 'basiclab@iot78475418754')
 
@@ -187,7 +187,7 @@ def create_app():
 
                 # 注销服务实例
                 service_name = os.getenv('SERVICE_NAME', 'model-server')
-                port = int(os.getenv('FLASK_RUN_PORT', 5000))
+                port = int(os.getenv('FLASK_RUN_PORT', 5500))
                 app.nacos_client.remove_naming_instance(
                     service_name=service_name,
                     ip=app.registered_ip,
@@ -215,4 +215,4 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5500)
