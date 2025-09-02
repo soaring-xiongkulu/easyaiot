@@ -398,8 +398,6 @@ def ota_check():
 
 
 def select_model_format(model, device_type):
-    if device_type == 'npu' and model.rknn_model_path:
-        return model.rknn_model_path
     if device_type == 'gpu' and model.tensorrt_model_path:
         return model.tensorrt_model_path
     if model.onnx_model_path:

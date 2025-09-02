@@ -18,7 +18,6 @@ class Model(db.Model):
     torchscript_model_path = db.Column(db.String(500))
     tensorrt_model_path = db.Column(db.String(500))
     openvino_model_path = db.Column(db.String(500))
-    rknn_model_path = db.Column(db.String(500))
 
     # 关系定义
     train_tasks = db.relationship(

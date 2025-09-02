@@ -5,12 +5,10 @@ import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-
 from flask import Blueprint, jsonify, current_app, url_for, send_file, request
 from ultralytics import YOLO
 
 from app.services.minio_service import ModelService
-from app.services.rknn_export import SUPPORTED_FORMATS, RknnExporter
 from models import db, Model, ExportRecord, TrainTask
 
 export_bp = Blueprint('export', __name__)
@@ -27,9 +25,16 @@ EXPORT_STATUS = {
     'FAILED': '失败'
 }
 
+SUPPORTED_FORMATS = {
+    'onnx': {'ext': '.onnx', 'mime': 'application/octet-stream'},
+    'torchscript': {'ext': '.torchscript', 'mime': 'application/octet-stream'},
+    'tensorrt': {'ext': '.engine', 'mime': 'application/octet-stream'},
+    'openvino': {'ext': '_openvino_model/', 'mime': 'application/octet-stream'},
+    'rknn': {'ext': '.rknn', 'mime': 'application/octet-stream'}  # 新增RKNN格式
+}
+
 # 导出任务队列
 export_tasks = {}
-
 
 @export_bp.route('/<int:model_id>/export/<format>', methods=['POST'])
 def api_export_model(model_id, format):
@@ -211,8 +216,6 @@ def process_export_async(model_id, format, rknn_config, export_id, task_id):
                 model_record.tensorrt_model_path = minio_export_path
             elif format == 'openvino':
                 model_record.openvino_model_path = minio_export_path
-            elif format == 'rknn':
-                model_record.rknn_model_path = minio_export_path
 
             db.session.commit()
 
