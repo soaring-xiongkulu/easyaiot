@@ -10,7 +10,7 @@
 
 ## 🌟 Some Thoughts on the Project
 
-#### Project Positioning: Supports access, inference, collection, analysis, alerting, storage, annotation, and deployment for less than a hundred cameras (supporting RTSP streams, video, images, text, audio, etc.)
+#### Project Positioning: Supports access, inference, collection, analysis, alerting, recording, storage, annotation, and deployment for hundreds of cameras or fewer (supports RTSP streams, videos, images, etc.)
 
 ### I believe no single programming language excels at everything, but a combination of three languages would make EasyAIoT unbeatable—and it just so happens that I possess this exact trait.
 
