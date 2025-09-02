@@ -312,10 +312,6 @@ function handleRegisterSuccess(value) {
     createMessage.error('IP地址不能为空');
     return;
   }
-  if (mac == null || mac === '') {
-    createMessage.error('MAC地址不能为空');
-    return;
-  }
   if (name == null || name === '') {
     createMessage.error('设备名称不能为空');
     return;
