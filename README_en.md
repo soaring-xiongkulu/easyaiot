@@ -12,6 +12,8 @@
 
 ### Project Positioning: Supports high-concurrency inference, capture, analysis, alerting, and storage for a large number of cameras. Leverages Kubernetes-native cloud programming to achieve GPU pooling/slicing, model quantization, custom operators, and clustered deployment of AI services (supporting both vision and text tasks).
 
+#### Note: For connecting hundreds of thousands to millions of cameras, please refer to the sibling project MegaAIoT. The scale is different, and so are the implementation difficulty and mindset.
+
 ### I believe no single programming language excels at everything, but a combination of three languages would make EasyAIoT unbeatable—and it just so happens that I possess this exact trait.
 
 ### Java is suitable for platform development but not ideal for network programming or AI tasks. Python excels in network and AI programming but falls short in high-performance execution. C++ is great for high-performance execution but lacks strengths in the other two areas. The vision for EasyAIoT is to blend these three languages into one integrated system, building an AIoT platform that may be challenging to implement—but incredibly easy to use.
