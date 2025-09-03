@@ -8,6 +8,8 @@ spring:
         namespace: local # 命名空间。这里使用 dev 开发环境
         metadata:
           version: 1.0.0 # 服务实例的版本号，可用于灰度发布
+        username: nacos
+        password: basiclab@iot78475418754
 
 --- #################### 配置中心相关配置 ####################
 
@@ -21,3 +23,5 @@ spring:
         group: DEFAULT_GROUP # 使用的 Nacos 配置分组，默认为 DEFAULT_GROUP
         name: ${spring.application.name} # 使用的 Nacos 配置集的 dataId，默认为 spring.application.name
         file-extension: yaml # 使用的 Nacos 配置集的 dataId 的文件拓展名，同时也是 Nacos 配置集的配置格式，默认为 properties
+        username: nacos
+        password: basiclab@iot78475418754
