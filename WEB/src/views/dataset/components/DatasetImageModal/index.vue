@@ -18,6 +18,7 @@
           <!-- 文件上传区域 -->
           <FormItem :label="uploadLabel" required>
             <Upload
+              :action="state.updateUrl"
               v-model:file-list="state.fileList"
               :before-upload="beforeUpload"
               :accept="acceptType"
@@ -51,12 +52,16 @@ import {Button, Checkbox, Form, FormItem, InputNumber, message, Spin, Upload} fr
 import {UploadOutlined} from '@ant-design/icons-vue';
 import {useMessage} from '@/hooks/web/useMessage';
 import {uploadDatasetImage} from '@/api/device/dataset';
+import {useGlobSetting} from "@/hooks/setting";
 
 defineOptions({name: 'DatasetImageModal'});
 
 const {createMessage} = useMessage();
 
+const {uploadUrl} = useGlobSetting();
+
 const state = reactive({
+  updateUrl: `${uploadUrl}/dataset/image/upload-file`,
   datasetId: null as number | null,
   isImage: false,
   isZip: false,

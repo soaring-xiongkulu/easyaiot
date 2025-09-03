@@ -14,6 +14,7 @@ import com.basiclab.iot.dataset.domain.dataset.vo.DatasetImageSaveReqVO;
 import com.basiclab.iot.dataset.domain.dataset.vo.DatasetTagPageReqVO;
 import com.basiclab.iot.dataset.service.DatasetImageService;
 import com.basiclab.iot.dataset.service.DatasetTagService;
+import com.basiclab.iot.file.RemoteFileService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
@@ -69,6 +70,9 @@ public class DatasetImageServiceImpl implements DatasetImageService {
 
     @Resource
     private DatasetTagService datasetTagService;
+
+    @Resource
+    private RemoteFileService remoteFileService;
 
     @Resource
     private MinioClient minioClient;
@@ -541,6 +545,14 @@ public class DatasetImageServiceImpl implements DatasetImageService {
             logger.error("文件上传处理失败: {}", e.getMessage());
             throw exception(FILE_UPLOAD_FAILED, e.getMessage());
         }
+    }
+
+    /**
+     * 上传文件
+     */
+    @Override
+    public String uploadFile(MultipartFile file) throws Exception {
+        return remoteFileService.upload(file).getData().getUrl();
     }
 
     /**

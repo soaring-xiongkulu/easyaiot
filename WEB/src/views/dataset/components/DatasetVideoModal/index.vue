@@ -80,7 +80,7 @@ const headers = ref({'Authorization': `Bearer ${token}`});
 const {uploadUrl} = useGlobSetting();
 
 const state = reactive({
-  updateUrl: `${uploadUrl}/packages/upload-package`,
+  updateUrl: `${uploadUrl}/dataset/image/upload-file`,
   record: null,
   isView: false,
   isEdit: false,
