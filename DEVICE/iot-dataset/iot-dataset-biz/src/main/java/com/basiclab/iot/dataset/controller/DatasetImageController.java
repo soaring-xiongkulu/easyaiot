@@ -1,9 +1,6 @@
 package com.basiclab.iot.dataset.controller;
 
-import com.basiclab.iot.common.domain.AjaxResult;
-import com.basiclab.iot.common.domain.CommonResult;
-import com.basiclab.iot.common.domain.PageParam;
-import com.basiclab.iot.common.domain.PageResult;
+import com.basiclab.iot.common.domain.*;
 import com.basiclab.iot.common.excels.core.util.ExcelUtils;
 import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.dataset.dal.dataobject.DatasetImageDO;
@@ -11,6 +8,7 @@ import com.basiclab.iot.dataset.domain.dataset.vo.DatasetImagePageReqVO;
 import com.basiclab.iot.dataset.domain.dataset.vo.DatasetImageRespVO;
 import com.basiclab.iot.dataset.domain.dataset.vo.DatasetImageSaveReqVO;
 import com.basiclab.iot.dataset.service.DatasetImageService;
+import io.swagger.annotations.ApiOperation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -52,11 +50,11 @@ public class DatasetImageController {
         return success(true);
     }
 
-    @DeleteMapping("/delete")
+    @DeleteMapping("/delete/{id}")
     @Operation(summary = "删除图片数据集")
     @Parameter(name = "id", description = "编号", required = true)
     //@PreAuthorize("@ss.hasPermission('dataset:image:delete')")
-    public CommonResult<Boolean> deleteDatasetImage(@RequestParam("id") Long id) {
+    public CommonResult<Boolean> deleteDatasetImage(@PathVariable("id") Long id) {
         datasetImageService.deleteDatasetImage(id);
         return success(true);
     }
@@ -131,6 +129,16 @@ public class DatasetImageController {
         // 调用服务层处理上传
         datasetImageService.processUpload(file, datasetId, isZip);
         return CommonResult.success(true);
+    }
+
+    @PostMapping("/upload-file")
+    @ApiOperation("上传数据集文件")
+    R<String> uploadFile(@RequestPart("file") MultipartFile file) {
+        try {
+            return R.ok(datasetImageService.uploadFile(file), "上传数据集文件成功");
+        } catch (Exception e) {
+            return R.fail("上传数据集文件失败");
+        }
     }
 
     @GetMapping("/{datasetId}/check-sync-condition")

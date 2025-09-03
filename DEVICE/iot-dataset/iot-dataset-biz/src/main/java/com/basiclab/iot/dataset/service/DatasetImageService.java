@@ -88,6 +88,17 @@ public interface DatasetImageService {
      */
     void processUpload(MultipartFile file, Long datasetId, Boolean isZip);
 
+
+    /**
+     * 上传文件
+     *
+     * @param file
+     * @return
+     * @throws Exception
+     */
+    String uploadFile(MultipartFile file) throws Exception;
+
+
     /**
      * 检查数据集同步条件
      *

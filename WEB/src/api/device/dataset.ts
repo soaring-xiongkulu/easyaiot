@@ -98,8 +98,8 @@ export const updateDatasetImage = (params) => {
   return commonApi('put', Api.DatasetImage + '/update', {params});
 };
 
-export const deleteDatasetImage = (params) => {
-  return commonApi('delete', Api.DatasetImage + '/delete', {params});
+export const deleteDatasetImage = (id) => {
+  return commonApi('delete', `${Api.DatasetImage}/delete/${id}`);
 };
 
 export const deleteDatasetImages = (ids) => {
