@@ -68,7 +68,7 @@ public interface AuthConvert {
                         childNode.getId(), childNode.getParentId());
                 return;
             }
-juan            // 将自己添加到父节点中
+            // 将自己添加到父节点中
             if (parentNode.getChildren() == null) {
                 parentNode.setChildren(new ArrayList<>());
             }
