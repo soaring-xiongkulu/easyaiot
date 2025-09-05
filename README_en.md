@@ -12,7 +12,7 @@
 
 #### Project Positioning: Supports access, inference, collection, analysis, alerting, recording, storage, annotation, and deployment for hundreds of cameras or fewer (supports RTSP streams, videos, images, etc.). 
 
-#### For scenarios involving more than hundreds of cameras, technologies such as Kubernetes cloud-native programming, NVIDIA GPU encoding/decoding acceleration, and RK3588 NPU acceleration are required. These would significantly increase the complexity of the open-source project and contradict the open-source philosophy. Therefore, scenarios with more than hundreds of cameras are addressed in the sister project MegAIoT + ModSquare Open Platform. The purpose of this separation is to isolate the infrastructure platform from vertical industry solutions, achieving deployment within 5 minutes and customization within 1 hour.
+#### Note: Accessing over a hundred cameras requires technologies such as Kubernetes cloud-native programming, NVIDIA GPU encoding/decoding acceleration, and RK3588 NPU acceleration. These significantly increase the complexity of the open-source project, which goes against the principles of open-source. Therefore, scenarios involving over a hundred cameras are placed in the sister project MegAIoT + Modu Open Platform. The purpose of this separation is to decouple the infrastructure platform from vertical domain solutions, achieving deployment in 5 minutes and customization within 1 hour.
 
 ### I believe no single programming language excels at everything, but a combination of three languages would make EasyAIoT unbeatable—and it just so happens that I possess this exact trait.
 
