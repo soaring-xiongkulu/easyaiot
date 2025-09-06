@@ -49,17 +49,6 @@ check_system() {
     success_log "系统环境检查完成"
 }
 
-# 更新系统包列表
-update_system() {
-    log "更新系统包列表..."
-    apt-get update -qq >> "$LOG_FILE" 2>&1
-    if [ $? -eq 0 ]; then
-        success_log "系统包列表更新完成"
-    else
-        error_log "系统包列表更新失败"
-    fi
-}
-
 # 安装基础编译工具
 install_build_tools() {
     log "安装基础编译工具..."
@@ -305,7 +294,6 @@ main() {
 
     # 执行安装步骤
     check_system
-    update_system
     install_build_tools
     install_opencv_deps
     install_mqtt_deps
