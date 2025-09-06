@@ -5,12 +5,16 @@
 #include <map>
 #include <string>
 #include <mutex>
+#include <set>
+#include <chrono>
 
 struct TrackedObject {
     int id;
     cv::Rect bbox;
     std::string label;
     float confidence;
+    // 注意：zone_entries 和 zone_exits 的更新逻辑已移至 BehaviorAnalyzer 内部的状态映射
+    // 此处保留这些映射，以防其他代码依赖它们，但checkZoneEntriesExits不再直接使用它们进行状态判断
     std::map<std::string, int> zone_entries;
     std::map<std::string, int> zone_exits;
     std::map<std::string, float> zone_dwell_times;
@@ -63,6 +67,8 @@ public:
 private:
     std::vector<ZoneConfig> zones_;
     std::map<int, TrackedObject> previous_objects_;
+    // 新增：内部状态，用于跟踪每个对象在每个区域的当前状态（true:在区域内, false:在区域外）
+    std::map<int, std::map<std::string, bool>> object_zone_status_;
     mutable std::mutex analyzer_mutex_;
 
     std::vector<BehaviorEvent> events_;
