@@ -49,6 +49,17 @@ check_system() {
     success_log "系统环境检查完成"
 }
 
+# 更新系统包列表
+update_system() {
+    log "更新系统包列表..."
+    apt update -y >> "$LOG_FILE" 2>&1
+    if [ $? -eq 0 ]; then
+        success_log "系统包列表更新完成"
+    else
+        error_log "系统包列表更新失败"
+    fi
+}
+
 # 安装基础编译工具
 install_build_tools() {
     log "安装基础编译工具..."
@@ -67,7 +78,7 @@ install_build_tools() {
 
     for pkg in "${packages[@]}"; do
         if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-            apt install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
+            apt install -y "$pkg" >> "$LOG_FILE" 2>&1
             success_log "已安装 $pkg"
         else
             log "$pkg 已存在，跳过安装"
@@ -92,7 +103,7 @@ install_opencv_deps() {
 
     for pkg in "${packages[@]}"; do
         if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-            apt install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
+            apt install -y "$pkg" >> "$LOG_FILE" 2>&1
             success_log "已安装 $pkg"
         else
             log "$pkg 已存在，跳过安装"
@@ -112,7 +123,7 @@ install_mqtt_deps() {
 
     for pkg in "${packages[@]}"; do
         if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-            apt install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
+            apt install -y "$pkg" >> "$LOG_FILE" 2>&1
             success_log "已安装 $pkg"
         else
             log "$pkg 已存在，跳过安装"
@@ -135,7 +146,7 @@ install_utils_deps() {
 
     for pkg in "${packages[@]}"; do
         if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-            apt install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
+            apt install -y "$pkg" >> "$LOG_FILE" 2>&1
             success_log "已安装 $pkg"
         else
             log "$pkg 已存在，跳过安装"
@@ -151,7 +162,7 @@ install_minio_deps() {
     if ! dpkg -s "libminio-dev" >/dev/null 2>&1; then
         # 尝试从源码编译安装minio-cpp
         log "尝试安装MinIO C++ SDK..."
-        apt install -y -qq \
+        apt install -y \
             libcurl4-openssl-dev \
             libssl-dev \
             libxml2-dev >> "$LOG_FILE" 2>&1
@@ -170,7 +181,7 @@ install_minio_deps() {
         rm -rf "$temp_dir"
         success_log "MinIO C++ SDK 安装完成"
     else
-        apt install -y -qq libminio-dev >> "$LOG_FILE" 2>&1
+        apt install -y libminio-dev >> "$LOG_FILE" 2>&1
         success_log "MinIO依赖安装完成"
     fi
 }
@@ -190,7 +201,7 @@ install_video_deps() {
 
     for pkg in "${packages[@]}"; do
         if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-            apt install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
+            apt install -y "$pkg" >> "$LOG_FILE" 2>&1
             success_log "已安装 $pkg"
         else
             log "$pkg 已存在，跳过安装"
@@ -213,7 +224,7 @@ install_debug_tools() {
 
     for pkg in "${packages[@]}"; do
         if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-            apt install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
+            apt install -y "$pkg" >> "$LOG_FILE" 2>&1
             success_log "已安装 $pkg"
         else
             log "$pkg 已存在，跳过安装"
@@ -294,6 +305,7 @@ main() {
 
     # 执行安装步骤
     check_system
+    update_system
     install_build_tools
     install_opencv_deps
     install_mqtt_deps
