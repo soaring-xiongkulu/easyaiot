@@ -1,0 +1,50 @@
+{
+  "system": {
+    "log_level": "info",
+    "max_processing_threads": 8,
+    "frame_queue_size": 100,
+    "alert_queue_size": 1000,
+    "data_directory": "/var/lib/smart_surveillance",
+    "max_storage_days": 30
+  },
+  "mqtt": {
+    "enabled": true,
+    "broker_url": "tcp://localhost:1883",
+    "client_id": "surveillance_system",
+    "username": "admin",
+    "password": "password",
+    "qos_level": 1,
+    "retain_messages": true,
+    "topics": {
+      "alerts": "surveillance/alerts",
+      "events": "surveillance/events",
+      "status": "surveillance/status",
+      "control": "surveillance/control"
+    }
+  },
+  "minio": {
+    "enabled": true,
+    "endpoint": "minio.example.com:9000",
+    "access_key": "minioadmin",
+    "secret_key": "minioadmin",
+    "secure": false,
+    "bucket_name": "surveillance-data",
+    "region": "us-east-1",
+    "alert_images_path": "alerts/images",
+    "alert_videos_path": "alerts/videos",
+    "model_storage_path": "models"
+  },
+  "streaming": {
+    "enabled": true,
+    "rtmp_server": "rtmp://localhost:1935/live",
+    "hls_server": "http://localhost:8080/hls",
+    "webrtc_server": "http://localhost:8889/webrtc"
+  },
+  "api": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 8080,
+    "enable_swagger": true,
+    "auth_required": true
+  }
+}
