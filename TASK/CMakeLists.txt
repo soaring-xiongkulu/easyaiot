@@ -8,6 +8,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+find_package(OpenCV REQUIRED)
+find_package(PahoMqttCpp REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(Threads REQUIRED)
+find_package(nlohmann_json REQUIRED)
+
 include_directories(
         /usr/include/
         /usr/local/include
@@ -20,6 +26,19 @@ include_directories(
         ${CMAKE_SOURCE_DIR}/3rdpart/json/single_include/
         ${CMAKE_SOURCE_DIR}/3rdpart/paho/
         /include/
+)
+
+link_directories(
+        /usr/lib/
+        /usr/local/lib/
+        /usr/local/lib64/
+        /usr/local/openssl/lib
+        /data/minio-cpp/build/Debug/
+        /data/minio-cpp/build/Debug/vcpkg_installed/arm64-linux/lib/
+        ${CMAKE_SOURCE_DIR}/3rdpart/object_detect_Alg/lib_ai/
+        ${CMAKE_SOURCE_DIR}/3rdpart/lib/Linux/${LIB_ARCH}/librga.so
+        ${CMAKE_SOURCE_DIR}/3rdpart/rga/${DEVICE_NAME}/lib/Linux/${LIB_ARCH}/
+        ${CMAKE_SOURCE_DIR}/3rdpart/librknn_api/${LIB_ARCH}/
 )
 
 set(SRC_CORE
