@@ -1,7 +1,7 @@
-#include "core/SystemSupervisor.h"
-#include "core/ConfigurationManager.h"
-#include "core/ServiceLocator.h"
-#include "utils/Logger.h"
+#include "SystemSupervisor.h"
+#include "ConfigurationManager.h"
+#include "ServiceLocator.h"
+#include "Logger.h"
 
 #include <iostream>
 #include <csignal>
