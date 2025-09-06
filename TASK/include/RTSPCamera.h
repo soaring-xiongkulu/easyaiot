@@ -1,9 +1,11 @@
 #pragma once
-#include "CameraStreamer.h"
+
+#include "CameraStreamer.h" // 你的基类
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <mutex>
 #include <atomic>
+#include <chrono>
 
 class RTSPCamera : public CameraStreamer {
 public:
@@ -22,7 +24,15 @@ private:
     cv::VideoCapture video_cap;
     mutable std::mutex cap_mutex;
     std::atomic<bool> connected{false};
+    std::atomic<bool> running{false};
     int reconnect_attempts;
+
+    // 视频参数 - 如果在基类中已定义则不需要这里
+    double frame_width;
+    double frame_height;
+    double fps;
+
+    std::chrono::time_point<std::chrono::steady_clock> last_frame_time;
 
     static const int MAX_RECONNECT_ATTEMPTS = 10;
     static const int RECONNECT_DELAY = 5; // seconds
