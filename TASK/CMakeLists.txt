@@ -98,6 +98,19 @@ set(ALL_SRC
         src/utils/TimeUtils.cpp
         src/ai/detectors/PersonDetector.cpp
         src/ai/detectors/VehicleDetector.cpp
+        include/CameraStreamer.h
+        include/USBCamera.h
+        include/ModelDownloader.h
+        include/VideoStorage.h
+        include/LocalStorage.h
+        include/MinIOClient.h
+        include/MQTTClient.h
+        include/Logger.h
+        include/TimeUtils.h
+        include/FileUtils.h
+        include/PersonDetector.h
+        include/VehicleDetector.h
+        src/processing/RegionDetector.cpp
 )
 
 add_executable(smart_surveillance_system ${ALL_SRC})
