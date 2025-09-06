@@ -1,17 +1,21 @@
 #include "FileUtils.h"
 #include <fstream>
+#include <iostream>
 #include <sstream>
+#include <filesystem>
 #include <openssl/md5.h>
+
+namespace fs = std::filesystem;
 
 namespace FileUtils {
 
 bool exists(const std::string& path) {
-    return std::filesystem::exists(path);
+    return fs::exists(path);
 }
 
 bool createDirectory(const std::string& path) {
     try {
-        return std::filesystem::create_directories(path);
+        return fs::create_directories(path);
     } catch (const std::exception& e) {
         std::cerr << "Error creating directory: " << e.what() << std::endl;
         return false;
@@ -24,7 +28,7 @@ std::string readFile(const std::string& path) {
         if (!file.is_open()) {
             throw std::runtime_error("Cannot open file: " + path);
         }
-        
+
         std::stringstream buffer;
         buffer << file.rdbuf();
         return buffer.str();
@@ -36,11 +40,17 @@ std::string readFile(const std::string& path) {
 
 bool writeFile(const std::string& path, const std::string& content) {
     try {
+        // 确保目录存在
+        fs::path filePath(path);
+        if (filePath.has_parent_path()) {
+            createDirectory(filePath.parent_path().string());
+        }
+
         std::ofstream file(path);
         if (!file.is_open()) {
             throw std::runtime_error("Cannot open file for writing: " + path);
         }
-        
+
         file << content;
         file.close();
         return true;
@@ -56,23 +66,28 @@ std::string getFileHash(const std::string& path) {
         if (!file.is_open()) {
             throw std::runtime_error("Cannot open file: " + path);
         }
-        
+
         MD5_CTX md5_context;
         MD5_Init(&md5_context);
-        
+
         char buffer[4096];
         while (file.read(buffer, sizeof(buffer))) {
             MD5_Update(&md5_context, buffer, file.gcount());
         }
-        
+        // 处理最后一块数据
+        if (file.gcount() > 0) {
+            MD5_Update(&md5_context, buffer, file.gcount());
+        }
+
         unsigned char digest[MD5_DIGEST_LENGTH];
         MD5_Final(digest, &md5_context);
-        
-        char md5_string[33];
+
+        char md5_string[MD5_DIGEST_LENGTH * 2 + 1];
         for (int i = 0; i < MD5_DIGEST_LENGTH; ++i) {
-            sprintf(&md5_string[i * 2], "%02x", digest[i]);
+            sprintf(&md5_string[i * 2], "%02x", (unsigned int)digest[i]);
         }
-        
+        md5_string[MD5_DIGEST_LENGTH * 2] = '\0';
+
         return std::string(md5_string);
     } catch (const std::exception& e) {
         std::cerr << "Error calculating file hash: " << e.what() << std::endl;
@@ -82,7 +97,7 @@ std::string getFileHash(const std::string& path) {
 
 uint64_t getFileSize(const std::string& path) {
     try {
-        return std::filesystem::file_size(path);
+        return fs::file_size(path);
     } catch (const std::exception& e) {
         std::cerr << "Error getting file size: " << e.what() << std::endl;
         return 0;
@@ -91,9 +106,9 @@ uint64_t getFileSize(const std::string& path) {
 
 std::vector<std::string> listFiles(const std::string& path, const std::string& extension) {
     std::vector<std::string> files;
-    
+
     try {
-        for (const auto& entry : std::filesystem::directory_iterator(path)) {
+        for (const auto& entry : fs::directory_iterator(path)) {
             if (entry.is_regular_file()) {
                 if (extension.empty() || entry.path().extension() == extension) {
                     files.push_back(entry.path().string());
@@ -103,14 +118,13 @@ std::vector<std::string> listFiles(const std::string& path, const std::string& e
     } catch (const std::exception& e) {
         std::cerr << "Error listing files: " << e.what() << std::endl;
     }
-    
+
     return files;
 }
 
 bool copyFile(const std::string& source, const std::string& destination) {
     try {
-        std::filesystem::copy_file(source, destination, 
-                                 std::filesystem::copy_options::overwrite_existing);
+        fs::copy_file(source, destination, fs::copy_options::overwrite_existing);
         return true;
     } catch (const std::exception& e) {
         std::cerr << "Error copying file: " << e.what() << std::endl;
@@ -120,9 +134,13 @@ bool copyFile(const std::string& source, const std::string& destination) {
 
 bool moveFile(const std::string& source, const std::string& destination) {
     try {
-        std::filesystem::rename(source, destination);
+        fs::rename(source, destination);
         return true;
     } catch (const std::exception& e) {
+        // 如果移动失败，尝试复制后删除
+        if (copyFile(source, destination)) {
+            return deleteFile(source);
+        }
         std::cerr << "Error moving file: " << e.what() << std::endl;
         return false;
     }
@@ -130,7 +148,7 @@ bool moveFile(const std::string& source, const std::string& destination) {
 
 bool deleteFile(const std::string& path) {
     try {
-        return std::filesystem::remove(path);
+        return fs::remove(path);
     } catch (const std::exception& e) {
         std::cerr << "Error deleting file: " << e.what() << std::endl;
         return false;
@@ -138,15 +156,15 @@ bool deleteFile(const std::string& path) {
 }
 
 std::string getFileExtension(const std::string& path) {
-    return std::filesystem::path(path).extension().string();
+    return fs::path(path).extension().string();
 }
 
 std::string getFileName(const std::string& path) {
-    return std::filesystem::path(path).filename().string();
+    return fs::path(path).filename().string();
 }
 
 std::string getParentPath(const std::string& path) {
-    return std::filesystem::path(path).parent_path().string();
+    return fs::path(path).parent_path().string();
 }
 
-}
+} // namespace FileUtils
