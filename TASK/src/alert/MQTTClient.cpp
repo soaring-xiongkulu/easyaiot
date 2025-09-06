@@ -2,6 +2,9 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <mutex>
+
+std::mutex connection_mutex_;
 
 MQTTClient::MQTTClient(const std::string& broker_url,
                      const std::string& client_id,
@@ -9,7 +12,7 @@ MQTTClient::MQTTClient(const std::string& broker_url,
                      const std::string& password)
     : broker_url_(broker_url), client_id_(client_id),
       username_(username), password_(password),
-      connected_(false) {}
+      connected_(false), auto_reconnect_(true) {}
 
 MQTTClient::~MQTTClient() {
     disconnect();
@@ -29,17 +32,21 @@ bool MQTTClient::connect() {
             connOpts.set_password(password_);
         }
 
-        // Create client (使用正确的类型)
+        // Create client
         mqtt_client_ = std::make_shared<mqtt::async_client>(broker_url_, client_id_);
 
-        // Set callbacks (现在 *this 是 mqtt::callback 的子类，所以可以这样用)
+        // Set callbacks
         mqtt_client_->set_callback(*this);
 
-        // Connect to the broker (使用一致的变量名 mqtt_client_)
+        // Connect to the broker
         mqtt::token_ptr conntok = mqtt_client_->connect(connOpts);
         conntok->wait();
 
-        connected_ = true;
+        {
+            std::lock_guard<std::mutex> lock(connection_mutex_);
+            connected_ = true;
+        }
+
         std::cout << "Connected to MQTT broker: " << broker_url_ << std::endl;
         return true;
 
@@ -50,11 +57,16 @@ bool MQTTClient::connect() {
 }
 
 void MQTTClient::disconnect() {
-    if (connected_) {
+    bool was_connected = false;
+    {
+        std::lock_guard<std::mutex> lock(connection_mutex_);
+        was_connected = connected_;
+        connected_ = false;
+    }
+
+    if (was_connected && mqtt_client_) {
         try {
-            // 使用一致的变量名 mqtt_client_
             mqtt_client_->disconnect()->wait();
-            connected_ = false;
             std::cout << "Disconnected from MQTT broker" << std::endl;
         } catch (const mqtt::exception& exc) {
             std::cerr << "MQTT disconnect failed: " << exc.what() << std::endl;
@@ -63,7 +75,7 @@ void MQTTClient::disconnect() {
 }
 
 bool MQTTClient::publish(const std::string& topic, const std::string& payload, int qos) {
-    if (!connected_) {
+    if (!isConnected()) {
         std::cerr << "Not connected to broker" << std::endl;
         return false;
     }
@@ -72,7 +84,6 @@ bool MQTTClient::publish(const std::string& topic, const std::string& payload, i
         mqtt::message_ptr pubmsg = mqtt::make_message(topic, payload);
         pubmsg->set_qos(qos);
 
-        // 使用一致的变量名 mqtt_client_
         mqtt_client_->publish(pubmsg)->wait();
         std::cout << "Message published to topic: " << topic << std::endl;
         return true;
@@ -84,13 +95,12 @@ bool MQTTClient::publish(const std::string& topic, const std::string& payload, i
 }
 
 bool MQTTClient::subscribe(const std::string& topic, int qos) {
-    if (!connected_) {
+    if (!isConnected()) {
         std::cerr << "Not connected to broker" << std::endl;
         return false;
     }
 
     try {
-        // 使用一致的变量名 mqtt_client_
         mqtt_client_->subscribe(topic, qos)->wait();
         std::cout << "Subscribed to topic: " << topic << std::endl;
         return true;
@@ -105,20 +115,38 @@ void MQTTClient::setMessageCallback(MessageCallback callback) {
     message_callback_ = callback;
 }
 
-// MQTT callback methods (保持签名一致)
+// 修正的 isConnected 方法
+bool MQTTClient::isConnected() const {
+    std::lock_guard<std::mutex> lock(connection_mutex_);
+    return connected_;
+}
+
+// MQTT callback methods
 void MQTTClient::connected(const mqtt::string& cause) {
+    {
+        std::lock_guard<std::mutex> lock(connection_mutex_);
+        connected_ = true;
+    }
     std::cout << "MQTT connection established: " << cause << std::endl;
 }
 
 void MQTTClient::connection_lost(const std::string& cause) {
-    std::cerr << "MQTT connection lost: " << cause << std::endl;
-    connected_ = false;
+    {
+        std::lock_guard<std::mutex> lock(connection_mutex_);
+        connected_ = false;
+    }
+
+    std::cout << "Connection lost: " << cause << std::endl;
 
     // Attempt to reconnect
     if (auto_reconnect_) {
         std::cout << "Attempting to reconnect in 5 seconds..." << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(5));
-        connect(); // 注意：简单的重连，生产环境可能需要更复杂的重连逻辑
+        try {
+            connect();
+        } catch (...) {
+            std::cerr << "Reconnection attempt failed" << std::endl;
+        }
     }
 }
 

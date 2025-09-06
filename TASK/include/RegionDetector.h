@@ -4,6 +4,9 @@
 #include <string>
 #include <map>
 #include <mutex>
+#include <nlohmann/json.hpp>
+
+#include "InferenceEngine.h"
 
 struct PolygonRegion {
     std::string id;
