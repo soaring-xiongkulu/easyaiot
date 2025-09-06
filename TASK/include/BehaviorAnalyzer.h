@@ -8,17 +8,7 @@
 #include <set>
 #include <chrono>
 
-struct TrackedObject {
-    int id;
-    cv::Rect bbox;
-    std::string label;
-    float confidence;
-    // 注意：zone_entries 和 zone_exits 的更新逻辑已移至 BehaviorAnalyzer 内部的状态映射
-    // 此处保留这些映射，以防其他代码依赖它们，但checkZoneEntriesExits不再直接使用它们进行状态判断
-    std::map<std::string, int> zone_entries;
-    std::map<std::string, int> zone_exits;
-    std::map<std::string, float> zone_dwell_times;
-};
+#include "ObjectTracker.h"
 
 enum class BehaviorEventType {
     ENTRANCE,

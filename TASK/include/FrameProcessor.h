@@ -4,8 +4,10 @@
 #include "RegionDetector.h"
 #include "InferenceEngine.h"
 #include <atomic>
+#include <condition_variable>
 #include <queue>
 #include <mutex>
+#include <thread>
 
 class FrameProcessor {
 public:
@@ -35,7 +37,7 @@ private:
     std::queue<cv::Mat> frame_queue_;
     mutable std::mutex queue_mutex_;
     std::condition_variable queue_cv_;
-    
+
     std::thread processing_thread_;
     std::atomic<bool> processing_{false};
     
