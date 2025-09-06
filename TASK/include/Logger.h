@@ -18,7 +18,7 @@ public:
         FATAL
     };
 
-    static std::shared_ptr<Logger> getInstance();
+    static Logger& getInstance();
     static void initialize(const std::string& log_file = "", Level level = Level::INFO);
 
     void log(Level level, const std::string& message);
@@ -37,12 +37,12 @@ private:
     };
 
     Logger(const std::string& log_file = "", Level level = Level::INFO);
-    ~Logger();
+    ~Logger(); // 改为public或提供自定义删除器
 
     void processLogs();
     std::string formatLogEntry(const LogEntry& entry);
 
-    static std::shared_ptr<Logger> instance_;
+    static Logger* instance_; // 改为原始指针
     static std::mutex instance_mutex_;
 
     Level log_level_;

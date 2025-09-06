@@ -28,7 +28,6 @@ link_directories(
         /usr/local/openssl/lib
         /data/minio-cpp/build/Debug/
         /data/minio-cpp/build/Debug/vcpkg_installed/arm64-linux/lib/
-        ${CMAKE_SOURCE_DIR}/3rdpart/rga/${DEVICE_NAME}/lib/Linux/${LIB_ARCH}/
 )
 
 set(SRC_CORE
@@ -119,6 +118,10 @@ set(ALL_SRC
         include/VehicleDetector.h
         src/processing/RegionDetector.cpp
         src/utils/FileUtils.cpp
+        include/IMessageSender.h
+        include/IStorageService.h
+        include/MQTTMessageSender.h
+        include/MinIOStorageService.h
 )
 
 add_executable(TASK ${ALL_SRC})

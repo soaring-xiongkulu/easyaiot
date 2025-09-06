@@ -3,8 +3,8 @@
 #include <iomanip>
 #include <sstream>
 
-// 正确定义静态成员变量 (关键修复)
-std::shared_ptr<Logger> Logger::instance_ = nullptr;
+// 正确定义静态成员变量
+Logger* Logger::instance_ = nullptr;
 std::mutex Logger::instance_mutex_;
 
 Logger::Logger(const std::string& log_file, Level level)
@@ -18,6 +18,7 @@ Logger::Logger(const std::string& log_file, Level level)
     logging_thread_ = std::thread(&Logger::processLogs, this);
 }
 
+// 析构函数现在需要是public的
 Logger::~Logger() {
     running_ = false;
     queue_cv_.notify_all();
@@ -31,19 +32,19 @@ Logger::~Logger() {
     }
 }
 
-std::shared_ptr<Logger> Logger::getInstance() {
+// 返回引用而不是shared_ptr
+Logger& Logger::getInstance() {
     std::lock_guard<std::mutex> lock(instance_mutex_);
     if (!instance_) {
-        // 使用默认参数创建实例
-        instance_ = std::shared_ptr<Logger>(new Logger("", Level::INFO));
+        instance_ = new Logger("", Level::INFO);
     }
-    return instance_;
+    return *instance_;
 }
 
 void Logger::initialize(const std::string& log_file, Level level) {
     std::lock_guard<std::mutex> lock(instance_mutex_);
     if (!instance_) {
-        instance_ = std::shared_ptr<Logger>(new Logger(log_file, level));
+        instance_ = new Logger(log_file, level);
     }
 }
 
@@ -113,22 +114,23 @@ std::string Logger::formatLogEntry(const LogEntry& entry) {
     return oss.str();
 }
 
+// 修正静态方法，直接获取实例并调用log
 void Logger::debug(const std::string& message) {
-    getInstance()->log(Level::DEBUG, message);
+    getInstance().log(Level::DEBUG, message);
 }
 
 void Logger::info(const std::string& message) {
-    getInstance()->log(Level::INFO, message);
+    getInstance().log(Level::INFO, message);
 }
 
 void Logger::warning(const std::string& message) {
-    getInstance()->log(Level::WARNING, message);
+    getInstance().log(Level::WARNING, message);
 }
 
 void Logger::error(const std::string& message) {
-    getInstance()->log(Level::ERROR, message);
+    getInstance().log(Level::ERROR, message);
 }
 
 void Logger::fatal(const std::string& message) {
-    getInstance()->log(Level::FATAL, message);
+    getInstance().log(Level::FATAL, message);
 }
