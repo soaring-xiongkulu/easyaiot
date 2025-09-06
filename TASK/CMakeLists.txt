@@ -113,9 +113,9 @@ set(ALL_SRC
         src/processing/RegionDetector.cpp
 )
 
-add_executable(smart_surveillance_system ${ALL_SRC})
+add_executable(TASK ${ALL_SRC})
 
-target_link_libraries(smart_surveillance_system
+target_link_libraries(TASK
         ${OpenCV_LIBS}
         PahoMqttCpp::PahoMqttCpp
         OpenSSL::SSL
@@ -129,13 +129,13 @@ install(DIRECTORY config/ DESTINATION ${CMAKE_INSTALL_PREFIX}/config)
 install(DIRECTORY models/ DESTINATION ${CMAKE_INSTALL_PREFIX}/models)
 install(DIRECTORY resources/ DESTINATION ${CMAKE_INSTALL_PREFIX}/resources)
 
-set_target_properties(smart_surveillance_system PROPERTIES
+set_target_properties(TASK PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
         LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
         ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
 )
 
-target_compile_options(smart_surveillance_system PRIVATE
+target_compile_options(TASK PRIVATE
         -Wall
         -Wextra
         -Wpedantic
