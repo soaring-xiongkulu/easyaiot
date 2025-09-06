@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <string>
 #include <queue>
 #include <mutex>
