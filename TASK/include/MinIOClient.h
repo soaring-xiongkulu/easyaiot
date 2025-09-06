@@ -1,13 +1,27 @@
-#pragma once
+#ifndef MINIO_CLIENT_H
+#define MINIO_CLIENT_H
+
 #include <string>
 #include <memory>
+
+// 前向声明minio::s3::Client
+namespace minio {
+    namespace s3 {
+        class Client;
+    } // namespace s3
+
+    namespace creds {
+        class StaticProvider;
+    } // namespace creds
+} // namespace minio
 
 class MinIOClient {
 public:
     MinIOClient(const std::string& endpoint,
-               const std::string& access_key,
-               const std::string& secret_key,
-               bool secure = false);
+                const std::string& access_key,
+                const std::string& secret_key,
+                bool use_ssl = false);
+
     ~MinIOClient();
 
     bool initialize();
@@ -25,9 +39,10 @@ private:
     std::string endpoint_;
     std::string access_key_;
     std::string secret_key_;
-    bool secure_;
-    bool initialized_{false};
-
-    // AWS S3 client (MinIO is S3 compatible)
-    std::shared_ptr<void> s3_client_; // Using void* to avoid including AWS headers here
+    bool use_ssl_;
+    bool initialized_;
+    std::shared_ptr<minio::s3::Client> client_;
+    std::shared_ptr<minio::creds::StaticProvider> provider_;
 };
+
+#endif // MINIO_CLIENT_H

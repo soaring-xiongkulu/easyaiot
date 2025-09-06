@@ -19,7 +19,7 @@ include_directories(
         ${CMAKE_SOURCE_DIR}/3rdpart/cpp-httplib/
         ${CMAKE_SOURCE_DIR}/3rdpart/json/single_include/
         ${CMAKE_SOURCE_DIR}/3rdpart/paho/
-        /include/
+        ${CMAKE_SOURCE_DIR}/include/
 )
 
 link_directories(
@@ -129,12 +129,22 @@ add_executable(TASK ${ALL_SRC})
 
 target_link_libraries(TASK
         ${OpenCV_LIBS}
-        PahoMqttCpp::PahoMqttCpp
-        OpenSSL::SSL
-        OpenSSL::Crypto
-        ${MINIO_LIBRARY}
-        Threads::Threads
-        nlohmann_json::nlohmann_json
+        pthread
+        glog
+        swscale
+        SDL2_ttf SDL2 freetype
+        z
+        png
+        rga
+        miniocpp
+        crypto
+        curl
+        curlpp
+        inih
+        INIReader
+        pugixml
+        ssl
+        z
 )
 
 install(DIRECTORY config/ DESTINATION ${CMAKE_INSTALL_PREFIX}/config)
