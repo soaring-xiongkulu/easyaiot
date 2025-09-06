@@ -1,5 +1,7 @@
 #include "MQTTClient.h"
 #include <iostream>
+#include <chrono>
+#include <thread>
 
 MQTTClient::MQTTClient(const std::string& broker_url,
                      const std::string& client_id,
@@ -27,14 +29,14 @@ bool MQTTClient::connect() {
             connOpts.set_password(password_);
         }
 
-        // Create client
-        client_ = std::make_shared<mqtt::async_client>(broker_url_, client_id_);
+        // Create client (使用正确的类型)
+        mqtt_client_ = std::make_shared<mqtt::async_client>(broker_url_, client_id_);
 
-        // Set callbacks
-        client_->set_callback(*this);
+        // Set callbacks (现在 *this 是 mqtt::callback 的子类，所以可以这样用)
+        mqtt_client_->set_callback(*this);
 
-        // Connect to the broker
-        mqtt::token_ptr conntok = client_->connect(connOpts);
+        // Connect to the broker (使用一致的变量名 mqtt_client_)
+        mqtt::token_ptr conntok = mqtt_client_->connect(connOpts);
         conntok->wait();
 
         connected_ = true;
@@ -50,7 +52,8 @@ bool MQTTClient::connect() {
 void MQTTClient::disconnect() {
     if (connected_) {
         try {
-            client_->disconnect()->wait();
+            // 使用一致的变量名 mqtt_client_
+            mqtt_client_->disconnect()->wait();
             connected_ = false;
             std::cout << "Disconnected from MQTT broker" << std::endl;
         } catch (const mqtt::exception& exc) {
@@ -61,6 +64,7 @@ void MQTTClient::disconnect() {
 
 bool MQTTClient::publish(const std::string& topic, const std::string& payload, int qos) {
     if (!connected_) {
+        std::cerr << "Not connected to broker" << std::endl;
         return false;
     }
 
@@ -68,7 +72,9 @@ bool MQTTClient::publish(const std::string& topic, const std::string& payload, i
         mqtt::message_ptr pubmsg = mqtt::make_message(topic, payload);
         pubmsg->set_qos(qos);
 
-        client_->publish(pubmsg)->wait();
+        // 使用一致的变量名 mqtt_client_
+        mqtt_client_->publish(pubmsg)->wait();
+        std::cout << "Message published to topic: " << topic << std::endl;
         return true;
 
     } catch (const mqtt::exception& exc) {
@@ -79,11 +85,13 @@ bool MQTTClient::publish(const std::string& topic, const std::string& payload, i
 
 bool MQTTClient::subscribe(const std::string& topic, int qos) {
     if (!connected_) {
+        std::cerr << "Not connected to broker" << std::endl;
         return false;
     }
 
     try {
-        client_->subscribe(topic, qos)->wait();
+        // 使用一致的变量名 mqtt_client_
+        mqtt_client_->subscribe(topic, qos)->wait();
         std::cout << "Subscribed to topic: " << topic << std::endl;
         return true;
 
@@ -97,8 +105,8 @@ void MQTTClient::setMessageCallback(MessageCallback callback) {
     message_callback_ = callback;
 }
 
-// MQTT callback methods
-void MQTTClient::connected(const std::string& cause) {
+// MQTT callback methods (保持签名一致)
+void MQTTClient::connected(const mqtt::string& cause) {
     std::cout << "MQTT connection established: " << cause << std::endl;
 }
 
@@ -108,8 +116,9 @@ void MQTTClient::connection_lost(const std::string& cause) {
 
     // Attempt to reconnect
     if (auto_reconnect_) {
+        std::cout << "Attempting to reconnect in 5 seconds..." << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(5));
-        connect();
+        connect(); // 注意：简单的重连，生产环境可能需要更复杂的重连逻辑
     }
 }
 
@@ -121,4 +130,5 @@ void MQTTClient::message_arrived(mqtt::const_message_ptr msg) {
 
 void MQTTClient::delivery_complete(mqtt::delivery_token_ptr token) {
     // Delivery confirmation handling if needed
+    // std::cout << "Message delivery complete for token: " << (token ? token->get_message_id() : -1) << std::endl;
 }

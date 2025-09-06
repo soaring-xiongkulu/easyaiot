@@ -125,6 +125,7 @@ add_executable(TASK ${ALL_SRC})
 
 target_link_libraries(TASK
         ${OpenCV_LIBS}
+        paho-mqttpp3
         pthread
         glog
         swscale

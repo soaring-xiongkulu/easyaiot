@@ -2,8 +2,11 @@
 #include <string>
 #include <functional>
 #include <memory>
+#include <mqtt/async_client.h>
+#include <mqtt/callback.h>
 
-class MQTTClient {
+class MQTTClient : public mqtt::callback
+{
 public:
     using MessageCallback = std::function<void(const std::string& topic, const std::string& payload)>;
 
@@ -30,11 +33,12 @@ private:
     bool auto_reconnect_{true};
 
     MessageCallback message_callback_;
-    std::shared_ptr<void> mqtt_client_; // Using void* to avoid including MQTT headers here
+    // 使用正确的类型，而不是 std::shared_ptr<void>
+    std::shared_ptr<mqtt::async_client> mqtt_client_;
 
-    // MQTT callback methods
-    void connected(const std::string& cause);
-    void connection_lost(const std::string& cause);
-    void message_arrived(void* message);
-    void delivery_complete(void* token);
+    // 重写 mqtt::callback 接口中的虚函数
+    void connected(const mqtt::string& cause) override;
+    void connection_lost(const std::string& cause) override;
+    void message_arrived(mqtt::const_message_ptr msg) override; // 修正函数签名
+    void delivery_complete(mqtt::delivery_token_ptr token) override; // 修正函数签名
 };
