@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <sstream>
 
+// 正确定义静态成员变量 (关键修复)
 std::shared_ptr<Logger> Logger::instance_ = nullptr;
 std::mutex Logger::instance_mutex_;
 
@@ -33,7 +34,8 @@ Logger::~Logger() {
 std::shared_ptr<Logger> Logger::getInstance() {
     std::lock_guard<std::mutex> lock(instance_mutex_);
     if (!instance_) {
-        instance_ = std::shared_ptr<Logger>(new Logger());
+        // 使用默认参数创建实例
+        instance_ = std::shared_ptr<Logger>(new Logger("", Level::INFO));
     }
     return instance_;
 }
@@ -112,21 +114,21 @@ std::string Logger::formatLogEntry(const LogEntry& entry) {
 }
 
 void Logger::debug(const std::string& message) {
-    log(Level::DEBUG, message);
+    getInstance()->log(Level::DEBUG, message);
 }
 
 void Logger::info(const std::string& message) {
-    log(Level::INFO, message);
+    getInstance()->log(Level::INFO, message);
 }
 
 void Logger::warning(const std::string& message) {
-    log(Level::WARNING, message);
+    getInstance()->log(Level::WARNING, message);
 }
 
 void Logger::error(const std::string& message) {
-    log(Level::ERROR, message);
+    getInstance()->log(Level::ERROR, message);
 }
 
 void Logger::fatal(const std::string& message) {
-    log(Level::FATAL, message);
+    getInstance()->log(Level::FATAL, message);
 }
