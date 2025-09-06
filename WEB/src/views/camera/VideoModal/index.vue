@@ -303,7 +303,6 @@ function handleCLickChange(value) {
 
 function handleRegisterSuccess(value) {
   const ip = value['ip'];
-  const mac = value['mac'];
   const name = value['name'];
   const stream = value['stream'];
   const username = value['username'];

@@ -1,88 +1,126 @@
-cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
-project(TASK VERSION 1.1.0 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.16)
+project(SmartSurveillanceSystem)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(LIB_ARCH "aarch64")
-set(DEVICE_NAME "RK3588")
+set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+find_package(OpenCV REQUIRED COMPONENTS core videoio highgui imgproc dnn tracking)
+find_package(PahoMqttCpp REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(Threads REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
+find_path(MINIO_INCLUDE_DIR minio/minio.h)
+find_library(MINIO_LIBRARY minio)
 
-link_directories(
-    zl_mpp_libs
-)
-#  rknn_api 文件夹路径
-set(RKNN_API_PATH ${CMAKE_CURRENT_SOURCE_DIR}/librknn_api)
-set(RKNN_API_INCLUDE_PATH ${RKNN_API_PATH}/include)
-set(RKNN_API_LIB_PATH ${RKNN_API_PATH}/${LIB_ARCH}/librknnrt.so)
-
-set(3RDPARTY_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty)
-set(RGA_DIR ${3RDPARTY_PATH}/rga/${DEVICE_NAME})
-set(RGA_LIB ${RGA_DIR}/lib/Linux/${LIB_ARCH}/librga.so)
-
-find_package(OpenCV REQUIRED)
-# 输出OpenCV信息
-message(STATUS "include path: ${OpenCV_INCLUDE_DIRS}")
-message(STATUS "${OpenCV_VERSION}")
-
-# 用来搜索头文件的目录
 include_directories(
-    ${OpenCV_INCLUDE_DIRS}
-    ${RKNN_API_INCLUDE_PATH}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/submodules/ZLMediaKit/api/include
-    ${RGA_DIR}/include
-    ${CMAKE_CURRENT_LIST_DIR}/submodules/mpp/inc
-    ${CMAKE_CURRENT_LIST_DIR}/submodules/mpp/osal/inc
-    ${CMAKE_CURRENT_LIST_DIR}/submodules/mpp/utils
-    ${CMAKE_CURRENT_LIST_DIR}/submodules/mpp/mpp/inc
-    ${CMAKE_CURRENT_LIST_DIR}/submodules/mpp/mpp/base/inc
+        include/
+        ${OpenCV_INCLUDE_DIRS}
+        ${PahoMqttCpp_INCLUDE_DIRS}
+        ${MINIO_INCLUDE_DIR}
 )
 
-# 构建预处理和后处理库
-add_library(nn_process SHARED
-            src/process/preprocess.cpp
-            src/process/postprocess.cpp
-)
-# 链接库
-target_link_libraries(nn_process
-    ${OpenCV_LIBS}
-    ${RGA_LIB}
+set(SRC_CORE
+        src/core/ConfigurationManager.cpp
+        src/core/ServiceLocator.cpp
+        src/core/SystemSupervisor.cpp
+        src/core/ThreadPool.cpp
 )
 
-add_library(rknn_engine SHARED src/engine/rknn_engine.cpp)
-target_link_libraries(rknn_engine
-    ${RKNN_API_LIB_PATH}
+set(SRC_CAMERAS
+        src/cameras/CameraStreamer.cpp
+        src/cameras/RTSPCamera.cpp
+        src/cameras/USBCamera.cpp
 )
 
-# yolov8_lib
-add_library(yolov8_lib SHARED src/task/yolov8_engine.cpp )
-# 链接库
-target_link_libraries(yolov8_lib
-    rknn_engine
-    nn_process
+set(SRC_PROCESSING
+        src/processing/FrameProcessor.cpp
+        src/processing/ObjectTracker.cpp
+        src/processing/BehaviorAnalyzer.cpp
+        src/processing/RegionDetector.cpp
 )
 
-# draw_lib
-add_library(draw_lib SHARED src/draw/cv_draw.cpp)
-# 链接库
-target_link_libraries(draw_lib
-    ${OpenCV_LIBS}
+set(SRC_AI
+        src/ai/InferenceEngine.cpp
+        src/ai/ModelManager.cpp
+        src/ai/detectors/PersonDetector.cpp
+        src/ai/detectors/VehicleDetector.cpp
 )
 
-add_executable(yolov8_multiple_camera
-        src/yolov8_multiple_camera.cpp
-        src/task/yolov8_thread_pool.cpp
-        src/rkmedia/utils/mpp_decoder.cpp
-        src/rkmedia/utils/mpp_encoder.cpp
+set(SRC_STORAGE
+        src/storage/VideoStorage.cpp
+        src/storage/LocalStorage.cpp
+        src/storage/MinIOClient.cpp
 )
 
-target_link_libraries(yolov8_multiple_camera
-        rockchip_mpp
-        utils
-        mk_api
-        draw_lib
-        yolov8_lib
+set(SRC_ALERT
+        src/alert/AlertManager.cpp
+        src/alert/MQTTClient.cpp
 )
+
+set(SRC_UTILS
+        src/utils/Logger.cpp
+        src/utils/TimeUtils.cpp
+        src/utils/FileUtils.cpp
+)
+
+set(ALL_SRC
+        src/main.cpp
+        ${SRC_CORE}
+        ${SRC_CAMERAS}
+        ${SRC_PROCESSING}
+        ${SRC_AI}
+        ${SRC_STORAGE}
+        ${SRC_ALERT}
+        ${SRC_UTILS}
+        include/ai/ModelManager.h
+        include/processing/FrameProcessor.h
+        src/main.cpp
+        src/core/ConfigurationManager.cpp
+        src/core/ServiceLocator.cpp
+        src/cameras/RTSPCamera.cpp
+        src/processing/ObjectTracker.cpp
+        src/ai/InferenceEngine.cpp
+        src/processing/FrameProcessor.cpp
+        src/processing/BehaviorAnalyzer.cpp
+        src/alert/AlertManager.cpp
+        src/ai/ModelManager.cpp
+        src/core/SystemSupervisor.cpp
+)
+
+add_executable(smart_surveillance_system ${ALL_SRC})
+
+target_link_libraries(smart_surveillance_system
+        ${OpenCV_LIBS}
+        PahoMqttCpp::PahoMqttCpp
+        OpenSSL::SSL
+        OpenSSL::Crypto
+        ${MINIO_LIBRARY}
+        Threads::Threads
+        nlohmann_json::nlohmann_json
+)
+
+install(DIRECTORY config/ DESTINATION ${CMAKE_INSTALL_PREFIX}/config)
+install(DIRECTORY models/ DESTINATION ${CMAKE_INSTALL_PREFIX}/models)
+install(DIRECTORY resources/ DESTINATION ${CMAKE_INSTALL_PREFIX}/resources)
+
+set_target_properties(smart_surveillance_system PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+        ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+)
+
+target_compile_options(smart_surveillance_system PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -O3
+        -march=native
+)
+
+enable_testing()
+add_subdirectory(tests)
