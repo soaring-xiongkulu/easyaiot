@@ -20,11 +20,11 @@ public:
     bool loadModel(const std::string& model_path);
     std::vector<Detection> processFrame(const cv::Mat& frame);
 
-    void setConfidenceThreshold(float threshold) { confidence_threshold = threshold; }
-    float getConfidenceThreshold() const { return confidence_threshold; }
+    void setConfidenceThreshold(float threshold);
+    float getConfidenceThreshold() const;
 
-    std::vector<std::string> getClassNames() const { return class_names; }
-    bool isModelLoaded() const { return !net.empty(); }
+    std::vector<std::string> getClassNames() const;
+    bool isModelLoaded() const;
 
 private:
     cv::dnn::Net net;
