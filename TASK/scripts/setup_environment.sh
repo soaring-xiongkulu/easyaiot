@@ -10,7 +10,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # 恢复默认颜色
 
 # 日志文件
-LOG_FILE="/var/log/smart_surveillance_install.log"
+LOG_FILE="/var/log/TASK.log"
 TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
 
 # 输出日志函数
@@ -52,7 +52,7 @@ check_system() {
 # 更新系统包列表
 update_system() {
     log "更新系统包列表..."
-    sudo apt-get update -qq >> "$LOG_FILE" 2>&1
+    apt-get update -qq >> "$LOG_FILE" 2>&1
     if [ $? -eq 0 ]; then
         success_log "系统包列表更新完成"
     else
@@ -78,7 +78,7 @@ install_build_tools() {
 
     for pkg in "${packages[@]}"; do
         if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-            sudo apt-get install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
+            apt-get install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
             success_log "已安装 $pkg"
         else
             log "$pkg 已存在，跳过安装"
@@ -103,7 +103,7 @@ install_opencv_deps() {
 
     for pkg in "${packages[@]}"; do
         if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-            sudo apt-get install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
+            apt-get install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
             success_log "已安装 $pkg"
         else
             log "$pkg 已存在，跳过安装"
@@ -123,7 +123,7 @@ install_mqtt_deps() {
 
     for pkg in "${packages[@]}"; do
         if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-            sudo apt-get install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
+            apt-get install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
             success_log "已安装 $pkg"
         else
             log "$pkg 已存在，跳过安装"
@@ -146,7 +146,7 @@ install_utils_deps() {
 
     for pkg in "${packages[@]}"; do
         if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-            sudo apt-get install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
+            apt-get install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
             success_log "已安装 $pkg"
         else
             log "$pkg 已存在，跳过安装"
@@ -162,7 +162,7 @@ install_minio_deps() {
     if ! dpkg -s "libminio-dev" >/dev/null 2>&1; then
         # 尝试从源码编译安装minio-cpp
         log "尝试安装MinIO C++ SDK..."
-        sudo apt-get install -y -qq \
+        apt-get install -y -qq \
             libcurl4-openssl-dev \
             libssl-dev \
             libxml2-dev >> "$LOG_FILE" 2>&1
@@ -176,12 +176,12 @@ install_minio_deps() {
         cd build
         cmake .. >> "$LOG_FILE" 2>&1
         make -j$(nproc) >> "$LOG_FILE" 2>&1
-        sudo make install >> "$LOG_FILE" 2>&1
+        make install >> "$LOG_FILE" 2>&1
         cd /
         rm -rf "$temp_dir"
         success_log "MinIO C++ SDK 安装完成"
     else
-        sudo apt-get install -y -qq libminio-dev >> "$LOG_FILE" 2>&1
+        apt-get install -y -qq libminio-dev >> "$LOG_FILE" 2>&1
         success_log "MinIO依赖安装完成"
     fi
 }
@@ -201,7 +201,7 @@ install_video_deps() {
 
     for pkg in "${packages[@]}"; do
         if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-            sudo apt-get install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
+            apt-get install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
             success_log "已安装 $pkg"
         else
             log "$pkg 已存在，跳过安装"
@@ -224,7 +224,7 @@ install_debug_tools() {
 
     for pkg in "${packages[@]}"; do
         if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-            sudo apt-get install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
+            apt-get install -y -qq "$pkg" >> "$LOG_FILE" 2>&1
             success_log "已安装 $pkg"
         else
             log "$pkg 已存在，跳过安装"
@@ -268,7 +268,7 @@ verify_installation() {
 show_summary() {
     echo -e "${GREEN}"
     echo "=========================================="
-    echo "SmartSurveillanceSystem 依赖安装完成!"
+    echo "EasyAIoT TASK模块依赖安装完成!"
     echo "=========================================="
     echo -e "${NC}"
     echo "下一步操作:"
@@ -286,17 +286,20 @@ show_summary() {
 main() {
     echo -e "${GREEN}"
     echo "=========================================="
-    echo "SmartSurveillanceSystem 依赖安装脚本"
+    echo "EasyAIoT TASK模块依赖安装脚本"
     echo "适用于 Ubuntu 24.04"
     echo "=========================================="
     echo -e "${NC}"
 
-    # 检查权限
-    if [ "$EUID" -eq 0 ]; then
-        error_log "请不要使用root权限运行此脚本"
+    if [ "$EUID" -ne 0 ]; then
+        error_log "此脚本必须使用 root 权限运行，请使用 sudo 或切换到 root 用户"
     fi
 
-    # 创建日志文件
+    # 创建日志目录和文件[7](@ref)
+    LOG_DIR=$(dirname "$LOG_FILE")
+    if [ ! -d "$LOG_DIR" ]; then
+        mkdir -p "$LOG_DIR"
+    fi
     touch "$LOG_FILE"
     echo "安装开始时间: $TIMESTAMP" >> "$LOG_FILE"
 
