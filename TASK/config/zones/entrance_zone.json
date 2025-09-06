@@ -1,0 +1,43 @@
+{
+  "region_id": "entrance_gate",
+  "region_name": "Main Entrance Gate",
+  "region_type": "polygon",
+  "description": "主入口门禁区域",
+  "vertices": [
+    [0.1, 0.8],
+    [0.5, 0.6],
+    [0.8, 0.8],
+    [0.8, 1.0],
+    [0.2, 1.0]
+  ],
+  "alert_rules": {
+    "intrusion_detection": {
+      "enabled": true,
+      "direction": "in",
+      "min_confidence": 0.6,
+      "alert_message": "未授权进入入口区域"
+    },
+    "loitering_detection": {
+      "enabled": true,
+      "time_threshold": 30,
+      "alert_message": "在入口区域滞留时间过长"
+    },
+    "crowding_detection": {
+      "enabled": true,
+      "max_people": 3,
+      "alert_message": "入口区域人员拥挤"
+    }
+  },
+  "visualization": {
+    "color": [0, 255, 0],
+    "thickness": 2,
+    "fill_opacity": 0.2,
+    "display_name": true,
+    "name_position": [0.1, 0.85]
+  },
+  "actions": {
+    "on_intrusion": ["alert", "record_video", "capture_image"],
+    "on_loitering": ["alert", "capture_image"],
+    "on_crowding": ["alert", "notify_security"]
+  }
+}
