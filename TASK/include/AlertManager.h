@@ -4,6 +4,7 @@
 #include <mutex>
 #include <atomic>
 #include <chrono>
+#include <set>
 #include <nlohmann/json.hpp>
 #include "IMessageSender.h"
 #include "IStorageService.h"

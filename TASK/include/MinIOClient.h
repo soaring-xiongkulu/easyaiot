@@ -28,6 +28,9 @@ public:
     bool uploadFile(const std::string& bucket_name,
                    const std::string& object_name,
                    const std::string& file_path);
+    bool putObject(const std::string& bucket_name,
+                   const std::string& object_name,
+                   const std::string& data); // 添加这个方法
     bool downloadFile(const std::string& bucket_name,
                      const std::string& object_name,
                      const std::string& file_path);
