@@ -3,69 +3,65 @@
 #include <miniocpp/credentials.h>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 MinIOClient::MinIOClient(const std::string& endpoint,
-                       const std::string& access_key,
-                       const std::string& secret_key,
-                       bool use_ssl)
+                         const std::string& access_key,
+                         const std::string& secret_key,
+                         bool use_ssl)
     : endpoint_(endpoint), access_key_(access_key),
       secret_key_(secret_key), use_ssl_(use_ssl),
       initialized_(false) {}
 
-MinIOClient::~MinIOClient() {
-    // minio-cpp不需要显式关闭API
-}
+MinIOClient::~MinIOClient() = default;
 
 bool MinIOClient::initialize() {
     try {
         // 创建S3基础URL
-        minio::s3::BaseUrl base_url(endpoint_);
-        base_url.https = use_ssl_;
+        minio::s3::BaseUrl base_url(endpoint_, use_ssl_);
 
         // 创建凭证提供者
         auto provider = std::make_shared<minio::creds::StaticProvider>(
-            access_key_, secret_key_);
+            access_key_, secret_key_, "");
 
         // 创建S3客户端
         client_ = std::make_shared<minio::s3::Client>(base_url, provider.get());
 
         initialized_ = true;
-
         std::cout << "MinIO client initialized: " << endpoint_ << std::endl;
         return true;
-
     } catch (const std::exception& e) {
         std::cerr << "Error initializing MinIO client: " << e.what() << std::endl;
         return false;
     }
 }
 
-bool MinIOClient::uploadFile(const std::string& bucket_name,
+bool MinIOClient::putObject(const std::string& bucket_name,
                            const std::string& object_name,
-                           const std::string& file_path) {
+                           const std::string& data) {
     if (!initialized_) {
+        std::cerr << "MinIO client not initialized" << std::endl;
         return false;
     }
 
     try {
-        // 上传文件作为对象
-        minio::s3::UploadObjectArgs args;
+        // 将字符串数据转换为流
+        std::istringstream data_stream(data);
+
+        // 创建上传参数 - 使用正确的构造函数
+        minio::s3::PutObjectArgs args(data_stream, data.size(), 0);
         args.bucket = bucket_name;
         args.object = object_name;
-        args.filename = file_path;
 
-        auto resp = client_->UploadObject(args);
-        if (!resp) {
-            std::cerr << "Upload failed: " << resp.Error().String() << std::endl;
+        // 执行上传
+        auto response = client_->PutObject(args);
+        if (!response) {
+            std::cerr << "Upload failed: " << response.Error().String() << std::endl;
             return false;
         }
-
-        std::cout << "File uploaded: " << file_path << " -> "
-                  << bucket_name << "/" << object_name << std::endl;
         return true;
-
     } catch (const std::exception& e) {
-        std::cerr << "Error uploading file: " << e.what() << std::endl;
+        std::cerr << "Error uploading object: " << e.what() << std::endl;
         return false;
     }
 }

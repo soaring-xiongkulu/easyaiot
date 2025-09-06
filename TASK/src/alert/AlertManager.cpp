@@ -148,7 +148,7 @@ void AlertManager::sendMQTTAlert(const nlohmann::json& alert_message) {
                            alert_message["camera_id"].get<std::string>();
         message_sender_->send(topic, alert_message.dump());
     } else {
-        Logger::warn("Message sender unavailable, alert not sent: " + alert_message.dump());
+        Logger::warning("Message sender unavailable, alert not sent: " + alert_message.dump());
     }
 }
 

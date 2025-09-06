@@ -122,6 +122,7 @@ set(ALL_SRC
         include/IStorageService.h
         include/MQTTMessageSender.h
         include/MinIOStorageService.h
+        src/storage/MinIOStorageService.cpp
 )
 
 add_executable(TASK ${ALL_SRC})
