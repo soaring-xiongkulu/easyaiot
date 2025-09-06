@@ -40,6 +40,10 @@ struct TrackData {
     cv::Ptr<cv::Tracker> tracker;
     bool is_active;
     int hit_streak;
+
+    // 构造函数
+    TrackData(TrackedObject&& obj, cv::Ptr<cv::Tracker> trk, bool active, int streak)
+        : object(std::move(obj)), tracker(trk), is_active(active), hit_streak(streak) {}
 };
 
 class ObjectTracker {
@@ -77,4 +81,5 @@ private:
     void createNewTrack(const cv::Rect& detection, const std::string& label,
                        float confidence, const cv::Mat& frame);
     cv::Ptr<cv::Tracker> createTrackerByType(const std::string& type) const;
+    double calculateIoU(const cv::Rect& rect1, const cv::Rect& rect2);
 };
