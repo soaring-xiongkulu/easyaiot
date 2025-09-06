@@ -47,6 +47,7 @@ set(SRC_PROCESSING
 set(SRC_AI
         src/ai/InferenceEngine.cpp
         src/ai/ModelManager.cpp
+        src/ai/ModelDownloader.cpp
         src/ai/detectors/PersonDetector.cpp
         src/ai/detectors/VehicleDetector.cpp
 )
@@ -77,20 +78,26 @@ set(ALL_SRC
         ${SRC_STORAGE}
         ${SRC_ALERT}
         ${SRC_UTILS}
-        include/ai/ModelManager.h
-        include/processing/FrameProcessor.h
-        src/main.cpp
-        src/core/ConfigurationManager.cpp
-        src/core/ServiceLocator.cpp
-        src/cameras/RTSPCamera.cpp
-        src/processing/ObjectTracker.cpp
-        src/ai/InferenceEngine.cpp
-        src/processing/FrameProcessor.cpp
-        src/processing/BehaviorAnalyzer.cpp
-        src/alert/AlertManager.cpp
-        src/ai/ModelManager.cpp
-        src/core/SystemSupervisor.cpp
-        src/core/ThreadPool.cpp
+        include/SystemSupervisor.h
+        include/RTSPCamera.h
+        include/BehaviorAnalyzer.h
+        include/ServiceLocator.h
+        include/ObjectTracker.h
+        include/ConfigurationManager.h
+        include/ThreadPool.h
+        include/AlertManager.h
+        include/InferenceEngine.h
+        src/cameras/CameraStreamer.cpp
+        src/cameras/USBCamera.cpp
+        src/ai/ModelDownloader.cpp
+        src/storage/VideoStorage.cpp
+        src/storage/LocalStorage.cpp
+        src/storage/MinIOClient.cpp
+        src/alert/MQTTClient.cpp
+        src/utils/Logger.cpp
+        src/utils/TimeUtils.cpp
+        src/ai/detectors/PersonDetector.cpp
+        src/ai/detectors/VehicleDetector.cpp
 )
 
 add_executable(smart_surveillance_system ${ALL_SRC})
