@@ -69,6 +69,10 @@ private:
     bool pointInPolygon(const cv::Point2f& point, const std::vector<cv::Point2f>& vertices) const;
     bool rectangleIntersectsPolygon(const cv::Rect& rect, const std::vector<cv::Point2f>& vertices) const;
     
+    // 新增声明：Cohen-Sutherland线段裁剪算法函数
+    bool lineIntersectsRectangle(const cv::Point2f& p1, const cv::Point2f& p2, const cv::Rect& rect) const;
+    int computeOutCode(const cv::Point2f& point, const cv::Rect& rect) const;
+
     void updateRegionCounts(const std::vector<Detection>& detections, const cv::Size& frame_size);
     void updateDwellTimes();
     
