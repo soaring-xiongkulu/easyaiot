@@ -14,14 +14,18 @@ find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
-find_path(MINIO_INCLUDE_DIR minio/minio.h)
-find_library(MINIO_LIBRARY minio)
-
 include_directories(
-        include/
-        ${OpenCV_INCLUDE_DIRS}
-        ${PahoMqttCpp_INCLUDE_DIRS}
-        ${MINIO_INCLUDE_DIR}
+        /include/
+        /usr/include/
+        /usr/local/include
+        ${CMAKE_SOURCE_DIR}/3rdpart/opencv4/
+        ${CMAKE_SOURCE_DIR}/3rdpart/minio-cpp/include/
+        ${CMAKE_SOURCE_DIR}/3rdpart/object_detect_Alg/
+        ${CMAKE_SOURCE_DIR}/3rdpart/rga/${DEVICE_NAME}/include/
+        ${CMAKE_SOURCE_DIR}/3rdpart/librknn_api/include/
+        ${CMAKE_SOURCE_DIR}/3rdpart/mk_media/
+        ${CMAKE_SOURCE_DIR}/3rdpart/cpp-httplib/
+        ${CMAKE_SOURCE_DIR}/3rdpart/json/single_include/
 )
 
 set(SRC_CORE
