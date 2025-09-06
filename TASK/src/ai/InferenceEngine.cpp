@@ -1,8 +1,9 @@
 #include "InferenceEngine.h"
 #include <fstream>
-#include <sstream>
+#include <filesystem>
+#include <opencv2/dnn/dnn.hpp>
 
-InferenceEngine::InferenceEngine(const std::string& model_path, 
+InferenceEngine::InferenceEngine(const std::string& model_path,
                                const std::vector<std::string>& class_names,
                                float confidence_threshold)
     : class_names(class_names), confidence_threshold(confidence_threshold)
@@ -53,11 +54,54 @@ bool InferenceEngine::loadModel(const std::string& model_path)
         net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
         net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
 
-        // 获取输入层信息
-        input_names = net.getUnconnectedOutLayersNames();
-        if (!input_names.empty())
+        // 获取输入层信息 - 使用正确的方法
+        std::vector<cv::String> layer_names = net.getLayerNames();
+        if (layer_names.empty())
         {
-            input_size = net.getInputMatSize(input_names[0]);
+            std::cerr << "No layers found in the model" << std::endl;
+            return false;
+        }
+
+        // 获取第一个输入层（通常是第0层）
+        cv::Ptr<cv::dnn::Layer> first_layer = net.getLayer(0);
+
+        // 获取输入层的形状
+        std::vector<cv::dnn::MatShape> input_shapes;
+        std::vector<cv::dnn::MatShape> output_shapes;
+
+        // 创建一个虚拟的输入形状（NCHW格式）
+        cv::dnn::MatShape dummy_shape = {1, 3, 224, 224};
+
+        // 获取输入层的形状信息
+        net.getLayerShapes(dummy_shape, 0, input_shapes, output_shapes);
+
+        if (!input_shapes.empty() && !input_shapes[0].empty())
+        {
+            const auto& shape = input_shapes[0];  // 输入层的输入形状
+            // 形状格式通常是 [batch_size, channels, height, width]
+            if (shape.size() >= 4)
+            {
+                input_size.height = shape[2];
+                input_size.width = shape[3];
+                std::cout << "Input size: " << input_size.width << "x" << input_size.height << std::endl;
+            }
+            else if (shape.size() >= 2)
+            {
+                // 某些模型可能使用不同的维度顺序
+                input_size.height = shape[0];
+                input_size.width = shape[1];
+                std::cout << "Input size: " << input_size.width << "x" << input_size.height << std::endl;
+            }
+            else
+            {
+                std::cerr << "Unexpected input shape format" << std::endl;
+                return false;
+            }
+        }
+        else
+        {
+            std::cerr << "Failed to get input shape" << std::endl;
+            return false;
         }
 
         std::cout << "Model loaded successfully: " << model_path << std::endl;
@@ -91,9 +135,10 @@ std::vector<Detection> InferenceEngine::processFrame(const cv::Mat& frame)
         // 设置网络输入
         net.setInput(blob);
 
-        // 前向传播
+        // 前向传播 - 使用输出层名称
+        std::vector<cv::String> output_names = net.getUnconnectedOutLayersNames();
         std::vector<cv::Mat> outputs;
-        net.forward(outputs, input_names);
+        net.forward(outputs, output_names);
 
         // 后处理
         detections = postProcess(outputs, frame.size());
