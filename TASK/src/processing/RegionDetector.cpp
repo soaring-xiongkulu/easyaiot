@@ -208,6 +208,7 @@ bool RegionDetector::rectangleIntersectsPolygon(const cv::Rect& rect, const std:
     return false;
 }
 
+// Cohen-Sutherland线段裁剪算法函数实现
 bool RegionDetector::lineIntersectsRectangle(const cv::Point2f& p1, const cv::Point2f& p2, const cv::Rect& rect) const {
     // Cohen-Sutherland line clipping algorithm
     int code1 = computeOutCode(p1, rect);
