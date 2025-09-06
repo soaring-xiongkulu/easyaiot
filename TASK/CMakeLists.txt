@@ -8,24 +8,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(OpenCV REQUIRED COMPONENTS core videoio highgui imgproc dnn tracking)
-find_package(PahoMqttCpp REQUIRED)
-find_package(OpenSSL REQUIRED)
-find_package(Threads REQUIRED)
-find_package(nlohmann_json REQUIRED)
-
 include_directories(
-        /include/
         /usr/include/
         /usr/local/include
         ${CMAKE_SOURCE_DIR}/3rdpart/opencv4/
         ${CMAKE_SOURCE_DIR}/3rdpart/minio-cpp/include/
         ${CMAKE_SOURCE_DIR}/3rdpart/object_detect_Alg/
-        ${CMAKE_SOURCE_DIR}/3rdpart/rga/${DEVICE_NAME}/include/
         ${CMAKE_SOURCE_DIR}/3rdpart/librknn_api/include/
         ${CMAKE_SOURCE_DIR}/3rdpart/mk_media/
         ${CMAKE_SOURCE_DIR}/3rdpart/cpp-httplib/
         ${CMAKE_SOURCE_DIR}/3rdpart/json/single_include/
+        ${CMAKE_SOURCE_DIR}/3rdpart/paho/
+        /include/
 )
 
 set(SRC_CORE
