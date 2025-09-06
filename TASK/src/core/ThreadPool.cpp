@@ -31,7 +31,7 @@ ThreadPool::ThreadPool(size_t threads)
 ThreadPool::~ThreadPool()
 {
     {
-        std::unique_lock<std::exclusive_mutex> lock(queue_mutex);
+        std::unique_lock<std::mutex> lock(queue_mutex);
         stop = true;
     }
     condition.notify_all();
@@ -50,7 +50,7 @@ auto ThreadPool::enqueue(F&& f, Args&&... args) -> std::future<decltype(f(args..
 
     std::future<return_type> res = task->get_future();
     {
-        std::unique_lock<std::exclusive_mutex> lock(queue_mutex);
+        std::unique_lock<std::mutex> lock(queue_mutex);
 
         if(stop)
             throw std::runtime_error("enqueue on stopped ThreadPool");
@@ -63,19 +63,19 @@ auto ThreadPool::enqueue(F&& f, Args&&... args) -> std::future<decltype(f(args..
 
 size_t ThreadPool::size() const
 {
-    std::unique_lock<std::exclusive_mutex> lock(queue_mutex);
+    std::unique_lock<std::mutex> lock(queue_mutex);
     return workers.size();
 }
 
 size_t ThreadPool::idleSize() const
 {
-    std::unique_lock<std::exclusive_mutex> lock(queue_mutex);
+    std::unique_lock<std::mutex> lock(queue_mutex);
     return tasks.size();
 }
 
 void ThreadPool::waitForCompletion()
 {
-    std::unique_lock<std::exclusive_mutex> lock(queue_mutex);
+    std::unique_lock<std::mutex> lock(queue_mutex);
     completion_condition.wait(lock, [this]
     {
         return tasks.empty();
