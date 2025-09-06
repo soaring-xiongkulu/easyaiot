@@ -1,0 +1,80 @@
+{
+  "camera_id": "entrance_01",
+  "camera_name": "Main Entrance Camera",
+  "description": "监控主入口区域",
+  "source_type": "rtsp",
+  "rtsp_url": "rtsp://admin:password@192.168.1.100:554/stream1",
+  "enabled": true,
+  "processing": {
+    "enable_processing": true,
+    "enable_streaming": false,
+    "enable_recording": true,
+    "frame_rate": 15,
+    "resolution": "1280x720",
+    "hardware_acceleration": "cuda",
+    "quality_preset": "high"
+  },
+  "ai_models": [
+    {
+      "model_id": "person_detection_v1",
+      "config_path": "config/ai_models/yolov8n_person_detection.json",
+      "enabled": true,
+      "confidence_threshold": 0.6
+    },
+    {
+      "model_id": "face_detection_v1",
+      "config_path": "config/ai_models/retinaface_face_detection.json",
+      "enabled": false,
+      "confidence_threshold": 0.7
+    }
+  ],
+  "regions": [
+    {
+      "region_id": "entrance_gate",
+      "config_path": "config/zones/entrance_zone.json",
+      "enabled": true
+    },
+    {
+      "region_id": "restricted_area",
+      "config_path": "config/zones/restricted_zone.json",
+      "enabled": true
+    }
+  ],
+  "tracking": {
+    "enabled": true,
+    "tracker_type": "CSRT",
+    "max_track_length": 100,
+    "min_confidence": 0.5,
+    "max_age": 30
+  },
+  "behavior_analysis": {
+    "enabled": true,
+    "loitering_detection": {
+      "enabled": true,
+      "threshold_seconds": 30
+    },
+    "intrusion_detection": {
+      "enabled": true,
+      "direction": "in"
+    },
+    "crowding_detection": {
+      "enabled": true,
+      "max_people": 5
+    }
+  },
+  "storage": {
+    "local_path": "/var/lib/smart_surveillance/entrance_01",
+    "save_alert_images": true,
+    "save_alert_videos": true,
+    "video_duration": 60,
+    "upload_to_minio": true,
+    "minio_bucket": "entrance-alerts"
+  },
+  "alerts": {
+    "enabled": true,
+    "mqtt_enabled": true,
+    "email_enabled": false,
+    "sound_enabled": true,
+    "alert_cooldown": 300
+  }
+}

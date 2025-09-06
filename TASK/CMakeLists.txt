@@ -90,6 +90,7 @@ set(ALL_SRC
         src/alert/AlertManager.cpp
         src/ai/ModelManager.cpp
         src/core/SystemSupervisor.cpp
+        src/core/ThreadPool.cpp
 )
 
 add_executable(smart_surveillance_system ${ALL_SRC})
