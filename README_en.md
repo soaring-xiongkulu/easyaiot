@@ -217,11 +217,10 @@ services:
 | Model Training                     | Train business scenario recognition models                                                        | ¥1000+      | Customized Model Training                  |
 | Other Services                     | Customized development for vertical industry solutions; tailored duration and functional services | Negotiable  | Negotiable                              |
 
-## 📞 Contact Information
+## 📞 Contact Information (Please follow and enter the keyword "Technical Exchange")
 
 <div>
-  <img src=".image/联系方式.jpg" alt="联系方式" width="30%" style="margin-right: 10px">
-  <img src=".image/微信群.jpg" alt="联系方式" width="30%" style="margin-right: 10px">
+  <img src=".image/公众号.jpg" alt="公众号" width="30%">
 </div>
 
 ### 🪐 Knowledge Planet:

@@ -211,11 +211,10 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 | 模型训练 | 训练业务场景识别模型                 | 1000+元 | 模型定制化训练     |
 | 其他服务 | 垂直领域解决方案定制化开发；定制化时长、功能服务等  | 面议     | 面议          |
 
-## 📞 联系方式
+## 📞 联系方式（请关注后，输入关键字"技术交流"）
 
 <div>
-  <img src=".image/联系方式.jpg" alt="联系方式" width="30%" style="margin-right: 10px">
-  <img src=".image/微信群.jpg" alt="联系方式" width="30%" style="margin-right: 10px">
+  <img src=".image/公众号.jpg" alt="公众号" width="30%">
 </div>
 
 ### 🪐 知识星球：
