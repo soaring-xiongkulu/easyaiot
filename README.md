@@ -217,7 +217,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
   <img src=".image/公众号.jpg" alt="公众号" width="30%">
 </div>
 
-### 🪐 知识星球：
+## 🪐 知识星球：
 
 <p>
   <img src=".image/知识星球.jpg" alt="知识星球" width="30%">
