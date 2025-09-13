@@ -72,13 +72,13 @@ async function getTenantId() {
   if (tenantEnable === 'true') {
     const website = location.host
     const tenant = await getTenantByWebsite(website)
-    if (tenant) {
+    if (tenant.id != null) {
       formData.tenantName = tenant.name
       authUtil.setTenantId(tenant.id)
     }
     else {
       const res = await getTenantIdByName(formData.tenantName)
-      authUtil.setTenantId(res)
+      authUtil.setTenantId(res.id)
     }
   }
 }
