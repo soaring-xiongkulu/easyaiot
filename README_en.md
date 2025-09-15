@@ -10,19 +10,20 @@
 
 ## 🌟 Some Thoughts on the Project
 
-#### Project Positioning: Supports access to less than a hundred cameras, labeling, training, inference, collection, analysis, alerting, recording, storage, and deployment (supporting RTSP streams, videos, images, etc.).
+#### Project Positioning: Supports access, annotation, training, inference, collection, analysis, alerting, recording, storage, and deployment for less than a hundred cameras (supports RTSP streams, video, images, etc.).
 
-#### Note: Accessing over a hundred cameras requires technologies such as Kubernetes cloud-native programming, NVIDIA GPU encoding/decoding acceleration, and RK3588 NPU acceleration. These significantly increase the complexity of the open-source project, which goes against the principles of open-source. Therefore, scenarios involving over a hundred cameras are placed in the sister project MegAIoT + Modu Open Platform. The purpose of this separation is to decouple the infrastructure platform from vertical domain solutions, achieving deployment in 5 minutes and customization within 1 hour.
+#### I believe no single programming language excels at everything, but with a combination of three languages, EasyAIoT will be invincible—fortunately, I possess this trait.
 
-### I believe no single programming language excels at everything, but a combination of three languages would make EasyAIoT unbeatable—and it just so happens that I possess this exact trait.
-
-### Java is suitable for platform development but not ideal for network programming or AI tasks. Python excels in network and AI programming but falls short in high-performance execution. C++ is great for high-performance execution but lacks strengths in the other two areas. The vision for EasyAIoT is to blend these three languages into one integrated system, building an AIoT platform that may be challenging to implement—but incredibly easy to use.
+#### Java is suitable for platform development but not for network or AI programming; Python is good for network and AI programming but not for high-performance task execution; C++ excels in high-performance tasks but is unsuitable for the other two. The vision of EasyAIoT is to use a tri-lingual mixed programming approach to build an AIoT platform that's not so easy to implement but very easy to use.
 
 ![EasyAIoT Platform Architecture.jpg](.image/iframe2.jpg)
 
 #### Data flow between modules is as follows:
 
 ![EasyAIoT Platform Architecture.jpg](.image/iframe3.jpg)
+
+#### Innovatively leveraging large models to construct a zero-shot labeling technical system (ideally eliminating manual labeling, completely freeing up human resources), this technology generates initial data through large models and completes automatic labeling via prompt engineering. It then ensures data quality through optional human-machine collaborative verification, thereby training an initial small model. This small model, through continuous iteration and self-optimization, achieves co-evolution of labeling efficiency and model accuracy, ultimately driving continuous improvement in system performance.
+![EasyAIoT Platform Architecture.jpg](.image/iframe4.jpg)
 
 #### EasyAIoT is not actually one project; it is seven distinct projects.
 
