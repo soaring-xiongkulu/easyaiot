@@ -4,6 +4,7 @@ import socket
 import sys
 import threading
 import time
+
 import netifaces
 import pytz
 from dotenv import load_dotenv
@@ -12,7 +13,7 @@ from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
 
-from app.blueprints import export, inference_task, model, train, train_task
+from app.blueprints import export, inference_task, model, train, train_task, llm
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -43,6 +44,7 @@ def get_local_ip():
         return ip
 
     raise RuntimeError("无法确定本地IP，请配置POD_IP环境变量")
+
 
 def send_heartbeat(client, ip, port, stop_event):
     """独立的心跳发送函数（支持安全停止）"""
@@ -75,7 +77,7 @@ def create_app():
     with app.app_context():
         try:
             print(f"数据库连接: {app.config['SQLALCHEMY_DATABASE_URI']}")
-            from models import Model, TrainTask, ExportRecord, InferenceTask
+            from models import Model, TrainTask, ExportRecord, InferenceTask, LLMConfig
             db.create_all()
         except Exception as e:
             print(f"❌ 建表失败: {str(e)}")
@@ -86,6 +88,7 @@ def create_app():
     app.register_blueprint(model.model_bp, url_prefix='/model')
     app.register_blueprint(train.train_bp, url_prefix='/model/train')
     app.register_blueprint(train_task.train_task_bp, url_prefix='/model/train_task')
+    app.register_blueprint(llm.llm_bp, url_prefix='/model/llm')
 
     # 健康检查路由初始化
     def init_health_check(app):
