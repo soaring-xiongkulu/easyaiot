@@ -218,10 +218,16 @@ services:
 | Model Training                     | Train business scenario recognition models                                                        | ¥1000+      | Customized Model Training                  |
 | Other Services                     | Customized development for vertical industry solutions; tailored duration and functional services | Negotiable  | Negotiable                              |
 
-## 📞 Contact Information (Please follow and enter the keyword "Technical Exchange")
+## 📞 Contact Information (After adding WeChat, please follow the official account to join the technical exchange group)
 
 <div>
-  <img src=".image/公众号.jpg" alt="公众号" width="30%">
+  <img src=".image/联系方式.jpg" alt="Contact Information" width="30%">
+</div>
+
+## 👥 Official Account
+
+<div>
+  <img src=".image/公众号.jpg" alt="Official Account" width="30%">
 </div>
 
 ## 🪐 Knowledge Planet:
