@@ -75,7 +75,7 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
 
 ## 📚 Official Documentation
 
-- Documentation: 36.111.47.113:8899
+- Documentation: 36.111.47.113:9988
 
 ## 🎮 Demo Environment
 
