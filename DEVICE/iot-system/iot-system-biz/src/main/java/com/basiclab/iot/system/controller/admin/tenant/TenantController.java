@@ -40,9 +40,9 @@ public class TenantController {
     @PermitAll
     @Operation(summary = "使用租户名，获得租户编号", description = "登录界面，根据用户的租户名，获得租户编号")
     @Parameter(name = "name", description = "租户名", required = true, example = "1024")
-    public CommonResult<Long> getTenantIdByName(@RequestParam("name") String name) {
+    public CommonResult<TenantSimpleRespVO> getTenantIdByName(@RequestParam("name") String name) {
         TenantDO tenant = tenantService.getTenantByName(name);
-        return success(tenant != null ? tenant.getId() : null);
+        return success(BeanUtils.toBean(tenant, TenantSimpleRespVO.class));
     }
 
     @GetMapping("/get-by-website")
