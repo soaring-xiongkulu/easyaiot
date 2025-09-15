@@ -79,7 +79,7 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
 
 ## 🎮 Demo Environment
 
-- Demo URL: http://pro.basiclab.top:8888/
+- Demo URL: http://36.111.47.113:8888/
 - Username: admin
 - Password: admin123
 
