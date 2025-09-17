@@ -10,7 +10,7 @@
 
 ## 🌟 Some Thoughts on the Project
 
-#### Project Positioning: Supports access, annotation, training, inference, collection, analysis, alerting, recording, storage, and deployment for less than a hundred cameras (supports RTSP streams, video, images, etc.).
+#### Project Positioning: Supports access to less than a hundred cameras, labeling, training, inference, collection, analysis, alerting, recording, storage, deployment, OCR text recognition, multimodal vision large models, and LLM language large models (supporting RTSP streams, videos, images, OCR, text, etc.).
 
 #### I believe no single programming language excels at everything, but with a combination of three languages, EasyAIoT will be invincible—fortunately, I possess this trait.
 
