@@ -101,3 +101,30 @@ class LLMConfig(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_test_time = db.Column(db.DateTime)  # 最后一次测试时间
+
+class OCRResult(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.Text, nullable=False)  # 识别出的文本
+    confidence = db.Column(db.Float)  # 置信度
+    bbox = db.Column(db.JSON)  # 边界框坐标 [x1, y1, x2, y2]
+    polygon = db.Column(db.JSON)  # 多边形坐标 [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
+    page_num = db.Column(db.Integer, default=1)  # 页码
+    line_num = db.Column(db.Integer)  # 行号
+    word_num = db.Column(db.Integer)  # 单词序号
+    image_url = db.Column(db.String(500))  # 新增：图片在OSS中的URL
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        """转换为字典格式"""
+        return {
+            'id': self.id,
+            'text': self.text,
+            'confidence': self.confidence,
+            'bbox': self.bbox,
+            'polygon': self.polygon,
+            'page_num': self.page_num,
+            'line_num': self.line_num,
+            'word_num': self.word_num,
+            'image_url': self.image_url,  # 新增
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
