@@ -6,8 +6,6 @@
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
-## Now and forever, no commercial version—dedicated to revitalizing the lost tradition of Confucian scholarship.
-
 ## 🌟 Some Thoughts on the Project
 
 #### Project Positioning: Supports access to less than a hundred cameras, labeling, training, inference, collection, analysis, alerting, video recording, storage, deployment, OCR text recognition, multimodal vision large models (object recognition, text recognition), LLM large language models (supporting RTSP streams, videos, images, large models, text, etc.).
