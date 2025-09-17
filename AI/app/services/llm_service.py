@@ -12,7 +12,6 @@ from models import LLMConfig
 # 配置日志处理器
 logging_handler = logging.getLogger(__name__)
 
-
 class ModelType(Enum):
     """枚举定义支持的AI模型类型"""
     TEXT = "text"

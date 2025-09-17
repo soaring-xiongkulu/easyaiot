@@ -2,7 +2,7 @@ import datetime
 import logging
 import os
 import uuid
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Optional, Dict, Any, Tuple
 
 import cv2
 import numpy as np
@@ -11,138 +11,50 @@ from paddleocr import PaddleOCR
 from app.services.minio_service import ModelService
 from models import OCRResult, db
 
-# 配置日志
 logger = logging.getLogger(__name__)
 
-
 class OCRService:
-    def __init__(self,
-                 rec_model_name: str = "PP-OCRv4_server_rec",
-                 rec_model_dir: str = "pyModel/PP-OCRv4_server_rec",
-                 det_model_name: str = "PP-OCRv4_server_det",
-                 det_model_dir: str = "pyModel/PP-OCRv4_server_det",
-                 lang: str = 'ch',
-                 use_gpu: bool = False,
-                 oss_bucket_name: str = 'ocr-images'):  # 新增OSS存储桶配置
-        """
-        初始化PaddleOCR服务
-
-        Args:
-            oss_bucket_name: OSS存储桶名称
-        """
+    def __init__(self):
         self.ocr_engine = None
-        self.rec_model_name = rec_model_name
-        self.rec_model_dir = rec_model_dir
-        self.det_model_name = det_model_name
-        self.det_model_dir = det_model_dir
-        self.lang = lang
-        self.use_gpu = use_gpu
-        self.oss_bucket_name = oss_bucket_name  # 新增
         self._initialize_ocr_engine()
 
-    def _initialize_ocr_engine(self) -> None:
-        """初始化PaddleOCR引擎"""
+    def _initialize_ocr_engine(self):
+        """
+        初始化PaddleOCR引擎
+        解决use_angle_cls和use_textline_orientation互斥问题
+        """
         try:
             self.ocr_engine = PaddleOCR(
-                text_recognition_model_name=self.rec_model_name,
-                text_recognition_model_dir=self.rec_model_dir,
-                text_detection_model_name=self.det_model_name,
-                text_detection_model_dir=self.det_model_dir,
-                use_angle_cls=True,
-                lang=self.lang,
-                use_gpu=self.use_gpu,
-                show_log=False,
+                text_recognition_model_name="PP-OCRv5_server_rec",
+                text_recognition_model_dir="pyModel/PP-OCRv5_server_rec",
+                text_detection_model_name="PP-OCRv5_server_det",
+                text_detection_model_dir="pyModel/PP-OCRv5_server_det",
+                device="cpu",
                 use_doc_orientation_classify=False,
                 use_doc_unwarping=False,
-                use_textline_orientation=False
+                use_textline_orientation=False,
             )
             logger.info("PaddleOCR引擎初始化成功")
         except Exception as e:
-            logger.error(f"PaddleOCR引擎初始化失败: {e}")
+            logger.error(f"PaddleOCR引擎初始化失败: {str(e)}")
             raise
 
-    def execute_ocr(self, image_path: str, **kwargs) -> Dict[str, Any]:
+    def recognize(self, image_path):
         """
-        执行OCR识别
-
-        Args:
-            image_path: 图像文件路径
-            **kwargs: 额外参数（如use_angle_cls）
-
-        Returns:
-            Dict[str, Any]: OCR识别结果
-
-        Raises:
-            Exception: 当OCR识别失败时
+        识别图片中的文字
         """
+        if not self.ocr_engine:
+            raise Exception("OCR引擎未初始化")
+            
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"图片文件不存在: {image_path}")
+            
         try:
-            # 检查图像是否能正常读取
-            img = cv2.imread(image_path)
-            if img is None:
-                logger.error(f"图片读取失败: {image_path}")
-                return {"error": "图片读取失败", "text_lines": []}
-
-            # 执行OCR识别 - 使用predict方法（根据第一张图）
-            result = self.ocr_engine.predict(image_path, cls=kwargs.get('use_angle_cls', True))
-
-            # 处理识别结果
-            processed_result = self._process_ocr_result(result)
-            return processed_result
-
-        except Exception as error:
-            logger.error(f"OCR执行失败: {error}")
+            result = self.ocr_engine.ocr(image_path, cls=True)
+            return result
+        except Exception as e:
+            logger.error(f"OCR识别失败: {str(e)}")
             raise
-
-    def _process_ocr_result(self, result: List) -> Dict[str, Any]:
-        """
-        处理PaddleOCR返回的结果，转换为结构化数据
-
-        Args:
-            result: PaddleOCR原始结果
-
-        Returns:
-            Dict[str, Any]: 处理后的结构化结果
-        """
-        try:
-            processed_result = {
-                "text_lines": [],
-                "confidence_avg": 0.0,
-                "total_text_lines": 0
-            }
-
-            total_confidence = 0.0
-            line_count = 0
-
-            for page_idx, page in enumerate(result):
-                for line_idx, line in enumerate(page):
-                    if line and len(line) >= 2:
-                        box, (text, confidence) = line[0], line[1]
-
-                        # 处理文本行
-                        text_line = {
-                            "text": text,
-                            "confidence": confidence,
-                            "bbox": [box[0][0], box[0][1], box[2][0], box[2][1]],
-                            "polygon": [[point[0], point[1]] for point in box],
-                            "line_num": line_idx + 1,
-                            "page_num": page_idx + 1,
-                            "word_num": line_idx + 1  # 默认使用行号作为单词序号
-                        }
-
-                        processed_result["text_lines"].append(text_line)
-                        total_confidence += confidence
-                        line_count += 1
-
-            # 计算平均置信度
-            if line_count > 0:
-                processed_result["confidence_avg"] = total_confidence / line_count
-                processed_result["total_text_lines"] = line_count
-
-            return processed_result
-
-        except Exception as error:
-            logger.error(f"处理OCR结果失败: {error}")
-            return {"error": str(error), "text_lines": []}
 
     def upload_to_oss(self, image_path: str) -> Optional[str]:
         """

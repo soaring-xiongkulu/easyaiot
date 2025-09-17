@@ -17,7 +17,6 @@ from werkzeug.utils import secure_filename
 from app.services.minio_service import ModelService
 from models import Model, InferenceTask, db
 
-
 class InferenceService:
     def __init__(self, model_id):
         self.model_id = model_id

@@ -13,7 +13,6 @@ from sqlalchemy.exc import IntegrityError
 model_bp = Blueprint('model', __name__)
 logger = logging.getLogger(__name__)
 
-
 @model_bp.route('/list', methods=['GET'])
 def models():
     try:
