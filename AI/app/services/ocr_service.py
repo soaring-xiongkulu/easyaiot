@@ -19,25 +19,34 @@ class OCRService:
         self._initialize_ocr_engine()
 
     def _initialize_ocr_engine(self):
-        """
-        初始化PaddleOCR引擎
-        解决use_angle_cls和use_textline_orientation互斥问题
-        """
+        """初始化PaddleOCR引擎"""
         try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))  # 当前文件所在目录
+            det_model_dir = os.path.join(base_dir, "PaddleOCR", "PP-OCRv5_server_det")
+            rec_model_dir = os.path.join(base_dir, "PaddleOCR", "PP-OCRv5_server_rec")
+
+            # 确保目录存在，如果不存在，PaddleOCR 可能会尝试自动下载，但服务器模型较大，建议预先准备好
+            if not os.path.exists(det_model_dir):
+                print(f"警告: 检测模型目录不存在: {det_model_dir}")
+                os.makedirs(det_model_dir, exist_ok=True)
+            if not os.path.exists(rec_model_dir):
+                print(f"警告: 识别模型目录不存在: {rec_model_dir}")
+                os.makedirs(rec_model_dir, exist_ok=True)
+
             self.ocr_engine = PaddleOCR(
-                text_recognition_model_name="PP-OCRv5_server_rec",
-                text_recognition_model_dir="pyModel/PP-OCRv5_server_rec",
+                text_recognition_model_name="PP-OCRv5_server_rec",  # 指定模型名称
+                text_recognition_model_dir=rec_model_dir,  # 指定模型路径（绝对路径）
                 text_detection_model_name="PP-OCRv5_server_det",
-                text_detection_model_dir="pyModel/PP-OCRv5_server_det",
+                text_detection_model_dir=det_model_dir,
                 device="cpu",
                 use_doc_orientation_classify=False,
                 use_doc_unwarping=False,
                 use_textline_orientation=False,
             )
-            logger.info("PaddleOCR引擎初始化成功")
+            print("PaddleOCR引擎初始化成功。")
         except Exception as e:
-            logger.error(f"PaddleOCR引擎初始化失败: {str(e)}")
-            raise
+            print(f"PaddleOCR引擎初始化失败: {e}")
+            raise e
 
     def recognize(self, image_path):
         """
