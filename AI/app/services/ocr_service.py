@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 class OCRService:
     def __init__(self):
         self.ocr_engine = None
+        self.oss_bucket_name = "ocr-images"
         self._initialize_ocr_engine()
 
     def _initialize_ocr_engine(self):
@@ -54,12 +55,12 @@ class OCRService:
         """
         if not self.ocr_engine:
             raise Exception("OCR引擎未初始化")
-            
+
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"图片文件不存在: {image_path}")
-            
+
         try:
-            result = self.ocr_engine.ocr(image_path, cls=True)
+            result = self.ocr_engine.ocr(image_path)  # 修改这里
             return result
         except Exception as e:
             logger.error(f"OCR识别失败: {str(e)}")
@@ -79,7 +80,7 @@ class OCRService:
             # 生成唯一的文件名
             ext = os.path.splitext(image_path)[1]
             unique_filename = f"{uuid.uuid4().hex}{ext}"
-            object_key = f"ocr-images/{unique_filename}"
+            object_key = f"{unique_filename}"
 
             # 上传到OSS
             if ModelService.upload_to_minio(self.oss_bucket_name, object_key, image_path):
