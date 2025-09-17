@@ -12,6 +12,7 @@ from models import LLMConfig
 # 配置日志处理器
 logging_handler = logging.getLogger(__name__)
 
+
 class ModelType(Enum):
     """枚举定义支持的AI模型类型"""
     TEXT = "text"
@@ -367,7 +368,7 @@ class LLMService:
                     "timestamp": "string (检测时间戳 ISO格式)",
                     "camera_id": "string (摄像头标识)",
                     "scene_type": "string (场景类型)",
-                                                    "detected_objects": [
+                    "detected_objects": [
                         {
                             "object_id": "string (目标唯一标识)",
                             "category": "string (目标类别)",
@@ -527,6 +528,86 @@ class LLMService:
             logging_handler.error(f"视觉API调用失败: {error}")
             raise
 
+    def execute_vision_analysis(self, image_path: str, prompt: str, **kwargs) -> Dict[str, Any]:
+        """
+        执行视觉分析API调用
+
+        Args:
+            image_path: 图像文件路径极速            prompt: 分析提示词
+            **kwargs: 额外参数
+
+        Returns:
+            Dict[str, Any]: API响应数据
+
+        Raises:
+            ValueError: 当配置无效时
+            RequestException: 当API请求失败时
+        """
+        if not self.is_service_configured():
+            raise ValueError("LLM服务未正确配置")
+
+        try:
+            # 编码图像
+            base64_image = self.convert_image_to_base64(image_path)
+
+            # 构建消息
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            }
+                        }
+                    ]
+                }
+            ]
+
+            # 构建请求
+            headers = self._prepare_request_headers()
+            payload = self._construct_request_payload(messages, **kwargs)
+            api_url = self._construct_api极速()
+
+            # 设置超时和重试
+            timeout = kwargs.get('timeout', self.DEFAULT_REQUEST_TIMEOUT)
+            max_retries = kwargs.get('max_retries', self.MAXIMUM_RETRY_ATTEMPTS)
+
+            # 发送请求（带重试机制）
+            for attempt in range(max_retries):
+                try:
+                    response = self.http_session.post(
+                        api_url,
+                        headers=headers,
+                        json=payload,
+                        timeout=timeout,
+                        proxies={'http': None, 'https': None}  # 禁用代理
+                    )
+
+                    response.raise_for_status()  # 检查HTTP错误
+
+                    result = response.json()
+                    logging_handler.info(f"API调用成功: {api_url}")
+                    return result
+
+                except Timeout:
+                    if attempt == max_retries - 1:
+                        logging_handler.error(f"API请求超时（尝试{attempt + 1}次）")
+                        raise
+                    logging_handler.warning(f"API请求超时，第{attempt + 1}次重试...")
+
+                except RequestException as error:
+                    if attempt == max_retries - 1:
+                        logging_handler.error(f"API请求失败: {error}")
+                        raise
+                    logging_handler.warning(f"API请求失败，第{attempt + 1}次极速: {error}")
+
+        except Exception as error:
+            logging_handler.error(f"视觉API调用失败: {error}")
+            raise
+
     def process_detection_results(self, api_response: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         处理API返回的检测结果
@@ -598,8 +679,8 @@ class LLMService:
             if match:
                 try:
                     json_str = match.group(1) if pattern.startswith('```') else match.group()
-                    return json.loads(json_str)
-                except json.JSONDecodeError:
+                    return json.load极速(json_str)
+                except json.JSON极速:
                     continue
 
         # 如果所有尝试都失败，返回空结果
@@ -691,3 +772,299 @@ class LLMService:
             "is_active": self.active_configuration.is_active,
             "status": self.active_configuration.status
         }
+
+    # ==================== 新增方法：大模型物体识别 ====================
+
+    def perform_advanced_object_detection(self, image_path: str, targets: List[str] = None,
+                                          output_type: str = "bbox", normalized: bool = True,
+                                          render: bool = False) -> Tuple[bool, Dict[str, Any], str]:
+        """
+        执行大模型物体识别，支持复杂场景和多种输出格式
+
+        Args:
+            image_path: 图像文件路径
+            targets: 要检测的目标类别列表，如为空则检测所有常见物体
+            output_type: 输出类型，支持 'bbox'（边界框）、'points'（点）、'polygon'（多边形）
+            normalized: 是否使用归一化坐标
+            render: 是否渲染标注结果
+
+        Returns:
+            Tuple[bool, Dict[str, Any], str]: (是否成功, 检测结果字典, 错误信息)
+        """
+        try:
+            if not self.is_service_configured():
+                return False, {}, "LLM服务未配置"
+
+            # 生成物体识别专用提示词
+            prompt = self._generate_object_detection_prompt(targets, output_type, normalized)
+
+            # 调用API
+            api_response = self.execute_vision_analysis(image_path, prompt)
+
+            # 解析大模型响应
+            result = self._parse_advanced_detection_response(api_response, output_type)
+
+            # 如果需要渲染，生成标注图像
+            if render and 'annotations' in result:
+                rendered_image = self._render_detection_results(image_path, result)
+                result['rendered_image'] = rendered_image
+
+            return True, result, ""
+
+        except Exception as error:
+            error_msg = f"大模型物体识别失败: {str(error)}"
+            logging_handler.error(error_msg)
+            return False, {}, error_msg
+
+    def _generate_object_detection_prompt(self, targets: List[str], output_type: str, normalized: bool) -> str:
+        """
+        生成物体识别专用提示词
+
+        Args:
+            targets: 检测目标列表
+            output_type: 输出类型
+            normalized: 是否归一化坐标
+
+        Returns:
+            str: 生成的提示词
+        """
+        target_desc = "检测图像中的所有常见物体" if not targets else f"检测以下目标: {', '.join(targets)}"
+
+        prompt = f"""
+            你是一个通用物体识别系统，需要：
+            - {target_desc}
+            - 输出格式：{output_type}
+            - 坐标系统：{"归一化坐标[x1, y1, x2, y2]" if normalized else "绝对坐标"}
+            - 响应结构必须包含以下字段：
+              * status: 处理状态
+              * meta: 元数据（模型名称、图像尺寸）
+              * annotations: 检测结果数组，每个包含：
+                - label: 主标签
+                - subLabel: 子标签（可选）
+                - type: 标注类型（bbox/point/polygon）
+                - coordinates: 坐标数据
+                - confidence: 置信度(0-1)
+                - position: 位置描述（可选）
+                - color: 显示颜色（可选）
+
+            请严格按照JSON格式输出结果，确保坐标精度和数据类型正确。
+            """
+        return prompt
+
+    def _parse_advanced_detection_response(self, api_response: Dict[str, Any], output_type: str) -> Dict[str, Any]:
+        """
+        解析大模型物体识别响应
+
+        Args:
+            api_response: API响应
+            output_type: 输出类型
+
+        Returns:
+            Dict[str, Any]: 解析后的结果
+        """
+        try:
+            content = api_response['choices'][0]['message']['content']
+
+            # 尝试从响应中提取JSON
+            import re
+            json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+            else:
+                # 尝试直接查找JSON对象
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                json_str = json_match.group() if json_match else content
+
+            result_data = json.loads(json_str)
+            return result_data
+
+        except Exception as error:
+            logging_handler.error(f"解析检测响应失败: {error}")
+            return {"status": "error", "message": str(error)}
+
+    def _render_detection_results(self, image_path: str, result: Dict[str, Any]) -> str:
+        """
+        渲染检测结果到图像上
+
+        Args:
+            image_path: 原图像路径
+            result: 检测结果
+
+        Returns:
+            str: Base64编码的渲染后图像
+        """
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+            import numpy as np
+
+            # 打开原图像
+            image = Image.open(image_path).convert('RGB')
+            draw = ImageDraw.Draw(image)
+
+            # 获取图像尺寸
+            width, height = image.size
+
+            # 绘制每个标注
+            for annotation in result.get('annotations', []):
+                coords = annotation.get('coordinates', [])
+                label = annotation.get('label', '')
+                confidence = annotation.get('confidence', 0)
+
+                if annotation.get('type') == 'bbox' and len(coords) >= 4:
+                    # 处理边界框
+                    if all(0 <= c <= 1 for c in coords):  # 归一化坐标
+                        x1, y1, x2, y2 = [c * (width if i % 2 == 0 else height)
+                                          for i, c in enumerate(coords[:4])]
+                    else:  # 绝对坐标
+                        x1, y1, x2, y2 = coords[:4]
+
+                    # 绘制边界框
+                    draw.rectangle([x1, y1, x2, y2], outline='red', width=2)
+
+                    # 绘制标签
+                    label_text = f"{label} ({confidence:.2f})"
+                    draw.text((x1, y1 - 15), label_text, fill='red')
+
+            # 转换为Base64
+            import io
+            buffered = io.BytesIO()
+            image.save(buffered, format="JPEG")
+            return base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+        except Exception as error:
+            logging_handler.error(f"渲染检测结果失败: {error}")
+            return ""
+
+    # ==================== 新增方法：大模型OCR识别 ====================
+
+    def perform_advanced_ocr_recognition(self, image_path: str, languages: List[str] = None,
+                                         extract_structures: bool = False,
+                                         specific_targets: List[str] = None) -> Tuple[bool, Dict[str, Any], str]:
+        """
+        执行大模型OCR识别，支持多语言和结构化提取
+
+        Args:
+            image_path: 图像文件路径
+            languages: 支持的语言列表，如['ch', 'en']（中文、英文）
+            extract_structures: 是否提取结构化信息
+            specific_targets: 特定提取目标（如只提取金额、日期等）
+
+        Returns:
+            Tuple[bool, Dict[str, Any], str]: (是否成功, OCR结果字典, 错误信息)
+        """
+        try:
+            if not self.is_service_configured():
+                return False, {}, "LLM服务未配置"
+
+            # 生成OCR专用提示词
+            prompt = self._generate_ocr_prompt(languages, extract_structures, specific_targets)
+
+            # 调用API
+            api_response = self.execute_vision_analysis(image_path, prompt)
+
+            # 解析OCR响应
+            result = self._parse_ocr_response(api_response, extract_structures)
+
+            return True, result, ""
+
+        except Exception as error:
+            error_msg = f"大模型OCR识别失败: {str(error)}"
+            logging_handler.error(error_msg)
+            return False, {}, error_msg
+
+    def _generate_ocr_prompt(self, languages: List[str], extract_structures: bool,
+                             specific_targets: List[str]) -> str:
+        """
+        生成OCR识别专用提示词
+
+        Args:
+            languages: 语言列表
+            extract_structures: 是否提取结构
+            specific_targets: 特定目标
+
+        Returns:
+            str: 生成的提示词
+        """
+        lang_desc = "支持中英日韩等20+语言" if not languages else f"支持语言: {', '.join(languages)}"
+
+        target_desc = "提取所有文本内容"
+        if specific_targets:
+            target_desc = f"结构化提取以下内容: {', '.join(specific_targets)}"
+
+        prompt = f"""
+            你是一个多语言OCR系统，需要：
+            - 识别任意方向文本（横向/纵向/倾斜）
+            - {lang_desc}
+            - {target_desc}
+            - 输出格式必须包含：
+              * status: 处理状态
+              * meta: 元数据
+              * text_regions: 文本区域数组，每个包含：
+                - text: 识别文本
+                - confidence: 置信度
+                - bbox: 边界框坐标[x1, y1, x2, y2]
+                - language: 语言类型
+                - orientation: 文本方向
+
+            {"- 对于结构化数据，请额外提供fields字段，包含提取的键值对" if extract_structures else ""}
+
+            请严格按照JSON格式输出，确保文本识别准确率和坐标精度。
+            """
+        return prompt
+
+    def _parse_ocr_response(self, api_response: Dict[str, Any], extract_structures: bool) -> Dict[str, Any]:
+        """
+        解析OCR响应
+
+        Args:
+            api_response: API响应
+            extract_structures: 是否提取了结构
+
+        Returns:
+            Dict[str, Any]: 解析后的OCR结果
+        """
+        try:
+            content = api_response['choices'][0]['message']['content']
+
+            # 提取JSON
+            import re
+            json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+            else:
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                json_str = json_match.group() if json_match else content
+
+            result_data = json.loads(json_str)
+            return result_data
+
+        except Exception as error:
+            logging_handler.error(f"解析OCR响应失败: {error}")
+            return {"status": "error", "message": str(error)}
+
+    # ==================== 工具方法 ====================
+
+    def batch_process_images(self, image_paths: List[str],
+                             task_type: str = "detection",
+                             **kwargs) -> List[Tuple[bool, Dict[str, Any], str]]:
+        """
+        批量处理图像
+
+        Args:
+            image_paths: 图像路径列表
+            task_type: 任务类型 ('detection' 或 'ocr')
+            **kwargs: 额外参数
+
+        Returns:
+            List[Tuple[bool, Dict[str, Any], str]]: 每个图像的处理结果
+        """
+        results = []
+        for image_path in image_paths:
+            if task_type == "detection":
+                result = self.perform_advanced_object_detection(image_path, **kwargs)
+            elif task_type == "ocr":
+                result = self.perform_advanced_ocr_recognition(image_path, **kwargs)
+            else:
+                result = (False, {}, f"未知任务类型: {task_type}")
+            results.append(result)
+        return results
