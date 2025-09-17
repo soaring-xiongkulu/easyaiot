@@ -131,6 +131,73 @@ class OCRService:
             logger.error(f"保存OCR结果失败: {error}")
             return False
 
+    def execute_ocr(self, image_path: str) -> Dict[str, Any]:
+        """
+        执行OCR识别并格式化结果
+
+        Args:
+            image_path: 要识别的图像路径
+
+        Returns:
+            Dict[str, Any]: 结构化的OCR识别结果，包含文本行、完整文本和可能的错误信息
+        """
+        try:
+            # 使用PaddleOCR进行识别
+            raw_result = self.recognize(image_path)
+
+            # 解析和格式化结果
+            text_lines = []
+            full_text = ""
+
+            # 检查结果结构 (PaddleOCR返回结构可能是列表的列表)
+            if raw_result and len(raw_result) > 0:
+                # 遍历每个检测到的文本行
+                for line_idx, line in enumerate(raw_result[0]):
+                    if line and len(line) >= 2:
+                        # 提取边界框坐标
+                        bbox = line[0]
+                        # 提取文本和置信度
+                        text_info = line[1]
+                        text = text_info[0]
+                        confidence = float(text_info[1]) if len(text_info) > 1 else 0.0
+
+                        # 创建标准化多边形坐标（如果可用）
+                        polygon = []
+                        if bbox and len(bbox) >= 4:
+                            for point in bbox:
+                                polygon.append([float(point[0]), float(point[1])])
+
+                        # 添加到文本行列表
+                        text_lines.append({
+                            'text': text,
+                            'confidence': confidence,
+                            'bbox': bbox,
+                            'polygon': polygon,
+                            'page_num': 1,  # 单图像默认为第1页
+                            'line_num': line_idx + 1,
+                            'word_num': None  # 单词级编号可选
+                        })
+
+                        # 添加到完整文本
+                        full_text += text + "\n"
+
+            # 返回结构化的OCR结果
+            return {
+                "success": True,
+                "text_lines": text_lines,
+                "full_text": full_text.strip(),
+                "total_lines": len(text_lines),
+                "average_confidence": sum(line['confidence'] for line in text_lines) / len(
+                    text_lines) if text_lines else 0
+            }
+
+        except FileNotFoundError as e:
+            logger.error(f"图像文件未找到: {str(e)}")
+            return {"error": f"图像文件未找到: {str(e)}", "success": False}
+        except Exception as e:
+            logger.error(f"OCR执行失败: {str(e)}")
+            return {"error": f"OCR执行失败: {str(e)}", "success": False}
+
     def process_image(self, image_path: str, save_to_db: bool = True, upload_to_oss: bool = True) -> Dict[str, Any]:
         """
         完整的OCR处理流程
