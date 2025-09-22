@@ -7,29 +7,11 @@
 </div>
 
 <div align="center" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; padding: 20px;">
-  <a href="./README.md" 
-     style="background: linear-gradient(135deg, #4CAF50, #2E7D32); 
-            color: white; 
-            padding: 12px 24px; 
-            text-decoration: none; 
-            border-radius: 20px; 
-            transition: all 0.3s ease; 
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
-            display: inline-block;
-            font-weight: bold;">
+  <a href="./README.md">
     中文文档
   </a>
   <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
-  <a href="./README_en.md" 
-     style="background: linear-gradient(135deg, #2196F3, #0D47A1); 
-            color: white; 
-            padding: 12px 24px; 
-            text-decoration: none; 
-            border-radius: 20px; 
-            transition: all 0.3s ease; 
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
-            display: inline-block;
-            font-weight: bold;">
+  <a href="./README_en.md">
     English Document
   </a>
 </div>
