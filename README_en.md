@@ -77,11 +77,11 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
 
 ## 📚 Official Documentation
 
-- Documentation: http://36.111.47.113:9988/
+- Documentation: http://pro.basiclab.top:9988/
 
 ## 🎮 Demo Environment
 
-- Demo URL: http://36.111.47.113:8888/
+- Demo URL: http://pro.basiclab.top:8888/
 - Username: admin
 - Password: admin123
 
