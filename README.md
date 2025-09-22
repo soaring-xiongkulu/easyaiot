@@ -10,13 +10,9 @@
 </div>
 
 <div align="center" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; padding: 20px;">
-  <a href="./README.md">
-    中文文档
-  </a>
+  <a href="./README.md">中文文档</a>
   <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
-  <a href="./README_en.md">
-    English Document
-  </a>
+  <a href="./README_en.md">English Document</a>
 </div>
 
 ## 🌟 关于项目的一些思考
