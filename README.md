@@ -9,6 +9,10 @@
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
+<h4 align="center">
+    <a href="./README.md">中文文档</a> |<a href="./README_en.md">English Document</a>
+</h4>
+
 ## 🌟 关于项目的一些思考
 
 #### 项目定位：支持百级以下摄像头接入，采集，标注，训练，推理，导出，分析，告警，录像，存储，部署、PaddleOCR文字识别、多模态视觉大模型（物体识别、文字识别）、LLM大语言模型（支持RTSP流、视频、图像、语音、文本等）。
