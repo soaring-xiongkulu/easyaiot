@@ -9,7 +9,7 @@
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
-<div align="center" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; padding: 20px;">
+<div align="center" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; padding: 20px; font-weight: bold;">
   <a href="./README.md">中文文档</a>
   <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
   <a href="./README_en.md">English Document</a>
