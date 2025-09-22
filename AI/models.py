@@ -128,3 +128,37 @@ class OCRResult(db.Model):
             'image_url': self.image_url,  # 新增
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+
+class SpeechRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.String(100), unique=True, nullable=False)  # 订单ID
+    audio_file_path = db.Column(db.String(500))  # 音频文件在Minio的路径
+    filename = db.Column(db.String(255), nullable=False)  # 原始文件名
+    file_size = db.Column(db.Integer, nullable=False)  # 文件大小(字节)
+    duration = db.Column(db.Integer, nullable=False)  # 音频时长(秒)
+    recognized_text = db.Column(db.Text)  # 识别出的文本
+    confidence = db.Column(db.Float)  # 整体置信度
+    status = db.Column(db.String(20), default='UPLOADED')  # 状态: UPLOADED/PROCESSING/COMPLETED/FAILED
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # 创建时间
+    completed_at = db.Column(db.DateTime)  # 完成时间
+    error_message = db.Column(db.Text)
+
+    def to_dict(self):
+        """转换为字典格式"""
+        return {
+            'id': self.id,
+            'order_id': self.order_id,
+            'filename': self.filename,
+            'file_size': self.file_size,
+            'duration': self.duration,
+            'recognized_text': self.recognized_text,
+            'confidence': self.confidence,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'error_message': self.error_message
+        }
+
+    def __repr__(self):
+        return f'<SpeechRecord {self.filename} ({self.status})>'

@@ -178,7 +178,7 @@ public class FrameProcessingPipeline {
                         // 批量收集任务
                         FrameCaptureTask task = saveDatabaseQueue.poll(100, TimeUnit.MILLISECONDS);
                         if (task != null) {
-                            //http://iot.basiclab.top:9001/api/v1/buckets/alarm/objects/download?prefix=live/stream1/25031415040675396904.jpg&version_id=null
+                            //http://14.18.122.2:9001/api/v1/buckets/alarm/objects/download?prefix=live/stream1/25031415040675396904.jpg&version_id=null
                             DatasetImageDO datasetImageDO = new DatasetImageDO();
                             datasetImageDO.setDatasetId(Long.valueOf(task.getDatasetId()));
                             datasetImageDO.setName(task.getFileName());

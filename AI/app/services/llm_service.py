@@ -56,7 +56,7 @@ class LLMService:
                 logging_handler.warning("未找到激活的LLM配置")
             return self.active_configuration
         except Exception as error:
-            logging_handler.error(f"加载LLM配置失败: {error}")
+            # logging_handler.error(f"加载LLM配置失败: {error}")
             return None
 
     def refresh_configuration(self) -> None:

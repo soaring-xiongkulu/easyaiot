@@ -13,7 +13,7 @@ from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
 
-from app.blueprints import export, inference_task, model, train, train_task, llm, ocr
+from app.blueprints import export, inference_task, model, train, train_task, llm, ocr, speech
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -90,6 +90,7 @@ def create_app():
     app.register_blueprint(train_task.train_task_bp, url_prefix='/model/train_task')
     app.register_blueprint(llm.llm_bp, url_prefix='/model/llm')
     app.register_blueprint(ocr.ocr_bp, url_prefix='/model/ocr')
+    app.register_blueprint(speech.speech_bp, url_prefix='/model/speech')
 
     # 健康检查路由初始化
     def init_health_check(app):
@@ -121,10 +122,10 @@ def create_app():
     # Nacos注册与心跳线程管理
     try:
         # 获取环境变量
-        nacos_server = os.getenv('NACOS_SERVER', 'iot.basiclab.top:8848')
+        nacos_server = os.getenv('NACOS_SERVER', '14.18.122.2:8848')
         namespace = os.getenv('NACOS_NAMESPACE', 'local')
         service_name = os.getenv('SERVICE_NAME', 'model-server')
-        port = int(os.getenv('FLASK_RUN_PORT', 5500))
+        port = int(os.getenv('FLASK_RUN_PORT', 5000))
         username = os.getenv('NACOS_USERNAME', 'nacos')
         password = os.getenv('NACOS_PASSWORD', 'basiclab@iot78475418754')
 
@@ -191,7 +192,7 @@ def create_app():
 
                 # 注销服务实例
                 service_name = os.getenv('SERVICE_NAME', 'model-server')
-                port = int(os.getenv('FLASK_RUN_PORT', 5500))
+                port = int(os.getenv('FLASK_RUN_PORT', 5000))
                 app.nacos_client.remove_naming_instance(
                     service_name=service_name,
                     ip=app.registered_ip,
@@ -219,4 +220,4 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='0.0.0.0', port=5500)
+    app.run(host='0.0.0.0', port=5000)
