@@ -9,9 +9,31 @@
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
-<div align="center">
-  <a href="./README.md" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 5px;">中文文档</a>
-  <a href="./README_en.md" style="background-color: #2196F3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 5px;">English Document</a>
+<div align="center" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; padding: 20px;">
+  <a href="./README.md" 
+     style="background: linear-gradient(135deg, #4CAF50, #2E7D32); 
+            color: white; 
+            padding: 12px 24px; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            transition: all 0.3s ease; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+            display: inline-block;
+            font-weight: 500;">
+    中文文档
+  </a>
+  <a href="./README_en.md" 
+     style="background: linear-gradient(135deg, #2196F3, #0D47A1); 
+            color: white; 
+            padding: 12px 24px; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            transition: all 0.3s ease; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+            display: inline-block;
+            font-weight: 500;">
+    English Document
+  </a>
 </div>
 
 ## 🌟 关于项目的一些思考
