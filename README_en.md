@@ -6,9 +6,10 @@
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 </div>
 
-<h4 align="center">
-    <a href="./README.md">中文文档</a> |<a href="./README_en.md">English Document</a>
-</h4>
+<div align="center">
+  <a href="./README.md" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 5px;">中文文档</a>
+  <a href="./README_en.md" style="background-color: #2196F3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 5px;">English Document</a>
+</div>
 
 ## 🌟 Some Thoughts on the Project
 
