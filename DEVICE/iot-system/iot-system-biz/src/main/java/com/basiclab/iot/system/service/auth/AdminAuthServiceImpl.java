@@ -7,7 +7,6 @@ import com.basiclab.iot.common.utils.servlet.ServletUtils;
 import com.basiclab.iot.common.utils.validation.ValidationUtils;
 import com.basiclab.iot.system.api.logger.dto.LoginLogCreateReqDTO;
 import com.basiclab.iot.system.api.sms.SmsCodeApi;
-import com.basiclab.iot.system.api.social.dto.SocialUserBindReqDTO;
 import com.basiclab.iot.system.api.social.dto.SocialUserRespDTO;
 import com.basiclab.iot.system.controller.admin.auth.vo.*;
 import com.basiclab.iot.system.convert.auth.AuthConvert;
@@ -20,7 +19,6 @@ import com.basiclab.iot.system.enums.sms.SmsSceneEnum;
 import com.basiclab.iot.system.service.logger.LoginLogService;
 import com.basiclab.iot.system.service.member.MemberService;
 import com.basiclab.iot.system.service.oauth2.OAuth2TokenService;
-import com.basiclab.iot.system.service.social.SocialUserService;
 import com.basiclab.iot.system.service.user.AdminUserService;
 import com.google.common.annotations.VisibleForTesting;
 import com.xingyuv.captcha.model.common.ResponseModel;
@@ -53,8 +51,6 @@ public class AdminAuthServiceImpl implements AdminAuthService {
     private LoginLogService loginLogService;
     @Resource
     private OAuth2TokenService oauth2TokenService;
-    @Resource
-    private SocialUserService socialUserService;
     @Resource
     private MemberService memberService;
     @Resource
@@ -99,11 +95,6 @@ public class AdminAuthServiceImpl implements AdminAuthService {
         // 使用账号密码，进行登录
         AdminUserDO user = authenticate(reqVO.getUsername(), reqVO.getPassword());
 
-        // 如果 socialType 非空，说明需要绑定社交用户
-        if (reqVO.getSocialType() != null) {
-            socialUserService.bindSocialUser(new SocialUserBindReqDTO(user.getId(), getUserType().getValue(),
-                    reqVO.getSocialType(), reqVO.getSocialCode(), reqVO.getSocialState()));
-        }
         // 创建 Token 令牌，记录登录日志
         return createTokenAfterLoginSuccess(user.getId(), reqVO.getUsername(), LoginLogTypeEnum.LOGIN_USERNAME);
     }
@@ -150,25 +141,6 @@ public class AdminAuthServiceImpl implements AdminAuthService {
         if (userId != null && Objects.equals(LoginResultEnum.SUCCESS.getResult(), loginResult.getResult())) {
             userService.updateUserLogin(userId, ServletUtils.getClientIP());
         }
-    }
-
-    @Override
-    public AuthLoginRespVO socialLogin(AuthSocialLoginReqVO reqVO) {
-        // 使用 code 授权码，进行登录。然后，获得到绑定的用户编号
-        SocialUserRespDTO socialUser = socialUserService.getSocialUserByCode(UserTypeEnum.ADMIN.getValue(), reqVO.getType(),
-                reqVO.getCode(), reqVO.getState());
-        if (socialUser == null || socialUser.getUserId() == null) {
-            throw exception(AUTH_THIRD_LOGIN_NOT_BIND);
-        }
-
-        // 获得用户
-        AdminUserDO user = userService.getUser(socialUser.getUserId());
-        if (user == null) {
-            throw exception(USER_NOT_EXISTS);
-        }
-
-        // 创建 Token 令牌，记录登录日志
-        return createTokenAfterLoginSuccess(user.getId(), user.getUsername(), LoginLogTypeEnum.LOGIN_SOCIAL);
     }
 
     @VisibleForTesting

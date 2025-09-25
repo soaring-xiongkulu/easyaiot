@@ -17,7 +17,6 @@ import com.basiclab.iot.system.service.auth.AdminAuthService;
 import com.basiclab.iot.system.service.permission.MenuService;
 import com.basiclab.iot.system.service.permission.PermissionService;
 import com.basiclab.iot.system.service.permission.RoleService;
-import com.basiclab.iot.system.service.social.SocialClientService;
 import com.basiclab.iot.system.service.user.AdminUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -56,8 +55,6 @@ public class AuthController {
     private MenuService menuService;
     @Resource
     private PermissionService permissionService;
-    @Resource
-    private SocialClientService socialClientService;
 
     @Resource
     private SecurityProperties securityProperties;
@@ -130,28 +127,6 @@ public class AuthController {
     public CommonResult<Boolean> sendLoginSmsCode(@RequestBody @Valid AuthSmsSendReqVO reqVO) {
         authService.sendSmsCode(reqVO);
         return success(true);
-    }
-
-    // ========== 社交登录相关 ==========
-
-    @GetMapping("/social-auth-redirect")
-    @PermitAll
-    @Operation(summary = "社交授权的跳转")
-    @Parameters({
-            @Parameter(name = "type", description = "社交类型", required = true),
-            @Parameter(name = "redirectUri", description = "回调路径")
-    })
-    public CommonResult<String> socialLogin(@RequestParam("type") Integer type,
-                                            @RequestParam("redirectUri") String redirectUri) {
-        return success(socialClientService.getAuthorizeUrl(
-                type, UserTypeEnum.ADMIN.getValue(), redirectUri));
-    }
-
-    @PostMapping("/social-login")
-    @PermitAll
-    @Operation(summary = "社交快捷登录，使用 code 授权码", description = "适合未登录的用户，但是社交账号已绑定用户")
-    public CommonResult<AuthLoginRespVO> socialQuickLogin(@RequestBody @Valid AuthSocialLoginReqVO reqVO) {
-        return success(authService.socialLogin(reqVO));
     }
 
 }

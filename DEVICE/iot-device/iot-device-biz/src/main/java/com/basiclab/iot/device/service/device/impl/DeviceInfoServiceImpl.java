@@ -236,17 +236,6 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
     }
 
     /**
-     * 删除子设备管理信息
-     *
-     * @param id 子设备管理主键
-     * @return 结果
-     */
-    @Override
-    public int deleteDeviceInfoById(Long id) {
-        return deviceInfoMapper.deleteDeviceInfoById(id);
-    }
-
-    /**
      * 查询子设备影子数据
      *
      * @param ids       需要查询的子设备id
@@ -311,95 +300,10 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
         return deviceInfoMapper.findAllByIdIn(idCollection);
     }
 
-    /**
-     * 刷新子设备数据模型
-     *
-     * @param idCollection
-     * @return
-     */
-    @Override
-    public Boolean refreshDeviceInfoDataModel(Collection<Long> idCollection) {
-        List<DeviceInfo> allByIdInAndStatus = null;
-        if (StringUtils.isNotEmpty(idCollection)) {
-            allByIdInAndStatus = deviceInfoMapper.findAllByIdInAndStatus(idCollection, Constants.ENABLE);
-        } else {
-            allByIdInAndStatus = deviceInfoMapper.findAllByStatus(Constants.ENABLE);
-        }
-        allByIdInAndStatus.forEach(item -> {
-            final Device device = deviceService.findOneById(item.getDeviceIdentification());
-            if (StringUtils.isNull(device)) {
-                log.error("刷新子设备数据模型失败，子设备不存在");
-                return;
-            }
-            final Product product = productService.findOneByProductIdentificationAndProtocolType(device.getProductIdentification());
-            if (StringUtils.isNull(product)) {
-                log.error("刷新子设备数据模型失败，子设备产品不存在");
-                return;
-            }
-            StringBuilder shadowTableNameBuilder = new StringBuilder();
-            // 新增设备管理成功后，创建TD普通表
-            List<ProductServices> allByProductIdAndStatus = productServicesService.findAllByProductIdentificationIdAndStatus(product.getProductIdentification(), Constants.ENABLE);
-            TableDTO tableDto;
-            for (ProductServices productServices : allByProductIdAndStatus) {
-                tableDto = new TableDTO();
-                tableDto.setDataBaseName(dataBaseName);
-                //超级表命名规则 : 产品类型_产品标识_服务名称
-                String superTableName = TdUtils.getSuperTableName(product.getProductType(), product.getProductIdentification(), productServices.getServiceName());
-                tableDto.setSuperTableName(superTableName);
-                //子表命名规则 : 产品类型_产品标识_服务名称_设备标识（设备唯一标识）
-                tableDto.setTableName(TdUtils.getSubTableName(superTableName, item.getDeviceId()));
-                //Tag的处理
-                List<Fields> tagsFieldValues = new ArrayList<>();
-                Fields fields = new Fields();
-                fields.setFieldValue(device.getDeviceIdentification());
-                tagsFieldValues.add(fields);
-                tableDto.setTagsFieldValues(tagsFieldValues);
-                final R<?> ctResult = remoteTdEngineService.createSubTable(tableDto);
-                if (ctResult.getCode() == ResultEnum.SUCCESS.getCode()) {
-                    shadowTableNameBuilder.append(tableDto.getTableName()).append(",");
-                    log.info("Create SuperTable Success: " + ctResult.getMsg());
-                } else {
-                    log.error("Create SuperTable Exception: " + ctResult.getMsg());
-                }
-            }
-            if (shadowTableNameBuilder.length() > 0) {
-                item.setShadowTableName(shadowTableNameBuilder.substring(0, shadowTableNameBuilder.length() - 1));
-            }
-            shadowTableNameBuilder.replace(0, shadowTableNameBuilder.length(), "");
-            item.setCreateBy(device.getCreateBy());
-            deviceInfoMapper.updateByPrimaryKeySelective(item);
-        });
-        return true;
-    }
-
     @Override
     public List<DeviceInfo> findAllByStatus(String status) {
         return deviceInfoMapper.findAllByStatus(status);
     }
-
-
-    /**
-     * MQTT协议下添加子设备
-     *
-     * @param topoAddSubDeviceParam 子设备参数
-     * @return {@link TopoAddDeviceResultVO} 添加结果
-     */
-    @Override
-    public TopoAddDeviceResultVO saveSubDeviceByMqtt(TopoAddSubDeviceParam topoAddSubDeviceParam) {
-        return saveSubDevice(topoAddSubDeviceParam);
-    }
-
-    /**
-     * HTTP协议下添加子设备
-     *
-     * @param topoAddSubDeviceParam 子设备参数
-     * @return {@link TopoAddDeviceResultVO} 添加结果
-     */
-    @Override
-    public TopoAddDeviceResultVO saveSubDeviceByHttp(TopoAddSubDeviceParam topoAddSubDeviceParam) {
-        return saveSubDevice(topoAddSubDeviceParam);
-    }
-
 
     /**
      * 添加网关子设备
@@ -561,47 +465,6 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
         }
     }
 
-
-    /**
-     * MQTT协议下更新子设备连接状态
-     *
-     * @param topoUpdateSubDeviceStatusParam 更新参数
-     * @return {@link TopoDeviceOperationResultVO} 更新结果
-     */
-    @Override
-    public TopoDeviceOperationResultVO updateSubDeviceConnectStatusByMqtt(TopoUpdateSubDeviceStatusParam topoUpdateSubDeviceStatusParam) {
-        return updateSubDeviceConnectStatus(topoUpdateSubDeviceStatusParam);
-    }
-
-    /**
-     * Http协议下更新子设备连接状态
-     *
-     * @param topoUpdateSubDeviceStatusParam 更新参数
-     * @return {@link TopoDeviceOperationResultVO} 更新结果
-     */
-    @Override
-    public TopoDeviceOperationResultVO updateSubDeviceConnectStatusByHttp(TopoUpdateSubDeviceStatusParam topoUpdateSubDeviceStatusParam) {
-        return updateSubDeviceConnectStatus(topoUpdateSubDeviceStatusParam);
-    }
-
-    /**
-     * Updates the connection status of sub-devices and logs their events.
-     *
-     * @param topoUpdateSubDeviceStatusParam the parameters containing device statuses to be updated
-     * @return an object containing the operation results
-     */
-    private TopoDeviceOperationResultVO updateSubDeviceConnectStatus(TopoUpdateSubDeviceStatusParam topoUpdateSubDeviceStatusParam) {
-        List<TopoDeviceOperationResultVO.OperationRsp> operationRsps = topoUpdateSubDeviceStatusParam.getDeviceStatuses().stream()
-                .map(this::processSubDeviceStatus)
-                .collect(Collectors.toList());
-
-        return TopoDeviceOperationResultVO.builder()
-                .statusCode(MqttProtocolTopoStatusEnum.SUCCESS.getValue())
-                .statusDesc(MqttProtocolTopoStatusEnum.SUCCESS.getDesc())
-                .data(operationRsps)
-                .build();
-    }
-
     /**
      * Processes the status of a single sub-device, updates it, and logs the event.
      *
@@ -659,28 +522,6 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
         return "The device connection status is updated to " + desc;
     }
 
-    /**
-     * MQTT协议下删除子设备
-     *
-     * @param topoDeleteSubDeviceParam 删除参数
-     * @return {@link TopoDeviceOperationResultVO} 删除结果
-     */
-    @Override
-    public TopoDeviceOperationResultVO deleteSubDeviceByMqtt(TopoDeleteSubDeviceParam topoDeleteSubDeviceParam) {
-        return deleteSubDevice(topoDeleteSubDeviceParam);
-    }
-
-    /**
-     * Http协议下删除子设备
-     *
-     * @param topoDeleteSubDeviceParam 删除参数
-     * @return {@link TopoDeviceOperationResultVO} 删除结果
-     */
-    @Override
-    public TopoDeviceOperationResultVO deleteSubDeviceByHttp(TopoDeleteSubDeviceParam topoDeleteSubDeviceParam) {
-        return deleteSubDevice(topoDeleteSubDeviceParam);
-    }
-
     private TopoDeviceOperationResultVO deleteSubDevice(TopoDeleteSubDeviceParam topoDeleteSubDeviceParam) {
         // 创建一个操作结果列表用于存储处理结果
         List<TopoDeviceOperationResultVO.OperationRsp> operationResultList = new ArrayList<>();
@@ -721,7 +562,4 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
                 .build();
     }
 
-
 }
-
-

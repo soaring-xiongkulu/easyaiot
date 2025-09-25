@@ -20,7 +20,6 @@ import com.basiclab.iot.common.utils.DateUtils;
 import com.basiclab.iot.common.utils.StringUtils;
 import com.basiclab.iot.common.utils.bean.BeanPlusUtil;
 import com.basiclab.iot.common.service.RedisService;
-import com.basiclab.iot.device.RemoteDeviceOpenAnyService;
 import com.basiclab.iot.device.domain.device.vo.DeviceCacheVO;
 import com.basiclab.iot.device.domain.device.vo.ProductModelCacheVO;
 import com.basiclab.iot.device.enums.product.ProductTypeEnum;
@@ -58,10 +57,9 @@ import java.util.stream.Collectors;
 public class DeviceDatasHandler extends AbstractMessageHandler implements TopicHandler {
 
     public DeviceDatasHandler(RedisService redisService,
-                              RemoteDeviceOpenAnyService remoteDeviceOpenAnyService,
                               RemoteMqttBrokerOpenApi remoteMqttBrokerOpenApi,
                               ProtocolMessageAdapter protocolMessageAdapter) {
-        super(redisService, remoteDeviceOpenAnyService, remoteMqttBrokerOpenApi, protocolMessageAdapter);
+        super(redisService, remoteMqttBrokerOpenApi, protocolMessageAdapter);
     }
 
     @Resource

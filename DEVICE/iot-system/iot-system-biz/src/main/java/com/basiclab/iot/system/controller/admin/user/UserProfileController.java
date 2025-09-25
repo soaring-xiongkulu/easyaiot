@@ -1,9 +1,8 @@
 package com.basiclab.iot.system.controller.admin.user;
 
 import cn.hutool.core.collection.CollUtil;
-import com.basiclab.iot.common.enums.UserTypeEnum;
-import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.core.annotation.DataPermission;
+import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.system.controller.admin.user.vo.profile.UserProfileRespVO;
 import com.basiclab.iot.system.controller.admin.user.vo.profile.UserProfileUpdatePasswordReqVO;
 import com.basiclab.iot.system.controller.admin.user.vo.profile.UserProfileUpdateReqVO;
@@ -11,13 +10,11 @@ import com.basiclab.iot.system.convert.user.UserConvert;
 import com.basiclab.iot.system.dal.dataobject.dept.DeptDO;
 import com.basiclab.iot.system.dal.dataobject.dept.PostDO;
 import com.basiclab.iot.system.dal.dataobject.permission.RoleDO;
-import com.basiclab.iot.system.dal.dataobject.social.SocialUserDO;
 import com.basiclab.iot.system.dal.dataobject.user.AdminUserDO;
 import com.basiclab.iot.system.service.dept.DeptService;
 import com.basiclab.iot.system.service.dept.PostService;
 import com.basiclab.iot.system.service.permission.PermissionService;
 import com.basiclab.iot.system.service.permission.RoleService;
-import com.basiclab.iot.system.service.social.SocialUserService;
 import com.basiclab.iot.system.service.user.AdminUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,8 +27,8 @@ import javax.annotation.Resource;
 import javax.validation.Valid;
 import java.util.List;
 
-import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.exception;
 import static com.basiclab.iot.common.domain.CommonResult.success;
+import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.exception;
 import static com.basiclab.iot.common.utils.SecurityFrameworkUtils.getLoginUserId;
 import static com.basiclab.iot.infra.enums.ErrorCodeConstants.FILE_IS_EMPTY;
 
@@ -52,8 +49,6 @@ public class UserProfileController {
     private PermissionService permissionService;
     @Resource
     private RoleService roleService;
-    @Resource
-    private SocialUserService socialService;
 
     @GetMapping("/get")
     @Operation(summary = "获得登录用户信息")
@@ -67,9 +62,7 @@ public class UserProfileController {
         DeptDO dept = user.getDeptId() != null ? deptService.getDept(user.getDeptId()) : null;
         // 获得岗位信息
         List<PostDO> posts = CollUtil.isNotEmpty(user.getPostIds()) ? postService.getPostList(user.getPostIds()) : null;
-        // 获得社交用户信息
-        List<SocialUserDO> socialUsers = socialService.getSocialUserList(user.getId(), UserTypeEnum.ADMIN.getValue());
-        return success(UserConvert.INSTANCE.convert(user, userRoles, dept, posts, socialUsers));
+        return success(UserConvert.INSTANCE.convert(user, userRoles, dept, posts));
     }
 
     @PutMapping("/update")

@@ -21,15 +21,11 @@ import java.util.regex.Pattern;
 public class TopicHandlerFactory {
 
     private final DefaultHandler defaultHandler;
-    private final SecretKeyHandler secretKeyHandler;
-    private final AddSubDeviceHandler addSubDeviceHandler;
     private final DeleteSubDeviceHandler deleteSubDeviceHandler;
     private final UpdateSubDeviceHandler updateSubDeviceHandler;
     private final QueryDeviceHandler queryDeviceHandler;
     private final DeviceDatasHandler deviceDatasHandler;
     private final CommandResponseHandler commandResponseHandler;
-
-    private final OtaCommandResponseHandler otaCommandResponseHandler;
 
     // Define patterns as constants
     private static final Pattern DEFAULT_PATTERN = Pattern.compile("");
@@ -42,19 +38,15 @@ public class TopicHandlerFactory {
     private static final Pattern COMMAND_RESPONSE_PATTERN = Pattern.compile("/([^/]+)/devices/([^/]+)/commandResponse");
     private static final Pattern OTA_COMMAND_RESPONSE_PATTERN = Pattern.compile("/([^/]+)/devices/([^/]+)/otaCommandResponse");
 
-    public TopicHandlerFactory(DefaultHandler defaultHandler, SecretKeyHandler secretKeyHandler,
-                               AddSubDeviceHandler addSubDeviceHandler, DeleteSubDeviceHandler deleteSubDeviceHandler,
+    public TopicHandlerFactory(DefaultHandler defaultHandler, DeleteSubDeviceHandler deleteSubDeviceHandler,
                                UpdateSubDeviceHandler updateSubDeviceHandler, QueryDeviceHandler queryDeviceHandler, DeviceDatasHandler deviceDatasHandler,
-                               CommandResponseHandler commandResponseHandler, OtaCommandResponseHandler otaCommandResponseHandler) {
+                               CommandResponseHandler commandResponseHandler) {
         this.defaultHandler = defaultHandler;
-        this.secretKeyHandler = secretKeyHandler;
-        this.addSubDeviceHandler = addSubDeviceHandler;
         this.deleteSubDeviceHandler = deleteSubDeviceHandler;
         this.updateSubDeviceHandler = updateSubDeviceHandler;
         this.queryDeviceHandler = queryDeviceHandler;
         this.deviceDatasHandler = deviceDatasHandler;
         this.commandResponseHandler = commandResponseHandler;
-        this.otaCommandResponseHandler = otaCommandResponseHandler;
     }
 
     private static final class TopicHandlerEntry {
@@ -82,14 +74,11 @@ public class TopicHandlerFactory {
     public void initTopicHandlerEntries() {
         topicHandlerEntries = new ArrayList<>();
         topicHandlerEntries.add(new TopicHandlerEntry(DEFAULT_PATTERN, defaultHandler));
-        topicHandlerEntries.add(new TopicHandlerEntry(SECRET_KEY_PATTERN, secretKeyHandler));
-        topicHandlerEntries.add(new TopicHandlerEntry(ADD_SUB_DEVICE_PATTERN, addSubDeviceHandler));
         topicHandlerEntries.add(new TopicHandlerEntry(DELETE_SUB_DEVICE_PATTERN, deleteSubDeviceHandler));
         topicHandlerEntries.add(new TopicHandlerEntry(UPDATE_SUB_DEVICE_PATTERN, updateSubDeviceHandler));
         topicHandlerEntries.add(new TopicHandlerEntry(QUERY_DEVICE_PATTERN, queryDeviceHandler));
         topicHandlerEntries.add(new TopicHandlerEntry(DEVICE_DATAS_PATTERN, deviceDatasHandler));
         topicHandlerEntries.add(new TopicHandlerEntry(COMMAND_RESPONSE_PATTERN, commandResponseHandler));
-        topicHandlerEntries.add(new TopicHandlerEntry(OTA_COMMAND_RESPONSE_PATTERN, otaCommandResponseHandler));
     }
 
     // This method searches for a matching handler based on the topic.

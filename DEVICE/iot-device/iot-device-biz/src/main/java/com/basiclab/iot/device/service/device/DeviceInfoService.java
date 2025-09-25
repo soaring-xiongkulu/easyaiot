@@ -81,14 +81,6 @@ public interface DeviceInfoService {
     public int deleteDeviceInfoByIds(Long[] ids);
 
     /**
-     * 删除子设备管理信息
-     *
-     * @param id 子设备管理主键
-     * @return 结果
-     */
-    public int deleteDeviceInfoById(Long id);
-
-    /**
      * 查询子设备影子数据
      *
      * @param ids       需要查询的子设备id
@@ -104,69 +96,7 @@ public interface DeviceInfoService {
 
     List<DeviceInfo> findAllByIdIn(Collection<Long> idCollection);
 
-
-    /**
-     * 刷新子设备数据模型
-     *
-     * @param idCollection
-     * @return
-     */
-    public Boolean refreshDeviceInfoDataModel(Collection<Long> idCollection);
-
-
     List<DeviceInfo> findAllByStatus(String status);
-
-
-    /**
-     * MQTT协议下添加子设备
-     *
-     * @param topoAddSubDeviceParam 子设备参数
-     * @return {@link TopoAddDeviceResultVO} 添加结果
-     */
-    TopoAddDeviceResultVO saveSubDeviceByMqtt(TopoAddSubDeviceParam topoAddSubDeviceParam);
-
-    /**
-     * HTTP协议下添加子设备
-     *
-     * @param topoAddSubDeviceParam 子设备参数
-     * @return {@link TopoAddDeviceResultVO} 添加结果
-     */
-    TopoAddDeviceResultVO saveSubDeviceByHttp(TopoAddSubDeviceParam topoAddSubDeviceParam);
-
-
-    /**
-     * MQTT协议下更新子设备连接状态
-     *
-     * @param topoUpdateSubDeviceStatusParam 更新参数
-     * @return {@link TopoDeviceOperationResultVO} 更新结果
-     */
-    TopoDeviceOperationResultVO updateSubDeviceConnectStatusByMqtt(TopoUpdateSubDeviceStatusParam topoUpdateSubDeviceStatusParam);
-
-    /**
-     * Http协议下更新子设备连接状态
-     *
-     * @param topoUpdateSubDeviceStatusParam 更新参数
-     * @return {@link TopoDeviceOperationResultVO} 更新结果
-     */
-    TopoDeviceOperationResultVO updateSubDeviceConnectStatusByHttp(TopoUpdateSubDeviceStatusParam topoUpdateSubDeviceStatusParam);
-
-    /**
-     * MQTT协议下删除子设备
-     *
-     * @param topoDeleteSubDeviceParam 删除参数
-     * @return {@link TopoDeviceOperationResultVO} 删除结果
-     */
-    TopoDeviceOperationResultVO deleteSubDeviceByMqtt(TopoDeleteSubDeviceParam topoDeleteSubDeviceParam);
-
-
-    /**
-     * Http协议下删除子设备
-     *
-     * @param topoDeleteSubDeviceParam 删除参数
-     * @return {@link TopoDeviceOperationResultVO} 删除结果
-     */
-    TopoDeviceOperationResultVO deleteSubDeviceByHttp(TopoDeleteSubDeviceParam topoDeleteSubDeviceParam);
-
 
 }
 

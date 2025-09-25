@@ -1,12 +1,11 @@
 package com.basiclab.iot.broker.mqs.mqtt.handler;
 
-import com.basiclab.iot.common.factory.ProtocolMessageAdapter;
-import com.basiclab.iot.common.model.EncryptionDetailsDTO;
 import com.basiclab.iot.broker.RemoteMqttBrokerOpenApi;
 import com.basiclab.iot.broker.mqs.mqtt.handler.factory.AbstractMessageHandler;
 import com.basiclab.iot.broker.mqs.mqtt.service.MqttEventCommandService;
+import com.basiclab.iot.common.factory.ProtocolMessageAdapter;
+import com.basiclab.iot.common.model.EncryptionDetailsDTO;
 import com.basiclab.iot.common.service.RedisService;
-import com.basiclab.iot.device.RemoteDeviceOpenAnyService;
 import com.basiclab.iot.device.domain.device.vo.DeviceCacheVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,10 +25,9 @@ import java.util.Map;
 @Service
 public class CommandResponseHandler extends AbstractMessageHandler implements TopicHandler {
     public CommandResponseHandler(RedisService redisService,
-                                  RemoteDeviceOpenAnyService remoteDeviceOpenAnyService,
                                   RemoteMqttBrokerOpenApi remoteMqttBrokerOpenApi,
                                   ProtocolMessageAdapter protocolMessageAdapter) {
-        super(redisService, remoteDeviceOpenAnyService, remoteMqttBrokerOpenApi, protocolMessageAdapter);
+        super(redisService, remoteMqttBrokerOpenApi, protocolMessageAdapter);
     }
 
     @Autowired

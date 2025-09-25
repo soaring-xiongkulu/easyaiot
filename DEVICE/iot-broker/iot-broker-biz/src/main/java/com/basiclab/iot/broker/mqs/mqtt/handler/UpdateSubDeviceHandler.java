@@ -9,7 +9,6 @@ import com.basiclab.iot.broker.RemoteMqttBrokerOpenApi;
 import com.basiclab.iot.broker.mqs.mqtt.handler.factory.AbstractMessageHandler;
 import com.basiclab.iot.common.domain.R;
 import com.basiclab.iot.common.service.RedisService;
-import com.basiclab.iot.device.RemoteDeviceOpenAnyService;
 import com.basiclab.iot.device.domain.device.vo.DeviceCacheVO;
 import com.basiclab.iot.device.domain.device.vo.TopoUpdateSubDeviceStatusParam;
 import com.basiclab.iot.device.domain.device.vo.TopoDeviceOperationResultVO;
@@ -33,10 +32,9 @@ public class UpdateSubDeviceHandler extends AbstractMessageHandler implements To
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public UpdateSubDeviceHandler(RedisService redisService,
-                                  RemoteDeviceOpenAnyService remoteDeviceOpenAnyService,
                                   RemoteMqttBrokerOpenApi remoteMqttBrokerOpenApi,
                                   ProtocolMessageAdapter protocolMessageAdapter) {
-        super(redisService, remoteDeviceOpenAnyService, remoteMqttBrokerOpenApi, protocolMessageAdapter);
+        super(redisService, remoteMqttBrokerOpenApi, protocolMessageAdapter);
     }
 
     /**
@@ -101,9 +99,6 @@ public class UpdateSubDeviceHandler extends AbstractMessageHandler implements To
      */
     @Override
     protected String processingTopicMessage(Object topoUpdateSubDeviceParam) throws Exception {
-        R<TopoDeviceOperationResultVO> topoDeviceOperationResultVOR =
-                remoteDeviceOpenAnyService.updateSubDeviceConnectStatusByMqtt((TopoUpdateSubDeviceStatusParam) topoUpdateSubDeviceParam);
-        log.info("processingTopoUpdateTopic Processing result:{}", JSON.toJSONString(topoDeviceOperationResultVOR));
-        return JSON.toJSONString(topoDeviceOperationResultVOR.getData());
+        return null;
     }
 }

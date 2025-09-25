@@ -1,13 +1,11 @@
 package com.basiclab.iot.broker.mqs.mqtt.handler.factory;
 
-
 import com.basiclab.iot.broker.RemoteMqttBrokerOpenApi;
 import com.basiclab.iot.broker.domain.vo.PublishMessageRequestVO;
 import com.basiclab.iot.common.constant.CacheConstants;
 import com.basiclab.iot.common.factory.ProtocolMessageAdapter;
 import com.basiclab.iot.common.service.RedisService;
 import com.basiclab.iot.common.utils.SnowflakeIdUtil;
-import com.basiclab.iot.device.RemoteDeviceOpenAnyService;
 import com.basiclab.iot.device.domain.device.vo.DeviceCacheVO;
 import com.basiclab.iot.device.domain.device.vo.ProductModelCacheVO;
 import com.basiclab.iot.tdengine.domain.SuperTableDescribeVO;
@@ -28,16 +26,13 @@ import java.util.concurrent.TimeUnit;
 public abstract class AbstractMessageHandler {
 
     protected final RedisService redisService;
-    protected final RemoteDeviceOpenAnyService remoteDeviceOpenAnyService;
     protected final RemoteMqttBrokerOpenApi remoteMqttBrokerOpenApi;
     protected final ProtocolMessageAdapter protocolMessageAdapter;
 
     public AbstractMessageHandler(RedisService redisService,
-                                  RemoteDeviceOpenAnyService remoteDeviceOpenAnyService,
                                   RemoteMqttBrokerOpenApi remoteMqttBrokerOpenApi,
                                   ProtocolMessageAdapter protocolMessageAdapter) {
         this.redisService = redisService;
-        this.remoteDeviceOpenAnyService = remoteDeviceOpenAnyService;
         this.remoteMqttBrokerOpenApi = remoteMqttBrokerOpenApi;
         this.protocolMessageAdapter = protocolMessageAdapter;
     }

@@ -1,18 +1,15 @@
 package com.basiclab.iot.broker.mqs.mqtt.handler;
 
 import com.alibaba.fastjson.JSON;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.basiclab.iot.broker.RemoteMqttBrokerOpenApi;
+import com.basiclab.iot.broker.mqs.mqtt.handler.factory.AbstractMessageHandler;
 import com.basiclab.iot.common.factory.ProtocolMessageAdapter;
 import com.basiclab.iot.common.model.EncryptionDetailsDTO;
 import com.basiclab.iot.common.model.ProtocolDataMessageDTO;
-import com.basiclab.iot.broker.RemoteMqttBrokerOpenApi;
-import com.basiclab.iot.broker.mqs.mqtt.handler.factory.AbstractMessageHandler;
-import com.basiclab.iot.common.domain.R;
 import com.basiclab.iot.common.service.RedisService;
-import com.basiclab.iot.device.RemoteDeviceOpenAnyService;
 import com.basiclab.iot.device.domain.device.vo.DeviceCacheVO;
 import com.basiclab.iot.device.domain.device.vo.TopoQueryDeviceParam;
-import com.basiclab.iot.device.domain.device.vo.TopoQueryDeviceResultVO;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -33,10 +30,9 @@ public class QueryDeviceHandler extends AbstractMessageHandler implements TopicH
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public QueryDeviceHandler(RedisService redisService,
-                              RemoteDeviceOpenAnyService remoteDeviceOpenAnyService,
                               RemoteMqttBrokerOpenApi remoteMqttBrokerOpenApi,
                               ProtocolMessageAdapter protocolMessageAdapter) {
-        super(redisService, remoteDeviceOpenAnyService, remoteMqttBrokerOpenApi, protocolMessageAdapter);
+        super(redisService, remoteMqttBrokerOpenApi, protocolMessageAdapter);
     }
 
     /**
@@ -104,12 +100,7 @@ public class QueryDeviceHandler extends AbstractMessageHandler implements TopicH
         if (!(topoQueryDeviceParam instanceof TopoQueryDeviceParam)) {
             throw new IllegalArgumentException("Invalid parameter type for device query");
         }
-
-        TopoQueryDeviceParam queryParam = (TopoQueryDeviceParam) topoQueryDeviceParam;
-        R<TopoQueryDeviceResultVO> topoQueryDeviceResultVOR = remoteDeviceOpenAnyService.queryDeviceByMqtt(queryParam);
-
-        log.info("Processing /topo/query result: {}", JSON.toJSONString(topoQueryDeviceResultVOR));
-        return JSON.toJSONString(topoQueryDeviceResultVOR.getData());
+        return null;
     }
 
 

@@ -3,15 +3,12 @@ package com.basiclab.iot.broker.mqs.mqtt.handler;
 import com.alibaba.fastjson.JSON;
 import com.basiclab.iot.broker.RemoteMqttBrokerOpenApi;
 import com.basiclab.iot.broker.mqs.mqtt.handler.factory.AbstractMessageHandler;
-import com.basiclab.iot.common.domain.R;
 import com.basiclab.iot.common.factory.ProtocolMessageAdapter;
 import com.basiclab.iot.common.model.EncryptionDetailsDTO;
 import com.basiclab.iot.common.model.ProtocolDataMessageDTO;
 import com.basiclab.iot.common.service.RedisService;
-import com.basiclab.iot.device.RemoteDeviceOpenAnyService;
 import com.basiclab.iot.device.domain.device.vo.DeviceCacheVO;
 import com.basiclab.iot.device.domain.device.vo.TopoDeleteSubDeviceParam;
-import com.basiclab.iot.device.domain.device.vo.TopoDeviceOperationResultVO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,10 +30,9 @@ public class DeleteSubDeviceHandler extends AbstractMessageHandler implements To
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public DeleteSubDeviceHandler(RedisService redisService,
-                                  RemoteDeviceOpenAnyService remoteDeviceOpenAnyService,
                                   RemoteMqttBrokerOpenApi remoteMqttBrokerOpenApi,
                                   ProtocolMessageAdapter protocolMessageAdapter) {
-        super(redisService, remoteDeviceOpenAnyService, remoteMqttBrokerOpenApi, protocolMessageAdapter);
+        super(redisService, remoteMqttBrokerOpenApi, protocolMessageAdapter);
     }
 
     /**
@@ -102,9 +98,7 @@ public class DeleteSubDeviceHandler extends AbstractMessageHandler implements To
      */
     @Override
     protected String processingTopicMessage(Object topoDeleteSubDeviceParam) throws Exception {
-        R<TopoDeviceOperationResultVO> mqttTopoDeleteDeviceResultVOR = remoteDeviceOpenAnyService.deleteSubDeviceByMqtt((TopoDeleteSubDeviceParam) topoDeleteSubDeviceParam);
-        log.info("processingTopoDeleteTopic Processing result:{}", JSON.toJSONString(mqttTopoDeleteDeviceResultVOR));
-        return JSON.toJSONString(mqttTopoDeleteDeviceResultVOR.getData());
+        return null;
     }
 }
 
