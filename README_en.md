@@ -1,4 +1,4 @@
-# EasyAIoT (DeepCore AI Cloud Platform)
+# EasyAIoT (Cloud-Edge-Device Integrated Collaborative Algorithm Application Platform)
 
 [![Gitee star](https://gitee.com/soaring-xiongkulu/easyaiot/badge/star.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/stargazers)
 [![Gitee fork](https://gitee.com/soaring-xiongkulu/easyaiot//badge/fork.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/members)
@@ -14,6 +14,8 @@
   <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
   <a href="./README_en.md">English Document</a>
 </h4>
+
+## There will never be a commercial version, now or in the future. Continuing the legacy of ancient sages!
 
 ## 🌟 Some Thoughts on the Project
 
