@@ -1,4 +1,4 @@
-# EasyAIoT（云边端一体化协同算法应用平台）
+# EasyAIoT（云边端一体化智能算法应用平台）
 
 [![Gitee star](https://gitee.com/soaring-xiongkulu/easyaiot/badge/star.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/stargazers)
 [![Gitee fork](https://gitee.com/soaring-xiongkulu/easyaiot//badge/fork.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/members)

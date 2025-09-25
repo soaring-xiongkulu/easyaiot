@@ -1,7 +1,7 @@
 # WEB模块部署文档
 
 ## 项目概述
-云边端一体化协同算法应用平台是一个基于 Vue 3 和 Vite 构建的现代化 Web 应用程序。该平台使用了多种技术栈，包括 Ant Design Vue、Pinia、Vue Router 等。
+云边端一体化智能算法应用平台是一个基于 Vue 3 和 Vite 构建的现代化 Web 应用程序。该平台使用了多种技术栈，包括 Ant Design Vue、Pinia、Vue Router 等。
 
 ## 环境要求
 - Node.js 版本: >=20.0.0
