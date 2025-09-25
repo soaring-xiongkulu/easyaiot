@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 /**
 * @description: ${description}
 * @packagename: com.basiclab.iot.device.api.domain.protocol
-* @author EasyIoT
+* @author EasyAIoT
 * @date: 2025-07-01 17:56
 **/
 

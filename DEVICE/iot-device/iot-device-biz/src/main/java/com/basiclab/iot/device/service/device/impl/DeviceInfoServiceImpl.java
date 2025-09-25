@@ -42,7 +42,7 @@ import java.util.stream.Stream;
  * @Description: 子设备档案接口实现
  * @author: EasyAIoT
  * @E-mail: andywebjava@163.com
- * @Website: http://iot.mqttsnet.com
+ * @Website: https://gitee.com/soaring-xiongkulu/easyaiot
  * @CreateDate: 2024/4/25$ 12:44$
  * @UpdateUser: EasyAIoT
  * @UpdateDate: 2024/4/25$ 12:44$

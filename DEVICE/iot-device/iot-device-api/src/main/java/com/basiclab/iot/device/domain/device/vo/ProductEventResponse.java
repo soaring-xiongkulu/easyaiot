@@ -13,7 +13,7 @@ import java.io.Serializable;
  * @Description:    java类作用描述
  * @Author:         EasyAIoT
  * @E-mail:         andywebjava@163.com
- * @Website:        http://iot.mqttsnet.com
+ * @Website:        https://gitee.com/soaring-xiongkulu/easyaiot
  * @CreateDate:     2024/12/25$ 23:52$
  * @UpdateUser:     EasyAIoT
  * @UpdateDate:     2024/12/25$ 23:52$

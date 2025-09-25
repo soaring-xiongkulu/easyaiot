@@ -9,8 +9,8 @@ import java.util.List;
 /**
 * @Description: 设备Topic数据Mapper接口
 * @author: EasyAIoT
-* @CreateDate: 2022/6/15$ 15:23$
-* @UpdateDate: 2022/6/15$ 15:23$
+* @CreateDate: 2022/6/15 19:35
+* @UpdateDate: 2022/6/15 19:35
 * @UpdateRemark: 修改内容
 * @Version: V1.0
 */

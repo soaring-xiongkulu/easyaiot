@@ -14,7 +14,7 @@ import java.util.List;
  * @Description: 产品服务接口
  * @Author: Basiclab
  * @E-mail: 853017739@qq.com
- * @Website: http://iot.mqttsnet.com
+ * @Website: https://gitee.com/soaring-xiongkulu/easyaiot
  * @CreateDate: 2021/12/25$ 23:52$
  * @UpdateUser: ShiHuan Sun
  * @UpdateDate: 2021/12/25$ 23:52$

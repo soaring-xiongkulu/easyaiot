@@ -14,11 +14,11 @@ import java.time.LocalDateTime;
 
 /**
 * @Description: java类作用描述
-* @author EasyIoT
+* @author EasyAIoT
 * @E-mail: andywebjava@163.com
-* @Website: http://iot.mqttsnet.com
-* @CreateDate: 2024/6/15$ 15:23$
-* @UpdateDate: 2024/6/15$ 15:23$
+* @Website: https://gitee.com/soaring-xiongkulu/easyaiot
+* @CreateDate: 2025/6/15 19:35
+* @UpdateDate: 2025/6/15 19:35
 * @UpdateRemark: 修改内容
 * @Version: V1.0
 */

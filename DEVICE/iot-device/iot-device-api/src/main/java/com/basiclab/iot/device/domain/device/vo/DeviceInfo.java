@@ -12,9 +12,9 @@ import java.time.LocalDateTime;
 
 /**
 * @Description: 子设备档案表
-* @author EasyIoT
+* @author EasyAIoT
 * @E-mail: andywebjava@163.com
-* @Website: http://iot.mqttsnet.com
+* @Website: https://gitee.com/soaring-xiongkulu/easyaiot
 * @CreateDate: 2024/4/25$ 12:48$
 * @UpdateDate: 2024/4/25$ 12:48$
 * @UpdateRemark: 修改内容
