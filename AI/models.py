@@ -54,7 +54,6 @@ class ExportRecord(db.Model):
     message = db.Column(db.Text)  # 新增错误信息字段
     model = db.relationship('Model', back_populates='export_records')
 
-
 class InferenceTask(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=True)
