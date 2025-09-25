@@ -139,62 +139,53 @@ def process_export_async(model_id, format, rknn_config, export_id, task_id):
 
             export_tasks[task_id]['progress'] = 40
 
-            # RKNN格式特殊处理
-            if format == 'rknn':
-                export_result = RknnExporter.export_from_pytorch(
-                    model_id,
-                    local_pt_path,
-                    config=rknn_config
+            # 其他格式处理
+            model = YOLO(local_pt_path)
+            export_filename = f"model{SUPPORTED_FORMATS[format]['ext']}"
+            export_local_path = os.path.join(tmp_dir, export_filename)
+
+            # 执行模型导出
+            export_params = {
+                'format': format,
+                'imgsz': rknn_config['img_size'],
+                'optimize': True if format == 'tensorrt' else False,
+                'device': 'cpu'
+            }
+
+            if format == 'openvino':
+                export_params['half'] = False
+
+            model.export(**export_params)
+
+            # 处理导出文件
+            exported_files = [f for f in os.listdir(tmp_dir) if
+                              f.endswith(SUPPORTED_FORMATS[format]['ext']) or f.endswith('.engine')]
+            if not exported_files:
+                raise Exception("模型导出失败，未生成目标文件")
+
+            if format != 'openvino':
+                os.rename(os.path.join(tmp_dir, exported_files[0]), export_local_path)
+
+            # 上传到Minio
+            minio_export_path = f"exports/model_{model_id}/{format}/{export_filename}"
+            export_tasks[task_id]['progress'] = 70
+
+            if format == 'openvino':
+                openvino_dir = os.path.join(tmp_dir, exported_files[0])
+                upload_success = ModelService.upload_directory_to_minio(
+                    bucket_name="export-bucket",
+                    object_prefix=minio_export_path.rstrip('/') + '/',
+                    local_dir=openvino_dir
                 )
-                minio_export_path = export_result['minio_path']
             else:
-                # 其他格式处理
-                model = YOLO(local_pt_path)
-                export_filename = f"model{SUPPORTED_FORMATS[format]['ext']}"
-                export_local_path = os.path.join(tmp_dir, export_filename)
+                upload_success = ModelService.upload_to_minio(
+                    bucket_name="export-bucket",
+                    object_name=minio_export_path,
+                    file_path=export_local_path
+                )
 
-                # 执行模型导出
-                export_params = {
-                    'format': format,
-                    'imgsz': rknn_config['img_size'],
-                    'optimize': True if format == 'tensorrt' else False,
-                    'device': 'cpu'
-                }
-
-                if format == 'openvino':
-                    export_params['half'] = False
-
-                model.export(**export_params)
-
-                # 处理导出文件
-                exported_files = [f for f in os.listdir(tmp_dir) if
-                                  f.endswith(SUPPORTED_FORMATS[format]['ext']) or f.endswith('.engine')]
-                if not exported_files:
-                    raise Exception("模型导出失败，未生成目标文件")
-
-                if format != 'openvino':
-                    os.rename(os.path.join(tmp_dir, exported_files[0]), export_local_path)
-
-                # 上传到Minio
-                minio_export_path = f"exports/model_{model_id}/{format}/{export_filename}"
-                export_tasks[task_id]['progress'] = 70
-
-                if format == 'openvino':
-                    openvino_dir = os.path.join(tmp_dir, exported_files[0])
-                    upload_success = ModelService.upload_directory_to_minio(
-                        bucket_name="export-bucket",
-                        object_prefix=minio_export_path.rstrip('/') + '/',
-                        local_dir=openvino_dir
-                    )
-                else:
-                    upload_success = ModelService.upload_to_minio(
-                        bucket_name="export-bucket",
-                        object_name=minio_export_path,
-                        file_path=export_local_path
-                    )
-
-                if not upload_success:
-                    raise Exception("导出模型上传失败")
+            if not upload_success:
+                raise Exception("导出模型上传失败")
 
             # 更新导出记录
             export_record.minio_path = minio_export_path
