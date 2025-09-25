@@ -2036,6 +2036,148 @@ CREATE SEQUENCE public.device_ota_version_verify_id_seq
 ALTER SEQUENCE public.device_ota_version_verify_id_seq OWNER TO postgres;
 
 --
+-- Name: device_topic; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.device_topic (
+    id bigint NOT NULL,
+    device_identification character varying(100) NOT NULL,
+    type character varying(255),
+    topic character varying(100),
+    publisher character varying(255),
+    subscriber character varying(255),
+    create_by character varying(64),
+    create_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    update_by character varying(64),
+    update_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    remark character varying(500),
+    tenant_id bigint DEFAULT 0 NOT NULL,
+    deleted smallint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.device_topic OWNER TO postgres;
+
+--
+-- Name: TABLE device_topic; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.device_topic IS '设备Topic数据表';
+
+
+--
+-- Name: COLUMN device_topic.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_topic.id IS 'id';
+
+
+--
+-- Name: COLUMN device_topic.device_identification; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_topic.device_identification IS '设备标识';
+
+
+--
+-- Name: COLUMN device_topic.type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_topic.type IS '类型(0:基础Topic,1:自定义Topic)';
+
+
+--
+-- Name: COLUMN device_topic.topic; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_topic.topic IS 'topic';
+
+
+--
+-- Name: COLUMN device_topic.publisher; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_topic.publisher IS '发布者';
+
+
+--
+-- Name: COLUMN device_topic.subscriber; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_topic.subscriber IS '订阅者';
+
+
+--
+-- Name: COLUMN device_topic.create_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_topic.create_by IS '创建者';
+
+
+--
+-- Name: COLUMN device_topic.create_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_topic.create_time IS '创建时间';
+
+
+--
+-- Name: COLUMN device_topic.update_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_topic.update_by IS '更新者';
+
+
+--
+-- Name: COLUMN device_topic.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_topic.update_time IS '更新时间';
+
+
+--
+-- Name: COLUMN device_topic.remark; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_topic.remark IS '备注';
+
+
+--
+-- Name: COLUMN device_topic.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_topic.tenant_id IS '租户编号';
+
+
+--
+-- Name: COLUMN device_topic.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_topic.deleted IS '是否删除';
+
+
+--
+-- Name: device_topic_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.device_topic_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.device_topic_id_seq OWNER TO postgres;
+
+--
+-- Name: device_topic_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.device_topic_id_seq OWNED BY public.device_topic.id;
+
+
+--
 -- Name: dm_ota_version_lang_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3361,6 +3503,13 @@ ALTER TABLE ONLY public.device_location ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
+-- Name: device_topic id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.device_topic ALTER COLUMN id SET DEFAULT nextval('public.device_topic_id_seq'::regclass);
+
+
+--
 -- Name: product id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -3484,6 +3633,14 @@ COPY public.device (id, client_id, app_id, device_identification, device_name, d
 --
 
 COPY public.device_location (id, device_identification, latitude, longitude, full_name, province_code, city_code, region_code, create_by, create_time, update_by, update_time, remark, tenant_id, deleted) FROM stdin;
+\.
+
+
+--
+-- Data for Name: device_topic; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.device_topic (id, device_identification, type, topic, publisher, subscriber, create_by, create_time, update_by, update_time, remark, tenant_id, deleted) FROM stdin;
 \.
 
 
@@ -3612,7 +3769,7 @@ SELECT pg_catalog.setval('public.dataset_id_seq', 1, false);
 -- Name: dataset_image_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.dataset_image_id_seq', 1, false);
+SELECT pg_catalog.setval('public.dataset_image_id_seq', 2, true);
 
 
 --
@@ -3753,6 +3910,13 @@ SELECT pg_catalog.setval('public.device_ota_version_publish_id_seq', 1, false);
 --
 
 SELECT pg_catalog.setval('public.device_ota_version_verify_id_seq', 11, true);
+
+
+--
+-- Name: device_topic_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.device_topic_id_seq', 1, false);
 
 
 --
@@ -4022,6 +4186,14 @@ ALTER TABLE ONLY public.product_template
 
 ALTER TABLE ONLY public.product_properties
     ADD CONSTRAINT _copy_37 PRIMARY KEY (id);
+
+
+--
+-- Name: device_topic _copy_47; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.device_topic
+    ADD CONSTRAINT _copy_47 PRIMARY KEY (id);
 
 
 --
