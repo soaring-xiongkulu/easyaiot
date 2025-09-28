@@ -40,6 +40,43 @@
 
 ### 🌟 Genuine open source is rare. If you find this project useful, please star it before leaving - your support means everything to us!(In an era where fake open-source projects are rampant, this project stands out as an exception.)
 
+## 🎁 模型礼包
+
+我们为您准备了多种预训练模型，只需三步即可免费领取，助您快速启动开发：
+- 🌟 点个 Star，支持开源社区
+  前往项目主页点亮 Star，这是对我们最大的鼓励！
+- 📱 关注公众号，获取下载链接
+  关注官方公众号，回复关键词「模型礼包」，即可获取资源下载链接。
+- 👥 加入社群，解锁完整权限
+  扫码加入技术交流群，在群内获取模型礼包解压密码，与更多开发者互动答疑。
+
+| 模型名称            | 功能描述   | 应用场景 |
+|-----------------|--------|---------|
+| SafeHat.pt      | 佩戴安全帽  | 工地安全监控、工业防护 |
+| FallDetect.pt   | 人体跌倒识别 | 老人看护、医院安全、公共区域监控 |
+| Ebike.pt        | 电动车监测  | 智能交通、非机动车道管理 |
+| Truck.pt        | 大货车监测  | 交通管理、重量车辆监控、物流监控 |
+| Door.pt         | 房门关开监测 | 家庭安防、入口控制、智能家居 |
+| unFire.pt       | 灭火器正常  | 消防设备检查、公共场所安全 |
+| GroundWater.pt  | 地面积水   | 城市排水监控、灾害预防、建筑工地安全 |
+| Mask.pt         | 口罩识别   | 公共卫生、疫情防控、人员管理 |
+| SafetyGloves.pt | 安全手套识别 | 工业安全、防护装备检查、施工现场 |
+| Smartphone.pt   | 玩手机识别  | 工作场所安全、驾驶监控、教育机构 |
+| Sleeping.pt     | 睡觉识别   | 护理机构、员工休息区监控、安全看护 |
+| Smoking.pt      | 吸烟监测   | 禁烟区域、安全监控、公共场所管理 |
+| NMotor.pt       | 非机动车识别 | 交通流量统计、非机动车道监控、城市规划 |
+| Occupation.pt   | 占道经营识别 | 城市管理、街头秩序维护、市场监控 |
+| Guarding.pt     | 智能电网守卫 | 电力设施安全、入侵检测、关键基础设施保护 |
+| PetLeash.pt     | 宠物牵绳识别 | 社区安全、宠物管理、公共场所秩序 |
+| Wheelchair.pt   | 轮椅识别   | 无障碍设施、医疗场所、公共交通辅助 |
+| Stroller.pt     | 婴儿车识别  | 公共场所、儿童安全、商业区域监控 |
+| Traffic.pt      | 交通事故识别 | 交通监控、事故响应、道路安全 |
+| Facial.pt       | 表情识别   | 人机交互、情绪分析、心理健康监测 |
+| fire.pt         | 火焰烟雾识别 | 消防安全监控、火灾预警、工业安全监测 |
+| smoke.pt        | 吸烟识别   | 公共场所禁烟监控、健康环境管理、智能楼宇 |
+| plate.pt        | 车牌识别   | 智能交通管理、停车场出入控制、安防监控 |
+| coal.pt         | 煤块识别   | 矿山安全监测、煤炭工业、物料识别统计 |
+
 ## 🎯 Application Scenarios
 
 ![Application Scenarios.png](.image/适用场景.png)
