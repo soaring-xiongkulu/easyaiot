@@ -302,6 +302,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
     <tr>
       <td align="center" valign="top" width="11.11%"><a href="https://gitee.com/fufeng1908" target="_blank"><img src="./.image/sponsor/王守仁.jpg" width="80px;" alt="王守仁"/><br /><sub><b>王守仁</b></sub></a></td>
       <td align="center" valign="top" width="11.11%"><a href="https://gitee.com/kaigejava" target="_blank"><img src="./.image/sponsor/狼ྂ图ྂ腾ྂ.jpg" width="80px;" alt="狼图腾"/><br /><sub><b>狼图腾</b></sub></a></td>
+      <td align="center" valign="top" width="11.11%"><a href="https://gitee.com/laonayan" target="_blank"><img src="./.image/sponsor/纸鸢.jpg" width="80px;" alt="纸鸢"/><br /><sub><b>纸鸢</b></sub></a></td>
     </tr>
   </tbody>
 </table>
