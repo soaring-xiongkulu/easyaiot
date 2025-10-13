@@ -46,16 +46,3 @@
 >
 > - 在修复过程中，应先 `merge origin master` 获取最新修改，避免冲突。
 > - 该类型分支**仅允许合并到 [master](file:///projects/easyaiot/WEB/src/api/infra/fileConfig/index.ts#L19-L19) 和 `dev`**，不可主动合并其他非主干分支，以防引入无关变更。
-
----
-
-## 4. 总结
-
-| 分支类型 | 来源分支 | 目标分支       | 命名示例               | 说明                     |
-|----------|-----------|----------------|------------------------|--------------------------|
-| [master](file:///projects/easyaiot/WEB/src/api/infra/fileConfig/index.ts#L19-L19) | —         | —              | —                      | 正式发布版本             |
-| `dev`    | —         | [master](file:///projects/easyaiot/WEB/src/api/infra/fileConfig/index.ts#L19-L19)       | —                      | 日常开发与集成           |
-| 功能分支 | `dev`     | `dev`          | `feature-login-ljl`    | 新功能开发               |
-| Bug 修复 | [master](file:///projects/easyaiot/WEB/src/api/infra/fileConfig/index.ts#L19-L19)  | [master](file:///projects/easyaiot/WEB/src/api/infra/fileConfig/index.ts#L19-L19) & `dev` | `hotfix-crash-fix-tj` | 快速修复线上问题         |
-
-遵循以上规范，有助于提升团队协作效率，降低代码冲突风险，保障项目稳定迭代。
