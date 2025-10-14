@@ -15,8 +15,6 @@
   <a href="./README_en.md">English Document</a>
 </h4>
 
-## There will never be a commercial version, now or in the future. Continuing the legacy of ancient sages!
-
 ## 🌟 Some Thoughts on the Project
 
 #### Project Positioning: Supports access to hundreds of cameras for collection, annotation, training, inference, export, analysis, alerting, recording, storage, deployment, PaddleOCR text recognition, speech-to-text, multimodal vision large models (object recognition, text recognition), and LLM large language models (supporting RTSP streams, video, images, audio, text, etc.).
