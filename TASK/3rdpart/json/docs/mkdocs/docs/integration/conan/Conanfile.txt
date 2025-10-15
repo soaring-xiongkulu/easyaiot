@@ -1,6 +1,0 @@
-[requires]
-nlohmann_json/3.11.3
-
-[generators]
-CMakeToolchain
-CMakeDeps

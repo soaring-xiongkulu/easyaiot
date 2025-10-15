@@ -1,167 +1,88 @@
-cmake_minimum_required(VERSION 3.16)
-project(TASK)
+cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
+project(TASK VERSION 1.1.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(LIB_ARCH "aarch64")
+set(DEVICE_NAME "RK3588")
 
-include_directories(
-        /usr/include/
-        /usr/local/include
-        ${CMAKE_SOURCE_DIR}/3rdpart/opencv4/
-        ${CMAKE_SOURCE_DIR}/3rdpart/minio-cpp/include/
-        ${CMAKE_SOURCE_DIR}/3rdpart/librknn_api/include/
-        ${CMAKE_SOURCE_DIR}/3rdpart/mk_media/
-        ${CMAKE_SOURCE_DIR}/3rdpart/cpp-httplib/
-        ${CMAKE_SOURCE_DIR}/3rdpart/json/single_include/
-        ${CMAKE_SOURCE_DIR}/3rdpart/paho/
-        ${CMAKE_SOURCE_DIR}/include/
-)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+
 
 link_directories(
-        /usr/lib/
-        /usr/local/lib/
-        /usr/local/lib64/
-        /usr/local/openssl/lib
-        /data/minio-cpp/build/Debug/
-        /data/minio-cpp/build/Debug/vcpkg_installed/arm64-linux/lib/
+    zl_mpp_libs
+)
+#  rknn_api 文件夹路径
+set(RKNN_API_PATH ${CMAKE_CURRENT_SOURCE_DIR}/librknn_api)
+set(RKNN_API_INCLUDE_PATH ${RKNN_API_PATH}/include)
+set(RKNN_API_LIB_PATH ${RKNN_API_PATH}/${LIB_ARCH}/librknnrt.so)
+
+set(3RDPARTY_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty)
+set(RGA_DIR ${3RDPARTY_PATH}/rga/${DEVICE_NAME})
+set(RGA_LIB ${RGA_DIR}/lib/Linux/${LIB_ARCH}/librga.so)
+
+find_package(OpenCV REQUIRED)
+# 输出OpenCV信息
+message(STATUS "include path: ${OpenCV_INCLUDE_DIRS}")
+message(STATUS "${OpenCV_VERSION}")
+
+# 用来搜索头文件的目录
+include_directories(
+    ${OpenCV_INCLUDE_DIRS}
+    ${RKNN_API_INCLUDE_PATH}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/submodules/ZLMediaKit/api/include
+    ${RGA_DIR}/include
+    ${CMAKE_CURRENT_LIST_DIR}/submodules/mpp/inc
+    ${CMAKE_CURRENT_LIST_DIR}/submodules/mpp/osal/inc
+    ${CMAKE_CURRENT_LIST_DIR}/submodules/mpp/utils
+    ${CMAKE_CURRENT_LIST_DIR}/submodules/mpp/mpp/inc
+    ${CMAKE_CURRENT_LIST_DIR}/submodules/mpp/mpp/base/inc
 )
 
-set(SRC_CORE
-        src/core/ConfigurationManager.cpp
-        src/core/ServiceLocator.cpp
-        src/core/SystemSupervisor.cpp
-        src/core/ThreadPool.cpp
+# 构建预处理和后处理库
+add_library(nn_process SHARED
+            src/process/preprocess.cpp
+            src/process/postprocess.cpp
+)
+# 链接库
+target_link_libraries(nn_process
+    ${OpenCV_LIBS}
+    ${RGA_LIB}
 )
 
-set(SRC_CAMERAS
-        src/cameras/CameraStreamer.cpp
-        src/cameras/RTSPCamera.cpp
-        src/cameras/USBCamera.cpp
+add_library(rknn_engine SHARED src/engine/rknn_engine.cpp)
+target_link_libraries(rknn_engine
+    ${RKNN_API_LIB_PATH}
 )
 
-set(SRC_PROCESSING
-        src/processing/FrameProcessor.cpp
-        src/processing/ObjectTracker.cpp
-        src/processing/BehaviorAnalyzer.cpp
-        src/processing/RegionDetector.cpp
+# yolov8_lib
+add_library(yolov8_lib SHARED src/task/yolov8_engine.cpp )
+# 链接库
+target_link_libraries(yolov8_lib
+    rknn_engine
+    nn_process
 )
 
-set(SRC_AI
-        src/ai/InferenceEngine.cpp
-        src/ai/ModelManager.cpp
-        src/ai/ModelDownloader.cpp
-        src/ai/detectors/PersonDetector.cpp
-        src/ai/detectors/VehicleDetector.cpp
+# draw_lib
+add_library(draw_lib SHARED src/draw/cv_draw.cpp)
+# 链接库
+target_link_libraries(draw_lib
+    ${OpenCV_LIBS}
 )
 
-set(SRC_STORAGE
-        src/storage/VideoStorage.cpp
-        src/storage/LocalStorage.cpp
-        src/storage/MinIOClient.cpp
+add_executable(yolov8_multiple_camera
+        src/yolov8_multiple_camera.cpp
+        src/task/yolov8_thread_pool.cpp
+        src/rkmedia/utils/mpp_decoder.cpp
+        src/rkmedia/utils/mpp_encoder.cpp
 )
 
-set(SRC_ALERT
-        src/alert/AlertManager.cpp
-        src/alert/MQTTClient.cpp
-)
-
-set(SRC_UTILS
-        src/utils/Logger.cpp
-        src/utils/TimeUtils.cpp
-        src/utils/FileUtils.cpp
-)
-
-set(ALL_SRC
-        src/main.cpp
-        ${SRC_CORE}
-        ${SRC_CAMERAS}
-        ${SRC_PROCESSING}
-        ${SRC_AI}
-        ${SRC_STORAGE}
-        ${SRC_ALERT}
-        ${SRC_UTILS}
-        include/SystemSupervisor.h
-        include/RTSPCamera.h
-        include/BehaviorAnalyzer.h
-        include/ServiceLocator.h
-        include/ObjectTracker.h
-        include/ConfigurationManager.h
-        include/ThreadPool.h
-        include/AlertManager.h
-        include/InferenceEngine.h
-        src/cameras/CameraStreamer.cpp
-        src/cameras/USBCamera.cpp
-        src/ai/ModelDownloader.cpp
-        src/storage/VideoStorage.cpp
-        src/storage/LocalStorage.cpp
-        src/storage/MinIOClient.cpp
-        src/alert/MQTTClient.cpp
-        src/utils/Logger.cpp
-        src/utils/TimeUtils.cpp
-        src/ai/detectors/PersonDetector.cpp
-        src/ai/detectors/VehicleDetector.cpp
-        include/CameraStreamer.h
-        include/USBCamera.h
-        include/ModelDownloader.h
-        include/VideoStorage.h
-        include/LocalStorage.h
-        include/MinIOClient.h
-        include/MQTTClient.h
-        include/Logger.h
-        include/TimeUtils.h
-        include/FileUtils.h
-        include/PersonDetector.h
-        include/VehicleDetector.h
-        src/processing/RegionDetector.cpp
-        src/utils/FileUtils.cpp
-        include/IMessageSender.h
-        include/IStorageService.h
-        include/MQTTMessageSender.h
-        include/MinIOStorageService.h
-        src/storage/MinIOStorageService.cpp
-)
-
-add_executable(TASK ${ALL_SRC})
-
-target_link_libraries(TASK
-        ${OpenCV_LIBS}
-        paho-mqttpp3
-        pthread
-        glog
-        swscale
-        SDL2_ttf SDL2 freetype
-        z
-        png
-        rga
-        miniocpp
-        crypto
-        curl
-        curlpp
-        inih
-        INIReader
-        pugixml
-        ssl
-        z
-)
-
-install(DIRECTORY config/ DESTINATION ${CMAKE_INSTALL_PREFIX}/config)
-install(DIRECTORY models/ DESTINATION ${CMAKE_INSTALL_PREFIX}/models)
-install(DIRECTORY resources/ DESTINATION ${CMAKE_INSTALL_PREFIX}/resources)
-
-set_target_properties(TASK PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
-        ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
-)
-
-target_compile_options(TASK PRIVATE
-        -Wall
-        -Wextra
-        -Wpedantic
-        -O3
-        -march=native
+target_link_libraries(yolov8_multiple_camera
+        rockchip_mpp
+        utils
+        mk_api
+        draw_lib
+        yolov8_lib
 )
