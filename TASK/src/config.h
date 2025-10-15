@@ -1,0 +1,25 @@
+//
+// Created by basiclab on 25-10-15.
+//
+
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#include <string>
+#include <vector>
+#include <opencv2/opencv.hpp>
+
+typedef struct Config {
+    std::string rtspUrl;
+    std::string rtmpUrl;
+    std::string hookHttp;
+    bool enableRtmp;
+    bool enableAI;
+    bool enableDrawRtmp;
+    bool enableAlarm;
+    std::string modelIndex;
+    std::string modelClass;
+    std::vector<std::vector<cv::Point>> regions;
+} Config;
+
+#endif //CONFIG_H

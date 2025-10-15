@@ -1,0 +1,23 @@
+//
+// Created by basiclab on 25-10-15.
+//
+
+#include "detech.h"
+#include "yolov11_thread_pool.h"
+
+static Yolov11ThreadPool *yolov11_thread_pool = nullptr; // yolo线程池
+
+Detech::Detech(Config &config): _config(config) {
+    LOG(INFO) << "【Detech】已完成配置初始化";
+}
+
+Detech::~Detech() {
+}
+
+int Detech::start() {
+    return 0;
+}
+
+int Detech::stop() {
+    return 0;
+}
