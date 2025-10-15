@@ -3,6 +3,7 @@
 //
 #include "config.h"
 #include <glog/logging.h>
+#include <httplib.h>
 
 #ifndef DETECH_H
 #define DETECH_H
@@ -34,11 +35,12 @@ class Detech {
         Config &_config;
         std::string _rtspUrl;
         std::string _rtmpUrl;
-        std::string _hookHttp;
         bool _enableRtmp;
         bool _enableAI;
         bool _enableDrawRtmp;
         bool _enableAlarm;
+        std::string _hookHttpUrl;
+        httplib::Client *_httpClient;
         std::map<std::string, std::string> _modelPathMap;
         std::map<std::string, std::string> _modelClassMap;
         std::map<std::string, std::vector<std::vector<cv::Point>>> _regionMap;

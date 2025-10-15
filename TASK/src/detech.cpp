@@ -15,6 +15,17 @@ Detech::~Detech() {
 }
 
 int Detech::start() {
+
+    if (!yolov11_thread_pool) {
+        yolov11_thread_pool = new Yolov11ThreadPool(); // 创建线程池
+        int ret = yolov11_thread_pool->setUp(_config.modelClass, 12);
+        if (ret) {
+            LOG(ERROR) << "yolov11_thread_pool初始化失败";
+            return -3;
+        }
+    }
+
+
     return 0;
 }
 

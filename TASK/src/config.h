@@ -17,8 +17,8 @@ typedef struct Config {
     bool enableAI;
     bool enableDrawRtmp;
     bool enableAlarm;
-    std::string modelIndex;
-    std::string modelClass;
+    std::map<std::string, std::string> modelPaths;
+    std::map<std::string, std::string> modelClases;
     std::vector<std::vector<cv::Point>> regions;
 } Config;
 

@@ -26,7 +26,8 @@ include_directories(
         /usr/include/
         /usr/local/include
         ${OpenCV_INCLUDE_DIRS}
-        ${CMAKE_SOURCE_DIR}/src/*.h
+        ${CMAKE_SOURCE_DIR}/src/
+        ${CMAKE_SOURCE_DIR}/3rdpart/cpp-httplib/
 )
 
 file (GLOB Src_SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
