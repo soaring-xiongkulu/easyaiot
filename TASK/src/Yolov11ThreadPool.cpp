@@ -1,9 +1,10 @@
-#include "yolov11_thread_pool.h"
+#include "Yolov11ThreadPool.h"
 #include "draw/cv_draw.h"
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <Yolov11Engine.h>
 
 Yolov11ThreadPool::Yolov11ThreadPool() { stop = false; }
 
@@ -16,7 +17,9 @@ Yolov11ThreadPool::~Yolov11ThreadPool() {
     }
 }
 
-int Yolov11ThreadPool::setUp(const char *model_path, int num_threads) {
+int Yolov11ThreadPool::setUp(std::map<std::string, std::string> modelPaths,
+    std::map<std::string, std::string> modelClasses,
+    std::map<std::string, std::vector<std::vector<cv::Point>>> regions, int num_threads) {
     for (size_t i = 0; i < num_threads; ++i) {
         std::shared_ptr<Yolov11Engine> Yolov11 = std::make_shared<Yolov11Engine>();
         Yolov11->LoadModel(model_path);

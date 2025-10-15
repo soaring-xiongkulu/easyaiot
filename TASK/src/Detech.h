@@ -33,16 +33,6 @@ class Detech {
         int _encode_frame_push_frame();
     private:
         Config &_config;
-        std::string _rtspUrl;
-        std::string _rtmpUrl;
-        bool _enableRtmp;
-        bool _enableAI;
-        bool _enableDrawRtmp;
-        bool _enableAlarm;
-        std::string _hookHttpUrl;
         httplib::Client *_httpClient;
-        std::map<std::string, std::string> _modelPaths;
-        std::map<std::string, std::string> _modelClasses;
-        std::map<std::string, std::vector<std::vector<cv::Point>>> _regions;
 };
 #endif //DETECH_H

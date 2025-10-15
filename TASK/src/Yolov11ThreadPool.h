@@ -2,7 +2,7 @@
 #ifndef RK3588_DEMO_Yolov8_THREAD_POOL_H
 #define RK3588_DEMO_Yolov8_THREAD_POOL_H
 
-#include "yolov11_engine.h"
+#include "Yolov11Engine.h"
 
 #include <iostream>
 #include <vector>
@@ -31,7 +31,9 @@ public:
     ~Yolov11ThreadPool();
     std::map<int, std::map<int, std::vector<Detection>>> results;
 
-    int setUp(const char *model_path, int num_threads = 12);
+    int setUp(std::map<std::string, std::string> modelPaths,
+    std::map<std::string, std::string> modelClasses,
+    std::map<std::string, std::vector<std::vector<cv::Point>>> regions, int num_threads=8);
     int submitTask(const cv::Mat &img, int input_id, int frame_id);
     int getTargetResult(std::vector<Detection> &objects, int input_id, int frame_id);
     int getTargetImgResult(cv::Mat &img, int input_id, int frame_id);

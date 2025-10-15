@@ -1,8 +1,8 @@
 #include <random>
 
-#include "yolov11_engine.h"
-#include "preprocess.h"
-#include "postprocess.h"
+#include "Yolov11Engine.h"
+#include "Preprocess.h"
+#include "Postprocess.h"
 
 static std::vector<std::string> g_classes = {
     "person", "bicycle", "car", "motorbike ", "aeroplane ", "bus ", "train", "truck ", "boat", "traffic light",
