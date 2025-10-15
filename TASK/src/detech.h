@@ -41,8 +41,8 @@ class Detech {
         bool _enableAlarm;
         std::string _hookHttpUrl;
         httplib::Client *_httpClient;
-        std::map<std::string, std::string> _modelPathMap;
-        std::map<std::string, std::string> _modelClassMap;
-        std::map<std::string, std::vector<std::vector<cv::Point>>> _regionMap;
+        std::map<std::string, std::string> _modelPaths;
+        std::map<std::string, std::string> _modelClasses;
+        std::map<std::string, std::vector<std::vector<cv::Point>>> _regions;
 };
 #endif //DETECH_H

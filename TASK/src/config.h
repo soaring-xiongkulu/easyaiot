@@ -18,8 +18,8 @@ typedef struct Config {
     bool enableDrawRtmp;
     bool enableAlarm;
     std::map<std::string, std::string> modelPaths;
-    std::map<std::string, std::string> modelClases;
-    std::vector<std::vector<cv::Point>> regions;
+    std::map<std::string, std::string> modelClasses;
+    std::map<std::string, std::vector<std::vector<cv::Point> > > regions;
 } Config;
 
 #endif //CONFIG_H
