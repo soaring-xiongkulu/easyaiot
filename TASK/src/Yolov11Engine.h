@@ -1,5 +1,5 @@
-#ifndef RK3588_DEMO_YOLOV8_CUSTOM_H
-#define RK3588_DEMO_YOLOV8_CUSTOM_H
+#ifndef YOLOV11_CUSTOM_H
+#define YOLOV11_CUSTOM_H
 
 #include "engine/engine.h"
 
@@ -34,4 +34,4 @@ private:
     std::shared_ptr<NNEngine> engine_;
 };
 
-#endif // RK3588_DEMO_YOLOV8_CUSTOM_H
+#endif // YOLOV8_CUSTOM_H

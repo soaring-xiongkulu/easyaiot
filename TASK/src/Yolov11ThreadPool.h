@@ -1,6 +1,6 @@
 
-#ifndef RK3588_DEMO_Yolov8_THREAD_POOL_H
-#define RK3588_DEMO_Yolov8_THREAD_POOL_H
+#ifndef Yolov11_THREAD_POOL_H
+#define Yolov11_THREAD_POOL_H
 
 #include "Yolov11Engine.h"
 
@@ -41,4 +41,4 @@ public:
     void stopAll();
 };
 
-#endif // RK3588_DEMO_Yolov8_THREAD_POOL_H
+#endif // Yolov8_THREAD_POOL_H

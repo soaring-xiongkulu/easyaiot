@@ -1,12 +1,16 @@
-//
-// Created by basiclab on 25-10-15.
-//
-#include "config.h"
-#include <glog/logging.h>
-#include <httplib.h>
-
 #ifndef DETECH_H
 #define DETECH_H
+
+#include <iostream>
+#include <glog/logging.h>
+#include <httplib.h>
+#include "Config.h"
+
+extern "C" {
+#include "libavcodec/avcodec.h"
+#include "libavformat/avformat.h"
+}
+
 class Detech {
     public:
         Detech(Config &config);
@@ -33,6 +37,9 @@ class Detech {
         int _encode_frame_push_frame();
     private:
         Config &_config;
+        bool _isRun{false};
+        std::thread *_pdebugThread{nullptr};
         httplib::Client *_httpClient;
+        AVFormatContext *_ffmpegFormatCtx{nullptr};
 };
 #endif //DETECH_H
