@@ -8,9 +8,10 @@
 #include <glog/logging.h>
 #include <csignal>
 #include <chrono>
+#include <Detech.h>
 #include <iostream>
 
-#include "config.h"
+#include "Config.h"
 
 std::atomic<int> s_exit(0);
 
@@ -44,6 +45,6 @@ private:
     std::atomic<bool> _isRun{false};
     std::atomic<bool> _isTerminal{false};
     Config _local;
-    std::unique_ptr<videoDetect> _pVideoDetectHandle;
+    std::unique_ptr<Detech> _detectHandle;
 };
 #endif  // MANAGE_H_

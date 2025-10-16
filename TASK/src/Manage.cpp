@@ -1,6 +1,7 @@
 #include "Manage.h"
 
-Server::Server(const Config &conf) : _local(conf) {}
+Server::Server(const Config &conf) : _local(conf) {
+}
 
 Server::~Server() {
     stop();
@@ -24,14 +25,14 @@ bool Server::start() {
         return true;
     }
     try {
-        _pVideoDetectHandle = std::make_unique<videoDetect>();
-        int ret = _pVideoDetectHandle->start();
+        _detectHandle = std::make_unique<Detech>(_local);
+        int ret = _detectHandle->start();
         if (ret != 0) {
             LOG(ERROR) << "CManage start failed.errcode:" << ret;
-            _pVideoDetectHandle.reset();
+            _detectHandle.reset();
             return false;
         }
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
         LOG(ERROR) << "CManage start exception: " << e.what();
         return false;
     }
@@ -41,8 +42,8 @@ bool Server::start() {
 
 void Server::stop() {
     _isRun.store(false, std::memory_order_release);
-    if (_pVideoDetectHandle) {
-        _pVideoDetectHandle.reset();
+    if (_detectHandle) {
+        _detectHandle.reset();
     }
     LOG(WARNING) << "ALL RELEASE success.";
 }
