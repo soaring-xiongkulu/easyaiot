@@ -16,7 +16,7 @@ class Yolov11ThreadPool
 {
 private:
     std::queue<std::tuple<int, int, cv::Mat>> tasks;
-    std::vector<std::shared_ptr<Yolov11Engine>> Yolov8_instances;
+    std::vector<std::shared_ptr<Yolov11Engine>> Yolov11_instances;
     std::map<int, std::map<int, cv::Mat>> img_results;
     std::vector<std::thread> threads;
     std::mutex mtx1;
@@ -29,15 +29,13 @@ private:
 public:
     Yolov11ThreadPool();
     ~Yolov11ThreadPool();
-    std::map<int, std::map<int, std::vector<Detection>>> results;
+    std::map<int, std::map<int, std::vector<DetectObject>>> results;
 
-    int setUp(std::map<std::string, std::string> modelPaths,
-    std::map<std::string, std::string> modelClasses,
-    std::map<std::string, std::vector<std::vector<cv::Point>>> regions, int num_threads=8);
+    int setUp(std::string model_path, std::vector<std::string> model_class, int num_threads = 3);
     int submitTask(const cv::Mat &img, int input_id, int frame_id);
-    int getTargetResult(std::vector<Detection> &objects, int input_id, int frame_id);
+    int getTargetResult(std::vector<DetectObject> &objects, int input_id, int frame_id);
     int getTargetImgResult(cv::Mat &img, int input_id, int frame_id);
-    int getTargetResultNonBlock(std::vector<Detection> &objects, int input_id, int frame_id);
+    int getTargetResultNonBlock(std::vector<DetectObject> &objects, int input_id, int frame_id);
     void stopAll();
 };
 

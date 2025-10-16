@@ -4,7 +4,7 @@
 #include "Preprocess.h"
 #include "Postprocess.h"
 
-static std::vector<std::string> g_classes = {
+std::vector<std::string> g_classes = {
     "person", "bicycle", "car", "motorbike ", "aeroplane ", "bus ", "train", "truck ", "boat", "traffic light",
     "fire hydrant", "stop sign ", "parking meter", "bench", "bird", "cat", "dog ", "horse ", "sheep", "cow", "elephant",
     "bear", "zebra ", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite",
@@ -15,188 +15,147 @@ static std::vector<std::string> g_classes = {
 
 Yolov11Engine::Yolov11Engine()
 {
-    engine_ = CreateRKNNEngine();
-    input_tensor_.data = nullptr;
-    want_float_ = false; // 是否使用浮点数版本的后处理
     ready_ = false;
 }
 
 Yolov11Engine::~Yolov11Engine()
 {
-    // release input tensor and output tensor
-    printf("release input tensor\n");
-    if (input_tensor_.data != nullptr)
-    {
-        free(input_tensor_.data);
-        input_tensor_.data = nullptr;
-    }
-    printf("release output tensor\n");
-    for (auto &tensor : output_tensors_)
-    {
-        if (tensor.data != nullptr)
-        {
-            free(tensor.data);
-            tensor.data = nullptr;
-        }
-    }
+    onnxEnv.release();
+    onnxSessionOptions.release();
+    onnxSession.release();
 }
 
-int Yolov11Engine::LoadModel(const char *model_path)
+int Yolov11Engine::LoadModel(std::string model_path, std::vector<std::string> model_class)
 {
-    auto ret = engine_->LoadModelFile(model_path);
-    if (ret != 0)
-    {
-        printf("yolov8 load model file failed\n");
-        return ret;
+    onnxEnv = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "YOLOV11");
+    onnxSessionOptions = Ort::SessionOptions();
+    onnxSessionOptions.SetGraphOptimizationLevel(ORT_ENABLE_BASIC);
+    std::vector<std::string> providers = Ort::GetAvailableProviders();
+    auto f = std::find(providers.begin(), providers.end(), "CUDAExecutionProvider");
+    if (f != providers.end()) {
+        OrtCUDAProviderOptions cudaOption;
+        cudaOption.device_id = 0;
+        onnxSessionOptions.AppendExecutionProvider_CUDA(cudaOption);
     }
-    // get input tensor
-    auto input_shapes = engine_->GetInputShapes();
-
-    // check number of input and n_dims
-    if (input_shapes.size() != 1)
-    {
-        printf("yolov8 input tensor number is not 1, but %ld\n", input_shapes.size());
-        return -1;
+    onnxSession = Ort::Session(onnxEnv, model_path.c_str(), onnxSessionOptions);
+    if (model_class.empty()) {
+        g_classes = model_class;
     }
-    nn_tensor_attr_to_cvimg_input_data(input_shapes[0], input_tensor_);
-    input_tensor_.data = malloc(input_tensor_.attr.size);
-
-    auto output_shapes = engine_->GetOutputShapes();
-    if (output_shapes.size() != 6)
-    {
-        printf("yolov8 output tensor number is not 6, but %ld\n", output_shapes.size());
-        return -1;
-    }
-    if (output_shapes[0].type == NN_TENSOR_FLOAT16)
-    {
-        want_float_ = true;
-        printf("yolov8 output tensor type is float16, want type set to float32\n");
-    }
-    for (int i = 0; i < output_shapes.size(); i++)
-    {
-        tensor_data_s tensor;
-        tensor.attr.n_elems = output_shapes[i].n_elems;
-        tensor.attr.n_dims = output_shapes[i].n_dims;
-        for (int j = 0; j < output_shapes[i].n_dims; j++)
-        {
-            tensor.attr.dims[j] = output_shapes[i].dims[j];
-        }
-        // output tensor needs to be float32
-        tensor.attr.type = want_float_ ? NN_TENSOR_FLOAT : output_shapes[i].type;
-        tensor.attr.index = 0;
-        tensor.attr.size = output_shapes[i].n_elems * nn_tensor_type_to_size(tensor.attr.type);
-        tensor.data = malloc(tensor.attr.size);
-        output_tensors_.push_back(tensor);
-        out_zps_.push_back(output_shapes[i].zp);
-        out_scales_.push_back(output_shapes[i].scale);
-    }
-
     ready_ = true;
     return 0;
 }
 
-int Yolov11Engine::Preprocess(const cv::Mat &img, const std::string process_type, cv::Mat &image_letterbox)
+int Yolov11Engine::Inference(const cv::Mat& image, std::vector<DetectObject> &detections)
 {
-    // 比例
-    float wh_ratio = (float)input_tensor_.attr.dims[2] / (float)input_tensor_.attr.dims[1];
+    int image_w = image.cols;
+    int image_h = image.rows;
+    float score_threshold = 0.5;
+    float nms_threshold = 0.5;
+    std::vector<std::string> input_node_names;
+    std::vector<std::string> output_node_names;
+    size_t numInputNodes = onnxSession.GetInputCount();
+    size_t numOutputNodes = onnxSession.GetOutputCount();
+    Ort::AllocatorWithDefaultOptions allocator;
+    input_node_names.reserve(numInputNodes);
+    int input_w = 0;
+    int input_h = 0;
+    for (int i = 0; i < numInputNodes; i++) {
+        auto input_name = onnxSession.GetInputNameAllocated(i, allocator);
+        input_node_names.push_back(input_name.get());
+        Ort::TypeInfo input_type_info = onnxSession.GetInputTypeInfo(i);
+        auto input_tensor_info = input_type_info.GetTensorTypeAndShapeInfo();
+        auto input_dims = input_tensor_info.GetShape();
+        input_w = input_dims[3];
+        input_h = input_dims[2];
 
-    // lettorbox
-    if (process_type == "opencv")
-    {
-        CPreprocess* preprocess = new CPreprocess();
-        // BGR2RGB，resize，再放入input_tensor_中
-        letterbox_info_ = preprocess->letterbox(img, image_letterbox, wh_ratio);
-        preprocess->cvimg2tensor(image_letterbox, input_tensor_.attr.dims[2], input_tensor_.attr.dims[1], input_tensor_);
     }
-    else
-    {
-        printf("unsupport process type!\n");
-        return -1;
-    }
-    return 0;
-}
+    Ort::TypeInfo output_type_info = onnxSession.GetOutputTypeInfo(0);
+    auto output_tensor_info = output_type_info.GetTensorTypeAndShapeInfo();
+    auto output_dims = output_tensor_info.GetShape();
+    int output_dim = output_dims[1];
+    int output_row = output_dims[2];
 
-int Yolov11Engine::Inference()
-{
-    std::vector<tensor_data_s> inputs;
-    inputs.push_back(input_tensor_);
-    return engine_->Run(inputs, output_tensors_, want_float_);
-}
-
-int Yolov11Engine::Postprocess(const cv::Mat &img, std::vector<Detection> &objects)
-{
-    void *output_data[6];
-    for (int i = 0; i < 6; i++)
-    {
-        output_data[i] = (void *)output_tensors_[i].data;
-    }
-    std::vector<float> DetectiontRects;
-    if (want_float_)
-    {
-        // 使用浮点数版本的后处理
-        yolo::GetConvDetectionResult((float **)output_data, DetectiontRects);
-    }
-    else
-    {
-        // 使用量化版本的后处理
-        yolo::GetConvDetectionResultInt8((int8_t **)output_data, out_zps_, out_scales_, DetectiontRects);
+    for (int i = 0; i < numOutputNodes; i++) {
+        auto out_name = onnxSession.GetOutputNameAllocated(i, allocator);
+        output_node_names.push_back(out_name.get());
     }
 
-    int img_width = img.cols;
-    int img_height = img.rows;
-    for (int i = 0; i < DetectiontRects.size(); i += 6)
-    {
-        int classId = int(DetectiontRects[i + 0]);
-        float conf = DetectiontRects[i + 1];
-        int xmin = int(DetectiontRects[i + 2] * float(img_width) + 0.5);
-        int ymin = int(DetectiontRects[i + 3] * float(img_height) + 0.5);
-        int xmax = int(DetectiontRects[i + 4] * float(img_width) + 0.5);
-        int ymax = int(DetectiontRects[i + 5] * float(img_height) + 0.5);
-        Detection result;
-        result.class_id = classId;
-        result.confidence = conf;
+    int image_size_max = std::max(image_h, image_w);
+    cv::Mat mask = cv::Mat::zeros(cv::Size(image_size_max, image_size_max), CV_8UC3);
+    cv::Rect roi(0, 0, image_w, image_h);
+    image.copyTo(mask(roi));
 
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<int> dis(100, 255);
-        result.color = cv::Scalar(dis(gen),
-                                  dis(gen),
-                                  dis(gen));
+    float x_factor = mask.cols / static_cast<float>(input_w);
+    float y_factor = mask.rows / static_cast<float>(input_h);
 
-        result.className = g_classes[result.class_id];
-        result.box = cv::Rect(xmin, ymin, xmax - xmin, ymax - ymin);
+    cv::Mat blob = cv::dnn::blobFromImage(mask, 1 / 255.0, cv::Size(input_w, input_h), cv::Scalar(0, 0, 0), true, false);
+    size_t tpixels = input_h * input_w * 3;
+    std::array<int64_t, 4> input_shape_info{ 1, 3, input_h, input_w };
 
-        objects.push_back(result);
-    }
+    auto allocator_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
+    Ort::Value input_tensor_ = Ort::Value::CreateTensor<float>(allocator_info, blob.ptr<float>(), tpixels, input_shape_info.data(), input_shape_info.size());
+    const std::array<const char*, 1> inputNames = { input_node_names[0].c_str() };
+    const std::array<const char*, 1> outNames = { output_node_names[0].c_str() };
 
-    return 0;
-}
+    std::vector<Ort::Value> ort_outputs = onnxSession.Run(Ort::RunOptions{ nullptr }, inputNames.data(), &input_tensor_, 1, outNames.data(), outNames.size());
+    const float* pdata = ort_outputs[0].GetTensorMutableData<float>();
+    cv::Mat dout(output_dim, output_row, CV_32F, (float*)pdata);
+    cv::Mat det_output = dout.t(); // 8400x84
+    std::vector<cv::Rect> boxes;
+    std::vector<int> classIds;
+    std::vector<float> confidences;
 
-
-void letterbox_decode(std::vector<Detection> &objects, bool hor, int pad)
-{
-    for (auto &obj : objects)
-    {
-        if (hor)
+    for (int i = 0; i < det_output.rows; i++) {
+        cv::Mat classes_scores = det_output.row(i).colRange(4, 84);
+        cv::Point classIdPoint;
+        double score;
+        minMaxLoc(classes_scores, 0, &score, 0, &classIdPoint);
+        if (score > score_threshold)
         {
-            obj.box.x -= pad;
-        }
-        else
-        {
-            obj.box.y -= pad;
+            float cx = det_output.at<float>(i, 0);
+            float cy = det_output.at<float>(i, 1);
+            float ow = det_output.at<float>(i, 2);
+            float oh = det_output.at<float>(i, 3);
+            int x = static_cast<int>((cx - 0.5 * ow) * x_factor);
+            int y = static_cast<int>((cy - 0.5 * oh) * y_factor);
+            int width = static_cast<int>(ow * x_factor);
+            int height = static_cast<int>(oh * y_factor);
+
+            cv::Rect box;
+            box.x = x;
+            box.y = y;
+            box.width = width;
+            box.height = height;
+
+            boxes.push_back(box);
+            classIds.push_back(classIdPoint.x);
+            confidences.push_back(score);
         }
     }
+
+    std::vector<int> indexes;
+    cv::dnn::NMSBoxes(boxes, confidences, score_threshold, nms_threshold, indexes);
+    for (size_t i = 0; i < indexes.size(); i++) {
+
+        int index = indexes[i];
+        int class_id = classIds[index];
+        float class_score = confidences[index];
+        cv::Rect box = boxes[index];
+        DetectObject detect;
+        detect.x1 = box.x;
+        detect.y1 = box.y;
+        detect.x2 = box.x + box.width;
+        detect.y2 = box.y + box.height;
+        detect.class_id = class_id;
+        detect.class_name = g_classes[class_id];
+        detect.class_score = class_score;
+        detections.push_back(detect);
+    }
+    return true;
 }
 
-int Yolov11Engine::Run(const cv::Mat &img, std::vector<Detection> &objects)
+int Yolov11Engine::Run(cv::Mat& image, std::vector<DetectObject>& detections)
 {
-
-    // letterbox后的图像
-    cv::Mat image_letterbox;
-    Preprocess(img, "opencv", image_letterbox);
-    Inference();
-    Postprocess(image_letterbox, objects);
-    letterbox_decode(objects, letterbox_info_.hor, letterbox_info_.pad);
-
+    Inference(image, detections);
     return 0;
 }

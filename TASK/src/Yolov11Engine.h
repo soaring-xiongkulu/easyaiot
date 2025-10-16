@@ -1,13 +1,11 @@
 #ifndef YOLOV11_CUSTOM_H
 #define YOLOV11_CUSTOM_H
 
-#include "engine/engine.h"
-
+#include <Datatype.h>
 #include <memory>
-
 #include <opencv2/opencv.hpp>
-#include "process/preprocess.h"
-#include "types/datatype.h"
+#include "Datatype.h"
+#include <onnxruntime_cxx_api.h>
 
 class Yolov11Engine
 {
@@ -15,23 +13,16 @@ public:
     Yolov11Engine();
     ~Yolov11Engine();
 
-    int LoadModel(const char *model_path);
-
-    int Run(const cv::Mat &img, std::vector<Detection> &objects);
+    int LoadModel(std::string model_path, std::vector<std::string> model_class);
+    int Run(cv::Mat& image, std::vector<DetectObject>& objects);
 
 private:
-    int Preprocess(const cv::Mat &img, const std::string process_type, cv::Mat &image_letterbox);
-    int Inference();
-    int Postprocess(const cv::Mat &img, std::vector<Detection> &objects);
+    int Inference(const cv::Mat& image, std::vector<DetectObject> &objects);
 
     bool ready_;
-    LetterBoxInfo letterbox_info_;
-    tensor_data_s input_tensor_;
-    std::vector<tensor_data_s> output_tensors_;
-    bool want_float_;
-    std::vector<int32_t> out_zps_;
-    std::vector<float> out_scales_;
-    std::shared_ptr<NNEngine> engine_;
+    Ort::Env onnxEnv{ nullptr };
+    Ort::SessionOptions onnxSessionOptions{ nullptr };
+    Ort::Session onnxSession{ nullptr };
 };
 
-#endif // YOLOV8_CUSTOM_H
+#endif

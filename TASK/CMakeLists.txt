@@ -25,6 +25,7 @@ link_directories(
 include_directories(
         /usr/include/
         /usr/local/include
+        /usr/local/include/onnxruntime
         ${OpenCV_INCLUDE_DIRS}
         ${CMAKE_SOURCE_DIR}/src/
         ${CMAKE_SOURCE_DIR}/3rdpart/cpp-httplib/

@@ -1,5 +1,5 @@
 #include "Yolov11ThreadPool.h"
-#include "draw/cv_draw.h"
+#include "Draw.h"
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -17,12 +17,10 @@ Yolov11ThreadPool::~Yolov11ThreadPool() {
     }
 }
 
-int Yolov11ThreadPool::setUp(std::map<std::string, std::string> modelPaths,
-    std::map<std::string, std::string> modelClasses,
-    std::map<std::string, std::vector<std::vector<cv::Point>>> regions, int num_threads) {
+int Yolov11ThreadPool::setUp(std::string model_path, std::vector<std::string> model_class, int num_threads) {
     for (size_t i = 0; i < num_threads; ++i) {
         std::shared_ptr<Yolov11Engine> Yolov11 = std::make_shared<Yolov11Engine>();
-        Yolov11->LoadModel(model_path);
+        Yolov11->LoadModel(model_path, model_class);
         Yolov11_instances.push_back(Yolov11);
     }
     for (size_t i = 0; i < num_threads; ++i) {
@@ -47,7 +45,7 @@ void Yolov11ThreadPool::worker(int id) {
             tasks.pop();
         }
 
-        std::vector<Detection> detections;
+        std::vector<DetectObject> detections;
         instance->Run(std::get<2>(task), detections);
         {
             std::lock_guard<std::mutex> lock(mtx2);
@@ -79,7 +77,7 @@ int Yolov11ThreadPool::submitTask(const cv::Mat &img, int input_id, int frame_id
     return 0;
 }
 
-int Yolov11ThreadPool::getTargetResult(std::vector<Detection> &objects, int input_id, int frame_id) {
+int Yolov11ThreadPool::getTargetResult(std::vector<DetectObject> &objects, int input_id, int frame_id) {
     // 如果没有结果，等待
     while (results.find(input_id) == results.end() || results[input_id].find(frame_id) == results[input_id].end()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -113,7 +111,7 @@ int Yolov11ThreadPool::getTargetImgResult(cv::Mat &img, int input_id, int frame_
 }
 
 
-int Yolov11ThreadPool::getTargetResultNonBlock(std::vector<Detection> &objects, int input_id, int frame_id) {
+int Yolov11ThreadPool::getTargetResultNonBlock(std::vector<DetectObject> &objects, int input_id, int frame_id) {
     if (results.find(input_id) == results.end() || results[input_id].find(frame_id) == results[input_id].end()) {
         return -1;
     }
