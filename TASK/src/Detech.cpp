@@ -16,8 +16,6 @@ Detech::~Detech() {
 int Detech::start() {
     _isRun = true;
     _init_yolo11_detector();
-    _init_yolo11_detector();
-    _init_alarm_regions();
     _init_media_player();
     _init_media_alarmer();
     _init_media_pusher();
