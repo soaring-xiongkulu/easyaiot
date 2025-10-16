@@ -38,7 +38,6 @@ class Detech {
     private:
         Config &_config;
         bool _isRun{false};
-        std::thread *_pdebugThread{nullptr};
         httplib::Client *_httpClient;
         AVFormatContext *_ffmpegFormatCtx{nullptr};
 };

@@ -4,6 +4,7 @@
 #include "Detech.h"
 #include "Yolov11ThreadPool.h"
 
+static Yolov11ThreadPool *pull_stream_thread_pool = nullptr; // yolo线程池
 static Yolov11ThreadPool *yolov11_thread_pool = nullptr; // yolo线程池
 
 Detech::Detech(Config &config): _config(config) {
@@ -34,7 +35,6 @@ int Detech::start() {
 
     _httpClient = new httplib::Client(_config.hookHttpUrl);
     _isRun = true;
-    _pdebugThread = new std::thread(&videoDetect::_pullstreamHandle, this);
     return 0;
 }
 
