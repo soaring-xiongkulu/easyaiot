@@ -18,12 +18,11 @@ class Detech {
         int start();
         int stop();
     private:
+        bool _init_yolo11_detector();
         bool _init_http_client();
         bool _init_media_player();
         bool _init_media_pusher();
         bool _init_media_alarmer();
-        bool _init_alarm_regions();
-        bool _init_yolo11_detector();
         bool _on_play_event();
         bool _on_push_event();
         bool _release_media();
