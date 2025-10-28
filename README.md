@@ -30,6 +30,7 @@
 ![EasyAIoT平台架构.jpg](.image/iframe3.jpg)
 
 #### 创新性的依托大模型构建零样本标注技术体系（理想状态去掉人工标注环节，标注完全解放人力），该技术通过大模型生成初始数据并借助提示词技术完成自动标注，再经人机协同校验确保数据质量（可选），进而训练出初始小模型。该小模型通过持续迭代、自我优化，实现标注效率与模型精度协同进化，最终推动系统性能不断攀升。
+
 ![EasyAIoT平台架构.jpg](.image/iframe4.jpg)
 
 #### EasyAIoT其实不是一个项目，而是五个项目。
@@ -41,39 +42,40 @@
 ## 🎁 模型礼包
 
 我们为您准备了多种预训练模型，只需三步即可免费领取，助您快速启动开发：
-- 🌟 点个 Star，支持开源社区
-前往项目主页点亮 Star，这是对我们最大的鼓励！
-- 📱 关注公众号，获取下载链接
-关注官方公众号，回复关键词「模型礼包」，即可获取资源下载链接。
-- 👥 加入社群，解锁完整权限
-扫码加入技术交流群，在群内获取模型礼包解压密码，与更多开发者互动答疑。
 
-| 模型名称            | 功能描述   | 应用场景 |
-|-----------------|--------|---------|
-| SafeHat.pt      | 佩戴安全帽  | 工地安全监控、工业防护 |
-| FallDetect.pt   | 人体跌倒识别 | 老人看护、医院安全、公共区域监控 |
-| Ebike.pt        | 电动车监测  | 智能交通、非机动车道管理 |
-| Truck.pt        | 大货车监测  | 交通管理、重量车辆监控、物流监控 |
-| Door.pt         | 房门关开监测 | 家庭安防、入口控制、智能家居 |
-| unFire.pt       | 灭火器正常  | 消防设备检查、公共场所安全 |
-| GroundWater.pt  | 地面积水   | 城市排水监控、灾害预防、建筑工地安全 |
-| Mask.pt         | 口罩识别   | 公共卫生、疫情防控、人员管理 |
-| SafetyGloves.pt | 安全手套识别 | 工业安全、防护装备检查、施工现场 |
-| Smartphone.pt   | 玩手机识别  | 工作场所安全、驾驶监控、教育机构 |
-| Sleeping.pt     | 睡觉识别   | 护理机构、员工休息区监控、安全看护 |
-| Smoking.pt      | 吸烟监测   | 禁烟区域、安全监控、公共场所管理 |
-| NMotor.pt       | 非机动车识别 | 交通流量统计、非机动车道监控、城市规划 |
-| Occupation.pt   | 占道经营识别 | 城市管理、街头秩序维护、市场监控 |
+- 🌟 点个 Star，支持开源社区
+  前往项目主页点亮 Star，这是对我们最大的鼓励！
+- 📱 关注公众号，获取下载链接
+  关注官方公众号，回复关键词「模型礼包」，即可获取资源下载链接。
+- 👥 加入社群，解锁完整权限
+  扫码加入技术交流群，在群内获取模型礼包解压密码，与更多开发者互动答疑。
+
+| 模型名称            | 功能描述   | 应用场景                 |
+|-----------------|--------|----------------------|
+| SafeHat.pt      | 佩戴安全帽  | 工地安全监控、工业防护          |
+| FallDetect.pt   | 人体跌倒识别 | 老人看护、医院安全、公共区域监控     |
+| Ebike.pt        | 电动车监测  | 智能交通、非机动车道管理         |
+| Truck.pt        | 大货车监测  | 交通管理、重量车辆监控、物流监控     |
+| Door.pt         | 房门关开监测 | 家庭安防、入口控制、智能家居       |
+| unFire.pt       | 灭火器正常  | 消防设备检查、公共场所安全        |
+| GroundWater.pt  | 地面积水   | 城市排水监控、灾害预防、建筑工地安全   |
+| Mask.pt         | 口罩识别   | 公共卫生、疫情防控、人员管理       |
+| SafetyGloves.pt | 安全手套识别 | 工业安全、防护装备检查、施工现场     |
+| Smartphone.pt   | 玩手机识别  | 工作场所安全、驾驶监控、教育机构     |
+| Sleeping.pt     | 睡觉识别   | 护理机构、员工休息区监控、安全看护    |
+| Smoking.pt      | 吸烟监测   | 禁烟区域、安全监控、公共场所管理     |
+| NMotor.pt       | 非机动车识别 | 交通流量统计、非机动车道监控、城市规划  |
+| Occupation.pt   | 占道经营识别 | 城市管理、街头秩序维护、市场监控     |
 | Guarding.pt     | 智能电网守卫 | 电力设施安全、入侵检测、关键基础设施保护 |
-| PetLeash.pt     | 宠物牵绳识别 | 社区安全、宠物管理、公共场所秩序 |
-| Wheelchair.pt   | 轮椅识别   | 无障碍设施、医疗场所、公共交通辅助 |
-| Stroller.pt     | 婴儿车识别  | 公共场所、儿童安全、商业区域监控 |
-| Traffic.pt      | 交通事故识别 | 交通监控、事故响应、道路安全 |
-| Facial.pt       | 表情识别   | 人机交互、情绪分析、心理健康监测 |
-| fire.pt         | 火焰烟雾识别 | 消防安全监控、火灾预警、工业安全监测 |
+| PetLeash.pt     | 宠物牵绳识别 | 社区安全、宠物管理、公共场所秩序     |
+| Wheelchair.pt   | 轮椅识别   | 无障碍设施、医疗场所、公共交通辅助    |
+| Stroller.pt     | 婴儿车识别  | 公共场所、儿童安全、商业区域监控     |
+| Traffic.pt      | 交通事故识别 | 交通监控、事故响应、道路安全       |
+| Facial.pt       | 表情识别   | 人机交互、情绪分析、心理健康监测     |
+| fire.pt         | 火焰烟雾识别 | 消防安全监控、火灾预警、工业安全监测   |
 | smoke.pt        | 吸烟识别   | 公共场所禁烟监控、健康环境管理、智能楼宇 |
-| plate.pt        | 车牌识别   | 智能交通管理、停车场出入控制、安防监控 |
-| coal.pt         | 煤块识别   | 矿山安全监测、煤炭工业、物料识别统计 |
+| plate.pt        | 车牌识别   | 智能交通管理、停车场出入控制、安防监控  |
+| coal.pt         | 煤块识别   | 矿山安全监测、煤炭工业、物料识别统计   |
 
 ## 🎯 适用场景
 
@@ -126,6 +128,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 - Github: https://github.com/soaring-xiongkulu/easyaiot
 
 ## 📸 截图
+
 <div>
   <img src=".image/banner/banner1001.png" alt="Screenshot 1" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1000.png" alt="Screenshot 1" width="49%">
@@ -298,9 +301,53 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
       <td align="center" valign="top" width="11.11%"><a href="https://gitee.com/dubai100" target="_blank"><img src="./.image/sponsor/sherry金.jpg" width="80px;" alt="sherry金"/><br /><sub><b>sherry金</b></sub></a></td>
     </tr>
     <tr>
-      <td align="center" valign="top" width="11.11%"><a href="https://gitee.com/fufeng1908" target="_blank"><img src="./.image/sponsor/王守仁.jpg" width="80px;" alt="王守仁"/><br /><sub><b>王守仁</b></sub></a></td>
-      <td align="center" valign="top" width="11.11%"><a href="https://gitee.com/kaigejava" target="_blank"><img src="./.image/sponsor/狼ྂ图ྂ腾ྂ.jpg" width="80px;" alt="狼图腾"/><br /><sub><b>狼图腾</b></sub></a></td>
-      <td align="center" valign="top" width="11.11%"><a href="https://gitee.com/laonayan" target="_blank"><img src="./.image/sponsor/纸鸢.jpg" width="80px;" alt="纸鸢"/><br /><sub><b>纸鸢</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/℡夏别.jpg" width="80px;" alt="℡夏别"/><br /><sub><b>℡夏别</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/翠翠草原.jpg" width="80px;" alt="翠翠草原"/><br /><sub><b>翠翠草原</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/慕容曦.jpg" width="80px;" alt="慕容曦"/><br /><sub><b>慕容曦</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/Tyrion.jpg" width="80px;" alt="Tyrion"/><br /><sub><b>Tyrion</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/大漠孤烟.jpg" width="80px;" alt="大漠孤烟"/><br /><sub><b>大漠孤烟</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/Return.jpg" width="80px;" alt="Return"/><br /><sub><b>Return</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/一杯拿铁.jpg" width="80px;" alt="一杯拿铁"/><br /><sub><b>一杯拿铁</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/Thuri.jpg" width="80px;" alt="Thuri"/><br /><sub><b>Thuri</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/Liu.jpg" width="80px;" alt="Liu"/><br /><sub><b>Liu</b></sub></a></td>
+    </tr>
+    <tr>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/三金.jpg" width="80px;" alt="三金"/><br /><sub><b>三金</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/ZPort.jpg" width="80px;" alt="ZPort"/><br /><sub><b>ZPort</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/Li.jpg" width="80px;" alt="Li"/><br /><sub><b>Li</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/嘉树.jpg" width="80px;" alt="嘉树"/><br /><sub><b>嘉树</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/俊采星驰.jpg" width="80px;" alt="俊采星驰"/><br /><sub><b>俊采星驰</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/oi.jpg" width="80px;" alt="oi"/><br /><sub><b>oi</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/ZhangY_000.jpg" width="80px;" alt="ZhangY_000"/><br /><sub><b>ZhangY_000</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/℡夏别.jpg" width="80px;" alt="℡夏别"/><br /><sub><b>℡夏别</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/张瑞麟.jpg" width="80px;" alt="张瑞麟"/><br /><sub><b>张瑞麟</b></sub></a></td>
+    </tr>
+    <tr>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/Lion King.jpg" width="80px;" alt="Lion King"/><br /><sub><b>Lion King</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/Frank.jpg" width="80px;" alt="Frank"/><br /><sub><b>Frank</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/徐梦阳.jpg" width="80px;" alt="徐梦阳"/><br /><sub><b>徐梦阳</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/九月.jpg" width="80px;" alt="九月"/><br /><sub><b>九月</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/tangl伟.jpg" width="80px;" alt="tangl伟"/><br /><sub><b>tangl伟</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/冯瑞伦.jpg" width="80px;" alt="冯瑞伦"/><br /><sub><b>冯瑞伦</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/杨林.jpg" width="80px;" alt="杨林"/><br /><sub><b>杨林</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/梧桐有语。.jpg" width="80px;" alt="梧桐有语。"/><br /><sub><b>梧桐有语。</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/歌德de花烛.jpg" width="80px;" alt="歌德de花烛"/><br /><sub><b>歌德de花烛</b></sub></a></td>
+    </tr>
+    <tr>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/泥嚎.jpg" width="80px;" alt="泥嚎"/><br /><sub><b>泥嚎</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/翠翠草原.jpg" width="80px;" alt="翠翠草原"/><br /><sub><b>翠翠草原</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/胡泽龙.jpg" width="80px;" alt="胡泽龙"/><br /><sub><b>胡泽龙</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/苏叶.jpg" width="80px;" alt="苏叶"/><br /><sub><b>苏叶</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/裴先生.jpg" width="80px;" alt="裴先生"/><br /><sub><b>裴先生</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/谭远彪.jpg" width="80px;" alt="谭远彪"/><br /><sub><b>谭远彪</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/陈祺.jpg" width="80px;" alt="陈祺"/><br /><sub><b>陈祺</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/零点就睡.jpg" width="80px;" alt="零点就睡"/><br /><sub><b>零点就睡</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/风之羽.jpg" width="80px;" alt="风之羽"/><br /><sub><b>风之羽</b></sub></a></td>
+    </tr>
+    <tr>
+        <td align="center" valign="top" width="11.11%"><a href="https://gitee.com/fufeng1908" target="_blank"><img src="./.image/sponsor/王守仁.jpg" width="80px;" alt="王守仁"/><br /><sub><b>王守仁</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="https://gitee.com/kaigejava" target="_blank"><img src="./.image/sponsor/狼ྂ图ྂ腾ྂ.jpg" width="80px;" alt="狼图腾"/><br /><sub><b>狼图腾</b></sub></a></td>
+        <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/sponsor/马到成功.jpg" width="80px;" alt="马到成功"/><br /><sub><b>马到成功</b></sub></a></td>
     </tr>
   </tbody>
 </table>
