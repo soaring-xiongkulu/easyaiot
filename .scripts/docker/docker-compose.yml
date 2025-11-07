@@ -108,14 +108,6 @@ services:
       KAFKA_LOG_DIRS: '/var/lib/kafka/data'
     volumes:
       - ./mq_data/data:/var/lib/kafka/data
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    ports:
-      - "8080:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: "Local"
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:9092"
-
 
 # 磁盘挂载
 volumes:

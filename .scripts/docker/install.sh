@@ -23,7 +23,6 @@ REDIS_PASSWORD="basiclab@iot975248395"
 REDIS_PORT=6379
 
 KAFKA_PORT=9092
-KAFKA_UI_PORT=8080
 
 # 脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -241,9 +240,6 @@ main() {
     test_tdengine && success_count=$((success_count + 1))
     echo ""
 
-    test_kafka && success_count=$((success_count + 1))
-    echo ""
-
     # 显示总结
     echo -e "${YELLOW}========================================${NC}"
     echo -e "${YELLOW}  测试总结${NC}"
@@ -259,7 +255,6 @@ main() {
         echo -e "  TDengine:   localhost:$TDENGINE_PORT"
         echo -e "  Redis:      localhost:$REDIS_PORT"
         echo -e "  Kafka:      localhost:$KAFKA_PORT"
-        echo -e "  Kafka UI:   http://localhost:$KAFKA_UI_PORT"
         exit 0
     else
         echo -e "${YELLOW}⚠ 部分服务测试失败，请检查日志${NC}"
