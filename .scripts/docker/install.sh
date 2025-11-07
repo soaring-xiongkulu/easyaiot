@@ -205,13 +205,7 @@ test_kafka() {
         if wait_for_service "Kafka" $KAFKA_PORT; then
             echo -e "${GREEN}✓ Kafka 服务运行正常${NC}"
             echo -e "  连接信息: localhost:$KAFKA_PORT"
-            echo -e "  Kafka UI: http://localhost:$KAFKA_UI_PORT"
             return 0
-        else
-            echo -e "${YELLOW}⚠ Kafka 容器运行中，但端口未就绪${NC}"
-            echo -e "  连接信息: localhost:$KAFKA_PORT"
-            echo -e "  Kafka UI: http://localhost:$KAFKA_UI_PORT"
-            return 0  # 容器在运行就认为基本正常
         fi
     else
         echo -e "${RED}✗ Kafka 容器未运行${NC}"
@@ -238,6 +232,9 @@ main() {
     echo ""
 
     test_tdengine && success_count=$((success_count + 1))
+    echo ""
+
+    test_kafka && success_count=$((success_count + 1))
     echo ""
 
     # 显示总结
