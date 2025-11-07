@@ -3,21 +3,26 @@ version: "3.8"
 services:
   # Nacos Server
   Nacos:
-    image: nacos/nacos-server:v2.2.3
+    image: nacos/nacos-server:v2.5.1
     container_name: nacos-server
-    restart: always
-    ports:
-      - "8848:8848"  # web 界面访问端口
-      - "9848:9848"  # 程序使用 grpc 连接的端口
-      - "9849:9849"  # 程序使用 grpc 连接的端口
     environment:
       - PREFER_HOST_MODE=hostname
       - MODE=standalone
-      - NACOS_AUTH_IDENTITY_KEY=VGhpc0lzTXlDdXN0b21TZWNyZXRLZXkwMTIzNDU2Nzg=
-      - NACOS_AUTH_IDENTITY_VALUE=VGhpc0lzTXlDdXN0b21TZWNyZXRLZXkwMTIzNDU2Nzg=
-      - NACOS_AUTH_TOKEN=VGhpc0lzTXlDdXN0b21TZWNyZXRLZXkwMTIzNDU2Nzg=
+      - NACOS_AUTH_ENABLE=true
+      - NACOS_AUTH_IDENTITY_KEY=nacos
+      - NACOS_AUTH_IDENTITY_VALUE=nacos
+      - NACOS_AUTH_TOKEN=SecretKey345901234567890126785678901234567890123901234567890123445678
+      - JVM_XMS=512m
+      - JVM_XMX=512m
+      - JVM_XMN=256m
+      - JVM_MS=128m
+      - JVM_MMS=320m
     volumes:
-      - ./nacos_data/logs:/home/nacos/logs
+      - ./standalone-logs/:/home/nacos/logs
+    ports:
+      - "9849:9849"
+      - "8848:8848"
+      - "9848:9848"
 
   # PostgresSQL Server
   PostgresSQL:
@@ -28,7 +33,7 @@ services:
       - "5432:5432"
     environment:
       - TZ=Asia/Shanghai
-      - POSTGRES_PASSWORD=SmarkWork@2025
+      - POSTGRES_PASSWORD=iot45722414822
     volumes:
       - ./db_data/data:/var/lib/postgresql/data
       - ./db_data/log:/var/log/postgresql
@@ -64,7 +69,7 @@ services:
       - "6379:6379"
     environment:
       - TZ=Asia/Shanghai
-    command: redis-server --save 60 1000 --loglevel warning --appendonly yes --requirepass SmarkWork@2025
+    command: redis-server --save 60 1000 --loglevel warning --appendonly yes --requirepass basiclab@iot975248395
     volumes:
       - './redis_data/data:/data'
       - './redis_data/logs:/logs'
