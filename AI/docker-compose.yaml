@@ -39,7 +39,8 @@ services:
       - FLASK_RUN_PORT=${FLASK_RUN_PORT:-5000}
       - FLASK_RUN_HOST=${FLASK_RUN_HOST:-0.0.0.0}
       # 数据库配置（使用中间件服务名称，注意：服务名是PostgresSQL，不是postgres-server）
-      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:iot45722414822@PostgresSQL:5432/iot-ai20}
+      # 如果系统环境变量中的DATABASE_URL包含错误的地址（如iot.basiclab.top或doccano），则使用默认值
+      - DATABASE_URL=postgresql://postgres:iot45722414822@PostgresSQL:5432/iot-ai20
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-please-change-this-to-a-random-string}
       # Nacos配置（使用中间件服务名称，注意：服务名是Nacos，不是nacos-server）
       - NACOS_SERVER=${NACOS_SERVER:-Nacos:8848}

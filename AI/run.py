@@ -21,6 +21,14 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # 这样可以判断环境变量的来源
 env_before_dotenv = os.environ.get('DATABASE_URL')
 
+# 检查并修复错误的数据库URL（如果包含iot.basiclab.top或doccano，说明是系统环境变量中的错误配置）
+if env_before_dotenv and ('iot.basiclab.top' in env_before_dotenv or 'doccano' in env_before_dotenv):
+    print(f"⚠️ 检测到错误的DATABASE_URL: {env_before_dotenv}")
+    print("🔄 将使用默认配置或从.env文件加载")
+    # 删除错误的环境变量，让后续代码使用正确的配置
+    del os.environ['DATABASE_URL']
+    env_before_dotenv = None
+
 # 加载.env文件，但不覆盖已存在的环境变量（Docker Compose传入的环境变量优先）
 # 注意：Docker Compose传入的环境变量会优先于.env文件
 load_dotenv(override=False)
@@ -143,7 +151,7 @@ def create_app():
     # Nacos注册与心跳线程管理
     try:
         # 获取环境变量
-        nacos_server = os.getenv('NACOS_SERVER', '14.18.122.2:8848')
+        nacos_server = os.getenv('NACOS_SERVER', 'Nacos:8848')
         namespace = os.getenv('NACOS_NAMESPACE', 'local')
         service_name = os.getenv('SERVICE_NAME', 'model-server')
         port = int(os.getenv('FLASK_RUN_PORT', 5000))
