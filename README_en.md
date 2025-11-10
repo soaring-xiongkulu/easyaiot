@@ -117,9 +117,9 @@ regulations and refrain from illegal activities. If EasyAIoT discovers user viol
 authorities and report to government agencies. Users bear full legal responsibility for illegal actions and shall
 compensate third parties for damages caused by usage. All EasyAIoT-related resources are used at the user's own risk.
 
-## 📚 Official Documentation
+## 📚 Deployment Documentation
 
-- Documentation: http://36.111.47.113:9988/
+- [Platform Deployment Documentation](.doc/部署文档/平台部署文档.md)
 
 ## 🎮 Demo Environment
 
