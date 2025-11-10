@@ -1,3 +1,7 @@
+// @author 翱翔的雄库鲁
+// @email andywebjava@163.com
+// @wechat EasyAIoT2025
+
 #ifndef YOLOV11_CUSTOM_H
 #define YOLOV11_CUSTOM_H
 

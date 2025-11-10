@@ -1,3 +1,6 @@
+// @author 翱翔的雄库鲁
+// @email andywebjava@163.com
+// @wechat EasyAIoT2025
 
 #ifndef Yolov11_THREAD_POOL_H
 #define Yolov11_THREAD_POOL_H
