@@ -358,12 +358,16 @@ Thanks to the following contributors for code, feedback, donations, and support 
   </tbody>
 </table>
 
-## 📄 Open Source License
+## Expectations
 
-Soaring XiongKulu / easyaiot adopts the APACHE LICENSE 2.0 open source license. When using this product, you must comply with the following requirements:
+We welcome suggestions for improvement to help refine easyaiot.
 
-- Do not modify the source code header comments or attributions of the product-related code.
-- Do not use the product for any activities that endanger national security, honor, or interests, and do not use it for any illegal purposes.
+## Copyright
+
+Soaring Xiongkulu / easyaiot is licensed under the [APACHE LICENSE 2.0](https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE). When using the product, please note the following:
+
+1. Do not modify the source code header comments or attribution of the product-related code.
+2. Do not use the product for any actions that endanger national security, honor, and interests, or for any illegal purposes.
 
 ## 🌟 Star Growth Trend Chart
 
