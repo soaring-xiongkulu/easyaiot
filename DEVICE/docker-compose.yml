@@ -312,11 +312,6 @@ services:
     environment:
       # 时区配置
       - TZ=Asia/Shanghai
-    extra_hosts:
-      - "gateway:iot-gateway"
-      - "minio:MinIO"
-      - "ai-service:ai-service"
-      - "video-service:video-service"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
