@@ -184,6 +184,11 @@ install_service() {
         fi
     fi
     
+    # 确保先清理可能存在的残留容器
+    print_info "检查并清理残留容器..."
+    docker rm -f web-service 2>/dev/null || true
+    $COMPOSE_CMD down --remove-orphans 2>/dev/null || true
+    
     print_info "构建 Docker 镜像..."
     $COMPOSE_CMD build
     
@@ -311,7 +316,11 @@ clean_service() {
     
     if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
         print_info "停止并删除容器..."
-        $COMPOSE_CMD down -v
+        $COMPOSE_CMD down -v --remove-orphans
+        
+        # 强制删除容器（即使已停止）
+        print_info "强制删除残留容器..."
+        docker rm -f web-service 2>/dev/null || true
         
         print_info "删除镜像..."
         docker rmi web-service:latest 2>/dev/null || true
