@@ -4,7 +4,7 @@
 # AI服务 Docker Compose 管理脚本
 # ============================================
 # 使用方法：
-#   ./install_module.sh [命令]
+#   ./install.sh [命令]
 #
 # 可用命令：
 #   install    - 安装并启动服务（首次运行）
@@ -68,39 +68,280 @@ check_docker() {
 
 # 检查 Docker Compose 是否安装
 check_docker_compose() {
-    if ! check_command docker-compose && ! docker compose version &> /dev/null; then
-        print_error "Docker Compose 未安装，请先安装 Docker Compose"
-        echo "安装指南: https://docs.docker.com/compose/install/"
-        exit 1
-    fi
-    
-    # 检查是 docker-compose 还是 docker compose
+    # 先检查 docker-compose 命令
     if check_command docker-compose; then
         COMPOSE_CMD="docker-compose"
         print_success "Docker Compose 已安装: $(docker-compose --version)"
-    else
+        return 0
+    fi
+    
+    # 再检查 docker compose 插件
+    if docker compose version &> /dev/null; then
         COMPOSE_CMD="docker compose"
         print_success "Docker Compose 已安装: $(docker compose version)"
+        return 0
     fi
+    
+    # 如果都不存在，报错
+    print_error "Docker Compose 未安装，请先安装 Docker Compose"
+    echo "安装指南: https://docs.docker.com/compose/install/"
+    exit 1
 }
 
 # 检查 GPU 支持
+GPU_AVAILABLE=false
+GPU_HARDWARE_DETECTED=false
+
+# 检查 NVIDIA Container Toolkit 是否安装
+check_nvidia_container_toolkit() {
+    if dpkg -l | grep -q nvidia-container-toolkit; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# 安装 NVIDIA Container Toolkit
+install_nvidia_container_toolkit() {
+    print_info "开始安装 NVIDIA Container Toolkit..."
+    
+    # 检查是否有 sudo 权限
+    if ! sudo -n true 2>/dev/null; then
+        print_error "需要 sudo 权限来安装 NVIDIA Container Toolkit"
+        print_info "请手动运行以下命令安装："
+        echo ""
+        echo "distribution=\$(. /etc/os-release;echo \$ID\$VERSION_ID) \\"
+        echo "    && curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add - \\"
+        echo "    && curl -s -L https://nvidia.github.io/nvidia-docker/\$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list"
+        echo ""
+        echo "sudo apt update"
+        echo "sudo apt install -y nvidia-container-toolkit"
+        echo "sudo systemctl restart docker"
+        echo ""
+        return 1
+    fi
+    
+    # 添加 NVIDIA Docker 仓库
+    print_info "添加 NVIDIA Docker 仓库..."
+    distribution=$(. /etc/os-release;echo $ID$VERSION_ID) \
+        && curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add - \
+        && curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+    
+    if [ $? -ne 0 ]; then
+        print_error "添加 NVIDIA Docker 仓库失败"
+        return 1
+    fi
+    
+    # 更新软件包列表
+    print_info "更新软件包列表..."
+    sudo apt update
+    
+    # 安装 nvidia-container-toolkit
+    print_info "安装 nvidia-container-toolkit..."
+    sudo apt install -y nvidia-container-toolkit
+    
+    if [ $? -ne 0 ]; then
+        print_error "安装 nvidia-container-toolkit 失败"
+        return 1
+    fi
+    
+    # 配置 Docker daemon.json
+    print_info "配置 Docker daemon.json..."
+    DOCKER_DAEMON_JSON="/etc/docker/daemon.json"
+    
+    # 检查文件是否存在
+    if [ -f "$DOCKER_DAEMON_JSON" ]; then
+        # 备份原文件
+        sudo cp "$DOCKER_DAEMON_JSON" "${DOCKER_DAEMON_JSON}.bak"
+        print_info "已备份原 daemon.json 为 ${DOCKER_DAEMON_JSON}.bak"
+        
+        # 检查是否已有 nvidia runtime 配置
+        if grep -q "nvidia" "$DOCKER_DAEMON_JSON"; then
+            print_info "daemon.json 中已存在 nvidia 配置"
+        else
+            # 使用 Python 或 jq 来添加配置（如果可用）
+            if command -v python3 &> /dev/null; then
+                sudo python3 << EOF
+import json
+import sys
+
+try:
+    with open('$DOCKER_DAEMON_JSON', 'r') as f:
+        config = json.load(f)
+except:
+    config = {}
+
+# 添加 nvidia runtime 配置
+if 'runtimes' not in config:
+    config['runtimes'] = {}
+
+config['runtimes']['nvidia'] = {
+    "path": "nvidia-container-runtime",
+    "runtimeArgs": []
+}
+
+# 设置默认 runtime（可选）
+if 'default-runtime' not in config:
+    config['default-runtime'] = 'nvidia'
+
+with open('$DOCKER_DAEMON_JSON', 'w') as f:
+    json.dump(config, f, indent=2)
+EOF
+            else
+                # 如果没有 Python，使用简单的方法
+                print_warning "未找到 Python3，将手动配置 daemon.json"
+                print_info "请手动编辑 $DOCKER_DAEMON_JSON，添加以下内容："
+                echo ""
+                echo '{'
+                echo '  "default-runtime": "nvidia",'
+                echo '  "runtimes": {'
+                echo '    "nvidia": {'
+                echo '      "path": "nvidia-container-runtime",'
+                echo '      "runtimeArgs": []'
+                echo '    }'
+                echo '  }'
+                echo '}'
+                echo ""
+                print_warning "配置完成后，请运行: sudo systemctl restart docker"
+                return 1
+            fi
+        fi
+    else
+        # 文件不存在，创建新文件
+        sudo tee "$DOCKER_DAEMON_JSON" > /dev/null << EOF
+{
+  "default-runtime": "nvidia",
+  "runtimes": {
+    "nvidia": {
+      "path": "nvidia-container-runtime",
+      "runtimeArgs": []
+    }
+  }
+}
+EOF
+    fi
+    
+    # 重启 Docker 服务
+    print_info "重启 Docker 服务..."
+    sudo systemctl restart docker
+    
+    if [ $? -eq 0 ]; then
+        print_success "NVIDIA Container Toolkit 安装完成"
+        return 0
+    else
+        print_error "重启 Docker 服务失败"
+        return 1
+    fi
+}
+
 check_gpu() {
     if check_command nvidia-smi; then
+        GPU_HARDWARE_DETECTED=true
         print_info "检测到 NVIDIA GPU:"
         nvidia-smi --query-gpu=name,driver_version --format=csv,noheader | while IFS=, read -r name version; do
             echo "  - GPU: $name (驱动版本: $version)"
         done
         
-        # 检查 nvidia-container-toolkit
-        if docker run --rm --gpus all nvidia/cuda:11.7.0-base-ubuntu22.04 nvidia-smi &> /dev/null; then
-            print_success "NVIDIA Container Toolkit 已配置"
+        # 检查 nvidia-container-toolkit 是否安装
+        print_info "检查 NVIDIA Container Toolkit..."
+        
+        if check_nvidia_container_toolkit; then
+            print_success "NVIDIA Container Toolkit 已安装"
         else
-            print_warning "NVIDIA Container Toolkit 未正确配置，GPU 可能无法使用"
-            echo "安装指南: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
+            print_warning "NVIDIA Container Toolkit 未安装"
+            # 获取GPU名称用于提示
+            GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -1 | xargs)
+            print_info "检测到 GPU 硬件（${GPU_NAME}），但 NVIDIA Container Toolkit 未安装"
+            echo ""
+            print_info "是否自动安装 NVIDIA Container Toolkit？(Y/n)"
+            read -t 15 -r response || response="Y"
+            
+            if [[ ! "$response" =~ ^([nN][oO]|[nN])$ ]]; then
+                if install_nvidia_container_toolkit; then
+                    print_success "NVIDIA Container Toolkit 安装成功"
+                else
+                    print_error "NVIDIA Container Toolkit 安装失败，将使用 CPU 模式"
+                    GPU_AVAILABLE=false
+                    return
+                fi
+            else
+                print_info "跳过安装，将使用 CPU 模式运行"
+                GPU_AVAILABLE=false
+                return
+            fi
+        fi
+        
+        # 检查 docker info 中是否有 nvidia runtime
+        print_info "检查 Docker NVIDIA runtime 配置..."
+        if docker info 2>/dev/null | grep -q "nvidia"; then
+            print_success "检测到 Docker 支持 NVIDIA runtime"
+            # 再测试实际运行
+            if docker run --rm --gpus all nvidia/cuda:11.7.0-base-ubuntu22.04 nvidia-smi &> /dev/null 2>&1; then
+                print_success "NVIDIA Container Toolkit 已正确配置"
+                GPU_AVAILABLE=true
+            else
+                print_warning "Docker 支持 NVIDIA，但测试运行失败"
+                print_info "可能是镜像下载问题或权限问题，尝试启用 GPU 配置"
+                GPU_AVAILABLE=true
+            fi
+        else
+            print_warning "Docker daemon.json 中未配置 NVIDIA runtime"
+            print_info "尝试配置 Docker daemon.json..."
+            if install_nvidia_container_toolkit; then
+                # 重新检查
+                sleep 2
+                if docker info 2>/dev/null | grep -q "nvidia"; then
+                    print_success "Docker NVIDIA runtime 配置成功"
+                    GPU_AVAILABLE=true
+                else
+                    print_warning "配置后仍无法检测到 NVIDIA runtime，尝试强制启用 GPU 配置"
+                    GPU_AVAILABLE=true
+                fi
+            else
+                print_warning "配置失败，尝试强制启用 GPU 配置"
+                GPU_AVAILABLE=true
+            fi
         fi
     else
         print_warning "未检测到 NVIDIA GPU，将使用 CPU 模式运行"
+        GPU_HARDWARE_DETECTED=false
+        GPU_AVAILABLE=false
+    fi
+}
+
+# 配置 GPU 支持（如果可用）
+configure_gpu() {
+    if [ "$GPU_AVAILABLE" = true ]; then
+        print_info "启用 GPU 支持..."
+        # 取消注释 GPU 配置（从 "# deploy:" 到 "#           capabilities: [gpu]"）
+        if grep -q "^    # deploy:" docker-compose.yaml; then
+            # 使用 sed 取消注释 GPU 配置部分（移除行首的 "    # "）
+            sed -i '/^    # deploy:/,/^    #           capabilities: \[gpu\]/s/^    # /    /' docker-compose.yaml
+            print_success "GPU 配置已启用"
+        fi
+    else
+        print_info "使用 CPU 模式（GPU 配置已禁用）"
+        # 确保 GPU 配置被注释（如果未被注释，则注释掉）
+        if grep -q "^    deploy:" docker-compose.yaml && ! grep -q "^    # deploy:" docker-compose.yaml; then
+            # 使用 sed 注释掉 GPU 配置部分（在行首添加 "    # "）
+            sed -i '/^    deploy:/,/^           capabilities: \[gpu\]/s/^    /    # /' docker-compose.yaml
+        fi
+    fi
+}
+
+# 检查并创建 Docker 网络
+check_network() {
+    print_info "检查 Docker 网络 easyaiot-network..."
+    if ! docker network ls | grep -q easyaiot-network; then
+        print_info "网络 easyaiot-network 不存在，正在创建..."
+        if docker network create easyaiot-network 2>/dev/null; then
+            print_success "网络 easyaiot-network 已创建"
+        else
+            print_error "无法创建网络 easyaiot-network"
+            exit 1
+        fi
+    else
+        print_info "网络 easyaiot-network 已存在"
     fi
 }
 
@@ -140,7 +381,9 @@ install_service() {
     
     check_docker
     check_docker_compose
+    check_network
     check_gpu
+    configure_gpu
     create_directories
     create_env_file
     
@@ -167,6 +410,7 @@ start_service() {
     print_info "启动服务..."
     check_docker
     check_docker_compose
+    check_network
     
     if [ ! -f .env ]; then
         print_warning ".env 文件不存在，正在创建..."
@@ -269,6 +513,7 @@ update_service() {
     print_info "更新服务..."
     check_docker
     check_docker_compose
+    check_network
     
     print_info "拉取最新代码..."
     git pull || print_warning "Git pull 失败，继续使用当前代码"
