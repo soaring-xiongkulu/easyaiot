@@ -326,10 +326,10 @@ EOF
             print_info "检测到 Debian/Ubuntu 系统，使用 apt 安装 OpenJDK 8..."
             
             # 更新包列表
-            apt update
+            apt update -qq > /dev/null 2>&1
             
             # 安装 OpenJDK 8
-            if apt install -y openjdk-8-jdk; then
+            if apt install -qq -y openjdk-8-jdk > /dev/null 2>&1; then
                 print_success "OpenJDK 8 安装成功"
             else
                 print_error "OpenJDK 8 安装失败"
@@ -499,7 +499,7 @@ install_nodejs20() {
                 return 1
             fi
             print_info "正在安装 Node.js 20..."
-            if ! apt-get install -y nodejs; then
+            if ! apt-get install -qq -y nodejs > /dev/null 2>&1; then
                 print_error "Node.js 安装失败"
                 return 1
             fi
@@ -1434,14 +1434,14 @@ install_nvidia_container_toolkit() {
             done
             
             # 更新包列表
-            if ! apt-get update > /dev/null 2>&1; then
+            if ! apt-get update -qq > /dev/null 2>&1; then
                 print_error "更新包列表失败"
                 return 1
             fi
             
             # 安装 nvidia-container-toolkit
             print_info "正在安装 nvidia-container-toolkit..."
-            if ! apt-get install -y nvidia-container-toolkit; then
+            if ! apt-get install -qq -y nvidia-container-toolkit > /dev/null 2>&1; then
                 print_error "安装 nvidia-container-toolkit 失败"
                 return 1
             fi
@@ -2054,7 +2054,7 @@ EOF
                 
                 # 更新 apt 缓存
                 print_info "正在更新 apt 缓存..."
-                if apt update > /dev/null 2>&1; then
+                if apt update -qq > /dev/null 2>&1; then
                     print_success "apt 源配置完成并已更新缓存"
                     # 记录已配置标记
                     echo "configured" > "$apt_mirror_marker" 2>/dev/null || true
@@ -2214,12 +2214,12 @@ install_docker() {
             apt-get remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
             
             # 安装依赖
-            apt-get update
-            apt-get install -y \
+            apt-get update -qq > /dev/null 2>&1
+            apt-get install -qq -y \
                 ca-certificates \
                 curl \
                 gnupg \
-                lsb-release
+                lsb-release > /dev/null 2>&1
             
             # 添加 Docker 官方 GPG 密钥
             install -m 0755 -d /etc/apt/keyrings
@@ -2232,8 +2232,8 @@ install_docker() {
               $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
             
             # 安装 Docker Engine
-            apt-get update
-            apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            apt-get update -qq > /dev/null 2>&1
+            apt-get install -qq -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin > /dev/null 2>&1
             
             ;;
         centos|rhel|fedora)
@@ -2437,8 +2437,8 @@ install_docker_compose() {
     case "$os_id" in
         ubuntu|debian)
             print_info "检测到 Debian/Ubuntu 系统，安装 Docker Compose Plugin..."
-            apt-get update
-            apt-get install -y docker-compose-plugin
+            apt-get update -qq > /dev/null 2>&1
+            apt-get install -qq -y docker-compose-plugin > /dev/null 2>&1
             ;;
         centos|rhel|fedora)
             print_info "检测到 CentOS/RHEL/Fedora 系统，安装 Docker Compose Plugin..."

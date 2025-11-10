@@ -194,11 +194,11 @@ install_nvidia_container_toolkit() {
     
     # 更新软件包列表
     print_info "更新软件包列表..."
-    sudo apt update
+    sudo apt update -qq > /dev/null 2>&1
     
     # 安装 nvidia-container-toolkit
     print_info "安装 nvidia-container-toolkit..."
-    sudo apt install -y nvidia-container-toolkit
+    sudo apt install -qq -y nvidia-container-toolkit > /dev/null 2>&1
     
     if [ $? -ne 0 ]; then
         print_error "安装 nvidia-container-toolkit 失败"
