@@ -9,10 +9,10 @@ services:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
       - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
-      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
-      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
-      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
-      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=localhost:8848 # 配置中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE= # 使用默认命名空间（public）
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=localhost:8848 # 注册中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE= # 使用默认命名空间（public）
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-gateway
@@ -35,10 +35,10 @@ services:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
       - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
-      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
-      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
-      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
-      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=localhost:8848 # 配置中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE= # 使用默认命名空间（public）
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=localhost:8848 # 注册中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE= # 使用默认命名空间（public）
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-system
@@ -49,11 +49,11 @@ services:
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
     # 注意：使用host网络模式时，不需要端口映射，容器直接使用主机网络
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:48081"]
+      test: ["CMD", "curl", "-f", "http://localhost:48099"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
     restart: always
     network_mode: host
 
@@ -67,10 +67,10 @@ services:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
       - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
-      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
-      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
-      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
-      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=localhost:8848 # 配置中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE= # 使用默认命名空间（public）
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=localhost:8848 # 注册中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE= # 使用默认命名空间（public）
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-infra
@@ -85,7 +85,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
     restart: always
     network_mode: host
     depends_on:
@@ -102,10 +102,10 @@ services:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
       - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
-      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
-      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
-      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
-      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=localhost:8848 # 配置中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE= # 使用默认命名空间（public）
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=localhost:8848 # 注册中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE= # 使用默认命名空间（public）
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-device
@@ -120,7 +120,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
     restart: always
     network_mode: host
     depends_on:
@@ -137,10 +137,10 @@ services:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
       - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
-      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
-      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
-      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
-      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=localhost:8848 # 配置中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE= # 使用默认命名空间（public）
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=localhost:8848 # 注册中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE= # 使用默认命名空间（public）
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-dataset
@@ -155,7 +155,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
     restart: always
     network_mode: host
     depends_on:
@@ -172,10 +172,10 @@ services:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
       - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
-      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
-      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
-      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
-      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=localhost:8848 # 配置中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE= # 使用默认命名空间（public）
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=localhost:8848 # 注册中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE= # 使用默认命名空间（public）
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-broker
@@ -190,7 +190,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
     restart: always
     network_mode: host
     depends_on:
@@ -207,10 +207,10 @@ services:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
       - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
-      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
-      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
-      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
-      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=localhost:8848 # 配置中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE= # 使用默认命名空间（public）
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=localhost:8848 # 注册中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE= # 使用默认命名空间（public）
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-tdengine
@@ -225,7 +225,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
     restart: always
     network_mode: host
     depends_on:
@@ -242,10 +242,10 @@ services:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
       - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
-      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
-      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
-      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
-      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=localhost:8848 # 配置中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE= # 使用默认命名空间（public）
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=localhost:8848 # 注册中心地址（local环境使用localhost）
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE= # 使用默认命名空间（public）
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-file
@@ -256,11 +256,11 @@ services:
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
     # 注意：使用host网络模式时，不需要端口映射，容器直接使用主机网络
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:19300"]
+      test: ["CMD", "curl", "-f", "http://localhost:48090"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
     restart: always
     network_mode: host
     depends_on:
