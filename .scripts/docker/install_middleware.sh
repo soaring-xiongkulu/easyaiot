@@ -16,7 +16,6 @@
 #   build      - 重新构建所有镜像
 #   clean      - 清理所有容器和镜像
 #   update     - 更新并重启所有中间件
-#   verify     - 验证所有中间件是否启动成功
 # ============================================
 
 set -e
@@ -33,6 +32,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yml"
+
+# 日志文件配置
+LOG_DIR="${SCRIPT_DIR}/logs"
+mkdir -p "$LOG_DIR"
+LOG_FILE="${LOG_DIR}/install_middleware_$(date +%Y%m%d_%H%M%S).log"
+
+# 初始化日志文件
+echo "=========================================" >> "$LOG_FILE"
+echo "EasyAIoT 中间件部署脚本日志" >> "$LOG_FILE"
+echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
+echo "命令: $*" >> "$LOG_FILE"
+echo "=========================================" >> "$LOG_FILE"
+echo "" >> "$LOG_FILE"
 
 # 中间件服务列表
 MIDDLEWARE_SERVICES=(
@@ -59,29 +71,52 @@ MIDDLEWARE_HEALTH_ENDPOINTS["TDengine"]=""
 MIDDLEWARE_HEALTH_ENDPOINTS["Redis"]=""
 MIDDLEWARE_HEALTH_ENDPOINTS["Kafka"]=""
 
-# 打印带颜色的消息
+# 日志输出函数（去掉颜色代码后写入日志文件）
+log_to_file() {
+    local message="$1"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    # 去掉 ANSI 颜色代码
+    local clean_message=$(echo "$message" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g")
+    echo "[$timestamp] $clean_message" >> "$LOG_FILE"
+}
+
+# 打印带颜色的消息（同时输出到日志文件）
 print_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    local message="${BLUE}[INFO]${NC} $1"
+    echo -e "$message"
+    log_to_file "[INFO] $1"
 }
 
 print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    local message="${GREEN}[SUCCESS]${NC} $1"
+    echo -e "$message"
+    log_to_file "[SUCCESS] $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    local message="${YELLOW}[WARNING]${NC} $1"
+    echo -e "$message"
+    log_to_file "[WARNING] $1"
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    local message="${RED}[ERROR]${NC} $1"
+    echo -e "$message"
+    log_to_file "[ERROR] $1"
 }
 
 print_section() {
+    local section="$1"
     echo ""
     echo -e "${YELLOW}========================================${NC}"
-    echo -e "${YELLOW}  $1${NC}"
+    echo -e "${YELLOW}  $section${NC}"
     echo -e "${YELLOW}========================================${NC}"
     echo ""
+    log_to_file ""
+    log_to_file "========================================="
+    log_to_file "  $section"
+    log_to_file "========================================="
+    log_to_file ""
 }
 
 # 检查命令是否存在
@@ -404,7 +439,7 @@ install_middleware() {
     create_network
     
     print_info "启动所有中间件服务..."
-    $COMPOSE_CMD -f "$COMPOSE_FILE" up -d
+    $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
     
     print_success "中间件安装完成"
     echo ""
@@ -426,7 +461,7 @@ start_middleware() {
     create_network
     
     print_info "启动所有中间件服务..."
-    $COMPOSE_CMD -f "$COMPOSE_FILE" up -d
+    $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
     
     print_success "所有中间件启动完成"
     echo ""
@@ -443,7 +478,7 @@ stop_middleware() {
     check_compose_file
     
     print_info "停止所有中间件服务..."
-    $COMPOSE_CMD -f "$COMPOSE_FILE" down
+    $COMPOSE_CMD -f "$COMPOSE_FILE" down 2>&1 | tee -a "$LOG_FILE"
     
     print_success "所有中间件已停止"
 }
@@ -458,7 +493,7 @@ restart_middleware() {
     create_network
     
     print_info "重启所有中间件服务..."
-    $COMPOSE_CMD -f "$COMPOSE_FILE" restart
+    $COMPOSE_CMD -f "$COMPOSE_FILE" restart 2>&1 | tee -a "$LOG_FILE"
     
     print_success "所有中间件重启完成"
     echo ""
@@ -474,7 +509,7 @@ status_middleware() {
     check_docker_compose
     check_compose_file
     
-    $COMPOSE_CMD -f "$COMPOSE_FILE" ps
+    $COMPOSE_CMD -f "$COMPOSE_FILE" ps 2>&1 | tee -a "$LOG_FILE"
 }
 
 # 查看日志
@@ -487,10 +522,10 @@ view_logs() {
     
     if [ -z "$service" ]; then
         print_info "查看所有中间件日志..."
-        $COMPOSE_CMD -f "$COMPOSE_FILE" logs --tail=100
+        $COMPOSE_CMD -f "$COMPOSE_FILE" logs --tail=100 2>&1 | tee -a "$LOG_FILE"
     else
         print_info "查看 $service 服务日志..."
-        $COMPOSE_CMD -f "$COMPOSE_FILE" logs --tail=100 "$service"
+        $COMPOSE_CMD -f "$COMPOSE_FILE" logs --tail=100 "$service" 2>&1 | tee -a "$LOG_FILE"
     fi
 }
 
@@ -503,7 +538,7 @@ build_middleware() {
     check_compose_file
     
     print_info "构建所有中间件镜像..."
-    $COMPOSE_CMD -f "$COMPOSE_FILE" build --no-cache
+    $COMPOSE_CMD -f "$COMPOSE_FILE" build --no-cache 2>&1 | tee -a "$LOG_FILE"
     
     print_success "所有中间件镜像构建完成"
 }
@@ -521,7 +556,7 @@ clean_middleware() {
         check_compose_file
         
         print_info "清理所有中间件服务..."
-        $COMPOSE_CMD -f "$COMPOSE_FILE" down -v
+        $COMPOSE_CMD -f "$COMPOSE_FILE" down -v 2>&1 | tee -a "$LOG_FILE"
         
         print_success "清理完成"
     else
@@ -539,120 +574,15 @@ update_middleware() {
     create_network
     
     print_info "拉取最新镜像..."
-    $COMPOSE_CMD -f "$COMPOSE_FILE" pull
+    $COMPOSE_CMD -f "$COMPOSE_FILE" pull 2>&1 | tee -a "$LOG_FILE"
     
     print_info "重启所有中间件服务..."
-    $COMPOSE_CMD -f "$COMPOSE_FILE" up -d
+    $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
     
     print_success "所有中间件更新完成"
     echo ""
     print_info "等待服务就绪..."
     sleep 10
-}
-
-# 等待服务就绪
-wait_for_service() {
-    local service_name=$1
-    local port=$2
-    local health_endpoint=$3
-    local max_attempts=60
-    local attempt=0
-    
-    while [ $attempt -lt $max_attempts ]; do
-        # 尝试多种方式检测服务
-        if [ -n "$health_endpoint" ]; then
-            # 使用健康检查端点
-            if curl -s --connect-timeout 2 "http://localhost:$port$health_endpoint" > /dev/null 2>&1; then
-                return 0
-            fi
-        else
-            # 使用端口检测
-            if command -v nc &> /dev/null && nc -z localhost $port 2>/dev/null; then
-                return 0
-            elif command -v timeout &> /dev/null && timeout 1 bash -c "cat < /dev/null > /dev/tcp/localhost/$port" 2>/dev/null; then
-                return 0
-            elif curl -s --connect-timeout 1 "http://localhost:$port" > /dev/null 2>&1; then
-                return 0
-            fi
-        fi
-        attempt=$((attempt + 1))
-        sleep 2
-    done
-    
-    return 1
-}
-
-# 验证中间件健康状态
-verify_service_health() {
-    local service=$1
-    local port=${MIDDLEWARE_PORTS[$service]}
-    local health_endpoint=${MIDDLEWARE_HEALTH_ENDPOINTS[$service]}
-    
-    print_info "验证 $service (端口: $port)..."
-    
-    if wait_for_service "$service" "$port" "$health_endpoint"; then
-        # 检查HTTP响应
-        if [ -n "$health_endpoint" ]; then
-            response=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$port$health_endpoint" 2>/dev/null || echo "000")
-            if [ "$response" = "200" ] || [ "$response" = "000" ]; then
-                print_success "$service 运行正常"
-                return 0
-            else
-                print_warning "$service 响应异常 (HTTP $response)"
-                return 1
-            fi
-        else
-            print_success "$service 运行正常"
-            return 0
-        fi
-    else
-        print_error "$service 未就绪"
-        return 1
-    fi
-}
-
-# 验证所有中间件
-verify_middleware() {
-    print_section "验证所有中间件"
-    
-    check_docker "$@"
-    
-    local success_count=0
-    local total_count=${#MIDDLEWARE_SERVICES[@]}
-    local failed_services=()
-    
-    for service in "${MIDDLEWARE_SERVICES[@]}"; do
-        if verify_service_health "$service"; then
-            success_count=$((success_count + 1))
-        else
-            failed_services+=("$service")
-        fi
-        echo ""
-    done
-    
-    print_section "验证结果"
-    echo "成功: ${GREEN}$success_count${NC} / $total_count"
-    
-    if [ $success_count -eq $total_count ]; then
-        print_success "所有中间件运行正常！"
-        echo ""
-        echo -e "${GREEN}中间件访问地址:${NC}"
-        echo -e "  Nacos:      http://localhost:8848/nacos"
-        echo -e "  PostgreSQL: localhost:5432"
-        echo -e "  TDengine:   localhost:6030"
-        echo -e "  Redis:      localhost:6379"
-        echo -e "  Kafka:      localhost:9092"
-        echo ""
-        return 0
-    else
-        print_warning "部分中间件未就绪:"
-        for failed in "${failed_services[@]}"; do
-            echo -e "  ${RED}✗ $failed${NC}"
-        done
-        echo ""
-        print_info "查看日志: ./install.sh logs"
-        return 1
-    fi
 }
 
 # 显示帮助信息
@@ -673,7 +603,6 @@ show_help() {
     echo "  build           - 重新构建所有镜像"
     echo "  clean           - 清理所有容器和镜像"
     echo "  update          - 更新并重启所有中间件"
-    echo "  verify          - 验证所有中间件是否启动成功"
     echo "  help            - 显示此帮助信息"
     echo ""
     echo "中间件服务列表:"
@@ -713,9 +642,6 @@ main() {
         update)
             update_middleware
             ;;
-        verify)
-            verify_middleware
-            ;;
         help|--help|-h)
             show_help
             ;;
@@ -730,3 +656,13 @@ main() {
 
 # 运行主函数
 main "$@"
+
+# 脚本结束时记录日志文件路径
+if [ -n "$LOG_FILE" ] && [ -f "$LOG_FILE" ]; then
+    echo "" >> "$LOG_FILE"
+    echo "=========================================" >> "$LOG_FILE"
+    echo "脚本结束时间: $(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
+    echo "=========================================" >> "$LOG_FILE"
+    echo ""
+    print_info "日志文件已保存到: $LOG_FILE"
+fi

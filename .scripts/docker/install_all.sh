@@ -32,6 +32,22 @@ NC='\033[0m' # No Color
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
+# 脚本所在目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 日志文件配置
+LOG_DIR="${SCRIPT_DIR}/logs"
+mkdir -p "$LOG_DIR"
+LOG_FILE="${LOG_DIR}/install_all_$(date +%Y%m%d_%H%M%S).log"
+
+# 初始化日志文件
+echo "=========================================" >> "$LOG_FILE"
+echo "EasyAIoT 统一安装脚本日志" >> "$LOG_FILE"
+echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
+echo "命令: $*" >> "$LOG_FILE"
+echo "=========================================" >> "$LOG_FILE"
+echo "" >> "$LOG_FILE"
+
 # 模块列表（按依赖顺序）
 MODULES=(
     ".scripts/docker"  # 基础服务（Nacos、PostgreSQL、Redis等）
@@ -65,29 +81,52 @@ MODULE_HEALTH_ENDPOINTS["AI"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["VIDEO"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["WEB"]="/health"
 
-# 打印带颜色的消息
+# 日志输出函数（去掉颜色代码后写入日志文件）
+log_to_file() {
+    local message="$1"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    # 去掉 ANSI 颜色代码
+    local clean_message=$(echo "$message" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g")
+    echo "[$timestamp] $clean_message" >> "$LOG_FILE"
+}
+
+# 打印带颜色的消息（同时输出到日志文件）
 print_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    local message="${BLUE}[INFO]${NC} $1"
+    echo -e "$message"
+    log_to_file "[INFO] $1"
 }
 
 print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    local message="${GREEN}[SUCCESS]${NC} $1"
+    echo -e "$message"
+    log_to_file "[SUCCESS] $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    local message="${YELLOW}[WARNING]${NC} $1"
+    echo -e "$message"
+    log_to_file "[WARNING] $1"
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    local message="${RED}[ERROR]${NC} $1"
+    echo -e "$message"
+    log_to_file "[ERROR] $1"
 }
 
 print_section() {
+    local section="$1"
     echo ""
     echo -e "${YELLOW}========================================${NC}"
-    echo -e "${YELLOW}  $1${NC}"
+    echo -e "${YELLOW}  $section${NC}"
     echo -e "${YELLOW}========================================${NC}"
     echo ""
+    log_to_file ""
+    log_to_file "========================================="
+    log_to_file "  $section"
+    log_to_file "========================================="
+    log_to_file ""
 }
 
 # 检查命令是否存在
@@ -179,7 +218,7 @@ execute_module_command() {
         
         print_info "执行 $module_name: $command"
         
-        if bash "$install_file" "$command" 2>&1; then
+        if bash "$install_file" "$command" 2>&1 | tee -a "$LOG_FILE"; then
             print_success "$module_name: $command 执行成功"
             return 0
         else
@@ -207,7 +246,7 @@ execute_module_command() {
         
         case "$command" in
             install|start)
-                if $compose_cmd -f "$compose_file" up -d; then
+                if $compose_cmd -f "$compose_file" up -d 2>&1 | tee -a "$LOG_FILE"; then
                     print_success "$module_name: $command 执行成功"
                     return 0
                 else
@@ -216,7 +255,7 @@ execute_module_command() {
                 fi
                 ;;
             stop)
-                if $compose_cmd -f "$compose_file" down; then
+                if $compose_cmd -f "$compose_file" down 2>&1 | tee -a "$LOG_FILE"; then
                     print_success "$module_name: $command 执行成功"
                     return 0
                 else
@@ -225,7 +264,7 @@ execute_module_command() {
                 fi
                 ;;
             restart)
-                if $compose_cmd -f "$compose_file" restart; then
+                if $compose_cmd -f "$compose_file" restart 2>&1 | tee -a "$LOG_FILE"; then
                     print_success "$module_name: $command 执行成功"
                     return 0
                 else
@@ -234,15 +273,15 @@ execute_module_command() {
                 fi
                 ;;
             status)
-                $compose_cmd -f "$compose_file" ps
+                $compose_cmd -f "$compose_file" ps 2>&1 | tee -a "$LOG_FILE"
                 return $?
                 ;;
             logs)
-                $compose_cmd -f "$compose_file" logs --tail=100
+                $compose_cmd -f "$compose_file" logs --tail=100 2>&1 | tee -a "$LOG_FILE"
                 return $?
                 ;;
             build)
-                if $compose_cmd -f "$compose_file" build --no-cache; then
+                if $compose_cmd -f "$compose_file" build --no-cache 2>&1 | tee -a "$LOG_FILE"; then
                     print_success "$module_name: $command 执行成功"
                     return 0
                 else
@@ -251,7 +290,7 @@ execute_module_command() {
                 fi
                 ;;
             clean)
-                if $compose_cmd -f "$compose_file" down -v; then
+                if $compose_cmd -f "$compose_file" down -v 2>&1 | tee -a "$LOG_FILE"; then
                     print_success "$module_name: $command 执行成功"
                     return 0
                 else
@@ -260,7 +299,7 @@ execute_module_command() {
                 fi
                 ;;
             update)
-                if $compose_cmd -f "$compose_file" pull && $compose_cmd -f "$compose_file" up -d; then
+                if ($compose_cmd -f "$compose_file" pull && $compose_cmd -f "$compose_file" up -d) 2>&1 | tee -a "$LOG_FILE"; then
                     print_success "$module_name: $command 执行成功"
                     return 0
                 else
@@ -282,7 +321,7 @@ execute_module_command() {
         
         print_info "执行 $module_name: $command"
         
-        if bash install.sh "$command" 2>&1; then
+        if bash install.sh "$command" 2>&1 | tee -a "$LOG_FILE"; then
             print_success "$module_name: $command 执行成功"
             return 0
         else
@@ -380,10 +419,6 @@ install_all() {
     
     if [ $success_count -eq $total_count ]; then
         print_success "所有模块安装成功！"
-        echo ""
-        print_info "等待服务启动..."
-        sleep 10
-        verify_all
     else
         print_warning "部分模块安装失败，请检查日志"
         exit 1
@@ -404,10 +439,6 @@ start_all() {
     done
     
     print_success "所有服务启动完成"
-    echo ""
-    print_info "等待服务就绪..."
-    sleep 10
-    verify_all
 }
 
 # 停止所有服务
@@ -440,10 +471,6 @@ restart_all() {
     done
     
     print_success "所有服务重启完成"
-    echo ""
-    print_info "等待服务就绪..."
-    sleep 10
-    verify_all
 }
 
 # 查看所有服务状态
@@ -536,10 +563,6 @@ update_all() {
     done
     
     print_success "所有服务更新完成"
-    echo ""
-    print_info "等待服务就绪..."
-    sleep 10
-    verify_all
 }
 
 # 验证所有服务
@@ -661,4 +684,14 @@ main() {
 
 # 运行主函数
 main "$@"
+
+# 脚本结束时记录日志文件路径
+if [ -n "$LOG_FILE" ] && [ -f "$LOG_FILE" ]; then
+    echo "" >> "$LOG_FILE"
+    echo "=========================================" >> "$LOG_FILE"
+    echo "脚本结束时间: $(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
+    echo "=========================================" >> "$LOG_FILE"
+    echo ""
+    print_info "日志文件已保存到: $LOG_FILE"
+fi
 
