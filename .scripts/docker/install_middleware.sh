@@ -393,10 +393,10 @@ init_databases() {
     # SQL 文件路径：相对于脚本目录的上一级目录的 postgresql 目录
     local sql_dir="$(cd "${SCRIPT_DIR}/../postgresql" && pwd)"
     declare -A DB_SQL_MAP
-    DB_SQL_MAP["iot-ai10"]="${sql_dir}/iot-ai10.sql"
-    DB_SQL_MAP["iot-device10"]="${sql_dir}/iot-device10.sql"
-    DB_SQL_MAP["iot-video10"]="${sql_dir}/iot-video10.sql"
-    DB_SQL_MAP["ruoyi-vue-pro10"]="${sql_dir}/ruoyi-vue-pro10.sql"
+    DB_SQL_MAP["iot-ai20"]="${sql_dir}/iot-ai10.sql"
+    DB_SQL_MAP["iot-device20"]="${sql_dir}/iot-device10.sql"
+    DB_SQL_MAP["iot-video20"]="${sql_dir}/iot-video10.sql"
+    DB_SQL_MAP["ruoyi-vue-pro20"]="${sql_dir}/ruoyi-vue-pro10.sql"
     
     local success_count=0
     local total_count=${#DB_SQL_MAP[@]}

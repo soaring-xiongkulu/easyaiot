@@ -21355,7 +21355,7 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 2954	行人识别	person:person:query	2	28	0	/person/index	ant-design:deployment-unit-outlined	person/index	Person	1	f	f	f	1	2024-09-19 11:27:30.438	1	2024-09-29 09:59:55.906	1
 2964	数据集详情	dataset:detail:list	2	99	0	detail/:id	ant-design:line-chart-outlined	dataset/components/DatasetDetail/index	DatasetDetail	0	f	t	f	1	2025-08-11 15:38:39.025	1	2025-08-11 15:39:22.203	0
 2965	流媒体	camera:camera:query	2	1	0	camera/index	gala:video	camera/index	Camera	0	t	t	t	1	2025-08-31 18:38:53.702	1	2025-08-31 18:38:53.702	0
-2967	训练详情	train:train:detail	2	99	0	TrainTaskDetail/:modelId	hugeicons:ai-brain-03	train/components/TrainTaskDetail/index	TrainTaskDetail	0	t	t	t	1	2025-08-31 18:45:27.291	1	2025-08-31 18:45:27.291	0
+2967	训练详情	train:train:detail	2	99	0	TrainTaskDetail/:modelId	hugeicons:ai-brain-03	train/components/TrainTaskDetail/index	TrainTaskDetail	0	f	t	f	1	2025-08-31 18:45:27.291	1	2025-08-31 18:45:27.291	0
 2966	模型训练	train:train:query	2	6	0	train/index	hugeicons:ai-brain-03	train/index	Train	0	t	t	t	1	2025-08-31 18:41:46.818	1	2025-08-31 18:41:46.818	0
 2961	数据标注	dataset:dataset:query	2	4	0	/dataset	gala:data	dataset/index	Dataset	0	t	t	t	1	2025-02-10 11:10:04.178	1	2025-08-31 18:43:08.824	0
 \.
@@ -28489,7 +28489,7 @@ COPY public.system_social_user_bind (id, user_id, user_type, social_type, social
 COPY public.system_tenant (id, name, contact_user_id, contact_name, contact_mobile, status, website, package_id, expire_time, account_count, creator, create_time, updater, update_time, deleted) FROM stdin;
 121	小租户	110	normal	15601691300	0	zsxq.iocoder.cn	111	2029-05-24 15:08:17.904	20	1	2022-02-22 00:56:14	1	2025-05-08 15:08:28.25	0
 122	测试租户	113	test	15601691300	0	test.iocoder.cn	111	2029-04-27 00:00:00	50	1	2022-03-07 21:37:58	1	2025-05-08 15:08:49.211	0
-1	Admin-IoT	\N	Admin-IoT	17321315478	0	pro.basiclab.top:8888	0	2099-02-19 17:14:16	9999	1	2021-01-05 17:03:47	1	2023-11-06 11:41:41	0
+1	Admin-IoT	\N	Admin-IoT	17321315478	0	localhost:8888	0	2099-02-19 17:14:16	9999	1	2021-01-05 17:03:47	1	2023-11-06 11:41:41	0
 \.
 
 
