@@ -30,13 +30,6 @@ services:
       # 时区配置
       - TZ=Asia/Shanghai
 
-    # 添加hosts映射，使容器能够通过gateway访问主机上的服务
-    # 由于iot-gateway使用host网络模式，需要通过主机IP访问
-    extra_hosts:
-      - "gateway:host-gateway"
-      # 如果host-gateway不支持，可以使用以下方式（需要替换为实际的主机IP）
-      # - "gateway:172.17.0.1"
-
     # 重启策略
     restart: unless-stopped
 
@@ -47,6 +40,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+    # 依赖关系
+    depends_on:
+      - iot-gateway
+
+    # 服务链接
+    links:
+      - iot-gateway
 
     # 网络配置（连接到统一网络，以便访问AI和VIDEO服务）
     networks:
