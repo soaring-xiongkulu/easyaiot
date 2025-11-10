@@ -4,7 +4,7 @@
 # VIDEO服务 Docker Compose 管理脚本
 # ============================================
 # 使用方法：
-#   ./install_module.sh [命令]
+#   ./install_all.sh [命令]
 #
 # 可用命令：
 #   install    - 安装并启动服务（首次运行）
@@ -68,19 +68,39 @@ check_docker() {
 
 # 检查 Docker Compose 是否安装
 check_docker_compose() {
-    if ! check_command docker-compose && ! docker compose version &> /dev/null; then
-        print_error "Docker Compose 未安装，请先安装 Docker Compose"
-        echo "安装指南: https://docs.docker.com/compose/install/"
-        exit 1
-    fi
-    
-    # 检查是 docker-compose 还是 docker compose
+    # 先检查 docker-compose 命令
     if check_command docker-compose; then
         COMPOSE_CMD="docker-compose"
         print_success "Docker Compose 已安装: $(docker-compose --version)"
-    else
+        return 0
+    fi
+    
+    # 再检查 docker compose 插件
+    if docker compose version &> /dev/null; then
         COMPOSE_CMD="docker compose"
         print_success "Docker Compose 已安装: $(docker compose version)"
+        return 0
+    fi
+    
+    # 如果都不存在，报错
+    print_error "Docker Compose 未安装，请先安装 Docker Compose"
+    echo "安装指南: https://docs.docker.com/compose/install/"
+    exit 1
+}
+
+# 检查并创建 Docker 网络
+check_network() {
+    print_info "检查 Docker 网络 easyaiot-network..."
+    if ! docker network ls | grep -q easyaiot-network; then
+        print_info "网络 easyaiot-network 不存在，正在创建..."
+        if docker network create easyaiot-network 2>/dev/null; then
+            print_success "网络 easyaiot-network 已创建"
+        else
+            print_error "无法创建网络 easyaiot-network"
+            exit 1
+        fi
+    else
+        print_info "网络 easyaiot-network 已存在"
     fi
 }
 
@@ -120,6 +140,7 @@ install_service() {
     
     check_docker
     check_docker_compose
+    check_network
     create_directories
     create_env_file
     
@@ -146,6 +167,7 @@ start_service() {
     print_info "启动服务..."
     check_docker
     check_docker_compose
+    check_network
     
     if [ ! -f .env ]; then
         print_warning ".env 文件不存在，正在创建..."
@@ -248,6 +270,7 @@ update_service() {
     print_info "更新服务..."
     check_docker
     check_docker_compose
+    check_network
     
     print_info "拉取最新代码..."
     git pull || print_warning "Git pull 失败，继续使用当前代码"

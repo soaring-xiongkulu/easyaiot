@@ -4,7 +4,7 @@
 # WEB服务 Docker Compose 管理脚本
 # ============================================
 # 使用方法：
-#   ./install_module.sh [命令]
+#   ./install_all.sh [命令]
 #
 # 可用命令：
 #   install    - 安装并启动服务（首次运行）

@@ -1,11 +1,20 @@
 # 使用Python官方镜像（Python 3.10）
 FROM python:3.10-slim
 
+# 设置非交互式环境，避免构建时卡住
+ARG DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
+
 # 设置工作目录
 WORKDIR /app
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1
+ENV TZ=Asia/Shanghai
+
+# 设置时区，避免时区配置交互式提示
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone
 
 # 安装基本工具（根据不同的宿主机架构修改）
 RUN apt-get update && \
@@ -16,9 +25,9 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装 X11 依赖（可视化，如果需要）
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     x11-apps \
-    libgl1-mesa-glx \
     libxcb-xinerama0 \
     && rm -rf /var/lib/apt/lists/*
 
