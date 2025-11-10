@@ -365,13 +365,50 @@ create_env_file() {
         if [ -f env.example ]; then
             cp env.example .env
             print_success ".env 文件已从 env.example 创建"
-            print_warning "请编辑 .env 文件，配置数据库、Nacos、MinIO 等连接信息"
+            
+            # 自动配置中间件连接信息（使用Docker服务名称）
+            print_info "自动配置中间件连接信息..."
+            
+            # 更新数据库连接（使用中间件服务名称）
+            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@postgres-server:5432/iot-ai20|' .env
+            
+            # 更新Nacos配置（使用中间件服务名称）
+            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=nacos-server:8848|' .env
+            
+            # 更新MinIO配置（使用中间件服务名称）
+            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=minio-server:9000|' .env
+            sed -i 's|^MINIO_SECRET_KEY=.*|MINIO_SECRET_KEY=basiclab@iot975248395|' .env
+            
+            # 更新Nacos密码
+            sed -i 's|^NACOS_PASSWORD=.*|NACOS_PASSWORD=basiclab@iot78475418754|' .env
+            
+            print_success "中间件连接信息已自动配置"
+            print_info "如需修改其他配置，请编辑 .env 文件"
         else
             print_error "env.example 文件不存在，无法创建 .env 文件"
             exit 1
         fi
     else
         print_info ".env 文件已存在"
+        print_info "检查并更新中间件连接信息..."
+        
+        # 检查并更新数据库连接（如果还是localhost）
+        if grep -q "DATABASE_URL=.*localhost" .env; then
+            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@postgres-server:5432/iot-ai20|' .env
+            print_info "已更新数据库连接为 postgres-server:5432"
+        fi
+        
+        # 检查并更新Nacos配置（如果还是IP地址）
+        if grep -q "NACOS_SERVER=.*14\.18\.122\.2" .env || grep -q "NACOS_SERVER=.*localhost" .env; then
+            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=nacos-server:8848|' .env
+            print_info "已更新Nacos连接为 nacos-server:8848"
+        fi
+        
+        # 检查并更新MinIO配置（如果还是localhost）
+        if grep -q "MINIO_ENDPOINT=.*localhost" .env; then
+            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=minio-server:9000|' .env
+            print_info "已更新MinIO连接为 minio-server:9000"
+        fi
     fi
 }
 

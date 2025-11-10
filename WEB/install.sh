@@ -203,7 +203,7 @@ install_service() {
     check_status
     
     # 读取端口配置
-    WEB_PORT=$(grep WEB_PORT .env 2>/dev/null | cut -d '=' -f2 | tr -d ' ' || echo "80")
+    WEB_PORT=$(grep VITE_PORT .env 2>/dev/null | cut -d '=' -f2 | tr -d ' ' || echo "80")
     print_info "服务访问地址: http://localhost:${WEB_PORT}"
     print_info "健康检查地址: http://localhost:${WEB_PORT}/health"
     print_info "查看日志: ./install.sh logs"

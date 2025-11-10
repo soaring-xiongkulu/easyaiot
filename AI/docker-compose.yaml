@@ -32,33 +32,54 @@ services:
       # GPU相关配置
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - CUDA_VISIBLE_DEVICES=0
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
       # Python环境
-      - PYTHONUNBUFFERED=1
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       # Flask配置
-      - FLASK_RUN_PORT=5000
-      - FLASK_RUN_HOST=0.0.0.0
-      # 数据库配置（需要根据实际情况修改）
-      - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@localhost:5432/ai_db}
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
-      # Nacos配置（需要根据实际情况修改）
-      - NACOS_SERVER=${NACOS_SERVER:-14.18.122.2:8848}
+      - FLASK_RUN_PORT=${FLASK_RUN_PORT:-5000}
+      - FLASK_RUN_HOST=${FLASK_RUN_HOST:-0.0.0.0}
+      # 数据库配置（使用中间件服务名称，注意：服务名是PostgresSQL，不是postgres-server）
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:iot45722414822@PostgresSQL:5432/iot-ai20}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-please-change-this-to-a-random-string}
+      # Nacos配置（使用中间件服务名称，注意：服务名是Nacos，不是nacos-server）
+      - NACOS_SERVER=${NACOS_SERVER:-Nacos:8848}
       - NACOS_NAMESPACE=${NACOS_NAMESPACE:-local}
       - NACOS_USERNAME=${NACOS_USERNAME:-nacos}
       - NACOS_PASSWORD=${NACOS_PASSWORD:-basiclab@iot78475418754}
       - SERVICE_NAME=${SERVICE_NAME:-model-server}
       # Pod IP配置（容器内会自动获取，也可手动指定）
       - POD_IP=${POD_IP:-}
-      # MinIO对象存储配置
+      # MinIO对象存储配置（使用中间件服务名称，注意：服务名是MinIO，不是minio-server）
       - MINIO_ENDPOINT=${MINIO_ENDPOINT:-MinIO:9000}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-basiclab@iot975248395}
       - MINIO_SECURE=${MINIO_SECURE:-false}
+      # Redis配置（使用中间件服务名称，注意：服务名是Redis，不是redis-server）
+      - REDIS_HOST=${REDIS_HOST:-Redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-basiclab@iot975248395}
+      # Kafka配置（使用中间件服务名称，注意：服务名是Kafka，不是kafka-server）
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-Kafka:9092}
+      # TDengine配置（使用中间件服务名称，注意：服务名是TDengine，不是tdengine-server）
+      - TDENGINE_HOST=${TDENGINE_HOST:-TDengine}
+      - TDENGINE_PORT=${TDENGINE_PORT:-6030}
       # 讯飞语音识别配置（可选）
       - XUNFEI_APP_ID=${XUNFEI_APP_ID:-}
       - XUNFEI_SECRET_KEY=${XUNFEI_SECRET_KEY:-}
+      # FFmpeg配置（可选）
+      - FFMPEG_PATH=${FFMPEG_PATH:-ffmpeg}
+      - FFPROBE_PATH=${FFPROBE_PATH:-ffprobe}
+      # 推流服务器配置（可选）
+      - MODEL_AI_PUSH_URL=${MODEL_AI_PUSH_URL:-pro.basiclab.top:1935}
       # 时区配置
-      - TZ=Asia/Shanghai
+      - TZ=${TZ:-Asia/Shanghai}
+      # Ultralytics (YOLO) 配置目录
+      - YOLO_CONFIG_DIR=${YOLO_CONFIG_DIR:-/tmp/Ultralytics}
+      # PaddleX 临时目录（通过环境变量或使用默认的 /home/appuser/.paddlex）
+      # 代理配置（可选）
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1}
 
     # 重启策略
     restart: unless-stopped

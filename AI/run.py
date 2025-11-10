@@ -17,7 +17,16 @@ from app.blueprints import export, inference_task, model, train, train_task, llm
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-load_dotenv()
+# 在加载.env文件之前，检查环境变量是否已存在（来自Docker Compose）
+# 这样可以判断环境变量的来源
+env_before_dotenv = os.environ.get('DATABASE_URL')
+
+# 加载.env文件，但不覆盖已存在的环境变量（Docker Compose传入的环境变量优先）
+# 注意：Docker Compose传入的环境变量会优先于.env文件
+load_dotenv(override=False)
+
+# 保存环境变量来源信息（用于后续调试）
+ENV_SOURCE = "Docker Compose环境变量" if env_before_dotenv else ".env文件"
 
 
 def get_local_ip():
@@ -61,7 +70,19 @@ def send_heartbeat(client, ip, port, stop_event):
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace("postgres://", "postgresql://", 1)
+    
+    # 从环境变量获取数据库URL，优先使用Docker Compose传入的环境变量
+    database_url = os.environ.get('DATABASE_URL')
+    
+    # 调试信息：打印环境变量来源
+    if database_url:
+        print(f"📊 DATABASE_URL来源: {ENV_SOURCE}")
+    else:
+        raise ValueError("DATABASE_URL环境变量未设置，请检查docker-compose.yaml配置")
+    
+    # 转换postgres://为postgresql://（SQLAlchemy要求）
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['TIMEZONE'] = 'Asia/Shanghai'
 

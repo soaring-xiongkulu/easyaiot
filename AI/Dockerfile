@@ -56,8 +56,12 @@ RUN mkdir -p data/uploads data/datasets data/models data/inference_results temp_
 # 设置权限
 RUN chmod +x run.py
 
-# 创建非root用户
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+# 创建非root用户（-m 参数自动创建主目录）
+RUN groupadd -r appuser && useradd -r -m -g appuser appuser
+
+# 创建必要的用户目录并设置权限
+RUN mkdir -p /home/appuser/.paddlex/temp /home/appuser/.config/Ultralytics && \
+    chown -R appuser:appuser /home/appuser
 
 # 设置目录权限
 RUN chown -R appuser:appuser /app

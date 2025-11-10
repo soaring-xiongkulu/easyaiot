@@ -26,28 +26,49 @@ services:
     # 环境变量
     environment:
       # Python环境
-      - PYTHONUNBUFFERED=1
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       # Flask配置
-      - FLASK_RUN_PORT=6000
-      - FLASK_RUN_HOST=0.0.0.0
-      # 数据库配置（需要根据实际情况修改）
-      - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@localhost:5432/video_db}
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
-      # Nacos配置（需要根据实际情况修改）
-      - NACOS_SERVER=${NACOS_SERVER:-14.18.122.2:8848}
+      - FLASK_RUN_PORT=${FLASK_RUN_PORT:-6000}
+      - FLASK_RUN_HOST=${FLASK_RUN_HOST:-0.0.0.0}
+      - DEBUG=${DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-[*]}
+      # 数据库配置（使用中间件服务名称）
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:iot45722414822@postgres-server:5432/iot-video20}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-please-change-this-to-a-random-string}
+      # Nacos配置（使用中间件服务名称）
+      - NACOS_SERVER=${NACOS_SERVER:-nacos-server:8848}
       - NACOS_NAMESPACE=${NACOS_NAMESPACE:-local}
       - NACOS_USERNAME=${NACOS_USERNAME:-nacos}
       - NACOS_PASSWORD=${NACOS_PASSWORD:-basiclab@iot78475418754}
       - SERVICE_NAME=${SERVICE_NAME:-video-server}
       # Pod IP配置（容器内会自动获取，也可手动指定）
       - POD_IP=${POD_IP:-}
-      # MinIO对象存储配置
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-MinIO:9000}
+      # MinIO对象存储配置（使用中间件服务名称）
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio-server:9000}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-basiclab@iot975248395}
       - MINIO_SECURE=${MINIO_SECURE:-false}
+      # Redis配置（使用中间件服务名称，如果需要）
+      - REDIS_HOST=${REDIS_HOST:-redis-server}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-basiclab@iot975248395}
+      # Kafka配置（使用中间件服务名称，如果需要）
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-kafka-server:9092}
+      # TDengine配置（使用中间件服务名称，如果需要）
+      - TDENGINE_HOST=${TDENGINE_HOST:-tdengine-server}
+      - TDENGINE_PORT=${TDENGINE_PORT:-6030}
+      # 视频服务特有配置
+      - MODEL_AI_PUSH_URL=${MODEL_AI_PUSH_URL:-pro.basiclab.top:1935}
+      - CAMERA_ONLINE_INTERVAL=${CAMERA_ONLINE_INTERVAL:-10}
+      - CAMERA_DISCOVER_INTERVAL=${CAMERA_DISCOVER_INTERVAL:-60}
+      # ONVIF配置（可选）
+      - ONVIF_WSDL_DIR=${ONVIF_WSDL_DIR:-/etc/onvif/wsdl}
       # 时区配置
-      - TZ=Asia/Shanghai
+      - TZ=${TZ:-Asia/Shanghai}
+      # 代理配置（可选）
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1}
 
     # 重启策略
     restart: unless-stopped
