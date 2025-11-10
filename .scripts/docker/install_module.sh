@@ -28,8 +28,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# 项目根目录
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# 项目根目录（从.scripts/docker回到项目根目录）
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
 # 模块列表（按依赖顺序）
@@ -98,6 +98,23 @@ check_command() {
     return 0
 }
 
+# 检查 Docker 权限
+check_docker_permission() {
+    if ! docker ps &> /dev/null; then
+        print_error "没有权限访问 Docker daemon"
+        echo ""
+        echo "解决方案："
+        echo "  1. 将当前用户添加到 docker 组："
+        echo "     sudo usermod -aG docker $USER"
+        echo "     然后重新登录或运行: newgrp docker"
+        echo ""
+        echo "  2. 或者使用 sudo 运行此脚本："
+        echo "     sudo ./install_module.sh $*"
+        echo ""
+        exit 1
+    fi
+}
+
 # 检查 Docker 是否安装
 check_docker() {
     if ! check_command docker; then
@@ -106,6 +123,7 @@ check_docker() {
         exit 1
     fi
     print_success "Docker 已安装: $(docker --version)"
+    check_docker_permission "$@"
 }
 
 # 检查 Docker Compose 是否安装
@@ -150,10 +168,10 @@ execute_module_command() {
     
     cd "$PROJECT_ROOT/$module"
     
-    # 特殊处理.scripts/docker模块（使用新的install.sh脚本）
+    # 特殊处理.scripts/docker模块（使用install_middleware.sh脚本）
     if [ "$module" = ".scripts/docker" ]; then
-        # 检查install.sh文件
-        local install_file="install.sh"
+        # 检查install_middleware.sh文件
+        local install_file="install_middleware.sh"
         if [ ! -f "$install_file" ]; then
             print_warning "模块 $module 没有 $install_file 文件，跳过"
             return 1
@@ -235,7 +253,7 @@ execute_module_command() {
         
         print_info "执行 $module_name: $command"
         
-        if bash install_module.sh "$command" 2>&1; then
+        if bash install.sh "$command" 2>&1; then
             print_success "$module_name: $command 执行成功"
             return 0
         else
@@ -311,7 +329,7 @@ verify_service_health() {
 install_all() {
     print_section "开始安装所有服务"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     create_network
     
@@ -347,7 +365,7 @@ install_all() {
 start_all() {
     print_section "启动所有服务"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     create_network
     
@@ -367,7 +385,7 @@ start_all() {
 stop_all() {
     print_section "停止所有服务"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     
     # 逆序停止
@@ -383,7 +401,7 @@ stop_all() {
 restart_all() {
     print_section "重启所有服务"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     create_network
     
@@ -403,7 +421,7 @@ restart_all() {
 status_all() {
     print_section "所有服务状态"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     
     for module in "${MODULES[@]}"; do
@@ -419,7 +437,7 @@ view_logs() {
     
     if [ -z "$module" ]; then
         print_info "查看所有服务日志..."
-        check_docker
+        check_docker "$@"
         check_docker_compose
         
         for module in "${MODULES[@]}"; do
@@ -437,7 +455,7 @@ view_logs() {
 build_all() {
     print_section "构建所有镜像"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     
     for module in "${MODULES[@]}"; do
@@ -456,7 +474,7 @@ clean_all() {
     if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
         print_section "清理所有服务"
         
-        check_docker
+        check_docker "$@"
         check_docker_compose
         
         # 逆序清理
@@ -479,7 +497,7 @@ clean_all() {
 update_all() {
     print_section "更新所有服务"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     create_network
     
@@ -499,7 +517,7 @@ update_all() {
 verify_all() {
     print_section "验证所有服务"
     
-    check_docker
+    check_docker "$@"
     
     local success_count=0
     local total_count=${#MODULES[@]}
@@ -534,7 +552,7 @@ verify_all() {
             echo -e "  ${RED}✗ $failed${NC}"
         done
         echo ""
-        print_info "查看日志: ./install.sh logs"
+        print_info "查看日志: ./install_module.sh logs"
         return 1
     fi
 }
@@ -544,7 +562,7 @@ show_help() {
     echo "EasyAIoT 统一安装脚本"
     echo ""
     echo "使用方法:"
-    echo "  ./install.sh [命令] [模块]"
+    echo "  ./install_module.sh [命令] [模块]"
     echo ""
     echo "可用命令:"
     echo "  install         - 安装并启动所有服务（首次运行）"

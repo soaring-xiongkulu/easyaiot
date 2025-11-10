@@ -92,6 +92,23 @@ check_command() {
     return 0
 }
 
+# 检查 Docker 权限
+check_docker_permission() {
+    if ! docker ps &> /dev/null; then
+        print_error "没有权限访问 Docker daemon"
+        echo ""
+        echo "解决方案："
+        echo "  1. 将当前用户添加到 docker 组："
+        echo "     sudo usermod -aG docker $USER"
+        echo "     然后重新登录或运行: newgrp docker"
+        echo ""
+        echo "  2. 或者使用 sudo 运行此脚本："
+        echo "     sudo ./install_middleware.sh $*"
+        echo ""
+        exit 1
+    fi
+}
+
 # 检查 Docker 是否安装
 check_docker() {
     if ! check_command docker; then
@@ -100,6 +117,7 @@ check_docker() {
         exit 1
     fi
     print_success "Docker 已安装: $(docker --version)"
+    check_docker_permission "$@"
 }
 
 # 检查 Docker Compose 是否安装
@@ -143,7 +161,7 @@ check_compose_file() {
 install_middleware() {
     print_section "开始安装所有中间件"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     check_compose_file
     create_network
@@ -162,7 +180,7 @@ install_middleware() {
 start_middleware() {
     print_section "启动所有中间件"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     check_compose_file
     create_network
@@ -181,7 +199,7 @@ start_middleware() {
 stop_middleware() {
     print_section "停止所有中间件"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     check_compose_file
     
@@ -195,7 +213,7 @@ stop_middleware() {
 restart_middleware() {
     print_section "重启所有中间件"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     check_compose_file
     create_network
@@ -214,7 +232,7 @@ restart_middleware() {
 status_middleware() {
     print_section "所有中间件状态"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     check_compose_file
     
@@ -225,7 +243,7 @@ status_middleware() {
 view_logs() {
     local service=${1:-""}
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     check_compose_file
     
@@ -242,7 +260,7 @@ view_logs() {
 build_middleware() {
     print_section "构建所有中间件镜像"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     check_compose_file
     
@@ -260,7 +278,7 @@ clean_middleware() {
     if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
         print_section "清理所有中间件"
         
-        check_docker
+        check_docker "$@"
         check_docker_compose
         check_compose_file
         
@@ -277,7 +295,7 @@ clean_middleware() {
 update_middleware() {
     print_section "更新所有中间件"
     
-    check_docker
+    check_docker "$@"
     check_docker_compose
     check_compose_file
     create_network
@@ -360,7 +378,7 @@ verify_service_health() {
 verify_middleware() {
     print_section "验证所有中间件"
     
-    check_docker
+    check_docker "$@"
     
     local success_count=0
     local total_count=${#MIDDLEWARE_SERVICES[@]}
