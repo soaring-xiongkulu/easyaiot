@@ -47,7 +47,7 @@ def get_local_ip():
 
 def send_heartbeat(client, ip, port, stop_event):
     """独立的心跳发送函数（支持安全停止）"""
-    service_name = os.getenv('SERVICE_NAME', 'model-server')
+    service_name = os.getenv('SERVICE_NAME', 'video-server')
     while not stop_event.is_set():
         try:
             client.send_heartbeat(service_name=service_name, ip=ip, port=port)
@@ -60,7 +60,16 @@ def send_heartbeat(client, ip, port, stop_event):
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace("postgres://", "postgresql://", 1)
+    
+    # 从环境变量获取数据库URL，优先使用Docker Compose传入的环境变量
+    database_url = os.environ.get('DATABASE_URL')
+    
+    if not database_url:
+        raise ValueError("DATABASE_URL环境变量未设置，请检查docker-compose.yaml配置")
+    
+    # 转换postgres://为postgresql://（SQLAlchemy要求）
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['TIMEZONE'] = 'Asia/Shanghai'
 
@@ -115,9 +124,9 @@ def create_app():
     # Nacos注册与心跳线程管理
     try:
         # 获取环境变量
-        nacos_server = os.getenv('NACOS_SERVER', 'iot.basiclab.top:8848')
-        namespace = os.getenv('NACOS_NAMESPACE', 'local')
-        service_name = os.getenv('SERVICE_NAME', 'model-server')
+        nacos_server = os.getenv('NACOS_SERVER', 'Nacos:8848')
+        namespace = os.getenv('NACOS_NAMESPACE', '')
+        service_name = os.getenv('SERVICE_NAME', 'video-server')
         port = int(os.getenv('FLASK_RUN_PORT', 6000))
         username = os.getenv('NACOS_USERNAME', 'nacos')
         password = os.getenv('NACOS_PASSWORD', 'basiclab@iot78475418754')
@@ -184,7 +193,7 @@ def create_app():
                     print("🛑 心跳线程已停止")
 
                 # 注销服务实例
-                service_name = os.getenv('SERVICE_NAME', 'model-server')
+                service_name = os.getenv('SERVICE_NAME', 'video-server')
                 port = int(os.getenv('FLASK_RUN_PORT', 6000))
                 app.nacos_client.remove_naming_instance(
                     service_name=service_name,

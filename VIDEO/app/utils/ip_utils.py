@@ -13,7 +13,11 @@ class IpReachabilityMonitor:
     def __init__(self, interval_seconds: Optional[int] = 10):
         self._monitors: dict[str, IpReachabilityMonitor._Monitor] = {}
         self._alive = True
-        self._interval_sec = interval_seconds
+        # 确保 interval_seconds 是整数类型
+        if isinstance(interval_seconds, str):
+            self._interval_sec = int(interval_seconds)
+        else:
+            self._interval_sec = int(interval_seconds) if interval_seconds is not None else 10
 
         def monitor_online_thread():
             def test_online(monitor: IpReachabilityMonitor._Monitor):
@@ -44,7 +48,8 @@ class IpReachabilityMonitor:
         del self._monitors
 
     def set_interval_time(self, sec: int):
-        self._interval_sec = sec
+        # 确保 sec 是整数类型
+        self._interval_sec = int(sec) if isinstance(sec, str) else int(sec)
 
 
 def check_ip_reachable(ip: str) -> bool:

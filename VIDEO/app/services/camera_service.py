@@ -18,7 +18,8 @@ from models import Device, db
 
 # 全局变量定义
 _onvif_cameras = {}
-_monitor = IpReachabilityMonitor(os.getenv('CAMERA_ONLINE_INTERVAL', 20))
+# 确保环境变量转换为整数
+_monitor = IpReachabilityMonitor(int(os.getenv('CAMERA_ONLINE_INTERVAL', 20)))
 logger = logging.getLogger(__name__)
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 scheduler = BackgroundScheduler(timezone=tzlocal.get_localzone_name())
@@ -229,8 +230,10 @@ def _start_search():
     ws_daemonlogger = logging.getLogger('daemon')
     ws_daemonlogger.setLevel(logging.ERROR)
 
-    scheduler.add_job(refresh_camera, 'interval', seconds=os.getenv('CAMERA_DISCOVER_INTERVAL', 120))
-    logger.info('设备发现服务已启动，间隔: %d秒', os.getenv('CAMERA_DISCOVER_INTERVAL', 120))
+    # 确保环境变量转换为整数
+    discover_interval = int(os.getenv('CAMERA_DISCOVER_INTERVAL', 120))
+    scheduler.add_job(refresh_camera, 'interval', seconds=discover_interval)
+    logger.info('设备发现服务已启动，间隔: %d秒', discover_interval)
     _init_all_cameras()
     _add_online_monitor()
 

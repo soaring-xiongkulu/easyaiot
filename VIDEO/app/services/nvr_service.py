@@ -9,7 +9,8 @@ from app.utils.ip_utils import IpReachabilityMonitor
 from models import Nvr, Device, db
 
 logger = logging.getLogger(__name__)
-_monitor = IpReachabilityMonitor(os.getenv('CAMERA_ONLINE_INTERVAL', 20))
+# 确保环境变量转换为整数
+_monitor = IpReachabilityMonitor(int(os.getenv('CAMERA_ONLINE_INTERVAL', 20)))
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 
 # ------------------- 核心工具函数 -------------------

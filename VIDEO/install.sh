@@ -129,13 +129,13 @@ create_env_file() {
             print_info "自动配置中间件连接信息..."
             
             # 更新数据库连接（使用中间件服务名称）
-            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@postgres-server:5432/iot-video20|' .env
+            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@PostgresSQL:5432/iot-video20|' .env
             
             # 更新Nacos配置（使用中间件服务名称）
-            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=nacos-server:8848|' .env
+            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=Nacos:8848|' .env
             
             # 更新MinIO配置（使用中间件服务名称）
-            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=minio-server:9000|' .env
+            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=MinIO:9000|' .env
             sed -i 's|^MINIO_SECRET_KEY=.*|MINIO_SECRET_KEY=basiclab@iot975248395|' .env
             
             # 更新Nacos密码
@@ -151,22 +151,22 @@ create_env_file() {
         print_info ".env 文件已存在"
         print_info "检查并更新中间件连接信息..."
         
-        # 检查并更新数据库连接（如果还是localhost）
-        if grep -q "DATABASE_URL=.*localhost" .env; then
-            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@postgres-server:5432/iot-video20|' .env
-            print_info "已更新数据库连接为 postgres-server:5432"
+        # 检查并更新数据库连接（如果还是localhost或旧的服务名）
+        if grep -q "DATABASE_URL=.*localhost" .env || grep -q "DATABASE_URL=.*postgres-server" .env; then
+            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@PostgresSQL:5432/iot-video20|' .env
+            print_info "已更新数据库连接为 PostgresSQL:5432"
         fi
         
-        # 检查并更新Nacos配置（如果还是IP地址）
-        if grep -q "NACOS_SERVER=.*14\.18\.122\.2" .env || grep -q "NACOS_SERVER=.*localhost" .env; then
-            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=nacos-server:8848|' .env
-            print_info "已更新Nacos连接为 nacos-server:8848"
+        # 检查并更新Nacos配置（如果还是IP地址或旧的服务名）
+        if grep -q "NACOS_SERVER=.*14\.18\.122\.2" .env || grep -q "NACOS_SERVER=.*localhost" .env || grep -q "NACOS_SERVER=.*nacos-server" .env; then
+            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=Nacos:8848|' .env
+            print_info "已更新Nacos连接为 Nacos:8848"
         fi
         
-        # 检查并更新MinIO配置（如果还是localhost）
-        if grep -q "MINIO_ENDPOINT=.*localhost" .env; then
-            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=minio-server:9000|' .env
-            print_info "已更新MinIO连接为 minio-server:9000"
+        # 检查并更新MinIO配置（如果还是localhost或旧的服务名）
+        if grep -q "MINIO_ENDPOINT=.*localhost" .env || grep -q "MINIO_ENDPOINT=.*minio-server" .env; then
+            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=MinIO:9000|' .env
+            print_info "已更新MinIO连接为 MinIO:9000"
         fi
     fi
 }

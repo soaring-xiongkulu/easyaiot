@@ -152,7 +152,7 @@ def create_app():
     try:
         # 获取环境变量
         nacos_server = os.getenv('NACOS_SERVER', 'Nacos:8848')
-        namespace = os.getenv('NACOS_NAMESPACE', 'local')
+        namespace = os.getenv('NACOS_NAMESPACE', '')
         service_name = os.getenv('SERVICE_NAME', 'model-server')
         port = int(os.getenv('FLASK_RUN_PORT', 5000))
         username = os.getenv('NACOS_USERNAME', 'nacos')
