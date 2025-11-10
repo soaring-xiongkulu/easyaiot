@@ -29,7 +29,9 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
 /**
  * OAuth2.0 Client Service 实现类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Validated

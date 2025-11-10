@@ -33,7 +33,9 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
 /**
  * 短信发送 Service 发送的实现
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Slf4j

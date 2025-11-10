@@ -14,7 +14,9 @@ import org.springframework.stereotype.Component;
 /**
  * 内部服务调用验证处理
  * 
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Aspect
 @Component

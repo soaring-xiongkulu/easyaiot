@@ -22,7 +22,9 @@ import java.util.List;
 /**
  * MqttBroker相关开放接口（anyTenant）
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date 2023-05-22
  * @create [2021-06-30] [mqttsnet]
  */

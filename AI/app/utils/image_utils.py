@@ -1,3 +1,8 @@
+"""
+@author 翱翔的雄库鲁
+@email andywebjava@163.com
+@wechat EasyAIoT2025
+"""
 import os
 from flask import current_app
 from models import db, Image

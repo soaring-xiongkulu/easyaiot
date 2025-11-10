@@ -3,7 +3,9 @@ package com.basiclab.iot.common.service;
 /**
  * Security 框架 Service 接口，定义权限相关的校验操作
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface SecurityFrameworkService {
 

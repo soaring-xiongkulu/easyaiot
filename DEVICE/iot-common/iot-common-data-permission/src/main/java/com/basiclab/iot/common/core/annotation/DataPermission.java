@@ -8,7 +8,9 @@ import java.lang.annotation.*;
  * 数据权限注解
  * 可声明在类或者方法上，标识使用的数据权限规则
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

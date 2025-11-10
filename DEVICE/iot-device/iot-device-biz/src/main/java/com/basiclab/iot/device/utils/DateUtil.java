@@ -15,7 +15,7 @@ import java.util.Locale;
 
 /**    
  * 全局时间工具类
- *  @author EasyAIoT
+ *  @author 翱翔的雄库鲁
  */
 public class DateUtil {
 

@@ -12,7 +12,9 @@ import java.time.LocalDateTime;
 /**
  * 租户 DO
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @TableName(value = "system_tenant", autoResultMap = true)
 @KeySequence("system_tenant_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。

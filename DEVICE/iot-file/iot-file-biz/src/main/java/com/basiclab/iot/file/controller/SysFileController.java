@@ -28,7 +28,9 @@ import java.util.Map;
 /**
  * 文件请求处理
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Tag(name = "文件管理")
 @RestController

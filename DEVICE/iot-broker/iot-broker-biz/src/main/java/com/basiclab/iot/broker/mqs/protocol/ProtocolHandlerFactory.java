@@ -14,7 +14,9 @@ import org.springframework.stereotype.Component;
  * 协议处理工厂
  * -----------------------------------------------------------------------------
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @version 1.0
  * -----------------------------------------------------------------------------
  * Revision History:

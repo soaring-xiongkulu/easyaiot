@@ -9,7 +9,9 @@ import javax.validation.constraints.NotNull;
 
 
 /**
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @ApiModel("查看设备历史数据请求实体")
 @Data

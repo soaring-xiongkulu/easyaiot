@@ -19,7 +19,9 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.except
 /**
  * OAuth2 授予 Service 实现类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 public class OAuth2GrantServiceImpl implements OAuth2GrantService {

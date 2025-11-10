@@ -2,7 +2,9 @@ package com.basiclab.iot.common.utils;
 
 /**
  * @Description: 字符串工具类-智能截取
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @CreateDate: 2024/11/15$ 19:03$
  * @UpdateDate: 2024/11/15$ 19:03$
  */

@@ -12,7 +12,9 @@ import java.io.IOException;
 /**
  * Redis 测试 Configuration，主要实现内嵌 Redis 的启动
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Configuration(proxyBeanMethods = false)
 @Lazy(false) // 禁止延迟加载

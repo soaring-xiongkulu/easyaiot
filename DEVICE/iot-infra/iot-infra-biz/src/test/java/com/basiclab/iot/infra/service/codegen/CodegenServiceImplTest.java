@@ -52,7 +52,9 @@ import static org.mockito.Mockito.when;
 /**
  * {@link CodegenServiceImpl} 的单元测试类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Import(CodegenServiceImpl.class)
 public class CodegenServiceImplTest extends BaseDbUnitTest {

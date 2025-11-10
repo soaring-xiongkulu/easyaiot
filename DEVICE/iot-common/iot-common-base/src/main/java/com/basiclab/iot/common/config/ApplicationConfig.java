@@ -8,7 +8,9 @@ import java.util.TimeZone;
 /**
  * 系统配置
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class ApplicationConfig
 {

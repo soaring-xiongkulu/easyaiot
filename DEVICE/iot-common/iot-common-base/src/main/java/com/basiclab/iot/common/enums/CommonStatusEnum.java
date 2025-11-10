@@ -10,7 +10,9 @@ import java.util.Arrays;
 /**
  * 通用状态枚举
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Getter
 @AllArgsConstructor

@@ -13,7 +13,9 @@ import java.util.Set;
 /**
  * 基于 MyBatis Plus 多租户的功能，实现 DB 层面的多租户的功能
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class TenantDatabaseInterceptor implements TenantLineHandler {
 

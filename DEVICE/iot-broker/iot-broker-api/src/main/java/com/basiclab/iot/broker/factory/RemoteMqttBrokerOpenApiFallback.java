@@ -12,7 +12,9 @@ import java.util.List;
 
 /**
  * @Description: MqttBroker-开放接口API 熔断
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @CreateDate: 2024/1/14$ 16:49$
  * @UpdateDate: 2023/1/14$ 16:49$
  * @Version: V2.0

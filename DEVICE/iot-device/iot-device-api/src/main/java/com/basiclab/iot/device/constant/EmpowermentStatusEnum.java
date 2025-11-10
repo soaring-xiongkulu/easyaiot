@@ -11,7 +11,9 @@ import java.util.List;
  * @program: easyaiot-cloud-pro-datasource-column
  * @description: 赋能状态类型
  * @packagename: com.basiclab.iot.empowerment.enumeration
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2023-09-18 23:38
  **/
 @AllArgsConstructor

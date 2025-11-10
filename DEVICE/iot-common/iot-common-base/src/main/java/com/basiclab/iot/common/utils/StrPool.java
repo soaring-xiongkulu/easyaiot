@@ -5,7 +5,9 @@ import cn.hutool.core.util.RandomUtil;
 /**
  * 常用字符串
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date 2024/07/25
  */
 public interface StrPool {

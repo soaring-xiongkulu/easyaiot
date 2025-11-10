@@ -16,7 +16,9 @@ import java.util.List;
 /**
  * 用户对象 sys_user
  * 
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class SysUser extends BaseEntity
 {

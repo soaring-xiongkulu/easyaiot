@@ -13,7 +13,9 @@ import java.util.Collection;
  *
  * 从功能上，和 JdbcClientDetailsService 的功能，提供客户端的操作
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface OAuth2ClientService {
 

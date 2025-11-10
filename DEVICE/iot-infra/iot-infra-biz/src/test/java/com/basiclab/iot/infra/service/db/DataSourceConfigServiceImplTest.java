@@ -35,7 +35,9 @@ import static org.mockito.Mockito.when;
 /**
  * {@link DataSourceConfigServiceImpl} 的单元测试类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Import(DataSourceConfigServiceImpl.class)
 public class DataSourceConfigServiceImplTest extends BaseDbUnitTest {

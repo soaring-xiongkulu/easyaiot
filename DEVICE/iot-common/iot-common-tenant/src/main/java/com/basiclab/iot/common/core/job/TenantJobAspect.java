@@ -21,7 +21,9 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * 注意，需要保证 JobHandler 的幂等性。因为 Job 因为某个租户执行失败重试时，之前执行成功的租户也会再次执行。
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Aspect
 @RequiredArgsConstructor

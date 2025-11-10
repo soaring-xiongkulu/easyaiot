@@ -12,7 +12,9 @@ import java.util.List;
 
 /**
  * @Description: 设备数据上报数据模型
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @CreateDate: 2024/4/25$ 12:52$
  * @UpdateDate: 2024/4/25$ 12:52$
  * @Version: V1.0

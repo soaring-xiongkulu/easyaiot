@@ -1,7 +1,9 @@
 package com.basiclab.iot.device.enums.protocol;
 
 /**
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @desc    协议通知类型
  * @created 2025-06-21
  */

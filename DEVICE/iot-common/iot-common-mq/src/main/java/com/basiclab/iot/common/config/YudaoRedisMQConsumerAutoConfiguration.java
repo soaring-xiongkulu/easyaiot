@@ -32,7 +32,9 @@ import java.util.Properties;
 /**
  * Redis 消息队列 Consumer 配置类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Slf4j
 @EnableScheduling // 启用定时任务，用于 RedisPendingMessageResendJob 重发消息

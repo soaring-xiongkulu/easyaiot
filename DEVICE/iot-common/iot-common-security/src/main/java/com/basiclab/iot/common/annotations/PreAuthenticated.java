@@ -7,7 +7,9 @@ import java.lang.annotation.*;
  *
  * 为什么不使用 {@link org.springframework.security.access.prepost.PreAuthorize} 注解，原因是不通过时，抛出的是认证不通过，而不是未登录
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

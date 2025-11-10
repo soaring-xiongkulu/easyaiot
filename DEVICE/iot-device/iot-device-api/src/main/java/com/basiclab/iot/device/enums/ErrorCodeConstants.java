@@ -6,7 +6,9 @@ import com.basiclab.iot.common.exception.ErrorCode;
  * Device 字典类型的枚举类
  * device 系统，使用 1-003-000-000 段
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface ErrorCodeConstants {
 

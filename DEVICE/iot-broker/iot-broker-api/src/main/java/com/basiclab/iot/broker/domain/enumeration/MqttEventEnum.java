@@ -14,7 +14,9 @@ import java.util.stream.Stream;
  * @program: EasyAIoT
  * @description: MQTT事件枚举
  * @packagename: com.basiclab.iot.broker.api.domain.enumeration
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2025-12-16 19:42
  **/
 @Getter

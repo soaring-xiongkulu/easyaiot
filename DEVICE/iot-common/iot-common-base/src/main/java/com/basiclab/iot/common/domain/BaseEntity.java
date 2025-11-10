@@ -12,7 +12,9 @@ import java.time.LocalDateTime;
 /**
  * Entity基类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 public class BaseEntity implements Serializable {

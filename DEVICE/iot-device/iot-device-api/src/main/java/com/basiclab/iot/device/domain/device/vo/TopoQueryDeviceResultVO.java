@@ -12,7 +12,9 @@ import java.util.List;
  * @program: EasyAIoT
  * @description: 协议查询设备档案信息响应信息
  * @packagename: com.basiclab.iot.device.vo.result
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2023-05-18 23:03
  **/
 @Data

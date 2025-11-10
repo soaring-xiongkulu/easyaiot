@@ -9,7 +9,9 @@ import org.springframework.stereotype.Component;
 
 
 /**
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @desc
  * @created 2025-06-17
  */

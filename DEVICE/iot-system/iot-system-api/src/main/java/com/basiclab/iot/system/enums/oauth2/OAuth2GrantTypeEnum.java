@@ -7,7 +7,9 @@ import lombok.Getter;
 /**
  * OAuth2 授权类型（模式）的枚举
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @AllArgsConstructor
 @Getter

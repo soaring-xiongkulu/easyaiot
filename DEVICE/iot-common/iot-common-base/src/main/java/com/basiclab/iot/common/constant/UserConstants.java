@@ -3,7 +3,9 @@ package com.basiclab.iot.common.constant;
 /**
  * 用户常量信息
  * 
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class UserConstants
 {

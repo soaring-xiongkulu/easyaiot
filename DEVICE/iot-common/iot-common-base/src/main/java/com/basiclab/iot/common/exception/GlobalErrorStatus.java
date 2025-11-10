@@ -8,7 +8,9 @@ package com.basiclab.iot.common.exception;
  * 虽然说，HTTP 响应状态码作为业务使用表达能力偏弱，但是使用在系统层面还是非常不错的
  * 比较特殊的是，因为之前一直使用 0 作为成功，就不使用 200 啦。
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface GlobalErrorStatus {
 

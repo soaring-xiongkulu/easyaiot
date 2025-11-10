@@ -15,7 +15,9 @@ import java.io.IOException;
  * 环境的 {@link javax.servlet.Filter} 实现类
  * 当有 tag 请求头时，设置到 {@link EnvContextHolder} 的标签上下文
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class EnvWebFilter extends OncePerRequestFilter {
 

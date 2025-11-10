@@ -10,7 +10,9 @@ import java.util.List;
 
 /**
  * 在线调试请求参数实体
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 @NoArgsConstructor

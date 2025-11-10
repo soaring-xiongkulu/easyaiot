@@ -10,7 +10,9 @@ import javax.validation.Valid;
 /**
  * 短信验证码 Service 接口
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface SmsCodeService {
 

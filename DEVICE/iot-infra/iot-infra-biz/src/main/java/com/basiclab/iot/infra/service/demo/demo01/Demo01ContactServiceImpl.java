@@ -18,7 +18,9 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.except
 /**
  * 示例联系人 Service 实现类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Validated

@@ -15,7 +15,9 @@ import java.time.LocalDateTime;
  * @program: EasyAIoT
  * @description: ${description}
  * @packagename: com.basiclab.iot.device.domain.device.vo.entity
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2025-11-18 20:38
  **/
 

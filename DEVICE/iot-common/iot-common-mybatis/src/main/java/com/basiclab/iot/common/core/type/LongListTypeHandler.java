@@ -16,7 +16,9 @@ import java.util.List;
 /**
  * List<Long> 的类型转换器实现类，对应数据库的 varchar 类型
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @MappedJdbcTypes(JdbcType.VARCHAR)
 @MappedTypes(List.class)

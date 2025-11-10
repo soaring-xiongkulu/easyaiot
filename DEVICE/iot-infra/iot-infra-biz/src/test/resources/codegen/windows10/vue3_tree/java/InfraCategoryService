@@ -10,7 +10,7 @@ import pojo.com.basiclab.iot.mybatis.common.PageParam;
 /**
  * 分类 Service 接口
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
  */
 public interface InfraCategoryService {
 

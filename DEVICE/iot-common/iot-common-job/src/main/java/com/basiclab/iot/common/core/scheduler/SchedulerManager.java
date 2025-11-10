@@ -16,7 +16,9 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.except
  *
  * 另外，jobHandlerName 对应到 Spring Bean 的名字，直接调用
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class SchedulerManager {
 

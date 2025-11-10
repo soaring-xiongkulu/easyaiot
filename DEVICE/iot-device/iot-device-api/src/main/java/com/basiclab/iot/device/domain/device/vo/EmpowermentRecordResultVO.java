@@ -16,7 +16,9 @@ import java.util.Map;
  * 赋能记录表
  * </p>
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date 2023-09-15 17:20:27
  */
 @Data

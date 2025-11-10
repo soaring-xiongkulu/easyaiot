@@ -4,7 +4,9 @@ import lombok.Data;
 
 /**
  * @Description:  边设备添加子设备详情数据模型
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @CreateDate: 2024/4/25$ 12:54$
  * @UpdateDate: 2024/4/25$ 12:54$
  * @Version: V1.0

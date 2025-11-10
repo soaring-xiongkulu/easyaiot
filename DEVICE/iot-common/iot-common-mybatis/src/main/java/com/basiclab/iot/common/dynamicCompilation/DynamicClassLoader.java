@@ -7,7 +7,9 @@ import java.net.URLClassLoader;
  * 自定义类加载器，用于动态加载类 
  * </BR>继承自 @see URLClassLoader
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date 2025-07-04
  *
  */

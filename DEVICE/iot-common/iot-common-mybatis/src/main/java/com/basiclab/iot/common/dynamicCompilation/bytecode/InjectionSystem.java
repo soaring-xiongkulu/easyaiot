@@ -13,7 +13,9 @@ import java.util.Properties;
  * 该类的作用是，可以通过inject方法来注入System，即修改System的out、in和err的输出输入行为。修改之后的CustomSystem可以通过修改字节码的方式用于替代类原来的java.lang.System类
  * </BR>注入的时候，只是修改in out err的行为，其他System的方法都直接调用java.lang.System对应的方法（该类覆盖了所有java.lang.System的public方法）
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date 2025-07-04
  *
  */

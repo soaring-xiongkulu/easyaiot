@@ -7,7 +7,9 @@ import com.basiclab.iot.broker.domain.enumeration.MqttEventEnum;
  * @program: easyaiot-cloud-pro-datasource-column
  * @description: MQTT协议事件类
  * @packagename: com.basiclab.iot.mqtt.entity
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2023-04-28 00:10
  **/
 public class MqttProtocolEvent {

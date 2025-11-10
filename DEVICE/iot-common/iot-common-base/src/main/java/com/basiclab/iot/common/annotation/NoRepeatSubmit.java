@@ -9,7 +9,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME) // 运行时有效
 /**
  * @功能描述 防止重复提交标记注解
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date 2025-02-15
  */
 public @interface NoRepeatSubmit {

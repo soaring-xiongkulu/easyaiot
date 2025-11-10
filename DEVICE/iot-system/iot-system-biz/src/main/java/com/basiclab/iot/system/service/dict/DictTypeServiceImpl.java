@@ -21,7 +21,9 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
 /**
  * 字典类型 Service 实现类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 public class DictTypeServiceImpl implements DictTypeService {

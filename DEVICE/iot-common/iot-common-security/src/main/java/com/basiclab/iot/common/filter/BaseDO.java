@@ -17,7 +17,9 @@ import java.time.LocalDateTime;
  * 为什么实现 {@link TransPojo} 接口？
  * 因为使用 Easy-Trans TransType.SIMPLE 模式，集成 MyBatis Plus 查询
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 @JsonIgnoreProperties(value = "transMap") // 由于 Easy-Trans 会添加 transMap 属性，避免 Jackson 在 Spring Cache 反序列化报错

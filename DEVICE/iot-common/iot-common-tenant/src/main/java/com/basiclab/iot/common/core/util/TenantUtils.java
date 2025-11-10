@@ -10,7 +10,9 @@ import static com.basiclab.iot.common.web.core.util.WebFrameworkUtils.HEADER_TEN
 /**
  * 多租户 Util
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class TenantUtils {
 

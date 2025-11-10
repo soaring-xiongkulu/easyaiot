@@ -14,7 +14,9 @@ import java.time.LocalDateTime;
 
 /**
  * 设备管理
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @EqualsAndHashCode(callSuper = true)
 @ApiModel(value = "设备管理")

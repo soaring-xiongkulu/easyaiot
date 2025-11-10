@@ -14,7 +14,9 @@ import java.time.LocalDateTime;
 
 /**
 * @Description: java类作用描述
-* @author EasyAIoT
+* @author 翱翔的雄库鲁
+* @email andywebjava@163.com
+* @wechat EasyAIoT2025
 * @E-mail: andywebjava@163.com
 * @Website: https://gitee.com/soaring-xiongkulu/easyaiot
 * @CreateDate: 2025/6/15 19:35

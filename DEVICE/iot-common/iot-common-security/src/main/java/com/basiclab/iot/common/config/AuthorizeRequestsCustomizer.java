@@ -12,7 +12,9 @@ import javax.annotation.Resource;
  * 自定义的 URL 的安全配置
  * 目的：每个 Maven Module 可以自定义规则！
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public abstract class AuthorizeRequestsCustomizer
         implements Customizer<ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry>, Ordered {

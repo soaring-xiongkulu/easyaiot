@@ -23,7 +23,9 @@ import java.io.Serializable;
 */
 /**
     * 产品模型设备服务命令表
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @ApiModel(value="产品模型设备服务命令表")
 @Data

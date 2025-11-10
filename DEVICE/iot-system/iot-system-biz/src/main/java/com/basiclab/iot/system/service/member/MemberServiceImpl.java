@@ -9,7 +9,9 @@ import org.springframework.stereotype.Service;
 /**
  * Member Service 实现类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 public class MemberServiceImpl implements MemberService {

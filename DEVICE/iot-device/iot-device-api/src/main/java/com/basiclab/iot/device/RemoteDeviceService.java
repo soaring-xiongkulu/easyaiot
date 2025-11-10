@@ -15,7 +15,9 @@ import java.util.Map;
 /**
  * 设备管理服务
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @FeignClient(contextId = "remoteDeviceService", value = ServiceNameConstants.IOT_DEVICE, fallbackFactory = RemoteDeviceFallbackFactory.class)
 public interface RemoteDeviceService {

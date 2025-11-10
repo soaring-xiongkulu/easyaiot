@@ -6,7 +6,9 @@ import com.alibaba.ttl.TransmittableThreadLocal;
 /**
  * 多租户上下文 Holder
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class TenantContextHolder {
 

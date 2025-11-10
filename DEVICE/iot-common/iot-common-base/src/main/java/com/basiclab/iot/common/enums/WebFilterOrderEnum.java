@@ -5,7 +5,9 @@ package com.basiclab.iot.common.enums;
  *
  *  考虑到每个 starter 都需要用到该工具类，所以放到 common 模块下的 enum 包下
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface WebFilterOrderEnum {
 

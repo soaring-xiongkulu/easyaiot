@@ -11,7 +11,9 @@ import java.util.Set;
 /**
  * 任务状态的枚举
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Getter
 @AllArgsConstructor

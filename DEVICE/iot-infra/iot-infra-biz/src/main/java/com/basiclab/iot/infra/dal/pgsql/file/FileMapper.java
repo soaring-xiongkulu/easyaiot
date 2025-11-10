@@ -10,7 +10,9 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * 文件操作 Mapper
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Mapper
 public interface FileMapper extends BaseMapperX<FileDO> {

@@ -9,7 +9,9 @@ import java.util.List;
 /**
  * 产品模型服务能力描述对象 Services
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date 2024-12-23
  */
 @Data

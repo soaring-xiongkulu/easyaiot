@@ -10,7 +10,9 @@ import java.io.Serializable;
 
 /**
  * 设备管理
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @ApiModel(value = "设备量产信息")
 @Getter

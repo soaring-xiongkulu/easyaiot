@@ -28,7 +28,9 @@ import java.util.List;
  * 注意，考虑到实现的简易，它的权重是使用 Nacos 的 nacos.weight，所以随机 + 权重也是基于 {@link NacosBalancer} 筛选。
  * 也就是说，如果你不使用 Nacos 作为注册中心，需要微调一下筛选的实现逻辑
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @RequiredArgsConstructor
 @Slf4j

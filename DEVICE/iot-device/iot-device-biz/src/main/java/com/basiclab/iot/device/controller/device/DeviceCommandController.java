@@ -26,7 +26,9 @@ import javax.validation.Valid;
  * 设备命令下发及响应表
  * </p>
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date 2023-10-20 17:27:25
  * @create [2023-10-20 17:27:25] [mqttsnet]
  */

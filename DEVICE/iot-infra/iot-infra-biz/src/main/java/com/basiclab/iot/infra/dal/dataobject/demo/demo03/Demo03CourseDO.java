@@ -9,7 +9,9 @@ import lombok.*;
 /**
  * 学生课程 DO
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @TableName("Yudao_demo03_course")
 @KeySequence("Yudao_demo03_course_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。

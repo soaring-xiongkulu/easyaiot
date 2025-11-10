@@ -18,7 +18,9 @@ import org.springframework.web.client.HttpClientErrorException;
  * MqttBroker API 实现类
  * -----------------------------------------------------------------------------
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @version 1.0
  * -----------------------------------------------------------------------------
  * Revision History:

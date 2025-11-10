@@ -3,7 +3,9 @@ package com.basiclab.iot.common.utils.file;
 /**
  * 媒体类型工具类
  * 
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class MimeTypeUtils
 {

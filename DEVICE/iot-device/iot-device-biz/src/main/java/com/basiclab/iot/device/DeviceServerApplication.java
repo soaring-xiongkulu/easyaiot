@@ -14,7 +14,9 @@ import java.io.IOException;
  * 项目的启动类
  * <p>
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @EnableCustomConfig
 @EnableCustomSwagger2

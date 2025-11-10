@@ -17,7 +17,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * 单元测试，assert 断言工具类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class AssertUtils {
 

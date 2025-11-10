@@ -32,7 +32,9 @@ import static com.basiclab.iot.common.utils.SecurityFrameworkUtils.getLoginUserI
  * 1. 在 getUserInfo 方法上，添加 //@PreAuthorize("@ss.hasScope('user.read')") 注解，声明需要满足 scope = user.read
  * 2. 在 updateUserInfo 方法上，添加 //@PreAuthorize("@ss.hasScope('user.write')") 注解，声明需要满足 scope = user.write
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Tag(name = "管理后台 - OAuth2.0 用户")
 @RestController

@@ -7,7 +7,9 @@ import lombok.Getter;
 import javax.validation.constraints.NotNull;
 
 /**
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 public class DeviceBatchInsertReq {

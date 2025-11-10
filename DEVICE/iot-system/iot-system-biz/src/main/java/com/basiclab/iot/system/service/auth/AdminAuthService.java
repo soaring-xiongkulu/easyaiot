@@ -11,7 +11,9 @@ import javax.validation.Valid;
  *
  * 提供用户的登录、登出的能力
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface AdminAuthService {
 

@@ -14,7 +14,9 @@ import java.util.stream.Stream;
  * 产品类型
  * </p>
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date 2023-04-14
  */
 @AllArgsConstructor

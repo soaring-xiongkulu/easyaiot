@@ -3,7 +3,9 @@ package com.basiclab.iot.device.domain.device.oo;
 import lombok.Data;
 
 /**
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @desc
  * @created 2025-06-03
  */

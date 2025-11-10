@@ -39,7 +39,9 @@ import static com.basiclab.iot.common.utils.cache.CacheUtils.buildAsyncReloading
  * 1. 验证通过时，将 userId、userType、tenantId 通过 Header 转发给服务
  * 2. 验证不通过，还是会转发给服务。因为，接口是否需要登录的校验，还是交给服务自身处理
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Component
 public class TokenAuthenticationFilter implements GlobalFilter, Ordered {

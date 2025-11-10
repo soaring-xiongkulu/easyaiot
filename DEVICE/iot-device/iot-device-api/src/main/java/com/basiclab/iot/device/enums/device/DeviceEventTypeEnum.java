@@ -9,7 +9,9 @@ import lombok.NoArgsConstructor;
  * 设备动作类型 枚举
  * </p>
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date 2023-08-20
  */
 @Getter

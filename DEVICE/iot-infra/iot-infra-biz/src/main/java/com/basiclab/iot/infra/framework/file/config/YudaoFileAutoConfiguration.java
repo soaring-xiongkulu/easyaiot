@@ -8,7 +8,9 @@ import org.springframework.context.annotation.Configuration;
 /**
  * 文件配置类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Configuration(proxyBeanMethods = false)
 public class YudaoFileAutoConfiguration {

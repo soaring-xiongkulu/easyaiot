@@ -9,7 +9,9 @@ import lombok.*;
 /**
  * 示例分类 DO
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @TableName("Yudao_demo02_category")
 @KeySequence("Yudao_demo02_category_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。

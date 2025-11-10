@@ -21,7 +21,9 @@ import reactor.core.publisher.Mono;
  *
  * copy from iot-spring-boot-starter-web 的 WebFrameworkUtils 类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Slf4j
 public class WebFrameworkUtils {

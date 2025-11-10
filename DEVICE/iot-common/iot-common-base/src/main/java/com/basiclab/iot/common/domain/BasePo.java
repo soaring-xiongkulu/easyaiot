@@ -10,7 +10,9 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @desc
  * @created 2025-05-27
  */

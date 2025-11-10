@@ -10,7 +10,9 @@ import lombok.NoArgsConstructor;
  * @program: EasyAIoT
  * @description: MQTT协议Topo 状态枚举
  * @packagename: com.basiclab.iot.device.api.domain.device.enumeration
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2023-05-20 17:51
  **/
 @Getter

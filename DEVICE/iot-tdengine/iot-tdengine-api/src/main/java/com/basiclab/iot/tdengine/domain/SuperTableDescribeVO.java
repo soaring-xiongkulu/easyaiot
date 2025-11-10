@@ -13,7 +13,9 @@ import java.util.Map;
  * @program: EasyAIoT
  * @description: 超级表结构VO
  * @packagename: com.basiclab.iot.tds.vo.result
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2023-09-17 21:12
  **/
 @Data

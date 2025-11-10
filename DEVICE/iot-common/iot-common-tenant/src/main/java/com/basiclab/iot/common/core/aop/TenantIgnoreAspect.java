@@ -14,7 +14,9 @@ import org.aspectj.lang.annotation.Aspect;
  *
  * 整体逻辑的实现，和 {@link TenantUtils#executeIgnore(Runnable)} 需要保持一致
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Aspect
 @Slf4j

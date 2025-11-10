@@ -1,7 +1,7 @@
 package com.basiclab.iot.device.constant;
 
 /**
- *  @author EasyAIoT on 2020/9/4
+ *  @author 翱翔的雄库鲁 on 2020/9/4
  */
 public class ClientConstants {
 

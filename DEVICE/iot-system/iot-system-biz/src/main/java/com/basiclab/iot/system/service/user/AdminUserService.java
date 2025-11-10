@@ -21,7 +21,9 @@ import java.util.Map;
 /**
  * 后台用户 Service 接口
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface AdminUserService {
 

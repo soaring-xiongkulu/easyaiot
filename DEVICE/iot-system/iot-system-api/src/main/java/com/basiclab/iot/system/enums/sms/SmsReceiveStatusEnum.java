@@ -6,7 +6,9 @@ import lombok.Getter;
 /**
  * 短信的接收状态枚举
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date 2024/2/1 13:39
  */
 @Getter

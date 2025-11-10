@@ -14,7 +14,9 @@ import java.util.Map;
 /**
  * {@link CodegenEngine} 的 Vue2 + Element Plus 单元测试
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Disabled
 public class CodegenEngineVue3Test extends CodegenEngineAbstractTest {

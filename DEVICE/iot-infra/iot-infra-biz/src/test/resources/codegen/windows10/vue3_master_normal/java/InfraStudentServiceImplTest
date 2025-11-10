@@ -31,7 +31,9 @@ import static org.mockito.Mockito.*;
 /**
  * {@link InfraStudentServiceImpl} 的单元测试类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Import(InfraStudentServiceImpl.class)
 public class InfraStudentServiceImplTest extends BaseDbUnitTest {

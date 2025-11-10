@@ -13,7 +13,9 @@ import java.util.Map;
  * @program: EasyAIoT
  * @description: MQTT 发送消息VO
  * @packagename: com.basiclab.iot.broker.api.domain
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2025-01-20 19:11
  **/
 @Data

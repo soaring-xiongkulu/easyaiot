@@ -18,7 +18,9 @@ import static com.basiclab.iot.dataset.enums.ErrorCodeConstants.DATASET_VIDEO_NO
 /**
  * 视频数据集 Service 实现类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Validated

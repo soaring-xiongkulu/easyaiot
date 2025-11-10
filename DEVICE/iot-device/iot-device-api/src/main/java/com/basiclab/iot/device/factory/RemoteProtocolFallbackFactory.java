@@ -8,7 +8,9 @@ import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @program: EasyAIoT
  * @description: 协议管理服务降级处理
  * @packagename: com.basiclab.iot.device.api.factory

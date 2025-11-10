@@ -3,7 +3,9 @@ package com.basiclab.iot.common.core.rule.dept;
 /**
  * {@link DeptDataPermissionRule} 的自定义配置接口
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @FunctionalInterface
 public interface DeptDataPermissionRuleCustomizer {

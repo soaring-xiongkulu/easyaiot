@@ -21,7 +21,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * 文件上传接口
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface ISysFileService {
     /**

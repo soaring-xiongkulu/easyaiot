@@ -10,7 +10,9 @@ import java.util.function.Consumer;
 /**
  * Object 工具类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class ObjectUtils {
 

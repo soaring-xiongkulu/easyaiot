@@ -5,7 +5,9 @@ import lombok.Data;
 
 /**
  * Tdengine中的device_data表
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 public class DeviceData {

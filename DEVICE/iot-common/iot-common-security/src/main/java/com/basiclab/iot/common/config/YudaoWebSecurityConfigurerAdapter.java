@@ -40,7 +40,9 @@ import static com.basiclab.iot.common.utils.collection.CollectionUtils.convertLi
 /**
  * 自定义的 Spring Security 配置适配器实现
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @AutoConfiguration
 @AutoConfigureOrder(-1) // 目的：先于 Spring Security 自动配置，避免一键改包后，org.* 基础包无法生效

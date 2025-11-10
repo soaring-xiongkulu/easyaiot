@@ -13,7 +13,9 @@ import java.util.List;
 /**
  * 部门表 sys_dept
  * 
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class SysDept extends BaseEntity
 {

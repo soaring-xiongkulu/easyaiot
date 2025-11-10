@@ -15,7 +15,9 @@ import java.util.List;
 /**
  * 基于部门的数据权限 AutoConfiguration
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @AutoConfiguration
 @ConditionalOnClass(LoginUser.class)

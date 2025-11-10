@@ -13,7 +13,9 @@ import org.springframework.util.AntPathMatcher;
 /**
  * 字符串工具类
  * 
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class StringUtils extends org.apache.commons.lang3.StringUtils
 {

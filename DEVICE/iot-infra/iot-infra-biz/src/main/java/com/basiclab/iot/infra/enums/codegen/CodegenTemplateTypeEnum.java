@@ -9,7 +9,9 @@ import java.util.Objects;
 /**
  * 代码生成模板类型
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @AllArgsConstructor
 @Getter

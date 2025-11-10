@@ -18,7 +18,9 @@ import java.util.List;
  *
  * @param <T> 消息类型。一定要填写噢，不然会报错
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public abstract class AbstractRedisChannelMessageListener<T extends AbstractRedisChannelMessage> implements MessageListener {
 

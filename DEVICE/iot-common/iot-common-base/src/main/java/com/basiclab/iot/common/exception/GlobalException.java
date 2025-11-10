@@ -5,7 +5,9 @@ import com.basiclab.iot.common.domain.CommonResult;
 /**
  * 全局异常
  * 
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class GlobalException extends RuntimeException
 {

@@ -18,7 +18,9 @@ import java.util.Map;
 /**
  * 拦截声明了 {@link Idempotent} 注解的方法，实现幂等操作
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Aspect
 @Slf4j

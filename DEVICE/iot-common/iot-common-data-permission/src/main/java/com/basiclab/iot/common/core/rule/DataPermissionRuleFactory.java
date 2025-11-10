@@ -6,7 +6,9 @@ import java.util.List;
  * {@link DataPermissionRule} 工厂接口
  * 作为 {@link DataPermissionRule} 的容器，提供管理能力
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface DataPermissionRuleFactory {
 

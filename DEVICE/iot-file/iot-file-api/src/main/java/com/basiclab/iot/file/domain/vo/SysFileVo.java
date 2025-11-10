@@ -6,7 +6,9 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 /**
  * 文件信息
  * 
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class SysFileVo
 {

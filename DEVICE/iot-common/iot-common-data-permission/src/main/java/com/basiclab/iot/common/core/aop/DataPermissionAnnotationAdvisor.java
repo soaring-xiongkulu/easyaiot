@@ -12,7 +12,9 @@ import org.springframework.aop.support.annotation.AnnotationMatchingPointcut;
 /**
  * {@link DataPermission} 注解的 Advisor 实现类
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Getter
 @EqualsAndHashCode(callSuper = true)

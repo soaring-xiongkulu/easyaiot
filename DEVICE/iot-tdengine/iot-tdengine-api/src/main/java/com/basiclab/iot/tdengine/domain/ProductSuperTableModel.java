@@ -9,7 +9,9 @@ import java.util.Optional;
 
 /**
  * @Description: 产品超级表模型
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @CreateDate: 2024/1/1$ 19:37$
  * @UpdateDate: 2024/1/1$ 19:37$
  * @Version: V1.0

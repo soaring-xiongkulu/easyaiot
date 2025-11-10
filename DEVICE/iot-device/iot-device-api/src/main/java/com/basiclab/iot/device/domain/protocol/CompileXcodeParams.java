@@ -9,7 +9,9 @@ import java.io.Serializable;
  * @program: EasyAIoT
  * @description: 动态编译参数
  * @packagename: com.basiclab.iot.device.api.domain.protocol
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2025-08-07 23:45
  **/
 @Data

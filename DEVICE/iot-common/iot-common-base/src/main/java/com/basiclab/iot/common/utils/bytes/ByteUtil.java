@@ -10,7 +10,9 @@ import java.util.List;
 import java.util.TimeZone;
 
 /**
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @Website: http://mqtts.net
  * @CreateDate: 2024/11/23$ 11:37$
  * @UpdateDate: 2024/11/23$ 11:37$

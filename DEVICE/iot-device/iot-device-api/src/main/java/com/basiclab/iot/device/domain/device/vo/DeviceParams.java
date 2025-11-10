@@ -10,7 +10,9 @@ import java.time.LocalDateTime;
 
 /**
  * @Description: Device Entity class model
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @CreateDate: 2024/5/4$ 18:57$
  * @UpdateDate: 2024/5/4$ 18:57$
  * @Version: V1.0

@@ -12,7 +12,9 @@ import java.util.Set;
  *
  * 例如说哦，SysUserDO 的 postIds 属性
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class JsonLongSetTypeHandler extends AbstractJsonTypeHandler<Object> {
 

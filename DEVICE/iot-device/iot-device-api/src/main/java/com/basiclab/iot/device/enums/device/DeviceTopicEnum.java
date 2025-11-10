@@ -7,7 +7,9 @@ import lombok.Getter;
  * @program: EasyAIoT
  * @description: 设备Topic枚举
  * @packagename: com.basiclab.iot.common.core.enums
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2025-08-26 10:49
  **/
 @Getter

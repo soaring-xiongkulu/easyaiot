@@ -18,7 +18,9 @@ import java.util.List;
 /**
  * (productProperties)表控制层
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @RestController
 @RequestMapping("/productProperties")

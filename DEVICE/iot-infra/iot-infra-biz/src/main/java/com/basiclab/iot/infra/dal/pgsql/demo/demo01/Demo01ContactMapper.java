@@ -10,7 +10,9 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * 示例联系人 Mapper
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Mapper
 public interface Demo01ContactMapper extends BaseMapperX<Demo01ContactDO> {

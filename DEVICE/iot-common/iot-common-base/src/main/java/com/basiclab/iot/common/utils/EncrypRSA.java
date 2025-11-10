@@ -14,7 +14,9 @@ import java.util.Collection;
 
 /**
  * @Description: RSA加密工具类
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @CreateDate: 2024/09/15$ 19:03$
  * @UpdateDate: 2024/09/15$ 19:03$
  */

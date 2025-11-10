@@ -8,7 +8,9 @@ import lombok.Data;
 /**
  * 产品模型服务属性详情对象 Properties
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date 2024-12-23
  */
 @Data

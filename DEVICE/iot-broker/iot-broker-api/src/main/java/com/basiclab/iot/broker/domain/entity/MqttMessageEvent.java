@@ -6,7 +6,9 @@ import org.springframework.context.ApplicationEvent;
 /**
  * @program: easyaiot-cloud-pro-datasource-column
  * @description: MqttMessageEvent
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2023-04-28 14:42
  **/
 @Getter

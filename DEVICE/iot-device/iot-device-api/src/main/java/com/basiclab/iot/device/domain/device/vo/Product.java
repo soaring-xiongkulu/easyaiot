@@ -12,7 +12,9 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 /**
  * 产品模型
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @ApiModel(value = "产品模型")
 @Data

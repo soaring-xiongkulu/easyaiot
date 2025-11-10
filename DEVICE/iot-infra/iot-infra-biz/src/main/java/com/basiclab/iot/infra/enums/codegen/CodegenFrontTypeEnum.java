@@ -6,7 +6,9 @@ import lombok.Getter;
 /**
  * 代码生成的前端类型枚举
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @AllArgsConstructor
 @Getter

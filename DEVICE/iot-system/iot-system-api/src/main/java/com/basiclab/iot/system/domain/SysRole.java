@@ -11,7 +11,9 @@ import javax.validation.constraints.Size;
 /**
  * 角色表 sys_role
  * 
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class SysRole extends BaseEntity
 {

@@ -15,7 +15,9 @@ import java.util.function.Function;
  * @program: easyaiot-util-pro
  * @description: 协议消息处理Utils
  * @packagename: com.mqttsnet.basic.utils
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2023-05-07 00:12
  **/
 @Slf4j

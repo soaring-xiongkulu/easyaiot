@@ -17,7 +17,9 @@ import java.util.Map;
  * @program: EasyAIoT
  * @description: 协议信息适配器
  * @packagename: com.basiclab.iot.mqtt.handler
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2023-05-30 15:08
  **/
 @Slf4j

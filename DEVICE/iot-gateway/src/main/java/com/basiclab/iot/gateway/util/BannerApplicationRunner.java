@@ -11,7 +11,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * 项目启动成功后，提供文档相关的地址
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Component
 @Slf4j

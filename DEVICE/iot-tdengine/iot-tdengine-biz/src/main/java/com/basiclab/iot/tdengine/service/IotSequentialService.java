@@ -8,7 +8,9 @@ import java.util.List;
  * @program: EasyAIoT
  * @description:
  * @packagename: com.basiclab.iot.tdengine.service.impl
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2025-11-04 10:50
  **/
 public interface IotSequentialService {

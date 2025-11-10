@@ -14,7 +14,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * 幂等注解
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

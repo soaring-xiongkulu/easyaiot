@@ -8,7 +8,9 @@ import static cn.hutool.core.util.ArrayUtil.*;
 /**
  * 代码生成的场景枚举
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @AllArgsConstructor
 @Getter

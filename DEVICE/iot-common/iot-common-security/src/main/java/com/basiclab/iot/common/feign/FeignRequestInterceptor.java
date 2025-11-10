@@ -14,7 +14,9 @@ import java.util.Map;
 /**
  * feign 请求拦截器
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Component
 public class FeignRequestInterceptor implements RequestInterceptor {

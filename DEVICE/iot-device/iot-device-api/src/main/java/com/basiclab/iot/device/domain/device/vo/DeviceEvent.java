@@ -13,7 +13,9 @@ import java.time.LocalDateTime;
 /**
  * 设备动作数据
  *
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @ApiModel(value = "设备动作数据")
 @Data

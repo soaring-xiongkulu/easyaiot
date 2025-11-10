@@ -11,7 +11,9 @@ import javax.validation.constraints.NotNull;
  * @program: EasyAIoT
  * @description: 子设备信息
  * @packagename: com.basiclab.iot.link.api.domain.device.entity
- * @author EasyAIoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  * @date: 2025-07-29 17:54
  **/
 @Data
