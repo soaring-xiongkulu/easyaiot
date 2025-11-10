@@ -253,6 +253,8 @@ clean_service() {
     read -r response
     
     if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+        check_docker
+        check_docker_compose
         print_info "停止并删除容器..."
         $COMPOSE_CMD down -v
         
