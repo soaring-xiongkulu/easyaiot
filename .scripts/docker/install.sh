@@ -55,7 +55,7 @@ MODULE_PORTS[".scripts/docker"]="8848"  # Nacos端口
 MODULE_PORTS["DEVICE"]="48080"           # Gateway端口
 MODULE_PORTS["AI"]="5000"
 MODULE_PORTS["VIDEO"]="6000"
-MODULE_PORTS["WEB"]="80"
+MODULE_PORTS["WEB"]="8888"
 
 # 模块健康检查端点
 declare -A MODULE_HEALTH_ENDPOINTS
@@ -507,7 +507,7 @@ verify_all() {
         echo -e "  Device服务 (Gateway):  http://localhost:48080"
         echo -e "  AI服务:                http://localhost:5000"
         echo -e "  Video服务:             http://localhost:6000"
-        echo -e "  Web前端:               http://localhost:80"
+        echo -e "  Web前端:               http://localhost:8888"
         echo ""
         return 0
     else
