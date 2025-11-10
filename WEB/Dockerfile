@@ -23,6 +23,6 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
 
-# 使用启动脚本启动
-ENTRYPOINT ["/entrypoint.sh"]
+# 启动nginx
+CMD ["nginx", "-g", "daemon off;"]
 
