@@ -360,12 +360,10 @@ Thanks to the following contributors for code, feedback, donations, and support 
 
 ## 📄 Open Source License
 
-[MIT LICENSE](LICENSE)
+Soaring XiongKulu / easyaiot adopts the APACHE LICENSE 2.0 open source license. When using this product, you must comply with the following requirements:
 
-## ©️ Copyright Notice
-
-EasyAIoT follows the [MIT LICENSE](LICENSE). Commercial use is permitted provided original author/copyright information
-is retained.
+- Do not modify the source code header comments or attributions of the product-related code.
+- Do not use the product for any activities that endanger national security, honor, or interests, and do not use it for any illegal purposes.
 
 ## 🌟 Star Growth Trend Chart
 
