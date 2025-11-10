@@ -185,6 +185,12 @@ build_and_start() {
     cd "$SCRIPT_DIR"
     $DOCKER_COMPOSE up -d --build
     print_success "服务构建并启动完成"
+    
+    # 等待服务启动
+    sleep 3
+    
+    # 显示服务状态和访问地址
+    show_status
 }
 
 # 清理旧容器（如果存在）
@@ -221,6 +227,12 @@ start_services() {
     cd "$SCRIPT_DIR"
     $DOCKER_COMPOSE up -d
     print_success "服务启动完成"
+    
+    # 等待服务启动
+    sleep 3
+    
+    # 显示服务状态和访问地址
+    show_status
 }
 
 # 停止所有服务
@@ -237,6 +249,31 @@ restart_services() {
     cd "$SCRIPT_DIR"
     $DOCKER_COMPOSE restart
     print_success "服务重启完成"
+    
+    # 等待服务启动
+    sleep 3
+    
+    # 显示服务状态和访问地址
+    show_status
+}
+
+# 显示 web-service 访问地址
+show_web_service_info() {
+    # 读取端口配置（从环境变量或默认值）
+    local web_port="${WEB_PORT:-8888}"
+    
+    # 检查 web-service 容器是否运行
+    if docker ps --format "{{.Names}}" | grep -q "^web-service$"; then
+        echo ""
+        print_info "=========================================="
+        print_info "  Web Service 访问信息"
+        print_info "=========================================="
+        print_success "访问地址: http://localhost:${web_port}"
+        print_success "健康检查: http://localhost:${web_port}/health"
+        print_info "查看日志: $0 logs web-service"
+        print_info "=========================================="
+        echo ""
+    fi
 }
 
 # 查看服务状态
@@ -244,6 +281,9 @@ show_status() {
     print_info "服务状态:"
     cd "$SCRIPT_DIR"
     $DOCKER_COMPOSE ps
+    
+    # 显示 web-service 访问地址
+    show_web_service_info
 }
 
 # 查看日志
