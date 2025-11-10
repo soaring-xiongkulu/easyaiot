@@ -1,0 +1,279 @@
+version: '3'
+
+services:
+  iot-gateway:
+    build:
+      context: ./iot-gateway
+      dockerfile: Dockerfile
+    image: iot-gateway
+    container_name: iot-gateway
+    environment:
+      - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
+      - JAVA_OPTS=-Xms512m -Xmx512m
+      - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      # SkyWalking配置（如需要，请取消注释并配置）
+      # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
+      # - SW_AGENT_NAME=iot-gateway
+      # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
+      # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
+    volumes:
+      - /docker/iot-device/logs:/root/logs/
+      # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
+    ports:
+      - "48080:48080"
+    restart: always
+    network_mode: host # 以主机网络环境运行
+
+  iot-system:
+    build:
+      context: ./iot-system/iot-system-biz
+      dockerfile: Dockerfile
+    image: iot-module-system-biz
+    container_name: iot-system
+    environment:
+      - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
+      - JAVA_OPTS=-Xms512m -Xmx512m
+      - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      # SkyWalking配置（如需要，请取消注释并配置）
+      # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
+      # - SW_AGENT_NAME=iot-system
+      # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
+      # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
+    volumes:
+      - /docker/iot-device/logs:/root/logs/
+      # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
+    ports:
+      - "48081:48081"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:48081"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: always
+    network_mode: host
+
+  iot-infra:
+    build:
+      context: ./iot-infra/iot-infra-biz
+      dockerfile: Dockerfile
+    image: iot-module-infra-biz
+    container_name: iot-infra
+    environment:
+      - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
+      - JAVA_OPTS=-Xms512m -Xmx512m
+      - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      # SkyWalking配置（如需要，请取消注释并配置）
+      # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
+      # - SW_AGENT_NAME=iot-infra
+      # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
+      # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
+    volumes:
+      - /docker/iot-device/logs:/root/logs/
+      # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
+    ports:
+      - "48082:48082"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:48082"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: always
+    network_mode: host
+    depends_on:
+      iot-system:
+        condition: service_healthy
+
+  iot-device:
+    build:
+      context: ./iot-device/iot-device-biz
+      dockerfile: Dockerfile
+    image: iot-module-device-biz
+    container_name: iot-device
+    environment:
+      - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
+      - JAVA_OPTS=-Xms512m -Xmx512m
+      - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      # SkyWalking配置（如需要，请取消注释并配置）
+      # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
+      # - SW_AGENT_NAME=iot-device
+      # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
+      # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
+    volumes:
+      - /docker/iot-device/logs:/root/logs/
+      # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
+    ports:
+      - "48083:48083"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:48083"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: always
+    network_mode: host
+    depends_on:
+      iot-infra:
+        condition: service_healthy
+
+  iot-dataset:
+    build:
+      context: ./iot-dataset/iot-dataset-biz
+      dockerfile: Dockerfile
+    image: iot-module-dataset-biz
+    container_name: iot-dataset
+    environment:
+      - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
+      - JAVA_OPTS=-Xms512m -Xmx512m
+      - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      # SkyWalking配置（如需要，请取消注释并配置）
+      # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
+      # - SW_AGENT_NAME=iot-dataset
+      # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
+      # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
+    volumes:
+      - /docker/iot-device/logs:/root/logs/
+      # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
+    ports:
+      - "48087:48087"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:48087"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: always
+    network_mode: host
+    depends_on:
+      iot-infra:
+        condition: service_healthy
+
+  iot-broker:
+    build:
+      context: ./iot-broker/iot-broker-biz
+      dockerfile: Dockerfile
+    image: iot-module-broker-biz
+    container_name: iot-broker
+    environment:
+      - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
+      - JAVA_OPTS=-Xms512m -Xmx512m
+      - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      # SkyWalking配置（如需要，请取消注释并配置）
+      # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
+      # - SW_AGENT_NAME=iot-broker
+      # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
+      # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
+    volumes:
+      - /docker/iot-device/logs:/root/logs/
+      # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
+    ports:
+      - "48096:48096"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:48096"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: always
+    network_mode: host
+    depends_on:
+      iot-infra:
+        condition: service_healthy
+
+  iot-tdengine:
+    build:
+      context: ./iot-tdengine/iot-tdengine-biz
+      dockerfile: Dockerfile
+    image: iot-module-tdengine-biz
+    container_name: iot-tdengine
+    environment:
+      - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
+      - JAVA_OPTS=-Xms512m -Xmx512m
+      - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      # SkyWalking配置（如需要，请取消注释并配置）
+      # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
+      # - SW_AGENT_NAME=iot-tdengine
+      # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
+      # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
+    volumes:
+      - /docker/iot-device/logs:/root/logs/
+      # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
+    ports:
+      - "48091:48091"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:48091"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: always
+    network_mode: host
+    depends_on:
+      iot-infra:
+        condition: service_healthy
+
+  iot-file:
+    build:
+      context: ./iot-file/iot-file-biz
+      dockerfile: Dockerfile
+    image: iot-module-file-biz
+    container_name: iot-file
+    environment:
+      - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
+      - JAVA_OPTS=-Xms512m -Xmx512m
+      - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=14.18.122.2:8848 # 配置中心地址
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=local # 命名空间
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=14.18.122.2:8848 # 注册中心地址
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=local # 命名空间
+      # SkyWalking配置（如需要，请取消注释并配置）
+      # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
+      # - SW_AGENT_NAME=iot-file
+      # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
+      # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
+    volumes:
+      - /docker/iot-device/logs:/root/logs/
+      # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
+    ports:
+      - "19300:19300"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19300"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: always
+    network_mode: host
+    depends_on:
+      iot-infra:
+        condition: service_healthy
+

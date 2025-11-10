@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  ai-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ai-service:latest
+    container_name: ai-service
+
+    # 端口映射
+    ports:
+      - "5000:5000"
+
+    # 数据卷挂载
+    volumes:
+      # 数据目录（包含数据集、模型、推理结果、上传文件）
+      - ./data:/app/data
+      # 静态文件目录
+      - ./static:/app/static
+      # 临时上传目录
+      - ./temp_uploads:/app/temp_uploads
+      # 模型文件目录（如果存在）
+      - ./model:/app/model
+      # 预训练模型文件
+      - ./yolo11n:/app/yolo11n
+      - ./yolo11n.pt:/app/yolo11n.pt
+      - ./yolov8n.pt:/app/yolov8n.pt
+      # 环境变量配置文件（如果存在）
+      - ./.env:/app/.env:ro
+
+    # 环境变量
+    environment:
+      # GPU相关配置
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
+      # Python环境
+      - PYTHONUNBUFFERED=1
+      # Flask配置
+      - FLASK_RUN_PORT=5000
+      - FLASK_RUN_HOST=0.0.0.0
+      # 数据库配置（需要根据实际情况修改）
+      - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@localhost:5432/ai_db}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      # Nacos配置（需要根据实际情况修改）
+      - NACOS_SERVER=${NACOS_SERVER:-14.18.122.2:8848}
+      - NACOS_NAMESPACE=${NACOS_NAMESPACE:-local}
+      - NACOS_USERNAME=${NACOS_USERNAME:-nacos}
+      - NACOS_PASSWORD=${NACOS_PASSWORD:-basiclab@iot78475418754}
+      - SERVICE_NAME=${SERVICE_NAME:-model-server}
+      # Pod IP配置（容器内会自动获取，也可手动指定）
+      - POD_IP=${POD_IP:-}
+      # MinIO对象存储配置
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-localhost:9000}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_SECURE=${MINIO_SECURE:-false}
+      # 讯飞语音识别配置（可选）
+      - XUNFEI_APP_ID=${XUNFEI_APP_ID:-}
+      - XUNFEI_SECRET_KEY=${XUNFEI_SECRET_KEY:-}
+      # 时区配置
+      - TZ=Asia/Shanghai
+
+    # 重启策略
+    restart: unless-stopped
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # 资源限制
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all      # 使用全部 GPU
+              capabilities: [gpu]
+
+    # 网络配置（连接到统一网络）
+    networks:
+      - easyaiot-network
+
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  easyaiot-network:
+    name: easyaiot-network
+    external: true
+
