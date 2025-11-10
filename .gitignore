@@ -36,3 +36,8 @@ hs_err_pid*
 /iot-visual/*/target
 *.iml
 
+# .scripts/docker 中间件数据目录和日志目录
+.scripts/docker/*_data/
+.scripts/docker/*logs/
+.scripts/docker/**/*logs/
+
