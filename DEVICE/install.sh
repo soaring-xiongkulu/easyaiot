@@ -140,18 +140,6 @@ build_frontend() {
 # 构建所有镜像
 build_images() {
     print_info "开始构建所有Docker镜像..."
-    
-    # 检查前端构建产物
-    if ! check_web_dist; then
-        print_warning "是否现在构建前端项目？(y/N)"
-        read -r response
-        if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-            build_frontend
-        else
-            print_warning "跳过前端构建，如果web-service构建失败，请先运行: $0 build-frontend"
-        fi
-    fi
-    
     cd "$SCRIPT_DIR"
     $DOCKER_COMPOSE build
     print_success "镜像构建完成"
@@ -160,79 +148,17 @@ build_images() {
 # 构建并启动所有服务
 build_and_start() {
     print_info "开始构建并启动所有服务..."
-    
-    # 检查前端构建产物
-    if ! check_web_dist; then
-        print_warning "是否现在构建前端项目？(y/N)"
-        read -r response
-        if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-            build_frontend
-        else
-            print_warning "跳过前端构建，如果web-service启动失败，请先运行: $0 build-frontend"
-        fi
-    fi
-    
-    # 清理可能存在的旧容器（避免名称冲突）
-    print_info "检查并清理旧容器..."
-    cd "$SCRIPT_DIR"
-    
-    # 直接清理已知的容器名称（从docker-compose.yml中定义的container_name）
-    local containers=("web-service" "iot-gateway" "iot-system" "iot-infra" "iot-device" "iot-dataset" "iot-broker" "iot-tdengine" "iot-file")
-    for container in "${containers[@]}"; do
-        clean_old_container "$container"
-    done
-    
     cd "$SCRIPT_DIR"
     $DOCKER_COMPOSE up -d --build
     print_success "服务构建并启动完成"
-    
-    # 等待服务启动
-    sleep 3
-    
-    # 显示服务状态和访问地址
-    show_status
-}
-
-# 清理旧容器（如果存在）
-clean_old_container() {
-    local container_name=$1
-    if [ -z "$container_name" ]; then
-        return
-    fi
-    
-    # 检查容器是否存在
-    if docker ps -a --format "{{.Names}}" | grep -q "^${container_name}$"; then
-        print_warning "发现已存在的容器: $container_name"
-        print_info "正在停止并删除旧容器..."
-        docker stop "$container_name" 2>/dev/null || true
-        docker rm "$container_name" 2>/dev/null || true
-        print_success "旧容器已清理"
-    fi
 }
 
 # 启动所有服务
 start_services() {
     print_info "启动所有服务..."
-    
-    # 清理可能存在的旧容器（避免名称冲突）
-    print_info "检查并清理旧容器..."
-    cd "$SCRIPT_DIR"
-    
-    # 直接清理已知的容器名称（从docker-compose.yml中定义的container_name）
-    local containers=("web-service" "iot-gateway" "iot-system" "iot-infra" "iot-device" "iot-dataset" "iot-broker" "iot-tdengine" "iot-file")
-    for container in "${containers[@]}"; do
-        clean_old_container "$container"
-    done
-    
     cd "$SCRIPT_DIR"
     $DOCKER_COMPOSE up -d
     print_success "服务启动完成"
-    
-    # 等待服务启动
-    sleep 3
-    
-    # 显示服务状态和访问地址
-    show_status
 }
 
 # 停止所有服务
@@ -249,31 +175,6 @@ restart_services() {
     cd "$SCRIPT_DIR"
     $DOCKER_COMPOSE restart
     print_success "服务重启完成"
-    
-    # 等待服务启动
-    sleep 3
-    
-    # 显示服务状态和访问地址
-    show_status
-}
-
-# 显示 web-service 访问地址
-show_web_service_info() {
-    # 读取端口配置（从环境变量或默认值）
-    local web_port="${WEB_PORT:-8888}"
-    
-    # 检查 web-service 容器是否运行
-    if docker ps --format "{{.Names}}" | grep -q "^web-service$"; then
-        echo ""
-        print_info "=========================================="
-        print_info "  Web Service 访问信息"
-        print_info "=========================================="
-        print_success "访问地址: http://localhost:${web_port}"
-        print_success "健康检查: http://localhost:${web_port}/health"
-        print_info "查看日志: $0 logs web-service"
-        print_info "=========================================="
-        echo ""
-    fi
 }
 
 # 查看服务状态
@@ -281,9 +182,6 @@ show_status() {
     print_info "服务状态:"
     cd "$SCRIPT_DIR"
     $DOCKER_COMPOSE ps
-    
-    # 显示 web-service 访问地址
-    show_web_service_info
 }
 
 # 查看日志
@@ -369,34 +267,11 @@ clean() {
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         cd "$SCRIPT_DIR"
-        # 先清理 docker-compose 管理的容器
         $DOCKER_COMPOSE down
-        
-        # 确保清理所有相关容器，包括 web-service（可能在其他 compose 文件中创建）
-        print_info "清理所有相关容器..."
-        local containers=("web-service" "iot-gateway" "iot-system" "iot-infra" "iot-device" "iot-dataset" "iot-broker" "iot-tdengine" "iot-file")
-        for container in "${containers[@]}"; do
-            clean_old_container "$container"
-        done
-        
         print_success "清理完成"
     else
         print_info "操作已取消"
     fi
-}
-
-# 清理特定容器（用于解决名称冲突）
-clean_container() {
-    local container_name=$1
-    if [ -z "$container_name" ]; then
-        print_error "请指定要清理的容器名称"
-        echo "示例: $0 clean-container web-service"
-        exit 1
-    fi
-    
-    print_info "清理容器: $container_name"
-    clean_old_container "$container_name"
-    print_success "容器清理完成"
 }
 
 # 完全清理（包括镜像）
@@ -406,16 +281,7 @@ clean_all() {
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         cd "$SCRIPT_DIR"
-        # 先清理 docker-compose 管理的容器和镜像
         $DOCKER_COMPOSE down --rmi all
-        
-        # 确保清理所有相关容器，包括 web-service（可能在其他 compose 文件中创建）
-        print_info "清理所有相关容器..."
-        local containers=("web-service" "iot-gateway" "iot-system" "iot-infra" "iot-device" "iot-dataset" "iot-broker" "iot-tdengine" "iot-file")
-        for container in "${containers[@]}"; do
-            clean_old_container "$container"
-        done
-        
         print_success "完全清理完成"
     else
         print_info "操作已取消"
@@ -425,18 +291,6 @@ clean_all() {
 # 更新服务（重新构建并重启）
 update_services() {
     print_info "更新所有服务（重新构建并重启）..."
-    
-    # 检查前端构建产物
-    if ! check_web_dist; then
-        print_warning "是否现在构建前端项目？(y/N)"
-        read -r response
-        if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-            build_frontend
-        else
-            print_warning "跳过前端构建，如果web-service更新失败，请先运行: $0 build-frontend"
-        fi
-    fi
-    
     cd "$SCRIPT_DIR"
     $DOCKER_COMPOSE up -d --build --force-recreate
     print_success "服务更新完成"
@@ -462,10 +316,8 @@ DEVICE模块 Docker Compose 管理脚本
     start-service       启动指定服务
     clean               清理（停止并删除容器，保留镜像）
     clean-all           完全清理（停止并删除容器和镜像）
-    clean-container     清理特定容器（解决名称冲突）
     update              更新服务（重新构建并重启）
     install             安装（构建并启动所有服务）
-    build-frontend      构建前端项目
     help                显示此帮助信息
 
 示例:
@@ -474,7 +326,6 @@ DEVICE模块 Docker Compose 管理脚本
     $0 logs iot-gateway           # 查看iot-gateway的日志
     $0 restart-service iot-system # 重启iot-system服务
     $0 status                     # 查看所有服务状态
-    $0 build-frontend             # 构建前端项目
 
 可用服务:
     - iot-gateway
@@ -485,7 +336,6 @@ DEVICE模块 Docker Compose 管理脚本
     - iot-broker
     - iot-tdengine
     - iot-file
-    - web-service
 
 EOF
 }
@@ -531,17 +381,11 @@ main() {
         clean-all)
             clean_all
             ;;
-        clean-container)
-            clean_container "$2"
-            ;;
         update)
             update_services
             ;;
         install|build-and-start)
             build_and_start
-            ;;
-        build-frontend)
-            build_frontend
             ;;
         help|--help|-h)
             show_help
@@ -577,12 +421,11 @@ show_interactive_menu() {
         echo "9) 停止指定服务"
         echo "10) 启动指定服务"
         echo "11) 更新服务（重新构建并重启）"
-        echo "12) 构建前端项目"
-        echo "13) 清理（删除容器，保留镜像）"
-        echo "14) 完全清理（删除容器和镜像）"
+        echo "12) 清理（删除容器，保留镜像）"
+        echo "13) 完全清理（删除容器和镜像）"
         echo "0) 退出"
         echo
-        read -p "请选择操作 [0-14]: " choice
+        read -p "请选择操作 [0-13]: " choice
         
         case $choice in
             1)
@@ -635,12 +478,9 @@ show_interactive_menu() {
                 update_services
                 ;;
             12)
-                build_frontend
-                ;;
-            13)
                 clean
                 ;;
-            14)
+            13)
                 clean_all
                 ;;
             0)

@@ -290,45 +290,6 @@ services:
       iot-infra:
         condition: service_healthy
 
-  web-service:
-    build:
-      context: ../WEB
-      dockerfile: Dockerfile
-    image: web-service:latest
-    container_name: web-service
-    ports:
-      - "${WEB_PORT:-8888}:80"
-    volumes:
-      # 前端构建产物目录
-      - ../WEB/dist:/usr/share/nginx/html:ro
-      # Nginx配置文件
-      - ../WEB/conf/nginx.conf:/etc/nginx/nginx.conf:ro
-      # Nginx日志目录
-      - ../WEB/logs:/var/log/nginx
-      # SSL证书（如果存在）
-      - ../WEB/conf/ssl:/etc/nginx/ssl:ro
-      # 时区文件挂载
-      - /etc/localtime:/etc/localtime:ro
-    environment:
-      # 时区配置
-      - TZ=Asia/Shanghai
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    depends_on:
-      - iot-gateway
-    networks:
-      - easyaiot-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
 networks:
   easyaiot-network:
     name: easyaiot-network
