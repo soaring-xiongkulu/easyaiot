@@ -16,13 +16,6 @@ COPY ./conf/nginx.conf /etc/nginx/nginx.conf
 # 复制前端构建产物
 COPY ./dist /usr/share/nginx/html
 
-# 复制启动脚本
-COPY ./entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-# 安装必要的工具（用于解析服务 IP）
-RUN apk add --no-cache getent bind-tools iputils
-
 # 暴露端口（默认80，可通过环境变量修改）
 EXPOSE 80
 
