@@ -42,9 +42,9 @@ services:
       # Pod IP配置（容器内会自动获取，也可手动指定）
       - POD_IP=${POD_IP:-}
       # MinIO对象存储配置
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-localhost:9000}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-MinIO:9000}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-basiclab@iot975248395}
       - MINIO_SECURE=${MINIO_SECURE:-false}
       # 时区配置
       - TZ=Asia/Shanghai

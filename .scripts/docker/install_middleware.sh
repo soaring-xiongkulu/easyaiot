@@ -53,6 +53,7 @@ MIDDLEWARE_SERVICES=(
     "TDengine"
     "Redis"
     "Kafka"
+    "MinIO"
 )
 
 # 中间件端口映射
@@ -62,6 +63,7 @@ MIDDLEWARE_PORTS["PostgresSQL"]="5432"
 MIDDLEWARE_PORTS["TDengine"]="6030"
 MIDDLEWARE_PORTS["Redis"]="6379"
 MIDDLEWARE_PORTS["Kafka"]="9092"
+MIDDLEWARE_PORTS["MinIO"]="9000"
 
 # 中间件健康检查端点
 declare -A MIDDLEWARE_HEALTH_ENDPOINTS
@@ -70,6 +72,7 @@ MIDDLEWARE_HEALTH_ENDPOINTS["PostgresSQL"]=""
 MIDDLEWARE_HEALTH_ENDPOINTS["TDengine"]=""
 MIDDLEWARE_HEALTH_ENDPOINTS["Redis"]=""
 MIDDLEWARE_HEALTH_ENDPOINTS["Kafka"]=""
+MIDDLEWARE_HEALTH_ENDPOINTS["MinIO"]="/minio/health/live"
 
 # 日志输出函数（去掉颜色代码后写入日志文件）
 log_to_file() {

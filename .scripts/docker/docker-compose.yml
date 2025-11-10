@@ -147,6 +147,31 @@ services:
     networks:
       - easyaiot-network
 
+  # MinIO Server
+  MinIO:
+    image: minio/minio:latest
+    container_name: minio-server
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - TZ=Asia/Shanghai
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=basiclab@iot975248395
+    command: server /data --console-address ":9001"
+    volumes:
+      - './minio_data/data:/data'
+      - './minio_data/config:/root/.minio'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - easyaiot-network
+
 # 磁盘挂载
 volumes:
   nacos_data:
@@ -158,6 +183,8 @@ volumes:
   redis_data:
     driver: local
   mq_data:
+    driver: local
+  minio_data:
     driver: local
 
 # 网络配置
