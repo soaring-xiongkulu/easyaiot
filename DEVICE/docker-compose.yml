@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   iot-gateway:
     build:
@@ -23,8 +21,7 @@ services:
     volumes:
       - /docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
-    ports:
-      - "48080:48080"
+    # 注意：使用host网络模式时，不需要端口映射，容器直接使用主机网络
     restart: always
     network_mode: host # 以主机网络环境运行
 
@@ -50,8 +47,7 @@ services:
     volumes:
       - /docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
-    ports:
-      - "48081:48081"
+    # 注意：使用host网络模式时，不需要端口映射，容器直接使用主机网络
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48081"]
       interval: 30s
@@ -83,8 +79,7 @@ services:
     volumes:
       - /docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
-    ports:
-      - "48082:48082"
+    # 注意：使用host网络模式时，不需要端口映射，容器直接使用主机网络
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48082"]
       interval: 30s
@@ -119,8 +114,7 @@ services:
     volumes:
       - /docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
-    ports:
-      - "48083:48083"
+    # 注意：使用host网络模式时，不需要端口映射，容器直接使用主机网络
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48083"]
       interval: 30s
@@ -155,8 +149,7 @@ services:
     volumes:
       - /docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
-    ports:
-      - "48087:48087"
+    # 注意：使用host网络模式时，不需要端口映射，容器直接使用主机网络
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48087"]
       interval: 30s
@@ -191,8 +184,7 @@ services:
     volumes:
       - /docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
-    ports:
-      - "48096:48096"
+    # 注意：使用host网络模式时，不需要端口映射，容器直接使用主机网络
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48096"]
       interval: 30s
@@ -227,8 +219,7 @@ services:
     volumes:
       - /docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
-    ports:
-      - "48091:48091"
+    # 注意：使用host网络模式时，不需要端口映射，容器直接使用主机网络
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48091"]
       interval: 30s
@@ -263,8 +254,7 @@ services:
     volumes:
       - /docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
-    ports:
-      - "19300:19300"
+    # 注意：使用host网络模式时，不需要端口映射，容器直接使用主机网络
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:19300"]
       interval: 30s
