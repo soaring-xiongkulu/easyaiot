@@ -410,7 +410,6 @@ install_middleware() {
     echo ""
     print_info "等待服务启动..."
     sleep 10
-    verify_middleware
     
     # 初始化数据库
     echo ""
@@ -433,7 +432,6 @@ start_middleware() {
     echo ""
     print_info "等待服务就绪..."
     sleep 10
-    verify_middleware
 }
 
 # 停止所有中间件
@@ -466,7 +464,6 @@ restart_middleware() {
     echo ""
     print_info "等待服务就绪..."
     sleep 10
-    verify_middleware
 }
 
 # 查看所有中间件状态
@@ -551,7 +548,6 @@ update_middleware() {
     echo ""
     print_info "等待服务就绪..."
     sleep 10
-    verify_middleware
 }
 
 # 等待服务就绪
