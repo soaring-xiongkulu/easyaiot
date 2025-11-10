@@ -303,6 +303,9 @@ build_image() {
 
 # 清理服务
 clean_service() {
+    check_docker
+    check_docker_compose
+    
     print_warning "这将删除容器、镜像和数据卷，确定要继续吗？(y/N)"
     read -r response
     
