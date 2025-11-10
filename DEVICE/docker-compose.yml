@@ -321,8 +321,6 @@ services:
       start_period: 10s
     depends_on:
       - iot-gateway
-    links:
-      - iot-gateway
     networks:
       - easyaiot-network
     logging:
