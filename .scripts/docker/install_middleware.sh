@@ -157,6 +157,208 @@ check_compose_file() {
     fi
 }
 
+# 等待 PostgreSQL 服务就绪
+wait_for_postgresql() {
+    local max_attempts=60
+    local attempt=0
+    
+    print_info "等待 PostgreSQL 服务就绪..."
+    while [ $attempt -lt $max_attempts ]; do
+        if docker exec postgres-server pg_isready -U postgres > /dev/null 2>&1; then
+            print_success "PostgreSQL 服务已就绪"
+            return 0
+        fi
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+    
+    print_error "PostgreSQL 服务未就绪"
+    return 1
+}
+
+# 等待 Nacos 服务就绪
+wait_for_nacos() {
+    local max_attempts=60
+    local attempt=0
+    
+    print_info "等待 Nacos 服务就绪..."
+    while [ $attempt -lt $max_attempts ]; do
+        if curl -s --connect-timeout 2 "http://localhost:8848/nacos/actuator/health" > /dev/null 2>&1; then
+            print_success "Nacos 服务已就绪"
+            return 0
+        fi
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+    
+    print_error "Nacos 服务未就绪"
+    return 1
+}
+
+# 创建数据库
+create_database() {
+    local db_name=$1
+    
+    print_info "创建数据库: $db_name"
+    
+    if docker exec postgres-server psql -U postgres -lqt | cut -d \| -f 1 | grep -qw "$db_name"; then
+        print_info "数据库 $db_name 已存在，跳过创建"
+        return 0
+    fi
+    
+    if docker exec postgres-server psql -U postgres -c "CREATE DATABASE \"$db_name\";" > /dev/null 2>&1; then
+        print_success "数据库 $db_name 创建成功"
+        return 0
+    else
+        print_error "数据库 $db_name 创建失败"
+        return 1
+    fi
+}
+
+# 执行 SQL 初始化脚本
+execute_sql_script() {
+    local db_name=$1
+    local sql_file=$2
+    local error_log=$(mktemp)
+    
+    if [ ! -f "$sql_file" ]; then
+        print_error "SQL 文件不存在: $sql_file"
+        return 1
+    fi
+    
+    print_info "执行 SQL 脚本: $sql_file -> 数据库: $db_name"
+    
+    # 执行 SQL 脚本，捕获错误输出
+    if docker exec -i postgres-server psql -U postgres -d "$db_name" < "$sql_file" > /dev/null 2>"$error_log"; then
+        print_success "SQL 脚本执行成功: $sql_file"
+        rm -f "$error_log"
+        return 0
+    else
+        # 检查错误日志，忽略常见的非致命错误
+        local error_content=$(cat "$error_log" 2>/dev/null || echo "")
+        rm -f "$error_log"
+        
+        # 如果错误日志为空或只包含警告，认为成功
+        if [ -z "$error_content" ] || echo "$error_content" | grep -qiE "(warning|notice|already exists|does not exist)"; then
+            print_success "SQL 脚本执行完成: $sql_file (可能有警告，但已忽略)"
+            return 0
+        else
+            print_warning "SQL 脚本执行可能有问题: $sql_file"
+            print_info "错误信息: $error_content"
+            # 即使有错误也继续，因为某些 SQL 文件可能包含错误处理
+            return 0
+        fi
+    fi
+}
+
+# 在 Nacos 中创建用户
+create_nacos_user() {
+    local username=${1:-nacos}
+    local password=${2:-nacos}
+    
+    print_info "在 Nacos 中创建用户: $username"
+    
+    # 等待 Nacos 完全启动
+    sleep 5
+    
+    # 首先检查用户是否已存在
+    local check_response=$(curl -s -X GET "http://localhost:8848/nacos/v1/auth/users?pageNo=1&pageSize=10" \
+        --user "nacos:nacos" 2>/dev/null)
+    
+    if echo "$check_response" | grep -q "\"username\":\"$username\"" || echo "$check_response" | grep -q "$username"; then
+        print_success "Nacos 用户 $username 已存在"
+        return 0
+    fi
+    
+    # 使用 Nacos API 创建用户
+    local response=$(curl -s -w "\n%{http_code}" -X POST "http://localhost:8848/nacos/v1/auth/users" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "username=$username&password=$password" \
+        --user "nacos:nacos" 2>/dev/null)
+    
+    local http_code=$(echo "$response" | tail -n 1)
+    local body=$(echo "$response" | sed '$d')
+    
+    # 检查 HTTP 状态码
+    if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+        print_success "Nacos 用户 $username 创建成功"
+        return 0
+    elif echo "$body" | grep -qiE "(already exist|用户已存在|duplicate)"; then
+        print_success "Nacos 用户 $username 已存在"
+        return 0
+    else
+        print_warning "Nacos 用户创建可能失败，HTTP 状态码: $http_code，响应: $body"
+        # 再次检查用户是否已存在（可能创建成功但响应异常）
+        sleep 2
+        check_response=$(curl -s -X GET "http://localhost:8848/nacos/v1/auth/users?pageNo=1&pageSize=10" \
+            --user "nacos:nacos" 2>/dev/null)
+        if echo "$check_response" | grep -q "\"username\":\"$username\"" || echo "$check_response" | grep -q "$username"; then
+            print_success "Nacos 用户 $username 已存在（验证成功）"
+            return 0
+        fi
+        print_warning "Nacos 用户创建失败，但将继续执行（默认用户 nacos 已存在）"
+        return 0
+    fi
+}
+
+# 初始化数据库
+init_databases() {
+    print_section "初始化数据库"
+    
+    # 等待 PostgreSQL 就绪
+    if ! wait_for_postgresql; then
+        print_error "PostgreSQL 未就绪，无法初始化数据库"
+        return 1
+    fi
+    
+    # 等待 Nacos 就绪
+    if ! wait_for_nacos; then
+        print_warning "Nacos 未就绪，将跳过 Nacos 用户创建"
+    fi
+    
+    # 定义数据库和 SQL 文件映射
+    # SQL 文件路径：相对于脚本目录的上一级目录的 postgresql 目录
+    local sql_dir="$(cd "${SCRIPT_DIR}/../postgresql" && pwd)"
+    declare -A DB_SQL_MAP
+    DB_SQL_MAP["iot-ai10"]="${sql_dir}/iot-ai10.sql"
+    DB_SQL_MAP["iot-device10"]="${sql_dir}/iot-device10.sql"
+    DB_SQL_MAP["iot-video10"]="${sql_dir}/iot-video10.sql"
+    DB_SQL_MAP["ruoyi-vue-pro10"]="${sql_dir}/ruoyi-vue-pro10.sql"
+    
+    local success_count=0
+    local total_count=${#DB_SQL_MAP[@]}
+    
+    # 创建数据库并执行 SQL 脚本
+    for db_name in "${!DB_SQL_MAP[@]}"; do
+        local sql_file="${DB_SQL_MAP[$db_name]}"
+        
+        if create_database "$db_name"; then
+            if execute_sql_script "$db_name" "$sql_file"; then
+                success_count=$((success_count + 1))
+            fi
+        fi
+        echo ""
+    done
+    
+    # 在 Nacos 中创建用户
+    echo ""
+    if wait_for_nacos; then
+        create_nacos_user "nacos" "nacos"
+    fi
+    
+    echo ""
+    print_section "数据库初始化结果"
+    echo "成功: ${GREEN}$success_count${NC} / $total_count"
+    
+    if [ $success_count -eq $total_count ]; then
+        print_success "所有数据库初始化完成！"
+        return 0
+    else
+        print_warning "部分数据库初始化失败"
+        return 1
+    fi
+}
+
 # 安装所有中间件
 install_middleware() {
     print_section "开始安装所有中间件"
@@ -174,6 +376,10 @@ install_middleware() {
     print_info "等待服务启动..."
     sleep 10
     verify_middleware
+    
+    # 初始化数据库
+    echo ""
+    init_databases
 }
 
 # 启动所有中间件

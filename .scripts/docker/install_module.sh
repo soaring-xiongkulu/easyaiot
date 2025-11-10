@@ -207,43 +207,72 @@ execute_module_command() {
         
         case "$command" in
             install|start)
-                $compose_cmd -f "$compose_file" up -d
+                if $compose_cmd -f "$compose_file" up -d; then
+                    print_success "$module_name: $command 执行成功"
+                    return 0
+                else
+                    print_error "$module_name: $command 执行失败"
+                    return 1
+                fi
                 ;;
             stop)
-                $compose_cmd -f "$compose_file" down
+                if $compose_cmd -f "$compose_file" down; then
+                    print_success "$module_name: $command 执行成功"
+                    return 0
+                else
+                    print_error "$module_name: $command 执行失败"
+                    return 1
+                fi
                 ;;
             restart)
-                $compose_cmd -f "$compose_file" restart
+                if $compose_cmd -f "$compose_file" restart; then
+                    print_success "$module_name: $command 执行成功"
+                    return 0
+                else
+                    print_error "$module_name: $command 执行失败"
+                    return 1
+                fi
                 ;;
             status)
                 $compose_cmd -f "$compose_file" ps
+                return $?
                 ;;
             logs)
                 $compose_cmd -f "$compose_file" logs --tail=100
+                return $?
                 ;;
             build)
-                $compose_cmd -f "$compose_file" build --no-cache
+                if $compose_cmd -f "$compose_file" build --no-cache; then
+                    print_success "$module_name: $command 执行成功"
+                    return 0
+                else
+                    print_error "$module_name: $command 执行失败"
+                    return 1
+                fi
                 ;;
             clean)
-                $compose_cmd -f "$compose_file" down -v
+                if $compose_cmd -f "$compose_file" down -v; then
+                    print_success "$module_name: $command 执行成功"
+                    return 0
+                else
+                    print_error "$module_name: $command 执行失败"
+                    return 1
+                fi
                 ;;
             update)
-                $compose_cmd -f "$compose_file" pull
-                $compose_cmd -f "$compose_file" up -d
+                if $compose_cmd -f "$compose_file" pull && $compose_cmd -f "$compose_file" up -d; then
+                    print_success "$module_name: $command 执行成功"
+                    return 0
+                else
+                    print_error "$module_name: $command 执行失败"
+                    return 1
+                fi
                 ;;
             *)
                 print_warning "未知命令: $command"
                 return 1
                 ;;
         esac
-        
-        if [ $? -eq 0 ]; then
-            print_success "$module_name: $command 执行成功"
-            return 0
-        else
-            print_error "$module_name: $command 执行失败"
-            return 1
-        fi
     else
         # 其他模块使用install.sh脚本
         if [ ! -f "install.sh" ]; then

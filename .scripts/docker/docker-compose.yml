@@ -1,10 +1,9 @@
-version: "3.8"
-
 services:
   # Nacos Server
   Nacos:
     image: nacos/nacos-server:v2.5.1
     container_name: nacos-server
+    restart: always
     environment:
       - PREFER_HOST_MODE=hostname
       - MODE=standalone
@@ -23,6 +22,12 @@ services:
       - "9849:9849"
       - "8848:8848"
       - "9848:9848"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8848/nacos/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - easyaiot-network
 
@@ -35,14 +40,17 @@ services:
       - "5432:5432"
     environment:
       - TZ=Asia/Shanghai
+      - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=iot45722414822
+      - POSTGRES_DB=postgres
+      - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - ./db_data/data:/var/lib/postgresql/data
       - ./db_data/log:/var/log/postgresql
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
-      interval: 1m30s
-      timeout: 10s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
       retries: 5
     networks:
       - easyaiot-network
@@ -53,6 +61,8 @@ services:
     container_name: tdengine-server
     privileged: true
     restart: always
+    environment:
+      - TZ=Asia/Shanghai
     ports:
       - "6030:6030"
       - "6041:6041"
@@ -62,6 +72,12 @@ services:
     volumes:
       - './taos_data/data:/var/lib/taos'
       - './taos_data/log:/var/log/taos'
+    healthcheck:
+      test: ["CMD-SHELL", "taos -h localhost -s 'select 1;' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     networks:
       - easyaiot-network
 
@@ -79,6 +95,11 @@ services:
     volumes:
       - './redis_data/data:/data'
       - './redis_data/logs:/logs'
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a basiclab@iot975248395 ping | grep PONG || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     logging:
       driver: "json-file"
       options:
@@ -96,26 +117,33 @@ services:
       - "9092:9092"
       - "9093:9093"
     environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093'
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://localhost:9092'
-      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker:29093'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
-      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
-      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: 1
-      CLUSTER_ID: '4L6g3nShT-eMCtK--X86sw'
-      KAFKA_LOG_RETENTION_HOURS: 168
-      KAFKA_LOG_DIRS: '/var/lib/kafka/data'
+      - TZ=Asia/Shanghai
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-server:9092
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka-server:9093
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR=1
+      - CLUSTER_ID=4L6g3nShT-eMCtK--X86sw
+      - KAFKA_LOG_RETENTION_HOURS=168
+      - KAFKA_LOG_DIRS=/var/lib/kafka/data
     volumes:
       - ./mq_data/data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - easyaiot-network
 
@@ -136,5 +164,4 @@ volumes:
 networks:
   easyaiot-network:
     name: easyaiot-network
-    driver: bridge
-    external: false
+    external: true
