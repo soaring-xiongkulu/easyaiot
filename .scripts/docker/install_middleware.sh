@@ -133,6 +133,340 @@ check_command() {
     return 0
 }
 
+# 检查 Java 版本
+check_java_version() {
+    if check_command java; then
+        local java_version_output=$(java -version 2>&1 | head -n 1)
+        local java_version=$(echo "$java_version_output" | sed -E 's/.*version "([0-9]+)\..*/\1/' 2>/dev/null || echo "0")
+        if [ -n "$java_version" ] && [ "$java_version" -ge 8 ] 2>/dev/null; then
+            print_success "Java 已安装: $java_version_output"
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# 安装 JDK8
+install_jdk8() {
+    print_section "安装 JDK8"
+    
+    local jdk_dir="/opt/jdk8"
+    local jdk_version="jdk1.8.0_333"
+    local jdk_archive="jdk-8u333-linux-x64.tar.gz"
+    local jdk_url="https://repo.huaweicloud.com/java/jdk/8u333-b09/jdk-8u333-linux-x64.tar.gz"
+    
+    # 检查是否已经安装
+    if [ -d "/opt/jdk-8u333-linux-x64/$jdk_version" ]; then
+        print_info "JDK8 已存在于 /opt/jdk-8u333-linux-x64/$jdk_version"
+        return 0
+    fi
+    
+    print_info "正在下载 JDK8..."
+    local download_dir=$(mktemp -d)
+    cd "$download_dir"
+    
+    if ! wget -q --show-progress "$jdk_url" -O "$jdk_archive"; then
+        print_error "JDK8 下载失败，请检查网络连接"
+        rm -rf "$download_dir"
+        return 1
+    fi
+    
+    print_info "正在解压 JDK8..."
+    if ! tar -xzf "$jdk_archive" -C /opt/; then
+        print_error "JDK8 解压失败"
+        rm -rf "$download_dir"
+        return 1
+    fi
+    
+    rm -rf "$download_dir"
+    
+    # 配置环境变量
+    print_info "正在配置 JDK8 环境变量..."
+    local java_home="/opt/jdk-8u333-linux-x64/$jdk_version"
+    
+    # 检查 /etc/profile 中是否已存在 JDK8 配置
+    if ! grep -q "JAVA_HOME=/opt/jdk-8u333-linux-x64" /etc/profile; then
+        cat >> /etc/profile << EOF
+
+#java1.8
+export JAVA_HOME=$java_home
+export JRE_HOME=\$JAVA_HOME/jre
+export CLASSPATH=.:\$JAVA_HOME/lib:\$JRE_HOME/lib:\$CLASSPATH
+export PATH=\$JAVA_HOME/bin:\$JRE_HOME/bin:\$PATH
+EOF
+        print_success "JDK8 环境变量已添加到 /etc/profile"
+    else
+        print_info "JDK8 环境变量已存在于 /etc/profile"
+    fi
+    
+    # 立即生效（仅当前会话）
+    export JAVA_HOME="$java_home"
+    export JRE_HOME="$JAVA_HOME/jre"
+    export CLASSPATH=".:$JAVA_HOME/lib:$JRE_HOME/lib:$CLASSPATH"
+    export PATH="$JAVA_HOME/bin:$JRE_HOME/bin:$PATH"
+    
+    print_success "JDK8 安装完成"
+    return 0
+}
+
+# 检查并安装 JDK8
+check_and_install_jdk8() {
+    if check_java_version; then
+        return 0
+    fi
+    
+    print_warning "未检测到 JDK8 或更高版本"
+    echo ""
+    print_info "JDK8 是运行某些中间件服务的必需组件"
+    echo ""
+    
+    while true; do
+        echo -ne "${YELLOW}[提示]${NC} 是否自动安装 JDK8？(y/N): "
+        read -r response
+        case "$response" in
+            [yY][eE][sS]|[yY])
+                if [ "$EUID" -ne 0 ]; then
+                    print_error "安装 JDK8 需要 root 权限，请使用 sudo 运行此脚本"
+                    exit 1
+                fi
+                if install_jdk8; then
+                    print_success "JDK8 安装成功"
+                    return 0
+                else
+                    print_error "JDK8 安装失败，请手动安装后重试"
+                    exit 1
+                fi
+                ;;
+            [nN][oO]|[nN]|"")
+                print_error "JDK8 是必需的，安装流程已终止"
+                exit 1
+                ;;
+            *)
+                print_warning "请输入 y 或 N"
+                ;;
+        esac
+    done
+}
+
+# 检查 Node.js 版本
+check_nodejs_version() {
+    if check_command node; then
+        local node_version=$(node -v | sed -E 's/v([0-9]+)\..*/\1/')
+        if [ "$node_version" -ge 20 ]; then
+            print_success "Node.js 已安装: $(node -v)"
+            return 0
+        else
+            print_warning "检测到 Node.js 版本较低: $(node -v)，需要 20+ 版本"
+            return 1
+        fi
+    fi
+    return 1
+}
+
+# 安装 Node.js 20+
+install_nodejs20() {
+    print_section "安装 Node.js 20+"
+    
+    # 检测系统类型
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        local os_id="$ID"
+    else
+        print_error "无法检测操作系统类型"
+        return 1
+    fi
+    
+    # 根据系统类型选择安装方法
+    case "$os_id" in
+        ubuntu|debian)
+            print_info "检测到 Debian/Ubuntu 系统，使用 NodeSource 仓库安装..."
+            if ! curl -fsSL https://deb.nodesource.com/setup_20.x | bash -; then
+                print_error "添加 NodeSource 仓库失败"
+                return 1
+            fi
+            print_info "正在安装 Node.js 20..."
+            if ! apt-get install -y nodejs; then
+                print_error "Node.js 安装失败"
+                return 1
+            fi
+            ;;
+        centos|rhel|fedora)
+            print_info "检测到 CentOS/RHEL/Fedora 系统，使用 NodeSource 仓库安装..."
+            if ! curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -; then
+                print_error "添加 NodeSource 仓库失败"
+                return 1
+            fi
+            print_info "正在安装 Node.js 20..."
+            if ! yum install -y nodejs; then
+                print_error "Node.js 安装失败"
+                return 1
+            fi
+            ;;
+        *)
+            print_error "不支持的操作系统: $os_id"
+            print_info "请手动安装 Node.js 20+ 后重试"
+            return 1
+            ;;
+    esac
+    
+    # 验证安装
+    if check_nodejs_version; then
+        print_success "Node.js 安装完成: $(node -v)"
+        print_success "npm 版本: $(npm -v)"
+        return 0
+    else
+        print_error "Node.js 安装验证失败"
+        return 1
+    fi
+}
+
+# 检查并安装 Node.js 20+
+check_and_install_nodejs20() {
+    if check_nodejs_version; then
+        return 0
+    fi
+    
+    print_warning "未检测到 Node.js 20+ 版本"
+    echo ""
+    print_info "Node.js 20+ 是运行某些中间件服务的必需组件"
+    echo ""
+    
+    while true; do
+        echo -ne "${YELLOW}[提示]${NC} 是否自动安装 Node.js 20+？(y/N): "
+        read -r response
+        case "$response" in
+            [yY][eE][sS]|[yY])
+                if [ "$EUID" -ne 0 ]; then
+                    print_error "安装 Node.js 需要 root 权限，请使用 sudo 运行此脚本"
+                    exit 1
+                fi
+                if install_nodejs20; then
+                    print_success "Node.js 20+ 安装成功"
+                    return 0
+                else
+                    print_error "Node.js 20+ 安装失败，请手动安装后重试"
+                    exit 1
+                fi
+                ;;
+            [nN][oO]|[nN]|"")
+                print_error "Node.js 20+ 是必需的，安装流程已终止"
+                exit 1
+                ;;
+            *)
+                print_warning "请输入 y 或 N"
+                ;;
+        esac
+    done
+}
+
+# 配置 Docker 镜像源
+configure_docker_mirror() {
+    print_section "配置 Docker 镜像源"
+    
+    local docker_config_dir="/etc/docker"
+    local docker_config_file="$docker_config_dir/daemon.json"
+    
+    if [ "$EUID" -ne 0 ]; then
+        print_warning "配置 Docker 镜像源需要 root 权限，跳过此步骤"
+        return 0
+    fi
+    
+    # 创建 docker 配置目录
+    mkdir -p "$docker_config_dir"
+    
+    # 检查是否已配置
+    if [ -f "$docker_config_file" ]; then
+        if grep -q "registry-mirrors" "$docker_config_file"; then
+            print_info "Docker 镜像源已配置，跳过"
+            return 0
+        fi
+    fi
+    
+    # 创建或更新配置文件
+    print_info "正在配置 Docker 镜像源..."
+    
+    if [ -f "$docker_config_file" ]; then
+        # 如果文件存在，使用 jq 或手动合并（如果没有 jq 则使用 Python）
+        if command -v jq &> /dev/null; then
+            jq '. + {"registry-mirrors": ["https://docker.1ms.run/"]}' "$docker_config_file" > "$docker_config_file.tmp" && mv "$docker_config_file.tmp" "$docker_config_file"
+        else
+            # 使用 Python 合并 JSON
+            python3 << EOF
+import json
+import sys
+
+config_file = "$docker_config_file"
+try:
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+except:
+    config = {}
+
+if "registry-mirrors" not in config:
+    config["registry-mirrors"] = []
+if "https://docker.1ms.run/" not in config["registry-mirrors"]:
+    config["registry-mirrors"].append("https://docker.1ms.run/")
+
+with open(config_file, 'w') as f:
+    json.dump(config, f, indent=2)
+EOF
+        fi
+    else
+        # 创建新配置文件
+        cat > "$docker_config_file" << EOF
+{
+  "registry-mirrors": [
+    "https://docker.1ms.run/"
+  ]
+}
+EOF
+    fi
+    
+    print_success "Docker 镜像源配置完成"
+    
+    # 重启 Docker 服务使配置生效
+    if systemctl is-active --quiet docker; then
+        print_info "正在重启 Docker 服务以使配置生效..."
+        systemctl daemon-reload
+        systemctl restart docker
+        print_success "Docker 服务已重启"
+    fi
+}
+
+# 配置 pip 镜像源
+configure_pip_mirror() {
+    print_section "配置 pip 镜像源"
+    
+    local pip_config_dir="$HOME/.pip"
+    local pip_config_file="$pip_config_dir/pip.conf"
+    
+    # 创建 pip 配置目录
+    mkdir -p "$pip_config_dir"
+    
+    # 检查是否已配置
+    if [ -f "$pip_config_file" ]; then
+        if grep -q "index-url" "$pip_config_file"; then
+            print_info "pip 镜像源已配置，跳过"
+            return 0
+        fi
+    fi
+    
+    print_info "正在配置 pip 镜像源..."
+    
+    # 创建或更新配置文件
+    cat > "$pip_config_file" << EOF
+[global]
+index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+trusted-host = pypi.tuna.tsinghua.edu.cn
+
+[install]
+trusted-host = pypi.tuna.tsinghua.edu.cn
+EOF
+    
+    print_success "pip 镜像源配置完成"
+    print_info "已使用清华大学镜像源: https://pypi.tuna.tsinghua.edu.cn/simple"
+}
+
 # 检查 Docker 权限
 check_docker_permission() {
     if ! docker ps &> /dev/null; then
@@ -694,32 +1028,35 @@ init_databases() {
         echo ""
     done
     
-    # 等待用户手动重置 Nacos 密码
+    # 等待用户手动配置 Nacos 密码
     echo ""
     if wait_for_nacos; then
-        print_section "Nacos 密码重置确认"
+        print_section "Nacos 密码配置确认"
         echo ""
-        print_info "请手动登录 Nacos 管理界面重置密码："
+        print_info "请手动登录 Nacos 管理界面配置密码："
         print_info "  访问地址: http://localhost:8848/nacos"
-        print_info "  默认用户名: nacos"
-        print_info "  默认密码: nacos"
+        print_info "  用户名: nacos"
         echo ""
-        print_warning "请确保已经完成密码重置，然后继续..."
+        print_warning "${RED}重要提示：${NC}新版本 Nacos 初始页面需要设置密码，请将密码配置为："
+        print_warning "${YELLOW}basiclab@iot78475418754${NC}"
+        echo ""
+        print_warning "请确保已经完成密码配置，然后继续..."
         echo ""
         
         while true; do
-            echo -ne "${YELLOW}[提示]${NC} 是否已经完成 Nacos 密码重置？(y/N): "
+            echo -ne "${YELLOW}[提示]${NC} 是否已经完成 Nacos 密码配置（密码必须为: basiclab@iot78475418754）？(y/N): "
             read -r response
             case "$response" in
                 [yY][eE][sS]|[yY])
-                    print_success "确认已重置 Nacos 密码，继续执行..."
+                    print_success "确认已配置 Nacos 密码，继续执行..."
                     break
                     ;;
                 [nN][oO]|[nN]|"")
-                    print_error "请先完成 Nacos 密码重置后再继续"
+                    print_error "请先完成 Nacos 密码配置后再继续"
                     print_info "您可以："
-                    print_info "  1. 访问 http://localhost:8848/nacos 进行密码重置"
-                    print_info "  2. 重置完成后重新运行此脚本"
+                    print_info "  1. 访问 http://localhost:8848/nacos 进行密码配置"
+                    print_info "  2. 密码必须设置为: basiclab@iot78475418754"
+                    print_info "  3. 配置完成后重新运行此脚本"
                     exit 1
                     ;;
                 *)
@@ -745,6 +1082,18 @@ init_databases() {
 # 安装所有中间件
 install_middleware() {
     print_section "开始安装所有中间件"
+    
+    # 检查并安装 JDK8
+    check_and_install_jdk8
+    
+    # 检查并安装 Node.js 20+
+    check_and_install_nodejs20
+    
+    # 配置 Docker 镜像源
+    configure_docker_mirror
+    
+    # 配置 pip 镜像源
+    configure_pip_mirror
     
     check_docker "$@"
     check_docker_compose
