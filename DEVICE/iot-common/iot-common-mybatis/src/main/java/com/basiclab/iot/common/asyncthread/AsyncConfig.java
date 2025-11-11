@@ -13,8 +13,8 @@ package com.basiclab.iot.common.asyncthread;//package com.basiclab.iot.common.co
 // * 异步@Async多线程配置
 // *
 // * @author 翱翔的雄库鲁
- * @email andywebjava@163.com
- * @wechat EasyAIoT2025
+// * @email andywebjava@163.com
+// * @wechat EasyAIoT2025
 // */
 //@Configuration
 //@EnableAsync
