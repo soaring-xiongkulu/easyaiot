@@ -358,56 +358,56 @@ create_directories() {
     print_success "目录创建完成"
 }
 
-# 创建 .env 文件
+# 创建 .env.docker 文件（用于Docker部署）
 create_env_file() {
-    if [ ! -f .env ]; then
-        print_info ".env 文件不存在，正在创建..."
+    if [ ! -f .env.docker ]; then
+        print_info ".env.docker 文件不存在，正在创建..."
         if [ -f env.example ]; then
-            cp env.example .env
-            print_success ".env 文件已从 env.example 创建"
+            cp env.example .env.docker
+            print_success ".env.docker 文件已从 env.example 创建"
             
             # 自动配置中间件连接信息（使用Docker服务名称）
             print_info "自动配置中间件连接信息..."
             
-            # 更新数据库连接（使用中间件服务名称）
-            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@postgres-server:5432/iot-ai20|' .env
+            # 更新数据库连接（使用中间件服务名称，注意：服务名是PostgresSQL）
+            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@PostgresSQL:5432/iot-ai20|' .env.docker
             
-            # 更新Nacos配置（使用中间件服务名称）
-            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=nacos-server:8848|' .env
+            # 更新Nacos配置（使用中间件服务名称，注意：服务名是Nacos）
+            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=Nacos:8848|' .env.docker
             
-            # 更新MinIO配置（使用中间件服务名称）
-            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=minio-server:9000|' .env
-            sed -i 's|^MINIO_SECRET_KEY=.*|MINIO_SECRET_KEY=basiclab@iot975248395|' .env
+            # 更新MinIO配置（使用中间件服务名称，注意：服务名是MinIO）
+            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=MinIO:9000|' .env.docker
+            sed -i 's|^MINIO_SECRET_KEY=.*|MINIO_SECRET_KEY=basiclab@iot975248395|' .env.docker
             
             # 更新Nacos密码
-            sed -i 's|^NACOS_PASSWORD=.*|NACOS_PASSWORD=basiclab@iot78475418754|' .env
+            sed -i 's|^NACOS_PASSWORD=.*|NACOS_PASSWORD=basiclab@iot78475418754|' .env.docker
             
             print_success "中间件连接信息已自动配置"
-            print_info "如需修改其他配置，请编辑 .env 文件"
+            print_info "如需修改其他配置，请编辑 .env.docker 文件"
         else
-            print_error "env.example 文件不存在，无法创建 .env 文件"
+            print_error "env.example 文件不存在，无法创建 .env.docker 文件"
             exit 1
         fi
     else
-        print_info ".env 文件已存在"
+        print_info ".env.docker 文件已存在"
         print_info "检查并更新中间件连接信息..."
         
-        # 检查并更新数据库连接（如果还是localhost）
-        if grep -q "DATABASE_URL=.*localhost" .env; then
-            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@postgres-server:5432/iot-ai20|' .env
-            print_info "已更新数据库连接为 postgres-server:5432"
+        # 检查并更新数据库连接（如果还是localhost或旧的服务名）
+        if grep -q "DATABASE_URL=.*localhost" .env.docker || grep -q "DATABASE_URL=.*postgres-server" .env.docker; then
+            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@PostgresSQL:5432/iot-ai20|' .env.docker
+            print_info "已更新数据库连接为 PostgresSQL:5432"
         fi
         
-        # 检查并更新Nacos配置（如果还是IP地址）
-        if grep -q "NACOS_SERVER=.*14\.18\.122\.2" .env || grep -q "NACOS_SERVER=.*localhost" .env; then
-            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=nacos-server:8848|' .env
-            print_info "已更新Nacos连接为 nacos-server:8848"
+        # 检查并更新Nacos配置（如果还是IP地址或旧的服务名）
+        if grep -q "NACOS_SERVER=.*14\.18\.122\.2" .env.docker || grep -q "NACOS_SERVER=.*localhost" .env.docker || grep -q "NACOS_SERVER=.*nacos-server" .env.docker; then
+            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=Nacos:8848|' .env.docker
+            print_info "已更新Nacos连接为 Nacos:8848"
         fi
         
-        # 检查并更新MinIO配置（如果还是localhost）
-        if grep -q "MINIO_ENDPOINT=.*localhost" .env; then
-            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=minio-server:9000|' .env
-            print_info "已更新MinIO连接为 minio-server:9000"
+        # 检查并更新MinIO配置（如果还是localhost或旧的服务名）
+        if grep -q "MINIO_ENDPOINT=.*localhost" .env.docker || grep -q "MINIO_ENDPOINT=.*minio-server" .env.docker; then
+            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=MinIO:9000|' .env.docker
+            print_info "已更新MinIO连接为 MinIO:9000"
         fi
     fi
 }
@@ -449,8 +449,8 @@ start_service() {
     check_docker_compose
     check_network
     
-    if [ ! -f .env ]; then
-        print_warning ".env 文件不存在，正在创建..."
+    if [ ! -f .env.docker ]; then
+        print_warning ".env.docker 文件不存在，正在创建..."
         create_env_file
     fi
     

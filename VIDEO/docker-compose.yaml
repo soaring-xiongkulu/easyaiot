@@ -6,6 +6,10 @@ services:
     image: video-service:latest
     container_name: video-service
 
+    # 环境变量文件（用于Docker部署）
+    env_file:
+      - .env.docker
+
     # 端口映射
     ports:
       - "6000:6000"
@@ -20,8 +24,8 @@ services:
       - ./temp_uploads:/app/temp_uploads
       # 模型文件目录（如果存在）
       - ./model:/app/model
-      # 环境变量配置文件（如果存在）
-      - ./.env:/app/.env:ro
+      # 环境变量配置文件（用于Docker部署，使用.env.docker）
+      - ./.env.docker:/app/.env:ro
 
     # 环境变量
     environment:

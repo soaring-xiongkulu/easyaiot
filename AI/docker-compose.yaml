@@ -6,6 +6,10 @@ services:
     image: ai-service:latest
     container_name: ai-service
 
+    # 环境变量文件（用于Docker部署）
+    env_file:
+      - .env.docker
+
     # 端口映射
     ports:
       - "5000:5000"
@@ -24,8 +28,8 @@ services:
       - ./yolo11n:/app/yolo11n
       - ./yolo11n.pt:/app/yolo11n.pt
       - ./yolov8n.pt:/app/yolov8n.pt
-      # 环境变量配置文件（如果存在）
-      - ./.env:/app/.env:ro
+      # 环境变量配置文件（用于Docker部署，使用.env.docker）
+      - ./.env.docker:/app/.env:ro
 
     # 环境变量
     environment:
