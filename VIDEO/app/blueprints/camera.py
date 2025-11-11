@@ -5,6 +5,7 @@
 """
 import datetime
 import io
+import logging
 import subprocess
 import threading
 import uuid
@@ -27,7 +28,6 @@ from app.services.camera_service import (
 from models import Device, db, Image
 
 camera_bp = Blueprint('camera', __name__)
-logger = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 # 全局变量管理截图任务状态

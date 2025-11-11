@@ -1,6 +1,7 @@
 # 基础依赖
 Flask==2.3.2
 Flask-SQLAlchemy==3.0.5
+Flask-CORS==4.0.0
 # 图像处理
 opencv-python==4.8.0.74
 # 工具类

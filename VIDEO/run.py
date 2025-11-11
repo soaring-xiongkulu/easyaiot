@@ -13,6 +13,7 @@ import netifaces
 import pytz
 from dotenv import load_dotenv
 from flask import Flask
+from flask_cors import CORS
 from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
@@ -66,6 +67,12 @@ def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     
+    # 配置 CORS - 允许跨域请求
+    CORS(app, resources={
+        r"/video/*": {"origins": "*"},
+        r"/actuator/*": {"origins": "*"}
+    })
+    
     # 从环境变量获取数据库URL，优先使用Docker Compose传入的环境变量
     database_url = os.environ.get('DATABASE_URL')
     
@@ -96,8 +103,25 @@ def create_app():
             print(f"❌ 建表失败: {str(e)}")
 
     # 注册蓝图
-    app.register_blueprint(camera.camera_bp, url_prefix='/video/camera')
-    app.register_blueprint(nvr.nvr_bp, url_prefix='/video/nvr')
+    try:
+        app.register_blueprint(camera.camera_bp, url_prefix='/video/camera')
+        print(f"✅ Camera Blueprint 注册成功，路由前缀: /video/camera")
+        # 打印所有注册的路由用于调试
+        for rule in app.url_map.iter_rules():
+            if 'camera' in rule.rule:
+                print(f"   路由: {rule.rule} -> {rule.endpoint} [{', '.join(rule.methods)}]")
+    except Exception as e:
+        print(f"❌ Camera Blueprint 注册失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    try:
+        app.register_blueprint(nvr.nvr_bp, url_prefix='/video/nvr')
+        print(f"✅ NVR Blueprint 注册成功，路由前缀: /video/nvr")
+    except Exception as e:
+        print(f"❌ NVR Blueprint 注册失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
     # 健康检查路由初始化
     def init_health_check(app):
