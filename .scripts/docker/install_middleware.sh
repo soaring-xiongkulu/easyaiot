@@ -137,10 +137,25 @@ check_command() {
 check_java_version() {
     if check_command java; then
         local java_version_output=$(java -version 2>&1 | head -n 1)
-        local java_version=$(echo "$java_version_output" | sed -E 's/.*version "([0-9]+)\..*/\1/' 2>/dev/null || echo "0")
+        # 提取版本号：匹配 "version "X.Y.Z" 或 "version X.Y.Z" 格式
+        local java_version=$(echo "$java_version_output" | grep -oE 'version "[0-9]+' | grep -oE '[0-9]+' | head -n 1)
+        
+        # 如果上面的方法失败，尝试另一种方法
+        if [ -z "$java_version" ]; then
+            java_version=$(echo "$java_version_output" | sed -nE 's/.*version[[:space:]]+"?([0-9]+)\..*/\1/p' | head -n 1)
+        fi
+        
+        # 如果还是失败，尝试更宽松的匹配
+        if [ -z "$java_version" ]; then
+            java_version=$(echo "$java_version_output" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f1)
+        fi
+        
         if [ -n "$java_version" ] && [ "$java_version" -ge 8 ] 2>/dev/null; then
             print_success "Java 已安装: $java_version_output"
             return 0
+        else
+            print_warning "Java 版本检测失败或版本过低: $java_version_output"
+            return 1
         fi
     fi
     return 1
