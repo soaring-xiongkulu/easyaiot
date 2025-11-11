@@ -172,6 +172,30 @@ services:
     networks:
       - easyaiot-network
 
+  # SRS Server
+  SRS:
+    image: ossrs/srs:5
+    container_name: srs-server
+    restart: always
+    ports:
+      - "1935:1935"
+      - "1985:1985"
+      - "8080:8080"
+      - "8000:8000/udp"
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - './srs_data/conf:/usr/local/srs/conf'
+      - './srs_data/objs:/usr/local/srs/objs'
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:1985/api/v1/versions || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - easyaiot-network
+
 # 磁盘挂载
 volumes:
   nacos_data:
@@ -185,6 +209,8 @@ volumes:
   mq_data:
     driver: local
   minio_data:
+    driver: local
+  srs_data:
     driver: local
 
 # 网络配置
