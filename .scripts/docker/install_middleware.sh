@@ -415,7 +415,7 @@ def init_minio_buckets_and_upload():
     minio_secure = False
     
     # 存储桶列表
-    buckets = ["dataset", "datasets", "snap-space"]
+    buckets = ["dataset", "datasets", "snap-space", "models"]
     
     # 数据集目录映射: (bucket_name, directory_path, object_prefix)
     # 参数格式: bucket1:dir1:prefix1 bucket2:dir2:prefix2 ...
@@ -487,42 +487,58 @@ def init_minio_buckets_and_upload():
         
         print(f"BUCKETS_SUCCESS:{created_buckets}/{len(buckets)}")
         
-        # 上传数据集
+        # 上传数据集（支持递归上传）
         total_upload_count = 0
         total_upload_success = 0
         
+        def upload_file_recursive(bucket_name, local_path, object_prefix, root_dir):
+            """递归上传文件"""
+            upload_count = 0
+            upload_success = 0
+            
+            if os.path.isfile(local_path):
+                # 计算相对路径
+                rel_path = os.path.relpath(local_path, root_dir)
+                # 构建对象名称
+                if object_prefix:
+                    object_name = f"{object_prefix}/{rel_path}" if not object_prefix.endswith('/') else f"{object_prefix}{rel_path}"
+                else:
+                    object_name = rel_path
+                
+                # 统一路径分隔符为 /
+                object_name = object_name.replace('\\', '/')
+                
+                try:
+                    # 获取文件 MIME 类型
+                    content_type, _ = mimetypes.guess_type(local_path)
+                    if not content_type:
+                        content_type = "application/octet-stream"
+                    
+                    # 上传文件
+                    client.fput_object(
+                        bucket_name,
+                        object_name,
+                        local_path,
+                        content_type=content_type
+                    )
+                    print(f"UPLOAD_SUCCESS:{bucket_name}:{object_name}")
+                    upload_success += 1
+                except S3Error as e:
+                    print(f"UPLOAD_ERROR:{bucket_name}:{object_name}:{str(e)}")
+                upload_count += 1
+            elif os.path.isdir(local_path):
+                # 递归处理子目录
+                for item in os.listdir(local_path):
+                    item_path = os.path.join(local_path, item)
+                    sub_count, sub_success = upload_file_recursive(bucket_name, item_path, object_prefix, root_dir)
+                    upload_count += sub_count
+                    upload_success += sub_success
+            
+            return upload_count, upload_success
+        
         for bucket_name, dataset_dir, object_prefix in upload_tasks:
             if dataset_dir and os.path.isdir(dataset_dir):
-                upload_count = 0
-                upload_success = 0
-                
-                for filename in os.listdir(dataset_dir):
-                    file_path = os.path.join(dataset_dir, filename)
-                    if os.path.isfile(file_path):
-                        # 构建对象名称
-                        if object_prefix:
-                            object_name = f"{object_prefix}/{filename}" if not object_prefix.endswith('/') else f"{object_prefix}{filename}"
-                        else:
-                            object_name = filename
-                        
-                        try:
-                            # 获取文件 MIME 类型
-                            content_type, _ = mimetypes.guess_type(file_path)
-                            if not content_type:
-                                content_type = "application/octet-stream"
-                            
-                            # 上传文件
-                            client.fput_object(
-                                bucket_name,
-                                object_name,
-                                file_path,
-                                content_type=content_type
-                            )
-                            print(f"UPLOAD_SUCCESS:{bucket_name}:{object_name}")
-                            upload_success += 1
-                        except S3Error as e:
-                            print(f"UPLOAD_ERROR:{bucket_name}:{object_name}:{str(e)}")
-                        upload_count += 1
+                upload_count, upload_success = upload_file_recursive(bucket_name, dataset_dir, object_prefix, dataset_dir)
                 
                 print(f"UPLOAD_RESULT:{bucket_name}:{upload_success}/{upload_count}")
                 total_upload_count += upload_count
@@ -679,6 +695,7 @@ init_minio() {
     # 获取数据集目录路径
     local dataset_dir="$(cd "${SCRIPT_DIR}/../minio/dataset/3" 2>/dev/null && pwd || echo "")"
     local snap_space_dir="$(cd "${SCRIPT_DIR}/../minio/snap-space" 2>/dev/null && pwd || echo "")"
+    local models_dir="$(cd "${SCRIPT_DIR}/../minio/models" 2>/dev/null && pwd || echo "")"
     
     # 构建上传任务参数
     local upload_args=()
@@ -693,6 +710,12 @@ init_minio() {
         upload_args+=("snap-space:$snap_space_dir:")
     else
         print_warning "snap-space 目录不存在: ${SCRIPT_DIR}/../minio/snap-space"
+    fi
+    
+    if [ -d "$models_dir" ]; then
+        upload_args+=("models:$models_dir:")
+    else
+        print_warning "models 目录不存在: ${SCRIPT_DIR}/../minio/models"
     fi
     
     # 使用 Python 脚本初始化 MinIO
