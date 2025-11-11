@@ -35,9 +35,11 @@ services:
     extra_hosts:
       - "gateway:host-gateway"
       - "video-host:host-gateway"  # 用于访问使用host网络模式的video-service
+      - "ai-host:host-gateway"  # 用于访问使用host网络模式的ai-service
       # 如果host-gateway不支持，可以使用以下方式（需要替换为实际的主机IP）
       # - "gateway:172.17.0.1"
       # - "video-host:172.17.0.1"
+      # - "ai-host:172.17.0.1"
 
     # 重启策略
     restart: unless-stopped

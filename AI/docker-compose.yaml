@@ -10,9 +10,9 @@ services:
     env_file:
       - .env.docker
 
-    # 端口映射
-    ports:
-      - "5000:5000"
+    # 网络模式：使用host模式以访问宿主机局域网
+    # 注意：使用host模式后，端口映射将失效，服务直接使用宿主机网络
+    network_mode: host
 
     # 数据卷挂载
     volumes:
@@ -42,32 +42,30 @@ services:
       # Flask配置
       - FLASK_RUN_PORT=${FLASK_RUN_PORT:-5000}
       - FLASK_RUN_HOST=${FLASK_RUN_HOST:-0.0.0.0}
-      # 数据库配置（使用中间件服务名称，注意：服务名是PostgresSQL，不是postgres-server）
-      # 如果系统环境变量中的DATABASE_URL包含错误的地址（如iot.basiclab.top或doccano），则使用默认值
-      - DATABASE_URL=postgresql://postgres:iot45722414822@PostgresSQL:5432/iot-ai20
+      # 数据库配置（使用localhost，因为使用host网络模式，中间件端口已映射到宿主机）
+      - DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-ai20
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-please-change-this-to-a-random-string}
-      # Nacos配置（使用中间件服务名称，注意：服务名是Nacos，不是nacos-server）
-      # 直接使用服务名，不依赖系统环境变量，避免被错误的系统环境变量覆盖
-      - NACOS_SERVER=Nacos:8848
+      # Nacos配置（使用localhost，因为使用host网络模式）
+      - NACOS_SERVER=${NACOS_SERVER:-localhost:8848}
       - NACOS_NAMESPACE=${NACOS_NAMESPACE:-}
       - NACOS_USERNAME=${NACOS_USERNAME:-nacos}
       - NACOS_PASSWORD=${NACOS_PASSWORD:-basiclab@iot78475418754}
       - SERVICE_NAME=${SERVICE_NAME:-model-server}
       # Pod IP配置（容器内会自动获取，也可手动指定）
       - POD_IP=${POD_IP:-}
-      # MinIO对象存储配置（使用中间件服务名称，注意：服务名是MinIO，不是minio-server）
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-MinIO:9000}
+      # MinIO对象存储配置（使用localhost，因为使用host网络模式）
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-localhost:9000}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-basiclab@iot975248395}
       - MINIO_SECURE=${MINIO_SECURE:-false}
-      # Redis配置（使用中间件服务名称，注意：服务名是Redis，不是redis-server）
-      - REDIS_HOST=${REDIS_HOST:-Redis}
+      # Redis配置（使用localhost，因为使用host网络模式）
+      - REDIS_HOST=${REDIS_HOST:-localhost}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-basiclab@iot975248395}
-      # Kafka配置（使用中间件服务名称，注意：服务名是Kafka，不是kafka-server）
-      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-Kafka:9092}
-      # TDengine配置（使用中间件服务名称，注意：服务名是TDengine，不是tdengine-server）
-      - TDENGINE_HOST=${TDENGINE_HOST:-TDengine}
+      # Kafka配置（使用localhost，因为使用host网络模式）
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      # TDengine配置（使用localhost，因为使用host网络模式）
+      - TDENGINE_HOST=${TDENGINE_HOST:-localhost}
       - TDENGINE_PORT=${TDENGINE_PORT:-6030}
       # 讯飞语音识别配置（可选）
       - XUNFEI_APP_ID=${XUNFEI_APP_ID:-}
@@ -109,16 +107,11 @@ services:
               count: all      # 使用全部 GPU
               capabilities: [gpu]
 
-    # 网络配置（连接到统一网络）
-    # 注意：确保中间件服务（Nacos、PostgresSQL等）已启动并运行在easyaiot-network网络中
-    # 中间件服务通常在 .scripts/docker/docker-compose.yml 中定义
-    networks:
-      - easyaiot-network
-    
-    # 依赖配置：确保Nacos服务健康后再启动
-    # 注意：Nacos服务在.scripts/docker/docker-compose.yml中定义，服务名为Nacos
-    # 由于Nacos服务在外部docker-compose中，这里使用条件等待而不是depends_on
-    # 应用代码中已有重试机制，会在启动时等待Nacos服务就绪
+    # 注意：使用network_mode: host后，不再需要networks配置
+    # 容器将直接使用宿主机的网络栈，可以：
+    # 1. 访问宿主机局域网
+    # 2. 通过localhost访问映射到宿主机的中间件服务端口
+    # 3. 确保中间件服务（Nacos、PostgresSQL等）的端口已映射到宿主机
 
     # 日志配置
     logging:
@@ -127,8 +120,9 @@ services:
         max-size: "10m"
         max-file: "3"
 
-networks:
-  easyaiot-network:
-    name: easyaiot-network
-    external: true
+# 注意：使用network_mode: host后，不再需要networks配置
+# 如果需要同时访问容器网络和宿主机网络，可以考虑以下替代方案：
+# 1. 使用macvlan网络（需要root权限）
+# 2. 使用host网络 + 通过IP访问中间件容器
+# 3. 使用sidecar容器模式
 

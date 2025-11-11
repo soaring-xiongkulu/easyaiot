@@ -156,7 +156,7 @@ def create_app():
     # Nacos注册与心跳线程管理（参考VIDEO模块的简洁实现）
     try:
         # 获取环境变量
-        nacos_server = os.getenv('NACOS_SERVER', 'Nacos:8848')
+        nacos_server = os.getenv('NACOS_SERVER', 'localhost:8848')
         namespace = os.getenv('NACOS_NAMESPACE', '')
         service_name = os.getenv('SERVICE_NAME', 'model-server')
         port = int(os.getenv('FLASK_RUN_PORT', 5000))
