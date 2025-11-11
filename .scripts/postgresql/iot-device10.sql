@@ -3535,7 +3535,7 @@ ALTER TABLE ONLY public.product_template ALTER COLUMN id SET DEFAULT nextval('pu
 --
 
 COPY public.dataset (id, dataset_code, name, cover_path, description, dataset_type, audit, reason, create_by, create_time, tenant_id, update_by, update_time, deleted, is_allocated, model_service_id, is_sync_minio, zip_url) FROM stdin;
-3	2h2UCKt2	人	http://iot.basiclab.top:9001/api/v1/buckets/snap-space/objects/download?prefix=person.jpg	标注人的数据集	0	0	\N	admin	2025-06-18 20:43:11.303	0	1	2025-08-26 04:00:10.296677	0	0	\N	0	/api/v1/buckets/datasets/objects/download?prefix=dataset-3.zip
+3	2h2UCKt2	人	/api/v1/buckets/snap-space/objects/download?prefix=person.jpg	标注人的数据集	0	0	\N	admin	2025-06-18 20:43:11.303	0	1	2025-08-26 04:00:10.296677	0	0	\N	0	/api/v1/buckets/datasets/objects/download?prefix=dataset-3.zip
 \.
 
 
@@ -3615,7 +3615,7 @@ COPY public.dataset_task_user (id, task_id, user_id, audit_user_id, create_by, c
 --
 
 COPY public.dataset_video (id, dataset_id, video_path, cover_path, description, create_by, create_time, tenant_id, update_by, update_time, deleted, name) FROM stdin;
-2	3	http://iot.basiclab.top:9001/api/v1/buckets/snap-space/objects/download?prefix=test2.mp4	http://iot.basiclab.top:9001/api/v1/buckets/snap-space/objects/download?prefix=微信图片_20250619154857.jpg	KTV跳舞的小姐姐	admin	2025-06-19 16:14:52.634	0	admin	2025-06-19 16:14:52.634	0	KTV跳舞的小姐姐
+2	3	/api/v1/buckets/snap-space/objects/download?prefix=test2.mp4	/api/v1/buckets/snap-space/objects/download?prefix=微信图片_20250619154857.jpg	KTV跳舞的小姐姐	admin	2025-06-19 16:14:52.634	0	admin	2025-06-19 16:14:52.634	0	KTV跳舞的小姐姐
 \.
 
 
@@ -3682,8 +3682,8 @@ COPY public.product_template (id, app_id, template_identification, template_name
 --
 
 COPY public.warehouse (id, name, cover_path, description, create_by, create_time, tenant_id, update_by, update_time, deleted) FROM stdin;
-1	数据仓（人、火焰）	http://iot.basiclab.top:9001/api/v1/buckets/snap-space/objects/download?prefix=545ad59f-f4f7-4780-8da4-dc512d5360fb.jpg	数据仓（人、火焰）的融合数据集。	admin	2025-06-30 23:17:50.864	0	admin	2025-06-30 23:17:50.864	0
-2	数据仓（人、火焰）	http://iot.basiclab.top:9001/api/v1/buckets/snap-space/objects/download?prefix=545ad59f-f4f7-4780-8da4-dc512d5360fb.jpg	数据仓（人、火焰）的融合数据集仓库。	admin	2025-06-30 23:18:29.288	0	admin	2025-06-30 23:18:29.288	0
+1	数据仓（人、火焰）	/api/v1/buckets/snap-space/objects/download?prefix=545ad59f-f4f7-4780-8da4-dc512d5360fb.jpg	数据仓（人、火焰）的融合数据集。	admin	2025-06-30 23:17:50.864	0	admin	2025-06-30 23:17:50.864	0
+2	数据仓（人、火焰）	/api/v1/buckets/snap-space/objects/download?prefix=545ad59f-f4f7-4780-8da4-dc512d5360fb.jpg	数据仓（人、火焰）的融合数据集仓库。	admin	2025-06-30 23:18:29.288	0	admin	2025-06-30 23:18:29.288	0
 \.
 
 

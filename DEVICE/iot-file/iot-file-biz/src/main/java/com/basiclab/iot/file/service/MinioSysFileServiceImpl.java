@@ -93,7 +93,7 @@ public class MinioSysFileServiceImpl implements ISysFileService {
                 .contentType(file.getContentType())
                 .build();
         minioClient.putObject(args);
-        return minioConfig.getDownloadUrl() + "/api/v1/buckets/" + minioConfig.getBucketName() + "/objects/download?prefix=" + fileName;
+        return "/api/v1/buckets/" + minioConfig.getBucketName() + "/objects/download?prefix=" + fileName;
     }
 
     /**
