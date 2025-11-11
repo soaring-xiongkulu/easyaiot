@@ -694,6 +694,25 @@ wait_for_minio() {
     return 1
 }
 
+# 检查数据库是否已初始化（通过检查表数量）
+check_database_initialized() {
+    local db_name=$1
+    
+    # 检查数据库是否存在
+    if ! docker exec postgres-server psql -U postgres -lqt | cut -d \| -f 1 | grep -qw "$db_name"; then
+        return 1  # 数据库不存在
+    fi
+    
+    # 检查数据库中是否有表（表数量 > 0 表示已初始化）
+    local table_count=$(docker exec postgres-server psql -U postgres -d "$db_name" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' ')
+    
+    if [ -n "$table_count" ] && [ "$table_count" -gt 0 ] 2>/dev/null; then
+        return 0  # 数据库已初始化
+    else
+        return 1  # 数据库未初始化
+    fi
+}
+
 # 创建数据库
 create_database() {
     local db_name=$1
@@ -842,6 +861,18 @@ def init_minio_buckets_and_upload():
         
         print(f"BUCKETS_SUCCESS:{created_buckets}/{len(buckets)}")
         
+        # 检查存储桶是否已有数据
+        def bucket_has_objects(bucket_name, prefix=""):
+            """检查存储桶是否已有对象（可选前缀）"""
+            try:
+                if prefix:
+                    objects = list(client.list_objects(bucket_name, prefix=prefix, recursive=False))
+                else:
+                    objects = list(client.list_objects(bucket_name, recursive=False))
+                return len(objects) > 0
+            except:
+                return False
+        
         # 上传数据集（支持递归上传）
         total_upload_count = 0
         total_upload_success = 0
@@ -893,11 +924,15 @@ def init_minio_buckets_and_upload():
         
         for bucket_name, dataset_dir, object_prefix in upload_tasks:
             if dataset_dir and os.path.isdir(dataset_dir):
-                upload_count, upload_success = upload_file_recursive(bucket_name, dataset_dir, object_prefix, dataset_dir)
-                
-                print(f"UPLOAD_RESULT:{bucket_name}:{upload_success}/{upload_count}")
-                total_upload_count += upload_count
-                total_upload_success += upload_success
+                # 检查存储桶是否已有数据（检查特定前缀）
+                if bucket_has_objects(bucket_name, object_prefix):
+                    print(f"UPLOAD_SKIP:{bucket_name}:存储桶已存在且已有数据（前缀: {object_prefix if object_prefix else '根目录'}），跳过上传")
+                else:
+                    upload_count, upload_success = upload_file_recursive(bucket_name, dataset_dir, object_prefix, dataset_dir)
+                    
+                    print(f"UPLOAD_RESULT:{bucket_name}:{upload_success}/{upload_count}")
+                    total_upload_count += upload_count
+                    total_upload_success += upload_success
             else:
                 print(f"UPLOAD_SKIP:{bucket_name}:数据集目录不存在或无效: {dataset_dir}")
         
@@ -1126,8 +1161,14 @@ init_databases() {
         local sql_file="${DB_SQL_MAP[$db_name]}"
         
         if create_database "$db_name"; then
-            if execute_sql_script "$db_name" "$sql_file"; then
+            # 检查数据库是否已初始化
+            if check_database_initialized "$db_name"; then
+                print_info "数据库 $db_name 已存在且已初始化，跳过 SQL 脚本执行"
                 success_count=$((success_count + 1))
+            else
+                if execute_sql_script "$db_name" "$sql_file"; then
+                    success_count=$((success_count + 1))
+                fi
             fi
         fi
         echo ""
@@ -1314,6 +1355,49 @@ build_middleware() {
     print_success "所有中间件镜像构建完成"
 }
 
+# 删除数据库
+delete_databases() {
+    print_section "删除数据库"
+    
+    # 等待 PostgreSQL 就绪
+    if ! wait_for_postgresql; then
+        print_warning "PostgreSQL 未就绪，无法删除数据库"
+        return 1
+    fi
+    
+    # 定义需要删除的数据库列表
+    local databases=("iot-ai20" "iot-device20" "iot-video20" "ruoyi-vue-pro20")
+    local deleted_count=0
+    local total_count=${#databases[@]}
+    
+    for db_name in "${databases[@]}"; do
+        if docker exec postgres-server psql -U postgres -lqt | cut -d \| -f 1 | grep -qw "$db_name"; then
+            print_info "正在删除数据库: $db_name"
+            if docker exec postgres-server psql -U postgres -c "DROP DATABASE \"$db_name\";" > /dev/null 2>&1; then
+                print_success "数据库 $db_name 删除成功"
+                deleted_count=$((deleted_count + 1))
+            else
+                print_error "数据库 $db_name 删除失败"
+            fi
+        else
+            print_info "数据库 $db_name 不存在，跳过删除"
+            deleted_count=$((deleted_count + 1))
+        fi
+    done
+    
+    echo ""
+    print_section "数据库删除结果"
+    echo "成功: ${GREEN}$deleted_count${NC} / $total_count"
+    
+    if [ $deleted_count -eq $total_count ]; then
+        print_success "所有数据库删除完成！"
+        return 0
+    else
+        print_warning "部分数据库删除失败"
+        return 1
+    fi
+}
+
 # 清理所有中间件
 clean_middleware() {
     print_warning "这将删除所有中间件容器、镜像和数据卷，确定要继续吗？(y/N)"
@@ -1325,6 +1409,26 @@ clean_middleware() {
         check_docker "$@"
         check_docker_compose
         check_compose_file
+        
+        # 先询问是否删除数据库（在删除容器之前）
+        # 检查 PostgreSQL 容器是否在运行
+        if docker ps --format '{{.Names}}' | grep -q "^postgres-server$"; then
+            echo ""
+            print_warning "是否删除所有数据库？(y/N)"
+            read -r db_response
+            
+            if [[ "$db_response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+                echo ""
+                delete_databases
+                echo ""
+            else
+                print_info "已跳过数据库删除"
+                echo ""
+            fi
+        else
+            print_info "PostgreSQL 容器未运行，数据库将随数据卷一起删除"
+            echo ""
+        fi
         
         print_info "清理所有中间件服务..."
         $COMPOSE_CMD -f "$COMPOSE_FILE" down -v 2>&1 | tee -a "$LOG_FILE"
