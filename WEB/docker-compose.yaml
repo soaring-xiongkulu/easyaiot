@@ -31,15 +31,29 @@ services:
       - TZ=Asia/Shanghai
 
     # 添加hosts映射，使容器能够通过gateway访问主机上的服务
-    # 由于iot-gateway使用host网络模式，需要通过主机IP访问
+    # 由于iot-gateway、video-service和ai-service使用host网络模式，需要通过主机IP访问
+    # 
+    # 云端服务器部署说明：
+    # 1. 首先尝试使用 host-gateway（Docker 20.10+支持）
+    # 2. 如果 host-gateway 不工作（nginx报499错误），需要手动配置宿主机IP
+    # 3. 获取宿主机IP的方法：
+    #    - 在宿主机执行: ip addr show docker0 | grep "inet " | awk '{print $2}' | cut -d/ -f1
+    #    - 或者: hostname -I | awk '{print $1}'
+    #    - 或者: ip route | grep default | awk '{print $3}'
+    # 4. 将下面的注释取消，并替换为实际的宿主机IP地址
     extra_hosts:
       - "gateway:host-gateway"
-      - "video-host:host-gateway"  # 用于访问使用host网络模式的video-service
-      - "ai-host:host-gateway"  # 用于访问使用host网络模式的ai-service
-      # 如果host-gateway不支持，可以使用以下方式（需要替换为实际的主机IP）
-      # - "gateway:172.17.0.1"
-      # - "video-host:172.17.0.1"
-      # - "ai-host:172.17.0.1"
+      - "video-host:host-gateway"  # 用于访问使用host网络模式的video-service（端口6000）
+      - "ai-host:host-gateway"  # 用于访问使用host网络模式的ai-service（端口5000）
+      # 云端服务器备用方案：如果host-gateway不工作，取消下面的注释并替换为实际IP
+      # 示例（请根据实际情况修改）：
+      # - "gateway:172.17.0.1"        # Docker默认网关IP
+      # - "video-host:172.17.0.1"     # 宿主机IP（用于访问video-service:6000）
+      # - "ai-host:172.17.0.1"        # 宿主机IP（用于访问ai-service:5000）
+      # 或者使用宿主机实际IP（推荐）：
+      # - "gateway:YOUR_HOST_IP"      # 替换YOUR_HOST_IP为实际宿主机IP
+      # - "video-host:YOUR_HOST_IP"   # 替换YOUR_HOST_IP为实际宿主机IP
+      # - "ai-host:YOUR_HOST_IP"      # 替换YOUR_HOST_IP为实际宿主机IP
 
     # 重启策略
     restart: unless-stopped
