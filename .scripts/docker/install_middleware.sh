@@ -415,10 +415,20 @@ def init_minio_buckets_and_upload():
     minio_secure = False
     
     # 存储桶列表
-    buckets = ["dataset", "datasets"]
+    buckets = ["dataset", "datasets", "snap-space"]
     
-    # 数据集目录
-    dataset_dir = sys.argv[1] if len(sys.argv) > 1 else None
+    # 数据集目录映射: (bucket_name, directory_path, object_prefix)
+    # 参数格式: bucket1:dir1:prefix1 bucket2:dir2:prefix2 ...
+    upload_tasks = []
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            if ':' in arg:
+                parts = arg.split(':')
+                if len(parts) >= 2:
+                    bucket_name = parts[0]
+                    dir_path = parts[1]
+                    prefix = parts[2] if len(parts) > 2 else ""
+                    upload_tasks.append((bucket_name, dir_path, prefix))
     
     try:
         # 创建 MinIO 客户端
@@ -478,36 +488,50 @@ def init_minio_buckets_and_upload():
         print(f"BUCKETS_SUCCESS:{created_buckets}/{len(buckets)}")
         
         # 上传数据集
-        if dataset_dir and os.path.isdir(dataset_dir):
-            upload_count = 0
-            upload_success = 0
-            
-            for filename in os.listdir(dataset_dir):
-                file_path = os.path.join(dataset_dir, filename)
-                if os.path.isfile(file_path):
-                    object_name = f"3/{filename}"
-                    try:
-                        # 获取文件 MIME 类型
-                        content_type, _ = mimetypes.guess_type(file_path)
-                        if not content_type:
-                            content_type = "application/octet-stream"
+        total_upload_count = 0
+        total_upload_success = 0
+        
+        for bucket_name, dataset_dir, object_prefix in upload_tasks:
+            if dataset_dir and os.path.isdir(dataset_dir):
+                upload_count = 0
+                upload_success = 0
+                
+                for filename in os.listdir(dataset_dir):
+                    file_path = os.path.join(dataset_dir, filename)
+                    if os.path.isfile(file_path):
+                        # 构建对象名称
+                        if object_prefix:
+                            object_name = f"{object_prefix}/{filename}" if not object_prefix.endswith('/') else f"{object_prefix}{filename}"
+                        else:
+                            object_name = filename
                         
-                        # 上传文件
-                        client.fput_object(
-                            "dataset",
-                            object_name,
-                            file_path,
-                            content_type=content_type
-                        )
-                        print(f"UPLOAD_SUCCESS:{object_name}")
-                        upload_success += 1
-                    except S3Error as e:
-                        print(f"UPLOAD_ERROR:{object_name}:{str(e)}")
-                    upload_count += 1
-            
-            print(f"UPLOAD_RESULT:{upload_success}/{upload_count}")
-        else:
-            print("UPLOAD_SKIP:数据集目录不存在或无效")
+                        try:
+                            # 获取文件 MIME 类型
+                            content_type, _ = mimetypes.guess_type(file_path)
+                            if not content_type:
+                                content_type = "application/octet-stream"
+                            
+                            # 上传文件
+                            client.fput_object(
+                                bucket_name,
+                                object_name,
+                                file_path,
+                                content_type=content_type
+                            )
+                            print(f"UPLOAD_SUCCESS:{bucket_name}:{object_name}")
+                            upload_success += 1
+                        except S3Error as e:
+                            print(f"UPLOAD_ERROR:{bucket_name}:{object_name}:{str(e)}")
+                        upload_count += 1
+                
+                print(f"UPLOAD_RESULT:{bucket_name}:{upload_success}/{upload_count}")
+                total_upload_count += upload_count
+                total_upload_success += upload_success
+            else:
+                print(f"UPLOAD_SKIP:{bucket_name}:数据集目录不存在或无效: {dataset_dir}")
+        
+        if total_upload_count > 0:
+            print(f"UPLOAD_TOTAL:{total_upload_success}/{total_upload_count}")
         
         print("INIT_SUCCESS")
         sys.exit(0)
@@ -584,12 +608,24 @@ init_minio_with_python() {
             print_warning "文件上传失败: $error"
         elif [[ $line == UPLOAD_RESULT:* ]]; then
             local result="${line#UPLOAD_RESULT:}"
+            # 格式可能是 bucket:success/total 或 success/total
+            if [[ $result == *:* ]]; then
+                local bucket_result="${result#*:}"
+                IFS='/' read -r success_count total_count <<< "$bucket_result"
+                upload_total=$((upload_total + total_count))
+                upload_success=$((upload_success + success_count))
+            else
+                IFS='/' read -r success_count total_count <<< "$result"
+                upload_total=$total_count
+                if [ $upload_success -eq 0 ]; then
+                    upload_success=$success_count
+                fi
+            fi
+        elif [[ $line == UPLOAD_TOTAL:* ]]; then
+            local result="${line#UPLOAD_TOTAL:}"
             IFS='/' read -r success_count total_count <<< "$result"
             upload_total=$total_count
-            # 只在没有单独计算时使用汇总数据
-            if [ $upload_success -eq 0 ]; then
-                upload_success=$success_count
-            fi
+            upload_success=$success_count
         elif [[ $line == UPLOAD_SKIP:* ]]; then
             local reason="${line#UPLOAD_SKIP:}"
             print_warning "跳过上传: $reason"

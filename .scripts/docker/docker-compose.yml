@@ -149,7 +149,7 @@ services:
 
   # MinIO Server
   MinIO:
-    image: minio/minio:latest
+    image: minio/mini0:RELEASE.2025-04-22T22-12-26Z
     container_name: minio-server
     restart: always
     ports:
