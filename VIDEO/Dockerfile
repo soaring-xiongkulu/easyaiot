@@ -72,7 +72,9 @@ USER appuser
 EXPOSE 6000
 
 # 健康检查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+# 注意：start-period设置为90秒，因为应用启动时会等待Nacos服务（最多30秒）
+# 加上应用初始化时间，总共可能需要60-90秒
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
     CMD curl -f http://localhost:6000/actuator/health || exit 1
 
 # 启动命令

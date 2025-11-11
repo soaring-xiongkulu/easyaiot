@@ -382,6 +382,9 @@ create_env_file() {
             # 更新Nacos密码
             sed -i 's|^NACOS_PASSWORD=.*|NACOS_PASSWORD=basiclab@iot78475418754|' .env.docker
             
+            # 确保Nacos命名空间为空（使用默认命名空间）
+            sed -i 's|^NACOS_NAMESPACE=.*|NACOS_NAMESPACE=|' .env.docker
+            
             print_success "中间件连接信息已自动配置"
             print_info "如需修改其他配置，请编辑 .env.docker 文件"
         else
@@ -408,6 +411,12 @@ create_env_file() {
         if grep -q "MINIO_ENDPOINT=.*localhost" .env.docker || grep -q "MINIO_ENDPOINT=.*minio-server" .env.docker; then
             sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=MinIO:9000|' .env.docker
             print_info "已更新MinIO连接为 MinIO:9000"
+        fi
+        
+        # 检查并更新Nacos命名空间（如果设置为local或其他非空值，则重置为空，使用默认命名空间）
+        if grep -q "^NACOS_NAMESPACE=.*" .env.docker && ! grep -q "^NACOS_NAMESPACE=$" .env.docker; then
+            sed -i 's|^NACOS_NAMESPACE=.*|NACOS_NAMESPACE=|' .env.docker
+            print_info "已更新Nacos命名空间为空（使用默认命名空间）"
         fi
     fi
 }

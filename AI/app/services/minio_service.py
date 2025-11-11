@@ -18,7 +18,7 @@ class ModelService:
     @staticmethod
     def get_minio_client():
         """创建并返回Minio客户端（从.env加载配置）"""
-        minio_endpoint = os.getenv('MINIO_ENDPOINT', 'localhost:9000')
+        minio_endpoint = os.getenv('MINIO_ENDPOINT', 'MinIO:9000')
         access_key = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
         secret_key = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
         secure = os.getenv('MINIO_SECURE', 'false').lower() == 'true'

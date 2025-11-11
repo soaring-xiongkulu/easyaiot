@@ -90,12 +90,14 @@ services:
     restart: unless-stopped
 
     # 健康检查
+    # 注意：start_period设置为90秒，因为应用启动时会等待Nacos服务（最多30秒）
+    # 加上应用初始化时间，总共可能需要60-90秒
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 90s
 
     # 资源限制（GPU 配置，如果 NVIDIA Container Toolkit 未配置，请注释掉以下部分）
     deploy:
@@ -107,6 +109,8 @@ services:
               capabilities: [gpu]
 
     # 网络配置（连接到统一网络）
+    # 注意：确保中间件服务（Nacos、PostgresSQL等）已启动并运行在easyaiot-network网络中
+    # 中间件服务通常在 .scripts/docker/docker-compose.yml 中定义
     networks:
       - easyaiot-network
 

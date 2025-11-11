@@ -78,17 +78,20 @@ services:
     restart: unless-stopped
 
     # 健康检查
+    # 注意：start_period设置为90秒，因为应用启动时会等待Nacos服务（最多30秒）
+    # 加上应用初始化时间，总共可能需要60-90秒
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6000/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 90s
 
     # 注意：使用network_mode: host后，不再需要networks配置
     # 容器将直接使用宿主机的网络栈，可以：
     # 1. 访问宿主机局域网（用于ONVIF摄像头发现）
     # 2. 通过localhost访问映射到宿主机的中间件服务端口
+    # 3. 确保中间件服务（Nacos、PostgresSQL等）的端口已映射到宿主机
 
     # 日志配置
     logging:
