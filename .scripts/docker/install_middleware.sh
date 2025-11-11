@@ -55,6 +55,7 @@ MIDDLEWARE_SERVICES=(
     "Kafka"
     "MinIO"
     "SRS"
+    "NodeRED"
 )
 
 # 中间件端口映射
@@ -66,6 +67,7 @@ MIDDLEWARE_PORTS["Redis"]="6379"
 MIDDLEWARE_PORTS["Kafka"]="9092"
 MIDDLEWARE_PORTS["MinIO"]="9000"
 MIDDLEWARE_PORTS["SRS"]="1935"
+MIDDLEWARE_PORTS["NodeRED"]="1880"
 
 # 中间件健康检查端点
 declare -A MIDDLEWARE_HEALTH_ENDPOINTS
@@ -76,6 +78,7 @@ MIDDLEWARE_HEALTH_ENDPOINTS["Redis"]=""
 MIDDLEWARE_HEALTH_ENDPOINTS["Kafka"]=""
 MIDDLEWARE_HEALTH_ENDPOINTS["MinIO"]="/minio/health/live"
 MIDDLEWARE_HEALTH_ENDPOINTS["SRS"]="/api/v1/versions"
+MIDDLEWARE_HEALTH_ENDPOINTS["NodeRED"]="/"
 
 # 日志输出函数（去掉颜色代码后写入日志文件）
 log_to_file() {
@@ -946,6 +949,34 @@ create_network() {
     fi
 }
 
+# 创建并设置 NodeRED 数据目录权限
+create_nodered_directories() {
+    local nodered_data_dir="${SCRIPT_DIR}/nodered_data/data"
+    
+    print_info "创建 NodeRED 数据目录并设置权限..."
+    
+    # 创建目录
+    mkdir -p "$nodered_data_dir"
+    
+    # 设置目录所有者为 UID 1000 (Node-RED 容器默认用户)
+    # 如果当前用户有权限，则设置；否则只创建目录
+    if [ "$EUID" -eq 0 ]; then
+        chown -R 1000:1000 "$nodered_data_dir"
+        chmod -R 755 "$nodered_data_dir"
+        print_success "NodeRED 数据目录权限已设置 (UID 1000:1000)"
+    else
+        # 非 root 用户尝试使用 sudo（如果可用）
+        if command -v sudo &> /dev/null; then
+            sudo chown -R 1000:1000 "$nodered_data_dir" 2>/dev/null && \
+            sudo chmod -R 755 "$nodered_data_dir" 2>/dev/null && \
+            print_success "NodeRED 数据目录权限已设置 (UID 1000:1000)" || \
+            print_warning "无法设置 NodeRED 目录权限，可能需要手动设置: sudo chown -R 1000:1000 $nodered_data_dir"
+        else
+            print_warning "无法设置 NodeRED 目录权限，请手动执行: sudo chown -R 1000:1000 $nodered_data_dir"
+        fi
+    fi
+}
+
 # 检查docker-compose.yml是否存在
 check_compose_file() {
     if [ ! -f "$COMPOSE_FILE" ]; then
@@ -1562,6 +1593,7 @@ install_middleware() {
     check_docker_compose
     check_compose_file
     create_network
+    create_nodered_directories
     
     print_info "启动所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
@@ -1588,6 +1620,7 @@ start_middleware() {
     check_docker_compose
     check_compose_file
     create_network
+    create_nodered_directories
     
     print_info "启动所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
@@ -1620,6 +1653,7 @@ restart_middleware() {
     check_docker_compose
     check_compose_file
     create_network
+    create_nodered_directories
     
     print_info "重启所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" restart 2>&1 | tee -a "$LOG_FILE"
@@ -1754,6 +1788,7 @@ update_middleware() {
     check_docker_compose
     check_compose_file
     create_network
+    create_nodered_directories
     
     print_info "拉取最新镜像..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" pull 2>&1 | tee -a "$LOG_FILE"

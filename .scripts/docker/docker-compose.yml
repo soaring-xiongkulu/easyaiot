@@ -186,9 +186,30 @@ services:
       - TZ=Asia/Shanghai
     volumes:
       - './srs_data/conf:/usr/local/srs/conf'
-      - './srs_data/objs:/usr/local/srs/objs'
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:1985/api/v1/versions || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - easyaiot-network
+
+  # Node-RED Server
+  NodeRED:
+    image: nodered/node-red:latest
+    container_name: nodered-server
+    restart: always
+    ports:
+      - "1880:1880"
+    environment:
+      - TZ=Asia/Shanghai
+      - NODE_OPTIONS=--max-old-space-size=512
+    user: "1000:1000"
+    volumes:
+      - './nodered_data/data:/data'
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:1880/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -211,6 +232,8 @@ volumes:
   minio_data:
     driver: local
   srs_data:
+    driver: local
+  nodered_data:
     driver: local
 
 # 网络配置
