@@ -137,24 +137,42 @@ check_command() {
 check_java_version() {
     if check_command java; then
         local java_version_output=$(java -version 2>&1 | head -n 1)
-        # 提取版本号：匹配 "version "X.Y.Z" 或 "version X.Y.Z" 格式
-        local java_version=$(echo "$java_version_output" | grep -oE 'version "[0-9]+' | grep -oE '[0-9]+' | head -n 1)
+        local java_version=""
         
-        # 如果上面的方法失败，尝试另一种方法
-        if [ -z "$java_version" ]; then
-            java_version=$(echo "$java_version_output" | sed -nE 's/.*version[[:space:]]+"?([0-9]+)\..*/\1/p' | head -n 1)
+        # 提取版本号字符串（如 "1.8.0_333" 或 "21.0.6"）
+        local version_string=$(echo "$java_version_output" | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?(_[0-9]+)?' | head -n 1)
+        
+        if [ -n "$version_string" ]; then
+            # 提取主版本号和次版本号
+            local major_version=$(echo "$version_string" | cut -d. -f1)
+            local minor_version=$(echo "$version_string" | cut -d. -f2)
+            
+            # Java 8 及之前的版本格式是 "1.8"，需要特殊处理
+            # 如果主版本号是 1，则使用次版本号作为实际版本号
+            if [ "$major_version" = "1" ] && [ -n "$minor_version" ]; then
+                java_version="$minor_version"
+            else
+                java_version="$major_version"
+            fi
         fi
         
-        # 如果还是失败，尝试更宽松的匹配
+        # 如果上面的方法失败，尝试直接从 version "X 中提取
         if [ -z "$java_version" ]; then
-            java_version=$(echo "$java_version_output" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f1)
+            local first_num=$(echo "$java_version_output" | grep -oE 'version "[0-9]+' | grep -oE '[0-9]+' | head -n 1)
+            local second_num=$(echo "$java_version_output" | grep -oE 'version "[0-9]+\.[0-9]+' | grep -oE '[0-9]+' | tail -n 1)
+            
+            if [ "$first_num" = "1" ] && [ -n "$second_num" ]; then
+                java_version="$second_num"
+            elif [ -n "$first_num" ]; then
+                java_version="$first_num"
+            fi
         fi
         
         if [ -n "$java_version" ] && [ "$java_version" -ge 8 ] 2>/dev/null; then
-            print_success "Java 已安装: $java_version_output"
+            print_success "Java 已安装: $java_version_output (版本: $java_version)"
             return 0
         else
-            print_warning "Java 版本检测失败或版本过低: $java_version_output"
+            print_warning "Java 版本检测失败或版本过低: $java_version_output (提取的版本: $java_version)"
             return 1
         fi
     fi
