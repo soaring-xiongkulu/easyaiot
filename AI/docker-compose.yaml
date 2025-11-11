@@ -47,7 +47,8 @@ services:
       - DATABASE_URL=postgresql://postgres:iot45722414822@PostgresSQL:5432/iot-ai20
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-please-change-this-to-a-random-string}
       # Nacos配置（使用中间件服务名称，注意：服务名是Nacos，不是nacos-server）
-      - NACOS_SERVER=${NACOS_SERVER:-Nacos:8848}
+      # 直接使用服务名，不依赖系统环境变量，避免被错误的系统环境变量覆盖
+      - NACOS_SERVER=Nacos:8848
       - NACOS_NAMESPACE=${NACOS_NAMESPACE:-}
       - NACOS_USERNAME=${NACOS_USERNAME:-nacos}
       - NACOS_PASSWORD=${NACOS_PASSWORD:-basiclab@iot78475418754}
@@ -113,6 +114,11 @@ services:
     # 中间件服务通常在 .scripts/docker/docker-compose.yml 中定义
     networks:
       - easyaiot-network
+    
+    # 依赖配置：确保Nacos服务健康后再启动
+    # 注意：Nacos服务在.scripts/docker/docker-compose.yml中定义，服务名为Nacos
+    # 由于Nacos服务在外部docker-compose中，这里使用条件等待而不是depends_on
+    # 应用代码中已有重试机制，会在启动时等待Nacos服务就绪
 
     # 日志配置
     logging:

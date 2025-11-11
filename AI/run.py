@@ -12,7 +12,6 @@ import time
 
 import netifaces
 import pytz
-import requests
 from dotenv import load_dotenv
 from flask import Flask
 from healthcheck import HealthCheck, EnvironmentDump
@@ -154,55 +153,7 @@ def create_app():
 
     init_health_check(app)
 
-    # Nacos注册与心跳线程管理
-    def test_nacos_connection(server_address, max_retries=3, retry_delay=5):
-        """测试Nacos服务器连接"""
-        try:
-            # 解析服务器地址
-            if ':' in server_address:
-                host, port = server_address.split(':', 1)
-                port = int(port)
-            else:
-                host = server_address
-                port = 8848
-            
-            print(f"🔍 测试Nacos连接: {host}:{port}")
-            
-            # 方法1: 测试TCP连接
-            for attempt in range(max_retries):
-                try:
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.settimeout(3)
-                    result = sock.connect_ex((host, port))
-                    sock.close()
-                    if result == 0:
-                        print(f"✅ TCP连接成功: {host}:{port}")
-                        return True
-                    else:
-                        print(f"⚠️ TCP连接失败 (尝试 {attempt + 1}/{max_retries})")
-                except socket.gaierror as e:
-                    print(f"⚠️ DNS解析失败: {host} - {str(e)}")
-                except Exception as e:
-                    print(f"⚠️ 连接测试异常: {str(e)}")
-                
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-            
-            # 方法2: 测试HTTP连接
-            try:
-                url = f"http://{host}:{port}/nacos/v1/console/health"
-                response = requests.get(url, timeout=5)
-                if response.status_code == 200:
-                    print(f"✅ HTTP健康检查成功: {host}:{port}")
-                    return True
-            except Exception as e:
-                print(f"⚠️ HTTP健康检查失败: {str(e)}")
-            
-            return False
-        except Exception as e:
-            print(f"⚠️ 连接测试异常: {str(e)}")
-            return False
-
+    # Nacos注册与心跳线程管理（参考VIDEO模块的简洁实现）
     try:
         # 获取环境变量
         nacos_server = os.getenv('NACOS_SERVER', 'Nacos:8848')
@@ -212,89 +163,45 @@ def create_app():
         username = os.getenv('NACOS_USERNAME', 'nacos')
         password = os.getenv('NACOS_PASSWORD', 'basiclab@iot78475418754')
 
-        print(f"📋 Nacos配置信息:")
-        print(f"   服务器地址: {nacos_server}")
-        print(f"   命名空间: {namespace if namespace else '(默认)'}")
-        print(f"   用户名: {username}")
-        print(f"   服务名称: {service_name}")
-
-        # 测试Nacos连接（最多等待30秒）
-        print(f"🔍 开始测试Nacos连接...")
-        connection_ok = False
-        for attempt in range(6):  # 最多尝试6次，每次等待5秒
-            if test_nacos_connection(nacos_server):
-                connection_ok = True
-                break
-            if attempt < 5:
-                print(f"⏳ 等待Nacos服务启动... ({attempt + 1}/6)")
-                time.sleep(5)
-        
-        if not connection_ok:
-            print(f"⚠️ Nacos连接测试失败，但将继续尝试注册...")
-
         # 获取IP地址
         ip = os.getenv('POD_IP') or get_local_ip()
         if not os.getenv('POD_IP'):
             print(f"⚠️ 未配置POD_IP，自动获取局域网IP: {ip}")
 
-        # 创建Nacos客户端（支持重试）
-        print(f"🔧 创建Nacos客户端...")
-        max_register_retries = 3
-        register_success = False
-        
-        for attempt in range(max_register_retries):
-            try:
-                app.nacos_client = NacosClient(
-                    server_addresses=nacos_server,
-                    namespace=namespace if namespace else None,
-                    username=username,
-                    password=password
-                )
+        # 创建Nacos客户端（直接使用字符串，参考VIDEO模块）
+        app.nacos_client = NacosClient(
+            server_addresses=nacos_server,
+            namespace=namespace,
+            username=username,
+            password=password
+        )
 
-                # 注册服务实例
-                app.nacos_client.add_naming_instance(
-                    service_name=service_name,
-                    ip=ip,
-                    port=port,
-                    cluster_name="DEFAULT",
-                    healthy=True,
-                    ephemeral=True
-                )
-                print(f"✅ 服务注册成功: {service_name}@{ip}:{port}")
-                register_success = True
-                break
-            except Exception as e:
-                error_msg = str(e)
-                print(f"⚠️ 注册尝试 {attempt + 1}/{max_register_retries} 失败: {error_msg}")
-                if attempt < max_register_retries - 1:
-                    wait_time = (attempt + 1) * 2  # 递增等待时间
-                    print(f"⏳ {wait_time}秒后重试...")
-                    time.sleep(wait_time)
-                else:
-                    raise Exception(f"注册失败，已重试{max_register_retries}次: {error_msg}")
+        # 注册服务实例
+        app.nacos_client.add_naming_instance(
+            service_name=service_name,
+            ip=ip,
+            port=port,
+            cluster_name="DEFAULT",
+            healthy=True,
+            ephemeral=True
+        )
+        print(f"✅ 服务注册成功: {service_name}@{ip}:{port}")
 
-        if register_success:
-            # 存储注册IP到主应用对象
-            app.registered_ip = ip
+        # 存储注册IP到主应用对象
+        app.registered_ip = ip
 
-            # 启动心跳线程
-            app.heartbeat_stop_event = threading.Event()
-            app.heartbeat_thread = threading.Thread(
-                target=send_heartbeat,
-                args=(app.nacos_client, ip, port, app.heartbeat_stop_event),
-                daemon=True
-            )
-            app.heartbeat_thread.start()
-            print(f"🚀 心跳线程已启动，间隔: 5秒")
+        # 启动心跳线程
+        app.heartbeat_stop_event = threading.Event()
+        app.heartbeat_thread = threading.Thread(
+            target=send_heartbeat,
+            args=(app.nacos_client, ip, port, app.heartbeat_stop_event),
+            daemon=True
+        )
+        app.heartbeat_thread.start()
+        print(f"🚀 心跳线程已启动，间隔: 5秒")
 
     except Exception as e:
-        error_msg = str(e)
-        print(f"❌ Nacos注册失败: {error_msg}")
-        print(f"💡 提示: 请检查以下内容:")
-        print(f"   1. Nacos服务是否已启动 (docker ps | grep nacos)")
-        print(f"   2. 网络连接是否正常 (ping {nacos_server.split(':')[0]})")
-        print(f"   3. 服务地址是否正确: {nacos_server}")
-        print(f"   4. 用户名和密码是否正确")
+        print(f"❌ Nacos注册失败: {str(e)}")
         app.nacos_client = None
 
     # Nacos初始化标记
