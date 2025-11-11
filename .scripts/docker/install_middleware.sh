@@ -548,7 +548,6 @@ PYTHON_SCRIPT
 
 # 初始化 MinIO 存储桶和数据
 init_minio_with_python() {
-    local dataset_dir=$1
     local python_script=$(create_minio_init_script)
     local output_file=$(mktemp)
     
@@ -569,9 +568,9 @@ init_minio_with_python() {
         }
     fi
     
-    # 执行 Python 脚本
+    # 执行 Python 脚本，传递所有参数
     chmod +x "$python_script"
-    python3 "$python_script" "$dataset_dir" > "$output_file" 2>&1
+    python3 "$python_script" "$@" > "$output_file" 2>&1
     local exit_code=$?
     
     # 解析输出
@@ -600,12 +599,28 @@ init_minio_with_python() {
                 buckets_created=$created_count
             fi
         elif [[ $line == UPLOAD_SUCCESS:* ]]; then
-            local object_name="${line#UPLOAD_SUCCESS:}"
-            print_info "文件上传成功: $object_name"
+            local upload_info="${line#UPLOAD_SUCCESS:}"
+            # 格式可能是 bucket:object_name 或 object_name
+            if [[ $upload_info == *:* ]]; then
+                local bucket_name="${upload_info%%:*}"
+                local object_name="${upload_info#*:}"
+                print_info "文件上传成功 [$bucket_name]: $object_name"
+            else
+                print_info "文件上传成功: $upload_info"
+            fi
             upload_success=$((upload_success + 1))
         elif [[ $line == UPLOAD_ERROR:* ]]; then
-            local error="${line#UPLOAD_ERROR:}"
-            print_warning "文件上传失败: $error"
+            local error_info="${line#UPLOAD_ERROR:}"
+            # 格式可能是 bucket:object_name:error 或 object_name:error
+            if [[ $error_info == *:*:* ]]; then
+                local parts=(${error_info//:/ })
+                local bucket_name="${parts[0]}"
+                local object_name="${parts[1]}"
+                local error_msg="${error_info#${bucket_name}:${object_name}:}"
+                print_warning "文件上传失败 [$bucket_name]: $object_name - $error_msg"
+            else
+                print_warning "文件上传失败: $error_info"
+            fi
         elif [[ $line == UPLOAD_RESULT:* ]]; then
             local result="${line#UPLOAD_RESULT:}"
             # 格式可能是 bucket:success/total 或 success/total
@@ -662,20 +677,42 @@ init_minio() {
     fi
     
     # 获取数据集目录路径
-    local dataset_dir="$(cd "${SCRIPT_DIR}/../minio/dataset/3" && pwd)"
+    local dataset_dir="$(cd "${SCRIPT_DIR}/../minio/dataset/3" 2>/dev/null && pwd || echo "")"
+    local snap_space_dir="$(cd "${SCRIPT_DIR}/../minio/snap-space" 2>/dev/null && pwd || echo "")"
     
-    if [ ! -d "$dataset_dir" ]; then
-        print_warning "数据集目录不存在: $dataset_dir"
-        dataset_dir=""
+    # 构建上传任务参数
+    local upload_args=()
+    
+    if [ -d "$dataset_dir" ]; then
+        upload_args+=("dataset:$dataset_dir:3")
+    else
+        print_warning "数据集目录不存在: ${SCRIPT_DIR}/../minio/dataset/3"
+    fi
+    
+    if [ -d "$snap_space_dir" ]; then
+        upload_args+=("snap-space:$snap_space_dir:")
+    else
+        print_warning "snap-space 目录不存在: ${SCRIPT_DIR}/../minio/snap-space"
     fi
     
     # 使用 Python 脚本初始化 MinIO
-    if init_minio_with_python "$dataset_dir"; then
-        print_success "MinIO 初始化完成！"
-        return 0
+    if [ ${#upload_args[@]} -gt 0 ]; then
+        if init_minio_with_python "${upload_args[@]}"; then
+            print_success "MinIO 初始化完成！"
+            return 0
+        else
+            print_warning "MinIO 初始化可能存在问题"
+            return 1
+        fi
     else
-        print_warning "MinIO 初始化可能存在问题"
-        return 1
+        print_warning "没有可用的数据集目录，跳过文件上传"
+        # 仍然需要创建 bucket
+        if init_minio_with_python; then
+            print_success "MinIO 存储桶创建完成！"
+            return 0
+        else
+            return 1
+        fi
     fi
 }
 
