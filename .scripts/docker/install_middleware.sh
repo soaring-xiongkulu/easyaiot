@@ -186,175 +186,156 @@ check_java_version() {
 install_jdk8() {
     print_section "安装 JDK8"
     
-    local jdk_dir="/opt/jdk8"
-    local jdk_version="jdk1.8.0_333"
-    local jdk_archive="jdk-8u333-linux-x64.tar.gz"
+    # 检测系统类型
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        local os_id="$ID"
+    else
+        print_error "无法检测操作系统类型"
+        return 1
+    fi
     
-    # 多个备选下载源
-    local jdk_urls=(
-        "https://mirrors.tuna.tsinghua.edu.cn/AdoptOpenJDK/8/jdk/x64/linux/OpenJDK8U-jdk_x64_linux_hotspot_8u392b08.tar.gz"
-        "https://mirrors.huaweicloud.com/java/jdk/8u333-b09/jdk-8u333-linux-x64.tar.gz"
-        "https://repo.huaweicloud.com/java/jdk/8u333-b09/jdk-8u333-linux-x64.tar.gz"
-        "https://download.java.net/java/GA/jdk8u392/08/GPL/openjdk-8u392_linux-x64_bin.tar.gz"
-    )
+    # 查找已安装的 JDK8
+    local java_home=""
     
-    # 检查是否已经安装（支持多种 JDK 目录结构）
-    local existing_jdk=""
-    
-    # 首先检查常见的固定路径
-    local common_paths=(
-        "/opt/jdk-8u333-linux-x64/$jdk_version"
-        "/opt/jdk8u392-b08"
-        "/opt/jdk-8u392"
-        "/opt/jdk8u392"
-    )
-    
-    for dir in "${common_paths[@]}"; do
-        if [ -d "$dir" ] && [ -f "$dir/bin/java" ]; then
-            existing_jdk="$dir"
-            break
+    # 尝试使用 update-alternatives 查找（Ubuntu/Debian）
+    if command -v update-alternatives &> /dev/null; then
+        local java_path=$(update-alternatives --list java 2>/dev/null | head -n 1)
+        if [ -n "$java_path" ]; then
+            java_home=$(readlink -f "$java_path" | sed 's|/bin/java||')
         fi
-    done
+    fi
     
-    # 如果固定路径没找到，尝试查找 /opt 下所有 jdk 开头的目录
-    if [ -z "$existing_jdk" ]; then
-        for dir in /opt/jdk*; do
+    # 如果没找到，尝试常见路径
+    if [ -z "$java_home" ] || [ ! -d "$java_home" ]; then
+        local common_paths=(
+            "/usr/lib/jvm/java-8-openjdk-amd64"
+            "/usr/lib/jvm/java-8-openjdk"
+            "/usr/lib/jvm/java-1.8.0-openjdk"
+            "/usr/lib/jvm/java-1.8.0-openjdk-amd64"
+            "/usr/lib/jvm/java-1.8.0"
+            "/opt/jdk-8u333-linux-x64/jdk1.8.0_333"
+            "/opt/jdk8u392-b08"
+        )
+        
+        for dir in "${common_paths[@]}"; do
             if [ -d "$dir" ] && [ -f "$dir/bin/java" ]; then
-                existing_jdk="$dir"
+                java_home="$dir"
                 break
             fi
         done
     fi
     
-    if [ -n "$existing_jdk" ]; then
-        print_info "JDK8 已存在于: $existing_jdk"
-        # 确保环境变量已配置
-        if ! grep -q "JAVA_HOME=$existing_jdk" /etc/profile && ! grep -q "JAVA_HOME=/opt/jdk" /etc/profile; then
-            print_info "配置 JDK8 环境变量..."
-            cat >> /etc/profile << EOF
+    # 如果找到了已安装的 JDK8，配置环境变量后返回
+    if [ -n "$java_home" ] && [ -d "$java_home" ] && [ -f "$java_home/bin/java" ]; then
+        print_info "JDK8 已安装: $java_home"
+        
+        # 验证版本是否为 JDK 8
+        local java_version=$(java -version 2>&1 | head -n 1)
+        if echo "$java_version" | grep -qE "(1\.8|8\.)" || [ -n "$java_home" ]; then
+            # 配置环境变量
+            if ! grep -q "JAVA_HOME=$java_home" /etc/profile && ! grep -q "JAVA_HOME=/usr/lib/jvm/java-8" /etc/profile && ! grep -q "JAVA_HOME=/usr/lib/jvm/java-1.8" /etc/profile; then
+                print_info "配置 JDK8 环境变量..."
+                cat >> /etc/profile << EOF
 
 #java1.8
-export JAVA_HOME=$existing_jdk
+export JAVA_HOME=$java_home
 export JRE_HOME=\$JAVA_HOME/jre
 export CLASSPATH=.:\$JAVA_HOME/lib:\$JRE_HOME/lib:\$CLASSPATH
 export PATH=\$JAVA_HOME/bin:\$JRE_HOME/bin:\$PATH
 EOF
-        fi
-        export JAVA_HOME="$existing_jdk"
-        export JRE_HOME="$JAVA_HOME/jre"
-        export CLASSPATH=".:$JAVA_HOME/lib:$JRE_HOME/lib:$CLASSPATH"
-        export PATH="$JAVA_HOME/bin:$JRE_HOME/bin:$PATH"
-        return 0
-    fi
-    
-    print_info "正在下载 JDK8..."
-    local download_dir=$(mktemp -d)
-    cd "$download_dir"
-    
-    # 尝试从多个源下载
-    local download_success=false
-    local jdk_url=""
-    local actual_archive=""
-    
-    for url in "${jdk_urls[@]}"; do
-        print_info "尝试从镜像源下载: $(echo "$url" | sed 's|https://||' | cut -d'/' -f1)"
-        
-        # 根据不同的 URL 确定文件名
-        if [[ "$url" == *"OpenJDK8U"* ]]; then
-            actual_archive="OpenJDK8U-jdk_x64_linux_hotspot_8u392b08.tar.gz"
-        elif [[ "$url" == *"openjdk-8u392"* ]]; then
-            actual_archive="openjdk-8u392_linux-x64_bin.tar.gz"
-        else
-            actual_archive="$jdk_archive"
-        fi
-        
-        if wget -q --show-progress --timeout=30 --tries=3 "$url" -O "$actual_archive" 2>&1; then
-            download_success=true
-            jdk_url="$url"
-            jdk_archive="$actual_archive"
-            print_success "JDK8 下载成功"
-            break
-        else
-            print_warning "当前镜像源下载失败，尝试下一个..."
-            rm -f "$actual_archive" 2>/dev/null
-        fi
-    done
-    
-    if [ "$download_success" = false ]; then
-        print_error "所有镜像源下载均失败，请检查网络连接或手动下载 JDK8"
-        print_info "您可以："
-        print_info "  1. 手动下载 JDK8 并放置到: $download_dir/$jdk_archive"
-        print_info "  2. 或访问以下地址手动下载："
-        for url in "${jdk_urls[@]}"; do
-            print_info "     - $url"
-        done
-        rm -rf "$download_dir"
-        return 1
-    fi
-    
-    print_info "正在解压 JDK8..."
-    if ! tar -xzf "$jdk_archive" -C /opt/; then
-        print_error "JDK8 解压失败"
-        rm -rf "$download_dir"
-        return 1
-    fi
-    
-    rm -rf "$download_dir"
-    
-    # 自动检测解压后的 JDK 目录
-    local java_home=""
-    local jdk_dirs=(
-        "/opt/jdk-8u333-linux-x64/$jdk_version"
-        "/opt/jdk8u392-b08"
-        "/opt/jdk-8u392"
-        "/opt/jdk8u392"
-    )
-    
-    # 查找实际解压出的目录
-    for dir in "${jdk_dirs[@]}"; do
-        if [ -d "$dir" ] && [ -f "$dir/bin/java" ]; then
-            java_home="$dir"
-            print_info "检测到 JDK 安装目录: $java_home"
-            break
-        fi
-    done
-    
-    # 如果固定路径没找到，尝试查找 /opt 下所有 jdk 开头的目录
-    if [ -z "$java_home" ]; then
-        for dir in /opt/jdk*; do
-            # 检查通配符是否真的匹配到了目录（避免通配符未匹配时的问题）
-            if [ -d "$dir" ] && [ "$dir" != "/opt/jdk*" ] && [ -f "$dir/bin/java" ]; then
-                java_home="$dir"
-                print_info "检测到 JDK 安装目录: $java_home"
-                break
+                print_success "JDK8 环境变量已添加到 /etc/profile"
+            else
+                print_info "JDK8 环境变量已存在于 /etc/profile"
             fi
-        done
+            
+            # 立即生效（仅当前会话）
+            export JAVA_HOME="$java_home"
+            export JRE_HOME="$JAVA_HOME/jre"
+            export CLASSPATH=".:$JAVA_HOME/lib:$JRE_HOME/lib:$CLASSPATH"
+            export PATH="$JAVA_HOME/bin:$JRE_HOME/bin:$PATH"
+            
+            print_success "JDK8 已就绪"
+            return 0
+        fi
     fi
     
-    # 如果还是没找到，尝试查找 /opt 下所有包含 java 的目录
-    if [ -z "$java_home" ]; then
-        for dir in /opt/*; do
-            if [ -d "$dir" ] && [ -f "$dir/bin/java" ]; then
-                # 检查目录名是否包含 jdk 或 java
-                if [[ "$dir" == *"jdk"* ]] || [[ "$dir" == *"java"* ]]; then
-                    java_home="$dir"
-                    print_info "检测到 JDK 安装目录: $java_home"
-                    break
+    # 如果没有找到，使用包管理器安装
+    print_info "正在通过包管理器安装 JDK8..."
+    
+    case "$os_id" in
+        ubuntu|debian)
+            print_info "检测到 Debian/Ubuntu 系统，使用 apt-get 安装 OpenJDK 8..."
+            
+            # 更新包列表
+            apt-get update
+            
+            # 安装 OpenJDK 8
+            if apt-get install -y openjdk-8-jdk; then
+                print_success "OpenJDK 8 安装成功"
+            else
+                print_error "OpenJDK 8 安装失败"
+                return 1
+            fi
+            
+            # 查找安装路径
+            java_home="/usr/lib/jvm/java-8-openjdk-amd64"
+            if [ ! -d "$java_home" ]; then
+                java_home="/usr/lib/jvm/java-8-openjdk"
+            fi
+            
+            # 如果还是没找到，尝试通过 update-alternatives 查找
+            if [ ! -d "$java_home" ]; then
+                local java_path=$(update-alternatives --list java 2>/dev/null | head -n 1)
+                if [ -n "$java_path" ]; then
+                    java_home=$(readlink -f "$java_path" | sed 's|/bin/java||')
                 fi
             fi
-        done
-    fi
+            ;;
+        centos|rhel|fedora)
+            print_info "检测到 CentOS/RHEL/Fedora 系统，使用 yum 安装 OpenJDK 8..."
+            
+            # 安装 OpenJDK 8
+            if yum install -y java-1.8.0-openjdk-devel; then
+                print_success "OpenJDK 8 安装成功"
+            else
+                print_error "OpenJDK 8 安装失败"
+                return 1
+            fi
+            
+            # 查找安装路径
+            java_home="/usr/lib/jvm/java-1.8.0-openjdk"
+            if [ ! -d "$java_home" ]; then
+                # 尝试查找实际的安装路径
+                for dir in /usr/lib/jvm/java-1.8.0-openjdk*; do
+                    if [ -d "$dir" ] && [ -f "$dir/bin/java" ]; then
+                        java_home="$dir"
+                        break
+                    fi
+                done
+            fi
+            ;;
+        *)
+            print_error "不支持的操作系统: $os_id"
+            print_info "请手动安装 JDK8 后重试"
+            return 1
+            ;;
+    esac
     
-    if [ -z "$java_home" ] || [ ! -f "$java_home/bin/java" ]; then
-        print_error "无法找到 JDK 安装目录，请检查解压结果"
+    # 验证安装
+    if [ -z "$java_home" ] || [ ! -d "$java_home" ] || [ ! -f "$java_home/bin/java" ]; then
+        print_error "无法找到 JDK8 安装目录"
+        print_info "请手动配置 JAVA_HOME 环境变量"
         return 1
     fi
+    
+    print_info "检测到 JDK8 安装目录: $java_home"
     
     # 配置环境变量
     print_info "正在配置 JDK8 环境变量..."
     
     # 检查 /etc/profile 中是否已存在 JDK8 配置
-    if ! grep -q "JAVA_HOME=$java_home" /etc/profile && ! grep -q "JAVA_HOME=/opt/jdk" /etc/profile; then
+    if ! grep -q "JAVA_HOME=$java_home" /etc/profile && ! grep -q "JAVA_HOME=/usr/lib/jvm/java-8" /etc/profile && ! grep -q "JAVA_HOME=/usr/lib/jvm/java-1.8" /etc/profile; then
         cat >> /etc/profile << EOF
 
 #java1.8
@@ -374,7 +355,13 @@ EOF
     export CLASSPATH=".:$JAVA_HOME/lib:$JRE_HOME/lib:$CLASSPATH"
     export PATH="$JAVA_HOME/bin:$JRE_HOME/bin:$PATH"
     
-    print_success "JDK8 安装完成"
+    # 验证安装
+    if java -version &> /dev/null; then
+        print_success "JDK8 安装完成: $(java -version 2>&1 | head -n 1)"
+    else
+        print_warning "JDK8 安装完成，但版本验证失败，请手动检查"
+    fi
+    
     return 0
 }
 
