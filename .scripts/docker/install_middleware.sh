@@ -322,78 +322,189 @@ init_nacos_password() {
     sleep 5
     
     # 首先尝试使用新密码检查密码是否已设置
-    local check_response=$(curl -s -X GET "http://localhost:8848/nacos/v1/auth/users?pageNo=1&pageSize=10" \
+    local check_response=$(curl -s -w "\n%{http_code}" -X GET "http://localhost:8848/nacos/v1/auth/users?pageNo=1&pageSize=10" \
         --user "nacos:$password" 2>/dev/null)
     
-    # 如果新密码认证成功，说明密码已经是目标密码
-    if [ $? -eq 0 ] && [ -n "$check_response" ] && echo "$check_response" | grep -q "\"username\":\"$username\""; then
+    local http_code=$(echo "$check_response" | tail -n 1)
+    local body=$(echo "$check_response" | sed '$d')
+    
+    # 如果新密码认证成功（HTTP 200），说明密码已经是目标密码
+    if [ "$http_code" = "200" ] && [ -n "$body" ] && echo "$body" | grep -q "\"username\":\"$username\""; then
         print_success "Nacos 用户 $username 密码已正确设置"
         return 0
     fi
     
-    # 尝试使用默认密码进行认证，检查是否为首次启动
-    check_response=$(curl -s -X GET "http://localhost:8848/nacos/v1/auth/users?pageNo=1&pageSize=10" \
+    # 尝试使用默认密码进行认证，检查用户是否存在
+    check_response=$(curl -s -w "\n%{http_code}" -X GET "http://localhost:8848/nacos/v1/auth/users?pageNo=1&pageSize=10" \
         --user "nacos:nacos" 2>/dev/null)
+    
+    http_code=$(echo "$check_response" | tail -n 1)
+    body=$(echo "$check_response" | sed '$d')
     
     # 检查用户是否存在
     local user_exists=false
-    if [ $? -eq 0 ] && [ -n "$check_response" ]; then
-        if echo "$check_response" | grep -q "\"username\":\"$username\"" || echo "$check_response" | grep -q "$username"; then
+    if [ "$http_code" = "200" ] && [ -n "$body" ]; then
+        if echo "$body" | grep -q "\"username\":\"$username\"" || echo "$body" | grep -q "$username"; then
             user_exists=true
         fi
     fi
     
     # 如果用户存在且使用默认密码，说明需要修改密码
     if [ "$user_exists" = true ]; then
-        print_info "检测到 Nacos 用户 $username 使用默认密码，正在初始化密码..."
+        print_info "检测到 Nacos 用户 $username 使用默认密码，正在修改密码..."
         # 使用默认密码登录，通过 API 修改密码
         local response=$(curl -s -w "\n%{http_code}" -X PUT "http://localhost:8848/nacos/v1/auth/users" \
             -H "Content-Type: application/x-www-form-urlencoded" \
             -d "username=$username&newPassword=$password" \
             --user "nacos:nacos" 2>/dev/null)
         
-        local http_code=$(echo "$response" | tail -n 1)
-        local body=$(echo "$response" | sed '$d')
+        http_code=$(echo "$response" | tail -n 1)
+        body=$(echo "$response" | sed '$d')
         
         if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
-            print_success "Nacos 用户 $username 密码初始化成功"
-            return 0
+            print_success "Nacos 用户 $username 密码修改成功"
         else
-            print_warning "Nacos 用户密码初始化可能失败，HTTP 状态码: $http_code，响应: $body"
+            print_warning "Nacos 用户密码修改可能失败，HTTP 状态码: $http_code，响应: $body"
         fi
     else
-        # 如果用户不存在，说明是首次启动，创建用户并设置密码
+        # 如果用户不存在，说明是首次启动，需要先创建用户
         print_info "首次启动 Nacos，创建用户 $username 并设置密码..."
-        # 对于首次启动，Nacos 默认用户是 nacos/nacos，我们需要修改密码
-        # 先尝试使用默认密码修改
-        local response=$(curl -s -w "\n%{http_code}" -X PUT "http://localhost:8848/nacos/v1/auth/users" \
+        
+        # 首先尝试使用 POST 方法创建用户（如果 Nacos 版本支持）
+        local response=$(curl -s -w "\n%{http_code}" -X POST "http://localhost:8848/nacos/v1/auth/users" \
             -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "username=$username&newPassword=$password" \
+            -d "username=$username&password=$password" \
             --user "nacos:nacos" 2>/dev/null)
         
-        local http_code=$(echo "$response" | tail -n 1)
-        local body=$(echo "$response" | sed '$d')
+        http_code=$(echo "$response" | tail -n 1)
+        body=$(echo "$response" | sed '$d')
         
+        # 如果创建成功（200/201）或用户已存在（409），继续
         if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
-            print_success "Nacos 用户 $username 密码初始化成功"
-            return 0
+            print_success "Nacos 用户 $username 创建成功"
+            # 创建成功后，等待一下让 Nacos 处理，然后尝试修改密码以确保密码正确设置
+            print_info "等待 Nacos 处理用户创建..."
+            sleep 5
+            # 尝试使用默认密码修改密码（因为创建的用户可能密码没有正确设置）
+            print_info "尝试修改用户密码以确保正确设置..."
+            response=$(curl -s -w "\n%{http_code}" -X PUT "http://localhost:8848/nacos/v1/auth/users" \
+                -H "Content-Type: application/x-www-form-urlencoded" \
+                -d "username=$username&newPassword=$password" \
+                --user "nacos:nacos" 2>/dev/null)
+            
+            http_code=$(echo "$response" | tail -n 1)
+            body=$(echo "$response" | sed '$d')
+            
+            if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+                print_success "Nacos 用户 $username 密码设置成功"
+            else
+                print_info "使用默认密码修改失败，尝试使用创建时的密码修改..."
+                # 如果默认密码修改失败，可能创建的用户密码已经是新密码，尝试使用新密码修改
+                response=$(curl -s -w "\n%{http_code}" -X PUT "http://localhost:8848/nacos/v1/auth/users" \
+                    -H "Content-Type: application/x-www-form-urlencoded" \
+                    -d "username=$username&newPassword=$password" \
+                    --user "nacos:$password" 2>/dev/null)
+                
+                http_code=$(echo "$response" | tail -n 1)
+                body=$(echo "$response" | sed '$d')
+                
+                if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+                    print_success "Nacos 用户 $username 密码已正确设置"
+                else
+                    print_info "密码可能已正确设置，将在验证步骤确认"
+                fi
+            fi
+        elif [ "$http_code" = "409" ] || echo "$body" | grep -qi "already exists"; then
+            print_info "Nacos 用户 $username 已存在，尝试修改密码..."
+            # 用户已存在，尝试修改密码
+            response=$(curl -s -w "\n%{http_code}" -X PUT "http://localhost:8848/nacos/v1/auth/users" \
+                -H "Content-Type: application/x-www-form-urlencoded" \
+                -d "username=$username&newPassword=$password" \
+                --user "nacos:nacos" 2>/dev/null)
+            
+            http_code=$(echo "$response" | tail -n 1)
+            body=$(echo "$response" | sed '$d')
+            
+            if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+                print_success "Nacos 用户 $username 密码修改成功"
+            else
+                print_warning "Nacos 用户密码修改可能失败，HTTP 状态码: $http_code，响应: $body"
+            fi
+        elif [ "$http_code" = "403" ] && echo "$body" | grep -qi "user not found"; then
+            # 如果返回 403 且提示用户不存在，说明默认用户可能还未初始化
+            # 等待更长时间后重试，或者尝试直接修改默认用户密码
+            print_info "检测到 Nacos 可能未完全初始化，等待后重试..."
+            sleep 10
+            
+            # 再次尝试修改默认用户密码（Nacos 首次启动时默认用户是 nacos/nacos）
+            response=$(curl -s -w "\n%{http_code}" -X PUT "http://localhost:8848/nacos/v1/auth/users" \
+                -H "Content-Type: application/x-www-form-urlencoded" \
+                -d "username=$username&newPassword=$password" \
+                --user "nacos:nacos" 2>/dev/null)
+            
+            http_code=$(echo "$response" | tail -n 1)
+            body=$(echo "$response" | sed '$d')
+            
+            if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+                print_success "Nacos 用户 $username 密码初始化成功"
+            else
+                print_warning "Nacos 用户密码初始化可能失败，HTTP 状态码: $http_code，响应: $body"
+                print_info "提示：如果这是首次启动，Nacos 可能需要更长时间初始化，请稍后手动检查"
+            fi
         else
-            print_warning "Nacos 用户密码初始化可能失败，HTTP 状态码: $http_code，响应: $body"
+            print_warning "Nacos 用户创建可能失败，HTTP 状态码: $http_code，响应: $body"
+            # 即使创建失败，也尝试使用默认密码修改密码
+            print_info "尝试使用默认密码修改用户密码..."
+            sleep 5
+            response=$(curl -s -w "\n%{http_code}" -X PUT "http://localhost:8848/nacos/v1/auth/users" \
+                -H "Content-Type: application/x-www-form-urlencoded" \
+                -d "username=$username&newPassword=$password" \
+                --user "nacos:nacos" 2>/dev/null)
+            
+            http_code=$(echo "$response" | tail -n 1)
+            body=$(echo "$response" | sed '$d')
+            
+            if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+                print_success "Nacos 用户 $username 密码修改成功"
+            fi
         fi
     fi
     
-    # 验证最终结果
-    sleep 2
-    check_response=$(curl -s -X GET "http://localhost:8848/nacos/v1/auth/users?pageNo=1&pageSize=10" \
-        --user "nacos:$password" 2>/dev/null)
+    # 验证最终结果（增加重试机制）
+    print_info "验证 Nacos 用户密码设置..."
+    local max_verify_attempts=3
+    local verify_attempt=0
+    local verify_success=false
     
-    if [ $? -eq 0 ] && [ -n "$check_response" ] && echo "$check_response" | grep -q "\"username\":\"$username\""; then
-        print_success "Nacos 用户 $username 密码初始化成功（验证通过）"
-        return 0
-    else
-        print_warning "Nacos 用户密码初始化可能失败，但将继续执行"
-        return 0
+    while [ $verify_attempt -lt $max_verify_attempts ]; do
+        sleep 3
+        verify_attempt=$((verify_attempt + 1))
+        
+        check_response=$(curl -s -w "\n%{http_code}" -X GET "http://localhost:8848/nacos/v1/auth/users?pageNo=1&pageSize=10" \
+            --user "nacos:$password" 2>/dev/null)
+        
+        http_code=$(echo "$check_response" | tail -n 1)
+        body=$(echo "$check_response" | sed '$d')
+        
+        if [ "$http_code" = "200" ] && [ -n "$body" ] && echo "$body" | grep -q "\"username\":\"$username\""; then
+            print_success "Nacos 用户 $username 密码初始化成功（验证通过）"
+            verify_success=true
+            break
+        else
+            if [ $verify_attempt -lt $max_verify_attempts ]; then
+                print_info "验证失败，等待后重试 ($verify_attempt/$max_verify_attempts)..."
+            fi
+        fi
+    done
+    
+    if [ "$verify_success" = false ]; then
+        print_warning "Nacos 用户密码初始化验证失败，但将继续执行"
+        print_info "提示：如果这是首次启动，Nacos 可能需要更长时间生效，请稍后手动验证登录"
+        print_info "可以使用以下命令手动验证："
+        print_info "  curl -u nacos:$password http://localhost:8848/nacos/v1/auth/users?pageNo=1&pageSize=10"
     fi
+    
+    return 0
 }
 
 # 初始化 MinIO 的 Python 脚本（临时文件）
