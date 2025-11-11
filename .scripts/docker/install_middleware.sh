@@ -265,13 +265,13 @@ EOF
     
     case "$os_id" in
         ubuntu|debian)
-            print_info "检测到 Debian/Ubuntu 系统，使用 apt-get 安装 OpenJDK 8..."
+            print_info "检测到 Debian/Ubuntu 系统，使用 apt 安装 OpenJDK 8..."
             
             # 更新包列表
-            apt-get update
+            apt update
             
             # 安装 OpenJDK 8
-            if apt-get install -y openjdk-8-jdk; then
+            if apt install -y openjdk-8-jdk; then
                 print_success "OpenJDK 8 安装成功"
             else
                 print_error "OpenJDK 8 安装失败"
