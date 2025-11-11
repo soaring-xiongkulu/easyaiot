@@ -589,33 +589,350 @@ check_docker_permission() {
     fi
 }
 
-# 检查 Docker 是否安装
-check_docker() {
-    if ! check_command docker; then
-        print_error "Docker 未安装，请先安装 Docker"
-        echo "安装指南: https://docs.docker.com/get-docker/"
-        exit 1
-    fi
-    print_success "Docker 已安装: $(docker --version)"
-    check_docker_permission "$@"
-}
-
-# 检查 Docker Compose 是否安装
-check_docker_compose() {
-    if ! check_command docker-compose && ! docker compose version &> /dev/null; then
-        print_error "Docker Compose 未安装，请先安装 Docker Compose"
-        echo "安装指南: https://docs.docker.com/compose/install/"
-        exit 1
+# 安装 Docker
+install_docker() {
+    print_section "安装 Docker"
+    
+    if [ "$EUID" -ne 0 ]; then
+        print_error "安装 Docker 需要 root 权限，请使用 sudo 运行此脚本"
+        return 1
     fi
     
-    # 检查是 docker-compose 还是 docker compose
-    if check_command docker-compose; then
-        COMPOSE_CMD="docker-compose"
-        print_success "Docker Compose 已安装: $(docker-compose --version)"
+    # 询问用户 Docker data-root 路径
+    echo ""
+    print_warning "Docker 默认会将数据存储在系统盘（/var/lib/docker），如果系统盘空间较小，建议指定其他路径"
+    echo ""
+    print_info "请输入 Docker 数据存储路径（data-root）："
+    print_info "  直接回车将使用默认路径: /var/lib/docker"
+    print_info "  建议使用大容量磁盘路径，例如: /data/docker 或 /mnt/docker"
+    echo ""
+    
+    local docker_data_root=""
+    while true; do
+        echo -ne "${YELLOW}[提示]${NC} 请输入 Docker data-root 路径（直接回车使用默认路径）: "
+        read -r docker_data_root
+        
+        # 如果用户直接回车，使用默认路径
+        if [ -z "$docker_data_root" ]; then
+            docker_data_root="/var/lib/docker"
+            print_info "使用默认路径: $docker_data_root"
+            break
+        fi
+        
+        # 验证路径格式（必须是绝对路径）
+        if [[ ! "$docker_data_root" =~ ^/ ]]; then
+            print_error "请输入绝对路径（以 / 开头）"
+            continue
+        fi
+        
+        # 检查路径是否已存在且可写
+        if [ -d "$docker_data_root" ]; then
+            if [ ! -w "$docker_data_root" ]; then
+                print_error "路径 $docker_data_root 不可写，请选择其他路径"
+                continue
+            fi
+        else
+            # 尝试创建目录
+            if ! mkdir -p "$docker_data_root" 2>/dev/null; then
+                print_error "无法创建路径 $docker_data_root，请检查权限或选择其他路径"
+                continue
+            fi
+        fi
+        
+        print_success "将使用路径: $docker_data_root"
+        break
+    done
+    
+    # 检测系统类型
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        local os_id="$ID"
     else
-        COMPOSE_CMD="docker compose"
-        print_success "Docker Compose 已安装: $(docker compose version)"
+        print_error "无法检测操作系统类型"
+        return 1
     fi
+    
+    # 根据系统类型安装 Docker
+    case "$os_id" in
+        ubuntu|debian)
+            print_info "检测到 Debian/Ubuntu 系统，开始安装 Docker..."
+            
+            # 卸载旧版本
+            apt-get remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+            
+            # 安装依赖
+            apt-get update
+            apt-get install -y \
+                ca-certificates \
+                curl \
+                gnupg \
+                lsb-release
+            
+            # 添加 Docker 官方 GPG 密钥
+            install -m 0755 -d /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/$os_id/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+            chmod a+r /etc/apt/keyrings/docker.gpg
+            
+            # 设置仓库
+            echo \
+              "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$os_id \
+              $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+            
+            # 安装 Docker Engine
+            apt-get update
+            apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            
+            ;;
+        centos|rhel|fedora)
+            print_info "检测到 CentOS/RHEL/Fedora 系统，开始安装 Docker..."
+            
+            # 卸载旧版本
+            yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine 2>/dev/null || true
+            
+            # 安装依赖
+            yum install -y yum-utils
+            
+            # 添加 Docker 仓库
+            yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+            
+            # 安装 Docker Engine
+            yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            
+            ;;
+        *)
+            print_error "不支持的操作系统: $os_id"
+            print_info "请手动安装 Docker 后重试"
+            print_info "安装指南: https://docs.docker.com/get-docker/"
+            return 1
+            ;;
+    esac
+    
+    # 配置 Docker data-root（在启动服务之前）
+    if [ "$docker_data_root" != "/var/lib/docker" ]; then
+        print_info "配置 Docker data-root 为: $docker_data_root"
+        
+        local docker_config_dir="/etc/docker"
+        local docker_config_file="$docker_config_dir/daemon.json"
+        
+        mkdir -p "$docker_config_dir"
+        
+        # 读取或创建配置文件
+        local config_content="{}"
+        if [ -f "$docker_config_file" ]; then
+            config_content=$(cat "$docker_config_file")
+        fi
+        
+        # 使用 Python 更新配置
+        python3 << EOF
+import json
+import sys
+
+config_file = "$docker_config_file"
+data_root = "$docker_data_root"
+
+try:
+    config = json.loads('''$config_content''')
+except:
+    config = {}
+
+config["data-root"] = data_root
+
+try:
+    with open(config_file, 'w') as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+    print("CONFIG_UPDATED")
+except Exception as e:
+    print(f"CONFIG_ERROR:{e}", file=sys.stderr)
+    sys.exit(1)
+EOF
+        
+        if [ $? -ne 0 ]; then
+            print_error "配置 Docker data-root 失败"
+            return 1
+        fi
+        
+        print_success "Docker data-root 已配置为: $docker_data_root"
+        print_warning "注意：如果 /var/lib/docker 已有数据，需要手动迁移到新路径"
+    fi
+    
+    # 启动 Docker 服务
+    print_info "启动 Docker 服务..."
+    systemctl daemon-reload
+    systemctl enable docker
+    systemctl start docker
+    
+    # 验证安装
+    if check_command docker; then
+        print_success "Docker 安装完成: $(docker --version)"
+        return 0
+    else
+        print_error "Docker 安装验证失败"
+        return 1
+    fi
+}
+
+# 安装 Docker Compose
+install_docker_compose() {
+    print_section "安装 Docker Compose"
+    
+    if [ "$EUID" -ne 0 ]; then
+        print_error "安装 Docker Compose 需要 root 权限，请使用 sudo 运行此脚本"
+        return 1
+    fi
+    
+    # 检测系统类型
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        local os_id="$ID"
+    else
+        print_error "无法检测操作系统类型"
+        return 1
+    fi
+    
+    # 检查是否已安装 Docker Compose Plugin（docker compose）
+    if docker compose version &> /dev/null; then
+        print_success "Docker Compose Plugin 已安装: $(docker compose version)"
+        return 0
+    fi
+    
+    # 根据系统类型安装 Docker Compose
+    case "$os_id" in
+        ubuntu|debian)
+            print_info "检测到 Debian/Ubuntu 系统，安装 Docker Compose Plugin..."
+            apt-get update
+            apt-get install -y docker-compose-plugin
+            ;;
+        centos|rhel|fedora)
+            print_info "检测到 CentOS/RHEL/Fedora 系统，安装 Docker Compose Plugin..."
+            yum install -y docker-compose-plugin
+            ;;
+        *)
+            print_info "尝试安装 Docker Compose 独立版本..."
+            # 下载 Docker Compose 独立版本
+            local compose_version="v2.24.0"
+            local compose_url="https://github.com/docker/compose/releases/download/${compose_version}/docker-compose-linux-$(uname -m)"
+            local compose_path="/usr/local/bin/docker-compose"
+            
+            curl -L "$compose_url" -o "$compose_path" || {
+                print_error "下载 Docker Compose 失败"
+                return 1
+            }
+            
+            chmod +x "$compose_path"
+            ;;
+    esac
+    
+    # 验证安装
+    if check_command docker-compose || docker compose version &> /dev/null; then
+        if check_command docker-compose; then
+            print_success "Docker Compose 安装完成: $(docker-compose --version)"
+        else
+            print_success "Docker Compose Plugin 安装完成: $(docker compose version)"
+        fi
+        return 0
+    else
+        print_error "Docker Compose 安装验证失败"
+        return 1
+    fi
+}
+
+# 检查并安装 Docker
+check_and_install_docker() {
+    if check_command docker; then
+        print_success "Docker 已安装: $(docker --version)"
+        check_docker_permission "$@"
+        return 0
+    fi
+    
+    print_warning "未检测到 Docker"
+    echo ""
+    print_info "Docker 是运行中间件服务的必需组件"
+    echo ""
+    
+    while true; do
+        echo -ne "${YELLOW}[提示]${NC} 是否自动安装 Docker？(y/N): "
+        read -r response
+        case "$response" in
+            [yY][eE][sS]|[yY])
+                if install_docker; then
+                    print_success "Docker 安装成功"
+                    check_docker_permission "$@"
+                    return 0
+                else
+                    print_error "Docker 安装失败，请手动安装后重试"
+                    exit 1
+                fi
+                ;;
+            [nN][oO]|[nN]|"")
+                print_error "Docker 是必需的，安装流程已终止"
+                print_info "安装指南: https://docs.docker.com/get-docker/"
+                exit 1
+                ;;
+            *)
+                print_warning "请输入 y 或 N"
+                ;;
+        esac
+    done
+}
+
+# 检查并安装 Docker Compose
+check_and_install_docker_compose() {
+    if check_command docker-compose || docker compose version &> /dev/null; then
+        # 检查是 docker-compose 还是 docker compose
+        if check_command docker-compose; then
+            COMPOSE_CMD="docker-compose"
+            print_success "Docker Compose 已安装: $(docker-compose --version)"
+        else
+            COMPOSE_CMD="docker compose"
+            print_success "Docker Compose 已安装: $(docker compose version)"
+        fi
+        return 0
+    fi
+    
+    print_warning "未检测到 Docker Compose"
+    echo ""
+    print_info "Docker Compose 是运行中间件服务的必需组件"
+    echo ""
+    
+    while true; do
+        echo -ne "${YELLOW}[提示]${NC} 是否自动安装 Docker Compose？(y/N): "
+        read -r response
+        case "$response" in
+            [yY][eE][sS]|[yY])
+                if install_docker_compose; then
+                    print_success "Docker Compose 安装成功"
+                    # 重新检查并设置 COMPOSE_CMD
+                    if check_command docker-compose; then
+                        COMPOSE_CMD="docker-compose"
+                    else
+                        COMPOSE_CMD="docker compose"
+                    fi
+                    return 0
+                else
+                    print_error "Docker Compose 安装失败，请手动安装后重试"
+                    exit 1
+                fi
+                ;;
+            [nN][oO]|[nN]|"")
+                print_error "Docker Compose 是必需的，安装流程已终止"
+                print_info "安装指南: https://docs.docker.com/compose/install/"
+                exit 1
+                ;;
+            *)
+                print_warning "请输入 y 或 N"
+                ;;
+        esac
+    done
+}
+
+# 检查 Docker 是否安装（保持向后兼容）
+check_docker() {
+    check_and_install_docker "$@"
+}
+
+# 检查 Docker Compose 是否安装（保持向后兼容）
+check_docker_compose() {
+    check_and_install_docker_compose
 }
 
 # 创建统一网络
