@@ -250,4 +250,7 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='0.0.0.0', port=6000)
+    # 从环境变量读取主机和端口配置
+    host = os.getenv('FLASK_RUN_HOST', '0.0.0.0')
+    port = int(os.getenv('FLASK_RUN_PORT', 6000))
+    app.run(host=host, port=port)
