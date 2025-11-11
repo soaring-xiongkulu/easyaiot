@@ -30,7 +30,6 @@
                       :src="item.imageUrl"
                       alt="模型图片"
                       class="model-image"
-                      @error="handleImageError"
                     />
                   </div>
 
@@ -221,15 +220,6 @@ function handleEdit(record: object) {
 
 function handleDeploy(record: object) {
   emit('deploy', record);
-}
-
-function handleTrain(record: object) {
-  emit('train', record);
-}
-
-function handleImageError(e: Event) {
-  const target = e.target as HTMLImageElement;
-  target.src = 'placeholder.jpg';
 }
 </script>
 
