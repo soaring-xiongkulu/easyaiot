@@ -1410,25 +1410,15 @@ clean_middleware() {
         check_docker_compose
         check_compose_file
         
-        # 先询问是否删除数据库（在删除容器之前）
-        # 检查 PostgreSQL 容器是否在运行
-        if docker ps --format '{{.Names}}' | grep -q "^postgres-server$"; then
-            echo ""
-            print_warning "是否删除所有数据库？(y/N)"
-            read -r db_response
-            
-            if [[ "$db_response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-                echo ""
-                delete_databases
-                echo ""
-            else
-                print_info "已跳过数据库删除"
-                echo ""
-            fi
-        else
-            print_info "PostgreSQL 容器未运行，数据库将随数据卷一起删除"
-            echo ""
-        fi
+        # 提示数据库不会被删除
+        echo ""
+        print_info "注意：清理操作不会删除数据库表和数据"
+        print_info "数据库数据将保留在 PostgreSQL 数据卷中"
+        print_warning "如果需要删除数据库数据，请手动执行以下操作："
+        print_info "  1. 连接到 PostgreSQL 容器："
+        print_info "     docker exec -it postgres-server psql -U postgres"
+        print_info "  2. 手动删除数据库或表"
+        echo ""
         
         print_info "清理所有中间件服务..."
         $COMPOSE_CMD -f "$COMPOSE_FILE" down -v 2>&1 | tee -a "$LOG_FILE"
