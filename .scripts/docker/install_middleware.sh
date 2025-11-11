@@ -394,7 +394,7 @@ check_and_install_nodejs20() {
 
 # 配置 Docker 镜像源
 configure_docker_mirror() {
-    print_section "配置 Docker 镜像源"
+    print_section "配置 Docker 镜像源和 NVIDIA Runtime"
     
     local docker_config_dir="/etc/docker"
     local docker_config_file="$docker_config_dir/daemon.json"
@@ -407,62 +407,134 @@ configure_docker_mirror() {
     # 创建 docker 配置目录
     mkdir -p "$docker_config_dir"
     
-    # 检查是否已配置
-    if [ -f "$docker_config_file" ]; then
-        if grep -q "registry-mirrors" "$docker_config_file"; then
-            print_info "Docker 镜像源已配置，跳过"
-            return 0
-        fi
-    fi
+    # 使用 Python 精确检查和配置
+    print_info "正在检查并配置 Docker 配置..."
     
-    # 创建或更新配置文件
-    print_info "正在配置 Docker 镜像源..."
+    local output_file=$(mktemp)
+    local python_exit_code=0
     
-    if [ -f "$docker_config_file" ]; then
-        # 如果文件存在，使用 jq 或手动合并（如果没有 jq 则使用 Python）
-        if command -v jq &> /dev/null; then
-            jq '. + {"registry-mirrors": ["https://docker.1ms.run/"]}' "$docker_config_file" > "$docker_config_file.tmp" && mv "$docker_config_file.tmp" "$docker_config_file"
-        else
-            # 使用 Python 合并 JSON
-            python3 << EOF
+    python3 << EOF > "$output_file" 2>&1
 import json
 import sys
+import os
 
 config_file = "$docker_config_file"
-try:
-    with open(config_file, 'r') as f:
-        config = json.load(f)
-except:
-    config = {}
+required_mirror = "https://docker.1ms.run/"
+nvidia_runtime = {
+    "path": "nvidia-container-runtime",
+    "runtimeArgs": []
+}
+required_default_runtime = "nvidia"
 
+# 读取现有配置
+config = {}
+if os.path.exists(config_file):
+    try:
+        with open(config_file, 'r') as f:
+            config = json.load(f)
+    except Exception as e:
+        print(f"CONFIG_ERROR:读取配置文件失败: {e}", file=sys.stderr)
+        sys.exit(1)
+
+needs_update = False
+changes = []
+
+# 检查并添加镜像源
 if "registry-mirrors" not in config:
     config["registry-mirrors"] = []
-if "https://docker.1ms.run/" not in config["registry-mirrors"]:
-    config["registry-mirrors"].append("https://docker.1ms.run/")
+    needs_update = True
+    changes.append("添加 registry-mirrors 配置")
 
-with open(config_file, 'w') as f:
-    json.dump(config, f, indent=2)
+if required_mirror not in config["registry-mirrors"]:
+    config["registry-mirrors"].append(required_mirror)
+    needs_update = True
+    changes.append(f"添加镜像源: {required_mirror}")
+
+# 检查并添加 NVIDIA runtime
+if "runtimes" not in config:
+    config["runtimes"] = {}
+    needs_update = True
+    changes.append("添加 runtimes 配置")
+
+if "nvidia" not in config["runtimes"]:
+    config["runtimes"]["nvidia"] = nvidia_runtime
+    needs_update = True
+    changes.append("添加 NVIDIA runtime 配置")
+else:
+    # 检查现有配置是否正确
+    nvidia_config = config["runtimes"]["nvidia"]
+    if nvidia_config.get("path") != nvidia_runtime["path"]:
+        config["runtimes"]["nvidia"] = nvidia_runtime
+        needs_update = True
+        changes.append("更新 NVIDIA runtime 配置")
+
+# 检查并添加 default-runtime
+if "default-runtime" not in config:
+    config["default-runtime"] = required_default_runtime
+    needs_update = True
+    changes.append(f"添加 default-runtime: {required_default_runtime}")
+elif config["default-runtime"] != required_default_runtime:
+    config["default-runtime"] = required_default_runtime
+    needs_update = True
+    changes.append(f"更新 default-runtime: {required_default_runtime}")
+
+# 写入配置文件
+if needs_update:
+    try:
+        with open(config_file, 'w') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        print("CONFIG_UPDATED")
+        for change in changes:
+            print(f"CHANGE:{change}")
+    except Exception as e:
+        print(f"CONFIG_ERROR:{e}", file=sys.stderr)
+        sys.exit(1)
+else:
+    print("CONFIG_OK")
 EOF
+    
+    python_exit_code=$?
+    local config_updated=false
+    local config_ok=false
+    
+    # 解析 Python 输出
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [[ $line == CONFIG_UPDATED ]]; then
+            config_updated=true
+        elif [[ $line == CONFIG_OK ]]; then
+            config_ok=true
+        elif [[ $line == CHANGE:* ]]; then
+            local change="${line#CHANGE:}"
+            print_info "配置变更: $change"
+        elif [[ $line == CONFIG_ERROR:* ]]; then
+            local error="${line#CONFIG_ERROR:}"
+            print_error "配置失败: $error"
+            rm -f "$output_file"
+            return 1
         fi
-    else
-        # 创建新配置文件
-        cat > "$docker_config_file" << EOF
-{
-  "registry-mirrors": [
-    "https://docker.1ms.run/"
-  ]
-}
-EOF
+    done < "$output_file"
+    
+    rm -f "$output_file"
+    
+    if [ $python_exit_code -ne 0 ]; then
+        print_error "Docker 配置检查失败"
+        return 1
     fi
     
-    print_success "Docker 镜像源配置完成"
-    
-    # 重启 Docker 服务使配置生效
-    if systemctl is-active --quiet docker; then
-        print_info "正在重启 Docker 服务以使配置生效..."
-        systemctl daemon-reload
-        systemctl restart docker
-        print_success "Docker 服务已重启"
+    if [ "$config_ok" = true ]; then
+        print_success "Docker 配置已完整（镜像源、NVIDIA runtime、default-runtime 均已配置）"
+    elif [ "$config_updated" = true ]; then
+        print_success "Docker 配置已更新"
+        
+        # 重启 Docker 服务使配置生效
+        if systemctl is-active --quiet docker; then
+            print_info "正在重启 Docker 服务以使配置生效..."
+            systemctl daemon-reload
+            systemctl restart docker
+            print_success "Docker 服务已重启"
+        fi
+    else
+        print_warning "Docker 配置检查完成，但未发现需要更新的配置"
     fi
 }
 
