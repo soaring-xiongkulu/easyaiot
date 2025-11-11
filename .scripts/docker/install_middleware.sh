@@ -236,6 +236,25 @@ wait_for_nacos() {
     return 1
 }
 
+# 等待 MinIO 服务就绪
+wait_for_minio() {
+    local max_attempts=60
+    local attempt=0
+    
+    print_info "等待 MinIO 服务就绪..."
+    while [ $attempt -lt $max_attempts ]; do
+        if curl -s --connect-timeout 2 "http://localhost:9000/minio/health/live" > /dev/null 2>&1; then
+            print_success "MinIO 服务已就绪"
+            return 0
+        fi
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+    
+    print_error "MinIO 服务未就绪"
+    return 1
+}
+
 # 创建数据库
 create_database() {
     local db_name=$1
@@ -377,6 +396,253 @@ init_nacos_password() {
     fi
 }
 
+# 初始化 MinIO 的 Python 脚本（临时文件）
+create_minio_init_script() {
+    local script_file=$(mktemp)
+    cat > "$script_file" << 'PYTHON_SCRIPT'
+#!/usr/bin/env python3
+import sys
+import os
+from minio import Minio
+from minio.error import S3Error
+import mimetypes
+
+def init_minio_buckets_and_upload():
+    # MinIO 配置
+    minio_endpoint = "localhost:9000"
+    minio_access_key = "minioadmin"
+    minio_secret_key = "basiclab@iot975248395"
+    minio_secure = False
+    
+    # 存储桶列表
+    buckets = ["dataset", "datasets"]
+    
+    # 数据集目录
+    dataset_dir = sys.argv[1] if len(sys.argv) > 1 else None
+    
+    try:
+        # 创建 MinIO 客户端
+        client = Minio(
+            minio_endpoint,
+            access_key=minio_access_key,
+            secret_key=minio_secret_key,
+            secure=minio_secure
+        )
+        
+        # 创建存储桶
+        created_buckets = 0
+        for bucket_name in buckets:
+            try:
+                if client.bucket_exists(bucket_name):
+                    print(f"BUCKET_EXISTS:{bucket_name}")
+                else:
+                    client.make_bucket(bucket_name)
+                    print(f"BUCKET_CREATED:{bucket_name}")
+                    created_buckets += 1
+                    
+                    # 设置存储桶策略为公开读写
+                    # 注意：存储桶操作和对象操作需要分开配置
+                    policy = {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Effect": "Allow",
+                                "Principal": "*",
+                                "Action": [
+                                    "s3:GetBucketLocation",
+                                    "s3:ListBucket",
+                                    "s3:ListBucketMultipartUploads"
+                                ],
+                                "Resource": [f"arn:aws:s3:::{bucket_name}"]
+                            },
+                            {
+                                "Effect": "Allow",
+                                "Principal": "*",
+                                "Action": [
+                                    "s3:ListMultipartUploadParts",
+                                    "s3:PutObject",
+                                    "s3:GetObject",
+                                    "s3:DeleteObject",
+                                    "s3:AbortMultipartUpload"
+                                ],
+                                "Resource": [f"arn:aws:s3:::{bucket_name}/*"]
+                            }
+                        ]
+                    }
+                    import json
+                    client.set_bucket_policy(bucket_name, json.dumps(policy))
+            except S3Error as e:
+                print(f"BUCKET_ERROR:{bucket_name}:{str(e)}")
+                sys.exit(1)
+        
+        print(f"BUCKETS_SUCCESS:{created_buckets}/{len(buckets)}")
+        
+        # 上传数据集
+        if dataset_dir and os.path.isdir(dataset_dir):
+            upload_count = 0
+            upload_success = 0
+            
+            for filename in os.listdir(dataset_dir):
+                file_path = os.path.join(dataset_dir, filename)
+                if os.path.isfile(file_path):
+                    object_name = f"3/{filename}"
+                    try:
+                        # 获取文件 MIME 类型
+                        content_type, _ = mimetypes.guess_type(file_path)
+                        if not content_type:
+                            content_type = "application/octet-stream"
+                        
+                        # 上传文件
+                        client.fput_object(
+                            "dataset",
+                            object_name,
+                            file_path,
+                            content_type=content_type
+                        )
+                        print(f"UPLOAD_SUCCESS:{object_name}")
+                        upload_success += 1
+                    except S3Error as e:
+                        print(f"UPLOAD_ERROR:{object_name}:{str(e)}")
+                    upload_count += 1
+            
+            print(f"UPLOAD_RESULT:{upload_success}/{upload_count}")
+        else:
+            print("UPLOAD_SKIP:数据集目录不存在或无效")
+        
+        print("INIT_SUCCESS")
+        sys.exit(0)
+        
+    except Exception as e:
+        print(f"INIT_ERROR:{str(e)}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    init_minio_buckets_and_upload()
+PYTHON_SCRIPT
+    echo "$script_file"
+}
+
+# 初始化 MinIO 存储桶和数据
+init_minio_with_python() {
+    local dataset_dir=$1
+    local python_script=$(create_minio_init_script)
+    local output_file=$(mktemp)
+    
+    # 检查 Python 和 minio 库
+    if ! command -v python3 &> /dev/null; then
+        print_error "Python3 未安装，无法初始化 MinIO"
+        rm -f "$python_script" "$output_file"
+        return 1
+    fi
+    
+    # 检查 minio 库是否安装
+    if ! python3 -c "import minio" 2>/dev/null; then
+        print_info "正在安装 minio Python 库..."
+        pip3 install minio > /dev/null 2>&1 || {
+            print_error "无法安装 minio Python 库，请手动安装: pip3 install minio"
+            rm -f "$python_script" "$output_file"
+            return 1
+        }
+    fi
+    
+    # 执行 Python 脚本
+    chmod +x "$python_script"
+    python3 "$python_script" "$dataset_dir" > "$output_file" 2>&1
+    local exit_code=$?
+    
+    # 解析输出
+    local buckets_created=0
+    local buckets_total=0
+    local upload_success=0
+    local upload_total=0
+    
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [[ $line == BUCKET_EXISTS:* ]]; then
+            local bucket_name="${line#BUCKET_EXISTS:}"
+            print_info "存储桶 $bucket_name 已存在，跳过创建"
+        elif [[ $line == BUCKET_CREATED:* ]]; then
+            local bucket_name="${line#BUCKET_CREATED:}"
+            print_success "存储桶 $bucket_name 创建成功"
+            buckets_created=$((buckets_created + 1))
+        elif [[ $line == BUCKET_ERROR:* ]]; then
+            local error="${line#BUCKET_ERROR:}"
+            print_error "存储桶创建失败: $error"
+        elif [[ $line == BUCKETS_SUCCESS:* ]]; then
+            local result="${line#BUCKETS_SUCCESS:}"
+            IFS='/' read -r created_count total_count <<< "$result"
+            buckets_total=$total_count
+            # 只在没有单独计算时使用汇总数据
+            if [ $buckets_created -eq 0 ]; then
+                buckets_created=$created_count
+            fi
+        elif [[ $line == UPLOAD_SUCCESS:* ]]; then
+            local object_name="${line#UPLOAD_SUCCESS:}"
+            print_info "文件上传成功: $object_name"
+            upload_success=$((upload_success + 1))
+        elif [[ $line == UPLOAD_ERROR:* ]]; then
+            local error="${line#UPLOAD_ERROR:}"
+            print_warning "文件上传失败: $error"
+        elif [[ $line == UPLOAD_RESULT:* ]]; then
+            local result="${line#UPLOAD_RESULT:}"
+            IFS='/' read -r success_count total_count <<< "$result"
+            upload_total=$total_count
+            # 只在没有单独计算时使用汇总数据
+            if [ $upload_success -eq 0 ]; then
+                upload_success=$success_count
+            fi
+        elif [[ $line == UPLOAD_SKIP:* ]]; then
+            local reason="${line#UPLOAD_SKIP:}"
+            print_warning "跳过上传: $reason"
+        elif [[ $line == INIT_ERROR:* ]]; then
+            local error="${line#INIT_ERROR:}"
+            print_error "MinIO 初始化失败: $error"
+        fi
+    done < "$output_file"
+    
+    # 清理临时文件
+    rm -f "$python_script" "$output_file"
+    
+    if [ $exit_code -eq 0 ]; then
+        if [ $buckets_total -gt 0 ]; then
+            print_info "存储桶创建: ${GREEN}$buckets_created${NC} / $buckets_total"
+        fi
+        if [ $upload_total -gt 0 ]; then
+            print_info "文件上传: ${GREEN}$upload_success${NC} / $upload_total"
+        fi
+        return 0
+    else
+        return 1
+    fi
+}
+
+# 初始化 MinIO 存储桶和数据
+init_minio() {
+    print_section "初始化 MinIO 存储桶和数据"
+    
+    # 等待 MinIO 就绪
+    if ! wait_for_minio; then
+        print_error "MinIO 未就绪，无法初始化存储桶"
+        return 1
+    fi
+    
+    # 获取数据集目录路径
+    local dataset_dir="$(cd "${SCRIPT_DIR}/../minio/dataset/3" && pwd)"
+    
+    if [ ! -d "$dataset_dir" ]; then
+        print_warning "数据集目录不存在: $dataset_dir"
+        dataset_dir=""
+    fi
+    
+    # 使用 Python 脚本初始化 MinIO
+    if init_minio_with_python "$dataset_dir"; then
+        print_success "MinIO 初始化完成！"
+        return 0
+    else
+        print_warning "MinIO 初始化可能存在问题"
+        return 1
+    fi
+}
+
 # 初始化数据库
 init_databases() {
     print_section "初始化数据库"
@@ -455,6 +721,10 @@ install_middleware() {
     # 初始化数据库
     echo ""
     init_databases
+    
+    # 初始化 MinIO
+    echo ""
+    init_minio
 }
 
 # 启动所有中间件

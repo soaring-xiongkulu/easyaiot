@@ -10,9 +10,9 @@ services:
     env_file:
       - .env.docker
 
-    # 端口映射
-    ports:
-      - "6000:6000"
+    # 网络模式：使用host模式以访问宿主机局域网（ONVIF发现需要）
+    # 注意：使用host模式后，端口映射将失效，服务直接使用宿主机网络
+    network_mode: host
 
     # 数据卷挂载
     volumes:
@@ -36,30 +36,30 @@ services:
       - FLASK_RUN_HOST=${FLASK_RUN_HOST:-0.0.0.0}
       - DEBUG=${DEBUG:-False}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-[*]}
-      # 数据库配置（使用中间件服务名称，注意：服务名是PostgresSQL，不是postgres-server）
-      - DATABASE_URL=postgresql://postgres:iot45722414822@PostgresSQL:5432/iot-video20
+      # 数据库配置（使用localhost，因为使用host网络模式，中间件端口已映射到宿主机）
+      - DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-video20
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-please-change-this-to-a-random-string}
-      # Nacos配置（使用中间件服务名称，注意：服务名是Nacos，不是nacos-server）
-      - NACOS_SERVER=${NACOS_SERVER:-Nacos:8848}
+      # Nacos配置（使用localhost，因为使用host网络模式）
+      - NACOS_SERVER=${NACOS_SERVER:-localhost:8848}
       - NACOS_NAMESPACE=${NACOS_NAMESPACE:-}
       - NACOS_USERNAME=${NACOS_USERNAME:-nacos}
       - NACOS_PASSWORD=${NACOS_PASSWORD:-basiclab@iot78475418754}
       - SERVICE_NAME=${SERVICE_NAME:-video-server}
       # Pod IP配置（容器内会自动获取，也可手动指定）
       - POD_IP=${POD_IP:-}
-      # MinIO对象存储配置（使用中间件服务名称，注意：服务名是MinIO，不是minio-server）
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-MinIO:9000}
+      # MinIO对象存储配置（使用localhost，因为使用host网络模式）
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-localhost:9000}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-basiclab@iot975248395}
       - MINIO_SECURE=${MINIO_SECURE:-false}
-      # Redis配置（使用中间件服务名称，注意：服务名是Redis，不是redis-server）
-      - REDIS_HOST=${REDIS_HOST:-Redis}
+      # Redis配置（使用localhost，因为使用host网络模式）
+      - REDIS_HOST=${REDIS_HOST:-localhost}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-basiclab@iot975248395}
-      # Kafka配置（使用中间件服务名称，注意：服务名是Kafka，不是kafka-server）
-      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-Kafka:9092}
-      # TDengine配置（使用中间件服务名称，注意：服务名是TDengine，不是tdengine-server）
-      - TDENGINE_HOST=${TDENGINE_HOST:-TDengine}
+      # Kafka配置（使用localhost，因为使用host网络模式）
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      # TDengine配置（使用localhost，因为使用host网络模式）
+      - TDENGINE_HOST=${TDENGINE_HOST:-localhost}
       - TDENGINE_PORT=${TDENGINE_PORT:-6030}
       # 视频服务特有配置
       - MODEL_AI_PUSH_URL=${MODEL_AI_PUSH_URL:-pro.basiclab.top:1935}
@@ -85,9 +85,10 @@ services:
       retries: 3
       start_period: 60s
 
-    # 网络配置（连接到统一网络）
-    networks:
-      - easyaiot-network
+    # 注意：使用network_mode: host后，不再需要networks配置
+    # 容器将直接使用宿主机的网络栈，可以：
+    # 1. 访问宿主机局域网（用于ONVIF摄像头发现）
+    # 2. 通过localhost访问映射到宿主机的中间件服务端口
 
     # 日志配置
     logging:
@@ -96,8 +97,8 @@ services:
         max-size: "10m"
         max-file: "3"
 
-networks:
-  easyaiot-network:
-    name: easyaiot-network
-    external: true
-
+# 注意：使用network_mode: host后，不再需要networks配置
+# 如果需要同时访问容器网络和宿主机网络，可以考虑以下替代方案：
+# 1. 使用macvlan网络（需要root权限）
+# 2. 使用host网络 + 通过IP访问中间件容器
+# 3. 使用sidecar容器模式
