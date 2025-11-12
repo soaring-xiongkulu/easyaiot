@@ -222,6 +222,35 @@ services:
     networks:
       - easyaiot-network
 
+  # EMQX MQTT Broker
+  EMQX:
+    image: emqx/emqx:5.10.2
+    container_name: emqx-server
+    hostname: emqx-server.emqx.com
+    restart: always
+    ports:
+      - "1883:1883"      # MQTT
+      - "8883:8883"       # MQTT/SSL
+      - "8083:8083"       # WebSocket
+      - "8084:8084"       # WebSocket/SSL
+      - "18083:18083"     # Dashboard
+    environment:
+      - TZ=Asia/Shanghai
+      - EMQX_NODE_NAME=emqx@emqx-server.emqx.com
+      - EMQX_CLUSTER__DISCOVERY_STRATEGY=static
+      - EMQX_DASHBOARD__DEFAULT_USERNAME=admin
+      - EMQX_DASHBOARD__DEFAULT_PASSWORD=basiclab@iot6874125784
+    volumes:
+      - './emqx_data/data:/opt/emqx/data'
+      - './emqx_data/log:/opt/emqx/log'
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 5s
+      timeout: 25s
+      retries: 5
+    networks:
+      - easyaiot-network
+
 # 磁盘挂载
 volumes:
   nacos_data:
@@ -239,6 +268,8 @@ volumes:
   srs_data:
     driver: local
   nodered_data:
+    driver: local
+  emqx_data:
     driver: local
 
 # 网络配置
