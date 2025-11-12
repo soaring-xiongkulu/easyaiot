@@ -224,7 +224,7 @@ services:
 
   # EMQX MQTT Broker
   EMQX:
-    image: emqx/emqx:5.10.2
+    image: emqx/emqx:5.8.7
     container_name: emqx-server
     restart: always
     ports:
@@ -246,11 +246,10 @@ services:
       - emqx_data:/opt/emqx/data
       - emqx_log:/opt/emqx/log
     healthcheck:
-      test: ["CMD-SHELL", "/opt/emqx/bin/emqx ping || exit 1"]
-      interval: 10s
-      timeout: 30s
-      retries: 10
-      start_period: 60s
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 5s
+      timeout: 25s
+      retries: 5
     networks:
       - easyaiot-network
 
