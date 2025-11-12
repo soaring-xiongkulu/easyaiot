@@ -122,24 +122,61 @@ create_env_file() {
     fi
 }
 
+# 安装 pnpm
+install_pnpm() {
+    print_info "正在安装 pnpm..."
+    
+    # 检查是否有 npm
+    if ! check_command npm; then
+        print_error "npm 未安装，无法安装 pnpm，请先安装 Node.js"
+        exit 1
+    fi
+    
+    # 使用 npm 全局安装 pnpm
+    if npm install -g pnpm; then
+        print_success "pnpm 安装成功: $(pnpm --version)"
+        return 0
+    else
+        print_error "pnpm 安装失败"
+        return 1
+    fi
+}
+
 # 构建前端项目
 build_frontend() {
     print_info "开始构建前端项目..."
     
-    # 检查 Node.js 和 pnpm
+    # 检查 Node.js
     if ! check_command node; then
         print_error "Node.js 未安装，请先安装 Node.js"
         echo "安装指南: https://nodejs.org/"
         exit 1
     fi
     
+    # 检查 pnpm
     if ! check_command pnpm; then
-        print_warning "pnpm 未安装，尝试使用 npm..."
-        if ! check_command npm; then
-            print_error "npm 未安装，请先安装 Node.js"
-            exit 1
+        print_warning "pnpm 未安装"
+        print_info "是否自动安装 pnpm？(y/N)"
+        read -r response
+        if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+            if install_pnpm; then
+                PACKAGE_MANAGER="pnpm"
+            else
+                print_warning "pnpm 安装失败，尝试使用 npm..."
+                if ! check_command npm; then
+                    print_error "npm 未安装，请先安装 Node.js"
+                    exit 1
+                fi
+                PACKAGE_MANAGER="npm"
+            fi
+        else
+            print_info "跳过 pnpm 安装，尝试使用 npm..."
+            if ! check_command npm; then
+                print_error "npm 未安装，请先安装 Node.js"
+                exit 1
+            fi
+            PACKAGE_MANAGER="npm"
         fi
-        PACKAGE_MANAGER="npm"
     else
         PACKAGE_MANAGER="pnpm"
     fi
