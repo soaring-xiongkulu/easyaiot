@@ -92,6 +92,76 @@ check_docker_compose() {
 GPU_AVAILABLE=false
 GPU_HARDWARE_DETECTED=false
 
+# 架构检测
+ARCH=""
+DOCKER_PLATFORM=""
+BASE_IMAGE=""
+
+# 检测服务器架构并配置相应的Docker镜像
+detect_architecture() {
+    print_info "检测服务器架构..."
+    ARCH=$(uname -m)
+    
+    case "$ARCH" in
+        x86_64|amd64)
+            ARCH="x86_64"
+            DOCKER_PLATFORM="linux/amd64"
+            BASE_IMAGE="pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime"
+            print_success "检测到架构: $ARCH (x86_64)"
+            print_info "使用 PyTorch CUDA 镜像: $BASE_IMAGE"
+            ;;
+        aarch64|arm64)
+            ARCH="arm64"
+            DOCKER_PLATFORM="linux/arm64"
+            BASE_IMAGE="pytorch/pytorch:2.0.1-cpu"
+            print_success "检测到架构: $ARCH (ARM64)"
+            print_warning "ARM架构不支持CUDA，使用 PyTorch CPU 镜像: $BASE_IMAGE"
+            print_info "注意：ARM架构将使用CPU模式运行，性能可能较慢"
+            ;;
+        armv7l|armv6l)
+            ARCH="arm"
+            DOCKER_PLATFORM="linux/arm/v7"
+            BASE_IMAGE="pytorch/pytorch:2.0.1-cpu"
+            print_success "检测到架构: $ARCH (ARMv7)"
+            print_warning "ARM架构不支持CUDA，使用 PyTorch CPU 镜像: $BASE_IMAGE"
+            print_info "注意：ARM架构将使用CPU模式运行，性能可能较慢"
+            ;;
+        *)
+            print_warning "未识别的架构: $ARCH，默认使用 x86_64 配置"
+            ARCH="x86_64"
+            DOCKER_PLATFORM="linux/amd64"
+            BASE_IMAGE="pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime"
+            ;;
+    esac
+    
+    # 导出环境变量供docker-compose使用
+    export DOCKER_PLATFORM
+    export BASE_IMAGE
+}
+
+# 配置架构相关的docker-compose设置
+configure_architecture() {
+    print_info "配置 Docker Compose 架构设置..."
+    
+    # 创建或更新 .env.arch 文件来存储架构配置
+    if [ ! -f .env.arch ] || ! grep -q "DOCKER_PLATFORM=" .env.arch 2>/dev/null; then
+        echo "# 架构配置（由install.sh自动生成）" > .env.arch
+        echo "DOCKER_PLATFORM=$DOCKER_PLATFORM" >> .env.arch
+        echo "BASE_IMAGE=$BASE_IMAGE" >> .env.arch
+        print_success "已创建架构配置文件 .env.arch"
+    else
+        # 更新现有配置
+        sed -i "s|^DOCKER_PLATFORM=.*|DOCKER_PLATFORM=$DOCKER_PLATFORM|" .env.arch
+        sed -i "s|^BASE_IMAGE=.*|BASE_IMAGE=$BASE_IMAGE|" .env.arch
+        print_info "已更新架构配置文件 .env.arch"
+    fi
+    
+    # 确保docker-compose.yaml使用.env.arch中的变量
+    # 注意：docker-compose会自动读取.env文件，但我们需要确保.env.arch被加载
+    # 可以通过在docker-compose.yaml中使用env_file或者在构建时传递环境变量
+    print_success "架构配置完成: $ARCH -> $DOCKER_PLATFORM"
+}
+
 # 检查 NVIDIA Container Toolkit 是否安装
 check_nvidia_container_toolkit() {
     if dpkg -l | grep -q nvidia-container-toolkit; then
@@ -311,6 +381,18 @@ check_gpu() {
 
 # 配置 GPU 支持（如果可用）
 configure_gpu() {
+    # ARM架构不支持CUDA，强制禁用GPU配置
+    if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "arm" ]; then
+        print_info "ARM架构不支持CUDA，禁用 GPU 配置"
+        # 确保 GPU 配置被注释（如果未被注释，则注释掉）
+        if grep -q "^    deploy:" docker-compose.yaml && ! grep -q "^    # deploy:" docker-compose.yaml; then
+            # 使用 sed 注释掉 GPU 配置部分（在行首添加 "    # "）
+            sed -i '/^    deploy:/,/^           capabilities: \[gpu\]/s/^    /    # /' docker-compose.yaml
+            print_success "GPU 配置已禁用（ARM架构）"
+        fi
+        return
+    fi
+    
     if [ "$GPU_AVAILABLE" = true ]; then
         print_info "启用 GPU 支持..."
         # 取消注释 GPU 配置（从 "# deploy:" 到 "#           capabilities: [gpu]"）
@@ -427,14 +509,25 @@ install_service() {
     
     check_docker
     check_docker_compose
+    detect_architecture
+    configure_architecture
     check_network
-    check_gpu
+    # 仅在x86_64架构上检查GPU（ARM架构不支持CUDA）
+    if [ "$ARCH" = "x86_64" ]; then
+        check_gpu
+    else
+        print_info "跳过GPU检查（ARM架构不支持CUDA）"
+        GPU_AVAILABLE=false
+    fi
     configure_gpu
     create_directories
     create_env_file
     
     print_info "构建 Docker 镜像..."
-    $COMPOSE_CMD build
+    print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $BASE_IMAGE"
+    # 使用环境变量传递架构配置给docker-compose
+    # 注意：Docker会自动检测当前架构，无需指定--platform参数
+    BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build
     
     print_info "启动服务..."
     $COMPOSE_CMD up -d
@@ -531,8 +624,13 @@ build_image() {
     print_info "重新构建 Docker 镜像..."
     check_docker
     check_docker_compose
+    detect_architecture
+    configure_architecture
     
-    $COMPOSE_CMD build --no-cache
+    print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $BASE_IMAGE"
+    # 使用环境变量传递架构配置给docker-compose
+    # 注意：Docker会自动检测当前架构，无需指定--platform参数
+    BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build --no-cache
     print_success "镜像构建完成"
 }
 
@@ -561,13 +659,18 @@ update_service() {
     print_info "更新服务..."
     check_docker
     check_docker_compose
+    detect_architecture
+    configure_architecture
     check_network
     
     print_info "拉取最新代码..."
     git pull || print_warning "Git pull 失败，继续使用当前代码"
     
     print_info "重新构建镜像..."
-    $COMPOSE_CMD build
+    print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $BASE_IMAGE"
+    # 使用环境变量传递架构配置给docker-compose
+    # 注意：Docker会自动检测当前架构，无需指定--platform参数
+    BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build
     
     print_info "重启服务..."
     $COMPOSE_CMD up -d

@@ -1,5 +1,8 @@
-# 使用PyTorch官方镜像（包含CUDA支持，Python 3.10）
-FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+# 支持多架构：通过ARG动态选择基础镜像
+# x86_64: 使用PyTorch CUDA镜像
+# arm64/aarch64: 使用PyTorch CPU镜像（ARM架构通常不支持CUDA）
+ARG BASE_IMAGE=pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+FROM ${BASE_IMAGE}
 
 # 设置非交互式环境，避免构建时卡住
 ARG DEBIAN_FRONTEND=noninteractive
@@ -80,4 +83,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
 
 # 启动命令
 CMD ["python", "run.py"]
-
