@@ -198,20 +198,50 @@ check_docker() {
 
 # 检查 Docker Compose 是否安装
 check_docker_compose() {
-    if ! check_command docker-compose && ! docker compose version &> /dev/null; then
-        print_error "Docker Compose 未安装，请先安装 Docker Compose"
-        echo "安装指南: https://docs.docker.com/compose/install/"
-        exit 1
-    fi
+    local version_output=""
     
-    # 检查是 docker-compose 还是 docker compose
+    # 检查 docker-compose (v1)
     if check_command docker-compose; then
         COMPOSE_CMD="docker-compose"
-        print_success "Docker Compose 已安装: $(docker-compose --version)"
-    else
-        COMPOSE_CMD="docker compose"
-        print_success "Docker Compose 已安装: $(docker compose version)"
+        version_output=$(docker-compose --version 2>/dev/null || echo "")
+        if [ -n "$version_output" ]; then
+            print_success "Docker Compose 已安装: $version_output"
+            return 0
+        fi
     fi
+    
+    # 检查 docker compose (v2)
+    if docker compose version &> /dev/null; then
+        COMPOSE_CMD="docker compose"
+        # 尝试多种方式获取版本信息
+        # 方法1: 直接使用 version 命令（v2 的标准输出）
+        version_output=$(docker compose version --short 2>/dev/null || echo "")
+        
+        # 方法2: 如果 --short 不可用，尝试解析完整输出
+        if [ -z "$version_output" ]; then
+            version_output=$(docker compose version 2>&1 | grep -E "version|Docker Compose" | head -1 | sed 's/^[[:space:]]*//' || echo "")
+        fi
+        
+        # 方法3: 如果还是无法获取，检查是否是帮助信息
+        if [ -z "$version_output" ] || echo "$version_output" | grep -qiE "usage|command|options"; then
+            # 尝试使用 docker compose 的其他方式获取版本
+            version_output=$(docker compose --version 2>/dev/null || docker compose version 2>&1 | head -1 || echo "")
+            if echo "$version_output" | grep -qiE "usage|command|options"; then
+                # 如果仍然是帮助信息，只显示命令可用
+                print_success "Docker Compose 已安装 (docker compose 命令可用)"
+            else
+                print_success "Docker Compose 已安装: $version_output"
+            fi
+        else
+            print_success "Docker Compose 已安装: $version_output"
+        fi
+        return 0
+    fi
+    
+    # 如果都不存在，报错
+    print_error "Docker Compose 未安装，请先安装 Docker Compose"
+    echo "安装指南: https://docs.docker.com/compose/install/"
+    exit 1
 }
 
 # 创建统一网络
