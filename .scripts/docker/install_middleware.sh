@@ -515,6 +515,195 @@ check_and_install_nodejs20() {
     done
 }
 
+# 检查 nvidia-container-toolkit 是否已安装
+check_nvidia_container_toolkit() {
+    if command -v nvidia-container-runtime &> /dev/null; then
+        local runtime_path=$(which nvidia-container-runtime)
+        print_success "nvidia-container-toolkit 已安装: $runtime_path"
+        return 0
+    fi
+    
+    # 检查是否通过包管理器安装
+    if dpkg -l | grep -q nvidia-container-toolkit 2>/dev/null || rpm -qa | grep -q nvidia-container-toolkit 2>/dev/null; then
+        print_info "nvidia-container-toolkit 已通过包管理器安装"
+        return 0
+    fi
+    
+    return 1
+}
+
+# 安装 nvidia-container-toolkit
+install_nvidia_container_toolkit() {
+    print_section "安装 NVIDIA Container Toolkit"
+    
+    if [ "$EUID" -ne 0 ]; then
+        print_error "安装 nvidia-container-toolkit 需要 root 权限，请使用 sudo 运行此脚本"
+        return 1
+    fi
+    
+    # 检测系统类型
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        local os_id="$ID"
+    else
+        print_error "无法检测操作系统类型"
+        return 1
+    fi
+    
+    # 第一步：卸载旧版本（如果存在）
+    print_info "检查并卸载旧版本..."
+    case "$os_id" in
+        ubuntu|debian)
+            apt-get purge -y nvidia-docker2 nvidia-container-toolkit 2>/dev/null || true
+            rm -rf /etc/nvidia-container-runtime 2>/dev/null || true
+            ;;
+        centos|rhel|fedora)
+            yum remove -y nvidia-docker2 nvidia-container-toolkit 2>/dev/null || true
+            rm -rf /etc/nvidia-container-runtime 2>/dev/null || true
+            ;;
+        *)
+            print_warning "不支持的操作系统: $os_id，尝试通用卸载方法"
+            rm -rf /etc/nvidia-container-runtime 2>/dev/null || true
+            ;;
+    esac
+    
+    # 第二步：添加 NVIDIA 仓库并安装
+    print_info "添加 NVIDIA 仓库..."
+    case "$os_id" in
+        ubuntu|debian)
+            # 添加密钥和仓库
+            if ! curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg 2>/dev/null; then
+                print_error "添加 NVIDIA GPG 密钥失败"
+                return 1
+            fi
+            
+            if ! curl -fsSL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+                sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+                tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null; then
+                print_error "添加 NVIDIA 仓库失败"
+                return 1
+            fi
+            
+            # 更新包列表
+            if ! apt-get update > /dev/null 2>&1; then
+                print_error "更新包列表失败"
+                return 1
+            fi
+            
+            # 安装 nvidia-container-toolkit
+            print_info "正在安装 nvidia-container-toolkit..."
+            if ! apt-get install -y nvidia-container-toolkit; then
+                print_error "安装 nvidia-container-toolkit 失败"
+                return 1
+            fi
+            ;;
+        centos|rhel|fedora)
+            # 添加仓库
+            if ! curl -fsSL https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo | \
+                tee /etc/yum.repos.d/nvidia-container-toolkit.repo > /dev/null; then
+                print_error "添加 NVIDIA 仓库失败"
+                return 1
+            fi
+            
+            # 安装 nvidia-container-toolkit
+            print_info "正在安装 nvidia-container-toolkit..."
+            if ! yum install -y nvidia-container-toolkit; then
+                print_error "安装 nvidia-container-toolkit 失败"
+                return 1
+            fi
+            ;;
+        *)
+            print_error "不支持的操作系统: $os_id"
+            print_info "请手动安装 nvidia-container-toolkit 后重试"
+            print_info "安装指南: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
+            return 1
+            ;;
+    esac
+    
+    # 第三步：配置 Docker 使用 NVIDIA 作为默认运行时
+    print_info "配置 Docker 使用 NVIDIA 作为默认运行时..."
+    if ! nvidia-ctk runtime configure --runtime=docker; then
+        print_error "配置 Docker runtime 失败"
+        return 1
+    fi
+    
+    # 第四步：重启 Docker
+    print_info "重启 Docker 服务以使配置生效..."
+    systemctl daemon-reload
+    if ! systemctl restart docker; then
+        print_error "重启 Docker 服务失败"
+        return 1
+    fi
+    
+    # 第五步：验证安装
+    print_info "验证安装..."
+    sleep 2  # 等待服务启动
+    
+    if command -v nvidia-container-runtime &> /dev/null; then
+        local runtime_path=$(which nvidia-container-runtime)
+        print_success "nvidia-container-runtime 已安装: $runtime_path"
+    else
+        print_warning "nvidia-container-runtime 未在 PATH 中找到，但包已安装"
+    fi
+    
+    # 测试运行 GPU 容器（可选，如果系统有 GPU）
+    if command -v nvidia-smi &> /dev/null; then
+        print_info "检测到 NVIDIA GPU，测试 GPU 容器..."
+        if docker run --rm --gpus all nvidia/cuda:11.8.0-base nvidia-smi &> /dev/null; then
+            print_success "GPU 容器测试成功"
+        else
+            print_warning "GPU 容器测试失败，但 nvidia-container-toolkit 已安装"
+            print_info "请检查 NVIDIA 驱动是否正确安装"
+        fi
+    else
+        print_info "未检测到 NVIDIA GPU，跳过 GPU 容器测试"
+    fi
+    
+    print_success "NVIDIA Container Toolkit 安装完成"
+    return 0
+}
+
+# 检查并安装 nvidia-container-toolkit
+check_and_install_nvidia_container_toolkit() {
+    if check_nvidia_container_toolkit; then
+        return 0
+    fi
+    
+    print_warning "未检测到 nvidia-container-toolkit"
+    echo ""
+    print_info "nvidia-container-toolkit 是 Docker 容器使用 GPU 的必需组件"
+    echo ""
+    
+    while true; do
+        echo -ne "${YELLOW}[提示]${NC} 是否自动安装 nvidia-container-toolkit？(y/N): "
+        read -r response
+        case "$response" in
+            [yY][eE][sS]|[yY])
+                if [ "$EUID" -ne 0 ]; then
+                    print_error "安装 nvidia-container-toolkit 需要 root 权限，请使用 sudo 运行此脚本"
+                    exit 1
+                fi
+                if install_nvidia_container_toolkit; then
+                    print_success "nvidia-container-toolkit 安装成功"
+                    return 0
+                else
+                    print_error "nvidia-container-toolkit 安装失败，请手动安装后重试"
+                    print_info "安装指南: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
+                    exit 1
+                fi
+                ;;
+            [nN][oO]|[nN]|"")
+                print_warning "跳过 nvidia-container-toolkit 安装"
+                print_info "如果后续需要使用 GPU，请手动安装 nvidia-container-toolkit"
+                return 0
+                ;;
+            *)
+                print_warning "请输入 y 或 N"
+                ;;
+        esac
+    done
+}
+
 # 配置 Docker 镜像源
 configure_docker_mirror() {
     print_section "配置 Docker 镜像源和 NVIDIA Runtime"
@@ -2363,14 +2552,17 @@ install_middleware() {
     # 检查并安装 Node.js 20+
     check_and_install_nodejs20
     
-    # 配置 Docker 镜像源
-    configure_docker_mirror
-    
     # 配置 pip 镜像源
     configure_pip_mirror
     
     check_docker "$@"
     check_docker_compose
+    
+    # 检查并安装 nvidia-container-toolkit（在配置 Docker 镜像源之前）
+    check_and_install_nvidia_container_toolkit
+    
+    # 配置 Docker 镜像源（需要在 nvidia-container-toolkit 安装之后）
+    configure_docker_mirror
     check_compose_file
     create_network
     create_nodered_directories
