@@ -2223,6 +2223,67 @@ init_databases() {
     fi
 }
 
+# 检查并拉取缺失的镜像
+check_and_pull_images() {
+    print_info "检查所需镜像是否存在..."
+    
+    # 获取 docker-compose.yml 中定义的所有服务
+    local services=$($COMPOSE_CMD -f "$COMPOSE_FILE" config --services 2>/dev/null || echo "")
+    
+    if [ -z "$services" ]; then
+        print_warning "无法获取服务列表，将直接启动服务（会自动拉取缺失镜像）"
+        return 0
+    fi
+    
+    local missing_images=0
+    local existing_images=0
+    local images_to_check=()
+    
+    # 从 docker-compose 配置中提取所有镜像信息
+    local compose_config=$($COMPOSE_CMD -f "$COMPOSE_FILE" config 2>/dev/null || echo "")
+    
+    if [ -z "$compose_config" ]; then
+        print_warning "无法读取 docker-compose 配置，将直接启动服务"
+        return 0
+    fi
+    
+    # 提取所有镜像名称（处理多种格式）
+    while IFS= read -r line; do
+        # 匹配 image: 行，支持多种格式
+        if echo "$line" | grep -qE "^\s*image:"; then
+            local image=$(echo "$line" | sed -E 's/^\s*image:\s*//' | sed -E "s/^['\"]//" | sed -E "s/['\"]$//" | tr -d ' ')
+            if [ -n "$image" ] && [[ ! " ${images_to_check[@]} " =~ " ${image} " ]]; then
+                images_to_check+=("$image")
+            fi
+        fi
+    done <<< "$compose_config"
+    
+    # 检查每个镜像是否存在
+    for image in "${images_to_check[@]}"; do
+        if docker image inspect "$image" &> /dev/null; then
+            print_info "镜像已存在: $image"
+            existing_images=$((existing_images + 1))
+        else
+            print_warning "镜像不存在: $image"
+            missing_images=$((missing_images + 1))
+        fi
+    done
+    
+    # 如果有缺失的镜像，才执行拉取
+    if [ $missing_images -gt 0 ]; then
+        print_info "发现 $missing_images 个缺失镜像，开始拉取..."
+        print_info "已存在 $existing_images 个镜像，跳过拉取"
+        $COMPOSE_CMD -f "$COMPOSE_FILE" pull 2>&1 | tee -a "$LOG_FILE"
+        print_success "镜像拉取完成"
+    else
+        if [ ${#images_to_check[@]} -gt 0 ]; then
+            print_success "所有所需镜像已存在（${#images_to_check[@]} 个），跳过拉取步骤（节省时间）"
+        else
+            print_info "未检测到需要拉取的镜像，将直接启动服务"
+        fi
+    fi
+}
+
 # 安装所有中间件
 install_middleware() {
     print_section "开始安装所有中间件"
@@ -2248,6 +2309,10 @@ install_middleware() {
     create_network
     create_nodered_directories
     prepare_srs_config
+    
+    # 检查并拉取缺失的镜像（如果镜像已存在则跳过拉取）
+    echo ""
+    check_and_pull_images
     
     print_info "启动所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
