@@ -139,17 +139,48 @@ check_command() {
 
 # 检查 Docker 权限
 check_docker_permission() {
+    # 首先检查 Docker daemon 是否运行
+    if ! docker info &> /dev/null; then
+        # 检查是否是权限问题还是 daemon 未运行
+        local error_msg=$(docker info 2>&1)
+        
+        if echo "$error_msg" | grep -qi "permission denied\|cannot connect"; then
+            print_error "没有权限访问 Docker daemon"
+            echo ""
+            echo "解决方案："
+            echo "  1. 将当前用户添加到 docker 组："
+            echo "     sudo usermod -aG docker $USER"
+            echo "     然后重新登录或运行: newgrp docker"
+            echo ""
+            echo "  2. 或者使用 sudo 运行此脚本："
+            echo "     sudo ./install_all.sh $*"
+            echo ""
+        elif echo "$error_msg" | grep -qi "Is the docker daemon running"; then
+            print_error "Docker daemon 未运行"
+            echo ""
+            echo "解决方案："
+            echo "  1. 启动 Docker 服务："
+            echo "     sudo systemctl start docker"
+            echo ""
+            echo "  2. 设置 Docker 服务开机自启："
+            echo "     sudo systemctl enable docker"
+            echo ""
+        else
+            print_error "无法连接到 Docker daemon"
+            echo ""
+            echo "错误信息: $error_msg"
+            echo ""
+            echo "请检查："
+            echo "  1. Docker 服务是否运行: sudo systemctl status docker"
+            echo "  2. 当前用户是否有权限访问 Docker"
+            echo ""
+        fi
+        exit 1
+    fi
+    
+    # 验证 docker ps 命令是否可用
     if ! docker ps &> /dev/null; then
-        print_error "没有权限访问 Docker daemon"
-        echo ""
-        echo "解决方案："
-        echo "  1. 将当前用户添加到 docker 组："
-        echo "     sudo usermod -aG docker $USER"
-        echo "     然后重新登录或运行: newgrp docker"
-        echo ""
-        echo "  2. 或者使用 sudo 运行此脚本："
-        echo "     sudo ./install_module.sh $*"
-        echo ""
+        print_error "Docker 命令执行失败"
         exit 1
     fi
 }
@@ -605,7 +636,7 @@ verify_all() {
             echo -e "  ${RED}✗ $failed${NC}"
         done
         echo ""
-        print_info "查看日志: ./install_module.sh logs"
+        print_info "查看日志: ./install_all.sh logs"
         return 1
     fi
 }
@@ -615,7 +646,7 @@ show_help() {
     echo "EasyAIoT 统一安装脚本"
     echo ""
     echo "使用方法:"
-    echo "  ./install_module.sh [命令] [模块]"
+    echo "  ./install_all.sh [命令] [模块]"
     echo ""
     echo "可用命令:"
     echo "  install         - 安装并启动所有服务（首次运行）"
