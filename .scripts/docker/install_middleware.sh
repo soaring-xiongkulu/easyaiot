@@ -913,35 +913,6 @@ EOF
     done
 }
 
-# 检查 Docker 版本是否符合要求（>=29.0.0）
-check_docker_version() {
-    if ! check_command docker; then
-        return 1
-    fi
-    
-    local docker_version_output=$(docker --version 2>&1)
-    # 提取版本号，格式可能是 "Docker version 29.0.0, build xxxxx"
-    local version_string=$(echo "$docker_version_output" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
-    
-    if [ -z "$version_string" ]; then
-        print_warning "无法解析 Docker 版本: $docker_version_output"
-        return 1
-    fi
-    
-    # 比较版本号
-    local major=$(echo "$version_string" | cut -d. -f1)
-    local minor=$(echo "$version_string" | cut -d. -f2)
-    local patch=$(echo "$version_string" | cut -d. -f3)
-    
-    # 要求版本 >= 29.0.0
-    if [ "$major" -gt 29 ] || ([ "$major" -eq 29 ] && [ "$minor" -ge 0 ]); then
-        print_success "Docker 版本符合要求: $version_string"
-        return 0
-    else
-        print_warning "Docker 版本过低: $version_string，需要 v29.0.0+"
-        return 1
-    fi
-}
 
 # 检查 Docker Compose 版本是否符合要求（>=2.35.0）
 check_docker_compose_version() {
@@ -1322,61 +1293,13 @@ install_docker_compose() {
 # 检查并安装 Docker
 check_and_install_docker() {
     if check_command docker; then
-        # 检查版本是否符合要求
-        if check_docker_version; then
-            check_docker_permission "$@"
-            return 0
-        else
-            # 版本不符合要求，提示升级
-            print_warning "Docker 版本不符合要求（需要 v29.0.0+）"
-            echo ""
-            print_info "当前版本: $(docker --version)"
-            print_info "要求版本: v29.0.0 或更高"
-            echo ""
-            
-            while true; do
-                echo -ne "${YELLOW}[提示]${NC} 是否升级 Docker 到最新版本？(y/N): "
-                read -r response
-                case "$response" in
-                    [yY][eE][sS]|[yY])
-                        if [ "$EUID" -ne 0 ]; then
-                            print_error "升级 Docker 需要 root 权限，请使用 sudo 运行此脚本"
-                            exit 1
-                        fi
-                        print_info "正在升级 Docker..."
-                        # 卸载旧版本并安装新版本
-                        if install_docker; then
-                            if check_docker_version; then
-                                print_success "Docker 升级成功"
-                                check_docker_permission "$@"
-                                return 0
-                            else
-                                print_error "Docker 升级后版本仍不符合要求"
-                                exit 1
-                            fi
-                        else
-                            print_error "Docker 升级失败，请手动升级后重试"
-                            exit 1
-                        fi
-                        ;;
-                    [nN][oO]|[nN]|"")
-                        print_error "Docker 版本不符合要求，安装流程已终止"
-                        print_info "请手动升级 Docker 到 v29.0.0+ 后重试"
-                        print_info "安装指南: https://docs.docker.com/get-docker/"
-                        exit 1
-                        ;;
-                    *)
-                        print_warning "请输入 y 或 N"
-                        ;;
-                esac
-            done
-        fi
+        check_docker_permission "$@"
+        return 0
     fi
     
     print_warning "未检测到 Docker"
     echo ""
     print_info "Docker 是运行中间件服务的必需组件"
-    print_info "要求版本: v29.0.0 或更高"
     echo ""
     
     while true; do
@@ -1385,14 +1308,9 @@ check_and_install_docker() {
         case "$response" in
             [yY][eE][sS]|[yY])
                 if install_docker; then
-                    if check_docker_version; then
-                        print_success "Docker 安装成功"
-                        check_docker_permission "$@"
-                        return 0
-                    else
-                        print_error "Docker 安装后版本不符合要求"
-                        exit 1
-                    fi
+                    print_success "Docker 安装成功"
+                    check_docker_permission "$@"
+                    return 0
                 else
                     print_error "Docker 安装失败，请手动安装后重试"
                     exit 1
