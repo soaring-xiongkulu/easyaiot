@@ -225,6 +225,36 @@ create_network() {
     fi
 }
 
+# 修复脚本文件的换行符（Windows CRLF -> Unix LF）
+fix_line_endings() {
+    local script_file="$1"
+    if [ ! -f "$script_file" ]; then
+        return 1
+    fi
+    
+    # 检查文件是否包含 \r 字符（更可靠的方法）
+    if grep -q $'\r' "$script_file" 2>/dev/null; then
+        print_info "修复 $script_file 的换行符（CRLF -> LF）..."
+        # 使用 sed 去除 \r 字符
+        if sed -i 's/\r$//' "$script_file" 2>/dev/null; then
+            # sed -i 成功
+            :
+        else
+            # 如果 sed -i 失败（某些系统不支持），使用临时文件
+            local temp_file=$(mktemp)
+            if sed 's/\r$//' "$script_file" > "$temp_file" 2>/dev/null; then
+                mv "$temp_file" "$script_file"
+            else
+                rm -f "$temp_file"
+                # 如果 sed 也失败，尝试使用 tr
+                tr -d '\r' < "$script_file" > "$temp_file" 2>/dev/null && mv "$temp_file" "$script_file" || rm -f "$temp_file"
+            fi
+        fi
+        # 确保文件有执行权限
+        chmod +x "$script_file" 2>/dev/null || true
+    fi
+}
+
 # 执行模块命令
 execute_module_command() {
     local module=$1
@@ -246,6 +276,9 @@ execute_module_command() {
             print_warning "模块 $module 没有 $install_file 文件，跳过"
             return 1
         fi
+        
+        # 修复换行符
+        fix_line_endings "$install_file"
         
         print_info "执行 $module_name: $command"
         
@@ -349,6 +382,9 @@ execute_module_command() {
             print_warning "模块 $module 没有 install.sh 脚本，跳过"
             return 1
         fi
+        
+        # 修复换行符
+        fix_line_endings "install.sh"
         
         print_info "执行 $module_name: $command"
         
