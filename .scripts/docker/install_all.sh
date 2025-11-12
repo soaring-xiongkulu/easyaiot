@@ -158,11 +158,32 @@ check_docker_permission() {
         elif echo "$error_msg" | grep -qi "Is the docker daemon running"; then
             print_error "Docker daemon 未运行"
             echo ""
+            
+            # 检查是否是 systemd 超时问题
+            if systemctl is-active docker.service &> /dev/null; then
+                print_info "Docker 服务状态: $(systemctl is-active docker.service)"
+            elif systemctl is-failed docker.service &> /dev/null && systemctl is-failed docker.service | grep -qi "failed\|timeout"; then
+                print_warning "检测到 Docker 服务启动失败或超时"
+                echo ""
+                echo "这可能是 systemd 超时问题，请运行诊断脚本："
+                echo "  sudo .scripts/docker/diagnose_docker_systemd.sh diagnose"
+                echo ""
+                echo "然后尝试修复："
+                echo "  sudo .scripts/docker/diagnose_docker_systemd.sh fix-all"
+                echo ""
+            fi
+            
             echo "解决方案："
             echo "  1. 启动 Docker 服务："
             echo "     sudo systemctl start docker"
             echo ""
-            echo "  2. 设置 Docker 服务开机自启："
+            echo "  2. 如果启动失败，运行诊断脚本："
+            echo "     sudo .scripts/docker/diagnose_docker_systemd.sh diagnose"
+            echo ""
+            echo "  3. 尝试修复 systemd 超时问题："
+            echo "     sudo .scripts/docker/diagnose_docker_systemd.sh fix-all"
+            echo ""
+            echo "  4. 设置 Docker 服务开机自启："
             echo "     sudo systemctl enable docker"
             echo ""
         else
@@ -172,7 +193,9 @@ check_docker_permission() {
             echo ""
             echo "请检查："
             echo "  1. Docker 服务是否运行: sudo systemctl status docker"
-            echo "  2. 当前用户是否有权限访问 Docker"
+            echo "  2. 如果服务启动失败，运行诊断脚本："
+            echo "     sudo .scripts/docker/diagnose_docker_systemd.sh diagnose"
+            echo "  3. 当前用户是否有权限访问 Docker"
             echo ""
         fi
         exit 1
