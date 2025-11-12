@@ -1491,28 +1491,102 @@ create_nodered_directories() {
 prepare_srs_config() {
     local srs_config_source="${SCRIPT_DIR}/../srs/conf"
     local srs_config_target="${SCRIPT_DIR}/srs_data/conf"
+    local srs_config_file="${srs_config_target}/docker.conf"
     
     print_info "准备 SRS 配置文件..."
     
     # 创建目标目录
     mkdir -p "$srs_config_target"
     
-    # 检查源配置文件是否存在
+    # 检查目标文件是否已存在
+    if [ -f "$srs_config_file" ]; then
+        print_info "SRS 配置文件已存在: $srs_config_file"
+        return 0
+    fi
+    
+    # 尝试从源目录复制配置文件
     if [ -d "$srs_config_source" ] && [ -f "$srs_config_source/docker.conf" ]; then
-        # 如果源配置文件存在，复制到目标目录
-        if cp -f "$srs_config_source/docker.conf" "$srs_config_target/docker.conf" 2>/dev/null; then
-            print_success "SRS 配置文件已复制: $srs_config_source/docker.conf -> $srs_config_target/docker.conf"
+        print_info "从源目录复制 SRS 配置文件..."
+        if cp -f "$srs_config_source/docker.conf" "$srs_config_file" 2>/dev/null; then
+            print_success "SRS 配置文件已复制: $srs_config_source/docker.conf -> $srs_config_file"
+            # 验证文件确实存在
+            if [ -f "$srs_config_file" ]; then
+                return 0
+            fi
         else
-            print_warning "无法复制 SRS 配置文件，可能需要手动复制"
+            print_warning "无法复制 SRS 配置文件，将创建默认配置"
         fi
     else
-        # 如果源配置文件不存在，检查目标目录是否已有配置文件
-        if [ ! -f "$srs_config_target/docker.conf" ]; then
-            print_warning "SRS 配置文件不存在: $srs_config_source/docker.conf"
-            print_info "将在容器启动后尝试从容器内复制默认配置"
-        else
-            print_info "SRS 配置文件已存在: $srs_config_target/docker.conf"
-        fi
+        print_warning "源配置文件不存在: $srs_config_source/docker.conf，将创建默认配置"
+    fi
+    
+    # 如果复制失败或源文件不存在，创建默认配置文件
+    print_info "创建默认 SRS 配置文件..."
+    cat > "$srs_config_file" << 'EOF'
+# SRS Docker 配置文件
+# 用于 Docker 容器部署的 SRS 配置
+
+listen              1935;
+max_connections     1000;
+daemon              on;
+srs_log_tank        file;
+srs_log_file        /data/srs.log;
+
+http_server {
+    enabled         on;
+    listen          8080;
+    dir             ./objs/nginx/html;
+}
+
+http_api {
+    enabled         on;
+    listen          1985;
+    raw_api {
+        enabled             on;
+        allow_reload        on;
+    }
+}
+stats {
+    network         0;
+}
+rtc_server {
+    enabled on;
+    listen 8000;
+    candidate *;
+}
+
+vhost __defaultVhost__ {
+    http_remux {
+        enabled     on;
+        mount       [vhost]/[app]/[stream].flv;
+    }
+    rtc {
+        enabled     on;
+        rtmp_to_rtc on;
+        rtc_to_rtmp on;
+    }
+    dvr {
+        enabled             on;
+        dvr_path            /data/playbacks/[app]/[stream]/[2006]/[01]/[02]/[timestamp].flv;
+        dvr_plan            segment;
+        dvr_duration        30;
+        dvr_wait_keyframe   on;
+    }
+    http_hooks {
+        enabled             on;
+        on_dvr              http://127.0.0.1:6000/video/camera/callback/on_dvr;
+        on_publish          http://127.0.0.1:6000/video/camera/callback/on_publish;
+    }
+}
+EOF
+    
+    # 验证文件是否创建成功
+    if [ -f "$srs_config_file" ]; then
+        print_success "默认 SRS 配置文件已创建: $srs_config_file"
+        return 0
+    else
+        print_error "无法创建 SRS 配置文件: $srs_config_file"
+        return 1
     fi
 }
 
@@ -2331,9 +2405,89 @@ delete_databases() {
     fi
 }
 
+# 检查并重新加载环境变量
+reload_environment() {
+    # 检查 /etc/profile 中是否有环境变量配置
+    if [ ! -f /etc/profile ]; then
+        print_warning "/etc/profile 文件不存在"
+        return 1
+    fi
+    
+    if ! grep -q "JAVA_HOME\|JRE_HOME" /etc/profile 2>/dev/null; then
+        print_info "/etc/profile 中未找到 JAVA_HOME 或 JRE_HOME 配置"
+        return 0
+    fi
+    
+    print_info "检测到 /etc/profile 中有环境变量配置，正在重新加载..."
+    
+    # 检查文件权限
+    if [ ! -r /etc/profile ]; then
+        print_warning "/etc/profile 文件不可读，尝试使用 sudo..."
+        # 尝试通过 sudo 读取并执行
+        if command -v sudo &> /dev/null; then
+            # 使用 sudo 读取文件内容，然后通过 eval 执行
+            local profile_content=$(sudo cat /etc/profile 2>/dev/null)
+            if [ -n "$profile_content" ]; then
+                # 提取 JAVA_HOME 相关的环境变量设置
+                local java_vars=$(echo "$profile_content" | grep -E "^export (JAVA_HOME|JRE_HOME|CLASSPATH|PATH)" | grep -v "^#")
+                if [ -n "$java_vars" ]; then
+                    # 执行这些 export 命令
+                    eval "$java_vars" 2>/dev/null
+                    if [ $? -eq 0 ]; then
+                        print_success "环境变量已重新加载（通过 sudo）"
+                        if [ -n "$JAVA_HOME" ]; then
+                            print_info "JAVA_HOME: $JAVA_HOME"
+                        fi
+                        return 0
+                    fi
+                fi
+            fi
+        fi
+        print_error "无法读取 /etc/profile，请手动执行: sudo bash -c 'source /etc/profile'"
+        return 1
+    fi
+    
+    # 直接 source /etc/profile（在当前 shell 中）
+    # 注意：不能使用命令替换 $(source ...)，因为那样会在子shell中执行
+    # 使用临时文件捕获错误输出
+    local error_file=$(mktemp)
+    if source /etc/profile > "$error_file" 2>&1; then
+        rm -f "$error_file"
+        print_success "环境变量已重新加载"
+        
+        # 验证 JAVA_HOME 是否已设置
+        if [ -n "$JAVA_HOME" ]; then
+            print_info "JAVA_HOME: $JAVA_HOME"
+            # 验证 java 命令是否可用
+            if command -v java &> /dev/null; then
+                local java_version=$(java -version 2>&1 | head -n 1)
+                print_info "Java 版本: $java_version"
+            fi
+            return 0
+        else
+            print_warning "JAVA_HOME 未设置，可能环境变量配置有问题"
+            print_info "请检查 /etc/profile 中的 JAVA_HOME 配置"
+            return 1
+        fi
+    else
+        local source_error=$(cat "$error_file" 2>/dev/null || echo "")
+        rm -f "$error_file"
+        print_warning "source /etc/profile 执行失败"
+        if [ -n "$source_error" ]; then
+            print_info "错误信息: $source_error"
+        fi
+        print_info "请手动执行以下命令之一："
+        print_info "  1. source /etc/profile"
+        print_info "  2. . /etc/profile"
+        print_info "  3. 如果权限不足，请使用: sudo bash -c 'source /etc/profile && exec bash'"
+        return 1
+    fi
+}
+
 # 清理所有中间件
 clean_middleware() {
-    print_warning "这将删除所有中间件容器、镜像和数据卷，确定要继续吗？(y/N)"
+    print_warning "这将删除所有中间件容器和数据卷，确定要继续吗？(y/N)"
+    print_info "注意：镜像不会被删除，以节省重新下载的时间"
     read -r response
     
     if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
@@ -2343,10 +2497,11 @@ clean_middleware() {
         check_docker_compose
         check_compose_file
         
-        # 提示数据库不会被删除
+        # 提示数据库和镜像不会被删除
         echo ""
-        print_info "注意：清理操作不会删除数据库表和数据"
-        print_info "数据库数据将保留在 PostgreSQL 数据卷中"
+        print_info "注意：清理操作不会删除以下内容："
+        print_info "  - 镜像（保留以便快速重新部署）"
+        print_info "  - 数据库表和数据（保留在 PostgreSQL 数据卷中）"
         print_warning "如果需要删除数据库数据，请手动执行以下操作："
         print_info "  1. 连接到 PostgreSQL 容器："
         print_info "     docker exec -it postgres-server psql -U postgres"
@@ -2367,8 +2522,8 @@ clean_middleware() {
         # 等待容器完全停止
         sleep 2
         
-        # 第三步：删除容器和卷
-        print_info "删除所有容器和数据卷..."
+        # 第三步：删除容器和卷（不删除镜像）
+        print_info "删除所有容器和数据卷（镜像将保留）..."
         $COMPOSE_CMD -f "$COMPOSE_FILE" down -v 2>&1 | tee -a "$LOG_FILE"
         
         # 第四步：检查并强制删除可能残留的容器（处理重启循环中的容器）
@@ -2401,6 +2556,17 @@ clean_middleware() {
         fi
         
         print_success "清理完成"
+        
+        # 清理完成后，自动检查并重新加载环境变量
+        echo ""
+        if [ -f /etc/profile ] && grep -q "JAVA_HOME\|JRE_HOME" /etc/profile 2>/dev/null; then
+            print_info "检测到 /etc/profile 中有环境变量配置，正在自动重新加载..."
+            if reload_environment; then
+                print_success "环境变量已自动重新加载"
+            else
+                print_warning "自动加载失败，请手动执行: source /etc/profile"
+            fi
+        fi
     else
         print_info "已取消清理操作"
     fi

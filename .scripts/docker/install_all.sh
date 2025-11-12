@@ -642,6 +642,85 @@ build_all() {
     print_success "所有镜像构建完成"
 }
 
+# 检查并重新加载环境变量
+reload_environment() {
+    # 检查 /etc/profile 中是否有环境变量配置
+    if [ ! -f /etc/profile ]; then
+        print_warning "/etc/profile 文件不存在"
+        return 1
+    fi
+    
+    if ! grep -q "JAVA_HOME\|JRE_HOME" /etc/profile 2>/dev/null; then
+        print_info "/etc/profile 中未找到 JAVA_HOME 或 JRE_HOME 配置"
+        return 0
+    fi
+    
+    print_info "检测到 /etc/profile 中有环境变量配置，正在重新加载..."
+    
+    # 检查文件权限
+    if [ ! -r /etc/profile ]; then
+        print_warning "/etc/profile 文件不可读，尝试使用 sudo..."
+        # 尝试通过 sudo 读取并执行
+        if command -v sudo &> /dev/null; then
+            # 使用 sudo 读取文件内容，然后通过 eval 执行
+            local profile_content=$(sudo cat /etc/profile 2>/dev/null)
+            if [ -n "$profile_content" ]; then
+                # 提取 JAVA_HOME 相关的环境变量设置
+                local java_vars=$(echo "$profile_content" | grep -E "^export (JAVA_HOME|JRE_HOME|CLASSPATH|PATH)" | grep -v "^#")
+                if [ -n "$java_vars" ]; then
+                    # 执行这些 export 命令
+                    eval "$java_vars" 2>/dev/null
+                    if [ $? -eq 0 ]; then
+                        print_success "环境变量已重新加载（通过 sudo）"
+                        if [ -n "$JAVA_HOME" ]; then
+                            print_info "JAVA_HOME: $JAVA_HOME"
+                        fi
+                        return 0
+                    fi
+                fi
+            fi
+        fi
+        print_error "无法读取 /etc/profile，请手动执行: sudo bash -c 'source /etc/profile'"
+        return 1
+    fi
+    
+    # 直接 source /etc/profile（在当前 shell 中）
+    # 注意：不能使用命令替换 $(source ...)，因为那样会在子shell中执行
+    # 使用临时文件捕获错误输出
+    local error_file=$(mktemp)
+    if source /etc/profile > "$error_file" 2>&1; then
+        rm -f "$error_file"
+        print_success "环境变量已重新加载"
+        
+        # 验证 JAVA_HOME 是否已设置
+        if [ -n "$JAVA_HOME" ]; then
+            print_info "JAVA_HOME: $JAVA_HOME"
+            # 验证 java 命令是否可用
+            if command -v java &> /dev/null; then
+                local java_version=$(java -version 2>&1 | head -n 1)
+                print_info "Java 版本: $java_version"
+            fi
+            return 0
+        else
+            print_warning "JAVA_HOME 未设置，可能环境变量配置有问题"
+            print_info "请检查 /etc/profile 中的 JAVA_HOME 配置"
+            return 1
+        fi
+    else
+        local source_error=$(cat "$error_file" 2>/dev/null || echo "")
+        rm -f "$error_file"
+        print_warning "source /etc/profile 执行失败"
+        if [ -n "$source_error" ]; then
+            print_info "错误信息: $source_error"
+        fi
+        print_info "请手动执行以下命令之一："
+        print_info "  1. source /etc/profile"
+        print_info "  2. . /etc/profile"
+        print_info "  3. 如果权限不足，请使用: sudo bash -c 'source /etc/profile && exec bash'"
+        return 1
+    fi
+}
+
 # 清理所有服务
 clean_all() {
     print_warning "这将删除所有容器、镜像和数据卷，确定要继续吗？(y/N)"
@@ -664,6 +743,17 @@ clean_all() {
         docker network rm easyaiot-network 2>/dev/null || true
         
         print_success "清理完成"
+        
+        # 清理完成后，自动检查并重新加载环境变量
+        echo ""
+        if [ -f /etc/profile ] && grep -q "JAVA_HOME\|JRE_HOME" /etc/profile 2>/dev/null; then
+            print_info "检测到 /etc/profile 中有环境变量配置，正在自动重新加载..."
+            if reload_environment; then
+                print_success "环境变量已自动重新加载"
+            else
+                print_warning "自动加载失败，请手动执行: source /etc/profile"
+            fi
+        fi
     else
         print_info "已取消清理操作"
     fi
