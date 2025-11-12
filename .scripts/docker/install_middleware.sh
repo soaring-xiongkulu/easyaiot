@@ -695,6 +695,73 @@ EOF
     print_info "已使用清华大学镜像源: https://pypi.tuna.tsinghua.edu.cn/simple"
 }
 
+# 检查 Docker 版本是否符合要求（>=29.0.0）
+check_docker_version() {
+    if ! check_command docker; then
+        return 1
+    fi
+    
+    local docker_version_output=$(docker --version 2>&1)
+    # 提取版本号，格式可能是 "Docker version 29.0.0, build xxxxx"
+    local version_string=$(echo "$docker_version_output" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+    
+    if [ -z "$version_string" ]; then
+        print_warning "无法解析 Docker 版本: $docker_version_output"
+        return 1
+    fi
+    
+    # 比较版本号
+    local major=$(echo "$version_string" | cut -d. -f1)
+    local minor=$(echo "$version_string" | cut -d. -f2)
+    local patch=$(echo "$version_string" | cut -d. -f3)
+    
+    # 要求版本 >= 29.0.0
+    if [ "$major" -gt 29 ] || ([ "$major" -eq 29 ] && [ "$minor" -ge 0 ]); then
+        print_success "Docker 版本符合要求: $version_string"
+        return 0
+    else
+        print_warning "Docker 版本过低: $version_string，需要 v29.0.0+"
+        return 1
+    fi
+}
+
+# 检查 Docker Compose 版本是否符合要求（>=2.35.0）
+check_docker_compose_version() {
+    local compose_version_output=""
+    local version_string=""
+    
+    # 检查 docker-compose 独立版本
+    if check_command docker-compose; then
+        compose_version_output=$(docker-compose --version 2>&1)
+        version_string=$(echo "$compose_version_output" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+    # 检查 docker compose plugin 版本
+    elif docker compose version &> /dev/null; then
+        compose_version_output=$(docker compose version 2>&1)
+        version_string=$(echo "$compose_version_output" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+    else
+        return 1
+    fi
+    
+    if [ -z "$version_string" ]; then
+        print_warning "无法解析 Docker Compose 版本: $compose_version_output"
+        return 1
+    fi
+    
+    # 比较版本号
+    local major=$(echo "$version_string" | cut -d. -f1)
+    local minor=$(echo "$version_string" | cut -d. -f2)
+    local patch=$(echo "$version_string" | cut -d. -f3)
+    
+    # 要求版本 >= 2.35.0
+    if [ "$major" -gt 2 ] || ([ "$major" -eq 2 ] && [ "$minor" -gt 35 ]) || ([ "$major" -eq 2 ] && [ "$minor" -eq 35 ] && [ "$patch" -ge 0 ]); then
+        print_success "Docker Compose 版本符合要求: $version_string"
+        return 0
+    else
+        print_warning "Docker Compose 版本过低: $version_string，需要 v2.35.0+"
+        return 1
+    fi
+}
+
 # 检查 Docker 权限
 check_docker_permission() {
     if ! docker ps &> /dev/null; then
@@ -894,6 +961,88 @@ EOF
     fi
 }
 
+# 从 GitHub 下载 Docker Compose
+download_docker_compose_from_github() {
+    print_section "从 GitHub 下载 Docker Compose v2.35.1"
+    
+    if [ "$EUID" -ne 0 ]; then
+        print_error "安装 Docker Compose 需要 root 权限，请使用 sudo 运行此脚本"
+        return 1
+    fi
+    
+    local compose_version="v2.35.1"
+    local compose_path="/usr/bin/docker-compose"
+    
+    # 检测系统架构
+    local arch=$(uname -m)
+    local compose_arch=""
+    
+    case "$arch" in
+        x86_64)
+            compose_arch="x86_64"
+            ;;
+        aarch64|arm64)
+            compose_arch="aarch64"
+            ;;
+        armv7l|armv6l)
+            compose_arch="armv7"
+            ;;
+        *)
+            print_error "不支持的系统架构: $arch"
+            return 1
+            ;;
+    esac
+    
+    local compose_url="https://github.com/docker/compose/releases/download/${compose_version}/docker-compose-linux-${compose_arch}"
+    
+    print_info "正在从 GitHub 下载 Docker Compose..."
+    print_info "版本: $compose_version"
+    print_info "架构: $compose_arch"
+    print_info "URL: $compose_url"
+    
+    # 下载文件到临时位置
+    local temp_file=$(mktemp)
+    
+    if ! curl -L -f "$compose_url" -o "$temp_file" 2>/dev/null; then
+        print_error "下载 Docker Compose 失败"
+        rm -f "$temp_file"
+        return 1
+    fi
+    
+    # 检查下载的文件是否有效（应该是一个可执行文件）
+    if [ ! -s "$temp_file" ]; then
+        print_error "下载的文件为空"
+        rm -f "$temp_file"
+        return 1
+    fi
+    
+    # 如果目标文件已存在，先备份
+    if [ -f "$compose_path" ]; then
+        print_info "检测到已存在的 docker-compose，创建备份..."
+        mv "$compose_path" "${compose_path}.bak.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
+    fi
+    
+    # 移动文件到目标位置并设置权限
+    if mv "$temp_file" "$compose_path"; then
+        chmod +x "$compose_path"
+        print_success "Docker Compose 已下载并安装到: $compose_path"
+        
+        # 验证安装
+        if check_command docker-compose; then
+            local installed_version=$(docker-compose --version 2>&1)
+            print_success "Docker Compose 安装成功: $installed_version"
+            return 0
+        else
+            print_warning "Docker Compose 已安装但验证失败"
+            return 1
+        fi
+    else
+        print_error "移动文件到 $compose_path 失败"
+        rm -f "$temp_file"
+        return 1
+    fi
+}
+
 # 安装 Docker Compose
 install_docker_compose() {
     print_section "安装 Docker Compose"
@@ -903,6 +1052,15 @@ install_docker_compose() {
         return 1
     fi
     
+    # 优先从 GitHub 下载指定版本
+    print_info "从 GitHub 下载 Docker Compose v2.35.1..."
+    if download_docker_compose_from_github; then
+        return 0
+    fi
+    
+    # 如果下载失败，尝试使用包管理器安装
+    print_warning "从 GitHub 下载失败，尝试使用包管理器安装..."
+    
     # 检测系统类型
     if [ -f /etc/os-release ]; then
         . /etc/os-release
@@ -910,12 +1068,6 @@ install_docker_compose() {
     else
         print_error "无法检测操作系统类型"
         return 1
-    fi
-    
-    # 检查是否已安装 Docker Compose Plugin（docker compose）
-    if docker compose version &> /dev/null; then
-        print_success "Docker Compose Plugin 已安装: $(docker compose version)"
-        return 0
     fi
     
     # 根据系统类型安装 Docker Compose
@@ -930,18 +1082,8 @@ install_docker_compose() {
             yum install -y docker-compose-plugin
             ;;
         *)
-            print_info "尝试安装 Docker Compose 独立版本..."
-            # 下载 Docker Compose 独立版本
-            local compose_version="v2.24.0"
-            local compose_url="https://github.com/docker/compose/releases/download/${compose_version}/docker-compose-linux-$(uname -m)"
-            local compose_path="/usr/local/bin/docker-compose"
-            
-            curl -L "$compose_url" -o "$compose_path" || {
-                print_error "下载 Docker Compose 失败"
-                return 1
-            }
-            
-            chmod +x "$compose_path"
+            print_error "不支持的操作系统: $os_id"
+            return 1
             ;;
     esac
     
@@ -962,14 +1104,61 @@ install_docker_compose() {
 # 检查并安装 Docker
 check_and_install_docker() {
     if check_command docker; then
-        print_success "Docker 已安装: $(docker --version)"
-        check_docker_permission "$@"
-        return 0
+        # 检查版本是否符合要求
+        if check_docker_version; then
+            check_docker_permission "$@"
+            return 0
+        else
+            # 版本不符合要求，提示升级
+            print_warning "Docker 版本不符合要求（需要 v29.0.0+）"
+            echo ""
+            print_info "当前版本: $(docker --version)"
+            print_info "要求版本: v29.0.0 或更高"
+            echo ""
+            
+            while true; do
+                echo -ne "${YELLOW}[提示]${NC} 是否升级 Docker 到最新版本？(y/N): "
+                read -r response
+                case "$response" in
+                    [yY][eE][sS]|[yY])
+                        if [ "$EUID" -ne 0 ]; then
+                            print_error "升级 Docker 需要 root 权限，请使用 sudo 运行此脚本"
+                            exit 1
+                        fi
+                        print_info "正在升级 Docker..."
+                        # 卸载旧版本并安装新版本
+                        if install_docker; then
+                            if check_docker_version; then
+                                print_success "Docker 升级成功"
+                                check_docker_permission "$@"
+                                return 0
+                            else
+                                print_error "Docker 升级后版本仍不符合要求"
+                                exit 1
+                            fi
+                        else
+                            print_error "Docker 升级失败，请手动升级后重试"
+                            exit 1
+                        fi
+                        ;;
+                    [nN][oO]|[nN]|"")
+                        print_error "Docker 版本不符合要求，安装流程已终止"
+                        print_info "请手动升级 Docker 到 v29.0.0+ 后重试"
+                        print_info "安装指南: https://docs.docker.com/get-docker/"
+                        exit 1
+                        ;;
+                    *)
+                        print_warning "请输入 y 或 N"
+                        ;;
+                esac
+            done
+        fi
     fi
     
     print_warning "未检测到 Docker"
     echo ""
     print_info "Docker 是运行中间件服务的必需组件"
+    print_info "要求版本: v29.0.0 或更高"
     echo ""
     
     while true; do
@@ -978,9 +1167,14 @@ check_and_install_docker() {
         case "$response" in
             [yY][eE][sS]|[yY])
                 if install_docker; then
-                    print_success "Docker 安装成功"
-                    check_docker_permission "$@"
-                    return 0
+                    if check_docker_version; then
+                        print_success "Docker 安装成功"
+                        check_docker_permission "$@"
+                        return 0
+                    else
+                        print_error "Docker 安装后版本不符合要求"
+                        exit 1
+                    fi
                 else
                     print_error "Docker 安装失败，请手动安装后重试"
                     exit 1
@@ -1001,20 +1195,75 @@ check_and_install_docker() {
 # 检查并安装 Docker Compose
 check_and_install_docker_compose() {
     if check_command docker-compose || docker compose version &> /dev/null; then
-        # 检查是 docker-compose 还是 docker compose
-        if check_command docker-compose; then
-            COMPOSE_CMD="docker-compose"
-            print_success "Docker Compose 已安装: $(docker-compose --version)"
+        # 检查版本是否符合要求
+        if check_docker_compose_version; then
+            # 检查是 docker-compose 还是 docker compose
+            if check_command docker-compose; then
+                COMPOSE_CMD="docker-compose"
+                print_success "Docker Compose 已安装: $(docker-compose --version)"
+            else
+                COMPOSE_CMD="docker compose"
+                print_success "Docker Compose 已安装: $(docker compose version)"
+            fi
+            return 0
         else
-            COMPOSE_CMD="docker compose"
-            print_success "Docker Compose 已安装: $(docker compose version)"
+            # 版本不符合要求，提示升级
+            local current_version=""
+            if check_command docker-compose; then
+                current_version=$(docker-compose --version 2>&1)
+            else
+                current_version=$(docker compose version 2>&1)
+            fi
+            
+            print_warning "Docker Compose 版本不符合要求（需要 v2.35.0+）"
+            echo ""
+            print_info "当前版本: $current_version"
+            print_info "要求版本: v2.35.0 或更高"
+            echo ""
+            
+            while true; do
+                echo -ne "${YELLOW}[提示]${NC} 是否升级 Docker Compose 到 v2.35.1？(y/N): "
+                read -r response
+                case "$response" in
+                    [yY][eE][sS]|[yY])
+                        if [ "$EUID" -ne 0 ]; then
+                            print_error "升级 Docker Compose 需要 root 权限，请使用 sudo 运行此脚本"
+                            exit 1
+                        fi
+                        print_info "正在升级 Docker Compose..."
+                        # 从 GitHub 下载指定版本
+                        if download_docker_compose_from_github; then
+                            if check_docker_compose_version; then
+                                COMPOSE_CMD="docker-compose"
+                                print_success "Docker Compose 升级成功"
+                                return 0
+                            else
+                                print_error "Docker Compose 升级后版本仍不符合要求"
+                                exit 1
+                            fi
+                        else
+                            print_error "Docker Compose 升级失败，请手动升级后重试"
+                            exit 1
+                        fi
+                        ;;
+                    [nN][oO]|[nN]|"")
+                        print_error "Docker Compose 版本不符合要求，安装流程已终止"
+                        print_info "请手动升级 Docker Compose 到 v2.35.0+ 后重试"
+                        print_info "下载地址: https://github.com/docker/compose/releases/tag/v2.35.1"
+                        exit 1
+                        ;;
+                    *)
+                        print_warning "请输入 y 或 N"
+                        ;;
+                esac
+            done
         fi
-        return 0
     fi
     
     print_warning "未检测到 Docker Compose"
     echo ""
     print_info "Docker Compose 是运行中间件服务的必需组件"
+    print_info "要求版本: v2.35.0 或更高"
     echo ""
     
     while true; do
@@ -1023,14 +1272,19 @@ check_and_install_docker_compose() {
         case "$response" in
             [yY][eE][sS]|[yY])
                 if install_docker_compose; then
-                    print_success "Docker Compose 安装成功"
-                    # 重新检查并设置 COMPOSE_CMD
-                    if check_command docker-compose; then
-                        COMPOSE_CMD="docker-compose"
+                    if check_docker_compose_version; then
+                        print_success "Docker Compose 安装成功"
+                        # 重新检查并设置 COMPOSE_CMD
+                        if check_command docker-compose; then
+                            COMPOSE_CMD="docker-compose"
+                        else
+                            COMPOSE_CMD="docker compose"
+                        fi
+                        return 0
                     else
-                        COMPOSE_CMD="docker compose"
+                        print_error "Docker Compose 安装后版本不符合要求"
+                        exit 1
                     fi
-                    return 0
                 else
                     print_error "Docker Compose 安装失败，请手动安装后重试"
                     exit 1
@@ -1038,7 +1292,7 @@ check_and_install_docker_compose() {
                 ;;
             [nN][oO]|[nN]|"")
                 print_error "Docker Compose 是必需的，安装流程已终止"
-                print_info "安装指南: https://docs.docker.com/compose/install/"
+                print_info "下载地址: https://github.com/docker/compose/releases/tag/v2.35.1"
                 exit 1
                 ;;
             *)
