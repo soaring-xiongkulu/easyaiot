@@ -122,6 +122,53 @@ create_env_file() {
     fi
 }
 
+# 检查并切换 npm 源为国内源
+check_and_switch_npm_registry() {
+    if ! check_command npm; then
+        return 0  # npm 不存在，跳过检查
+    fi
+    
+    # 获取当前 npm 源
+    CURRENT_REGISTRY=$(npm config get registry 2>/dev/null || echo "")
+    
+    # 国内源列表（支持新旧地址）
+    DOMESTIC_REGISTRIES=(
+        "https://registry.npmmirror.com"
+        "https://registry.npm.taobao.org"
+    )
+    
+    # 检查是否为国内源
+    IS_DOMESTIC=false
+    for registry in "${DOMESTIC_REGISTRIES[@]}"; do
+        if [ "$CURRENT_REGISTRY" = "$registry" ] || [ "$CURRENT_REGISTRY" = "$registry/" ]; then
+            IS_DOMESTIC=true
+            break
+        fi
+    done
+    
+    # 如果不是国内源，切换为国内源
+    if [ "$IS_DOMESTIC" = false ]; then
+        print_warning "当前 npm 源: $CURRENT_REGISTRY"
+        print_info "检测到非国内源，是否切换为国内源（淘宝镜像）？(Y/n)"
+        read -r response
+        if [[ ! "$response" =~ ^([nN][oO]|[nN])$ ]]; then
+            print_info "正在切换 npm 源为国内源..."
+            if npm config set registry https://registry.npmmirror.com; then
+                print_success "npm 源已切换为: https://registry.npmmirror.com"
+            else
+                print_error "npm 源切换失败"
+                return 1
+            fi
+        else
+            print_info "保持当前 npm 源: $CURRENT_REGISTRY"
+        fi
+    else
+        print_info "当前 npm 源已是国内源: $CURRENT_REGISTRY"
+    fi
+    
+    return 0
+}
+
 # 安装 pnpm
 install_pnpm() {
     print_info "正在安装 pnpm..."
@@ -152,6 +199,9 @@ build_frontend() {
         echo "安装指南: https://nodejs.org/"
         exit 1
     fi
+    
+    # 检查并切换 npm 源为国内源
+    check_and_switch_npm_registry
     
     # 检查 pnpm
     if ! check_command pnpm; then
