@@ -1569,6 +1569,35 @@ create_nodered_directories() {
     fi
 }
 
+# 准备 SRS 配置文件
+prepare_srs_config() {
+    local srs_config_source="${SCRIPT_DIR}/../srs/conf"
+    local srs_config_target="${SCRIPT_DIR}/srs_data/conf"
+    
+    print_info "准备 SRS 配置文件..."
+    
+    # 创建目标目录
+    mkdir -p "$srs_config_target"
+    
+    # 检查源配置文件是否存在
+    if [ -d "$srs_config_source" ] && [ -f "$srs_config_source/docker.conf" ]; then
+        # 如果源配置文件存在，复制到目标目录
+        if cp -f "$srs_config_source/docker.conf" "$srs_config_target/docker.conf" 2>/dev/null; then
+            print_success "SRS 配置文件已复制: $srs_config_source/docker.conf -> $srs_config_target/docker.conf"
+        else
+            print_warning "无法复制 SRS 配置文件，可能需要手动复制"
+        fi
+    else
+        # 如果源配置文件不存在，检查目标目录是否已有配置文件
+        if [ ! -f "$srs_config_target/docker.conf" ]; then
+            print_warning "SRS 配置文件不存在: $srs_config_source/docker.conf"
+            print_info "将在容器启动后尝试从容器内复制默认配置"
+        else
+            print_info "SRS 配置文件已存在: $srs_config_target/docker.conf"
+        fi
+    fi
+}
+
 # 检查docker-compose.yml是否存在
 check_compose_file() {
     if [ ! -f "$COMPOSE_FILE" ]; then
@@ -2226,6 +2255,7 @@ install_middleware() {
     check_compose_file
     create_network
     create_nodered_directories
+    prepare_srs_config
     
     print_info "启动所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
@@ -2253,6 +2283,7 @@ start_middleware() {
     check_compose_file
     create_network
     create_nodered_directories
+    prepare_srs_config
     
     print_info "启动所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
@@ -2286,6 +2317,7 @@ restart_middleware() {
     check_compose_file
     create_network
     create_nodered_directories
+    prepare_srs_config
     
     print_info "重启所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" restart 2>&1 | tee -a "$LOG_FILE"
@@ -2421,6 +2453,7 @@ update_middleware() {
     check_compose_file
     create_network
     create_nodered_directories
+    prepare_srs_config
     
     print_info "拉取最新镜像..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" pull 2>&1 | tee -a "$LOG_FILE"

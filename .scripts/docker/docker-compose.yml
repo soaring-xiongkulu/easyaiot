@@ -186,6 +186,11 @@ services:
       - TZ=Asia/Shanghai
     volumes:
       - './srs_data/conf:/usr/local/srs/conf'
+      - './srs_data/conf:/opt/srs/trunk/conf'
+      - './srs_data/data:/data'
+      - './srs_data/playbacks:/data/playbacks'
+    command: ["./objs/srs", "-c", "conf/docker.conf"]
+    working_dir: /usr/local/srs
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:1985/api/v1/versions || exit 1"]
       interval: 30s
