@@ -2947,6 +2947,11 @@ show_help() {
 
 # 主函数
 main() {
+    # 在执行任何命令之前（除了 help），先尝试加载环境变量
+    if [ "${1:-help}" != "help" ] && [ "${1:-help}" != "--help" ] && [ "${1:-help}" != "-h" ]; then
+        reload_environment
+    fi
+    
     case "${1:-help}" in
         install)
             install_middleware
