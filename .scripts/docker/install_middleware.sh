@@ -1724,6 +1724,54 @@ create_nodered_directories() {
     fi
 }
 
+# 准备 EMQX 容器和数据卷
+prepare_emqx_volumes() {
+    print_info "准备 EMQX 容器和数据卷..."
+    
+    # 检查 Docker 是否可用
+    if ! docker ps &> /dev/null; then
+        print_warning "无法访问 Docker，跳过 EMQX 容器清理"
+        return 0
+    fi
+    
+    # 检查是否存在旧的 EMQX 容器
+    local old_container=$(docker ps -a --filter "name=emqx-server" --format "{{.Names}}" 2>/dev/null | head -n 1)
+    
+    if [ -n "$old_container" ]; then
+        print_info "发现旧的 EMQX 容器: $old_container"
+        
+        # 停止容器
+        if docker stop "$old_container" &> /dev/null; then
+            print_info "已停止旧容器: $old_container"
+        fi
+        
+        # 删除容器
+        if docker rm -f "$old_container" &> /dev/null; then
+            print_success "已删除旧容器: $old_container"
+        else
+            print_warning "删除旧容器失败: $old_container"
+        fi
+    else
+        print_info "未发现旧的 EMQX 容器"
+    fi
+    
+    # 清理旧的宿主机目录（如果存在，现在使用具名卷不再需要）
+    local old_data_dir="${SCRIPT_DIR}/emqx_data"
+    if [ -d "$old_data_dir" ]; then
+        print_info "发现旧的 EMQX 数据目录: $old_data_dir"
+        print_warning "注意：现在使用 Docker 具名卷，旧的宿主机目录可以删除"
+        print_info "如需保留数据，请手动备份后再删除"
+        
+        # 询问是否删除旧目录（可选）
+        # 为了自动化，这里默认不删除，只提示
+        print_info "旧数据目录保留在: $old_data_dir（如需删除请手动执行: rm -rf $old_data_dir）"
+    fi
+    
+    # 确保 Docker 具名卷已创建（Docker Compose 会自动创建）
+    print_info "EMQX 将使用 Docker 具名卷存储数据（自动创建）"
+    print_success "EMQX 容器和数据卷准备完成"
+}
+
 # 准备 SRS 配置文件
 prepare_srs_config() {
     local srs_config_source="${SCRIPT_DIR}/../srs/conf"
@@ -2574,6 +2622,7 @@ install_middleware() {
     create_network
     create_nodered_directories
     prepare_srs_config
+    prepare_emqx_volumes
     
     # 检查并拉取缺失的镜像（如果镜像已存在则跳过拉取）
     echo ""
@@ -2606,6 +2655,7 @@ start_middleware() {
     create_network
     create_nodered_directories
     prepare_srs_config
+    prepare_emqx_volumes
     
     print_info "启动所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
@@ -2640,6 +2690,7 @@ restart_middleware() {
     create_network
     create_nodered_directories
     prepare_srs_config
+    prepare_emqx_volumes
     
     print_info "重启所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" restart 2>&1 | tee -a "$LOG_FILE"
@@ -2912,6 +2963,7 @@ update_middleware() {
     create_network
     create_nodered_directories
     prepare_srs_config
+    prepare_emqx_volumes
     
     print_info "拉取最新镜像..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" pull 2>&1 | tee -a "$LOG_FILE"

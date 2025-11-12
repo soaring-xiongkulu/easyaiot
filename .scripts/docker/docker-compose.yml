@@ -226,7 +226,6 @@ services:
   EMQX:
     image: emqx/emqx:5.10.2
     container_name: emqx-server
-    hostname: emqx-server.emqx.com
     restart: always
     ports:
       - "1883:1883"      # MQTT
@@ -236,18 +235,22 @@ services:
       - "18083:18083"     # Dashboard
     environment:
       - TZ=Asia/Shanghai
-      - EMQX_NODE_NAME=emqx@emqx-server.emqx.com
+      - EMQX_NAME=emqx
+      - EMQX_HOST=127.0.0.1
+      - EMQX_NODE__COOKIE=emqxsecretcookie
       - EMQX_CLUSTER__DISCOVERY_STRATEGY=static
       - EMQX_DASHBOARD__DEFAULT_USERNAME=admin
       - EMQX_DASHBOARD__DEFAULT_PASSWORD=basiclab@iot6874125784
+      - EMQX_LOG__LEVEL=warning
     volumes:
-      - './emqx_data/data:/opt/emqx/data'
-      - './emqx_data/log:/opt/emqx/log'
+      - emqx_data:/opt/emqx/data
+      - emqx_log:/opt/emqx/log
     healthcheck:
-      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
-      interval: 5s
-      timeout: 25s
-      retries: 5
+      test: ["CMD-SHELL", "/opt/emqx/bin/emqx ping || exit 1"]
+      interval: 10s
+      timeout: 30s
+      retries: 10
+      start_period: 60s
     networks:
       - easyaiot-network
 
@@ -270,6 +273,8 @@ volumes:
   nodered_data:
     driver: local
   emqx_data:
+    driver: local
+  emqx_log:
     driver: local
 
 # 网络配置
