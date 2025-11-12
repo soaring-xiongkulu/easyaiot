@@ -695,6 +695,190 @@ EOF
     print_info "已使用清华大学镜像源: https://pypi.tuna.tsinghua.edu.cn/simple"
 }
 
+# 配置 apt 国内源
+configure_apt_mirror() {
+    print_section "配置 apt 国内源"
+    
+    # 检测系统类型
+    if [ ! -f /etc/os-release ]; then
+        print_warning "无法检测操作系统类型，跳过 apt 源配置"
+        return 0
+    fi
+    
+    . /etc/os-release
+    local os_id="$ID"
+    
+    # 只处理 Debian/Ubuntu 系统
+    if [ "$os_id" != "ubuntu" ] && [ "$os_id" != "debian" ]; then
+        print_info "当前系统不是 Debian/Ubuntu，跳过 apt 源配置"
+        return 0
+    fi
+    
+    # 检查是否有 root 权限
+    if [ "$EUID" -ne 0 ]; then
+        print_warning "配置 apt 源需要 root 权限，跳过此步骤"
+        print_info "如需配置 apt 源，请使用 sudo 运行此脚本"
+        return 0
+    fi
+    
+    # 读取本地 apt 源配置
+    local local_sources_list="/etc/apt/sources.list"
+    local local_sources_content=""
+    local has_local_source=false
+    local is_domestic_mirror=false
+    
+    if [ -f "$local_sources_list" ]; then
+        local_sources_content=$(cat "$local_sources_list")
+        has_local_source=true
+        # 检查是否是国内源（包含常见国内镜像关键词）
+        if echo "$local_sources_content" | grep -qiE "(tuna|aliyun|163|ustc|huawei|tencent|mirrors)"; then
+            is_domestic_mirror=true
+        fi
+    fi
+    
+    # 询问用户是否替换 apt 源
+    echo ""
+    print_warning "为了加快软件包下载速度，建议使用国内 apt 源"
+    if [ "$has_local_source" = true ]; then
+        if [ "$is_domestic_mirror" = true ]; then
+            print_info "检测到本地已配置国内 apt 源，可以使用本地配置替换当前系统 apt 源"
+        else
+            print_info "检测到本地 apt 源配置，将使用本地配置替换当前系统 apt 源"
+        fi
+    else
+        print_info "当前系统 apt 源可能下载较慢，建议替换为国内镜像源"
+    fi
+    echo ""
+    
+    while true; do
+        echo -ne "${YELLOW}[提示]${NC} 是否替换 apt 源为国内源？(y/N): "
+        read -r response
+        case "$response" in
+            [yY][eE][sS]|[yY])
+                # 用户选择替换
+                print_info "正在配置 apt 国内源..."
+                
+                # 备份现有的 sources.list
+                local sources_list="/etc/apt/sources.list"
+                local backup_file="${sources_list}.bak.$(date +%Y%m%d_%H%M%S)"
+                
+                if [ -f "$sources_list" ]; then
+                    cp "$sources_list" "$backup_file"
+                    print_success "已备份现有 apt 源配置到: $backup_file"
+                fi
+                
+                # 如果本地有 apt 源配置，使用本地配置
+                if [ "$has_local_source" = true ] && [ -n "$local_sources_content" ]; then
+                    print_info "使用本地 apt 源配置..."
+                    echo "$local_sources_content" > "$sources_list"
+                    print_success "已使用本地 apt 源配置替换系统 apt 源"
+                else
+                    # 否则使用默认的国内源配置
+                    print_info "使用默认国内 apt 源配置..."
+                    
+                    # 检测系统版本
+                    local codename=""
+                    if [ -n "$VERSION_CODENAME" ]; then
+                        codename="$VERSION_CODENAME"
+                    elif [ -n "$UBUNTU_CODENAME" ]; then
+                        codename="$UBUNTU_CODENAME"
+                    else
+                        # 尝试从 lsb_release 获取
+                        if command -v lsb_release &> /dev/null; then
+                            codename=$(lsb_release -cs 2>/dev/null || echo "")
+                        fi
+                    fi
+                    
+                    if [ -z "$codename" ]; then
+                        print_error "无法检测系统版本代号，跳过 apt 源配置"
+                        return 1
+                    fi
+                    
+                    print_info "检测到系统版本代号: $codename"
+                    
+                    # 根据系统类型配置国内源
+                    if [ "$os_id" = "ubuntu" ]; then
+                        # Ubuntu 使用清华大学镜像源
+                        cat > "$sources_list" << EOF
+# 清华大学 Ubuntu 镜像源
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $codename main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $codename-updates main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $codename-backports main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $codename-security main restricted universe multiverse
+
+# 源码仓库（可选）
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $codename main restricted universe multiverse
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $codename-updates main restricted universe multiverse
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $codename-backports main restricted universe multiverse
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $codename-security main restricted universe multiverse
+EOF
+                        print_success "已配置 Ubuntu 清华大学镜像源"
+                    elif [ "$os_id" = "debian" ]; then
+                        # Debian 使用清华大学镜像源
+                        local debian_version=""
+                        if [ -n "$VERSION_ID" ]; then
+                            debian_version=$(echo "$VERSION_ID" | cut -d. -f1)
+                        fi
+                        
+                        if [ -z "$debian_version" ]; then
+                            # 尝试从 codename 推断版本
+                            case "$codename" in
+                                bookworm)
+                                    debian_version="12"
+                                    ;;
+                                bullseye)
+                                    debian_version="11"
+                                    ;;
+                                buster)
+                                    debian_version="10"
+                                    ;;
+                                *)
+                                    debian_version="12"
+                                    print_warning "无法确定 Debian 版本，使用默认版本 12"
+                                    ;;
+                            esac
+                        fi
+                        
+                        cat > "$sources_list" << EOF
+# 清华大学 Debian 镜像源
+deb https://mirrors.tuna.tsinghua.edu.cn/debian/ $codename main contrib non-free non-free-firmware
+deb https://mirrors.tuna.tsinghua.edu.cn/debian/ $codename-updates main contrib non-free non-free-firmware
+deb https://mirrors.tuna.tsinghua.edu.cn/debian/ $codename-backports main contrib non-free non-free-firmware
+deb https://mirrors.tuna.tsinghua.edu.cn/debian-security $codename-security main contrib non-free non-free-firmware
+
+# 源码仓库（可选）
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ $codename main contrib non-free non-free-firmware
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ $codename-updates main contrib non-free non-free-firmware
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ $codename-backports main contrib non-free non-free-firmware
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/debian-security $codename-security main contrib non-free non-free-firmware
+EOF
+                        print_success "已配置 Debian 清华大学镜像源"
+                    fi
+                fi
+                
+                # 更新 apt 缓存
+                print_info "正在更新 apt 缓存..."
+                if apt update > /dev/null 2>&1; then
+                    print_success "apt 源配置完成并已更新缓存"
+                else
+                    print_warning "apt 源配置完成，但更新缓存时出现问题"
+                    print_info "您可以稍后手动运行: apt update"
+                fi
+                
+                return 0
+                ;;
+            [nN][oO]|[nN]|"")
+                # 用户选择不替换，继续执行
+                print_info "保持当前 apt 源配置，继续执行..."
+                return 0
+                ;;
+            *)
+                print_warning "请输入 y 或 N"
+                ;;
+        esac
+    done
+}
+
 # 检查 Docker 版本是否符合要求（>=29.0.0）
 check_docker_version() {
     if ! check_command docker; then
@@ -1831,24 +2015,61 @@ init_minio() {
     fi
     
     # 使用 Python 脚本初始化 MinIO
+    local init_result=0
     if [ ${#upload_args[@]} -gt 0 ]; then
         if init_minio_with_python "${upload_args[@]}"; then
             print_success "MinIO 初始化完成！"
-            return 0
+            init_result=0
         else
             print_warning "MinIO 初始化可能存在问题"
-            return 1
+            init_result=1
         fi
     else
         print_warning "没有可用的数据集目录，跳过文件上传"
         # 仍然需要创建 bucket
         if init_minio_with_python; then
             print_success "MinIO 存储桶创建完成！"
-            return 0
+            init_result=0
         else
-            return 1
+            init_result=1
         fi
     fi
+    
+    # 如果初始化成功，提示用户登录 MinIO 管理平台
+    if [ $init_result -eq 0 ]; then
+        echo ""
+        print_section "MinIO 管理平台登录提示"
+        echo ""
+        print_warning "重要提示：为了确保图像数据能够正常显示，请登录一次 MinIO 管理平台"
+        print_info "  访问地址: http://localhost:9001"
+        print_info "  用户名: minioadmin"
+        print_info "  密码: basiclab@iot975248395"
+        echo ""
+        print_info "登录后，系统会自动完成必要的初始化配置，图像数据才能正常显示"
+        echo ""
+        
+        while true; do
+            echo -ne "${YELLOW}[提示]${NC} 是否已经登录过 MinIO 管理平台？(y/N): "
+            read -r response
+            case "$response" in
+                [yY][eE][sS]|[yY])
+                    print_success "确认已登录 MinIO 管理平台，继续执行..."
+                    break
+                    ;;
+                [nN][oO]|[nN]|"")
+                    print_warning "建议稍后登录 MinIO 管理平台以确保图像数据正常显示"
+                    print_info "您可以稍后访问: http://localhost:9001"
+                    break
+                    ;;
+                *)
+                    print_warning "请输入 y 或 N"
+                    ;;
+            esac
+        done
+        echo ""
+    fi
+    
+    return $init_result
 }
 
 # 初始化数据库
@@ -1950,6 +2171,9 @@ init_databases() {
 # 安装所有中间件
 install_middleware() {
     print_section "开始安装所有中间件"
+    
+    # 配置 apt 国内源（在安装依赖之前）
+    configure_apt_mirror
     
     # 检查并安装 JDK8
     check_and_install_jdk8
