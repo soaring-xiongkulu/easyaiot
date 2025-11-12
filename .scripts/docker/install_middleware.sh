@@ -1459,6 +1459,51 @@ create_network() {
     fi
 }
 
+# 获取宿主机 IP 地址
+get_host_ip() {
+    local host_ip=""
+    
+    # 方法1: 通过路由获取（最可靠）
+    if command -v ip &> /dev/null; then
+        host_ip=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $7}' | head -n 1)
+        if [ -n "$host_ip" ] && [ "$host_ip" != "127.0.0.1" ]; then
+            echo "$host_ip"
+            return 0
+        fi
+    fi
+    
+    # 方法2: 通过 hostname -I 获取
+    if command -v hostname &> /dev/null; then
+        host_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+        if [ -n "$host_ip" ] && [ "$host_ip" != "127.0.0.1" ] && [[ ! "$host_ip" =~ ^169\.254\. ]]; then
+            echo "$host_ip"
+            return 0
+        fi
+    fi
+    
+    # 方法3: 通过 ip addr 获取
+    if command -v ip &> /dev/null; then
+        host_ip=$(ip addr show 2>/dev/null | grep -E "inet " | grep -v "127.0.0.1" | grep -v "169.254." | head -n 1 | awk '{print $2}' | cut -d/ -f1)
+        if [ -n "$host_ip" ]; then
+            echo "$host_ip"
+            return 0
+        fi
+    fi
+    
+    # 方法4: 通过 ifconfig 获取（兼容旧系统）
+    if command -v ifconfig &> /dev/null; then
+        host_ip=$(ifconfig 2>/dev/null | grep -E "inet " | grep -v "127.0.0.1" | grep -v "169.254." | head -n 1 | awk '{print $2}' | sed 's/addr://')
+        if [ -n "$host_ip" ]; then
+            echo "$host_ip"
+            return 0
+        fi
+    fi
+    
+    # 如果所有方法都失败，返回空字符串
+    echo ""
+    return 1
+}
+
 # 创建并设置 NodeRED 数据目录权限
 create_nodered_directories() {
     local nodered_data_dir="${SCRIPT_DIR}/nodered_data/data"
@@ -1495,12 +1540,28 @@ prepare_srs_config() {
     
     print_info "准备 SRS 配置文件..."
     
+    # 获取宿主机 IP 地址
+    local host_ip=$(get_host_ip)
+    if [ -z "$host_ip" ]; then
+        print_warning "无法获取宿主机 IP，将使用 127.0.0.1（可能导致 VIDEO 模块回调失败）"
+        host_ip="127.0.0.1"
+    else
+        print_info "检测到宿主机 IP: $host_ip"
+    fi
+    
     # 创建目标目录
     mkdir -p "$srs_config_target"
     
     # 检查目标文件是否已存在
     if [ -f "$srs_config_file" ]; then
-        print_info "SRS 配置文件已存在: $srs_config_file"
+        # 如果文件已存在，检查是否需要更新 IP 地址
+        if grep -q "127.0.0.1:6000" "$srs_config_file" 2>/dev/null && [ "$host_ip" != "127.0.0.1" ]; then
+            print_info "更新现有 SRS 配置文件中的 IP 地址..."
+            sed -i "s|127.0.0.1:6000|${host_ip}:6000|g" "$srs_config_file"
+            print_success "SRS 配置文件已更新为使用宿主机 IP: $host_ip"
+        else
+            print_info "SRS 配置文件已存在: $srs_config_file"
+        fi
         return 0
     fi
     
@@ -1508,6 +1569,11 @@ prepare_srs_config() {
     if [ -d "$srs_config_source" ] && [ -f "$srs_config_source/docker.conf" ]; then
         print_info "从源目录复制 SRS 配置文件..."
         if cp -f "$srs_config_source/docker.conf" "$srs_config_file" 2>/dev/null; then
+            # 替换配置文件中的 127.0.0.1 为宿主机 IP
+            if [ "$host_ip" != "127.0.0.1" ]; then
+                sed -i "s|127.0.0.1:6000|${host_ip}:6000|g" "$srs_config_file"
+                print_info "已将配置文件中的 IP 地址更新为宿主机 IP: $host_ip"
+            fi
             print_success "SRS 配置文件已复制: $srs_config_source/docker.conf -> $srs_config_file"
             # 验证文件确实存在
             if [ -f "$srs_config_file" ]; then
@@ -1522,7 +1588,7 @@ prepare_srs_config() {
     
     # 如果复制失败或源文件不存在，创建默认配置文件
     print_info "创建默认 SRS 配置文件..."
-    cat > "$srs_config_file" << 'EOF'
+    cat > "$srs_config_file" << EOF
 # SRS Docker 配置文件
 # 用于 Docker 容器部署的 SRS 配置
 
@@ -1574,15 +1640,15 @@ vhost __defaultVhost__ {
     }
     http_hooks {
         enabled             on;
-        on_dvr              http://127.0.0.1:6000/video/camera/callback/on_dvr;
-        on_publish          http://127.0.0.1:6000/video/camera/callback/on_publish;
+        on_dvr              http://${host_ip}:6000/video/camera/callback/on_dvr;
+        on_publish          http://${host_ip}:6000/video/camera/callback/on_publish;
     }
 }
 EOF
     
     # 验证文件是否创建成功
     if [ -f "$srs_config_file" ]; then
-        print_success "默认 SRS 配置文件已创建: $srs_config_file"
+        print_success "默认 SRS 配置文件已创建: $srs_config_file (使用宿主机 IP: $host_ip)"
         return 0
     else
         print_error "无法创建 SRS 配置文件: $srs_config_file"
