@@ -3,9 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # 支持多架构构建：通过build args传递基础镜像
-      # 在install.sh中会根据服务器架构自动设置BASE_IMAGE环境变量
-      # Docker会自动检测当前架构并构建对应平台的镜像
+      # 构建参数：通过build args传递基础镜像
+      # 注意：本服务仅支持 x86_64 架构，ARM架构不支持容器化部署
       args:
         BASE_IMAGE: ${BASE_IMAGE:-pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime}
     image: ai-service:latest

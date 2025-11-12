@@ -97,7 +97,7 @@ ARCH=""
 DOCKER_PLATFORM=""
 BASE_IMAGE=""
 
-# 检测服务器架构并配置相应的Docker镜像
+# 检测服务器架构并验证是否支持
 detect_architecture() {
     print_info "检测服务器架构..."
     ARCH=$(uname -m)
@@ -110,27 +110,20 @@ detect_architecture() {
             print_success "检测到架构: $ARCH (x86_64)"
             print_info "使用 PyTorch CUDA 镜像: $BASE_IMAGE"
             ;;
-        aarch64|arm64)
-            ARCH="arm64"
-            DOCKER_PLATFORM="linux/arm64"
-            BASE_IMAGE="pytorch/pytorch:2.0.1-cpu"
-            print_success "检测到架构: $ARCH (ARM64)"
-            print_warning "ARM架构不支持CUDA，使用 PyTorch CPU 镜像: $BASE_IMAGE"
-            print_info "注意：ARM架构将使用CPU模式运行，性能可能较慢"
-            ;;
-        armv7l|armv6l)
-            ARCH="arm"
-            DOCKER_PLATFORM="linux/arm/v7"
-            BASE_IMAGE="pytorch/pytorch:2.0.1-cpu"
-            print_success "检测到架构: $ARCH (ARMv7)"
-            print_warning "ARM架构不支持CUDA，使用 PyTorch CPU 镜像: $BASE_IMAGE"
-            print_info "注意：ARM架构将使用CPU模式运行，性能可能较慢"
+        aarch64|arm64|armv7l|armv6l)
+            print_error "检测到 ARM 架构 ($ARCH)"
+            print_error "NVIDIA 官方的 CUDA 容器化只支持 x86_64 架构"
+            print_error "ARM 服务器不支持容器化部署，部署已终止"
+            echo ""
+            print_info "如需在 ARM 服务器上运行，请考虑："
+            print_info "1. 使用原生 Python 环境直接运行（非容器化）"
+            print_info "2. 使用支持 ARM 的 CPU 版本 PyTorch（性能较低）"
+            exit 1
             ;;
         *)
-            print_warning "未识别的架构: $ARCH，默认使用 x86_64 配置"
-            ARCH="x86_64"
-            DOCKER_PLATFORM="linux/amd64"
-            BASE_IMAGE="pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime"
+            print_error "未识别的架构: $ARCH"
+            print_error "本服务仅支持 x86_64 架构，部署已终止"
+            exit 1
             ;;
     esac
     
@@ -156,9 +149,6 @@ configure_architecture() {
         print_info "已更新架构配置文件 .env.arch"
     fi
     
-    # 确保docker-compose.yaml使用.env.arch中的变量
-    # 注意：docker-compose会自动读取.env文件，但我们需要确保.env.arch被加载
-    # 可以通过在docker-compose.yaml中使用env_file或者在构建时传递环境变量
     print_success "架构配置完成: $ARCH -> $DOCKER_PLATFORM"
 }
 
@@ -381,18 +371,6 @@ check_gpu() {
 
 # 配置 GPU 支持（如果可用）
 configure_gpu() {
-    # ARM架构不支持CUDA，强制禁用GPU配置
-    if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "arm" ]; then
-        print_info "ARM架构不支持CUDA，禁用 GPU 配置"
-        # 确保 GPU 配置被注释（如果未被注释，则注释掉）
-        if grep -q "^    deploy:" docker-compose.yaml && ! grep -q "^    # deploy:" docker-compose.yaml; then
-            # 使用 sed 注释掉 GPU 配置部分（在行首添加 "    # "）
-            sed -i '/^    deploy:/,/^           capabilities: \[gpu\]/s/^    /    # /' docker-compose.yaml
-            print_success "GPU 配置已禁用（ARM架构）"
-        fi
-        return
-    fi
-    
     if [ "$GPU_AVAILABLE" = true ]; then
         print_info "启用 GPU 支持..."
         # 取消注释 GPU 配置（从 "# deploy:" 到 "#           capabilities: [gpu]"）
@@ -512,13 +490,7 @@ install_service() {
     detect_architecture
     configure_architecture
     check_network
-    # 仅在x86_64架构上检查GPU（ARM架构不支持CUDA）
-    if [ "$ARCH" = "x86_64" ]; then
-        check_gpu
-    else
-        print_info "跳过GPU检查（ARM架构不支持CUDA）"
-        GPU_AVAILABLE=false
-    fi
+    check_gpu
     configure_gpu
     create_directories
     create_env_file

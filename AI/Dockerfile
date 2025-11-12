@@ -1,6 +1,5 @@
-# 支持多架构：通过ARG动态选择基础镜像
-# x86_64: 使用PyTorch CUDA镜像
-# arm64/aarch64: 使用PyTorch CPU镜像（ARM架构通常不支持CUDA）
+# 使用PyTorch官方镜像（包含CUDA支持，Python 3.10）
+# 注意：本镜像仅支持 x86_64 架构，ARM架构不支持容器化部署
 ARG BASE_IMAGE=pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 FROM ${BASE_IMAGE}
 
