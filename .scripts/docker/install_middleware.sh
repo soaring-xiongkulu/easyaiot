@@ -2353,8 +2353,52 @@ clean_middleware() {
         print_info "  2. 手动删除数据库或表"
         echo ""
         
-        print_info "清理所有中间件服务..."
+        # 第一步：先停止所有容器（正常停止）
+        print_info "正在停止所有中间件服务..."
+        $COMPOSE_CMD -f "$COMPOSE_FILE" stop 2>&1 | tee -a "$LOG_FILE"
+        
+        # 等待容器停止
+        sleep 3
+        
+        # 第二步：强制停止所有容器（处理重启循环中的容器）
+        print_info "强制停止所有容器..."
+        $COMPOSE_CMD -f "$COMPOSE_FILE" kill 2>&1 | tee -a "$LOG_FILE"
+        
+        # 等待容器完全停止
+        sleep 2
+        
+        # 第三步：删除容器和卷
+        print_info "删除所有容器和数据卷..."
         $COMPOSE_CMD -f "$COMPOSE_FILE" down -v 2>&1 | tee -a "$LOG_FILE"
+        
+        # 第四步：检查并强制删除可能残留的容器（处理重启循环中的容器）
+        print_info "检查并清理残留容器..."
+        local remaining_containers=$($COMPOSE_CMD -f "$COMPOSE_FILE" ps -q 2>/dev/null || echo "")
+        if [ -n "$remaining_containers" ]; then
+            print_warning "发现残留容器，正在强制删除..."
+            echo "$remaining_containers" | xargs -r docker rm -f 2>&1 | tee -a "$LOG_FILE"
+        fi
+        
+        # 检查是否有通过 compose 项目名称创建的容器残留
+        local project_containers=$(docker ps -a --filter "label=com.docker.compose.project" --format "{{.ID}}" 2>/dev/null || echo "")
+        if [ -n "$project_containers" ]; then
+            # 获取 compose 文件所在目录名作为项目名（如果使用默认项目名）
+            local compose_dir=$(dirname "$COMPOSE_FILE")
+            local project_name=$(basename "$compose_dir" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+            # 尝试通过项目名查找容器
+            local project_containers_filtered=$(docker ps -a --filter "label=com.docker.compose.project=${project_name}" --format "{{.Names}}" 2>/dev/null || echo "")
+            if [ -n "$project_containers_filtered" ]; then
+                print_warning "发现项目相关残留容器，正在强制删除..."
+                echo "$project_containers_filtered" | xargs -r docker rm -f 2>&1 | tee -a "$LOG_FILE"
+            fi
+        fi
+        
+        # 特别处理 SRS 容器（如果存在）
+        local srs_containers=$(docker ps -a --filter "name=srs" --format "{{.Names}}" 2>/dev/null || echo "")
+        if [ -n "$srs_containers" ]; then
+            print_warning "发现 SRS 残留容器，正在强制删除..."
+            echo "$srs_containers" | xargs -r docker rm -f 2>&1 | tee -a "$LOG_FILE"
+        fi
         
         print_success "清理完成"
     else
