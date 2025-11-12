@@ -137,8 +137,63 @@ build_frontend() {
     cd "$SCRIPT_DIR"
 }
 
+# 检查并构建Jar包
+check_and_build_jars() {
+    print_info "检查Jar包..."
+    
+    # 需要检查的模块及其jar包路径
+    local modules=(
+        "iot-gateway/target/iot-gateway.jar"
+        "iot-system/iot-system-biz/target/iot-system-biz.jar"
+        "iot-infra/iot-infra-biz/target/iot-infra-biz.jar"
+        "iot-device/iot-device-biz/target/iot-device-biz.jar"
+        "iot-dataset/iot-dataset-biz/target/iot-dataset-biz.jar"
+        "iot-broker/iot-broker-biz/target/iot-broker-biz.jar"
+        "iot-tdengine/iot-tdengine-biz/target/iot-tdengine-biz.jar"
+        "iot-file/iot-file-biz/target/iot-file-biz.jar"
+    )
+    
+    local need_build=false
+    
+    # 检查每个模块的jar包是否存在
+    for jar_path in "${modules[@]}"; do
+        local full_path="${SCRIPT_DIR}/${jar_path}"
+        if [ ! -f "$full_path" ]; then
+            print_warning "未找到Jar包: $jar_path"
+            need_build=true
+        fi
+    done
+    
+    # 如果有jar包缺失，执行Maven编译
+    if [ "$need_build" = true ]; then
+        print_info "检测到缺失的Jar包，开始执行Maven编译打包..."
+        
+        # 检查Maven是否安装
+        if ! check_command mvn; then
+            print_error "Maven未安装，请先安装Maven"
+            echo "安装指南: https://maven.apache.org/install.html"
+            exit 1
+        fi
+        
+        # 切换到DEVICE目录并执行Maven编译
+        cd "$SCRIPT_DIR"
+        print_info "执行: mvn clean package -DskipTests"
+        mvn clean package -DskipTests
+        
+        if [ $? -eq 0 ]; then
+            print_success "Maven编译打包完成"
+        else
+            print_error "Maven编译打包失败"
+            exit 1
+        fi
+    else
+        print_success "所有Jar包已存在，跳过编译"
+    fi
+}
+
 # 构建所有镜像
 build_images() {
+    check_and_build_jars
     print_info "开始构建所有Docker镜像..."
     cd "$SCRIPT_DIR"
     $DOCKER_COMPOSE build
@@ -147,6 +202,7 @@ build_images() {
 
 # 构建并启动所有服务
 build_and_start() {
+    check_and_build_jars
     print_info "开始构建并启动所有服务..."
     cd "$SCRIPT_DIR"
     $DOCKER_COMPOSE up -d --build
@@ -290,6 +346,7 @@ clean_all() {
 
 # 更新服务（重新构建并重启）
 update_services() {
+    check_and_build_jars
     print_info "更新所有服务（重新构建并重启）..."
     cd "$SCRIPT_DIR"
     $DOCKER_COMPOSE up -d --build --force-recreate
