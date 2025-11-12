@@ -2182,6 +2182,10 @@ init_minio_with_python() {
     
     # 检查 minio 库是否安装
     if ! python3 -c "import minio" 2>/dev/null; then
+        print_info "正在配置 pip 以允许安装系统包..."
+        # 配置 pip 允许安装系统包，避免某些系统上的权限错误
+        python3 -m pip config set global.break-system-packages true > /dev/null 2>&1 || true
+        
         print_info "正在安装 minio Python 库..."
         pip3 install minio > /dev/null 2>&1 || {
             print_error "无法安装 minio Python 库，请手动安装: pip3 install minio"
