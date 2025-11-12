@@ -721,7 +721,41 @@ configure_apt_mirror() {
         return 0
     fi
     
-    # 读取本地 apt 源配置
+    # 检查当前系统是否已配置国内 apt 源
+    local current_sources_list="/etc/apt/sources.list"
+    local current_sources_content=""
+    local is_current_domestic=false
+    
+    # 读取当前系统的 apt 源配置
+    if [ -f "$current_sources_list" ]; then
+        current_sources_content=$(cat "$current_sources_list")
+        # 检查是否已经是国内源（包含常见国内镜像关键词）
+        # 匹配模式：tuna、aliyun、163、ustc、huawei、tencent 等国内镜像站
+        if echo "$current_sources_content" | grep -qiE "(mirrors\.(tuna|aliyun|163|ustc|huawei|tencent)|tuna\.tsinghua|aliyun\.com|163\.com|ustc\.edu|huawei\.com|tencent\.com)"; then
+            is_current_domestic=true
+        fi
+    fi
+    
+    # 如果主配置文件不是国内源，检查 sources.list.d 目录下的文件
+    if [ "$is_current_domestic" = false ] && [ -d "/etc/apt/sources.list.d" ]; then
+        for list_file in /etc/apt/sources.list.d/*.list; do
+            if [ -f "$list_file" ]; then
+                local file_content=$(cat "$list_file")
+                if echo "$file_content" | grep -qiE "(mirrors\.(tuna|aliyun|163|ustc|huawei|tencent)|tuna\.tsinghua|aliyun\.com|163\.com|ustc\.edu|huawei\.com|tencent\.com)"; then
+                    is_current_domestic=true
+                    break
+                fi
+            fi
+        done
+    fi
+    
+    # 如果当前系统已经配置了国内源，直接跳过，不提示用户
+    if [ "$is_current_domestic" = true ]; then
+        print_info "检测到系统已配置国内 apt 源，跳过配置步骤"
+        return 0
+    fi
+    
+    # 读取本地 apt 源配置（用于替换）
     local local_sources_list="/etc/apt/sources.list"
     local local_sources_content=""
     local has_local_source=false
@@ -731,7 +765,7 @@ configure_apt_mirror() {
         local_sources_content=$(cat "$local_sources_list")
         has_local_source=true
         # 检查是否是国内源（包含常见国内镜像关键词）
-        if echo "$local_sources_content" | grep -qiE "(tuna|aliyun|163|ustc|huawei|tencent|mirrors)"; then
+        if echo "$local_sources_content" | grep -qiE "(mirrors\.(tuna|aliyun|163|ustc|huawei|tencent)|tuna\.tsinghua|aliyun\.com|163\.com|ustc\.edu|huawei\.com|tencent\.com)"; then
             is_domestic_mirror=true
         fi
     fi
