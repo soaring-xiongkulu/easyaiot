@@ -1755,6 +1755,37 @@ create_postgresql_directories() {
     fi
 }
 
+# 创建并设置 Redis 数据目录权限
+create_redis_directories() {
+    local redis_data_dir="${SCRIPT_DIR}/redis_data/data"
+    local redis_log_dir="${SCRIPT_DIR}/redis_data/logs"
+    
+    print_info "创建 Redis 数据目录并设置权限..."
+    
+    # 创建目录
+    mkdir -p "$redis_data_dir" "$redis_log_dir"
+    
+    # Redis 容器默认使用 UID 999 (redis 用户)
+    # 如果当前用户有权限，则设置；否则只创建目录
+    if [ "$EUID" -eq 0 ]; then
+        chown -R 999:999 "$redis_data_dir" "$redis_log_dir"
+        chmod -R 755 "$redis_data_dir"
+        chmod -R 755 "$redis_log_dir"
+        print_success "Redis 数据目录权限已设置 (UID 999:999)"
+    else
+        # 非 root 用户尝试使用 sudo（如果可用）
+        if command -v sudo &> /dev/null; then
+            sudo chown -R 999:999 "$redis_data_dir" "$redis_log_dir" 2>/dev/null && \
+            sudo chmod -R 755 "$redis_data_dir" 2>/dev/null && \
+            sudo chmod -R 755 "$redis_log_dir" 2>/dev/null && \
+            print_success "Redis 数据目录权限已设置 (UID 999:999)" || \
+            print_warning "无法设置 Redis 目录权限，可能需要手动设置: sudo chown -R 999:999 $redis_data_dir $redis_log_dir"
+        else
+            print_warning "无法设置 Redis 目录权限，请手动执行: sudo chown -R 999:999 $redis_data_dir $redis_log_dir"
+        fi
+    fi
+}
+
 # 准备 EMQX 容器和数据卷
 prepare_emqx_volumes() {
     print_info "准备 EMQX 容器和数据卷..."
@@ -2652,6 +2683,7 @@ install_middleware() {
     check_compose_file
     create_network
     create_postgresql_directories
+    create_redis_directories
     create_nodered_directories
     prepare_srs_config
     prepare_emqx_volumes
@@ -2685,6 +2717,7 @@ start_middleware() {
     check_docker_compose
     check_compose_file
     create_network
+    create_redis_directories
     create_nodered_directories
     prepare_srs_config
     prepare_emqx_volumes
@@ -2720,6 +2753,7 @@ restart_middleware() {
     check_docker_compose
     check_compose_file
     create_network
+    create_redis_directories
     create_nodered_directories
     prepare_srs_config
     prepare_emqx_volumes
@@ -2993,6 +3027,7 @@ update_middleware() {
     check_docker_compose
     check_compose_file
     create_network
+    create_redis_directories
     create_nodered_directories
     prepare_srs_config
     prepare_emqx_volumes
