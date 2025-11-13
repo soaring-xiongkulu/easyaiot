@@ -31,11 +31,26 @@ services:
     networks:
       - easyaiot-network
 
+  # PostgresSQL 初始化容器（设置权限）
+  PostgresSQL-init:
+    image: postgres:16.10
+    container_name: postgres-init
+    user: "0:0"
+    volumes:
+      - ./db_data/data:/var/lib/postgresql/data
+      - ./db_data/log:/var/log/postgresql
+    command: ["/bin/bash", "-c", "mkdir -p /var/lib/postgresql/data /var/log/postgresql && chown -R 999:999 /var/lib/postgresql/data /var/log/postgresql && chmod -R 700 /var/lib/postgresql/data && chmod -R 755 /var/log/postgresql || true"]
+    restart: "no"
+    networks:
+      - easyaiot-network
+
   # PostgresSQL Server
   PostgresSQL:
     image: postgres:16.10
     container_name: postgres-server
     restart: always
+    depends_on:
+      - PostgresSQL-init
     ports:
       - "5432:5432"
     environment:

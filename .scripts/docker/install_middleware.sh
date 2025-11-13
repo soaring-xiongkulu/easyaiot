@@ -1724,6 +1724,37 @@ create_nodered_directories() {
     fi
 }
 
+# 创建并设置 PostgreSQL 数据目录权限
+create_postgresql_directories() {
+    local postgresql_data_dir="${SCRIPT_DIR}/db_data/data"
+    local postgresql_log_dir="${SCRIPT_DIR}/db_data/log"
+    
+    print_info "创建 PostgreSQL 数据目录并设置权限..."
+    
+    # 创建目录
+    mkdir -p "$postgresql_data_dir" "$postgresql_log_dir"
+    
+    # 设置目录所有者为 UID 999 (PostgreSQL 容器默认 postgres 用户)
+    # 如果当前用户有权限，则设置；否则只创建目录
+    if [ "$EUID" -eq 0 ]; then
+        chown -R 999:999 "$postgresql_data_dir" "$postgresql_log_dir"
+        chmod -R 700 "$postgresql_data_dir"
+        chmod -R 755 "$postgresql_log_dir"
+        print_success "PostgreSQL 数据目录权限已设置 (UID 999:999)"
+    else
+        # 非 root 用户尝试使用 sudo（如果可用）
+        if command -v sudo &> /dev/null; then
+            sudo chown -R 999:999 "$postgresql_data_dir" "$postgresql_log_dir" 2>/dev/null && \
+            sudo chmod -R 700 "$postgresql_data_dir" 2>/dev/null && \
+            sudo chmod -R 755 "$postgresql_log_dir" 2>/dev/null && \
+            print_success "PostgreSQL 数据目录权限已设置 (UID 999:999)" || \
+            print_warning "无法设置 PostgreSQL 目录权限，可能需要手动设置: sudo chown -R 999:999 $postgresql_data_dir $postgresql_log_dir"
+        else
+            print_warning "无法设置 PostgreSQL 目录权限，请手动执行: sudo chown -R 999:999 $postgresql_data_dir $postgresql_log_dir"
+        fi
+    fi
+}
+
 # 准备 EMQX 容器和数据卷
 prepare_emqx_volumes() {
     print_info "准备 EMQX 容器和数据卷..."
@@ -2620,6 +2651,7 @@ install_middleware() {
     configure_docker_mirror
     check_compose_file
     create_network
+    create_postgresql_directories
     create_nodered_directories
     prepare_srs_config
     prepare_emqx_volumes
