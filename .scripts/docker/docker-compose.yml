@@ -31,7 +31,9 @@ services:
     networks:
       - easyaiot-network
 
-  # PostgresSQL 初始化容器（设置权限）
+  # PostgresSQL 初始化容器（设置权限，仅在需要时手动运行）
+  # 注意：正常情况下不需要运行此容器，权限已在安装脚本中设置
+  # 如需手动修复权限，运行: docker-compose run --rm PostgresSQL-init
   PostgresSQL-init:
     image: postgres:16.10
     container_name: postgres-init
@@ -39,8 +41,10 @@ services:
     volumes:
       - ./db_data/data:/var/lib/postgresql/data
       - ./db_data/log:/var/log/postgresql
-    command: ["/bin/bash", "-c", "mkdir -p /var/lib/postgresql/data /var/log/postgresql && chown -R 999:999 /var/lib/postgresql/data /var/log/postgresql && chmod -R 700 /var/lib/postgresql/data && chmod -R 755 /var/log/postgresql || true"]
+    command: ["/bin/bash", "-c", "mkdir -p /var/lib/postgresql/data /var/log/postgresql && chown -R 999:999 /var/lib/postgresql/data /var/log/postgresql && chmod -R 700 /var/lib/postgresql/data && chmod -R 755 /var/log/postgresql && echo '权限设置完成'"]
     restart: "no"
+    profiles:
+      - init
     networks:
       - easyaiot-network
 
@@ -49,8 +53,6 @@ services:
     image: postgres:16.10
     container_name: postgres-server
     restart: always
-    depends_on:
-      - PostgresSQL-init
     ports:
       - "5432:5432"
     environment:
