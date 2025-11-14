@@ -2821,6 +2821,91 @@ prepare_srs_config() {
     print_info "复制 SRS 配置文件: $srs_config_source -> $srs_config_file"
     if cp -f "$srs_config_source" "$srs_config_file" 2>/dev/null; then
         print_success "SRS 配置文件已复制: $srs_config_file"
+        
+        # 检查配置文件中是否包含 127.0.0.1
+        if grep -q "127.0.0.1" "$srs_config_file" 2>/dev/null; then
+            echo ""
+            print_section "SRS 配置文件 IP 地址配置提示"
+            echo ""
+            print_warning "检测到 SRS 配置文件中包含 127.0.0.1，需要替换为宿主机 IP 地址"
+            echo ""
+            
+            # 获取宿主机 IP
+            local host_ip=$(get_host_ip)
+            if [ -n "$host_ip" ]; then
+                print_info "检测到宿主机 IP 地址: ${GREEN}$host_ip${NC}"
+                print_info "配置文件路径: $srs_config_file"
+                echo ""
+                print_warning "请将配置文件中的 ${YELLOW}127.0.0.1${NC} 替换为 ${GREEN}$host_ip${NC}"
+                print_info "需要替换的回调地址示例："
+                print_info "  http://127.0.0.1:6000/video/camera/callback/on_dvr"
+                print_info "  -> http://$host_ip:6000/video/camera/callback/on_dvr"
+                print_info "  http://127.0.0.1:6000/video/camera/callback/on_publish"
+                print_info "  -> http://$host_ip:6000/video/camera/callback/on_publish"
+            else
+                print_warning "无法自动检测宿主机 IP 地址"
+                print_info "请手动将配置文件中的 127.0.0.1 替换为实际的宿主机 IP 地址"
+                print_info "配置文件路径: $srs_config_file"
+            fi
+            echo ""
+            
+            while true; do
+                echo -ne "${YELLOW}[提示]${NC} 是否已经手动将配置文件中的 127.0.0.1 替换为宿主机 IP？(y/N): "
+                read -r response
+                case "$response" in
+                    [yY][eE][sS]|[yY])
+                        # 验证是否已经替换
+                        if grep -q "127.0.0.1" "$srs_config_file" 2>/dev/null; then
+                            print_warning "检测到配置文件中仍包含 127.0.0.1，请确认已正确替换"
+                            echo ""
+                            print_info "当前配置文件内容（包含 127.0.0.1 的行）："
+                            grep "127.0.0.1" "$srs_config_file" 2>/dev/null | while read -r line; do
+                                print_info "  $line"
+                            done
+                            echo ""
+                            echo -ne "${YELLOW}[提示]${NC} 是否继续（即使未替换）？(y/N): "
+                            read -r continue_response
+                            case "$continue_response" in
+                                [yY][eE][sS]|[yY])
+                                    print_warning "继续执行，但请注意 SRS 回调功能可能无法正常工作"
+                                    break
+                                    ;;
+                                [nN][oO]|[nN]|"")
+                                    print_info "请先完成 IP 地址替换后再继续"
+                                    print_info "可以使用以下命令进行替换："
+                                    if [ -n "$host_ip" ]; then
+                                        print_info "  sed -i 's/127.0.0.1/$host_ip/g' $srs_config_file"
+                                    else
+                                        print_info "  sed -i 's/127.0.0.1/你的宿主机IP/g' $srs_config_file"
+                                    fi
+                                    exit 1
+                                    ;;
+                                *)
+                                    print_warning "请输入 y 或 N"
+                                    ;;
+                            esac
+                        else
+                            print_success "确认已替换 IP 地址，继续执行..."
+                            break
+                        fi
+                        ;;
+                    [nN][oO]|[nN]|"")
+                        print_info "请先完成 IP 地址替换后再继续"
+                        print_info "配置文件路径: $srs_config_file"
+                        if [ -n "$host_ip" ]; then
+                            print_info "可以使用以下命令进行替换："
+                            print_info "  sed -i 's/127.0.0.1/$host_ip/g' $srs_config_file"
+                        fi
+                        exit 1
+                        ;;
+                    *)
+                        print_warning "请输入 y 或 N"
+                        ;;
+                esac
+            done
+            echo ""
+        fi
+        
         return 0
     else
         print_error "无法复制 SRS 配置文件: $srs_config_source -> $srs_config_file"
