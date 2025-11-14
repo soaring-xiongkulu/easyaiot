@@ -2904,6 +2904,69 @@ create_redis_directories() {
     fi
 }
 
+# 创建所有中间件的存储目录
+create_all_storage_directories() {
+    print_info "创建所有中间件存储目录..."
+    
+    # 定义所有需要创建的存储目录及其权限设置
+    # 格式: "目录路径:UID:GID:权限"
+    local storage_dirs=(
+        "${SCRIPT_DIR}/standalone-logs:::"              # Nacos 日志（使用默认权限）
+        "${SCRIPT_DIR}/db_data/data:999:999:700"       # PostgreSQL 数据
+        "${SCRIPT_DIR}/db_data/log:999:999:755"        # PostgreSQL 日志
+        "${SCRIPT_DIR}/taos_data/data:::"              # TDengine 数据（使用默认权限）
+        "${SCRIPT_DIR}/taos_data/log:::"               # TDengine 日志（使用默认权限）
+        "${SCRIPT_DIR}/redis_data/data:999:999:755"   # Redis 数据
+        "${SCRIPT_DIR}/redis_data/logs:999:999:755"    # Redis 日志
+        "${SCRIPT_DIR}/mq_data/data:::"                # Kafka 数据（使用默认权限）
+        "${SCRIPT_DIR}/minio_data/data:::"             # MinIO 数据（使用默认权限）
+        "${SCRIPT_DIR}/minio_data/config:::"           # MinIO 配置（使用默认权限）
+        "${SCRIPT_DIR}/srs_data/conf:::"               # SRS 配置（使用默认权限）
+        "${SCRIPT_DIR}/srs_data/data:::"              # SRS 数据（使用默认权限）
+        "${SCRIPT_DIR}/srs_data/playbacks:::"          # SRS 回放（使用默认权限）
+        "${SCRIPT_DIR}/nodered_data/data:1000:1000:755" # NodeRED 数据
+    )
+    
+    local created_count=0
+    local total_count=${#storage_dirs[@]}
+    
+    for dir_spec in "${storage_dirs[@]}"; do
+        # 解析目录规格
+        IFS=':' read -r dir_path uid gid perms <<< "$dir_spec"
+        
+        if [ -z "$dir_path" ]; then
+            continue
+        fi
+        
+        # 创建目录
+        if mkdir -p "$dir_path" 2>/dev/null; then
+            # 如果指定了 UID/GID，尝试设置权限
+            if [ -n "$uid" ] && [ -n "$gid" ]; then
+                if [ "$EUID" -eq 0 ]; then
+                    chown -R "${uid}:${gid}" "$dir_path" 2>/dev/null || true
+                    if [ -n "$perms" ]; then
+                        chmod -R "$perms" "$dir_path" 2>/dev/null || true
+                    fi
+                elif command -v sudo &> /dev/null; then
+                    sudo chown -R "${uid}:${gid}" "$dir_path" 2>/dev/null || true
+                    if [ -n "$perms" ]; then
+                        sudo chmod -R "$perms" "$dir_path" 2>/dev/null || true
+                    fi
+                fi
+            fi
+            created_count=$((created_count + 1))
+        else
+            print_warning "创建目录失败: $dir_path"
+        fi
+    done
+    
+    if [ $created_count -eq $total_count ]; then
+        print_success "所有存储目录已创建（${created_count}/${total_count}）"
+    else
+        print_warning "部分存储目录创建失败（${created_count}/${total_count}）"
+    fi
+}
+
 # 准备 EMQX 容器和数据卷
 prepare_emqx_volumes() {
     print_info "准备 EMQX 容器和数据卷..."
@@ -2953,79 +3016,115 @@ prepare_emqx_volumes() {
 }
 
 # 准备 SRS 配置文件
+# 强制更新模式：无论配置文件是否存在，都重新生成并自动替换 IP 地址
 prepare_srs_config() {
-    local srs_config_source="${SCRIPT_DIR}/../srs/conf/docker.conf"
+    local srs_config_source="${SCRIPT_DIR}/../srs/conf"
     local srs_config_target="${SCRIPT_DIR}/srs_data/conf"
     local srs_config_file="${srs_config_target}/docker.conf"
     
-    print_info "准备 SRS 配置文件..."
+    print_info "准备 SRS 配置文件（强制更新模式）..."
     
-    # 检查源文件是否存在
-    if [ ! -f "$srs_config_source" ]; then
-        print_error "SRS 源配置文件不存在: $srs_config_source"
-        return 1
+    # 获取宿主机 IP 地址
+    local host_ip=$(get_host_ip)
+    if [ -z "$host_ip" ]; then
+        print_warning "无法获取宿主机 IP，将使用 127.0.0.1（可能导致 VIDEO 模块回调失败）"
+        host_ip="127.0.0.1"
+    else
+        print_info "检测到宿主机 IP: $host_ip"
     fi
     
-    # 检查源文件中是否包含 127.0.0.1（在复制之前检查）
-    if grep -q "127.0.0.1" "$srs_config_source" 2>/dev/null; then
-        echo ""
-        print_section "SRS 配置文件 IP 地址配置提示"
-        echo ""
-        print_warning "检测到 SRS 源配置文件中包含 127.0.0.1，需要替换为宿主机 IP 地址"
-        echo ""
-        print_info "源配置文件路径: ${GREEN}$srs_config_source${NC}"
-        echo ""
-        
-        # 获取宿主机 IP
-        local host_ip=$(get_host_ip)
-        if [ -n "$host_ip" ]; then
-            print_info "检测到宿主机 IP 地址: ${GREEN}$host_ip${NC}"
-            echo ""
-            print_warning "请将源配置文件中的 ${YELLOW}127.0.0.1${NC} 替换为 ${GREEN}$host_ip${NC}"
-            print_info "需要替换的回调地址示例："
-            print_info "  http://127.0.0.1:6000/video/camera/callback/on_dvr"
-            print_info "  -> http://$host_ip:6000/video/camera/callback/on_dvr"
-            print_info "  http://127.0.0.1:6000/video/camera/callback/on_publish"
-            print_info "  -> http://$host_ip:6000/video/camera/callback/on_publish"
-            echo ""
-            print_info "可以使用以下命令进行替换："
-            print_info "  sed -i 's/127.0.0.1/$host_ip/g' $srs_config_source"
-        else
-            print_warning "无法自动检测宿主机 IP 地址"
-            print_info "请手动将源配置文件中的 127.0.0.1 替换为实际的宿主机 IP 地址"
-        fi
-        echo ""
-        
-        while true; do
-            echo -ne "${YELLOW}[提示]${NC} 是否已经手动将源配置文件中的 127.0.0.1 替换为宿主机 IP？(y/N): "
-            read -r response
-            case "$response" in
-                [yY][eE][sS]|[yY])
-                    print_info "继续执行..."
-                    break
-                    ;;
-                [nN][oO]|[nN]|"")
-                    print_warning "请注意：如果未替换 IP 地址，SRS 回调功能可能无法正常工作"
-                    print_info "继续执行..."
-                    break
-                    ;;
-                *)
-                    print_warning "请输入 y 或 N"
-                    ;;
-            esac
-        done
-        echo ""
-    fi
-    
-    # 创建目标目录并复制配置文件
+    # 创建目标目录
     mkdir -p "$srs_config_target"
-    print_info "复制 SRS 配置文件到容器挂载目录: $srs_config_source -> $srs_config_file"
-    if cp -f "$srs_config_source" "$srs_config_file" 2>/dev/null; then
-        print_success "SRS 配置文件已复制到容器挂载目录: $srs_config_file"
-        print_info "配置文件将通过 Docker volume 挂载到 SRS 容器内"
+    
+    # 强制更新模式：无论配置文件是否存在，都重新生成
+    print_info "重新获取宿主机 IP 并重新生成配置文件..."
+    
+    # 尝试从源目录复制配置文件
+    if [ -d "$srs_config_source" ] && [ -f "$srs_config_source/docker.conf" ]; then
+        print_info "从源目录复制 SRS 配置文件..."
+        if cp -f "$srs_config_source/docker.conf" "$srs_config_file" 2>/dev/null; then
+            # 替换配置文件中的所有 IP 地址为宿主机 IP
+            # 匹配模式: http://IP:6000 或 http://IP:6000/...
+            sed -i -E "s|http://([0-9]{1,3}\.){3}[0-9]{1,3}:6000|http://${host_ip}:6000|g" "$srs_config_file"
+            print_info "已将配置文件中的 IP 地址更新为宿主机 IP: $host_ip"
+            print_success "SRS 配置文件已复制并更新: $srs_config_source/docker.conf -> $srs_config_file"
+            # 验证文件确实存在
+            if [ -f "$srs_config_file" ]; then
+                return 0
+            fi
+        else
+            print_warning "无法复制 SRS 配置文件，将创建默认配置"
+        fi
+    else
+        print_warning "源配置文件不存在: $srs_config_source/docker.conf，将创建默认配置"
+    fi
+    
+    # 如果复制失败或源文件不存在，创建默认配置文件
+    print_info "创建默认 SRS 配置文件..."
+    cat > "$srs_config_file" << EOF
+# SRS Docker 配置文件
+# 用于 Docker 容器部署的 SRS 配置
+
+listen              1935;
+max_connections     1000;
+daemon              on;
+srs_log_tank        file;
+srs_log_file        /data/srs.log;
+
+http_server {
+    enabled         on;
+    listen          8080;
+    dir             ./objs/nginx/html;
+}
+
+http_api {
+    enabled         on;
+    listen          1985;
+    raw_api {
+        enabled             on;
+        allow_reload        on;
+    }
+}
+stats {
+    network         0;
+}
+rtc_server {
+    enabled on;
+    listen 8000;
+    candidate *;
+}
+
+vhost __defaultVhost__ {
+    http_remux {
+        enabled     on;
+        mount       [vhost]/[app]/[stream].flv;
+    }
+    rtc {
+        enabled     on;
+        rtmp_to_rtc on;
+        rtc_to_rtmp on;
+    }
+    dvr {
+        enabled             on;
+        dvr_path            /data/playbacks/[app]/[stream]/[2006]/[01]/[02]/[timestamp].flv;
+        dvr_plan            segment;
+        dvr_duration        30;
+        dvr_wait_keyframe   on;
+    }
+    http_hooks {
+        enabled             on;
+        on_dvr              http://${host_ip}:6000/video/camera/callback/on_dvr;
+        on_publish          http://${host_ip}:6000/video/camera/callback/on_publish;
+    }
+}
+EOF
+    
+    # 验证文件是否创建成功
+    if [ -f "$srs_config_file" ]; then
+        print_success "默认 SRS 配置文件已创建: $srs_config_file (使用宿主机 IP: $host_ip)"
         return 0
     else
-        print_error "无法复制 SRS 配置文件: $srs_config_source -> $srs_config_file"
+        print_error "无法创建 SRS 配置文件: $srs_config_file"
         return 1
     fi
 }
@@ -4367,9 +4466,16 @@ install_middleware() {
     configure_docker_mirror
     check_compose_file
     create_network
+    
+    # 创建所有中间件的存储目录（如果不存在则创建新的）
+    create_all_storage_directories
+    
+    # 确保关键目录的权限正确（这些函数会检查并设置权限）
     create_postgresql_directories
     create_redis_directories
     create_nodered_directories
+    
+    # 强制更新 SRS 配置文件（重新获取宿主机 IP）
     prepare_srs_config
     prepare_emqx_volumes
     
@@ -4388,6 +4494,13 @@ install_middleware() {
         print_success "容器启动命令执行完成"
     else
         print_error "容器启动过程中出现错误"
+    fi
+    
+    # 如果 SRS 容器已经在运行，重启它以重新加载配置文件
+    if docker ps --filter "name=srs-server" --format "{{.Names}}" | grep -q "srs-server"; then
+        print_info "检测到 SRS 容器正在运行，重启以重新加载配置文件..."
+        docker restart srs-server 2>&1 | tee -a "$LOG_FILE" || true
+        print_success "SRS 容器已重启，配置文件已重新加载"
     fi
     
     # 检查启动状态
@@ -4455,8 +4568,15 @@ start_middleware() {
     check_docker_compose
     check_compose_file
     create_network
+    
+    # 创建所有中间件的存储目录（如果不存在则创建新的）
+    create_all_storage_directories
+    
+    # 确保关键目录的权限正确
+    create_postgresql_directories
     create_redis_directories
     create_nodered_directories
+    
     prepare_srs_config
     prepare_emqx_volumes
     
@@ -4497,8 +4617,15 @@ restart_middleware() {
     check_docker_compose
     check_compose_file
     create_network
+    
+    # 创建所有中间件的存储目录（如果不存在则创建新的）
+    create_all_storage_directories
+    
+    # 确保关键目录的权限正确
+    create_postgresql_directories
     create_redis_directories
     create_nodered_directories
+    
     prepare_srs_config
     prepare_emqx_volumes
     
@@ -4693,8 +4820,9 @@ reload_environment() {
 
 # 清理所有中间件
 clean_middleware() {
-    print_warning "这将删除所有中间件容器和数据卷，确定要继续吗？(y/N)"
+    print_warning "这将删除所有中间件容器、数据卷和存储目录，确定要继续吗？(y/N)"
     print_info "注意：镜像不会被删除，以节省重新下载的时间"
+    print_warning "警告：这将彻底删除所有数据，包括数据库、配置和日志！"
     read -r response
     
     if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
@@ -4703,17 +4831,6 @@ clean_middleware() {
         check_docker "$@"
         check_docker_compose
         check_compose_file
-        
-        # 提示数据库和镜像不会被删除
-        echo ""
-        print_info "注意：清理操作不会删除以下内容："
-        print_info "  - 镜像（保留以便快速重新部署）"
-        print_info "  - 数据库表和数据（保留在 PostgreSQL 数据卷中）"
-        print_warning "如果需要删除数据库数据，请手动执行以下操作："
-        print_info "  1. 连接到 PostgreSQL 容器："
-        print_info "     docker exec -it postgres-server psql -U postgres"
-        print_info "  2. 手动删除数据库或表"
-        echo ""
         
         # 第一步：先停止所有容器（正常停止）
         print_info "正在停止所有中间件服务..."
@@ -4729,8 +4846,8 @@ clean_middleware() {
         # 等待容器完全停止
         sleep 2
         
-        # 第三步：删除容器和卷（不删除镜像）
-        print_info "删除所有容器和数据卷（镜像将保留）..."
+        # 第三步：删除容器和 Docker 具名卷（不删除镜像）
+        print_info "删除所有容器和 Docker 具名卷（镜像将保留）..."
         $COMPOSE_CMD -f "$COMPOSE_FILE" down -v 2>&1 | tee -a "$LOG_FILE"
         
         # 第四步：检查并强制删除可能残留的容器（处理重启循环中的容器）
@@ -4762,6 +4879,82 @@ clean_middleware() {
             echo "$srs_containers" | xargs -r docker rm -f 2>&1 | tee -a "$LOG_FILE"
         fi
         
+        # 第五步：删除所有 bind mount 的宿主机存储目录
+        print_info "删除所有 bind mount 存储目录..."
+        
+        # 定义所有需要删除的存储目录（相对于脚本目录）
+        local data_dirs=(
+            "standalone-logs"           # Nacos 日志
+            "db_data"                   # PostgreSQL 数据和日志
+            "taos_data"                 # TDengine 数据和日志
+            "redis_data"                # Redis 数据和日志
+            "mq_data"                   # Kafka 数据
+            "minio_data"                 # MinIO 数据和配置
+            "srs_data"                  # SRS 配置、数据和回放
+            "nodered_data"              # NodeRED 数据
+        )
+        
+        # 删除每个存储目录
+        local deleted_count=0
+        local total_count=${#data_dirs[@]}
+        
+        for dir_name in "${data_dirs[@]}"; do
+            local full_path="${SCRIPT_DIR}/${dir_name}"
+            if [ -d "$full_path" ]; then
+                print_info "删除存储目录: $full_path"
+                if rm -rf "$full_path" 2>/dev/null; then
+                    print_success "已删除: $dir_name"
+                    deleted_count=$((deleted_count + 1))
+                else
+                    print_warning "删除失败（可能需要 root 权限）: $dir_name"
+                    # 尝试使用 sudo（如果可用）
+                    if command -v sudo &> /dev/null; then
+                        if sudo rm -rf "$full_path" 2>/dev/null; then
+                            print_success "已删除（使用 sudo）: $dir_name"
+                            deleted_count=$((deleted_count + 1))
+                        else
+                            print_error "无法删除: $dir_name，请手动删除: sudo rm -rf $full_path"
+                        fi
+                    else
+                        print_error "无法删除: $dir_name，请手动删除: rm -rf $full_path"
+                    fi
+                fi
+            else
+                print_info "目录不存在，跳过: $dir_name"
+                deleted_count=$((deleted_count + 1))
+            fi
+        done
+        
+        # 第六步：删除 Docker 具名卷（如果还有残留）
+        print_info "检查并删除残留的 Docker 具名卷..."
+        local named_volumes=(
+            "emqx_data"
+            "emqx_log"
+        )
+        
+        for volume_name in "${named_volumes[@]}"; do
+            if docker volume inspect "$volume_name" &> /dev/null; then
+                print_info "删除 Docker 具名卷: $volume_name"
+                if docker volume rm "$volume_name" 2>/dev/null; then
+                    print_success "已删除 Docker 卷: $volume_name"
+                else
+                    print_warning "删除 Docker 卷失败: $volume_name（可能仍在使用中）"
+                fi
+            else
+                print_info "Docker 卷不存在，跳过: $volume_name"
+            fi
+        done
+        
+        echo ""
+        print_section "清理结果"
+        print_info "存储目录清理: ${GREEN}$deleted_count${NC} / $total_count"
+        
+        if [ $deleted_count -eq $total_count ]; then
+            print_success "所有存储目录已彻底删除"
+        else
+            print_warning "部分存储目录删除失败，请手动检查"
+        fi
+        
         print_success "清理完成"
         
         # 清理完成后，自动检查并重新加载环境变量
@@ -4787,8 +4980,15 @@ update_middleware() {
     check_docker_compose
     check_compose_file
     create_network
+    
+    # 创建所有中间件的存储目录（如果不存在则创建新的）
+    create_all_storage_directories
+    
+    # 确保关键目录的权限正确
+    create_postgresql_directories
     create_redis_directories
     create_nodered_directories
+    
     prepare_srs_config
     prepare_emqx_volumes
     
