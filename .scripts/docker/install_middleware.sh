@@ -1369,18 +1369,69 @@ install_nvidia_container_toolkit() {
     print_info "添加 NVIDIA 仓库..."
     case "$os_id" in
         ubuntu|debian)
-            # 添加密钥和仓库
-            if ! curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg 2>/dev/null; then
-                print_error "添加 NVIDIA GPG 密钥失败"
+            # 添加密钥和仓库（添加重试机制）
+            local gpg_key_added=0
+            local max_retries=3
+            local retry_count=0
+            
+            while [ $retry_count -lt $max_retries ] && [ $gpg_key_added -eq 0 ]; do
+                if curl -fsSL --connect-timeout 10 --max-time 30 https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg 2>/dev/null; then
+                    gpg_key_added=1
+                    print_success "NVIDIA GPG 密钥添加成功"
+                else
+                    retry_count=$((retry_count + 1))
+                    if [ $retry_count -lt $max_retries ]; then
+                        print_warning "添加 NVIDIA GPG 密钥失败，正在重试 ($retry_count/$max_retries)..."
+                        sleep 2
+                    else
+                        print_error "添加 NVIDIA GPG 密钥失败（已重试 $max_retries 次）"
+                        print_warning "可能是网络问题，将尝试使用备用方法或跳过此步骤"
+                        
+                        # 尝试使用备用方法：直接下载密钥文件
+                        print_info "尝试使用备用方法添加 GPG 密钥..."
+                        if curl -fsSL --connect-timeout 10 --max-time 30 "https://nvidia.github.io/libnvidia-container/gpgkey" -o /tmp/nvidia-gpgkey 2>/dev/null && \
+                           gpg --dearmor /tmp/nvidia-gpgkey -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg 2>/dev/null; then
+                            rm -f /tmp/nvidia-gpgkey
+                            gpg_key_added=1
+                            print_success "使用备用方法成功添加 NVIDIA GPG 密钥"
+                        else
+                            rm -f /tmp/nvidia-gpgkey
+                            print_error "备用方法也失败，nvidia-container-toolkit 安装将跳过"
+                            print_info "如果后续需要使用 GPU，请手动安装 nvidia-container-toolkit"
+                            print_info "安装指南: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
+                            return 1
+                        fi
+                    fi
+                fi
+            done
+            
+            # 如果 GPG 密钥添加失败，直接返回
+            if [ $gpg_key_added -eq 0 ]; then
                 return 1
             fi
             
-            if ! curl -fsSL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-                sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-                tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null; then
-                print_error "添加 NVIDIA 仓库失败"
-                return 1
-            fi
+            # 添加仓库列表（添加重试机制）
+            local repo_added=0
+            local max_retries=3
+            local retry_count=0
+            
+            while [ $retry_count -lt $max_retries ] && [ $repo_added -eq 0 ]; do
+                if curl -fsSL --connect-timeout 10 --max-time 30 https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+                   sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+                   tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null; then
+                    repo_added=1
+                    print_success "NVIDIA 仓库添加成功"
+                else
+                    retry_count=$((retry_count + 1))
+                    if [ $retry_count -lt $max_retries ]; then
+                        print_warning "添加 NVIDIA 仓库失败，正在重试 ($retry_count/$max_retries)..."
+                        sleep 2
+                    else
+                        print_error "添加 NVIDIA 仓库失败（已重试 $max_retries 次）"
+                        return 1
+                    fi
+                fi
+            done
             
             # 更新包列表
             if ! apt-get update > /dev/null 2>&1; then
@@ -1470,6 +1521,7 @@ check_and_install_nvidia_container_toolkit() {
     print_warning "未检测到 nvidia-container-toolkit"
     echo ""
     print_info "nvidia-container-toolkit 是 Docker 容器使用 GPU 的必需组件"
+    print_info "如果没有 NVIDIA GPU 或不需要 GPU 支持，可以跳过此步骤"
     echo ""
     
     while true; do
@@ -1485,13 +1537,27 @@ check_and_install_nvidia_container_toolkit() {
                     print_success "nvidia-container-toolkit 安装成功"
                     return 0
                 else
-                    print_error "nvidia-container-toolkit 安装失败，请手动安装后重试"
+                    print_warning "nvidia-container-toolkit 安装失败"
+                    print_info "这可能是由于网络问题导致的，不影响其他服务的安装"
+                    print_info "如果后续需要使用 GPU，请手动安装 nvidia-container-toolkit"
                     print_info "安装指南: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
-                    exit 1
+                    echo ""
+                    print_warning "是否继续安装其他服务？(y/N): "
+                    read -r continue_response
+                    case "$continue_response" in
+                        [yY][eE][sS]|[yY])
+                            print_info "继续安装其他服务..."
+                            return 0
+                            ;;
+                        *)
+                            print_info "已取消安装"
+                            exit 1
+                            ;;
+                    esac
                 fi
                 ;;
             [nN][oO]|[nN]|"")
-                print_warning "跳过 nvidia-container-toolkit 安装"
+                print_info "跳过 nvidia-container-toolkit 安装"
                 print_info "如果后续需要使用 GPU，请手动安装 nvidia-container-toolkit"
                 return 0
                 ;;
@@ -1500,6 +1566,31 @@ check_and_install_nvidia_container_toolkit() {
                 ;;
         esac
     done
+}
+
+# 检测系统是否有 NVIDIA GPU 支持
+check_nvidia_gpu_support() {
+    # 方法1: 检查 nvidia-smi 命令
+    if command -v nvidia-smi &> /dev/null; then
+        if nvidia-smi &> /dev/null; then
+            return 0  # 有 GPU 支持
+        fi
+    fi
+    
+    # 方法2: 检查 /dev/nvidia* 设备文件
+    if ls /dev/nvidia* &> /dev/null; then
+        return 0  # 有 GPU 支持
+    fi
+    
+    # 方法3: 检查 nvidia-container-toolkit 是否已安装且可用
+    if check_nvidia_container_toolkit; then
+        # 如果已安装，尝试测试 GPU 容器
+        if docker run --rm --gpus all nvidia/cuda:11.8.0-base nvidia-smi &> /dev/null 2>&1; then
+            return 0  # 有 GPU 支持
+        fi
+    fi
+    
+    return 1  # 没有 GPU 支持
 }
 
 # 配置 Docker 镜像源
@@ -1512,6 +1603,16 @@ configure_docker_mirror() {
     if [ "$EUID" -ne 0 ]; then
         print_warning "配置 Docker 镜像源需要 root 权限，跳过此步骤"
         return 0
+    fi
+    
+    # 检测是否有 GPU 支持
+    local has_gpu=0
+    if check_nvidia_gpu_support; then
+        has_gpu=1
+        print_info "检测到 NVIDIA GPU 支持，将配置 NVIDIA runtime"
+    else
+        print_info "未检测到 NVIDIA GPU 支持，将跳过 default-runtime 配置"
+        print_info "如果后续需要 GPU 支持，请安装 nvidia-container-toolkit 后重新运行此脚本"
     fi
     
     # 创建 docker 配置目录
@@ -1529,12 +1630,22 @@ import sys
 import os
 
 config_file = "$docker_config_file"
-required_mirror = "https://docker.1ms.run/"
+has_gpu = $has_gpu
+# 推荐的镜像源列表（按优先级排序）
+recommended_mirrors = [
+    "https://docker.m.daocloud.io",
+    "https://registry.docker-cn.com",
+    "https://quay.mirrors.ustc.edu.cn",
+    "https://hub-mirror.c.163.com",
+    "https://dockerhub.icu",
+    "https://docker.1ms.run/"
+]
 nvidia_runtime = {
     "path": "nvidia-container-runtime",
     "runtimeArgs": []
 }
-required_default_runtime = "nvidia"
+# 只有在有 GPU 支持时才设置 default-runtime
+required_default_runtime = "nvidia" if has_gpu else None
 
 # 读取现有配置
 config = {}
@@ -1549,44 +1660,90 @@ if os.path.exists(config_file):
 needs_update = False
 changes = []
 
-# 检查并添加镜像源
+# 检查并添加镜像源（保留用户已有的，只添加缺失的）
 if "registry-mirrors" not in config:
     config["registry-mirrors"] = []
     needs_update = True
     changes.append("添加 registry-mirrors 配置")
 
-if required_mirror not in config["registry-mirrors"]:
-    config["registry-mirrors"].append(required_mirror)
-    needs_update = True
-    changes.append(f"添加镜像源: {required_mirror}")
+# 获取现有镜像源列表
+existing_mirrors = config.get("registry-mirrors", [])
+# 确保是列表类型
+if not isinstance(existing_mirrors, list):
+    existing_mirrors = []
+
+# 添加缺失的推荐镜像源（保留用户已有的配置）
+added_mirrors = []
+for mirror in recommended_mirrors:
+    # 检查镜像源是否已存在（支持带/和不带/的匹配）
+    mirror_normalized = mirror.rstrip('/')
+    exists = False
+    for existing in existing_mirrors:
+        existing_normalized = existing.rstrip('/')
+        if mirror_normalized == existing_normalized:
+            exists = True
+            break
+    
+    if not exists:
+        existing_mirrors.append(mirror)
+        added_mirrors.append(mirror)
+        needs_update = True
+
+if added_mirrors:
+    config["registry-mirrors"] = existing_mirrors
+    changes.append(f"添加镜像源: {', '.join(added_mirrors)}")
 
 # 检查并添加 NVIDIA runtime
+# 注意：即使没有 GPU，也保留 runtime 配置（如果 nvidia-container-toolkit 已安装）
+# 这样后续安装 GPU 后可以直接使用，不需要重新配置
 if "runtimes" not in config:
     config["runtimes"] = {}
     needs_update = True
     changes.append("添加 runtimes 配置")
 
-if "nvidia" not in config["runtimes"]:
-    config["runtimes"]["nvidia"] = nvidia_runtime
-    needs_update = True
-    changes.append("添加 NVIDIA runtime 配置")
-else:
-    # 检查现有配置是否正确
-    nvidia_config = config["runtimes"]["nvidia"]
-    if nvidia_config.get("path") != nvidia_runtime["path"]:
+# 检查 nvidia-container-toolkit 是否已安装
+nvidia_toolkit_installed = False
+try:
+    import subprocess
+    result = subprocess.run(["which", "nvidia-container-runtime"], 
+                          capture_output=True, timeout=2)
+    nvidia_toolkit_installed = (result.returncode == 0)
+except:
+    pass
+
+# 只有在 nvidia-container-toolkit 已安装或检测到 GPU 时才配置 runtime
+# 这样可以避免在没有工具包的情况下配置无效的 runtime
+if nvidia_toolkit_installed or has_gpu:
+    if "nvidia" not in config["runtimes"]:
         config["runtimes"]["nvidia"] = nvidia_runtime
         needs_update = True
-        changes.append("更新 NVIDIA runtime 配置")
+        changes.append("添加 NVIDIA runtime 配置")
+    else:
+        # 检查现有配置是否正确
+        nvidia_config = config["runtimes"]["nvidia"]
+        if nvidia_config.get("path") != nvidia_runtime["path"]:
+            config["runtimes"]["nvidia"] = nvidia_runtime
+            needs_update = True
+            changes.append("更新 NVIDIA runtime 配置")
 
-# 检查并添加 default-runtime
-if "default-runtime" not in config:
-    config["default-runtime"] = required_default_runtime
-    needs_update = True
-    changes.append(f"添加 default-runtime: {required_default_runtime}")
-elif config["default-runtime"] != required_default_runtime:
-    config["default-runtime"] = required_default_runtime
-    needs_update = True
-    changes.append(f"更新 default-runtime: {required_default_runtime}")
+# 检查并添加 default-runtime（只有在有 GPU 支持时才设置）
+if required_default_runtime is not None:
+    # 有 GPU 支持，需要设置 default-runtime
+    if "default-runtime" not in config:
+        config["default-runtime"] = required_default_runtime
+        needs_update = True
+        changes.append(f"添加 default-runtime: {required_default_runtime}")
+    elif config["default-runtime"] != required_default_runtime:
+        config["default-runtime"] = required_default_runtime
+        needs_update = True
+        changes.append(f"更新 default-runtime: {required_default_runtime}")
+else:
+    # 没有 GPU 支持，如果现有配置是 nvidia，需要移除或改为默认
+    if "default-runtime" in config and config["default-runtime"] == "nvidia":
+        # 移除 default-runtime 配置，让 Docker 使用默认运行时
+        del config["default-runtime"]
+        needs_update = True
+        changes.append("移除 default-runtime 配置（系统无 GPU 支持）")
 
 # 写入配置文件
 if needs_update:

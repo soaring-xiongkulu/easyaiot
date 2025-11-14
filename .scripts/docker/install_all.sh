@@ -577,6 +577,65 @@ install_all() {
     fi
 }
 
+# 等待基础服务就绪
+wait_for_base_services() {
+    print_info "等待基础服务就绪..."
+    
+    # 等待 PostgreSQL
+    if docker ps --filter "name=postgres-server" --format "{{.Names}}" | grep -q "postgres-server"; then
+        print_info "等待 PostgreSQL 服务就绪..."
+        local max_attempts=60
+        local attempt=0
+        while [ $attempt -lt $max_attempts ]; do
+            if docker exec postgres-server pg_isready -U postgres > /dev/null 2>&1; then
+                print_success "PostgreSQL 服务已就绪"
+                break
+            fi
+            attempt=$((attempt + 1))
+            sleep 2
+        done
+        if [ $attempt -ge $max_attempts ]; then
+            print_warning "PostgreSQL 服务未在预期时间内就绪，继续执行..."
+        fi
+    fi
+    
+    # 等待 Nacos
+    if docker ps --filter "name=nacos-server" --format "{{.Names}}" | grep -q "nacos-server"; then
+        print_info "等待 Nacos 服务就绪..."
+        local max_attempts=60
+        local attempt=0
+        while [ $attempt -lt $max_attempts ]; do
+            if curl -s --connect-timeout 2 "http://localhost:8848/nacos/actuator/health" > /dev/null 2>&1; then
+                print_success "Nacos 服务已就绪"
+                break
+            fi
+            attempt=$((attempt + 1))
+            sleep 2
+        done
+        if [ $attempt -ge $max_attempts ]; then
+            print_warning "Nacos 服务未在预期时间内就绪，继续执行..."
+        fi
+    fi
+    
+    # 等待 Redis
+    if docker ps --filter "name=redis-server" --format "{{.Names}}" | grep -q "redis-server"; then
+        print_info "等待 Redis 服务就绪..."
+        local max_attempts=30
+        local attempt=0
+        while [ $attempt -lt $max_attempts ]; do
+            if docker exec redis-server redis-cli ping > /dev/null 2>&1; then
+                print_success "Redis 服务已就绪"
+                break
+            fi
+            attempt=$((attempt + 1))
+            sleep 1
+        done
+        if [ $attempt -ge $max_attempts ]; then
+            print_warning "Redis 服务未在预期时间内就绪，继续执行..."
+        fi
+    fi
+}
+
 # 启动所有服务
 start_all() {
     print_section "启动所有服务"
@@ -585,7 +644,21 @@ start_all() {
     check_docker_compose
     create_network
     
+    # 先启动基础服务（.scripts/docker）
+    print_section "启动基础服务"
+    execute_module_command ".scripts/docker" "start"
+    echo ""
+    
+    # 等待基础服务就绪
+    wait_for_base_services
+    echo ""
+    
+    # 再启动其他服务
     for module in "${MODULES[@]}"; do
+        # 跳过基础服务（已经启动）
+        if [ "$module" = ".scripts/docker" ]; then
+            continue
+        fi
         execute_module_command "$module" "start"
         echo ""
     done
