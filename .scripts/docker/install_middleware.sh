@@ -2523,44 +2523,138 @@ create_network() {
     fi
 }
 
-# 获取宿主机 IP 地址
+# 检查 IP 地址是否为 Docker 网络 IP
+is_docker_network_ip() {
+    local ip="$1"
+    if [ -z "$ip" ]; then
+        return 1
+    fi
+    
+    # Docker 默认网段：172.17.0.0/16 到 172.31.0.0/16
+    # 这些是 Docker 自动分配的桥接网络网段
+    if [[ "$ip" =~ ^172\.(1[7-9]|2[0-9]|3[0-1])\.[0-9]+\.[0-9]+$ ]]; then
+        return 0  # 是 Docker 网络 IP
+    fi
+    
+    return 1  # 不是 Docker 网络 IP
+}
+
+# 检查网络接口是否为 Docker 相关接口
+is_docker_interface() {
+    local iface="$1"
+    if [ -z "$iface" ]; then
+        return 1
+    fi
+    
+    # Docker 相关接口名称模式
+    if [[ "$iface" =~ ^(docker|br-|veth|br[0-9]+) ]]; then
+        return 0  # 是 Docker 接口
+    fi
+    
+    return 1  # 不是 Docker 接口
+}
+
+# 获取宿主机 IP 地址（排除 Docker 网络接口）
 get_host_ip() {
     local host_ip=""
     
-    # 方法1: 通过路由获取（最可靠）
+    # 方法1: 通过路由获取（最可靠，通常返回物理网络接口的 IP）
     if command -v ip &> /dev/null; then
         host_ip=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $7}' | head -n 1)
-        if [ -n "$host_ip" ] && [ "$host_ip" != "127.0.0.1" ]; then
+        if [ -n "$host_ip" ] && [ "$host_ip" != "127.0.0.1" ] && ! is_docker_network_ip "$host_ip"; then
             echo "$host_ip"
             return 0
         fi
     fi
     
-    # 方法2: 通过 hostname -I 获取
+    # 方法2: 通过 hostname -I 获取，过滤 Docker 网络 IP
     if command -v hostname &> /dev/null; then
-        host_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
-        if [ -n "$host_ip" ] && [ "$host_ip" != "127.0.0.1" ] && [[ ! "$host_ip" =~ ^169\.254\. ]]; then
-            echo "$host_ip"
-            return 0
+        local all_ips=$(hostname -I 2>/dev/null)
+        if [ -n "$all_ips" ]; then
+            # 遍历所有 IP，找到第一个非 Docker 网络的 IP
+            for ip in $all_ips; do
+                if [ "$ip" != "127.0.0.1" ] && [[ ! "$ip" =~ ^169\.254\. ]] && ! is_docker_network_ip "$ip"; then
+                    echo "$ip"
+                    return 0
+                fi
+            done
         fi
     fi
     
-    # 方法3: 通过 ip addr 获取
+    # 方法3: 通过 ip addr 获取，排除 Docker 接口和 Docker 网络 IP
     if command -v ip &> /dev/null; then
-        host_ip=$(ip addr show 2>/dev/null | grep -E "inet " | grep -v "127.0.0.1" | grep -v "169.254." | head -n 1 | awk '{print $2}' | cut -d/ -f1)
-        if [ -n "$host_ip" ]; then
-            echo "$host_ip"
-            return 0
+        # 获取所有网络接口的 IP，优先选择物理接口（eth*, enp*, ens*, eno*）
+        local physical_ips=""
+        local other_ips=""
+        local current_iface=""
+        
+        while IFS= read -r line; do
+            # 提取接口名称（格式：1: eth0: <...>）
+            if [[ "$line" =~ ^[0-9]+:[[:space:]]+([^:]+): ]]; then
+                current_iface="${BASH_REMATCH[1]}"
+                # 跳过 Docker 接口
+                if is_docker_interface "$current_iface"; then
+                    current_iface=""
+                    continue
+                fi
+            fi
+            
+            # 提取 IP 地址（格式：    inet 192.168.1.100/24 ...）
+            if [ -n "$current_iface" ] && [[ "$line" =~ inet[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) ]]; then
+                local ip="${BASH_REMATCH[1]}"
+                if [ "$ip" != "127.0.0.1" ] && [[ ! "$ip" =~ ^169\.254\. ]] && ! is_docker_network_ip "$ip"; then
+                    # 检查是否是物理接口
+                    if [[ "$current_iface" =~ ^(eth|enp|ens|eno|wlan|wlp) ]]; then
+                        physical_ips="$physical_ips $ip"
+                    else
+                        other_ips="$other_ips $ip"
+                    fi
+                fi
+            fi
+        done < <(ip addr show 2>/dev/null)
+        
+        # 优先使用物理接口的 IP
+        if [ -n "$physical_ips" ]; then
+            host_ip=$(echo "$physical_ips" | awk '{print $1}')
+            if [ -n "$host_ip" ]; then
+                echo "$host_ip"
+                return 0
+            fi
+        fi
+        
+        # 如果没有物理接口 IP，使用其他接口的 IP
+        if [ -n "$other_ips" ]; then
+            host_ip=$(echo "$other_ips" | awk '{print $1}')
+            if [ -n "$host_ip" ]; then
+                echo "$host_ip"
+                return 0
+            fi
         fi
     fi
     
-    # 方法4: 通过 ifconfig 获取（兼容旧系统）
+    # 方法4: 通过 ifconfig 获取（兼容旧系统），排除 Docker 接口
     if command -v ifconfig &> /dev/null; then
-        host_ip=$(ifconfig 2>/dev/null | grep -E "inet " | grep -v "127.0.0.1" | grep -v "169.254." | head -n 1 | awk '{print $2}' | sed 's/addr://')
-        if [ -n "$host_ip" ]; then
-            echo "$host_ip"
-            return 0
-        fi
+        local current_iface=""
+        while IFS= read -r line; do
+            # 检测接口名称
+            if [[ "$line" =~ ^([^[:space:]]+)[[:space:]]+ ]]; then
+                current_iface="${BASH_REMATCH[1]}"
+                # 跳过 Docker 接口
+                if is_docker_interface "$current_iface"; then
+                    current_iface=""
+                    continue
+                fi
+            fi
+            
+            # 提取 IP 地址
+            if [ -n "$current_iface" ] && [[ "$line" =~ inet[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) ]]; then
+                local ip="${BASH_REMATCH[1]}"
+                if [ "$ip" != "127.0.0.1" ] && [[ ! "$ip" =~ ^169\.254\. ]] && ! is_docker_network_ip "$ip"; then
+                    echo "$ip"
+                    return 0
+                fi
+            fi
+        done < <(ifconfig 2>/dev/null)
     fi
     
     # 如果所有方法都失败，返回空字符串

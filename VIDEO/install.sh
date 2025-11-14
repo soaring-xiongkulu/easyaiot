@@ -119,6 +119,286 @@ create_directories() {
     print_success "目录创建完成"
 }
 
+# 获取宿主机 IP 地址
+get_host_ip() {
+    local host_ip=""
+    
+    # 方法1: 通过路由获取（最可靠）
+    if command -v ip &> /dev/null; then
+        host_ip=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $7}' | head -n 1)
+        if [ -n "$host_ip" ] && [ "$host_ip" != "127.0.0.1" ]; then
+            echo "$host_ip"
+            return 0
+        fi
+    fi
+    
+    # 方法2: 通过 hostname -I 获取
+    if command -v hostname &> /dev/null; then
+        host_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+        if [ -n "$host_ip" ] && [ "$host_ip" != "127.0.0.1" ] && [[ ! "$host_ip" =~ ^169\.254\. ]]; then
+            echo "$host_ip"
+            return 0
+        fi
+    fi
+    
+    # 方法3: 通过 ip addr 获取
+    if command -v ip &> /dev/null; then
+        host_ip=$(ip addr show 2>/dev/null | grep -E "inet " | grep -v "127.0.0.1" | grep -v "169.254." | head -n 1 | awk '{print $2}' | cut -d/ -f1)
+        if [ -n "$host_ip" ]; then
+            echo "$host_ip"
+            return 0
+        fi
+    fi
+    
+    # 方法4: 通过 ifconfig 获取（兼容旧系统）
+    if command -v ifconfig &> /dev/null; then
+        host_ip=$(ifconfig 2>/dev/null | grep -E "inet " | grep -v "127.0.0.1" | grep -v "169.254." | head -n 1 | awk '{print $2}' | sed 's/addr://')
+        if [ -n "$host_ip" ]; then
+            echo "$host_ip"
+            return 0
+        fi
+    fi
+    
+    # 如果所有方法都失败，返回空字符串
+    echo ""
+    return 1
+}
+
+# 准备 SRS 配置文件
+prepare_srs_config() {
+    local srs_config_source="${SCRIPT_DIR}/../srs/conf"
+    local srs_config_target="${SCRIPT_DIR}/srs_data/conf"
+    local srs_config_file="${srs_config_target}/docker.conf"
+    
+    print_info "准备 SRS 配置文件..."
+    
+    # 获取宿主机 IP 地址
+    local host_ip=$(get_host_ip)
+    if [ -z "$host_ip" ]; then
+        print_warning "无法获取宿主机 IP，将使用 127.0.0.1（可能导致 VIDEO 模块回调失败）"
+        host_ip="127.0.0.1"
+    else
+        print_info "检测到宿主机 IP: $host_ip"
+    fi
+    
+    # 创建目标目录
+    mkdir -p "$srs_config_target"
+    
+    # 检查目标文件是否已存在
+    if [ -f "$srs_config_file" ]; then
+        # 如果文件已存在，检查是否需要更新 IP 地址
+        if grep -q "127.0.0.1:6000" "$srs_config_file" 2>/dev/null && [ "$host_ip" != "127.0.0.1" ]; then
+            print_info "更新现有 SRS 配置文件中的 IP 地址..."
+            sed -i "s|127.0.0.1:6000|${host_ip}:6000|g" "$srs_config_file"
+            print_success "SRS 配置文件已更新为使用宿主机 IP: $host_ip"
+        else
+            print_info "SRS 配置文件已存在: $srs_config_file"
+        fi
+        return 0
+    fi
+    
+    # 尝试从源目录复制配置文件
+    if [ -d "$srs_config_source" ] && [ -f "$srs_config_source/docker.conf" ]; then
+        print_info "从源目录复制 SRS 配置文件..."
+        if cp -f "$srs_config_source/docker.conf" "$srs_config_file" 2>/dev/null; then
+            # 替换配置文件中的 127.0.0.1 为宿主机 IP
+            if [ "$host_ip" != "127.0.0.1" ]; then
+                sed -i "s|127.0.0.1:6000|${host_ip}:6000|g" "$srs_config_file"
+                print_info "已将配置文件中的 IP 地址更新为宿主机 IP: $host_ip"
+            fi
+            print_success "SRS 配置文件已复制: $srs_config_source/docker.conf -> $srs_config_file"
+            # 验证文件确实存在
+            if [ -f "$srs_config_file" ]; then
+                return 0
+            fi
+        else
+            print_warning "无法复制 SRS 配置文件，将创建默认配置"
+        fi
+    else
+        print_warning "源配置文件不存在: $srs_config_source/docker.conf，将创建默认配置"
+    fi
+    
+    # 如果复制失败或源文件不存在，创建默认配置文件
+    print_info "创建默认 SRS 配置文件..."
+    cat > "$srs_config_file" << EOF
+# SRS Docker 配置文件
+# 用于 Docker 容器部署的 SRS 配置
+
+listen              1935;
+max_connections     1000;
+daemon              on;
+srs_log_tank        file;
+srs_log_file        /data/srs.log;
+
+http_server {
+    enabled         on;
+    listen          8080;
+    dir             ./objs/nginx/html;
+}
+
+http_api {
+    enabled         on;
+    listen          1985;
+    raw_api {
+        enabled             on;
+        allow_reload        on;
+    }
+}
+stats {
+    network         0;
+}
+rtc_server {
+    enabled on;
+    listen 8000;
+    candidate *;
+}
+
+vhost __defaultVhost__ {
+    http_remux {
+        enabled     on;
+        mount       [vhost]/[app]/[stream].flv;
+    }
+    rtc {
+        enabled     on;
+        rtmp_to_rtc on;
+        rtc_to_rtmp on;
+    }
+    dvr {
+        enabled             on;
+        dvr_path            /data/playbacks/[app]/[stream]/[2006]/[01]/[02]/[timestamp].flv;
+        dvr_plan            segment;
+        dvr_duration        30;
+        dvr_wait_keyframe   on;
+    }
+    http_hooks {
+        enabled             on;
+        on_dvr              http://${host_ip}:6000/video/camera/callback/on_dvr;
+        on_publish          http://${host_ip}:6000/video/camera/callback/on_publish;
+    }
+}
+EOF
+    
+    # 验证文件是否创建成功
+    if [ -f "$srs_config_file" ]; then
+        print_success "默认 SRS 配置文件已创建: $srs_config_file (使用宿主机 IP: $host_ip)"
+        return 0
+    else
+        print_error "无法创建 SRS 配置文件: $srs_config_file"
+        return 1
+    fi
+}
+
+# 清理 VIDEO 服务的 compose 容器网络缓存
+clean_compose_cache() {
+    print_info "清理 VIDEO 服务的 compose 容器网络缓存..."
+    
+    # 确保 COMPOSE_CMD 已设置
+    if [ -z "$COMPOSE_CMD" ]; then
+        if check_command docker-compose; then
+            COMPOSE_CMD="docker-compose"
+        elif docker compose version &> /dev/null; then
+            COMPOSE_CMD="docker compose"
+        else
+            print_warning "无法确定 docker-compose 命令，跳过缓存清理"
+            return 0
+        fi
+    fi
+    
+    local compose_file=""
+    
+    # 查找 compose 文件
+    if [ -f "${SCRIPT_DIR}/docker-compose.yml" ]; then
+        compose_file="${SCRIPT_DIR}/docker-compose.yml"
+    elif [ -f "${SCRIPT_DIR}/docker-compose.yaml" ]; then
+        compose_file="${SCRIPT_DIR}/docker-compose.yaml"
+    else
+        print_info "未找到 docker-compose 文件，跳过缓存清理"
+        return 0
+    fi
+    
+    cd "$SCRIPT_DIR"
+    
+    # 1. 停止并清理容器和网络连接
+    print_info "执行 docker-compose down 清理容器和网络连接..."
+    # 使用 eval 来正确处理包含空格的 COMPOSE_CMD
+    if eval "$COMPOSE_CMD down" 2>/dev/null; then
+        print_success "容器和网络连接已清理"
+    else
+        print_info "docker-compose down 执行完成（可能没有运行的容器）"
+    fi
+    sleep 1
+    
+    # 2. 强制重新读取配置（这会清除 docker-compose 的配置缓存）
+    print_info "强制重新读取配置以清除缓存..."
+    if eval "$COMPOSE_CMD config" > /dev/null 2>&1; then
+        print_success "配置已重新验证"
+    else
+        print_warning "配置验证失败，但继续执行"
+    fi
+    
+    # 3. 清理可能的网络残留连接
+    print_info "检查并清理网络残留连接..."
+    local network_name="easyaiot-network"
+    if docker network inspect "$network_name" &> /dev/null; then
+        # 获取连接到该网络的所有容器
+        local containers=$(docker network inspect "$network_name" --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null || echo "")
+        
+        # 检查是否有VIDEO相关的容器残留
+        if echo "$containers" | grep -q "video"; then
+            print_info "发现残留的网络连接，正在清理..."
+            echo "$containers" | tr ' ' '\n' | grep -v '^$' | grep -i "video" | while read -r container; do
+                if docker ps -a --format '{{.Names}}' | grep -q "^${container}$"; then
+                    print_info "断开容器网络连接: $container"
+                    docker network disconnect -f "$network_name" "$container" 2>/dev/null || true
+                fi
+            done
+        fi
+    fi
+    
+    # 4. 清理 docker-compose 的临时文件（如果存在）
+    print_info "清理 docker-compose 临时文件..."
+    find . -maxdepth 1 -name ".docker-compose.*" -type f -delete 2>/dev/null || true
+    find . -maxdepth 1 -name "docker-compose.override.yml" -type f -delete 2>/dev/null || true
+    find . -maxdepth 1 -name "docker-compose.override.yaml" -type f -delete 2>/dev/null || true
+    
+    print_success "VIDEO 服务的 compose 缓存已清理完成"
+}
+
+# 恢复 SRS docker.conf 中的 IP 地址为 127.0.0.1
+# 由于 VIDEO 服务使用 host 网络模式，使用 127.0.0.1 可以正常工作
+restore_srs_config() {
+    # 查找 docker.conf 文件可能的位置
+    local srs_config_paths=(
+        "${SCRIPT_DIR}/../.scripts/docker/srs_data/conf/docker.conf"
+        "${SCRIPT_DIR}/../../.scripts/docker/srs_data/conf/docker.conf"
+    )
+    
+    local srs_config_file=""
+    for path in "${srs_config_paths[@]}"; do
+        if [ -f "$path" ]; then
+            srs_config_file="$path"
+            break
+        fi
+    done
+    
+    if [ -z "$srs_config_file" ]; then
+        print_info "未找到 SRS docker.conf 配置文件，跳过 IP 地址恢复"
+        return 0
+    fi
+    
+    print_info "检查并恢复 SRS docker.conf 中的 IP 地址为 127.0.0.1..."
+    
+    # 检查文件中是否有非 127.0.0.1 的 IP 地址（IPv4 格式）
+    # 使用 grep 查找所有包含 IP:6000 的行，排除 127.0.0.1
+    if grep -E "http://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:6000" "$srs_config_file" 2>/dev/null | grep -v "127.0.0.1" | grep -q .; then
+        # 将任何非 127.0.0.1 的 IP 地址替换为 127.0.0.1
+        sed -i -E 's|http://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:6000|http://127.0.0.1:6000|g' "$srs_config_file"
+        print_success "已将 SRS docker.conf 中的 IP 地址恢复为 127.0.0.1"
+    else
+        print_info "SRS docker.conf 中的 IP 地址已经是 127.0.0.1 或未找到需要修改的 IP 地址"
+    fi
+}
+
 # 创建 .env.docker 文件（用于Docker部署）
 create_env_file() {
     if [ ! -f .env.docker ]; then
@@ -207,9 +487,11 @@ install_service() {
     
     check_docker
     check_docker_compose
+    clean_compose_cache
     check_network
     create_directories
     create_env_file
+    prepare_srs_config
     
     print_info "构建 Docker 镜像..."
     $COMPOSE_CMD build
@@ -234,12 +516,15 @@ start_service() {
     print_info "启动服务..."
     check_docker
     check_docker_compose
+    clean_compose_cache
     check_network
     
     if [ ! -f .env.docker ]; then
         print_warning ".env.docker 文件不存在，正在创建..."
         create_env_file
     fi
+    
+    prepare_srs_config
     
     $COMPOSE_CMD up -d
     print_success "服务已启动"
@@ -261,6 +546,9 @@ restart_service() {
     print_info "重启服务..."
     check_docker
     check_docker_compose
+    clean_compose_cache
+    
+    prepare_srs_config
     
     $COMPOSE_CMD restart
     print_success "服务已重启"
@@ -339,10 +627,13 @@ update_service() {
     print_info "更新服务..."
     check_docker
     check_docker_compose
+    clean_compose_cache
     check_network
     
     print_info "拉取最新代码..."
     git pull || print_warning "Git pull 失败，继续使用当前代码"
+    
+    prepare_srs_config
     
     print_info "重新构建镜像..."
     $COMPOSE_CMD build
