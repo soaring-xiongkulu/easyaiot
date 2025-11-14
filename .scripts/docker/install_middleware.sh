@@ -518,6 +518,171 @@ check_and_install_nodejs20() {
     done
 }
 
+# 检查 Maven 是否已安装（不检查版本）
+check_maven_installed() {
+    if check_command mvn; then
+        local maven_version_output=$(mvn -version 2>&1 | head -n 1)
+        print_success "Maven 已安装: $maven_version_output"
+        return 0
+    fi
+    return 1
+}
+
+# 安装 Maven 3.6.3
+install_maven363() {
+    print_section "安装 Maven 3.6.3"
+    
+    if [ "$EUID" -ne 0 ]; then
+        print_error "安装 Maven 需要 root 权限，请使用 sudo 运行此脚本"
+        return 1
+    fi
+    
+    local maven_version="3.6.3"
+    local maven_dir="/opt/apache-maven-${maven_version}"
+    local maven_archive="/tmp/apache-maven-${maven_version}-bin.tar.gz"
+    local maven_url="https://archive.apache.org/dist/maven/maven-3/${maven_version}/binaries/apache-maven-${maven_version}-bin.tar.gz"
+    
+    # 检查是否已安装
+    if [ -d "$maven_dir" ] && [ -f "$maven_dir/bin/mvn" ]; then
+        print_info "Maven 3.6.3 已存在于: $maven_dir"
+        
+        # 配置环境变量
+        if ! grep -q "MAVEN_HOME=$maven_dir" /etc/profile; then
+            print_info "配置 Maven 环境变量..."
+            cat >> /etc/profile << EOF
+
+# Maven 3.6.3
+export MAVEN_HOME=$maven_dir
+export PATH=\$MAVEN_HOME/bin:\$PATH
+EOF
+            print_success "Maven 环境变量已添加到 /etc/profile"
+        else
+            print_info "Maven 环境变量已存在于 /etc/profile"
+        fi
+        
+        # 立即生效（仅当前会话）
+        export MAVEN_HOME="$maven_dir"
+        export PATH="$MAVEN_HOME/bin:$PATH"
+        
+        # 验证安装
+        if check_maven_installed; then
+            print_success "Maven 3.6.3 已就绪"
+            return 0
+        fi
+    fi
+    
+    print_info "正在下载 Maven 3.6.3..."
+    print_info "URL: $maven_url"
+    
+    # 下载 Maven
+    if ! curl -L -f "$maven_url" -o "$maven_archive" 2>/dev/null; then
+        print_error "下载 Maven 失败"
+        return 1
+    fi
+    
+    # 检查下载的文件是否有效
+    if [ ! -s "$maven_archive" ]; then
+        print_error "下载的文件为空"
+        rm -f "$maven_archive"
+        return 1
+    fi
+    
+    # 创建安装目录
+    mkdir -p /opt
+    
+    # 如果目录已存在，先备份
+    if [ -d "$maven_dir" ]; then
+        print_info "检测到已存在的 Maven 目录，创建备份..."
+        mv "$maven_dir" "${maven_dir}.bak.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
+    fi
+    
+    # 解压 Maven
+    print_info "正在解压 Maven..."
+    if ! tar -xzf "$maven_archive" -C /opt 2>/dev/null; then
+        print_error "解压 Maven 失败"
+        rm -f "$maven_archive"
+        return 1
+    fi
+    
+    # 验证解压结果
+    if [ ! -d "$maven_dir" ] || [ ! -f "$maven_dir/bin/mvn" ]; then
+        print_error "Maven 解压后验证失败"
+        rm -f "$maven_archive"
+        return 1
+    fi
+    
+    # 清理下载文件
+    rm -f "$maven_archive"
+    
+    # 配置环境变量
+    print_info "正在配置 Maven 环境变量..."
+    
+    # 检查 /etc/profile 中是否已存在 Maven 配置
+    if ! grep -q "MAVEN_HOME=$maven_dir" /etc/profile; then
+        cat >> /etc/profile << EOF
+
+# Maven 3.6.3
+export MAVEN_HOME=$maven_dir
+export PATH=\$MAVEN_HOME/bin:\$PATH
+EOF
+        print_success "Maven 环境变量已添加到 /etc/profile"
+    else
+        print_info "Maven 环境变量已存在于 /etc/profile"
+    fi
+    
+    # 立即生效（仅当前会话）
+    export MAVEN_HOME="$maven_dir"
+    export PATH="$MAVEN_HOME/bin:$PATH"
+    
+    # 验证安装
+    if check_maven_installed; then
+        print_success "Maven 3.6.3 安装完成: $(mvn -version 2>&1 | head -n 1)"
+        return 0
+    else
+        print_warning "Maven 安装完成，但验证失败，请手动检查"
+        return 1
+    fi
+}
+
+# 检查并安装 Maven 3.6.3
+check_and_install_maven363() {
+    if check_maven_installed; then
+        return 0
+    fi
+    
+    print_warning "未检测到 Maven"
+    echo ""
+    print_info "Maven 是运行某些中间件服务的必需组件，将安装 Maven 3.6.3"
+    echo ""
+    
+    while true; do
+        echo -ne "${YELLOW}[提示]${NC} 是否自动安装 Maven 3.6.3？(y/N): "
+        read -r response
+        case "$response" in
+            [yY][eE][sS]|[yY])
+                if [ "$EUID" -ne 0 ]; then
+                    print_error "安装 Maven 需要 root 权限，请使用 sudo 运行此脚本"
+                    exit 1
+                fi
+                if install_maven363; then
+                    print_success "Maven 3.6.3 安装成功"
+                    return 0
+                else
+                    print_error "Maven 3.6.3 安装失败，请手动安装后重试"
+                    exit 1
+                fi
+                ;;
+            [nN][oO]|[nN]|"")
+                print_error "Maven 是必需的，安装流程已终止"
+                exit 1
+                ;;
+            *)
+                print_warning "请输入 y 或 N"
+                ;;
+        esac
+    done
+}
+
 # 检查 nvidia-container-toolkit 是否已安装
 check_nvidia_container_toolkit() {
     if command -v nvidia-container-runtime &> /dev/null; then
@@ -2668,6 +2833,9 @@ install_middleware() {
     
     # 检查并安装 Node.js 20+
     check_and_install_nodejs20
+    
+    # 检查并安装 Maven 3.6.3
+    check_and_install_maven363
     
     # 配置 pip 镜像源
     configure_pip_mirror
