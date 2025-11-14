@@ -5,7 +5,7 @@ import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
 /**
  * IoT 设备 Token Service 接口
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 public interface IotDeviceTokenService {
 

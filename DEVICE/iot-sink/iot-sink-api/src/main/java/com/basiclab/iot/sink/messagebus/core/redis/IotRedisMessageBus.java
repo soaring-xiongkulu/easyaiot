@@ -22,7 +22,7 @@ import static com.basiclab.iot.common.config.YudaoRedisMQConsumerAutoConfigurati
 /**
  * Redis 的 {@link IotMessageBus} 实现类
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @Slf4j
 public class IotRedisMessageBus implements IotMessageBus {

@@ -24,7 +24,7 @@ import static com.basiclab.iot.common.exception.GlobalErrorStatus.INTERNAL_SERVE
 /**
  * Iot 设备信息 Service 实现类：调用远程的 device http 接口，进行设备认证、设备获取等
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @Service
 @Slf4j

@@ -35,7 +35,7 @@ import java.nio.charset.StandardCharsets;
  * <p>
  * 注意：deviceId 不包含在协议中，由服务器根据连接上下文自动设置
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @Slf4j
 @Component

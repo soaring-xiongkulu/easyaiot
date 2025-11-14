@@ -5,7 +5,7 @@ package com.basiclab.iot.sink.messagebus.core;
  *
  * 用于处理从消息总线接收到的消息
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 public interface IotMessageSubscriber<T> {
 

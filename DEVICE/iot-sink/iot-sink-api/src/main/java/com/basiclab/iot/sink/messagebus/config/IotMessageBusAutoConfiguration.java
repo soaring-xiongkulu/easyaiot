@@ -30,7 +30,7 @@ import static com.basiclab.iot.common.utils.collection.CollectionUtils.convertLi
 /**
  * IoT 消息总线自动配置
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @AutoConfiguration
 @EnableConfigurationProperties(IotMessageBusProperties.class)

@@ -5,7 +5,7 @@ import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 /**
  * {@link cn.iocoder.yudao.module.iot.core.mq.message.IotDeviceMessage} 的编解码器
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 public interface IotDeviceMessageCodec {
 

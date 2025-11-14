@@ -5,7 +5,7 @@ import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 /**
  * IoT 设备消息 Service 接口
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 public interface IotDeviceMessageService {
 

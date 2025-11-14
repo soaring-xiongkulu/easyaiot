@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 2. 管理设备会话和在线状态
  * 3. 管理消息发送到设备
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @Slf4j
 @Component

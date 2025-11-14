@@ -19,7 +19,7 @@ import javax.annotation.PreDestroy;
 /**
  * IoT 网关 TCP 协议：接收设备上行消息
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @Slf4j
 public class IotTcpUpstreamProtocol {

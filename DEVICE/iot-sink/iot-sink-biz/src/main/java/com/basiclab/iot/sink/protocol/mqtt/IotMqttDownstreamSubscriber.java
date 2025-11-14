@@ -14,7 +14,7 @@ import javax.annotation.PostConstruct;
  * <p>
  * 负责接收来自消息总线的下行消息，并委托给下行处理器进行业务处理
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @Slf4j
 public class IotMqttDownstreamSubscriber implements IotMessageSubscriber<IotDeviceMessage> {

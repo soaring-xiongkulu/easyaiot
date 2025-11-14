@@ -15,7 +15,7 @@ import static com.basiclab.iot.common.exception.GlobalErrorStatus.DEMO_DENY;
 /**
  * 演示 Filter，禁止用户发起写操作，避免影响测试数据
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 public class DemoFilter extends OncePerRequestFilter {
 

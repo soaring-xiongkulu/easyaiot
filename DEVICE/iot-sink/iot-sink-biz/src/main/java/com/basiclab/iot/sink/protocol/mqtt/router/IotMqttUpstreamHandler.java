@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * MQTT 上行消息处理器
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @Slf4j
 public class IotMqttUpstreamHandler {

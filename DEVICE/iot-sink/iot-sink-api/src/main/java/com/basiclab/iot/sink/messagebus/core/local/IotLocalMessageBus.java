@@ -18,7 +18,7 @@ import java.util.Map;
  *
  * 注意：仅适用于单机场景！！！
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @RequiredArgsConstructor
 @Slf4j

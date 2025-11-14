@@ -20,7 +20,7 @@ import javax.annotation.PreDestroy;
  * 1. 设备认证接口 - 对应 EMQX HTTP 认证插件
  * 2. 设备事件处理接口 - 对应 EMQX Webhook 事件通知
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @Slf4j
 public class IotEmqxAuthEventProtocol {

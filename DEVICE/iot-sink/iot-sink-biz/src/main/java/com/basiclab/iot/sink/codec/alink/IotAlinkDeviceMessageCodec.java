@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 /**
  * 阿里云 Alink {@link IotDeviceMessage} 的编解码器
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @Component
 public class IotAlinkDeviceMessageCodec implements IotDeviceMessageCodec {

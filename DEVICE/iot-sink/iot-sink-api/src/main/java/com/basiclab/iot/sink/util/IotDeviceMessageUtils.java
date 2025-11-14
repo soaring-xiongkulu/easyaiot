@@ -13,7 +13,7 @@ import java.util.Map;
 /**
  * IoT 设备【消息】的工具类
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 public class IotDeviceMessageUtils {
 

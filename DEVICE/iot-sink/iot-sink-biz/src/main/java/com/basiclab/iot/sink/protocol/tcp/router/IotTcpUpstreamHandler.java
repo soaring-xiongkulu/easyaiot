@@ -26,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * TCP 上行消息处理器
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @Slf4j
 public class IotTcpUpstreamHandler implements Handler<NetSocket> {

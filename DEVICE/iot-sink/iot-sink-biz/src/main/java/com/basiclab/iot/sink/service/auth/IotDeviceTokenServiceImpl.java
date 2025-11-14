@@ -23,7 +23,7 @@ import static com.basiclab.iot.sink.enums.ErrorCodeConstants.DEVICE_TOKEN_EXPIRE
  *
  * 注意：目前仅 HTTP 协议使用
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @Service
 @Slf4j

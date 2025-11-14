@@ -17,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
  * 2. 主题构建
  * 3. 消息发送
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @Slf4j
 public class IotMqttDownstreamHandler {

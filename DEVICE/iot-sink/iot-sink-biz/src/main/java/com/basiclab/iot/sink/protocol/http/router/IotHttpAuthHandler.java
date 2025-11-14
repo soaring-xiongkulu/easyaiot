@@ -26,7 +26,7 @@ import static com.basiclab.iot.sink.enums.ErrorCodeConstants.DEVICE_AUTH_FAIL;
  *
  * 参考 <a href="阿里云 IoT —— HTTPS 连接通信">https://help.aliyun.com/zh/iot/user-guide/establish-connections-over-https</a>
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 public class IotHttpAuthHandler extends IotHttpAbstractHandler {
 

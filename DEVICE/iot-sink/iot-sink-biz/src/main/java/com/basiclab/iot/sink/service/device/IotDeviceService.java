@@ -5,7 +5,7 @@ import com.basiclab.iot.sink.biz.dto.IotDeviceRespDTO;
 /**
  * IoT 设备信息 Service 接口
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 public interface IotDeviceService {
 

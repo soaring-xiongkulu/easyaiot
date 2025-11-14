@@ -24,7 +24,7 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.invali
 /**
  * IoT 网关 HTTP 协议的处理器抽象基类：提供通用的前置处理（认证）、全局的异常捕获等
  *
- * @author 芋道源码
+ * @author 翱翔的雄库鲁
  */
 @RequiredArgsConstructor
 @Slf4j
