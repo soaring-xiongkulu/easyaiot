@@ -2802,124 +2802,28 @@ prepare_emqx_volumes() {
 
 # 准备 SRS 配置文件
 prepare_srs_config() {
-    local srs_config_source="${SCRIPT_DIR}/../srs/conf"
+    local srs_config_source="${SCRIPT_DIR}/../srs/conf/docker.conf"
     local srs_config_target="${SCRIPT_DIR}/srs_data/conf"
     local srs_config_file="${srs_config_target}/docker.conf"
     
     print_info "准备 SRS 配置文件..."
     
-    # 获取宿主机 IP 地址
-    local host_ip=$(get_host_ip)
-    if [ -z "$host_ip" ]; then
-        print_warning "无法获取宿主机 IP，将使用 127.0.0.1（可能导致 VIDEO 模块回调失败）"
-        host_ip="127.0.0.1"
-    else
-        print_info "检测到宿主机 IP: $host_ip"
-    fi
-    
     # 创建目标目录
     mkdir -p "$srs_config_target"
     
-    # 检查目标文件是否已存在
-    if [ -f "$srs_config_file" ]; then
-        # 如果文件已存在，检查是否需要更新 IP 地址
-        if grep -q "127.0.0.1:6000" "$srs_config_file" 2>/dev/null && [ "$host_ip" != "127.0.0.1" ]; then
-            print_info "更新现有 SRS 配置文件中的 IP 地址..."
-            sed -i "s|127.0.0.1:6000|${host_ip}:6000|g" "$srs_config_file"
-            print_success "SRS 配置文件已更新为使用宿主机 IP: $host_ip"
-        else
-            print_info "SRS 配置文件已存在: $srs_config_file"
-        fi
-        return 0
+    # 检查源文件是否存在
+    if [ ! -f "$srs_config_source" ]; then
+        print_error "SRS 源配置文件不存在: $srs_config_source"
+        return 1
     fi
     
-    # 尝试从源目录复制配置文件
-    if [ -d "$srs_config_source" ] && [ -f "$srs_config_source/docker.conf" ]; then
-        print_info "从源目录复制 SRS 配置文件..."
-        if cp -f "$srs_config_source/docker.conf" "$srs_config_file" 2>/dev/null; then
-            # 替换配置文件中的 127.0.0.1 为宿主机 IP
-            if [ "$host_ip" != "127.0.0.1" ]; then
-                sed -i "s|127.0.0.1:6000|${host_ip}:6000|g" "$srs_config_file"
-                print_info "已将配置文件中的 IP 地址更新为宿主机 IP: $host_ip"
-            fi
-            print_success "SRS 配置文件已复制: $srs_config_source/docker.conf -> $srs_config_file"
-            # 验证文件确实存在
-            if [ -f "$srs_config_file" ]; then
-                return 0
-            fi
-        else
-            print_warning "无法复制 SRS 配置文件，将创建默认配置"
-        fi
-    else
-        print_warning "源配置文件不存在: $srs_config_source/docker.conf，将创建默认配置"
-    fi
-    
-    # 如果复制失败或源文件不存在，创建默认配置文件
-    print_info "创建默认 SRS 配置文件..."
-    cat > "$srs_config_file" << EOF
-# SRS Docker 配置文件
-# 用于 Docker 容器部署的 SRS 配置
-
-listen              1935;
-max_connections     1000;
-daemon              on;
-srs_log_tank        file;
-srs_log_file        /data/srs.log;
-
-http_server {
-    enabled         on;
-    listen          8080;
-    dir             ./objs/nginx/html;
-}
-
-http_api {
-    enabled         on;
-    listen          1985;
-    raw_api {
-        enabled             on;
-        allow_reload        on;
-    }
-}
-stats {
-    network         0;
-}
-rtc_server {
-    enabled on;
-    listen 8000;
-    candidate *;
-}
-
-vhost __defaultVhost__ {
-    http_remux {
-        enabled     on;
-        mount       [vhost]/[app]/[stream].flv;
-    }
-    rtc {
-        enabled     on;
-        rtmp_to_rtc on;
-        rtc_to_rtmp on;
-    }
-    dvr {
-        enabled             on;
-        dvr_path            /data/playbacks/[app]/[stream]/[2006]/[01]/[02]/[timestamp].flv;
-        dvr_plan            segment;
-        dvr_duration        30;
-        dvr_wait_keyframe   on;
-    }
-    http_hooks {
-        enabled             on;
-        on_dvr              http://${host_ip}:6000/video/camera/callback/on_dvr;
-        on_publish          http://${host_ip}:6000/video/camera/callback/on_publish;
-    }
-}
-EOF
-    
-    # 验证文件是否创建成功
-    if [ -f "$srs_config_file" ]; then
-        print_success "默认 SRS 配置文件已创建: $srs_config_file (使用宿主机 IP: $host_ip)"
+    # 直接复制配置文件（不修改 IP）
+    print_info "复制 SRS 配置文件: $srs_config_source -> $srs_config_file"
+    if cp -f "$srs_config_source" "$srs_config_file" 2>/dev/null; then
+        print_success "SRS 配置文件已复制: $srs_config_file"
         return 0
     else
-        print_error "无法创建 SRS 配置文件: $srs_config_file"
+        print_error "无法复制 SRS 配置文件: $srs_config_source -> $srs_config_file"
         return 1
     fi
 }
