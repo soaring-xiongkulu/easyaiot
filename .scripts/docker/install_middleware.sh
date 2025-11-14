@@ -1940,6 +1940,13 @@ check_docker_compose_version() {
 
 # 检查 Docker 权限
 check_docker_permission() {
+    # 先检查 Docker 是否安装
+    if ! check_command docker; then
+        print_error "Docker 未安装"
+        return 1
+    fi
+    
+    # 检查是否有权限访问 Docker daemon
     if ! docker ps &> /dev/null; then
         print_error "没有权限访问 Docker daemon"
         echo ""
@@ -2280,11 +2287,16 @@ install_docker_compose() {
 # 检查并安装 Docker
 check_and_install_docker() {
     if check_command docker; then
-        check_docker_permission "$@"
-        return 0
+        if check_docker_permission "$@"; then
+            return 0
+        else
+            # Docker 未安装，继续安装流程
+            print_warning "Docker 未安装"
+        fi
+    else
+        print_warning "未检测到 Docker"
     fi
     
-    print_warning "未检测到 Docker"
     echo ""
     print_info "Docker 是运行中间件服务的必需组件"
     echo ""
@@ -2296,8 +2308,13 @@ check_and_install_docker() {
             [yY][eE][sS]|[yY])
                 if install_docker; then
                     print_success "Docker 安装成功"
-                    check_docker_permission "$@"
-                    return 0
+                    # 安装后再次检查权限
+                    if check_docker_permission "$@"; then
+                        return 0
+                    else
+                        print_error "Docker 安装成功但无法访问，请检查权限"
+                        exit 1
+                    fi
                 else
                     print_error "Docker 安装失败，请手动安装后重试"
                     exit 1
@@ -3660,6 +3677,22 @@ reload_environment() {
     
     if ! grep -q "JAVA_HOME\|JRE_HOME" /etc/profile 2>/dev/null; then
         print_info "/etc/profile 中未找到 JAVA_HOME 或 JRE_HOME 配置"
+        
+        # 检查 Java 是否已安装但未配置环境变量
+        if ! check_command java; then
+            print_warning "Java 未安装，将触发 Java 安装流程"
+            # 触发 Java 安装检查（但不强制安装，让用户选择）
+            if ! check_java_version; then
+                print_info "将检查并安装 JDK8..."
+                # 注意：这里不直接调用 check_and_install_jdk8，因为它在 install_middleware 中已经调用
+                # 如果是在其他命令中调用，则提示用户
+                return 0
+            fi
+        else
+            # Java 已安装但环境变量未配置，提示用户
+            print_warning "检测到 Java 已安装但环境变量未配置"
+            print_info "建议运行安装命令以配置 Java 环境变量"
+        fi
         return 0
     fi
     
