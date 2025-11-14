@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # ============================================
-# Docker网络修复脚本
+# Docker网络修复和Compose缓存清理脚本
 # 用于修复IP变化后容器无法加入网络的问题
+# 并清理 DEVICE、VIDEO、AI 目录下的 compose 缓存
 # ============================================
 
 set -e
@@ -69,13 +70,6 @@ fix_network() {
         print_info "网络 $network_name 不存在，正在创建..."
         if docker network create "$network_name" 2>/dev/null; then
             print_success "网络 $network_name 已创建"
-            echo ""
-            print_success "网络修复完成！"
-            if [ -f "$compose_file" ]; then
-                print_info "请重新启动相关容器："
-                print_info "  cd $(dirname "$compose_file") && docker-compose up -d"
-            fi
-            echo ""
             return 0
         else
             print_error "无法创建网络 $network_name"
@@ -173,21 +167,125 @@ fix_network() {
         print_warning "网络验证失败，但网络已创建"
     fi
     
-    echo ""
     print_success "网络修复完成！"
-    if [ -f "$compose_file" ]; then
-        print_info "请重新启动相关容器："
-        print_info "  cd $(dirname "$compose_file") && docker-compose up -d"
+}
+
+# 清理单个目录的 compose 缓存
+clean_compose_cache() {
+    local dir_path="$1"
+    local compose_file=""
+    
+    # 查找 compose 文件
+    if [ -f "$dir_path/docker-compose.yml" ]; then
+        compose_file="$dir_path/docker-compose.yml"
+    elif [ -f "$dir_path/docker-compose.yaml" ]; then
+        compose_file="$dir_path/docker-compose.yaml"
+    else
+        print_warning "目录 $dir_path 中未找到 docker-compose 文件，跳过"
+        return 0
     fi
-    echo ""
+    
+    print_info "清理 $dir_path 的 compose 缓存..."
+    
+    cd "$dir_path"
+    
+    # 1. 停止并清理容器和网络连接
+    print_info "执行 docker-compose down 清理容器和网络连接..."
+    if docker-compose -f "$(basename "$compose_file")" down 2>/dev/null; then
+        print_success "容器和网络连接已清理"
+    else
+        print_warning "docker-compose down 执行失败或没有运行的容器"
+    fi
+    sleep 2
+    
+    # 2. 强制重新读取配置（这会清除 docker-compose 的配置缓存）
+    print_info "强制重新读取配置以清除缓存..."
+    if docker-compose -f "$(basename "$compose_file")" config > /dev/null 2>&1; then
+        print_success "配置已重新验证"
+    else
+        print_warning "配置验证失败，但继续执行"
+    fi
+    
+    # 3. 清理可能的网络残留连接
+    print_info "检查并清理网络残留连接..."
+    local network_name="easyaiot-network"
+    if docker network inspect "$network_name" &> /dev/null; then
+        # 获取连接到该网络的所有容器
+        local containers=$(docker network inspect "$network_name" --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null || echo "")
+        
+        # 检查是否有该目录相关的容器残留
+        local dir_name=$(basename "$dir_path")
+        if echo "$containers" | grep -q "$dir_name"; then
+            print_info "发现残留的网络连接，正在清理..."
+            echo "$containers" | tr ' ' '\n' | grep -v '^$' | grep "$dir_name" | while read -r container; do
+                if docker ps -a --format '{{.Names}}' | grep -q "^${container}$"; then
+                    print_info "断开容器网络连接: $container"
+                    docker network disconnect -f "$network_name" "$container" 2>/dev/null || true
+                fi
+            done
+        fi
+    fi
+    
+    # 4. 清理 docker-compose 的临时文件（如果存在）
+    print_info "清理 docker-compose 临时文件..."
+    # docker-compose 可能会在项目目录下创建一些临时文件
+    find . -name ".docker-compose.*" -type f -delete 2>/dev/null || true
+    find . -name "docker-compose.override.yml" -type f -delete 2>/dev/null || true
+    find . -name "docker-compose.override.yaml" -type f -delete 2>/dev/null || true
+    
+    print_success "$dir_path 的 compose 缓存已清理完成"
+}
+
+# 清理所有 compose 目录的缓存
+clean_all_compose_cache() {
+    # 获取脚本所在目录的父目录的父目录（项目根目录）
+    local script_dir="$(cd "$(dirname "$0")" && pwd)"
+    local project_root="${1:-$(dirname "$(dirname "$script_dir")")}"
+    
+    print_section "清理 DEVICE、VIDEO、AI 的 compose 缓存"
+    
+    # 清理各个目录
+    local dirs=("$project_root/DEVICE" "$project_root/VIDEO" "$project_root/AI")
+    
+    for dir in "${dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            clean_compose_cache "$dir"
+            echo ""
+        else
+            print_warning "目录 $dir 不存在，跳过"
+        fi
+    done
+    
+    # 最后清理未使用的网络
+    print_info "清理未使用的网络..."
+    docker network prune -f > /dev/null 2>&1 || true
+    print_success "未使用的网络已清理"
+    
+    print_success "所有 compose 缓存清理完成！"
 }
 
 # 主函数
 main() {
     check_docker
+    
+    # 第一步：修复网络
     fix_network
+    
+    echo ""
+    
+    # 第二步：清理 compose 缓存
+    clean_all_compose_cache
+    
+    echo ""
+    print_section "修复完成总结"
+    print_success "网络修复和缓存清理全部完成！"
+    print_info "建议重新启动相关服务："
+    echo "  cd .scripts/docker && docker-compose up -d"
+    echo "  cd DEVICE && docker-compose up -d"
+    echo "  cd VIDEO && docker-compose up -d"
+    echo "  cd AI && docker-compose up -d"
+    echo ""
 }
 
 # 运行主函数
 main "$@"
-
