@@ -3875,20 +3875,74 @@ check_and_clean_ports() {
                         
                         # 检查是否是 TDengine 端口（6030, 6041, 6060, 6043-6049）
                         if [[ "$port" =~ ^60[34][0-9]$ ]] || [ "$port" = "6030" ] || [ "$port" = "6041" ] || [ "$port" = "6060" ]; then
-                            print_info "检测到 TDengine 端口 $port 被占用，尝试停止系统 TDengine 服务..."
-                            # 尝试停止 TDengine 服务
+                            print_info "检测到 TDengine 端口 $port 被占用，尝试彻底停止所有 TDengine 相关服务..."
+                            
+                            # 1. 停止 systemd 服务（如果存在）
                             if systemctl is-active --quiet taosd 2>/dev/null; then
-                                print_info "停止 TDengine 系统服务..."
+                                print_info "停止 TDengine systemd 服务..."
                                 sudo systemctl stop taosd 2>/dev/null || true
+                                sudo systemctl disable taosd 2>/dev/null || true
                                 sleep 2
                             fi
                             
-                            # 尝试通过进程名查找并停止
-                            local taos_pid=$(pgrep -f "taosd" 2>/dev/null | head -1 || echo "")
-                            if [ -n "$taos_pid" ]; then
-                                print_info "发现 TDengine 进程 (PID: $taos_pid)，尝试停止..."
-                                sudo kill "$taos_pid" 2>/dev/null || true
+                            # 2. 停止所有 TDengine 相关进程（包括容器中的）
+                            print_info "查找并停止所有 TDengine 相关进程..."
+                            
+                            # 查找所有 taos 相关进程（包括 taosd, taosadapter, taoskeeper, taos-explorer, udfd）
+                            local taos_pids=$(pgrep -f "taos" 2>/dev/null || echo "")
+                            if [ -n "$taos_pids" ]; then
+                                echo "$taos_pids" | while read -r pid; do
+                                    if [ -n "$pid" ]; then
+                                        local proc_name=$(ps -p "$pid" -o comm= 2>/dev/null || echo "")
+                                        print_info "发现 TDengine 进程: $proc_name (PID: $pid)，尝试停止..."
+                                        sudo kill -TERM "$pid" 2>/dev/null || true
+                                        sleep 1
+                                        # 如果进程仍在运行，强制杀死
+                                        if kill -0 "$pid" 2>/dev/null; then
+                                            print_info "强制停止进程 PID: $pid"
+                                            sudo kill -KILL "$pid" 2>/dev/null || true
+                                        fi
+                                    fi
+                                done
                                 sleep 2
+                            fi
+                            
+                            # 3. 停止所有包含 taos 的 Docker 容器
+                            print_info "查找并停止所有 TDengine 相关 Docker 容器..."
+                            local taos_containers=$(docker ps -a --filter "name=taos" --format "{{.ID}}" 2>/dev/null || echo "")
+                            if [ -n "$taos_containers" ]; then
+                                echo "$taos_containers" | while read -r cid; do
+                                    if [ -n "$cid" ]; then
+                                        local container_name=$(docker ps -a --filter "id=$cid" --format "{{.Names}}" 2>/dev/null || echo "")
+                                        print_info "停止 TDengine 容器: $container_name ($cid)"
+                                        docker stop -t 0 "$cid" 2>/dev/null || true
+                                        docker rm -f "$cid" 2>/dev/null || true
+                                    fi
+                                done
+                                sleep 2
+                            fi
+                            
+                            # 4. 再次检查并强制清理残留进程
+                            sleep 2
+                            local remaining_pids=$(pgrep -f "taos" 2>/dev/null || echo "")
+                            if [ -n "$remaining_pids" ]; then
+                                print_warning "仍有 TDengine 进程残留，强制清理..."
+                                echo "$remaining_pids" | while read -r pid; do
+                                    if [ -n "$pid" ]; then
+                                        sudo kill -KILL "$pid" 2>/dev/null || true
+                                    fi
+                                done
+                                sleep 1
+                            fi
+                            
+                            # 5. 检查端口是否已释放
+                            sleep 2
+                            if command -v ss &> /dev/null && ss -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
+                                print_warning "端口 $port 仍被占用，可能不是 TDengine 进程"
+                                print_info "占用端口的进程信息:"
+                                ss -tlnp 2>/dev/null | grep -E ":$port[[:space:]]|:$port$" || true
+                            else
+                                print_success "TDengine 端口 $port 已释放"
                             fi
                         fi
                     done
