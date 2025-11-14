@@ -3510,6 +3510,38 @@ check_and_clean_ports() {
     # 先执行 docker-compose down 清理所有残留容器和端口绑定
     print_info "清理 docker-compose 管理的容器和端口绑定..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" down 2>/dev/null || true
+    sleep 3
+    
+    # 强制清理所有可能占用端口的容器（包括停止状态的）
+    print_info "清理所有可能占用端口的残留容器..."
+    for service in "${MIDDLEWARE_SERVICES[@]}"; do
+        local container_name=""
+        case "$service" in
+            "Nacos") container_name="nacos-server" ;;
+            "PostgresSQL") container_name="postgres-server" ;;
+            "TDengine") container_name="tdengine-server" ;;
+            "Redis") container_name="redis-server" ;;
+            "Kafka") container_name="kafka-server" ;;
+            "MinIO") container_name="minio-server" ;;
+            "SRS") container_name="srs-server" ;;
+            "NodeRED") container_name="nodered-server" ;;
+            "EMQX") container_name="emqx-server" ;;
+        esac
+        
+        if [ -n "$container_name" ]; then
+            # 查找所有状态（运行中、已停止）的容器
+            local existing_containers=$(docker ps -a --filter "name=^${container_name}$" --format "{{.ID}}" 2>/dev/null || echo "")
+            if [ -n "$existing_containers" ]; then
+                echo "$existing_containers" | while read -r container_id; do
+                    if [ -n "$container_id" ]; then
+                        print_info "清理残留容器: $container_name ($container_id)"
+                        docker stop "$container_id" 2>/dev/null || true
+                        docker rm "$container_id" 2>/dev/null || true
+                    fi
+                done
+            fi
+        fi
+    done
     sleep 2
     
     # 检查所有中间件端口
@@ -3523,17 +3555,17 @@ check_and_clean_ports() {
         local port_in_use=0
         local port_user=""
         
-        # 方法1: 使用 ss 命令
+        # 方法1: 使用 ss 命令（最可靠）
         if command -v ss &> /dev/null; then
-            if ss -tlnp 2>/dev/null | grep -q ":$port "; then
+            if ss -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
                 port_in_use=1
-                port_user=$(ss -tlnp 2>/dev/null | grep ":$port " | head -1)
+                port_user=$(ss -tlnp 2>/dev/null | grep -E ":$port[[:space:]]|:$port$" | head -1)
             fi
         # 方法2: 使用 netstat 命令
         elif command -v netstat &> /dev/null; then
-            if netstat -tlnp 2>/dev/null | grep -q ":$port "; then
+            if netstat -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
                 port_in_use=1
-                port_user=$(netstat -tlnp 2>/dev/null | grep ":$port " | head -1)
+                port_user=$(netstat -tlnp 2>/dev/null | grep -E ":$port[[:space:]]|:$port$" | head -1)
             fi
         # 方法3: 使用 lsof 命令
         elif command -v lsof &> /dev/null; then
@@ -3543,9 +3575,18 @@ check_and_clean_ports() {
             fi
         # 方法4: 使用 /proc/net/tcp (Linux)
         elif [ -f /proc/net/tcp ]; then
-            local hex_port=$(printf "%04X" $port)
-            if grep -q ":$hex_port " /proc/net/tcp 2>/dev/null; then
+            local hex_port=$(printf "%04X" $port | tr '[:lower:]' '[:upper:]')
+            if grep -qE ":$hex_port[[:space:]]|:$hex_port$" /proc/net/tcp 2>/dev/null; then
                 port_in_use=1
+            fi
+        fi
+        
+        # 方法5: 通过 Docker 直接检查端口映射
+        local docker_port_check=$(docker ps --format "{{.ID}}\t{{.Ports}}" 2>/dev/null | grep -E ":$port->|0\.0\.0\.0:$port|:::$port" || echo "")
+        if [ -n "$docker_port_check" ]; then
+            port_in_use=1
+            if [ -z "$port_user" ]; then
+                port_user="Docker容器: $docker_port_check"
             fi
         fi
         
@@ -3554,14 +3595,24 @@ check_and_clean_ports() {
             local container_id=""
             local container_name=""
             
-            # 通过 docker ps 查找占用端口的容器
+            # 通过 docker ps 查找占用端口的容器（多种格式匹配）
             while IFS= read -r line; do
-                if echo "$line" | grep -q ":$port->"; then
+                if echo "$line" | grep -qE ":$port->|0\.0\.0\.0:$port|:::$port"; then
                     container_id=$(echo "$line" | awk '{print $1}')
                     container_name=$(echo "$line" | awk '{print $NF}')
                     break
                 fi
             done < <(docker ps --format "{{.ID}}\t{{.Ports}}\t{{.Names}}" 2>/dev/null || true)
+            
+            # 如果没找到，尝试通过容器名称查找
+            if [ -z "$container_id" ]; then
+                case "$service" in
+                    "TDengine") 
+                        container_id=$(docker ps --filter "name=tdengine" --format "{{.ID}}" 2>/dev/null | head -1)
+                        container_name=$(docker ps --filter "name=tdengine" --format "{{.Names}}" 2>/dev/null | head -1)
+                        ;;
+                esac
+            fi
             
             if [ -n "$container_id" ]; then
                 # 检查是否是当前 compose 项目的容器
@@ -3577,19 +3628,38 @@ check_and_clean_ports() {
                 fi
             else
                 # 非 Docker 进程占用
-                print_warning "端口 $port ($service) 被非 Docker 进程占用: $port_user"
+                print_warning "端口 $port ($service) 被占用: $port_user"
                 conflict_ports+=("$port")
                 has_conflict=1
             fi
         fi
     done
     
+    # 再次验证所有端口（清理后）
+    if [ $has_conflict -eq 0 ]; then
+        print_info "二次验证端口状态..."
+        sleep 1
+        for service in "${MIDDLEWARE_SERVICES[@]}"; do
+            local port="${MIDDLEWARE_PORTS[$service]}"
+            if [ -z "$port" ]; then
+                continue
+            fi
+            
+            if command -v ss &> /dev/null && ss -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
+                print_warning "端口 $port ($service) 在清理后仍被占用"
+                conflict_ports+=("$port")
+                has_conflict=1
+            fi
+        done
+    fi
+    
     if [ $has_conflict -eq 1 ]; then
         echo ""
         print_warning "发现端口冲突！"
+        print_warning "冲突端口: ${conflict_ports[*]}"
         echo ""
         echo "请选择操作："
-        echo "  1. 自动清理冲突的容器（推荐）"
+        echo "  1. 自动强制清理所有冲突容器和进程（推荐）"
         echo "  2. 手动处理端口冲突"
         echo "  3. 继续启动（可能失败）"
         echo ""
@@ -3597,20 +3667,68 @@ check_and_clean_ports() {
         
         case "$choice" in
             1)
-                print_info "正在清理冲突的容器..."
+                print_info "正在强制清理冲突的容器..."
                 for container_id in "${conflict_containers[@]}"; do
                     if [ -n "$container_id" ]; then
-                        print_info "停止并删除容器: $container_id"
-                        docker stop "$container_id" 2>/dev/null || true
-                        docker rm "$container_id" 2>/dev/null || true
+                        print_info "强制停止并删除容器: $container_id"
+                        docker stop -t 0 "$container_id" 2>/dev/null || true
+                        docker rm -f "$container_id" 2>/dev/null || true
                     fi
                 done
-                sleep 2
+                
+                # 清理所有相关容器（按名称）
+                for port in "${conflict_ports[@]}"; do
+                    for service in "${MIDDLEWARE_SERVICES[@]}"; do
+                        if [ "${MIDDLEWARE_PORTS[$service]}" = "$port" ]; then
+                            local container_name=""
+                            case "$service" in
+                                "TDengine") container_name="tdengine-server" ;;
+                                "Redis") container_name="redis-server" ;;
+                                "PostgresSQL") container_name="postgres-server" ;;
+                                "Nacos") container_name="nacos-server" ;;
+                                "Kafka") container_name="kafka-server" ;;
+                                "MinIO") container_name="minio-server" ;;
+                                "SRS") container_name="srs-server" ;;
+                                "NodeRED") container_name="nodered-server" ;;
+                                "EMQX") container_name="emqx-server" ;;
+                            esac
+                            
+                            if [ -n "$container_name" ]; then
+                                docker ps -a --filter "name=^${container_name}$" --format "{{.ID}}" 2>/dev/null | while read -r cid; do
+                                    if [ -n "$cid" ]; then
+                                        print_info "清理容器: $container_name ($cid)"
+                                        docker stop -t 0 "$cid" 2>/dev/null || true
+                                        docker rm -f "$cid" 2>/dev/null || true
+                                    fi
+                                done
+                            fi
+                            break
+                        fi
+                    done
+                done
+                
+                sleep 3
                 print_success "容器清理完成"
+                
+                # 再次检查端口
+                print_info "再次检查端口状态..."
+                local still_conflict=0
+                for port in "${conflict_ports[@]}"; do
+                    if command -v ss &> /dev/null && ss -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
+                        print_error "端口 $port 仍被占用，可能需要手动处理"
+                        still_conflict=1
+                    fi
+                done
+                
+                if [ $still_conflict -eq 1 ]; then
+                    print_error "部分端口仍被占用，启动可能会失败"
+                    print_info "建议手动检查: sudo lsof -i :端口号 或 sudo ss -tlnp | grep 端口号"
+                fi
                 ;;
             2)
                 print_info "请手动处理端口冲突后重新运行此脚本"
                 print_info "冲突端口: ${conflict_ports[*]}"
+                print_info "检查命令: sudo lsof -i :端口号 或 sudo ss -tlnp | grep 端口号"
                 exit 1
                 ;;
             3)
@@ -3709,7 +3827,54 @@ install_middleware() {
     check_and_clean_ports
     
     print_info "启动所有中间件服务..."
-    $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
+    if $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"; then
+        print_success "容器启动命令执行完成"
+    else
+        print_error "容器启动过程中出现错误"
+    fi
+    
+    # 检查启动状态
+    sleep 3
+    print_info "检查容器启动状态..."
+    local failed_containers=()
+    for service in "${MIDDLEWARE_SERVICES[@]}"; do
+        local container_name=""
+        case "$service" in
+            "Nacos") container_name="nacos-server" ;;
+            "PostgresSQL") container_name="postgres-server" ;;
+            "TDengine") container_name="tdengine-server" ;;
+            "Redis") container_name="redis-server" ;;
+            "Kafka") container_name="kafka-server" ;;
+            "MinIO") container_name="minio-server" ;;
+            "SRS") container_name="srs-server" ;;
+            "NodeRED") container_name="nodered-server" ;;
+            "EMQX") container_name="emqx-server" ;;
+        esac
+        
+        if [ -n "$container_name" ]; then
+            local container_status=$(docker ps -a --filter "name=^${container_name}$" --format "{{.Status}}" 2>/dev/null | head -1 || echo "")
+            if [ -n "$container_status" ]; then
+                if echo "$container_status" | grep -qE "Exited|Dead|Restarting"; then
+                    print_warning "$service ($container_name) 容器状态异常: $container_status"
+                    failed_containers+=("$service")
+                fi
+            fi
+        fi
+    done
+    
+    if [ ${#failed_containers[@]} -gt 0 ]; then
+        echo ""
+        print_error "以下容器启动失败: ${failed_containers[*]}"
+        print_info "查看详细日志命令:"
+        for service in "${failed_containers[@]}"; do
+            case "$service" in
+                "TDengine") print_info "  docker logs tdengine-server" ;;
+                "Redis") print_info "  docker logs redis-server" ;;
+                *) print_info "  docker-compose logs $service" ;;
+            esac
+        done
+        echo ""
+    fi
     
     print_success "中间件安装完成"
     echo ""
