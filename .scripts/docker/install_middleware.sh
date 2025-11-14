@@ -1708,6 +1708,28 @@ configure_apt_mirror() {
         return 0
     fi
     
+    # 检查用户是否已经选择过（通过标记文件）
+    local apt_mirror_marker="/etc/apt/.easyaiot_mirror_configured"
+    if [ -f "$apt_mirror_marker" ]; then
+        local user_choice=$(cat "$apt_mirror_marker" 2>/dev/null || echo "")
+        if [ "$user_choice" = "skip" ]; then
+            print_info "检测到用户已选择跳过 apt 源配置，跳过此步骤"
+            return 0
+        elif [ "$user_choice" = "configured" ]; then
+            # 验证配置是否仍然有效
+            local current_sources_list="/etc/apt/sources.list"
+            if [ -f "$current_sources_list" ]; then
+                local current_sources_content=$(cat "$current_sources_list")
+                if echo "$current_sources_content" | grep -qiE "(mirrors\.(tuna|aliyun|163|ustc|huawei|tencent)|tuna\.tsinghua|aliyun\.com|163\.com|ustc\.edu|huawei\.com|tencent\.com)"; then
+                    print_info "检测到系统已配置国内 apt 源，跳过配置步骤"
+                    return 0
+                fi
+            fi
+            # 如果配置已失效，清除标记，重新检查
+            rm -f "$apt_mirror_marker"
+        fi
+    fi
+    
     # 检查当前系统是否已配置国内 apt 源
     local current_sources_list="/etc/apt/sources.list"
     local current_sources_content=""
@@ -1718,7 +1740,7 @@ configure_apt_mirror() {
         current_sources_content=$(cat "$current_sources_list")
         # 检查是否已经是国内源（包含常见国内镜像关键词）
         # 匹配模式：tuna、aliyun、163、ustc、huawei、tencent 等国内镜像站
-        if echo "$current_sources_content" | grep -qiE "(mirrors\.(tuna|aliyun|163|ustc|huawei|tencent)|tuna\.tsinghua|aliyun\.com|163\.com|ustc\.edu|huawei\.com|tencent\.com)"; then
+        if echo "$current_sources_content" | grep -qiE "(mirrors\.(tuna|aliyun|163|ustc|huawei|tencent)|tuna\.tsinghua|aliyun\.com|163\.com|ustc\.edu|huawei\.com|tencent\.com|mirror\.nju\.edu\.cn|mirrors\.bfsu\.edu\.cn)"; then
             is_current_domestic=true
         fi
     fi
@@ -1728,7 +1750,7 @@ configure_apt_mirror() {
         for list_file in /etc/apt/sources.list.d/*.list; do
             if [ -f "$list_file" ]; then
                 local file_content=$(cat "$list_file")
-                if echo "$file_content" | grep -qiE "(mirrors\.(tuna|aliyun|163|ustc|huawei|tencent)|tuna\.tsinghua|aliyun\.com|163\.com|ustc\.edu|huawei\.com|tencent\.com)"; then
+                if echo "$file_content" | grep -qiE "(mirrors\.(tuna|aliyun|163|ustc|huawei|tencent)|tuna\.tsinghua|aliyun\.com|163\.com|ustc\.edu|huawei\.com|tencent\.com|mirror\.nju\.edu\.cn|mirrors\.bfsu\.edu\.cn)"; then
                     is_current_domestic=true
                     break
                 fi
@@ -1736,9 +1758,10 @@ configure_apt_mirror() {
         done
     fi
     
-    # 如果当前系统已经配置了国内源，直接跳过，不提示用户
+    # 如果当前系统已经配置了国内源，直接跳过，不提示用户，并记录标记
     if [ "$is_current_domestic" = true ]; then
         print_info "检测到系统已配置国内 apt 源，跳过配置步骤"
+        echo "configured" > "$apt_mirror_marker" 2>/dev/null || true
         return 0
     fi
     
@@ -1881,16 +1904,21 @@ EOF
                 print_info "正在更新 apt 缓存..."
                 if apt update > /dev/null 2>&1; then
                     print_success "apt 源配置完成并已更新缓存"
+                    # 记录已配置标记
+                    echo "configured" > "$apt_mirror_marker" 2>/dev/null || true
                 else
                     print_warning "apt 源配置完成，但更新缓存时出现问题"
                     print_info "您可以稍后手动运行: apt update"
+                    # 即使更新失败，也记录已配置标记（因为源文件已修改）
+                    echo "configured" > "$apt_mirror_marker" 2>/dev/null || true
                 fi
                 
                 return 0
                 ;;
             [nN][oO]|[nN]|"")
-                # 用户选择不替换，继续执行
+                # 用户选择不替换，继续执行，并记录标记
                 print_info "保持当前 apt 源配置，继续执行..."
+                echo "skip" > "$apt_mirror_marker" 2>/dev/null || true
                 return 0
                 ;;
             *)
