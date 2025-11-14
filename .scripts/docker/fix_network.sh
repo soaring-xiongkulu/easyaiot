@@ -49,14 +49,33 @@ check_docker() {
 # 修复网络
 fix_network() {
     local network_name="easyaiot-network"
+    local compose_file="$(dirname "$0")/docker-compose.yml"
     
     print_section "修复Docker网络"
+    
+    # 检查是否存在 docker-compose.yml
+    if [ -f "$compose_file" ]; then
+        print_info "检测到 docker-compose.yml，先停止所有容器并清理..."
+        cd "$(dirname "$compose_file")"
+        
+        # 停止并删除所有容器（这会清理 docker-compose 的网络缓存）
+        print_info "执行 docker-compose down 清理容器和网络连接..."
+        docker-compose down 2>/dev/null || true
+        sleep 2
+    fi
     
     # 检查网络是否存在
     if ! docker network ls | grep -q "$network_name"; then
         print_info "网络 $network_name 不存在，正在创建..."
         if docker network create "$network_name" 2>/dev/null; then
             print_success "网络 $network_name 已创建"
+            echo ""
+            print_success "网络修复完成！"
+            if [ -f "$compose_file" ]; then
+                print_info "请重新启动相关容器："
+                print_info "  cd $(dirname "$compose_file") && docker-compose up -d"
+            fi
+            echo ""
             return 0
         else
             print_error "无法创建网络 $network_name"
@@ -76,39 +95,16 @@ fix_network() {
         done
         echo ""
         
-        print_warning "需要先停止这些容器才能重新创建网络"
-        echo ""
-        echo "请选择操作："
-        echo "  1. 自动停止所有相关容器并重新创建网络（推荐）"
-        echo "  2. 手动停止容器后重新运行此脚本"
-        echo "  3. 取消操作"
-        echo ""
-        read -p "请输入选项 (1/2/3): " choice
-        
-        case "$choice" in
-            1)
-                print_info "正在停止所有相关容器..."
-                echo "$containers" | tr ' ' '\n' | grep -v '^$' | while read -r container; do
-                    if docker ps -a --format '{{.Names}}' | grep -q "^${container}$"; then
-                        print_info "停止容器: $container"
-                        docker stop "$container" 2>/dev/null || true
-                    fi
-                done
-                sleep 2
-                ;;
-            2)
-                print_info "请手动停止所有容器后重新运行此脚本"
-                exit 0
-                ;;
-            3)
-                print_info "已取消操作"
-                exit 0
-                ;;
-            *)
-                print_error "无效选项"
-                exit 1
-                ;;
-        esac
+        # 如果已经执行了 docker-compose down，容器应该已经停止
+        # 但可能还有残留连接，需要手动断开
+        print_info "正在断开所有容器的网络连接..."
+        echo "$containers" | tr ' ' '\n' | grep -v '^$' | while read -r container; do
+            if docker ps -a --format '{{.Names}}' | grep -q "^${container}$"; then
+                print_info "断开容器网络连接: $container"
+                docker network disconnect -f "$network_name" "$container" 2>/dev/null || true
+            fi
+        done
+        sleep 2
     fi
     
     # 删除旧网络
@@ -117,16 +113,45 @@ fix_network() {
         print_success "旧网络已删除"
     else
         print_warning "删除网络失败，可能仍有容器在使用"
-        print_info "尝试强制删除..."
-        # 尝试断开所有容器
-        echo "$containers" | tr ' ' '\n' | grep -v '^$' | while read -r container; do
-            docker network disconnect -f "$network_name" "$container" 2>/dev/null || true
+        print_info "尝试强制断开所有连接并删除..."
+        # 再次尝试断开所有容器
+        if [ -n "$containers" ]; then
+            echo "$containers" | tr ' ' '\n' | grep -v '^$' | while read -r container; do
+                docker network disconnect -f "$network_name" "$container" 2>/dev/null || true
+            done
+        fi
+        sleep 2
+        
+        # 尝试删除网络（可能需要多次尝试）
+        local retry_count=0
+        while [ $retry_count -lt 3 ]; do
+            if docker network rm "$network_name" 2>/dev/null; then
+                print_success "旧网络已删除"
+                break
+            else
+                retry_count=$((retry_count + 1))
+                if [ $retry_count -lt 3 ]; then
+                    print_info "重试删除网络 (${retry_count}/3)..."
+                    sleep 2
+                else
+                    print_error "无法删除网络，请手动检查并删除："
+                    print_error "  docker network rm $network_name"
+                    exit 1
+                fi
+            fi
         done
-        sleep 1
-        docker network rm "$network_name" 2>/dev/null || {
-            print_error "无法删除网络，请手动检查"
-            exit 1
-        }
+    fi
+    
+    sleep 2
+    
+    # 清理 docker-compose 的网络缓存（如果存在）
+    if [ -f "$compose_file" ]; then
+        print_info "清理 docker-compose 网络缓存..."
+        cd "$(dirname "$compose_file")"
+        # 清理未使用的网络（这会清除 docker-compose 可能缓存的网络引用）
+        docker network prune -f > /dev/null 2>&1 || true
+        # 强制 docker-compose 重新读取配置（通过验证配置）
+        docker-compose config > /dev/null 2>&1 || true
     fi
     
     sleep 1
@@ -150,8 +175,10 @@ fix_network() {
     
     echo ""
     print_success "网络修复完成！"
-    print_info "请重新启动相关容器："
-    print_info "  cd .scripts/docker && docker-compose up -d"
+    if [ -f "$compose_file" ]; then
+        print_info "请重新启动相关容器："
+        print_info "  cd $(dirname "$compose_file") && docker-compose up -d"
+    fi
     echo ""
 }
 
