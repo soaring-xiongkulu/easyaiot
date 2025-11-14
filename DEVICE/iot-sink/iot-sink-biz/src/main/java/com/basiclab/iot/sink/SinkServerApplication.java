@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class IotSinkApplication {
+public class SinkServerApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(IotSinkApplication.class, args);
+        SpringApplication.run(SinkServerApplication.class, args);
     }
 
 }
