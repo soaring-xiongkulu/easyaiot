@@ -3500,6 +3500,58 @@ check_and_pull_images() {
     fi
 }
 
+# 从 docker-compose.yml 提取所有端口映射
+extract_ports_from_compose() {
+    local service_name=$1
+    local ports=()
+    
+    # 使用 docker-compose config 获取端口映射
+    local port_mappings=$($COMPOSE_CMD -f "$COMPOSE_FILE" config 2>/dev/null | grep -A 20 "^  ${service_name}:" | grep -E "^\s+- \"[0-9]+:" | sed 's/.*"\([0-9]*\):.*/\1/' || echo "")
+    
+    if [ -n "$port_mappings" ]; then
+        while IFS= read -r port; do
+            if [ -n "$port" ]; then
+                ports+=("$port")
+            fi
+        done <<< "$port_mappings"
+    fi
+    
+    # 如果没有找到，使用默认端口
+    if [ ${#ports[@]} -eq 0 ]; then
+        case "$service_name" in
+            "TDengine")
+                ports=("6030" "6041" "6060" "6043" "6044" "6045" "6046" "6047" "6048" "6049")
+                ;;
+            "Redis")
+                ports=("6379")
+                ;;
+            "PostgresSQL")
+                ports=("5432")
+                ;;
+            "Nacos")
+                ports=("8848" "9848" "9849")
+                ;;
+            "Kafka")
+                ports=("9092" "9093")
+                ;;
+            "MinIO")
+                ports=("9000" "9001")
+                ;;
+            "SRS")
+                ports=("1935" "1985" "8080" "8000")
+                ;;
+            "NodeRED")
+                ports=("1880")
+                ;;
+            "EMQX")
+                ports=("1883" "8883" "8083" "8084" "18083")
+                ;;
+        esac
+    fi
+    
+    echo "${ports[@]}"
+}
+
 # 检查端口占用并清理
 check_and_clean_ports() {
     print_info "检查端口占用情况..."
@@ -3581,121 +3633,135 @@ check_and_clean_ports() {
     
     sleep 1
     
-    # 检查所有中间件端口
+    # 检查所有中间件端口（包括所有映射的端口）
     for service in "${MIDDLEWARE_SERVICES[@]}"; do
-        local port="${MIDDLEWARE_PORTS[$service]}"
-        if [ -z "$port" ]; then
-            continue
+        # 获取该服务的所有端口映射
+        local service_ports=($(extract_ports_from_compose "$service"))
+        
+        if [ ${#service_ports[@]} -eq 0 ]; then
+            # 如果没有找到，使用默认主端口
+            local port="${MIDDLEWARE_PORTS[$service]}"
+            if [ -z "$port" ]; then
+                continue
+            fi
+            service_ports=("$port")
         fi
         
-        # 检查端口是否被占用（使用多种方法）
-        local port_in_use=0
-        local port_user=""
-        
-        # 方法1: 使用 ss 命令（最可靠）
-        if command -v ss &> /dev/null; then
-            if ss -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
-                port_in_use=1
-                port_user=$(ss -tlnp 2>/dev/null | grep -E ":$port[[:space:]]|:$port$" | head -1)
+        # 检查该服务的所有端口
+        for port in "${service_ports[@]}"; do
+            if [ -z "$port" ]; then
+                continue
             fi
-        # 方法2: 使用 netstat 命令
-        elif command -v netstat &> /dev/null; then
-            if netstat -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
-                port_in_use=1
-                port_user=$(netstat -tlnp 2>/dev/null | grep -E ":$port[[:space:]]|:$port$" | head -1)
-            fi
-        # 方法3: 使用 lsof 命令
-        elif command -v lsof &> /dev/null; then
-            if lsof -i :$port 2>/dev/null | grep -q LISTEN; then
-                port_in_use=1
-                port_user=$(lsof -i :$port 2>/dev/null | grep LISTEN | head -1)
-            fi
-        # 方法4: 使用 /proc/net/tcp (Linux)
-        elif [ -f /proc/net/tcp ]; then
-            local hex_port=$(printf "%04X" $port | tr '[:lower:]' '[:upper:]')
-            if grep -qE ":$hex_port[[:space:]]|:$hex_port$" /proc/net/tcp 2>/dev/null; then
-                port_in_use=1
-            fi
-        fi
-        
-        # 方法5: 通过 Docker 直接检查端口映射
-        local docker_port_check=$(docker ps --format "{{.ID}}\t{{.Ports}}" 2>/dev/null | grep -E ":$port->|0\.0\.0\.0:$port|:::$port" || echo "")
-        if [ -n "$docker_port_check" ]; then
-            port_in_use=1
-            if [ -z "$port_user" ]; then
-                port_user="Docker容器: $docker_port_check"
-            fi
-        fi
-        
-        if [ $port_in_use -eq 1 ]; then
-            # 检查是否是 Docker 容器占用的
-            local container_id=""
-            local container_name=""
-            local is_docker_process=0
             
-            # 通过 docker ps 查找占用端口的容器（多种格式匹配）
-            while IFS= read -r line; do
-                if echo "$line" | grep -qE ":$port->|0\.0\.0\.0:$port|:::$port"; then
-                    container_id=$(echo "$line" | awk '{print $1}')
-                    container_name=$(echo "$line" | awk '{print $NF}')
-                    is_docker_process=1
-                    break
+            # 检查端口是否被占用（使用多种方法）
+            local port_in_use=0
+            local port_user=""
+            
+            # 方法1: 使用 ss 命令（最可靠）
+            if command -v ss &> /dev/null; then
+                if ss -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
+                    port_in_use=1
+                    port_user=$(ss -tlnp 2>/dev/null | grep -E ":$port[[:space:]]|:$port$" | head -1)
                 fi
-            done < <(docker ps --format "{{.ID}}\t{{.Ports}}\t{{.Names}}" 2>/dev/null || true)
-            
-            # 如果没找到，尝试通过容器名称查找
-            if [ -z "$container_id" ]; then
-                case "$service" in
-                    "TDengine") 
-                        container_id=$(docker ps --filter "name=tdengine" --format "{{.ID}}" 2>/dev/null | head -1)
-                        container_name=$(docker ps --filter "name=tdengine" --format "{{.Names}}" 2>/dev/null | head -1)
-                        if [ -n "$container_id" ]; then
-                            is_docker_process=1
-                        fi
-                        ;;
-                    "Redis")
-                        container_id=$(docker ps --filter "name=redis" --format "{{.ID}}" 2>/dev/null | head -1)
-                        container_name=$(docker ps --filter "name=redis" --format "{{.Names}}" 2>/dev/null | head -1)
-                        if [ -n "$container_id" ]; then
-                            is_docker_process=1
-                        fi
-                        ;;
-                esac
+            # 方法2: 使用 netstat 命令
+            elif command -v netstat &> /dev/null; then
+                if netstat -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
+                    port_in_use=1
+                    port_user=$(netstat -tlnp 2>/dev/null | grep -E ":$port[[:space:]]|:$port$" | head -1)
+                fi
+            # 方法3: 使用 lsof 命令
+            elif command -v lsof &> /dev/null; then
+                if lsof -i :$port 2>/dev/null | grep -q LISTEN; then
+                    port_in_use=1
+                    port_user=$(lsof -i :$port 2>/dev/null | grep LISTEN | head -1)
+                fi
+            # 方法4: 使用 /proc/net/tcp (Linux)
+            elif [ -f /proc/net/tcp ]; then
+                local hex_port=$(printf "%04X" $port | tr '[:lower:]' '[:upper:]')
+                if grep -qE ":$hex_port[[:space:]]|:$hex_port$" /proc/net/tcp 2>/dev/null; then
+                    port_in_use=1
+                fi
             fi
             
-            if [ $is_docker_process -eq 1 ] && [ -n "$container_id" ]; then
-                # 检查是否是当前 compose 项目的容器
-                local compose_project=$(docker inspect "$container_id" --format '{{index .Config.Labels "com.docker.compose.project"}}' 2>/dev/null || echo "")
-                local compose_service=$(docker inspect "$container_id" --format '{{index .Config.Labels "com.docker.compose.service"}}' 2>/dev/null || echo "")
+            # 方法5: 通过 Docker 直接检查端口映射
+            local docker_port_check=$(docker ps --format "{{.ID}}\t{{.Ports}}" 2>/dev/null | grep -E ":$port->|0\.0\.0\.0:$port|:::$port" || echo "")
+            if [ -n "$docker_port_check" ]; then
+                port_in_use=1
+                if [ -z "$port_user" ]; then
+                    port_user="Docker容器: $docker_port_check"
+                fi
+            fi
+            
+            if [ $port_in_use -eq 1 ]; then
+                # 检查是否是 Docker 容器占用的
+                local container_id=""
+                local container_name=""
+                local is_docker_process=0
                 
-                # 如果不是当前项目的容器，或者容器名称不匹配，则认为是冲突
-                if [ -z "$compose_project" ] || [ "$compose_service" != "$service" ]; then
-                    print_warning "端口 $port ($service) 被 Docker 容器 $container_name ($container_id) 占用"
+                # 通过 docker ps 查找占用端口的容器（多种格式匹配）
+                while IFS= read -r line; do
+                    if echo "$line" | grep -qE ":$port->|0\.0\.0\.0:$port|:::$port"; then
+                        container_id=$(echo "$line" | awk '{print $1}')
+                        container_name=$(echo "$line" | awk '{print $NF}')
+                        is_docker_process=1
+                        break
+                    fi
+                done < <(docker ps --format "{{.ID}}\t{{.Ports}}\t{{.Names}}" 2>/dev/null || true)
+                
+                # 如果没找到，尝试通过容器名称查找
+                if [ -z "$container_id" ]; then
+                    case "$service" in
+                        "TDengine") 
+                            container_id=$(docker ps --filter "name=tdengine" --format "{{.ID}}" 2>/dev/null | head -1)
+                            container_name=$(docker ps --filter "name=tdengine" --format "{{.Names}}" 2>/dev/null | head -1)
+                            if [ -n "$container_id" ]; then
+                                is_docker_process=1
+                            fi
+                            ;;
+                        "Redis")
+                            container_id=$(docker ps --filter "name=redis" --format "{{.ID}}" 2>/dev/null | head -1)
+                            container_name=$(docker ps --filter "name=redis" --format "{{.Names}}" 2>/dev/null | head -1)
+                            if [ -n "$container_id" ]; then
+                                is_docker_process=1
+                            fi
+                            ;;
+                    esac
+                fi
+                
+                if [ $is_docker_process -eq 1 ] && [ -n "$container_id" ]; then
+                    # 检查是否是当前 compose 项目的容器
+                    local compose_project=$(docker inspect "$container_id" --format '{{index .Config.Labels "com.docker.compose.project"}}' 2>/dev/null || echo "")
+                    local compose_service=$(docker inspect "$container_id" --format '{{index .Config.Labels "com.docker.compose.service"}}' 2>/dev/null || echo "")
+                    
+                    # 如果不是当前项目的容器，或者容器名称不匹配，则认为是冲突
+                    if [ -z "$compose_project" ] || [ "$compose_service" != "$service" ]; then
+                        print_warning "端口 $port ($service) 被 Docker 容器 $container_name ($container_id) 占用"
+                        conflict_ports+=("$port")
+                        conflict_containers+=("$container_id")
+                        has_conflict=1
+                    fi
+                else
+                    # 非 Docker 进程占用（宿主机上的进程）
+                    print_warning "端口 $port ($service) 被宿主机进程占用（非 Docker 容器）"
+                    print_info "占用信息: $port_user"
+                    
+                    # 尝试识别进程信息
+                    local process_info=""
+                    if command -v lsof &> /dev/null; then
+                        process_info=$(lsof -i :$port 2>/dev/null | grep LISTEN | head -1 || echo "")
+                    elif command -v ss &> /dev/null; then
+                        process_info=$(ss -tlnp 2>/dev/null | grep ":$port " | head -1 || echo "")
+                    fi
+                    
+                    if [ -n "$process_info" ]; then
+                        print_info "进程详情: $process_info"
+                    fi
+                    
                     conflict_ports+=("$port")
-                    conflict_containers+=("$container_id")
                     has_conflict=1
                 fi
-            else
-                # 非 Docker 进程占用（宿主机上的进程）
-                print_warning "端口 $port ($service) 被宿主机进程占用（非 Docker 容器）"
-                print_info "占用信息: $port_user"
-                
-                # 尝试识别进程信息
-                local process_info=""
-                if command -v lsof &> /dev/null; then
-                    process_info=$(lsof -i :$port 2>/dev/null | grep LISTEN | head -1 || echo "")
-                elif command -v ss &> /dev/null; then
-                    process_info=$(ss -tlnp 2>/dev/null | grep ":$port " | head -1 || echo "")
-                fi
-                
-                if [ -n "$process_info" ]; then
-                    print_info "进程详情: $process_info"
-                fi
-                
-                conflict_ports+=("$port")
-                has_conflict=1
             fi
-        fi
+        done
     done
     
     # 再次验证所有端口（清理后）
@@ -3779,9 +3845,9 @@ check_and_clean_ports() {
                             fi
                         fi
                         
-                        # 检查是否是 TDengine 端口
-                        if [ "$port" = "6030" ]; then
-                            print_info "检测到 TDengine 端口 6030 被占用，尝试停止系统 TDengine 服务..."
+                        # 检查是否是 TDengine 端口（6030, 6041, 6060, 6043-6049）
+                        if [[ "$port" =~ ^60[34][0-9]$ ]] || [ "$port" = "6030" ] || [ "$port" = "6041" ] || [ "$port" = "6060" ]; then
+                            print_info "检测到 TDengine 端口 $port 被占用，尝试停止系统 TDengine 服务..."
                             # 尝试停止 TDengine 服务
                             if systemctl is-active --quiet taosd 2>/dev/null; then
                                 print_info "停止 TDengine 系统服务..."
