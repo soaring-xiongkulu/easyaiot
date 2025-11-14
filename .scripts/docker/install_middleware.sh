@@ -3022,7 +3022,7 @@ prepare_srs_config() {
     local srs_config_target="${SCRIPT_DIR}/srs_data/conf"
     local srs_config_file="${srs_config_target}/docker.conf"
     
-    print_info "准备 SRS 配置文件（强制更新模式）..."
+    print_info "准备 SRS 配置文件..."
     
     # 获取宿主机 IP 地址
     local host_ip=$(get_host_ip)
