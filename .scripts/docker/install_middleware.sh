@@ -139,6 +139,61 @@ check_command() {
     return 0
 }
 
+# 检查 Git 是否已安装
+check_git() {
+    if check_command git; then
+        local git_version=$(git --version 2>&1)
+        print_success "Git 已安装: $git_version"
+        return 0
+    fi
+    return 1
+}
+
+# 检查并提示安装 Git
+check_and_require_git() {
+    if check_git; then
+        return 0
+    fi
+    
+    print_error "未检测到 Git"
+    echo ""
+    print_info "Git 是运行此项目的必需组件"
+    echo ""
+    
+    # 检测系统类型
+    local os_id=""
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        os_id="$ID"
+    fi
+    
+    # 根据系统类型提供安装指导
+    echo ""
+    print_warning "请按照以下步骤安装 Git："
+    echo ""
+    
+    case "$os_id" in
+        ubuntu|debian)
+            print_info "Debian/Ubuntu 系统安装命令："
+            print_info "  sudo apt update"
+            print_info "  sudo apt install -y git"
+            ;;
+        centos|rhel|fedora)
+            print_info "CentOS/RHEL/Fedora 系统安装命令："
+            print_info "  sudo yum install -y git"
+            ;;
+        *)
+            print_info "请访问 Git 官网获取安装指南："
+            print_info "  https://git-scm.com/download/linux"
+            ;;
+    esac
+    
+    echo ""
+    print_error "Git 是必需的，安装流程已终止"
+    print_info "安装 Git 后，请重新运行此脚本"
+    exit 1
+}
+
 # 检查 Java 版本
 check_java_version() {
     if check_command java; then
@@ -3816,8 +3871,10 @@ show_help() {
 
 # 主函数
 main() {
-    # 在执行任何命令之前（除了 help），先尝试加载环境变量
+    # 在执行任何命令之前（除了 help），先检查 Git
     if [ "${1:-help}" != "help" ] && [ "${1:-help}" != "--help" ] && [ "${1:-help}" != "-h" ]; then
+        check_and_require_git
+        # 然后尝试加载环境变量
         reload_environment
     fi
     
