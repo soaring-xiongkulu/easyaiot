@@ -3510,7 +3510,7 @@ check_and_clean_ports() {
     # 先执行 docker-compose down 清理所有残留容器和端口绑定
     print_info "清理 docker-compose 管理的容器和端口绑定..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" down 2>/dev/null || true
-    sleep 3
+    sleep 2
     
     # 强制清理所有可能占用端口的容器（包括停止状态的）
     print_info "清理所有可能占用端口的残留容器..."
@@ -3534,15 +3534,52 @@ check_and_clean_ports() {
             if [ -n "$existing_containers" ]; then
                 echo "$existing_containers" | while read -r container_id; do
                     if [ -n "$container_id" ]; then
-                        print_info "清理残留容器: $container_name ($container_id)"
-                        docker stop "$container_id" 2>/dev/null || true
-                        docker rm "$container_id" 2>/dev/null || true
+                        print_info "强制清理残留容器: $container_name ($container_id)"
+                        docker stop -t 0 "$container_id" 2>/dev/null || true
+                        docker rm -f "$container_id" 2>/dev/null || true
                     fi
                 done
             fi
         fi
     done
-    sleep 2
+    
+    # 等待端口释放（Docker 需要时间释放端口绑定）
+    print_info "等待端口释放（最多等待 10 秒）..."
+    local wait_count=0
+    local max_wait=10
+    while [ $wait_count -lt $max_wait ]; do
+        local ports_still_in_use=0
+        for service in "${MIDDLEWARE_SERVICES[@]}"; do
+            local port="${MIDDLEWARE_PORTS[$service]}"
+            if [ -z "$port" ]; then
+                continue
+            fi
+            
+            # 检查是否还有 Docker 容器占用端口
+            local docker_using_port=$(docker ps --format "{{.Ports}}" 2>/dev/null | grep -E ":$port->|0\.0\.0\.0:$port|:::$port" || echo "")
+            if [ -n "$docker_using_port" ]; then
+                ports_still_in_use=1
+                break
+            fi
+        done
+        
+        if [ $ports_still_in_use -eq 0 ]; then
+            break
+        fi
+        
+        wait_count=$((wait_count + 1))
+        sleep 1
+        echo -n "."
+    done
+    echo ""
+    
+    if [ $wait_count -ge $max_wait ]; then
+        print_warning "等待端口释放超时，继续检查..."
+    else
+        print_success "端口已释放"
+    fi
+    
+    sleep 1
     
     # 检查所有中间件端口
     for service in "${MIDDLEWARE_SERVICES[@]}"; do
@@ -3594,12 +3631,14 @@ check_and_clean_ports() {
             # 检查是否是 Docker 容器占用的
             local container_id=""
             local container_name=""
+            local is_docker_process=0
             
             # 通过 docker ps 查找占用端口的容器（多种格式匹配）
             while IFS= read -r line; do
                 if echo "$line" | grep -qE ":$port->|0\.0\.0\.0:$port|:::$port"; then
                     container_id=$(echo "$line" | awk '{print $1}')
                     container_name=$(echo "$line" | awk '{print $NF}')
+                    is_docker_process=1
                     break
                 fi
             done < <(docker ps --format "{{.ID}}\t{{.Ports}}\t{{.Names}}" 2>/dev/null || true)
@@ -3610,25 +3649,37 @@ check_and_clean_ports() {
                     "TDengine") 
                         container_id=$(docker ps --filter "name=tdengine" --format "{{.ID}}" 2>/dev/null | head -1)
                         container_name=$(docker ps --filter "name=tdengine" --format "{{.Names}}" 2>/dev/null | head -1)
+                        if [ -n "$container_id" ]; then
+                            is_docker_process=1
+                        fi
+                        ;;
+                    "Redis")
+                        container_id=$(docker ps --filter "name=redis" --format "{{.ID}}" 2>/dev/null | head -1)
+                        container_name=$(docker ps --filter "name=redis" --format "{{.Names}}" 2>/dev/null | head -1)
+                        if [ -n "$container_id" ]; then
+                            is_docker_process=1
+                        fi
                         ;;
                 esac
             fi
             
-            if [ -n "$container_id" ]; then
+            if [ $is_docker_process -eq 1 ] && [ -n "$container_id" ]; then
                 # 检查是否是当前 compose 项目的容器
                 local compose_project=$(docker inspect "$container_id" --format '{{index .Config.Labels "com.docker.compose.project"}}' 2>/dev/null || echo "")
                 local compose_service=$(docker inspect "$container_id" --format '{{index .Config.Labels "com.docker.compose.service"}}' 2>/dev/null || echo "")
                 
                 # 如果不是当前项目的容器，或者容器名称不匹配，则认为是冲突
                 if [ -z "$compose_project" ] || [ "$compose_service" != "$service" ]; then
-                    print_warning "端口 $port ($service) 被容器 $container_name ($container_id) 占用"
+                    print_warning "端口 $port ($service) 被 Docker 容器 $container_name ($container_id) 占用"
                     conflict_ports+=("$port")
                     conflict_containers+=("$container_id")
                     has_conflict=1
                 fi
             else
-                # 非 Docker 进程占用
-                print_warning "端口 $port ($service) 被占用: $port_user"
+                # 非 Docker 进程占用（宿主机上的进程）
+                print_warning "端口 $port ($service) 被宿主机进程占用（非 Docker 容器）"
+                print_info "占用信息: $port_user"
+                print_info "这可能是系统服务或其他应用程序，需要手动处理"
                 conflict_ports+=("$port")
                 has_conflict=1
             fi
@@ -3710,19 +3761,64 @@ check_and_clean_ports() {
                 sleep 3
                 print_success "容器清理完成"
                 
-                # 再次检查端口
+                # 等待端口释放
+                print_info "等待端口释放（最多等待 5 秒）..."
+                local wait_count=0
+                local max_wait=5
+                while [ $wait_count -lt $max_wait ]; do
+                    local ports_still_in_use=0
+                    for port in "${conflict_ports[@]}"; do
+                        # 检查是否还有 Docker 容器占用
+                        local docker_using=$(docker ps --format "{{.Ports}}" 2>/dev/null | grep -E ":$port->|0\.0\.0\.0:$port|:::$port" || echo "")
+                        if [ -n "$docker_using" ]; then
+                            ports_still_in_use=1
+                            break
+                        fi
+                    done
+                    
+                    if [ $ports_still_in_use -eq 0 ]; then
+                        break
+                    fi
+                    
+                    wait_count=$((wait_count + 1))
+                    sleep 1
+                    echo -n "."
+                done
+                echo ""
+                
+                # 再次检查端口（区分 Docker 和宿主机进程）
                 print_info "再次检查端口状态..."
                 local still_conflict=0
+                local host_process_conflict=0
                 for port in "${conflict_ports[@]}"; do
-                    if command -v ss &> /dev/null && ss -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
-                        print_error "端口 $port 仍被占用，可能需要手动处理"
+                    # 先检查是否是 Docker 容器占用
+                    local docker_using=$(docker ps --format "{{.ID}}\t{{.Names}}\t{{.Ports}}" 2>/dev/null | grep -E ":$port->|0\.0\.0\.0:$port|:::$port" || echo "")
+                    
+                    if [ -n "$docker_using" ]; then
+                        print_error "端口 $port 仍被 Docker 容器占用:"
+                        echo "$docker_using" | while read -r line; do
+                            print_info "  $line"
+                        done
                         still_conflict=1
+                    elif command -v ss &> /dev/null && ss -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
+                        # 检查是否是宿主机进程占用
+                        local host_process=$(ss -tlnp 2>/dev/null | grep -E ":$port[[:space:]]|:$port$" | head -1 || echo "")
+                        if [ -n "$host_process" ]; then
+                            print_error "端口 $port 被宿主机进程占用（非 Docker）:"
+                            print_info "  $host_process"
+                            print_info "  这可能是系统服务，需要手动停止或修改配置"
+                            host_process_conflict=1
+                        fi
                     fi
                 done
                 
                 if [ $still_conflict -eq 1 ]; then
-                    print_error "部分端口仍被占用，启动可能会失败"
+                    print_error "部分端口仍被 Docker 容器占用，启动可能会失败"
+                    print_info "建议手动检查并清理: docker ps | grep 端口号"
+                elif [ $host_process_conflict -eq 1 ]; then
+                    print_error "部分端口被宿主机进程占用，启动可能会失败"
                     print_info "建议手动检查: sudo lsof -i :端口号 或 sudo ss -tlnp | grep 端口号"
+                    print_info "如果是系统服务，可能需要停止服务或修改 docker-compose.yml 中的端口映射"
                 fi
                 ;;
             2)
