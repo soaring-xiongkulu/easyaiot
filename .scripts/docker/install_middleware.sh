@@ -3679,7 +3679,19 @@ check_and_clean_ports() {
                 # 非 Docker 进程占用（宿主机上的进程）
                 print_warning "端口 $port ($service) 被宿主机进程占用（非 Docker 容器）"
                 print_info "占用信息: $port_user"
-                print_info "这可能是系统服务或其他应用程序，需要手动处理"
+                
+                # 尝试识别进程信息
+                local process_info=""
+                if command -v lsof &> /dev/null; then
+                    process_info=$(lsof -i :$port 2>/dev/null | grep LISTEN | head -1 || echo "")
+                elif command -v ss &> /dev/null; then
+                    process_info=$(ss -tlnp 2>/dev/null | grep ":$port " | head -1 || echo "")
+                fi
+                
+                if [ -n "$process_info" ]; then
+                    print_info "进程详情: $process_info"
+                fi
+                
                 conflict_ports+=("$port")
                 has_conflict=1
             fi
@@ -3709,54 +3721,155 @@ check_and_clean_ports() {
         print_warning "发现端口冲突！"
         print_warning "冲突端口: ${conflict_ports[*]}"
         echo ""
-        echo "请选择操作："
-        echo "  1. 自动强制清理所有冲突容器和进程（推荐）"
-        echo "  2. 手动处理端口冲突"
-        echo "  3. 继续启动（可能失败）"
-        echo ""
-        read -p "请输入选项 (1/2/3): " choice
+        
+        # 检查是否有宿主机进程占用
+        local has_host_process=0
+        for port in "${conflict_ports[@]}"; do
+            local docker_using=$(docker ps --format "{{.Ports}}" 2>/dev/null | grep -E ":$port->|0\.0\.0\.0:$port|:::$port" || echo "")
+            if [ -z "$docker_using" ]; then
+                # 检查是否是宿主机进程
+                if command -v ss &> /dev/null && ss -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
+                    has_host_process=1
+                    break
+                fi
+            fi
+        done
+        
+        if [ $has_host_process -eq 1 ]; then
+            print_error "检测到宿主机进程占用端口，这可能导致容器启动失败！"
+            echo ""
+            echo "请选择操作："
+            echo "  1. 尝试停止宿主机上的 Redis/TDengine 服务（如果存在）"
+            echo "  2. 手动处理端口冲突（推荐：停止占用端口的服务或修改 docker-compose.yml 端口映射）"
+            echo "  3. 继续启动（可能会失败）"
+            echo ""
+            read -p "请输入选项 (1/2/3): " choice
+        else
+            echo "请选择操作："
+            echo "  1. 自动强制清理所有冲突容器和进程（推荐）"
+            echo "  2. 手动处理端口冲突"
+            echo "  3. 继续启动（可能失败）"
+            echo ""
+            read -p "请输入选项 (1/2/3): " choice
+        fi
         
         case "$choice" in
             1)
-                print_info "正在强制清理冲突的容器..."
-                for container_id in "${conflict_containers[@]}"; do
-                    if [ -n "$container_id" ]; then
-                        print_info "强制停止并删除容器: $container_id"
-                        docker stop -t 0 "$container_id" 2>/dev/null || true
-                        docker rm -f "$container_id" 2>/dev/null || true
-                    fi
-                done
-                
-                # 清理所有相关容器（按名称）
-                for port in "${conflict_ports[@]}"; do
-                    for service in "${MIDDLEWARE_SERVICES[@]}"; do
-                        if [ "${MIDDLEWARE_PORTS[$service]}" = "$port" ]; then
-                            local container_name=""
-                            case "$service" in
-                                "TDengine") container_name="tdengine-server" ;;
-                                "Redis") container_name="redis-server" ;;
-                                "PostgresSQL") container_name="postgres-server" ;;
-                                "Nacos") container_name="nacos-server" ;;
-                                "Kafka") container_name="kafka-server" ;;
-                                "MinIO") container_name="minio-server" ;;
-                                "SRS") container_name="srs-server" ;;
-                                "NodeRED") container_name="nodered-server" ;;
-                                "EMQX") container_name="emqx-server" ;;
-                            esac
-                            
-                            if [ -n "$container_name" ]; then
-                                docker ps -a --filter "name=^${container_name}$" --format "{{.ID}}" 2>/dev/null | while read -r cid; do
-                                    if [ -n "$cid" ]; then
-                                        print_info "清理容器: $container_name ($cid)"
-                                        docker stop -t 0 "$cid" 2>/dev/null || true
-                                        docker rm -f "$cid" 2>/dev/null || true
-                                    fi
-                                done
+                if [ $has_host_process -eq 1 ]; then
+                    # 尝试停止宿主机服务
+                    print_info "尝试停止宿主机上的服务..."
+                    
+                    for port in "${conflict_ports[@]}"; do
+                        # 检查是否是 Redis 端口
+                        if [ "$port" = "6379" ]; then
+                            print_info "检测到 Redis 端口 6379 被占用，尝试停止系统 Redis 服务..."
+                            # 尝试停止常见的 Redis 服务
+                            if systemctl is-active --quiet redis 2>/dev/null || systemctl is-active --quiet redis-server 2>/dev/null; then
+                                print_info "停止 Redis 系统服务..."
+                                sudo systemctl stop redis 2>/dev/null || sudo systemctl stop redis-server 2>/dev/null || true
+                                sleep 2
                             fi
-                            break
+                            
+                            # 尝试通过进程名查找并停止
+                            local redis_pid=$(pgrep -f "redis-server" 2>/dev/null | head -1 || echo "")
+                            if [ -n "$redis_pid" ]; then
+                                print_info "发现 Redis 进程 (PID: $redis_pid)，尝试停止..."
+                                sudo kill "$redis_pid" 2>/dev/null || true
+                                sleep 2
+                            fi
+                        fi
+                        
+                        # 检查是否是 TDengine 端口
+                        if [ "$port" = "6030" ]; then
+                            print_info "检测到 TDengine 端口 6030 被占用，尝试停止系统 TDengine 服务..."
+                            # 尝试停止 TDengine 服务
+                            if systemctl is-active --quiet taosd 2>/dev/null; then
+                                print_info "停止 TDengine 系统服务..."
+                                sudo systemctl stop taosd 2>/dev/null || true
+                                sleep 2
+                            fi
+                            
+                            # 尝试通过进程名查找并停止
+                            local taos_pid=$(pgrep -f "taosd" 2>/dev/null | head -1 || echo "")
+                            if [ -n "$taos_pid" ]; then
+                                print_info "发现 TDengine 进程 (PID: $taos_pid)，尝试停止..."
+                                sudo kill "$taos_pid" 2>/dev/null || true
+                                sleep 2
+                            fi
                         fi
                     done
-                done
+                    
+                    # 等待端口释放
+                    print_info "等待端口释放..."
+                    sleep 3
+                    
+                    # 再次检查端口
+                    local still_occupied=0
+                    for port in "${conflict_ports[@]}"; do
+                        if command -v ss &> /dev/null && ss -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
+                            print_warning "端口 $port 仍被占用"
+                            still_occupied=1
+                        fi
+                    done
+                    
+                    if [ $still_occupied -eq 1 ]; then
+                        print_error "无法自动释放端口，请手动处理"
+                        print_info "检查命令: sudo lsof -i :端口号 或 sudo ss -tlnp | grep 端口号"
+                        print_info "停止服务命令示例:"
+                        print_info "  sudo systemctl stop redis  # Redis"
+                        print_info "  sudo systemctl stop taosd  # TDengine"
+                        print_info "或修改 docker-compose.yml 中的端口映射（如 6379 改为 6380）"
+                        echo ""
+                        read -p "是否继续启动（可能会失败）？(y/N): " continue_choice
+                        if [ "$continue_choice" != "y" ] && [ "$continue_choice" != "Y" ]; then
+                            print_info "已取消启动"
+                            exit 1
+                        fi
+                    else
+                        print_success "端口已释放"
+                    fi
+                else
+                    # 清理 Docker 容器
+                    print_info "正在强制清理冲突的容器..."
+                    for container_id in "${conflict_containers[@]}"; do
+                        if [ -n "$container_id" ]; then
+                            print_info "强制停止并删除容器: $container_id"
+                            docker stop -t 0 "$container_id" 2>/dev/null || true
+                            docker rm -f "$container_id" 2>/dev/null || true
+                        fi
+                    done
+                    
+                    # 清理所有相关容器（按名称）
+                    for port in "${conflict_ports[@]}"; do
+                        for service in "${MIDDLEWARE_SERVICES[@]}"; do
+                            if [ "${MIDDLEWARE_PORTS[$service]}" = "$port" ]; then
+                                local container_name=""
+                                case "$service" in
+                                    "TDengine") container_name="tdengine-server" ;;
+                                    "Redis") container_name="redis-server" ;;
+                                    "PostgresSQL") container_name="postgres-server" ;;
+                                    "Nacos") container_name="nacos-server" ;;
+                                    "Kafka") container_name="kafka-server" ;;
+                                    "MinIO") container_name="minio-server" ;;
+                                    "SRS") container_name="srs-server" ;;
+                                    "NodeRED") container_name="nodered-server" ;;
+                                    "EMQX") container_name="emqx-server" ;;
+                                esac
+                                
+                                if [ -n "$container_name" ]; then
+                                    docker ps -a --filter "name=^${container_name}$" --format "{{.ID}}" 2>/dev/null | while read -r cid; do
+                                        if [ -n "$cid" ]; then
+                                            print_info "清理容器: $container_name ($cid)"
+                                            docker stop -t 0 "$cid" 2>/dev/null || true
+                                            docker rm -f "$cid" 2>/dev/null || true
+                                        fi
+                                    done
+                                fi
+                                break
+                            fi
+                        done
+                    done
+                fi
                 
                 sleep 3
                 print_success "容器清理完成"
