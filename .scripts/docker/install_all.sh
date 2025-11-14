@@ -275,6 +275,38 @@ create_network() {
         print_success "网络 easyaiot-network 已创建"
     else
         print_info "网络 easyaiot-network 已存在"
+        
+        # 检测网络是否可用（尝试创建一个临时容器测试）
+        if ! docker run --rm --network easyaiot-network alpine:latest ping -c 1 8.8.8.8 > /dev/null 2>&1; then
+            print_warning "检测到网络 easyaiot-network 可能存在问题（可能是IP变化导致）"
+            print_info "正在尝试重新创建网络..."
+            
+            # 获取连接到该网络的所有容器
+            local containers=$(docker network inspect easyaiot-network --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null || echo "")
+            
+            if [ -n "$containers" ]; then
+                print_warning "以下容器正在使用该网络，需要先停止："
+                echo "$containers" | tr ' ' '\n' | grep -v '^$' | while read -r container; do
+                    echo "  - $container"
+                done
+                print_info "请先停止所有相关容器，然后重新运行安装脚本"
+                return 1
+            fi
+            
+            # 删除旧网络
+            docker network rm easyaiot-network 2>/dev/null || true
+            sleep 1
+            
+            # 重新创建网络
+            if docker network create easyaiot-network 2>/dev/null; then
+                print_success "网络 easyaiot-network 已重新创建"
+            else
+                print_error "无法重新创建网络 easyaiot-network"
+                return 1
+            fi
+        else
+            print_info "网络 easyaiot-network 运行正常"
+        fi
     fi
 }
 

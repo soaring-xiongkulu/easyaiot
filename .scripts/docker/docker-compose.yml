@@ -294,6 +294,10 @@ volumes:
     driver: local
 
 # 网络配置
+# 注意：当宿主机IP发生变化后，如果容器无法加入网络，请执行以下命令修复：
+# 1. docker network rm easyaiot-network
+# 2. docker network create easyaiot-network
+# 3. docker-compose restart
 networks:
   easyaiot-network:
     name: easyaiot-network
