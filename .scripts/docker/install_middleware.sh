@@ -546,21 +546,14 @@ install_maven363() {
     if [ -d "$maven_dir" ] && [ -f "$maven_dir/bin/mvn" ]; then
         print_info "Maven 3.6.3 已存在于: $maven_dir"
         
-        # 配置环境变量
-        if ! grep -q "MAVEN_HOME=$maven_dir" /etc/profile; then
-            print_info "配置 Maven 环境变量..."
-            cat >> /etc/profile << EOF
-
-# Maven 3.6.3
-export MAVEN_HOME=$maven_dir
-export PATH=\$MAVEN_HOME/bin:\$PATH
-EOF
-            print_success "Maven 环境变量已添加到 /etc/profile"
-        else
-            print_info "Maven 环境变量已存在于 /etc/profile"
-        fi
+        # 配置 Maven settings.xml（如果不存在或需要更新）
+        print_info "检查并配置 Maven settings.xml..."
+        configure_maven_settings "$maven_dir"
         
-        # 立即生效（仅当前会话）
+        # 配置环境变量（处理旧配置）
+        configure_maven_env "$maven_dir"
+        
+        # 直接在当前 shell 中设置环境变量（不依赖 source）
         export MAVEN_HOME="$maven_dir"
         export PATH="$MAVEN_HOME/bin:$PATH"
         
@@ -574,8 +567,8 @@ EOF
     print_info "正在下载 Maven 3.6.3..."
     print_info "URL: $maven_url"
     
-    # 下载 Maven
-    if ! curl -L -f "$maven_url" -o "$maven_archive" 2>/dev/null; then
+    # 使用 wget 下载 Maven
+    if ! wget -O "$maven_archive" "$maven_url" 2>/dev/null; then
         print_error "下载 Maven 失败"
         return 1
     fi
@@ -614,32 +607,600 @@ EOF
     # 清理下载文件
     rm -f "$maven_archive"
     
-    # 配置环境变量
+    # 配置 Maven settings.xml
+    print_info "正在配置 Maven settings.xml..."
+    configure_maven_settings "$maven_dir"
+    
+    # 配置环境变量（处理旧配置）
     print_info "正在配置 Maven 环境变量..."
+    configure_maven_env "$maven_dir"
     
-    # 检查 /etc/profile 中是否已存在 Maven 配置
-    if ! grep -q "MAVEN_HOME=$maven_dir" /etc/profile; then
-        cat >> /etc/profile << EOF
-
-# Maven 3.6.3
-export MAVEN_HOME=$maven_dir
-export PATH=\$MAVEN_HOME/bin:\$PATH
-EOF
-        print_success "Maven 环境变量已添加到 /etc/profile"
-    else
-        print_info "Maven 环境变量已存在于 /etc/profile"
-    fi
-    
-    # 立即生效（仅当前会话）
+    # 直接在当前 shell 中设置环境变量（不依赖 source）
+    print_info "设置当前 shell 环境变量..."
     export MAVEN_HOME="$maven_dir"
     export PATH="$MAVEN_HOME/bin:$PATH"
     
     # 验证安装
     if check_maven_installed; then
         print_success "Maven 3.6.3 安装完成: $(mvn -version 2>&1 | head -n 1)"
+        print_info "注意：环境变量已写入 /etc/profile，新开终端会自动生效"
+        print_info "当前 shell 中已设置环境变量，mvn 命令现在可用"
         return 0
     else
         print_warning "Maven 安装完成，但验证失败，请手动检查"
+        print_info "请尝试手动执行: export MAVEN_HOME=$maven_dir && export PATH=\$MAVEN_HOME/bin:\$PATH"
+        return 1
+    fi
+}
+
+# 配置 Maven settings.xml
+configure_maven_settings() {
+    local maven_dir="$1"
+    local repo_dir="${maven_dir}/repo"
+    local settings_file="${maven_dir}/conf/settings.xml"
+    
+    # 创建 repo 目录
+    print_info "创建 Maven 本地仓库目录: $repo_dir"
+    mkdir -p "$repo_dir"
+    if [ $? -eq 0 ]; then
+        print_success "Maven 本地仓库目录已创建: $repo_dir"
+    else
+        print_error "创建 Maven 本地仓库目录失败: $repo_dir"
+        return 1
+    fi
+    
+    # 创建 settings.xml 文件
+    print_info "配置 Maven settings.xml: $settings_file"
+    cat > "$settings_file" << 'SETTINGS_XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+Licensed to the Apache Software Foundation (ASF) under one
+
+or more contributor license agreements.  See the NOTICE file
+
+distributed with this work for additional information
+
+regarding copyright ownership.  The ASF licenses this file
+
+to you under the Apache License, Version 2.0 (the
+
+"License"); you may not use this file except in compliance
+
+with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+
+software distributed under the License is distributed on an
+
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+
+KIND, either express or implied.  See the License for the
+
+specific language governing permissions and limitations
+
+under the License.
+
+-->
+
+<!--
+
+ | This is the configuration file for Maven. It can be specified at two levels:
+
+ |
+
+ |  1. User Level. This settings.xml file provides configuration for a single user,
+
+ |                 and is normally provided in ${user.home}/.m2/settings.xml.
+
+ |
+
+ |                 NOTE: This location can be overridden with the CLI option:
+
+ |
+
+ |                 -s /path/to/user/settings.xml
+
+ |
+
+ |  2. Global Level. This settings.xml file provides configuration for all Maven
+
+ |                 users on a machine (assuming they're all using the same Maven
+
+ |                 installation). It's normally provided in
+
+ |                 ${maven.conf}/settings.xml.
+
+ |
+
+ |                 NOTE: This location can be overridden with the CLI option:
+
+ |
+
+ |                 -gs /path/to/global/settings.xml
+
+ |
+
+ | The sections in this sample file are intended to give you a running start at
+
+ | getting the most out of your Maven installation. Where appropriate, the default
+
+ | values (values used when the setting is not specified) are provided.
+
+ |
+
+ |-->
+
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+  <!-- localRepository
+
+   | The path to the local repository maven will use to store artifacts.
+
+   |
+
+   | Default: ${user.home}/.m2/repository
+
+  <localRepository>/path/to/local/repo</localRepository>
+
+  -->
+
+  <localRepository>MAVEN_REPO_DIR</localRepository>
+
+  <!-- interactiveMode
+
+   | This will determine whether maven prompts you when it needs input. If set to false,
+
+   | maven will use a sensible default value, perhaps based on some other setting, for
+
+   | the parameter in question.
+
+   |
+
+   | Default: true
+
+  <interactiveMode>true</interactiveMode>
+
+  -->
+
+  <!-- offline
+
+   | Determines whether maven should attempt to connect to the network when executing a build.
+
+   | This will have an effect on artifact downloads, artifact deployment, and others.
+
+   |
+
+   | Default: false
+
+  <offline>false</offline>
+
+  -->
+
+  <!-- pluginGroups
+
+   | This is a list of additional group identifiers that will be searched when resolving plugins by their prefix, i.e.
+
+   | when invoking a command line like "mvn prefix:goal". Maven will automatically add the group identifiers
+
+   | "org.apache.maven.plugins" and "org.codehaus.mojo" if these are not already contained in the list.
+
+   |-->
+
+  <pluginGroups>
+
+    <!-- pluginGroup
+
+     | Specifies a further group identifier to use for plugin lookup.
+
+    <pluginGroup>com.your.plugins</pluginGroup>
+
+    -->
+
+  </pluginGroups>
+
+  <!-- proxies
+
+   | This is a list of proxies which can be used on this machine to connect to the network.
+
+   | Unless otherwise specified (by system property or command-line switch), the first proxy
+
+   | specification in this list marked as active will be used.
+
+   |-->
+
+  <proxies>
+
+    <!-- proxy
+
+     | Specification for one proxy, to be used in connecting to the network.
+
+     |
+
+    <proxy>
+
+      <id>optional</id>
+
+      <active>true</active>
+
+      <protocol>http</protocol>
+
+      <username>proxyuser</username>
+
+      <password>proxypass</password>
+
+      <host>proxy.host.net</host>
+
+      <port>80</port>
+
+      <nonProxyHosts>local.net|some.host.com</nonProxyHosts>
+
+    </proxy>
+
+    -->
+
+  </proxies>
+
+  <!-- servers
+
+   | This is a list of authentication profiles, keyed by the server-id used within the system.
+
+   | Authentication profiles can be used whenever maven must make a connection to a remote server.
+
+   |-->
+
+  <servers>
+
+    <!-- server
+
+     | Specifies the authentication information to use when connecting to a particular server, identified by
+
+     | a unique name within the system (referred to by the 'id' attribute below).
+
+     |
+
+     | NOTE: You should either specify username/password OR privateKey/passphrase, since these pairings are
+
+     |       used together.
+
+     |
+
+    <server>
+
+      <id>deploymentRepo</id>
+
+      <username>repouser</username>
+
+      <password>repopwd</password>
+
+    </server>
+
+    -->
+
+    <!-- Another sample, using keys to authenticate.
+
+    <server>
+
+      <id>siteServer</id>
+
+      <privateKey>/path/to/private/key</privateKey>
+
+      <passphrase>optional; leave empty if not used.</passphrase>
+
+    </server>
+
+    -->
+
+  </servers>
+
+  <!-- mirrors
+
+   | This is a list of mirrors to be used in downloading artifacts from remote repositories.
+
+   |
+
+   | It works like this: a POM may declare a repository to use in resolving certain artifacts.
+
+   | However, this repository may have problems with heavy traffic at times, so people have mirrored
+
+   | it to several places.
+
+   |
+
+   | That repository definition will have a unique id, so we can create a mirror reference for that
+
+   | repository, to be used as an alternate download site. The mirror site will be the preferred
+
+   | server for that repository.
+
+   |-->
+
+  <mirrors>
+
+    <!-- mirror
+
+     | Specifies a repository mirror site to use instead of a given repository. The repository that
+
+     | this mirror serves has an ID that matches the mirrorOf element of this mirror. IDs are used
+
+     | for inheritance and direct lookup purposes, and must be unique across the set of mirrors.
+
+     |
+
+    <mirror>
+
+      <id>mirrorId</id>
+
+      <mirrorOf>repositoryId</mirrorOf>
+
+      <name>Human Readable Name for this Mirror.</name>
+
+      <url>http://my.repository.com/repo/path</url>
+
+    </mirror>
+
+    -->
+
+    <mirror>
+
+	<id>nexus-aliyun</id>
+
+	<mirrorOf>central</mirrorOf>
+
+	<name>Nexus aliyun</name>
+
+	<url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+
+    </mirror>
+
+  </mirrors>
+
+  <!-- profiles
+
+   | This is a list of profiles which can be activated in a variety of ways, and which can modify
+
+   | the build process. Profiles provided in the settings.xml are intended to provide local machine-
+
+   | specific paths and repository locations which allow the build to work in the local environment.
+
+   |
+
+   | For example, if you have an integration testing plugin - like cactus - that needs to know where
+
+   | your Tomcat instance is installed, you can provide a variable here such that the variable is
+
+   | dereferenced during the build process to configure the cactus plugin.
+
+   |
+
+   | As noted above, profiles can be activated in a variety of ways. One way - the activeProfiles
+
+   | section of this document (settings.xml) - will be discussed later. Another way essentially
+
+   | relies on the detection of a system property, either matching a particular value for the property,
+
+   | or merely testing its existence. Profiles can also be activated by JDK version prefix, where a
+
+   | value of '1.4' might activate a profile when the build is executed on a JDK version of '1.4.2_07'.
+
+   | Finally, the list of active profiles can be specified directly from the command line.
+
+   |
+
+   | NOTE: For profiles defined in the settings.xml, you are restricted to specifying only artifact
+
+   |       repositories, plugin repositories, and free-form properties to be used as configuration
+
+   |       variables for plugins in the POM.
+
+   |
+
+   |-->
+
+  <profiles>
+
+    <!-- profile
+
+     | Specifies a set of introductions to the build process, to be activated using one or more of the
+
+     | mechanisms described above. For inheritance purposes, and to activate profiles via <activatedProfiles/>
+
+     | or the command line, profiles have to have an ID that is unique.
+
+     |
+
+     | An encouraged best practice for profile identification is to use a consistent naming convention
+
+     | for profiles, such as 'env-dev', 'env-test', 'env-production', 'user-jdcasey', 'user-brett', etc.
+
+     | This will make it more intuitive to understand what the set of introduced profiles is attempting
+
+     | to accomplish, particularly when you only have a list of profile id's for debug.
+
+     |
+
+     | This profile example uses the JDK version to trigger activation, and provides a JDK-specific repo.
+
+    <profile>
+
+      <id>jdk-1.4</id>
+
+      <activation>
+
+        <jdk>1.4</jdk>
+
+      </activation>
+
+      <repositories>
+
+        <repository>
+
+          <id>jdk14</id>
+
+          <name>Repository for JDK 1.4 builds</name>
+
+          <url>http://www.myhost.com/maven/jdk14</url>
+
+          <layout>default</layout>
+
+          <snapshotPolicy>always</snapshotPolicy>
+
+        </repository>
+
+      </repositories>
+
+    </profile>
+
+    -->
+
+    <!--
+
+     | Here is another profile, activated by the system property 'target-env' with a value of 'dev',
+
+     | which provides a specific path to the Tomcat instance. To use this, your plugin configuration
+
+     | might hypothetically look like:
+
+     |
+
+     | ...
+
+     | <plugin>
+
+     |   <groupId>org.myco.myplugins</groupId>
+
+     |   <artifactId>myplugin</artifactId>
+
+     |
+
+     |   <configuration>
+
+     |     <tomcatLocation>${tomcatPath}</tomcatLocation>
+
+     |   </configuration>
+
+     | </plugin>
+
+     | ...
+
+     |
+
+     | NOTE: If you just wanted to inject this configuration whenever someone set 'target-env' to
+
+     |       anything, you could just leave off the <value/> inside the activation-property.
+
+     |
+
+    <profile>
+
+      <id>env-dev</id>
+
+      <activation>
+
+        <property>
+
+          <name>target-env</name>
+
+          <value>dev</value>
+
+        </property>
+
+      </activation>
+
+      <properties>
+
+        <tomcatPath>/path/to/tomcat/instance</tomcatPath>
+
+      </properties>
+
+    </profile>
+
+    -->
+
+  </profiles>
+
+  <!-- activeProfiles
+
+   | List of profiles that are active for all builds.
+
+   |
+
+  <activeProfiles>
+
+    <activeProfile>alwaysActiveProfile</activeProfile>
+
+    <activeProfile>anotherAlwaysActiveProfile</activeProfile>
+
+  </activeProfiles>
+
+  -->
+
+</settings>
+SETTINGS_XML
+    
+    # 替换 localRepository 路径
+    sed -i "s|MAVEN_REPO_DIR|${repo_dir}|g" "$settings_file"
+    
+    if [ -f "$settings_file" ]; then
+        print_success "Maven settings.xml 配置完成: $settings_file"
+        print_info "本地仓库路径: $repo_dir"
+        return 0
+    else
+        print_error "创建 Maven settings.xml 失败: $settings_file"
+        return 1
+    fi
+}
+
+# 配置 Maven 环境变量（处理旧配置）
+configure_maven_env() {
+    local maven_dir="$1"
+    local profile_file="/etc/profile"
+    local temp_file=$(mktemp)
+    
+    # 检查是否存在旧的 Maven 配置（只检查未注释的 export 语句）
+    local has_old_maven=false
+    if grep -qE "^[[:space:]]*export[[:space:]]+MAVEN_HOME|^[[:space:]]*export[[:space:]]+.*MAVEN|^[[:space:]]*MAVEN_HOME=" "$profile_file" 2>/dev/null; then
+        has_old_maven=true
+        print_info "检测到 /etc/profile 中存在旧的 Maven 配置，将注释掉旧配置..."
+    fi
+    
+    # 读取现有配置并处理
+    if [ -f "$profile_file" ]; then
+        # 处理每一行：如果包含 MAVEN_HOME 的 export 语句且未被注释，则注释掉
+        while IFS= read -r line || [ -n "$line" ]; do
+            # 如果行包含 MAVEN_HOME 的 export 或赋值语句且未被注释，则注释掉
+            if echo "$line" | grep -qE "^[[:space:]]*export[[:space:]]+MAVEN_HOME|^[[:space:]]*export[[:space:]]+.*MAVEN|^[[:space:]]*MAVEN_HOME=" && ! echo "$line" | grep -qE "^[[:space:]]*#"; then
+                echo "# $line # Commented by install_middleware.sh" >> "$temp_file"
+            else
+                echo "$line" >> "$temp_file"
+            fi
+        done < "$profile_file"
+        
+        # 追加新的 Maven 配置
+        cat >> "$temp_file" << EOF
+
+# Maven 3.6.3 (configured by install_middleware.sh)
+export MAVEN_HOME=$maven_dir
+export PATH=\$MAVEN_HOME/bin:\$PATH
+EOF
+        
+        # 替换原文件
+        mv "$temp_file" "$profile_file"
+        
+        if [ "$has_old_maven" = true ]; then
+            print_success "已注释旧 Maven 配置并添加新配置"
+        else
+            print_success "Maven 环境变量已添加到 /etc/profile"
+        fi
+    else
+        print_error "/etc/profile 文件不存在"
+        rm -f "$temp_file"
         return 1
     fi
 }
@@ -665,8 +1226,22 @@ check_and_install_maven363() {
                     exit 1
                 fi
                 if install_maven363; then
-                    print_success "Maven 3.6.3 安装成功"
-                    return 0
+                    # 确保环境变量在当前 shell 中已设置
+                    local maven_dir="/opt/apache-maven-3.6.3"
+                    if [ -d "$maven_dir" ] && [ -f "$maven_dir/bin/mvn" ]; then
+                        export MAVEN_HOME="$maven_dir"
+                        export PATH="$MAVEN_HOME/bin:$PATH"
+                    fi
+                    
+                    # 再次验证 Maven 是否可用
+                    if check_maven_installed; then
+                        print_success "Maven 3.6.3 安装成功，环境变量已设置"
+                        return 0
+                    else
+                        print_warning "Maven 安装成功，但环境变量可能未生效"
+                        print_info "请手动执行: export MAVEN_HOME=$maven_dir && export PATH=\$MAVEN_HOME/bin:\$PATH"
+                        return 0  # 仍然返回成功，因为安装已完成
+                    fi
                 else
                     print_error "Maven 3.6.3 安装失败，请手动安装后重试"
                     exit 1
