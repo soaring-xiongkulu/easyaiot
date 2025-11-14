@@ -1710,27 +1710,8 @@ configure_apt_mirror() {
     
     # 检查用户是否已经选择过（通过标记文件）
     local apt_mirror_marker="/etc/apt/.easyaiot_mirror_configured"
-    if [ -f "$apt_mirror_marker" ]; then
-        local user_choice=$(cat "$apt_mirror_marker" 2>/dev/null || echo "")
-        if [ "$user_choice" = "skip" ]; then
-            print_info "检测到用户已选择跳过 apt 源配置，跳过此步骤"
-            return 0
-        elif [ "$user_choice" = "configured" ]; then
-            # 验证配置是否仍然有效
-            local current_sources_list="/etc/apt/sources.list"
-            if [ -f "$current_sources_list" ]; then
-                local current_sources_content=$(cat "$current_sources_list")
-                if echo "$current_sources_content" | grep -qiE "(mirrors\.(tuna|aliyun|163|ustc|huawei|tencent)|tuna\.tsinghua|aliyun\.com|163\.com|ustc\.edu|huawei\.com|tencent\.com)"; then
-                    print_info "检测到系统已配置国内 apt 源，跳过配置步骤"
-                    return 0
-                fi
-            fi
-            # 如果配置已失效，清除标记，重新检查
-            rm -f "$apt_mirror_marker"
-        fi
-    fi
     
-    # 检查当前系统是否已配置国内 apt 源
+    # 先检查当前系统是否已配置国内 apt 源（完整检查，包括 sources.list 和 sources.list.d）
     local current_sources_list="/etc/apt/sources.list"
     local current_sources_content=""
     local is_current_domestic=false
@@ -1763,6 +1744,20 @@ configure_apt_mirror() {
         print_info "检测到系统已配置国内 apt 源，跳过配置步骤"
         echo "configured" > "$apt_mirror_marker" 2>/dev/null || true
         return 0
+    fi
+    
+    # 如果系统未配置国内源，检查标记文件
+    if [ -f "$apt_mirror_marker" ]; then
+        local user_choice=$(cat "$apt_mirror_marker" 2>/dev/null || echo "")
+        if [ "$user_choice" = "skip" ]; then
+            print_info "检测到用户已选择跳过 apt 源配置，跳过此步骤"
+            return 0
+        elif [ "$user_choice" = "configured" ]; then
+            # 标记文件显示已配置，但实际检查未发现国内源，说明配置可能被删除了
+            # 清除标记文件，让用户重新选择
+            print_warning "检测到标记文件显示已配置，但实际未发现国内源配置，清除标记文件"
+            rm -f "$apt_mirror_marker"
+        fi
     fi
     
     # 读取本地 apt 源配置（用于替换）
