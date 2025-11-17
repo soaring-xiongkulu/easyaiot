@@ -298,7 +298,7 @@ check_gpu() {
     if check_command nvidia-smi; then
         GPU_HARDWARE_DETECTED=true
         print_info "检测到 NVIDIA GPU:"
-        nvidia-smi --query-gpu=name,driver_version --format=csv,noheader | while IFS=, read -r name version; do
+        nvidia-smi --query-gpu=name,driver_version --format=csv,noheader,nounits 2>/dev/null | while IFS=, read -r name version; do
             echo "  - GPU: $name (驱动版本: $version)"
         done
         
@@ -310,7 +310,7 @@ check_gpu() {
         else
             print_warning "NVIDIA Container Toolkit 未安装"
             # 获取GPU名称用于提示
-            GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -1 | xargs)
+            GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader,nounits 2>/dev/null | head -1 | xargs)
             print_info "检测到 GPU 硬件（${GPU_NAME}），但 NVIDIA Container Toolkit 未安装"
             echo ""
             print_info "是否自动安装 NVIDIA Container Toolkit？(Y/n)"
@@ -333,10 +333,10 @@ check_gpu() {
         
         # 检查 docker info 中是否有 nvidia runtime
         print_info "检查 Docker NVIDIA runtime 配置..."
-        if docker info 2>/dev/null | grep -q "nvidia"; then
+        if docker info --format '{{.Runtimes}}' 2>/dev/null | grep -q "nvidia"; then
             print_success "检测到 Docker 支持 NVIDIA runtime"
             # 再测试实际运行
-            if docker run --rm --gpus all nvidia/cuda:11.7.0-base-ubuntu22.04 nvidia-smi &> /dev/null 2>&1; then
+            if docker run --rm --gpus all nvidia/cuda:11.7.0-base-ubuntu22.04 nvidia-smi >/dev/null 2>&1; then
                 print_success "NVIDIA Container Toolkit 已正确配置"
                 GPU_AVAILABLE=true
             else
@@ -350,7 +350,7 @@ check_gpu() {
             if install_nvidia_container_toolkit; then
                 # 重新检查
                 sleep 2
-                if docker info 2>/dev/null | grep -q "nvidia"; then
+                if docker info --format '{{.Runtimes}}' 2>/dev/null | grep -q "nvidia"; then
                     print_success "Docker NVIDIA runtime 配置成功"
                     GPU_AVAILABLE=true
                 else
@@ -392,9 +392,9 @@ configure_gpu() {
 # 检查并创建 Docker 网络
 check_network() {
     print_info "检查 Docker 网络 easyaiot-network..."
-    if ! docker network ls | grep -q easyaiot-network; then
+    if ! docker network ls --quiet 2>/dev/null | grep -q "^easyaiot-network$"; then
         print_info "网络 easyaiot-network 不存在，正在创建..."
-        if docker network create easyaiot-network 2>/dev/null; then
+        if docker network create easyaiot-network >/dev/null 2>&1; then
             print_success "网络 easyaiot-network 已创建"
         else
             print_error "无法创建网络 easyaiot-network"
@@ -499,10 +499,17 @@ install_service() {
     print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $BASE_IMAGE"
     # 使用环境变量传递架构配置给docker-compose
     # 注意：Docker会自动检测当前架构，无需指定--platform参数
-    BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build
+    BUILD_OUTPUT=$(BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build 2>&1)
+    BUILD_STATUS=$?
+    # 只显示错误和警告信息
+    echo "$BUILD_OUTPUT" | grep -iE "(error|warning|failed|失败|警告)" || true
+    if [ $BUILD_STATUS -ne 0 ]; then
+        print_error "镜像构建失败"
+        exit 1
+    fi
     
     print_info "启动服务..."
-    $COMPOSE_CMD up -d
+    $COMPOSE_CMD up -d --quiet-pull 2>&1 | grep -v "^Creating\|^Starting\|^Pulling\|^Waiting\|^Container" || true
     
     print_success "服务安装完成！"
     print_info "等待服务启动..."
@@ -528,7 +535,7 @@ start_service() {
         create_env_file
     fi
     
-    $COMPOSE_CMD up -d
+    $COMPOSE_CMD up -d --quiet-pull 2>&1 | grep -v "^Creating\|^Starting\|^Pulling\|^Waiting\|^Container" || true
     print_success "服务已启动"
     check_status
 }
@@ -539,7 +546,7 @@ stop_service() {
     check_docker
     check_docker_compose
     
-    $COMPOSE_CMD down
+    $COMPOSE_CMD down --remove-orphans 2>&1 | grep -v "^Stopping\|^Removing\|^Network" || true
     print_success "服务已停止"
 }
 
@@ -549,7 +556,7 @@ restart_service() {
     check_docker
     check_docker_compose
     
-    $COMPOSE_CMD restart
+    $COMPOSE_CMD restart 2>&1 | grep -v "^Restarting" || true
     print_success "服务已重启"
     check_status
 }
@@ -560,12 +567,12 @@ check_status() {
     check_docker
     check_docker_compose
     
-    $COMPOSE_CMD ps
+    $COMPOSE_CMD ps 2>/dev/null | head -20
     
     echo ""
     print_info "容器健康状态:"
-    if docker ps --filter "name=ai-service" --format "table {{.Names}}\t{{.Status}}" | grep -q ai-service; then
-        docker ps --filter "name=ai-service" --format "table {{.Names}}\t{{.Status}}"
+    if docker ps --filter "name=ai-service" --format "{{.Names}}" 2>/dev/null | grep -q ai-service; then
+        docker ps --filter "name=ai-service" --format "table {{.Names}}\t{{.Status}}" 2>/dev/null
         
         # 检查健康检查
         HEALTH=$(docker inspect --format='{{.State.Health.Status}}' ai-service 2>/dev/null || echo "N/A")
@@ -602,7 +609,14 @@ build_image() {
     print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $BASE_IMAGE"
     # 使用环境变量传递架构配置给docker-compose
     # 注意：Docker会自动检测当前架构，无需指定--platform参数
-    BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build --no-cache
+    BUILD_OUTPUT=$(BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build --no-cache 2>&1)
+    BUILD_STATUS=$?
+    # 只显示错误和警告信息
+    echo "$BUILD_OUTPUT" | grep -iE "(error|warning|failed|失败|警告)" || true
+    if [ $BUILD_STATUS -ne 0 ]; then
+        print_error "镜像构建失败"
+        exit 1
+    fi
     print_success "镜像构建完成"
 }
 
@@ -615,10 +629,10 @@ clean_service() {
         check_docker
         check_docker_compose
         print_info "停止并删除容器..."
-        $COMPOSE_CMD down -v
+        $COMPOSE_CMD down -v --remove-orphans 2>&1 | grep -v "^Stopping\|^Removing\|^Network" || true
         
         print_info "删除镜像..."
-        docker rmi ai-service:latest 2>/dev/null || true
+        docker rmi ai-service:latest >/dev/null 2>&1 || true
         
         print_success "清理完成"
     else
@@ -642,10 +656,17 @@ update_service() {
     print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $BASE_IMAGE"
     # 使用环境变量传递架构配置给docker-compose
     # 注意：Docker会自动检测当前架构，无需指定--platform参数
-    BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build
+    BUILD_OUTPUT=$(BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build 2>&1)
+    BUILD_STATUS=$?
+    # 只显示错误和警告信息
+    echo "$BUILD_OUTPUT" | grep -iE "(error|warning|failed|失败|警告)" || true
+    if [ $BUILD_STATUS -ne 0 ]; then
+        print_error "镜像构建失败"
+        exit 1
+    fi
     
     print_info "重启服务..."
-    $COMPOSE_CMD up -d
+    $COMPOSE_CMD up -d --quiet-pull 2>&1 | grep -v "^Creating\|^Starting\|^Pulling\|^Waiting\|^Container" || true
     
     print_success "服务更新完成"
     check_status
