@@ -141,45 +141,43 @@ public class IotGatewayProperties {
 
         /**
          * MQTT 服务器地址
+         * 注意：仅在 enabled=true 时必填
          */
-        @NotEmpty(message = "MQTT 服务器地址不能为空")
         private String mqttHost;
 
         /**
          * MQTT 服务器端口（默认：1883）
          */
-        @NotNull(message = "MQTT 服务器端口不能为空")
         private Integer mqttPort = 1883;
 
         /**
          * MQTT 用户名
+         * 注意：仅在 enabled=true 时必填
          */
-        @NotEmpty(message = "MQTT 用户名不能为空")
         private String mqttUsername;
 
         /**
          * MQTT 密码
+         * 注意：仅在 enabled=true 时必填
          */
-        @NotEmpty(message = "MQTT 密码不能为空")
         private String mqttPassword;
 
         /**
          * MQTT 客户端的 SSL 开关
          */
-        @NotNull(message = "MQTT 是否开启 SSL 不能为空")
         private Boolean mqttSsl = false;
 
         /**
          * MQTT 客户端 ID（如果为空，系统将自动生成）
+         * 注意：仅在 enabled=true 时必填
          */
-        @NotEmpty(message = "MQTT 客户端 ID 不能为空")
         private String mqttClientId;
 
         /**
          * MQTT 订阅的主题
+         * 注意：仅在 enabled=true 时必填
          */
-        @NotEmpty(message = "MQTT 主题不能为空")
-        private List<@NotEmpty(message = "MQTT 主题不能为空") String> mqttTopics;
+        private List<String> mqttTopics;
 
         /**
          * 默认 QoS 级别

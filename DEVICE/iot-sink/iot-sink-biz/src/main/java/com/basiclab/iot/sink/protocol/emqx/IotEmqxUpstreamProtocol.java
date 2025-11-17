@@ -103,10 +103,26 @@ public class IotEmqxUpstreamProtocol {
     }
 
     /**
+     * 验证配置项
+     */
+    private void validateConfiguration() {
+        Assert.notBlank(emqxProperties.getMqttHost(), "MQTT 服务器地址不能为空");
+        Assert.notNull(emqxProperties.getMqttPort(), "MQTT 服务器端口不能为空");
+        Assert.notBlank(emqxProperties.getMqttUsername(), "MQTT 用户名不能为空");
+        Assert.notBlank(emqxProperties.getMqttPassword(), "MQTT 密码不能为空");
+        Assert.notBlank(emqxProperties.getMqttClientId(), "MQTT 客户端 ID 不能为空");
+        Assert.notNull(emqxProperties.getMqttTopics(), "MQTT 主题不能为空");
+        Assert.isTrue(!emqxProperties.getMqttTopics().isEmpty(), "MQTT 主题列表不能为空");
+    }
+
+    /**
      * 启动 MQTT 客户端
      */
     private void startMqttClient() {
         try {
+            // 0. 验证必需的配置项
+            validateConfiguration();
+
             // 1. 初始化消息处理器
             this.upstreamHandler = new IotEmqxUpstreamHandler(this);
 
