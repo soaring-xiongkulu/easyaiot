@@ -5,15 +5,15 @@ import com.basiclab.iot.sink.enums.IotDeviceTopicEnum;
 import com.basiclab.iot.sink.messagebus.core.IotMessageBus;
 import com.basiclab.iot.sink.messagebus.core.IotMessageSubscriber;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
+import com.basiclab.iot.sink.service.device.event.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.annotation.Lazy;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * IoT 设备 Topic 消息订阅器
@@ -31,12 +31,7 @@ public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceM
     private IotMessageBus messageBus;
 
     @Resource
-    private IotDeviceMessageService deviceMessageService;
-
-    /**
-     * 订阅的 Topic 列表
-     */
-    private final List<String> subscribedTopics = new ArrayList<>();
+    private ApplicationEventPublisher eventPublisher;
 
     @Override
     public void afterSingletonsInstantiated() {
@@ -83,8 +78,8 @@ public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceM
                 return;
             }
 
-            // 3. 处理消息
-            handleMessage(message, topicEnum);
+            // 3. 发布事件，由对应的 EventListener 异步处理
+            publishEvent(message, topicEnum);
 
         } catch (Exception e) {
             log.error("[onMessage][处理设备消息失败，messageId: {}, topic: {}]",
@@ -94,22 +89,22 @@ public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceM
     }
 
     /**
-     * 处理消息
+     * 发布事件，由对应的 EventListener 异步处理
      *
      * @param message   消息
      * @param topicEnum Topic 枚举
      */
-    private void handleMessage(IotDeviceMessage message, IotDeviceTopicEnum topicEnum) {
-        log.info("[handleMessage][处理消息，topic: {}, 类型: {}, 描述: {}]",
+    private void publishEvent(IotDeviceMessage message, IotDeviceTopicEnum topicEnum) {
+        log.debug("[publishEvent][发布事件，topic: {}, 类型: {}, 描述: {}]",
                 message.getTopic(), topicEnum.name(), topicEnum.getDescription());
 
-        // 根据不同的 Topic 类型进行不同的处理
+        // 根据不同的 Topic 类型发布对应的事件
         switch (topicEnum) {
             // 配置管理相关
             case CONFIG_DOWNSTREAM_PUSH:
             case CONFIG_DOWNSTREAM_QUERY_ACK:
             case CONFIG_UPSTREAM_QUERY:
-                handleConfigMessage(message, topicEnum);
+                eventPublisher.publishEvent(new ConfigEvent(this, message, topicEnum));
                 break;
 
             // 设备标签管理相关
@@ -117,24 +112,24 @@ public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceM
             case DEVICE_TAG_UPSTREAM_DELETE:
             case DEVICE_TAG_UPSTREAM_REPORT:
             case DEVICE_TAG_DOWNSTREAM_DELETE_ACK:
-                handleDeviceInfoMessage(message, topicEnum);
+                eventPublisher.publishEvent(new DeviceInfoEvent(this, message, topicEnum));
                 break;
 
             // 设备影子相关
             case SHADOW_DOWNSTREAM_DESIRED:
             case SHADOW_UPSTREAM_REPORT:
-                handleShadowMessage(message, topicEnum);
+                eventPublisher.publishEvent(new ShadowEvent(this, message, topicEnum));
                 break;
 
             // 时钟同步相关
             case NTP_UPSTREAM_REQUEST:
             case NTP_DOWNSTREAM_RESPONSE:
-                handleNtpMessage(message, topicEnum);
+                eventPublisher.publishEvent(new NtpEvent(this, message, topicEnum));
                 break;
 
             // 广播相关
             case BROADCAST_DOWNSTREAM:
-                handleBroadcastMessage(message, topicEnum);
+                eventPublisher.publishEvent(new BroadcastEvent(this, message, topicEnum));
                 break;
 
             // OTA 固件升级相关
@@ -142,13 +137,13 @@ public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceM
             case OTA_UPSTREAM_VERSION_REPORT:
             case OTA_UPSTREAM_PROGRESS_REPORT:
             case OTA_UPSTREAM_FIRMWARE_QUERY:
-                handleOtaMessage(message, topicEnum);
+                eventPublisher.publishEvent(new OtaEvent(this, message, topicEnum));
                 break;
 
             // 服务调用相关
             case SERVICE_DOWNSTREAM_INVOKE:
             case SERVICE_UPSTREAM_INVOKE_RESPONSE:
-                handleServiceMessage(message, topicEnum);
+                eventPublisher.publishEvent(new ServiceEvent(this, message, topicEnum));
                 break;
 
             // 属性相关
@@ -158,92 +153,20 @@ public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceM
             case PROPERTY_UPSTREAM_DESIRED_QUERY_RESPONSE:
             case PROPERTY_UPSTREAM_REPORT:
             case PROPERTY_DOWNSTREAM_REPORT_ACK:
-                handlePropertyMessage(message, topicEnum);
+                eventPublisher.publishEvent(new PropertyEvent(this, message, topicEnum));
                 break;
 
             // 事件相关
             case EVENT_UPSTREAM_REPORT:
             case EVENT_DOWNSTREAM_REPORT_ACK:
-                handleEventMessage(message, topicEnum);
+                eventPublisher.publishEvent(new EventMessageEvent(this, message, topicEnum));
                 break;
 
             default:
-                log.warn("[handleMessage][未处理的 Topic 类型，topic: {}, 类型: {}]",
+                log.warn("[publishEvent][未处理的 Topic 类型，topic: {}, 类型: {}]",
                         message.getTopic(), topicEnum.name());
                 break;
         }
-    }
-
-    /**
-     * 处理配置消息
-     */
-    private void handleConfigMessage(IotDeviceMessage message, IotDeviceTopicEnum topicEnum) {
-        log.debug("[handleConfigMessage][处理配置消息，topic: {}]", topicEnum.name());
-        // TODO: 实现配置消息处理逻辑
-    }
-
-    /**
-     * 处理设备标签消息
-     */
-    private void handleDeviceInfoMessage(IotDeviceMessage message, IotDeviceTopicEnum topicEnum) {
-        log.debug("[handleDeviceInfoMessage][处理设备标签消息，topic: {}]", topicEnum.name());
-        // TODO: 实现设备标签消息处理逻辑
-    }
-
-    /**
-     * 处理设备影子消息
-     */
-    private void handleShadowMessage(IotDeviceMessage message, IotDeviceTopicEnum topicEnum) {
-        log.debug("[handleShadowMessage][处理设备影子消息，topic: {}]", topicEnum.name());
-        // TODO: 实现设备影子消息处理逻辑
-    }
-
-    /**
-     * 处理 NTP 消息
-     */
-    private void handleNtpMessage(IotDeviceMessage message, IotDeviceTopicEnum topicEnum) {
-        log.debug("[handleNtpMessage][处理 NTP 消息，topic: {}]", topicEnum.name());
-        // TODO: 实现 NTP 消息处理逻辑
-    }
-
-    /**
-     * 处理广播消息
-     */
-    private void handleBroadcastMessage(IotDeviceMessage message, IotDeviceTopicEnum topicEnum) {
-        log.debug("[handleBroadcastMessage][处理广播消息，topic: {}]", topicEnum.name());
-        // TODO: 实现广播消息处理逻辑
-    }
-
-    /**
-     * 处理 OTA 消息
-     */
-    private void handleOtaMessage(IotDeviceMessage message, IotDeviceTopicEnum topicEnum) {
-        log.debug("[handleOtaMessage][处理 OTA 消息，topic: {}]", topicEnum.name());
-        // TODO: 实现 OTA 消息处理逻辑
-    }
-
-    /**
-     * 处理服务调用消息
-     */
-    private void handleServiceMessage(IotDeviceMessage message, IotDeviceTopicEnum topicEnum) {
-        log.debug("[handleServiceMessage][处理服务调用消息，topic: {}]", topicEnum.name());
-        // TODO: 实现服务调用消息处理逻辑
-    }
-
-    /**
-     * 处理属性消息
-     */
-    private void handlePropertyMessage(IotDeviceMessage message, IotDeviceTopicEnum topicEnum) {
-        log.debug("[handlePropertyMessage][处理属性消息，topic: {}]", topicEnum.name());
-        // TODO: 实现属性消息处理逻辑
-    }
-
-    /**
-     * 处理事件消息
-     */
-    private void handleEventMessage(IotDeviceMessage message, IotDeviceTopicEnum topicEnum) {
-        log.debug("[handleEventMessage][处理事件消息，topic: {}]", topicEnum.name());
-        // TODO: 实现事件消息处理逻辑
     }
 }
 
