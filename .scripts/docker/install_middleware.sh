@@ -3222,6 +3222,107 @@ wait_for_minio() {
     return 1
 }
 
+# 等待 TDengine 服务就绪
+wait_for_tdengine() {
+    local max_attempts=60
+    local attempt=0
+    
+    print_info "等待 TDengine 服务就绪..."
+    while [ $attempt -lt $max_attempts ]; do
+        # 使用 taos 命令测试连接
+        if docker exec tdengine-server taos -h localhost -s "select 1;" > /dev/null 2>&1; then
+            print_success "TDengine 服务已就绪"
+            return 0
+        fi
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+    
+    print_error "TDengine 服务未就绪"
+    return 1
+}
+
+# 检查 TDengine 数据库是否存在
+check_tdengine_database() {
+    local db_name=$1
+    
+    # 检查数据库是否存在（通过查询系统数据库）
+    local result=$(docker exec tdengine-server taos -h localhost -s "show databases;" 2>/dev/null | grep -w "$db_name" || echo "")
+    if [ -n "$result" ]; then
+        return 0  # 数据库存在
+    else
+        return 1  # 数据库不存在
+    fi
+}
+
+# 创建 TDengine 数据库
+create_tdengine_database() {
+    local db_name=$1
+    
+    print_info "创建 TDengine 数据库: $db_name"
+    
+    # 检查数据库是否已存在
+    if check_tdengine_database "$db_name"; then
+        print_info "TDengine 数据库 $db_name 已存在，跳过创建"
+        return 0
+    fi
+    
+    # 创建数据库（使用 if not exists 避免重复创建错误）
+    local output=$(docker exec tdengine-server taos -h localhost -s "create database if not exists $db_name;" 2>&1)
+    local exit_code=$?
+    
+    if [ $exit_code -eq 0 ]; then
+        print_success "TDengine 数据库 $db_name 创建成功"
+        return 0
+    else
+        # 检查是否是因为数据库已存在（某些情况下可能检测不到）
+        if echo "$output" | grep -qiE "(already exists|exist)"; then
+            print_info "TDengine 数据库 $db_name 已存在（检测到已存在消息）"
+            return 0
+        else
+            print_error "TDengine 数据库 $db_name 创建失败: $output"
+            return 1
+        fi
+    fi
+}
+
+# 初始化 TDengine 数据库和超级表
+init_tdengine() {
+    print_section "初始化 TDengine 数据库和超级表"
+    
+    # 等待 TDengine 就绪
+    if ! wait_for_tdengine; then
+        print_error "TDengine 未就绪，无法初始化数据库"
+        return 1
+    fi
+    
+    # 定义需要创建的数据库列表
+    local databases=("iot_device")
+    local success_count=0
+    local total_count=${#databases[@]}
+    
+    # 创建数据库
+    for db_name in "${databases[@]}"; do
+        if create_tdengine_database "$db_name"; then
+            success_count=$((success_count + 1))
+        fi
+        echo ""
+    done
+    
+    echo ""
+    print_section "TDengine 初始化结果"
+    echo "成功: ${GREEN}$success_count${NC} / $total_count"
+    
+    if [ $success_count -eq $total_count ]; then
+        print_success "所有 TDengine 数据库初始化完成！"
+        print_info "注意：超级表将在应用启动时根据产品服务动态创建"
+        return 0
+    else
+        print_warning "部分 TDengine 数据库初始化失败"
+        return 1
+    fi
+}
+
 # 检查数据库是否已初始化（通过检查表数量）
 check_database_initialized() {
     local db_name=$1
@@ -4583,6 +4684,10 @@ install_middleware() {
     # 初始化数据库
     echo ""
     init_databases
+    
+    # 初始化 TDengine
+    echo ""
+    init_tdengine
     
     # 初始化 MinIO
     echo ""
