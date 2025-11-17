@@ -8,6 +8,7 @@ import javax.script.Compilable;
 import javax.script.CompiledScript;
 import javax.script.Invocable;
 import javax.script.ScriptException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -52,9 +53,9 @@ public class JsScriptManager {
      * 检查脚本是否正确
      *
      * @param jsText JS 脚本文本
-     * @return 检查结果，true 表示成功，false 表示失败，第二个元素是错误信息
+     * @return 检查结果，包含成功标志和消息
      */
-    public boolean[] checkScript(String jsText) {
+    public CheckResult checkScript(String jsText) {
         try {
             CompiledScript script = compileScript(jsText);
             Invocable invocable = (Invocable) script.getEngine();
@@ -64,7 +65,7 @@ public class JsScriptManager {
                 invocable.invokeFunction("rawDataToProtocol", "", new byte[0]);
             } catch (NoSuchMethodException e) {
                 log.error("[checkScript][rawDataToProtocol 方法不存在]");
-                return new boolean[]{false, "rawDataToProtocol 方法不存在！"};
+                return new CheckResult(false, "rawDataToProtocol 方法不存在！");
             } catch (Exception e) {
                 // 忽略参数错误，只要方法存在即可
             }
@@ -74,15 +75,36 @@ public class JsScriptManager {
                 invocable.invokeFunction("protocolToRawData", "", new HashMap<>());
             } catch (NoSuchMethodException e) {
                 log.error("[checkScript][protocolToRawData 方法不存在]");
-                return new boolean[]{false, "protocolToRawData 方法不存在！"};
+                return new CheckResult(false, "protocolToRawData 方法不存在！");
             } catch (Exception e) {
                 // 忽略参数错误，只要方法存在即可
             }
 
-            return new boolean[]{true, "脚本检查通过"};
+            return new CheckResult(true, "脚本检查通过");
         } catch (ScriptException e) {
             log.error("[checkScript][脚本编译失败]", e);
-            return new boolean[]{false, "脚本编译失败：" + e.getMessage()};
+            return new CheckResult(false, "脚本编译失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 脚本检查结果
+     */
+    public static class CheckResult {
+        private final boolean success;
+        private final String message;
+
+        public CheckResult(boolean success, String message) {
+            this.success = success;
+            this.message = message;
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public String getMessage() {
+            return message;
         }
     }
 

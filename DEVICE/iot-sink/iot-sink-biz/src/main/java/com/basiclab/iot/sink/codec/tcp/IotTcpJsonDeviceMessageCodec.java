@@ -79,6 +79,12 @@ public class IotTcpJsonDeviceMessageCodec implements IotDeviceMessageCodec {
     }
 
     @Override
+    public String topic() {
+        // TCP JSON 编解码器不是基于 topic 的，返回 null 表示使用 type() 方法进行匹配（向后兼容）
+        return null;
+    }
+
+    @Override
     public byte[] encode(IotDeviceMessage message) {
         TcpJsonMessage tcpJsonMessage = new TcpJsonMessage(
                 message.getRequestId(),

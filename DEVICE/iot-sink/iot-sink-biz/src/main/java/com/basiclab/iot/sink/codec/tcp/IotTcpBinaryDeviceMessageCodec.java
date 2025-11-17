@@ -79,6 +79,12 @@ public class IotTcpBinaryDeviceMessageCodec implements IotDeviceMessageCodec {
     }
 
     @Override
+    public String topic() {
+        // TCP 二进制编解码器不是基于 topic 的，返回 null 表示使用 type() 方法进行匹配（向后兼容）
+        return null;
+    }
+
+    @Override
     public byte[] encode(IotDeviceMessage message) {
         Assert.notNull(message, "消息不能为空");
         Assert.notBlank(message.getMethod(), "消息方法不能为空");

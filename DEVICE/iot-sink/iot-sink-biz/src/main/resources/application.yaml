@@ -138,6 +138,22 @@ spring:
         session:
           timeout:
             ms: 10000
+        # 连接重试配置
+        reconnect:
+          backoff:
+            ms: 50
+        retry:
+          backoff:
+            ms: 100
+        # 请求超时时间
+        request:
+          timeout:
+            ms: 30000
+        # 元数据获取超时时间
+        metadata:
+          max:
+            age:
+              ms: 300000
       listener:
         # 在侦听器容器中运行的线程数，一般设置为 机器数*分区数
         concurrency: 4
@@ -177,6 +193,11 @@ aj:
     req-verify-minute-limit: 60 # verify 接口一分钟内请求数限制
 
 --- #################### BasicLab相关配置 ####################
+
+basiclab:
+  iot:
+    message-bus:
+      type: local # 消息总线类型：local、kafka（默认 local）
 
 iot:
   info:
@@ -228,3 +249,17 @@ iot:
     end-code: 9999 # 这里配置 9999 的原因是，测试方便。
 
 debug: false
+
+--- #################### 日志配置 ####################
+
+# 日志级别配置
+logging:
+  level:
+    # 降低 Kafka 客户端日志级别，避免连接断开时疯狂打印日志
+    org.apache.kafka.clients.NetworkClient: WARN
+    org.apache.kafka.clients.consumer.internals.ConsumerCoordinator: WARN
+    org.apache.kafka.clients.consumer.internals.AbstractCoordinator: WARN
+    org.apache.kafka.common.network.Selector: WARN
+    # 保持其他 Kafka 相关日志为 INFO 级别
+    org.apache.kafka: INFO
+    org.springframework.kafka: INFO

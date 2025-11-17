@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * 基于 Kafka 的 {@link IotMessageBus} 实现类
@@ -104,7 +105,19 @@ public class IotKafkaMessageBus implements IotMessageBus {
         ConsumerFactory<String, String> consumerFactory = new DefaultKafkaConsumerFactory<>(props);
 
         // 创建容器属性
-        ContainerProperties containerProps = new ContainerProperties(topic);
+        // 如果 topic 包含 MQTT 通配符格式（如 iot/#），需要转换为 Kafka 正则表达式
+        ContainerProperties containerProps;
+        if (topic.contains("#") || topic.contains("+")) {
+            // 将 MQTT 通配符格式转换为 Kafka 正则表达式
+            // iot/# -> ^iot/.*
+            // iot/+/device -> ^iot/[^/]+/device
+            String regexPattern = convertMqttWildcardToKafkaRegex(topic);
+            Pattern pattern = Pattern.compile(regexPattern);
+            containerProps = new ContainerProperties(pattern);
+            log.info("[register][将 MQTT 通配符主题 {} 转换为 Kafka 正则表达式: {}]", topic, regexPattern);
+        } else {
+            containerProps = new ContainerProperties(topic);
+        }
         containerProps.setMessageListener(new MessageListener<String, String>() {
             @Override
             @SuppressWarnings("unchecked")
@@ -133,6 +146,56 @@ public class IotKafkaMessageBus implements IotMessageBus {
 
         log.info("[register][topic({}/{}) 注册消费者({})成功]",
                 topic, groupId, subscriber.getClass().getName());
+    }
+
+    /**
+     * 将 MQTT 通配符格式转换为 Kafka 正则表达式
+     * 
+     * MQTT 通配符规则：
+     * - # 表示匹配零个或多个层级（只能放在最后）
+     * - + 表示匹配单个层级
+     * 
+     * Kafka 使用 Java 正则表达式：
+     * - .* 表示匹配任意字符（零个或多个）
+     * - [^/]+ 表示匹配除 / 外的任意字符（一个或多个）
+     * 
+     * @param mqttTopic MQTT 格式的主题（如 iot/# 或 iot/+/device）
+     * @return Kafka 正则表达式（如 ^iot/.* 或 ^iot/[^/]+/device）
+     */
+    private String convertMqttWildcardToKafkaRegex(String mqttTopic) {
+        if (mqttTopic == null || mqttTopic.isEmpty()) {
+            return mqttTopic;
+        }
+        
+        // 转义特殊字符（除了 # 和 +）
+        String regex = mqttTopic
+                .replace(".", "\\.")
+                .replace("$", "\\$")
+                .replace("^", "\\^")
+                .replace("[", "\\[")
+                .replace("]", "\\]")
+                .replace("(", "\\(")
+                .replace(")", "\\)")
+                .replace("{", "\\{")
+                .replace("}", "\\}")
+                .replace("|", "\\|");
+        
+        // 处理 # 通配符（只能出现在最后，匹配零个或多个层级）
+        if (regex.endsWith("/#")) {
+            regex = regex.substring(0, regex.length() - 2) + ".*";
+        } else if (regex.endsWith("#")) {
+            regex = regex.substring(0, regex.length() - 1) + ".*";
+        }
+        
+        // 处理 + 通配符（匹配单个层级，即匹配除 / 外的任意字符）
+        regex = regex.replace("+", "[^/]+");
+        
+        // 添加行首锚点
+        if (!regex.startsWith("^")) {
+            regex = "^" + regex;
+        }
+        
+        return regex;
     }
 
 }

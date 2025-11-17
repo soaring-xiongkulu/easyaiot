@@ -1,25 +1,27 @@
 package com.basiclab.iot.sink.javascript;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.script.Bindings;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * JS 执行引擎，单例
  *
  * @author 翱翔的雄库鲁
  */
-@Slf4j
 public enum JsEngine {
     /**
      * 实例
      */
     INSTANCE;
+
+    private static Logger getLog() {
+        return LoggerFactory.getLogger(JsEngine.class);
+    }
 
     private final ScriptEngine engine;
     private final String jsGlobalImport;
@@ -41,7 +43,7 @@ public enum JsEngine {
         }
 
         this.engine = jsEngine;
-        log.info("[JsEngine][初始化 JavaScript 引擎: {}]", jsEngine.getClass().getName());
+        getLog().info("[JsEngine][初始化 JavaScript 引擎: {}]", jsEngine.getClass().getName());
 
         // 添加全局工具类
         Bindings globalBindings = engine.createBindings();

@@ -13,6 +13,7 @@ import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
 import com.basiclab.iot.sink.protocol.mqtt.IotMqttUpstreamProtocol;
 import com.basiclab.iot.sink.protocol.mqtt.manager.IotMqttConnectionManager;
 import com.basiclab.iot.sink.service.device.message.IotDeviceMessageService;
+import com.basiclab.iot.sink.service.device.message.IotDeviceMessageServiceImpl;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.mqtt.MqttEndpoint;

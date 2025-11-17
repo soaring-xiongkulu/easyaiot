@@ -6,9 +6,10 @@ import com.basiclab.iot.sink.messagebus.core.IotMessageBus;
 import com.basiclab.iot.sink.messagebus.core.IotMessageSubscriber;
 import com.basiclab.iot.sink.service.product.script.ProductScriptService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.script.ScriptException;
 
@@ -21,9 +22,10 @@ import javax.script.ScriptException;
  */
 @Slf4j
 @Component
-public class ProductScriptKafkaSubscriber implements IotMessageSubscriber<String> {
+public class ProductScriptKafkaSubscriber implements IotMessageSubscriber<String>, SmartInitializingSingleton {
 
     @Resource
+    @Lazy
     private IotMessageBus messageBus;
 
     @Resource
@@ -37,10 +39,11 @@ public class ProductScriptKafkaSubscriber implements IotMessageSubscriber<String
      */
     private static final String TOPIC = "iot_product_script_change";
 
-    @PostConstruct
-    public void init() {
+    @Override
+    public void afterSingletonsInstantiated() {
+        // 在所有单例 bean 初始化完成后注册订阅器，避免循环依赖
         messageBus.register(this);
-        log.info("[init][产品脚本 Kafka 订阅器初始化完成，订阅主题: {}]", getTopic());
+        log.info("[afterSingletonsInstantiated][产品脚本 Kafka 订阅器初始化完成，订阅主题: {}]", getTopic());
     }
 
     @Override

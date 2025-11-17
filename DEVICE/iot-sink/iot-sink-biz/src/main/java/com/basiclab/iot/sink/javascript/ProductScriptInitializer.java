@@ -1,5 +1,6 @@
 package com.basiclab.iot.sink.javascript;
 
+import com.basiclab.iot.common.core.context.TenantContextHolder;
 import com.basiclab.iot.sink.dal.dataobject.ProductScriptDO;
 import com.basiclab.iot.sink.service.product.script.ProductScriptService;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +36,15 @@ public class ProductScriptInitializer implements CommandLineRunner {
 
         try {
             // 1. 从数据库加载所有启用的脚本
-            List<ProductScriptDO> enabledScripts = productScriptService.getAllEnabledScripts();
+            // 忽略租户检查，因为初始化时需要加载所有租户的脚本
+            Boolean oldIgnore = TenantContextHolder.isIgnore();
+            List<ProductScriptDO> enabledScripts;
+            try {
+                TenantContextHolder.setIgnore(true);
+                enabledScripts = productScriptService.getAllEnabledScripts();
+            } finally {
+                TenantContextHolder.setIgnore(oldIgnore);
+            }
             log.info("[run][从数据库加载到 {} 个启用的产品脚本]", enabledScripts.size());
 
             // 2. 逐个编译并加载到内存

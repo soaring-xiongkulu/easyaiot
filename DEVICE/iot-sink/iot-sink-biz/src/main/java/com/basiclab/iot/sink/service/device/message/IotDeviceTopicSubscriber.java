@@ -8,7 +8,9 @@ import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
+import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.context.annotation.Lazy;
+
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,9 +24,10 @@ import java.util.List;
  */
 @Slf4j
 @Component
-public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceMessage> {
+public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceMessage>, SmartInitializingSingleton {
 
     @Resource
+    @Lazy
     private IotMessageBus messageBus;
 
     @Resource
@@ -35,11 +38,11 @@ public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceM
      */
     private final List<String> subscribedTopics = new ArrayList<>();
 
-    @PostConstruct
-    public void init() {
-        // 注册订阅器
+    @Override
+    public void afterSingletonsInstantiated() {
+        // 在所有单例 bean 初始化完成后注册订阅器，避免循环依赖
         messageBus.register(this);
-        log.info("[init][IoT 设备 Topic 消息订阅器初始化完成，订阅主题: {}]", getTopic());
+        log.info("[afterSingletonsInstantiated][IoT 设备 Topic 消息订阅器初始化完成，订阅主题: {}]", getTopic());
     }
 
     @Override
