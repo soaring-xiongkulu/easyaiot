@@ -10,6 +10,7 @@ import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
 import com.basiclab.iot.sink.protocol.http.IotHttpUpstreamProtocol;
+import com.basiclab.iot.sink.config.IotGatewayProperties;
 import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -43,6 +44,11 @@ public class IotHttpAuthHandler extends IotHttpAbstractHandler {
     }
 
     @Override
+    protected IotGatewayProperties.HttpProperties getHttpProperties() {
+        return protocol.getHttpProperties();
+    }
+
+    @Override
     public CommonResult<Object> handle0(RoutingContext context) {
         // 1. 解析参数
         JsonObject body = context.body().asJsonObject();
@@ -59,19 +65,29 @@ public class IotHttpAuthHandler extends IotHttpAbstractHandler {
             throw invalidParamException("password 不能为空");
         }
 
-        // 2.1 执行认证
-        boolean authResult = deviceAuthService.authDevice(new IotDeviceAuthReqDTO()
-                .setClientId(clientId).setUsername(username).setPassword(password));
-        if (!authResult) {
-            throw exception(DEVICE_AUTH_FAIL);
+        // 2. 如果开启鉴权，则执行认证
+        IotDeviceAuthUtils.DeviceInfo deviceInfo;
+        if (Boolean.TRUE.equals(protocol.getHttpProperties().getAuthEnabled())) {
+            // 2.1 执行认证
+            boolean authResult = deviceAuthService.authDevice(new IotDeviceAuthReqDTO()
+                    .setClientId(clientId).setUsername(username).setPassword(password));
+            if (!authResult) {
+                throw exception(DEVICE_AUTH_FAIL);
+            }
+            // 2.2 解析设备信息
+            deviceInfo = deviceAuthService.parseUsername(username);
+            Assert.notNull(deviceInfo, "设备信息不能为空");
+        } else {
+            // 如果不开启鉴权，直接解析 username 获取设备信息
+            deviceInfo = deviceAuthService.parseUsername(username);
+            Assert.notNull(deviceInfo, "设备信息不能为空");
         }
-        // 2.2 生成 Token
-        IotDeviceAuthUtils.DeviceInfo deviceInfo = deviceAuthService.parseUsername(username);
-        Assert.notNull(deviceInfo, "设备信息不能为空");
+
+        // 3. 生成 Token
         String token = deviceAuthService.createToken(deviceInfo.getProductIdentification(), deviceInfo.getDeviceIdentification());
         Assert.notBlank(token, "生成 token 不能为空位");
 
-        // 3. 执行上线
+        // 4. 执行上线
         IotDeviceMessage message = IotDeviceMessage.buildStateUpdateOnline();
         deviceMessageService.sendDeviceMessage(message,
                 deviceInfo.getProductIdentification(), deviceInfo.getDeviceIdentification(), protocol.getServerId());

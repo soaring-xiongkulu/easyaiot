@@ -108,12 +108,6 @@ public class IotDeviceAuthServiceImpl implements IotDeviceAuthService {
         // 向后兼容：优先使用新字段，如果没有则使用旧字段
         String productIdentification = payload.getStr("productIdentification");
         String deviceIdentification = payload.getStr("deviceIdentification");
-        if (productIdentification == null) {
-            productIdentification = payload.getStr("productKey");
-        }
-        if (deviceIdentification == null) {
-            deviceIdentification = payload.getStr("deviceName");
-        }
         Assert.notBlank(productIdentification, "productIdentification 不能为空");
         Assert.notBlank(deviceIdentification, "deviceIdentification 不能为空");
         return new IotDeviceAuthUtils.DeviceInfo().setProductIdentification(productIdentification).setDeviceIdentification(deviceIdentification);

@@ -9,6 +9,7 @@ import com.basiclab.iot.common.exception.ServiceException;
 import com.basiclab.iot.common.utils.json.JsonUtils;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
 import com.basiclab.iot.sink.auth.IotDeviceAuthService;
+import com.basiclab.iot.sink.config.IotGatewayProperties;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
@@ -51,10 +52,22 @@ public abstract class IotHttpAbstractHandler implements Handler<RoutingContext> 
 
     protected abstract CommonResult<Object> handle0(RoutingContext context);
 
+    /**
+     * 获取 HTTP 协议配置属性
+     * 子类需要实现此方法以提供配置
+     */
+    protected abstract IotGatewayProperties.HttpProperties getHttpProperties();
+
     private void beforeHandle(RoutingContext context) {
         // 如果不需要认证，则不走前置处理
         String path = context.request().path();
         if (ObjUtil.equal(path, IotHttpAuthHandler.PATH)) {
+            return;
+        }
+
+        // 如果关闭鉴权，则跳过 token 验证
+        IotGatewayProperties.HttpProperties httpProperties = getHttpProperties();
+        if (httpProperties != null && Boolean.FALSE.equals(httpProperties.getAuthEnabled())) {
             return;
         }
 

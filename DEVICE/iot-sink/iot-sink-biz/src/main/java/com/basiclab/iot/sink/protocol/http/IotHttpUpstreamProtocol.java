@@ -25,12 +25,13 @@ import javax.annotation.PreDestroy;
 @Slf4j
 public class IotHttpUpstreamProtocol extends AbstractVerticle {
 
-    private final IotGatewayProperties.HttpProperties httpProperties;
-
     private HttpServer httpServer;
 
     @Getter
     private final String serverId;
+
+    @Getter
+    private final IotGatewayProperties.HttpProperties httpProperties;
 
     public IotHttpUpstreamProtocol(IotGatewayProperties.HttpProperties httpProperties) {
         this.httpProperties = httpProperties;

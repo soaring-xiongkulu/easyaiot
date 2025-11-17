@@ -7,6 +7,7 @@ import cn.hutool.extra.spring.SpringUtil;
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.protocol.http.IotHttpUpstreamProtocol;
+import com.basiclab.iot.sink.config.IotGatewayProperties;
 import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
 import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,11 @@ public class IotHttpUpstreamHandler extends IotHttpAbstractHandler {
     public IotHttpUpstreamHandler(IotHttpUpstreamProtocol protocol) {
         this.protocol = protocol;
         this.deviceMessageService = SpringUtil.getBean(IotDeviceMessageService.class);
+    }
+
+    @Override
+    protected IotGatewayProperties.HttpProperties getHttpProperties() {
+        return protocol.getHttpProperties();
     }
 
     @Override

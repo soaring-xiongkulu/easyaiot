@@ -118,6 +118,11 @@ public class IotGatewayProperties {
          */
         private String sslCertPath;
 
+        /**
+         * 是否开启鉴权（默认开启）
+         */
+        private Boolean authEnabled = true;
+
     }
 
     @Data

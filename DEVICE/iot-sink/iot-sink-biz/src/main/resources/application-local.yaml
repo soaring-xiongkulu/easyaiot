@@ -202,3 +202,8 @@ basiclab:
           - "ext/#"
           - "broadcast/#"
           - "ota/#"
+      # 协议配置
+      protocol:
+        http:
+          # 是否开启鉴权（默认开启，设置为 false 则不进行鉴权）
+          auth-enabled: true
