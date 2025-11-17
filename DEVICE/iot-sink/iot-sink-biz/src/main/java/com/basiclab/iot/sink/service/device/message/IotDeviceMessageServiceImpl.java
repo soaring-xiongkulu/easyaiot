@@ -232,9 +232,13 @@ public class IotDeviceMessageServiceImpl implements IotDeviceMessageService {
         // 2. 设置设备信息到消息中
         message.setDeviceId(device.getId());
         message.setTenantId(device.getTenantId());
+        message.setServerId(serverId);
         
-        // 3. 发送消息到网关
+        // 3. 发送消息到网关（用于网关内部处理）
         deviceMessageProducer.sendDeviceMessageToGateway(serverId, message);
+        
+        // 4. 发送消息到通用设备消息主题（供 iot-broker 模块消费）
+        deviceMessageProducer.sendDeviceMessage(message);
     }
 
     /**
