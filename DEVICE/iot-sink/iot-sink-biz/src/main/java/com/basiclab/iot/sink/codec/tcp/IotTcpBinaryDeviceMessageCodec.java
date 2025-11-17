@@ -74,14 +74,9 @@ public class IotTcpBinaryDeviceMessageCodec implements IotDeviceMessageCodec {
     private static final int MIN_MESSAGE_LENGTH = HEADER_FIXED_LENGTH + 4;
 
     @Override
-    public String type() {
-        return TYPE;
-    }
-
-    @Override
     public String topic() {
-        // TCP 二进制编解码器不是基于 topic 的，返回 null 表示使用 type() 方法进行匹配（向后兼容）
-        return null;
+        // TCP 二进制编解码器支持的 Topic 模式
+        return "/tcp/${productIdentification}/${deviceIdentification}/#";
     }
 
     @Override

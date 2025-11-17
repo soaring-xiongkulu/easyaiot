@@ -16,12 +16,12 @@ public class IotDeviceGetReqDTO {
     private Long id;
 
     /**
-     * 产品标识
+     * 产品唯一标识
      */
-    private String productKey;
+    private String productIdentification;
     /**
-     * 设备名称
+     * 设备唯一标识
      */
-    private String deviceName;
+    private String deviceIdentification;
 
 }

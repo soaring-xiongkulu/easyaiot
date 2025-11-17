@@ -4,7 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.protocol.emqx.IotEmqxUpstreamProtocol;
-import com.basiclab.iot.sink.service.device.message.IotDeviceMessageService;
+import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
 import io.vertx.mqtt.messages.MqttPublishMessage;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,22 +36,22 @@ public class IotEmqxUpstreamHandler {
             // 1. 解析主题，一次性获取所有信息
             String[] topicParts = topic.split("/");
             if (topicParts.length < 4 || StrUtil.hasBlank(topicParts[2], topicParts[3])) {
-                log.warn("[handle][topic({}) 格式不正确，无法解析有效的 productKey 和 deviceName]", topic);
+                log.warn("[handle][topic({}) 格式不正确，无法解析有效的 productIdentification 和 deviceIdentification]", topic);
                 return;
             }
 
-            String productKey = topicParts[2];
-            String deviceName = topicParts[3];
+            String productIdentification = topicParts[2];
+            String deviceIdentification = topicParts[3];
 
-            // 3. 解码消息
-            IotDeviceMessage message = deviceMessageService.decodeDeviceMessage(payload, productKey, deviceName);
+            // 3. 解码消息（使用 topic 匹配编解码器）
+            IotDeviceMessage message = deviceMessageService.decodeDeviceMessageByTopic(payload, topic);
             if (message == null) {
                 log.warn("[handle][topic({}) payload({}) 消息解码失败]", topic, new String(payload));
                 return;
             }
 
             // 4. 发送消息到队列
-            deviceMessageService.sendDeviceMessage(message, productKey, deviceName, serverId);
+            deviceMessageService.sendDeviceMessage(message, productIdentification, deviceIdentification, serverId);
         } catch (Exception e) {
             log.error("[handle][topic({}) payload({}) 处理异常]", topic, new String(payload), e);
         }

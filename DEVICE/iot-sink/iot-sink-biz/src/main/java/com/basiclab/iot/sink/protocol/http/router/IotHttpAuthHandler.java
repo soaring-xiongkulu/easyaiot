@@ -2,17 +2,15 @@ package com.basiclab.iot.sink.protocol.http.router;
 
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.map.MapUtil;
-import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
 import com.basiclab.iot.common.domain.CommonResult;
-import com.basiclab.iot.sink.biz.IotDeviceCommonApi;
+import com.basiclab.iot.sink.auth.IotDeviceAuthService;
 import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
 import com.basiclab.iot.sink.protocol.http.IotHttpUpstreamProtocol;
-import com.basiclab.iot.sink.service.auth.IotDeviceTokenService;
-import com.basiclab.iot.sink.service.device.message.IotDeviceMessageService;
+import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
@@ -34,16 +32,13 @@ public class IotHttpAuthHandler extends IotHttpAbstractHandler {
 
     private final IotHttpUpstreamProtocol protocol;
 
-    private final IotDeviceTokenService deviceTokenService;
-
-    private final IotDeviceCommonApi deviceApi;
+    private final IotDeviceAuthService deviceAuthService;
 
     private final IotDeviceMessageService deviceMessageService;
 
     public IotHttpAuthHandler(IotHttpUpstreamProtocol protocol) {
         this.protocol = protocol;
-        this.deviceTokenService = SpringUtil.getBean(IotDeviceTokenService.class);
-        this.deviceApi = SpringUtil.getBean(IotDeviceCommonApi.class);
+        this.deviceAuthService = SpringUtil.getBean(IotDeviceAuthService.class);
         this.deviceMessageService = SpringUtil.getBean(IotDeviceMessageService.class);
     }
 
@@ -65,22 +60,21 @@ public class IotHttpAuthHandler extends IotHttpAbstractHandler {
         }
 
         // 2.1 执行认证
-        CommonResult<Boolean> result = deviceApi.authDevice(new IotDeviceAuthReqDTO()
+        boolean authResult = deviceAuthService.authDevice(new IotDeviceAuthReqDTO()
                 .setClientId(clientId).setUsername(username).setPassword(password));
-        result.checkError();
-        if (!BooleanUtil.isTrue(result.getData())) {
+        if (!authResult) {
             throw exception(DEVICE_AUTH_FAIL);
         }
         // 2.2 生成 Token
-        IotDeviceAuthUtils.DeviceInfo deviceInfo = deviceTokenService.parseUsername(username);
+        IotDeviceAuthUtils.DeviceInfo deviceInfo = deviceAuthService.parseUsername(username);
         Assert.notNull(deviceInfo, "设备信息不能为空");
-        String token = deviceTokenService.createToken(deviceInfo.getProductKey(), deviceInfo.getDeviceName());
+        String token = deviceAuthService.createToken(deviceInfo.getProductIdentification(), deviceInfo.getDeviceIdentification());
         Assert.notBlank(token, "生成 token 不能为空位");
 
         // 3. 执行上线
         IotDeviceMessage message = IotDeviceMessage.buildStateUpdateOnline();
         deviceMessageService.sendDeviceMessage(message,
-                deviceInfo.getProductKey(), deviceInfo.getDeviceName(), protocol.getServerId());
+                deviceInfo.getProductIdentification(), deviceInfo.getDeviceIdentification(), protocol.getServerId());
 
         // 构建响应数据
         return success(MapUtil.of("token", token));

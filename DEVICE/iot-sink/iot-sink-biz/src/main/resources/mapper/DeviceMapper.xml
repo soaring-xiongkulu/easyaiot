@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.sink.dal.mapper.DeviceMapper">
+
+    <resultMap id="BaseResultMap" type="com.basiclab.iot.sink.dal.dataobject.DeviceDO">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="client_id" jdbcType="VARCHAR" property="clientId"/>
+        <result column="app_id" jdbcType="VARCHAR" property="appId"/>
+        <result column="device_identification" jdbcType="VARCHAR" property="deviceIdentification"/>
+        <result column="device_name" jdbcType="VARCHAR" property="deviceName"/>
+        <result column="user_name" jdbcType="VARCHAR" property="userName"/>
+        <result column="password" jdbcType="VARCHAR" property="password"/>
+        <result column="product_identification" jdbcType="VARCHAR" property="productIdentification"/>
+        <result column="device_status" jdbcType="VARCHAR" property="deviceStatus"/>
+        <result column="connect_status" jdbcType="VARCHAR" property="connectStatus"/>
+        <result column="protocol_type" jdbcType="VARCHAR" property="protocolType"/>
+        <result column="tenant_id" jdbcType="BIGINT" property="tenantId"/>
+        <result column="create_by" jdbcType="VARCHAR" property="createBy"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_by" jdbcType="VARCHAR" property="updateBy"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, client_id, app_id, device_identification, device_name, user_name, password,
+        product_identification, device_status, connect_status, protocol_type, tenant_id,
+        create_by, create_time, update_by, update_time
+    </sql>
+
+    <select id="selectByProductIdentificationAndDeviceIdentification" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        where product_identification = #{productIdentification,jdbcType=VARCHAR}
+        and device_identification = #{deviceIdentification,jdbcType=VARCHAR}
+        and deleted = 0
+        limit 1
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        where id = #{id,jdbcType=BIGINT}
+        and deleted = 0
+        limit 1
+    </select>
+
+    <select id="selectByClientIdAndUserNameAndPasswordAndDeviceStatusAndProtocolType" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device
+        <where>
+            <if test="clientId != null and clientId != ''">
+                and client_id = #{clientId,jdbcType=VARCHAR}
+            </if>
+            <if test="userName != null and userName != ''">
+                and user_name = #{userName,jdbcType=VARCHAR}
+            </if>
+            <if test="password != null and password != ''">
+                and "password" = #{password,jdbcType=VARCHAR}
+            </if>
+            <if test="deviceStatus != null and deviceStatus != ''">
+                and device_status = #{deviceStatus,jdbcType=VARCHAR}
+            </if>
+            <if test="protocolType != null and protocolType != ''">
+                and protocol_type = #{protocolType,jdbcType=VARCHAR}
+            </if>
+            and deleted = 0
+        </where>
+        limit 1
+    </select>
+
+</mapper>
+

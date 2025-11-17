@@ -1,14 +1,12 @@
 package com.basiclab.iot.sink.protocol.emqx.router;
 
-import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
-import com.basiclab.iot.common.domain.CommonResult;
-import com.basiclab.iot.sink.biz.IotDeviceCommonApi;
+import com.basiclab.iot.sink.auth.IotDeviceAuthService;
 import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
-import com.basiclab.iot.sink.service.device.message.IotDeviceMessageService;
+import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
@@ -53,12 +51,12 @@ public class IotEmqxAuthEventHandler {
 
     private final IotDeviceMessageService deviceMessageService;
 
-    private final IotDeviceCommonApi deviceApi;
+    private final IotDeviceAuthService deviceAuthService;
 
     public IotEmqxAuthEventHandler(String serverId) {
         this.serverId = serverId;
         this.deviceMessageService = SpringUtil.getBean(IotDeviceMessageService.class);
-        this.deviceApi = SpringUtil.getBean(IotDeviceCommonApi.class);
+        this.deviceAuthService = SpringUtil.getBean(IotDeviceAuthService.class);
     }
 
     /**
@@ -183,12 +181,10 @@ public class IotEmqxAuthEventHandler {
      */
     private boolean handleDeviceAuth(String clientId, String username, String password) {
         try {
-            CommonResult<Boolean> result = deviceApi.authDevice(new IotDeviceAuthReqDTO()
+            return deviceAuthService.authDevice(new IotDeviceAuthReqDTO()
                     .setClientId(clientId).setUsername(username).setPassword(password));
-            result.checkError();
-            return BooleanUtil.isTrue(result.getData());
         } catch (Exception e) {
-            log.error("[handleDeviceAuth][设备({}) 认证接口调用失败]", username, e);
+            log.error("[handleDeviceAuth][设备({}) 认证失败]", username, e);
             throw e;
         }
     }
@@ -214,7 +210,7 @@ public class IotEmqxAuthEventHandler {
 
             // 3. 发送设备状态消息
             deviceMessageService.sendDeviceMessage(message,
-                    deviceInfo.getProductKey(), deviceInfo.getDeviceName(), serverId);
+                    deviceInfo.getProductIdentification(), deviceInfo.getDeviceIdentification(), serverId);
         } catch (Exception e) {
             log.error("[handleDeviceStateChange][发送设备状态消息失败: {}]", username, e);
         }

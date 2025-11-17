@@ -1,19 +1,17 @@
 package com.basiclab.iot.sink.protocol.mqtt.router;
 
-import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
-import com.basiclab.iot.common.domain.CommonResult;
-import com.basiclab.iot.sink.biz.IotDeviceCommonApi;
+import com.basiclab.iot.sink.auth.IotDeviceAuthService;
 import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
-import com.basiclab.iot.sink.biz.dto.IotDeviceGetReqDTO;
 import com.basiclab.iot.sink.biz.dto.IotDeviceRespDTO;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
 import com.basiclab.iot.sink.protocol.mqtt.IotMqttUpstreamProtocol;
 import com.basiclab.iot.sink.protocol.mqtt.manager.IotMqttConnectionManager;
-import com.basiclab.iot.sink.service.device.message.IotDeviceMessageService;
-import com.basiclab.iot.sink.service.device.message.IotDeviceMessageServiceImpl;
+import com.basiclab.iot.sink.messagebus.publisher.IotDeviceService;
+import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
+import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageServiceImpl;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.mqtt.MqttEndpoint;
@@ -34,7 +32,9 @@ public class IotMqttUpstreamHandler {
 
     private final IotMqttConnectionManager connectionManager;
 
-    private final IotDeviceCommonApi deviceApi;
+    private final IotDeviceAuthService deviceAuthService;
+
+    private final IotDeviceService deviceService;
 
     private final String serverId;
 
@@ -42,7 +42,8 @@ public class IotMqttUpstreamHandler {
                                   IotDeviceMessageService deviceMessageService,
                                   IotMqttConnectionManager connectionManager) {
         this.deviceMessageService = deviceMessageService;
-        this.deviceApi = SpringUtil.getBean(IotDeviceCommonApi.class);
+        this.deviceAuthService = SpringUtil.getBean(IotDeviceAuthService.class);
+        this.deviceService = SpringUtil.getBean(IotDeviceService.class);
         this.connectionManager = connectionManager;
         this.serverId = protocol.getServerId();
     }
@@ -154,15 +155,15 @@ public class IotMqttUpstreamHandler {
             return;
         }
 
-        // 2. 解析主题，获取 productKey 和 deviceName
+        // 2. 解析主题，获取 productIdentification 和 deviceIdentification
         String[] topicParts = topic.split("/");
         if (topicParts.length < 4 || StrUtil.hasBlank(topicParts[2], topicParts[3])) {
-            log.warn("[processMessage][topic({}) 格式不正确，无法解析有效的 productKey 和 deviceName]", topic);
+            log.warn("[processMessage][topic({}) 格式不正确，无法解析有效的 productIdentification 和 deviceIdentification]", topic);
             return;
         }
 
-        String productKey = topicParts[2];
-        String deviceName = topicParts[3];
+        String productIdentification = topicParts[2];
+        String deviceIdentification = topicParts[3];
 
         // 3. 解码消息（优先使用 topic 匹配）
         try {
@@ -173,7 +174,7 @@ public class IotMqttUpstreamHandler {
                 message = serviceImpl.decodeDeviceMessageByTopic(payload, topic);
             } else {
                 // 向后兼容：使用原有的方式
-                message = deviceMessageService.decodeDeviceMessage(payload, productKey, deviceName);
+                message = deviceMessageService.decodeDeviceMessage(payload, productIdentification, deviceIdentification);
             }
             
             if (message == null) {
@@ -182,10 +183,10 @@ public class IotMqttUpstreamHandler {
             }
 
             log.info("[processMessage][收到设备消息，设备: {}.{}, 主题: {}, 方法: {}, 需要回复: {}]",
-                    productKey, deviceName, topic, message.getMethod(), message.getNeedReply());
+                    productIdentification, deviceIdentification, topic, message.getMethod(), message.getNeedReply());
 
             // 4. 处理业务消息（认证已在连接时完成）
-            handleBusinessRequest(message, productKey, deviceName, topic);
+            handleBusinessRequest(message, productIdentification, deviceIdentification, topic);
         } catch (Exception e) {
             log.error("[processMessage][消息处理异常，客户端 ID: {}，主题: {}，错误: {}]",
                     clientId, topic, e.getMessage(), e);
@@ -215,11 +216,11 @@ public class IotMqttUpstreamHandler {
                     .setUsername(username)
                     .setPassword(password);
 
-            // 3. 调用设备认证 API
-            CommonResult<Boolean> authResult = deviceApi.authDevice(authParams);
-            if (!authResult.isSuccess() || !BooleanUtil.isTrue(authResult.getData())) {
-                log.warn("[authenticateDevice][设备认证失败，客户端 ID: {}，用户名: {}，错误: {}]",
-                        clientId, username, authResult.getMsg());
+            // 3. 调用设备认证 Service
+            boolean authResult = deviceAuthService.authDevice(authParams);
+            if (!authResult) {
+                log.warn("[authenticateDevice][设备认证失败，客户端 ID: {}，用户名: {}]",
+                        clientId, username);
                 return false;
             }
 
@@ -230,19 +231,16 @@ public class IotMqttUpstreamHandler {
                 return false;
             }
 
-            IotDeviceGetReqDTO getReqDTO = new IotDeviceGetReqDTO()
-                    .setProductKey(deviceInfo.getProductKey())
-                    .setDeviceName(deviceInfo.getDeviceName());
-
-            CommonResult<IotDeviceRespDTO> deviceResult = deviceApi.getDevice(getReqDTO);
-            if (!deviceResult.isSuccess() || deviceResult.getData() == null) {
-                log.warn("[authenticateDevice][获取设备信息失败，客户端 ID: {}，用户名: {}，错误: {}]",
-                        clientId, username, deviceResult.getMsg());
+            IotDeviceRespDTO device = deviceService.getDeviceFromCache(
+                    deviceInfo.getProductIdentification(),
+                    deviceInfo.getDeviceIdentification());
+            if (device == null) {
+                log.warn("[authenticateDevice][获取设备信息失败，客户端 ID: {}，用户名: {}]",
+                        clientId, username);
                 return false;
             }
 
             // 5. 注册连接
-            IotDeviceRespDTO device = deviceResult.getData();
             registerConnection(endpoint, device, clientId);
 
             // 6. 发送设备上线消息
@@ -258,7 +256,7 @@ public class IotMqttUpstreamHandler {
     /**
      * 处理业务请求
      */
-    private void handleBusinessRequest(IotDeviceMessage message, String productKey, String deviceName, String topic) {
+    private void handleBusinessRequest(IotDeviceMessage message, String productIdentification, String deviceIdentification, String topic) {
         // 设置 topic
         if (message.getTopic() == null) {
             message.setTopic(topic);
@@ -266,7 +264,7 @@ public class IotMqttUpstreamHandler {
         
         // 发送消息到消息总线
         message.setServerId(serverId);
-        deviceMessageService.sendDeviceMessage(message, productKey, deviceName, serverId);
+        deviceMessageService.sendDeviceMessage(message, productIdentification, deviceIdentification, serverId);
     }
 
     /**
@@ -277,8 +275,8 @@ public class IotMqttUpstreamHandler {
 
         IotMqttConnectionManager.ConnectionInfo connectionInfo = new IotMqttConnectionManager.ConnectionInfo()
                 .setDeviceId(device.getId())
-                .setProductKey(device.getProductKey())
-                .setDeviceName(device.getDeviceName())
+                .setProductIdentification(device.getProductIdentification())
+                .setDeviceIdentification(device.getDeviceIdentification())
                 .setClientId(clientId)
                 .setAuthenticated(true)
                 .setRemoteAddress(connectionManager.getEndpointAddress(endpoint));
@@ -292,9 +290,9 @@ public class IotMqttUpstreamHandler {
     private void sendOnlineMessage(IotDeviceRespDTO device) {
         try {
             IotDeviceMessage onlineMessage = IotDeviceMessage.buildStateUpdateOnline();
-            deviceMessageService.sendDeviceMessage(onlineMessage, device.getProductKey(),
-                    device.getDeviceName(), serverId);
-            log.info("[sendOnlineMessage][设备上线，设备 ID: {}，设备名称: {}]", device.getId(), device.getDeviceName());
+            deviceMessageService.sendDeviceMessage(onlineMessage, device.getProductIdentification(),
+                    device.getDeviceIdentification(), serverId);
+            log.info("[sendOnlineMessage][设备上线，设备 ID: {}，设备唯一标识: {}]", device.getId(), device.getDeviceIdentification());
         } catch (Exception e) {
             log.error("[sendOnlineMessage][发送设备上线消息失败，设备 ID: {}，错误: {}]", device.getId(), e.getMessage());
         }
@@ -309,10 +307,10 @@ public class IotMqttUpstreamHandler {
             if (connectionInfo != null) {
                 // 发送设备离线消息
                 IotDeviceMessage offlineMessage = IotDeviceMessage.buildStateOffline();
-                deviceMessageService.sendDeviceMessage(offlineMessage, connectionInfo.getProductKey(),
-                        connectionInfo.getDeviceName(), serverId);
-                log.info("[cleanupConnection][设备离线，设备 ID: {}，设备名称: {}]",
-                        connectionInfo.getDeviceId(), connectionInfo.getDeviceName());
+                deviceMessageService.sendDeviceMessage(offlineMessage, connectionInfo.getProductIdentification(),
+                        connectionInfo.getDeviceIdentification(), serverId);
+                log.info("[cleanupConnection][设备离线，设备 ID: {}，设备唯一标识: {}]",
+                        connectionInfo.getDeviceId(), connectionInfo.getDeviceIdentification());
             }
 
             // 注销连接

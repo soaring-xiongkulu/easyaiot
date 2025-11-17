@@ -20,7 +20,7 @@ public class IotTopicDeviceMessageCodec implements IotDeviceMessageCodec {
     /**
      * 支持的 Topic 模式（通配符模式，匹配所有标准 IoT Topic）
      */
-    private static final String TOPIC_PATTERN = "/iot/${pid}/${did}/#";
+    private static final String TOPIC_PATTERN = "/iot/${productIdentification}/${deviceIdentification}/#";
 
     @Override
     public byte[] encode(IotDeviceMessage message) {
@@ -42,11 +42,6 @@ public class IotTopicDeviceMessageCodec implements IotDeviceMessageCodec {
             log.error("[decode][解码消息失败]", e);
             throw new RuntimeException("解码消息失败", e);
         }
-    }
-
-    @Override
-    public String type() {
-        return "Topic";
     }
 
     @Override

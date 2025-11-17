@@ -3,8 +3,8 @@ package com.basiclab.iot.sink.protocol.tcp.router;
 import com.basiclab.iot.sink.biz.dto.IotDeviceRespDTO;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.protocol.tcp.manager.IotTcpConnectionManager;
-import com.basiclab.iot.sink.service.device.IotDeviceService;
-import com.basiclab.iot.sink.service.device.message.IotDeviceMessageService;
+import com.basiclab.iot.sink.messagebus.publisher.IotDeviceService;
+import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,9 +43,9 @@ public class IotTcpDownstreamHandler {
                 return;
             }
 
-            // 2. 根据产品 Key 和设备名称编码消息并发送到设备
-            byte[] bytes = deviceMessageService.encodeDeviceMessage(message, deviceInfo.getProductKey(),
-                    deviceInfo.getDeviceName());
+            // 2. 根据产品唯一标识和设备唯一标识编码消息并发送到设备
+            byte[] bytes = deviceMessageService.encodeDeviceMessage(message, deviceInfo.getProductIdentification(),
+                    deviceInfo.getDeviceIdentification());
             boolean success = connectionManager.sendToDevice(message.getDeviceId(), bytes);
             if (success) {
                 log.info("[handle][下行消息发送成功，设备 ID: {}，方法: {}，消息 ID: {}，数据长度: {} 字节]",

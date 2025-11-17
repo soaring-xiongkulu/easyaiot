@@ -44,29 +44,29 @@ public class IotDeviceAuthUtils {
     @Data
     public static class DeviceInfo {
 
-        private String productKey;
+        private String productIdentification;
 
-        private String deviceName;
+        private String deviceIdentification;
 
     }
 
-    public static AuthInfo getAuthInfo(String productKey, String deviceName, String deviceSecret) {
-        String clientId = buildClientId(productKey, deviceName);
-        String username = buildUsername(productKey, deviceName);
+    public static AuthInfo getAuthInfo(String productIdentification, String deviceIdentification, String deviceSecret) {
+        String clientId = buildClientId(productIdentification, deviceIdentification);
+        String username = buildUsername(productIdentification, deviceIdentification);
         String content = "clientId" + clientId +
-                "deviceName" + deviceName +
+                "deviceIdentification" + deviceIdentification +
                 "deviceSecret" + deviceSecret +
-                "productKey" + productKey;
+                "productIdentification" + productIdentification;
         String password = buildPassword(deviceSecret, content);
         return new AuthInfo(clientId, username, password);
     }
 
-    private static String buildClientId(String productKey, String deviceName) {
-        return String.format("%s.%s", productKey, deviceName);
+    private static String buildClientId(String productIdentification, String deviceIdentification) {
+        return String.format("%s.%s", productIdentification, deviceIdentification);
     }
 
-    private static String buildUsername(String productKey, String deviceName) {
-        return String.format("%s&%s", deviceName, productKey);
+    private static String buildUsername(String productIdentification, String deviceIdentification) {
+        return String.format("%s&%s", deviceIdentification, productIdentification);
     }
 
     private static String buildPassword(String deviceSecret, String content) {
@@ -79,7 +79,7 @@ public class IotDeviceAuthUtils {
         if (usernameParts.length != 2) {
             return null;
         }
-        return new DeviceInfo().setProductKey(usernameParts[1]).setDeviceName(usernameParts[0]);
+        return new DeviceInfo().setProductIdentification(usernameParts[1]).setDeviceIdentification(usernameParts[0]);
     }
 
 }

@@ -4,7 +4,7 @@ import com.basiclab.iot.common.utils.json.JsonUtils;
 import com.basiclab.iot.sink.dal.dataobject.ProductScriptDO;
 import com.basiclab.iot.sink.messagebus.core.IotMessageBus;
 import com.basiclab.iot.sink.messagebus.core.IotMessageSubscriber;
-import com.basiclab.iot.sink.service.product.script.ProductScriptService;
+import com.basiclab.iot.sink.service.product.ProductScriptService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.annotation.Lazy;

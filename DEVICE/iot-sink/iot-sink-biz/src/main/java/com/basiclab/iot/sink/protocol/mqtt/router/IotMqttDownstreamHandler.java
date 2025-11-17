@@ -4,7 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.util.IotDeviceMessageUtils;
 import com.basiclab.iot.sink.protocol.mqtt.manager.IotMqttConnectionManager;
-import com.basiclab.iot.sink.service.device.message.IotDeviceMessageService;
+import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
 import com.basiclab.iot.sink.util.IotMqttTopicUtils;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import lombok.extern.slf4j.Slf4j;
@@ -60,8 +60,8 @@ public class IotMqttDownstreamHandler {
             }
 
             // 4. 编码消息
-            byte[] payload = deviceMessageService.encodeDeviceMessage(message, connectionInfo.getProductKey(),
-                    connectionInfo.getDeviceName());
+            byte[] payload = deviceMessageService.encodeDeviceMessage(message, connectionInfo.getProductIdentification(),
+                    connectionInfo.getDeviceIdentification());
             if (payload == null || payload.length == 0) {
                 log.warn("[handleDownstreamMessage][消息编码失败，设备 ID：{}]", message.getDeviceId());
                 return false;
@@ -125,8 +125,8 @@ public class IotMqttDownstreamHandler {
 
         // 使用工具类构建主题，支持回复消息处理
         boolean isReply = IotDeviceMessageUtils.isReplyMessage(message);
-        return IotMqttTopicUtils.buildTopicByMethod(method, connectionInfo.getProductKey(),
-                connectionInfo.getDeviceName(), isReply);
+        return IotMqttTopicUtils.buildTopicByMethod(method, connectionInfo.getProductIdentification(),
+                connectionInfo.getDeviceIdentification(), isReply);
     }
 
 }

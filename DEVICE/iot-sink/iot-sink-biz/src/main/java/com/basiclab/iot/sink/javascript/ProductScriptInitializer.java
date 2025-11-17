@@ -2,7 +2,7 @@ package com.basiclab.iot.sink.javascript;
 
 import com.basiclab.iot.common.core.context.TenantContextHolder;
 import com.basiclab.iot.sink.dal.dataobject.ProductScriptDO;
-import com.basiclab.iot.sink.service.product.script.ProductScriptService;
+import com.basiclab.iot.sink.service.product.ProductScriptService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;

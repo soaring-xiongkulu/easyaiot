@@ -4,7 +4,7 @@ import com.basiclab.iot.sink.util.IotDeviceMessageUtils;
 import com.basiclab.iot.sink.config.IotGatewayProperties;
 import com.basiclab.iot.sink.protocol.mqtt.manager.IotMqttConnectionManager;
 import com.basiclab.iot.sink.protocol.mqtt.router.IotMqttUpstreamHandler;
-import com.basiclab.iot.sink.service.device.message.IotDeviceMessageService;
+import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
 import io.vertx.core.Vertx;
 import io.vertx.mqtt.MqttServer;
 import io.vertx.mqtt.MqttServerOptions;

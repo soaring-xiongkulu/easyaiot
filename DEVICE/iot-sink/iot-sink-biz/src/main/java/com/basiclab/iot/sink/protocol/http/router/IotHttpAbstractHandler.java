@@ -8,7 +8,7 @@ import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.exception.ServiceException;
 import com.basiclab.iot.common.utils.json.JsonUtils;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
-import com.basiclab.iot.sink.service.auth.IotDeviceTokenService;
+import com.basiclab.iot.sink.auth.IotDeviceAuthService;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.invali
 @Slf4j
 public abstract class IotHttpAbstractHandler implements Handler<RoutingContext> {
 
-    private final IotDeviceTokenService deviceTokenService = SpringUtil.getBean(IotDeviceTokenService.class);
+    private final IotDeviceAuthService deviceAuthService = SpringUtil.getBean(IotDeviceAuthService.class);
 
     @Override
     public final void handle(RoutingContext context) {
@@ -63,21 +63,21 @@ public abstract class IotHttpAbstractHandler implements Handler<RoutingContext> 
         if (StrUtil.isEmpty(token)) {
             throw invalidParamException("token 不能为空");
         }
-        String productKey = context.pathParam("productKey");
-        if (StrUtil.isEmpty(productKey)) {
-            throw invalidParamException("productKey 不能为空");
+        String productIdentification = context.pathParam("productIdentification");
+        if (StrUtil.isEmpty(productIdentification)) {
+            throw invalidParamException("productIdentification 不能为空");
         }
-        String deviceName = context.pathParam("deviceName");
-        if (StrUtil.isEmpty(deviceName)) {
-            throw invalidParamException("deviceName 不能为空");
+        String deviceIdentification = context.pathParam("deviceIdentification");
+        if (StrUtil.isEmpty(deviceIdentification)) {
+            throw invalidParamException("deviceIdentification 不能为空");
         }
 
         // 校验 token
-        IotDeviceAuthUtils.DeviceInfo deviceInfo = deviceTokenService.verifyToken(token);
+        IotDeviceAuthUtils.DeviceInfo deviceInfo = deviceAuthService.verifyToken(token);
         Assert.notNull(deviceInfo, "设备信息不能为空");
         // 校验设备信息是否匹配
-        if (ObjUtil.notEqual(productKey, deviceInfo.getProductKey())
-                || ObjUtil.notEqual(deviceName, deviceInfo.getDeviceName())) {
+        if (ObjUtil.notEqual(productIdentification, deviceInfo.getProductIdentification())
+                || ObjUtil.notEqual(deviceIdentification, deviceInfo.getDeviceIdentification())) {
             throw exception(FORBIDDEN);
         }
     }

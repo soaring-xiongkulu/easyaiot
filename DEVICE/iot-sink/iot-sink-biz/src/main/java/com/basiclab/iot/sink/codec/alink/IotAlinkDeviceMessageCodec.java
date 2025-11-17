@@ -65,14 +65,9 @@ public class IotAlinkDeviceMessageCodec implements IotDeviceMessageCodec {
     }
 
     @Override
-    public String type() {
-        return TYPE;
-    }
-
-    @Override
     public String topic() {
-        // Alink 编解码器支持所有 topic，返回 null 表示使用通用匹配
-        return null;
+        // Alink 编解码器支持的 Topic 模式
+        return "/alink/${productIdentification}/${deviceIdentification}/#";
     }
 
     @Override

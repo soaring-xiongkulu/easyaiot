@@ -90,8 +90,8 @@ public class IotMqttConnectionManager {
         connectionMap.put(endpoint, connectionInfo);
         deviceEndpointMap.put(deviceId, endpoint);
 
-        log.info("[registerConnection][注册设备连接，设备 ID: {}，连接: {}，product key: {}，device name: {}]",
-                deviceId, getEndpointAddress(endpoint), connectionInfo.getProductKey(), connectionInfo.getDeviceName());
+        log.info("[registerConnection][注册设备连接，设备 ID: {}，连接: {}，product identification: {}，device identification: {}]",
+                deviceId, getEndpointAddress(endpoint), connectionInfo.getProductIdentification(), connectionInfo.getDeviceIdentification());
     }
 
     /**
@@ -194,14 +194,14 @@ public class IotMqttConnectionManager {
         private Long deviceId;
 
         /**
-         * 产品 Key
+         * 产品唯一标识
          */
-        private String productKey;
+        private String productIdentification;
 
         /**
-         * 设备名称
+         * 设备唯一标识
          */
-        private String deviceName;
+        private String deviceIdentification;
 
         /**
          * 客户端 ID

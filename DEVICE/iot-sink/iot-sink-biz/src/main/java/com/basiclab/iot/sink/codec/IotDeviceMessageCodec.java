@@ -26,15 +26,8 @@ public interface IotDeviceMessageCodec {
     IotDeviceMessage decode(byte[] bytes);
 
     /**
-     * @return 数据格式（编码器类型）
-     * @deprecated 使用 {@link #topic()} 替代
-     */
-    @Deprecated
-    String type();
-
-    /**
-     * @return 支持的 Topic 模式（支持通配符，如 /iot/${pid}/${did}/config/push）
-     * 如果返回 null，则使用 type() 方法进行匹配（向后兼容）
+     * @return 支持的 Topic 模式（支持通配符，如 /iot/${productIdentification}/${deviceIdentification}/config/push）
+     * 必须返回非空的 topic 模式，用于匹配编解码器
      */
     String topic();
 
@@ -51,8 +44,10 @@ public interface IotDeviceMessageCodec {
         }
         // 将模板转换为正则表达式
         String regex = topicPattern
-                .replace("${pid}", "[^/]+")
-                .replace("${did}", "[^/]+")
+                .replace("${productIdentification}", "[^/]+")
+                .replace("${deviceIdentification}", "[^/]+")
+                .replace("${pid}", "[^/]+")  // 向后兼容
+                .replace("${did}", "[^/]+")   // 向后兼容
                 .replace("${identifier}", "[^/]+")
                 .replace("/", "\\/");
         return topic != null && topic.matches("^" + regex + "$");

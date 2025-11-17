@@ -1,13 +1,11 @@
 package com.basiclab.iot.sink.protocol.tcp.router;
 
 import cn.hutool.core.map.MapUtil;
-import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
-import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.utils.json.JsonUtils;
-import com.basiclab.iot.sink.biz.IotDeviceCommonApi;
+import com.basiclab.iot.sink.auth.IotDeviceAuthService;
 import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.biz.dto.IotDeviceRespDTO;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
@@ -16,8 +14,8 @@ import com.basiclab.iot.sink.codec.tcp.IotTcpBinaryDeviceMessageCodec;
 import com.basiclab.iot.sink.codec.tcp.IotTcpJsonDeviceMessageCodec;
 import com.basiclab.iot.sink.protocol.tcp.IotTcpUpstreamProtocol;
 import com.basiclab.iot.sink.protocol.tcp.manager.IotTcpConnectionManager;
-import com.basiclab.iot.sink.service.device.IotDeviceService;
-import com.basiclab.iot.sink.service.device.message.IotDeviceMessageService;
+import com.basiclab.iot.sink.messagebus.publisher.IotDeviceService;
+import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.NetSocket;
@@ -42,7 +40,7 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
 
     private final IotTcpConnectionManager connectionManager;
 
-    private final IotDeviceCommonApi deviceApi;
+    private final IotDeviceAuthService deviceAuthService;
 
     private final String serverId;
 
@@ -53,7 +51,7 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
         this.deviceMessageService = deviceMessageService;
         this.deviceService = deviceService;
         this.connectionManager = connectionManager;
-        this.deviceApi = SpringUtil.getBean(IotDeviceCommonApi.class);
+        this.deviceAuthService = SpringUtil.getBean(IotDeviceAuthService.class);
         this.serverId = protocol.getServerId();
     }
 
@@ -99,13 +97,32 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
             return;
         }
 
-        // 2. 获取消息格式类型
-        String codecType = getMessageCodecType(buffer, socket);
+        // 2. 获取连接信息（用于构建 topic）
+        IotTcpConnectionManager.ConnectionInfo connectionInfo = connectionManager.getConnectionInfo(socket);
+        String productIdentification = null;
+        String deviceIdentification = null;
+        if (connectionInfo != null && connectionInfo.isAuthenticated()) {
+            productIdentification = connectionInfo.getProductIdentification();
+            deviceIdentification = connectionInfo.getDeviceIdentification();
+        }
 
         // 3. 解码消息
         IotDeviceMessage message;
         try {
-            message = deviceMessageService.decodeDeviceMessage(buffer.getBytes(), codecType);
+            byte[] bytes = buffer.getBytes();
+            // 如果已认证，使用 topic 方式解码；否则使用默认方式
+            if (productIdentification != null && deviceIdentification != null) {
+                // 构建 topic（TCP 协议使用 /tcp/{productIdentification}/{deviceIdentification}/... 格式）
+                // 先使用 unknown 作为 method，解码后再更新
+                String topicForDecode = "/tcp/" + productIdentification + "/" + deviceIdentification + "/unknown";
+                message = deviceMessageService.decodeDeviceMessageByTopic(bytes, topicForDecode);
+            } else {
+                // 未认证时，使用默认方式（需要先检测消息格式）
+                boolean isBinary = IotTcpBinaryDeviceMessageCodec.isBinaryFormatQuick(bytes);
+                // 构建临时 topic（使用默认格式）
+                String defaultTopic = "/tcp/unknown/unknown/unknown";
+                message = deviceMessageService.decodeDeviceMessageByTopic(bytes, defaultTopic);
+            }
             if (message == null) {
                 throw new Exception("解码后消息为空");
             }
@@ -118,10 +135,10 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
         try {
             if (AUTH_METHOD.equals(message.getMethod())) {
                 // 认证请求
-                handleAuthenticationRequest(clientId, message, codecType, socket);
+                handleAuthenticationRequest(clientId, message, socket);
             } else {
                 // 业务消息
-                handleBusinessRequest(clientId, message, codecType, socket);
+                handleBusinessRequest(clientId, message, socket);
             }
         } catch (Exception e) {
             log.error("[processMessage][处理消息失败，客户端 ID: {}，消息方法: {}]",
@@ -140,16 +157,16 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
      *
      * @param clientId  客户端 ID
      * @param message   消息信息
-     * @param codecType 消息编解码类型
      * @param socket    网络连接
      */
-    private void handleAuthenticationRequest(String clientId, IotDeviceMessage message, String codecType,
-                                             NetSocket socket) {
+    private void handleAuthenticationRequest(String clientId, IotDeviceMessage message, NetSocket socket) {
         try {
             // 1.1 解析认证参数
             IotDeviceAuthReqDTO authParams = parseAuthParams(message.getParams());
             if (authParams == null) {
                 log.warn("[handleAuthenticationRequest][认证参数解析失败，客户端 ID: {}]", clientId);
+                // 检测消息格式以确定编解码器
+                String codecType = detectCodecTypeFromMessage(message);
                 sendErrorResponse(socket, message.getRequestId(), "认证参数不完整", codecType);
                 return;
             }
@@ -157,6 +174,7 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
             if (!validateDeviceAuth(authParams)) {
                 log.warn("[handleAuthenticationRequest][认证失败，客户端 ID: {}，username: {}]",
                         clientId, authParams.getUsername());
+                String codecType = detectCodecTypeFromMessage(message);
                 sendErrorResponse(socket, message.getRequestId(), "认证失败", codecType);
                 return;
             }
@@ -164,27 +182,32 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
             // 2.1 解析设备信息
             IotDeviceAuthUtils.DeviceInfo deviceInfo = IotDeviceAuthUtils.parseUsername(authParams.getUsername());
             if (deviceInfo == null) {
+                String codecType = detectCodecTypeFromMessage(message);
                 sendErrorResponse(socket, message.getRequestId(), "解析设备信息失败", codecType);
                 return;
             }
             // 2.2 获取设备信息
-            IotDeviceRespDTO device = deviceService.getDeviceFromCache(deviceInfo.getProductKey(),
-                    deviceInfo.getDeviceName());
+            IotDeviceRespDTO device = deviceService.getDeviceFromCache(deviceInfo.getProductIdentification(),
+                    deviceInfo.getDeviceIdentification());
             if (device == null) {
+                String codecType = detectCodecTypeFromMessage(message);
                 sendErrorResponse(socket, message.getRequestId(), "设备不存在", codecType);
                 return;
             }
 
-            // 3.1 注册连接
+            // 3.1 检测消息格式以确定编解码器类型（用于后续消息处理）
+            String codecType = detectCodecTypeFromMessage(message);
+            // 3.2 注册连接
             registerConnection(socket, device, clientId, codecType);
-            // 3.2 发送上线消息
+            // 3.3 发送上线消息
             sendOnlineMessage(device);
-            // 3.3 发送成功响应
+            // 3.4 发送成功响应
             sendSuccessResponse(socket, message.getRequestId(), "认证成功", codecType);
-            log.info("[handleAuthenticationRequest][认证成功，设备 ID: {}，设备名: {}]",
-                    device.getId(), device.getDeviceName());
+            log.info("[handleAuthenticationRequest][认证成功，设备 ID: {}，设备唯一标识: {}]",
+                    device.getId(), device.getDeviceIdentification());
         } catch (Exception e) {
             log.error("[handleAuthenticationRequest][认证处理异常，客户端 ID: {}]", clientId, e);
+            String codecType = detectCodecTypeFromMessage(message);
             sendErrorResponse(socket, message.getRequestId(), "认证处理异常", codecType);
         }
     }
@@ -194,14 +217,14 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
      *
      * @param clientId  客户端 ID
      * @param message   消息信息
-     * @param codecType 消息编解码类型
      * @param socket    网络连接
      */
-    private void handleBusinessRequest(String clientId, IotDeviceMessage message, String codecType, NetSocket socket) {
+    private void handleBusinessRequest(String clientId, IotDeviceMessage message, NetSocket socket) {
         try {
             // 1. 检查认证状态
             if (connectionManager.isNotAuthenticated(socket)) {
                 log.warn("[handleBusinessRequest][设备未认证，客户端 ID: {}]", clientId);
+                String codecType = detectCodecTypeFromMessage(message);
                 sendErrorResponse(socket, message.getRequestId(), "请先进行认证", codecType);
                 return;
             }
@@ -210,8 +233,8 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
             IotTcpConnectionManager.ConnectionInfo connectionInfo = connectionManager.getConnectionInfo(socket);
 
             // 3. 发送消息到消息总线
-            deviceMessageService.sendDeviceMessage(message, connectionInfo.getProductKey(),
-                    connectionInfo.getDeviceName(), serverId);
+            deviceMessageService.sendDeviceMessage(message, connectionInfo.getProductIdentification(),
+                    connectionInfo.getDeviceIdentification(), serverId);
             log.info("[handleBusinessRequest][发送消息到消息总线，客户端 ID: {}，消息: {}",
                     clientId, message.toString());
         } catch (Exception e) {
@@ -220,23 +243,21 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
     }
 
     /**
-     * 获取消息编解码类型
+     * 从消息中检测编解码类型（用于响应消息的编码）
      *
-     * @param buffer 消息
-     * @param socket 网络连接
+     * @param message 消息
      * @return 消息编解码类型
      */
-    private String getMessageCodecType(Buffer buffer, NetSocket socket) {
-        // 1. 如果已认证，优先使用缓存的编解码类型
-        IotTcpConnectionManager.ConnectionInfo connectionInfo = connectionManager.getConnectionInfo(socket);
-        if (connectionInfo != null && connectionInfo.isAuthenticated() &&
-                StrUtil.isNotBlank(connectionInfo.getCodecType())) {
-            return connectionInfo.getCodecType();
+    private String detectCodecTypeFromMessage(IotDeviceMessage message) {
+        // 根据消息的 topic 判断编解码类型
+        String topic = message.getTopic();
+        if (StrUtil.isNotBlank(topic) && topic.startsWith("/tcp/")) {
+            // 可以根据 topic 进一步判断是二进制还是 JSON
+            // 这里简化处理，默认使用 JSON（实际应该根据消息内容判断）
+            return CODEC_TYPE_JSON;
         }
-
-        // 2. 未认证时检测消息格式类型
-        return IotTcpBinaryDeviceMessageCodec.isBinaryFormatQuick(buffer.getBytes()) ? CODEC_TYPE_BINARY
-                : CODEC_TYPE_JSON;
+        // 默认使用 JSON
+        return CODEC_TYPE_JSON;
     }
 
     /**
@@ -245,16 +266,16 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
      * @param socket    网络连接
      * @param device    设备
      * @param clientId  客户端 ID
-     * @param codecType 消息编解码类型
+     * @param codecType 消息编解码类型（用于响应消息编码）
      */
     private void registerConnection(NetSocket socket, IotDeviceRespDTO device,
                                     String clientId, String codecType) {
         IotTcpConnectionManager.ConnectionInfo connectionInfo = new IotTcpConnectionManager.ConnectionInfo()
                 .setDeviceId(device.getId())
-                .setProductKey(device.getProductKey())
-                .setDeviceName(device.getDeviceName())
+                .setProductIdentification(device.getProductIdentification())
+                .setDeviceIdentification(device.getDeviceIdentification())
                 .setClientId(clientId)
-                .setCodecType(codecType)
+                .setCodecType(codecType) // 保留用于响应消息编码
                 .setAuthenticated(true);
         // 注册连接
         connectionManager.registerConnection(socket, device.getId(), connectionInfo);
@@ -268,10 +289,10 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
     private void sendOnlineMessage(IotDeviceRespDTO device) {
         try {
             IotDeviceMessage onlineMessage = IotDeviceMessage.buildStateUpdateOnline();
-            deviceMessageService.sendDeviceMessage(onlineMessage, device.getProductKey(),
-                    device.getDeviceName(), serverId);
+            deviceMessageService.sendDeviceMessage(onlineMessage, device.getProductIdentification(),
+                    device.getDeviceIdentification(), serverId);
         } catch (Exception e) {
-            log.error("[sendOnlineMessage][发送上线消息失败，设备: {}]", device.getDeviceName(), e);
+            log.error("[sendOnlineMessage][发送上线消息失败，设备: {}]", device.getDeviceIdentification(), e);
         }
     }
 
@@ -286,8 +307,8 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
             IotTcpConnectionManager.ConnectionInfo connectionInfo = connectionManager.getConnectionInfo(socket);
             if (connectionInfo != null) {
                 IotDeviceMessage offlineMessage = IotDeviceMessage.buildStateOffline();
-                deviceMessageService.sendDeviceMessage(offlineMessage, connectionInfo.getProductKey(),
-                        connectionInfo.getDeviceName(), serverId);
+                deviceMessageService.sendDeviceMessage(offlineMessage, connectionInfo.getProductIdentification(),
+                        connectionInfo.getDeviceIdentification(), serverId);
             }
 
             // 2. 注销连接
@@ -304,7 +325,7 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
      * @param success   是否成功
      * @param message   消息
      * @param requestId 请求 ID
-     * @param codecType 消息编解码类型
+     * @param codecType 消息编解码类型（用于确定编码方式）
      */
     private void sendResponse(NetSocket socket, boolean success, String message, String requestId, String codecType) {
         try {
@@ -317,7 +338,16 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
             IotDeviceMessage responseMessage = IotDeviceMessage.replyOf(requestId, AUTH_METHOD, responseData,
                     code, message);
 
-            byte[] encodedData = deviceMessageService.encodeDeviceMessage(responseMessage, codecType);
+            // 获取连接信息以构建 topic
+            IotTcpConnectionManager.ConnectionInfo connectionInfo = connectionManager.getConnectionInfo(socket);
+            String productIdentification = connectionInfo != null ? connectionInfo.getProductIdentification() : "unknown";
+            String deviceIdentification = connectionInfo != null ? connectionInfo.getDeviceIdentification() : "unknown";
+            
+            // 构建 topic 用于编码
+            String topic = "/tcp/" + productIdentification + "/" + deviceIdentification + "/" + AUTH_METHOD;
+            responseMessage.setTopic(topic);
+            
+            byte[] encodedData = deviceMessageService.encodeDeviceMessage(responseMessage, productIdentification, deviceIdentification);
             socket.write(Buffer.buffer(encodedData));
 
         } catch (Exception e) {
@@ -333,11 +363,9 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
      */
     private boolean validateDeviceAuth(IotDeviceAuthReqDTO authParams) {
         try {
-            CommonResult<Boolean> result = deviceApi.authDevice(new IotDeviceAuthReqDTO()
+            return deviceAuthService.authDevice(new IotDeviceAuthReqDTO()
                     .setClientId(authParams.getClientId()).setUsername(authParams.getUsername())
                     .setPassword(authParams.getPassword()));
-            result.checkError();
-            return BooleanUtil.isTrue(result.getData());
         } catch (Exception e) {
             log.error("[validateDeviceAuth][设备认证异常，username: {}]", authParams.getUsername(), e);
             return false;

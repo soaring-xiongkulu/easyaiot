@@ -7,7 +7,7 @@ import cn.hutool.extra.spring.SpringUtil;
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.protocol.http.IotHttpUpstreamProtocol;
-import com.basiclab.iot.sink.service.device.message.IotDeviceMessageService;
+import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
 import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class IotHttpUpstreamHandler extends IotHttpAbstractHandler {
 
-    public static final String PATH = "/topic/sys/:productKey/:deviceName/*";
+    public static final String PATH = "/topic/sys/:productIdentification/:deviceIdentification/*";
 
     private final IotHttpUpstreamProtocol protocol;
 
@@ -35,18 +35,19 @@ public class IotHttpUpstreamHandler extends IotHttpAbstractHandler {
     @Override
     protected CommonResult<Object> handle0(RoutingContext context) {
         // 1. 解析通用参数
-        String productKey = context.pathParam("productKey");
-        String deviceName = context.pathParam("deviceName");
+        String productIdentification = context.pathParam("productIdentification");
+        String deviceIdentification = context.pathParam("deviceIdentification");
         String method = context.pathParam("*").replaceAll(StrPool.SLASH, StrPool.DOT);
 
         // 2.1 解析消息
         byte[] bytes = context.body().buffer().getBytes();
-        IotDeviceMessage message = deviceMessageService.decodeDeviceMessage(bytes,
-                productKey, deviceName);
+        // 构建 topic
+        String topic = "/iot/" + productIdentification + "/" + deviceIdentification + "/" + method;
+        IotDeviceMessage message = deviceMessageService.decodeDeviceMessageByTopic(bytes, topic);
         Assert.equals(method, message.getMethod(), "method 不匹配");
         // 2.2 发送消息
         deviceMessageService.sendDeviceMessage(message,
-                productKey, deviceName, protocol.getServerId());
+                productIdentification, deviceIdentification, protocol.getServerId());
 
         // 3. 返回结果
         return CommonResult.success(MapUtil.of("messageId", message.getId()));

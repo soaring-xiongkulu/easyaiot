@@ -15,27 +15,16 @@ public class IotDeviceRespDTO {
      */
     private Long id;
     /**
-     * 产品标识
+     * 产品唯一标识
      */
-    private String productKey;
+    private String productIdentification;
     /**
-     * 设备名称
+     * 设备唯一标识
      */
-    private String deviceName;
+    private String deviceIdentification;
     /**
      * 租户编号
      */
     private Long tenantId;
-
-    // ========== 产品相关字段 ==========
-
-    /**
-     * 产品编号
-     */
-    private Long productId;
-    /**
-     * 编解码器类型
-     */
-    private String codecType;
 
 }

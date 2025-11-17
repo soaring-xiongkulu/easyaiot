@@ -53,8 +53,8 @@ public class IotTcpConnectionManager {
         connectionMap.put(socket, connectionInfo);
         deviceSocketMap.put(deviceId, socket);
 
-        log.info("[registerConnection][注册设备连接，设备 ID: {}，连接: {}，product key: {}，device name: {}]",
-                deviceId, socket.remoteAddress(), connectionInfo.getProductKey(), connectionInfo.getDeviceName());
+        log.info("[registerConnection][注册设备连接，设备 ID: {}，连接: {}，product identification: {}，device identification: {}]",
+                deviceId, socket.remoteAddress(), connectionInfo.getProductIdentification(), connectionInfo.getDeviceIdentification());
     }
 
     /**
@@ -141,13 +141,13 @@ public class IotTcpConnectionManager {
          */
         private Long deviceId;
         /**
-         * 产品 Key
+         * 产品唯一标识
          */
-        private String productKey;
+        private String productIdentification;
         /**
-         * 设备名称
+         * 设备唯一标识
          */
-        private String deviceName;
+        private String deviceIdentification;
 
         /**
          * 客户端 ID

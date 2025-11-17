@@ -6,8 +6,8 @@ import com.basiclab.iot.sink.biz.dto.IotDeviceRespDTO;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.util.IotDeviceMessageUtils;
 import com.basiclab.iot.sink.protocol.emqx.IotEmqxUpstreamProtocol;
-import com.basiclab.iot.sink.service.device.IotDeviceService;
-import com.basiclab.iot.sink.service.device.message.IotDeviceMessageService;
+import com.basiclab.iot.sink.messagebus.publisher.IotDeviceService;
+import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
 import com.basiclab.iot.sink.util.IotMqttTopicUtils;
 import lombok.extern.slf4j.Slf4j;
 
@@ -47,14 +47,14 @@ public class IotEmqxDownstreamHandler {
         }
 
         // 2.1 根据方法构建主题
-        String topic = buildTopicByMethod(message, deviceInfo.getProductKey(), deviceInfo.getDeviceName());
+        String topic = buildTopicByMethod(message, deviceInfo.getProductIdentification(), deviceInfo.getDeviceIdentification());
         if (StrUtil.isBlank(topic)) {
             log.warn("[handle][未知的消息方法: {}]", message.getMethod());
             return;
         }
         // 2.2 构建载荷
-        byte[] payload = deviceMessageService.encodeDeviceMessage(message, deviceInfo.getProductKey(),
-                deviceInfo.getDeviceName());
+        byte[] payload = deviceMessageService.encodeDeviceMessage(message, deviceInfo.getProductIdentification(),
+                deviceInfo.getDeviceIdentification());
         // 2.3 发布消息
         protocol.publishMessage(topic, payload);
     }
@@ -62,16 +62,16 @@ public class IotEmqxDownstreamHandler {
     /**
      * 根据消息方法和回复状态构建主题
      *
-     * @param message    设备消息
-     * @param productKey 产品标识
-     * @param deviceName 设备名称
+     * @param message               设备消息
+     * @param productIdentification 产品唯一标识
+     * @param deviceIdentification  设备唯一标识
      * @return 构建的主题，如果方法不支持返回 null
      */
-    private String buildTopicByMethod(IotDeviceMessage message, String productKey, String deviceName) {
+    private String buildTopicByMethod(IotDeviceMessage message, String productIdentification, String deviceIdentification) {
         // 1. 判断是否为回复消息
         boolean isReply = IotDeviceMessageUtils.isReplyMessage(message);
         // 2. 根据消息方法类型构建对应的主题
-        return IotMqttTopicUtils.buildTopicByMethod(message.getMethod(), productKey, deviceName, isReply);
+        return IotMqttTopicUtils.buildTopicByMethod(message.getMethod(), productIdentification, deviceIdentification, isReply);
     }
 
 }
