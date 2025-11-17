@@ -194,18 +194,28 @@ check_and_build_jars() {
 # 构建所有镜像
 build_images() {
     check_and_build_jars
-    print_info "开始构建所有Docker镜像..."
+    print_info "开始构建所有Docker镜像（减少输出）..."
     cd "$SCRIPT_DIR"
-    $DOCKER_COMPOSE build
+    # 使用 --progress=plain 减少构建输出，但仍显示关键信息
+    if echo "$DOCKER_COMPOSE" | grep -q "docker compose"; then
+        $DOCKER_COMPOSE build --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building)" || true
+    else
+        $DOCKER_COMPOSE build --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building)" || true
+    fi
     print_success "镜像构建完成"
 }
 
 # 构建并启动所有服务
 build_and_start() {
     check_and_build_jars
-    print_info "开始构建并启动所有服务..."
+    print_info "开始构建并启动所有服务（减少输出）..."
     cd "$SCRIPT_DIR"
-    $DOCKER_COMPOSE up -d --build
+    # 使用 --progress=plain 和 --quiet-pull 减少输出
+    if echo "$DOCKER_COMPOSE" | grep -q "docker compose"; then
+        $DOCKER_COMPOSE up -d --build --progress=plain --quiet-pull 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building|Creating|Starting|Started)" || true
+    else
+        $DOCKER_COMPOSE up -d --build --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building|Creating|Starting|Started)" || true
+    fi
     print_success "服务构建并启动完成"
 }
 
@@ -213,7 +223,12 @@ build_and_start() {
 start_services() {
     print_info "启动所有服务..."
     cd "$SCRIPT_DIR"
-    $DOCKER_COMPOSE up -d
+    # 使用 --quiet-pull 减少拉取镜像时的输出
+    if echo "$DOCKER_COMPOSE" | grep -q "docker compose"; then
+        $DOCKER_COMPOSE up -d --quiet-pull 2>&1 | grep -E "(Creating|Starting|Started|ERROR|WARNING)" || true
+    else
+        $DOCKER_COMPOSE up -d 2>&1 | grep -E "(Creating|Starting|Started|ERROR|WARNING)" || true
+    fi
     print_success "服务启动完成"
 }
 
@@ -244,27 +259,27 @@ show_status() {
 show_logs() {
     local service=$1
     if [ -z "$service" ]; then
-        print_info "查看所有服务日志（按Ctrl+C退出）..."
+        print_info "查看所有服务日志（最近50行，按Ctrl+C退出）..."
         cd "$SCRIPT_DIR"
-        $DOCKER_COMPOSE logs -f
+        $DOCKER_COMPOSE logs -f --tail=50
     else
-        print_info "查看服务 $service 的日志（按Ctrl+C退出）..."
+        print_info "查看服务 $service 的日志（最近50行，按Ctrl+C退出）..."
         cd "$SCRIPT_DIR"
-        $DOCKER_COMPOSE logs -f "$service"
+        $DOCKER_COMPOSE logs -f --tail=50 "$service"
     fi
 }
 
-# 查看特定服务的日志（最近100行）
+# 查看特定服务的日志（最近50行）
 show_logs_tail() {
     local service=$1
     if [ -z "$service" ]; then
-        print_info "查看所有服务最近100行日志..."
+        print_info "查看所有服务最近50行日志..."
         cd "$SCRIPT_DIR"
-        $DOCKER_COMPOSE logs --tail=100
+        $DOCKER_COMPOSE logs --tail=50
     else
-        print_info "查看服务 $service 最近100行日志..."
+        print_info "查看服务 $service 最近50行日志..."
         cd "$SCRIPT_DIR"
-        $DOCKER_COMPOSE logs --tail=100 "$service"
+        $DOCKER_COMPOSE logs --tail=50 "$service"
     fi
 }
 
@@ -347,9 +362,14 @@ clean_all() {
 # 更新服务（重新构建并重启）
 update_services() {
     check_and_build_jars
-    print_info "更新所有服务（重新构建并重启）..."
+    print_info "更新所有服务（重新构建并重启，减少输出）..."
     cd "$SCRIPT_DIR"
-    $DOCKER_COMPOSE up -d --build --force-recreate
+    # 使用 --progress=plain 和 --quiet-pull 减少输出
+    if echo "$DOCKER_COMPOSE" | grep -q "docker compose"; then
+        $DOCKER_COMPOSE up -d --build --force-recreate --progress=plain --quiet-pull 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building|Creating|Starting|Started|Recreating)" || true
+    else
+        $DOCKER_COMPOSE up -d --build --force-recreate --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building|Creating|Starting|Started|Recreating)" || true
+    fi
     print_success "服务更新完成"
 }
 
@@ -366,8 +386,8 @@ DEVICE模块 Docker Compose 管理脚本
     stop                停止所有服务
     restart             重启所有服务
     status              查看服务状态
-    logs [服务名]       查看日志（所有服务或指定服务）
-    logs-tail [服务名]  查看最近100行日志
+    logs [服务名]       查看日志（所有服务或指定服务，最近50行）
+    logs-tail [服务名]  查看最近50行日志
     restart-service     重启指定服务
     stop-service        停止指定服务
     start-service       启动指定服务

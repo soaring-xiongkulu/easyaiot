@@ -288,11 +288,21 @@ install_service() {
     create_directories
     create_env_file
     
-    print_info "构建 Docker 镜像..."
-    $COMPOSE_CMD build
+    print_info "构建 Docker 镜像（减少输出）..."
+    # 使用 --progress=plain 减少构建输出
+    if echo "$COMPOSE_CMD" | grep -q "docker compose"; then
+        $COMPOSE_CMD build --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built)" || true
+    else
+        $COMPOSE_CMD build --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built)" || true
+    fi
     
     print_info "启动服务..."
-    $COMPOSE_CMD up -d
+    # 使用 --quiet-pull 减少拉取镜像时的输出
+    if echo "$COMPOSE_CMD" | grep -q "docker compose"; then
+        $COMPOSE_CMD up -d --quiet-pull 2>&1 | grep -v "^$" || true
+    else
+        $COMPOSE_CMD up -d 2>&1 | grep -v "^$" || true
+    fi
     
     print_success "服务安装完成！"
     print_info "等待服务启动..."
@@ -319,7 +329,12 @@ start_service() {
         create_env_file
     fi
     
-    $COMPOSE_CMD up -d
+    # 使用 --quiet-pull 减少拉取镜像时的输出
+    if echo "$COMPOSE_CMD" | grep -q "docker compose"; then
+        $COMPOSE_CMD up -d --quiet-pull 2>&1 | grep -v "^$" || true
+    else
+        $COMPOSE_CMD up -d 2>&1 | grep -v "^$" || true
+    fi
     print_success "服务已启动"
     check_status
 }
@@ -376,20 +391,25 @@ view_logs() {
     
     if [ "$1" == "-f" ] || [ "$1" == "--follow" ]; then
         print_info "实时查看日志（按 Ctrl+C 退出）..."
-        $COMPOSE_CMD logs -f
+        $COMPOSE_CMD logs -f --tail=50
     else
-        print_info "查看最近日志..."
-        $COMPOSE_CMD logs --tail=100
+        print_info "查看最近日志（最近50行）..."
+        $COMPOSE_CMD logs --tail=50
     fi
 }
 
 # 构建镜像
 build_image() {
-    print_info "重新构建 Docker 镜像..."
+    print_info "重新构建 Docker 镜像（减少输出）..."
     check_docker
     check_docker_compose
     
-    $COMPOSE_CMD build --no-cache
+    # 使用 --progress=plain 减少构建输出，但仍显示关键信息
+    if echo "$COMPOSE_CMD" | grep -q "docker compose"; then
+        $COMPOSE_CMD build --no-cache --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built)" || true
+    else
+        $COMPOSE_CMD build --no-cache --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built)" || true
+    fi
     print_success "镜像构建完成"
 }
 
@@ -424,11 +444,21 @@ update_service() {
     print_info "拉取最新代码..."
     git pull || print_warning "Git pull 失败，继续使用当前代码"
     
-    print_info "重新构建镜像..."
-    $COMPOSE_CMD build
+    print_info "重新构建镜像（减少输出）..."
+    # 使用 --progress=plain 减少构建输出
+    if echo "$COMPOSE_CMD" | grep -q "docker compose"; then
+        $COMPOSE_CMD build --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built)" || true
+    else
+        $COMPOSE_CMD build --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built)" || true
+    fi
     
     print_info "重启服务..."
-    $COMPOSE_CMD up -d
+    # 使用 --quiet-pull 减少拉取镜像时的输出
+    if echo "$COMPOSE_CMD" | grep -q "docker compose"; then
+        $COMPOSE_CMD up -d --quiet-pull 2>&1 | grep -v "^$" || true
+    else
+        $COMPOSE_CMD up -d 2>&1 | grep -v "^$" || true
+    fi
     
     print_success "服务更新完成"
     check_status
@@ -447,8 +477,8 @@ show_help() {
     echo "  stop       - 停止服务"
     echo "  restart    - 重启服务"
     echo "  status     - 查看服务状态"
-    echo "  logs       - 查看服务日志"
-    echo "  logs -f    - 实时查看服务日志"
+    echo "  logs       - 查看服务日志（最近50行）"
+    echo "  logs -f    - 实时查看服务日志（最近50行）"
     echo "  build      - 重新构建镜像"
     echo "  clean      - 清理容器和镜像"
     echo "  update     - 更新并重启服务"
