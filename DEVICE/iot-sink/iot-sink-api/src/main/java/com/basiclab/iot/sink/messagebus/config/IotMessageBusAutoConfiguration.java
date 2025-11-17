@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.autoconfigure.RocketMQProperties;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -29,7 +30,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 public class IotMessageBusAutoConfiguration {
 
     @Bean
+    @ConditionalOnBean(IotMessageBus.class)
     public IotDeviceMessageProducer deviceMessageProducer(IotMessageBus messageBus) {
+        log.info("[deviceMessageProducer][创建 IoT 设备消息生产者]");
         return new IotDeviceMessageProducer(messageBus);
     }
 
