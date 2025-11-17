@@ -13,6 +13,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import org.springframework.context.annotation.Lazy;
+
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.HashMap;
@@ -32,6 +34,7 @@ public class IotDeviceMessageServiceImpl implements IotDeviceMessageService {
     private IotDeviceService deviceService;
 
     @Resource
+    @Lazy
     private IotDeviceMessageProducer deviceMessageProducer;
 
     @Resource

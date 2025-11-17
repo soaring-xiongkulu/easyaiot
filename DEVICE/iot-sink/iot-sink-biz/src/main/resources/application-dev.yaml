@@ -61,6 +61,41 @@ spring:
         max-wait: 2000   # 获取连接最大等待时间
       timeout: 1000        # 操作超时时间
 
+  # Kafka 配置项
+  kafka:
+    #iot
+    iot:
+      producer:
+        bootstrap-servers: localhost:9092
+        transaction-id-prefix: kafkaTx-
+        retries: 3
+        acks: all
+        batch-size: 104857600
+        buffer-memory: 104857600
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      consumer:
+        bootstrap-servers: localhost:9092
+        group-id: iot-sink
+        auto-offset-reset: latest
+        enable-auto-commit: false
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        max-poll-records: 100
+      properties:
+        max:
+          poll:
+            interval:
+              ms: 600000
+        session:
+          timeout:
+            ms: 10000
+      listener:
+        concurrency: 4
+        ack-mode: manual_immediate
+        missing-topics-fatal: false
+        poll-timeout: 600000
+
 
 --- #################### 定时任务相关配置 ####################
 
@@ -173,3 +208,10 @@ minio:
   bucketName: snap-space
   chunk: 5
   chunkSize: 5
+
+--- #################### IoT Sink 相关配置 ####################
+
+basiclab:
+  iot:
+    message-bus:
+      type: kafka # 消息总线类型：local、kafka

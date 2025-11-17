@@ -178,6 +178,8 @@ minio:
 
 basiclab:
   iot:
+    message-bus:
+      type: kafka # 消息总线类型：local、kafka
     sink:
       # 设备 RPC 配置
       rpc:
