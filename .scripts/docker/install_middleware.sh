@@ -2904,6 +2904,34 @@ create_redis_directories() {
     fi
 }
 
+# 创建并设置 Kafka 数据目录权限
+create_kafka_directories() {
+    local kafka_data_dir="${SCRIPT_DIR}/mq_data/data"
+    
+    print_info "创建 Kafka 数据目录并设置权限..."
+    
+    # 创建目录
+    mkdir -p "$kafka_data_dir"
+    
+    # Kafka 容器默认使用 UID 1000, GID 1000 (appuser 用户)
+    # 如果当前用户有权限，则设置；否则只创建目录
+    if [ "$EUID" -eq 0 ]; then
+        chown -R 1000:1000 "$kafka_data_dir"
+        chmod -R 755 "$kafka_data_dir"
+        print_success "Kafka 数据目录权限已设置 (UID 1000:1000)"
+    else
+        # 非 root 用户尝试使用 sudo（如果可用）
+        if command -v sudo &> /dev/null; then
+            sudo chown -R 1000:1000 "$kafka_data_dir" 2>/dev/null && \
+            sudo chmod -R 755 "$kafka_data_dir" 2>/dev/null && \
+            print_success "Kafka 数据目录权限已设置 (UID 1000:1000)" || \
+            print_warning "无法设置 Kafka 目录权限，可能需要手动设置: sudo chown -R 1000:1000 $kafka_data_dir"
+        else
+            print_warning "无法设置 Kafka 目录权限，请手动执行: sudo chown -R 1000:1000 $kafka_data_dir"
+        fi
+    fi
+}
+
 # 创建所有中间件的存储目录
 create_all_storage_directories() {
     print_info "创建所有中间件存储目录..."
@@ -2918,7 +2946,7 @@ create_all_storage_directories() {
         "${SCRIPT_DIR}/taos_data/log:::"               # TDengine 日志（使用默认权限）
         "${SCRIPT_DIR}/redis_data/data:999:999:755"   # Redis 数据
         "${SCRIPT_DIR}/redis_data/logs:999:999:755"    # Redis 日志
-        "${SCRIPT_DIR}/mq_data/data:::"                # Kafka 数据（使用默认权限）
+        "${SCRIPT_DIR}/mq_data/data:1000:1000:755"    # Kafka 数据（uid=1000, gid=1000）
         "${SCRIPT_DIR}/minio_data/data:::"             # MinIO 数据（使用默认权限）
         "${SCRIPT_DIR}/minio_data/config:::"           # MinIO 配置（使用默认权限）
         "${SCRIPT_DIR}/srs_data/conf:::"               # SRS 配置（使用默认权限）
@@ -4474,6 +4502,7 @@ install_middleware() {
     create_postgresql_directories
     create_redis_directories
     create_nodered_directories
+    create_kafka_directories
     
     # 强制更新 SRS 配置文件（重新获取宿主机 IP）
     prepare_srs_config
@@ -4576,6 +4605,7 @@ start_middleware() {
     create_postgresql_directories
     create_redis_directories
     create_nodered_directories
+    create_kafka_directories
     
     prepare_srs_config
     prepare_emqx_volumes
@@ -4625,6 +4655,7 @@ restart_middleware() {
     create_postgresql_directories
     create_redis_directories
     create_nodered_directories
+    create_kafka_directories
     
     prepare_srs_config
     prepare_emqx_volumes
@@ -4988,6 +5019,7 @@ update_middleware() {
     create_postgresql_directories
     create_redis_directories
     create_nodered_directories
+    create_kafka_directories
     
     prepare_srs_config
     prepare_emqx_volumes
