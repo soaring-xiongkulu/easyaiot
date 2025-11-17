@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.device.dal.pgsql.app.AppMapper">
+
+    <resultMap id="BaseResultMap" type="com.basiclab.iot.device.dal.dataobject.AppDO">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="app_id" jdbcType="VARCHAR" property="appId"/>
+        <result column="app_key" jdbcType="VARCHAR" property="appKey"/>
+        <result column="app_secret" jdbcType="VARCHAR" property="appSecret"/>
+        <result column="app_name" jdbcType="VARCHAR" property="appName"/>
+        <result column="app_desc" jdbcType="VARCHAR" property="appDesc"/>
+        <result column="status" jdbcType="VARCHAR" property="status"/>
+        <result column="permission_type" jdbcType="VARCHAR" property="permissionType"/>
+        <result column="expire_time" jdbcType="TIMESTAMP" property="expireTime"/>
+        <result column="tenant_id" jdbcType="BIGINT" property="tenantId"/>
+        <result column="remark" jdbcType="VARCHAR" property="remark"/>
+        <result column="created_by" jdbcType="VARCHAR" property="createdBy"/>
+        <result column="created_time" jdbcType="TIMESTAMP" property="createdTime"/>
+        <result column="updated_by" jdbcType="VARCHAR" property="updatedBy"/>
+        <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime"/>
+        <result column="deleted" jdbcType="INTEGER" property="deleted"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, app_id, app_key, app_secret, app_name, app_desc, status, permission_type,
+        expire_time, tenant_id, remark, created_by, created_time, updated_by, updated_time, deleted
+    </sql>
+
+    <select id="selectByAppId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from app
+        where app_id = #{appId,jdbcType=VARCHAR}
+        and deleted = 0
+        limit 1
+    </select>
+
+    <select id="selectByAppKey" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from app
+        where app_key = #{appKey,jdbcType=VARCHAR}
+        and deleted = 0
+        limit 1
+    </select>
+
+    <select id="selectByAppIdAndAppKey" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from app
+        where app_id = #{appId,jdbcType=VARCHAR}
+        and app_key = #{appKey,jdbcType=VARCHAR}
+        and deleted = 0
+        limit 1
+    </select>
+
+</mapper>
+

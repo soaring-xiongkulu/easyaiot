@@ -2,8 +2,10 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 16.2
--- Dumped by pg_dump version 16.2
+\restrict cXLBDfJgSuTdRPmNUuRgJXw91n7WjTQv6zwi5dc6SbwTDowpLF0mBAqsZB9WHrH
+
+-- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
+-- Dumped by pg_dump version 16.10 (Ubuntu 16.10-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -15,6 +17,22 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: update_updated_time_column(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.update_updated_time_column() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.updated_time = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.update_updated_time_column() OWNER TO postgres;
 
 --
 -- Name: algorithm_alarm_data_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -131,6 +149,151 @@ ALTER SEQUENCE public.algorithm_video_id_seq OWNER TO postgres;
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: app; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.app (
+    id bigint NOT NULL,
+    app_id character varying(32) NOT NULL,
+    app_key character varying(32) NOT NULL,
+    app_secret character varying(64) NOT NULL,
+    app_name character varying(128) DEFAULT NULL::character varying,
+    app_desc character varying(512) DEFAULT NULL::character varying,
+    status character varying(16) DEFAULT 'ENABLE'::character varying NOT NULL,
+    permission_type character varying(16) DEFAULT 'READ_WRITE'::character varying NOT NULL,
+    expire_time timestamp without time zone,
+    tenant_id bigint,
+    remark character varying(512) DEFAULT NULL::character varying,
+    created_by character varying(64) DEFAULT NULL::character varying,
+    created_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by character varying(64) DEFAULT NULL::character varying,
+    updated_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    deleted smallint DEFAULT 0
+);
+
+
+ALTER TABLE public.app OWNER TO postgres;
+
+--
+-- Name: TABLE app; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.app IS '应用密钥表';
+
+
+--
+-- Name: COLUMN app.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.id IS '主键ID';
+
+
+--
+-- Name: COLUMN app.app_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.app_id IS '应用ID（AppID）：应用的唯一标识';
+
+
+--
+-- Name: COLUMN app.app_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.app_key IS '应用密钥（AppKey）：公匙，相当于账号';
+
+
+--
+-- Name: COLUMN app.app_secret; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.app_secret IS '应用密钥（AppSecret）：私匙，相当于密码';
+
+
+--
+-- Name: COLUMN app.app_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.app_name IS '应用名称';
+
+
+--
+-- Name: COLUMN app.app_desc; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.app_desc IS '应用描述';
+
+
+--
+-- Name: COLUMN app.status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.status IS '状态：ENABLE-启用，DISABLE-禁用';
+
+
+--
+-- Name: COLUMN app.permission_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.permission_type IS '权限类型：READ_ONLY-只读，READ_WRITE-读写';
+
+
+--
+-- Name: COLUMN app.expire_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.expire_time IS '过期时间';
+
+
+--
+-- Name: COLUMN app.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.tenant_id IS '租户编号';
+
+
+--
+-- Name: COLUMN app.remark; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.remark IS '备注';
+
+
+--
+-- Name: COLUMN app.created_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.created_by IS '创建人';
+
+
+--
+-- Name: COLUMN app.created_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.created_time IS '创建时间';
+
+
+--
+-- Name: COLUMN app.updated_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.updated_by IS '更新人';
+
+
+--
+-- Name: COLUMN app.updated_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.updated_time IS '更新时间';
+
+
+--
+-- Name: COLUMN app.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.app.deleted IS '是否删除：0-未删除，1-已删除';
+
 
 --
 -- Name: dataset; Type: TABLE; Schema: public; Owner: postgres
@@ -2318,6 +2481,27 @@ CREATE SEQUENCE public.file_seq
 ALTER SEQUENCE public.file_seq OWNER TO postgres;
 
 --
+-- Name: iot_app_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.iot_app_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.iot_app_id_seq OWNER TO postgres;
+
+--
+-- Name: iot_app_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.iot_app_id_seq OWNED BY public.app.id;
+
+
+--
 -- Name: model_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2803,132 +2987,6 @@ ALTER SEQUENCE public.product_id_seq OWNED BY public.product.id;
 
 
 --
--- Name: product_script_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.product_script_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.product_script_id_seq OWNER TO postgres;
-
---
--- Name: product_script_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.product_script_id_seq OWNED BY public.product_script.id;
-
-
---
--- Name: product_script; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.product_script (
-    id bigint NOT NULL,
-    product_id bigint NOT NULL,
-    product_identification character varying(100) NOT NULL,
-    script_enabled boolean DEFAULT false NOT NULL,
-    script_content text,
-    script_version integer DEFAULT 1 NOT NULL,
-    create_by character varying(64),
-    create_time timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP,
-    update_by character varying(64),
-    update_time timestamp(6) without time zone,
-    tenant_id bigint DEFAULT 0 NOT NULL
-);
-
-
-ALTER TABLE public.product_script OWNER TO postgres;
-
---
--- Name: TABLE product_script; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON TABLE public.product_script IS '产品脚本表，用于存储产品的数据转换脚本';
-
-
---
--- Name: COLUMN product_script.id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.product_script.id IS '主键ID';
-
-
---
--- Name: COLUMN product_script.product_id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.product_script.product_id IS '产品ID，关联product表';
-
-
---
--- Name: COLUMN product_script.product_identification; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.product_script.product_identification IS '产品标识，冗余字段，便于查询';
-
-
---
--- Name: COLUMN product_script.script_enabled; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.product_script.script_enabled IS '是否启用脚本，默认不启用';
-
-
---
--- Name: COLUMN product_script.script_content; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.product_script.script_content IS '脚本内容，包含rawDataToProtocol和protocolToRawData两个函数';
-
-
---
--- Name: COLUMN product_script.script_version; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.product_script.script_version IS '脚本版本号，用于版本控制';
-
-
---
--- Name: COLUMN product_script.create_by; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.product_script.create_by IS '创建者';
-
-
---
--- Name: COLUMN product_script.create_time; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.product_script.create_time IS '创建时间';
-
-
---
--- Name: COLUMN product_script.update_by; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.product_script.update_by IS '更新者';
-
-
---
--- Name: COLUMN product_script.update_time; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.product_script.update_time IS '更新时间';
-
-
---
--- Name: COLUMN product_script.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.product_script.tenant_id IS '租户编号';
-
-
---
 -- Name: product_properties; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3135,6 +3193,132 @@ ALTER SEQUENCE public.product_properties_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE public.product_properties_id_seq OWNED BY public.product_properties.id;
+
+
+--
+-- Name: product_script; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.product_script (
+    id bigint NOT NULL,
+    product_id bigint NOT NULL,
+    product_identification character varying(100) NOT NULL,
+    script_enabled boolean DEFAULT false NOT NULL,
+    script_content text,
+    script_version integer DEFAULT 1 NOT NULL,
+    create_by character varying(64),
+    create_time timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP,
+    update_by character varying(64),
+    update_time timestamp(6) without time zone,
+    tenant_id bigint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.product_script OWNER TO postgres;
+
+--
+-- Name: TABLE product_script; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.product_script IS '产品脚本表，用于存储产品的数据转换脚本';
+
+
+--
+-- Name: COLUMN product_script.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.id IS '主键ID';
+
+
+--
+-- Name: COLUMN product_script.product_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.product_id IS '产品ID，关联product表';
+
+
+--
+-- Name: COLUMN product_script.product_identification; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.product_identification IS '产品标识，冗余字段，便于查询';
+
+
+--
+-- Name: COLUMN product_script.script_enabled; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.script_enabled IS '是否启用脚本，默认不启用';
+
+
+--
+-- Name: COLUMN product_script.script_content; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.script_content IS '脚本内容，包含rawDataToProtocol和protocolToRawData两个函数';
+
+
+--
+-- Name: COLUMN product_script.script_version; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.script_version IS '脚本版本号，用于版本控制';
+
+
+--
+-- Name: COLUMN product_script.create_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.create_by IS '创建者';
+
+
+--
+-- Name: COLUMN product_script.create_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.create_time IS '创建时间';
+
+
+--
+-- Name: COLUMN product_script.update_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.update_by IS '更新者';
+
+
+--
+-- Name: COLUMN product_script.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.update_time IS '更新时间';
+
+
+--
+-- Name: COLUMN product_script.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.tenant_id IS '租户编号';
+
+
+--
+-- Name: product_script_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.product_script_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.product_script_id_seq OWNER TO postgres;
+
+--
+-- Name: product_script_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.product_script_id_seq OWNED BY public.product_script.id;
 
 
 --
@@ -3559,6 +3743,13 @@ CREATE SEQUENCE public.warehouse_id_seq
 ALTER SEQUENCE public.warehouse_id_seq OWNER TO postgres;
 
 --
+-- Name: app id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.app ALTER COLUMN id SET DEFAULT nextval('public.iot_app_id_seq'::regclass);
+
+
+--
 -- Name: dataset id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -3661,6 +3852,14 @@ ALTER TABLE ONLY public.product_script ALTER COLUMN id SET DEFAULT nextval('publ
 --
 
 ALTER TABLE ONLY public.product_template ALTER COLUMN id SET DEFAULT nextval('public.product_template_id_seq'::regclass);
+
+
+--
+-- Data for Name: app; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.app (id, app_id, app_key, app_secret, app_name, app_desc, status, permission_type, expire_time, tenant_id, remark, created_by, created_time, updated_by, updated_time, deleted) FROM stdin;
+\.
 
 
 --
@@ -3799,6 +3998,14 @@ COPY public.product_properties (id, property_name, property_code, datatype, desc
 51	电量	Vbatt	TEXT	\N		\N	10240	r	\N	\N	\N	\N	admin	2024-06-18 15:32:13.564	admin	2024-06-18 15:32:13.565	\N	9820630576939008	1
 52	服务ID	serviceId	TEXT	\N		\N	10240	r	\N	\N	\N	\N	admin	2024-06-18 15:32:45.728	admin	2024-06-18 15:32:45.728	\N	9820630576939008	1
 53	设备ID	deviceId	TEXT	\N		\N	10240	r	\N	\N	\N	\N	admin	2024-06-18 15:32:59.716	admin	2024-06-18 15:32:59.716	\N	9820630576939008	1
+\.
+
+
+--
+-- Data for Name: product_script; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.product_script (id, product_id, product_identification, script_enabled, script_content, script_version, create_by, create_time, update_by, update_time, tenant_id) FROM stdin;
 \.
 
 
@@ -4123,6 +4330,13 @@ SELECT pg_catalog.setval('public.file_seq', 1, false);
 
 
 --
+-- Name: iot_app_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.iot_app_id_seq', 1, false);
+
+
+--
 -- Name: model_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -4329,22 +4543,6 @@ ALTER TABLE ONLY public.product_properties
 
 
 --
--- Name: product_script product_script_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.product_script
-    ADD CONSTRAINT product_script_pk PRIMARY KEY (id);
-
-
---
--- Name: product_script product_script_product_id_fk; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.product_script
-    ADD CONSTRAINT product_script_product_id_fk FOREIGN KEY (product_id) REFERENCES public.product(id) ON DELETE CASCADE;
-
-
---
 -- Name: device_topic _copy_47; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -4425,6 +4623,30 @@ ALTER TABLE ONLY public.dataset_video
 
 
 --
+-- Name: app iot_app_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.app
+    ADD CONSTRAINT iot_app_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: app uk_app_id; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.app
+    ADD CONSTRAINT uk_app_id UNIQUE (app_id);
+
+
+--
+-- Name: app uk_app_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.app
+    ADD CONSTRAINT uk_app_key UNIQUE (app_key);
+
+
+--
 -- Name: warehouse_dataset warehouse_dataset_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -4441,17 +4663,17 @@ ALTER TABLE ONLY public.warehouse
 
 
 --
--- Name: manufacturer_id; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_created_time; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX manufacturer_id ON public.product USING btree (manufacturer_id);
+CREATE INDEX idx_created_time ON public.app USING btree (created_time);
 
 
 --
--- Name: INDEX manufacturer_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: idx_expire_time; Type: INDEX; Schema: public; Owner: postgres
 --
 
-COMMENT ON INDEX public.manufacturer_id IS '厂商ID索引';
+CREATE INDEX idx_expire_time ON public.app USING btree (expire_time);
 
 
 --
@@ -4476,6 +4698,43 @@ CREATE INDEX idx_product_script_tenant_id ON public.product_script USING btree (
 
 
 --
+-- Name: idx_status; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_status ON public.app USING btree (status);
+
+
+--
+-- Name: idx_tenant_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_tenant_id ON public.app USING btree (tenant_id);
+
+
+--
+-- Name: manufacturer_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX manufacturer_id ON public.product USING btree (manufacturer_id);
+
+
+--
+-- Name: INDEX manufacturer_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON INDEX public.manufacturer_id IS '厂商ID索引';
+
+
+--
+-- Name: app update_iot_app_updated_time; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_iot_app_updated_time BEFORE UPDATE ON public.app FOR EACH ROW EXECUTE FUNCTION public.update_updated_time_column();
+
+
+--
 -- PostgreSQL database dump complete
 --
+
+\unrestrict cXLBDfJgSuTdRPmNUuRgJXw91n7WjTQv6zwi5dc6SbwTDowpLF0mBAqsZB9WHrH
 

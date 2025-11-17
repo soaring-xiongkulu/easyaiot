@@ -2,7 +2,7 @@ package com.basiclab.iot.sink.protocol.emqx.router;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
-import com.basiclab.iot.sink.auth.IotDeviceAuthService;
+import com.basiclab.iot.sink.auth.service.DeviceAuthService;
 import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
@@ -51,12 +51,12 @@ public class IotEmqxAuthEventHandler {
 
     private final IotDeviceMessageService deviceMessageService;
 
-    private final IotDeviceAuthService deviceAuthService;
+    private final DeviceAuthService deviceAuthService;
 
     public IotEmqxAuthEventHandler(String serverId) {
         this.serverId = serverId;
         this.deviceMessageService = SpringUtil.getBean(IotDeviceMessageService.class);
-        this.deviceAuthService = SpringUtil.getBean(IotDeviceAuthService.class);
+        this.deviceAuthService = SpringUtil.getBean(DeviceAuthService.class);
     }
 
     /**

@@ -5,7 +5,7 @@ import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
 import com.basiclab.iot.common.domain.CommonResult;
-import com.basiclab.iot.sink.auth.IotDeviceAuthService;
+import com.basiclab.iot.sink.auth.service.DeviceAuthService;
 import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
@@ -33,13 +33,13 @@ public class IotHttpAuthHandler extends IotHttpAbstractHandler {
 
     private final IotHttpUpstreamProtocol protocol;
 
-    private final IotDeviceAuthService deviceAuthService;
+    private final DeviceAuthService deviceAuthService;
 
     private final IotDeviceMessageService deviceMessageService;
 
     public IotHttpAuthHandler(IotHttpUpstreamProtocol protocol) {
         this.protocol = protocol;
-        this.deviceAuthService = SpringUtil.getBean(IotDeviceAuthService.class);
+        this.deviceAuthService = SpringUtil.getBean(DeviceAuthService.class);
         this.deviceMessageService = SpringUtil.getBean(IotDeviceMessageService.class);
     }
 

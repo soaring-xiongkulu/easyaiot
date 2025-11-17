@@ -5,7 +5,7 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
 import com.basiclab.iot.common.utils.json.JsonUtils;
-import com.basiclab.iot.sink.auth.IotDeviceAuthService;
+import com.basiclab.iot.sink.auth.service.DeviceAuthService;
 import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.biz.dto.IotDeviceRespDTO;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
@@ -40,7 +40,7 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
 
     private final IotTcpConnectionManager connectionManager;
 
-    private final IotDeviceAuthService deviceAuthService;
+    private final DeviceAuthService deviceAuthService;
 
     private final String serverId;
 
@@ -51,7 +51,7 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
         this.deviceMessageService = deviceMessageService;
         this.deviceService = deviceService;
         this.connectionManager = connectionManager;
-        this.deviceAuthService = SpringUtil.getBean(IotDeviceAuthService.class);
+        this.deviceAuthService = SpringUtil.getBean(DeviceAuthService.class);
         this.serverId = protocol.getServerId();
     }
 

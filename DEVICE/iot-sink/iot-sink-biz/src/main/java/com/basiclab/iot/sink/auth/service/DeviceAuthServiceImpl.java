@@ -1,7 +1,6 @@
-package com.basiclab.iot.sink.auth;
+package com.basiclab.iot.sink.auth.service;
 
 import cn.hutool.core.lang.Assert;
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.jwt.JWT;
 import cn.hutool.jwt.JWTUtil;
@@ -29,7 +28,7 @@ import static com.basiclab.iot.sink.enums.ErrorCodeConstants.DEVICE_TOKEN_EXPIRE
  */
 @Service
 @Slf4j
-public class IotDeviceAuthServiceImpl implements IotDeviceAuthService {
+public class DeviceAuthServiceImpl implements DeviceAuthService {
 
     @Resource
     private DeviceService deviceService;

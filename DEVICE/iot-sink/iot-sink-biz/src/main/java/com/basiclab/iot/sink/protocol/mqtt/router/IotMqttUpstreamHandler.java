@@ -2,7 +2,7 @@ package com.basiclab.iot.sink.protocol.mqtt.router;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
-import com.basiclab.iot.sink.auth.IotDeviceAuthService;
+import com.basiclab.iot.sink.auth.service.DeviceAuthService;
 import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.biz.dto.IotDeviceRespDTO;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
@@ -32,7 +32,7 @@ public class IotMqttUpstreamHandler {
 
     private final IotMqttConnectionManager connectionManager;
 
-    private final IotDeviceAuthService deviceAuthService;
+    private final DeviceAuthService deviceAuthService;
 
     private final IotDeviceService deviceService;
 
@@ -42,7 +42,7 @@ public class IotMqttUpstreamHandler {
                                   IotDeviceMessageService deviceMessageService,
                                   IotMqttConnectionManager connectionManager) {
         this.deviceMessageService = deviceMessageService;
-        this.deviceAuthService = SpringUtil.getBean(IotDeviceAuthService.class);
+        this.deviceAuthService = SpringUtil.getBean(DeviceAuthService.class);
         this.deviceService = SpringUtil.getBean(IotDeviceService.class);
         this.connectionManager = connectionManager;
         this.serverId = protocol.getServerId();

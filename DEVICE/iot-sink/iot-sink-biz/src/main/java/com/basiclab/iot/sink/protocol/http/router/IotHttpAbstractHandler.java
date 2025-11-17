@@ -8,7 +8,7 @@ import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.exception.ServiceException;
 import com.basiclab.iot.common.utils.json.JsonUtils;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
-import com.basiclab.iot.sink.auth.IotDeviceAuthService;
+import com.basiclab.iot.sink.auth.service.DeviceAuthService;
 import com.basiclab.iot.sink.config.IotGatewayProperties;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
@@ -31,7 +31,7 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.invali
 @Slf4j
 public abstract class IotHttpAbstractHandler implements Handler<RoutingContext> {
 
-    private final IotDeviceAuthService deviceAuthService = SpringUtil.getBean(IotDeviceAuthService.class);
+    private final DeviceAuthService deviceAuthService = SpringUtil.getBean(DeviceAuthService.class);
 
     @Override
     public final void handle(RoutingContext context) {

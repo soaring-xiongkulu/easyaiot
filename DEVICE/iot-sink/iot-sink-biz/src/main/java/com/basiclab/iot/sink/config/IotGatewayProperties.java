@@ -97,7 +97,7 @@ public class IotGatewayProperties {
          * 是否开启
          */
         @NotNull(message = "是否开启不能为空")
-        private Boolean enabled;
+        private Boolean enabled = false;
         /**
          * 服务端口
          */
@@ -132,7 +132,7 @@ public class IotGatewayProperties {
          * 是否开启
          */
         @NotNull(message = "是否开启不能为空")
-        private Boolean enabled;
+        private Boolean enabled = false;
 
         /**
          * HTTP 服务端口（默认：8090）
@@ -301,7 +301,7 @@ public class IotGatewayProperties {
          * 是否开启
          */
         @NotNull(message = "是否开启不能为空")
-        private Boolean enabled;
+        private Boolean enabled = false;
 
         /**
          * 服务器端口
@@ -342,7 +342,7 @@ public class IotGatewayProperties {
          * 是否开启
          */
         @NotNull(message = "是否开启不能为空")
-        private Boolean enabled;
+        private Boolean enabled = false;
 
         /**
          * 服务器端口

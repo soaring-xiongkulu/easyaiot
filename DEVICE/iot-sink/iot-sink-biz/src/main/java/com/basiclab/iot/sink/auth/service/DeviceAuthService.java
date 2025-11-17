@@ -1,4 +1,4 @@
-package com.basiclab.iot.sink.auth;
+package com.basiclab.iot.sink.auth.service;
 
 import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
@@ -8,7 +8,7 @@ import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
  *
  * @author 翱翔的雄库鲁
  */
-public interface IotDeviceAuthService {
+public interface DeviceAuthService {
 
     /**
      * 设备认证
