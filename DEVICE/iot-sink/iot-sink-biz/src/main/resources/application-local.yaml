@@ -205,5 +205,59 @@ basiclab:
       # 协议配置
       protocol:
         http:
-          # 是否开启鉴权（默认开启，设置为 false 则不进行鉴权）
-          auth-enabled: true
+          enabled: false # 是否开启 HTTP 协议
+          server-port: 8080 # HTTP 服务端口
+          ssl-enabled: false # 是否开启 SSL
+          ssl-key-path: # SSL 私钥路径
+          ssl-cert-path: # SSL 证书路径
+          auth-enabled: true # 是否开启鉴权（默认开启，设置为 false 则不进行鉴权）
+        emqx:
+          enabled: false # 是否开启 EMQX 协议（用于订阅外部 MQTT Broker，如阿里云 IoT）
+          http-port: 8090 # EMQX HTTP 服务端口（用于认证和事件回调）
+          mqtt-host: localhost # MQTT 服务器地址
+          mqtt-port: 1883 # MQTT 服务器端口（1883 非 SSL，8883 SSL）
+          mqtt-username: # MQTT 用户名
+          mqtt-password: # MQTT 密码
+          mqtt-ssl: false # MQTT 是否开启 SSL
+          mqtt-client-id: # MQTT 客户端 ID
+          mqtt-topics: # MQTT 订阅的主题列表
+            - "iot/#"
+            - "shadow/#"
+          mqtt-qos: 1 # MQTT QoS 级别（0-最多一次，1-至少一次，2-刚好一次）
+          connect-timeout-seconds: 10 # 连接超时时间（秒）
+          reconnect-delay-ms: 5000 # 重连延迟时间（毫秒）
+          clean-session: true # 是否启用 Clean Session
+          keep-alive-interval-seconds: 60 # 心跳间隔（秒）
+          max-inflight-queue: 10000 # 最大未确认消息队列大小
+          trust-all: false # 是否信任所有 SSL 证书（生产环境建议 false）
+          will: # 遗嘱消息配置
+            enabled: false
+            topic: # 遗嘱消息主题
+            payload: # 遗嘱消息内容
+            qos: 1
+            retain: true
+          ssl-options: # SSL/TLS 配置（生产环境使用）
+            key-store-path: # 密钥库路径
+            key-store-password: # 密钥库密码
+            trust-store-path: # 信任库路径
+            trust-store-password: # 信任库密码
+        tcp:
+          enabled: false # 是否开启 TCP 协议
+          port: 8091 # TCP 服务器端口
+          keep-alive-timeout-ms: 30000 # 心跳超时时间（毫秒）
+          max-connections: 1000 # 最大连接数
+          ssl-enabled: false # 是否启用 SSL
+          ssl-cert-path: # SSL 证书路径
+          ssl-key-path: # SSL 私钥路径
+        mqtt:
+          enabled: false # 是否开启 MQTT 协议（作为 MQTT Broker 接收设备连接）
+          port: 1883 # MQTT 服务器端口
+          max-message-size: 8192 # 最大消息大小（字节）
+          connect-timeout-seconds: 60 # 连接超时时间（秒）
+          keep-alive-timeout-seconds: 300 # 保持连接超时时间（秒）
+          ssl-enabled: false # 是否启用 SSL
+          ssl-options: # SSL 配置
+            cert-path: # SSL 证书路径
+            key-path: # SSL 私钥路径
+            trust-store-path: # 信任存储路径
+            trust-store-password: # 信任存储密码
