@@ -4,16 +4,16 @@ import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
+import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.exception.ServiceException;
-import com.basiclab.iot.common.pojo.CommonResult;
 import com.basiclab.iot.common.utils.json.JsonUtils;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
 import com.basiclab.iot.sink.service.auth.IotDeviceTokenService;
 import io.vertx.core.Handler;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
 import static com.basiclab.iot.common.exception.GlobalErrorStatus.FORBIDDEN;

@@ -3,7 +3,7 @@ package com.basiclab.iot.sink.protocol.mqtt.router;
 import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
-import com.basiclab.iot.common.pojo.CommonResult;
+import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.sink.biz.IotDeviceCommonApi;
 import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.biz.dto.IotDeviceGetReqDTO;
@@ -209,7 +209,7 @@ public class IotMqttUpstreamHandler {
             CommonResult<Boolean> authResult = deviceApi.authDevice(authParams);
             if (!authResult.isSuccess() || !BooleanUtil.isTrue(authResult.getData())) {
                 log.warn("[authenticateDevice][设备认证失败，客户端 ID: {}，用户名: {}，错误: {}]",
-                        clientId, username, authResult.getMessage());
+                        clientId, username, authResult.getMsg());
                 return false;
             }
 
@@ -227,7 +227,7 @@ public class IotMqttUpstreamHandler {
             CommonResult<IotDeviceRespDTO> deviceResult = deviceApi.getDevice(getReqDTO);
             if (!deviceResult.isSuccess() || deviceResult.getData() == null) {
                 log.warn("[authenticateDevice][获取设备信息失败，客户端 ID: {}，用户名: {}，错误: {}]",
-                        clientId, username, deviceResult.getMessage());
+                        clientId, username, deviceResult.getMsg());
                 return false;
             }
 

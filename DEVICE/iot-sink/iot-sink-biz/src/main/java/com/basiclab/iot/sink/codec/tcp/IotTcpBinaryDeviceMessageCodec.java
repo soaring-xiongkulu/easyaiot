@@ -165,7 +165,7 @@ public class IotTcpBinaryDeviceMessageCodec implements IotDeviceMessageCodec {
             // code
             bodyBuffer.appendInt(message.getCode() != null ? message.getCode() : 0);
             // msg
-            String msg = message.getMessage() != null ? message.getMessage() : "";
+            String msg = message.getMsg() != null ? message.getMsg() : "";
             byte[] msgBytes = StrUtil.utf8Bytes(msg);
             bodyBuffer.appendShort((short) msgBytes.length);
             bodyBuffer.appendBytes(msgBytes);

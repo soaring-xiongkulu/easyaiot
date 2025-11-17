@@ -1,7 +1,7 @@
 package com.basiclab.iot.sink.service.device.remote;
 
 import cn.hutool.core.lang.Assert;
-import com.basiclab.iot.common.pojo.CommonResult;
+import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.sink.biz.IotDeviceCommonApi;
 import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.biz.dto.IotDeviceGetReqDTO;
@@ -38,6 +38,10 @@ public class IotDeviceApiImpl implements IotDeviceCommonApi {
     @PostConstruct
     public void init() {
         IotGatewayProperties.RpcProperties rpc = gatewayProperties.getRpc();
+        Assert.notNull(rpc, "RPC 配置不能为空，请检查配置文件中的 basiclab.iot.sink.rpc 配置");
+        Assert.notNull(rpc.getUrl(), "RPC URL 配置不能为空");
+        Assert.notNull(rpc.getReadTimeout(), "RPC 读取超时时间配置不能为空");
+        Assert.notNull(rpc.getConnectTimeout(), "RPC 连接超时时间配置不能为空");
         restTemplate = new RestTemplateBuilder()
                 .rootUri(rpc.getUrl() + "/rpc-api/iot/device")
                 .setReadTimeout(rpc.getReadTimeout())

@@ -4,7 +4,7 @@ import cn.hutool.core.lang.Assert;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.text.StrPool;
 import cn.hutool.extra.spring.SpringUtil;
-import com.basiclab.iot.common.pojo.CommonResult;
+import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.protocol.http.IotHttpUpstreamProtocol;
 import com.basiclab.iot.sink.service.device.message.IotDeviceMessageService;

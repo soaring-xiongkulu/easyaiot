@@ -1,6 +1,6 @@
 package com.basiclab.iot.sink.biz;
 
-import com.basiclab.iot.common.pojo.CommonResult;
+import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.biz.dto.IotDeviceGetReqDTO;
 import com.basiclab.iot.sink.biz.dto.IotDeviceRespDTO;

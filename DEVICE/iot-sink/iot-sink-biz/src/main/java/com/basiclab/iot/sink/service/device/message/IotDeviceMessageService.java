@@ -1,5 +1,6 @@
 package com.basiclab.iot.sink.service.device.message;
 
+
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 
 /**

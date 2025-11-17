@@ -1,9 +1,5 @@
 package com.basiclab.iot.sink.messagebus.config;
 
-import com.basiclab.iot.common.core.RedisMQTemplate;
-import com.basiclab.iot.common.core.job.RedisPendingMessageResendJob;
-import com.basiclab.iot.common.core.stream.AbstractRedisStreamMessage;
-import com.basiclab.iot.common.core.stream.AbstractRedisStreamMessageListener;
 import com.basiclab.iot.sink.messagebus.core.IotMessageBus;
 import com.basiclab.iot.sink.messagebus.core.local.IotLocalMessageBus;
 import com.basiclab.iot.sink.messagebus.core.redis.IotRedisMessageBus;
@@ -12,7 +8,6 @@ import com.basiclab.iot.sink.mq.producer.IotDeviceMessageProducer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.autoconfigure.RocketMQProperties;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
-import org.redisson.api.RedissonClient;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -22,10 +17,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
-
-import java.util.List;
-
-import static com.basiclab.iot.common.utils.collection.CollectionUtils.convertList;
 
 /**
  * IoT 消息总线自动配置
@@ -76,8 +67,6 @@ public class IotMessageBusAutoConfiguration {
 
     /**
      * 特殊：由于 YudaoRedisMQConsumerAutoConfiguration 关于 Redis stream 的消费是动态注册，所以这里只能拷贝相关的逻辑！！！
-     *
-     * @see com.basiclab.iot.common.config.YudaoRedisMQConsumerAutoConfiguration
      */
     @Configuration
     @ConditionalOnProperty(prefix = "basiclab.iot.message-bus", name = "type", havingValue = "redis")

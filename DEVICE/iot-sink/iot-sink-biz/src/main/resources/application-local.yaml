@@ -173,3 +173,18 @@ minio:
   bucketName: snap-space
   chunk: 5
   chunkSize: 5
+
+--- #################### IoT Sink 相关配置 ####################
+
+basiclab:
+  iot:
+    sink:
+      # 设备 RPC 配置
+      rpc:
+        url: http://127.0.0.1:48091 # 主程序 API 地址
+        connect-timeout: 30s
+        read-timeout: 30s
+      # 设备 Token 配置
+      token:
+        secret: yudaoIotGatewayTokenSecret123456789 # Token 密钥，至少32位
+        expiration: 7d

@@ -1,7 +1,7 @@
 package com.basiclab.iot.sink.codec.alink;
 
 import cn.hutool.core.lang.Assert;
-import com.basiclab.iot.common.pojo.CommonResult;
+import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.utils.json.JsonUtils;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.codec.IotDeviceMessageCodec;
@@ -72,7 +72,7 @@ public class IotAlinkDeviceMessageCodec implements IotDeviceMessageCodec {
     @Override
     public byte[] encode(IotDeviceMessage message) {
         AlinkMessage alinkMessage = new AlinkMessage(message.getRequestId(), AlinkMessage.VERSION_1,
-                message.getMethod(), message.getParams(), message.getData(), message.getCode(), message.getMessage());
+                message.getMethod(), message.getParams(), message.getData(), message.getCode(), message.getMsg());
         return JsonUtils.toJsonByte(alinkMessage);
     }
 
@@ -83,7 +83,7 @@ public class IotAlinkDeviceMessageCodec implements IotDeviceMessageCodec {
         Assert.notNull(alinkMessage, "消息不能为空");
         Assert.equals(alinkMessage.getVersion(), AlinkMessage.VERSION_1, "消息版本号必须是 1.0");
         return IotDeviceMessage.of(alinkMessage.getId(), alinkMessage.getMethod(), alinkMessage.getParams(),
-                alinkMessage.getData(), alinkMessage.getCode(), alinkMessage.getMessage());
+                alinkMessage.getData(), alinkMessage.getCode(), alinkMessage.getMsg());
     }
 
 }

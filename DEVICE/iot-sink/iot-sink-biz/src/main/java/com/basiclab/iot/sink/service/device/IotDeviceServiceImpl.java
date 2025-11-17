@@ -2,7 +2,7 @@ package com.basiclab.iot.sink.service.device;
 
 import cn.hutool.core.lang.Assert;
 import com.basiclab.iot.common.core.KeyValue;
-import com.basiclab.iot.common.pojo.CommonResult;
+import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.sink.biz.IotDeviceCommonApi;
 import com.basiclab.iot.sink.biz.dto.IotDeviceGetReqDTO;
 import com.basiclab.iot.sink.biz.dto.IotDeviceRespDTO;

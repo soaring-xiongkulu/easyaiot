@@ -75,6 +75,18 @@ public class JsonUtils {
         }
     }
 
+    public static <T> T parseObject(byte[] text, Type type) {
+        if (ArrayUtil.isEmpty(text)) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(text, objectMapper.getTypeFactory().constructType(type));
+        } catch (IOException e) {
+            log.error("json parse err,json:{}", text, e);
+            throw new RuntimeException(e);
+        }
+    }
+
     public static <T> T parseObject(String text, String path, Class<T> clazz) {
         if (StrUtil.isEmpty(text)) {
             return null;

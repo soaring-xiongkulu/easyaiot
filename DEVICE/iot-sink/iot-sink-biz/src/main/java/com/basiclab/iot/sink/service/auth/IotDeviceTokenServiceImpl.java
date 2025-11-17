@@ -4,7 +4,7 @@ import cn.hutool.core.lang.Assert;
 import cn.hutool.json.JSONObject;
 import cn.hutool.jwt.JWT;
 import cn.hutool.jwt.JWTUtil;
-import com.basiclab.iot.common.util.date.LocalDateTimeUtils;
+import com.basiclab.iot.common.utils.date.LocalDateTimeUtils;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
 import com.basiclab.iot.sink.config.IotGatewayProperties;
 import lombok.extern.slf4j.Slf4j;

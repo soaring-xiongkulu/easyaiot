@@ -112,7 +112,7 @@ public class IotDeviceMessage {
                                            Object data, Integer code, String msg) {
         if (code == null) {
             code = GlobalErrorStatus.SUCCESS.getCode();
-            msg = GlobalErrorStatus.SUCCESS.getMessage();
+            msg = GlobalErrorStatus.SUCCESS.getMsg();
         }
         return of(requestId, method, null, data, code, msg);
     }

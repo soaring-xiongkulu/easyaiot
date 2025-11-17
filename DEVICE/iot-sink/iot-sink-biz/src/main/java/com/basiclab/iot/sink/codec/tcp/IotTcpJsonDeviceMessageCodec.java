@@ -86,7 +86,7 @@ public class IotTcpJsonDeviceMessageCodec implements IotDeviceMessageCodec {
                 message.getParams(),
                 message.getData(),
                 message.getCode(),
-                message.getMessage(),
+                message.getMsg(),
                 System.currentTimeMillis());
         return JsonUtils.toJsonByte(tcpJsonMessage);
     }
@@ -104,7 +104,7 @@ public class IotTcpJsonDeviceMessageCodec implements IotDeviceMessageCodec {
                 tcpJsonMessage.getParams(),
                 tcpJsonMessage.getData(),
                 tcpJsonMessage.getCode(),
-                tcpJsonMessage.getMessage());
+                tcpJsonMessage.getMsg());
     }
 
 }

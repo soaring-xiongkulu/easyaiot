@@ -136,7 +136,7 @@ aj:
 iot:
   info:
     version: 1.0.0
-    base-package: com.basiclab.iot.file
+    base-package: com.basiclab.iot.sink
   web:
     admin-ui:
       url: http://dashboard.iot.iocoder.cn # Admin 管理后台 UI 的地址

@@ -1,12 +1,17 @@
 package com.basiclab.iot.sink.messagebus.core.redis;
 
+import cn.hutool.core.map.MapUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.TypeUtil;
+import cn.hutool.system.SystemUtil;
 import com.basiclab.iot.common.utils.json.JsonUtils;
 import com.basiclab.iot.sink.messagebus.core.IotMessageBus;
 import com.basiclab.iot.sink.messagebus.core.IotMessageSubscriber;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.connection.RedisServerCommands;
 import org.springframework.data.redis.connection.stream.*;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 
@@ -15,9 +20,7 @@ import javax.annotation.PreDestroy;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.basiclab.iot.common.config.YudaoRedisMQConsumerAutoConfiguration.buildConsumerName;
-import static com.basiclab.iot.common.config.YudaoRedisMQConsumerAutoConfiguration.checkRedisVersion;
+import java.util.Properties;
 
 /**
  * Redis 的 {@link IotMessageBus} 实现类
@@ -94,6 +97,30 @@ public class IotRedisMessageBus implements IotMessageBus {
             redisTemplate.opsForStream().acknowledge(subscriber.getGroup(), message);
         });
         this.subscribers.add(subscriber);
+    }
+
+    /**
+     * 构建消费者名字，使用本地 IP + 进程编号的方式。
+     * 参考自 RocketMQ clientId 的实现
+     *
+     * @return 消费者名字
+     */
+    private static String buildConsumerName() {
+        return String.format("%s@%d", SystemUtil.getHostInfo().getAddress(), SystemUtil.getCurrentPID());
+    }
+
+    /**
+     * 校验 Redis 版本号，是否满足最低的版本号要求！
+     */
+    private static void checkRedisVersion(RedisTemplate<String, ?> redisTemplate) {
+        // 获得 Redis 版本
+        Properties info = redisTemplate.execute((RedisCallback<Properties>) RedisServerCommands::info);
+        String version = MapUtil.getStr(info, "redis_version");
+        // 校验最低版本必须大于等于 5.0.0
+        int majorVersion = Integer.parseInt(StrUtil.subBefore(version, '.', false));
+        if (majorVersion < 5) {
+            throw new IllegalStateException(StrUtil.format("您当前的 Redis 版本为 {}，小于最低要求的 5.0.0 版本！", version));
+        }
     }
 
 }
