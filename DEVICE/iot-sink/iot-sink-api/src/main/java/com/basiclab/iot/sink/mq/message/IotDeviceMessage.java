@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 public class IotDeviceMessage {
 
     /**
-     * 【消息总线】应用的设备消息 Topic，由 iot-gateway 发给 iot-biz 进行消费
+     * 【消息总线】应用的设备消息 Topic，iot-gateway全部处理完，流式数据发送给iot-broker模块
      */
     public static final String MESSAGE_BUS_DEVICE_MESSAGE_TOPIC = "iot_device_message";
 
