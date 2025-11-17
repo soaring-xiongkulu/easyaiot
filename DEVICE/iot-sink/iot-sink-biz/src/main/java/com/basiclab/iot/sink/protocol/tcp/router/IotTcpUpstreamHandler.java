@@ -145,6 +145,7 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
                     clientId, message.getMethod(), e);
             // 发送错误响应，避免客户端一直等待
             try {
+                String codecType = detectCodecTypeFromMessage(message);
                 sendErrorResponse(socket, message.getRequestId(), "消息处理失败", codecType);
             } catch (Exception responseEx) {
                 log.error("[processMessage][发送错误响应失败，客户端 ID: {}]", clientId, responseEx);
