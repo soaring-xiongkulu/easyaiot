@@ -108,7 +108,17 @@ services:
       - "6379:6379"
     environment:
       - TZ=Asia/Shanghai
-    command: redis-server --save 60 1000 --loglevel warning --appendonly yes --requirepass basiclab@iot975248395
+    command: >
+      redis-server
+      --save 60 1000
+      --loglevel warning
+      --appendonly yes
+      --requirepass basiclab@iot975248395
+      --maxclients 10000
+      --timeout 300
+      --tcp-keepalive 60
+      --tcp-backlog 511
+      --maxmemory-policy allkeys-lru
     volumes:
       - './redis_data/data:/data'
       - './redis_data/logs:/logs'
