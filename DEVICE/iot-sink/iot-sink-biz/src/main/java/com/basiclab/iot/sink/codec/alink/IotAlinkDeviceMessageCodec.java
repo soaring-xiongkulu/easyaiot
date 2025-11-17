@@ -70,6 +70,12 @@ public class IotAlinkDeviceMessageCodec implements IotDeviceMessageCodec {
     }
 
     @Override
+    public String topic() {
+        // Alink 编解码器支持所有 topic，返回 null 表示使用通用匹配
+        return null;
+    }
+
+    @Override
     public byte[] encode(IotDeviceMessage message) {
         AlinkMessage alinkMessage = new AlinkMessage(message.getRequestId(), AlinkMessage.VERSION_1,
                 message.getMethod(), message.getParams(), message.getData(), message.getCode(), message.getMsg());

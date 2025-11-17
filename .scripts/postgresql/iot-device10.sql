@@ -2803,6 +2803,132 @@ ALTER SEQUENCE public.product_id_seq OWNED BY public.product.id;
 
 
 --
+-- Name: product_script_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.product_script_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.product_script_id_seq OWNER TO postgres;
+
+--
+-- Name: product_script_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.product_script_id_seq OWNED BY public.product_script.id;
+
+
+--
+-- Name: product_script; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.product_script (
+    id bigint NOT NULL,
+    product_id bigint NOT NULL,
+    product_identification character varying(100) NOT NULL,
+    script_enabled boolean DEFAULT false NOT NULL,
+    script_content text,
+    script_version integer DEFAULT 1 NOT NULL,
+    create_by character varying(64),
+    create_time timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP,
+    update_by character varying(64),
+    update_time timestamp(6) without time zone,
+    tenant_id bigint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.product_script OWNER TO postgres;
+
+--
+-- Name: TABLE product_script; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.product_script IS '产品脚本表，用于存储产品的数据转换脚本';
+
+
+--
+-- Name: COLUMN product_script.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.id IS '主键ID';
+
+
+--
+-- Name: COLUMN product_script.product_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.product_id IS '产品ID，关联product表';
+
+
+--
+-- Name: COLUMN product_script.product_identification; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.product_identification IS '产品标识，冗余字段，便于查询';
+
+
+--
+-- Name: COLUMN product_script.script_enabled; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.script_enabled IS '是否启用脚本，默认不启用';
+
+
+--
+-- Name: COLUMN product_script.script_content; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.script_content IS '脚本内容，包含rawDataToProtocol和protocolToRawData两个函数';
+
+
+--
+-- Name: COLUMN product_script.script_version; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.script_version IS '脚本版本号，用于版本控制';
+
+
+--
+-- Name: COLUMN product_script.create_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.create_by IS '创建者';
+
+
+--
+-- Name: COLUMN product_script.create_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.create_time IS '创建时间';
+
+
+--
+-- Name: COLUMN product_script.update_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.update_by IS '更新者';
+
+
+--
+-- Name: COLUMN product_script.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.update_time IS '更新时间';
+
+
+--
+-- Name: COLUMN product_script.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_script.tenant_id IS '租户编号';
+
+
+--
 -- Name: product_properties; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3524,6 +3650,13 @@ ALTER TABLE ONLY public.product_properties ALTER COLUMN id SET DEFAULT nextval('
 
 
 --
+-- Name: product_script id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_script ALTER COLUMN id SET DEFAULT nextval('public.product_script_id_seq'::regclass);
+
+
+--
 -- Name: product_template id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -4116,6 +4249,13 @@ SELECT pg_catalog.setval('public.product_properties_id_seq', 53, true);
 
 
 --
+-- Name: product_script_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.product_script_id_seq', 1, false);
+
+
+--
 -- Name: product_template_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -4186,6 +4326,22 @@ ALTER TABLE ONLY public.product_template
 
 ALTER TABLE ONLY public.product_properties
     ADD CONSTRAINT _copy_37 PRIMARY KEY (id);
+
+
+--
+-- Name: product_script product_script_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_script
+    ADD CONSTRAINT product_script_pk PRIMARY KEY (id);
+
+
+--
+-- Name: product_script product_script_product_id_fk; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_script
+    ADD CONSTRAINT product_script_product_id_fk FOREIGN KEY (product_id) REFERENCES public.product(id) ON DELETE CASCADE;
 
 
 --
@@ -4296,6 +4452,27 @@ CREATE INDEX manufacturer_id ON public.product USING btree (manufacturer_id);
 --
 
 COMMENT ON INDEX public.manufacturer_id IS '厂商ID索引';
+
+
+--
+-- Name: idx_product_script_product_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_script_product_id ON public.product_script USING btree (product_id);
+
+
+--
+-- Name: idx_product_script_product_identification; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_script_product_identification ON public.product_script USING btree (product_identification);
+
+
+--
+-- Name: idx_product_script_tenant_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_script_tenant_id ON public.product_script USING btree (tenant_id);
 
 
 --

@@ -190,3 +190,15 @@ basiclab:
       token:
         secret: yudaoIotGatewayTokenSecret123456789 # Token 密钥，至少32位
         expiration: 7d
+      # 设备 Topic 订阅配置
+      topic:
+        # 是否启用 Topic 订阅器（自动订阅所有标准 IoT Topic）
+        enabled: true
+        # 订阅的 Topic 列表（支持通配符）
+        # 注意：IotDeviceTopicSubscriber 会自动订阅所有标准 Topic
+        subscribe-topics:
+          - "iot/#"
+          - "shadow/#"
+          - "ext/#"
+          - "broadcast/#"
+          - "ota/#"

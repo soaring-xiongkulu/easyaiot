@@ -163,19 +163,28 @@ public class IotMqttUpstreamHandler {
         String productKey = topicParts[2];
         String deviceName = topicParts[3];
 
-        // 3. 解码消息（使用从 topic 解析的 productKey 和 deviceName）
+        // 3. 解码消息（优先使用 topic 匹配）
         try {
-            IotDeviceMessage message = deviceMessageService.decodeDeviceMessage(payload, productKey, deviceName);
+            IotDeviceMessage message;
+            // 优先使用 topic 匹配编解码器
+            if (deviceMessageService instanceof IotDeviceMessageServiceImpl) {
+                IotDeviceMessageServiceImpl serviceImpl = (IotDeviceMessageServiceImpl) deviceMessageService;
+                message = serviceImpl.decodeDeviceMessageByTopic(payload, topic);
+            } else {
+                // 向后兼容：使用原有的方式
+                message = deviceMessageService.decodeDeviceMessage(payload, productKey, deviceName);
+            }
+            
             if (message == null) {
                 log.warn("[processMessage][消息解码失败，客户端 ID: {}，主题: {}]", clientId, topic);
                 return;
             }
 
-            log.info("[processMessage][收到设备消息，设备: {}.{}, 方法: {}]",
-                    productKey, deviceName, message.getMethod());
+            log.info("[processMessage][收到设备消息，设备: {}.{}, 主题: {}, 方法: {}, 需要回复: {}]",
+                    productKey, deviceName, topic, message.getMethod(), message.getNeedReply());
 
             // 4. 处理业务消息（认证已在连接时完成）
-            handleBusinessRequest(message, productKey, deviceName);
+            handleBusinessRequest(message, productKey, deviceName, topic);
         } catch (Exception e) {
             log.error("[processMessage][消息处理异常，客户端 ID: {}，主题: {}，错误: {}]",
                     clientId, topic, e.getMessage(), e);
@@ -248,7 +257,12 @@ public class IotMqttUpstreamHandler {
     /**
      * 处理业务请求
      */
-    private void handleBusinessRequest(IotDeviceMessage message, String productKey, String deviceName) {
+    private void handleBusinessRequest(IotDeviceMessage message, String productKey, String deviceName, String topic) {
+        // 设置 topic
+        if (message.getTopic() == null) {
+            message.setTopic(topic);
+        }
+        
         // 发送消息到消息总线
         message.setServerId(serverId);
         deviceMessageService.sendDeviceMessage(message, productKey, deviceName, serverId);

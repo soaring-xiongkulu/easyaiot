@@ -94,6 +94,18 @@ public class IotDeviceMessage {
      */
     private String msg;
 
+    /**
+     * 是否需要回复
+     * true: 需要回复（设备订阅，云端发布）
+     * false: 不需要回复（设备发布，云端订阅）
+     */
+    private Boolean needReply;
+
+    /**
+     * MQTT Topic
+     */
+    private String topic;
+
     // ========== 基础方法：只传递"codec（编解码）字段" ==========
 
     public static IotDeviceMessage requestOf(String method) {

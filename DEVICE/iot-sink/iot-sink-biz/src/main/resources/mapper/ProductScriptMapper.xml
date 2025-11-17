@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.sink.dal.mapper.ProductScriptMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.basiclab.iot.sink.dal.dataobject.ProductScriptDO">
+        <id column="id" property="id"/>
+        <result column="product_id" property="productId"/>
+        <result column="product_identification" property="productIdentification"/>
+        <result column="script_enabled" property="scriptEnabled"/>
+        <result column="script_content" property="scriptContent"/>
+        <result column="script_version" property="scriptVersion"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="tenant_id" property="tenantId"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, product_id, product_identification, script_enabled, script_content,
+        script_version, create_by, create_time, update_by, update_time, tenant_id
+    </sql>
+
+    <!-- 根据产品标识查询脚本 -->
+    <select id="selectByProductIdentification" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM product_script
+        WHERE product_identification = #{productIdentification}
+        LIMIT 1
+    </select>
+
+    <!-- 查询所有启用的脚本 -->
+    <select id="selectAllEnabled" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM product_script
+        WHERE script_enabled = true
+        ORDER BY id ASC
+    </select>
+
+    <!-- 根据产品ID查询脚本 -->
+    <select id="selectByProductId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM product_script
+        WHERE product_id = #{productId}
+        LIMIT 1
+    </select>
+
+</mapper>
+
