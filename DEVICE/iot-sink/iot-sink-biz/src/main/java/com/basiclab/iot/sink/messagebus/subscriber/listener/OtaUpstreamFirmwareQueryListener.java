@@ -35,7 +35,7 @@ public class OtaUpstreamFirmwareQueryListener {
             log.info("[handleOtaUpstreamFirmwareQueryEvent][处理OTA固件查询上行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
-            // 存储数据到TDEngine和PostgreSQL
+            // 存储数据到TDEngine和Redis
             deviceDataStorageService.storeDeviceData(event.getMessage(), event.getTopicEnum());
 
         } catch (Exception e) {

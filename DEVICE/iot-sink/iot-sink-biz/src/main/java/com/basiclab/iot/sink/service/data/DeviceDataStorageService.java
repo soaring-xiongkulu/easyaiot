@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * 设备数据存储服务
  * <p>
- * 负责将设备消息数据同时存储到TDEngine和PostgreSQL
+ * 负责将设备消息数据同时存储到TDEngine和Redis
  *
  * @author 翱翔的雄库鲁
  */
@@ -37,12 +37,12 @@ public class DeviceDataStorageService {
     private TdEngineService tdEngineService;
 
     @Resource
-    private DevicePostgresqlUpdateService devicePostgresqlUpdateService;
+    private DeviceRedisStorageService deviceRedisStorageService;
 
     /**
      * 存储设备消息数据
      * <p>
-     * 同时将数据存储到TDEngine（历史数据）和PostgreSQL（设备表更新）
+     * 同时将数据存储到TDEngine（历史数据）和Redis（设备数据缓存）
      *
      * @param message   设备消息
      * @param topicEnum Topic枚举
@@ -57,8 +57,8 @@ public class DeviceDataStorageService {
             // 1. 存储到TDEngine（历史数据）
             storeToTdEngine(message, topicEnum);
 
-            // 2. 更新PostgreSQL设备表
-            devicePostgresqlUpdateService.updateDeviceTable(message, topicEnum);
+            // 2. 存储到Redis（设备数据缓存）
+            deviceRedisStorageService.storeDeviceData(message, topicEnum);
 
             log.debug("[storeDeviceData][数据存储成功，messageId: {}, topic: {}]", message.getId(), topicEnum.name());
         } catch (Exception e) {
