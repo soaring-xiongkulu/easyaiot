@@ -78,7 +78,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     private DeviceMapper deviceMapper;
     @Autowired
     private RedisService redisService;
-    @Resource
+    @Autowired(required = false)
     private IotDownstreamMessageApi iotDownstreamMessageApi;
     @Autowired
     private DeviceTopicService deviceTopicService;

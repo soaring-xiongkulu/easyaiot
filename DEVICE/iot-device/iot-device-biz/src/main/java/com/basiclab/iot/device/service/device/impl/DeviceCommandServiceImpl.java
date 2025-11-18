@@ -54,7 +54,7 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
 
     private final ProtocolMessageAdapter protocolMessageAdapter;
 
-    @Resource
+    @Autowired(required = false)
     private IotDownstreamMessageApi iotDownstreamMessageApi;
 
     @Autowired
@@ -301,9 +301,13 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
                     .build();
             
             // 发送下行消息
-            iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
-            
-            return R.ok(null, "消息发送成功");
+            if (iotDownstreamMessageApi != null) {
+                iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
+                return R.ok(null, "消息发送成功");
+            } else {
+                log.warn("IotDownstreamMessageApi 不存在，无法发送消息");
+                return R.fail("消息发送失败: IotDownstreamMessageApi 未配置");
+            }
         } catch (Exception e) {
             log.error("Failed to send message using IotDownstreamMessageApi", e);
             return R.fail("消息发送失败: " + e.getMessage());
@@ -379,9 +383,13 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
                     .build();
 
             // 发送下行消息
-            iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
-
-            return R.ok(null, "消息发送成功");
+            if (iotDownstreamMessageApi != null) {
+                iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
+                return R.ok(null, "消息发送成功");
+            } else {
+                log.warn("[sendMessage][IotDownstreamMessageApi 不存在，无法发送消息，topic: {}]", topic);
+                return R.fail("消息发送失败: IotDownstreamMessageApi 未配置");
+            }
         } catch (Exception e) {
             log.error("[sendMessage][发送消息失败，topic: {}，错误: {}]", topic, e.getMessage(), e);
             return R.fail("消息发送失败: " + e.getMessage());
@@ -444,9 +452,14 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
                     .build();
 
             // 发送下行消息
-            iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
-
-            return R.ok(null, "消息发送成功");
+            if (iotDownstreamMessageApi != null) {
+                iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
+                return R.ok(null, "消息发送成功");
+            } else {
+                log.warn("[sendCustomMessage][IotDownstreamMessageApi 不存在，无法发送消息，topic: {}]", 
+                        publishMessageRequestParam.getTopic());
+                return R.fail("消息发送失败: IotDownstreamMessageApi 未配置");
+            }
         } catch (Exception e) {
             log.error("[sendCustomMessage][发送消息失败，topic: {}，错误: {}]", 
                     publishMessageRequestParam.getTopic(), e.getMessage(), e);
