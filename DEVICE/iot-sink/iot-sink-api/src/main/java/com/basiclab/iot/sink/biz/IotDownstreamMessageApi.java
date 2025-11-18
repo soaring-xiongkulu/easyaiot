@@ -2,6 +2,8 @@ package com.basiclab.iot.sink.biz;
 
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 
+import java.util.List;
+
 /**
  * IoT 下行消息发送 API
  * <p>
