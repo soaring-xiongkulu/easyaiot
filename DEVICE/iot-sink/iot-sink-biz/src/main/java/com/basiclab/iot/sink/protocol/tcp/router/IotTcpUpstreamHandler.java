@@ -16,6 +16,7 @@ import com.basiclab.iot.sink.protocol.tcp.IotTcpUpstreamProtocol;
 import com.basiclab.iot.sink.protocol.tcp.manager.IotTcpConnectionManager;
 import com.basiclab.iot.sink.messagebus.publisher.IotDeviceService;
 import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
+import com.basiclab.iot.sink.service.DeviceServerIdService;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.NetSocket;
@@ -280,6 +281,12 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
                 .setAuthenticated(true);
         // 注册连接
         connectionManager.registerConnection(socket, device.getId(), connectionInfo);
+        
+        // 存储设备与 serverId 的映射到 Redis
+        DeviceServerIdService deviceServerIdService = SpringUtil.getBean(DeviceServerIdService.class);
+        if (deviceServerIdService != null) {
+            deviceServerIdService.saveDeviceServerId(device.getId(), serverId);
+        }
     }
 
     /**
@@ -310,6 +317,12 @@ public class IotTcpUpstreamHandler implements Handler<NetSocket> {
                 IotDeviceMessage offlineMessage = IotDeviceMessage.buildStateOffline();
                 deviceMessageService.sendDeviceMessage(offlineMessage, connectionInfo.getProductIdentification(),
                         connectionInfo.getDeviceIdentification(), serverId);
+                
+                // 删除设备与 serverId 的映射
+                DeviceServerIdService deviceServerIdService = SpringUtil.getBean(DeviceServerIdService.class);
+                if (deviceServerIdService != null) {
+                    deviceServerIdService.removeDeviceServerId(connectionInfo.getDeviceId());
+                }
             }
 
             // 2. 注销连接

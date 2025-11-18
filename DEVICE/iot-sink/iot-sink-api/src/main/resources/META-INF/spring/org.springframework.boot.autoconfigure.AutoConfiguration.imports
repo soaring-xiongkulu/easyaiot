@@ -1,2 +1,3 @@
 com.basiclab.iot.sink.messagebus.config.IotMessageBusAutoConfiguration
+com.basiclab.iot.sink.biz.config.IotDownstreamMessageApiAutoConfiguration
 

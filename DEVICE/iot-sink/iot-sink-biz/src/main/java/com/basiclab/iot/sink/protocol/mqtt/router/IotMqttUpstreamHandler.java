@@ -12,6 +12,7 @@ import com.basiclab.iot.sink.protocol.mqtt.manager.IotMqttConnectionManager;
 import com.basiclab.iot.sink.messagebus.publisher.IotDeviceService;
 import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
 import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageServiceImpl;
+import com.basiclab.iot.sink.service.DeviceServerIdService;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.mqtt.MqttEndpoint;
@@ -282,6 +283,12 @@ public class IotMqttUpstreamHandler {
                 .setRemoteAddress(connectionManager.getEndpointAddress(endpoint));
 
         connectionManager.registerConnection(endpoint, device.getId(), connectionInfo);
+        
+        // 存储设备与 serverId 的映射到 Redis
+        DeviceServerIdService deviceServerIdService = SpringUtil.getBean(DeviceServerIdService.class);
+        if (deviceServerIdService != null) {
+            deviceServerIdService.saveDeviceServerId(device.getId(), serverId);
+        }
     }
 
     /**
@@ -311,6 +318,12 @@ public class IotMqttUpstreamHandler {
                         connectionInfo.getDeviceIdentification(), serverId);
                 log.info("[cleanupConnection][设备离线，设备 ID: {}，设备唯一标识: {}]",
                         connectionInfo.getDeviceId(), connectionInfo.getDeviceIdentification());
+                
+                // 删除设备与 serverId 的映射
+                DeviceServerIdService deviceServerIdService = SpringUtil.getBean(DeviceServerIdService.class);
+                if (deviceServerIdService != null) {
+                    deviceServerIdService.removeDeviceServerId(connectionInfo.getDeviceId());
+                }
             }
 
             // 注销连接
