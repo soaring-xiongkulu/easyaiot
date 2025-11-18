@@ -7,10 +7,13 @@
 -- 创建数据库（如果不存在）
 CREATE DATABASE IF NOT EXISTS iot_device;
 
+-- 使用数据库
+USE iot_device;
+
 -- ============================================
 -- 1. 属性上报超级表 (PROPERTY_UPSTREAM_REPORT)
 -- ============================================
-CREATE STABLE IF NOT EXISTS iot_device.st_property_upstream_report (
+CREATE STABLE IF NOT EXISTS st_property_upstream_report (
     ts TIMESTAMP,
     report_time TIMESTAMP,
     device_id BIGINT,
@@ -31,7 +34,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_property_upstream_report (
 -- ============================================
 -- 2. 属性期望值设置ACK超级表 (PROPERTY_UPSTREAM_DESIRED_SET_ACK)
 -- ============================================
-CREATE STABLE IF NOT EXISTS iot_device.st_property_upstream_desired_set_ack (
+CREATE STABLE IF NOT EXISTS st_property_upstream_desired_set_ack (
     ts TIMESTAMP,
     report_time TIMESTAMP,
     device_id BIGINT,
@@ -51,7 +54,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_property_upstream_desired_set_ack (
 -- ============================================
 -- 3. 属性期望值查询响应超级表 (PROPERTY_UPSTREAM_DESIRED_QUERY_RESPONSE)
 -- ============================================
-CREATE STABLE IF NOT EXISTS iot_device.st_property_upstream_desired_query_response (
+CREATE STABLE IF NOT EXISTS st_property_upstream_desired_query_response (
     ts TIMESTAMP,
     report_time TIMESTAMP,
     device_id BIGINT,
@@ -71,7 +74,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_property_upstream_desired_query_respon
 -- ============================================
 -- 4. 事件上报超级表 (EVENT_UPSTREAM_REPORT)
 -- ============================================
-CREATE STABLE IF NOT EXISTS iot_device.st_event_upstream_report (
+CREATE STABLE IF NOT EXISTS st_event_upstream_report (
     ts TIMESTAMP,
     report_time TIMESTAMP,
     device_id BIGINT,
@@ -94,7 +97,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_event_upstream_report (
 -- ============================================
 -- 5. 服务调用响应超级表 (SERVICE_UPSTREAM_INVOKE_RESPONSE)
 -- ============================================
-CREATE STABLE IF NOT EXISTS iot_device.st_service_upstream_invoke_response (
+CREATE STABLE IF NOT EXISTS st_service_upstream_invoke_response (
     ts TIMESTAMP,
     report_time TIMESTAMP,
     device_id BIGINT,
@@ -116,7 +119,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_service_upstream_invoke_response (
 -- ============================================
 -- 6. 设备标签上报超级表 (DEVICE_TAG_UPSTREAM_REPORT)
 -- ============================================
-CREATE STABLE IF NOT EXISTS iot_device.st_device_tag_upstream_report (
+CREATE STABLE IF NOT EXISTS st_device_tag_upstream_report (
     ts TIMESTAMP,
     report_time TIMESTAMP,
     device_id BIGINT,
@@ -137,7 +140,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_device_tag_upstream_report (
 -- ============================================
 -- 7. 设备标签删除超级表 (DEVICE_TAG_UPSTREAM_DELETE)
 -- ============================================
-CREATE STABLE IF NOT EXISTS iot_device.st_device_tag_upstream_delete (
+CREATE STABLE IF NOT EXISTS st_device_tag_upstream_delete (
     ts TIMESTAMP,
     report_time TIMESTAMP,
     device_id BIGINT,
@@ -158,7 +161,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_device_tag_upstream_delete (
 -- ============================================
 -- 8. 影子上报超级表 (SHADOW_UPSTREAM_REPORT)
 -- ============================================
-CREATE STABLE IF NOT EXISTS iot_device.st_shadow_upstream_report (
+CREATE STABLE IF NOT EXISTS st_shadow_upstream_report (
     ts TIMESTAMP,
     report_time TIMESTAMP,
     device_id BIGINT,
@@ -179,7 +182,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_shadow_upstream_report (
 -- ============================================
 -- 9. 配置查询超级表 (CONFIG_UPSTREAM_QUERY)
 -- ============================================
-CREATE STABLE IF NOT EXISTS iot_device.st_config_upstream_query (
+CREATE STABLE IF NOT EXISTS st_config_upstream_query (
     ts TIMESTAMP,
     report_time TIMESTAMP,
     device_id BIGINT,
@@ -200,7 +203,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_config_upstream_query (
 -- ============================================
 -- 10. NTP请求超级表 (NTP_UPSTREAM_REQUEST)
 -- ============================================
-CREATE STABLE IF NOT EXISTS iot_device.st_ntp_upstream_request (
+CREATE STABLE IF NOT EXISTS st_ntp_upstream_request (
     ts TIMESTAMP,
     report_time TIMESTAMP,
     device_id BIGINT,
@@ -221,7 +224,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_ntp_upstream_request (
 -- ============================================
 -- 11. OTA版本上报超级表 (OTA_UPSTREAM_VERSION_REPORT)
 -- ============================================
-CREATE STABLE IF NOT EXISTS iot_device.st_ota_upstream_version_report (
+CREATE STABLE IF NOT EXISTS st_ota_upstream_version_report (
     ts TIMESTAMP,
     report_time TIMESTAMP,
     device_id BIGINT,
@@ -242,7 +245,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_ota_upstream_version_report (
 -- ============================================
 -- 12. OTA进度上报超级表 (OTA_UPSTREAM_PROGRESS_REPORT)
 -- ============================================
-CREATE STABLE IF NOT EXISTS iot_device.st_ota_upstream_progress_report (
+CREATE STABLE IF NOT EXISTS st_ota_upstream_progress_report (
     ts TIMESTAMP,
     report_time TIMESTAMP,
     device_id BIGINT,
@@ -263,7 +266,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_ota_upstream_progress_report (
 -- ============================================
 -- 13. OTA固件查询超级表 (OTA_UPSTREAM_FIRMWARE_QUERY)
 -- ============================================
-CREATE STABLE IF NOT EXISTS iot_device.st_ota_upstream_firmware_query (
+CREATE STABLE IF NOT EXISTS st_ota_upstream_firmware_query (
     ts TIMESTAMP,
     report_time TIMESTAMP,
     device_id BIGINT,
