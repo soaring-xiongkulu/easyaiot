@@ -3,12 +3,6 @@ package com.basiclab.iot.system.controller.admin.tenant.vo.tenant;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
-@Schema(description = "管理后台 - 租户精简 Response VO")
-@Data
-public class TenantSimpleRespVO {
-
-    @Schema(de
-
 /**
  * TenantSimpleRespVO
  *
@@ -16,8 +10,11 @@ public class TenantSimpleRespVO {
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
+@Schema(description = "管理后台 - 租户精简 Response VO")
+@Data
+public class TenantSimpleRespVO {
 
-scription = "租户编号", example = "1024")
+    @Schema(description = "租户编号", example = "1024")
     private Long id;
 
     @Schema(description = "租户名", example = "BasicLab")

@@ -10,10 +10,6 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@Schema(description = "管理后台 - 租户 Response VO")
-@Data
-@ExcelIgnore
-
 /**
  * TenantRespVO
  *
@@ -21,8 +17,9 @@ import java.time.LocalDateTime;
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-
-Unannotated
+@Schema(description = "管理后台 - 租户 Response VO")
+@Data
+@ExcelIgnoreUnannotated
 public class TenantRespVO {
 
     @Schema(description = "租户编号", example = "1024")

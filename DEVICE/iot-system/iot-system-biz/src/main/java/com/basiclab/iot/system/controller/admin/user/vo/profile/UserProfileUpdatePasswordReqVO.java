@@ -6,10 +6,6 @@ import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.NotEmpty;
 
-@Schema(description = "管理后台 - 用户个人中心更新密码 Request VO")
-@Data
-public cl
-
 /**
  * UserProfileUpdatePasswordReqVO
  *
@@ -17,8 +13,9 @@ public cl
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-
-ass UserProfileUpdatePasswordReqVO {
+@Schema(description = "管理后台 - 用户个人中心更新密码 Request VO")
+@Data
+public class UserProfileUpdatePasswordReqVO {
 
     @Schema(description = "旧密码", example = "123456")
     @NotEmpty(message = "旧密码不能为空")

@@ -14,8 +14,7 @@ import java.time.LocalDateTime;
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-@Schema(description = "管
-理后台 - 短信渠道 Response VO")
+@Schema(description = "管理后台 - 短信渠道 Response VO")
 @Data
 public class SmsChannelRespVO {
 

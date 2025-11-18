@@ -8,7 +8,9 @@ import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.AssertTrue;
 import javax.validation.constraints.NotNull;
-import j
+import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Size;
+import java.time.LocalDateTime;
 
 /**
  * TenantSaveReqVO
@@ -17,11 +19,6 @@ import j
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-
-avax.validation.constraints.Pattern;
-import javax.validation.constraints.Size;
-import java.time.LocalDateTime;
-
 @Schema(description = "管理后台 - 租户创建/修改 Request VO")
 @Data
 public class TenantSaveReqVO {

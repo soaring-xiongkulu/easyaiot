@@ -7,11 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Schema(description = "管理后台 - 访问令牌 Response VO")
-@Data
-@NoArgsConstructor
-@A
-
 /**
  * OAuth2AccessTokenRespVO
  *
@@ -19,8 +14,10 @@ import java.time.LocalDateTime;
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-
-llArgsConstructor
+@Schema(description = "管理后台 - 访问令牌 Response VO")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class OAuth2AccessTokenRespVO {
 
     @Schema(description = "编号", example = "1024")

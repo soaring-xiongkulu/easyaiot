@@ -18,8 +18,7 @@ import java.util.Set;
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-@Schema(description = "管理后台 - 用户信息 Respon
-se VO")
+@Schema(description = "管理后台 - 用户信息 Response VO")
 @Data
 @ExcelIgnoreUnannotated
 public class UserRespVO{

@@ -19,8 +19,7 @@ import java.util.Map;
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-@Schema(description = "管理后台 - 短信日志 Response
-VO")
+@Schema(description = "管理后台 - 短信日志 ResponseVO")
 @Data
 @ExcelIgnoreUnannotated
 public class SmsLogRespVO {
