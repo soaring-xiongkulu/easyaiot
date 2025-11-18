@@ -82,8 +82,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_event_upstream_report (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    `topic` NCHAR(500),
-    identifier NCHAR(100)
+    `topic` NCHAR(500)
 ) TAGS (
     device_identification NCHAR(20),
     tenant_id BIGINT,
@@ -104,8 +103,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_service_upstream_invoke_response (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    `topic` NCHAR(500),
-    identifier NCHAR(100)
+    `topic` NCHAR(500)
 ) TAGS (
     device_identification NCHAR(20),
     tenant_id BIGINT,
