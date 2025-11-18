@@ -21,7 +21,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_property_upstream_report (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    topic NCHAR(500)
+    `topic` NCHAR(500)
 ) TAGS (
     device_identification NCHAR(20),
     tenant_id BIGINT,
@@ -41,7 +41,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_property_upstream_desired_set_ack (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    topic NCHAR(500)
+    `topic` NCHAR(500)
 ) TAGS (
     device_identification NCHAR(20),
     tenant_id BIGINT,
@@ -61,7 +61,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_property_upstream_desired_query_respon
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    topic NCHAR(500)
+    `topic` NCHAR(500)
 ) TAGS (
     device_identification NCHAR(20),
     tenant_id BIGINT,
@@ -82,7 +82,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_event_upstream_report (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    topic NCHAR(500),
+    `topic` NCHAR(500),
     identifier NCHAR(100)
 ) TAGS (
     device_identification NCHAR(20),
@@ -104,7 +104,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_service_upstream_invoke_response (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    topic NCHAR(500),
+    `topic` NCHAR(500),
     identifier NCHAR(100)
 ) TAGS (
     device_identification NCHAR(20),
@@ -127,7 +127,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_device_tag_upstream_report (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    topic NCHAR(500)
+    `topic` NCHAR(500)
 ) TAGS (
     device_identification NCHAR(20),
     tenant_id BIGINT,
@@ -148,7 +148,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_device_tag_upstream_delete (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    topic NCHAR(500)
+    `topic` NCHAR(500)
 ) TAGS (
     device_identification NCHAR(20),
     tenant_id BIGINT,
@@ -169,7 +169,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_shadow_upstream_report (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    topic NCHAR(500)
+    `topic` NCHAR(500)
 ) TAGS (
     device_identification NCHAR(20),
     tenant_id BIGINT,
@@ -190,7 +190,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_config_upstream_query (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    topic NCHAR(500)
+    `topic` NCHAR(500)
 ) TAGS (
     device_identification NCHAR(20),
     tenant_id BIGINT,
@@ -211,7 +211,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_ntp_upstream_request (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    topic NCHAR(500)
+    `topic` NCHAR(500)
 ) TAGS (
     device_identification NCHAR(20),
     tenant_id BIGINT,
@@ -232,7 +232,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_ota_upstream_version_report (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    topic NCHAR(500)
+    `topic` NCHAR(500)
 ) TAGS (
     device_identification NCHAR(20),
     tenant_id BIGINT,
@@ -253,7 +253,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_ota_upstream_progress_report (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    topic NCHAR(500)
+    `topic` NCHAR(500)
 ) TAGS (
     device_identification NCHAR(20),
     tenant_id BIGINT,
@@ -274,7 +274,7 @@ CREATE STABLE IF NOT EXISTS iot_device.st_ota_upstream_firmware_query (
     data NCHAR(5000),
     code INT,
     msg NCHAR(500),
-    topic NCHAR(500)
+    `topic` NCHAR(500)
 ) TAGS (
     device_identification NCHAR(20),
     tenant_id BIGINT,
