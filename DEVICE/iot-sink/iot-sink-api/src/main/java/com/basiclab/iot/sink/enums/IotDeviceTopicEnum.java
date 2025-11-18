@@ -142,7 +142,19 @@ public enum IotDeviceTopicEnum {
     /**
      * 设备上行上报事件（设备发布）
      */
-    EVENT_UPSTREAM_REPORT("/iot/${productIdentification}/${deviceIdentification}/event/upstream/report/${identifier}", false, "设备上行上报事件数据");
+    EVENT_UPSTREAM_REPORT("/iot/${productIdentification}/${deviceIdentification}/event/upstream/report/${identifier}", false, "设备上行上报事件数据"),
+
+    // ========== 日志上报 ==========
+    /**
+     * 云端下行回复日志上报（设备订阅，通常不需要回复）
+     */
+    LOG_DOWNSTREAM_REPORT_ACK("/iot/${productIdentification}/${deviceIdentification}/log/downstream/report/ack", true, "云端下行回复日志上报"),
+    /**
+     * 设备上行上报日志（设备发布）
+     * <p>
+     * 设备一条一条回传日志数据，用于设备日志入库
+     */
+    LOG_UPSTREAM_REPORT("/iot/${productIdentification}/${deviceIdentification}/log/upstream/report", false, "设备上行上报日志数据");
 
     /**
      * Topic 模板

@@ -176,6 +176,12 @@ public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceM
                 eventPublisher.publishEvent(new EventMessageEvent(this, message, topicEnum));
                 break;
 
+            // 日志相关
+            case LOG_UPSTREAM_REPORT:
+            case LOG_DOWNSTREAM_REPORT_ACK:
+                eventPublisher.publishEvent(new LogEvent(this, message, topicEnum));
+                break;
+
             default:
                 log.warn("[publishEvent][未处理的 Topic 类型，topic: {}, 类型: {}]",
                         message.getTopic(), topicEnum.name());

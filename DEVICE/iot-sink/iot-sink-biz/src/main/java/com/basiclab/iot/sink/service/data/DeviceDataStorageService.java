@@ -1,6 +1,7 @@
 package com.basiclab.iot.sink.service.data;
 
 import com.basiclab.iot.sink.enums.IotDeviceTopicEnum;
+import com.basiclab.iot.sink.enums.IotDeviceTopicMethodMapping;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.service.tdengine.TdEngineService;
 import com.basiclab.iot.tdengine.domain.Fields;
@@ -43,6 +44,8 @@ public class DeviceDataStorageService {
      * 存储设备消息数据
      * <p>
      * 同时将数据存储到TDEngine（历史数据）和Redis（设备数据缓存）
+     * <p>
+     * 在入库前会根据 Topic 标准映射验证并标准化 method 字段
      *
      * @param message   设备消息
      * @param topicEnum Topic枚举
@@ -54,15 +57,60 @@ public class DeviceDataStorageService {
         }
 
         try {
+            // 0. 根据 Topic 标准映射验证并标准化 method 字段
+            normalizeMethodByTopic(message, topicEnum);
+
             // 1. 存储到TDEngine（历史数据）
             storeToTdEngine(message, topicEnum);
 
             // 2. 存储到Redis（设备数据缓存）
             deviceRedisStorageService.storeDeviceData(message, topicEnum);
 
-            log.debug("[storeDeviceData][数据存储成功，messageId: {}, topic: {}]", message.getId(), topicEnum.name());
+            log.debug("[storeDeviceData][数据存储成功，messageId: {}, topic: {}, method: {}]", 
+                    message.getId(), topicEnum.name(), message.getMethod());
         } catch (Exception e) {
             log.error("[storeDeviceData][数据存储失败，messageId: {}, topic: {}]", message.getId(), topicEnum.name(), e);
+        }
+    }
+
+    /**
+     * 根据 Topic 标准映射验证并标准化 method 字段
+     * <p>
+     * 如果消息中的 method 与 Topic 标准映射不一致，会使用标准映射中的 method
+     * 如果消息中没有 method，会根据 Topic 标准映射自动设置
+     *
+     * @param message   设备消息
+     * @param topicEnum Topic枚举
+     */
+    private void normalizeMethodByTopic(IotDeviceMessage message, IotDeviceTopicEnum topicEnum) {
+        // 获取 Topic 对应的标准 Method
+        String standardMethod = IotDeviceTopicMethodMapping.getMethodByTopic(topicEnum);
+        
+        if (StrUtil.isBlank(standardMethod)) {
+            // 如果该 Topic 没有标准 Method 映射，保持原有 method 不变
+            if (StrUtil.isBlank(message.getMethod())) {
+                log.debug("[normalizeMethodByTopic][Topic {} 没有标准 Method 映射，且消息中 method 为空，保持为空]", 
+                        topicEnum.name());
+            }
+            return;
+        }
+
+        // 如果消息中的 method 为空，使用标准 Method
+        if (StrUtil.isBlank(message.getMethod())) {
+            message.setMethod(standardMethod);
+            log.debug("[normalizeMethodByTopic][消息 method 为空，根据 Topic {} 标准映射设置为: {}]", 
+                    topicEnum.name(), standardMethod);
+            return;
+        }
+
+        // 如果消息中的 method 与标准 Method 不一致，记录警告并使用标准 Method
+        if (!standardMethod.equals(message.getMethod())) {
+            log.warn("[normalizeMethodByTopic][消息 method ({}) 与 Topic {} 标准映射 ({}) 不一致，使用标准 Method]", 
+                    message.getMethod(), topicEnum.name(), standardMethod);
+            message.setMethod(standardMethod);
+        } else {
+            log.debug("[normalizeMethodByTopic][消息 method ({}) 与 Topic {} 标准映射一致]", 
+                    message.getMethod(), topicEnum.name());
         }
     }
 
@@ -139,6 +187,8 @@ public class DeviceDataStorageService {
                 return "st_ota_upstream_progress_report";
             case OTA_UPSTREAM_FIRMWARE_QUERY:
                 return "st_ota_upstream_firmware_query";
+            case LOG_UPSTREAM_REPORT:
+                return "st_log_upstream_report";
             default:
                 return null;
         }

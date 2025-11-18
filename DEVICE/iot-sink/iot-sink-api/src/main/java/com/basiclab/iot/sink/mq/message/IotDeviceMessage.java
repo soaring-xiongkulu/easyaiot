@@ -160,4 +160,49 @@ public class IotDeviceMessage {
                 .build());
     }
 
+    /**
+     * 构建日志上报消息
+     * <p>
+     * 设备一条一条回传日志数据
+     *
+     * @param logContent 日志内容
+     * @return 日志上报消息
+     */
+    public static IotDeviceMessage buildLogPost(String logContent) {
+        return buildLogPost(null, logContent);
+    }
+
+    /**
+     * 构建日志上报消息
+     * <p>
+     * 设备一条一条回传日志数据
+     *
+     * @param requestId 请求ID
+     * @param logContent 日志内容
+     * @return 日志上报消息
+     */
+    public static IotDeviceMessage buildLogPost(String requestId, String logContent) {
+        return requestOf(requestId, IotDeviceMessageMethodEnum.LOG_POST.getMethod(),
+                MapUtil.of("log", logContent));
+    }
+
+    /**
+     * 构建日志上报消息（带更多参数）
+     * <p>
+     * 设备一条一条回传日志数据
+     *
+     * @param requestId 请求ID
+     * @param logContent 日志内容
+     * @param logLevel 日志级别（如：INFO、WARN、ERROR等）
+     * @param logType 日志类型（如：SYSTEM、APPLICATION等）
+     * @return 日志上报消息
+     */
+    public static IotDeviceMessage buildLogPost(String requestId, String logContent, String logLevel, String logType) {
+        return requestOf(requestId, IotDeviceMessageMethodEnum.LOG_POST.getMethod(), MapUtil.builder()
+                .put("log", logContent)
+                .put("level", logLevel)
+                .put("type", logType)
+                .build());
+    }
+
 }

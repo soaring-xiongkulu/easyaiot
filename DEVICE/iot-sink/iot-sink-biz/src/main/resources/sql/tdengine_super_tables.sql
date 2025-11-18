@@ -279,3 +279,24 @@ CREATE STABLE IF NOT EXISTS iot_device.st_ota_upstream_firmware_query (
     product_identification NCHAR(20)
 );
 
+-- ============================================
+-- 14. 日志上报超级表 (LOG_UPSTREAM_REPORT)
+-- ============================================
+CREATE STABLE IF NOT EXISTS iot_device.st_log_upstream_report (
+    ts TIMESTAMP,
+    report_time TIMESTAMP,
+    device_id BIGINT,
+    server_id NCHAR(50),
+    request_id NCHAR(100),
+    method NCHAR(100),
+    params NCHAR(5000),
+    data NCHAR(5000),
+    code INT,
+    msg NCHAR(500),
+    `topic` NCHAR(500)
+) TAGS (
+    device_identification NCHAR(20),
+    tenant_id BIGINT,
+    product_identification NCHAR(20)
+);
+

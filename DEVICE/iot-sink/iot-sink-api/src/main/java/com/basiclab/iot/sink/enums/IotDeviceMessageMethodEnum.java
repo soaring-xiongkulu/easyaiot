@@ -22,8 +22,6 @@ public enum IotDeviceMessageMethodEnum implements ArrayValuable<String> {
 
     STATE_UPDATE("thing.state.update", "设备状态更新", true),
 
-    // TODO 芋艿：要不要加个 ping 消息；
-
     // ========== 设备属性 ==========
     // 可参考：https://help.aliyun.com/zh/iot/user-guide/device-properties-events-and-services
 
@@ -34,6 +32,11 @@ public enum IotDeviceMessageMethodEnum implements ArrayValuable<String> {
     // 可参考：https://help.aliyun.com/zh/iot/user-guide/device-properties-events-and-services
 
     EVENT_POST("thing.event.post", "事件上报", true),
+
+    // ========== 设备日志 ==========
+    // 设备日志上报，用于设备回传日志数据
+
+    LOG_POST("thing.log.post", "日志上报", true),
 
     // ========== 设备服务调用 ==========
     // 可参考：https://help.aliyun.com/zh/iot/user-guide/device-properties-events-and-services
@@ -60,7 +63,8 @@ public enum IotDeviceMessageMethodEnum implements ArrayValuable<String> {
      */
     public static final Set<String> REPLY_DISABLED = SetUtils.asSet(
             STATE_UPDATE.getMethod(),
-            OTA_PROGRESS.getMethod() // 参考阿里云，OTA 升级进度上报，不进行回复
+            OTA_PROGRESS.getMethod(), // 参考阿里云，OTA 升级进度上报，不进行回复
+            LOG_POST.getMethod() // 日志上报，设备一条一条回传，不需要回复
     );
 
     private final String method;
