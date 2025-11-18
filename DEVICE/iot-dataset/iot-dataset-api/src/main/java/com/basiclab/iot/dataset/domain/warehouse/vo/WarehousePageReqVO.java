@@ -4,6 +4,13 @@ import lombok.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 import com.basiclab.iot.common.domain.PageParam;
 
+/**
+ * WarehousePageReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 数据仓分页 Request VO")
 @Data
 @EqualsAndHashCode(callSuper = true)

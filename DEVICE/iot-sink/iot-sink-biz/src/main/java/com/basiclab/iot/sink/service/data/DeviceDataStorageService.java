@@ -19,12 +19,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 设备数据存储服务
- * <p>
- * 负责将设备消息数据同时存储到TDEngine和Redis
+ * DeviceDataStorageService
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Service
 public class DeviceDataStorageService {

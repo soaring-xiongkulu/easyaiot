@@ -17,14 +17,13 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * IoT 下行消息发送 API 实现类
- * <p>
- * 此实现类在 sink-api 中，可以被其他模块直接使用
- * <p>
- * 需要 IotDeviceMessageProducer 和 DeviceServerIdService（可选）存在
+ * IotDownstreamMessageApiImpl
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Service
 @Slf4j
 @RequiredArgsConstructor

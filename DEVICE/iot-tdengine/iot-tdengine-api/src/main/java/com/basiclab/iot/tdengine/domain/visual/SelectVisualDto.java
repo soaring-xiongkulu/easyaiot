@@ -6,12 +6,13 @@ import lombok.Data;
 import javax.validation.constraints.NotBlank;
 
 /**
- * @ClassDescription: 查询可视化所需入参对象
- * @ClassName: SelectDto
- * @Author: andyz
- * @Date: 2025-07-29 14:12:26
- * @Version 1.0
+ * SelectVisualDto
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Data
 public class SelectVisualDto extends SelectDto {
 

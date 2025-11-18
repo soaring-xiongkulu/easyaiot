@@ -5,7 +5,17 @@ import lombok.Data;
 
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
-import java.time.LocalDateTime;
+import java.time.
+
+/**
+ * Demo01ContactSaveReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+LocalDateTime;
 
 @Schema(description = "管理后台 - 示例联系人新增/修改 Request VO")
 @Data

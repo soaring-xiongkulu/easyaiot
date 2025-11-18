@@ -18,10 +18,13 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 /**
- * IoT 网关 HTTP 协议：接收设备上行消息
+ * IotHttpUpstreamProtocol
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 public class IotHttpUpstreamProtocol extends AbstractVerticle {
 

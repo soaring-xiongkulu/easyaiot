@@ -6,6 +6,13 @@ import lombok.Data;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
+/**
+ * DatasetVideoSaveReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 视频数据集新增/修改 Request VO")
 @Data
 public class DatasetVideoSaveReqVO {

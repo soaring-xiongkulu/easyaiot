@@ -6,6 +6,13 @@ import lombok.Data;
 
 import java.util.Set;
 
+/**
+ * AdminUserRespDTO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "RPC 服务 - Admin 用户 Response DTO")
 @Data
 public class AdminUserRespDTO implements VO {

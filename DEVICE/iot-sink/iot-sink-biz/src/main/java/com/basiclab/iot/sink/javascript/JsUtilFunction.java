@@ -8,10 +8,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * JS 工具函数，提供给 JS 脚本使用
+ * JsUtilFunction
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public class JsUtilFunction {
 
     /**

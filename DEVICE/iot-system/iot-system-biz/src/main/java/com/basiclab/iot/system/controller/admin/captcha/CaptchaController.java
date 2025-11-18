@@ -14,7 +14,17 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import javax.annotation.security.PermitAll;
-import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http
+
+/**
+ * CaptchaController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+.HttpServletRequest;
 
 @Tag(name = "管理后台 - 验证码")
 @RestController("adminCaptchaController")

@@ -8,7 +8,17 @@ import javax.validation.constraints.NotEmpty;
 
 @Schema(description = "管理后台 - 用户个人中心更新密码 Request VO")
 @Data
-public class UserProfileUpdatePasswordReqVO {
+public cl
+
+/**
+ * UserProfileUpdatePasswordReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+ass UserProfileUpdatePasswordReqVO {
 
     @Schema(description = "旧密码", example = "123456")
     @NotEmpty(message = "旧密码不能为空")

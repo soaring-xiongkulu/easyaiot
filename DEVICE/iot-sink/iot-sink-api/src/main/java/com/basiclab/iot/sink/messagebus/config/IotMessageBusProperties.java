@@ -7,9 +7,11 @@ import org.springframework.validation.annotation.Validated;
 import javax.validation.constraints.NotNull;
 
 /**
- * IoT 消息总线配置属性
+ * IotMessageBusProperties
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @ConfigurationProperties("basiclab.iot.message-bus")
 @Data

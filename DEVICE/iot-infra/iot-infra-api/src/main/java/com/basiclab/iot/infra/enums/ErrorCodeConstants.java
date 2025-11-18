@@ -3,9 +3,11 @@ package com.basiclab.iot.infra.enums;
 import com.basiclab.iot.common.exception.ErrorCode;
 
 /**
- * Infra 错误码枚举类
+ * ErrorCodeConstants
  *
- * infra 系统，使用 1-001-000-000 段
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface ErrorCodeConstants {
 

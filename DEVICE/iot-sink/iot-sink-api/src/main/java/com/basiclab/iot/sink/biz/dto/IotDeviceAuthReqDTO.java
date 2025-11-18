@@ -5,10 +5,13 @@ import lombok.Data;
 import javax.validation.constraints.NotEmpty;
 
 /**
- * IoT 设备认证 Request DTO
+ * IotDeviceAuthReqDTO
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Data
 public class IotDeviceAuthReqDTO {
 

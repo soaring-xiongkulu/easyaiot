@@ -1,5 +1,6 @@
 package com.basiclab.iot.system.controller.admin.user;
 
+
 import cn.hutool.core.collection.CollUtil;
 import com.basiclab.iot.common.core.annotation.DataPermission;
 import com.basiclab.iot.common.domain.CommonResult;
@@ -32,6 +33,13 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.except
 import static com.basiclab.iot.common.utils.SecurityFrameworkUtils.getLoginUserId;
 import static com.basiclab.iot.infra.enums.ErrorCodeConstants.FILE_IS_EMPTY;
 
+/**
+ * UserProfileController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 用户个人中心")
 @RestController
 @RequestMapping("/system/user/profile")

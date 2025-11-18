@@ -11,21 +11,13 @@ import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * TCP JSON 格式 {@link IotDeviceMessage} 编解码器
- *
- * 采用纯 JSON 格式传输，格式如下：
- * {
- *     "id": "消息 ID",
- *     "method": "消息方法",
- *     "params": {...}, // 请求参数
- *     "data": {...}, // 响应结果
- *     "code": 200, // 响应错误码
- *     "msg": "success", // 响应提示
- *     "timestamp": 时间戳
- * }
+ * IotTcpJsonDeviceMessageCodec
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Component
 public class IotTcpJsonDeviceMessageCodec implements IotDeviceMessageCodec {
 

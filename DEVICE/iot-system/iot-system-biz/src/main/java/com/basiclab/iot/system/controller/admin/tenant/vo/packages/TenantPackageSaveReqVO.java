@@ -7,7 +7,17 @@ import lombok.Data;
 
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
-import java.util.Set;
+import java.util.
+
+/**
+ * TenantPackageSaveReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+Set;
 
 @Schema(description = "管理后台 - 租户套餐创建/修改 Request VO")
 @Data

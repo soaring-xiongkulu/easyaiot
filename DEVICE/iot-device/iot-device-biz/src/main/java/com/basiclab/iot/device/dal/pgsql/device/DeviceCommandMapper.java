@@ -24,7 +24,6 @@ import org.apache.ibatis.annotations.Mapper;
  * @email ${EMAIL}
  * @date 2024/4/17 22:02
  */
-
 @Mapper
 public interface DeviceCommandMapper {
     /**

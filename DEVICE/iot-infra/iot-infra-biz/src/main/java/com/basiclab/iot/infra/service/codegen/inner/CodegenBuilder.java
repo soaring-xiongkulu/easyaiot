@@ -23,9 +23,11 @@ import static cn.hutool.core.util.RandomUtil.randomEle;
 import static cn.hutool.core.util.RandomUtil.randomInt;
 
 /**
- * 代码生成器的 Builder，负责：
- * 1. 将数据库的表 {@link TableInfo} 定义，构建成 {@link CodegenTableDO}
- * 2. 将数据库的列 {@link TableField} 构定义，建成 {@link CodegenColumnDO}
+ * CodegenBuilder
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Component
 public class CodegenBuilder {

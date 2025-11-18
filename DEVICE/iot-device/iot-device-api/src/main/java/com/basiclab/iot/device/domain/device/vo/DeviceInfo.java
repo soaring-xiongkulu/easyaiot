@@ -2,6 +2,9 @@ package com.basiclab.iot.device.domain.device.vo;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.*;
@@ -29,11 +32,13 @@ import java.time.LocalDateTime;
 @ToString(callSuper = true)
 @Accessors(chain = true)
 @Builder
+@TableName("device_info")
 public class DeviceInfo implements Serializable {
     /**
     * 主键
     */
     @ApiModelProperty(value="主键")
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**

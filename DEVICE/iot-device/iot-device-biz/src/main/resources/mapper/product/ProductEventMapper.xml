@@ -36,7 +36,7 @@
     </select>
 
     <!--查询指定行数据-->
-    <select id="selectEvenList" resultMap="ProductEventMap">
+    <select id="selectList" resultMap="ProductEventMap">
         select
         id,event_name,event_code,event_type,template_identification,product_identification,status,description,create_by,create_time,update_by,update_time
 

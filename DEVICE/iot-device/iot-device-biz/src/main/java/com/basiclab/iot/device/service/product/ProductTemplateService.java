@@ -6,8 +6,11 @@ import com.basiclab.iot.device.domain.product.model.ProductTemplateModel;
 import java.util.List;
 
 /**
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * ProductTemplateService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface ProductTemplateService {
 

@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * NTP同步请求上行消息处理器
- * <p>
- * 处理 Topic: NTP_UPSTREAM_REQUEST
+ * NtpUpstreamRequestHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class NtpUpstreamRequestHandler extends AbstractTopicHandler implements IotUpstreamMessageHandler {

@@ -13,11 +13,11 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 应用密钥 DO
- * <p>
- * 用于管理设备的 appId、appKey、appSecret
+ * AppDO
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @TableName("app")
 @Data

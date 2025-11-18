@@ -7,7 +7,17 @@ import javax.validation.constraints.NotNull;
 
 @Schema(description = "管理后台 - 租户套餐精简 Response VO")
 @Data
-public class TenantPackageSimpleRespVO {
+public c
+
+/**
+ * TenantPackageSimpleRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+lass TenantPackageSimpleRespVO {
 
     @Schema(description = "套餐编号", example = "1024")
     @NotNull(message = "套餐编号不能为空")

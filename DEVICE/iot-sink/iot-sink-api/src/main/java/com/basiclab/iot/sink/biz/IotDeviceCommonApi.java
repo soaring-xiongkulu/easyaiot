@@ -6,10 +6,13 @@ import com.basiclab.iot.sink.biz.dto.IotDeviceGetReqDTO;
 import com.basiclab.iot.sink.biz.dto.IotDeviceRespDTO;
 
 /**
- * IoT 设备通用 API
+ * IotDeviceCommonApi
  *
- * @author haohao
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public interface IotDeviceCommonApi {
 
     /**

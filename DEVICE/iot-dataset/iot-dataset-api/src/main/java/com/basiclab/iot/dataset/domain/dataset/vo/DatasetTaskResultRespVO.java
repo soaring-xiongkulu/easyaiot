@@ -5,6 +5,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import com.alibaba.excel.annotation.*;
 
+/**
+ * DatasetTaskResultRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 标注任务结果 Response VO")
 @Data
 @ExcelIgnoreUnannotated

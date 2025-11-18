@@ -7,7 +7,17 @@ import javax.validation.constraints.NotNull;
 
 @Schema(description = "管理后台 - 短信模板创建/修改 Request VO")
 @Data
-public class SmsTemplateSaveReqVO {
+p
+
+/**
+ * SmsTemplateSaveReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+ublic class SmsTemplateSaveReqVO {
 
     @Schema(description = "编号", example = "1024")
     private Long id;

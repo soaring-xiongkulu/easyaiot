@@ -10,7 +10,6 @@ import com.basiclab.iot.system.service.mail.MailLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,6 +20,13 @@ import javax.validation.Valid;
 
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * MailLogController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 邮件日志")
 @RestController
 @RequestMapping("/system/mail-log")

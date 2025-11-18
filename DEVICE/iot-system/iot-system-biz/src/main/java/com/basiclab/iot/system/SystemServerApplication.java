@@ -1,5 +1,6 @@
 package com.basiclab.iot.system;
 
+
 import com.basiclab.iot.common.annotation.EnableCustomSwagger2;
 import com.basiclab.iot.common.annotations.EnableCustomConfig;
 import com.basiclab.iot.common.annotations.EnableRyFeignClients;
@@ -8,6 +9,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 
+/**
+ * SystemServerApplication
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Slf4j
 @EnableCustomConfig
 @EnableCustomSwagger2

@@ -13,6 +13,13 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * NotifyMessageMapper
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
 public interface NotifyMessageMapper extends BaseMapperX<NotifyMessageDO> {
 

@@ -6,6 +6,13 @@ import lombok.Data;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
+/**
+ * CodegenCreateListReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 基于数据库的表结构，创建代码生成器的表和字段定义 Request VO")
 @Data
 public class CodegenCreateListReqVO {

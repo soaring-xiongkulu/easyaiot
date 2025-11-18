@@ -2,12 +2,18 @@ package com.basiclab.iot.infra.controller.admin.config.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+/**
+ * ConfigSaveReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 参数配置创建/修改 Request VO")
 @Data
 public class ConfigSaveReqVO {

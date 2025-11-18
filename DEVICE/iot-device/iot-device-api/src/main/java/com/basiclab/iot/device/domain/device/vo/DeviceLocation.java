@@ -1,5 +1,8 @@
 package com.basiclab.iot.device.domain.device.vo;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -33,11 +36,13 @@ import java.time.LocalDateTime;
 @ToString(callSuper = true)
 @Accessors(chain = true)
 @Builder
+@TableName("device_location")
 public class DeviceLocation implements Serializable {
     /**
      * 主键
      */
     @ApiModelProperty(value = "主键")
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**

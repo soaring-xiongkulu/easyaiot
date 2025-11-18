@@ -32,11 +32,13 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.except
 import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
 
 /**
- * 短信模板 Service 实现类
+ * SmsTemplateServiceImpl
  *
- * @author zzf
- * @since 2024/1/25 9:25
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Service
 @Slf4j
 public class SmsTemplateServiceImpl implements SmsTemplateService {

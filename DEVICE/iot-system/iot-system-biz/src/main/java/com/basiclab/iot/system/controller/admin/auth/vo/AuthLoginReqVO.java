@@ -52,9 +52,14 @@ public class AuthLoginReqVO {
     private String socialState;
 
     /**
-     * 开启验证码的 Group
-     */
-    public interface CodeEnableGroup {}
+ * AuthLoginReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+public interface CodeEnableGroup {}
 
     @AssertTrue(message = "授权码不能为空")
     public boolean isSocialCodeValid() {

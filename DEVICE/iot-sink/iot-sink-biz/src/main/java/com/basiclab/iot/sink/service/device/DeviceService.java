@@ -4,10 +4,13 @@ import com.basiclab.iot.sink.biz.dto.IotDeviceRespDTO;
 import com.basiclab.iot.sink.dal.dataobject.DeviceDO;
 
 /**
- * 设备 Service 接口（用于数据库查询）
+ * DeviceService
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public interface DeviceService {
 
     /**

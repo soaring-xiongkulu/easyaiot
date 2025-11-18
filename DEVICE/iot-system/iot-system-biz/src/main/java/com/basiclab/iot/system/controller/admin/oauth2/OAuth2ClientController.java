@@ -1,5 +1,6 @@
 package com.basiclab.iot.system.controller.admin.oauth2;
 
+
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.domain.PageResult;
 import com.basiclab.iot.common.utils.object.BeanUtils;
@@ -11,7 +12,6 @@ import com.basiclab.iot.system.service.oauth2.OAuth2ClientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +20,13 @@ import javax.validation.Valid;
 
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * OAuth2ClientController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - OAuth2 客户端")
 @RestController
 @RequestMapping("/system/oauth2-client")

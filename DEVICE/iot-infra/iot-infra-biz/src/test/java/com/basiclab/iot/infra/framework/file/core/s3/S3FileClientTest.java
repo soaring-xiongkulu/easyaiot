@@ -10,6 +10,13 @@ import org.junit.jupiter.api.Test;
 
 import javax.validation.Validation;
 
+/**
+ * S3FileClientTest
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 public class S3FileClientTest {
 
     @Test

@@ -10,9 +10,11 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 针对 {@link SmsSendMessage} 的消费者
+ * SmsSendConsumer
  *
- * @author zzf
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Component
 @Slf4j

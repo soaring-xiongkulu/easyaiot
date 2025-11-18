@@ -8,12 +8,13 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
- * 属性期望值查询下行消息事件监听器
- * <p>
- * 处理 Topic: PROPERTY_DOWNSTREAM_DESIRED_QUERY
+ * PropertyDownstreamDesiredQueryListener
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class PropertyDownstreamDesiredQueryListener {

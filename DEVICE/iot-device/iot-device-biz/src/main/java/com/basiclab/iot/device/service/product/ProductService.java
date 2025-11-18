@@ -11,15 +11,11 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 /**
- * @Description: 产品服务接口
- * @Author: Basiclab
- * @E-mail: 853017739@qq.com
- * @Website: https://gitee.com/soaring-xiongkulu/easyaiot
- * @CreateDate: 2021/12/25$ 23:52$
- * @UpdateUser: ShiHuan Sun
- * @UpdateDate: 2021/12/25$ 23:52$
- * @UpdateRemark: 修改内容
- * @Version: 1.0
+ * ProductService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface ProductService {
 

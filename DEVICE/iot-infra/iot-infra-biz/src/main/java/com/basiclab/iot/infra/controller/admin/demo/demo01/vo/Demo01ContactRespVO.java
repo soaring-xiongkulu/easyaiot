@@ -11,7 +11,17 @@ import java.time.LocalDateTime;
 
 @Schema(description = "管理后台 - 示例联系人 Response VO")
 @Data
-@ExcelIgnoreUnannotated
+@ExcelIgnoreUnan
+
+/**
+ * Demo01ContactRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+notated
 public class Demo01ContactRespVO {
 
     @Schema(description = "编号", example = "21555")

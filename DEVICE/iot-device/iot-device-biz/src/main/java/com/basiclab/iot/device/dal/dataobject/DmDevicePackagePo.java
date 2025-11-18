@@ -13,9 +13,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * @author IoT
- * @desc
- * @created 2024-05-27
+ * DmDevicePackagePo
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -183,8 +185,6 @@ public class DmDevicePackagePo extends BaseEntity2 implements Serializable {
      * 设备唯一标识列表
      */
     private List<String> deviceIdentificationList;
-
-
 
 
 }

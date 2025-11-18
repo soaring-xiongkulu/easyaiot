@@ -14,6 +14,13 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 
+/**
+ * SocialUserApi
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @FeignClient(name = ApiConstants.NAME) // TODO BasicLab：fallbackFactory =
 @Tag(name = "RPC 服务 - 社交用户")
 public interface SocialUserApi {

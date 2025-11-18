@@ -1,7 +1,10 @@
 package com.basiclab.iot.device.domain.device.vo;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -12,11 +15,13 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * (ProductEvent)实体类
+ * ProductEvent
  *
- * @author makejava
- * @since 2025-06-07 11:23:40
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @ApiModel(value = "产品事件模型")
 @Data
 @NoArgsConstructor
@@ -24,11 +29,13 @@ import java.time.LocalDateTime;
 @ToString(callSuper = true)
 @Accessors(chain = true)
 @Builder
+@TableName("product_event")
 public class ProductEvent implements Serializable {
     private static final long serialVersionUID = 214934116551554711L;
     /**
      * 主键
      */
+    @TableId(type = IdType.AUTO)
     private Long id;
     /**
      * 事件名称

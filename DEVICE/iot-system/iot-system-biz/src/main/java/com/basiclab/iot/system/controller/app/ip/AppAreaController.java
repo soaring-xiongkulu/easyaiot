@@ -1,10 +1,10 @@
 package com.basiclab.iot.system.controller.app.ip;
 
 import cn.hutool.core.lang.Assert;
-import com.basiclab.iot.common.domain.CommonResult;
-import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.common.core.Area;
 import com.basiclab.iot.common.core.utils.AreaUtils;
+import com.basiclab.iot.common.domain.CommonResult;
+import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.system.controller.app.ip.vo.AppAreaNodeRespVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,6 +18,14 @@ import java.util.List;
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
 @Tag(name = "用户 App - 地区")
+
+/**
+ * AppAreaController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @RestController
 @RequestMapping("/system/area")
 @Validated

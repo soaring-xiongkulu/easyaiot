@@ -8,10 +8,13 @@ import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * 应用密钥服务降级处理
+ * RemoteAppFallbackFactory
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Component
 @Slf4j
 public class RemoteAppFallbackFactory implements FallbackFactory<RemoteAppService> {

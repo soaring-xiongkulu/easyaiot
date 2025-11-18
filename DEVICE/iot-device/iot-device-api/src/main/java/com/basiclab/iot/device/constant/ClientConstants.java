@@ -1,10 +1,13 @@
 package com.basiclab.iot.device.constant;
 
 /**
- *  @author 翱翔的雄库鲁 on 2020/9/4
+ * ClientConstants
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class ClientConstants {
-
 
     /**
      * 成功接入	客户端认证完成并成功接入系统后

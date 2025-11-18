@@ -17,15 +17,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @ClassDescription:
- * @ClassName: TdEngineMapper
- * @Author: iot
- * @Date: 2021-12-27 14:52:34
- * @Version 1.0
+ * TdEngineMapper
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Mapper
 public interface TdEngineMapper {
-
 
     /**
      * 创建数据库

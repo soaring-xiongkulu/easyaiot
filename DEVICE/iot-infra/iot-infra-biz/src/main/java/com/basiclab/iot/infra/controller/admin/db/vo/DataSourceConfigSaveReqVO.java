@@ -5,6 +5,13 @@ import lombok.Data;
 
 import javax.validation.constraints.NotNull;
 
+/**
+ * DataSourceConfigSaveReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 数据源配置创建/修改 Request VO")
 @Data
 public class DataSourceConfigSaveReqVO {

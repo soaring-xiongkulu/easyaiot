@@ -10,10 +10,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
- * 应用密钥管理服务（远程调用）
+ * RemoteAppService
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @FeignClient(contextId = "remoteAppService", value = ServiceNameConstants.IOT_DEVICE, fallbackFactory = RemoteAppFallbackFactory.class)
 public interface RemoteAppService {
 

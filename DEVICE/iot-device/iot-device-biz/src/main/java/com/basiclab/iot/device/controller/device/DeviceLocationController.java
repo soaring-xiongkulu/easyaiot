@@ -38,7 +38,7 @@ public class DeviceLocationController extends BaseController {
      */
     @GetMapping("selectOne")
     public DeviceLocation selectOne(Integer id) {
-        return deviceLocationService.selectByPrimaryKey(Long.valueOf(id));
+        return deviceLocationService.selectDeviceLocationById(Long.valueOf(id));
     }
 
     /**

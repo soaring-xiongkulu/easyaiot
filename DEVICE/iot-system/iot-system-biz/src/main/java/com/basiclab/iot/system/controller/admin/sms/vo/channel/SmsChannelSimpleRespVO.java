@@ -7,7 +7,17 @@ import lombok.Data;
 @Data
 public class SmsChannelSimpleRespVO {
 
-    @Schema(description = "编号", example = "1024")
+    @Schema(
+
+/**
+ * SmsChannelSimpleRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+description = "编号", example = "1024")
     private Long id;
 
     @Schema(description = "短信签名", example = "BasicLab源码")

@@ -9,15 +9,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * IoT 网关 TCP 连接管理器
- * <p>
- * 统一管理 TCP 连接的认证状态、设备会话和消息发送功能：
- * 1. 管理 TCP 连接的认证状态
- * 2. 管理设备会话和在线状态
- * 3. 管理消息发送到设备
+ * IotTcpConnectionManager
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class IotTcpConnectionManager {

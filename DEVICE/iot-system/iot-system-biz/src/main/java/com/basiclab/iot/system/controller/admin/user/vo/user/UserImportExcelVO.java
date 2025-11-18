@@ -11,8 +11,13 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 /**
- * 用户 Excel 导入 VO
+ * UserImportExcelVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Data
 @Builder
 @AllArgsConstructor

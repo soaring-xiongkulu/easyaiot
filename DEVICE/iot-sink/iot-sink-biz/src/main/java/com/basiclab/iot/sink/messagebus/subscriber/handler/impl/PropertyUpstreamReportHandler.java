@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 属性上报上行消息处理器
- * <p>
- * 处理 Topic: PROPERTY_UPSTREAM_REPORT
+ * PropertyUpstreamReportHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class PropertyUpstreamReportHandler extends AbstractTopicHandler implements IotUpstreamMessageHandler {

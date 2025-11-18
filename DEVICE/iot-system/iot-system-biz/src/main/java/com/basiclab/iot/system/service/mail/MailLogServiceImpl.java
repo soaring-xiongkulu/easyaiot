@@ -18,10 +18,11 @@ import java.util.Objects;
 import static cn.hutool.core.exceptions.ExceptionUtil.getRootCauseMessage;
 
 /**
- * 邮件日志 Service 实现类
+ * MailLogServiceImpl
  *
- * @author wangjingyi
- * @since 2025-03-21
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Validated

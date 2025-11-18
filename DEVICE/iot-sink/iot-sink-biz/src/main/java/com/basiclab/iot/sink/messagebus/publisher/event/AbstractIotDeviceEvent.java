@@ -6,12 +6,13 @@ import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
 /**
- * IoT 设备事件抽象基类
- * <p>
- * 所有设备消息处理事件都应该继承此类
+ * AbstractIotDeviceEvent
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Getter
 public abstract class AbstractIotDeviceEvent extends ApplicationEvent {
 

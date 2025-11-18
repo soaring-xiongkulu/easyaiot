@@ -8,10 +8,11 @@ import com.basiclab.iot.system.framework.sms.core.client.dto.SmsTemplateRespDTO;
 import java.util.List;
 
 /**
- * 短信客户端，用于对接各短信平台的 SDK，实现短信发送等功能
+ * SmsClient
  *
- * @author zzf
- * @since 2024/1/25 14:14
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface SmsClient {
 

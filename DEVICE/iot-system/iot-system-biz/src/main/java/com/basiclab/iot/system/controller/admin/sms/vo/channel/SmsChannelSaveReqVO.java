@@ -8,6 +8,15 @@ import javax.validation.constraints.NotNull;
 
 @Schema(description = "管理后台 - 短信渠道创建/修改 Request VO")
 @Data
+
+/**
+ * SmsChannelSaveReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
 public class SmsChannelSaveReqVO {
 
     @Schema(description = "编号", example = "1024")

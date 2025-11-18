@@ -11,9 +11,11 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * @author IoT
- * @desc
- * @created 2024-05-27
+ * DmPackagePublishPo
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 @EqualsAndHashCode(callSuper = false)

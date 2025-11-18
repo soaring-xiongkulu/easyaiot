@@ -1,5 +1,6 @@
 package com.basiclab.iot.device.dal.pgsql.device;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.basiclab.iot.device.domain.device.vo.DeviceInfo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -8,69 +9,18 @@ import java.util.Collection;
 import java.util.List;
 
 /**
-* @Description: java类作用描述
-* @author: EasyAIoT
-* @CreateDate: 2022/4/25$ 12:48$
-* @UpdateDate: 2022/4/25$ 12:48$
-* @UpdateRemark: 修改内容
-* @Version: V1.0
-*/
+ * DeviceInfoMapper
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
-public interface DeviceInfoMapper {
-    /**
-     * delete by primary key
-     * @param id primaryKey
-     * @return deleteCount
-     */
-    int deleteByPrimaryKey(Long id);
-
-    /**
-     * insert record to table
-     * @param record the record
-     * @return insert count
-     */
-    int insert(DeviceInfo record);
-
-    int insertOrUpdate(DeviceInfo record);
-
-    int insertOrUpdateSelective(DeviceInfo record);
-
-    /**
-     * insert record to table selective
-     * @param record the record
-     * @return insert count
-     */
-    int insertSelective(DeviceInfo record);
-
-    /**
-     * select by primary key
-     * @param id primary key
-     * @return object by primary key
-     */
-    DeviceInfo selectByPrimaryKey(Long id);
-
-    /**
-     * update record selective
-     * @param record the updated record
-     * @return update count
-     */
-    int updateByPrimaryKeySelective(DeviceInfo record);
-
-    /**
-     * update record
-     * @param record the updated record
-     * @return update count
-     */
-    int updateByPrimaryKey(DeviceInfo record);
-
-    int updateBatch(List<DeviceInfo> list);
-
-    int batchInsert(@Param("list") List<DeviceInfo> list);
+public interface DeviceInfoMapper extends BaseMapper<DeviceInfo> {
 
     int deleteByDeviceId(@Param("deviceId")String deviceId);
 
     DeviceInfo findOneByDeviceId(@Param("deviceId")String deviceId);
-
 
     /**
      * 查询子设备管理
@@ -78,7 +28,7 @@ public interface DeviceInfoMapper {
      * @param id 子设备管理主键
      * @return 子设备管理
      */
-    public DeviceInfo selectDeviceInfoById(Long id);
+    DeviceInfo selectDeviceInfoById(Long id);
 
     /**
      * 查询子设备管理列表
@@ -86,7 +36,7 @@ public interface DeviceInfoMapper {
      * @param deviceInfo 子设备管理
      * @return 子设备管理集合
      */
-    public List<DeviceInfo> selectDeviceInfoList(DeviceInfo deviceInfo);
+    List<DeviceInfo> selectDeviceInfoList(DeviceInfo deviceInfo);
 
     /**
      * 新增子设备管理
@@ -94,7 +44,7 @@ public interface DeviceInfoMapper {
      * @param deviceInfo 子设备管理
      * @return 结果
      */
-    public int insertDeviceInfo(DeviceInfo deviceInfo);
+    int insertDeviceInfo(DeviceInfo deviceInfo);
 
     /**
      * 修改子设备管理
@@ -102,7 +52,7 @@ public interface DeviceInfoMapper {
      * @param deviceInfo 子设备管理
      * @return 结果
      */
-    public int updateDeviceInfo(DeviceInfo deviceInfo);
+    int updateDeviceInfo(DeviceInfo deviceInfo);
 
     /**
      * 删除子设备管理
@@ -110,7 +60,7 @@ public interface DeviceInfoMapper {
      * @param id 子设备管理主键
      * @return 结果
      */
-    public int deleteDeviceInfoById(Long id);
+    int deleteDeviceInfoById(Long id);
 
     /**
      * 批量删除子设备管理
@@ -118,17 +68,11 @@ public interface DeviceInfoMapper {
      * @param ids 需要删除的数据主键集合
      * @return 结果
      */
-    public int deleteDeviceInfoByIds(Long[] ids);
+    int deleteDeviceInfoByIds(Long[] ids);
 
     List<DeviceInfo> findAllByIdInAndStatus(@Param("idCollection")Collection<Long> idCollection,@Param("status")String status);
-
 
     List<DeviceInfo> findAllByIdIn(@Param("idCollection")Collection<Long> idCollection);
 
     List<DeviceInfo> findAllByStatus(@Param("status")String status);
-
-
-
-
-
 }

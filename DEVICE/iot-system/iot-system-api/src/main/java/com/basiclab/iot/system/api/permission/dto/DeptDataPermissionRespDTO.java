@@ -6,6 +6,13 @@ import lombok.Data;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * DeptDataPermissionRespDTO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "RPC 服务 - 部门的数据权限 Response DTO")
 @Data
 public class DeptDataPermissionRespDTO {

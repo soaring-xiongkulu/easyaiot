@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 配置推送下行消息处理器
- * <p>
- * 处理 Topic: CONFIG_DOWNSTREAM_PUSH
+ * ConfigDownstreamPushHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class ConfigDownstreamPushHandler extends AbstractTopicHandler implements IotDownstreamMessageHandler {

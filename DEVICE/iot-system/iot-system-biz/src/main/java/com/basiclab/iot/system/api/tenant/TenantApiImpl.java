@@ -10,6 +10,13 @@ import java.util.List;
 
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * TenantApiImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @RestController // 提供 RESTful API 接口，给 Feign 调用
 @Validated
 public class TenantApiImpl implements TenantApi {

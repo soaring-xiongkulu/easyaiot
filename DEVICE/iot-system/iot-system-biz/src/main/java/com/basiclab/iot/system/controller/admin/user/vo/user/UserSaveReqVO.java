@@ -14,6 +14,13 @@ import org.hibernate.validator.constraints.Length;
 import javax.validation.constraints.*;
 import java.util.Set;
 
+/**
+ * UserSaveReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 用户创建/修改 Request VO")
 @Data
 public class UserSaveReqVO {

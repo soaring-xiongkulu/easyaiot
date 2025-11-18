@@ -15,7 +15,11 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.*;
 
 /**
- * 处理超级表和子表
+ * TdsUtils
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Slf4j
 public class TdsUtils {

@@ -11,9 +11,11 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 部门名字的 {@link IParseFunction} 实现类
+ * DeptParseFunction
  *
- * @author HUIHUI
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Slf4j
 @Component

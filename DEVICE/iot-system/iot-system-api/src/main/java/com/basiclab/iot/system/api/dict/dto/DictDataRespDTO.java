@@ -7,7 +7,17 @@ import lombok.Data;
 @Data
 public class DictDataRespDTO {
 
-    @Schema(description = "字典标签", example = "BasicLab")
+    @Schema
+
+/**
+ * DictDataRespDTO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+(description = "字典标签", example = "BasicLab")
     private String label;
 
     @Schema(description = "字典值", example = "iocoder")

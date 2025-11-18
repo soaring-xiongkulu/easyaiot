@@ -10,12 +10,13 @@ import org.springframework.context.ApplicationContext;
 import javax.annotation.Resource;
 
 /**
- * Topic 处理器抽象基类
- * <p>
- * 提供通用的消息处理和事件发布逻辑
+ * AbstractTopicHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 public abstract class AbstractTopicHandler {
 

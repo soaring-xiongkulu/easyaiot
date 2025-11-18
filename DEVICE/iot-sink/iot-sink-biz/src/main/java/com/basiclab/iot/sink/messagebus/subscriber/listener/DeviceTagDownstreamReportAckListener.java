@@ -8,12 +8,13 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
- * 设备标签上报确认下行消息事件监听器
- * <p>
- * 处理 Topic: DEVICE_TAG_DOWNSTREAM_REPORT_ACK
+ * DeviceTagDownstreamReportAckListener
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class DeviceTagDownstreamReportAckListener {

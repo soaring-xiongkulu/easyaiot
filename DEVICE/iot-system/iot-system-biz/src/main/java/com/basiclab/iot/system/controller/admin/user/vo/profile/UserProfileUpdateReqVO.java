@@ -7,7 +7,13 @@ import org.hibernate.validator.constraints.Length;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.Size;
 
-
+/**
+ * UserProfileUpdateReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 用户个人信息更新 Request VO")
 @Data
 public class UserProfileUpdateReqVO {

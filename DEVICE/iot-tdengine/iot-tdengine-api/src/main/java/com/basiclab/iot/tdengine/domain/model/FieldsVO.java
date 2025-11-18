@@ -8,14 +8,18 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * FieldsVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Data
 public class FieldsVO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /**
-     * 字段名称
-     */
     private String fieldName;
 
     /**

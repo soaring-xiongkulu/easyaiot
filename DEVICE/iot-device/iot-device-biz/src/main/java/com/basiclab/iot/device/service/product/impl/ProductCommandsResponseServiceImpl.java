@@ -10,8 +10,11 @@ import com.basiclab.iot.device.dal.pgsql.product.ProductCommandsResponseMapper;
 import com.basiclab.iot.device.service.product.ProductCommandsResponseService;
 
 /**
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * ProductCommandsResponseServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 public class ProductCommandsResponseServiceImpl implements ProductCommandsResponseService {

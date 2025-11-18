@@ -11,14 +11,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 日志上报上行消息事件监听器
- * <p>
- * 处理 Topic: LOG_UPSTREAM_REPORT
- * <p>
- * 设备一条一条回传日志数据，用于设备日志入库
+ * LogUpstreamReportListener
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class LogUpstreamReportListener {

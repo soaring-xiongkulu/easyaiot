@@ -16,10 +16,13 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 短信日志 Service 实现类
+ * SmsLogServiceImpl
  *
- * @author zzf
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Service
 public class SmsLogServiceImpl implements SmsLogService {

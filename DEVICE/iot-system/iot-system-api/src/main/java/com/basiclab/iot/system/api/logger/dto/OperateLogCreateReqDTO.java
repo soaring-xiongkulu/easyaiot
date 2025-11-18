@@ -6,6 +6,13 @@ import lombok.Data;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
+/**
+ * OperateLogCreateReqDTO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(name = "RPC 服务 - 系统操作日志 Create Request DTO")
 @Data
 public class OperateLogCreateReqDTO {

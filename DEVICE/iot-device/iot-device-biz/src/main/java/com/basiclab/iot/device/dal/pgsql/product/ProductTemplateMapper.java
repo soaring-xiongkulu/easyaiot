@@ -7,12 +7,12 @@ import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 /**
- * @description: ${description}
- * @packagename: com.basiclab.iot.device.mapper.product
- * @author: EasyAIoT
- * @email: andywebjava@163.com
- * @date: 2024-11-18 20:36
- **/
+ * ProductTemplateMapper
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
 public interface ProductTemplateMapper {
     /**

@@ -2,8 +2,6 @@ package com.basiclab.iot.device.service.device.impl;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
-import com.basiclab.iot.sink.biz.IotDownstreamMessageApi;
-import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.common.constant.Constants;
 import com.basiclab.iot.common.domain.R;
 import com.basiclab.iot.common.factory.ProtocolMessageAdapter;
@@ -13,13 +11,15 @@ import com.basiclab.iot.common.mqs.ConsumerTopicConstant;
 import com.basiclab.iot.common.utils.SnowflakeIdUtil;
 import com.basiclab.iot.common.utils.bean.BeanPlusUtil;
 import com.basiclab.iot.device.cache.helper.CacheDataHelper;
+import com.basiclab.iot.device.dal.pgsql.device.DeviceCommandMapper;
 import com.basiclab.iot.device.domain.device.vo.*;
 import com.basiclab.iot.device.domain.product.vo.result.ProductResultVO;
 import com.basiclab.iot.device.enums.device.DeviceCommandStatusEnum;
 import com.basiclab.iot.device.enums.device.DeviceCommandTypeEnum;
-import com.basiclab.iot.device.dal.pgsql.device.DeviceCommandMapper;
 import com.basiclab.iot.device.service.device.DeviceCommandService;
 import com.basiclab.iot.device.service.device.DeviceService;
+import com.basiclab.iot.sink.biz.IotDownstreamMessageApi;
+import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.Resource;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -268,7 +267,7 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
                         .cipherFlag(Integer.valueOf(drv.getProductResultVO().getEncryptMethod()))
                         .build());
         // Construct the command message JSON string
-        String commandMessageJson = Optional.ofNullable(commandRequest).map(cr -> buildCommandMessage(deviceResultVO,extendInfo,  cr)).map(JSONUtil::toJsonStr).orElse("{}"); // Fallback to an empty JSON object if commandRequest is null
+        String commandMessageJson = Optional.ofNullable(commandRequest).map(cr -> buildCommandMessage(deviceResultVO, extendInfo, cr)).map(JSONUtil::toJsonStr).orElse("{}"); // Fallback to an empty JSON object if commandRequest is null
 
         // Try to build the response using the encryption details
         Optional<ProtocolDataMessageDTO> handleResultOpt = encryptionDetailsOpt.flatMap(encryptionDetails -> {
@@ -299,7 +298,7 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
                     .topic(ConsumerTopicConstant.Mqtt.IOT_MQS_MQTT_MSG)
                     .params(params)
                     .build();
-            
+
             // 发送下行消息
             if (iotDownstreamMessageApi != null) {
                 iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
@@ -348,7 +347,7 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
 
     /**
      * Sends a message to the specified MQTT topic with the provided QoS and payload.
-     * 
+     * <p>
      * 注意：此方法已改为使用 IotDownstreamMessageApi，会从 topic 中提取 deviceIdentification 并查找对应的 deviceId。
      *
      * @param topic    The MQTT topic to publish the message to.
@@ -398,11 +397,11 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
 
     /**
      * 从 topic 中提取 deviceIdentification
-     * 
+     * <p>
      * 支持的 topic 格式：
      * - /v1/devices/{deviceIdentification}/...
      * - /iot/{productIdentification}/{deviceIdentification}/...
-     * 
+     *
      * @param topic MQTT topic
      * @return deviceIdentification，如果无法提取则返回 null
      */
@@ -431,7 +430,7 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
             // 从 topic 中提取 deviceIdentification
             String deviceIdentification = extractDeviceIdentificationFromTopic(publishMessageRequestParam.getTopic());
             if (StrUtil.isBlank(deviceIdentification)) {
-                log.warn("[sendCustomMessage][无法从 topic 中提取 deviceIdentification，topic: {}]", 
+                log.warn("[sendCustomMessage][无法从 topic 中提取 deviceIdentification，topic: {}]",
                         publishMessageRequestParam.getTopic());
                 return R.fail("无法从 topic 中提取设备标识");
             }
@@ -456,12 +455,12 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
                 iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
                 return R.ok(null, "消息发送成功");
             } else {
-                log.warn("[sendCustomMessage][IotDownstreamMessageApi 不存在，无法发送消息，topic: {}]", 
+                log.warn("[sendCustomMessage][IotDownstreamMessageApi 不存在，无法发送消息，topic: {}]",
                         publishMessageRequestParam.getTopic());
                 return R.fail("消息发送失败: IotDownstreamMessageApi 未配置");
             }
         } catch (Exception e) {
-            log.error("[sendCustomMessage][发送消息失败，topic: {}，错误: {}]", 
+            log.error("[sendCustomMessage][发送消息失败，topic: {}，错误: {}]",
                     publishMessageRequestParam.getTopic(), e.getMessage(), e);
             return R.fail("消息发送失败: " + e.getMessage());
         }

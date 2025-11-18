@@ -10,7 +10,17 @@ import java.time.LocalDateTime;
 @Schema(description = "管理后台 - 访问令牌 Response VO")
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
+@A
+
+/**
+ * OAuth2AccessTokenRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+llArgsConstructor
 public class OAuth2AccessTokenRespVO {
 
     @Schema(description = "编号", example = "1024")

@@ -5,10 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * 短信渠道枚举
+ * SmsChannelEnum
  *
- * @author zzf
- * @since 2024/1/25 10:56
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Getter
 @AllArgsConstructor

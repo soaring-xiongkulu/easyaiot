@@ -7,11 +7,13 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @EnumDescription: tdEngine支持的数据类型的枚举类
- * @EnumName: DataTypeEnum
- * @Author: iot
- * @Date: 2021-12-27 16:32:53
+ * DataTypeEnum
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Getter
 @ApiModel(value = "DataTypeEnum", description = "TD数据类型-枚举")
 public enum DataTypeEnum {

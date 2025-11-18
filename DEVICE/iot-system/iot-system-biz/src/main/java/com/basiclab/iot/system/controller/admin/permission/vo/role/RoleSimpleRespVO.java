@@ -3,6 +3,13 @@ package com.basiclab.iot.system.controller.admin.permission.vo.role;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+/**
+ * RoleSimpleRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 角色精简信息 Response VO")
 @Data
 public class RoleSimpleRespVO {

@@ -4,28 +4,25 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.alibaba.fastjson2.JSON;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.basiclab.iot.common.constant.Constants;
 import com.basiclab.iot.common.domain.R;
-import com.basiclab.iot.common.enums.ResultEnum;
 import com.basiclab.iot.common.text.UUID;
 import com.basiclab.iot.common.utils.DateUtils;
 import com.basiclab.iot.common.utils.SnowflakeIdUtil;
 import com.basiclab.iot.common.utils.StringUtils;
-import com.basiclab.iot.common.utils.tdengine.TdUtils;
+import com.basiclab.iot.device.dal.pgsql.device.DeviceInfoMapper;
 import com.basiclab.iot.device.domain.device.vo.*;
 import com.basiclab.iot.device.enums.device.DeviceConnectStatusEnum;
 import com.basiclab.iot.device.enums.device.DeviceEventTypeEnum;
 import com.basiclab.iot.device.enums.device.DeviceType;
 import com.basiclab.iot.device.enums.device.MqttProtocolTopoStatusEnum;
-import com.basiclab.iot.device.dal.pgsql.device.DeviceInfoMapper;
 import com.basiclab.iot.device.service.device.DeviceInfoService;
 import com.basiclab.iot.device.service.device.DeviceService;
 import com.basiclab.iot.device.service.product.ProductService;
 import com.basiclab.iot.device.service.product.ProductServicesService;
 import com.basiclab.iot.tdengine.RemoteTdEngineService;
-import com.basiclab.iot.tdengine.domain.Fields;
 import com.basiclab.iot.tdengine.domain.SelectDto;
-import com.basiclab.iot.tdengine.domain.model.TableDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,21 +35,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * @Description: 子设备档案接口实现
- * @author: EasyAIoT
- * @E-mail: andywebjava@163.com
- * @Website: https://gitee.com/soaring-xiongkulu/easyaiot
- * @CreateDate: 2024/4/25$ 12:44$
- * @UpdateUser: EasyAIoT
- * @UpdateDate: 2024/4/25$ 12:44$
- * @Version: V1.0
+ * DeviceInfoServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Slf4j
-public class DeviceInfoServiceImpl implements DeviceInfoService {
-
-    @Resource
-    private DeviceInfoMapper deviceInfoMapper;
+public class DeviceInfoServiceImpl extends ServiceImpl<DeviceInfoMapper, DeviceInfo> implements DeviceInfoService {
     @Autowired
     private DeviceService deviceService;
     @Autowired
@@ -66,63 +57,13 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
     private String dataBaseName;
 
     @Override
-    public int deleteByPrimaryKey(Long id) {
-        return deviceInfoMapper.deleteByPrimaryKey(id);
-    }
-
-    @Override
-    public int insert(DeviceInfo record) {
-        return deviceInfoMapper.insert(record);
-    }
-
-    @Override
-    public int insertOrUpdate(DeviceInfo record) {
-        return deviceInfoMapper.insertOrUpdate(record);
-    }
-
-    @Override
-    public int insertOrUpdateSelective(DeviceInfo record) {
-        return deviceInfoMapper.insertOrUpdateSelective(record);
-    }
-
-    @Override
-    public int insertSelective(DeviceInfo record) {
-        return deviceInfoMapper.insertSelective(record);
-    }
-
-    @Override
-    public DeviceInfo selectByPrimaryKey(Long id) {
-        return deviceInfoMapper.selectByPrimaryKey(id);
-    }
-
-    @Override
-    public int updateByPrimaryKeySelective(DeviceInfo record) {
-        return deviceInfoMapper.updateByPrimaryKeySelective(record);
-    }
-
-    @Override
-    public int updateByPrimaryKey(DeviceInfo record) {
-        return deviceInfoMapper.updateByPrimaryKey(record);
-    }
-
-    @Override
-    public int updateBatch(List<DeviceInfo> list) {
-        return deviceInfoMapper.updateBatch(list);
-    }
-
-    @Override
-    public int batchInsert(List<DeviceInfo> list) {
-        return deviceInfoMapper.batchInsert(list);
-    }
-
-    @Override
     public int deleteByDeviceId(String deviceId) {
-        return deviceInfoMapper.deleteByDeviceId(deviceId);
+        return baseMapper.deleteByDeviceId(deviceId);
     }
 
     @Override
     public DeviceInfo findOneByDeviceId(String deviceId) {
-        return deviceInfoMapper.findOneByDeviceId(deviceId);
+        return baseMapper.findOneByDeviceId(deviceId);
     }
 
     /**
@@ -133,7 +74,7 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
      */
     @Override
     public DeviceInfo selectDeviceInfoById(Long id) {
-        DeviceInfo deviceInfo = deviceInfoMapper.selectDeviceInfoById(id);
+        DeviceInfo deviceInfo = baseMapper.selectDeviceInfoById(id);
         if (StringUtils.isNotNull(deviceInfo)) {
             Device oneById = deviceService.findOneById(deviceInfo.getDeviceIdentification());
             deviceInfo.setEdgeDevicesIdentification(StringUtils.isNotNull(oneById) ? oneById.getDeviceIdentification() : "");
@@ -149,7 +90,7 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
      */
     @Override
     public List<DeviceInfo> selectDeviceInfoList(DeviceInfo deviceInfo) {
-        List<DeviceInfo> deviceInfoList = deviceInfoMapper.selectDeviceInfoList(deviceInfo);
+        List<DeviceInfo> deviceInfoList = baseMapper.selectDeviceInfoList(deviceInfo);
         deviceInfoList.forEach(deviceInfo1 -> {
             Device oneById = deviceService.findOneById(deviceInfo1.getDeviceIdentification());
             deviceInfo1.setEdgeDevicesIdentification(StringUtils.isNotNull(oneById) ? oneById.getDeviceIdentification() : "");
@@ -171,7 +112,7 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
         deviceInfo.setDeviceId(UUID.getUUID());
         deviceInfo.setConnectStatus(DeviceConnectStatusEnum.INIT.getValue());
         deviceInfo.setShadowEnable(true);
-        return deviceInfoMapper.insertDeviceInfo(deviceInfo);
+        return baseMapper.insertDeviceInfo(deviceInfo);
     }
 
     /**
@@ -182,10 +123,10 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
      */
     @Override
     public int updateDeviceInfo(DeviceInfoParams deviceInfoParams) {
-        DeviceInfo deviceInfo = deviceInfoMapper.selectByPrimaryKey(deviceInfoParams.getId());
+        DeviceInfo deviceInfo = baseMapper.selectById(deviceInfoParams.getId());
         deviceInfo.convertEntity(deviceInfoParams);
         deviceInfo.setUpdateBy("admin");
-        return deviceInfoMapper.updateDeviceInfo(deviceInfo);
+        return baseMapper.updateDeviceInfo(deviceInfo);
     }
 
     /**
@@ -197,15 +138,15 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
     @Override
     public int deleteDeviceInfoByIds(Long[] ids) {
         AtomicReference<Integer> deleteCount = new AtomicReference<>(0);
-        deviceInfoMapper.findAllByIdIn(Arrays.asList(ids)).forEach(deviceInfo -> {
-            Map responseMaps = new HashMap<>();
-            List<Map<String, Object>> dataList = new ArrayList();
+        baseMapper.findAllByIdIn(Arrays.asList(ids)).forEach(deviceInfo -> {
+            Map<String, Object> responseMaps = new HashMap<>();
+            List<Map<String, Object>> dataList = new ArrayList<>();
             responseMaps.put("mid", 1);
             responseMaps.put("statusCode", 0);
             responseMaps.put("statusDesc", "successful");
             responseMaps.put("data", dataList);
             final int deleteByDeviceIdCount = this.deleteByDeviceId(deviceInfo.getDeviceId());
-            Map responseMap = new HashMap<>();
+            Map<String, Object> responseMap = new HashMap<>();
             if (deleteByDeviceIdCount > 0) {
                 responseMap.put("statusCode", 0);
                 responseMap.put("statusDesc", "successful");
@@ -242,7 +183,7 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
     @Override
     public Map<String, List<Map<String, Object>>> getDeviceInfoShadow(String ids, String startTime, String endTime) {
         List<Long> idCollection = Arrays.stream(ids.split(",")).mapToLong(Long::parseLong).boxed().collect(Collectors.toList());
-        List<DeviceInfo> deviceInfos = deviceInfoMapper.findAllByIdInAndStatus(idCollection, Constants.ENABLE);
+        List<DeviceInfo> deviceInfos = baseMapper.findAllByIdInAndStatus(idCollection, Constants.ENABLE);
         if (StringUtils.isNull(deviceInfos)) {
             log.error("查询子设备影子数据失败，子设备不存在");
             return null;
@@ -288,17 +229,17 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
 
     @Override
     public List<DeviceInfo> findAllByIdInAndStatus(Collection<Long> idCollection, String status) {
-        return deviceInfoMapper.findAllByIdInAndStatus(idCollection, status);
+        return baseMapper.findAllByIdInAndStatus(idCollection, status);
     }
 
     @Override
     public List<DeviceInfo> findAllByIdIn(Collection<Long> idCollection) {
-        return deviceInfoMapper.findAllByIdIn(idCollection);
+        return baseMapper.findAllByIdIn(idCollection);
     }
 
     @Override
     public List<DeviceInfo> findAllByStatus(String status) {
-        return deviceInfoMapper.findAllByStatus(status);
+        return baseMapper.findAllByStatus(status);
     }
 
     /**
@@ -474,7 +415,7 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
 
         if (deviceInfo != null) {
             deviceInfo.setConnectStatus(subDeviceStatus.getStatus().getValue());
-            int updateCount = deviceInfoMapper.updateByPrimaryKey(deviceInfo);
+            int updateCount = baseMapper.updateById(deviceInfo);
             MqttProtocolTopoStatusEnum updateStatusEnum = updateCount > 0 ? MqttProtocolTopoStatusEnum.SUCCESS : MqttProtocolTopoStatusEnum.FAILURE;
             dataItem.setStatusCode(updateStatusEnum.getValue())
                     .setStatusDesc(updateStatusEnum.getDesc());
@@ -534,7 +475,7 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
             // 判断设备是否存在
             if (deviceInfo != null) {
                 // 删除设备
-                int deleteCount = deviceInfoMapper.deleteByDeviceId(deviceInfo.getDeviceId());
+                int deleteCount = baseMapper.deleteByDeviceId(deviceInfo.getDeviceId());
 
                 // 根据删除结果设置状态码和状态描述
                 MqttProtocolTopoStatusEnum deleteStatusEnum = deleteCount > 0 ? MqttProtocolTopoStatusEnum.SUCCESS : MqttProtocolTopoStatusEnum.FAILURE;

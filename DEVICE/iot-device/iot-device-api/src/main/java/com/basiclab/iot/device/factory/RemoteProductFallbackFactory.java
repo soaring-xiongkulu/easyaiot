@@ -11,12 +11,13 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * @program: EasyAIoT
- * @description: 产品管理服务降级处理
- * @packagename: com.basiclab.iot.device.api.factory
- * @author: shisen
- * @date: 2025-07-26
- **/
+ * RemoteProductFallbackFactory
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
 @Component
 public class RemoteProductFallbackFactory implements FallbackFactory<RemoteProductService> {
 

@@ -25,10 +25,13 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.except
 import static com.basiclab.iot.sink.enums.ErrorCodeConstants.DEVICE_AUTH_FAIL;
 
 /**
- * 设备注册服务实现
+ * DeviceRegisterServiceImpl
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Service
 @Slf4j
 public class DeviceRegisterServiceImpl implements DeviceRegisterService {

@@ -1,11 +1,9 @@
 package com.basiclab.iot.system.controller.admin.user;
 
 import cn.hutool.core.collection.CollUtil;
-
-import com.basiclab.iot.common.enums.CommonStatusEnum;
-import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.domain.PageParam;
 import com.basiclab.iot.common.domain.PageResult;
+import com.basiclab.iot.common.enums.CommonStatusEnum;
 import com.basiclab.iot.common.excels.core.util.ExcelUtils;
 import com.basiclab.iot.system.controller.admin.user.vo.user.*;
 import com.basiclab.iot.system.convert.user.UserConvert;
@@ -18,7 +16,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,10 +28,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-
 import static com.basiclab.iot.common.domain.CommonResult.success;
 import static com.basiclab.iot.common.utils.collection.CollectionUtils.convertList;
 
+/**
+ * UserController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 用户")
 @RestController
 @RequestMapping("/system/user")

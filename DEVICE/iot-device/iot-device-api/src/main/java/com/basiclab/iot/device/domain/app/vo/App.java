@@ -1,9 +1,7 @@
 package com.basiclab.iot.device.domain.app.vo;
 
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.basiclab.iot.common.annotation.Excel;
 import com.basiclab.iot.common.domain.BaseEntity;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.*;
@@ -13,11 +11,11 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 应用密钥 VO
- * <p>
- * 用于管理设备的 appId、appKey、appSecret
+ * App
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @EqualsAndHashCode(callSuper = true)
 @ApiModel(value = "应用密钥")

@@ -7,11 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.UUID;
 
 /**
- * AppId、AppKey、AppSecret 生成工具类
- * <p>
- * 参考：https://blog.csdn.net/inthat/article/details/103140515
+ * AppKeyUtils
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Slf4j
 public class AppKeyUtils {

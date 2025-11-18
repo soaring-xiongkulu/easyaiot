@@ -10,10 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 import javax.annotation.PostConstruct;
 
 /**
- * IoT 网关 EMQX 订阅者：接收下行给设备的消息
+ * IotEmqxDownstreamSubscriber
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 public class IotEmqxDownstreamSubscriber implements IotMessageSubscriber<IotDeviceMessage> {
 

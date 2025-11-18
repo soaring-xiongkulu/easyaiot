@@ -11,6 +11,13 @@ import java.time.LocalDateTime;
 
 import static com.basiclab.iot.common.utils.date.DateUtils.FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND;
 
+/**
+ * MailTemplatePageReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 邮件模版分页 Request VO")
 @Data
 @EqualsAndHashCode(callSuper = true)

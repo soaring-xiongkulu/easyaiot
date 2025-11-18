@@ -25,10 +25,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * IoT 设备消息 Service 实现类
+ * IotDeviceMessageServiceImpl
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Service
 @Validated
 @Slf4j

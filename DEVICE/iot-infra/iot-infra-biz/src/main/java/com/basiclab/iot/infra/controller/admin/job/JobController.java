@@ -1,12 +1,12 @@
 package com.basiclab.iot.infra.controller.admin.job;
 
 
+import com.basiclab.iot.common.core.util.CronUtils;
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.domain.PageParam;
 import com.basiclab.iot.common.domain.PageResult;
-import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.common.excels.core.util.ExcelUtils;
-import com.basiclab.iot.common.core.util.CronUtils;
+import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.infra.controller.admin.job.vo.job.JobPageReqVO;
 import com.basiclab.iot.infra.controller.admin.job.vo.job.JobRespVO;
 import com.basiclab.iot.infra.controller.admin.job.vo.job.JobSaveReqVO;
@@ -17,7 +17,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.quartz.SchedulerException;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,9 +28,15 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
-
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * JobController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 定时任务")
 @RestController
 @RequestMapping("/infra/job")
@@ -71,10 +76,10 @@ public class JobController {
         return success(true);
     }
 
-	@DeleteMapping("/delete")
+    @DeleteMapping("/delete")
     @Operation(summary = "删除定时任务")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
-	//@PreAuthorize("@ss.hasPermission('infra:job:delete')")
+    //@PreAuthorize("@ss.hasPermission('infra:job:delete')")
     public CommonResult<Boolean> deleteJob(@RequestParam("id") Long id)
             throws SchedulerException {
         jobService.deleteJob(id);

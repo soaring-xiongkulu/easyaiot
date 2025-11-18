@@ -11,12 +11,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 事件上报上行消息事件监听器
- * <p>
- * 处理 Topic: EVENT_UPSTREAM_REPORT
+ * EventUpstreamReportListener
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class EventUpstreamReportListener {

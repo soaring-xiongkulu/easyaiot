@@ -8,10 +8,11 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * Mail 邮件相关消息的 Producer
+ * MailProducer
  *
- * @author wangjingyi
- * @since 2024/4/19 13:33
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Slf4j
 @Component

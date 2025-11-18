@@ -10,6 +10,13 @@ import java.time.LocalDateTime;
 
 import static com.basiclab.iot.common.utils.date.DateUtils.FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND;
 
+/**
+ * LoginLogPageReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 登录日志分页列表 Request VO")
 @Data
 @EqualsAndHashCode(callSuper = true)

@@ -8,6 +8,13 @@ import org.springframework.stereotype.Component;
 import java.sql.Timestamp;
 import java.util.Map;
 
+/**
+ * TaosAspect
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Aspect
 @Component
 public class TaosAspect {

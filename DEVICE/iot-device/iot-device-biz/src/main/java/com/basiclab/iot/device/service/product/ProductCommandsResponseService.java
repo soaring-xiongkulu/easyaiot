@@ -6,11 +6,13 @@ import com.basiclab.iot.device.domain.device.vo.ProductCommandsResponse;
 import org.apache.ibatis.annotations.Param;
 
 /**
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * ProductCommandsResponseService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface ProductCommandsResponseService {
-
 
     int deleteByPrimaryKey(Long id);
 

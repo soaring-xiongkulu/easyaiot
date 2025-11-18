@@ -8,10 +8,13 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * 产品脚本 DO
+ * ProductScriptDO
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @TableName("product_script")
 @Data
 @ToString(callSuper = true)

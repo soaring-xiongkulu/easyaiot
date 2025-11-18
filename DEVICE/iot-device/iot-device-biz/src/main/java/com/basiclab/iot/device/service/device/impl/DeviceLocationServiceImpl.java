@@ -1,81 +1,23 @@
 package com.basiclab.iot.device.service.device.impl;
 
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.basiclab.iot.common.utils.SecurityUtils;
-import com.basiclab.iot.device.domain.device.vo.DeviceLocation;
 import com.basiclab.iot.device.dal.pgsql.device.DeviceLocationMapper;
+import com.basiclab.iot.device.domain.device.vo.DeviceLocation;
 import com.basiclab.iot.device.service.device.DeviceLocationService;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
 import java.util.List;
 
 /**
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * DeviceLocationServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
-public class DeviceLocationServiceImpl implements DeviceLocationService {
-
-    @Resource
-    private DeviceLocationMapper deviceLocationMapper;
-
-    @Override
-    public int deleteByPrimaryKey(Long id) {
-        return deviceLocationMapper.deleteByPrimaryKey(id);
-    }
-
-    @Override
-    public int insert(DeviceLocation record) {
-        return deviceLocationMapper.insert(record);
-    }
-
-    @Override
-    public int insertOrUpdate(DeviceLocation record) {
-        return deviceLocationMapper.insertOrUpdate(record);
-    }
-
-    @Override
-    public int insertOrUpdateSelective(DeviceLocation record) {
-        record.setCreateBy("admin");
-        record.setUpdateBy("admin");
-        return deviceLocationMapper.insertOrUpdateSelective(record);
-    }
-
-    @Override
-    public int insertSelective(DeviceLocation record) {
-        return deviceLocationMapper.insertSelective(record);
-    }
-
-    @Override
-    public DeviceLocation selectByPrimaryKey(Long id) {
-        return deviceLocationMapper.selectByPrimaryKey(id);
-    }
-
-    @Override
-    public int updateByPrimaryKeySelective(DeviceLocation record) {
-        return deviceLocationMapper.updateByPrimaryKeySelective(record);
-    }
-
-    @Override
-    public int updateByPrimaryKey(DeviceLocation record) {
-        return deviceLocationMapper.updateByPrimaryKey(record);
-    }
-
-    @Override
-    public int updateBatch(List<DeviceLocation> list) {
-        return deviceLocationMapper.updateBatch(list);
-    }
-
-    @Override
-    public int updateBatchSelective(List<DeviceLocation> list) {
-        return deviceLocationMapper.updateBatchSelective(list);
-    }
-
-    @Override
-    public int batchInsert(List<DeviceLocation> list) {
-        return deviceLocationMapper.batchInsert(list);
-    }
-
+public class DeviceLocationServiceImpl extends ServiceImpl<DeviceLocationMapper, DeviceLocation> implements DeviceLocationService {
 
     /**
      * 查询设备位置
@@ -85,7 +27,7 @@ public class DeviceLocationServiceImpl implements DeviceLocationService {
      */
     @Override
     public DeviceLocation selectDeviceLocationById(Long id) {
-        return deviceLocationMapper.selectDeviceLocationById(id);
+        return baseMapper.selectDeviceLocationById(id);
     }
 
     /**
@@ -96,7 +38,7 @@ public class DeviceLocationServiceImpl implements DeviceLocationService {
      */
     @Override
     public List<DeviceLocation> selectDeviceLocationList(DeviceLocation deviceLocation) {
-        return deviceLocationMapper.selectDeviceLocationList(deviceLocation);
+        return baseMapper.selectDeviceLocationList(deviceLocation);
     }
 
     /**
@@ -108,7 +50,7 @@ public class DeviceLocationServiceImpl implements DeviceLocationService {
     @Override
     public int insertDeviceLocation(DeviceLocation deviceLocation) {
         deviceLocation.setCreateBy(SecurityUtils.getUsername());
-        return deviceLocationMapper.insertDeviceLocation(deviceLocation);
+        return baseMapper.insertDeviceLocation(deviceLocation);
     }
 
     /**
@@ -120,7 +62,7 @@ public class DeviceLocationServiceImpl implements DeviceLocationService {
     @Override
     public int updateDeviceLocation(DeviceLocation deviceLocation) {
         deviceLocation.setUpdateBy(SecurityUtils.getUsername());
-        return deviceLocationMapper.updateDeviceLocation(deviceLocation);
+        return baseMapper.updateDeviceLocation(deviceLocation);
     }
 
     /**
@@ -131,12 +73,12 @@ public class DeviceLocationServiceImpl implements DeviceLocationService {
      */
     @Override
     public int deleteDeviceLocationByIds(Long[] ids) {
-        return deviceLocationMapper.deleteDeviceLocationByIds(ids);
+        return baseMapper.deleteDeviceLocationByIds(ids);
     }
 
     @Override
     public DeviceLocation findOneByDeviceIdentification(String deviceIdentification) {
-        return deviceLocationMapper.findOneByDeviceIdentification(deviceIdentification);
+        return baseMapper.findOneByDeviceIdentification(deviceIdentification);
     }
 
 

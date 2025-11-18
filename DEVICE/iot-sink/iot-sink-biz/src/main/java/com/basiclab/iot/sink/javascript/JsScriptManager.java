@@ -14,12 +14,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * JS 脚本管理器
- * <p>
- * 负责管理产品脚本的编译、缓存和执行
+ * JsScriptManager
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class JsScriptManager {

@@ -1,5 +1,7 @@
 package com.basiclab.iot.infra.service.config;
 
+
+
 import com.basiclab.iot.common.domain.PageResult;
 import com.basiclab.iot.common.utils.collection.ArrayUtils;
 import com.basiclab.iot.common.core.ut.BaseDbUnitTest;
@@ -24,6 +26,13 @@ import static com.basiclab.iot.common.core.util.AssertUtils.assertPojoEquals;
 import static com.basiclab.iot.common.core.util.AssertUtils.assertServiceException;
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * ConfigServiceImplTest
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Import(ConfigServiceImpl.class)
 public class ConfigServiceImplTest extends BaseDbUnitTest {
 

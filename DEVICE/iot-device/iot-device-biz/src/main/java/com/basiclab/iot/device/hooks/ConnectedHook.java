@@ -8,11 +8,11 @@ import java.io.Serializable;
 import java.util.Map;
 
 /**
- * 成功接入	客户端认证完成并成功接入系统后
+ * ConnectedHook
  *
- * @author IoT
- * @description
- * @date 2025/6/14
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Setter
 @Getter

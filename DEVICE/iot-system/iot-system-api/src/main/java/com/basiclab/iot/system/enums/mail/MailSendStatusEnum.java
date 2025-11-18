@@ -4,10 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * 邮件的发送状态枚举
+ * MailSendStatusEnum
  *
- * @author wangjingyi
- * @since 2024/4/10 13:39
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Getter
 @AllArgsConstructor

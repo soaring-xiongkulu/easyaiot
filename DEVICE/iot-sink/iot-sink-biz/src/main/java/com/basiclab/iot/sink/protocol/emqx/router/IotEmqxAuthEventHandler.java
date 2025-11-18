@@ -12,14 +12,13 @@ import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * IoT 网关 EMQX 认证事件处理器
- * <p>
- * 为 EMQX 提供 HTTP 接口服务，包括：
- * 1. 设备认证接口 - 对应 EMQX HTTP 认证插件
- * 2. 设备事件处理接口 - 对应 EMQX Webhook 事件通知
+ * IotEmqxAuthEventHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 public class IotEmqxAuthEventHandler {
 

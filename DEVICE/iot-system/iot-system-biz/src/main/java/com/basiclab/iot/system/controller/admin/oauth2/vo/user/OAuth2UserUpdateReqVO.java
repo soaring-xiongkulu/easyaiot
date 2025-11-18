@@ -9,6 +9,13 @@ import org.hibernate.validator.constraints.Length;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.Size;
 
+/**
+ * OAuth2UserUpdateReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - OAuth2 更新用户基本信息 Request VO")
 @Data
 @NoArgsConstructor

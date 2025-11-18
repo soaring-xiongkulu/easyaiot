@@ -17,11 +17,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @InterfaceDescription: TdEngine业务层
- * @InterfaceName: ITdEngineService
- * @Author: iot
- * @Date: 2021-12-27 13:54:58
- * @Version 1.0
+ * TdEngineService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface TdEngineService {
     /**

@@ -6,6 +6,13 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+/**
+ * OAuth2ClientPageReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - OAuth2 客户端分页 Request VO")
 @Data
 @EqualsAndHashCode(callSuper = true)

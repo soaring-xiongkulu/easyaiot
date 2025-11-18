@@ -8,6 +8,13 @@ import com.basiclab.iot.system.controller.admin.logger.vo.operatelog.OperateLogP
 import com.basiclab.iot.system.dal.dataobject.logger.OperateLogDO;
 import org.apache.ibatis.annotations.Mapper;
 
+/**
+ * OperateLogMapper
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
 public interface OperateLogMapper extends BaseMapperX<OperateLogDO> {
 

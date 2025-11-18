@@ -1,40 +1,19 @@
 package com.basiclab.iot.device.service.protocol;
 
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.basiclab.iot.device.domain.device.vo.Protocol;
 
 import java.util.Collection;
 import java.util.List;
 
 /**
- * @description: ${description}
- * @packagename: com.basiclab.iot.device.service.protocol
- * @author: EasyAIoT
- * @email: andywebjava@163.com
- * @date: 2024-07-01 17:56
- **/
-public interface ProtocolService {
-
-    int deleteByPrimaryKey(Long id);
-
-    int insert(Protocol record);
-
-    int insertOrUpdate(Protocol record);
-
-    int insertOrUpdateSelective(Protocol record);
-
-    int insertSelective(Protocol record);
-
-    Protocol selectByPrimaryKey(Long id);
-
-    int updateByPrimaryKeySelective(Protocol record);
-
-    int updateByPrimaryKey(Protocol record);
-
-    int updateBatch(List<Protocol> list);
-
-    int updateBatchSelective(List<Protocol> list);
-
-    int batchInsert(List<Protocol> list);
+ * ProtocolService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+public interface ProtocolService extends IService<Protocol> {
 
     /**
      * 查询协议管理
@@ -77,11 +56,11 @@ public interface ProtocolService {
     public int deleteProtocolByIds(Long[] ids);
 
 
-
-	Protocol findOneByProductIdentificationAndProtocolTypeAndStatus(String productIdentification,String protocolType,String status);
+    Protocol findOneByProductIdentificationAndProtocolTypeAndStatus(String productIdentification, String protocolType, String status);
 
     /**
      * 批量启用协议管理
+     *
      * @param ids
      * @return
      */
@@ -89,28 +68,27 @@ public interface ProtocolService {
 
     /**
      * 批量禁用协议管理
+     *
      * @param ids
      * @return
      */
     public int disable(Long[] ids);
 
 
-
-	List<Protocol> findAllByIdIn(Collection<Long> idCollection);
-
+    List<Protocol> findAllByIdIn(Collection<Long> idCollection);
 
 
-	int updateStatusById(String updatedStatus,Long id);
+    int updateStatusById(String updatedStatus, Long id);
 
 
     /**
      * 协议脚本缓存刷新
+     *
      * @return
      */
     int protocolScriptCacheRefresh();
 
 
-
-	List<Protocol> findAllByStatus(String status);
+    List<Protocol> findAllByStatus(String status);
 
 }

@@ -22,10 +22,13 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.except
 import static com.basiclab.iot.sink.enums.ErrorCodeConstants.DEVICE_TOKEN_EXPIRED;
 
 /**
- * IoT 设备认证 Service 实现类：直接从数据库查询进行设备认证
+ * DeviceAuthServiceImpl
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Service
 @Slf4j
 public class DeviceAuthServiceImpl implements DeviceAuthService {

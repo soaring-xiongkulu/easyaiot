@@ -28,9 +28,14 @@ import org.springframework.context.annotation.Configuration;
 public class IotGatewayConfiguration {
 
     /**
-     * IoT 网关 HTTP 协议配置类
-     */
-    @Configuration
+ * IotGatewayConfiguration
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+@Configuration
     @ConditionalOnProperty(prefix = "basiclab.iot.sink.protocol.http", name = "enabled", havingValue = "true")
     @Slf4j
     public static class HttpProtocolConfiguration {

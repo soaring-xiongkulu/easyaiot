@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 设备标签删除上行消息处理器
- * <p>
- * 处理 Topic: DEVICE_TAG_UPSTREAM_DELETE
+ * DeviceTagUpstreamDeleteHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class DeviceTagUpstreamDeleteHandler extends AbstractTopicHandler implements IotUpstreamMessageHandler {

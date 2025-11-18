@@ -7,6 +7,13 @@ import lombok.Data;
 import javax.validation.constraints.NotEmpty;
 import java.util.Map;
 
+/**
+ * SmsSendSingleToUserReqDTO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "RPC 服务 - 短信发送给 Admin 或者 Member 用户 Request DTO")
 @Data
 public class SmsSendSingleToUserReqDTO {

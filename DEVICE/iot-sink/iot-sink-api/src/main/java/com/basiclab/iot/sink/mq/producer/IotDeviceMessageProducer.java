@@ -6,9 +6,11 @@ import com.basiclab.iot.sink.util.IotDeviceMessageUtils;
 import lombok.RequiredArgsConstructor;
 
 /**
- * IoT 设备消息生产者
+ * IotDeviceMessageProducer
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @RequiredArgsConstructor
 public class IotDeviceMessageProducer {

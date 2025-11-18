@@ -15,9 +15,14 @@ import java.util.Collection;
 public class CodegenProperties {
 
     /**
-     * 生成的 Java 代码的基础包
-     */
-    @NotNull(message = "Java 代码的基础包不能为空")
+ * CodegenProperties
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+@NotNull(message = "Java 代码的基础包不能为空")
     private String basePackage;
 
     /**

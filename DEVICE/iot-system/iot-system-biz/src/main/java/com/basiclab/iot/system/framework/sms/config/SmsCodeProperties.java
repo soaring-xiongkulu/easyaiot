@@ -7,14 +7,18 @@ import org.springframework.validation.annotation.Validated;
 import javax.validation.constraints.NotNull;
 import java.time.Duration;
 
+/**
+ * SmsCodeProperties
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @ConfigurationProperties(prefix = "iot.sms-code")
 @Validated
 @Data
 public class SmsCodeProperties {
 
-    /**
-     * 过期时间
-     */
     @NotNull(message = "过期时间不能为空")
     private Duration expireTimes;
     /**

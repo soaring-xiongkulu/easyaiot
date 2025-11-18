@@ -1,4 +1,7 @@
 /**
- * TODO @芋艿：实现一个 alink 的 xml 版本
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 package com.basiclab.iot.sink.codec.simple;

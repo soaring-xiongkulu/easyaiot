@@ -8,9 +8,11 @@ import java.io.Serializable;
 import java.util.Map;
 
 /**
- * @author IoT
- * @description
- * @date 2025/6/14
+ * SubscribeHook
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Setter
 @Getter

@@ -8,6 +8,13 @@ import com.basiclab.iot.system.dal.dataobject.logger.LoginLogDO;
 import com.basiclab.iot.system.enums.logger.LoginResultEnum;
 import org.apache.ibatis.annotations.Mapper;
 
+/**
+ * LoginLogMapper
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
 public interface LoginLogMapper extends BaseMapperX<LoginLogDO> {
 

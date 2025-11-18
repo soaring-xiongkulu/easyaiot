@@ -1,4 +1,7 @@
 /**
- * 提供设备接入的各种数据（请求、响应）的编解码
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 package com.basiclab.iot.sink.codec;

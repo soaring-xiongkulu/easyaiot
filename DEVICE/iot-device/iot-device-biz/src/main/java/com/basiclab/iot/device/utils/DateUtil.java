@@ -1,6 +1,5 @@
 package com.basiclab.iot.device.utils;
 
-
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.time.Instant;
@@ -13,21 +12,24 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAccessor;
 import java.util.Locale;
 
-/**    
- * 全局时间工具类
- *  @author 翱翔的雄库鲁
+/**
+ * DateUtil
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class DateUtil {
 
     /**
      * 兼容不规范的iso8601时间格式
      */
-	private static final String ISO8601_COMPATIBLE_PATTERN = "yyyy-M-d'T'H:m:s";
+    private static final String ISO8601_COMPATIBLE_PATTERN = "yyyy-M-d'T'H:m:s";
 
     /**
      * 用以输出标准的iso8601时间格式
      */
-	private static final String ISO8601_PATTERN = "yyyy-MM-dd'T'HH:mm:ss";
+    private static final String ISO8601_PATTERN = "yyyy-MM-dd'T'HH:mm:ss";
 
     /**
      * iso8601时间格式带时区，例如：2024-02-21T11:10:36+08:00
@@ -65,12 +67,12 @@ public class DateUtil {
     public static final DateTimeFormatter DateFormatter = DateTimeFormatter.ofPattern(date_PATTERN, Locale.getDefault()).withZone(ZoneId.of(zoneStr));
     public static final DateTimeFormatter urlFormatter = DateTimeFormatter.ofPattern(URL_PATTERN, Locale.getDefault()).withZone(ZoneId.of(zoneStr));
 
-	public static String yyyy_MM_dd_HH_mm_ssToISO8601(String formatTime) {
+    public static String yyyy_MM_dd_HH_mm_ssToISO8601(String formatTime) {
 
         return formatterISO8601.format(formatter.parse(formatTime));
     }
-	
-	public static String ISO8601Toyyyy_MM_dd_HH_mm_ss(String formatTime) {
+
+    public static String ISO8601Toyyyy_MM_dd_HH_mm_ss(String formatTime) {
         // 三种日期格式都尝试，为了兼容不同厂家的日期格式
         if (verification(formatTime, formatterCompatibleISO8601)) {
             return formatter.format(formatterCompatibleISO8601.parse(formatTime));
@@ -82,36 +84,37 @@ public class DateUtil {
         return formatter.format(formatterISO8601.parse(formatTime));
     }
 
-	public static String urlToyyyy_MM_dd_HH_mm_ss(String formatTime) {
+    public static String urlToyyyy_MM_dd_HH_mm_ss(String formatTime) {
         return formatter.format(urlFormatter.parse(formatTime));
     }
 
     /**
      * yyyy_MM_dd_HH_mm_ss 转时间戳
+     *
      * @param formatTime
      * @return
      */
-	public static long yyyy_MM_dd_HH_mm_ssToTimestamp(String formatTime) {
+    public static long yyyy_MM_dd_HH_mm_ssToTimestamp(String formatTime) {
         TemporalAccessor temporalAccessor = formatter.parse(formatTime);
         Instant instant = Instant.from(temporalAccessor);
         return instant.getEpochSecond();
-	}
+    }
 
     /**
      * 时间戳 转 yyyy_MM_dd_HH_mm_ss
      */
-	public static String timestampTo_yyyy_MM_dd_HH_mm_ss(long timestamp) {
+    public static String timestampTo_yyyy_MM_dd_HH_mm_ss(long timestamp) {
         Instant instant = Instant.ofEpochSecond(timestamp);
         return formatter.format(LocalDateTime.ofInstant(instant, ZoneId.of(zoneStr)));
-	}
+    }
 
     /**
      * 时间戳 转 yyyy_MM_dd_HH_mm_ss
      */
-	public static String timestampMsToUrlToyyyy_MM_dd_HH_mm_ss(long timestamp) {
+    public static String timestampMsToUrlToyyyy_MM_dd_HH_mm_ss(long timestamp) {
         Instant instant = Instant.ofEpochMilli(timestamp);
         return urlFormatter.format(LocalDateTime.ofInstant(instant, ZoneId.of(zoneStr)));
-	}
+    }
 
     /**
      * yyyy_MM_dd_HH_mm_ss 转时间戳（毫秒）
@@ -143,6 +146,7 @@ public class DateUtil {
 
     /**
      * 获取当前时间
+     *
      * @return
      */
     public static String getNow() {
@@ -152,6 +156,7 @@ public class DateUtil {
 
     /**
      * 获取当前时间
+     *
      * @return
      */
     public static String getNowForUrl() {
@@ -162,7 +167,8 @@ public class DateUtil {
 
     /**
      * 格式校验
-     * @param timeStr 时间字符串
+     *
+     * @param timeStr           时间字符串
      * @param dateTimeFormatter 待校验的格式
      * @return
      */
@@ -170,7 +176,7 @@ public class DateUtil {
         try {
             LocalDate.parse(timeStr, dateTimeFormatter);
             return true;
-        }catch (DateTimeParseException exception) {
+        } catch (DateTimeParseException exception) {
             return false;
         }
     }

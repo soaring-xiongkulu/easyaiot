@@ -21,12 +21,13 @@ import static com.basiclab.iot.common.domain.CommonResult.success;
 import static com.basiclab.iot.sink.enums.ErrorCodeConstants.DEVICE_AUTH_FAIL;
 
 /**
- * IoT 网关 HTTP 协议的【认证】处理器
- *
- * 参考 <a href="阿里云 IoT —— HTTPS 连接通信">https://help.aliyun.com/zh/iot/user-guide/establish-connections-over-https</a>
+ * IotHttpAuthHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public class IotHttpAuthHandler extends IotHttpAbstractHandler {
 
     public static final String PATH = "/auth";

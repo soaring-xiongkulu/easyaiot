@@ -37,12 +37,14 @@ public interface DeptApi {
     CommonResult<Boolean> validateDeptList(@RequestParam("ids") Collection<Long> ids);
 
     /**
-     * 获得指定编号的部门 Map
-     *
-     * @param ids 部门编号数组
-     * @return 部门 Map
-     */
-    default Map<Long, DeptRespDTO> getDeptMap(Collection<Long> ids) {
+ * DeptApi
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+default Map<Long, DeptRespDTO> getDeptMap(Collection<Long> ids) {
         List<DeptRespDTO> list = getDeptList(ids).getCheckedData();
         return CollectionUtils.convertMap(list, DeptRespDTO::getId);
     }

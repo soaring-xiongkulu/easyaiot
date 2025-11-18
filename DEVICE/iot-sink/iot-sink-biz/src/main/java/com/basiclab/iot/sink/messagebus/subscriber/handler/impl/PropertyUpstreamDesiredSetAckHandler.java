@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 属性期望值设置确认上行消息处理器
- * <p>
- * 处理 Topic: PROPERTY_UPSTREAM_DESIRED_SET_ACK
+ * PropertyUpstreamDesiredSetAckHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class PropertyUpstreamDesiredSetAckHandler extends AbstractTopicHandler implements IotUpstreamMessageHandler {

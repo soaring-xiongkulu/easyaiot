@@ -28,6 +28,7 @@
         <result column="active_status" jdbcType="VARCHAR" property="activeStatus"/>
         <result column="extension" jdbcType="VARCHAR" property="extension"/>
         <result column="device_type" jdbcType="VARCHAR" property="deviceType"/>
+        <result column="tenant_id" jdbcType="BIGINT" property="tenantId"/>
     </resultMap>
     <sql id="Base_Column_List">
         <!--@mbg.generated-->
@@ -54,7 +55,8 @@
         extension,
         activated_time,
         last_online_time,
-        device_type
+        device_type,
+        tenant_id
     </sql>
     <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
         <!--@mbg.generated-->
@@ -1006,7 +1008,8 @@
                mac_address,
                active_status,
                extension,
-               device_type
+               device_type,
+               tenant_id
         from device
     </sql>
 

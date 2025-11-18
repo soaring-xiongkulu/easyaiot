@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.device.dal.pgsql.device.DeviceServiceInvokeResponseMapper">
+    <resultMap id="BaseResultMap" type="com.basiclab.iot.device.domain.device.vo.DeviceServiceInvokeResponse">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="message_id" jdbcType="VARCHAR" property="messageId"/>
+        <result column="device_id" jdbcType="BIGINT" property="deviceId"/>
+        <result column="device_identification" jdbcType="VARCHAR" property="deviceIdentification"/>
+        <result column="product_identification" jdbcType="VARCHAR" property="productIdentification"/>
+        <result column="service_identifier" jdbcType="VARCHAR" property="serviceIdentifier"/>
+        <result column="request_id" jdbcType="VARCHAR" property="requestId"/>
+        <result column="method" jdbcType="VARCHAR" property="method"/>
+        <result column="response_data" jdbcType="LONGVARCHAR" property="responseData"/>
+        <result column="response_code" jdbcType="INTEGER" property="responseCode"/>
+        <result column="response_msg" jdbcType="VARCHAR" property="responseMsg"/>
+        <result column="topic" jdbcType="VARCHAR" property="topic"/>
+        <result column="report_time" jdbcType="TIMESTAMP" property="reportTime"/>
+        <result column="tenant_id" jdbcType="BIGINT" property="tenantId"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    </resultMap>
+    
+    <sql id="Base_Column_List">
+        id, message_id, device_id, device_identification, product_identification, 
+        service_identifier, request_id, method, response_data, response_code, 
+        response_msg, topic, report_time, tenant_id, create_time
+    </sql>
+    
+    <insert id="insert" keyColumn="id" keyProperty="id" 
+            parameterType="com.basiclab.iot.device.domain.device.vo.DeviceServiceInvokeResponse" 
+            useGeneratedKeys="true">
+        insert into device_service_invoke_response (
+            message_id, device_id, device_identification, product_identification,
+            service_identifier, request_id, method, response_data, response_code,
+            response_msg, topic, report_time, tenant_id, create_time
+        )
+        values (
+            #{messageId,jdbcType=VARCHAR}, #{deviceId,jdbcType=BIGINT},
+            #{deviceIdentification,jdbcType=VARCHAR}, #{productIdentification,jdbcType=VARCHAR},
+            #{serviceIdentifier,jdbcType=VARCHAR}, #{requestId,jdbcType=VARCHAR},
+            #{method,jdbcType=VARCHAR}, #{responseData,jdbcType=LONGVARCHAR},
+            #{responseCode,jdbcType=INTEGER}, #{responseMsg,jdbcType=VARCHAR},
+            #{topic,jdbcType=VARCHAR}, #{reportTime,jdbcType=TIMESTAMP},
+            #{tenantId,jdbcType=BIGINT}, #{createTime,jdbcType=TIMESTAMP}
+        )
+    </insert>
+    
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device_service_invoke_response
+        where id = #{id,jdbcType=BIGINT}
+    </select>
+    
+    <select id="selectByMessageId" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device_service_invoke_response
+        where message_id = #{messageId,jdbcType=VARCHAR}
+    </select>
+    
+    <select id="selectByDeviceId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from device_service_invoke_response
+        where device_id = #{deviceId,jdbcType=BIGINT}
+        order by create_time desc
+    </select>
+</mapper>
+

@@ -1,5 +1,7 @@
 package com.basiclab.iot.dataset.controller;
 
+
+
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.domain.PageParam;
 import com.basiclab.iot.common.domain.PageResult;
@@ -24,6 +26,13 @@ import java.util.List;
 
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * DatasetTagController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 数据集标签")
 @RestController
 @RequestMapping("/dataset/tag")

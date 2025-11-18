@@ -10,10 +10,13 @@ import java.util.Arrays;
 import java.util.Set;
 
 /**
- * IoT 设备消息的方法枚举
+ * IotDeviceMessageMethodEnum
  *
- * @author haohao
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Getter
 @AllArgsConstructor
 public enum IotDeviceMessageMethodEnum implements ArrayValuable<String> {

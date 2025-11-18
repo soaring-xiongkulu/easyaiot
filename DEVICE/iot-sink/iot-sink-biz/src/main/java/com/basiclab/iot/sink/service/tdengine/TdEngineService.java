@@ -3,12 +3,13 @@ package com.basiclab.iot.sink.service.tdengine;
 import com.basiclab.iot.tdengine.domain.model.TableDTO;
 
 /**
- * TDEngine 服务接口
- * <p>
- * 提供 TDEngine 数据库操作服务
+ * TdEngineService
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public interface TdEngineService {
 
     /**

@@ -1,5 +1,7 @@
 package com.basiclab.iot.system.api.dept;
 
+
+
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.map.MapUtil;
 import com.basiclab.iot.common.domain.CommonResult;
@@ -17,7 +19,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-@FeignClient(name = ApiConstants.NAME) // TODO BasicLab：fallbackFactory =
+@FeignClient(name 
+
+/**
+ * PostApi
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+= ApiConstants.NAME) // TODO BasicLab：fallbackFactory =
 @Tag(name = "RPC 服务 - 岗位")
 public interface PostApi {
 

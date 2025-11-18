@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 影子期望值下行消息处理器
- * <p>
- * 处理 Topic: SHADOW_DOWNSTREAM_DESIRED
+ * ShadowDownstreamDesiredHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class ShadowDownstreamDesiredHandler extends AbstractTopicHandler implements IotDownstreamMessageHandler {

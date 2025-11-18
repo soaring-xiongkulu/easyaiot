@@ -12,7 +12,11 @@ import org.springframework.validation.annotation.Validated;
 import javax.annotation.Resource;
 
 /**
- * 登录日志 Service 实现
+ * LoginLogServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Validated

@@ -16,7 +16,7 @@ public class FileUtil {
 
     //2.上传文件
     //@Async
-    public static void uploadFile(MultipartFile file, String fileUploadPath){
+    public static void uploadFile(MultipartFile file, String fileUploadPath) {
 
         //1.文件是否为空
         if (file.isEmpty()) {
@@ -32,13 +32,13 @@ public class FileUtil {
         //(3).保存文件到本地磁盘,如果文件以及存在则先删除
         try {
             if (dest.exists()) {
-                throw new IllegalArgumentException("文件已存在,请修改文件名后再上传:"+fileUploadPath);
+                throw new IllegalArgumentException("文件已存在,请修改文件名后再上传:" + fileUploadPath);
                 //dest.delete();
             }
             FileOutputStream fo = new FileOutputStream(new File(fileUploadPath));
             InputStream in = file.getInputStream();
             IOUtils.copy(in, fo);
-        }catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
@@ -100,7 +100,7 @@ public class FileUtil {
     //4.网络图片转为base64
     public static String encodeImageToBase64(URL url) throws Exception {
         //将图片文件转化为字节数组字符串，并对其进行Base64编码处理
-        HttpURLConnection conn ;
+        HttpURLConnection conn;
         try {
             conn = (HttpURLConnection) url.openConnection();
             //设置请求方式为"GET"
@@ -140,7 +140,7 @@ public class FileUtil {
     }
 
     //5.获取文件后缀名
-    public static String getSuffix(String originalFilename){
+    public static String getSuffix(String originalFilename) {
         String suffix = originalFilename.indexOf(".") != -1 ? originalFilename.substring(originalFilename.lastIndexOf("."), originalFilename.length()) : null;
         if (suffix == null) {
             throw new IllegalArgumentException("文件后缀名不正确");
@@ -164,14 +164,14 @@ public class FileUtil {
     }
 
     //5.检查文件后缀名
-    public static String checkSuffix(String originalFilename,String suffixName){
+    public static String checkSuffix(String originalFilename, String suffixName) {
         String suffix = originalFilename.indexOf(".") != -1 ? originalFilename.substring(originalFilename.lastIndexOf("."), originalFilename.length()) : null;
         if (suffix == null) {
             throw new IllegalArgumentException("文件后缀名不正确");
         }
 
         if (!suffixName.equals(suffix.toLowerCase())) {
-            throw new IllegalArgumentException("只能上传"+suffixName+"类型的文件");
+            throw new IllegalArgumentException("只能上传" + suffixName + "类型的文件");
         }
 
         return suffix;
@@ -199,7 +199,7 @@ public class FileUtil {
         return buffer;
     }
 
-    public static Boolean checkFileExist(String filename){
+    public static Boolean checkFileExist(String filename) {
         File file = new File(filename);
         boolean exists = file.exists();
         return exists;

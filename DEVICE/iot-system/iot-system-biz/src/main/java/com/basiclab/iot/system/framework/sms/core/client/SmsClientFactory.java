@@ -3,10 +3,11 @@ package com.basiclab.iot.system.framework.sms.core.client;
 import com.basiclab.iot.system.framework.sms.core.property.SmsChannelProperties;
 
 /**
- * 短信客户端的工厂接口
+ * SmsClientFactory
  *
- * @author zzf
- * @since 2024/1/28 14:01
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface SmsClientFactory {
 

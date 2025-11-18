@@ -10,6 +10,13 @@ import org.mapstruct.factory.Mappers;
 
 import java.util.List;
 
+/**
+ * ConfigConvert
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
 public interface ConfigConvert {
 

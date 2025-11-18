@@ -5,11 +5,11 @@ import lombok.Data;
 import javax.validation.constraints.NotBlank;
 
 /**
- * @ClassDescription: tdEngine的基础实体类
- * @ClassName: BaseEntity
- * @Author: iot
- * @Date: 2021-12-30 14:39:25
- * @Version 1.0
+ * BaseEntity
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 public class BaseEntity {

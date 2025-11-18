@@ -26,9 +26,11 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * 基于 Kafka 的 {@link IotMessageBus} 实现类
+ * IotKafkaMessageBus
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Slf4j
 public class IotKafkaMessageBus implements IotMessageBus {

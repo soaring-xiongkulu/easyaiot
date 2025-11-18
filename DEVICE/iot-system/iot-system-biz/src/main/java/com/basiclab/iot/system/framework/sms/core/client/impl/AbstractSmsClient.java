@@ -5,10 +5,11 @@ import com.basiclab.iot.system.framework.sms.core.property.SmsChannelProperties;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 短信客户端的抽象类，提供模板方法，减少子类的冗余代码
+ * AbstractSmsClient
  *
- * @author zzf
- * @since 2024/2/1 9:28
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Slf4j
 public abstract class AbstractSmsClient implements SmsClient {

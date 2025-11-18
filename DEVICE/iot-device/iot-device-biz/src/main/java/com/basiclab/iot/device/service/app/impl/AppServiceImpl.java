@@ -14,9 +14,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 应用密钥 Service 实现类
+ * AppServiceImpl
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Slf4j

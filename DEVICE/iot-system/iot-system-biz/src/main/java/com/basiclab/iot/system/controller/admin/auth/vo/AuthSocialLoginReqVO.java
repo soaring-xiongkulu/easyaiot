@@ -11,6 +11,13 @@ import lombok.NoArgsConstructor;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
+/**
+ * AuthSocialLoginReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 社交绑定登录 Request VO，使用 code 授权码 + 账号密码")
 @Data
 @NoArgsConstructor

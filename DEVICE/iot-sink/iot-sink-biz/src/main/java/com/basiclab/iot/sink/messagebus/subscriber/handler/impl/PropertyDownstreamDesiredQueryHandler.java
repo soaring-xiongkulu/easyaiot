@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 属性期望值查询下行消息处理器
- * <p>
- * 处理 Topic: PROPERTY_DOWNSTREAM_DESIRED_QUERY
+ * PropertyDownstreamDesiredQueryHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class PropertyDownstreamDesiredQueryHandler extends AbstractTopicHandler implements IotDownstreamMessageHandler {

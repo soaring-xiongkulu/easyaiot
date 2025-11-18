@@ -3,7 +3,6 @@ package com.basiclab.iot.file;
 import com.basiclab.iot.common.constant.ServiceNameConstants;
 import com.basiclab.iot.common.domain.R;
 import com.basiclab.iot.file.domain.vo.SysFileVo;
-import com.basiclab.iot.file.enums.ApiConstants;
 import com.basiclab.iot.file.factory.RemoteFileFallbackFactory;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
@@ -17,14 +16,13 @@ import java.util.Map;
 
 /**
  * 文件服务
- * 
+ *
  * @author 翱翔的雄库鲁
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
 @FeignClient(contextId = "remoteFileService", value = ServiceNameConstants.IOT_FILE, fallbackFactory = RemoteFileFallbackFactory.class)
-public interface RemoteFileService
-{
+public interface RemoteFileService {
     /**
      * 上传文件
      *
@@ -55,6 +53,7 @@ public interface RemoteFileService
 
     /**
      * 获取配置信息
+     *
      * @return 结果
      */
     @PostMapping(value = "/sysFile/getDataConfig", consumes = MediaType.APPLICATION_JSON_VALUE)

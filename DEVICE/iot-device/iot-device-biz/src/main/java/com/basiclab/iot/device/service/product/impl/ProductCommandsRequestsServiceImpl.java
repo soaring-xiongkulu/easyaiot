@@ -10,8 +10,11 @@ import com.basiclab.iot.device.domain.device.vo.ProductCommandsRequests;
 import com.basiclab.iot.device.service.product.ProductCommandsRequestsService;
 
 /**
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * ProductCommandsRequestsServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 public class ProductCommandsRequestsServiceImpl implements ProductCommandsRequestsService {

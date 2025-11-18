@@ -1,5 +1,6 @@
 package com.basiclab.iot.system.api.dept;
 
+
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.system.api.dept.dto.DeptRespDTO;
@@ -14,6 +15,13 @@ import java.util.List;
 
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * DeptApiImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @RestController // 提供 RESTful API 接口，给 Feign 调用
 @Validated
 public class DeptApiImpl implements DeptApi {

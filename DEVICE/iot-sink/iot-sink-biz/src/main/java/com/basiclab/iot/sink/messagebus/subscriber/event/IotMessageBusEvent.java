@@ -6,12 +6,13 @@ import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
 /**
- * IoT 消息总线事件
- * <p>
- * 用于异步处理消息总线订阅的消息
+ * IotMessageBusEvent
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Getter
 public class IotMessageBusEvent extends ApplicationEvent {
 

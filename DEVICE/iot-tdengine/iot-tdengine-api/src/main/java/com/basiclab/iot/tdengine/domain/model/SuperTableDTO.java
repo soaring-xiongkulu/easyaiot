@@ -7,16 +7,19 @@ import lombok.Data;
 import java.io.Serializable;
 import java.util.List;
 
-
+/**
+ * SuperTableDTO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Data
 @Builder
 public class SuperTableDTO implements Serializable {
 
     private static final long serialVersionUID = -1L;
 
-    /**
-     * 超级表的表结构（业务相关） 第一个字段的数据类型必须为timestamp 字符相关数据类型必须指定大小 字段名称和字段数据类型不能为空
-     */
     private List<Fields> schemaFields;
 
     /**

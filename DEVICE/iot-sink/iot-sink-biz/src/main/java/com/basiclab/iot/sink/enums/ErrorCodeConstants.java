@@ -3,10 +3,13 @@ package com.basiclab.iot.sink.enums;
 import com.basiclab.iot.common.exception.ErrorCode;
 
 /**
- * iot gateway 错误码枚举类
- * <p>
- * iot 系统，使用 1-051-000-000 段
+ * ErrorCodeConstants
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public interface ErrorCodeConstants {
 
     // ========== 设备认证 1-050-001-000 ============

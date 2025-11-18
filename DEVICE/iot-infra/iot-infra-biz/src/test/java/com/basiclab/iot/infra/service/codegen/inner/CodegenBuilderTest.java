@@ -1,11 +1,12 @@
 package com.basiclab.iot.infra.service.codegen.inner;
 
-import com.basiclab.iot.common.core.ut.BaseMockitoUnitTest;
-import com.basiclab.iot.infra.dal.dataobject.codegen.CodegenColumnDO;
-import com.basiclab.iot.infra.dal.dataobject.codegen.CodegenTableDO;
+
 import com.baomidou.mybatisplus.generator.config.po.TableField;
 import com.baomidou.mybatisplus.generator.config.po.TableInfo;
 import com.baomidou.mybatisplus.generator.config.rules.IColumnType;
+import com.basiclab.iot.common.core.ut.BaseMockitoUnitTest;
+import com.basiclab.iot.infra.dal.dataobject.codegen.CodegenColumnDO;
+import com.basiclab.iot.infra.dal.dataobject.codegen.CodegenTableDO;
 import org.apache.ibatis.type.JdbcType;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -18,6 +19,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/**
+ * CodegenBuilderTest
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 public class CodegenBuilderTest extends BaseMockitoUnitTest {
 
     @InjectMocks

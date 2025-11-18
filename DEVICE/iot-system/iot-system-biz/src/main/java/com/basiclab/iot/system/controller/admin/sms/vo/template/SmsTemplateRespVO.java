@@ -11,7 +11,17 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Schema(description = "管理后台 - 短信模板 Response VO")
+@Schema(description = "管理后台 - 短信模板 Response VO"
+
+/**
+ * SmsTemplateRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+)
 @Data
 @ExcelIgnoreUnannotated
 public class SmsTemplateRespVO {

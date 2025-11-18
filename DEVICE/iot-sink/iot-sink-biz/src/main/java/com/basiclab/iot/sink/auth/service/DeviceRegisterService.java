@@ -7,10 +7,13 @@ import com.basiclab.iot.sink.auth.dto.RegisterResp;
 import com.basiclab.iot.sink.auth.enums.SignMethod;
 
 /**
- * 设备注册服务接口
+ * DeviceRegisterService
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public interface DeviceRegisterService {
 
     /**

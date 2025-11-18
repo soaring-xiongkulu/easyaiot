@@ -27,11 +27,11 @@ import static com.basiclab.iot.common.utils.date.DateUtils.FORMAT_YEAR_MONTH_DAY
 import static com.basiclab.iot.common.utils.date.DateUtils.TIME_ZONE_DEFAULT;
 
 /**
- * 腾讯云短信功能实现
+ * TencentSmsClient
  *
- * 参见 <a href="https://cloud.tencent.com/document/product/382/52077">文档</a>
- *
- * @author shiwp
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class TencentSmsClient extends AbstractSmsClient {
 

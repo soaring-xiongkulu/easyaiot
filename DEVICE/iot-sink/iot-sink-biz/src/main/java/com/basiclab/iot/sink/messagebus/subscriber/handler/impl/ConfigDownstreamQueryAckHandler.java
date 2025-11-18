@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 配置查询确认下行消息处理器
- * <p>
- * 处理 Topic: CONFIG_DOWNSTREAM_QUERY_ACK
+ * ConfigDownstreamQueryAckHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class ConfigDownstreamQueryAckHandler extends AbstractTopicHandler implements IotDownstreamMessageHandler {

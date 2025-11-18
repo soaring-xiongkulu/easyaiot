@@ -6,6 +6,13 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * NotifyTemplateRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 站内信模版 Response VO")
 @Data
 public class NotifyTemplateRespVO {

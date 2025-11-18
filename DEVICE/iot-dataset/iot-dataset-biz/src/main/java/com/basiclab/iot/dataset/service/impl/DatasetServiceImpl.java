@@ -1,6 +1,5 @@
 package com.basiclab.iot.dataset.service.impl;
 
-import com.basiclab.iot.common.domain.PageResult;
 import com.basiclab.iot.common.enums.CommonStatusEnum;
 import com.basiclab.iot.common.utils.UUIDUtil;
 import com.basiclab.iot.common.utils.object.BeanUtils;

@@ -7,6 +7,13 @@ import javax.validation.constraints.NotNull;
 import java.util.Collections;
 import java.util.Set;
 
+/**
+ * PermissionAssignUserRoleReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 赋予用户角色 Request VO")
 @Data
 public class PermissionAssignUserRoleReqVO {

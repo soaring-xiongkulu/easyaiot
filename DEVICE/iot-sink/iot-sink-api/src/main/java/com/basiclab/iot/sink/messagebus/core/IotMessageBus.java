@@ -1,11 +1,11 @@
 package com.basiclab.iot.sink.messagebus.core;
 
 /**
- * IoT 消息总线接口
- *
- * 用于在 IoT 系统中发布和订阅消息，支持多种消息中间件实现
+ * IotMessageBus
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface IotMessageBus {
 

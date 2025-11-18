@@ -9,8 +9,11 @@ import javax.annotation.Resource;
 import java.util.List;
 
 /**
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * ProductServicesServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 public class ProductServicesServiceImpl implements ProductServicesService {

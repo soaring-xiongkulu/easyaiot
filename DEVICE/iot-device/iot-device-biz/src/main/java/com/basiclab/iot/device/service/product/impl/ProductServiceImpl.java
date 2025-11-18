@@ -59,15 +59,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * @Description: 产品模型业务层
- * @Author: Basiclab
- * @E-mail: 853017739@qq.com
- * @Website: https://gitee.com/soaring-xiongkulu/easyaiot
- * @CreateDate: 2021/12/25$ 23:52$
- * @UpdateUser: ShiHuan Sun
- * @UpdateDate: 2021/12/25$ 23:52$
- * @UpdateRemark: 修改内容
- * @Version: 1.0
+ * ProductServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Slf4j

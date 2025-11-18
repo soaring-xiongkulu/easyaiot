@@ -1,12 +1,20 @@
 package com.basiclab.iot.dataset.domain.dataset.vo;
 
+import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
+import com.alibaba.excel.annotation.ExcelProperty;
 import com.basiclab.iot.common.domain.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
+import lombok.Data;
 
 import java.time.LocalDateTime;
-import com.alibaba.excel.annotation.*;
 
+/**
+ * DatasetImageRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 图片数据集 Response VO")
 @Data
 @ExcelIgnoreUnannotated

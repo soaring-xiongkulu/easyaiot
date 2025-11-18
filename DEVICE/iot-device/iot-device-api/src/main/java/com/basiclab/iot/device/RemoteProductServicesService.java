@@ -1,6 +1,5 @@
 package com.basiclab.iot.device;
 
-
 import com.basiclab.iot.common.constant.ServiceNameConstants;
 import com.basiclab.iot.common.domain.R;
 import com.basiclab.iot.device.factory.RemoteProductServicesFallbackFactory;
@@ -12,7 +11,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
-
+/**
+ * RemoteProductServicesService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @FeignClient(contextId = "remoteProductServicesService", value = ServiceNameConstants.IOT_DEVICE, fallbackFactory = RemoteProductServicesFallbackFactory.class)
 public interface RemoteProductServicesService {
 

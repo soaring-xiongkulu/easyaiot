@@ -6,6 +6,13 @@ import lombok.Data;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
+/**
+ * ApiAccessLogCreateReqDTO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "RPC 服务 - API 访问日志创建 Request DTO")
 @Data
 public class ApiAccessLogCreateReqDTO {
@@ -45,7 +52,7 @@ public class ApiAccessLogCreateReqDTO {
     @Schema(description = "操作分类", example = "1")
     private Integer operateType; // 参见 OperateTypeEnum 枚举
 
-    @Schema(description = "开始时间",requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "开始时间", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "开始请求时间不能为空")
     private LocalDateTime beginTime;
     @Schema(description = "结束时间")

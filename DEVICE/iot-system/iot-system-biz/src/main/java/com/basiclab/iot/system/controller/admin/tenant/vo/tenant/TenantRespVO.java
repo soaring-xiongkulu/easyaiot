@@ -12,7 +12,17 @@ import java.time.LocalDateTime;
 
 @Schema(description = "管理后台 - 租户 Response VO")
 @Data
-@ExcelIgnoreUnannotated
+@ExcelIgnore
+
+/**
+ * TenantRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+Unannotated
 public class TenantRespVO {
 
     @Schema(description = "租户编号", example = "1024")

@@ -1,10 +1,10 @@
 package com.basiclab.iot.infra.service.file;
 
 import cn.hutool.core.io.resource.ResourceUtil;
-import com.basiclab.iot.common.domain.PageResult;
-import com.basiclab.iot.common.utils.object.ObjectUtils;
 import com.basiclab.iot.common.core.ut.BaseDbUnitTest;
 import com.basiclab.iot.common.core.util.AssertUtils;
+import com.basiclab.iot.common.domain.PageResult;
+import com.basiclab.iot.common.utils.object.ObjectUtils;
 import com.basiclab.iot.infra.controller.admin.file.vo.file.FilePageReqVO;
 import com.basiclab.iot.infra.dal.dataobject.file.FileDO;
 import com.basiclab.iot.infra.dal.pgsql.file.FileMapper;
@@ -13,18 +13,22 @@ import com.basiclab.iot.infra.framework.file.core.client.FileClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
-
 import javax.annotation.Resource;
-
 import java.time.LocalDateTime;
-
+import static com.basiclab.iot.common.core.util.AssertUtils.assertServiceException;
 import static com.basiclab.iot.common.core.util.RandomUtils.*;
 import static com.basiclab.iot.common.utils.date.LocalDateTimeUtils.buildTime;
-import static com.basiclab.iot.common.core.util.AssertUtils.assertServiceException;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
+/**
+ * FileServiceImplTest
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Import({FileServiceImpl.class})
 public class FileServiceImplTest extends BaseDbUnitTest {
 

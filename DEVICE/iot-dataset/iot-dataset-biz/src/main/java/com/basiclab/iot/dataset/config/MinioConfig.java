@@ -22,9 +22,14 @@ public class MinioConfig {
     private String minioBucket;
 
     /**
-     * 注册minio 客户端
-     */
-    @Bean
+ * MinioConfig
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+@Bean
     public MinioClient minioClient(){
         return MinioClient.builder()
                 .endpoint(minioEndpoint)

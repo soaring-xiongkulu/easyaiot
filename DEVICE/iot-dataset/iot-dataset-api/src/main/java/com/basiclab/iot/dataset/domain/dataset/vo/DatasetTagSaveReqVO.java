@@ -5,6 +5,13 @@ import lombok.*;
 
 import javax.validation.constraints.*;
 
+/**
+ * DatasetTagSaveReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 数据集标签新增/修改 Request VO")
 @Data
 public class DatasetTagSaveReqVO {

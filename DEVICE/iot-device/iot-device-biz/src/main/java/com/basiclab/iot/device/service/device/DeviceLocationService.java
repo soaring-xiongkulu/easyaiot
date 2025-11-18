@@ -1,36 +1,17 @@
 package com.basiclab.iot.device.service.device;
 
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.basiclab.iot.device.domain.device.vo.DeviceLocation;
 import java.util.List;
 
 /**
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * DeviceLocationService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
-public interface DeviceLocationService {
-
-
-    int deleteByPrimaryKey(Long id);
-
-    int insert(DeviceLocation record);
-
-    int insertOrUpdate(DeviceLocation record);
-
-    int insertOrUpdateSelective(DeviceLocation record);
-
-    int insertSelective(DeviceLocation record);
-
-    DeviceLocation selectByPrimaryKey(Long id);
-
-    int updateByPrimaryKeySelective(DeviceLocation record);
-
-    int updateByPrimaryKey(DeviceLocation record);
-
-    int updateBatch(List<DeviceLocation> list);
-
-    int updateBatchSelective(List<DeviceLocation> list);
-
-    int batchInsert(List<DeviceLocation> list);
+public interface DeviceLocationService extends IService<DeviceLocation> {
 
     /**
      * 查询设备位置

@@ -10,10 +10,13 @@ import javax.annotation.Resource;
 import java.util.List;
 
 /**
- * 产品脚本 Service 实现类
+ * ProductScriptServiceImpl
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Service
 @Slf4j
 public class ProductScriptServiceImpl implements ProductScriptService {

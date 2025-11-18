@@ -7,8 +7,13 @@ import lombok.RequiredArgsConstructor;
 import java.util.Arrays;
 
 /**
- * IoT 设备消息类型枚举
+ * IotDeviceMessageTypeEnum
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Getter
 @RequiredArgsConstructor
 public enum IotDeviceMessageTypeEnum implements ArrayValuable<String> {

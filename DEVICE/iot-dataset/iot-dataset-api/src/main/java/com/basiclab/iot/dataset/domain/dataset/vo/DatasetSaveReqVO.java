@@ -1,10 +1,18 @@
 package com.basiclab.iot.dataset.domain.dataset.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
+import lombok.Data;
 
-import javax.validation.constraints.*;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 
+/**
+ * DatasetSaveReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 数据集新增/修改 Request VO")
 @Data
 public class DatasetSaveReqVO {

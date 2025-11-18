@@ -1,5 +1,7 @@
 package com.basiclab.iot.infra.service.db;
 
+
+
 import com.basiclab.iot.common.core.ut.BaseDbUnitTest;
 import com.basiclab.iot.infra.dal.dataobject.db.DataSourceConfigDO;
 import com.baomidou.mybatisplus.generator.config.po.TableField;
@@ -18,6 +20,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+/**
+ * DatabaseTableServiceImplTest
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Import(DatabaseTableServiceImpl.class)
 public class DatabaseTableServiceImplTest extends BaseDbUnitTest {
 

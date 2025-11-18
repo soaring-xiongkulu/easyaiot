@@ -10,10 +10,11 @@ import javax.annotation.Resource;
 import java.util.List;
 
 /**
- * Sms 短信相关消息的 Producer
+ * SmsProducer
  *
- * @author zzf
- * @since 2024/3/9 16:35
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Slf4j
 @Component

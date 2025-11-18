@@ -1,5 +1,6 @@
 package com.basiclab.iot.device.dal.pgsql.product;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.basiclab.iot.device.domain.device.vo.ProductCommands;
 
 import java.util.List;
@@ -8,68 +9,14 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 /**
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * ProductCommandsMapper
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Mapper
-public interface ProductCommandsMapper {
-    /**
-     * delete by primary key
-     *
-     * @param id primaryKey
-     * @return deleteCount
-     */
-    int deleteByPrimaryKey(Long id);
-
-    /**
-     * insert record to table
-     *
-     * @param record the record
-     * @return insert count
-     */
-    int insert(ProductCommands record);
-
-    int insertOrUpdate(ProductCommands record);
-
-    int insertOrUpdateSelective(ProductCommands record);
-
-    /**
-     * insert record to table selective
-     *
-     * @param record the record
-     * @return insert count
-     */
-    int insertSelective(ProductCommands record);
-
-    /**
-     * select by primary key
-     *
-     * @param id primary key
-     * @return object by primary key
-     */
-    ProductCommands selectByPrimaryKey(Long id);
-
-    /**
-     * update record selective
-     *
-     * @param record the updated record
-     * @return update count
-     */
-    int updateByPrimaryKeySelective(ProductCommands record);
-
-    /**
-     * update record
-     *
-     * @param record the updated record
-     * @return update count
-     */
-    int updateByPrimaryKey(ProductCommands record);
-
-    int updateBatch(List<ProductCommands> list);
-
-    int updateBatchSelective(List<ProductCommands> list);
-
-    int batchInsert(@Param("list") List<ProductCommands> list);
+public interface ProductCommandsMapper extends BaseMapper<ProductCommands> {
 
     /**
      * 查询产品模型设备服务命令

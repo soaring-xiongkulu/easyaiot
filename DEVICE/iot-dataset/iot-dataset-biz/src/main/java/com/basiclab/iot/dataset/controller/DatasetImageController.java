@@ -1,6 +1,10 @@
 package com.basiclab.iot.dataset.controller;
 
-import com.basiclab.iot.common.domain.*;
+
+import com.basiclab.iot.common.domain.CommonResult;
+import com.basiclab.iot.common.domain.PageParam;
+import com.basiclab.iot.common.domain.PageResult;
+import com.basiclab.iot.common.domain.R;
 import com.basiclab.iot.common.excels.core.util.ExcelUtils;
 import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.dataset.dal.dataobject.DatasetImageDO;
@@ -26,6 +30,13 @@ import static com.basiclab.iot.common.domain.CommonResult.success;
 import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.exception;
 import static com.basiclab.iot.dataset.enums.ErrorCodeConstants.*;
 
+/**
+ * DatasetImageController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 图片数据集")
 @RestController
 @RequestMapping("/dataset/image")

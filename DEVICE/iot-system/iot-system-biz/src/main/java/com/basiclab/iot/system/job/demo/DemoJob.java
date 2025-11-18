@@ -1,7 +1,7 @@
 package com.basiclab.iot.system.job.demo;
 
-import com.basiclab.iot.common.core.handler.JobHandler;
 import com.basiclab.iot.common.core.context.TenantContextHolder;
+import com.basiclab.iot.common.core.handler.JobHandler;
 import com.basiclab.iot.common.core.job.TenantJob;
 import com.basiclab.iot.system.dal.dataobject.user.AdminUserDO;
 import com.basiclab.iot.system.dal.pgsql.user.AdminUserMapper;
@@ -10,6 +10,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.util.List;
 
+/**
+ * DemoJob
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Component
 public class DemoJob implements JobHandler {
 

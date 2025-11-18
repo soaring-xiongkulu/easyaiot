@@ -8,6 +8,13 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * OperateLogRespDTO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(name = "RPC 服务 - 系统操作日志 Response DTO")
 @Data
 public class OperateLogRespDTO implements VO {
@@ -23,7 +30,7 @@ public class OperateLogRespDTO implements VO {
     private Long userId;
     @Schema(description = "用户名称", example = "BasicLab")
     private String userName;
-    @Schema(description = "用户类型，参见 UserTypeEnum 枚举", example = "2" )
+    @Schema(description = "用户类型，参见 UserTypeEnum 枚举", example = "2")
     private Integer userType;
     @Schema(description = "操作模块类型", example = "订单")
     private String type;

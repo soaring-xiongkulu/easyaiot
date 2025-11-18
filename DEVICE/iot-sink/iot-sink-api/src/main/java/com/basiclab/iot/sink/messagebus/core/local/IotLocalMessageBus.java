@@ -14,11 +14,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 本地的 {@link IotMessageBus} 实现类
- *
- * 注意：仅适用于单机场景！！！
+ * IotLocalMessageBus
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @RequiredArgsConstructor
 @Slf4j

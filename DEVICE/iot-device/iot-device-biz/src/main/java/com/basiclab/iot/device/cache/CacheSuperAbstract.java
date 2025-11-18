@@ -1,7 +1,11 @@
 package com.basiclab.iot.device.cache;
 
 /**
- * 缓存抽象类，提供共用方法
+ * CacheSuperAbstract
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public abstract class CacheSuperAbstract {
 

@@ -7,7 +7,17 @@ import lombok.Data;
 @Data
 public class TenantSimpleRespVO {
 
-    @Schema(description = "租户编号", example = "1024")
+    @Schema(de
+
+/**
+ * TenantSimpleRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+scription = "租户编号", example = "1024")
     private Long id;
 
     @Schema(description = "租户名", example = "BasicLab")

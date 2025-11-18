@@ -9,13 +9,12 @@ import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 /**
- * @program: basiclab
- * @description: ${description}
- * @packagename: com.basiclab.iot.device.mapper.product
- * @Author: Basiclab
- * @e-mainl: 853017739@qq.com
- * @date: 2024-11-18 20:37
- **/
+ * ProductMapper
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
 public interface ProductMapper extends BaseMapper<Product> {
     /**

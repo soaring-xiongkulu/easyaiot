@@ -6,10 +6,13 @@ import lombok.Data;
 import javax.validation.constraints.NotBlank;
 
 /**
- * 设备动态注册请求DTO
+ * RegisterReq
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Data
 @Schema(description = "设备动态注册请求")
 public class RegisterReq {

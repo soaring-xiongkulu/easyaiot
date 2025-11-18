@@ -8,8 +8,13 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.ExpressionUrlAuthorizationConfigurer;
 
 /**
- * Sink 模块的 Security 配置
+ * SecurityConfiguration
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Configuration(proxyBeanMethods = false, value = "sinkSecurityConfiguration")
 public class SecurityConfiguration {
 

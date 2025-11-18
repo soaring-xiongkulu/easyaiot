@@ -23,10 +23,13 @@ import io.vertx.core.net.NetSocket;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * TCP 上行消息处理器
+ * IotTcpUpstreamHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 public class IotTcpUpstreamHandler implements Handler<NetSocket> {
 

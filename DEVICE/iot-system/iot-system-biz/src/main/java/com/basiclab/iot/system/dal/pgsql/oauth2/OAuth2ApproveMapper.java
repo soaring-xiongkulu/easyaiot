@@ -7,6 +7,13 @@ import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
 
+/**
+ * OAuth2ApproveMapper
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
 public interface OAuth2ApproveMapper extends BaseMapperX<OAuth2ApproveDO> {
 

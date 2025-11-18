@@ -5,9 +5,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 文件预签名地址 Response DTO
+ * FilePresignedUrlRespDTO
  *
- * @author owen
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 @AllArgsConstructor

@@ -27,14 +27,13 @@ import java.util.UUID;
 import static com.basiclab.iot.sink.enums.ErrorCodeConstants.DEVICE_AUTH_FAIL;
 
 /**
- * 设备动态注册控制器
- * <p>
- * 兼容阿里云的设备注册
- * <p>
- * <a href="https://help.aliyun.com/document_detail/89298.htm">设备身份注册</a>
+ * DeviceAuthController
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Validated
 @RestController
 @RequestMapping("/iot/auth/register/device")

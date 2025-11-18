@@ -8,10 +8,13 @@ import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 /**
- * 产品脚本 Mapper
+ * ProductScriptMapper
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Mapper
 public interface ProductScriptMapper extends BaseMapper<ProductScriptDO> {
 

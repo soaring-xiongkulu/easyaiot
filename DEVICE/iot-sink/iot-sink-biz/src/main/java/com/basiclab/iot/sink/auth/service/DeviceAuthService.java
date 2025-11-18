@@ -4,10 +4,13 @@ import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
 
 /**
- * IoT 设备认证 Service 接口
+ * DeviceAuthService
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public interface DeviceAuthService {
 
     /**

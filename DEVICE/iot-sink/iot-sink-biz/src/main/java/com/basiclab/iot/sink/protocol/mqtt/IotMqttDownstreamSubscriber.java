@@ -10,12 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 import javax.annotation.PostConstruct;
 
 /**
- * IoT 网关 MQTT 协议：下行消息订阅器
- * <p>
- * 负责接收来自消息总线的下行消息，并委托给下行处理器进行业务处理
+ * IotMqttDownstreamSubscriber
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 public class IotMqttDownstreamSubscriber implements IotMessageSubscriber<IotDeviceMessage> {
 

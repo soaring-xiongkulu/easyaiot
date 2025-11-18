@@ -24,10 +24,11 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.except
 import static com.basiclab.iot.system.enums.ErrorCodeConstants.*;
 
 /**
- * 邮箱发送 Service 实现类
+ * MailSendServiceImpl
  *
- * @author wangjingyi
- * @since 2025-03-21
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Validated

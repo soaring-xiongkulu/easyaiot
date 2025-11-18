@@ -9,10 +9,13 @@ import io.vertx.mqtt.messages.MqttPublishMessage;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * IoT 网关 EMQX 上行消息处理器
+ * IotEmqxUpstreamHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 public class IotEmqxUpstreamHandler {
 

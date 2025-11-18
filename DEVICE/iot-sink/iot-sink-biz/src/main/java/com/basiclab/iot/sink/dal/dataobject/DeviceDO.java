@@ -8,10 +8,13 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * 设备 DO
+ * DeviceDO
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @TableName("device")
 @Data
 @ToString(callSuper = true)

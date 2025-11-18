@@ -6,7 +6,6 @@ import org.springframework.validation.annotation.Validated;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
-
 /**
  * @author 翱翔的雄库鲁
  * @email andywebjava@163.com

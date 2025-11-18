@@ -8,9 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 是否类型的 {@link IParseFunction} 实现类
+ * BooleanParseFunction
  *
- * @author HUIHUI
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Component
 @Slf4j

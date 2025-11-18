@@ -3,18 +3,13 @@ package com.basiclab.iot.sink.enums;
 import lombok.Getter;
 
 /**
- * IoT 设备 Topic 与 Method 的映射关系标准
- * <p>
- * 定义了所有 Topic 应该对应的 Method，用于标准化设备消息处理
- * <p>
- * 说明：
- * - 每个上行 Topic 都应该有对应的 Method
- * - 每个下行 Topic 也应该有对应的 Method（用于云端发送消息）
- * - Method 定义在 {@link IotDeviceMessageMethodEnum} 中
- * - Topic 定义在 {@link IotDeviceTopicEnum} 中
+ * IotDeviceTopicMethodMapping
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public class IotDeviceTopicMethodMapping {
 
     /**

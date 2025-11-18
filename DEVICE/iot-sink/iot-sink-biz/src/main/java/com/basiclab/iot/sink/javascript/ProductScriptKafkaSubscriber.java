@@ -14,12 +14,13 @@ import javax.annotation.Resource;
 import javax.script.ScriptException;
 
 /**
- * 产品脚本 Kafka 订阅器
- * <p>
- * 监听产品脚本变化，实时更新内存中的脚本
+ * ProductScriptKafkaSubscriber
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class ProductScriptKafkaSubscriber implements IotMessageSubscriber<String>, SmartInitializingSingleton {

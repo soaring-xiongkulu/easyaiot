@@ -1,86 +1,65 @@
 package com.basiclab.iot.device.service.device;
 
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.basiclab.iot.device.domain.device.vo.DeviceTopic;
+
 import java.util.List;
+
+/**
+ * DeviceTopicService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+public interface DeviceTopicService extends IService<DeviceTopic> {
+
     /**
-* @Description: 设备Topic数据Service接口
-* @author: EasyAIoT
-* @CreateDate: 2022/6/15$ 15:22$
-* @UpdateDate: 2022/6/15$ 15:22$
-* @UpdateRemark: 修改内容
-* @Version: V1.0
-*/
-public interface DeviceTopicService{
+     * 查询设备Topic数据
+     *
+     * @param id 设备Topic数据主键
+     * @return 设备Topic数据
+     */
+    public DeviceTopic selectDeviceTopicById(Long id);
 
+    /**
+     * 查询设备Topic数据列表
+     *
+     * @param deviceTopic 设备Topic数据
+     * @return 设备Topic数据集合
+     */
+    public List<DeviceTopic> selectDeviceTopicList(DeviceTopic deviceTopic);
 
-    int deleteByPrimaryKey(Long id);
+    /**
+     * 新增设备Topic数据
+     *
+     * @param deviceTopic 设备Topic数据
+     * @return 结果
+     */
+    public int insertDeviceTopic(DeviceTopic deviceTopic);
 
-    int insert(DeviceTopic record);
+    /**
+     * 修改设备Topic数据
+     *
+     * @param deviceTopic 设备Topic数据
+     * @return 结果
+     */
+    public int updateDeviceTopic(DeviceTopic deviceTopic);
 
-    int insertOrUpdate(DeviceTopic record);
+    /**
+     * 批量删除设备Topic数据
+     *
+     * @param ids 需要删除的设备Topic数据主键集合
+     * @return 结果
+     */
+    public int deleteDeviceTopicByIds(Long[] ids);
 
-    int insertOrUpdateSelective(DeviceTopic record);
-
-    int insertSelective(DeviceTopic record);
-
-    DeviceTopic selectByPrimaryKey(Long id);
-
-    int updateByPrimaryKeySelective(DeviceTopic record);
-
-    int updateByPrimaryKey(DeviceTopic record);
-
-    int updateBatch(List<DeviceTopic> list);
-
-    int updateBatchSelective(List<DeviceTopic> list);
-
-    int batchInsert(List<DeviceTopic> list);
-
-        /**
-         * 查询设备Topic数据
-         *
-         * @param id 设备Topic数据主键
-         * @return 设备Topic数据
-         */
-        public DeviceTopic selectDeviceTopicById(Long id);
-
-        /**
-         * 查询设备Topic数据列表
-         *
-         * @param deviceTopic 设备Topic数据
-         * @return 设备Topic数据集合
-         */
-        public List<DeviceTopic> selectDeviceTopicList(DeviceTopic deviceTopic);
-
-        /**
-         * 新增设备Topic数据
-         *
-         * @param deviceTopic 设备Topic数据
-         * @return 结果
-         */
-        public int insertDeviceTopic(DeviceTopic deviceTopic);
-
-        /**
-         * 修改设备Topic数据
-         *
-         * @param deviceTopic 设备Topic数据
-         * @return 结果
-         */
-        public int updateDeviceTopic(DeviceTopic deviceTopic);
-
-        /**
-         * 批量删除设备Topic数据
-         *
-         * @param ids 需要删除的设备Topic数据主键集合
-         * @return 结果
-         */
-        public int deleteDeviceTopicByIds(Long[] ids);
-
-        /**
-         * 删除设备Topic数据信息
-         *
-         * @param id 设备Topic数据主键
-         * @return 结果
-         */
-        public int deleteDeviceTopicById(Long id);
+    /**
+     * 删除设备Topic数据信息
+     *
+     * @param id 设备Topic数据主键
+     * @return 结果
+     */
+    public int deleteDeviceTopicById(Long id);
 
 }

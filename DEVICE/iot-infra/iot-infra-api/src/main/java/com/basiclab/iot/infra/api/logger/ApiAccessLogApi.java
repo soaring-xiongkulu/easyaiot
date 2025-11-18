@@ -11,7 +11,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.validation.Valid;
 
-@FeignClient(name = ApiConstants.NAME) // TODO BasicLab：fallbackFactory =
+/**
+ * ApiAccessLogApi
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+@FeignClient(name = ApiConstants.NAME) // TODO BasicLab：fallbackFacto
 @Tag(name = "RPC 服务 - API 访问日志")
 public interface ApiAccessLogApi {
 

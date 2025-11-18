@@ -26,9 +26,11 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.NOTIFY_TEMPLATE_C
 import static com.basiclab.iot.system.enums.ErrorCodeConstants.NOTIFY_TEMPLATE_NOT_EXISTS;
 
 /**
- * 站内信模版 Service 实现类
+ * NotifyTemplateServiceImpl
  *
- * @author xrcoder
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Validated

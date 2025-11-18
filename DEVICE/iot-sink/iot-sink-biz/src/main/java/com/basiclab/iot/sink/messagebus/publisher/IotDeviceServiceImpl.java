@@ -8,10 +8,13 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 
 /**
- * IoT 设备信息 Service 实现类
+ * IotDeviceServiceImpl
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Service
 @Slf4j
 public class IotDeviceServiceImpl implements IotDeviceService {

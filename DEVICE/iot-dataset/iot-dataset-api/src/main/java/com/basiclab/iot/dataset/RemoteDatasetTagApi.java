@@ -1,5 +1,7 @@
 package com.basiclab.iot.dataset;
 
+
+
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.dataset.domain.dataset.vo.DatasetTagRespVO;
 import com.basiclab.iot.dataset.enums.ApiConstants;
@@ -14,6 +16,15 @@ import java.util.List;
 
 @FeignClient(name = ApiConstants.NAME) // 服务名称常量
 @Tag(name = "RPC服务 - 数据集和数据仓标签")
+
+/**
+ * RemoteDatasetTagApi
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
 public interface RemoteDatasetTagApi {
 
     String PREFIX = ApiConstants.PREFIX + "/tag";

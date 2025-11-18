@@ -1,35 +1,18 @@
 package com.basiclab.iot.device.service.product;
 
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.basiclab.iot.device.domain.device.vo.ProductCommands;
 
 import java.util.List;
 
 /**
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * ProductCommandsService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
-public interface ProductCommandsService {
-    int deleteByPrimaryKey(Long id);
-
-    int insert(ProductCommands record);
-
-    int insertOrUpdate(ProductCommands record);
-
-    int insertOrUpdateSelective(ProductCommands record);
-
-    int insertSelective(ProductCommands record);
-
-    ProductCommands selectByPrimaryKey(Long id);
-
-    int updateByPrimaryKeySelective(ProductCommands record);
-
-    int updateByPrimaryKey(ProductCommands record);
-
-    int updateBatch(List<ProductCommands> list);
-
-    int updateBatchSelective(List<ProductCommands> list);
-
-    int batchInsert(List<ProductCommands> list);
+public interface ProductCommandsService extends IService<ProductCommands> {
 
     /**
      * 查询产品模型设备服务命令

@@ -9,9 +9,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 岗位表
+ * PostDO
  *
- * @author ruoyi
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @TableName("system_post")
 @KeySequence("system_post_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。

@@ -9,6 +9,13 @@ import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotEmpty;
 
+/**
+ * AuthSmsLoginReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 短信验证码的登录 Request VO")
 @Data
 @NoArgsConstructor

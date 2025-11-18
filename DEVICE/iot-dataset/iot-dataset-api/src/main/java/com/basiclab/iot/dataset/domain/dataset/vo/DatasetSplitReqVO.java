@@ -7,6 +7,13 @@ import javax.validation.constraints.DecimalMax;
 import javax.validation.constraints.DecimalMin;
 import java.math.BigDecimal;
 
+/**
+ * DatasetSplitReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Data
 public class DatasetSplitReqVO {
     @Schema(description = "训练集比例", required = true)

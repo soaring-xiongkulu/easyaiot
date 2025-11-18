@@ -1,5 +1,7 @@
 package com.basiclab.iot.dataset.api.datasettag;
 
+
+
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.domain.PageParam;
 import com.basiclab.iot.common.domain.PageResult;
@@ -16,7 +18,17 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.Resource;
 import java.util.List;
 
-import static com.basiclab.iot.common.domain.CommonResult.success;
+import static com.basiclab.iot.common.domain.
+
+/**
+ * DatasetTagApiImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+CommonResult.success;
 
 @RestController
 @Validated

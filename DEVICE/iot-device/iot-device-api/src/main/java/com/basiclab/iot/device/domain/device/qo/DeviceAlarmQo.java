@@ -9,8 +9,13 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * @author zhangzhixiang on 2024/7/31
+ * DeviceAlarmQo
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Data
 @ApiModel(value = "DeviceAlarmQo对象", description = "DeviceAlarmQo对象")
 public class DeviceAlarmQo implements Serializable {

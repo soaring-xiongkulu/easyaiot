@@ -1,8 +1,8 @@
 package com.basiclab.iot.system.controller.admin.notify;
 
-import com.basiclab.iot.common.enums.UserTypeEnum;
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.domain.PageResult;
+import com.basiclab.iot.common.enums.UserTypeEnum;
 import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.system.controller.admin.notify.vo.template.NotifyTemplatePageReqVO;
 import com.basiclab.iot.system.controller.admin.notify.vo.template.NotifyTemplateRespVO;
@@ -14,7 +14,6 @@ import com.basiclab.iot.system.service.notify.NotifyTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +22,13 @@ import javax.validation.Valid;
 
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * NotifyTemplateController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 站内信模版")
 @RestController
 @RequestMapping("/system/notify-template")

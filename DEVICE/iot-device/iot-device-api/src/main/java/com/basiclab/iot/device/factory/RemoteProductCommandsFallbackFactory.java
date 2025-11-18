@@ -11,12 +11,13 @@ import java.util.List;
 
 
 /**
- * @program: EasyAIoT
- * @description: 产品服务管理服务降级处理
- * @packagename: com.basiclab.iot.device.api.factory
- * @author: kk
- * @date: 2025-11-19
- **/
+ * RemoteProductCommandsFallbackFactory
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
 @Component
 public class RemoteProductCommandsFallbackFactory implements FallbackFactory<RemoteProductCommandsService> {
 

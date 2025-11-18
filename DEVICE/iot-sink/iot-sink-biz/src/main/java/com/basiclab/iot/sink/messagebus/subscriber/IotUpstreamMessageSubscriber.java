@@ -15,14 +15,13 @@ import javax.annotation.Resource;
 import java.util.List;
 
 /**
- * IoT 网关上行消息订阅器
- * <p>
- * 负责订阅来自消息总线的上行消息（设备 -> 平台），并委托给上行消息处理器进行业务处理
- * <p>
- * 订阅主题：{@link IotDeviceMessage#MESSAGE_BUS_DEVICE_MESSAGE_TOPIC}
+ * IotUpstreamMessageSubscriber
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 @ConditionalOnBean(IotMessageBus.class)

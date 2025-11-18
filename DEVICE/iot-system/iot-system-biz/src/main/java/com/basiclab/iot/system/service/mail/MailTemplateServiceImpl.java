@@ -28,10 +28,11 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.MAIL_TEMPLATE_COD
 import static com.basiclab.iot.system.enums.ErrorCodeConstants.MAIL_TEMPLATE_NOT_EXISTS;
 
 /**
- * 邮箱模版 Service 实现类
+ * MailTemplateServiceImpl
  *
- * @author wangjingyi
- * @since 2025-03-21
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Validated

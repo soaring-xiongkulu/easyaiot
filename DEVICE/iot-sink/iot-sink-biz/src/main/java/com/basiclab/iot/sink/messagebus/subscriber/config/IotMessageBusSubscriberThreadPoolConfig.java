@@ -10,12 +10,13 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * IoT 消息总线订阅处理线程池配置
- * <p>
- * 专门用于处理消息总线订阅的消息，使用异步方式处理
+ * IotMessageBusSubscriberThreadPoolConfig
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Configuration
 @EnableAsync

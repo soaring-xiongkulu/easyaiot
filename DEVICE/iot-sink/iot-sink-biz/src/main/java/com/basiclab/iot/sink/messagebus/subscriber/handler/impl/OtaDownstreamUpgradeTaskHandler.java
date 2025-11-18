@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * OTA升级任务下行消息处理器
- * <p>
- * 处理 Topic: OTA_DOWNSTREAM_UPGRADE_TASK
+ * OtaDownstreamUpgradeTaskHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class OtaDownstreamUpgradeTaskHandler extends AbstractTopicHandler implements IotDownstreamMessageHandler {

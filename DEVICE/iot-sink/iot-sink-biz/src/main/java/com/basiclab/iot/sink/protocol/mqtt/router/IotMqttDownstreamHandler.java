@@ -10,15 +10,13 @@ import io.netty.handler.codec.mqtt.MqttQoS;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * IoT 网关 MQTT 协议：下行消息处理器
- * <p>
- * 专门处理下行消息的业务逻辑，包括：
- * 1. 消息编码
- * 2. 主题构建
- * 3. 消息发送
+ * IotMqttDownstreamHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 public class IotMqttDownstreamHandler {
 

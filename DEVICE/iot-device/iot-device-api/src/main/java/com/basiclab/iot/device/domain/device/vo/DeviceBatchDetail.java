@@ -5,11 +5,13 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * (DeviceBatchDetail)实体类
+ * DeviceBatchDetail
  *
- * @author makejava
- * @since 2025-06-18 14:38:13
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Data
 public class DeviceBatchDetail implements Serializable {
     private static final long serialVersionUID = -59336604825338952L;

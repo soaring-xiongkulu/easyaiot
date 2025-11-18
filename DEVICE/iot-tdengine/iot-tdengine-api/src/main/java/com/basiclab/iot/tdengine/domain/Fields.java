@@ -6,11 +6,11 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * @ClassDescription: 建表的字段实体类
- * @ClassName: Fields
- * @Author: iot
- * @Date: 2021-12-28 09:09:04
- * @Version 1.0
+ * Fields
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 public class Fields implements Serializable {

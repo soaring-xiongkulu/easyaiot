@@ -8,8 +8,13 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import java.util.concurrent.Executor;
 
 /**
- * 异步任务配置类
+ * AsyncConfig
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Configuration
 public class AsyncConfig implements AsyncConfigurer {
     @Bean("captureExecutor")

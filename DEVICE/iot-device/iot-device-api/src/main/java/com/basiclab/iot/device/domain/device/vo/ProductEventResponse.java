@@ -1,5 +1,8 @@
 package com.basiclab.iot.device.domain.device.vo;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.basiclab.iot.common.domain.BaseEntity;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -34,11 +37,13 @@ import java.io.Serializable;
 @ToString(callSuper = true)
 @Accessors(chain = true)
 @Builder
+@TableName("product_event_response")
 public class ProductEventResponse extends BaseEntity implements Serializable {
     /**
      * id
      */
     @ApiModelProperty(value="id")
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**

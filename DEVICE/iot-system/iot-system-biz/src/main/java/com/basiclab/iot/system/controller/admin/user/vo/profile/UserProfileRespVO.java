@@ -44,9 +44,14 @@ public class UserProfileRespVO {
     private LocalDateTime createTime;
 
     /**
-     * 所属角色
-     */
-    private List<RoleSimpleRespVO> roles;
+ * UserProfileRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+private List<RoleSimpleRespVO> roles;
     /**
      * 所在部门
      */

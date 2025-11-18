@@ -1,77 +1,22 @@
 package com.basiclab.iot.device.service.product.impl;
 
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.basiclab.iot.device.domain.device.vo.ProductCommands;
 import com.basiclab.iot.device.dal.pgsql.product.ProductCommandsMapper;
 import com.basiclab.iot.device.service.product.ProductCommandsService;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
 import java.util.List;
 
 /**
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * ProductCommandsServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
-public class ProductCommandsServiceImpl implements ProductCommandsService {
-
-    @Resource
-    private ProductCommandsMapper productCommandsMapper;
-
-    @Override
-    public int deleteByPrimaryKey(Long id) {
-        return productCommandsMapper.deleteByPrimaryKey(id);
-    }
-
-    @Override
-    public int insert(ProductCommands record) {
-        return productCommandsMapper.insert(record);
-    }
-
-    @Override
-    public int insertOrUpdate(ProductCommands record) {
-        return productCommandsMapper.insertOrUpdate(record);
-    }
-
-    @Override
-    public int insertOrUpdateSelective(ProductCommands record) {
-        return productCommandsMapper.insertOrUpdateSelective(record);
-    }
-
-    @Override
-    public int insertSelective(ProductCommands record) {
-        return productCommandsMapper.insertSelective(record);
-    }
-
-    @Override
-    public ProductCommands selectByPrimaryKey(Long id) {
-        return productCommandsMapper.selectByPrimaryKey(id);
-    }
-
-    @Override
-    public int updateByPrimaryKeySelective(ProductCommands record) {
-        return productCommandsMapper.updateByPrimaryKeySelective(record);
-    }
-
-    @Override
-    public int updateByPrimaryKey(ProductCommands record) {
-        return productCommandsMapper.updateByPrimaryKey(record);
-    }
-
-    @Override
-    public int updateBatch(List<ProductCommands> list) {
-        return productCommandsMapper.updateBatch(list);
-    }
-
-    @Override
-    public int updateBatchSelective(List<ProductCommands> list) {
-        return productCommandsMapper.updateBatchSelective(list);
-    }
-
-    @Override
-    public int batchInsert(List<ProductCommands> list) {
-        return productCommandsMapper.batchInsert(list);
-    }
+public class ProductCommandsServiceImpl extends ServiceImpl<ProductCommandsMapper, ProductCommands> implements ProductCommandsService {
 
     /**
      * 查询产品模型设备服务命令
@@ -81,7 +26,7 @@ public class ProductCommandsServiceImpl implements ProductCommandsService {
      */
     @Override
     public ProductCommands selectProductCommandsById(Long id) {
-        return productCommandsMapper.selectProductCommandsById(id);
+        return baseMapper.selectProductCommandsById(id);
     }
 
     /**
@@ -92,7 +37,7 @@ public class ProductCommandsServiceImpl implements ProductCommandsService {
      */
     @Override
     public List<ProductCommands> selectProductCommandsList(ProductCommands productCommands) {
-        return productCommandsMapper.selectProductCommandsList(productCommands);
+        return baseMapper.selectProductCommandsList(productCommands);
     }
 
     /**
@@ -103,7 +48,7 @@ public class ProductCommandsServiceImpl implements ProductCommandsService {
      */
     @Override
     public int insertProductCommands(ProductCommands productCommands) {
-        return productCommandsMapper.insertProductCommands(productCommands);
+        return baseMapper.insertProductCommands(productCommands);
     }
 
     /**
@@ -114,7 +59,7 @@ public class ProductCommandsServiceImpl implements ProductCommandsService {
      */
     @Override
     public int updateProductCommands(ProductCommands productCommands) {
-        return productCommandsMapper.updateProductCommands(productCommands);
+        return baseMapper.updateProductCommands(productCommands);
     }
 
     /**
@@ -125,16 +70,16 @@ public class ProductCommandsServiceImpl implements ProductCommandsService {
      */
     @Override
     public int deleteProductCommandsByIds(Long[] ids) {
-        return productCommandsMapper.deleteProductCommandsByIds(ids);
+        return baseMapper.deleteProductCommandsByIds(ids);
     }
 
     @Override
     public List<ProductCommands> selectProductCommandsByIdList(List<Long> commandIdList){
-        return productCommandsMapper.selectProductCommandsByIdList(commandIdList);
+        return baseMapper.selectProductCommandsByIdList(commandIdList);
     }
 
     @Override
     public List<ProductCommands> selectProductCommandsByServiceIdList(List<Long> serviceIdList) {
-        return productCommandsMapper.selectProductCommandsByServiceIdList(serviceIdList);
+        return baseMapper.selectProductCommandsByServiceIdList(serviceIdList);
     }
 }

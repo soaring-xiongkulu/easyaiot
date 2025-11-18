@@ -5,14 +5,13 @@ import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import java.util.List;
 
 /**
- * IoT 下行消息发送 API
- * <p>
- * 提供统一的接口用于向设备发送下行消息（平台 -> 设备）
- * <p>
- * 其他模块可以通过依赖 sink-api 来调用此接口，无需关心具体的协议实现细节
+ * IotDownstreamMessageApi
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public interface IotDownstreamMessageApi {
 
     /**

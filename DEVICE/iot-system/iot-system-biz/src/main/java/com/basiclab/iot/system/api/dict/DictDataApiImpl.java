@@ -12,7 +12,17 @@ import javax.annotation.Resource;
 import java.util.Collection;
 import java.util.List;
 
-import static com.basiclab.iot.common.domain.CommonResult.success;
+import static 
+
+/**
+ * DictDataApiImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+com.basiclab.iot.common.domain.CommonResult.success;
 
 @RestController // 提供 RESTful API 接口，给 Feign 调用
 @Validated

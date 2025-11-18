@@ -9,6 +9,14 @@ import javax.validation.constraints.NotEmpty;
 
 @Schema(description = "管理后台 - 数据集标签 Response VO")
 @Data
+
+/**
+ * DatasetTagRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @ExcelIgnoreUnannotated
 public class DatasetTagRespVO extends BaseEntity {
 

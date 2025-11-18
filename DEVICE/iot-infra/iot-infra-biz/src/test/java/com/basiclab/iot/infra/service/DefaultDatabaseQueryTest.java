@@ -1,16 +1,25 @@
 package com.basiclab.iot.infra.service;
 
 import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.generator.query.DefaultQuery;
 import com.baomidou.mybatisplus.generator.config.DataSourceConfig;
 import com.baomidou.mybatisplus.generator.config.builder.ConfigBuilder;
 import com.baomidou.mybatisplus.generator.config.po.TableInfo;
+import com.baomidou.mybatisplus.generator.query.DefaultQuery;
 
 import java.util.List;
 
+/**
+ * DefaultDatabaseQueryTest
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 public class DefaultDatabaseQueryTest {
 
     public static void main(String[] args) {
+
+
 //        DataSourceConfig dataSourceConfig = new DataSourceConfig.Builder("jdbc:oracle:thin:@127.0.0.1:1521:xe",
 //                "root", "123456").build();
         DataSourceConfig dataSourceConfig = new DataSourceConfig.Builder("jdbc:postgresql://14.18.122.2:5432/ruoyi-vue-pro",

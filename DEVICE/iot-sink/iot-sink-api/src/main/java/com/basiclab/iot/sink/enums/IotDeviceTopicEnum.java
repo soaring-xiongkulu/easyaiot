@@ -4,16 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * IoT 设备 Topic 枚举
- * <p>
- * 专业化的 Topic 命名规范：
- * - 使用 report 表示上报，invoke 表示调用，desired 表示期望值
- * - 使用 upstream 表示上行（设备->云端），downstream 表示下行（云端->设备）
- * - 使用 ack 表示确认回复，response 表示响应
- * - 统一命名风格，便于理解和维护
+ * IotDeviceTopicEnum
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Getter
 @AllArgsConstructor
 public enum IotDeviceTopicEnum {

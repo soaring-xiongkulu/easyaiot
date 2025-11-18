@@ -1,5 +1,7 @@
 package com.basiclab.iot.infra.convert.codegen;
 
+import com.baomidou.mybatisplus.generator.config.po.TableField;
+import com.baomidou.mybatisplus.generator.config.po.TableInfo;
 import com.basiclab.iot.common.utils.collection.CollectionUtils;
 import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.infra.controller.admin.codegen.vo.CodegenDetailRespVO;
@@ -8,8 +10,6 @@ import com.basiclab.iot.infra.controller.admin.codegen.vo.column.CodegenColumnRe
 import com.basiclab.iot.infra.controller.admin.codegen.vo.table.CodegenTableRespVO;
 import com.basiclab.iot.infra.dal.dataobject.codegen.CodegenColumnDO;
 import com.basiclab.iot.infra.dal.dataobject.codegen.CodegenTableDO;
-import com.baomidou.mybatisplus.generator.config.po.TableField;
-import com.baomidou.mybatisplus.generator.config.po.TableInfo;
 import org.apache.ibatis.type.JdbcType;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -20,6 +20,13 @@ import org.mapstruct.factory.Mappers;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * CodegenConvert
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
 public interface CodegenConvert {
 

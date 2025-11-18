@@ -9,6 +9,13 @@ import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.util.List;
 
+/**
+ * OAuth2AccessTokenCreateReqDTO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "RPC 服务 - OAuth2 访问令牌创建 Request DTO")
 @Data
 public class OAuth2AccessTokenCreateReqDTO implements Serializable {

@@ -1,4 +1,7 @@
 /**
- * 使用 Spring Boot Admin 实现简单的监控平台
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 package com.basiclab.iot.infra.framework.monitor;

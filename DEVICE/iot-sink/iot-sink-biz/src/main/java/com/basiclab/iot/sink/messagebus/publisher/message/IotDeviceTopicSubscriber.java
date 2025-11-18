@@ -17,12 +17,13 @@ import org.springframework.context.annotation.Lazy;
 import javax.annotation.Resource;
 
 /**
- * IoT 设备 Topic 消息订阅器
- * <p>
- * 订阅所有标准 IoT Topic，并处理消息
+ * IotDeviceTopicSubscriber
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceMessage>, SmartInitializingSingleton {

@@ -5,6 +5,13 @@ import lombok.Data;
 
 import java.util.List;
 
+/**
+ * AreaNodeRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 地区节点 Response VO")
 @Data
 public class AreaNodeRespVO {
@@ -15,9 +22,6 @@ public class AreaNodeRespVO {
     @Schema(description = "名字", example = "北京")
     private String name;
 
-    /**
-     * 子节点
-     */
     private List<AreaNodeRespVO> children;
 
 }

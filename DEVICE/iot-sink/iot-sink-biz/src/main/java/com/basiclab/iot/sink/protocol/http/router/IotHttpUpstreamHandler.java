@@ -14,10 +14,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * IoT 网关 HTTP 协议的【上行】处理器
+ * IotHttpUpstreamHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @RequiredArgsConstructor
 @Slf4j
 public class IotHttpUpstreamHandler extends IotHttpAbstractHandler {

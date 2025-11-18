@@ -8,12 +8,13 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
- * 影子期望值下行消息事件监听器
- * <p>
- * 处理 Topic: SHADOW_DOWNSTREAM_DESIRED
+ * ShadowDownstreamDesiredListener
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class ShadowDownstreamDesiredListener {

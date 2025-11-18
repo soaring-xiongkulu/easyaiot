@@ -14,10 +14,13 @@ import lombok.extern.slf4j.Slf4j;
 import javax.annotation.PostConstruct;
 
 /**
- * IoT 网关 TCP 下游订阅者：接收下行给设备的消息
+ * IotTcpDownstreamSubscriber
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @RequiredArgsConstructor
 public class IotTcpDownstreamSubscriber implements IotMessageSubscriber<IotDeviceMessage> {

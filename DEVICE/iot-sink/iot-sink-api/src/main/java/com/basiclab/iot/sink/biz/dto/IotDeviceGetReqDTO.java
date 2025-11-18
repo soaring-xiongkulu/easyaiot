@@ -3,10 +3,13 @@ package com.basiclab.iot.sink.biz.dto;
 import lombok.Data;
 
 /**
- * IoT 设备信息查询 Request DTO
+ * IotDeviceGetReqDTO
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Data
 public class IotDeviceGetReqDTO {
 

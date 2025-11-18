@@ -8,6 +8,14 @@ import com.basiclab.iot.common.domain.PageParam;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
+
+/**
+ * WarehouseDatasetPageReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 public class WarehouseDatasetPageReqVO extends PageParam {
 
     @Schema(description = "数据集ID", example = "24462")

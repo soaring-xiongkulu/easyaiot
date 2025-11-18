@@ -12,7 +12,6 @@ import com.basiclab.iot.system.service.sms.SmsChannelService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -22,6 +21,13 @@ import java.util.List;
 
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * SmsChannelController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 短信渠道")
 @RestController
 @RequestMapping("system/sms-channel")

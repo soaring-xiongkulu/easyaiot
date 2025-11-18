@@ -21,8 +21,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * ProductTemplateServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 public class ProductTemplateServiceImpl implements ProductTemplateService {

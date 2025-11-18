@@ -32,10 +32,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * (product)产品表控制层
+ * ProductController
  *
- * @author IoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Tag(name = "产品管理")
 @RestController
 @RequestMapping("/product")

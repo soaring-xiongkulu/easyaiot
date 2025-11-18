@@ -4,12 +4,13 @@ import com.basiclab.iot.sink.enums.IotDeviceTopicEnum;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 
 /**
- * 事件上报事件
- * <p>
- * 处理事件上报相关的消息：EVENT_UPSTREAM_REPORT、EVENT_DOWNSTREAM_REPORT_ACK
+ * EventMessageEvent
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public class EventMessageEvent extends AbstractIotDeviceEvent {
 
     public EventMessageEvent(Object source, IotDeviceMessage message, IotDeviceTopicEnum topicEnum) {

@@ -10,11 +10,13 @@ import javax.validation.Valid;
 import java.util.List;
 
 /**
- * 短信渠道 Service 接口
+ * SmsChannelService
  *
- * @author zzf
- * @since 2024/1/25 9:24
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public interface SmsChannelService {
 
     /**

@@ -1,5 +1,6 @@
 package com.basiclab.iot.device.service.device;
 
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.basiclab.iot.device.domain.device.vo.*;
 
 import java.util.Collection;
@@ -7,36 +8,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @Description: 子设备档案接口
- * @author: EasyAIoT
- * @email: andywebjava@163.com
- * @Version: V1.0
+ * DeviceInfoService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
-public interface DeviceInfoService {
-
-    int deleteByPrimaryKey(Long id);
-
-    int insert(DeviceInfo record);
-
-    int insertOrUpdate(DeviceInfo record);
-
-    int insertOrUpdateSelective(DeviceInfo record);
-
-    int insertSelective(DeviceInfo record);
-
-    DeviceInfo selectByPrimaryKey(Long id);
-
-    int updateByPrimaryKeySelective(DeviceInfo record);
-
-    int updateByPrimaryKey(DeviceInfo record);
-
-    int updateBatch(List<DeviceInfo> list);
-
-    int batchInsert(List<DeviceInfo> list);
-
+public interface DeviceInfoService extends IService<DeviceInfo> {
 
     int deleteByDeviceId(String deviceId);
-
 
     DeviceInfo findOneByDeviceId(String deviceId);
 

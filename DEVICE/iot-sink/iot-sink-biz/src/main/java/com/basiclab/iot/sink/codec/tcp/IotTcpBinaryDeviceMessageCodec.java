@@ -13,30 +13,13 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 
 /**
- * TCP 二进制格式 {@link IotDeviceMessage} 编解码器
- * <p>
- * 二进制协议格式（所有数值使用大端序）：
- *
- * <pre>
- * +--------+--------+--------+---------------------------+--------+--------+
- * | 魔术字 | 版本号 | 消息类型|         消息长度(4 字节)          |
- * +--------+--------+--------+---------------------------+--------+--------+
- * |           消息 ID 长度(2 字节)        |      消息 ID (变长字符串)         |
- * +--------+--------+--------+--------+--------+--------+--------+--------+
- * |           方法名长度(2 字节)        |      方法名(变长字符串)         |
- * +--------+--------+--------+--------+--------+--------+--------+--------+
- * |                        消息体数据(变长)                              |
- * +--------+--------+--------+--------+--------+--------+--------+--------+
- * </pre>
- * <p>
- * 消息体格式：
- * - 请求消息：params 数据(JSON)
- * - 响应消息：code (4字节) + msg 长度(2字节) + msg 字符串 + data 数据(JSON)
- * <p>
- * 注意：deviceId 不包含在协议中，由服务器根据连接上下文自动设置
+ * IotTcpBinaryDeviceMessageCodec
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class IotTcpBinaryDeviceMessageCodec implements IotDeviceMessageCodec {

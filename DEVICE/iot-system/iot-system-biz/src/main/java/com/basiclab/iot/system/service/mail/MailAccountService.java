@@ -9,10 +9,11 @@ import javax.validation.Valid;
 import java.util.List;
 
 /**
- * 邮箱账号 Service 接口
+ * MailAccountService
  *
- * @author wangjingyi
- * @since 2025-03-21
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface MailAccountService {
 

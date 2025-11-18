@@ -6,6 +6,13 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+/**
+ * MailLogRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 邮件日志 Response VO")
 @Data
 public class MailLogRespVO {

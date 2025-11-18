@@ -1,12 +1,19 @@
 package com.basiclab.iot.infra.dal.pgsql.file;
 
-import com.basiclab.iot.infra.dal.dataobject.file.FileContentDO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.basiclab.iot.infra.dal.dataobject.file.FileContentDO;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
 
+/**
+ * FileContentMapper
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
 public interface FileContentMapper extends BaseMapper<FileContentDO> {
 
@@ -21,5 +28,4 @@ public interface FileContentMapper extends BaseMapper<FileContentDO> {
                 .eq(FileContentDO::getConfigId, configId)
                 .eq(FileContentDO::getPath, path));
     }
-
 }

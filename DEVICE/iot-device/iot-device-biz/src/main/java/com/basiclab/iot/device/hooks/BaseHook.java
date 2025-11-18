@@ -8,10 +8,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
+ * BaseHook
  *
- * @author IoT
- * @description
- * @date 2025/6/14
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 @ToString
@@ -76,7 +77,7 @@ public abstract class BaseHook implements Serializable {
         this.setPeername((String) map.get("peername"));
         this.setProto_ver((Integer) map.get("proto_ver"));
         this.setExpiryInterval((Integer) map.get("expiry_interval"));
-        this.setMetadata(new MetaDataMap((LinkedHashMap)map.get("metadata")) );
+        this.setMetadata(new MetaDataMap((LinkedHashMap) map.get("metadata")));
 
     }
 

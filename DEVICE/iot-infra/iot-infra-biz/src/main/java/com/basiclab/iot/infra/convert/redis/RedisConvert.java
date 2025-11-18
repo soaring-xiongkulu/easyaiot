@@ -8,8 +8,16 @@ import org.mapstruct.factory.Mappers;
 import java.util.ArrayList;
 import java.util.Properties;
 
+/**
+ * RedisConvert
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
 public interface RedisConvert {
+
 
     RedisConvert INSTANCE = Mappers.getMapper(RedisConvert.class);
 

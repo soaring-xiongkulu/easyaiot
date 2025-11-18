@@ -3,9 +3,9 @@ package com.basiclab.iot.system.convert.oauth2;
 import cn.hutool.core.date.LocalDateTimeUtil;
 import com.basiclab.iot.common.core.KeyValue;
 import com.basiclab.iot.common.enums.UserTypeEnum;
+import com.basiclab.iot.common.utils.SecurityFrameworkUtils;
 import com.basiclab.iot.common.utils.collection.CollectionUtils;
 import com.basiclab.iot.common.utils.object.BeanUtils;
-import com.basiclab.iot.common.utils.SecurityFrameworkUtils;
 import com.basiclab.iot.system.controller.admin.oauth2.vo.open.OAuth2OpenAccessTokenRespVO;
 import com.basiclab.iot.system.controller.admin.oauth2.vo.open.OAuth2OpenAuthorizeInfoRespVO;
 import com.basiclab.iot.system.controller.admin.oauth2.vo.open.OAuth2OpenCheckTokenRespVO;
@@ -20,6 +20,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * OAuth2OpenConvert
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
 public interface OAuth2OpenConvert {
 

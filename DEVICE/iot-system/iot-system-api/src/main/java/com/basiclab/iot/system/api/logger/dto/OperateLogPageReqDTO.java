@@ -4,6 +4,13 @@ import com.basiclab.iot.common.domain.PageParam;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+/**
+ * OperateLogPageReqDTO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(name = "RPC 服务 - 操作日志分页 Request DTO")
 @Data
 public class OperateLogPageReqDTO extends PageParam {

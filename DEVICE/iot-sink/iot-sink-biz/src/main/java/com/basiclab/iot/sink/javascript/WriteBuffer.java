@@ -4,10 +4,13 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 /**
- * 用于在 JS 中写入数据的缓冲区
+ * WriteBuffer
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public class WriteBuffer {
     private final java.io.ByteArrayOutputStream outputStream;
     private ByteBuffer buffer;

@@ -8,10 +8,11 @@ import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
 /**
- * 短信渠道配置类
+ * SmsChannelProperties
  *
- * @author zzf
- * @since 2024/1/25 17:01
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 @Validated

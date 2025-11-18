@@ -1,13 +1,5 @@
 package com.basiclab.iot.tdengine;
 
-/**
- * @InterfaceDescription: 时序性数据库TdEngine服务
- * @InterfaceName: RemoteTdEngineService
- * @Author: iot
- * @Date: 2021-12-31 10:57:16
- * @Version 1.0
- */
-
 import cn.hutool.json.JSONObject;
 import com.basiclab.iot.common.constant.ServiceNameConstants;
 import com.basiclab.iot.common.domain.R;
@@ -31,6 +23,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @InterfaceDescription: 时序性数据库TdEngine服务
+ * @InterfaceName: RemoteTdEngineService
+ * @Author: iot
+ * @Date: 2021-12-31 10:57:16
+ * @Version 1.0
+ */
 @FeignClient(contextId = "remoteTdEngineService", value = ServiceNameConstants.IOT_TDENGINE, fallbackFactory = RemoteTdEngineFallbackFactory.class, path = "/dataOperation")
 public interface RemoteTdEngineService {
 
@@ -186,8 +185,8 @@ public interface RemoteTdEngineService {
      * @return R
      * @MethodDescription 根据时间戳查询数据
      * @author 翱翔的雄库鲁
- * @email andywebjava@163.com
- * @wechat EasyAIoT2025
+     * @email andywebjava@163.com
+     * @wechat EasyAIoT2025
      * @Date 2024/1/10 14:44
      */
     @PostMapping("/getDataByTimestamp")
@@ -213,6 +212,7 @@ public interface RemoteTdEngineService {
 
     /**
      * 通过设备标识查询设备最新数据
+     *
      * @param tdDeviceDataRequest
      * @return
      */

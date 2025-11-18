@@ -1,10 +1,10 @@
 package com.basiclab.iot.system.controller.admin.permission.vo.role;
 
+import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
+import com.alibaba.excel.annotation.ExcelProperty;
 import com.basiclab.iot.common.excels.core.annotations.DictFormat;
 import com.basiclab.iot.common.excels.core.convert.DictConvert;
 import com.basiclab.iot.system.enums.DictTypeConstants;
-import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
-import com.alibaba.excel.annotation.ExcelProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -12,6 +12,13 @@ import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.util.Set;
 
+/**
+ * RoleRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 角色信息 Response VO")
 @Data
 @ExcelIgnoreUnannotated

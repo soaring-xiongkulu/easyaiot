@@ -11,12 +11,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * OTA版本上报上行消息事件监听器
- * <p>
- * 处理 Topic: OTA_UPSTREAM_VERSION_REPORT
+ * OtaUpstreamVersionReportListener
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class OtaUpstreamVersionReportListener {

@@ -8,12 +8,13 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
- * 广播消息下行消息事件监听器
- * <p>
- * 处理 Topic: BROADCAST_DOWNSTREAM
+ * BroadcastDownstreamListener
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class BroadcastDownstreamListener {

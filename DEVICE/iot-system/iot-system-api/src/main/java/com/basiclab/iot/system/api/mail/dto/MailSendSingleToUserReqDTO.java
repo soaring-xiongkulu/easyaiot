@@ -7,6 +7,13 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.NotNull;
 import java.util.Map;
 
+/**
+ * MailSendSingleToUserReqDTO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "RPC 服务 - 邮件发送给 Admin 或者 Member 用户 Request DTO")
 @Data
 public class MailSendSingleToUserReqDTO {

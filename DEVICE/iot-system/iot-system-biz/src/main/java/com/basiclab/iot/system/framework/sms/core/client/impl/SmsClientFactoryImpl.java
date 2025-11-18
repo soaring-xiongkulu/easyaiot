@@ -13,9 +13,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * 短信客户端工厂接口
+ * SmsClientFactoryImpl
  *
- * @author zzf
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Validated
 @Slf4j

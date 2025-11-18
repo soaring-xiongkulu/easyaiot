@@ -41,12 +41,14 @@ public interface AuthConvert {
     AuthPermissionInfoRespVO.MenuVO convertTreeNode(MenuDO menu);
 
     /**
-     * 将菜单列表，构建成菜单树
-     *
-     * @param menuList 菜单列表
-     * @return 菜单树
-     */
-    default List<AuthPermissionInfoRespVO.MenuVO> buildMenuTree(List<MenuDO> menuList) {
+ * AuthConvert
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+default List<AuthPermissionInfoRespVO.MenuVO> buildMenuTree(List<MenuDO> menuList) {
         if (CollUtil.isEmpty(menuList)) {
             return Collections.emptyList();
         }

@@ -6,9 +6,11 @@ import lombok.*;
 import lombok.experimental.Accessors;
 
 /**
- * @author IoT
- * @desc
- * @created 2024-06-07
+ * ExtendInfoVo
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 
 @Data

@@ -12,12 +12,13 @@ import com.basiclab.iot.sink.util.IotMqttTopicUtils;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * IoT 网关 EMQX 下行消息处理器
- * <p>
- * 从消息总线接收到下行消息，然后发布到 MQTT Broker，从而被设备所接收
+ * IotEmqxDownstreamHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 public class IotEmqxDownstreamHandler {
 

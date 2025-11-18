@@ -17,9 +17,11 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.NOTICE_NOT_FOUND;
 import static com.basiclab.iot.system.enums.ErrorCodeConstants.NOTIFY_SEND_TEMPLATE_PARAM_MISS;
 
 /**
- * 站内信发送 Service 实现类
+ * NotifySendServiceImpl
  *
- * @author xrcoder
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Validated

@@ -23,14 +23,14 @@ public interface WebSocketSenderApi {
     CommonResult<Boolean> send(@Valid @RequestBody WebSocketSendReqDTO message);
 
     /**
-     * 发送消息给指定用户
-     *
-     * @param userType 用户类型
-     * @param userId 用户编号
-     * @param messageType 消息类型
-     * @param messageContent 消息内容，JSON 格式
-     */
-    default void send(Integer userType, Long userId, String messageType, String messageContent) {
+ * WebSocketSenderApi
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+default void send(Integer userType, Long userId, String messageType, String messageContent) {
         send(new WebSocketSendReqDTO().setUserType(userType).setUserId(userId)
                 .setMessageType(messageType).setMessageContent(messageContent)).checkError();
     }

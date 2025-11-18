@@ -10,6 +10,13 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * DictDataRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 字典数据信息 Response VO")
 @Data
 @ExcelIgnoreUnannotated

@@ -1,11 +1,12 @@
 package com.basiclab.iot.system.controller.admin.ip;
 
+
 import cn.hutool.core.lang.Assert;
-import com.basiclab.iot.common.domain.CommonResult;
-import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.common.core.Area;
 import com.basiclab.iot.common.core.utils.AreaUtils;
 import com.basiclab.iot.common.core.utils.IPUtils;
+import com.basiclab.iot.common.domain.CommonResult;
+import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.system.controller.admin.ip.vo.AreaNodeRespVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,6 +22,14 @@ import java.util.List;
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
 @Tag(name = "管理后台 - 地区")
+
+/**
+ * AreaController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @RestController
 @RequestMapping("/system/area")
 @Validated

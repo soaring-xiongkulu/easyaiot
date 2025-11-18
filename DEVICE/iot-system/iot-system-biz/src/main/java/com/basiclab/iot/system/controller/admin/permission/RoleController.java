@@ -1,21 +1,20 @@
 package com.basiclab.iot.system.controller.admin.permission;
 
 
-import com.basiclab.iot.common.enums.CommonStatusEnum;
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.domain.PageParam;
 import com.basiclab.iot.common.domain.PageResult;
-import com.basiclab.iot.common.utils.object.BeanUtils;
+import com.basiclab.iot.common.enums.CommonStatusEnum;
 import com.basiclab.iot.common.excels.core.util.ExcelUtils;
-import com.basiclab.iot.system.dal.dataobject.permission.RoleDO;
-import com.basiclab.iot.system.service.permission.RoleService;
+import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.system.controller.admin.permission.vo.role.RolePageReqVO;
 import com.basiclab.iot.system.controller.admin.permission.vo.role.RoleRespVO;
 import com.basiclab.iot.system.controller.admin.permission.vo.role.RoleSaveReqVO;
+import com.basiclab.iot.system.dal.dataobject.permission.RoleDO;
+import com.basiclab.iot.system.service.permission.RoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,10 +25,16 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 
-
 import static com.basiclab.iot.common.domain.CommonResult.success;
 import static java.util.Collections.singleton;
 
+/**
+ * RoleController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 角色")
 @RestController
 @RequestMapping("/system/role")

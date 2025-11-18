@@ -3,10 +3,13 @@ package com.basiclab.iot.sink.messagebus.publisher;
 import com.basiclab.iot.sink.biz.dto.IotDeviceRespDTO;
 
 /**
- * IoT 设备信息 Service 接口
+ * IotDeviceService
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public interface IotDeviceService {
 
     /**

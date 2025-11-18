@@ -38,10 +38,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 设备管理Controller
+ * DeviceController
  *
- * @author IoT
- * @date 2021-10-22
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Tag(name = "设备管理")
 @RestController

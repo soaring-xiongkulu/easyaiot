@@ -5,9 +5,11 @@ import com.basiclab.iot.device.domain.device.vo.ProductServices;
 import java.util.List;
 
 /**
- * @Description: 产品服务
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * ProductServicesService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface ProductServicesService {
 

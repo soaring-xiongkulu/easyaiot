@@ -11,12 +11,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
 /**
- * @program: EasyAIoT
- * @description: 产品属性管理服务降级处理
- * @packagename: com.basiclab.iot.device.api.factory
- * @author: kk
- * @date: 2025-11-19
- **/
+ * RemoteProductPropertiesFallbackFactory
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
 @Component
 public class RemoteProductPropertiesFallbackFactory implements FallbackFactory<RemoteProductPropertiesService> {
 

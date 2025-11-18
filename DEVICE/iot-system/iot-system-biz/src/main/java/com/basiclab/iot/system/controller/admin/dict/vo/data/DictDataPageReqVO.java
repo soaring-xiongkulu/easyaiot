@@ -1,7 +1,7 @@
 package com.basiclab.iot.system.controller.admin.dict.vo.data;
 
-import com.basiclab.iot.common.enums.CommonStatusEnum;
 import com.basiclab.iot.common.domain.PageParam;
+import com.basiclab.iot.common.enums.CommonStatusEnum;
 import com.basiclab.iot.common.validation.InEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -9,6 +9,13 @@ import lombok.EqualsAndHashCode;
 
 import javax.validation.constraints.Size;
 
+/**
+ * DictDataPageReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 字典类型分页列表 Request VO")
 @Data
 @EqualsAndHashCode(callSuper = true)

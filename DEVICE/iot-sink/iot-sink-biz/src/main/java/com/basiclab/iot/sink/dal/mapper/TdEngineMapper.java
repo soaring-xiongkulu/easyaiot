@@ -6,12 +6,13 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 /**
- * TDEngine Mapper 接口
- * <p>
- * 用于直接操作 TDEngine 数据库
+ * TdEngineMapper
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Mapper
 @DS("tdengine")
 public interface TdEngineMapper {

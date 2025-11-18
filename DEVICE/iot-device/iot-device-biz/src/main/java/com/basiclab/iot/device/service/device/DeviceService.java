@@ -12,7 +12,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author IoT
+ * DeviceService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface DeviceService extends IService<Device> {
 
@@ -292,5 +296,17 @@ public interface DeviceService extends IService<Device> {
     DeviceStatisticsVo getDeviceStatistics();
 
     DeviceStatusStatisticsVo getDeviceStatusStatistics();
+
+    /**
+     * 调用设备服务
+     * <p>
+     * 使用 iot-sink-api 的标准 Topic 和 method 发送服务调用消息
+     *
+     * @param deviceId          设备ID
+     * @param serviceIdentifier 服务标识（从产品模型中获取的 service_code）
+     * @param params            服务调用参数
+     * @return 是否发送成功
+     */
+    boolean invokeService(Long deviceId, String serviceIdentifier, Object params);
 }
 

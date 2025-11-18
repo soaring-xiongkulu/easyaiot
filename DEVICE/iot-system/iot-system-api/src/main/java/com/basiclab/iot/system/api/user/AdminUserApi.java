@@ -60,12 +60,14 @@ public interface AdminUserApi extends AutoTransable<AdminUserRespDTO> {
     CommonResult<List<AdminUserRespDTO>> getUserListByPostIds(@RequestParam("postIds") Collection<Long> postIds);
 
     /**
-     * 获得用户 Map
-     *
-     * @param ids 用户编号数组
-     * @return 用户 Map
-     */
-    default Map<Long, AdminUserRespDTO> getUserMap(Collection<Long> ids) {
+ * AdminUserApi
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+default Map<Long, AdminUserRespDTO> getUserMap(Collection<Long> ids) {
         List<AdminUserRespDTO> users = getUserList(ids).getCheckedData();
         return CollectionUtils.convertMap(users, AdminUserRespDTO::getId);
     }

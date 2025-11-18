@@ -1,81 +1,22 @@
 package com.basiclab.iot.device.service.device.impl;
 
-import com.basiclab.iot.device.domain.device.vo.DeviceTopic;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.basiclab.iot.device.dal.pgsql.device.DeviceTopicMapper;
+import com.basiclab.iot.device.domain.device.vo.DeviceTopic;
 import com.basiclab.iot.device.service.device.DeviceTopicService;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
 import java.util.List;
 
 /**
- * @Description: 设备Topic数据Service业务层处理
- * @author: EasyAIoT
- * @CreateDate: 2022/6/15$ 15:22$
- * @UpdateDate: 2022/6/15$ 15:22$
- * @Version: V1.0
+ * DeviceTopicServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
-public class DeviceTopicServiceImpl implements DeviceTopicService {
-
-    @Resource
-    private DeviceTopicMapper deviceTopicMapper;
-
-    @Override
-    public int deleteByPrimaryKey(Long id) {
-        return deviceTopicMapper.deleteByPrimaryKey(id);
-    }
-
-    @Override
-    public int insert(DeviceTopic record) {
-        return deviceTopicMapper.insert(record);
-    }
-
-    @Override
-    public int insertOrUpdate(DeviceTopic record) {
-        return deviceTopicMapper.insertOrUpdate(record);
-    }
-
-    @Override
-    public int insertOrUpdateSelective(DeviceTopic record) {
-        return deviceTopicMapper.insertOrUpdateSelective(record);
-    }
-
-    @Override
-    public int insertSelective(DeviceTopic record) {
-        return deviceTopicMapper.insertSelective(record);
-    }
-
-    @Override
-    public DeviceTopic selectByPrimaryKey(Long id) {
-        return deviceTopicMapper.selectByPrimaryKey(id);
-    }
-
-    @Override
-    public int updateByPrimaryKeySelective(DeviceTopic record) {
-        return deviceTopicMapper.updateByPrimaryKeySelective(record);
-    }
-
-    @Override
-    public int updateByPrimaryKey(DeviceTopic record) {
-        return deviceTopicMapper.updateByPrimaryKey(record);
-    }
-
-    @Override
-    public int updateBatch(List<DeviceTopic> list) {
-        return deviceTopicMapper.updateBatch(list);
-    }
-
-    @Override
-    public int updateBatchSelective(List<DeviceTopic> list) {
-        return deviceTopicMapper.updateBatchSelective(list);
-    }
-
-    @Override
-    public int batchInsert(List<DeviceTopic> list) {
-        return deviceTopicMapper.batchInsert(list);
-    }
-
+public class DeviceTopicServiceImpl extends ServiceImpl<DeviceTopicMapper, DeviceTopic> implements DeviceTopicService {
 
     /**
      * 查询设备Topic数据
@@ -85,7 +26,7 @@ public class DeviceTopicServiceImpl implements DeviceTopicService {
      */
     @Override
     public DeviceTopic selectDeviceTopicById(Long id) {
-        return deviceTopicMapper.selectDeviceTopicById(id);
+        return baseMapper.selectDeviceTopicById(id);
     }
 
     /**
@@ -96,7 +37,7 @@ public class DeviceTopicServiceImpl implements DeviceTopicService {
      */
     @Override
     public List<DeviceTopic> selectDeviceTopicList(DeviceTopic deviceTopic) {
-        return deviceTopicMapper.selectDeviceTopicList(deviceTopic);
+        return baseMapper.selectDeviceTopicList(deviceTopic);
     }
 
     /**
@@ -108,7 +49,7 @@ public class DeviceTopicServiceImpl implements DeviceTopicService {
     @Override
     public int insertDeviceTopic(DeviceTopic deviceTopic) {
         deviceTopic.setCreateBy("admin");
-        return deviceTopicMapper.insertDeviceTopic(deviceTopic);
+        return baseMapper.insertDeviceTopic(deviceTopic);
     }
 
     /**
@@ -120,7 +61,7 @@ public class DeviceTopicServiceImpl implements DeviceTopicService {
     @Override
     public int updateDeviceTopic(DeviceTopic deviceTopic) {
         deviceTopic.setUpdateBy("admin");
-        return deviceTopicMapper.updateDeviceTopic(deviceTopic);
+        return baseMapper.updateDeviceTopic(deviceTopic);
     }
 
     /**
@@ -131,7 +72,7 @@ public class DeviceTopicServiceImpl implements DeviceTopicService {
      */
     @Override
     public int deleteDeviceTopicByIds(Long[] ids) {
-        return deviceTopicMapper.deleteDeviceTopicByIds(ids);
+        return baseMapper.deleteDeviceTopicByIds(ids);
     }
 
     /**
@@ -142,6 +83,6 @@ public class DeviceTopicServiceImpl implements DeviceTopicService {
      */
     @Override
     public int deleteDeviceTopicById(Long id) {
-        return deviceTopicMapper.deleteDeviceTopicById(id);
+        return baseMapper.deleteDeviceTopicById(id);
     }
 }

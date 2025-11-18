@@ -1,17 +1,19 @@
 package com.basiclab.iot.device.service.product.impl;
 
+import com.basiclab.iot.device.dal.pgsql.product.ProductPropertiesMapper;
+import com.basiclab.iot.device.domain.device.vo.ProductProperties;
+import com.basiclab.iot.device.service.product.ProductPropertiesService;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.List;
 
-import com.basiclab.iot.device.dal.pgsql.product.ProductPropertiesMapper;
-import com.basiclab.iot.device.domain.device.vo.ProductProperties;
-import com.basiclab.iot.device.service.product.ProductPropertiesService;
-
 /**
- * @author: EasyAIoT
- * @email: andywebjava@163.com
+ * ProductPropertiesServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 public class ProductPropertiesServiceImpl implements ProductPropertiesService {
@@ -140,8 +142,7 @@ public class ProductPropertiesServiceImpl implements ProductPropertiesService {
     }
 
     @Override
-    public List<ProductProperties> selectPropertiesByPropertiesIdList(List<Long> propertiesIdList)
-    {
+    public List<ProductProperties> selectPropertiesByPropertiesIdList(List<Long> propertiesIdList) {
         return productPropertiesMapper.selectPropertiesByPropertiesIdList(propertiesIdList);
     }
 

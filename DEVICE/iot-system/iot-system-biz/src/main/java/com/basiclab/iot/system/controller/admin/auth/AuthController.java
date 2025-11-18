@@ -1,5 +1,7 @@
 package com.basiclab.iot.system.controller.admin.auth;
 
+
+
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.basiclab.iot.common.enums.CommonStatusEnum;
@@ -38,6 +40,13 @@ import static com.basiclab.iot.common.domain.CommonResult.success;
 import static com.basiclab.iot.common.utils.collection.CollectionUtils.convertSet;
 import static com.basiclab.iot.common.utils.SecurityFrameworkUtils.getLoginUserId;
 
+/**
+ * AuthController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 认证")
 @RestController
 @RequestMapping("/system/auth")

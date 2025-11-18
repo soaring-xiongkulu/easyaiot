@@ -19,11 +19,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @ClassDescription: 时序数据库服务降级处理
- * @ClassName: RemoteTdEngineFallbackFactory
- * @Author: iot
- * @Date: 2021-12-31 11:00:59
- * @Version 1.0
+ * RemoteTdEngineFallbackFactory
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Component
 public class RemoteTdEngineFallbackFactory implements FallbackFactory<RemoteTdEngineService> {

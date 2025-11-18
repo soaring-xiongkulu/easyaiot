@@ -17,15 +17,13 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 设备Redis存储服务
- * <p>
- * 根据不同Topic将设备数据存储到Redis Hash结构中
- * <p>
- * Redis Key格式：使用 {@link IotSinkRedisKeyConstants#buildDeviceDataKey(Long)} 构建
- * Hash字段包括：connect_status, last_online_time, extension, version, tags, shadow, config, ota_progress
+ * DeviceRedisStorageService
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Service
 @RequiredArgsConstructor

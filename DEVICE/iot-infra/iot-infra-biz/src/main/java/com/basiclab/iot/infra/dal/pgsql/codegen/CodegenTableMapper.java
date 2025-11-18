@@ -1,5 +1,7 @@
 package com.basiclab.iot.infra.dal.pgsql.codegen;
 
+
+
 import com.basiclab.iot.common.domain.PageResult;
 import com.basiclab.iot.common.core.mapper.BaseMapperX;
 import com.basiclab.iot.common.core.query.LambdaQueryWrapperX;
@@ -10,7 +12,17 @@ import org.apache.ibatis.annotations.Mapper;
 import java.util.List;
 
 @Mapper
-public interface CodegenTableMapper extends BaseMapperX<CodegenTableDO> {
+public interface CodegenTableMapper extends BaseMapperX<CodegenTableDO> 
+
+/**
+ * CodegenTableMapper
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+{
 
     default CodegenTableDO selectByTableNameAndDataSourceConfigId(String tableName, Long dataSourceConfigId) {
         return selectOne(CodegenTableDO::getTableName, tableName,

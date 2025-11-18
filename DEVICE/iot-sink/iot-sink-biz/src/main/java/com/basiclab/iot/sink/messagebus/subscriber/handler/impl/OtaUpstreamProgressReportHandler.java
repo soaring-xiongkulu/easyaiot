@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * OTA进度上报上行消息处理器
- * <p>
- * 处理 Topic: OTA_UPSTREAM_PROGRESS_REPORT
+ * OtaUpstreamProgressReportHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class OtaUpstreamProgressReportHandler extends AbstractTopicHandler implements IotUpstreamMessageHandler {

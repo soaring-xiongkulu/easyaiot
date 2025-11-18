@@ -7,9 +7,11 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 基于 Redis 实现验证码的存储
+ * RedisCaptchaServiceImpl
  *
- * @author 星语
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Setter
 public class RedisCaptchaServiceImpl implements CaptchaCacheService {

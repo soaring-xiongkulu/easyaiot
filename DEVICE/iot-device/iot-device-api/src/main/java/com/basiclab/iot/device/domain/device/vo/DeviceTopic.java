@@ -1,7 +1,10 @@
 package com.basiclab.iot.device.domain.device.vo;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.*;
@@ -32,11 +35,13 @@ import java.time.LocalDateTime;
 @Accessors(chain = true)
 @Builder
 @Validated
+@TableName("device_topic")
 public class DeviceTopic implements Serializable {
     /**
     * id
     */
     @ApiModelProperty(value="id")
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**

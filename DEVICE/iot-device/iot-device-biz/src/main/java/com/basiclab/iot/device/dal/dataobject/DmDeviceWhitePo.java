@@ -9,9 +9,11 @@ import lombok.*;
 import java.io.Serializable;
 
 /**
- * @author IoT
- * @desc
- * @created 2024-07-05
+ * DmDeviceWhitePo
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 @EqualsAndHashCode(callSuper = false)

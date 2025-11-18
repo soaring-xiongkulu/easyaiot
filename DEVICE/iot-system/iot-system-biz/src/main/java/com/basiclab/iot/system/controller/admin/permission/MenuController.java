@@ -1,7 +1,7 @@
 package com.basiclab.iot.system.controller.admin.permission;
 
-import com.basiclab.iot.common.enums.CommonStatusEnum;
 import com.basiclab.iot.common.domain.CommonResult;
+import com.basiclab.iot.common.enums.CommonStatusEnum;
 import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.system.controller.admin.permission.vo.menu.MenuListReqVO;
 import com.basiclab.iot.system.controller.admin.permission.vo.menu.MenuRespVO;
@@ -12,7 +12,6 @@ import com.basiclab.iot.system.service.permission.MenuService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +22,13 @@ import java.util.List;
 
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * RoleController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 菜单")
 @RestController
 @RequestMapping("/system/menu")
@@ -50,7 +56,7 @@ public class MenuController {
 
     @DeleteMapping("/delete")
     @Operation(summary = "删除菜单")
-    @Parameter(name = "id", description = "菜单编号", required= true, example = "1024")
+    @Parameter(name = "id", description = "菜单编号", required = true, example = "1024")
     //@PreAuthorize("@ss.hasPermission('system:menu:delete')")
     public CommonResult<Boolean> deleteMenu(@RequestParam("id") Long id) {
         menuService.deleteMenu(id);

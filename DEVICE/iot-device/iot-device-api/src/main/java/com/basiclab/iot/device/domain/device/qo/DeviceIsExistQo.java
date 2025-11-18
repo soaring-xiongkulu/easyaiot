@@ -7,8 +7,13 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * @author zhangzhixiang on 2024/7/31
+ * DeviceIsExistQo
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Data
 @ApiModel(value = "DmDeviceIsExistQo对象", description = "DmDeviceIsExistQo对象")
 public class DeviceIsExistQo implements Serializable {

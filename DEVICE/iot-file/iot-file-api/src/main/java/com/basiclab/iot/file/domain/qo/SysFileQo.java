@@ -7,9 +7,17 @@ import lombok.Data;
 
 import java.io.Serializable;
 
+/**
+ * SysFileQo
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Data
 @ApiModel(value = "SysFileQo对象", description = "文件管理Qo")
 public class SysFileQo extends PageQo implements Serializable {
+
     private static final long serialVersionUID = 319717507762690848L;
     @ApiModelProperty(value = "桶名称")
     String bucketName;

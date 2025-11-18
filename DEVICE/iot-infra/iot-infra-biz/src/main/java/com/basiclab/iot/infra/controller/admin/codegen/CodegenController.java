@@ -1,5 +1,6 @@
 package com.basiclab.iot.infra.controller.admin.codegen;
 
+
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.ZipUtil;
 import com.basiclab.iot.common.domain.CommonResult;
@@ -21,10 +22,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -37,6 +36,13 @@ import java.util.Map;
 import static com.basiclab.iot.common.domain.CommonResult.success;
 import static com.basiclab.iot.common.utils.SecurityFrameworkUtils.getLoginUserId;
 
+/**
+ * CodegenController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 代码生成器")
 @RestController
 @RequestMapping("/infra/codegen")

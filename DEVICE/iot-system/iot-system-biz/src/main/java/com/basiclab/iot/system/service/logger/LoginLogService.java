@@ -8,7 +8,11 @@ import com.basiclab.iot.system.dal.dataobject.logger.LoginLogDO;
 import javax.validation.Valid;
 
 /**
- * 登录日志 Service 接口
+ * LoginLogService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface LoginLogService {
 

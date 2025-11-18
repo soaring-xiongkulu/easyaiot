@@ -10,11 +10,13 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * (DeviceBatch)实体类
+ * DeviceBatch
  *
- * @author makejava
- * @since 2025-06-18 14:36:53
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Data
 public class DeviceBatch implements Serializable {
     private static final long serialVersionUID = -54159772729593908L;

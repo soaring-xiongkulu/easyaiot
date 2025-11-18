@@ -7,6 +7,15 @@ import javax.validation.constraints.NotNull;
 
 @Schema(description = "管理后台 - 代码生成字段定义创建/修改 Request VO")
 @Data
+
+/**
+ * CodegenColumnSaveReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
 public class CodegenColumnSaveReqVO {
 
     @Schema(description = "编号", example = "1")

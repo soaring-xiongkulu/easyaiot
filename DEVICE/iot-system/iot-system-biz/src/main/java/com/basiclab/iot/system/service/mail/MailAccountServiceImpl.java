@@ -21,10 +21,11 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.MAIL_ACCOUNT_NOT_
 import static com.basiclab.iot.system.enums.ErrorCodeConstants.MAIL_ACCOUNT_RELATE_TEMPLATE_EXISTS;
 
 /**
- * 邮箱账号 Service 实现类
+ * MailAccountServiceImpl
  *
- * @author wangjingyi
- * @since 2025-03-21
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Validated

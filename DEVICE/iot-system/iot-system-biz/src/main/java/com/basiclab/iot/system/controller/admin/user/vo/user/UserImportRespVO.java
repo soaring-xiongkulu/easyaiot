@@ -9,7 +9,17 @@ import java.util.Map;
 
 @Schema(description = "管理后台 - 用户导入 Response VO")
 @Data
-@Builder
+@
+
+/**
+ * UserImportRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+Builder
 public class UserImportRespVO {
 
     @Schema(description = "创建成功的用户名数组")

@@ -5,6 +5,13 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * CodegenColumnRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 代码生成字段定义 Response VO")
 @Data
 public class CodegenColumnRespVO {

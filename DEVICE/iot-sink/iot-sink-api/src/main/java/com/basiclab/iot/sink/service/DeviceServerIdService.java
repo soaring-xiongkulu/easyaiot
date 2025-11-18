@@ -1,13 +1,11 @@
 package com.basiclab.iot.sink.service;
 
 /**
- * 设备 ServerId 服务接口
- * <p>
- * 用于管理设备与网关 serverId 的映射关系（存储在 Redis 中）
- * <p>
- * 此接口在 sink-api 中定义，实现类在 sink-biz 中
+ * DeviceServerIdService
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface DeviceServerIdService {
 

@@ -1,11 +1,10 @@
 package com.basiclab.iot.system.controller.admin.sms;
 
-
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.domain.PageParam;
 import com.basiclab.iot.common.domain.PageResult;
-import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.common.excels.core.util.ExcelUtils;
+import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.system.controller.admin.sms.vo.template.SmsTemplatePageReqVO;
 import com.basiclab.iot.system.controller.admin.sms.vo.template.SmsTemplateRespVO;
 import com.basiclab.iot.system.controller.admin.sms.vo.template.SmsTemplateSaveReqVO;
@@ -16,7 +15,6 @@ import com.basiclab.iot.system.service.sms.SmsTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -25,9 +23,15 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.util.List;
 
-
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * SmsTemplateController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 短信模板")
 @RestController
 @RequestMapping("/system/sms-template")

@@ -1,4 +1,6 @@
 /**
- * iot-module-member 模块的适配，解除 iot-module-system 对它们的依赖
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 package com.basiclab.iot.system.service.member;

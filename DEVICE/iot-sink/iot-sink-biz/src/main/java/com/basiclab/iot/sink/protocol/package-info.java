@@ -1,4 +1,7 @@
 /**
- * 提供设备接入的各种协议的实现
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 package com.basiclab.iot.sink.protocol;

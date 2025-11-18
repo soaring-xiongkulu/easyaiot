@@ -3,12 +3,13 @@ package com.basiclab.iot.sink.util;
 import cn.hutool.core.util.StrUtil;
 
 /**
- * IoT 网关 MQTT 主题工具类
- * <p>
- * 用于统一管理 MQTT 协议中的主题常量，基于 Alink 协议规范
+ * IotMqttTopicUtils
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public final class IotMqttTopicUtils {
 
     // ========== 静态常量 ==========

@@ -6,11 +6,11 @@ import javax.validation.constraints.NotEmpty;
 import java.util.List;
 
 /**
- * @ClassDescription: 创建超级表需要的入参的实体类
- * @ClassName: SuperTableDto
- * @Author: iot
- * @Date: 2021-12-28 15:03:45
- * @Version 1.0
+ * SuperTableDto
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 public class SuperTableDto extends BaseEntity {

@@ -6,7 +6,11 @@ import com.basiclab.iot.system.controller.admin.notice.vo.NoticeSaveReqVO;
 import com.basiclab.iot.system.dal.dataobject.notice.NoticeDO;
 
 /**
- * 通知公告 Service 接口
+ * NoticeService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface NoticeService {
 

@@ -17,10 +17,13 @@ import javax.annotation.Resource;
 import java.util.List;
 
 /**
- * (deviceProperties)设备运行状态管理
+ * DeviceThingModelController
  *
- * @author IoT
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Tag(name  = "设备运行状态管理")
 @RestController
 @RequestMapping("/deviceThingModel")

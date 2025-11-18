@@ -11,10 +11,11 @@ import lombok.EqualsAndHashCode;
 import java.util.List;
 
 /**
- * 邮件模版 DO
+ * MailTemplateDO
  *
- * @author wangjingyi
- * @since 2025-03-21
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @TableName(value = "system_mail_template", autoResultMap = true)
 @Data

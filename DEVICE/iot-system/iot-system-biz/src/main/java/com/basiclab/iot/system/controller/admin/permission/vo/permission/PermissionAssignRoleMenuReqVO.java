@@ -7,6 +7,13 @@ import javax.validation.constraints.NotNull;
 import java.util.Collections;
 import java.util.Set;
 
+/**
+ * PermissionAssignRoleMenuReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 赋予角色菜单 Request VO")
 @Data
 public class PermissionAssignRoleMenuReqVO {

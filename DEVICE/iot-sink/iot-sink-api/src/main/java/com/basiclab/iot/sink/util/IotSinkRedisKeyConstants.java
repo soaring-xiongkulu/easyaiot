@@ -1,18 +1,11 @@
 package com.basiclab.iot.sink.util;
 
 /**
- * IoT Sink Redis Key 规范常量类
- * <p>
- * 统一管理 iot-sink 模块中所有 Redis Key 的格式规范，供其他模块使用
- * <p>
- * Key 命名规范：
- * <ul>
- *     <li>使用小写字母和下划线</li>
- *     <li>格式：{模块前缀}:{业务类型}:{标识符}</li>
- *     <li>模块前缀统一使用：iot_sink</li>
- * </ul>
+ * IotSinkRedisKeyConstants
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public class IotSinkRedisKeyConstants {
 

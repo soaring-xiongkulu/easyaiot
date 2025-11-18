@@ -9,11 +9,13 @@ import javax.validation.Valid;
 import java.util.Map;
 
 /**
- * 短信模板 Service 接口
+ * SmsTemplateService
  *
- * @author zzf
- * @since 2024/1/25 9:24
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public interface SmsTemplateService {
 
     /**

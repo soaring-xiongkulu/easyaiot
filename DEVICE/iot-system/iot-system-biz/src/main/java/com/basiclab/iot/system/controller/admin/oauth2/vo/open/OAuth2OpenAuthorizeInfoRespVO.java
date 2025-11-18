@@ -15,9 +15,14 @@ import java.util.List;
 public class OAuth2OpenAuthorizeInfoRespVO {
 
     /**
-     * 客户端
-     */
-    private Client client;
+ * OAuth2OpenAuthorizeInfoRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+private Client client;
 
     @Schema(description = "scope 的选中信息,使用 List 保证有序性，Key 是 scope，Value 为是否选中")
     private List<KeyValue<String, Boolean>> scopes;

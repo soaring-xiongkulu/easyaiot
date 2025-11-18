@@ -3,11 +3,13 @@ package com.basiclab.iot.device.domain.product.model;
 import java.util.List;
 
 /**
- * 产品模板详情
+ * ProductTemplateModel
  *
- * @author lvwshuai
- * @date 2024年07月15日 14:13
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public class ProductTemplateModel {
     private static final long serialVersionUID = 1L;
     private Long id;

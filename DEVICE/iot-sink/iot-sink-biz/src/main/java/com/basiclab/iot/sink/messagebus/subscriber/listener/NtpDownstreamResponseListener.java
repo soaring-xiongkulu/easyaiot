@@ -8,12 +8,13 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
- * NTP同步响应下行消息事件监听器
- * <p>
- * 处理 Topic: NTP_DOWNSTREAM_RESPONSE
+ * NtpDownstreamResponseListener
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class NtpDownstreamResponseListener {

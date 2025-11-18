@@ -5,10 +5,11 @@ import com.basiclab.iot.system.mq.message.mail.MailSendMessage;
 import java.util.Map;
 
 /**
- * 邮件发送 Service 接口
+ * MailSendService
  *
- * @author wangjingyi
- * @since 2025-03-21
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface MailSendService {
 

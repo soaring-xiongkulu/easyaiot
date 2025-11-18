@@ -9,7 +9,17 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserSimpleRespVO {
+public
+
+/**
+ * UserSimpleRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+class UserSimpleRespVO {
 
     @Schema(description = "用户编号", example = "1024")
     private Long id;

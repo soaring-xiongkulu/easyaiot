@@ -15,9 +15,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 站内信 Service 实现类
+ * NotifyMessageServiceImpl
  *
- * @author xrcoder
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Validated

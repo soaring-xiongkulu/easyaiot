@@ -1,7 +1,7 @@
 package com.basiclab.iot.system.controller.app.dict;
 
-import com.basiclab.iot.common.enums.CommonStatusEnum;
 import com.basiclab.iot.common.domain.CommonResult;
+import com.basiclab.iot.common.enums.CommonStatusEnum;
 import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.system.controller.app.dict.vo.AppDictDataRespVO;
 import com.basiclab.iot.system.dal.dataobject.dict.DictDataDO;
@@ -20,6 +20,13 @@ import java.util.List;
 
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * AppDictDataController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "用户 App - 字典数据")
 @RestController
 @RequestMapping("/system/dict-data")

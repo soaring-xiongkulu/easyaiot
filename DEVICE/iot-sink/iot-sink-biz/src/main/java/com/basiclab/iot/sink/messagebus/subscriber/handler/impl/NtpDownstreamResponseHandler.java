@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * NTP同步响应下行消息处理器
- * <p>
- * 处理 Topic: NTP_DOWNSTREAM_RESPONSE
+ * NtpDownstreamResponseHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class NtpDownstreamResponseHandler extends AbstractTopicHandler implements IotDownstreamMessageHandler {

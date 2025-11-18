@@ -13,11 +13,11 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
- * 邮箱日志 DO
- * 记录每一次邮件的发送
+ * MailLogDO
  *
- * @author wangjingyi
- * @since 2025-03-21
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @TableName(value = "system_mail_log", autoResultMap = true)
 @Data

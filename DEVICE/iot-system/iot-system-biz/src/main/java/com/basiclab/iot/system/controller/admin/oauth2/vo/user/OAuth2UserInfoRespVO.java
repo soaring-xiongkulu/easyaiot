@@ -34,9 +34,14 @@ public class OAuth2UserInfoRespVO {
     private String avatar;
 
     /**
-     * 所在部门
-     */
-    private Dept dept;
+ * OAuth2UserInfoRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+private Dept dept;
 
     /**
      * 所属岗位数组

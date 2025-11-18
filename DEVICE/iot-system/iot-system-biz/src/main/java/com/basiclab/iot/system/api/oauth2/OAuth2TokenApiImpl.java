@@ -15,6 +15,13 @@ import javax.annotation.Resource;
 
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * OAuth2TokenApiImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @RestController // 提供 RESTful API 接口，给 Feign 调用
 @Validated
 public class OAuth2TokenApiImpl implements OAuth2TokenApi {

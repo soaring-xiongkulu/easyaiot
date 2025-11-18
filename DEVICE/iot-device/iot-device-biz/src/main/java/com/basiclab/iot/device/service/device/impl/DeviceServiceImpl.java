@@ -1,6 +1,7 @@
 package com.basiclab.iot.device.service.device.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.fastjson2.JSONObject;
@@ -12,9 +13,7 @@ import com.basiclab.iot.common.constant.CacheConstants;
 import com.basiclab.iot.common.constant.Constants;
 import com.basiclab.iot.common.core.aop.TenantIgnore;
 import com.basiclab.iot.common.domain.R;
-import com.basiclab.iot.common.enums.ResultEnum;
 import com.basiclab.iot.common.service.RedisService;
-import com.basiclab.iot.sink.biz.IotDownstreamMessageApi;
 import com.basiclab.iot.common.utils.DateUtils;
 import com.basiclab.iot.common.utils.SnowflakeIdUtil;
 import com.basiclab.iot.common.utils.StringUtils;
@@ -40,6 +39,9 @@ import com.basiclab.iot.device.service.product.ProductService;
 import com.basiclab.iot.device.service.product.ProductServicesService;
 import com.basiclab.iot.file.RemoteFileService;
 import com.basiclab.iot.file.domain.vo.SysFileVo;
+import com.basiclab.iot.sink.biz.IotDownstreamMessageApi;
+import com.basiclab.iot.sink.enums.IotDeviceMessageMethodEnum;
+import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.tdengine.RemoteTdEngineService;
 import com.basiclab.iot.tdengine.domain.SelectDto;
 import lombok.extern.slf4j.Slf4j;
@@ -69,6 +71,13 @@ import java.util.stream.Collectors;
 
 import static com.basiclab.iot.common.utils.StringUtils.isEmpty;
 
+/**
+ * DeviceLocationServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Service
 @Slf4j
 @Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
@@ -76,17 +85,17 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
     @Resource
     private DeviceMapper deviceMapper;
-    @Autowired
+    @Resource
     private RedisService redisService;
     @Autowired(required = false)
     private IotDownstreamMessageApi iotDownstreamMessageApi;
-    @Autowired
+    @Resource
     private DeviceTopicService deviceTopicService;
-    @Autowired
+    @Resource
     private ProductService productService;
-    @Autowired
+    @Resource
     private DeviceLocationService deviceLocationService;
-    @Autowired
+    @Resource
     private ProductServicesService productServicesService;
     @Resource
     private RemoteTdEngineService remoteTdEngineService;
@@ -220,14 +229,13 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
 
     /**
-     * 分批插入设备、批次详情记录并更新批次表
+     * DeviceServiceImpl
      *
-     * @param req                请求
-     * @param devices            设备列表
-     * @param deviceBatchDetails 设备批次详情列表
-     * @param response
-     * @return 插入成功数量
+     * @author 翱翔的雄库鲁
+     * @email andywebjava@163.com
+     * @wechat EasyAIoT2025
      */
+
     @Transactional(rollbackFor = Exception.class)
     public int insertDeviceAndRecord(DeviceBatchInsertReq req, ArrayList<Device> devices, ArrayList<DeviceBatchDetail> deviceBatchDetails, HttpServletResponse response) {
         if (devices.isEmpty() && deviceBatchDetails.isEmpty()) {
@@ -471,7 +479,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
                     deviceTopic.setSubscriber("物联网平台");
                 }
                 deviceTopic.setRemark(entry.getValue());
-                deviceTopicService.insertSelective(deviceTopic);
+                deviceTopicService.save(deviceTopic);
             }
         }
         return insertDeviceCount;
@@ -566,7 +574,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             Device device = new Device();
             device.setId(oneByClientId.getId());
             device.setConnectStatus(DeviceConnectStatusEnum.OFFLINE.getValue());
-            deviceMapper.updateByPrimaryKeySelective(device);
+            this.updateById(device);
         }
         return true;
     }
@@ -585,7 +593,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         }
         // 使用 iot-sink-api 实现断开连接功能
         final List<String> clientIdentifiers = deviceList.stream().map(Device::getClientId).collect(Collectors.toList());
-        
+
         try {
             if (iotDownstreamMessageApi != null) {
                 int closedCount = iotDownstreamMessageApi.closeConnection(clientIdentifiers);
@@ -889,7 +897,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             deviceTmp.setParentIdentification(targetDeviceIdentification);
             devices.add(deviceTmp);
         }
-        return deviceMapper.updateBatch(devices);
+        return this.updateBatchById(devices) ? devices.size() : 0;
     }
 
     @Override
@@ -901,7 +909,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             deviceTmp.setParentIdentification("");
             devices.add(deviceTmp);
         }
-        return deviceMapper.updateBatch(devices);
+        return this.updateBatchById(devices) ? devices.size() : 0;
     }
 
     @Override
@@ -1003,24 +1011,79 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             try {
                 // 解析 JSON
                 JSONObject extensionJson = JSONObject.parseObject(extension);
-                
+
                 // 根据扩展信息类型获取对应的数据
                 Object extensionData = extensionJson.get(request.getExtensionType());
                 result.setExtensionData(extensionData);
-                
-                log.debug("查询设备扩展信息成功：deviceId={}, extensionType={}", 
+
+                log.debug("查询设备扩展信息成功：deviceId={}, extensionType={}",
                         request.getDeviceId(), request.getExtensionType());
             } catch (Exception e) {
-                log.error("解析设备扩展信息失败：deviceId={}, extensionType={}, error={}", 
+                log.error("解析设备扩展信息失败：deviceId={}, extensionType={}, error={}",
                         request.getDeviceId(), request.getExtensionType(), e.getMessage(), e);
                 result.setExtensionData(null);
             }
 
             return result;
         } catch (Exception e) {
-            log.error("查询设备扩展信息异常：deviceId={}, extensionType={}, error={}", 
+            log.error("查询设备扩展信息异常：deviceId={}, extensionType={}, error={}",
                     request.getDeviceId(), request.getExtensionType(), e.getMessage(), e);
             return null;
+        }
+    }
+
+    @Override
+    public boolean invokeService(Long deviceId, String serviceIdentifier, Object params) {
+        try {
+            // 1. 参数校验
+            if (deviceId == null) {
+                log.warn("[invokeService][设备ID为空，无法调用服务]");
+                return false;
+            }
+            if (StrUtil.isBlank(serviceIdentifier)) {
+                log.warn("[invokeService][服务标识为空，设备ID: {}]", deviceId);
+                return false;
+            }
+
+            // 2. 查询设备信息
+            Device device = findOneById(deviceId);
+            if (device == null) {
+                log.warn("[invokeService][设备不存在，设备ID: {}]", deviceId);
+                return false;
+            }
+
+            // 3. 检查 IotDownstreamMessageApi 是否可用
+            if (iotDownstreamMessageApi == null) {
+                log.warn("[invokeService][IotDownstreamMessageApi 不存在，无法发送服务调用消息，设备ID: {}]", deviceId);
+                return false;
+            }
+
+            // 4. 构建标准 Topic：/iot/{productIdentification}/{deviceIdentification}/service/downstream/invoke/{identifier}
+            String productIdentification = device.getProductIdentification();
+            String deviceIdentification = device.getDeviceIdentification();
+            String topic = String.format("/iot/%s/%s/service/downstream/invoke/%s",
+                    productIdentification, deviceIdentification, serviceIdentifier);
+
+            // 5. 构建 IotDeviceMessage
+            IotDeviceMessage deviceMessage = IotDeviceMessage.builder()
+                    .deviceId(deviceId)
+                    .tenantId(device.getTenantId())
+                    .method(IotDeviceMessageMethodEnum.SERVICE_INVOKE.getMethod()) // thing.service.invoke
+                    .topic(topic)
+                    .params(params)
+                    .build();
+
+            // 6. 发送下行消息
+            iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
+
+            log.info("[invokeService][服务调用消息发送成功，设备ID: {}, 服务标识: {}, Topic: {}]",
+                    deviceId, serviceIdentifier, topic);
+            return true;
+
+        } catch (Exception e) {
+            log.error("[invokeService][调用设备服务失败，设备ID: {}, 服务标识: {}, 错误: {}]",
+                    deviceId, serviceIdentifier, e.getMessage(), e);
+            return false;
         }
     }
 

@@ -8,6 +8,13 @@ import com.basiclab.iot.infra.framework.file.core.client.ftp.FtpFileClientConfig
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+/**
+ * FtpFileClientTest
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 public class FtpFileClientTest {
 
     @Test

@@ -7,6 +7,13 @@ import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import java.util.Map;
 
+/**
+ * NotifyTemplateSendReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 站内信模板的发送 Request VO")
 @Data
 public class NotifyTemplateSendReqVO {

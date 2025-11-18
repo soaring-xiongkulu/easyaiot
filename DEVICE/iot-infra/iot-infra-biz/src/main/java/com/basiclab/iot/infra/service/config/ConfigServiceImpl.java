@@ -19,7 +19,11 @@ import javax.annotation.Resource;
 import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.exception;
 
 /**
- * 参数配置 Service 实现类
+ * ConfigServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 @Slf4j

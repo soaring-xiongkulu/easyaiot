@@ -7,6 +7,13 @@ import lombok.Data;
 
 import javax.validation.constraints.NotNull;
 
+/**
+ * UserUpdateStatusReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 用户更新状态 Request VO")
 @Data
 public class UserUpdateStatusReqVO {

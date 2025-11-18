@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 服务调用响应上行消息处理器
- * <p>
- * 处理 Topic: SERVICE_UPSTREAM_INVOKE_RESPONSE
+ * ServiceUpstreamInvokeResponseHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class ServiceUpstreamInvokeResponseHandler extends AbstractTopicHandler implements IotUpstreamMessageHandler {

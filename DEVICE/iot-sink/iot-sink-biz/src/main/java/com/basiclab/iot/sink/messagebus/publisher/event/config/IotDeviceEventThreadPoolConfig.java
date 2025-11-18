@@ -10,10 +10,13 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * IoT 设备事件处理线程池配置
+ * IotDeviceEventThreadPoolConfig
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Configuration
 @EnableAsync

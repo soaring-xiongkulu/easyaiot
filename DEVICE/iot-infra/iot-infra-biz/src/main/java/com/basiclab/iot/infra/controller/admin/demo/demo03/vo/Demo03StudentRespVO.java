@@ -1,14 +1,21 @@
 package com.basiclab.iot.infra.controller.admin.demo.demo03.vo;
 
-import com.basiclab.iot.common.excels.core.annotations.DictFormat;
-import com.basiclab.iot.common.excels.core.convert.DictConvert;
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
+import com.basiclab.iot.common.excels.core.annotations.DictFormat;
+import com.basiclab.iot.common.excels.core.convert.DictConvert;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * Demo03StudentRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 学生 Response VO")
 @Data
 @ExcelIgnoreUnannotated

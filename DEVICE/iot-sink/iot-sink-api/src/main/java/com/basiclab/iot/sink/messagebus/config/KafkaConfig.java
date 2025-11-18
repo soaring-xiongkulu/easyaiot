@@ -16,9 +16,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Kafka 配置类
+ * KafkaConfig
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Configuration
 @ConditionalOnProperty(prefix = "spring.kafka.iot.producer", name = "bootstrap-servers")

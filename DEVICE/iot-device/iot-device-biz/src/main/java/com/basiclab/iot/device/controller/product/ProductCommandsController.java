@@ -39,7 +39,7 @@ public class ProductCommandsController extends BaseController {
      */
     @GetMapping("selectOne")
     public ProductCommands selectOne(Long id) {
-        return productCommandsService.selectByPrimaryKey(id);
+        return productCommandsService.selectProductCommandsById(id);
     }
 
 

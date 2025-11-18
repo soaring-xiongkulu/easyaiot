@@ -9,10 +9,13 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 
 /**
- * JS 执行引擎，单例
+ * JsEngine
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public enum JsEngine {
     /**
      * 实例

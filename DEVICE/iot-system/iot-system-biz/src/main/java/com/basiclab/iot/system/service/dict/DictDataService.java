@@ -10,9 +10,11 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * 字典数据 Service 接口
+ * DictDataService
  *
- * @author ruoyi
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface DictDataService {
 

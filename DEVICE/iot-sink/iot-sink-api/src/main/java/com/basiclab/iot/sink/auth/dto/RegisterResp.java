@@ -4,10 +4,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**
- * 设备动态注册响应DTO
+ * RegisterResp
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Data
 @Schema(description = "设备动态注册响应")
 public class RegisterResp {

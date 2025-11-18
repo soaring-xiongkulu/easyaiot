@@ -3,9 +3,11 @@ package com.basiclab.iot.system.enums;
 import com.basiclab.iot.common.exception.ErrorCode;
 
 /**
- * System 错误码枚举类
+ * ErrorCodeConstants
  *
- * system 系统，使用 1-002-000-000 段
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface ErrorCodeConstants {
 

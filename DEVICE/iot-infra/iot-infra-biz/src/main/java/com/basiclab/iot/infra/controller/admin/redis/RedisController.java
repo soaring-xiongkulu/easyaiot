@@ -1,5 +1,7 @@
 package com.basiclab.iot.infra.controller.admin.redis;
 
+
+
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.infra.controller.admin.redis.vo.RedisMonitorRespVO;
 import com.basiclab.iot.infra.convert.redis.RedisConvert;
@@ -16,7 +18,17 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.Resource;
 import java.util.Properties;
 
-import static com.basiclab.iot.common.domain.CommonResult.success;
+import static com.basiclab.iot.common
+
+/**
+ * RedisController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+.domain.CommonResult.success;
 
 @Tag(name = "管理后台 - Redis 监控")
 @RestController

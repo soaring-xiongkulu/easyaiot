@@ -9,8 +9,6 @@ package com.basiclab.iot.device.constant;
  */
 public class DeviceStatusConstant {
 
-
-
     /**
      * 成功接入	客户端认证完成并成功接入系统后
      */

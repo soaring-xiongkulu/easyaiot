@@ -55,12 +55,14 @@ public interface DictDataApi {
     CommonResult<List<DictDataRespDTO>> getDictDataList(@RequestParam("dictType") String dictType);
 
     /**
-     * 获得字典数据标签列表
-     *
-     * @param dictType 字典类型
-     * @return 字典数据标签列表
-     */
-    default List<String> getDictDataLabelList(String dictType) {
+ * DictDataApi
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+default List<String> getDictDataLabelList(String dictType) {
         List<DictDataRespDTO> list = getDictDataList(dictType).getData();
         return convertList(list, DictDataRespDTO::getLabel);
     }

@@ -3,10 +3,13 @@ package com.basiclab.iot.sink.codec;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 
 /**
- * {@link IotDeviceMessage} 的编解码器
+ * IotDeviceMessageCodec
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public interface IotDeviceMessageCodec {
 
     /**

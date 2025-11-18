@@ -8,6 +8,13 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * AuthMenuRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 登录用户的菜单信息 Response VO")
 @Data
 @NoArgsConstructor
@@ -46,8 +53,13 @@ public class AuthMenuRespVO {
     private Boolean alwaysShow;
 
     /**
-     * 子路由
-     */
-    private List<AuthMenuRespVO> children;
+ * AuthMenuRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+private List<AuthMenuRespVO> children;
 
 }

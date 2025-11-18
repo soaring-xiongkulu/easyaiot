@@ -9,6 +9,13 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * AuthPermissionInfoRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 登录用户的权限信息 Response VO，额外包括用户信息和角色列表")
 @Data
 @NoArgsConstructor
@@ -87,9 +94,14 @@ public class AuthPermissionInfoRespVO {
         private Boolean alwaysShow;
 
         /**
-         * 子路由
-         */
-        private List<MenuVO> children;
+ * AuthPermissionInfoRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+private List<MenuVO> children;
 
     }
 

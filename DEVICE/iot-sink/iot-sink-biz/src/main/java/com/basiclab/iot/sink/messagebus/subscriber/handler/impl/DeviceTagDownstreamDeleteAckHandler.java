@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 设备标签删除确认下行消息处理器
- * <p>
- * 处理 Topic: DEVICE_TAG_DOWNSTREAM_DELETE_ACK
+ * DeviceTagDownstreamDeleteAckHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class DeviceTagDownstreamDeleteAckHandler extends AbstractTopicHandler implements IotDownstreamMessageHandler {

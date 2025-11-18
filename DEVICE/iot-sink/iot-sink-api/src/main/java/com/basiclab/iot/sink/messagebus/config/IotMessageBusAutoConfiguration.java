@@ -19,9 +19,11 @@ import org.springframework.kafka.core.KafkaTemplate;
 import java.util.Map;
 
 /**
- * IoT 消息总线自动配置
+ * IotMessageBusAutoConfiguration
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @AutoConfiguration
 @EnableConfigurationProperties(IotMessageBusProperties.class)

@@ -23,10 +23,13 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.except
 import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.invalidParamException;
 
 /**
- * IoT 网关 HTTP 协议的处理器抽象基类：提供通用的前置处理（认证）、全局的异常捕获等
+ * IotHttpAbstractHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @RequiredArgsConstructor
 @Slf4j
 public abstract class IotHttpAbstractHandler implements Handler<RoutingContext> {

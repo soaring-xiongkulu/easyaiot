@@ -14,25 +14,21 @@ import java.util.Map;
 
 /**
  * 文件服务降级处理
- * 
+ *
  * @author 翱翔的雄库鲁
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
 @Component
-public class RemoteFileFallbackFactory implements FallbackFactory<RemoteFileService>
-{
+public class RemoteFileFallbackFactory implements FallbackFactory<RemoteFileService> {
     private static final Logger log = LoggerFactory.getLogger(RemoteFileFallbackFactory.class);
 
     @Override
-    public RemoteFileService create(Throwable throwable)
-    {
+    public RemoteFileService create(Throwable throwable) {
         log.error("文件服务调用失败:{}", throwable.getMessage());
-        return new RemoteFileService()
-        {
+        return new RemoteFileService() {
             @Override
-            public R<SysFileVo> upload(MultipartFile file)
-            {
+            public R<SysFileVo> upload(MultipartFile file) {
                 return R.fail("上传文件失败:" + throwable.getMessage());
             }
 
@@ -42,7 +38,7 @@ public class RemoteFileFallbackFactory implements FallbackFactory<RemoteFileServ
             }
 
             @Override
-            public R<String> removeFile(@RequestBody Map<Object, Object> params){
+            public R<String> removeFile(@RequestBody Map<Object, Object> params) {
                 return R.fail("删除文件失败: " + throwable.getMessage());
             }
 

@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 服务调用下行消息处理器
- * <p>
- * 处理 Topic: SERVICE_DOWNSTREAM_INVOKE
+ * ServiceDownstreamInvokeHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class ServiceDownstreamInvokeHandler extends AbstractTopicHandler implements IotDownstreamMessageHandler {

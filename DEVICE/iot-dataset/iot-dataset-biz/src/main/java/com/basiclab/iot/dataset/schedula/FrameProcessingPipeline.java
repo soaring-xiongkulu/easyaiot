@@ -1,5 +1,7 @@
 package com.basiclab.iot.dataset.schedula;
 
+
+
 import com.basiclab.iot.common.text.UUID;
 import com.basiclab.iot.common.utils.DateUtils;
 import com.basiclab.iot.dataset.cache.StreamUrlCache;
@@ -31,6 +33,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 
+/**
+ * FrameProcessingPipeline
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @EnableScheduling
 @Configuration
 public class FrameProcessingPipeline {

@@ -17,10 +17,13 @@ import java.time.Duration;
 import static com.basiclab.iot.common.utils.cache.CacheUtils.buildAsyncReloadingCache;
 
 /**
- * 设备 Service 实现类（用于数据库查询）
+ * DeviceServiceImpl
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Service
 @Slf4j
 public class DeviceServiceImpl implements DeviceService {

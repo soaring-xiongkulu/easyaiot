@@ -168,6 +168,12 @@ public class Device extends BaseEntity implements Serializable{
     @ApiModelProperty(value = "备注")
     private String remark;
 
+    /**
+     * 租户编号
+     */
+    @ApiModelProperty(value = "租户编号")
+    private Long tenantId;
+
     public static enum deviceTypeEnum{
         /**
          * 网关

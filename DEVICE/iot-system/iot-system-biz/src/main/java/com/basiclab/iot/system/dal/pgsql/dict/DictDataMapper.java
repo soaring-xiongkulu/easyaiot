@@ -12,6 +12,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * DictDataMapper
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
 public interface DictDataMapper extends BaseMapperX<DictDataDO> {
 

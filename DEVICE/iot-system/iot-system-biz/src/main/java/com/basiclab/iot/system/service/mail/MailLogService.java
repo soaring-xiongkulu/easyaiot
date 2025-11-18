@@ -9,10 +9,11 @@ import com.basiclab.iot.system.dal.dataobject.mail.MailTemplateDO;
 import java.util.Map;
 
 /**
- * 邮件日志 Service 接口
+ * MailLogService
  *
- * @author wangjingyi
- * @since 2025-03-21
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface MailLogService {
 

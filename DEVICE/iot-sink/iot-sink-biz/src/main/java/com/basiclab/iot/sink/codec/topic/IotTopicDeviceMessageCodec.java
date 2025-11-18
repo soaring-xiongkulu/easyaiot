@@ -7,12 +7,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 基于 Topic 的通用设备消息编解码器
- * <p>
- * 支持所有标准 IoT Topic，使用 JSON 格式进行编解码
+ * IotTopicDeviceMessageCodec
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class IotTopicDeviceMessageCodec implements IotDeviceMessageCodec {

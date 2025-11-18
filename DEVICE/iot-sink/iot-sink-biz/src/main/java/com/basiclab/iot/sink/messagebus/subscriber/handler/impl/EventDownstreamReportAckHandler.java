@@ -9,12 +9,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 事件上报确认下行消息处理器
- * <p>
- * 处理 Topic: EVENT_DOWNSTREAM_REPORT_ACK
+ * EventDownstreamReportAckHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class EventDownstreamReportAckHandler extends AbstractTopicHandler implements IotDownstreamMessageHandler {

@@ -11,12 +11,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 属性期望值查询响应上行消息事件监听器
- * <p>
- * 处理 Topic: PROPERTY_UPSTREAM_DESIRED_QUERY_RESPONSE
+ * PropertyUpstreamDesiredQueryResponseListener
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class PropertyUpstreamDesiredQueryResponseListener {

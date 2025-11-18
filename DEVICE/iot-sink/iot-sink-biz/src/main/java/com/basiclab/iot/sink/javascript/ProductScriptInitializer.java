@@ -13,12 +13,13 @@ import javax.script.ScriptException;
 import java.util.List;
 
 /**
- * 产品脚本初始化器
- * <p>
- * 在应用启动时，从 PostgreSQL 加载所有启用的产品脚本到内存
+ * ProductScriptInitializer
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 @Order(100) // 确保在其他组件初始化之后执行

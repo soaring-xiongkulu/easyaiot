@@ -26,7 +26,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * @author IoT
+ * DeviceThingModelServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Service
 public class DeviceThingModelServiceImpl implements DeviceThingModelService {

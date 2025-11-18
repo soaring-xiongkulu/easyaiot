@@ -8,11 +8,11 @@ import java.io.Serializable;
 import java.util.Map;
 
 /**
- * 连接断开	客户端连接层在准备关闭时
+ * DisconnectedHook
  *
- * @author IoT
- * @description
- * @date 2025/6/14
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @ToString
 @Setter

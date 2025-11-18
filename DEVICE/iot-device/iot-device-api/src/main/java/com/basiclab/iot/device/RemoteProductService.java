@@ -17,12 +17,12 @@ import javax.validation.Valid;
 import java.util.List;
 
 /**
- * @program: EasyAIoT
- * @description: 产品管理服务
- * @packagename: com.basiclab.iot.device.api
- * @author: shisen
- * @date: 2025-07-26
- **/
+ * RemoteProductService
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @FeignClient(contextId = "remoteProductService", value = ServiceNameConstants.IOT_DEVICE, fallbackFactory = RemoteProductFallbackFactory.class)
 public interface RemoteProductService {
 

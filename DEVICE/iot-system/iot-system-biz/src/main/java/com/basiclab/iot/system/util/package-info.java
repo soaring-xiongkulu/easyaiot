@@ -1,4 +1,6 @@
 /**
- * 每个模块的 util 包，放专属当前模块的 Utils 工具类
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 package com.basiclab.iot.system.util;

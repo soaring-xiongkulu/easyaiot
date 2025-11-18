@@ -26,10 +26,13 @@ import static com.basiclab.iot.system.enums.ErrorCodeConstants.SMS_CHANNEL_HAS_C
 import static com.basiclab.iot.system.enums.ErrorCodeConstants.SMS_CHANNEL_NOT_EXISTS;
 
 /**
- * 短信渠道 Service 实现类
+ * SmsChannelServiceImpl
  *
- * @author zzf
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Service
 @Slf4j
 public class SmsChannelServiceImpl implements SmsChannelService {

@@ -4,11 +4,17 @@ import com.basiclab.iot.infra.controller.admin.codegen.vo.column.CodegenColumnSa
 import com.basiclab.iot.infra.controller.admin.codegen.vo.table.CodegenTableSaveReqVO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
+/**
+ * CodegenUpdateReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 代码生成表和字段的修改 Request VO")
 @Data
 public class CodegenUpdateReqVO {

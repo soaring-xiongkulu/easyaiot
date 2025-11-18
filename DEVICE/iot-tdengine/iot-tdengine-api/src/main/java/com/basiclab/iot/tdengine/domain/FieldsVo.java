@@ -8,11 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * @ClassDescription: 建表的字段实体类的vo类
- * @ClassName: FieldsVo
- * @Author: iot
- * @Date: 2021-12-28 11:30:06
- * @Version 1.0
+ * FieldsVo
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Data
 public class FieldsVo {

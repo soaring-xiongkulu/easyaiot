@@ -16,6 +16,13 @@ import javax.servlet.http.HttpServletRequest;
 
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * SmsCallbackController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 短信回调")
 @RestController
 @RequestMapping("/system/sms/callback")

@@ -7,7 +7,17 @@ import java.time.LocalDateTime;
 import java.util.Set;
 
 @Schema(description = "管理后台 - 租户套餐 Response VO")
-@Data
+@
+
+/**
+ * TenantPackageRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+Data
 public class TenantPackageRespVO {
 
     @Schema(description = "套餐编号", example = "1024")

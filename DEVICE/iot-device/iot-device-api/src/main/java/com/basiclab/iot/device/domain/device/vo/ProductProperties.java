@@ -9,17 +9,13 @@ import lombok.experimental.Accessors;
 import java.io.Serializable;
 
 /**
- 产品模型服务属性表
-* @Description:    java类作用描述
-* @Author:         EasyAIoT
-* @E-mail:         andywebjava@163.com
-* @Website:        https://gitee.com/soaring-xiongkulu/easyaiot
-* @CreateDate:     2024/12/25$ 23:52$
-* @UpdateUser:     EasyAIoT
-* @UpdateDate:     2024/12/25$ 23:52$
-* @UpdateRemark:   修改内容
-* @Version:        1.0
-*/
+ * ProductProperties
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
 @ApiModel(value="产品模型服务属性表")
 @Data
 @NoArgsConstructor

@@ -1,8 +1,8 @@
 package com.basiclab.iot.system.dal.pgsql.dept;
 
-import com.basiclab.iot.common.domain.PageResult;
 import com.basiclab.iot.common.core.mapper.BaseMapperX;
 import com.basiclab.iot.common.core.query.LambdaQueryWrapperX;
+import com.basiclab.iot.common.domain.PageResult;
 import com.basiclab.iot.system.controller.admin.dept.vo.post.PostPageReqVO;
 import com.basiclab.iot.system.dal.dataobject.dept.PostDO;
 import org.apache.ibatis.annotations.Mapper;
@@ -10,6 +10,13 @@ import org.apache.ibatis.annotations.Mapper;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * PostMapper
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Mapper
 public interface PostMapper extends BaseMapperX<PostDO> {
 

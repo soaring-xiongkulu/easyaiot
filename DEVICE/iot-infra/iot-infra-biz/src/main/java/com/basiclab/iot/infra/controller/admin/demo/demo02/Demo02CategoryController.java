@@ -1,9 +1,8 @@
 package com.basiclab.iot.infra.controller.admin.demo.demo02;
 
-
 import com.basiclab.iot.common.domain.CommonResult;
-import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.common.excels.core.util.ExcelUtils;
+import com.basiclab.iot.common.utils.object.BeanUtils;
 import com.basiclab.iot.infra.controller.admin.demo.demo02.vo.Demo02CategoryListReqVO;
 import com.basiclab.iot.infra.controller.admin.demo.demo02.vo.Demo02CategoryRespVO;
 import com.basiclab.iot.infra.controller.admin.demo.demo02.vo.Demo02CategorySaveReqVO;
@@ -12,19 +11,23 @@ import com.basiclab.iot.infra.service.demo.demo02.Demo02CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.IOException;
 import java.util.List;
 
-
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
+/**
+ * Demo02CategoryController
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Tag(name = "管理后台 - 示例分类")
 @RestController
 @RequestMapping("/infra/demo02-category")
@@ -80,11 +83,11 @@ public class Demo02CategoryController {
     //@PreAuthorize("@ss.hasPermission('infra:demo02-category:export')")
     // @ApiAccessLog(operateType = EXPORT)
     public void exportDemo02CategoryExcel(@Valid Demo02CategoryListReqVO listReqVO,
-              HttpServletResponse response) throws IOException {
+                                          HttpServletResponse response) throws IOException {
         List<Demo02CategoryDO> list = demo02CategoryService.getDemo02CategoryList(listReqVO);
         // 导出 Excel
         ExcelUtils.write(response, "示例分类.xls", "数据", Demo02CategoryRespVO.class,
-                        BeanUtils.toBean(list, Demo02CategoryRespVO.class));
+                BeanUtils.toBean(list, Demo02CategoryRespVO.class));
     }
 
 }

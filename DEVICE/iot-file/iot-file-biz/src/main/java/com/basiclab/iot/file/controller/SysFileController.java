@@ -8,7 +8,6 @@ import com.basiclab.iot.file.domain.vo.BucketVo;
 import com.basiclab.iot.file.domain.vo.SysFileVo;
 import com.basiclab.iot.file.service.ISysFileService;
 import com.github.pagehelper.PageInfo;
-import io.minio.messages.Bucket;
 import io.minio.messages.DeleteObject;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -23,7 +22,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 
 /**
  * 文件请求处理
@@ -268,9 +266,9 @@ public class SysFileController {
      */
     @PostMapping(value = "/getFileList")
     @ApiOperation("获取某个bucket中所有的文件名")
-    R<PageInfo<Map<String,Object>>> getFileList(@RequestBody SysFileQo sysFileQo) {
+    R<PageInfo<Map<String, Object>>> getFileList(@RequestBody SysFileQo sysFileQo) {
         try {
-            PageInfo<Map<String,Object>> ret = sysFileService.getFileList(sysFileQo.getBucketName(), sysFileQo.getPrefix(), sysFileQo.getKey(),
+            PageInfo<Map<String, Object>> ret = sysFileService.getFileList(sysFileQo.getBucketName(), sysFileQo.getPrefix(), sysFileQo.getKey(),
                     sysFileQo.getPageNo(), sysFileQo.getPageSize());
             return R.ok(ret);
         } catch (Exception e) {

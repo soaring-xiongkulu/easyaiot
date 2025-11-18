@@ -3,14 +3,11 @@ package com.basiclab.iot.sink.messagebus.subscriber.handler;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 
 /**
- * IoT 上行消息处理器接口
- * <p>
- * 用于处理从设备发送到平台的上行消息（设备 -> 平台）
- * <p>
- * 实现此接口的类需要标注 {@link org.springframework.stereotype.Component} 注解，
- * 订阅器会自动发现并调用所有注册的处理器
+ * IotUpstreamMessageHandler
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface IotUpstreamMessageHandler {
 

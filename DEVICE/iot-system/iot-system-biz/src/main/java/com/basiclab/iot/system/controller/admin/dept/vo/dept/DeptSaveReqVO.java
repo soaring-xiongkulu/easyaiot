@@ -4,12 +4,18 @@ import com.basiclab.iot.common.enums.CommonStatusEnum;
 import com.basiclab.iot.common.validation.InEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+/**
+ * DeptSaveReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 部门创建/修改 Request VO")
 @Data
 public class DeptSaveReqVO {

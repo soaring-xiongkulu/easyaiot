@@ -12,6 +12,13 @@ import lombok.Data;
 import javax.validation.constraints.NotEmpty;
 import java.time.LocalDateTime;
 
+/**
+ * OperateLogRespVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "管理后台 - 操作日志 Response VO")
 @Data
 @ExcelIgnoreUnannotated

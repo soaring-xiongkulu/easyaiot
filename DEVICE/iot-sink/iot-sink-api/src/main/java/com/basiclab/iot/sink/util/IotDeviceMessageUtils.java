@@ -11,10 +11,13 @@ import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import java.util.Map;
 
 /**
- * IoT 设备【消息】的工具类
+ * IotDeviceMessageUtils
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 public class IotDeviceMessageUtils {
 
     // ========== Message 相关 ==========

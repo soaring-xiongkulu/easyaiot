@@ -14,10 +14,11 @@ import lombok.ToString;
 import java.util.List;
 
 /**
- * 短信模板 DO
+ * SmsTemplateDO
  *
- * @author zzf
- * @since 2025-01-25
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @TableName(value = "system_sms_template", autoResultMap = true)
 @KeySequence("system_sms_template_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。

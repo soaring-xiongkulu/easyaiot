@@ -18,9 +18,11 @@ import javax.annotation.Resource;
 import java.util.List;
 
 /**
- * 应用密钥管理 Controller
+ * AppController
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 @Tag(name = "应用密钥管理")
 @RestController

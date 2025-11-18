@@ -19,12 +19,14 @@ public interface FileApi {
     String PREFIX = ApiConstants.PREFIX + "/file";
 
     /**
-     * 保存文件，并返回文件的访问路径
-     *
-     * @param content 文件内容
-     * @return 文件路径
-     */
-    default String createFile(byte[] content) {
+ * FileApi
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+default String createFile(byte[] content) {
         return createFile(null, null, content);
     }
 

@@ -7,6 +7,13 @@ import com.basiclab.iot.infra.framework.file.core.client.sftp.SftpFileClientConf
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+/**
+ * SftpFileClientTest
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 public class SftpFileClientTest {
 
     @Test

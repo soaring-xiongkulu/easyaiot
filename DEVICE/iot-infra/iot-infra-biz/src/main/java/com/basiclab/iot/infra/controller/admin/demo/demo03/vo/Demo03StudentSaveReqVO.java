@@ -7,7 +7,17 @@ import lombok.Data;
 
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
-import java.time.LocalDateTime;
+import java.time.
+
+/**
+ * Demo03StudentSaveReqVO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+LocalDateTime;
 import java.util.List;
 
 @Schema(description = "管理后台 - 学生新增/修改 Request VO")
@@ -32,7 +42,6 @@ public class Demo03StudentSaveReqVO {
     @Schema(description = "简介", example = "随便")
     @NotEmpty(message = "简介不能为空")
     private String description;
-
 
     private List<Demo03CourseDO> demo03Courses;
 

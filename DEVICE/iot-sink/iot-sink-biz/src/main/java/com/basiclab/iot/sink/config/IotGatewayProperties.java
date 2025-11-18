@@ -15,9 +15,14 @@ import java.util.List;
 public class IotGatewayProperties {
 
     /**
-     * 设备 RPC 服务配置
-     */
-    private RpcProperties rpc;
+ * IotGatewayProperties
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
+
+private RpcProperties rpc;
     /**
      * Token 配置
      */

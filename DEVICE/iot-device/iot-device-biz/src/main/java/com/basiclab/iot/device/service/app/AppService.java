@@ -5,9 +5,11 @@ import com.basiclab.iot.device.dal.dataobject.AppDO;
 import java.util.List;
 
 /**
- * 应用密钥 Service 接口
+ * AppService
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
 public interface AppService {
 

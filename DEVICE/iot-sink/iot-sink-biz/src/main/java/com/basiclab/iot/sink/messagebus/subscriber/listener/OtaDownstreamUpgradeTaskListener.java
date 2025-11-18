@@ -8,12 +8,13 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
- * OTA升级任务下行消息事件监听器
- * <p>
- * 处理 Topic: OTA_DOWNSTREAM_UPGRADE_TASK
+ * OtaDownstreamUpgradeTaskListener
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 public class OtaDownstreamUpgradeTaskListener {

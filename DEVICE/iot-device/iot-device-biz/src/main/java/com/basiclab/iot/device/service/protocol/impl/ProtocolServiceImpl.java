@@ -1,11 +1,12 @@
 package com.basiclab.iot.device.service.protocol.impl;
 
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.basiclab.iot.common.constant.CacheConstants;
 import com.basiclab.iot.common.constant.Constants;
 import com.basiclab.iot.common.service.RedisService;
+import com.basiclab.iot.device.dal.pgsql.protocol.ProtocolMapper;
 import com.basiclab.iot.device.domain.device.vo.Device;
 import com.basiclab.iot.device.domain.device.vo.Protocol;
-import com.basiclab.iot.device.dal.pgsql.protocol.ProtocolMapper;
 import com.basiclab.iot.device.service.device.DeviceService;
 import com.basiclab.iot.device.service.product.ProductService;
 import com.basiclab.iot.device.service.protocol.ProtocolService;
@@ -13,84 +14,25 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 /**
- * @description: ${description}
- * @packagename: com.basiclab.iot.device.service.protocol.impl
- * @author: EasyAIoT
- * @email: andywebjava@163.com
- * @date: 2024-07-01 17:56
- **/
+ * ProtocolServiceImpl
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Service
-public class ProtocolServiceImpl implements ProtocolService {
-
-    @Resource
-    private ProtocolMapper protocolMapper;
+public class ProtocolServiceImpl extends ServiceImpl<ProtocolMapper, Protocol> implements ProtocolService {
     @Autowired
     private DeviceService deviceService;
     @Autowired
     private ProductService productService;
     @Autowired
     private RedisService redisService;
-
-    @Override
-    public int deleteByPrimaryKey(Long id) {
-        return protocolMapper.deleteByPrimaryKey(id);
-    }
-
-    @Override
-    public int insert(Protocol record) {
-        return protocolMapper.insert(record);
-    }
-
-    @Override
-    public int insertOrUpdate(Protocol record) {
-        return protocolMapper.insertOrUpdate(record);
-    }
-
-    @Override
-    public int insertOrUpdateSelective(Protocol record) {
-        return protocolMapper.insertOrUpdateSelective(record);
-    }
-
-    @Override
-    public int insertSelective(Protocol record) {
-        return protocolMapper.insertSelective(record);
-    }
-
-    @Override
-    public Protocol selectByPrimaryKey(Long id) {
-        return protocolMapper.selectByPrimaryKey(id);
-    }
-
-    @Override
-    public int updateByPrimaryKeySelective(Protocol record) {
-        return protocolMapper.updateByPrimaryKeySelective(record);
-    }
-
-    @Override
-    public int updateByPrimaryKey(Protocol record) {
-        return protocolMapper.updateByPrimaryKey(record);
-    }
-
-    @Override
-    public int updateBatch(List<Protocol> list) {
-        return protocolMapper.updateBatch(list);
-    }
-
-    @Override
-    public int updateBatchSelective(List<Protocol> list) {
-        return protocolMapper.updateBatchSelective(list);
-    }
-
-    @Override
-    public int batchInsert(List<Protocol> list) {
-        return protocolMapper.batchInsert(list);
-    }
 
     /**
      * 查询协议管理
@@ -100,7 +42,7 @@ public class ProtocolServiceImpl implements ProtocolService {
      */
     @Override
     public Protocol selectProtocolById(Long id) {
-        return protocolMapper.selectProtocolById(id);
+        return baseMapper.selectProtocolById(id);
     }
 
     /**
@@ -111,7 +53,7 @@ public class ProtocolServiceImpl implements ProtocolService {
      */
     @Override
     public List<Protocol> selectProtocolList(Protocol protocol) {
-        return protocolMapper.selectProtocolList(protocol);
+        return baseMapper.selectProtocolList(protocol);
     }
 
     /**
@@ -122,7 +64,7 @@ public class ProtocolServiceImpl implements ProtocolService {
      */
     @Override
     public int insertProtocol(Protocol protocol) {
-        return protocolMapper.insertProtocol(protocol);
+        return baseMapper.insertProtocol(protocol);
     }
 
     /**
@@ -133,7 +75,7 @@ public class ProtocolServiceImpl implements ProtocolService {
      */
     @Override
     public int updateProtocol(Protocol protocol) {
-        return protocolMapper.updateProtocol(protocol);
+        return baseMapper.updateProtocol(protocol);
     }
 
     /**
@@ -144,12 +86,12 @@ public class ProtocolServiceImpl implements ProtocolService {
      */
     @Override
     public int deleteProtocolByIds(Long[] ids) {
-        return protocolMapper.deleteProtocolByIds(ids);
+        return baseMapper.deleteProtocolByIds(ids);
     }
 
     @Override
     public Protocol findOneByProductIdentificationAndProtocolTypeAndStatus(String productIdentification, String protocolType, String status) {
-        return protocolMapper.findOneByProductIdentificationAndProtocolTypeAndStatus(productIdentification, protocolType, status);
+        return baseMapper.findOneByProductIdentificationAndProtocolTypeAndStatus(productIdentification, protocolType, status);
     }
 
     /**
@@ -160,14 +102,14 @@ public class ProtocolServiceImpl implements ProtocolService {
      */
     @Override
     public int enable(Long[] ids) {
-        List<Protocol> protocolList = protocolMapper.findAllByIdIn(Arrays.asList(ids));
+        List<Protocol> protocolList = baseMapper.findAllByIdIn(Arrays.asList(ids));
         for (Protocol protocol : protocolList) {
             List<Device> deviceList = deviceService.findAllByProductIdentification(protocol.getProductIdentification());
             String content = StringEscapeUtils.unescapeHtml4(protocol.getContent());
             for (Device device : deviceList) {
                 redisService.set(CacheConstants.DEF_DEVICE_DATA_REPORTED_AGREEMENT_SCRIPT + protocol.getProtocolType() + device.getDeviceIdentification(), content);
             }
-            protocolMapper.updateStatusById(Constants.ENABLE, protocol.getId());
+            baseMapper.updateStatusById(Constants.ENABLE, protocol.getId());
         }
         return protocolList.size();
     }
@@ -180,25 +122,25 @@ public class ProtocolServiceImpl implements ProtocolService {
      */
     @Override
     public int disable(Long[] ids) {
-        List<Protocol> protocolList = protocolMapper.findAllByIdIn(Arrays.asList(ids));
+        List<Protocol> protocolList = baseMapper.findAllByIdIn(Arrays.asList(ids));
         for (Protocol protocol : protocolList) {
             List<Device> deviceList = deviceService.findAllByProductIdentification(protocol.getProductIdentification());
             for (Device device : deviceList) {
                 redisService.delete(CacheConstants.DEF_DEVICE_DATA_REPORTED_AGREEMENT_SCRIPT + protocol.getProtocolType() + device.getDeviceIdentification());
             }
-            protocolMapper.updateStatusById(Constants.DISABLE, protocol.getId());
+            baseMapper.updateStatusById(Constants.DISABLE, protocol.getId());
         }
         return protocolList.size();
     }
 
     @Override
     public List<Protocol> findAllByIdIn(Collection<Long> idCollection) {
-        return protocolMapper.findAllByIdIn(idCollection);
+        return baseMapper.findAllByIdIn(idCollection);
     }
 
     @Override
     public int updateStatusById(String updatedStatus, Long id) {
-        return protocolMapper.updateStatusById(updatedStatus, id);
+        return baseMapper.updateStatusById(updatedStatus, id);
     }
 
     /**
@@ -208,7 +150,7 @@ public class ProtocolServiceImpl implements ProtocolService {
      */
     @Override
     public int protocolScriptCacheRefresh() {
-        List<Protocol> protocolList = protocolMapper.selectProtocolList(Protocol.builder().build());
+        List<Protocol> protocolList = baseMapper.selectProtocolList(Protocol.builder().build());
         for (Protocol protocol : protocolList) {
             List<Device> deviceList = deviceService.findAllByProductIdentification(protocol.getProductIdentification());
             for (Device device : deviceList) {
@@ -224,7 +166,7 @@ public class ProtocolServiceImpl implements ProtocolService {
 
     @Override
     public List<Protocol> findAllByStatus(String status) {
-        return protocolMapper.findAllByStatus(status);
+        return baseMapper.findAllByStatus(status);
     }
 
 

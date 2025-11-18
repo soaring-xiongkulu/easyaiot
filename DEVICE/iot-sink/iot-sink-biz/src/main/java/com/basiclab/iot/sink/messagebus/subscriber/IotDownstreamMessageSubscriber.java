@@ -16,16 +16,13 @@ import javax.annotation.Resource;
 import java.util.List;
 
 /**
- * IoT 网关下行消息订阅器（抽象实现）
- * <p>
- * 负责订阅来自消息总线的下行消息（平台 -> 设备），并委托给下行消息处理器进行业务处理
- * <p>
- * 注意：此订阅器订阅的是通用下行消息主题，具体的协议实现（如 MQTT、TCP）应该订阅各自网关特定的主题
- * <p>
- * 如果需要订阅特定网关的下行消息，请使用协议特定的订阅器（如 {@link com.basiclab.iot.sink.protocol.mqtt.IotMqttDownstreamSubscriber}）
+ * IotDownstreamMessageSubscriber
  *
  * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
  */
+
 @Slf4j
 @Component
 @ConditionalOnBean(IotMessageBus.class)

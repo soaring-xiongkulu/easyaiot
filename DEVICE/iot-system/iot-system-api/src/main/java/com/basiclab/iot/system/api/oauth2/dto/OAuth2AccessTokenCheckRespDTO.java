@@ -7,6 +7,13 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * OAuth2AccessTokenCheckRespDTO
+ *
+ * @author 翱翔的雄库鲁
+ * @email andywebjava@163.com
+ * @wechat EasyAIoT2025
+ */
 @Schema(description = "RPC 服务 - OAuth2 访问令牌的校验 Response DTO")
 @Data
 public class OAuth2AccessTokenCheckRespDTO implements Serializable {
