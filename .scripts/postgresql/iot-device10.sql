@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict cXLBDfJgSuTdRPmNUuRgJXw91n7WjTQv6zwi5dc6SbwTDowpLF0mBAqsZB9WHrH
+\restrict ji6CHwd09PtprNSScxBsHbFV4ltD0nWEEsOQsdydDqWeuIBzBZuJnctzo5Kdusc
 
 -- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
 -- Dumped by pg_dump version 16.10 (Ubuntu 16.10-0ubuntu0.24.04.1)
@@ -1957,6 +1957,124 @@ COMMENT ON COLUMN public.device.deleted IS '是否删除';
 
 
 --
+-- Name: device_event; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.device_event (
+    id bigint NOT NULL,
+    device_identification character varying(255),
+    event_type character varying(255),
+    message text,
+    status character varying(255),
+    create_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    event_name character varying(255),
+    event_code character varying(255),
+    deleted smallint DEFAULT 0 NOT NULL,
+    tenant_id bigint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.device_event OWNER TO postgres;
+
+--
+-- Name: TABLE device_event; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.device_event IS '设备动作数据表';
+
+
+--
+-- Name: COLUMN device_event.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_event.id IS 'id';
+
+
+--
+-- Name: COLUMN device_event.device_identification; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_event.device_identification IS '设备标识';
+
+
+--
+-- Name: COLUMN device_event.event_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_event.event_type IS '事件类型';
+
+
+--
+-- Name: COLUMN device_event.message; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_event.message IS '内容信息';
+
+
+--
+-- Name: COLUMN device_event.status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_event.status IS '状态';
+
+
+--
+-- Name: COLUMN device_event.create_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_event.create_time IS '创建时间';
+
+
+--
+-- Name: COLUMN device_event.event_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_event.event_name IS '事件名称';
+
+
+--
+-- Name: COLUMN device_event.event_code; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_event.event_code IS '事件标识符';
+
+
+--
+-- Name: COLUMN device_event.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_event.deleted IS '是否删除';
+
+
+--
+-- Name: COLUMN device_event.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_event.tenant_id IS '租户编号';
+
+
+--
+-- Name: device_event_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.device_event_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.device_event_id_seq OWNER TO postgres;
+
+--
+-- Name: device_event_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.device_event_id_seq OWNED BY public.device_event.id;
+
+
+--
 -- Name: device_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2197,6 +2315,164 @@ CREATE SEQUENCE public.device_ota_version_verify_id_seq
 
 
 ALTER SEQUENCE public.device_ota_version_verify_id_seq OWNER TO postgres;
+
+--
+-- Name: device_service_invoke_response; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.device_service_invoke_response (
+    id bigint NOT NULL,
+    message_id character varying(255) NOT NULL,
+    device_id bigint NOT NULL,
+    device_identification character varying(255),
+    product_identification character varying(255),
+    service_identifier character varying(255),
+    request_id character varying(255),
+    method character varying(255),
+    response_data text,
+    response_code integer,
+    response_msg character varying(500),
+    topic character varying(500),
+    report_time timestamp without time zone,
+    tenant_id bigint DEFAULT 0 NOT NULL,
+    create_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.device_service_invoke_response OWNER TO postgres;
+
+--
+-- Name: TABLE device_service_invoke_response; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.device_service_invoke_response IS '设备服务调用响应表，用于存储平台调用设备服务后，设备返回的ACK消息';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.id IS '主键ID';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.message_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.message_id IS '消息编号（来自IotDeviceMessage.id）';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.device_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.device_id IS '设备编号';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.device_identification; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.device_identification IS '设备标识';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.product_identification; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.product_identification IS '产品标识';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.service_identifier; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.service_identifier IS '服务标识（从topic中提取的identifier）';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.request_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.request_id IS '请求编号（来自IotDeviceMessage.requestId）';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.method; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.method IS '请求方法（来自IotDeviceMessage.method，通常是thing.service.invoke）';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.response_data; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.response_data IS '响应数据（来自IotDeviceMessage.data，JSON格式）';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.response_code; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.response_code IS '响应错误码（来自IotDeviceMessage.code）';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.response_msg; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.response_msg IS '响应消息（来自IotDeviceMessage.msg）';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.topic; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.topic IS 'MQTT Topic';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.report_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.report_time IS '上报时间（来自IotDeviceMessage.reportTime）';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.tenant_id IS '租户编号';
+
+
+--
+-- Name: COLUMN device_service_invoke_response.create_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_service_invoke_response.create_time IS '创建时间';
+
+
+--
+-- Name: device_service_invoke_response_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.device_service_invoke_response_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.device_service_invoke_response_id_seq OWNER TO postgres;
+
+--
+-- Name: device_service_invoke_response_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.device_service_invoke_response_id_seq OWNED BY public.device_service_invoke_response.id;
+
 
 --
 -- Name: device_topic; Type: TABLE; Schema: public; Owner: postgres
@@ -2966,6 +3242,836 @@ COMMENT ON COLUMN public.product.tenant_id IS '租户编号';
 
 
 --
+-- Name: product_commands; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.product_commands (
+    id bigint NOT NULL,
+    service_id bigint NOT NULL,
+    name character varying(255) NOT NULL,
+    description character varying(255),
+    create_by character varying(64),
+    create_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    update_by character varying(64),
+    update_time timestamp without time zone,
+    command_code character varying(255),
+    remark character varying(255),
+    tenant_id bigint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.product_commands OWNER TO postgres;
+
+--
+-- Name: TABLE product_commands; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.product_commands IS '产品模型设备服务命令表';
+
+
+--
+-- Name: COLUMN product_commands.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands.id IS '命令id';
+
+
+--
+-- Name: COLUMN product_commands.service_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands.service_id IS '服务ID';
+
+
+--
+-- Name: COLUMN product_commands.name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands.name IS '指示命令的名字，如门磁的LOCK命令、摄像头的VIDEO_RECORD命令，命令名与参数共同构成一个完整的命令。支持英文大小写、数字及下划线，长度[2,50]。';
+
+
+--
+-- Name: COLUMN product_commands.description; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands.description IS '命令描述';
+
+
+--
+-- Name: COLUMN product_commands.create_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands.create_by IS '创建者';
+
+
+--
+-- Name: COLUMN product_commands.create_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands.create_time IS '创建时间';
+
+
+--
+-- Name: COLUMN product_commands.update_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands.update_by IS '更新者';
+
+
+--
+-- Name: COLUMN product_commands.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands.update_time IS '更新时间';
+
+
+--
+-- Name: COLUMN product_commands.command_code; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands.command_code IS '命令标识';
+
+
+--
+-- Name: COLUMN product_commands.remark; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands.remark IS '备注';
+
+
+--
+-- Name: COLUMN product_commands.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands.tenant_id IS '租户编号';
+
+
+--
+-- Name: product_commands_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.product_commands_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.product_commands_id_seq OWNER TO postgres;
+
+--
+-- Name: product_commands_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.product_commands_id_seq OWNED BY public.product_commands.id;
+
+
+--
+-- Name: product_commands_requests; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.product_commands_requests (
+    id bigint NOT NULL,
+    service_id bigint NOT NULL,
+    commands_id bigint NOT NULL,
+    datatype character varying(255) NOT NULL,
+    enumlist character varying(255),
+    max character varying(255),
+    maxlength character varying(255),
+    min character varying(255),
+    parameter_description character varying(255),
+    parameter_name character varying(255),
+    required character varying(255) DEFAULT '0'::character varying,
+    step character varying(255),
+    unit character varying(255),
+    create_by character varying(64),
+    create_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    update_by character varying(64),
+    update_time timestamp without time zone,
+    parameter_code character varying(255),
+    tenant_id bigint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.product_commands_requests OWNER TO postgres;
+
+--
+-- Name: TABLE product_commands_requests; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.product_commands_requests IS '产品模型设备下发服务命令属性表';
+
+
+--
+-- Name: COLUMN product_commands_requests.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.id IS 'id';
+
+
+--
+-- Name: COLUMN product_commands_requests.service_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.service_id IS '服务ID';
+
+
+--
+-- Name: COLUMN product_commands_requests.commands_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.commands_id IS '命令ID';
+
+
+--
+-- Name: COLUMN product_commands_requests.datatype; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.datatype IS '指示数据类型。取值范围：string、int、decimal';
+
+
+--
+-- Name: COLUMN product_commands_requests.enumlist; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.enumlist IS '指示枚举值。如开关状态status可有如下取值"enumList" : ["OPEN","CLOSE"]目前本字段是非功能性字段，仅起到描述作用。建议准确定义。';
+
+
+--
+-- Name: COLUMN product_commands_requests.max; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.max IS '指示最大值。仅当dataType为int、decimal时生效，逻辑小于等于。';
+
+
+--
+-- Name: COLUMN product_commands_requests.maxlength; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.maxlength IS '指示字符串长度。仅当dataType为string时生效。';
+
+
+--
+-- Name: COLUMN product_commands_requests.min; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.min IS '指示最小值。仅当dataType为int、decimal时生效，逻辑大于等于。';
+
+
+--
+-- Name: COLUMN product_commands_requests.parameter_description; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.parameter_description IS '命令中参数的描述，不影响实际功能，可配置为空字符串""。';
+
+
+--
+-- Name: COLUMN product_commands_requests.parameter_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.parameter_name IS '命令中参数的名字。';
+
+
+--
+-- Name: COLUMN product_commands_requests.required; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.required IS '指示本条属性是否必填，取值为0或1，默认取值1（必填）。目前本字段是非功能性字段，仅起到描述作用。';
+
+
+--
+-- Name: COLUMN product_commands_requests.step; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.step IS '指示步长。';
+
+
+--
+-- Name: COLUMN product_commands_requests.unit; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.unit IS '指示单位。取值根据参数确定，如：•温度单位："C"或"K"•百分比单位："%"•压强单位："Pa"或"kPa"';
+
+
+--
+-- Name: COLUMN product_commands_requests.create_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.create_by IS '创建者';
+
+
+--
+-- Name: COLUMN product_commands_requests.create_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.create_time IS '创建时间';
+
+
+--
+-- Name: COLUMN product_commands_requests.update_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.update_by IS '更新者';
+
+
+--
+-- Name: COLUMN product_commands_requests.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.update_time IS '更新时间';
+
+
+--
+-- Name: COLUMN product_commands_requests.parameter_code; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.parameter_code IS '请求参数编码';
+
+
+--
+-- Name: COLUMN product_commands_requests.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_requests.tenant_id IS '租户编号';
+
+
+--
+-- Name: product_commands_requests_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.product_commands_requests_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.product_commands_requests_id_seq OWNER TO postgres;
+
+--
+-- Name: product_commands_requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.product_commands_requests_id_seq OWNED BY public.product_commands_requests.id;
+
+
+--
+-- Name: product_commands_response; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.product_commands_response (
+    id bigint NOT NULL,
+    commands_id bigint NOT NULL,
+    service_id bigint,
+    datatype character varying(255) NOT NULL,
+    enumlist character varying(255),
+    max character varying(255),
+    maxlength character varying(255),
+    min character varying(255),
+    parameter_description character varying(255),
+    parameter_name character varying(255),
+    required character varying(255) DEFAULT '0'::character varying,
+    step character varying(255),
+    unit character varying(255),
+    create_by character varying(64),
+    create_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    update_by character varying(64),
+    update_time timestamp without time zone,
+    parameter_code character varying(255),
+    tenant_id bigint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.product_commands_response OWNER TO postgres;
+
+--
+-- Name: TABLE product_commands_response; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.product_commands_response IS '产品模型设备响应服务命令属性表';
+
+
+--
+-- Name: COLUMN product_commands_response.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.id IS 'id';
+
+
+--
+-- Name: COLUMN product_commands_response.commands_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.commands_id IS '命令ID';
+
+
+--
+-- Name: COLUMN product_commands_response.service_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.service_id IS '服务ID';
+
+
+--
+-- Name: COLUMN product_commands_response.datatype; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.datatype IS '指示数据类型。取值范围：string、int、decimal';
+
+
+--
+-- Name: COLUMN product_commands_response.enumlist; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.enumlist IS '指示枚举值。如开关状态status可有如下取值"enumList" : ["OPEN","CLOSE"]目前本字段是非功能性字段，仅起到描述作用。建议准确定义。';
+
+
+--
+-- Name: COLUMN product_commands_response.max; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.max IS '指示最大值。仅当dataType为int、decimal时生效，逻辑小于等于。';
+
+
+--
+-- Name: COLUMN product_commands_response.maxlength; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.maxlength IS '指示字符串长度。仅当dataType为string时生效。';
+
+
+--
+-- Name: COLUMN product_commands_response.min; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.min IS '指示最小值。仅当dataType为int、decimal时生效，逻辑大于等于。';
+
+
+--
+-- Name: COLUMN product_commands_response.parameter_description; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.parameter_description IS '命令中参数的描述，不影响实际功能，可配置为空字符串""。';
+
+
+--
+-- Name: COLUMN product_commands_response.parameter_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.parameter_name IS '命令中参数的名字。';
+
+
+--
+-- Name: COLUMN product_commands_response.required; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.required IS '指示本条属性是否必填，取值为0或1，默认取值1（必填）。目前本字段是非功能性字段，仅起到描述作用。';
+
+
+--
+-- Name: COLUMN product_commands_response.step; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.step IS '指示步长。';
+
+
+--
+-- Name: COLUMN product_commands_response.unit; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.unit IS '指示单位。取值根据参数确定，如：•温度单位："C"或"K"•百分比单位："%"•压强单位："Pa"或"kPa"';
+
+
+--
+-- Name: COLUMN product_commands_response.create_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.create_by IS '创建者';
+
+
+--
+-- Name: COLUMN product_commands_response.create_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.create_time IS '创建时间';
+
+
+--
+-- Name: COLUMN product_commands_response.update_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.update_by IS '更新者';
+
+
+--
+-- Name: COLUMN product_commands_response.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.update_time IS '更新时间';
+
+
+--
+-- Name: COLUMN product_commands_response.parameter_code; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.parameter_code IS '响应参数编码';
+
+
+--
+-- Name: COLUMN product_commands_response.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_commands_response.tenant_id IS '租户编号';
+
+
+--
+-- Name: product_commands_response_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.product_commands_response_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.product_commands_response_id_seq OWNER TO postgres;
+
+--
+-- Name: product_commands_response_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.product_commands_response_id_seq OWNED BY public.product_commands_response.id;
+
+
+--
+-- Name: product_event; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.product_event (
+    id bigint NOT NULL,
+    event_name character varying(255) NOT NULL,
+    event_code character varying(255) NOT NULL,
+    event_type character varying(255) NOT NULL,
+    template_identification character varying(255),
+    product_identification character varying(255),
+    status character varying(10) DEFAULT '0'::character varying,
+    description character varying(255),
+    create_by character varying(64),
+    create_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    update_by character varying(64),
+    update_time timestamp without time zone,
+    tenant_id bigint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.product_event OWNER TO postgres;
+
+--
+-- Name: TABLE product_event; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.product_event IS '产品事件表';
+
+
+--
+-- Name: COLUMN product_event.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event.id IS '主键';
+
+
+--
+-- Name: COLUMN product_event.event_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event.event_name IS '事件名称';
+
+
+--
+-- Name: COLUMN product_event.event_code; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event.event_code IS '事件标识';
+
+
+--
+-- Name: COLUMN product_event.event_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event.event_type IS '事件类型。INFO_EVENT_TYPE：信息。ALERT_EVENT_TYPE：告警。ERROR_EVENT_TYPE：故障';
+
+
+--
+-- Name: COLUMN product_event.template_identification; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event.template_identification IS '产品模版标识';
+
+
+--
+-- Name: COLUMN product_event.product_identification; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event.product_identification IS '产品标识';
+
+
+--
+-- Name: COLUMN product_event.status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event.status IS '状态(字典值：0启用  1停用)';
+
+
+--
+-- Name: COLUMN product_event.description; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event.description IS '描述';
+
+
+--
+-- Name: COLUMN product_event.create_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event.create_by IS '创建者';
+
+
+--
+-- Name: COLUMN product_event.create_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event.create_time IS '创建时间';
+
+
+--
+-- Name: COLUMN product_event.update_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event.update_by IS '更新者';
+
+
+--
+-- Name: COLUMN product_event.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event.update_time IS '更新时间';
+
+
+--
+-- Name: COLUMN product_event.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event.tenant_id IS '租户编号';
+
+
+--
+-- Name: product_event_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.product_event_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.product_event_id_seq OWNER TO postgres;
+
+--
+-- Name: product_event_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.product_event_id_seq OWNED BY public.product_event.id;
+
+
+--
+-- Name: product_event_response; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.product_event_response (
+    id bigint NOT NULL,
+    event_id bigint NOT NULL,
+    service_id bigint,
+    datatype character varying(255) NOT NULL,
+    enumlist character varying(255),
+    max character varying(255),
+    maxlength character varying(255),
+    min character varying(255),
+    parameter_description character varying(255),
+    parameter_name character varying(255),
+    required character varying(255) NOT NULL,
+    step character varying(255),
+    unit character varying(255),
+    create_by character varying(64),
+    create_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    update_by character varying(64),
+    update_time timestamp without time zone,
+    tenant_id bigint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.product_event_response OWNER TO postgres;
+
+--
+-- Name: TABLE product_event_response; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.product_event_response IS '产品模型设备响应服务命令属性表（事件响应）';
+
+
+--
+-- Name: COLUMN product_event_response.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.id IS 'id';
+
+
+--
+-- Name: COLUMN product_event_response.event_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.event_id IS '事件id';
+
+
+--
+-- Name: COLUMN product_event_response.service_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.service_id IS '服务ID';
+
+
+--
+-- Name: COLUMN product_event_response.datatype; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.datatype IS '指示数据类型。取值范围：string、int、decimal';
+
+
+--
+-- Name: COLUMN product_event_response.enumlist; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.enumlist IS '指示枚举值。如开关状态status可有如下取值"enumList" : ["OPEN","CLOSE"]目前本字段是非功能性字段，仅起到描述作用。建议准确定义。';
+
+
+--
+-- Name: COLUMN product_event_response.max; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.max IS '指示最大值。仅当dataType为int、decimal时生效，逻辑小于等于。';
+
+
+--
+-- Name: COLUMN product_event_response.maxlength; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.maxlength IS '指示字符串长度。仅当dataType为string时生效。';
+
+
+--
+-- Name: COLUMN product_event_response.min; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.min IS '指示最小值。仅当dataType为int、decimal时生效，逻辑大于等于。';
+
+
+--
+-- Name: COLUMN product_event_response.parameter_description; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.parameter_description IS '命令中参数的描述，不影响实际功能，可配置为空字符串""。';
+
+
+--
+-- Name: COLUMN product_event_response.parameter_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.parameter_name IS '命令中参数的名字。';
+
+
+--
+-- Name: COLUMN product_event_response.required; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.required IS '指示本条属性是否必填，取值为0或1，默认取值1（必填）。目前本字段是非功能性字段，仅起到描述作用。';
+
+
+--
+-- Name: COLUMN product_event_response.step; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.step IS '指示步长。';
+
+
+--
+-- Name: COLUMN product_event_response.unit; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.unit IS '指示单位。取值根据参数确定，如：•温度单位："C"或"K"•百分比单位："%"•压强单位："Pa"或"kPa"';
+
+
+--
+-- Name: COLUMN product_event_response.create_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.create_by IS '创建者';
+
+
+--
+-- Name: COLUMN product_event_response.create_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.create_time IS '创建时间';
+
+
+--
+-- Name: COLUMN product_event_response.update_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.update_by IS '更新者';
+
+
+--
+-- Name: COLUMN product_event_response.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.update_time IS '更新时间';
+
+
+--
+-- Name: COLUMN product_event_response.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_event_response.tenant_id IS '租户编号';
+
+
+--
+-- Name: product_event_response_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.product_event_response_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.product_event_response_id_seq OWNER TO postgres;
+
+--
+-- Name: product_event_response_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.product_event_response_id_seq OWNED BY public.product_event_response.id;
+
+
+--
 -- Name: product_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3319,6 +4425,140 @@ ALTER SEQUENCE public.product_script_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE public.product_script_id_seq OWNED BY public.product_script.id;
+
+
+--
+-- Name: product_services; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.product_services (
+    id bigint NOT NULL,
+    service_code character varying(255) NOT NULL,
+    service_name character varying(255) NOT NULL,
+    template_identification character varying(100),
+    product_identification character varying(100),
+    status character varying(10) DEFAULT '0'::character varying,
+    description character varying(255),
+    create_by character varying(64),
+    create_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    update_by character varying(64),
+    update_time timestamp without time zone,
+    tenant_id bigint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.product_services OWNER TO postgres;
+
+--
+-- Name: TABLE product_services; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.product_services IS '产品模型服务表';
+
+
+--
+-- Name: COLUMN product_services.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_services.id IS '服务id';
+
+
+--
+-- Name: COLUMN product_services.service_code; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_services.service_code IS '服务编码:支持英文大小写、数字、下划线和中划线';
+
+
+--
+-- Name: COLUMN product_services.service_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_services.service_name IS '服务名称';
+
+
+--
+-- Name: COLUMN product_services.template_identification; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_services.template_identification IS '产品模版标识';
+
+
+--
+-- Name: COLUMN product_services.product_identification; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_services.product_identification IS '产品标识';
+
+
+--
+-- Name: COLUMN product_services.status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_services.status IS '状态(字典值：0启用  1停用)';
+
+
+--
+-- Name: COLUMN product_services.description; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_services.description IS '服务的描述信息:文本描述，不影响实际功能，可配置为空字符串""。';
+
+
+--
+-- Name: COLUMN product_services.create_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_services.create_by IS '创建者';
+
+
+--
+-- Name: COLUMN product_services.create_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_services.create_time IS '创建时间';
+
+
+--
+-- Name: COLUMN product_services.update_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_services.update_by IS '更新者';
+
+
+--
+-- Name: COLUMN product_services.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_services.update_time IS '更新时间';
+
+
+--
+-- Name: COLUMN product_services.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.product_services.tenant_id IS '租户编号';
+
+
+--
+-- Name: product_services_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.product_services_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.product_services_id_seq OWNER TO postgres;
+
+--
+-- Name: product_services_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.product_services_id_seq OWNED BY public.product_services.id;
 
 
 --
@@ -3813,10 +5053,24 @@ ALTER TABLE ONLY public.device ALTER COLUMN id SET DEFAULT nextval('public.devic
 
 
 --
+-- Name: device_event id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.device_event ALTER COLUMN id SET DEFAULT nextval('public.device_event_id_seq'::regclass);
+
+
+--
 -- Name: device_location id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.device_location ALTER COLUMN id SET DEFAULT nextval('public.device_location_id_seq'::regclass);
+
+
+--
+-- Name: device_service_invoke_response id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.device_service_invoke_response ALTER COLUMN id SET DEFAULT nextval('public.device_service_invoke_response_id_seq'::regclass);
 
 
 --
@@ -3834,6 +5088,41 @@ ALTER TABLE ONLY public.product ALTER COLUMN id SET DEFAULT nextval('public.prod
 
 
 --
+-- Name: product_commands id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_commands ALTER COLUMN id SET DEFAULT nextval('public.product_commands_id_seq'::regclass);
+
+
+--
+-- Name: product_commands_requests id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_commands_requests ALTER COLUMN id SET DEFAULT nextval('public.product_commands_requests_id_seq'::regclass);
+
+
+--
+-- Name: product_commands_response id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_commands_response ALTER COLUMN id SET DEFAULT nextval('public.product_commands_response_id_seq'::regclass);
+
+
+--
+-- Name: product_event id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_event ALTER COLUMN id SET DEFAULT nextval('public.product_event_id_seq'::regclass);
+
+
+--
+-- Name: product_event_response id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_event_response ALTER COLUMN id SET DEFAULT nextval('public.product_event_response_id_seq'::regclass);
+
+
+--
 -- Name: product_properties id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -3845,6 +5134,13 @@ ALTER TABLE ONLY public.product_properties ALTER COLUMN id SET DEFAULT nextval('
 --
 
 ALTER TABLE ONLY public.product_script ALTER COLUMN id SET DEFAULT nextval('public.product_script_id_seq'::regclass);
+
+
+--
+-- Name: product_services id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_services ALTER COLUMN id SET DEFAULT nextval('public.product_services_id_seq'::regclass);
 
 
 --
@@ -3961,10 +5257,26 @@ COPY public.device (id, client_id, app_id, device_identification, device_name, d
 
 
 --
+-- Data for Name: device_event; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.device_event (id, device_identification, event_type, message, status, create_time, event_name, event_code, deleted, tenant_id) FROM stdin;
+\.
+
+
+--
 -- Data for Name: device_location; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.device_location (id, device_identification, latitude, longitude, full_name, province_code, city_code, region_code, create_by, create_time, update_by, update_time, remark, tenant_id, deleted) FROM stdin;
+\.
+
+
+--
+-- Data for Name: device_service_invoke_response; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.device_service_invoke_response (id, message_id, device_id, device_identification, product_identification, service_identifier, request_id, method, response_data, response_code, response_msg, topic, report_time, tenant_id, create_time) FROM stdin;
 \.
 
 
@@ -3982,6 +5294,46 @@ COPY public.device_topic (id, device_identification, type, topic, publisher, sub
 
 COPY public.product (id, app_id, template_identification, product_name, product_identification, product_type, manufacturer_id, manufacturer_name, model, data_format, device_type, protocol_type, status, remark, create_by, create_time, update_by, update_time, auth_mode, user_name, password, connector, sign_key, encrypt_method, encrypt_key, encrypt_vector, tenant_id) FROM stdin;
 22	智能家居	3ff77a5289144dacbb6d32bee107f90f	智能网关	9820630576939008	COMMON	12321	华科南航科技有限公司	32423	JSON	32423	GB28181	0	23432	admin	2024-07-04 17:35:50.852	admin	2024-07-04 17:35:50.852	32423	32432	32423	432432	32423	0	32432	23432	1
+\.
+
+
+--
+-- Data for Name: product_commands; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.product_commands (id, service_id, name, description, create_by, create_time, update_by, update_time, command_code, remark, tenant_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: product_commands_requests; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.product_commands_requests (id, service_id, commands_id, datatype, enumlist, max, maxlength, min, parameter_description, parameter_name, required, step, unit, create_by, create_time, update_by, update_time, parameter_code, tenant_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: product_commands_response; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.product_commands_response (id, commands_id, service_id, datatype, enumlist, max, maxlength, min, parameter_description, parameter_name, required, step, unit, create_by, create_time, update_by, update_time, parameter_code, tenant_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: product_event; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.product_event (id, event_name, event_code, event_type, template_identification, product_identification, status, description, create_by, create_time, update_by, update_time, tenant_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: product_event_response; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.product_event_response (id, event_id, service_id, datatype, enumlist, max, maxlength, min, parameter_description, parameter_name, required, step, unit, create_by, create_time, update_by, update_time, tenant_id) FROM stdin;
 \.
 
 
@@ -4006,6 +5358,14 @@ COPY public.product_properties (id, property_name, property_code, datatype, desc
 --
 
 COPY public.product_script (id, product_id, product_identification, script_enabled, script_content, script_version, create_by, create_time, update_by, update_time, tenant_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: product_services; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.product_services (id, service_code, service_name, template_identification, product_identification, status, description, create_by, create_time, update_by, update_time, tenant_id) FROM stdin;
 \.
 
 
@@ -4204,6 +5564,13 @@ SELECT pg_catalog.setval('public.datasource_seq', 1, false);
 
 
 --
+-- Name: device_event_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.device_event_id_seq', 1, false);
+
+
+--
 -- Name: device_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -4250,6 +5617,13 @@ SELECT pg_catalog.setval('public.device_ota_version_publish_id_seq', 1, false);
 --
 
 SELECT pg_catalog.setval('public.device_ota_version_verify_id_seq', 11, true);
+
+
+--
+-- Name: device_service_invoke_response_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.device_service_invoke_response_id_seq', 1, false);
 
 
 --
@@ -4449,6 +5823,41 @@ SELECT pg_catalog.setval('public.model_type_seq', 1, false);
 
 
 --
+-- Name: product_commands_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.product_commands_id_seq', 1, false);
+
+
+--
+-- Name: product_commands_requests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.product_commands_requests_id_seq', 1, false);
+
+
+--
+-- Name: product_commands_response_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.product_commands_response_id_seq', 1, false);
+
+
+--
+-- Name: product_event_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.product_event_id_seq', 1, false);
+
+
+--
+-- Name: product_event_response_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.product_event_response_id_seq', 1, false);
+
+
+--
 -- Name: product_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -4467,6 +5876,13 @@ SELECT pg_catalog.setval('public.product_properties_id_seq', 53, true);
 --
 
 SELECT pg_catalog.setval('public.product_script_id_seq', 1, false);
+
+
+--
+-- Name: product_services_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.product_services_id_seq', 1, false);
 
 
 --
@@ -4623,11 +6039,75 @@ ALTER TABLE ONLY public.dataset_video
 
 
 --
+-- Name: device_event device_event_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.device_event
+    ADD CONSTRAINT device_event_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: device_service_invoke_response device_service_invoke_response_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.device_service_invoke_response
+    ADD CONSTRAINT device_service_invoke_response_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: app iot_app_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.app
     ADD CONSTRAINT iot_app_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product_commands product_commands_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_commands
+    ADD CONSTRAINT product_commands_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product_commands_requests product_commands_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_commands_requests
+    ADD CONSTRAINT product_commands_requests_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product_commands_response product_commands_response_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_commands_response
+    ADD CONSTRAINT product_commands_response_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product_event product_event_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_event
+    ADD CONSTRAINT product_event_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product_event_response product_event_response_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_event_response
+    ADD CONSTRAINT product_event_response_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product_services product_services_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_services
+    ADD CONSTRAINT product_services_pkey PRIMARY KEY (id);
 
 
 --
@@ -4670,10 +6150,171 @@ CREATE INDEX idx_created_time ON public.app USING btree (created_time);
 
 
 --
+-- Name: idx_device_event_create_time; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_device_event_create_time ON public.device_event USING btree (create_time);
+
+
+--
+-- Name: idx_device_event_device_identification; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_device_event_device_identification ON public.device_event USING btree (device_identification);
+
+
+--
+-- Name: idx_device_event_event_code; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_device_event_event_code ON public.device_event USING btree (event_code);
+
+
+--
+-- Name: idx_device_event_tenant_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_device_event_tenant_id ON public.device_event USING btree (tenant_id);
+
+
+--
+-- Name: idx_device_service_invoke_response_create_time; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_device_service_invoke_response_create_time ON public.device_service_invoke_response USING btree (create_time);
+
+
+--
+-- Name: idx_device_service_invoke_response_device_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_device_service_invoke_response_device_id ON public.device_service_invoke_response USING btree (device_id);
+
+
+--
+-- Name: idx_device_service_invoke_response_device_identification; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_device_service_invoke_response_device_identification ON public.device_service_invoke_response USING btree (device_identification);
+
+
+--
+-- Name: idx_device_service_invoke_response_message_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_device_service_invoke_response_message_id ON public.device_service_invoke_response USING btree (message_id);
+
+
+--
+-- Name: idx_device_service_invoke_response_tenant_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_device_service_invoke_response_tenant_id ON public.device_service_invoke_response USING btree (tenant_id);
+
+
+--
 -- Name: idx_expire_time; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX idx_expire_time ON public.app USING btree (expire_time);
+
+
+--
+-- Name: idx_product_commands_requests_commands_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_commands_requests_commands_id ON public.product_commands_requests USING btree (commands_id);
+
+
+--
+-- Name: idx_product_commands_requests_service_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_commands_requests_service_id ON public.product_commands_requests USING btree (service_id);
+
+
+--
+-- Name: idx_product_commands_requests_tenant_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_commands_requests_tenant_id ON public.product_commands_requests USING btree (tenant_id);
+
+
+--
+-- Name: idx_product_commands_response_commands_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_commands_response_commands_id ON public.product_commands_response USING btree (commands_id);
+
+
+--
+-- Name: idx_product_commands_response_service_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_commands_response_service_id ON public.product_commands_response USING btree (service_id);
+
+
+--
+-- Name: idx_product_commands_response_tenant_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_commands_response_tenant_id ON public.product_commands_response USING btree (tenant_id);
+
+
+--
+-- Name: idx_product_commands_service_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_commands_service_id ON public.product_commands USING btree (service_id);
+
+
+--
+-- Name: idx_product_commands_tenant_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_commands_tenant_id ON public.product_commands USING btree (tenant_id);
+
+
+--
+-- Name: idx_product_event_event_code; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_event_event_code ON public.product_event USING btree (event_code);
+
+
+--
+-- Name: idx_product_event_product_identification; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_event_product_identification ON public.product_event USING btree (product_identification);
+
+
+--
+-- Name: idx_product_event_response_event_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_event_response_event_id ON public.product_event_response USING btree (event_id);
+
+
+--
+-- Name: idx_product_event_response_service_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_event_response_service_id ON public.product_event_response USING btree (service_id);
+
+
+--
+-- Name: idx_product_event_response_tenant_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_event_response_tenant_id ON public.product_event_response USING btree (tenant_id);
+
+
+--
+-- Name: idx_product_event_tenant_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_event_tenant_id ON public.product_event USING btree (tenant_id);
 
 
 --
@@ -4695,6 +6336,27 @@ CREATE INDEX idx_product_script_product_identification ON public.product_script 
 --
 
 CREATE INDEX idx_product_script_tenant_id ON public.product_script USING btree (tenant_id);
+
+
+--
+-- Name: idx_product_services_product_identification; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_services_product_identification ON public.product_services USING btree (product_identification);
+
+
+--
+-- Name: idx_product_services_service_code; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_services_service_code ON public.product_services USING btree (service_code);
+
+
+--
+-- Name: idx_product_services_tenant_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_services_tenant_id ON public.product_services USING btree (tenant_id);
 
 
 --
@@ -4736,5 +6398,5 @@ CREATE TRIGGER update_iot_app_updated_time BEFORE UPDATE ON public.app FOR EACH 
 -- PostgreSQL database dump complete
 --
 
-\unrestrict cXLBDfJgSuTdRPmNUuRgJXw91n7WjTQv6zwi5dc6SbwTDowpLF0mBAqsZB9WHrH
+\unrestrict ji6CHwd09PtprNSScxBsHbFV4ltD0nWEEsOQsdydDqWeuIBzBZuJnctzo5Kdusc
 
