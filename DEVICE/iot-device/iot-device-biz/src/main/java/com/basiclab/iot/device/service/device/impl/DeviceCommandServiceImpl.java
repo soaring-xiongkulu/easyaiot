@@ -303,7 +303,7 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
             // 发送下行消息
             iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
             
-            return R.success("消息发送成功");
+            return R.ok(null, "消息发送成功");
         } catch (Exception e) {
             log.error("Failed to send message using IotDownstreamMessageApi", e);
             return R.fail("消息发送失败: " + e.getMessage());
@@ -381,7 +381,7 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
             // 发送下行消息
             iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
 
-            return R.success("消息发送成功");
+            return R.ok(null, "消息发送成功");
         } catch (Exception e) {
             log.error("[sendMessage][发送消息失败，topic: {}，错误: {}]", topic, e.getMessage(), e);
             return R.fail("消息发送失败: " + e.getMessage());
@@ -446,7 +446,7 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
             // 发送下行消息
             iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
 
-            return R.success("消息发送成功");
+            return R.ok(null, "消息发送成功");
         } catch (Exception e) {
             log.error("[sendCustomMessage][发送消息失败，topic: {}，错误: {}]", 
                     publishMessageRequestParam.getTopic(), e.getMessage(), e);
