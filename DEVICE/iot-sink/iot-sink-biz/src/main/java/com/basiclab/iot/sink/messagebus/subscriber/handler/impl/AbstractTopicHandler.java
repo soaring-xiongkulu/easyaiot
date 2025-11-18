@@ -46,11 +46,11 @@ public abstract class AbstractTopicHandler {
                 return false;
             }
 
-            // 3. 检查 Topic 是否启用
+            // 3. 检查 Topic 是否应该被处理
             if (gatewayProperties != null && gatewayProperties.getTopic() != null) {
-                boolean enabled = gatewayProperties.getTopic().isEnabled(topicEnum);
-                if (!enabled) {
-                    log.debug("[handleAndPublishEvent][Topic 未启用，跳过处理，topic: {}, topicEnum: {}]",
+                boolean shouldProcess = gatewayProperties.getTopic().shouldProcess(topicEnum);
+                if (!shouldProcess) {
+                    log.debug("[handleAndPublishEvent][Topic 不在订阅列表中，跳过处理，topic: {}, topicEnum: {}]",
                             message.getTopic(), topicEnum.name());
                     return false;
                 }

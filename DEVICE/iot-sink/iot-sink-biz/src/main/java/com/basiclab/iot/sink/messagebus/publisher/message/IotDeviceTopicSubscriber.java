@@ -1,6 +1,7 @@
 package com.basiclab.iot.sink.messagebus.publisher.message;
 
 import cn.hutool.core.util.StrUtil;
+import com.basiclab.iot.sink.config.IotGatewayProperties;
 import com.basiclab.iot.sink.enums.IotDeviceTopicEnum;
 import com.basiclab.iot.sink.messagebus.core.IotMessageBus;
 import com.basiclab.iot.sink.messagebus.core.IotMessageSubscriber;
@@ -32,6 +33,9 @@ public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceM
 
     @Resource
     private ApplicationEventPublisher eventPublisher;
+
+    @Resource
+    private IotGatewayProperties gatewayProperties;
 
     @Override
     public void afterSingletonsInstantiated() {
@@ -78,7 +82,17 @@ public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceM
                 return;
             }
 
-            // 3. 发布事件，由对应的 EventListener 异步处理
+            // 3. 检查 Topic 是否应该被处理
+            if (gatewayProperties != null && gatewayProperties.getTopic() != null) {
+                boolean shouldProcess = gatewayProperties.getTopic().shouldProcess(topicEnum);
+                if (!shouldProcess) {
+                    log.debug("[onMessage][Topic 不在订阅列表中，跳过处理，topic: {}, topicEnum: {}, messageId: {}]",
+                            topic, topicEnum.name(), message.getId());
+                    return;
+                }
+            }
+
+            // 4. 发布事件，由对应的 EventListener 异步处理
             publishEvent(message, topicEnum);
 
         } catch (Exception e) {
