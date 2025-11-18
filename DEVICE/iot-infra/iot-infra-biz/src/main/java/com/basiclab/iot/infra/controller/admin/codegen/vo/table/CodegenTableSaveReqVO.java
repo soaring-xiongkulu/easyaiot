@@ -10,8 +10,6 @@ import lombok.Data;
 import javax.validation.constraints.AssertTrue;
 import javax.validation.constraints.NotNull;
 
-@Schema(descr
-
 /**
  * CodegenTableSaveReqVO
  *
@@ -19,8 +17,7 @@ import javax.validation.constraints.NotNull;
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-
-iption = "管理后台 - 代码生成表定义创建/修改 Response VO")
+@Schema(description = "管理后台 - 代码生成表定义创建/修改 ResponseVO")
 @Data
 public class CodegenTableSaveReqVO {
 

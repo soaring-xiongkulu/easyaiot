@@ -9,10 +9,6 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@Schema(description = "管理后台 - 示例联系人 Response VO")
-@Data
-@ExcelIgnoreUnan
-
 /**
  * Demo01ContactRespVO
  *
@@ -20,8 +16,9 @@ import java.time.LocalDateTime;
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-
-notated
+@Schema(description = "管理后台 - 示例联系人 Response VO")
+@Data
+@ExcelIgnoreUnannotated
 public class Demo01ContactRespVO {
 
     @Schema(description = "编号", example = "21555")

@@ -1,6 +1,7 @@
 package com.basiclab.iot.system.controller.admin.user;
 
 import cn.hutool.core.collection.CollUtil;
+import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.domain.PageParam;
 import com.basiclab.iot.common.domain.PageResult;
 import com.basiclab.iot.common.enums.CommonStatusEnum;
