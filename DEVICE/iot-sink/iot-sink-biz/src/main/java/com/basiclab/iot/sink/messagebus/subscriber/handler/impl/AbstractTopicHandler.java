@@ -1,5 +1,6 @@
 package com.basiclab.iot.sink.messagebus.subscriber.handler.impl;
 
+import com.basiclab.iot.sink.config.IotGatewayProperties;
 import com.basiclab.iot.sink.enums.IotDeviceTopicEnum;
 import com.basiclab.iot.sink.messagebus.subscriber.event.IotMessageBusEvent;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
@@ -20,6 +21,9 @@ public abstract class AbstractTopicHandler {
 
     @Resource
     private ApplicationContext applicationContext;
+
+    @Resource
+    private IotGatewayProperties gatewayProperties;
 
     /**
      * 处理消息并发布事件
@@ -42,7 +46,17 @@ public abstract class AbstractTopicHandler {
                 return false;
             }
 
-            // 3. 发布事件，异步处理
+            // 3. 检查 Topic 是否启用
+            if (gatewayProperties != null && gatewayProperties.getTopic() != null) {
+                boolean enabled = gatewayProperties.getTopic().isEnabled(topicEnum);
+                if (!enabled) {
+                    log.debug("[handleAndPublishEvent][Topic 未启用，跳过处理，topic: {}, topicEnum: {}]",
+                            message.getTopic(), topicEnum.name());
+                    return false;
+                }
+            }
+
+            // 4. 发布事件，异步处理
             IotMessageBusEvent event = new IotMessageBusEvent(this, message, topicEnum);
             applicationContext.publishEvent(event);
 

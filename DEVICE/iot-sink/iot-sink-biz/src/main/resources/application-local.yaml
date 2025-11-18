@@ -207,6 +207,51 @@ basiclab:
           - "ext/#"
           - "broadcast/#"
           - "ota/#"
+        # Topic 开关配置（只有开启的 topic 才会被处理）
+        # 配置管理相关 Topic
+        config:
+          downstream-push: true  # 云端下行推送配置（设备订阅）
+          downstream-query-ack: true  # 云端下行回复配置查询（设备订阅）
+          upstream-query: true  # 设备上行查询配置（设备发布）
+        # 设备标签管理相关 Topic
+        device-tag:
+          downstream-report-ack: true  # 云端下行回复标签上报（设备订阅）
+          upstream-delete: true  # 设备上行删除标签（设备发布）
+          upstream-report: true  # 设备上行上报标签（设备发布）
+          downstream-delete-ack: true  # 云端下行回复标签删除（设备订阅）
+        # 设备影子相关 Topic
+        shadow:
+          downstream-desired: true  # 云端下行推送影子期望值（设备订阅）
+          upstream-report: true  # 设备上行上报影子状态（设备发布）
+        # 时钟同步相关 Topic
+        ntp:
+          downstream-response: true  # 云端下行回复 NTP 同步请求（设备订阅）
+          upstream-request: true  # 设备上行请求 NTP 同步（设备发布）
+        # 广播消息相关 Topic
+        broadcast:
+          downstream: true  # 云端下行广播消息（设备订阅）
+        # OTA 固件升级相关 Topic
+        ota:
+          downstream-upgrade-task: true  # 云端下行推送固件升级任务（设备订阅）
+          upstream-version-report: true  # 设备上行上报固件版本信息（设备发布）
+          upstream-progress-report: true  # 设备上行上报升级进度（设备发布）
+          upstream-firmware-query: true  # 设备上行查询固件信息（设备发布）
+        # 服务调用相关 Topic
+        service:
+          downstream-invoke: true  # 云端下行调用设备服务（设备订阅）
+          upstream-invoke-response: true  # 设备上行响应服务调用（设备发布）
+        # 属性相关 Topic
+        property:
+          downstream-desired-set: true  # 云端下行设置属性期望值（设备订阅）
+          upstream-desired-set-ack: true  # 设备上行回复属性期望值设置（设备发布）
+          downstream-desired-query: true  # 云端下行查询属性期望值（设备订阅）
+          upstream-desired-query-response: true  # 设备上行回复属性期望值查询（设备发布）
+          downstream-report-ack: true  # 云端下行回复属性上报（设备订阅）
+          upstream-report: true  # 设备上行上报属性（设备发布）
+        # 事件相关 Topic
+        event:
+          downstream-report-ack: true  # 云端下行回复事件上报（设备订阅）
+          upstream-report: true  # 设备上行上报事件（设备发布）
       # 协议配置
       protocol:
         http:

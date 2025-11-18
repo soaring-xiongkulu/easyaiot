@@ -28,6 +28,11 @@ public class IotGatewayProperties {
      */
     private ProtocolProperties protocol;
 
+    /**
+     * Topic 配置
+     */
+    private TopicProperties topic;
+
     @Data
     public static class RpcProperties {
 
@@ -403,6 +408,301 @@ public class IotGatewayProperties {
 
         }
 
+    }
+
+    @Data
+    public static class TopicProperties {
+
+        /**
+         * 配置管理相关 Topic 开关
+         */
+        private ConfigTopicProperties config = new ConfigTopicProperties();
+
+        /**
+         * 设备标签管理相关 Topic 开关
+         */
+        private DeviceTagTopicProperties deviceTag = new DeviceTagTopicProperties();
+
+        /**
+         * 设备影子相关 Topic 开关
+         */
+        private ShadowTopicProperties shadow = new ShadowTopicProperties();
+
+        /**
+         * 时钟同步相关 Topic 开关
+         */
+        private NtpTopicProperties ntp = new NtpTopicProperties();
+
+        /**
+         * 广播消息相关 Topic 开关
+         */
+        private BroadcastTopicProperties broadcast = new BroadcastTopicProperties();
+
+        /**
+         * OTA 固件升级相关 Topic 开关
+         */
+        private OtaTopicProperties ota = new OtaTopicProperties();
+
+        /**
+         * 服务调用相关 Topic 开关
+         */
+        private ServiceTopicProperties service = new ServiceTopicProperties();
+
+        /**
+         * 属性相关 Topic 开关
+         */
+        private PropertyTopicProperties property = new PropertyTopicProperties();
+
+        /**
+         * 事件相关 Topic 开关
+         */
+        private EventTopicProperties event = new EventTopicProperties();
+
+        /**
+         * 配置管理相关 Topic 开关
+         */
+        @Data
+        public static class ConfigTopicProperties {
+            /**
+             * 云端下行推送配置（设备订阅）
+             */
+            private Boolean downstreamPush = true;
+            /**
+             * 云端下行回复配置查询（设备订阅）
+             */
+            private Boolean downstreamQueryAck = true;
+            /**
+             * 设备上行查询配置（设备发布）
+             */
+            private Boolean upstreamQuery = true;
+        }
+
+        /**
+         * 设备标签管理相关 Topic 开关
+         */
+        @Data
+        public static class DeviceTagTopicProperties {
+            /**
+             * 云端下行回复标签上报（设备订阅）
+             */
+            private Boolean downstreamReportAck = true;
+            /**
+             * 设备上行删除标签（设备发布）
+             */
+            private Boolean upstreamDelete = true;
+            /**
+             * 设备上行上报标签（设备发布）
+             */
+            private Boolean upstreamReport = true;
+            /**
+             * 云端下行回复标签删除（设备订阅）
+             */
+            private Boolean downstreamDeleteAck = true;
+        }
+
+        /**
+         * 设备影子相关 Topic 开关
+         */
+        @Data
+        public static class ShadowTopicProperties {
+            /**
+             * 云端下行推送影子期望值（设备订阅）
+             */
+            private Boolean downstreamDesired = true;
+            /**
+             * 设备上行上报影子状态（设备发布）
+             */
+            private Boolean upstreamReport = true;
+        }
+
+        /**
+         * 时钟同步相关 Topic 开关
+         */
+        @Data
+        public static class NtpTopicProperties {
+            /**
+             * 云端下行回复 NTP 同步请求（设备订阅）
+             */
+            private Boolean downstreamResponse = true;
+            /**
+             * 设备上行请求 NTP 同步（设备发布）
+             */
+            private Boolean upstreamRequest = true;
+        }
+
+        /**
+         * 广播消息相关 Topic 开关
+         */
+        @Data
+        public static class BroadcastTopicProperties {
+            /**
+             * 云端下行广播消息（设备订阅）
+             */
+            private Boolean downstream = true;
+        }
+
+        /**
+         * OTA 固件升级相关 Topic 开关
+         */
+        @Data
+        public static class OtaTopicProperties {
+            /**
+             * 云端下行推送固件升级任务（设备订阅）
+             */
+            private Boolean downstreamUpgradeTask = true;
+            /**
+             * 设备上行上报固件版本信息（设备发布）
+             */
+            private Boolean upstreamVersionReport = true;
+            /**
+             * 设备上行上报升级进度（设备发布）
+             */
+            private Boolean upstreamProgressReport = true;
+            /**
+             * 设备上行查询固件信息（设备发布）
+             */
+            private Boolean upstreamFirmwareQuery = true;
+        }
+
+        /**
+         * 服务调用相关 Topic 开关
+         */
+        @Data
+        public static class ServiceTopicProperties {
+            /**
+             * 云端下行调用设备服务（设备订阅）
+             */
+            private Boolean downstreamInvoke = true;
+            /**
+             * 设备上行响应服务调用（设备发布）
+             */
+            private Boolean upstreamInvokeResponse = true;
+        }
+
+        /**
+         * 属性相关 Topic 开关
+         */
+        @Data
+        public static class PropertyTopicProperties {
+            /**
+             * 云端下行设置属性期望值（设备订阅）
+             */
+            private Boolean downstreamDesiredSet = true;
+            /**
+             * 设备上行回复属性期望值设置（设备发布）
+             */
+            private Boolean upstreamDesiredSetAck = true;
+            /**
+             * 云端下行查询属性期望值（设备订阅）
+             */
+            private Boolean downstreamDesiredQuery = true;
+            /**
+             * 设备上行回复属性期望值查询（设备发布）
+             */
+            private Boolean upstreamDesiredQueryResponse = true;
+            /**
+             * 云端下行回复属性上报（设备订阅）
+             */
+            private Boolean downstreamReportAck = true;
+            /**
+             * 设备上行上报属性（设备发布）
+             */
+            private Boolean upstreamReport = true;
+        }
+
+        /**
+         * 事件相关 Topic 开关
+         */
+        @Data
+        public static class EventTopicProperties {
+            /**
+             * 云端下行回复事件上报（设备订阅）
+             */
+            private Boolean downstreamReportAck = true;
+            /**
+             * 设备上行上报事件（设备发布）
+             */
+            private Boolean upstreamReport = true;
+        }
+
+        /**
+         * 根据 Topic 枚举获取是否启用
+         *
+         * @param topicEnum Topic 枚举
+         * @return 是否启用
+         */
+        public boolean isEnabled(com.basiclab.iot.sink.enums.IotDeviceTopicEnum topicEnum) {
+            if (topicEnum == null) {
+                return false;
+            }
+            switch (topicEnum) {
+                // 配置管理
+                case CONFIG_DOWNSTREAM_PUSH:
+                    return config.getDownstreamPush();
+                case CONFIG_DOWNSTREAM_QUERY_ACK:
+                    return config.getDownstreamQueryAck();
+                case CONFIG_UPSTREAM_QUERY:
+                    return config.getUpstreamQuery();
+                // 设备标签管理
+                case DEVICE_TAG_DOWNSTREAM_REPORT_ACK:
+                    return deviceTag.getDownstreamReportAck();
+                case DEVICE_TAG_UPSTREAM_DELETE:
+                    return deviceTag.getUpstreamDelete();
+                case DEVICE_TAG_UPSTREAM_REPORT:
+                    return deviceTag.getUpstreamReport();
+                case DEVICE_TAG_DOWNSTREAM_DELETE_ACK:
+                    return deviceTag.getDownstreamDeleteAck();
+                // 设备影子
+                case SHADOW_DOWNSTREAM_DESIRED:
+                    return shadow.getDownstreamDesired();
+                case SHADOW_UPSTREAM_REPORT:
+                    return shadow.getUpstreamReport();
+                // 时钟同步
+                case NTP_DOWNSTREAM_RESPONSE:
+                    return ntp.getDownstreamResponse();
+                case NTP_UPSTREAM_REQUEST:
+                    return ntp.getUpstreamRequest();
+                // 广播消息
+                case BROADCAST_DOWNSTREAM:
+                    return broadcast.getDownstream();
+                // OTA 固件升级
+                case OTA_DOWNSTREAM_UPGRADE_TASK:
+                    return ota.getDownstreamUpgradeTask();
+                case OTA_UPSTREAM_VERSION_REPORT:
+                    return ota.getUpstreamVersionReport();
+                case OTA_UPSTREAM_PROGRESS_REPORT:
+                    return ota.getUpstreamProgressReport();
+                case OTA_UPSTREAM_FIRMWARE_QUERY:
+                    return ota.getUpstreamFirmwareQuery();
+                // 服务调用
+                case SERVICE_DOWNSTREAM_INVOKE:
+                    return service.getDownstreamInvoke();
+                case SERVICE_UPSTREAM_INVOKE_RESPONSE:
+                    return service.getUpstreamInvokeResponse();
+                // 属性期望值设置
+                case PROPERTY_DOWNSTREAM_DESIRED_SET:
+                    return property.getDownstreamDesiredSet();
+                case PROPERTY_UPSTREAM_DESIRED_SET_ACK:
+                    return property.getUpstreamDesiredSetAck();
+                // 属性期望值获取
+                case PROPERTY_DOWNSTREAM_DESIRED_QUERY:
+                    return property.getDownstreamDesiredQuery();
+                case PROPERTY_UPSTREAM_DESIRED_QUERY_RESPONSE:
+                    return property.getUpstreamDesiredQueryResponse();
+                // 属性上报
+                case PROPERTY_DOWNSTREAM_REPORT_ACK:
+                    return property.getDownstreamReportAck();
+                case PROPERTY_UPSTREAM_REPORT:
+                    return property.getUpstreamReport();
+                // 事件上报
+                case EVENT_DOWNSTREAM_REPORT_ACK:
+                    return event.getDownstreamReportAck();
+                case EVENT_UPSTREAM_REPORT:
+                    return event.getUpstreamReport();
+                default:
+                    return true; // 默认启用，兼容新增的 topic
+            }
+        }
     }
 
 }
