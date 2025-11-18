@@ -3411,6 +3411,64 @@ create_tdengine_database() {
     fi
 }
 
+# 执行 TDengine SQL 脚本
+execute_tdengine_sql_script() {
+    local db_name=$1
+    local sql_file=$2
+    local error_log=$(mktemp)
+    
+    if [ ! -f "$sql_file" ]; then
+        print_error "SQL 文件不存在: $sql_file"
+        return 1
+    fi
+    
+    print_info "执行 TDengine SQL 脚本: $sql_file -> 数据库: $db_name"
+    
+    # TDengine 执行 SQL 脚本的方式：
+    # 方法1: 将 SQL 文件复制到容器内执行（推荐）
+    # 方法2: 通过标准输入传递 SQL 内容
+    
+    # 使用标准输入方式执行 SQL 脚本
+    # 注意：SQL 文件中已经包含了 CREATE DATABASE IF NOT EXISTS 语句
+    # 但为了确保在正确的数据库中执行，我们在开头添加 USE 语句
+    
+    # 创建临时 SQL 内容，添加 USE 语句（如果 SQL 文件中没有指定数据库）
+    local temp_sql_content=$(mktemp)
+    {
+        echo "USE $db_name;"
+        cat "$sql_file"
+    } > "$temp_sql_content"
+    
+    # 通过标准输入执行 SQL 脚本
+    # TDengine 的 taos 命令可以通过标准输入读取 SQL
+    local output=$(docker exec -i tdengine-server taos -h localhost < "$temp_sql_content" 2>"$error_log")
+    local exit_code=$?
+    
+    # 清理临时文件
+    rm -f "$temp_sql_content"
+    
+    if [ $exit_code -eq 0 ]; then
+        print_success "TDengine SQL 脚本执行成功: $sql_file"
+        rm -f "$error_log"
+        return 0
+    else
+        # 检查错误日志，忽略常见的非致命错误
+        local error_content=$(cat "$error_log" 2>/dev/null || echo "")
+        rm -f "$error_log"
+        
+        # TDengine 常见的非致命错误信息
+        if [ -z "$error_content" ] || echo "$error_content" | grep -qiE "(warning|notice|already exists|does not exist|DB already exists|Table already exists|STable already exists)"; then
+            print_success "TDengine SQL 脚本执行完成: $sql_file (可能有警告，但已忽略)"
+            return 0
+        else
+            print_warning "TDengine SQL 脚本执行可能有问题: $sql_file"
+            print_info "错误信息: $error_content"
+            # 即使有错误也继续，因为某些 SQL 文件可能包含错误处理
+            return 0
+        fi
+    fi
+}
+
 # 初始化 TDengine 数据库和超级表
 init_tdengine() {
     print_section "初始化 TDengine 数据库和超级表"
@@ -3440,7 +3498,66 @@ init_tdengine() {
     
     if [ $success_count -eq $total_count ]; then
         print_success "所有 TDengine 数据库初始化完成！"
-        print_info "注意：超级表将在应用启动时根据产品服务动态创建"
+        
+        # 执行超级表初始化 SQL 脚本
+        echo ""
+        print_section "初始化 TDengine 超级表"
+        
+        # 查找 SQL 脚本文件路径
+        # SCRIPT_DIR 是 .scripts/docker/，SQL 文件在 .scripts/tdengine/
+        local sql_file=""
+        
+        # 方法1: 从脚本目录的父目录查找（.scripts/tdengine/）
+        local script_parent_dir=$(cd "${SCRIPT_DIR}/.." && pwd 2>/dev/null || echo "")
+        if [ -n "$script_parent_dir" ]; then
+            sql_file="${script_parent_dir}/tdengine/tdengine_super_tables.sql"
+        fi
+        
+        # 方法2: 如果方法1失败，尝试从项目根目录查找
+        if [ -z "$sql_file" ] || [ ! -f "$sql_file" ]; then
+            local project_root=$(cd "${SCRIPT_DIR}/../.." && pwd 2>/dev/null || echo "")
+            if [ -n "$project_root" ]; then
+                sql_file="${project_root}/.scripts/tdengine/tdengine_super_tables.sql"
+            fi
+        fi
+        
+        # 方法3: 尝试其他可能的路径
+        if [ -z "$sql_file" ] || [ ! -f "$sql_file" ]; then
+            local possible_paths=(
+                "${SCRIPT_DIR}/../tdengine/tdengine_super_tables.sql"
+                "${SCRIPT_DIR}/../../.scripts/tdengine/tdengine_super_tables.sql"
+                "$(dirname "${SCRIPT_DIR}")/tdengine/tdengine_super_tables.sql"
+            )
+            
+            for path in "${possible_paths[@]}"; do
+                if [ -f "$path" ]; then
+                    sql_file="$path"
+                    break
+                fi
+            done
+        fi
+        
+        if [ -f "$sql_file" ]; then
+            print_info "找到 SQL 脚本文件: $sql_file"
+            
+            # 为每个数据库执行 SQL 脚本
+            for db_name in "${databases[@]}"; do
+                if execute_tdengine_sql_script "$db_name" "$sql_file"; then
+                    print_success "数据库 $db_name 的超级表初始化完成"
+                else
+                    print_warning "数据库 $db_name 的超级表初始化可能存在问题"
+                fi
+            done
+        else
+            print_warning "未找到 TDengine 超级表 SQL 脚本文件"
+            print_info "尝试的路径:"
+            for path in "${possible_paths[@]}"; do
+                print_info "  - $path"
+            done
+            print_info "  - $sql_file"
+            print_warning "将跳过超级表初始化，超级表将在应用启动时根据产品服务动态创建"
+        fi
+        
         return 0
     else
         print_warning "部分 TDengine 数据库初始化失败"
