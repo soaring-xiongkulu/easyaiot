@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.mq.producer.IotDeviceMessageProducer;
+import com.basiclab.iot.sink.protocol.mqtt.manager.IotMqttConnectionManager;
 import com.basiclab.iot.sink.service.DeviceServerIdService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -131,8 +132,8 @@ public class IotDownstreamMessageApiImpl implements IotDownstreamMessageApi {
         int successCount = 0;
         // 尝试从 Spring 容器中获取 IotMqttConnectionManager
         try {
-            com.basiclab.iot.sink.protocol.mqtt.manager.IotMqttConnectionManager connectionManager =
-                    SpringUtil.getBean(com.basiclab.iot.sink.protocol.mqtt.manager.IotMqttConnectionManager.class);
+            IotMqttConnectionManager connectionManager =
+                    SpringUtil.getBean(IotMqttConnectionManager.class);
             
             if (connectionManager != null) {
                 for (String clientId : clientIds) {

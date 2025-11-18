@@ -51,6 +51,12 @@
             <groupId>com.basiclab.iot</groupId>
             <artifactId>iot-common-redis</artifactId>
         </dependency>
+
+        <!-- MQTT 相关 -->
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-mqtt</artifactId>
+        </dependency>
     </dependencies>
 </project>
 
