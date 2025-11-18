@@ -4,7 +4,6 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.alibaba.fastjson2.JSON;
-import com.basiclab.iot.broker.RemoteMqttBrokerOpenApi;
 import com.basiclab.iot.common.constant.Constants;
 import com.basiclab.iot.common.domain.R;
 import com.basiclab.iot.common.enums.ResultEnum;
@@ -62,9 +61,6 @@ public class DeviceInfoServiceImpl implements DeviceInfoService {
     private ProductServicesService productServicesService;
     @Resource
     private RemoteTdEngineService remoteTdEngineService;
-
-    @Resource
-    private RemoteMqttBrokerOpenApi remoteMqttBrokerOpenApi;
 
     @Value("${spring.datasource.dynamic.datasource.master.dbName:iot}")
     private String dataBaseName;

@@ -47,5 +47,15 @@ public interface IotDownstreamMessageApi {
      */
     void sendDownstreamMessageByDeviceId(Long deviceId, IotDeviceMessage message);
 
+    /**
+     * 关闭设备连接
+     * <p>
+     * 根据客户端 ID 列表关闭对应的设备连接
+     *
+     * @param clientIds 客户端 ID 列表
+     * @return 关闭成功的数量
+     */
+    int closeConnection(List<String> clientIds);
+
 }
 

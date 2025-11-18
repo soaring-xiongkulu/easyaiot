@@ -2,9 +2,8 @@ package com.basiclab.iot.device.service.device.impl;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
-import com.basiclab.iot.broker.RemoteMqttBrokerOpenApi;
-import com.basiclab.iot.broker.domain.enumeration.QosEnum;
-import com.basiclab.iot.broker.domain.vo.PublishMessageRequestVO;
+import com.basiclab.iot.sink.biz.IotDownstreamMessageApi;
+import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.common.constant.Constants;
 import com.basiclab.iot.common.domain.R;
 import com.basiclab.iot.common.factory.ProtocolMessageAdapter;
@@ -56,7 +55,7 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
     private final ProtocolMessageAdapter protocolMessageAdapter;
 
     @Resource
-    private RemoteMqttBrokerOpenApi remoteMqttBrokerOpenApi;
+    private IotDownstreamMessageApi iotDownstreamMessageApi;
 
     @Autowired
     private DeviceService deviceService;
@@ -290,8 +289,25 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
             return "{}";
         });
 
-        // Send the constructed message to the MQTT broker and return the result
-        return sendMessage(ConsumerTopicConstant.Mqtt.IOT_MQS_MQTT_MSG, QosEnum.EXACTLY_ONCE.getValue().toString(), messageContent, deviceResultVO.getAppId());
+        // Send the constructed message using IotDownstreamMessageApi
+        try {
+            // 构建 IotDeviceMessage
+            // 注意：IotDeviceMessage 的 params 字段类型是 Object，可以直接传入 JSON 字符串解析后的对象
+            Object params = JSONUtil.parse(messageContent);
+            IotDeviceMessage deviceMessage = IotDeviceMessage.builder()
+                    .deviceId(deviceResultVO.getId())
+                    .topic(ConsumerTopicConstant.Mqtt.IOT_MQS_MQTT_MSG)
+                    .params(params)
+                    .build();
+            
+            // 发送下行消息
+            iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
+            
+            return R.success("消息发送成功");
+        } catch (Exception e) {
+            log.error("Failed to send message using IotDownstreamMessageApi", e);
+            return R.fail("消息发送失败: " + e.getMessage());
+        }
     }
 
 
@@ -328,54 +344,113 @@ public class DeviceCommandServiceImpl implements DeviceCommandService {
 
     /**
      * Sends a message to the specified MQTT topic with the provided QoS and payload.
+     * 
+     * 注意：此方法已改为使用 IotDownstreamMessageApi，会从 topic 中提取 deviceIdentification 并查找对应的 deviceId。
      *
      * @param topic    The MQTT topic to publish the message to.
      * @param qos      The quality of service for the message.
      * @param message  The payload of the message.
      * @param tenantId The tenant ID.
-     * @return The response from the MQTT brokelr.
+     * @return The response from the MQTT broker.
      */
     @Override
     public R sendMessage(String topic, String qos, String message, String tenantId) {
-        PublishMessageRequestVO publishMessageRequestVO = new PublishMessageRequestVO();
-        publishMessageRequestVO.setReqId(Long.valueOf(SnowflakeIdUtil.nextId()));
-        publishMessageRequestVO.setTenantId(tenantId);
-        publishMessageRequestVO.setTopic(topic);
-        publishMessageRequestVO.setQos(qos);
-        publishMessageRequestVO.setClientType("web");
-        publishMessageRequestVO.setPayload(message);
-        publishMessageRequestVO.setExpirySeconds("3600");
+        try {
+            // 从 topic 中提取 deviceIdentification
+            String deviceIdentification = extractDeviceIdentificationFromTopic(topic);
+            if (StrUtil.isBlank(deviceIdentification)) {
+                log.warn("[sendMessage][无法从 topic 中提取 deviceIdentification，topic: {}]", topic);
+                return R.fail("无法从 topic 中提取设备标识");
+            }
 
-        R response = remoteMqttBrokerOpenApi.sendMessage(publishMessageRequestVO);
-        if (!response.isSuccess()) {
-            log.warn("Failed to send MQTT message: " + response.getMsg());
-            //  throw BizException.wrap("Failed to send MQTT message: " + response.getMsg());
+            // 根据 deviceIdentification 查找设备
+            Device device = deviceService.findOneByDeviceIdentification(deviceIdentification);
+            if (device == null) {
+                log.warn("[sendMessage][设备不存在，deviceIdentification: {}]", deviceIdentification);
+                return R.fail("设备不存在: " + deviceIdentification);
+            }
+
+            // 构建 IotDeviceMessage
+            Object params = JSONUtil.parse(message);
+            IotDeviceMessage deviceMessage = IotDeviceMessage.builder()
+                    .deviceId(device.getId())
+                    .topic(topic)
+                    .params(params)
+                    .build();
+
+            // 发送下行消息
+            iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
+
+            return R.success("消息发送成功");
+        } catch (Exception e) {
+            log.error("[sendMessage][发送消息失败，topic: {}，错误: {}]", topic, e.getMessage(), e);
+            return R.fail("消息发送失败: " + e.getMessage());
         }
-        return response;
+    }
+
+    /**
+     * 从 topic 中提取 deviceIdentification
+     * 
+     * 支持的 topic 格式：
+     * - /v1/devices/{deviceIdentification}/...
+     * - /iot/{productIdentification}/{deviceIdentification}/...
+     * 
+     * @param topic MQTT topic
+     * @return deviceIdentification，如果无法提取则返回 null
+     */
+    private String extractDeviceIdentificationFromTopic(String topic) {
+        if (StrUtil.isBlank(topic)) {
+            return null;
+        }
+
+        String[] parts = topic.split("/");
+        // 格式：/v1/devices/{deviceIdentification}/...
+        if (parts.length >= 4 && "v1".equals(parts[1]) && "devices".equals(parts[2])) {
+            return parts[3];
+        }
+        // 格式：/iot/{productIdentification}/{deviceIdentification}/...
+        if (parts.length >= 4 && "iot".equals(parts[1])) {
+            return parts[3];
+        }
+
+        log.warn("[extractDeviceIdentificationFromTopic][无法从 topic 中提取 deviceIdentification，topic: {}]", topic);
+        return null;
     }
 
     @Override
     public R sendCustomMessage(PublishMessageRequestParam publishMessageRequestParam) {
-        PublishMessageRequestVO publishMessageRequestVO = new PublishMessageRequestVO();
-        publishMessageRequestVO.setReqId(Long.valueOf(SnowflakeIdUtil.nextId()));
-        publishMessageRequestVO.setTenantId(publishMessageRequestParam.getTenantId());
-        publishMessageRequestVO.setTopic(publishMessageRequestParam.getTopic());
-        publishMessageRequestVO.setQos(publishMessageRequestParam.getQos());
-        publishMessageRequestVO.setClientType("web");
-        publishMessageRequestVO.setPayload(publishMessageRequestParam.getPayload());
-        publishMessageRequestVO.setExpirySeconds(publishMessageRequestParam.getExpirySeconds());
-        publishMessageRequestVO.setClientMetadata(publishMessageRequestParam.getMetadata());
-
         try {
-            R response = remoteMqttBrokerOpenApi.sendMessage(publishMessageRequestVO);
-            if (!response.isSuccess()) {
-                log.warn("Failed to send MQTT message: " + response.getMsg());
-                //  throw BizException.wrap("Failed to send MQTT message: " + response.getMsg());
+            // 从 topic 中提取 deviceIdentification
+            String deviceIdentification = extractDeviceIdentificationFromTopic(publishMessageRequestParam.getTopic());
+            if (StrUtil.isBlank(deviceIdentification)) {
+                log.warn("[sendCustomMessage][无法从 topic 中提取 deviceIdentification，topic: {}]", 
+                        publishMessageRequestParam.getTopic());
+                return R.fail("无法从 topic 中提取设备标识");
             }
-            return response;
+
+            // 根据 deviceIdentification 查找设备
+            Device device = deviceService.findOneByDeviceIdentification(deviceIdentification);
+            if (device == null) {
+                log.warn("[sendCustomMessage][设备不存在，deviceIdentification: {}]", deviceIdentification);
+                return R.fail("设备不存在: " + deviceIdentification);
+            }
+
+            // 构建 IotDeviceMessage
+            Object params = JSONUtil.parse(publishMessageRequestParam.getPayload());
+            IotDeviceMessage deviceMessage = IotDeviceMessage.builder()
+                    .deviceId(device.getId())
+                    .topic(publishMessageRequestParam.getTopic())
+                    .params(params)
+                    .build();
+
+            // 发送下行消息
+            iotDownstreamMessageApi.sendDownstreamMessage(deviceMessage);
+
+            return R.success("消息发送成功");
         } catch (Exception e) {
-            log.warn("Failed to send MQTT message: " + e.getMessage());
-            return R.fail("Failed to send MQTT message: " + e.getMessage());
+            log.error("[sendCustomMessage][发送消息失败，topic: {}，错误: {}]", 
+                    publishMessageRequestParam.getTopic(), e.getMessage(), e);
+            return R.fail("消息发送失败: " + e.getMessage());
         }
     }
 

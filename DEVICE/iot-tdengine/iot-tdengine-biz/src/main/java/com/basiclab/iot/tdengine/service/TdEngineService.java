@@ -199,4 +199,13 @@ public interface TdEngineService {
      * @return
      */
     List<TDDeviceDataResp> deviceInfoHistoryPage(TDDeviceDataHistoryRequest request);
+
+    /**
+     * 查询设备时序数据（通用查询方法）
+     * 支持查询属性上报、事件上报、服务调用响应等不同类型的时序数据
+     *
+     * @param request 查询请求
+     * @return 时序数据列表
+     */
+    List<Map<String, Object>> queryDeviceTimeSeriesData(com.basiclab.iot.tdengine.domain.query.DeviceTimeSeriesQueryRequest request);
 }

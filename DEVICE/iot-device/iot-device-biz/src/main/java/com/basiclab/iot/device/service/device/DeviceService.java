@@ -227,6 +227,15 @@ public interface DeviceService extends IService<Device> {
     TopoQueryDeviceResultVO queryDeviceByMqtt(TopoQueryDeviceParam topoQueryDeviceParam);
 
     /**
+     * 查询设备扩展信息
+     * 从 PostgreSQL 的 extension 字段中查询指定类型的扩展数据
+     *
+     * @param request 查询请求
+     * @return 设备扩展数据
+     */
+    DeviceExtensionDataVO queryDeviceExtensionData(DeviceExtensionQueryRequest request);
+
+    /**
      * Queries device information using the HTTP protocol.
      *
      * @param topoQueryDeviceParam The device query parameters.

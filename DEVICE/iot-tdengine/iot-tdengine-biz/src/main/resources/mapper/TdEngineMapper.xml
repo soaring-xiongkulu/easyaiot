@@ -279,4 +279,27 @@
         order by report_time desc
     </select>
 
+    <!-- 查询设备时序数据（通用查询方法） -->
+    <select id="queryDeviceTimeSeriesData" resultType="Map">
+        select * from ${tdDatabaseName}.${superTableName}_${deviceIdentification}
+        <where>
+            <if test="identifier != null and identifier != ''">
+                AND identifier = #{identifier}
+            </if>
+            <if test="startTime != null">
+                AND report_time >= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND report_time &lt;= #{endTime}
+            </if>
+        </where>
+        order by report_time desc
+        <if test="pageSize != null and pageSize > 0">
+            limit ${pageSize}
+            <if test="pageNum != null and pageNum > 1">
+                offset ${(pageNum - 1) * pageSize}
+            </if>
+        </if>
+    </select>
+
 </mapper>

@@ -175,4 +175,23 @@ public class TdEngineServiceImpl implements TdEngineService {
         return null;
     }
 
+    @Override
+    public List<Map<String, Object>> queryDeviceTimeSeriesData(com.basiclab.iot.tdengine.domain.query.DeviceTimeSeriesQueryRequest request) {
+        try {
+            // 设置数据库名称
+            if (request.getTdDatabaseName() == null) {
+                request.setTdDatabaseName("iot_device");
+            }
+            // 确保超级表名称已设置
+            if (request.getSuperTableName() == null) {
+                request.setSuperTableName(request.getSuperTableType());
+            }
+            return tdengineMapper.queryDeviceTimeSeriesData(request);
+        } catch (Exception e) {
+            log.error("查询设备时序数据异常：deviceIdentification={}, superTableType={}, error={}", 
+                    request.getDeviceIdentification(), request.getSuperTableType(), e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
+
 }

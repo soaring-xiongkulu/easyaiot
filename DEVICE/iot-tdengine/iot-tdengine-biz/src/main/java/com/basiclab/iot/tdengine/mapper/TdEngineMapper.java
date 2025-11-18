@@ -171,4 +171,11 @@ public interface TdEngineMapper {
      * @return
      */
     List<TDDeviceDataResp> getDeviceHistory(TDDeviceDataHistoryRequest request);
+
+    /**
+     * 查询设备时序数据（通用查询方法）
+     * @param request 查询请求
+     * @return 时序数据列表
+     */
+    List<Map<String, Object>> queryDeviceTimeSeriesData(com.basiclab.iot.tdengine.domain.query.DeviceTimeSeriesQueryRequest request);
 }

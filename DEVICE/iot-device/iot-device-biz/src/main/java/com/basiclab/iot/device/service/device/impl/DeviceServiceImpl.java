@@ -8,13 +8,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.basiclab.iot.broker.RemoteMqttBrokerOpenApi;
 import com.basiclab.iot.common.constant.CacheConstants;
 import com.basiclab.iot.common.constant.Constants;
 import com.basiclab.iot.common.core.aop.TenantIgnore;
 import com.basiclab.iot.common.domain.R;
 import com.basiclab.iot.common.enums.ResultEnum;
 import com.basiclab.iot.common.service.RedisService;
+import com.basiclab.iot.sink.biz.IotDownstreamMessageApi;
 import com.basiclab.iot.common.utils.DateUtils;
 import com.basiclab.iot.common.utils.SnowflakeIdUtil;
 import com.basiclab.iot.common.utils.StringUtils;
@@ -79,7 +79,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @Autowired
     private RedisService redisService;
     @Resource
-    private RemoteMqttBrokerOpenApi remoteMqttBrokerOpenApi;
+    private IotDownstreamMessageApi iotDownstreamMessageApi;
     @Autowired
     private DeviceTopicService deviceTopicService;
     @Autowired
@@ -583,10 +583,22 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         if (isEmpty(deviceList)) {
             return false;
         }
+        // 使用 iot-sink-api 实现断开连接功能
         final List<String> clientIdentifiers = deviceList.stream().map(Device::getClientId).collect(Collectors.toList());
-        final R r = remoteMqttBrokerOpenApi.closeConnection(clientIdentifiers);
-        log.info("主动断开设备ID: {} 连接 , Broker 处理结果: {}", clientIdentifiers, r.toString());
-        return r.getCode() == ResultEnum.SUCCESS.getCode();
+        
+        try {
+            if (iotDownstreamMessageApi != null) {
+                int closedCount = iotDownstreamMessageApi.closeConnection(clientIdentifiers);
+                log.info("主动断开设备连接，客户端 ID: {}，成功关闭: {}", clientIdentifiers, closedCount);
+                return closedCount > 0;
+            } else {
+                log.warn("IotDownstreamMessageApi 不存在，无法断开连接");
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("断开设备连接失败，客户端 ID: {}，错误: {}", clientIdentifiers, e.getMessage(), e);
+            return false;
+        }
     }
 
     @Override
@@ -963,6 +975,54 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         super.update(wrapper);
     }
 
+    @Override
+    public DeviceExtensionDataVO queryDeviceExtensionData(DeviceExtensionQueryRequest request) {
+        try {
+            // 查询设备信息
+            Device device = this.selectDeviceById(request.getDeviceId());
+            if (device == null) {
+                log.warn("查询设备扩展信息失败，设备不存在：deviceId={}", request.getDeviceId());
+                return null;
+            }
+
+            // 构建响应对象
+            DeviceExtensionDataVO result = new DeviceExtensionDataVO();
+            result.setDeviceId(device.getId());
+            result.setDeviceIdentification(device.getDeviceIdentification());
+            result.setExtensionType(request.getExtensionType());
+            result.setUpdateTime(device.getUpdateTime());
+
+            // 解析 extension 字段
+            String extension = device.getExtension();
+            if (StringUtils.isEmpty(extension)) {
+                log.debug("设备扩展信息为空：deviceId={}", request.getDeviceId());
+                result.setExtensionData(null);
+                return result;
+            }
+
+            try {
+                // 解析 JSON
+                JSONObject extensionJson = JSONObject.parseObject(extension);
+                
+                // 根据扩展信息类型获取对应的数据
+                Object extensionData = extensionJson.get(request.getExtensionType());
+                result.setExtensionData(extensionData);
+                
+                log.debug("查询设备扩展信息成功：deviceId={}, extensionType={}", 
+                        request.getDeviceId(), request.getExtensionType());
+            } catch (Exception e) {
+                log.error("解析设备扩展信息失败：deviceId={}, extensionType={}, error={}", 
+                        request.getDeviceId(), request.getExtensionType(), e.getMessage(), e);
+                result.setExtensionData(null);
+            }
+
+            return result;
+        } catch (Exception e) {
+            log.error("查询设备扩展信息异常：deviceId={}, extensionType={}, error={}", 
+                    request.getDeviceId(), request.getExtensionType(), e.getMessage(), e);
+            return null;
+        }
+    }
 
 }
 

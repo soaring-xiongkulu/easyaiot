@@ -11,6 +11,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * IoT 下行消息发送 API 实现类
  * <p>
@@ -117,6 +119,38 @@ public class IotDownstreamMessageApiImpl implements IotDownstreamMessageApi {
                     deviceId, message.getId());
             deviceMessageProducer.sendDeviceMessage(message);
         }
+    }
+
+    @Override
+    public int closeConnection(List<String> clientIds) {
+        if (clientIds == null || clientIds.isEmpty()) {
+            log.warn("[closeConnection][客户端 ID 列表为空，忽略关闭]");
+            return 0;
+        }
+
+        int successCount = 0;
+        // 尝试从 Spring 容器中获取 IotMqttConnectionManager
+        try {
+            com.basiclab.iot.sink.protocol.mqtt.manager.IotMqttConnectionManager connectionManager =
+                    SpringUtil.getBean(com.basiclab.iot.sink.protocol.mqtt.manager.IotMqttConnectionManager.class);
+            
+            if (connectionManager != null) {
+                for (String clientId : clientIds) {
+                    if (StrUtil.isNotBlank(clientId)) {
+                        if (connectionManager.closeConnectionByClientId(clientId)) {
+                            successCount++;
+                        }
+                    }
+                }
+            } else {
+                log.warn("[closeConnection][IotMqttConnectionManager 不存在，无法关闭连接]");
+            }
+        } catch (Exception e) {
+            log.error("[closeConnection][关闭连接异常，错误: {}]", e.getMessage(), e);
+        }
+
+        log.info("[closeConnection][关闭连接完成，客户端 ID 列表: {}，成功关闭: {}]", clientIds, successCount);
+        return successCount;
     }
 
 }

@@ -239,6 +239,24 @@ public class DeviceController extends BaseController {
     }
 
     /**
+     * 查询设备扩展信息
+     */
+    @ApiOperation("查询设备扩展信息")
+    @PostMapping("/extension/query")
+    public R<DeviceExtensionDataVO> queryDeviceExtensionData(@Validated @RequestBody DeviceExtensionQueryRequest request) {
+        try {
+            DeviceExtensionDataVO result = deviceService.queryDeviceExtensionData(request);
+            if (result == null) {
+                return R.fail("设备不存在或扩展信息为空");
+            }
+            return R.ok(result);
+        } catch (Exception e) {
+            log.error("查询设备扩展信息失败：{}", e.getMessage(), e);
+            return R.fail("查询设备扩展信息失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * 删除设备管理
      */
     @ApiOperation("删除设备")

@@ -38,7 +38,6 @@
         <module>iot-file</module>
         <module>iot-dataset</module>
         <module>iot-device</module>
-        <module>iot-broker</module>
         <module>iot-tdengine</module>
         <module>iot-sink</module>
     </modules>

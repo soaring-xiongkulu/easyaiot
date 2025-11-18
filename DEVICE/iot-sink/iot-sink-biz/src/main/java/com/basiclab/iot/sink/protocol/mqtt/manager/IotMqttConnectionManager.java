@@ -183,6 +183,48 @@ public class IotMqttConnectionManager {
     }
 
     /**
+     * 根据客户端 ID 获取连接端点
+     *
+     * @param clientId 客户端 ID
+     * @return 连接端点，如果未找到则返回 null
+     */
+    public MqttEndpoint getEndpointByClientId(String clientId) {
+        if (StrUtil.isBlank(clientId)) {
+            return null;
+        }
+        // 遍历连接映射，查找匹配的 clientId
+        for (Map.Entry<MqttEndpoint, ConnectionInfo> entry : connectionMap.entrySet()) {
+            ConnectionInfo info = entry.getValue();
+            if (clientId.equals(info.getClientId())) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 根据客户端 ID 关闭连接
+     *
+     * @param clientId 客户端 ID
+     * @return 是否成功关闭
+     */
+    public boolean closeConnectionByClientId(String clientId) {
+        MqttEndpoint endpoint = getEndpointByClientId(clientId);
+        if (endpoint == null) {
+            log.warn("[closeConnectionByClientId][未找到连接，客户端 ID: {}]", clientId);
+            return false;
+        }
+        try {
+            endpoint.close();
+            log.info("[closeConnectionByClientId][关闭连接成功，客户端 ID: {}]", clientId);
+            return true;
+        } catch (Exception e) {
+            log.error("[closeConnectionByClientId][关闭连接失败，客户端 ID: {}，错误: {}]", clientId, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * 连接信息
      */
     @Data

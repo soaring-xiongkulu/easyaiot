@@ -463,4 +463,29 @@ public class TdEngineController extends BaseController {
         List<TDDeviceDataResp> list = tdEngineService.deviceInfoHistoryPage(request);
         return getDataTable(list);
     }
+
+    @ApiOperation("查询设备时序数据（通用接口）")
+    @PostMapping("/device/timeSeries/query")
+    public R<List<Map<String, Object>>> queryDeviceTimeSeriesData(@Validated @RequestBody com.basiclab.iot.tdengine.domain.query.DeviceTimeSeriesQueryRequest request) {
+        try {
+            // 设置超级表名称（与 superTableType 对应）
+            request.setSuperTableName(request.getSuperTableType());
+            List<Map<String, Object>> result = tdEngineService.queryDeviceTimeSeriesData(request);
+            return R.ok(result);
+        } catch (UncategorizedSQLException e) {
+            String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+            try {
+                if (message != null && message.contains("invalid operation")) {
+                    message = message.substring(message.lastIndexOf("invalid operation"));
+                }
+            } catch (Exception ex) {
+                // ignore
+            }
+            log.error("查询设备时序数据失败：{}", message, e);
+            return R.fail(message);
+        } catch (Exception e) {
+            log.error("查询设备时序数据失败：{}", e.getMessage(), e);
+            return R.fail(e.getMessage());
+        }
+    }
 }

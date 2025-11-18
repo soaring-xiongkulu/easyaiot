@@ -148,7 +148,6 @@ check_and_build_jars() {
         "iot-infra/iot-infra-biz/target/iot-infra-biz.jar"
         "iot-device/iot-device-biz/target/iot-device-biz.jar"
         "iot-dataset/iot-dataset-biz/target/iot-dataset-biz.jar"
-        "iot-broker/iot-broker-biz/target/iot-broker-biz.jar"
         "iot-tdengine/iot-tdengine-biz/target/iot-tdengine-biz.jar"
         "iot-file/iot-file-biz/target/iot-file-biz.jar"
     )
@@ -410,7 +409,6 @@ DEVICE模块 Docker Compose 管理脚本
     - iot-infra
     - iot-device
     - iot-dataset
-    - iot-broker
     - iot-tdengine
     - iot-file
 

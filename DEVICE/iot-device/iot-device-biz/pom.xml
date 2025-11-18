@@ -41,17 +41,17 @@
         </dependency>
         <dependency>
             <groupId>com.basiclab.iot</groupId>
-            <artifactId>iot-broker-api</artifactId>
-            <version>${revision}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.basiclab.iot</groupId>
             <artifactId>iot-file-api</artifactId>
             <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>com.basiclab.iot</groupId>
             <artifactId>iot-tdengine-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-sink-api</artifactId>
             <version>${revision}</version>
         </dependency>
 
