@@ -46,8 +46,6 @@ public interface IotDeviceMessageCodec {
         String regex = topicPattern
                 .replace("${productIdentification}", "[^/]+")
                 .replace("${deviceIdentification}", "[^/]+")
-                .replace("${pid}", "[^/]+")  // 向后兼容
-                .replace("${did}", "[^/]+")   // 向后兼容
                 .replace("${identifier}", "[^/]+")
                 .replace("/", "\\/");
         return topic != null && topic.matches("^" + regex + "$");
