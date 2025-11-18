@@ -5,6 +5,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
@@ -20,6 +21,7 @@ import java.util.Map;
  * @author 翱翔的雄库鲁
  */
 @Configuration
+@ConditionalOnProperty(prefix = "spring.kafka.iot.producer", name = "bootstrap-servers")
 public class KafkaConfig {
 
     @Value("${spring.kafka.iot.producer.bootstrap-servers}")
