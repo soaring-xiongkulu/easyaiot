@@ -46,6 +46,11 @@ spring:
           url: jdbc:postgresql://10.0.0.87:5432/iot-device10?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
           username: postgres
           password: iot45722414822
+        tdengine:
+          driver-class-name: com.taosdata.jdbc.rs.RestfulDriver
+          url: jdbc:TAOS-RS://10.0.0.87:6041/iot_device?user=root&password=taosdata&useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
+          username: root
+          password: taosdata
 
   # Redis 配置。Redisson 默认的配置足够使用，一般不需要进行调优
   redis:

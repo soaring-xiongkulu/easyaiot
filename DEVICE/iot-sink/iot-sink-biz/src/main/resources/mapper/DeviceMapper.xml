@@ -71,5 +71,73 @@
         limit 1
     </select>
 
+    <!-- ============================================
+         设备表更新语句 - 根据不同Topic更新不同字段
+         ============================================ -->
+
+    <!-- 更新设备连接状态和最后在线时间 -->
+    <update id="updateDeviceConnectStatus">
+        update device
+        set connect_status = #{connectStatus,jdbcType=VARCHAR},
+            last_online_time = #{lastOnlineTime,jdbcType=TIMESTAMP},
+            update_time = CURRENT_TIMESTAMP
+        where id = #{deviceId,jdbcType=BIGINT}
+        and deleted = 0
+    </update>
+
+    <!-- 更新设备扩展信息（用于属性上报、事件上报等） -->
+    <update id="updateDeviceExtension">
+        update device
+        set extension = #{extension,jdbcType=OTHER}::jsonb,
+            update_time = CURRENT_TIMESTAMP
+        where id = #{deviceId,jdbcType=BIGINT}
+        and deleted = 0
+    </update>
+
+    <!-- 更新设备版本信息（用于OTA版本上报） -->
+    <update id="updateDeviceVersion">
+        update device
+        set device_version = #{deviceVersion,jdbcType=VARCHAR},
+            update_time = CURRENT_TIMESTAMP
+        where id = #{deviceId,jdbcType=BIGINT}
+        and deleted = 0
+    </update>
+
+    <!-- 更新设备标签信息（用于标签上报） -->
+    <update id="updateDeviceTags">
+        update device
+        set extension = COALESCE(extension, '{}'::jsonb) || #{tags,jdbcType=OTHER}::jsonb,
+            update_time = CURRENT_TIMESTAMP
+        where id = #{deviceId,jdbcType=BIGINT}
+        and deleted = 0
+    </update>
+
+    <!-- 更新设备影子状态（用于影子上报） -->
+    <update id="updateDeviceShadow">
+        update device
+        set extension = COALESCE(extension, '{}'::jsonb) || jsonb_build_object('shadow', #{shadow,jdbcType=OTHER}::jsonb),
+            update_time = CURRENT_TIMESTAMP
+        where id = #{deviceId,jdbcType=BIGINT}
+        and deleted = 0
+    </update>
+
+    <!-- 更新设备配置信息（用于配置查询） -->
+    <update id="updateDeviceConfig">
+        update device
+        set extension = COALESCE(extension, '{}'::jsonb) || jsonb_build_object('config', #{config,jdbcType=OTHER}::jsonb),
+            update_time = CURRENT_TIMESTAMP
+        where id = #{deviceId,jdbcType=BIGINT}
+        and deleted = 0
+    </update>
+
+    <!-- 更新设备OTA进度（用于OTA进度上报） -->
+    <update id="updateDeviceOtaProgress">
+        update device
+        set extension = COALESCE(extension, '{}'::jsonb) || jsonb_build_object('ota', #{otaProgress,jdbcType=OTHER}::jsonb),
+            update_time = CURRENT_TIMESTAMP
+        where id = #{deviceId,jdbcType=BIGINT}
+        and deleted = 0
+    </update>
+
 </mapper>
 

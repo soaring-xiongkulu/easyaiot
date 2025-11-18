@@ -2,10 +2,13 @@ package com.basiclab.iot.sink.messagebus.subscriber.listener;
 
 import com.basiclab.iot.sink.enums.IotDeviceTopicEnum;
 import com.basiclab.iot.sink.messagebus.subscriber.event.IotMessageBusEvent;
+import com.basiclab.iot.sink.service.data.DeviceDataStorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+
+import javax.annotation.Resource;
 
 /**
  * OTA进度上报上行消息事件监听器
@@ -18,6 +21,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class OtaUpstreamProgressReportListener {
 
+    @Resource
+    private DeviceDataStorageService deviceDataStorageService;
+
     @Async("iotMessageBusSubscriberExecutor")
     @EventListener
     public void handleOtaUpstreamProgressReportEvent(IotMessageBusEvent event) {
@@ -29,7 +35,8 @@ public class OtaUpstreamProgressReportListener {
             log.info("[handleOtaUpstreamProgressReportEvent][处理OTA进度上报上行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
-            // TODO: 实现OTA进度上报上行消息的业务逻辑
+            // 存储数据到TDEngine和PostgreSQL
+            deviceDataStorageService.storeDeviceData(event.getMessage(), event.getTopicEnum());
 
         } catch (Exception e) {
             log.error("[handleOtaUpstreamProgressReportEvent][处理OTA进度上报上行消息失败，messageId: {}, topic: {}]",

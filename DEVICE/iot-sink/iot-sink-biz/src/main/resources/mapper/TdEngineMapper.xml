@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.sink.dal.mapper.TdEngineMapper">
+
+    <insert id="insertTableData">
+        insert into #{dataBaseName}.#{tableName}
+        <foreach item="item" collection="schemaFieldValues" separator=","
+                 open="(" close=")" index="">
+            ${item.fieldName}
+        </foreach>
+        using #{dataBaseName}.#{superTableName}
+        tags
+        <foreach item="item" collection="tagsFieldValues" separator=","
+                 open="(" close=")" index="">
+            <choose>
+                <!-- Check if dataType is not null and needs quoting -->
+                <when test="item.dataType != null and item.dataType.quoted">
+                    '${item.fieldValue}'
+                </when>
+                <!-- Default behavior if dataType is null (no quotes in this case) -->
+                <when test="item.dataType == null">
+                    ${item.fieldValue}
+                </when>
+                <!-- If dataType doesn't require quotes -->
+                <otherwise>
+                    ${item.fieldValue}
+                </otherwise>
+            </choose>
+        </foreach>
+        values
+        <foreach item="item" collection="schemaFieldValues" separator=","
+                 open="(" close=")" index="">
+            <choose>
+                <!-- Check if dataType is not null and needs quoting -->
+                <when test="item.dataType != null and item.dataType.quoted">
+                    '${item.fieldValue}'
+                </when>
+                <!-- Default behavior if dataType is null (no quotes in this case) -->
+                <when test="item.dataType == null">
+                    ${item.fieldValue}
+                </when>
+                <!-- If dataType doesn't require quotes -->
+                <otherwise>
+                    ${item.fieldValue}
+                </otherwise>
+            </choose>
+        </foreach>
+    </insert>
+
+</mapper>
+
