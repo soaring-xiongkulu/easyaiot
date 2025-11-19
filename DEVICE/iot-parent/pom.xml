@@ -18,7 +18,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
         <!-- Maven 相关 -->
-        <java.version>1.8</java.version>
+        <java.version>21</java.version>
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <swagger.start.version>3.0</swagger.start.version>
