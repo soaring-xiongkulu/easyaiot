@@ -60,7 +60,7 @@ default List<AuthPermissionInfoRespVO.MenuVO> buildMenuTree(List<MenuDO> menuLis
         // 构建菜单树
         // 使用 LinkedHashMap 的原因，是为了排序 。实际也可以用 Stream API ，就是太丑了。
         Map<Long, AuthPermissionInfoRespVO.MenuVO> treeNodeMap = new LinkedHashMap<>();
-        menuList.forEach(menu -> treeNodeMap.put(menu.getId(), AuthConvert.INSTANCE.convertTreeNode(menu)));
+        menuList.forEach(menu -> treeNodeMap.put(menu.getId(), this.convertTreeNode(menu)));
         // 处理父子关系
         treeNodeMap.values().stream().filter(node -> !node.getParentId().equals(MenuDO.ID_ROOT)).forEach(childNode -> {
             // 获得父节点
