@@ -126,7 +126,7 @@ def _add_online_monitor():
     """初始化设备在线监控"""
     for camera in _get_cameras():
         _monitor.update(camera.id, camera.ip)
-    logger.info('设备在线状态监控服务已初始化')
+    logger.debug('设备在线状态监控服务已初始化')
 
 
 def _discovery_cameras() -> list:
@@ -238,7 +238,7 @@ def _start_search():
     # 确保环境变量转换为整数
     discover_interval = int(os.getenv('CAMERA_DISCOVER_INTERVAL', 120))
     scheduler.add_job(refresh_camera, 'interval', seconds=discover_interval)
-    logger.info('设备发现服务已启动，间隔: %d秒', discover_interval)
+    logger.debug('设备发现服务已启动，间隔: %d秒', discover_interval)
     _init_all_cameras()
     _add_online_monitor()
 
@@ -249,7 +249,7 @@ def _init_all_cameras():
         executor.submit(
             partial(_safe_create_camera, camera)
         )
-    logger.info('所有设备连接已通过线程池初始化')
+    logger.debug('所有设备连接已通过线程池初始化')
 
     # 在初始化所有摄像头连接后，启动在线监控
     _add_online_monitor()

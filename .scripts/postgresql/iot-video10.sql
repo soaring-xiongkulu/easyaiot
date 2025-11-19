@@ -2,8 +2,10 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 16.2
--- Dumped by pg_dump version 16.2
+\restrict DSw9wj2KTCfp4S7QJPwjHpiiWQQh5lUu4V5Z9otuM60zjJHvWxHvUGaPW5uO3Kj
+
+-- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
+-- Dumped by pg_dump version 16.10 (Ubuntu 16.10-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -19,6 +21,48 @@ SET row_security = off;
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: alert; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.alert (
+    id integer NOT NULL,
+    object character varying(30) NOT NULL,
+    event character varying(30) NOT NULL,
+    region character varying(30),
+    information text,
+    "time" timestamp with time zone DEFAULT now() NOT NULL,
+    device_id character varying(30) NOT NULL,
+    device_name character varying(30) NOT NULL,
+    image_path character varying(200),
+    record_path character varying(200)
+);
+
+
+ALTER TABLE public.alert OWNER TO postgres;
+
+--
+-- Name: alert_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.alert_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.alert_id_seq OWNER TO postgres;
+
+--
+-- Name: alert_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.alert_id_seq OWNED BY public.alert.id;
+
 
 --
 -- Name: device; Type: TABLE; Schema: public; Owner: postgres
@@ -132,6 +176,13 @@ ALTER SEQUENCE public.nvr_id_seq OWNED BY public.nvr.id;
 
 
 --
+-- Name: alert id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.alert ALTER COLUMN id SET DEFAULT nextval('public.alert_id_seq'::regclass);
+
+
+--
 -- Name: image id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -143,6 +194,24 @@ ALTER TABLE ONLY public.image ALTER COLUMN id SET DEFAULT nextval('public.image_
 --
 
 ALTER TABLE ONLY public.nvr ALTER COLUMN id SET DEFAULT nextval('public.nvr_id_seq'::regclass);
+
+
+--
+-- Data for Name: alert; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.alert (id, object, event, region, information, "time", device_id, device_name, image_path, record_path) FROM stdin;
+1	person	intrusion	A区	检测到未授权人员进入A区，置信度: 0.95	2025-11-19 23:31:24.506606+08	CAM001	前门摄像头	/data/images/alert_001.jpg	/data/records/alert_001.mp4
+2	vehicle	illegal_parking	停车场B区	检测到车辆在禁停区域停留超过5分钟	2025-11-19 23:31:35.563195+08	CAM002	停车场摄像头	/data/images/alert_002.jpg	/data/records/alert_002.mp4
+3	fire	fire_detection	仓库C区	检测到疑似火源，温度异常升高	2025-11-19 23:31:35.567243+08	CAM003	仓库监控	/data/images/alert_003.jpg	/data/records/alert_003.mp4
+4	person	crowd_gathering	大厅	检测到人员异常聚集，人数超过10人	2025-11-19 23:31:35.57129+08	CAM004	大厅摄像头	/data/images/alert_004.jpg	/data/records/alert_004.mp4
+5	bag	abandoned_object	安检区	检测到可疑物品遗留，超过30分钟未移动	2025-11-19 23:31:35.574824+08	CAM005	安检摄像头	/data/images/alert_005.jpg	/data/records/alert_005.mp4
+6	person	loitering	D区通道	检测到人员在敏感区域徘徊超过10分钟	2025-11-19 23:31:35.577818+08	CAM006	通道监控	/data/images/alert_006.jpg	/data/records/alert_006.mp4
+7	vehicle	overspeed	主干道	检测到车辆超速行驶，速度: 85km/h，限速: 60km/h	2025-11-19 23:31:35.580586+08	CAM007	道路监控	/data/images/alert_007.jpg	/data/records/alert_007.mp4
+8	person	abnormal_behavior	E区	检测到异常行为：快速移动并翻越围栏	2025-11-19 23:31:35.583462+08	CAM008	周界监控	/data/images/alert_008.jpg	/data/records/alert_008.mp4
+9	smoke	smoke_detection	机房	检测到烟雾，可能发生火灾或设备故障	2025-11-19 23:31:35.58633+08	CAM009	机房监控	/data/images/alert_009.jpg	/data/records/alert_009.mp4
+10	person	fall_detection	F区走廊	检测到人员摔倒，可能需要医疗救助	2025-11-19 23:31:35.589036+08	CAM010	走廊监控	/data/images/alert_010.jpg	/data/records/alert_010.mp4
+\.
 
 
 --
@@ -171,6 +240,13 @@ COPY public.nvr (id, ip, username, password, name, model) FROM stdin;
 
 
 --
+-- Name: alert_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.alert_id_seq', 10, true);
+
+
+--
 -- Name: image_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -182,6 +258,14 @@ SELECT pg_catalog.setval('public.image_id_seq', 1, false);
 --
 
 SELECT pg_catalog.setval('public.nvr_id_seq', 1, false);
+
+
+--
+-- Name: alert alert_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.alert
+    ADD CONSTRAINT alert_pkey PRIMARY KEY (id);
 
 
 --
@@ -227,4 +311,6 @@ ALTER TABLE ONLY public.image
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict DSw9wj2KTCfp4S7QJPwjHpiiWQQh5lUu4V5Z9otuM60zjJHvWxHvUGaPW5uO3Kj
 

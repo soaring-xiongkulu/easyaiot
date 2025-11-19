@@ -12,7 +12,7 @@ import java.util.List;
  * @author 翱翔的雄库鲁
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
- * @date 2024-12-23
+ * @date 2025-12-23
  */
 @Data
 @Deprecated

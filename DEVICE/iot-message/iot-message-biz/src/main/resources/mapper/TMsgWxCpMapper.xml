@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.message.mapper.TMsgWxCpMapper">
+    <resultMap id="BaseResultMap" type="com.basiclab.iot.message.domain.entity.TMsgWxCp">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="msg_type" jdbcType="INTEGER" property="msgType"/>
+        <result column="msg_name" jdbcType="VARCHAR" property="msgName"/>
+        <result column="cp_msg_type" jdbcType="VARCHAR" property="cpMsgType"/>
+        <result column="agent_id" jdbcType="VARCHAR" property="agentId"/>
+        <result column="content" jdbcType="VARCHAR" property="content"/>
+        <result column="title" jdbcType="VARCHAR" property="title"/>
+        <result column="img_url" jdbcType="VARCHAR" property="imgUrl"/>
+        <result column="describe" jdbcType="VARCHAR" property="describe"/>
+        <result column="url" jdbcType="VARCHAR" property="url"/>
+        <result column="btn_txt" jdbcType="VARCHAR" property="btnTxt"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="modified_time" jdbcType="TIMESTAMP" property="modifiedTime"/>
+        <result column="preview_user" jdbcType="VARCHAR" property="previewUser"/>
+        <result column="user_group_id" jdbcType="VARCHAR" property="userGroupId"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        id, msg_type, msg_name, cp_msg_type, agent_id, content, title, img_url,
+                describe,
+                        url, btn_txt, create_time, modified_time, preview_user,user_group_id
+    </sql>
+    <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_msg_wx_cp
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+        delete
+        from t_msg_wx_cp
+        where id = #{id,jdbcType=VARCHAR}
+    </delete>
+    <insert id="insert" parameterType="com.basiclab.iot.message.domain.entity.TMsgWxCp">
+        insert into t_msg_wx_cp (id, msg_type, msg_name,
+                                 cp_msg_type, agent_id, content,
+                                 title, img_url, describe,
+                                 url, btn_txt, create_time,
+                                 modified_time, preview_user,user_group_id)
+        values (#{id,jdbcType=INTEGER}, #{msgType,jdbcType=INTEGER}, #{msgName,jdbcType=VARCHAR},
+                #{cpMsgType,jdbcType=VARCHAR}, #{agentId,jdbcType=VARCHAR}, #{content,jdbcType=VARCHAR},
+                #{title,jdbcType=VARCHAR}, #{imgUrl,jdbcType=VARCHAR}, #{describe,jdbcType=VARCHAR},
+                #{url,jdbcType=VARCHAR}, #{btnTxt,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP},
+                #{modifiedTime,jdbcType=TIMESTAMP}, #{previewUser,jdbcType=VARCHAR}, #{userGroupId,jdbcType=VARCHAR})
+    </insert>
+    <insert id="insertSelective" parameterType="com.basiclab.iot.message.domain.entity.TMsgWxCp" useGeneratedKeys="true"
+            keyColumn="id" keyProperty="id">
+        insert into t_msg_wx_cp
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="msgType != null">
+                msg_type,
+            </if>
+            <if test="msgName != null">
+                msg_name,
+            </if>
+            <if test="cpMsgType != null">
+                cp_msg_type,
+            </if>
+            <if test="agentId != null">
+                agent_id,
+            </if>
+            <if test="content != null">
+                content,
+            </if>
+            <if test="title != null">
+                title,
+            </if>
+            <if test="imgUrl != null">
+                img_url,
+            </if>
+            <if test="describe != null">
+                describe,
+            </if>
+            <if test="url != null">
+                url,
+            </if>
+            <if test="btnTxt != null">
+                btn_txt,
+            </if>
+            <if test="createTime != null">
+                create_time,
+            </if>
+            <if test="modifiedTime != null">
+                modified_time,
+            </if>
+            <if test="previewUser != null">
+                preview_user,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="msgType != null">
+                #{msgType,jdbcType=INTEGER},
+            </if>
+            <if test="msgName != null">
+                #{msgName,jdbcType=VARCHAR},
+            </if>
+            <if test="cpMsgType != null">
+                #{cpMsgType,jdbcType=VARCHAR},
+            </if>
+            <if test="agentId != null">
+                #{agentId,jdbcType=VARCHAR},
+            </if>
+            <if test="content != null">
+                #{content,jdbcType=VARCHAR},
+            </if>
+            <if test="title != null">
+                #{title,jdbcType=VARCHAR},
+            </if>
+            <if test="imgUrl != null">
+                #{imgUrl,jdbcType=VARCHAR},
+            </if>
+            <if test="describe != null">
+                #{describe,jdbcType=VARCHAR},
+            </if>
+            <if test="url != null">
+                #{url,jdbcType=VARCHAR},
+            </if>
+            <if test="btnTxt != null">
+                #{btnTxt,jdbcType=VARCHAR},
+            </if>
+            <if test="createTime != null">
+                #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="modifiedTime != null">
+                #{modifiedTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="previewUser != null">
+                #{previewUser,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective" parameterType="com.basiclab.iot.message.domain.entity.TMsgWxCp">
+        update t_msg_wx_cp
+        <set>
+            <if test="msgType != null">
+                msg_type = #{msgType,jdbcType=INTEGER},
+            </if>
+            <if test="msgName != null">
+                msg_name = #{msgName,jdbcType=VARCHAR},
+            </if>
+            <if test="cpMsgType != null">
+                cp_msg_type = #{cpMsgType,jdbcType=VARCHAR},
+            </if>
+            <if test="agentId != null">
+                agent_id = #{agentId,jdbcType=VARCHAR},
+            </if>
+            <if test="content != null">
+                content = #{content,jdbcType=VARCHAR},
+            </if>
+            <if test="title != null">
+                title = #{title,jdbcType=VARCHAR},
+            </if>
+            <if test="imgUrl != null">
+                img_url = #{imgUrl,jdbcType=VARCHAR},
+            </if>
+            <if test="describe != null">
+                describe = #{describe,jdbcType=VARCHAR},
+            </if>
+            <if test="url != null">
+                url = #{url,jdbcType=VARCHAR},
+            </if>
+            <if test="btnTxt != null">
+                btn_txt = #{btnTxt,jdbcType=VARCHAR},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="modifiedTime != null">
+                modified_time = #{modifiedTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="previewUser != null">
+                preview_user = #{previewUser,jdbcType=VARCHAR},
+            </if>
+            <if test="userGroupId != null">
+                user_group_id = #{userGroupId,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+    <update id="updateByPrimaryKey" parameterType="com.basiclab.iot.message.domain.entity.TMsgWxCp">
+        update t_msg_wx_cp
+        set msg_type      = #{msgType,jdbcType=INTEGER},
+            msg_name      = #{msgName,jdbcType=VARCHAR},
+            cp_msg_type   = #{cpMsgType,jdbcType=VARCHAR},
+            agent_id      = #{agentId,jdbcType=VARCHAR},
+            content       = #{content,jdbcType=VARCHAR},
+            title         = #{title,jdbcType=VARCHAR},
+            img_url       = #{imgUrl,jdbcType=VARCHAR},
+            describe      = #{describe,jdbcType=VARCHAR},
+            url           = #{url,jdbcType=VARCHAR},
+            btn_txt       = #{btnTxt,jdbcType=VARCHAR},
+            create_time   = #{createTime,jdbcType=TIMESTAMP},
+            modified_time = #{modifiedTime,jdbcType=TIMESTAMP},
+            preview_user  = #{previewUser,jdbcType=VARCHAR}
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+    <select id="selectByMsgTypeAndMsgName" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_msg_wx_cp
+        <where>
+            msg_type = #{msgType,jdbcType=INTEGER}
+            <if test="msgName != null and msgName != ''">
+                and msg_name like concat('%', #{msgName,jdbcType=VARCHAR}, '%')
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+    <update id="updateByMsgTypeAndMsgName" parameterType="com.basiclab.iot.message.domain.entity.TMsgWxCp">
+        update t_msg_wx_cp
+        set cp_msg_type   = #{cpMsgType,jdbcType=VARCHAR},
+            agent_id      = #{agentId,jdbcType=VARCHAR},
+            content       = #{content,jdbcType=VARCHAR},
+            title         = #{title,jdbcType=VARCHAR},
+            img_url       = #{imgUrl,jdbcType=VARCHAR},
+            describe      = #{describe,jdbcType=VARCHAR},
+            url           = #{url,jdbcType=VARCHAR},
+            btn_txt       = #{btnTxt,jdbcType=VARCHAR},
+            create_time   = #{createTime,jdbcType=TIMESTAMP},
+            modified_time = #{modifiedTime,jdbcType=TIMESTAMP},
+            preview_user  = #{previewUser,jdbcType=VARCHAR}
+        where msg_type = #{msgType,jdbcType=INTEGER}
+          and msg_name = #{msgName,jdbcType=VARCHAR}
+    </update>
+    <select id="selectByMsgType" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_msg_wx_cp
+        where msg_type = #{msgType,jdbcType=INTEGER}
+    </select>
+    <delete id="deleteByMsgTypeAndName">
+        delete
+        from t_msg_wx_cp
+        where msg_type = #{msgType,jdbcType=INTEGER}
+          and msg_name = #{msgName,jdbcType=VARCHAR}
+    </delete>
+</mapper>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.message.mapper.TPreviewUserMapper">
+    <resultMap id="BaseResultMap" type="com.basiclab.iot.message.domain.entity.TPreviewUser">
+        <id column="id" property="id"/>
+        <result column="msg_type"  property="msgType"/>
+        <result column="preview_user"  property="previewUser"/>
+        <result column="create_time"  property="createTime"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        id, msg_type, preview_user, create_time
+    </sql>
+    <select id="selectById"  resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_preview_user
+        where id = #{id}
+    </select>
+    <delete id="delete">
+        delete
+        from t_preview_user
+        where id = #{id}
+    </delete>
+    <insert id="add" parameterType="com.basiclab.iot.message.domain.entity.TPreviewUser">
+        insert into t_preview_user (id, msg_type, preview_user,
+                                create_time)
+        values (#{id}, #{msgType},
+                #{previewUser}, #{createTime}
+               )
+    </insert>
+    <update id="update" parameterType="com.basiclab.iot.message.domain.entity.TPreviewUser">
+        update t_preview_user
+        <set>
+            <if test="msgType != null">
+                msg_type = #{msgType},
+            </if>
+            <if test="previewUser != null">
+                preview_user = #{previewUser},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <select id="selectList" parameterType="com.basiclab.iot.message.domain.entity.TPreviewUser"  resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_preview_user
+        <where>
+            <if test="tPreviewUser.msgType != null and tPreviewUser.msgType != ''">
+                msg_type = #{tPreviewUser.msgType}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <select id="queryByMsgType" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_preview_user
+        where msg_type = #{msgType}
+        order by create_time desc
+    </select>
+
+    <select id="getUserCount" resultType="java.lang.Integer">
+        select
+       count(1)
+        from t_preview_user
+        where msg_type = #{msgType}
+        and preview_user = #{previewUser}
+    </select>
+
+
+    <select id="queryByIds" parameterType="java.lang.String"  resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_preview_user
+        where id in
+        <foreach item="item" collection="ids" separator="," open="(" close=")" index="">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="queryPreviewUsers" parameterType="java.lang.String" resultType="java.lang.String">
+        select
+        preview_user
+        from t_preview_user
+        where id in
+        <foreach item="item" collection="ids" separator="," open="(" close=")" index="">
+            #{item}
+        </foreach>
+    </select>
+
+
+</mapper>

@@ -40,6 +40,7 @@
         <module>iot-device</module>
         <module>iot-tdengine</module>
         <module>iot-sink</module>
+        <module>iot-message</module>
     </modules>
 
     <name>${project.artifactId}</name>

@@ -22,7 +22,7 @@ import org.apache.ibatis.annotations.Mapper;
  * 2024/4/17       basiclab        1.0        Initial creation
  * -----------------------------------------------------------------------------
  * @email ${EMAIL}
- * @date 2024/4/17 22:02
+ * @date 2025/4/17 22:02
  */
 @Mapper
 public interface DeviceCommandMapper {

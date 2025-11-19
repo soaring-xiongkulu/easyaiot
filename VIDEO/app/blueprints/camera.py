@@ -73,14 +73,17 @@ class FFmpegDaemon:
                     stdin=subprocess.PIPE,
                     text=False
                 )
-                logger.info(f"启动FFmpeg: {' '.join(ffmpeg_cmd)}")
+                logger.debug(f"启动FFmpeg: {' '.join(ffmpeg_cmd)}")
 
-                # 实时监控输出
+                # 实时监控输出（仅记录错误和警告）
                 while self._running:
                     line = self.process.stderr.readline()
                     if not line:
                         break
-                    logger.info(f"[FFmpeg:{self.device_id}] {line.decode().strip()}")
+                    line_str = line.decode().strip()
+                    # 只记录错误和警告信息
+                    if 'error' in line_str.lower() or 'warning' in line_str.lower() or 'failed' in line_str.lower():
+                        logger.warning(f"[FFmpeg:{self.device_id}] {line_str}")
 
                 # 进程结束后处理
                 return_code = self.process.wait()
@@ -121,12 +124,12 @@ def auto_start_streaming():
                 if device.id in ffmpeg_processes:
                     daemon = ffmpeg_processes[device.id]
                     if daemon._running:
-                        logger.info(f"设备 {device.id} 的流媒体转发已在运行中")
+                        logger.debug(f"设备 {device.id} 的流媒体转发已在运行中")
                         continue
 
                 # 创建并启动守护线程
                 ffmpeg_processes[device.id] = FFmpegDaemon(device.id)
-                logger.info(f"设备 {device.id} 的流媒体转发已自动启动")
+                logger.debug(f"设备 {device.id} 的流媒体转发已自动启动")
 
     except Exception as e:
         logger.error(f"自动启动流媒体转发失败: {str(e)}", exc_info=True)

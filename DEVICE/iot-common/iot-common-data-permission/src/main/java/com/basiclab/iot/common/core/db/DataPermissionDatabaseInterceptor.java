@@ -537,8 +537,8 @@ public class DataPermissionDatabaseInterceptor extends JsqlParserSupport impleme
      * SQL 解析上下文，方便透传 {@link DataPermissionRule} 规则
      *
      * @author 翱翔的雄库鲁
- * @email andywebjava@163.com
- * @wechat EasyAIoT2025
+     * @email andywebjava@163.com
+     * @wechat EasyAIoT2025
      */
     static final class ContextHolder {
 
@@ -581,8 +581,8 @@ public class DataPermissionDatabaseInterceptor extends JsqlParserSupport impleme
      * 如果无效，则可以避免 SQL 的解析，加快速度
      *
      * @author 翱翔的雄库鲁
- * @email andywebjava@163.com
- * @wechat EasyAIoT2025
+     * @email andywebjava@163.com
+     * @wechat EasyAIoT2025
      */
     static final class MappedStatementCache {
 

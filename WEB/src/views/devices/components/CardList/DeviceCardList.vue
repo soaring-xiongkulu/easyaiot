@@ -6,10 +6,9 @@
     <div class="p-2 bg-white">
       <Spin :spinning="state.loading">
         <List
-          :grid="{ gutter: 8, xs: 1, sm: 2, md: 4, lg: 4, xl: 4, xxl: 4}"
+          :grid="{ gutter: 2, xs: 1, sm: 2, md: 4, lg: 4, xl: 4, xxl: 4 }"
           :data-source="data"
           :pagination="paginationProp"
-          class="device-list"
         >
           <template #header>
             <div
@@ -24,7 +23,7 @@
             <ListItem :class="item.connectStatus == 'ONLINE' && item.activeStatus == 1? 'device-item normal' : 'device-item error'">
               <div class="device-info">
                 <div class="status">{{item.connectStatus == 'ONLINE' ? '在线' : '离线'}} / {{item.activeStatus == 1 ? '已激活' : '未激活'}}</div>
-                <div class="title">{{ item.deviceName }}</div>
+                <div class="title o2">{{ item.deviceName }}</div>
                 <div class="props">
                   <div class="flex" style="justify-content: space-between;">
                     <div class="prop">
@@ -33,15 +32,21 @@
                     </div>
                     <div class="prop">
                       <div class="label">设备标识</div>
-                      <div class="value single-line">{{ item.deviceSn }}</div>
+                      <div class="value">{{ item.deviceSn || '-' }}</div>
                     </div>
                   </div>
-                  <div class="prop product-identification">
+                  <div class="prop">
                     <div class="label">产品标识</div>
-                    <div class="value">{{ item.productIdentification }}</div>
+                    <div class="value">{{ item.productIdentification || '-' }}</div>
                   </div>
                 </div>
                 <div class="btns">
+                  <div class="btn" @click="handleView(item)">
+                    <Icon icon="ant-design:eye-filled" :size="15" color="#3B82F6" />
+                  </div>
+                  <div class="btn" @click="handleEdit(item)">
+                    <Icon icon="ant-design:edit-filled" :size="15" color="#3B82F6" />
+                  </div>
                   <Popconfirm
                     title="是否确认删除？"
                     ok-text="是"
@@ -49,22 +54,15 @@
                     @confirm="handleDelete(item)"
                   >
                     <div class="btn">
-                      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAQCAYAAADJViUEAAAAAXNSR0IArs4c6QAAAi1JREFUOE+Nk89rE0EUx9/bzSZtJNSCBCvoxUhMstmdaYoIlnopglAs6iVC/wJB8SLFi3cVRPSmB0EE6an4owerIuqhIt3OjyRgq15EEHIr2tSYZp5kayTWlDi3N28+7/t+DUKXs1goxPubzYcEMI4Az9dte3IkCGpbn2I3uML5eTLmhKvUeIWxOUB8mhPi5rawYGxnFHGMjPEQ8QwB9AHAZwDYhwA/AHEGAORGs/nC13qtFQhLvn8MEM8hwCgiBgSwYAGsGGOqhFhHophlWUkiSgPiYSI6BACvbMu6jRXGZoHo0WAkMrOnS11bU1WetyOCeBIQT4c1/1b381Je69aDzrsSYxeBSOWVmg/hiu9PAWIxJ+VEy/7oeUl0nPr+IFj9VCgMUKMRS2ldDYUYm7OIHuSUur8Jc36cAC65QoyFNmM3iOirq9SVsu9PI+JQTsoLLV+Z89e2MVczSj1pK48S4i1XSt4TZkzYiGczQiyEsM7n81YkMusKkfoPeMUy5lRW6/Jmw1x3LzrOO1eIoV5wibFqnzHDB7T+EsLv0+nERjxedYXo7wVXOF+3a7XkweXlb3/Ws8zYz13GDO7Wek15XrLhOPWRIFhdLBQGnEYj5mtdrWSzUYpGv7tSRsMNa8+wzNhLQLzrCnFvu1mXOS8i0VR7pJ3wEQB4bBMVM0rNdwb4kErF6onEBBDdQcuazC0tvflLOew650dtgOtENPzPD0J8a4gu56V81vb9Ami8GYzeLnHJAAAAAElFTkSuQmCC"
-                           alt="">
+                      <Icon icon="material-symbols:delete-outline-rounded" :size="15" color="#DC2626" />
                     </div>
                   </Popconfirm>
-                  <div class="btn" :onclick="handleCopy.bind(null, item)">
-                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAABDpJREFUWEetV0FyWkcQff0VK1VKFningFOFbgAnAJ3A+ATGVQHJ2ZicAHQCS7sEVGVyAqETgE4gfAKziABXFmZjWQViXqpHf74+X4MEOOyomd/zpvu91z2CDX6pGlM716gBeA0gG4boQ9AXojcPcDH+UwarhJZVNsX3vDhkkXOcUZB64tsBBD0Q59c76E2OZeLbvxaATIU5Ci41EIkegca4JRf6X9cMUBBBEUQRDwF2BOhcNeXvOJC1AKSr/KQpNwaN8akcPZaB3bcsyC1yCFASBRT+LPAtvHElWhnAr1WW5sAZgcGoKXvrlG63zCyeoSiCutxxZnA9RX7SlsnKANIH/ACiTKI2asnJOgDcXgUi2+haEAaN4akcrQQgZL3WPmum2Bu3V2O4D+TuIYuBQRfE5HqGvaUAlO3G2LQVGNZwk/T7QPxywK7ywhjsLwDYPWRWiHeBQdkrM6I9bMmbTdIf/8aVU4ByBCDzG2sM8D5iK6BG0hFBT4gGgdzcoPT5VM7/BwBnIEoazwJIV9kAULeBibYB2k7f2TJT02180aXrKZ4rc78bQCjnGZEXTXtgoPqGAcrjhFGEXOiqfkct2f/ew6PziMmwJc/F1UNv7qtvpsr3BGoEjkdN+SOS1CGzW3NcUjCgoLc1x/k/p9J7CmCmQuXXBwKdUVNeiXM3Tce/LeknA2SqvNT6G6LoyuKsF0A3SVZtRmq5BC6uPPGSfqIAqAGHTXkgyXj9fev6nbXcuSWT2m0ufgFf2ZIXlkyFX/QWPoKtW/9UmamdH1GAQYmComYjXtbM78zxFprRyM4lSrHB/jhRwxcVvjOCY2/9iTpo2+1HX6p9XHDx4nxTAJZkzpsXDKNKlaZKtDFs3ne/KND9Ztv7ZwYnPh65bZkDqpqKcbVJ1OU8MnOMhaA9/GvRAXcrLAeCl0rQsMPpjNAftSS/TAmu3PF+IhHRwuYQN5r4mtlCftmY5YaRYIaLq/ZDJSmgGJ8WQFrmx5tDkgfpKs8AlAj0v02xv6kTRvJL+ImzYlvrJNmszOI9HBgI0Pi6g/NlM96SFqxu2/W1cwvA9ehlNUyAsGc8ZTgJMrssWveLr1kAWuvZM3xa5geR/VZYlgCv4zNeuKads68O6GSpQ8zPN8gZYztsTgcQM0M+OcxE7ud4oD06Obkm0+pmvAAoWMO5fxt4BaDGE0zxykfQCECkbY/kVmgwuTmQU1mGDxVryUpcGnRubnGyjLwRgHib1FltY7aHs4XemlPsPzU/LjSgdcqQzIp9MRF1Nz/OidrnFabnxZnwzt10/J48Zjx6uJLsp68oIYiaz91TjZjMgcYqh1s1JW/ijEcDkTjiD+ioA2YPmZ0a6NOsEKpgsfVqyg3aj9XbxyXvDDDbRt02qMd+ChDQAaYTLBk+niKvNwPuo/QBX+pLKHpougMFfRKdmxk+bkrUOLD/AJnzscretOw/AAAAAElFTkSuQmCC"
-                         alt=""></div>
-                  <div class="btn" :onclick="handleEdit.bind(null, item)">
-                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACIAAAAeCAYAAABJ/8wUAAAAAXNSR0IArs4c6QAAAwpJREFUWEftV0Fu00AUfd8hXVQs0l1IinBPQHoCnBuEExCk1i1sak7Q9AQNCyRoKjWcoPQEgRMknKBGokkQmyBBBWkzD41Tp67r2A4JEgu8tP//8+bPm/+eBf/II4vCUdxkSRl4IkQFgBlRtwNBRwn2+q/FDX9fCJDiBh0a2E+5KfeCePy1IZ1g/NxAipusUnCkixKoI4t675V8CoPKP+MjYwQHQAXEQGWwHuzMXEDMKnPDJbT1UYwI50tDXiZ1pWhzn4BD4n2vIWU/fi4gfjfCRePAaPAXWZxSkGMWpt89D0jBZkWInaTd0IDbfSNP/bjA7pxeim74eYUtHkOTmugIMNDvPSB+wSQg+vv5ECuDpnjJhS0egagKUD07kLdp8oN5kWTVZEoqlLnEt7MA21c3uaMEdU3S3oG8SMoPdLJNoETC4R14t2cujuS3aRkKrahbMA3UfZuVEXBMwO0dyNpCyKqL3NtiSwgLgKsMlKOGlb/Y6jYtpbyrbiqFWv9Q9hYGJF+lKUtoyfU0fQeM232DAwKLY8BQRLPfuCb93EfjL6TBGFnsQlCN5YkeZEQ92ImFdSS4sAaELCxD8CAMSAHuzyFO/Bt3q2Npmf634+a6NYsE9x/IH3FE33+M8FAJcsECBjEA8fHzobyf95hij+ZKDI+0UiYslDjMkoBOBVKwWQOwqwtomdc2z1fKSVHCpMDyhhkxuADKYeeVBCB2juS3aRoKpzoojeEJqLd7PsT6tFkRByqyI75fCOtBXKGJ5ijUugENmakjOYe5u99R8pOUgZanCUOs9Zu3HXdU8YmqhixguPY0YHHGyO0GZDppZ4HjvJFXtOl5j6R8D0h+g5ZkxsTUjyfrxKDbkJWkAv734nOWeIk2iU6vIev++7zNXZGx6s7OEZuaqNozlPspZ8SEsESzG5L4JBDe5qOCCjZ1d/T1TTUf9LFkRmjreaMIq9+QD2kWD8ZEAtGW/9cS2ldmxxWg9mMZJ4P62DT7jybi8jkc/Qfg/R7M6F0TgXi8ue28YjcZ5bpm6cpvMNhsJB8wSzUAAAAASUVORK5CYII="
-                         alt=""></div>
                 </div>
               </div>
               <div class="device-img">
                 <img
                   :src="item.deviceType == 'COMMON'? DEVICE_IMAGE : item.deviceType == 'GATEWAY'? GATEWAY_IMAGE : item.deviceType == 'VIDEO_COMMON'? VIDEO_IMAGE : SUBDEVICE_IMAGE"
-                  alt="" class="img" :onclick="handleView.bind(null, item)">
+                  alt="" class="img" @click="handleView(item)">
               </div>
             </ListItem>
           </template>
@@ -74,12 +72,12 @@
   </div>
 </template>
 <script lang="ts" setup>
-import {computed, onMounted, reactive, ref} from 'vue';
-import {Card, List, Popconfirm, Spin, Typography} from 'ant-design-vue';
+import {onMounted, reactive, ref} from 'vue';
+import {List, Popconfirm, Spin} from 'ant-design-vue';
 import {BasicForm, useForm} from '@/components/Form';
 import {propTypes} from '@/utils/propTypes';
 import {isFunction} from '@/utils/is';
-import {grid, useSlider} from './data';
+import {Icon} from '@/components/Icon';
 import {getDeviceProfiles} from "@/api/device/product";
 import DEVICE_IMAGE from "@/assets/images/device/device.png";
 import GATEWAY_IMAGE from "@/assets/images/device/gateway.png";
@@ -88,10 +86,7 @@ import VIDEO_IMAGE from "@/assets/images/device/video.png";
 import {useMessage} from "@/hooks/web/useMessage";
 
 const ListItem = List.Item;
-const CardMeta = Card.Meta;
-const TypographyParagraph = Typography.Paragraph;
-// 获取slider属性
-const sliderProp = computed(() => useSlider(4));
+
 // 组件接收参数
 const props = defineProps({
   // 请求API的参数
@@ -99,20 +94,13 @@ const props = defineProps({
   //api
   api: propTypes.func,
 });
-const { createConfirm, createMessage } = useMessage()
+const { createMessage } = useMessage();
+
 //暴露内部方法
 const emit = defineEmits(['getMethod', 'delete', 'edit', 'view']);
+
 //数据
 const data = ref([]);
-const title = "设备列表";
-// 切换每行个数
-// cover图片自适应高度
-//修改pageSize并重新请求数据
-
-const height = computed(() => {
-  return `h-${120 - grid.value * 6}`;
-});
-
 const state = reactive({
   loading: true,
 });
@@ -208,11 +196,6 @@ async function handleSubmit() {
   await fetch(data);
 }
 
-function sliderChange(n) {
-  pageSize.value = n * 4;
-  fetch();
-}
-
 // 自动请求并暴露内部方法
 onMounted(() => {
   fetch();
@@ -222,10 +205,19 @@ onMounted(() => {
 async function fetch(p = {}) {
   const {api, params} = props;
   if (api && isFunction(api)) {
-    const res = await api({...params, pageNo: page.value, pageSize: pageSize.value, ...p});
-    data.value = res.data;
-    total.value = res.total;
-    hideLoading();
+    try {
+      state.loading = true;
+      const res = await api({...params, pageNo: page.value, pageSize: pageSize.value, ...p});
+      // 根据表格配置，返回格式为 { data: [...], total: ... }
+      data.value = res.data || [];
+      total.value = res.total || 0;
+    } catch (error) {
+      console.error('获取数据失败:', error);
+      data.value = [];
+      total.value = 0;
+    } finally {
+      hideLoading();
+    }
   }
 }
 
@@ -267,196 +259,109 @@ async function handleEdit(record: object) {
   emit('edit', record);
 }
 
-async function handleCopy(record: object) {
-  await navigator.clipboard.writeText(JSON.stringify(record));
-  createMessage.success('复制成功');
-}
-
 async function handleDelete(record: object) {
   emit('delete', record);
 }
 </script>
 <style lang="less" scoped>
 .device-card-list-wrapper {
-  background: transparent;
-
   :deep(.ant-list-header) {
     border-block-end: 0;
-    padding: 0 0 20px 0;
-    margin-bottom: 0;
   }
-
+  :deep(.ant-list-header) {
+    padding-top: 0;
+    padding-bottom: 8px;
+  }
   :deep(.ant-list) {
-    padding: 0;
-    background: transparent;
+    padding: 6px;
   }
-
   :deep(.ant-list-item) {
-    margin: 0 0 16px 0;
-    padding: 0;
-    border: none;
+    margin: 6px;
   }
-
   :deep(.device-item) {
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    border-radius: 10px;
-    padding: 14px;
+    box-shadow: 0 0 4px #00000026;
+    border-radius: 8px;
+    padding: 16px 0;
     position: relative;
-    background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+    background-color: #fff;
     background-repeat: no-repeat;
-    background-position: right center;
-    background-size: cover;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    min-height: 180px;
+    background-position: center center;
+    background-size: 104% 104%;
+    transition: all 0.5s;
+    min-height: 208px;
     height: 100%;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    display: flex;
-    align-items: stretch;
-
-    &:hover {
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-      transform: translateY(-2px);
-    }
 
     &.normal {
-      background-image: linear-gradient(135deg, rgba(217, 223, 253, 0.1) 0%, rgba(230, 240, 255, 0.1) 100%),
-                        url('@/assets/images/product/blue-bg.719b437a.png');
-      background-size: 100% 100%, 100% 100%;
-      background-position: center, right center;
-      background-repeat: no-repeat, no-repeat;
+      background-image: url('@/assets/images/product/blue-bg.719b437a.png');
 
-      .status {
-        background: linear-gradient(135deg, #d9dffd 0%, #c4d0fc 100%);
-        color: #1890ff;
-        box-shadow: 0 2px 4px rgba(24, 144, 255, 0.2);
+      .device-info .status {
+        background: #d9dffd;
+        color: #266CFBFF;
       }
     }
 
     &.error {
-      background-image: linear-gradient(135deg, rgba(250, 215, 217, 0.1) 0%, rgba(255, 230, 230, 0.1) 100%),
-                        url('@/assets/images/product/red-bg.101af5ac.png');
-      background-size: 100% 100%, 100% 100%;
-      background-repeat: no-repeat, no-repeat;
-      background-position: center, right center;
+      background-image: url('@/assets/images/product/red-bg.101af5ac.png');
 
-      .status {
-        background: linear-gradient(135deg, #fad7d9 0%, #f5b8bb 100%);
-        color: #ff4d4f;
-        box-shadow: 0 2px 4px rgba(255, 77, 79, 0.2);
+      .device-info .status {
+        background: #fad7d9;
+        color: #d43030;
       }
     }
 
     .device-info {
       flex-direction: column;
-      max-width: calc(100% - 130px);
-      padding-left: 14px;
-      padding-right: 8px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      overflow: hidden;
-      min-width: 0;
+      max-width: calc(100% - 128px);
+      padding-left: 16px;
 
       .status {
-        width: auto;
-        min-width: 80px;
-        height: 24px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 600;
-        line-height: 24px;
+        min-width: 90px;
+        height: 25px;
+        border-radius: 6px 0 0 6px;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 25px;
         text-align: center;
         position: absolute;
-        right: 16px;
+        right: 0;
         top: 16px;
-        transition: all 0.3s ease;
-        padding: 0 10px;
+        padding: 0 8px;
+        white-space: nowrap;
       }
 
       .title {
-        font-size: 18px;
-        font-weight: 700;
-        color: #1a1a1a;
-        line-height: 1.4;
-        margin-bottom: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #050708;
+        line-height: 20px;
+        height: 40px;
         padding-right: 90px;
-        word-break: break-word;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
       }
 
       .props {
-        margin-top: 0;
-        flex: 1;
-        overflow: hidden;
-
-        .flex {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 8px;
-        }
+        margin-top: 10px;
 
         .prop {
           flex: 1;
-          margin-bottom: 8px;
-          padding: 4px 0;
-          background: transparent;
-          border-radius: 0;
-          transition: all 0.3s ease;
-          min-width: 0;
-
-          &:nth-child(2) {
-            flex: 1.2;
-            margin-left: 4px;
-            min-width: fit-content;
-          }
-
-          &:hover {
-            transform: translateY(-1px);
-          }
-
-          &.product-identification {
-            margin-bottom: 40px;
-            margin-left: 0;
-            padding-left: 0;
-          }
+          margin-bottom: 10px;
 
           .label {
             font-size: 12px;
-            font-weight: 500;
-            color: rgba(0, 0, 0, 0.65);
-            line-height: 1.4;
-            margin-bottom: 3px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-weight: 400;
+            color: #666;
+            line-height: 14px;
           }
 
           .value {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
-            color: #1a1a1a;
-            line-height: 1.4;
-            word-break: break-word;
+            color: #050708;
+            line-height: 14px;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            margin-top: 0;
-
-            &.single-line {
-              white-space: nowrap;
-              display: block;
-              -webkit-line-clamp: unset;
-              -webkit-box-orient: unset;
-              word-break: keep-all;
-              overflow: visible;
-            }
+            margin-top: 6px;
           }
         }
       }
@@ -464,67 +369,48 @@ async function handleDelete(record: object) {
       .btns {
         display: flex;
         position: absolute;
-        left: 28px;
+        left: 16px;
         bottom: 16px;
-        width: 110px;
-        height: 30px;
-        border-radius: 15px;
+        margin-top: 20px;
+        width: 130px;
+        height: 28px;
+        border-radius: 45px;
         justify-content: space-around;
         padding: 0 10px;
         align-items: center;
-        border: 2px solid #1890ff;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        transition: all 0.3s ease;
-
-        &:hover {
-          background: #1890ff;
-          box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
-
-          .btn img {
-            filter: brightness(0) invert(1);
-          }
-        }
+        border: 2px solid #266cfbff;
 
         .btn {
-          width: 26px;
-          height: 26px;
+          width: 28px;
           text-align: center;
           position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
           cursor: pointer;
-          transition: all 0.3s ease;
-          border-radius: 5px;
-
-          &:hover {
-            background: rgba(24, 144, 255, 0.1);
-            transform: scale(1.1);
-          }
 
           &:before {
-            content: "";
+            content: '';
             display: block;
             position: absolute;
             width: 1px;
-            height: 16px;
-            background-color: #e8e8e8;
+            height: 7px;
+            background-color: #e2e2e2;
             left: 0;
-            top: 50%;
-            transform: translateY(-50%);
+            top: 9px;
           }
 
           &:first-child:before {
             display: none;
           }
 
-          img {
-            width: 14px;
-            height: 14px;
-            margin: 0 auto;
-            cursor: pointer;
-            transition: all 0.3s ease;
+          :deep(.anticon) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #87CEEB;
+            transition: color 0.3s;
+          }
+
+          &:hover :deep(.anticon) {
+            color: #5BA3F5;
           }
         }
       }
@@ -532,22 +418,12 @@ async function handleDelete(record: object) {
 
     .device-img {
       position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 1;
+      right: 20px;
+      top: 50px;
 
       img {
         cursor: pointer;
         width: 120px;
-        height: 120px;
-        object-fit: contain;
-        transition: transform 0.3s ease;
-        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
-
-        &:hover {
-          transform: scale(1.05);
-        }
       }
     }
   }

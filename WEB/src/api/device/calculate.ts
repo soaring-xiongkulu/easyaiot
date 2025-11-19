@@ -1,0 +1,61 @@
+import {defHttp} from '@/utils/http/axios';
+
+enum Api {
+  Alarm = '/video/alert',
+}
+
+const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url, params = {}, headers = {}, isTransformResponse = true, responseType = 'json') => {
+  defHttp.setHeader({'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token')});
+
+  return defHttp[method](
+    {
+      url,
+      headers: {
+        // @ts-ignore
+        ignoreCancelToken: true,
+        ...headers,
+      },
+      ...params,
+      responseType: responseType,
+    },
+    {
+      isTransformResponse: isTransformResponse,
+    },
+  );
+};
+
+// 告警事件
+export const queryAlarmList = async (params) => {
+  const res = await commonApi('get', Api.Alarm + '/page', {params}, {}, false);
+  // 后端返回格式: { code: 200, message: "success", data: { alert_list: [], total: 100 } }
+  // 当 isTransformResponse: false 时，返回的是整个 Axios 响应对象，需要访问 res.data 获取实际响应
+  // 然后访问 res.data.data 获取实际数据
+  if (res && res.data && res.data.data) {
+    return res.data.data;
+  }
+  // 兼容处理：如果结构不同，尝试直接返回 res.data
+  if (res && res.data) {
+    return res.data;
+  }
+  return res;
+};
+
+export const deleteAlarm = (id) => {
+  return commonApi('delete', `${Api.Alarm}/delete/${id}`);
+};
+
+export const getAlertCount = (params) => {
+  return commonApi('get', Api.Alarm + '/count', {device_id: params['id']});
+};
+
+export const getAlertImage = (path) => {
+  return commonApi('get', Api.Alarm + '/image?path=' + path, {}, {}, false, 'blob');
+};
+
+export const getAlertRecord = (path) => {
+  return commonApi('get', Api.Alarm + '/record?path=' + path, {}, {}, false, 'blob');
+};
+
+export const generatePlayback = (params) => {
+  return commonApi('post', Api.Alarm + '/generatePlayback', {params});
+};

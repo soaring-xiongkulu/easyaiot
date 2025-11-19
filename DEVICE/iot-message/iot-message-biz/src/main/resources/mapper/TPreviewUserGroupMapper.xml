@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.message.mapper.TPreviewUserGroupMapper">
+    <resultMap id="BaseResultMap" type="com.basiclab.iot.message.domain.entity.TPreviewUserGroup">
+        <id column="id" property="id"/>
+        <result column="msg_type"  property="msgType"/>
+        <result column="user_group_name"  property="userGroupName"/>
+        <result column="preview_user_id"  property="previewUserId"/>
+        <result column="create_time"  property="createTime"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        id, msg_type, user_group_name,preview_user_id, create_time
+    </sql>
+    <select id="selectById"  resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_preview_user_group
+        where id = #{id}
+    </select>
+    <delete id="delete">
+        delete
+        from t_preview_user_group
+        where id = #{id}
+    </delete>
+    <insert id="add" parameterType="com.basiclab.iot.message.domain.entity.TPreviewUserGroup">
+        insert into t_preview_user_group (id, msg_type, user_group_name,preview_user_id,
+                                create_time)
+        values (#{id}, #{msgType},
+                #{userGroupName},#{previewUserId}, #{createTime}
+               )
+    </insert>
+    <update id="update" parameterType="com.basiclab.iot.message.domain.entity.TPreviewUserGroup">
+        update t_preview_user_group
+        <set>
+            <if test="msgType != null">
+                msg_type = #{msgType},
+            </if>
+            <if test="userGroupName != null">
+                user_group_name = #{userGroupName},
+            </if>
+            <if test="previewUserId != null">
+                preview_user_id = #{previewUserId},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <select id="selectList" parameterType="com.basiclab.iot.message.domain.entity.TPreviewUserGroup"  resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_preview_user_group
+        <where>
+            <if test="msgType != null and msgType != ''">
+               and msg_type = #{msgType}
+            </if>
+            <if test="userGroupName != null and userGroupName != ''">
+               and user_group_name like concat('%', #{userGroupName}::varchar, '%')
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <select id="queryByMsgType" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_preview_user_group
+        where msg_type = #{msgType}
+        order by create_time desc
+    </select>
+
+    <select id="queryPreviewUserIds" parameterType="java.lang.String" resultType="java.lang.String">
+        select preview_user_id
+        from t_preview_user_group
+        where id = #{id}
+    </select>
+
+    <select id="getGroupNameById" parameterType="java.lang.String" resultType="java.lang.String">
+        select user_group_name
+        from t_preview_user_group
+        where id = #{id}
+    </select>
+
+    <select id="getGroupCount" parameterType="java.lang.String" resultType="java.lang.Integer">
+        select count(1)
+        from t_preview_user_group
+        where user_group_name = #{userGroupName}
+    </select>
+
+</mapper>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.device.dal.pgsql.ota.DmPackageMapper">
+
+    <resultMap id="DmPackagePageVo" type="com.basiclab.iot.device.domain.ota.vo.DmPackagePageVo">
+        <id column="id" property="id"></id>
+        <result column="version" property="version"></result>
+        <result column="name" property="name"></result>
+        <result column="type" property="type"></result>
+        <result column="upgrade_mode" property="upgradeMode"></result>
+        <result column="upload_time" property="uploadTime"></result>
+        <result column="updated_time" property="updatedTime"></result>
+        <result column="publish_time" property="publishTime"></result>
+        <result column="key_version_flag" property="keyVersionFlag"></result>
+        <result column="status" property="status"></result>
+        <result column="url" property="url"></result>
+        <result column="remark" property="remark"></result>
+    </resultMap>
+
+    <resultMap id="DmPackagePo" type="com.basiclab.iot.device.dal.dataobject.DmPackagePo">
+        <id column="id" property="id"></id>
+        <result column="name" property="name"></result>
+        <result column="type" property="type"></result>
+        <result column="version" property="version"></result>
+        <result column="upgrade_mode" property="upgradeMode"></result>
+        <result column="url" property="url"></result>
+        <result column="key_version_flag" property="keyVersionFlag"></result>
+        <result column="status" property="status"></result>
+        <result column="publish_time" property="publishTime"></result>
+        <result column="created_time" property="createTime"></result>
+        <result column="file_md5" property="fileMd5"></result>
+        <result column="remark" property="remark"></result>
+    </resultMap>
+
+    <resultMap id="DmPackageVersionVo" type="com.basiclab.iot.device.domain.ota.vo.DmPackageVersionVo">
+        <result column="version" property="version"></result>
+    </resultMap>
+
+    <select id="getPackageListByCondition" resultMap="DmPackagePageVo"
+            parameterType="com.basiclab.iot.device.domain.ota.qo.DmPackagePageQo">
+        SELECT
+        pk.id, pk.version, pk.name, pk.type, pk.upgrade_mode, pk.upload_time, pk.publish_time, pk.status,
+        pk.key_version_flag, pk.url, pk.remark, pk.updated_time
+        FROM device_ota_pkg pk
+        <where>
+            <if test="type != null">
+                AND pk.type = #{type}
+            </if>
+            <if test="version != null and version != ''">
+                AND pk.version = #{version}
+            </if>
+        </where>
+        ORDER BY pk.updated_time DESC
+    </select>
+
+    <select id="getPackageByVerifyList" resultMap="DmPackagePo"
+            parameterType="com.basiclab.iot.device.domain.ota.oo.DmDeviceDetectOo">
+        SELECT pk.id, pk.name, pk.type, pk.version, pk.upgrade_mode, pk.url, pk.key_version_flag,
+        pk.status, pk.remark, pk.publish_time, pk.created_time, pk.file_md5
+        FROM device_ota_pkg pk
+        <where>
+            <if test="deviceIdentification != null and deviceIdentification != ''">
+                AND pk.id IN(
+                SELECT v.pkg_id FROM device_ota_version_verify v WHERE v.deviceIdentification = #{deviceIdentification} AND v.status = 1
+                )
+            </if>
+            <if test="type != null">
+                AND pk.type = #{type}
+            </if>
+        </where>
+    </select>
+
+    <select id="getPublishedPackageList" resultMap="DmPackagePo"
+            parameterType="com.basiclab.iot.device.domain.ota.oo.DmDeviceDetectOo">
+        SELECT pk.*
+        FROM device_ota_pkg pk
+        <where>
+            <if test="1 == 1">
+                AND pk.id IN(
+                SELECT p.pkg_id FROM device_ota_version_publish p WHERE p.status = 1
+                )
+            </if>
+            <if test="type != null">
+                AND pk.type = #{type}
+            </if>
+        </where>
+    </select>
+
+    <select id="getVersionListByType" resultMap="DmPackageVersionVo">
+        SELECT DISTINCT(version) version
+        FROM device_ota_pkg
+        WHERE type = #{type}
+    </select>
+</mapper>

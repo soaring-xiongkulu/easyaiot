@@ -6,6 +6,14 @@ spring:
     gateway:
       # 路由配置项，对应 RouteDefinition 数组
       routes:
+        # 通知模块
+        - id: message-admin-api
+          uri: lb://message-server
+          predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+            - Path=/admin-api/message/**
+          filters:
+            - StripPrefix=1
+            - RewritePath=/admin-api/device/v3/api-docs, /v3/api-docs # 配置，保证转发到 /v3/api-docs
         # VIDEO模块
         - id: video-admin-api
           uri: lb://video-server
@@ -43,14 +51,6 @@ spring:
           uri: lb://file-server
           predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
             - Path=/admin-api/file/**, /admin-api/sysFile/**
-          filters:
-            - StripPrefix=1
-            - RewritePath=/admin-api/device/v3/api-docs, /v3/api-docs # 配置，保证转发到 /v3/api-docs
-        # Visualis服务
-        - id: visualis-admin-api
-          uri: lb://visualis-server
-          predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
-            - Path=/admin-api/api/datasource/**,/admin-api/api/file/**,/admin-api/api/project/**,
           filters:
             - StripPrefix=1
             - RewritePath=/admin-api/device/v3/api-docs, /v3/api-docs # 配置，保证转发到 /v3/api-docs

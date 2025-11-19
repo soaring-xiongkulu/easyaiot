@@ -8,6 +8,7 @@ import socket
 import sys
 import threading
 import time
+import logging
 
 import netifaces
 import pytz
@@ -18,11 +19,16 @@ from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
 
-from app.blueprints import camera, nvr
+from app.blueprints import camera, nvr, alert
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv()
+
+# 配置日志级别，减少第三方库的详细输出
+logging.getLogger('nacos').setLevel(logging.WARNING)
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
+logging.getLogger('apscheduler').setLevel(logging.WARNING)
 
 
 def get_local_ip():
@@ -96,7 +102,6 @@ def create_app():
     db.init_app(app)
     with app.app_context():
         try:
-            print(f"数据库连接: {app.config['SQLALCHEMY_DATABASE_URI']}")
             from models import Device, Image, Nvr
             db.create_all()
         except Exception as e:
@@ -105,11 +110,7 @@ def create_app():
     # 注册蓝图
     try:
         app.register_blueprint(camera.camera_bp, url_prefix='/video/camera')
-        print(f"✅ Camera Blueprint 注册成功，路由前缀: /video/camera")
-        # 打印所有注册的路由用于调试
-        for rule in app.url_map.iter_rules():
-            if 'camera' in rule.rule:
-                print(f"   路由: {rule.rule} -> {rule.endpoint} [{', '.join(rule.methods)}]")
+        print(f"✅ Camera Blueprint 注册成功")
     except Exception as e:
         print(f"❌ Camera Blueprint 注册失败: {str(e)}")
         import traceback
@@ -117,9 +118,17 @@ def create_app():
     
     try:
         app.register_blueprint(nvr.nvr_bp, url_prefix='/video/nvr')
-        print(f"✅ NVR Blueprint 注册成功，路由前缀: /video/nvr")
+        print(f"✅ NVR Blueprint 注册成功")
     except Exception as e:
         print(f"❌ NVR Blueprint 注册失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    try:
+        app.register_blueprint(alert.alert_bp, url_prefix='/video/alert')
+        print(f"✅ Alert Blueprint 注册成功")
+    except Exception as e:
+        print(f"❌ Alert Blueprint 注册失败: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -162,8 +171,6 @@ def create_app():
 
         # 获取IP地址
         ip = os.getenv('POD_IP') or get_local_ip()
-        if not os.getenv('POD_IP'):
-            print(f"⚠️ 未配置POD_IP，自动获取局域网IP: {ip}")
 
         # 创建Nacos客户端
         app.nacos_client = NacosClient(
@@ -195,7 +202,6 @@ def create_app():
             daemon=True
         )
         app.heartbeat_thread.start()
-        print(f"🚀 心跳线程已启动，间隔: 5秒")
 
     except Exception as e:
         print(f"❌ Nacos注册失败: {str(e)}")
@@ -251,19 +257,14 @@ def create_app():
     with app.app_context():
         from app.services.camera_service import _start_search, scheduler
         _start_search()
-
-        # 确保调度器在应用退出时正确关闭
         import atexit
         atexit.register(lambda: scheduler.shutdown())
 
     # 应用启动后自动启动需要推流的设备
     with app.app_context():
         try:
-            # 导入auto_start_streaming函数
             from app.blueprints.camera import auto_start_streaming
-            # 调用函数启动所有需要推流的设备
             auto_start_streaming()
-            print("✅ 已自动启动所有需要推流的设备")
         except Exception as e:
             print(f"❌ 自动启动推流设备失败: {str(e)}")
             import traceback
@@ -277,4 +278,7 @@ if __name__ == '__main__':
     # 从环境变量读取主机和端口配置
     host = os.getenv('FLASK_RUN_HOST', '0.0.0.0')
     port = int(os.getenv('FLASK_RUN_PORT', 6000))
+    # 获取实际IP地址
+    ip = getattr(app, 'registered_ip', None) or get_local_ip()
+    print(f"🚀 服务启动: http://{ip}:{port}")
     app.run(host=host, port=port)

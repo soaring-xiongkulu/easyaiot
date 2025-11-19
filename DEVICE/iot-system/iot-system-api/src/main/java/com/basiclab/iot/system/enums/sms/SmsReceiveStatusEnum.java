@@ -9,7 +9,7 @@ import lombok.Getter;
  * @author 翱翔的雄库鲁
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
- * @date 2024/2/1 13:39
+ * @date 2025/2/1 13:39
  */
 @Getter
 @AllArgsConstructor

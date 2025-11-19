@@ -187,7 +187,7 @@ public interface RemoteTdEngineService {
      * @author 翱翔的雄库鲁
      * @email andywebjava@163.com
      * @wechat EasyAIoT2025
-     * @Date 2024/1/10 14:44
+     * @date 2025/1/10 14:44
      */
     @PostMapping("/getDataByTimestamp")
     R<?> getDataByTimestamp(@Validated @RequestBody SelectDto selectDto);

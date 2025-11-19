@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ji6CHwd09PtprNSScxBsHbFV4ltD0nWEEsOQsdydDqWeuIBzBZuJnctzo5Kdusc
+\restrict FWe9xdaXO1k7tYz06E8YGy7RMi8iWWohcUNKPBNVoRJ9PuDtzRoxLEziug14rAW
 
 -- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
 -- Dumped by pg_dump version 16.10 (Ubuntu 16.10-0ubuntu0.24.04.1)
@@ -2275,6 +2275,182 @@ CREATE SEQUENCE public.device_ota_device_model_id_seq
 ALTER SEQUENCE public.device_ota_device_model_id_seq OWNER TO postgres;
 
 --
+-- Name: device_ota_pkg; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.device_ota_pkg (
+    id integer NOT NULL,
+    type smallint,
+    name character varying(64),
+    version character varying(64),
+    upgrade_mode smallint,
+    url character varying(500),
+    key_version_flag smallint,
+    status smallint,
+    upload_time timestamp without time zone,
+    publish_time timestamp without time zone,
+    created_by character varying(64),
+    created_time timestamp without time zone,
+    updated_by character varying(64),
+    file_md5 character varying(255),
+    remark character varying(255),
+    updated_time timestamp without time zone,
+    tenant_id bigint DEFAULT 0 NOT NULL,
+    deleted smallint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.device_ota_pkg OWNER TO postgres;
+
+--
+-- Name: COLUMN device_ota_pkg.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.id IS '主键ID';
+
+
+--
+-- Name: COLUMN device_ota_pkg.type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.type IS '包类型[0:软件包,1:固件包,2:电控包]';
+
+
+--
+-- Name: COLUMN device_ota_pkg.name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.name IS '包名称';
+
+
+--
+-- Name: COLUMN device_ota_pkg.version; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.version IS '包版本号';
+
+
+--
+-- Name: COLUMN device_ota_pkg.upgrade_mode; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.upgrade_mode IS '升级方式[0:非强制升级,1:强制升级]';
+
+
+--
+-- Name: COLUMN device_ota_pkg.url; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.url IS '包路径';
+
+
+--
+-- Name: COLUMN device_ota_pkg.key_version_flag; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.key_version_flag IS '关键版本标识[0:否,1:是]';
+
+
+--
+-- Name: COLUMN device_ota_pkg.status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.status IS '状态[0:未验证,1:已验证,2:已发布]';
+
+
+--
+-- Name: COLUMN device_ota_pkg.upload_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.upload_time IS '上传时间';
+
+
+--
+-- Name: COLUMN device_ota_pkg.publish_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.publish_time IS '发布时间';
+
+
+--
+-- Name: COLUMN device_ota_pkg.created_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.created_by IS '创建人';
+
+
+--
+-- Name: COLUMN device_ota_pkg.created_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.created_time IS '创建时间';
+
+
+--
+-- Name: COLUMN device_ota_pkg.updated_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.updated_by IS '更新人ID';
+
+
+--
+-- Name: COLUMN device_ota_pkg.file_md5; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.file_md5 IS '文件MD5值';
+
+
+--
+-- Name: COLUMN device_ota_pkg.remark; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.remark IS '备注';
+
+
+--
+-- Name: COLUMN device_ota_pkg.updated_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.updated_time IS '更新时间';
+
+
+--
+-- Name: COLUMN device_ota_pkg.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.tenant_id IS '租户编号';
+
+
+--
+-- Name: COLUMN device_ota_pkg.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device_ota_pkg.deleted IS '是否删除';
+
+
+--
+-- Name: device_ota_pkg_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.device_ota_pkg_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.device_ota_pkg_id_seq OWNER TO postgres;
+
+--
+-- Name: device_ota_pkg_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.device_ota_pkg_id_seq OWNED BY public.device_ota_pkg.id;
+
+
+--
 -- Name: device_ota_version_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3000,6 +3176,159 @@ CREATE SEQUENCE public.model_type_seq
 
 
 ALTER SEQUENCE public.model_type_seq OWNER TO postgres;
+
+--
+-- Name: ota_packages; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.ota_packages (
+    id bigint NOT NULL,
+    app_id character varying(64) NOT NULL,
+    package_name character varying(100) NOT NULL,
+    package_type smallint NOT NULL,
+    product_identification character varying(100) NOT NULL,
+    version character varying(255) NOT NULL,
+    file_location character varying(255) NOT NULL,
+    status smallint NOT NULL,
+    description character varying(255),
+    custom_info text,
+    remark character varying(255),
+    created_by bigint,
+    created_time timestamp(6) without time zone NOT NULL,
+    updated_by bigint,
+    updated_time timestamp(6) without time zone NOT NULL,
+    tenant_id bigint,
+    deleted smallint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.ota_packages OWNER TO postgres;
+
+--
+-- Name: TABLE ota_packages; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.ota_packages IS 'OTA升级包表';
+
+
+--
+-- Name: COLUMN ota_packages.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.id IS '主键';
+
+
+--
+-- Name: COLUMN ota_packages.app_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.app_id IS '应用ID';
+
+
+--
+-- Name: COLUMN ota_packages.package_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.package_name IS '包名称';
+
+
+--
+-- Name: COLUMN ota_packages.package_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.package_type IS '升级包类型(0:软件包、1:固件包)';
+
+
+--
+-- Name: COLUMN ota_packages.product_identification; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.product_identification IS '产品标识';
+
+
+--
+-- Name: COLUMN ota_packages.version; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.version IS '升级包版本号';
+
+
+--
+-- Name: COLUMN ota_packages.file_location; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.file_location IS '升级包的位置';
+
+
+--
+-- Name: COLUMN ota_packages.status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.status IS '状态';
+
+
+--
+-- Name: COLUMN ota_packages.description; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.description IS '升级包功能描述';
+
+
+--
+-- Name: COLUMN ota_packages.custom_info; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.custom_info IS '自定义信息';
+
+
+--
+-- Name: COLUMN ota_packages.remark; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.remark IS '描述';
+
+
+--
+-- Name: COLUMN ota_packages.created_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.created_by IS '创建人';
+
+
+--
+-- Name: COLUMN ota_packages.created_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.created_time IS '创建时间';
+
+
+--
+-- Name: COLUMN ota_packages.updated_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.updated_by IS '更新人';
+
+
+--
+-- Name: COLUMN ota_packages.updated_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.updated_time IS '更新时间';
+
+
+--
+-- Name: COLUMN ota_packages.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.tenant_id IS '租户ID';
+
+
+--
+-- Name: COLUMN ota_packages.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ota_packages.deleted IS '是否删除';
+
 
 --
 -- Name: product; Type: TABLE; Schema: public; Owner: postgres
@@ -5067,6 +5396,13 @@ ALTER TABLE ONLY public.device_location ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
+-- Name: device_ota_pkg id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.device_ota_pkg ALTER COLUMN id SET DEFAULT nextval('public.device_ota_pkg_id_seq'::regclass);
+
+
+--
 -- Name: device_service_invoke_response id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -5273,6 +5609,16 @@ COPY public.device_location (id, device_identification, latitude, longitude, ful
 
 
 --
+-- Data for Name: device_ota_pkg; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.device_ota_pkg (id, type, name, version, upgrade_mode, url, key_version_flag, status, upload_time, publish_time, created_by, created_time, updated_by, file_md5, remark, updated_time, tenant_id, deleted) FROM stdin;
+6	0	软件测试包	1.0.0	0	http://127.0.0.1:19300/statics/2024/07/30/c9f0e8a0-0664-4edc-a6b6-020ea85c3a94.png	0	0	2024-07-30 15:09:13.814	\N	admin	2024-07-30 15:09:13.856	admin	\N	软件测试包	2024-07-30 15:09:13.856	1	0
+7	1	固件测试包	1.0.0	0	http://127.0.0.1:19300/statics/2024/07/30/f57bbdb2-5b20-4f55-a97b-1bc6ac11252e.png	1	0	2024-07-30 15:50:37.294	\N	admin	2024-07-30 15:50:37.3	admin	\N	固件升级测试包	2024-07-30 15:50:37.3	1	0
+\.
+
+
+--
 -- Data for Name: device_service_invoke_response; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -5285,6 +5631,14 @@ COPY public.device_service_invoke_response (id, message_id, device_id, device_id
 --
 
 COPY public.device_topic (id, device_identification, type, topic, publisher, subscriber, create_by, create_time, update_by, update_time, remark, tenant_id, deleted) FROM stdin;
+\.
+
+
+--
+-- Data for Name: ota_packages; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.ota_packages (id, app_id, package_name, package_type, product_identification, version, file_location, status, description, custom_info, remark, created_by, created_time, updated_by, updated_time, tenant_id, deleted) FROM stdin;
 \.
 
 
@@ -5596,6 +5950,13 @@ SELECT pg_catalog.setval('public.device_log_file_id_seq', 17, true);
 --
 
 SELECT pg_catalog.setval('public.device_ota_device_model_id_seq', 1, false);
+
+
+--
+-- Name: device_ota_pkg_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.device_ota_pkg_id_seq', 1, false);
 
 
 --
@@ -5959,6 +6320,14 @@ ALTER TABLE ONLY public.product_properties
 
 
 --
+-- Name: ota_packages _copy_42; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ota_packages
+    ADD CONSTRAINT _copy_42 PRIMARY KEY (id);
+
+
+--
 -- Name: device_topic _copy_47; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -6044,6 +6413,14 @@ ALTER TABLE ONLY public.dataset_video
 
 ALTER TABLE ONLY public.device_event
     ADD CONSTRAINT device_event_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: device_ota_pkg device_ota_pkg_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.device_ota_pkg
+    ADD CONSTRAINT device_ota_pkg_pkey PRIMARY KEY (id);
 
 
 --
@@ -6140,6 +6517,20 @@ ALTER TABLE ONLY public.warehouse_dataset
 
 ALTER TABLE ONLY public.warehouse
     ADD CONSTRAINT warehouse_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: idx_app_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_app_id ON public.ota_packages USING btree (app_id);
+
+
+--
+-- Name: INDEX idx_app_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON INDEX public.idx_app_id IS '应用ID';
 
 
 --
@@ -6318,6 +6709,20 @@ CREATE INDEX idx_product_event_tenant_id ON public.product_event USING btree (te
 
 
 --
+-- Name: idx_product_identification; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_identification ON public.ota_packages USING btree (product_identification);
+
+
+--
+-- Name: INDEX idx_product_identification; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON INDEX public.idx_product_identification IS '产品标识';
+
+
+--
 -- Name: idx_product_script_product_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -6374,6 +6779,20 @@ CREATE INDEX idx_tenant_id ON public.app USING btree (tenant_id);
 
 
 --
+-- Name: idx_version; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_version ON public.ota_packages USING btree (version);
+
+
+--
+-- Name: INDEX idx_version; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON INDEX public.idx_version IS '升级包版本号';
+
+
+--
 -- Name: manufacturer_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -6398,5 +6817,5 @@ CREATE TRIGGER update_iot_app_updated_time BEFORE UPDATE ON public.app FOR EACH 
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ji6CHwd09PtprNSScxBsHbFV4ltD0nWEEsOQsdydDqWeuIBzBZuJnctzo5Kdusc
+\unrestrict FWe9xdaXO1k7tYz06E8YGy7RMi8iWWohcUNKPBNVoRJ9PuDtzRoxLEziug14rAW
 
