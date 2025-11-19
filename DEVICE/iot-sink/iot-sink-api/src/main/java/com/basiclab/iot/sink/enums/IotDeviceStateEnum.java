@@ -13,7 +13,6 @@ import java.util.Arrays;
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-
 @RequiredArgsConstructor
 @Getter
 public enum IotDeviceStateEnum implements ArrayValuable<Integer> {

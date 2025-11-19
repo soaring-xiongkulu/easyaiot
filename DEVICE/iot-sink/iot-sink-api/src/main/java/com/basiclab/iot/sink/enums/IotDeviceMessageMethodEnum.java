@@ -16,7 +16,6 @@ import java.util.Set;
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-
 @Getter
 @AllArgsConstructor
 public enum IotDeviceMessageMethodEnum implements ArrayValuable<String> {

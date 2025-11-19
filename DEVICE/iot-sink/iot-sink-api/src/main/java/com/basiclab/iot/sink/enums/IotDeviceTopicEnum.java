@@ -10,7 +10,6 @@ import lombok.Getter;
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-
 @Getter
 @AllArgsConstructor
 public enum IotDeviceTopicEnum {

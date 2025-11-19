@@ -9,7 +9,6 @@ import lombok.Getter;
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-
 public class IotDeviceTopicMethodMapping {
 
     /**
