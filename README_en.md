@@ -38,43 +38,6 @@
 
 ### 🌟 Genuine open source is rare. If you find this project useful, please star it before leaving - your support means everything to us!(In an era where fake open-source projects are rampant, this project stands out as an exception.)
 
-## 🎁 Model Package
-
-We have prepared various pre-trained models for you. You can get them for free in just three steps to help you quickly start development:
-- 🌟 Star the project to support the open-source community
-  Go to the project homepage and click Star - this is the greatest encouragement for us!
-- 📱 Follow our official account to get download links
-  Follow our official WeChat account and reply with the keyword "Model Package" to get the resource download link.
-- 👥 Join our community to unlock full permissions
-  Scan the QR code to join our technical exchange group, get the model package extraction password in the group, and interact with more developers for Q&A.
-
-| Model Name      | Function Description | Application Scenarios |
-|-----------------|----------------------|------------------------|
-| SafeHat.pt      | Safety Helmet Wearing Detection | Construction Site Security Monitoring, Industrial Protection |
-| FallDetect.pt   | Human Fall Detection | Elderly Care, Hospital Security, Public Area Monitoring |
-| Ebike.pt        | Electric Bicycle Detection | Smart Transportation, Non-motorized Vehicle Lane Management |
-| Truck.pt        | Heavy Truck Detection | Traffic Management, Heavy Vehicle Monitoring, Logistics Monitoring |
-| Door.pt         | Door Open/Close Detection | Home Security, Access Control, Smart Home |
-| unFire.pt       | Fire Extinguisher Status Detection | Fire Equipment Inspection, Public Place Safety |
-| GroundWater.pt  | Ground Water Accumulation Detection | Urban Drainage Monitoring, Disaster Prevention, Construction Site Safety |
-| Mask.pt         | Mask Recognition | Public Health, Epidemic Prevention and Control, Personnel Management |
-| SafetyGloves.pt | Safety Gloves Recognition | Industrial Safety, Protective Equipment Inspection, Construction Sites |
-| Smartphone.pt   | Smartphone Usage Detection | Workplace Safety, Driving Monitoring, Educational Institutions |
-| Sleeping.pt     | Sleep Detection | Care Institutions, Employee Rest Area Monitoring, Security Care |
-| Smoking.pt      | Smoking Detection | Smoke-free Areas, Security Monitoring, Public Place Management |
-| NMotor.pt       | Non-motorized Vehicle Recognition | Traffic Flow Statistics, Non-motorized Vehicle Lane Monitoring, Urban Planning |
-| Occupation.pt   | Street Vending Detection | Urban Management, Street Order Maintenance, Market Monitoring |
-| Guarding.pt     | Smart Grid Guarding | Power Facility Security, Intrusion Detection, Critical Infrastructure Protection |
-| PetLeash.pt     | Pet Leash Recognition | Community Security, Pet Management, Public Place Order |
-| Wheelchair.pt   | Wheelchair Recognition | Accessibility Facilities, Medical Institutions, Public Transportation Assistance |
-| Stroller.pt     | Baby Stroller Recognition | Public Places, Child Safety, Commercial Area Monitoring |
-| Traffic.pt      | Traffic Accident Recognition | Traffic Monitoring, Accident Response, Road Safety |
-| Facial.pt       | Facial Expression Recognition | Human-Computer Interaction, Emotion Analysis, Mental Health Monitoring |
-| fire.pt         | Flame and Smoke Detection | Fire Safety Monitoring, Fire Early Warning, Industrial Safety Monitoring |
-| smoke.pt        | Smoking Recognition | Public Place Smoke-free Monitoring, Health Environment Management, Smart Buildings |
-| plate.pt        | License Plate Recognition | Intelligent Traffic Management, Parking Lot Access Control, Security Monitoring |
-| coal.pt         | Coal Recognition | Mine Safety Monitoring, Coal Industry, Material Recognition and Statistics |
-
 ## 🎯 Application Scenarios
 
 ![Application Scenarios.png](.image/适用场景.png)
