@@ -3316,125 +3316,6 @@ wait_for_kafka() {
     return 1
 }
 
-# 检查 Kafka Topic 是否存在
-check_kafka_topic() {
-    local topic_name=$1
-    
-    # 检查 topic 是否存在
-    local result=$(docker exec kafka-server kafka-topics.sh --bootstrap-server localhost:9092 --list 2>/dev/null | grep -w "^${topic_name}$" || echo "")
-    if [ -n "$result" ]; then
-        return 0  # Topic 存在
-    else
-        return 1  # Topic 不存在
-    fi
-}
-
-# 创建 Kafka Topic
-create_kafka_topic() {
-    local topic_name=$1
-    local partitions=${2:-1}  # 默认分区数为1
-    local replication_factor=${3:-1}  # 默认副本数为1
-    
-    print_info "创建 Kafka Topic: $topic_name (分区数: $partitions, 副本数: $replication_factor)"
-    
-    # 检查 topic 是否已存在
-    if check_kafka_topic "$topic_name"; then
-        print_info "Kafka Topic $topic_name 已存在，跳过创建"
-        return 0
-    fi
-    
-    # 创建 topic
-    local output=$(docker exec kafka-server kafka-topics.sh \
-        --bootstrap-server localhost:9092 \
-        --create \
-        --topic "$topic_name" \
-        --partitions "$partitions" \
-        --replication-factor "$replication_factor" \
-        --if-not-exists 2>&1)
-    local exit_code=$?
-    
-    if [ $exit_code -eq 0 ]; then
-        print_success "Kafka Topic $topic_name 创建成功"
-        return 0
-    else
-        # 检查是否是因为 topic 已存在
-        if echo "$output" | grep -qiE "(already exists|exist|Topic.*already exists)"; then
-            print_info "Kafka Topic $topic_name 已存在（检测到已存在消息）"
-            return 0
-        else
-            print_error "Kafka Topic $topic_name 创建失败"
-            print_info "错误输出: $output"
-            
-            # 检查 Kafka 服务是否仍然可用
-            if ! docker exec kafka-server kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1; then
-                print_warning "Kafka 服务可能已不可用，请检查容器状态"
-                print_info "检查命令: docker ps | grep kafka"
-            fi
-            
-            return 1
-        fi
-    fi
-}
-
-# 初始化 Kafka Topics
-init_kafka() {
-    print_section "初始化 Kafka Topics"
-    
-    # 等待 Kafka 就绪
-    if ! wait_for_kafka; then
-        print_error "Kafka 未就绪，无法初始化 Topics"
-        echo ""
-        print_warning "您可以："
-        print_info "1. 等待更长时间后手动运行初始化: docker exec kafka-server kafka-topics.sh --bootstrap-server localhost:9092 --list"
-        print_info "2. 检查 Kafka 容器日志: docker logs kafka-server"
-        print_info "3. 重启 Kafka 容器: docker restart kafka-server"
-        print_info "4. 稍后手动运行此脚本的 init 命令或重新运行 install 命令"
-        echo ""
-        return 1
-    fi
-    
-    # 定义需要创建的 Topic 列表
-    # 格式: topic_name:partitions:replication_factor
-    local topics=(
-        "iot_product_script_change:1:1"  # 产品脚本变化通知
-        # 注意：iot/# 是通配符，Kafka不支持通配符topic，实际使用时需要创建具体的topic
-        # 这里只创建明确需要的topic，其他topic会在使用时自动创建（如果启用了AUTO_CREATE_TOPICS_ENABLE）
-    )
-    
-    local success_count=0
-    local total_count=${#topics[@]}
-    
-    # 创建 Topics
-    for topic_spec in "${topics[@]}"; do
-        IFS=':' read -r topic_name partitions replication_factor <<< "$topic_spec"
-        
-        if [ -z "$topic_name" ]; then
-            continue
-        fi
-        
-        # 设置默认值
-        partitions=${partitions:-1}
-        replication_factor=${replication_factor:-1}
-        
-        if create_kafka_topic "$topic_name" "$partitions" "$replication_factor"; then
-            success_count=$((success_count + 1))
-        fi
-        echo ""
-    done
-    
-    echo ""
-    print_section "Kafka Topics 初始化结果"
-    echo "成功: ${GREEN}$success_count${NC} / $total_count"
-    
-    if [ $success_count -eq $total_count ]; then
-        print_success "所有 Kafka Topics 初始化完成！"
-        print_info "注意：其他 IoT Topic（如 iot/# 通配符匹配的topic）会在首次使用时自动创建（已启用 AUTO_CREATE_TOPICS_ENABLE）"
-        return 0
-    else
-        print_warning "部分 Kafka Topics 初始化失败"
-        return 1
-    fi
-}
 
 # 等待 TDengine 服务就绪
 wait_for_tdengine() {
@@ -5024,10 +4905,6 @@ install_middleware() {
     # 初始化 MinIO
     echo ""
     init_minio
-    
-    # 初始化 Kafka Topics
-    echo ""
-    init_kafka
 }
 
 # 启动所有中间件
