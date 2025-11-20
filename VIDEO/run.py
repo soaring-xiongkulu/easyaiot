@@ -61,6 +61,13 @@ load_env_file(args.env)
 logging.getLogger('nacos').setLevel(logging.WARNING)
 logging.getLogger('apscheduler').setLevel(logging.WARNING)
 
+# 配置主应用日志
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
 def get_local_ip():
     # 方案1: 环境变量优先
     if ip := os.getenv('POD_IP'):
@@ -288,7 +295,16 @@ def create_app():
         from app.services.camera_service import _start_search, scheduler
         _start_search()
         import atexit
-        atexit.register(lambda: scheduler.shutdown())
+        # 安全关闭调度器：检查调度器是否正在运行
+        def safe_shutdown_scheduler():
+            try:
+                if scheduler.running:
+                    scheduler.shutdown(wait=False)
+                    print('✅ 调度器已安全关闭')
+            except Exception as e:
+                # 忽略调度器未运行或已关闭的异常
+                pass
+        atexit.register(safe_shutdown_scheduler)
 
     # 应用启动后自动启动需要推流的设备
     with app.app_context():
@@ -303,12 +319,47 @@ def create_app():
     return app
 
 
+def check_port_available(host, port):
+    """检查端口是否可用"""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind((host, port))
+        sock.close()
+        return True
+    except OSError:
+        return False
+    finally:
+        try:
+            sock.close()
+        except:
+            pass
+
+
 if __name__ == '__main__':
     app = create_app()
     # 从环境变量读取主机和端口配置
     host = os.getenv('FLASK_RUN_HOST', '0.0.0.0')
     port = int(os.getenv('FLASK_RUN_PORT', 6000))
+    
+    # 检查端口是否可用
+    if not check_port_available(host, port):
+        print(f"❌ 错误: 端口 {port} 已被占用")
+        print(f"💡 解决方案:")
+        print(f"   1. 检查是否有其他进程在使用端口 {port}: lsof -i :{port} 或 netstat -tulpn | grep {port}")
+        print(f"   2. 停止占用端口的进程")
+        print(f"   3. 或者修改环境变量 FLASK_RUN_PORT 使用其他端口")
+        sys.exit(1)
+    
     # 获取实际IP地址
     ip = getattr(app, 'registered_ip', None) or get_local_ip()
     print(f"🚀 服务启动: http://{ip}:{port}")
-    app.run(host=host, port=port)
+    
+    try:
+        app.run(host=host, port=port)
+    except OSError as e:
+        if "Address already in use" in str(e):
+            print(f"❌ 错误: 端口 {port} 已被占用")
+            print(f"💡 请检查是否有其他进程在使用该端口")
+        else:
+            print(f"❌ 启动失败: {str(e)}")
+        sys.exit(1)

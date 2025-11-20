@@ -8,6 +8,7 @@ import io
 import logging
 import subprocess
 import threading
+import time
 import uuid
 from operator import or_
 from typing import Optional
@@ -15,7 +16,7 @@ from typing import Optional
 import cv2
 import numpy as np
 import requests
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, current_app, request, jsonify
 from minio import Minio
 from minio.error import S3Error
 

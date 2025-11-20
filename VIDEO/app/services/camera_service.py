@@ -238,6 +238,12 @@ def _start_search():
     # 确保环境变量转换为整数
     discover_interval = int(os.getenv('CAMERA_DISCOVER_INTERVAL', 120))
     scheduler.add_job(refresh_camera, 'interval', seconds=discover_interval)
+    
+    # 启动调度器（如果尚未启动）
+    if not scheduler.running:
+        scheduler.start()
+        logger.debug('调度器已启动')
+    
     logger.debug('设备发现服务已启动，间隔: %d秒', discover_interval)
     _init_all_cameras()
     _add_online_monitor()
