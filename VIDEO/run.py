@@ -27,9 +27,7 @@ load_dotenv()
 
 # 配置日志级别，减少第三方库的详细输出
 logging.getLogger('nacos').setLevel(logging.WARNING)
-logging.getLogger('werkzeug').setLevel(logging.WARNING)
 logging.getLogger('apscheduler').setLevel(logging.WARNING)
-
 
 def get_local_ip():
     # 方案1: 环境变量优先
