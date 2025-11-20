@@ -79,9 +79,15 @@ export const messagePrepareDelete = (params) => {
 
 // 查询
 export const messagePrepareQuery = (data) => {
-  const { page, pageSize, ...res } = data;
-  const url = `${Api.message_prepare_query}?page=${page}&pageSize=${pageSize}`;
-  return commonApi('get', url, { data: res });
+  const { pageNo, pageSize, ...res } = data;
+  // 将所有参数（包括分页参数和其他查询参数）作为 params 传递
+  return commonApi('get', Api.message_prepare_query, { 
+    params: {
+      page: pageNo,
+      pageSize: pageSize,
+      ...res
+    }
+  });
 };
 // 邮件上传
 export const messageFileUpload = (data) => {

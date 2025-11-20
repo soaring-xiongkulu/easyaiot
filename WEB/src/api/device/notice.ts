@@ -121,8 +121,8 @@ export const notifyTemplateDelete = (params) => {
 
 // 模版分页查询
 export const notifyTemplateQuery = (data) => {
-  const { page, pageSize, ...res } = data;
-  const url = `${Api.notify_template_query}?page=${page}&pageSize=${pageSize}`;
+  const { pageNo, pageSize, ...res } = data;
+  const url = `${Api.notify_template_query}?page=${pageNo}&pageSize=${pageSize}`;
   return commonApi('post', url, { data: res });
 };
 
@@ -189,8 +189,8 @@ export const notifyConfigTags = (params) => {
 
 // 告警通知查询
 export const notifyWarnQuery = (data) => {
-  const { page, pageSize, ...res } = data;
-  const url = `${Api.notify_warn_query}?page=${page}&pageSize=${pageSize}`;
+  const { pageNo, pageSize, ...res } = data;
+  const url = `${Api.notify_warn_query}?page=${pageNo}&pageSize=${pageSize}`;
   return commonApi('post', url, { data: res });
 };
 // 告警处理

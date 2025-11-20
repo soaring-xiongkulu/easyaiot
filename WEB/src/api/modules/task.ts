@@ -24,7 +24,13 @@ const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url, params, heade
 };
 // 推送历史列表查询
 export const historyQuery = (_data) => {
-  const { page, pageSize, ...data } = _data;
-  const url = `${Api.historyQuery}?page=${page}&pageSize=${pageSize}`;
-  return commonApi('get', url, { data });
+  const { pageNo, pageSize, ...data } = _data;
+  // 将所有参数（包括分页参数和其他查询参数）作为 params 传递
+  return commonApi('get', Api.historyQuery, { 
+    params: {
+      page: pageNo,
+      pageSize: pageSize,
+      ...data
+    }
+  });
 };

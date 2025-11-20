@@ -52,8 +52,8 @@ export const messagePreviewUserDelete = (params) => {
 
 // 列表
 export const messagePreviewUserQuery = (data) => {
-  const { page, pageSize, ...res } = data;
-  const url = `${Api.message_preview_user_query}?page=${page}&pageSize=${pageSize}`;
+  const { pageNo, pageSize, ...res } = data;
+  const url = `${Api.message_preview_user_query}?page=${pageNo}&pageSize=${pageSize}`;
   return commonApi('get', url, { data: res });
 };
 
@@ -87,8 +87,8 @@ export const userGroupDelete = (params) => {
 };
 // 分组查询
 export const userGroupQuery = (data) => {
-  const { page, pageSize, ...res } = data;
-  const url = `${Api.message_preview_user_group_query}?page=${page}&pageSize=${pageSize}`;
+  const { pageNo, pageSize, ...res } = data;
+  const url = `${Api.message_preview_user_group_query}?page=${pageNo}&pageSize=${pageSize}`;
   return commonApi('get', url, { data: res });
 };
 // 根据消息类型

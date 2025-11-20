@@ -92,9 +92,6 @@
             </Tabs>
           </div>
         </TabPane>
-        <TabPane key="3" tab="计划任务">
-          <PlanTask/>
-        </TabPane>
         <TabPane key="4" tab="推送历史">
           <div style="padding: 12px; padding-top: 0">
             <Tabs
@@ -153,7 +150,6 @@ import http from '@/views/notice/components/msgPush/http/index.vue';
 import sms from '@/views/notice/components/msgPush/sms/index.vue';
 import wechat from '@/views/notice/components/msgPush/wechat/index.vue';
 
-import PlanTask from '@/views/notice/components/task/PlanTask/index.vue';
 import History from '@/views/notice/components/task/History/index.vue';
 import Group from '@/views/notice/components/user/Group/index.vue';
 import Audience from '@/views/notice/components/user/Audience/index.vue';
