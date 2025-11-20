@@ -46,7 +46,7 @@ public class MessagePrepareController extends BaseController {
         return AjaxResult.success(messagePrepareService.delete(msgType,id));
     }
 
-    @PostMapping("/query")
+    @GetMapping("/query")
     @ApiOperation("查询消息准备信息")
     public TableDataInfo query(@RequestBody MessagePrepareVO messagePrepareVO){
         startPage();

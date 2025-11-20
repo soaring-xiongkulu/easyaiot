@@ -26,5 +26,5 @@ const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url, params, heade
 export const historyQuery = (_data) => {
   const { page, pageSize, ...data } = _data;
   const url = `${Api.historyQuery}?page=${page}&pageSize=${pageSize}`;
-  return commonApi('post', url, { data });
+  return commonApi('get', url, { data });
 };

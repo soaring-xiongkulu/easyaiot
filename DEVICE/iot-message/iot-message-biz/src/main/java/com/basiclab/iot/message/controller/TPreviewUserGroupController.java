@@ -47,7 +47,7 @@ public class TPreviewUserGroupController extends BaseController {
         return AjaxResult.success(tPreviewUserGroupService.delete(id));
     }
 
-    @PostMapping("/query")
+    @GetMapping("/query")
     @ApiOperation("查询")
     public TableDataInfo query(@RequestBody TPreviewUserGroup tPreviewUserGroup){
         startPage();

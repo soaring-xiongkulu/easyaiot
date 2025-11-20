@@ -81,7 +81,7 @@ export const messagePrepareDelete = (params) => {
 export const messagePrepareQuery = (data) => {
   const { page, pageSize, ...res } = data;
   const url = `${Api.message_prepare_query}?page=${page}&pageSize=${pageSize}`;
-  return commonApi('post', url, { data: res });
+  return commonApi('get', url, { data: res });
 };
 // 邮件上传
 export const messageFileUpload = (data) => {

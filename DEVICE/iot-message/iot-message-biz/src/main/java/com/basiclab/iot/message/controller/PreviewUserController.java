@@ -49,7 +49,7 @@ public class PreviewUserController extends BaseController {
         return AjaxResult.success(tPreviewUserService.delete(id));
     }
 
-    @PostMapping("/query")
+    @GetMapping("/query")
     @ApiOperation("查询")
     public TableDataInfo query(
                           @RequestBody TPreviewUser tPreviewUser){
