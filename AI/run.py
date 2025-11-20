@@ -19,44 +19,40 @@ from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
 
-from app.blueprints import export, inference_task, model, train, train_task, llm, ocr, speech
-
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # 解析命令行参数
 def parse_args():
     parser = argparse.ArgumentParser(description='启动模型服务器')
-    parser.add_argument('--env', type=str, default=None,
-                        help='指定环境配置文件，例如: --env=prod 将加载 .env.prod，默认加载 .env')
-    return parser.parse_args()
+    parser.add_argument('--env', type=str, default='', 
+                       help='指定环境配置文件，例如: --env=prod 会加载 .env.prod，默认加载 .env')
+    args = parser.parse_args()
+    return args
 
-# 在加载.env文件之前，检查环境变量是否已存在（来自Docker Compose）
-# 这样可以判断环境变量的来源
-env_before_dotenv = os.environ.get('DATABASE_URL')
+# 加载环境变量配置文件（参考VIDEO模块的实现）
+def load_env_file(env_name=''):
+    if env_name:
+        env_file = f'.env.{env_name}'
+        if os.path.exists(env_file):
+            load_dotenv(env_file)
+            print(f"✅ 已加载配置文件: {env_file}")
+        else:
+            print(f"⚠️  配置文件 {env_file} 不存在，尝试加载默认 .env 文件")
+            if os.path.exists('.env'):
+                load_dotenv('.env')
+                print(f"✅ 已加载默认配置文件: .env")
+            else:
+                print(f"❌ 默认配置文件 .env 也不存在")
+    else:
+        if os.path.exists('.env'):
+            load_dotenv('.env')
+            print(f"✅ 已加载默认配置文件: .env")
+        else:
+            print(f"⚠️  默认配置文件 .env 不存在")
 
-# 检查并修复错误的数据库URL（如果包含iot.basiclab.top或doccano，说明是系统环境变量中的错误配置）
-if env_before_dotenv and ('iot.basiclab.top' in env_before_dotenv or 'doccano' in env_before_dotenv):
-    print(f"⚠️ 检测到错误的DATABASE_URL: {env_before_dotenv}")
-    print("🔄 将使用默认配置或从.env文件加载")
-    # 删除错误的环境变量，让后续代码使用正确的配置
-    del os.environ['DATABASE_URL']
-    env_before_dotenv = None
-
-# 解析命令行参数以确定加载哪个配置文件
+# 解析命令行参数并加载配置文件
 args = parse_args()
-env_file = '.env'
-if args.env:
-    env_file = f'.env.{args.env}'
-    print(f"📁 加载环境配置文件: {env_file}")
-else:
-    print(f"📁 加载默认配置文件: {env_file}")
-
-# 加载.env文件，但不覆盖已存在的环境变量（Docker Compose传入的环境变量优先）
-# 注意：Docker Compose传入的环境变量会优先于.env文件
-load_dotenv(dotenv_path=env_file, override=False)
-
-# 保存环境变量来源信息（用于后续调试）
-ENV_SOURCE = "Docker Compose环境变量" if env_before_dotenv else f"{env_file}文件"
+load_env_file(args.env)
 
 
 def get_local_ip():
@@ -101,14 +97,11 @@ def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     
-    # 从环境变量获取数据库URL，优先使用Docker Compose传入的环境变量
+    # 从环境变量获取数据库URL
     database_url = os.environ.get('DATABASE_URL')
     
-    # 调试信息：打印环境变量来源
-    if database_url:
-        print(f"📊 DATABASE_URL来源: {ENV_SOURCE}")
-    else:
-        raise ValueError("DATABASE_URL环境变量未设置，请检查docker-compose.yaml配置")
+    if not database_url:
+        raise ValueError("DATABASE_URL环境变量未设置，请检查docker-compose.yaml配置或.env文件")
     
     # 转换postgres://为postgresql://（SQLAlchemy要求）
     database_url = database_url.replace("postgres://", "postgresql://", 1)
@@ -133,15 +126,24 @@ def create_app():
         except Exception as e:
             print(f"❌ 建表失败: {str(e)}")
 
-    # 注册蓝图
-    app.register_blueprint(export.export_bp, url_prefix='/model/export')
-    app.register_blueprint(inference_task.inference_task_bp, url_prefix='/model/inference_task')
-    app.register_blueprint(model.model_bp, url_prefix='/model')
-    app.register_blueprint(train.train_bp, url_prefix='/model/train')
-    app.register_blueprint(train_task.train_task_bp, url_prefix='/model/train_task')
-    app.register_blueprint(llm.llm_bp, url_prefix='/model/llm')
-    app.register_blueprint(ocr.ocr_bp, url_prefix='/model/ocr')
-    app.register_blueprint(speech.speech_bp, url_prefix='/model/speech')
+    # 注册蓝图（延迟导入，避免在环境变量加载前就导入）
+    try:
+        from app.blueprints import export, inference_task, model, train, train_task, llm, ocr, speech
+        
+        app.register_blueprint(export.export_bp, url_prefix='/model/export')
+        app.register_blueprint(inference_task.inference_task_bp, url_prefix='/model/inference_task')
+        app.register_blueprint(model.model_bp, url_prefix='/model')
+        app.register_blueprint(train.train_bp, url_prefix='/model/train')
+        app.register_blueprint(train_task.train_task_bp, url_prefix='/model/train_task')
+        app.register_blueprint(llm.llm_bp, url_prefix='/model/llm')
+        app.register_blueprint(ocr.ocr_bp, url_prefix='/model/ocr')
+        app.register_blueprint(speech.speech_bp, url_prefix='/model/speech')
+        print(f"✅ 所有蓝图注册成功")
+    except Exception as e:
+        print(f"❌ 蓝图注册失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise
 
     # 健康检查路由初始化
     def init_health_check(app):
@@ -269,6 +271,47 @@ def create_app():
     return app
 
 
+def check_port_available(host, port):
+    """检查端口是否可用"""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind((host, port))
+        sock.close()
+        return True
+    except OSError:
+        return False
+    finally:
+        try:
+            sock.close()
+        except:
+            pass
+
+
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='0.0.0.0', port=5000)
+    # 从环境变量读取主机和端口配置
+    host = os.getenv('FLASK_RUN_HOST', '0.0.0.0')
+    port = int(os.getenv('FLASK_RUN_PORT', 5000))
+    
+    # 检查端口是否可用
+    if not check_port_available(host, port):
+        print(f"❌ 错误: 端口 {port} 已被占用")
+        print(f"💡 解决方案:")
+        print(f"   1. 检查是否有其他进程在使用端口 {port}: lsof -i :{port} 或 netstat -tulpn | grep {port}")
+        print(f"   2. 停止占用端口的进程")
+        print(f"   3. 或者修改环境变量 FLASK_RUN_PORT 使用其他端口")
+        sys.exit(1)
+    
+    # 获取实际IP地址
+    ip = getattr(app, 'registered_ip', None) or get_local_ip()
+    print(f"🚀 服务启动: http://{ip}:{port}")
+    
+    try:
+        app.run(host=host, port=port)
+    except OSError as e:
+        if "Address already in use" in str(e):
+            print(f"❌ 错误: 端口 {port} 已被占用")
+            print(f"💡 请检查是否有其他进程在使用该端口")
+        else:
+            print(f"❌ 启动失败: {str(e)}")
+        sys.exit(1)
