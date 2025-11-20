@@ -43,13 +43,6 @@
 
 ![适用场景.png](.image/适用场景.png)
 
-## 🛠️ 解决方案
-
-<div>
-  <img src=".image/解决方案1.png" alt="Screenshot 1" width="49%" style="margin-right: 10px">
-  <img src=".image/解决方案2.png" alt="Screenshot 2" width="49%">
-</div>
-
 ## 🧩 项目结构
 
 EasyAIoT由五个核心项目组成：

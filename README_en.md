@@ -42,13 +42,6 @@
 
 ![Application Scenarios.png](.image/适用场景.png)
 
-## 🛠️ Solutions
-
-<div>
-  <img src=".image/解决方案1.png" alt="Solution 1" width="49%" style="margin-right: 10px">
-  <img src=".image/解决方案2.png" alt="Solution 2" width="49%">
-</div>
-
 ## 🧩 Project Structure
 
 EasyAIoT consists of five core projects:
