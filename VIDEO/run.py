@@ -3,6 +3,7 @@
 @email andywebjava@163.com
 @wechat EasyAIoT2025
 """
+import argparse
 import os
 import socket
 import sys
@@ -23,7 +24,38 @@ from app.blueprints import camera, nvr, alert
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-load_dotenv()
+# 解析命令行参数
+def parse_args():
+    parser = argparse.ArgumentParser(description='VIDEO服务启动脚本')
+    parser.add_argument('--env', type=str, default='', 
+                       help='指定环境配置文件，例如: --env=prod 会加载 .env.prod，默认加载 .env')
+    args = parser.parse_args()
+    return args
+
+# 加载环境变量配置文件
+def load_env_file(env_name=''):
+    if env_name:
+        env_file = f'.env.{env_name}'
+        if os.path.exists(env_file):
+            load_dotenv(env_file)
+            print(f"✅ 已加载配置文件: {env_file}")
+        else:
+            print(f"⚠️  配置文件 {env_file} 不存在，尝试加载默认 .env 文件")
+            if os.path.exists('.env'):
+                load_dotenv('.env')
+                print(f"✅ 已加载默认配置文件: .env")
+            else:
+                print(f"❌ 默认配置文件 .env 也不存在")
+    else:
+        if os.path.exists('.env'):
+            load_dotenv('.env')
+            print(f"✅ 已加载默认配置文件: .env")
+        else:
+            print(f"⚠️  默认配置文件 .env 不存在")
+
+# 解析命令行参数并加载配置文件
+args = parse_args()
+load_env_file(args.env)
 
 # 配置日志级别，减少第三方库的详细输出
 logging.getLogger('nacos').setLevel(logging.WARNING)
