@@ -1828,15 +1828,15 @@ configure_pip_mirror() {
     # 创建或更新配置文件
     cat > "$pip_config_file" << EOF
 [global]
-index-url = https://pypi.tuna.tsinghua.edu.cn/simple
-trusted-host = pypi.tuna.tsinghua.edu.cn
+index-url = https://mirrors.aliyun.com/pypi/simple/
+trusted-host = mirrors.aliyun.com
 
 [install]
-trusted-host = pypi.tuna.tsinghua.edu.cn
+trusted-host = mirrors.aliyun.com
 EOF
     
     print_success "pip 镜像源配置完成"
-    print_info "已使用清华大学镜像源: https://pypi.tuna.tsinghua.edu.cn/simple"
+    print_info "已使用阿里云镜像源: https://mirrors.aliyun.com/pypi/simple/"
 }
 
 # 配置 apt 国内源
