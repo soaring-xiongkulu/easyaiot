@@ -126,12 +126,14 @@
         where id = #{id,jdbcType=VARCHAR}
     </update>
 
-    <select id="selectByMsgType" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    <select id="selectByMsgType" resultMap="BaseResultMap">
         select
         <include refid="Base_Column_List"/>
         from t_push_history
         <where>
-            msg_type = #{msgType,jdbcType=INTEGER}
+            <if test="msgType != null">
+                and msg_type = #{msgType,jdbcType=INTEGER}
+            </if>
             <if test="msgName != null and msgName != ''">
                 and msg_name like concat('%', #{msgName,jdbcType=VARCHAR}, '%')
             </if>
