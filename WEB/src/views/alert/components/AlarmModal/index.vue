@@ -46,7 +46,6 @@ import {computed, reactive} from 'vue';
 import {BasicModal, useModalInner} from '@/components/Modal';
 import {Form, FormItem, Input, Spin,} from 'ant-design-vue';
 import {useMessage} from '@/hooks/web/useMessage';
-import {addModel, updateModel} from "@/api/device/calculate";
 
 defineOptions({name: 'AlarmModal'})
 
@@ -115,27 +114,10 @@ function handleCancel() {
   resetFields();
 }
 
-function handleOk() {//alert(modelRef?.id);
-  validate().then(async () => {
-    let api = addModel;
-    if (modelRef?.id) {
-      api = updateModel;
-    }
-    state.editLoading = true;
-    api(modelRef)
-      .then(() => {
-        createMessage.success('操作成功');
-        closeModal();
-        resetFields();
-        emits('success');
-      })
-      .finally(() => {
-        state.editLoading = false;
-      });
-  }).catch((err) => {
-    createMessage.error('操作失败');
-    console.error(err);
-  });
+function handleOk() {
+  // Alert不需要增加或删除功能，直接关闭弹框
+  closeModal();
+  resetFields();
 }
 </script>
 <style lang="less" scoped>
