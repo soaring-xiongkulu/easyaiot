@@ -24,7 +24,7 @@ const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url, params = {}, 
 };
 
 export const fetchPkgList = (params) => {
-  return commonApi('post', Api.Packages, {params});
+  return commonApi('get', Api.Packages, {params});
 };
 
 export const addOtaApp = (params) => {

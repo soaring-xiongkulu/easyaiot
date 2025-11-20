@@ -38,9 +38,9 @@ public class DmPackageController extends BaseController {
     @Autowired
     private DmPackageService dmPackageService;
 
-    @PostMapping
+    @GetMapping
     @ApiOperation("获取版本包列表")
-    public TableDataInfo list(@RequestBody DmPackagePageQo packagePageQo) {
+    public TableDataInfo list(DmPackagePageQo packagePageQo) {
         startPage();
         List<DmPackagePageVo> list = dmPackageService.list(packagePageQo);
         return getDataTable(list);
