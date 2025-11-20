@@ -3224,21 +3224,95 @@ wait_for_minio() {
 
 # 等待 Kafka 服务就绪
 wait_for_kafka() {
-    local max_attempts=60
+    local max_attempts=90  # 增加等待次数（从60增加到90，总共3分钟）
     local attempt=0
     
     print_info "等待 Kafka 服务就绪..."
+    
+    # 首先检查容器是否存在
+    if ! docker ps -a --filter "name=kafka-server" --format "{{.Names}}" | grep -q "kafka-server"; then
+        print_error "Kafka 容器 kafka-server 不存在"
+        return 1
+    fi
+    
+    # 检查容器是否在运行
+    local container_status=$(docker ps --filter "name=kafka-server" --format "{{.Status}}" 2>/dev/null | head -1 || echo "")
+    if [ -z "$container_status" ]; then
+        print_warning "Kafka 容器未运行，尝试启动..."
+        docker start kafka-server > /dev/null 2>&1 || true
+        sleep 5
+    fi
+    
     while [ $attempt -lt $max_attempts ]; do
-        # 使用 kafka-broker-api-versions 命令测试 Kafka 是否就绪
-        if docker exec kafka-server kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1; then
+        # 检查容器是否在运行
+        if ! docker ps --filter "name=kafka-server" --format "{{.Names}}" | grep -q "kafka-server"; then
+            if [ $attempt -eq 0 ]; then
+                print_warning "Kafka 容器未运行，等待启动..."
+            fi
+            attempt=$((attempt + 1))
+            sleep 2
+            continue
+        fi
+        
+        # 方法1: 使用 kafka-broker-api-versions 命令测试（推荐）
+        local check_result=""
+        local check_error=""
+        check_result=$(docker exec kafka-server kafka-broker-api-versions.sh --bootstrap-server localhost:9092 2>&1)
+        local check_exit_code=$?
+        
+        if [ $check_exit_code -eq 0 ]; then
             print_success "Kafka 服务已就绪"
             return 0
         fi
+        
+        # 方法2: 如果方法1失败，尝试使用 kafka-topics.sh 命令
+        if [ $check_exit_code -ne 0 ]; then
+            check_result=$(docker exec kafka-server kafka-topics.sh --bootstrap-server localhost:9092 --list 2>&1)
+            check_exit_code=$?
+            if [ $check_exit_code -eq 0 ]; then
+                print_success "Kafka 服务已就绪（通过 topics 命令验证）"
+                return 0
+            fi
+        fi
+        
+        # 显示进度（每10次显示一次）
+        if [ $((attempt % 10)) -eq 0 ] && [ $attempt -gt 0 ]; then
+            print_info "等待中... ($attempt/$max_attempts) - 检查容器状态..."
+            # 显示容器状态
+            local container_info=$(docker ps --filter "name=kafka-server" --format "{{.Status}}" 2>/dev/null || echo "未运行")
+            print_info "容器状态: $container_info"
+        fi
+        
         attempt=$((attempt + 1))
         sleep 2
     done
     
-    print_error "Kafka 服务未就绪"
+    # 超时后输出详细错误信息
+    print_error "Kafka 服务未就绪（等待超时）"
+    
+    # 检查容器状态
+    local container_status=$(docker ps -a --filter "name=kafka-server" --format "{{.Status}}" 2>/dev/null | head -1 || echo "")
+    if [ -n "$container_status" ]; then
+        print_info "容器状态: $container_status"
+    else
+        print_error "无法获取容器状态"
+    fi
+    
+    # 输出容器日志的最后几行
+    print_info "查看 Kafka 容器日志（最后20行）..."
+    docker logs --tail 20 kafka-server 2>&1 | while IFS= read -r line; do
+        print_info "  $line"
+    done || print_warning "无法获取容器日志"
+    
+    # 提供诊断建议
+    echo ""
+    print_warning "诊断建议："
+    print_info "1. 检查容器是否正常运行: docker ps | grep kafka"
+    print_info "2. 查看完整日志: docker logs kafka-server"
+    print_info "3. 检查端口是否被占用: ss -tlnp | grep 9092"
+    print_info "4. 尝试手动启动: docker start kafka-server"
+    print_info "5. 检查数据目录权限: ls -la .scripts/docker/mq_data/data"
+    
     return 1
 }
 
@@ -3288,7 +3362,15 @@ create_kafka_topic() {
             print_info "Kafka Topic $topic_name 已存在（检测到已存在消息）"
             return 0
         else
-            print_error "Kafka Topic $topic_name 创建失败: $output"
+            print_error "Kafka Topic $topic_name 创建失败"
+            print_info "错误输出: $output"
+            
+            # 检查 Kafka 服务是否仍然可用
+            if ! docker exec kafka-server kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1; then
+                print_warning "Kafka 服务可能已不可用，请检查容器状态"
+                print_info "检查命令: docker ps | grep kafka"
+            fi
+            
             return 1
         fi
     fi
@@ -3301,6 +3383,13 @@ init_kafka() {
     # 等待 Kafka 就绪
     if ! wait_for_kafka; then
         print_error "Kafka 未就绪，无法初始化 Topics"
+        echo ""
+        print_warning "您可以："
+        print_info "1. 等待更长时间后手动运行初始化: docker exec kafka-server kafka-topics.sh --bootstrap-server localhost:9092 --list"
+        print_info "2. 检查 Kafka 容器日志: docker logs kafka-server"
+        print_info "3. 重启 Kafka 容器: docker restart kafka-server"
+        print_info "4. 稍后手动运行此脚本的 init 命令或重新运行 install 命令"
+        echo ""
         return 1
     fi
     
