@@ -51,9 +51,9 @@ public class MessageConfigController {
     }
 
 
-    @PostMapping("/query")
+    @GetMapping("/query")
     @ApiOperation("查询消息配置")
-    public AjaxResult query(@RequestBody MessageConfig messageConfig){
+    public AjaxResult query(@ModelAttribute MessageConfig messageConfig){
         List<MessageConfig> messageConfigs = messageConfigService.query(messageConfig);
         return AjaxResult.success(messageConfigs);
     }

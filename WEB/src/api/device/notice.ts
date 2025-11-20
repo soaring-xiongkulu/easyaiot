@@ -69,10 +69,8 @@ export const noticeConfigDelete = (params) => {
 };
 
 // 查询
-export const noticeConfigQuery = (data) => {
-  const { page, pageSize, ...res } = data;
-  const url = `${Api.notice_config_query}?page=${page}&pageSize=${pageSize}`;
-  return commonApi('post', url, { data: res });
+export const noticeConfigQuery = (params) => {
+  return commonApi('get', Api.notice_config_query, { params });
 };
 // 配置详情
 export const noticeConfigQueryById = (params) => {

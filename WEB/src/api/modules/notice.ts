@@ -54,7 +54,7 @@ export const messageConfigDelete = (params) => {
 
 // 查询
 export const messageConfigQuery = (data) => {
-  return commonApi('post', Api.message_config_query, { data });
+  return commonApi('get', Api.message_config_query, { data });
 };
 
 // 根据邮件调试
