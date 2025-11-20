@@ -2,8 +2,10 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 16.2
--- Dumped by pg_dump version 16.2
+\restrict el4LXXySXiPH1G6se5csdG44V2hTfUdlwQRWpa1JiI14ectrdVfctGtg1hAe0kD
+
+-- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
+-- Dumped by pg_dump version 16.10 (Ubuntu 16.10-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -16825,7 +16827,8 @@ COPY public.qrtz_paused_trigger_grps (sched_name, trigger_group) FROM stdin;
 --
 
 COPY public.qrtz_scheduler_state (sched_name, instance_name, last_checkin_time, checkin_interval) FROM stdin;
-schedulerName	ecm-25ea1754904998215	1756882876798	15000
+schedulerName	master1763612175074	1763613965312	15000
+schedulerName	master1763612184687	1763613974691	15000
 \.
 
 
@@ -19022,6 +19025,7 @@ COPY public.system_login_log (id, log_type, trace_id, user_id, user_type, userna
 1677	100		1	2	admin	0	218.94.95.187	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0	\N	2025-08-19 11:43:13.583	\N	2025-08-19 11:43:13.583	0	1
 1678	100		1	2	admin	0	36.158.36.175	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36	\N	2025-08-19 11:43:22.263	\N	2025-08-19 11:43:22.263	0	1
 1679	100		1	2	admin	0	117.128.123.156	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36	\N	2025-08-19 11:48:34.025	\N	2025-08-19 11:48:34.025	0	1
+3007	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36	\N	2025-11-20 12:36:51.040334	\N	2025-11-20 12:36:51.040334	0	1
 1680	100		1	2	admin	0	36.24.20.50	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0	\N	2025-08-19 11:53:14.917	\N	2025-08-19 11:53:14.917	0	1
 1681	100		1	2	admin	0	98.158.95.93	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36	\N	2025-08-19 11:55:23.072	\N	2025-08-19 11:55:23.072	0	1
 1682	100		1	2	admin	0	117.88.206.197	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0	\N	2025-08-19 12:13:33.067	\N	2025-08-19 12:13:33.067	0	1
@@ -20469,9 +20473,6 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 1087	任务查询	infra:job:query	3	1	110				\N	0	t	t	t	1	2021-03-10 01:26:19	1	2022-04-20 17:03:10	0
 1088	日志查询	infra:api-access-log:query	3	1	1078				\N	0	t	t	t	1	2021-03-10 01:28:04	1	2022-04-20 17:03:10	0
 1089	日志查询	infra:api-error-log:query	3	1	1084				\N	0	t	t	t	1	2021-03-10 01:29:09	1	2022-04-20 17:03:10	0
-1090	文件列表		2	5	1243	file	ep:upload-filled	infra/file/index	InfraFile	0	t	t	t		2021-03-12 20:16:20	1	2024-02-29 08:53:02	0
-1091	文件查询	infra:file:query	3	1	1090				\N	0	t	t	t		2021-03-12 20:16:20		2022-04-20 17:03:10	0
-1092	文件删除	infra:file:delete	3	4	1090				\N	0	t	t	t		2021-03-12 20:16:20		2022-04-20 17:03:10	0
 1083	API 日志		2	4	108	log	fa:tasks	\N	\N	0	t	t	t		2021-02-26 02:18:24	1	2024-07-09 10:57:39.622	0
 1056	生成修改	infra:codegen:update	3	2	2760					0	t	t	t	admin	2021-01-05 17:03:48	1	2024-07-09 11:31:37.017	0
 1058	导入代码	infra:codegen:create	3	2	2760					0	t	t	t	admin	2021-01-05 17:03:48	1	2024-07-09 11:31:46.392	0
@@ -20496,6 +20497,8 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 1139	租户查询	system:tenant:query	3	1	1138				\N	0	t	t	t		2021-12-14 12:31:44		2022-04-20 17:03:10	0
 1140	租户创建	system:tenant:create	3	2	1138				\N	0	t	t	t		2021-12-14 12:31:44		2022-04-20 17:03:10	0
 1141	租户更新	system:tenant:update	3	3	1138				\N	0	t	t	t		2021-12-14 12:31:44		2022-04-20 17:03:10	0
+1092	文件删除	infra:file:delete	3	4	1090				\N	0	t	t	t		2021-03-12 20:16:20		2022-04-20 17:03:10	1
+1090	文件列表		2	5	1243	file	ep:upload-filled	infra/file/index	InfraFile	0	t	t	t		2021-03-12 20:16:20	1	2024-02-29 08:53:02	1
 1142	租户删除	system:tenant:delete	3	4	1138				\N	0	t	t	t		2021-12-14 12:31:44		2022-04-20 17:03:10	0
 1143	租户导出	system:tenant:export	3	5	1138				\N	0	t	t	t		2021-12-14 12:31:44		2022-04-20 17:03:10	0
 1128	支付应用信息创建	pay:app:create	3	2	1126				\N	0	t	t	t		2021-11-10 01:13:31		2022-04-20 17:03:10	1
@@ -20551,12 +20554,6 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 1228	租户套餐更新	system:tenant-package:update	3	3	1225				\N	0	t	t	t		2022-02-19 17:44:06		2022-04-20 17:03:10	0
 1229	租户套餐删除	system:tenant-package:delete	3	4	1225				\N	0	t	t	t		2022-02-19 17:44:06		2022-04-20 17:03:10	0
 2020	规格查询	product:property:query	3	1	2019				\N	0	t	t	t		2022-08-01 14:55:35		2022-12-12 20:26:24	1
-1237	文件配置		2	0	1243	file-config	fa-solid:file-signature	infra/fileConfig/index	InfraFileConfig	0	t	t	t		2022-03-15 14:35:28	1	2024-02-29 08:52:54	0
-1238	文件配置查询	infra:file-config:query	3	1	1237				\N	0	t	t	t		2022-03-15 14:35:28		2022-04-20 17:03:10	0
-1239	文件配置创建	infra:file-config:create	3	2	1237				\N	0	t	t	t		2022-03-15 14:35:28		2022-04-20 17:03:10	0
-1240	文件配置更新	infra:file-config:update	3	3	1237				\N	0	t	t	t		2022-03-15 14:35:28		2022-04-20 17:03:10	0
-1241	文件配置删除	infra:file-config:delete	3	4	1237				\N	0	t	t	t		2022-03-15 14:35:28		2022-04-20 17:03:10	0
-1242	文件配置导出	infra:file-config:export	3	5	1237				\N	0	t	t	t		2022-03-15 14:35:28		2022-04-20 17:03:10	0
 1256	数据源配置查询	infra:data-source-config:query	3	1	1255				\N	0	t	t	t		2022-04-27 14:37:32		2022-04-27 14:37:32	0
 1257	数据源配置创建	infra:data-source-config:create	3	2	1255				\N	0	t	t	t		2022-04-27 14:37:32		2022-04-27 14:37:32	0
 1258	数据源配置更新	infra:data-source-config:update	3	3	1255				\N	0	t	t	t		2022-04-27 14:37:32		2022-04-27 14:37:32	0
@@ -20603,6 +20600,11 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 2011	品牌更新	product:brand:update	3	3	2008				\N	0	t	t	t		2022-07-30 13:52:44		2022-07-30 13:52:44	1
 2012	品牌删除	product:brand:delete	3	4	2008				\N	0	t	t	t		2022-07-30 13:52:44		2022-07-30 13:52:44	1
 2021	规格创建	product:property:create	3	2	2019				\N	0	t	t	t		2022-08-01 14:55:35		2022-12-12 20:26:30	1
+1239	文件配置创建	infra:file-config:create	3	2	1237				\N	0	t	t	t		2022-03-15 14:35:28		2022-04-20 17:03:10	1
+1240	文件配置更新	infra:file-config:update	3	3	1237				\N	0	t	t	t		2022-03-15 14:35:28		2022-04-20 17:03:10	1
+1241	文件配置删除	infra:file-config:delete	3	4	1237				\N	0	t	t	t		2022-03-15 14:35:28		2022-04-20 17:03:10	1
+1242	文件配置导出	infra:file-config:export	3	5	1237				\N	0	t	t	t		2022-03-15 14:35:28		2022-04-20 17:03:10	1
+1237	文件配置		2	0	1243	file-config	fa-solid:file-signature	infra/fileConfig/index	InfraFileConfig	0	t	t	t		2022-03-15 14:35:28	1	2024-02-29 08:52:54	1
 2022	规格更新	product:property:update	3	3	2019				\N	0	t	t	t		2022-08-01 14:55:35		2022-12-12 20:26:33	1
 2023	规格删除	product:property:delete	3	4	2019				\N	0	t	t	t		2022-08-01 14:55:35		2022-12-12 20:26:37	1
 2019	商品属性		2	4	2000	property	ep:cold-drink	mall/product/property/index	ProductProperty	0	t	t	t		2022-08-01 14:55:35	1	2023-08-26 11:01:05	1
@@ -21335,7 +21337,6 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 2963	模型训练	train:train:query	2	8	0	train/index	ant-design:experiment-twotone	train/index	Train	0	t	t	t	1	2025-06-15 07:18:19.268	1	2025-06-15 07:20:00.691	1
 2944	流媒体管理	video:video:query	2	0	0	/video	ant-design:video-camera-outlined	video/index	Video	0	t	t	t	1	2024-07-25 15:38:20.987	1	2025-04-29 18:34:23.289	1
 2952	车辆识别	car:car:query	2	25	0	/car/index	ant-design:car-twotone	car/index	Car	1	f	f	f	1	2024-09-19 11:21:55.242	1	2024-09-29 09:57:34.424	1
-2955	算法商城	store:store:query	2	35	0	store	ant-design:shop-twotone	store/index	Store	0	t	f	t	1	2024-09-19 11:53:03.112	1	2025-04-29 18:36:07.501	0
 2959	可视化大屏	view:view:list	2	49	0	/view/index	ant-design:ant-design-outlined	view/index	View	1	f	t	f	1	2024-09-27 16:36:24.602	1	2025-02-10 11:10:57.026	0
 1255	数据源配置	data-source-config:data-source-config:query	2	20	1	code/data-source-config	ep:data-analysis	infra/dataSourceConfig/index	InfraDataSourceConfig	0	t	t	t		2022-04-27 14:37:32	1	2024-12-26 14:41:03.089	0
 2478	单表（增删改查）		2	1	1070	code/demo/demo01-contact	ep:bicycle	infra/demo/demo01/index	Demo01Contact	0	t	t	t		2023-11-15 14:42:30	1	2024-12-26 14:32:28.776	0
@@ -21344,7 +21345,6 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 2739	通知管理	notice:config:query	2	17	0	/notice/index	ant-design:sound-outlined	notice/index	Notice	0	t	f	t	1	2024-04-22 23:54:30	1	2025-04-29 18:35:41.919	1
 2962	模型计算	calculate:calculate:list	2	13	0	calculate/index	ant-design:crown-outlined	calculate/index	Calculate	0	t	t	t	1	2025-03-17 13:28:38.556	1	2025-06-15 07:15:37.646	1
 2943	协议管理	protocol:protocol:query	2	4	0	/protocol	ant-design:trophy-outlined	protocol/index	Protocol	0	f	t	f	1	2024-07-25 15:34:33.197	1	2024-09-24 15:40:28.686	1
-1243	文件管理		1	20	0	/file	ep:files	\N		1	t	t	t	1	2022-03-16 23:47:40	1	2025-08-11 15:29:22.768	0
 2931	产品管理	product:product:query	2	3	0	product	ant-design:apartment-outlined	product/index	Product	0	t	f	t	1	2024-07-11 05:42:44.432	1	2025-06-15 07:20:19.434	0
 2950	云端录像	cloud:record:list	2	99	0	cloud-record/:deviceId/:channelId	ant-design:aliwangwang-outlined	video/components/CloudRecord/index	CloudRecord	0	f	t	f	1	2024-08-21 17:01:01.904	1	2024-08-29 15:57:25.4	1
 2949	设备录像	device:record:list	2	99	0	device-record/:deviceId/:channelId	ant-design:account-book-twotone	video/components/DeviceRecord/index	DeviceRecord	0	f	t	f	1	2024-08-20 17:10:25.898	1	2024-08-29 15:57:30.631	1
@@ -21356,8 +21356,15 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 2964	数据集详情	dataset:detail:list	2	99	0	detail/:id	ant-design:line-chart-outlined	dataset/components/DatasetDetail/index	DatasetDetail	0	f	t	f	1	2025-08-11 15:38:39.025	1	2025-08-11 15:39:22.203	0
 2965	流媒体	camera:camera:query	2	1	0	camera/index	gala:video	camera/index	Camera	0	t	t	t	1	2025-08-31 18:38:53.702	1	2025-08-31 18:38:53.702	0
 2967	训练详情	train:train:detail	2	99	0	TrainTaskDetail/:modelId	hugeicons:ai-brain-03	train/components/TrainTaskDetail/index	TrainTaskDetail	0	f	t	f	1	2025-08-31 18:45:27.291	1	2025-08-31 18:45:27.291	0
-2966	模型训练	train:train:query	2	6	0	train/index	hugeicons:ai-brain-03	train/index	Train	0	t	t	t	1	2025-08-31 18:41:46.818	1	2025-08-31 18:41:46.818	0
-2961	数据标注	dataset:dataset:query	2	4	0	/dataset	gala:data	dataset/index	Dataset	0	t	t	t	1	2025-02-10 11:10:04.178	1	2025-08-31 18:43:08.824	0
+1243	文件管理		1	20	0	/file	ep:files	\N		1	t	t	t	1	2022-03-16 23:47:40	1	2025-08-11 15:29:22.768	1
+2955	算法商城	store:store:query	2	35	0	store	ant-design:shop-twotone	store/index	Store	0	t	f	t	1	2024-09-19 11:53:03.112	1	2025-04-29 18:36:07.501	1
+2966	模型训练	train:train:query	2	9	0	train/index	hugeicons:ai-brain-03	train/index	Train	0	t	t	t	1	2025-08-31 18:41:46.818	1	2025-11-20 12:42:56.28065	0
+2961	数据标注	dataset:dataset:query	2	8	0	/dataset	gala:data	dataset/index	Dataset	0	t	t	t	1	2025-02-10 11:10:04.178	1	2025-11-20 12:43:00.112367	0
+1238	文件配置查询	infra:file-config:query	3	1	1237				\N	0	t	t	t		2022-03-15 14:35:28		2022-04-20 17:03:10	1
+1091	文件查询	infra:file:query	3	1	1090				\N	0	t	t	t		2021-03-12 20:16:20		2022-04-20 17:03:10	1
+2969	告警事件	alert:alert:query	2	35	0	alert	ant-design:alert-outlined	alert/index	Alarm	0	t	t	t	1	2025-11-20 12:41:30.270882	1	2025-11-20 12:41:30.270882	0
+2968	OTA升级	ota:ota:query	2	5	0	ota	ant-design:hourglass-outlined	ota/index	OtaVersion	0	t	t	t	1	2025-11-20 12:40:20.867024	1	2025-11-20 12:43:07.342901	0
+2970	通知管理	notice:notice:query	2	36	0	notice	ant-design:sound-outlined	notice/index	Notice	0	t	t	t	1	2025-11-20 12:42:17.013623	1	2025-11-20 12:43:51.584973	0
 \.
 
 
@@ -24602,6 +24609,7 @@ COPY public.system_oauth2_access_token (id, user_id, user_type, user_info, acces
 5906	1	2	{"nickname":"IoT","deptId":"103"}	05e7b7a7849d4b8f8bc8d1359b982783	2f0a45f5f32f4bc59a6ae1766567ce07	default	\N	2025-09-03 14:51:04.542	\N	2025-09-03 14:21:04.543	\N	2025-09-03 14:21:04.543	0	1
 5908	1	2	{"nickname":"IoT","deptId":"103"}	ebb24ac41a2f484eb32a9890936932da	afa7fec4c2b74913be3353be003e1d1b	default	\N	2025-09-03 15:20:50.221	\N	2025-09-03 14:50:50.222	\N	2025-09-03 14:50:50.222	0	1
 5910	1	2	{"nickname":"IoT","deptId":"103"}	972969bb946f4724ab8c618dc61829c5	dd4565fe199a48108e3de813cd3688a3	default	\N	2025-09-03 15:20:53.711	\N	2025-09-03 14:50:53.711	\N	2025-09-03 14:50:53.711	0	1
+5912	1	2	{"nickname":"IoT","deptId":"103"}	2514f9b7c56f436497d0d9a5550d3904	43d8c8af53e64ba9b46069dcc2568b1d	default	\N	2025-11-20 13:06:51.10594	\N	2025-11-20 12:36:51.109619	\N	2025-11-20 12:36:51.109619	0	1
 \.
 
 
@@ -27348,6 +27356,7 @@ COPY public.system_oauth2_refresh_token (id, user_id, refresh_token, user_type, 
 5905	1	2f0a45f5f32f4bc59a6ae1766567ce07	2	default	\N	2025-10-03 14:21:04.539	\N	2025-09-03 14:21:04.54	\N	2025-09-03 14:21:04.54	0	1
 5907	1	afa7fec4c2b74913be3353be003e1d1b	2	default	\N	2025-10-03 14:50:50.217	\N	2025-09-03 14:50:50.218	\N	2025-09-03 14:50:50.218	0	1
 5909	1	dd4565fe199a48108e3de813cd3688a3	2	default	\N	2025-10-03 14:50:53.706	\N	2025-09-03 14:50:53.707	\N	2025-09-03 14:50:53.707	0	1
+5911	1	43d8c8af53e64ba9b46069dcc2568b1d	2	default	\N	2025-12-20 12:36:51.087893	\N	2025-11-20 12:36:51.091629	\N	2025-11-20 12:36:51.091629	0	1
 \.
 
 
@@ -27467,13 +27476,10 @@ COPY public.system_role_menu (id, role_id, menu_id, creator, create_time, update
 1673	101	1087	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	0	1
 1674	101	1088	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	0	1
 1675	101	1089	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	0	1
-1679	101	1237	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	0	1
-1680	101	1238	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	0	1
-1681	101	1239	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	0	1
-1682	101	1240	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	0	1
-1683	101	1241	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	0	1
-1684	101	1242	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	0	1
-1685	101	1243	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	0	1
+1681	101	1239	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	1	1
+1682	101	1240	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	1	1
+1683	101	1241	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	1	1
+1679	101	1237	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	1	1
 1687	101	106	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	0	1
 1688	101	110	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	0	1
 1689	101	111	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	0	1
@@ -27553,6 +27559,7 @@ COPY public.system_role_menu (id, role_id, menu_id, creator, create_time, update
 1799	109	1063	1	2022-09-21 22:08:55	1	2022-09-21 22:08:55	0	121
 1800	109	1064	1	2022-09-21 22:08:55	1	2022-09-21 22:08:55	0	121
 1801	109	1001	1	2022-09-21 22:08:55	1	2022-09-21 22:08:55	0	121
+1685	101	1243	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	1	1
 1802	109	1065	1	2022-09-21 22:08:55	1	2022-09-21 22:08:55	0	121
 1803	109	1002	1	2022-09-21 22:08:55	1	2022-09-21 22:08:55	0	121
 1804	109	1003	1	2022-09-21 22:08:55	1	2022-09-21 22:08:55	0	121
@@ -28137,9 +28144,6 @@ COPY public.system_role_menu (id, role_id, menu_id, creator, create_time, update
 5827	1	1087	1	2024-07-10 23:44:11.623	1	2024-07-10 23:44:11.623	0	1
 5828	1	1088	1	2024-07-10 23:44:12.042	1	2024-07-10 23:44:12.042	0	1
 5829	1	1089	1	2024-07-10 23:44:12.189	1	2024-07-10 23:44:12.189	0	1
-5830	1	1090	1	2024-07-10 23:44:12.34	1	2024-07-10 23:44:12.34	0	1
-5831	1	1091	1	2024-07-10 23:44:12.722	1	2024-07-10 23:44:12.722	0	1
-5832	1	1092	1	2024-07-10 23:44:13.264	1	2024-07-10 23:44:13.264	0	1
 5793	1	1037	1	2024-07-10 23:44:06.701	1	2024-07-10 23:44:06.701	1	1
 5794	1	1038	1	2024-07-10 23:44:06.739	1	2024-07-10 23:44:06.739	1	1
 5795	1	1039	1	2024-07-10 23:44:06.783	1	2024-07-10 23:44:06.783	1	1
@@ -28201,6 +28205,8 @@ COPY public.system_role_menu (id, role_id, menu_id, creator, create_time, update
 5866	1	2147	1	2024-07-10 23:44:15.56	1	2024-07-10 23:44:15.56	1	1
 5868	1	2148	1	2024-07-10 23:44:15.66	1	2024-07-10 23:44:15.66	1	1
 5870	1	2149	1	2024-07-10 23:44:15.778	1	2024-07-10 23:44:15.778	1	1
+5832	1	1092	1	2024-07-10 23:44:13.264	1	2024-07-10 23:44:13.264	1	1
+5830	1	1090	1	2024-07-10 23:44:12.34	1	2024-07-10 23:44:12.34	1	1
 5872	1	2150	1	2024-07-10 23:44:15.883	1	2024-07-10 23:44:15.883	1	1
 5864	1	2145	1	2024-07-10 23:44:15.473	1	2024-07-10 23:44:15.473	1	1
 5876	1	2152	1	2024-07-10 23:44:16.099	1	2024-07-10 23:44:16.099	1	1
@@ -28231,13 +28237,6 @@ COPY public.system_role_menu (id, role_id, menu_id, creator, create_time, update
 5921	1	2765	1	2024-07-10 23:44:18.162	1	2024-07-10 23:44:18.162	0	1
 5922	1	2766	1	2024-07-10 23:44:18.22	1	2024-07-10 23:44:18.22	0	1
 5923	1	2767	1	2024-07-10 23:44:18.262	1	2024-07-10 23:44:18.262	0	1
-5924	1	1237	1	2024-07-10 23:44:18.301	1	2024-07-10 23:44:18.301	0	1
-5925	1	1238	1	2024-07-10 23:44:18.377	1	2024-07-10 23:44:18.377	0	1
-5926	1	1239	1	2024-07-10 23:44:18.423	1	2024-07-10 23:44:18.423	0	1
-5927	1	1240	1	2024-07-10 23:44:18.482	1	2024-07-10 23:44:18.482	0	1
-5928	1	1241	1	2024-07-10 23:44:18.538	1	2024-07-10 23:44:18.538	0	1
-5929	1	1242	1	2024-07-10 23:44:18.591	1	2024-07-10 23:44:18.591	0	1
-5930	1	1243	1	2024-07-10 23:44:18.641	1	2024-07-10 23:44:18.641	0	1
 5931	1	2525	1	2024-07-10 23:44:18.682	1	2024-07-10 23:44:18.682	0	1
 5932	1	1255	1	2024-07-10 23:44:18.724	1	2024-07-10 23:44:18.724	0	1
 5933	1	1256	1	2024-07-10 23:44:18.765	1	2024-07-10 23:44:18.765	0	1
@@ -28282,6 +28281,12 @@ COPY public.system_role_menu (id, role_id, menu_id, creator, create_time, update
 5879	1	107	1	2024-07-10 23:44:16.26	1	2024-07-10 23:44:16.26	1	1
 2225	101	2131	1	2023-02-09 23:49:46	1	2023-02-09 23:49:46	1	1
 5859	1	2140	1	2024-07-10 23:44:15.223	1	2024-07-10 23:44:15.223	1	1
+5926	1	1239	1	2024-07-10 23:44:18.423	1	2024-07-10 23:44:18.423	1	1
+5927	1	1240	1	2024-07-10 23:44:18.482	1	2024-07-10 23:44:18.482	1	1
+5928	1	1241	1	2024-07-10 23:44:18.538	1	2024-07-10 23:44:18.538	1	1
+5929	1	1242	1	2024-07-10 23:44:18.591	1	2024-07-10 23:44:18.591	1	1
+5924	1	1237	1	2024-07-10 23:44:18.301	1	2024-07-10 23:44:18.301	1	1
+5930	1	1243	1	2024-07-10 23:44:18.641	1	2024-07-10 23:44:18.641	1	1
 2210	101	1093	1	2023-02-09 23:49:46	1	2023-02-09 23:49:46	1	1
 477	2	100	1	2022-02-22 13:09:12	1	2022-02-22 13:09:12	1	1
 478	2	101	1	2022-02-22 13:09:12	1	2022-02-22 13:09:12	1	1
@@ -28404,6 +28409,10 @@ COPY public.system_role_menu (id, role_id, menu_id, creator, create_time, update
 1693	101	115	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	1	1
 5888	1	115	1	2024-07-10 23:44:16.643	1	2024-07-10 23:44:16.643	1	1
 5777	101	2739	1	2024-04-30 09:38:37	1	2024-04-30 09:38:37	1	1
+1680	101	1238	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	1	1
+5925	1	1238	1	2024-07-10 23:44:18.377	1	2024-07-10 23:44:18.377	1	1
+1684	101	1242	1	2022-04-01 22:21:37	1	2022-04-01 22:21:37	1	1
+5831	1	1091	1	2024-07-10 23:44:12.722	1	2024-07-10 23:44:12.722	1	1
 \.
 
 
@@ -28562,7 +28571,7 @@ COPY public.system_users (id, username, password, nickname, remark, dept_id, pos
 131	hh	$2a$04$jyH9h6.gaw8mpOjPfHIpx.8as2Rzfcmdlj5rlJFwgCw4rsv/MTb2K	呵呵	\N	100	[]	777@qq.com	15601882312	1		0		\N	1	2024-04-27 08:45:56	1	2024-04-27 08:45:56	1	1	0	0
 100	yudao	$2a$10$11U48RhyJ5pSBYWSn12AD./ld671.ycSzJHbyrtpeoMeYiw31eo8a	王总	不要吓我	104	[1]	yudao@iocoder.cn	15601691300	1		1	127.0.0.1	2022-07-09 23:03:33		2021-01-07 09:07:17	1	2025-08-14 09:39:37.486	0	1	0	0
 118	goudan	$2a$04$A7vqK6hfgoPeOGDgZoC1BOnVwTpDyBtQnlsOWBIqM8Wj9A6NTr0Tq	狗蛋	\N	103	[1]		15601691239	1		0	0:0:0:0:0:0:0:1	2024-07-24 11:23:40.932	1	2022-07-09 17:44:43	1	2025-08-14 11:34:37.076	0	1	0	0
-1	admin	$2a$10$mRMIYLDtRHlf6.9ipiqH1.Z.bh/R9dO9d5iHiGYPigi6r5KOoR2Wm	IoT	管理员	103	[1]	aoteman@126.com	18818260277	1	http://test.yudao.iocoder.cn/113dcbab48d22fc988151b98be2b8b4f262effdb5305c171cf1fe9a71801377a.png	0	66.11.117.92	2025-09-03 14:50:53.702	admin	2021-01-05 17:03:47	\N	2025-09-03 14:50:53.703	0	1	0	0
+1	admin	$2a$10$mRMIYLDtRHlf6.9ipiqH1.Z.bh/R9dO9d5iHiGYPigi6r5KOoR2Wm	IoT	管理员	103	[1]	aoteman@126.com	18818260277	1	http://test.yudao.iocoder.cn/113dcbab48d22fc988151b98be2b8b4f262effdb5305c171cf1fe9a71801377a.png	0	127.0.0.1	2025-11-20 12:36:51.046575	admin	2021-01-05 17:03:47	\N	2025-11-20 12:36:51.050047	0	1	0	0
 \.
 
 
@@ -28773,7 +28782,7 @@ SELECT pg_catalog.setval('public.system_dict_type_seq', 620, false);
 -- Name: system_login_log_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.system_login_log_seq', 3006, true);
+SELECT pg_catalog.setval('public.system_login_log_seq', 3007, true);
 
 
 --
@@ -28801,7 +28810,7 @@ SELECT pg_catalog.setval('public.system_mail_template_seq', 16, false);
 -- Name: system_menu_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.system_menu_seq', 2967, true);
+SELECT pg_catalog.setval('public.system_menu_seq', 2970, true);
 
 
 --
@@ -28829,7 +28838,7 @@ SELECT pg_catalog.setval('public.system_notify_template_seq', 1, false);
 -- Name: system_oauth2_access_token_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.system_oauth2_access_token_seq', 5910, true);
+SELECT pg_catalog.setval('public.system_oauth2_access_token_seq', 5912, true);
 
 
 --
@@ -29671,4 +29680,6 @@ ALTER TABLE ONLY public.qrtz_triggers
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict el4LXXySXiPH1G6se5csdG44V2hTfUdlwQRWpa1JiI14ectrdVfctGtg1hAe0kD
 
