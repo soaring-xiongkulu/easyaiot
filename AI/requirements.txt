@@ -1,4 +1,6 @@
 # 基础依赖
+# 固定 setuptools 版本以解决 pkg_resources 弃用警告
+setuptools<81
 Flask==2.3.2
 Flask-SQLAlchemy==3.0.5
 # 图像识别
@@ -15,6 +17,7 @@ nacos-sdk-python==2.0.9
 minio==7.2.0
 python-magic==0.4.27
 numpy==1.26.4
+pytz==2024.1
 # 提供标准化健康检查端点
 py-healthcheck==1.10.0
 # 网卡探测

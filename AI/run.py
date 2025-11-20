@@ -31,22 +31,35 @@ def parse_args():
 
 # 加载环境变量配置文件（参考VIDEO模块的实现）
 def load_env_file(env_name=''):
+    """
+    加载环境变量配置文件
+    使用 override=True 确保配置文件中的值能够覆盖系统环境变量
+    """
     if env_name:
         env_file = f'.env.{env_name}'
         if os.path.exists(env_file):
-            load_dotenv(env_file)
-            print(f"✅ 已加载配置文件: {env_file}")
+            # 使用 override=True 确保配置文件中的值覆盖已存在的环境变量
+            load_dotenv(env_file, override=True)
+            print(f"✅ 已加载配置文件: {env_file} (覆盖模式)")
+            
+            # 显示关键配置信息（用于调试）
+            database_url = os.getenv('DATABASE_URL', '未设置')
+            nacos_server = os.getenv('NACOS_SERVER', '未设置')
+            flask_port = os.getenv('FLASK_RUN_PORT', '未设置')
+            print(f"   📊 DATABASE_URL: {database_url[:50]}..." if len(database_url) > 50 else f"   📊 DATABASE_URL: {database_url}")
+            print(f"   📊 NACOS_SERVER: {nacos_server}")
+            print(f"   📊 FLASK_RUN_PORT: {flask_port}")
         else:
             print(f"⚠️  配置文件 {env_file} 不存在，尝试加载默认 .env 文件")
             if os.path.exists('.env'):
-                load_dotenv('.env')
-                print(f"✅ 已加载默认配置文件: .env")
+                load_dotenv('.env', override=True)
+                print(f"✅ 已加载默认配置文件: .env (覆盖模式)")
             else:
                 print(f"❌ 默认配置文件 .env 也不存在")
     else:
         if os.path.exists('.env'):
-            load_dotenv('.env')
-            print(f"✅ 已加载默认配置文件: .env")
+            load_dotenv('.env', override=True)
+            print(f"✅ 已加载默认配置文件: .env (覆盖模式)")
         else:
             print(f"⚠️  默认配置文件 .env 不存在")
 
@@ -119,12 +132,30 @@ def create_app():
     from models import db
     db.init_app(app)
     with app.app_context():
+        database_uri = app.config['SQLALCHEMY_DATABASE_URI']
         try:
-            print(f"数据库连接: {app.config['SQLALCHEMY_DATABASE_URI']}")
+            # 隐藏密码显示（安全考虑）
+            safe_uri = database_uri
+            if '@' in database_uri:
+                parts = database_uri.split('@')
+                if len(parts) == 2:
+                    user_pass = parts[0].split('://')[-1]
+                    if ':' in user_pass:
+                        user = user_pass.split(':')[0]
+                        safe_uri = database_uri.replace(user_pass, f"{user}:***")
+            print(f"数据库连接: {safe_uri}")
             from models import Model, TrainTask, ExportRecord, InferenceTask, LLMConfig, OCRResult
             db.create_all()
+            print(f"✅ 数据库连接成功，表结构已创建/验证")
         except Exception as e:
-            print(f"❌ 建表失败: {str(e)}")
+            error_msg = str(e)
+            print(f"❌ 数据库连接失败: {error_msg}")
+            if "Connection refused" in error_msg:
+                print(f"💡 提示: 请检查数据库服务是否运行，以及 DATABASE_URL 配置是否正确")
+                db_host = database_uri.split('@')[1].split('/')[0] if '@' in database_uri else '未知'
+                print(f"   当前 DATABASE_URL 主机: {db_host}")
+            elif "No module named" in error_msg:
+                print(f"💡 提示: 缺少数据库驱动，请运行: pip install psycopg2-binary")
 
     # 注册蓝图（延迟导入，避免在环境变量加载前就导入）
     try:
