@@ -51,8 +51,7 @@ public class PreviewUserController extends BaseController {
 
     @GetMapping("/query")
     @ApiOperation("查询")
-    public TableDataInfo query(
-                          @RequestBody TPreviewUser tPreviewUser){
+    public TableDataInfo query(@ModelAttribute TPreviewUser tPreviewUser){
         startPage();
         List<TPreviewUser> list = tPreviewUserService.query(tPreviewUser);
         return getDataTable(list);

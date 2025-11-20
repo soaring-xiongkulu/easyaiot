@@ -49,7 +49,7 @@ public class TPreviewUserGroupController extends BaseController {
 
     @GetMapping("/query")
     @ApiOperation("查询")
-    public TableDataInfo query(@RequestBody TPreviewUserGroup tPreviewUserGroup){
+    public TableDataInfo query(@ModelAttribute TPreviewUserGroup tPreviewUserGroup){
         startPage();
         List<TPreviewUserGroup> query = tPreviewUserGroupService.query(tPreviewUserGroup);
         return getDataTable(query);

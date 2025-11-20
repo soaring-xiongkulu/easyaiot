@@ -54,7 +54,7 @@ export const messagePreviewUserDelete = (params) => {
 export const messagePreviewUserQuery = (data) => {
   const { page, pageSize, ...res } = data;
   const url = `${Api.message_preview_user_query}?page=${page}&pageSize=${pageSize}`;
-  return commonApi('post', url, { data: res });
+  return commonApi('get', url, { data: res });
 };
 
 // 模版下载
@@ -89,7 +89,7 @@ export const userGroupDelete = (params) => {
 export const userGroupQuery = (data) => {
   const { page, pageSize, ...res } = data;
   const url = `${Api.message_preview_user_group_query}?page=${page}&pageSize=${pageSize}`;
-  return commonApi('post', url, { data: res });
+  return commonApi('get', url, { data: res });
 };
 // 根据消息类型
 export const userGroupQueryByMsgType = (params) => {

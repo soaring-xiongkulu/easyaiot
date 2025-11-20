@@ -48,7 +48,7 @@ public class MessagePrepareController extends BaseController {
 
     @GetMapping("/query")
     @ApiOperation("查询消息准备信息")
-    public TableDataInfo query(@RequestBody MessagePrepareVO messagePrepareVO){
+    public TableDataInfo query(@ModelAttribute MessagePrepareVO messagePrepareVO){
         startPage();
         List<?> list = messagePrepareService.query(messagePrepareVO);
         return getDataTable(list);

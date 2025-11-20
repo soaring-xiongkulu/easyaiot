@@ -28,7 +28,7 @@ public class PushHistoryController extends BaseController {
 
     @GetMapping("/query")
     @ApiOperation("查询推送历史")
-    public TableDataInfo query(@RequestBody TPushHistory tPushHistory){
+    public TableDataInfo query(@ModelAttribute TPushHistory tPushHistory){
         List<TPushHistory> list = pushHistoryService.query(tPushHistory);
         return getDataTable(list);
     }
