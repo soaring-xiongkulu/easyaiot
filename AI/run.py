@@ -3,6 +3,7 @@
 @email andywebjava@163.com
 @wechat EasyAIoT2025
 """
+import argparse
 import atexit
 import os
 import socket
@@ -22,6 +23,13 @@ from app.blueprints import export, inference_task, model, train, train_task, llm
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+# 解析命令行参数
+def parse_args():
+    parser = argparse.ArgumentParser(description='启动模型服务器')
+    parser.add_argument('--env', type=str, default=None,
+                        help='指定环境配置文件，例如: --env=prod 将加载 .env.prod，默认加载 .env')
+    return parser.parse_args()
+
 # 在加载.env文件之前，检查环境变量是否已存在（来自Docker Compose）
 # 这样可以判断环境变量的来源
 env_before_dotenv = os.environ.get('DATABASE_URL')
@@ -34,12 +42,21 @@ if env_before_dotenv and ('iot.basiclab.top' in env_before_dotenv or 'doccano' i
     del os.environ['DATABASE_URL']
     env_before_dotenv = None
 
+# 解析命令行参数以确定加载哪个配置文件
+args = parse_args()
+env_file = '.env'
+if args.env:
+    env_file = f'.env.{args.env}'
+    print(f"📁 加载环境配置文件: {env_file}")
+else:
+    print(f"📁 加载默认配置文件: {env_file}")
+
 # 加载.env文件，但不覆盖已存在的环境变量（Docker Compose传入的环境变量优先）
 # 注意：Docker Compose传入的环境变量会优先于.env文件
-load_dotenv(override=False)
+load_dotenv(dotenv_path=env_file, override=False)
 
 # 保存环境变量来源信息（用于后续调试）
-ENV_SOURCE = "Docker Compose环境变量" if env_before_dotenv else ".env文件"
+ENV_SOURCE = "Docker Compose环境变量" if env_before_dotenv else f"{env_file}文件"
 
 
 def get_local_ip():
