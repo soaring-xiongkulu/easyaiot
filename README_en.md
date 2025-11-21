@@ -17,7 +17,7 @@
 
 ## 🌟 Some Thoughts on the Project
 
-#### Project Positioning: Supports access to hundreds of cameras for collection, annotation, training, inference, export, analysis, alerting, recording, storage, deployment, PaddleOCR text recognition, speech-to-text, multimodal vision large models (object recognition, text recognition), and LLM large language models (supporting RTSP streams, video, images, audio, text, etc.).
+#### Project Positioning: EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT. The platform supports access to hundreds of cameras for collection, annotation, training, inference, export, analysis, alerting, recording, storage, and deployment; provides PaddleOCR text recognition, speech-to-text, multimodal vision large models (object recognition, text recognition), and LLM large language models (supporting RTSP streams, video, images, audio, text, etc.); and offers comprehensive IoT device management capabilities, including device access and management, product and thing model management, multi-protocol support (MQTT, TCP, HTTP), device authentication and dynamic registration, rule engine, data collection and storage, device status monitoring, alert management, and other core functions, achieving a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making.
 
 #### I believe no single programming language excels at everything, but with a combination of three languages, EasyAIoT will be invincible—fortunately, I possess this trait.
 
@@ -46,11 +46,16 @@
 
 EasyAIoT consists of five core projects:
 
-- **WEB Module**: Frontend management interface based on Vue
-- **DEVICE Module**: Java-based device management module responsible for IoT device access and management
+- **WEB Module**: Frontend management interface based on Vue, providing a unified user interaction experience
+- **DEVICE Module**: Java-based IoT device management module providing comprehensive IoT device access and management capabilities
+  - Device Management: Device registration, authentication, status monitoring, lifecycle management
+  - Product Management: Product definition, thing model management, product configuration
+  - Protocol Support: Multiple IoT protocols including MQTT, TCP, HTTP
+  - Device Authentication: Device dynamic registration, identity authentication, secure access
+  - Rule Engine: Data flow rules, message routing, data transformation
+  - Data Collection: Device data collection, storage, query, and analysis
 - **VIDEO Module**: Python-based video processing module responsible for video stream processing and transmission
-- **AI Module**: Python-based artificial intelligence processing module responsible for video analysis and AI algorithm
-  execution
+- **AI Module**: Python-based artificial intelligence processing module responsible for video analysis and AI algorithm execution
 - **TASK Module**: C++-based high-performance task processing module responsible for compute-intensive task execution
 
 ## ☁️ EasyAIoT = AI + IoT = Cloud-Edge Integrated Solution
@@ -63,6 +68,13 @@ cutting-edge AI to create a unified service core. This solution not only enables
 devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "
 intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and
 perimeter intrusion detection.
+
+In terms of IoT device management, EasyAIoT provides comprehensive device lifecycle management capabilities, supporting
+multiple IoT protocols (MQTT, TCP, HTTP) to achieve rapid device access, secure authentication, real-time monitoring,
+and intelligent control. Through the rule engine, intelligent data flow and processing of device data are realized,
+combined with AI capabilities for in-depth analysis of device data, achieving full-process automation from device
+access, data collection, intelligent analysis to decision execution, truly realizing interconnected everything and
+intelligent control of everything.
 
 ![EasyAIoT Platform Architecture](.image/iframe1.jpg)
 
