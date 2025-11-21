@@ -19,6 +19,14 @@ def is_title(text):
     """判断是否为标题"""
     text = text.strip()
     
+    # 检查是否是Markdown加粗格式 **文本**
+    if text.startswith('**') and text.endswith('**') and len(text) > 4:
+        # 提取加粗文本内容
+        bold_text = text[2:-2].strip()
+        # 如果文本较短，认为是标题
+        if len(bold_text) < 50:
+            return True
+    
     # 检查是否以emoji图标开头（常见标题特征）
     # emoji通常在文本开头，后面跟空格和标题文字
     emoji_pattern = re.compile(r'^[\U0001F300-\U0001F9FF\U0001FA00-\U0001FAFF\U00002600-\U000027BF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF]+')
@@ -27,8 +35,10 @@ def is_title(text):
         if len(text) < 50:
             return True
     
-    # 移除emoji后检查标题
-    text_without_emoji = re.sub(r'[\U0001F300-\U0001F9FF\U0001FA00-\U0001FAFF\U00002600-\U000027BF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF]+', '', text).strip()
+    # 移除emoji和Markdown格式后检查标题
+    text_clean = re.sub(r'[\U0001F300-\U0001F9FF\U0001FA00-\U0001FAFF\U00002600-\U000027BF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF]+', '', text).strip()
+    # 移除Markdown加粗标记
+    text_without_emoji = re.sub(r'\*\*([^*]+)\*\*', r'\1', text_clean).strip()
     
     # 常见标题列表（不含emoji）
     common_titles = [
@@ -162,7 +172,13 @@ def process_docx(input_path, output_path=None):
                         para_format.space_after = Pt(10)  # 标题后间距
                         # 清除原有runs，重新添加格式化的文本
                         para.clear()
-                        run = para.add_run(line)
+                        # 处理Markdown加粗格式 **文本**
+                        if line.startswith('**') and line.endswith('**'):
+                            # 提取文本内容，去掉 **
+                            title_text = line[2:-2].strip()
+                            run = para.add_run(title_text)
+                        else:
+                            run = para.add_run(line)
                         run.font.name = font_name
                         run.font.size = Pt(18)  # 标题18pt（更大更醒目）
                         run.bold = True
@@ -234,7 +250,13 @@ def process_docx(input_path, output_path=None):
                 para_format.space_after = Pt(10)  # 标题后间距
                 # 清除原有runs，重新添加格式化的文本
                 para.clear()
-                run = para.add_run(text)
+                # 处理Markdown加粗格式 **文本**
+                if text.startswith('**') and text.endswith('**'):
+                    # 提取文本内容，去掉 **
+                    title_text = text[2:-2].strip()
+                    run = para.add_run(title_text)
+                else:
+                    run = para.add_run(text)
                 run.font.name = font_name
                 run.font.size = Pt(18)  # 标题18pt（更大更醒目）
                 run.bold = True
