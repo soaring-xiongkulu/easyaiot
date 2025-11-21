@@ -17,7 +17,26 @@
 
 ## 🌟 Some Thoughts on the Project
 
-#### Project Positioning: EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT. The platform supports access to hundreds of cameras for collection, annotation, training, inference, export, analysis, alerting, recording, storage, and deployment; provides PaddleOCR text recognition, speech-to-text, multimodal vision large models (object recognition, text recognition), and LLM large language models (supporting RTSP streams, video, images, audio, text, etc.); and offers comprehensive IoT device management capabilities, including device access and management, product and thing model management, multi-protocol support (MQTT, TCP, HTTP), device authentication and dynamic registration, rule engine, data collection and storage, device status monitoring, alert management, and other core functions, achieving a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making.
+#### Project Positioning:
+
+EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT.
+
+**AI Capabilities:**
+- Supports access to hundreds of cameras for collection, annotation, training, inference, export, analysis, alerting, recording, storage, and deployment
+- PaddleOCR text recognition and speech-to-text
+- Multimodal vision large models (object recognition, text recognition)
+- LLM large language models (supporting RTSP streams, video, images, audio, text, etc.)
+
+**IoT Capabilities:**
+- Device Access and Management: Device registration, authentication, status monitoring, lifecycle management
+- Product and Thing Model Management: Product definition, thing model configuration, product management
+- Multi-Protocol Support: Multiple IoT protocols including MQTT, TCP, HTTP
+- Device Authentication and Dynamic Registration: Secure access, identity authentication, dynamic device registration
+- Rule Engine: Data flow rules, message routing, data transformation
+- Data Collection and Storage: Device data collection, storage, query, and analysis
+- Device Status Monitoring and Alert Management: Real-time monitoring, anomaly alerts, intelligent decision-making
+
+**Core Value:** Achieves a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making, truly realizing interconnected everything and intelligent control of everything.
 
 #### I believe no single programming language excels at everything, but with a combination of three languages, EasyAIoT will be invincible—fortunately, I possess this trait.
 
