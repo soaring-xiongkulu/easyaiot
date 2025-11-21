@@ -6,15 +6,16 @@
 import logging
 import os
 import tempfile
-import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from urllib.parse import urlparse, parse_qs
 from flask import Blueprint, jsonify, current_app, url_for, send_file, request
 from ultralytics import YOLO
+from sqlalchemy import desc
 
 from app.services.minio_service import ModelService
-from models import db, Model, ExportRecord, TrainTask
+from db_models import db, Model, ExportRecord, TrainTask
 
 export_bp = Blueprint('export', __name__)
 logger = logging.getLogger(__name__)
@@ -32,36 +33,65 @@ EXPORT_STATUS = {
 
 SUPPORTED_FORMATS = {
     'onnx': {'ext': '.onnx', 'mime': 'application/octet-stream'},
-    'torchscript': {'ext': '.torchscript', 'mime': 'application/octet-stream'},
-    'tensorrt': {'ext': '.engine', 'mime': 'application/octet-stream'},
-    'openvino': {'ext': '_openvino_model/', 'mime': 'application/octet-stream'},
-    'rknn': {'ext': '.rknn', 'mime': 'application/octet-stream'}  # 新增RKNN格式
+    'openvino': {'ext': '_openvino_model/', 'mime': 'application/octet-stream'}
 }
 
 # 导出任务队列
 export_tasks = {}
+
+
+def parse_minio_url(url: str):
+    """
+    解析MinIO下载URL，提取bucket和object_key
+    格式: /api/v1/buckets/{bucket_name}/objects/download?prefix={object_key}
+    """
+    try:
+        parsed = urlparse(url)
+        path_parts = parsed.path.split('/')
+        
+        # 提取bucket名称
+        if len(path_parts) >= 5 and path_parts[3] == 'buckets':
+            bucket_name = path_parts[4]
+        else:
+            return None, None
+        
+        # 提取object_key
+        query_params = parse_qs(parsed.query)
+        object_key = query_params.get('prefix', [None])[0]
+        
+        return bucket_name, object_key
+    except Exception as e:
+        logger.error(f"解析MinIO URL失败: {url}, 错误: {str(e)}")
+        return None, None
 
 @export_bp.route('/<int:model_id>/export/<format>', methods=['POST'])
 def api_export_model(model_id, format):
     try:
         # 验证格式支持
         if format not in SUPPORTED_FORMATS:
-            return jsonify({'success': False, 'message': f'不支持的导出格式: {format}'}), 400
+            return jsonify({'code': 400, 'msg': f'不支持的导出格式: {format}'}), 400
 
         # 获取模型信息
         model_record = Model.query.get_or_404(model_id)
-        train_task = TrainTask.query.get(model_record.train_task_id)
+        
+        # 查找该模型的最新训练任务（优先查找已完成的，且有minio_model_path的）
+        train_task = TrainTask.query.filter_by(
+            model_id=model_id
+        ).filter(
+            TrainTask.minio_model_path.isnot(None),
+            TrainTask.minio_model_path != ''
+        ).order_by(
+            desc(TrainTask.end_time).nullslast(),
+            desc(TrainTask.start_time)
+        ).first()
 
         if not train_task or not train_task.minio_model_path:
-            return jsonify({'success': False, 'message': '模型未发布或未上传到Minio'}), 400
+            return jsonify({'code': 400, 'msg': '模型未发布或未上传到Minio'}), 400
 
         # 获取请求参数
         req_data = request.get_json() or {}
-        rknn_config = {
-            'target_platform': req_data.get('target_platform', 'rk3588'),
-            'quantization': req_data.get('quantization', True),
+        export_config = {
             'img_size': req_data.get('img_size', 640),
-            'dataset': req_data.get('dataset'),
             'opset': req_data.get('opset', 12)
         }
 
@@ -88,28 +118,30 @@ def api_export_model(model_id, format):
             process_export_async,
             model_id,
             format,
-            rknn_config,
+            export_config,
             export_record.id,
             task_id
         )
 
         return jsonify({
-            'success': True,
-            'message': '导出任务已提交',
-            'task_id': task_id,
-            'export_id': export_record.id,
-            'status_url': url_for('export.get_export_status', task_id=task_id, _external=True)
+            'code': 0,
+            'msg': '导出任务已提交',
+            'data': {
+                'task_id': task_id,
+                'export_id': export_record.id,
+                'status_url': url_for('export.get_export_status', task_id=task_id, _external=True)
+            }
         }), 202
 
     except Exception as e:
         current_app.logger.error(f"模型导出失败: {str(e)}", exc_info=True)
         return jsonify({
-            'success': False,
-            'message': f'服务器内部错误: {str(e)}'
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
         }), 500
 
 
-def process_export_async(model_id, format, rknn_config, export_id, task_id):
+def process_export_async(model_id, format, export_config, export_id, task_id):
     """异步处理导出任务"""
     try:
         # 更新任务状态为处理中
@@ -123,7 +155,20 @@ def process_export_async(model_id, format, rknn_config, export_id, task_id):
 
         # 获取模型信息
         model_record = Model.query.get(model_id)
-        train_task = TrainTask.query.get(model_record.train_task_id)
+        
+        # 查找该模型的最新训练任务（优先查找已完成的，且有minio_model_path的）
+        train_task = TrainTask.query.filter_by(
+            model_id=model_id
+        ).filter(
+            TrainTask.minio_model_path.isnot(None),
+            TrainTask.minio_model_path != ''
+        ).order_by(
+            desc(TrainTask.end_time).nullslast(),
+            desc(TrainTask.start_time)
+        ).first()
+        
+        if not train_task:
+            raise Exception("未找到有效的训练任务或模型路径")
 
         # 创建临时目录
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -135,16 +180,26 @@ def process_export_async(model_id, format, rknn_config, export_id, task_id):
             export_record.status = 'PROCESSING'
             db.session.commit()
 
+            # 解析MinIO URL获取bucket和object名称
+            if minio_model_path.startswith('/api/v1/buckets/'):
+                bucket_name, object_name = parse_minio_url(minio_model_path)
+                if not bucket_name or not object_name:
+                    raise Exception(f"无法解析MinIO URL: {minio_model_path}")
+            else:
+                # 兼容旧格式：直接使用路径（假设bucket为models）
+                bucket_name = "models"
+                object_name = minio_model_path
+
             if not ModelService.download_from_minio(
-                    bucket_name="model-train",
-                    object_name=minio_model_path,
+                    bucket_name=bucket_name,
+                    object_name=object_name,
                     destination_path=local_pt_path
             ):
-                raise Exception("原始模型下载失败")
+                raise Exception(f"原始模型下载失败: {bucket_name}/{object_name}")
 
             export_tasks[task_id]['progress'] = 40
 
-            # 其他格式处理
+            # 执行模型导出
             model = YOLO(local_pt_path)
             export_filename = f"model{SUPPORTED_FORMATS[format]['ext']}"
             export_local_path = os.path.join(tmp_dir, export_filename)
@@ -152,23 +207,30 @@ def process_export_async(model_id, format, rknn_config, export_id, task_id):
             # 执行模型导出
             export_params = {
                 'format': format,
-                'imgsz': rknn_config['img_size'],
-                'optimize': True if format == 'tensorrt' else False,
+                'imgsz': export_config['img_size'],
                 'device': 'cpu'
             }
 
             if format == 'openvino':
                 export_params['half'] = False
+            elif format == 'onnx':
+                export_params['opset'] = export_config.get('opset', 12)
 
             model.export(**export_params)
 
             # 处理导出文件
-            exported_files = [f for f in os.listdir(tmp_dir) if
-                              f.endswith(SUPPORTED_FORMATS[format]['ext']) or f.endswith('.engine')]
+            if format == 'openvino':
+                # OpenVINO导出为目录
+                exported_files = [f for f in os.listdir(tmp_dir) if f.endswith('_openvino_model')]
+            else:
+                # ONNX导出为单个文件
+                exported_files = [f for f in os.listdir(tmp_dir) if f.endswith('.onnx')]
+            
             if not exported_files:
                 raise Exception("模型导出失败，未生成目标文件")
 
-            if format != 'openvino':
+            if format == 'onnx':
+                # ONNX格式：重命名文件
                 os.rename(os.path.join(tmp_dir, exported_files[0]), export_local_path)
 
             # 上传到Minio
@@ -206,10 +268,6 @@ def process_export_async(model_id, format, rknn_config, export_id, task_id):
             # 更新模型表的对应字段
             if format == 'onnx':
                 model_record.onnx_model_path = minio_export_path
-            elif format == 'torchscript':
-                model_record.torchscript_model_path = minio_export_path
-            elif format == 'tensorrt':
-                model_record.tensorrt_model_path = minio_export_path
             elif format == 'openvino':
                 model_record.openvino_model_path = minio_export_path
 
@@ -224,42 +282,95 @@ def process_export_async(model_id, format, rknn_config, export_id, task_id):
         db.session.commit()
 
 
-@export_bp.route('/status/<task_id>', methods=['GET'])
-def get_export_status(task_id):
-    """获取导出任务状态"""
-    task = export_tasks.get(task_id)
-    if not task:
+@export_bp.route('/status/<task_id_or_export_id>', methods=['GET'])
+def get_export_status(task_id_or_export_id):
+    """获取导出任务状态，支持通过task_id或export_id查询"""
+    # 尝试作为task_id查询
+    task = export_tasks.get(task_id_or_export_id)
+    
+    if task:
+        # 通过task_id查询
+        export_record = ExportRecord.query.get(task.get('export_id'))
+        if not export_record:
+            return jsonify({
+                'code': 404,
+                'msg': '导出记录不存在'
+            }), 404
+
+        response_data = {
+            'task_id': task_id_or_export_id,
+            'status': task['status'],
+            'status_text': EXPORT_STATUS.get(task['status'], '未知状态'),
+            'progress': task.get('progress', 0),
+            'export_id': export_record.id,
+            'model_id': export_record.model_id,
+            'format': export_record.format,
+            'created_at': export_record.created_at.isoformat(),
+        }
+
+        if task['status'] == 'COMPLETED':
+            response_data['download_url'] = task.get('download_url')
+            response_data['minio_path'] = export_record.minio_path
+        elif task['status'] == 'FAILED':
+            response_data['error'] = task.get('error')
+
         return jsonify({
-            'success': False,
-            'message': '任务不存在或已过期'
-        }), 404
+            'code': 0,
+            'msg': '获取状态成功',
+            'data': response_data
+        })
+    else:
+        # 尝试作为export_id查询
+        try:
+            export_id = int(task_id_or_export_id)
+            export_record = ExportRecord.query.get(export_id)
+            if not export_record:
+                return jsonify({
+                    'code': 404,
+                    'msg': '导出记录不存在'
+                }), 404
 
-    # 获取导出记录详细信息
-    export_record = ExportRecord.query.get(task.get('export_id'))
-    if not export_record:
-        return jsonify({
-            'success': False,
-            'message': '导出记录不存在'
-        }), 404
+            # 查找对应的task_id
+            task_id = None
+            for tid, t in export_tasks.items():
+                if t.get('export_id') == export_id:
+                    task_id = tid
+                    break
 
-    response = {
-        'task_id': task_id,
-        'status': task['status'],
-        'status_text': EXPORT_STATUS.get(task['status'], '未知状态'),
-        'progress': task.get('progress', 0),
-        'export_id': export_record.id,
-        'model_id': export_record.model_id,
-        'format': export_record.format,
-        'created_at': export_record.created_at.isoformat(),
-    }
+            response_data = {
+                'export_id': export_record.id,
+                'status': export_record.status,
+                'status_text': EXPORT_STATUS.get(export_record.status, '未知状态'),
+                'model_id': export_record.model_id,
+                'format': export_record.format,
+                'created_at': export_record.created_at.isoformat(),
+            }
 
-    if task['status'] == 'COMPLETED':
-        response['download_url'] = task.get('download_url')
-        response['minio_path'] = export_record.minio_path
-    elif task['status'] == 'FAILED':
-        response['error'] = task.get('error')
+            if task_id:
+                task = export_tasks.get(task_id)
+                if task:
+                    response_data['task_id'] = task_id
+                    response_data['progress'] = task.get('progress', 0)
+                    if task['status'] == 'COMPLETED':
+                        response_data['download_url'] = task.get('download_url')
+                    elif task['status'] == 'FAILED':
+                        response_data['error'] = task.get('error')
 
-    return jsonify(response)
+            if export_record.status == 'COMPLETED' and export_record.minio_path:
+                response_data['minio_path'] = export_record.minio_path
+            elif export_record.status == 'FAILED' and export_record.message:
+                response_data['error'] = export_record.message
+
+            return jsonify({
+                'code': 0,
+                'msg': '获取状态成功',
+                'data': response_data
+            })
+        except ValueError:
+            return jsonify({
+                'code': 400,
+                'msg': '无效的任务ID或导出ID'
+            }), 400
 
 
 @export_bp.route('/list', methods=['GET'])
@@ -270,11 +381,17 @@ def get_export_list():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         model_id = request.args.get('model_id', type=int)
+        format_filter = request.args.get('format', type=str)
+        status_filter = request.args.get('status', type=str)
 
         # 构建查询
         query = ExportRecord.query
         if model_id:
             query = query.filter_by(model_id=model_id)
+        if format_filter:
+            query = query.filter_by(format=format_filter)
+        if status_filter:
+            query = query.filter_by(status=status_filter)
 
         # 执行分页查询
         pagination = query.order_by(ExportRecord.created_at.desc()).paginate(
@@ -293,6 +410,7 @@ def get_export_list():
                 'status': record.status,
                 'status_text': EXPORT_STATUS.get(record.status, '未知状态'),
                 'minio_path': record.minio_path,
+                'message': record.message,
                 'created_at': record.created_at.isoformat(),
                 'download_url': url_for(
                     'export.download_export',
@@ -302,7 +420,8 @@ def get_export_list():
             })
 
         return jsonify({
-            'success': True,
+            'code': 0,
+            'msg': '获取列表成功',
             'data': {
                 'items': items,
                 'total': pagination.total,
@@ -315,8 +434,8 @@ def get_export_list():
     except Exception as e:
         current_app.logger.error(f"获取导出列表失败: {str(e)}", exc_info=True)
         return jsonify({
-            'success': False,
-            'message': f'服务器内部错误: {str(e)}'
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
         }), 500
 
 
@@ -338,15 +457,15 @@ def delete_export_record(export_id):
         db.session.commit()
 
         return jsonify({
-            'success': True,
-            'message': '导出记录已删除'
+            'code': 0,
+            'msg': '导出记录已删除'
         })
 
     except Exception as e:
         current_app.logger.error(f"删除导出记录失败: {str(e)}", exc_info=True)
         return jsonify({
-            'success': False,
-            'message': f'服务器内部错误: {str(e)}'
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
         }), 500
 
 
@@ -358,14 +477,14 @@ def download_export(export_id):
 
         if export_record.status != 'COMPLETED':
             return jsonify({
-                'success': False,
-                'message': '导出未完成，无法下载'
+                'code': 400,
+                'msg': '导出未完成，无法下载'
             }), 400
 
         if not export_record.minio_path:
             return jsonify({
-                'success': False,
-                'message': '文件路径不存在'
+                'code': 404,
+                'msg': '文件路径不存在'
             }), 404
 
         # 创建临时文件
@@ -389,13 +508,13 @@ def download_export(export_id):
             )
         else:
             return jsonify({
-                'success': False,
-                'message': '文件下载失败'
+                'code': 500,
+                'msg': '文件下载失败'
             }), 500
 
     except Exception as e:
         current_app.logger.error(f"文件下载失败: {str(e)}", exc_info=True)
         return jsonify({
-            'success': False,
-            'message': f'服务器内部错误: {str(e)}'
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
         }), 500
