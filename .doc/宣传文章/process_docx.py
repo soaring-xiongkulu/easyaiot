@@ -15,16 +15,26 @@ from docx import Document
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
+def extract_bold_title(text):
+    """提取Markdown加粗格式的标题部分"""
+    # 匹配 **文本**：内容 或 **文本**： 格式
+    match = re.match(r'\*\*([^*]+)\*\*[：:]\s*(.+)', text)
+    if match:
+        return match.group(1).strip(), match.group(2).strip()
+    # 匹配纯 **文本** 格式
+    if text.startswith('**') and text.endswith('**') and len(text) > 4:
+        return text[2:-2].strip(), None
+    return None, None
+
 def is_title(text):
     """判断是否为标题"""
     text = text.strip()
     
-    # 检查是否是Markdown加粗格式 **文本**
-    if text.startswith('**') and text.endswith('**') and len(text) > 4:
+    # 检查是否是Markdown加粗格式 **文本** 或 **文本**：内容
+    if text.startswith('**'):
         # 提取加粗文本内容
-        bold_text = text[2:-2].strip()
-        # 如果文本较短，认为是标题
-        if len(bold_text) < 50:
+        title_part, content_part = extract_bold_title(text)
+        if title_part and len(title_part) < 50:
             return True
     
     # 检查是否以emoji图标开头（常见标题特征）
@@ -168,21 +178,46 @@ def process_docx(input_path, output_path=None):
                     
                     # 判断是否为标题，设置相应格式
                     if is_title(line):
-                        para_format.space_before = Pt(12)  # 标题前间距
-                        para_format.space_after = Pt(10)  # 标题后间距
-                        # 清除原有runs，重新添加格式化的文本
-                        para.clear()
-                        # 处理Markdown加粗格式 **文本**
-                        if line.startswith('**') and line.endswith('**'):
-                            # 提取文本内容，去掉 **
-                            title_text = line[2:-2].strip()
+                        # 检查是否是 **文本**：内容 格式
+                        title_text, content_text = extract_bold_title(line)
+                        if title_text and content_text:
+                            # **文本**：内容 格式，需要分开处理
+                            # 先添加标题段落
+                            para_format.space_before = Pt(12)  # 标题前间距
+                            para_format.space_after = Pt(10)  # 标题后间距
+                            para.clear()
                             run = para.add_run(title_text)
+                            run.font.name = font_name
+                            run.font.size = Pt(18)  # 标题18pt（更大更醒目）
+                            run.bold = True
+                            run.font.color.rgb = RGBColor(0, 102, 204)  # 蓝色（#0066CC）
+                            
+                            # 如果有内容，添加内容段落
+                            if content_text:
+                                content_para = new_doc.add_paragraph(content_text)
+                                content_para_format = content_para.paragraph_format
+                                content_para_format.space_after = Pt(6)
+                                content_para_format.line_spacing = 1.5
+                                for run in content_para.runs:
+                                    run.font.name = font_name
+                                    run.font.size = Pt(14)  # 正文14pt
                         else:
-                            run = para.add_run(line)
-                        run.font.name = font_name
-                        run.font.size = Pt(18)  # 标题18pt（更大更醒目）
-                        run.bold = True
-                        run.font.color.rgb = RGBColor(0, 102, 204)  # 蓝色（#0066CC）
+                            # 纯标题格式 **文本** 或普通标题
+                            para_format.space_before = Pt(12)  # 标题前间距
+                            para_format.space_after = Pt(10)  # 标题后间距
+                            # 清除原有runs，重新添加格式化的文本
+                            para.clear()
+                            # 处理Markdown加粗格式 **文本**
+                            if line.startswith('**') and line.endswith('**'):
+                                # 提取文本内容，去掉 **
+                                title_text = line[2:-2].strip()
+                                run = para.add_run(title_text)
+                            else:
+                                run = para.add_run(line)
+                            run.font.name = font_name
+                            run.font.size = Pt(18)  # 标题18pt（更大更醒目）
+                            run.bold = True
+                            run.font.color.rgb = RGBColor(0, 102, 204)  # 蓝色（#0066CC）
                     elif is_project_url(line):
                         # 项目地址特殊处理：红色、小字体
                         para_format.space_after = Pt(6)
@@ -246,21 +281,46 @@ def process_docx(input_path, output_path=None):
             
             # 判断是否为标题
             if is_title(text):
-                para_format.space_before = Pt(12)  # 标题前间距
-                para_format.space_after = Pt(10)  # 标题后间距
-                # 清除原有runs，重新添加格式化的文本
-                para.clear()
-                # 处理Markdown加粗格式 **文本**
-                if text.startswith('**') and text.endswith('**'):
-                    # 提取文本内容，去掉 **
-                    title_text = text[2:-2].strip()
+                # 检查是否是 **文本**：内容 格式
+                title_text, content_text = extract_bold_title(text)
+                if title_text and content_text:
+                    # **文本**：内容 格式，需要分开处理
+                    # 先添加标题段落
+                    para_format.space_before = Pt(12)  # 标题前间距
+                    para_format.space_after = Pt(10)  # 标题后间距
+                    para.clear()
                     run = para.add_run(title_text)
+                    run.font.name = font_name
+                    run.font.size = Pt(18)  # 标题18pt（更大更醒目）
+                    run.bold = True
+                    run.font.color.rgb = RGBColor(0, 102, 204)  # 蓝色（#0066CC）
+                    
+                    # 如果有内容，添加内容段落
+                    if content_text:
+                        content_para = new_doc.add_paragraph(content_text)
+                        content_para_format = content_para.paragraph_format
+                        content_para_format.space_after = Pt(6)
+                        content_para_format.line_spacing = 1.5
+                        for run in content_para.runs:
+                            run.font.name = font_name
+                            run.font.size = Pt(14)  # 正文14pt
                 else:
-                    run = para.add_run(text)
-                run.font.name = font_name
-                run.font.size = Pt(18)  # 标题18pt（更大更醒目）
-                run.bold = True
-                run.font.color.rgb = RGBColor(0, 102, 204)  # 蓝色（#0066CC）
+                    # 纯标题格式 **文本** 或普通标题
+                    para_format.space_before = Pt(12)  # 标题前间距
+                    para_format.space_after = Pt(10)  # 标题后间距
+                    # 清除原有runs，重新添加格式化的文本
+                    para.clear()
+                    # 处理Markdown加粗格式 **文本**
+                    if text.startswith('**') and text.endswith('**'):
+                        # 提取文本内容，去掉 **
+                        title_text = text[2:-2].strip()
+                        run = para.add_run(title_text)
+                    else:
+                        run = para.add_run(text)
+                    run.font.name = font_name
+                    run.font.size = Pt(18)  # 标题18pt（更大更醒目）
+                    run.bold = True
+                    run.font.color.rgb = RGBColor(0, 102, 204)  # 蓝色（#0066CC）
             elif is_project_url(text):
                 # 项目地址特殊处理：红色、小字体
                 para_format.space_after = Pt(6)
