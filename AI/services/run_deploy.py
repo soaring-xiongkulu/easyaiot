@@ -26,7 +26,9 @@ try:
     from app.utils.onnx_inference import ONNXInference
     from app.utils.yolo_validator import validate_yolo_model
 except ImportError as e:
-    print(f"警告: 无法导入推理模块: {e}")
+    # 输出到stderr，确保能被守护进程捕获
+    print(f"[SERVICES] 警告: 无法导入推理模块: {e}", file=sys.stderr)
+    print(f"[SERVICES] 注意: ONNX模型推理功能可能不可用", file=sys.stderr)
 
 app = Flask(__name__)
 CORS(app)
@@ -204,30 +206,54 @@ def load_model(model_path):
         if model_path.endswith('.onnx'):
             # ONNX模型加载
             try:
+                if ONNXInference is None:
+                    error_msg = "onnxruntime未安装，无法加载ONNX模型。请运行: pip install onnxruntime"
+                    logger.error(error_msg)
+                    print(error_msg, file=sys.stderr)
+                    return False
                 model = ONNXInference(model_path)
-                logger.info("ONNX模型加载成功")
+                logger.info("✅ ONNX模型加载成功")
                 model_loaded = True
                 return True
-            except ImportError:
-                logger.error("onnxruntime未安装，无法加载ONNX模型")
+            except ImportError as e:
+                error_msg = f"onnxruntime未安装，无法加载ONNX模型: {str(e)}"
+                logger.error(error_msg)
+                print(error_msg, file=sys.stderr)
                 return False
             except Exception as e:
-                logger.error(f"ONNX模型加载失败: {str(e)}")
+                error_msg = f"ONNX模型加载失败: {str(e)}"
+                logger.error(error_msg)
+                print(error_msg, file=sys.stderr)
+                import traceback
+                traceback.print_exc(file=sys.stderr)
                 return False
         else:
             # PyTorch模型加载（.pt文件）
             try:
                 from ultralytics import YOLO
                 model = YOLO(model_path)
-                logger.info("YOLO模型加载成功")
+                logger.info("✅ YOLO模型加载成功")
                 model_loaded = True
                 return True
+            except ImportError as e:
+                error_msg = f"ultralytics未安装，无法加载YOLO模型: {str(e)}。请运行: pip install ultralytics"
+                logger.error(error_msg)
+                print(error_msg, file=sys.stderr)
+                return False
             except Exception as e:
-                logger.error(f"YOLO模型加载失败: {str(e)}")
+                error_msg = f"YOLO模型加载失败: {str(e)}"
+                logger.error(error_msg)
+                print(error_msg, file=sys.stderr)
+                import traceback
+                traceback.print_exc(file=sys.stderr)
                 return False
         
     except Exception as e:
-        logger.error(f"加载模型失败: {str(e)}")
+        error_msg = f"加载模型失败: {str(e)}"
+        logger.error(error_msg)
+        print(error_msg, file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
         model_loaded = False
         return False
 
@@ -697,25 +723,65 @@ def main():
     global service_id, service_name, model_id, model_version, model_format, server_ip, port, ai_service_api
     global heartbeat_thread, log_report_thread, nacos_client
     
+    # 输出启动信息到stderr，确保能被守护进程捕获
+    print("=" * 60, file=sys.stderr)
+    print("🚀 模型部署服务启动中...", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+    
     # 从环境变量获取配置
     service_id = os.getenv('SERVICE_ID')
     service_name = os.getenv('SERVICE_NAME', 'deploy_service')
     model_id = os.getenv('MODEL_ID')
     model_version = os.getenv('MODEL_VERSION', 'V1.0.0')
     model_format = os.getenv('MODEL_FORMAT', 'pytorch')  # 默认pytorch
-    port = int(os.getenv('PORT', 8000))
+    
+    # 安全地获取端口号
+    try:
+        port = int(os.getenv('PORT', 8000))
+    except ValueError:
+        error_msg = f"❌ 无效的端口号: {os.getenv('PORT')}"
+        print(error_msg, file=sys.stderr)
+        sys.exit(1)
+    
     model_path = os.getenv('MODEL_PATH')
     # 不再使用固定的ai_service_api，改为从Nacos动态获取
     # ai_service_api = os.getenv('AI_SERVICE_API', 'http://localhost:5000/model/deploy_service')
     
+    # 输出环境变量信息用于诊断
+    print(f"[SERVICES] 服务名称: {service_name}", file=sys.stderr)
+    print(f"[SERVICES] 服务ID: {service_id}", file=sys.stderr)
+    print(f"[SERVICES] 模型ID: {model_id}", file=sys.stderr)
+    print(f"[SERVICES] 模型路径: {model_path}", file=sys.stderr)
+    print(f"[SERVICES] 模型格式: {model_format}", file=sys.stderr)
+    print(f"[SERVICES] 端口: {port}", file=sys.stderr)
+    
     server_ip = get_local_ip()
+    print(f"[SERVICES] 服务器IP: {server_ip}", file=sys.stderr)
     
     if not model_path:
-        logger.error("MODEL_PATH环境变量未设置")
+        error_msg = "❌ MODEL_PATH环境变量未设置，无法启动服务"
+        logger.error(error_msg)
+        print(error_msg, file=sys.stderr)
         sys.exit(1)
     
     if not service_name:
-        logger.error("SERVICE_NAME环境变量未设置")
+        error_msg = "❌ SERVICE_NAME环境变量未设置，无法启动服务"
+        logger.error(error_msg)
+        print(error_msg, file=sys.stderr)
+        sys.exit(1)
+    
+    # 验证模型文件是否存在
+    if not os.path.exists(model_path):
+        error_msg = f"❌ 模型文件不存在: {model_path}"
+        logger.error(error_msg)
+        print(error_msg, file=sys.stderr)
+        sys.exit(1)
+    
+    # 验证模型文件是否可读
+    if not os.access(model_path, os.R_OK):
+        error_msg = f"❌ 模型文件不可读: {model_path}"
+        logger.error(error_msg)
+        print(error_msg, file=sys.stderr)
         sys.exit(1)
     
     # 添加日志处理器，用于上报日志到主程序
@@ -732,8 +798,14 @@ def main():
     atexit.register(cleanup_log_handler)
     
     # 加载模型
+    logger.info(f"准备加载模型: {model_path}")
+    logger.info(f"模型格式: {model_format}")
     if not load_model(model_path):
-        logger.error("模型加载失败，退出")
+        error_msg = f"❌ 模型加载失败: {model_path}，请检查模型文件是否完整或格式是否正确"
+        logger.error(error_msg)
+        print(error_msg, file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
         sys.exit(1)
     
     # 注册到Nacos
@@ -771,7 +843,9 @@ def main():
         logger.warning(f"⚠️  端口 {port} 已被占用，正在查找可用端口...")
         new_port = find_available_port(port, host)
         if new_port is None:
-            logger.error(f"❌ 无法找到可用端口（从 {port} 开始）")
+            error_msg = f"❌ 无法找到可用端口（从 {port} 开始，已尝试100个端口）"
+            logger.error(error_msg)
+            print(error_msg, file=sys.stderr)
             sys.exit(1)
         port = new_port
         logger.info(f"✅ 已切换到可用端口: {port}")
@@ -801,12 +875,15 @@ def main():
         app.run(host=host, port=port, threaded=True, debug=False)
     except OSError as e:
         if "Address already in use" in str(e) or "端口" in str(e):
-            logger.error(f"❌ 端口 {port} 启动失败: {str(e)}")
-            logger.error("💡 请检查是否有其他进程在使用该端口")
+            error_msg = f"❌ 端口 {port} 启动失败: {str(e)}\n💡 请检查是否有其他进程在使用该端口"
+            logger.error(error_msg)
+            print(error_msg, file=sys.stderr)
         else:
-            logger.error(f"❌ 服务启动失败: {str(e)}")
+            error_msg = f"❌ 服务启动失败: {str(e)}"
+            logger.error(error_msg)
+            print(error_msg, file=sys.stderr)
         import traceback
-        traceback.print_exc()
+        traceback.print_exc(file=sys.stderr)
         deregister_nacos()
         sys.exit(1)
     except KeyboardInterrupt:
@@ -814,9 +891,11 @@ def main():
         deregister_nacos()
         sys.exit(0)
     except Exception as e:
-        logger.error(f"❌ 服务启动异常: {str(e)}")
+        error_msg = f"❌ 服务启动异常: {str(e)}"
+        logger.error(error_msg)
+        print(error_msg, file=sys.stderr)
         import traceback
-        traceback.print_exc()
+        traceback.print_exc(file=sys.stderr)
         deregister_nacos()
         sys.exit(1)
 
