@@ -296,6 +296,17 @@ def receive_heartbeat():
 
         # 更新心跳信息
         service.last_heartbeat = beijing_now()
+        
+        # 更新 service_name（如果提供了新的 service_name 且与数据库中的不同）
+        if service_name and service.service_name != service_name:
+            # 检查新的 service_name 是否已被其他服务使用
+            existing_service = AIService.query.filter_by(service_name=service_name).first()
+            if existing_service and existing_service.id != service.id:
+                logger.warning(f"service_name {service_name} 已被服务 ID {existing_service.id} 使用，无法更新服务 ID {service.id} 的 service_name")
+            else:
+                logger.info(f"更新服务 ID {service.id} 的 service_name: {service.service_name} -> {service_name}")
+                service.service_name = service_name
+        
         if server_ip:
             service.server_ip = server_ip
         if port:

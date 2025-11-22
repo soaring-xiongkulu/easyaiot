@@ -163,9 +163,14 @@ logging.getLogger('flask').setLevel(logging.WARNING)
 
 # 获取服务ID，用于创建日志目录
 service_id = os.getenv('SERVICE_ID', 'unknown')
-ai_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-logs_base_dir = os.path.join(ai_root, 'logs')
-service_log_dir = os.path.join(logs_base_dir, str(service_id))
+# 优先使用LOG_PATH环境变量，如果没有则使用默认路径
+log_path = os.getenv('LOG_PATH')
+if log_path:
+    service_log_dir = log_path
+else:
+    ai_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    logs_base_dir = os.path.join(ai_root, 'logs')
+    service_log_dir = os.path.join(logs_base_dir, str(service_id))
 os.makedirs(service_log_dir, exist_ok=True)
 
 # 创建日志格式
@@ -307,6 +312,52 @@ def find_available_port(start_port, host='0.0.0.0', max_attempts=100):
     return None
 
 
+def get_model_type_from_path(model_path: str) -> str:
+    """
+    从模型路径获取模型类型
+    
+    Args:
+        model_path: 模型文件路径
+        
+    Returns:
+        'onnx' 或 'pytorch'
+    """
+    if not model_path:
+        return 'pytorch'
+    
+    model_path_lower = model_path.lower()
+    if model_path_lower.endswith('.onnx') or 'onnx' in model_path_lower:
+        return 'onnx'
+    else:
+        return 'pytorch'
+
+
+def generate_service_name(model_id: str = None, model_version: str = None, model_path: str = None) -> str:
+    """
+    生成统一的服务名：model_{model_id}_{model_version}_{model_type}
+    
+    Args:
+        model_id: 模型ID
+        model_version: 模型版本
+        model_path: 模型路径（用于推断model_type）
+        
+    Returns:
+        服务名
+    """
+    # 获取模型类型
+    model_type = get_model_type_from_path(model_path) if model_path else 'pytorch'
+    
+    # 获取模型ID和版本
+    if not model_id:
+        model_id = os.getenv('MODEL_ID', 'unknown')
+    if not model_version:
+        model_version = os.getenv('MODEL_VERSION', 'V1.0.0')
+    
+    # 生成服务名
+    service_name = f"model_{model_id}_{model_version}_{model_type}"
+    return service_name
+
+
 def load_model(model_path):
     """加载模型"""
     global model, model_loaded
@@ -366,7 +417,7 @@ def load_model(model_path):
 
 
 def setup_nacos():
-    """设置Nacos注册（可选）"""
+    """设置Nacos注册（必需）"""
     global nacos_client, nacos_service_name, server_ip, port
     
     try:
@@ -386,9 +437,13 @@ def setup_nacos():
             password=password
         )
         
-        # 构建Nacos服务名
-        service_name = os.getenv('SERVICE_NAME', 'deploy_service')
-        nacos_service_name = service_name
+        # 获取模型信息
+        model_id = os.getenv('MODEL_ID')
+        model_version = os.getenv('MODEL_VERSION', 'V1.0.0')
+        model_path = os.getenv('MODEL_PATH')
+        
+        # 生成统一的服务名：model_{model_id}_{model_version}_{model_type}
+        nacos_service_name = generate_service_name(model_id, model_version, model_path)
         
         # 注册服务实例
         nacos_client.add_naming_instance(
@@ -404,7 +459,7 @@ def setup_nacos():
         return True
         
     except ImportError:
-        logger.warning("nacos-sdk-python未安装，跳过Nacos注册")
+        logger.error("nacos-sdk-python未安装，无法注册到Nacos。请安装: pip install nacos-sdk-python")
         return False
     except Exception as e:
         logger.error(f"Nacos注册失败: {str(e)}")
@@ -447,21 +502,21 @@ def send_ai_heartbeat():
                     continue
             
             # 从环境变量获取服务信息
-            service_name = os.getenv('SERVICE_NAME')
             service_id = os.getenv('SERVICE_ID')
             model_id = os.getenv('MODEL_ID')
             model_version = os.getenv('MODEL_VERSION', 'V1.0.0')
-            model_format = os.getenv('MODEL_FORMAT', 'pytorch')
+            model_path = os.getenv('MODEL_PATH')
             log_path = os.getenv('LOG_PATH')
             
-            # 如果 SERVICE_NAME 未设置，根据 model_id、model_version 和 format 生成
-            # 格式：model_{model_id}_{model_version}_{format}
-            if not service_name:
-                if model_id:
-                    service_name = f"model_{model_id}_{model_version}_{model_format}"
-                else:
-                    service_name = f"model_unknown_{model_version}_{model_format}"
-                logger.warning(f"SERVICE_NAME 环境变量未设置，使用生成的 service_name: {service_name}")
+            # 使用统一的服务名规则：model_{model_id}_{model_version}_{model_type}
+            # 优先使用nacos_service_name（如果已设置），否则重新生成
+            if nacos_service_name:
+                service_name = nacos_service_name
+            else:
+                service_name = generate_service_name(model_id, model_version, model_path)
+            
+            # 获取模型类型（用于format字段）
+            model_type = get_model_type_from_path(model_path) if model_path else 'pytorch'
             
             # 构建心跳数据
             heartbeat_data = {
@@ -472,7 +527,7 @@ def send_ai_heartbeat():
                 'mac_address': mac_address,
                 'process_id': process_id,
                 'model_version': model_version,
-                'format': model_format
+                'format': model_type
             }
             
             # 添加 log_path（如果存在）
@@ -521,7 +576,7 @@ def send_ai_heartbeat():
         except Exception as e:
             logger.error(f"心跳上报异常: {str(e)}", exc_info=True)
         
-        time.sleep(10)  # 每10秒发送一次心跳
+        time.sleep(60)  # 每60秒（1分钟）发送一次心跳
 
 
 def deregister_nacos():
@@ -543,10 +598,16 @@ def deregister_nacos():
 @app.route('/health', methods=['GET'])
 def health():
     """健康检查"""
+    # 使用统一的服务名
+    service_name = nacos_service_name if nacos_service_name else generate_service_name(
+        os.getenv('MODEL_ID'),
+        os.getenv('MODEL_VERSION', 'V1.0.0'),
+        os.getenv('MODEL_PATH')
+    )
     return jsonify({
         'status': 'healthy',
         'model_loaded': model_loaded,
-        'service_name': os.getenv('SERVICE_NAME', 'deploy_service')
+        'service_name': service_name
     })
 
 
@@ -827,16 +888,24 @@ def main():
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
     
-    # 注册到Nacos（可选）
+    # 注册到Nacos（必需）
     try:
-        setup_nacos()
+        if not setup_nacos():
+            error_msg = "❌ [SERVICES] Nacos注册失败，服务无法启动"
+            print(error_msg, file=sys.stderr)
+            try:
+                logger.error(error_msg)
+            except:
+                pass
+            sys.exit(1)
     except Exception as e:
-        error_msg = f"⚠️  [SERVICES] Nacos注册失败: {str(e)}"
+        error_msg = f"❌ [SERVICES] Nacos注册异常: {str(e)}"
         print(error_msg, file=sys.stderr)
         try:
-            logger.warning(error_msg)
+            logger.error(error_msg)
         except:
             pass
+        sys.exit(1)
     
     # 获取AI模块API地址
     try:

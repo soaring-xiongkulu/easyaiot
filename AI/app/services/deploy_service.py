@@ -653,6 +653,43 @@ def get_service_logs(service_id: int, lines: int = 100, date: str = None) -> dic
                 'is_all_file': not bool(date)
             }
         }
+    except UnicodeDecodeError:
+        # 如果UTF-8解码失败，尝试使用其他编码
+        try:
+            with open(log_file_path, 'r', encoding='gbk') as f:
+                all_lines = f.readlines()
+                log_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+            
+            return {
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'logs': ''.join(log_lines),
+                    'total_lines': len(all_lines),
+                    'log_file': log_filename,
+                    'is_all_file': not bool(date)
+                }
+            }
+        except Exception as e:
+            return {
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'logs': f'读取日志文件失败: {str(e)}\n文件路径: {log_file_path}',
+                    'total_lines': 0,
+                    'log_file': log_filename,
+                    'is_all_file': not bool(date)
+                }
+            }
     except Exception as e:
-        raise ValueError(f'读取日志文件失败: {str(e)}')
+        return {
+            'code': 0,
+            'msg': 'success',
+            'data': {
+                'logs': f'读取日志文件失败: {str(e)}\n文件路径: {log_file_path}',
+                'total_lines': 0,
+                'log_file': log_filename,
+                'is_all_file': not bool(date)
+            }
+        }
 

@@ -248,10 +248,10 @@ def create_app():
         except Exception as e:
             print(f"⚠️  启动心跳检查任务失败: {str(e)}")
         
-        # 启动所有离线模型服务
+        # 启动所有模型服务（首次启动时拉起所有服务，不管在线还是离线）
         try:
-            def start_offline_services():
-                """在后台线程中启动所有离线模型服务"""
+            def start_all_services():
+                """在后台线程中启动所有模型服务（排除error状态）"""
                 import time
                 # 等待数据库和蓝图完全初始化
                 time.sleep(2)
@@ -263,26 +263,29 @@ def create_app():
                         import logging
                         logger = logging.getLogger(__name__)
                         
-                        # 查询所有离线或停止状态的服务（排除error状态，因为可能是配置错误）
-                        offline_services = AIService.query.filter(
-                            AIService.status.in_(['offline', 'stopped'])
+                        # 查询所有服务（排除error状态，因为可能是配置错误）
+                        # 包括：running, offline, stopped 等所有状态
+                        all_services = AIService.query.filter(
+                            AIService.status != 'error'
                         ).all()
                         
-                        if offline_services:
-                            logger.info(f"发现 {len(offline_services)} 个离线/停止的服务，开始自动启动...")
-                            print(f"🚀 发现 {len(offline_services)} 个离线/停止的服务，开始自动启动...")
+                        if all_services:
+                            logger.info(f"发现 {len(all_services)} 个服务，开始自动启动（排除error状态）...")
+                            print(f"🚀 发现 {len(all_services)} 个服务，开始自动启动（排除error状态）...")
                             
                             success_count = 0
                             fail_count = 0
+                            skip_count = 0
                             
-                            for service in offline_services:
+                            for service in all_services:
                                 try:
                                     # 检查服务是否有模型ID（必须）
                                     if not service.model_id:
                                         logger.warning(f"服务 {service.service_name} (ID: {service.id}) 未关联模型，跳过启动")
+                                        skip_count += 1
                                         continue
                                     
-                                    logger.info(f"正在启动服务: {service.service_name} (ID: {service.id})")
+                                    logger.info(f"正在启动服务: {service.service_name} (ID: {service.id}), 当前状态: {service.status}")
                                     result = start_service(service.id)
                                     
                                     if result.get('code') == 0:
@@ -299,24 +302,24 @@ def create_app():
                                     fail_count += 1
                                     logger.error(f"❌ 启动服务 {service.service_name} (ID: {service.id}) 时发生异常: {str(e)}", exc_info=True)
                             
-                            logger.info(f"离线服务自动启动完成: 成功 {success_count} 个, 失败 {fail_count} 个")
-                            print(f"✅ 离线服务自动启动完成: 成功 {success_count} 个, 失败 {fail_count} 个")
+                            logger.info(f"服务自动启动完成: 成功 {success_count} 个, 失败 {fail_count} 个, 跳过 {skip_count} 个")
+                            print(f"✅ 服务自动启动完成: 成功 {success_count} 个, 失败 {fail_count} 个, 跳过 {skip_count} 个")
                         else:
-                            logger.info("未发现需要启动的离线服务")
-                            print("✅ 未发现需要启动的离线服务")
+                            logger.info("未发现需要启动的服务")
+                            print("✅ 未发现需要启动的服务")
                             
                     except Exception as e:
                         import logging
                         logger = logging.getLogger(__name__)
-                        logger.error(f"启动离线服务时发生异常: {str(e)}", exc_info=True)
-                        print(f"❌ 启动离线服务时发生异常: {str(e)}")
+                        logger.error(f"启动服务时发生异常: {str(e)}", exc_info=True)
+                        print(f"❌ 启动服务时发生异常: {str(e)}")
             
-            # 在后台线程中启动离线服务（避免阻塞应用启动）
-            startup_thread = threading.Thread(target=start_offline_services, daemon=True)
+            # 在后台线程中启动所有服务（避免阻塞应用启动）
+            startup_thread = threading.Thread(target=start_all_services, daemon=True)
             startup_thread.start()
-            print(f"✅ 离线服务自动启动任务已启动（后台线程）")
+            print(f"✅ 服务自动启动任务已启动（后台线程）")
         except Exception as e:
-            print(f"⚠️  启动离线服务自动启动任务失败: {str(e)}")
+            print(f"⚠️  启动服务自动启动任务失败: {str(e)}")
     except Exception as e:
         print(f"❌ 蓝图注册失败: {str(e)}")
         import traceback
