@@ -251,7 +251,7 @@ def create_app():
         # 启动所有模型服务（首次启动时拉起所有服务，不管在线还是离线）
         try:
             def start_all_services():
-                """在后台线程中启动所有模型服务（排除error状态）"""
+                """在后台线程中启动所有模型服务"""
                 import time
                 # 等待数据库和蓝图完全初始化
                 time.sleep(2)
@@ -270,8 +270,8 @@ def create_app():
                         ).all()
                         
                         if all_services:
-                            logger.info(f"发现 {len(all_services)} 个服务，开始自动启动（排除error状态）...")
-                            print(f"🚀 发现 {len(all_services)} 个服务，开始自动启动（排除error状态）...")
+                            logger.info(f"发现 {len(all_services)} 个服务，开始自动启动...")
+                            print(f"🚀 发现 {len(all_services)} 个服务，开始自动启动...")
                             
                             success_count = 0
                             fail_count = 0
