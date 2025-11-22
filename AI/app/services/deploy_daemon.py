@@ -206,12 +206,41 @@ class DeployServiceDaemon:
                     self._log(f'进程已退出，返回码: {return_code}', 'INFO' if return_code == 0 else 'WARNING')
                     f_log.write(f'\n# 进程退出，返回码: {return_code}\n')
                     
-                    # 如果进程异常退出，记录所有输出用于诊断
+                    # 如果进程异常退出，记录所有输出用于诊断，并输出到控制台
                     if return_code != 0:
+                        error_summary = []
+                        error_summary.append(f'\n# ========== 进程异常退出，完整输出 ==========')
                         f_log.write(f'\n# ========== 进程异常退出，完整输出 ==========\n')
+                        
+                        # 提取关键错误信息
+                        key_errors = []
                         for line in all_output_lines:
                             f_log.write(line)
+                            # 查找关键错误信息
+                            if any(marker in line for marker in ['ERROR', 'Error', 'error', '❌', 'Exception', 'Traceback', 'Failed', 'failed', '无法', '失败']):
+                                key_errors.append(line.rstrip())
+                        
                         f_log.write(f'# ===========================================\n')
+                        error_summary.append(f'# ===========================================')
+                        
+                        # 输出关键错误到控制台
+                        if key_errors:
+                            print(f"\n{'='*60}", file=sys.stderr)
+                            print(f"[守护进程] 服务 {self._service_name} (ID: {self._service_id}) 异常退出，返回码: {return_code}", file=sys.stderr)
+                            print(f"[守护进程] 关键错误信息:", file=sys.stderr)
+                            print(f"{'='*60}", file=sys.stderr)
+                            for error_line in key_errors[-20:]:  # 只输出最后20行错误
+                                print(f"[守护进程] {error_line}", file=sys.stderr)
+                            print(f"{'='*60}", file=sys.stderr)
+                        else:
+                            # 如果没有找到明显的错误标记，输出最后几行
+                            print(f"\n{'='*60}", file=sys.stderr)
+                            print(f"[守护进程] 服务 {self._service_name} (ID: {self._service_id}) 异常退出，返回码: {return_code}", file=sys.stderr)
+                            print(f"[守护进程] 最后输出（可能包含错误信息）:", file=sys.stderr)
+                            print(f"{'='*60}", file=sys.stderr)
+                            for line in all_output_lines[-10:]:  # 输出最后10行
+                                print(f"[守护进程] {line.rstrip()}", file=sys.stderr)
+                            print(f"{'='*60}", file=sys.stderr)
                     
                     f_log.flush()
                     

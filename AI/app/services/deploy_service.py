@@ -94,14 +94,27 @@ def _find_available_port(start_port=8000, max_attempts=100):
     return None
 
 
-def _download_model_to_local(model_path: str, service_id: int) -> str:
+def _download_model_to_local(model_path: str, model_id: int) -> str:
     """下载模型文件到本地（如果是MinIO URL）
     
+    Args:
+        model_path: 模型文件路径（可能是MinIO URL或本地路径）
+        model_id: 模型ID（用于创建存储目录）
+    
     Returns:
-        str: 本地模型文件路径
+        str: 本地模型文件路径（绝对路径）
     """
-    # 如果不是MinIO URL，直接返回
+    # 获取AI模块根目录
+    ai_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    
+    # 如果不是MinIO URL，处理本地路径
     if not model_path.startswith('/api/v1/buckets/'):
+        # 如果是相对路径，转换为绝对路径（相对于AI模块根目录）
+        if not os.path.isabs(model_path):
+            model_path = os.path.join(ai_root, model_path)
+        else:
+            model_path = os.path.abspath(model_path)
+        
         if os.path.exists(model_path):
             logger.info(f'模型文件已存在（本地路径）: {model_path}')
             return model_path
@@ -128,12 +141,13 @@ def _download_model_to_local(model_path: str, service_id: int) -> str:
         if not object_key:
             raise ValueError(f'URL中缺少prefix参数: {model_path}')
         
-        # 创建模型存储目录
-        model_storage_dir = os.path.join('data', 'models', str(service_id))
+        # 创建模型存储目录（使用模型ID，而不是服务ID）
+        # 使用绝对路径，相对于AI模块根目录
+        model_storage_dir = os.path.join(ai_root, 'data', 'models', str(model_id))
         os.makedirs(model_storage_dir, exist_ok=True)
         
         # 从object_key中提取文件名
-        filename = os.path.basename(object_key) or f"model_{service_id}"
+        filename = os.path.basename(object_key) or f"model_{model_id}"
         local_path = os.path.join(model_storage_dir, filename)
         
         # 如果文件已存在，直接返回（避免重复下载）
@@ -288,7 +302,7 @@ def deploy_model(model_id: int, start_port: int = 8000) -> dict:
             }
         
         # 下载模型文件到本地（如果是MinIO URL）
-        local_model_path = _download_model_to_local(model_path, ai_service.id)
+        local_model_path = _download_model_to_local(model_path, model_id)
         
         # 启动守护进程（传入所有必要参数，不需要数据库连接）
         logger.info(f'启动守护进程，服务ID: {ai_service.id}')
@@ -396,7 +410,7 @@ def start_service(service_id: int) -> dict:
                 logger.info('守护进程已停止，重新启动...')
         
         # 下载模型文件到本地（如果是MinIO URL）
-        local_model_path = _download_model_to_local(model_path, service_id)
+        local_model_path = _download_model_to_local(model_path, service.model_id)
         
         # 启动守护进程（传入所有必要参数，不需要数据库连接）
         logger.info('启动守护进程...')
