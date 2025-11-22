@@ -90,10 +90,23 @@ def _check_port_available(host, port):
             pass
 
 
-def _find_available_port(start_port=8000, max_attempts=100):
-    """查找可用端口"""
+def _find_available_port(start_port=8000, max_attempts=100, exclude_ports=None):
+    """查找可用端口
+    
+    Args:
+        start_port: 起始端口
+        max_attempts: 最大尝试次数
+        exclude_ports: 要排除的端口集合（用于避免与已有实例端口冲突）
+    """
+    if exclude_ports is None:
+        exclude_ports = set()
+    
     for i in range(max_attempts):
         port = start_port + i
+        # 检查端口是否在排除列表中
+        if port in exclude_ports:
+            continue
+        # 检查端口是否可用
         if _check_port_available('0.0.0.0', port):
             return port
     return None
@@ -241,55 +254,27 @@ def deploy_model(model_id: int, start_port: int = 8000) -> dict:
         # 格式：model_{model_id}_{model.version}_{format}
         base_service_name = f"model_{model_id}_{model.version}_{model_format}"
         
-        # 检查服务名称是否已存在
-        # 如果已存在且状态为 offline 或 stopped，可以复用（重新拉起）
-        existing_service = AIService.query.filter_by(service_name=base_service_name).first()
-        if existing_service:
-            if existing_service.status in ['offline', 'stopped']:
-                # 复用已有服务记录
-                logger.info(f'发现已存在的离线服务记录，将复用: {base_service_name} (ID: {existing_service.id})')
-                ai_service = existing_service
-                # 更新服务信息
-                ai_service.model_id = model_id
-                ai_service.status = 'offline'  # 等待心跳上报后变为running
-                ai_service.model_version = model.version
-                ai_service.format = model_format
-                # 不更新 deploy_time，保持原始部署时间
-                service_name = base_service_name
-            else:
-                # 如果服务正在运行，添加时间戳后缀以避免冲突
-                service_name = f"{base_service_name}_{int(datetime.now().timestamp())}"
-                logger.info(f'服务名称已存在且正在运行，生成新名称: {service_name}')
-                ai_service = None
-        else:
-            service_name = base_service_name
-            logger.info(f'生成服务名称: {service_name}')
-            ai_service = None
+        # 使用统一的服务名称（格式：model_id_version_format）
+        # 同一个服务名称可以有多个实例（副本），每个实例是不同的服务记录
+        service_name = base_service_name
+        logger.info(f'生成服务名称: {service_name}')
         
-        # 如果已有服务记录，检查端口是否可用；否则查找新端口
-        if ai_service:
-            # 复用已有服务记录，检查端口是否可用
-            if ai_service.port and _check_port_available('0.0.0.0', ai_service.port):
-                port = ai_service.port
-                logger.info(f'复用已有端口: {port}')
-            else:
-                # 端口不可用，查找新端口
-                logger.info(f'已有端口 {ai_service.port} 不可用，查找新端口...')
-                port = _find_available_port(start_port)
-                if not port:
-                    logger.error(f'无法找到可用端口（从{start_port}开始尝试了100个端口）')
-                    raise ValueError(f'无法找到可用端口（从{start_port}开始尝试了100个端口）')
-                ai_service.port = port
-                ai_service.inference_endpoint = f"http://{ai_service.server_ip}:{port}/inference"
-                logger.info(f'找到新端口: {port}')
-        else:
-            # 查找可用端口
-            logger.info(f'查找可用端口，起始端口: {start_port}')
-            port = _find_available_port(start_port)
-            if not port:
-                logger.error(f'无法找到可用端口（从{start_port}开始尝试了100个端口）')
-                raise ValueError(f'无法找到可用端口（从{start_port}开始尝试了100个端口）')
-            logger.info(f'找到可用端口: {port}')
+        # 检查是否已有相同服务名称的实例
+        existing_services = AIService.query.filter_by(service_name=service_name).all()
+        if existing_services:
+            logger.info(f'发现已有 {len(existing_services)} 个相同服务名称的实例，将创建新实例（副本）')
+        
+        # 查找可用端口（需要避免与已有实例的端口冲突）
+        logger.info(f'查找可用端口，起始端口: {start_port}')
+        used_ports = {s.port for s in existing_services if s.port}
+        port = _find_available_port(start_port, exclude_ports=used_ports)
+        if not port:
+            logger.error(f'无法找到可用端口（从{start_port}开始尝试了100个端口）')
+            raise ValueError(f'无法找到可用端口（从{start_port}开始尝试了100个端口）')
+        logger.info(f'找到可用端口: {port}')
+        
+        # 创建新的服务实例（副本）
+        ai_service = None
         
         # 获取服务器信息
         server_ip = _get_local_ip()
@@ -577,24 +562,90 @@ def delete_service(service_id: int) -> dict:
     service = _get_service(service_id)
     service_name = service.service_name
     
+    logger.info(f'========== 开始删除服务 ==========')
+    logger.info(f'服务ID: {service_id}, 服务名称: {service_name}')
+    
     # 先停止守护进程
     if service_id in _deploy_daemons:
-        _deploy_daemons[service_id].stop()
-        del _deploy_daemons[service_id]
-    else:
-        # 如果没有守护进程，尝试直接杀死进程
-        if service.process_id:
-            try:
-                import psutil
-                if psutil.pid_exists(service.process_id):
-                    process = psutil.Process(service.process_id)
-                    process.kill()
-            except:
-                pass
+        logger.info(f'停止守护进程: {service_id}')
+        try:
+            _deploy_daemons[service_id].stop()
+        except Exception as e:
+            logger.warning(f'停止守护进程失败: {str(e)}')
+        finally:
+            del _deploy_daemons[service_id]
+    
+    # 尝试杀掉 process_id（无论守护进程是否存在，都要尝试）
+    if service.process_id:
+        logger.info(f'尝试杀掉进程: PID={service.process_id}')
+        try:
+            import psutil
+            
+            if psutil.pid_exists(service.process_id):
+                process = psutil.Process(service.process_id)
+                
+                # 先获取并处理子进程（在杀掉主进程之前）
+                children = []
+                try:
+                    children = process.children(recursive=True)
+                    if children:
+                        logger.info(f'发现 {len(children)} 个子进程，先终止子进程')
+                        for child in children:
+                            try:
+                                child.terminate()
+                            except:
+                                pass
+                        # 等待子进程退出
+                        psutil.wait_procs(children, timeout=3)
+                        # 如果还有子进程未退出，强制杀死
+                        for child in children:
+                            try:
+                                if child.is_running():
+                                    child.kill()
+                            except:
+                                pass
+                except Exception as e:
+                    logger.warning(f'处理子进程时出错: {str(e)}')
+                
+                # 然后处理主进程：先尝试优雅终止（terminate）
+                try:
+                    logger.info(f'尝试优雅终止进程: PID={service.process_id}')
+                    process.terminate()
+                    # 等待进程退出，最多等待5秒
+                    try:
+                        process.wait(timeout=5)
+                        logger.info(f'进程已优雅退出: PID={service.process_id}')
+                    except psutil.TimeoutExpired:
+                        logger.warning(f'进程未在5秒内退出，强制杀死: PID={service.process_id}')
+                        process.kill()
+                        process.wait(timeout=2)
+                        logger.info(f'进程已强制退出: PID={service.process_id}')
+                except psutil.NoSuchProcess:
+                    logger.info(f'进程已不存在: PID={service.process_id}')
+                except Exception as e:
+                    logger.warning(f'优雅终止失败，尝试强制杀死: {str(e)}')
+                    # 如果优雅终止失败，强制杀死
+                    try:
+                        process.kill()
+                        process.wait(timeout=2)
+                        logger.info(f'进程已强制退出: PID={service.process_id}')
+                    except psutil.NoSuchProcess:
+                        logger.info(f'进程已不存在: PID={service.process_id}')
+                    except Exception as kill_error:
+                        logger.error(f'强制杀死进程失败: {str(kill_error)}')
+            else:
+                logger.info(f'进程不存在: PID={service.process_id}')
+        except ImportError:
+            logger.warning('psutil 未安装，无法杀死进程')
+        except Exception as e:
+            logger.error(f'杀死进程时出错: {str(e)}')
     
     # 删除服务记录
+    logger.info(f'删除服务记录: ID={service_id}')
     db.session.delete(service)
     db.session.commit()
+    
+    logger.info(f'========== 服务删除完成 ==========')
     
     return {
         'code': 0,

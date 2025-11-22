@@ -7,7 +7,7 @@
     <div class="bg-white">
       <Spin :spinning="state.loading">
         <List
-          :grid="{ gutter: 2, xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 5 }"
+          :grid="{ gutter: 2, xs: 1, sm: 2, md: 4, lg: 5, xl: 6, xxl: 6 }"
           :data-source="data"
           :pagination="paginationProp"
         >
@@ -34,8 +34,8 @@
                     <span class="status-tag" :class="`status-${item.status}`">
                       {{ getStatusText(item.status) }}
                     </span>
-                    <span class="replica-tag" v-if="item.replica_count">
-                      副本数: <a class="replica-count-link" @click="handleViewReplicas(item)">{{ item.replica_count }}</a>
+                    <span class="replica-tag" v-if="item.replica_count" @click="handleViewReplicas(item)">
+                      副本数: {{ item.replica_count }}
                     </span>
                   </div>
 
@@ -584,18 +584,13 @@ const handleViewReplicas = async (record: any) => {
   background: #e6f7ff;
   border-color: #91d5ff;
   color: #1890ff;
+  cursor: pointer;
+  transition: all 0.2s;
 
-  .replica-count-link {
-    color: #1890ff;
-    cursor: pointer;
-    text-decoration: none;
-    font-weight: 600;
-    transition: color 0.2s;
-
-    &:hover {
-      color: #40a9ff;
-      text-decoration: underline;
-    }
+  &:hover {
+    background: #bae7ff;
+    border-color: #69c0ff;
+    color: #0050b3;
   }
 }
 

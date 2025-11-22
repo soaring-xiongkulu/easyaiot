@@ -87,13 +87,18 @@ const showLogsModal = ref(false);
 const replicasData = ref<any[]>([]);
 
 const [registerDrawer, {setDrawerProps, closeDrawer}] = useDrawerInner((data) => {
-  if (data && data.replicas) {
-    replicasData.value = data.replicas || [];
-    // 更新表格数据
-    nextTick(() => {
-      setTableData(replicasData.value);
-    });
+  // 重置数据
+  replicasData.value = [];
+  
+  // 如果有传入的副本数据，则设置
+  if (data && data.replicas && Array.isArray(data.replicas)) {
+    replicasData.value = data.replicas;
   }
+  
+  // 更新表格数据（在 nextTick 中确保表格已注册）
+  nextTick(() => {
+    setTableData(replicasData.value);
+  });
 });
 
 const [registerLogsModal, {
@@ -159,13 +164,6 @@ const columns = [
 
 const [registerTable, {reload, setTableData}] = useTable({
   title: '',
-  api: async () => {
-    // 数据通过drawer传入，初始为空
-    return {
-      items: [],
-      total: 0
-    };
-  },
   columns: columns,
   useSearchForm: false,
   showTableSetting: true,

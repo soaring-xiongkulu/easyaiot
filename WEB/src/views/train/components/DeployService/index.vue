@@ -21,8 +21,8 @@
           </Tag>
         </template>
         <template v-if="column.dataIndex === 'replicas'">
-          <span class="replica-tag-table" v-if="record.replica_count">
-            副本数: <a class="replica-count-link" @click="handleViewReplicas(record)">{{ record.replica_count }}</a>
+          <span class="replica-tag-table" v-if="record.replica_count" @click="handleViewReplicas(record)">
+            副本数: {{ record.replica_count }}
           </span>
           <span v-else>--</span>
         </template>
@@ -108,6 +108,7 @@ import {nextTick, onBeforeUnmount, onMounted, reactive, ref, watch} from 'vue';
 import {BasicTable, TableAction, useTable} from '@/components/Table';
 import {useMessage} from '@/hooks/web/useMessage';
 import {useModal} from '@/components/Modal';
+import {useDrawer} from '@/components/Drawer';
 import {
   deleteDeployService,
   getDeployServicePage,
@@ -169,7 +170,7 @@ const [registerLogsModal, {
   openModal: openServiceLogsModal,
   closeModal: closeServiceLogsModal
 }] = useModal();
-const [registerReplicasDrawer, {openDrawer: openReplicasDrawer}] = useModal();
+const [registerReplicasDrawer, {openDrawer: openReplicasDrawer}] = useDrawer();
 
 // 表格刷新
 function handleDeploySuccess() {
@@ -230,14 +231,18 @@ const handleBatchRestart = async (record) => {
 // 查看副本详情
 const handleViewReplicas = async (record) => {
   try {
-    const result = await getDeployServiceReplicas(record.service_name);
-    if (result.code === 0) {
+    const response = await getDeployServiceReplicas(record.service_name);
+    // 当 isTransformResponse: false 时，返回的是 AxiosResponse 对象，需要从 data 属性获取
+    const result = response?.data || response;
+    console.log('获取副本详情响应:', response);
+    console.log('处理后的结果:', result);
+    if (result && result.code === 0) {
       openReplicasDrawer(true, {
         serviceName: record.service_name,
-        replicas: result.data || []
+        replicas: Array.isArray(result.data) ? result.data : []
       });
     } else {
-      createMessage.error(result.msg || '获取副本详情失败');
+      createMessage.error(result?.msg || '获取副本详情失败');
     }
   } catch (error) {
     createMessage.error('获取副本详情失败');
@@ -405,18 +410,13 @@ watch(() => modelOptions.value, (newOptions) => {
   background: #e6f7ff;
   border-color: #91d5ff;
   color: #1890ff;
+  cursor: pointer;
+  transition: all 0.2s;
 
-  .replica-count-link {
-    color: #1890ff;
-    cursor: pointer;
-    text-decoration: none;
-    font-weight: 600;
-    transition: color 0.2s;
-
-    &:hover {
-      color: #40a9ff;
-      text-decoration: underline;
-    }
+  &:hover {
+    background: #bae7ff;
+    border-color: #69c0ff;
+    color: #0050b3;
   }
 }
 </style>

@@ -266,6 +266,6 @@ export const batchRestartDeployService = (serviceName) => {
 
 // 获取service_name的所有副本详情
 export const getDeployServiceReplicas = (serviceName) => {
-  return commonApi('get', `${Api.DeployService}/replicas`, {params: {service_name: serviceName}});
+  return commonApi('get', `${Api.DeployService}/replicas`, {params: {service_name: serviceName}}, {}, false);
 };
 
