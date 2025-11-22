@@ -30,6 +30,8 @@ pytz==2024.1
 py-healthcheck==1.10.0
 # 网卡探测
 netifaces==0.11.0
+# 进程管理
+psutil==5.9.0
 # OCR识别
 paddlepaddle==3.2.0
 paddleocr==3.2.0

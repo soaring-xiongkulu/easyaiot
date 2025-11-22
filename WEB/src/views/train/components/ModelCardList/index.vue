@@ -64,7 +64,7 @@
                       <div class="btn" @click="handleEdit(item)" title="编辑模型">
                         <EditOutlined style="font-size: 16px;"/>
                       </div>
-                      <div class="btn" @click="handleDeploy(item)" title="部署模型">
+                      <div class="btn" @click="handleDeploy(item)" title="模型部署">
                         <ExperimentOutlined style="font-size: 16px;"/>
                       </div>
                       <div class="btn" @click="handleDownload(item)" title="下载模型">
@@ -97,6 +97,7 @@ import {BasicForm, useForm} from '@/components/Form';
 import {propTypes} from '@/utils/propTypes';
 import {isFunction} from '@/utils/is';
 import {DeleteOutlined, DownloadOutlined, EditOutlined, ExperimentOutlined, EyeOutlined} from '@ant-design/icons-vue';
+import {getFormConfig} from './Data';
 
 defineOptions({name: 'ModelCardList'})
 
@@ -115,18 +116,7 @@ const state = reactive({
 });
 
 const [registerForm, {validate}] = useForm({
-  schemas: [
-    {
-      field: `name`,
-      label: `模型名称`,
-      component: 'Input',
-    },
-    {
-      field: `version`,
-      label: `模型版本`,
-      component: 'Input',
-    },
-  ],
+  schemas: getFormConfig(),
   labelWidth: 80,
   baseColProps: {span: 6},
   actionColOptions: {span: 12},

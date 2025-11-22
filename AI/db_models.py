@@ -178,3 +178,46 @@ class SpeechRecord(db.Model):
     def __repr__(self):
         return f'<SpeechRecord {self.filename} ({self.status})>'
 
+
+class AIService(db.Model):
+    """AI服务表，用于维护所有部署的AI服务"""
+    id = db.Column(db.Integer, primary_key=True)
+    model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=False)  # 关联的模型ID
+    service_name = db.Column(db.String(100), nullable=False)  # 服务名称
+    server_ip = db.Column(db.String(50))  # 部署的服务器IP
+    port = db.Column(db.Integer)  # 服务端口
+    inference_endpoint = db.Column(db.String(200))  # 推理接口地址
+    status = db.Column(db.String(20), default='stopped')  # 状态: running/stopped/error
+    mac_address = db.Column(db.String(50))  # MAC地址
+    deploy_time = db.Column(db.DateTime, default=beijing_now)  # 部署时间
+    last_heartbeat = db.Column(db.DateTime)  # 最后上报时间
+    process_id = db.Column(db.Integer)  # 进程ID
+    log_path = db.Column(db.String(500))  # 日志文件路径
+    created_at = db.Column(db.DateTime, default=beijing_now)
+    updated_at = db.Column(db.DateTime, default=beijing_now, onupdate=beijing_now)
+    
+    # 关系定义
+    model = db.relationship('Model', backref=db.backref('ai_services', lazy='dynamic'))
+    
+    def to_dict(self):
+        """转换为字典格式"""
+        return {
+            'id': self.id,
+            'model_id': self.model_id,
+            'service_name': self.service_name,
+            'server_ip': self.server_ip,
+            'port': self.port,
+            'inference_endpoint': self.inference_endpoint,
+            'status': self.status,
+            'mac_address': self.mac_address,
+            'deploy_time': self.deploy_time.isoformat() if self.deploy_time else None,
+            'last_heartbeat': self.last_heartbeat.isoformat() if self.last_heartbeat else None,
+            'process_id': self.process_id,
+            'log_path': self.log_path,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    def __repr__(self):
+        return f'<AIService {self.service_name} ({self.status})>'
+

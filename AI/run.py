@@ -209,7 +209,7 @@ def create_app():
                         user = user_pass.split(':')[0]
                         safe_uri = database_uri.replace(user_pass, f"{user}:***")
             print(f"数据库连接: {safe_uri}")
-            from db_models import Model, TrainTask, ExportRecord, InferenceTask, LLMConfig, OCRResult
+            from db_models import Model, TrainTask, ExportRecord, InferenceTask, LLMConfig, OCRResult, AIService
             db.create_all()
             print(f"✅ 数据库连接成功，表结构已创建/验证")
         except Exception as e:
@@ -224,7 +224,7 @@ def create_app():
 
     # 注册蓝图（延迟导入，避免在环境变量加载前就导入）
     try:
-        from app.blueprints import export, inference_task, model, train, train_task, llm, ocr, speech
+        from app.blueprints import export, inference_task, model, train, train_task, llm, ocr, speech, deploy_service
         
         app.register_blueprint(export.export_bp, url_prefix='/model/export')
         app.register_blueprint(inference_task.inference_task_bp, url_prefix='/model/inference_task')
@@ -234,6 +234,7 @@ def create_app():
         app.register_blueprint(llm.llm_bp, url_prefix='/model/llm')
         app.register_blueprint(ocr.ocr_bp, url_prefix='/model/ocr')
         app.register_blueprint(speech.speech_bp, url_prefix='/model/speech')
+        app.register_blueprint(deploy_service.deploy_service_bp, url_prefix='/model/deploy_service')
         print(f"✅ 所有蓝图注册成功")
     except Exception as e:
         print(f"❌ 蓝图注册失败: {str(e)}")
