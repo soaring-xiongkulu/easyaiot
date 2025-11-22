@@ -466,11 +466,7 @@ def deploy_model():
 
         # 创建systemd服务并启动
         try:
-            # 添加MODEL_VERSION和MODEL_FORMAT到环境变量
-            env['MODEL_VERSION'] = model.version
-            env['MODEL_FORMAT'] = model_format
-            
-            # 创建systemd service文件
+            # 创建systemd service文件（MODEL_VERSION和MODEL_FORMAT已在create_systemd_service中通过模板设置）
             systemd_service_name = create_systemd_service(ai_service, model_path, model.version, model_format)
             
             if not systemd_service_name:
