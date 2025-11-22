@@ -240,6 +240,14 @@ def create_app():
         from app.blueprints import cluster
         app.register_blueprint(cluster.cluster_inference_bp, url_prefix='/model')
         print(f"✅ 所有蓝图注册成功")
+        
+        # 启动心跳超时检查任务
+        try:
+            from app.blueprints.deploy import start_heartbeat_checker
+            with app.app_context():
+                start_heartbeat_checker()
+        except Exception as e:
+            print(f"⚠️  启动心跳检查任务失败: {str(e)}")
     except Exception as e:
         print(f"❌ 蓝图注册失败: {str(e)}")
         import traceback

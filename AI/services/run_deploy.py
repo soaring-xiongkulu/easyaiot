@@ -198,11 +198,15 @@ def send_heartbeat():
             ai_service_api = get_ai_module_instance()
             
             if ai_service_api:
+                # 获取当前进程ID（重要，需要上传）
+                process_id = os.getpid()
+                
                 data = {
                     'server_ip': server_ip,
                     'port': port,
                     'inference_endpoint': f"http://{server_ip}:{port}/inference",
-                    'mac_address': get_mac_address()
+                    'mac_address': get_mac_address(),
+                    'process_id': process_id  # 进程ID很重要，需要上传
                 }
                 
                 if service_name:
@@ -229,6 +233,23 @@ def send_heartbeat():
                             returned_service_id = result.get('data', {}).get('service_id')
                             if returned_service_id:
                                 service_id = returned_service_id
+                            
+                            # 检查是否收到停止标识
+                            if result.get('data', {}).get('should_stop'):
+                                logger.info("收到停止标识，正在停止服务...")
+                                # 自己杀掉process_id进程
+                                try:
+                                    import signal
+                                    os.kill(process_id, signal.SIGTERM)
+                                    # 如果SIGTERM不起作用，使用SIGKILL
+                                    time.sleep(2)
+                                    os.kill(process_id, signal.SIGKILL)
+                                except Exception as e:
+                                    logger.error(f"停止进程失败: {str(e)}")
+                                # 设置停止事件，退出循环
+                                heartbeat_stop_event.set()
+                                break
+                        
                         logger.debug("心跳发送成功")
                     else:
                         logger.warning(f"心跳发送失败: {response.status_code}")

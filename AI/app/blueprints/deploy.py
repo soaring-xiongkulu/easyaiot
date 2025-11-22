@@ -11,7 +11,7 @@ import subprocess
 import threading
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import psutil
 import requests
@@ -88,6 +88,31 @@ def get_local_ip():
         return ip
     except:
         return '127.0.0.1'
+
+
+def kill_process(process_id):
+    """杀死指定进程ID的进程"""
+    try:
+        if process_id:
+            # 使用psutil检查进程是否存在
+            if psutil.pid_exists(process_id):
+                process = psutil.Process(process_id)
+                process.kill()
+                logger.info(f"已杀死进程: {process_id}")
+                return True
+            else:
+                logger.warning(f"进程不存在: {process_id}")
+                return False
+        return False
+    except psutil.NoSuchProcess:
+        logger.warning(f"进程不存在: {process_id}")
+        return False
+    except psutil.AccessDenied:
+        logger.error(f"没有权限杀死进程: {process_id}")
+        return False
+    except Exception as e:
+        logger.error(f"杀死进程失败: {process_id}, 错误: {str(e)}")
+        return False
 
 
 def run_with_sudo(command, root_password=None):
@@ -430,8 +455,15 @@ def get_deploy_services():
         if server_ip:
             query = query.filter(AIService.server_ip.ilike(f'%{server_ip}%'))
         
-        if status_filter in ['running', 'stopped', 'error']:
-            query = query.filter(AIService.status == status_filter)
+        # 支持新的状态过滤：online/offline/stopped，同时兼容旧的状态值
+        if status_filter in ['online', 'offline', 'stopped', 'running', 'error']:
+            # 兼容旧的状态值：running -> online, error -> offline
+            if status_filter == 'running':
+                query = query.filter(AIService.status.in_(['online', 'running']))
+            elif status_filter == 'error':
+                query = query.filter(AIService.status.in_(['offline', 'error']))
+            else:
+                query = query.filter(AIService.status == status_filter)
 
         # 按创建时间倒序
         query = query.order_by(desc(AIService.created_at))
@@ -623,7 +655,7 @@ def deploy_model():
             server_ip=server_ip,
             port=port,
             inference_endpoint=f"http://{server_ip}:{port}/inference",
-            status='stopped',
+            status='offline',
             mac_address=mac_address,
             deploy_time=beijing_now(),
             log_path=log_path,
@@ -648,7 +680,7 @@ def deploy_model():
             systemd_service_name = create_systemd_service(ai_service, model_path, model.version, model_format, root_password)
             
             if not systemd_service_name:
-                ai_service.status = 'error'
+                ai_service.status = 'offline'
                 db.session.commit()
                 # 如果是因为权限问题失败，返回特定错误码
                 return jsonify({
@@ -658,10 +690,9 @@ def deploy_model():
             
             # 启动systemd服务
             if start_systemd_service(systemd_service_name, root_password):
-                # 更新服务记录
-                ai_service.status = 'running'
-                # 不再存储process_id，因为由systemd管理
-                ai_service.process_id = None
+                # 更新服务记录，状态会在心跳上报时更新为online
+                ai_service.status = 'offline'  # 初始状态，等待心跳上报后变为online
+                # process_id会在心跳上报时更新
                 db.session.commit()
                 
                 logger.info(f"部署服务已启动（systemd）: {service_name} on {server_ip}:{port}")
@@ -672,7 +703,7 @@ def deploy_model():
                     'data': ai_service.to_dict()
                 })
             else:
-                ai_service.status = 'error'
+                ai_service.status = 'offline'
                 db.session.commit()
                 return jsonify({
                     'code': 500,
@@ -681,7 +712,7 @@ def deploy_model():
 
         except Exception as e:
             logger.error(f"启动部署服务失败: {str(e)}")
-            ai_service.status = 'error'
+            ai_service.status = 'offline'
             db.session.commit()
             return jsonify({
                 'code': 500,
@@ -703,27 +734,7 @@ def start_service(service_id):
     try:
         service = AIService.query.get_or_404(service_id)
         
-        if service.status == 'running':
-            return jsonify({
-                'code': 400,
-                'msg': '服务已在运行中'
-            }), 400
-
-        # 检查端口是否可用
-        if not check_port_available('0.0.0.0', service.port):
-            # 如果端口被占用，尝试找新端口
-            new_port = find_available_port(service.port)
-            if new_port:
-                service.port = new_port
-                service.inference_endpoint = f"http://{service.server_ip}:{new_port}/inference"
-                logger.info(f"端口{service.port}被占用，已切换到端口{new_port}")
-            else:
-                return jsonify({
-                    'code': 500,
-                    'msg': '无法找到可用端口'
-                }), 500
-
-        # 获取模型信息
+        # 检查模型id是否存在
         if not service.model_id:
             return jsonify({
                 'code': 400,
@@ -734,34 +745,74 @@ def start_service(service_id):
         if not model:
             return jsonify({
                 'code': 404,
-                'msg': '关联的模型不存在'
+                'msg': '模型不存在'
             }), 404
 
-        model_path = model.model_path or model.onnx_model_path
+        # 使用相同的模型和servicename重新拉起来进程，再走一遍部署流程
+        # 检查模型路径并推断格式
+        model_path = model.model_path or model.onnx_model_path or model.torchscript_model_path or model.tensorrt_model_path or model.openvino_model_path
         if not model_path:
             return jsonify({
                 'code': 400,
                 'msg': '模型没有可用的模型文件路径'
             }), 400
 
-        # 获取模型版本和格式
-        model_version = service.model_version or model.version
+        # 推断模型格式
         model_format = service.format
         if not model_format:
-            # 从模型路径推断格式
             model_path_lower = model_path.lower()
             if model_path_lower.endswith('.onnx') or 'onnx' in model_path_lower:
                 model_format = 'onnx'
-            elif model_path_lower.endswith(('.pt', '.pth')):
+            elif model_path_lower.endswith(('.pt', '.pth')) or 'pytorch' in model_path_lower or 'torch' in model_path_lower:
                 model_format = 'pytorch'
             elif 'openvino' in model_path_lower:
                 model_format = 'openvino'
-            elif 'tensorrt' in model_path_lower:
+            elif 'tensorrt' in model_path_lower or model_path_lower.endswith('.trt'):
                 model_format = 'tensorrt'
+            elif model_path_lower.endswith('.tflite'):
+                model_format = 'tflite'
+            elif 'coreml' in model_path_lower or model_path_lower.endswith('.mlmodel'):
+                model_format = 'coreml'
             else:
-                model_format = 'pytorch'
-        
-        # 日志路径
+                # 默认根据路径字段判断
+                if model.onnx_model_path:
+                    model_format = 'onnx'
+                elif model.torchscript_model_path:
+                    model_format = 'torchscript'
+                elif model.tensorrt_model_path:
+                    model_format = 'tensorrt'
+                elif model.openvino_model_path:
+                    model_format = 'openvino'
+                else:
+                    model_format = 'pytorch'  # 默认
+
+        # 获取模型版本
+        model_version = service.model_version or model.version
+
+        # 检查端口是否可用，如果被占用则找新端口
+        if service.port and not check_port_available('0.0.0.0', service.port):
+            new_port = find_available_port(service.port)
+            if new_port:
+                service.port = new_port
+                service.inference_endpoint = f"http://{service.server_ip}:{new_port}/inference"
+                logger.info(f"端口{service.port}被占用，已切换到端口{new_port}")
+            else:
+                return jsonify({
+                    'code': 500,
+                    'msg': '无法找到可用端口'
+                }), 500
+        elif not service.port:
+            # 如果没有端口，分配一个新端口
+            port = find_available_port(8000)
+            if not port:
+                return jsonify({
+                    'code': 500,
+                    'msg': '无法找到可用端口'
+                }), 500
+            service.port = port
+            service.inference_endpoint = f"http://{service.server_ip}:{port}/inference"
+
+        # 确保日志目录存在
         if service.log_path:
             log_path = service.log_path
         else:
@@ -770,61 +821,52 @@ def start_service(service_id):
             os.makedirs(log_path, exist_ok=True)
             service.log_path = log_path
 
-        try:
-            # 获取root密码（如果提供）
-            data = request.get_json() or {}
-            root_password = data.get('root_password')
-            
-            # 在创建systemd服务之前，先验证sudo权限或root密码
-            # 这样可以提前返回错误，避免不必要的操作
+        # 获取root密码（如果提供）
+        data = request.get_json() or {}
+        root_password = data.get('root_password')
+        
+        # 在创建systemd服务之前，先验证sudo权限或root密码
+        deploy_service_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'services')
+        deploy_script = os.path.join(deploy_service_dir, 'run_deploy.py')
+        
+        if os.path.exists(deploy_script):
             verify_success, verify_error = verify_sudo_permission(root_password)
             if not verify_success:
-                # 权限验证失败，不更新服务状态，直接返回错误
                 return jsonify({
                     'code': 403,
                     'msg': verify_error or '创建systemd服务失败，需要root权限。请提供正确的root密码后重试。'
                 }), 403
-            
-            # 创建或更新systemd service文件
-            systemd_service_name = create_systemd_service(service, model_path, model_version, model_format, root_password)
-            
-            if not systemd_service_name:
-                service.status = 'error'
-                db.session.commit()
-                # 如果是因为权限问题失败，返回特定错误码
-                return jsonify({
-                    'code': 403,
-                    'msg': '创建systemd服务失败，需要root权限。请提供root密码后重试。'
-                }), 403
-            
-            # 启动systemd服务
-            if start_systemd_service(systemd_service_name, root_password):
-                service.status = 'running'
-                service.process_id = None
-                db.session.commit()
-                
-                logger.info(f"服务已启动（systemd）: {service.service_name} on {service.server_ip}:{service.port}")
-                
-                return jsonify({
-                    'code': 0,
-                    'msg': '服务启动成功',
-                    'data': service.to_dict()
-                })
-            else:
-                service.status = 'error'
-                db.session.commit()
-                return jsonify({
-                    'code': 500,
-                    'msg': '启动systemd服务失败'
-                }), 500
 
-        except Exception as e:
-            logger.error(f"启动服务失败: {str(e)}")
-            service.status = 'error'
+        # 创建或更新systemd service文件
+        systemd_service_name = create_systemd_service(service, model_path, model_version, model_format, root_password)
+        
+        if not systemd_service_name:
+            service.status = 'offline'
+            db.session.commit()
+            return jsonify({
+                'code': 403,
+                'msg': '创建systemd服务失败，需要root权限。请提供root密码后重试。'
+            }), 403
+        
+        # 启动systemd服务
+        if start_systemd_service(systemd_service_name, root_password):
+            service.status = 'online'
+            # process_id会在心跳上报时更新
+            db.session.commit()
+            
+            logger.info(f"服务已启动（systemd）: {service.service_name} on {service.server_ip}:{service.port}")
+            
+            return jsonify({
+                'code': 0,
+                'msg': '服务启动成功',
+                'data': service.to_dict()
+            })
+        else:
+            service.status = 'offline'
             db.session.commit()
             return jsonify({
                 'code': 500,
-                'msg': f'启动服务失败: {str(e)}'
+                'msg': '启动systemd服务失败'
             }), 500
 
     except Exception as e:
@@ -842,30 +884,30 @@ def stop_service(service_id):
     try:
         service = AIService.query.get_or_404(service_id)
         
-        if service.status != 'running':
+        # 如果服务不在线，不需要停止
+        if service.status not in ['online', 'running']:
             return jsonify({
                 'code': 400,
-                'msg': '服务未在运行中'
+                'msg': '服务未在线，无需停止'
             }), 400
 
-        # 获取root密码（如果提供）
-        data = request.get_json() or {}
-        root_password = data.get('root_password')
+        # 如果有process_id，尝试杀死进程
+        if service.process_id:
+            kill_process(service.process_id)
 
-        # 停止systemd服务
-        systemd_service_name = f"{SYSTEMD_SERVICE_PREFIX}-{service.id}.service"
-        stop_systemd_service(systemd_service_name, root_password)
-
+        # 更新状态为停止，下次心跳回复停止标识，让服务自己杀掉process_id进程
         service.status = 'stopped'
-        service.process_id = None
         db.session.commit()
 
-        logger.info(f"服务已停止: {service.service_name}")
+        logger.info(f"服务已停止: {service.service_name}, process_id: {service.process_id}")
 
         return jsonify({
             'code': 0,
             'msg': '服务停止成功',
-            'data': service.to_dict()
+            'data': {
+                'should_stop': True,  # 停止标识，让服务自己杀掉process_id进程
+                'service': service.to_dict()
+            }
         })
 
     except Exception as e:
@@ -877,27 +919,6 @@ def stop_service(service_id):
         }), 500
 
 
-# 重启服务
-@deploy_service_bp.route('/<int:service_id>/restart', methods=['POST'])
-def restart_service(service_id):
-    try:
-        # 先停止
-        stop_result = stop_service(service_id)
-        if stop_result[0].get_json()['code'] != 0:
-            return stop_result
-
-        # 等待一下
-        time.sleep(1)
-
-        # 再启动
-        return start_service(service_id)
-
-    except Exception as e:
-        logger.error(f"重启服务失败: {str(e)}")
-        return jsonify({
-            'code': 500,
-            'msg': f'服务器内部错误: {str(e)}'
-        }), 500
 
 
 # 查看日志
@@ -985,6 +1006,7 @@ def receive_heartbeat():
         mac_address = data.get('mac_address')
         model_version = data.get('model_version')  # 模型版本（可选）
         format_type = data.get('format')  # 模型格式（可选）
+        process_id = data.get('process_id')  # 进程ID（重要，需要上传）
 
         # 优先使用 service_name，如果没有则使用 service_id（向后兼容）
         if not service_name:
@@ -1015,15 +1037,19 @@ def receive_heartbeat():
                     port=port,
                     inference_endpoint=inference_endpoint or (f"http://{server_ip}:{port}/inference" if server_ip and port else None),
                     mac_address=mac_address,
-                    status='running',
+                    status='online',
                     deploy_time=beijing_now(),
                     model_version=model_version,
-                    format=format_type
+                    format=format_type,
+                    process_id=process_id
                 )
                 db.session.add(service)
             else:
                 # 如果服务存在，更新信息
                 logger.debug(f"更新服务 {service_name} 的心跳信息")
+                
+                # 检查服务状态，如果状态是stopped，返回停止标识
+                should_stop = (service.status == 'stopped')
 
         # 更新心跳信息
         service.last_heartbeat = beijing_now()
@@ -1044,18 +1070,33 @@ def receive_heartbeat():
             service.model_version = model_version
         if format_type:
             service.format = format_type
-        if service.status != 'running':
-            service.status = 'running'
+        if process_id:
+            service.process_id = process_id
+        
+        # 如果服务状态是stopped，保持stopped状态；否则更新为online
+        if service.status == 'stopped':
+            # 保持stopped状态，不更新
+            pass
+        else:
+            # 兼容旧的状态值（running），统一改为online
+            service.status = 'online'
 
         db.session.commit()
+
+        # 构建返回数据
+        response_data = {
+            'service_id': service.id,
+            'service_name': service.service_name
+        }
+        
+        # 如果服务状态是stopped，返回停止标识
+        if service.status == 'stopped':
+            response_data['should_stop'] = True
 
         return jsonify({
             'code': 0,
             'msg': '心跳接收成功',
-            'data': {
-                'service_id': service.id,
-                'service_name': service.service_name
-            }
+            'data': response_data
         })
 
     except Exception as e:
@@ -1072,24 +1113,14 @@ def receive_heartbeat():
 def delete_service(service_id):
     try:
         service = AIService.query.get_or_404(service_id)
-        
-        # 获取root密码（如果提供）
-        data = request.get_json() or {}
-        root_password = data.get('root_password')
-        
-        # 如果服务正在运行，先停止
-        if service.status == 'running':
-            stop_service(service_id)
+        service_name = service.service_name
 
-        # 删除systemd服务文件
-        systemd_service_name = f"{SYSTEMD_SERVICE_PREFIX}-{service.id}.service"
-        delete_systemd_service(systemd_service_name, root_password)
-
-        # 删除服务记录
+        # 直接删除服务记录（不需要管理员权限）
+        # 如果服务还活着，会通过heartbeat机制重新注册上来
         db.session.delete(service)
         db.session.commit()
 
-        logger.info(f"服务已删除: {service.service_name}")
+        logger.info(f"服务已删除: {service_name}")
 
         return jsonify({
             'code': 0,
@@ -1189,4 +1220,50 @@ def receive_logs():
             'code': 500,
             'msg': f'服务器内部错误: {str(e)}'
         }), 500
+
+
+def check_heartbeat_timeout():
+    """定时检查心跳超时，超过1分钟没上报则更新状态为离线"""
+    try:
+        from flask import current_app
+        with current_app.app_context():
+            # 计算1分钟前的时间
+            timeout_threshold = beijing_now() - timedelta(minutes=1)
+            
+            # 查找所有在线状态但心跳超时的服务
+            timeout_services = AIService.query.filter(
+                AIService.status.in_(['online', 'running']),
+                (AIService.last_heartbeat < timeout_threshold) | (AIService.last_heartbeat.is_(None))
+            ).all()
+            
+            for service in timeout_services:
+                # 更新状态为离线
+                old_status = service.status
+                service.status = 'offline'
+                logger.info(f"服务心跳超时，状态从 {old_status} 更新为 offline: {service.service_name}")
+            
+            if timeout_services:
+                db.session.commit()
+                logger.info(f"已更新 {len(timeout_services)} 个服务状态为离线")
+    except Exception as e:
+        logger.error(f"检查心跳超时失败: {str(e)}")
+        try:
+            db.session.rollback()
+        except:
+            pass
+
+
+def start_heartbeat_checker():
+    """启动心跳检查定时任务"""
+    def checker_loop():
+        while True:
+            try:
+                check_heartbeat_timeout()
+            except Exception as e:
+                logger.error(f"心跳检查任务异常: {str(e)}")
+            time.sleep(30)  # 每30秒检查一次
+    
+    checker_thread = threading.Thread(target=checker_loop, daemon=True)
+    checker_thread.start()
+    logger.info("心跳超时检查任务已启动（每30秒检查一次）")
 

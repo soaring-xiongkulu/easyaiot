@@ -1019,6 +1019,7 @@ def receive_heartbeat():
         mac_address = data.get('mac_address')
         model_version = data.get('model_version')  # 模型版本（可选）
         format_type = data.get('format')  # 模型格式（可选）
+        process_id = data.get('process_id')  # 进程ID（重要，需要上传）
 
         # 优先使用 service_name，如果没有则使用 service_id（向后兼容）
         if not service_name:
@@ -1049,15 +1050,19 @@ def receive_heartbeat():
                     port=port,
                     inference_endpoint=inference_endpoint or (f"http://{server_ip}:{port}/inference" if server_ip and port else None),
                     mac_address=mac_address,
-                    status='running',
+                    status='online',
                     deploy_time=beijing_now(),
                     model_version=model_version,
-                    format=format_type
+                    format=format_type,
+                    process_id=process_id
                 )
                 db.session.add(service)
             else:
                 # 如果服务存在，更新信息
                 logger.debug(f"更新服务 {service_name} 的心跳信息")
+                
+                # 检查服务状态，如果状态是stopped，返回停止标识
+                should_stop = (service.status == 'stopped')
 
         # 更新心跳信息
         service.last_heartbeat = beijing_now()
@@ -1078,18 +1083,33 @@ def receive_heartbeat():
             service.model_version = model_version
         if format_type:
             service.format = format_type
-        if service.status != 'running':
-            service.status = 'running'
+        if process_id:
+            service.process_id = process_id
+        
+        # 如果服务状态是stopped，保持stopped状态；否则更新为online
+        if service.status == 'stopped':
+            # 保持stopped状态，不更新
+            pass
+        else:
+            # 兼容旧的状态值（running），统一改为online
+            service.status = 'online'
 
         db.session.commit()
+
+        # 构建返回数据
+        response_data = {
+            'service_id': service.id,
+            'service_name': service.service_name
+        }
+        
+        # 如果服务状态是stopped，返回停止标识
+        if service.status == 'stopped':
+            response_data['should_stop'] = True
 
         return jsonify({
             'code': 0,
             'msg': '心跳接收成功',
-            'data': {
-                'service_id': service.id,
-                'service_name': service.service_name
-            }
+            'data': response_data
         })
 
     except Exception as e:
@@ -1106,16 +1126,14 @@ def receive_heartbeat():
 def delete_service(service_id):
     try:
         service = AIService.query.get_or_404(service_id)
-        
-        # 如果服务正在运行，先停止
-        if service.status == 'running':
-            stop_service(service_id)
+        service_name = service.service_name
 
-        # 删除服务记录
+        # 直接删除服务记录（不需要管理员权限）
+        # 如果服务还活着，会通过heartbeat机制重新注册上来
         db.session.delete(service)
         db.session.commit()
 
-        logger.info(f"服务已删除: {service.service_name}")
+        logger.info(f"服务已删除: {service_name}")
 
         return jsonify({
             'code': 0,
