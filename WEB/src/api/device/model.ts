@@ -147,6 +147,20 @@ export const runInference = (modelId, formData) => {
   });
 };
 
+// 集群推理接口（模型服务接口）
+export const runClusterInference = (modelId, formData) => {
+  return defHttp.post({
+    url: `/model/cluster/${modelId}/inference/run`,
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token')
+    }
+  }, {
+    isTransformResponse: false
+  });
+};
+
 export const streamInferenceProgress = (recordId: number) => {
   return new EventSource(`${Api.InferenceTask}/${recordId}/stream?token=${localStorage.getItem('jwt_token')}`);
 };
@@ -265,7 +279,14 @@ export const batchRestartDeployService = (serviceName) => {
 };
 
 // 获取service_name的所有副本详情
-export const getDeployServiceReplicas = (serviceName) => {
-  return commonApi('get', `${Api.DeployService}/replicas`, {params: {service_name: serviceName}}, {}, false);
+export const getDeployServiceReplicas = (serviceName, pageNo?: number, pageSize?: number) => {
+  const params: any = { service_name: serviceName };
+  if (pageNo !== undefined && pageNo !== null) {
+    params.pageNo = pageNo;
+  }
+  if (pageSize !== undefined && pageSize !== null) {
+    params.pageSize = pageSize;
+  }
+  return commonApi('get', `${Api.DeployService}/replicas`, {params}, {}, false);
 };
 

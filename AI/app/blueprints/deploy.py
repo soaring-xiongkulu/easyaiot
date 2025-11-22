@@ -614,6 +614,9 @@ def batch_restart_service_route():
 def get_service_replicas():
     try:
         service_name = request.args.get('service_name', '').strip()
+        # 获取分页参数，默认为不分页（兼容旧版本）
+        page_no = request.args.get('pageNo')
+        page_size = request.args.get('pageSize')
         
         if not service_name:
             return jsonify({
@@ -621,10 +624,40 @@ def get_service_replicas():
                 'msg': '缺少必要参数：service_name'
             }), 400
         
-        # 查找所有相同service_name的服务
-        services = db.session.query(AIService, Model.name.label('model_name')).outerjoin(
+        # 构建基础查询
+        base_query = db.session.query(AIService, Model.name.label('model_name')).outerjoin(
             Model, AIService.model_id == Model.id
-        ).filter(AIService.service_name == service_name).order_by(desc(AIService.created_at)).all()
+        ).filter(AIService.service_name == service_name).order_by(desc(AIService.created_at))
+        
+        # 如果提供了分页参数，使用分页查询
+        if page_no and page_size:
+            try:
+                page_no = int(page_no)
+                page_size = int(page_size)
+                
+                if page_no < 1 or page_size < 1:
+                    return jsonify({
+                        'code': 400,
+                        'msg': '参数错误：pageNo和pageSize必须为正整数'
+                    }), 400
+                
+                # 执行分页查询
+                pagination = base_query.paginate(
+                    page=page_no,
+                    per_page=page_size,
+                    error_out=False
+                )
+                services = pagination.items
+                total = pagination.total
+            except ValueError:
+                return jsonify({
+                    'code': 400,
+                    'msg': '参数类型错误：pageNo和pageSize需为整数'
+                }), 400
+        else:
+            # 不分页，返回所有数据（兼容旧版本）
+            services = base_query.all()
+            total = len(services) if services else 0
         
         if not services:
             return jsonify({
@@ -670,7 +703,7 @@ def get_service_replicas():
             'code': 0,
             'msg': 'success',
             'data': records,
-            'total': len(records)
+            'total': total
         })
         
     except Exception as e:

@@ -5,6 +5,40 @@
     title="模型实例"
     width="1300"
   >
+    <!-- 集群访问接口 -->
+    <div class="cluster-endpoint-container" v-if="clusterEndpointUrl">
+      <!-- 提示信息Alert -->
+      <Alert
+        type="warning"
+        class="cluster-endpoint-tip-alert"
+        :show-icon="false"
+      >
+        <template #message>
+          <div class="cluster-endpoint-tip">
+            <span class="tip-icon">🎉</span>
+            <span class="tip-text">请自行前往模型推理页面，可快速验证该集群实例的推理性能与响应能力，支持实时测试模型推理效果<span class="tip-icon">✨</span></span>
+          </div>
+        </template>
+      </Alert>
+      
+      <!-- 模型服务Alert -->
+      <Alert
+        type="info"
+        class="cluster-endpoint-service-alert"
+        :show-icon="false"
+      >
+        <template #message>
+          <div class="cluster-endpoint-row" @click="handleTestCluster">
+            <span class="cluster-endpoint-label">模型服务:</span>
+            <div class="cluster-endpoint-value">
+              <span class="endpoint-text" :title="clusterEndpointUrl">
+                {{ clusterEndpointUrl }}<span class="click-hint">👈</span>
+              </span>
+            </div>
+          </div>
+        </template>
+      </Alert>
+    </div>
     <BasicTable
       @register="registerTable"
       :row-key="'id'"
@@ -85,35 +119,62 @@ import {nextTick, ref} from 'vue';
 import {BasicDrawer, useDrawerInner} from '@/components/Drawer';
 import type {DrawerProps} from '@/components/Drawer/src/typing';
 import {BasicTable, TableAction, useTable} from '@/components/Table';
-import {Tag} from 'ant-design-vue';
+import {Tag, Alert} from 'ant-design-vue';
 import {useMessage} from '@/hooks/web/useMessage';
+import {useGlobSetting} from '@/hooks/setting';
 import {Icon} from '@/components/Icon';
 import {useModal} from '@/components/Modal';
 import {
   startDeployService,
   stopDeployService,
-  restartDeployService
+  restartDeployService,
+  getDeployServiceReplicas
 } from '@/api/device/model';
 import ServiceLogsModal from '../ServiceLogsModal/ServiceLogsModal.vue';
 
 defineOptions({name: 'ReplicasDrawer'});
 
 const {createMessage} = useMessage();
+const globSetting = useGlobSetting();
 const showLogsModal = ref(false);
-const replicasData = ref<any[]>([]);
+const serviceNameRef = ref<string>('');
+const modelIdRef = ref<number | null>(null);
+const clusterEndpointUrl = ref<string>('');
+
+// 获取集群访问接口URL
+const getClusterEndpointUrl = (modelId: number) => {
+  if (!modelId) return '';
+  return `/model/cluster/${modelId}/inference/run`;
+};
 
 const [registerDrawer, {setDrawerProps, closeDrawer}] = useDrawerInner((data) => {
-  // 重置数据
-  replicasData.value = [];
-  
-  // 如果有传入的副本数据，则设置
-  if (data && data.replicas && Array.isArray(data.replicas)) {
-    replicasData.value = data.replicas;
+  // 保存服务名称和模型ID
+  if (data && data.serviceName) {
+    serviceNameRef.value = data.serviceName;
+    // 如果有传入的model_id，使用它；否则等待从API获取
+    if (data.modelId) {
+      modelIdRef.value = data.modelId;
+      clusterEndpointUrl.value = getClusterEndpointUrl(data.modelId);
+    } else {
+      modelIdRef.value = null;
+      clusterEndpointUrl.value = '';
+    }
+  } else if (data && data.replicas) {
+    // 兼容旧版本：如果传入的是replicas数组，使用前端分页
+    serviceNameRef.value = '';
+    // 从第一个副本获取model_id
+    if (Array.isArray(data.replicas) && data.replicas.length > 0 && data.replicas[0].model_id) {
+      modelIdRef.value = data.replicas[0].model_id;
+      clusterEndpointUrl.value = getClusterEndpointUrl(data.replicas[0].model_id);
+    } else {
+      modelIdRef.value = null;
+      clusterEndpointUrl.value = '';
+    }
   }
   
-  // 更新表格数据（在 nextTick 中确保表格已注册）
+  // 刷新表格数据
   nextTick(() => {
-    setTableData(replicasData.value);
+    reload();
   });
 });
 
@@ -178,11 +239,44 @@ const [registerTable, {reload, setTableData}] = useTable({
   columns: columns,
   useSearchForm: false,
   showTableSetting: true,
-  pagination: false,
+  api: async (params) => {
+    // 如果使用后端分页（有serviceName）
+    if (serviceNameRef.value) {
+      const pageNo = params.pageNo || params.page || 1;
+      const pageSize = params.pageSize || 10;
+      // 调用API，传递分页参数
+      const response = await getDeployServiceReplicas(serviceNameRef.value, pageNo, pageSize);
+      const result = response?.data || response;
+      if (result && result.code === 0) {
+        const records = Array.isArray(result.data) ? result.data : [];
+        // 从第一个记录获取model_id（如果还没有设置）
+        if (records.length > 0 && records[0].model_id && !modelIdRef.value) {
+          modelIdRef.value = records[0].model_id;
+          clusterEndpointUrl.value = getClusterEndpointUrl(records[0].model_id);
+        }
+        return {
+          data: records,
+          total: result.total || 0,
+        };
+      }
+      return { data: [], total: 0 };
+    }
+    // 兼容旧版本：前端分页（如果没有serviceName，返回空数据）
+    return { data: [], total: 0 };
+  },
+  pagination: {
+    pageSize: 10,
+    showSizeChanger: true,
+    pageSizeOptions: ['10', '20', '50', '100'],
+    showTotal: (total) => `共 ${total} 条`,
+  },
   canResize: true,
   showIndexColumn: false,
   immediate: false,
-  dataSource: [],
+  fetchSetting: {
+    listField: 'data',
+    totalField: 'total',
+  },
 });
 
 // 状态相关
@@ -310,6 +404,44 @@ const handleCopyEndpoint = async (endpoint: string) => {
   }
 };
 
+// 复制模型服务地址
+const handleTestCluster = async () => {
+  if (!clusterEndpointUrl.value) {
+    createMessage.warning('模型服务地址为空，无法复制');
+    return;
+  }
+  
+  // 获取完整的URL
+  const apiUrl = globSetting.apiUrl || window.location.origin;
+  const baseUrl = apiUrl.replace(/\/$/, '');
+  const fullUrl = `${baseUrl}${clusterEndpointUrl.value}`;
+  
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(fullUrl);
+      createMessage.success('模型服务地址已复制到剪贴板');
+    } else {
+      // 降级方案
+      const textArea = document.createElement('textarea');
+      textArea.value = fullUrl;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        createMessage.success('模型服务地址已复制到剪贴板');
+      } catch (err) {
+        createMessage.error('复制失败，请手动复制');
+      }
+      document.body.removeChild(textArea);
+    }
+  } catch (error) {
+    createMessage.error('复制失败');
+    console.error('复制失败:', error);
+  }
+};
+
 const emit = defineEmits(['refresh']);
 </script>
 
@@ -329,6 +461,151 @@ const emit = defineEmits(['refresh']);
   &:active {
     color: #096dd9;
     transform: scale(0.95);
+  }
+}
+
+.cluster-endpoint-container {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cluster-endpoint-tip-alert {
+  :deep(.ant-alert-message) {
+    margin: 0;
+    padding: 0;
+  }
+
+  :deep(.ant-alert-content) {
+    margin: 0;
+  }
+
+  :deep(.ant-alert) {
+    background: linear-gradient(135deg, #fffbe6 0%, #fff7d9 100%);
+    border: 2px solid #faad14;
+    border-radius: 8px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 8px rgba(250, 173, 20, 0.15);
+  }
+
+  .cluster-endpoint-tip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+
+    .tip-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      animation: sparkle 2s ease-in-out infinite;
+      
+      &:first-child {
+        margin-right: 0;
+      }
+    }
+
+    .tip-text {
+      flex: 1;
+      font-size: 14px;
+      color: #ad6800;
+      line-height: 1.6;
+      font-weight: 400;
+      
+      .tip-icon {
+        margin-left: 4px;
+        display: inline-block;
+        vertical-align: middle;
+      }
+    }
+  }
+}
+
+.cluster-endpoint-service-alert {
+  :deep(.ant-alert-message) {
+    margin: 0;
+    padding: 0;
+  }
+
+  :deep(.ant-alert-content) {
+    margin: 0;
+  }
+
+  :deep(.ant-alert) {
+    background: linear-gradient(135deg, #e6f4ff 0%, #bae7ff 100%);
+    border: 2px solid #1890ff;
+    border-radius: 8px;
+    padding: 16px 18px;
+    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.15);
+    transition: all 0.3s;
+
+    &:hover {
+      border-color: #40a9ff;
+      box-shadow: 0 4px 12px rgba(24, 144, 255, 0.25);
+      transform: translateY(-1px);
+    }
+  }
+
+  .cluster-endpoint-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    width: 100%;
+    cursor: pointer;
+  }
+
+  .cluster-endpoint-label {
+    font-size: 16px;
+    color: #8c8c8c;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .cluster-endpoint-value {
+    flex: 1;
+    min-width: 0;
+    transition: all 0.2s;
+
+    .endpoint-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1890ff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      min-width: 0;
+      
+      .click-hint {
+        margin-left: 4px;
+        font-size: 18px;
+        display: inline-block;
+        vertical-align: middle;
+        transition: transform 0.2s;
+        animation: pointLeft 0.6s ease-in-out infinite;
+      }
+    }
+  }
+}
+
+@keyframes pointLeft {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-4px);
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2) rotate(10deg);
+    opacity: 0.8;
   }
 }
 </style>

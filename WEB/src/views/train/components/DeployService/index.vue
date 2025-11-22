@@ -235,24 +235,11 @@ const handleBatchRestart = async (record) => {
 
 // 查看副本详情
 const handleViewReplicas = async (record) => {
-  try {
-    const response = await getDeployServiceReplicas(record.service_name);
-    // 当 isTransformResponse: false 时，返回的是 AxiosResponse 对象，需要从 data 属性获取
-    const result = response?.data || response;
-    console.log('获取副本详情响应:', response);
-    console.log('处理后的结果:', result);
-    if (result && result.code === 0) {
-      openReplicasDrawer(true, {
-        serviceName: record.service_name,
-        replicas: Array.isArray(result.data) ? result.data : []
-      });
-    } else {
-      createMessage.error(result?.msg || '获取副本详情失败');
-    }
-  } catch (error) {
-    createMessage.error('获取副本详情失败');
-    console.error('获取副本详情失败:', error);
-  }
+  // 直接打开抽屉，由抽屉组件通过API获取数据（支持后端分页）
+  openReplicasDrawer(true, {
+    serviceName: record.service_name,
+    modelId: record.model_id
+  });
 };
 
 // 副本刷新回调

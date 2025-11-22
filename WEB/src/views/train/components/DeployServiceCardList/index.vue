@@ -817,4 +817,5 @@ const handleViewReplicas = async (record: any) => {
   height: 24px;
   line-height: 20px;
 }
+
 </style>
