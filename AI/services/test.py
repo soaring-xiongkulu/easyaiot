@@ -9,6 +9,7 @@
 import os
 import sys
 import logging
+import socket
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -29,6 +30,41 @@ CORS(app)
 model = None
 model_loaded = False
 model_path = None
+
+
+def is_port_available(port, host='0.0.0.0'):
+    """检查端口是否可用"""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind((host, port))
+            return True
+    except OSError:
+        return False
+
+
+def find_available_port(start_port, host='0.0.0.0', max_attempts=100):
+    """从指定端口开始，自动递增寻找可用端口
+    
+    Args:
+        start_port: 起始端口号
+        host: 绑定的主机地址
+        max_attempts: 最大尝试次数，避免无限循环
+    
+    Returns:
+        可用的端口号，如果找不到则返回None
+    """
+    port = start_port
+    attempts = 0
+    
+    while attempts < max_attempts:
+        if is_port_available(port, host):
+            return port
+        port += 1
+        attempts += 1
+    
+    logger.error(f"在 {max_attempts} 次尝试后仍未找到可用端口（从 {start_port} 开始）")
+    return None
 
 
 def load_model(model_path):
@@ -208,7 +244,20 @@ def main():
     
     # 启动Flask服务
     host = '0.0.0.0'
-    port = 8888  # 使用8888端口避免与主服务冲突
+    start_port = 8888  # 起始端口，使用8888端口避免与主服务冲突
+    
+    # 自动查找可用端口
+    logger.info(f"🔍 检查端口 {start_port} 是否可用...")
+    port = find_available_port(start_port, host)
+    
+    if port is None:
+        logger.error("❌ 无法找到可用端口，退出")
+        sys.exit(1)
+    
+    if port != start_port:
+        logger.info(f"⚠️  端口 {start_port} 已被占用，自动切换到端口 {port}")
+    else:
+        logger.info(f"✅ 端口 {port} 可用")
     
     logger.info("=" * 60)
     logger.info(f"✅ 模型服务启动成功")
