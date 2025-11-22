@@ -85,3 +85,4 @@ def download_default_model_image(destination_path: str) -> bool:
     except Exception as e:
         logger.error(f"创建默认占位图片失败: {str(e)}")
         return False
+

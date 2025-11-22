@@ -1,50 +1,86 @@
 """
-独立的Flask部署服务
+最小化的模型部署服务模板
 用于部署模型并提供推理接口
-支持Nacos注册、日志上报、停止/重启接口
+
+@author 翱翔的雄库鲁
+@email andywebjava@163.com
+@wechat EasyAIoT2025
 """
 import os
 import sys
 import time
 import threading
 import logging
-import uuid
 import socket
-import requests
 import atexit
 import signal
-from datetime import datetime
+import multiprocessing
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from dotenv import load_dotenv
 
 # 添加当前目录到路径，以便导入模型相关代码
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# ============================================
+# 环境变量和系统配置初始化
+# ============================================
+
+# 加载环境变量配置文件
+env_file = '.env'
+if os.path.exists(env_file):
+    load_dotenv(env_file, override=True)
+    print(f"✅ 已加载配置文件: {env_file} (覆盖模式)", file=sys.stderr)
+else:
+    print(f"⚠️  配置文件 {env_file} 不存在，使用系统环境变量", file=sys.stderr)
+
+# 设置multiprocessing启动方法为'spawn'以支持CUDA
+try:
+    try:
+        current_method = multiprocessing.get_start_method()
+    except RuntimeError:
+        current_method = None
+    
+    if current_method != 'spawn':
+        multiprocessing.set_start_method('spawn', force=True)
+        print(f"✅ 已设置multiprocessing启动方法为'spawn'（原方法: {current_method or '未设置'}）", file=sys.stderr)
+    else:
+        print(f"✅ multiprocessing启动方法已为'spawn'", file=sys.stderr)
+except RuntimeError as e:
+    try:
+        current_method = multiprocessing.get_start_method()
+        print(f"⚠️  无法设置multiprocessing启动方法: {str(e)}，当前方法: {current_method}", file=sys.stderr)
+    except RuntimeError:
+        print(f"⚠️  无法设置multiprocessing启动方法: {str(e)}", file=sys.stderr)
+
+# 强制 ONNX Runtime 使用 CPU（在导入任何使用 ONNX Runtime 的模块之前设置）
+os.environ['ORT_EXECUTION_PROVIDERS'] = 'CPUExecutionProvider'
+print("✅ 已设置 ONNX Runtime 使用 CPU 执行提供者", file=sys.stderr)
+
+# 如果未设置 CUDA_VISIBLE_DEVICES，临时隐藏 GPU
+if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+    os.environ['CUDA_VISIBLE_DEVICES'] = ''
+    print("⚠️  临时隐藏 GPU 设备以避免 onnxruntime-gpu 导入时的 CUDA 库加载错误", file=sys.stderr)
 
 # 导入推理相关模块
 ONNXInference = None
 try:
     from app.utils.onnx_inference import ONNXInference
-    from app.utils.yolo_validator import validate_yolo_model
 except ImportError as e:
-    # 输出到stderr，确保能被守护进程捕获
-    print(f"[SERVICES] 警告: 无法导入推理模块: {e}", file=sys.stderr)
-    print(f"[SERVICES] 注意: ONNX模型推理功能可能不可用", file=sys.stderr)
+    print(f"[SERVICES] 警告: 无法导入ONNX推理模块: {e}", file=sys.stderr)
 
 app = Flask(__name__)
 CORS(app)
 
-# 配置日志 - 为 services 模块配置独立的日志系统
-# 禁用 Flask/Werkzeug 的默认日志输出
+# 配置日志
 logging.getLogger('werkzeug').setLevel(logging.WARNING)
 logging.getLogger('flask').setLevel(logging.WARNING)
 
-# 配置根日志记录器，但使用独立的格式
-# 确保日志输出不被缓冲，同时输出到stderr
 logging.basicConfig(
     level=logging.INFO,
     format='[SERVICES] %(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    force=True,  # 强制重新配置，覆盖之前的配置
-    stream=sys.stderr  # 输出到stderr，确保测试脚本能捕获
+    force=True,
+    stream=sys.stderr
 )
 logger = logging.getLogger(__name__)
 logger.info("=" * 60)
@@ -54,65 +90,10 @@ logger.info("=" * 60)
 # 全局变量
 model = None
 model_loaded = False
-service_id = None
-service_name = None
-model_id = None
-model_version = None
-model_format = None
-nacos_service_name = None  # Nacos注册的服务名
 server_ip = None
 port = None
-ai_service_api = None
-heartbeat_thread = None
-heartbeat_stop_event = threading.Event()
-log_report_thread = None
-log_report_stop_event = threading.Event()
 nacos_client = None
-shutdown_flag = threading.Event()
-
-
-def get_mac_address():
-    """获取MAC地址"""
-    try:
-        mac = uuid.getnode()
-        return ':'.join(['{:02x}'.format((mac >> elements) & 0xff) for elements in range(0, 2 * 6, 2)][::-1])
-    except:
-        return 'unknown'
-
-
-def is_port_available(port, host='0.0.0.0'):
-    """检查端口是否可用"""
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind((host, port))
-            return True
-    except OSError:
-        return False
-
-
-def find_available_port(start_port, host='0.0.0.0', max_attempts=100):
-    """从指定端口开始，自动递增寻找可用端口
-    
-    Args:
-        start_port: 起始端口号
-        host: 绑定的主机地址
-        max_attempts: 最大尝试次数，避免无限循环
-    
-    Returns:
-        可用的端口号，如果找不到则返回None
-    """
-    port = start_port
-    attempts = 0
-    
-    while attempts < max_attempts:
-        if is_port_available(port, host):
-            return port
-        port += 1
-        attempts += 1
-    
-    logger.error(f"在 {max_attempts} 次尝试后仍未找到可用端口（从 {start_port} 开始）")
-    return None
+nacos_service_name = None
 
 
 def get_local_ip():
@@ -144,66 +125,30 @@ def get_local_ip():
         return '127.0.0.1'
 
 
-def get_ai_module_instance():
-    """从Nacos获取AI模块实例列表，随机选择一个"""
-    global nacos_client, model_id, model_version, model_format
-    
+def is_port_available(port, host='0.0.0.0'):
+    """检查端口是否可用"""
     try:
-        if not nacos_client:
-            # 如果Nacos客户端未初始化，尝试初始化
-            from nacos import NacosClient
-            nacos_server = os.getenv('NACOS_SERVER', 'localhost:8848')
-            namespace = os.getenv('NACOS_NAMESPACE', '')
-            username = os.getenv('NACOS_USERNAME', 'nacos')
-            password = os.getenv('NACOS_PASSWORD', 'basiclab@iot78475418754')
-            
-            nacos_client = NacosClient(
-                server_addresses=nacos_server,
-                namespace=namespace,
-                username=username,
-                password=password
-            )
-        
-        # AI模块的服务名：优先使用环境变量，如果没有则使用统一的命名格式 model_{model_id}_{format}_{version}
-        # 如果都没有，则使用默认值（向后兼容）
-        ai_service_name = os.getenv('AI_SERVICE_NAME')
-        if not ai_service_name:
-            # 使用统一的命名格式：model_{model_id}_{format}_{version}
-            if model_id and model_version and model_format:
-                ai_service_name = f"model_{model_id}_{model_format}_{model_version}"
-            else:
-                # 如果缺少必要信息，使用默认值（向后兼容）
-                ai_service_name = 'model-server'
-                logger.warning(f"缺少model_id/model_version/model_format，使用默认服务名: {ai_service_name}")
-        
-        # 获取服务实例列表
-        instances = nacos_client.list_naming_instance(
-            service_name=ai_service_name,
-            healthy_only=True
-        )
-        
-        if not instances or len(instances) == 0:
-            logger.warning(f"未找到AI模块实例: {ai_service_name}")
-            return None
-        
-        # 随机选择一个实例
-        import random
-        selected_instance = random.choice(instances)
-        
-        # 构建URL
-        ip = selected_instance.get('ip', '')
-        port = selected_instance.get('port', 5000)
-        ai_url = f"http://{ip}:{port}"
-        
-        logger.info(f"从Nacos获取到AI模块实例: {ai_url} (共{len(instances)}个实例)")
-        return ai_url
-        
-    except Exception as e:
-        logger.error(f"从Nacos获取AI模块实例失败: {str(e)}")
-        # 如果Nacos获取失败，使用环境变量中的默认值
-        default_ai_url = os.getenv('AI_SERVICE_API', 'http://localhost:5000')
-        logger.warning(f"使用默认AI模块地址: {default_ai_url}")
-        return default_ai_url
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind((host, port))
+            return True
+    except OSError:
+        return False
+
+
+def find_available_port(start_port, host='0.0.0.0', max_attempts=100):
+    """从指定端口开始，自动递增寻找可用端口"""
+    port = start_port
+    attempts = 0
+    
+    while attempts < max_attempts:
+        if is_port_available(port, host):
+            return port
+        port += 1
+        attempts += 1
+    
+    logger.error(f"在 {max_attempts} 次尝试后仍未找到可用端口（从 {start_port} 开始）")
+    return None
 
 
 def load_model(model_path):
@@ -226,11 +171,6 @@ def load_model(model_path):
                 logger.info("✅ ONNX模型加载成功")
                 model_loaded = True
                 return True
-            except ImportError as e:
-                error_msg = f"onnxruntime未安装，无法加载ONNX模型: {str(e)}"
-                logger.error(error_msg)
-                print(error_msg, file=sys.stderr)
-                return False
             except Exception as e:
                 error_msg = f"ONNX模型加载失败: {str(e)}"
                 logger.error(error_msg)
@@ -269,178 +209,9 @@ def load_model(model_path):
         return False
 
 
-def send_heartbeat():
-    """发送心跳到主程序（通过Nacos获取AI模块实例）"""
-    global service_id, service_name, server_ip, port, model_id, model_version, model_format
-    
-    while not heartbeat_stop_event.is_set():
-        try:
-            # 从Nacos获取AI模块实例
-            ai_service_api = get_ai_module_instance()
-            
-            if ai_service_api:
-                # 获取当前进程ID（重要，需要上传）
-                process_id = os.getpid()
-                
-                data = {
-                    'server_ip': server_ip,
-                    'port': port,
-                    'inference_endpoint': f"http://{server_ip}:{port}/inference",
-                    'mac_address': get_mac_address(),
-                    'process_id': process_id  # 进程ID很重要，需要上传
-                }
-                
-                if service_name:
-                    data['service_name'] = service_name
-                if service_id:
-                    data['service_id'] = service_id
-                if model_id:
-                    data['model_id'] = model_id
-                if model_version:
-                    data['model_version'] = model_version
-                if model_format:
-                    data['format'] = model_format
-                
-                try:
-                    response = requests.post(
-                        f"{ai_service_api}/model/deploy_service/heartbeat",
-                        json=data,
-                        timeout=5
-                    )
-                    
-                    if response.status_code == 200:
-                        result = response.json()
-                        if result.get('code') == 0 and result.get('data'):
-                            returned_service_id = result.get('data', {}).get('service_id')
-                            if returned_service_id:
-                                service_id = returned_service_id
-                            
-                            # 检查是否收到停止标识
-                            if result.get('data', {}).get('should_stop'):
-                                logger.info("收到停止标识，正在停止服务...")
-                                # 自己杀掉process_id进程
-                                try:
-                                    import signal
-                                    os.kill(process_id, signal.SIGTERM)
-                                    # 如果SIGTERM不起作用，使用SIGKILL
-                                    time.sleep(2)
-                                    os.kill(process_id, signal.SIGKILL)
-                                except Exception as e:
-                                    logger.error(f"停止进程失败: {str(e)}")
-                                # 设置停止事件，退出循环
-                                heartbeat_stop_event.set()
-                                break
-                        
-                        logger.debug("心跳发送成功")
-                    else:
-                        logger.warning(f"心跳发送失败: {response.status_code}")
-                except requests.exceptions.RequestException as e:
-                    logger.warning(f"心跳发送请求异常: {str(e)}")
-                    
-        except Exception as e:
-            logger.error(f"心跳发送异常: {str(e)}")
-        
-        time.sleep(30)  # 每30秒发送一次心跳
-
-
-def send_log_to_main(log_content, log_level='INFO'):
-    """上报日志到主程序（通过Nacos获取AI模块实例）"""
-    global service_name
-    
-    try:
-        # 从Nacos获取AI模块实例
-        ai_service_api = get_ai_module_instance()
-        
-        if not ai_service_api:
-            return
-        
-        # 构建日志上报数据
-        log_data = {
-            'service_name': service_name,
-            'log': log_content,
-            'level': log_level,
-            'timestamp': datetime.now().isoformat()
-        }
-        
-        # 发送日志到主程序
-        try:
-            response = requests.post(
-                f"{ai_service_api}/model/deploy_service/logs",
-                json=log_data,
-                timeout=3
-            )
-            if response.status_code == 200:
-                logger.debug("日志上报成功")
-        except requests.exceptions.RequestException:
-            # 如果日志上报接口不存在，静默失败（不影响主流程）
-            pass
-            
-    except Exception as e:
-        logger.debug(f"日志上报异常: {str(e)}")
-
-
-class LogHandler(logging.Handler):
-    """自定义日志处理器，用于上报日志到主程序"""
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._last_send_time = 0
-        self._log_buffer = []
-        self._buffer_lock = threading.Lock()
-        self._buffer_size = 10  # 缓冲区大小
-        self._flush_interval = 5  # 刷新间隔（秒）
-        
-        # 启动后台线程定期刷新缓冲区
-        self._flush_thread = threading.Thread(target=self._periodic_flush, daemon=True)
-        self._flush_thread.start()
-    
-    def emit(self, record):
-        """发送日志记录"""
-        try:
-            log_message = self.format(record)
-            log_level = record.levelname
-            
-            # 将日志添加到缓冲区
-            with self._buffer_lock:
-                self._log_buffer.append({
-                    'message': log_message,
-                    'level': log_level,
-                    'timestamp': datetime.now().isoformat()
-                })
-                
-                # 如果缓冲区满了，立即刷新
-                if len(self._log_buffer) >= self._buffer_size:
-                    self._flush_buffer()
-        except Exception:
-            pass  # 避免日志上报失败影响主流程
-    
-    def _flush_buffer(self):
-        """刷新缓冲区，上报所有日志"""
-        with self._buffer_lock:
-            if not self._log_buffer:
-                return
-            
-            # 批量上报日志
-            for log_item in self._log_buffer:
-                send_log_to_main(log_item['message'], log_item['level'])
-            
-            self._log_buffer.clear()
-    
-    def _periodic_flush(self):
-        """定期刷新缓冲区"""
-        while not log_report_stop_event.is_set():
-            time.sleep(self._flush_interval)
-            self._flush_buffer()
-    
-    def close(self):
-        """关闭处理器时刷新缓冲区"""
-        self._flush_buffer()
-        super().close()
-
-
 def setup_nacos():
-    """设置Nacos注册"""
-    global nacos_client, nacos_service_name, server_ip, port, model_id, model_version, model_format
+    """设置Nacos注册（可选）"""
+    global nacos_client, nacos_service_name, server_ip, port
     
     try:
         from nacos import NacosClient
@@ -459,13 +230,9 @@ def setup_nacos():
             password=password
         )
         
-        # 构建Nacos服务名：model_{model_id}_{format}_{version}
-        if model_id and model_version and model_format:
-            nacos_service_name = f"model_{model_id}_{model_format}_{model_version}"
-        else:
-            # 如果缺少必要信息，使用service_name作为fallback
-            logger.warning("缺少model_id/model_version/model_format，使用service_name作为Nacos服务名")
-            nacos_service_name = service_name
+        # 构建Nacos服务名
+        service_name = os.getenv('SERVICE_NAME', 'deploy_service')
+        nacos_service_name = service_name
         
         # 注册服务实例
         nacos_client.add_naming_instance(
@@ -492,7 +259,7 @@ def send_nacos_heartbeat():
     """发送Nacos心跳"""
     global nacos_client, nacos_service_name, server_ip, port
     
-    while not heartbeat_stop_event.is_set():
+    while True:
         try:
             if nacos_client and nacos_service_name:
                 nacos_client.send_heartbeat(
@@ -528,8 +295,7 @@ def health():
     return jsonify({
         'status': 'healthy',
         'model_loaded': model_loaded,
-        'service_id': service_id,
-        'service_name': service_name
+        'service_name': os.getenv('SERVICE_NAME', 'deploy_service')
     })
 
 
@@ -575,9 +341,6 @@ def inference():
             is_onnx = False
             if ONNXInference is not None:
                 is_onnx = isinstance(model, ONNXInference)
-            else:
-                # 如果ONNXInference未导入，检查模型是否有detect方法且没有predict方法
-                is_onnx = hasattr(model, 'detect') and not hasattr(model, 'predict')
             
             if is_onnx:
                 # ONNX模型推理
@@ -658,19 +421,8 @@ def inference():
 @app.route('/stop', methods=['POST'])
 def stop_service():
     """停止服务接口"""
-    global shutdown_flag
-    
     try:
         logger.info("收到停止服务请求")
-        shutdown_flag.set()
-        
-        # 停止心跳线程
-        heartbeat_stop_event.set()
-        
-        # 停止日志上报
-        log_report_stop_event.set()
-        
-        # 注销Nacos
         deregister_nacos()
         
         # 延迟关闭，给响应时间
@@ -695,7 +447,7 @@ def stop_service():
 @app.route('/restart', methods=['POST'])
 def restart_service():
     """重启服务接口"""
-    global model, model_loaded, model_id
+    global model, model_loaded
     
     try:
         logger.info("收到重启服务请求")
@@ -731,20 +483,15 @@ def restart_service():
 
 def main():
     """主函数"""
-    global service_id, service_name, model_id, model_version, model_format, server_ip, port, ai_service_api
-    global heartbeat_thread, log_report_thread, nacos_client
+    global server_ip, port, nacos_client
     
-    # 输出启动信息到stderr，确保能被守护进程捕获
+    # 输出启动信息到stderr
     print("=" * 60, file=sys.stderr)
     print("🚀 模型部署服务启动中...", file=sys.stderr)
     print("=" * 60, file=sys.stderr)
     
     # 从环境变量获取配置
-    service_id = os.getenv('SERVICE_ID')
     service_name = os.getenv('SERVICE_NAME', 'deploy_service')
-    model_id = os.getenv('MODEL_ID')
-    model_version = os.getenv('MODEL_VERSION', 'V1.0.0')
-    model_format = os.getenv('MODEL_FORMAT', 'pytorch')  # 默认pytorch
     
     # 安全地获取端口号
     try:
@@ -755,15 +502,10 @@ def main():
         sys.exit(1)
     
     model_path = os.getenv('MODEL_PATH')
-    # 不再使用固定的ai_service_api，改为从Nacos动态获取
-    # ai_service_api = os.getenv('AI_SERVICE_API', 'http://localhost:5000/model/deploy_service')
     
     # 输出环境变量信息用于诊断
     print(f"[SERVICES] 服务名称: {service_name}", file=sys.stderr)
-    print(f"[SERVICES] 服务ID: {service_id}", file=sys.stderr)
-    print(f"[SERVICES] 模型ID: {model_id}", file=sys.stderr)
     print(f"[SERVICES] 模型路径: {model_path}", file=sys.stderr)
-    print(f"[SERVICES] 模型格式: {model_format}", file=sys.stderr)
     print(f"[SERVICES] 端口: {port}", file=sys.stderr)
     
     server_ip = get_local_ip()
@@ -771,12 +513,6 @@ def main():
     
     if not model_path:
         error_msg = "❌ MODEL_PATH环境变量未设置，无法启动服务"
-        logger.error(error_msg)
-        print(error_msg, file=sys.stderr)
-        sys.exit(1)
-    
-    if not service_name:
-        error_msg = "❌ SERVICE_NAME环境变量未设置，无法启动服务"
         logger.error(error_msg)
         print(error_msg, file=sys.stderr)
         sys.exit(1)
@@ -795,22 +531,8 @@ def main():
         print(error_msg, file=sys.stderr)
         sys.exit(1)
     
-    # 添加日志处理器，用于上报日志到主程序
-    log_handler = LogHandler()
-    log_handler.setLevel(logging.INFO)
-    # 设置日志格式
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    log_handler.setFormatter(formatter)
-    logger.addHandler(log_handler)
-    
-    # 确保在程序退出时关闭日志处理器
-    def cleanup_log_handler():
-        log_handler.close()
-    atexit.register(cleanup_log_handler)
-    
     # 加载模型
     logger.info(f"准备加载模型: {model_path}")
-    logger.info(f"模型格式: {model_format}")
     if not load_model(model_path):
         error_msg = f"❌ 模型加载失败: {model_path}，请检查模型文件是否完整或格式是否正确"
         logger.error(error_msg)
@@ -819,15 +541,10 @@ def main():
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
     
-    # 注册到Nacos
+    # 注册到Nacos（可选）
     setup_nacos()
     
-    # 启动心跳线程（发送到主程序）
-    heartbeat_thread = threading.Thread(target=send_heartbeat, daemon=True)
-    heartbeat_thread.start()
-    logger.info("心跳线程已启动")
-    
-    # 启动Nacos心跳线程
+    # 启动Nacos心跳线程（如果Nacos可用）
     if nacos_client:
         nacos_heartbeat_thread = threading.Thread(target=send_nacos_heartbeat, daemon=True)
         nacos_heartbeat_thread.start()
@@ -863,14 +580,14 @@ def main():
     else:
         logger.info(f"✅ 端口 {port} 可用")
     
-    # 如果端口发生了变化，更新环境变量（用于心跳上报）
+    # 如果端口发生了变化，更新环境变量
     if port != original_port:
         os.environ['PORT'] = str(port)
         logger.info(f"已更新环境变量 PORT={port}")
     
-    # 禁用 Flask 的默认日志输出（Werkzeug）
+    # 禁用 Flask 的默认日志输出
     log = logging.getLogger('werkzeug')
-    log.setLevel(logging.ERROR)  # 只显示错误，不显示 HTTP 请求日志
+    log.setLevel(logging.ERROR)
     
     # 启动Flask服务
     logger.info(f"部署服务启动: {service_name} on {server_ip}:{port}")
@@ -880,7 +597,7 @@ def main():
     logger.info(f"🔮 推理接口: http://{server_ip}:{port}/inference")
     logger.info("=" * 60)
     logger.info("🚀 正在启动Flask应用...")
-    # 同时输出到stderr，确保测试脚本能捕获
+    # 同时输出到stderr
     print("=" * 60, file=sys.stderr)
     print(f"🌐 服务地址: http://{server_ip}:{port}", file=sys.stderr)
     print(f"📊 健康检查: http://{server_ip}:{port}/health", file=sys.stderr)
@@ -888,8 +605,6 @@ def main():
     print("🚀 正在启动Flask应用...", file=sys.stderr)
     
     try:
-        # 使用use_reloader=False确保在子进程中不会重新加载
-        # Flask的app.run()是阻塞的，会一直运行直到应用停止
         app.run(host=host, port=port, threaded=True, debug=False, use_reloader=False)
     except OSError as e:
         if "Address already in use" in str(e) or "端口" in str(e):
@@ -920,3 +635,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

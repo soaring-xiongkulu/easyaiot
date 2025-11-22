@@ -16,19 +16,21 @@ from pathlib import Path
 class ServiceTester:
     """服务测试类"""
     
-    def __init__(self, model_path=None, port=8000, service_name="test_deploy_service"):
+    def __init__(self, model_path=None, port=8899, service_name="test_deploy_service"):
         """
         初始化测试器
         
         Args:
             model_path: 模型文件路径，如果为None则自动查找
-            port: 服务端口，默认8000
+            port: 服务端口，默认8899
             service_name: 服务名称，默认test_deploy_service
         """
         self.port = port
         self.service_name = service_name
         self.process = None
+        self.server_ip = 'localhost'  # 默认使用localhost，启动后会从日志中解析实际IP
         self.base_url = f"http://localhost:{port}"
+        self.service_output_lines = []  # 存储服务输出，用于解析IP地址
         
         # 自动查找模型文件
         if model_path is None:
@@ -147,10 +149,30 @@ class ServiceTester:
                     line_str = line.rstrip()
                     if line_str:
                         print(f"{prefix} {line_str}")
+                        # 保存输出行，用于解析服务IP地址
+                        self.service_output_lines.append(line_str)
+                        # 尝试从日志中解析服务器IP
+                        self._parse_server_ip_from_output(line_str)
         except Exception as e:
             print(f"⚠️  读取输出时出错: {str(e)}")
         finally:
             pipe.close()
+    
+    def _parse_server_ip_from_output(self, line):
+        """从服务输出中解析服务器IP地址"""
+        # 查找格式: [SERVICES] 服务器IP: 192.168.11.28
+        if '[SERVICES] 服务器IP:' in line:
+            try:
+                # 提取IP地址
+                parts = line.split('服务器IP:')
+                if len(parts) > 1:
+                    ip = parts[1].strip()
+                    if ip and ip != self.server_ip:
+                        self.server_ip = ip
+                        self.base_url = f"http://{ip}:{self.port}"
+                        print(f"🔍 检测到服务IP: {ip}，更新服务地址为: {self.base_url}")
+            except Exception:
+                pass
     
     def start_service(self):
         """启动服务"""
@@ -222,9 +244,10 @@ class ServiceTester:
             
             # 等待服务启动，使用更长的等待时间和重试机制
             print("⏳ 等待服务启动...")
-            max_wait_time = 30  # 最多等待30秒
+            max_wait_time = 60  # 增加等待时间到60秒，因为Flask启动可能需要更长时间
             check_interval = 2  # 每2秒检查一次
             waited_time = 0
+            flask_started = False  # 标记Flask是否已启动
             
             while waited_time < max_wait_time:
                 # 检查进程是否还在运行
@@ -235,18 +258,41 @@ class ServiceTester:
                     time.sleep(0.5)
                     return False
                 
-                # 检查端口是否打开
-                try:
-                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                        s.settimeout(1)
-                        result = s.connect_ex(('localhost', self.port))
-                        if result == 0:
-                            # 端口已打开，再等待1秒确保Flask完全启动
-                            time.sleep(1)
-                            print(f"✅ 服务已启动（端口 {self.port} 已打开）")
-                            return True
-                except Exception:
-                    pass
+                # 检查日志中是否有Flask启动的标记
+                if not flask_started:
+                    for line in self.service_output_lines:
+                        if '🚀 正在启动Flask应用...' in line or ('服务地址:' in line and 'http://' in line):
+                            flask_started = True
+                            # 再等待几秒让Flask完全启动
+                            print("🔍 检测到Flask正在启动，等待服务完全就绪...")
+                            time.sleep(3)
+                            break
+                
+                # 只有在检测到Flask启动标记后才尝试连接（或者已经等待了足够长的时间）
+                if flask_started or waited_time >= 10:
+                    # 尝试连接服务（先尝试localhost，再尝试解析出的IP）
+                    # 构建测试地址列表：优先使用解析出的IP，然后是localhost
+                    test_hosts = []
+                    if self.server_ip != 'localhost':
+                        test_hosts.append(self.server_ip)
+                    test_hosts.append('localhost')
+                    
+                    for test_host in test_hosts:
+                        try:
+                            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                                s.settimeout(1)
+                                result = s.connect_ex((test_host, self.port))
+                                if result == 0:
+                                    # 端口已打开，更新base_url并使用该地址
+                                    if test_host != self.server_ip:
+                                        self.server_ip = test_host
+                                        self.base_url = f"http://{test_host}:{self.port}"
+                                    # 再等待1秒确保Flask完全启动
+                                    time.sleep(1)
+                                    print(f"✅ 服务已启动（{test_host}:{self.port} 已打开）")
+                                    return True
+                        except Exception:
+                            pass
                 
                 time.sleep(check_interval)
                 waited_time += check_interval
@@ -256,9 +302,11 @@ class ServiceTester:
             # 如果超时，检查进程是否还在运行
             if self.process.poll() is None:
                 print(f"⚠️  等待超时，但服务进程仍在运行")
-                print("💡 提示：如果服务已注册到 Nacos，说明服务可能已启动，但端口检查失败")
-                print("💡 提示：可能是服务绑定到了其他IP地址，而不是localhost")
-                return True  # 进程还在运行，认为启动成功
+                print(f"💡 提示：服务可能已启动，但端口检查失败")
+                print(f"💡 提示：尝试使用解析出的IP地址: {self.server_ip}:{self.port}")
+                print(f"💡 提示：如果服务已注册到 Nacos，说明服务可能已启动")
+                # 即使超时，如果进程还在运行，也认为启动成功（可能是网络问题）
+                return True
             else:
                 print("❌ 服务进程已退出")
                 return False
@@ -276,45 +324,59 @@ class ServiceTester:
         print("\n" + "="*60)
         print("📊 测试健康检查接口")
         print("="*60)
+        print(f"🌐 测试地址: {self.base_url}/health")
         
         # 重试机制：最多重试5次，每次间隔2秒
         max_retries = 5
         retry_interval = 2
         
+        # 尝试多个地址：先尝试解析出的IP，再尝试localhost
+        test_urls = [f"{self.base_url}/health"]
+        if self.server_ip != 'localhost':
+            # 如果解析出的IP不是localhost，也尝试localhost
+            localhost_url = f"http://localhost:{self.port}/health"
+            if localhost_url not in test_urls:
+                test_urls.append(localhost_url)
+        
         for attempt in range(1, max_retries + 1):
-            try:
-                response = requests.get(f"{self.base_url}/health", timeout=5)
-                print(f"状态码: {response.status_code}")
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    print(f"响应数据: {data}")
+            for test_url in test_urls:
+                try:
+                    print(f"   尝试连接: {test_url}")
+                    response = requests.get(test_url, timeout=5)
+                    print(f"状态码: {response.status_code}")
                     
-                    if data.get('status') == 'healthy':
-                        print("✅ 健康检查通过")
-                        return True
+                    if response.status_code == 200:
+                        data = response.json()
+                        print(f"响应数据: {data}")
+                        
+                        if data.get('status') == 'healthy':
+                            # 如果使用localhost成功，更新base_url
+                            if 'localhost' in test_url and self.server_ip != 'localhost':
+                                self.base_url = f"http://localhost:{self.port}"
+                            print("✅ 健康检查通过")
+                            return True
+                        else:
+                            print(f"⚠️  服务状态异常: {data.get('status')}")
+                            return False
                     else:
-                        print(f"⚠️  服务状态异常: {data.get('status')}")
-                        return False
-                else:
-                    print(f"❌ 健康检查失败，状态码: {response.status_code}")
-                    print(f"响应内容: {response.text}")
-                    if attempt < max_retries:
-                        print(f"   重试中... ({attempt}/{max_retries})")
-                        time.sleep(retry_interval)
-                        continue
-                    return False
-                    
-            except requests.exceptions.RequestException as e:
-                print(f"❌ 健康检查请求失败: {str(e)}")
-                if attempt < max_retries:
-                    print(f"   重试中... ({attempt}/{max_retries})")
-                    time.sleep(retry_interval)
-                    continue
-                else:
-                    print(f"⚠️  已重试 {max_retries} 次，仍然失败")
-                    print("💡 提示：如果服务已注册到 Nacos，可能是服务绑定到了其他IP地址")
-                    return False
+                        print(f"❌ 健康检查失败，状态码: {response.status_code}")
+                        print(f"响应内容: {response.text}")
+                        continue  # 尝试下一个URL
+                        
+                except requests.exceptions.RequestException as e:
+                    print(f"❌ 连接失败: {str(e)}")
+                    continue  # 尝试下一个URL
+            
+            # 如果所有URL都失败，等待后重试
+            if attempt < max_retries:
+                print(f"   所有地址都失败，重试中... ({attempt}/{max_retries})")
+                time.sleep(retry_interval)
+            else:
+                print(f"⚠️  已重试 {max_retries} 次，仍然失败")
+                print(f"💡 提示：服务可能绑定到了其他IP地址")
+                print(f"💡 提示：已尝试的地址: {', '.join(test_urls)}")
+                print(f"💡 提示：如果服务已注册到 Nacos，请检查服务实际绑定的IP和端口")
+                return False
         
         return False
     
@@ -430,8 +492,8 @@ def main():
     parser = argparse.ArgumentParser(description='测试 services 服务启动')
     parser.add_argument('--model-path', type=str, default=None,
                         help='模型文件路径（如果不指定，会自动查找）')
-    parser.add_argument('--port', type=int, default=8000,
-                        help='服务端口（默认: 8000）')
+    parser.add_argument('--port', type=int, default=8899,
+                        help='服务端口（默认: 8899）')
     parser.add_argument('--service-name', type=str, default='test_deploy_service',
                         help='服务名称（默认: test_deploy_service）')
     

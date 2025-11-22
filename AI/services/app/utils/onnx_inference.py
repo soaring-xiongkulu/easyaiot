@@ -52,15 +52,6 @@ classes = {0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 4: 'airplane', 
 # 随机颜色
 color_palette = np.random.uniform(100, 255, size=(len(classes), 3))
 
-# 注意：此providers变量已不再使用，现在在_init_model()方法中动态决定使用GPU或CPU
-# 保留此变量仅用于向后兼容，实际执行提供者会在模型初始化时根据可用性和错误处理自动选择
-providers = [
-    ('CUDAExecutionProvider', {
-        'device_id': 0,  # 可以选择GPU设备ID，如果你有多个GPU
-    }),
-    'CPUExecutionProvider',  # 也可以设置CPU作为备选
-]
-
 
 def calculate_iou(box, other_boxes):
     """
