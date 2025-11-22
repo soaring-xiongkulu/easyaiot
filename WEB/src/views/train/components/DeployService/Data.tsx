@@ -69,7 +69,6 @@ export const getFormConfig = (modelOptions: any[] = []): Partial<FormProps> => {
             {label: '全部', value: ''},
             {label: '运行中', value: 'running'},
             {label: '已停止', value: 'stopped'},
-            {label: '错误', value: 'error'},
           ],
         },
       },

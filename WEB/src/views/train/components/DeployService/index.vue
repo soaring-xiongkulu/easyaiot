@@ -16,9 +16,14 @@
       </template>
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'status'">
-          <Tag :color="getStatusColor(record.status)">
-            {{ getStatusText(record.status, record.running_count) }}
-          </Tag>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <Tag :color="getStatusColor(record.status)">
+              {{ getStatusText(record.status, record.running_count) }}
+            </Tag>
+            <Tag v-if="record.stopped_count !== undefined && record.stopped_count > 0" color="default">
+              停止中：{{ record.stopped_count }}
+            </Tag>
+          </div>
         </template>
         <template v-if="column.dataIndex === 'replicas'">
           <span class="replica-tag-table" v-if="record.replica_count" @click="handleViewReplicas(record)">
@@ -283,8 +288,7 @@ const handleDelete = async (record) => {
 const getStatusColor = (status) => {
   const colorMap = {
     'running': 'green',
-    'stopped': 'default',
-    'error': 'red'
+    'stopped': 'default'
   };
   return colorMap[status] || 'default';
 };
@@ -292,8 +296,7 @@ const getStatusColor = (status) => {
 const getStatusText = (status, runningCount) => {
   const textMap = {
     'running': '运行中',
-    'stopped': '已停止',
-    'error': '错误'
+    'stopped': '已停止'
   };
   const baseText = textMap[status] || status;
   // 如果是运行中状态且有running_count，显示"运行中：3"格式

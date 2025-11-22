@@ -56,14 +56,9 @@ def get_deploy_services():
         if server_ip:
             base_query = base_query.filter(AIService.server_ip.ilike(f'%{server_ip}%'))
         
-        # 支持状态过滤：running/offline/stopped/error
-        if status_filter in ['offline', 'stopped', 'running', 'error']:
-            if status_filter == 'running':
-                base_query = base_query.filter(AIService.status.in_(['running', 'online']))
-            elif status_filter == 'error':
-                base_query = base_query.filter(AIService.status.in_(['offline', 'error']))
-            else:
-                base_query = base_query.filter(AIService.status == status_filter)
+        # 支持状态过滤：只保留running和stopped
+        if status_filter in ['stopped', 'running']:
+            base_query = base_query.filter(AIService.status == status_filter)
 
         # 获取所有符合条件的服务
         all_services = base_query.all()
@@ -92,18 +87,16 @@ def get_deploy_services():
             # 计算副本数
             replica_count = len(services_list)
             
-            # 计算各状态的实例数
+            # 计算各状态的实例数（只保留running和stopped）
             statuses = [s[0].status for s in services_list]
-            running_count = sum(1 for status in statuses if status == 'running')
-            offline_count = sum(1 for status in statuses if status == 'offline')
+            # 将offline和error状态转换为stopped
+            normalized_statuses = ['stopped' if s in ['offline', 'error'] else s for s in statuses]
+            running_count = sum(1 for status in normalized_statuses if status == 'running')
+            stopped_count = sum(1 for status in normalized_statuses if status == 'stopped')
             
             # 计算聚合状态：如果有任何一个running，则显示running；否则显示stopped
-            if 'running' in statuses:
+            if 'running' in normalized_statuses:
                 aggregated_status = 'running'
-            elif 'offline' in statuses:
-                aggregated_status = 'offline'
-            elif 'error' in statuses:
-                aggregated_status = 'error'
             else:
                 aggregated_status = 'stopped'
             
@@ -113,7 +106,7 @@ def get_deploy_services():
             service_dict['replica_count'] = replica_count
             service_dict['status'] = aggregated_status
             service_dict['running_count'] = running_count
-            service_dict['offline_count'] = offline_count
+            service_dict['stopped_count'] = stopped_count
             
             # 如果服务记录中没有版本和格式，从Model表获取
             if not service_dict.get('model_version'):
@@ -769,7 +762,7 @@ def receive_logs():
 
 
 def check_heartbeat_timeout(app):
-    """定时检查心跳超时，超过1分钟没上报则更新状态为离线"""
+    """定时检查心跳超时，超过1分钟没上报则更新状态为stopped"""
     try:
         with app.app_context():
             timeout_threshold = beijing_now() - timedelta(minutes=1)
@@ -781,12 +774,12 @@ def check_heartbeat_timeout(app):
             
             for service in timeout_services:
                 old_status = service.status
-                service.status = 'offline'
-                logger.info(f"服务心跳超时，状态从 {old_status} 更新为 offline: {service.service_name}")
+                service.status = 'stopped'
+                logger.info(f"服务心跳超时，状态从 {old_status} 更新为 stopped: {service.service_name}")
             
             if timeout_services:
                 db.session.commit()
-                logger.info(f"已更新 {len(timeout_services)} 个服务状态为离线")
+                logger.info(f"已更新 {len(timeout_services)} 个服务状态为stopped")
     except Exception as e:
         logger.error(f"检查心跳超时失败: {str(e)}")
         try:

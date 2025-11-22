@@ -2,8 +2,8 @@
   <BasicDrawer
     v-bind="$attrs"
     @register="registerDrawer"
-    title="模型实例详情"
-    width="1200"
+    title="模型实例"
+    width="1300"
   >
     <BasicTable
       @register="registerTable"
@@ -14,6 +14,21 @@
           <Tag :color="getStatusColor(record.status)">
             {{ getStatusText(record.status) }}
           </Tag>
+        </template>
+        <template v-if="column.dataIndex === 'inference_endpoint'">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              {{ record.inference_endpoint || '--' }}
+            </span>
+            <Icon 
+              icon="tdesign:copy-filled" 
+              class="copy-icon-endpoint"
+              @click="handleCopyEndpoint(record.inference_endpoint)"
+            />
+          </div>
+        </template>
+        <template v-if="column.dataIndex === 'deploy_time'">
+          {{ formatDateTime(record.deploy_time) }}
         </template>
         <template v-if="column.dataIndex === 'action'">
           <TableAction
@@ -72,6 +87,7 @@ import type {DrawerProps} from '@/components/Drawer/src/typing';
 import {BasicTable, TableAction, useTable} from '@/components/Table';
 import {Tag} from 'ant-design-vue';
 import {useMessage} from '@/hooks/web/useMessage';
+import {Icon} from '@/components/Icon';
 import {useModal} from '@/components/Modal';
 import {
   startDeployService,
@@ -126,7 +142,7 @@ const columns = [
   {
     title: '推理接口',
     dataIndex: 'inference_endpoint',
-    width: 250,
+    width: 280,
     ellipsis: true,
   },
   {
@@ -150,14 +166,9 @@ const columns = [
     width: 180,
   },
   {
-    title: '最后心跳',
-    dataIndex: 'last_heartbeat',
-    width: 180,
-  },
-  {
     title: '操作',
     dataIndex: 'action',
-    width: 250,
+    width: 150,
     fixed: 'right',
   },
 ];
@@ -193,6 +204,26 @@ const getStatusText = (status) => {
     'offline': '离线'
   };
   return textMap[status] || status;
+};
+
+// 格式化时间
+const formatDateTime = (dateString: string) => {
+  if (!dateString || dateString === '--') return '--';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return dateString;
+    }
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  } catch (e) {
+    return dateString;
+  }
 };
 
 // 启动服务
@@ -246,9 +277,59 @@ const handleLogsModalClose = () => {
   showLogsModal.value = false;
 };
 
+// 复制推理接口
+const handleCopyEndpoint = async (endpoint: string) => {
+  if (!endpoint || endpoint === '--') {
+    createMessage.warning('推理接口为空，无法复制');
+    return;
+  }
+  
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(endpoint);
+      createMessage.success('推理接口已复制到剪贴板');
+    } else {
+      // 降级方案
+      const textArea = document.createElement('textarea');
+      textArea.value = endpoint;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        createMessage.success('推理接口已复制到剪贴板');
+      } catch (err) {
+        createMessage.error('复制失败，请手动复制');
+      }
+      document.body.removeChild(textArea);
+    }
+  } catch (error) {
+    createMessage.error('复制失败');
+    console.error('复制失败:', error);
+  }
+};
+
 const emit = defineEmits(['refresh']);
 </script>
 
 <style lang="less" scoped>
+.copy-icon-endpoint {
+  cursor: pointer;
+  color: #1890ff;
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  
+  &:hover {
+    color: #40a9ff;
+    transform: scale(1.1);
+  }
+  
+  &:active {
+    color: #096dd9;
+    transform: scale(0.95);
+  }
+}
 </style>
 

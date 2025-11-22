@@ -34,6 +34,9 @@
                     <span class="status-tag" :class="`status-${item.status}`">
                       {{ getStatusText(item.status, item.running_count) }}
                     </span>
+                    <span class="status-tag status-stopped" v-if="item.stopped_count !== undefined && item.stopped_count > 0">
+                      停止中：{{ item.stopped_count }}
+                    </span>
                     <span class="replica-tag" v-if="item.replica_count" @click="handleViewReplicas(item)">
                       副本数: {{ item.replica_count }}
                     </span>
@@ -55,9 +58,13 @@
                       <span class="info-label">模型格式:</span>
                       <span class="info-value">{{ getFormatText(item) || '--' }}</span>
                     </div>
-                    <div class="info-item" v-if="item.offline_count > 0">
-                      <span class="info-label">离线数量:</span>
-                      <span class="info-value">{{ item.offline_count }}</span>
+                    <div class="info-item">
+                      <span class="info-label">模型名称:</span>
+                      <span class="info-value">{{ item.model_name || '--' }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">模型版本:</span>
+                      <span class="info-value">{{ item.model_version || '--' }}</span>
                     </div>
                   </div>
 
@@ -299,9 +306,7 @@ function formatDateTime(dateString: string) {
 function getStatusText(status: string, runningCount?: number) {
   const textMap: Record<string, string> = {
     'running': '运行中',
-    'stopped': '已停止',
-    'offline': '离线',
-    'error': '错误'
+    'stopped': '已停止'
   };
   const baseText = textMap[status] || status || '未知';
   // 如果是运行中状态且有running_count，显示"运行中：3"格式
@@ -558,18 +563,6 @@ const handleViewReplicas = async (record: any) => {
     background: #fafafa;
     border-color: #d9d9d9;
     color: #8c8c8c;
-  }
-
-  &.status-offline {
-    background: #fff7e6;
-    border-color: #ffd591;
-    color: #fa8c16;
-  }
-
-  &.status-error {
-    background: #fff2f0;
-    border-color: #ffccc7;
-    color: #ff4d4f;
   }
 }
 
