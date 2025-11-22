@@ -13,30 +13,14 @@ export const getBasicColumns = (): BasicColumn[] => {
       width: 150,
     },
     {
-      title: '服务器IP',
-      dataIndex: 'server_ip',
-      width: 120,
-    },
-    {
-      title: '端口',
-      dataIndex: 'port',
-      width: 80,
-    },
-    {
-      title: '推理接口',
-      dataIndex: 'inference_endpoint',
-      width: 250,
-      ellipsis: true,
-    },
-    {
       title: '状态',
       dataIndex: 'status',
       width: 100,
     },
     {
-      title: 'MAC地址',
-      dataIndex: 'mac_address',
-      width: 150,
+      title: '副本数',
+      dataIndex: 'replicas',
+      width: 120,
     },
     {
       title: '部署时间',

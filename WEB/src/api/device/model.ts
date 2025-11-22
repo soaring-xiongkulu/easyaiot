@@ -251,3 +251,21 @@ export const deleteDeployService = (serviceId) => {
   return commonApi('post', `${Api.DeployService}/${serviceId}/delete`);
 };
 
+// 批量操作接口（按service_name）
+export const batchStartDeployService = (serviceName) => {
+  return commonApi('post', `${Api.DeployService}/batch/start`, {data: {service_name: serviceName}});
+};
+
+export const batchStopDeployService = (serviceName) => {
+  return commonApi('post', `${Api.DeployService}/batch/stop`, {data: {service_name: serviceName}});
+};
+
+export const batchRestartDeployService = (serviceName) => {
+  return commonApi('post', `${Api.DeployService}/batch/restart`, {data: {service_name: serviceName}});
+};
+
+// 获取service_name的所有副本详情
+export const getDeployServiceReplicas = (serviceName) => {
+  return commonApi('get', `${Api.DeployService}/replicas`, {params: {service_name: serviceName}});
+};
+

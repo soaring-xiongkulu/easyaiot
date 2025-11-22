@@ -20,34 +20,34 @@
             {{ getStatusText(record.status) }}
           </Tag>
         </template>
+        <template v-if="column.dataIndex === 'replicas'">
+          <span class="replica-tag-table" v-if="record.replica_count">
+            副本数: <a class="replica-count-link" @click="handleViewReplicas(record)">{{ record.replica_count }}</a>
+          </span>
+          <span v-else>--</span>
+        </template>
         <template v-if="column.dataIndex === 'action'">
           <TableAction
             :actions="[
               {
                 icon: 'mdi:play-outline',
-                tooltip: { title: '启动', placement: 'top' },
-                onClick: () => handleStart(record),
+                tooltip: { title: '批量启动', placement: 'top' },
+                onClick: () => handleBatchStart(record),
                 disabled: record.status === 'running',
                 style: 'color: #52c41a; padding: 0 8px; font-size: 16px;'
               },
               {
                 icon: 'mdi:stop-outline',
-                tooltip: { title: '停止', placement: 'top' },
-                onClick: () => handleStop(record),
+                tooltip: { title: '批量停止', placement: 'top' },
+                onClick: () => handleBatchStop(record),
                 disabled: record.status !== 'running',
                 style: 'color: #ff4d4f; padding: 0 8px; font-size: 16px;'
               },
               {
                 icon: 'mdi:restart',
-                tooltip: { title: '重启', placement: 'top' },
-                onClick: () => handleRestart(record),
+                tooltip: { title: '批量重启', placement: 'top' },
+                onClick: () => handleBatchRestart(record),
                 disabled: record.status !== 'running',
-                style: 'color: #1890ff; padding: 0 8px; font-size: 16px;'
-              },
-              {
-                icon: 'mdi:file-document-outline',
-                tooltip: { title: '查看日志', placement: 'top' },
-                onClick: () => handleViewLogs(record),
                 style: 'color: #1890ff; padding: 0 8px; font-size: 16px;'
               },
               {
@@ -77,7 +77,7 @@
         :params="params"
         :api="getDeployServicePage"
         @get-method="getMethod"
-        @view-logs="handleViewLogs"
+        @view-replicas="handleViewReplicas"
       >
         <template #header>
           <a-button type="primary" @click="openDeployModal(true, {isEdit: false, isView: false})">
@@ -96,6 +96,10 @@
       @register="registerLogsModal"
       @close="handleLogsModalClose"
     />
+    <ReplicasDrawer
+      @register="registerReplicasDrawer"
+      @refresh="handleReplicasRefresh"
+    />
   </div>
 </template>
 
@@ -110,11 +114,16 @@ import {
   getModelPage,
   restartDeployService,
   startDeployService,
-  stopDeployService
+  stopDeployService,
+  batchStartDeployService,
+  batchStopDeployService,
+  batchRestartDeployService,
+  getDeployServiceReplicas
 } from '@/api/device/model';
 import DeployModal from '../DeployModal/DeployModal.vue';
 import DeployServiceCardList from '../DeployServiceCardList/index.vue';
 import ServiceLogsModal from '../ServiceLogsModal/ServiceLogsModal.vue';
+import ReplicasDrawer from '../ReplicasDrawer/index.vue';
 import {getBasicColumns, getFormConfig} from './Data';
 import {Tag} from 'ant-design-vue';
 import {Icon} from "@/components/Icon";
@@ -160,6 +169,7 @@ const [registerLogsModal, {
   openModal: openServiceLogsModal,
   closeModal: closeServiceLogsModal
 }] = useModal();
+const [registerReplicasDrawer, {openDrawer: openReplicasDrawer}] = useModal();
 
 // 表格刷新
 function handleDeploySuccess() {
@@ -169,40 +179,75 @@ function handleDeploySuccess() {
   cardListReload();
 }
 
-// 启动服务
-const handleStart = async (record) => {
+// 批量启动服务
+const handleBatchStart = async (record) => {
   try {
-    await startDeployService(record.id);
-    createMessage.success('服务启动成功');
+    const result = await batchStartDeployService(record.service_name);
+    if (result.code === 0) {
+      createMessage.success(result.msg || '批量启动成功');
+    } else {
+      createMessage.error(result.msg || '批量启动失败');
+    }
     reload();
   } catch (error) {
-    createMessage.error('服务启动失败');
-    console.error('服务启动失败:', error);
+    createMessage.error('批量启动失败');
+    console.error('批量启动失败:', error);
   }
 };
 
-// 停止服务
-const handleStop = async (record) => {
+// 批量停止服务
+const handleBatchStop = async (record) => {
   try {
-    await stopDeployService(record.id);
-    createMessage.success('服务停止成功');
+    const result = await batchStopDeployService(record.service_name);
+    if (result.code === 0) {
+      createMessage.success(result.msg || '批量停止成功');
+    } else {
+      createMessage.error(result.msg || '批量停止失败');
+    }
     reload();
   } catch (error) {
-    createMessage.error('服务停止失败');
-    console.error('服务停止失败:', error);
+    createMessage.error('批量停止失败');
+    console.error('批量停止失败:', error);
   }
 };
 
-// 重启服务
-const handleRestart = async (record) => {
+// 批量重启服务
+const handleBatchRestart = async (record) => {
   try {
-    await restartDeployService(record.id);
-    createMessage.success('服务重启成功');
+    const result = await batchRestartDeployService(record.service_name);
+    if (result.code === 0) {
+      createMessage.success(result.msg || '批量重启成功');
+    } else {
+      createMessage.error(result.msg || '批量重启失败');
+    }
     reload();
   } catch (error) {
-    createMessage.error('服务重启失败');
-    console.error('服务重启失败:', error);
+    createMessage.error('批量重启失败');
+    console.error('批量重启失败:', error);
   }
+};
+
+// 查看副本详情
+const handleViewReplicas = async (record) => {
+  try {
+    const result = await getDeployServiceReplicas(record.service_name);
+    if (result.code === 0) {
+      openReplicasDrawer(true, {
+        serviceName: record.service_name,
+        replicas: result.data || []
+      });
+    } else {
+      createMessage.error(result.msg || '获取副本详情失败');
+    }
+  } catch (error) {
+    createMessage.error('获取副本详情失败');
+    console.error('获取副本详情失败:', error);
+  }
+};
+
+// 副本刷新回调
+const handleReplicasRefresh = () => {
+  reload();
 };
 
 // 查看日志
@@ -347,6 +392,32 @@ watch(() => modelOptions.value, (newOptions) => {
 <style lang="less" scoped>
 .deploy-service-container {
   // 样式可以根据需要添加
+}
+
+.replica-tag-table {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid;
+  background: #e6f7ff;
+  border-color: #91d5ff;
+  color: #1890ff;
+
+  .replica-count-link {
+    color: #1890ff;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #40a9ff;
+      text-decoration: underline;
+    }
+  }
 }
 </style>
 
