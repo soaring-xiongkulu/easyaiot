@@ -94,6 +94,78 @@ def _find_available_port(start_port=8000, max_attempts=100):
     return None
 
 
+def _download_model_to_local(model_path: str, service_id: int) -> str:
+    """下载模型文件到本地（如果是MinIO URL）
+    
+    Returns:
+        str: 本地模型文件路径
+    """
+    # 如果不是MinIO URL，直接返回
+    if not model_path.startswith('/api/v1/buckets/'):
+        if os.path.exists(model_path):
+            logger.info(f'模型文件已存在（本地路径）: {model_path}')
+            return model_path
+        else:
+            logger.error(f'模型文件不存在: {model_path}')
+            raise ValueError(f'模型文件不存在: {model_path}')
+    
+    # 解析MinIO URL
+    import urllib.parse
+    try:
+        parsed = urllib.parse.urlparse(model_path)
+        path_parts = parsed.path.split('/')
+        
+        # 提取bucket名称: /api/v1/buckets/{bucket_name}/objects/...
+        if len(path_parts) >= 5 and path_parts[3] == 'buckets':
+            bucket_name = path_parts[4]
+        else:
+            raise ValueError(f'URL格式不正确，无法提取bucket名称: {model_path}')
+        
+        # 提取object_key
+        query_params = urllib.parse.parse_qs(parsed.query)
+        object_key = query_params.get('prefix', [None])[0]
+        
+        if not object_key:
+            raise ValueError(f'URL中缺少prefix参数: {model_path}')
+        
+        # 创建模型存储目录
+        model_storage_dir = os.path.join('data', 'models', str(service_id))
+        os.makedirs(model_storage_dir, exist_ok=True)
+        
+        # 从object_key中提取文件名
+        filename = os.path.basename(object_key) or f"model_{service_id}"
+        local_path = os.path.join(model_storage_dir, filename)
+        
+        # 如果文件已存在，直接返回（避免重复下载）
+        if os.path.exists(local_path):
+            file_size = os.path.getsize(local_path)
+            logger.info(f'模型文件已存在，跳过下载: {local_path}, 大小: {file_size} 字节')
+            return local_path
+        
+        # 下载文件
+        logger.info(f'开始从MinIO下载模型文件...')
+        logger.info(f'  Bucket: {bucket_name}')
+        logger.info(f'  Object: {object_key}')
+        logger.info(f'  目标路径: {local_path}')
+        
+        from app.services.minio_service import ModelService
+        success, error_msg = ModelService.download_from_minio(
+            bucket_name, object_key, local_path
+        )
+        
+        if success:
+            file_size = os.path.getsize(local_path)
+            logger.info(f'模型文件下载成功: {local_path}, 大小: {file_size} 字节')
+            return local_path
+        else:
+            logger.error(f'模型文件下载失败: {error_msg}')
+            raise ValueError(f'模型文件下载失败: {error_msg}')
+            
+    except Exception as e:
+        logger.error(f'下载模型文件异常: {str(e)}', exc_info=True)
+        raise
+
+
 def _infer_model_format(model: Model, model_path: str) -> str:
     """推断模型格式"""
     model_path_lower = model_path.lower()
@@ -215,9 +287,22 @@ def deploy_model(model_id: int, start_port: int = 8000) -> dict:
                 'data': ai_service.to_dict()
             }
         
-        # 启动守护进程
+        # 下载模型文件到本地（如果是MinIO URL）
+        local_model_path = _download_model_to_local(model_path, ai_service.id)
+        
+        # 启动守护进程（传入所有必要参数，不需要数据库连接）
         logger.info(f'启动守护进程，服务ID: {ai_service.id}')
-        _deploy_daemons[ai_service.id] = DeployServiceDaemon(ai_service.id)
+        _deploy_daemons[ai_service.id] = DeployServiceDaemon(
+            service_id=ai_service.id,
+            service_name=ai_service.service_name,
+            log_path=ai_service.log_path,
+            model_id=ai_service.model_id,
+            model_path=local_model_path,  # 已经是本地路径
+            port=ai_service.port,
+            server_ip=ai_service.server_ip,
+            model_version=ai_service.model_version or model.version or 'V1.0.0',
+            model_format=ai_service.format or model_format
+        )
         ai_service.status = 'offline'  # 初始状态，等待心跳上报后变为running
         db.session.commit()
         
@@ -310,9 +395,22 @@ def start_service(service_id: int) -> dict:
             else:
                 logger.info('守护进程已停止，重新启动...')
         
-        # 启动守护进程
+        # 下载模型文件到本地（如果是MinIO URL）
+        local_model_path = _download_model_to_local(model_path, service_id)
+        
+        # 启动守护进程（传入所有必要参数，不需要数据库连接）
         logger.info('启动守护进程...')
-        _deploy_daemons[service_id] = DeployServiceDaemon(service_id)
+        _deploy_daemons[service_id] = DeployServiceDaemon(
+            service_id=service.id,
+            service_name=service.service_name,
+            log_path=service.log_path,
+            model_id=service.model_id,
+            model_path=local_model_path,  # 已经是本地路径
+            port=service.port,
+            server_ip=service.server_ip,
+            model_version=service.model_version or model.version or 'V1.0.0',
+            model_format=service.format or _infer_model_format(model, model_path)
+        )
         service.status = 'offline'  # 初始状态，等待心跳上报后变为running
         db.session.commit()
         

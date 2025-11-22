@@ -14,15 +14,43 @@ import urllib.parse
 from pathlib import Path
 from datetime import datetime
 
-from db_models import db, AIService, beijing_now
+# 不再需要导入数据库模型，所有信息都通过参数传入
 
 
 class DeployServiceDaemon:
-    """模型部署服务守护线程，管理模型服务进程，支持自动重启"""
+    """模型部署服务守护线程，管理模型服务进程，支持自动重启
+    
+    注意：这个守护进程是独立的，不需要数据库连接。
+    所有必要的信息都通过参数传入。
+    """
 
-    def __init__(self, service_id: int):
+    def __init__(self, service_id: int, service_name: str, log_path: str,
+                 model_id: int, model_path: str, port: int, server_ip: str,
+                 model_version: str = 'V1.0.0', model_format: str = 'pytorch'):
+        """
+        初始化守护进程
+        
+        Args:
+            service_id: 服务ID
+            service_name: 服务名称
+            log_path: 日志文件路径（目录）
+            model_id: 模型ID
+            model_path: 模型文件路径（本地路径，已经下载好的）
+            port: 服务端口
+            server_ip: 服务器IP
+            model_version: 模型版本
+            model_format: 模型格式
+        """
         self._process = None
         self._service_id = service_id
+        self._service_name = service_name
+        self._log_path = log_path
+        self._model_id = model_id
+        self._model_path = model_path  # 已经是本地路径
+        self._port = port
+        self._server_ip = server_ip
+        self._model_version = model_version
+        self._model_format = model_format
         self._running = True  # 守护线程是否继续运行
         self._restart = False  # 手动重启标志
         threading.Thread(target=self._daemon, daemon=True).start()
@@ -56,11 +84,7 @@ class DeployServiceDaemon:
 
     def _daemon(self):
         """守护线程主循环，管理子进程并处理日志"""
-        # 获取Flask应用上下文
-        from flask import current_app
-        from run import create_app
-        app = create_app()
-        
+        # 不再需要 Flask 应用上下文，所有信息都已通过参数传入
         log_file_path = self._get_log_file_path()
         os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
         
@@ -69,15 +93,15 @@ class DeployServiceDaemon:
         with open(log_file_path, mode='w', encoding='utf-8') as f_log:
             f_log.write(f'# ========== 模型部署服务守护进程启动 ==========\n')
             f_log.write(f'# 服务ID: {self._service_id}\n')
+            f_log.write(f'# 服务名称: {self._service_name}\n')
             f_log.write(f'# 启动时间: {datetime.now().isoformat()}\n')
             f_log.write(f'# ===========================================\n\n')
             f_log.flush()
             
             while self._running:
                 try:
-                    with app.app_context():
-                        self._log('开始获取部署参数...', 'DEBUG')
-                        cmds, cwd, env = self._get_deploy_args()
+                    self._log('开始获取部署参数...', 'DEBUG')
+                    cmds, cwd, env = self._get_deploy_args()
                     
                     if cmds is None:
                         self._log('获取部署参数失败，无法启动服务', 'ERROR')
@@ -121,9 +145,47 @@ class DeployServiceDaemon:
                     f_log.flush()
                     
                     # 实时读取并写入日志
+                    # 注意：只写入 services 模块的日志，过滤掉 AI 模块的日志
                     for line in iter(self._process.stdout.readline, ''):
                         if not line:
                             break
+                        # 检查是否是 services 模块的日志（包含 [SERVICES] 前缀）
+                        # 或者是 services 模块的其他输出（不包含 AI 模块的特征）
+                        # AI 模块的日志特征：
+                        # - "✅ multiprocessing启动方法已为'spawn'"
+                        # - "✅ 已加载默认配置文件"
+                        # - "✅ 已设置 ONNX Runtime 使用 CPU 执行提供者"
+                        # - "✅ Flask URL配置"
+                        # - "数据库连接:"
+                        # - "✅ 数据库连接成功"
+                        # - "✅ 所有蓝图注册成功"
+                        # - "⚠️ 未配置POD_IP"
+                        # - "✅ 服务注册成功: model-server@"
+                        # - "🚀 心跳线程已启动"
+                        # - Flask HTTP 请求日志格式: "192.168.11.28 - - [23/Nov/2025"
+                        
+                        # 过滤掉 AI 模块的日志
+                        if any(marker in line for marker in [
+                            "✅ multiprocessing启动方法已为",
+                            "✅ 已加载默认配置文件",
+                            "✅ 已设置 ONNX Runtime 使用 CPU",
+                            "✅ Flask URL配置: SERVER_NAME=",
+                            "数据库连接: postgresql://",
+                            "✅ 数据库连接成功",
+                            "✅ 所有蓝图注册成功",
+                            "⚠️ 未配置POD_IP",
+                            "✅ 服务注册成功: model-server@",
+                            "🚀 心跳线程已启动，间隔:",
+                        ]):
+                            # 这是 AI 模块的日志，不写入 services 模块的日志文件
+                            continue
+                        
+                        # 过滤掉 Flask HTTP 请求日志（格式：IP - - [日期] "请求" 状态码）
+                        import re
+                        if re.match(r'^\d+\.\d+\.\d+\.\d+\s+-\s+-\s+\[.*?\]\s+"[A-Z]+', line):
+                            # 这是 Flask HTTP 请求日志，不写入
+                            continue
+                        
                         f_log.write(line)
                         f_log.flush()
                     
@@ -180,166 +242,21 @@ class DeployServiceDaemon:
 
     def _get_log_file_path(self) -> str:
         """获取日志文件路径"""
-        try:
-            from run import create_app
-            app = create_app()
-            with app.app_context():
-                service = AIService.query.get(self._service_id)
-                if service and service.log_path:
-                    log_dir = service.log_path
-                else:
-                    log_dir = os.path.join('data', 'deploy_logs')
-                
-                os.makedirs(log_dir, exist_ok=True)
-                service_name = service.service_name if service else f'service_{self._service_id}'
-                return os.path.join(log_dir, f'{service_name}.log')
-        except:
-            # 如果无法获取应用上下文，使用默认路径
-            log_dir = os.path.join('data', 'deploy_logs')
-            os.makedirs(log_dir, exist_ok=True)
-            return os.path.join(log_dir, f'service_{self._service_id}.log')
-
-    def _parse_minio_url(self, url: str) -> tuple:
-        """解析MinIO URL，返回(bucket_name, object_key)"""
-        try:
-            self._log(f'解析MinIO URL: {url}', 'DEBUG')
-            parsed = urllib.parse.urlparse(url)
-            path_parts = parsed.path.split('/')
-            
-            # 提取bucket名称: /api/v1/buckets/{bucket_name}/objects/...
-            if len(path_parts) >= 5 and path_parts[3] == 'buckets':
-                bucket_name = path_parts[4]
-            else:
-                self._log(f'URL格式不正确，无法提取bucket名称: {url}', 'ERROR')
-                return None, None
-            
-            # 提取object_key
-            query_params = urllib.parse.parse_qs(parsed.query)
-            object_key = query_params.get('prefix', [None])[0]
-            
-            if not object_key:
-                self._log(f'URL中缺少prefix参数: {url}', 'ERROR')
-                return None, None
-            
-            self._log(f'解析成功 - Bucket: {bucket_name}, Object: {object_key}', 'DEBUG')
-            return bucket_name, object_key
-        except Exception as e:
-            self._log(f'解析MinIO URL失败: {url}, 错误: {str(e)}', 'ERROR')
-            return None, None
-    
-    def _download_model_from_minio(self, model_path: str) -> str:
-        """从MinIO下载模型文件到本地，返回本地文件路径"""
-        try:
-            self._log(f'开始处理模型路径: {model_path}', 'INFO')
-            
-            # 检查是否是MinIO URL
-            if not model_path.startswith('/api/v1/buckets/'):
-                # 如果不是URL，检查是否是本地文件路径
-                self._log(f'检测到本地文件路径，检查文件是否存在...', 'DEBUG')
-                if os.path.exists(model_path):
-                    file_size = os.path.getsize(model_path)
-                    self._log(f'模型文件已存在（本地路径）: {model_path}, 大小: {file_size} 字节', 'INFO')
-                    return model_path
-                else:
-                    self._log(f'模型文件不存在: {model_path}', 'ERROR')
-                    return None
-            
-            # 解析URL
-            self._log(f'检测到MinIO URL，开始解析...', 'INFO')
-            bucket_name, object_key = self._parse_minio_url(model_path)
-            if not bucket_name or not object_key:
-                self._log(f'无法解析MinIO URL: {model_path}', 'ERROR')
-                return None
-            
-            # 创建模型存储目录
-            model_storage_dir = os.path.join('data', 'models', str(self._service_id))
-            os.makedirs(model_storage_dir, exist_ok=True)
-            self._log(f'模型存储目录: {model_storage_dir}', 'DEBUG')
-            
-            # 从object_key中提取文件名
-            filename = os.path.basename(object_key) or f"model_{self._service_id}"
-            local_path = os.path.join(model_storage_dir, filename)
-            self._log(f'本地模型文件路径: {local_path}', 'DEBUG')
-            
-            # 如果文件已存在，直接返回（避免重复下载）
-            if os.path.exists(local_path):
-                file_size = os.path.getsize(local_path)
-                self._log(f'模型文件已存在，跳过下载: {local_path}, 大小: {file_size} 字节', 'INFO')
-                return local_path
-            
-            # 下载文件
-            self._log(f'开始从MinIO下载模型文件...', 'INFO')
-            self._log(f'  Bucket: {bucket_name}', 'DEBUG')
-            self._log(f'  Object: {object_key}', 'DEBUG')
-            self._log(f'  目标路径: {local_path}', 'DEBUG')
-            
-            from app.services.minio_service import ModelService
-            from flask import current_app
-            
-            # 需要在应用上下文中调用
-            import time
-            start_time = time.time()
-            success, error_msg = ModelService.download_from_minio(
-                bucket_name, object_key, local_path
-            )
-            download_time = time.time() - start_time
-            
-            if success:
-                file_size = os.path.getsize(local_path)
-                self._log(f'模型文件下载成功: {local_path}, 大小: {file_size} 字节, 耗时: {download_time:.2f}秒', 'INFO')
-                return local_path
-            else:
-                self._log(f'模型文件下载失败: {error_msg}', 'ERROR')
-                return None
-                
-        except Exception as e:
-            import traceback
-            error_msg = f'下载模型文件异常: {str(e)}\n{traceback.format_exc()}'
-            self._log(error_msg, 'ERROR')
-            return None
+        # 直接使用传入的 log_path，不需要访问数据库
+        os.makedirs(self._log_path, exist_ok=True)
+        return os.path.join(self._log_path, f'{self._service_name}.log')
 
     def _get_deploy_args(self) -> tuple:
         """获取部署服务的启动参数"""
-        try:
-            self._log(f'获取服务信息，服务ID: {self._service_id}', 'DEBUG')
-            service = AIService.query.get(self._service_id)
-            if not service:
-                self._log(f'服务不存在，服务ID: {self._service_id}', 'ERROR')
-                return None, None, None
-            
-            self._log(f'服务信息: {service.service_name}, 模型ID: {service.model_id}, 端口: {service.port}', 'DEBUG')
-            
-            model = None
-            if service.model_id:
-                from db_models import Model
-                model = Model.query.get(service.model_id)
-            
-            if not model:
-                self._log(f'模型不存在，模型ID: {service.model_id}', 'ERROR')
-                return None, None, None
-            
-            self._log(f'模型信息: {model.name}, 版本: {model.version}', 'DEBUG')
-        except Exception as e:
-            import traceback
-            error_msg = f'获取部署参数失败: {str(e)}\n{traceback.format_exc()}'
-            self._log(error_msg, 'ERROR')
+        # 所有信息都已通过参数传入，不需要访问数据库
+        self._log(f'服务信息: {self._service_name}, 模型ID: {self._model_id}, 端口: {self._port}', 'DEBUG')
+        
+        # 模型路径已经是本地路径（在 deploy_service.py 中已经处理好了）
+        if not self._model_path or not os.path.exists(self._model_path):
+            self._log(f'模型文件不存在: {self._model_path}', 'ERROR')
             return None, None, None
         
-        # 获取模型路径
-        model_path = (model.model_path or model.onnx_model_path or 
-                     model.torchscript_model_path or model.tensorrt_model_path or 
-                     model.openvino_model_path)
-        if not model_path:
-            self._log('模型没有可用的模型文件路径', 'ERROR')
-            return None, None, None
-        
-        self._log(f'原始模型路径: {model_path}', 'INFO')
-        
-        # 如果模型路径是URL，先下载到本地
-        local_model_path = self._download_model_from_minio(model_path)
-        if not local_model_path:
-            self._log(f'无法获取本地模型文件路径，原始路径: {model_path}', 'ERROR')
-            return None, None, None
+        self._log(f'模型路径: {self._model_path}', 'INFO')
         
         # 获取部署脚本路径
         deploy_service_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'services')
@@ -363,26 +280,19 @@ class DeployServiceDaemon:
         
         cmds = [python_exec, deploy_script]
         
-        # 准备环境变量
+        # 准备环境变量（使用传入的参数）
         env = os.environ.copy()
-        env['MODEL_ID'] = str(service.model_id) if service.model_id else ''
-        env['MODEL_PATH'] = local_model_path  # 使用本地路径
-        env['SERVICE_ID'] = str(service.id)
-        env['SERVICE_NAME'] = service.service_name
-        env['PORT'] = str(service.port)
-        env['SERVER_IP'] = service.server_ip
-        env['MODEL_VERSION'] = service.model_version or model.version or 'V1.0.0'
-        env['MODEL_FORMAT'] = service.format or 'pytorch'
+        env['MODEL_ID'] = str(self._model_id)
+        env['MODEL_PATH'] = self._model_path  # 已经是本地路径
+        env['SERVICE_ID'] = str(self._service_id)
+        env['SERVICE_NAME'] = self._service_name
+        env['PORT'] = str(self._port)
+        env['SERVER_IP'] = self._server_ip
+        env['MODEL_VERSION'] = self._model_version
+        env['MODEL_FORMAT'] = self._model_format
+        env['LOG_PATH'] = self._log_path
         
-        # 日志路径
-        if service.log_path:
-            env['LOG_PATH'] = service.log_path
-        else:
-            log_dir = os.path.join('data', 'deploy_logs', service.service_name)
-            os.makedirs(log_dir, exist_ok=True)
-            env['LOG_PATH'] = log_dir
-        
-        self._log(f'环境变量已设置: MODEL_PATH={local_model_path}, PORT={env["PORT"]}, SERVICE_NAME={env["SERVICE_NAME"]}', 'DEBUG')
+        self._log(f'环境变量已设置: MODEL_PATH={self._model_path}, PORT={env["PORT"]}, SERVICE_NAME={env["SERVICE_NAME"]}', 'DEBUG')
         
         return cmds, deploy_service_dir, env
 

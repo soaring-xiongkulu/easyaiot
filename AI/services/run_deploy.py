@@ -31,12 +31,21 @@ except ImportError as e:
 app = Flask(__name__)
 CORS(app)
 
-# 配置日志
+# 配置日志 - 为 services 模块配置独立的日志系统
+# 禁用 Flask/Werkzeug 的默认日志输出
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
+logging.getLogger('flask').setLevel(logging.WARNING)
+
+# 配置根日志记录器，但使用独立的格式
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='[SERVICES] %(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    force=True  # 强制重新配置，覆盖之前的配置
 )
 logger = logging.getLogger(__name__)
+logger.info("=" * 60)
+logger.info("🚀 模型部署服务 (Services Module) 启动")
+logger.info("=" * 60)
 
 # 全局变量
 model = None
@@ -782,6 +791,11 @@ def main():
     logger.info(f"📊 健康检查: http://{server_ip}:{port}/health")
     logger.info(f"🔮 推理接口: http://{server_ip}:{port}/inference")
     logger.info("=" * 60)
+    
+    # 禁用 Flask 的默认日志输出（Werkzeug）
+    import logging
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)  # 只显示错误，不显示 HTTP 请求日志
     
     try:
         app.run(host=host, port=port, threaded=True, debug=False)

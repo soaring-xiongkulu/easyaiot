@@ -56,8 +56,8 @@ COPY . .
 # 创建必要的目录
 RUN mkdir -p data/uploads data/datasets data/models data/inference_results temp_uploads static/models
 
-# 设置权限
-RUN chmod +x run.py
+# 设置权限（如果存在 run_deploy.py）
+RUN if [ -f run_deploy.py ]; then chmod +x run_deploy.py; fi
 
 # 创建非root用户（-m 参数自动创建主目录）
 RUN groupadd -r appuser && useradd -r -m -g appuser appuser
@@ -82,4 +82,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
     CMD curl -f http://localhost:5000/actuator/health || exit 1
 
 # 启动命令
-CMD ["python", "run.py"]
+CMD ["python", "run_deploy.py"]

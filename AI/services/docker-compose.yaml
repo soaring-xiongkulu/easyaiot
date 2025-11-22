@@ -28,10 +28,6 @@ services:
       - ./temp_uploads:/app/temp_uploads
       # 模型文件目录（如果存在）
       - ./model:/app/model
-      # 预训练模型文件
-      - ./yolo11n:/app/yolo11n
-      - ./yolo11n.pt:/app/yolo11n.pt
-      - ./yolov8n.pt:/app/yolov8n.pt
       # 环境变量配置文件（用于Docker部署，使用.env.docker）
       - ./.env.docker:/app/.env:ro
 
