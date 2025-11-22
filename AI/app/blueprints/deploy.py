@@ -297,16 +297,28 @@ def receive_heartbeat():
         format_type = data.get('format')
         process_id = data.get('process_id')
 
-        # 优先使用 service_name 查找服务，如果找不到且提供了 service_id，则通过 service_id 查找
+        # 优先使用 service_id 查找服务（最准确）
         service = None
-        if service_name:
-            service = AIService.query.filter_by(service_name=service_name).first()
-        
-        # 如果通过 service_name 找不到，且提供了 service_id，尝试通过 service_id 查找
-        if not service and service_id:
+        if service_id:
             service = AIService.query.get(service_id)
             if service:
                 logger.info(f"通过 service_id={service_id} 找到已有服务: {service.service_name}")
+        
+        # 如果没有 service_id，尝试通过 service_name + server_ip + port 组合查找（更精确）
+        if not service and service_name and server_ip and port:
+            service = AIService.query.filter_by(
+                service_name=service_name,
+                server_ip=server_ip,
+                port=port
+            ).first()
+            if service:
+                logger.info(f"通过 service_name={service_name}, server_ip={server_ip}, port={port} 找到已有服务")
+        
+        # 如果仍然找不到，尝试仅通过 service_name 查找（兼容旧逻辑）
+        if not service and service_name:
+            service = AIService.query.filter_by(service_name=service_name).first()
+            if service:
+                logger.warning(f"通过 service_name={service_name} 找到服务，但可能存在多个同名服务，建议使用 service_id 或 server_ip+port 组合")
         
         # 如果仍然找不到服务，创建新记录（这种情况应该很少见，因为服务应该先创建记录再启动）
         if not service:

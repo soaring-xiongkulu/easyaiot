@@ -183,7 +183,7 @@ class AIService(db.Model):
     """AI服务表，用于维护所有部署的AI服务"""
     id = db.Column(db.Integer, primary_key=True)
     model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=True)  # 关联的模型ID（可空，支持心跳自动创建）
-    service_name = db.Column(db.String(100), nullable=False, unique=True)  # 服务名称（唯一索引，用于心跳自动新增/更新）
+    service_name = db.Column(db.String(100), nullable=False)  # 服务名称（允许重复，支持同一服务名称的多个实例）
     server_ip = db.Column(db.String(50))  # 部署的服务器IP
     port = db.Column(db.Integer)  # 服务端口
     inference_endpoint = db.Column(db.String(200))  # 推理接口地址
