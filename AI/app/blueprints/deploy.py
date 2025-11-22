@@ -258,40 +258,41 @@ def receive_heartbeat():
         format_type = data.get('format')
         process_id = data.get('process_id')
 
-        # 优先使用 service_name，如果没有则使用 service_id（向后兼容）
-        if not service_name:
-            if service_id:
-                service = AIService.query.get(service_id)
-                if not service:
-                    return jsonify({
-                        'code': 404,
-                        'msg': '服务不存在，请提供 service_name'
-                    }), 404
-            else:
+        # 优先使用 service_name 查找服务，如果找不到且提供了 service_id，则通过 service_id 查找
+        service = None
+        if service_name:
+            service = AIService.query.filter_by(service_name=service_name).first()
+        
+        # 如果通过 service_name 找不到，且提供了 service_id，尝试通过 service_id 查找
+        if not service and service_id:
+            service = AIService.query.get(service_id)
+            if service:
+                logger.info(f"通过 service_id={service_id} 找到已有服务: {service.service_name}")
+        
+        # 如果仍然找不到服务，创建新记录（这种情况应该很少见，因为服务应该先创建记录再启动）
+        if not service:
+            if not service_name:
+                # 如果没有 service_name 也没有 service_id，无法创建新记录
                 return jsonify({
                     'code': 400,
                     'msg': '缺少必要参数：service_name 或 service_id'
                 }), 400
-        else:
-            service = AIService.query.filter_by(service_name=service_name).first()
             
-            if not service:
-                # 如果服务不存在，自动创建新记录
-                logger.info(f"服务 {service_name} 不存在，自动创建新记录")
-                service = AIService(
-                    service_name=service_name,
-                    model_id=model_id if model_id else None,
-                    server_ip=server_ip,
-                    port=port,
-                    inference_endpoint=inference_endpoint or (f"http://{server_ip}:{port}/inference" if server_ip and port else None),
-                    mac_address=mac_address,
-                    status='running',
-                    deploy_time=beijing_now(),
-                    model_version=model_version,
-                    format=format_type,
-                    process_id=process_id
-                )
-                db.session.add(service)
+            logger.info(f"服务 {service_name} 不存在，自动创建新记录")
+            service = AIService(
+                service_name=service_name,
+                model_id=model_id if model_id else None,
+                server_ip=server_ip,
+                port=port,
+                inference_endpoint=inference_endpoint or (f"http://{server_ip}:{port}/inference" if server_ip and port else None),
+                mac_address=mac_address,
+                status='running',
+                deploy_time=beijing_now(),
+                model_version=model_version,
+                format=format_type,
+                process_id=process_id
+            )
+            db.session.add(service)
 
         # 更新心跳信息
         service.last_heartbeat = beijing_now()
@@ -313,6 +314,17 @@ def receive_heartbeat():
             service.format = format_type
         if process_id:
             service.process_id = process_id
+        
+        # 更新日志路径（如果提供了LOG_PATH环境变量，或者根据服务ID生成）
+        log_path = data.get('log_path')
+        if log_path:
+            service.log_path = log_path
+        elif not service.log_path:
+            # 如果没有log_path，根据服务ID生成
+            import os
+            ai_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            log_base_dir = os.path.join(ai_root, 'logs')
+            service.log_path = os.path.join(log_base_dir, str(service.id))
         
         # 如果服务状态是stopped，保持stopped状态；否则更新为running
         if service.status != 'stopped':
@@ -382,30 +394,31 @@ def receive_logs():
                 'msg': '缺少必要参数：service_name 或 log'
             }), 400
         
-        # 按servicename创建日志目录
-        log_base_dir = os.path.join('data', 'deploy_logs')
-        service_log_dir = os.path.join(log_base_dir, service_name)
+        # 查找服务记录以获取服务ID
+        service = AIService.query.filter_by(service_name=service_name).first()
+        if not service:
+            return jsonify({
+                'code': 404,
+                'msg': f'服务不存在: {service_name}'
+            }), 404
+        
+        # 按服务ID创建日志目录
+        ai_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        log_base_dir = os.path.join(ai_root, 'logs')
+        service_log_dir = os.path.join(log_base_dir, str(service.id))
         os.makedirs(service_log_dir, exist_ok=True)
         
-        # 按日期创建日志文件，格式：{service_name}_YYYY-MM-DD.log
+        # 按日期创建日志文件，格式：YYYY-MM-DD.log
         log_date = datetime.now().strftime('%Y-%m-%d')
-        log_filename = f"{service_name}_{log_date}.log"
+        log_filename = f"{log_date}.log"
         log_file_path = os.path.join(service_log_dir, log_filename)
-        
-        # all 日志文件路径
-        all_log_filename = f"{service_name}_all.log"
-        all_log_file_path = os.path.join(service_log_dir, all_log_filename)
         
         # 构建日志行
         log_line = f"[{timestamp or datetime.now().isoformat()}] [{log_level}] {log_content}\n"
         
-        # 将日志同时写入日期文件和 all 文件
+        # 将日志写入日期文件
         try:
             with open(log_file_path, 'a', encoding='utf-8') as f:
-                f.write(log_line)
-                f.flush()
-            
-            with open(all_log_file_path, 'a', encoding='utf-8') as f:
                 f.write(log_line)
                 f.flush()
         except Exception as e:
@@ -415,12 +428,10 @@ def receive_logs():
                 'msg': f'写入日志文件失败: {str(e)}'
             }), 500
         
-        # 查找服务记录（如果存在），更新log_path
-        service = AIService.query.filter_by(service_name=service_name).first()
-        if service:
-            if not service.log_path or service.log_path != service_log_dir:
-                service.log_path = service_log_dir
-                db.session.commit()
+        # 更新服务的log_path（如果不同）
+        if not service.log_path or service.log_path != service_log_dir:
+            service.log_path = service_log_dir
+            db.session.commit()
         
         # 同时记录到主程序日志
         if log_level == 'ERROR':
@@ -434,8 +445,7 @@ def receive_logs():
             'code': 0,
             'msg': '日志接收成功',
             'data': {
-                'date_log_file': log_file_path,
-                'all_log_file': all_log_file_path
+                'log_file': log_file_path
             }
         })
         

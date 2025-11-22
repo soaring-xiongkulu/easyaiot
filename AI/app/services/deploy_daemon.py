@@ -66,6 +66,7 @@ class DeployServiceDaemon:
             try:
                 log_file_path = self._get_log_file_path()
                 os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+                # 使用追加模式，如果日期变化会自动创建新文件
                 with open(log_file_path, mode='a', encoding='utf-8') as f:
                     f.write(log_message + '\n')
             except Exception as e:
@@ -87,12 +88,15 @@ class DeployServiceDaemon:
     def _daemon(self):
         """守护线程主循环，管理子进程并处理日志"""
         # 不再需要 Flask 应用上下文，所有信息都已通过参数传入
+        current_date = datetime.now().date()
         log_file_path = self._get_log_file_path()
         os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
         
         self._log(f'守护进程启动，服务ID: {self._service_id}', 'INFO')
         
-        with open(log_file_path, mode='w', encoding='utf-8') as f_log:
+        # 使用追加模式，因为日志文件按日期分割
+        f_log = open(log_file_path, mode='a', encoding='utf-8')
+        try:
             f_log.write(f'# ========== 模型部署服务守护进程启动 ==========\n')
             f_log.write(f'# 服务ID: {self._service_id}\n')
             f_log.write(f'# 服务名称: {self._service_name}\n')
@@ -155,6 +159,19 @@ class DeployServiceDaemon:
                     for line in iter(self._process.stdout.readline, ''):
                         if not line:
                             break
+                        
+                        # 检查日期是否变化，如果变化则切换日志文件
+                        today = datetime.now().date()
+                        if today != current_date:
+                            # 日期变化，关闭旧文件，打开新文件
+                            f_log.close()
+                            current_date = today
+                            log_file_path = self._get_log_file_path()
+                            f_log = open(log_file_path, mode='a', encoding='utf-8')
+                            f_log.write(f'# ========== 日期切换 ==========\n')
+                            f_log.write(f'# 新日期: {current_date}\n')
+                            f_log.write(f'# ============================\n\n')
+                            f_log.flush()
                         
                         # 保存所有输出用于错误诊断
                         all_output_lines.append(line)
@@ -248,6 +265,7 @@ class DeployServiceDaemon:
                         self._log('守护进程收到停止信号，退出', 'INFO')
                         f_log.write(f'# [{datetime.now().isoformat()}] 模型服务已停止\n')
                         f_log.flush()
+                        f_log.close()
                         return
 
                     # 判断是否异常退出
@@ -272,6 +290,9 @@ class DeployServiceDaemon:
                     f_log.write(f'\n# [{datetime.now().isoformat()}] [ERROR] {error_msg}\n')
                     f_log.flush()
                     time.sleep(10)  # 发生异常时等待10秒后重试
+        finally:
+            if f_log:
+                f_log.close()
 
     def restart(self):
         """手动重启服务"""
@@ -290,10 +311,12 @@ class DeployServiceDaemon:
                 self._process.kill()
 
     def _get_log_file_path(self) -> str:
-        """获取日志文件路径"""
-        # 直接使用传入的 log_path，不需要访问数据库
+        """获取日志文件路径（按日期）"""
+        # 直接使用传入的 log_path（应该是 logs/{service_id}），不需要访问数据库
         os.makedirs(self._log_path, exist_ok=True)
-        return os.path.join(self._log_path, f'{self._service_name}.log')
+        # 按日期创建日志文件
+        log_filename = datetime.now().strftime('%Y-%m-%d.log')
+        return os.path.join(self._log_path, log_filename)
 
     def _get_deploy_args(self) -> tuple:
         """获取部署服务的启动参数"""

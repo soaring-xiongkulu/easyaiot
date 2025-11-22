@@ -21,15 +21,20 @@ _deploy_daemons: dict[int, DeployServiceDaemon] = {}
 
 
 def _get_log_file_path(service_id: int) -> str:
-    """获取日志文件路径"""
+    """获取日志文件路径（按日期）"""
     service = AIService.query.get(service_id)
+    ai_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    log_base_dir = os.path.join(ai_root, 'logs')
+    
     if service and service.log_path:
-        return os.path.join(service.log_path, f'{service.service_name}.log')
+        log_dir = service.log_path
     else:
-        log_dir = os.path.join('data', 'deploy_logs')
+        log_dir = os.path.join(log_base_dir, str(service_id))
         os.makedirs(log_dir, exist_ok=True)
-        service_name = service.service_name if service else f'service_{service_id}'
-        return os.path.join(log_dir, f'{service_name}.log')
+    
+    # 按日期创建日志文件
+    log_filename = datetime.now().strftime('%Y-%m-%d.log')
+    return os.path.join(log_dir, log_filename)
 
 
 def _get_service(service_id: int) -> AIService:
@@ -232,61 +237,115 @@ def deploy_model(model_id: int, start_port: int = 8000) -> dict:
         model_format = _infer_model_format(model, model_path)
         logger.info(f'推断模型格式: {model_format}')
         
-        # 生成唯一的服务名称
-        service_name = f"{model.name}_{model.version}_{int(datetime.now().timestamp())}"
+        # 生成服务名称：model_name_version_format
+        # 格式：{model.name}_{model.version}_{format}
+        base_service_name = f"{model.name}_{model.version}_{model_format}"
+        
         # 检查服务名称是否已存在
-        max_attempts = 10
-        for attempt in range(max_attempts):
-            existing_service = AIService.query.filter_by(service_name=service_name).first()
-            if not existing_service:
-                break
-            if attempt < max_attempts - 1:
-                service_name = f"{model.name}_{model.version}_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
-                logger.debug(f'服务名称冲突，生成新名称: {service_name}')
+        # 如果已存在且状态为 offline 或 stopped，可以复用（重新拉起）
+        existing_service = AIService.query.filter_by(service_name=base_service_name).first()
+        if existing_service:
+            if existing_service.status in ['offline', 'stopped']:
+                # 复用已有服务记录
+                logger.info(f'发现已存在的离线服务记录，将复用: {base_service_name} (ID: {existing_service.id})')
+                ai_service = existing_service
+                # 更新服务信息
+                ai_service.model_id = model_id
+                ai_service.status = 'offline'  # 等待心跳上报后变为running
+                ai_service.model_version = model.version
+                ai_service.format = model_format
+                # 不更新 deploy_time，保持原始部署时间
+                service_name = base_service_name
+            else:
+                # 如果服务正在运行，添加时间戳后缀以避免冲突
+                service_name = f"{base_service_name}_{int(datetime.now().timestamp())}"
+                logger.info(f'服务名称已存在且正在运行，生成新名称: {service_name}')
+                ai_service = None
         else:
-            service_name = uuid.uuid4().hex
-            logger.warning(f'多次尝试后仍冲突，使用UUID作为服务名称: {service_name}')
+            service_name = base_service_name
+            logger.info(f'生成服务名称: {service_name}')
+            ai_service = None
         
-        logger.info(f'生成服务名称: {service_name}')
-        
-        # 查找可用端口
-        logger.info(f'查找可用端口，起始端口: {start_port}')
-        port = _find_available_port(start_port)
-        if not port:
-            logger.error(f'无法找到可用端口（从{start_port}开始尝试了100个端口）')
-            raise ValueError(f'无法找到可用端口（从{start_port}开始尝试了100个端口）')
-        
-        logger.info(f'找到可用端口: {port}')
+        # 如果已有服务记录，检查端口是否可用；否则查找新端口
+        if ai_service:
+            # 复用已有服务记录，检查端口是否可用
+            if ai_service.port and _check_port_available('0.0.0.0', ai_service.port):
+                port = ai_service.port
+                logger.info(f'复用已有端口: {port}')
+            else:
+                # 端口不可用，查找新端口
+                logger.info(f'已有端口 {ai_service.port} 不可用，查找新端口...')
+                port = _find_available_port(start_port)
+                if not port:
+                    logger.error(f'无法找到可用端口（从{start_port}开始尝试了100个端口）')
+                    raise ValueError(f'无法找到可用端口（从{start_port}开始尝试了100个端口）')
+                ai_service.port = port
+                ai_service.inference_endpoint = f"http://{ai_service.server_ip}:{port}/inference"
+                logger.info(f'找到新端口: {port}')
+        else:
+            # 查找可用端口
+            logger.info(f'查找可用端口，起始端口: {start_port}')
+            port = _find_available_port(start_port)
+            if not port:
+                logger.error(f'无法找到可用端口（从{start_port}开始尝试了100个端口）')
+                raise ValueError(f'无法找到可用端口（从{start_port}开始尝试了100个端口）')
+            logger.info(f'找到可用端口: {port}')
         
         # 获取服务器信息
         server_ip = _get_local_ip()
         mac_address = _get_mac_address()
         logger.info(f'服务器信息: IP={server_ip}, MAC={mac_address}')
         
-        # 创建日志目录
-        log_base_dir = os.path.join('data', 'deploy_logs')
-        log_dir = os.path.join(log_base_dir, service_name)
-        os.makedirs(log_dir, exist_ok=True)
-        logger.info(f'日志目录: {log_dir}')
+        # 创建日志目录（按服务ID）
+        ai_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        log_base_dir = os.path.join(ai_root, 'logs')
         
-        # 创建部署服务记录
-        logger.info('创建部署服务记录...')
-        ai_service = AIService(
-            model_id=model_id,
-            service_name=service_name,
-            server_ip=server_ip,
-            port=port,
-            inference_endpoint=f"http://{server_ip}:{port}/inference",
-            status='offline',
-            mac_address=mac_address,
-            deploy_time=beijing_now(),
-            log_path=log_dir,
-            model_version=model.version,
-            format=model_format
-        )
-        db.session.add(ai_service)
-        db.session.commit()
-        logger.info(f'服务记录已创建，服务ID: {ai_service.id}')
+        if not ai_service:
+            # 创建新服务记录
+            # 临时使用服务名称，稍后会更新为服务ID
+            temp_log_dir = os.path.join(log_base_dir, service_name)
+            os.makedirs(temp_log_dir, exist_ok=True)
+            logger.info(f'临时日志目录: {temp_log_dir}')
+            
+            # 创建部署服务记录
+            logger.info('创建部署服务记录...')
+            ai_service = AIService(
+                model_id=model_id,
+                service_name=service_name,
+                server_ip=server_ip,
+                port=port,
+                inference_endpoint=f"http://{server_ip}:{port}/inference",
+                status='offline',
+                mac_address=mac_address,
+                deploy_time=beijing_now(),
+                log_path=temp_log_dir,  # 临时路径，稍后更新
+                model_version=model.version,
+                format=model_format
+            )
+            db.session.add(ai_service)
+            db.session.commit()
+            logger.info(f'服务记录已创建，服务ID: {ai_service.id}')
+        else:
+            # 更新已有服务记录的信息
+            ai_service.server_ip = server_ip
+            ai_service.mac_address = mac_address
+            db.session.commit()
+            logger.info(f'服务记录已更新，服务ID: {ai_service.id}')
+        
+        # 使用服务ID创建正确的日志目录
+        log_dir = os.path.join(log_base_dir, str(ai_service.id))
+        os.makedirs(log_dir, exist_ok=True)
+        
+        # 如果创建了新服务记录，处理临时目录
+        if not ai_service.log_path or ai_service.log_path != log_dir:
+            # 如果临时目录存在且不同，可以删除或保留（保留以防万一）
+            if 'temp_log_dir' in locals() and temp_log_dir != log_dir and os.path.exists(temp_log_dir):
+                # 可以选择删除临时目录或保留
+                pass
+            # 更新服务记录的日志路径
+            ai_service.log_path = log_dir
+            db.session.commit()
+        logger.info(f'日志目录: {log_dir}')
         
         # 检查部署脚本是否存在
         deploy_service_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'services')
@@ -383,15 +442,30 @@ def start_service(service_id: int) -> dict:
         else:
             logger.info(f'使用现有端口: {service.port}')
         
-        # 确保日志目录存在
+        # 确保日志目录存在（按服务ID）
         if not service.log_path:
-            log_base_dir = os.path.join('data', 'deploy_logs')
-            log_path = os.path.join(log_base_dir, service.service_name)
+            ai_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            log_base_dir = os.path.join(ai_root, 'logs')
+            log_path = os.path.join(log_base_dir, str(service.id))
             os.makedirs(log_path, exist_ok=True)
             service.log_path = log_path
             logger.info(f'创建日志目录: {log_path}')
         else:
-            logger.info(f'使用现有日志目录: {service.log_path}')
+            # 确保日志目录使用服务ID（如果路径不正确，更新它）
+            ai_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            log_base_dir = os.path.join(ai_root, 'logs')
+            expected_log_path = os.path.join(log_base_dir, str(service.id))
+            if service.log_path != expected_log_path:
+                # 迁移到新的日志目录结构
+                if os.path.exists(service.log_path):
+                    # 可以选择迁移旧日志或保留
+                    pass
+                service.log_path = expected_log_path
+                os.makedirs(service.log_path, exist_ok=True)
+                db.session.commit()
+                logger.info(f'更新日志目录: {service.log_path}')
+            else:
+                logger.info(f'使用现有日志目录: {service.log_path}')
         
         # 检查是否已有守护进程在运行
         if service_id in _deploy_daemons:
@@ -532,18 +606,21 @@ def get_service_logs(service_id: int, lines: int = 100, date: str = None) -> dic
     """获取服务日志"""
     service = _get_service(service_id)
     
-    # 确定日志文件路径
+    # 确定日志文件路径（按服务ID）
+    ai_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    log_base_dir = os.path.join(ai_root, 'logs')
+    
     if not service.log_path:
-        log_base_dir = os.path.join('data', 'deploy_logs')
-        service_log_dir = os.path.join(log_base_dir, service.service_name)
+        service_log_dir = os.path.join(log_base_dir, str(service.id))
     else:
         service_log_dir = service.log_path
     
-    # 根据参数选择日志文件
+    # 根据参数选择日志文件（按日期）
     if date:
-        log_filename = f"{service.service_name}_{date}.log"
+        log_filename = f"{date}.log"
     else:
-        log_filename = f"{service.service_name}.log"
+        # 如果没有指定日期，返回今天的日志文件
+        log_filename = datetime.now().strftime('%Y-%m-%d.log')
     
     log_file_path = os.path.join(service_log_dir, log_filename)
     

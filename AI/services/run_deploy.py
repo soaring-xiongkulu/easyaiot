@@ -17,6 +17,8 @@ import signal
 import multiprocessing
 import uuid
 import requests
+from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -52,6 +54,53 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
 # 设置全局异常处理器
 sys.excepthook = handle_exception
+
+
+# ============================================
+# 自定义日志处理器 - 按日期自动切换日志文件
+# ============================================
+class DailyRotatingFileHandler(logging.FileHandler):
+    """按日期自动切换的日志文件处理器"""
+    
+    def __init__(self, log_dir, filename_pattern='%Y-%m-%d.log', encoding='utf-8'):
+        """
+        初始化按日期轮转的文件处理器
+        
+        Args:
+            log_dir: 日志目录
+            filename_pattern: 文件名模式，使用strftime格式
+            encoding: 文件编码
+        """
+        self.log_dir = log_dir
+        self.filename_pattern = filename_pattern
+        self.current_date = datetime.now().date()
+        self.current_file_path = None
+        self._update_file_path()
+        super().__init__(self.current_file_path, encoding=encoding)
+    
+    def _update_file_path(self):
+        """更新当前日志文件路径"""
+        today = datetime.now().date()
+        if today != self.current_date or self.current_file_path is None:
+            self.current_date = today
+            filename = datetime.now().strftime(self.filename_pattern)
+            self.current_file_path = os.path.join(self.log_dir, filename)
+    
+    def emit(self, record):
+        """发送日志记录，如果日期变化则切换文件"""
+        # 检查日期是否变化
+        if datetime.now().date() != self.current_date:
+            # 日期变化，关闭旧文件，打开新文件
+            self.close()
+            self._update_file_path()
+            self.baseFilename = self.current_file_path
+            # 重新打开文件
+            if self.stream:
+                self.stream.close()
+                self.stream = None
+            self.stream = self._open()
+        
+        super().emit(record)
 
 # ============================================
 # 环境变量和系统配置初始化
@@ -112,15 +161,40 @@ CORS(app)
 logging.getLogger('werkzeug').setLevel(logging.WARNING)
 logging.getLogger('flask').setLevel(logging.WARNING)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='[SERVICES] %(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    force=True,
-    stream=sys.stderr
-)
+# 获取服务ID，用于创建日志目录
+service_id = os.getenv('SERVICE_ID', 'unknown')
+ai_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+logs_base_dir = os.path.join(ai_root, 'logs')
+service_log_dir = os.path.join(logs_base_dir, str(service_id))
+os.makedirs(service_log_dir, exist_ok=True)
+
+# 创建日志格式
+log_format = '[SERVICES] %(asctime)s - %(name)s - %(levelname)s - %(message)s'
+formatter = logging.Formatter(log_format)
+
+# 创建根logger
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+
+# 清除已有的handlers
+root_logger.handlers.clear()
+
+# 创建文件handler（按日期分割）
+file_handler = DailyRotatingFileHandler(service_log_dir, filename_pattern='%Y-%m-%d.log', encoding='utf-8')
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(formatter)
+root_logger.addHandler(file_handler)
+
+# 同时输出到stderr（保持兼容性）
+console_handler = logging.StreamHandler(sys.stderr)
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(formatter)
+root_logger.addHandler(console_handler)
+
 logger = logging.getLogger(__name__)
 logger.info("=" * 60)
 logger.info("🚀 模型部署服务 (Services Module) 启动")
+logger.info(f"日志目录: {service_log_dir}")
 logger.info("=" * 60)
 
 # 全局变量
@@ -373,11 +447,21 @@ def send_ai_heartbeat():
                     continue
             
             # 从环境变量获取服务信息
-            service_name = os.getenv('SERVICE_NAME', 'deploy_service')
+            service_name = os.getenv('SERVICE_NAME')
             service_id = os.getenv('SERVICE_ID')
             model_id = os.getenv('MODEL_ID')
             model_version = os.getenv('MODEL_VERSION', 'V1.0.0')
             model_format = os.getenv('MODEL_FORMAT', 'pytorch')
+            log_path = os.getenv('LOG_PATH')
+            
+            # 如果 SERVICE_NAME 未设置，根据 model_id、model_version 和 format 生成
+            # 格式：model_{model_id}_{model_version}_{format}
+            if not service_name:
+                if model_id:
+                    service_name = f"model_{model_id}_{model_version}_{model_format}"
+                else:
+                    service_name = f"model_unknown_{model_version}_{model_format}"
+                logger.warning(f"SERVICE_NAME 环境变量未设置，使用生成的 service_name: {service_name}")
             
             # 构建心跳数据
             heartbeat_data = {
@@ -390,6 +474,10 @@ def send_ai_heartbeat():
                 'model_version': model_version,
                 'format': model_format
             }
+            
+            # 添加 log_path（如果存在）
+            if log_path:
+                heartbeat_data['log_path'] = log_path
             
             # 可选字段
             if service_id:
@@ -405,7 +493,7 @@ def send_ai_heartbeat():
                     pass
             
             # 发送心跳请求
-            heartbeat_url = f'{ai_service_api}/deploy/heartbeat'
+            heartbeat_url = f'{ai_service_api}/model/deploy_service/heartbeat'
             response = requests.post(
                 heartbeat_url,
                 json=heartbeat_data,
