@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict xhtzy3pIvDsIXl7oi2odys2htmEbmA6btf4B2nNuuFCH8N7NTU0ERUgTAxkhyE2
+\restrict lYfIcfkxZNTT8UPy1vtNtx5eEaEblGSFcML4gHkDV7oOC6NC8lKf1Zmtbc5buyK
 
 -- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
 -- Dumped by pg_dump version 16.10 (Ubuntu 16.10-0ubuntu0.24.04.1)
@@ -455,9 +455,9 @@ ALTER TABLE ONLY public.train_task ALTER COLUMN id SET DEFAULT nextval('public.t
 --
 
 COPY public.ai_service (id, model_id, service_name, server_ip, port, inference_endpoint, status, mac_address, deploy_time, last_heartbeat, process_id, log_path, model_version, format, created_at, updated_at) FROM stdin;
-2	3	model_3_onnx_1.0.1	192.168.11.28	10000	http://192.168.11.28:10000/inference	running	30:c1:05:16:5a:68	2025-11-23 05:03:47.157704	2025-11-23 07:02:59.156544	3341939	/projects/easyaiot/AI/logs/2	1.0.1	onnx	2025-11-23 05:03:47.158308	2025-11-23 07:02:59.157105
-3	3	model_3_onnx_1.0.1	192.168.11.28	10001	http://192.168.11.28:10001/inference	running	30:c1:05:16:5a:68	2025-11-23 05:03:55.644905	2025-11-23 07:02:59.661862	3342083	/projects/easyaiot/AI/logs/3	1.0.1	onnx	2025-11-23 05:03:55.645332	2025-11-23 07:02:59.662252
-1	3	model_3_onnx_1.0.1	192.168.11.28	9999	http://192.168.11.28:9999/inference	running	30:c1:05:16:5a:68	2025-11-23 05:03:15.111839	2025-11-23 07:03:00.193403	3342182	/projects/easyaiot/AI/logs/1	1.0.1	onnx	2025-11-23 05:03:15.113205	2025-11-23 07:03:00.193785
+1	3	model_3_onnx_1.0.1	192.168.11.28	9999	http://192.168.11.28:9999/inference	running	30:c1:05:16:5a:68	2025-11-23 05:03:15.111839	2025-11-23 07:32:50.532574	3441497	/projects/easyaiot/AI/logs/1	1.0.1	onnx	2025-11-23 05:03:15.113205	2025-11-23 07:32:50.533953
+2	3	model_3_onnx_1.0.1	192.168.11.28	10001	http://192.168.11.28:10001/inference	running	30:c1:05:16:5a:68	2025-11-23 05:03:47.157704	2025-11-23 07:32:50.969954	3441508	/projects/easyaiot/AI/logs/2	1.0.1	onnx	2025-11-23 05:03:47.158308	2025-11-23 07:32:50.970609
+3	3	model_3_onnx_1.0.1	192.168.11.28	10002	http://192.168.11.28:10002/inference	running	30:c1:05:16:5a:68	2025-11-23 05:03:55.644905	2025-11-23 07:32:51.751028	3441537	/projects/easyaiot/AI/logs/3	1.0.1	onnx	2025-11-23 05:03:55.645332	2025-11-23 07:32:51.751277
 \.
 
 
@@ -525,6 +525,8 @@ COPY public.inference_task (id, model_id, inference_type, input_source, output_p
 52	3	image	/api/v1/buckets/inference-inputs/objects/download?prefix=inputs/c405d0a6d8174a37814dea4006b06768.png	/api/v1/buckets/inference-results/objects/download?prefix=images/20251123/result_52_a0c4988b.jpg	\N	2025-11-22 23:00:06.930948	2025-11-23 07:00:07.065988	COMPLETED	\N	\N	\N
 53	3	image	/api/v1/buckets/inference-inputs/objects/download?prefix=inputs/c405d0a6d8174a37814dea4006b06768.png	/api/v1/buckets/inference-results/objects/download?prefix=images/20251123/result_53_cba37c65.jpg	\N	2025-11-22 23:00:07.529188	2025-11-23 07:00:07.672544	COMPLETED	\N	\N	\N
 54	3	image	/api/v1/buckets/inference-inputs/objects/download?prefix=inputs/c405d0a6d8174a37814dea4006b06768.png	/api/v1/buckets/inference-results/objects/download?prefix=images/20251123/result_54_b0e652ad.jpg	\N	2025-11-22 23:00:08.050989	2025-11-23 07:00:08.18449	COMPLETED	\N	\N	\N
+55	3	image	/api/v1/buckets/inference-inputs/objects/download?prefix=inputs/5cc2477c48e0445593df8b8598571f20.png	/api/v1/buckets/inference-results/objects/download?prefix=images/20251123/result_55_66578186.jpg	\N	2025-11-22 23:25:45.133941	2025-11-22 23:25:45.540071	COMPLETED	\N	0.2248547077178955	\N
+56	3	image	/api/v1/buckets/inference-inputs/objects/download?prefix=inputs/6cee2c48d42f4c4a865f6cc750700319.png	/api/v1/buckets/inference-results/objects/download?prefix=images/20251123/result_56_4a376234.jpg	\N	2025-11-22 23:25:52.122922	2025-11-22 23:25:52.307409	COMPLETED	\N	0.17902803421020508	\N
 \.
 
 
@@ -541,8 +543,12 @@ COPY public.llm_config (id, name, description, model_type, icon_url, vendor, bas
 --
 
 COPY public.model (id, name, description, model_path, image_url, version, created_at, updated_at, onnx_model_path, torchscript_model_path, tensorrt_model_path, openvino_model_path, rknn_model_path) FROM stdin;
-1	人模型	用于识别人的AI算法	/api/v1/buckets/models/objects/download?prefix=models/model_1/train_20/best.pt	/api/v1/buckets/models/objects/download?prefix=images/6dc4c28fe6444f98955bdc98bcfe6ed4.jpg	V2025.08.5	2025-08-25 10:37:44.147967	2025-08-30 05:22:51.040101	\N	\N	\N	\N	\N
-3	安全帽模型	识别安全帽的模型	/api/v1/buckets/models/objects/download?prefix=yolo/yolov8/onnx/1727f89c9a434c18a2a78d54d0a54023.onnx	/api/v1/buckets/models/objects/download?prefix=images/7e6ef2e33af64a18add7f91a66b6403e.jpg	1.0.1	2025-11-22 08:33:51.975637	2025-11-22 13:35:32.600112	exports/model_3/onnx/model.onnx	\N	\N	exports/model_3/openvino/model_openvino_model/	\N
+3	安全帽模型	识别安全帽的模型	/api/v1/buckets/models/objects/download?prefix=yolo/yolov8/9e75951cea044845be8f8f1f2223c551.pt	/api/v1/buckets/models/objects/download?prefix=images/7e6ef2e33af64a18add7f91a66b6403e.jpg	1.0.1	2025-11-22 08:33:51.975637	2025-11-22 23:26:10.155647	exports/model_3/onnx/model.onnx	\N	\N	exports/model_3/openvino/model_openvino_model/	\N
+5	反光衣模型	识别反光衣的模型	/api/v1/buckets/models/objects/download?prefix=yolo/yolov8/c7b364e123a84f70a954403399c61dac.pt	/api/v1/buckets/models/objects/download?prefix=images/8830aeff514e40a284b93895ed455368.jpg	1.0.0	2025-11-22 23:26:47.840522	2025-11-22 23:26:47.840524	\N	\N	\N	\N	\N
+6	睡岗模型	识别在岗位睡觉的模型	/api/v1/buckets/models/objects/download?prefix=yolo/yolov8/21f8ba84e4e64d9a9de924d3eb246033.pt	/api/v1/buckets/models/objects/download?prefix=images/3e03ffae14114b29867b1dad357e9e23.png	1.0.0	2025-11-22 23:27:35.012975	2025-11-22 23:27:35.012977	\N	\N	\N	\N	\N
+7	火焰模型	识别火焰的模型	/api/v1/buckets/models/objects/download?prefix=yolo/yolov8/df55c892173c4f3e96b3462e833f0e75.pt	/api/v1/buckets/models/objects/download?prefix=images/f2f4d01febfd43fabbb7bb0ba4953b73.jpg	1.0.0	2025-11-22 23:29:18.785875	2025-11-22 23:29:18.785877	\N	\N	\N	\N	\N
+8	吸烟模型	用于识别吸烟的模型	/api/v1/buckets/models/objects/download?prefix=yolo/yolov8/baaab3e73fd74064ae42d57b0e170663.pt	/api/v1/buckets/models/objects/download?prefix=images/aeff29bbcd514e16a8e6a0a7906f9db9.jpg	1.0.0	2025-11-22 23:30:37.986784	2025-11-22 23:30:37.986786	\N	\N	\N	\N	\N
+1	人模型	用于识别人的AI算法	/api/v1/buckets/models/objects/download?prefix=yolo/yolov11/362479958ba04288b42ab1796f9afa57.pt	/api/v1/buckets/models/objects/download?prefix=images/69707887371944979f0fa32091e46b11.jpg	1.0.0	2025-08-25 10:37:44.147967	2025-11-22 23:31:45.752278	\N	\N	\N	\N	\N
 \.
 
 
@@ -608,7 +614,7 @@ SELECT pg_catalog.setval('public.export_record_id_seq', 1, true);
 -- Name: inference_task_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.inference_task_id_seq', 54, true);
+SELECT pg_catalog.setval('public.inference_task_id_seq', 56, true);
 
 
 --
@@ -622,7 +628,7 @@ SELECT pg_catalog.setval('public.llm_config_id_seq', 1, false);
 -- Name: model_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.model_id_seq', 4, true);
+SELECT pg_catalog.setval('public.model_id_seq', 8, true);
 
 
 --
@@ -762,5 +768,5 @@ ALTER TABLE ONLY public.train_task
 -- PostgreSQL database dump complete
 --
 
-\unrestrict xhtzy3pIvDsIXl7oi2odys2htmEbmA6btf4B2nNuuFCH8N7NTU0ERUgTAxkhyE2
+\unrestrict lYfIcfkxZNTT8UPy1vtNtx5eEaEblGSFcML4gHkDV7oOC6NC8lKf1Zmtbc5buyK
 
