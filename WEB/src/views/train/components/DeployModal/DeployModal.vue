@@ -12,10 +12,10 @@
   >
     <div class="deploy-confirm-modal">
       <a-form :model="formState" :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }">
-        <a-form-item label="请选择要部署的模型" :required="true">
+        <a-form-item label="模型列表" :required="true">
           <a-select
             v-model:value="formState.model_id"
-            placeholder="请选择要部署的模型"
+            placeholder="模型列表"
             :options="modelOptions"
             show-search
             :filter-option="filterOption"

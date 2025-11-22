@@ -24,20 +24,26 @@
             <ListItem class="deploy-service-list-item">
               <div class="deploy-service-card-box">
                 <div class="deploy-service-card-cont">
-                  <!-- 服务状态指示器 -->
+                  <!-- 模型标题：模型名称 + 版本号 -->
+                  <h6 class="deploy-service-card-title">
+                    <a>{{ getModelTitleWithVersion(item) }}</a>
+                  </h6>
+
+                  <!-- 状态指示器（放在标题下面） -->
                   <div class="status-indicator" :class="`status-${item.status}`">
                     <div class="status-dot"></div>
                     <span class="status-text">{{ getStatusText(item.status) }}</span>
                   </div>
 
-                  <!-- 服务名称 -->
-                  <h6 class="deploy-service-card-title">
-                    <a>{{ item.service_name || '未命名服务' }}</a>
-                  </h6>
-
-                  <!-- 标签区域 -->
-                  <div class="deploy-service-tags">
-                    <Tag class="model-name-tag">模型: {{ item.model_name || '未知' }}</Tag>
+                  <!-- 服务名称（带复制图标） -->
+                  <div class="deploy-service-name">
+                    <span class="service-name-label">服务名称:</span>
+                    <span class="service-name-value" :title="item.service_name">{{ item.service_name || '--' }}</span>
+                    <CopyOutlined 
+                      class="copy-icon" 
+                      @click="copyToClipboard(item.service_name, '服务名称')"
+                      title="复制服务名称"
+                    />
                   </div>
 
                   <!-- 服务详情 -->
@@ -52,9 +58,24 @@
                     </div>
                     <div class="info-item">
                       <span class="info-label">推理接口:</span>
-                      <span class="info-value ellipsis" :title="item.inference_endpoint">
-                        {{ item.inference_endpoint || '--' }}
-                      </span>
+                      <div class="inference-endpoint-wrapper">
+                        <div class="inference-endpoint-title">
+                          {{ getModelTitleWithVersion(item) }}
+                        </div>
+                        <div class="inference-endpoint-format" v-if="getFormatText(item)">
+                          格式: {{ getFormatText(item) }}
+                        </div>
+                        <div class="inference-endpoint-url">
+                          <span class="info-value ellipsis" :title="item.inference_endpoint">
+                            {{ item.inference_endpoint || '--' }}
+                          </span>
+                          <CopyOutlined 
+                            class="copy-icon" 
+                            @click="copyToClipboard(item.inference_endpoint, '推理接口')"
+                            title="复制推理接口"
+                          />
+                        </div>
+                      </div>
                     </div>
                     <div class="info-item">
                       <span class="info-label">部署时间:</span>
@@ -123,7 +144,8 @@ import {
   FileTextOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
-  StopOutlined
+  StopOutlined,
+  CopyOutlined
 } from '@ant-design/icons-vue';
 import {useMessage} from '@/hooks/web/useMessage';
 import {
@@ -308,6 +330,85 @@ function getStatusText(status: string) {
   return textMap[status] || status || '未知';
 }
 
+// 获取模型格式文本
+function getFormatText(item: any): string {
+  // 优先使用 format 字段
+  if (item.format) {
+    const formatMap: Record<string, string> = {
+      'onnx': 'ONNX',
+      'openvino': 'OpenVINO',
+      'pytorch': 'PyTorch',
+      'torchscript': 'TorchScript',
+      'tensorrt': 'TensorRT',
+      'tflite': 'TensorFlow Lite',
+      'coreml': 'CoreML'
+    };
+    const formatLower = item.format.toLowerCase();
+    return formatMap[formatLower] || formatLower.toUpperCase();
+  }
+  
+  // 根据模型路径判断格式（降级方案）
+  if (item.model_path) {
+    const path = item.model_path.toLowerCase();
+    if (path.endsWith('.onnx')) {
+      return 'ONNX';
+    }
+    if (path.endsWith('.pt') || path.endsWith('.pth')) {
+      return 'PyTorch';
+    }
+    if (path.includes('openvino')) {
+      return 'OpenVINO';
+    }
+    if (path.endsWith('.tflite')) {
+      return 'TensorFlow Lite';
+    }
+  }
+  
+  // 默认返回空字符串
+  return '';
+}
+
+// 获取模型标题：模型名称 + 版本号
+function getModelTitleWithVersion(item: any): string {
+  const modelName = item.model_name || '未知模型';
+  const version = item.model_version || item.version || '';
+  
+  if (version) {
+    // 如果版本号没有 v 前缀，则添加
+    const versionText = version.startsWith('v') ? version : `v${version}`;
+    return `${modelName} ${versionText}`;
+  }
+  
+  return modelName;
+}
+
+// 复制到剪贴板
+function copyToClipboard(text: string, label: string) {
+  if (!text || text === '--') {
+    createMessage.warning(`${label}为空，无法复制`);
+    return;
+  }
+  
+  navigator.clipboard.writeText(text).then(() => {
+    createMessage.success(`${label}已复制到剪贴板`);
+  }).catch(() => {
+    // 降级方案
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      createMessage.success(`${label}已复制到剪贴板`);
+    } catch (err) {
+      createMessage.error('复制失败，请手动复制');
+    }
+    document.body.removeChild(textArea);
+  });
+}
+
 // 启动服务
 const handleStart = async (record: any) => {
   if (record.status === 'running') return;
@@ -425,6 +526,7 @@ const handleDelete = async (record: any) => {
   padding: 6px 12px;
   border-radius: 6px;
   flex-shrink: 0;
+  width: fit-content;
 
   &.status-running {
     background: #f6ffed;
@@ -481,13 +583,13 @@ const handleDelete = async (record: any) => {
 }
 
 .deploy-service-card-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  line-height: 1.4em;
+  line-height: 1.5em;
   color: #1a1a1a;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   flex-shrink: 0;
-  min-height: 36px;
+  min-height: 24px;
   display: flex;
   align-items: flex-start;
 
@@ -501,6 +603,7 @@ const handleDelete = async (record: any) => {
     line-height: 1.5em;
     max-height: 3em;
     overflow: hidden;
+    font-weight: 600;
 
     &:hover {
       color: #1890ff;
@@ -508,13 +611,43 @@ const handleDelete = async (record: any) => {
   }
 }
 
-.deploy-service-tags {
+.deploy-service-name {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
-  flex-shrink: 0;
   align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  background: #fafafa;
+  border-radius: 6px;
+  flex-shrink: 0;
+
+  .service-name-label {
+    font-size: 12px;
+    color: #8c8c8c;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .service-name-value {
+    flex: 1;
+    font-size: 13px;
+    color: #262626;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .copy-icon {
+    font-size: 14px;
+    color: #8c8c8c;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #1890ff;
+    }
+  }
 }
 
 .deploy-service-info {
@@ -547,6 +680,50 @@ const handleDelete = async (record: any) => {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+    }
+
+    .inference-endpoint-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .inference-endpoint-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: #262626;
+      }
+
+      .inference-endpoint-format {
+        font-size: 12px;
+        color: #8c8c8c;
+        font-weight: 400;
+      }
+
+      .inference-endpoint-url {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        .info-value {
+          flex: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .copy-icon {
+          font-size: 14px;
+          color: #8c8c8c;
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: color 0.2s;
+
+          &:hover {
+            color: #1890ff;
+          }
+        }
       }
     }
   }
@@ -621,9 +798,13 @@ const handleDelete = async (record: any) => {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.model-name-tag {
-  background: #e6f7ff;
-  color: #1890ff;
-  border: 1px solid #91d5ff;
+.service-id-tag {
+  background: #fafafa;
+  color: #595959;
+  border: 1px solid #e8e8e8;
+  font-size: 12px;
+  padding: 2px 10px;
+  height: 24px;
+  line-height: 20px;
 }
 </style>
