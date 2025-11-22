@@ -29,14 +29,6 @@
               },
               {
                 tooltip: {
-                  title: '模型部署',
-                  placement: 'top',
-                },
-                icon: 'ant-design:experiment-outlined', // 部署图标
-                onClick: handleDeploy.bind(null, record),
-              },
-              {
-                tooltip: {
                   title: '下载模型',
                   placement: 'top',
                 },
@@ -68,7 +60,6 @@
         @delete="handleDel"
         @view="handleView"
         @edit="handleEdit"
-        @deploy="handleDeploy"
         @train="handleTrain"
         @download="handleDownload"
       >
@@ -94,7 +85,7 @@ import { getBasicColumns, getFormConfig } from "./data";
 import ModelModal from "../ModelModal/index.vue";
 import { useModal } from "@/components/Modal";
 import { useRouter } from "vue-router";
-import { deleteModel, getModelPage, downloadModel, deployModel } from "@/api/device/model";
+import { deleteModel, getModelPage, downloadModel } from "@/api/device/model";
 import ModelCardList from "../ModelCardList/index.vue";
 
 const { createMessage, createConfirm } = useMessage();
@@ -136,29 +127,6 @@ function handleSuccess() {
   reload({ page: 0 });
   cardListReload();
 }
-
-// 新增部署处理函数
-const handleDeploy = async (record) => {
-  createConfirm({
-    title: '模型部署',
-    iconType: 'warning',
-    content: `确认要部署模型"${record.name}"吗？部署后将创建一个独立的推理服务。`,
-    async onOk() {
-      try {
-        await deployModel({
-          model_id: record.id,
-          service_name: `${record.name}_${record.version || 'v1.0.0'}_${Date.now()}`,
-          start_port: 8000
-        });
-        createMessage.success('模型部署成功');
-        handleSuccess();
-      } catch (error) {
-        console.error('部署失败:', error);
-        createMessage.error('模型部署失败');
-      }
-    },
-  });
-};
 
 // 新增训练处理函数
 const handleTrain = async (record) => {

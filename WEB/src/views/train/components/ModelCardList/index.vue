@@ -64,9 +64,6 @@
                       <div class="btn" @click="handleEdit(item)" title="编辑模型">
                         <EditOutlined style="font-size: 16px;"/>
                       </div>
-                      <div class="btn" @click="handleDeploy(item)" title="模型部署">
-                        <ExperimentOutlined style="font-size: 16px;"/>
-                      </div>
                       <div class="btn" @click="handleDownload(item)" title="下载模型">
                         <DownloadOutlined style="font-size: 16px;"/>
                       </div>
@@ -96,7 +93,7 @@ import {List, Popconfirm, Spin, Tag} from 'ant-design-vue';
 import {BasicForm, useForm} from '@/components/Form';
 import {propTypes} from '@/utils/propTypes';
 import {isFunction} from '@/utils/is';
-import {DeleteOutlined, DownloadOutlined, EditOutlined, ExperimentOutlined, EyeOutlined} from '@ant-design/icons-vue';
+import {DeleteOutlined, DownloadOutlined, EditOutlined, EyeOutlined} from '@ant-design/icons-vue';
 import {getFormConfig} from './Data';
 
 defineOptions({name: 'ModelCardList'})
@@ -108,7 +105,7 @@ const props = defineProps({
   api: propTypes.func,
 });
 
-const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'deploy', 'train', 'download']);
+const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'train', 'download']);
 
 const data = ref([]);
 const state = reactive({
@@ -243,10 +240,6 @@ function handleView(record: object) {
 
 function handleEdit(record: object) {
   emit('edit', record);
-}
-
-function handleDeploy(record: object) {
-  emit('deploy', record);
 }
 
 function handleDownload(record: object) {

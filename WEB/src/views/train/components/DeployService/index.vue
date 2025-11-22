@@ -8,7 +8,7 @@
       <template #toolbar>
         <a-button type="primary" @click="openDeployModal(true, {isEdit: false, isView: false})">
           <Icon icon="ant-design:plus-circle-outlined"/>
-          部署新服务
+          模型部署
         </a-button>
         <a-button type="default" @click="handleClickSwap" preIcon="ant-design:swap-outlined">
           切换视图
@@ -253,30 +253,6 @@ const pollingInterval = ref<number>(10000); // 默认10秒
 const pollingTimer = ref<NodeJS.Timeout | null>(null);
 const isPollingActive = ref<boolean>(true);
 
-const startPolling = async () => {
-  if (!isPollingActive.value) return;
-
-  try {
-    await reload();
-  } catch (error) {
-    console.error('轮询请求失败:', error);
-  } finally {
-    pollingTimer.value = setTimeout(startPolling, pollingInterval.value);
-  }
-};
-
-onMounted(() => {
-  loadModelOptions();
-  startPolling();
-});
-
-onBeforeUnmount(() => {
-  if (pollingTimer.value) {
-    clearTimeout(pollingTimer.value);
-    pollingTimer.value = null;
-  }
-});
-
 const [registerTable, {reload, getForm}] = useTable({
   canResize: true,
   showIndexColumn: false,
@@ -299,6 +275,54 @@ const [registerTable, {reload, getForm}] = useTable({
     totalField: 'total',
   },
   rowKey: 'id',
+});
+
+const startPolling = async () => {
+  if (!isPollingActive.value) return;
+  
+  // 只有在表格模式下才进行轮询刷新
+  if (!state.isTableMode) {
+    pollingTimer.value = setTimeout(startPolling, pollingInterval.value);
+    return;
+  }
+
+  try {
+    await reload();
+  } catch (error) {
+    console.error('轮询请求失败:', error);
+  } finally {
+    pollingTimer.value = setTimeout(startPolling, pollingInterval.value);
+  }
+};
+
+onMounted(() => {
+  loadModelOptions();
+  // 使用 nextTick 确保表格已经注册
+  nextTick(() => {
+    startPolling();
+  });
+});
+
+onBeforeUnmount(() => {
+  if (pollingTimer.value) {
+    clearTimeout(pollingTimer.value);
+    pollingTimer.value = null;
+  }
+});
+
+// 监听表格模式切换，切换到表格模式时立即刷新
+watch(() => state.isTableMode, (isTableMode) => {
+  if (isTableMode) {
+    // 切换到表格模式时，等待表格注册完成后再刷新
+    nextTick(() => {
+      try {
+        reload();
+      } catch (error) {
+        // 如果表格还未注册，忽略错误，等待下次轮询
+        console.warn('表格尚未注册，跳过刷新');
+      }
+    });
+  }
 });
 
 // 监听模型选项变化，更新表单配置
