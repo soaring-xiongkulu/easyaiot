@@ -24,7 +24,7 @@ deploy_service_bp = Blueprint('deploy_service', __name__)
 logger = logging.getLogger(__name__)
 
 
-# 部署服务列表查询
+# 部署服务列表查询（按service_name分组）
 @deploy_service_bp.route('/list', methods=['GET'])
 def get_deploy_services():
     try:
@@ -40,8 +40,8 @@ def get_deploy_services():
                 'msg': '参数错误：pageNo和pageSize必须为正整数'
             }), 400
 
-        # 构建查询（使用 LEFT JOIN 支持 model_id 为空的情况）
-        query = db.session.query(AIService, Model.name.label('model_name')).outerjoin(
+        # 构建基础查询（使用 LEFT JOIN 支持 model_id 为空的情况）
+        base_query = db.session.query(AIService, Model.name.label('model_name')).outerjoin(
             Model, AIService.model_id == Model.id
         )
 
@@ -49,44 +49,73 @@ def get_deploy_services():
         if model_id:
             try:
                 model_id_int = int(model_id)
-                query = query.filter(AIService.model_id == model_id_int)
+                base_query = base_query.filter(AIService.model_id == model_id_int)
             except ValueError:
                 pass
         
         if server_ip:
-            query = query.filter(AIService.server_ip.ilike(f'%{server_ip}%'))
+            base_query = base_query.filter(AIService.server_ip.ilike(f'%{server_ip}%'))
         
         # 支持状态过滤：running/offline/stopped/error
         if status_filter in ['offline', 'stopped', 'running', 'error']:
             if status_filter == 'running':
-                query = query.filter(AIService.status.in_(['running', 'online']))
+                base_query = base_query.filter(AIService.status.in_(['running', 'online']))
             elif status_filter == 'error':
-                query = query.filter(AIService.status.in_(['offline', 'error']))
+                base_query = base_query.filter(AIService.status.in_(['offline', 'error']))
             else:
-                query = query.filter(AIService.status == status_filter)
+                base_query = base_query.filter(AIService.status == status_filter)
 
-        # 按创建时间倒序
-        query = query.order_by(desc(AIService.created_at))
-
-        # 分页
-        pagination = query.paginate(
-            page=page_no,
-            per_page=page_size,
-            error_out=False
-        )
-
-        # 构建响应数据
-        records = []
-        for service, model_name in pagination.items:
-            service_dict = service.to_dict()
+        # 获取所有符合条件的服务
+        all_services = base_query.all()
+        
+        # 按service_name分组
+        grouped_services = {}
+        for service, model_name in all_services:
+            service_name = service.service_name
+            if service_name not in grouped_services:
+                grouped_services[service_name] = {
+                    'services': [],
+                    'model_name': model_name
+                }
+            grouped_services[service_name]['services'].append((service, model_name))
+        
+        # 为每个service_name生成一条合并记录
+        merged_records = []
+        for service_name, group_data in grouped_services.items():
+            services_list = group_data['services']
+            model_name = group_data['model_name']
+            
+            # 使用第一个服务作为主记录（按创建时间倒序，取最新的）
+            services_list.sort(key=lambda x: x[0].created_at if x[0].created_at else datetime.min, reverse=True)
+            main_service, _ = services_list[0]
+            
+            # 计算副本数
+            replica_count = len(services_list)
+            
+            # 计算聚合状态：如果有任何一个running，则显示running；否则显示stopped
+            statuses = [s[0].status for s in services_list]
+            if 'running' in statuses:
+                aggregated_status = 'running'
+            elif 'offline' in statuses:
+                aggregated_status = 'offline'
+            elif 'error' in statuses:
+                aggregated_status = 'error'
+            else:
+                aggregated_status = 'stopped'
+            
+            # 构建合并后的记录
+            service_dict = main_service.to_dict()
             service_dict['model_name'] = model_name if model_name else None
+            service_dict['replica_count'] = replica_count
+            service_dict['status'] = aggregated_status
+            
             # 如果服务记录中没有版本和格式，从Model表获取
             if not service_dict.get('model_version'):
-                model = Model.query.get(service.model_id)
+                model = Model.query.get(main_service.model_id)
                 if model:
                     service_dict['model_version'] = model.version
             if not service_dict.get('format'):
-                model = Model.query.get(service.model_id)
+                model = Model.query.get(main_service.model_id)
                 if model:
                     model_path = model.model_path or model.onnx_model_path or model.torchscript_model_path or model.tensorrt_model_path or model.openvino_model_path
                     if model_path:
@@ -107,13 +136,23 @@ def get_deploy_services():
                             service_dict['format'] = 'tensorrt'
                         elif model.openvino_model_path:
                             service_dict['format'] = 'openvino'
-            records.append(service_dict)
+            
+            merged_records.append(service_dict)
+        
+        # 按创建时间倒序排序
+        merged_records.sort(key=lambda x: x.get('created_at') or '', reverse=True)
+        
+        # 手动分页
+        total = len(merged_records)
+        start_idx = (page_no - 1) * page_size
+        end_idx = start_idx + page_size
+        paginated_records = merged_records[start_idx:end_idx]
 
         return jsonify({
             'code': 0,
             'msg': 'success',
-            'data': records,
-            'total': pagination.total
+            'data': paginated_records,
+            'total': total
         })
 
     except ValueError:
@@ -382,6 +421,249 @@ def delete_service_route(service_id):
     except Exception as e:
         logger.error(f"删除服务失败: {str(e)}", exc_info=True)
         db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+# 批量启动服务（按service_name）
+@deploy_service_bp.route('/batch/start', methods=['POST'])
+def batch_start_service_route():
+    try:
+        data = request.get_json()
+        service_name = data.get('service_name')
+        
+        if not service_name:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：service_name'
+            }), 400
+        
+        # 查找所有相同service_name的服务
+        services = AIService.query.filter_by(service_name=service_name).all()
+        if not services:
+            return jsonify({
+                'code': 404,
+                'msg': f'未找到服务: {service_name}'
+            }), 404
+        
+        # 批量启动
+        success_count = 0
+        fail_count = 0
+        errors = []
+        
+        for service in services:
+            try:
+                result = start_service(service.id)
+                if result.get('code') == 0:
+                    success_count += 1
+                else:
+                    fail_count += 1
+                    errors.append(f"服务ID {service.id}: {result.get('msg', '启动失败')}")
+            except Exception as e:
+                fail_count += 1
+                errors.append(f"服务ID {service.id}: {str(e)}")
+        
+        return jsonify({
+            'code': 0,
+            'msg': f'批量启动完成：成功 {success_count} 个，失败 {fail_count} 个',
+            'data': {
+                'success_count': success_count,
+                'fail_count': fail_count,
+                'errors': errors
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"批量启动服务失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+# 批量停止服务（按service_name）
+@deploy_service_bp.route('/batch/stop', methods=['POST'])
+def batch_stop_service_route():
+    try:
+        data = request.get_json()
+        service_name = data.get('service_name')
+        
+        if not service_name:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：service_name'
+            }), 400
+        
+        # 查找所有相同service_name的服务
+        services = AIService.query.filter_by(service_name=service_name).all()
+        if not services:
+            return jsonify({
+                'code': 404,
+                'msg': f'未找到服务: {service_name}'
+            }), 404
+        
+        # 批量停止
+        success_count = 0
+        fail_count = 0
+        errors = []
+        
+        for service in services:
+            try:
+                result = stop_service(service.id)
+                if result.get('code') == 0:
+                    success_count += 1
+                else:
+                    fail_count += 1
+                    errors.append(f"服务ID {service.id}: {result.get('msg', '停止失败')}")
+            except Exception as e:
+                fail_count += 1
+                errors.append(f"服务ID {service.id}: {str(e)}")
+        
+        return jsonify({
+            'code': 0,
+            'msg': f'批量停止完成：成功 {success_count} 个，失败 {fail_count} 个',
+            'data': {
+                'success_count': success_count,
+                'fail_count': fail_count,
+                'errors': errors
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"批量停止服务失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+# 批量重启服务（按service_name）
+@deploy_service_bp.route('/batch/restart', methods=['POST'])
+def batch_restart_service_route():
+    try:
+        data = request.get_json()
+        service_name = data.get('service_name')
+        
+        if not service_name:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：service_name'
+            }), 400
+        
+        # 查找所有相同service_name的服务
+        services = AIService.query.filter_by(service_name=service_name).all()
+        if not services:
+            return jsonify({
+                'code': 404,
+                'msg': f'未找到服务: {service_name}'
+            }), 404
+        
+        # 批量重启
+        success_count = 0
+        fail_count = 0
+        errors = []
+        
+        for service in services:
+            try:
+                result = restart_service(service.id)
+                if result.get('code') == 0:
+                    success_count += 1
+                else:
+                    fail_count += 1
+                    errors.append(f"服务ID {service.id}: {result.get('msg', '重启失败')}")
+            except Exception as e:
+                fail_count += 1
+                errors.append(f"服务ID {service.id}: {str(e)}")
+        
+        return jsonify({
+            'code': 0,
+            'msg': f'批量重启完成：成功 {success_count} 个，失败 {fail_count} 个',
+            'data': {
+                'success_count': success_count,
+                'fail_count': fail_count,
+                'errors': errors
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"批量重启服务失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+# 获取service_name的所有副本详情
+@deploy_service_bp.route('/replicas', methods=['GET'])
+def get_service_replicas():
+    try:
+        service_name = request.args.get('service_name', '').strip()
+        
+        if not service_name:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：service_name'
+            }), 400
+        
+        # 查找所有相同service_name的服务
+        services = db.session.query(AIService, Model.name.label('model_name')).outerjoin(
+            Model, AIService.model_id == Model.id
+        ).filter(AIService.service_name == service_name).order_by(desc(AIService.created_at)).all()
+        
+        if not services:
+            return jsonify({
+                'code': 404,
+                'msg': f'未找到服务: {service_name}'
+            }), 404
+        
+        # 构建响应数据
+        records = []
+        for service, model_name in services:
+            service_dict = service.to_dict()
+            service_dict['model_name'] = model_name if model_name else None
+            # 如果服务记录中没有版本和格式，从Model表获取
+            if not service_dict.get('model_version'):
+                model = Model.query.get(service.model_id)
+                if model:
+                    service_dict['model_version'] = model.version
+            if not service_dict.get('format'):
+                model = Model.query.get(service.model_id)
+                if model:
+                    model_path = model.model_path or model.onnx_model_path or model.torchscript_model_path or model.tensorrt_model_path or model.openvino_model_path
+                    if model_path:
+                        model_path_lower = model_path.lower()
+                        if model_path_lower.endswith('.onnx') or 'onnx' in model_path_lower:
+                            service_dict['format'] = 'onnx'
+                        elif model_path_lower.endswith(('.pt', '.pth')):
+                            service_dict['format'] = 'pytorch'
+                        elif 'openvino' in model_path_lower:
+                            service_dict['format'] = 'openvino'
+                        elif 'tensorrt' in model_path_lower:
+                            service_dict['format'] = 'tensorrt'
+                        elif model.onnx_model_path:
+                            service_dict['format'] = 'onnx'
+                        elif model.torchscript_model_path:
+                            service_dict['format'] = 'torchscript'
+                        elif model.tensorrt_model_path:
+                            service_dict['format'] = 'tensorrt'
+                        elif model.openvino_model_path:
+                            service_dict['format'] = 'openvino'
+            records.append(service_dict)
+        
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': records,
+            'total': len(records)
+        })
+        
+    except Exception as e:
+        logger.error(f'获取服务副本详情失败: {str(e)}')
         return jsonify({
             'code': 500,
             'msg': f'服务器内部错误: {str(e)}'

@@ -29,10 +29,13 @@
                     <a>{{ getModelTitleWithVersion(item) }}</a>
                   </h6>
 
-                  <!-- 状态标签 -->
+                  <!-- 状态标签和副本数 -->
                   <div class="status-format-wrapper">
                     <span class="status-tag" :class="`status-${item.status}`">
                       {{ getStatusText(item.status) }}
+                    </span>
+                    <span class="replica-tag" v-if="item.replica_count">
+                      副本数: <a class="replica-count-link" @click="handleViewReplicas(item)">{{ item.replica_count }}</a>
                     </span>
                   </div>
 
@@ -57,23 +60,6 @@
                       <span class="info-value">{{ item.server_ip || '--' }}</span>
                     </div>
                     <div class="info-item">
-                      <span class="info-label">端口:</span>
-                      <span class="info-value">{{ item.port || '--' }}</span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">推理接口:</span>
-                      <div class="inference-endpoint-url">
-                        <span class="info-value ellipsis" :title="item.inference_endpoint">
-                          {{ item.inference_endpoint || '--' }}
-                        </span>
-                        <CopyOutlined 
-                          class="copy-icon copy-test-command-icon" 
-                          @click="copyTestCommand(item)"
-                          title="复制测试命令"
-                        />
-                      </div>
-                    </div>
-                    <div class="info-item">
                       <span class="info-label">部署时间:</span>
                       <span class="info-value">{{ formatDateTime(item.deploy_time) }}</span>
                     </div>
@@ -86,7 +72,7 @@
                         class="btn"
                         @click="handleStart(item)"
                         :class="{ disabled: item.status === 'running' }"
-                        title="启动服务"
+                        title="批量启动"
                       >
                         <PlayCircleOutlined style="font-size: 16px;"/>
                       </div>
@@ -94,7 +80,7 @@
                         class="btn"
                         @click="handleStop(item)"
                         :class="{ disabled: item.status !== 'running' }"
-                        title="停止服务"
+                        title="批量停止"
                       >
                         <StopOutlined style="font-size: 16px;"/>
                       </div>
@@ -102,12 +88,9 @@
                         class="btn"
                         @click="handleRestart(item)"
                         :class="{ disabled: item.status !== 'running' }"
-                        title="重启服务"
+                        title="批量重启"
                       >
                         <ReloadOutlined style="font-size: 16px;"/>
-                      </div>
-                      <div class="btn" @click="handleViewLogs(item)" title="查看日志">
-                        <FileTextOutlined style="font-size: 16px;"/>
                       </div>
                       <Popconfirm
                         title="确定删除此部署服务?"
@@ -137,7 +120,6 @@ import {propTypes} from '@/utils/propTypes';
 import {isFunction} from '@/utils/is';
 import {
   DeleteOutlined,
-  FileTextOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
   StopOutlined,
@@ -147,9 +129,10 @@ import {useMessage} from '@/hooks/web/useMessage';
 import {
   deleteDeployService,
   getModelPage,
-  restartDeployService,
-  startDeployService,
-  stopDeployService
+  batchStartDeployService,
+  batchStopDeployService,
+  batchRestartDeployService,
+  getDeployServiceReplicas
 } from '@/api/device/model';
 import {getFormConfig} from '../DeployService/Data';
 
@@ -162,7 +145,7 @@ const props = defineProps({
   api: propTypes.func,
 });
 
-const emit = defineEmits(['getMethod', 'viewLogs', 'field-value-change']);
+const emit = defineEmits(['getMethod', 'field-value-change', 'viewReplicas']);
 
 const {createMessage} = useMessage();
 
@@ -425,48 +408,55 @@ function copyTestCommand(item: any) {
   copyToClipboard(testCommand, '测试命令');
 }
 
-// 启动服务
+// 批量启动服务
 const handleStart = async (record: any) => {
   if (record.status === 'running') return;
   try {
-    await startDeployService(record.id);
-    createMessage.success('服务启动成功');
+    const result = await batchStartDeployService(record.service_name);
+    if (result.code === 0) {
+      createMessage.success(result.msg || '批量启动成功');
+    } else {
+      createMessage.error(result.msg || '批量启动失败');
+    }
     fetch();
   } catch (error) {
-    createMessage.error('服务启动失败');
-    console.error('服务启动失败:', error);
+    createMessage.error('批量启动失败');
+    console.error('批量启动失败:', error);
   }
 };
 
-// 停止服务
+// 批量停止服务
 const handleStop = async (record: any) => {
   if (record.status !== 'running') return;
   try {
-    await stopDeployService(record.id);
-    createMessage.success('服务停止成功');
+    const result = await batchStopDeployService(record.service_name);
+    if (result.code === 0) {
+      createMessage.success(result.msg || '批量停止成功');
+    } else {
+      createMessage.error(result.msg || '批量停止失败');
+    }
     fetch();
   } catch (error) {
-    createMessage.error('服务停止失败');
-    console.error('服务停止失败:', error);
+    createMessage.error('批量停止失败');
+    console.error('批量停止失败:', error);
   }
 };
 
-// 重启服务
+// 批量重启服务
 const handleRestart = async (record: any) => {
   if (record.status !== 'running') return;
   try {
-    await restartDeployService(record.id);
-    createMessage.success('服务重启成功');
+    const result = await batchRestartDeployService(record.service_name);
+    if (result.code === 0) {
+      createMessage.success(result.msg || '批量重启成功');
+    } else {
+      createMessage.error(result.msg || '批量重启失败');
+    }
     fetch();
   } catch (error) {
-    createMessage.error('服务重启失败');
-    console.error('服务重启失败:', error);
+    createMessage.error('批量重启失败');
+    console.error('批量重启失败:', error);
   }
-};
-
-// 查看日志
-const handleViewLogs = (record: any) => {
-  emit('viewLogs', record);
 };
 
 // 删除服务
@@ -479,6 +469,11 @@ const handleDelete = async (record: any) => {
     createMessage.error('删除失败');
     console.error('删除失败:', error);
   }
+};
+
+// 查看副本详情
+const handleViewReplicas = async (record: any) => {
+  emit('viewReplicas', record);
 };
 </script>
 
@@ -574,6 +569,33 @@ const handleDelete = async (record: any) => {
     background: #fff2f0;
     border-color: #ffccc7;
     color: #ff4d4f;
+  }
+}
+
+.replica-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid;
+  background: #e6f7ff;
+  border-color: #91d5ff;
+  color: #1890ff;
+
+  .replica-count-link {
+    color: #1890ff;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #40a9ff;
+      text-decoration: underline;
+    }
   }
 }
 

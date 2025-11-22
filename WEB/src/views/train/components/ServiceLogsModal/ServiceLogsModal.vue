@@ -3,8 +3,9 @@
     v-bind="$attrs"
     @register="register"
     title="服务日志"
-    width="900px"
+    width="1200px"
     :footer="null"
+    :maskClosable="false"
   >
     <div class="logs-container">
       <div class="logs-header">
@@ -33,14 +34,16 @@
           </a-select>
         </div>
       </div>
-      <a-spin :spinning="loading" tip="加载日志中...">
-        <div class="logs-content" ref="logsContentRef" @scroll="handleScroll" :class="{ 'empty-state': !logs }">
-          <div v-if="logs" class="logs-text">
-            <pre>{{ logs }}</pre>
+      <div class="logs-content-wrapper">
+        <a-spin :spinning="loading" tip="加载日志中...">
+          <div class="logs-content" ref="logsContentRef" @scroll="handleScroll" :class="{ 'empty-state': !logs }">
+            <div v-if="logs" class="logs-text">
+              <pre>{{ logs }}</pre>
+            </div>
+            <a-empty v-else description="暂无日志" />
           </div>
-          <a-empty v-else description="暂无日志" />
-        </div>
-      </a-spin>
+        </a-spin>
+      </div>
       <div class="logs-footer">
         <div class="logs-footer-left">
           <a-button type="primary" @click="handleRefresh" :loading="loading">
@@ -99,7 +102,14 @@ const isScrolling = ref(false);
 const [register, {closeModal}] = useModalInner(async (data) => {
   if (data && data.record) {
     currentServiceId.value = data.record.id;
+    // 重置滚动状态，确保打开时滚动到底部
+    isScrolling.value = false;
     await fetchLogs();
+    // 确保滚动到底部
+    await nextTick();
+    setTimeout(() => {
+      scrollToBottom();
+    }, 100);
   }
 });
 
@@ -109,16 +119,21 @@ const fetchLogs = async () => {
   try {
     loading.value = true;
     const res = await getDeployServiceLogs(currentServiceId.value, {lines: 500});
-    logs.value = res.data?.logs || '';
+    // API响应经过transformResponseHook处理后，直接返回data.data，所以使用res.logs
+    logs.value = res?.logs || res?.data?.logs || '';
     
     // 只有在用户没有手动滚动时才自动滚动到底部
     if (!isScrolling.value) {
       await nextTick();
-      scrollToBottom();
+      // 使用 setTimeout 确保 DOM 更新完成后再滚动
+      setTimeout(() => {
+        scrollToBottom();
+      }, 50);
     }
   } catch (error) {
     console.error('获取日志失败:', error);
     createMessage.error('获取日志失败');
+    logs.value = '';
   } finally {
     loading.value = false;
   }
@@ -223,7 +238,11 @@ onUnmounted(() => {
 .logs-container {
   display: flex;
   flex-direction: column;
-  height: 600px;
+  height: 70vh;
+  max-height: 700px;
+  min-height: 550px;
+  position: relative;
+  overflow: hidden; // 防止整个容器滚动
 }
 
 .logs-header {
@@ -235,6 +254,7 @@ onUnmounted(() => {
   border: 1px solid #e8e8e8;
   border-radius: 4px;
   margin-bottom: 12px;
+  flex-shrink: 0; // 防止 header 被压缩
 
   .logs-header-left {
     display: flex;
@@ -255,6 +275,29 @@ onUnmounted(() => {
   }
 }
 
+.logs-content-wrapper {
+  flex: 1;
+  min-height: 0; // 允许 flex 子元素收缩
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; // 防止 wrapper 滚动
+  
+  // 确保 a-spin 组件不影响布局
+  :deep(.ant-spin-nested-loading) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  :deep(.ant-spin-container) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
 .logs-content {
   flex: 1;
   overflow-y: auto;
@@ -263,7 +306,7 @@ onUnmounted(() => {
   border: 1px solid #d9d9d9;
   border-radius: 4px;
   position: relative;
-  min-height: 400px;
+  min-height: 0; // 允许 flex 子元素收缩
 
   &::-webkit-scrollbar {
     width: 8px;
@@ -332,8 +375,12 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-top: 12px;
-  padding-top: 12px;
+  padding: 12px 0;
   border-top: 1px solid #e8e8e8;
+  flex-shrink: 0; // 防止 footer 被压缩
+  position: relative; // 确保 footer 在正常文档流中
+  z-index: 10; // 确保 footer 在最上层
+  background: #fff; // 确保 footer 有背景色，不会被内容遮挡
 
   .logs-footer-left {
     display: flex;
@@ -349,7 +396,9 @@ onUnmounted(() => {
 // 响应式设计
 @media (max-width: 768px) {
   .logs-container {
-    height: 500px;
+    height: 65vh;
+    max-height: 600px;
+    min-height: 500px;
   }
 
   .logs-header {
