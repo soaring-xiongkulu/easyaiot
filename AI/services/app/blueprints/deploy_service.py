@@ -85,6 +85,416 @@ def get_local_ip():
         return '127.0.0.1'
 
 
+def install_conda():
+    """安装conda（Miniconda）"""
+    try:
+        import platform
+        import urllib.request
+        
+        logger.info("开始安装conda（Miniconda）...")
+        
+        # 检测系统架构
+        system = platform.system().lower()
+        machine = platform.machine().lower()
+        
+        # 确定下载URL
+        if system == 'linux':
+            if machine in ['x86_64', 'amd64']:
+                arch = 'x86_64'
+            elif machine in ['aarch64', 'arm64']:
+                arch = 'aarch64'
+            else:
+                logger.error(f"不支持的系统架构: {machine}")
+                return False
+            installer_name = f"Miniconda3-latest-Linux-{arch}.sh"
+        elif system == 'darwin':  # macOS
+            if machine in ['x86_64', 'amd64']:
+                arch = 'x86_64'
+            elif machine in ['arm64', 'aarch64']:
+                arch = 'arm64'
+            else:
+                logger.error(f"不支持的系统架构: {machine}")
+                return False
+            installer_name = f"Miniconda3-latest-MacOSX-{arch}.sh"
+        else:
+            logger.error(f"不支持的操作系统: {system}")
+            return False
+        
+        installer_url = f"https://repo.anaconda.com/miniconda/{installer_name}"
+        installer_path = os.path.join('/tmp', installer_name)
+        
+        logger.info(f"下载Miniconda安装程序: {installer_url}")
+        
+        # 下载安装程序
+        try:
+            urllib.request.urlretrieve(installer_url, installer_path)
+            logger.info("下载完成")
+        except Exception as e:
+            logger.error(f"下载Miniconda安装程序失败: {str(e)}")
+            return False
+        
+        # 检查下载的文件
+        if not os.path.exists(installer_path) or os.path.getsize(installer_path) == 0:
+            logger.error("下载的安装程序文件无效")
+            return False
+        
+        # 设置安装路径（默认安装到用户目录）
+        home_dir = os.path.expanduser('~')
+        install_dir = os.path.join(home_dir, 'miniconda3')
+        
+        logger.info(f"安装Miniconda到: {install_dir}")
+        
+        # 执行安装（静默模式）
+        install_result = subprocess.run(
+            ['bash', installer_path, '-b', '-p', install_dir, '-f'],
+            capture_output=True,
+            text=True,
+            timeout=600  # 10分钟超时
+        )
+        
+        # 清理安装程序
+        try:
+            os.remove(installer_path)
+        except:
+            pass
+        
+        if install_result.returncode == 0:
+            logger.info("Miniconda安装成功")
+            
+            # 将conda添加到PATH
+            conda_bin = os.path.join(install_dir, 'bin')
+            if conda_bin not in os.environ.get('PATH', ''):
+                os.environ['PATH'] = f"{conda_bin}:{os.environ.get('PATH', '')}"
+            
+            return True
+        else:
+            logger.error(f"Miniconda安装失败: {install_result.stderr}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"安装conda时发生异常: {str(e)}")
+        return False
+
+
+def check_and_init_conda():
+    """检查conda是否已安装和初始化，如果没有则安装并初始化"""
+    try:
+        # 首先尝试直接执行conda命令检查是否可用
+        conda_version_check = subprocess.run(
+            ['conda', '--version'],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if conda_version_check.returncode == 0:
+            # conda可用，检查是否已初始化
+            # 检查常见的shell配置文件
+            home_dir = os.path.expanduser('~')
+            shell_configs = [
+                os.path.join(home_dir, '.bashrc'),
+                os.path.join(home_dir, '.zshrc'),
+                os.path.join(home_dir, '.bash_profile'),
+                os.path.join(home_dir, '.profile')
+            ]
+            
+            conda_initialized = False
+            for config_file in shell_configs:
+                if os.path.exists(config_file):
+                    try:
+                        with open(config_file, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                            # 检查是否包含conda初始化代码
+                            if 'conda initialize' in content or '>>> conda initialize >>>' in content:
+                                conda_initialized = True
+                                break
+                    except Exception:
+                        continue
+            
+            # 如果未初始化，执行conda init
+            if not conda_initialized:
+                logger.info("检测到conda未初始化，正在执行conda init...")
+                
+                # 检测当前shell类型
+                shell = os.environ.get('SHELL', '/bin/bash')
+                if 'zsh' in shell:
+                    shell_type = 'zsh'
+                elif 'fish' in shell:
+                    shell_type = 'fish'
+                elif 'powershell' in shell.lower():
+                    shell_type = 'powershell'
+                else:
+                    shell_type = 'bash'  # 默认使用bash
+                
+                logger.info(f"检测到shell类型: {shell_type}，执行conda init {shell_type}")
+                
+                # 执行conda init
+                init_result = subprocess.run(
+                    ['conda', 'init', shell_type],
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                
+                if init_result.returncode == 0:
+                    logger.info(f"conda init {shell_type} 执行成功")
+                    # 尝试重新加载环境（通过source配置文件）
+                    # 注意：在Python中直接source可能不会立即生效，但conda命令应该已经可用
+                    return True
+                else:
+                    logger.warning(f"conda init {shell_type} 执行失败: {init_result.stderr}")
+                    # 即使init失败，也继续尝试使用conda
+                    return True
+            else:
+                logger.info("conda已初始化")
+                return True
+        else:
+            # conda命令执行失败，可能是未初始化
+            logger.info("conda命令执行失败，尝试查找conda安装路径...")
+            
+            # 尝试查找conda的常见安装路径
+            possible_conda_paths = [
+                os.path.expanduser('~/anaconda3/bin/conda'),
+                os.path.expanduser('~/miniconda3/bin/conda'),
+                '/opt/conda/bin/conda',
+                '/usr/local/anaconda3/bin/conda',
+                '/usr/local/miniconda3/bin/conda',
+            ]
+            
+            conda_path = None
+            for path in possible_conda_paths:
+                if os.path.exists(path):
+                    logger.info(f"找到conda安装路径: {path}")
+                    conda_path = path
+                    break
+            
+            if not conda_path:
+                # conda未找到，尝试安装
+                logger.info("未找到conda安装，开始安装conda...")
+                if install_conda():
+                    # 安装成功后，更新conda路径
+                    home_dir = os.path.expanduser('~')
+                    conda_path = os.path.join(home_dir, 'miniconda3', 'bin', 'conda')
+                    if not os.path.exists(conda_path):
+                        logger.warning("conda安装成功但无法找到conda可执行文件")
+                        return False
+                    logger.info(f"conda安装成功，路径: {conda_path}")
+                else:
+                    logger.error("conda安装失败，跳过conda初始化")
+                    return False
+            
+            # 使用找到的conda路径执行conda init来初始化
+            logger.info("尝试执行conda init以初始化conda...")
+            
+            # 检测当前shell类型
+            shell = os.environ.get('SHELL', '/bin/bash')
+            if 'zsh' in shell:
+                shell_type = 'zsh'
+            elif 'fish' in shell:
+                shell_type = 'fish'
+            elif 'powershell' in shell.lower():
+                shell_type = 'powershell'
+            else:
+                shell_type = 'bash'  # 默认使用bash
+            
+            logger.info(f"检测到shell类型: {shell_type}，执行conda init {shell_type}")
+            
+            # 执行conda init（使用找到的conda路径）
+            init_result = subprocess.run(
+                [conda_path, 'init', shell_type],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if init_result.returncode == 0:
+                logger.info(f"conda init {shell_type} 执行成功")
+                # 更新PATH以便后续使用
+                conda_bin_dir = os.path.dirname(conda_path)
+                if conda_bin_dir not in os.environ.get('PATH', ''):
+                    os.environ['PATH'] = f"{conda_bin_dir}:{os.environ.get('PATH', '')}"
+                return True
+            else:
+                logger.warning(f"conda init {shell_type} 执行失败: {init_result.stderr}")
+                return False
+            
+    except FileNotFoundError:
+        logger.info("conda命令未找到，尝试安装conda...")
+        if install_conda():
+            # 安装成功后，再次尝试初始化
+            logger.info("conda安装成功，继续初始化...")
+            # 重新尝试检查conda版本
+            try:
+                conda_version_check = subprocess.run(
+                    ['conda', '--version'],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                if conda_version_check.returncode == 0:
+                    # conda可用，继续初始化流程
+                    shell = os.environ.get('SHELL', '/bin/bash')
+                    if 'zsh' in shell:
+                        shell_type = 'zsh'
+                    elif 'fish' in shell:
+                        shell_type = 'fish'
+                    elif 'powershell' in shell.lower():
+                        shell_type = 'powershell'
+                    else:
+                        shell_type = 'bash'
+                    
+                    init_result = subprocess.run(
+                        ['conda', 'init', shell_type],
+                        capture_output=True,
+                        text=True,
+                        timeout=30
+                    )
+                    
+                    if init_result.returncode == 0:
+                        logger.info(f"conda init {shell_type} 执行成功")
+                        return True
+                    else:
+                        logger.warning(f"conda init {shell_type} 执行失败: {init_result.stderr}")
+                        return True  # 即使init失败，conda已安装，继续使用
+                else:
+                    logger.warning("conda安装成功但无法执行，跳过初始化")
+                    return False
+            except Exception as e:
+                logger.warning(f"conda安装后检查失败: {str(e)}")
+                return False
+        else:
+            logger.error("conda安装失败，跳过conda初始化")
+            return False
+    except Exception as e:
+        logger.warning(f"检查conda初始化时发生异常: {str(e)}")
+        return False
+
+
+def install_deploy_dependencies():
+    """在模型部署之前安装依赖"""
+    conda_env_name = 'AI-SVC'
+    
+    # 获取services目录路径（requirements.txt所在目录）
+    services_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    requirements_file = os.path.join(services_dir, 'requirements.txt')
+    
+    if not os.path.exists(requirements_file):
+        logger.warning(f"requirements.txt文件不存在: {requirements_file}，跳过依赖安装")
+        return True
+    
+    try:
+        logger.info(f"开始安装部署服务依赖: {requirements_file}")
+        
+        # 检查并初始化conda
+        check_and_init_conda()
+        
+        # 检查conda是否可用
+        conda_check = subprocess.run(
+            ['conda', '--version'],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if conda_check.returncode != 0:
+            logger.warning("conda不可用，使用系统pip安装依赖")
+            # 如果conda不可用，直接使用pip
+            result = subprocess.run(
+                ['pip', 'install', '-r', requirements_file],
+                cwd=services_dir,
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
+            
+            if result.returncode == 0:
+                logger.info("部署服务依赖安装成功")
+                return True
+            else:
+                logger.error(f"部署服务依赖安装失败: {result.stderr}")
+                return False
+        
+        # 检查conda环境是否存在
+        logger.info(f"检查conda环境: {conda_env_name}")
+        env_list_result = subprocess.run(
+            ['conda', 'env', 'list'],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        env_exists = False
+        if env_list_result.returncode == 0:
+            # 检查环境列表中是否包含目标环境（精确匹配环境名）
+            import re
+            # 使用正则表达式匹配环境名（作为独立单词，可能在行首或空格后）
+            pattern = r'(?:^|\s)' + re.escape(conda_env_name) + r'(?:\s|$)'
+            env_exists = bool(re.search(pattern, env_list_result.stdout, re.MULTILINE))
+        
+        # 如果环境不存在，创建环境
+        if not env_exists:
+            logger.info(f"conda环境 {conda_env_name} 不存在，正在创建...")
+            create_result = subprocess.run(
+                ['conda', 'create', '-n', conda_env_name, 'python=3.10', '-y'],
+                capture_output=True,
+                text=True,
+                timeout=600  # 创建环境可能需要较长时间，设置10分钟超时
+            )
+            
+            if create_result.returncode != 0:
+                logger.error(f"创建conda环境失败: {create_result.stderr}")
+                return False
+            
+            logger.info(f"conda环境 {conda_env_name} 创建成功")
+        else:
+            logger.info(f"conda环境 {conda_env_name} 已存在")
+        
+        # 在conda环境中执行pip install
+        logger.info(f"在conda环境 {conda_env_name} 中安装依赖...")
+        result = subprocess.run(
+            ['conda', 'run', '-n', conda_env_name, 'pip', 'install', '-r', requirements_file],
+            cwd=services_dir,
+            capture_output=True,
+            text=True,
+            timeout=300  # 5分钟超时
+        )
+        
+        if result.returncode == 0:
+            logger.info(f"在conda环境 {conda_env_name} 中部署服务依赖安装成功")
+            return True
+        else:
+            logger.error(f"在conda环境 {conda_env_name} 中部署服务依赖安装失败: {result.stderr}")
+            return False
+            
+    except subprocess.TimeoutExpired:
+        logger.error("依赖安装超时")
+        return False
+    except FileNotFoundError:
+        logger.warning("conda命令未找到，使用系统pip安装依赖")
+        # 如果conda命令不存在，尝试直接使用pip
+        try:
+            result = subprocess.run(
+                ['pip', 'install', '-r', requirements_file],
+                cwd=services_dir,
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
+            
+            if result.returncode == 0:
+                logger.info("部署服务依赖安装成功（使用系统pip）")
+                return True
+            else:
+                logger.error(f"部署服务依赖安装失败: {result.stderr}")
+                return False
+        except Exception as e:
+            logger.error(f"使用系统pip安装依赖时发生异常: {str(e)}")
+            return False
+    except Exception as e:
+        logger.error(f"安装部署服务依赖时发生异常: {str(e)}")
+        return False
+
+
 # 部署服务列表查询
 @deploy_service_bp.route('/list', methods=['GET'])
 def get_deploy_services():
@@ -296,6 +706,10 @@ def deploy_model():
                 'data': ai_service.to_dict()
             })
 
+        # 在部署之前安装依赖
+        if not install_deploy_dependencies():
+            logger.warning("依赖安装失败，但继续尝试启动部署服务")
+
         # 启动部署服务
         env = os.environ.copy()
         env['MODEL_ID'] = str(model_id)
@@ -411,6 +825,10 @@ def start_service(service_id):
                 'code': 500,
                 'msg': '部署脚本不存在'
             }), 500
+
+        # 在部署之前安装依赖
+        if not install_deploy_dependencies():
+            logger.warning("依赖安装失败，但继续尝试启动部署服务")
 
         env = os.environ.copy()
         env['MODEL_ID'] = str(service.model_id) if service.model_id else ''
