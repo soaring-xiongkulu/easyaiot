@@ -5,6 +5,8 @@ Flask==2.3.2
 Flask-SQLAlchemy==3.0.5
 # 图像识别
 ultralytics==8.3.141
+# ONNX模型推理支持（GPU版本）
+onnxruntime-gpu>=1.19.0
 # 图像处理
 opencv-python==4.8.0.74
 Pillow==10.0.0
