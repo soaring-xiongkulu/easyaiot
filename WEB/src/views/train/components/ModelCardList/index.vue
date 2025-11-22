@@ -1,9 +1,9 @@
 <template>
-  <div class="model-card-list-wrapper p-2">
+  <div class="model-card-list-wrapper">
     <div class="p-4 bg-white" style="margin-bottom: 10px">
       <BasicForm @register="registerForm" @reset="handleSubmit"/>
     </div>
-    <div class="p-2 bg-white">
+    <div class="bg-white">
       <Spin :spinning="state.loading">
         <List
           :grid="{ gutter: 2, xs: 1, sm: 2, md: 4, lg: 4, xl: 6, xxl: 6 }"
@@ -20,10 +20,9 @@
             </div>
           </template>
           <template #renderItem="{ item }">
-            <ListItem
-              style="padding: 0; background: #FFFFFF; box-shadow: 0px 0px 4px 0px rgba(24, 24, 24, 0.1); height: 100%; transition: all 0.3s;">
+            <ListItem class="model-list-item">
               <div class="model-card-box">
-                <div class="model-card-cont" style="padding: 15px">
+                <div class="model-card-cont">
                   <!-- 正方形图片容器 -->
                   <div class="model-image-container" @click="handleView(item)">
                     <img
@@ -31,6 +30,15 @@
                       alt="模型图片"
                       class="model-image"
                     />
+                    <!-- 图片上的小卡片 -->
+                    <div class="image-badges">
+                      <div class="badge badge-format" v-if="getFormatText(item)">
+                        {{ getFormatText(item) }}
+                      </div>
+                      <div class="badge badge-version" v-if="item.version">
+                        v{{ item.version }}
+                      </div>
+                    </div>
                   </div>
 
                   <h6 class="model-card-title">
@@ -38,7 +46,7 @@
                   </h6>
 
                   <!-- 标签区域 -->
-                  <div style="display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;">
+                  <div class="model-tags">
                     <Tag color="#1890ff">ID: {{ item.id }}</Tag>
                     <Tag color="#52c41a">版本: {{ item.version || '未指定' }}</Tag>
                     <Tag color="#8c8c8c">{{ formatDate(item.created_at) }}</Tag>
@@ -58,6 +66,9 @@
                       </div>
                       <div class="btn" @click="handleDeploy(item)" title="部署模型">
                         <ExperimentOutlined style="font-size: 16px;"/>
+                      </div>
+                      <div class="btn" @click="handleDownload(item)" title="下载模型">
+                        <DownloadOutlined style="font-size: 16px;"/>
                       </div>
                       <Popconfirm
                         title="是否确认删除？"
@@ -85,7 +96,7 @@ import {List, Popconfirm, Spin, Tag} from 'ant-design-vue';
 import {BasicForm, useForm} from '@/components/Form';
 import {propTypes} from '@/utils/propTypes';
 import {isFunction} from '@/utils/is';
-import {DeleteOutlined, EditOutlined, ExperimentOutlined, EyeOutlined} from '@ant-design/icons-vue';
+import {DeleteOutlined, DownloadOutlined, EditOutlined, ExperimentOutlined, EyeOutlined} from '@ant-design/icons-vue';
 
 defineOptions({name: 'ModelCardList'})
 
@@ -96,7 +107,7 @@ const props = defineProps({
   api: propTypes.func,
 });
 
-const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'deploy', 'train']);
+const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'deploy', 'train', 'download']);
 
 const data = ref([]);
 const state = reactive({
@@ -206,6 +217,32 @@ function formatDate(dateString: string) {
   return dateString ? new Date(dateString).toLocaleDateString() : '--';
 }
 
+function getFormatText(item: any): string {
+  // 根据模型路径判断格式
+  if (item.onnx_model_path) {
+    return 'ONNX';
+  }
+  if (item.model_path) {
+    const path = item.model_path.toLowerCase();
+    if (path.endsWith('.onnx')) {
+      return 'ONNX';
+    }
+    if (path.endsWith('.pt') || path.endsWith('.pth')) {
+      return 'PyTorch';
+    }
+    if (path.includes('openvino')) {
+      return 'OpenVINO';
+    }
+    if (path.endsWith('.tflite')) {
+      return 'TensorFlow Lite';
+    }
+    // 默认返回 PyTorch（因为大多数模型是 PyTorch 格式）
+    return 'PyTorch';
+  }
+  // 如果没有路径信息，返回空字符串
+  return '';
+}
+
 function handleDelete(record: object) {
   emit('delete', record);
 }
@@ -221,6 +258,10 @@ function handleEdit(record: object) {
 function handleDeploy(record: object) {
   emit('deploy', record);
 }
+
+function handleDownload(record: object) {
+  emit('download', record);
+}
 </script>
 
 <style lang="less" scoped>
@@ -228,15 +269,43 @@ function handleDeploy(record: object) {
   :deep(.ant-list-header) {
     border: 0;
   }
+
+  :deep(.ant-list) {
+    padding: 6px;
+  }
+
+  :deep(.ant-list-item) {
+    margin: 6px;
+    padding: 0 !important;
+  }
+}
+
+// 列表项样式
+.model-list-item {
+  padding: 0 !important;
+  height: 100%;
+  display: flex;
 }
 
 .model-card-box {
   background: #FFFFFF;
   box-shadow: 0px 0px 4px 0px rgba(24, 24, 24, 0.1);
   height: 100%;
+  width: 100%;
   transition: all 0.3s;
   border-radius: 8px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+}
+
+.model-card-cont {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex: 1;
 }
 
 .model-card-title {
@@ -245,6 +314,28 @@ function handleDeploy(record: object) {
   line-height: 1.36em;
   color: #181818;
   margin-bottom: 12px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  a {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.model-tags {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+  overflow: hidden;
+  height: 24px;
+  align-items: center;
 }
 
 .model-description {
@@ -256,6 +347,8 @@ function handleDeploy(record: object) {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  flex: 1;
+  min-height: 63px; // 确保至少3行的高度
 }
 
 /* 优化后的按钮区域 */
@@ -264,6 +357,8 @@ function handleDeploy(record: object) {
   justify-content: space-between;
   align-items: center;
   padding-top: 15px;
+  flex-shrink: 0;
+  margin-top: auto;
 }
 
 .btn-group {
@@ -303,6 +398,7 @@ function handleDeploy(record: object) {
   border-radius: 4px;
   background-color: #f5f5f5;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .model-image {
@@ -314,6 +410,37 @@ function handleDeploy(record: object) {
   object-fit: cover;
 }
 
+/* 图片上的小卡片 */
+.image-badges {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  
+  &.badge-format {
+    background: rgba(24, 144, 255, 0.85);
+  }
+  
+  &.badge-version {
+    background: rgba(82, 196, 26, 0.85);
+  }
+}
+
 /* 标签样式 */
 :deep(.ant-tag) {
   border-radius: 4px;
@@ -321,5 +448,10 @@ function handleDeploy(record: object) {
   padding: 0 8px;
   height: 24px;
   line-height: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  max-width: 100%;
 }
 </style>

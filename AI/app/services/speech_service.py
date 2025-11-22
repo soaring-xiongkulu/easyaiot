@@ -20,7 +20,7 @@ from urllib3.util.retry import Retry
 
 from app.config.xunfei_config import get_xunfei_config, validate_language
 from app.services.minio_service import ModelService
-from models import SpeechRecord, db
+from db_models import SpeechRecord, db
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +166,8 @@ class SpeechService:
             object_key = f"audios/{unique_filename}"
 
             # 上传到MinIO
-            if ModelService.upload_to_minio(self.minio_bucket_name, object_key, tmp_path):
+            upload_success, upload_error = ModelService.upload_to_minio(self.minio_bucket_name, object_key, tmp_path)
+            if upload_success:
                 # 生成访问URL
                 audio_url = f"/api/v1/buckets/{self.minio_bucket_name}/objects/download?prefix={object_key}"
                 logger.info(f"音频文件已上传到MinIO: {audio_url}")

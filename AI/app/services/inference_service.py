@@ -393,11 +393,12 @@ class InferenceService:
                     logging.warning(f"删除已存在的模型文件失败: {local_path}, 错误: {str(e)}")
 
             # 下载模型文件
-            if ModelService.download_from_minio(
+            success, error_msg = ModelService.download_from_minio(
                     bucket_name,
                     object_name,
                     local_path
-            ):
+            )
+            if success:
                 # 处理压缩文件
                 if filename.endswith('.zip'):
                     ModelService.extract_zip(local_path, self.model_dir)
@@ -585,7 +586,7 @@ class InferenceService:
             image_filename = f"result_{task_id}_{uuid.uuid4().hex[:8]}.jpg"
             image_object_key = f"images/{date_str}/{image_filename}"
             
-            upload_success = ModelService.upload_to_minio(
+            upload_success, upload_error = ModelService.upload_to_minio(
                 self.inference_results_bucket,
                 image_object_key,
                 result_image_path
@@ -595,7 +596,7 @@ class InferenceService:
             json_filename = f"detections_{task_id}_{uuid.uuid4().hex[:8]}.json"
             json_object_key = f"json/{date_str}/{json_filename}"
             
-            json_upload_success = ModelService.upload_to_minio(
+            json_upload_success, json_upload_error = ModelService.upload_to_minio(
                 self.inference_results_bucket,
                 json_object_key,
                 json_path
@@ -940,13 +941,13 @@ class InferenceService:
                 # 上传结果到MinIO（使用推理结果专用bucket）
                 date_str = datetime.now().strftime('%Y%m%d')
                 object_key = f"videos/{date_str}/processed_{record_id}_{int(time.time())}.mp4"
-                upload_success = ModelService.upload_to_minio(
+                upload_success, upload_error = ModelService.upload_to_minio(
                     self.inference_results_bucket,
                     object_key,
                     output_path
                 )
                 
-                # 生成访问URL（upload_to_minio返回布尔值，需要生成URL）
+                # 生成访问URL
                 if upload_success:
                     result_url = f"/api/v1/buckets/{self.inference_results_bucket}/objects/download?prefix={object_key}"
                 else:

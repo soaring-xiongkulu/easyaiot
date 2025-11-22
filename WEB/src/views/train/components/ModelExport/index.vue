@@ -6,22 +6,17 @@
       @field-value-change="handleTableFieldValueChange"
     >
       <template #toolbar>
-        <a-space :size="16">
-          <a-button 
-            type="primary" 
-            @click="handleExport"
-            :loading="exportLoading.onnx || exportLoading.openvino"
-          >
-            <template #icon>
-              <ExportOutlined />
-            </template>
-            导出模型
-          </a-button>
-          <a-divider type="vertical" />
-          <a-button type="default" @click="handleClickSwap" preIcon="ant-design:swap-outlined">
-            切换视图
-          </a-button>
-        </a-space>
+        <a-button 
+          type="primary" 
+          @click="handleExport"
+          :loading="exportLoading.onnx || exportLoading.openvino"
+          preIcon="ant-design:export-outlined"
+        >
+          导出模型
+        </a-button>
+        <a-button type="default" @click="handleClickSwap" preIcon="ant-design:swap-outlined">
+          切换视图
+        </a-button>
       </template>
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'format'">
@@ -89,22 +84,17 @@
         @field-value-change="handleFieldValueChange"
       >
         <template #header>
-          <a-space :size="16">
-            <a-button 
-              type="primary" 
-              @click="handleExport"
-              :loading="exportLoading.onnx || exportLoading.openvino"
-            >
-              <template #icon>
-                <ExportOutlined />
-              </template>
-              导出模型
-            </a-button>
-            <a-divider type="vertical" />
-            <a-button type="default" @click="handleClickSwap" preIcon="ant-design:swap-outlined">
-              切换视图
-            </a-button>
-          </a-space>
+          <a-button 
+            type="primary" 
+            @click="handleExport"
+            :loading="exportLoading.onnx || exportLoading.openvino"
+            preIcon="ant-design:export-outlined"
+          >
+            导出模型
+          </a-button>
+          <a-button type="default" @click="handleClickSwap" preIcon="ant-design:swap-outlined">
+            切换视图
+          </a-button>
         </template>
       </ModelExportCardList>
     </div>
@@ -134,7 +124,6 @@ import {
 } from '@/api/device/model';
 import {
   DownloadOutlined,
-  ExportOutlined,
   ClockCircleOutlined,
   DeleteOutlined,
 } from '@ant-design/icons-vue';
@@ -298,12 +287,13 @@ const getExportListApi = async (params: any) => {
     // 所以 res 应该是 { items: [...], total: ... } 格式
     const data = res || {};
     
-    // 为每个记录添加模型名称
+    // 为每个记录添加模型名称和版本
     const items = (data.items || []).map((item: any) => {
       const model = models.value.find((m: any) => m.id === item.model_id);
       return {
         ...item,
         model_name: model?.name || `模型${item.model_id}`,
+        model_version: model?.version || null,
       };
     });
     
@@ -381,9 +371,8 @@ const handleExport = () => {
 const handleExportConfirm = async (data: {
   modelId: number;
   format: 'onnx' | 'openvino';
-  exportParams: { img_size: number; opset: number };
 }) => {
-  const { modelId, format, exportParams } = data;
+  const { modelId, format } = data;
 
   if (!modelId || !format) {
     createMessage.warning('请选择PT模型和导出格式');
@@ -392,7 +381,7 @@ const handleExportConfirm = async (data: {
 
   exportLoading[format] = true;
   try {
-    const res = await exportModel(modelId, format, exportParams);
+    const res = await exportModel(modelId, format, {});
     
     // transformResponseHook 会在 code === 0 时返回 data 部分
     // 所以 res 应该是 { task_id, export_id, ... } 格式
@@ -562,7 +551,12 @@ const getFileExtension = (format: string): string => {
 const formatDate = (dateString: string): string => {
   if (!dateString) return '--';
   try {
-    return dayjs(dateString).format('YYYY-MM-DD HH:mm:ss');
+    // dayjs会自动解析ISO格式时间字符串（包括时区信息）
+    const date = dayjs(dateString);
+    if (!date.isValid()) {
+      return dateString;
+    }
+    return date.format('YYYY-MM-DD HH:mm:ss');
   } catch (e) {
     return dateString;
   }

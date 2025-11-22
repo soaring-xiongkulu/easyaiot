@@ -6,6 +6,20 @@ ONNX推理模块
 @email andywebjava@163.com
 @wechat EasyAIoT2025
 """
+import os
+# 在导入onnxruntime之前设置环境变量，强制使用CPU执行提供者
+# 这样可以避免CUDA库加载错误（如cublasLtCreate符号未找到）
+# 注意：这些环境变量需要在导入onnxruntime之前设置
+if 'ORT_EXECUTION_PROVIDERS' not in os.environ:
+    os.environ['ORT_EXECUTION_PROVIDERS'] = 'CPUExecutionProvider'
+
+# 临时隐藏GPU设备，避免onnxruntime-gpu在导入时尝试加载CUDA库
+# 保存原始的CUDA_VISIBLE_DEVICES值，以便在导入后恢复（如果需要）
+_original_cuda_visible_devices = os.environ.get('CUDA_VISIBLE_DEVICES')
+if _original_cuda_visible_devices is None:
+    # 如果未设置，临时设置为空，避免CUDA库加载错误
+    os.environ['CUDA_VISIBLE_DEVICES'] = ''
+
 import cv2
 import numpy as np
 import logging
@@ -38,7 +52,8 @@ classes = {0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 4: 'airplane', 
 # 随机颜色
 color_palette = np.random.uniform(100, 255, size=(len(classes), 3))
 
-# 判断是使用GPU或CPU
+# 注意：此providers变量已不再使用，现在在_init_model()方法中动态决定使用GPU或CPU
+# 保留此变量仅用于向后兼容，实际执行提供者会在模型初始化时根据可用性和错误处理自动选择
 providers = [
     ('CUDAExecutionProvider', {
         'device_id': 0,  # 可以选择GPU设备ID，如果你有多个GPU
@@ -394,8 +409,59 @@ class ONNXInference:
     
     def _init_model(self):
         """初始化检测模型"""
-        # 使用ONNX模型文件创建一个推理会话，并指定执行提供者
-        session = ort.InferenceSession(self.onnx_model_path, providers=providers)
+        # 检查环境变量，如果强制使用CPU，则跳过CUDA尝试
+        force_cpu = os.environ.get('ORT_EXECUTION_PROVIDERS', '').upper() == 'CPUEXECUTIONPROVIDER'
+        
+        session = None
+        used_providers = []
+        
+        # 检查可用的执行提供者
+        available_providers = ort.get_available_providers()
+        logging.info(f"ONNX Runtime可用执行提供者: {available_providers}")
+        
+        # 如果环境变量强制使用CPU，或者CUDA不可用，直接使用CPU
+        if force_cpu or 'CUDAExecutionProvider' not in available_providers:
+            if force_cpu:
+                logging.info("检测到环境变量强制使用CPU执行提供者，跳过CUDA尝试")
+            else:
+                logging.info("CUDA执行提供者不可用，使用CPU执行提供者")
+            try:
+                session = ort.InferenceSession(self.onnx_model_path, providers=['CPUExecutionProvider'])
+                used_providers = session.get_providers()
+                logging.info("已使用CPU执行提供者初始化模型")
+            except Exception as cpu_error:
+                logging.error(f"CPU执行提供者初始化失败: {str(cpu_error)}")
+                raise
+        else:
+            # 尝试使用CUDA，如果失败则使用CPU
+            try:
+                logging.info("尝试使用CUDA执行提供者初始化模型...")
+                cuda_providers = [
+                    ('CUDAExecutionProvider', {
+                        'device_id': 0,
+                        'arena_extend_strategy': 'kNextPowerOfTwo',
+                        'gpu_mem_limit': 2 * 1024 * 1024 * 1024,  # 2GB
+                        'cudnn_conv_algo_search': 'EXHAUSTIVE',
+                        'do_copy_in_default_stream': True,
+                    }),
+                    'CPUExecutionProvider',
+                ]
+                session = ort.InferenceSession(self.onnx_model_path, providers=cuda_providers)
+                used_providers = session.get_providers()
+                if 'CUDAExecutionProvider' in used_providers:
+                    logging.info("成功使用CUDA执行提供者初始化模型")
+                else:
+                    logging.warning("CUDA执行提供者初始化失败，已回退到CPU")
+            except Exception as e:
+                logging.warning(f"CUDA执行提供者初始化失败: {str(e)}，回退到CPU")
+                try:
+                    session = ort.InferenceSession(self.onnx_model_path, providers=['CPUExecutionProvider'])
+                    used_providers = session.get_providers()
+                    logging.info("已使用CPU执行提供者初始化模型")
+                except Exception as cpu_error:
+                    logging.error(f"CPU执行提供者初始化也失败: {str(cpu_error)}")
+                    raise
+        
         # 获取模型的输入信息
         model_inputs = session.get_inputs()
         # 获取输入的形状，用于后续使用

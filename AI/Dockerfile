@@ -1,6 +1,7 @@
 # 使用PyTorch官方镜像（包含CUDA支持，Python 3.10）
 # 注意：本镜像仅支持 x86_64 架构，ARM架构不支持容器化部署
-ARG BASE_IMAGE=pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+# 升级到PyTorch 2.1.0以支持OpenVINO 2025.3.0（需要torch.float8_e4m3fn）
+ARG BASE_IMAGE=pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
 FROM ${BASE_IMAGE}
 
 # 设置非交互式环境，避免构建时卡住
@@ -48,6 +49,9 @@ COPY requirements.txt requirements.txt
 
 # 安装Python依赖（PyTorch已预装，无需重复安装）
 RUN pip install -r requirements.txt --timeout 30 --retries 3 -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+
+# 卸载 rknn-toolkit2（如果存在），避免与 torch 2.8.0 的依赖冲突
+RUN pip uninstall -y rknn-toolkit2 rknn-toolkit 2>/dev/null || true
 
 # 复制应用代码
 COPY . .

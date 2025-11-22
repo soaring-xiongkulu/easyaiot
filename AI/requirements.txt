@@ -1,12 +1,18 @@
 # 基础依赖
 # 固定 setuptools 版本以解决 pkg_resources 弃用警告
+# 注意：不需要 rknn-toolkit2（与 torch 2.8.0 不兼容）
 setuptools<81
 Flask==2.3.2
 Flask-SQLAlchemy==3.0.5
 # 图像识别
 ultralytics==8.3.141
+# PyTorch（OpenVINO 2025.3.0需要PyTorch 2.1+）
+torch>=2.1.0
+torchvision>=0.16.0
 # ONNX模型推理支持（GPU版本）
 onnxruntime-gpu>=1.19.0
+# OpenVINO模型导出支持
+openvino>=2024.0.0
 # 图像处理
 opencv-python==4.8.0.74
 Pillow==10.0.0

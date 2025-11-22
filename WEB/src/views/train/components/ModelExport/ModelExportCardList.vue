@@ -24,31 +24,28 @@
               <div class="export-card-box">
                 <div class="export-card-cont">
                   <!-- 格式图标 -->
-                  <div class="export-format-container">
-                    <div class="format-icon" :class="`format-${item.format}`">
-                      {{ item.format === 'onnx' ? 'ONNX' : 'OV' }}
+                  <div class="export-format-container" :class="`format-${item.format}`">
+                    <div class="format-icon">
+                      {{ item.format === 'onnx' ? 'ONNX' : 'OpenVINO' }}
                     </div>
                   </div>
 
                   <h6 class="export-card-title">
-                    <a>导出记录 #{{ item.id }}</a>
+                    <a>
+                      {{ item.model_name || `模型${item.model_id}` }}{{ item.model_version ? `（v${item.model_version}）` : '' }}
+                    </a>
                   </h6>
 
                   <!-- 标签区域 -->
                   <div class="export-tags">
-                    <Tag color="#1890ff">模型ID: {{ item.model_id }}</Tag>
-                    <Tag :color="getStatusColor(item.status)">{{ getStatusText(item.status) }}</Tag>
-                    <Tag color="#8c8c8c">{{ formatDate(item.created_at) }}</Tag>
+                    <Tag class="model-id-tag">模型ID: {{ item.model_id }}</Tag>
+                    <Tag :class="`status-tag status-${item.status?.toLowerCase()}`">{{ getStatusText(item.status) }}</Tag>
                   </div>
 
                   <div class="export-info">
                     <div class="info-item">
-                      <span class="info-label">格式:</span>
-                      <span class="info-value">{{ item.format === 'onnx' ? 'ONNX' : 'OpenVINO' }}</span>
-                    </div>
-                    <div class="info-item" v-if="item.model_name">
-                      <span class="info-label">模型:</span>
-                      <span class="info-value">{{ item.model_name }}</span>
+                      <span class="info-label">导出时间:</span>
+                      <span class="info-value">{{ formatDateTime(item.created_at) }}</span>
                     </div>
                   </div>
 
@@ -203,12 +200,12 @@ function pageSizeChange(_current: number, size: number) {
 
 function getStatusColor(status: string) {
   const statusMap: Record<string, string> = {
-    'PENDING': '#8c8c8c',
-    'PROCESSING': '#1890ff',
-    'COMPLETED': '#52c41a',
-    'FAILED': '#ff4d4f',
+    'PENDING': '#6b7280',
+    'PROCESSING': '#3b82f6',
+    'COMPLETED': '#10b981',
+    'FAILED': '#ef4444',
   };
-  return statusMap[status] || '#d9d9d9';
+  return statusMap[status] || '#9ca3af';
 }
 
 function getStatusText(status: string) {
@@ -231,6 +228,27 @@ function formatDate(dateString: string) {
   }
 }
 
+function formatDateTime(dateString: string) {
+  if (!dateString) return '--';
+  try {
+    // 解析ISO格式时间字符串（可能包含时区信息）
+    const date = new Date(dateString);
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) {
+      return dateString;
+    }
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  } catch (e) {
+    return dateString;
+  }
+}
+
 function handleDelete(record: object) {
   emit('delete', record);
 }
@@ -244,14 +262,16 @@ function handleDownload(record: object) {
 .export-card-list-wrapper {
   :deep(.ant-list-header) {
     border: 0;
+    padding: 16px 20px;
+    background: transparent;
   }
 
   :deep(.ant-list) {
-    padding: 6px;
+    padding: 8px;
   }
 
   :deep(.ant-list-item) {
-    margin: 6px;
+    margin: 8px;
     padding: 0 !important;
   }
 }
@@ -264,19 +284,26 @@ function handleDownload(record: object) {
 
 .export-card-box {
   background: #FFFFFF;
-  box-shadow: 0px 0px 4px 0px rgba(24, 24, 24, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   height: 100%;
   width: 100%;
-  transition: all 0.3s;
-  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: 300px;
+  min-height: 260px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
 }
 
 .export-card-cont {
-  padding: 15px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -285,16 +312,26 @@ function handleDownload(record: object) {
 
 .export-format-container {
   width: 100%;
-  padding-bottom: 60%;
+  padding-bottom: 35%;
   overflow: hidden;
   margin-bottom: 12px;
-  border-radius: 4px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   position: relative;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  
+  &.format-onnx {
+    // ONNX 专业配色：深灰蓝系
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
+  }
+  
+  &.format-openvino {
+    // OpenVINO 专业配色：深灰紫系
+    background: linear-gradient(135deg, #3d3d3d 0%, #4a4a4a 50%, #3d3d3d 100%);
+  }
 }
 
 .format-icon {
@@ -302,35 +339,38 @@ function handleDownload(record: object) {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 24px;
+  font-size: 14px;
   font-weight: 600;
-  color: #fff;
-  
-  &.format-onnx {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  }
-  
-  &.format-openvino {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  }
+  color: #e8e8e8;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .export-card-title {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1.36em;
-  color: #181818;
-  margin-bottom: 12px;
+  line-height: 1.4em;
+  color: #1a1a1a;
+  margin-bottom: 10px;
   flex-shrink: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-height: 36px;
+  display: flex;
+  align-items: flex-start;
 
   a {
-    display: block;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    color: #1a1a1a;
+    transition: color 0.2s;
+    word-break: break-word;
+    line-height: 1.5em;
+    max-height: 3em;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+
+    &:hover {
+      color: #1890ff;
+    }
   }
 }
 
@@ -338,31 +378,34 @@ function handleDownload(record: object) {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   flex-shrink: 0;
   align-items: center;
 }
 
 .export-info {
-  font-size: 14px;
-  color: #8c8c8c;
+  font-size: 13px;
+  color: #595959;
   line-height: 1.5;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   flex: 1;
-  min-height: 60px;
+  min-height: 40px;
   
   .info-item {
     display: flex;
     margin-bottom: 8px;
     
     .info-label {
-      min-width: 50px;
+      min-width: 52px;
       font-weight: 500;
+      color: #8c8c8c;
     }
     
     .info-value {
       flex: 1;
       word-break: break-word;
+      color: #262626;
+      font-weight: 400;
     }
   }
 }
@@ -371,54 +414,107 @@ function handleDownload(record: object) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 15px;
+  padding-top: 12px;
   flex-shrink: 0;
   margin-top: auto;
+  border-top: 1px solid #f0f0f0;
 }
 
 .btn-group {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
-  border-radius: 50%;
+  background: #fafafa;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid #e8e8e8;
 
   &:hover:not(.disabled) {
-    background: #e6f7ff;
-    color: #1890ff;
+    background: #262626;
+    border-color: #262626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+    
+    .anticon {
+      color: #fff;
+    }
   }
   
   &.disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
+    background: #f5f5f5;
   }
 
   .anticon {
-    color: #266CFB;
+    color: #8c8c8c;
     font-size: 16px;
+    transition: color 0.25s;
   }
 }
 
 :deep(.ant-tag) {
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 12px;
-  padding: 0 8px;
-  height: 24px;
+  padding: 2px 10px;
+  height: 26px;
   line-height: 22px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 1;
   max-width: 100%;
+  border: none;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.model-id-tag {
+  background: #f5f5f5;
+  color: #595959;
+  border: 1px solid #e8e8e8;
+}
+
+.date-tag {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
+.status-tag {
+  font-weight: 500;
+  
+  &.status-pending {
+    background: #f5f5f5;
+    color: #8c8c8c;
+    border: 1px solid #e8e8e8;
+  }
+  
+  &.status-processing {
+    background: #e6f7ff;
+    color: #1890ff;
+    border: 1px solid #91d5ff;
+  }
+  
+  &.status-completed {
+    background: #f6ffed;
+    color: #52c41a;
+    border: 1px solid #b7eb8f;
+  }
+  
+  &.status-failed {
+    background: #fff2f0;
+    color: #ff4d4f;
+    border: 1px solid #ffccc7;
+  }
 }
 </style>
 

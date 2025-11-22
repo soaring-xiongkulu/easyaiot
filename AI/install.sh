@@ -106,7 +106,7 @@ detect_architecture() {
         x86_64|amd64)
             ARCH="x86_64"
             DOCKER_PLATFORM="linux/amd64"
-            BASE_IMAGE="pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime"
+            BASE_IMAGE="pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime"
             print_success "检测到架构: $ARCH (x86_64)"
             print_info "使用 PyTorch CUDA 镜像: $BASE_IMAGE"
             ;;

@@ -17,6 +17,11 @@ export function getBasicColumns(): BasicColumn[] {
       title: '模型名称',
       dataIndex: 'model_name',
       width: 150,
+      customRender: ({record}) => {
+        const modelName = record.model_name || `模型${record.model_id}`;
+        const version = record.model_version;
+        return version ? `${modelName}（v${version}）` : modelName;
+      },
     },
     {
       title: '导出格式',
@@ -91,7 +96,12 @@ export function getFormConfig(): Partial<FormProps> {
 function formatDateTime(dateString: string): string {
   if (!dateString) return '--';
   try {
+    // 解析ISO格式时间字符串（可能包含时区信息）
     const date = new Date(dateString);
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) {
+      return dateString;
+    }
     return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN', {hour12: false});
   } catch (e) {
     return dateString;
