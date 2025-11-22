@@ -59,7 +59,7 @@ class ClusterInferenceService:
             推理结果
         """
         # 从Nacos获取services实例
-        # 使用统一的服务名格式：model_{model_id}_{model_version}_{model_format}
+        # 使用统一的服务名格式：model_{model_id}_{model_format}_{model_version}
         from app.utils.nacos_service_discovery import get_model_service_name
         service_name = get_model_service_name(model_id, model_format, model_version)
         logger.info(f"查找模型服务实例: {service_name}")

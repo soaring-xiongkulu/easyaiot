@@ -334,7 +334,7 @@ def get_model_type_from_path(model_path: str) -> str:
 
 def generate_service_name(model_id: str = None, model_version: str = None, model_path: str = None) -> str:
     """
-    生成统一的服务名：model_{model_id}_{model_version}_{model_type}
+    生成统一的服务名：model_{model_id}_{model_type}_{model_version}
     
     Args:
         model_id: 模型ID
@@ -354,7 +354,7 @@ def generate_service_name(model_id: str = None, model_version: str = None, model
         model_version = os.getenv('MODEL_VERSION', 'V1.0.0')
     
     # 生成服务名
-    service_name = f"model_{model_id}_{model_version}_{model_type}"
+    service_name = f"model_{model_id}_{model_type}_{model_version}"
     return service_name
 
 
@@ -442,7 +442,7 @@ def setup_nacos():
         model_version = os.getenv('MODEL_VERSION', 'V1.0.0')
         model_path = os.getenv('MODEL_PATH')
         
-        # 生成统一的服务名：model_{model_id}_{model_version}_{model_type}
+        # 生成统一的服务名：model_{model_id}_{model_type}_{model_version}
         nacos_service_name = generate_service_name(model_id, model_version, model_path)
         
         # 注册服务实例
@@ -508,7 +508,7 @@ def send_ai_heartbeat():
             model_path = os.getenv('MODEL_PATH')
             log_path = os.getenv('LOG_PATH')
             
-            # 使用统一的服务名规则：model_{model_id}_{model_version}_{model_type}
+            # 使用统一的服务名规则：model_{model_id}_{model_type}_{model_version}
             # 优先使用nacos_service_name（如果已设置），否则重新生成
             if nacos_service_name:
                 service_name = nacos_service_name

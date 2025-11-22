@@ -250,11 +250,11 @@ def deploy_model(model_id: int, start_port: int = 8000) -> dict:
         model_format = _infer_model_format(model, model_path)
         logger.info(f'推断模型格式: {model_format}')
         
-        # 生成服务名称：model_modelid_version_format
-        # 格式：model_{model_id}_{model.version}_{format}
-        base_service_name = f"model_{model_id}_{model.version}_{model_format}"
+        # 生成服务名称：model_modelid_format_version
+        # 格式：model_{model_id}_{format}_{model.version}
+        base_service_name = f"model_{model_id}_{model_format}_{model.version}"
         
-        # 使用统一的服务名称（格式：model_id_version_format）
+        # 使用统一的服务名称（格式：model_id_format_version）
         # 同一个服务名称可以有多个实例（副本），每个实例是不同的服务记录
         service_name = base_service_name
         logger.info(f'生成服务名称: {service_name}')

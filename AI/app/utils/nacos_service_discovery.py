@@ -232,12 +232,12 @@ def get_service_url(service_name: str, healthy_only: bool = True) -> Optional[st
 
 
 def get_model_service_name(model_id: int, model_format: str, model_version: str) -> str:
-    """构建模型服务的Nacos服务名：model_{model_id}_{model_version}_{model_format}
+    """构建模型服务的Nacos服务名：model_{model_id}_{model_format}_{model_version}
     
     注意：此格式必须与 run_deploy.py 中的 generate_service_name 函数保持一致
-    注册格式：model_{model_id}_{model_version}_{model_type}
+    注册格式：model_{model_id}_{model_type}_{model_version}
     """
-    return f"model_{model_id}_{model_version}_{model_format}"
+    return f"model_{model_id}_{model_format}_{model_version}"
 
 
 def get_model_service_url(model_id: int, model_format: str, model_version: str, healthy_only: bool = True) -> Optional[str]:
