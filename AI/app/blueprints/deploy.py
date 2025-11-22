@@ -201,6 +201,169 @@ def verify_sudo_permission(root_password=None):
         return False, f'验证sudo权限失败: {str(e)}'
 
 
+def get_conda_python_path(conda_env_name='AI-SVC'):
+    """获取conda环境的Python路径"""
+    try:
+        # 尝试使用conda run获取Python路径
+        result = subprocess.run(
+            ['conda', 'run', '-n', conda_env_name, 'which', 'python'],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        if result.returncode == 0:
+            python_path = result.stdout.strip()
+            if python_path and os.path.exists(python_path):
+                return python_path
+    except:
+        pass
+    
+    # 尝试直接查找conda环境的Python
+    possible_paths = [
+        os.path.expanduser(f'~/miniconda3/envs/{conda_env_name}/bin/python'),
+        os.path.expanduser(f'~/anaconda3/envs/{conda_env_name}/bin/python'),
+        f'/opt/conda/envs/{conda_env_name}/bin/python',
+        f'/usr/local/miniconda3/envs/{conda_env_name}/bin/python',
+        f'/usr/local/anaconda3/envs/{conda_env_name}/bin/python',
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    
+    return None
+
+
+def install_deploy_dependencies(root_password=None):
+    """安装部署服务依赖到conda环境或系统Python环境"""
+    try:
+        # 获取services目录路径（requirements.txt所在目录）
+        deploy_service_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'services')
+        requirements_file = os.path.join(deploy_service_dir, 'requirements.txt')
+        
+        if not os.path.exists(requirements_file):
+            logger.warning(f"requirements.txt文件不存在: {requirements_file}，跳过依赖安装")
+            return True
+        
+        logger.info(f"开始安装部署服务依赖: {requirements_file}")
+        
+        conda_env_name = 'AI-SVC'
+        use_conda = False
+        
+        # 首先尝试使用conda环境
+        try:
+            # 检查conda是否可用
+            conda_check = subprocess.run(
+                ['conda', '--version'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if conda_check.returncode == 0:
+                # 检查conda环境是否存在
+                env_list_result = subprocess.run(
+                    ['conda', 'env', 'list'],
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                
+                if env_list_result.returncode == 0:
+                    import re
+                    pattern = r'(?:^|\s)' + re.escape(conda_env_name) + r'(?:\s|$)'
+                    if re.search(pattern, env_list_result.stdout, re.MULTILINE):
+                        use_conda = True
+                        logger.info(f"检测到conda环境: {conda_env_name}，将在conda环境中安装依赖")
+        except:
+            pass
+        
+        if use_conda:
+            # 在conda环境中安装依赖
+            try:
+                result = subprocess.run(
+                    ['conda', 'run', '-n', conda_env_name, 'pip', 'install', '-r', requirements_file],
+                    cwd=deploy_service_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=300
+                )
+                
+                if result.returncode == 0:
+                    logger.info(f"部署服务依赖安装成功（conda环境: {conda_env_name}）")
+                    return True
+                else:
+                    logger.warning(f"在conda环境中安装依赖失败: {result.stderr}")
+                    # 继续尝试系统pip
+            except Exception as e:
+                logger.warning(f"使用conda安装依赖时发生异常: {str(e)}")
+                # 继续尝试系统pip
+        
+        # 如果conda不可用或失败，尝试使用系统pip（需要--break-system-packages）
+        logger.info("尝试使用系统pip安装依赖（可能需要--break-system-packages）")
+        
+        if root_password:
+            try:
+                # 使用sudo执行pip install，添加--break-system-packages
+                cmd = ['pip3', 'install', '--break-system-packages', '-r', requirements_file]
+                run_with_sudo(cmd, root_password)
+                logger.info("部署服务依赖安装成功（使用sudo）")
+                return True
+            except subprocess.CalledProcessError as e:
+                logger.error(f"部署服务依赖安装失败（使用sudo）: {e.stderr}")
+                # 即使失败也继续，因为可能依赖已经安装
+                return True
+            except Exception as e:
+                logger.error(f"使用sudo安装依赖时发生异常: {str(e)}")
+                return True
+        else:
+            # 尝试直接使用pip安装（添加--break-system-packages）
+            try:
+                result = subprocess.run(
+                    ['pip3', 'install', '--break-system-packages', '-r', requirements_file],
+                    cwd=deploy_service_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=300
+                )
+                
+                if result.returncode == 0:
+                    logger.info("部署服务依赖安装成功")
+                    return True
+                else:
+                    logger.warning(f"部署服务依赖安装失败: {result.stderr}")
+                    return True  # 即使失败也继续，因为可能依赖已经安装
+            except subprocess.TimeoutExpired:
+                logger.error("依赖安装超时")
+                return False
+            except FileNotFoundError:
+                logger.warning("pip3命令未找到，尝试使用pip")
+                try:
+                    result = subprocess.run(
+                        ['pip', 'install', '--break-system-packages', '-r', requirements_file],
+                        cwd=deploy_service_dir,
+                        capture_output=True,
+                        text=True,
+                        timeout=300
+                    )
+                    if result.returncode == 0:
+                        logger.info("部署服务依赖安装成功（使用pip）")
+                        return True
+                    else:
+                        logger.warning(f"部署服务依赖安装失败: {result.stderr}")
+                        return True
+                except Exception as e:
+                    logger.error(f"使用pip安装依赖时发生异常: {str(e)}")
+                    return True
+            except Exception as e:
+                logger.error(f"安装部署服务依赖时发生异常: {str(e)}")
+                return True
+                
+    except Exception as e:
+        logger.error(f"安装部署服务依赖时发生异常: {str(e)}")
+        return True
+
+
 def create_systemd_service(ai_service, model_path, model_version, model_format, root_password=None):
     """创建systemd service文件"""
     try:
@@ -216,10 +379,32 @@ def create_systemd_service(ai_service, model_path, model_version, model_format, 
             user = 'root'
             group = 'root'
         
-        # 获取Python路径
-        python_path = subprocess.check_output(['which', 'python3']).decode().strip()
-        if not python_path:
-            python_path = subprocess.check_output(['which', 'python']).decode().strip()
+        # 获取Python路径（优先使用conda环境）
+        python_path = None
+        conda_env_name = 'AI-SVC'
+        
+        # 首先尝试获取conda环境的Python路径
+        conda_python = get_conda_python_path(conda_env_name)
+        if conda_python:
+            python_path = conda_python
+            logger.info(f"使用conda环境的Python: {python_path}")
+        else:
+            # 如果conda环境不可用，使用系统Python
+            try:
+                python_path = subprocess.check_output(['which', 'python3']).decode().strip()
+            except:
+                pass
+            if not python_path:
+                try:
+                    python_path = subprocess.check_output(['which', 'python']).decode().strip()
+                except:
+                    pass
+            
+            if python_path:
+                logger.info(f"使用系统Python: {python_path}")
+            else:
+                logger.error("无法找到Python可执行文件")
+                return None
         
         # 获取服务脚本路径
         deploy_service_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'services')
@@ -676,6 +861,10 @@ def deploy_model():
 
         # 创建systemd服务并启动
         try:
+            # 在创建systemd服务之前，先安装依赖
+            if not install_deploy_dependencies(root_password):
+                logger.warning("依赖安装失败，但继续尝试创建systemd服务")
+            
             # 创建systemd service文件（MODEL_VERSION和MODEL_FORMAT已在create_systemd_service中通过模板设置）
             systemd_service_name = create_systemd_service(ai_service, model_path, model.version, model_format, root_password)
             
@@ -837,6 +1026,10 @@ def start_service(service_id):
                     'msg': verify_error or '创建systemd服务失败，需要root权限。请提供正确的root密码后重试。'
                 }), 403
 
+        # 在创建systemd服务之前，先安装依赖
+        if not install_deploy_dependencies(root_password):
+            logger.warning("依赖安装失败，但继续尝试创建systemd服务")
+        
         # 创建或更新systemd service文件
         systemd_service_name = create_systemd_service(service, model_path, model_version, model_format, root_password)
         
