@@ -59,7 +59,7 @@ const modelOptions = ref<Array<{ label: string; value: number }>>([]);
 
 const formState = reactive({
   model_id: null as number | null,
-  start_port: 8000 as number,
+  start_port: 9999 as number,
 });
 
 
@@ -97,7 +97,7 @@ onMounted(() => {
 const [register, { closeModal, setModalProps }] = useModalInner(async (data) => {
   // 重置表单
   formState.model_id = null;
-  formState.start_port = 8000;
+  formState.start_port = 9999;
   state.deploying = false;
   setModalProps({ confirmLoading: false });
   await loadModelOptions();
