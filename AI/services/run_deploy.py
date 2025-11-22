@@ -508,6 +508,20 @@ def send_ai_heartbeat():
             model_path = os.getenv('MODEL_PATH')
             log_path = os.getenv('LOG_PATH')
             
+            # 强制要求 service_id，心跳上报必须提供 service_id
+            if not service_id:
+                logger.error("❌ SERVICE_ID 环境变量未设置，无法发送心跳。请确保服务已正确部署并设置了 SERVICE_ID 环境变量")
+                time.sleep(60)  # 等待60秒后重试
+                continue
+            
+            # 验证 service_id 是否为有效数字
+            try:
+                service_id_int = int(service_id)
+            except (ValueError, TypeError):
+                logger.error(f"❌ SERVICE_ID 无效: {service_id}，必须是数字")
+                time.sleep(60)  # 等待60秒后重试
+                continue
+            
             # 使用统一的服务名规则：model_{model_id}_{model_type}_{model_version}
             # 优先使用nacos_service_name（如果已设置），否则重新生成
             if nacos_service_name:
@@ -518,8 +532,9 @@ def send_ai_heartbeat():
             # 获取模型类型（用于format字段）
             model_type = get_model_type_from_path(model_path) if model_path else 'pytorch'
             
-            # 构建心跳数据
+            # 构建心跳数据（必须包含 service_id）
             heartbeat_data = {
+                'service_id': service_id_int,  # 强制要求，必须提供
                 'service_name': service_name,
                 'server_ip': server_ip,
                 'port': port,
@@ -535,12 +550,6 @@ def send_ai_heartbeat():
                 heartbeat_data['log_path'] = log_path
             
             # 可选字段
-            if service_id:
-                try:
-                    heartbeat_data['service_id'] = int(service_id)
-                except:
-                    pass
-            
             if model_id:
                 try:
                     heartbeat_data['model_id'] = int(model_id)

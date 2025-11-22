@@ -296,66 +296,32 @@ def receive_heartbeat():
         format_type = data.get('format')
         process_id = data.get('process_id')
 
-        # 优先使用 service_id 查找服务（最准确）
-        service = None
-        if service_id:
-            service = AIService.query.get(service_id)
-            if service:
-                logger.info(f"通过 service_id={service_id} 找到已有服务: {service.service_name}")
+        # 强制要求必须提供 service_id，只根据 service_id 查找和更新
+        if not service_id:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：service_id。心跳上报必须提供 service_id 才能准确更新服务记录'
+            }), 400
         
-        # 如果没有 service_id，尝试通过 service_name + server_ip + port 组合查找（更精确）
-        if not service and service_name and server_ip and port:
-            service = AIService.query.filter_by(
-                service_name=service_name,
-                server_ip=server_ip,
-                port=port
-            ).first()
-            if service:
-                logger.info(f"通过 service_name={service_name}, server_ip={server_ip}, port={port} 找到已有服务")
-        
-        # 如果仍然找不到，尝试仅通过 service_name 查找（兼容旧逻辑）
-        if not service and service_name:
-            service = AIService.query.filter_by(service_name=service_name).first()
-            if service:
-                logger.warning(f"通过 service_name={service_name} 找到服务，但可能存在多个同名服务，建议使用 service_id 或 server_ip+port 组合")
-        
-        # 如果仍然找不到服务，创建新记录（这种情况应该很少见，因为服务应该先创建记录再启动）
+        # 根据 service_id 查找服务
+        service = AIService.query.get(service_id)
         if not service:
-            if not service_name:
-                # 如果没有 service_name 也没有 service_id，无法创建新记录
-                return jsonify({
-                    'code': 400,
-                    'msg': '缺少必要参数：service_name 或 service_id'
-                }), 400
-            
-            logger.info(f"服务 {service_name} 不存在，自动创建新记录")
-            service = AIService(
-                service_name=service_name,
-                model_id=model_id if model_id else None,
-                server_ip=server_ip,
-                port=port,
-                inference_endpoint=inference_endpoint or (f"http://{server_ip}:{port}/inference" if server_ip and port else None),
-                mac_address=mac_address,
-                status='running',
-                deploy_time=beijing_now(),
-                model_version=model_version,
-                format=format_type,
-                process_id=process_id
-            )
-            db.session.add(service)
+            logger.error(f"通过 service_id={service_id} 未找到服务记录")
+            return jsonify({
+                'code': 404,
+                'msg': f'服务不存在：service_id={service_id}。请确保服务已正确部署'
+            }), 404
+        
+        logger.info(f"通过 service_id={service_id} 找到服务: {service.service_name}")
 
         # 更新心跳信息
         service.last_heartbeat = beijing_now()
         
         # 更新 service_name（如果提供了新的 service_name 且与数据库中的不同）
+        # 允许 service_name 重复，支持同一服务名称的多个实例
         if service_name and service.service_name != service_name:
-            # 检查新的 service_name 是否已被其他服务使用
-            existing_service = AIService.query.filter_by(service_name=service_name).first()
-            if existing_service and existing_service.id != service.id:
-                logger.warning(f"service_name {service_name} 已被服务 ID {existing_service.id} 使用，无法更新服务 ID {service.id} 的 service_name")
-            else:
-                logger.info(f"更新服务 ID {service.id} 的 service_name: {service.service_name} -> {service_name}")
-                service.service_name = service_name
+            logger.info(f"更新服务 ID {service.id} 的 service_name: {service.service_name} -> {service_name}")
+            service.service_name = service_name
         
         if server_ip:
             service.server_ip = server_ip
