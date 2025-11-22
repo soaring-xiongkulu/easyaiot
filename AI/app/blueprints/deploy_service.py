@@ -136,6 +136,34 @@ def get_deploy_services():
         for service, model_name in pagination.items:
             service_dict = service.to_dict()
             service_dict['model_name'] = model_name
+            # 如果服务记录中没有版本和格式，从Model表获取
+            if not service_dict.get('model_version'):
+                model = Model.query.get(service.model_id)
+                if model:
+                    service_dict['model_version'] = model.version
+            if not service_dict.get('format'):
+                # 尝试从模型路径推断格式
+                model = Model.query.get(service.model_id)
+                if model:
+                    model_path = model.model_path or model.onnx_model_path or model.torchscript_model_path or model.tensorrt_model_path or model.openvino_model_path
+                    if model_path:
+                        model_path_lower = model_path.lower()
+                        if model_path_lower.endswith('.onnx') or 'onnx' in model_path_lower:
+                            service_dict['format'] = 'onnx'
+                        elif model_path_lower.endswith(('.pt', '.pth')):
+                            service_dict['format'] = 'pytorch'
+                        elif 'openvino' in model_path_lower:
+                            service_dict['format'] = 'openvino'
+                        elif 'tensorrt' in model_path_lower:
+                            service_dict['format'] = 'tensorrt'
+                        elif model.onnx_model_path:
+                            service_dict['format'] = 'onnx'
+                        elif model.torchscript_model_path:
+                            service_dict['format'] = 'torchscript'
+                        elif model.tensorrt_model_path:
+                            service_dict['format'] = 'tensorrt'
+                        elif model.openvino_model_path:
+                            service_dict['format'] = 'openvino'
             records.append(service_dict)
 
         return jsonify({
@@ -181,13 +209,41 @@ def deploy_model():
                 'msg': '模型不存在'
             }), 404
 
-        # 检查模型路径
-        model_path = model.model_path or model.onnx_model_path
+        # 检查模型路径并推断格式
+        model_path = model.model_path or model.onnx_model_path or model.torchscript_model_path or model.tensorrt_model_path or model.openvino_model_path
         if not model_path:
             return jsonify({
                 'code': 400,
                 'msg': '模型没有可用的模型文件路径'
             }), 400
+
+        # 推断模型格式
+        model_format = None
+        model_path_lower = model_path.lower()
+        if model_path_lower.endswith('.onnx') or 'onnx' in model_path_lower:
+            model_format = 'onnx'
+        elif model_path_lower.endswith(('.pt', '.pth')) or 'pytorch' in model_path_lower or 'torch' in model_path_lower:
+            model_format = 'pytorch'
+        elif 'openvino' in model_path_lower:
+            model_format = 'openvino'
+        elif 'tensorrt' in model_path_lower or model_path_lower.endswith('.trt'):
+            model_format = 'tensorrt'
+        elif model_path_lower.endswith('.tflite'):
+            model_format = 'tflite'
+        elif 'coreml' in model_path_lower or model_path_lower.endswith('.mlmodel'):
+            model_format = 'coreml'
+        else:
+            # 默认根据路径字段判断
+            if model.onnx_model_path:
+                model_format = 'onnx'
+            elif model.torchscript_model_path:
+                model_format = 'torchscript'
+            elif model.tensorrt_model_path:
+                model_format = 'tensorrt'
+            elif model.openvino_model_path:
+                model_format = 'openvino'
+            else:
+                model_format = 'pytorch'  # 默认
 
         # 生成服务名称
         if not service_name:
@@ -220,7 +276,9 @@ def deploy_model():
             status='stopped',
             mac_address=mac_address,
             deploy_time=beijing_now(),
-            log_path=log_path
+            log_path=log_path,
+            model_version=model.version,
+            format=model_format
         )
         db.session.add(ai_service)
         db.session.commit()
