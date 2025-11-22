@@ -7,6 +7,8 @@
 import json
 import subprocess as sp
 import os
+import sys
+import re
 import threading
 import io
 import time
@@ -146,9 +148,17 @@ class DeployServiceDaemon:
                     
                     # 实时读取并写入日志
                     # 注意：只写入 services 模块的日志，过滤掉 AI 模块的日志
+                    # 收集所有输出，用于错误诊断
+                    all_output_lines = []
+                    error_markers = ['ERROR', 'Error', 'error', '❌', 'Exception', 'Traceback', 'Failed', 'failed']
+                    
                     for line in iter(self._process.stdout.readline, ''):
                         if not line:
                             break
+                        
+                        # 保存所有输出用于错误诊断
+                        all_output_lines.append(line)
+                        
                         # 检查是否是 services 模块的日志（包含 [SERVICES] 前缀）
                         # 或者是 services 模块的其他输出（不包含 AI 模块的特征）
                         # AI 模块的日志特征：
@@ -164,8 +174,11 @@ class DeployServiceDaemon:
                         # - "🚀 心跳线程已启动"
                         # - Flask HTTP 请求日志格式: "192.168.11.28 - - [23/Nov/2025"
                         
-                        # 过滤掉 AI 模块的日志
-                        if any(marker in line for marker in [
+                        # 重要：如果包含错误标记，即使可能是 AI 模块的日志，也要记录
+                        is_error = any(marker in line for marker in error_markers)
+                        
+                        # 过滤掉 AI 模块的正常日志（但保留错误信息）
+                        if not is_error and any(marker in line for marker in [
                             "✅ multiprocessing启动方法已为",
                             "✅ 已加载默认配置文件",
                             "✅ 已设置 ONNX Runtime 使用 CPU",
@@ -177,12 +190,11 @@ class DeployServiceDaemon:
                             "✅ 服务注册成功: model-server@",
                             "🚀 心跳线程已启动，间隔:",
                         ]):
-                            # 这是 AI 模块的日志，不写入 services 模块的日志文件
+                            # 这是 AI 模块的正常日志，不写入 services 模块的日志文件
                             continue
                         
                         # 过滤掉 Flask HTTP 请求日志（格式：IP - - [日期] "请求" 状态码）
-                        import re
-                        if re.match(r'^\d+\.\d+\.\d+\.\d+\s+-\s+-\s+\[.*?\]\s+"[A-Z]+', line):
+                        if not is_error and re.match(r'^\d+\.\d+\.\d+\.\d+\s+-\s+-\s+\[.*?\]\s+"[A-Z]+', line):
                             # 这是 Flask HTTP 请求日志，不写入
                             continue
                         
@@ -193,6 +205,14 @@ class DeployServiceDaemon:
                     return_code = self._process.wait()
                     self._log(f'进程已退出，返回码: {return_code}', 'INFO' if return_code == 0 else 'WARNING')
                     f_log.write(f'\n# 进程退出，返回码: {return_code}\n')
+                    
+                    # 如果进程异常退出，记录所有输出用于诊断
+                    if return_code != 0:
+                        f_log.write(f'\n# ========== 进程异常退出，完整输出 ==========\n')
+                        for line in all_output_lines:
+                            f_log.write(line)
+                        f_log.write(f'# ===========================================\n')
+                    
                     f_log.flush()
                     
                     if not self._running:
@@ -269,19 +289,26 @@ class DeployServiceDaemon:
             return None, None, None
         
         # 构建启动命令
-        python_exec = 'python3'
-        # 尝试使用conda环境
+        # 优先使用当前运行的 Python 解释器（与 test_service.py 保持一致）
+        python_exec = sys.executable
+        # 尝试使用conda环境（如果存在且与当前解释器不同）
         conda_python = self._get_conda_python()
-        if conda_python:
-            python_exec = conda_python
-            self._log(f'使用Conda Python: {python_exec}', 'INFO')
+        if conda_python and conda_python != python_exec:
+            # 检查 conda Python 是否存在且可执行
+            if os.path.exists(conda_python) and os.access(conda_python, os.X_OK):
+                python_exec = conda_python
+                self._log(f'使用Conda Python: {python_exec}', 'INFO')
+            else:
+                self._log(f'Conda Python 路径无效，使用当前解释器: {python_exec}', 'INFO')
         else:
-            self._log(f'使用系统Python: {python_exec}', 'INFO')
+            self._log(f'使用当前Python解释器: {python_exec}', 'INFO')
         
         cmds = [python_exec, deploy_script]
         
         # 准备环境变量（使用传入的参数）
         env = os.environ.copy()
+        # 重要：设置 PYTHONUNBUFFERED，确保输出实时（与 test_service.py 保持一致）
+        env['PYTHONUNBUFFERED'] = '1'
         env['MODEL_ID'] = str(self._model_id)
         env['MODEL_PATH'] = self._model_path  # 已经是本地路径
         env['SERVICE_ID'] = str(self._service_id)
