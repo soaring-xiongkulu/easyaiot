@@ -626,6 +626,7 @@ def inference():
     global model, model_loaded
     
     if not model_loaded or model is None:
+        logger.warning("[推理失败] 模型未加载")
         return jsonify({
             'code': 500,
             'msg': '模型未加载'
@@ -646,6 +647,14 @@ def inference():
                 'msg': '未选择文件'
             }), 400
         
+        # 获取文件信息
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+        
+        # 记录文件上传信息
+        logger.info(f"[文件上传] {file.filename} ({file_size} 字节)")
+        
         # 获取推理参数
         conf_thres = float(request.form.get('conf_thres', 0.25))
         iou_thres = float(request.form.get('iou_thres', 0.45))
@@ -655,6 +664,9 @@ def inference():
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1])
         file.save(temp_file.name)
         temp_file.close()
+        
+        # 记录推理开始时间
+        inference_start_time = time.time()
         
         try:
             # 执行推理
@@ -671,6 +683,11 @@ def inference():
                     iou_threshold=iou_thres,
                     draw=True
                 )
+                
+                # 计算推理耗时
+                inference_time = time.time() - inference_start_time
+                detection_count = len(detections)
+                logger.info(f"[推理完成] {file.filename} - 检测到 {detection_count} 个对象, 耗时 {inference_time:.2f}秒")
                 
                 # 保存结果图片
                 import cv2
@@ -701,6 +718,9 @@ def inference():
                     verbose=False
                 )
                 
+                # 计算推理耗时
+                inference_time = time.time() - inference_start_time
+                
                 # 处理结果
                 predictions = []
                 for result in results:
@@ -712,6 +732,9 @@ def inference():
                             'confidence': float(box.conf.item()),
                             'bbox': box.xyxy.tolist()[0]
                         })
+                
+                detection_count = len(predictions)
+                logger.info(f"[推理完成] {file.filename} - 检测到 {detection_count} 个对象, 耗时 {inference_time:.2f}秒")
                 
                 # 保存结果图片
                 result_path = temp_file.name.replace(os.path.splitext(temp_file.name)[1], '_result.jpg')
@@ -734,6 +757,7 @@ def inference():
                     }
                 })
             else:
+                logger.error(f"[推理失败] {file.filename} - 不支持的模型类型")
                 return jsonify({
                     'code': 500,
                     'msg': '不支持的模型类型'
@@ -748,7 +772,8 @@ def inference():
                 pass
                 
     except Exception as e:
-        logger.error(f"推理失败: {str(e)}")
+        filename = file.filename if 'file' in locals() else 'unknown'
+        logger.error(f"[推理失败] {filename} - {str(e)}")
         return jsonify({
             'code': 500,
             'msg': f'推理失败: {str(e)}'
