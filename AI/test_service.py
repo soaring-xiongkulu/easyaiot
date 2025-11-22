@@ -159,7 +159,7 @@ class ServiceTester:
             pipe.close()
     
     def _parse_server_ip_from_output(self, line):
-        """从服务输出中解析服务器IP地址"""
+        """从服务输出中解析服务器IP地址和端口"""
         # 查找格式: [SERVICES] 服务器IP: 192.168.11.28
         if '[SERVICES] 服务器IP:' in line:
             try:
@@ -171,6 +171,54 @@ class ServiceTester:
                         self.server_ip = ip
                         self.base_url = f"http://{ip}:{self.port}"
                         print(f"🔍 检测到服务IP: {ip}，更新服务地址为: {self.base_url}")
+            except Exception:
+                pass
+        
+        # 检测端口切换: ✅ 已切换到可用端口: 8900
+        if '已切换到可用端口:' in line or '已切换到端口:' in line:
+            try:
+                parts = line.split('端口:')
+                if len(parts) > 1:
+                    port_str = parts[1].strip().split()[0]  # 取第一个数字
+                    try:
+                        new_port = int(port_str)
+                        if new_port != self.port:
+                            old_port = self.port
+                            self.port = new_port
+                            self.base_url = f"http://{self.server_ip}:{self.port}"
+                            print(f"🔍 检测到端口已切换: {old_port} -> {new_port}，更新服务地址为: {self.base_url}")
+                    except ValueError:
+                        pass
+            except Exception:
+                pass
+        
+        # 也尝试从服务地址输出中解析: 🌐 服务地址: http://192.168.11.28:8899
+        if '🌐 服务地址:' in line or '服务地址:' in line:
+            try:
+                # 提取URL
+                if 'http://' in line:
+                    parts = line.split('http://')
+                    if len(parts) > 1:
+                        url_part = parts[1].split()[0] if ' ' in parts[1] else parts[1].strip()
+                        # 移除可能的尾随字符
+                        url_part = url_part.rstrip('.,;:')
+                        if ':' in url_part:
+                            ip, port_str = url_part.split(':', 1)
+                            # 验证IP和端口
+                            try:
+                                port_num = int(port_str)
+                                # 更新端口（如果不同）
+                                if port_num != self.port:
+                                    self.port = port_num
+                                    print(f"🔍 从服务地址解析到端口: {port_num}")
+                                # 更新IP（如果不同）
+                                if ip and ip != self.server_ip:
+                                    self.server_ip = ip
+                                # 更新base_url
+                                self.base_url = f"http://{ip}:{port_num}"
+                                print(f"🔍 从服务地址解析到完整地址: {self.base_url}")
+                            except ValueError:
+                                pass
             except Exception:
                 pass
     
@@ -194,7 +242,6 @@ class ServiceTester:
         env['SERVICE_NAME'] = self.service_name
         env['MODEL_PATH'] = self.model_path
         env['PORT'] = str(self.port)
-        env['MODEL_FORMAT'] = 'pytorch' if self.model_path.endswith('.pt') else 'onnx'
         env['PYTHONUNBUFFERED'] = '1'
         
         # 可选：设置其他环境变量（如果存在）
@@ -202,6 +249,8 @@ class ServiceTester:
             env['MODEL_ID'] = 'test_model'
         if 'MODEL_VERSION' not in env:
             env['MODEL_VERSION'] = 'V1.0.0'
+        
+        # 注意：不再设置 MODEL_FORMAT，因为服务会根据文件扩展名自动判断
         
         # 获取 services 目录路径
         services_dir = Path(__file__).parent.absolute() / "services"
@@ -228,6 +277,7 @@ class ServiceTester:
             )
             
             # 启动线程实时读取输出
+            # 注意：services 服务将日志输出到 stderr，所以主要关注 stderr
             import threading
             stdout_thread = threading.Thread(
                 target=self._read_output,
@@ -241,6 +291,8 @@ class ServiceTester:
             )
             stdout_thread.start()
             stderr_thread.start()
+            
+            # 注意：services 服务主要使用 stderr 输出日志，所以 stderr 线程更重要
             
             # 等待服务启动，使用更长的等待时间和重试机制
             print("⏳ 等待服务启动...")
@@ -261,7 +313,11 @@ class ServiceTester:
                 # 检查日志中是否有Flask启动的标记
                 if not flask_started:
                     for line in self.service_output_lines:
-                        if '🚀 正在启动Flask应用...' in line or ('服务地址:' in line and 'http://' in line):
+                        # 匹配多种可能的启动标记
+                        if ('🚀 正在启动Flask应用...' in line or 
+                            '🚀 模型部署服务启动中...' in line or
+                            ('服务地址:' in line and 'http://' in line) or
+                            ('🌐 服务地址:' in line)):
                             flask_started = True
                             # 再等待几秒让Flask完全启动
                             print("🔍 检测到Flask正在启动，等待服务完全就绪...")
@@ -276,6 +332,7 @@ class ServiceTester:
                     if self.server_ip != 'localhost':
                         test_hosts.append(self.server_ip)
                     test_hosts.append('localhost')
+                    test_hosts.append('127.0.0.1')  # 也尝试127.0.0.1
                     
                     for test_host in test_hosts:
                         try:
@@ -287,8 +344,8 @@ class ServiceTester:
                                     if test_host != self.server_ip:
                                         self.server_ip = test_host
                                         self.base_url = f"http://{test_host}:{self.port}"
-                                    # 再等待1秒确保Flask完全启动
-                                    time.sleep(1)
+                                    # 再等待2秒确保Flask完全启动（因为服务可能需要加载模型）
+                                    time.sleep(2)
                                     print(f"✅ 服务已启动（{test_host}:{self.port} 已打开）")
                                     return True
                         except Exception:
@@ -349,10 +406,17 @@ class ServiceTester:
                         data = response.json()
                         print(f"响应数据: {data}")
                         
+                        # 检查健康状态（匹配最新的接口格式）
                         if data.get('status') == 'healthy':
                             # 如果使用localhost成功，更新base_url
                             if 'localhost' in test_url and self.server_ip != 'localhost':
                                 self.base_url = f"http://localhost:{self.port}"
+                            
+                            # 显示额外的服务信息
+                            model_loaded = data.get('model_loaded', False)
+                            service_name = data.get('service_name', 'unknown')
+                            print(f"   模型已加载: {model_loaded}")
+                            print(f"   服务名称: {service_name}")
                             print("✅ 健康检查通过")
                             return True
                         else:
@@ -379,6 +443,38 @@ class ServiceTester:
                 return False
         
         return False
+    
+    def test_restart(self):
+        """测试重启服务接口"""
+        print("\n" + "="*60)
+        print("🔄 测试重启服务接口")
+        print("="*60)
+        
+        try:
+            response = requests.post(f"{self.base_url}/restart", timeout=30)
+            print(f"状态码: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                print(f"响应数据: {data}")
+                
+                if data.get('code') == 0:
+                    print("✅ 重启服务请求成功")
+                    # 等待服务重新加载模型
+                    time.sleep(3)
+                    # 再次检查健康状态
+                    return self.test_health()
+                else:
+                    print(f"⚠️  重启服务返回异常: {data.get('msg')}")
+                    return False
+            else:
+                print(f"❌ 重启服务失败，状态码: {response.status_code}")
+                print(f"响应内容: {response.text}")
+                return False
+                
+        except requests.exceptions.RequestException as e:
+            print(f"❌ 重启服务请求失败: {str(e)}")
+            return False
     
     def test_stop(self):
         """测试停止服务接口"""
@@ -452,9 +548,16 @@ class ServiceTester:
             # 测试健康检查
             results['health'] = self.test_health()
             
+            # 可选：测试推理接口（需要提供测试图片）
+            # results['inference'] = self.test_inference()
+            
             # 注意：不测试 stop 接口，因为测试后服务会停止
             # 如果需要测试 stop 接口，可以取消下面的注释
             # results['stop'] = self.test_stop()
+            
+            # 注意：不测试 restart 接口，因为会重新加载模型
+            # 如果需要测试 restart 接口，可以取消下面的注释
+            # results['restart'] = self.test_restart()
             
             # 打印测试结果
             print("\n" + "="*60)
