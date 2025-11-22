@@ -674,15 +674,23 @@ def inference():
                 
                 # 保存结果图片
                 import cv2
+                import base64
                 result_path = temp_file.name.replace(os.path.splitext(temp_file.name)[1], '_result.jpg')
                 cv2.imwrite(result_path, output_image)
+                
+                # 将结果图片编码为base64，方便cluster服务处理
+                with open(result_path, 'rb') as f:
+                    image_data = f.read()
+                    image_base64 = base64.b64encode(image_data).decode('utf-8')
+                    image_data_url = f"data:image/jpeg;base64,{image_base64}"
                 
                 return jsonify({
                     'code': 0,
                     'msg': '推理成功',
                     'data': {
                         'predictions': detections,
-                        'result_image_path': result_path
+                        'result_image_path': result_path,  # 保留本地路径（向后兼容）
+                        'result_image_base64': image_data_url  # 新增base64编码
                     }
                 })
             elif hasattr(model, 'predict'):  # YOLO模型
@@ -709,12 +717,20 @@ def inference():
                 result_path = temp_file.name.replace(os.path.splitext(temp_file.name)[1], '_result.jpg')
                 results[0].save(filename=result_path)
                 
+                # 将结果图片编码为base64，方便cluster服务处理
+                import base64
+                with open(result_path, 'rb') as f:
+                    image_data = f.read()
+                    image_base64 = base64.b64encode(image_data).decode('utf-8')
+                    image_data_url = f"data:image/jpeg;base64,{image_base64}"
+                
                 return jsonify({
                     'code': 0,
                     'msg': '推理成功',
                     'data': {
                         'predictions': predictions,
-                        'result_image_path': result_path
+                        'result_image_path': result_path,  # 保留本地路径（向后兼容）
+                        'result_image_base64': image_data_url  # 新增base64编码
                     }
                 })
             else:

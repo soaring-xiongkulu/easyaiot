@@ -19,6 +19,130 @@ cluster_inference_bp = Blueprint('cluster_inference', __name__, url_prefix='/clu
 logger = logging.getLogger(__name__)
 
 
+def _process_cluster_inference_results(
+    predictions: list,
+    result_image_path: str,
+    original_image_url: str,
+    task_id: str,
+    temp_dir: str
+) -> dict:
+    """
+    处理集群推理结果，上传结果图和JSON到MinIO
+    
+    Args:
+        predictions: 检测结果列表
+        result_image_path: 结果图片路径（services实例本地路径或base64编码）
+        original_image_url: 原始图片的MinIO URL
+        task_id: 任务ID
+        temp_dir: 临时目录
+    
+    Returns:
+        处理后的结果字典，包含image_url、result_url、detections、json_url等
+    """
+    import json
+    import base64
+    import cv2
+    
+    result_image_local_path = None
+    json_path = None
+    
+    try:
+        # 处理结果图片路径
+        if result_image_path:
+            # 检查是否是base64编码
+            if result_image_path.startswith('data:image'):
+                # base64编码的图片
+                header, encoded = result_image_path.split(',', 1)
+                image_data = base64.b64decode(encoded)
+                result_image_local_path = os.path.join(temp_dir, 'result.jpg')
+                with open(result_image_local_path, 'wb') as f:
+                    f.write(image_data)
+                logger.info(f"已解码base64图片并保存到: {result_image_local_path}")
+            elif os.path.exists(result_image_path):
+                # 本地文件路径
+                result_image_local_path = result_image_path
+            else:
+                logger.warning(f"结果图片路径不存在: {result_image_path}")
+        
+        # 如果没有结果图片，创建一个空的（不应该发生）
+        if not result_image_local_path or not os.path.exists(result_image_local_path):
+            logger.error("无法获取结果图片")
+            return {
+                'image_url': original_image_url,
+                'result_url': None,
+                'detections': predictions,
+                'detection_count': len(predictions),
+                'json_url': None
+            }
+        
+        # 保存JSON检测结果到临时文件
+        json_path = os.path.join(temp_dir, 'detections.json')
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(predictions, f, indent=2, ensure_ascii=False)
+        
+        # 上传结果图片到MinIO
+        date_str = datetime.now().strftime('%Y%m%d')
+        image_filename = f"result_{task_id}_{uuid.uuid4().hex[:8]}.jpg"
+        image_object_key = f"images/{date_str}/{image_filename}"
+        
+        inference_results_bucket = "inference-results"
+        upload_success, upload_error = ModelService.upload_to_minio(
+            inference_results_bucket,
+            image_object_key,
+            result_image_local_path
+        )
+        
+        # 上传JSON检测结果到MinIO
+        json_filename = f"detections_{task_id}_{uuid.uuid4().hex[:8]}.json"
+        json_object_key = f"json/{date_str}/{json_filename}"
+        
+        json_upload_success, json_upload_error = ModelService.upload_to_minio(
+            inference_results_bucket,
+            json_object_key,
+            json_path
+        )
+        
+        # 生成结果图片的MinIO下载URL
+        if upload_success:
+            result_url = f"/api/v1/buckets/{inference_results_bucket}/objects/download?prefix={image_object_key}"
+        else:
+            logger.error(f"结果图片上传到MinIO失败: {image_object_key}, 错误: {upload_error}")
+            result_url = None
+        
+        # 生成JSON结果的MinIO下载URL
+        if json_upload_success:
+            json_url = f"/api/v1/buckets/{inference_results_bucket}/objects/download?prefix={json_object_key}"
+        else:
+            logger.error(f"JSON结果上传到MinIO失败: {json_object_key}, 错误: {json_upload_error}")
+            json_url = None
+        
+        # 返回结果
+        return {
+            'image_url': original_image_url,  # 原始图片的MinIO URL
+            'result_url': result_url,  # 分析后的图片MinIO URL
+            'detections': predictions,
+            'detection_count': len(predictions),
+            'json_url': json_url
+        }
+        
+    except Exception as e:
+        logger.error(f"处理集群推理结果失败: {str(e)}", exc_info=True)
+        return {
+            'image_url': original_image_url,
+            'result_url': None,
+            'detections': predictions,
+            'detection_count': len(predictions),
+            'json_url': None
+        }
+    finally:
+        # 清理临时文件（但不删除result_image_local_path，因为它可能是services实例的文件）
+        if json_path and os.path.exists(json_path):
+            try:
+                os.unlink(json_path)
+            except Exception as e:
+                logger.warning(f"删除临时JSON文件失败: {str(e)}")
+
+
 def download_file_from_url(url: str, temp_dir: str = None) -> str:
     """从MinIO URL下载文件到临时文件，如果本地已存在则直接返回"""
     from urllib.parse import urlparse, parse_qs
@@ -207,6 +331,7 @@ def run_cluster_inference(model_id):
         parameters = data.get('parameters', {})
         
         # 通过集群推理
+        temp_result_dir = None
         try:
             result = ClusterInferenceService.inference_via_cluster(
                 model_id=model_id,
@@ -217,12 +342,55 @@ def run_cluster_inference(model_id):
                 parameters=parameters
             )
             
-            # 更新任务记录
-            record.status = 'COMPLETED'
-            record.end_time = datetime.now()
-            db.session.commit()
-            
-            return jsonify(result)
+            # 处理推理结果，上传到MinIO
+            if result.get('code') == 0 and inference_type == 'image':
+                result_data = result.get('data', {})
+                predictions = result_data.get('predictions', [])
+                # 优先使用base64编码的图片，如果没有则使用本地路径
+                result_image_base64 = result_data.get('result_image_base64')
+                result_image_path = result_data.get('result_image_path')
+                
+                # 处理结果图片和JSON，上传到MinIO
+                temp_result_dir = tempfile.mkdtemp()
+                processed_result = _process_cluster_inference_results(
+                    predictions=predictions,
+                    result_image_path=result_image_base64 or result_image_path,  # 优先使用base64
+                    original_image_url=actual_input_source,
+                    task_id=str(record_id),
+                    temp_dir=temp_result_dir
+                )
+                
+                # 更新任务记录的output_path
+                if processed_result.get('result_url'):
+                    record.output_path = processed_result['result_url']
+                
+                # 更新任务记录状态
+                record.status = 'COMPLETED'
+                record.end_time = datetime.now()
+                db.session.commit()
+                
+                # 返回与普通推理接口一致的格式
+                return jsonify({
+                    'code': 0,
+                    'msg': '推理执行成功',
+                    'data': {
+                        'record_id': record_id,
+                        'result': {
+                            'image_url': processed_result.get('image_url'),  # 原始图片URL
+                            'result_url': processed_result.get('result_url'),  # 结果图片URL
+                            'detections': processed_result.get('detections', []),
+                            'detection_count': processed_result.get('detection_count', 0),
+                            'json_url': processed_result.get('json_url')  # JSON结果URL
+                        }
+                    }
+                })
+            else:
+                # 非图片推理或其他情况，直接返回原结果
+                record.status = 'COMPLETED'
+                record.end_time = datetime.now()
+                db.session.commit()
+                
+                return jsonify(result)
             
         except Exception as e:
             error_type = type(e).__name__
@@ -240,9 +408,33 @@ def run_cluster_inference(model_id):
             
     except Exception as e:
         logger.error(f"执行集群推理失败: {str(e)}")
-        db.session.rollback()
+        if 'record' in locals() and record:
+            record.status = 'FAILED'
+            record.error_message = str(e)
+            record.end_time = datetime.now()
+            db.session.commit()
+        else:
+            db.session.rollback()
         return jsonify({
             'code': 500,
             'msg': f'服务器内部错误: {str(e)}'
         }), 500
+    finally:
+        # 清理临时目录
+        if 'temp_result_dir' in locals() and temp_result_dir and os.path.exists(temp_result_dir):
+            try:
+                shutil.rmtree(temp_result_dir)
+            except Exception as e:
+                logger.warning(f"删除临时结果目录失败: {temp_result_dir}, {str(e)}")
+        # 清理上传文件的临时文件
+        if 'uploaded_file_path' in locals() and uploaded_file_path and os.path.exists(uploaded_file_path):
+            try:
+                uploaded_file_dir = os.path.dirname(uploaded_file_path)
+                if os.path.exists(uploaded_file_path):
+                    os.unlink(uploaded_file_path)
+                # 如果目录为空，删除目录
+                if os.path.exists(uploaded_file_dir) and not os.listdir(uploaded_file_dir):
+                    shutil.rmtree(uploaded_file_dir)
+            except Exception as e:
+                logger.warning(f"删除上传文件临时文件失败: {uploaded_file_path}, {str(e)}")
 
