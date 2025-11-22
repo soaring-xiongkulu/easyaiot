@@ -1050,7 +1050,7 @@ def receive_heartbeat():
                     port=port,
                     inference_endpoint=inference_endpoint or (f"http://{server_ip}:{port}/inference" if server_ip and port else None),
                     mac_address=mac_address,
-                    status='online',
+                    status='running',
                     deploy_time=beijing_now(),
                     model_version=model_version,
                     format=format_type,
@@ -1086,13 +1086,13 @@ def receive_heartbeat():
         if process_id:
             service.process_id = process_id
         
-        # 如果服务状态是stopped，保持stopped状态；否则更新为online
+        # 如果服务状态是stopped，保持stopped状态；否则更新为running
         if service.status == 'stopped':
             # 保持stopped状态，不更新
             pass
         else:
-            # 兼容旧的状态值（running），统一改为online
-            service.status = 'online'
+            # 统一改为running（兼容旧的online状态）
+            service.status = 'running'
 
         db.session.commit()
 

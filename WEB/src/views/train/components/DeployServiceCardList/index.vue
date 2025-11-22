@@ -7,7 +7,7 @@
     <div class="bg-white">
       <Spin :spinning="state.loading">
         <List
-          :grid="{ gutter: 2, xs: 1, sm: 2, md: 4, lg: 4, xl: 6, xxl: 6 }"
+          :grid="{ gutter: 2, xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 5 }"
           :data-source="data"
           :pagination="paginationProp"
         >
@@ -29,13 +29,11 @@
                     <a>{{ getModelTitleWithVersion(item) }}</a>
                   </h6>
 
-                  <!-- 状态指示器和格式标签 -->
+                  <!-- 状态标签 -->
                   <div class="status-format-wrapper">
-                    <div class="status-indicator" :class="`status-${item.status}`">
-                      <div class="status-dot"></div>
-                      <span class="status-text">{{ getStatusText(item.status) }}</span>
-                    </div>
-                    <span class="format-tag" v-if="getFormatText(item)">{{ getFormatText(item) }}</span>
+                    <span class="status-tag" :class="`status-${item.status}`">
+                      {{ getStatusText(item.status) }}
+                    </span>
                   </div>
 
                   <!-- 服务名称（带复制图标） -->
@@ -51,6 +49,10 @@
                   <!-- 服务详情 -->
                   <div class="deploy-service-info">
                     <div class="info-item">
+                      <span class="info-label">模型格式:</span>
+                      <span class="info-value">{{ getFormatText(item) || '--' }}</span>
+                    </div>
+                    <div class="info-item">
                       <span class="info-label">服务器IP:</span>
                       <span class="info-value">{{ item.server_ip || '--' }}</span>
                     </div>
@@ -65,9 +67,9 @@
                           {{ item.inference_endpoint || '--' }}
                         </span>
                         <CopyOutlined 
-                          class="copy-icon" 
-                          @click="copyToClipboard(item.inference_endpoint, '推理接口')"
-                          title="复制推理接口"
+                          class="copy-icon copy-test-command-icon" 
+                          @click="copyTestCommand(item)"
+                          title="复制测试命令"
                         />
                       </div>
                     </div>
@@ -319,6 +321,7 @@ function getStatusText(status: string) {
   const textMap: Record<string, string> = {
     'running': '运行中',
     'stopped': '已停止',
+    'offline': '离线',
     'error': '错误'
   };
   return textMap[status] || status || '未知';
@@ -376,26 +379,14 @@ function getModelTitleWithVersion(item: any): string {
   return modelName;
 }
 
-// 提取服务名称中的时间戳部分用于显示
+// 显示完整的服务名称
 function getServiceNameDisplay(serviceName: string): string {
   if (!serviceName || serviceName === '--') {
     return '--';
   }
   
-  // 按 _ 分割服务名称
-  const parts = serviceName.split('_');
-  
-  // 从后往前找，找到第一个纯数字且长度>=10的部分（Unix时间戳通常是10位）
-  for (let i = parts.length - 1; i >= 0; i--) {
-    const part = parts[i];
-    // 检查是否是纯数字且长度>=10（Unix时间戳）
-    if (/^\d+$/.test(part) && part.length >= 10) {
-      return part;
-    }
-  }
-  
-  // 如果找不到时间戳，返回最后一部分（可能是UUID或其他标识）
-  return parts[parts.length - 1] || serviceName;
+  // 直接返回完整的服务名称
+  return serviceName;
 }
 
 // 复制到剪贴板
@@ -423,6 +414,15 @@ function copyToClipboard(text: string, label: string) {
     }
     document.body.removeChild(textArea);
   });
+}
+
+// 生成并复制测试命令
+function copyTestCommand(item: any) {
+  const serverIp = item.server_ip || 'localhost';
+  const port = item.port || '8889';
+  const testCommand = `curl -X POST -F 'file=@your_image.jpg' http://${serverIp}:${port}/inference`;
+  
+  copyToClipboard(testCommand, '测试命令');
 }
 
 // 启动服务
@@ -542,66 +542,38 @@ const handleDelete = async (record: any) => {
   flex-wrap: wrap;
 }
 
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 6px;
+.status-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
   flex-shrink: 0;
-  width: fit-content;
+  border: 1px solid;
 
   &.status-running {
     background: #f6ffed;
-    border: 1px solid #b7eb8f;
-
-    .status-dot {
-      background: #52c41a;
-    }
-
-    .status-text {
-      color: #52c41a;
-      font-weight: 500;
-    }
+    border-color: #b7eb8f;
+    color: #52c41a;
   }
 
   &.status-stopped {
     background: #fafafa;
-    border: 1px solid #d9d9d9;
+    border-color: #d9d9d9;
+    color: #8c8c8c;
+  }
 
-    .status-dot {
-      background: #8c8c8c;
-    }
-
-    .status-text {
-      color: #8c8c8c;
-      font-weight: 500;
-    }
+  &.status-offline {
+    background: #fff7e6;
+    border-color: #ffd591;
+    color: #fa8c16;
   }
 
   &.status-error {
     background: #fff2f0;
-    border: 1px solid #ffccc7;
-
-    .status-dot {
-      background: #ff4d4f;
-    }
-
-    .status-text {
-      color: #ff4d4f;
-      font-weight: 500;
-    }
-  }
-
-  .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .status-text {
-    font-size: 12px;
+    border-color: #ffccc7;
+    color: #ff4d4f;
   }
 }
 
@@ -648,7 +620,7 @@ const handleDelete = async (record: any) => {
 
 .deploy-service-name {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   margin-bottom: 12px;
   padding: 6px 10px;
@@ -667,9 +639,8 @@ const handleDelete = async (record: any) => {
     flex: 1;
     font-size: 13px;
     color: #262626;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-break: break-all;
+    line-height: 1.4;
   }
 
   .copy-icon {
@@ -678,6 +649,7 @@ const handleDelete = async (record: any) => {
     cursor: pointer;
     flex-shrink: 0;
     transition: color 0.2s;
+    margin-top: 2px;
 
     &:hover {
       color: #1890ff;
@@ -729,6 +701,7 @@ const handleDelete = async (record: any) => {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        min-width: 0;
       }
 
       .copy-icon {
@@ -740,6 +713,15 @@ const handleDelete = async (record: any) => {
 
         &:hover {
           color: #1890ff;
+        }
+      }
+
+      .copy-test-command-icon {
+        font-size: 13px;
+        color: #1890ff;
+        
+        &:hover {
+          color: #40a9ff;
         }
       }
     }

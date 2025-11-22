@@ -455,11 +455,11 @@ def get_deploy_services():
         if server_ip:
             query = query.filter(AIService.server_ip.ilike(f'%{server_ip}%'))
         
-        # 支持新的状态过滤：online/offline/stopped，同时兼容旧的状态值
-        if status_filter in ['online', 'offline', 'stopped', 'running', 'error']:
-            # 兼容旧的状态值：running -> online, error -> offline
+        # 支持状态过滤：running/offline/stopped/error
+        if status_filter in ['offline', 'stopped', 'running', 'error']:
+            # 兼容旧的状态值：online -> running, error -> offline
             if status_filter == 'running':
-                query = query.filter(AIService.status.in_(['online', 'running']))
+                query = query.filter(AIService.status.in_(['running', 'online']))
             elif status_filter == 'error':
                 query = query.filter(AIService.status.in_(['offline', 'error']))
             else:
@@ -690,8 +690,8 @@ def deploy_model():
             
             # 启动systemd服务
             if start_systemd_service(systemd_service_name, root_password):
-                # 更新服务记录，状态会在心跳上报时更新为online
-                ai_service.status = 'offline'  # 初始状态，等待心跳上报后变为online
+                # 更新服务记录，状态会在心跳上报时更新为running
+                ai_service.status = 'offline'  # 初始状态，等待心跳上报后变为running
                 # process_id会在心跳上报时更新
                 db.session.commit()
                 
@@ -850,7 +850,7 @@ def start_service(service_id):
         
         # 启动systemd服务
         if start_systemd_service(systemd_service_name, root_password):
-            service.status = 'online'
+            service.status = 'running'
             # process_id会在心跳上报时更新
             db.session.commit()
             
@@ -885,7 +885,7 @@ def stop_service(service_id):
         service = AIService.query.get_or_404(service_id)
         
         # 如果服务不在线，不需要停止
-        if service.status not in ['online', 'running']:
+        if service.status != 'running':
             return jsonify({
                 'code': 400,
                 'msg': '服务未在线，无需停止'
@@ -954,12 +954,20 @@ def get_service_logs(service_id):
             log_filename = f"{service.service_name}_all.log"
             log_file_path = os.path.join(service_log_dir, log_filename)
         
-        # 检查日志文件是否存在
+        # 检查日志文件是否存在，如果不存在则返回空日志
         if not os.path.exists(log_file_path):
+            # 如果日志文件不存在，返回空日志而不是404错误
+            logger.warning(f"日志文件不存在: {log_file_path}，返回空日志")
             return jsonify({
-                'code': 404,
-                'msg': f'日志文件不存在: {log_filename}'
-            }), 404
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'logs': f'日志文件不存在: {log_filename}\n请等待服务运行后生成日志。',
+                    'total_lines': 0,
+                    'log_file': log_filename,
+                    'is_all_file': not bool(date)
+                }
+            })
 
         # 读取日志文件最后N行
         try:
@@ -1037,7 +1045,7 @@ def receive_heartbeat():
                     port=port,
                     inference_endpoint=inference_endpoint or (f"http://{server_ip}:{port}/inference" if server_ip and port else None),
                     mac_address=mac_address,
-                    status='online',
+                    status='running',
                     deploy_time=beijing_now(),
                     model_version=model_version,
                     format=format_type,
@@ -1073,13 +1081,13 @@ def receive_heartbeat():
         if process_id:
             service.process_id = process_id
         
-        # 如果服务状态是stopped，保持stopped状态；否则更新为online
+        # 如果服务状态是stopped，保持stopped状态；否则更新为running
         if service.status == 'stopped':
             # 保持stopped状态，不更新
             pass
         else:
-            # 兼容旧的状态值（running），统一改为online
-            service.status = 'online'
+            # 统一改为running（兼容旧的online状态）
+            service.status = 'running'
 
         db.session.commit()
 
@@ -1222,17 +1230,16 @@ def receive_logs():
         }), 500
 
 
-def check_heartbeat_timeout():
+def check_heartbeat_timeout(app):
     """定时检查心跳超时，超过1分钟没上报则更新状态为离线"""
     try:
-        from flask import current_app
-        with current_app.app_context():
+        with app.app_context():
             # 计算1分钟前的时间
             timeout_threshold = beijing_now() - timedelta(minutes=1)
             
-            # 查找所有在线状态但心跳超时的服务
+            # 查找所有运行中状态但心跳超时的服务
             timeout_services = AIService.query.filter(
-                AIService.status.in_(['online', 'running']),
+                AIService.status.in_(['running', 'online']),  # 兼容旧的online状态
                 (AIService.last_heartbeat < timeout_threshold) | (AIService.last_heartbeat.is_(None))
             ).all()
             
@@ -1253,12 +1260,12 @@ def check_heartbeat_timeout():
             pass
 
 
-def start_heartbeat_checker():
+def start_heartbeat_checker(app):
     """启动心跳检查定时任务"""
     def checker_loop():
         while True:
             try:
-                check_heartbeat_timeout()
+                check_heartbeat_timeout(app)
             except Exception as e:
                 logger.error(f"心跳检查任务异常: {str(e)}")
             time.sleep(30)  # 每30秒检查一次
