@@ -25,7 +25,8 @@
 </template>
 
 <script lang="ts" setup name="TrainService">
-import {reactive} from 'vue';
+import {reactive, onMounted} from 'vue';
+import {useRoute} from 'vue-router';
 import { TabPane, Tabs } from "ant-design-vue";
 import ModelList from "@/views/train/components/ModelList/index.vue";
 import AiModelTool from "@/views/train/components/AiModelTool/index.vue";
@@ -34,6 +35,8 @@ import DeployService from "@/views/train/components/DeployService/index.vue";
 
 defineOptions({name: 'TRAIN'})
 
+const route = useRoute();
+
 const state = reactive({
   activeKey: '1'
 });
@@ -41,6 +44,14 @@ const state = reactive({
 const handleTabClick = (activeKey: string) => {
   state.activeKey = activeKey;
 };
+
+// 处理路由参数，自动切换到指定tab
+onMounted(() => {
+  const tab = route.query.tab as string;
+  if (tab) {
+    state.activeKey = tab;
+  }
+});
 </script>
 
 <style lang="less" scoped>
