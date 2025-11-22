@@ -238,7 +238,7 @@ def create_app():
         
         # 注册集群推理接口（使用不同的路由，不影响原有推理接口）
         from app.blueprints import cluster
-        app.register_blueprint(cluster.cluster_inference_bp, url_prefix='/model')
+        app.register_blueprint(cluster.cluster_inference_bp, url_prefix='/model/cluster')
         print(f"✅ 所有蓝图注册成功")
         
         # 启动心跳超时检查任务

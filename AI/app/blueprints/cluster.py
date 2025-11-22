@@ -7,6 +7,7 @@ import os
 import logging
 import tempfile
 import uuid
+import shutil
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def download_file_from_url(url: str, temp_dir: str = None) -> str:
-    """从MinIO URL下载文件到临时文件"""
+    """从MinIO URL下载文件到临时文件，如果本地已存在则直接返回"""
     from urllib.parse import urlparse, parse_qs
     
     try:
@@ -37,19 +38,56 @@ def download_file_from_url(url: str, temp_dir: str = None) -> str:
         if not object_key:
             raise Exception("无法从URL中提取object_key")
         
+        # 获取AI模块根目录，用于创建缓存目录
+        app_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        cache_dir = os.path.join(app_root, 'data', 'cache', 'inference_inputs')
+        os.makedirs(cache_dir, exist_ok=True)
+        
+        # 根据object_key生成缓存文件路径（使用object_key的basename作为文件名）
+        filename = os.path.basename(object_key) or f"file_{uuid.uuid4().hex}"
+        # 如果文件名没有扩展名，尝试从object_key中提取
+        if not os.path.splitext(filename)[1]:
+            ext = os.path.splitext(object_key)[1] or '.jpg'
+            filename = f"{os.path.splitext(filename)[0]}{ext}"
+        
+        cache_file = os.path.join(cache_dir, filename)
+        
+        # 检查本地缓存文件是否存在
+        if os.path.exists(cache_file):
+            file_size = os.path.getsize(cache_file)
+            logger.info(f"本地文件已存在，跳过下载: {cache_file}, 大小: {file_size} 字节")
+            return cache_file
+        
+        # 如果指定了临时目录，使用临时目录；否则使用缓存目录
         if not temp_dir:
-            temp_dir = tempfile.mkdtemp()
+            temp_dir = cache_dir
         
-        # 下载文件
-        file_data = ModelService.download_from_minio(bucket_name, object_key)
-        if not file_data:
-            raise Exception("下载文件失败")
-        
-        # 保存到临时文件
+        # 生成临时文件路径（如果缓存文件不存在，使用临时文件名）
         ext = os.path.splitext(object_key)[1] or '.jpg'
         temp_file = os.path.join(temp_dir, f"{uuid.uuid4().hex}{ext}")
-        with open(temp_file, 'wb') as f:
-            f.write(file_data)
+        
+        # 从MinIO下载文件到临时路径
+        logger.info(f"开始从MinIO下载文件: {bucket_name}/{object_key}")
+        success, error_msg = ModelService.download_from_minio(bucket_name, object_key, temp_file)
+        if not success:
+            raise Exception(f"从MinIO下载文件失败: {bucket_name}/{object_key}. {error_msg or ''}")
+        
+        # 如果下载成功，尝试将文件移动到缓存目录（如果使用临时目录）
+        if temp_file != cache_file and os.path.exists(temp_file):
+            try:
+                # 如果缓存文件已存在（并发下载的情况），删除临时文件
+                if os.path.exists(cache_file):
+                    os.remove(temp_file)
+                    logger.info(f"使用已存在的缓存文件: {cache_file}")
+                    return cache_file
+                else:
+                    # 移动到缓存目录
+                    shutil.move(temp_file, cache_file)
+                    logger.info(f"文件已缓存到: {cache_file}")
+                    return cache_file
+            except Exception as e:
+                logger.warning(f"移动文件到缓存目录失败: {str(e)}，使用临时文件: {temp_file}")
+                return temp_file
         
         return temp_file
     except Exception as e:
