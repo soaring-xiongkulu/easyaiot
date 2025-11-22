@@ -9,6 +9,7 @@ services:
         BASE_IMAGE: ${BASE_IMAGE:-pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime}
     image: ai-service:latest
     container_name: ai-service
+    user: root
 
     # 环境变量文件（用于Docker部署）
     env_file:

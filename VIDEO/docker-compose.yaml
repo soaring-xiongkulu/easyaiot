@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     image: video-service:latest
     container_name: video-service
+    user: root
 
     # 环境变量文件（用于Docker部署）
     env_file:

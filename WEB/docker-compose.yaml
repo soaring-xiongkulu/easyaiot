@@ -7,6 +7,7 @@ services:
       dockerfile: Dockerfile
     image: web-service:latest
     container_name: web-service
+    user: root
 
     # 端口映射
     ports:

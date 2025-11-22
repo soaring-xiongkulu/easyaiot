@@ -1,10 +1,11 @@
 services:
   iot-gateway:
     build:
-      context: ./iot-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: iot-gateway/Dockerfile
     image: iot-gateway
     container_name: iot-gateway
+    user: root
     environment:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
@@ -27,10 +28,11 @@ services:
 
   iot-system:
     build:
-      context: ./iot-system/iot-system-biz
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: iot-system/iot-system-biz/Dockerfile
     image: iot-module-system-biz
     container_name: iot-system
+    user: root
     environment:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
@@ -61,10 +63,11 @@ services:
 
   iot-infra:
     build:
-      context: ./iot-infra/iot-infra-biz
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: iot-infra/iot-infra-biz/Dockerfile
     image: iot-module-infra-biz
     container_name: iot-infra
+    user: root
     environment:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
@@ -100,10 +103,11 @@ services:
 
   iot-device:
     build:
-      context: ./iot-device/iot-device-biz
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: iot-device/iot-device-biz/Dockerfile
     image: iot-module-device-biz
     container_name: iot-device
+    user: root
     environment:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
@@ -138,10 +142,11 @@ services:
 
   iot-dataset:
     build:
-      context: ./iot-dataset/iot-dataset-biz
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: iot-dataset/iot-dataset-biz/Dockerfile
     image: iot-module-dataset-biz
     container_name: iot-dataset
+    user: root
     environment:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
@@ -177,10 +182,11 @@ services:
 
   iot-tdengine:
     build:
-      context: ./iot-tdengine/iot-tdengine-biz
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: iot-tdengine/iot-tdengine-biz/Dockerfile
     image: iot-module-tdengine-biz
     container_name: iot-tdengine
+    user: root
     environment:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m
@@ -214,10 +220,11 @@ services:
 
   iot-file:
     build:
-      context: ./iot-file/iot-file-biz
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: iot-file/iot-file-biz/Dockerfile
     image: iot-module-file-biz
     container_name: iot-file
+    user: root
     environment:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms512m -Xmx512m

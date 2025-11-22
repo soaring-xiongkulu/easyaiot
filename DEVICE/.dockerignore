@@ -1,0 +1,39 @@
+# Git 相关
+.git
+.gitignore
+
+# IDE 相关
+.idea
+.vscode
+*.iml
+*.ipr
+*.iws
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# 文档
+*.md
+README*
+LICENSE
+
+# 脚本文件（不需要在容器中）
+*.sh
+
+# Docker 相关
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# 其他
+.DS_Store
+Thumbs.db
+

@@ -137,85 +137,38 @@ build_frontend() {
     cd "$SCRIPT_DIR"
 }
 
-# 检查并构建Jar包
+# 检查并构建Jar包（已废弃，现在在Docker容器中编译）
 check_and_build_jars() {
-    print_info "检查Jar包..."
-    
-    # 需要检查的模块及其jar包路径
-    local modules=(
-        "iot-gateway/target/iot-gateway.jar"
-        "iot-system/iot-system-biz/target/iot-system-biz.jar"
-        "iot-infra/iot-infra-biz/target/iot-infra-biz.jar"
-        "iot-device/iot-device-biz/target/iot-device-biz.jar"
-        "iot-dataset/iot-dataset-biz/target/iot-dataset-biz.jar"
-        "iot-tdengine/iot-tdengine-biz/target/iot-tdengine-biz.jar"
-        "iot-file/iot-file-biz/target/iot-file-biz.jar"
-    )
-    
-    local need_build=false
-    
-    # 检查每个模块的jar包是否存在
-    for jar_path in "${modules[@]}"; do
-        local full_path="${SCRIPT_DIR}/${jar_path}"
-        if [ ! -f "$full_path" ]; then
-            print_warning "未找到Jar包: $jar_path"
-            need_build=true
-        fi
-    done
-    
-    # 如果有jar包缺失，执行Maven编译
-    if [ "$need_build" = true ]; then
-        print_info "检测到缺失的Jar包，开始执行Maven编译打包..."
-        
-        # 检查Maven是否安装
-        if ! check_command mvn; then
-            print_error "Maven未安装，请先安装Maven"
-            echo "安装指南: https://maven.apache.org/install.html"
-            exit 1
-        fi
-        
-        # 切换到DEVICE目录并执行Maven编译
-        cd "$SCRIPT_DIR"
-        print_info "执行: mvn clean package -DskipTests"
-        mvn clean package -DskipTests
-        
-        if [ $? -eq 0 ]; then
-            print_success "Maven编译打包完成"
-        else
-            print_error "Maven编译打包失败"
-            exit 1
-        fi
-    else
-        print_success "所有Jar包已存在，跳过编译"
-    fi
+    print_info "跳过宿主机Jar包检查（编译将在Docker容器中完成）..."
+    # 不再需要在宿主机上编译，所有编译都在Docker容器中完成
 }
 
 # 构建所有镜像
 build_images() {
-    check_and_build_jars
-    print_info "开始构建所有Docker镜像（减少输出）..."
+    print_info "开始构建所有Docker镜像（在容器中编译，减少输出）..."
     cd "$SCRIPT_DIR"
     # 使用 --progress=plain 减少构建输出，但仍显示关键信息
+    # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
     if echo "$DOCKER_COMPOSE" | grep -q "docker compose"; then
         $DOCKER_COMPOSE build --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building)" || true
     else
         $DOCKER_COMPOSE build --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building)" || true
     fi
-    print_success "镜像构建完成"
+    print_success "镜像构建完成（所有编译在容器中完成）"
 }
 
 # 构建并启动所有服务
 build_and_start() {
-    check_and_build_jars
-    print_info "开始构建并启动所有服务（减少输出）..."
+    print_info "开始构建并启动所有服务（在容器中编译，减少输出）..."
     cd "$SCRIPT_DIR"
     # 使用 --progress=plain 和 --quiet-pull 减少输出
+    # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
     if echo "$DOCKER_COMPOSE" | grep -q "docker compose"; then
         $DOCKER_COMPOSE up -d --build --progress=plain --quiet-pull 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building|Creating|Starting|Started)" || true
     else
         $DOCKER_COMPOSE up -d --build --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building|Creating|Starting|Started)" || true
     fi
-    print_success "服务构建并启动完成"
+    print_success "服务构建并启动完成（所有编译在容器中完成）"
 }
 
 # 启动所有服务
@@ -360,16 +313,16 @@ clean_all() {
 
 # 更新服务（重新构建并重启）
 update_services() {
-    check_and_build_jars
-    print_info "更新所有服务（重新构建并重启，减少输出）..."
+    print_info "更新所有服务（在容器中重新构建并重启，减少输出）..."
     cd "$SCRIPT_DIR"
     # 使用 --progress=plain 和 --quiet-pull 减少输出
+    # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
     if echo "$DOCKER_COMPOSE" | grep -q "docker compose"; then
         $DOCKER_COMPOSE up -d --build --force-recreate --progress=plain --quiet-pull 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building|Creating|Starting|Started|Recreating)" || true
     else
         $DOCKER_COMPOSE up -d --build --force-recreate --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building|Creating|Starting|Started|Recreating)" || true
     fi
-    print_success "服务更新完成"
+    print_success "服务更新完成（所有编译在容器中完成）"
 }
 
 # 显示帮助信息
@@ -380,7 +333,7 @@ DEVICE模块 Docker Compose 管理脚本
 用法: $0 [命令] [选项]
 
 命令:
-    build               构建所有Docker镜像
+    build               构建所有Docker镜像（在容器中编译，无需宿主机Maven）
     start               启动所有服务
     stop                停止所有服务
     restart             重启所有服务
@@ -392,8 +345,8 @@ DEVICE模块 Docker Compose 管理脚本
     start-service       启动指定服务
     clean               清理（停止并删除容器，保留镜像）
     clean-all           完全清理（停止并删除容器和镜像）
-    update              更新服务（重新构建并重启）
-    install             安装（构建并启动所有服务）
+    update              更新服务（在容器中重新构建并重启）
+    install             安装（构建并启动所有服务，在容器中编译）
     help                显示此帮助信息
 
 示例:
