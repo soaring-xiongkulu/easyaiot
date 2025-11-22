@@ -101,8 +101,8 @@ def get_deploy_services():
                 'msg': '参数错误：pageNo和pageSize必须为正整数'
             }), 400
 
-        # 构建查询
-        query = db.session.query(AIService, Model.name.label('model_name')).join(
+        # 构建查询（使用 LEFT JOIN 支持 model_id 为空的情况）
+        query = db.session.query(AIService, Model.name.label('model_name')).outerjoin(
             Model, AIService.model_id == Model.id
         )
 
@@ -135,7 +135,7 @@ def get_deploy_services():
         records = []
         for service, model_name in pagination.items:
             service_dict = service.to_dict()
-            service_dict['model_name'] = model_name
+            service_dict['model_name'] = model_name if model_name else None  # 处理 model_id 为空的情况
             # 如果服务记录中没有版本和格式，从Model表获取
             if not service_dict.get('model_version'):
                 model = Model.query.get(service.model_id)
@@ -382,6 +382,12 @@ def start_service(service_id):
                 }), 500
 
         # 获取模型信息
+        if not service.model_id:
+            return jsonify({
+                'code': 400,
+                'msg': '服务未关联模型，无法启动。请先为服务关联模型或通过心跳上报 model_id'
+            }), 400
+
         model = Model.query.get(service.model_id)
         if not model:
             return jsonify({
@@ -407,7 +413,7 @@ def start_service(service_id):
             }), 500
 
         env = os.environ.copy()
-        env['MODEL_ID'] = str(service.model_id)
+        env['MODEL_ID'] = str(service.model_id) if service.model_id else ''
         env['MODEL_PATH'] = model_path
         env['SERVICE_ID'] = str(service.id)
         env['SERVICE_NAME'] = service.service_name
@@ -586,24 +592,54 @@ def get_service_logs(service_id):
 def receive_heartbeat():
     try:
         data = request.get_json()
-        service_id = data.get('service_id')
+        service_name = data.get('service_name')
+        service_id = data.get('service_id')  # 保留兼容性，优先使用 service_name
+        model_id = data.get('model_id')  # 模型ID（可选）
         server_ip = data.get('server_ip')
         port = data.get('port')
         inference_endpoint = data.get('inference_endpoint')
         mac_address = data.get('mac_address')
+        model_version = data.get('model_version')  # 模型版本（可选）
+        format_type = data.get('format')  # 模型格式（可选）
 
-        if not service_id:
-            return jsonify({
-                'code': 400,
-                'msg': '缺少必要参数：service_id'
-            }), 400
-
-        service = AIService.query.get(service_id)
-        if not service:
-            return jsonify({
-                'code': 404,
-                'msg': '服务不存在'
-            }), 404
+        # 优先使用 service_name，如果没有则使用 service_id（向后兼容）
+        if not service_name:
+            if service_id:
+                # 向后兼容：如果只有 service_id，尝试查找
+                service = AIService.query.get(service_id)
+                if not service:
+                    return jsonify({
+                        'code': 404,
+                        'msg': '服务不存在，请提供 service_name'
+                    }), 404
+            else:
+                return jsonify({
+                    'code': 400,
+                    'msg': '缺少必要参数：service_name 或 service_id'
+                }), 400
+        else:
+            # 根据 service_name 查找或创建服务记录
+            service = AIService.query.filter_by(service_name=service_name).first()
+            
+            if not service:
+                # 如果服务不存在，自动创建新记录
+                logger.info(f"服务 {service_name} 不存在，自动创建新记录")
+                service = AIService(
+                    service_name=service_name,
+                    model_id=model_id if model_id else None,
+                    server_ip=server_ip,
+                    port=port,
+                    inference_endpoint=inference_endpoint or (f"http://{server_ip}:{port}/inference" if server_ip and port else None),
+                    mac_address=mac_address,
+                    status='running',
+                    deploy_time=beijing_now(),
+                    model_version=model_version,
+                    format=format_type
+                )
+                db.session.add(service)
+            else:
+                # 如果服务存在，更新信息
+                logger.debug(f"更新服务 {service_name} 的心跳信息")
 
         # 更新心跳信息
         service.last_heartbeat = beijing_now()
@@ -613,8 +649,17 @@ def receive_heartbeat():
             service.port = port
         if inference_endpoint:
             service.inference_endpoint = inference_endpoint
+        elif server_ip and port and not service.inference_endpoint:
+            service.inference_endpoint = f"http://{server_ip}:{port}/inference"
         if mac_address:
             service.mac_address = mac_address
+        if model_id and not service.model_id:
+            # 如果原来没有 model_id，现在有，则更新
+            service.model_id = model_id
+        if model_version:
+            service.model_version = model_version
+        if format_type:
+            service.format = format_type
         if service.status != 'running':
             service.status = 'running'
 
@@ -622,7 +667,11 @@ def receive_heartbeat():
 
         return jsonify({
             'code': 0,
-            'msg': '心跳接收成功'
+            'msg': '心跳接收成功',
+            'data': {
+                'service_id': service.id,
+                'service_name': service.service_name
+            }
         })
 
     except Exception as e:

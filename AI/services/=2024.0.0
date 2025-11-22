@@ -1,0 +1,12 @@
+Collecting openvino
+  Downloading openvino-2025.3.0-19807-cp312-cp312-manylinux2014_x86_64.whl.metadata (12 kB)
+Requirement already satisfied: numpy<2.3.0,>=1.16.6 in /home/basiclab/miniconda3/lib/python3.12/site-packages (from openvino) (2.2.4)
+Collecting openvino-telemetry>=2023.2.1 (from openvino)
+  Using cached openvino_telemetry-2025.2.0-py3-none-any.whl.metadata (2.3 kB)
+Requirement already satisfied: packaging in /home/basiclab/miniconda3/lib/python3.12/site-packages (from openvino) (24.1)
+Downloading openvino-2025.3.0-19807-cp312-cp312-manylinux2014_x86_64.whl (49.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 49.0/49.0 MB 17.2 MB/s eta 0:00:00
+
+Using cached openvino_telemetry-2025.2.0-py3-none-any.whl (25 kB)
+Installing collected packages: openvino-telemetry, openvino
+Successfully installed openvino-2025.3.0 openvino-telemetry-2025.2.0

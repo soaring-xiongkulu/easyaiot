@@ -235,10 +235,6 @@ def create_app():
         app.register_blueprint(ocr.ocr_bp, url_prefix='/model/ocr')
         app.register_blueprint(speech.speech_bp, url_prefix='/model/speech')
         app.register_blueprint(deploy.deploy_service_bp, url_prefix='/model/deploy_service')
-        
-        # 注册集群推理接口（使用不同的路由，不影响原有推理接口）
-        from app.blueprints import cluster
-        app.register_blueprint(cluster.cluster_inference_bp, url_prefix='/model')
         print(f"✅ 所有蓝图注册成功")
     except Exception as e:
         print(f"❌ 蓝图注册失败: {str(e)}")

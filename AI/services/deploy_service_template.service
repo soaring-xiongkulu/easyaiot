@@ -1,0 +1,32 @@
+[Unit]
+Description=AI Model Deploy Service - {SERVICE_NAME}
+After=network.target
+
+[Service]
+Type=simple
+User={USER}
+Group={GROUP}
+WorkingDirectory={WORKING_DIR}
+Environment="MODEL_ID={MODEL_ID}"
+Environment="MODEL_PATH={MODEL_PATH}"
+Environment="SERVICE_ID={SERVICE_ID}"
+Environment="SERVICE_NAME={SERVICE_NAME_VAR}"
+Environment="PORT={PORT}"
+Environment="SERVER_IP={SERVER_IP}"
+Environment="LOG_PATH={LOG_PATH}"
+Environment="MODEL_VERSION={MODEL_VERSION}"
+Environment="MODEL_FORMAT={MODEL_FORMAT}"
+Environment="NACOS_SERVER={NACOS_SERVER}"
+Environment="NACOS_NAMESPACE={NACOS_NAMESPACE}"
+Environment="NACOS_USERNAME={NACOS_USERNAME}"
+Environment="NACOS_PASSWORD={NACOS_PASSWORD}"
+Environment="AI_SERVICE_NAME={AI_SERVICE_NAME}"
+ExecStart={PYTHON_PATH} {SCRIPT_PATH}
+Restart=always
+RestartSec=10
+StandardOutput=append:{LOG_FILE}
+StandardError=append:{LOG_FILE}
+
+[Install]
+WantedBy=multi-user.target
+

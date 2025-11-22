@@ -1,0 +1,132 @@
+services:
+  ai-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # 构建参数：通过build args传递基础镜像
+      # 注意：本服务仅支持 x86_64 架构，ARM架构不支持容器化部署
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime}
+    image: ai-service:latest
+    container_name: ai-service
+
+    # 环境变量文件（用于Docker部署）
+    env_file:
+      - .env.docker
+
+    # 网络模式：使用host模式以访问宿主机局域网
+    # 注意：使用host模式后，端口映射将失效，服务直接使用宿主机网络
+    network_mode: host
+
+    # 数据卷挂载
+    volumes:
+      # 数据目录（包含数据集、模型、推理结果、上传文件）
+      - ./data:/app/data
+      # 静态文件目录
+      - ./static:/app/static
+      # 临时上传目录
+      - ./temp_uploads:/app/temp_uploads
+      # 模型文件目录（如果存在）
+      - ./model:/app/model
+      # 预训练模型文件
+      - ./yolo11n:/app/yolo11n
+      - ./yolo11n.pt:/app/yolo11n.pt
+      - ./yolov8n.pt:/app/yolov8n.pt
+      # 环境变量配置文件（用于Docker部署，使用.env.docker）
+      - ./.env.docker:/app/.env:ro
+
+    # 环境变量
+    environment:
+      # GPU相关配置
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+      # Python环境
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      # Flask配置
+      - FLASK_RUN_PORT=${FLASK_RUN_PORT:-5000}
+      - FLASK_RUN_HOST=${FLASK_RUN_HOST:-0.0.0.0}
+      # 数据库配置（使用localhost，因为使用host网络模式，中间件端口已映射到宿主机）
+      - DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-ai20
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-please-change-this-to-a-random-string}
+      # Nacos配置（使用localhost，因为使用host网络模式）
+      - NACOS_SERVER=${NACOS_SERVER:-localhost:8848}
+      - NACOS_NAMESPACE=${NACOS_NAMESPACE:-}
+      - NACOS_USERNAME=${NACOS_USERNAME:-nacos}
+      - NACOS_PASSWORD=${NACOS_PASSWORD:-basiclab@iot78475418754}
+      - SERVICE_NAME=${SERVICE_NAME:-model-server}
+      # Pod IP配置（容器内会自动获取，也可手动指定）
+      - POD_IP=${POD_IP:-}
+      # MinIO对象存储配置（使用localhost，因为使用host网络模式）
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-localhost:9000}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-basiclab@iot975248395}
+      - MINIO_SECURE=${MINIO_SECURE:-false}
+      # Redis配置（使用localhost，因为使用host网络模式）
+      - REDIS_HOST=${REDIS_HOST:-localhost}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-basiclab@iot975248395}
+      # Kafka配置（使用localhost，因为使用host网络模式）
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      # TDengine配置（使用localhost，因为使用host网络模式）
+      - TDENGINE_HOST=${TDENGINE_HOST:-localhost}
+      - TDENGINE_PORT=${TDENGINE_PORT:-6030}
+      # 讯飞语音识别配置（可选）
+      - XUNFEI_APP_ID=${XUNFEI_APP_ID:-}
+      - XUNFEI_SECRET_KEY=${XUNFEI_SECRET_KEY:-}
+      # FFmpeg配置（可选）
+      - FFMPEG_PATH=${FFMPEG_PATH:-ffmpeg}
+      - FFPROBE_PATH=${FFPROBE_PATH:-ffprobe}
+      # 推流服务器配置（可选）
+      - MODEL_AI_PUSH_URL=${MODEL_AI_PUSH_URL:-pro.basiclab.top:1935}
+      # 时区配置
+      - TZ=${TZ:-Asia/Shanghai}
+      # Ultralytics (YOLO) 配置目录
+      - YOLO_CONFIG_DIR=${YOLO_CONFIG_DIR:-/tmp/Ultralytics}
+      # PaddleX 临时目录（通过环境变量或使用默认的 /home/appuser/.paddlex）
+      # 代理配置（可选）
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1}
+
+    # 重启策略
+    restart: unless-stopped
+
+    # 健康检查
+    # 注意：start_period设置为90秒，因为应用启动时会等待Nacos服务（最多30秒）
+    # 加上应用初始化时间，总共可能需要60-90秒
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+    # 资源限制（GPU 配置，如果 NVIDIA Container Toolkit 未配置，请注释掉以下部分）
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all      # 使用全部 GPU
+              capabilities: [gpu]
+
+    # 注意：使用network_mode: host后，不再需要networks配置
+    # 容器将直接使用宿主机的网络栈，可以：
+    # 1. 访问宿主机局域网
+    # 2. 通过localhost访问映射到宿主机的中间件服务端口
+    # 3. 确保中间件服务（Nacos、PostgresSQL等）的端口已映射到宿主机
+
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# 注意：使用network_mode: host后，不再需要networks配置
+# 如果需要同时访问容器网络和宿主机网络，可以考虑以下替代方案：
+# 1. 使用macvlan网络（需要root权限）
+# 2. 使用host网络 + 通过IP访问中间件容器
+# 3. 使用sidecar容器模式
+
