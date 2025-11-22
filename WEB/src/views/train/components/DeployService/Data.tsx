@@ -23,11 +23,6 @@ export const getBasicColumns = (): BasicColumn[] => {
       width: 120,
     },
     {
-      title: '部署时间',
-      dataIndex: 'deploy_time',
-      width: 180,
-    },
-    {
       title: '最后心跳',
       dataIndex: 'last_heartbeat',
       width: 180,
@@ -62,14 +57,6 @@ export const getFormConfig = (modelOptions: any[] = []): Partial<FormProps> => {
             {label: '全部', value: ''},
             ...modelOptions,
           ],
-        },
-      },
-      {
-        field: 'server_ip',
-        label: '服务器IP',
-        component: 'Input',
-        componentProps: {
-          placeholder: '请输入服务器IP（模糊查询）',
         },
       },
       {

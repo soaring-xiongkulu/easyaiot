@@ -92,8 +92,12 @@ def get_deploy_services():
             # 计算副本数
             replica_count = len(services_list)
             
-            # 计算聚合状态：如果有任何一个running，则显示running；否则显示stopped
+            # 计算各状态的实例数
             statuses = [s[0].status for s in services_list]
+            running_count = sum(1 for status in statuses if status == 'running')
+            offline_count = sum(1 for status in statuses if status == 'offline')
+            
+            # 计算聚合状态：如果有任何一个running，则显示running；否则显示stopped
             if 'running' in statuses:
                 aggregated_status = 'running'
             elif 'offline' in statuses:
@@ -108,6 +112,8 @@ def get_deploy_services():
             service_dict['model_name'] = model_name if model_name else None
             service_dict['replica_count'] = replica_count
             service_dict['status'] = aggregated_status
+            service_dict['running_count'] = running_count
+            service_dict['offline_count'] = offline_count
             
             # 如果服务记录中没有版本和格式，从Model表获取
             if not service_dict.get('model_version'):

@@ -32,7 +32,7 @@
                   <!-- 状态标签和副本数 -->
                   <div class="status-format-wrapper">
                     <span class="status-tag" :class="`status-${item.status}`">
-                      {{ getStatusText(item.status) }}
+                      {{ getStatusText(item.status, item.running_count) }}
                     </span>
                     <span class="replica-tag" v-if="item.replica_count" @click="handleViewReplicas(item)">
                       副本数: {{ item.replica_count }}
@@ -55,13 +55,9 @@
                       <span class="info-label">模型格式:</span>
                       <span class="info-value">{{ getFormatText(item) || '--' }}</span>
                     </div>
-                    <div class="info-item">
-                      <span class="info-label">服务器IP:</span>
-                      <span class="info-value">{{ item.server_ip || '--' }}</span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">部署时间:</span>
-                      <span class="info-value">{{ formatDateTime(item.deploy_time) }}</span>
+                    <div class="info-item" v-if="item.offline_count > 0">
+                      <span class="info-label">离线数量:</span>
+                      <span class="info-value">{{ item.offline_count }}</span>
                     </div>
                   </div>
 
@@ -300,14 +296,19 @@ function formatDateTime(dateString: string) {
   }
 }
 
-function getStatusText(status: string) {
+function getStatusText(status: string, runningCount?: number) {
   const textMap: Record<string, string> = {
     'running': '运行中',
     'stopped': '已停止',
     'offline': '离线',
     'error': '错误'
   };
-  return textMap[status] || status || '未知';
+  const baseText = textMap[status] || status || '未知';
+  // 如果是运行中状态且有running_count，显示"运行中：3"格式
+  if (status === 'running' && runningCount !== undefined && runningCount > 0) {
+    return `${baseText}：${runningCount}`;
+  }
+  return baseText;
 }
 
 // 获取模型格式文本

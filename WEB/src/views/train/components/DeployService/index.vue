@@ -17,7 +17,7 @@
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'status'">
           <Tag :color="getStatusColor(record.status)">
-            {{ getStatusText(record.status) }}
+            {{ getStatusText(record.status, record.running_count) }}
           </Tag>
         </template>
         <template v-if="column.dataIndex === 'replicas'">
@@ -289,13 +289,18 @@ const getStatusColor = (status) => {
   return colorMap[status] || 'default';
 };
 
-const getStatusText = (status) => {
+const getStatusText = (status, runningCount) => {
   const textMap = {
     'running': '运行中',
     'stopped': '已停止',
     'error': '错误'
   };
-  return textMap[status] || status;
+  const baseText = textMap[status] || status;
+  // 如果是运行中状态且有running_count，显示"运行中：3"格式
+  if (status === 'running' && runningCount !== undefined && runningCount > 0) {
+    return `${baseText}：${runningCount}`;
+  }
+  return baseText;
 };
 
 // 轮询相关
