@@ -75,6 +75,15 @@ export function getFormConfig(): Partial<FormProps> {
     actionColOptions: {span: 6}, // 按钮占6列，与字段在同一行
     schemas: [
       {
+        field: `model_name`,
+        label: `模型名称`,
+        component: 'Input',
+        componentProps: {
+          placeholder: '请输入模型名称',
+          allowClear: true,
+        },
+      },
+      {
         field: `status`,
         label: `状态`,
         component: 'Select',

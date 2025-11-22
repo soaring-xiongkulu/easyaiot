@@ -279,6 +279,7 @@ const getExportListApi = async (params: any) => {
       model_id: params.model_id || undefined,
       format: params.format || undefined,
       status: params.status || undefined,
+      search: params.search || undefined,  // 支持按模型名称搜索
       page: params.page || 1,
       per_page: params.pageSize || 10,
     });
@@ -287,13 +288,27 @@ const getExportListApi = async (params: any) => {
     // 所以 res 应该是 { items: [...], total: ... } 格式
     const data = res || {};
     
-    // 为每个记录添加模型名称和版本
+    // 使用后端返回的model_name，如果没有则从模型列表中查找
     const items = (data.items || []).map((item: any) => {
-      const model = models.value.find((m: any) => m.id === item.model_id);
+      // 优先使用后端返回的model_name
+      let modelName = item.model_name;
+      let modelVersion = null;
+      
+      // 如果后端没有返回model_name，则从模型列表中查找
+      if (!modelName) {
+        const model = models.value.find((m: any) => m.id === item.model_id);
+        modelName = model?.name || `模型${item.model_id}`;
+        modelVersion = model?.version || null;
+      } else {
+        // 如果后端返回了model_name，也尝试获取版本号
+        const model = models.value.find((m: any) => m.id === item.model_id);
+        modelVersion = model?.version || null;
+      }
+      
       return {
         ...item,
-        model_name: model?.name || `模型${item.model_id}`,
-        model_version: model?.version || null,
+        model_name: modelName,
+        model_version: modelVersion,
       };
     });
     
@@ -323,8 +338,11 @@ const [registerTable, { reload, getForm }] = useTable({
   title: '模型导出记录',
   api: async (params) => {
     try {
+      // 从表单中获取搜索条件
+      const formValues = getForm?.()?.getFieldsValue?.() || {};
       const res = await getExportListApi({
         ...params,
+        search: formValues.model_name || params.model_name || undefined,  // 使用表单中的模型名称
         page: params.page || 1,
         pageSize: params.pageSize || 10,
       });

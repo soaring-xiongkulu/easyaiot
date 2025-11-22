@@ -615,13 +615,13 @@ def delete_model(model_id):
         model = Model.query.get_or_404(model_id)
         model_name = model.name
 
-        # 检查是否有相关的推理任务记录
-        inference_tasks_count = InferenceTask.query.filter_by(model_id=model_id).count()
+        # 自动删除相关的推理任务记录
+        inference_tasks = InferenceTask.query.filter_by(model_id=model_id).all()
+        inference_tasks_count = len(inference_tasks)
         if inference_tasks_count > 0:
-            return jsonify({
-                'code': 400,
-                'msg': f'无法删除模型"{model_name}"，该模型正在被{inference_tasks_count}个推理任务使用。请先删除相关的推理任务后再试。'
-            }), 400
+            for task in inference_tasks:
+                db.session.delete(task)
+            logger.info(f"已自动删除 {inference_tasks_count} 个关联的推理任务")
 
         # 检查是否有相关的训练任务记录
         train_tasks_count = TrainTask.query.filter_by(model_id=model_id).count()
@@ -644,10 +644,15 @@ def delete_model(model_id):
         db.session.delete(model)
         db.session.commit()
 
-        logger.info(f"模型已删除: {model_id} - {model_name}")
+        # 构建成功消息
+        success_msg = f'模型"{model_name}"已成功删除'
+        if inference_tasks_count > 0:
+            success_msg += f'，并已自动删除 {inference_tasks_count} 个关联的推理任务'
+
+        logger.info(f"模型已删除: {model_id} - {model_name}，关联推理任务数: {inference_tasks_count}")
         return jsonify({
             'code': 0,
-            'msg': f'模型"{model_name}"已成功删除'
+            'msg': success_msg
         })
 
     except IntegrityError as e:

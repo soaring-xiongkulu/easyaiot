@@ -261,9 +261,10 @@ const [registerTable, { reload, updateTableDataRecord }] = useTable({
       page,
       page_size: pageSize,
     });
+    // 后端返回的是items，需要转换为list
     return {
-      list: res.data.list,
-      total: res.data.total,
+      list: res.data.items || res.data.list || [],
+      total: res.data.total || 0,
     };
   },
   columns: getExportModelColumns(),
