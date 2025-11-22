@@ -237,9 +237,9 @@ def deploy_model(model_id: int, start_port: int = 8000) -> dict:
         model_format = _infer_model_format(model, model_path)
         logger.info(f'推断模型格式: {model_format}')
         
-        # 生成服务名称：model_name_version_format
-        # 格式：{model.name}_{model.version}_{format}
-        base_service_name = f"{model.name}_{model.version}_{model_format}"
+        # 生成服务名称：model_modelid_version_format
+        # 格式：model_{model_id}_{model.version}_{format}
+        base_service_name = f"model_{model_id}_{model.version}_{model_format}"
         
         # 检查服务名称是否已存在
         # 如果已存在且状态为 offline 或 stopped，可以复用（重新拉起）
