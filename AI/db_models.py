@@ -61,6 +61,7 @@ class TrainTask(db.Model):
 class ExportRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=False)
+    model_name = db.Column(db.String(100))  # 模型名称
     format = db.Column(db.String(50), nullable=False)
     minio_path = db.Column(db.String(500))
     local_path = db.Column(db.String(500))

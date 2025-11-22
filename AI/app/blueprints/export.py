@@ -135,6 +135,7 @@ def api_export_model(model_id, format):
         # 创建导出记录（初始状态为等待中）
         export_record = ExportRecord(
             model_id=model_id,
+            model_name=model_record.name,  # 保存模型名称
             format=format,
             status='PENDING',
             created_at=get_beijing_now()
@@ -203,6 +204,11 @@ def process_export_async(model_id, format, export_config, export_id, task_id):
             model_record = Model.query.get(model_id)
             if not model_record:
                 raise Exception(f"模型不存在: model_id={model_id}")
+            
+            # 更新导出记录的模型名称（如果之前没有保存）
+            if export_record and not export_record.model_name:
+                export_record.model_name = model_record.name
+                db.session.commit()
             
             # 检查模型路径：优先使用Model.model_path，其次从TrainTask获取minio_model_path
             minio_model_path = None
@@ -475,6 +481,7 @@ def get_export_list():
         model_id = request.args.get('model_id', type=int)
         format_filter = request.args.get('format', type=str)
         status_filter = request.args.get('status', type=str)
+        search = request.args.get('search', type=str)  # 支持模型名称搜索
 
         # 构建查询
         query = ExportRecord.query
@@ -484,6 +491,9 @@ def get_export_list():
             query = query.filter_by(format=format_filter)
         if status_filter:
             query = query.filter_by(status=status_filter)
+        if search:
+            # 支持按模型名称搜索
+            query = query.filter(ExportRecord.model_name.like(f'%{search}%'))
 
         # 执行分页查询
         pagination = query.order_by(ExportRecord.created_at.desc()).paginate(
@@ -498,6 +508,7 @@ def get_export_list():
             items.append({
                 'id': record.id,
                 'model_id': record.model_id,
+                'model_name': record.model_name,  # 返回模型名称
                 'format': record.format,
                 'status': record.status,
                 'status_text': EXPORT_STATUS.get(record.status, '未知状态'),
