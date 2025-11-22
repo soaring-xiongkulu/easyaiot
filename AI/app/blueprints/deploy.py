@@ -5,6 +5,7 @@
 """
 import logging
 import os
+import shlex
 import socket
 import subprocess
 import threading
@@ -89,7 +90,93 @@ def get_local_ip():
         return '127.0.0.1'
 
 
-def create_systemd_service(ai_service, model_path, model_version, model_format):
+def run_with_sudo(command, root_password=None):
+    """使用sudo或su执行命令（如果需要）"""
+    if root_password:
+        # 使用su执行命令，通过stdin传递root密码
+        # 使用shlex.quote安全地转义命令参数
+        cmd_str = ' '.join(shlex.quote(arg) for arg in command)
+        process = subprocess.Popen(
+            ['su', '-c', cmd_str, 'root'],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        stdout, stderr = process.communicate(input=root_password + '\n')
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, command, stdout, stderr)
+        return stdout
+    else:
+        # 直接执行命令
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        return result.stdout
+
+
+def verify_sudo_permission(root_password=None):
+    """
+    验证sudo权限或root密码是否正确
+    返回: (success: bool, error_msg: str)
+    """
+    try:
+        # 先检查是否有sudo权限（不需要密码）
+        try:
+            result = subprocess.run(
+                ['sudo', '-n', 'echo', 'test'],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            if result.returncode == 0:
+                # 有sudo权限且不需要密码
+                return True, None
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            # sudo命令不存在或超时，继续检查
+            pass
+        
+        # 检查是否有权限直接写入systemd目录（可能是root用户）
+        test_path = os.path.join(SYSTEMD_SERVICE_DIR, '.test_write_permission')
+        try:
+            with open(test_path, 'w') as f:
+                f.write('test')
+            os.remove(test_path)
+            # 如果能直接写入，说明有权限（可能是root用户）
+            return True, None
+        except PermissionError:
+            # 如果没有直接权限，需要验证root密码
+            if root_password:
+                try:
+                    # 使用su尝试一个简单的命令来验证密码
+                    process = subprocess.Popen(
+                        ['su', '-c', 'echo test', 'root'],
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True
+                    )
+                    stdout, stderr = process.communicate(input=root_password + '\n', timeout=5)
+                    if process.returncode == 0:
+                        return True, None
+                    else:
+                        # 检查是否是密码错误
+                        error_lower = stderr.lower()
+                        if 'authentication failure' in error_lower or '认证失败' in error_lower or '密码不正确' in error_lower or 'incorrect password' in error_lower:
+                            return False, 'root密码错误'
+                        else:
+                            return False, f'权限验证失败: {stderr.strip()}'
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    return False, '权限验证超时'
+                except Exception as e:
+                    return False, f'权限验证异常: {str(e)}'
+            else:
+                return False, '没有sudo权限且未提供root密码'
+    except Exception as e:
+        logger.error(f"验证sudo权限失败: {str(e)}")
+        return False, f'验证sudo权限失败: {str(e)}'
+
+
+def create_systemd_service(ai_service, model_path, model_version, model_format, root_password=None):
     """创建systemd service文件"""
     try:
         # 获取当前用户和组
@@ -156,6 +243,7 @@ def create_systemd_service(ai_service, model_path, model_version, model_format):
         
         # 写入systemd service文件（需要root权限）
         try:
+            # 先尝试直接写入
             with open(systemd_service_path, 'w') as f:
                 f.write(service_content)
             
@@ -166,8 +254,52 @@ def create_systemd_service(ai_service, model_path, model_version, model_format):
             return systemd_service_name
             
         except PermissionError:
-            logger.error(f"没有权限创建systemd服务文件，需要root权限")
-            return None
+            # 如果没有权限且提供了root密码，使用su
+            if root_password:
+                try:
+                    # 使用su写入文件，先通过echo写入临时文件，然后移动
+                    import tempfile
+                    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.service') as tmp_file:
+                        tmp_file.write(service_content)
+                        tmp_path = tmp_file.name
+                    
+                    try:
+                        # 使用su执行命令移动文件
+                        cmd = f"mv {shlex.quote(tmp_path)} {shlex.quote(systemd_service_path)}"
+                        process = subprocess.Popen(
+                            ['su', '-c', cmd, 'root'],
+                            stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True
+                        )
+                        stdout, stderr = process.communicate(input=root_password + '\n')
+                        if process.returncode != 0:
+                            logger.error(f"使用su创建systemd服务文件失败: {stderr}")
+                            os.unlink(tmp_path)
+                            return None
+                        
+                        # 设置文件权限
+                        run_with_sudo(['chmod', '644', systemd_service_path], root_password)
+                        
+                        # 使用su重新加载systemd
+                        run_with_sudo(['systemctl', 'daemon-reload'], root_password)
+                        
+                        logger.info(f"Systemd服务文件已创建（使用su）: {systemd_service_path}")
+                        return systemd_service_name
+                    except Exception as e:
+                        # 清理临时文件
+                        try:
+                            os.unlink(tmp_path)
+                        except:
+                            pass
+                        raise e
+                except Exception as e:
+                    logger.error(f"使用su创建systemd服务文件失败: {str(e)}")
+                    return None
+            else:
+                logger.error(f"没有权限创建systemd服务文件，需要root权限")
+                return None
         except Exception as e:
             logger.error(f"创建systemd服务文件失败: {str(e)}")
             return None
@@ -177,38 +309,44 @@ def create_systemd_service(ai_service, model_path, model_version, model_format):
         return None
 
 
-def start_systemd_service(service_name):
+def start_systemd_service(service_name, root_password=None):
     """启动systemd服务"""
     try:
-        result = subprocess.run(
-            ['systemctl', 'start', service_name],
-            capture_output=True,
-            text=True,
-            check=True
-        )
+        if root_password:
+            run_with_sudo(['systemctl', 'start', service_name], root_password)
+        else:
+            subprocess.run(
+                ['systemctl', 'start', service_name],
+                capture_output=True,
+                text=True,
+                check=True
+            )
         logger.info(f"Systemd服务已启动: {service_name}")
         return True
     except subprocess.CalledProcessError as e:
-        logger.error(f"启动systemd服务失败: {e.stderr}")
+        logger.error(f"启动systemd服务失败: {e.stderr if hasattr(e, 'stderr') else str(e)}")
         return False
     except Exception as e:
         logger.error(f"启动systemd服务异常: {str(e)}")
         return False
 
 
-def stop_systemd_service(service_name):
+def stop_systemd_service(service_name, root_password=None):
     """停止systemd服务"""
     try:
-        result = subprocess.run(
-            ['systemctl', 'stop', service_name],
-            capture_output=True,
-            text=True,
-            check=True
-        )
+        if root_password:
+            run_with_sudo(['systemctl', 'stop', service_name], root_password)
+        else:
+            subprocess.run(
+                ['systemctl', 'stop', service_name],
+                capture_output=True,
+                text=True,
+                check=True
+            )
         logger.info(f"Systemd服务已停止: {service_name}")
         return True
     except subprocess.CalledProcessError as e:
-        logger.warning(f"停止systemd服务失败（可能服务未运行）: {e.stderr}")
+        logger.warning(f"停止systemd服务失败（可能服务未运行）: {e.stderr if hasattr(e, 'stderr') else str(e)}")
         return False
     except Exception as e:
         logger.error(f"停止systemd服务异常: {str(e)}")
@@ -229,20 +367,28 @@ def get_systemd_service_status(service_name):
         return False
 
 
-def delete_systemd_service(service_name):
+def delete_systemd_service(service_name, root_password=None):
     """删除systemd服务"""
     try:
         # 先停止服务
-        stop_systemd_service(service_name)
+        stop_systemd_service(service_name, root_password)
         
         # 禁用服务
-        subprocess.run(['systemctl', 'disable', service_name], capture_output=True)
+        if root_password:
+            run_with_sudo(['systemctl', 'disable', service_name], root_password)
+        else:
+            subprocess.run(['systemctl', 'disable', service_name], capture_output=True)
         
         # 删除服务文件
         service_path = os.path.join(SYSTEMD_SERVICE_DIR, service_name)
         if os.path.exists(service_path):
-            os.remove(service_path)
-            subprocess.run(['systemctl', 'daemon-reload'], check=True)
+            if root_password:
+                # 使用sudo删除文件
+                run_with_sudo(['rm', '-f', service_path], root_password)
+                run_with_sudo(['systemctl', 'daemon-reload'], root_password)
+            else:
+                os.remove(service_path)
+                subprocess.run(['systemctl', 'daemon-reload'], check=True)
             logger.info(f"Systemd服务文件已删除: {service_path}")
         
         return True
@@ -358,13 +504,20 @@ def deploy_model():
     try:
         data = request.get_json()
         model_id = data.get('model_id')
-        service_name = data.get('service_name', '').strip()
         start_port = int(data.get('start_port', 8000))
+        root_password = data.get('root_password')  # 必填的root密码
 
         if not model_id:
             return jsonify({
                 'code': 400,
                 'msg': '缺少必要参数：model_id'
+            }), 400
+
+        # 检查root密码是否提供
+        if not root_password or not root_password.strip():
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：root_password（Root密码为必填项）'
             }), 400
 
         # 检查模型是否存在
@@ -411,9 +564,22 @@ def deploy_model():
             else:
                 model_format = 'pytorch'  # 默认
 
-        # 生成服务名称
-        if not service_name:
-            service_name = f"{model.name}_{model.version}_{int(time.time())}"
+        # 生成唯一的服务名称（确保不重复）
+        max_attempts = 10
+        for attempt in range(max_attempts):
+            if attempt == 0:
+                service_name = f"{model.name}_{model.version}_{int(time.time())}"
+            else:
+                # 如果已存在，添加随机后缀
+                service_name = f"{model.name}_{model.version}_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+            
+            # 检查服务名称是否已存在
+            existing_service = AIService.query.filter_by(service_name=service_name).first()
+            if not existing_service:
+                break
+        else:
+            # 如果尝试多次后仍然冲突，使用UUID
+            service_name = uuid.uuid4().hex
 
         # 查找可用端口
         port = find_available_port(start_port)
@@ -434,7 +600,23 @@ def deploy_model():
         # 日志路径指向目录，实际日志文件按日期创建
         log_path = log_dir
 
-        # 创建部署服务记录
+        # 在创建服务记录之前，先验证sudo权限或root密码
+        # 这样可以避免在权限验证失败时创建无用的服务记录
+        deploy_service_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'services')
+        deploy_script = os.path.join(deploy_service_dir, 'run_deploy.py')
+        
+        if os.path.exists(deploy_script):
+            # 只有部署脚本存在时才需要验证权限（因为需要创建systemd服务）
+            verify_success, verify_error = verify_sudo_permission(root_password)
+            if not verify_success:
+                # 权限验证失败，不创建服务记录，直接返回错误
+                # verify_error 已经包含了具体的错误信息（如"root密码错误"）
+                return jsonify({
+                    'code': 403,
+                    'msg': verify_error or '创建systemd服务失败，需要root权限。请提供正确的root密码后重试。'
+                }), 403
+
+        # 创建部署服务记录（只有在权限验证通过后才创建）
         ai_service = AIService(
             model_id=model_id,
             service_name=service_name,
@@ -450,10 +632,6 @@ def deploy_model():
         )
         db.session.add(ai_service)
         db.session.commit()
-
-        # 启动部署服务进程
-        deploy_service_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'services')
-        deploy_script = os.path.join(deploy_service_dir, 'run_deploy.py')
         
         if not os.path.exists(deploy_script):
             # 如果部署脚本不存在，先创建服务记录，稍后可以手动启动
@@ -467,18 +645,19 @@ def deploy_model():
         # 创建systemd服务并启动
         try:
             # 创建systemd service文件（MODEL_VERSION和MODEL_FORMAT已在create_systemd_service中通过模板设置）
-            systemd_service_name = create_systemd_service(ai_service, model_path, model.version, model_format)
+            systemd_service_name = create_systemd_service(ai_service, model_path, model.version, model_format, root_password)
             
             if not systemd_service_name:
                 ai_service.status = 'error'
                 db.session.commit()
+                # 如果是因为权限问题失败，返回特定错误码
                 return jsonify({
-                    'code': 500,
-                    'msg': '创建systemd服务失败，请检查是否有root权限'
-                }), 500
+                    'code': 403,
+                    'msg': '创建systemd服务失败，需要root权限。请提供root密码后重试。'
+                }), 403
             
             # 启动systemd服务
-            if start_systemd_service(systemd_service_name):
+            if start_systemd_service(systemd_service_name, root_password):
                 # 更新服务记录
                 ai_service.status = 'running'
                 # 不再存储process_id，因为由systemd管理
@@ -592,19 +771,34 @@ def start_service(service_id):
             service.log_path = log_path
 
         try:
+            # 获取root密码（如果提供）
+            data = request.get_json() or {}
+            root_password = data.get('root_password')
+            
+            # 在创建systemd服务之前，先验证sudo权限或root密码
+            # 这样可以提前返回错误，避免不必要的操作
+            verify_success, verify_error = verify_sudo_permission(root_password)
+            if not verify_success:
+                # 权限验证失败，不更新服务状态，直接返回错误
+                return jsonify({
+                    'code': 403,
+                    'msg': verify_error or '创建systemd服务失败，需要root权限。请提供正确的root密码后重试。'
+                }), 403
+            
             # 创建或更新systemd service文件
-            systemd_service_name = create_systemd_service(service, model_path, model_version, model_format)
+            systemd_service_name = create_systemd_service(service, model_path, model_version, model_format, root_password)
             
             if not systemd_service_name:
                 service.status = 'error'
                 db.session.commit()
+                # 如果是因为权限问题失败，返回特定错误码
                 return jsonify({
-                    'code': 500,
-                    'msg': '创建systemd服务失败，请检查是否有root权限'
-                }), 500
+                    'code': 403,
+                    'msg': '创建systemd服务失败，需要root权限。请提供root密码后重试。'
+                }), 403
             
             # 启动systemd服务
-            if start_systemd_service(systemd_service_name):
+            if start_systemd_service(systemd_service_name, root_password):
                 service.status = 'running'
                 service.process_id = None
                 db.session.commit()
@@ -654,9 +848,13 @@ def stop_service(service_id):
                 'msg': '服务未在运行中'
             }), 400
 
+        # 获取root密码（如果提供）
+        data = request.get_json() or {}
+        root_password = data.get('root_password')
+
         # 停止systemd服务
         systemd_service_name = f"{SYSTEMD_SERVICE_PREFIX}-{service.id}.service"
-        stop_systemd_service(systemd_service_name)
+        stop_systemd_service(systemd_service_name, root_password)
 
         service.status = 'stopped'
         service.process_id = None
@@ -875,13 +1073,17 @@ def delete_service(service_id):
     try:
         service = AIService.query.get_or_404(service_id)
         
+        # 获取root密码（如果提供）
+        data = request.get_json() or {}
+        root_password = data.get('root_password')
+        
         # 如果服务正在运行，先停止
         if service.status == 'running':
             stop_service(service_id)
 
         # 删除systemd服务文件
         systemd_service_name = f"{SYSTEMD_SERVICE_PREFIX}-{service.id}.service"
-        delete_systemd_service(systemd_service_name)
+        delete_systemd_service(systemd_service_name, root_password)
 
         # 删除服务记录
         db.session.delete(service)

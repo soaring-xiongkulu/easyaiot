@@ -29,16 +29,18 @@
                     <a>{{ getModelTitleWithVersion(item) }}</a>
                   </h6>
 
-                  <!-- 状态指示器（放在标题下面） -->
-                  <div class="status-indicator" :class="`status-${item.status}`">
-                    <div class="status-dot"></div>
-                    <span class="status-text">{{ getStatusText(item.status) }}</span>
+                  <!-- 状态指示器和格式标签 -->
+                  <div class="status-format-wrapper">
+                    <div class="status-indicator" :class="`status-${item.status}`">
+                      <div class="status-dot"></div>
+                      <span class="status-text">{{ getStatusText(item.status) }}</span>
+                    </div>
+                    <span class="format-tag" v-if="getFormatText(item)">{{ getFormatText(item) }}</span>
                   </div>
 
                   <!-- 服务名称（带复制图标） -->
                   <div class="deploy-service-name">
-                    <span class="service-name-label">服务名称:</span>
-                    <span class="service-name-value" :title="item.service_name">{{ item.service_name || '--' }}</span>
+                    <span class="service-name-value" :title="item.service_name">{{ getServiceNameDisplay(item.service_name) }}</span>
                     <CopyOutlined 
                       class="copy-icon" 
                       @click="copyToClipboard(item.service_name, '服务名称')"
@@ -58,23 +60,15 @@
                     </div>
                     <div class="info-item">
                       <span class="info-label">推理接口:</span>
-                      <div class="inference-endpoint-wrapper">
-                        <div class="inference-endpoint-title">
-                          {{ getModelTitleWithVersion(item) }}
-                        </div>
-                        <div class="inference-endpoint-format" v-if="getFormatText(item)">
-                          格式: {{ getFormatText(item) }}
-                        </div>
-                        <div class="inference-endpoint-url">
-                          <span class="info-value ellipsis" :title="item.inference_endpoint">
-                            {{ item.inference_endpoint || '--' }}
-                          </span>
-                          <CopyOutlined 
-                            class="copy-icon" 
-                            @click="copyToClipboard(item.inference_endpoint, '推理接口')"
-                            title="复制推理接口"
-                          />
-                        </div>
+                      <div class="inference-endpoint-url">
+                        <span class="info-value ellipsis" :title="item.inference_endpoint">
+                          {{ item.inference_endpoint || '--' }}
+                        </span>
+                        <CopyOutlined 
+                          class="copy-icon" 
+                          @click="copyToClipboard(item.inference_endpoint, '推理接口')"
+                          title="复制推理接口"
+                        />
                       </div>
                     </div>
                     <div class="info-item">
@@ -382,6 +376,28 @@ function getModelTitleWithVersion(item: any): string {
   return modelName;
 }
 
+// 提取服务名称中的时间戳部分用于显示
+function getServiceNameDisplay(serviceName: string): string {
+  if (!serviceName || serviceName === '--') {
+    return '--';
+  }
+  
+  // 按 _ 分割服务名称
+  const parts = serviceName.split('_');
+  
+  // 从后往前找，找到第一个纯数字且长度>=10的部分（Unix时间戳通常是10位）
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const part = parts[i];
+    // 检查是否是纯数字且长度>=10（Unix时间戳）
+    if (/^\d+$/.test(part) && part.length >= 10) {
+      return part;
+    }
+  }
+  
+  // 如果找不到时间戳，返回最后一部分（可能是UUID或其他标识）
+  return parts[parts.length - 1] || serviceName;
+}
+
 // 复制到剪贴板
 function copyToClipboard(text: string, label: string) {
   if (!text || text === '--') {
@@ -518,11 +534,18 @@ const handleDelete = async (record: any) => {
   flex: 1;
 }
 
-.status-indicator {
+.status-format-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 6px 12px;
   border-radius: 6px;
   flex-shrink: 0;
@@ -580,6 +603,18 @@ const handleDelete = async (record: any) => {
   .status-text {
     font-size: 12px;
   }
+}
+
+.format-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  color: #1890ff;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .deploy-service-card-title {
@@ -683,46 +718,28 @@ const handleDelete = async (record: any) => {
       }
     }
 
-    .inference-endpoint-wrapper {
+    .inference-endpoint-url {
       flex: 1;
       display: flex;
-      flex-direction: column;
-      gap: 4px;
+      align-items: center;
+      gap: 6px;
 
-      .inference-endpoint-title {
-        font-size: 13px;
-        font-weight: 500;
-        color: #262626;
+      .info-value {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
-      .inference-endpoint-format {
-        font-size: 12px;
+      .copy-icon {
+        font-size: 14px;
         color: #8c8c8c;
-        font-weight: 400;
-      }
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: color 0.2s;
 
-      .inference-endpoint-url {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-
-        .info-value {
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .copy-icon {
-          font-size: 14px;
-          color: #8c8c8c;
-          cursor: pointer;
-          flex-shrink: 0;
-          transition: color 0.2s;
-
-          &:hover {
-            color: #1890ff;
-          }
+        &:hover {
+          color: #1890ff;
         }
       }
     }

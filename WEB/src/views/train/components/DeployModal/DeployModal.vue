@@ -23,14 +23,6 @@
             @change="handleModelChange"
           />
         </a-form-item>
-        <a-form-item label="服务名称" :required="true">
-          <a-input
-            v-model:value="formState.service_name"
-            placeholder="服务名称（自动生成）"
-            readonly
-            disabled
-          />
-        </a-form-item>
         <a-form-item label="端口" :required="true">
           <template #extra>
             <span class="port-tip">端口占用时自动寻找未占用端口</span>
@@ -43,6 +35,20 @@
             style="width: 100%"
           />
         </a-form-item>
+        <a-form-item 
+          label="Root密码" 
+          :required="true"
+        >
+          <template #extra>
+            <span class="password-tip">需要root权限创建systemd服务</span>
+          </template>
+          <a-input-password
+            v-model:value="formState.root_password"
+            placeholder="请输入root密码"
+            style="width: 100%"
+            @pressEnter="handleSubmit"
+          />
+        </a-form-item>
       </a-form>
     </div>
   </BasicModal>
@@ -51,10 +57,9 @@
 <script lang="ts" setup>
 import { computed, reactive, ref, watch, onMounted } from 'vue';
 import { BasicModal, useModalInner } from '@/components/Modal';
-import { Form, FormItem, Select, Input, InputNumber } from 'ant-design-vue';
+import { Form, FormItem, Select, Input, InputNumber, InputPassword } from 'ant-design-vue';
 import { useMessage } from '@/hooks/web/useMessage';
 import { deployModel, getModelPage } from '@/api/device/model';
-import { buildUUID } from '@/utils/uuid';
 
 const AForm = Form;
 const AFormItem = FormItem;
@@ -68,9 +73,10 @@ const modelOptions = ref<Array<{ label: string; value: number }>>([]);
 
 const formState = reactive({
   model_id: null as number | null,
-  service_name: '' as string,
   start_port: 8000 as number,
+  root_password: '' as string,
 });
+
 
 const state = reactive({
   deploying: false,
@@ -80,7 +86,10 @@ const deploying = computed(() => state.deploying);
 
 // 验证表单是否有效
 const isFormValid = computed(() => {
-  return formState.model_id !== null && formState.service_name && formState.start_port >= 8000 && formState.start_port <= 65535;
+  return formState.model_id !== null 
+    && formState.start_port >= 8000 
+    && formState.start_port <= 65535
+    && formState.root_password.trim() !== '';
 });
 
 const loadModelOptions = async () => {
@@ -104,8 +113,8 @@ onMounted(() => {
 const [register, { closeModal, setModalProps }] = useModalInner(async (data) => {
   // 重置表单
   formState.model_id = null;
-  formState.service_name = buildUUID(); // 自动生成UUID
   formState.start_port = 8000;
+  formState.root_password = '';
   state.deploying = false;
   setModalProps({ confirmLoading: false });
   await loadModelOptions();
@@ -147,19 +156,23 @@ const handleSubmit = async () => {
 
   try {
     state.deploying = true;
-    const values = {
+    const values: any = {
       model_id: formState.model_id,
-      service_name: formState.service_name, // 必填，已自动生成
       start_port: formState.start_port,
+      root_password: formState.root_password,
     };
     
     await deployModel(values);
     createMessage.success('部署成功');
     closeModal();
     emit('success');
+    // 重置状态
+    formState.root_password = '';
   } catch (error: any) {
     console.error('部署失败:', error);
-    createMessage.error(error.message || '部署失败');
+    // 直接显示后端返回的错误信息
+    const errorMsg = error.response?.data?.msg || error.message || '部署失败';
+    createMessage.error(errorMsg);
   } finally {
     state.deploying = false;
   }
@@ -177,6 +190,11 @@ const handleSubmit = async () => {
 
   .port-tip {
     color: #999;
+    font-size: 12px;
+  }
+
+  .password-tip {
+    color: #ff9800;
     font-size: 12px;
   }
 }
