@@ -207,12 +207,12 @@ class InferenceService:
             if not model:
                 return None
 
-            # 获取模型路径：优先使用onnx_model_path，其次使用model_path，最后从TrainTask获取minio_model_path
+            # 获取模型路径：优先使用model_path，其次使用onnx_model_path，最后从TrainTask获取minio_model_path
             minio_path = None
-            if model.onnx_model_path:
-                minio_path = model.onnx_model_path
-            elif model.model_path:
+            if model.model_path:
                 minio_path = model.model_path
+            elif model.onnx_model_path:
+                minio_path = model.onnx_model_path
             else:
                 # 从TrainTask中获取最新的minio_model_path
                 from db_models import TrainTask
@@ -302,12 +302,12 @@ class InferenceService:
             if not model:
                 return None
 
-            # 获取模型路径：优先使用onnx_model_path，其次使用model_path，最后从TrainTask获取minio_model_path
+            # 获取模型路径：优先使用model_path，其次使用onnx_model_path，最后从TrainTask获取minio_model_path
             minio_path = None
-            if model.onnx_model_path:
-                minio_path = model.onnx_model_path
-            elif model.model_path:
+            if model.model_path:
                 minio_path = model.model_path
+            elif model.onnx_model_path:
+                minio_path = model.onnx_model_path
             else:
                 # 从TrainTask中获取最新的minio_model_path
                 from db_models import TrainTask
