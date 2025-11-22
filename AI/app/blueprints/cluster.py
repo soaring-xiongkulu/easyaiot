@@ -225,14 +225,17 @@ def run_cluster_inference(model_id):
             return jsonify(result)
             
         except Exception as e:
-            logger.error(f"集群推理失败: {str(e)}")
+            error_type = type(e).__name__
+            error_msg = str(e)
+            logger.error(f"集群推理失败 [{error_type}]: {error_msg}", exc_info=True)
             record.status = 'ERROR'
             record.end_time = datetime.now()
             db.session.commit()
             
             return jsonify({
                 'code': 500,
-                'msg': f'集群推理失败: {str(e)}'
+                'msg': f'集群推理失败: {error_msg}',
+                'error_type': error_type
             }), 500
             
     except Exception as e:
