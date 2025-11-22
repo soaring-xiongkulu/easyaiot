@@ -39,10 +39,12 @@ logging.getLogger('werkzeug').setLevel(logging.WARNING)
 logging.getLogger('flask').setLevel(logging.WARNING)
 
 # 配置根日志记录器，但使用独立的格式
+# 确保日志输出不被缓冲，同时输出到stderr
 logging.basicConfig(
     level=logging.INFO,
     format='[SERVICES] %(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    force=True  # 强制重新配置，覆盖之前的配置
+    force=True,  # 强制重新配置，覆盖之前的配置
+    stream=sys.stderr  # 输出到stderr，确保测试脚本能捕获
 )
 logger = logging.getLogger(__name__)
 logger.info("=" * 60)
@@ -144,7 +146,7 @@ def get_local_ip():
 
 def get_ai_module_instance():
     """从Nacos获取AI模块实例列表，随机选择一个"""
-    global nacos_client
+    global nacos_client, model_id, model_version, model_format
     
     try:
         if not nacos_client:
@@ -162,8 +164,17 @@ def get_ai_module_instance():
                 password=password
             )
         
-        # AI模块的服务名（从环境变量获取，默认是model-server）
-        ai_service_name = os.getenv('AI_SERVICE_NAME', 'model-server')
+        # AI模块的服务名：优先使用环境变量，如果没有则使用统一的命名格式 model_{model_id}_{format}_{version}
+        # 如果都没有，则使用默认值（向后兼容）
+        ai_service_name = os.getenv('AI_SERVICE_NAME')
+        if not ai_service_name:
+            # 使用统一的命名格式：model_{model_id}_{format}_{version}
+            if model_id and model_version and model_format:
+                ai_service_name = f"model_{model_id}_{model_format}_{model_version}"
+            else:
+                # 如果缺少必要信息，使用默认值（向后兼容）
+                ai_service_name = 'model-server'
+                logger.warning(f"缺少model_id/model_version/model_format，使用默认服务名: {ai_service_name}")
         
         # 获取服务实例列表
         instances = nacos_client.list_naming_instance(
@@ -857,22 +868,29 @@ def main():
         os.environ['PORT'] = str(port)
         logger.info(f"已更新环境变量 PORT={port}")
     
+    # 禁用 Flask 的默认日志输出（Werkzeug）
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)  # 只显示错误，不显示 HTTP 请求日志
+    
     # 启动Flask服务
     logger.info(f"部署服务启动: {service_name} on {server_ip}:{port}")
     logger.info("=" * 60)
-    logger.info(f"✅ 模型服务启动成功")
     logger.info(f"🌐 服务地址: http://{server_ip}:{port}")
     logger.info(f"📊 健康检查: http://{server_ip}:{port}/health")
     logger.info(f"🔮 推理接口: http://{server_ip}:{port}/inference")
     logger.info("=" * 60)
-    
-    # 禁用 Flask 的默认日志输出（Werkzeug）
-    import logging
-    log = logging.getLogger('werkzeug')
-    log.setLevel(logging.ERROR)  # 只显示错误，不显示 HTTP 请求日志
+    logger.info("🚀 正在启动Flask应用...")
+    # 同时输出到stderr，确保测试脚本能捕获
+    print("=" * 60, file=sys.stderr)
+    print(f"🌐 服务地址: http://{server_ip}:{port}", file=sys.stderr)
+    print(f"📊 健康检查: http://{server_ip}:{port}/health", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+    print("🚀 正在启动Flask应用...", file=sys.stderr)
     
     try:
-        app.run(host=host, port=port, threaded=True, debug=False)
+        # 使用use_reloader=False确保在子进程中不会重新加载
+        # Flask的app.run()是阻塞的，会一直运行直到应用停止
+        app.run(host=host, port=port, threaded=True, debug=False, use_reloader=False)
     except OSError as e:
         if "Address already in use" in str(e) or "端口" in str(e):
             error_msg = f"❌ 端口 {port} 启动失败: {str(e)}\n💡 请检查是否有其他进程在使用该端口"
