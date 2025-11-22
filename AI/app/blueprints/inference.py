@@ -153,8 +153,7 @@ def create_Inference_task():
         if model:
             actual_model_id = model_id
         else:
-            logger.warning(f"模型 ID {model_id} 不存在，将使用默认模型")
-            actual_model_id = None
+            return jsonify({'code': 404, 'msg': f'模型 ID {model_id} 不存在'}), 404
     else:
         # model_id 为 0、None 或负数，使用默认模型
         logger.info(f"使用默认模型（model_id={model_id}）")
@@ -348,8 +347,7 @@ def run_inference(model_id):
         if model:
             actual_model_id = model_id
         else:
-            logger.warning(f"模型 ID {model_id} 不存在，将使用默认模型")
-            actual_model_id = None
+            return jsonify({'code': 404, 'msg': f'模型 ID {model_id} 不存在'}), 404
     else:
         # model_id 为 0 或负数，使用默认模型
         logger.info(f"使用默认模型（model_id={model_id}）")
@@ -438,7 +436,7 @@ def run_inference(model_id):
                 inference_service.set_model_path(full_model_path)
                 logger.info(f"使用指定的模型文件: {full_model_path}")
             else:
-                logger.warning(f"指定的模型文件不存在: {full_model_path}，将使用默认模型查找逻辑")
+                return jsonify({'code': 404, 'msg': f'指定的模型文件不存在: {full_model_path}'}), 404
         
         # 获取推理参数
         parameters = data.get('parameters', {})
