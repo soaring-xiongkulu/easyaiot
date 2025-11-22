@@ -694,7 +694,8 @@ def deploy_model():
         db.session.commit()
 
         # 启动部署服务进程
-        deploy_service_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'deploy_service')
+        # run_deploy.py 在 services/ 目录下，不在 deploy_service 子目录
+        deploy_service_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         deploy_script = os.path.join(deploy_service_dir, 'run_deploy.py')
         
         if not os.path.exists(deploy_script):
@@ -817,7 +818,8 @@ def start_service(service_id):
             }), 400
 
         # 启动部署服务
-        deploy_service_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'deploy_service')
+        # run_deploy.py 在 services/ 目录下，不在 deploy_service 子目录
+        deploy_service_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         deploy_script = os.path.join(deploy_service_dir, 'run_deploy.py')
         
         if not os.path.exists(deploy_script):

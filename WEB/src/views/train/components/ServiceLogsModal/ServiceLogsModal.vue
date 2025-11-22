@@ -34,7 +34,7 @@
         </div>
       </div>
       <a-spin :spinning="loading" tip="加载日志中...">
-        <div class="logs-content" ref="logsContentRef" @scroll="handleScroll">
+        <div class="logs-content" ref="logsContentRef" @scroll="handleScroll" :class="{ 'empty-state': !logs }">
           <div v-if="logs" class="logs-text">
             <pre>{{ logs }}</pre>
           </div>
@@ -284,6 +284,13 @@ onUnmounted(() => {
     }
   }
 
+  // 空状态时使用 flex 布局居中
+  &.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .logs-text {
     padding: 16px;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -312,7 +319,7 @@ onUnmounted(() => {
 
   // 空状态样式
   :deep(.ant-empty) {
-    margin: 40px 0;
+    margin: 0;
     
     .ant-empty-description {
       color: #8c8c8c;

@@ -67,6 +67,41 @@ def get_mac_address():
         return 'unknown'
 
 
+def is_port_available(port, host='0.0.0.0'):
+    """检查端口是否可用"""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind((host, port))
+            return True
+    except OSError:
+        return False
+
+
+def find_available_port(start_port, host='0.0.0.0', max_attempts=100):
+    """从指定端口开始，自动递增寻找可用端口
+    
+    Args:
+        start_port: 起始端口号
+        host: 绑定的主机地址
+        max_attempts: 最大尝试次数，避免无限循环
+    
+    Returns:
+        可用的端口号，如果找不到则返回None
+    """
+    port = start_port
+    attempts = 0
+    
+    while attempts < max_attempts:
+        if is_port_available(port, host):
+            return port
+        port += 1
+        attempts += 1
+    
+    logger.error(f"在 {max_attempts} 次尝试后仍未找到可用端口（从 {start_port} 开始）")
+    return None
+
+
 def get_local_ip():
     """获取本地IP地址"""
     # 方案1: 环境变量优先
@@ -718,14 +753,58 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
     
+    # 检查端口是否可用，如果不可用则自动查找可用端口
+    host = '0.0.0.0'
+    original_port = port
+    logger.info(f"🔍 检查端口 {port} 是否可用...")
+    
+    if not is_port_available(port, host):
+        logger.warning(f"⚠️  端口 {port} 已被占用，正在查找可用端口...")
+        new_port = find_available_port(port, host)
+        if new_port is None:
+            logger.error(f"❌ 无法找到可用端口（从 {port} 开始）")
+            sys.exit(1)
+        port = new_port
+        logger.info(f"✅ 已切换到可用端口: {port}")
+    else:
+        logger.info(f"✅ 端口 {port} 可用")
+    
+    # 如果端口发生了变化，更新环境变量（用于心跳上报）
+    if port != original_port:
+        os.environ['PORT'] = str(port)
+        logger.info(f"已更新环境变量 PORT={port}")
+    
     # 启动Flask服务
     logger.info(f"部署服务启动: {service_name} on {server_ip}:{port}")
+    logger.info("=" * 60)
+    logger.info(f"✅ 模型服务启动成功")
+    logger.info(f"🌐 服务地址: http://{server_ip}:{port}")
+    logger.info(f"📊 健康检查: http://{server_ip}:{port}/health")
+    logger.info(f"🔮 推理接口: http://{server_ip}:{port}/inference")
+    logger.info("=" * 60)
+    
     try:
-        app.run(host='0.0.0.0', port=port, threaded=True)
+        app.run(host=host, port=port, threaded=True, debug=False)
+    except OSError as e:
+        if "Address already in use" in str(e) or "端口" in str(e):
+            logger.error(f"❌ 端口 {port} 启动失败: {str(e)}")
+            logger.error("💡 请检查是否有其他进程在使用该端口")
+        else:
+            logger.error(f"❌ 服务启动失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        deregister_nacos()
+        sys.exit(1)
     except KeyboardInterrupt:
         logger.info("收到中断信号，正在关闭服务...")
         deregister_nacos()
         sys.exit(0)
+    except Exception as e:
+        logger.error(f"❌ 服务启动异常: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        deregister_nacos()
+        sys.exit(1)
 
 
 if __name__ == '__main__':
