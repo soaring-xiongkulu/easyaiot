@@ -50,9 +50,6 @@ COPY requirements.txt requirements.txt
 # 安装Python依赖（PyTorch已预装，无需重复安装）
 RUN pip install -r requirements.txt --timeout 30 --retries 3 -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 
-# 卸载 rknn-toolkit2（如果存在），避免与 torch 2.8.0 的依赖冲突
-RUN pip uninstall -y rknn-toolkit2 rknn-toolkit 2>/dev/null || true
-
 # 复制应用代码
 COPY . .
 

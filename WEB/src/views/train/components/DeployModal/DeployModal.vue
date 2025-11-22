@@ -35,20 +35,6 @@
             style="width: 100%"
           />
         </a-form-item>
-        <a-form-item 
-          label="Root密码" 
-          :required="true"
-        >
-          <template #extra>
-            <span class="password-tip">需要root权限创建systemd服务</span>
-          </template>
-          <a-input-password
-            v-model:value="formState.root_password"
-            placeholder="请输入root密码"
-            style="width: 100%"
-            @pressEnter="handleSubmit"
-          />
-        </a-form-item>
       </a-form>
     </div>
   </BasicModal>
@@ -57,7 +43,7 @@
 <script lang="ts" setup>
 import { computed, reactive, ref, watch, onMounted } from 'vue';
 import { BasicModal, useModalInner } from '@/components/Modal';
-import { Form, FormItem, Select, Input, InputNumber, InputPassword } from 'ant-design-vue';
+import { Form, FormItem, Select, Input, InputNumber } from 'ant-design-vue';
 import { useMessage } from '@/hooks/web/useMessage';
 import { deployModel, getModelPage } from '@/api/device/model';
 
@@ -74,7 +60,6 @@ const modelOptions = ref<Array<{ label: string; value: number }>>([]);
 const formState = reactive({
   model_id: null as number | null,
   start_port: 8000 as number,
-  root_password: '' as string,
 });
 
 
@@ -88,8 +73,7 @@ const deploying = computed(() => state.deploying);
 const isFormValid = computed(() => {
   return formState.model_id !== null 
     && formState.start_port >= 8000 
-    && formState.start_port <= 65535
-    && formState.root_password.trim() !== '';
+    && formState.start_port <= 65535;
 });
 
 const loadModelOptions = async () => {
@@ -114,7 +98,6 @@ const [register, { closeModal, setModalProps }] = useModalInner(async (data) => 
   // 重置表单
   formState.model_id = null;
   formState.start_port = 8000;
-  formState.root_password = '';
   state.deploying = false;
   setModalProps({ confirmLoading: false });
   await loadModelOptions();
@@ -159,15 +142,12 @@ const handleSubmit = async () => {
     const values: any = {
       model_id: formState.model_id,
       start_port: formState.start_port,
-      root_password: formState.root_password,
     };
     
     await deployModel(values);
     createMessage.success('部署成功');
     closeModal();
     emit('success');
-    // 重置状态
-    formState.root_password = '';
   } catch (error: any) {
     console.error('部署失败:', error);
     // 直接显示后端返回的错误信息
@@ -190,11 +170,6 @@ const handleSubmit = async () => {
 
   .port-tip {
     color: #999;
-    font-size: 12px;
-  }
-
-  .password-tip {
-    color: #ff9800;
     font-size: 12px;
   }
 }

@@ -215,7 +215,20 @@ export const getDeployServicePage = (params) => {
 };
 
 export const deployModel = (params) => {
-  return commonApi('post', `${Api.DeployService}/deploy`, {data: params});
+  // 部署操作可能需要较长时间（安装依赖、创建服务等），设置超时为5分钟
+  return defHttp.post(
+    {
+      url: `${Api.DeployService}/deploy`,
+      data: params,
+      timeout: 5 * 60 * 1000, // 5分钟超时
+      headers: {
+        'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token'),
+      },
+    },
+    {
+      isTransformResponse: true,
+    },
+  );
 };
 
 export const startDeployService = (serviceId) => {
