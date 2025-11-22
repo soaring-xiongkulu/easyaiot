@@ -3630,7 +3630,7 @@ def init_minio_buckets_and_upload():
     minio_secure = False
     
     # 存储桶列表
-    buckets = ["dataset", "datasets", "snap-space", "models"]
+    buckets = ["dataset", "datasets", "export-bucket", "inference-inputs", "inference-results", "models", "snap-space"]
     
     # 数据集目录映射: (bucket_name, directory_path, object_prefix)
     # 参数格式: bucket1:dir1:prefix1 bucket2:dir2:prefix2 ...
@@ -3927,31 +3927,49 @@ init_minio() {
         return 1
     fi
     
-    # 获取数据集目录路径
-    local dataset_dir="$(cd "${SCRIPT_DIR}/../minio/dataset/3" 2>/dev/null && pwd || echo "")"
-    local snap_space_dir="$(cd "${SCRIPT_DIR}/../minio/snap-space" 2>/dev/null && pwd || echo "")"
-    local models_dir="$(cd "${SCRIPT_DIR}/../minio/models" 2>/dev/null && pwd || echo "")"
+    # MinIO 数据源目录
+    local minio_base_dir="${SCRIPT_DIR}/../minio"
+    
+    # 定义存储桶和目录映射关系
+    # 格式: "bucket_name:relative_path:object_prefix"
+    # relative_path 相对于 minio_base_dir
+    # object_prefix 是上传到存储桶时的对象前缀（可选）
+    local bucket_mappings=(
+        # 格式: "bucket_name:relative_path:object_prefix"
+        # dataset/3 目录的内容上传到 dataset 存储桶，对象路径前缀为 "3"
+        # 例如: dataset/3/xxx.jpg -> dataset 存储桶中的 3/xxx.jpg
+        "dataset:dataset/3:3"
+        # 其他目录直接上传到对应的存储桶，保持原有目录结构
+        "datasets:datasets:"
+        "export-bucket:export-bucket:"
+        "inference-inputs:inference-inputs:"
+        "inference-results:inference-results:"
+        "models:models:"
+        "snap-space:snap-space:"
+    )
     
     # 构建上传任务参数
     local upload_args=()
     
-    if [ -d "$dataset_dir" ]; then
-        upload_args+=("dataset:$dataset_dir:3")
-    else
-        print_warning "数据集目录不存在: ${SCRIPT_DIR}/../minio/dataset/3"
-    fi
-    
-    if [ -d "$snap_space_dir" ]; then
-        upload_args+=("snap-space:$snap_space_dir:")
-    else
-        print_warning "snap-space 目录不存在: ${SCRIPT_DIR}/../minio/snap-space"
-    fi
-    
-    if [ -d "$models_dir" ]; then
-        upload_args+=("models:$models_dir:")
-    else
-        print_warning "models 目录不存在: ${SCRIPT_DIR}/../minio/models"
-    fi
+    for mapping in "${bucket_mappings[@]}"; do
+        IFS=':' read -r bucket_name relative_path object_prefix <<< "$mapping"
+        
+        # 构建完整目录路径
+        local full_dir_path="${minio_base_dir}/${relative_path}"
+        
+        # 检查目录是否存在
+        if [ -d "$full_dir_path" ]; then
+            # 如果 object_prefix 为空，则使用空字符串
+            if [ -z "$object_prefix" ]; then
+                upload_args+=("${bucket_name}:${full_dir_path}:")
+            else
+                upload_args+=("${bucket_name}:${full_dir_path}:${object_prefix}")
+            fi
+            print_info "找到目录: $full_dir_path -> 存储桶: $bucket_name${object_prefix:+ (前缀: $object_prefix)}"
+        else
+            print_warning "目录不存在，跳过: $full_dir_path"
+        fi
+    done
     
     # 使用 Python 脚本初始化 MinIO
     local init_result=0
