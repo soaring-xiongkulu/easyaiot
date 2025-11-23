@@ -67,6 +67,7 @@ EasyAIoT consists of five core projects:
 
 - **WEB Module**: Frontend management interface based on Vue, providing a unified user interaction experience
 - **DEVICE Module**: Java-based IoT device management module providing comprehensive IoT device access and management capabilities
+  - Technical Advantages: Based on JDK21, providing better performance and modern features
   - Device Management: Device registration, authentication, status monitoring, lifecycle management
   - Product Management: Product definition, thing model management, product configuration
   - Protocol Support: Multiple IoT protocols including MQTT, TCP, HTTP
