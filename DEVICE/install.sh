@@ -145,30 +145,59 @@ check_and_build_jars() {
 
 # 构建所有镜像
 build_images() {
-    print_info "开始构建所有Docker镜像（在容器中编译，减少输出）..."
+    print_info "开始构建所有Docker镜像（在容器中编译，显示完整日志）..."
     cd "$SCRIPT_DIR"
-    # 使用 --progress=plain 减少构建输出，但仍显示关键信息
+    # 使用 --progress=plain 显示完整输出
     # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
-    if echo "$DOCKER_COMPOSE" | grep -q "docker compose"; then
-        $DOCKER_COMPOSE build --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building)" || true
-    else
-        $DOCKER_COMPOSE build --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building)" || true
+    
+    # 直接执行命令并实时输出
+    local exit_code
+    
+    # 执行构建命令（不使用 --progress，兼容所有版本）
+    $DOCKER_COMPOSE build
+    exit_code=$?
+    
+    # 检查命令是否成功
+    if [ $exit_code -ne 0 ]; then
+        print_error "镜像构建失败（退出码: $exit_code）"
+        exit 1
     fi
+    
     print_success "镜像构建完成（所有编译在容器中完成）"
 }
 
 # 构建并启动所有服务
 build_and_start() {
-    print_info "开始构建并启动所有服务（在容器中编译，减少输出）..."
+    print_info "开始构建并启动所有服务（在容器中编译，显示完整日志）..."
     cd "$SCRIPT_DIR"
-    # 使用 --progress=plain 和 --quiet-pull 减少输出
+    # 使用 --progress=plain 显示完整输出
     # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
-    if echo "$DOCKER_COMPOSE" | grep -q "docker compose"; then
-        $DOCKER_COMPOSE up -d --build --progress=plain --quiet-pull 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building|Creating|Starting|Started)" || true
-    else
-        $DOCKER_COMPOSE up -d --build --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building|Creating|Starting|Started)" || true
+    
+    # 直接执行命令并实时输出
+    local exit_code
+    
+    # 执行构建和启动命令（不使用 --progress，兼容所有版本）
+    $DOCKER_COMPOSE up -d --build
+    exit_code=$?
+    
+    # 检查命令是否成功
+    if [ $exit_code -ne 0 ]; then
+        print_error "服务构建或启动失败（退出码: $exit_code）"
+        exit 1
     fi
-    print_success "服务构建并启动完成（所有编译在容器中完成）"
+    
+    # 验证容器是否真的创建了
+    local container_count
+    container_count=$($DOCKER_COMPOSE ps -q 2>/dev/null | wc -l)
+    if [ "$container_count" -eq 0 ]; then
+        print_error "警告：没有检测到运行的容器"
+        print_info "请检查 docker-compose.yml 配置和依赖服务（如 Nacos、PostgreSQL、Redis 等）"
+        print_info "尝试查看服务状态："
+        $DOCKER_COMPOSE ps
+        exit 1
+    fi
+    
+    print_success "服务构建并启动完成（所有编译在容器中完成，共 $container_count 个容器）"
 }
 
 # 启动所有服务
@@ -313,16 +342,36 @@ clean_all() {
 
 # 更新服务（重新构建并重启）
 update_services() {
-    print_info "更新所有服务（在容器中重新构建并重启，减少输出）..."
+    print_info "更新所有服务（在容器中重新构建并重启，显示完整日志）..."
     cd "$SCRIPT_DIR"
-    # 使用 --progress=plain 和 --quiet-pull 减少输出
+    # 使用 --progress=plain 显示完整输出
     # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
-    if echo "$DOCKER_COMPOSE" | grep -q "docker compose"; then
-        $DOCKER_COMPOSE up -d --build --force-recreate --progress=plain --quiet-pull 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building|Creating|Starting|Started|Recreating)" || true
-    else
-        $DOCKER_COMPOSE up -d --build --force-recreate --progress=plain 2>&1 | grep -E "(Step|Successfully|ERROR|WARNING|built|Building|Creating|Starting|Started|Recreating)" || true
+    
+    # 直接执行命令并实时输出
+    local exit_code
+    
+    # 执行更新命令（不使用 --progress，兼容所有版本）
+    $DOCKER_COMPOSE up -d --build --force-recreate
+    exit_code=$?
+    
+    # 检查命令是否成功
+    if [ $exit_code -ne 0 ]; then
+        print_error "服务更新失败（退出码: $exit_code）"
+        exit 1
     fi
-    print_success "服务更新完成（所有编译在容器中完成）"
+    
+    # 验证容器是否真的创建了
+    local container_count
+    container_count=$($DOCKER_COMPOSE ps -q 2>/dev/null | wc -l)
+    if [ "$container_count" -eq 0 ]; then
+        print_error "警告：没有检测到运行的容器"
+        print_info "请检查 docker-compose.yml 配置和依赖服务（如 Nacos、PostgreSQL、Redis 等）"
+        print_info "尝试查看服务状态："
+        $DOCKER_COMPOSE ps
+        exit 1
+    fi
+    
+    print_success "服务更新完成（所有编译在容器中完成，共 $container_count 个容器）"
 }
 
 # 显示帮助信息

@@ -20,13 +20,24 @@ RUN mkdir -p /root/.m2 && \
 # 设置工作目录
 WORKDIR /app
 
-# 复制根目录的 pom.xml 和所有模块
+# 复制根目录的 pom.xml、lombok.config 和所有模块
 COPY pom.xml .
+COPY lombok.config .
 COPY iot-parent ./iot-parent
 COPY iot-common ./iot-common
 COPY iot-system ./iot-system
 COPY iot-infra ./iot-infra
+COPY iot-file ./iot-file
 COPY iot-dataset ./iot-dataset
+
+# 修改 pom.xml，只保留需要的模块，避免 Maven 检查不存在的模块
+RUN sed -i.bak \
+    -e '/<module>iot-gateway<\/module>/d' \
+    -e '/<module>iot-device<\/module>/d' \
+    -e '/<module>iot-tdengine<\/module>/d' \
+    -e '/<module>iot-sink<\/module>/d' \
+    -e '/<module>iot-message<\/module>/d' \
+    pom.xml && rm -f pom.xml.bak
 
 # 编译项目（只编译 iot-dataset-biz 及其依赖）
 RUN mvn clean package -DskipTests -pl iot-dataset/iot-dataset-biz -am
