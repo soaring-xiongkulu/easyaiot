@@ -222,7 +222,26 @@ def _update_camera_ip(camera: Device, ip: str):
 
         for key, value in camera_info.items():
             if hasattr(camera, key):
+                # 对于manufacturer和model字段，如果ONVIF返回的值为空，保留原有值或使用默认值
+                if key in ['manufacturer', 'model']:
+                    if not value or not str(value).strip():
+                        # 如果原有值也为空，使用默认值
+                        current_value = getattr(camera, key, '')
+                        if not current_value or not str(current_value).strip():
+                            if key == 'manufacturer':
+                                value = 'Generic IP Device Manufacturer'
+                            else:
+                                value = 'Standard IP Camera Model'
+                        else:
+                            # 保留原有值
+                            continue
                 setattr(camera, key, value)
+
+        # 确保manufacturer和model不为空
+        if not camera.manufacturer or not camera.manufacturer.strip():
+            camera.manufacturer = 'Generic IP Device Manufacturer'
+        if not camera.model or not camera.model.strip():
+            camera.model = 'Standard IP Camera Model'
 
         if camera.stream is not None:
             try:
@@ -426,6 +445,16 @@ def register_camera_by_onvif(ip: str, port: int, password: str) -> str:
         device_id = str(time.time_ns())  # 如果冲突，重新生成
     
     # 创建设备记录
+    # 获取制造商和型号，确保不为空
+    manufacturer = camera_info.get('manufacturer', '').strip() if camera_info.get('manufacturer') else ''
+    model = camera_info.get('model', '').strip() if camera_info.get('model') else ''
+    
+    # 如果ONVIF获取的信息中manufacturer或model为空，使用专业的默认值
+    if not manufacturer:
+        manufacturer = 'Generic IP Device Manufacturer'
+    if not model:
+        model = 'Standard IP Camera Model'
+    
     camera = Device(
         id=device_id,
         name=f'Camera-{device_id[:6]}',
@@ -438,8 +467,8 @@ def register_camera_by_onvif(ip: str, port: int, password: str) -> str:
         username=used_username,
         password=password,
         mac=camera_info.get('mac'),
-        manufacturer=camera_info.get('manufacturer'),
-        model=camera_info.get('model'),
+        manufacturer=manufacturer,
+        model=model,
         firmware_version=camera_info.get('firmware_version'),
         serial_number=camera_info.get('serial_number'),
         hardware_id=camera_info.get('hardware_id'),
@@ -556,6 +585,23 @@ def register_camera(register_info: dict) -> str:
             # 自定义设备或RTMP流，不通过ONVIF获取，只记录日志
             logger.info(f'设备 {id} 是{"RTMP流" if is_rtmp else "自定义设备"}，跳过ONVIF信息获取')
         
+        # 获取制造商和型号，确保不为空
+        manufacturer = register_info.get('manufacturer') or camera_info.get('manufacturer', '')
+        model = register_info.get('model') or camera_info.get('model', '')
+        
+        # 对于自定义设备或RTMP流，如果manufacturer或model为空，使用专业的默认值
+        if is_custom or is_rtmp:
+            if not manufacturer or not manufacturer.strip():
+                manufacturer = 'Generic IP Device Manufacturer'
+            if not model or not model.strip():
+                model = 'Standard IP Camera Model'
+        
+        # 验证manufacturer和model不能为空
+        if not manufacturer or not manufacturer.strip():
+            raise ValueError('设备制造商(manufacturer)不能为空，请提供专业的制造商名称')
+        if not model or not model.strip():
+            raise ValueError('设备型号(model)不能为空，请提供专业的设备型号名称')
+        
         # 创建设备记录，优先使用用户提供的字段，缺失的字段从ONVIF获取的信息中填充
         camera = Device(
             id=id,
@@ -569,8 +615,8 @@ def register_camera(register_info: dict) -> str:
             username=username,
             password=password,
             mac=register_info.get('mac') or camera_info.get('mac', ''),
-            manufacturer=register_info.get('manufacturer') or camera_info.get('manufacturer', ''),
-            model=register_info.get('model') or camera_info.get('model', ''),
+            manufacturer=manufacturer.strip(),
+            model=model.strip(),
             firmware_version=register_info.get('firmware_version') or camera_info.get('firmware_version', ''),
             serial_number=register_info.get('serial_number') or camera_info.get('serial_number', ''),
             hardware_id=register_info.get('hardware_id') or camera_info.get('hardware_id', ''),
@@ -608,6 +654,17 @@ def register_camera(register_info: dict) -> str:
 
     # 创建设备记录
     camera_info = onvif_cam.get_info()
+    
+    # 获取制造商和型号，确保不为空
+    manufacturer = camera_info.get('manufacturer', '').strip() if camera_info.get('manufacturer') else ''
+    model = camera_info.get('model', '').strip() if camera_info.get('model') else ''
+    
+    # 如果ONVIF获取的信息中manufacturer或model为空，使用专业的默认值
+    if not manufacturer:
+        manufacturer = 'Generic IP Device Manufacturer'
+    if not model:
+        model = 'Standard IP Camera Model'
+    
     camera = Device(
         id=id,  # 显式设置ID，确保使用传入的ID或生成的唯一ID
         name=register_info.get('name', f'Camera-{id[:6]}'),
@@ -620,8 +677,8 @@ def register_camera(register_info: dict) -> str:
         username=camera_info.get('username'),
         password=register_info['password'],
         mac=camera_info.get('mac'),
-        manufacturer=camera_info.get('manufacturer'),
-        model=camera_info.get('model'),
+        manufacturer=manufacturer,
+        model=model,
         firmware_version=camera_info.get('firmware_version'),
         serial_number=camera_info.get('serial_number'),
         hardware_id=camera_info.get('hardware_id'),
@@ -687,6 +744,11 @@ def update_camera(id: str, update_info: dict):
     # 过滤空值并更新字段
     for k, v in (item for item in update_info.items() if item[1] is not None):
         if hasattr(camera, k):
+            # 对于manufacturer和model字段，确保去除首尾空格
+            if k in ['manufacturer', 'model'] and isinstance(v, str):
+                v = v.strip()
+                if not v:
+                    raise ValueError(f'设备{k}不能为空，请提供专业的{k}名称')
             setattr(camera, k, v)
 
     # 处理码流变更
@@ -702,6 +764,12 @@ def update_camera(id: str, update_info: dict):
             _update_camera_ip(camera, update_info['ip'])
         except Exception as e:
             raise RuntimeError(f'IP地址更新失败: {str(e)}')
+    
+    # 验证manufacturer和model不能为空（更新后最终验证）
+    if not camera.manufacturer or not camera.manufacturer.strip():
+        raise ValueError('设备制造商(manufacturer)不能为空，请提供专业的制造商名称')
+    if not camera.model or not camera.model.strip():
+        raise ValueError('设备型号(model)不能为空，请提供专业的设备型号名称')
 
     try:
         db.session.commit()

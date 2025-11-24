@@ -396,7 +396,13 @@ const handleScanOnvif = () => {
 
 // 刷新数据
 const handleSuccess = () => {
-  reload();
+  if (viewMode.value === 'table') {
+    // 表格模式：刷新表格
+    reload();
+  } else if (viewMode.value === 'card' && cardListRef.value) {
+    // 卡片模式：刷新卡片列表
+    cardListRef.value.fetch();
+  }
 };
 
 // 删除设备

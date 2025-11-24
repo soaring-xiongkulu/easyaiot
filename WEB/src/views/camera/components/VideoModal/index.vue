@@ -668,7 +668,10 @@ function handleOk() {
   validate().then(async () => {
     state.editLoading = true;
     try {
-      if (state.type === 'camera') {
+      // 编辑操作：如果有ID则更新，否则新增
+      if (state.isEdit && modelRef.id) {
+        await updateDevice(modelRef.id, modelRef);
+      } else if (state.type === 'camera') {
         // 摄像头处理
         if (modelRef.id) {
           await updateDevice(modelRef.id, modelRef);
@@ -678,6 +681,13 @@ function handleOk() {
       } else if (state.type === 'source') {
         // 独立摄像头处理
         await registerDevice(modelRef);
+      } else {
+        // 默认处理：如果有ID则更新，否则新增
+        if (modelRef.id) {
+          await updateDevice(modelRef.id, modelRef);
+        } else {
+          await registerDevice(modelRef);
+        }
       }
 
       createMessage.success('操作成功');

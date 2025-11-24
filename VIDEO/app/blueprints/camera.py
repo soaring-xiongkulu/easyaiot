@@ -337,6 +337,19 @@ def register_device():
     """注册新设备"""
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
+        
+        # 对于自定义设备，验证manufacturer和model字段
+        camera_type = data.get('cameraType', '')
+        if camera_type == 'custom':
+            manufacturer = data.get('manufacturer', '').strip() if data.get('manufacturer') else ''
+            model = data.get('model', '').strip() if data.get('model') else ''
+            if not manufacturer:
+                return jsonify({'code': 400, 'msg': '自定义设备的制造商(manufacturer)不能为空，请提供专业的制造商名称'}), 400
+            if not model:
+                return jsonify({'code': 400, 'msg': '自定义设备的型号(model)不能为空，请提供专业的设备型号名称'}), 400
+        
         device_id = register_camera(data)
         return jsonify({
             'code': 0,
@@ -395,6 +408,19 @@ def update_device(device_id):
     """更新设备信息"""
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
+        
+        # 如果更新manufacturer或model字段，验证不能为空
+        if 'manufacturer' in data:
+            manufacturer = data.get('manufacturer', '').strip() if data.get('manufacturer') else ''
+            if not manufacturer:
+                return jsonify({'code': 400, 'msg': '设备制造商(manufacturer)不能为空，请提供专业的制造商名称'}), 400
+        if 'model' in data:
+            model = data.get('model', '').strip() if data.get('model') else ''
+            if not model:
+                return jsonify({'code': 400, 'msg': '设备型号(model)不能为空，请提供专业的设备型号名称'}), 400
+        
         update_camera(device_id, data)
         return jsonify({
             'code': 0,
