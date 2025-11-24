@@ -2,8 +2,12 @@
 node_modules
 .pnpm-store
 
-# 构建产物（构建阶段不需要，生产阶段会从构建阶段复制）
+# 构建产物和构建脚本（构建阶段不需要，生产阶段会从构建阶段复制）
 dist
+build
+
+# 压缩文件
+dist.zip
 
 # 日志文件
 logs
@@ -20,6 +24,9 @@ logs
 *.swp
 *.swo
 *~
+
+# 锁定文件（不使用锁定文件，让容器内重新生成）
+pnpm-lock.yaml
 
 # Git相关
 .git

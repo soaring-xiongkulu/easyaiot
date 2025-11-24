@@ -13,11 +13,11 @@ RUN pnpm config set registry https://registry.npmmirror.com/
 # 设置工作目录
 WORKDIR /app
 
-# 复制package文件
-COPY package.json pnpm-lock.yaml ./
+# 复制package文件（不复制pnpm-lock.yaml，让容器内重新生成）
+COPY package.json ./
 
-# 安装依赖
-RUN pnpm install --frozen-lockfile
+# 安装依赖（不使用--frozen-lockfile，因为没有锁定文件）
+RUN pnpm install
 
 # 复制源代码
 COPY . .
