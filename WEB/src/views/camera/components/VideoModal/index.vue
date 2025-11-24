@@ -632,6 +632,7 @@ function handleOk() {
           name: modelRef.name,
           source: modelRef.source,
           stream: modelRef.stream || 0,
+          cameraType: modelRef.cameraType, // 传递摄像头类型，用于判断是否需要ONVIF获取
         };
 
         // 如果是海康、大华或宇视类型，需要传入IP、端口、用户名、密码

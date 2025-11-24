@@ -168,8 +168,9 @@ const [registerTable, {reload}] = useTable({
       textSearch,
       onlineStatus,
       deviceProfileIdStr: selectDevices.value,
-      sortOrder: order == 'descend' ? 'DESC' : 'ASC',
-      sortProperty: field,
+      // 如果没有指定排序字段，默认按修改时间降序排列
+      sortOrder: order == 'descend' ? 'DESC' : (order == 'ascend' ? 'ASC' : 'DESC'),
+      sortProperty: field || 'lastUpdateTime',
       filterNoCustomer: 1,
     };
     return params;
