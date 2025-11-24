@@ -19,13 +19,13 @@ My vision is for this system to be accessible worldwide, achieving truly zero ba
 
 ## 🌟 Some Thoughts on the Project
 
-### Project Positioning
+### 📍 Project Positioning
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT.
 </p>
 
-#### AI Capabilities
+#### 🧠 AI Capabilities
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
   <li>Supports access to hundreds of cameras for collection, annotation, training, inference, export, analysis, alerting, recording, storage, and deployment</li>
@@ -34,7 +34,7 @@ EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses
   <li>LLM large language models (supporting RTSP streams, video, images, audio, text, etc.)</li>
 </ul>
 
-#### IoT Capabilities
+#### 🌐 IoT Capabilities
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
   <li><strong>Device Access and Management</strong>: Device registration, authentication, status monitoring, lifecycle management</li>
@@ -50,7 +50,7 @@ EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses
 <strong>Core Value</strong>: Achieves a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making, truly realizing interconnected everything and intelligent control of everything.
 </p>
 
-### Technical Philosophy
+### 💡 Technical Philosophy
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
 I believe no single programming language excels at everything, but with a combination of three languages, EasyAIoT will be invincible—fortunately, I possess this trait.
@@ -62,11 +62,11 @@ Java is suitable for platform development but not for network or AI programming;
 
 ![EasyAIoT Platform Architecture.jpg](.image/iframe2.jpg)
 
-### Module Data Flow
+### 🔄 Module Data Flow
 
 <img src=".image/iframe3.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 
-### Zero-Shot Labeling Technology
+### 🤖 Zero-Shot Labeling Technology
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
 Innovatively leveraging large models to construct a zero-shot labeling technical system (ideally eliminating manual labeling, completely freeing up human resources), this technology generates initial data through large models and completes automatic labeling via prompt engineering. It then ensures data quality through optional human-machine collaborative verification, thereby training an initial small model. This small model, through continuous iteration and self-optimization, achieves co-evolution of labeling efficiency and model accuracy, ultimately driving continuous improvement in system performance.
@@ -74,7 +74,7 @@ Innovatively leveraging large models to construct a zero-shot labeling technical
 
 <img src=".image/iframe4.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 
-### Project Architecture Features
+### 🏗️ Project Architecture Features
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
 EasyAIoT is not actually one project; it is seven distinct projects.

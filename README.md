@@ -19,13 +19,13 @@
 
 ## 🌟 关于项目的一些思考
 
-### 项目定位
+### 📍 项目定位
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT的深度融合。
 </p>
 
-#### AI能力
+#### 🧠 AI能力
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
   <li>支持百级摄像头接入、采集、标注、训练、推理、导出、分析、告警、录像、存储、部署</li>
@@ -34,7 +34,7 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li>LLM大语言模型（支持RTSP流、视频、图像、语音、文本等）</li>
 </ul>
 
-#### IoT能力
+#### 🌐 IoT能力
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
   <li><strong>设备接入与管理</strong>：设备注册、认证、状态监控、生命周期管理</li>
@@ -50,7 +50,7 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 <strong>核心价值</strong>：实现从设备接入到数据采集、AI分析、智能决策的全链路闭环，真正实现万物互联、万物智控。
 </p>
 
-### 技术理念
+### 💡 技术理念
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
 我认为没有任何一个编程语言是擅长所有事情，但如果是3种编程语言混合，EasyAIoT将所向披靡，恰好我具备这种特质。
@@ -62,11 +62,11 @@ Java适合做平台但不适合网络编程和AI编程，Python适合做网络�
 
 ![EasyAIoT平台架构.jpg](.image/iframe2.jpg)
 
-### 模块数据流转
+### 🔄 模块数据流转
 
 <img src=".image/iframe3.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 
-### 零样本标注技术
+### 🤖 零样本标注技术
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
 创新性的依托大模型构建零样本标注技术体系（理想状态去掉人工标注环节，标注完全解放人力），该技术通过大模型生成初始数据并借助提示词技术完成自动标注，再经人机协同校验确保数据质量（可选），进而训练出初始小模型。该小模型通过持续迭代、自我优化，实现标注效率与模型精度协同进化，最终推动系统性能不断攀升。
@@ -74,7 +74,7 @@ Java适合做平台但不适合网络编程和AI编程，Python适合做网络�
 
 <img src=".image/iframe4.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 
-### 项目架构特点
+### 🏗️ 项目架构特点
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
 EasyAIoT其实不是一个项目，而是五个项目。
