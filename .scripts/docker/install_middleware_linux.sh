@@ -1647,10 +1647,9 @@ check_docker_compose() {
 # 创建统一网络
 create_network() {
     print_info "创建统一网络 easyaiot-network..."
-    if ! docker network ls | grep -q easyaiot-network; then
-        docker network create easyaiot-network 2>/dev/null || true
-        print_success "网络 easyaiot-network 已创建"
-    else
+    
+    # 检查网络是否已存在
+    if docker network ls | grep -q easyaiot-network; then
         print_info "网络 easyaiot-network 已存在"
         
         # 检测网络是否可用（尝试创建一个临时容器测试）
@@ -1666,23 +1665,82 @@ create_network() {
                 echo "$containers" | tr ' ' '\n' | grep -v '^$' | while read -r container; do
                     echo "  - $container"
                 done
-                print_info "请先停止所有相关容器，然后重新运行安装脚本"
-                return 1
+                print_info "正在尝试断开这些容器与网络的连接..."
+                
+                # 尝试断开所有容器的网络连接
+                echo "$containers" | tr ' ' '\n' | grep -v '^$' | while read -r container; do
+                    if [ -n "$container" ]; then
+                        print_info "断开容器 $container 与网络的连接..."
+                        docker network disconnect -f easyaiot-network "$container" 2>/dev/null || true
+                    fi
+                done
+                sleep 2
             fi
             
             # 删除旧网络
-            docker network rm easyaiot-network 2>/dev/null || true
-            sleep 1
-            
-            # 重新创建网络
-            if docker network create easyaiot-network 2>/dev/null; then
-                print_success "网络 easyaiot-network 已重新创建"
+            print_info "删除旧网络..."
+            if docker network rm easyaiot-network 2>&1; then
+                print_success "旧网络已删除"
+                sleep 1
             else
-                print_error "无法重新创建网络 easyaiot-network"
-                return 1
+                local error_msg=$(docker network rm easyaiot-network 2>&1)
+                print_warning "删除旧网络时出现问题: $error_msg"
+                print_info "尝试强制删除..."
+                # 如果普通删除失败，尝试查找并手动断开所有连接
+                local network_id=$(docker network inspect easyaiot-network --format '{{.Id}}' 2>/dev/null || echo "")
+                if [ -n "$network_id" ]; then
+                    # 获取所有连接到该网络的容器ID
+                    local container_ids=$(docker network inspect easyaiot-network --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null || echo "")
+                    if [ -n "$container_ids" ]; then
+                        echo "$container_ids" | tr ' ' '\n' | grep -v '^$' | while read -r container; do
+                            docker network disconnect -f easyaiot-network "$container" 2>/dev/null || true
+                        done
+                        sleep 2
+                        docker network rm easyaiot-network 2>/dev/null || true
+                    fi
+                fi
             fi
         else
             print_info "网络 easyaiot-network 运行正常"
+            return 0
+        fi
+    fi
+    
+    # 创建网络（如果不存在或已删除）
+    print_info "正在创建网络 easyaiot-network..."
+    local create_output=$(docker network create easyaiot-network 2>&1)
+    local create_exit_code=$?
+    
+    if [ $create_exit_code -eq 0 ]; then
+        print_success "网络 easyaiot-network 已创建"
+        return 0
+    else
+        # 检查错误原因
+        if echo "$create_output" | grep -qi "already exists"; then
+            print_info "网络 easyaiot-network 已存在（可能在检查后创建）"
+            return 0
+        elif echo "$create_output" | grep -qi "permission denied"; then
+            print_error "没有权限创建 Docker 网络"
+            print_info "请确保当前用户在 docker 组中，或使用 sudo 运行脚本"
+            return 1
+        elif echo "$create_output" | grep -qi "network with name.*already exists"; then
+            print_warning "网络名称冲突，尝试使用不同的方法..."
+            # 再次检查网络是否存在
+            if docker network ls | grep -q easyaiot-network; then
+                print_info "网络已存在，继续使用现有网络"
+                return 0
+            else
+                print_error "无法创建网络: $create_output"
+                return 1
+            fi
+        else
+            print_error "无法创建网络 easyaiot-network"
+            print_error "错误信息: $create_output"
+            print_info "诊断建议："
+            print_info "  1. 检查 Docker 服务是否正常运行: sudo systemctl status docker"
+            print_info "  2. 检查当前用户是否有权限: docker network ls"
+            print_info "  3. 查看 Docker 日志: sudo journalctl -u docker.service"
+            return 1
         fi
     fi
 }
