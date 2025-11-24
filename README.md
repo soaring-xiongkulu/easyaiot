@@ -1,9 +1,15 @@
+<div align="center">
+
 # EasyAIoT（云边端一体化智能算法应用平台）
 
 [![Gitee star](https://gitee.com/soaring-xiongkulu/easyaiot/badge/star.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/stargazers)
 [![Gitee fork](https://gitee.com/soaring-xiongkulu/easyaiot//badge/fork.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/members)
 
-### 我希望全世界都能使用这个系统，实现AI的真正0门槛，人人都能体验到AI带来的好处，而并不只是掌握在少数人手里。
+<p style="font-size: 16px; line-height: 1.8; color: #555; font-weight: 400; margin: 20px 0;">
+我希望全世界都能使用这个系统，实现AI的真正0门槛，人人都能体验到AI带来的好处，而并不只是掌握在少数人手里。
+</p>
+
+</div>
 
 <div align="center">
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
@@ -17,78 +23,195 @@
 
 ## 🌟 关于项目的一些思考
 
-#### 项目定位：
+### 项目定位
 
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT的深度融合。
+</p>
 
-**AI能力：**
-- 支持百级摄像头接入、采集、标注、训练、推理、导出、分析、告警、录像、存储、部署
-- PaddleOCR文字识别、语音转文本
-- 多模态视觉大模型（物体识别、文字识别）
-- LLM大语言模型（支持RTSP流、视频、图像、语音、文本等）
+#### AI能力
 
-**IoT能力：**
-- 设备接入与管理：设备注册、认证、状态监控、生命周期管理
-- 产品与物模型管理：产品定义、物模型配置、产品管理
-- 多协议支持：MQTT、TCP、HTTP等多种物联网协议
-- 设备认证与动态注册：安全接入、身份认证、动态设备注册
-- 规则引擎：数据流转规则、消息路由、数据转换
-- 数据采集与存储：设备数据采集、存储、查询与分析
-- 设备状态监控与告警管理：实时监控、异常告警、智能决策
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li>支持百级摄像头接入、采集、标注、训练、推理、导出、分析、告警、录像、存储、部署</li>
+  <li>PaddleOCR文字识别、语音转文本</li>
+  <li>多模态视觉大模型（物体识别、文字识别）</li>
+  <li>LLM大语言模型（支持RTSP流、视频、图像、语音、文本等）</li>
+</ul>
 
-**核心价值：** 实现从设备接入到数据采集、AI分析、智能决策的全链路闭环，真正实现万物互联、万物智控。
+#### IoT能力
 
-#### 我认为没有任何一个编程语言是擅长所有事情，但如果是3种编程语言混合，EasyAIoT将所向披靡，恰好我具备这种特质。
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>设备接入与管理</strong>：设备注册、认证、状态监控、生命周期管理</li>
+  <li><strong>产品与物模型管理</strong>：产品定义、物模型配置、产品管理</li>
+  <li><strong>多协议支持</strong>：MQTT、TCP、HTTP等多种物联网协议</li>
+  <li><strong>设备认证与动态注册</strong>：安全接入、身份认证、动态设备注册</li>
+  <li><strong>规则引擎</strong>：数据流转规则、消息路由、数据转换</li>
+  <li><strong>数据采集与存储</strong>：设备数据采集、存储、查询与分析</li>
+  <li><strong>设备状态监控与告警管理</strong>：实时监控、异常告警、智能决策</li>
+</ul>
 
-#### Java适合做平台但不适合网络编程和AI编程，Python适合做网络和AI编程但不适合做高性能任务执行，C++适合做高性能任务执行但不适合做前面两者做的事情，EasyAIoT设想是采用三合一语言混编，构建一个实现不太Easy，但是使用非常Easy的AIoT平台。
+<p style="font-size: 15px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #3498db; border-radius: 4px;">
+<strong>核心价值</strong>：实现从设备接入到数据采集、AI分析、智能决策的全链路闭环，真正实现万物互联、万物智控。
+</p>
+
+### 技术理念
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+我认为没有任何一个编程语言是擅长所有事情，但如果是3种编程语言混合，EasyAIoT将所向披靡，恰好我具备这种特质。
+</p>
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+Java适合做平台但不适合网络编程和AI编程，Python适合做网络和AI编程但不适合做高性能任务执行，C++适合做高性能任务执行但不适合做前面两者做的事情，EasyAIoT设想是采用三合一语言混编，构建一个实现不太Easy，但是使用非常Easy的AIoT平台。
+</p>
 
 ![EasyAIoT平台架构.jpg](.image/iframe2.jpg)
 
-#### 模块之间的数据流转，如下：
+### 模块数据流转
 
-![EasyAIoT平台架构.jpg](.image/iframe3.jpg)
+<div align="center">
+  <img src=".image/iframe3.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+</div>
 
-#### 创新性的依托大模型构建零样本标注技术体系（理想状态去掉人工标注环节，标注完全解放人力），该技术通过大模型生成初始数据并借助提示词技术完成自动标注，再经人机协同校验确保数据质量（可选），进而训练出初始小模型。该小模型通过持续迭代、自我优化，实现标注效率与模型精度协同进化，最终推动系统性能不断攀升。
+### 零样本标注技术
 
-![EasyAIoT平台架构.jpg](.image/iframe4.jpg)
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+创新性的依托大模型构建零样本标注技术体系（理想状态去掉人工标注环节，标注完全解放人力），该技术通过大模型生成初始数据并借助提示词技术完成自动标注，再经人机协同校验确保数据质量（可选），进而训练出初始小模型。该小模型通过持续迭代、自我优化，实现标注效率与模型精度协同进化，最终推动系统性能不断攀升。
+</p>
 
-#### EasyAIoT其实不是一个项目，而是五个项目。
+<div align="center">
+  <img src=".image/iframe4.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+</div>
 
-#### 好处是什么呢？假如说你在一个受限的设备上（比如RK3588），你只需要拿出其中某个项目就可以独立部署，所以看似这个项目是云平台，其实他也可以是边缘平台。
+### 项目架构特点
 
-### 🌟 真开源不易，如果这个项目对您有帮助，请您点亮一颗Star再离开，这将是对我最大的支持！（在这个假开源横行的时代，这个项目就是一个异类，纯靠爱来发电）
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+EasyAIoT其实不是一个项目，而是五个项目。
+</p>
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+好处是什么呢？假如说你在一个受限的设备上（比如RK3588），你只需要拿出其中某个项目就可以独立部署，所以看似这个项目是云平台，其实他也可以是边缘平台。
+</p>
+
+<div align="center" style="margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white;">
+
+<p style="font-size: 16px; line-height: 1.8; margin: 0; font-weight: 500;">
+🌟 真开源不易，如果这个项目对您有帮助，请您点亮一颗Star再离开，这将是对我最大的支持！<br>
+<small style="font-size: 14px; opacity: 0.9;">（在这个假开源横行的时代，这个项目就是一个异类，纯靠爱来发电）</small>
+</p>
+
+</div>
 
 ## 🎯 适用场景
 
-![适用场景.png](.image/适用场景.png)
+<div align="center">
+  <img src=".image/适用场景.png" alt="适用场景" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+</div>
 
 ## 🧩 项目结构
 
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 EasyAIoT由五个核心项目组成：
+</p>
 
-- **WEB模块**: 基于Vue的前端管理界面，提供统一的用户交互体验
-- **DEVICE模块**: 基于Java的物联网设备管理模块，提供完整的IoT设备接入与管理能力
-  - 技术优势：基于JDK21，提供更好的性能和现代化特性
-  - 设备管理：设备注册、认证、状态监控、生命周期管理
-  - 产品管理：产品定义、物模型管理、产品配置
-  - 协议支持：MQTT、TCP、HTTP等多种物联网协议
-  - 设备认证：设备动态注册、身份认证、安全接入
-  - 规则引擎：数据流转规则、消息路由、数据转换
-  - 数据采集：设备数据采集、存储、查询与分析
-- **VIDEO模块**: 基于Python的视频处理模块，负责视频流处理与传输
-- **AI模块**: 基于Python的人工智能处理模块，负责视频分析和AI算法执行
-- **TASK模块**: 基于C++的高性能任务处理模块，负责计算密集型任务执行
+<table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50; width: 20%;">模块</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50;">描述</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>WEB模块</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">基于Vue的前端管理界面，提供统一的用户交互体验</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>DEVICE模块</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>技术优势</strong>：基于JDK21，提供更好的性能和现代化特性</li>
+    <li><strong>设备管理</strong>：设备注册、认证、状态监控、生命周期管理</li>
+    <li><strong>产品管理</strong>：产品定义、物模型管理、产品配置</li>
+    <li><strong>协议支持</strong>：MQTT、TCP、HTTP等多种物联网协议</li>
+    <li><strong>设备认证</strong>：设备动态注册、身份认证、安全接入</li>
+    <li><strong>规则引擎</strong>：数据流转规则、消息路由、数据转换</li>
+    <li><strong>数据采集</strong>：设备数据采集、存储、查询与分析</li>
+  </ul>
+</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>VIDEO模块</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">基于Python的视频处理模块，负责视频流处理与传输</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>AI模块</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">基于Python的人工智能处理模块，负责视频分析和AI算法执行</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>TASK模块</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">基于C++的高性能任务处理模块，负责计算密集型任务执行</td>
+</tr>
+</table>
+
+## 🖥️ 跨平台部署优势
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+EasyAIoT支持在Linux、Mac、Windows三大主流操作系统上部署，为不同环境下的用户提供灵活便捷的部署方案：
+</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+
+<div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🐧 Linux部署优势</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>适合生产环境，稳定可靠，资源占用低</li>
+  <li>支持Docker容器化部署，一键启动所有服务</li>
+  <li>完美适配服务器、边缘计算设备（如RK3588等ARM架构设备）</li>
+  <li>提供完整的自动化安装脚本，简化部署流程</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🍎 Mac部署优势</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>适合开发测试环境，与macOS系统深度集成</li>
+  <li>支持本地开发和调试，快速验证功能</li>
+  <li>提供便捷的安装脚本，支持Homebrew等包管理器</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🪟 Windows部署优势</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>适合Windows服务器环境，降低学习成本</li>
+  <li>支持PowerShell自动化脚本，简化部署操作</li>
+  <li>兼容Windows Server和桌面版Windows系统</li>
+  <li>提供图形化安装向导，用户友好</li>
+</ul>
+</div>
+
+</div>
+
+<p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+<strong>统一体验</strong>：无论选择哪种操作系统，EasyAIoT都提供一致的安装脚本和部署文档，确保跨平台部署体验的一致性。
+</p>
 
 ## ☁️ EasyAIoT = AI + IoT = 云边一体化解决方案
 
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 支持上千种垂直场景，支持AI模型定制化和AI算法定制化开发，深度融合。
+</p>
 
-赋能万物智视：EasyAIoT
+<div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3498db;">
+<h3 style="color: #2c3e50; margin-top: 0;">赋能万物智视：EasyAIoT</h3>
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
 构筑了物联网设备（尤其是海量摄像头）的高效接入与管控网络。我们深度融合流媒体实时传输技术与前沿人工智能（AI），打造一体化服务核心。这套方案不仅打通了异构设备的互联互通，更将高清视频流与强大的AI解析引擎深度集成，赋予监控系统"智能之眼"——精准实现人脸识别、异常行为分析、风险人员布控及周界入侵检测。
-
+</p>
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
 在物联网设备管理方面，EasyAIoT提供完整的设备生命周期管理能力，支持多种物联网协议（MQTT、TCP、HTTP），实现设备的快速接入、安全认证、实时监控和智能控制。通过规则引擎实现设备数据的智能流转与处理，结合AI能力对设备数据进行深度分析，实现从设备接入、数据采集、智能分析到决策执行的全流程自动化，真正实现万物互联、万物智控。
+</p>
+</div>
 
-![EasyAIoT平台架构.jpg](.image/iframe1.jpg)
+<div align="center" style="margin: 20px 0;">
+  <img src=".image/iframe1.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+</div>
 
 ## ⚠️ 免责声明
 
@@ -209,14 +332,46 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 
 ## 🛠️ 服务支持
 
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 我们提供了各种服务方式帮助您深入了解EasyAIoT平台和代码，通过产品文档、技术交流群、付费教学等方式，你将获得如下服务：
+</p>
 
-| 服务项  | 服务内容                       | 服务收费   | 服务方式        |
-|------|----------------------------|--------|-------------|
-| 系统部署 | 在客户指定的网络和硬件环境中完成EasyAIoT部署 | 500元   | 线上部署支持      |
-| 技术支持 | 提供各类部署、功能使用中遇到的问题答疑        | 200元   | 半小时内 线上远程支持 |
-| 模型训练 | 训练业务场景识别模型                 | 1000+元 | 模型定制化训练     |
-| 其他服务 | 垂直领域解决方案定制化开发；定制化时长、功能服务等  | 面议     | 面议          |
+<table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+<thead>
+<tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+<th style="padding: 15px; text-align: left; font-weight: 600;">服务项</th>
+<th style="padding: 15px; text-align: left; font-weight: 600;">服务内容</th>
+<th style="padding: 15px; text-align: center; font-weight: 600;">服务收费</th>
+<th style="padding: 15px; text-align: left; font-weight: 600;">服务方式</th>
+</tr>
+</thead>
+<tbody>
+<tr style="background-color: #f8f9fa;">
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">系统部署</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">在客户指定的网络和硬件环境中完成EasyAIoT部署</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">500元</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">线上部署支持</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">技术支持</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">提供各类部署、功能使用中遇到的问题答疑</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">200元</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">半小时内 线上远程支持</td>
+</tr>
+<tr style="background-color: #f8f9fa;">
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">模型训练</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">训练业务场景识别模型</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">1000+元</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">模型定制化训练</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">其他服务</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">垂直领域解决方案定制化开发；定制化时长、功能服务等</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">面议</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">面议</td>
+</tr>
+</tbody>
+</table>
 
 ## 📞 联系方式（添加微信后，需关注公众号，拉入技术交流群）
 
@@ -412,17 +567,22 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
   </tbody>
 </table>
 
-## 期望
+## 💡 期望
 
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 欢迎提出更好的意见，帮助完善 easyaiot
+</p>
 
-## 版权
+## 📄 版权
 
-翱翔的雄库鲁/easyaiot 采用[APACHE LICENSE 2.0](https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE)
-开源协议，您在使用过程中，需要注意以下几点:
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+翱翔的雄库鲁/easyaiot 采用 <a href="https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE" style="color: #3498db; text-decoration: none; font-weight: 600;">APACHE LICENSE 2.0</a> 开源协议，您在使用过程中，需要注意以下几点：
+</p>
 
-1. 不得修改产品相关代码的源码头注释和出处;
-2. 不得应用于危害国家安全、荣誉和利益的行为，不能以任何形式用于非法目的;
+<ol style="font-size: 14px; line-height: 1.8; color: #444; margin: 15px 0; padding-left: 25px;">
+  <li>不得修改产品相关代码的源码头注释和出处；</li>
+  <li>不得应用于危害国家安全、荣誉和利益的行为，不能以任何形式用于非法目的；</li>
+</ol>
 
 ## 🌟 Star增长趋势图
 

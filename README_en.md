@@ -1,9 +1,15 @@
+<div align="center">
+
 # EasyAIoT (Cloud-Edge-Device Integrated Collaborative Algorithm Application Platform)
 
 [![Gitee star](https://gitee.com/soaring-xiongkulu/easyaiot/badge/star.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/stargazers)
 [![Gitee fork](https://gitee.com/soaring-xiongkulu/easyaiot//badge/fork.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/members)
 
-### My vision is for this system to be accessible worldwide, achieving truly zero barriers to AI. Everyone should experience the benefits of AI, not just a privileged few.
+<p style="font-size: 16px; line-height: 1.8; color: #555; font-weight: 400; margin: 20px 0;">
+My vision is for this system to be accessible worldwide, achieving truly zero barriers to AI. Everyone should experience the benefits of AI, not just a privileged few.
+</p>
+
+</div>
 
 <div align="center">
     <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
@@ -17,45 +23,83 @@
 
 ## 🌟 Some Thoughts on the Project
 
-#### Project Positioning:
+### Project Positioning
 
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT.
+</p>
 
-**AI Capabilities:**
-- Supports access to hundreds of cameras for collection, annotation, training, inference, export, analysis, alerting, recording, storage, and deployment
-- PaddleOCR text recognition and speech-to-text
-- Multimodal vision large models (object recognition, text recognition)
-- LLM large language models (supporting RTSP streams, video, images, audio, text, etc.)
+#### AI Capabilities
 
-**IoT Capabilities:**
-- Device Access and Management: Device registration, authentication, status monitoring, lifecycle management
-- Product and Thing Model Management: Product definition, thing model configuration, product management
-- Multi-Protocol Support: Multiple IoT protocols including MQTT, TCP, HTTP
-- Device Authentication and Dynamic Registration: Secure access, identity authentication, dynamic device registration
-- Rule Engine: Data flow rules, message routing, data transformation
-- Data Collection and Storage: Device data collection, storage, query, and analysis
-- Device Status Monitoring and Alert Management: Real-time monitoring, anomaly alerts, intelligent decision-making
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li>Supports access to hundreds of cameras for collection, annotation, training, inference, export, analysis, alerting, recording, storage, and deployment</li>
+  <li>PaddleOCR text recognition and speech-to-text</li>
+  <li>Multimodal vision large models (object recognition, text recognition)</li>
+  <li>LLM large language models (supporting RTSP streams, video, images, audio, text, etc.)</li>
+</ul>
 
-**Core Value:** Achieves a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making, truly realizing interconnected everything and intelligent control of everything.
+#### IoT Capabilities
 
-#### I believe no single programming language excels at everything, but with a combination of three languages, EasyAIoT will be invincible—fortunately, I possess this trait.
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Device Access and Management</strong>: Device registration, authentication, status monitoring, lifecycle management</li>
+  <li><strong>Product and Thing Model Management</strong>: Product definition, thing model configuration, product management</li>
+  <li><strong>Multi-Protocol Support</strong>: Multiple IoT protocols including MQTT, TCP, HTTP</li>
+  <li><strong>Device Authentication and Dynamic Registration</strong>: Secure access, identity authentication, dynamic device registration</li>
+  <li><strong>Rule Engine</strong>: Data flow rules, message routing, data transformation</li>
+  <li><strong>Data Collection and Storage</strong>: Device data collection, storage, query, and analysis</li>
+  <li><strong>Device Status Monitoring and Alert Management</strong>: Real-time monitoring, anomaly alerts, intelligent decision-making</li>
+</ul>
 
-#### Java is suitable for platform development but not for network or AI programming; Python is good for network and AI programming but not for high-performance task execution; C++ excels in high-performance tasks but is unsuitable for the other two. The vision of EasyAIoT is to use a tri-lingual mixed programming approach to build an AIoT platform that's not so easy to implement but very easy to use.
+<p style="font-size: 15px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #3498db; border-radius: 4px;">
+<strong>Core Value</strong>: Achieves a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making, truly realizing interconnected everything and intelligent control of everything.
+</p>
+
+### Technical Philosophy
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+I believe no single programming language excels at everything, but with a combination of three languages, EasyAIoT will be invincible—fortunately, I possess this trait.
+</p>
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+Java is suitable for platform development but not for network or AI programming; Python is good for network and AI programming but not for high-performance task execution; C++ excels in high-performance tasks but is unsuitable for the other two. The vision of EasyAIoT is to use a tri-lingual mixed programming approach to build an AIoT platform that's not so easy to implement but very easy to use.
+</p>
 
 ![EasyAIoT Platform Architecture.jpg](.image/iframe2.jpg)
 
-#### Data flow between modules is as follows:
+### Module Data Flow
 
-![EasyAIoT Platform Architecture.jpg](.image/iframe3.jpg)
+<div align="center">
+  <img src=".image/iframe3.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+</div>
 
-#### Innovatively leveraging large models to construct a zero-shot labeling technical system (ideally eliminating manual labeling, completely freeing up human resources), this technology generates initial data through large models and completes automatic labeling via prompt engineering. It then ensures data quality through optional human-machine collaborative verification, thereby training an initial small model. This small model, through continuous iteration and self-optimization, achieves co-evolution of labeling efficiency and model accuracy, ultimately driving continuous improvement in system performance.
-![EasyAIoT Platform Architecture.jpg](.image/iframe4.jpg)
+### Zero-Shot Labeling Technology
 
-#### EasyAIoT is not actually one project; it is seven distinct projects.
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+Innovatively leveraging large models to construct a zero-shot labeling technical system (ideally eliminating manual labeling, completely freeing up human resources), this technology generates initial data through large models and completes automatic labeling via prompt engineering. It then ensures data quality through optional human-machine collaborative verification, thereby training an initial small model. This small model, through continuous iteration and self-optimization, achieves co-evolution of labeling efficiency and model accuracy, ultimately driving continuous improvement in system performance.
+</p>
 
-#### What's the benefit? Suppose you are on a resource-constrained device (like an RK3588). You can extract and independently deploy just one of those projects. Therefore, while this project appears to be a cloud platform, it simultaneously functions as an edge platform.
+<div align="center">
+  <img src=".image/iframe4.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+</div>
 
-### 🌟 Genuine open source is rare. If you find this project useful, please star it before leaving - your support means everything to us!(In an era where fake open-source projects are rampant, this project stands out as an exception.)
+### Project Architecture Features
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+EasyAIoT is not actually one project; it is seven distinct projects.
+</p>
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+What's the benefit? Suppose you are on a resource-constrained device (like an RK3588). You can extract and independently deploy just one of those projects. Therefore, while this project appears to be a cloud platform, it simultaneously functions as an edge platform.
+</p>
+
+<div align="center" style="margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white;">
+
+<p style="font-size: 16px; line-height: 1.8; margin: 0; font-weight: 500;">
+🌟 Genuine open source is rare. If you find this project useful, please star it before leaving - your support means everything to us!<br>
+<small style="font-size: 14px; opacity: 0.9;">(In an era where fake open-source projects are rampant, this project stands out as an exception.)</small>
+</p>
+
+</div>
 
 ## 🎯 Application Scenarios
 
@@ -63,40 +107,109 @@ EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses
 
 ## 🧩 Project Structure
 
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 EasyAIoT consists of five core projects:
+</p>
 
-- **WEB Module**: Frontend management interface based on Vue, providing a unified user interaction experience
-- **DEVICE Module**: Java-based IoT device management module providing comprehensive IoT device access and management capabilities
-  - Technical Advantages: Based on JDK21, providing better performance and modern features
-  - Device Management: Device registration, authentication, status monitoring, lifecycle management
-  - Product Management: Product definition, thing model management, product configuration
-  - Protocol Support: Multiple IoT protocols including MQTT, TCP, HTTP
-  - Device Authentication: Device dynamic registration, identity authentication, secure access
-  - Rule Engine: Data flow rules, message routing, data transformation
-  - Data Collection: Device data collection, storage, query, and analysis
-- **VIDEO Module**: Python-based video processing module responsible for video stream processing and transmission
-- **AI Module**: Python-based artificial intelligence processing module responsible for video analysis and AI algorithm execution
-- **TASK Module**: C++-based high-performance task processing module responsible for compute-intensive task execution
+<table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50; width: 20%;">Module</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50;">Description</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>WEB Module</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">Frontend management interface based on Vue, providing a unified user interaction experience</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>DEVICE Module</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>Technical Advantages</strong>: Based on JDK21, providing better performance and modern features</li>
+    <li><strong>Device Management</strong>: Device registration, authentication, status monitoring, lifecycle management</li>
+    <li><strong>Product Management</strong>: Product definition, thing model management, product configuration</li>
+    <li><strong>Protocol Support</strong>: Multiple IoT protocols including MQTT, TCP, HTTP</li>
+    <li><strong>Device Authentication</strong>: Device dynamic registration, identity authentication, secure access</li>
+    <li><strong>Rule Engine</strong>: Data flow rules, message routing, data transformation</li>
+    <li><strong>Data Collection</strong>: Device data collection, storage, query, and analysis</li>
+  </ul>
+</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>VIDEO Module</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">Python-based video processing module responsible for video stream processing and transmission</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>AI Module</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">Python-based artificial intelligence processing module responsible for video analysis and AI algorithm execution</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>TASK Module</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">C++-based high-performance task processing module responsible for compute-intensive task execution</td>
+</tr>
+</table>
+
+## 🖥️ Cross-Platform Deployment Advantages
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+EasyAIoT supports deployment on Linux, Mac, and Windows, providing flexible and convenient deployment solutions for users in different environments:
+</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+
+<div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🐧 Linux Deployment Advantages</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>Ideal for production environments, stable and reliable with low resource consumption</li>
+  <li>Supports Docker containerized deployment with one-click service startup</li>
+  <li>Perfect compatibility with servers and edge computing devices (such as RK3588 and other ARM architecture devices)</li>
+  <li>Provides complete automated installation scripts to simplify deployment</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🍎 Mac Deployment Advantages</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>Suitable for development and testing environments with deep macOS integration</li>
+  <li>Supports local development and debugging for rapid feature validation</li>
+  <li>Provides convenient installation scripts compatible with package managers like Homebrew</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🪟 Windows Deployment Advantages</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>Suitable for Windows server environments, reducing learning curve</li>
+  <li>Supports PowerShell automation scripts to simplify deployment operations</li>
+  <li>Compatible with both Windows Server and desktop Windows systems</li>
+  <li>Provides graphical installation wizards for user-friendly experience</li>
+</ul>
+</div>
+
+</div>
+
+<p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+<strong>Unified Experience</strong>: Regardless of the operating system chosen, EasyAIoT provides consistent installation scripts and deployment documentation, ensuring a uniform cross-platform deployment experience.
+</p>
 
 ## ☁️ EasyAIoT = AI + IoT = Cloud-Edge Integrated Solution
 
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 Supports thousands of vertical scenarios with customizable AI models and algorithm development.
+</p>
 
-Deep integration empowers intelligent vision for everything: EasyAIoT constructs an efficient access and management
-network for IoT devices (especially massive cameras). We deeply integrate real-time streaming technology with
-cutting-edge AI to create a unified service core. This solution not only enables interoperability across heterogeneous
-devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "
-intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and
-perimeter intrusion detection.
+<div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3498db;">
+<h3 style="color: #2c3e50; margin-top: 0;">Deep Integration Empowers Intelligent Vision for Everything</h3>
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
+EasyAIoT constructs an efficient access and management network for IoT devices (especially massive cameras). We deeply integrate real-time streaming technology with cutting-edge AI to create a unified service core. This solution not only enables interoperability across heterogeneous devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and perimeter intrusion detection.
+</p>
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
+In terms of IoT device management, EasyAIoT provides comprehensive device lifecycle management capabilities, supporting multiple IoT protocols (MQTT, TCP, HTTP) to achieve rapid device access, secure authentication, real-time monitoring, and intelligent control. Through the rule engine, intelligent data flow and processing of device data are realized, combined with AI capabilities for in-depth analysis of device data, achieving full-process automation from device access, data collection, intelligent analysis to decision execution, truly realizing interconnected everything and intelligent control of everything.
+</p>
+</div>
 
-In terms of IoT device management, EasyAIoT provides comprehensive device lifecycle management capabilities, supporting
-multiple IoT protocols (MQTT, TCP, HTTP) to achieve rapid device access, secure authentication, real-time monitoring,
-and intelligent control. Through the rule engine, intelligent data flow and processing of device data are realized,
-combined with AI capabilities for in-depth analysis of device data, achieving full-process automation from device
-access, data collection, intelligent analysis to decision execution, truly realizing interconnected everything and
-intelligent control of everything.
-
-![EasyAIoT Platform Architecture](.image/iframe1.jpg)
+<div align="center" style="margin: 20px 0;">
+  <img src=".image/iframe1.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+</div>
 
 ## ⚠️ Disclaimer
 
@@ -220,16 +333,46 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
 
 ## 🛠️ Service Support
 
-We offer various service options to help you gain an in-depth understanding of the EasyAIoT platform and its code.
-Through product documentation, technical exchange groups, paid tutorials, and more, you will receive the following
-services:
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+We offer various service options to help you gain an in-depth understanding of the EasyAIoT platform and its code. Through product documentation, technical exchange groups, paid tutorials, and more, you will receive the following services:
+</p>
 
-| Service Item                       | Service Content                                                                                   | Service Fee | Service Method                          |
-|------------------------------------|---------------------------------------------------------------------------------------------------|-------------|-----------------------------------------|
-| System Deployment                  | Complete EasyAIoT deployment in the customer-specified network and hardware environment           | ¥500        | Online Deployment Support               |
-| Technical Support                  | Provide solutions for issues encountered during deployment and functional usage                   | ¥200        | Online Remote Support within 30 Minutes |
-| Model Training                     | Train business scenario recognition models                                                        | ¥1000+      | Customized Model Training                  |
-| Other Services                     | Customized development for vertical industry solutions; tailored duration and functional services | Negotiable  | Negotiable                              |
+<table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+<thead>
+<tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+<th style="padding: 15px; text-align: left; font-weight: 600;">Service Item</th>
+<th style="padding: 15px; text-align: left; font-weight: 600;">Service Content</th>
+<th style="padding: 15px; text-align: center; font-weight: 600;">Service Fee</th>
+<th style="padding: 15px; text-align: left; font-weight: 600;">Service Method</th>
+</tr>
+</thead>
+<tbody>
+<tr style="background-color: #f8f9fa;">
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">System Deployment</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Complete EasyAIoT deployment in the customer-specified network and hardware environment</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">¥500</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Online Deployment Support</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Technical Support</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Provide solutions for issues encountered during deployment and functional usage</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">¥200</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Online Remote Support within 30 Minutes</td>
+</tr>
+<tr style="background-color: #f8f9fa;">
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Model Training</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Train business scenario recognition models</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">¥1000+</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Customized Model Training</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Other Services</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Customized development for vertical industry solutions; tailored duration and functional services</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">Negotiable</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Negotiable</td>
+</tr>
+</tbody>
+</table>
 
 ## 📞 Contact Information (After adding WeChat, please follow the official account to join the technical exchange group)
 
@@ -425,16 +568,22 @@ Thanks to the following contributors for code, feedback, donations, and support 
   </tbody>
 </table>
 
-## Expectations
+## 💡 Expectations
 
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 We welcome suggestions for improvement to help refine easyaiot.
+</p>
 
-## Copyright
+## 📄 Copyright
 
-Soaring Xiongkulu / easyaiot is licensed under the [APACHE LICENSE 2.0](https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE). When using the product, please note the following:
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+Soaring Xiongkulu / easyaiot is licensed under the <a href="https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE" style="color: #3498db; text-decoration: none; font-weight: 600;">APACHE LICENSE 2.0</a>. When using the product, please note the following:
+</p>
 
-1. Do not modify the source code header comments or attribution of the product-related code.
-2. Do not use the product for any actions that endanger national security, honor, and interests, or for any illegal purposes.
+<ol style="font-size: 14px; line-height: 1.8; color: #444; margin: 15px 0; padding-left: 25px;">
+  <li>Do not modify the source code header comments or attribution of the product-related code.</li>
+  <li>Do not use the product for any actions that endanger national security, honor, and interests, or for any illegal purposes.</li>
+</ol>
 
 ## 🌟 Star Growth Trend Chart
 
