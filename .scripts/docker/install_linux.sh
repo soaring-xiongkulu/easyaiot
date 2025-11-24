@@ -353,10 +353,10 @@ execute_module_command() {
     
     cd "$PROJECT_ROOT/$module"
     
-    # 特殊处理.scripts/docker模块（使用install_middleware.sh脚本）
+    # 特殊处理.scripts/docker模块（使用install_middleware_linux.sh脚本）
     if [ "$module" = ".scripts/docker" ]; then
-        # 检查install_middleware.sh文件
-        local install_file="install_middleware.sh"
+        # 检查install_middleware_linux.sh文件
+        local install_file="install_middleware_linux.sh"
         if [ ! -f "$install_file" ]; then
             print_warning "模块 $module 没有 $install_file 文件，跳过"
             return 1
@@ -462,18 +462,18 @@ execute_module_command() {
                 ;;
         esac
     else
-        # 其他模块使用install.sh脚本
-        if [ ! -f "install.sh" ]; then
-            print_warning "模块 $module 没有 install.sh 脚本，跳过"
+        # 其他模块使用install_linux.sh脚本
+        if [ ! -f "install_linux.sh" ]; then
+            print_warning "模块 $module 没有 install_linux.sh 脚本，跳过"
             return 1
         fi
         
         # 修复换行符
-        fix_line_endings "install.sh"
+        fix_line_endings "install_linux.sh"
         
         print_info "执行 $module_name: $command"
         
-        if bash install.sh "$command" 2>&1 | tee -a "$LOG_FILE"; then
+        if bash install_linux.sh "$command" 2>&1 | tee -a "$LOG_FILE"; then
             print_success "$module_name: $command 执行成功"
             return 0
         else

@@ -4,7 +4,7 @@
 # AI服务 Docker Compose 管理脚本
 # ============================================
 # 使用方法：
-#   ./install.sh [命令]
+#   ./install_linux.sh [命令]
 #
 # 可用命令：
 #   install    - 安装并启动服务（首次运行）
@@ -138,7 +138,7 @@ configure_architecture() {
     
     # 创建或更新 .env.arch 文件来存储架构配置
     if [ ! -f .env.arch ] || ! grep -q "DOCKER_PLATFORM=" .env.arch 2>/dev/null; then
-        echo "# 架构配置（由install.sh自动生成）" > .env.arch
+        echo "# 架构配置（由install_linux.sh自动生成）" > .env.arch
         echo "DOCKER_PLATFORM=$DOCKER_PLATFORM" >> .env.arch
         echo "BASE_IMAGE=$BASE_IMAGE" >> .env.arch
         print_success "已创建架构配置文件 .env.arch"
@@ -520,7 +520,7 @@ install_service() {
     
     print_info "服务访问地址: http://localhost:5000"
     print_info "健康检查地址: http://localhost:5000/actuator/health"
-    print_info "查看日志: ./install.sh logs"
+    print_info "查看日志: ./install_linux.sh logs"
 }
 
 # 启动服务
@@ -677,7 +677,7 @@ show_help() {
     echo "AI服务 Docker Compose 管理脚本"
     echo ""
     echo "使用方法:"
-    echo "  ./install.sh [命令]"
+    echo "  ./install_linux.sh [命令]"
     echo ""
     echo "可用命令:"
     echo "  install    - 安装并启动服务（首次运行）"

@@ -99,7 +99,7 @@ create_directories() {
 check_dist() {
     if [ ! -d "dist" ] || [ -z "$(ls -A dist 2>/dev/null)" ]; then
         print_warning "dist 目录不存在或为空，需要先构建前端项目"
-        print_info "运行: ./install.sh build-frontend"
+        print_info "运行: ./install_linux.sh build-frontend"
         return 1
     fi
     return 0
@@ -266,7 +266,7 @@ install_service() {
         if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
             build_frontend
         else
-            print_error "请先构建前端项目: ./install.sh build-frontend"
+            print_error "请先构建前端项目: ./install_linux.sh build-frontend"
             exit 1
         fi
     fi
@@ -293,7 +293,7 @@ install_service() {
     WEB_PORT=$(grep VITE_PORT .env 2>/dev/null | cut -d '=' -f2 | tr -d ' ' || echo "80")
     print_info "服务访问地址: http://localhost:${WEB_PORT}"
     print_info "健康检查地址: http://localhost:${WEB_PORT}/health"
-    print_info "查看日志: ./install.sh logs"
+    print_info "查看日志: ./install_linux.sh logs"
 }
 
 # 启动服务
@@ -308,7 +308,7 @@ start_service() {
     fi
     
     if ! check_dist; then
-        print_error "dist 目录不存在或为空，请先构建前端项目: ./install.sh build-frontend"
+        print_error "dist 目录不存在或为空，请先构建前端项目: ./install_linux.sh build-frontend"
         exit 1
     fi
     
@@ -449,7 +449,7 @@ show_help() {
     echo "WEB服务 Docker Compose 管理脚本"
     echo ""
     echo "使用方法:"
-    echo "  ./install.sh [命令]"
+    echo "  ./install_linux.sh [命令]"
     echo ""
     echo "可用命令:"
     echo "  install         - 安装并启动服务（首次运行）"

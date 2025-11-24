@@ -313,7 +313,7 @@ install_service() {
     
     print_info "服务访问地址: http://localhost:6000"
     print_info "健康检查地址: http://localhost:6000/actuator/health"
-    print_info "查看日志: ./install.sh logs"
+    print_info "查看日志: ./install_linux.sh logs"
 }
 
 # 启动服务
@@ -469,7 +469,7 @@ show_help() {
     echo "VIDEO服务 Docker Compose 管理脚本"
     echo ""
     echo "使用方法:"
-    echo "  ./install.sh [命令]"
+    echo "  ./install_linux.sh [命令]"
     echo ""
     echo "可用命令:"
     echo "  install    - 安装并启动服务（首次运行）"
