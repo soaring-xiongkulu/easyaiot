@@ -85,6 +85,174 @@ check_docker_compose() {
     fi
 }
 
+# 获取占用端口的进程PID
+get_port_pids() {
+    local port=$1
+    local pids=()
+    
+    if command -v lsof &> /dev/null; then
+        # 使用lsof获取PID，排除标题行，提取唯一的PID
+        while IFS= read -r line; do
+            pid=$(echo "$line" | awk '{print $2}')
+            # 跳过非数字的PID（如标题行）
+            if [[ "$pid" =~ ^[0-9]+$ ]]; then
+                pids+=("$pid")
+            fi
+        done < <(lsof -i :"$port" 2>/dev/null | tail -n +2)
+    elif command -v fuser &> /dev/null; then
+        # 使用fuser获取PID
+        pids=($(fuser "$port/tcp" 2>/dev/null | tr -d ' '))
+    fi
+    
+    # 去重
+    if [ ${#pids[@]} -gt 0 ]; then
+        printf '%s\n' "${pids[@]}" | sort -u
+    fi
+}
+
+# 处理端口占用
+handle_port_conflict() {
+    local port=$1
+    local pids=()
+    
+    print_warning "端口 $port 已被占用"
+    print_info "占用端口的进程信息:"
+    
+    # 显示进程信息并收集PID
+    if command -v lsof &> /dev/null; then
+        lsof -i :"$port" | head -10
+        while IFS= read -r pid; do
+            if [[ "$pid" =~ ^[0-9]+$ ]]; then
+                pids+=("$pid")
+            fi
+        done < <(lsof -i :"$port" 2>/dev/null | tail -n +2 | awk '{print $2}' | sort -u)
+    elif command -v netstat &> /dev/null; then
+        netstat -tulnp 2>/dev/null | grep ":$port " | head -5
+        # netstat需要root权限才能显示PID，尝试提取
+        while IFS= read -r line; do
+            pid=$(echo "$line" | awk '{print $7}' | cut -d'/' -f1)
+            if [[ "$pid" =~ ^[0-9]+$ ]]; then
+                pids+=("$pid")
+            fi
+        done < <(netstat -tulnp 2>/dev/null | grep ":$port ")
+    elif command -v ss &> /dev/null; then
+        ss -tulnp 2>/dev/null | grep ":$port " | head -5
+        # ss需要root权限才能显示PID
+        while IFS= read -r line; do
+            pid=$(echo "$line" | grep -oP 'pid=\K[0-9]+' || echo "")
+            if [[ "$pid" =~ ^[0-9]+$ ]]; then
+                pids+=("$pid")
+            fi
+        done < <(ss -tulnp 2>/dev/null | grep ":$port ")
+    fi
+    
+    # 去重PID数组
+    if [ ${#pids[@]} -gt 0 ]; then
+        local unique_pids=($(printf '%s\n' "${pids[@]}" | sort -u))
+        pids=("${unique_pids[@]}")
+    fi
+    
+    # 如果没有获取到PID，提示用户手动处理
+    if [ ${#pids[@]} -eq 0 ]; then
+        print_warning "无法自动获取占用端口的进程PID（可能需要root权限）"
+        print_info "请手动停止占用端口的进程，或修改 .env 文件中的 WEB_PORT 配置"
+        return 1
+    fi
+    
+    echo ""
+    print_info "检测到以下进程占用端口: ${pids[*]}"
+    echo ""
+    print_info "请选择处理方式:"
+    echo "  1) 自动 - 自动kill占用端口的进程"
+    echo "  2) 手动 - 手动处理（脚本退出）"
+    echo "  3) 停止 - 停止脚本执行"
+    echo ""
+    print_info "请输入选项 (1/2/3，默认: 2): "
+    read -r choice
+    
+    case "${choice:-2}" in
+        1)
+            print_info "正在kill占用端口的进程..."
+            local killed_count=0
+            local failed_count=0
+            
+            for pid in "${pids[@]}"; do
+                # 检查进程是否存在
+                if kill -0 "$pid" 2>/dev/null; then
+                    # 先尝试优雅终止
+                    if kill "$pid" 2>/dev/null; then
+                        print_info "已发送终止信号到进程 $pid"
+                        killed_count=$((killed_count + 1))
+                        # 等待2秒
+                        sleep 2
+                        # 如果进程还在，强制kill
+                        if kill -0 "$pid" 2>/dev/null; then
+                            print_warning "进程 $pid 未响应，强制kill..."
+                            if kill -9 "$pid" 2>/dev/null; then
+                                print_success "已强制kill进程 $pid"
+                            else
+                                print_error "无法kill进程 $pid（可能需要root权限）"
+                                failed_count=$((failed_count + 1))
+                            fi
+                        else
+                            print_success "进程 $pid 已终止"
+                        fi
+                    else
+                        print_error "无法kill进程 $pid（可能需要root权限）"
+                        failed_count=$((failed_count + 1))
+                    fi
+                else
+                    print_info "进程 $pid 已不存在"
+                fi
+            done
+            
+            # 等待一下，让端口释放
+            sleep 1
+            
+            # 再次检查端口是否释放
+            if command -v lsof &> /dev/null; then
+                if ! lsof -i :"$port" &> /dev/null; then
+                    print_success "端口 $port 已释放"
+                    return 0
+                fi
+            elif command -v netstat &> /dev/null; then
+                if ! netstat -tuln 2>/dev/null | grep -q ":$port "; then
+                    print_success "端口 $port 已释放"
+                    return 0
+                fi
+            elif command -v ss &> /dev/null; then
+                if ! ss -tuln 2>/dev/null | grep -q ":$port "; then
+                    print_success "端口 $port 已释放"
+                    return 0
+                fi
+            fi
+            
+            if [ $failed_count -gt 0 ]; then
+                print_error "部分进程kill失败，端口可能仍被占用"
+                print_info "请手动处理或修改 .env 文件中的 WEB_PORT 配置"
+                return 1
+            else
+                print_warning "端口可能仍被占用，请稍后重试或手动检查"
+                return 1
+            fi
+            ;;
+        2)
+            print_info "请手动停止占用端口的进程，或修改 .env 文件中的 WEB_PORT 配置"
+            print_info "占用端口的进程PID: ${pids[*]}"
+            print_info "可以使用以下命令kill进程: kill -9 ${pids[*]}"
+            return 1
+            ;;
+        3)
+            print_info "已取消操作"
+            exit 0
+            ;;
+        *)
+            print_error "无效选项，已取消操作"
+            return 1
+            ;;
+    esac
+}
+
 # 检查端口是否被占用
 check_port() {
     local port=$1
@@ -97,26 +265,25 @@ check_port() {
     fi
     
     # 检查端口是否被占用
+    local port_in_use=false
+    
     if command -v lsof &> /dev/null; then
         if lsof -i :"$port" &> /dev/null; then
-            print_warning "端口 $port 已被占用"
-            print_info "占用端口的进程信息:"
-            lsof -i :"$port" | head -5
-            print_info "请先停止占用端口的进程，或修改 .env 文件中的 WEB_PORT 配置"
-            return 1
+            port_in_use=true
         fi
     elif command -v netstat &> /dev/null; then
         if netstat -tuln 2>/dev/null | grep -q ":$port "; then
-            print_warning "端口 $port 已被占用"
-            print_info "请先停止占用端口的进程，或修改 .env 文件中的 WEB_PORT 配置"
-            return 1
+            port_in_use=true
         fi
     elif command -v ss &> /dev/null; then
         if ss -tuln 2>/dev/null | grep -q ":$port "; then
-            print_warning "端口 $port 已被占用"
-            print_info "请先停止占用端口的进程，或修改 .env 文件中的 WEB_PORT 配置"
-            return 1
+            port_in_use=true
         fi
+    fi
+    
+    if [ "$port_in_use" = true ]; then
+        handle_port_conflict "$port"
+        return $?
     fi
     
     return 0
