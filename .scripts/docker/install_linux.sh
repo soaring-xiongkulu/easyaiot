@@ -17,6 +17,7 @@
 #   clean      - 清理所有容器和镜像
 #   update     - 更新并重启所有服务
 #   verify     - 验证所有服务是否启动成功
+#   check      - 检查 Docker 和 Docker Compose 安装状态
 # ============================================
 
 set -e
@@ -210,31 +211,62 @@ check_docker_permission() {
 
 # 检查 Docker 是否安装
 check_docker() {
+    print_info "检查 Docker 安装状态..."
+    
+    # 检查命令是否存在
     if ! check_command docker; then
-        print_error "Docker 未安装，请先安装 Docker"
-        echo "安装指南: https://docs.docker.com/get-docker/"
+        print_error "Docker 未安装"
+        echo ""
+        echo "安装方法："
+        echo "  Ubuntu/Debian:"
+        echo "    curl -fsSL https://get.docker.com -o get-docker.sh"
+        echo "    sudo sh get-docker.sh"
+        echo ""
+        echo "  CentOS/RHEL:"
+        echo "    sudo yum install -y docker"
+        echo "    sudo systemctl start docker"
+        echo "    sudo systemctl enable docker"
+        echo ""
+        echo "  更多安装指南: https://docs.docker.com/get-docker/"
         exit 1
     fi
-    print_success "Docker 已安装: $(docker --version)"
+    
+    # 获取 Docker 版本信息
+    local docker_version=$(docker --version 2>/dev/null || echo "未知版本")
+    print_success "Docker 已安装: $docker_version"
+    
+    # 检查 Docker 服务状态
+    if systemctl is-active --quiet docker.service 2>/dev/null; then
+        print_info "Docker 服务状态: 运行中"
+    elif systemctl is-enabled --quiet docker.service 2>/dev/null; then
+        print_warning "Docker 服务已启用但未运行"
+    else
+        print_warning "Docker 服务未启用"
+    fi
+    
+    # 检查权限和 daemon 状态
     check_docker_permission "$@"
 }
 
 # 检查 Docker Compose 是否安装
 check_docker_compose() {
+    print_info "检查 Docker Compose 安装状态..."
+    
     local version_output=""
+    local compose_found=false
     
     # 检查 docker-compose (v1)
     if check_command docker-compose; then
         COMPOSE_CMD="docker-compose"
         version_output=$(docker-compose --version 2>/dev/null || echo "")
         if [ -n "$version_output" ]; then
-            print_success "Docker Compose 已安装: $version_output"
-            return 0
+            print_success "Docker Compose v1 已安装: $version_output"
+            compose_found=true
         fi
     fi
     
     # 检查 docker compose (v2)
-    if docker compose version &> /dev/null; then
+    if docker compose version &> /dev/null 2>&1; then
         COMPOSE_CMD="docker compose"
         # 尝试多种方式获取版本信息
         # 方法1: 直接使用 version 命令（v2 的标准输出）
@@ -251,20 +283,34 @@ check_docker_compose() {
             version_output=$(docker compose --version 2>/dev/null || docker compose version 2>&1 | head -1 || echo "")
             if echo "$version_output" | grep -qiE "usage|command|options"; then
                 # 如果仍然是帮助信息，只显示命令可用
-                print_success "Docker Compose 已安装 (docker compose 命令可用)"
+                print_success "Docker Compose v2 已安装 (docker compose 命令可用)"
             else
-                print_success "Docker Compose 已安装: $version_output"
+                print_success "Docker Compose v2 已安装: $version_output"
             fi
         else
-            print_success "Docker Compose 已安装: $version_output"
+            print_success "Docker Compose v2 已安装: $version_output"
         fi
-        return 0
+        compose_found=true
     fi
     
     # 如果都不存在，报错
-    print_error "Docker Compose 未安装，请先安装 Docker Compose"
-    echo "安装指南: https://docs.docker.com/compose/install/"
-    exit 1
+    if [ "$compose_found" = false ]; then
+        print_error "Docker Compose 未安装"
+        echo ""
+        echo "安装方法："
+        echo "  Docker Compose v2 (推荐，随 Docker Desktop 自动安装):"
+        echo "    如果使用 Docker Desktop，Compose v2 已包含在内"
+        echo ""
+        echo "  Docker Compose v1 (独立安装):"
+        echo "    sudo curl -L \"https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose"
+        echo "    sudo chmod +x /usr/local/bin/docker-compose"
+        echo ""
+        echo "  更多安装指南: https://docs.docker.com/compose/install/"
+        exit 1
+    fi
+    
+    # 显示使用的命令
+    print_info "使用命令: $COMPOSE_CMD"
 }
 
 # 创建统一网络
@@ -836,6 +882,83 @@ verify_all() {
     fi
 }
 
+# 检查 Docker 和 Docker Compose 安装状态
+check_environment() {
+    print_section "检查运行环境"
+    
+    echo ""
+    print_info "=== 检查 Docker ==="
+    if check_command docker; then
+        local docker_version=$(docker --version 2>/dev/null || echo "未知版本")
+        print_success "Docker 已安装: $docker_version"
+        
+        # 检查 Docker 服务状态
+        if systemctl is-active --quiet docker.service 2>/dev/null; then
+            print_info "Docker 服务状态: 运行中"
+        elif systemctl is-enabled --quiet docker.service 2>/dev/null; then
+            print_warning "Docker 服务已启用但未运行"
+        else
+            print_warning "Docker 服务未启用"
+        fi
+        
+        # 检查 Docker daemon 是否可访问
+        if docker info &> /dev/null; then
+            print_success "Docker daemon 可访问"
+            
+            # 显示 Docker 信息
+            local docker_root=$(docker info 2>/dev/null | grep "Docker Root Dir" | awk '{print $4}' || echo "未知")
+            print_info "Docker 根目录: $docker_root"
+        else
+            local error_msg=$(docker info 2>&1)
+            if echo "$error_msg" | grep -qi "permission denied"; then
+                print_error "Docker daemon 权限不足"
+            elif echo "$error_msg" | grep -qi "Is the docker daemon running"; then
+                print_error "Docker daemon 未运行"
+            else
+                print_error "无法连接到 Docker daemon"
+            fi
+        fi
+    else
+        print_error "Docker 未安装"
+    fi
+    
+    echo ""
+    print_info "=== 检查 Docker Compose ==="
+    local compose_found=false
+    
+    # 检查 docker-compose (v1)
+    if check_command docker-compose; then
+        local version_output=$(docker-compose --version 2>/dev/null || echo "")
+        if [ -n "$version_output" ]; then
+            print_success "Docker Compose v1 已安装: $version_output"
+            compose_found=true
+        fi
+    fi
+    
+    # 检查 docker compose (v2)
+    if docker compose version &> /dev/null 2>&1; then
+        local version_output=$(docker compose version --short 2>/dev/null || echo "")
+        if [ -z "$version_output" ]; then
+            version_output=$(docker compose version 2>&1 | grep -E "version|Docker Compose" | head -1 | sed 's/^[[:space:]]*//' || echo "可用")
+        fi
+        print_success "Docker Compose v2 已安装: $version_output"
+        compose_found=true
+    fi
+    
+    if [ "$compose_found" = false ]; then
+        print_error "Docker Compose 未安装"
+    fi
+    
+    echo ""
+    print_info "=== 系统信息 ==="
+    print_info "操作系统: $(uname -s) $(uname -r)"
+    print_info "架构: $(uname -m)"
+    print_info "用户: $(whoami)"
+    
+    echo ""
+    print_section "检查完成"
+}
+
 # 显示帮助信息
 show_help() {
     echo "EasyAIoT 统一安装脚本"
@@ -855,6 +978,7 @@ show_help() {
     echo "  clean           - 清理所有容器和镜像"
     echo "  update          - 更新并重启所有服务"
     echo "  verify          - 验证所有服务是否启动成功"
+    echo "  check           - 检查 Docker 和 Docker Compose 安装状态"
     echo "  help            - 显示此帮助信息"
     echo ""
     echo "模块列表:"
@@ -897,6 +1021,9 @@ main() {
             ;;
         verify)
             verify_all
+            ;;
+        check)
+            check_environment
             ;;
         help|--help|-h)
             show_help
