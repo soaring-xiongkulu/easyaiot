@@ -3,7 +3,7 @@
     @register="register"
     :title="getTitle"
     @cancel="handleCancel"
-    :width="state.type === 'source' ? 800 : 700"
+    :width="900"
     @ok="handleOk"
     :canFullscreen="false"
     :centered="true"
