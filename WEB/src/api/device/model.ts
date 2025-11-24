@@ -290,3 +290,57 @@ export const getDeployServiceReplicas = (serviceName, pageNo?: number, pageSize?
   return commonApi('get', `${Api.DeployService}/replicas`, {params}, {}, false);
 };
 
+// ================= 排序器管理接口 =================
+export const getSorter = (serviceName) => {
+  return commonApi('get', `${Api.DeployService}/sorter`, {params: {service_name: serviceName}});
+};
+
+export const startSorter = (serviceName) => {
+  return commonApi('post', `${Api.DeployService}/sorter/${serviceName}/start`);
+};
+
+export const stopSorter = (serviceName) => {
+  return commonApi('post', `${Api.DeployService}/sorter/${serviceName}/stop`);
+};
+
+export const restartSorter = (serviceName) => {
+  return commonApi('post', `${Api.DeployService}/sorter/${serviceName}/restart`);
+};
+
+export const getSorterLogs = (serviceName, params) => {
+  return commonApi('get', `${Api.DeployService}/sorter/${serviceName}/logs`, {params});
+};
+
+// ================= 抽帧器管理接口 =================
+export const getExtractor = (cameraName) => {
+  return commonApi('get', `${Api.DeployService}/extractor/${cameraName}`);
+};
+
+export const getExtractorList = (params) => {
+  return commonApi('get', `${Api.DeployService}/extractor/list`, {params});
+};
+
+export const startExtractor = (cameraName) => {
+  return commonApi('post', `${Api.DeployService}/extractor/${cameraName}/start`);
+};
+
+export const stopExtractor = (cameraName) => {
+  return commonApi('post', `${Api.DeployService}/extractor/${cameraName}/stop`);
+};
+
+export const restartExtractor = (cameraName) => {
+  return commonApi('post', `${Api.DeployService}/extractor/${cameraName}/restart`);
+};
+
+export const enableExtractor = (cameraName) => {
+  return commonApi('post', `${Api.DeployService}/extractor/${cameraName}/enable`);
+};
+
+export const disableExtractor = (cameraName) => {
+  return commonApi('post', `${Api.DeployService}/extractor/${cameraName}/disable`);
+};
+
+export const getExtractorLogs = (cameraName, params) => {
+  return commonApi('get', `${Api.DeployService}/extractor/${cameraName}/logs`, {params});
+};
+
