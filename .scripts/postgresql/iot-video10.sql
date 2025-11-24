@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict DSw9wj2KTCfp4S7QJPwjHpiiWQQh5lUu4V5Z9otuM60zjJHvWxHvUGaPW5uO3Kj
+\restrict zr8m9NxfLnjNh5D4bz6iwSUMgNGLRWkY0BSRweRzuOG0lqIAJsS6QjfQvRSjfr1
 
 -- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
 -- Dumped by pg_dump version 16.10 (Ubuntu 16.10-0ubuntu0.24.04.1)
@@ -219,7 +219,8 @@ COPY public.alert (id, object, event, region, information, "time", device_id, de
 --
 
 COPY public.device (id, name, source, rtmp_stream, http_stream, stream, ip, port, username, password, mac, manufacturer, model, firmware_version, serial_number, hardware_id, support_move, support_zoom, nvr_id, nvr_channel, enable_forward, created_at, updated_at) FROM stdin;
-1756592990129676672	我的设备	rtsp://admin:Zmg1451571@192.168.0.2:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1	rtmp://localhost:1935/live/1756592990129676672	http://localhost:8080/live/1756592990129676672.flv	0	192.168.0.2	80	admin	Zmg1451571	50:e5:38:aa:e5:92	HIKVISION	DS-2SC2Q140MY-T/W	V5.8.21	DS-2SC2Q140MY-T/W20250528AACHGA7118735	88	t	t	\N	0	t	2025-08-30 22:29:50.225535	2025-08-30 22:32:53.187882
+1756592990129676672	我的设备	rtsp://admin:Zmg1451571@192.168.0.2:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1	rtmp://localhost:1935/live/1756592990129676672	http://localhost:8080/live/1756592990129676672.flv	0	192.168.0.2	80	admin	Zmg1451571@	50:e5:38:aa:e5:92	HIKVISION	DS-2SC2Q140MY-T/W	V5.8.21	DS-2SC2Q140MY-T/W20250528AACHGA7118735	88	t	t	\N	0	t	2025-08-30 22:29:50.225535	2025-11-24 14:51:36.441867
+1763993199200825623	舞蹈室设备	rtmp://localhost:1935/live/video1	rtmp://localhost:1935/live/video1	http://localhost:8080/live/video1.flv	0	localhost	554	admin	Zmg1451571@		EasyAIoT	Camera-EasyAIoT				f	f	\N	0	\N	2025-11-24 14:06:39.203389	2025-11-24 14:51:43.439391
 \.
 
 
@@ -312,5 +313,5 @@ ALTER TABLE ONLY public.image
 -- PostgreSQL database dump complete
 --
 
-\unrestrict DSw9wj2KTCfp4S7QJPwjHpiiWQQh5lUu4V5Z9otuM60zjJHvWxHvUGaPW5uO3Kj
+\unrestrict zr8m9NxfLnjNh5D4bz6iwSUMgNGLRWkY0BSRweRzuOG0lqIAJsS6QjfQvRSjfr1
 
