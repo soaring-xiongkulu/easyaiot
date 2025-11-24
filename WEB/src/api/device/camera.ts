@@ -1,7 +1,6 @@
 import {defHttp} from '@/utils/http/axios';
 
 const CAMERA_PREFIX = '/video/camera';
-const NVR_PREFIX = '/video/nvr';
 
 // 通用请求封装
 const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url: string, params = {}, headers = {}, isTransformResponse = true) => {
@@ -60,8 +59,6 @@ export const registerDevice = (data: {
   username: string;
   password: string;
   stream?: number;
-  nvr_id?: string;
-  nvr_channel?: number;
   enable_forward?: boolean;
   rtmp_stream?: string;
   http_stream?: string;
@@ -93,8 +90,6 @@ export const updateDevice = (device_id: string, data: {
   username?: string;
   password?: string;
   stream?: number;
-  nvr_id?: string;
-  nvr_channel?: number;
   enable_forward?: boolean;
   rtmp_stream?: string;
   http_stream?: string;
@@ -110,7 +105,6 @@ export const getDeviceList = (params: {
   pageNo?: number;
   pageSize?: number;
   search?: string;
-  nvr_id?: string;
   enable_forward?: boolean;
 }) => {
   return commonApi('get', `${CAMERA_PREFIX}/list`, params);
@@ -189,34 +183,6 @@ export const uploadScreenshot = (formData: FormData) => {
   });
 };
 
-// ====================== NVR管理接口 ======================
-export const registerNVR = (data: {
-  name: string;
-  ip: string;
-  port: number;
-  username?: string;
-  password?: string;
-}) => {
-  return commonApi('post', `${NVR_PREFIX}/register`, data);
-};
-
-export const getNVRInfo = (nvr_id: number) => {
-  return commonApi('get', `${NVR_PREFIX}/info/${nvr_id}`);
-};
-
-export const deleteNVR = (nvr_id: number) => {
-  return commonApi('delete', `${NVR_PREFIX}/delete/${nvr_id}`);
-};
-
-export const addNvrCamera = (nvr_id: number, data: {
-  name: string;
-  channel: number;
-  model?: string;
-  stream_type?: string;
-}) => {
-  return commonApi('post', `${NVR_PREFIX}/create/${nvr_id}/camera`, data);
-};
-
 // ====================== 类型定义 ======================
 export interface StreamStatusResponse {
   code: number;
@@ -258,8 +224,6 @@ export interface DeviceInfo {
   hardware_id: string;
   support_move: boolean;
   support_zoom: boolean;
-  nvr_id: number | null;
-  nvr_channel: number;
   enable_forward: boolean;
   created_at: string;
   updated_at: string;

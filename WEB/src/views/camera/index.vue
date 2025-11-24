@@ -15,12 +15,6 @@
           </template>
           新增视频源设备
         </a-button>
-        <a-button @click="openAddModal('nvr')">
-          <template #icon>
-            <ClusterOutlined/>
-          </template>
-          新增NVR设备
-        </a-button>
         <a-button @click="handleUpdateOnvifDevice">
           <template #icon>
             <SyncOutlined/>
@@ -79,12 +73,6 @@
           </template>
           新增视频源设备
         </a-button>
-        <a-button @click="openAddModal('nvr')">
-          <template #icon>
-            <ClusterOutlined/>
-          </template>
-          新增NVR设备
-        </a-button>
         <a-button @click="handleUpdateOnvifDevice">
           <template #icon>
             <SyncOutlined/>
@@ -121,7 +109,6 @@ import {
   StreamStatusResponse
 } from '@/api/device/camera';
 import {
-  ClusterOutlined,
   ScanOutlined,
   SyncOutlined,
   VideoCameraAddOutlined,

@@ -442,8 +442,8 @@ def register_camera(register_info: dict) -> str:
             hardware_id='',
             support_move=False,
             support_zoom=False,
-            nvr_id=register_info.get('nvr_id') if register_info.get('nvr_id') else None,
-            nvr_channel=register_info.get('nvr_channel', 0)
+            nvr_id=None,
+            nvr_channel=0
         )
         
         db.session.add(camera)
@@ -492,8 +492,8 @@ def register_camera(register_info: dict) -> str:
         hardware_id=camera_info.get('hardware_id'),
         support_move=camera_info.get('support_move', False),
         support_zoom=camera_info.get('support_zoom', False),
-        nvr_id=register_info.get('nvr_id') if register_info.get('nvr_id') else None,
-        nvr_channel=register_info.get('nvr_channel')
+        nvr_id=None,
+        nvr_channel=0
     )
 
     # 处理码流设置

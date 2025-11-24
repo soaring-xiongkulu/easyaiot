@@ -190,16 +190,6 @@
                 />
               </FormItem>
             </Col>
-            <Col :span="12" v-if="state.type === 'nvr'">
-              <FormItem label="NVR ID" name="nvr_id" v-bind=validateInfos.nvr_id>
-                <Input v-model:value="modelRef.nvr_id" :disabled="state.isEdit"/>
-              </FormItem>
-            </Col>
-            <Col :span="12" v-if="state.type === 'nvr'">
-              <FormItem label="NVR通道" name="nvr_channel" v-bind=validateInfos.nvr_channel>
-                <Input v-model:value="modelRef.nvr_channel"/>
-              </FormItem>
-            </Col>
           </Row>
         </Form>
       </Spin>
@@ -275,18 +265,12 @@ const modelRef = reactive({
   hardware_id: '',
   support_move: '',
   support_zoom: '',
-  nvr_id: '',
-  nvr_channel: 0,
   cameraType: 'custom', // 摄像头类型：custom, hikvision, dahua, uniview
 });
 
 
 const getTitle = computed(() => {
-  if (state.type === 'nvr') {
-    return state.isEdit ? '编辑NVR设备' : state.isView ? '查看NVR设备' : '新增NVR设备';
-  } else {
-    return state.isEdit ? '编辑视频设备' : state.isView ? '查看视频设备' : '新增视频设备';
-  }
+  return state.isEdit ? '编辑视频设备' : state.isView ? '查看视频设备' : '新增视频设备';
 });
 
 const [register, {closeModal}] = useModalInner(async (data) => {
@@ -461,23 +445,7 @@ function handleRegisterSuccess(value) {
 
   state.editLoading = true;
 
-  if (state.type === 'nvr') {
-    // 注册NVR设备
-    registerDevice(modelRef)
-      .then(() => {
-        createMessage.success('NVR设备注册成功');
-        closeModal();
-        resetFields();
-        emits('success');
-      })
-      .catch(error => {
-        createMessage.error('NVR设备注册失败');
-        console.error(error);
-      })
-      .finally(() => {
-        state.editLoading = false;
-      });
-  } else if (state.type === 'onvif') {
+  if (state.type === 'onvif') {
     let port = 80;
     let arr = ip.split(":");
     if (arr.length > 1) {
@@ -626,13 +594,7 @@ function handleOk() {
   validate().then(async () => {
     state.editLoading = true;
     try {
-      if (state.type === 'nvr') {
-        if (modelRef.id) {
-          await updateDevice(modelRef.id, modelRef);
-        } else {
-          await registerDevice(modelRef);
-        }
-      } else if (state.type === 'camera') {
+      if (state.type === 'camera') {
         // 摄像头处理
         if (modelRef.id) {
           await updateDevice(modelRef.id, modelRef);
