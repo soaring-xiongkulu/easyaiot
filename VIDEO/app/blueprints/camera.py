@@ -288,6 +288,9 @@ def list_devices():
                 )
             )
 
+        # 按修改时间降序排序（新添加的设备排在前面）
+        query = query.order_by(Device.updated_at.desc())
+
         # 执行分页查询
         pagination = query.paginate(
             page=page_no,

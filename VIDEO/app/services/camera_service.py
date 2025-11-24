@@ -475,6 +475,11 @@ def register_camera(register_info: dict) -> str:
         # 直接注册模式：使用用户提供的source字段
         source = register_info.get('source')
         name = register_info.get('name', f'Camera-{id[:6]}')
+        camera_type = register_info.get('cameraType', '')
+        
+        # 判断是否是RTMP流
+        is_rtmp = source.strip().lower().startswith('rtmp://')
+        is_custom = camera_type == 'custom'
         
         # 从source中提取IP和端口（如果可能）
         ip = register_info.get('ip', '')
@@ -482,16 +487,76 @@ def register_camera(register_info: dict) -> str:
         username = register_info.get('username', '')
         password = register_info.get('password', '')
         
-        # 尝试从RTSP地址中提取IP和端口
-        rtsp_pattern = r'rtsp://(?:[^:]+:[^@]+@)?([^:/]+)(?::(\d+))?'
-        match = re.match(rtsp_pattern, source)
-        if match:
-            if not ip:
-                ip = match.group(1)
-            if not port and match.group(2):
-                port = int(match.group(2))
+        # 尝试从RTSP/RTMP地址中提取IP和端口
+        if is_rtmp:
+            # RTMP地址格式：rtmp://ip:port/path 或 rtmp://domain/path 或 rtmp://ip/path
+            # RTMP通常不需要认证，所以不提取用户名密码
+            rtmp_pattern = r'rtmp://([^:/]+)(?::(\d+))?(?:/.*)?'
+            match = re.match(rtmp_pattern, source)
+            if match:
+                extracted_ip = match.group(1)
+                extracted_port = match.group(2)
+                if not ip:
+                    ip = extracted_ip
+                if not port:
+                    if extracted_port:
+                        port = int(extracted_port)
+                    else:
+                        port = 1935  # RTMP默认端口
+            logger.info(f'设备 {id} 是RTMP流，从地址中提取IP: {ip}, 端口: {port}')
+        else:
+            # RTSP地址格式：rtsp://username:password@ip:port/path 或 rtsp://ip:port/path
+            rtsp_pattern = r'rtsp://(?:([^:]+):([^@]+)@)?([^:/]+)(?::(\d+))?(?:/.*)?'
+            match = re.match(rtsp_pattern, source)
+            if match:
+                extracted_username = match.group(1)
+                extracted_password = match.group(2)
+                extracted_ip = match.group(3)
+                extracted_port = match.group(4)
+                if not ip:
+                    ip = extracted_ip
+                if not port:
+                    if extracted_port:
+                        port = int(extracted_port)
+                    else:
+                        port = 554  # RTSP默认端口
+                # 如果地址中包含用户名密码，且用户未提供，则使用地址中的
+                if not username and extracted_username:
+                    username = extracted_username
+                if not password and extracted_password:
+                    password = extracted_password
         
-        # 创建设备记录（直接使用用户提供的source和所有字段）
+        # 如果不是自定义设备且不是RTMP流，且提供了IP、端口、用户名、密码，且某些字段缺失，尝试通过ONVIF获取设备信息
+        camera_info = {}
+        if not is_custom and not is_rtmp and ip and port and username and password:
+            # 检查是否有缺失的字段需要填充
+            missing_fields = [
+                'mac', 'manufacturer', 'model', 'firmware_version', 
+                'serial_number', 'hardware_id', 'support_move', 'support_zoom'
+            ]
+            has_missing_fields = any(not register_info.get(field) for field in missing_fields)
+            
+            if has_missing_fields:
+                try:
+                    # 尝试通过ONVIF获取设备信息
+                    onvif_cam = _create_onvif_camera(
+                        id,
+                        ip,
+                        port,
+                        username,
+                        password
+                    )
+                    camera_info = onvif_cam.get_info()
+                    logger.info(f'设备 {id} 通过ONVIF获取到设备信息，用于填充缺失字段')
+                except Exception as e:
+                    # ONVIF连接失败不影响注册，只记录警告
+                    logger.warning(f'设备 {id} ONVIF连接失败，无法获取设备信息: {str(e)}')
+                    camera_info = {}
+        elif is_custom or is_rtmp:
+            # 自定义设备或RTMP流，不通过ONVIF获取，只记录日志
+            logger.info(f'设备 {id} 是{"RTMP流" if is_rtmp else "自定义设备"}，跳过ONVIF信息获取')
+        
+        # 创建设备记录，优先使用用户提供的字段，缺失的字段从ONVIF获取的信息中填充
         camera = Device(
             id=id,
             name=name,
@@ -503,14 +568,14 @@ def register_camera(register_info: dict) -> str:
             port=port,
             username=username,
             password=password,
-            mac=register_info.get('mac', ''),
-            manufacturer=register_info.get('manufacturer', ''),
-            model=register_info.get('model', ''),
-            firmware_version=register_info.get('firmware_version', ''),
-            serial_number=register_info.get('serial_number', ''),
-            hardware_id=register_info.get('hardware_id', ''),
-            support_move=register_info.get('support_move', False),
-            support_zoom=register_info.get('support_zoom', False),
+            mac=register_info.get('mac') or camera_info.get('mac', ''),
+            manufacturer=register_info.get('manufacturer') or camera_info.get('manufacturer', ''),
+            model=register_info.get('model') or camera_info.get('model', ''),
+            firmware_version=register_info.get('firmware_version') or camera_info.get('firmware_version', ''),
+            serial_number=register_info.get('serial_number') or camera_info.get('serial_number', ''),
+            hardware_id=register_info.get('hardware_id') or camera_info.get('hardware_id', ''),
+            support_move=register_info.get('support_move') if register_info.get('support_move') is not None else camera_info.get('support_move', False),
+            support_zoom=register_info.get('support_zoom') if register_info.get('support_zoom') is not None else camera_info.get('support_zoom', False),
             nvr_id=register_info.get('nvr_id'),
             nvr_channel=register_info.get('nvr_channel', 0),
             enable_forward=register_info.get('enable_forward')
