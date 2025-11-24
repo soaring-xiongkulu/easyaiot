@@ -3,7 +3,7 @@
     @register="register"
     :title="getTitle"
     @cancel="handleCancel"
-    :width="700"
+    :width="state.type === 'source' ? 800 : 700"
     @ok="handleOk"
     :canFullscreen="false"
     :centered="true"
@@ -57,7 +57,19 @@
           <!-- 自定义类型：显示完整RTSP地址输入框 -->
           <template v-if="modelRef.cameraType === 'custom'">
             <FormItem label="RTSP地址" name="source" v-bind=validateInfos.source>
-              <Input v-model:value="modelRef.source" placeholder="请输入完整的RTSP取流地址，如：rtsp://username:password@ip:port/path"/>
+              <Input 
+                v-model:value="modelRef.source" 
+                placeholder="请输入完整的RTSP取流地址，如：rtsp://username:password@ip:port/path"
+                style="width: 100%"
+              >
+                <template #addonAfter>
+                  <CopyOutlined 
+                    class="rtsp-copy-icon" 
+                    @click="handleCopyRtsp"
+                    :style="{ cursor: modelRef.source ? 'pointer' : 'not-allowed', opacity: modelRef.source ? 1 : 0.5 }"
+                  />
+                </template>
+              </Input>
             </FormItem>
             <FormItem label="设备名称" name="name" v-bind=validateInfos.name>
               <Input v-model:value="modelRef.name" placeholder="请输入设备名称"/>
@@ -89,7 +101,20 @@
               />
             </FormItem>
             <FormItem label="RTSP地址" name="source" v-bind=validateInfos.source>
-              <Input v-model:value="modelRef.source" placeholder="自动生成" readonly/>
+              <Input 
+                v-model:value="modelRef.source" 
+                placeholder="根据输入信息自动生成" 
+                disabled
+                style="width: 100%"
+              >
+                <template #addonAfter>
+                  <CopyOutlined 
+                    class="rtsp-copy-icon" 
+                    @click="handleCopyRtsp"
+                    :style="{ cursor: modelRef.source ? 'pointer' : 'not-allowed', opacity: modelRef.source ? 1 : 0.5 }"
+                  />
+                </template>
+              </Input>
             </FormItem>
           </template>
         </Form>
@@ -202,7 +227,9 @@
 import {computed, reactive, ref} from 'vue';
 import {BasicModal, useModal, useModalInner} from '@/components/Modal';
 import {Col, Form, FormItem, Input, Row, Select, Spin,} from 'ant-design-vue';
+import {CopyOutlined} from '@ant-design/icons-vue';
 import {useMessage} from '@/hooks/web/useMessage';
+import {copyText} from '@/utils/copyTextToClipboard';
 // 导入新的API函数
 import {discoverDevices, getDeviceList, registerDevice, updateDevice} from "@/api/device/camera";
 import {BasicTable, TableAction, useTable} from "@/components/Table";
@@ -359,7 +386,9 @@ const [
 const getRules = () => {
   const baseRules: any = {
     name: [{required: true, message: '请输入设备名称', trigger: ['change']}],
-    cameraType: [{required: true, message: '请选择摄像头类型', trigger: ['change']}],
+    // 编辑模式下，cameraType 不是必填的（因为编辑的设备可能没有这个字段）
+    // 只有新增视频源设备时才需要 cameraType
+    cameraType: state.isEdit ? [] : [{required: true, message: '请选择摄像头类型', trigger: ['change']}],
   };
 
   // 根据摄像头类型动态设置验证规则
@@ -451,6 +480,9 @@ function handleCLickChange(value) {
 
 // 处理摄像头类型变化
 function handleCameraTypeChange(value) {
+  // 确保 cameraType 被正确设置
+  modelRef.cameraType = value;
+  
   if (value === 'custom') {
     // 自定义类型，清空自动生成的字段
     modelRef.source = '';
@@ -462,12 +494,31 @@ function handleCameraTypeChange(value) {
     // 海康、大华或宇视类型，清空source，等待自动生成
     modelRef.source = '';
     modelRef.stream = 0;
+    // 重置为默认值
+    if (!modelRef.ip) {
+      modelRef.ip = '';
+    }
+    if (!modelRef.port) {
+      modelRef.port = 554;
+    }
+    if (!modelRef.username) {
+      modelRef.username = 'admin';
+    }
+    if (!modelRef.password) {
+      modelRef.password = '';
+    }
+    
+    // 切换类型后，立即检查是否能自动生成RTSP地址
+    // 如果IP、端口、用户名、密码都已填写，则自动生成
+    if (modelRef.ip && modelRef.port && modelRef.username && modelRef.password) {
+      generateRtspUrl();
+    }
   }
   
   // 更新验证规则
   Object.assign(rulesRef, getRules());
-  // 重新验证表单
-  resetFields();
+  // 清除验证错误，但不重置字段值
+  clearValidate();
 }
 
 // 生成RTSP地址（海康/大华/宇视）
@@ -505,6 +556,15 @@ function handleStreamChange(value) {
   if (modelRef.cameraType === 'hikvision' || modelRef.cameraType === 'dahua' || modelRef.cameraType === 'uniview') {
     generateRtspUrl();
   }
+}
+
+// 复制RTSP地址
+function handleCopyRtsp() {
+  if (!modelRef.source) {
+    createMessage.warning('RTSP地址为空，无法复制');
+    return;
+  }
+  copyText(modelRef.source, 'RTSP地址已复制到剪贴板');
 }
 
 function handleRegisterSuccess(value) {
@@ -556,15 +616,22 @@ function handleRegisterSuccess(value) {
 }
 
 const useForm = Form.useForm;
-const {validate, resetFields, validateInfos} = useForm(modelRef, rulesRef);
+const {validate, resetFields, clearValidate, validateInfos} = useForm(modelRef, rulesRef);
 
 async function modelEdit(record) {
   try {
     console.log(JSON.stringify(record));
     state.editLoading = true;
     Object.keys(modelRef).forEach((item) => {
-      modelRef[item] = record[item];
+      // 如果 record 中有该字段，则使用 record 的值；否则保留 modelRef 的默认值
+      if (record.hasOwnProperty(item) && record[item] !== undefined && record[item] !== null) {
+        modelRef[item] = record[item];
+      }
     });
+    // 编辑模式下，如果 cameraType 不存在，设置为空字符串，避免验证错误
+    if (!modelRef.cameraType) {
+      modelRef.cameraType = '';
+    }
     state.editLoading = false;
     state.record = record;
   } catch (error) {
@@ -686,11 +753,22 @@ function handleOk() {
     try {
       // 编辑操作：如果有ID则更新，否则新增
       if (state.isEdit && modelRef.id) {
-        await updateDevice(modelRef.id, modelRef);
+        // 编辑时，过滤掉不必要的字段（如空的 cameraType）
+        const updateData = {...modelRef};
+        // 如果 cameraType 是空字符串，则不发送该字段
+        if (updateData.cameraType === '') {
+          delete updateData.cameraType;
+        }
+        await updateDevice(modelRef.id, updateData);
       } else if (state.type === 'camera') {
         // 摄像头处理
         if (modelRef.id) {
-          await updateDevice(modelRef.id, modelRef);
+          // 编辑时，过滤掉不必要的字段
+          const updateData = {...modelRef};
+          if (updateData.cameraType === '') {
+            delete updateData.cameraType;
+          }
+          await updateDevice(modelRef.id, updateData);
         } else {
           await registerDevice(modelRef);
         }
@@ -700,7 +778,12 @@ function handleOk() {
       } else {
         // 默认处理：如果有ID则更新，否则新增
         if (modelRef.id) {
-          await updateDevice(modelRef.id, modelRef);
+          // 编辑时，过滤掉不必要的字段
+          const updateData = {...modelRef};
+          if (updateData.cameraType === '') {
+            delete updateData.cameraType;
+          }
+          await updateDevice(modelRef.id, updateData);
         } else {
           await registerDevice(modelRef);
         }
@@ -727,6 +810,41 @@ function handleOk() {
   :deep(.ant-form-item-label) {
     & > label::after {
       content: '';
+    }
+  }
+  
+  // RTSP地址输入框样式优化
+  :deep(.ant-input-group-wrapper) {
+    width: 100%;
+  }
+  
+  :deep(.ant-input-group) {
+    display: flex;
+    width: 100%;
+    
+    .ant-input {
+      flex: 1;
+      min-width: 0; // 防止内容溢出
+    }
+  }
+  
+  .rtsp-copy-icon {
+    color: #1890ff;
+    font-size: 16px;
+    padding: 0 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover {
+      color: #40a9ff;
+      transform: scale(1.1);
+    }
+    
+    &:active {
+      color: #096dd9;
+      transform: scale(0.95);
     }
   }
 }
