@@ -182,6 +182,56 @@ def stop_ffmpeg_stream(device_id):
         return jsonify({'code': 500, 'msg': f'停止失败: {str(e)}'}), 500
 
 
+@camera_bp.route('/device/<string:device_id>/stream/status', methods=['GET'])
+def get_stream_status(device_id):
+    """获取FFmpeg转发状态"""
+    try:
+        device = Device.query.get(device_id)
+        if not device:
+            return jsonify({'code': 404, 'msg': f'设备 {device_id} 不存在'}), 404
+
+        status = 'stopped'
+        pid = None
+        start_time = None
+        rtmp_url = device.rtmp_stream if device.rtmp_stream else None
+
+        with ffmpeg_lock:
+            if device_id in ffmpeg_processes:
+                daemon = ffmpeg_processes[device_id]
+                if daemon._running and daemon.process:
+                    # 检查进程是否还在运行
+                    if daemon.process.poll() is None:  # None表示进程仍在运行
+                        status = 'running'
+                        pid = daemon.process.pid
+                    else:
+                        # 进程已退出，但daemon可能还在运行（等待重启）
+                        status = 'stopped'
+                else:
+                    status = 'stopped'
+            else:
+                # 没有在ffmpeg_processes中，但检查数据库中的enable_forward状态
+                if device.enable_forward:
+                    # 数据库标记为启用，但进程不存在，可能是异常退出
+                    status = 'stopped'
+                else:
+                    status = 'stopped'
+
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': {
+                'status': status,
+                'rtmp_url': rtmp_url,
+                'enable_forward': device.enable_forward,
+                'pid': pid,
+                'start_time': start_time
+            }
+        })
+    except Exception as e:
+        logger.error(f"获取流状态失败: {str(e)}", exc_info=True)
+        return jsonify({'code': 500, 'msg': f'获取流状态失败: {str(e)}'}), 500
+
+
 # ------------------------- 设备管理接口 -------------------------
 @camera_bp.route('/list', methods=['GET'])
 def list_devices():

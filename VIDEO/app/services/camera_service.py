@@ -392,11 +392,72 @@ def register_camera_by_onvif(ip: str, port: int, password: str) -> str:
 
 
 def register_camera(register_info: dict) -> str:
-    """注册设备到数据库"""
+    """注册设备到数据库
+    
+    如果传入了source字段，直接使用该字段作为RTSP地址，不再通过ONVIF搜索。
+    如果没有传入source字段，则通过ONVIF搜索设备信息。
+    """
     id = register_info.get('id') or str(time.time_ns())
     if _get_camera(id):
         raise ValueError('设备ID已存在，请使用唯一标识符')
 
+    # 如果传入了source字段，直接使用，不再通过ONVIF搜索
+    if register_info.get('source'):
+        # 直接注册模式：使用用户提供的source字段
+        source = register_info.get('source')
+        name = register_info.get('name', f'Camera-{id[:6]}')
+        
+        # 从source中提取IP和端口（如果可能）
+        ip = register_info.get('ip', '')
+        port = register_info.get('port', 554)
+        username = register_info.get('username', '')
+        password = register_info.get('password', '')
+        
+        # 尝试从RTSP地址中提取IP和端口
+        rtsp_pattern = r'rtsp://(?:[^:]+:[^@]+@)?([^:/]+)(?::(\d+))?'
+        match = re.match(rtsp_pattern, source)
+        if match:
+            if not ip:
+                ip = match.group(1)
+            if not port and match.group(2):
+                port = int(match.group(2))
+        
+        # 创建设备记录（直接使用用户提供的source）
+        camera = Device(
+            id=id,
+            name=name,
+            source=source,
+            rtmp_stream=f"rtmp://localhost:1935/live/{id}",
+            http_stream=f"http://localhost:8989/live/{id}.flv",
+            stream=register_info.get('stream', 0),
+            ip=ip or '',
+            port=port,
+            username=username,
+            password=password,
+            mac='',
+            manufacturer='',
+            model='',
+            firmware_version='',
+            serial_number='',
+            hardware_id='',
+            support_move=False,
+            support_zoom=False,
+            nvr_id=register_info.get('nvr_id') if register_info.get('nvr_id') else None,
+            nvr_channel=register_info.get('nvr_channel', 0)
+        )
+        
+        db.session.add(camera)
+        try:
+            db.session.commit()
+            if ip:
+                _monitor.update(camera.id, ip)
+            logger.info(f'设备 {id} 注册成功（直接模式），RTSP地址: {source}')
+            return id
+        except Exception as e:
+            db.session.rollback()
+            raise RuntimeError(f'数据库提交失败: {str(e)}')
+    
+    # 如果没有传入source字段，则通过ONVIF搜索（保持原有逻辑）
     try:
         onvif_cam = _create_onvif_camera(
             id,

@@ -1,8 +1,8 @@
 <template>
   <div class="camera-container">
-    <!-- 工具栏 -->
-    <div class="toolbar-wrapper">
-      <div class="toolbar-left">
+    <!-- 列表模式 -->
+    <BasicTable v-if="viewMode === 'table'" @register="registerTable">
+      <template #toolbar>
         <a-button type="primary" @click="handleScanOnvif">
           <template #icon>
             <ScanOutlined/>
@@ -27,27 +27,10 @@
           </template>
           更新ONVIF设备
         </a-button>
-      </div>
-      <div class="toolbar-right">
-        <a-radio-group v-model:value="viewMode" button-style="solid">
-          <a-radio-button value="table">
-            <template #icon>
-              <UnorderedListOutlined/>
-            </template>
-            列表
-          </a-radio-button>
-          <a-radio-button value="card">
-            <template #icon>
-              <AppstoreOutlined/>
-            </template>
-            卡片
-          </a-radio-button>
-        </a-radio-group>
-      </div>
-    </div>
-
-    <!-- 列表模式 -->
-    <BasicTable v-if="viewMode === 'table'" @register="registerTable">
+        <a-button type="default" @click="handleClickSwap"
+                  preIcon="ant-design:swap-outlined">切换视图
+        </a-button>
+      </template>
       <template #bodyCell="{ column, record }">
         <!-- 统一复制功能组件 -->
         <template
@@ -82,7 +65,37 @@
       @delete="handleCardDelete"
       @play="handleCardPlay"
       @toggleStream="handleCardToggleStream"
-    />
+    >
+      <template #header>
+        <a-button type="primary" @click="handleScanOnvif">
+          <template #icon>
+            <ScanOutlined/>
+          </template>
+          扫描局域网ONVIF设备
+        </a-button>
+        <a-button @click="openAddModal('source')">
+          <template #icon>
+            <VideoCameraAddOutlined/>
+          </template>
+          新增视频源设备
+        </a-button>
+        <a-button @click="openAddModal('nvr')">
+          <template #icon>
+            <ClusterOutlined/>
+          </template>
+          新增NVR设备
+        </a-button>
+        <a-button @click="handleUpdateOnvifDevice">
+          <template #icon>
+            <SyncOutlined/>
+          </template>
+          更新ONVIF设备
+        </a-button>
+        <a-button type="default" @click="handleClickSwap"
+                  preIcon="ant-design:swap-outlined">切换视图
+        </a-button>
+      </template>
+    </VideoCardList>
 
     <DialogPlayer title="视频播放" @register="registerPlayerAddModel"
                   @success="handlePlayerSuccess"/>
@@ -96,7 +109,7 @@ import {BasicTable, TableAction, useTable} from '@/components/Table';
 import {useMessage} from '@/hooks/web/useMessage';
 import {getBasicColumns, getFormConfig} from "./Data";
 import {useModal} from "@/components/Modal";
-import VideoModal from "./VideoModal/index.vue";
+import VideoModal from "./components/VideoModal/index.vue";
 import {
   deleteDevice,
   DeviceInfo,
@@ -124,7 +137,12 @@ const [registerAddModel, {openModal}] = useModal();
 const [registerPlayerAddModel, {openModal: openPlayerAddModel}] = useModal();
 
 // 视图模式：table 列表模式，card 卡片模式
-const viewMode = ref<'table' | 'card'>('table');
+const viewMode = ref<'table' | 'card'>('card');
+
+// 切换视图
+function handleClickSwap() {
+  viewMode.value = viewMode.value === 'table' ? 'card' : 'table';
+}
 
 // 卡片组件引用
 const cardListRef = ref();
@@ -156,6 +174,41 @@ const getStreamStatusColor = (status: string) => {
   return colorMap[status] || 'default';
 };
 
+// 检查单个设备的流状态
+const checkDeviceStreamStatus = async (deviceId: string) => {
+  try {
+    // 确保 deviceStreamStatuses.value 始终是一个对象
+    if (!deviceStreamStatuses.value) {
+      deviceStreamStatuses.value = {};
+    }
+    const response: StreamStatusResponse = await getStreamStatus(deviceId);
+    if (response.code === 0) {
+      deviceStreamStatuses.value[deviceId] = response.data.status;
+    } else {
+      deviceStreamStatuses.value[deviceId] = 'error';
+    }
+  } catch (error) {
+    console.error(`检查设备 ${deviceId} 流状态失败`, error);
+    // 确保 deviceStreamStatuses.value 始终是一个对象
+    if (!deviceStreamStatuses.value) {
+      deviceStreamStatuses.value = {};
+    }
+    deviceStreamStatuses.value[deviceId] = 'error';
+  }
+};
+
+// 检查所有设备的流状态
+const checkAllDevicesStreamStatus = async (devices: DeviceInfo[]) => {
+  try {
+    const deviceIds = devices.map(device => device.id);
+    for (const deviceId of deviceIds) {
+      await checkDeviceStreamStatus(deviceId);
+    }
+  } catch (error) {
+    console.error('检查设备流状态失败', error);
+  }
+};
+
 const [registerTable, {reload}] = useTable({
   canResize: true,
   showIndexColumn: false,
@@ -174,6 +227,10 @@ const [registerTable, {reload}] = useTable({
   // 添加成功回调，获取设备流状态
   onSuccess: (data) => {
     if (data && data.data) {
+      // 确保 deviceStreamStatuses.value 始终是一个对象
+      if (!deviceStreamStatuses.value) {
+        deviceStreamStatuses.value = {};
+      }
       // 初始化设备流状态
       data.data.forEach((device: DeviceInfo) => {
         if (!deviceStreamStatuses.value[device.id]) {
@@ -186,33 +243,6 @@ const [registerTable, {reload}] = useTable({
     }
   }
 });
-
-// 检查所有设备的流状态
-const checkAllDevicesStreamStatus = async (devices: DeviceInfo[]) => {
-  try {
-    const deviceIds = devices.map(device => device.id);
-    for (const deviceId of deviceIds) {
-      await checkDeviceStreamStatus(deviceId);
-    }
-  } catch (error) {
-    console.error('检查设备流状态失败', error);
-  }
-};
-
-// 检查单个设备的流状态
-const checkDeviceStreamStatus = async (deviceId: string) => {
-  try {
-    const response: StreamStatusResponse = await getStreamStatus(deviceId);
-    if (response.code === 0) {
-      deviceStreamStatuses.value[deviceId] = response.data.status;
-    } else {
-      deviceStreamStatuses.value[deviceId] = 'error';
-    }
-  } catch (error) {
-    console.error(`检查设备 ${deviceId} 流状态失败`, error);
-    deviceStreamStatuses.value[deviceId] = 'error';
-  }
-};
 
 // 启动状态检查定时器
 const startStatusCheckTimer = () => {
@@ -258,7 +288,7 @@ const getTableActions = (record) => {
   ];
 
   // 根据流状态添加不同的操作按钮
-  const currentStatus = deviceStreamStatuses.value[record.id] || 'unknown';
+  const currentStatus = (deviceStreamStatuses.value && deviceStreamStatuses.value[record.id]) || 'unknown';
 
   if (currentStatus === 'running') {
     actions.splice(1, 0, {
@@ -280,6 +310,10 @@ const getTableActions = (record) => {
 // 启用RTSP转发
 const handleEnableRtsp = async (record) => {
   try {
+    // 确保 deviceStreamStatuses.value 始终是一个对象
+    if (!deviceStreamStatuses.value) {
+      deviceStreamStatuses.value = {};
+    }
     createMessage.loading({content: '正在启动RTSP转发...', key: 'rtsp'});
 
     const response = await startStreamForwarding(record.id);
@@ -296,6 +330,10 @@ const handleEnableRtsp = async (record) => {
   } catch (error) {
     console.error('启动RTSP转发失败', error);
     createMessage.error({content: '启动RTSP转发失败', key: 'rtsp'});
+    // 确保 deviceStreamStatuses.value 始终是一个对象
+    if (!deviceStreamStatuses.value) {
+      deviceStreamStatuses.value = {};
+    }
     deviceStreamStatuses.value[record.id] = 'error';
   }
 };
@@ -307,6 +345,10 @@ function handlePlayerSuccess() {
 // 停止RTSP转发
 const handleDisableRtsp = async (record) => {
   try {
+    // 确保 deviceStreamStatuses.value 始终是一个对象
+    if (!deviceStreamStatuses.value) {
+      deviceStreamStatuses.value = {};
+    }
     createMessage.loading({content: '正在停止RTSP转发...', key: 'rtsp'});
 
     const response = await stopStreamForwarding(record.id);
@@ -323,6 +365,10 @@ const handleDisableRtsp = async (record) => {
   } catch (error) {
     console.error('停止RTSP转发失败', error);
     createMessage.error({content: '停止RTSP转发失败', key: 'rtsp'});
+    // 确保 deviceStreamStatuses.value 始终是一个对象
+    if (!deviceStreamStatuses.value) {
+      deviceStreamStatuses.value = {};
+    }
     deviceStreamStatuses.value[record.id] = 'error';
   }
 };
@@ -408,7 +454,7 @@ const handleCardPlay = (record: DeviceInfo) => {
 };
 
 const handleCardToggleStream = async (record: DeviceInfo) => {
-  const currentStatus = deviceStreamStatuses.value[record.id] || 'unknown';
+  const currentStatus = (deviceStreamStatuses.value && deviceStreamStatuses.value[record.id]) || 'unknown';
   if (currentStatus === 'running') {
     await handleDisableRtsp(record);
   } else {
@@ -417,7 +463,7 @@ const handleCardToggleStream = async (record: DeviceInfo) => {
   // 刷新卡片列表中的流状态
   if (viewMode.value === 'card' && cardListRef.value) {
     // 更新卡片组件的流状态
-    if (cardListRef.value.deviceStreamStatuses) {
+    if (cardListRef.value.deviceStreamStatuses && deviceStreamStatuses.value) {
       cardListRef.value.deviceStreamStatuses.value[record.id] = deviceStreamStatuses.value[record.id];
     }
     // 重新检查流状态
@@ -441,28 +487,10 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
+<style lang="less" scoped>
 .camera-container {
-  padding: 16px;
-}
-
-.toolbar-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding: 16px;
-  background: #fff;
-  border-radius: 4px;
-}
-
-.toolbar-left {
-  display: flex;
-  gap: 8px;
-}
-
-.toolbar-right {
-  display: flex;
-  align-items: center;
+  :deep(.ant-form-item) {
+    margin-bottom: 10px;
+  }
 }
 </style>

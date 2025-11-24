@@ -1,5 +1,8 @@
 <template>
   <div class="camera-card-list-wrapper p-2">
+    <div class="p-4 bg-white" style="margin-bottom: 10px">
+      <BasicForm @register="registerForm"/>
+    </div>
     <div class="p-2 bg-white">
       <Spin :spinning="state.loading">
         <List
@@ -25,23 +28,29 @@
                   <div class="flex" style="justify-content: space-between;">
                     <div class="prop">
                       <div class="label">设备型号</div>
-                      <div class="value">{{ item.model || '-' }}</div>
+                      <div class="value model-value" style="cursor: pointer;" @click="handleCopy(item.model)">
+                        <span class="model-text">{{ item.model || '-' }}</span>
+                        <Icon 
+                          icon="tdesign:copy-filled" 
+                          :size="14" 
+                          color="#4287FCFF" 
+                          class="model-copy-icon"
+                        />
+                      </div>
                     </div>
                     <div class="prop">
                       <div class="label">制造商</div>
                       <div class="value">{{ item.manufacturer || '-' }}</div>
                     </div>
                   </div>
-                  <div class="prop">
-                    <div class="label">IP地址</div>
-                    <div class="value">{{ item.ip || '-' }}</div>
-                  </div>
-                  <div class="prop">
-                    <div class="label">流状态</div>
-                    <div class="value">
-                      <a-tag :color="getStreamStatusColor(deviceStreamStatuses.value[item.id] || 'unknown')">
-                        {{ getStreamStatusText(deviceStreamStatuses.value[item.id] || 'unknown') }}
-                      </a-tag>
+                  <div class="flex" style="justify-content: space-between;">
+                    <div class="prop">
+                      <div class="label">IP地址</div>
+                      <div class="value">{{ item.ip || '-' }}</div>
+                    </div>
+                    <div class="prop">
+                      <div class="label">端口</div>
+                      <div class="value">{{ item.port || '-' }}</div>
                     </div>
                   </div>
                 </div>
@@ -57,7 +66,7 @@
                   </div>
                   <div class="btn" @click="handleToggleStream(item)">
                     <Icon 
-                      :icon="(deviceStreamStatuses.value[item.id] || 'unknown') === 'running' ? 'ant-design:pause-circle-outlined' : 'ant-design:swap-outline'" 
+                      :icon="getDeviceStreamStatus(item.id) === 'running' ? 'ant-design:pause-circle-outlined' : 'ant-design:swap-outline'" 
                       :size="15" 
                       color="#3B82F6" 
                     />
@@ -91,6 +100,7 @@
 <script lang="ts" setup>
 import {onMounted, reactive, ref, watch} from 'vue';
 import {List, Popconfirm, Spin, Tag} from 'ant-design-vue';
+import {BasicForm, useForm} from '@/components/Form';
 import {propTypes} from '@/utils/propTypes';
 import {isFunction} from '@/utils/is';
 import {Icon} from '@/components/Icon';
@@ -117,18 +127,45 @@ const { createMessage } = useMessage();
 //暴露内部方法
 const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'play', 'toggleStream']);
 
-// 暴露刷新方法
-defineExpose({
-  fetch,
-  checkDeviceStreamStatus,
-  deviceStreamStatuses
-});
-
 //数据
 const data = ref<DeviceInfo[]>([]);
 const state = reactive({
   loading: true,
 });
+
+//表单
+const [registerForm, {validate}] = useForm({
+  schemas: [
+    {
+      field: `deviceName`,
+      label: `设备名称`,
+      component: 'Input',
+    },
+    {
+      field: `online`,
+      label: `在线状态`,
+      component: 'Select',
+      componentProps: {
+        options: [
+          {value: '', label: '全部'},
+          {value: true, label: '在线'},
+          {value: false, label: '离线'},
+        ]
+      }
+    },
+  ],
+  labelWidth: 80,
+  baseColProps: {span: 6},
+  actionColOptions: {span: 6},
+  autoSubmitOnEnter: true,
+  submitFunc: handleSubmit,
+});
+
+//表单提交
+async function handleSubmit() {
+  const data = await validate();
+  await fetch(data);
+}
 
 // 设备流状态映射（从父组件传入或本地维护）
 const deviceStreamStatuses = ref<Record<string, string>>({});
@@ -155,6 +192,14 @@ const getStreamStatusColor = (status: string) => {
   return colorMap[status] || 'default';
 };
 
+// 安全获取设备流状态
+const getDeviceStreamStatus = (deviceId: string) => {
+  if (!deviceStreamStatuses.value || !deviceStreamStatuses.value[deviceId]) {
+    return 'unknown';
+  }
+  return deviceStreamStatuses.value[deviceId];
+};
+
 // 根据制造商获取图片
 const getCameraImage = (manufacturer: string) => {
   if (!manufacturer) return OTHER_IMAGE;
@@ -172,6 +217,10 @@ const getCameraImage = (manufacturer: string) => {
 // 检查设备流状态
 const checkDeviceStreamStatus = async (deviceId: string) => {
   try {
+    // 确保 deviceStreamStatuses.value 始终是一个对象
+    if (!deviceStreamStatuses.value) {
+      deviceStreamStatuses.value = {};
+    }
     const response: StreamStatusResponse = await getStreamStatus(deviceId);
     if (response.code === 0) {
       deviceStreamStatuses.value[deviceId] = response.data.status;
@@ -180,6 +229,10 @@ const checkDeviceStreamStatus = async (deviceId: string) => {
     }
   } catch (error) {
     console.error(`检查设备 ${deviceId} 流状态失败`, error);
+    // 确保 deviceStreamStatuses.value 始终是一个对象
+    if (!deviceStreamStatuses.value) {
+      deviceStreamStatuses.value = {};
+    }
     deviceStreamStatuses.value[deviceId] = 'error';
   }
 };
@@ -214,7 +267,34 @@ async function fetch(p = {}) {
   if (api && isFunction(api)) {
     try {
       state.loading = true;
-      const res = await api({...params, pageNo: page.value, pageSize: pageSize.value, ...p});
+      // 转换表单参数为API需要的格式
+      const apiParams: any = {
+        ...params,
+        pageNo: page.value,
+        pageSize: pageSize.value,
+      };
+      
+      // 处理搜索参数
+      if (p.deviceName) {
+        apiParams.search = p.deviceName;
+      }
+      if (p.online !== undefined && p.online !== '') {
+        // 如果API支持online参数，直接传递；否则可能需要其他处理
+        apiParams.online = p.online;
+      }
+      
+      // 合并其他参数
+      Object.keys(p).forEach(key => {
+        if (key !== 'deviceName' && key !== 'online') {
+          apiParams[key] = p[key];
+        }
+      });
+      
+      const res = await api(apiParams);
+      // 确保 deviceStreamStatuses.value 始终是一个对象
+      if (!deviceStreamStatuses.value) {
+        deviceStreamStatuses.value = {};
+      }
       // 根据API返回格式，处理数据
       if (res && res.data) {
         data.value = res.data || [];
@@ -297,6 +377,36 @@ async function handlePlay(record: DeviceInfo) {
 async function handleToggleStream(record: DeviceInfo) {
   emit('toggleStream', record);
 }
+
+// 复制功能
+async function handleCopy(text: string) {
+  if (!text || text === '-') {
+    return;
+  }
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    createMessage.success('复制成功');
+  } catch (error) {
+    console.error('复制失败', error);
+    createMessage.error('复制失败');
+  }
+}
+
+// 暴露刷新方法（必须在所有函数定义之后）
+defineExpose({
+  fetch,
+  checkDeviceStreamStatus,
+  deviceStreamStatuses
+});
 </script>
 <style lang="less" scoped>
 .camera-card-list-wrapper {
@@ -397,6 +507,25 @@ async function handleToggleStream(record: DeviceInfo) {
             overflow: hidden;
             text-overflow: ellipsis;
             margin-top: 6px;
+          }
+        }
+
+        .model-value {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          overflow: visible;
+
+          .model-text {
+            max-width: 90px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex-shrink: 1;
+          }
+
+          .model-copy-icon {
+            flex-shrink: 0;
           }
         }
       }
