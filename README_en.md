@@ -22,7 +22,7 @@ My vision is for this system to be accessible worldwide, achieving truly zero ba
 ### 📍 Project Positioning
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT.
+EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT, achieving a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making, truly realizing interconnected everything and intelligent control of everything.
 </p>
 
 #### 🧠 AI Capabilities
@@ -46,9 +46,6 @@ EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses
   <li><strong>Device Status Monitoring and Alert Management</strong>: Real-time monitoring, anomaly alerts, intelligent decision-making</li>
 </ul>
 
-<p style="font-size: 15px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #3498db; border-radius: 4px;">
-<strong>Core Value</strong>: Achieves a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making, truly realizing interconnected everything and intelligent control of everything.
-</p>
 
 ### 💡 Technical Philosophy
 

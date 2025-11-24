@@ -22,7 +22,7 @@
 ### 📍 项目定位
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT的深度融合。
+EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT的深度融合，实现从设备接入到数据采集、AI分析、智能决策的全链路闭环，真正实现万物互联、万物智控。
 </p>
 
 #### 🧠 AI能力
@@ -46,9 +46,6 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>设备状态监控与告警管理</strong>：实时监控、异常告警、智能决策</li>
 </ul>
 
-<p style="font-size: 15px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #3498db; border-radius: 4px;">
-<strong>核心价值</strong>：实现从设备接入到数据采集、AI分析、智能决策的全链路闭环，真正实现万物互联、万物智控。
-</p>
 
 ### 💡 技术理念
 
