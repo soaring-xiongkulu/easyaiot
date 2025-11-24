@@ -19,6 +19,17 @@
 #   verify     - 验证所有服务是否启动成功
 # ============================================
 
+# 确保使用 bash 执行此脚本
+if [ -z "$BASH_VERSION" ]; then
+    # 如果当前 shell 不是 bash，使用 bash 重新执行
+    if command -v bash &> /dev/null; then
+        exec bash "$0" "$@"
+    else
+        echo "错误: 需要 bash 环境，但未找到 bash 命令" >&2
+        exit 1
+    fi
+fi
+
 set -e
 
 # 颜色定义

@@ -18,6 +18,17 @@
 #   update     - 更新并重启所有中间件
 # ============================================
 
+# 确保使用 bash 执行此脚本
+if [ -z "$BASH_VERSION" ]; then
+    # 如果当前 shell 不是 bash，使用 bash 重新执行
+    if command -v bash &> /dev/null; then
+        exec bash "$0" "$@"
+    else
+        echo "错误: 需要 bash 环境，但未找到 bash 命令" >&2
+        exit 1
+    fi
+fi
+
 set -e
 
 # 颜色定义
@@ -59,29 +70,39 @@ MIDDLEWARE_SERVICES=(
     "EMQX"
 )
 
-# 中间件端口映射
-declare -A MIDDLEWARE_PORTS
-MIDDLEWARE_PORTS["Nacos"]="8848"
-MIDDLEWARE_PORTS["PostgresSQL"]="5432"
-MIDDLEWARE_PORTS["TDengine"]="6030"
-MIDDLEWARE_PORTS["Redis"]="6379"
-MIDDLEWARE_PORTS["Kafka"]="9092"
-MIDDLEWARE_PORTS["MinIO"]="9000"
-MIDDLEWARE_PORTS["SRS"]="1935"
-MIDDLEWARE_PORTS["NodeRED"]="1880"
-MIDDLEWARE_PORTS["EMQX"]="1883"
+# 中间件端口映射（兼容 bash 3.2，使用函数模拟关联数组）
+get_middleware_port() {
+    local service="$1"
+    case "$service" in
+        "Nacos") echo "8848" ;;
+        "PostgresSQL") echo "5432" ;;
+        "TDengine") echo "6030" ;;
+        "Redis") echo "6379" ;;
+        "Kafka") echo "9092" ;;
+        "MinIO") echo "9000" ;;
+        "SRS") echo "1935" ;;
+        "NodeRED") echo "1880" ;;
+        "EMQX") echo "1883" ;;
+        *) echo "" ;;
+    esac
+}
 
-# 中间件健康检查端点
-declare -A MIDDLEWARE_HEALTH_ENDPOINTS
-MIDDLEWARE_HEALTH_ENDPOINTS["Nacos"]="/nacos/actuator/health"
-MIDDLEWARE_HEALTH_ENDPOINTS["PostgresSQL"]=""
-MIDDLEWARE_HEALTH_ENDPOINTS["TDengine"]=""
-MIDDLEWARE_HEALTH_ENDPOINTS["Redis"]=""
-MIDDLEWARE_HEALTH_ENDPOINTS["Kafka"]=""
-MIDDLEWARE_HEALTH_ENDPOINTS["MinIO"]="/minio/health/live"
-MIDDLEWARE_HEALTH_ENDPOINTS["SRS"]="/api/v1/versions"
-MIDDLEWARE_HEALTH_ENDPOINTS["NodeRED"]="/"
-MIDDLEWARE_HEALTH_ENDPOINTS["EMQX"]="/api/v5/status"
+# 中间件健康检查端点（兼容 bash 3.2，使用函数模拟关联数组）
+get_middleware_health_endpoint() {
+    local service="$1"
+    case "$service" in
+        "Nacos") echo "/nacos/actuator/health" ;;
+        "PostgresSQL") echo "" ;;
+        "TDengine") echo "" ;;
+        "Redis") echo "" ;;
+        "Kafka") echo "" ;;
+        "MinIO") echo "/minio/health/live" ;;
+        "SRS") echo "/api/v1/versions" ;;
+        "NodeRED") echo "/" ;;
+        "EMQX") echo "/api/v5/status" ;;
+        *) echo "" ;;
+    esac
+}
 
 # 日志输出函数（去掉颜色代码后写入日志文件）
 log_to_file() {
@@ -2849,22 +2870,38 @@ init_databases() {
         print_warning "Nacos 未就绪，将跳过 Nacos 密码重置确认步骤"
     fi
     
-    # 定义数据库和 SQL 文件映射
+    # 定义数据库和 SQL 文件映射（兼容 bash 3.2，使用普通数组）
     # SQL 文件路径：相对于脚本目录的上一级目录的 postgresql 目录
     local sql_dir="$(cd "${SCRIPT_DIR}/../postgresql" && pwd)"
-    declare -A DB_SQL_MAP
-    DB_SQL_MAP["iot-ai20"]="${sql_dir}/iot-ai10.sql"
-    DB_SQL_MAP["iot-device20"]="${sql_dir}/iot-device10.sql"
-    DB_SQL_MAP["iot-video20"]="${sql_dir}/iot-video10.sql"
-    DB_SQL_MAP["ruoyi-vue-pro20"]="${sql_dir}/ruoyi-vue-pro10.sql"
-    DB_SQL_MAP["iot-message20"]="${sql_dir}/iot-message10.sql"
+    
+    # 使用函数模拟关联数组
+    get_db_sql_file() {
+        local db_name="$1"
+        case "$db_name" in
+            "iot-ai20") echo "${sql_dir}/iot-ai10.sql" ;;
+            "iot-device20") echo "${sql_dir}/iot-device10.sql" ;;
+            "iot-video20") echo "${sql_dir}/iot-video10.sql" ;;
+            "ruoyi-vue-pro20") echo "${sql_dir}/ruoyi-vue-pro10.sql" ;;
+            "iot-message20") echo "${sql_dir}/iot-message10.sql" ;;
+            *) echo "" ;;
+        esac
+    }
+    
+    # 数据库名称列表
+    local db_names=(
+        "iot-ai20"
+        "iot-device20"
+        "iot-video20"
+        "ruoyi-vue-pro20"
+        "iot-message20"
+    )
     
     local success_count=0
-    local total_count=${#DB_SQL_MAP[@]}
+    local total_count=${#db_names[@]}
     
     # 创建数据库并执行 SQL 脚本
-    for db_name in "${!DB_SQL_MAP[@]}"; do
-        local sql_file="${DB_SQL_MAP[$db_name]}"
+    for db_name in "${db_names[@]}"; do
+        local sql_file=$(get_db_sql_file "$db_name")
         
         if create_database "$db_name"; then
             # 检查数据库是否已初始化
@@ -3094,7 +3131,7 @@ check_and_clean_ports() {
     while [ $wait_count -lt $max_wait ]; do
         local ports_still_in_use=0
         for service in "${MIDDLEWARE_SERVICES[@]}"; do
-            local port="${MIDDLEWARE_PORTS[$service]}"
+            local port=$(get_middleware_port "$service")
             if [ -z "$port" ]; then
                 continue
             fi
@@ -3132,7 +3169,7 @@ check_and_clean_ports() {
         
         if [ ${#service_ports[@]} -eq 0 ]; then
             # 如果没有找到，使用默认主端口
-            local port="${MIDDLEWARE_PORTS[$service]}"
+            local port=$(get_middleware_port "$service")
             if [ -z "$port" ]; then
                 continue
             fi
@@ -3261,7 +3298,7 @@ check_and_clean_ports() {
         print_info "二次验证端口状态..."
         sleep 1
         for service in "${MIDDLEWARE_SERVICES[@]}"; do
-            local port="${MIDDLEWARE_PORTS[$service]}"
+            local port=$(get_middleware_port "$service")
             if [ -z "$port" ]; then
                 continue
             fi
@@ -3453,7 +3490,7 @@ check_and_clean_ports() {
                     # 清理所有相关容器（按名称）
                     for port in "${conflict_ports[@]}"; do
                         for service in "${MIDDLEWARE_SERVICES[@]}"; do
-                            if [ "${MIDDLEWARE_PORTS[$service]}" = "$port" ]; then
+                            if [ "$(get_middleware_port "$service")" = "$port" ]; then
                                 local container_name=""
                                 case "$service" in
                                     "TDengine") container_name="tdengine-server" ;;

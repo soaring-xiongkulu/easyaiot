@@ -284,20 +284,23 @@ check_and_install_nodejs20() {
         case "$response" in
             [yY][eE][sS]|[yY])
                 if [ "$EUID" -ne 0 ]; then
-                    print_error "安装 Node.js 需要 root 权限，请使用 sudo 运行此脚本"
-                    exit 1
+                    print_warning "安装 Node.js 需要 root 权限，跳过自动安装"
+                    print_info "请手动安装 Node.js 20+ 后继续，或使用 sudo 运行此脚本"
+                    print_info "安装指南: https://nodejs.org/"
+                    return 1
                 fi
                 if install_nodejs20; then
                     print_success "Node.js 20+ 安装成功"
                     return 0
                 else
                     print_error "Node.js 20+ 安装失败，请手动安装后重试"
-                    exit 1
+                    return 1
                 fi
                 ;;
             [nN][oO]|[nN]|"")
-                print_error "Node.js 20+ 是必需的，安装流程已终止"
-                exit 1
+                print_warning "Node.js 20+ 是必需的，但安装流程将继续"
+                print_info "请确保已安装 Node.js 20+，否则某些服务可能无法正常运行"
+                return 1
                 ;;
             *)
                 print_warning "请输入 y 或 N"
@@ -328,7 +331,9 @@ install_nvidia_container_toolkit() {
     print_section "安装 NVIDIA Container Toolkit"
     
     if [ "$EUID" -ne 0 ]; then
-        print_error "安装 nvidia-container-toolkit 需要 root 权限，请使用 sudo 运行此脚本"
+        print_warning "安装 nvidia-container-toolkit 需要 root 权限，跳过自动安装"
+        print_info "如果后续需要使用 GPU，请手动安装 nvidia-container-toolkit"
+        print_info "安装指南: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
         return 1
     fi
     
@@ -523,8 +528,10 @@ check_and_install_nvidia_container_toolkit() {
         case "$response" in
             [yY][eE][sS]|[yY])
                 if [ "$EUID" -ne 0 ]; then
-                    print_error "安装 nvidia-container-toolkit 需要 root 权限，请使用 sudo 运行此脚本"
-                    exit 1
+                    print_warning "安装 nvidia-container-toolkit 需要 root 权限，跳过自动安装"
+                    print_info "如果后续需要使用 GPU，请手动安装 nvidia-container-toolkit"
+                    print_info "安装指南: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
+                    return 0
                 fi
                 if install_nvidia_container_toolkit; then
                     print_success "nvidia-container-toolkit 安装成功"
@@ -1140,7 +1147,9 @@ install_docker() {
     print_section "安装 Docker"
     
     if [ "$EUID" -ne 0 ]; then
-        print_error "安装 Docker 需要 root 权限，请使用 sudo 运行此脚本"
+        print_warning "安装 Docker 需要 root 权限，跳过自动安装"
+        print_info "请手动安装 Docker 后继续，或使用 sudo 运行此脚本"
+        print_info "安装指南: https://docs.docker.com/get-docker/"
         return 1
     fi
     
@@ -1322,7 +1331,9 @@ download_docker_compose_from_github() {
     print_section "从 GitHub 下载 Docker Compose v2.35.1"
     
     if [ "$EUID" -ne 0 ]; then
-        print_error "安装 Docker Compose 需要 root 权限，请使用 sudo 运行此脚本"
+        print_warning "安装 Docker Compose 需要 root 权限，跳过自动安装"
+        print_info "请手动安装 Docker Compose 后继续，或使用 sudo 运行此脚本"
+        print_info "下载地址: https://github.com/docker/compose/releases/tag/v2.35.1"
         return 1
     fi
     
@@ -1378,9 +1389,9 @@ download_docker_compose_from_github() {
         mv "$compose_path" "${compose_path}.bak.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
     fi
     
-    # 移动文件到目标位置并设置权限
+    # 移动文件到目标位置并设置权限（只给所有者添加，避免需要 root 权限）
     if mv "$temp_file" "$compose_path"; then
-        chmod +x "$compose_path"
+        chmod u+x "$compose_path"
         print_success "Docker Compose 已下载并安装到: $compose_path"
         
         # 验证安装
@@ -1404,7 +1415,9 @@ install_docker_compose() {
     print_section "安装 Docker Compose"
     
     if [ "$EUID" -ne 0 ]; then
-        print_error "安装 Docker Compose 需要 root 权限，请使用 sudo 运行此脚本"
+        print_warning "安装 Docker Compose 需要 root 权限，跳过自动安装"
+        print_info "请手动安装 Docker Compose 后继续，或使用 sudo 运行此脚本"
+        print_info "下载地址: https://github.com/docker/compose/releases/tag/v2.35.1"
         return 1
     fi
     
@@ -1485,18 +1498,21 @@ check_and_install_docker() {
                     if check_docker_permission "$@"; then
                         return 0
                     else
-                        print_error "Docker 安装成功但无法访问，请检查权限"
-                        exit 1
+                        print_warning "Docker 安装成功但无法访问，请检查权限"
+                        print_info "请确保当前用户在 docker 组中: sudo usermod -aG docker $USER"
+                        return 1
                     fi
                 else
-                    print_error "Docker 安装失败，请手动安装后重试"
-                    exit 1
+                    print_warning "Docker 安装失败，请手动安装后重试"
+                    print_info "安装指南: https://docs.docker.com/get-docker/"
+                    return 1
                 fi
                 ;;
             [nN][oO]|[nN]|"")
-                print_error "Docker 是必需的，安装流程已终止"
+                print_warning "Docker 是必需的，但安装流程将继续"
+                print_info "请确保已安装 Docker，否则无法继续"
                 print_info "安装指南: https://docs.docker.com/get-docker/"
-                exit 1
+                return 1
                 ;;
             *)
                 print_warning "请输入 y 或 N"
@@ -1540,8 +1556,10 @@ check_and_install_docker_compose() {
                 case "$response" in
                     [yY][eE][sS]|[yY])
                         if [ "$EUID" -ne 0 ]; then
-                            print_error "升级 Docker Compose 需要 root 权限，请使用 sudo 运行此脚本"
-                            exit 1
+                            print_warning "升级 Docker Compose 需要 root 权限，跳过自动升级"
+                            print_info "请手动升级 Docker Compose 后继续，或使用 sudo 运行此脚本"
+                            print_info "下载地址: https://github.com/docker/compose/releases/tag/v2.35.1"
+                            return 1
                         fi
                         print_info "正在升级 Docker Compose..."
                         # 从 GitHub 下载指定版本
@@ -1551,19 +1569,19 @@ check_and_install_docker_compose() {
                                 print_success "Docker Compose 升级成功"
                                 return 0
                             else
-                                print_error "Docker Compose 升级后版本仍不符合要求"
-                                exit 1
+                                print_warning "Docker Compose 升级后版本仍不符合要求"
+                                return 1
                             fi
                         else
-                            print_error "Docker Compose 升级失败，请手动升级后重试"
-                            exit 1
+                            print_warning "Docker Compose 升级失败，请手动升级后重试"
+                            return 1
                         fi
                         ;;
                     [nN][oO]|[nN]|"")
-                        print_error "Docker Compose 版本不符合要求，安装流程已终止"
-                        print_info "请手动升级 Docker Compose 到 v2.35.0+ 后重试"
+                        print_warning "Docker Compose 版本不符合要求，但安装流程将继续"
+                        print_info "请手动升级 Docker Compose 到 v2.35.0+"
                         print_info "下载地址: https://github.com/docker/compose/releases/tag/v2.35.1"
-                        exit 1
+                        return 1
                         ;;
                     *)
                         print_warning "请输入 y 或 N"
@@ -1595,18 +1613,19 @@ check_and_install_docker_compose() {
                         fi
                         return 0
                     else
-                        print_error "Docker Compose 安装后版本不符合要求"
-                        exit 1
+                        print_warning "Docker Compose 安装后版本不符合要求"
+                        return 1
                     fi
                 else
-                    print_error "Docker Compose 安装失败，请手动安装后重试"
-                    exit 1
+                    print_warning "Docker Compose 安装失败，请手动安装后重试"
+                    return 1
                 fi
                 ;;
             [nN][oO]|[nN]|"")
-                print_error "Docker Compose 是必需的，安装流程已终止"
+                print_warning "Docker Compose 是必需的，但安装流程将继续"
+                print_info "请确保已安装 Docker Compose v2.35.0+"
                 print_info "下载地址: https://github.com/docker/compose/releases/tag/v2.35.1"
-                exit 1
+                return 1
                 ;;
             *)
                 print_warning "请输入 y 或 N"
@@ -2812,8 +2831,8 @@ init_minio_with_python() {
         }
     fi
     
-    # 执行 Python 脚本，传递所有参数
-    chmod +x "$python_script"
+    # 执行 Python 脚本，传递所有参数（只给所有者添加执行权限，避免需要 root 权限）
+    chmod u+x "$python_script"
     python3 "$python_script" "$@" > "$output_file" 2>&1
     local exit_code=$?
     
@@ -4115,8 +4134,9 @@ reload_environment() {
                 fi
             fi
         fi
-        print_error "无法读取 /etc/profile，请手动执行: sudo bash -c 'source /etc/profile'"
-        return 1
+        print_warning "无法读取 /etc/profile，跳过环境变量加载"
+        print_info "如需加载环境变量，请手动执行: source /etc/profile 或 sudo bash -c 'source /etc/profile'"
+        return 0
     fi
     
     # 直接 source /etc/profile（在当前 shell 中）

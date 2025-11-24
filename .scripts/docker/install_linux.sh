@@ -335,8 +335,8 @@ fix_line_endings() {
                 tr -d '\r' < "$script_file" > "$temp_file" 2>/dev/null && mv "$temp_file" "$script_file" || rm -f "$temp_file"
             fi
         fi
-        # 确保文件有执行权限
-        chmod +x "$script_file" 2>/dev/null || true
+        # 确保文件有执行权限（只给所有者添加，避免需要 root 权限）
+        chmod u+x "$script_file" 2>/dev/null || true
     fi
 }
 
@@ -785,8 +785,9 @@ reload_environment() {
                 fi
             fi
         fi
-        print_error "无法读取 /etc/profile，请手动执行: sudo bash -c 'source /etc/profile'"
-        return 1
+        print_warning "无法读取 /etc/profile，跳过环境变量加载"
+        print_info "如需加载环境变量，请手动执行: source /etc/profile 或 sudo bash -c 'source /etc/profile'"
+        return 0
     fi
     
     # 直接 source /etc/profile（在当前 shell 中）
