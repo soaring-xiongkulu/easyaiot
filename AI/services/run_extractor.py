@@ -93,7 +93,7 @@ def update_inference_endpoints():
         api_base_url = os.getenv('API_BASE_URL', 'http://127.0.0.1:5000')
         try:
             response = requests.get(
-                f"{api_base_url}/api/v1/deploy/replicas",
+                f"{api_base_url}/model/deploy_service/replicas",
                 params={'service_name': service_name},
                 timeout=5
             )
@@ -117,7 +117,7 @@ def update_inference_endpoints():
         # 获取排序器接收地址
         try:
             response = requests.get(
-                f"{api_base_url}/api/v1/deploy/sorter",
+                f"{api_base_url}/model/deploy_service/sorter",
                 params={'service_name': service_name},
                 timeout=5
             )
@@ -202,43 +202,77 @@ def send_frame_to_inference(frame: np.ndarray, frame_index: int) -> bool:
 
 def extract_frames():
     """抽帧主循环"""
-    global cap, current_frame_index, running, frame_skip
+    global cap, current_frame_index, running, frame_skip, input_type, input_source
     
     logger.info(f'开始抽帧: {input_source}, 类型: {input_type}, 抽帧间隔: {frame_skip}')
     
-    # 打开视频源
-    if input_type == 'rtsp':
-        cap = cv2.VideoCapture(input_source)
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区
-    else:
-        cap = cv2.VideoCapture(input_source)
-    
-    if not cap.isOpened():
-        logger.error(f'无法打开视频源: {input_source}')
-        return
-    
-    frame_count = 0
-    
-    while running and cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            logger.warning('无法读取帧，可能视频已结束')
+    while running:
+        # 打开视频源
+        if input_type == 'rtsp':
+            cap = cv2.VideoCapture(input_source)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区
+        else:
+            cap = cv2.VideoCapture(input_source)
+        
+        if not cap.isOpened():
+            logger.error(f'无法打开视频源: {input_source}')
+            if input_type == 'video':
+                # 视频文件无法打开，等待后重试
+                time.sleep(5)
+                continue
+            else:
+                # RTSP流无法打开，等待后重试
+                time.sleep(5)
+                continue
+        
+        frame_count = 0
+        
+        while running and cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                if input_type == 'video':
+                    # 视频结束，从头开始
+                    logger.info('视频已结束，从头开始抽帧')
+                    if cap:
+                        cap.release()
+                    # 重置帧索引（如果重新开启）
+                    with frame_index_lock:
+                        # 检查是否仍然启用
+                        if check_extractor_enabled():
+                            current_frame_index = 0
+                            logger.info('视频重新开始，帧索引重置为0')
+                    break
+                else:
+                    # RTSP流断开，等待后重试
+                    logger.warning('RTSP流断开，等待5秒后重试')
+                    if cap:
+                        cap.release()
+                    time.sleep(5)
+                    break
+            
+            # 抽帧策略：每frame_skip帧抽1帧
+            if frame_count % frame_skip == 0:
+                # 获取下一个帧索引
+                with frame_index_lock:
+                    frame_index = current_frame_index
+                    current_frame_index += 1
+                
+                # 发送到推理器
+                send_frame_to_inference(frame, frame_index)
+            
+            frame_count += 1
+        
+        if cap:
+            cap.release()
+        
+        # 如果抽帧器已关闭，退出循环
+        if not running:
             break
         
-        # 抽帧策略：每frame_skip帧抽1帧
-        if frame_count % frame_skip == 0:
-            # 获取下一个帧索引
-            with frame_index_lock:
-                frame_index = current_frame_index
-                current_frame_index += 1
-            
-            # 发送到推理器
-            send_frame_to_inference(frame, frame_index)
-        
-        frame_count += 1
+        # 对于RTSP，如果流断开，等待后重试
+        if input_type == 'rtsp':
+            time.sleep(2)
     
-    if cap:
-        cap.release()
     logger.info('抽帧结束')
 
 
@@ -313,7 +347,7 @@ def send_heartbeat():
     while running:
         try:
             requests.post(
-                f"{api_base_url}/api/v1/deploy/extractor/heartbeat",
+                f"{api_base_url}/model/deploy_service/extractor/heartbeat",
                 json={
                     'extractor_id': extractor_id,
                     'camera_name': camera_name,
@@ -432,7 +466,7 @@ def main():
     
     # 定期检查抽帧器启用状态（每30秒）
     def check_enabled_periodic():
-        global running
+        global running, current_frame_index
         while True:
             time.sleep(30)  # 每30秒检查一次
             is_enabled_now = check_extractor_enabled()
@@ -441,6 +475,12 @@ def main():
                 running = False
             elif is_enabled_now and not running:
                 logger.info(f'抽帧器 {camera_name} 已开启，开始抽帧')
+                # 如果当前输入源是视频则从头抽帧，如果是rtsp流也是取当前流去抽帧
+                if input_type == 'video':
+                    with frame_index_lock:
+                        current_frame_index = 0  # 视频从头抽帧
+                    logger.info('视频输入，帧索引重置为0')
+                # RTSP不需要重置索引，从当前流开始抽帧
                 running = True
                 # 重新启动抽帧线程
                 extraction_thread = threading.Thread(target=extract_frames, daemon=True)
