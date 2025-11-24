@@ -12,16 +12,20 @@ const dashboard: AppRouteModule = {
     orderNo: 10,
     icon: 'clarity:dashboard-line',
     title: t('routes.dashboard.dashboard'),
+    hideMenu: false,
+    hideChildrenInMenu: true, // 隐藏子菜单，点击直接跳转
   },
   children: [
     {
       path: 'index',
-      name: '_Dashboard',
-      component: () => import('@/views/dashboard/analysis/index.vue'),
+      name: 'DashboardPage',
+      component: () => import('@/views/dashboard/monitor/index.vue'),
       meta: {
-        title: t('routes.dashboard.analysis'),
+        title: t('routes.dashboard.dashboard'),
         icon: 'clarity:dashboard-line',
-        hideMenu: true,
+        hideMenu: true, // 子路由不在菜单中显示
+        hideBreadcrumb: true,
+        hideTab: true,
       },
     },
   ],

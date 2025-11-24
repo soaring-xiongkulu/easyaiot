@@ -31,7 +31,7 @@
       <a-tree
         v-model:expandedKeys="expandedKeys"
         v-model:selectedKeys="selectedKeys"
-        :tree-data="treeData"
+        :tree-data="filteredTreeData"
         :field-names="{ children: 'children', title: 'title', key: 'key' }"
         @select="handleSelect"
         class="device-tree"
@@ -151,26 +151,51 @@ const filteredTreeData = computed(() => {
 // 选择设备
 const handleSelect = (selectedKeys: any[], info: any) => {
   if (selectedKeys.length > 0 && info.node) {
+    const node = info.node
     const device = {
-      id: info.node.key,
-      name: info.node.title,
-      location: getFullPath(info.node)
+      id: node.key,
+      name: node.title,
+      location: getFullPath(node, treeData.value)
     }
     emit('device-change', device)
   }
 }
 
 // 获取完整路径
-const getFullPath = (node: any): string => {
-  const path = [node.title]
-  let parent = node.parent
+const getFullPath = (node: any, treeNodes: any[]): string => {
+  const path: string[] = [node.title]
   
-  while (parent) {
-    path.unshift(parent.title)
-    parent = parent.parent
+  // 查找父节点
+  const findParent = (nodes: any[], targetKey: string, parentTitle?: string): string | null => {
+    for (const n of nodes) {
+      if (n.key === targetKey) {
+        return parentTitle || null
+      }
+      if (n.children && n.children.length > 0) {
+        const found = findParent(n.children, targetKey, n.title)
+        if (found !== null) {
+          path.unshift(found)
+          return found
+        }
+      }
+    }
+    return null
   }
   
-  return path.join('')
+  // 简化：直接使用节点标题，如果需要完整路径可以递归查找
+  if (node.title.includes('小区') || node.title.includes('路')) {
+    // 查找父节点标题
+    for (const rootNode of treeNodes) {
+      if (rootNode.children) {
+        const found = rootNode.children.find((child: any) => child.key === node.key)
+        if (found) {
+          return `${rootNode.title}${node.title}`
+        }
+      }
+    }
+  }
+  
+  return node.title
 }
 
 // 监听搜索文本变化，自动展开匹配的节点

@@ -12,7 +12,7 @@
     
     <div class="header-right">
       <div class="user-info">
-        <span class="user-role">超级管理员</span>
+        <span class="user-role" @click="handleGoToAdmin">管理后台</span>
       </div>
     </div>
   </div>
@@ -20,10 +20,17 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 
 defineOptions({
   name: 'MonitorHeader'
 })
+
+const router = useRouter()
+
+const handleGoToAdmin = () => {
+  router.push('/camera/index')
+}
 
 const currentDate = ref('')
 const currentDay = ref('')
@@ -112,5 +119,12 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.3s;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+  }
 }
 </style>
