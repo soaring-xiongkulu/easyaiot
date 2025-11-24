@@ -1,5 +1,3 @@
-<div align="center">
-
 # EasyAIoT (Cloud-Edge-Device Integrated Collaborative Algorithm Application Platform)
 
 [![Gitee star](https://gitee.com/soaring-xiongkulu/easyaiot/badge/star.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/stargazers)
@@ -9,13 +7,9 @@
 My vision is for this system to be accessible worldwide, achieving truly zero barriers to AI. Everyone should experience the benefits of AI, not just a privileged few.
 </p>
 
-</div>
+<img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 
-<div align="center">
-    <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
-</div>
-
-<h4 align="center" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; padding: 20px; font-weight: bold;">
+<h4 style="display: flex; justify-content: left; gap: 20px; flex-wrap: wrap; padding: 20px; font-weight: bold;">
   <a href="./README.md">中文文档</a>
   <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
   <a href="./README_en.md">English Document</a>
@@ -68,9 +62,7 @@ Java is suitable for platform development but not for network or AI programming;
 
 ### Module Data Flow
 
-<div align="center">
-  <img src=".image/iframe3.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-</div>
+<img src=".image/iframe3.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 
 ### Zero-Shot Labeling Technology
 
@@ -78,9 +70,7 @@ Java is suitable for platform development but not for network or AI programming;
 Innovatively leveraging large models to construct a zero-shot labeling technical system (ideally eliminating manual labeling, completely freeing up human resources), this technology generates initial data through large models and completes automatic labeling via prompt engineering. It then ensures data quality through optional human-machine collaborative verification, thereby training an initial small model. This small model, through continuous iteration and self-optimization, achieves co-evolution of labeling efficiency and model accuracy, ultimately driving continuous improvement in system performance.
 </p>
 
-<div align="center">
-  <img src=".image/iframe4.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-</div>
+<img src=".image/iframe4.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 
 ### Project Architecture Features
 
@@ -92,7 +82,7 @@ EasyAIoT is not actually one project; it is seven distinct projects.
 What's the benefit? Suppose you are on a resource-constrained device (like an RK3588). You can extract and independently deploy just one of those projects. Therefore, while this project appears to be a cloud platform, it simultaneously functions as an edge platform.
 </p>
 
-<div align="center" style="margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white;">
+<div style="margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white;">
 
 <p style="font-size: 16px; line-height: 1.8; margin: 0; font-weight: 500;">
 🌟 Genuine open source is rare. If you find this project useful, please star it before leaving - your support means everything to us!<br>
@@ -207,9 +197,7 @@ In terms of IoT device management, EasyAIoT provides comprehensive device lifecy
 </p>
 </div>
 
-<div align="center" style="margin: 20px 0;">
-  <img src=".image/iframe1.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-</div>
+<img src=".image/iframe1.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
 
 ## ⚠️ Disclaimer
 

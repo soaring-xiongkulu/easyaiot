@@ -1,5 +1,3 @@
-<div align="center">
-
 # EasyAIoT（云边端一体化智能算法应用平台）
 
 [![Gitee star](https://gitee.com/soaring-xiongkulu/easyaiot/badge/star.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/stargazers)
@@ -9,13 +7,9 @@
 我希望全世界都能使用这个系统，实现AI的真正0门槛，人人都能体验到AI带来的好处，而并不只是掌握在少数人手里。
 </p>
 
-</div>
+<img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
 
-<div align="center">
-    <img src=".image/logo.png" width="30%" height="30%" alt="EasyAIoT">
-</div>
-
-<h4 align="center" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; padding: 20px; font-weight: bold;">
+<h4 style="display: flex; justify-content: left; gap: 20px; flex-wrap: wrap; padding: 20px; font-weight: bold;">
   <a href="./README.md">中文文档</a>
   <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
   <a href="./README_en.md">English Document</a>
@@ -68,9 +62,7 @@ Java适合做平台但不适合网络编程和AI编程，Python适合做网络�
 
 ### 模块数据流转
 
-<div align="center">
-  <img src=".image/iframe3.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-</div>
+<img src=".image/iframe3.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 
 ### 零样本标注技术
 
@@ -78,9 +70,7 @@ Java适合做平台但不适合网络编程和AI编程，Python适合做网络�
 创新性的依托大模型构建零样本标注技术体系（理想状态去掉人工标注环节，标注完全解放人力），该技术通过大模型生成初始数据并借助提示词技术完成自动标注，再经人机协同校验确保数据质量（可选），进而训练出初始小模型。该小模型通过持续迭代、自我优化，实现标注效率与模型精度协同进化，最终推动系统性能不断攀升。
 </p>
 
-<div align="center">
-  <img src=".image/iframe4.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-</div>
+<img src=".image/iframe4.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 
 ### 项目架构特点
 
@@ -92,7 +82,7 @@ EasyAIoT其实不是一个项目，而是五个项目。
 好处是什么呢？假如说你在一个受限的设备上（比如RK3588），你只需要拿出其中某个项目就可以独立部署，所以看似这个项目是云平台，其实他也可以是边缘平台。
 </p>
 
-<div align="center" style="margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white;">
+<div style="margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white;">
 
 <p style="font-size: 16px; line-height: 1.8; margin: 0; font-weight: 500;">
 🌟 真开源不易，如果这个项目对您有帮助，请您点亮一颗Star再离开，这将是对我最大的支持！<br>
@@ -103,9 +93,7 @@ EasyAIoT其实不是一个项目，而是五个项目。
 
 ## 🎯 适用场景
 
-<div align="center">
-  <img src=".image/适用场景.png" alt="适用场景" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-</div>
+<img src=".image/适用场景.png" alt="适用场景" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 
 ## 🧩 项目结构
 
@@ -209,9 +197,7 @@ EasyAIoT支持在Linux、Mac、Windows三大主流操作系统上部署，为不
 </p>
 </div>
 
-<div align="center" style="margin: 20px 0;">
-  <img src=".image/iframe1.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-</div>
+<img src=".image/iframe1.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
 
 ## ⚠️ 免责声明
 
