@@ -29,6 +29,33 @@ if [ -z "$BASH_VERSION" ]; then
     fi
 fi
 
+# 检查脚本是否被错误修改（检测是否包含 declare -A，这是 Linux 版本脚本的语法）
+# 使用 head 和 tail 来安全地检查脚本内容，避免在解析阶段就失败
+SCRIPT_CHECK=$(head -n 100 "$0" 2>/dev/null | grep -c "declare -A" || echo "0")
+if [ "$SCRIPT_CHECK" -gt 0 ]; then
+    echo "错误: 检测到脚本中包含 'declare -A' 语法，这可能是 Linux 版本的脚本" >&2
+    echo "提示: macOS 版本的脚本使用函数模拟关联数组，不包含 'declare -A'" >&2
+    echo "请确保您运行的是 install_middleware_mac.sh 而不是 install_middleware_linux.sh" >&2
+    echo "" >&2
+    echo "解决方案：" >&2
+    echo "  1. 确认您运行的是正确的脚本文件" >&2
+    echo "  2. 如果脚本被错误修改，请从 Git 仓库重新获取正确的版本" >&2
+    exit 1
+fi
+
+# 检查 bash 版本（macOS 默认 bash 3.2 不支持关联数组，但本脚本使用函数模拟，兼容 3.2+）
+# 提取 bash 主版本号
+BASH_MAJOR_VERSION=$(echo "$BASH_VERSION" | cut -d. -f1)
+BASH_MINOR_VERSION=$(echo "$BASH_VERSION" | cut -d. -f2)
+
+# 如果版本低于 3.2，提示用户
+if [ "$BASH_MAJOR_VERSION" -lt 3 ] || ([ "$BASH_MAJOR_VERSION" -eq 3 ] && [ "$BASH_MINOR_VERSION" -lt 2 ]); then
+    echo "错误: bash 版本过低 ($BASH_VERSION)，需要 bash 3.2 或更高版本" >&2
+    echo "提示: macOS 默认 bash 版本为 3.2，应该可以正常运行" >&2
+    echo "如果仍然报错，请尝试使用 Homebrew 安装更新的 bash: brew install bash" >&2
+    exit 1
+fi
+
 set -e
 
 # 颜色定义
