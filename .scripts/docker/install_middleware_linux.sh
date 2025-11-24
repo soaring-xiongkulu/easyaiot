@@ -195,120 +195,6 @@ check_and_require_git() {
 }
 
 
-# 检查 Node.js 版本
-check_nodejs_version() {
-    if check_command node; then
-        local node_version=$(node -v | sed -E 's/v([0-9]+)\..*/\1/')
-        if [ "$node_version" -ge 20 ]; then
-            print_success "Node.js 已安装: $(node -v)"
-            return 0
-        else
-            print_warning "检测到 Node.js 版本较低: $(node -v)，需要 20+ 版本"
-            return 1
-        fi
-    fi
-    return 1
-}
-
-# 安装 Node.js 20+
-install_nodejs20() {
-    print_section "安装 Node.js 20+"
-    
-    # 检测系统类型
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        local os_id="$ID"
-    else
-        print_error "无法检测操作系统类型"
-        return 1
-    fi
-    
-    # 根据系统类型选择安装方法
-    case "$os_id" in
-        ubuntu|debian)
-            print_info "检测到 Debian/Ubuntu 系统，使用 NodeSource 仓库安装..."
-            if ! curl -fsSL https://deb.nodesource.com/setup_20.x | bash -; then
-                print_error "添加 NodeSource 仓库失败"
-                return 1
-            fi
-            print_info "正在安装 Node.js 20..."
-            if ! apt-get install -qq -y nodejs > /dev/null 2>&1; then
-                print_error "Node.js 安装失败"
-                return 1
-            fi
-            ;;
-        centos|rhel|fedora)
-            print_info "检测到 CentOS/RHEL/Fedora 系统，使用 NodeSource 仓库安装..."
-            if ! curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -; then
-                print_error "添加 NodeSource 仓库失败"
-                return 1
-            fi
-            print_info "正在安装 Node.js 20..."
-            if ! yum install -y nodejs; then
-                print_error "Node.js 安装失败"
-                return 1
-            fi
-            ;;
-        *)
-            print_error "不支持的操作系统: $os_id"
-            print_info "请手动安装 Node.js 20+ 后重试"
-            return 1
-            ;;
-    esac
-    
-    # 验证安装
-    if check_nodejs_version; then
-        print_success "Node.js 安装完成: $(node -v)"
-        print_success "npm 版本: $(npm -v)"
-        return 0
-    else
-        print_error "Node.js 安装验证失败"
-        return 1
-    fi
-}
-
-# 检查并安装 Node.js 20+
-check_and_install_nodejs20() {
-    if check_nodejs_version; then
-        return 0
-    fi
-    
-    print_warning "未检测到 Node.js 20+ 版本"
-    echo ""
-    print_info "Node.js 20+ 是运行某些中间件服务的必需组件"
-    echo ""
-    
-    while true; do
-        echo -ne "${YELLOW}[提示]${NC} 是否自动安装 Node.js 20+？(y/N): "
-        read -r response
-        case "$response" in
-            [yY][eE][sS]|[yY])
-                if [ "$EUID" -ne 0 ]; then
-                    print_warning "安装 Node.js 需要 root 权限，跳过自动安装"
-                    print_info "请手动安装 Node.js 20+ 后继续，或使用 sudo 运行此脚本"
-                    print_info "安装指南: https://nodejs.org/"
-                    return 1
-                fi
-                if install_nodejs20; then
-                    print_success "Node.js 20+ 安装成功"
-                    return 0
-                else
-                    print_error "Node.js 20+ 安装失败，请手动安装后重试"
-                    return 1
-                fi
-                ;;
-            [nN][oO]|[nN]|"")
-                print_warning "Node.js 20+ 是必需的，但安装流程将继续"
-                print_info "请确保已安装 Node.js 20+，否则某些服务可能无法正常运行"
-                return 1
-                ;;
-            *)
-                print_warning "请输入 y 或 N"
-                ;;
-        esac
-    done
-}
-
 # 检查 nvidia-container-toolkit 是否已安装
 check_nvidia_container_toolkit() {
     if command -v nvidia-container-runtime &> /dev/null; then
@@ -3873,9 +3759,6 @@ install_middleware() {
     
     # 配置 apt 国内源（在安装依赖之前）
     configure_apt_mirror
-    
-    # 检查并安装 Node.js 20+
-    check_and_install_nodejs20
     
     # 配置 pip 镜像源
     configure_pip_mirror
