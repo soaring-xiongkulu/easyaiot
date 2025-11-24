@@ -227,7 +227,7 @@ def find_available_port(start_port: int = 9100, max_attempts: int = 100) -> Opti
 
 
 def start_extractor(camera_name: str, input_source: str, input_type: str, 
-                   model_id: int, service_name: str, frame_skip: int = 1) -> dict:
+                   model_id: int, service_name: str, frame_skip: int = 1, port: int = None) -> dict:
     """
     启动抽帧器服务
     
@@ -265,6 +265,8 @@ def start_extractor(camera_name: str, input_source: str, input_type: str,
             extractor.model_id = model_id
             extractor.service_name = service_name
             extractor.frame_skip = frame_skip
+            if port:
+                extractor.port = port
             extractor.is_enabled = True  # 开启抽帧器
             extractor.status = 'stopped'
             
@@ -276,9 +278,10 @@ def start_extractor(camera_name: str, input_source: str, input_type: str,
         else:
             # 创建新的抽帧器记录
             server_ip = get_local_ip()
-            port = find_available_port(9100)
             if not port:
-                raise ValueError('无法找到可用端口')
+                port = find_available_port(9100)
+                if not port:
+                    raise ValueError('无法找到可用端口')
             
             # 获取排序器接收地址
             from .frame_sorter_service import get_sorter

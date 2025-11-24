@@ -228,7 +228,8 @@ def _infer_model_format(model: Model, model_path: str) -> str:
             return 'pytorch'  # 默认
 
 
-def deploy_model(model_id: int, start_port: int = 8000, sorter_push_url: str = None) -> dict:
+def deploy_model(model_id: int, start_port: int = 8000, sorter_push_url: str = None, 
+                 sorter_port: int = None, extractor_port: int = None) -> dict:
     """部署模型服务"""
     logger.info(f'========== 开始部署模型服务 ==========')
     logger.info(f'模型ID: {model_id}, 起始端口: {start_port}')
@@ -267,38 +268,31 @@ def deploy_model(model_id: int, start_port: int = 8000, sorter_push_url: str = N
         if existing_services:
             logger.info(f'发现已有 {len(existing_services)} 个相同服务名称的实例，将创建新实例（副本）')
         
-        # 如果是第一个实例且配置了排序器推送地址，启动排序器
-        if is_first_instance and sorter_push_url:
-            logger.info(f'这是第一个实例，且配置了排序器推送地址，启动排序器: {sorter_push_url}')
-            try:
-                sorter_result = start_sorter(
-                    service_name=service_name,
-                    output_url=sorter_push_url,
-                    window_size=10
-                )
-                if sorter_result.get('code') == 0:
-                    sorter = sorter_result.get('data', {})
-                    logger.info(f'排序器启动成功，接收地址: {sorter.get("receive_url")}')
-                else:
-                    logger.warning(f'排序器启动失败: {sorter_result.get("msg")}')
-            except Exception as e:
-                logger.error(f'启动排序器异常: {str(e)}', exc_info=True)
-        elif not is_first_instance and sorter_push_url:
-            # 如果不是第一个实例，检查排序器是否已存在，如果不存在则启动
+        # 如果配置了排序器推送地址，启动排序器（如果没有推流地址则不启动）
+        if sorter_push_url:
+            # 检查是否已存在排序器
             sorter = get_sorter(service_name)
             if not sorter or sorter.status != 'running':
-                logger.info(f'发现已有实例但排序器未运行，启动排序器: {sorter_push_url}')
+                logger.info(f'启动排序器: {sorter_push_url}, 端口: {sorter_port}')
                 try:
+                    from .frame_sorter_service import start_sorter
                     sorter_result = start_sorter(
                         service_name=service_name,
                         output_url=sorter_push_url,
+                        port=sorter_port,  # 使用指定的端口
                         window_size=10
                     )
                     if sorter_result.get('code') == 0:
                         sorter = sorter_result.get('data', {})
                         logger.info(f'排序器启动成功，接收地址: {sorter.get("receive_url")}')
+                    else:
+                        logger.warning(f'排序器启动失败: {sorter_result.get("msg")}')
                 except Exception as e:
                     logger.error(f'启动排序器异常: {str(e)}', exc_info=True)
+            else:
+                logger.info(f'排序器已在运行: {service_name}')
+        else:
+            logger.warning(f'未配置排序器推送地址，不启动排序器')
         
         # 查找可用端口（需要避免与已有实例的端口冲突）
         logger.info(f'查找可用端口，起始端口: {start_port}')
@@ -330,13 +324,15 @@ def deploy_model(model_id: int, start_port: int = 8000, sorter_push_url: str = N
             
             # 创建部署服务记录
             logger.info('创建部署服务记录...')
-            # 获取排序器接收地址（如果已启动）
-            sorter_receive_url = None
-            if sorter_push_url:
-                sorter = get_sorter(service_name)
-                if sorter and sorter.receive_url:
-                    sorter_receive_url = sorter.receive_url
-                    logger.info(f'获取到排序器接收地址: {sorter_receive_url}')
+        # 获取排序器接收地址（如果已启动）
+        sorter_receive_url = None
+        if sorter_push_url:
+            sorter = get_sorter(service_name)
+            if sorter and sorter.receive_url:
+                sorter_receive_url = sorter.receive_url
+                logger.info(f'获取到排序器接收地址: {sorter_receive_url}')
+        
+        # 注意：抽帧器需要在部署时根据摄像头配置创建，这里不自动创建
             
             ai_service = AIService(
                 model_id=model_id,

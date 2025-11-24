@@ -179,7 +179,9 @@ def deploy_model_route():
         data = request.get_json()
         model_id = data.get('model_id')
         start_port = int(data.get('start_port', 8000))
-        sorter_push_url = data.get('sorter_push_url')  # 排序器推送地址（可选）
+        sorter_push_url = data.get('sorter_push_url')  # 排序器推送地址（必填，用于视频/RTSP推理）
+        sorter_port = data.get('sorter_port')  # 排序器端口（必填）
+        extractor_port = data.get('extractor_port')  # 抽帧器端口（必填）
 
         if not model_id:
             return jsonify({
@@ -187,7 +189,26 @@ def deploy_model_route():
                 'msg': '缺少必要参数：model_id'
             }), 400
 
-        result = deploy_model(model_id, start_port, sorter_push_url)
+        # 对于视频/RTSP推理，必须提供推流地址、排序器端口、抽帧器端口
+        if not sorter_push_url:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：sorter_push_url（流媒体推送地址）'
+            }), 400
+        
+        if not sorter_port:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：sorter_port（排序器端口）'
+            }), 400
+        
+        if not extractor_port:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：extractor_port（抽帧器端口）'
+            }), 400
+
+        result = deploy_model(model_id, start_port, sorter_push_url, sorter_port, extractor_port)
         return jsonify(result)
 
     except ValueError as e:
@@ -374,6 +395,17 @@ def receive_heartbeat():
         # 如果服务状态是stopped，返回停止标识
         if service.status == 'stopped':
             response_data['should_stop'] = True
+        
+        # 返回排序器信息（如果存在）
+        from app.services.frame_sorter_service import get_sorter
+        sorter = get_sorter(service.service_name)
+        if sorter:
+            response_data['sorter'] = sorter.to_dict()
+        
+        # 返回抽帧器信息（查找该服务名称关联的所有抽帧器）
+        extractors = FrameExtractor.query.filter_by(service_name=service.service_name).all()
+        if extractors:
+            response_data['extractors'] = [extractor.to_dict() for extractor in extractors]
 
         return jsonify({
             'code': 0,
@@ -1090,6 +1122,310 @@ def get_sorter_route():
         
     except Exception as e:
         logger.error(f'获取排序器信息失败: {str(e)}')
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+# ========== 排序器管理接口 ==========
+@deploy_service_bp.route('/sorter/<service_name>/start', methods=['POST'])
+def start_sorter_route(service_name):
+    """启动排序器"""
+    try:
+        from app.services.frame_sorter_service import start_sorter, get_sorter
+        sorter = get_sorter(service_name)
+        if not sorter:
+            return jsonify({
+                'code': 404,
+                'msg': '排序器不存在'
+            }), 404
+        
+        if not sorter.output_url:
+            return jsonify({
+                'code': 400,
+                'msg': '排序器未配置推流地址，无法启动'
+            }), 400
+        
+        result = start_sorter(
+            service_name=service_name,
+            output_url=sorter.output_url,
+            port=sorter.port,
+            window_size=sorter.window_size
+        )
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"启动排序器失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@deploy_service_bp.route('/sorter/<service_name>/stop', methods=['POST'])
+def stop_sorter_route(service_name):
+    """停止排序器"""
+    try:
+        from app.services.frame_sorter_service import stop_sorter
+        result = stop_sorter(service_name)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"停止排序器失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@deploy_service_bp.route('/sorter/<service_name>/restart', methods=['POST'])
+def restart_sorter_route(service_name):
+    """重启排序器"""
+    try:
+        from app.services.frame_sorter_service import stop_sorter, start_sorter, get_sorter
+        sorter = get_sorter(service_name)
+        if not sorter:
+            return jsonify({
+                'code': 404,
+                'msg': '排序器不存在'
+            }), 404
+        
+        # 先停止
+        stop_sorter(service_name)
+        
+        # 再启动
+        if not sorter.output_url:
+            return jsonify({
+                'code': 400,
+                'msg': '排序器未配置推流地址，无法启动'
+            }), 400
+        
+        result = start_sorter(
+            service_name=service_name,
+            output_url=sorter.output_url,
+            port=sorter.port,
+            window_size=sorter.window_size
+        )
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"重启排序器失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@deploy_service_bp.route('/sorter/<service_name>/logs', methods=['GET'])
+def get_sorter_logs_route(service_name):
+    """获取排序器日志"""
+    try:
+        from app.services.frame_sorter_service import get_sorter
+        sorter = get_sorter(service_name)
+        if not sorter:
+            return jsonify({
+                'code': 404,
+                'msg': '排序器不存在'
+            }), 404
+        
+        lines = int(request.args.get('lines', 100))
+        date = request.args.get('date', '').strip()
+        
+        # 确定日志文件路径
+        ai_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        log_base_dir = os.path.join(ai_root, 'logs', 'sorters')
+        
+        if date:
+            log_filename = f"{sorter.service_name}_{date}.log"
+        else:
+            log_filename = f"{sorter.service_name}_{datetime.now().strftime('%Y-%m-%d')}.log"
+        
+        log_file_path = os.path.join(log_base_dir, log_filename)
+        
+        # 检查日志文件是否存在
+        if not os.path.exists(log_file_path):
+            return jsonify({
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'logs': f'日志文件不存在: {log_filename}\n请等待排序器运行后生成日志。',
+                    'total_lines': 0,
+                    'log_file': log_filename
+                }
+            })
+        
+        # 读取日志文件最后N行
+        try:
+            with open(log_file_path, 'r', encoding='utf-8') as f:
+                all_lines = f.readlines()
+                log_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+            
+            return jsonify({
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'logs': ''.join(log_lines),
+                    'total_lines': len(all_lines),
+                    'log_file': log_filename
+                }
+            })
+        except Exception as e:
+            return jsonify({
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'logs': f'读取日志文件失败: {str(e)}\n文件路径: {log_file_path}',
+                    'total_lines': 0,
+                    'log_file': log_filename
+                }
+            })
+        
+    except Exception as e:
+        logger.error(f"获取排序器日志失败: {str(e)}", exc_info=True)
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+# ========== 抽帧器管理接口（启动、停止、重启、日志） ==========
+@deploy_service_bp.route('/extractor/<camera_name>/start', methods=['POST'])
+def start_extractor_route(camera_name):
+    """启动抽帧器"""
+    try:
+        extractor = get_extractor(camera_name)
+        if not extractor:
+            return jsonify({
+                'code': 404,
+                'msg': '抽帧器不存在'
+            }), 404
+        
+        from app.services.frame_extractor_service import start_extractor
+        result = start_extractor(
+            camera_name=extractor.camera_name,
+            input_source=extractor.input_source,
+            input_type=extractor.input_type,
+            model_id=extractor.model_id,
+            service_name=extractor.service_name,
+            frame_skip=extractor.frame_skip,
+            port=extractor.port
+        )
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"启动抽帧器失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@deploy_service_bp.route('/extractor/<camera_name>/restart', methods=['POST'])
+def restart_extractor_route(camera_name):
+    """重启抽帧器"""
+    try:
+        extractor = get_extractor(camera_name)
+        if not extractor:
+            return jsonify({
+                'code': 404,
+                'msg': '抽帧器不存在'
+            }), 404
+        
+        from app.services.frame_extractor_service import stop_extractor, start_extractor
+        # 先停止
+        stop_extractor(camera_name)
+        
+        # 再启动
+        result = start_extractor(
+            camera_name=extractor.camera_name,
+            input_source=extractor.input_source,
+            input_type=extractor.input_type,
+            model_id=extractor.model_id,
+            service_name=extractor.service_name,
+            frame_skip=extractor.frame_skip,
+            port=extractor.port
+        )
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"重启抽帧器失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@deploy_service_bp.route('/extractor/<camera_name>/logs', methods=['GET'])
+def get_extractor_logs_route(camera_name):
+    """获取抽帧器日志"""
+    try:
+        extractor = get_extractor(camera_name)
+        if not extractor:
+            return jsonify({
+                'code': 404,
+                'msg': '抽帧器不存在'
+            }), 404
+        
+        lines = int(request.args.get('lines', 100))
+        date = request.args.get('date', '').strip()
+        
+        # 确定日志文件路径
+        ai_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        log_base_dir = os.path.join(ai_root, 'logs', 'extractors')
+        
+        if date:
+            log_filename = f"{extractor.camera_name}_{date}.log"
+        else:
+            log_filename = f"{extractor.camera_name}_{datetime.now().strftime('%Y-%m-%d')}.log"
+        
+        log_file_path = os.path.join(log_base_dir, log_filename)
+        
+        # 检查日志文件是否存在
+        if not os.path.exists(log_file_path):
+            return jsonify({
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'logs': f'日志文件不存在: {log_filename}\n请等待抽帧器运行后生成日志。',
+                    'total_lines': 0,
+                    'log_file': log_filename
+                }
+            })
+        
+        # 读取日志文件最后N行
+        try:
+            with open(log_file_path, 'r', encoding='utf-8') as f:
+                all_lines = f.readlines()
+                log_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+            
+            return jsonify({
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'logs': ''.join(log_lines),
+                    'total_lines': len(all_lines),
+                    'log_file': log_filename
+                }
+            })
+        except Exception as e:
+            return jsonify({
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'logs': f'读取日志文件失败: {str(e)}\n文件路径: {log_file_path}',
+                    'total_lines': 0,
+                    'log_file': log_filename
+                }
+            })
+        
+    except Exception as e:
+        logger.error(f"获取抽帧器日志失败: {str(e)}", exc_info=True)
         return jsonify({
             'code': 500,
             'msg': f'服务器内部错误: {str(e)}'

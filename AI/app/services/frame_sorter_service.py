@@ -399,14 +399,15 @@ def find_available_port(start_port: int = 9000, max_attempts: int = 100) -> Opti
     return None
 
 
-def start_sorter(service_name: str, output_url: str, window_size: int = 10, 
-                 batch_size: int = 5, frame_timeout: float = 2.0) -> dict:
+def start_sorter(service_name: str, output_url: str, port: int = None, 
+                 window_size: int = 10, batch_size: int = 5, frame_timeout: float = 2.0) -> dict:
     """
     启动排序器服务
     
     Args:
         service_name: 服务名称
-        output_url: 输出流地址
+        output_url: 输出流地址（推流地址，必填）
+        port: 排序器端口（如果未指定则自动查找）
         window_size: 滑动窗口大小
         batch_size: 批量推送阈值
         frame_timeout: 单个帧超时时间（秒）
@@ -415,6 +416,14 @@ def start_sorter(service_name: str, output_url: str, window_size: int = 10,
         dict: 启动结果
     """
     try:
+        # 如果没有推流地址，则不启动排序器
+        if not output_url:
+            logger.warning(f'未配置推流地址，不启动排序器: {service_name}')
+            return {
+                'code': 400,
+                'msg': '未配置推流地址，无法启动排序器'
+            }
+        
         # 检查是否已存在排序器
         existing_sorter = FrameSorter.query.filter_by(service_name=service_name).first()
         
@@ -430,15 +439,19 @@ def start_sorter(service_name: str, output_url: str, window_size: int = 10,
                         'data': existing_sorter.to_dict()
                     }
             
-            # 重新启动
+            # 更新配置并重新启动
             sorter = existing_sorter
+            sorter.output_url = output_url
+            if port:
+                sorter.port = port
             sorter.status = 'stopped'
         else:
             # 创建新的排序器记录
             server_ip = get_local_ip()
-            port = find_available_port(9000)
             if not port:
-                raise ValueError('无法找到可用端口')
+                port = find_available_port(9000)
+                if not port:
+                    raise ValueError('无法找到可用端口')
             
             receive_url = f"http://{server_ip}:{port}/receive_frame"
             

@@ -269,7 +269,8 @@ def main():
         sys.exit(1)
     
     if not output_url:
-        logger.error('OUTPUT_URL环境变量未设置')
+        logger.error('OUTPUT_URL环境变量未设置，排序器无法启动（需要推流地址）')
+        logger.error('如果没有推流地址，排序器将不会启动')
         sys.exit(1)
     
     # 初始化帧缓冲区（支持批量推送和超时滑动）
