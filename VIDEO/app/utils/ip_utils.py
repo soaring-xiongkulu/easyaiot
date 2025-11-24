@@ -43,6 +43,8 @@ class IpReachabilityMonitor:
         self._monitors.pop(name, None)
 
     def is_online(self, name: str) -> bool:
+        if name not in self._monitors:
+            return False
         return self._monitors[name].online
 
     def is_watching(self, name: str) -> bool:

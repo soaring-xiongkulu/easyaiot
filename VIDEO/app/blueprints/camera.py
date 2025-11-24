@@ -26,6 +26,7 @@ from app.services.camera_service import (
     search_camera,
     get_snapshot_uri, refresh_camera, _to_dict
 )
+import app.services.camera_service as camera_service
 from models import Device, db, Image
 
 camera_bp = Blueprint('camera', __name__)
@@ -120,6 +121,16 @@ def auto_start_streaming():
     try:
         devices = Device.query.filter_by(enable_forward=True).all()
         for device in devices:
+            # 如果摄像头地址是 rtmp，则不启动推送
+            if device.source and device.source.strip().lower().startswith('rtmp://'):
+                logger.info(f"设备 {device.id} 的源地址是 RTMP，跳过推送启动")
+                continue
+            
+            # 如果设备离线，则不启动推送
+            if not camera_service._monitor.is_online(device.id):
+                logger.info(f"设备 {device.id} 处于离线状态，跳过推送启动")
+                continue
+            
             with ffmpeg_lock:
                 # 跳过已运行的进程
                 if device.id in ffmpeg_processes:
@@ -141,6 +152,21 @@ def auto_start_streaming():
 def start_ffmpeg_stream(device_id):
     try:
         device = Device.query.get_or_404(device_id)
+        
+        # 如果摄像头地址是 rtmp，则不启动推送
+        if device.source and device.source.strip().lower().startswith('rtmp://'):
+            return jsonify({
+                'code': 400,
+                'msg': '摄像头源地址是 RTMP，不支持推送功能'
+            }), 400
+        
+        # 如果设备离线，则不启动推送
+        if not camera_service._monitor.is_online(device_id):
+            return jsonify({
+                'code': 400,
+                'msg': '设备处于离线状态，无法启动推送'
+            }), 400
+        
         with ffmpeg_lock:
             if device_id in ffmpeg_processes:
                 daemon = ffmpeg_processes[device_id]

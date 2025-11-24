@@ -285,7 +285,7 @@ def create_app():
     # 启动摄像头搜索服务
     with app.app_context():
         from app.services.camera_service import _start_search, scheduler
-        _start_search()
+        _start_search(app)
         import atexit
         # 安全关闭调度器：检查调度器是否正在运行
         def safe_shutdown_scheduler():

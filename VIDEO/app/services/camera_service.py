@@ -46,18 +46,37 @@ def _update_onvif_camera(id: str) -> OnvifCamera:
     if not camera:
         raise ValueError(f'设备ID {id} 不存在于系统中')
 
+    # 如果摄像头地址是 rtmp，不需要 ONVIF 连接
+    if camera.source and camera.source.strip().lower().startswith('rtmp://'):
+        raise ValueError(f'设备 {id} 的源地址是 RTMP，不需要 ONVIF 连接')
+
     _onvif_cameras.pop(id, None)
 
     try:
         onvif_cam = _create_onvif_camera_from_orm(camera)
         _onvif_cameras[id] = onvif_cam
         return onvif_cam
+    except ValueError as e:
+        # IP地址或端口无效，抛出更明确的错误
+        raise RuntimeError(f'设备 {id} 连接失败：{str(e)}')
     except Exception as e:
         raise RuntimeError(f'设备 {id} 连接失败：{str(e)}')
 
 
 def _create_onvif_camera_from_orm(camera: Device) -> OnvifCamera:
     """从ORM对象创建ONVIF连接"""
+    # 如果摄像头地址是 rtmp，则不需要 ONVIF 连接
+    if camera.source and camera.source.strip().lower().startswith('rtmp://'):
+        raise ValueError(f'设备 {camera.id} 的源地址是 RTMP，不需要 ONVIF 连接')
+    
+    # 验证IP地址是否有效
+    if not camera.ip or not camera.ip.strip():
+        raise ValueError(f'设备 {camera.id} 的IP地址为空，无法创建ONVIF连接')
+    
+    # 验证端口是否有效
+    if not camera.port or camera.port <= 0:
+        raise ValueError(f'设备 {camera.id} 的端口无效，无法创建ONVIF连接')
+    
     return _create_onvif_camera(
         camera.id, camera.ip, camera.port,
         camera.username, camera.password
@@ -97,6 +116,12 @@ def _get_cameras() -> list[Device]:
 
 def _to_dict(camera: Device) -> dict:
     """设备对象转字典"""
+    # 如果是RTMP设备，默认在线状态为True，不需要通过IP监控判断
+    if camera.source and camera.source.strip().lower().startswith('rtmp://'):
+        online_status = True
+    else:
+        online_status = _monitor.is_online(camera.id)
+    
     return {
         'id': camera.id,
         'name': camera.name,
@@ -118,7 +143,7 @@ def _to_dict(camera: Device) -> dict:
         'support_zoom': camera.support_zoom,
         'nvr_id': camera.nvr_id if camera.nvr_id else None,
         'nvr_channel': camera.nvr_channel,
-        'online': _monitor.is_online(camera.id)
+        'online': online_status
     }
 
 
@@ -183,6 +208,14 @@ def _discovery_cameras() -> list:
 def _update_camera_ip(camera: Device, ip: str):
     """更新设备IP并刷新信息"""
     camera.ip = ip
+    
+    # 如果摄像头地址是 rtmp，不需要 ONVIF 连接，只更新 IP 和监控
+    if camera.source and camera.source.strip().lower().startswith('rtmp://'):
+        _monitor.update(camera.id, camera.ip)
+        db.session.commit()
+        logger.info(f'设备 {camera.id} IP地址已更新为 {ip}（RTMP设备，跳过ONVIF连接）')
+        return
+    
     try:
         onvif_camera = _create_onvif_camera_from_orm(camera)
         camera_info = onvif_camera.get_info()
@@ -207,10 +240,20 @@ def _update_camera_ip(camera: Device, ip: str):
         raise
 
 
-def refresh_camera():
+def refresh_camera(app=None):
     """刷新设备IP信息"""
     dis_cameras = _discovery_cameras()
-    with current_app.app_context():
+    
+    # 如果没有传入app，尝试使用current_app（在请求上下文中）
+    if app is None:
+        try:
+            from flask import current_app
+            app = current_app._get_current_object()
+        except RuntimeError:
+            logger.error('refresh_camera: 无法获取应用上下文，请传入app参数')
+            return
+    
+    with app.app_context():
         for dis_cam in dis_cameras:
             if not dis_cam['mac']:
                 continue
@@ -230,14 +273,22 @@ def search_camera() -> list:
     return _discovery_cameras()
 
 
-def _start_search():
+def _start_search(app=None):
     """启动设备发现服务"""
     ws_daemonlogger = logging.getLogger('daemon')
     ws_daemonlogger.setLevel(logging.ERROR)
 
     # 确保环境变量转换为整数
     discover_interval = int(os.getenv('CAMERA_DISCOVER_INTERVAL', 120))
-    scheduler.add_job(refresh_camera, 'interval', seconds=discover_interval)
+    
+    # 创建包装函数，将app对象传入refresh_camera
+    if app is not None:
+        def refresh_camera_with_app():
+            refresh_camera(app)
+        scheduler.add_job(refresh_camera_with_app, 'interval', seconds=discover_interval)
+    else:
+        # 如果没有app对象，尝试在运行时获取（可能失败）
+        scheduler.add_job(refresh_camera, 'interval', seconds=discover_interval)
     
     # 启动调度器（如果尚未启动）
     if not scheduler.running:
@@ -263,8 +314,26 @@ def _init_all_cameras():
 
 def _safe_create_camera(camera: Device):
     """安全创建相机连接（带异常处理）"""
+    # 如果摄像头地址是 rtmp，跳过ONVIF连接初始化
+    if camera.source and camera.source.strip().lower().startswith('rtmp://'):
+        logger.debug(f'设备 {camera.id} 的源地址是 RTMP，跳过ONVIF连接初始化')
+        return
+    
+    # 如果IP地址为空，跳过ONVIF连接初始化（可能是直接注册的RTSP设备）
+    if not camera.ip or not camera.ip.strip():
+        logger.debug(f'设备 {camera.id} 的IP地址为空，跳过ONVIF连接初始化（可能是RTSP直连设备）')
+        return
+    
+    # 如果端口无效，跳过ONVIF连接初始化
+    if not camera.port or camera.port <= 0:
+        logger.debug(f'设备 {camera.id} 的端口无效，跳过ONVIF连接初始化')
+        return
+    
     try:
         _create_onvif_camera_from_orm(camera)
+    except ValueError as e:
+        # 参数验证错误，记录为调试信息
+        logger.debug(f'初始化设备 {camera.id} 连接失败: {str(e)}')
     except Exception as e:
         logger.error(f'初始化设备 {camera.id} 连接失败: {str(e)}')
 
@@ -422,7 +491,7 @@ def register_camera(register_info: dict) -> str:
             if not port and match.group(2):
                 port = int(match.group(2))
         
-        # 创建设备记录（直接使用用户提供的source）
+        # 创建设备记录（直接使用用户提供的source和所有字段）
         camera = Device(
             id=id,
             name=name,
@@ -434,16 +503,17 @@ def register_camera(register_info: dict) -> str:
             port=port,
             username=username,
             password=password,
-            mac='',
-            manufacturer='',
-            model='',
-            firmware_version='',
-            serial_number='',
-            hardware_id='',
-            support_move=False,
-            support_zoom=False,
-            nvr_id=None,
-            nvr_channel=0
+            mac=register_info.get('mac', ''),
+            manufacturer=register_info.get('manufacturer', ''),
+            model=register_info.get('model', ''),
+            firmware_version=register_info.get('firmware_version', ''),
+            serial_number=register_info.get('serial_number', ''),
+            hardware_id=register_info.get('hardware_id', ''),
+            support_move=register_info.get('support_move', False),
+            support_zoom=register_info.get('support_zoom', False),
+            nvr_id=register_info.get('nvr_id'),
+            nvr_channel=register_info.get('nvr_channel', 0),
+            enable_forward=register_info.get('enable_forward')
         )
         
         db.session.add(camera)
