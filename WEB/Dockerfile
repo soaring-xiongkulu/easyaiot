@@ -1,5 +1,35 @@
-# 使用Nginx官方镜像
-FROM nginx:alpine
+# 构建阶段
+FROM node:22-alpine3.21 AS builder
+
+# 配置npm国内镜像源（淘宝镜像）
+RUN npm config set registry https://registry.npmmirror.com/
+
+# 安装pnpm
+RUN npm install -g pnpm@9.0.4
+
+# 配置pnpm国内镜像源（淘宝镜像）
+RUN pnpm config set registry https://registry.npmmirror.com/
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制package文件
+COPY package.json pnpm-lock.yaml ./
+
+# 安装依赖
+RUN pnpm install --frozen-lockfile
+
+# 复制源代码
+COPY . .
+
+# 构建项目
+RUN pnpm build
+
+# 生产阶段
+FROM nginx:1.29.2-alpine
+
+# 配置国内镜像源（如果需要安装额外软件）
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
 # 作者信息
 MAINTAINER basiclab
@@ -13,8 +43,8 @@ RUN mkdir -p /usr/share/nginx/html
 # 复制nginx配置文件
 COPY ./conf/nginx.conf /etc/nginx/nginx.conf
 
-# 复制前端构建产物
-COPY ./dist /usr/share/nginx/html
+# 从构建阶段复制构建产物到nginx的html目录
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 # 暴露端口（默认80，可通过环境变量修改）
 EXPOSE 80
@@ -23,6 +53,6 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
 
-# 启动nginx
+# 启动nginx（使用非daemon模式以便在容器中运行）
 CMD ["nginx", "-g", "daemon off;"]
 

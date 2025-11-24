@@ -1,0 +1,50 @@
+# 依赖目录
+node_modules
+.pnpm-store
+
+# 构建产物（构建阶段不需要，生产阶段会从构建阶段复制）
+dist
+
+# 日志文件
+logs
+*.log
+
+# 环境文件
+.env
+.env.local
+.env.*.local
+
+# IDE配置
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Git相关
+.git
+.gitignore
+.gitattributes
+
+# Docker相关
+Dockerfile
+docker-compose.yaml
+.dockerignore
+
+# 文档
+README.md
+README_en.md
+TROUBLESHOOTING.md
+*.md
+
+# 测试文件
+**/__tests__/**
+**/*.test.*
+**/*.spec.*
+
+# 其他
+.DS_Store
+Thumbs.db
+*.zip
+*.tar.gz
+

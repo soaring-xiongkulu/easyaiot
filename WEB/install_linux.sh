@@ -85,6 +85,43 @@ check_docker_compose() {
     fi
 }
 
+# 检查端口是否被占用
+check_port() {
+    local port=$1
+    if [ -z "$port" ]; then
+        # 从.env文件读取端口，如果没有则使用默认值8888
+        if [ -f .env ]; then
+            port=$(grep "^WEB_PORT=" .env 2>/dev/null | cut -d '=' -f2 | tr -d ' ' | tr -d '"' | tr -d "'")
+        fi
+        port=${port:-8888}
+    fi
+    
+    # 检查端口是否被占用
+    if command -v lsof &> /dev/null; then
+        if lsof -i :"$port" &> /dev/null; then
+            print_warning "端口 $port 已被占用"
+            print_info "占用端口的进程信息:"
+            lsof -i :"$port" | head -5
+            print_info "请先停止占用端口的进程，或修改 .env 文件中的 WEB_PORT 配置"
+            return 1
+        fi
+    elif command -v netstat &> /dev/null; then
+        if netstat -tuln 2>/dev/null | grep -q ":$port "; then
+            print_warning "端口 $port 已被占用"
+            print_info "请先停止占用端口的进程，或修改 .env 文件中的 WEB_PORT 配置"
+            return 1
+        fi
+    elif command -v ss &> /dev/null; then
+        if ss -tuln 2>/dev/null | grep -q ":$port "; then
+            print_warning "端口 $port 已被占用"
+            print_info "请先停止占用端口的进程，或修改 .env 文件中的 WEB_PORT 配置"
+            return 1
+        fi
+    fi
+    
+    return 0
+}
+
 # 创建必要的目录
 create_directories() {
     print_info "创建必要的目录..."
@@ -95,13 +132,9 @@ create_directories() {
     print_success "目录创建完成"
 }
 
-# 检查前端构建产物
+# 检查前端构建产物（已废弃，构建现在在容器内完成）
 check_dist() {
-    if [ ! -d "dist" ] || [ -z "$(ls -A dist 2>/dev/null)" ]; then
-        print_warning "dist 目录不存在或为空，需要先构建前端项目"
-        print_info "运行: ./install_linux.sh build-frontend"
-        return 1
-    fi
+    # 构建现在在Docker容器内完成，不再需要检查宿主机的dist目录
     return 0
 }
 
@@ -189,8 +222,10 @@ install_pnpm() {
     fi
 }
 
-# 构建前端项目
+# 构建前端项目（在宿主机上，可选，主要用于测试）
 build_frontend() {
+    print_warning "注意：前端构建现在在Docker容器内自动完成"
+    print_info "此命令仅用于在宿主机上测试构建，不影响Docker部署"
     print_info "开始构建前端项目..."
     
     # 检查 Node.js
@@ -247,7 +282,7 @@ build_frontend() {
         npm run build
     fi
     
-    print_success "前端项目构建完成"
+    print_success "前端项目构建完成（此构建仅用于测试，Docker部署时会重新构建）"
 }
 
 # 安装服务
@@ -259,17 +294,14 @@ install_service() {
     create_directories
     create_env_file
     
-    # 检查前端构建产物
-    if ! check_dist; then
-        print_warning "是否现在构建前端项目？(y/N)"
-        read -r response
-        if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-            build_frontend
-        else
-            print_error "请先构建前端项目: ./install_linux.sh build-frontend"
-            exit 1
-        fi
+    # 检查端口占用
+    if ! check_port; then
+        print_error "端口检查失败，请解决端口占用问题后重试"
+        exit 1
     fi
+    
+    # 注意：前端构建现在在Docker容器内完成，不再需要在宿主机上构建
+    print_info "前端构建将在Docker容器内自动完成"
     
     # 确保先清理可能存在的残留容器
     print_info "检查并清理残留容器..."
@@ -290,7 +322,10 @@ install_service() {
     check_status
     
     # 读取端口配置
-    WEB_PORT=$(grep VITE_PORT .env 2>/dev/null | cut -d '=' -f2 | tr -d ' ' || echo "80")
+    if [ -f .env ]; then
+        WEB_PORT=$(grep "^WEB_PORT=" .env 2>/dev/null | cut -d '=' -f2 | tr -d ' ' | tr -d '"' | tr -d "'")
+    fi
+    WEB_PORT=${WEB_PORT:-8888}
     print_info "服务访问地址: http://localhost:${WEB_PORT}"
     print_info "健康检查地址: http://localhost:${WEB_PORT}/health"
     print_info "查看日志: ./install_linux.sh logs"
@@ -307,11 +342,13 @@ start_service() {
         create_env_file
     fi
     
-    if ! check_dist; then
-        print_error "dist 目录不存在或为空，请先构建前端项目: ./install_linux.sh build-frontend"
+    # 检查端口占用
+    if ! check_port; then
+        print_error "端口检查失败，请解决端口占用问题后重试"
         exit 1
     fi
     
+    # 注意：前端构建现在在Docker容器内完成，不再需要检查宿主机的dist目录
     $COMPOSE_CMD up -d
     print_success "服务已启动"
     check_status
@@ -381,13 +418,8 @@ build_image() {
     check_docker
     check_docker_compose
     
-    if ! check_dist; then
-        print_warning "dist 目录不存在或为空，是否先构建前端项目？(y/N)"
-        read -r response
-        if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-            build_frontend
-        fi
-    fi
+    # 注意：前端构建现在在Docker容器内完成，构建镜像时会自动完成
+    print_info "前端构建将在Docker容器内自动完成"
     
     $COMPOSE_CMD build --no-cache
     print_success "镜像构建完成"
@@ -427,14 +459,8 @@ update_service() {
     print_info "拉取最新代码..."
     git pull || print_warning "Git pull 失败，继续使用当前代码"
     
-    # 重新构建前端
-    print_warning "是否重新构建前端项目？(y/N)"
-    read -r response
-    if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-        build_frontend
-    fi
-    
-    print_info "重新构建镜像..."
+    # 注意：前端构建现在在Docker容器内完成，重新构建镜像时会自动完成
+    print_info "重新构建镜像（前端构建将在容器内自动完成）..."
     $COMPOSE_CMD build
     
     print_info "重启服务..."
@@ -459,8 +485,8 @@ show_help() {
     echo "  status          - 查看服务状态"
     echo "  logs            - 查看服务日志"
     echo "  logs -f         - 实时查看服务日志"
-    echo "  build           - 重新构建镜像"
-    echo "  build-frontend  - 构建前端项目"
+    echo "  build           - 重新构建镜像（前端构建在容器内自动完成）"
+    echo "  build-frontend  - 在宿主机上构建前端项目（可选，用于测试）"
     echo "  clean           - 清理容器和镜像"
     echo "  update          - 更新并重启服务"
     echo "  help            - 显示此帮助信息"
