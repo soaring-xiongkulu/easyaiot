@@ -93,16 +93,49 @@ check_network() {
     print_info "检查 Docker 网络 easyaiot-network..."
     print_info "注意：VIDEO服务使用host网络模式，不需要加入easyaiot-network网络"
     print_info "但中间件服务仍需要此网络，检查网络是否存在..."
-    if ! docker network ls | grep -q easyaiot-network; then
-        print_info "网络 easyaiot-network 不存在，正在创建..."
-        if docker network create easyaiot-network 2>/dev/null; then
-            print_success "网络 easyaiot-network 已创建"
+    
+    # 检查网络是否已存在（使用网络名称）
+    if docker network ls --format "{{.Name}}" 2>/dev/null | grep -q "^easyaiot-network$"; then
+        print_info "网络 easyaiot-network 已存在"
+        return 0
+    fi
+    
+    # 网络不存在，尝试创建
+    print_info "网络 easyaiot-network 不存在，正在创建..."
+    local create_output=$(docker network create easyaiot-network 2>&1)
+    local create_exit_code=$?
+    
+    if [ $create_exit_code -eq 0 ]; then
+        print_success "网络 easyaiot-network 已创建"
+        return 0
+    else
+        # 检查错误原因
+        if echo "$create_output" | grep -qi "already exists"; then
+            print_info "网络 easyaiot-network 已存在（可能在检查后创建）"
+            return 0
+        elif echo "$create_output" | grep -qi "permission denied"; then
+            print_error "没有权限创建 Docker 网络"
+            print_info "请确保当前用户在 docker 组中，或使用 sudo 运行脚本"
+            print_info "解决方案："
+            echo "  1. 将当前用户添加到 docker 组："
+            echo "     sudo usermod -aG docker $USER"
+            echo "     然后重新登录或运行: newgrp docker"
+            echo ""
+            echo "  2. 或者使用 sudo 运行此脚本："
+            echo "     sudo ./install_linux.sh $*"
+            exit 1
+        elif echo "$create_output" | grep -qi "network with name.*already exists"; then
+            print_warning "网络名称冲突，但网络已存在，继续使用现有网络"
+            return 0
         else
             print_error "无法创建网络 easyaiot-network"
+            print_error "错误信息: $create_output"
+            print_info "诊断建议："
+            print_info "  1. 检查 Docker 服务是否正常运行: sudo systemctl status docker"
+            print_info "  2. 检查当前用户是否有权限: docker network ls"
+            print_info "  3. 查看 Docker 日志: sudo journalctl -u docker.service"
             exit 1
         fi
-    else
-        print_info "网络 easyaiot-network 已存在"
     fi
 }
 
