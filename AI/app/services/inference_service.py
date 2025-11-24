@@ -1042,6 +1042,8 @@ class InferenceService:
         """RTSP流处理线程"""
         cap = None
         ffmpeg_process = None
+        sorter_url = None
+        instance_id = None
 
         try:
             model = self.get_model()
@@ -1062,6 +1064,25 @@ class InferenceService:
                     'verbose': False
                 }
 
+            # 检查是否有排序器推送地址（从AIService表获取）
+            with current_app.app_context():
+                from db_models import AIService
+                record = InferenceTask.query.get(record_id)
+                
+                # 如果有model_id，查找对应的服务实例
+                if record and record.model_id:
+                    service = AIService.query.filter_by(
+                        model_id=record.model_id,
+                        status='running'
+                    ).first()
+                    
+                    if service and service.sorter_push_url:
+                        sorter_url = service.sorter_push_url
+                        instance_id = f"instance_{service.id}"
+                        logging.info(f"发现排序器推送地址: {sorter_url}, 实例ID: {instance_id}")
+                    else:
+                        logging.info("未找到排序器推送地址，将直接推送到输出流")
+
             # RTSP流配置
             cap = cv2.VideoCapture(rtsp_url)
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区
@@ -1073,24 +1094,28 @@ class InferenceService:
             if fps <= 0:
                 fps = 25
 
-            # FFmpeg推流命令
-            command = [
-                'ffmpeg',
-                '-y',
-                '-f', 'rawvideo',
-                '-vcodec', 'rawvideo',
-                '-pix_fmt', 'bgr24',
-                '-s', f'{width}x{height}',
-                '-r', str(fps),
-                '-i', '-',
-                '-c:v', 'libx264',
-                '-preset', 'ultrafast',
-                '-tune', 'zerolatency',
-                '-f', 'flv',
-                output_url
-            ]
-
-            ffmpeg_process = subprocess.Popen(command, stdin=subprocess.PIPE)
+            # 如果有排序器，推送到排序器；否则直接推送到输出流
+            if sorter_url:
+                # 推送到排序器，不需要FFmpeg进程
+                frame_seq = 0
+            else:
+                # 直接推送到输出流
+                command = [
+                    'ffmpeg',
+                    '-y',
+                    '-f', 'rawvideo',
+                    '-vcodec', 'rawvideo',
+                    '-pix_fmt', 'bgr24',
+                    '-s', f'{width}x{height}',
+                    '-r', str(fps),
+                    '-i', '-',
+                    '-c:v', 'libx264',
+                    '-preset', 'ultrafast',
+                    '-tune', 'zerolatency',
+                    '-f', 'flv',
+                    output_url
+                ]
+                ffmpeg_process = subprocess.Popen(command, stdin=subprocess.PIPE)
 
             # 更新状态
             with current_app.app_context():
@@ -1124,9 +1149,73 @@ class InferenceService:
                         # 使用YOLO模型推理
                         results = model(frame, **inference_kwargs)
                         processed_frame = results[0].plot()
-                    ffmpeg_process.stdin.write(processed_frame.tobytes())
+                    
+                    # 推送到排序器或直接推送
+                    if sorter_url:
+                        try:
+                            import requests
+                            import base64
+                            # 编码为JPEG
+                            _, buffer = cv2.imencode('.jpg', processed_frame)
+                            frame_data_base64 = base64.b64encode(buffer.tobytes()).decode('utf-8')
+                            
+                            # 确保sorter_url包含/receive_frame路径
+                            receive_url = sorter_url
+                            if '/receive_frame' not in receive_url:
+                                receive_url = f"{sorter_url.rstrip('/')}/receive_frame"
+                            
+                            # 推送到排序器
+                            response = requests.post(
+                                receive_url,
+                                json={
+                                    'frame_seq': frame_seq,
+                                    'frame_data': frame_data_base64,
+                                    'instance_id': instance_id,
+                                    'width': width,
+                                    'height': height
+                                },
+                                timeout=1
+                            )
+                            if response.status_code == 200:
+                                frame_seq += 1
+                            else:
+                                logging.warning(f"推送到排序器失败: HTTP {response.status_code}")
+                        except Exception as e:
+                            logging.error(f"推送到排序器异常: {str(e)}")
+                    else:
+                        # 直接推送到输出流
+                        ffmpeg_process.stdin.write(processed_frame.tobytes())
                 else:
-                    ffmpeg_process.stdin.write(frame.tobytes())
+                    # 未处理的帧，如果有排序器也需要推送（保持帧率）
+                    if sorter_url:
+                        try:
+                            import requests
+                            import base64
+                            _, buffer = cv2.imencode('.jpg', frame)
+                            frame_data_base64 = base64.b64encode(buffer.tobytes()).decode('utf-8')
+                            
+                            # 确保sorter_url包含/receive_frame路径
+                            receive_url = sorter_url
+                            if '/receive_frame' not in receive_url:
+                                receive_url = f"{sorter_url.rstrip('/')}/receive_frame"
+                            
+                            response = requests.post(
+                                receive_url,
+                                json={
+                                    'frame_seq': frame_seq,
+                                    'frame_data': frame_data_base64,
+                                    'instance_id': instance_id,
+                                    'width': width,
+                                    'height': height
+                                },
+                                timeout=1
+                            )
+                            if response.status_code == 200:
+                                frame_seq += 1
+                        except Exception as e:
+                            logging.error(f"推送到排序器异常: {str(e)}")
+                    else:
+                        ffmpeg_process.stdin.write(frame.tobytes())
 
                 frame_count += 1
 

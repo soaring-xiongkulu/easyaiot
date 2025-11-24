@@ -658,6 +658,9 @@ def inference():
         # 获取推理参数
         conf_thres = float(request.form.get('conf_thres', 0.25))
         iou_thres = float(request.form.get('iou_thres', 0.45))
+        frame_index = request.form.get('frame_index')  # 帧索引（来自抽帧器）
+        sorter_url = request.form.get('sorter_url')  # 排序器地址（来自抽帧器）
+        instance_id = os.getenv('SERVICE_ID', f"instance_{os.getpid()}")  # 实例ID
         
         # 保存临时文件
         import tempfile
@@ -694,6 +697,42 @@ def inference():
                 import base64
                 result_path = temp_file.name.replace(os.path.splitext(temp_file.name)[1], '_result.jpg')
                 cv2.imwrite(result_path, output_image)
+                
+                # 如果提供了排序器地址和帧索引，发送到排序器
+                if sorter_url and frame_index is not None:
+                    try:
+                        # 读取结果图片并编码为base64
+                        with open(result_path, 'rb') as f:
+                            image_data = f.read()
+                            image_base64 = base64.b64encode(image_data).decode('utf-8')
+                        
+                        # 获取图片尺寸
+                        height, width = output_image.shape[:2]
+                        
+                        # 发送到排序器
+                        import requests
+                        receive_url = sorter_url
+                        if '/receive_frame' not in receive_url:
+                            receive_url = f"{sorter_url.rstrip('/')}/receive_frame"
+                        
+                        response = requests.post(
+                            receive_url,
+                            json={
+                                'frame_seq': int(frame_index),
+                                'frame_data': image_base64,
+                                'instance_id': instance_id,
+                                'width': width,
+                                'height': height
+                            },
+                            timeout=2
+                        )
+                        
+                        if response.status_code == 200:
+                            logger.debug(f'帧 {frame_index} 已发送到排序器')
+                        else:
+                            logger.warning(f'发送到排序器失败: HTTP {response.status_code}')
+                    except Exception as e:
+                        logger.error(f'发送到排序器异常: {str(e)}')
                 
                 # 将结果图片编码为base64，方便cluster服务处理
                 with open(result_path, 'rb') as f:
@@ -739,6 +778,45 @@ def inference():
                 # 保存结果图片
                 result_path = temp_file.name.replace(os.path.splitext(temp_file.name)[1], '_result.jpg')
                 results[0].save(filename=result_path)
+                
+                # 如果提供了排序器地址和帧索引，发送到排序器
+                if sorter_url and frame_index is not None:
+                    try:
+                        # 读取结果图片并编码为base64
+                        import base64
+                        with open(result_path, 'rb') as f:
+                            image_data = f.read()
+                            image_base64 = base64.b64encode(image_data).decode('utf-8')
+                        
+                        # 获取图片尺寸
+                        import cv2
+                        img = cv2.imread(result_path)
+                        height, width = img.shape[:2] if img is not None else (1080, 1920)
+                        
+                        # 发送到排序器
+                        import requests
+                        receive_url = sorter_url
+                        if '/receive_frame' not in receive_url:
+                            receive_url = f"{sorter_url.rstrip('/')}/receive_frame"
+                        
+                        response = requests.post(
+                            receive_url,
+                            json={
+                                'frame_seq': int(frame_index),
+                                'frame_data': image_base64,
+                                'instance_id': instance_id,
+                                'width': width,
+                                'height': height
+                            },
+                            timeout=2
+                        )
+                        
+                        if response.status_code == 200:
+                            logger.debug(f'帧 {frame_index} 已发送到排序器')
+                        else:
+                            logger.warning(f'发送到排序器失败: HTTP {response.status_code}')
+                    except Exception as e:
+                        logger.error(f'发送到排序器异常: {str(e)}')
                 
                 # 将结果图片编码为base64，方便cluster服务处理
                 import base64

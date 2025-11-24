@@ -209,8 +209,21 @@ def create_app():
                         user = user_pass.split(':')[0]
                         safe_uri = database_uri.replace(user_pass, f"{user}:***")
             print(f"数据库连接: {safe_uri}")
-            from db_models import Model, TrainTask, ExportRecord, InferenceTask, LLMConfig, OCRResult, AIService
+            from db_models import Model, TrainTask, ExportRecord, InferenceTask, LLMConfig, OCRResult, AIService, FrameSorter, FrameExtractor
             db.create_all()
+            
+            # AI模块重启时，将所有抽帧器的is_enabled设置为False（即使之前是打开状态也默认更新为关闭）
+            try:
+                extractors = FrameExtractor.query.all()
+                for extractor in extractors:
+                    if extractor.is_enabled:
+                        extractor.is_enabled = False
+                        print(f"✅ 抽帧器 {extractor.camera_name} 已设置为关闭状态（重启默认关闭）")
+                db.session.commit()
+            except Exception as e:
+                print(f"⚠️  更新抽帧器状态失败: {str(e)}")
+                db.session.rollback()
+            
             print(f"✅ 数据库连接成功，表结构已创建/验证")
         except Exception as e:
             error_msg = str(e)
@@ -251,18 +264,79 @@ def create_app():
         # 启动所有模型服务（首次启动时拉起所有服务，不管在线还是离线）
         try:
             def start_all_services():
-                """在后台线程中启动所有模型服务"""
+                """在后台线程中启动所有模型服务和排序器"""
                 import time
                 # 等待数据库和蓝图完全初始化
                 time.sleep(2)
                 
                 with app.app_context():
                     try:
-                        from db_models import AIService
+                        from db_models import AIService, FrameSorter
                         from app.services.deploy_service import start_service
+                        from app.services.frame_sorter_service import start_sorter, get_sorter
                         import logging
                         logger = logging.getLogger(__name__)
                         
+                        # 1. 启动所有排序器（如果有配置sorter_push_url的服务）
+                        logger.info("检查并启动排序器...")
+                        print("🔍 检查并启动排序器...")
+                        
+                        # 按service_name分组，找出需要排序器的服务
+                        services_by_name = {}
+                        for service in AIService.query.filter(
+                            AIService.status != 'error',
+                            AIService.sorter_push_url.isnot(None)
+                        ).all():
+                            if service.service_name not in services_by_name:
+                                services_by_name[service.service_name] = []
+                            services_by_name[service.service_name].append(service)
+                        
+                        sorter_success_count = 0
+                        sorter_fail_count = 0
+                        
+                        for service_name, services in services_by_name.items():
+                            if not services:
+                                continue
+                            
+                            # 获取第一个服务的sorter_push_url
+                            first_service = services[0]
+                            sorter_push_url = first_service.sorter_push_url
+                            
+                            if not sorter_push_url:
+                                continue
+                            
+                            try:
+                                # 检查排序器是否已存在
+                                sorter = get_sorter(service_name)
+                                if sorter and sorter.status == 'running':
+                                    logger.info(f"排序器已运行: {service_name}")
+                                    continue
+                                
+                                logger.info(f"启动排序器: {service_name}, 输出地址: {sorter_push_url}")
+                                result = start_sorter(
+                                    service_name=service_name,
+                                    output_url=sorter_push_url,
+                                    window_size=10,
+                                    batch_size=5,  # 批量推送阈值：达到5帧时批量推送
+                                    frame_timeout=2.0  # 单个帧超时时间：2秒
+                                )
+                                
+                                if result.get('code') == 0:
+                                    sorter_success_count += 1
+                                    sorter_data = result.get('data', {})
+                                    logger.info(f"✅ 排序器 {service_name} 启动成功，接收地址: {sorter_data.get('receive_url')}")
+                                else:
+                                    sorter_fail_count += 1
+                                    logger.warning(f"⚠️  排序器 {service_name} 启动失败: {result.get('msg', '未知错误')}")
+                            except Exception as e:
+                                sorter_fail_count += 1
+                                logger.error(f"❌ 启动排序器 {service_name} 时发生异常: {str(e)}", exc_info=True)
+                        
+                        if services_by_name:
+                            logger.info(f"排序器自动启动完成: 成功 {sorter_success_count} 个, 失败 {sorter_fail_count} 个")
+                            print(f"✅ 排序器自动启动完成: 成功 {sorter_success_count} 个, 失败 {sorter_fail_count} 个")
+                        
+                        # 2. 启动所有模型服务
                         # 查询所有服务（排除error状态，因为可能是配置错误）
                         # 包括：running, offline, stopped 等所有状态
                         all_services = AIService.query.filter(

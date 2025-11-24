@@ -195,6 +195,7 @@ class AIService(db.Model):
     log_path = db.Column(db.String(500))  # 日志文件路径
     model_version = db.Column(db.String(20))  # 模型版本号
     format = db.Column(db.String(50))  # 模型格式 (onnx, openvino, pytorch等)
+    sorter_push_url = db.Column(db.String(500))  # 排序器推送地址（用于视频/RTSP流的帧排序）
     created_at = db.Column(db.DateTime, default=beijing_now)
     updated_at = db.Column(db.DateTime, default=beijing_now, onupdate=beijing_now)
     
@@ -218,10 +219,96 @@ class AIService(db.Model):
             'log_path': self.log_path,
             'model_version': self.model_version,
             'format': self.format,
+            'sorter_push_url': self.sorter_push_url,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
     
     def __repr__(self):
         return f'<AIService {self.service_name} ({self.status})>'
+
+
+class FrameSorter(db.Model):
+    """帧排序器表，用于管理视频/RTSP流的帧排序服务"""
+    id = db.Column(db.Integer, primary_key=True)
+    service_name = db.Column(db.String(100), nullable=False, unique=True)  # 服务名称（唯一，每个service_name只有一个排序器）
+    receive_url = db.Column(db.String(500), nullable=False)  # 排序器接收帧的HTTP地址
+    output_url = db.Column(db.String(500))  # 排序后推送流的输出地址
+    port = db.Column(db.Integer, nullable=False)  # 排序器服务端口
+    server_ip = db.Column(db.String(50))  # 服务器IP
+    status = db.Column(db.String(20), default='stopped')  # 状态: running/stopped/error
+    process_id = db.Column(db.Integer)  # 进程ID
+    window_size = db.Column(db.Integer, default=10)  # 滑动窗口大小
+    created_at = db.Column(db.DateTime, default=beijing_now)
+    updated_at = db.Column(db.DateTime, default=beijing_now, onupdate=beijing_now)
+    last_heartbeat = db.Column(db.DateTime)  # 最后心跳时间
+    
+    def to_dict(self):
+        """转换为字典格式"""
+        return {
+            'id': self.id,
+            'service_name': self.service_name,
+            'receive_url': self.receive_url,
+            'output_url': self.output_url,
+            'port': self.port,
+            'server_ip': self.server_ip,
+            'status': self.status,
+            'process_id': self.process_id,
+            'window_size': self.window_size,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'last_heartbeat': self.last_heartbeat.isoformat() if self.last_heartbeat else None
+        }
+    
+    def __repr__(self):
+        return f'<FrameSorter {self.service_name} ({self.status})>'
+
+
+class FrameExtractor(db.Model):
+    """抽帧器表，用于管理视频/RTSP流的抽帧服务"""
+    id = db.Column(db.Integer, primary_key=True)
+    camera_name = db.Column(db.String(100), nullable=False, unique=True)  # 摄像头名称（唯一，每个摄像头只有一个抽帧器）
+    input_source = db.Column(db.String(500), nullable=False)  # 输入源（视频文件路径或RTSP地址）
+    input_type = db.Column(db.String(20), nullable=False)  # 输入类型: video/rtsp
+    model_id = db.Column(db.Integer, db.ForeignKey('model.id'), nullable=False)  # 关联的模型ID
+    service_name = db.Column(db.String(100), nullable=False)  # 关联的服务名称（用于查找推理器和排序器）
+    sorter_receive_url = db.Column(db.String(500))  # 排序器接收地址
+    port = db.Column(db.Integer, nullable=False)  # 抽帧器服务端口
+    server_ip = db.Column(db.String(50))  # 服务器IP
+    status = db.Column(db.String(20), default='stopped')  # 状态: running/stopped/error
+    process_id = db.Column(db.Integer)  # 进程ID
+    frame_skip = db.Column(db.Integer, default=1)  # 抽帧间隔（每N帧抽1帧）
+    current_frame_index = db.Column(db.BigInteger, default=0)  # 当前帧索引（自增）
+    is_enabled = db.Column(db.Boolean, default=False)  # 抽帧器开关（False=关闭，True=开启，重启时默认关闭）
+    created_at = db.Column(db.DateTime, default=beijing_now)
+    updated_at = db.Column(db.DateTime, default=beijing_now, onupdate=beijing_now)
+    last_heartbeat = db.Column(db.DateTime)  # 最后心跳时间
+    
+    # 关系定义
+    model = db.relationship('Model', backref=db.backref('frame_extractors', lazy='dynamic'))
+    
+    def to_dict(self):
+        """转换为字典格式"""
+        return {
+            'id': self.id,
+            'camera_name': self.camera_name,
+            'input_source': self.input_source,
+            'input_type': self.input_type,
+            'model_id': self.model_id,
+            'service_name': self.service_name,
+            'sorter_receive_url': self.sorter_receive_url,
+            'port': self.port,
+            'server_ip': self.server_ip,
+            'status': self.status,
+            'process_id': self.process_id,
+            'frame_skip': self.frame_skip,
+            'current_frame_index': self.current_frame_index,
+            'is_enabled': self.is_enabled,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'last_heartbeat': self.last_heartbeat.isoformat() if self.last_heartbeat else None
+        }
+    
+    def __repr__(self):
+        return f'<FrameExtractor {self.camera_name} ({self.status})>'
 

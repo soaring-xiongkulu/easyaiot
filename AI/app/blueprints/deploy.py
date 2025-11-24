@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 from sqlalchemy import desc
 
-from db_models import db, Model, AIService, beijing_now
+from db_models import db, Model, AIService, FrameExtractor, FrameSorter, beijing_now
 from app.services.deploy_service import (
     deploy_model,
     start_service,
@@ -18,6 +18,11 @@ from app.services.deploy_service import (
     restart_service,
     delete_service,
     get_service_logs
+)
+from app.services.frame_extractor_service import (
+    start_extractor,
+    stop_extractor,
+    get_extractor
 )
 
 deploy_service_bp = Blueprint('deploy_service', __name__)
@@ -174,6 +179,7 @@ def deploy_model_route():
         data = request.get_json()
         model_id = data.get('model_id')
         start_port = int(data.get('start_port', 8000))
+        sorter_push_url = data.get('sorter_push_url')  # 排序器推送地址（可选）
 
         if not model_id:
             return jsonify({
@@ -181,7 +187,7 @@ def deploy_model_route():
                 'msg': '缺少必要参数：model_id'
             }), 400
 
-        result = deploy_model(model_id, start_port)
+        result = deploy_model(model_id, start_port, sorter_push_url)
         return jsonify(result)
 
     except ValueError as e:
@@ -803,3 +809,288 @@ def start_heartbeat_checker(app):
     checker_thread = threading.Thread(target=checker_loop, daemon=True)
     checker_thread.start()
     logger.info("心跳超时检查任务已启动（每30秒检查一次）")
+
+
+# ========== 抽帧器管理接口 ==========
+@deploy_service_bp.route('/extractor/start', methods=['POST'])
+def start_extractor_route():
+    """启动抽帧器"""
+    try:
+        data = request.get_json()
+        camera_name = data.get('camera_name')
+        input_source = data.get('input_source')
+        input_type = data.get('input_type', 'rtsp')  # video/rtsp
+        model_id = data.get('model_id')
+        service_name = data.get('service_name')
+        frame_skip = int(data.get('frame_skip', 1))
+        
+        if not camera_name or not input_source or not model_id or not service_name:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：camera_name, input_source, model_id, service_name'
+            }), 400
+        
+        result = start_extractor(camera_name, input_source, input_type, model_id, service_name, frame_skip)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"启动抽帧器失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@deploy_service_bp.route('/extractor/stop', methods=['POST'])
+def stop_extractor_route():
+    """停止抽帧器"""
+    try:
+        data = request.get_json()
+        camera_name = data.get('camera_name')
+        
+        if not camera_name:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：camera_name'
+            }), 400
+        
+        result = stop_extractor(camera_name)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"停止抽帧器失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@deploy_service_bp.route('/extractor/list', methods=['GET'])
+def list_extractors():
+    """获取抽帧器列表"""
+    try:
+        page_no = int(request.args.get('pageNo', 1))
+        page_size = int(request.args.get('pageSize', 10))
+        camera_name_filter = request.args.get('camera_name', '').strip()
+        status_filter = request.args.get('status', '').strip()
+        
+        # 构建查询
+        query = FrameExtractor.query
+        
+        if camera_name_filter:
+            query = query.filter(FrameExtractor.camera_name.ilike(f'%{camera_name_filter}%'))
+        
+        if status_filter:
+            query = query.filter(FrameExtractor.status == status_filter)
+        
+        # 分页
+        pagination = query.order_by(FrameExtractor.created_at.desc()).paginate(
+            page=page_no,
+            per_page=page_size,
+            error_out=False
+        )
+        
+        records = [extractor.to_dict() for extractor in pagination.items]
+        
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': records,
+            'total': pagination.total
+        })
+        
+    except Exception as e:
+        logger.error(f'获取抽帧器列表失败: {str(e)}')
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@deploy_service_bp.route('/extractor/<camera_name>', methods=['GET'])
+def get_extractor_route(camera_name):
+    """获取抽帧器详情"""
+    try:
+        extractor = get_extractor(camera_name)
+        if not extractor:
+            return jsonify({
+                'code': 404,
+                'msg': '抽帧器不存在'
+            }), 404
+        
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': extractor.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f'获取抽帧器详情失败: {str(e)}')
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@deploy_service_bp.route('/extractor/heartbeat', methods=['POST'])
+def receive_extractor_heartbeat():
+    """接收抽帧器心跳"""
+    try:
+        data = request.get_json()
+        extractor_id = data.get('extractor_id')
+        camera_name = data.get('camera_name')
+        current_frame_index = data.get('current_frame_index', 0)
+        
+        if not extractor_id:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：extractor_id'
+            }), 400
+        
+        extractor = FrameExtractor.query.get(extractor_id)
+        if not extractor:
+            return jsonify({
+                'code': 404,
+                'msg': '抽帧器不存在'
+            }), 404
+        
+        # 更新心跳信息
+        extractor.last_heartbeat = beijing_now()
+        extractor.current_frame_index = current_frame_index
+        
+        if extractor.status != 'stopped':
+            extractor.status = 'running'
+        
+        db.session.commit()
+        
+        return jsonify({
+            'code': 0,
+            'msg': '心跳接收成功',
+            'data': {
+                'extractor_id': extractor.id,
+                'camera_name': extractor.camera_name
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"接收抽帧器心跳失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@deploy_service_bp.route('/extractor/<camera_name>/enable', methods=['POST'])
+def enable_extractor_route(camera_name):
+    """开启抽帧器"""
+    try:
+        extractor = get_extractor(camera_name)
+        if not extractor:
+            return jsonify({
+                'code': 404,
+                'msg': '抽帧器不存在'
+            }), 404
+        
+        # 如果当前输入源是视频则从头抽帧，如果是rtsp流也是取当前流去抽帧
+        if extractor.input_type == 'video':
+            extractor.current_frame_index = 0  # 视频从头抽帧
+            logger.info(f'抽帧器 {camera_name} 开启，视频输入，帧索引重置为0')
+        # RTSP不需要重置索引，从当前流开始抽帧
+        
+        extractor.is_enabled = True
+        db.session.commit()
+        
+        # 如果抽帧器未运行，启动它
+        from app.services.frame_extractor_service import start_extractor
+        if extractor.status != 'running':
+            result = start_extractor(
+                camera_name=extractor.camera_name,
+                input_source=extractor.input_source,
+                input_type=extractor.input_type,
+                model_id=extractor.model_id,
+                service_name=extractor.service_name,
+                frame_skip=extractor.frame_skip
+            )
+            if result.get('code') != 0:
+                return jsonify(result), 500
+        
+        return jsonify({
+            'code': 0,
+            'msg': '抽帧器已开启',
+            'data': extractor.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f'开启抽帧器失败: {str(e)}', exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@deploy_service_bp.route('/extractor/<camera_name>/disable', methods=['POST'])
+def disable_extractor_route(camera_name):
+    """关闭抽帧器"""
+    try:
+        extractor = get_extractor(camera_name)
+        if not extractor:
+            return jsonify({
+                'code': 404,
+                'msg': '抽帧器不存在'
+            }), 404
+        
+        extractor.is_enabled = False
+        db.session.commit()
+        
+        return jsonify({
+            'code': 0,
+            'msg': '抽帧器已关闭',
+            'data': extractor.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f'关闭抽帧器失败: {str(e)}', exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@deploy_service_bp.route('/sorter', methods=['GET'])
+def get_sorter_route():
+    """获取排序器信息"""
+    try:
+        service_name = request.args.get('service_name', '').strip()
+        
+        if not service_name:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：service_name'
+            }), 400
+        
+        from app.services.frame_sorter_service import get_sorter
+        sorter = get_sorter(service_name)
+        
+        if not sorter:
+            return jsonify({
+                'code': 404,
+                'msg': '排序器不存在'
+            }), 404
+        
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': sorter.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f'获取排序器信息失败: {str(e)}')
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
