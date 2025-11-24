@@ -20,7 +20,7 @@ from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
 
-from app.blueprints import camera, nvr, alert
+from app.blueprints import camera, alert
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -139,7 +139,7 @@ def create_app():
     db.init_app(app)
     with app.app_context():
         try:
-            from models import Device, Image, Nvr
+            from models import Device, Image
             db.create_all()
         except Exception as e:
             print(f"❌ 建表失败: {str(e)}")
@@ -150,14 +150,6 @@ def create_app():
         print(f"✅ Camera Blueprint 注册成功")
     except Exception as e:
         print(f"❌ Camera Blueprint 注册失败: {str(e)}")
-        import traceback
-        traceback.print_exc()
-    
-    try:
-        app.register_blueprint(nvr.nvr_bp, url_prefix='/video/nvr')
-        print(f"✅ NVR Blueprint 注册成功")
-    except Exception as e:
-        print(f"❌ NVR Blueprint 注册失败: {str(e)}")
         import traceback
         traceback.print_exc()
     
