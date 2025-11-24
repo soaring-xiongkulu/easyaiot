@@ -845,8 +845,8 @@ def start_heartbeat_checker(app):
 
 # ========== 抽帧器管理接口 ==========
 @deploy_service_bp.route('/extractor/start', methods=['POST'])
-def start_extractor_route():
-    """启动抽帧器"""
+def create_and_start_extractor_route():
+    """创建并启动抽帧器"""
     try:
         data = request.get_json()
         camera_name = data.get('camera_name')
