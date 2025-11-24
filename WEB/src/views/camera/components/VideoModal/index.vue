@@ -291,8 +291,13 @@ const [register, {closeModal}] = useModalInner(async (data) => {
     modelRef.stream = 0;
   }
 
+  // 更新验证规则
+  Object.assign(rulesRef, getRules());
+
   if (state.isEdit || state.isView) {
     modelEdit(record);
+    // 编辑/查看时也需要更新验证规则
+    Object.assign(rulesRef, getRules());
   }
 });
 
@@ -350,22 +355,79 @@ const [
   rowKey: 'ip',
 });
 
-const rulesRef = reactive({
-  name: [{required: true, message: '请输入设备名称', trigger: ['change']}],
-  cameraType: [{required: true, message: '请选择摄像头类型', trigger: ['change']}],
-  source: [{required: false, message: '请输入RTSP取流地址', trigger: ['change']}],
-  ip: [
-    {required: false, message: '请输入摄像头IP地址', trigger: ['change']},
-    {pattern: /^(\d{1,3}\.){3}\d{1,3}$/, message: '请输入正确的IP地址格式', trigger: ['change']}
-  ],
-  port: [
-    {required: false, message: '请输入摄像头端口', trigger: ['change']},
-    {type: 'number', message: '端口必须是数字', trigger: ['change'], transform: (value) => Number(value)},
-    {min: 1, max: 65535, message: '端口范围必须在1-65535之间', trigger: ['change']}
-  ],
-  username: [{required: false, message: '请输入用户名', trigger: ['change']}],
-  password: [{required: false, message: '请输入密码', trigger: ['change']}],
-});
+// 动态验证规则函数
+const getRules = () => {
+  const baseRules: any = {
+    name: [{required: true, message: '请输入设备名称', trigger: ['change']}],
+    cameraType: [{required: true, message: '请选择摄像头类型', trigger: ['change']}],
+  };
+
+  // 根据摄像头类型动态设置验证规则
+  if (modelRef.cameraType === 'custom') {
+    // 自定义类型：source必填，ip和port不需要验证
+    baseRules.source = [{required: true, message: '请输入RTSP取流地址', trigger: ['change']}];
+    baseRules.ip = [];
+    baseRules.port = [];
+  } else if (modelRef.cameraType === 'hikvision' || modelRef.cameraType === 'dahua' || modelRef.cameraType === 'uniview') {
+    // 海康/大华/宇视类型：ip、port、username、password必填，source自动生成不需要验证
+    baseRules.ip = [
+      {required: true, message: '请输入摄像头IP地址', trigger: ['change']},
+      {pattern: /^(\d{1,3}\.){3}\d{1,3}$/, message: '请输入正确的IP地址格式', trigger: ['change']}
+    ];
+    baseRules.port = [
+      {required: true, message: '请输入摄像头端口', trigger: ['change']},
+      {type: 'number', message: '端口必须是数字', trigger: ['change'], transform: (value) => Number(value)},
+      {min: 1, max: 65535, message: '端口范围必须在1-65535之间', trigger: ['change']}
+    ];
+    baseRules.username = [{required: true, message: '请输入用户名', trigger: ['change']}];
+    baseRules.password = [{required: true, message: '请输入密码', trigger: ['change']}];
+    baseRules.source = [];
+  } else {
+    // 默认情况：所有字段都是可选的，但如果有值则需要符合格式
+    baseRules.source = [{required: false, message: '请输入RTSP取流地址', trigger: ['change']}];
+    baseRules.ip = [
+      {required: false, message: '请输入摄像头IP地址', trigger: ['change']},
+      {
+        validator: (_rule, value) => {
+          if (!value || value === '') {
+            return Promise.resolve();
+          }
+          const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+          if (ipPattern.test(value)) {
+            return Promise.resolve();
+          }
+          return Promise.reject('请输入正确的IP地址格式');
+        },
+        trigger: ['change']
+      }
+    ];
+    baseRules.port = [
+      {required: false, message: '请输入摄像头端口', trigger: ['change']},
+      {
+        validator: (_rule, value) => {
+          if (!value || value === '') {
+            return Promise.resolve();
+          }
+          const numValue = Number(value);
+          if (isNaN(numValue)) {
+            return Promise.reject('端口必须是数字');
+          }
+          if (numValue < 1 || numValue > 65535) {
+            return Promise.reject('端口范围必须在1-65535之间');
+          }
+          return Promise.resolve();
+        },
+        trigger: ['change']
+      }
+    ];
+    baseRules.username = [{required: false, message: '请输入用户名', trigger: ['change']}];
+    baseRules.password = [{required: false, message: '请输入密码', trigger: ['change']}];
+  }
+
+  return baseRules;
+};
+
+const rulesRef = reactive(getRules());
 
 function handleCLickChange(value) {
   //console.log('handleCLickChange', value)
@@ -385,6 +447,11 @@ function handleCameraTypeChange(value) {
     modelRef.source = '';
     modelRef.stream = 0;
   }
+  
+  // 更新验证规则
+  Object.assign(rulesRef, getRules());
+  // 重新验证表单
+  resetFields();
 }
 
 // 生成RTSP地址（海康/大华/宇视）
@@ -542,6 +609,9 @@ function handleOk() {
       return;
     }
 
+    // 更新验证规则以确保使用最新的规则
+    Object.assign(rulesRef, getRules());
+
     // 执行表单验证
     validate().then(async () => {
       state.editLoading = true;
@@ -590,6 +660,9 @@ function handleOk() {
     });
     return;
   }
+
+  // 更新验证规则以确保使用最新的规则
+  Object.assign(rulesRef, getRules());
 
   validate().then(async () => {
     state.editLoading = true;
