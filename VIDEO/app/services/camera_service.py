@@ -411,21 +411,21 @@ def _generate_stream_urls(source: str, device_id: str) -> tuple[str, str]:
             # 生成RTMP播放地址（使用源路径）
             rtmp_stream = f"rtmp://{server}:{port}/{path}"
             
-            # 生成HTTP播放地址（使用从RTMP地址中解析出的端口，添加.flv后缀）
+            # 生成HTTP播放地址（使用8080端口，添加.flv后缀）
             # 如果路径已经包含.flv，则不重复添加
             if path.endswith('.flv'):
                 http_path = path
             else:
                 http_path = f"{path}.flv"
-            # 使用从RTMP地址中解析出的端口，而不是硬编码8989
-            http_stream = f"http://{server}:{port}/{http_path}"
+            # HTTP流地址默认使用8080端口
+            http_stream = f"http://{server}:8080/{http_path}"
             
             return rtmp_stream, http_stream
         else:
             # 如果解析失败，使用默认格式
             server = '127.0.0.1'
             rtmp_stream = f"rtmp://{server}:1935/live/{device_id}"
-            http_stream = f"http://{server}:8989/live/{device_id}.flv"
+            http_stream = f"http://{server}:8080/live/{device_id}.flv"
             return rtmp_stream, http_stream
     elif is_http:
         # HTTP地址格式：http://ip:port/path 或 https://ip:port/path
@@ -434,12 +434,8 @@ def _generate_stream_urls(source: str, device_id: str) -> tuple[str, str]:
         if match:
             protocol = match.group(1)  # http 或 https
             server = match.group(2)
-            port = match.group(3) or ('443' if protocol == 'https' else '80')
+            port = match.group(3) or ('443' if protocol == 'https' else '8080')
             path = match.group(4) or f'live/{device_id}'
-            
-            # 将localhost替换为127.0.0.1
-            if server.lower() == 'localhost':
-                server = '127.0.0.1'
             
             # HTTP设备不需要RTMP流，使用空字符串或默认值
             rtmp_stream = f"rtmp://{server}:1935/live/{device_id}"
@@ -451,13 +447,13 @@ def _generate_stream_urls(source: str, device_id: str) -> tuple[str, str]:
             # 如果解析失败，使用默认格式
             server = '127.0.0.1'
             rtmp_stream = f"rtmp://{server}:1935/live/{device_id}"
-            http_stream = f"http://{server}:8989/live/{device_id}.flv"
+            http_stream = f"http://{server}:8080/live/{device_id}.flv"
             return rtmp_stream, http_stream
     else:
         # RTSP流，使用设备ID生成默认地址
         server = '127.0.0.1'
         rtmp_stream = f"rtmp://{server}:1935/live/{device_id}"
-        http_stream = f"http://{server}:8989/live/{device_id}.flv"
+        http_stream = f"http://{server}:8080/live/{device_id}.flv"
         return rtmp_stream, http_stream
 
 
@@ -537,7 +533,7 @@ def register_camera_by_onvif(ip: str, port: int, password: str) -> str:
     
     # 生成RTMP和HTTP播放地址
     source = camera_info.get('source', '')
-    rtmp_stream, http_stream = _generate_stream_urls(source, device_id) if source else (f"rtmp://127.0.0.1:1935/live/{device_id}", f"http://127.0.0.1:8989/live/{device_id}.flv")
+    rtmp_stream, http_stream = _generate_stream_urls(source, device_id) if source else (f"rtmp://127.0.0.1:1935/live/{device_id}", f"http://127.0.0.1:8080/live/{device_id}.flv")
     
     camera = Device(
         id=device_id,
@@ -747,7 +743,7 @@ def register_camera(register_info: dict) -> str:
     
     # 生成RTMP和HTTP播放地址
     source = camera_info.get('source', '')
-    rtmp_stream, http_stream = _generate_stream_urls(source, id) if source else (f"rtmp://127.0.0.1:1935/live/{id}", f"http://127.0.0.1:8989/live/{id}.flv")
+    rtmp_stream, http_stream = _generate_stream_urls(source, id) if source else (f"rtmp://127.0.0.1:1935/live/{id}", f"http://127.0.0.1:8080/live/{id}.flv")
     
     camera = Device(
         id=id,  # 显式设置ID，确保使用传入的ID或生成的唯一ID
