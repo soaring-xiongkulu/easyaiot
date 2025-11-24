@@ -308,9 +308,6 @@ check_and_install_nodejs20() {
 
 # 检查 nvidia-container-toolkit 是否已安装
 check_nvidia_container_toolkit() {
-
-# 检查 nvidia-container-toolkit 是否已安装
-check_nvidia_container_toolkit() {
     if command -v nvidia-container-runtime &> /dev/null; then
         local runtime_path=$(which nvidia-container-runtime)
         print_success "nvidia-container-toolkit 已安装: $runtime_path"
