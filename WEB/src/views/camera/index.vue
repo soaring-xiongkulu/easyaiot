@@ -1,7 +1,8 @@
 <template>
   <div class="camera-container">
-    <BasicTable @register="registerTable">
-      <template #toolbar>
+    <!-- 工具栏 -->
+    <div class="toolbar-wrapper">
+      <div class="toolbar-left">
         <a-button type="primary" @click="handleScanOnvif">
           <template #icon>
             <ScanOutlined/>
@@ -26,8 +27,27 @@
           </template>
           更新ONVIF设备
         </a-button>
-      </template>
+      </div>
+      <div class="toolbar-right">
+        <a-radio-group v-model:value="viewMode" button-style="solid">
+          <a-radio-button value="table">
+            <template #icon>
+              <UnorderedListOutlined/>
+            </template>
+            列表
+          </a-radio-button>
+          <a-radio-button value="card">
+            <template #icon>
+              <AppstoreOutlined/>
+            </template>
+            卡片
+          </a-radio-button>
+        </a-radio-group>
+      </div>
+    </div>
 
+    <!-- 列表模式 -->
+    <BasicTable v-if="viewMode === 'table'" @register="registerTable">
       <template #bodyCell="{ column, record }">
         <!-- 统一复制功能组件 -->
         <template
@@ -50,6 +70,20 @@
         </template>
       </template>
     </BasicTable>
+
+    <!-- 卡片模式 -->
+    <VideoCardList 
+      v-else
+      ref="cardListRef"
+      :api="getDeviceList"
+      :params="{}"
+      @view="handleCardView"
+      @edit="handleCardEdit"
+      @delete="handleCardDelete"
+      @play="handleCardPlay"
+      @toggleStream="handleCardToggleStream"
+    />
+
     <DialogPlayer title="视频播放" @register="registerPlayerAddModel"
                   @success="handlePlayerSuccess"/>
     <VideoModal @register="registerAddModel" @success="handleSuccess"/>
@@ -77,14 +111,23 @@ import {
   ClusterOutlined,
   ScanOutlined,
   SyncOutlined,
-  VideoCameraAddOutlined
+  VideoCameraAddOutlined,
+  UnorderedListOutlined,
+  AppstoreOutlined
 } from '@ant-design/icons-vue';
 import DialogPlayer from "@/components/VideoPlayer/DialogPlayer.vue";
+import VideoCardList from "./components/VideoCardList/index.vue";
 
 const {createMessage} = useMessage();
 const [registerAddModel, {openModal}] = useModal();
 
 const [registerPlayerAddModel, {openModal: openPlayerAddModel}] = useModal();
+
+// 视图模式：table 列表模式，card 卡片模式
+const viewMode = ref<'table' | 'card'>('table');
+
+// 卡片组件引用
+const cardListRef = ref();
 
 // 设备流状态映射
 const deviceStreamStatuses = ref<Record<string, string>>({});
@@ -347,6 +390,43 @@ const handleUpdateOnvifDevice = async () => {
   }
 };
 
+// 卡片模式的事件处理
+const handleCardView = (record: DeviceInfo) => {
+  openAddModal('view', record);
+};
+
+const handleCardEdit = (record: DeviceInfo) => {
+  openAddModal('edit', record);
+};
+
+const handleCardDelete = async (record: DeviceInfo) => {
+  await handleDelete(record);
+};
+
+const handleCardPlay = (record: DeviceInfo) => {
+  handlePlay(record);
+};
+
+const handleCardToggleStream = async (record: DeviceInfo) => {
+  const currentStatus = deviceStreamStatuses.value[record.id] || 'unknown';
+  if (currentStatus === 'running') {
+    await handleDisableRtsp(record);
+  } else {
+    await handleEnableRtsp(record);
+  }
+  // 刷新卡片列表中的流状态
+  if (viewMode.value === 'card' && cardListRef.value) {
+    // 更新卡片组件的流状态
+    if (cardListRef.value.deviceStreamStatuses) {
+      cardListRef.value.deviceStreamStatuses.value[record.id] = deviceStreamStatuses.value[record.id];
+    }
+    // 重新检查流状态
+    if (cardListRef.value.checkDeviceStreamStatus) {
+      await cardListRef.value.checkDeviceStreamStatus(record.id);
+    }
+  }
+};
+
 // 组件挂载时启动状态检查定时器
 onMounted(() => {
   startStatusCheckTimer();
@@ -364,5 +444,25 @@ onUnmounted(() => {
 <style scoped>
 .camera-container {
   padding: 16px;
+}
+
+.toolbar-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.toolbar-left {
+  display: flex;
+  gap: 8px;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
 }
 </style>

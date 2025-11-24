@@ -69,6 +69,19 @@ export const registerDevice = (data: {
   return commonApi('post', `${CAMERA_PREFIX}/register/device`, data);
 };
 
+/**
+ * 通过ONVIF搜索并自动注册摄像头
+ * @param data 包含IP、端口、密码的对象
+ * @returns 注册结果
+ */
+export const registerDeviceByOnvif = (data: {
+  ip: string;
+  port: number;
+  password: string;
+}) => {
+  return commonApi('post', `${CAMERA_PREFIX}/register/device/onvif`, data);
+};
+
 export const getDeviceInfo = (device_id: string) => {
   return commonApi('get', `${CAMERA_PREFIX}/device/${device_id}`);
 };

@@ -37,6 +37,24 @@
             </template>
           </BasicTable>
         </Form>
+        <!-- 视频源设备表单（简化版：只显示IP、端口、密码） -->
+        <Form
+          :labelCol="{ span: 6 }"
+          :model="validateInfos"
+          :wrapperCol="{ span: 18 }"
+          :disabled="state.isView"
+          v-else-if="state.type === 'source' && !state.isEdit && !state.isView"
+        >
+          <FormItem label="摄像头IP" name="ip" v-bind=validateInfos.ip>
+            <Input v-model:value="modelRef.ip" placeholder="请输入摄像头IP地址"/>
+          </FormItem>
+          <FormItem label="摄像头端口" name="port" v-bind=validateInfos.port>
+            <Input v-model:value="modelRef.port" placeholder="请输入摄像头端口" type="number"/>
+          </FormItem>
+          <FormItem label="摄像头密码" name="password" v-bind=validateInfos.password>
+            <Input.Password v-model:value="modelRef.password" placeholder="请输入摄像头密码"/>
+          </FormItem>
+        </Form>
         <!-- 其他组件 -->
         <Form
           :labelCol="{ span: 6 }"
@@ -158,7 +176,7 @@ import {BasicModal, useModal, useModalInner} from '@/components/Modal';
 import {Col, Form, FormItem, Input, Row, Select, Spin,} from 'ant-design-vue';
 import {useMessage} from '@/hooks/web/useMessage';
 // 导入新的API函数
-import {discoverDevices, getDeviceList, registerDevice, updateDevice} from "@/api/device/camera";
+import {discoverDevices, getDeviceList, registerDevice, updateDevice, registerDeviceByOnvif} from "@/api/device/camera";
 import {BasicTable, TableAction, useTable} from "@/components/Table";
 import {getOnvifBasicColumns, getOnvifFormConfig} from "@/views/camera/VideoModal/Data";
 import VideoRegisterModal from "@/views/camera/VideoRegisterModal/index.vue";
@@ -232,6 +250,13 @@ const [register, {closeModal}] = useModalInner(async (data) => {
   state.isView = isView;
   state.type = type;
 
+  // 如果是新增视频源设备，重置相关字段
+  if (type === 'source' && !isEdit && !isView) {
+    modelRef.ip = '';
+    modelRef.port = 80;
+    modelRef.password = '';
+  }
+
   if (state.isEdit || state.isView) {
     modelEdit(record);
   }
@@ -294,7 +319,16 @@ const [
 const rulesRef = reactive({
   name: [{required: true, message: '请输入设备名称', trigger: ['change']}],
   source: [{required: true, message: '请输入RTSP取流地址', trigger: ['change']}],
-  ip: [{required: true, message: '请输入IP地址', trigger: ['change']}],
+  ip: [
+    {required: true, message: '请输入摄像头IP地址', trigger: ['change']},
+    {pattern: /^(\d{1,3}\.){3}\d{1,3}$/, message: '请输入正确的IP地址格式', trigger: ['change']}
+  ],
+  port: [
+    {required: true, message: '请输入摄像头端口', trigger: ['change']},
+    {type: 'number', message: '端口必须是数字', trigger: ['change'], transform: (value) => Number(value)},
+    {min: 1, max: 65535, message: '端口范围必须在1-65535之间', trigger: ['change']}
+  ],
+  password: [{required: true, message: '请输入摄像头密码', trigger: ['change']}],
 });
 
 function handleCLickChange(value) {
@@ -392,6 +426,34 @@ function handleOk() {
   if (state.type == 'onvif') {
     closeModal();
     resetFields();
+    return;
+  }
+
+  // 视频源设备特殊处理：通过ONVIF搜索并注册
+  if (state.type === 'source' && !state.isEdit && !state.isView) {
+    validate().then(async () => {
+      state.editLoading = true;
+      try {
+        // 调用新的ONVIF搜索注册接口
+        await registerDeviceByOnvif({
+          ip: modelRef.ip,
+          port: parseInt(modelRef.port) || 80,
+          password: modelRef.password
+        });
+        createMessage.success('设备注册成功');
+        closeModal();
+        resetFields();
+        emits('success');
+      } catch (error: any) {
+        createMessage.error(error?.msg || '设备注册失败，请检查IP、端口和密码是否正确');
+        console.error(error);
+      } finally {
+        state.editLoading = false;
+      }
+    }).catch((err) => {
+      createMessage.error('表单验证失败');
+      console.error(err);
+    });
     return;
   }
 

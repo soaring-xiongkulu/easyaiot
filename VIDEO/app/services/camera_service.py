@@ -293,6 +293,104 @@ def _get_stream(rtsp_url: str, stream: int) -> str:
     raise ValueError('仅支持海康和大华设备的码流调整功能')
 
 
+def register_camera_by_onvif(ip: str, port: int, password: str) -> str:
+    """通过ONVIF搜索并自动注册摄像头
+    
+    Args:
+        ip: 摄像头IP地址
+        port: 摄像头端口
+        password: 摄像头密码
+        
+    Returns:
+        设备ID
+        
+    Raises:
+        ValueError: 参数验证失败
+        RuntimeError: 设备连接或注册失败
+    """
+    if not ip or not ip.strip():
+        raise ValueError('摄像头IP地址不能为空')
+    if not port or port <= 0:
+        raise ValueError('摄像头端口必须大于0')
+    if not password or not password.strip():
+        raise ValueError('摄像头密码不能为空')
+    
+    # 尝试常见的用户名列表
+    common_usernames = ['admin', 'Administrator', 'root', '']
+    
+    onvif_cam = None
+    used_username = None
+    temp_id = 'temp_' + str(time.time_ns())  # 临时ID用于连接测试
+    
+    # 尝试使用不同的用户名连接
+    for username in common_usernames:
+        try:
+            onvif_cam = _create_onvif_camera(
+                temp_id,
+                ip,
+                port,
+                username,
+                password
+            )
+            used_username = username
+            logger.info(f'使用用户名 "{username}" 成功连接到设备 {ip}:{port}')
+            break
+        except Exception as e:
+            logger.debug(f'使用用户名 "{username}" 连接设备 {ip}:{port} 失败: {str(e)}')
+            continue
+    
+    if onvif_cam is None:
+        raise RuntimeError(f'无法连接到设备 {ip}:{port}，请检查IP、端口和密码是否正确，或尝试其他用户名')
+    
+    # 检查设备是否已存在（通过MAC地址）
+    camera_info = onvif_cam.get_info()
+    mac = camera_info.get('mac')
+    
+    if mac:
+        existing_camera = Device.query.filter_by(mac=mac).first()
+        if existing_camera:
+            raise ValueError(f'设备已存在，设备ID: {existing_camera.id}')
+    
+    # 生成设备ID
+    device_id = str(time.time_ns())
+    if _get_camera(device_id):
+        device_id = str(time.time_ns())  # 如果冲突，重新生成
+    
+    # 创建设备记录
+    camera = Device(
+        id=device_id,
+        name=f'Camera-{device_id[:6]}',
+        source=camera_info.get('source'),
+        rtmp_stream=f"rtmp://localhost:1935/live/{device_id}",
+        http_stream=f"http://localhost:8989/live/{device_id}.flv",
+        stream=None,
+        ip=camera_info.get('ip'),
+        port=camera_info.get('port', port),
+        username=used_username,
+        password=password,
+        mac=camera_info.get('mac'),
+        manufacturer=camera_info.get('manufacturer'),
+        model=camera_info.get('model'),
+        firmware_version=camera_info.get('firmware_version'),
+        serial_number=camera_info.get('serial_number'),
+        hardware_id=camera_info.get('hardware_id'),
+        support_move=camera_info.get('support_move', False),
+        support_zoom=camera_info.get('support_zoom', False),
+        nvr_id=None,
+        nvr_channel=0
+    )
+    
+    db.session.add(camera)
+    try:
+        db.session.commit()
+        _monitor.update(camera.id, camera.ip)
+        logger.info(f'设备 {device_id} 通过ONVIF注册成功，IP: {camera.ip}, 用户名: {used_username}')
+        return device_id
+    except Exception as e:
+        db.session.rollback()
+        raise RuntimeError(f'数据库提交失败: {str(e)}')
+
+
 def register_camera(register_info: dict) -> str:
     """注册设备到数据库"""
     id = register_info.get('id') or str(time.time_ns())

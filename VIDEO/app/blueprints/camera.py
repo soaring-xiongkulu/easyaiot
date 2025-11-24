@@ -22,7 +22,7 @@ from minio.error import S3Error
 
 from app.services.camera_service import *
 from app.services.camera_service import (
-    register_camera, get_camera_info, update_camera, delete_camera,
+    register_camera, register_camera_by_onvif, get_camera_info, update_camera, delete_camera,
     search_camera,
     get_snapshot_uri, refresh_camera, _to_dict
 )
@@ -270,6 +270,45 @@ def register_device():
     except RuntimeError as e:
         logger.error(f'注册新设备失败: {str(e)}')
         return jsonify({'code': 500, 'msg': str(e)}), 500
+
+
+@camera_bp.route('/register/device/onvif', methods=['POST'])
+def register_device_by_onvif():
+    """通过ONVIF搜索并自动注册摄像头"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
+        
+        ip = data.get('ip', '').strip()
+        port = data.get('port', 80)
+        password = data.get('password', '').strip()
+        
+        if not ip:
+            return jsonify({'code': 400, 'msg': '摄像头IP地址不能为空'}), 400
+        if not password:
+            return jsonify({'code': 400, 'msg': '摄像头密码不能为空'}), 400
+        
+        try:
+            port = int(port)
+        except (ValueError, TypeError):
+            return jsonify({'code': 400, 'msg': '摄像头端口必须是数字'}), 400
+        
+        device_id = register_camera_by_onvif(ip, port, password)
+        return jsonify({
+            'code': 0,
+            'msg': '设备注册成功',
+            'data': {'id': device_id}
+        })
+    except ValueError as e:
+        logger.error(f'ONVIF注册设备失败: {str(e)}')
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except RuntimeError as e:
+        logger.error(f'ONVIF注册设备失败: {str(e)}')
+        return jsonify({'code': 500, 'msg': str(e)}), 500
+    except Exception as e:
+        logger.error(f'ONVIF注册设备失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'设备注册失败: {str(e)}'}), 500
 
 
 @camera_bp.route('/device/<string:device_id>', methods=['PUT'])
