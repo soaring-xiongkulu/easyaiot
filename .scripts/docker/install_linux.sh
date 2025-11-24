@@ -4,7 +4,7 @@
 # EasyAIoT 统一安装脚本
 # ============================================
 # 使用方法：
-#   ./install_all.sh [命令]
+#   ./install_linux.sh [命令]
 #
 # 可用命令：
 #   install    - 安装并启动所有服务（首次运行）
@@ -38,7 +38,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 日志文件配置
 LOG_DIR="${SCRIPT_DIR}/logs"
 mkdir -p "$LOG_DIR"
-LOG_FILE="${LOG_DIR}/install_all_$(date +%Y%m%d_%H%M%S).log"
+LOG_FILE="${LOG_DIR}/install_linux_$(date +%Y%m%d_%H%M%S).log"
 
 # 初始化日志文件
 echo "=========================================" >> "$LOG_FILE"
@@ -153,7 +153,7 @@ check_docker_permission() {
             echo "     然后重新登录或运行: newgrp docker"
             echo ""
             echo "  2. 或者使用 sudo 运行此脚本："
-            echo "     sudo ./install_all.sh $*"
+            echo "     sudo ./install_linux.sh $*"
             echo ""
         elif echo "$error_msg" | grep -qi "Is the docker daemon running"; then
             print_error "Docker daemon 未运行"
@@ -546,7 +546,7 @@ verify_service_health() {
 }
 
 # 安装所有服务
-install_all() {
+install_linux() {
     print_section "开始安装所有服务"
     
     check_docker "$@"
@@ -920,7 +920,7 @@ verify_all() {
             echo -e "  ${RED}✗ $failed${NC}"
         done
         echo ""
-        print_info "查看日志: ./install_all.sh logs"
+        print_info "查看日志: ./install_linux.sh logs"
         return 1
     fi
 }
@@ -930,7 +930,7 @@ show_help() {
     echo "EasyAIoT 统一安装脚本"
     echo ""
     echo "使用方法:"
-    echo "  ./install_all.sh [命令] [模块]"
+    echo "  ./install_linux.sh [命令] [模块]"
     echo ""
     echo "可用命令:"
     echo "  install         - 安装并启动所有服务（首次运行）"
@@ -962,7 +962,7 @@ main() {
     
     case "${1:-help}" in
         install)
-            install_all
+            install_linux
             ;;
         start)
             start_all
