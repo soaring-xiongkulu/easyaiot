@@ -1,7 +1,8 @@
+<div align="center">
+
 # EasyAIoT
 ## Cloud-Edge-Device Integrated Collaborative Algorithm Application Platform
 
-<div align="center">
 
 [![Gitee star](https://gitee.com/soaring-xiongkulu/easyaiot/badge/star.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/stargazers)
 [![Gitee fork](https://gitee.com/soaring-xiongkulu/easyaiot//badge/fork.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/members)
