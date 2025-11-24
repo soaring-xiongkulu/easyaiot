@@ -372,23 +372,33 @@ def _get_stream(rtsp_url: str, stream: int) -> str:
     if stream is None:
         return rtsp_url
 
+    # 如果stream为0，表示使用默认码流，返回原始URL
+    if stream == 0:
+        return rtsp_url
+
     # 海康威视设备
     if re.match(r'rtsp://[^/]*/Streaming/Channels/10\d.*', rtsp_url):
-        if stream == 0:
-            stream = 1
-        elif not (1 <= stream <= 3):
+        if not (1 <= stream <= 3):
             raise ValueError('海康设备仅支持码流类型: 0[默认], 1[主码流], 2[子码流], 3[第三码流]')
         return re.sub(r'Channels/10\d', f'Channels/10{stream}', rtsp_url)
 
     # 大华设备
     elif re.match(r'rtsp://[^/]*/cam/realmonitor\?channel=\d+&subtype=\d+.*', rtsp_url):
-        if stream == 0:
-            stream = 1
-        elif not (1 <= stream <= 2):
+        if not (1 <= stream <= 2):
             raise ValueError('大华设备仅支持码流类型: 0[默认], 1[主码流], 2[辅码流]')
         return re.sub(r'subtype=\d', f'subtype={stream - 1}', rtsp_url)
 
-    raise ValueError('仅支持海康和大华设备的码流调整功能')
+    # 宇视设备
+    elif re.match(r'rtsp://[^/]*/unicast/c\d+/s\d+/live.*', rtsp_url):
+        if not (1 <= stream <= 2):
+            raise ValueError('宇视设备仅支持码流类型: 0[默认], 1[主码流], 2[辅码流]')
+        # 宇视设备：0=主码流, 1=辅码流，所以stream=1时用0，stream=2时用1
+        stream_type = stream - 1
+        return re.sub(r'/s\d+/', f'/s{stream_type}/', rtsp_url)
+
+    # 对于不支持的设备类型，记录警告并返回原始URL
+    logger.warning(f'设备RTSP地址 {rtsp_url[:50]}... 不支持码流调整功能，将使用原始URL')
+    return rtsp_url
 
 
 def _generate_stream_urls(source: str, device_id: str) -> tuple[str, str]:
@@ -834,8 +844,18 @@ def update_camera(id: str, update_info: dict):
     # 过滤空值并更新字段
     for k, v in (item for item in update_info.items() if item[1] is not None):
         if hasattr(camera, k):
+            # 对于布尔值字段，处理空字符串和字符串类型的布尔值
+            if k in ['enable_forward', 'support_move', 'support_zoom']:
+                # 如果是空字符串，跳过该字段的更新
+                if v == '':
+                    continue
+                # 如果是字符串类型的布尔值，转换为布尔值
+                if isinstance(v, str):
+                    v = v.lower() in ('true', '1', 'yes', 'on')
+                # 确保是布尔类型
+                v = bool(v) if v is not None else None
             # 对于manufacturer和model字段，确保去除首尾空格，如果为空则使用默认值
-            if k in ['manufacturer', 'model'] and isinstance(v, str):
+            elif k in ['manufacturer', 'model'] and isinstance(v, str):
                 v = v.strip()
                 if not v:
                     if k == 'manufacturer':
@@ -858,11 +878,31 @@ def update_camera(id: str, update_info: dict):
             raise RuntimeError(f'码流调整失败: {str(e)}')
 
     # 处理IP地址变更
+    # 注意：IP地址变更时，如果ONVIF连接失败，不应该阻止其他字段的更新
+    # 只有在IP地址确实变更时才尝试通过ONVIF更新设备信息
     if 'ip' in update_info:
-        try:
-            _update_camera_ip(camera, update_info['ip'])
-        except Exception as e:
-            raise RuntimeError(f'IP地址更新失败: {str(e)}')
+        old_ip = camera.ip
+        new_ip = update_info['ip']
+        # 只有当IP地址确实发生变化时才尝试通过ONVIF更新
+        if old_ip != new_ip:
+            try:
+                _update_camera_ip(camera, new_ip)
+                # 如果IP更新成功，_update_camera_ip已经提交了数据库，直接返回
+                logger.info(f'设备 {id} IP地址已从 {old_ip} 更新为 {new_ip}')
+                return
+            except Exception as e:
+                # IP地址更新失败时，记录警告但不阻止其他字段的更新
+                # 只更新IP地址，不通过ONVIF获取其他信息
+                logger.warning(f'设备 {id} IP地址更新失败（ONVIF连接失败）: {str(e)}，将仅更新IP地址')
+                # 只更新IP地址，不通过ONVIF获取其他信息
+                camera.ip = new_ip
+                # 更新监控
+                _monitor.update(camera.id, new_ip)
+                # 如果是RTMP设备，直接提交
+                if camera.source and camera.source.strip().lower().startswith('rtmp://'):
+                    db.session.commit()
+                    logger.info(f'设备 {id} IP地址已更新为 {new_ip}（RTMP设备，跳过ONVIF连接）')
+                    return
     
     # 确保manufacturer和model不为空（更新后最终验证，如果为空则使用默认值）
     if not camera.manufacturer or not camera.manufacturer.strip():

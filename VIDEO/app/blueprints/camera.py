@@ -434,6 +434,9 @@ def update_device(device_id):
     except RuntimeError as e:
         logger.error(f'更新设备信息失败: {str(e)}')
         return jsonify({'code': 500, 'msg': str(e)}), 500
+    except Exception as e:
+        logger.error(f'更新设备信息失败（未知错误）: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'更新设备信息失败: {str(e)}'}), 500
 
 
 @camera_bp.route('/device/<string:device_id>', methods=['DELETE'])
