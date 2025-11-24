@@ -229,9 +229,9 @@ def _update_camera_ip(camera: Device, ip: str):
                         current_value = getattr(camera, key, '')
                         if not current_value or not str(current_value).strip():
                             if key == 'manufacturer':
-                                value = 'Generic IP Device Manufacturer'
+                                value = 'EasyAIoT'
                             else:
-                                value = 'Standard IP Camera Model'
+                                value = 'Camera-EasyAIoT'
                         else:
                             # 保留原有值
                             continue
@@ -239,9 +239,9 @@ def _update_camera_ip(camera: Device, ip: str):
 
         # 确保manufacturer和model不为空
         if not camera.manufacturer or not camera.manufacturer.strip():
-            camera.manufacturer = 'Generic IP Device Manufacturer'
+            camera.manufacturer = 'EasyAIoT'
         if not camera.model or not camera.model.strip():
-            camera.model = 'Standard IP Camera Model'
+            camera.model = 'Camera-EasyAIoT'
 
         if camera.stream is not None:
             try:
@@ -381,6 +381,86 @@ def _get_stream(rtsp_url: str, stream: int) -> str:
     raise ValueError('仅支持海康和大华设备的码流调整功能')
 
 
+def _generate_stream_urls(source: str, device_id: str) -> tuple[str, str]:
+    """根据源地址生成RTMP和HTTP播放地址
+    
+    Args:
+        source: 源地址（RTSP、RTMP或HTTP）
+        device_id: 设备ID
+        
+    Returns:
+        tuple: (rtmp_stream, http_stream)
+    """
+    source_lower = source.strip().lower()
+    
+    # 判断是否是RTMP流
+    is_rtmp = source_lower.startswith('rtmp://')
+    
+    # 判断是否是HTTP流
+    is_http = source_lower.startswith('http://') or source_lower.startswith('https://')
+    
+    if is_rtmp:
+        # RTMP地址格式：rtmp://ip:port/path 或 rtmp://domain/path 或 rtmp://ip/path 或 rtmp://ip:port
+        rtmp_pattern = r'rtmp://([^:/]+)(?::(\d+))?(?:/(.*))?'
+        match = re.match(rtmp_pattern, source)
+        if match:
+            server = match.group(1)
+            port = match.group(2) or '1935'
+            path = match.group(3) or f'live/{device_id}'
+            
+            # 生成RTMP播放地址（使用源路径）
+            rtmp_stream = f"rtmp://{server}:{port}/{path}"
+            
+            # 生成HTTP播放地址（使用从RTMP地址中解析出的端口，添加.flv后缀）
+            # 如果路径已经包含.flv，则不重复添加
+            if path.endswith('.flv'):
+                http_path = path
+            else:
+                http_path = f"{path}.flv"
+            # 使用从RTMP地址中解析出的端口，而不是硬编码8989
+            http_stream = f"http://{server}:{port}/{http_path}"
+            
+            return rtmp_stream, http_stream
+        else:
+            # 如果解析失败，使用默认格式
+            server = '127.0.0.1'
+            rtmp_stream = f"rtmp://{server}:1935/live/{device_id}"
+            http_stream = f"http://{server}:8989/live/{device_id}.flv"
+            return rtmp_stream, http_stream
+    elif is_http:
+        # HTTP地址格式：http://ip:port/path 或 https://ip:port/path
+        http_pattern = r'(https?)://([^:/]+)(?::(\d+))?(?:/(.*))?'
+        match = re.match(http_pattern, source)
+        if match:
+            protocol = match.group(1)  # http 或 https
+            server = match.group(2)
+            port = match.group(3) or ('443' if protocol == 'https' else '80')
+            path = match.group(4) or f'live/{device_id}'
+            
+            # 将localhost替换为127.0.0.1
+            if server.lower() == 'localhost':
+                server = '127.0.0.1'
+            
+            # HTTP设备不需要RTMP流，使用空字符串或默认值
+            rtmp_stream = f"rtmp://{server}:1935/live/{device_id}"
+            # HTTP播放地址直接使用源地址的端口和路径
+            http_stream = f"{protocol}://{server}:{port}/{path}"
+            
+            return rtmp_stream, http_stream
+        else:
+            # 如果解析失败，使用默认格式
+            server = '127.0.0.1'
+            rtmp_stream = f"rtmp://{server}:1935/live/{device_id}"
+            http_stream = f"http://{server}:8989/live/{device_id}.flv"
+            return rtmp_stream, http_stream
+    else:
+        # RTSP流，使用设备ID生成默认地址
+        server = '127.0.0.1'
+        rtmp_stream = f"rtmp://{server}:1935/live/{device_id}"
+        http_stream = f"http://{server}:8989/live/{device_id}.flv"
+        return rtmp_stream, http_stream
+
+
 def register_camera_by_onvif(ip: str, port: int, password: str) -> str:
     """通过ONVIF搜索并自动注册摄像头
     
@@ -451,16 +531,20 @@ def register_camera_by_onvif(ip: str, port: int, password: str) -> str:
     
     # 如果ONVIF获取的信息中manufacturer或model为空，使用专业的默认值
     if not manufacturer:
-        manufacturer = 'Generic IP Device Manufacturer'
+        manufacturer = 'EasyAIoT'
     if not model:
-        model = 'Standard IP Camera Model'
+        model = 'Camera-EasyAIoT'
+    
+    # 生成RTMP和HTTP播放地址
+    source = camera_info.get('source', '')
+    rtmp_stream, http_stream = _generate_stream_urls(source, device_id) if source else (f"rtmp://127.0.0.1:1935/live/{device_id}", f"http://127.0.0.1:8989/live/{device_id}.flv")
     
     camera = Device(
         id=device_id,
         name=f'Camera-{device_id[:6]}',
         source=camera_info.get('source'),
-        rtmp_stream=f"rtmp://localhost:1935/live/{device_id}",
-        http_stream=f"http://localhost:8989/live/{device_id}.flv",
+        rtmp_stream=rtmp_stream,
+        http_stream=http_stream,
         stream=None,
         ip=camera_info.get('ip'),
         port=camera_info.get('port', port),
@@ -589,26 +673,22 @@ def register_camera(register_info: dict) -> str:
         manufacturer = register_info.get('manufacturer') or camera_info.get('manufacturer', '')
         model = register_info.get('model') or camera_info.get('model', '')
         
-        # 对于自定义设备或RTMP流，如果manufacturer或model为空，使用专业的默认值
-        if is_custom or is_rtmp:
-            if not manufacturer or not manufacturer.strip():
-                manufacturer = 'Generic IP Device Manufacturer'
-            if not model or not model.strip():
-                model = 'Standard IP Camera Model'
-        
-        # 验证manufacturer和model不能为空
+        # 如果manufacturer或model为空，使用默认值
         if not manufacturer or not manufacturer.strip():
-            raise ValueError('设备制造商(manufacturer)不能为空，请提供专业的制造商名称')
+            manufacturer = 'EasyAIoT'
         if not model or not model.strip():
-            raise ValueError('设备型号(model)不能为空，请提供专业的设备型号名称')
+            model = 'Camera-EasyAIoT'
+        
+        # 生成RTMP和HTTP播放地址
+        rtmp_stream, http_stream = _generate_stream_urls(source, id)
         
         # 创建设备记录，优先使用用户提供的字段，缺失的字段从ONVIF获取的信息中填充
         camera = Device(
             id=id,
             name=name,
             source=source,
-            rtmp_stream=f"rtmp://localhost:1935/live/{id}",
-            http_stream=f"http://localhost:8989/live/{id}.flv",
+            rtmp_stream=rtmp_stream,
+            http_stream=http_stream,
             stream=register_info.get('stream', 0),
             ip=ip or '',
             port=port,
@@ -661,16 +741,20 @@ def register_camera(register_info: dict) -> str:
     
     # 如果ONVIF获取的信息中manufacturer或model为空，使用专业的默认值
     if not manufacturer:
-        manufacturer = 'Generic IP Device Manufacturer'
+        manufacturer = 'EasyAIoT'
     if not model:
-        model = 'Standard IP Camera Model'
+        model = 'Camera-EasyAIoT'
+    
+    # 生成RTMP和HTTP播放地址
+    source = camera_info.get('source', '')
+    rtmp_stream, http_stream = _generate_stream_urls(source, id) if source else (f"rtmp://127.0.0.1:1935/live/{id}", f"http://127.0.0.1:8989/live/{id}.flv")
     
     camera = Device(
         id=id,  # 显式设置ID，确保使用传入的ID或生成的唯一ID
         name=register_info.get('name', f'Camera-{id[:6]}'),
         source=camera_info.get('source'),
-        rtmp_stream=f"rtmp://localhost:1935/live/{id}",
-        http_stream=f"http://localhost:8989/live/{id}.flv",
+        rtmp_stream=rtmp_stream,
+        http_stream=http_stream,
         stream=register_info.get('stream'),
         ip=camera_info.get('ip'),
         port=camera_info.get('port', 80),
@@ -744,11 +828,14 @@ def update_camera(id: str, update_info: dict):
     # 过滤空值并更新字段
     for k, v in (item for item in update_info.items() if item[1] is not None):
         if hasattr(camera, k):
-            # 对于manufacturer和model字段，确保去除首尾空格
+            # 对于manufacturer和model字段，确保去除首尾空格，如果为空则使用默认值
             if k in ['manufacturer', 'model'] and isinstance(v, str):
                 v = v.strip()
                 if not v:
-                    raise ValueError(f'设备{k}不能为空，请提供专业的{k}名称')
+                    if k == 'manufacturer':
+                        v = 'EasyAIoT'
+                    else:
+                        v = 'Camera-EasyAIoT'
             setattr(camera, k, v)
 
     # 处理码流变更
@@ -765,11 +852,11 @@ def update_camera(id: str, update_info: dict):
         except Exception as e:
             raise RuntimeError(f'IP地址更新失败: {str(e)}')
     
-    # 验证manufacturer和model不能为空（更新后最终验证）
+    # 确保manufacturer和model不为空（更新后最终验证，如果为空则使用默认值）
     if not camera.manufacturer or not camera.manufacturer.strip():
-        raise ValueError('设备制造商(manufacturer)不能为空，请提供专业的制造商名称')
+        camera.manufacturer = 'EasyAIoT'
     if not camera.model or not camera.model.strip():
-        raise ValueError('设备型号(model)不能为空，请提供专业的设备型号名称')
+        camera.model = 'Camera-EasyAIoT'
 
     try:
         db.session.commit()

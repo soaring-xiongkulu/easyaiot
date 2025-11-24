@@ -340,15 +340,17 @@ def register_device():
         if not data:
             return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
         
-        # 对于自定义设备，验证manufacturer和model字段
+        # 对于自定义设备，如果manufacturer或model为空，使用默认值
         camera_type = data.get('cameraType', '')
         if camera_type == 'custom':
             manufacturer = data.get('manufacturer', '').strip() if data.get('manufacturer') else ''
             model = data.get('model', '').strip() if data.get('model') else ''
             if not manufacturer:
-                return jsonify({'code': 400, 'msg': '自定义设备的制造商(manufacturer)不能为空，请提供专业的制造商名称'}), 400
+                manufacturer = 'EasyAIoT'
+                data['manufacturer'] = manufacturer
             if not model:
-                return jsonify({'code': 400, 'msg': '自定义设备的型号(model)不能为空，请提供专业的设备型号名称'}), 400
+                model = 'Camera-EasyAIoT'
+                data['model'] = model
         
         device_id = register_camera(data)
         return jsonify({
@@ -411,15 +413,15 @@ def update_device(device_id):
         if not data:
             return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
         
-        # 如果更新manufacturer或model字段，验证不能为空
+        # 如果更新manufacturer或model字段为空，使用默认值
         if 'manufacturer' in data:
             manufacturer = data.get('manufacturer', '').strip() if data.get('manufacturer') else ''
             if not manufacturer:
-                return jsonify({'code': 400, 'msg': '设备制造商(manufacturer)不能为空，请提供专业的制造商名称'}), 400
+                data['manufacturer'] = 'EasyAIoT'
         if 'model' in data:
             model = data.get('model', '').strip() if data.get('model') else ''
             if not model:
-                return jsonify({'code': 400, 'msg': '设备型号(model)不能为空，请提供专业的设备型号名称'}), 400
+                data['model'] = 'Camera-EasyAIoT'
         
         update_camera(device_id, data)
         return jsonify({

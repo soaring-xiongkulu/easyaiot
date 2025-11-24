@@ -372,7 +372,21 @@ const getRules = () => {
     // 海康/大华/宇视类型：ip、port、username、password必填，source自动生成不需要验证
     baseRules.ip = [
       {required: true, message: '请输入摄像头IP地址', trigger: ['change']},
-      {pattern: /^(\d{1,3}\.){3}\d{1,3}$/, message: '请输入正确的IP地址格式', trigger: ['change']}
+      {
+        validator: (_rule, value) => {
+          if (!value || value === '') {
+            return Promise.reject('请输入摄像头IP地址');
+          }
+          // 接受localhost或IPv4地址格式
+          const isLocalhost = value.toLowerCase() === 'localhost';
+          const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+          if (isLocalhost || ipPattern.test(value)) {
+            return Promise.resolve();
+          }
+          return Promise.reject('请输入正确的IP地址格式，localhost也是正确的');
+        },
+        trigger: ['change']
+      }
     ];
     baseRules.port = [
       {required: true, message: '请输入摄像头端口', trigger: ['change']},
@@ -392,11 +406,13 @@ const getRules = () => {
           if (!value || value === '') {
             return Promise.resolve();
           }
+          // 接受localhost或IPv4地址格式
+          const isLocalhost = value.toLowerCase() === 'localhost';
           const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
-          if (ipPattern.test(value)) {
+          if (isLocalhost || ipPattern.test(value)) {
             return Promise.resolve();
           }
-          return Promise.reject('请输入正确的IP地址格式');
+          return Promise.reject('请输入正确的IP地址格式，localhost也是正确的');
         },
         trigger: ['change']
       }
