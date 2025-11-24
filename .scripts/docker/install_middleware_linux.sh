@@ -4096,71 +4096,6 @@ delete_databases() {
     fi
 }
 
-# 检查并重新加载环境变量
-reload_environment() {
-    # 检查 /etc/profile 中是否有环境变量配置
-    if [ ! -f /etc/profile ]; then
-        print_warning "/etc/profile 文件不存在"
-        return 1
-    fi
-    
-    if ! grep -q "JAVA_HOME\|JRE_HOME" /etc/profile 2>/dev/null; then
-        print_info "/etc/profile 中未找到 JAVA_HOME 或 JRE_HOME 配置"
-        return 0
-    fi
-    
-    print_info "检测到 /etc/profile 中有环境变量配置，正在重新加载..."
-    
-    # 检查文件权限
-    if [ ! -r /etc/profile ]; then
-        print_warning "/etc/profile 文件不可读，尝试使用 sudo..."
-        # 尝试通过 sudo 读取并执行
-        if command -v sudo &> /dev/null; then
-            # 使用 sudo 读取文件内容，然后通过 eval 执行
-            local profile_content=$(sudo cat /etc/profile 2>/dev/null)
-            if [ -n "$profile_content" ]; then
-                # 提取 JAVA_HOME 相关的环境变量设置
-                local java_vars=$(echo "$profile_content" | grep -E "^export (JAVA_HOME|JRE_HOME|CLASSPATH|PATH)" | grep -v "^#")
-                if [ -n "$java_vars" ]; then
-                    # 执行这些 export 命令
-                    eval "$java_vars" 2>/dev/null
-                    if [ $? -eq 0 ]; then
-                        print_success "环境变量已重新加载（通过 sudo）"
-                        if [ -n "$JAVA_HOME" ]; then
-                            print_info "JAVA_HOME: $JAVA_HOME"
-                        fi
-                        return 0
-                    fi
-                fi
-            fi
-        fi
-        print_warning "无法读取 /etc/profile，跳过环境变量加载"
-        print_info "如需加载环境变量，请手动执行: source /etc/profile 或 sudo bash -c 'source /etc/profile'"
-        return 0
-    fi
-    
-    # 直接 source /etc/profile（在当前 shell 中）
-    # 注意：不能使用命令替换 $(source ...)，因为那样会在子shell中执行
-    # 使用临时文件捕获错误输出
-    local error_file=$(mktemp)
-    if source /etc/profile > "$error_file" 2>&1; then
-        rm -f "$error_file"
-        print_success "环境变量已重新加载"
-        return 0
-    else
-        local source_error=$(cat "$error_file" 2>/dev/null || echo "")
-        rm -f "$error_file"
-        print_warning "source /etc/profile 执行失败"
-        if [ -n "$source_error" ]; then
-            print_info "错误信息: $source_error"
-        fi
-        print_info "请手动执行以下命令之一："
-        print_info "  1. source /etc/profile"
-        print_info "  2. . /etc/profile"
-        print_info "  3. 如果权限不足，请使用: sudo bash -c 'source /etc/profile && exec bash'"
-        return 1
-    fi
-}
 
 # 清理所有中间件
 clean_middleware() {
@@ -4246,21 +4181,24 @@ clean_middleware() {
             local full_path="${SCRIPT_DIR}/${dir_name}"
             if [ -d "$full_path" ]; then
                 print_info "删除存储目录: $full_path"
+                # 先尝试直接删除（不需要root权限）
                 if rm -rf "$full_path" 2>/dev/null; then
                     print_success "已删除: $dir_name"
                     deleted_count=$((deleted_count + 1))
                 else
-                    print_warning "删除失败（可能需要 root 权限）: $dir_name"
-                    # 尝试使用 sudo（如果可用）
+                    # 如果直接删除失败，尝试使用 sudo（如果可用）
                     if command -v sudo &> /dev/null; then
+                        print_info "尝试使用 sudo 删除: $dir_name"
                         if sudo rm -rf "$full_path" 2>/dev/null; then
                             print_success "已删除（使用 sudo）: $dir_name"
                             deleted_count=$((deleted_count + 1))
                         else
-                            print_error "无法删除: $dir_name，请手动删除: sudo rm -rf $full_path"
+                            print_warning "无法删除: $dir_name（可能需要手动删除）"
+                            print_info "手动删除命令: sudo rm -rf $full_path"
                         fi
                     else
-                        print_error "无法删除: $dir_name，请手动删除: rm -rf $full_path"
+                        print_warning "无法删除: $dir_name（可能需要 root 权限）"
+                        print_info "请手动删除: rm -rf $full_path 或使用 root 权限删除"
                     fi
                 fi
             else
@@ -4300,17 +4238,6 @@ clean_middleware() {
         fi
         
         print_success "清理完成"
-        
-        # 清理完成后，自动检查并重新加载环境变量
-        echo ""
-        if [ -f /etc/profile ] && grep -q "JAVA_HOME\|JRE_HOME" /etc/profile 2>/dev/null; then
-            print_info "检测到 /etc/profile 中有环境变量配置，正在自动重新加载..."
-            if reload_environment; then
-                print_success "环境变量已自动重新加载"
-            else
-                print_warning "自动加载失败，请手动执行: source /etc/profile"
-            fi
-        fi
     else
         print_info "已取消清理操作"
     fi
@@ -4381,8 +4308,6 @@ main() {
     # 在执行任何命令之前（除了 help），先检查 Git
     if [ "${1:-help}" != "help" ] && [ "${1:-help}" != "--help" ] && [ "${1:-help}" != "-h" ]; then
         check_and_require_git
-        # 然后尝试加载环境变量
-        reload_environment
     fi
     
     case "${1:-help}" in
