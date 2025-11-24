@@ -73,12 +73,17 @@ def _create_onvif_camera_from_orm(camera: Device) -> OnvifCamera:
     if not camera.ip or not camera.ip.strip():
         raise ValueError(f'设备 {camera.id} 的IP地址为空，无法创建ONVIF连接')
     
-    # 验证端口是否有效
-    if not camera.port or camera.port <= 0:
+    # 验证端口是否有效，确保端口是整数类型
+    try:
+        port = int(camera.port) if camera.port else 0
+    except (ValueError, TypeError):
+        port = 0
+    
+    if not port or port <= 0:
         raise ValueError(f'设备 {camera.id} 的端口无效，无法创建ONVIF连接')
     
     return _create_onvif_camera(
-        camera.id, camera.ip, camera.port,
+        camera.id, camera.ip, port,
         camera.username, camera.password
     )
 
@@ -344,7 +349,12 @@ def _safe_create_camera(camera: Device):
         return
     
     # 如果端口无效，跳过ONVIF连接初始化
-    if not camera.port or camera.port <= 0:
+    try:
+        port = int(camera.port) if camera.port else 0
+    except (ValueError, TypeError):
+        port = 0
+    
+    if not port or port <= 0:
         logger.debug(f'设备 {camera.id} 的端口无效，跳过ONVIF连接初始化')
         return
     
@@ -832,6 +842,12 @@ def update_camera(id: str, update_info: dict):
                         v = 'EasyAIoT'
                     else:
                         v = 'Camera-EasyAIoT'
+            # 对于port字段，确保转换为整数类型
+            elif k == 'port':
+                try:
+                    v = int(v) if v else None
+                except (ValueError, TypeError):
+                    raise ValueError(f'端口值无效: {v}，必须是数字')
             setattr(camera, k, v)
 
     # 处理码流变更
