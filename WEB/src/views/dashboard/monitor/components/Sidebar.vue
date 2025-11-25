@@ -58,7 +58,7 @@ const emit = defineEmits<{
 }>()
 
 const tabs = [
-  {key: 'directory', label: '设备分组'},
+  {key: 'directory', label: '设备目录'},
   {key: 'ai', label: '智能分析'},
   {key: 'tag', label: '预置点位'}
 ]
