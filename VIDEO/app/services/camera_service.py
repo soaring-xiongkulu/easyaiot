@@ -414,7 +414,7 @@ def _generate_stream_urls(source: str, device_id: str) -> tuple[str, str]:
     source_lower = source.strip().lower()
     
     # 判断是否是RTMP流
-    is_rtmp = source_lower.startswith('rtmp://')
+    is_rtmp = source_lower.startswith('rtmp://')maige1
     
     # 判断是否是HTTP流
     is_http = source_lower.startswith('http://') or source_lower.startswith('https://')
