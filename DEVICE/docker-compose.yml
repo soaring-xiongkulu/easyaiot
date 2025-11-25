@@ -22,7 +22,7 @@ services:
       # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
       # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
     volumes:
-      - /docker/iot-device/logs:/root/logs/
+      - ${HOME}/docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
     restart: always
     networks:
@@ -53,7 +53,7 @@ services:
       # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
       # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
     volumes:
-      - /docker/iot-device/logs:/root/logs/
+      - ${HOME}/docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48099"]
@@ -92,7 +92,7 @@ services:
       # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
       # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
     volumes:
-      - /docker/iot-device/logs:/root/logs/
+      - ${HOME}/docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48082"]
@@ -133,7 +133,7 @@ services:
       # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
       # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
     volumes:
-      - /docker/iot-device/logs:/root/logs/
+      - ${HOME}/docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48083"]
@@ -175,7 +175,7 @@ services:
       # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
       # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
     volumes:
-      - /docker/iot-device/logs:/root/logs/
+      - ${HOME}/docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48087"]
@@ -215,7 +215,7 @@ services:
       # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
       # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
     volumes:
-      - /docker/iot-device/logs:/root/logs/
+      - ${HOME}/docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48091"]
@@ -257,7 +257,7 @@ services:
       # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
       # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
     volumes:
-      - /docker/iot-device/logs:/root/logs/
+      - ${HOME}/docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48090"]
@@ -276,4 +276,3 @@ networks:
   easyaiot-network:
     name: easyaiot-network
     external: true
-

@@ -63,34 +63,44 @@ echo "" >> "$LOG_FILE"
 MODULES=(
     ".scripts/docker"  # 基础服务（Nacos、PostgreSQL、Redis等）
     "DEVICE"           # Device服务（网关和微服务）
-    "AI"               # AI服务
-    "VIDEO"            # Video服务
+    # "AI"               # AI服务
+    # "VIDEO"            # Video服务
     "WEB"              # Web前端服务
 )
 
-# 模块名称映射
-declare -A MODULE_NAMES
-MODULE_NAMES[".scripts/docker"]="基础服务"
-MODULE_NAMES["DEVICE"]="Device服务"
-MODULE_NAMES["AI"]="AI服务"
-MODULE_NAMES["VIDEO"]="Video服务"
-MODULE_NAMES["WEB"]="Web前端服务"
+# 模块信息（使用函数兼容 bash 3.2）
+get_module_name() {
+    case "$1" in
+        ".scripts/docker") echo "基础服务" ;;
+        "DEVICE") echo "Device服务" ;;
+        # "AI") echo "AI服务" ;;
+        # "VIDEO") echo "Video服务" ;;
+        "WEB") echo "Web前端服务" ;;
+        *) echo "$1" ;;
+    esac
+}
 
-# 模块端口映射
-declare -A MODULE_PORTS
-MODULE_PORTS[".scripts/docker"]="8848"  # Nacos端口
-MODULE_PORTS["DEVICE"]="48080"           # Gateway端口
-MODULE_PORTS["AI"]="5000"
-MODULE_PORTS["VIDEO"]="6000"
-MODULE_PORTS["WEB"]="8888"
+get_module_port() {
+    case "$1" in
+        ".scripts/docker") echo "8848" ;;
+        "DEVICE") echo "48080" ;;
+        "AI") echo "5000" ;;
+        "VIDEO") echo "6000" ;;
+        "WEB") echo "8888" ;;
+        *) echo "" ;;
+    esac
+}
 
-# 模块健康检查端点
-declare -A MODULE_HEALTH_ENDPOINTS
-MODULE_HEALTH_ENDPOINTS[".scripts/docker"]="/nacos/actuator/health"
-MODULE_HEALTH_ENDPOINTS["DEVICE"]="/actuator/health"  # Gateway健康检查
-MODULE_HEALTH_ENDPOINTS["AI"]="/actuator/health"
-MODULE_HEALTH_ENDPOINTS["VIDEO"]="/actuator/health"
-MODULE_HEALTH_ENDPOINTS["WEB"]="/health"
+get_module_health() {
+    case "$1" in
+        ".scripts/docker") echo "/nacos/actuator/health" ;;
+        "DEVICE") echo "/actuator/health" ;;
+        "AI") echo "/actuator/health" ;;
+        "VIDEO") echo "/actuator/health" ;;
+        "WEB") echo "/health" ;;
+        *) echo "" ;;
+    esac
+}
 
 # 日志输出函数（去掉颜色代码后写入日志文件）
 log_to_file() {
@@ -265,43 +275,16 @@ check_docker_compose() {
 # 创建统一网络
 create_network() {
     print_info "创建统一网络 easyaiot-network..."
-    if ! docker network ls | grep -q easyaiot-network; then
-        docker network create easyaiot-network 2>/dev/null || true
+    if docker network inspect easyaiot-network >/dev/null 2>&1; then
+        print_info "网络 easyaiot-network 已存在"
+        return
+    fi
+
+    if docker network create easyaiot-network >/dev/null 2>&1; then
         print_success "网络 easyaiot-network 已创建"
     else
-        print_info "网络 easyaiot-network 已存在"
-        
-        # 检测网络是否可用（尝试创建一个临时容器测试）
-        if ! docker run --rm --network easyaiot-network alpine:latest ping -c 1 8.8.8.8 > /dev/null 2>&1; then
-            print_warning "检测到网络 easyaiot-network 可能存在问题（可能是IP变化导致）"
-            print_info "正在尝试重新创建网络..."
-            
-            # 获取连接到该网络的所有容器
-            local containers=$(docker network inspect easyaiot-network --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null || echo "")
-            
-            if [ -n "$containers" ]; then
-                print_warning "以下容器正在使用该网络，需要先停止："
-                echo "$containers" | tr ' ' '\n' | grep -v '^$' | while read -r container; do
-                    echo "  - $container"
-                done
-                print_info "请先停止所有相关容器，然后重新运行安装脚本"
-                return 1
-            fi
-            
-            # 删除旧网络
-            docker network rm easyaiot-network 2>/dev/null || true
-            sleep 1
-            
-            # 重新创建网络
-            if docker network create easyaiot-network 2>/dev/null; then
-                print_success "网络 easyaiot-network 已重新创建"
-            else
-                print_error "无法重新创建网络 easyaiot-network"
-                return 1
-            fi
-        else
-            print_info "网络 easyaiot-network 运行正常"
-        fi
+        print_error "无法创建网络 easyaiot-network"
+        exit 1
     fi
 }
 
@@ -338,7 +321,7 @@ fix_line_endings() {
 execute_module_command() {
     local module=$1
     local command=$2
-    local module_name=${MODULE_NAMES[$module]}
+    local module_name=$(get_module_name "$module")
     
     if [ ! -d "$PROJECT_ROOT/$module" ]; then
         print_warning "模块 $module 不存在，跳过"
@@ -524,9 +507,9 @@ wait_for_service() {
 # 验证服务健康状态
 verify_service_health() {
     local module=$1
-    local module_name=${MODULE_NAMES[$module]}
-    local port=${MODULE_PORTS[$module]}
-    local health_endpoint=${MODULE_HEALTH_ENDPOINTS[$module]}
+    local module_name=$(get_module_name "$module")
+    local port=$(get_module_port "$module")
+    local health_endpoint=$(get_module_health "$module")
     
     print_info "验证 $module_name (端口: $port)..."
     
@@ -564,11 +547,11 @@ install_mac() {
     local total_count=${#MODULES[@]}
     
     for module in "${MODULES[@]}"; do
-        print_section "安装 ${MODULE_NAMES[$module]}"
+        print_section "安装 $(get_module_name "$module")"
         if execute_module_command "$module" "install"; then
             success_count=$((success_count + 1))
         else
-            print_error "${MODULE_NAMES[$module]} 安装失败"
+            print_error "$(get_module_name "$module") 安装失败"
         fi
         echo ""
     done
@@ -717,7 +700,7 @@ status_all() {
     check_docker_compose
     
     for module in "${MODULES[@]}"; do
-        print_section "${MODULE_NAMES[$module]} 状态"
+        print_section "$(get_module_name "$module") 状态"
         execute_module_command "$module" "status"
         echo ""
     done
@@ -734,7 +717,7 @@ view_logs() {
         check_docker_compose
         
         for module in "${MODULES[@]}"; do
-            print_section "${MODULE_NAMES[$module]} 日志"
+            print_section "$(get_module_name "$module") 日志"
             execute_module_command "$module" "logs"
             echo ""
         done
@@ -887,7 +870,7 @@ verify_all() {
         if verify_service_health "$module"; then
             success_count=$((success_count + 1))
         else
-            failed_modules+=("${MODULE_NAMES[$module]}")
+            failed_modules+=("$(get_module_name "$module")")
         fi
         echo ""
     done
@@ -941,7 +924,7 @@ show_help() {
     echo ""
     echo "模块列表:"
     for module in "${MODULES[@]}"; do
-        echo "  - ${MODULE_NAMES[$module]} ($module)"
+        echo "  - $(get_module_name "$module") ($module)"
     done
     echo ""
     echo "注意："
