@@ -17,7 +17,7 @@
         </div>
       </div>
     </div>
-    
+
     <div class="monitor-content" :class="`layout-${currentLayout}`">
       <!-- 根据当前布局渲染视频窗口 -->
       <div
@@ -72,6 +72,7 @@ const splitLayouts = [
   { value: '1', label: '1分屏' },
   { value: '4', label: '4分屏' },
   { value: '6', label: '6分屏' },
+  { value: '8', label: '8分屏' },
   { value: '9', label: '9分屏' },
   { value: '16', label: '16分屏' }
 ]
@@ -88,7 +89,7 @@ const videoListWithPlaceholder = computed(() => {
   const list = props.videoList || []
   const maxCount = getMaxVideoCount(currentLayout.value)
   const result = [...list]
-  
+
   // 填充空位
   while (result.length < maxCount) {
     result.push({
@@ -97,7 +98,7 @@ const videoListWithPlaceholder = computed(() => {
       name: `视频${result.length + 1}`
     })
   }
-  
+
   return result.slice(0, maxCount)
 })
 
@@ -121,19 +122,18 @@ const switchLayout = (layout: string) => {
 // 获取视频窗口的类名
 const getVideoClass = (index: number) => {
   const classes: string[] = []
-  
+
   if (index === activeVideoIndex.value) {
     classes.push('active')
   }
-  
+
   return classes.join(' ')
 }
 
 // 获取视频窗口的样式（用于特殊布局）
-// 除了1、4、9、16分屏外，其他都采用左上大屏+其他小屏的布局
 const getVideoStyle = (index: number) => {
   const layout = currentLayout.value
-  
+
   // 6分屏：左上大屏（2x2）+ 5个小屏，网格：3行3列
   if (layout === '6') {
     if (index === 0) {
@@ -166,7 +166,47 @@ const getVideoStyle = (index: number) => {
       }
     }
   }
-  
+
+  // 8分屏：左侧大屏（2x2）+ 右侧3个小屏（一列）+ 下侧4个小屏，网格：3行4列
+  if (layout === '8') {
+    if (index === 0) {
+      // 左侧大屏，占据第1-2行，第1-2列（2x2）
+      return {
+        gridColumn: '1 / 4',
+        gridRow: '1 / 3'
+      }
+    } else if (index < 4) {
+      // 右侧3个小屏：全部放在第4列，垂直排列
+      const pos = index - 1
+      if (pos === 0) {
+        // 第1行第4列
+        return {
+          gridColumn: '4',
+          gridRow: '1'
+        }
+      } else if (pos === 1) {
+        // 第2行第4列
+        return {
+          gridColumn: '4',
+          gridRow: '2'
+        }
+      } else {
+        // 第3行第4列
+        return {
+          gridColumn: '4',
+          gridRow: '3'
+        }
+      }
+    } else {
+      // 下侧4个小屏：第3行第1、2、3列，第4列已经被占用
+      const pos = index - 4
+      return {
+        gridColumn: `${pos + 1}`,
+        gridRow: '3'
+      }
+    }
+  }
+
   return {}
 }
 
@@ -227,7 +267,7 @@ onUnmounted(() => {
   padding: 3px;
   position: relative;
   z-index: 10;
-  
+
   &:before, &:after {
     position: absolute;
     width: 17px;
@@ -236,12 +276,12 @@ onUnmounted(() => {
     border-top: 3px solid #3486da;
     top: -2px;
   }
-  
+
   &:before {
     border-left: 3px solid #3486da;
     left: -2px;
   }
-  
+
   &:after {
     border-right: 3px solid #3486da;
     right: -2px;
@@ -257,30 +297,30 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 20px;
-  
+
   .header-title {
     font-size: 14px;
     font-weight: 600;
     color: #ffffff;
   }
-  
+
   .header-time {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.8);
   }
-  
+
   .header-location {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.6);
     flex: 1;
   }
-  
+
   .split-toolbar {
     display: flex;
     gap: 8px;
     align-items: center;
     margin-left: auto;
-    
+
     .split-btn {
       min-width: 60px;
       height: 32px;
@@ -296,13 +336,13 @@ onUnmounted(() => {
       font-size: 12px;
       padding: 0 8px;
       white-space: nowrap;
-      
+
       &:hover {
         background: rgba(255, 255, 255, 0.2);
         border-color: #3486da;
         color: #ffffff;
       }
-      
+
       &.active {
         background: #3486da;
         border-color: #3486da;
@@ -318,36 +358,42 @@ onUnmounted(() => {
   gap: 4px;
   padding: 4px;
   overflow: hidden;
-  background: 
+  background:
     linear-gradient(rgba(52, 134, 218, 0.1) 1px, transparent 1px),
     linear-gradient(90deg, rgba(52, 134, 218, 0.1) 1px, transparent 1px);
   background-size: 20px 20px;
   background-color: #000;
-  
+
   // 1分屏 - 全屏单画面
   &.layout-1 {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
   }
-  
+
   // 4分屏 - 2行2列
   &.layout-4 {
     grid-template-columns: repeat(2, 1fr);
     grid-template-rows: repeat(2, 1fr);
   }
-  
+
   // 6分屏 - 左上大屏（2x2）+ 5个小屏，网格：3行3列
   &.layout-6 {
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
   }
-  
+
+  // 8分屏 - 左侧大屏（2x2）+ 右侧3个小屏（一列）+ 下侧4个小屏，网格：3行4列
+  &.layout-8 {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+  }
+
   // 9分屏 - 3行3列
   &.layout-9 {
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
   }
-  
+
   // 16分屏 - 4行4列
   &.layout-16 {
     grid-template-columns: repeat(4, 1fr);
@@ -363,25 +409,25 @@ onUnmounted(() => {
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s;
-  
+
   &:hover {
     border-color: rgba(52, 134, 218, 0.6);
     transform: scale(1.01);
     z-index: 10;
   }
-  
+
   &.active {
     border-color: #3486da;
     box-shadow: 0 0 10px rgba(52, 134, 218, 0.5);
     z-index: 5;
   }
-  
+
   .video-container {
     width: 100%;
     height: 100%;
     position: relative;
     background: #000;
-    
+
     .video-placeholder {
       width: 100%;
       height: 100%;
@@ -390,7 +436,7 @@ onUnmounted(() => {
       align-items: center;
       justify-content: center;
       color: rgba(255, 255, 255, 0.4);
-      
+
       .camera-icon {
         width: 72px;
         height: 72px;
@@ -398,25 +444,25 @@ onUnmounted(() => {
         filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 8px rgba(74, 144, 226, 0.2));
         transition: all 0.3s ease;
       }
-      
+
       &:hover .camera-icon {
         opacity: 0.95;
         transform: scale(1.08);
         filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 12px rgba(74, 144, 226, 0.4));
       }
-      
+
       .placeholder-text {
         margin-top: 8px;
         font-size: 12px;
       }
     }
-    
+
     .video-player {
       width: 100%;
       height: 100%;
       object-fit: contain;
     }
-    
+
     .video-label {
       position: absolute;
       bottom: 0;
@@ -429,7 +475,7 @@ onUnmounted(() => {
       text-align: left;
       pointer-events: none;
     }
-    
+
     .video-active-indicator {
       position: absolute;
       top: 4px;
@@ -448,7 +494,7 @@ onUnmounted(() => {
   bottom: 0;
   width: 100%;
   left: 0;
-  
+
   &:before, &:after {
     position: absolute;
     width: 17px;
@@ -457,12 +503,12 @@ onUnmounted(() => {
     border-bottom: 3px solid #3486da;
     bottom: -2px;
   }
-  
+
   &:before {
     border-left: 3px solid #3486da;
     left: -2px;
   }
-  
+
   &:after {
     border-right: 3px solid #3486da;
     right: -2px;
