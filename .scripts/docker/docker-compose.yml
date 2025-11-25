@@ -60,7 +60,10 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=iot45722414822
       - POSTGRES_DB=postgres
-      - PGDATA=/var/lib/postgresql/data/pgdata
+      # 注意：移除 PGDATA 环境变量，使用默认路径 /var/lib/postgresql/data
+      # PostgreSQL 的行为：如果数据目录已存在且不为空，不会重新初始化，会使用已有的密码配置
+      # 只有当数据目录为空时，才会使用 POSTGRES_PASSWORD 环境变量初始化
+      # 这样可以避免因为 PGDATA 子目录不存在而导致的重新初始化问题
     volumes:
       - ./db_data/data:/var/lib/postgresql/data
       - ./db_data/log:/var/log/postgresql
