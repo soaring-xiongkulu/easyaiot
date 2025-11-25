@@ -148,6 +148,7 @@ def _to_dict(camera: Device) -> dict:
         'support_zoom': camera.support_zoom,
         'nvr_id': camera.nvr_id if camera.nvr_id else None,
         'nvr_channel': camera.nvr_channel,
+        'directory_id': camera.directory_id if camera.directory_id else None,
         'online': online_status
     }
 

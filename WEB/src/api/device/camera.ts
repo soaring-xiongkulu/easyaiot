@@ -236,6 +236,115 @@ export interface DeviceListResponse {
   total: number;
 }
 
+// ====================== 设备目录管理接口 ======================
+export interface DeviceDirectory {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  description?: string;
+  sort_order: number;
+  device_count?: number;
+  children?: DeviceDirectory[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DirectoryListResponse {
+  code: number;
+  msg: string;
+  data: DeviceDirectory[];
+}
+
+export interface DirectoryInfoResponse {
+  code: number;
+  msg: string;
+  data: {
+    id: number;
+    name: string;
+    parent_id: number | null;
+    description?: string;
+    sort_order: number;
+    device_count: number;
+    children_count: number;
+    created_at?: string;
+    updated_at?: string;
+  };
+}
+
+/**
+ * 获取目录列表（树形结构）
+ */
+export const getDirectoryList = () => {
+  return commonApi('get', `${CAMERA_PREFIX}/directory/list`);
+};
+
+/**
+ * 获取目录详情
+ * @param directory_id 目录ID
+ */
+export const getDirectoryInfo = (directory_id: number) => {
+  return commonApi('get', `${CAMERA_PREFIX}/directory/${directory_id}`);
+};
+
+/**
+ * 创建目录
+ * @param data 目录信息
+ */
+export const createDirectory = (data: {
+  name: string;
+  parent_id?: number | null;
+  description?: string;
+  sort_order?: number;
+}) => {
+  return commonApi('post', `${CAMERA_PREFIX}/directory`, data);
+};
+
+/**
+ * 更新目录
+ * @param directory_id 目录ID
+ * @param data 目录信息
+ */
+export const updateDirectory = (directory_id: number, data: {
+  name?: string;
+  parent_id?: number | null;
+  description?: string;
+  sort_order?: number;
+}) => {
+  return commonApi('put', `${CAMERA_PREFIX}/directory/${directory_id}`, data);
+};
+
+/**
+ * 删除目录
+ * @param directory_id 目录ID
+ */
+export const deleteDirectory = (directory_id: number) => {
+  return commonApi('delete', `${CAMERA_PREFIX}/directory/${directory_id}`);
+};
+
+/**
+ * 获取目录下的设备列表
+ * @param directory_id 目录ID
+ * @param params 查询参数
+ */
+export const getDirectoryDevices = (directory_id: number, params: {
+  pageNo?: number;
+  pageSize?: number;
+  search?: string;
+}) => {
+  return commonApi('get', `${CAMERA_PREFIX}/directory/${directory_id}/devices`, params);
+};
+
+/**
+ * 移动设备到目录
+ * @param device_id 设备ID
+ * @param directory_id 目录ID（0表示移动到根目录，即无目录）
+ */
+export const moveDeviceToDirectory = (device_id: string, directory_id: number | null) => {
+  return commonApi('put', `${CAMERA_PREFIX}/device/${device_id}/directory`, {
+    directory_id: directory_id === 0 ? null : directory_id
+  });
+};
+
 // ====================== 流媒体管理工具函数 ======================
 /**
  * 切换设备流媒体转发状态
@@ -284,4 +393,14 @@ export const startAllEnabledDevices = async (devices: DeviceInfo[]) => {
 export const stopAllStreams = async (deviceIds: string[]) => {
   const stopPromises = deviceIds.map(id => stopStreamForwarding(id));
   return Promise.all(stopPromises);
+};
+
+// ====================== RTSP抓拍接口 ======================
+/**
+ * 从RTSP流抓取一帧图片
+ * @param device_id 设备ID
+ * @returns 包含图片ID和URL的响应
+ */
+export const captureSnapshot = (device_id: string) => {
+  return commonApi('post', `${CAMERA_PREFIX}/device/${device_id}/snapshot`, {}, {}, false);
 };

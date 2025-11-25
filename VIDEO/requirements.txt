@@ -20,3 +20,7 @@ onvif-zeep==0.2.12
 py-healthcheck==1.10.0
 # 网卡探测
 netifaces==0.11.0
+# 任务调度
+APScheduler==3.10.4
+# Kafka消息队列
+kafka-python==2.0.2

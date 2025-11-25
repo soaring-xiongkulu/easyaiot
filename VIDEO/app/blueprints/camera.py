@@ -27,7 +27,7 @@ from app.services.camera_service import (
     get_snapshot_uri, refresh_camera, _to_dict
 )
 import app.services.camera_service as camera_service
-from models import Device, db, Image
+from models import Device, db, Image, DeviceDirectory, DetectionRegion
 
 camera_bp = Blueprint('camera', __name__)
 logger = logging.getLogger(__name__)
@@ -804,6 +804,55 @@ def onvif_status(device_id):
         return jsonify({'code': 500, 'msg': f'获取ONVIF截图状态失败: {str(e)}'}), 500
 
 
+# ------------------------- RTSP单帧抓拍接口 -------------------------
+@camera_bp.route('/device/<string:device_id>/snapshot', methods=['POST'])
+def capture_snapshot(device_id):
+    """从RTSP流抓取一帧图片并存入数据库"""
+    try:
+        device = Device.query.get_or_404(device_id)
+        
+        if not device.source:
+            return jsonify({'code': 400, 'msg': '设备源地址为空'}), 400
+        
+        # 检查是否是RTMP流（不支持）
+        if device.source.strip().lower().startswith('rtmp://'):
+            return jsonify({'code': 400, 'msg': 'RTMP流不支持抓拍，请使用RTSP流'}), 400
+        
+        # 使用OpenCV从RTSP流抓取一帧
+        import cv2
+        cap = cv2.VideoCapture(device.source)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区，获取最新帧
+        
+        ret, frame = cap.read()
+        cap.release()
+        
+        if not ret:
+            return jsonify({'code': 500, 'msg': '无法从RTSP流读取帧'}), 500
+        
+        # 上传到MinIO并存入数据库
+        image_url = upload_screenshot_to_minio(device_id, frame, 'jpg')
+        
+        if not image_url:
+            return jsonify({'code': 500, 'msg': '图片上传失败'}), 500
+        
+        # 获取图片信息
+        image_record = Image.query.filter_by(device_id=device_id).order_by(Image.created_at.desc()).first()
+        
+        return jsonify({
+            'code': 0,
+            'msg': '抓拍成功',
+            'data': {
+                'image_id': image_record.id if image_record else None,
+                'image_url': image_url,
+                'width': image_record.width if image_record else None,
+                'height': image_record.height if image_record else None
+            }
+        })
+    except Exception as e:
+        logger.error(f"抓拍失败: {str(e)}", exc_info=True)
+        return jsonify({'code': 500, 'msg': f'抓拍失败: {str(e)}'}), 500
+
+
 # ------------------------- 设备发现接口 -------------------------
 @camera_bp.route('/discovery', methods=['GET'])
 def discover_devices():
@@ -855,3 +904,300 @@ def on_dvr_callback():
         })
     except:
         pass
+
+
+# ------------------------- 设备目录管理接口 -------------------------
+@camera_bp.route('/directory/list', methods=['GET'])
+def list_directories():
+    """查询目录列表（树形结构）"""
+    try:
+        def build_tree(parent_id=None):
+            """递归构建目录树"""
+            directories = DeviceDirectory.query.filter_by(parent_id=parent_id).order_by(DeviceDirectory.sort_order, DeviceDirectory.id).all()
+            result = []
+            for directory in directories:
+                directory_dict = {
+                    'id': directory.id,
+                    'name': directory.name,
+                    'parent_id': directory.parent_id,
+                    'description': directory.description,
+                    'sort_order': directory.sort_order,
+                    'device_count': Device.query.filter_by(directory_id=directory.id).count(),
+                    'created_at': directory.created_at.isoformat() if directory.created_at else None,
+                    'updated_at': directory.updated_at.isoformat() if directory.updated_at else None,
+                    'children': build_tree(directory.id)
+                }
+                result.append(directory_dict)
+            return result
+        
+        tree = build_tree()
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': tree
+        })
+    except Exception as e:
+        logger.error(f'查询目录列表失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'查询目录列表失败: {str(e)}'}), 500
+
+
+@camera_bp.route('/directory', methods=['POST'])
+def create_directory():
+    """创建目录"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
+        
+        name = data.get('name', '').strip()
+        if not name:
+            return jsonify({'code': 400, 'msg': '目录名称不能为空'}), 400
+        
+        parent_id = data.get('parent_id')
+        if parent_id:
+            # 验证父目录是否存在
+            parent = DeviceDirectory.query.get(parent_id)
+            if not parent:
+                return jsonify({'code': 400, 'msg': '父目录不存在'}), 400
+        
+        description = data.get('description', '').strip()
+        sort_order = data.get('sort_order', 0)
+        
+        directory = DeviceDirectory(
+            name=name,
+            parent_id=parent_id,
+            description=description,
+            sort_order=sort_order
+        )
+        db.session.add(directory)
+        db.session.commit()
+        
+        return jsonify({
+            'code': 0,
+            'msg': '目录创建成功',
+            'data': {
+                'id': directory.id,
+                'name': directory.name,
+                'parent_id': directory.parent_id,
+                'description': directory.description,
+                'sort_order': directory.sort_order
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'创建目录失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'创建目录失败: {str(e)}'}), 500
+
+
+@camera_bp.route('/directory/<int:directory_id>', methods=['PUT'])
+def update_directory(directory_id):
+    """更新目录"""
+    try:
+        directory = DeviceDirectory.query.get_or_404(directory_id)
+        data = request.get_json()
+        if not data:
+            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
+        
+        if 'name' in data:
+            name = data.get('name', '').strip()
+            if not name:
+                return jsonify({'code': 400, 'msg': '目录名称不能为空'}), 400
+            directory.name = name
+        
+        if 'parent_id' in data:
+            parent_id = data.get('parent_id')
+            if parent_id:
+                # 验证父目录是否存在
+                if parent_id == directory_id:
+                    return jsonify({'code': 400, 'msg': '不能将目录设置为自己的子目录'}), 400
+                parent = DeviceDirectory.query.get(parent_id)
+                if not parent:
+                    return jsonify({'code': 400, 'msg': '父目录不存在'}), 400
+                # 检查是否会形成循环引用
+                def check_circular(parent_id, current_id):
+                    if parent_id == current_id:
+                        return True
+                    parent_dir = DeviceDirectory.query.get(parent_id)
+                    if parent_dir and parent_dir.parent_id:
+                        return check_circular(parent_dir.parent_id, current_id)
+                    return False
+                if check_circular(parent_id, directory_id):
+                    return jsonify({'code': 400, 'msg': '不能将目录移动到其子目录下'}), 400
+            directory.parent_id = parent_id
+        
+        if 'description' in data:
+            directory.description = data.get('description', '').strip()
+        
+        if 'sort_order' in data:
+            directory.sort_order = data.get('sort_order', 0)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'code': 0,
+            'msg': '目录更新成功',
+            'data': {
+                'id': directory.id,
+                'name': directory.name,
+                'parent_id': directory.parent_id,
+                'description': directory.description,
+                'sort_order': directory.sort_order
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'更新目录失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'更新目录失败: {str(e)}'}), 500
+
+
+@camera_bp.route('/directory/<int:directory_id>', methods=['DELETE'])
+def delete_directory(directory_id):
+    """删除目录"""
+    try:
+        directory = DeviceDirectory.query.get_or_404(directory_id)
+        
+        # 检查是否有子目录
+        children = DeviceDirectory.query.filter_by(parent_id=directory_id).count()
+        if children > 0:
+            return jsonify({'code': 400, 'msg': '该目录下存在子目录，无法删除'}), 400
+        
+        # 检查是否有设备
+        device_count = Device.query.filter_by(directory_id=directory_id).count()
+        if device_count > 0:
+            return jsonify({'code': 400, 'msg': f'该目录下存在 {device_count} 个设备，请先移除设备后再删除目录'}), 400
+        
+        db.session.delete(directory)
+        db.session.commit()
+        
+        return jsonify({
+            'code': 0,
+            'msg': '目录删除成功'
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'删除目录失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'删除目录失败: {str(e)}'}), 500
+
+
+@camera_bp.route('/directory/<int:directory_id>/devices', methods=['GET'])
+def list_directory_devices(directory_id):
+    """查询目录下的设备列表"""
+    try:
+        directory = DeviceDirectory.query.get_or_404(directory_id)
+        
+        # 获取请求参数
+        page_no = int(request.args.get('pageNo', 1))
+        page_size = int(request.args.get('pageSize', 10))
+        search = request.args.get('search', '').strip()
+        
+        # 参数验证
+        if page_no < 1 or page_size < 1:
+            return jsonify({'code': 400, 'msg': '参数错误：pageNo和pageSize必须为正整数'}), 400
+        
+        # 构建基础查询
+        query = Device.query.filter_by(directory_id=directory_id)
+        
+        # 添加搜索条件
+        if search:
+            search_pattern = f'%{search}%'
+            query = query.filter(
+                or_(
+                    Device.name.ilike(search_pattern),
+                    Device.model.ilike(search_pattern),
+                    Device.serial_number.ilike(search_pattern),
+                    Device.manufacturer.ilike(search_pattern),
+                    Device.ip.ilike(search_pattern)
+                )
+            )
+        
+        # 按修改时间降序排序
+        query = query.order_by(Device.updated_at.desc())
+        
+        # 执行分页查询
+        pagination = query.paginate(
+            page=page_no,
+            per_page=page_size,
+            error_out=False
+        )
+        
+        device_list = [_to_dict(device) for device in pagination.items]
+        
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': device_list,
+            'total': pagination.total
+        })
+    except ValueError:
+        return jsonify({'code': 400, 'msg': '参数类型错误：pageNo和pageSize需为整数'}), 400
+    except Exception as e:
+        logger.error(f'查询目录设备列表失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
+
+
+@camera_bp.route('/device/<string:device_id>/directory', methods=['PUT'])
+def move_device_to_directory(device_id):
+    """移动设备到目录"""
+    try:
+        device = Device.query.get_or_404(device_id)
+        data = request.get_json()
+        
+        directory_id = data.get('directory_id')
+        if directory_id is not None:
+            # 验证目录是否存在
+            if directory_id != 0:  # 0表示移动到根目录（无目录）
+                directory = DeviceDirectory.query.get(directory_id)
+                if not directory:
+                    return jsonify({'code': 400, 'msg': '目录不存在'}), 400
+                device.directory_id = directory_id
+            else:
+                device.directory_id = None
+        else:
+            return jsonify({'code': 400, 'msg': 'directory_id参数不能为空'}), 400
+        
+        db.session.commit()
+        
+        return jsonify({
+            'code': 0,
+            'msg': '设备移动成功',
+            'data': {
+                'device_id': device.id,
+                'directory_id': device.directory_id
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'移动设备到目录失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'移动设备到目录失败: {str(e)}'}), 500
+
+
+@camera_bp.route('/directory/<int:directory_id>', methods=['GET'])
+def get_directory_info(directory_id):
+    """获取目录详情"""
+    try:
+        directory = DeviceDirectory.query.get_or_404(directory_id)
+        
+        # 获取目录下的设备数量
+        device_count = Device.query.filter_by(directory_id=directory_id).count()
+        
+        # 获取子目录数量
+        children_count = DeviceDirectory.query.filter_by(parent_id=directory_id).count()
+        
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': {
+                'id': directory.id,
+                'name': directory.name,
+                'parent_id': directory.parent_id,
+                'description': directory.description,
+                'sort_order': directory.sort_order,
+                'device_count': device_count,
+                'children_count': children_count,
+                'created_at': directory.created_at.isoformat() if directory.created_at else None,
+                'updated_at': directory.updated_at.isoformat() if directory.updated_at else None
+            }
+        })
+    except Exception as e:
+        logger.error(f'获取目录详情失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500

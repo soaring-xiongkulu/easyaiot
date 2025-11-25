@@ -1,7 +1,15 @@
 <template>
   <div class="camera-container">
-    <!-- 列表模式 -->
-    <BasicTable v-if="viewMode === 'table'" @register="registerTable">
+    <div class="camera-tab">
+      <Tabs
+        :animated="{ inkBar: true, tabPane: true }"
+        :activeKey="state.activeKey"
+        :tabBarGutter="60"
+        @tabClick="handleTabClick"
+      >
+        <TabPane key="1" tab="设备列表">
+          <!-- 列表模式 -->
+          <BasicTable v-if="viewMode === 'table'" @register="registerTable">
       <template #toolbar>
         <a-button type="primary" @click="handleScanOnvif">
           <template #icon>
@@ -85,14 +93,35 @@
       </template>
     </VideoCardList>
 
-    <DialogPlayer title="视频播放" @register="registerPlayerAddModel"
-                  @success="handlePlayerSuccess"/>
-    <VideoModal @register="registerAddModel" @success="handleSuccess"/>
+          <DialogPlayer title="视频播放" @register="registerPlayerAddModel"
+                        @success="handlePlayerSuccess"/>
+          <VideoModal @register="registerAddModel" @success="handleSuccess"/>
+        </TabPane>
+        <TabPane key="2" tab="设备目录">
+          <DirectoryManage
+            ref="directoryManageRef"
+            @view="handleCardView"
+            @edit="handleCardEdit"
+            @delete="handleCardDelete"
+            @play="handleCardPlay"
+            @toggleStream="handleCardToggleStream"
+          />
+        </TabPane>
+        <TabPane key="3" tab="抓拍空间">
+          <SnapSpace />
+        </TabPane>
+        <TabPane key="4" tab="算法任务">
+          <SnapTask />
+        </TabPane>
+      </Tabs>
+    </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import {onMounted, onUnmounted, ref} from 'vue';
+import {onMounted, onUnmounted, reactive, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {TabPane, Tabs} from 'ant-design-vue';
 import {BasicTable, TableAction, useTable} from '@/components/Table';
 import {useMessage} from '@/hooks/web/useMessage';
 import {getBasicColumns, getFormConfig} from "./Data";
@@ -117,11 +146,31 @@ import {
 } from '@ant-design/icons-vue';
 import DialogPlayer from "@/components/VideoPlayer/DialogPlayer.vue";
 import VideoCardList from "./components/VideoCardList/index.vue";
+import DirectoryManage from "./components/DirectoryManage/index.vue";
+import SnapSpace from "./components/SnapSpace/index.vue";
+import SnapTask from "./components/SnapTask/index.vue";
+
+defineOptions({name: 'CAMERA'})
+
+const route = useRoute();
 
 const {createMessage} = useMessage();
 const [registerAddModel, {openModal}] = useModal();
 
 const [registerPlayerAddModel, {openModal: openPlayerAddModel}] = useModal();
+
+// Tab状态
+const state = reactive({
+  activeKey: '1'
+});
+
+// 目录管理组件引用
+const directoryManageRef = ref();
+
+// Tab切换
+const handleTabClick = (activeKey: string) => {
+  state.activeKey = activeKey;
+};
 
 // 视图模式：table 列表模式，card 卡片模式
 const viewMode = ref<'table' | 'card'>('card');
@@ -469,6 +518,11 @@ const handleCardToggleStream = async (record: DeviceInfo) => {
 // 组件挂载时启动状态检查定时器
 onMounted(() => {
   startStatusCheckTimer();
+  // 处理路由参数，自动切换到指定tab
+  const tab = route.query.tab as string;
+  if (tab) {
+    state.activeKey = tab;
+  }
 });
 
 // 组件卸载时清除定时器
@@ -484,6 +538,22 @@ onUnmounted(() => {
 .camera-container {
   :deep(.ant-form-item) {
     margin-bottom: 10px;
+  }
+
+  .camera-tab {
+    padding: 16px 19px 0 15px;
+
+    :deep(.ant-tabs-nav) {
+      padding: 5px 0 0 25px;
+    }
+
+    :deep(.ant-tabs) {
+      background-color: #FFFFFF;
+
+      :deep(.ant-tabs-nav) {
+        padding: 5px 0 0 25px;
+      }
+    }
   }
 }
 </style>

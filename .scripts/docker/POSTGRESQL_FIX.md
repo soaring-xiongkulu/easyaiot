@@ -85,6 +85,22 @@ docker exec postgres-server psql -U postgres -d postgres -c "SELECT version();"
 
 - **移除了 `PGDATA` 环境变量**：之前使用 `PGDATA=/var/lib/postgresql/data/pgdata`，现在使用默认路径 `/var/lib/postgresql/data`
 
+### 健康检查改进（2025-11-25）
+
+为了解决电脑重启后 PostgreSQL 容器连接不上的问题，已对健康检查配置进行了以下改进：
+
+1. **添加 `start_period: 30s`**：给 PostgreSQL 容器 30 秒的启动时间，在此期间健康检查失败不会被视为容器不健康
+2. **改进健康检查命令**：不仅检查 `pg_isready`，还检查是否能实际连接数据库并执行查询
+   ```yaml
+   test: ["CMD-SHELL", "pg_isready -U postgres && psql -U postgres -d postgres -c 'SELECT 1' > /dev/null 2>&1"]
+   ```
+3. **增加重试次数**：从 5 次增加到 10 次，确保在系统重启后能稳定连接
+
+这些改进确保了：
+- PostgreSQL 在系统重启后有足够的时间完全启动
+- 健康检查能准确反映数据库的实际可用状态
+- 其他依赖 PostgreSQL 的服务能正确等待 PostgreSQL 就绪
+
 ### PostgreSQL 行为说明
 
 PostgreSQL 官方镜像的行为：
@@ -123,6 +139,33 @@ PostgreSQL 官方镜像的行为：
 
 3. **应用程序连接**：确保应用程序可以正常连接数据库
 
+## 密码重置方法
+
+如果遇到密码认证失败的问题，可以使用以下方法重置密码：
+
+### 方法 1：通过容器内部重置（推荐）
+
+```bash
+cd .scripts/docker
+docker exec postgres-server psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD 'iot45722414822';"
+```
+
+### 方法 2：使用重置脚本
+
+```bash
+cd .scripts/docker
+./reset_postgresql_password.sh
+```
+
+### 方法 3：重启容器后重置
+
+```bash
+cd .scripts/docker
+docker-compose restart PostgresSQL
+# 等待容器启动后
+docker exec postgres-server psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD 'iot45722414822';"
+```
+
 ## 常见问题
 
 ### Q: 修复后仍然无法连接？
@@ -132,6 +175,23 @@ A: 检查以下几点：
 2. 查看容器日志：`docker logs postgres-server`
 3. 确认应用程序使用的密码是：`iot45722414822`
 4. 检查数据目录权限：`ls -la db_data/data/`
+5. **重要**：如果从应用程序连接，确保使用容器网络名称 `PostgresSQL` 而不是 `localhost`：
+   - 正确：`jdbc:postgresql://PostgresSQL:5432/database`
+   - 错误：`jdbc:postgresql://localhost:5432/database`
+
+### Q: 从外部（宿主机）连接失败怎么办？
+
+A: 如果从宿主机使用 `psql` 或应用程序连接失败：
+1. 确保使用正确的密码：`iot45722414822`
+2. 检查端口映射：`docker ps | grep 5432`
+3. 尝试使用容器内部连接测试：
+   ```bash
+   docker exec postgres-server psql -U postgres -d postgres -c "SELECT 1;"
+   ```
+4. 如果容器内部连接正常，但外部连接失败，可能是 `pg_hba.conf` 配置问题，可以重启容器：
+   ```bash
+   docker-compose restart PostgresSQL
+   ```
 
 ### Q: 数据会丢失吗？
 

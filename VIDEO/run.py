@@ -20,7 +20,7 @@ from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
 
-from app.blueprints import camera, alert
+from app.blueprints import camera, alert, snap
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -139,8 +139,44 @@ def create_app():
     db.init_app(app)
     with app.app_context():
         try:
-            from models import Device, Image
+            from models import Device, Image, DeviceDirectory, SnapSpace, SnapTask, DetectionRegion, AlgorithmModelService, RegionModelService, DeviceStorageConfig
             db.create_all()
+            
+            # 迁移：检查并添加缺失的列和表
+            try:
+                # 确保所有表都存在（包括 device_directory）
+                db.create_all()
+                
+                # 检查 device 表的 directory_id 列是否存在
+                result = db.session.execute(text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'device' 
+                        AND column_name = 'directory_id'
+                    );
+                """))
+                directory_id_exists = result.scalar()
+                
+                if not directory_id_exists:
+                    print("⚠️  device.directory_id 列不存在，正在添加...")
+                    # 确保 device_directory 表存在
+                    db.create_all()
+                    # 添加 directory_id 列
+                    db.session.execute(text("""
+                        ALTER TABLE device 
+                        ADD COLUMN directory_id INTEGER 
+                        REFERENCES device_directory(id) ON DELETE SET NULL;
+                    """))
+                    db.session.commit()
+                    print("✅ device.directory_id 列添加成功")
+                else:
+                    print("✅ 数据库迁移检查完成，所有列已存在")
+            except Exception as e:
+                print(f"⚠️  数据库迁移检查失败: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                db.session.rollback()
         except Exception as e:
             print(f"❌ 建表失败: {str(e)}")
 
@@ -158,6 +194,14 @@ def create_app():
         print(f"✅ Alert Blueprint 注册成功")
     except Exception as e:
         print(f"❌ Alert Blueprint 注册失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    try:
+        app.register_blueprint(snap.snap_bp, url_prefix='/video/snap')
+        print(f"✅ Snap Blueprint 注册成功")
+    except Exception as e:
+        print(f"❌ Snap Blueprint 注册失败: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -305,6 +349,16 @@ def create_app():
             auto_start_streaming()
         except Exception as e:
             print(f"❌ 自动启动推流设备失败: {str(e)}")
+            import traceback
+            traceback.print_exc()
+        
+        # 初始化抓拍任务调度器
+        try:
+            from app.services.snap_task_service import init_all_tasks
+            init_all_tasks()
+            print("✅ 抓拍任务调度器初始化成功")
+        except Exception as e:
+            print(f"❌ 初始化抓拍任务调度器失败: {str(e)}")
             import traceback
             traceback.print_exc()
 

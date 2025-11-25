@@ -2140,6 +2140,167 @@ wait_for_postgresql() {
     return 1
 }
 
+# 重置 PostgreSQL 密码（确保密码与配置一致）
+reset_postgresql_password() {
+    print_section "重置 PostgreSQL 密码"
+    
+    # 等待 PostgreSQL 就绪
+    if ! wait_for_postgresql; then
+        print_warning "PostgreSQL 未就绪，跳过密码重置"
+        return 1
+    fi
+    
+    # 从 docker-compose.yml 中读取配置的密码
+    local target_password="iot45722414822"
+    
+    print_info "正在重置 postgres 用户密码为: $target_password"
+    
+    # 尝试通过容器内部重置密码（不需要密码）
+    local reset_attempts=0
+    local max_reset_attempts=5
+    local reset_success=0
+    
+    while [ $reset_attempts -lt $max_reset_attempts ] && [ $reset_success -eq 0 ]; do
+        if docker exec postgres-server psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '$target_password';" > /dev/null 2>&1; then
+            print_success "PostgreSQL 密码重置成功"
+            reset_success=1
+            
+            # 重新加载配置
+            docker exec postgres-server psql -U postgres -d postgres -c "SELECT pg_reload_conf();" > /dev/null 2>&1 || true
+            
+            # 验证密码是否正确设置
+            sleep 2
+            if docker exec postgres-server psql -U postgres -d postgres -c "SELECT version();" > /dev/null 2>&1; then
+                print_success "PostgreSQL 密码验证通过"
+                return 0
+            else
+                print_warning "密码重置成功，但验证时出现问题（可能正常，继续执行）"
+                return 0
+            fi
+        else
+            reset_attempts=$((reset_attempts + 1))
+            if [ $reset_attempts -lt $max_reset_attempts ]; then
+                print_warning "密码重置失败，正在重试 ($reset_attempts/$max_reset_attempts)..."
+                sleep 3
+            fi
+        fi
+    done
+    
+    if [ $reset_success -eq 0 ]; then
+        print_warning "PostgreSQL 密码重置失败（已重试 $max_reset_attempts 次）"
+        print_info "这可能是正常的，如果数据库已存在且密码正确，则无需重置"
+        print_info "如果后续遇到密码认证问题，请手动运行: docker exec postgres-server psql -U postgres -d postgres -c \"ALTER USER postgres WITH PASSWORD '$target_password';\""
+        return 1
+    fi
+    
+    return 0
+}
+
+# 配置 PostgreSQL pg_hba.conf 允许从宿主机连接
+configure_postgresql_pg_hba() {
+    print_section "配置 PostgreSQL pg_hba.conf"
+    
+    # 等待 PostgreSQL 就绪
+    if ! wait_for_postgresql; then
+        print_warning "PostgreSQL 未就绪，跳过 pg_hba.conf 配置"
+        return 1
+    fi
+    
+    print_info "配置 pg_hba.conf 以允许从宿主机连接..."
+    
+    # 在容器内读取当前的 pg_hba.conf
+    local pg_hba_path="/var/lib/postgresql/data/pg_hba.conf"
+    local pg_hba_backup_path="/var/lib/postgresql/data/pg_hba.conf.backup"
+    
+    # 先备份原文件
+    if docker exec postgres-server cp "$pg_hba_path" "$pg_hba_backup_path" 2>/dev/null; then
+        print_info "已备份 pg_hba.conf"
+    fi
+    
+    # 检查是否已经配置了允许所有主机连接的规则
+    local has_host_all=$(docker exec postgres-server grep -E "^host\s+all\s+all\s+0\.0\.0\.0/0\s+md5" "$pg_hba_path" 2>/dev/null || echo "")
+    
+    if [ -n "$has_host_all" ]; then
+        print_info "pg_hba.conf 已包含允许所有主机连接的配置"
+    else
+        print_info "添加允许所有主机连接的配置..."
+        
+        # 在容器内添加配置（使用 echo 命令）
+        if docker exec postgres-server sh -c "echo '' >> $pg_hba_path && echo '# 允许从宿主机和所有网络连接（由安装脚本自动添加）' >> $pg_hba_path && echo 'host    all             all             0.0.0.0/0               md5' >> $pg_hba_path && echo 'host    all             all             ::/0                    md5' >> $pg_hba_path" 2>/dev/null; then
+            print_success "已添加允许所有主机连接的配置"
+        else
+            print_warning "添加配置时出现问题，尝试使用另一种方法..."
+            
+            # 备用方法：使用临时文件
+            local temp_file=$(mktemp)
+            cat > "$temp_file" << 'EOF'
+
+# 允许从宿主机和所有网络连接（由安装脚本自动添加）
+host    all             all             0.0.0.0/0               md5
+host    all             all             ::/0                    md5
+EOF
+            if docker cp "$temp_file" postgres-server:/tmp/pg_hba_append.conf 2>/dev/null && \
+               docker exec postgres-server sh -c "cat /tmp/pg_hba_append.conf >> $pg_hba_path && rm /tmp/pg_hba_append.conf" 2>/dev/null; then
+                print_success "已通过临时文件添加配置"
+            else
+                print_error "无法添加配置，请手动检查 pg_hba.conf"
+                rm -f "$temp_file"
+                return 1
+            fi
+            rm -f "$temp_file"
+        fi
+    fi
+    
+    # 检查 postgresql.conf 配置（注意：listen_addresses 的修改需要重启容器才能生效）
+    print_info "检查 postgresql.conf 配置..."
+    local postgresql_conf_path="/var/lib/postgresql/data/postgresql.conf"
+    local listen_addresses=$(docker exec postgres-server grep -E "^listen_addresses\s*=" "$postgresql_conf_path" 2>/dev/null | head -1 || echo "")
+    
+    # PostgreSQL 容器默认应该已经配置为监听所有接口
+    # 这里只做检查，不修改（因为修改需要重启容器）
+    if [ -n "$listen_addresses" ]; then
+        if echo "$listen_addresses" | grep -q "'\*'"; then
+            print_info "listen_addresses 已正确配置为 '*'"
+        else
+            print_warning "listen_addresses 配置可能不正确: $listen_addresses"
+            print_info "PostgreSQL 容器默认应该监听所有接口，如果连接有问题，请检查容器配置"
+        fi
+    else
+        print_info "未找到 listen_addresses 配置（将使用默认值，通常为 '*'）"
+    fi
+    
+    # 重新加载配置
+    print_info "重新加载 PostgreSQL 配置..."
+    if docker exec postgres-server psql -U postgres -d postgres -c "SELECT pg_reload_conf();" > /dev/null 2>&1; then
+        print_success "PostgreSQL 配置已重新加载"
+        
+        # 验证配置是否生效（等待一下让配置生效）
+        sleep 2
+        
+        # 测试从宿主机连接（如果 psql 可用）
+        if command -v psql &> /dev/null; then
+            local test_password="iot45722414822"
+            export PGPASSWORD="$test_password"
+            if psql -h 127.0.0.1 -p 5432 -U postgres -d postgres -c "SELECT 1;" > /dev/null 2>&1; then
+                print_success "宿主机连接测试成功"
+                unset PGPASSWORD
+                return 0
+            else
+                print_warning "宿主机连接测试失败（可能需要检查防火墙或网络配置）"
+                unset PGPASSWORD
+            fi
+        else
+            print_info "未安装 psql 客户端，跳过连接测试"
+        fi
+        
+        return 0
+    else
+        print_warning "无法重新加载 PostgreSQL 配置（可能需要重启容器）"
+        print_info "如果连接仍有问题，请重启 PostgreSQL 容器: docker restart postgres-server"
+        return 1
+    fi
+}
+
 # 等待 Nacos 服务就绪
 wait_for_nacos() {
     local max_attempts=60
@@ -3859,6 +4020,14 @@ install_middleware() {
     print_info "等待服务启动..."
     sleep 10
     
+    # 重置 PostgreSQL 密码（确保重启后密码正确）
+    echo ""
+    reset_postgresql_password
+    
+    # 配置 PostgreSQL pg_hba.conf 允许从宿主机连接
+    echo ""
+    configure_postgresql_pg_hba
+    
     # 初始化数据库
     echo ""
     init_databases
@@ -3906,6 +4075,14 @@ start_middleware() {
     echo ""
     print_info "等待服务就绪..."
     sleep 10
+    
+    # 重置 PostgreSQL 密码（确保重启后密码正确）
+    echo ""
+    reset_postgresql_password
+    
+    # 配置 PostgreSQL pg_hba.conf 允许从宿主机连接
+    echo ""
+    configure_postgresql_pg_hba
 }
 
 # 停止所有中间件
@@ -3950,6 +4127,14 @@ restart_middleware() {
     echo ""
     print_info "等待服务就绪..."
     sleep 10
+    
+    # 重置 PostgreSQL 密码（确保重启后密码正确）
+    echo ""
+    reset_postgresql_password
+    
+    # 配置 PostgreSQL pg_hba.conf 允许从宿主机连接
+    echo ""
+    configure_postgresql_pg_hba
 }
 
 # 查看所有中间件状态

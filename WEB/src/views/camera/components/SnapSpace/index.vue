@@ -1,0 +1,315 @@
+<template>
+  <div class="snap-space-container">
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <a-button type="primary" @click="handleCreate">
+        <template #icon>
+          <PlusOutlined />
+        </template>
+        新建抓拍空间
+      </a-button>
+      <a-button @click="handleClickSwap" type="default">
+        <template #icon>
+          <SwapOutlined />
+        </template>
+        切换视图
+      </a-button>
+    </div>
+
+    <!-- 表格模式 -->
+    <BasicTable v-if="viewMode === 'table'" @register="registerTable">
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'save_mode'">
+          <a-tag :color="record.save_mode === 0 ? 'blue' : 'orange'">
+            {{ record.save_mode === 0 ? '标准存储' : '归档存储' }}
+          </a-tag>
+        </template>
+        <template v-else-if="column.dataIndex === 'save_time'">
+          {{ record.save_time === 0 ? '永久保存' : `${record.save_time}天` }}
+        </template>
+        <template v-else-if="column.dataIndex === 'action'">
+          <TableAction :actions="getTableActions(record)" />
+        </template>
+      </template>
+    </BasicTable>
+
+    <!-- 卡片模式 -->
+    <div v-else class="card-list">
+      <a-row :gutter="[16, 16]">
+        <a-col :xs="24" :sm="12" :md="8" :lg="6" v-for="item in spaceList" :key="item.id">
+          <a-card :hoverable="true" class="space-card">
+            <template #title>
+              <span>{{ item.space_name }}</span>
+            </template>
+            <template #extra>
+              <a-dropdown>
+                <template #overlay>
+                  <a-menu>
+                    <a-menu-item @click="handleView(item)">
+                      <EyeOutlined /> 查看
+                    </a-menu-item>
+                    <a-menu-item @click="handleEdit(item)">
+                      <EditOutlined /> 编辑
+                    </a-menu-item>
+                    <a-menu-item @click="handleDelete(item)" danger>
+                      <DeleteOutlined /> 删除
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+                <MoreOutlined />
+              </a-dropdown>
+            </template>
+            <div class="card-content">
+              <div class="info-item">
+                <span class="label">空间编号:</span>
+                <span class="value">{{ item.space_code }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">存储模式:</span>
+                <a-tag :color="item.save_mode === 0 ? 'blue' : 'orange'">
+                  {{ item.save_mode === 0 ? '标准存储' : '归档存储' }}
+                </a-tag>
+              </div>
+              <div class="info-item">
+                <span class="label">保存时间:</span>
+                <span class="value">{{ item.save_time === 0 ? '永久保存' : `${item.save_time}天` }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">任务数量:</span>
+                <span class="value">{{ item.task_count || 0 }}</span>
+              </div>
+              <div class="info-item" v-if="item.description">
+                <span class="label">描述:</span>
+                <span class="value">{{ item.description }}</span>
+              </div>
+            </div>
+          </a-card>
+        </a-col>
+      </a-row>
+      <a-empty v-if="spaceList.length === 0" description="暂无抓拍空间" />
+    </div>
+
+    <!-- 创建/编辑模态框 -->
+    <SnapSpaceModal @register="registerModal" @success="handleSuccess" />
+  </div>
+</template>
+
+<script lang="ts" setup>
+import { ref, reactive, onMounted } from 'vue';
+import { PlusOutlined, SwapOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined } from '@ant-design/icons-vue';
+import { BasicTable, TableAction, useTable } from '@/components/Table';
+import { useModal } from '@/components/Modal';
+import { useMessage } from '@/hooks/web/useMessage';
+import { getSnapSpaceList, deleteSnapSpace, type SnapSpace } from '@/api/device/snap';
+import SnapSpaceModal from './SnapSpaceModal.vue';
+
+defineOptions({ name: 'SnapSpace' });
+
+const { createMessage } = useMessage();
+const [registerModal, { openModal }] = useModal();
+
+// 视图模式
+const viewMode = ref<'table' | 'card'>('card');
+const spaceList = ref<SnapSpace[]>([]);
+
+// 切换视图
+const handleClickSwap = () => {
+  viewMode.value = viewMode.value === 'table' ? 'card' : 'table';
+  if (viewMode.value === 'card') {
+    loadSpaceList();
+  }
+};
+
+// 表格列定义
+const getBasicColumns = () => [
+  {
+    title: '空间名称',
+    dataIndex: 'space_name',
+    width: 150,
+  },
+  {
+    title: '空间编号',
+    dataIndex: 'space_code',
+    width: 150,
+  },
+  {
+    title: 'Bucket名称',
+    dataIndex: 'bucket_name',
+    width: 200,
+  },
+  {
+    title: '存储模式',
+    dataIndex: 'save_mode',
+    width: 100,
+  },
+  {
+    title: '保存时间',
+    dataIndex: 'save_time',
+    width: 100,
+  },
+  {
+    title: '任务数量',
+    dataIndex: 'task_count',
+    width: 100,
+  },
+  {
+    title: '创建时间',
+    dataIndex: 'created_at',
+    width: 180,
+  },
+  {
+    title: '操作',
+    dataIndex: 'action',
+    width: 150,
+    fixed: 'right',
+  },
+];
+
+// 表格配置
+const [registerTable, { reload }] = useTable({
+  title: '抓拍空间列表',
+  api: async (params) => {
+    const response = await getSnapSpaceList(params);
+    return {
+      items: response.data || [],
+      total: response.total || 0,
+    };
+  },
+  columns: getBasicColumns(),
+  useSearchForm: true,
+  formConfig: {
+    labelWidth: 80,
+    schemas: [
+      {
+        field: 'search',
+        label: '空间名称',
+        component: 'Input',
+        componentProps: {
+          placeholder: '请输入空间名称',
+        },
+      },
+    ],
+  },
+  pagination: true,
+  rowKey: 'id',
+  fetchSetting: {
+    listField: 'items',
+    totalField: 'total',
+  },
+});
+
+// 获取表格操作按钮
+const getTableActions = (record: SnapSpace) => {
+  return [
+    {
+      icon: 'ant-design:eye-filled',
+      tooltip: '查看',
+      onClick: () => handleView(record),
+    },
+    {
+      icon: 'ant-design:edit-filled',
+      tooltip: '编辑',
+      onClick: () => handleEdit(record),
+    },
+    {
+      icon: 'material-symbols:delete-outline-rounded',
+      tooltip: '删除',
+      popConfirm: {
+        title: '确定删除此抓拍空间？',
+        confirm: () => handleDelete(record),
+      },
+    },
+  ];
+};
+
+// 加载空间列表（卡片模式）
+const loadSpaceList = async () => {
+  try {
+    const response = await getSnapSpaceList({ pageNo: 1, pageSize: 1000 });
+    spaceList.value = response.data || [];
+  } catch (error) {
+    console.error('加载抓拍空间列表失败', error);
+    createMessage.error('加载抓拍空间列表失败');
+  }
+};
+
+// 创建
+const handleCreate = () => {
+  openModal(true, { type: 'create' });
+};
+
+// 查看
+const handleView = (record: SnapSpace) => {
+  openModal(true, { type: 'view', record });
+};
+
+// 编辑
+const handleEdit = (record: SnapSpace) => {
+  openModal(true, { type: 'edit', record });
+};
+
+// 删除
+const handleDelete = async (record: SnapSpace) => {
+  try {
+    await deleteSnapSpace(record.id);
+    createMessage.success('删除成功');
+    handleSuccess();
+  } catch (error) {
+    console.error('删除失败', error);
+    createMessage.error('删除失败');
+  }
+};
+
+// 刷新
+const handleSuccess = () => {
+  if (viewMode.value === 'table') {
+    reload();
+  } else {
+    loadSpaceList();
+  }
+};
+
+onMounted(() => {
+  if (viewMode.value === 'card') {
+    loadSpaceList();
+  }
+});
+</script>
+
+<style lang="less" scoped>
+.snap-space-container {
+  padding: 16px;
+
+  .toolbar {
+    margin-bottom: 16px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .card-list {
+    .space-card {
+      height: 100%;
+
+      .card-content {
+        .info-item {
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+
+          .label {
+            font-weight: 500;
+            margin-right: 8px;
+            min-width: 80px;
+          }
+
+          .value {
+            flex: 1;
+            color: #666;
+          }
+        }
+      }
+    }
+  }
+}
+</style>
+

@@ -68,10 +68,12 @@ services:
       - ./db_data/data:/var/lib/postgresql/data
       - ./db_data/log:/var/log/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      # 改进的健康检查：不仅检查pg_isready，还检查是否能实际连接数据库
+      test: ["CMD-SHELL", "pg_isready -U postgres && psql -U postgres -d postgres -c 'SELECT 1' > /dev/null 2>&1"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - easyaiot-network
 
