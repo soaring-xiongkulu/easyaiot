@@ -73,7 +73,6 @@ const splitLayouts = [
   { value: '4', label: '4分屏' },
   { value: '6', label: '6分屏' },
   { value: '9', label: '9分屏' },
-  { value: '12', label: '12分屏' },
   { value: '16', label: '16分屏' }
 ]
 
@@ -162,39 +161,6 @@ const getVideoStyle = (index: number) => {
         // 第3行的3个位置
         return {
           gridColumn: `${pos - 1}`,
-          gridRow: '3'
-        }
-      }
-    }
-  }
-  
-  // 12分屏：左上大屏（2x2）+ 11个小屏，网格：3行5列
-  if (layout === '12') {
-    if (index === 0) {
-      // 左上大屏，占据2行2列
-      return {
-        gridColumn: '1 / 3',
-        gridRow: '1 / 3'
-      }
-    } else {
-      // 其他11个小屏：第1行第3、4、5列（3个），第2行第3、4、5列（3个），第3行第1-5列（5个）
-      const pos = index - 1
-      if (pos < 3) {
-        // 第1行第3、4、5列
-        return {
-          gridColumn: `${3 + pos}`,
-          gridRow: '1'
-        }
-      } else if (pos < 6) {
-        // 第2行第3、4、5列
-        return {
-          gridColumn: `${3 + (pos - 3)}`,
-          gridRow: '2'
-        }
-      } else {
-        // 第3行第1-5列（pos=6,7,8,9,10对应第1,2,3,4,5列）
-        return {
-          gridColumn: `${pos - 5}`,
           gridRow: '3'
         }
       }
@@ -379,12 +345,6 @@ onUnmounted(() => {
   // 9分屏 - 3行3列
   &.layout-9 {
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-  }
-  
-  // 12分屏 - 左上大屏（2x2）+ 11个小屏，网格：3行5列
-  &.layout-12 {
-    grid-template-columns: repeat(5, 1fr);
     grid-template-rows: repeat(3, 1fr);
   }
   
