@@ -7,7 +7,7 @@
     </div>
     
     <div class="header-center">
-      <h1 class="platform-title">综合监控预警处置平台</h1>
+      <h1 class="platform-title">云边端一体算法预警监控平台</h1>
     </div>
     
     <div class="header-right">
@@ -62,14 +62,14 @@ onUnmounted(() => {
 
 <style lang="less" scoped>
 .monitor-header {
-  height: 60px;
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.4) 0%, rgba(26, 35, 50, 0.6) 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  height: 70px;
+  background: url(@/assets/images/bigscreen/head_bg.png) no-repeat center center;
+  background-size: 100% 100%;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .header-left {
@@ -80,7 +80,7 @@ onUnmounted(() => {
 
 .date-time {
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.9);
+  color: #bde4ff;
   font-weight: 500;
 }
 
@@ -91,12 +91,19 @@ onUnmounted(() => {
 }
 
 .platform-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #ffffff;
+  color: #bde4ff;
+  text-align: center;
+  height: 100%;
+  font-size: 32px;
+  line-height: 87px;
+  letter-spacing: .06rem;
+  font-weight: bold;
   margin: 0;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  letter-spacing: 2px;
+
+  a {
+    color: #fff;
+  }
 }
 
 .header-right {
@@ -114,7 +121,7 @@ onUnmounted(() => {
 
 .user-role {
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.9);
+  color: #bde4ff;
   padding: 6px 16px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;

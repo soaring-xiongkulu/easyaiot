@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none">
+  <!-- 定义渐变和效果 -->
+  <defs>
+    <!-- 摄像头主体渐变 -->
+    <radialGradient id="cameraBodyGradient" cx="40%" cy="30%">
+      <stop offset="0%" style="stop-color:#F5F5F5;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#E0E0E0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C8C8C8;stop-opacity:1" />
+    </radialGradient>
+    
+    <!-- 镜头渐变 -->
+    <radialGradient id="lensGradient" cx="40%" cy="40%">
+      <stop offset="0%" style="stop-color:#2A2A2A;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#000000;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1A1A1A;stop-opacity:1" />
+    </radialGradient>
+    
+    <!-- 镜头反光 -->
+    <radialGradient id="lensReflection" cx="35%" cy="30%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.4" />
+      <stop offset="30%" style="stop-color:#FFFFFF;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0" />
+    </radialGradient>
+    
+    <!-- 金属环渐变 -->
+    <linearGradient id="metalRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A4A4A;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#2A2A2A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4A4A4A;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 阴影效果 -->
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.4"/>
+    </filter>
+    
+    <!-- 内阴影效果 -->
+    <filter id="innerShadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="1" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- 安装支架底座 -->
+  <ellipse cx="40" cy="72" rx="22" ry="4" fill="#9A9A9A" opacity="0.9"/>
+  <ellipse cx="40" cy="70.5" rx="20" ry="3" fill="#B0B0B0" opacity="0.7"/>
+  
+  <!-- 支架连接杆 -->
+  <rect x="38.5" y="54" width="3" height="16" rx="1.5" fill="#A8A8A8"/>
+  <rect x="37.5" y="54" width="5" height="2" rx="1" fill="#C0C0C0"/>
+  
+  <!-- 摄像头主体（圆形） -->
+  <circle cx="40" cy="40" r="26" fill="url(#cameraBodyGradient)" stroke="#B0B0B0" stroke-width="1.5" filter="url(#shadow)"/>
+  
+  <!-- 主体高光区域 -->
+  <circle cx="40" cy="32" r="20" fill="#FFFFFF" opacity="0.25"/>
+  
+  <!-- 外壳细节 - 分割线 -->
+  <circle cx="40" cy="40" r="24.5" fill="none" stroke="#D0D0D0" stroke-width="0.8" opacity="0.6"/>
+  
+  <!-- 外壳细节 - 顶部装饰线 -->
+  <path d="M 20 30 Q 40 25 60 30" stroke="#C8C8C8" stroke-width="1" fill="none" opacity="0.5"/>
+  
+  <!-- 安装螺丝（4个） -->
+  <circle cx="20" cy="25" r="1.5" fill="#808080" stroke="#606060" stroke-width="0.5"/>
+  <circle cx="60" cy="25" r="1.5" fill="#808080" stroke="#606060" stroke-width="0.5"/>
+  <circle cx="20" cy="55" r="1.5" fill="#808080" stroke="#606060" stroke-width="0.5"/>
+  <circle cx="60" cy="55" r="1.5" fill="#808080" stroke="#606060" stroke-width="0.5"/>
+  
+  <!-- 螺丝十字槽 -->
+  <line x1="20" y1="23.5" x2="20" y2="26.5" stroke="#606060" stroke-width="0.3"/>
+  <line x1="18.5" y1="25" x2="21.5" y2="25" stroke="#606060" stroke-width="0.3"/>
+  <line x1="60" y1="23.5" x2="60" y2="26.5" stroke="#606060" stroke-width="0.3"/>
+  <line x1="58.5" y1="25" x2="61.5" y2="25" stroke="#606060" stroke-width="0.3"/>
+  <line x1="20" y1="53.5" x2="20" y2="56.5" stroke="#606060" stroke-width="0.3"/>
+  <line x1="18.5" y1="55" x2="21.5" y2="55" stroke="#606060" stroke-width="0.3"/>
+  <line x1="60" y1="53.5" x2="60" y2="56.5" stroke="#606060" stroke-width="0.3"/>
+  <line x1="58.5" y1="55" x2="61.5" y2="55" stroke="#606060" stroke-width="0.3"/>
+  
+  <!-- 镜头外圈（金属环）第一层 -->
+  <circle cx="40" cy="40" r="18" fill="url(#metalRing)" stroke="#1A1A1A" stroke-width="1"/>
+  
+  <!-- 镜头外圈（金属环）第二层 -->
+  <circle cx="40" cy="40" r="16.5" fill="none" stroke="#3A3A3A" stroke-width="0.8"/>
+  <circle cx="40" cy="40" r="15.5" fill="none" stroke="#5A5A5A" stroke-width="0.5" opacity="0.6"/>
+  
+  <!-- 镜头主体（黑色） -->
+  <circle cx="40" cy="40" r="14.5" fill="url(#lensGradient)" filter="url(#innerShadow)"/>
+  
+  <!-- 镜头内部结构 - 多层 -->
+  <circle cx="40" cy="40" r="12" fill="#000000"/>
+  <circle cx="40" cy="40" r="9.5" fill="#0A0A0A"/>
+  <circle cx="40" cy="40" r="7" fill="#000000"/>
+  
+  <!-- 镜头中心 -->
+  <circle cx="40" cy="40" r="4.5" fill="#1A1A1A"/>
+  
+  <!-- 镜头反光高光 -->
+  <ellipse cx="36" cy="36" rx="4" ry="5" fill="url(#lensReflection)"/>
+  
+  <!-- 镜头边缘高光 -->
+  <circle cx="40" cy="40" r="14.5" fill="none" stroke="#FFFFFF" stroke-width="0.5" opacity="0.15"/>
+  
+  <!-- 品牌标识区域 -->
+  <rect x="28" y="50" width="24" height="2.5" rx="1.2" fill="#909090" opacity="0.3"/>
+  <rect x="30" y="51" width="20" height="1" rx="0.5" fill="#707070" opacity="0.2"/>
+</svg>
+

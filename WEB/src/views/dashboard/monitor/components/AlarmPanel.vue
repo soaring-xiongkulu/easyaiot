@@ -1,7 +1,7 @@
 <template>
   <div class="alarm-panel">
     <div class="panel-header">
-      <div class="header-title">告警信息</div>
+      <div class="header-title">告警记录</div>
       <div class="header-count">
         今日告警 <span class="count-number">{{ todayAlarmCount }}</span> 次
       </div>
@@ -30,14 +30,14 @@
         </div>
         
         <div class="alarm-info">
-          <div class="alarm-title">{{ alarm.title }}</div>
+          <div class="alarm-title">{{ alarm.title || alarm.event || '未知事件' }}</div>
           <div class="alarm-meta">
             <span 
               :class="['alarm-level', `level-${alarm.level}`]"
             >
               {{ alarm.level }}
             </span>
-            <span class="alarm-location">{{ alarm.location }}</span>
+            <span class="alarm-location">{{ alarm.device_name || alarm.location || '未知设备' }}</span>
           </div>
           <div class="alarm-time">{{ alarm.time }}</div>
         </div>
@@ -48,6 +48,7 @@
         <div class="empty-text">暂无告警信息</div>
       </div>
     </div>
+    <div class="boxfoot"></div>
   </div>
 </template>
 
@@ -89,32 +90,61 @@ const getAlarmColor = (level: string) => {
 <style lang="less" scoped>
 .alarm-panel {
   width: 320px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  height: 100%;
+  padding: 0;
+  background: rgba(0, 70, 190, .1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+  border: 1px solid #3486da;
+  padding: 3px;
+  
+  &:before, &:after {
+    position: absolute;
+    width: 17px;
+    height: 17px;
+    content: "";
+    border-top: 3px solid #3486da;
+    top: -2px;
+  }
+  
+  &:before {
+    border-left: 3px solid #3486da;
+    left: -2px;
+  }
+  
+  &:after {
+    border-right: 3px solid #3486da;
+    right: -2px;
+  }
 }
 
 .panel-header {
+  text-align: center;
+  background: #0c2854;
+  color: #fff;
+  font-size: 16px;
   height: 60px;
-  background: rgba(0, 0, 0, 0.4);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 16px;
+  line-height: 40px;
+  letter-spacing: .05rem;
+  padding: 10px 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  justify-content: center;
   
   .header-title {
     font-size: 16px;
     font-weight: 600;
     color: #ffffff;
+    line-height: 1.2;
   }
   
   .header-count {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.8);
+    line-height: 1.2;
     
     .count-number {
       color: #ff4d4f;
@@ -183,6 +213,7 @@ const getAlarmColor = (level: string) => {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    cursor: pointer;
   }
   
   .alarm-icon {
@@ -274,6 +305,32 @@ const getAlarmColor = (level: string) => {
   .empty-text {
     margin-top: 16px;
     font-size: 14px;
+  }
+}
+
+.boxfoot {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  left: 0;
+  
+  &:before, &:after {
+    position: absolute;
+    width: 17px;
+    height: 17px;
+    content: "";
+    border-bottom: 3px solid #3486da;
+    bottom: -2px;
+  }
+  
+  &:before {
+    border-left: 3px solid #3486da;
+    left: -2px;
+  }
+  
+  &:after {
+    border-right: 3px solid #3486da;
+    right: -2px;
   }
 }
 </style>

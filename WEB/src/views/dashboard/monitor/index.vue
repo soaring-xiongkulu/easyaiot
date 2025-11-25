@@ -126,15 +126,21 @@ const handleDeviceChange = (device: any) => {
   width: 100vw;
   height: 100vh;
   max-height: 100vh;
-  background: linear-gradient(135deg, #0a1929 0%, #1a2332 100%);
+  background: linear-gradient(25deg, #0f2249, #182e5a 20%, #0f2249 40%, #182e5a 60%, #0f2249 80%, #182e5a 100%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   color: #ffffff;
+  font-size: 14px;
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   z-index: 9999;
+
+  a {
+    text-decoration: none;
+    color: #399bff;
+  }
 }
 
 .monitor-content {
