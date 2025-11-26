@@ -1,0 +1,67 @@
+<!--
+ * @Description: 节点操作复制删除控件
+-->
+<script lang="ts" setup>
+import { computed } from 'vue'
+import type { IVFormComponent } from '../../../typings/v-form-component'
+import { remove } from '../../../utils'
+import { useFormDesignState } from '../../../hooks/useFormDesignState'
+import { Icon } from '@/components/Icon'
+
+const props = defineProps({
+  schema: {
+    type: Object,
+    default: () => ({}),
+  },
+  currentItem: {
+    type: Object,
+    default: () => ({}),
+  },
+})
+
+const { formConfig, formDesignMethods } = useFormDesignState()
+const activeClass = computed(() => {
+  return props.schema.key === props.currentItem.key ? 'active' : 'unactivated'
+})
+/**
+ * 删除当前项
+ */
+function handleDelete() {
+  const traverse = (schemas: IVFormComponent[]) => {
+    // eslint-disable-next-line array-callback-return
+    schemas.some((formItem, index) => {
+      const { component, key } = formItem;
+      // 处理栅格和标签页布局
+      ['Grid', 'Tabs'].includes(component)
+              && formItem.columns?.forEach(item => traverse(item.children))
+      if (key === props.currentItem.key) {
+        const params: IVFormComponent
+                = schemas.length === 1
+                  ? { component: '' }
+                  : schemas.length - 1 > index
+                    ? schemas[index + 1]
+                    : schemas[index - 1]
+        formDesignMethods.handleSetSelectItem(params)
+        remove(schemas, index)
+        return true
+      }
+    })
+  }
+  traverse(formConfig.value!.schemas)
+}
+
+function handleCopy() {
+  formDesignMethods.handleCopy()
+}
+</script>
+
+<template>
+  <div class="copy-delete-box">
+    <a class="copy" :class="activeClass" @click.stop="handleCopy">
+      <Icon icon="ant-design:copy-outlined" />
+    </a>
+    <a class="delete" :class="activeClass" @click.stop="handleDelete">
+      <Icon icon="ant-design:delete-outlined" />
+    </a>
+  </div>
+</template>

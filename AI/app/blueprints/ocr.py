@@ -11,7 +11,7 @@ from flask import after_this_request
 from werkzeug.utils import secure_filename
 
 from app.services.ocr_service import OCRService
-from models import OCRResult
+from db_models import OCRResult
 
 # 配置日志
 logger = logging.getLogger(__name__)

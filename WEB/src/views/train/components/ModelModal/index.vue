@@ -122,7 +122,7 @@ const modelRef = reactive({
   version: '',
   description: '',
   status: 0,
-  filePath: '', // 存储Minio返回的objectKey
+  filePath: '', // 存储Minio返回的url（下载链接）
   imageUrl: '', // 存储模型图片URL
 });
 
@@ -173,14 +173,19 @@ function handleCancel() {
 function handleFileUpload(info) {
   if (info.file.status === 'done') {
     const response = info.file.response;
-    if (response && response.code === 200) {
-      modelRef.filePath = response.data.objectKey; // 存储Minio返回的objectKey
+    if (response && response.code === 0) {
+      modelRef.filePath = response.data.url; // 存储Minio返回的url（下载链接）
       createMessage.success('模型文件上传成功');
     } else {
-      createMessage.error(response?.msg || '文件上传失败');
+      // 显示后端返回的错误消息
+      const errorMsg = response?.msg || '文件上传失败';
+      createMessage.error(errorMsg);
     }
   } else if (info.file.status === 'error') {
-    createMessage.error('文件上传失败');
+    // 尝试从响应中获取错误消息
+    const response = info.file.response;
+    const errorMsg = response?.msg || info.file.error?.message || '文件上传失败';
+    createMessage.error(errorMsg);
   }
 }
 
@@ -213,7 +218,7 @@ function handleOk() {
         version: modelRef.version,
         description: modelRef.description,
         status: modelRef.status,
-        filePath: modelRef.filePath, // 包含Minio objectKey
+        filePath: modelRef.filePath, // 包含Minio下载URL
         imageUrl: modelRef.imageUrl  // 包含图片URL
       };
 

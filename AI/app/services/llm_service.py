@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Tuple, Any
 import requests
 from requests.exceptions import RequestException, Timeout
 
-from models import LLMConfig
+from db_models import LLMConfig
 
 # 配置日志处理器
 logging_handler = logging.getLogger(__name__)

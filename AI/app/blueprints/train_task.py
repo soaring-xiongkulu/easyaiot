@@ -12,7 +12,7 @@ from flask import Blueprint, request, jsonify
 from flask import render_template
 from sqlalchemy import desc
 
-from models import db, Model, TrainTask, ExportRecord
+from db_models import db, Model, TrainTask, ExportRecord
 
 train_task_bp = Blueprint('train_task', __name__)
 logger = logging.getLogger(__name__)
