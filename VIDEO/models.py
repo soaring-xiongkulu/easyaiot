@@ -447,3 +447,34 @@ class DeviceStorageConfig(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+
+
+class Playback(db.Model):
+    """录像回放表"""
+    __tablename__ = 'playback'
+    
+    id = db.Column(db.Integer(), primary_key=True, nullable=False)  # 主键
+    file_path = db.Column(db.String(200), nullable=False)  # 文件路径
+    event_time = db.Column(db.DateTime(timezone=True), nullable=False)  # 录制发生时间
+    device_id = db.Column(db.String(30), nullable=False)  # 设备id
+    device_name = db.Column(db.String(30), nullable=False)  # 设备名称
+    duration = db.Column(db.SmallInteger(), nullable=False)  # 时长/秒
+    thumbnail_path = db.Column(db.String(200), nullable=True)  # 封面图路径
+    file_size = db.Column(db.BigInteger(), nullable=True)  # 文件大小（字节）
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # 创建时间
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # 更新时间
+    
+    def to_dict(self):
+        """转换为字典"""
+        return {
+            'id': self.id,
+            'file_path': self.file_path,
+            'event_time': self.event_time.isoformat() if self.event_time else None,
+            'device_id': self.device_id,
+            'device_name': self.device_name,
+            'duration': self.duration,
+            'thumbnail_path': self.thumbnail_path,
+            'file_size': self.file_size,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }

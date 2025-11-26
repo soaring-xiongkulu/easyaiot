@@ -111,7 +111,7 @@
 import { ref, onMounted } from 'vue';
 import { PlusOutlined, SwapOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined } from '@ant-design/icons-vue';
 import { BasicTable, TableAction, useTable } from '@/components/Table';
-import { useModal } from '@/components/Modal';
+import { useDrawer } from '@/components/Drawer';
 import { useMessage } from '@/hooks/web/useMessage';
 import { getSnapTaskList, deleteSnapTask, startSnapTask, stopSnapTask, type SnapTask } from '@/api/device/snap';
 import SnapTaskModal from './SnapTaskModal.vue';
@@ -119,7 +119,7 @@ import SnapTaskModal from './SnapTaskModal.vue';
 defineOptions({ name: 'SnapTask' });
 
 const { createMessage } = useMessage();
-const [registerModal, { openModal }] = useModal();
+const [registerModal, { openDrawer }] = useDrawer();
 
 // 视图模式
 const viewMode = ref<'table' | 'card'>('card');
@@ -188,6 +188,7 @@ const [registerTable, { reload }] = useTable({
   title: '算法任务列表',
   api: async (params) => {
     const response = await getSnapTaskList(params);
+    // 后端返回格式: { code: 0, data: [...], total: ... }
     return {
       items: response.data || [],
       total: response.total || 0,
@@ -270,34 +271,45 @@ const getTableActions = (record: SnapTask) => {
 const loadTaskList = async () => {
   try {
     const response = await getSnapTaskList({ pageNo: 1, pageSize: 1000 });
-    taskList.value = response.data || [];
+    // 后端返回格式: { code: 0, data: [...], total: ... }
+    if (response.code === 0) {
+      taskList.value = response.data || [];
+    } else {
+      createMessage.error(response.msg || '加载算法任务列表失败');
+      taskList.value = [];
+    }
   } catch (error) {
     console.error('加载算法任务列表失败', error);
     createMessage.error('加载算法任务列表失败');
+    taskList.value = [];
   }
 };
 
 // 创建
 const handleCreate = () => {
-  openModal(true, { type: 'create' });
+  openDrawer(true, { type: 'create' });
 };
 
 // 查看
 const handleView = (record: SnapTask) => {
-  openModal(true, { type: 'view', record });
+  openDrawer(true, { type: 'view', record });
 };
 
 // 编辑
 const handleEdit = (record: SnapTask) => {
-  openModal(true, { type: 'edit', record });
+  openDrawer(true, { type: 'edit', record });
 };
 
 // 删除
 const handleDelete = async (record: SnapTask) => {
   try {
-    await deleteSnapTask(record.id);
-    createMessage.success('删除成功');
-    handleSuccess();
+    const response = await deleteSnapTask(record.id);
+    if (response.code === 0) {
+      createMessage.success('删除成功');
+      handleSuccess();
+    } else {
+      createMessage.error(response.msg || '删除失败');
+    }
   } catch (error) {
     console.error('删除失败', error);
     createMessage.error('删除失败');
@@ -307,14 +319,24 @@ const handleDelete = async (record: SnapTask) => {
 // 切换启用状态
 const handleToggleEnabled = async (record: SnapTask) => {
   try {
+    let response;
     if (record.is_enabled) {
-      await stopSnapTask(record.id);
-      createMessage.success('任务已停用');
+      response = await stopSnapTask(record.id);
+      if (response.code === 0) {
+        createMessage.success('任务已停用');
+        handleSuccess();
+      } else {
+        createMessage.error(response.msg || '停用失败');
+      }
     } else {
-      await startSnapTask(record.id);
-      createMessage.success('任务已启用');
+      response = await startSnapTask(record.id);
+      if (response.code === 0) {
+        createMessage.success('任务已启用');
+        handleSuccess();
+      } else {
+        createMessage.error(response.msg || '启用失败');
+      }
     }
-    handleSuccess();
   } catch (error) {
     console.error('操作失败', error);
     createMessage.error('操作失败');
@@ -340,21 +362,40 @@ onMounted(() => {
 <style lang="less" scoped>
 .snap-task-container {
   padding: 16px;
+  background: #f0f2f5;
+  min-height: calc(100vh - 200px);
 
   .toolbar {
     margin-bottom: 16px;
     display: flex;
     gap: 8px;
+    background: #fff;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   .card-list {
+    background: #fff;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    min-height: 400px;
+
     .task-card {
       height: 100%;
+      transition: all 0.3s;
+
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
 
       .card-title {
         display: flex;
         align-items: center;
         gap: 8px;
+        justify-content: space-between;
       }
 
       .card-content {
@@ -362,16 +403,18 @@ onMounted(() => {
           margin-bottom: 12px;
           display: flex;
           align-items: center;
+          line-height: 1.6;
 
           .label {
             font-weight: 500;
             margin-right: 8px;
-            min-width: 80px;
+            min-width: 90px;
+            color: #595959;
           }
 
           .value {
             flex: 1;
-            color: #666;
+            color: #262626;
             word-break: break-all;
           }
         }

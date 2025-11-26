@@ -170,6 +170,7 @@ const [registerTable, { reload }] = useTable({
   title: '抓拍空间列表',
   api: async (params) => {
     const response = await getSnapSpaceList(params);
+    // 后端返回格式: { code: 0, data: [...], total: ... }
     return {
       items: response.data || [],
       total: response.total || 0,
@@ -226,10 +227,17 @@ const getTableActions = (record: SnapSpace) => {
 const loadSpaceList = async () => {
   try {
     const response = await getSnapSpaceList({ pageNo: 1, pageSize: 1000 });
-    spaceList.value = response.data || [];
+    // 后端返回格式: { code: 0, data: [...], total: ... }
+    if (response.code === 0) {
+      spaceList.value = response.data || [];
+    } else {
+      createMessage.error(response.msg || '加载抓拍空间列表失败');
+      spaceList.value = [];
+    }
   } catch (error) {
     console.error('加载抓拍空间列表失败', error);
     createMessage.error('加载抓拍空间列表失败');
+    spaceList.value = [];
   }
 };
 
@@ -279,32 +287,53 @@ onMounted(() => {
 <style lang="less" scoped>
 .snap-space-container {
   padding: 16px;
+  background: #f0f2f5;
+  min-height: calc(100vh - 200px);
 
   .toolbar {
     margin-bottom: 16px;
     display: flex;
     gap: 8px;
+    background: #fff;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   .card-list {
+    background: #fff;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    min-height: 400px;
+
     .space-card {
       height: 100%;
+      transition: all 0.3s;
+
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
 
       .card-content {
         .info-item {
           margin-bottom: 12px;
           display: flex;
           align-items: center;
+          line-height: 1.6;
 
           .label {
             font-weight: 500;
             margin-right: 8px;
-            min-width: 80px;
+            min-width: 90px;
+            color: #595959;
           }
 
           .value {
             flex: 1;
-            color: #666;
+            color: #262626;
+            word-break: break-all;
           }
         }
       }

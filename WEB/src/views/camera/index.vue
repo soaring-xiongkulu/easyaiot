@@ -10,89 +10,88 @@
         <TabPane key="1" tab="设备列表">
           <!-- 列表模式 -->
           <BasicTable v-if="viewMode === 'table'" @register="registerTable">
-      <template #toolbar>
-        <a-button type="primary" @click="handleScanOnvif">
-          <template #icon>
-            <ScanOutlined/>
-          </template>
-          扫描局域网ONVIF设备
-        </a-button>
-        <a-button @click="openAddModal('source')">
-          <template #icon>
-            <VideoCameraAddOutlined/>
-          </template>
-          新增视频源设备
-        </a-button>
-        <a-button @click="handleUpdateOnvifDevice">
-          <template #icon>
-            <SyncOutlined/>
-          </template>
-          更新ONVIF设备
-        </a-button>
-        <a-button type="default" @click="handleClickSwap"
-                  preIcon="ant-design:swap-outlined">切换视图
-        </a-button>
-      </template>
-      <template #bodyCell="{ column, record }">
-        <!-- 统一复制功能组件 -->
-        <template
-          v-if="['id', 'name', 'model', 'source', 'rtmp_stream', 'http_stream'].includes(column.key)">
+            <template #toolbar>
+              <a-button type="primary" @click="handleScanOnvif">
+                <template #icon>
+                  <ScanOutlined/>
+                </template>
+                扫描局域网ONVIF设备
+              </a-button>
+              <a-button @click="openAddModal('source')">
+                <template #icon>
+                  <VideoCameraAddOutlined/>
+                </template>
+                新增视频源设备
+              </a-button>
+              <a-button @click="handleUpdateOnvifDevice">
+                <template #icon>
+                  <SyncOutlined/>
+                </template>
+                更新ONVIF设备
+              </a-button>
+              <a-button type="default" @click="handleClickSwap"
+                        preIcon="ant-design:swap-outlined">切换视图
+              </a-button>
+            </template>
+            <template #bodyCell="{ column, record }">
+              <!-- 统一复制功能组件 -->
+              <template
+                v-if="['id', 'name', 'model', 'source', 'rtmp_stream', 'http_stream'].includes(column.key)">
           <span style="cursor: pointer" @click="handleCopy(record[column.key])"><Icon
             icon="tdesign:copy-filled" color="#4287FCFF"/> {{ record[column.key] }}</span>
-        </template>
+              </template>
 
-        <!-- 流媒体状态显示 -->
-        <template v-else-if="column.dataIndex === 'stream_status'">
-          <a-tag :color="getStreamStatusColor(record.stream_status)">
-            {{ getStreamStatusText(record.stream_status) }}
-          </a-tag>
-        </template>
+              <!-- 流媒体状态显示 -->
+              <template v-else-if="column.dataIndex === 'stream_status'">
+                <a-tag :color="getStreamStatusColor(record.stream_status)">
+                  {{ getStreamStatusText(record.stream_status) }}
+                </a-tag>
+              </template>
 
-        <template v-else-if="column.dataIndex === 'action'">
-          <TableAction
-            :actions="getTableActions(record)"
-          />
-        </template>
-      </template>
-    </BasicTable>
+              <template v-else-if="column.dataIndex === 'action'">
+                <TableAction
+                  :actions="getTableActions(record)"
+                />
+              </template>
+            </template>
+          </BasicTable>
 
-    <!-- 卡片模式 -->
-    <VideoCardList 
-      v-else
-      ref="cardListRef"
-      :api="getDeviceList"
-      :params="{}"
-      @view="handleCardView"
-      @edit="handleCardEdit"
-      @delete="handleCardDelete"
-      @play="handleCardPlay"
-      @toggleStream="handleCardToggleStream"
-    >
-      <template #header>
-        <a-button type="primary" @click="handleScanOnvif">
-          <template #icon>
-            <ScanOutlined/>
-          </template>
-          扫描局域网ONVIF设备
-        </a-button>
-        <a-button @click="openAddModal('source')">
-          <template #icon>
-            <VideoCameraAddOutlined/>
-          </template>
-          新增视频源设备
-        </a-button>
-        <a-button @click="handleUpdateOnvifDevice">
-          <template #icon>
-            <SyncOutlined/>
-          </template>
-          更新ONVIF设备
-        </a-button>
-        <a-button type="default" @click="handleClickSwap"
-                  preIcon="ant-design:swap-outlined">切换视图
-        </a-button>
-      </template>
-    </VideoCardList>
-
+          <!-- 卡片模式 -->
+          <VideoCardList
+            v-else
+            ref="cardListRef"
+            :api="getDeviceList"
+            :params="{}"
+            @view="handleCardView"
+            @edit="handleCardEdit"
+            @delete="handleCardDelete"
+            @play="handleCardPlay"
+            @toggleStream="handleCardToggleStream"
+          >
+            <template #header>
+              <a-button type="primary" @click="handleScanOnvif">
+                <template #icon>
+                  <ScanOutlined/>
+                </template>
+                扫描局域网ONVIF设备
+              </a-button>
+              <a-button @click="openAddModal('source')">
+                <template #icon>
+                  <VideoCameraAddOutlined/>
+                </template>
+                新增视频源设备
+              </a-button>
+              <a-button @click="handleUpdateOnvifDevice">
+                <template #icon>
+                  <SyncOutlined/>
+                </template>
+                更新ONVIF设备
+              </a-button>
+              <a-button type="default" @click="handleClickSwap"
+                        preIcon="ant-design:swap-outlined">切换视图
+              </a-button>
+            </template>
+          </VideoCardList>
           <DialogPlayer title="视频播放" @register="registerPlayerAddModel"
                         @success="handlePlayerSuccess"/>
           <VideoModal @register="registerAddModel" @success="handleSuccess"/>
@@ -107,11 +106,14 @@
             @toggleStream="handleCardToggleStream"
           />
         </TabPane>
-        <TabPane key="3" tab="抓拍空间">
-          <SnapSpace />
+        <TabPane key="3" tab="录像回放">
+          <PlaybackList/>
         </TabPane>
-        <TabPane key="4" tab="算法任务">
-          <SnapTask />
+        <TabPane key="4" tab="抓拍空间">
+          <SnapSpace/>
+        </TabPane>
+        <TabPane key="5" tab="算法任务">
+          <SnapTask/>
         </TabPane>
       </Tabs>
     </div>
@@ -137,18 +139,13 @@ import {
   stopStreamForwarding,
   StreamStatusResponse
 } from '@/api/device/camera';
-import {
-  ScanOutlined,
-  SyncOutlined,
-  VideoCameraAddOutlined,
-  UnorderedListOutlined,
-  AppstoreOutlined
-} from '@ant-design/icons-vue';
+import {ScanOutlined, SyncOutlined, VideoCameraAddOutlined} from '@ant-design/icons-vue';
 import DialogPlayer from "@/components/VideoPlayer/DialogPlayer.vue";
 import VideoCardList from "./components/VideoCardList/index.vue";
 import DirectoryManage from "./components/DirectoryManage/index.vue";
 import SnapSpace from "./components/SnapSpace/index.vue";
 import SnapTask from "./components/SnapTask/index.vue";
+import PlaybackList from "./components/PlaybackList/index.vue";
 
 defineOptions({name: 'CAMERA'})
 

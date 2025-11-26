@@ -1,5 +1,12 @@
 <template>
-  <BasicModal v-bind="$attrs" @register="register" title="算法任务" @ok="handleSubmit" :width="1400">
+  <BasicDrawer 
+    v-bind="$attrs" 
+    @register="register" 
+    :title="modalTitle" 
+    @ok="handleSubmit" 
+    width="800"
+    placement="right"
+  >
     <a-tabs v-model:activeKey="activeTab">
       <a-tab-pane key="basic" tab="基础配置">
         <BasicForm @register="registerForm" />
@@ -18,12 +25,12 @@
         <a-empty v-else description="请先保存基础配置，然后才能配置检测区域" />
       </a-tab-pane>
     </a-tabs>
-  </BasicModal>
+  </BasicDrawer>
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
-import { BasicModal, useModalInner } from '@/components/Modal';
+import { ref, computed } from 'vue';
+import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
 import { BasicForm, useForm } from '@/components/Form';
 import { useMessage } from '@/hooks/web/useMessage';
 import {
@@ -83,6 +90,7 @@ const loadDevices = async () => {
 
 const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getFieldsValue }] = useForm({
   labelWidth: 120,
+  baseColProps: { span: 24 },
   schemas: [
     {
       field: 'task_name',
@@ -265,26 +273,37 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
 
 const modalData = ref<{ type?: string; record?: SnapTask }>({});
 
+const modalTitle = computed(() => {
+  if (modalData.value.type === 'view') return '查看算法任务';
+  if (modalData.value.type === 'edit') return '编辑算法任务';
+  return '新建算法任务';
+});
+
 // 加载区域的检测区域
 const loadRegions = async (taskId: number) => {
   try {
     const response = await getDetectionRegions(taskId);
-    if (response.code === 0 && response.data) {
-      initialRegions.value = response.data;
+    // API返回格式: { code: 0, data: [...], msg: 'success' } 或直接返回data
+    const data = response.code !== undefined ? (response.code === 0 ? response.data : null) : response;
+    if (data && Array.isArray(data)) {
+      initialRegions.value = data;
       // 查找第一个区域的图片信息
-      if (response.data.length > 0 && response.data[0].image_path) {
-        initialImagePath.value = response.data[0].image_path;
-        initialImageId.value = response.data[0].image_id || null;
+      if (data.length > 0 && data[0].image_path) {
+        initialImagePath.value = data[0].image_path;
+        initialImageId.value = data[0].image_id || null;
       }
+    } else {
+      initialRegions.value = [];
     }
   } catch (error) {
     console.error('加载检测区域失败', error);
+    initialRegions.value = [];
   }
 };
 
-const [register, { setModalProps, closeModal }] = useModalInner(async (data) => {
+const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) => {
   resetFields();
-  setModalProps({ confirmLoading: false });
+  setDrawerProps({ confirmLoading: false });
   modalData.value = data;
   activeTab.value = 'basic';
   taskId.value = null;
@@ -340,7 +359,7 @@ const [register, { setModalProps, closeModal }] = useModalInner(async (data) => 
       auto_filename: data.record.auto_filename,
       custom_filename_prefix: data.record.custom_filename_prefix,
     });
-    setModalProps({ showOkBtn: false });
+    setDrawerProps({ showOkBtn: false });
     // 加载检测区域
     await loadRegions(data.record.id);
   }
@@ -359,15 +378,20 @@ const updateFormValues = () => {
 const handleSubmit = async () => {
   try {
     const values = await validate();
-    setModalProps({ confirmLoading: true });
+    setDrawerProps({ confirmLoading: true });
     
     if (modalData.value.type === 'edit' && modalData.value.record) {
-      await updateSnapTask(modalData.value.record.id, values);
-      createMessage.success('更新成功');
-      // 更新taskId（虽然不会变，但确保一致性）
-      taskId.value = modalData.value.record.id;
-      // 更新表单值
-      updateFormValues();
+      const response = await updateSnapTask(modalData.value.record.id, values);
+      if (response.code === 0) {
+        createMessage.success('更新成功');
+        // 更新taskId（虽然不会变，但确保一致性）
+        taskId.value = modalData.value.record.id;
+        // 更新表单值
+        updateFormValues();
+      } else {
+        createMessage.error(response.msg || '更新失败');
+        return;
+      }
     } else {
       const response = await createSnapTask(values);
       if (response.code === 0 && response.data) {
@@ -394,7 +418,7 @@ const handleSubmit = async () => {
     console.error('提交失败', error);
     createMessage.error('提交失败');
   } finally {
-    setModalProps({ confirmLoading: false });
+    setDrawerProps({ confirmLoading: false });
   }
 };
 
@@ -407,14 +431,18 @@ const handleRegionsSave = async (regions: DetectionRegion[]) => {
 
   try {
     // 获取现有的区域
-    const existingRegions = await getDetectionRegions(taskId.value);
-    const existingIds = (existingRegions.data || []).map((r: DetectionRegion) => r.id);
+    const existingRegionsResponse = await getDetectionRegions(taskId.value);
+    // API返回格式: { code: 0, data: [...], msg: 'success' } 或直接返回data
+    const existingRegionsData = existingRegionsResponse.code !== undefined 
+      ? (existingRegionsResponse.code === 0 ? existingRegionsResponse.data : [])
+      : existingRegionsResponse;
+    const existingIds = (existingRegionsData || []).map((r: DetectionRegion) => r.id);
 
     // 保存或更新区域
     for (const region of regions) {
       if (region.id && existingIds.includes(region.id)) {
         // 更新现有区域
-        await updateDetectionRegion(region.id, {
+        const updateResponse = await updateDetectionRegion(region.id, {
           region_name: region.region_name,
           region_type: region.region_type,
           points: region.points,
@@ -428,9 +456,13 @@ const handleRegionsSave = async (regions: DetectionRegion[]) => {
           is_enabled: region.is_enabled,
           sort_order: region.sort_order,
         });
+        if (updateResponse.code !== undefined && updateResponse.code !== 0) {
+          createMessage.error(updateResponse.msg || '更新区域失败');
+          return;
+        }
       } else {
         // 创建新区域
-        await createDetectionRegion({
+        const createResponse = await createDetectionRegion({
           task_id: taskId.value,
           region_name: region.region_name,
           region_type: region.region_type,
@@ -445,6 +477,10 @@ const handleRegionsSave = async (regions: DetectionRegion[]) => {
           is_enabled: region.is_enabled,
           sort_order: region.sort_order,
         });
+        if (createResponse.code !== undefined && createResponse.code !== 0) {
+          createMessage.error(createResponse.msg || '创建区域失败');
+          return;
+        }
       }
     }
 
@@ -452,7 +488,11 @@ const handleRegionsSave = async (regions: DetectionRegion[]) => {
     const currentIds = regions.map(r => r.id).filter(id => id && typeof id === 'number');
     for (const existingId of existingIds) {
       if (!currentIds.includes(existingId)) {
-        await deleteDetectionRegion(existingId);
+        const deleteResponse = await deleteDetectionRegion(existingId);
+        if (deleteResponse.code !== undefined && deleteResponse.code !== 0) {
+          createMessage.error(deleteResponse.msg || '删除区域失败');
+          return;
+        }
       }
     }
 

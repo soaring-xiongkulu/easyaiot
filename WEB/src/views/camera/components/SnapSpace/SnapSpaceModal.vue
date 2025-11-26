@@ -1,11 +1,17 @@
 <template>
-  <BasicModal v-bind="$attrs" @register="register" title="抓拍空间" @ok="handleSubmit">
+  <BasicModal 
+    v-bind="$attrs" 
+    @register="register" 
+    :title="modalTitle" 
+    @ok="handleSubmit"
+    :width="700"
+  >
     <BasicForm @register="registerForm" />
   </BasicModal>
 </template>
 
 <script lang="ts" setup>
-import { ref, unref } from 'vue';
+import { ref, computed } from 'vue';
 import { BasicModal, useModalInner } from '@/components/Modal';
 import { BasicForm, useForm } from '@/components/Form';
 import { useMessage } from '@/hooks/web/useMessage';
@@ -18,6 +24,7 @@ const emit = defineEmits(['success', 'register']);
 
 const [registerForm, { setFieldsValue, validate, resetFields }] = useForm({
   labelWidth: 100,
+  baseColProps: { span: 24 },
   schemas: [
     {
       field: 'space_name',
@@ -66,6 +73,12 @@ const [registerForm, { setFieldsValue, validate, resetFields }] = useForm({
 
 const modalData = ref<{ type?: string; record?: SnapSpace }>({});
 
+const modalTitle = computed(() => {
+  if (modalData.value.type === 'view') return '查看抓拍空间';
+  if (modalData.value.type === 'edit') return '编辑抓拍空间';
+  return '新建抓拍空间';
+});
+
 const [register, { setModalProps, closeModal }] = useModalInner(async (data) => {
   resetFields();
   setModalProps({ confirmLoading: false });
@@ -95,15 +108,24 @@ const handleSubmit = async () => {
     setModalProps({ confirmLoading: true });
     
     if (modalData.value.type === 'edit' && modalData.value.record) {
-      await updateSnapSpace(modalData.value.record.id, values);
-      createMessage.success('更新成功');
+      const response = await updateSnapSpace(modalData.value.record.id, values);
+      if (response.code === 0) {
+        createMessage.success('更新成功');
+        closeModal();
+        emit('success');
+      } else {
+        createMessage.error(response.msg || '更新失败');
+      }
     } else {
-      await createSnapSpace(values);
-      createMessage.success('创建成功');
+      const response = await createSnapSpace(values);
+      if (response.code === 0) {
+        createMessage.success('创建成功');
+        closeModal();
+        emit('success');
+      } else {
+        createMessage.error(response.msg || '创建失败');
+      }
     }
-    
-    closeModal();
-    emit('success');
   } catch (error) {
     console.error('提交失败', error);
     createMessage.error('提交失败');

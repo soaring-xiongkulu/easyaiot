@@ -4,7 +4,7 @@
     @register="register"
     :title="modalTitle"
     @ok="handleSubmit"
-    width="600px"
+    :width="600"
   >
     <BasicForm @register="registerForm" />
   </BasicModal>
@@ -27,6 +27,7 @@ const emit = defineEmits(['success', 'register']);
 const { createMessage } = useMessage();
 const [registerForm, { setFieldsValue, validate, resetFields, updateSchema }] = useForm({
   labelWidth: 100,
+  baseColProps: { span: 24 },
   schemas: [
     {
       field: 'name',
@@ -113,7 +114,9 @@ const modalTitle = computed(() => {
 const loadParentDirectoryOptions = async () => {
   try {
     const response = await getDirectoryList();
-    if (response.code === 0) {
+    // API返回格式: { code: 0, data: [...], msg: 'success' } 或直接返回data
+    const data = response.code !== undefined ? response.data : response;
+    if (data && Array.isArray(data)) {
       // 转换目录树为TreeSelect需要的格式
       const convertToTreeSelect = (directories: DeviceDirectory[], excludeId?: number): any[] => {
         return directories
@@ -124,7 +127,7 @@ const loadParentDirectoryOptions = async () => {
             children: dir.children ? convertToTreeSelect(dir.children, excludeId) : [],
           }));
       };
-      parentDirectoryOptions.value = convertToTreeSelect(response.data, currentId.value || undefined);
+      parentDirectoryOptions.value = convertToTreeSelect(data, currentId.value || undefined);
       
       // 更新表单中的TreeSelect选项
       updateSchema({
@@ -152,12 +155,14 @@ const handleSubmit = async () => {
         description: values.description,
         sort_order: values.sort_order || 0,
       });
-      if (response.code === 0) {
+      // API返回格式: { code: 0, msg: '...' } 或直接返回data
+      const result = response.code !== undefined ? response : { code: 0, msg: '更新成功' };
+      if (result.code === 0) {
         createMessage.success('更新成功');
         closeModal();
         emit('success');
       } else {
-        createMessage.error(response.msg || '更新失败');
+        createMessage.error(result.msg || '更新失败');
       }
     } else {
       // 创建目录
@@ -167,12 +172,14 @@ const handleSubmit = async () => {
         description: values.description,
         sort_order: values.sort_order || 0,
       });
-      if (response.code === 0) {
+      // API返回格式: { code: 0, msg: '...' } 或直接返回data
+      const result = response.code !== undefined ? response : { code: 0, msg: '创建成功' };
+      if (result.code === 0) {
         createMessage.success('创建成功');
         closeModal();
         emit('success');
       } else {
-        createMessage.error(response.msg || '创建失败');
+        createMessage.error(result.msg || '创建失败');
       }
     }
   } catch (error) {

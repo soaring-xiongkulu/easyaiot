@@ -170,8 +170,11 @@ const loadDirectoryTree = async () => {
   try {
     treeLoading.value = true;
     const response = await getDirectoryList();
-    if (response.code === 0) {
-      directoryTree.value = convertToTreeData(response.data);
+    // API返回格式: { code: 0, data: [...], msg: 'success' }
+    // 如果isTransformResponse=true，则返回data；如果false，则返回整个response
+    const data = response.code !== undefined ? response.data : response;
+    if (data && Array.isArray(data)) {
+      directoryTree.value = convertToTreeData(data);
       // 默认展开所有节点
       const getAllKeys = (nodes: any[]): number[] => {
         let keys: number[] = [];
@@ -184,10 +187,13 @@ const loadDirectoryTree = async () => {
         return keys;
       };
       expandedKeys.value = getAllKeys(directoryTree.value);
+    } else {
+      directoryTree.value = [];
     }
   } catch (error) {
     console.error('加载目录树失败', error);
     createMessage.error('加载目录树失败');
+    directoryTree.value = [];
   } finally {
     treeLoading.value = false;
   }
@@ -265,7 +271,9 @@ const handleEditDirectory = (directory: any) => {
 const handleDeleteDirectory = async (directoryId: number) => {
   try {
     const response = await deleteDirectory(directoryId);
-    if (response.code === 0) {
+    // API返回格式: { code: 0, msg: '...' } 或直接返回data（如果isTransformResponse=true）
+    const result = response.code !== undefined ? response : { code: 0, msg: '删除成功' };
+    if (result.code === 0) {
       createMessage.success('删除成功');
       // 如果删除的是当前选中的目录，清空选择
       if (currentDirectory.value?.id === directoryId) {
@@ -279,7 +287,7 @@ const handleDeleteDirectory = async (directoryId: number) => {
         cardListRef.value.fetch();
       }
     } else {
-      createMessage.error(response.msg || '删除失败');
+      createMessage.error(result.msg || '删除失败');
     }
   } catch (error) {
     console.error('删除目录失败', error);
@@ -370,19 +378,23 @@ onMounted(() => {
   padding: 16px;
   background: #f0f2f5;
   min-height: calc(100vh - 200px);
+  height: 100%;
 
   .directory-layout {
     display: flex;
     gap: 16px;
-    height: 100%;
+    height: calc(100vh - 250px);
+    min-height: 600px;
 
     .directory-tree-panel {
-      width: 300px;
+      width: 320px;
+      min-width: 280px;
       background: #fff;
       border-radius: 8px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
       .tree-header {
         padding: 16px;
@@ -390,21 +402,30 @@ onMounted(() => {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-shrink: 0;
 
         .title {
           font-size: 16px;
-          font-weight: 500;
+          font-weight: 600;
+          color: #262626;
         }
       }
 
       .tree-content {
         flex: 1;
         overflow: auto;
-        padding: 8px;
+        padding: 12px;
 
         :deep(.ant-tree) {
           .ant-tree-node-content-wrapper {
             width: 100%;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+
+            &:hover {
+              background-color: #f5f5f5;
+            }
           }
 
           .tree-node-title {
@@ -413,16 +434,19 @@ onMounted(() => {
             justify-content: space-between;
             width: 100%;
             padding-right: 8px;
+            gap: 8px;
 
             .node-name {
               flex: 1;
               overflow: hidden;
               text-overflow: ellipsis;
               white-space: nowrap;
+              font-size: 14px;
             }
 
             .node-info {
-              margin: 0 8px;
+              margin: 0 4px;
+              flex-shrink: 0;
             }
 
             .node-actions {
@@ -430,6 +454,7 @@ onMounted(() => {
               gap: 4px;
               opacity: 0;
               transition: opacity 0.2s;
+              flex-shrink: 0;
             }
 
             &:hover .node-actions {
@@ -442,11 +467,13 @@ onMounted(() => {
 
     .device-list-panel {
       flex: 1;
+      min-width: 0;
       background: #fff;
       border-radius: 8px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
       .device-list-header {
         padding: 16px;
@@ -454,10 +481,12 @@ onMounted(() => {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-shrink: 0;
 
         .title {
           font-size: 16px;
-          font-weight: 500;
+          font-weight: 600;
+          color: #262626;
         }
 
         .header-actions {
