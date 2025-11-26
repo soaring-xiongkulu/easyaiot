@@ -4201,8 +4201,10 @@ clean_middleware() {
         # 等待容器完全停止
         sleep 2
         
-        # 第三步：删除容器和 Docker 具名卷（不删除镜像）
-        print_info "删除所有容器和 Docker 具名卷（镜像将保留）..."
+        # 第三步：删除容器和 Docker 具名卷（明确不删除镜像）
+        # 注意：使用 down -v 只会删除容器和卷，不会删除镜像
+        # 如果要删除镜像，需要使用 down --rmi all 或 down --rmi local，这里不使用
+        print_info "删除所有容器和 Docker 具名卷（镜像将保留，不会删除）..."
         $COMPOSE_CMD -f "$COMPOSE_FILE" down -v 2>&1 | tee -a "$LOG_FILE"
         
         # 第四步：检查并强制删除可能残留的容器（处理重启循环中的容器）
@@ -4313,7 +4315,10 @@ clean_middleware() {
             print_warning "部分存储目录删除失败，请手动检查"
         fi
         
+        echo ""
         print_success "清理完成"
+        print_info "注意：所有 Docker 镜像已保留，不会被删除"
+        print_info "如需删除镜像，请手动执行: docker image prune -a"
     else
         print_info "已取消清理操作"
     fi
