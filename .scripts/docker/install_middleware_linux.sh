@@ -1536,60 +1536,10 @@ create_network() {
     
     # 检查网络是否已存在
     if docker network ls | grep -q easyaiot-network; then
-        print_info "网络 easyaiot-network 已存在"
-        
-        # 检测网络是否可用（尝试创建一个临时容器测试）
-        if ! docker run --rm --network easyaiot-network alpine:latest ping -c 1 8.8.8.8 > /dev/null 2>&1; then
-            print_warning "检测到网络 easyaiot-network 可能存在问题（可能是IP变化导致）"
-            print_info "正在尝试重新创建网络..."
-            
-            # 获取连接到该网络的所有容器
-            local containers=$(docker network inspect easyaiot-network --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null || echo "")
-            
-            if [ -n "$containers" ]; then
-                print_warning "以下容器正在使用该网络，需要先停止："
-                echo "$containers" | tr ' ' '\n' | grep -v '^$' | while read -r container; do
-                    echo "  - $container"
-                done
-                print_info "正在尝试断开这些容器与网络的连接..."
-                
-                # 尝试断开所有容器的网络连接
-                echo "$containers" | tr ' ' '\n' | grep -v '^$' | while read -r container; do
-                    if [ -n "$container" ]; then
-                        print_info "断开容器 $container 与网络的连接..."
-                        docker network disconnect -f easyaiot-network "$container" 2>/dev/null || true
-                    fi
-                done
-                sleep 2
-            fi
-            
-            # 删除旧网络
-            print_info "删除旧网络..."
-            if docker network rm easyaiot-network 2>&1; then
-                print_success "旧网络已删除"
-                sleep 1
-            else
-                local error_msg=$(docker network rm easyaiot-network 2>&1)
-                print_warning "删除旧网络时出现问题: $error_msg"
-                print_info "尝试强制删除..."
-                # 如果普通删除失败，尝试查找并手动断开所有连接
-                local network_id=$(docker network inspect easyaiot-network --format '{{.Id}}' 2>/dev/null || echo "")
-                if [ -n "$network_id" ]; then
-                    # 获取所有连接到该网络的容器ID
-                    local container_ids=$(docker network inspect easyaiot-network --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null || echo "")
-                    if [ -n "$container_ids" ]; then
-                        echo "$container_ids" | tr ' ' '\n' | grep -v '^$' | while read -r container; do
-                            docker network disconnect -f easyaiot-network "$container" 2>/dev/null || true
-                        done
-                        sleep 2
-                        docker network rm easyaiot-network 2>/dev/null || true
-                    fi
-                fi
-            fi
-        else
-            print_info "网络 easyaiot-network 运行正常"
-            return 0
-        fi
+        print_info "网络 easyaiot-network 已存在，跳过创建"
+        # 简化处理：如果网络已存在，直接使用，不进行任何测试（避免卡住）
+        # 如果网络真的有问题，后续启动容器时会报错，届时再处理
+        return 0
     fi
     
     # 创建网络（如果不存在或已删除）
@@ -4390,8 +4340,9 @@ update_middleware() {
     prepare_srs_config
     prepare_emqx_volumes
     
-    print_info "拉取最新镜像..."
-    $COMPOSE_CMD -f "$COMPOSE_FILE" pull 2>&1 | tee -a "$LOG_FILE"
+    # 检查并拉取缺失的镜像（如果镜像已存在则跳过拉取）
+    echo ""
+    check_and_pull_images
     
     print_info "重启所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
