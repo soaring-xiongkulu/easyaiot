@@ -1057,9 +1057,12 @@ def delete_directory(directory_id):
         directory = DeviceDirectory.query.get_or_404(directory_id)
         
         # 检查是否有子目录
-        children = DeviceDirectory.query.filter_by(parent_id=directory_id).count()
-        if children > 0:
-            return jsonify({'code': 400, 'msg': '该目录下存在子目录，无法删除'}), 400
+        children_count = DeviceDirectory.query.filter_by(parent_id=directory_id).count()
+        if children_count > 0:
+            return jsonify({
+                'code': 400, 
+                'msg': f'不能删除当前目录，存在 {children_count} 个下级目录。请先删除所有下级目录后，才可以删除当前目录'
+            }), 400
         
         # 检查是否有设备
         device_count = Device.query.filter_by(directory_id=directory_id).count()

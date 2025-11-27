@@ -757,7 +757,8 @@ onMounted(() => {
 }
 
 .directory-sidebar {
-  width: 35%;
+  width: 300px;
+  flex-shrink: 0;
   background: #fff;
   border-radius: 4px;
   display: flex;
@@ -793,7 +794,7 @@ onMounted(() => {
 }
 
 .device-content {
-  width: 65%;
+  flex: 1;
   background: #fff;
   border-radius: 4px;
   padding: 16px;
