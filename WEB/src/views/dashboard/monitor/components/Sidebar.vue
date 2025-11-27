@@ -28,22 +28,28 @@
 
     <!-- 设备树 -->
     <div class="sidebar-tree">
-      <a-tree
-        v-model:expandedKeys="expandedKeys"
-        v-model:selectedKeys="selectedKeys"
-        :tree-data="filteredTreeData"
-        :field-names="{ children: 'children', title: 'title', key: 'key' }"
-        @select="handleSelect"
-        class="device-tree"
-      />
+      <a-spin :spinning="loading">
+        <a-tree
+          v-if="filteredTreeData.length > 0"
+          v-model:expandedKeys="expandedKeys"
+          v-model:selectedKeys="selectedKeys"
+          :tree-data="filteredTreeData"
+          :field-names="{ children: 'children', title: 'title', key: 'key', icon: 'icon' }"
+          @select="handleSelect"
+          class="device-tree"
+        />
+        <a-empty v-else description="暂无设备目录" />
+      </a-spin>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
+import {computed, ref, watch, onMounted, h} from 'vue'
 import {Input as AInput} from 'ant-design-vue'
 import {Icon} from '@/components/Icon'
+import {getDirectoryList, getDirectoryDevices, getDeviceList, type DeviceDirectory, type DeviceInfo} from '@/api/device/camera'
+import {useMessage} from '@/hooks/web/useMessage'
 
 defineOptions({
   name: 'MonitorSidebar'
@@ -57,6 +63,8 @@ const emit = defineEmits<{
   (e: 'device-change', device: any): void
 }>()
 
+const {createMessage} = useMessage()
+
 const tabs = [
   {key: 'directory', label: '设备目录'},
   {key: 'ai', label: '智能分析'},
@@ -65,62 +73,110 @@ const tabs = [
 
 const activeTab = ref('directory')
 const searchText = ref('')
-const expandedKeys = ref(['kaifaqu'])
-const selectedKeys = ref(['kaifaqu-1'])
+const expandedKeys = ref<string[]>([])
+const selectedKeys = ref<string[]>([])
+const treeData = ref<any[]>([])
+const loading = ref(false)
 
-// 设备树数据
-const treeData = ref([
-  {
-    key: 'kaifaqu',
-    title: '开发区',
-    children: [
-      {key: 'kaifaqu-1', title: '华南小区西四路23号'},
-      {key: 'kaifaqu-2', title: '华南小区西四路24号'},
-      {key: 'kaifaqu-3', title: '华南小区西四路25号'},
-      {key: 'kaifaqu-4', title: '华南小区西四路26号'}
-    ]
-  },
-  {
-    key: 'jinshaqu',
-    title: '金沙区',
-    children: []
-  },
-  {
-    key: 'xigangqu',
-    title: '西岗区',
-    children: []
-  },
-  {
-    key: 'zhongshanqu',
-    title: '中山区',
-    children: []
-  },
-  {
-    key: 'shangmaoquan',
-    title: '商贸圈',
-    children: []
-  },
-  {
-    key: 'zhongsanfuxiao',
-    title: '中三附小',
-    children: []
-  },
-  {
-    key: 'zhongxinyiyuan',
-    title: '中心医院',
-    children: []
-  },
-  {
-    key: 'minglixiaoqu',
-    title: '明丽小区',
-    children: []
-  },
-  {
-    key: 'jianshequ',
-    title: '建设区',
-    children: []
+// 将目录和设备转换为树形结构
+const convertToTreeData = (directories: DeviceDirectory[], devices: DeviceInfo[]): any[] => {
+  return directories.map((dir) => {
+    const directoryKey = `dir_${dir.id}`
+    const children: any[] = []
+    
+    // 添加子目录
+    if (dir.children && dir.children.length > 0) {
+      const subTree = convertToTreeData(dir.children, devices)
+      children.push(...subTree)
+    }
+    
+    // 添加该目录下的设备
+    const dirDevices = devices.filter(device => device.directory_id === dir.id)
+    dirDevices.forEach(device => {
+      children.push({
+        key: `device_${device.id}`,
+        title: device.name || device.id,
+        isDevice: true,
+        isDirectory: false,
+        device: device,
+        icon: () => h(Icon, { icon: 'ant-design:video-camera-outlined' }),
+      })
+    })
+    
+    return {
+      key: directoryKey,
+      title: dir.name,
+      isDirectory: true,
+      directory: dir,
+      children: children.length > 0 ? children : undefined,
+      icon: () => h(Icon, { icon: 'ant-design:folder-outlined' }),
+    }
+  })
+}
+
+// 加载目录和设备数据
+const loadTreeData = async () => {
+  try {
+    loading.value = true
+    // 获取目录列表
+    const dirResponse = await getDirectoryList()
+    const dirData = dirResponse.code !== undefined ? dirResponse.data : dirResponse
+    
+    // 获取所有设备（不分页，获取全部）
+    const deviceResponse = await getDeviceList({
+      pageNo: 1,
+      pageSize: 10000, // 获取所有设备
+    })
+    const deviceData = deviceResponse.code !== undefined ? deviceResponse.data : deviceResponse
+    
+    if (dirData && Array.isArray(dirData) && deviceData && Array.isArray(deviceData)) {
+      // 获取没有目录的设备
+      const devicesWithoutDir = deviceData.filter((device: DeviceInfo) => !device.directory_id)
+      
+      // 转换目录树
+      const tree = convertToTreeData(dirData, deviceData)
+      
+      // 如果有未分配目录的设备，添加到根节点
+      if (devicesWithoutDir.length > 0) {
+        devicesWithoutDir.forEach((device: DeviceInfo) => {
+          tree.push({
+            key: `device_${device.id}`,
+            title: device.name || device.id,
+            isDevice: true,
+            isDirectory: false,
+            device: device,
+            icon: () => h(Icon, { icon: 'ant-design:video-camera-outlined' }),
+          })
+        })
+      }
+      
+      treeData.value = tree
+      
+      // 默认展开所有目录节点
+      const getAllKeys = (nodes: any[]): string[] => {
+        let keys: string[] = []
+        nodes.forEach((node) => {
+          if (node.isDirectory) {
+            keys.push(node.key)
+          }
+          if (node.children && node.children.length > 0) {
+            keys = keys.concat(getAllKeys(node.children))
+          }
+        })
+        return keys
+      }
+      expandedKeys.value = getAllKeys(treeData.value)
+    } else {
+      treeData.value = []
+    }
+  } catch (error) {
+    console.error('加载设备目录失败', error)
+    createMessage.error('加载设备目录失败')
+    treeData.value = []
+  } finally {
+    loading.value = false
   }
-])
+}
 
 // 过滤后的树数据
 const filteredTreeData = computed(() => {
@@ -149,15 +205,19 @@ const filteredTreeData = computed(() => {
 })
 
 // 选择设备
-const handleSelect = (selectedKeys: any[], info: any) => {
-  if (selectedKeys.length > 0 && info.node) {
+const handleSelect = (selectedKeysValue: any[], info: any) => {
+  if (selectedKeysValue.length > 0 && info.node) {
     const node = info.node
-    const device = {
-      id: node.key,
-      name: node.title,
-      location: getFullPath(node, treeData.value)
+    // 只处理设备节点，忽略目录节点
+    if (node.isDevice && node.device) {
+      const device = {
+        id: node.device.id,
+        name: node.device.name || node.device.id,
+        location: getFullPath(node, treeData.value),
+        device: node.device,
+      }
+      emit('device-change', device)
     }
-    emit('device-change', device)
   }
 }
 
@@ -165,16 +225,16 @@ const handleSelect = (selectedKeys: any[], info: any) => {
 const getFullPath = (node: any, treeNodes: any[]): string => {
   const path: string[] = [node.title]
 
-  // 查找父节点
-  const findParent = (nodes: any[], targetKey: string, parentTitle?: string): string | null => {
+  // 递归查找父节点路径
+  const findPath = (nodes: any[], targetKey: string, currentPath: string[] = []): string[] | null => {
     for (const n of nodes) {
+      const newPath = [...currentPath, n.title]
       if (n.key === targetKey) {
-        return parentTitle || null
+        return newPath
       }
       if (n.children && n.children.length > 0) {
-        const found = findParent(n.children, targetKey, n.title)
-        if (found !== null) {
-          path.unshift(found)
+        const found = findPath(n.children, targetKey, newPath)
+        if (found) {
           return found
         }
       }
@@ -182,20 +242,8 @@ const getFullPath = (node: any, treeNodes: any[]): string => {
     return null
   }
 
-  // 简化：直接使用节点标题，如果需要完整路径可以递归查找
-  if (node.title.includes('小区') || node.title.includes('路')) {
-    // 查找父节点标题
-    for (const rootNode of treeNodes) {
-      if (rootNode.children) {
-        const found = rootNode.children.find((child: any) => child.key === node.key)
-        if (found) {
-          return `${rootNode.title}${node.title}`
-        }
-      }
-    }
-  }
-
-  return node.title
+  const fullPath = findPath(treeNodes, node.key)
+  return fullPath ? fullPath.join(' / ') : node.title
 }
 
 // 监听搜索文本变化，自动展开匹配的节点
@@ -215,6 +263,11 @@ watch(searchText, (newVal) => {
     findKeys(treeData.value)
     expandedKeys.value = [...new Set([...expandedKeys.value, ...expandKeys])]
   }
+})
+
+// 组件挂载时加载数据
+onMounted(() => {
+  loadTreeData()
 })
 </script>
 

@@ -8,8 +8,7 @@
         @tabClick="handleTabClick"
       >
         <TabPane key="1" tab="设备列表">
-          <!-- 列表模式 -->
-          <BasicTable v-if="viewMode === 'table'" @register="registerTable">
+          <BasicTable @register="registerTable">
             <template #toolbar>
               <a-button type="primary" @click="handleScanOnvif">
                 <template #icon>
@@ -28,9 +27,6 @@
                   <SyncOutlined/>
                 </template>
                 更新ONVIF设备
-              </a-button>
-              <a-button type="default" @click="handleClickSwap"
-                        preIcon="ant-design:swap-outlined">切换视图
               </a-button>
             </template>
             <template #bodyCell="{ column, record }">
@@ -55,43 +51,6 @@
               </template>
             </template>
           </BasicTable>
-
-          <!-- 卡片模式 -->
-          <VideoCardList
-            v-else
-            ref="cardListRef"
-            :api="getDeviceList"
-            :params="{}"
-            @view="handleCardView"
-            @edit="handleCardEdit"
-            @delete="handleCardDelete"
-            @play="handleCardPlay"
-            @toggleStream="handleCardToggleStream"
-          >
-            <template #header>
-              <a-button type="primary" @click="handleScanOnvif">
-                <template #icon>
-                  <ScanOutlined/>
-                </template>
-                扫描局域网ONVIF设备
-              </a-button>
-              <a-button @click="openAddModal('source')">
-                <template #icon>
-                  <VideoCameraAddOutlined/>
-                </template>
-                新增视频源设备
-              </a-button>
-              <a-button @click="handleUpdateOnvifDevice">
-                <template #icon>
-                  <SyncOutlined/>
-                </template>
-                更新ONVIF设备
-              </a-button>
-              <a-button type="default" @click="handleClickSwap"
-                        preIcon="ant-design:swap-outlined">切换视图
-              </a-button>
-            </template>
-          </VideoCardList>
           <DialogPlayer title="视频播放" @register="registerPlayerAddModel"
                         @success="handlePlayerSuccess"/>
           <VideoModal @register="registerAddModel" @success="handleSuccess"/>
@@ -141,7 +100,6 @@ import {
 } from '@/api/device/camera';
 import {ScanOutlined, SyncOutlined, VideoCameraAddOutlined} from '@ant-design/icons-vue';
 import DialogPlayer from "@/components/VideoPlayer/DialogPlayer.vue";
-import VideoCardList from "./components/VideoCardList/index.vue";
 import DirectoryManage from "./components/DirectoryManage/index.vue";
 import SnapSpace from "./components/SnapSpace/index.vue";
 import SnapTask from "./components/SnapTask/index.vue";
@@ -168,17 +126,6 @@ const directoryManageRef = ref();
 const handleTabClick = (activeKey: string) => {
   state.activeKey = activeKey;
 };
-
-// 视图模式：table 列表模式，card 卡片模式
-const viewMode = ref<'table' | 'card'>('card');
-
-// 切换视图
-function handleClickSwap() {
-  viewMode.value = viewMode.value === 'table' ? 'card' : 'table';
-}
-
-// 卡片组件引用
-const cardListRef = ref();
 
 // 设备流状态映射
 const deviceStreamStatuses = ref<Record<string, string>>({});
@@ -442,13 +389,7 @@ const handleScanOnvif = () => {
 
 // 刷新数据
 const handleSuccess = () => {
-  if (viewMode.value === 'table') {
-    // 表格模式：刷新表格
-    reload();
-  } else if (viewMode.value === 'card' && cardListRef.value) {
-    // 卡片模式：刷新卡片列表
-    cardListRef.value.fetch();
-  }
+  reload();
 };
 
 // 删除设备
@@ -475,42 +416,6 @@ const handleUpdateOnvifDevice = async () => {
   }
 };
 
-// 卡片模式的事件处理
-const handleCardView = (record: DeviceInfo) => {
-  openAddModal('view', record);
-};
-
-const handleCardEdit = (record: DeviceInfo) => {
-  openAddModal('edit', record);
-};
-
-const handleCardDelete = async (record: DeviceInfo) => {
-  await handleDelete(record);
-};
-
-const handleCardPlay = (record: DeviceInfo) => {
-  handlePlay(record);
-};
-
-const handleCardToggleStream = async (record: DeviceInfo) => {
-  const currentStatus = (deviceStreamStatuses.value && deviceStreamStatuses.value[record.id]) || 'unknown';
-  if (currentStatus === 'running') {
-    await handleDisableRtsp(record);
-  } else {
-    await handleEnableRtsp(record);
-  }
-  // 刷新卡片列表中的流状态
-  if (viewMode.value === 'card' && cardListRef.value) {
-    // 更新卡片组件的流状态
-    if (cardListRef.value.deviceStreamStatuses && deviceStreamStatuses.value) {
-      cardListRef.value.deviceStreamStatuses.value[record.id] = deviceStreamStatuses.value[record.id];
-    }
-    // 重新检查流状态
-    if (cardListRef.value.checkDeviceStreamStatus) {
-      await cardListRef.value.checkDeviceStreamStatus(record.id);
-    }
-  }
-};
 
 // 组件挂载时启动状态检查定时器
 onMounted(() => {
