@@ -38,7 +38,7 @@
           title="编辑"
         >
           <template #icon>
-            <Icon icon="ant-design:edit-filled" />
+            <Icon icon="ant-design:edit-filled" :style="{ color: '#1890ff' }" />
           </template>
         </a-button>
         <a-popconfirm
@@ -222,6 +222,17 @@ const handleDelete = () => {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+    
+    &:hover {
+      background-color: #f0f0f0;
+      transform: scale(1.1);
+    }
+    
+    &:active {
+      transform: scale(0.95);
+    }
   }
 }
 
