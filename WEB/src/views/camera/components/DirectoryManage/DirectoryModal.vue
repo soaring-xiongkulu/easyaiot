@@ -4,7 +4,7 @@
     @register="register"
     :title="modalTitle"
     @ok="handleSubmit"
-    :width="600"
+    :width="800"
   >
     <BasicForm @register="registerForm" />
   </BasicModal>

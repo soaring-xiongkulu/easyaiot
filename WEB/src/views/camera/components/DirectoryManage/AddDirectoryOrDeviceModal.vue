@@ -4,7 +4,7 @@
     @register="register"
     title="添加目录/摄像头"
     @ok="handleSubmit"
-    :width="600"
+    :width="650"
   >
     <BasicForm @register="registerForm" />
   </BasicModal>
