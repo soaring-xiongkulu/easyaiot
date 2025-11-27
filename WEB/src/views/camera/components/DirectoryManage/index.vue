@@ -5,12 +5,14 @@
       <div class="directory-sidebar">
         <div class="sidebar-tree">
           <div class="tree-header">
-            <a-button type="primary" @click="handleAddDirectory">
-              <template #icon>
-                <PlusOutlined />
-              </template>
-              添加目录
-            </a-button>
+            <div class="tree-header-button">
+              <a-button type="primary" @click="handleAddDirectory">
+                <template #icon>
+                  <PlusOutlined />
+                </template>
+                添加目录
+              </a-button>
+            </div>
             <a-input
               v-model:value="directorySearchText"
               placeholder="请输入目录名称"
@@ -771,6 +773,11 @@ onMounted(() => {
     
     .tree-header {
       margin-bottom: 16px;
+      
+      .tree-header-button {
+        display: flex;
+        justify-content: flex-end;
+      }
     }
     
     .tree-content {
