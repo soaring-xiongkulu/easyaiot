@@ -2,32 +2,45 @@
   <div class="camera-container">
     <div class="camera-tab">
       <Tabs
-        :animated="{ inkBar: true, tabPane: true }"
         :activeKey="state.activeKey"
+        :animated="{ inkBar: true, tabPane: true }"
         :tabBarGutter="60"
         @tabClick="handleTabClick"
       >
         <TabPane key="1" tab="设备列表">
-          <BasicTable @register="registerTable">
+          <!-- 列表模式 -->
+          <BasicTable v-if="viewMode === 'table'" @register="registerTable">
             <template #toolbar>
-              <a-button type="primary" @click="handleScanOnvif">
-                <template #icon>
-                  <ScanOutlined/>
-                </template>
-                扫描局域网ONVIF设备
-              </a-button>
-              <a-button @click="openAddModal('source')">
-                <template #icon>
-                  <VideoCameraAddOutlined/>
-                </template>
-                新增视频源设备
-              </a-button>
-              <a-button @click="handleUpdateOnvifDevice">
-                <template #icon>
-                  <SyncOutlined/>
-                </template>
-                更新ONVIF设备
-              </a-button>
+              <div class="device-list-toolbar">
+                <div class="toolbar-left">
+                  <a-button type="primary" @click="handleScanOnvif">
+                    <template #icon>
+                      <ScanOutlined/>
+                    </template>
+                    扫描局域网ONVIF设备
+                  </a-button>
+                  <a-button @click="openAddModal('source')">
+                    <template #icon>
+                      <VideoCameraAddOutlined/>
+                    </template>
+                    新增视频源设备
+                  </a-button>
+                  <a-button @click="handleUpdateOnvifDevice">
+                    <template #icon>
+                      <SyncOutlined/>
+                    </template>
+                    更新ONVIF设备
+                  </a-button>
+                </div>
+                <div class="toolbar-right">
+                  <a-button @click="handleToggleViewMode" type="default">
+                    <template #icon>
+                      <SwapOutlined />
+                    </template>
+                    切换视图
+                  </a-button>
+                </div>
+              </div>
             </template>
             <template #bodyCell="{ column, record }">
               <!-- 统一复制功能组件 -->
@@ -51,6 +64,54 @@
               </template>
             </template>
           </BasicTable>
+
+          <!-- 卡片模式 -->
+          <div v-else class="card-mode-wrapper">
+            <VideoCardList
+              ref="videoCardListRef"
+              :api="getDeviceList"
+              :params="{}"
+              @view="handleCardView"
+              @edit="handleCardEdit"
+              @delete="handleCardDelete"
+              @play="handleCardPlay"
+              @toggleStream="handleCardToggleStream"
+            >
+              <template #toolbar>
+                <div class="device-list-toolbar">
+                  <div class="toolbar-left">
+                    <a-button type="primary" @click="handleScanOnvif">
+                      <template #icon>
+                        <ScanOutlined/>
+                      </template>
+                      扫描局域网ONVIF设备
+                    </a-button>
+                    <a-button @click="openAddModal('source')">
+                      <template #icon>
+                        <VideoCameraAddOutlined/>
+                      </template>
+                      新增视频源设备
+                    </a-button>
+                    <a-button @click="handleUpdateOnvifDevice">
+                      <template #icon>
+                        <SyncOutlined/>
+                      </template>
+                      更新ONVIF设备
+                    </a-button>
+                  </div>
+                  <div class="toolbar-right">
+                    <a-button @click="handleToggleViewMode" type="default">
+                      <template #icon>
+                        <SwapOutlined />
+                      </template>
+                      切换视图
+                    </a-button>
+                  </div>
+                </div>
+              </template>
+            </VideoCardList>
+          </div>
+
           <DialogPlayer title="视频播放" @register="registerPlayerAddModel"
                         @success="handlePlayerSuccess"/>
           <VideoModal @register="registerAddModel" @success="handleSuccess"/>
@@ -98,12 +159,13 @@ import {
   stopStreamForwarding,
   StreamStatusResponse
 } from '@/api/device/camera';
-import {ScanOutlined, SyncOutlined, VideoCameraAddOutlined} from '@ant-design/icons-vue';
+import {ScanOutlined, SyncOutlined, VideoCameraAddOutlined, SwapOutlined} from '@ant-design/icons-vue';
 import DialogPlayer from "@/components/VideoPlayer/DialogPlayer.vue";
 import DirectoryManage from "./components/DirectoryManage/index.vue";
 import SnapSpace from "./components/SnapSpace/index.vue";
 import SnapTask from "./components/SnapTask/index.vue";
 import PlaybackList from "./components/PlaybackList/index.vue";
+import VideoCardList from "./components/VideoCardList/index.vue";
 
 defineOptions({name: 'CAMERA'})
 
@@ -119,12 +181,27 @@ const state = reactive({
   activeKey: '1'
 });
 
+// 视图模式（默认卡片模式）
+const viewMode = ref<'table' | 'card'>('card');
+
 // 目录管理组件引用
 const directoryManageRef = ref();
+
+// 视频卡片列表组件引用
+const videoCardListRef = ref();
 
 // Tab切换
 const handleTabClick = (activeKey: string) => {
   state.activeKey = activeKey;
+};
+
+// 切换视图模式
+const handleToggleViewMode = () => {
+  viewMode.value = viewMode.value === 'table' ? 'card' : 'table';
+  if (viewMode.value === 'card' && videoCardListRef.value) {
+    // 切换到卡片模式时刷新卡片列表
+    videoCardListRef.value.fetch();
+  }
 };
 
 // 设备流状态映射
@@ -301,8 +378,12 @@ const handleEnableRtsp = async (record) => {
       createMessage.success({content: 'RTSP转发已启动', key: 'rtsp'});
       // 更新设备状态
       deviceStreamStatuses.value[record.id] = 'running';
-      // 重新加载表格数据
-      reload();
+      // 更新卡片列表中的流状态
+      if (videoCardListRef.value && videoCardListRef.value.deviceStreamStatuses) {
+        videoCardListRef.value.deviceStreamStatuses[record.id] = 'running';
+      }
+      // 重新加载数据
+      handleSuccess();
     } else {
       createMessage.error({content: `启动失败: ${response.data.msg}`, key: 'rtsp'});
       deviceStreamStatuses.value[record.id] = 'error';
@@ -336,8 +417,12 @@ const handleDisableRtsp = async (record) => {
       createMessage.success({content: 'RTSP转发已停止', key: 'rtsp'});
       // 更新设备状态
       deviceStreamStatuses.value[record.id] = 'stopped';
-      // 重新加载表格数据
-      reload();
+      // 更新卡片列表中的流状态
+      if (videoCardListRef.value && videoCardListRef.value.deviceStreamStatuses) {
+        videoCardListRef.value.deviceStreamStatuses[record.id] = 'stopped';
+      }
+      // 重新加载数据
+      handleSuccess();
     } else {
       createMessage.error({content: `停止失败: ${response.data.msg}`, key: 'rtsp'});
       deviceStreamStatuses.value[record.id] = 'error';
@@ -389,7 +474,11 @@ const handleScanOnvif = () => {
 
 // 刷新数据
 const handleSuccess = () => {
-  reload();
+  if (viewMode.value === 'table') {
+    reload();
+  } else if (videoCardListRef.value) {
+    videoCardListRef.value.fetch();
+  }
 };
 
 // 删除设备
@@ -413,6 +502,36 @@ const handleUpdateOnvifDevice = async () => {
   } catch (error) {
     console.error('ONVIF设备更新失败', error);
     createMessage.error('ONVIF设备更新失败');
+  }
+};
+
+// 卡片视图事件处理
+const handleCardView = (record) => {
+  openAddModal('view', record);
+};
+
+const handleCardEdit = (record) => {
+  openAddModal('edit', record);
+};
+
+const handleCardDelete = async (record) => {
+  await handleDelete(record);
+};
+
+const handleCardPlay = (record) => {
+  handlePlay(record);
+};
+
+const handleCardToggleStream = async (record) => {
+  const currentStatus = (deviceStreamStatuses.value && deviceStreamStatuses.value[record.id]) || 'unknown';
+  if (currentStatus === 'running') {
+    await handleDisableRtsp(record);
+  } else {
+    await handleEnableRtsp(record);
+  }
+  // 刷新卡片列表
+  if (videoCardListRef.value) {
+    videoCardListRef.value.fetch();
   }
 };
 
@@ -455,6 +574,43 @@ onUnmounted(() => {
       :deep(.ant-tabs-nav) {
         padding: 5px 0 0 25px;
       }
+    }
+  }
+
+  .device-list-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+    padding: 0;
+
+    .toolbar-left {
+      display: flex;
+      gap: 8px;
+    }
+
+    .toolbar-right {
+      display: flex;
+      gap: 8px;
+    }
+  }
+
+  // 列表模式：按钮在搜索表单下方
+  :deep(.vben-basic-table) {
+    .vben-basic-table-form-container {
+      .device-list-toolbar {
+        margin-bottom: 12px;
+        padding: 0 4px;
+      }
+    }
+  }
+
+  // 卡片模式：按钮在搜索表单下方
+  .card-mode-wrapper {
+    .device-list-toolbar {
+      padding: 12px 16px;
+      margin-bottom: 0;
     }
   }
 }

@@ -94,6 +94,10 @@ export function getFormConfig(): Partial<FormProps> {
   return {
     labelWidth: 80,
     baseColProps: {span: 6},
+    actionColOptions: {
+      span: 12,
+      style: { textAlign: 'right' }
+    },
     schemas: [
       {
         field: `deviceName`,

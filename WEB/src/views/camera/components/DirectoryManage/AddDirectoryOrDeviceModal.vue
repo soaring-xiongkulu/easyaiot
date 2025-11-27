@@ -120,6 +120,16 @@ const [register, { setModalProps, closeModal }] = useModalInner(async (data) => 
   
   // 加载摄像头列表
   await loadDeviceOptions();
+  
+  // 如果传入了默认类型和父目录ID，设置默认值
+  if (data) {
+    if (data.defaultType) {
+      await setFieldsValue({ addType: data.defaultType });
+    }
+    if (data.defaultParentId) {
+      await setFieldsValue({ parent_id: data.defaultParentId });
+    }
+  }
 });
 
 const parentDirectoryOptions = ref<any[]>([]);

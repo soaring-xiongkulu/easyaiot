@@ -3,6 +3,10 @@
     <div class="p-4 bg-white" style="margin-bottom: 10px">
       <BasicForm @register="registerForm"/>
     </div>
+    <!-- 按钮工具栏 -->
+    <div class="p-2 bg-white" style="margin-bottom: 10px" v-if="$slots.toolbar">
+      <slot name="toolbar"></slot>
+    </div>
     <div class="p-2 bg-white">
       <Spin :spinning="state.loading">
         <List
@@ -156,7 +160,10 @@ const [registerForm, {validate}] = useForm({
   ],
   labelWidth: 80,
   baseColProps: {span: 6},
-  actionColOptions: {span: 6},
+  actionColOptions: {
+    span: 12,
+    style: { textAlign: 'right' }
+  },
   autoSubmitOnEnter: true,
   submitFunc: handleSubmit,
 });
