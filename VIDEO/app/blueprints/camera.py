@@ -1017,12 +1017,39 @@ def on_dvr_callback():
             logger.warning(f"on_dvr回调：录像文件不存在 file_path={absolute_file_path}")
             return jsonify({'code': 0, 'msg': None})
         
-        # 获取文件的修改时间作为录像生成时间
-        file_mtime = os.path.getmtime(absolute_file_path)
-        record_time = datetime.fromtimestamp(file_mtime)
+        # 从文件路径中提取日期信息
+        # 文件路径格式：/data/playbacks/live/{device_id}/{year}/{month}/{day}/{filename}
+        # 例如：/data/playbacks/live/1764341204704370850/2025/11/28/1764352410083.flv
+        path_parts = absolute_file_path.split(os.sep)
         
-        # 按照录像生成时间创建目录：device_id/YYYY-MM-DD/
-        date_dir = record_time.strftime('%Y-%m-%d')
+        # 查找设备ID在路径中的位置，然后提取日期部分
+        # 路径结构：['', 'data', 'playbacks', 'live', device_id, year, month, day, filename]
+        try:
+            # 找到 'live' 后面的设备ID位置
+            live_index = -1
+            for i, part in enumerate(path_parts):
+                if part == 'live':
+                    live_index = i
+                    break
+            
+            if live_index == -1 or live_index + 4 >= len(path_parts):
+                # 如果路径格式不符合预期，使用文件修改时间作为备选方案
+                file_mtime = os.path.getmtime(absolute_file_path)
+                record_time = datetime.fromtimestamp(file_mtime)
+                date_dir = record_time.strftime('%Y/%m/%d')
+                logger.warning(f"on_dvr回调：无法从路径解析日期，使用文件修改时间 date_dir={date_dir}, file_path={absolute_file_path}")
+            else:
+                # 提取日期部分：year/month/day
+                year = path_parts[live_index + 2]
+                month = path_parts[live_index + 3]
+                day = path_parts[live_index + 4]
+                date_dir = f"{year}/{month}/{day}"
+        except (IndexError, ValueError) as e:
+            # 如果解析失败，使用文件修改时间作为备选方案
+            file_mtime = os.path.getmtime(absolute_file_path)
+            record_time = datetime.fromtimestamp(file_mtime)
+            date_dir = record_time.strftime('%Y/%m/%d')
+            logger.warning(f"on_dvr回调：从路径解析日期失败，使用文件修改时间 date_dir={date_dir}, error={str(e)}, file_path={absolute_file_path}")
         
         # 获取文件名
         filename = os.path.basename(absolute_file_path)
@@ -1041,7 +1068,7 @@ def on_dvr_callback():
         }
         content_type = content_type_map.get(file_ext, 'video/mp4')
         
-        # 构建MinIO对象名称：device_id/YYYY-MM-DD/filename
+        # 构建MinIO对象名称：device_id/YYYY/MM/DD/filename
         object_name = f"{device_id}/{date_dir}/{filename}"
         
         # 上传到MinIO
