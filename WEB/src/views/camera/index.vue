@@ -119,7 +119,7 @@
         <TabPane key="3" tab="抓拍空间">
           <SnapSpace ref="snapSpaceRef"/>
         </TabPane>
-        <TabPane key="4" tab="监控录像">
+        <TabPane key="4" tab="录像空间">
           <RecordSpace ref="recordSpaceRef"/>
         </TabPane>
         <TabPane key="5" tab="算法任务">
@@ -183,7 +183,7 @@ const videoCardListRef = ref();
 // 抓拍空间组件引用
 const snapSpaceRef = ref();
 
-// 监控录像空间组件引用
+// 录像空间组件引用
 const recordSpaceRef = ref();
 
 // Tab切换
@@ -193,7 +193,7 @@ const handleTabClick = (activeKey: string) => {
   if (activeKey === '3' && snapSpaceRef.value) {
     snapSpaceRef.value.refresh();
   }
-  // 切换到监控录像标签页时，刷新数据
+  // 切换到录像空间标签页时，刷新数据
   if (activeKey === '4' && recordSpaceRef.value) {
     recordSpaceRef.value.refresh();
   }

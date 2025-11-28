@@ -298,6 +298,13 @@ def list_devices():
             error_out=False
         )
 
+        # 确保当前页的设备都有对应的抓拍空间和录像空间
+        for device in pagination.items:
+            try:
+                camera_service.ensure_device_spaces(device.id)
+            except Exception as e:
+                logger.warning(f'检查设备 {device.id} 空间时出错: {str(e)}')
+
         device_list = [_to_dict(device) for device in pagination.items]
 
         return jsonify({
@@ -1127,6 +1134,13 @@ def list_directory_devices(directory_id):
             per_page=page_size,
             error_out=False
         )
+        
+        # 确保当前页的设备都有对应的抓拍空间和录像空间
+        for device in pagination.items:
+            try:
+                camera_service.ensure_device_spaces(device.id)
+            except Exception as e:
+                logger.warning(f'检查设备 {device.id} 空间时出错: {str(e)}')
         
         device_list = [_to_dict(device) for device in pagination.items]
         

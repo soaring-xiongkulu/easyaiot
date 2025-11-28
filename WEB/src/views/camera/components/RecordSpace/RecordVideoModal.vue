@@ -2,7 +2,7 @@
   <BasicModal 
     v-bind="$attrs" 
     @register="register" 
-    title="监控录像管理" 
+    title="录像空间管理" 
     :width="1500"
     :showOkBtn="false"
     :showCancelBtn="false"

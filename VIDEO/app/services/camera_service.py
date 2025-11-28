@@ -857,22 +857,78 @@ def register_camera(register_info: dict) -> str:
         raise RuntimeError(f'数据库提交失败: {str(e)}')
 
 
+def ensure_device_spaces(device_id: str):
+    """确保设备有对应的抓拍空间和录像空间，如果没有则自动创建
+    
+    Args:
+        device_id: 设备ID
+    """
+    try:
+        from app.services.snap_space_service import get_snap_space_by_device_id, create_snap_space_for_device
+        from app.services.record_space_service import get_record_space_by_device_id, create_record_space_for_device
+        
+        camera = _get_camera(device_id)
+        if not camera:
+            return  # 设备不存在，直接返回
+        
+        # 检查并创建抓拍空间
+        snap_space = get_snap_space_by_device_id(device_id)
+        if not snap_space:
+            try:
+                create_snap_space_for_device(device_id, camera.name)
+                logger.info(f'设备 {device_id} 的抓拍空间已自动创建')
+            except Exception as e:
+                logger.warning(f'为设备 {device_id} 自动创建抓拍空间失败: {str(e)}')
+        
+        # 检查并创建录像空间
+        record_space = get_record_space_by_device_id(device_id)
+        if not record_space:
+            try:
+                create_record_space_for_device(device_id, camera.name)
+                logger.info(f'设备 {device_id} 的监控录像空间已自动创建')
+            except Exception as e:
+                logger.warning(f'为设备 {device_id} 自动创建监控录像空间失败: {str(e)}')
+    except Exception as e:
+        logger.warning(f'检查设备 {device_id} 空间失败: {str(e)}')
+
+
 def get_camera_info(id: str) -> dict:
     """获取设备基本信息"""
     camera = _get_camera(id)
     if not camera:
         raise ValueError(f'设备 {id} 不存在，请先注册')
+    
+    # 确保设备有对应的抓拍空间和录像空间
+    ensure_device_spaces(id)
+    
     return _to_dict(camera)
 
 
 def get_camera_list() -> list:
     """获取所有设备信息列表"""
-    return [_to_dict(camera) for camera in _get_cameras()]
+    cameras = _get_cameras()
+    
+    # 确保所有设备都有对应的抓拍空间和录像空间
+    for camera in cameras:
+        try:
+            ensure_device_spaces(camera.id)
+        except Exception as e:
+            logger.warning(f'检查设备 {camera.id} 空间时出错: {str(e)}')
+    
+    return [_to_dict(camera) for camera in cameras]
 
 
 def get_device_list() -> dict:
     """从数据库获取所有设备"""
     devices = Device.query.all()
+    
+    # 确保所有设备都有对应的抓拍空间和录像空间
+    for device in devices:
+        try:
+            ensure_device_spaces(device.id)
+        except Exception as e:
+            logger.warning(f'检查设备 {device.id} 空间时出错: {str(e)}')
+    
     device_list = [_to_dict(device) for device in devices]
 
     # 计算统计信息
@@ -891,6 +947,9 @@ def update_camera(id: str, update_info: dict):
     camera = _get_camera(id)
     if not camera:
         raise ValueError(f'设备 {id} 不存在，无法修改')
+    
+    # 确保设备有对应的抓拍空间和录像空间
+    ensure_device_spaces(id)
 
     # 过滤空值并更新字段
     for k, v in (item for item in update_info.items() if item[1] is not None):

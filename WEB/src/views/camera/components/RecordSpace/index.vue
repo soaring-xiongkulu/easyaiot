@@ -10,7 +10,7 @@
               </div>
               <div class="p-2 bg-white">
                 <div class="list-header">
-                  <span class="list-title">监控录像空间列表</span>
+                  <span class="list-title">录像空间列表</span>
                 </div>
                 <Spin :spinning="loading">
                   <List
@@ -34,7 +34,7 @@
                       </ListItem>
                     </template>
                     <template #empty>
-                      <Empty description="暂无监控录像空间"/>
+                      <Empty description="暂无录像空间"/>
                     </template>
                   </List>
                 </Spin>
@@ -157,7 +157,7 @@ const loadSpaceList = async () => {
         }
       } else {
         // 错误响应
-        createMessage.error(response.msg || '加载监控录像空间列表失败');
+        createMessage.error(response.msg || '加载录像空间列表失败');
         spaceList.value = [];
         total.value = 0;
       }
@@ -166,8 +166,8 @@ const loadSpaceList = async () => {
       total.value = 0;
     }
   } catch (error) {
-    console.error('加载监控录像空间列表失败', error);
-    createMessage.error('加载监控录像空间列表失败');
+    console.error('加载录像空间列表失败', error);
+    createMessage.error('加载录像空间列表失败');
     spaceList.value = [];
     total.value = 0;
   } finally {
@@ -184,9 +184,9 @@ const handleViewVideos = (record: RecordSpace) => {
 // 删除
 const handleDelete = async (record: RecordSpace) => {
   try {
-    // 如果监控录像空间关联了设备，提示用户删除设备
+    // 如果录像空间关联了设备，提示用户删除设备
     if (record.device_id) {
-      createMessage.warning('监控录像空间跟随设备，不能单独删除。请删除关联的设备，监控录像空间会自动删除。');
+      createMessage.warning('录像空间跟随设备，不能单独删除。请删除关联的设备，录像空间会自动删除。');
       return;
     }
     
@@ -197,7 +197,7 @@ const handleDelete = async (record: RecordSpace) => {
     });
     
     if (videoResponse.code === 0 && videoResponse.total > 0) {
-      createMessage.warning('该空间下还有监控录像，无法删除。请先删除所有录像后再删除空间。');
+      createMessage.warning('该空间下还有录像，无法删除。请先删除所有录像后再删除空间。');
       return;
     }
     
@@ -246,8 +246,8 @@ function handleViewDetail() {
 }
 
 function handleEditDetail() {
-  // 编辑功能已禁用，监控录像空间跟随设备
-  createMessage.info('监控录像空间信息跟随设备，无法单独编辑');
+  // 编辑功能已禁用，录像空间跟随设备
+  createMessage.info('录像空间信息跟随设备，无法单独编辑');
   ezd_popover_hidden.value = "ezd-popover-hidden";
 }
 
@@ -279,7 +279,7 @@ const [registerForm, {validate}] = useForm({
   ],
   labelWidth: 80,
   baseColProps: {span: 6},
-  actionColOptions: {span: 6},
+  actionColOptions: {span: 6, offset: 12, style: { textAlign: 'right' }},
   autoSubmitOnEnter: true,
   submitFunc: handleSubmit,
 });
