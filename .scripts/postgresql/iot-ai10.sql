@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict rRKsOUvShSNQC4IyhkitY44vzbttBmzq1e8g1y2jk6X3BtqMcGIYxUsSNTY814q
+\restrict HVFTbj2A5qQjdW8JMTVB1QqNsZypmfpdhGbT8a3K8FcRG9cXzW7gnEVl5wpKfXC
 
 -- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
 -- Dumped by pg_dump version 16.10 (Ubuntu 16.10-0ubuntu0.24.04.1)
@@ -871,5 +871,5 @@ ALTER TABLE ONLY public.train_task
 -- PostgreSQL database dump complete
 --
 
-\unrestrict rRKsOUvShSNQC4IyhkitY44vzbttBmzq1e8g1y2jk6X3BtqMcGIYxUsSNTY814q
+\unrestrict HVFTbj2A5qQjdW8JMTVB1QqNsZypmfpdhGbT8a3K8FcRG9cXzW7gnEVl5wpKfXC
 
