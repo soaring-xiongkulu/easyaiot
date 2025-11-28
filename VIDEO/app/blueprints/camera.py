@@ -952,11 +952,72 @@ def on_publish_callback():
         pass
 
 
+def extract_thumbnail_from_video(video_path, output_path=None, frame_position=0.1):
+    """从视频文件中抽取一帧作为封面
+    
+    Args:
+        video_path: 视频文件路径
+        output_path: 输出图片路径，如果为None则返回图像数据
+        frame_position: 抽取位置（0.0-1.0，0.1表示视频的10%位置）
+    
+    Returns:
+        如果output_path为None，返回图像数据（numpy array），否则返回True/False
+    """
+    try:
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            logger.error(f"无法打开视频文件: {video_path}")
+            return None if output_path is None else False
+        
+        # 获取视频总帧数
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if total_frames == 0:
+            # 如果无法获取总帧数，尝试读取第一帧
+            ret, frame = cap.read()
+            cap.release()
+            if not ret or frame is None:
+                logger.error(f"无法从视频中读取帧: {video_path}")
+                return None if output_path is None else False
+            
+            if output_path:
+                cv2.imwrite(output_path, frame)
+                return True
+            else:
+                return frame
+        
+        # 计算要抽取的帧位置
+        target_frame = int(total_frames * frame_position)
+        if target_frame < 1:
+            target_frame = 1
+        
+        # 设置帧位置
+        cap.set(cv2.CAP_PROP_POS_FRAMES, target_frame)
+        
+        # 读取帧
+        ret, frame = cap.read()
+        cap.release()
+        
+        if not ret or frame is None:
+            logger.error(f"无法从视频中读取帧: {video_path}, target_frame={target_frame}")
+            return None if output_path is None else False
+        
+        if output_path:
+            cv2.imwrite(output_path, frame)
+            return True
+        else:
+            return frame
+            
+    except Exception as e:
+        logger.error(f"抽取视频封面失败: {video_path}, error={str(e)}", exc_info=True)
+        return None if output_path is None else False
+
+
 @camera_bp.route('/callback/on_dvr', methods=['POST'])
 def on_dvr_callback():
     """SRS录像生成回调接口
     当SRS生成录像文件时，会调用此接口
     需要将录像文件保存到设备的录像空间，并上传到MinIO
+    同时抽取一帧作为封面并存入数据库
     """
     import os
     from datetime import datetime
@@ -965,7 +1026,7 @@ def on_dvr_callback():
         create_record_space_for_device,
         get_minio_client
     )
-    from models import Device
+    from models import Device, Playback
     
     try:
         # 解析SRS回调数据
@@ -1101,6 +1162,13 @@ def on_dvr_callback():
                 month = path_parts[live_index + 3]
                 day = path_parts[live_index + 4]
                 date_dir = f"{year}/{month}/{day}"
+                # 从路径解析的日期构建record_time
+                try:
+                    record_time = datetime(int(year), int(month), int(day))
+                except (ValueError, TypeError):
+                    # 如果日期解析失败，使用文件修改时间
+                    file_mtime = os.path.getmtime(absolute_file_path)
+                    record_time = datetime.fromtimestamp(file_mtime)
                 logger.debug(f"on_dvr回调：从路径解析日期成功 date_dir={date_dir}, year={year}, month={month}, day={day}")
         except (IndexError, ValueError) as e:
             # 如果解析失败，使用文件修改时间作为备选方案
@@ -1154,6 +1222,104 @@ def on_dvr_callback():
             )
             logger.info(f"on_dvr回调：录像上传成功 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, file_size={file_size} bytes")
             
+            # 抽取视频封面
+            thumbnail_path = None
+            try:
+                logger.info(f"on_dvr回调：开始抽取视频封面 video_path={absolute_file_path}")
+                frame = extract_thumbnail_from_video(absolute_file_path, output_path=None, frame_position=0.1)
+                
+                if frame is not None:
+                    # 生成封面文件名（将视频文件扩展名替换为.jpg）
+                    thumbnail_filename = os.path.splitext(filename)[0] + '.jpg'
+                    thumbnail_object_name = f"{device_id}/{date_dir}/{thumbnail_filename}"
+                    
+                    # 将帧编码为JPEG格式
+                    success, encoded_image = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+                    if success:
+                        # 创建临时文件保存封面
+                        import tempfile
+                        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
+                            tmp_thumbnail_path = tmp_file.name
+                            tmp_file.write(encoded_image.tobytes())
+                        
+                        try:
+                            # 上传封面到MinIO
+                            minio_client.fput_object(
+                                bucket_name,
+                                thumbnail_object_name,
+                                tmp_thumbnail_path,
+                                content_type='image/jpeg'
+                            )
+                            thumbnail_path = thumbnail_object_name
+                            logger.info(f"on_dvr回调：封面上传成功 device_id={device_id}, thumbnail_path={thumbnail_path}")
+                        finally:
+                            # 删除临时文件
+                            try:
+                                os.remove(tmp_thumbnail_path)
+                            except:
+                                pass
+                    else:
+                        logger.warning(f"on_dvr回调：封面编码失败 device_id={device_id}")
+                else:
+                    logger.warning(f"on_dvr回调：无法抽取视频封面 device_id={device_id}, video_path={absolute_file_path}")
+            except Exception as e:
+                logger.error(f"on_dvr回调：抽取封面失败 device_id={device_id}, error={str(e)}", exc_info=True)
+                # 封面抽取失败不影响主流程，继续执行
+            
+            # 创建或更新Playback记录
+            try:
+                # 计算视频时长（秒），如果无法获取则使用默认值
+                duration = 0
+                try:
+                    cap = cv2.VideoCapture(absolute_file_path)
+                    if cap.isOpened():
+                        fps = cap.get(cv2.CAP_PROP_FPS)
+                        frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+                        if fps > 0 and frame_count > 0:
+                            duration = int(frame_count / fps)
+                        cap.release()
+                except:
+                    pass
+                
+                # 确定录制时间
+                if 'record_time' not in locals():
+                    file_mtime = os.path.getmtime(absolute_file_path)
+                    record_time = datetime.fromtimestamp(file_mtime)
+                
+                # 查找是否已存在相同文件路径的记录
+                existing_playback = Playback.query.filter_by(
+                    file_path=object_name,
+                    device_id=device_id
+                ).first()
+                
+                if existing_playback:
+                    # 更新现有记录
+                    existing_playback.thumbnail_path = thumbnail_path
+                    existing_playback.file_size = file_size
+                    if duration > 0:
+                        existing_playback.duration = duration
+                    existing_playback.updated_at = datetime.utcnow()
+                    db.session.commit()
+                    logger.info(f"on_dvr回调：更新Playback记录 playback_id={existing_playback.id}, thumbnail_path={thumbnail_path}")
+                else:
+                    # 创建新记录
+                    playback = Playback(
+                        file_path=object_name,
+                        event_time=record_time,
+                        device_id=device_id,
+                        device_name=device.name if device else '',
+                        duration=duration if duration > 0 else 1,  # 至少1秒
+                        thumbnail_path=thumbnail_path,
+                        file_size=file_size
+                    )
+                    db.session.add(playback)
+                    db.session.commit()
+                    logger.info(f"on_dvr回调：创建Playback记录 playback_id={playback.id}, thumbnail_path={thumbnail_path}")
+            except Exception as e:
+                logger.error(f"on_dvr回调：创建/更新Playback记录失败 device_id={device_id}, error={str(e)}", exc_info=True)
+                db.session.rollback()
+                # 记录创建失败不影响主流程，继续执行
+            
             # 可选：上传成功后删除本地文件（根据需求决定）
             # os.remove(absolute_file_path)
             
@@ -1164,7 +1330,7 @@ def on_dvr_callback():
             logger.error(f"on_dvr回调：上传录像失败 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, error={str(e)}", exc_info=True)
             return jsonify({'code': 0, 'msg': None})
         
-        logger.info(f"on_dvr回调：处理完成 device_id={device_id}, object_name={object_name}")
+        logger.info(f"on_dvr回调：处理完成 device_id={device_id}, object_name={object_name}, thumbnail_path={thumbnail_path}")
         return jsonify({'code': 0, 'msg': None})
         
     except Exception as e:

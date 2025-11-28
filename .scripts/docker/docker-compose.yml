@@ -263,8 +263,7 @@ services:
     volumes:
       - "./srs_data/conf:/usr/local/srs/conf"
       - "./srs_data/conf:/opt/srs/trunk/conf"
-      - "./srs_data/data:/data"
-      - "./srs_data/playbacks:/data/playbacks"
+      - "/data:/data"
     command: ["./objs/srs", "-c", "conf/docker.conf"]
     working_dir: /usr/local/srs
     healthcheck:
