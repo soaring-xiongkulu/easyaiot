@@ -14,7 +14,7 @@ from flask import current_app
 from minio import Minio
 from minio.error import S3Error
 
-from models import db, RecordSpace
+from models import db, RecordSpace, Playback
 from app.services.record_space_service import get_minio_client
 
 logger = logging.getLogger(__name__)
@@ -55,6 +55,10 @@ def list_record_videos(space_id: int, device_id: Optional[str] = None,
         # 支持的视频格式
         video_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.m4v']
         
+        # 先收集所有视频文件的object_name和对象，用于批量查询Playback记录
+        video_object_names = []
+        video_objects = []  # 存储视频对象，避免重复遍历
+        
         for obj in objects:
             # 排除文件夹标记
             if obj.object_name.endswith('/'):
@@ -62,11 +66,47 @@ def list_record_videos(space_id: int, device_id: Optional[str] = None,
             
             # 只处理视频文件
             filename = obj.object_name.split('/')[-1]
-            if not any(filename.lower().endswith(ext) for ext in video_extensions):
-                continue
+            if any(filename.lower().endswith(ext) for ext in video_extensions):
+                video_object_names.append(obj.object_name)
+                video_objects.append(obj)
+        
+        # 批量查询Playback记录
+        playback_map = {}
+        if video_object_names:
+            playbacks = Playback.query.filter(Playback.file_path.in_(video_object_names)).all()
+            for playback in playbacks:
+                playback_map[playback.file_path] = playback
+        
+        # 遍历视频对象，构建视频列表
+        for obj in video_objects:
             
             try:
                 stat = minio_client.stat_object(bucket_name, obj.object_name)
+                
+                # 查找对应的Playback记录
+                playback = playback_map.get(obj.object_name)
+                thumbnail_url = None
+                duration = None
+                
+                if playback and playback.thumbnail_path:
+                    # 如果Playback记录中有封面路径，构建下载URL
+                    thumbnail_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={quote(playback.thumbnail_path, safe='')}"
+                else:
+                    # 如果没有Playback记录，尝试根据视频文件名构建封面路径
+                    # 将视频文件扩展名替换为 .jpg
+                    thumbnail_object_name = obj.object_name.rsplit('.', 1)[0] + '.jpg'
+                    # 检查封面文件是否存在
+                    try:
+                        minio_client.stat_object(bucket_name, thumbnail_object_name)
+                        thumbnail_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={quote(thumbnail_object_name, safe='')}"
+                    except S3Error:
+                        # 封面文件不存在，保持为None
+                        pass
+                
+                # 从Playback记录获取时长
+                if playback:
+                    duration = playback.duration
+                
                 videos.append({
                     'object_name': obj.object_name,
                     'filename': filename,
@@ -75,8 +115,8 @@ def list_record_videos(space_id: int, device_id: Optional[str] = None,
                     'etag': stat.etag,
                     'content_type': stat.content_type or 'video/mp4',
                     'url': f"/api/v1/buckets/{bucket_name}/objects/download?prefix={quote(obj.object_name, safe='')}",
-                    'duration': None,  # 可以从视频元数据中提取，这里暂时为None
-                    'thumbnail_url': None  # 可以从视频中提取缩略图，这里暂时为None
+                    'duration': duration,
+                    'thumbnail_url': thumbnail_url
                 })
             except Exception as e:
                 logger.warning(f"获取对象信息失败: {bucket_name}/{obj.object_name}, error={str(e)}")
