@@ -3,10 +3,6 @@
     <div class="p-4 bg-white" style="margin-bottom: 10px">
       <BasicForm @register="registerForm"/>
     </div>
-    <!-- 按钮工具栏 -->
-    <div class="p-2 bg-white" style="margin-bottom: 10px" v-if="$slots.toolbar">
-      <slot name="toolbar"></slot>
-    </div>
     <div class="p-2 bg-white">
       <Spin :spinning="state.loading">
         <List
@@ -18,7 +14,7 @@
             <div
               style="display: flex;align-items: center;justify-content: space-between;flex-direction: row;">
               <span style="padding-left: 7px;font-size: 16px;font-weight: 500;line-height: 24px;">摄像头列表</span>
-              <div class="space-x-2">
+              <div style="display: flex; gap: 8px;">
                 <slot name="header"></slot>
               </div>
             </div>

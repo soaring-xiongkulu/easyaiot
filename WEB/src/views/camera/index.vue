@@ -11,35 +11,31 @@
           <!-- 列表模式 -->
           <BasicTable v-if="viewMode === 'table'" @register="registerTable">
             <template #toolbar>
-              <div class="device-list-toolbar">
-                <div class="toolbar-left">
-                  <a-button type="primary" @click="handleScanOnvif">
-                    <template #icon>
-                      <ScanOutlined/>
-                    </template>
-                    扫描局域网ONVIF设备
-                  </a-button>
-                  <a-button @click="openAddModal('source')">
-                    <template #icon>
-                      <VideoCameraAddOutlined/>
-                    </template>
-                    新增视频源设备
-                  </a-button>
-                  <a-button @click="handleUpdateOnvifDevice">
-                    <template #icon>
-                      <SyncOutlined/>
-                    </template>
-                    更新ONVIF设备
-                  </a-button>
-                </div>
-                <div class="toolbar-right">
-                  <a-button @click="handleToggleViewMode" type="default">
-                    <template #icon>
-                      <SwapOutlined />
-                    </template>
-                    切换视图
-                  </a-button>
-                </div>
+              <div class="toolbar-buttons">
+                <a-button type="primary" @click="handleScanOnvif">
+                  <template #icon>
+                    <ScanOutlined/>
+                  </template>
+                  扫描局域网ONVIF设备
+                </a-button>
+                <a-button @click="openAddModal('source')">
+                  <template #icon>
+                    <VideoCameraAddOutlined/>
+                  </template>
+                  新增视频源设备
+                </a-button>
+                <a-button @click="handleUpdateOnvifDevice">
+                  <template #icon>
+                    <SyncOutlined/>
+                  </template>
+                  更新ONVIF设备
+                </a-button>
+                <a-button @click="handleToggleViewMode" type="default">
+                  <template #icon>
+                    <SwapOutlined />
+                  </template>
+                  切换视图
+                </a-button>
               </div>
             </template>
             <template #bodyCell="{ column, record }">
@@ -77,37 +73,31 @@
               @play="handleCardPlay"
               @toggleStream="handleCardToggleStream"
             >
-              <template #toolbar>
-                <div class="device-list-toolbar">
-                  <div class="toolbar-left">
-                    <a-button type="primary" @click="handleScanOnvif">
-                      <template #icon>
-                        <ScanOutlined/>
-                      </template>
-                      扫描局域网ONVIF设备
-                    </a-button>
-                    <a-button @click="openAddModal('source')">
-                      <template #icon>
-                        <VideoCameraAddOutlined/>
-                      </template>
-                      新增视频源设备
-                    </a-button>
-                    <a-button @click="handleUpdateOnvifDevice">
-                      <template #icon>
-                        <SyncOutlined/>
-                      </template>
-                      更新ONVIF设备
-                    </a-button>
-                  </div>
-                  <div class="toolbar-right">
-                    <a-button @click="handleToggleViewMode" type="default">
-                      <template #icon>
-                        <SwapOutlined />
-                      </template>
-                      切换视图
-                    </a-button>
-                  </div>
-                </div>
+              <template #header>
+                <a-button type="primary" @click="handleScanOnvif">
+                  <template #icon>
+                    <ScanOutlined/>
+                  </template>
+                  扫描局域网ONVIF设备
+                </a-button>
+                <a-button @click="openAddModal('source')">
+                  <template #icon>
+                    <VideoCameraAddOutlined/>
+                  </template>
+                  新增视频源设备
+                </a-button>
+                <a-button @click="handleUpdateOnvifDevice">
+                  <template #icon>
+                    <SyncOutlined/>
+                  </template>
+                  更新ONVIF设备
+                </a-button>
+                <a-button @click="handleToggleViewMode" type="default">
+                  <template #icon>
+                    <SwapOutlined />
+                  </template>
+                  切换视图
+                </a-button>
               </template>
             </VideoCardList>
           </div>
@@ -130,7 +120,7 @@
           <SnapSpace ref="snapSpaceRef"/>
         </TabPane>
         <TabPane key="4" tab="监控录像">
-          <PlaybackList/>
+          <RecordSpace ref="recordSpaceRef"/>
         </TabPane>
         <TabPane key="5" tab="算法任务">
           <SnapTask/>
@@ -164,7 +154,7 @@ import DialogPlayer from "@/components/VideoPlayer/DialogPlayer.vue";
 import DirectoryManage from "./components/DirectoryManage/index.vue";
 import SnapSpace from "./components/SnapSpace/index.vue";
 import SnapTask from "./components/SnapTask/index.vue";
-import PlaybackList from "./components/PlaybackList/index.vue";
+import RecordSpace from "./components/RecordSpace/index.vue";
 import VideoCardList from "./components/VideoCardList/index.vue";
 
 defineOptions({name: 'CAMERA'})
@@ -193,12 +183,19 @@ const videoCardListRef = ref();
 // 抓拍空间组件引用
 const snapSpaceRef = ref();
 
+// 监控录像空间组件引用
+const recordSpaceRef = ref();
+
 // Tab切换
 const handleTabClick = (activeKey: string) => {
   state.activeKey = activeKey;
   // 切换到抓拍空间标签页时，刷新数据
   if (activeKey === '3' && snapSpaceRef.value) {
     snapSpaceRef.value.refresh();
+  }
+  // 切换到监控录像标签页时，刷新数据
+  if (activeKey === '4' && recordSpaceRef.value) {
+    recordSpaceRef.value.refresh();
   }
 };
 
@@ -584,41 +581,11 @@ onUnmounted(() => {
     }
   }
 
-  .device-list-toolbar {
+  // 工具栏按钮组
+  .toolbar-buttons {
     display: flex;
-    justify-content: flex-end;
     align-items: center;
     gap: 8px;
-    margin-bottom: 0;
-    padding: 0;
-
-    .toolbar-left {
-      display: flex;
-      gap: 8px;
-    }
-
-    .toolbar-right {
-      display: flex;
-      gap: 8px;
-    }
-  }
-
-  // 列表模式：按钮在搜索表单下方
-  :deep(.vben-basic-table) {
-    .vben-basic-table-form-container {
-      .device-list-toolbar {
-        margin-bottom: 12px;
-        padding: 0 4px;
-      }
-    }
-  }
-
-  // 卡片模式：按钮在搜索表单下方
-  .card-mode-wrapper {
-    .device-list-toolbar {
-      padding: 12px 16px;
-      margin-bottom: 0;
-    }
   }
 }
 </style>

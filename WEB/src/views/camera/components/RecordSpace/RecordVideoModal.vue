@@ -2,18 +2,18 @@
   <BasicModal 
     v-bind="$attrs" 
     @register="register" 
-    title="抓拍图片管理" 
+    title="监控录像管理" 
     :width="1500"
     :showOkBtn="false"
     :showCancelBtn="false"
     :maskClosable="false"
   >
-    <div class="snap-image-container">
-      <!-- 图片列表 -->
+    <div class="record-video-container">
+      <!-- 录像列表 -->
       <div class="table-wrapper">
         <a-table
           :columns="columns"
-          :data-source="imageList"
+          :data-source="videoList"
           :loading="loading"
           :pagination="pagination"
           :row-selection="{ selectedRowKeys, onChange: onSelectChange }"
@@ -23,16 +23,24 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'preview'">
               <a-image
+                v-if="record.thumbnail_url"
                 :width="100"
-                :src="getImageUrl(record)"
+                :src="record.thumbnail_url"
                 :preview="false"
               />
+              <span v-else class="no-thumbnail">无封面</span>
             </template>
             <template v-else-if="column.key === 'size'">
               {{ formatSize(record.size) }}
             </template>
+            <template v-else-if="column.key === 'duration'">
+              {{ formatDuration(record.duration) }}
+            </template>
             <template v-else-if="column.key === 'action'">
               <a-space>
+                <a-button type="link" size="small" @click="handlePlay(record)">
+                  播放
+                </a-button>
                 <a-button type="link" size="small" @click="handlePreview(record)">
                   预览
                 </a-button>
@@ -46,8 +54,8 @@
       </div>
 
       <!-- 底部按钮组 -->
-      <div class="snap-image-footer">
-        <div class="snap-image-footer-left">
+      <div class="record-video-footer">
+        <div class="record-video-footer-left">
           <a-button type="primary" @click="handleRefresh">
             刷新
           </a-button>
@@ -63,17 +71,36 @@
       </div>
     </div>
 
-    <!-- 图片预览模态框 -->
+    <!-- 视频播放模态框 -->
+    <a-modal
+      v-model:open="playVisible"
+      :title="playVideo?.filename"
+      :footer="null"
+      :width="1000"
+    >
+      <div style="text-align: center">
+        <video
+          v-if="playVideo"
+          :src="getVideoUrl(playVideo)"
+          controls
+          style="width: 100%; max-height: 600px;"
+        />
+      </div>
+    </a-modal>
+
+    <!-- 视频预览模态框 -->
     <a-modal
       v-model:open="previewVisible"
-      :title="previewImage?.filename"
+      :title="previewVideo?.filename"
       :footer="null"
       :width="800"
     >
       <div style="text-align: center">
-        <a-image
-          :src="previewImage ? getImageUrl(previewImage) : ''"
-          :preview="true"
+        <video
+          v-if="previewVideo"
+          :src="getVideoUrl(previewVideo)"
+          controls
+          style="width: 100%; max-height: 500px;"
         />
       </div>
     </a-modal>
@@ -81,34 +108,40 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive } from 'vue';
 import { BasicModal, useModalInner } from '@/components/Modal';
 import { useMessage } from '@/hooks/web/useMessage';
-import { getSnapImageList, deleteSnapImages, type SnapImage } from '@/api/device/snap';
+import { getRecordVideoList, deleteRecordVideos, type RecordVideo } from '@/api/device/record';
+import { useModal } from '@/components/Modal';
+import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue';
 
-defineOptions({ name: 'SnapImageModal' });
+defineOptions({ name: 'RecordVideoModal' });
 
 const { createMessage } = useMessage();
 const emit = defineEmits(['register']);
 
 const modalData = ref<{ space_id?: number; space_name?: string }>({});
-const imageList = ref<SnapImage[]>([]);
+const videoList = ref<RecordVideo[]>([]);
 const loading = ref(false);
 const selectedRowKeys = ref<string[]>([]);
 const previewVisible = ref(false);
-const previewImage = ref<SnapImage | null>(null);
+const playVisible = ref(false);
+const previewVideo = ref<RecordVideo | null>(null);
+const playVideo = ref<RecordVideo | null>(null);
+
+const [registerPlayerModal, { openModal: openPlayerModal }] = useModal();
 
 const pagination = reactive({
   current: 1,
   pageSize: 20,
   total: 0,
   showSizeChanger: true,
-  showTotal: (total) => `共 ${total} 张图片`,
+  showTotal: (total) => `共 ${total} 个录像`,
 });
 
 const columns = [
   {
-    title: '预览',
+    title: '封面',
     key: 'preview',
     width: 120,
   },
@@ -124,6 +157,11 @@ const columns = [
     width: 100,
   },
   {
+    title: '时长',
+    key: 'duration',
+    width: 100,
+  },
+  {
     title: '修改时间',
     dataIndex: 'last_modified',
     key: 'last_modified',
@@ -132,72 +170,99 @@ const columns = [
   {
     title: '操作',
     key: 'action',
-    width: 150,
+    width: 200,
     fixed: 'right',
   },
 ];
 
-const getImageUrl = (record: SnapImage) => {
+const getVideoUrl = (record: RecordVideo) => {
   if (!modalData.value.space_id) return '';
-  return `/video/snap/space/${modalData.value.space_id}/image/${record.object_name}`;
+  return `/video/record/space/${modalData.value.space_id}/video/${record.object_name}`;
 };
 
 const formatSize = (bytes: number) => {
+  if (!bytes) return '0 B';
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
 };
 
-const loadImageList = async () => {
+const formatDuration = (seconds: number) => {
+  if (!seconds) return '0秒';
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  
+  if (hours > 0) {
+    return `${hours}小时${minutes}分钟${secs}秒`;
+  } else if (minutes > 0) {
+    return `${minutes}分钟${secs}秒`;
+  } else {
+    return `${secs}秒`;
+  }
+};
+
+const loadVideoList = async () => {
   if (!modalData.value.space_id) return;
   
   loading.value = true;
   try {
-    const response = await getSnapImageList(modalData.value.space_id, {
+    const response = await getRecordVideoList(modalData.value.space_id, {
       pageNo: pagination.current,
       pageSize: pagination.pageSize,
     });
     
     if (response.code === 0) {
-      imageList.value = response.data || [];
+      videoList.value = response.data || [];
       pagination.total = response.total || 0;
     } else {
-      createMessage.error(response.msg || '加载图片列表失败');
+      createMessage.error(response.msg || '加载录像列表失败');
     }
   } catch (error) {
-    console.error('加载图片列表失败', error);
-    createMessage.error('加载图片列表失败');
+    console.error('加载录像列表失败', error);
+    createMessage.error('加载录像列表失败');
   } finally {
     loading.value = false;
   }
 };
 
 const handleRefresh = () => {
-  loadImageList();
+  loadVideoList();
 };
 
 const handleTableChange = (pag: any) => {
   pagination.current = pag.current;
   pagination.pageSize = pag.pageSize;
-  loadImageList();
+  loadVideoList();
 };
 
 const onSelectChange = (keys: string[]) => {
   selectedRowKeys.value = keys;
 };
 
-const handlePreview = (record: SnapImage) => {
-  previewImage.value = record;
+const handlePlay = (record: RecordVideo) => {
+  playVideo.value = record;
+  playVisible.value = true;
+  // 也可以使用 DialogPlayer 组件
+  // openPlayerModal(true, {
+  //   rtmp_stream: getVideoUrl(record),
+  //   http_stream: getVideoUrl(record),
+  // });
+};
+
+const handlePreview = (record: RecordVideo) => {
+  previewVideo.value = record;
   previewVisible.value = true;
 };
 
-const handleDelete = async (record: SnapImage) => {
+const handleDelete = async (record: RecordVideo) => {
   if (!modalData.value.space_id) return;
   
   try {
-    await deleteSnapImages(modalData.value.space_id, [record.object_name]);
+    await deleteRecordVideos(modalData.value.space_id, [record.object_name]);
     createMessage.success('删除成功');
-    loadImageList();
+    loadVideoList();
   } catch (error: any) {
     console.error('删除失败', error);
     const errorMsg = error?.response?.data?.msg || error?.message || '删除失败';
@@ -209,10 +274,10 @@ const handleBatchDelete = async () => {
   if (!modalData.value.space_id || selectedRowKeys.value.length === 0) return;
   
   try {
-    await deleteSnapImages(modalData.value.space_id, selectedRowKeys.value);
-    createMessage.success(`成功删除 ${selectedRowKeys.value.length} 张图片`);
+    await deleteRecordVideos(modalData.value.space_id, selectedRowKeys.value);
+    createMessage.success(`成功删除 ${selectedRowKeys.value.length} 个录像`);
     selectedRowKeys.value = [];
-    loadImageList();
+    loadVideoList();
   } catch (error: any) {
     console.error('批量删除失败', error);
     const errorMsg = error?.response?.data?.msg || error?.message || '批量删除失败';
@@ -225,12 +290,12 @@ const [register, { setModalProps, closeModal }] = useModalInner(async (data) => 
   selectedRowKeys.value = [];
   pagination.current = 1;
   setModalProps({ confirmLoading: false });
-  await loadImageList();
+  await loadVideoList();
 });
 </script>
 
 <style lang="less" scoped>
-.snap-image-container {
+.record-video-container {
   display: flex;
   flex-direction: column;
   height: 70vh;
@@ -266,7 +331,7 @@ const [register, { setModalProps, closeModal }] = useModalInner(async (data) => 
     }
   }
 
-  .snap-image-footer {
+  .record-video-footer {
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -278,7 +343,7 @@ const [register, { setModalProps, closeModal }] = useModalInner(async (data) => 
     z-index: 10; // 确保 footer 在最上层
     background: #fff; // 确保 footer 有背景色，不会被内容遮挡
 
-    .snap-image-footer-left {
+    .record-video-footer-left {
       display: flex;
       gap: 8px;
     }
@@ -305,21 +370,26 @@ const [register, { setModalProps, closeModal }] = useModalInner(async (data) => 
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
+
+  .no-thumbnail {
+    color: #999;
+    font-size: 12px;
+  }
 }
 
 // 响应式设计
 @media (max-width: 768px) {
-  .snap-image-container {
+  .record-video-container {
     height: 65vh;
     max-height: 600px;
     min-height: 500px;
   }
 
-  .snap-image-footer {
+  .record-video-footer {
     flex-direction: column;
     gap: 8px;
 
-    .snap-image-footer-left {
+    .record-video-footer-left {
       width: 100%;
       justify-content: center;
     }

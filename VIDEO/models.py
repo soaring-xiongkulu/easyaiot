@@ -121,6 +121,40 @@ class SnapSpace(db.Model):
         }
 
 
+class RecordSpace(db.Model):
+    """监控录像空间表"""
+    __tablename__ = 'record_space'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    space_name = db.Column(db.String(255), nullable=False, comment='空间名称')
+    space_code = db.Column(db.String(255), nullable=False, unique=True, comment='空间编号（唯一标识）')
+    bucket_name = db.Column(db.String(255), nullable=False, comment='MinIO bucket名称')
+    save_mode = db.Column(db.SmallInteger, default=0, nullable=False, comment='文件保存模式[0:标准存储,1:归档存储]')
+    save_time = db.Column(db.Integer, default=0, nullable=False, comment='文件保存时间[0:永久保存,>=7(单位:天)]')
+    description = db.Column(db.String(500), nullable=True, comment='空间描述')
+    device_id = db.Column(db.String(100), db.ForeignKey('device.id', ondelete='SET NULL'), nullable=True, unique=True, comment='关联的设备ID（一对一关系）')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 关联的设备
+    device = db.relationship('Device', backref='record_space', uselist=False)
+    
+    def to_dict(self):
+        """转换为字典"""
+        return {
+            'id': self.id,
+            'space_name': self.space_name,
+            'space_code': self.space_code,
+            'bucket_name': self.bucket_name,
+            'save_mode': self.save_mode,
+            'save_time': self.save_time,
+            'description': self.description,
+            'device_id': self.device_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
 class SnapTask(db.Model):
     """抓拍任务表"""
     __tablename__ = 'snap_task'

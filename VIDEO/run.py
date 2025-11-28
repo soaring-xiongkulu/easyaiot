@@ -20,7 +20,7 @@ from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
 
-from app.blueprints import camera, alert, snap, playback
+from app.blueprints import camera, alert, snap, playback, record
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -145,7 +145,7 @@ def create_app():
     db.init_app(app)
     with app.app_context():
         try:
-            from models import Device, Image, DeviceDirectory, SnapSpace, SnapTask, DetectionRegion, AlgorithmModelService, RegionModelService, DeviceStorageConfig, Playback
+            from models import Device, Image, DeviceDirectory, SnapSpace, SnapTask, DetectionRegion, AlgorithmModelService, RegionModelService, DeviceStorageConfig, Playback, RecordSpace
             db.create_all()
             
             # 迁移：检查并添加缺失的列和表
@@ -205,6 +205,7 @@ def create_app():
     
     try:
         app.register_blueprint(snap.snap_bp, url_prefix='/video/snap')
+        app.register_blueprint(record.record_bp, url_prefix='/video/record')
         print(f"✅ Snap Blueprint 注册成功")
     except Exception as e:
         print(f"❌ Snap Blueprint 注册失败: {str(e)}")
