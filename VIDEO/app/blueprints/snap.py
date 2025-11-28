@@ -25,6 +25,9 @@ from app.services.storage_service import (
     get_or_create_device_storage_config, update_device_storage_config,
     get_device_storage_info, check_and_cleanup_storage
 )
+from app.services.snap_image_service import (
+    list_snap_images, delete_snap_images, get_snap_image, cleanup_old_images_by_days
+)
 
 snap_bp = Blueprint('snap', __name__)
 logger = logging.getLogger(__name__)
@@ -85,13 +88,16 @@ def create_space():
         save_mode = data.get('save_mode', 0)
         save_time = data.get('save_time', 0)
         description = data.get('description', '').strip() or None
+        device_id = data.get('device_id', '').strip() or None
         
-        space = create_snap_space(space_name, save_mode, save_time, description)
+        space = create_snap_space(space_name, save_mode, save_time, description, device_id)
         return jsonify({
             'code': 0,
             'msg': '抓拍空间创建成功',
             'data': space.to_dict()
         })
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
     except RuntimeError as e:
         return jsonify({'code': 500, 'msg': str(e)}), 500
     except Exception as e:
@@ -825,5 +831,94 @@ def cleanup_device_storage(device_id):
     except Exception as e:
         logger.error(f'清理设备存储失败: {str(e)}', exc_info=True)
         db.session.rollback()
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+# ====================== 抓拍图片管理接口 ======================
+@snap_bp.route('/space/<int:space_id>/images', methods=['GET'])
+def list_space_images(space_id):
+    """获取抓拍空间图片列表"""
+    try:
+        device_id = request.args.get('device_id', '').strip() or None
+        page_no = int(request.args.get('pageNo', 1))
+        page_size = int(request.args.get('pageSize', 20))
+        
+        result = list_snap_images(space_id, device_id, page_no, page_size)
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': result['items'],
+            'total': result['total']
+        })
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except Exception as e:
+        logger.error(f'获取抓拍图片列表失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@snap_bp.route('/space/<int:space_id>/image/<path:object_name>', methods=['GET'])
+def get_space_image(space_id, object_name):
+    """获取抓拍图片内容"""
+    try:
+        from flask import Response
+        content, content_type, filename = get_snap_image(space_id, object_name)
+        return Response(
+            content,
+            mimetype=content_type,
+            headers={'Content-Disposition': f'inline; filename="{filename}"'}
+        )
+    except ValueError as e:
+        return jsonify({'code': 404, 'msg': str(e)}), 404
+    except Exception as e:
+        logger.error(f'获取抓拍图片失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@snap_bp.route('/space/<int:space_id>/images', methods=['DELETE'])
+def delete_space_images(space_id):
+    """批量删除抓拍图片"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
+        
+        object_names = data.get('object_names', [])
+        if not object_names or not isinstance(object_names, list):
+            return jsonify({'code': 400, 'msg': 'object_names必须是非空数组'}), 400
+        
+        result = delete_snap_images(space_id, object_names)
+        return jsonify({
+            'code': 0,
+            'msg': '删除完成',
+            'data': result
+        })
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except Exception as e:
+        logger.error(f'批量删除抓拍图片失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@snap_bp.route('/space/<int:space_id>/images/cleanup', methods=['POST'])
+def cleanup_space_images(space_id):
+    """清理过期的抓拍图片"""
+    try:
+        data = request.get_json() or {}
+        days = int(data.get('days', 0))
+        
+        if days <= 0:
+            return jsonify({'code': 400, 'msg': 'days必须大于0'}), 400
+        
+        result = cleanup_old_images_by_days(space_id, days)
+        return jsonify({
+            'code': 0,
+            'msg': '清理完成',
+            'data': result
+        })
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except Exception as e:
+        logger.error(f'清理过期图片失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 

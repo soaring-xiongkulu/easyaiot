@@ -126,11 +126,11 @@
             @toggleStream="handleCardToggleStream"
           />
         </TabPane>
-        <TabPane key="3" tab="录像回放">
-          <PlaybackList/>
-        </TabPane>
-        <TabPane key="4" tab="抓拍空间">
+        <TabPane key="3" tab="抓拍空间">
           <SnapSpace/>
+        </TabPane>
+        <TabPane key="4" tab="监控录像">
+          <PlaybackList/>
         </TabPane>
         <TabPane key="5" tab="算法任务">
           <SnapTask/>

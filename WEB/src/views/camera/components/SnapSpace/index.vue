@@ -30,6 +30,11 @@
         <template v-else-if="column.dataIndex === 'action'">
           <TableAction :actions="getTableActions(record)" />
         </template>
+        <template v-else-if="column.dataIndex === 'image_count'">
+          <a-button type="link" @click="handleViewImages(record)">
+            查看图片 ({{ record.image_count || 0 }})
+          </a-button>
+        </template>
       </template>
     </BasicTable>
 
@@ -50,6 +55,9 @@
                     </a-menu-item>
                     <a-menu-item @click="handleEdit(item)">
                       <EditOutlined /> 编辑
+                    </a-menu-item>
+                    <a-menu-item @click="handleViewImages(item)">
+                      <EyeOutlined /> 查看图片
                     </a-menu-item>
                     <a-menu-item @click="handleDelete(item)" danger>
                       <DeleteOutlined /> 删除
@@ -91,6 +99,9 @@
 
     <!-- 创建/编辑模态框 -->
     <SnapSpaceModal @register="registerModal" @success="handleSuccess" />
+    
+    <!-- 图片管理模态框 -->
+    <SnapImageModal @register="registerImageModal" />
   </div>
 </template>
 
@@ -102,11 +113,13 @@ import { useModal } from '@/components/Modal';
 import { useMessage } from '@/hooks/web/useMessage';
 import { getSnapSpaceList, deleteSnapSpace, type SnapSpace } from '@/api/device/snap';
 import SnapSpaceModal from './SnapSpaceModal.vue';
+import SnapImageModal from './SnapImageModal.vue';
 
 defineOptions({ name: 'SnapSpace' });
 
 const { createMessage } = useMessage();
 const [registerModal, { openModal }] = useModal();
+const [registerImageModal, { openModal: openImageModal }] = useModal();
 
 // 视图模式
 const viewMode = ref<'table' | 'card'>('card');
@@ -151,6 +164,11 @@ const getBasicColumns = () => [
     title: '任务数量',
     dataIndex: 'task_count',
     width: 100,
+  },
+  {
+    title: '图片管理',
+    dataIndex: 'image_count',
+    width: 120,
   },
   {
     title: '创建时间',
@@ -208,6 +226,11 @@ const getTableActions = (record: SnapSpace) => {
       onClick: () => handleView(record),
     },
     {
+      icon: 'ant-design:picture-outlined',
+      tooltip: '查看图片',
+      onClick: () => handleViewImages(record),
+    },
+    {
       icon: 'ant-design:edit-filled',
       tooltip: '编辑',
       onClick: () => handleEdit(record),
@@ -256,15 +279,21 @@ const handleEdit = (record: SnapSpace) => {
   openModal(true, { type: 'edit', record });
 };
 
+// 查看图片
+const handleViewImages = (record: SnapSpace) => {
+  openImageModal(true, { space_id: record.id, space_name: record.space_name });
+};
+
 // 删除
 const handleDelete = async (record: SnapSpace) => {
   try {
     await deleteSnapSpace(record.id);
     createMessage.success('删除成功');
     handleSuccess();
-  } catch (error) {
+  } catch (error: any) {
     console.error('删除失败', error);
-    createMessage.error('删除失败');
+    const errorMsg = error?.response?.data?.msg || error?.message || '删除失败';
+    createMessage.error(errorMsg);
   }
 };
 

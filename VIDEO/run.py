@@ -357,6 +357,28 @@ def create_app():
             auto_start_streaming()
         except Exception as e:
             print(f"❌ 自动启动推流设备失败: {str(e)}")
+    
+    # 启动抓拍空间自动清理任务（每天凌晨2点执行）
+    with app.app_context():
+        try:
+            from app.services.camera_service import scheduler
+            from app.services.snap_space_service import auto_cleanup_all_spaces
+            
+            if scheduler and not scheduler.running:
+                scheduler.start()
+            
+            # 每天凌晨2点执行自动清理
+            scheduler.add_job(
+                auto_cleanup_all_spaces,
+                'cron',
+                hour=2,
+                minute=0,
+                id='auto_cleanup_snap_spaces',
+                replace_existing=True
+            )
+            print('✅ 抓拍空间自动清理任务已启动（每天凌晨2点执行）')
+        except Exception as e:
+            print(f"❌ 启动抓拍空间自动清理任务失败: {str(e)}")
             import traceback
             traceback.print_exc()
         

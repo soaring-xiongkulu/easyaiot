@@ -517,3 +517,46 @@ export const cleanupDeviceStorage = (device_id: string) => {
   return commonApi('post', `${SNAP_PREFIX}/device/${device_id}/storage/cleanup`);
 };
 
+// ====================== 抓拍图片管理接口 ======================
+export interface SnapImage {
+  object_name: string;
+  filename: string;
+  size: number;
+  last_modified: string;
+  etag: string;
+  content_type: string;
+  url: string;
+}
+
+export interface SnapImageListResponse {
+  code: number;
+  msg: string;
+  data: SnapImage[];
+  total: number;
+}
+
+/**
+ * 获取抓拍空间图片列表
+ */
+export const getSnapImageList = (space_id: number, params: {
+  device_id?: string;
+  pageNo?: number;
+  pageSize?: number;
+}) => {
+  return commonApi('get', `${SNAP_PREFIX}/space/${space_id}/images`, params);
+};
+
+/**
+ * 批量删除抓拍图片
+ */
+export const deleteSnapImages = (space_id: number, object_names: string[]) => {
+  return commonApi('delete', `${SNAP_PREFIX}/space/${space_id}/images`, { object_names });
+};
+
+/**
+ * 清理过期的抓拍图片
+ */
+export const cleanupSnapImages = (space_id: number, days: number) => {
+  return commonApi('post', `${SNAP_PREFIX}/space/${space_id}/images/cleanup`, { days });
+};
+
