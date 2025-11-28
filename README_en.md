@@ -350,12 +350,6 @@ We offer various service options to help you gain an in-depth understanding of t
 <td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">¥200</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Online Remote Support within 30 Minutes</td>
 </tr>
-<tr style="background-color: #f8f9fa;">
-<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Model Training</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Train business scenario recognition models</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">¥1000+</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Customized Model Training</td>
-</tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Other Services</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Customized development for vertical industry solutions; tailored duration and functional services</td>
