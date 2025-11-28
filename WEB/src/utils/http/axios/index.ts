@@ -72,8 +72,17 @@ const transform: AxiosTransform = {
         createMessage.success(successMsg);
       }
 
-      if ((isNull(data.data) || isUnDef(data.data) || isEmpty(data.data)) ||
-        !(isNull(total) || isUnDef(total))) {
+      // 如果有 total 字段，说明是分页列表接口，返回包含 data 和 total 的对象
+      // 如果没有 total 字段，根据 data.data 是否为空决定返回整个对象还是只返回 data.data
+      if (!(isNull(total) || isUnDef(total))) {
+        // 分页列表接口：返回包含 data 和 total 的对象
+        return {
+          code: data.code,
+          data: data.data,
+          msg: data.msg,
+          total: total
+        };
+      } else if ((isNull(data.data) || isUnDef(data.data) || isEmpty(data.data))) {
         return data;
       } else {
         return data.data;

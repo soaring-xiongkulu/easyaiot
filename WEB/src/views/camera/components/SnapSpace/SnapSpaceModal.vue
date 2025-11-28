@@ -126,9 +126,20 @@ const handleSubmit = async () => {
         createMessage.error(response.msg || '创建失败');
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('提交失败', error);
-    createMessage.error('提交失败');
+    // 如果错误已经有消息（比如axios拦截器已经显示了），就不再显示"提交失败"
+    const errorMsg = error?.response?.data?.msg || error?.message || '';
+    // 如果是业务错误（400等），axios拦截器已经显示了错误消息，不需要再显示
+    const status = error?.response?.status;
+    if (status && status >= 400 && status < 500 && errorMsg) {
+      // 业务错误且已有错误消息，不重复显示
+      return;
+    }
+    // 其他错误（网络错误等）才显示"提交失败"
+    if (!errorMsg) {
+      createMessage.error('提交失败');
+    }
   } finally {
     setModalProps({ confirmLoading: false });
   }

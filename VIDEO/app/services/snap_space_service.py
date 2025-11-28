@@ -20,7 +20,12 @@ def get_minio_client():
     minio_endpoint = current_app.config.get('MINIO_ENDPOINT', 'localhost:9000')
     access_key = current_app.config.get('MINIO_ACCESS_KEY', 'minioadmin')
     secret_key = current_app.config.get('MINIO_SECRET_KEY', 'minioadmin')
-    secure = current_app.config.get('MINIO_SECURE', 'false').lower() == 'true'
+    secure_value = current_app.config.get('MINIO_SECURE', False)
+    # 处理 secure 可能是布尔值或字符串的情况
+    if isinstance(secure_value, bool):
+        secure = secure_value
+    else:
+        secure = str(secure_value).lower() == 'true'
     return Minio(minio_endpoint, access_key=access_key, secret_key=secret_key, secure=secure)
 
 
@@ -42,7 +47,8 @@ def create_snap_space(space_name, save_mode=0, save_time=0, description=None, de
         
         # 生成唯一编号
         space_code = f"SPACE_{uuid.uuid4().hex[:8].upper()}"
-        bucket_name = f"snap-space-{space_code.lower()}"
+        # MinIO bucket名称不能包含下划线，需要替换为连字符
+        bucket_name = f"snap-space-{space_code.lower().replace('_', '-')}"
         
         # 创建MinIO bucket
         minio_client = get_minio_client()

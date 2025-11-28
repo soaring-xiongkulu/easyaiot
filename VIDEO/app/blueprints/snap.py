@@ -79,10 +79,12 @@ def create_space():
     try:
         data = request.get_json()
         if not data:
+            logger.warning('创建抓拍空间失败: 请求数据为空')
             return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
         
         space_name = data.get('space_name', '').strip()
         if not space_name:
+            logger.warning('创建抓拍空间失败: 空间名称为空')
             return jsonify({'code': 400, 'msg': '空间名称不能为空'}), 400
         
         save_mode = data.get('save_mode', 0)
@@ -90,6 +92,7 @@ def create_space():
         description = data.get('description', '').strip() or None
         device_id = data.get('device_id', '').strip() or None
         
+        logger.info(f'创建抓拍空间: space_name={space_name}, save_mode={save_mode}, save_time={save_time}, device_id={device_id}')
         space = create_snap_space(space_name, save_mode, save_time, description, device_id)
         return jsonify({
             'code': 0,
@@ -97,8 +100,10 @@ def create_space():
             'data': space.to_dict()
         })
     except ValueError as e:
+        logger.warning(f'创建抓拍空间失败 (ValueError): {str(e)}')
         return jsonify({'code': 400, 'msg': str(e)}), 400
     except RuntimeError as e:
+        logger.error(f'创建抓拍空间失败 (RuntimeError): {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': str(e)}), 500
     except Exception as e:
         logger.error(f'创建抓拍空间失败: {str(e)}', exc_info=True)
