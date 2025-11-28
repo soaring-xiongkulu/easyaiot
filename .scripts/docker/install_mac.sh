@@ -63,8 +63,8 @@ echo "" >> "$LOG_FILE"
 MODULES=(
     ".scripts/docker"  # 基础服务（Nacos、PostgreSQL、Redis等）
     "DEVICE"           # Device服务（网关和微服务）
-    # "AI"               # AI服务
-    # "VIDEO"            # Video服务
+     "AI"               # AI服务
+     "VIDEO"            # Video服务
     "WEB"              # Web前端服务
 )
 
@@ -73,8 +73,8 @@ get_module_name() {
     case "$1" in
         ".scripts/docker") echo "基础服务" ;;
         "DEVICE") echo "Device服务" ;;
-        # "AI") echo "AI服务" ;;
-        # "VIDEO") echo "Video服务" ;;
+         "AI") echo "AI服务" ;;
+         "VIDEO") echo "Video服务" ;;
         "WEB") echo "Web前端服务" ;;
         *) echo "$1" ;;
     esac
