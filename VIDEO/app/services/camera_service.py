@@ -952,6 +952,10 @@ def update_camera(id: str, update_info: dict):
     # 确保设备有对应的抓拍空间和录像空间
     ensure_device_spaces(id)
 
+    # 保存旧的设备名称，用于后续同步更新空间名称
+    old_device_name = camera.name
+    device_name_changed = False
+
     # 过滤空值并更新字段
     for k, v in (item for item in update_info.items() if item[1] is not None):
         if hasattr(camera, k):
@@ -979,6 +983,14 @@ def update_camera(id: str, update_info: dict):
                     v = int(v) if v else None
                 except (ValueError, TypeError):
                     raise ValueError(f'端口值无效: {v}，必须是数字')
+            # 检查设备名称是否发生变化
+            elif k == 'name':
+                # 处理字符串类型的名称，去除首尾空格
+                if isinstance(v, str):
+                    v = v.strip()
+                # 检查名称是否真的发生了变化
+                if v != old_device_name:
+                    device_name_changed = True
             setattr(camera, k, v)
 
     # 处理码流变更
@@ -997,8 +1009,32 @@ def update_camera(id: str, update_info: dict):
         # 只有当IP地址确实发生变化时才尝试通过ONVIF更新
         if old_ip != new_ip:
             try:
+                # 保存更新前的设备名称，用于检查是否通过ONVIF更新了名称
+                name_before_ip_update = camera.name
                 _update_camera_ip(camera, new_ip)
-                # 如果IP更新成功，_update_camera_ip已经提交了数据库，直接返回
+                # 如果IP更新成功，_update_camera_ip已经提交了数据库
+                # 检查设备名称是否发生变化（可能是通过ONVIF更新的）
+                if device_name_changed or (camera.name and camera.name != name_before_ip_update):
+                    # 同步更新空间名称
+                    try:
+                        from app.services.snap_space_service import get_snap_space_by_device_id, update_snap_space
+                        from app.services.record_space_service import get_record_space_by_device_id, update_record_space
+                        
+                        # 更新抓拍空间名称
+                        snap_space = get_snap_space_by_device_id(id)
+                        if snap_space and camera.name:
+                            update_snap_space(snap_space.id, space_name=camera.name)
+                            logger.info(f'设备 {id} 的抓拍空间名称已同步更新为: {camera.name}')
+                        
+                        # 更新录像空间名称
+                        record_space = get_record_space_by_device_id(id)
+                        if record_space and camera.name:
+                            update_record_space(record_space.id, space_name=camera.name)
+                            logger.info(f'设备 {id} 的录像空间名称已同步更新为: {camera.name}')
+                    except Exception as e:
+                        # 空间名称更新失败不应该阻止设备信息更新，只记录警告
+                        logger.warning(f'同步更新设备 {id} 的空间名称失败: {str(e)}，但不影响设备信息更新')
+                
                 logger.info(f'设备 {id} IP地址已从 {old_ip} 更新为 {new_ip}')
                 return
             except Exception as e:
@@ -1011,6 +1047,26 @@ def update_camera(id: str, update_info: dict):
                 _monitor.update(camera.id, new_ip)
                 # 如果是RTMP设备，直接提交
                 if camera.source and camera.source.strip().lower().startswith('rtmp://'):
+                    # 如果设备名称也变化了，同步更新空间名称
+                    if device_name_changed and camera.name:
+                        try:
+                            from app.services.snap_space_service import get_snap_space_by_device_id, update_snap_space
+                            from app.services.record_space_service import get_record_space_by_device_id, update_record_space
+                            
+                            # 更新抓拍空间名称
+                            snap_space = get_snap_space_by_device_id(id)
+                            if snap_space:
+                                update_snap_space(snap_space.id, space_name=camera.name)
+                                logger.info(f'设备 {id} 的抓拍空间名称已同步更新为: {camera.name}')
+                            
+                            # 更新录像空间名称
+                            record_space = get_record_space_by_device_id(id)
+                            if record_space:
+                                update_record_space(record_space.id, space_name=camera.name)
+                                logger.info(f'设备 {id} 的录像空间名称已同步更新为: {camera.name}')
+                        except Exception as e:
+                            logger.warning(f'同步更新设备 {id} 的空间名称失败: {str(e)}，但不影响设备信息更新')
+                    
                     db.session.commit()
                     logger.info(f'设备 {id} IP地址已更新为 {new_ip}（RTMP设备，跳过ONVIF连接）')
                     return
@@ -1020,6 +1076,27 @@ def update_camera(id: str, update_info: dict):
         camera.manufacturer = 'EasyAIoT'
     if not camera.model or not camera.model.strip():
         camera.model = 'Camera-EasyAIoT'
+
+    # 如果设备名称发生变化，同步更新关联的抓拍空间和录像空间的名称
+    if device_name_changed and camera.name:
+        try:
+            from app.services.snap_space_service import get_snap_space_by_device_id, update_snap_space
+            from app.services.record_space_service import get_record_space_by_device_id, update_record_space
+            
+            # 更新抓拍空间名称
+            snap_space = get_snap_space_by_device_id(id)
+            if snap_space:
+                update_snap_space(snap_space.id, space_name=camera.name)
+                logger.info(f'设备 {id} 的抓拍空间名称已同步更新为: {camera.name}')
+            
+            # 更新录像空间名称
+            record_space = get_record_space_by_device_id(id)
+            if record_space:
+                update_record_space(record_space.id, space_name=camera.name)
+                logger.info(f'设备 {id} 的录像空间名称已同步更新为: {camera.name}')
+        except Exception as e:
+            # 空间名称更新失败不应该阻止设备信息更新，只记录警告
+            logger.warning(f'同步更新设备 {id} 的空间名称失败: {str(e)}，但不影响设备信息更新')
 
     try:
         db.session.commit()
