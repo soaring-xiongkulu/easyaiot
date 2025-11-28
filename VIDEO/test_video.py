@@ -15,7 +15,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent.absolute()
 VIDEO_DIR = SCRIPT_DIR / "video"
 VIDEO_FILE = VIDEO_DIR / "video1.mp4"
-RTMP_URL = "rtmp://localhost:1935/live/video1"
+RTMP_URL = "rtmp://localhost:1935/live/1764341204704370850"
 
 # 全局变量用于存储 ffmpeg 进程
 ffmpeg_process = None
@@ -65,7 +65,7 @@ def start_streaming(rtmp_url=None, video_file=None, loop=True, log_level="info")
     启动视频推流
     
     Args:
-        rtmp_url: RTMP 推流地址，默认为 rtmp://localhost:1935/live/video1
+        rtmp_url: RTMP 推流地址，默认为 rtmp://localhost:1935/live/1764341204704370850
         video_file: 视频文件路径，默认为 VIDEO/video/video1.mp4
         loop: 是否循环播放，默认为 True
         log_level: ffmpeg 日志级别，默认为 info

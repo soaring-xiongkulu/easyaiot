@@ -9,6 +9,7 @@ import zipfile
 import io
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
+from urllib.parse import quote
 from flask import current_app
 from minio import Minio
 from minio.error import S3Error
@@ -65,7 +66,7 @@ def list_snap_images(space_id: int, device_id: Optional[str] = None,
                     'last_modified': stat.last_modified.isoformat() if stat.last_modified else None,
                     'etag': stat.etag,
                     'content_type': stat.content_type,
-                    'url': f"{obj.object_name}"
+                    'url': f"/api/v1/buckets/{bucket_name}/objects/download?prefix={quote(obj.object_name, safe='')}"
                 })
             except Exception as e:
                 logger.warning(f"获取对象信息失败: {bucket_name}/{obj.object_name}, error={str(e)}")

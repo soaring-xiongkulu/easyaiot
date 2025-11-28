@@ -954,13 +954,129 @@ def on_publish_callback():
 
 @camera_bp.route('/callback/on_dvr', methods=['POST'])
 def on_dvr_callback():
+    """SRS录像生成回调接口
+    当SRS生成录像文件时，会调用此接口
+    需要将录像文件保存到设备的录像空间，并上传到MinIO
+    """
+    import os
+    from datetime import datetime
+    from app.services.record_space_service import (
+        get_record_space_by_device_id, 
+        create_record_space_for_device,
+        get_minio_client
+    )
+    from models import Device
+    
     try:
-        return jsonify({
-            'code': 0,
-            'msg': None
-        })
-    except:
-        pass
+        # 解析SRS回调数据
+        data = request.get_json()
+        if not data:
+            logger.warning("on_dvr回调：请求数据为空")
+            return jsonify({'code': 0, 'msg': None})
+        
+        # 从回调数据中提取信息
+        # SRS回调数据结构示例：
+        # {'action': 'on_dvr', 'app': 'live', 'stream': 'video1', 
+        #  'file': '/data/playbacks/live/video1/2025/11/28/1764351846365.flv', ...}
+        stream = data.get('stream', '')  # 流名称，直接是设备ID
+        file_path = data.get('file', '')  # 录像文件路径（已经是绝对路径）
+        
+        if not stream:
+            logger.warning("on_dvr回调：流名称为空")
+            return jsonify({'code': 0, 'msg': None})
+        
+        if not file_path:
+            logger.warning("on_dvr回调：文件路径为空")
+            return jsonify({'code': 0, 'msg': None})
+        
+        # stream字段直接就是设备ID（例如：'video1'）
+        device_id = stream
+        
+        # 检查设备是否存在
+        device = Device.query.get(device_id)
+        if not device:
+            logger.warning(f"on_dvr回调：设备不存在 device_id={device_id}, stream={stream}")
+            return jsonify({'code': 0, 'msg': None})
+        
+        # 获取或创建设备的录像空间
+        record_space = get_record_space_by_device_id(device_id)
+        if not record_space:
+            try:
+                logger.info(f"on_dvr回调：为设备 {device_id} 创建录像空间")
+                record_space = create_record_space_for_device(device_id, device.name)
+            except Exception as e:
+                logger.error(f"on_dvr回调：创建设备录像空间失败 device_id={device_id}, error={str(e)}")
+                return jsonify({'code': 0, 'msg': None})
+        
+        # file字段已经是绝对路径，直接使用
+        absolute_file_path = file_path
+        
+        # 检查文件是否存在
+        if not os.path.exists(absolute_file_path):
+            logger.warning(f"on_dvr回调：录像文件不存在 file_path={absolute_file_path}")
+            return jsonify({'code': 0, 'msg': None})
+        
+        # 获取文件的修改时间作为录像生成时间
+        file_mtime = os.path.getmtime(absolute_file_path)
+        record_time = datetime.fromtimestamp(file_mtime)
+        
+        # 按照录像生成时间创建目录：device_id/YYYY-MM-DD/
+        date_dir = record_time.strftime('%Y-%m-%d')
+        
+        # 获取文件名
+        filename = os.path.basename(absolute_file_path)
+        
+        # 根据文件扩展名确定content_type
+        file_ext = os.path.splitext(filename)[1].lower()
+        content_type_map = {
+            '.mp4': 'video/mp4',
+            '.flv': 'video/x-flv',
+            '.avi': 'video/x-msvideo',
+            '.mov': 'video/quicktime',
+            '.mkv': 'video/x-matroska',
+            '.wmv': 'video/x-ms-wmv',
+            '.m4v': 'video/x-m4v',
+            '.ts': 'video/mp2t'
+        }
+        content_type = content_type_map.get(file_ext, 'video/mp4')
+        
+        # 构建MinIO对象名称：device_id/YYYY-MM-DD/filename
+        object_name = f"{device_id}/{date_dir}/{filename}"
+        
+        # 上传到MinIO
+        minio_client = get_minio_client()
+        bucket_name = record_space.bucket_name
+        
+        # 确保bucket存在
+        if not minio_client.bucket_exists(bucket_name):
+            minio_client.make_bucket(bucket_name)
+            logger.info(f"on_dvr回调：创建MinIO bucket {bucket_name}")
+        
+        try:
+            # 上传文件到MinIO
+            minio_client.fput_object(
+                bucket_name,
+                object_name,
+                absolute_file_path,
+                content_type=content_type
+            )
+            logger.info(f"on_dvr回调：录像上传成功 device_id={device_id}, object_name={object_name}")
+            
+            # 可选：上传成功后删除本地文件（根据需求决定）
+            # os.remove(absolute_file_path)
+            
+        except S3Error as e:
+            logger.error(f"on_dvr回调：MinIO上传失败 device_id={device_id}, object_name={object_name}, error={str(e)}")
+            return jsonify({'code': 0, 'msg': None})
+        except Exception as e:
+            logger.error(f"on_dvr回调：上传录像失败 device_id={device_id}, error={str(e)}", exc_info=True)
+            return jsonify({'code': 0, 'msg': None})
+        
+        return jsonify({'code': 0, 'msg': None})
+        
+    except Exception as e:
+        logger.error(f"on_dvr回调处理失败: {str(e)}", exc_info=True)
+        return jsonify({'code': 0, 'msg': None})
 
 
 # ------------------------- 设备目录管理接口 -------------------------
