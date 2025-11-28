@@ -63,25 +63,11 @@ def create_record_space(space_name, save_mode=0, save_time=0, description=None, 
             minio_client.make_bucket(bucket_name)
             logger.info(f"创建MinIO bucket: {bucket_name}")
         
-        # 在 record-space bucket 下创建空间文件夹（实际上MinIO不需要显式创建文件夹，使用前缀即可）
-        # 这里我们只是验证空间文件夹是否已存在
-        space_folder = f"{space_code}/"
-        objects = list(minio_client.list_objects(bucket_name, prefix=space_folder, recursive=False))
-        if objects:
-            # 检查是否有实际文件（不是空文件夹）
-            has_files = False
-            for obj in objects:
-                if not obj.object_name.endswith('/'):  # 不是文件夹标记
-                    has_files = True
-                    break
-            if has_files:
-                raise ValueError(f"空间编号 '{space_code}' 已存在文件，不能重复创建")
-        
-        # 如果提供了设备ID，检查该设备在record-space仓库下是否已有文件夹
+        # 现在不再使用 space_code 作为文件夹层级，直接使用 device_id
+        # 如果提供了设备ID，检查该设备是否已有文件夹
         if device_id:
-            # 检查所有空间下是否存在该设备的文件夹（有实际文件）
-            device_folder = f"{space_code}/{device_id}/"
-            objects = list(minio_client.list_objects(bucket_name, prefix=device_folder, recursive=True))
+            device_folder = f"{device_id}/"
+            objects = list(minio_client.list_objects(bucket_name, prefix=device_folder, recursive=False))
             # 检查是否有实际文件（不是空文件夹）
             has_files = False
             for obj in objects:
@@ -89,7 +75,7 @@ def create_record_space(space_name, save_mode=0, save_time=0, description=None, 
                     has_files = True
                     break
             if has_files:
-                raise ValueError(f"设备 '{device_id}' 在空间 '{space_code}' 下已存在文件夹，不能重复创建")
+                raise ValueError(f"设备 '{device_id}' 已存在文件夹，不能重复创建")
         
         # 创建数据库记录
         record_space = RecordSpace(
@@ -104,20 +90,23 @@ def create_record_space(space_name, save_mode=0, save_time=0, description=None, 
         db.session.add(record_space)
         db.session.commit()
         
-        # 在MinIO中创建空间目录标记（空对象，以"/"结尾）
-        try:
-            minio_client.put_object(
-                bucket_name,
-                space_folder,
-                io.BytesIO(b''),
-                0
-            )
-            logger.info(f"创建MinIO监控录像空间目录: {bucket_name}/{space_folder}")
-        except S3Error as e:
-            # 如果创建目录标记失败，记录警告但不影响整体流程（因为MinIO使用前缀即可）
-            logger.warning(f"创建MinIO监控录像空间目录标记失败: {bucket_name}/{space_folder}, 错误: {str(e)}")
+        # 现在不再使用 space_code 作为文件夹层级，不需要创建目录标记
+        # 如果提供了设备ID，可以创建设备目录标记（可选）
+        if device_id:
+            try:
+                device_folder = f"{device_id}/"
+                minio_client.put_object(
+                    bucket_name,
+                    device_folder,
+                    io.BytesIO(b''),
+                    0
+                )
+                logger.info(f"创建MinIO设备目录: {bucket_name}/{device_folder}")
+            except S3Error as e:
+                # 如果创建目录标记失败，记录警告但不影响整体流程（因为MinIO使用前缀即可）
+                logger.warning(f"创建MinIO设备目录标记失败: {bucket_name}/{device_folder}, 错误: {str(e)}")
         
-        logger.info(f"监控录像空间创建成功: {space_name} ({space_code})，路径: {bucket_name}/{space_folder}，设备ID: {device_id}")
+        logger.info(f"监控录像空间创建成功: {space_name} ({space_code})，bucket: {bucket_name}，设备ID: {device_id}")
         return record_space
     except ValueError:
         db.session.rollback()
@@ -226,9 +215,9 @@ def check_space_has_videos(space_id):
             return False, 0
         
         # 统计该空间文件夹下的所有文件（排除文件夹标记）
-        space_prefix = f"{space_code}/"
+        # 现在路径是 device_id/filename，不再使用 space_code 前缀
         file_count = 0
-        objects = minio_client.list_objects(bucket_name, prefix=space_prefix, recursive=True)
+        objects = minio_client.list_objects(bucket_name, prefix="", recursive=True)
         for obj in objects:
             if not obj.object_name.endswith('/'):  # 不是文件夹标记
                 file_count += 1
@@ -275,15 +264,24 @@ def delete_record_space(space_id):
         space_code = record_space.space_code
         
         # 删除MinIO bucket中该空间文件夹下的所有对象
+        # 注意：现在路径是 device_id/filename，不再使用 space_code 前缀
+        # 如果空间关联了设备，只删除该设备的文件；否则删除所有文件
         try:
             minio_client = get_minio_client()
             if minio_client.bucket_exists(bucket_name):
-                # 列出该空间文件夹下的所有对象并删除
-                space_prefix = f"{space_code}/"
-                objects = minio_client.list_objects(bucket_name, prefix=space_prefix, recursive=True)
-                for obj in objects:
-                    minio_client.remove_object(bucket_name, obj.object_name)
-                logger.info(f"删除MinIO空间文件夹: {bucket_name}/{space_prefix}")
+                if record_space.device_id:
+                    # 只删除该设备的文件
+                    device_prefix = f"{record_space.device_id}/"
+                    objects = minio_client.list_objects(bucket_name, prefix=device_prefix, recursive=True)
+                    for obj in objects:
+                        minio_client.remove_object(bucket_name, obj.object_name)
+                    logger.info(f"删除MinIO设备文件夹: {bucket_name}/{device_prefix}")
+                else:
+                    # 空间没有关联设备，删除所有文件（这种情况应该很少见）
+                    objects = minio_client.list_objects(bucket_name, prefix="", recursive=True)
+                    for obj in objects:
+                        minio_client.remove_object(bucket_name, obj.object_name)
+                    logger.info(f"删除MinIO空间所有文件: {bucket_name}/")
         except S3Error as e:
             logger.warning(f"删除MinIO空间文件夹失败（可能不存在）: {str(e)}")
         
@@ -344,14 +342,14 @@ def create_camera_folder(space_id, device_id):
         bucket_name = record_space.bucket_name
         space_code = record_space.space_code
         
-        # 在bucket中创建以space_code/device_id命名的文件夹（实际上MinIO不需要显式创建文件夹，使用前缀即可）
+        # 在bucket中创建以device_id命名的文件夹（实际上MinIO不需要显式创建文件夹，使用前缀即可）
         # 这里我们只是验证bucket存在
         minio_client = get_minio_client()
         if not minio_client.bucket_exists(bucket_name):
             raise ValueError(f"监控录像空间的MinIO bucket不存在: {bucket_name}")
         
-        # 检查该设备在该空间下是否已有文件夹（有文件存在）
-        folder_path = f"{space_code}/{device_id}/"
+        # 检查该设备是否已有文件夹（有文件存在）
+        folder_path = f"{device_id}/"
         objects = list(minio_client.list_objects(bucket_name, prefix=folder_path, recursive=False))
         if objects:
             # 检查是否有实际文件（不是空文件夹）
@@ -361,9 +359,9 @@ def create_camera_folder(space_id, device_id):
                     has_files = True
                     break
             if has_files:
-                raise ValueError(f"设备 '{device_id}' 在空间 '{record_space.space_name}' 下已存在文件夹，不能重复创建")
+                raise ValueError(f"设备 '{device_id}' 已存在文件夹，不能重复创建")
         
-        logger.info(f"为设备 {device_id} 在空间 {record_space.space_name} 中创建文件夹: {folder_path}")
+        logger.info(f"为设备 {device_id} 创建文件夹: {folder_path}")
         
         return folder_path
     except ValueError:
@@ -391,34 +389,40 @@ def sync_spaces_to_minio():
         skipped_count = 0
         error_count = 0
         
+        # 现在不再使用 space_code 作为文件夹层级，直接使用 device_id
+        # 如果空间关联了设备，检查设备目录是否存在
         for space in spaces:
             try:
-                space_prefix = f"{space.space_code}/"
-                # 检查目录是否已存在（通过列出对象来判断）
-                # 使用迭代器只检查是否有至少一个对象，提高效率
-                objects_iter = minio_client.list_objects(bucket_name, prefix=space_prefix, recursive=False)
-                has_objects = next(objects_iter, None) is not None
-                
-                # 如果目录不存在（没有对象），创建一个空对象作为目录标记
-                # MinIO中目录实际上是通过以"/"结尾的对象名来表示的
-                if not has_objects:
-                    # 创建一个目录标记对象（空对象，以"/"结尾）
-                    try:
-                        minio_client.put_object(
-                            bucket_name,
-                            space_prefix,
-                            io.BytesIO(b''),
-                            0
-                        )
-                        created_count += 1
-                        logger.info(f"创建监控录像空间目录: {bucket_name}/{space_prefix} (空间: {space.space_name})")
-                    except S3Error as e:
-                        # 如果创建失败，记录错误但继续处理其他空间
-                        logger.warning(f"创建监控录像空间目录失败: {bucket_name}/{space_prefix}, 错误: {str(e)}")
-                        error_count += 1
+                if space.device_id:
+                    device_prefix = f"{space.device_id}/"
+                    # 检查目录是否已存在（通过列出对象来判断）
+                    # 使用迭代器只检查是否有至少一个对象，提高效率
+                    objects_iter = minio_client.list_objects(bucket_name, prefix=device_prefix, recursive=False)
+                    has_objects = next(objects_iter, None) is not None
+                    
+                    # 如果目录不存在（没有对象），创建一个空对象作为目录标记
+                    # MinIO中目录实际上是通过以"/"结尾的对象名来表示的
+                    if not has_objects:
+                        # 创建一个目录标记对象（空对象，以"/"结尾）
+                        try:
+                            minio_client.put_object(
+                                bucket_name,
+                                device_prefix,
+                                io.BytesIO(b''),
+                                0
+                            )
+                            created_count += 1
+                            logger.info(f"创建设备目录: {bucket_name}/{device_prefix} (空间: {space.space_name}, 设备: {space.device_id})")
+                        except S3Error as e:
+                            # 如果创建失败，记录错误但继续处理其他空间
+                            logger.warning(f"创建设备目录失败: {bucket_name}/{device_prefix}, 错误: {str(e)}")
+                            error_count += 1
+                    else:
+                        skipped_count += 1
+                        logger.debug(f"设备目录已存在，跳过: {bucket_name}/{device_prefix} (空间: {space.space_name})")
                 else:
                     skipped_count += 1
-                    logger.debug(f"监控录像空间目录已存在，跳过: {bucket_name}/{space_prefix} (空间: {space.space_name})")
+                    logger.debug(f"空间未关联设备，跳过: {space.space_name}")
             except Exception as e:
                 logger.error(f"同步监控录像空间 {space.space_name} ({space.space_code}) 失败: {str(e)}", exc_info=True)
                 error_count += 1

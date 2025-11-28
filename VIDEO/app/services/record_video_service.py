@@ -41,11 +41,11 @@ def list_record_videos(space_id: int, device_id: Optional[str] = None,
         if not minio_client.bucket_exists(bucket_name):
             return {'items': [], 'total': 0, 'page_no': page_no, 'page_size': page_size}
         
-        # 构建前缀：space_code/device_id/ 或 space_code/
+        # 构建前缀：device_id/ 或 空（列出所有设备）
         if device_id:
-            prefix = f"{space_code}/{device_id}/"
+            prefix = f"{device_id}/"
         else:
-            prefix = f"{space_code}/"
+            prefix = ""  # 列出所有设备目录
         
         # 获取所有对象
         videos = []
@@ -125,9 +125,12 @@ def delete_record_videos(space_id: int, object_names: List[str]) -> Dict:
         
         for object_name in object_names:
             try:
-                # 确保 object_name 包含 space_code 前缀
-                if not object_name.startswith(f"{space_code}/"):
-                    object_name = f"{space_code}/{object_name}"
+                # object_name 应该是 device_id/filename 格式，不需要 space_code 前缀
+                # 如果传入的是完整路径，直接使用；如果是文件名，需要加上 device_id
+                if '/' not in object_name:
+                    # 如果只是文件名，需要从 object_names 中提取 device_id（这里假设 object_names 是完整路径）
+                    # 实际上，前端应该传递完整路径 device_id/filename
+                    pass
                 minio_client.remove_object(bucket_name, object_name)
                 deleted_count += 1
                 logger.info(f"删除监控录像成功: {bucket_name}/{object_name}")
@@ -165,9 +168,8 @@ def get_record_video(space_id: int, object_name: str):
         if not minio_client.bucket_exists(bucket_name):
             raise ValueError(f"监控录像空间的MinIO bucket不存在: {bucket_name}")
         
-        # 确保 object_name 包含 space_code 前缀
-        if not object_name.startswith(f"{space_code}/"):
-            object_name = f"{space_code}/{object_name}"
+        # object_name 应该是 device_id/filename 格式，不需要 space_code 前缀
+        # 如果传入的是完整路径，直接使用
         
         try:
             stat = minio_client.stat_object(bucket_name, object_name)
@@ -227,10 +229,10 @@ def cleanup_old_videos_by_days(space_id: int, days: int) -> Dict:
         archived_count = 0
         error_count = 0
         
-        # 获取该空间文件夹下所有需要处理的录像
+        # 获取该空间文件夹下所有需要处理的录像（现在路径是 device_id/filename）
         objects_to_process = []
-        space_prefix = f"{space_code}/"
-        objects = minio_client.list_objects(bucket_name, prefix=space_prefix, recursive=True)
+        # 不再使用 space_code 前缀，直接列出所有对象
+        objects = minio_client.list_objects(bucket_name, prefix="", recursive=True)
         
         # 支持的视频格式
         video_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.m4v']
@@ -268,13 +270,13 @@ def cleanup_old_videos_by_days(space_id: int, days: int) -> Dict:
                     logger.error(f"删除录像失败: {bucket_name}/{obj_info['object_name']}, error={str(e)}")
         
         else:  # 归档存储：压缩后归档
-            # 按设备分组（路径格式：space_code/device_id/filename）
+            # 按设备分组（路径格式：device_id/filename）
             device_groups = {}
             for obj_info in objects_to_process:
-                # 路径格式：space_code/device_id/filename，需要提取 device_id
+                # 路径格式：device_id/filename，需要提取 device_id
                 parts = obj_info['object_name'].split('/')
-                if len(parts) >= 2:
-                    device_id = parts[1]  # space_code 是 parts[0], device_id 是 parts[1]
+                if len(parts) >= 1:
+                    device_id = parts[0]  # device_id 是 parts[0]
                 else:
                     device_id = 'unknown'
                 if device_id not in device_groups:
@@ -310,7 +312,7 @@ def cleanup_old_videos_by_days(space_id: int, days: int) -> Dict:
                     # 上传压缩包到归档bucket
                     if zip_buffer.tell() > 0:
                         zip_buffer.seek(0)
-                        archive_object_name = f"{space_code}/{device_id}/{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.zip"
+                        archive_object_name = f"{device_id}/{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.zip"
                         minio_client.put_object(
                             archive_bucket_name,
                             archive_object_name,

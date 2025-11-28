@@ -144,7 +144,7 @@ def extract_frame_from_rtsp(device, snap_space):
         # 生成文件名
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         unique_filename = f"{uuid.uuid4().hex[:8]}_{timestamp}.jpg"
-        device_folder = f"{space_code}/{device.id}/"
+        device_folder = f"{device.id}/"
         object_name = f"{device_folder}{unique_filename}"
         
         # 编码图片
