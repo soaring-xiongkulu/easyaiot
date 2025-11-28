@@ -176,7 +176,29 @@ def create_app():
                     """))
                     db.session.commit()
                     print("✅ device.directory_id 列添加成功")
-                else:
+                
+                # 检查 device 表的 auto_snap_enabled 列是否存在
+                result = db.session.execute(text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'device' 
+                        AND column_name = 'auto_snap_enabled'
+                    );
+                """))
+                auto_snap_enabled_exists = result.scalar()
+                
+                if not auto_snap_enabled_exists:
+                    print("⚠️  device.auto_snap_enabled 列不存在，正在添加...")
+                    # 添加 auto_snap_enabled 列，默认值为 false
+                    db.session.execute(text("""
+                        ALTER TABLE device 
+                        ADD COLUMN auto_snap_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+                    """))
+                    db.session.commit()
+                    print("✅ device.auto_snap_enabled 列添加成功")
+                
+                if directory_id_exists and auto_snap_enabled_exists:
                     print("✅ 数据库迁移检查完成，所有列已存在")
             except Exception as e:
                 print(f"⚠️  数据库迁移检查失败: {str(e)}")
@@ -326,6 +348,13 @@ def create_app():
                 print(f"🔴 全局注销成功: {service_name}@{app.registered_ip}:{port}")
             except Exception as e:
                 print(f"❌ 注销异常: {str(e)}")
+        
+        # 停止自动抽帧线程
+        try:
+            from app.services.auto_frame_extraction_service import stop_auto_frame_extraction
+            stop_auto_frame_extraction()
+        except Exception as e:
+            print(f"❌ 停止自动抽帧线程失败: {str(e)}")
 
     import atexit
     atexit.register(deregister_service)
@@ -396,6 +425,16 @@ def create_app():
             print("✅ 抓拍任务调度器初始化成功")
         except Exception as e:
             print(f"❌ 初始化抓拍任务调度器失败: {str(e)}")
+            import traceback
+            traceback.print_exc()
+        
+        # 启动自动抽帧线程（每分钟从所有在线摄像头的RTSP流中抽帧）
+        try:
+            from app.services.auto_frame_extraction_service import start_auto_frame_extraction
+            start_auto_frame_extraction(app)
+            print("✅ 自动抽帧线程启动成功（每分钟执行一次）")
+        except Exception as e:
+            print(f"❌ 启动自动抽帧线程失败: {str(e)}")
             import traceback
             traceback.print_exc()
 

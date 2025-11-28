@@ -48,6 +48,7 @@ class Device(db.Model):
     nvr_id = db.Column(db.Integer, db.ForeignKey('nvr.id', ondelete='CASCADE'), nullable=True)
     nvr_channel = db.Column(db.SmallInteger, nullable=False)
     enable_forward = db.Column(db.Boolean, nullable=True)
+    auto_snap_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否开启自动抓拍[默认不开启]')
     directory_id = db.Column(db.Integer, db.ForeignKey('device_directory.id', ondelete='SET NULL'), nullable=True, comment='所属目录ID')
     images = db.relationship('Image', backref='project', lazy=True, cascade='all, delete-orphan')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
