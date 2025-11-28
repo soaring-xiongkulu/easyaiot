@@ -403,9 +403,14 @@ def create_app():
             if scheduler and not scheduler.running:
                 scheduler.start()
             
+            # 创建包装函数，确保在应用上下文中执行
+            def cleanup_wrapper():
+                """包装函数，确保传入app参数"""
+                return auto_cleanup_all_spaces(app=app)
+            
             # 每天凌晨2点执行自动清理
             scheduler.add_job(
-                auto_cleanup_all_spaces,
+                cleanup_wrapper,
                 'cron',
                 hour=2,
                 minute=0,

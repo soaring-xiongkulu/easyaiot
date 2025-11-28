@@ -460,38 +460,53 @@ def sync_spaces_to_minio():
         raise RuntimeError(f"同步抓拍空间到Minio失败: {str(e)}")
 
 
-def auto_cleanup_all_spaces():
-    """自动清理所有抓拍空间的过期图片"""
-    try:
-        # 延迟导入，避免循环依赖
-        from app.services.snap_image_service import cleanup_old_images_by_days
-        
-        spaces = SnapSpace.query.filter(SnapSpace.save_time > 0).all()
-        total_processed = 0
-        total_deleted = 0
-        total_archived = 0
-        total_errors = 0
-        
-        for space in spaces:
-            try:
-                result = cleanup_old_images_by_days(space.id, space.save_time)
-                total_processed += result['processed_count']
-                total_deleted += result['deleted_count']
-                total_archived += result['archived_count']
-                total_errors += result['error_count']
-                logger.info(f"空间 {space.space_name} 清理完成: {result}")
-            except Exception as e:
-                logger.error(f"清理空间 {space.space_name} 失败: {str(e)}", exc_info=True)
-                total_errors += 1
-        
-        logger.info(f"所有抓拍空间自动清理完成: 处理={total_processed}, 删除={total_deleted}, 归档={total_archived}, 错误={total_errors}")
-        return {
-            'processed_count': total_processed,
-            'deleted_count': total_deleted,
-            'archived_count': total_archived,
-            'error_count': total_errors
-        }
-    except Exception as e:
-        logger.error(f"自动清理所有抓拍空间失败: {str(e)}", exc_info=True)
-        raise RuntimeError(f"自动清理所有抓拍空间失败: {str(e)}")
+def auto_cleanup_all_spaces(app=None):
+    """自动清理所有抓拍空间的过期图片
+    
+    Args:
+        app: Flask应用实例（可选），如果提供则使用该实例的应用上下文，否则尝试使用current_app
+    """
+    # 如果没有提供app参数，尝试使用current_app
+    if app is None:
+        try:
+            app = current_app._get_current_object()
+        except RuntimeError:
+            # 如果没有应用上下文，需要从外部传入app
+            logger.error("自动清理所有抓拍空间失败: 没有应用上下文，请传入app参数")
+            raise RuntimeError("自动清理所有抓拍空间失败: 没有应用上下文，请传入app参数")
+    
+    # 确保在应用上下文中执行
+    with app.app_context():
+        try:
+            # 延迟导入，避免循环依赖
+            from app.services.snap_image_service import cleanup_old_images_by_days
+            
+            spaces = SnapSpace.query.filter(SnapSpace.save_time > 0).all()
+            total_processed = 0
+            total_deleted = 0
+            total_archived = 0
+            total_errors = 0
+            
+            for space in spaces:
+                try:
+                    result = cleanup_old_images_by_days(space.id, space.save_time)
+                    total_processed += result['processed_count']
+                    total_deleted += result['deleted_count']
+                    total_archived += result['archived_count']
+                    total_errors += result['error_count']
+                    logger.info(f"空间 {space.space_name} 清理完成: {result}")
+                except Exception as e:
+                    logger.error(f"清理空间 {space.space_name} 失败: {str(e)}", exc_info=True)
+                    total_errors += 1
+            
+            logger.info(f"所有抓拍空间自动清理完成: 处理={total_processed}, 删除={total_deleted}, 归档={total_archived}, 错误={total_errors}")
+            return {
+                'processed_count': total_processed,
+                'deleted_count': total_deleted,
+                'archived_count': total_archived,
+                'error_count': total_errors
+            }
+        except Exception as e:
+            logger.error(f"自动清理所有抓拍空间失败: {str(e)}", exc_info=True)
+            raise RuntimeError(f"自动清理所有抓拍空间失败: {str(e)}")
 

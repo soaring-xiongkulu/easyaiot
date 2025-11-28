@@ -974,6 +974,9 @@ def on_dvr_callback():
             logger.warning("on_dvr回调：请求数据为空")
             return jsonify({'code': 0, 'msg': None})
         
+        # 记录完整的回调数据用于调试
+        logger.debug(f"on_dvr回调：收到回调数据 {data}")
+        
         # 从回调数据中提取信息
         # SRS回调数据结构示例：
         # {'action': 'on_dvr', 'app': 'live', 'stream': '1764341204704370850', 
@@ -983,15 +986,16 @@ def on_dvr_callback():
         file_path = data.get('file', '')  # 录像文件路径（已经是绝对路径）
         
         if not stream:
-            logger.warning("on_dvr回调：流名称为空（设备ID为空）")
+            logger.warning("on_dvr回调：流名称为空（设备ID为空），回调数据: %s", data)
             return jsonify({'code': 0, 'msg': None})
         
         if not file_path:
-            logger.warning("on_dvr回调：文件路径为空")
+            logger.warning("on_dvr回调：文件路径为空，回调数据: %s", data)
             return jsonify({'code': 0, 'msg': None})
         
         # stream字段的值就是设备ID（例如：'1764341204704370850'）
         device_id = stream
+        logger.info(f"on_dvr回调：开始处理录像 device_id={device_id}, file_path={file_path}")
         
         # 检查设备是否存在
         device = Device.query.get(device_id)
@@ -1005,22 +1009,63 @@ def on_dvr_callback():
             try:
                 logger.info(f"on_dvr回调：为设备 {device_id} 创建录像空间")
                 record_space = create_record_space_for_device(device_id, device.name)
+                logger.info(f"on_dvr回调：录像空间创建成功 space_id={record_space.id}, bucket_name={record_space.bucket_name}")
             except Exception as e:
-                logger.error(f"on_dvr回调：创建设备录像空间失败 device_id={device_id}, error={str(e)}")
+                logger.error(f"on_dvr回调：创建设备录像空间失败 device_id={device_id}, error={str(e)}", exc_info=True)
                 return jsonify({'code': 0, 'msg': None})
+        else:
+            logger.debug(f"on_dvr回调：使用现有录像空间 space_id={record_space.id}, bucket_name={record_space.bucket_name}")
         
-        # file字段已经是绝对路径，直接使用
-        absolute_file_path = file_path
+        # 处理文件路径：可能是绝对路径，也可能是相对路径（需要结合cwd）
+        cwd = data.get('cwd', '')
+        if os.path.isabs(file_path):
+            # 已经是绝对路径
+            absolute_file_path = file_path
+        elif cwd and file_path:
+            # 相对路径，需要结合cwd
+            absolute_file_path = os.path.join(cwd, file_path)
+        else:
+            # 如果既不是绝对路径，也没有cwd，尝试直接使用
+            absolute_file_path = file_path
         
-        # 检查文件是否存在
-        if not os.path.exists(absolute_file_path):
-            logger.warning(f"on_dvr回调：录像文件不存在 file_path={absolute_file_path}")
+        logger.debug(f"on_dvr回调：处理后的文件路径 absolute_file_path={absolute_file_path}, cwd={cwd}, original_file={file_path}")
+        
+        # 等待文件创建完成（SRS可能在回调时文件还在写入中）
+        max_retries = 10
+        retry_interval = 0.5  # 每次等待0.5秒
+        file_exists = False
+        file_size = 0
+        
+        for attempt in range(max_retries):
+            if os.path.exists(absolute_file_path):
+                # 检查文件大小是否稳定（文件可能还在写入中）
+                try:
+                    size1 = os.path.getsize(absolute_file_path)
+                    time.sleep(0.2)  # 等待0.2秒
+                    size2 = os.path.getsize(absolute_file_path)
+                    if size1 == size2 and size1 > 0:
+                        # 文件大小稳定且不为0，说明文件已创建完成
+                        file_exists = True
+                        file_size = size1
+                        logger.debug(f"on_dvr回调：文件已就绪 file_path={absolute_file_path}, size={file_size} bytes, attempts={attempt + 1}")
+                        break
+                except OSError as e:
+                    # 文件可能还在创建中，继续等待
+                    logger.debug(f"on_dvr回调：文件可能还在创建中 attempt={attempt + 1}, error={str(e)}")
+                    pass
+            
+            if attempt < max_retries - 1:
+                time.sleep(retry_interval)
+        
+        if not file_exists:
+            logger.warning(f"on_dvr回调：录像文件不存在或仍在写入中 file_path={absolute_file_path}, cwd={cwd}, original_file={file_path}, max_retries={max_retries}")
             return jsonify({'code': 0, 'msg': None})
         
         # 从文件路径中提取日期信息
         # 文件路径格式：/data/playbacks/live/{device_id}/{year}/{month}/{day}/{filename}
         # 例如：/data/playbacks/live/1764341204704370850/2025/11/28/1764352410083.flv
         path_parts = absolute_file_path.split(os.sep)
+        logger.debug(f"on_dvr回调：路径解析 path_parts={path_parts}")
         
         # 查找设备ID在路径中的位置，然后提取日期部分
         # 路径结构：['', 'data', 'playbacks', 'live', device_id, year, month, day, filename]
@@ -1032,24 +1077,38 @@ def on_dvr_callback():
                     live_index = i
                     break
             
-            if live_index == -1 or live_index + 4 >= len(path_parts):
-                # 如果路径格式不符合预期，使用文件修改时间作为备选方案
+            if live_index == -1:
+                logger.warning(f"on_dvr回调：路径中未找到'live'目录 file_path={absolute_file_path}")
+                # 使用文件修改时间作为备选方案
+                file_mtime = os.path.getmtime(absolute_file_path)
+                record_time = datetime.fromtimestamp(file_mtime)
+                date_dir = record_time.strftime('%Y/%m/%d')
+                logger.warning(f"on_dvr回调：无法从路径解析日期，使用文件修改时间 date_dir={date_dir}, file_path={absolute_file_path}")
+            elif live_index + 4 >= len(path_parts):
+                # 路径格式不符合预期，使用文件修改时间作为备选方案
+                logger.warning(f"on_dvr回调：路径格式不符合预期 live_index={live_index}, path_length={len(path_parts)}, file_path={absolute_file_path}")
                 file_mtime = os.path.getmtime(absolute_file_path)
                 record_time = datetime.fromtimestamp(file_mtime)
                 date_dir = record_time.strftime('%Y/%m/%d')
                 logger.warning(f"on_dvr回调：无法从路径解析日期，使用文件修改时间 date_dir={date_dir}, file_path={absolute_file_path}")
             else:
                 # 提取日期部分：year/month/day
+                # live_index + 1 = device_id
+                # live_index + 2 = year
+                # live_index + 3 = month
+                # live_index + 4 = day
                 year = path_parts[live_index + 2]
                 month = path_parts[live_index + 3]
                 day = path_parts[live_index + 4]
                 date_dir = f"{year}/{month}/{day}"
+                logger.debug(f"on_dvr回调：从路径解析日期成功 date_dir={date_dir}, year={year}, month={month}, day={day}")
         except (IndexError, ValueError) as e:
             # 如果解析失败，使用文件修改时间作为备选方案
+            logger.warning(f"on_dvr回调：从路径解析日期失败 error={str(e)}, file_path={absolute_file_path}", exc_info=True)
             file_mtime = os.path.getmtime(absolute_file_path)
             record_time = datetime.fromtimestamp(file_mtime)
             date_dir = record_time.strftime('%Y/%m/%d')
-            logger.warning(f"on_dvr回调：从路径解析日期失败，使用文件修改时间 date_dir={date_dir}, error={str(e)}, file_path={absolute_file_path}")
+            logger.warning(f"on_dvr回调：使用文件修改时间作为日期 date_dir={date_dir}")
         
         # 获取文件名
         filename = os.path.basename(absolute_file_path)
@@ -1070,6 +1129,7 @@ def on_dvr_callback():
         
         # 构建MinIO对象名称：device_id/YYYY/MM/DD/filename
         object_name = f"{device_id}/{date_dir}/{filename}"
+        logger.info(f"on_dvr回调：准备上传到MinIO bucket={record_space.bucket_name}, object_name={object_name}, file_size={file_size} bytes")
         
         # 上传到MinIO
         minio_client = get_minio_client()
@@ -1077,8 +1137,12 @@ def on_dvr_callback():
         
         # 确保bucket存在
         if not minio_client.bucket_exists(bucket_name):
-            minio_client.make_bucket(bucket_name)
-            logger.info(f"on_dvr回调：创建MinIO bucket {bucket_name}")
+            try:
+                minio_client.make_bucket(bucket_name)
+                logger.info(f"on_dvr回调：创建MinIO bucket {bucket_name}")
+            except Exception as e:
+                logger.error(f"on_dvr回调：创建MinIO bucket失败 bucket_name={bucket_name}, error={str(e)}", exc_info=True)
+                return jsonify({'code': 0, 'msg': None})
         
         try:
             # 上传文件到MinIO
@@ -1088,18 +1152,19 @@ def on_dvr_callback():
                 absolute_file_path,
                 content_type=content_type
             )
-            logger.info(f"on_dvr回调：录像上传成功 device_id={device_id}, object_name={object_name}")
+            logger.info(f"on_dvr回调：录像上传成功 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, file_size={file_size} bytes")
             
             # 可选：上传成功后删除本地文件（根据需求决定）
             # os.remove(absolute_file_path)
             
         except S3Error as e:
-            logger.error(f"on_dvr回调：MinIO上传失败 device_id={device_id}, object_name={object_name}, error={str(e)}")
+            logger.error(f"on_dvr回调：MinIO上传失败 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, error={str(e)}", exc_info=True)
             return jsonify({'code': 0, 'msg': None})
         except Exception as e:
-            logger.error(f"on_dvr回调：上传录像失败 device_id={device_id}, error={str(e)}", exc_info=True)
+            logger.error(f"on_dvr回调：上传录像失败 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, error={str(e)}", exc_info=True)
             return jsonify({'code': 0, 'msg': None})
         
+        logger.info(f"on_dvr回调：处理完成 device_id={device_id}, object_name={object_name}")
         return jsonify({'code': 0, 'msg': None})
         
     except Exception as e:
