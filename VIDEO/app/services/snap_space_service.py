@@ -11,7 +11,6 @@ from minio import Minio
 from minio.error import S3Error
 
 from models import db, SnapSpace, SnapTask
-from app.services.snap_image_service import cleanup_old_images_by_days
 
 logger = logging.getLogger(__name__)
 
@@ -265,6 +264,9 @@ def create_camera_folder(space_id, device_id):
 def auto_cleanup_all_spaces():
     """自动清理所有抓拍空间的过期图片"""
     try:
+        # 延迟导入，避免循环依赖
+        from app.services.snap_image_service import cleanup_old_images_by_days
+        
         spaces = SnapSpace.query.filter(SnapSpace.save_time > 0).all()
         total_processed = 0
         total_deleted = 0
