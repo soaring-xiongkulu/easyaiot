@@ -35,9 +35,9 @@ services:
     networks:
       - easyaiot-network
 
-  # PostgresSQL 初始化容器（设置权限，仅在需要时手动运行）
-  # 注意：正常情况下不需要运行此容器，权限已在安装脚本中设置
-  # 如需手动修复权限，运行: docker-compose run --rm PostgresSQL-init
+  # PostgresSQL 初始化容器（自动修复权限）
+  # 在 PostgreSQL 启动前自动运行，修复数据目录权限问题
+  # 解决 "could not open file global/pg_filenode.map: Permission denied" 错误
   PostgresSQL-init:
     image: postgres:16.10
     container_name: postgres-init
@@ -49,11 +49,9 @@ services:
       [
         "/bin/bash",
         "-c",
-        "mkdir -p /var/lib/postgresql/data /var/log/postgresql && chown -R 999:999 /var/lib/postgresql/data /var/log/postgresql && chmod -R 700 /var/lib/postgresql/data && chmod -R 755 /var/log/postgresql && echo '权限设置完成'",
+        "mkdir -p /var/lib/postgresql/data /var/log/postgresql && chown -R 999:999 /var/lib/postgresql/data /var/log/postgresql && chmod -R 700 /var/lib/postgresql/data && chmod -R 755 /var/log/postgresql && echo '[PostgreSQL Init] 权限设置完成'",
       ]
     restart: "no"
-    profiles:
-      - init
     networks:
       - easyaiot-network
 
@@ -77,11 +75,19 @@ services:
       - ../postgresql:/docker-entrypoint-initdb.d
       # 数据库初始化脚本（00- 前缀确保在 SQL 文件之前执行）
       - ./init-databases.sh:/docker-entrypoint-initdb.d/00-init-databases.sh:ro
+      # PostgreSQL entrypoint 脚本（自动修复权限）
+      - ./postgresql-entrypoint.sh:/postgresql-entrypoint.sh:ro
+    # 使用自定义 entrypoint，在启动前自动修复权限
+    # 容器以 root 启动，entrypoint 会修复权限后切换到 postgres 用户
+    # 这样可以自动解决 "could not open file global/pg_filenode.map: Permission denied" 错误
+    user: "0:0"
+    entrypoint: ["/bin/bash", "/postgresql-entrypoint.sh", "postgres"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - easyaiot-network
 
