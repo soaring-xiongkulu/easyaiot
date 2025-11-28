@@ -23,7 +23,11 @@ services:
       - "8848:8848"
       - "9848:9848"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8848/nacos/actuator/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:8848/nacos/actuator/health || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -41,7 +45,12 @@ services:
     volumes:
       - ./db_data/data:/var/lib/postgresql/data
       - ./db_data/log:/var/log/postgresql
-    command: ["/bin/bash", "-c", "mkdir -p /var/lib/postgresql/data /var/log/postgresql && chown -R 999:999 /var/lib/postgresql/data /var/log/postgresql && chmod -R 700 /var/lib/postgresql/data && chmod -R 755 /var/log/postgresql && echo '权限设置完成'"]
+    command:
+      [
+        "/bin/bash",
+        "-c",
+        "mkdir -p /var/lib/postgresql/data /var/log/postgresql && chown -R 999:999 /var/lib/postgresql/data /var/log/postgresql && chmod -R 700 /var/lib/postgresql/data && chmod -R 755 /var/log/postgresql && echo '权限设置完成'",
+      ]
     restart: "no"
     profiles:
       - init
@@ -60,26 +69,25 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=iot45722414822
       - POSTGRES_DB=postgres
-      # 注意：移除 PGDATA 环境变量，使用默认路径 /var/lib/postgresql/data
-      # PostgreSQL 的行为：如果数据目录已存在且不为空，不会重新初始化，会使用已有的密码配置
-      # 只有当数据目录为空时，才会使用 POSTGRES_PASSWORD 环境变量初始化
-      # 这样可以避免因为 PGDATA 子目录不存在而导致的重新初始化问题
+      - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - ./db_data/data:/var/lib/postgresql/data
       - ./db_data/log:/var/log/postgresql
+      # SQL 文件挂载（按字母顺序执行）
+      - ../postgresql:/docker-entrypoint-initdb.d
+      # 数据库初始化脚本（00- 前缀确保在 SQL 文件之前执行）
+      - ./init-databases.sh:/docker-entrypoint-initdb.d/00-init-databases.sh:ro
     healthcheck:
-      # 改进的健康检查：不仅检查pg_isready，还检查是否能实际连接数据库
-      test: ["CMD-SHELL", "pg_isready -U postgres && psql -U postgres -d postgres -c 'SELECT 1' > /dev/null 2>&1"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 5
     networks:
       - easyaiot-network
 
   # TDengine Server
   TDengine:
-    image: tdengine/tdengine:3.3.0.0
+    image: tdengine/tsdb:3.3.8.4
     container_name: tdengine-server
     privileged: true
     restart: always
@@ -92,14 +100,36 @@ services:
       - "6043-6049:6043-6049/tcp"
       - "6043-6049:6043-6049/udp"
     volumes:
-      - './taos_data/data:/var/lib/taos'
-      - './taos_data/log:/var/log/taos'
+      - "./taos_data/data:/var/lib/taos"
+      - "./taos_data/log:/var/log/taos"
+      - ./tdengine-entrypoint.sh:/tdengine-entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/tdengine-entrypoint.sh"]
     healthcheck:
       test: ["CMD-SHELL", "taos -h localhost -s 'select 1;' || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 30s
+    networks:
+      - easyaiot-network
+
+  # TDengine 初始化容器（在 TDengine 就绪后执行数据库和超级表初始化）
+  TDengine-init:
+    image: tdengine/tdengine:3.3.0.0
+    container_name: tdengine-init
+    depends_on:
+      TDengine:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+      - TDENGINE_HOST=tdengine-server
+      - TDENGINE_PORT=6030
+      - DB_NAME=iot_device
+    volumes:
+      - ./init-tdengine.sh:/init-tdengine.sh:ro
+      - ../tdengine:/init-sql:ro
+    command: ["/bin/bash", "/init-tdengine.sh"]
+    restart: "no"
     networks:
       - easyaiot-network
 
@@ -125,10 +155,14 @@ services:
       --tcp-backlog 511
       --maxmemory-policy allkeys-lru
     volumes:
-      - './redis_data/data:/data'
-      - './redis_data/logs:/logs'
+      - "./redis_data/data:/data"
+      - "./redis_data/logs:/logs"
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a basiclab@iot975248395 ping | grep PONG || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli -a basiclab@iot975248395 ping | grep PONG || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -171,7 +205,11 @@ services:
     volumes:
       - ./mq_data/data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -193,8 +231,8 @@ services:
       - MINIO_ROOT_PASSWORD=basiclab@iot975248395
     command: server /data --console-address ":9001"
     volumes:
-      - './minio_data/data:/data'
-      - './minio_data/config:/root/.minio'
+      - "./minio_data/data:/data"
+      - "./minio_data/config:/root/.minio"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -217,14 +255,15 @@ services:
     environment:
       - TZ=Asia/Shanghai
     volumes:
-      - './srs_data/conf:/usr/local/srs/conf'
-      - './srs_data/conf:/opt/srs/trunk/conf'
-      - './srs_data/data:/data'
-      - './srs_data/playbacks:/data/playbacks'
+      - "./srs_data/conf:/usr/local/srs/conf"
+      - "./srs_data/conf:/opt/srs/trunk/conf"
+      - "./srs_data/data:/data"
+      - "./srs_data/playbacks:/data/playbacks"
     command: ["./objs/srs", "-c", "conf/docker.conf"]
     working_dir: /usr/local/srs
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:1985/api/v1/versions || exit 1"]
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:1985/api/v1/versions || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -244,7 +283,7 @@ services:
       - NODE_OPTIONS=--max-old-space-size=512
     user: "1000:1000"
     volumes:
-      - './nodered_data/data:/data'
+      - "./nodered_data/data:/data"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:1880/ || exit 1"]
       interval: 30s
@@ -260,11 +299,11 @@ services:
     container_name: emqx-server
     restart: always
     ports:
-      - "1883:1883"      # MQTT
-      - "8883:8883"       # MQTT/SSL
-      - "8083:8083"       # WebSocket
-      - "8084:8084"       # WebSocket/SSL
-      - "18083:18083"     # Dashboard
+      - "1883:1883" # MQTT
+      - "8883:8883" # MQTT/SSL
+      - "8083:8083" # WebSocket
+      - "8084:8084" # WebSocket/SSL
+      - "18083:18083" # Dashboard
     environment:
       - TZ=Asia/Shanghai
       - EMQX_NAME=emqx
