@@ -478,6 +478,7 @@ def capture_image(task, device, space):
         import numpy as np
         import io
         import requests
+        import subprocess
         from datetime import datetime
         
         minio_client = get_minio_client()
@@ -487,18 +488,70 @@ def capture_image(task, device, space):
         
         # 根据抓拍类型选择不同的抓拍方式
         if task.capture_type == 0:  # 抽帧
-            # 从RTSP流中抽帧
-            if device.source and not device.source.strip().lower().startswith('rtmp://'):
-                cap = cv2.VideoCapture(device.source)
+            source = device.source.strip() if device.source else None
+            if not source:
+                logger.error(f"设备 {device.id} 源地址为空")
+                return False
+            
+            source_lower = source.lower()
+            
+            # 判断是否是RTMP流
+            if source_lower.startswith('rtmp://'):
+                # 使用FFmpeg从RTMP流中抽帧
+                try:
+                    # 使用FFmpeg从RTMP流中抽取一帧并输出为JPEG格式
+                    ffmpeg_cmd = [
+                        'ffmpeg',
+                        '-i', source,  # RTMP流地址
+                        '-vframes', '1',  # 只抽取1帧
+                        '-f', 'image2',  # 输出格式为图片
+                        '-vcodec', 'mjpeg',  # 使用MJPEG编码
+                        '-q:v', '2',  # 高质量
+                        'pipe:1'  # 输出到标准输出
+                    ]
+                    
+                    # 执行FFmpeg命令并捕获输出
+                    process = subprocess.Popen(
+                        ffmpeg_cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE
+                    )
+                    
+                    stdout, stderr = process.communicate(timeout=10)  # 10秒超时
+                    
+                    if process.returncode != 0:
+                        error_msg = stderr.decode('utf-8', errors='ignore') if stderr else '未知错误'
+                        logger.error(f"设备 {device.id} RTMP流抽帧失败: {error_msg}")
+                        return False
+                    
+                    if not stdout:
+                        logger.error(f"设备 {device.id} RTMP流抽帧失败: 未获取到图像数据")
+                        return False
+                    
+                    # 将FFmpeg输出的JPEG数据解码为OpenCV图像
+                    image_array = np.frombuffer(stdout, np.uint8)
+                    frame = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+                    
+                    if frame is None:
+                        logger.error(f"设备 {device.id} RTMP流抽帧失败: 图像解码失败")
+                        return False
+                    
+                    logger.info(f"设备 {device.id} 从RTMP流成功抽帧")
+                except subprocess.TimeoutExpired:
+                    logger.error(f"设备 {device.id} RTMP流抽帧超时")
+                    return False
+                except Exception as e:
+                    logger.error(f"设备 {device.id} RTMP流抽帧异常: {str(e)}", exc_info=True)
+                    return False
+            else:
+                # 从RTSP流中抽帧（使用OpenCV）
+                cap = cv2.VideoCapture(source)
                 ret, frame = cap.read()
                 cap.release()
                 
                 if not ret:
                     logger.error(f"设备 {device.id} RTSP流读取失败")
                     return False
-            else:
-                logger.error(f"设备 {device.id} 不支持RTSP抽帧")
-                return False
         else:  # 抓拍（使用ONVIF快照）
             snapshot_uri = get_snapshot_uri(device.ip, device.port, device.username, device.password)
             if not snapshot_uri:

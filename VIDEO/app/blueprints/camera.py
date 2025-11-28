@@ -816,30 +816,75 @@ def onvif_status(device_id):
         return jsonify({'code': 500, 'msg': f'获取ONVIF截图状态失败: {str(e)}'}), 500
 
 
-# ------------------------- RTSP单帧抓拍接口 -------------------------
+# ------------------------- RTSP/RTMP单帧抓拍接口 -------------------------
 @camera_bp.route('/device/<string:device_id>/snapshot', methods=['POST'])
 def capture_snapshot(device_id):
-    """从RTSP流抓取一帧图片并存入数据库"""
+    """从RTSP/RTMP流抓取一帧图片并存入数据库"""
     try:
         device = Device.query.get_or_404(device_id)
         
         if not device.source:
             return jsonify({'code': 400, 'msg': '设备源地址为空'}), 400
         
-        # 检查是否是RTMP流（不支持）
-        if device.source.strip().lower().startswith('rtmp://'):
-            return jsonify({'code': 400, 'msg': 'RTMP流不支持抓拍，请使用RTSP流'}), 400
-        
-        # 使用OpenCV从RTSP流抓取一帧
         import cv2
-        cap = cv2.VideoCapture(device.source)
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区，获取最新帧
+        import subprocess
+        import numpy as np
         
-        ret, frame = cap.read()
-        cap.release()
+        source = device.source.strip()
+        source_lower = source.lower()
         
-        if not ret:
-            return jsonify({'code': 500, 'msg': '无法从RTSP流读取帧'}), 500
+        # 判断是否是RTMP流
+        if source_lower.startswith('rtmp://'):
+            # 使用FFmpeg从RTMP流中抽帧
+            try:
+                # 使用FFmpeg从RTMP流中抽取一帧并输出为JPEG格式
+                ffmpeg_cmd = [
+                    'ffmpeg',
+                    '-i', source,  # RTMP流地址
+                    '-vframes', '1',  # 只抽取1帧
+                    '-f', 'image2',  # 输出格式为图片
+                    '-vcodec', 'mjpeg',  # 使用MJPEG编码
+                    '-q:v', '2',  # 高质量
+                    'pipe:1'  # 输出到标准输出
+                ]
+                
+                # 执行FFmpeg命令并捕获输出
+                process = subprocess.Popen(
+                    ffmpeg_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+                
+                stdout, stderr = process.communicate(timeout=10)  # 10秒超时
+                
+                if process.returncode != 0:
+                    error_msg = stderr.decode('utf-8', errors='ignore') if stderr else '未知错误'
+                    return jsonify({'code': 500, 'msg': f'RTMP流抽帧失败: {error_msg}'}), 500
+                
+                if not stdout:
+                    return jsonify({'code': 500, 'msg': 'RTMP流抽帧失败: 未获取到图像数据'}), 500
+                
+                # 将FFmpeg输出的JPEG数据解码为OpenCV图像
+                image_array = np.frombuffer(stdout, np.uint8)
+                frame = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+                
+                if frame is None:
+                    return jsonify({'code': 500, 'msg': 'RTMP流抽帧失败: 图像解码失败'}), 500
+            except subprocess.TimeoutExpired:
+                return jsonify({'code': 500, 'msg': 'RTMP流抽帧超时'}), 500
+            except Exception as e:
+                logger.error(f"RTMP流抽帧异常: {str(e)}", exc_info=True)
+                return jsonify({'code': 500, 'msg': f'RTMP流抽帧异常: {str(e)}'}), 500
+        else:
+            # 使用OpenCV从RTSP流抓取一帧
+            cap = cv2.VideoCapture(source)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区，获取最新帧
+            
+            ret, frame = cap.read()
+            cap.release()
+            
+            if not ret:
+                return jsonify({'code': 500, 'msg': '无法从RTSP流读取帧'}), 500
         
         # 上传到MinIO并存入数据库
         image_url = upload_screenshot_to_minio(device_id, frame, 'jpg')
@@ -1164,18 +1209,21 @@ def move_device_to_directory(device_id):
         device = Device.query.get_or_404(device_id)
         data = request.get_json()
         
-        directory_id = data.get('directory_id')
-        if directory_id is not None:
-            # 验证目录是否存在
-            if directory_id != 0:  # 0表示移动到根目录（无目录）
-                directory = DeviceDirectory.query.get(directory_id)
-                if not directory:
-                    return jsonify({'code': 400, 'msg': '目录不存在'}), 400
-                device.directory_id = directory_id
-            else:
-                device.directory_id = None
-        else:
+        # 检查参数是否存在（兼容处理：允许directory_id为None/null来解除关联）
+        if 'directory_id' not in data:
             return jsonify({'code': 400, 'msg': 'directory_id参数不能为空'}), 400
+        
+        directory_id = data.get('directory_id')
+        
+        # 如果directory_id为None、null或0，表示解除关联（移动到根目录）
+        if directory_id is None or directory_id == 0:
+            device.directory_id = None
+        else:
+            # 验证目录是否存在
+            directory = DeviceDirectory.query.get(directory_id)
+            if not directory:
+                return jsonify({'code': 400, 'msg': '目录不存在'}), 400
+            device.directory_id = directory_id
         
         db.session.commit()
         

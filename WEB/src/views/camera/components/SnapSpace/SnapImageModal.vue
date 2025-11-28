@@ -6,7 +6,7 @@
     :width="1500"
     :showOkBtn="false"
     :showCancelBtn="false"
-    :maskClosable="false"
+    :maskClosable="true"
   >
     <div class="snap-image-container">
       <!-- 图片列表 -->

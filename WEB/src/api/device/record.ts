@@ -128,3 +128,10 @@ export const cleanupRecordVideos = (space_id: number, days: number) => {
   return commonApi('post', `${RECORD_PREFIX}/space/${space_id}/videos/cleanup`, { days });
 };
 
+/**
+ * 同步所有监控录像空间到Minio
+ */
+export const syncRecordSpacesToMinio = () => {
+  return commonApi('post', `${RECORD_PREFIX}/space/sync/minio`);
+};
+

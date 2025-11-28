@@ -11,7 +11,7 @@ from io import BytesIO
 from models import db
 from app.services.record_space_service import (
     create_record_space, update_record_space, delete_record_space,
-    get_record_space, list_record_spaces, get_record_space_by_device_id
+    get_record_space, list_record_spaces, get_record_space_by_device_id, sync_spaces_to_minio
 )
 from app.services.record_video_service import (
     list_record_videos, delete_record_videos, get_record_video, cleanup_old_videos_by_days
@@ -142,6 +142,23 @@ def delete_space(space_id):
     except Exception as e:
         logger.error(f'删除监控录像空间失败: {str(e)}', exc_info=True)
         db.session.rollback()
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@record_bp.route('/space/sync/minio', methods=['POST'])
+def sync_spaces_minio():
+    """同步所有监控录像空间到Minio，创建不存在的目录"""
+    try:
+        result = sync_spaces_to_minio()
+        return jsonify({
+            'code': 0,
+            'msg': '同步完成',
+            'data': result
+        })
+    except RuntimeError as e:
+        return jsonify({'code': 500, 'msg': str(e)}), 500
+    except Exception as e:
+        logger.error(f'同步监控录像空间到Minio失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 

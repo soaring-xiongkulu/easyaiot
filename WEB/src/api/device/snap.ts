@@ -560,3 +560,10 @@ export const cleanupSnapImages = (space_id: number, days: number) => {
   return commonApi('post', `${SNAP_PREFIX}/space/${space_id}/images/cleanup`, { days });
 };
 
+/**
+ * 同步所有抓拍空间到Minio
+ */
+export const syncSnapSpacesToMinio = () => {
+  return commonApi('post', `${SNAP_PREFIX}/space/sync/minio`);
+};
+

@@ -1,5 +1,5 @@
 """
-自动抽帧服务 - 定时从所有在线摄像头的RTSP流中抽帧并保存到抓拍空间
+自动抽帧服务 - 定时从所有在线摄像头的RTSP/RTMP流中抽帧并保存到抓拍空间
 @author 翱翔的雄库鲁
 @email andywebjava@163.com
 @wechat EasyAIoT2025
@@ -8,6 +8,9 @@ import logging
 import threading
 import cv2
 import uuid
+import io
+import subprocess
+import numpy as np
 from datetime import datetime
 
 from models import Device
@@ -34,37 +37,109 @@ def extract_frame_from_rtsp(device, snap_space):
         bool: 是否成功
     """
     try:
-        # 检查设备是否有RTSP源地址
+        # 检查设备是否有源地址
         if not device.source:
             logger.warning(f"设备 {device.id} 没有源地址，跳过抽帧")
             return False
         
-        # 检查是否是RTMP流（不支持）
-        if device.source.strip().lower().startswith('rtmp://'):
-            logger.debug(f"设备 {device.id} 是RTMP流，跳过抽帧")
-            return False
+        source = device.source.strip()
+        source_lower = source.lower()
         
-        # 从RTSP流中抽帧
-        cap = cv2.VideoCapture(device.source)
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区，获取最新帧
-        
-        # 设置超时时间（5秒）
-        ret, frame = cap.read()
-        cap.release()
-        
-        if not ret or frame is None:
-            logger.error(f"设备 {device.id} RTSP流读取失败")
-            return False
+        # 判断是否是RTMP流
+        if source_lower.startswith('rtmp://'):
+            # 使用FFmpeg从RTMP流中抽帧
+            try:
+                logger.debug(f"设备 {device.id} 开始从RTMP流抽帧: {source}")
+                # 使用FFmpeg从RTMP流中抽取一帧并输出为JPEG格式
+                ffmpeg_cmd = [
+                    'ffmpeg',
+                    '-i', source,  # RTMP流地址
+                    '-vframes', '1',  # 只抽取1帧
+                    '-f', 'image2',  # 输出格式为图片
+                    '-vcodec', 'mjpeg',  # 使用MJPEG编码
+                    '-q:v', '2',  # 高质量
+                    'pipe:1'  # 输出到标准输出
+                ]
+                
+                # 执行FFmpeg命令并捕获输出
+                process = subprocess.Popen(
+                    ffmpeg_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+                
+                stdout, stderr = process.communicate(timeout=10)  # 10秒超时
+                
+                if process.returncode != 0:
+                    error_msg = stderr.decode('utf-8', errors='ignore') if stderr else '未知错误'
+                    logger.error(f"设备 {device.id} RTMP流抽帧失败: {error_msg}")
+                    return False
+                
+                if not stdout:
+                    logger.error(f"设备 {device.id} RTMP流抽帧失败: 未获取到图像数据")
+                    return False
+                
+                # 将FFmpeg输出的JPEG数据解码为OpenCV图像
+                image_array = np.frombuffer(stdout, np.uint8)
+                frame = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+                
+                if frame is None:
+                    logger.error(f"设备 {device.id} RTMP流抽帧失败: 图像解码失败")
+                    return False
+                
+                logger.debug(f"设备 {device.id} RTMP流读取成功，帧大小: {frame.shape if frame is not None else 'None'}")
+            except subprocess.TimeoutExpired:
+                logger.error(f"设备 {device.id} RTMP流抽帧超时")
+                return False
+            except Exception as e:
+                logger.error(f"设备 {device.id} RTMP流抽帧异常: {str(e)}", exc_info=True)
+                return False
+        else:
+            # 从RTSP流中抽帧（使用OpenCV）
+            logger.debug(f"设备 {device.id} 开始连接RTSP流: {source}")
+            cap = cv2.VideoCapture(source)
+            if not cap.isOpened():
+                logger.error(f"设备 {device.id} 无法打开RTSP流: {source}")
+                return False
+            
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区，获取最新帧
+            
+            # 设置超时时间（5秒）
+            ret, frame = cap.read()
+            cap.release()
+            
+            if not ret:
+                logger.error(f"设备 {device.id} RTSP流读取失败（ret=False），源地址: {source}")
+                return False
+            
+            if frame is None:
+                logger.error(f"设备 {device.id} RTSP流读取失败（frame=None），源地址: {source}")
+                return False
+            
+            logger.debug(f"设备 {device.id} RTSP流读取成功，帧大小: {frame.shape if frame is not None else 'None'}")
         
         # 获取MinIO客户端
-        minio_client = get_minio_client()
+        try:
+            minio_client = get_minio_client()
+            logger.debug(f"设备 {device.id} MinIO客户端获取成功")
+        except Exception as e:
+            logger.error(f"设备 {device.id} 获取MinIO客户端失败: {str(e)}", exc_info=True)
+            return False
+        
         bucket_name = snap_space.bucket_name
         space_code = snap_space.space_code
+        logger.debug(f"设备 {device.id} 使用bucket: {bucket_name}, 空间代码: {space_code}")
         
         # 确保bucket存在
-        if not minio_client.bucket_exists(bucket_name):
-            minio_client.make_bucket(bucket_name)
-            logger.info(f"创建MinIO bucket: {bucket_name}")
+        try:
+            if not minio_client.bucket_exists(bucket_name):
+                minio_client.make_bucket(bucket_name)
+                logger.info(f"创建MinIO bucket: {bucket_name}")
+            else:
+                logger.debug(f"设备 {device.id} MinIO bucket已存在: {bucket_name}")
+        except Exception as e:
+            logger.error(f"设备 {device.id} 检查/创建MinIO bucket失败: {str(e)}", exc_info=True)
+            return False
         
         # 生成文件名
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -73,6 +148,7 @@ def extract_frame_from_rtsp(device, snap_space):
         object_name = f"{device_folder}{unique_filename}"
         
         # 编码图片
+        logger.debug(f"设备 {device.id} 开始编码图片")
         success, encoded_image = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
         if not success:
             logger.error(f"设备 {device.id} 图片编码失败")
@@ -80,16 +156,21 @@ def extract_frame_from_rtsp(device, snap_space):
         
         # 上传到MinIO
         image_bytes = encoded_image.tobytes()
-        minio_client.put_object(
-            bucket_name,
-            object_name,
-            image_bytes,
-            length=len(image_bytes),
-            content_type='image/jpeg'
-        )
-        
-        logger.info(f"设备 {device.id} 抽帧成功，已保存到: {bucket_name}/{object_name}")
-        return True
+        logger.debug(f"设备 {device.id} 图片编码成功，大小: {len(image_bytes)} 字节，准备上传到: {bucket_name}/{object_name}")
+        try:
+            minio_client.put_object(
+                bucket_name,
+                object_name,
+                io.BytesIO(image_bytes),
+                length=len(image_bytes),
+                content_type='image/jpeg'
+            )
+            logger.info(f"设备 {device.id} 抽帧成功，已保存到: {bucket_name}/{object_name}")
+            return True
+        except Exception as minio_error:
+            logger.error(f"设备 {device.id} MinIO上传失败: {str(minio_error)}", exc_info=True)
+            logger.error(f"设备 {device.id} MinIO上传失败详情 - bucket: {bucket_name}, object: {object_name}, 大小: {len(image_bytes)}")
+            return False
         
     except Exception as e:
         logger.error(f"设备 {device.id} 抽帧失败: {str(e)}", exc_info=True)
@@ -201,10 +282,14 @@ def process_online_cameras(app):
                             continue
                     
                     # 从RTSP流抽帧并保存
-                    if extract_frame_from_rtsp(device, snap_space):
+                    logger.info(f"开始为设备 {device.id} ({device.name}) 抽帧，源地址: {device.source}")
+                    result = extract_frame_from_rtsp(device, snap_space)
+                    if result:
                         success_count += 1
+                        logger.info(f"设备 {device.id} ({device.name}) 抽帧成功")
                     else:
-                        # 抽帧失败，检查设备状态
+                        # 抽帧失败，检查设备状态（extract_frame_from_rtsp内部已记录详细错误）
+                        logger.warning(f"设备 {device.id} ({device.name}) 抽帧失败，检查设备状态")
                         check_and_update_device_status(device)
                         
                 except Exception as e:

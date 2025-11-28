@@ -11,6 +11,12 @@
               <div class="p-2 bg-white">
                 <div class="list-header">
                   <span class="list-title">录像空间列表</span>
+                  <a-button type="primary" @click="handleSyncMinio" :loading="syncing">
+                    <template #icon>
+                      <SyncOutlined />
+                    </template>
+                    同步Minio数据仓
+                  </a-button>
                 </div>
                 <Spin :spinning="loading">
                   <List
@@ -73,11 +79,12 @@
 
 <script lang="ts" setup>
 import {computed, onMounted, onUnmounted, ref} from 'vue';
-import {Empty, List, Spin} from 'ant-design-vue';
+import {Empty, List, Spin, Button as AButton} from 'ant-design-vue';
+import {SyncOutlined} from '@ant-design/icons-vue';
 import {BasicForm, useForm} from '@/components/Form';
 import {useModal} from '@/components/Modal';
 import {useMessage} from '@/hooks/web/useMessage';
-import {deleteRecordSpace, getRecordSpaceList, getRecordVideoList, type RecordSpace} from '@/api/device/record';
+import {deleteRecordSpace, getRecordSpaceList, getRecordVideoList, syncRecordSpacesToMinio, type RecordSpace} from '@/api/device/record';
 import RecordVideoModal from './RecordVideoModal.vue';
 import recordSpaceIcon from '@/assets/images/video/snap-space-icon.png';
 
@@ -90,6 +97,7 @@ const [registerVideoModal, {openModal: openVideoModal}] = useModal();
 
 const spaceList = ref<RecordSpace[]>([]);
 const loading = ref(false);
+const syncing = ref(false);
 const ezd_popover_hidden = ref("ezd-popover-hidden");
 const currentItem = ref<RecordSpace | null>(null);
 const position = ref({x: 0, y: 0});
@@ -214,6 +222,25 @@ const handleDelete = async (record: RecordSpace) => {
 // 刷新
 const handleSuccess = () => {
   loadSpaceList();
+};
+
+// 同步Minio数据仓
+const handleSyncMinio = async () => {
+  syncing.value = true;
+  try {
+    // 响应拦截器已经处理了错误情况，如果能到达这里说明请求成功
+    // 响应拦截器会返回 data.data，所以 response 就是后端返回的 data 字段内容
+    const data = await syncRecordSpacesToMinio();
+    createMessage.success(
+      `同步完成！总计: ${data.total_spaces}，创建: ${data.created_count}，跳过: ${data.skipped_count}，错误: ${data.error_count}`
+    );
+  } catch (error: any) {
+    console.error('同步Minio失败', error);
+    const errorMsg = error?.response?.data?.msg || error?.message || '同步失败';
+    createMessage.error(errorMsg);
+  } finally {
+    syncing.value = false;
+  }
 };
 
 // 右键菜单相关

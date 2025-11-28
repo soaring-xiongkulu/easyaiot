@@ -108,8 +108,7 @@ import {
   getDirectoryDevices,
   getDeviceList,
   getStreamStatus,
-  startStreamForwarding,
-  stopStreamForwarding,
+  moveDeviceToDirectory,
   type DeviceDirectory,
   type DeviceInfo,
   type StreamStatusResponse,
@@ -163,6 +162,21 @@ const filteredDirectoryTree = computed(() => {
   return filterTree(directoryTree.value);
 });
 
+// 收集所有目录ID（递归）
+const collectDirectoryIds = (nodes: DeviceDirectory[]): Set<number> => {
+  const ids = new Set<number>();
+  const traverse = (dirs: DeviceDirectory[]) => {
+    dirs.forEach(dir => {
+      ids.add(dir.id);
+      if (dir.children && dir.children.length > 0) {
+        traverse(dir.children);
+      }
+    });
+  };
+  traverse(nodes);
+  return ids;
+};
+
 // 加载目录列表
 const loadDirectoryList = async () => {
   try {
@@ -170,11 +184,32 @@ const loadDirectoryList = async () => {
     const data = response.code !== undefined ? response.data : response;
     
     if (data && Array.isArray(data)) {
+      // 保存当前的展开状态
+      const currentExpandedKeys = new Set(expandedKeys.value);
+      const isInitialLoad = directoryTree.value.length === 0;
+      
       directoryTree.value = data;
-      // 默认只展开一级目录（不自动展开）
-      expandedKeys.value = new Set();
+      
+      if (isInitialLoad) {
+        // 首次加载时，默认不展开
+        expandedKeys.value = new Set();
+      } else {
+        // 非首次加载时，保留当前展开状态，但清理掉已经不存在的目录的展开状态
+        const validIds = collectDirectoryIds(data);
+        const newExpandedKeys = new Set<number>();
+        currentExpandedKeys.forEach(id => {
+          if (validIds.has(id)) {
+            newExpandedKeys.add(id);
+          }
+        });
+        expandedKeys.value = newExpandedKeys;
+      }
     } else {
       directoryTree.value = [];
+      // 如果数据为空，清空展开状态
+      if (directoryTree.value.length === 0) {
+        expandedKeys.value = new Set();
+      }
     }
   } catch (error) {
     console.error('加载目录列表失败', error);
@@ -353,7 +388,7 @@ const getDeviceColumns = () => {
     {
       title: '操作',
       dataIndex: 'action',
-      width: 200,
+      width: 100,
       fixed: 'right',
     },
   ];
@@ -544,8 +579,6 @@ const checkAllDevicesStreamStatus = async (devices: DeviceInfo[]) => {
 
 // 获取表格操作按钮
 const getTableActions = (record: DeviceInfo) => {
-  const currentStatus = (deviceStreamStatuses.value && deviceStreamStatuses.value[record.id]) || 'unknown';
-  
   const actions = [
     {
       icon: 'octicon:play-16',
@@ -553,96 +586,16 @@ const getTableActions = (record: DeviceInfo) => {
       onClick: () => handlePlay(record)
     },
     {
-      icon: 'ant-design:eye-filled',
-      tooltip: '详情',
-      onClick: () => handleView(record)
-    },
-    {
-      icon: 'ant-design:edit-filled',
-      tooltip: '编辑',
-      onClick: () => handleEdit(record)
+      icon: 'ant-design:disconnect-outlined',
+      tooltip: '解除关联目录',
+      popConfirm: {
+        title: '确定解除此设备与目录的关联？',
+        confirm: () => handleUnbindDirectory(record)
+      }
     },
   ];
 
-  // 根据流状态添加不同的操作按钮
-  if (currentStatus === 'running') {
-    actions.splice(1, 0, {
-      icon: 'ant-design:pause-circle-outlined',
-      tooltip: '停止RTSP转发',
-      onClick: () => handleDisableRtsp(record)
-    });
-  } else {
-    actions.splice(1, 0, {
-      icon: 'ant-design:swap-outline',
-      tooltip: '启用RTSP转发',
-      onClick: () => handleEnableRtsp(record)
-    });
-  }
-
-  actions.push({
-    icon: 'material-symbols:delete-outline-rounded',
-    tooltip: '删除',
-    popConfirm: {
-      title: '确定删除此设备？',
-      confirm: () => handleDelete(record)
-    }
-  });
-
   return actions;
-};
-
-// 启用RTSP转发
-const handleEnableRtsp = async (record: DeviceInfo) => {
-  try {
-    if (!deviceStreamStatuses.value) {
-      deviceStreamStatuses.value = {};
-    }
-    createMessage.loading({content: '正在启动RTSP转发...', key: 'rtsp'});
-
-    const response = await startStreamForwarding(record.id);
-    if (response.code === 0) {
-      createMessage.success({content: 'RTSP转发已启动', key: 'rtsp'});
-      deviceStreamStatuses.value[record.id] = 'running';
-      reloadDeviceTable();
-    } else {
-      createMessage.error({content: `启动失败: ${response.data?.msg || '未知错误'}`, key: 'rtsp'});
-      deviceStreamStatuses.value[record.id] = 'error';
-    }
-  } catch (error) {
-    console.error('启动RTSP转发失败', error);
-    createMessage.error({content: '启动RTSP转发失败', key: 'rtsp'});
-    if (!deviceStreamStatuses.value) {
-      deviceStreamStatuses.value = {};
-    }
-    deviceStreamStatuses.value[record.id] = 'error';
-  }
-};
-
-// 停止RTSP转发
-const handleDisableRtsp = async (record: DeviceInfo) => {
-  try {
-    if (!deviceStreamStatuses.value) {
-      deviceStreamStatuses.value = {};
-    }
-    createMessage.loading({content: '正在停止RTSP转发...', key: 'rtsp'});
-
-    const response = await stopStreamForwarding(record.id);
-    if (response.code === 0) {
-      createMessage.success({content: 'RTSP转发已停止', key: 'rtsp'});
-      deviceStreamStatuses.value[record.id] = 'stopped';
-      reloadDeviceTable();
-    } else {
-      createMessage.error({content: `停止失败: ${response.data?.msg || '未知错误'}`, key: 'rtsp'});
-      deviceStreamStatuses.value[record.id] = 'error';
-    }
-  } catch (error) {
-    console.error('停止RTSP转发失败', error);
-    createMessage.error({content: '停止RTSP转发失败', key: 'rtsp'});
-    if (!deviceStreamStatuses.value) {
-      deviceStreamStatuses.value = {};
-    }
-    deviceStreamStatuses.value[record.id] = 'error';
-  }
 };
 
 // 播放
@@ -650,19 +603,22 @@ const handlePlay = (record: DeviceInfo) => {
   emit('play', record);
 };
 
-// 查看
-const handleView = (record: DeviceInfo) => {
-  emit('view', record);
-};
-
-// 编辑
-const handleEdit = (record: DeviceInfo) => {
-  emit('edit', record);
-};
-
-// 删除
-const handleDelete = async (record: DeviceInfo) => {
-  emit('delete', record);
+// 解除关联目录
+const handleUnbindDirectory = async (record: DeviceInfo) => {
+  try {
+    createMessage.loading({ content: '正在解除关联...', key: 'unbind' });
+    const response = await moveDeviceToDirectory(record.id, null);
+    const result = response.code !== undefined ? response : { code: 0, msg: '解除关联成功' };
+    if (result.code === 0) {
+      createMessage.success({ content: '解除关联成功', key: 'unbind' });
+      reloadDeviceTable();
+    } else {
+      createMessage.error({ content: result.msg || '解除关联失败', key: 'unbind' });
+    }
+  } catch (error) {
+    console.error('解除关联失败', error);
+    createMessage.error({ content: '解除关联失败', key: 'unbind' });
+  }
 };
 
 // 复制功能

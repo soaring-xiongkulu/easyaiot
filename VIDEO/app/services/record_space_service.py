@@ -4,6 +4,7 @@
 @email andywebjava@163.com
 @wechat EasyAIoT2025
 """
+import io
 import logging
 import uuid
 from flask import current_app
@@ -102,6 +103,19 @@ def create_record_space(space_name, save_mode=0, save_time=0, description=None, 
         )
         db.session.add(record_space)
         db.session.commit()
+        
+        # 在MinIO中创建空间目录标记（空对象，以"/"结尾）
+        try:
+            minio_client.put_object(
+                bucket_name,
+                space_folder,
+                io.BytesIO(b''),
+                0
+            )
+            logger.info(f"创建MinIO监控录像空间目录: {bucket_name}/{space_folder}")
+        except S3Error as e:
+            # 如果创建目录标记失败，记录警告但不影响整体流程（因为MinIO使用前缀即可）
+            logger.warning(f"创建MinIO监控录像空间目录标记失败: {bucket_name}/{space_folder}, 错误: {str(e)}")
         
         logger.info(f"监控录像空间创建成功: {space_name} ({space_code})，路径: {bucket_name}/{space_folder}，设备ID: {device_id}")
         return record_space
@@ -357,4 +371,67 @@ def create_camera_folder(space_id, device_id):
     except Exception as e:
         logger.error(f"创建摄像头文件夹失败: {str(e)}", exc_info=True)
         raise RuntimeError(f"创建摄像头文件夹失败: {str(e)}")
+
+
+def sync_spaces_to_minio():
+    """同步所有监控录像空间到Minio，创建不存在的目录"""
+    try:
+        minio_client = get_minio_client()
+        bucket_name = "record-space"
+        
+        # 确保bucket存在
+        if not minio_client.bucket_exists(bucket_name):
+            minio_client.make_bucket(bucket_name)
+            logger.info(f"创建MinIO bucket: {bucket_name}")
+        
+        # 获取所有监控录像空间
+        spaces = RecordSpace.query.all()
+        total_spaces = len(spaces)
+        created_count = 0
+        skipped_count = 0
+        error_count = 0
+        
+        for space in spaces:
+            try:
+                space_prefix = f"{space.space_code}/"
+                # 检查目录是否已存在（通过列出对象来判断）
+                # 使用迭代器只检查是否有至少一个对象，提高效率
+                objects_iter = minio_client.list_objects(bucket_name, prefix=space_prefix, recursive=False)
+                has_objects = next(objects_iter, None) is not None
+                
+                # 如果目录不存在（没有对象），创建一个空对象作为目录标记
+                # MinIO中目录实际上是通过以"/"结尾的对象名来表示的
+                if not has_objects:
+                    # 创建一个目录标记对象（空对象，以"/"结尾）
+                    try:
+                        minio_client.put_object(
+                            bucket_name,
+                            space_prefix,
+                            io.BytesIO(b''),
+                            0
+                        )
+                        created_count += 1
+                        logger.info(f"创建监控录像空间目录: {bucket_name}/{space_prefix} (空间: {space.space_name})")
+                    except S3Error as e:
+                        # 如果创建失败，记录错误但继续处理其他空间
+                        logger.warning(f"创建监控录像空间目录失败: {bucket_name}/{space_prefix}, 错误: {str(e)}")
+                        error_count += 1
+                else:
+                    skipped_count += 1
+                    logger.debug(f"监控录像空间目录已存在，跳过: {bucket_name}/{space_prefix} (空间: {space.space_name})")
+            except Exception as e:
+                logger.error(f"同步监控录像空间 {space.space_name} ({space.space_code}) 失败: {str(e)}", exc_info=True)
+                error_count += 1
+        
+        result = {
+            'total_spaces': total_spaces,
+            'created_count': created_count,
+            'skipped_count': skipped_count,
+            'error_count': error_count
+        }
+        logger.info(f"监控录像空间同步Minio完成: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"同步监控录像空间到Minio失败: {str(e)}", exc_info=True)
+        raise RuntimeError(f"同步监控录像空间到Minio失败: {str(e)}")
 

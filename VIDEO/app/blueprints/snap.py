@@ -10,7 +10,7 @@ from flask import Blueprint, request, jsonify
 from models import db, DetectionRegion
 from app.services.snap_space_service import (
     create_snap_space, update_snap_space, delete_snap_space,
-    get_snap_space, list_snap_spaces, get_snap_space_by_device_id
+    get_snap_space, list_snap_spaces, get_snap_space_by_device_id, sync_spaces_to_minio
 )
 from app.services.snap_task_service import (
     create_snap_task, update_snap_task, delete_snap_task,
@@ -154,6 +154,23 @@ def delete_space(space_id):
     except Exception as e:
         logger.error(f'删除抓拍空间失败: {str(e)}', exc_info=True)
         db.session.rollback()
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@snap_bp.route('/space/sync/minio', methods=['POST'])
+def sync_spaces_minio():
+    """同步所有抓拍空间到Minio，创建不存在的目录"""
+    try:
+        result = sync_spaces_to_minio()
+        return jsonify({
+            'code': 0,
+            'msg': '同步完成',
+            'data': result
+        })
+    except RuntimeError as e:
+        return jsonify({'code': 500, 'msg': str(e)}), 500
+    except Exception as e:
+        logger.error(f'同步抓拍空间到Minio失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
