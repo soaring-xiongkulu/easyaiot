@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict CpHUfHOvmLLyxqj9FZNs23URE0YoH0ObjNWMPtvnkSaZN0UCq4kH5EmxCDFq3Sj
+\restrict k88Kj3l92Z5fxPjrzFejWOwz4JNiTHf0VeLTgzfncbJ4fF4Wu4geZdRPnODzQ6x
 
 -- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
 -- Dumped by pg_dump version 16.10 (Ubuntu 16.10-0ubuntu0.24.04.1)
@@ -362,7 +362,8 @@ CREATE TABLE public.device (
     enable_forward boolean,
     directory_id integer,
     created_at timestamp without time zone,
-    updated_at timestamp without time zone
+    updated_at timestamp without time zone,
+    auto_snap_enabled boolean DEFAULT false NOT NULL
 );
 
 
@@ -373,6 +374,13 @@ ALTER TABLE public.device OWNER TO postgres;
 --
 
 COMMENT ON COLUMN public.device.directory_id IS '所属目录ID';
+
+
+--
+-- Name: COLUMN device.auto_snap_enabled; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.device.auto_snap_enabled IS '是否开启自动抓拍[默认不开启]';
 
 
 --
@@ -702,6 +710,97 @@ ALTER SEQUENCE public.playback_id_seq OWNED BY public.playback.id;
 
 
 --
+-- Name: record_space; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.record_space (
+    id integer NOT NULL,
+    space_name character varying(255) NOT NULL,
+    space_code character varying(255) NOT NULL,
+    bucket_name character varying(255) NOT NULL,
+    save_mode smallint NOT NULL,
+    save_time integer NOT NULL,
+    description character varying(500),
+    device_id character varying(100),
+    created_at timestamp without time zone,
+    updated_at timestamp without time zone
+);
+
+
+ALTER TABLE public.record_space OWNER TO postgres;
+
+--
+-- Name: COLUMN record_space.space_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.record_space.space_name IS '空间名称';
+
+
+--
+-- Name: COLUMN record_space.space_code; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.record_space.space_code IS '空间编号（唯一标识）';
+
+
+--
+-- Name: COLUMN record_space.bucket_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.record_space.bucket_name IS 'MinIO bucket名称';
+
+
+--
+-- Name: COLUMN record_space.save_mode; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.record_space.save_mode IS '文件保存模式[0:标准存储,1:归档存储]';
+
+
+--
+-- Name: COLUMN record_space.save_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.record_space.save_time IS '文件保存时间[0:永久保存,>=7(单位:天)]';
+
+
+--
+-- Name: COLUMN record_space.description; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.record_space.description IS '空间描述';
+
+
+--
+-- Name: COLUMN record_space.device_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.record_space.device_id IS '关联的设备ID（一对一关系）';
+
+
+--
+-- Name: record_space_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.record_space_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.record_space_id_seq OWNER TO postgres;
+
+--
+-- Name: record_space_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.record_space_id_seq OWNED BY public.record_space.id;
+
+
+--
 -- Name: region_model_service; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -844,6 +943,7 @@ CREATE TABLE public.snap_space (
     save_mode smallint NOT NULL,
     save_time integer NOT NULL,
     description character varying(500),
+    device_id character varying(100),
     created_at timestamp without time zone,
     updated_at timestamp without time zone
 );
@@ -891,6 +991,13 @@ COMMENT ON COLUMN public.snap_space.save_time IS '文件保存时间[0:永久保
 --
 
 COMMENT ON COLUMN public.snap_space.description IS '空间描述';
+
+
+--
+-- Name: COLUMN snap_space.device_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.snap_space.device_id IS '关联的设备ID（一对一关系）';
 
 
 --
@@ -1239,6 +1346,13 @@ ALTER TABLE ONLY public.playback ALTER COLUMN id SET DEFAULT nextval('public.pla
 
 
 --
+-- Name: record_space id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.record_space ALTER COLUMN id SET DEFAULT nextval('public.record_space_id_seq'::regclass);
+
+
+--
 -- Name: region_model_service id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1287,7 +1401,11 @@ COPY public.detection_region (id, task_id, region_name, region_type, points, ima
 -- Data for Name: device; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.device (id, name, source, rtmp_stream, http_stream, stream, ip, port, username, password, mac, manufacturer, model, firmware_version, serial_number, hardware_id, support_move, support_zoom, nvr_id, nvr_channel, enable_forward, directory_id, created_at, updated_at) FROM stdin;
+COPY public.device (id, name, source, rtmp_stream, http_stream, stream, ip, port, username, password, mac, manufacturer, model, firmware_version, serial_number, hardware_id, support_move, support_zoom, nvr_id, nvr_channel, enable_forward, directory_id, created_at, updated_at, auto_snap_enabled) FROM stdin;
+1764341221624781420	教室102	rtmp://localhost:1935/live/1764341221624781420	rtmp://localhost:1935/live/1764341221624781420	http://localhost:8080/live/1764341221624781420.flv	0	localhost	554	554	Zmg1451571@		EasyAIoT	Camera-EasyAIoT				f	f	\N	0	\N	6	2025-11-28 14:47:01.626613	2025-11-28 15:47:51.041247	f
+1764340342947424339	食堂设备	rtmp://localhost:1935/live/1764340342947424339	rtmp://localhost:1935/live/1764340342947424339	http://localhost:8080/live/1764340342947424339.flv	0	localhost	554	554	Zmg1451571@		EasyAIoT	Camera-EasyAIoT				f	f	\N	0	\N	\N	2025-11-28 14:32:22.95178	2025-11-28 15:52:34.233585	f
+1764341204704370850	大门设备	rtmp://localhost:1935/live/1764341204704370850	rtmp://localhost:1935/live/1764341204704370850	http://localhost:8080/live/1764341204704370850.flv	0	localhost	554	554	Zmg1451571@		EasyAIoT	Camera-EasyAIoT				f	f	\N	0	\N	\N	2025-11-28 14:46:44.705985	2025-11-28 16:05:00.610583	t
+1764341213886942524	教室101	rtmp://localhost:1935/live/1764341213886942524	rtmp://localhost:1935/live/1764341213886942524	http://localhost:8080/live/1764341213886942524.flv	0	localhost	554				EasyAIoT	Camera-EasyAIoT				f	f	\N	0	\N	6	2025-11-28 14:46:53.888645	2025-11-28 15:05:46.011409	f
 \.
 
 
@@ -1296,6 +1414,12 @@ COPY public.device (id, name, source, rtmp_stream, http_stream, stream, ip, port
 --
 
 COPY public.device_directory (id, name, parent_id, description, sort_order, created_at, updated_at) FROM stdin;
+1	新希望小学	\N	新希望小学	0	2025-11-28 14:53:47.349435	2025-11-28 15:03:47.175503
+2	马玲高中	\N	马玲高中	0	2025-11-28 14:54:03.590275	2025-11-28 15:03:54.771093
+4	大门设备	1	大门设备	0	2025-11-28 15:04:46.930872	2025-11-28 15:04:46.930874
+5	教室设备	1	教室设备	0	2025-11-28 15:05:00.535135	2025-11-28 15:05:00.535137
+6	教学楼一层	5	教学楼一层	0	2025-11-28 15:05:28.23955	2025-11-28 15:05:28.239552
+7	教学楼二层	5	教学楼二层	0	2025-11-28 15:05:38.256038	2025-11-28 15:05:38.25604
 \.
 
 
@@ -1328,6 +1452,41 @@ COPY public.nvr (id, ip, username, password, name, model) FROM stdin;
 --
 
 COPY public.playback (id, file_path, event_time, device_id, device_name, duration, thumbnail_path, file_size, created_at, updated_at) FROM stdin;
+1	1764341204704370850/2025/11/28/1764354964856.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764354964856.jpg	8377195	2025-11-28 18:36:38.652911	2025-11-28 18:36:38.652913
+2	1764341204704370850/2025/11/28/1764354998110.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764354998110.jpg	8958314	2025-11-28 18:37:11.819525	2025-11-28 18:37:11.819527
+3	1764341204704370850/2025/11/28/1764355031309.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355031309.jpg	8908048	2025-11-28 18:37:44.94748	2025-11-28 18:37:44.947482
+4	1764341204704370850/2025/11/28/1764355064513.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355064513.jpg	8885338	2025-11-28 18:38:18.07276	2025-11-28 18:38:18.072762
+5	1764341204704370850/2025/11/28/1764355097716.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355097716.jpg	8881110	2025-11-28 18:38:51.296947	2025-11-28 18:38:51.296949
+6	1764341204704370850/2025/11/28/1764355164128.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355164128.jpg	8870346	2025-11-28 18:39:57.762358	2025-11-28 18:39:57.76236
+7	1764341204704370850/2025/11/28/1764355197336.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355197336.jpg	8869808	2025-11-28 18:40:30.927653	2025-11-28 18:40:30.927655
+8	1764341204704370850/2025/11/28/1764355230533.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355230533.jpg	8864133	2025-11-28 18:41:04.098392	2025-11-28 18:41:04.098395
+9	1764341204704370850/2025/11/28/1764355263742.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355263742.jpg	8867718	2025-11-28 18:41:37.355336	2025-11-28 18:41:37.355338
+10	1764341204704370850/2025/11/28/1764355296947.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355296947.jpg	8865312	2025-11-28 18:42:10.578685	2025-11-28 18:42:10.578688
+11	1764341204704370850/2025/11/28/1764355330148.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355330148.jpg	8862995	2025-11-28 18:42:43.837968	2025-11-28 18:42:43.83797
+12	1764341204704370850/2025/11/28/1764355363357.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355363357.jpg	8864370	2025-11-28 18:43:17.011457	2025-11-28 18:43:17.011459
+13	1764341204704370850/2025/11/28/1764355396561.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355396561.jpg	8861529	2025-11-28 18:43:50.248462	2025-11-28 18:43:50.248465
+14	1764341204704370850/2025/11/28/1764355496176.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355496176.jpg	8863777	2025-11-28 18:45:29.792746	2025-11-28 18:45:29.792749
+15	1764341204704370850/2025/11/28/1764355529379.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355529379.jpg	8860658	2025-11-28 18:46:02.980162	2025-11-28 18:46:02.980165
+16	1764341204704370850/2025/11/28/1764355562578.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355562578.jpg	8862856	2025-11-28 18:46:36.294583	2025-11-28 18:46:36.294585
+17	1764341204704370850/2025/11/28/1764355595794.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355595794.jpg	8861000	2025-11-28 18:47:09.345284	2025-11-28 18:47:09.345286
+18	1764341204704370850/2025/11/28/1764355628987.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355628987.jpg	8858479	2025-11-28 18:47:42.646621	2025-11-28 18:47:42.646623
+19	1764341204704370850/2025/11/28/1764355662198.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355662198.jpg	8858104	2025-11-28 18:48:15.877241	2025-11-28 18:48:15.877244
+20	1764341204704370850/2025/11/28/1764355695400.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355695400.jpg	8860286	2025-11-28 18:48:48.98946	2025-11-28 18:48:48.989462
+21	1764341204704370850/2025/11/28/1764355728610.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355728610.jpg	8859710	2025-11-28 18:49:22.166563	2025-11-28 18:49:22.166565
+22	1764341204704370850/2025/11/28/1764355761809.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	33	1764341204704370850/2025/11/28/1764355761809.jpg	8856730	2025-11-28 18:49:55.444512	2025-11-28 18:49:55.444514
+23	1764341204704370850/2025/11/28/1764355795016.flv	2025-11-28 00:00:00+08	1764341204704370850	大门设备	14	1764341204704370850/2025/11/28/1764355795016.jpg	4147652	2025-11-28 18:50:09.877229	2025-11-28 18:50:09.877231
+\.
+
+
+--
+-- Data for Name: record_space; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.record_space (id, space_name, space_code, bucket_name, save_mode, save_time, description, device_id, created_at, updated_at) FROM stdin;
+1	教室102	RECORD_E34D7323	record-space	0	0	设备 1764341221624781420 的自动创建监控录像空间	1764341221624781420	2025-11-28 15:32:55.421852	2025-11-28 15:32:55.421855
+2	教室101	RECORD_A718FED6	record-space	0	0	设备 1764341213886942524 的自动创建监控录像空间	1764341213886942524	2025-11-28 15:32:55.434034	2025-11-28 15:32:55.434035
+4	食堂设备	RECORD_D442AA20	record-space	0	0	设备 1764340342947424339 的自动创建监控录像空间	1764340342947424339	2025-11-28 15:32:55.45335	2025-11-28 15:52:34.23884
+3	大门设备	RECORD_9977C98A	record-space	0	0	设备 1764341204704370850 的自动创建监控录像空间	1764341204704370850	2025-11-28 15:32:55.443836	2025-11-28 15:52:41.821362
 \.
 
 
@@ -1343,7 +1502,11 @@ COPY public.region_model_service (id, region_id, service_name, service_url, serv
 -- Data for Name: snap_space; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.snap_space (id, space_name, space_code, bucket_name, save_mode, save_time, description, created_at, updated_at) FROM stdin;
+COPY public.snap_space (id, space_name, space_code, bucket_name, save_mode, save_time, description, device_id, created_at, updated_at) FROM stdin;
+3	教室101	SPACE_780FFEA5	snap-space	0	0	设备 1764341213886942524 的自动创建抓拍空间	1764341213886942524	2025-11-28 14:46:53.899214	2025-11-28 14:46:53.899215
+4	教室102	SPACE_058CA8B6	snap-space	0	0	设备 1764341221624781420 的自动创建抓拍空间	1764341221624781420	2025-11-28 14:47:01.644924	2025-11-28 14:47:01.644926
+1	食堂设备	SPACE_E593A3AE	snap-space	0	0	设备 1764340342947424339 的自动创建抓拍空间	1764340342947424339	2025-11-28 14:32:22.972691	2025-11-28 15:52:34.234758
+2	大门设备	SPACE_E8384A8F	snap-space	0	0	设备 1764341204704370850 的自动创建抓拍空间	1764341204704370850	2025-11-28 14:46:44.72674	2025-11-28 15:52:41.809909
 \.
 
 
@@ -1380,7 +1543,7 @@ SELECT pg_catalog.setval('public.detection_region_id_seq', 1, false);
 -- Name: device_directory_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.device_directory_id_seq', 1, false);
+SELECT pg_catalog.setval('public.device_directory_id_seq', 7, true);
 
 
 --
@@ -1408,7 +1571,14 @@ SELECT pg_catalog.setval('public.nvr_id_seq', 1, false);
 -- Name: playback_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.playback_id_seq', 1, false);
+SELECT pg_catalog.setval('public.playback_id_seq', 23, true);
+
+
+--
+-- Name: record_space_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.record_space_id_seq', 4, true);
 
 
 --
@@ -1422,7 +1592,7 @@ SELECT pg_catalog.setval('public.region_model_service_id_seq', 1, false);
 -- Name: snap_space_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.snap_space_id_seq', 1, false);
+SELECT pg_catalog.setval('public.snap_space_id_seq', 4, true);
 
 
 --
@@ -1513,11 +1683,43 @@ ALTER TABLE ONLY public.playback
 
 
 --
+-- Name: record_space record_space_device_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.record_space
+    ADD CONSTRAINT record_space_device_id_key UNIQUE (device_id);
+
+
+--
+-- Name: record_space record_space_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.record_space
+    ADD CONSTRAINT record_space_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: record_space record_space_space_code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.record_space
+    ADD CONSTRAINT record_space_space_code_key UNIQUE (space_code);
+
+
+--
 -- Name: region_model_service region_model_service_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.region_model_service
     ADD CONSTRAINT region_model_service_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: snap_space snap_space_device_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.snap_space
+    ADD CONSTRAINT snap_space_device_id_key UNIQUE (device_id);
 
 
 --
@@ -1617,11 +1819,27 @@ ALTER TABLE ONLY public.image
 
 
 --
+-- Name: record_space record_space_device_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.record_space
+    ADD CONSTRAINT record_space_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.device(id) ON DELETE SET NULL;
+
+
+--
 -- Name: region_model_service region_model_service_region_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.region_model_service
     ADD CONSTRAINT region_model_service_region_id_fkey FOREIGN KEY (region_id) REFERENCES public.detection_region(id) ON DELETE CASCADE;
+
+
+--
+-- Name: snap_space snap_space_device_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.snap_space
+    ADD CONSTRAINT snap_space_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.device(id) ON DELETE SET NULL;
 
 
 --
@@ -1644,5 +1862,5 @@ ALTER TABLE ONLY public.snap_task
 -- PostgreSQL database dump complete
 --
 
-\unrestrict CpHUfHOvmLLyxqj9FZNs23URE0YoH0ObjNWMPtvnkSaZN0UCq4kH5EmxCDFq3Sj
+\unrestrict k88Kj3l92Z5fxPjrzFejWOwz4JNiTHf0VeLTgzfncbJ4fF4Wu4geZdRPnODzQ6x
 
