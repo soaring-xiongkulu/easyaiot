@@ -65,7 +65,7 @@ def list_snap_images(space_id: int, device_id: Optional[str] = None,
                     'last_modified': stat.last_modified.isoformat() if stat.last_modified else None,
                     'etag': stat.etag,
                     'content_type': stat.content_type,
-                    'url': f"/video/snap/space/{space_id}/image/{obj.object_name}"
+                    'url': f"{obj.object_name}"
                 })
             except Exception as e:
                 logger.warning(f"获取对象信息失败: {bucket_name}/{obj.object_name}, error={str(e)}")
