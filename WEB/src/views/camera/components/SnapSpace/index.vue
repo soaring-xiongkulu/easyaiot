@@ -9,67 +9,54 @@
                 <BasicForm @register="registerForm" @reset="handleSubmit"/>
               </div>
               <div class="p-2 bg-white">
-                <a-spin :spinning="loading">
-                  <a-list
+                <div class="list-header">
+                  <span class="list-title">抓拍空间列表</span>
+                </div>
+                <Spin :spinning="loading">
+                  <List
                     :grid="{ gutter: 8, xs: 10, sm: 10, md: 10, lg: 10, xl: 10, xxl: 10}"
                     :data-source="spaceList"
                     :pagination="paginationProp"
                   >
-                    <template #header>
-                      <div
-                        style="display: flex;align-items: center;justify-content: space-between;flex-direction: row;">
-                        <span
-                          style="padding-left: 30px;font-size: 16px;font-weight: 500;line-height: 24px;">抓拍空间列表</span>
-                        <div class="space-x-2">
-                          <a-button type="primary" @click="handleCreate" preIcon="ant-design:plus-outlined">
-                            新建抓拍空间
-                          </a-button>
-                          <a-button type="default" @click="handleClickSwap" preIcon="ant-design:swap-outlined">
-                            切换视图
-                          </a-button>
-                        </div>
-                      </div>
-                    </template>
                     <template #renderItem="{ item }">
-                      <a-list-item class="device-item">
-                        <div class="project-icon-item">
-                          <a href="javascript:void(0)" @click="handleView(item)">
+                      <ListItem class="device-item">
+                        <div 
+                          class="project-icon-item"
+                          @contextmenu.prevent="handleRightClick($event, item)"
+                        >
+                          <a href="javascript:void(0)" @click="handleViewImages(item)">
                             <img
                               class="project-icon-item_img"
                               :src="snapSpaceIcon">
                             <div class="project-icon-item_name">{{ item.space_name }}</div>
                           </a>
-                          <div class="project-icon-item_more" @click.stop="handleProjectItem($event, item)">…
-                          </div>
                         </div>
-                      </a-list-item>
+                      </ListItem>
                     </template>
                     <template #empty>
-                      <a-empty description="暂无抓拍空间" />
+                      <Empty description="暂无抓拍空间"/>
                     </template>
-                  </a-list>
-                </a-spin>
+                  </List>
+                </Spin>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div style="position: absolute; top: 0px; left: 0px; width: 100%;">
-      <div>
-        <div
-          :class="`ezd-popover project-popover ezd-popover-placement-rightTop ${ezd_popover_hidden}`"
-          :style="`z-index: 1; width: 140px; padding: 0px; margin-left: 24px; left: ${position.x - 96}px; top: ${position.y - 175}px; transform-origin: -4px 0px;`"
-          @click.stop="handleMoreItem">
+    <div>
+      <div
+        :class="`ezd-popover project-popover ezd-popover-placement-rightTop ${ezd_popover_hidden}`"
+        :style="`z-index: 9999; width: 140px; padding: 0px; position: fixed; left: ${position.x}px; top: ${position.y}px; transform-origin: -4px 0px;`"
+        @click.stop="handleMoreItem">
           <div class="ezd-popover-content">
             <div class="ezd-popover-arrow"><span class="ezd-popover-arrow-content"></span></div>
             <div class="ezd-popover-inner" role="tooltip" style="padding: 0px;">
               <div class="ezd-popover-inner-content" style="color: rgb(38, 38, 38);">
                 <div>
-                  <div class="project-operator-item" @click="handleViewDetail">查看详情</div>
+                  <div class="project-operator-item" @click="handleViewDetail">查看图片</div>
                   <div>
                     <div class="project-operator-item" @click="handleEditDetail">编辑信息</div>
-                    <div class="project-operator-item" @click="handleViewImagesDetail">查看图片</div>
                     <div class="project-operator-item" @click="handleDeleteDetail">删除</div>
                   </div>
                 </div>
@@ -77,41 +64,35 @@
             </div>
           </div>
         </div>
-      </div>
     </div>
-    <!-- 创建/编辑模态框 -->
-    <SnapSpaceModal @register="registerModal" @success="handleSuccess" />
-    
+
     <!-- 图片管理模态框 -->
-    <SnapImageModal @register="registerImageModal" />
+    <SnapImageModal @register="registerImageModal"/>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
-import { PlusOutlined, SwapOutlined, EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue';
-import { BasicForm, useForm } from '@/components/Form';
-import { List } from 'ant-design-vue';
-import { useModal } from '@/components/Modal';
-import { useMessage } from '@/hooks/web/useMessage';
-import { getSnapSpaceList, deleteSnapSpace, type SnapSpace } from '@/api/device/snap';
-import SnapSpaceModal from './SnapSpaceModal.vue';
+import {computed, onMounted, onUnmounted, ref} from 'vue';
+import {Empty, List, Spin} from 'ant-design-vue';
+import {BasicForm, useForm} from '@/components/Form';
+import {useModal} from '@/components/Modal';
+import {useMessage} from '@/hooks/web/useMessage';
+import {deleteSnapSpace, getSnapSpaceList, getSnapImageList, type SnapSpace} from '@/api/device/snap';
 import SnapImageModal from './SnapImageModal.vue';
 import snapSpaceIcon from '@/assets/images/video/snap-space-icon.png';
 
-defineOptions({ name: 'SnapSpace' });
+const ListItem = List.Item;
 
-const { createMessage } = useMessage();
-const [registerModal, { openModal }] = useModal();
-const [registerImageModal, { openModal: openImageModal }] = useModal();
+defineOptions({name: 'SnapSpace'});
 
-// 视图模式
-const viewMode = ref<'table' | 'card'>('card');
+const {createMessage} = useMessage();
+const [registerImageModal, {openModal: openImageModal}] = useModal();
+
 const spaceList = ref<SnapSpace[]>([]);
 const loading = ref(false);
 const ezd_popover_hidden = ref("ezd-popover-hidden");
 const currentItem = ref<SnapSpace | null>(null);
-const position = ref({ x: 0, y: 0 });
+const position = ref({x: 0, y: 0});
 
 // 分页相关
 const page = ref(1);
@@ -139,14 +120,6 @@ function pageSizeChange(_current: number, size: number) {
   loadSpaceList();
 }
 
-// 切换视图
-const handleClickSwap = () => {
-  viewMode.value = viewMode.value === 'table' ? 'card' : 'table';
-  if (viewMode.value === 'card') {
-    loadSpaceList();
-  }
-};
-
 // 搜索参数
 const searchParams = ref<{ search?: string }>({});
 
@@ -154,61 +127,80 @@ const searchParams = ref<{ search?: string }>({});
 const loadSpaceList = async () => {
   loading.value = true;
   try {
-    const response = await getSnapSpaceList({ 
-      pageNo: page.value, 
+    const response = await getSnapSpaceList({
+      pageNo: page.value,
       pageSize: pageSize.value,
       ...searchParams.value
     });
-    // 响应拦截器当total存在时会返回 { code, data, msg, total } 对象
-    // 当total不存在时返回 data 数组
-    if (response && typeof response === 'object') {
-      if (Array.isArray(response)) {
-        // 如果直接返回数组（total不存在的情况）
-        spaceList.value = response;
-        total.value = response.length;
-      } else if (response.code === 0 && response.data) {
-        // 如果返回整个响应对象（total存在的情况）
-        spaceList.value = Array.isArray(response.data) ? response.data : [];
-        total.value = response.total || 0;
+    // 后台返回的数据结构可能是：
+    // 1. 直接返回数组（响应拦截器已处理）
+    // 2. 返回 { code, data, msg, total } 对象（分页接口）
+    if (Array.isArray(response)) {
+      // 如果直接返回数组
+      spaceList.value = response;
+      total.value = response.length;
+    } else if (response && typeof response === 'object') {
+      // 如果返回对象
+      if (response.code === 0) {
+        // 成功响应
+        if (Array.isArray(response.data)) {
+          // data是数组
+          spaceList.value = response.data;
+          total.value = response.total || response.data.length;
+        } else if (response.data && Array.isArray(response.data.items)) {
+          // data.items是数组（某些接口可能这样返回）
+          spaceList.value = response.data.items;
+          total.value = response.total || response.data.total || response.data.items.length;
+        } else {
+          spaceList.value = [];
+          total.value = 0;
+        }
       } else {
+        // 错误响应
         createMessage.error(response.msg || '加载抓拍空间列表失败');
         spaceList.value = [];
+        total.value = 0;
       }
     } else {
       spaceList.value = [];
+      total.value = 0;
     }
   } catch (error) {
     console.error('加载抓拍空间列表失败', error);
     createMessage.error('加载抓拍空间列表失败');
     spaceList.value = [];
+    total.value = 0;
   } finally {
     loading.value = false;
   }
 };
 
-// 创建
-const handleCreate = () => {
-  openModal(true, { type: 'create' });
-};
-
-// 查看
-const handleView = (record: SnapSpace) => {
-  openModal(true, { type: 'view', record });
-};
-
-// 编辑
-const handleEdit = (record: SnapSpace) => {
-  openModal(true, { type: 'edit', record });
-};
 
 // 查看图片
 const handleViewImages = (record: SnapSpace) => {
-  openImageModal(true, { space_id: record.id, space_name: record.space_name });
+  openImageModal(true, {space_id: record.id, space_name: record.space_name});
 };
 
 // 删除
 const handleDelete = async (record: SnapSpace) => {
   try {
+    // 如果抓拍空间关联了设备，提示用户删除设备
+    if (record.device_id) {
+      createMessage.warning('抓拍空间跟随设备，不能单独删除。请删除关联的设备，抓拍空间会自动删除。');
+      return;
+    }
+    
+    // 先检查空间下是否有图片
+    const imageResponse = await getSnapImageList(record.id, {
+      pageNo: 1,
+      pageSize: 1,
+    });
+    
+    if (imageResponse.code === 0 && imageResponse.total > 0) {
+      createMessage.warning('该空间下还有抓拍图片，无法删除。请先删除所有图片后再删除空间。');
+      return;
+    }
+    
     await deleteSnapSpace(record.id);
     createMessage.success('删除成功');
     handleSuccess();
@@ -224,22 +216,22 @@ const handleSuccess = () => {
   loadSpaceList();
 };
 
-// 弹出菜单相关
+// 右键菜单相关
 function handleClick(event: MouseEvent) {
-  if (!document.contains(event.target as Node)) {
-    return;
-  }
-  if (ezd_popover_hidden.value == "") {
+  // 如果点击的不是右键菜单本身，则隐藏菜单
+  const target = event.target as HTMLElement;
+  if (!target.closest('.ezd-popover') && ezd_popover_hidden.value === "") {
     ezd_popover_hidden.value = "ezd-popover-hidden";
   }
 }
 
-async function handleProjectItem(event: MouseEvent, item: SnapSpace) {
+// 右键点击显示菜单
+function handleRightClick(event: MouseEvent, item: SnapSpace) {
+  event.preventDefault();
+  event.stopPropagation();
   currentItem.value = item;
-  position.value = { x: event.clientX, y: event.clientY };
-  if (ezd_popover_hidden.value == "ezd-popover-hidden") {
-    ezd_popover_hidden.value = "";
-  }
+  position.value = {x: event.clientX, y: event.clientY};
+  ezd_popover_hidden.value = "";
 }
 
 function handleMoreItem(event: MouseEvent) {
@@ -248,22 +240,14 @@ function handleMoreItem(event: MouseEvent) {
 
 function handleViewDetail() {
   if (currentItem.value) {
-    handleView(currentItem.value);
+    handleViewImages(currentItem.value);
   }
   ezd_popover_hidden.value = "ezd-popover-hidden";
 }
 
 function handleEditDetail() {
-  if (currentItem.value) {
-    handleEdit(currentItem.value);
-  }
-  ezd_popover_hidden.value = "ezd-popover-hidden";
-}
-
-function handleViewImagesDetail() {
-  if (currentItem.value) {
-    handleViewImages(currentItem.value);
-  }
+  // 编辑功能已禁用，抓拍空间跟随设备
+  createMessage.info('抓拍空间信息跟随设备，无法单独编辑');
   ezd_popover_hidden.value = "ezd-popover-hidden";
 }
 
@@ -282,7 +266,7 @@ async function handleSubmit() {
   await loadSpaceList();
 }
 
-const [registerForm, { validate }] = useForm({
+const [registerForm, {validate}] = useForm({
   schemas: [
     {
       field: 'search',
@@ -294,17 +278,20 @@ const [registerForm, { validate }] = useForm({
     },
   ],
   labelWidth: 80,
-  baseColProps: { span: 6 },
-  actionColOptions: { span: 6 },
+  baseColProps: {span: 6},
+  actionColOptions: {span: 6},
   autoSubmitOnEnter: true,
   submitFunc: handleSubmit,
 });
 
+// 暴露刷新方法给父组件
+defineExpose({
+  refresh: loadSpaceList
+});
+
 onMounted(() => {
   document.addEventListener('click', handleClick);
-  if (viewMode.value === 'card') {
-    loadSpaceList();
-  }
+  loadSpaceList();
 });
 
 onUnmounted(() => {
@@ -469,4 +456,21 @@ onUnmounted(() => {
 .bg-white {
   background-color: #fff;
 }
+
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+
+  .list-title {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 24px;
+    color: rgba(0, 0, 0, 0.85);
+  }
+}
+
 </style>

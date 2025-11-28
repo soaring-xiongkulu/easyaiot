@@ -35,13 +35,17 @@ def list_snap_images(space_id: int, device_id: Optional[str] = None,
     try:
         snap_space = SnapSpace.query.get_or_404(space_id)
         bucket_name = snap_space.bucket_name
+        space_code = snap_space.space_code
         
         minio_client = get_minio_client()
         if not minio_client.bucket_exists(bucket_name):
             return {'items': [], 'total': 0, 'page_no': page_no, 'page_size': page_size}
         
-        # 构建前缀
-        prefix = f"{device_id}/" if device_id else ""
+        # 构建前缀：space_code/device_id/ 或 space_code/
+        if device_id:
+            prefix = f"{space_code}/{device_id}/"
+        else:
+            prefix = f"{space_code}/"
         
         # 获取所有对象
         images = []
@@ -99,6 +103,7 @@ def delete_snap_images(space_id: int, object_names: List[str]) -> Dict:
     try:
         snap_space = SnapSpace.query.get_or_404(space_id)
         bucket_name = snap_space.bucket_name
+        space_code = snap_space.space_code
         
         minio_client = get_minio_client()
         if not minio_client.bucket_exists(bucket_name):
@@ -110,6 +115,9 @@ def delete_snap_images(space_id: int, object_names: List[str]) -> Dict:
         
         for object_name in object_names:
             try:
+                # 确保 object_name 包含 space_code 前缀
+                if not object_name.startswith(f"{space_code}/"):
+                    object_name = f"{space_code}/{object_name}"
                 minio_client.remove_object(bucket_name, object_name)
                 deleted_count += 1
                 logger.info(f"删除抓拍图片成功: {bucket_name}/{object_name}")
@@ -141,10 +149,15 @@ def get_snap_image(space_id: int, object_name: str):
     try:
         snap_space = SnapSpace.query.get_or_404(space_id)
         bucket_name = snap_space.bucket_name
+        space_code = snap_space.space_code
         
         minio_client = get_minio_client()
         if not minio_client.bucket_exists(bucket_name):
             raise ValueError(f"抓拍空间的MinIO bucket不存在: {bucket_name}")
+        
+        # 确保 object_name 包含 space_code 前缀
+        if not object_name.startswith(f"{space_code}/"):
+            object_name = f"{space_code}/{object_name}"
         
         try:
             stat = minio_client.stat_object(bucket_name, object_name)
@@ -176,6 +189,7 @@ def cleanup_old_images_by_days(space_id: int, days: int) -> Dict:
     try:
         snap_space = SnapSpace.query.get_or_404(space_id)
         bucket_name = snap_space.bucket_name
+        space_code = snap_space.space_code
         save_mode = snap_space.save_mode  # 0:标准存储, 1:归档存储
         
         minio_client = get_minio_client()
@@ -203,9 +217,10 @@ def cleanup_old_images_by_days(space_id: int, days: int) -> Dict:
         archived_count = 0
         error_count = 0
         
-        # 获取所有需要处理的图片
+        # 获取该空间文件夹下所有需要处理的图片
         objects_to_process = []
-        objects = minio_client.list_objects(bucket_name, recursive=True)
+        space_prefix = f"{space_code}/"
+        objects = minio_client.list_objects(bucket_name, prefix=space_prefix, recursive=True)
         
         for obj in objects:
             if obj.object_name.endswith('/'):  # 跳过文件夹标记
@@ -235,10 +250,15 @@ def cleanup_old_images_by_days(space_id: int, days: int) -> Dict:
                     logger.error(f"删除图片失败: {bucket_name}/{obj_info['object_name']}, error={str(e)}")
         
         else:  # 归档存储：压缩后归档
-            # 按设备分组
+            # 按设备分组（路径格式：space_code/device_id/filename）
             device_groups = {}
             for obj_info in objects_to_process:
-                device_id = obj_info['object_name'].split('/')[0] if '/' in obj_info['object_name'] else 'unknown'
+                # 路径格式：space_code/device_id/filename，需要提取 device_id
+                parts = obj_info['object_name'].split('/')
+                if len(parts) >= 2:
+                    device_id = parts[1]  # space_code 是 parts[0], device_id 是 parts[1]
+                else:
+                    device_id = 'unknown'
                 if device_id not in device_groups:
                     device_groups[device_id] = []
                 device_groups[device_id].append(obj_info)
@@ -272,7 +292,7 @@ def cleanup_old_images_by_days(space_id: int, days: int) -> Dict:
                     # 上传压缩包到归档bucket
                     if zip_buffer.tell() > 0:
                         zip_buffer.seek(0)
-                        archive_object_name = f"{space_id}/{device_id}/{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.zip"
+                        archive_object_name = f"{space_code}/{device_id}/{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.zip"
                         minio_client.put_object(
                             archive_bucket_name,
                             archive_object_name,

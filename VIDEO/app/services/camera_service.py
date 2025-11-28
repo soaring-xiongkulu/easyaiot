@@ -584,6 +584,15 @@ def register_camera_by_onvif(ip: str, port: int, password: str) -> str:
         db.session.commit()
         _monitor.update(camera.id, camera.ip)
         logger.info(f'设备 {device_id} 通过ONVIF注册成功，IP: {camera.ip}, 用户名: {used_username}')
+        
+        # 自动为设备创建抓拍空间
+        try:
+            from app.services.snap_space_service import create_snap_space_for_device
+            create_snap_space_for_device(device_id, camera.name)
+            logger.info(f'设备 {device_id} 的抓拍空间已自动创建')
+        except Exception as e:
+            logger.warning(f'为设备 {device_id} 创建抓拍空间失败: {str(e)}，但不影响设备注册')
+        
         return device_id
     except Exception as e:
         db.session.rollback()
@@ -730,6 +739,15 @@ def register_camera(register_info: dict) -> str:
             if ip:
                 _monitor.update(camera.id, ip)
             logger.info(f'设备 {id} 注册成功（直接模式），RTSP地址: {source}')
+            
+            # 自动为设备创建抓拍空间
+            try:
+                from app.services.snap_space_service import create_snap_space_for_device
+                create_snap_space_for_device(id, name)
+                logger.info(f'设备 {id} 的抓拍空间已自动创建')
+            except Exception as e:
+                logger.warning(f'为设备 {id} 创建抓拍空间失败: {str(e)}，但不影响设备注册')
+            
             return id
         except Exception as e:
             db.session.rollback()
@@ -801,6 +819,15 @@ def register_camera(register_info: dict) -> str:
         db.session.commit()
         _monitor.update(camera.id, camera.ip)
         logger.info(f'设备 {id} 注册成功，IP: {camera.ip}')
+        
+        # 自动为设备创建抓拍空间
+        try:
+            from app.services.snap_space_service import create_snap_space_for_device
+            create_snap_space_for_device(id, camera.name)
+            logger.info(f'设备 {id} 的抓拍空间已自动创建')
+        except Exception as e:
+            logger.warning(f'为设备 {id} 创建抓拍空间失败: {str(e)}，但不影响设备注册')
+        
         return id
     except Exception as e:
         db.session.rollback()
@@ -924,6 +951,17 @@ def delete_camera(id: str):
     camera = _get_camera(id)
     if not camera:
         raise ValueError(f'设备 {id} 不存在，无法删除')
+
+    # 检查设备关联的抓拍空间是否有图片
+    try:
+        from app.services.snap_space_service import check_device_space_has_images
+        has_images, image_count = check_device_space_has_images(id)
+        if has_images:
+            raise ValueError(f'设备关联的抓拍空间还有 {image_count} 张抓拍图片，无法删除设备。请先删除所有图片后再删除设备。')
+    except ValueError:
+        raise
+    except Exception as e:
+        logger.warning(f'检查设备抓拍空间图片失败: {str(e)}，继续删除设备')
 
     try:
         _monitor.delete(camera.id)

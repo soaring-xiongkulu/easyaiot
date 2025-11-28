@@ -482,7 +482,8 @@ def capture_image(task, device, space):
         
         minio_client = get_minio_client()
         bucket_name = space.bucket_name
-        device_folder = f"{device.id}/"
+        space_code = space.space_code
+        device_folder = f"{space_code}/{device.id}/"
         
         # 根据抓拍类型选择不同的抓拍方式
         if task.capture_type == 0:  # 抽帧

@@ -127,7 +127,7 @@
           />
         </TabPane>
         <TabPane key="3" tab="抓拍空间">
-          <SnapSpace/>
+          <SnapSpace ref="snapSpaceRef"/>
         </TabPane>
         <TabPane key="4" tab="监控录像">
           <PlaybackList/>
@@ -190,9 +190,16 @@ const directoryManageRef = ref();
 // 视频卡片列表组件引用
 const videoCardListRef = ref();
 
+// 抓拍空间组件引用
+const snapSpaceRef = ref();
+
 // Tab切换
 const handleTabClick = (activeKey: string) => {
   state.activeKey = activeKey;
+  // 切换到抓拍空间标签页时，刷新数据
+  if (activeKey === '3' && snapSpaceRef.value) {
+    snapSpaceRef.value.refresh();
+  }
 };
 
 // 切换视图模式

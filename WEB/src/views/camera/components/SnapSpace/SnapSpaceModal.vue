@@ -22,7 +22,7 @@ defineOptions({ name: 'SnapSpaceModal' });
 const { createMessage } = useMessage();
 const emit = defineEmits(['success', 'register']);
 
-const [registerForm, { setFieldsValue, validate, resetFields }] = useForm({
+const [registerForm, { setFieldsValue, validate, resetFields, updateSchema }] = useForm({
   labelWidth: 100,
   baseColProps: { span: 24 },
   schemas: [
@@ -85,13 +85,52 @@ const [register, { setModalProps, closeModal }] = useModalInner(async (data) => 
   modalData.value = data;
   
   if (data.type === 'edit' && data.record) {
+    // 编辑模式：所有字段可编辑
+    updateSchema([
+      {
+        field: 'space_name',
+        componentProps: { disabled: false },
+      },
+      {
+        field: 'save_mode',
+        componentProps: { disabled: false },
+      },
+      {
+        field: 'save_time',
+        componentProps: { disabled: false },
+      },
+      {
+        field: 'description',
+        componentProps: { disabled: false },
+      },
+    ]);
     setFieldsValue({
       space_name: data.record.space_name,
       save_mode: data.record.save_mode,
       save_time: data.record.save_time,
       description: data.record.description,
     });
+    setModalProps({ showOkBtn: true });
   } else if (data.type === 'view' && data.record) {
+    // 查看模式：所有字段禁用
+    updateSchema([
+      {
+        field: 'space_name',
+        componentProps: { disabled: true },
+      },
+      {
+        field: 'save_mode',
+        componentProps: { disabled: true },
+      },
+      {
+        field: 'save_time',
+        componentProps: { disabled: true },
+      },
+      {
+        field: 'description',
+        componentProps: { disabled: true },
+      },
+    ]);
     setFieldsValue({
       space_name: data.record.space_name,
       save_mode: data.record.save_mode,
@@ -99,6 +138,27 @@ const [register, { setModalProps, closeModal }] = useModalInner(async (data) => 
       description: data.record.description,
     });
     setModalProps({ showOkBtn: false });
+  } else {
+    // 新建模式：所有字段可编辑
+    updateSchema([
+      {
+        field: 'space_name',
+        componentProps: { disabled: false },
+      },
+      {
+        field: 'save_mode',
+        componentProps: { disabled: false },
+      },
+      {
+        field: 'save_time',
+        componentProps: { disabled: false },
+      },
+      {
+        field: 'description',
+        componentProps: { disabled: false },
+      },
+    ]);
+    setModalProps({ showOkBtn: true });
   }
 });
 

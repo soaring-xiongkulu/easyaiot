@@ -10,7 +10,7 @@ from flask import Blueprint, request, jsonify
 from models import db, DetectionRegion
 from app.services.snap_space_service import (
     create_snap_space, update_snap_space, delete_snap_space,
-    get_snap_space, list_snap_spaces
+    get_snap_space, list_snap_spaces, get_snap_space_by_device_id
 )
 from app.services.snap_task_service import (
     create_snap_task, update_snap_task, delete_snap_task,
@@ -73,42 +73,33 @@ def get_space(space_id):
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
-@snap_bp.route('/space', methods=['POST'])
-def create_space():
-    """创建抓拍空间"""
+@snap_bp.route('/space/device/<device_id>', methods=['GET'])
+def get_space_by_device(device_id):
+    """根据设备ID获取抓拍空间"""
     try:
-        data = request.get_json()
-        if not data:
-            logger.warning('创建抓拍空间失败: 请求数据为空')
-            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
-        
-        space_name = data.get('space_name', '').strip()
-        if not space_name:
-            logger.warning('创建抓拍空间失败: 空间名称为空')
-            return jsonify({'code': 400, 'msg': '空间名称不能为空'}), 400
-        
-        save_mode = data.get('save_mode', 0)
-        save_time = data.get('save_time', 0)
-        description = data.get('description', '').strip() or None
-        device_id = data.get('device_id', '').strip() or None
-        
-        logger.info(f'创建抓拍空间: space_name={space_name}, save_mode={save_mode}, save_time={save_time}, device_id={device_id}')
-        space = create_snap_space(space_name, save_mode, save_time, description, device_id)
+        space = get_snap_space_by_device_id(device_id)
+        if not space:
+            return jsonify({
+                'code': 404,
+                'msg': f'设备 {device_id} 没有关联的抓拍空间'
+            }), 404
         return jsonify({
             'code': 0,
-            'msg': '抓拍空间创建成功',
+            'msg': 'success',
             'data': space.to_dict()
         })
-    except ValueError as e:
-        logger.warning(f'创建抓拍空间失败 (ValueError): {str(e)}')
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except RuntimeError as e:
-        logger.error(f'创建抓拍空间失败 (RuntimeError): {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': str(e)}), 500
     except Exception as e:
-        logger.error(f'创建抓拍空间失败: {str(e)}', exc_info=True)
-        db.session.rollback()
+        logger.error(f'根据设备ID获取抓拍空间失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@snap_bp.route('/space', methods=['POST'])
+def create_space():
+    """创建抓拍空间（已禁用：抓拍空间现在跟随设备自动创建）"""
+    return jsonify({
+        'code': 403,
+        'msg': '抓拍空间不能手动创建，系统会在创建设备时自动创建抓拍空间'
+    }), 403
 
 
 @snap_bp.route('/space/<int:space_id>', methods=['PUT'])
@@ -140,8 +131,17 @@ def update_space(space_id):
 
 @snap_bp.route('/space/<int:space_id>', methods=['DELETE'])
 def delete_space(space_id):
-    """删除抓拍空间"""
+    """删除抓拍空间（已禁用：抓拍空间跟随设备，删除设备时会自动删除）"""
     try:
+        # 检查抓拍空间是否有关联的设备
+        space = get_snap_space(space_id)
+        if space.device_id:
+            return jsonify({
+                'code': 403,
+                'msg': '抓拍空间跟随设备，不能单独删除。请删除关联的设备，抓拍空间会自动删除。'
+            }), 403
+        
+        # 如果没有关联设备，允许删除（兼容旧数据）
         delete_snap_space(space_id)
         return jsonify({
             'code': 0,
