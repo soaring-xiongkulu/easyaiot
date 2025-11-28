@@ -176,6 +176,10 @@ const columns = [
 ];
 
 const getVideoUrl = (record: RecordVideo) => {
+  // 优先使用后台返回的 url 字段，如果没有则使用 object_name 构建
+  if (record.url) {
+    return record.url;
+  }
   if (!modalData.value.space_id) return '';
   return `/video/record/space/${modalData.value.space_id}/video/${record.object_name}`;
 };
@@ -213,15 +217,33 @@ const loadVideoList = async () => {
       pageSize: pagination.pageSize,
     });
     
-    if (response.code === 0) {
-      videoList.value = response.data || [];
-      pagination.total = response.total || 0;
+    // 响应拦截器处理后的数据结构：{ code, data, msg, total }
+    // 或者直接是数组（如果响应拦截器返回了 data.data）
+    if (response && typeof response === 'object') {
+      if (response.code === 0) {
+        // 确保 data 是数组
+        const data = Array.isArray(response.data) ? response.data : [];
+        videoList.value = data;
+        pagination.total = response.total || 0;
+      } else {
+        createMessage.error(response.msg || '加载录像列表失败');
+        videoList.value = [];
+        pagination.total = 0;
+      }
+    } else if (Array.isArray(response)) {
+      // 如果响应拦截器直接返回了数组
+      videoList.value = response;
+      pagination.total = response.length;
     } else {
-      createMessage.error(response.msg || '加载录像列表失败');
+      console.error('意外的响应格式:', response);
+      videoList.value = [];
+      pagination.total = 0;
     }
   } catch (error) {
     console.error('加载录像列表失败', error);
     createMessage.error('加载录像列表失败');
+    videoList.value = [];
+    pagination.total = 0;
   } finally {
     loading.value = false;
   }
