@@ -976,20 +976,21 @@ def on_dvr_callback():
         
         # 从回调数据中提取信息
         # SRS回调数据结构示例：
-        # {'action': 'on_dvr', 'app': 'live', 'stream': 'video1', 
-        #  'file': '/data/playbacks/live/video1/2025/11/28/1764351846365.flv', ...}
-        stream = data.get('stream', '')  # 流名称，直接是设备ID
+        # {'action': 'on_dvr', 'app': 'live', 'stream': '1764341204704370850', 
+        #  'file': '/data/playbacks/live/1764341204704370850/2025/11/28/1764352410083.flv', ...}
+        # 注意：stream字段的值就是设备ID（例如：'1764341204704370850'）
+        stream = data.get('stream', '')  # stream字段的值就是设备ID
         file_path = data.get('file', '')  # 录像文件路径（已经是绝对路径）
         
         if not stream:
-            logger.warning("on_dvr回调：流名称为空")
+            logger.warning("on_dvr回调：流名称为空（设备ID为空）")
             return jsonify({'code': 0, 'msg': None})
         
         if not file_path:
             logger.warning("on_dvr回调：文件路径为空")
             return jsonify({'code': 0, 'msg': None})
         
-        # stream字段直接就是设备ID（例如：'video1'）
+        # stream字段的值就是设备ID（例如：'1764341204704370850'）
         device_id = stream
         
         # 检查设备是否存在
