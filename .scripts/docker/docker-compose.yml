@@ -39,7 +39,7 @@ services:
   # 在 PostgreSQL 启动前自动运行，修复数据目录权限问题
   # 解决 "could not open file global/pg_filenode.map: Permission denied" 错误
   PostgresSQL-init:
-    image: postgres:18.10
+    image: postgres:18
     container_name: postgres-init
     user: "0:0"
     volumes:
@@ -57,7 +57,7 @@ services:
 
   # PostgresSQL Server
   PostgresSQL:
-    image: postgres:18.10
+    image: postgres:18
     container_name: postgres-server
     restart: always
     ports:
