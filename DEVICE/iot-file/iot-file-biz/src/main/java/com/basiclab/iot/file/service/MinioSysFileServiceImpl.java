@@ -84,16 +84,50 @@ public class MinioSysFileServiceImpl implements ISysFileService {
      */
     @Override
     public String uploadFile(MultipartFile file) throws Exception {
+        try {
 //        String fileName = FileUploadUtils.extractFilename(file);
-        String fileName = file.getOriginalFilename();
-        PutObjectArgs args = PutObjectArgs.builder()
-                .bucket(minioConfig.getBucketName())
-                .object(fileName)
-                .stream(file.getInputStream(), file.getSize(), -1)
-                .contentType(file.getContentType())
-                .build();
-        minioClient.putObject(args);
-        return "/api/v1/buckets/" + minioConfig.getBucketName() + "/objects/download?prefix=" + fileName;
+            String fileName = file.getOriginalFilename();
+            
+            // 验证配置
+            if (StringUtils.isBlank(minioConfig.getBucketName())) {
+                throw new IllegalStateException("MinIO存储桶名称未配置，请在配置文件中设置 minio.bucketName");
+            }
+            
+            PutObjectArgs args = PutObjectArgs.builder()
+                    .bucket(minioConfig.getBucketName())
+                    .object(fileName)
+                    .stream(file.getInputStream(), file.getSize(), -1)
+                    .contentType(file.getContentType())
+                    .build();
+            minioClient.putObject(args);
+            log.info("文件上传成功: bucket={}, fileName={}", minioConfig.getBucketName(), fileName);
+            return "/api/v1/buckets/" + minioConfig.getBucketName() + "/objects/download?prefix=" + fileName;
+        } catch (ErrorResponseException e) {
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && errorMsg.contains("Access Key Id")) {
+                log.error("MinIO认证失败: Access Key Id不存在。当前配置的accessKey: {}, url: {}", 
+                        StringUtils.isNotBlank(minioConfig.getAccessKey()) ? maskString(minioConfig.getAccessKey()) : "未配置",
+                        minioConfig.getUrl());
+                throw new IllegalStateException(
+                    "MinIO认证失败: Access Key Id不存在。请检查配置文件中 minio.accessKey 和 minio.secretKey 是否正确，" +
+                    "并确保这些凭据在MinIO服务器上存在。当前MinIO地址: " + minioConfig.getUrl(), e);
+            }
+            log.error("MinIO文件上传失败: {}", errorMsg, e);
+            throw new Exception("MinIO文件上传失败: " + errorMsg, e);
+        } catch (Exception e) {
+            log.error("文件上传异常: fileName={}, bucket={}", file.getOriginalFilename(), minioConfig.getBucketName(), e);
+            throw e;
+        }
+    }
+    
+    /**
+     * 掩码敏感字符串（只显示前3个字符）
+     */
+    private String maskString(String str) {
+        if (str == null || str.length() <= 3) {
+            return "***";
+        }
+        return str.substring(0, 3) + "***";
     }
 
     /**
@@ -105,15 +139,38 @@ public class MinioSysFileServiceImpl implements ISysFileService {
      */
     @Override
     public String uploadFile(MultipartFile file, String bucketName) throws Exception {
-        String fileName = file.getOriginalFilename();
-        PutObjectArgs args = PutObjectArgs.builder()
-                .bucket(bucketName)
-                .object(fileName)
-                .stream(file.getInputStream(), file.getSize(), -1)
-                .contentType(file.getContentType())
-                .build();
-        minioClient.putObject(args);
-        return minioConfig.getDownloadUrl() + "/api/v1/buckets/" + minioConfig.getBucketName() + "/objects/download?prefix=" + fileName;
+        try {
+            String fileName = file.getOriginalFilename();
+            
+            if (StringUtils.isBlank(bucketName)) {
+                throw new IllegalArgumentException("存储桶名称不能为空");
+            }
+            
+            PutObjectArgs args = PutObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(fileName)
+                    .stream(file.getInputStream(), file.getSize(), -1)
+                    .contentType(file.getContentType())
+                    .build();
+            minioClient.putObject(args);
+            log.info("文件上传成功: bucket={}, fileName={}", bucketName, fileName);
+            return minioConfig.getDownloadUrl() + "/api/v1/buckets/" + minioConfig.getBucketName() + "/objects/download?prefix=" + fileName;
+        } catch (ErrorResponseException e) {
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && errorMsg.contains("Access Key Id")) {
+                log.error("MinIO认证失败: Access Key Id不存在。当前配置的accessKey: {}, url: {}", 
+                        StringUtils.isNotBlank(minioConfig.getAccessKey()) ? maskString(minioConfig.getAccessKey()) : "未配置",
+                        minioConfig.getUrl());
+                throw new IllegalStateException(
+                    "MinIO认证失败: Access Key Id不存在。请检查配置文件中 minio.accessKey 和 minio.secretKey 是否正确，" +
+                    "并确保这些凭据在MinIO服务器上存在。当前MinIO地址: " + minioConfig.getUrl(), e);
+            }
+            log.error("MinIO文件上传失败: {}", errorMsg, e);
+            throw new Exception("MinIO文件上传失败: " + errorMsg, e);
+        } catch (Exception e) {
+            log.error("文件上传异常: fileName={}, bucket={}", file.getOriginalFilename(), bucketName, e);
+            throw e;
+        }
     }
 
     /**

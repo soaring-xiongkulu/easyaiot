@@ -248,8 +248,8 @@ mail:
 minio:
   endpoint: http://localhost
   port: 9000
-  accessKey: minio_root
-  secretKey: minio_123456
+  accessKey: minioadmin
+  secretKey: basiclab@iot975248395
   bucketName: iot
   filePath: /data/minio_data
   fileBreakPointBucketName: iot-breakpoint

@@ -168,8 +168,8 @@ fdfs:
 minio:
   url: http://14.18.122.2:9000
   downloadUrl: http://14.18.122.2:9001
-  accessKey: minio_root
-  secretKey: minio_123456
+  accessKey: minioadmin
+  secretKey: basiclab@iot975248395
   bucketName: snap-space
   chunk: 5
   chunkSize: 5

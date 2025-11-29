@@ -96,6 +96,7 @@ import DatasetVideoCardList from "@/views/dataset/components/DatasetVideoCardLis
 import DatasetVideoPlayModal from "@/views/dataset/components/DatasetVideoPlayModal/index.vue";
 import JSZip from "jszip";
 import DatasetVideoFrameModal from "@/views/dataset/components/DatasetVideoFrameModal/index.vue";
+import { saveAs } from 'file-saver';
 
 const {createMessage} = useMessage();
 

@@ -12,6 +12,8 @@ spring:
 
 server:
   port: 48090
+  tomcat:
+    max-http-post-size: 500MB # Tomcat POST 请求最大大小
 
 # 日志文件配置。注意，如果 logging.file.name 不放在 bootstrap.yaml 配置文件，而是放在 application.yaml 中，会导致出现 LOG_FILE_IS_UNDEFINED 文件
 logging:

@@ -17,7 +17,7 @@
           <FormItem label="视频名称" name="name" v-bind=validateInfos.name>
             <Input v-model:value="modelRef.name"/>
           </FormItem>
-          <FormItem label="视频地址" name="coverPath" v-bind=validateInfos.coverPath>
+          <FormItem label="视频地址" name="videoPath" v-bind=validateInfos.videoPath>
             <Upload
               name="file"
               multiple
@@ -131,8 +131,23 @@ function handleVideoPathFileChange(info: Record<string, any>) {
   const status = file?.status;
   const response = file?.response;
   if (status === 'done') {
-    createMessage.success('上传成功');
-    modelRef.videoPath = response.data;
+    if (response && (response.code === 0 || response.code === 200)) {
+      // 兼容不同的响应格式
+      const path = response.data?.url || response.data || response.url || '';
+      if (path) {
+        modelRef.videoPath = path;
+        createMessage.success('视频上传成功');
+      } else {
+        createMessage.error('上传成功但未获取到文件路径');
+        console.error('上传响应:', response);
+      }
+    } else {
+      createMessage.error(response?.msg || '视频上传失败');
+      console.error('上传失败:', response);
+    }
+  } else if (status === 'error') {
+    createMessage.error('视频上传失败');
+    console.error('上传错误:', file?.error);
   }
 }
 
@@ -141,13 +156,30 @@ function handleCoverPathFileChange(info: Record<string, any>) {
   const status = file?.status;
   const response = file?.response;
   if (status === 'done') {
-    createMessage.success('上传成功');
-    modelRef.coverPath = response.data;
+    if (response && (response.code === 0 || response.code === 200)) {
+      // 兼容不同的响应格式
+      const path = response.data?.url || response.data || response.url || '';
+      if (path) {
+        modelRef.coverPath = path;
+        createMessage.success('封面上传成功');
+      } else {
+        createMessage.error('上传成功但未获取到文件路径');
+        console.error('上传响应:', response);
+      }
+    } else {
+      createMessage.error(response?.msg || '封面上传失败');
+      console.error('上传失败:', response);
+    }
+  } else if (status === 'error') {
+    createMessage.error('封面上传失败');
+    console.error('上传错误:', file?.error);
   }
 }
 
 const rulesRef = reactive({
   name: [{required: true, message: '请输入视频名称', trigger: ['change']}],
+  videoPath: [{required: true, message: '请上传视频地址', trigger: ['change']}],
+  coverPath: [{required: true, message: '请上传封面地址', trigger: ['change']}],
   description: [{required: true, message: '请输入描述', trigger: ['change']}],
 });
 

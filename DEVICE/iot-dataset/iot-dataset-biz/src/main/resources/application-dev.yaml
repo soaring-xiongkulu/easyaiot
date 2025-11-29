@@ -142,8 +142,8 @@ threadBus:
 # Minio配置
 minio:
   endpoint: http://14.18.122.2:9000
-  access-key: minio_root
-  secret-key: minio_123456
+  access-key: minioadmin
+  secret-key: basiclab@iot975248395
   bucket: dataset
   base-url: http://14.18.122.2:9000 # 文件访问基础URL
 

@@ -212,6 +212,33 @@ def create_app():
             from db_models import Model, TrainTask, ExportRecord, InferenceTask, LLMConfig, OCRResult, AIService, FrameSorter, FrameExtractor
             db.create_all()
             
+            # 数据库迁移：检查并添加缺失的列
+            try:
+                # 检查 ai_service 表是否存在 sorter_push_url 列
+                result = db.session.execute(text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'ai_service' AND column_name = 'sorter_push_url'
+                """))
+                if not result.fetchone():
+                    # 列不存在，添加它
+                    print("🔧 检测到缺失的列 sorter_push_url，正在添加...")
+                    db.session.execute(text("""
+                        ALTER TABLE ai_service 
+                        ADD COLUMN sorter_push_url VARCHAR(500)
+                    """))
+                    db.session.commit()
+                    print("✅ 已成功添加列 sorter_push_url 到 ai_service 表")
+                else:
+                    print("✅ 数据库列 sorter_push_url 已存在")
+            except Exception as e:
+                print(f"⚠️  数据库迁移检查失败: {str(e)}")
+                db.session.rollback()
+                # 如果是列已存在的错误，可以忽略
+                if "already exists" not in str(e).lower() and "duplicate" not in str(e).lower():
+                    # 其他错误可能需要关注，但不阻止启动
+                    pass
+            
             # AI模块重启时，将所有抽帧器的is_enabled设置为False（即使之前是打开状态也默认更新为关闭）
             try:
                 extractors = FrameExtractor.query.all()

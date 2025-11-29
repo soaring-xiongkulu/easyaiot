@@ -613,10 +613,13 @@ public class DatasetImageServiceImpl implements DatasetImageService {
                     UUID.randomUUID(),
                     fileExtension);
 
-            // 2. 上传到MinIO
+            // 2. 确保 bucket 存在
+            createBucketIfNotExists(minioBucket);
+
+            // 3. 上传到MinIO
             uploadToMinio(fileData, storagePath, getContentType(fileExtension));
 
-            // 3. 保存到数据库
+            // 4. 保存到数据库
             DatasetImageDO image = new DatasetImageDO();
             image.setDatasetId(datasetId);
             image.setName(originalFilename);
@@ -626,9 +629,21 @@ public class DatasetImageServiceImpl implements DatasetImageService {
             image.setIsValidation(0);
             image.setIsTest(0);
             datasetImageMapper.insert(image);
+        } catch (ErrorResponseException e) {
+            String errorCode = e.errorResponse() != null ? e.errorResponse().code() : "Unknown";
+            String errorMessage = e.errorResponse() != null ? e.errorResponse().message() : e.getMessage();
+            
+            // 特别处理 Access Key 错误
+            if (errorMessage != null && errorMessage.contains("Access Key Id")) {
+                logger.error("MinIO Access Key 配置错误: {}", errorMessage);
+                throw exception(FILE_UPLOAD_FAILED, "MinIO 访问密钥配置错误，请检查配置文件中的 minio.access-key 和 minio.secret-key");
+            }
+            
+            logger.error("文件保存失败 - MinIO错误 [{}]: {}", errorCode, errorMessage, e);
+            throw exception(FILE_UPLOAD_FAILED, "文件保存失败: " + errorMessage);
         } catch (Exception e) {
-            logger.error("文件保存失败: {}", e.getMessage());
-            throw exception(FILE_UPLOAD_FAILED, "文件保存失败");
+            logger.error("文件保存失败: {}", e.getMessage(), e);
+            throw exception(FILE_UPLOAD_FAILED, "文件保存失败: " + e.getMessage());
         }
     }
 

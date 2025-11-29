@@ -96,13 +96,31 @@ public class FrameProcessingPipeline {
     private void captureFrame(Map<String, String> streams) throws Exception {
         String datasetId = streams.get("datasetId");
         String rtmpUrl = streams.get("rtmpUrl");
+        
+        // 验证 URL 是否有效
+        if (rtmpUrl == null || rtmpUrl.trim().isEmpty()) {
+            log.warn("跳过无效的 RTMP URL，datasetId: {}, rtmpUrl: {}", datasetId, rtmpUrl);
+            return;
+        }
+        
+        // 检查是否为测试值或无效 URL
+        if (rtmpUrl.equalsIgnoreCase("test") || 
+            (!rtmpUrl.startsWith("rtmp://") && !rtmpUrl.startsWith("rtsp://") 
+             && !rtmpUrl.startsWith("http://") && !rtmpUrl.startsWith("https://"))) {
+            log.warn("跳过无效的 RTMP URL 格式，datasetId: {}, rtmpUrl: {}", datasetId, rtmpUrl);
+            return;
+        }
+        
         FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(rtmpUrl);
-        grabber.start();
-
         try {
+            grabber.start();
+            
             // 获取一帧图像
             Frame frame = grabber.grabImage();
-            if (frame == null) return;
+            if (frame == null) {
+                log.warn("无法从流中获取帧，datasetId: {}, rtmpUrl: {}", datasetId, rtmpUrl);
+                return;
+            }
 
             // 生成唯一文件名
             String fileName = "frame_" + UUID.randomUUID() + ".jpg";
@@ -122,8 +140,15 @@ public class FrameProcessingPipeline {
 
             // 放入队列（阻塞式）
             captureQueue.put(task);
+        } catch (Exception e) {
+            log.error("处理 RTMP 流时出错，datasetId: {}, rtmpUrl: {}, 错误: {}", datasetId, rtmpUrl, e.getMessage());
+            throw e;
         } finally {
-            grabber.stop();
+            try {
+                grabber.stop();
+            } catch (Exception e) {
+                log.warn("关闭 FFmpegFrameGrabber 时出错，datasetId: {}, rtmpUrl: {}", datasetId, rtmpUrl, e);
+            }
         }
     }
 

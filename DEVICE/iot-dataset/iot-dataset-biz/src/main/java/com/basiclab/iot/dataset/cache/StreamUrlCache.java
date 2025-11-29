@@ -14,7 +14,8 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * StreamUrlCache
@@ -23,9 +24,6 @@ import java.util.concurrent
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-
-.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class StreamUrlCache {
@@ -53,10 +51,17 @@ public class StreamUrlCache {
             return;
         }
         datasetFrameTaskDOList.forEach(stream -> {
-            Map<String, String> streamMap = Maps.newHashMap();
-            streamMap.put("datasetId", String.valueOf(stream.getDatasetId()));
-            streamMap.put("rtmpUrl", stream.getRtmpUrl());
-            cachedUrls.add(streamMap);
+            String rtmpUrl = stream.getRtmpUrl();
+            // 验证 RTMP URL 是否有效（必须包含协议前缀，且不是测试值）
+            if (rtmpUrl != null && !rtmpUrl.trim().isEmpty() 
+                    && (rtmpUrl.startsWith("rtmp://") || rtmpUrl.startsWith("rtsp://") 
+                    || rtmpUrl.startsWith("http://") || rtmpUrl.startsWith("https://"))
+                    && !rtmpUrl.equalsIgnoreCase("test")) {
+                Map<String, String> streamMap = Maps.newHashMap();
+                streamMap.put("datasetId", String.valueOf(stream.getDatasetId()));
+                streamMap.put("rtmpUrl", rtmpUrl);
+                cachedUrls.add(streamMap);
+            }
         });
     }
 
