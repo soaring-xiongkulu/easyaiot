@@ -116,8 +116,10 @@ const handleDelete = async (serviceId: number) => {
 
 const handleToggleEnabled = async (record: AlgorithmModelService) => {
   try {
+    // 将布尔值转换为整数：true -> 1, false -> 0
+    const newValue = record.is_enabled ? 0 : 1;
     const response = await updateTaskService(record.id, {
-      is_enabled: !record.is_enabled,
+      is_enabled: newValue,
     });
     if (response.code === 0) {
       createMessage.success('更新成功');

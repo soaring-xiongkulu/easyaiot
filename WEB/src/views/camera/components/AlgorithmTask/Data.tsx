@@ -161,8 +161,8 @@ export function getFormConfig(): Partial<FormProps> {
           placeholder: '请选择启用状态',
           options: [
             { value: '', label: '全部' },
-            { value: true, label: '已启用' },
-            { value: false, label: '已禁用' },
+            { value: 1, label: '已启用' },
+            { value: 0, label: '已禁用' },
           ],
         },
       },

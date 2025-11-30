@@ -146,9 +146,15 @@ const handleSubmit = async () => {
   try {
     await formRef.value.validate();
     
+    // 将布尔值转换为整数：true -> 1, false -> 0
+    const submitData = {
+      ...formData.value,
+      is_enabled: formData.value.is_enabled === true || formData.value.is_enabled === 'true' ? 1 : 0,
+    };
+    
     if (props.serviceData) {
       // 更新
-      const response = await updateTaskService(props.serviceData.id, formData.value);
+      const response = await updateTaskService(props.serviceData.id, submitData);
       if (response.code === 0) {
         createMessage.success('更新成功');
         emit('success');
@@ -158,7 +164,7 @@ const handleSubmit = async () => {
       }
     } else {
       // 创建
-      const response = await createTaskService(props.taskId, formData.value);
+      const response = await createTaskService(props.taskId, submitData);
       if (response.code === 0) {
         createMessage.success('创建成功');
         emit('success');

@@ -216,12 +216,17 @@ const [registerTable, { reload }] = useTable({
   api: listAlgorithmTasks,
   beforeFetch: (params) => {
     // 转换参数格式
+    let is_enabled = undefined;
+    if (params.is_enabled !== '' && params.is_enabled !== undefined) {
+      // 将布尔值转换为整数：true -> 1, false -> 0
+      is_enabled = params.is_enabled === true || params.is_enabled === 'true' ? 1 : 0;
+    }
     return {
       pageNo: params.page,
       pageSize: params.pageSize,
       search: params.search || undefined,
       task_type: params.task_type || undefined,
-      is_enabled: params.is_enabled !== '' && params.is_enabled !== undefined ? params.is_enabled : undefined,
+      is_enabled: is_enabled,
     };
   },
   columns: getBasicColumns(),
@@ -289,11 +294,16 @@ const handleToggleViewMode = () => {
 const loadTasks = async () => {
   loading.value = true;
   try {
-    const response = await listAlgorithmTasks({
+    // 转换搜索参数中的布尔值为整数
+    const params: any = {
       pageNo: page.value,
       pageSize: pageSize.value,
       ...searchParams.value
-    });
+    };
+    if (params.is_enabled !== undefined && params.is_enabled !== '') {
+      params.is_enabled = params.is_enabled === true || params.is_enabled === 'true' ? 1 : 0;
+    }
+    const response = await listAlgorithmTasks(params);
     if (response.code === 0) {
       taskList.value = response.data || [];
       total.value = response.total || 0;
@@ -368,8 +378,8 @@ const [registerForm, { validate }] = useForm({
         placeholder: '请选择启用状态',
         options: [
           { value: '', label: '全部' },
-          { value: true, label: '已启用' },
-          { value: false, label: '已禁用' },
+          { value: 1, label: '已启用' },
+          { value: 0, label: '已禁用' },
         ],
       },
     },
@@ -441,8 +451,10 @@ const handleStop = async (record: AlgorithmTask) => {
 
 const handleToggleEnabled = async (record: AlgorithmTask) => {
   try {
+    // 将布尔值转换为整数：true -> 1, false -> 0
+    const newValue = record.is_enabled ? 0 : 1;
     const response = await updateAlgorithmTask(record.id, {
-      is_enabled: !record.is_enabled,
+      is_enabled: newValue,
     });
     if (response.code === 0) {
       createMessage.success('更新成功');

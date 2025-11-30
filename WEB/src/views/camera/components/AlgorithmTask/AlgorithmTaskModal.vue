@@ -7,25 +7,26 @@
     width="1000"
     placement="right"
     :showFooter="true"
-    :showCancelBtn="true"
-    :showOkBtn="true"
-    cancelText="取消"
-    okText="提交"
+    :showCancelBtn="false"
+    :showOkBtn="false"
   >
     <template #footer>
-      <a-button v-if="!isViewMode" @click="handleReset" class="mr-2">重置</a-button>
-      <a-button @click="handleClose" class="mr-2">取消</a-button>
-      <a-button v-if="!isViewMode" type="primary" :loading="confirmLoading" @click="handleSubmit">提交</a-button>
+      <div class="footer-buttons">
+        <a-button v-if="!isViewMode" @click="handleReset" class="mr-2">重置</a-button>
+        <a-button v-if="!isViewMode" type="primary" :loading="confirmLoading" @click="handleSubmit">提交</a-button>
+      </div>
     </template>
     <a-tabs v-model:activeKey="activeTab">
       <a-tab-pane key="basic" tab="基础配置">
-        <BasicForm @register="registerForm" @field-value-change="handleFieldValueChange" />
-        <div style="margin-top: 24px;" v-if="!isFullDayDefense">
-          <a-divider orientation="left">布防时段配置</a-divider>
-          <DefenseSchedulePicker
-            v-model:modelValue="defenseSchedule"
-            :disabled="isViewMode"
-          />
+        <div class="basic-config-content">
+          <BasicForm @register="registerForm" @field-value-change="handleFieldValueChange" />
+          <div class="defense-schedule-wrapper" v-if="!isFullDayDefense">
+            <a-divider orientation="left">布防时段配置</a-divider>
+            <DefenseSchedulePicker
+              v-model:modelValue="defenseSchedule"
+              :disabled="isViewMode"
+            />
+          </div>
         </div>
       </a-tab-pane>
       <a-tab-pane key="services" tab="算法服务" :disabled="!taskId">
@@ -53,7 +54,7 @@ import {
 } from '@/api/device/algorithm_task';
 import { getDeviceList } from '@/api/device/camera';
 import { getSnapSpaceList } from '@/api/device/snap';
-import { getModelPage } from '@/api/device/model';
+import { getDeployServicePage } from '@/api/device/model';
 import AlgorithmServiceList from './AlgorithmServiceList.vue';
 import DefenseSchedulePicker from './DefenseSchedulePicker.vue';
 
@@ -74,7 +75,7 @@ const defenseSchedule = ref<{ mode: string; schedule: number[][] }>({
 
 const deviceOptions = ref<Array<{ label: string; value: string }>>([]);
 const spaceOptions = ref<Array<{ label: string; value: number }>>([]);
-const modelOptions = ref<Array<{ label: string; value: number }>>([]);
+const modelServiceOptions = ref<Array<{ label: string; value: number }>>([]);
 const pusherOptions = ref<Array<{ label: string; value: number }>>([]);
 
 // 加载设备列表
@@ -103,25 +104,26 @@ const loadSpaces = async () => {
   }
 };
 
-// 加载模型列表
-const loadModels = async () => {
+// 加载模型服务列表
+const loadModelServices = async () => {
   try {
-    const response = await getModelPage({ pageNo: 1, pageSize: 1000 });
+    const response = await getDeployServicePage({ pageNo: 1, pageSize: 1000 });
     if (response.code === 0 && response.data) {
-      modelOptions.value = (response.data || []).map((item: any) => ({
-        label: `${item.name}${item.version ? ` (${item.version})` : ''}`,
-        value: item.id,
+      modelServiceOptions.value = (response.data || []).map((item: any) => ({
+        label: `${item.service_name}${item.model_name ? ` (${item.model_name})` : ''}`,
+        value: item.id, // 使用服务ID
       }));
     }
   } catch (error) {
-    console.error('加载模型列表失败', error);
+    console.error('加载模型服务列表失败', error);
   }
 };
 
 // 加载推送器列表
 const loadPushers = async () => {
   try {
-    const response = await listPushers({ pageNo: 1, pageSize: 1000, is_enabled: true });
+    // 将布尔值转换为整数：true -> 1
+    const response = await listPushers({ pageNo: 1, pageSize: 1000, is_enabled: 1 });
     if (response.code === 0 && response.data) {
       pusherOptions.value = (response.data || []).map((item) => ({
         label: item.pusher_name,
@@ -215,7 +217,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       required: true,
       componentProps: {
         placeholder: '请选择关联模型服务（可多选）',
-        options: modelOptions,
+        options: modelServiceOptions,
         mode: 'multiple',
         showSearch: true,
         allowClear: true,
@@ -223,7 +225,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
           return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
         },
       },
-      helpMessage: '选择要使用的关联模型服务，可多选',
+      helpMessage: '选择要使用的模型服务，可多选',
     },
     {
       field: 'pusher_id',
@@ -280,14 +282,15 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   resetFields();
   
   // 加载选项数据
-  await Promise.all([loadDevices(), loadSpaces(), loadModels(), loadPushers()]);
+  await Promise.all([loadDevices(), loadSpaces(), loadModelServices(), loadPushers()]);
   
   if (modalData.value.record) {
     const record = modalData.value.record;
     taskId.value = record.id;
-    // 提取模型ID列表（从algorithm_services中获取）
-    const modelIds = record.algorithm_services
-      ?.map((service: any) => service.model_id)
+    // 提取模型服务ID列表（从algorithm_services中获取服务ID，如果没有则使用model_id作为服务ID）
+    // 注意：这里需要根据实际后端数据结构调整
+    const serviceIds = record.algorithm_services
+      ?.map((service: any) => service.id || service.service_id)
       .filter((id: number) => id !== null && id !== undefined) || [];
     
     // 恢复布防时段配置
@@ -318,6 +321,11 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     const fullDayDefense = record.defense_mode === 'full';
     isFullDayDefense.value = fullDayDefense;
     
+    // 确保 is_enabled 是布尔值（Switch 组件需要布尔值）
+    const isEnabled = typeof record.is_enabled === 'boolean' 
+      ? record.is_enabled 
+      : (record.is_enabled === 1 || record.is_enabled === '1');
+    
     await setFieldsValue({
       task_name: record.task_name,
       task_type: record.task_type || 'realtime',
@@ -325,9 +333,9 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       space_id: record.space_id,
       cron_expression: record.cron_expression,
       frame_skip: record.frame_skip || 1,
-      model_ids: modelIds,
+      model_ids: serviceIds,
       pusher_id: record.pusher_id,
-      is_enabled: record.is_enabled,
+      is_enabled: isEnabled,
       is_full_day_defense: fullDayDefense,
     });
     
@@ -351,17 +359,17 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     }
   } else {
     // 新建模式，设置默认值
-    isFullDayDefense.value = true;
+    isFullDayDefense.value = true; // 默认全天布防
     await setFieldsValue({
       task_type: 'realtime',
       is_enabled: false,
       frame_skip: 1,
-      is_full_day_defense: true,
+      is_full_day_defense: true, // 默认全天布防
     });
-    // 重置布防时段为默认值
+    // 重置布防时段为默认值（全天布防）
     defenseSchedule.value = {
-      mode: 'full',
-      schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
+      mode: 'full', // 默认全防模式
+      schedule: Array(7).fill(null).map(() => Array(24).fill(1)), // 默认全部填充
     };
     setDrawerProps({ showOkBtn: true });
   }
@@ -371,6 +379,19 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
 const handleFieldValueChange = (key: string, value: any) => {
   if (key === 'is_full_day_defense') {
     isFullDayDefense.value = value !== undefined ? value : true;
+    // 如果切换到非全天布防，设置为半防模式并清空，让用户自己选择
+    if (!value) {
+      defenseSchedule.value = {
+        mode: 'half',
+        schedule: Array(7).fill(null).map(() => Array(24).fill(0)), // 清空，让用户自己选择
+      };
+    } else {
+      // 如果切换到全天布防，设置为全防模式
+      defenseSchedule.value = {
+        mode: 'full',
+        schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
+      };
+    }
   }
 };
 
@@ -379,6 +400,11 @@ const handleSubmit = async () => {
     const values = await validate();
     confirmLoading.value = true;
     setDrawerProps({ confirmLoading: true });
+    
+    // 将布尔值转换为整数：true -> 1, false -> 0
+    if (values.is_enabled !== undefined) {
+      values.is_enabled = values.is_enabled === true || values.is_enabled === 'true' ? 1 : 0;
+    }
     
     // 根据是否全天布防设置布防时段配置
     const fullDayDefense = values.is_full_day_defense !== undefined ? values.is_full_day_defense : true;
@@ -435,24 +461,34 @@ const handleReset = () => {
   resetFields();
   // 如果是新建模式，重置为默认值
   if (!modalData.value.record) {
-    isFullDayDefense.value = true;
+    isFullDayDefense.value = true; // 默认全天布防
     setFieldsValue({
       task_type: 'realtime',
       is_enabled: false,
       frame_skip: 1,
-      is_full_day_defense: true,
+      is_full_day_defense: true, // 默认全天布防
     });
+    // 重置布防时段为默认值（全天布防）
+    defenseSchedule.value = {
+      mode: 'full', // 默认全防模式
+      schedule: Array(7).fill(null).map(() => Array(24).fill(1)), // 默认全部填充
+    };
   } else {
       // 如果是编辑模式，恢复到原始值
       const record = modalData.value.record;
-      // 提取模型ID列表
-      const modelIds = record.algorithm_services
-        ?.map((service: any) => service.model_id)
+      // 提取模型服务ID列表
+      const serviceIds = record.algorithm_services
+        ?.map((service: any) => service.id || service.service_id)
         .filter((id: number) => id !== null && id !== undefined) || [];
       
       // 判断是否全天布防
       const fullDayDefense = record.defense_mode === 'full';
       isFullDayDefense.value = fullDayDefense;
+      
+      // 确保 is_enabled 是布尔值（Switch 组件需要布尔值）
+      const isEnabled = typeof record.is_enabled === 'boolean' 
+        ? record.is_enabled 
+        : (record.is_enabled === 1 || record.is_enabled === '1');
       
       setFieldsValue({
         task_name: record.task_name,
@@ -461,9 +497,9 @@ const handleReset = () => {
         space_id: record.space_id,
         cron_expression: record.cron_expression,
         frame_skip: record.frame_skip || 1,
-        model_ids: modelIds,
+        model_ids: serviceIds,
         pusher_id: record.pusher_id,
-        is_enabled: record.is_enabled,
+        is_enabled: isEnabled,
         is_full_day_defense: fullDayDefense,
       });
       
@@ -483,10 +519,32 @@ const handleReset = () => {
       }
   }
 };
-
-// 关闭抽屉
-const handleClose = () => {
-  closeDrawer();
-};
 </script>
+
+<style lang="less" scoped>
+.basic-config-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  
+  .defense-schedule-wrapper {
+    margin-top: 8px;
+  }
+}
+
+:deep(.ant-tabs-content-holder) {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+:deep(.ant-tabs-tabpane) {
+  padding: 0;
+}
+
+.footer-buttons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+</style>
 

@@ -34,7 +34,7 @@
             :key="`${day.value}-${hour - 1}`"
             class="grid-cell"
             :class="{ active: isActive(day.value, hour - 1) }"
-            @mousedown="handleMouseDown(day.value, hour - 1)"
+            @mousedown="(e) => handleMouseDown(e, day.value, hour - 1)"
             @mouseenter="handleMouseEnter(day.value, hour - 1)"
             @mouseup="handleMouseUp"
           ></div>
@@ -164,14 +164,14 @@ const modeOptions = [
   { label: '夜间模式', value: 'night' },
 ];
 
-const defenseMode = ref<string>(props.modelValue?.mode || 'full');
+const defenseMode = ref<string>(props.modelValue?.mode || 'half');
 const schedule = ref<number[][]>(
-  props.modelValue?.schedule || Array(7).fill(null).map(() => Array(24).fill(1))
+  props.modelValue?.schedule || Array(7).fill(null).map(() => Array(24).fill(0))
 );
 
 // 拖拽状态
 const isDragging = ref(false);
-const dragStart = ref<{ day: number; hour: number } | null>(null);
+const dragStart = ref<{ day: number; hour: number; targetValue?: number } | null>(null);
 const dragEnd = ref<{ day: number; hour: number } | null>(null);
 
 // 监听外部值变化
@@ -245,16 +245,31 @@ const handleModeChange = (value: string) => {
 };
 
 // 鼠标按下
-const handleMouseDown = (day: number, hour: number) => {
+const handleMouseDown = (e: MouseEvent, day: number, hour: number) => {
   if (props.disabled || defenseMode.value !== 'half') return;
+  // 只处理左键
+  if (e.button !== 0) return;
+  
+  e.preventDefault();
+  e.stopPropagation();
   
   isDragging.value = true;
   dragStart.value = { day, hour };
   dragEnd.value = { day, hour };
   
+  // 记录起始单元格的原始状态
+  const startValue = schedule.value[day][hour];
+  // 计算目标值（切换后的值）
+  const targetValue = startValue === 1 ? 0 : 1;
+  
+  // 更新拖拽状态中的目标值
+  if (dragStart.value) {
+    dragStart.value.targetValue = targetValue;
+  }
+  
   // 切换当前单元格状态
-  const currentValue = schedule.value[day][hour];
-  schedule.value[day][hour] = currentValue === 1 ? 0 : 1;
+  schedule.value[day][hour] = targetValue;
+  
   emitValue();
 };
 
@@ -270,8 +285,8 @@ const handleMouseEnter = (day: number, hour: number) => {
   const startHour = Math.min(dragStart.value.hour, dragEnd.value.hour);
   const endHour = Math.max(dragStart.value.hour, dragEnd.value.hour);
   
-  // 确定要设置的值（基于起始单元格的状态）
-  const targetValue = schedule.value[dragStart.value.day][dragStart.value.hour];
+  // 使用保存的目标值（在 mousedown 时切换后的值）
+  const targetValue = dragStart.value.targetValue !== undefined ? dragStart.value.targetValue : 1;
   
   // 更新范围内的所有单元格
   for (let d = startDay; d <= endDay; d++) {
@@ -284,7 +299,10 @@ const handleMouseEnter = (day: number, hour: number) => {
 };
 
 // 鼠标释放
-const handleMouseUp = () => {
+const handleMouseUp = (e: MouseEvent) => {
+  // 只处理左键
+  if (e.button !== 0) return;
+  
   if (isDragging.value) {
     isDragging.value = false;
     dragStart.value = null;
@@ -356,7 +374,7 @@ onUnmounted(() => {
     }
     
     .grid-body {
-      max-height: 400px;
+      max-height: 300px;
       overflow-y: auto;
       
       .grid-row {
@@ -385,6 +403,8 @@ onUnmounted(() => {
           border-right: 1px solid #f0f0f0;
           cursor: pointer;
           transition: all 0.2s;
+          user-select: none; // 防止文本选择
+          -webkit-user-select: none;
           
           &:last-child {
             border-right: none;
