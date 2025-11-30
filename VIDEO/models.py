@@ -209,7 +209,11 @@ class SnapTask(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # 关联的检测区域
-    detection_regions = db.relationship('DetectionRegion', backref='snap_task', lazy=True, cascade='all, delete-orphan')
+    detection_regions = db.relationship('DetectionRegion', 
+                                       primaryjoin='SnapTask.id == DetectionRegion.task_id',
+                                       backref='snap_task', 
+                                       lazy=True, 
+                                       cascade='all, delete-orphan')
     # 关联的推送器
     pusher = db.relationship('Pusher', backref='snap_tasks', lazy=True)
     # 注意：算法模型服务现在关联到AlgorithmTask，不再关联SnapTask
