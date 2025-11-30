@@ -76,6 +76,7 @@ const defenseSchedule = ref<{ mode: string; schedule: number[][] }>({
 const deviceOptions = ref<Array<{ label: string; value: string }>>([]);
 const spaceOptions = ref<Array<{ label: string; value: number }>>([]);
 const deployServiceOptions = ref<Array<{ label: string; value: number }>>([]);
+const deployServiceMap = ref<Map<number, any>>(new Map()); // 存储完整的部署服务信息
 const pusherOptions = ref<Array<{ label: string; value: number }>>([]);
 
 // 加载设备列表
@@ -110,10 +111,19 @@ const loadDeployServices = async () => {
   try {
     const response = await getDeployServicePage({ pageNo: 1, pageSize: 1000 });
     if (response.code === 0 && response.data) {
-      deployServiceOptions.value = (response.data || []).map((item: any) => ({
-        label: `${item.service_name}${item.model_name ? ` (${item.model_name})` : ''}`,
-        value: item.id, // 部署服务ID
-      }));
+      // 清空之前的映射
+      deployServiceMap.value.clear();
+      
+      // 构建选项列表和完整服务信息映射
+      deployServiceOptions.value = (response.data || []).map((item: any) => {
+        // 保存完整的服务信息
+        deployServiceMap.value.set(item.id, item);
+        
+        return {
+          label: `${item.service_name}${item.model_name ? ` (${item.model_name})` : ''}`,
+          value: item.id, // 部署服务ID
+        };
+      });
     }
   } catch (error) {
     console.error('加载部署服务列表失败', error);
@@ -228,7 +238,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       helpMessage: '选择告警通知推送器，不配置则不发送告警通知',
     },
     {
-      field: 'service_ids',
+      field: 'selected_service_ids',
       label: '关联算法服务',
       component: 'Select',
       required: true,
@@ -288,10 +298,32 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   if (modalData.value.record) {
     const record = modalData.value.record;
     taskId.value = record.id;
-    // 提取部署服务ID列表（用于回显）
-    const serviceIds = record.algorithm_services
-      ?.map((service: any) => service.model_id || service.service_id)
-      .filter((id: number) => id !== null && id !== undefined) || [];
+    // 从 algorithm_services 中提取部署服务ID列表（用于回显）
+    // 通过 model_id 或 service_url 匹配部署服务
+    const serviceIds: number[] = [];
+    if (record.algorithm_services && record.algorithm_services.length > 0) {
+      record.algorithm_services.forEach((service: any) => {
+        // 通过 model_id 匹配
+        if (service.model_id) {
+          for (const [id, deployService] of deployServiceMap.value.entries()) {
+            if (deployService.model_id === service.model_id) {
+              serviceIds.push(id);
+              break;
+            }
+          }
+        }
+        // 如果 model_id 匹配不到，尝试通过 service_url 匹配
+        if (service.service_url && serviceIds.length === 0) {
+          for (const [id, deployService] of deployServiceMap.value.entries()) {
+            if (deployService.inference_endpoint === service.service_url || 
+                deployService.service_url === service.service_url) {
+              serviceIds.push(id);
+              break;
+            }
+          }
+        }
+      });
+    }
     
     // 恢复布防时段配置
     if (record.defense_mode && record.defense_schedule) {
@@ -333,7 +365,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       space_id: record.space_id,
       cron_expression: record.cron_expression,
       frame_skip: record.frame_skip || 1,
-      service_ids: serviceIds,
+      selected_service_ids: serviceIds,
       pusher_id: record.pusher_id,
       is_enabled: isEnabled,
       is_full_day_defense: fullDayDefense,
@@ -421,6 +453,33 @@ const handleSubmit = async () => {
     // 移除前端字段，不发送到后端
     delete values.is_full_day_defense;
     
+    // 如果选择了 selected_service_ids，构建 algorithm_services 数组
+    if (values.selected_service_ids && values.selected_service_ids.length > 0) {
+      const algorithmServices = values.selected_service_ids.map((serviceId: number) => {
+        const deployService = deployServiceMap.value.get(serviceId);
+        if (deployService) {
+          return {
+            service_name: deployService.service_name || `Service_${serviceId}`,
+            service_url: deployService.inference_endpoint || deployService.service_url,
+            service_type: deployService.service_type || null,
+            model_id: deployService.model_id || null,
+            threshold: deployService.threshold || null,
+            request_method: deployService.request_method || 'POST',
+            request_headers: deployService.request_headers || null,
+            request_body_template: deployService.request_body_template || null,
+            timeout: deployService.timeout || 30,
+            is_enabled: deployService.is_enabled !== undefined ? deployService.is_enabled : true,
+            sort_order: 0,
+          };
+        }
+        return null;
+      }).filter((service: any) => service !== null);
+      
+      // 使用 algorithm_services
+      values.algorithm_services = algorithmServices;
+      delete values.selected_service_ids; // 删除临时字段
+    }
+    
     if (modalData.value.type === 'edit' && modalData.value.record) {
       const response = await updateAlgorithmTask(modalData.value.record.id, values);
       // 由于 isTransformResponse: true，成功时返回的是任务对象，而不是包含 code 的响应对象
@@ -479,10 +538,31 @@ const handleReset = () => {
   } else {
       // 如果是编辑模式，恢复到原始值
       const record = modalData.value.record;
-      // 提取部署服务ID列表（用于回显）
-      const serviceIds = record.algorithm_services
-        ?.map((service: any) => service.model_id || service.service_id)
-        .filter((id: number) => id !== null && id !== undefined) || [];
+      // 从 algorithm_services 中提取部署服务ID列表（用于回显）
+      const serviceIds: number[] = [];
+      if (record.algorithm_services && record.algorithm_services.length > 0) {
+        record.algorithm_services.forEach((service: any) => {
+          // 通过 model_id 匹配
+          if (service.model_id) {
+            for (const [id, deployService] of deployServiceMap.value.entries()) {
+              if (deployService.model_id === service.model_id) {
+                serviceIds.push(id);
+                break;
+              }
+            }
+          }
+          // 如果 model_id 匹配不到，尝试通过 service_url 匹配
+          if (service.service_url && serviceIds.length === 0) {
+            for (const [id, deployService] of deployServiceMap.value.entries()) {
+              if (deployService.inference_endpoint === service.service_url || 
+                  deployService.service_url === service.service_url) {
+                serviceIds.push(id);
+                break;
+              }
+            }
+          }
+        });
+      }
       
       // 判断是否全天布防
       const fullDayDefense = record.defense_mode === 'full';
@@ -500,7 +580,7 @@ const handleReset = () => {
         space_id: record.space_id,
         cron_expression: record.cron_expression,
         frame_skip: record.frame_skip || 1,
-        service_ids: serviceIds,
+        selected_service_ids: serviceIds,
         pusher_id: record.pusher_id,
         is_enabled: isEnabled,
         is_full_day_defense: fullDayDefense,

@@ -97,7 +97,19 @@ export const createAlgorithmTask = (data: {
   space_id?: number;
   cron_expression?: string;
   frame_skip?: number;
-  service_ids?: number[];
+  algorithm_services?: Array<{
+    service_name: string;
+    service_url: string;
+    service_type?: string;
+    model_id?: number;
+    threshold?: number;
+    request_method?: string;
+    request_headers?: any;
+    request_body_template?: any;
+    timeout?: number;
+    is_enabled?: boolean;
+    sort_order?: number;
+  }>;
   is_enabled?: boolean;
   defense_mode?: string;
   defense_schedule?: string;

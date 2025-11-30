@@ -58,9 +58,9 @@
               </div>
             </template>
             <template #renderItem="{ item }">
-              <ListItem :class="item.run_status === 'running' ? 'task-item normal' : 'task-item error'">
+              <ListItem :class="item.is_enabled ? 'task-item normal' : 'task-item error'">
                 <div class="task-info">
-                  <div class="status">{{ getRunStatusText(item.run_status) }}</div>
+                  <div class="status">{{ item.is_enabled ? '已启用' : '已禁用' }}</div>
                   <div class="title o2">{{ item.task_name || item.id }}</div>
                   <div class="props">
                     <div class="flex" style="justify-content: space-between;">
@@ -150,7 +150,7 @@ import {
 } from '@/api/device/algorithm_task';
 import AlgorithmTaskModal from './AlgorithmTaskModal.vue';
 import { getBasicColumns, getFormConfig } from './Data';
-import PRODUCT_VIDEO_IMAGE from '@/assets/images/product/product_video.png';
+import AI_TASK_IMAGE from '@/assets/images/video/ai-task.png';
 
 const ListItem = List.Item;
 
@@ -319,8 +319,7 @@ const paginationProp = ref({
 
 // 根据任务类型获取图片
 const getTaskImage = (taskType: string) => {
-  // 使用产品视频图片作为算法任务的图标
-  return PRODUCT_VIDEO_IMAGE;
+  return AI_TASK_IMAGE;
 };
 
 // 表单提交
