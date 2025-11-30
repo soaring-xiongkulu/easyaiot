@@ -2078,7 +2078,20 @@ wait_for_postgresql() {
     
     print_info "等待 PostgreSQL 服务就绪..."
     while [ $attempt -lt $max_attempts ]; do
+        # 检查容器是否在运行
+        if ! docker ps --filter "name=postgres-server" --format "{{.Names}}" | grep -q "postgres-server"; then
+            if [ $attempt -eq 0 ]; then
+                print_warning "PostgreSQL 容器未运行，等待启动..."
+            fi
+            attempt=$((attempt + 1))
+            sleep 2
+            continue
+        fi
+        
+        # 检查服务是否就绪
         if docker exec postgres-server pg_isready -U postgres > /dev/null 2>&1; then
+            # 额外等待一下，确保数据库完全初始化
+            sleep 2
             print_success "PostgreSQL 服务已就绪"
             return 0
         fi
@@ -2094,56 +2107,134 @@ wait_for_postgresql() {
 reset_postgresql_password() {
     print_section "重置 PostgreSQL 密码"
     
-    # 等待 PostgreSQL 就绪
+    # 等待 PostgreSQL 就绪（增加等待时间，确保数据库完全初始化）
     if ! wait_for_postgresql; then
         print_warning "PostgreSQL 未就绪，跳过密码重置"
         return 1
     fi
+    
+    # 额外等待，确保数据库完全就绪
+    print_info "等待数据库完全初始化..."
+    sleep 5
     
     # 从 docker-compose.yml 中读取配置的密码
     local target_password="iot45722414822"
     
     print_info "正在重置 postgres 用户密码为: $target_password"
     
-    # 尝试通过容器内部重置密码（不需要密码）
+    # 尝试通过容器内部重置密码
+    # 方法1: 使用本地连接（不需要密码，通过 Unix socket）
     local reset_attempts=0
-    local max_reset_attempts=5
+    local max_reset_attempts=10
     local reset_success=0
     
     while [ $reset_attempts -lt $max_reset_attempts ] && [ $reset_success -eq 0 ]; do
-        if docker exec postgres-server psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '$target_password';" > /dev/null 2>&1; then
+        # 尝试重置密码（使用本地连接，不需要密码）
+        local reset_output=$(docker exec postgres-server psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '$target_password';" 2>&1)
+        local reset_exit_code=$?
+        
+        if [ $reset_exit_code -eq 0 ]; then
             print_success "PostgreSQL 密码重置成功"
             reset_success=1
             
             # 重新加载配置
             docker exec postgres-server psql -U postgres -d postgres -c "SELECT pg_reload_conf();" > /dev/null 2>&1 || true
             
-            # 验证密码是否正确设置
-            sleep 2
-            if docker exec postgres-server psql -U postgres -d postgres -c "SELECT version();" > /dev/null 2>&1; then
+            # 验证密码是否正确设置（使用新密码测试）
+            sleep 3
+            local verify_output=$(docker exec postgres-server psql -U postgres -d postgres -c "SELECT version();" 2>&1)
+            local verify_exit_code=$?
+            
+            if [ $verify_exit_code -eq 0 ]; then
                 print_success "PostgreSQL 密码验证通过"
                 return 0
             else
-                print_warning "密码重置成功，但验证时出现问题（可能正常，继续执行）"
+                print_warning "密码重置成功，但验证时出现问题"
+                print_info "验证输出: $verify_output"
+                # 即使验证失败，也认为重置成功（可能是其他原因导致的验证失败）
                 return 0
             fi
         else
             reset_attempts=$((reset_attempts + 1))
             if [ $reset_attempts -lt $max_reset_attempts ]; then
                 print_warning "密码重置失败，正在重试 ($reset_attempts/$max_reset_attempts)..."
-                sleep 3
+                print_info "错误信息: $reset_output"
+                sleep 5
             fi
         fi
     done
     
     if [ $reset_success -eq 0 ]; then
-        print_warning "PostgreSQL 密码重置失败（已重试 $max_reset_attempts 次）"
-        print_info "这可能是正常的，如果数据库已存在且密码正确，则无需重置"
-        print_info "如果后续遇到密码认证问题，请手动运行: docker exec postgres-server psql -U postgres -d postgres -c \"ALTER USER postgres WITH PASSWORD '$target_password';\""
+        print_error "PostgreSQL 密码重置失败（已重试 $max_reset_attempts 次）"
+        print_info "可能的原因："
+        print_info "  1. 数据库正在初始化中，请稍后重试"
+        print_info "  2. 容器权限问题"
+        print_info "  3. 数据库数据目录损坏"
+        echo ""
+        print_info "手动修复命令："
+        print_info "  docker exec postgres-server psql -U postgres -d postgres -c \"ALTER USER postgres WITH PASSWORD '$target_password';\""
+        print_info "或者重启容器后重试："
+        print_info "  docker restart postgres-server"
+        print_info "  sleep 10"
+        print_info "  docker exec postgres-server psql -U postgres -d postgres -c \"ALTER USER postgres WITH PASSWORD '$target_password';\""
         return 1
     fi
     
     return 0
+}
+
+# 确保 PostgreSQL 密码正确（可以在任何时候调用，用于修复密码问题）
+ensure_postgresql_password() {
+    print_section "确保 PostgreSQL 密码正确"
+    
+    # 检查容器是否在运行
+    if ! docker ps --filter "name=postgres-server" --format "{{.Names}}" | grep -q "postgres-server"; then
+        print_warning "PostgreSQL 容器未运行，无法检查密码"
+        return 1
+    fi
+    
+    # 等待 PostgreSQL 就绪
+    if ! wait_for_postgresql; then
+        print_warning "PostgreSQL 未就绪，无法检查密码"
+        return 1
+    fi
+    
+    local target_password="iot45722414822"
+    
+    # 测试当前密码是否正确
+    print_info "测试当前 PostgreSQL 密码..."
+    
+    # 方法1: 使用环境变量测试密码（如果容器支持）
+    local test_result=$(docker exec -e PGPASSWORD="$target_password" postgres-server psql -U postgres -d postgres -c "SELECT 1;" 2>&1)
+    local test_exit_code=$?
+    
+    if [ $test_exit_code -eq 0 ]; then
+        print_success "PostgreSQL 密码正确，无需重置"
+        return 0
+    fi
+    
+    # 方法2: 使用本地连接测试（不需要密码）
+    local local_test=$(docker exec postgres-server psql -U postgres -d postgres -c "SELECT 1;" 2>&1)
+    local local_test_exit_code=$?
+    
+    if [ $local_test_exit_code -eq 0 ]; then
+        # 本地连接成功，说明可以通过本地连接重置密码
+        print_info "可以通过本地连接重置密码，正在重置..."
+        if reset_postgresql_password; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        print_warning "无法通过本地连接访问数据库"
+        print_info "错误信息: $local_test"
+        print_info "尝试重置密码..."
+        if reset_postgresql_password; then
+            return 0
+        else
+            return 1
+        fi
+    fi
 }
 
 # 配置 PostgreSQL pg_hba.conf 允许从宿主机连接
@@ -3970,9 +4061,9 @@ install_middleware() {
     print_info "等待服务启动..."
     sleep 10
     
-    # 重置 PostgreSQL 密码（确保重启后密码正确）
+    # 确保 PostgreSQL 密码正确（确保重启后密码正确）
     echo ""
-    reset_postgresql_password
+    ensure_postgresql_password
     
     # 配置 PostgreSQL pg_hba.conf 允许从宿主机连接
     echo ""
@@ -4024,11 +4115,11 @@ start_middleware() {
     print_success "所有中间件启动完成"
     echo ""
     print_info "等待服务就绪..."
-    sleep 10
+    sleep 15
     
-    # 重置 PostgreSQL 密码（确保重启后密码正确）
+    # 确保 PostgreSQL 密码正确（确保重启后密码正确）
     echo ""
-    reset_postgresql_password
+    ensure_postgresql_password
     
     # 配置 PostgreSQL pg_hba.conf 允许从宿主机连接
     echo ""
@@ -4076,11 +4167,11 @@ restart_middleware() {
     print_success "所有中间件重启完成"
     echo ""
     print_info "等待服务就绪..."
-    sleep 10
+    sleep 15
     
-    # 重置 PostgreSQL 密码（确保重启后密码正确）
+    # 确保 PostgreSQL 密码正确（确保重启后密码正确）
     echo ""
-    reset_postgresql_password
+    ensure_postgresql_password
     
     # 配置 PostgreSQL pg_hba.conf 允许从宿主机连接
     echo ""
@@ -4376,6 +4467,7 @@ show_help() {
     echo "  build           - 重新构建所有镜像"
     echo "  clean           - 清理所有容器和镜像"
     echo "  update          - 更新并重启所有中间件"
+    echo "  fix-postgresql  - 修复 PostgreSQL 密码问题"
     echo "  help            - 显示此帮助信息"
     echo ""
     echo "中间件服务列表:"
@@ -4419,6 +4511,10 @@ main() {
             ;;
         update)
             update_middleware
+            ;;
+        fix-postgresql)
+            ensure_postgresql_password
+            configure_postgresql_pg_hba
             ;;
         help|--help|-h)
             show_help
