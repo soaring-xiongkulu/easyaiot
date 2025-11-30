@@ -3,6 +3,7 @@ package com.basiclab.iot.common.core.db;
 import com.basiclab.iot.common.core.dataobject.BaseDO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
 
 /**
  * 拓展多租户的 BaseDO 基类
@@ -12,6 +13,7 @@ import lombok.EqualsAndHashCode;
  * @wechat EasyAIoT2025
  */
 @Data
+@Accessors(chain = true)
 @EqualsAndHashCode(callSuper = true)
 public abstract class TenantBaseDO extends BaseDO {
 

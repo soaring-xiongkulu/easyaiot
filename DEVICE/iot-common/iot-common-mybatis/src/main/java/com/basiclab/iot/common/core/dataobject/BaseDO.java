@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fhs.core.trans.vo.TransPojo;
 import lombok.Data;
+import lombok.experimental.Accessors;
 import org.apache.ibatis.type.JdbcType;
 
 import java.io.Serializable;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
  * @wechat EasyAIoT2025
  */
 @Data
+@Accessors(chain = true)
 @JsonIgnoreProperties(value = "transMap") // 由于 Easy-Trans 会添加 transMap 属性，避免 Jackson 在 Spring Cache 反序列化报错
 public abstract class BaseDO implements Serializable, TransPojo {
 
