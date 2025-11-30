@@ -10,7 +10,7 @@ import requests
 from datetime import datetime
 from typing import List, Dict, Optional
 
-from models import db, AlgorithmModelService, RegionModelService, SnapTask, DetectionRegion
+from models import db, AlgorithmModelService, RegionModelService, SnapTask, DetectionRegion, AlgorithmTask
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +20,10 @@ def create_task_algorithm_service(task_id: int, service_name: str, service_url: 
                                   threshold: Optional[float] = None, request_method: str = 'POST',
                                   request_headers: Optional[Dict] = None, request_body_template: Optional[Dict] = None,
                                   timeout: int = 30, is_enabled: bool = True, sort_order: int = 0) -> AlgorithmModelService:
-    """创建任务级别的算法模型服务配置"""
+    """创建任务级别的算法模型服务配置（关联AlgorithmTask）"""
     try:
-        task = SnapTask.query.get_or_404(task_id)
+        # 验证算法任务是否存在
+        task = AlgorithmTask.query.get_or_404(task_id)
         
         headers_json = json.dumps(request_headers) if request_headers else None
         body_template_json = json.dumps(request_body_template) if request_body_template else None

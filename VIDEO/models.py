@@ -209,8 +209,8 @@ class SnapTask(db.Model):
     
     # 关联的检测区域
     detection_regions = db.relationship('DetectionRegion', backref='snap_task', lazy=True, cascade='all, delete-orphan')
-    # 关联的算法模型服务配置
-    algorithm_services = db.relationship('AlgorithmModelService', backref='snap_task', lazy=True, cascade='all, delete-orphan')
+    # 注意：算法模型服务现在关联到AlgorithmTask，不再关联SnapTask
+    # 如果需要为抓拍任务配置算法服务，请使用区域级别的算法服务（RegionModelService）
     
     def to_dict(self):
         """转换为字典"""
@@ -221,8 +221,6 @@ class SnapTask(db.Model):
                 notify_users_data = json.loads(self.notify_users)
             except:
                 notify_users_data = self.notify_users
-        
-        services_list = [s.to_dict() for s in self.algorithm_services] if self.algorithm_services else []
         
         return {
             'id': self.id,
@@ -257,7 +255,6 @@ class SnapTask(db.Model):
             'total_captures': self.total_captures,
             'last_capture_time': self.last_capture_time.isoformat() if self.last_capture_time else None,
             'last_success_time': self.last_success_time.isoformat() if self.last_success_time else None,
-            'algorithm_services': services_list,  # 关联的算法模型服务列表
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -327,12 +324,135 @@ class DetectionRegion(db.Model):
         }
 
 
+class FrameExtractor(db.Model):
+    """抽帧器配置表"""
+    __tablename__ = 'frame_extractor'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    extractor_name = db.Column(db.String(255), nullable=False, comment='抽帧器名称')
+    extractor_code = db.Column(db.String(255), nullable=False, unique=True, comment='抽帧器编号（唯一标识）')
+    extractor_type = db.Column(db.String(50), default='interval', nullable=False, comment='抽帧类型[interval:按间隔,time:按时间]')
+    interval = db.Column(db.Integer, default=1, nullable=False, comment='抽帧间隔（每N帧抽一次，或每N秒抽一次）')
+    description = db.Column(db.String(500), nullable=True, comment='描述')
+    is_enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用')
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        """转换为字典"""
+        return {
+            'id': self.id,
+            'extractor_name': self.extractor_name,
+            'extractor_code': self.extractor_code,
+            'extractor_type': self.extractor_type,
+            'interval': self.interval,
+            'description': self.description,
+            'is_enabled': self.is_enabled,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class Sorter(db.Model):
+    """排序器配置表"""
+    __tablename__ = 'sorter'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    sorter_name = db.Column(db.String(255), nullable=False, comment='排序器名称')
+    sorter_code = db.Column(db.String(255), nullable=False, unique=True, comment='排序器编号（唯一标识）')
+    sorter_type = db.Column(db.String(50), default='confidence', nullable=False, comment='排序类型[confidence:置信度,time:时间,score:分数]')
+    sort_order = db.Column(db.String(10), default='desc', nullable=False, comment='排序顺序[asc:升序,desc:降序]')
+    description = db.Column(db.String(500), nullable=True, comment='描述')
+    is_enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用')
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        """转换为字典"""
+        return {
+            'id': self.id,
+            'sorter_name': self.sorter_name,
+            'sorter_code': self.sorter_code,
+            'sorter_type': self.sorter_type,
+            'sort_order': self.sort_order,
+            'description': self.description,
+            'is_enabled': self.is_enabled,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class AlgorithmTask(db.Model):
+    """算法任务表（用于分析实时RTSP/RTMP流）"""
+    __tablename__ = 'algorithm_task'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    task_name = db.Column(db.String(255), nullable=False, comment='任务名称')
+    task_code = db.Column(db.String(255), nullable=False, unique=True, comment='任务编号（唯一标识）')
+    device_id = db.Column(db.String(100), db.ForeignKey('device.id', ondelete='CASCADE'), nullable=False, comment='关联的摄像头ID')
+    extractor_id = db.Column(db.Integer, db.ForeignKey('frame_extractor.id', ondelete='SET NULL'), nullable=True, comment='关联的抽帧器ID')
+    sorter_id = db.Column(db.Integer, db.ForeignKey('sorter.id', ondelete='SET NULL'), nullable=True, comment='关联的排序器ID')
+    
+    # 状态管理
+    status = db.Column(db.SmallInteger, default=0, nullable=False, comment='状态[0:正常,1:异常]')
+    is_enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用[0:停用,1:启用]')
+    run_status = db.Column(db.String(20), default='stopped', nullable=False, comment='运行状态[running:运行中,stopped:已停止,restarting:重启中]')
+    exception_reason = db.Column(db.String(500), nullable=True, comment='异常原因')
+    
+    # 统计信息
+    total_frames = db.Column(db.Integer, default=0, nullable=False, comment='总处理帧数')
+    total_detections = db.Column(db.Integer, default=0, nullable=False, comment='总检测次数')
+    last_process_time = db.Column(db.DateTime, nullable=True, comment='最后处理时间')
+    last_success_time = db.Column(db.DateTime, nullable=True, comment='最后成功时间')
+    
+    description = db.Column(db.String(500), nullable=True, comment='任务描述')
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 关联关系
+    device = db.relationship('Device', backref='algorithm_tasks', lazy=True)
+    extractor = db.relationship('FrameExtractor', backref='algorithm_tasks', lazy=True)
+    sorter = db.relationship('Sorter', backref='algorithm_tasks', lazy=True)
+    algorithm_services = db.relationship('AlgorithmModelService', backref='algorithm_task', lazy=True, cascade='all, delete-orphan')
+    
+    def to_dict(self):
+        """转换为字典"""
+        services_list = [s.to_dict() for s in self.algorithm_services] if self.algorithm_services else []
+        
+        return {
+            'id': self.id,
+            'task_name': self.task_name,
+            'task_code': self.task_code,
+            'device_id': self.device_id,
+            'device_name': self.device.name if self.device else None,
+            'extractor_id': self.extractor_id,
+            'extractor_name': self.extractor.extractor_name if self.extractor else None,
+            'sorter_id': self.sorter_id,
+            'sorter_name': self.sorter.sorter_name if self.sorter else None,
+            'status': self.status,
+            'is_enabled': self.is_enabled,
+            'run_status': self.run_status,
+            'exception_reason': self.exception_reason,
+            'total_frames': self.total_frames,
+            'total_detections': self.total_detections,
+            'last_process_time': self.last_process_time.isoformat() if self.last_process_time else None,
+            'last_success_time': self.last_success_time.isoformat() if self.last_success_time else None,
+            'description': self.description,
+            'algorithm_services': services_list,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
 class AlgorithmModelService(db.Model):
-    """算法模型服务配置表（任务级别）"""
+    """算法模型服务配置表（算法任务级别）"""
     __tablename__ = 'algorithm_model_service'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    task_id = db.Column(db.Integer, db.ForeignKey('snap_task.id', ondelete='CASCADE'), nullable=False, comment='所属任务ID')
+    task_id = db.Column(db.Integer, db.ForeignKey('algorithm_task.id', ondelete='CASCADE'), nullable=False, comment='所属算法任务ID')
     service_name = db.Column(db.String(255), nullable=False, comment='服务名称')
     service_url = db.Column(db.String(500), nullable=False, comment='AI模型服务请求接口URL')
     service_type = db.Column(db.String(100), nullable=True, comment='服务类型[FIRE:火焰烟雾检测,CROWD:人群聚集计数,SMOKE:吸烟检测等]')
