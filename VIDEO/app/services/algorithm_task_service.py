@@ -9,41 +9,76 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from models import db, AlgorithmTask, Device, FrameExtractor, Sorter, algorithm_task_device
+from models import db, AlgorithmTask, Device, FrameExtractor, Sorter, Pusher, SnapSpace, algorithm_task_device
 
 logger = logging.getLogger(__name__)
 
 
 def create_algorithm_task(task_name: str,
+                         task_type: str = 'realtime',
                          extractor_id: Optional[int] = None,
                          sorter_id: Optional[int] = None,
+                         pusher_id: Optional[int] = None,
                          device_ids: Optional[List[str]] = None,
+                         space_id: Optional[int] = None,
+                         cron_expression: Optional[str] = None,
+                         frame_skip: int = 1,
                          description: Optional[str] = None,
                          is_enabled: bool = True) -> AlgorithmTask:
     """创建算法任务"""
     try:
+        # 验证任务类型
+        if task_type not in ['realtime', 'snap']:
+            raise ValueError(f"无效的任务类型: {task_type}，必须是 'realtime' 或 'snap'")
+        
         device_id_list = device_ids or []
         
         # 验证所有设备是否存在
         for dev_id in device_id_list:
             Device.query.get_or_404(dev_id)
         
-        # 验证抽帧器是否存在（如果提供）
-        if extractor_id:
-            FrameExtractor.query.get_or_404(extractor_id)
+        # 实时算法任务：验证抽帧器和排序器（可选）
+        if task_type == 'realtime':
+            if extractor_id:
+                FrameExtractor.query.get_or_404(extractor_id)
+            if sorter_id:
+                Sorter.query.get_or_404(sorter_id)
+        else:
+            # 抓拍算法任务：不需要抽帧器和排序器
+            extractor_id = None
+            sorter_id = None
         
-        # 验证排序器是否存在（如果提供）
-        if sorter_id:
-            Sorter.query.get_or_404(sorter_id)
+        # 抓拍算法任务：验证抓拍空间
+        if task_type == 'snap':
+            if not space_id:
+                raise ValueError("抓拍算法任务必须指定抓拍空间")
+            SnapSpace.query.get_or_404(space_id)
+            if not cron_expression:
+                raise ValueError("抓拍算法任务必须指定Cron表达式")
+        else:
+            # 实时算法任务：不需要抓拍空间和Cron表达式
+            space_id = None
+            cron_expression = None
+            frame_skip = 1
+        
+        # 验证推送器是否存在（如果提供）
+        if pusher_id:
+            Pusher.query.get_or_404(pusher_id)
         
         # 生成唯一编号
-        task_code = f"ALG_TASK_{uuid.uuid4().hex[:8].upper()}"
+        prefix = "REALTIME_TASK" if task_type == 'realtime' else "SNAP_TASK"
+        task_code = f"{prefix}_{uuid.uuid4().hex[:8].upper()}"
         
         task = AlgorithmTask(
             task_name=task_name,
             task_code=task_code,
+            task_type=task_type,
             extractor_id=extractor_id,
             sorter_id=sorter_id,
+            pusher_id=pusher_id,
+            space_id=space_id,
+            cron_expression=cron_expression,
+            frame_skip=frame_skip,
             description=description,
             is_enabled=is_enabled
         )
@@ -58,7 +93,7 @@ def create_algorithm_task(task_name: str,
         
         db.session.commit()
         
-        logger.info(f"创建算法任务成功: task_id={task.id}, task_name={task_name}, device_ids={device_id_list}")
+        logger.info(f"创建算法任务成功: task_id={task.id}, task_name={task_name}, task_type={task_type}, device_ids={device_id_list}")
         return task
     except Exception as e:
         db.session.rollback()
@@ -70,6 +105,7 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
     """更新算法任务"""
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
+        task_type = kwargs.get('task_type', task.task_type)
         
         # 处理设备ID列表
         device_id_list = kwargs.pop('device_ids', None)
@@ -79,16 +115,37 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             for dev_id in device_id_list:
                 Device.query.get_or_404(dev_id)
         
-        # 验证抽帧器是否存在（如果提供）
-        if 'extractor_id' in kwargs and kwargs['extractor_id']:
-            FrameExtractor.query.get_or_404(kwargs['extractor_id'])
+        # 根据任务类型验证字段
+        if task_type == 'realtime':
+            # 实时算法任务：验证抽帧器和排序器（可选）
+            if 'extractor_id' in kwargs and kwargs['extractor_id']:
+                FrameExtractor.query.get_or_404(kwargs['extractor_id'])
+            if 'sorter_id' in kwargs and kwargs['sorter_id']:
+                Sorter.query.get_or_404(kwargs['sorter_id'])
+            # 清除抓拍相关字段
+            if 'space_id' in kwargs:
+                kwargs['space_id'] = None
+            if 'cron_expression' in kwargs:
+                kwargs['cron_expression'] = None
+            if 'frame_skip' in kwargs:
+                kwargs['frame_skip'] = 1
+        else:
+            # 抓拍算法任务：验证抓拍空间
+            if 'space_id' in kwargs and kwargs['space_id']:
+                SnapSpace.query.get_or_404(kwargs['space_id'])
+            # 清除实时算法任务相关字段
+            if 'extractor_id' in kwargs:
+                kwargs['extractor_id'] = None
+            if 'sorter_id' in kwargs:
+                kwargs['sorter_id'] = None
         
-        # 验证排序器是否存在（如果提供）
-        if 'sorter_id' in kwargs and kwargs['sorter_id']:
-            Sorter.query.get_or_404(kwargs['sorter_id'])
+        # 验证推送器是否存在（如果提供）
+        if 'pusher_id' in kwargs and kwargs['pusher_id']:
+            Pusher.query.get_or_404(kwargs['pusher_id'])
         
         updatable_fields = [
-            'task_name', 'extractor_id', 'sorter_id',
+            'task_name', 'task_type', 'extractor_id', 'sorter_id', 'pusher_id',
+            'space_id', 'cron_expression', 'frame_skip',
             'description', 'is_enabled', 'status', 'exception_reason'
         ]
         
@@ -104,7 +161,7 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
         task.updated_at = datetime.utcnow()
         db.session.commit()
         
-        logger.info(f"更新算法任务成功: task_id={task_id}, device_ids={device_id_list}")
+        logger.info(f"更新算法任务成功: task_id={task_id}, task_type={task_type}, device_ids={device_id_list}")
         return task
     except Exception as e:
         db.session.rollback()
@@ -140,6 +197,7 @@ def get_algorithm_task(task_id: int) -> AlgorithmTask:
 def list_algorithm_tasks(page_no: int = 1, page_size: int = 10,
                         search: Optional[str] = None,
                         device_id: Optional[str] = None,
+                        task_type: Optional[str] = None,
                         is_enabled: Optional[bool] = None) -> dict:
     """查询算法任务列表"""
     try:
@@ -156,6 +214,9 @@ def list_algorithm_tasks(page_no: int = 1, page_size: int = 10,
         if device_id:
             # 通过多对多关系查询
             query = query.filter(AlgorithmTask.devices.any(Device.id == device_id))
+        
+        if task_type:
+            query = query.filter_by(task_type=task_type)
         
         if is_enabled is not None:
             query = query.filter_by(is_enabled=is_enabled)

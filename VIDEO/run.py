@@ -145,7 +145,7 @@ def create_app():
     db.init_app(app)
     with app.app_context():
         try:
-            from models import Device, Image, DeviceDirectory, SnapSpace, SnapTask, DetectionRegion, AlgorithmModelService, RegionModelService, DeviceStorageConfig, Playback, RecordSpace, AlgorithmTask, FrameExtractor, Sorter
+            from models import Device, Image, DeviceDirectory, SnapSpace, SnapTask, DetectionRegion, AlgorithmModelService, RegionModelService, DeviceStorageConfig, Playback, RecordSpace, AlgorithmTask, FrameExtractor, Sorter, Pusher
             db.create_all()
             
             # 迁移：检查并添加缺失的列和表
@@ -200,6 +200,62 @@ def create_app():
                 
                 if directory_id_exists and auto_snap_enabled_exists:
                     print("✅ 数据库迁移检查完成，所有列已存在")
+                
+                # 检查 algorithm_task 表的新字段
+                try:
+                    # 检查 task_type 字段
+                    result = db.session.execute(text("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.columns 
+                            WHERE table_schema = 'public' 
+                            AND table_name = 'algorithm_task' 
+                            AND column_name = 'task_type'
+                        );
+                    """))
+                    task_type_exists = result.scalar()
+                    
+                    if not task_type_exists:
+                        print("⚠️  algorithm_task.task_type 列不存在，正在添加...")
+                        db.session.execute(text("""
+                            ALTER TABLE algorithm_task 
+                            ADD COLUMN task_type VARCHAR(20) NOT NULL DEFAULT 'realtime';
+                        """))
+                        db.session.commit()
+                        print("✅ algorithm_task.task_type 列添加成功")
+                    
+                    # 检查其他新增字段
+                    for col_name, col_def in [
+                        ('space_id', 'INTEGER REFERENCES snap_space(id) ON DELETE CASCADE'),
+                        ('cron_expression', 'VARCHAR(255)'),
+                        ('frame_skip', 'INTEGER NOT NULL DEFAULT 1'),
+                        ('total_captures', 'INTEGER NOT NULL DEFAULT 0'),
+                        ('last_capture_time', 'TIMESTAMP')
+                    ]:
+                        result = db.session.execute(text(f"""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.columns 
+                                WHERE table_schema = 'public' 
+                                AND table_name = 'algorithm_task' 
+                                AND column_name = '{col_name}'
+                            );
+                        """))
+                        col_exists = result.scalar()
+                        
+                        if not col_exists:
+                            print(f"⚠️  algorithm_task.{col_name} 列不存在，正在添加...")
+                            db.session.execute(text(f"""
+                                ALTER TABLE algorithm_task 
+                                ADD COLUMN {col_name} {col_def};
+                            """))
+                            db.session.commit()
+                            print(f"✅ algorithm_task.{col_name} 列添加成功")
+                    
+                    print("✅ algorithm_task 表迁移检查完成")
+                except Exception as e:
+                    print(f"⚠️  algorithm_task 表迁移检查失败: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    db.session.rollback()
             except Exception as e:
                 print(f"⚠️  数据库迁移检查失败: {str(e)}")
                 import traceback

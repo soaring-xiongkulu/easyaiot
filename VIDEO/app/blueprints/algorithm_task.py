@@ -21,6 +21,10 @@ from app.services.sorter_service import (
     create_sorter, update_sorter, delete_sorter,
     get_sorter, list_sorters
 )
+from app.services.pusher_service import (
+    create_pusher, update_pusher, delete_pusher,
+    get_pusher, list_pushers
+)
 from app.services.algorithm_service import (
     create_task_algorithm_service, update_task_algorithm_service,
     delete_task_algorithm_service, get_task_algorithm_services
@@ -39,10 +43,11 @@ def list_tasks():
         page_size = int(request.args.get('pageSize', 10))
         search = request.args.get('search', '').strip() or None
         device_id = request.args.get('device_id', '').strip() or None
+        task_type = request.args.get('task_type', '').strip() or None
         is_enabled = request.args.get('is_enabled')
         is_enabled = bool(int(is_enabled)) if is_enabled else None
         
-        result = list_algorithm_tasks(page_no, page_size, search, device_id, is_enabled)
+        result = list_algorithm_tasks(page_no, page_size, search, device_id, task_type, is_enabled)
         return jsonify({
             'code': 0,
             'msg': 'success',
@@ -85,11 +90,20 @@ def create_task():
         if not task_name:
             return jsonify({'code': 400, 'msg': '任务名称不能为空'}), 400
         
+        task_type = data.get('task_type', 'realtime')
+        if task_type not in ['realtime', 'snap']:
+            return jsonify({'code': 400, 'msg': '任务类型必须是 realtime 或 snap'}), 400
+        
         task = create_algorithm_task(
             task_name=task_name,
+            task_type=task_type,
             extractor_id=data.get('extractor_id'),
             sorter_id=data.get('sorter_id'),
+            pusher_id=data.get('pusher_id'),
             device_ids=data.get('device_ids'),
+            space_id=data.get('space_id'),
+            cron_expression=data.get('cron_expression'),
+            frame_skip=data.get('frame_skip', 1),
             description=data.get('description'),
             is_enabled=data.get('is_enabled', True)
         )
@@ -509,5 +523,125 @@ def delete_task_service(service_id):
         return jsonify({'code': 404, 'msg': str(e)}), 404
     except Exception as e:
         logger.error(f'删除算法服务失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+# ====================== 推送器管理接口 ======================
+@algorithm_task_bp.route('/pusher/list', methods=['GET'])
+def list_pushers_route():
+    """查询推送器列表"""
+    try:
+        page_no = int(request.args.get('pageNo', 1))
+        page_size = int(request.args.get('pageSize', 10))
+        search = request.args.get('search', '').strip() or None
+        is_enabled = request.args.get('is_enabled')
+        is_enabled = bool(int(is_enabled)) if is_enabled else None
+        
+        result = list_pushers(page_no, page_size, search, is_enabled)
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': result['items'],
+            'total': result['total']
+        })
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except Exception as e:
+        logger.error(f'查询推送器列表失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@algorithm_task_bp.route('/pusher/<int:pusher_id>', methods=['GET'])
+def get_pusher_route(pusher_id):
+    """获取推送器详情"""
+    try:
+        pusher = get_pusher(pusher_id)
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': pusher.to_dict()
+        })
+    except ValueError as e:
+        return jsonify({'code': 404, 'msg': str(e)}), 404
+    except Exception as e:
+        logger.error(f'获取推送器失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@algorithm_task_bp.route('/pusher', methods=['POST'])
+def create_pusher_route():
+    """创建推送器"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
+        
+        pusher_name = data.get('pusher_name')
+        if not pusher_name:
+            return jsonify({'code': 400, 'msg': '推送器名称不能为空'}), 400
+        
+        pusher = create_pusher(
+            pusher_name=pusher_name,
+            video_stream_enabled=data.get('video_stream_enabled', False),
+            video_stream_url=data.get('video_stream_url'),
+            video_stream_format=data.get('video_stream_format', 'rtmp'),
+            video_stream_quality=data.get('video_stream_quality', 'high'),
+            event_alert_enabled=data.get('event_alert_enabled', False),
+            event_alert_url=data.get('event_alert_url'),
+            event_alert_method=data.get('event_alert_method', 'http'),
+            event_alert_format=data.get('event_alert_format', 'json'),
+            event_alert_headers=data.get('event_alert_headers'),
+            event_alert_template=data.get('event_alert_template'),
+            description=data.get('description'),
+            is_enabled=data.get('is_enabled', True)
+        )
+        
+        return jsonify({
+            'code': 0,
+            'msg': '创建成功',
+            'data': pusher.to_dict()
+        })
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except Exception as e:
+        logger.error(f'创建推送器失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@algorithm_task_bp.route('/pusher/<int:pusher_id>', methods=['PUT'])
+def update_pusher_route(pusher_id):
+    """更新推送器"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
+        
+        pusher = update_pusher(pusher_id, **data)
+        
+        return jsonify({
+            'code': 0,
+            'msg': '更新成功',
+            'data': pusher.to_dict()
+        })
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except Exception as e:
+        logger.error(f'更新推送器失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@algorithm_task_bp.route('/pusher/<int:pusher_id>', methods=['DELETE'])
+def delete_pusher_route(pusher_id):
+    """删除推送器"""
+    try:
+        delete_pusher(pusher_id)
+        return jsonify({
+            'code': 0,
+            'msg': '删除成功'
+        })
+    except ValueError as e:
+        return jsonify({'code': 404, 'msg': str(e)}), 404
+    except Exception as e:
+        logger.error(f'删除推送器失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 

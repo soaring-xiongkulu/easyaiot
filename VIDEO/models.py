@@ -165,6 +165,7 @@ class SnapTask(db.Model):
     task_code = db.Column(db.String(255), nullable=False, unique=True, comment='任务编号（唯一标识）')
     space_id = db.Column(db.Integer, db.ForeignKey('snap_space.id', ondelete='CASCADE'), nullable=False, comment='所属抓拍空间ID')
     device_id = db.Column(db.String(100), db.ForeignKey('device.id', ondelete='CASCADE'), nullable=False, comment='设备ID')
+    pusher_id = db.Column(db.Integer, db.ForeignKey('pusher.id', ondelete='SET NULL'), nullable=True, comment='关联的推送器ID')
     
     # 抓拍配置
     capture_type = db.Column(db.SmallInteger, default=0, nullable=False, comment='抓拍类型[0:抽帧,1:抓拍]')
@@ -209,6 +210,8 @@ class SnapTask(db.Model):
     
     # 关联的检测区域
     detection_regions = db.relationship('DetectionRegion', backref='snap_task', lazy=True, cascade='all, delete-orphan')
+    # 关联的推送器
+    pusher = db.relationship('Pusher', backref='snap_tasks', lazy=True)
     # 注意：算法模型服务现在关联到AlgorithmTask，不再关联SnapTask
     # 如果需要为抓拍任务配置算法服务，请使用区域级别的算法服务（RegionModelService）
     
@@ -255,6 +258,8 @@ class SnapTask(db.Model):
             'total_captures': self.total_captures,
             'last_capture_time': self.last_capture_time.isoformat() if self.last_capture_time else None,
             'last_success_time': self.last_success_time.isoformat() if self.last_success_time else None,
+            'pusher_id': self.pusher_id,
+            'pusher_name': self.pusher.pusher_name if self.pusher else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -265,7 +270,9 @@ class DetectionRegion(db.Model):
     __tablename__ = 'detection_region'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    task_id = db.Column(db.Integer, db.ForeignKey('snap_task.id', ondelete='CASCADE'), nullable=False, comment='所属任务ID')
+    # 注意：task_id现在可以关联到algorithm_task（统一后的算法任务表）
+    # 为了兼容，暂时保留对snap_task的引用，但新数据应使用algorithm_task
+    task_id = db.Column(db.Integer, nullable=False, comment='所属任务ID（关联到algorithm_task或snap_task）')
     region_name = db.Column(db.String(255), nullable=False, comment='区域名称')
     region_type = db.Column(db.String(50), default='polygon', nullable=False, comment='区域类型[polygon:多边形,rectangle:矩形]')
     points = db.Column(db.Text, nullable=False, comment='区域坐标点(JSON格式，归一化坐标0-1)')
@@ -384,6 +391,72 @@ class Sorter(db.Model):
         }
 
 
+class Pusher(db.Model):
+    """推送器配置表"""
+    __tablename__ = 'pusher'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    pusher_name = db.Column(db.String(255), nullable=False, comment='推送器名称')
+    pusher_code = db.Column(db.String(255), nullable=False, unique=True, comment='推送器编号（唯一标识）')
+    
+    # 推送视频流配置（仅实时算法任务使用）
+    video_stream_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否启用推送视频流')
+    video_stream_url = db.Column(db.String(500), nullable=True, comment='视频流推送地址（RTMP/RTSP等）')
+    video_stream_format = db.Column(db.String(50), default='rtmp', nullable=False, comment='视频流格式[rtmp:RTMP,rtsp:RTSP,webrtc:WebRTC]')
+    video_stream_quality = db.Column(db.String(50), default='high', nullable=False, comment='视频流质量[low:低,medium:中,high:高]')
+    
+    # 推送事件告警配置（实时算法任务和抓拍算法任务都使用）
+    event_alert_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否启用推送事件告警')
+    event_alert_url = db.Column(db.String(500), nullable=True, comment='事件告警推送地址（HTTP/WebSocket/Kafka等）')
+    event_alert_method = db.Column(db.String(20), default='http', nullable=False, comment='事件告警推送方式[http:HTTP,websocket:WebSocket,kafka:Kafka]')
+    event_alert_format = db.Column(db.String(50), default='json', nullable=False, comment='事件告警数据格式[json:JSON,xml:XML]')
+    event_alert_headers = db.Column(db.Text, nullable=True, comment='事件告警请求头（JSON格式）')
+    event_alert_template = db.Column(db.Text, nullable=True, comment='事件告警数据模板（JSON格式，支持变量替换）')
+    
+    description = db.Column(db.String(500), nullable=True, comment='描述')
+    is_enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用')
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        """转换为字典"""
+        import json
+        headers = None
+        if self.event_alert_headers:
+            try:
+                headers = json.loads(self.event_alert_headers)
+            except:
+                headers = self.event_alert_headers
+        
+        template = None
+        if self.event_alert_template:
+            try:
+                template = json.loads(self.event_alert_template)
+            except:
+                template = self.event_alert_template
+        
+        return {
+            'id': self.id,
+            'pusher_name': self.pusher_name,
+            'pusher_code': self.pusher_code,
+            'video_stream_enabled': self.video_stream_enabled,
+            'video_stream_url': self.video_stream_url,
+            'video_stream_format': self.video_stream_format,
+            'video_stream_quality': self.video_stream_quality,
+            'event_alert_enabled': self.event_alert_enabled,
+            'event_alert_url': self.event_alert_url,
+            'event_alert_method': self.event_alert_method,
+            'event_alert_format': self.event_alert_format,
+            'event_alert_headers': headers,
+            'event_alert_template': template,
+            'description': self.description,
+            'is_enabled': self.is_enabled,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
 # 算法任务和摄像头的多对多关联表
 algorithm_task_device = db.Table(
     'algorithm_task_device',
@@ -394,14 +467,27 @@ algorithm_task_device = db.Table(
 
 
 class AlgorithmTask(db.Model):
-    """算法任务表（用于分析实时RTSP/RTMP流）"""
+    """算法任务表（统一管理实时算法任务和抓拍算法任务）"""
     __tablename__ = 'algorithm_task'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     task_name = db.Column(db.String(255), nullable=False, comment='任务名称')
     task_code = db.Column(db.String(255), nullable=False, unique=True, comment='任务编号（唯一标识）')
-    extractor_id = db.Column(db.Integer, db.ForeignKey('frame_extractor.id', ondelete='SET NULL'), nullable=True, comment='关联的抽帧器ID')
-    sorter_id = db.Column(db.Integer, db.ForeignKey('sorter.id', ondelete='SET NULL'), nullable=True, comment='关联的排序器ID')
+    
+    # 任务类型：realtime=实时算法任务（分析RTSP/RTMP流），snap=抓拍算法任务（分析抽帧图片）
+    task_type = db.Column(db.String(20), default='realtime', nullable=False, comment='任务类型[realtime:实时算法任务,snap:抓拍算法任务]')
+    
+    # 抽帧器和排序器（仅实时算法任务使用）
+    extractor_id = db.Column(db.Integer, db.ForeignKey('frame_extractor.id', ondelete='SET NULL'), nullable=True, comment='关联的抽帧器ID（仅实时算法任务）')
+    sorter_id = db.Column(db.Integer, db.ForeignKey('sorter.id', ondelete='SET NULL'), nullable=True, comment='关联的排序器ID（仅实时算法任务）')
+    
+    # 推送器（实时算法任务和抓拍算法任务都使用）
+    pusher_id = db.Column(db.Integer, db.ForeignKey('pusher.id', ondelete='SET NULL'), nullable=True, comment='关联的推送器ID')
+    
+    # 抓拍相关配置（仅抓拍算法任务使用）
+    space_id = db.Column(db.Integer, db.ForeignKey('snap_space.id', ondelete='CASCADE'), nullable=True, comment='所属抓拍空间ID（仅抓拍算法任务）')
+    cron_expression = db.Column(db.String(255), nullable=True, comment='Cron表达式（仅抓拍算法任务）')
+    frame_skip = db.Column(db.Integer, default=1, nullable=False, comment='抽帧间隔（每N帧抓一次，仅抓拍算法任务）')
     
     # 状态管理
     status = db.Column(db.SmallInteger, default=0, nullable=False, comment='状态[0:正常,1:异常]')
@@ -412,8 +498,10 @@ class AlgorithmTask(db.Model):
     # 统计信息
     total_frames = db.Column(db.Integer, default=0, nullable=False, comment='总处理帧数')
     total_detections = db.Column(db.Integer, default=0, nullable=False, comment='总检测次数')
+    total_captures = db.Column(db.Integer, default=0, nullable=False, comment='总抓拍次数（仅抓拍算法任务）')
     last_process_time = db.Column(db.DateTime, nullable=True, comment='最后处理时间')
     last_success_time = db.Column(db.DateTime, nullable=True, comment='最后成功时间')
+    last_capture_time = db.Column(db.DateTime, nullable=True, comment='最后抓拍时间（仅抓拍算法任务）')
     
     description = db.Column(db.String(500), nullable=True, comment='任务描述')
     
@@ -424,7 +512,15 @@ class AlgorithmTask(db.Model):
     devices = db.relationship('Device', secondary=algorithm_task_device, backref='algorithm_task_list', lazy=True)  # 多对多关系
     extractor = db.relationship('FrameExtractor', backref='algorithm_tasks', lazy=True)
     sorter = db.relationship('Sorter', backref='algorithm_tasks', lazy=True)
+    pusher = db.relationship('Pusher', backref='algorithm_tasks', lazy=True)
+    snap_space = db.relationship('SnapSpace', backref='algorithm_tasks', lazy=True)
     algorithm_services = db.relationship('AlgorithmModelService', backref='algorithm_task', lazy=True, cascade='all, delete-orphan')
+    # 检测区域关联（通过task_id关联，支持统一后的算法任务）
+    detection_regions = db.relationship('DetectionRegion', 
+                                       primaryjoin='AlgorithmTask.id == DetectionRegion.task_id',
+                                       backref='algorithm_task_ref', 
+                                       lazy=True, 
+                                       cascade='all, delete-orphan')
     
     def to_dict(self):
         """转换为字典"""
@@ -439,20 +535,29 @@ class AlgorithmTask(db.Model):
             'id': self.id,
             'task_name': self.task_name,
             'task_code': self.task_code,
+            'task_type': self.task_type,
             'device_ids': device_ids,
             'device_names': device_names,
             'extractor_id': self.extractor_id,
             'extractor_name': self.extractor.extractor_name if self.extractor else None,
             'sorter_id': self.sorter_id,
             'sorter_name': self.sorter.sorter_name if self.sorter else None,
+            'pusher_id': self.pusher_id,
+            'pusher_name': self.pusher.pusher_name if self.pusher else None,
+            'space_id': self.space_id,
+            'space_name': self.snap_space.space_name if self.snap_space else None,
+            'cron_expression': self.cron_expression,
+            'frame_skip': self.frame_skip,
             'status': self.status,
             'is_enabled': self.is_enabled,
             'run_status': self.run_status,
             'exception_reason': self.exception_reason,
             'total_frames': self.total_frames,
             'total_detections': self.total_detections,
+            'total_captures': self.total_captures,
             'last_process_time': self.last_process_time.isoformat() if self.last_process_time else None,
             'last_success_time': self.last_success_time.isoformat() if self.last_success_time else None,
+            'last_capture_time': self.last_capture_time.isoformat() if self.last_capture_time else None,
             'description': self.description,
             'algorithm_services': services_list,
             'created_at': self.created_at.isoformat() if self.created_at else None,
