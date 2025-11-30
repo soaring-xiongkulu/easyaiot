@@ -45,6 +45,7 @@ import {
 } from '@/api/device/snap';
 import { getSnapSpaceList } from '@/api/device/snap';
 import { getDeviceList } from '@/api/device/camera';
+import { listPushers } from '@/api/device/algorithm_task';
 import RegionDrawer from '../RegionDrawer/index.vue';
 
 defineOptions({ name: 'SnapTaskModal' });
@@ -61,6 +62,7 @@ const initialImagePath = ref<string | null>(null);
 
 const spaceOptions = ref<Array<{ label: string; value: number }>>([]);
 const deviceOptions = ref<Array<{ label: string; value: string }>>([]);
+const pusherOptions = ref<Array<{ label: string; value: number }>>([]);
 
 // 加载空间列表
 const loadSpaces = async () => {
@@ -85,6 +87,19 @@ const loadDevices = async () => {
     }));
   } catch (error) {
     console.error('加载设备列表失败', error);
+  }
+};
+
+// 加载推送器列表
+const loadPushers = async () => {
+  try {
+    const response = await listPushers({ pageNo: 1, pageSize: 1000 });
+    pusherOptions.value = (response.data || []).map((item) => ({
+      label: item.pusher_name,
+      value: item.id,
+    }));
+  } catch (error) {
+    console.error('加载推送器列表失败', error);
   }
 };
 
@@ -250,6 +265,16 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       ifShow: ({ values }) => values.alarm_enabled && (values.alarm_type === 1 || values.alarm_type === 2),
     },
     {
+      field: 'pusher_id',
+      label: '推送器',
+      component: 'Select',
+      componentProps: {
+        placeholder: '请选择推送器（可选）',
+        options: pusherOptions,
+        allowClear: true,
+      },
+    },
+    {
       field: 'auto_filename',
       label: '自动命名',
       component: 'Switch',
@@ -314,6 +339,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   // 加载选项数据
   await loadSpaces();
   await loadDevices();
+  await loadPushers();
   
   if (data.type === 'edit' && data.record) {
     taskId.value = data.record.id;
@@ -356,6 +382,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       alarm_type: data.record.alarm_type,
       phone_number: data.record.phone_number,
       email: data.record.email,
+      pusher_id: data.record.pusher_id,
       auto_filename: data.record.auto_filename,
       custom_filename_prefix: data.record.custom_filename_prefix,
     });

@@ -4,21 +4,48 @@
  * @email andywebjava@163.com
  * @wechat EasyAIoT2025
  */
-import { commonApi } from '../index';
+import {defHttp} from '@/utils/http/axios';
 
 const ALGORITHM_PREFIX = '/video/algorithm';
+
+// 通用请求封装
+const commonApi = <T = any>(method: 'get' | 'post' | 'delete' | 'put', url: string, options: { params?: any; data?: any } = {}) => {
+  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+
+  return defHttp[method]({
+    url,
+    headers: {
+      // @ts-ignore
+      ignoreCancelToken: true,
+    },
+    ...(method === 'get' ? { params: options.params } : { data: options.data || options.params }),
+  }, {
+    isTransformResponse: true,
+  }) as Promise<T>;
+};
 
 // ====================== 算法任务管理接口 ======================
 export interface AlgorithmTask {
   id: number;
   task_name: string;
   task_code: string;
+  task_type: 'realtime' | 'snap'; // realtime:实时算法任务, snap:抓拍算法任务
   device_ids?: string[];
   device_names?: string[];
   extractor_id?: number;
   extractor_name?: string;
   sorter_id?: number;
   sorter_name?: string;
+  pusher_id?: number;
+  pusher_name?: string;
+  // 抓拍相关字段（仅抓拍算法任务）
+  space_id?: number;
+  space_name?: string;
+  cron_expression?: string;
+  frame_skip?: number;
+  total_captures?: number;
+  last_capture_time?: string;
+  // 通用字段
   status: number; // 0:正常, 1:异常
   is_enabled: boolean;
   run_status: string; // running:运行中, stopped:已停止, restarting:重启中
@@ -45,6 +72,7 @@ export const listAlgorithmTasks = (params?: {
   pageSize?: number;
   search?: string;
   device_id?: string;
+  task_type?: 'realtime' | 'snap';
   is_enabled?: boolean;
 }) => {
   return commonApi<AlgorithmTaskListResponse>('get', `${ALGORITHM_PREFIX}/task/list`, { params });
@@ -59,9 +87,14 @@ export const getAlgorithmTask = (task_id: number) => {
 
 export const createAlgorithmTask = (data: {
   task_name: string;
+  task_type?: 'realtime' | 'snap';
   extractor_id?: number;
   sorter_id?: number;
+  pusher_id?: number;
   device_ids?: string[];
+  space_id?: number;
+  cron_expression?: string;
+  frame_skip?: number;
   description?: string;
   is_enabled?: boolean;
 }) => {
@@ -283,5 +316,83 @@ export const updateTaskService = (service_id: number, data: Partial<AlgorithmMod
 
 export const deleteTaskService = (service_id: number) => {
   return commonApi('delete', `${ALGORITHM_PREFIX}/task/service/${service_id}`);
+};
+
+// ====================== 推送器管理接口 ======================
+export interface Pusher {
+  id: number;
+  pusher_name: string;
+  pusher_code: string;
+  video_stream_enabled: boolean;
+  video_stream_url?: string;
+  video_stream_format: string; // rtmp:RTMP, rtsp:RTSP, webrtc:WebRTC
+  video_stream_quality: string; // low:低, medium:中, high:高
+  event_alert_enabled: boolean;
+  event_alert_url?: string;
+  event_alert_method: string; // http:HTTP, websocket:WebSocket, kafka:Kafka
+  event_alert_format: string; // json:JSON, xml:XML
+  event_alert_headers?: any;
+  event_alert_template?: any;
+  description?: string;
+  is_enabled: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface PusherListResponse {
+  code: number;
+  msg: string;
+  data: Pusher[];
+  total: number;
+}
+
+export const listPushers = (params?: {
+  pageNo?: number;
+  pageSize?: number;
+  search?: string;
+  is_enabled?: boolean;
+}) => {
+  return commonApi<PusherListResponse>('get', `${ALGORITHM_PREFIX}/pusher/list`, { params });
+};
+
+export const getPusher = (pusher_id: number) => {
+  return commonApi<{ code: number; msg: string; data: Pusher }>(
+    'get',
+    `${ALGORITHM_PREFIX}/pusher/${pusher_id}`
+  );
+};
+
+export const createPusher = (data: {
+  pusher_name: string;
+  video_stream_enabled?: boolean;
+  video_stream_url?: string;
+  video_stream_format?: string;
+  video_stream_quality?: string;
+  event_alert_enabled?: boolean;
+  event_alert_url?: string;
+  event_alert_method?: string;
+  event_alert_format?: string;
+  event_alert_headers?: any;
+  event_alert_template?: any;
+  description?: string;
+  is_enabled?: boolean;
+}) => {
+  return commonApi<{ code: number; msg: string; data: Pusher }>(
+    'post',
+    `${ALGORITHM_PREFIX}/pusher`,
+    { data }
+  );
+};
+
+export const updatePusher = (pusher_id: number, data: Partial<Pusher>) => {
+  return commonApi<{ code: number; msg: string; data: Pusher }>(
+    'put',
+    `${ALGORITHM_PREFIX}/pusher/${pusher_id}`,
+    { data }
+  );
+};
+
+export const deletePusher = (pusher_id: number) => {
+  return commonApi('delete', `${ALGORITHM_PREFIX}/pusher/${pusher_id}`);
 };
 

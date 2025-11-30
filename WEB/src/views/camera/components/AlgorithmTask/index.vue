@@ -3,7 +3,7 @@
     <div class="page-header">
       <div class="header-left">
         <h2>算法任务管理</h2>
-        <p class="description">管理用于分析实时RTSP/RTMP流的算法任务</p>
+        <p class="description">统一管理实时算法任务（分析RTSP/RTMP流）和抓拍算法任务（分析抽帧图片）</p>
       </div>
       <div class="header-right">
         <a-button type="primary" @click="handleCreate">
@@ -45,6 +45,12 @@
               </a-dropdown>
             </template>
             <div class="card-content">
+              <div class="info-item">
+                <span class="label">任务类型:</span>
+                <a-tag :color="item.task_type === 'realtime' ? 'blue' : 'green'">
+                  {{ item.task_type === 'realtime' ? '实时算法任务' : '抓拍算法任务' }}
+                </a-tag>
+              </div>
               <div class="info-item" v-if="item.extractor_name">
                 <span class="label">抽帧器:</span>
                 <span class="value">{{ item.extractor_name }}</span>
@@ -52,6 +58,14 @@
               <div class="info-item" v-if="item.sorter_name">
                 <span class="label">排序器:</span>
                 <span class="value">{{ item.sorter_name }}</span>
+              </div>
+              <div class="info-item" v-if="item.pusher_name">
+                <span class="label">推送器:</span>
+                <span class="value">{{ item.pusher_name }}</span>
+              </div>
+              <div class="info-item" v-if="item.space_name">
+                <span class="label">抓拍空间:</span>
+                <span class="value">{{ item.space_name }}</span>
               </div>
               <div class="info-item" v-if="item.device_names && item.device_names.length > 0">
                 <span class="label">关联摄像头:</span>
@@ -67,13 +81,17 @@
                 <span class="label">启用状态:</span>
                 <a-switch :checked="item.is_enabled" size="small" @change="handleToggleEnabled(item)" />
               </div>
-              <div class="info-item">
+              <div class="info-item" v-if="item.task_type === 'realtime'">
                 <span class="label">处理帧数:</span>
                 <span class="value">{{ item.total_frames || 0 }}</span>
               </div>
-              <div class="info-item">
+              <div class="info-item" v-if="item.task_type === 'realtime'">
                 <span class="label">检测次数:</span>
                 <span class="value">{{ item.total_detections || 0 }}</span>
+              </div>
+              <div class="info-item" v-if="item.task_type === 'snap'">
+                <span class="label">抓拍次数:</span>
+                <span class="value">{{ item.total_captures || 0 }}</span>
               </div>
               <div class="info-item" v-if="item.algorithm_services">
                 <span class="label">算法服务:</span>

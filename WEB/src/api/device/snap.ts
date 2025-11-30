@@ -117,6 +117,8 @@ export interface SnapTask {
   total_captures: number;
   last_capture_time?: string;
   last_success_time?: string;
+  pusher_id?: number;
+  pusher_name?: string;
   algorithm_services?: AlgorithmModelService[]; // 关联的算法模型服务列表
   created_at?: string;
   updated_at?: string;
