@@ -85,7 +85,7 @@
                     <div class="btn" @click="handleEdit(item)">
                       <Icon icon="ant-design:edit-filled" :size="15" color="#3B82F6" />
                     </div>
-                    <div class="btn" @click="handleManageServices(item)" title="服务管理">
+                    <div class="btn" @click="handleManageServices(item)" title="帧管道管理器">
                       <Icon icon="ant-design:setting-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <div class="btn" v-if="item.run_status === 'running'" @click="handleStop(item)">
@@ -234,7 +234,7 @@ const getTableActions = (record: AlgorithmTask) => {
     },
     {
       icon: 'ant-design:setting-outlined',
-      tooltip: '服务管理',
+      tooltip: '帧管道管理器',
       onClick: () => handleManageServices(record),
     },
   ];

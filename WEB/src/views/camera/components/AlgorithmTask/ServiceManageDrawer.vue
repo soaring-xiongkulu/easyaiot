@@ -3,8 +3,8 @@
     v-bind="$attrs"
     @register="register"
     :title="drawerTitle"
-    width="800px"
-    :maskClosable="false"
+    width="1200px"
+    :maskClosable="true"
   >
     <div class="service-manage-container">
       <a-spin :spinning="loading">
@@ -136,15 +136,49 @@ const sorterInfo = ref<Sorter | null>(null);
 const pusherInfo = ref<Pusher | null>(null);
 
 const drawerTitle = computed(() => {
-  if (taskInfo.value) {
-    return `服务管理 - ${taskInfo.value.task_name}`;
-  }
-  return '服务管理';
+  return '帧管道管理器';
 });
 
 // 服务列表
 const serviceList = computed(() => {
   const list: any[] = [];
+  
+  // 添加算法服务
+  if (taskInfo.value && taskInfo.value.algorithm_services && Array.isArray(taskInfo.value.algorithm_services)) {
+    taskInfo.value.algorithm_services.forEach((service: any) => {
+      let server_ip: string | undefined;
+      let port: string | undefined;
+      
+      // 尝试解析服务 URL
+      if (service.service_url) {
+        try {
+          const url = new URL(service.service_url);
+          server_ip = url.hostname;
+          port = url.port || (url.protocol === 'https:' ? '443' : '80');
+        } catch (e) {
+          // URL 解析失败，尝试从字符串中提取
+          const match = service.service_url.match(/https?:\/\/([^:]+)(?::(\d+))?/);
+          if (match) {
+            server_ip = match[1];
+            port = match[2] || (service.service_url.includes('https') ? '443' : '80');
+          }
+        }
+      }
+      
+      list.push({
+        id: `algorithm_${service.id}`,
+        service_type: 'algorithm',
+        service_name: service.service_name || '算法服务',
+        status: service.is_enabled ? 'running' : 'stopped',
+        server_ip,
+        port,
+        process_id: undefined,
+        last_heartbeat: undefined,
+        log_path: undefined,
+        raw_data: service,
+      });
+    });
+  }
   
   if (extractorInfo.value) {
     list.push({
@@ -222,6 +256,7 @@ const columns = [
 // 获取服务图标
 const getServiceIcon = (serviceType: string) => {
   const iconMap: Record<string, string> = {
+    algorithm: 'ant-design:robot-outlined',
     extractor: 'ant-design:file-image-outlined',
     sorter: 'ant-design:sort-ascending-outlined',
     pusher: 'ant-design:send-outlined',
@@ -274,13 +309,22 @@ const loadServiceInfo = async (taskId: number) => {
   loading.value = true;
   try {
     // 获取任务详情
+    // 注意：由于响应转换器在 isTransformResponse: true 时，如果 code === 0 且没有 total 字段，
+    // 会直接返回 data.data（即任务对象本身），而不是包含 code 的完整响应
     const taskResponse = await getAlgorithmTask(taskId);
-    if (taskResponse.code !== 0) {
-      createMessage.error(taskResponse.msg || '获取任务信息失败');
-      return;
-    }
     
-    taskInfo.value = taskResponse.data;
+    // 检查返回的是完整响应对象还是直接的数据对象
+    if (taskResponse && typeof taskResponse === 'object' && 'code' in taskResponse) {
+      // 如果是完整响应对象（包含 code 字段）
+      if (taskResponse.code !== 0) {
+        createMessage.error(taskResponse.msg || '获取任务信息失败');
+        return;
+      }
+      taskInfo.value = taskResponse.data;
+    } else {
+      // 如果直接返回的是数据对象（响应转换器已处理）
+      taskInfo.value = taskResponse as AlgorithmTask;
+    }
     
     // 并行获取三个服务的信息
     const promises: Promise<any>[] = [];
@@ -320,20 +364,41 @@ const loadServiceInfo = async (taskId: number) => {
     
     const results = await Promise.all(promises);
     
-    if (results[0] && results[0].code === 0) {
-      extractorInfo.value = results[0].data;
+    // 处理抽帧器响应
+    if (results[0]) {
+      if (results[0] && typeof results[0] === 'object' && 'code' in results[0]) {
+        // 完整响应对象
+        extractorInfo.value = results[0].code === 0 ? results[0].data : null;
+      } else {
+        // 直接返回的数据对象
+        extractorInfo.value = results[0] as FrameExtractor;
+      }
     } else {
       extractorInfo.value = null;
     }
     
-    if (results[1] && results[1].code === 0) {
-      sorterInfo.value = results[1].data;
+    // 处理排序器响应
+    if (results[1]) {
+      if (results[1] && typeof results[1] === 'object' && 'code' in results[1]) {
+        // 完整响应对象
+        sorterInfo.value = results[1].code === 0 ? results[1].data : null;
+      } else {
+        // 直接返回的数据对象
+        sorterInfo.value = results[1] as Sorter;
+      }
     } else {
       sorterInfo.value = null;
     }
     
-    if (results[2] && results[2].code === 0) {
-      pusherInfo.value = results[2].data;
+    // 处理推送器响应
+    if (results[2]) {
+      if (results[2] && typeof results[2] === 'object' && 'code' in results[2]) {
+        // 完整响应对象
+        pusherInfo.value = results[2].code === 0 ? results[2].data : null;
+      } else {
+        // 直接返回的数据对象
+        pusherInfo.value = results[2] as Pusher;
+      }
     } else {
       pusherInfo.value = null;
     }
@@ -377,6 +442,12 @@ const handleStop = async (record: any) => {
 
 // 注册抽屉
 const [register] = useDrawerInner(async (data) => {
+  // 重置状态
+  taskInfo.value = null;
+  extractorInfo.value = null;
+  sorterInfo.value = null;
+  pusherInfo.value = null;
+  
   if (data && data.taskId) {
     await loadServiceInfo(data.taskId);
   }
