@@ -85,6 +85,9 @@
                     <div class="btn" @click="handleEdit(item)">
                       <Icon icon="ant-design:edit-filled" :size="15" color="#3B82F6" />
                     </div>
+                    <div class="btn" @click="handleManageServices(item)" title="服务管理">
+                      <Icon icon="ant-design:setting-outlined" :size="15" color="#3B82F6" />
+                    </div>
                     <div class="btn" v-if="item.run_status === 'running'" @click="handleStop(item)">
                       <Icon icon="ant-design:pause-circle-outlined" :size="15" color="#3B82F6" />
                     </div>
@@ -119,6 +122,9 @@
 
     <!-- 创建/编辑模态框 -->
     <AlgorithmTaskModal @register="registerModal" @success="handleSuccess" />
+    
+    <!-- 服务管理抽屉 -->
+    <ServiceManageDrawer @register="registerServiceDrawer" />
   </div>
 </template>
 
@@ -149,6 +155,7 @@ import {
   type AlgorithmTask,
 } from '@/api/device/algorithm_task';
 import AlgorithmTaskModal from './AlgorithmTaskModal.vue';
+import ServiceManageDrawer from './ServiceManageDrawer.vue';
 import { getBasicColumns, getFormConfig } from './Data';
 import AI_TASK_IMAGE from '@/assets/images/video/ai-task.png';
 
@@ -165,6 +172,7 @@ const viewMode = ref<'table' | 'card'>('card');
 const taskList = ref<AlgorithmTask[]>([]);
 const loading = ref(false);
 const [registerModal, { openDrawer }] = useDrawer();
+const [registerServiceDrawer, { openDrawer: openServiceDrawer }] = useDrawer();
 
 // 分页相关
 const page = ref(1);
@@ -223,6 +231,11 @@ const getTableActions = (record: AlgorithmTask) => {
       icon: 'ant-design:edit-filled',
       tooltip: '编辑',
       onClick: () => handleEdit(record),
+    },
+    {
+      icon: 'ant-design:setting-outlined',
+      tooltip: '服务管理',
+      onClick: () => handleManageServices(record),
     },
   ];
 
@@ -389,6 +402,10 @@ const handleView = (record: AlgorithmTask) => {
 
 const handleEdit = (record: AlgorithmTask) => {
   openDrawer(true, { type: 'edit', record });
+};
+
+const handleManageServices = (record: AlgorithmTask) => {
+  openServiceDrawer(true, { taskId: record.id });
 };
 
 const handleDelete = async (record: AlgorithmTask) => {

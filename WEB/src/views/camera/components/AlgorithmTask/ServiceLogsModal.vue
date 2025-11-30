@@ -39,6 +39,11 @@ import { ref, nextTick } from 'vue';
 import { BasicModal, useModalInner } from '@/components/Modal';
 import { Button, Spin, Empty } from 'ant-design-vue';
 import { ReloadOutlined, FileTextOutlined } from '@ant-design/icons-vue';
+import {
+  getTaskExtractorLogs,
+  getTaskSorterLogs,
+  getTaskPusherLogs,
+} from '@/api/device/algorithm_task';
 
 defineOptions({ name: 'ServiceLogsModal' });
 
@@ -46,17 +51,62 @@ const loading = ref(false);
 const logs = ref('');
 const logsContentRef = ref();
 const title = ref('服务日志');
+const logParams = ref<{
+  taskId?: number;
+  serviceType?: string;
+}>({});
 
-const [register, { closeModal }] = useModalInner((data) => {
+const [register, { closeModal }] = useModalInner(async (data) => {
   if (data) {
     title.value = data.title || '服务日志';
     logs.value = data.logs || '';
+    logParams.value = {
+      taskId: data.taskId,
+      serviceType: data.serviceType,
+    };
+    
+    // 如果有参数，自动加载日志
+    if (data.taskId && data.serviceType && !data.logs) {
+      await loadLogs(data.taskId, data.serviceType);
+    }
   }
 });
 
-const handleRefresh = () => {
-  // 刷新逻辑由父组件处理
-  // 这里可以触发事件通知父组件刷新
+const loadLogs = async (taskId: number, serviceType: string) => {
+  loading.value = true;
+  try {
+    let logsResponse;
+    
+    if (serviceType === 'extractor') {
+      logsResponse = await getTaskExtractorLogs(taskId, { lines: 500 });
+    } else if (serviceType === 'sorter') {
+      logsResponse = await getTaskSorterLogs(taskId, { lines: 500 });
+    } else if (serviceType === 'pusher') {
+      logsResponse = await getTaskPusherLogs(taskId, { lines: 500 });
+    } else {
+      return;
+    }
+    
+    if (logsResponse.code === 0) {
+      logs.value = logsResponse.data.logs || '暂无日志';
+      nextTick(() => {
+        scrollToBottom();
+      });
+    } else {
+      logs.value = `获取日志失败: ${logsResponse.msg || '未知错误'}`;
+    }
+  } catch (error) {
+    console.error('获取日志失败', error);
+    logs.value = '获取日志失败';
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleRefresh = async () => {
+  if (logParams.value.taskId && logParams.value.serviceType) {
+    await loadLogs(logParams.value.taskId, logParams.value.serviceType);
+  }
 };
 
 const scrollToBottom = () => {
