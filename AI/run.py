@@ -168,8 +168,11 @@ def create_app():
     port = int(os.getenv('FLASK_RUN_PORT', 5000))
     
     # 如果配置了 SERVER_NAME，使用它；否则根据 host 和 port 构建
+    # 如果设置为空字符串、"none" 或 "disable"，则不设置 SERVER_NAME（避免警告）
     server_name = os.getenv('FLASK_SERVER_NAME')
-    if not server_name:
+    if server_name and server_name.lower() in ('none', 'disable', ''):
+        server_name = None
+    elif not server_name:
         # 如果 host 是 0.0.0.0，尝试获取实际 IP
         if host == '0.0.0.0':
             try:
@@ -182,10 +185,12 @@ def create_app():
         else:
             server_name = f"{host}:{port}"
     
-    app.config['SERVER_NAME'] = server_name
+    # 只在设置了 server_name 时才配置，避免 localhost 访问时的警告
+    if server_name:
+        app.config['SERVER_NAME'] = server_name
     app.config['APPLICATION_ROOT'] = os.getenv('FLASK_APPLICATION_ROOT', '/')
     app.config['PREFERRED_URL_SCHEME'] = os.getenv('FLASK_PREFERRED_URL_SCHEME', 'http')
-    print(f"✅ Flask URL配置: SERVER_NAME={server_name}, APPLICATION_ROOT={app.config['APPLICATION_ROOT']}, PREFERRED_URL_SCHEME={app.config['PREFERRED_URL_SCHEME']}")
+    print(f"✅ Flask URL配置: SERVER_NAME={server_name or '(未设置，从请求推断)'}, APPLICATION_ROOT={app.config['APPLICATION_ROOT']}, PREFERRED_URL_SCHEME={app.config['PREFERRED_URL_SCHEME']}")
 
     # 创建数据目录
     os.makedirs('data/uploads', exist_ok=True)

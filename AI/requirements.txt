@@ -3,6 +3,7 @@
 setuptools<81
 Flask==2.3.2
 Flask-SQLAlchemy==3.0.5
+Flask-CORS>=3.0.0
 # 图像识别
 ultralytics==8.3.141
 # PyTorch（OpenVINO 2025.3.0需要PyTorch 2.1+）
