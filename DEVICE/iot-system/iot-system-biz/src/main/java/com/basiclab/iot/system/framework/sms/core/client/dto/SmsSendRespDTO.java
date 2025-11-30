@@ -1,6 +1,7 @@
 package com.basiclab.iot.system.framework.sms.core.client.dto;
 
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 /**
  * 短信发送 Response DTO
@@ -10,6 +11,7 @@ import lombok.Data;
  * @wechat EasyAIoT2025
  */
 @Data
+@Accessors(chain = true)
 public class SmsSendRespDTO {
 
     /**

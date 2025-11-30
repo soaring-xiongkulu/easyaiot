@@ -1,6 +1,7 @@
 package com.basiclab.iot.system.framework.sms.core.client.dto;
 
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 import java.time.LocalDateTime;
 
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
  * @wechat EasyAIoT2025
  */
 @Data
+@Accessors(chain = true)
 public class SmsReceiveRespDTO {
 
     /**

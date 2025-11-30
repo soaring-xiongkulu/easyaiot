@@ -2,6 +2,7 @@ package com.basiclab.iot.system.framework.sms.core.client.dto;
 
 import com.basiclab.iot.system.framework.sms.core.enums.SmsTemplateAuditStatusEnum;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 /**
  * 短信模板 Response DTO
@@ -11,6 +12,7 @@ import lombok.Data;
  * @wechat EasyAIoT2025
  */
 @Data
+@Accessors(chain = true)
 public class SmsTemplateRespDTO {
 
     /**
