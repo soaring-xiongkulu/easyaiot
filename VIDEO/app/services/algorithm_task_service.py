@@ -426,7 +426,7 @@ def list_algorithm_tasks(page_no: int = 1, page_size: int = 10,
         # 分页
         offset = (page_no - 1) * page_size
         tasks = query.order_by(
-            AlgorithmTask.created_at.desc()
+            AlgorithmTask.updated_at.desc()
         ).offset(offset).limit(page_size).all()
         
         return {
