@@ -2,6 +2,7 @@ package com.basiclab.iot.system.framework.sms.core.property;
 
 import com.basiclab.iot.system.framework.sms.core.enums.SmsChannelEnum;
 import lombok.Data;
+import lombok.experimental.Accessors;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotEmpty;
@@ -15,6 +16,7 @@ import javax.validation.constraints.NotNull;
  * @wechat EasyAIoT2025
  */
 @Data
+@Accessors(chain = true)
 @Validated
 public class SmsChannelProperties {
 
