@@ -173,17 +173,22 @@ def create_app():
     if server_name and server_name.lower() in ('none', 'disable', ''):
         server_name = None
     elif not server_name:
-        # 如果 host 是 0.0.0.0，尝试获取实际 IP
-        if host == '0.0.0.0':
-            try:
-                actual_ip = os.getenv('POD_IP') or get_local_ip()
-                server_name = f"{actual_ip}:{port}"
-            except Exception as e:
-                # 如果无法获取 IP，使用 localhost
-                print(f"⚠️  无法获取本地IP，使用localhost作为SERVER_NAME: {str(e)}")
-                server_name = f"localhost:{port}"
+        # 如果设置了 FLASK_AUTO_SERVER_NAME=false，则不自动设置 SERVER_NAME
+        auto_server_name = os.getenv('FLASK_AUTO_SERVER_NAME', 'true').lower()
+        if auto_server_name == 'false':
+            server_name = None
         else:
-            server_name = f"{host}:{port}"
+            # 如果 host 是 0.0.0.0，尝试获取实际 IP
+            if host == '0.0.0.0':
+                try:
+                    actual_ip = os.getenv('POD_IP') or get_local_ip()
+                    server_name = f"{actual_ip}:{port}"
+                except Exception as e:
+                    # 如果无法获取 IP，不设置 SERVER_NAME（避免 localhost 警告）
+                    print(f"⚠️  无法获取本地IP，不设置SERVER_NAME以避免警告: {str(e)}")
+                    server_name = None
+            else:
+                server_name = f"{host}:{port}"
     
     # 只在设置了 server_name 时才配置，避免 localhost 访问时的警告
     if server_name:

@@ -249,6 +249,9 @@ class ServiceTester:
             env['MODEL_ID'] = 'test_model'
         if 'MODEL_VERSION' not in env:
             env['MODEL_VERSION'] = 'V1.0.0'
+        # 设置 SERVICE_ID（必需，用于心跳上报）
+        if 'SERVICE_ID' not in env:
+            env['SERVICE_ID'] = '999'  # 使用测试用的默认值
         
         # 注意：不再设置 MODEL_FORMAT，因为服务会根据文件扩展名自动判断
         

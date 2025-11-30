@@ -55,6 +55,7 @@ export interface AlgorithmTask {
   last_process_time?: string;
   last_success_time?: string;
   algorithm_services?: AlgorithmModelService[];
+  service_names?: string; // 关联的算法服务名称列表（逗号分隔，冗余字段，用于快速显示）
   defense_mode?: string; // 布防模式: full(全防), half(半防), day(白天), night(夜间)
   defense_schedule?: string | number[][]; // 布防时段: JSON字符串或二维数组，7天×24小时
   created_at?: string;
@@ -96,7 +97,7 @@ export const createAlgorithmTask = (data: {
   space_id?: number;
   cron_expression?: string;
   frame_skip?: number;
-  model_ids?: number[];
+  service_ids?: number[];
   is_enabled?: boolean;
   defense_mode?: string;
   defense_schedule?: string;

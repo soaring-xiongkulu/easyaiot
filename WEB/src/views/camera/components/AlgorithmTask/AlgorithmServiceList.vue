@@ -1,12 +1,5 @@
 <template>
   <div class="algorithm-service-list">
-    <div class="toolbar">
-      <a-button type="primary" @click="handleAdd">
-        <template #icon><PlusOutlined /></template>
-        添加算法服务
-      </a-button>
-    </div>
-    
     <a-table
       :columns="columns"
       :data-source="serviceList"
@@ -17,7 +10,6 @@
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
           <a-space>
-            <a-button type="link" size="small" @click="handleEdit(record)">编辑</a-button>
             <a-popconfirm title="确定要删除吗？" @confirm="handleDelete(record.id)">
               <a-button type="link" size="small" danger>删除</a-button>
             </a-popconfirm>
@@ -30,20 +22,11 @@
     </a-table>
     
     <a-empty v-if="serviceList.length === 0" description="暂无算法服务" />
-    
-    <!-- 服务编辑Modal -->
-    <AlgorithmServiceModal
-      v-model:open="serviceModalOpen"
-      :task-id="taskId"
-      :service-data="currentService"
-      @success="handleServiceSuccess"
-    />
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue';
-import { PlusOutlined } from '@ant-design/icons-vue';
 import { useMessage } from '@/hooks/web/useMessage';
 import {
   listTaskServices,
@@ -51,7 +34,6 @@ import {
   updateTaskService,
   type AlgorithmModelService,
 } from '@/api/device/algorithm_task';
-import AlgorithmServiceModal from './AlgorithmServiceModal.vue';
 
 defineOptions({ name: 'AlgorithmServiceList' });
 
@@ -64,8 +46,6 @@ const emit = defineEmits(['refresh']);
 const { createMessage } = useMessage();
 
 const serviceList = ref<AlgorithmModelService[]>([]);
-const serviceModalOpen = ref(false);
-const currentService = ref<AlgorithmModelService | null>(null);
 
 const columns = [
   { title: '服务名称', dataIndex: 'service_name', key: 'service_name' },
@@ -86,16 +66,6 @@ const loadServices = async () => {
   } catch (error) {
     console.error('加载算法服务列表失败', error);
   }
-};
-
-const handleAdd = () => {
-  currentService.value = null;
-  serviceModalOpen.value = true;
-};
-
-const handleEdit = (record: AlgorithmModelService) => {
-  currentService.value = record;
-  serviceModalOpen.value = true;
 };
 
 const handleDelete = async (serviceId: number) => {
@@ -133,10 +103,6 @@ const handleToggleEnabled = async (record: AlgorithmModelService) => {
   }
 };
 
-const handleServiceSuccess = () => {
-  loadServices();
-  emit('refresh');
-};
 
 onMounted(() => {
   loadServices();
@@ -149,9 +115,6 @@ defineExpose({
 
 <style scoped lang="less">
 .algorithm-service-list {
-  .toolbar {
-    margin-bottom: 16px;
-  }
 }
 </style>
 

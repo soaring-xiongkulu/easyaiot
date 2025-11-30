@@ -6,10 +6,13 @@
 """
 import logging
 import uuid
+import requests
+import os
 from datetime import datetime
 from typing import List, Optional
 
 from models import db, AlgorithmTask, Device, FrameExtractor, Sorter, Pusher, SnapSpace, algorithm_task_device
+from app.services.algorithm_service import create_task_algorithm_service
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +28,8 @@ def create_algorithm_task(task_name: str,
                          frame_skip: int = 1,
                          is_enabled: bool = False,
                          defense_mode: Optional[str] = None,
-                         defense_schedule: Optional[str] = None) -> AlgorithmTask:
+                         defense_schedule: Optional[str] = None,
+                         service_ids: Optional[List[int]] = None) -> AlgorithmTask:
     """创建算法任务"""
     try:
         # 验证任务类型
@@ -125,7 +129,58 @@ def create_algorithm_task(task_name: str,
         
         db.session.commit()
         
-        logger.info(f"创建算法任务成功: task_id={task.id}, task_name={task_name}, task_type={task_type}, device_ids={device_id_list}")
+        # 根据部署服务ID自动创建算法服务
+        service_names_list = []
+        if service_ids:
+            ai_service_url = os.getenv('AI_SERVICE_URL', 'http://localhost:5000')
+            try:
+                # 获取所有部署服务列表
+                response = requests.get(f'{ai_service_url}/api/deploy/service/list', 
+                                       params={'pageNo': 1, 'pageSize': 10000}, 
+                                       timeout=10)
+                if response.status_code == 200:
+                    deploy_services = response.json()
+                    if deploy_services.get('code') == 0 and deploy_services.get('data'):
+                        service_list = deploy_services['data']
+                        # 创建服务ID到服务信息的映射
+                        service_map = {s.get('id'): s for s in service_list}
+                        
+                        for service_id in service_ids:
+                            service_data = service_map.get(service_id)
+                            if service_data:
+                                service_name = service_data.get('service_name', f'Service_{service_id}')
+                                service_names_list.append(service_name)
+                                # 创建算法服务
+                                create_task_algorithm_service(
+                                    task_id=task.id,
+                                    service_name=service_name,
+                                    service_url=service_data.get('inference_endpoint', ''),
+                                    service_type=None,  # 可以根据需要设置
+                                    model_id=service_data.get('model_id'),
+                                    threshold=None,
+                                    request_method='POST',
+                                    request_headers=None,
+                                    request_body_template=None,
+                                    timeout=30,
+                                    is_enabled=True,
+                                    sort_order=0
+                                )
+                                logger.info(f"为任务 {task.id} 创建算法服务成功: deploy_service_id={service_id}")
+                            else:
+                                logger.warning(f"未找到部署服务: service_id={service_id}")
+                    else:
+                        logger.warning(f"获取部署服务列表失败: response={deploy_services}")
+                else:
+                    logger.warning(f"获取部署服务列表失败: status_code={response.status_code}")
+            except Exception as e:
+                logger.error(f"为任务 {task.id} 创建算法服务失败: service_ids={service_ids}, error={str(e)}", exc_info=True)
+        
+        # 保存服务名称列表到冗余字段
+        if service_names_list:
+            task.service_names = ', '.join(service_names_list)
+            db.session.commit()
+        
+        logger.info(f"创建算法任务成功: task_id={task.id}, task_name={task_name}, task_type={task_type}, device_ids={device_id_list}, service_ids={service_ids}")
         return task
     except Exception as e:
         db.session.rollback()
@@ -141,6 +196,9 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
         
         # 处理设备ID列表
         device_id_list = kwargs.pop('device_ids', None)
+        
+        # 处理服务ID列表
+        service_ids = kwargs.pop('service_ids', None)
         
         # 验证所有设备是否存在（如果提供）
         if device_id_list is not None:
@@ -197,10 +255,65 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             devices = Device.query.filter(Device.id.in_(device_id_list)).all() if device_id_list else []
             task.devices = devices
         
+        # 处理服务ID列表（如果提供）
+        service_names_list = []
+        if service_ids is not None:
+            # 删除旧的算法服务
+            from models import AlgorithmModelService
+            AlgorithmModelService.query.filter_by(task_id=task_id).delete()
+            
+            # 创建新的算法服务
+            if service_ids:
+                ai_service_url = os.getenv('AI_SERVICE_URL', 'http://localhost:5000')
+                try:
+                    # 获取所有部署服务列表
+                    response = requests.get(f'{ai_service_url}/api/deploy/service/list', 
+                                           params={'pageNo': 1, 'pageSize': 10000}, 
+                                           timeout=10)
+                    if response.status_code == 200:
+                        deploy_services = response.json()
+                        if deploy_services.get('code') == 0 and deploy_services.get('data'):
+                            service_list = deploy_services['data']
+                            # 创建服务ID到服务信息的映射
+                            service_map = {s.get('id'): s for s in service_list}
+                            
+                            for service_id in service_ids:
+                                service_data = service_map.get(service_id)
+                                if service_data:
+                                    service_name = service_data.get('service_name', f'Service_{service_id}')
+                                    service_names_list.append(service_name)
+                                    # 创建算法服务
+                                    create_task_algorithm_service(
+                                        task_id=task.id,
+                                        service_name=service_name,
+                                        service_url=service_data.get('inference_endpoint', ''),
+                                        service_type=None,
+                                        model_id=service_data.get('model_id'),
+                                        threshold=None,
+                                        request_method='POST',
+                                        request_headers=None,
+                                        request_body_template=None,
+                                        timeout=30,
+                                        is_enabled=True,
+                                        sort_order=0
+                                    )
+                                    logger.info(f"为任务 {task.id} 更新算法服务成功: deploy_service_id={service_id}")
+                                else:
+                                    logger.warning(f"未找到部署服务: service_id={service_id}")
+                        else:
+                            logger.warning(f"获取部署服务列表失败: response={deploy_services}")
+                    else:
+                        logger.warning(f"获取部署服务列表失败: status_code={response.status_code}")
+                except Exception as e:
+                    logger.error(f"为任务 {task.id} 更新算法服务失败: service_ids={service_ids}, error={str(e)}", exc_info=True)
+            
+            # 更新服务名称列表到冗余字段
+            task.service_names = ', '.join(service_names_list) if service_names_list else None
+        
         task.updated_at = datetime.utcnow()
         db.session.commit()
         
-        logger.info(f"更新算法任务成功: task_id={task_id}, task_type={task_type}, device_ids={device_id_list}")
+        logger.info(f"更新算法任务成功: task_id={task_id}, task_type={task_type}, device_ids={device_id_list}, service_ids={service_ids}")
         return task
     except Exception as e:
         db.session.rollback()

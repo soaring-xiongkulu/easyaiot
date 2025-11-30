@@ -106,7 +106,8 @@ def create_task():
             frame_skip=data.get('frame_skip', 1),
             is_enabled=data.get('is_enabled', False),
             defense_mode=data.get('defense_mode'),
-            defense_schedule=data.get('defense_schedule')
+            defense_schedule=data.get('defense_schedule'),
+            service_ids=data.get('service_ids')
         )
         
         return jsonify({

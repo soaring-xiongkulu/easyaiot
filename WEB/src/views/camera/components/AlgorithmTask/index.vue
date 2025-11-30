@@ -26,128 +26,94 @@
     </BasicTable>
 
     <!-- 卡片模式 -->
-    <div v-else class="card-mode-wrapper">
-      <div class="statistics-detail-container">
-        <div class="console-pre-cloud-record">
-          <div style="display: flex;">
-            <div class="ant-card resource-card" style="width: 100%;">
-              <div class="device-card-list-wrapper p-2">
-                <div class="p-4 bg-white">
-                  <BasicForm @register="registerForm" @reset="handleSubmit"/>
-                </div>
-                <div class="p-2 bg-white">
-                  <div class="list-header">
-                    <span class="list-title">算法任务列表</span>
-                    <div class="header-actions">
-                      <a-button type="primary" @click="handleCreate">
-                        <template #icon>
-                          <PlusOutlined />
-                        </template>
-                        新建算法任务
-                      </a-button>
-                      <a-button @click="handleToggleViewMode" type="default">
-                        <template #icon>
-                          <SwapOutlined />
-                        </template>
-                        切换视图
-                      </a-button>
-                    </div>
-                  </div>
-                  <Spin :spinning="loading">
-                    <a-row :gutter="[16, 16]">
-                      <a-col :xs="24" :sm="12" :md="8" :lg="6" v-for="item in taskList" :key="item.id">
-                        <a-card :title="item.task_name" size="small" hoverable>
-                          <template #extra>
-                            <a-dropdown>
-                              <a-button type="text" size="small">
-                                <template #icon><MoreOutlined /></template>
-                              </a-button>
-                              <template #overlay>
-                                <a-menu>
-                                  <a-menu-item @click="handleView(item)">
-                                    <EyeOutlined /> 查看
-                                  </a-menu-item>
-                                  <a-menu-item @click="handleEdit(item)">
-                                    <EditOutlined /> 编辑
-                                  </a-menu-item>
-                                  <a-menu-item v-if="item.run_status === 'running'" @click="handleStop(item)">
-                                    <StopOutlined /> 停止
-                                  </a-menu-item>
-                                  <a-menu-item v-else @click="handleStart(item)">
-                                    <PlayCircleOutlined /> 启动
-                                  </a-menu-item>
-                                  <a-menu-divider />
-                                  <a-menu-item danger @click="handleDelete(item)">
-                                    <DeleteOutlined /> 删除
-                                  </a-menu-item>
-                                </a-menu>
-                              </template>
-                            </a-dropdown>
-                          </template>
-                          <div class="card-content">
-                            <div class="info-item">
-                              <span class="label">任务类型:</span>
-                              <a-tag :color="item.task_type === 'realtime' ? 'blue' : 'green'">
-                                {{ item.task_type === 'realtime' ? '实时算法任务' : '抓拍算法任务' }}
-                              </a-tag>
-                            </div>
-                            <div class="info-item" v-if="item.space_name">
-                              <span class="label">抓拍空间:</span>
-                              <span class="value">{{ item.space_name }}</span>
-                            </div>
-                            <div class="info-item" v-if="item.device_names && item.device_names.length > 0">
-                              <span class="label">关联摄像头:</span>
-                              <span class="value">{{ item.device_names.join(', ') }}</span>
-                            </div>
-                            <div class="info-item">
-                              <span class="label">运行状态:</span>
-                              <a-tag :color="getRunStatusColor(item.run_status)">
-                                {{ getRunStatusText(item.run_status) }}
-                              </a-tag>
-                            </div>
-                            <div class="info-item">
-                              <span class="label">启用状态:</span>
-                              <a-switch :checked="item.is_enabled" size="small" @change="handleToggleEnabled(item)" />
-                            </div>
-                            <div class="info-item" v-if="item.task_type === 'realtime'">
-                              <span class="label">处理帧数:</span>
-                              <span class="value">{{ item.total_frames || 0 }}</span>
-                            </div>
-                            <div class="info-item" v-if="item.task_type === 'realtime'">
-                              <span class="label">检测次数:</span>
-                              <span class="value">{{ item.total_detections || 0 }}</span>
-                            </div>
-                            <div class="info-item" v-if="item.task_type === 'snap'">
-                              <span class="label">抓拍次数:</span>
-                              <span class="value">{{ item.total_captures || 0 }}</span>
-                            </div>
-                            <div class="info-item" v-if="item.algorithm_services">
-                              <span class="label">算法服务:</span>
-                              <span class="value">{{ item.algorithm_services.length }} 个</span>
-                            </div>
-                          </div>
-                        </a-card>
-                      </a-col>
-                    </a-row>
-                    <a-empty v-if="taskList.length === 0 && !loading" description="暂无算法任务" />
-                    <div v-if="taskList.length > 0" class="pagination-wrapper">
-                      <a-pagination
-                        v-model:current="page"
-                        v-model:page-size="pageSize"
-                        :total="total"
-                        :show-total="(total: number) => `总 ${total} 条`"
-                        :show-size-changer="true"
-                        :show-quick-jumper="true"
-                        @change="handlePageChange"
-                        @show-size-change="handlePageSizeChange"
-                      />
-                    </div>
-                  </Spin>
+    <div v-else class="algorithm-task-card-list-wrapper p-2">
+      <div class="p-4 bg-white" style="margin-bottom: 10px">
+        <BasicForm @register="registerForm" @reset="handleSubmit"/>
+      </div>
+      <div class="p-2 bg-white">
+        <Spin :spinning="loading">
+          <List
+            :grid="{ gutter: 12, xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 4 }"
+            :data-source="taskList"
+            :pagination="paginationProp"
+          >
+            <template #header>
+              <div
+                style="display: flex;align-items: center;justify-content: space-between;flex-direction: row;">
+                <span style="padding-left: 7px;font-size: 16px;font-weight: 500;line-height: 24px;">算法任务列表</span>
+                <div style="display: flex; gap: 8px;">
+                  <a-button type="primary" @click="handleCreate">
+                    <template #icon>
+                      <PlusOutlined />
+                    </template>
+                    新建算法任务
+                  </a-button>
+                  <a-button @click="handleToggleViewMode" type="default">
+                    <template #icon>
+                      <SwapOutlined />
+                    </template>
+                    切换视图
+                  </a-button>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
+            </template>
+            <template #renderItem="{ item }">
+              <ListItem :class="item.run_status === 'running' ? 'task-item normal' : 'task-item error'">
+                <div class="task-info">
+                  <div class="status">{{ getRunStatusText(item.run_status) }}</div>
+                  <div class="title o2">{{ item.task_name || item.id }}</div>
+                  <div class="props">
+                    <div class="flex" style="justify-content: space-between;">
+                      <div class="prop">
+                        <div class="label">任务类型</div>
+                        <div class="value">{{ item.task_type === 'realtime' ? '实时算法任务' : '抓拍算法任务' }}</div>
+                      </div>
+                      <div class="prop" v-if="item.device_names && item.device_names.length > 0">
+                        <div class="label">关联摄像头</div>
+                        <div class="value">{{ item.device_names.join(', ') }}</div>
+                      </div>
+                    </div>
+                    <div class="prop">
+                      <div class="label">关联算法服务</div>
+                      <div class="value">{{ item.service_names || (item.algorithm_services && item.algorithm_services.length > 0 ? item.algorithm_services.map(s => s.service_name).join(', ') : '') }}</div>
+                    </div>
+                  </div>
+                  <div class="btns">
+                    <div class="btn" @click="handleView(item)">
+                      <Icon icon="ant-design:eye-filled" :size="15" color="#3B82F6" />
+                    </div>
+                    <div class="btn" @click="handleEdit(item)">
+                      <Icon icon="ant-design:edit-filled" :size="15" color="#3B82F6" />
+                    </div>
+                    <div class="btn" v-if="item.run_status === 'running'" @click="handleStop(item)">
+                      <Icon icon="ant-design:pause-circle-outlined" :size="15" color="#3B82F6" />
+                    </div>
+                    <div class="btn" v-else @click="handleStart(item)">
+                      <Icon icon="ant-design:play-circle-outlined" :size="15" color="#3B82F6" />
+                    </div>
+                    <Popconfirm
+                      title="是否确认删除？"
+                      ok-text="是"
+                      cancel-text="否"
+                      @confirm="handleDelete(item)"
+                    >
+                      <div class="btn">
+                        <Icon icon="material-symbols:delete-outline-rounded" :size="15" color="#DC2626" />
+                      </div>
+                    </Popconfirm>
+                  </div>
+                </div>
+                <div class="task-img">
+                  <img
+                    :src="getTaskImage(item.task_type)"
+                    alt="" 
+                    class="img" 
+                    @click="handleView(item)">
+                </div>
+              </ListItem>
+            </template>
+          </List>
+        </Spin>
       </div>
     </div>
 
@@ -168,11 +134,12 @@ import {
   StopOutlined,
   SwapOutlined,
 } from '@ant-design/icons-vue';
-import { Spin } from 'ant-design-vue';
+import { List, Popconfirm, Spin } from 'ant-design-vue';
 import { useDrawer } from '@/components/Drawer';
 import { BasicForm, useForm } from '@/components/Form';
 import { BasicTable, TableAction, useTable } from '@/components/Table';
 import { useMessage } from '@/hooks/web/useMessage';
+import { Icon } from '@/components/Icon';
 import {
   listAlgorithmTasks,
   deleteAlgorithmTask,
@@ -183,6 +150,9 @@ import {
 } from '@/api/device/algorithm_task';
 import AlgorithmTaskModal from './AlgorithmTaskModal.vue';
 import { getBasicColumns, getFormConfig } from './Data';
+import PRODUCT_VIDEO_IMAGE from '@/assets/images/product/product_video.png';
+
+const ListItem = List.Item;
 
 defineOptions({ name: 'AlgorithmTask' });
 
@@ -198,7 +168,7 @@ const [registerModal, { openDrawer }] = useDrawer();
 
 // 分页相关
 const page = ref(1);
-const pageSize = ref(20);
+const pageSize = ref(8);
 const total = ref(0);
 
 // 搜索参数
@@ -333,6 +303,24 @@ const handlePageSizeChange = (_current: number, size: number) => {
   pageSize.value = size;
   page.value = 1;
   loadTasks();
+};
+
+// 分页配置
+const paginationProp = ref({
+  showSizeChanger: false,
+  showQuickJumper: true,
+  pageSize,
+  current: page,
+  total,
+  showTotal: (total: number) => `总 ${total} 条`,
+  onChange: handlePageChange,
+  onShowSizeChange: handlePageSizeChange,
+});
+
+// 根据任务类型获取图片
+const getTaskImage = (taskType: string) => {
+  // 使用产品视频图片作为算法任务的图标
+  return PRODUCT_VIDEO_IMAGE;
 };
 
 // 表单提交
@@ -514,104 +502,178 @@ onMounted(() => {
 
 <style scoped lang="less">
 #algorithm-task {
-  .resource-card {
-    border-radius: 2px;
-  }
-
-  .p-2 {
-    padding: 8px;
-  }
-
-  .p-4 {
-    padding: 16px;
-  }
-
-  .bg-white {
-    background-color: #fff;
-  }
-
-  .list-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 24px;
-    margin-bottom: 16px;
-    border-bottom: 1px solid #f0f0f0;
-
-    .list-title {
-      font-size: 16px;
-      font-weight: 500;
-      line-height: 24px;
-      color: rgba(0, 0, 0, 0.85);
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-  }
-
   .toolbar-buttons {
     display: flex;
     align-items: center;
     gap: 8px;
   }
+}
 
-  .card-mode-wrapper {
-    .p-2 {
-      padding: 8px;
-    }
-
-    .p-4 {
-      padding: 16px;
-    }
-
-    .bg-white {
-      background-color: #fff;
-    }
+.algorithm-task-card-list-wrapper {
+  :deep(.ant-list-header) {
+    border-block-end: 0;
   }
-
-  .card-content {
-    .info-item {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 14px;
-
-      .label {
-        color: rgba(0, 0, 0, 0.45);
-      }
-
-      .value {
-        color: rgba(0, 0, 0, 0.85);
-        font-weight: 500;
-      }
-    }
+  :deep(.ant-list-header) {
+    padding-top: 0;
+    padding-bottom: 8px;
   }
-
-  .pagination-wrapper {
-    margin-top: 24px;
-    text-align: right;
+  :deep(.ant-list) {
+    padding: 6px;
   }
-
-  .ant-card {
-    -webkit-font-feature-settings: "tnum";
-    font-feature-settings: "tnum", "tnum";
-    background: #fff;
-    border-radius: 2px;
-    -webkit-box-sizing: border-box;
-    box-sizing: border-box;
-    color: #000000a6;
-    font-size: 14px;
-    font-variant: tabular-nums;
-    line-height: 1.5;
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  :deep(.ant-list-item) {
+    margin: 6px;
+  }
+  :deep(.task-item) {
+    overflow: hidden;
+    box-shadow: 0 0 4px #00000026;
+    border-radius: 8px;
+    padding: 16px 0;
     position: relative;
-    -webkit-transition: all .3s;
-    transition: all .3s;
+    background-color: #fff;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: 104% 104%;
+    transition: all 0.5s;
+    min-height: 208px;
+    height: 100%;
+
+    &.normal {
+      background-image: url('@/assets/images/product/blue-bg.719b437a.png');
+
+      .task-info .status {
+        background: #d9dffd;
+        color: #266CFBFF;
+      }
+    }
+
+    &.error {
+      background-image: url('@/assets/images/product/red-bg.101af5ac.png');
+
+      .task-info .status {
+        background: #fad7d9;
+        color: #d43030;
+      }
+    }
+
+    .task-info {
+      flex-direction: column;
+      max-width: calc(100% - 128px);
+      padding-left: 16px;
+
+      .status {
+        min-width: 90px;
+        height: 25px;
+        border-radius: 6px 0 0 6px;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 25px;
+        text-align: center;
+        position: absolute;
+        right: 0;
+        top: 16px;
+        padding: 0 8px;
+        white-space: nowrap;
+      }
+
+      .title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #050708;
+        line-height: 20px;
+        height: 40px;
+        padding-right: 60px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .props {
+        margin-top: 10px;
+
+        .prop {
+          flex: 1;
+          margin-bottom: 10px;
+
+          .label {
+            font-size: 12px;
+            font-weight: 400;
+            color: #666;
+            line-height: 14px;
+          }
+
+          .value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #050708;
+            line-height: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 6px;
+          }
+        }
+      }
+
+      .btns {
+        display: flex;
+        position: absolute;
+        left: 16px;
+        bottom: 16px;
+        margin-top: 20px;
+        width: 180px;
+        height: 28px;
+        border-radius: 45px;
+        justify-content: space-around;
+        padding: 0 10px;
+        align-items: center;
+        border: 2px solid #266cfbff;
+
+        .btn {
+          width: 28px;
+          text-align: center;
+          position: relative;
+          cursor: pointer;
+
+          &:before {
+            content: '';
+            display: block;
+            position: absolute;
+            width: 1px;
+            height: 7px;
+            background-color: #e2e2e2;
+            left: 0;
+            top: 9px;
+          }
+
+          &:first-child:before {
+            display: none;
+          }
+
+          :deep(.anticon) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #87CEEB;
+            transition: color 0.3s;
+          }
+
+          &:hover :deep(.anticon) {
+            color: #5BA3F5;
+          }
+        }
+      }
+    }
+
+    .task-img {
+      position: absolute;
+      right: 20px;
+      top: 50px;
+
+      img {
+        cursor: pointer;
+        width: 120px;
+      }
+    }
   }
 }
 </style>

@@ -75,7 +75,7 @@ const defenseSchedule = ref<{ mode: string; schedule: number[][] }>({
 
 const deviceOptions = ref<Array<{ label: string; value: string }>>([]);
 const spaceOptions = ref<Array<{ label: string; value: number }>>([]);
-const modelServiceOptions = ref<Array<{ label: string; value: number }>>([]);
+const deployServiceOptions = ref<Array<{ label: string; value: number }>>([]);
 const pusherOptions = ref<Array<{ label: string; value: number }>>([]);
 
 // 加载设备列表
@@ -104,18 +104,19 @@ const loadSpaces = async () => {
   }
 };
 
-// 加载模型服务列表
-const loadModelServices = async () => {
+
+// 加载部署服务列表（用于创建算法服务）
+const loadDeployServices = async () => {
   try {
     const response = await getDeployServicePage({ pageNo: 1, pageSize: 1000 });
     if (response.code === 0 && response.data) {
-      modelServiceOptions.value = (response.data || []).map((item: any) => ({
+      deployServiceOptions.value = (response.data || []).map((item: any) => ({
         label: `${item.service_name}${item.model_name ? ` (${item.model_name})` : ''}`,
-        value: item.id, // 使用服务ID
+        value: item.id, // 部署服务ID
       }));
     }
   } catch (error) {
-    console.error('加载模型服务列表失败', error);
+    console.error('加载部署服务列表失败', error);
   }
 };
 
@@ -211,23 +212,6 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       ifShow: ({ values }) => values.task_type === 'snap',
     },
     {
-      field: 'model_ids',
-      label: '关联模型服务',
-      component: 'Select',
-      required: true,
-      componentProps: {
-        placeholder: '请选择关联模型服务（可多选）',
-        options: modelServiceOptions,
-        mode: 'multiple',
-        showSearch: true,
-        allowClear: true,
-        filterOption: (input: string, option: any) => {
-          return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
-        },
-      },
-      helpMessage: '选择要使用的模型服务，可多选',
-    },
-    {
       field: 'pusher_id',
       label: '告警通知',
       component: 'Select',
@@ -242,6 +226,23 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         },
       },
       helpMessage: '选择告警通知推送器，不配置则不发送告警通知',
+    },
+    {
+      field: 'service_ids',
+      label: '关联算法服务',
+      component: 'Select',
+      required: true,
+      componentProps: {
+        placeholder: '请选择部署服务（可多选，将自动创建算法服务）',
+        options: deployServiceOptions,
+        mode: 'multiple',
+        showSearch: true,
+        allowClear: true,
+        filterOption: (input: string, option: any) => {
+          return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+        },
+      },
+      helpMessage: '选择部署服务，创建任务时将自动创建对应的算法服务',
     },
     {
       field: 'is_enabled',
@@ -282,15 +283,14 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   resetFields();
   
   // 加载选项数据
-  await Promise.all([loadDevices(), loadSpaces(), loadModelServices(), loadPushers()]);
+  await Promise.all([loadDevices(), loadSpaces(), loadDeployServices(), loadPushers()]);
   
   if (modalData.value.record) {
     const record = modalData.value.record;
     taskId.value = record.id;
-    // 提取模型服务ID列表（从algorithm_services中获取服务ID，如果没有则使用model_id作为服务ID）
-    // 注意：这里需要根据实际后端数据结构调整
+    // 提取部署服务ID列表（用于回显）
     const serviceIds = record.algorithm_services
-      ?.map((service: any) => service.id || service.service_id)
+      ?.map((service: any) => service.model_id || service.service_id)
       .filter((id: number) => id !== null && id !== undefined) || [];
     
     // 恢复布防时段配置
@@ -333,7 +333,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       space_id: record.space_id,
       cron_expression: record.cron_expression,
       frame_skip: record.frame_skip || 1,
-      model_ids: serviceIds,
+      service_ids: serviceIds,
       pusher_id: record.pusher_id,
       is_enabled: isEnabled,
       is_full_day_defense: fullDayDefense,
@@ -423,24 +423,27 @@ const handleSubmit = async () => {
     
     if (modalData.value.type === 'edit' && modalData.value.record) {
       const response = await updateAlgorithmTask(modalData.value.record.id, values);
-      if (response.code === 0) {
+      // 由于 isTransformResponse: true，成功时返回的是任务对象，而不是包含 code 的响应对象
+      if (response && response.id) {
         createMessage.success('更新成功');
         taskId.value = modalData.value.record.id;
         emit('success');
         closeDrawer();
       } else {
-        createMessage.error(response.msg || '更新失败');
+        // 如果返回的不是任务对象，可能是错误响应（包含 code 和 msg）
+        createMessage.error((response as any)?.msg || '更新失败');
       }
     } else {
       const response = await createAlgorithmTask(values);
-      if (response.code === 0 && response.data) {
-        taskId.value = response.data.id;
+      // 由于 isTransformResponse: true，成功时返回的是任务对象，而不是包含 code 的响应对象
+      if (response && response.id) {
+        taskId.value = response.id;
         createMessage.success('创建成功');
-        // 创建成功后切换到算法服务配置标签页
-        activeTab.value = 'services';
         emit('success');
+        closeDrawer();
       } else {
-        createMessage.error(response.msg || '创建失败');
+        // 如果返回的不是任务对象，可能是错误响应（包含 code 和 msg）
+        createMessage.error((response as any)?.msg || '创建失败');
       }
     }
   } catch (error) {
@@ -476,9 +479,9 @@ const handleReset = () => {
   } else {
       // 如果是编辑模式，恢复到原始值
       const record = modalData.value.record;
-      // 提取模型服务ID列表
+      // 提取部署服务ID列表（用于回显）
       const serviceIds = record.algorithm_services
-        ?.map((service: any) => service.id || service.service_id)
+        ?.map((service: any) => service.model_id || service.service_id)
         .filter((id: number) => id !== null && id !== undefined) || [];
       
       // 判断是否全天布防
@@ -497,7 +500,7 @@ const handleReset = () => {
         space_id: record.space_id,
         cron_expression: record.cron_expression,
         frame_skip: record.frame_skip || 1,
-        model_ids: serviceIds,
+        service_ids: serviceIds,
         pusher_id: record.pusher_id,
         is_enabled: isEnabled,
         is_full_day_defense: fullDayDefense,
