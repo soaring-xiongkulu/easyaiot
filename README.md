@@ -28,10 +28,10 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 #### 🧠 AI能力
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li>支持百级摄像头接入、采集、标注、训练、推理、导出、分析、告警、录像、存储、部署</li>
-  <li>PaddleOCR文字识别、语音转文本</li>
-  <li>多模态视觉大模型（物体识别、文字识别）</li>
-  <li>LLM大语言模型（支持RTSP流、视频、图像、语音、文本等）</li>
+  <li><strong>大规模摄像头管理</strong>：支持百级摄像头接入，提供采集、标注、训练、推理、导出、分析、告警、录像、存储、部署等全流程服务</li>
+  <li><strong>OCR与语音识别</strong>：基于PaddleOCR实现高精度文字识别，支持语音转文本功能</li>
+  <li><strong>多模态视觉大模型</strong>：支持物体识别、文字识别等多种视觉任务，提供强大的图像理解能力</li>
+  <li><strong>LLM大语言模型</strong>：支持RTSP流、视频、图像、语音、文本等多种输入格式的智能分析与理解</li>
   <li><strong>模型部署</strong>：支持AI模型的快速部署与版本管理，实现模型一键上线</li>
   <li><strong>多实例管理</strong>：支持多个模型实例的并发运行与资源调度，提高系统利用率</li>
   <li><strong>模型服务集群推理</strong>：支持分布式模型推理服务，实现负载均衡与高可用</li>

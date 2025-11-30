@@ -28,10 +28,10 @@ EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses
 #### 🧠 AI Capabilities
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li>Supports access to hundreds of cameras for collection, annotation, training, inference, export, analysis, alerting, recording, storage, and deployment</li>
-  <li>PaddleOCR text recognition and speech-to-text</li>
-  <li>Multimodal vision large models (object recognition, text recognition)</li>
-  <li>LLM large language models (supporting RTSP streams, video, images, audio, text, etc.)</li>
+  <li><strong>Large-Scale Camera Management</strong>: Supports access to hundreds of cameras, providing end-to-end services including collection, annotation, training, inference, export, analysis, alerting, recording, storage, and deployment</li>
+  <li><strong>OCR and Speech Recognition</strong>: High-precision text recognition based on PaddleOCR with speech-to-text functionality</li>
+  <li><strong>Multimodal Vision Large Models</strong>: Supports various vision tasks including object recognition and text recognition, providing powerful image understanding capabilities</li>
+  <li><strong>LLM Large Language Models</strong>: Supports intelligent analysis and understanding of multiple input formats including RTSP streams, video, images, audio, and text</li>
   <li><strong>Model Deployment</strong>: Supports rapid deployment and version management of AI models, enabling one-click model deployment</li>
   <li><strong>Multi-Instance Management</strong>: Supports concurrent operation and resource scheduling of multiple model instances, improving system utilization</li>
   <li><strong>Model Service Cluster Inference</strong>: Supports distributed model inference services, achieving load balancing and high availability</li>
