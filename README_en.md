@@ -32,6 +32,14 @@ EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses
   <li>PaddleOCR text recognition and speech-to-text</li>
   <li>Multimodal vision large models (object recognition, text recognition)</li>
   <li>LLM large language models (supporting RTSP streams, video, images, audio, text, etc.)</li>
+  <li><strong>Model Deployment</strong>: Supports rapid deployment and version management of AI models, enabling one-click model deployment</li>
+  <li><strong>Multi-Instance Management</strong>: Supports concurrent operation and resource scheduling of multiple model instances, improving system utilization</li>
+  <li><strong>Model Service Cluster Inference</strong>: Supports distributed model inference services, achieving load balancing and high availability</li>
+  <li><strong>Camera Snapshot</strong>: Supports real-time camera snapshot functionality with configurable snapshot rules and trigger conditions</li>
+  <li><strong>Snapshot Storage Space</strong>: Provides storage space management for snapshot images with quota and cleanup policy support</li>
+  <li><strong>Video Storage Space</strong>: Provides storage space management for video files with automatic cleanup and archiving support</li>
+  <li><strong>Snapshot Image Management</strong>: Supports full lifecycle management of snapshot images including viewing, searching, downloading, and deletion</li>
+  <li><strong>Device Directory</strong>: Provides hierarchical device directory management with device grouping, multi-level management, and permission control</li>
 </ul>
 
 #### 🌐 IoT Capabilities
