@@ -163,6 +163,13 @@ export interface FrameExtractor {
   interval: number;
   description?: string;
   is_enabled: boolean;
+  status?: string; // running:运行中, stopped:已停止, error:错误
+  server_ip?: string;
+  port?: number;
+  process_id?: number;
+  last_heartbeat?: string;
+  log_path?: string;
+  task_id?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -224,6 +231,13 @@ export interface Sorter {
   sort_order: string; // asc:升序, desc:降序
   description?: string;
   is_enabled: boolean;
+  status?: string; // running:运行中, stopped:已停止, error:错误
+  server_ip?: string;
+  port?: number;
+  process_id?: number;
+  last_heartbeat?: string;
+  log_path?: string;
+  task_id?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -351,6 +365,13 @@ export interface Pusher {
   event_alert_template?: any;
   description?: string;
   is_enabled: boolean;
+  status?: string; // running:运行中, stopped:已停止, error:错误
+  server_ip?: string;
+  port?: number;
+  process_id?: number;
+  last_heartbeat?: string;
+  log_path?: string;
+  task_id?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -410,5 +431,50 @@ export const updatePusher = (pusher_id: number, data: Partial<Pusher>) => {
 
 export const deletePusher = (pusher_id: number) => {
   return commonApi('delete', `${ALGORITHM_PREFIX}/pusher/${pusher_id}`);
+};
+
+// ====================== 日志查看接口 ======================
+export interface ServiceLogsResponse {
+  code: number;
+  msg: string;
+  data: {
+    logs: string;
+    total_lines: number;
+    log_file: string;
+    is_all_file: boolean;
+  };
+}
+
+export const getTaskExtractorLogs = (task_id: number, params?: {
+  lines?: number;
+  date?: string;
+}) => {
+  return commonApi<ServiceLogsResponse>(
+    'get',
+    `${ALGORITHM_PREFIX}/task/${task_id}/extractor/logs`,
+    { params }
+  );
+};
+
+export const getTaskSorterLogs = (task_id: number, params?: {
+  lines?: number;
+  date?: string;
+}) => {
+  return commonApi<ServiceLogsResponse>(
+    'get',
+    `${ALGORITHM_PREFIX}/task/${task_id}/sorter/logs`,
+    { params }
+  );
+};
+
+export const getTaskPusherLogs = (task_id: number, params?: {
+  lines?: number;
+  date?: string;
+}) => {
+  return commonApi<ServiceLogsResponse>(
+    'get',
+    `${ALGORITHM_PREFIX}/task/${task_id}/pusher/logs`,
+    { params }
+  );
 };
 

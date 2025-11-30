@@ -506,6 +506,81 @@ def create_app():
             print(f"❌ 启动自动抽帧线程失败: {str(e)}")
             import traceback
             traceback.print_exc()
+        
+        # 启动心跳超时检查任务（每分钟检查一次）
+        try:
+            from app.services.camera_service import scheduler
+            from models import FrameExtractor, Sorter, Pusher
+            
+            if scheduler and not scheduler.running:
+                scheduler.start()
+            
+            def check_heartbeat_timeout():
+                """定时检查心跳超时，超过1分钟没上报则更新状态为stopped"""
+                try:
+                    with app.app_context():
+                        from datetime import datetime, timedelta
+                        from models import db
+                        
+                        timeout_threshold = datetime.utcnow() - timedelta(minutes=1)
+                        
+                        # 检查抽帧器
+                        timeout_extractors = FrameExtractor.query.filter(
+                            FrameExtractor.status.in_(['running']),
+                            (FrameExtractor.last_heartbeat < timeout_threshold) | (FrameExtractor.last_heartbeat.is_(None))
+                        ).all()
+                        
+                        for extractor in timeout_extractors:
+                            old_status = extractor.status
+                            extractor.status = 'stopped'
+                            logger.info(f"抽帧器心跳超时，状态从 {old_status} 更新为 stopped: {extractor.extractor_name}")
+                        
+                        # 检查排序器
+                        timeout_sorters = Sorter.query.filter(
+                            Sorter.status.in_(['running']),
+                            (Sorter.last_heartbeat < timeout_threshold) | (Sorter.last_heartbeat.is_(None))
+                        ).all()
+                        
+                        for sorter in timeout_sorters:
+                            old_status = sorter.status
+                            sorter.status = 'stopped'
+                            logger.info(f"排序器心跳超时，状态从 {old_status} 更新为 stopped: {sorter.sorter_name}")
+                        
+                        # 检查推送器
+                        timeout_pushers = Pusher.query.filter(
+                            Pusher.status.in_(['running']),
+                            (Pusher.last_heartbeat < timeout_threshold) | (Pusher.last_heartbeat.is_(None))
+                        ).all()
+                        
+                        for pusher in timeout_pushers:
+                            old_status = pusher.status
+                            pusher.status = 'stopped'
+                            logger.info(f"推送器心跳超时，状态从 {old_status} 更新为 stopped: {pusher.pusher_name}")
+                        
+                        if timeout_extractors or timeout_sorters or timeout_pushers:
+                            db.session.commit()
+                            total = len(timeout_extractors) + len(timeout_sorters) + len(timeout_pushers)
+                            logger.info(f"已更新 {total} 个服务状态为stopped")
+                except Exception as e:
+                    logger.error(f"检查心跳超时失败: {str(e)}")
+                    try:
+                        db.session.rollback()
+                    except:
+                        pass
+            
+            # 每分钟执行一次心跳超时检查
+            scheduler.add_job(
+                check_heartbeat_timeout,
+                'interval',
+                minutes=1,
+                id='check_heartbeat_timeout',
+                replace_existing=True
+            )
+            print('✅ 心跳超时检查任务已启动（每分钟执行一次）')
+        except Exception as e:
+            print(f"❌ 启动心跳超时检查任务失败: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     return app
 

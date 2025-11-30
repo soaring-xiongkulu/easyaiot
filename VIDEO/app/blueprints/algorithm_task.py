@@ -5,9 +5,11 @@
 @wechat EasyAIoT2025
 """
 import logging
+import os
+from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 
-from models import db
+from models import db, FrameExtractor, Sorter, Pusher
 from app.services.algorithm_task_service import (
     create_algorithm_task, update_algorithm_task, delete_algorithm_task,
     get_algorithm_task, list_algorithm_tasks, start_algorithm_task,
@@ -646,4 +648,374 @@ def delete_pusher_route(pusher_id):
     except Exception as e:
         logger.error(f'删除推送器失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+# ====================== 心跳接收接口 ======================
+@algorithm_task_bp.route('/heartbeat/extractor', methods=['POST'])
+def receive_extractor_heartbeat():
+    """接收抽帧器心跳"""
+    try:
+        data = request.get_json()
+        extractor_id = data.get('extractor_id')
+        server_ip = data.get('server_ip')
+        port = data.get('port')
+        process_id = data.get('process_id')
+        log_path = data.get('log_path')
+        task_id = data.get('task_id')
+        
+        if not extractor_id:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：extractor_id'
+            }), 400
+        
+        extractor = FrameExtractor.query.get(extractor_id)
+        if not extractor:
+            return jsonify({
+                'code': 404,
+                'msg': f'抽帧器不存在：extractor_id={extractor_id}'
+            }), 404
+        
+        # 更新心跳信息
+        extractor.last_heartbeat = datetime.utcnow()
+        if server_ip:
+            extractor.server_ip = server_ip
+        if port:
+            extractor.port = port
+        if process_id:
+            extractor.process_id = process_id
+        if log_path:
+            extractor.log_path = log_path
+        elif not extractor.log_path:
+            # 如果没有log_path，根据extractor_id生成
+            video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            log_base_dir = os.path.join(video_root, 'logs')
+            extractor.log_path = os.path.join(log_base_dir, f'frame_extractor_{extractor_id}')
+        if task_id:
+            extractor.task_id = task_id
+        
+        # 更新状态为running
+        if extractor.status != 'stopped':
+            extractor.status = 'running'
+        
+        db.session.commit()
+        
+        return jsonify({
+            'code': 0,
+            'msg': '心跳接收成功',
+            'data': {
+                'extractor_id': extractor.id,
+                'extractor_name': extractor.extractor_name
+            }
+        })
+    except Exception as e:
+        logger.error(f"接收抽帧器心跳失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@algorithm_task_bp.route('/heartbeat/sorter', methods=['POST'])
+def receive_sorter_heartbeat():
+    """接收排序器心跳"""
+    try:
+        data = request.get_json()
+        sorter_id = data.get('sorter_id')
+        server_ip = data.get('server_ip')
+        port = data.get('port')
+        process_id = data.get('process_id')
+        log_path = data.get('log_path')
+        task_id = data.get('task_id')
+        
+        if not sorter_id:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：sorter_id'
+            }), 400
+        
+        sorter = Sorter.query.get(sorter_id)
+        if not sorter:
+            return jsonify({
+                'code': 404,
+                'msg': f'排序器不存在：sorter_id={sorter_id}'
+            }), 404
+        
+        # 更新心跳信息
+        sorter.last_heartbeat = datetime.utcnow()
+        if server_ip:
+            sorter.server_ip = server_ip
+        if port:
+            sorter.port = port
+        if process_id:
+            sorter.process_id = process_id
+        if log_path:
+            sorter.log_path = log_path
+        elif not sorter.log_path:
+            # 如果没有log_path，根据sorter_id生成
+            video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            log_base_dir = os.path.join(video_root, 'logs')
+            sorter.log_path = os.path.join(log_base_dir, f'sorter_{sorter_id}')
+        if task_id:
+            sorter.task_id = task_id
+        
+        # 更新状态为running
+        if sorter.status != 'stopped':
+            sorter.status = 'running'
+        
+        db.session.commit()
+        
+        return jsonify({
+            'code': 0,
+            'msg': '心跳接收成功',
+            'data': {
+                'sorter_id': sorter.id,
+                'sorter_name': sorter.sorter_name
+            }
+        })
+    except Exception as e:
+        logger.error(f"接收排序器心跳失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+@algorithm_task_bp.route('/heartbeat/pusher', methods=['POST'])
+def receive_pusher_heartbeat():
+    """接收推送器心跳"""
+    try:
+        data = request.get_json()
+        pusher_id = data.get('pusher_id')
+        server_ip = data.get('server_ip')
+        port = data.get('port')
+        process_id = data.get('process_id')
+        log_path = data.get('log_path')
+        task_id = data.get('task_id')
+        
+        if not pusher_id:
+            return jsonify({
+                'code': 400,
+                'msg': '缺少必要参数：pusher_id'
+            }), 400
+        
+        pusher = Pusher.query.get(pusher_id)
+        if not pusher:
+            return jsonify({
+                'code': 404,
+                'msg': f'推送器不存在：pusher_id={pusher_id}'
+            }), 404
+        
+        # 更新心跳信息
+        pusher.last_heartbeat = datetime.utcnow()
+        if server_ip:
+            pusher.server_ip = server_ip
+        if port:
+            pusher.port = port
+        if process_id:
+            pusher.process_id = process_id
+        if log_path:
+            pusher.log_path = log_path
+        elif not pusher.log_path:
+            # 如果没有log_path，根据pusher_id生成
+            video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            log_base_dir = os.path.join(video_root, 'logs')
+            pusher.log_path = os.path.join(log_base_dir, f'pusher_{pusher_id}')
+        if task_id:
+            pusher.task_id = task_id
+        
+        # 更新状态为running
+        if pusher.status != 'stopped':
+            pusher.status = 'running'
+        
+        db.session.commit()
+        
+        return jsonify({
+            'code': 0,
+            'msg': '心跳接收成功',
+            'data': {
+                'pusher_id': pusher.id,
+                'pusher_name': pusher.pusher_name
+            }
+        })
+    except Exception as e:
+        logger.error(f"接收推送器心跳失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
+
+
+# ====================== 日志查看接口 ======================
+@algorithm_task_bp.route('/task/<int:task_id>/extractor/logs', methods=['GET'])
+def get_task_extractor_logs(task_id):
+    """获取算法任务的抽帧器日志"""
+    try:
+        from models import AlgorithmTask
+        task = AlgorithmTask.query.get(task_id)
+        if not task:
+            return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
+        
+        if not task.extractor_id:
+            return jsonify({'code': 400, 'msg': '该算法任务未配置抽帧器'}), 400
+        
+        extractor = FrameExtractor.query.get(task.extractor_id)
+        if not extractor:
+            return jsonify({'code': 404, 'msg': '抽帧器不存在'}), 404
+        
+        lines = int(request.args.get('lines', 100))
+        date = request.args.get('date', '').strip()
+        
+        return get_service_logs(extractor, lines, date if date else None)
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except Exception as e:
+        logger.error(f"获取抽帧器日志失败: {str(e)}", exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@algorithm_task_bp.route('/task/<int:task_id>/sorter/logs', methods=['GET'])
+def get_task_sorter_logs(task_id):
+    """获取算法任务的排序器日志"""
+    try:
+        from models import AlgorithmTask
+        task = AlgorithmTask.query.get(task_id)
+        if not task:
+            return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
+        
+        if not task.sorter_id:
+            return jsonify({'code': 400, 'msg': '该算法任务未配置排序器'}), 400
+        
+        sorter = Sorter.query.get(task.sorter_id)
+        if not sorter:
+            return jsonify({'code': 404, 'msg': '排序器不存在'}), 404
+        
+        lines = int(request.args.get('lines', 100))
+        date = request.args.get('date', '').strip()
+        
+        return get_service_logs(sorter, lines, date if date else None)
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except Exception as e:
+        logger.error(f"获取排序器日志失败: {str(e)}", exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@algorithm_task_bp.route('/task/<int:task_id>/pusher/logs', methods=['GET'])
+def get_task_pusher_logs(task_id):
+    """获取算法任务的推送器日志"""
+    try:
+        from models import AlgorithmTask
+        task = AlgorithmTask.query.get(task_id)
+        if not task:
+            return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
+        
+        if not task.pusher_id:
+            return jsonify({'code': 400, 'msg': '该算法任务未配置推送器'}), 400
+        
+        pusher = Pusher.query.get(task.pusher_id)
+        if not pusher:
+            return jsonify({'code': 404, 'msg': '推送器不存在'}), 404
+        
+        lines = int(request.args.get('lines', 100))
+        date = request.args.get('date', '').strip()
+        
+        return get_service_logs(pusher, lines, date if date else None)
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except Exception as e:
+        logger.error(f"获取推送器日志失败: {str(e)}", exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+def get_service_logs(service_obj, lines: int = 100, date: str = None):
+    """获取服务日志的通用函数"""
+    try:
+        # 确定日志文件路径
+        video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        log_base_dir = os.path.join(video_root, 'logs')
+        
+        if not service_obj.log_path:
+            # 根据服务类型生成日志目录
+            if isinstance(service_obj, FrameExtractor):
+                service_log_dir = os.path.join(log_base_dir, f'frame_extractor_{service_obj.id}')
+            elif isinstance(service_obj, Sorter):
+                service_log_dir = os.path.join(log_base_dir, f'sorter_{service_obj.id}')
+            elif isinstance(service_obj, Pusher):
+                service_log_dir = os.path.join(log_base_dir, f'pusher_{service_obj.id}')
+            else:
+                service_log_dir = os.path.join(log_base_dir, str(service_obj.id))
+        else:
+            service_log_dir = service_obj.log_path
+        
+        # 根据参数选择日志文件（按日期）
+        if date:
+            log_filename = f"{date}.log"
+        else:
+            # 如果没有指定日期，返回今天的日志文件
+            log_filename = datetime.now().strftime('%Y-%m-%d.log')
+        
+        log_file_path = os.path.join(service_log_dir, log_filename)
+        
+        # 检查日志文件是否存在
+        if not os.path.exists(log_file_path):
+            return jsonify({
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'logs': f'日志文件不存在: {log_filename}\n请等待服务运行后生成日志。',
+                    'total_lines': 0,
+                    'log_file': log_filename,
+                    'is_all_file': not bool(date)
+                }
+            })
+        
+        # 读取日志文件最后N行
+        try:
+            with open(log_file_path, 'r', encoding='utf-8') as f:
+                all_lines = f.readlines()
+                log_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+            
+            return jsonify({
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'logs': ''.join(log_lines),
+                    'total_lines': len(all_lines),
+                    'log_file': log_filename,
+                    'is_all_file': not bool(date)
+                }
+            })
+        except UnicodeDecodeError:
+            # 如果UTF-8解码失败，尝试使用其他编码
+            try:
+                with open(log_file_path, 'r', encoding='gbk') as f:
+                    all_lines = f.readlines()
+                    log_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+                
+                return jsonify({
+                    'code': 0,
+                    'msg': 'success',
+                    'data': {
+                        'logs': ''.join(log_lines),
+                        'total_lines': len(all_lines),
+                        'log_file': log_filename,
+                        'is_all_file': not bool(date)
+                    }
+                })
+            except Exception as e:
+                logger.error(f"读取日志文件失败: {str(e)}")
+                return jsonify({
+                    'code': 500,
+                    'msg': f'读取日志文件失败: {str(e)}'
+                }), 500
+    except Exception as e:
+        logger.error(f"获取服务日志失败: {str(e)}", exc_info=True)
+        return jsonify({
+            'code': 500,
+            'msg': f'服务器内部错误: {str(e)}'
+        }), 500
 

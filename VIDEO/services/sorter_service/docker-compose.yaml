@@ -1,0 +1,49 @@
+services:
+  sorter-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sorter-service:latest
+    container_name: sorter-service
+    user: root
+
+    # 环境变量文件
+    env_file:
+      - .env.docker
+
+    # 网络模式：使用host模式
+    network_mode: host
+
+    # 数据卷挂载
+    volumes:
+      - ./logs:/app/logs
+      - ../models.py:/app/models.py:ro
+
+    # 环境变量
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TZ=Asia/Shanghai
+      - PORT=8002
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:iot45722414822@localhost:5432/iot-video}
+      - SERVICE_ID=${SERVICE_ID:-1}
+      - TASK_ID=${TASK_ID:-}
+      - SORTER_ID=${SORTER_ID:-}
+
+    # 重启策略
+    restart: unless-stopped
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+

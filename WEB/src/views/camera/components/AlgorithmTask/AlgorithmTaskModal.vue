@@ -37,6 +37,13 @@
         />
         <a-empty v-else description="请先保存基础配置，然后才能配置算法服务" />
       </a-tab-pane>
+      <a-tab-pane key="status" tab="服务状态" :disabled="!taskId">
+        <ServiceStatusTab
+          v-if="taskId && formValues"
+          :task="formValues"
+        />
+        <a-empty v-else description="请先保存基础配置" />
+      </a-tab-pane>
     </a-tabs>
   </BasicDrawer>
 </template>
@@ -57,6 +64,7 @@ import { getSnapSpaceList } from '@/api/device/snap';
 import { getDeployServicePage } from '@/api/device/model';
 import AlgorithmServiceList from './AlgorithmServiceList.vue';
 import DefenseSchedulePicker from './DefenseSchedulePicker.vue';
+import ServiceStatusTab from './ServiceStatusTab.vue';
 
 defineOptions({ name: 'AlgorithmTaskModal' });
 

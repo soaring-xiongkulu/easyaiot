@@ -343,6 +343,15 @@ class FrameExtractor(db.Model):
     description = db.Column(db.String(500), nullable=True, comment='描述')
     is_enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用')
     
+    # 心跳相关字段
+    status = db.Column(db.String(20), default='stopped', nullable=False, comment='运行状态[running:运行中,stopped:已停止,error:错误]')
+    server_ip = db.Column(db.String(50), nullable=True, comment='部署的服务器IP')
+    port = db.Column(db.Integer, nullable=True, comment='服务端口')
+    process_id = db.Column(db.Integer, nullable=True, comment='进程ID')
+    last_heartbeat = db.Column(db.DateTime, nullable=True, comment='最后上报时间')
+    log_path = db.Column(db.String(500), nullable=True, comment='日志文件路径')
+    task_id = db.Column(db.Integer, nullable=True, comment='关联的算法任务ID')
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -356,6 +365,13 @@ class FrameExtractor(db.Model):
             'interval': self.interval,
             'description': self.description,
             'is_enabled': self.is_enabled,
+            'status': self.status,
+            'server_ip': self.server_ip,
+            'port': self.port,
+            'process_id': self.process_id,
+            'last_heartbeat': self.last_heartbeat.isoformat() if self.last_heartbeat else None,
+            'log_path': self.log_path,
+            'task_id': self.task_id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -373,6 +389,15 @@ class Sorter(db.Model):
     description = db.Column(db.String(500), nullable=True, comment='描述')
     is_enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用')
     
+    # 心跳相关字段
+    status = db.Column(db.String(20), default='stopped', nullable=False, comment='运行状态[running:运行中,stopped:已停止,error:错误]')
+    server_ip = db.Column(db.String(50), nullable=True, comment='部署的服务器IP')
+    port = db.Column(db.Integer, nullable=True, comment='服务端口')
+    process_id = db.Column(db.Integer, nullable=True, comment='进程ID')
+    last_heartbeat = db.Column(db.DateTime, nullable=True, comment='最后上报时间')
+    log_path = db.Column(db.String(500), nullable=True, comment='日志文件路径')
+    task_id = db.Column(db.Integer, nullable=True, comment='关联的算法任务ID')
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -386,6 +411,13 @@ class Sorter(db.Model):
             'sort_order': self.sort_order,
             'description': self.description,
             'is_enabled': self.is_enabled,
+            'status': self.status,
+            'server_ip': self.server_ip,
+            'port': self.port,
+            'process_id': self.process_id,
+            'last_heartbeat': self.last_heartbeat.isoformat() if self.last_heartbeat else None,
+            'log_path': self.log_path,
+            'task_id': self.task_id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -415,6 +447,15 @@ class Pusher(db.Model):
     
     description = db.Column(db.String(500), nullable=True, comment='描述')
     is_enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用')
+    
+    # 心跳相关字段
+    status = db.Column(db.String(20), default='stopped', nullable=False, comment='运行状态[running:运行中,stopped:已停止,error:错误]')
+    server_ip = db.Column(db.String(50), nullable=True, comment='部署的服务器IP')
+    port = db.Column(db.Integer, nullable=True, comment='服务端口')
+    process_id = db.Column(db.Integer, nullable=True, comment='进程ID')
+    last_heartbeat = db.Column(db.DateTime, nullable=True, comment='最后上报时间')
+    log_path = db.Column(db.String(500), nullable=True, comment='日志文件路径')
+    task_id = db.Column(db.Integer, nullable=True, comment='关联的算法任务ID')
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -452,6 +493,13 @@ class Pusher(db.Model):
             'event_alert_template': template,
             'description': self.description,
             'is_enabled': self.is_enabled,
+            'status': self.status,
+            'server_ip': self.server_ip,
+            'port': self.port,
+            'process_id': self.process_id,
+            'last_heartbeat': self.last_heartbeat.isoformat() if self.last_heartbeat else None,
+            'log_path': self.log_path,
+            'task_id': self.task_id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

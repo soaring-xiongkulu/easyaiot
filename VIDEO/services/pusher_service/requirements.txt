@@ -1,0 +1,12 @@
+# 基础依赖
+Flask>=2.0.0
+flask-cors>=3.0.0
+requests>=2.25.0
+
+# 数据库
+SQLAlchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# 工具类
+python-dotenv>=1.0.0
+
