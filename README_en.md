@@ -22,24 +22,31 @@ My vision is for this system to be accessible worldwide, achieving truly zero ba
 ### 📍 Project Positioning
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT, achieving a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making, truly realizing interconnected everything and intelligent control of everything.
+EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT. Through core capabilities such as algorithm task management, real-time stream analysis, and model service cluster inference, the platform achieves a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making, truly realizing interconnected everything and intelligent control of everything.
 </p>
 
 #### 🧠 AI Capabilities
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
   <li><strong>Large-Scale Camera Management</strong>: Supports access to hundreds of cameras, providing end-to-end services including collection, annotation, training, inference, export, analysis, alerting, recording, storage, and deployment</li>
-  <li><strong>OCR and Speech Recognition</strong>: High-precision text recognition based on PaddleOCR with speech-to-text functionality</li>
-  <li><strong>Multimodal Vision Large Models</strong>: Supports various vision tasks including object recognition and text recognition, providing powerful image understanding capabilities</li>
-  <li><strong>LLM Large Language Models</strong>: Supports intelligent analysis and understanding of multiple input formats including RTSP streams, video, images, audio, and text</li>
-  <li><strong>Model Deployment</strong>: Supports rapid deployment and version management of AI models, enabling one-click model deployment</li>
-  <li><strong>Multi-Instance Management</strong>: Supports concurrent operation and resource scheduling of multiple model instances, improving system utilization</li>
-  <li><strong>Model Service Cluster Inference</strong>: Supports distributed model inference services, achieving load balancing and high availability</li>
-  <li><strong>Camera Snapshot</strong>: Supports real-time camera snapshot functionality with configurable snapshot rules and trigger conditions</li>
-  <li><strong>Snapshot Storage Space</strong>: Provides storage space management for snapshot images with quota and cleanup policy support</li>
-  <li><strong>Video Storage Space</strong>: Provides storage space management for video files with automatic cleanup and archiving support</li>
-  <li><strong>Snapshot Image Management</strong>: Supports full lifecycle management of snapshot images including viewing, searching, downloading, and deletion</li>
-  <li><strong>Device Directory</strong>: Provides hierarchical device directory management with device grouping, multi-level management, and permission control</li>
+  <li><strong>Algorithm Task Management</strong>: Supports creation and management of two types of algorithm tasks, each task can flexibly bind frame extractors and sorters to achieve precise video frame extraction and result sorting
+    <ul style="margin: 5px 0; padding-left: 20px;">
+      <li><strong>Real-Time Algorithm Tasks</strong>: Used for real-time video analysis, supporting RTSP/RTMP stream real-time processing with millisecond-level response capabilities, suitable for monitoring, security, and other real-time scenarios</li>
+      <li><strong>Snapshot Algorithm Tasks</strong>: Used for snapshot image analysis, performing intelligent recognition and analysis on captured images, suitable for event backtracking, image retrieval, and other scenarios</li>
+    </ul>
+  </li>
+  <li><strong>Model Service Cluster Inference</strong>: Supports distributed model inference service clusters, achieving intelligent load balancing, automatic failover, and high availability guarantees, significantly improving inference throughput and system stability</li>
+  <li><strong>Defense Time Period Management</strong>: Supports two defense strategies: full defense mode and half defense mode, allowing flexible configuration of defense rules for different time periods, achieving precise time-based intelligent monitoring and alerting</li>
+  <li><strong>OCR and Speech Recognition</strong>: High-precision text recognition based on PaddleOCR with speech-to-text functionality, providing multi-language recognition capabilities</li>
+  <li><strong>Multimodal Vision Large Models</strong>: Supports various vision tasks including object recognition and text recognition, providing powerful image understanding and scene analysis capabilities</li>
+  <li><strong>LLM Large Language Models</strong>: Supports intelligent analysis and understanding of multiple input formats including RTSP streams, video, images, audio, and text, achieving multimodal content understanding</li>
+  <li><strong>Model Deployment and Version Management</strong>: Supports rapid deployment and version management of AI models, enabling one-click model deployment, version rollback, and gray release</li>
+  <li><strong>Multi-Instance Management</strong>: Supports concurrent operation and resource scheduling of multiple model instances, improving system utilization and resource efficiency</li>
+  <li><strong>Camera Snapshot</strong>: Supports real-time camera snapshot functionality with configurable snapshot rules and trigger conditions, achieving intelligent snapshot capture and event recording</li>
+  <li><strong>Snapshot Storage Space Management</strong>: Provides storage space management for snapshot images with quota and cleanup policy support, ensuring rational utilization of storage resources</li>
+  <li><strong>Video Storage Space Management</strong>: Provides storage space management for video files with automatic cleanup and archiving, achieving intelligent storage resource management</li>
+  <li><strong>Snapshot Image Management</strong>: Supports full lifecycle management of snapshot images including viewing, searching, downloading, and deletion, providing convenient image management functionality</li>
+  <li><strong>Device Directory Management</strong>: Provides hierarchical device directory management with device grouping, multi-level management, and permission control, achieving organized and fine-grained device management</li>
 </ul>
 
 #### 🌐 IoT Capabilities
@@ -58,11 +65,11 @@ EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses
 ### 💡 Technical Philosophy
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-I believe no single programming language excels at everything, but with a combination of three languages, EasyAIoT will be invincible—fortunately, I possess this trait.
+We believe no single programming language excels at everything, but through the deep integration of three programming languages, EasyAIoT leverages the strengths of each to build a powerful technical ecosystem.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-Java is suitable for platform development but not for network or AI programming; Python is good for network and AI programming but not for high-performance task execution; C++ excels in high-performance tasks but is unsuitable for the other two. The vision of EasyAIoT is to use a tri-lingual mixed programming approach to build an AIoT platform that's not so easy to implement but very easy to use.
+Java excels at building stable and reliable platform architectures but is not suitable for network programming and AI development; Python excels at network programming and AI algorithm development but has bottlenecks in high-performance task execution; C++ excels at high-performance task execution but is less suitable than the other two for platform development and AI programming. EasyAIoT adopts a tri-lingual mixed programming architecture, fully leveraging the strengths of each language to build an AIoT platform that's challenging to implement but extremely easy to use.
 </p>
 
 ![EasyAIoT Platform Architecture.jpg](.image/iframe2.jpg)
@@ -74,7 +81,7 @@ Java is suitable for platform development but not for network or AI programming;
 ### 🤖 Zero-Shot Labeling Technology
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-Innovatively leveraging large models to construct a zero-shot labeling technical system (ideally eliminating manual labeling, completely freeing up human resources), this technology generates initial data through large models and completes automatic labeling via prompt engineering. It then ensures data quality through optional human-machine collaborative verification, thereby training an initial small model. This small model, through continuous iteration and self-optimization, achieves co-evolution of labeling efficiency and model accuracy, ultimately driving continuous improvement in system performance.
+Innovatively leveraging large models to construct a zero-shot labeling technical system (ideally completely eliminating manual labeling, achieving full automation of the labeling process), this technology generates initial data through large models and completes automatic labeling via prompt engineering. It then ensures data quality through optional human-machine collaborative verification, thereby training an initial small model. This small model, through continuous iteration and self-optimization, achieves co-evolution of labeling efficiency and model accuracy, ultimately driving continuous improvement in system performance.
 </p>
 
 <img src=".image/iframe4.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -133,11 +140,25 @@ EasyAIoT consists of five core projects:
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>VIDEO Module</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">Python-based video processing module responsible for video stream processing and transmission</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>Stream Processing</strong>: Supports RTSP/RTMP stream real-time processing and transmission</li>
+    <li><strong>Algorithm Task Management</strong>: Supports real-time algorithm tasks and snapshot algorithm tasks, used for real-time video analysis and snapshot image analysis respectively</li>
+    <li><strong>Frame Extractor and Sorter</strong>: Supports flexible frame extraction strategies and result sorting mechanisms, each algorithm task can bind independent frame extractors and sorters</li>
+    <li><strong>Defense Time Period</strong>: Supports time-based configuration for full defense mode and half defense mode</li>
+  </ul>
+</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>AI Module</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">Python-based artificial intelligence processing module responsible for video analysis and AI algorithm execution</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>Intelligent Analysis</strong>: Responsible for video analysis and AI algorithm execution</li>
+    <li><strong>Model Service Cluster</strong>: Supports distributed model inference services, achieving load balancing and high availability</li>
+    <li><strong>Real-Time Inference</strong>: Provides millisecond-level response real-time intelligent analysis capabilities</li>
+    <li><strong>Model Management</strong>: Supports model deployment, version management, and multi-instance scheduling</li>
+  </ul>
+</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>TASK Module</strong></td>
@@ -198,6 +219,9 @@ Supports thousands of vertical scenarios with customizable AI models and algorit
 <h3 style="color: #2c3e50; margin-top: 0;">Deep Integration Empowers Intelligent Vision for Everything</h3>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
 EasyAIoT constructs an efficient access and management network for IoT devices (especially massive cameras). We deeply integrate real-time streaming technology with cutting-edge AI to create a unified service core. This solution not only enables interoperability across heterogeneous devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and perimeter intrusion detection.
+</p>
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
+The platform supports two types of algorithm tasks: real-time algorithm tasks for real-time video analysis of RTSP/RTMP streams, providing millisecond-level response capabilities; snapshot algorithm tasks for intelligent analysis of captured images, supporting event backtracking and image retrieval. Through algorithm task management, flexible frame extraction and sorting strategies are achieved, with each task able to bind independent frame extractors and sorters. Combined with model service cluster inference capabilities, millisecond-level response and high availability are ensured. Additionally, two defense strategies are provided: full defense mode and half defense mode, allowing flexible configuration of monitoring rules for different time periods, achieving precise time-based intelligent monitoring and alerting.
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
 In terms of IoT device management, EasyAIoT provides comprehensive device lifecycle management capabilities, supporting multiple IoT protocols (MQTT, TCP, HTTP) to achieve rapid device access, secure authentication, real-time monitoring, and intelligent control. Through the rule engine, intelligent data flow and processing of device data are realized, combined with AI capabilities for in-depth analysis of device data, achieving full-process automation from device access, data collection, intelligent analysis to decision execution, truly realizing interconnected everything and intelligent control of everything.

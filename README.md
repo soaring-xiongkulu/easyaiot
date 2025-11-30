@@ -22,24 +22,31 @@
 ### 📍 项目定位
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT的深度融合，实现从设备接入到数据采集、AI分析、智能决策的全链路闭环，真正实现万物互联、万物智控。
+EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT的深度融合。平台通过算法任务管理、实时流分析、模型服务集群推理等核心能力，实现从设备接入到数据采集、AI分析、智能决策的全链路闭环，真正实现万物互联、万物智控。
 </p>
 
 #### 🧠 AI能力
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
   <li><strong>大规模摄像头管理</strong>：支持百级摄像头接入，提供采集、标注、训练、推理、导出、分析、告警、录像、存储、部署等全流程服务</li>
-  <li><strong>OCR与语音识别</strong>：基于PaddleOCR实现高精度文字识别，支持语音转文本功能</li>
-  <li><strong>多模态视觉大模型</strong>：支持物体识别、文字识别等多种视觉任务，提供强大的图像理解能力</li>
-  <li><strong>LLM大语言模型</strong>：支持RTSP流、视频、图像、语音、文本等多种输入格式的智能分析与理解</li>
-  <li><strong>模型部署</strong>：支持AI模型的快速部署与版本管理，实现模型一键上线</li>
-  <li><strong>多实例管理</strong>：支持多个模型实例的并发运行与资源调度，提高系统利用率</li>
-  <li><strong>模型服务集群推理</strong>：支持分布式模型推理服务，实现负载均衡与高可用</li>
-  <li><strong>摄像头抓拍</strong>：支持摄像头实时抓拍功能，可配置抓拍规则与触发条件</li>
-  <li><strong>抓拍空间</strong>：提供抓拍图片的存储空间管理，支持空间配额与清理策略</li>
-  <li><strong>录像空间</strong>：提供录像文件的存储空间管理，支持自动清理与归档</li>
-  <li><strong>抓拍图片管理</strong>：支持抓拍图片的查看、检索、下载、删除等全生命周期管理</li>
-  <li><strong>设备目录</strong>：提供设备树形目录管理，支持设备分组、层级管理与权限控制</li>
+  <li><strong>算法任务管理</strong>：支持创建和管理两种类型的算法任务，每个算法任务可灵活绑定抽帧器和排序器，实现精准的视频帧提取与结果排序
+    <ul style="margin: 5px 0; padding-left: 20px;">
+      <li><strong>实时算法任务</strong>：用于实时画面分析，支持RTSP/RTMP流实时处理，提供毫秒级响应能力，适用于监控、安防等实时场景</li>
+      <li><strong>抓拍算法任务</strong>：用于抓拍图像分析，对抓拍图片进行智能识别与分析，适用于事件回溯、图像检索等场景</li>
+    </ul>
+  </li>
+  <li><strong>模型服务集群推理</strong>：支持分布式模型推理服务集群，实现智能负载均衡、故障自动切换与高可用保障，大幅提升推理吞吐量与系统稳定性</li>
+  <li><strong>布防时段管理</strong>：支持全防模式和半防模式两种布防策略，可灵活配置不同时段的布防规则，实现精准的时段化智能监控与告警</li>
+  <li><strong>OCR与语音识别</strong>：基于PaddleOCR实现高精度文字识别，支持语音转文本功能，提供多语言识别能力</li>
+  <li><strong>多模态视觉大模型</strong>：支持物体识别、文字识别等多种视觉任务，提供强大的图像理解与场景分析能力</li>
+  <li><strong>LLM大语言模型</strong>：支持RTSP流、视频、图像、语音、文本等多种输入格式的智能分析与理解，实现多模态内容理解</li>
+  <li><strong>模型部署与版本管理</strong>：支持AI模型的快速部署与版本管理，实现模型一键上线、版本回滚与灰度发布</li>
+  <li><strong>多实例管理</strong>：支持多个模型实例的并发运行与资源调度，提高系统利用率与资源利用效率</li>
+  <li><strong>摄像头抓拍</strong>：支持摄像头实时抓拍功能，可配置抓拍规则与触发条件，实现智能抓拍与事件记录</li>
+  <li><strong>抓拍空间管理</strong>：提供抓拍图片的存储空间管理，支持空间配额与清理策略，确保存储资源合理利用</li>
+  <li><strong>录像空间管理</strong>：提供录像文件的存储空间管理，支持自动清理与归档，实现存储资源的智能管理</li>
+  <li><strong>抓拍图片管理</strong>：支持抓拍图片的查看、检索、下载、删除等全生命周期管理，提供便捷的图片管理功能</li>
+  <li><strong>设备目录管理</strong>：提供设备树形目录管理，支持设备分组、层级管理与权限控制，实现设备的有序组织与精细化管理</li>
 </ul>
 
 #### 🌐 IoT能力
@@ -58,11 +65,11 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 ### 💡 技术理念
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-我认为没有任何一个编程语言是擅长所有事情，但如果是3种编程语言混合，EasyAIoT将所向披靡，恰好我具备这种特质。
+我们认为没有任何一个编程语言能够擅长所有事情，但通过三种编程语言的深度融合，EasyAIoT将发挥各自优势，构建强大的技术生态。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-Java适合做平台但不适合网络编程和AI编程，Python适合做网络和AI编程但不适合做高性能任务执行，C++适合做高性能任务执行但不适合做前面两者做的事情，EasyAIoT设想是采用三合一语言混编，构建一个实现不太Easy，但是使用非常Easy的AIoT平台。
+Java擅长构建稳定可靠的平台架构，但不适合网络编程和AI编程；Python擅长网络编程和AI算法开发，但在高性能任务执行方面存在瓶颈；C++擅长高性能任务执行，但在平台开发和AI编程方面不如前两者。EasyAIoT采用三合一语言混编架构，充分发挥各语言优势，构建一个实现颇具挑战，但使用极其便捷的AIoT平台。
 </p>
 
 ![EasyAIoT平台架构.jpg](.image/iframe2.jpg)
@@ -74,7 +81,7 @@ Java适合做平台但不适合网络编程和AI编程，Python适合做网络�
 ### 🤖 零样本标注技术
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-创新性的依托大模型构建零样本标注技术体系（理想状态去掉人工标注环节，标注完全解放人力），该技术通过大模型生成初始数据并借助提示词技术完成自动标注，再经人机协同校验确保数据质量（可选），进而训练出初始小模型。该小模型通过持续迭代、自我优化，实现标注效率与模型精度协同进化，最终推动系统性能不断攀升。
+创新性地依托大模型构建零样本标注技术体系（理想状态下完全去除人工标注环节，实现标注流程的自动化），该技术通过大模型生成初始数据并借助提示词技术完成自动标注，再经人机协同校验确保数据质量（可选），进而训练出初始小模型。该小模型通过持续迭代、自我优化，实现标注效率与模型精度的协同进化，最终推动系统性能不断攀升。
 </p>
 
 <img src=".image/iframe4.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -133,11 +140,25 @@ EasyAIoT由五个核心项目组成：
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>VIDEO模块</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">基于Python的视频处理模块，负责视频流处理与传输</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>流媒体处理</strong>：支持RTSP/RTMP流实时处理与传输</li>
+    <li><strong>算法任务管理</strong>：支持实时算法任务和抓拍算法任务两种类型，分别用于实时画面分析和抓拍图像分析</li>
+    <li><strong>抽帧器与排序器</strong>：支持灵活的抽帧策略与结果排序机制，每个算法任务可绑定独立的抽帧器和排序器</li>
+    <li><strong>布防时段</strong>：支持全防模式和半防模式的时段化配置</li>
+  </ul>
+</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>AI模块</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">基于Python的人工智能处理模块，负责视频分析和AI算法执行</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>智能分析</strong>：负责视频分析和AI算法执行</li>
+    <li><strong>模型服务集群</strong>：支持分布式模型推理服务，实现负载均衡与高可用</li>
+    <li><strong>实时推理</strong>：提供毫秒级响应的实时智能分析能力</li>
+    <li><strong>模型管理</strong>：支持模型部署、版本管理与多实例调度</li>
+  </ul>
+</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>TASK模块</strong></td>
@@ -198,6 +219,9 @@ EasyAIoT支持在Linux、Mac、Windows三大主流操作系统上部署，为不
 <h3 style="color: #2c3e50; margin-top: 0;">赋能万物智视：EasyAIoT</h3>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
 构筑了物联网设备（尤其是海量摄像头）的高效接入与管控网络。我们深度融合流媒体实时传输技术与前沿人工智能（AI），打造一体化服务核心。这套方案不仅打通了异构设备的互联互通，更将高清视频流与强大的AI解析引擎深度集成，赋予监控系统"智能之眼"——精准实现人脸识别、异常行为分析、风险人员布控及周界入侵检测。
+</p>
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
+平台支持两种类型的算法任务：实时算法任务用于RTSP/RTMP流的实时画面分析，提供毫秒级响应能力；抓拍算法任务用于抓拍图像的智能分析，支持事件回溯与图像检索。通过算法任务管理实现灵活的抽帧与排序策略，每个任务可绑定独立的抽帧器和排序器，结合模型服务集群推理能力，确保毫秒级响应与高可用保障。同时，提供全防模式和半防模式两种布防策略，可根据不同时段灵活配置监控规则，实现精准的时段化智能监控与告警。
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
 在物联网设备管理方面，EasyAIoT提供完整的设备生命周期管理能力，支持多种物联网协议（MQTT、TCP、HTTP），实现设备的快速接入、安全认证、实时监控和智能控制。通过规则引擎实现设备数据的智能流转与处理，结合AI能力对设备数据进行深度分析，实现从设备接入、数据采集、智能分析到决策执行的全流程自动化，真正实现万物互联、万物智控。
