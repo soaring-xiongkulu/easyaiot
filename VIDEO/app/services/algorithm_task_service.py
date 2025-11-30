@@ -10,6 +10,7 @@ import requests
 import os
 from datetime import datetime
 from typing import List, Optional
+from sqlalchemy.orm import joinedload
 
 from models import db, AlgorithmTask, Device, FrameExtractor, Sorter, Pusher, SnapSpace, algorithm_task_device
 from app.services.algorithm_service import create_task_algorithm_service
@@ -339,7 +340,14 @@ def delete_algorithm_task(task_id: int):
 def get_algorithm_task(task_id: int) -> AlgorithmTask:
     """获取算法任务详情"""
     try:
-        task = AlgorithmTask.query.get_or_404(task_id)
+        task = AlgorithmTask.query.options(
+            joinedload(AlgorithmTask.algorithm_services),
+            joinedload(AlgorithmTask.devices),
+            joinedload(AlgorithmTask.extractor),
+            joinedload(AlgorithmTask.sorter),
+            joinedload(AlgorithmTask.pusher),
+            joinedload(AlgorithmTask.snap_space)
+        ).get_or_404(task_id)
         return task
     except Exception as e:
         logger.error(f"获取算法任务失败: {str(e)}", exc_info=True)
@@ -353,7 +361,14 @@ def list_algorithm_tasks(page_no: int = 1, page_size: int = 10,
                         is_enabled: Optional[bool] = None) -> dict:
     """查询算法任务列表"""
     try:
-        query = AlgorithmTask.query
+        query = AlgorithmTask.query.options(
+            joinedload(AlgorithmTask.algorithm_services),
+            joinedload(AlgorithmTask.devices),
+            joinedload(AlgorithmTask.extractor),
+            joinedload(AlgorithmTask.sorter),
+            joinedload(AlgorithmTask.pusher),
+            joinedload(AlgorithmTask.snap_space)
+        )
         
         if search:
             query = query.filter(
