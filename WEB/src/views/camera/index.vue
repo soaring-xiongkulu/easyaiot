@@ -123,7 +123,7 @@
           <RecordSpace ref="recordSpaceRef"/>
         </TabPane>
         <TabPane key="5" tab="算法任务">
-          <AlgorithmTask/>
+          <AlgorithmTask ref="algorithmTaskRef"/>
         </TabPane>
       </Tabs>
     </div>
@@ -186,6 +186,9 @@ const snapSpaceRef = ref();
 // 录像空间组件引用
 const recordSpaceRef = ref();
 
+// 算法任务组件引用
+const algorithmTaskRef = ref();
+
 // Tab切换
 const handleTabClick = (activeKey: string) => {
   state.activeKey = activeKey;
@@ -196,6 +199,10 @@ const handleTabClick = (activeKey: string) => {
   // 切换到录像空间标签页时，刷新数据
   if (activeKey === '4' && recordSpaceRef.value) {
     recordSpaceRef.value.refresh();
+  }
+  // 切换到算法任务标签页时，刷新数据
+  if (activeKey === '5' && algorithmTaskRef.value) {
+    algorithmTaskRef.value.refresh();
   }
 };
 

@@ -24,7 +24,7 @@ def create_algorithm_task(task_name: str,
                          cron_expression: Optional[str] = None,
                          frame_skip: int = 1,
                          description: Optional[str] = None,
-                         is_enabled: bool = True) -> AlgorithmTask:
+                         is_enabled: bool = False) -> AlgorithmTask:
     """创建算法任务"""
     try:
         # 验证任务类型

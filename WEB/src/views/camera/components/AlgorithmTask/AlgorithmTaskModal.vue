@@ -34,8 +34,6 @@ import {
   type AlgorithmTask,
 } from '@/api/device/algorithm_task';
 import { getDeviceList } from '@/api/device/camera';
-import { listFrameExtractors, listPushers } from '@/api/device/algorithm_task';
-import { listSorters } from '@/api/device/algorithm_task';
 import { getSnapSpaceList } from '@/api/device/snap';
 import AlgorithmServiceList from './AlgorithmServiceList.vue';
 
@@ -49,9 +47,6 @@ const taskId = ref<number | null>(null);
 const formValues = ref<any>({});
 
 const deviceOptions = ref<Array<{ label: string; value: string }>>([]);
-const extractorOptions = ref<Array<{ label: string; value: number }>>([]);
-const sorterOptions = ref<Array<{ label: string; value: number }>>([]);
-const pusherOptions = ref<Array<{ label: string; value: number }>>([]);
 const spaceOptions = ref<Array<{ label: string; value: number }>>([]);
 
 // 加载设备列表
@@ -64,45 +59,6 @@ const loadDevices = async () => {
     }));
   } catch (error) {
     console.error('加载设备列表失败', error);
-  }
-};
-
-// 加载抽帧器列表
-const loadExtractors = async () => {
-  try {
-    const response = await listFrameExtractors({ pageNo: 1, pageSize: 1000 });
-    extractorOptions.value = (response.data || []).map((item) => ({
-      label: item.extractor_name,
-      value: item.id,
-    }));
-  } catch (error) {
-    console.error('加载抽帧器列表失败', error);
-  }
-};
-
-// 加载排序器列表
-const loadSorters = async () => {
-  try {
-    const response = await listSorters({ pageNo: 1, pageSize: 1000 });
-    sorterOptions.value = (response.data || []).map((item) => ({
-      label: item.sorter_name,
-      value: item.id,
-    }));
-  } catch (error) {
-    console.error('加载排序器列表失败', error);
-  }
-};
-
-// 加载推送器列表
-const loadPushers = async () => {
-  try {
-    const response = await listPushers({ pageNo: 1, pageSize: 1000 });
-    pusherOptions.value = (response.data || []).map((item) => ({
-      label: item.pusher_name,
-      value: item.id,
-    }));
-  } catch (error) {
-    console.error('加载推送器列表失败', error);
   }
 };
 
@@ -162,28 +118,6 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema }] = 
       },
     },
     {
-      field: 'extractor_id',
-      label: '抽帧器',
-      component: 'Select',
-      componentProps: {
-        placeholder: '请选择抽帧器（可选，仅实时算法任务）',
-        options: extractorOptions,
-        allowClear: true,
-      },
-      ifShow: ({ values }) => values.task_type === 'realtime',
-    },
-    {
-      field: 'sorter_id',
-      label: '排序器',
-      component: 'Select',
-      componentProps: {
-        placeholder: '请选择排序器（可选，仅实时算法任务）',
-        options: sorterOptions,
-        allowClear: true,
-      },
-      ifShow: ({ values }) => values.task_type === 'realtime',
-    },
-    {
       field: 'space_id',
       label: '抓拍空间',
       component: 'Select',
@@ -215,16 +149,6 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema }] = 
       },
       helpMessage: '抽帧模式下，每N帧抓一次（默认1）',
       ifShow: ({ values }) => values.task_type === 'snap',
-    },
-    {
-      field: 'pusher_id',
-      label: '推送器',
-      component: 'Select',
-      componentProps: {
-        placeholder: '请选择推送器（可选）',
-        options: pusherOptions,
-        allowClear: true,
-      },
     },
     {
       field: 'description',
@@ -262,7 +186,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   resetFields();
   
   // 加载选项数据
-  await Promise.all([loadDevices(), loadExtractors(), loadSorters(), loadPushers(), loadSpaces()]);
+  await Promise.all([loadDevices(), loadSpaces()]);
   
   if (modalData.value.record) {
     const record = modalData.value.record;
@@ -271,9 +195,6 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       task_name: record.task_name,
       task_type: record.task_type || 'realtime',
       device_ids: record.device_ids || [],
-      extractor_id: record.extractor_id,
-      sorter_id: record.sorter_id,
-      pusher_id: record.pusher_id,
       space_id: record.space_id,
       cron_expression: record.cron_expression,
       frame_skip: record.frame_skip || 1,
@@ -286,10 +207,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       updateSchema([
         { field: 'task_name', componentProps: { disabled: true } },
         { field: 'task_type', componentProps: { disabled: true } },
-        { field: 'extractor_id', componentProps: { disabled: true } },
         { field: 'device_ids', componentProps: { disabled: true } },
-        { field: 'sorter_id', componentProps: { disabled: true } },
-        { field: 'pusher_id', componentProps: { disabled: true } },
         { field: 'space_id', componentProps: { disabled: true } },
         { field: 'cron_expression', componentProps: { disabled: true } },
         { field: 'frame_skip', componentProps: { disabled: true } },
@@ -301,7 +219,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     // 新建模式，设置默认值
     await setFieldsValue({
       task_type: 'realtime',
-      is_enabled: true,
+      is_enabled: false,
       frame_skip: 1,
     });
   }
