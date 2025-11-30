@@ -208,12 +208,8 @@ class SnapTask(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # 关联的检测区域
-    detection_regions = db.relationship('DetectionRegion', 
-                                       primaryjoin='SnapTask.id == DetectionRegion.task_id',
-                                       backref='snap_task', 
-                                       lazy=True, 
-                                       cascade='all, delete-orphan')
+    # 关联的检测区域（不使用数据库外键约束，仅ORM关系）
+    # 注意：DetectionRegion.task_id 没有外键约束，需要通过 primaryjoin 明确指定关系
     # 关联的推送器
     pusher = db.relationship('Pusher', backref='snap_tasks', lazy=True)
     # 注意：算法模型服务现在关联到AlgorithmTask，不再关联SnapTask
@@ -519,12 +515,8 @@ class AlgorithmTask(db.Model):
     pusher = db.relationship('Pusher', backref='algorithm_tasks', lazy=True)
     snap_space = db.relationship('SnapSpace', backref='algorithm_tasks', lazy=True)
     algorithm_services = db.relationship('AlgorithmModelService', backref='algorithm_task', lazy=True, cascade='all, delete-orphan')
-    # 检测区域关联（通过task_id关联，支持统一后的算法任务）
-    detection_regions = db.relationship('DetectionRegion', 
-                                       primaryjoin='AlgorithmTask.id == DetectionRegion.task_id',
-                                       backref='algorithm_task_ref', 
-                                       lazy=True, 
-                                       cascade='all, delete-orphan')
+    # 检测区域关联（通过task_id关联，支持统一后的算法任务，不使用数据库外键约束）
+    # 注意：关系在文件末尾使用实际列对象配置
     
     def to_dict(self):
         """转换为字典"""
@@ -759,3 +751,25 @@ class Playback(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+
+
+# 在类定义之后配置关系，使用实际的列对象（不使用数据库外键约束）
+# 配置 SnapTask 和 DetectionRegion 的关系
+SnapTask.detection_regions = db.relationship(
+    'DetectionRegion',
+    primaryjoin='SnapTask.id == DetectionRegion.task_id',
+    foreign_keys=[DetectionRegion.task_id],
+    backref=db.backref('snap_task', lazy=True),
+    lazy=True,
+    cascade='all, delete-orphan'
+)
+
+# 配置 AlgorithmTask 和 DetectionRegion 的关系
+AlgorithmTask.detection_regions = db.relationship(
+    'DetectionRegion',
+    primaryjoin='AlgorithmTask.id == DetectionRegion.task_id',
+    foreign_keys=[DetectionRegion.task_id],
+    backref=db.backref('algorithm_task_ref', lazy=True),
+    lazy=True,
+    cascade='all, delete-orphan'
+)
