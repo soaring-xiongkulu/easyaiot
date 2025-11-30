@@ -128,10 +128,9 @@ def create_algorithm_task(task_name: str,
             devices = Device.query.filter(Device.id.in_(device_id_list)).all()
             task.devices = devices
         
-        db.session.commit()
-        
-        # 根据部署服务ID自动创建算法服务
+        # 根据部署服务ID自动创建算法服务（在提交事务之前）
         service_names_list = []
+        failed_service_ids = []
         if service_ids:
             ai_service_url = os.getenv('AI_SERVICE_URL', 'http://localhost:5000')
             try:
@@ -150,12 +149,21 @@ def create_algorithm_task(task_name: str,
                             service_data = service_map.get(service_id)
                             if service_data:
                                 service_name = service_data.get('service_name', f'Service_{service_id}')
-                                service_names_list.append(service_name)
-                                # 创建算法服务
-                                create_task_algorithm_service(
+                                
+                                # 验证必要字段
+                                inference_endpoint = service_data.get('inference_endpoint', '')
+                                if not inference_endpoint:
+                                    logger.warning(f"部署服务 {service_id} 的 inference_endpoint 为空，跳过创建算法服务")
+                                    failed_service_ids.append(service_id)
+                                    continue
+                                
+                                # 创建算法服务（在事务内）
+                                from models import AlgorithmModelService
+                                
+                                service = AlgorithmModelService(
                                     task_id=task.id,
                                     service_name=service_name,
-                                    service_url=service_data.get('inference_endpoint', ''),
+                                    service_url=inference_endpoint,
                                     service_type=None,  # 可以根据需要设置
                                     model_id=service_data.get('model_id'),
                                     threshold=None,
@@ -166,20 +174,48 @@ def create_algorithm_task(task_name: str,
                                     is_enabled=True,
                                     sort_order=0
                                 )
-                                logger.info(f"为任务 {task.id} 创建算法服务成功: deploy_service_id={service_id}")
+                                
+                                db.session.add(service)
+                                service_names_list.append(service_name)
+                                logger.info(f"为任务 {task.id} 创建算法服务成功: deploy_service_id={service_id}, service_name={service_name}")
                             else:
                                 logger.warning(f"未找到部署服务: service_id={service_id}")
+                                failed_service_ids.append(service_id)
                     else:
-                        logger.warning(f"获取部署服务列表失败: response={deploy_services}")
+                        error_msg = f"获取部署服务列表失败: response={deploy_services}"
+                        logger.error(error_msg)
+                        # 如果提供了service_ids但获取失败，抛出异常
+                        raise RuntimeError(f"无法获取部署服务列表: {error_msg}")
                 else:
-                    logger.warning(f"获取部署服务列表失败: status_code={response.status_code}")
+                    error_msg = f"获取部署服务列表失败: HTTP {response.status_code}"
+                    logger.error(error_msg)
+                    raise RuntimeError(f"无法获取部署服务列表: {error_msg}")
+            except requests.exceptions.RequestException as e:
+                error_msg = f"调用AI服务失败: {str(e)}"
+                logger.error(f"为任务 {task.id} 创建算法服务失败: service_ids={service_ids}, error={error_msg}", exc_info=True)
+                raise RuntimeError(f"无法获取部署服务信息: {error_msg}")
+            except RuntimeError:
+                # 重新抛出RuntimeError
+                raise
             except Exception as e:
-                logger.error(f"为任务 {task.id} 创建算法服务失败: service_ids={service_ids}, error={str(e)}", exc_info=True)
+                error_msg = f"创建算法服务时发生异常: {str(e)}"
+                logger.error(f"为任务 {task.id} 创建算法服务失败: service_ids={service_ids}, error={error_msg}", exc_info=True)
+                raise RuntimeError(f"创建算法服务失败: {error_msg}")
+            
+            # 如果提供了service_ids但没有任何服务被成功创建，抛出异常
+            if not service_names_list and service_ids:
+                error_msg = f"所有提供的部署服务ID都无法创建算法服务: {service_ids}"
+                if failed_service_ids:
+                    error_msg += f", 失败的ID: {failed_service_ids}"
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
         
         # 保存服务名称列表到冗余字段
         if service_names_list:
             task.service_names = ', '.join(service_names_list)
-            db.session.commit()
+        
+        # 提交所有更改（包括任务和算法服务）
+        db.session.commit()
         
         logger.info(f"创建算法任务成功: task_id={task.id}, task_name={task_name}, task_type={task_type}, device_ids={device_id_list}, service_ids={service_ids}")
         return task
@@ -258,12 +294,13 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
         
         # 处理服务ID列表（如果提供）
         service_names_list = []
+        failed_service_ids = []
         if service_ids is not None:
             # 删除旧的算法服务
             from models import AlgorithmModelService
             AlgorithmModelService.query.filter_by(task_id=task_id).delete()
             
-            # 创建新的算法服务
+            # 创建新的算法服务（在事务内）
             if service_ids:
                 ai_service_url = os.getenv('AI_SERVICE_URL', 'http://localhost:5000')
                 try:
@@ -282,12 +319,19 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
                                 service_data = service_map.get(service_id)
                                 if service_data:
                                     service_name = service_data.get('service_name', f'Service_{service_id}')
-                                    service_names_list.append(service_name)
-                                    # 创建算法服务
-                                    create_task_algorithm_service(
+                                    
+                                    # 验证必要字段
+                                    inference_endpoint = service_data.get('inference_endpoint', '')
+                                    if not inference_endpoint:
+                                        logger.warning(f"部署服务 {service_id} 的 inference_endpoint 为空，跳过创建算法服务")
+                                        failed_service_ids.append(service_id)
+                                        continue
+                                    
+                                    # 创建算法服务（在事务内）
+                                    service = AlgorithmModelService(
                                         task_id=task.id,
                                         service_name=service_name,
-                                        service_url=service_data.get('inference_endpoint', ''),
+                                        service_url=inference_endpoint,
                                         service_type=None,
                                         model_id=service_data.get('model_id'),
                                         threshold=None,
@@ -298,15 +342,40 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
                                         is_enabled=True,
                                         sort_order=0
                                     )
-                                    logger.info(f"为任务 {task.id} 更新算法服务成功: deploy_service_id={service_id}")
+                                    
+                                    db.session.add(service)
+                                    service_names_list.append(service_name)
+                                    logger.info(f"为任务 {task.id} 更新算法服务成功: deploy_service_id={service_id}, service_name={service_name}")
                                 else:
                                     logger.warning(f"未找到部署服务: service_id={service_id}")
+                                    failed_service_ids.append(service_id)
                         else:
-                            logger.warning(f"获取部署服务列表失败: response={deploy_services}")
+                            error_msg = f"获取部署服务列表失败: response={deploy_services}"
+                            logger.error(error_msg)
+                            raise RuntimeError(f"无法获取部署服务列表: {error_msg}")
                     else:
-                        logger.warning(f"获取部署服务列表失败: status_code={response.status_code}")
+                        error_msg = f"获取部署服务列表失败: HTTP {response.status_code}"
+                        logger.error(error_msg)
+                        raise RuntimeError(f"无法获取部署服务列表: {error_msg}")
+                except requests.exceptions.RequestException as e:
+                    error_msg = f"调用AI服务失败: {str(e)}"
+                    logger.error(f"为任务 {task.id} 更新算法服务失败: service_ids={service_ids}, error={error_msg}", exc_info=True)
+                    raise RuntimeError(f"无法获取部署服务信息: {error_msg}")
+                except RuntimeError:
+                    # 重新抛出RuntimeError
+                    raise
                 except Exception as e:
-                    logger.error(f"为任务 {task.id} 更新算法服务失败: service_ids={service_ids}, error={str(e)}", exc_info=True)
+                    error_msg = f"更新算法服务时发生异常: {str(e)}"
+                    logger.error(f"为任务 {task.id} 更新算法服务失败: service_ids={service_ids}, error={error_msg}", exc_info=True)
+                    raise RuntimeError(f"更新算法服务失败: {error_msg}")
+                
+                # 如果提供了service_ids但没有任何服务被成功创建，抛出异常
+                if not service_names_list and service_ids:
+                    error_msg = f"所有提供的部署服务ID都无法创建算法服务: {service_ids}"
+                    if failed_service_ids:
+                        error_msg += f", 失败的ID: {failed_service_ids}"
+                    logger.error(error_msg)
+                    raise RuntimeError(error_msg)
             
             # 更新服务名称列表到冗余字段
             task.service_names = ', '.join(service_names_list) if service_names_list else None
