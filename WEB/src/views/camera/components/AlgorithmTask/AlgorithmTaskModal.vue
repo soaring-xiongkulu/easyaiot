@@ -3,13 +3,30 @@
     v-bind="$attrs" 
     @register="register" 
     :title="modalTitle" 
-    @ok="handleSubmit" 
-    width="800"
+    @ok="handleSubmit"
+    width="1000"
     placement="right"
+    :showFooter="true"
+    :showCancelBtn="true"
+    :showOkBtn="true"
+    cancelText="取消"
+    okText="提交"
   >
+    <template #footer>
+      <a-button v-if="!isViewMode" @click="handleReset" class="mr-2">重置</a-button>
+      <a-button @click="handleClose" class="mr-2">取消</a-button>
+      <a-button v-if="!isViewMode" type="primary" :loading="confirmLoading" @click="handleSubmit">提交</a-button>
+    </template>
     <a-tabs v-model:activeKey="activeTab">
       <a-tab-pane key="basic" tab="基础配置">
-        <BasicForm @register="registerForm" />
+        <BasicForm @register="registerForm" @field-value-change="handleFieldValueChange" />
+        <div style="margin-top: 24px;" v-if="!isFullDayDefense">
+          <a-divider orientation="left">布防时段配置</a-divider>
+          <DefenseSchedulePicker
+            v-model:modelValue="defenseSchedule"
+            :disabled="isViewMode"
+          />
+        </div>
       </a-tab-pane>
       <a-tab-pane key="services" tab="算法服务" :disabled="!taskId">
         <AlgorithmServiceList
@@ -31,11 +48,14 @@ import { useMessage } from '@/hooks/web/useMessage';
 import {
   createAlgorithmTask,
   updateAlgorithmTask,
+  listPushers,
   type AlgorithmTask,
 } from '@/api/device/algorithm_task';
 import { getDeviceList } from '@/api/device/camera';
 import { getSnapSpaceList } from '@/api/device/snap';
+import { getModelPage } from '@/api/device/model';
 import AlgorithmServiceList from './AlgorithmServiceList.vue';
+import DefenseSchedulePicker from './DefenseSchedulePicker.vue';
 
 defineOptions({ name: 'AlgorithmTaskModal' });
 
@@ -45,9 +65,17 @@ const emit = defineEmits(['success', 'register']);
 const activeTab = ref('basic');
 const taskId = ref<number | null>(null);
 const formValues = ref<any>({});
+const confirmLoading = ref(false);
+const isFullDayDefense = ref<boolean>(true);
+const defenseSchedule = ref<{ mode: string; schedule: number[][] }>({
+  mode: 'full',
+  schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
+});
 
 const deviceOptions = ref<Array<{ label: string; value: string }>>([]);
 const spaceOptions = ref<Array<{ label: string; value: number }>>([]);
+const modelOptions = ref<Array<{ label: string; value: number }>>([]);
+const pusherOptions = ref<Array<{ label: string; value: number }>>([]);
 
 // 加载设备列表
 const loadDevices = async () => {
@@ -75,7 +103,37 @@ const loadSpaces = async () => {
   }
 };
 
-const [registerForm, { setFieldsValue, validate, resetFields, updateSchema }] = useForm({
+// 加载模型列表
+const loadModels = async () => {
+  try {
+    const response = await getModelPage({ pageNo: 1, pageSize: 1000 });
+    if (response.code === 0 && response.data) {
+      modelOptions.value = (response.data || []).map((item: any) => ({
+        label: `${item.name}${item.version ? ` (${item.version})` : ''}`,
+        value: item.id,
+      }));
+    }
+  } catch (error) {
+    console.error('加载模型列表失败', error);
+  }
+};
+
+// 加载推送器列表
+const loadPushers = async () => {
+  try {
+    const response = await listPushers({ pageNo: 1, pageSize: 1000, is_enabled: true });
+    if (response.code === 0 && response.data) {
+      pusherOptions.value = (response.data || []).map((item) => ({
+        label: item.pusher_name,
+        value: item.id,
+      }));
+    }
+  } catch (error) {
+    console.error('加载推送器列表失败', error);
+  }
+};
+
+const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getFieldsValue }] = useForm({
   labelWidth: 120,
   baseColProps: { span: 24 },
   schemas: [
@@ -105,7 +163,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema }] = 
       field: 'device_ids',
       label: '关联摄像头',
       component: 'Select',
-      required: false,
+      required: true,
       componentProps: {
         placeholder: '请选择摄像头（可多选）',
         options: deviceOptions,
@@ -151,17 +209,50 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema }] = 
       ifShow: ({ values }) => values.task_type === 'snap',
     },
     {
-      field: 'description',
-      label: '任务描述',
-      component: 'InputTextArea',
+      field: 'model_ids',
+      label: '关联模型服务',
+      component: 'Select',
+      required: true,
       componentProps: {
-        placeholder: '请输入任务描述',
-        rows: 4,
+        placeholder: '请选择关联模型服务（可多选）',
+        options: modelOptions,
+        mode: 'multiple',
+        showSearch: true,
+        allowClear: true,
+        filterOption: (input: string, option: any) => {
+          return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+        },
       },
+      helpMessage: '选择要使用的关联模型服务，可多选',
+    },
+    {
+      field: 'pusher_id',
+      label: '告警通知',
+      component: 'Select',
+      required: false,
+      componentProps: {
+        placeholder: '请选择告警通知推送器（可选）',
+        options: pusherOptions,
+        allowClear: true,
+        showSearch: true,
+        filterOption: (input: string, option: any) => {
+          return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+        },
+      },
+      helpMessage: '选择告警通知推送器，不配置则不发送告警通知',
     },
     {
       field: 'is_enabled',
       label: '是否启用',
+      component: 'Switch',
+      componentProps: {
+        checkedChildren: '是',
+        unCheckedChildren: '否',
+      },
+    },
+    {
+      field: 'is_full_day_defense',
+      label: '是否全天布防',
       component: 'Switch',
       componentProps: {
         checkedChildren: '是',
@@ -180,17 +271,53 @@ const modalTitle = computed(() => {
   return '新建算法任务';
 });
 
+const isViewMode = computed(() => modalData.value.type === 'view');
+
 const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) => {
   modalData.value = data || {};
   taskId.value = null;
+  confirmLoading.value = false;
   resetFields();
   
   // 加载选项数据
-  await Promise.all([loadDevices(), loadSpaces()]);
+  await Promise.all([loadDevices(), loadSpaces(), loadModels(), loadPushers()]);
   
   if (modalData.value.record) {
     const record = modalData.value.record;
     taskId.value = record.id;
+    // 提取模型ID列表（从algorithm_services中获取）
+    const modelIds = record.algorithm_services
+      ?.map((service: any) => service.model_id)
+      .filter((id: number) => id !== null && id !== undefined) || [];
+    
+    // 恢复布防时段配置
+    if (record.defense_mode && record.defense_schedule) {
+      try {
+        const schedule = typeof record.defense_schedule === 'string' 
+          ? JSON.parse(record.defense_schedule) 
+          : record.defense_schedule;
+        defenseSchedule.value = {
+          mode: record.defense_mode,
+          schedule: schedule,
+        };
+      } catch (e) {
+        console.error('解析布防时段配置失败', e);
+        defenseSchedule.value = {
+          mode: 'full',
+          schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
+        };
+      }
+    } else {
+      defenseSchedule.value = {
+        mode: 'full',
+        schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
+      };
+    }
+    
+    // 判断是否全天布防（如果 defense_mode 为 'full'，则为全天布防）
+    const fullDayDefense = record.defense_mode === 'full';
+    isFullDayDefense.value = fullDayDefense;
+    
     await setFieldsValue({
       task_name: record.task_name,
       task_type: record.task_type || 'realtime',
@@ -198,11 +325,13 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       space_id: record.space_id,
       cron_expression: record.cron_expression,
       frame_skip: record.frame_skip || 1,
-      description: record.description,
+      model_ids: modelIds,
+      pusher_id: record.pusher_id,
       is_enabled: record.is_enabled,
+      is_full_day_defense: fullDayDefense,
     });
     
-    // 查看模式禁用表单
+    // 查看模式禁用表单和按钮
     if (modalData.value.type === 'view') {
       updateSchema([
         { field: 'task_name', componentProps: { disabled: true } },
@@ -211,24 +340,60 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
         { field: 'space_id', componentProps: { disabled: true } },
         { field: 'cron_expression', componentProps: { disabled: true } },
         { field: 'frame_skip', componentProps: { disabled: true } },
-        { field: 'description', componentProps: { disabled: true } },
+        { field: 'model_ids', componentProps: { disabled: true } },
+        { field: 'pusher_id', componentProps: { disabled: true } },
         { field: 'is_enabled', componentProps: { disabled: true } },
+        { field: 'is_full_day_defense', componentProps: { disabled: true } },
       ]);
+      setDrawerProps({ showOkBtn: false });
+    } else {
+      setDrawerProps({ showOkBtn: true });
     }
   } else {
     // 新建模式，设置默认值
+    isFullDayDefense.value = true;
     await setFieldsValue({
       task_type: 'realtime',
       is_enabled: false,
       frame_skip: 1,
+      is_full_day_defense: true,
     });
+    // 重置布防时段为默认值
+    defenseSchedule.value = {
+      mode: 'full',
+      schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
+    };
+    setDrawerProps({ showOkBtn: true });
   }
 });
+
+// 处理表单字段值变化
+const handleFieldValueChange = (key: string, value: any) => {
+  if (key === 'is_full_day_defense') {
+    isFullDayDefense.value = value !== undefined ? value : true;
+  }
+};
 
 const handleSubmit = async () => {
   try {
     const values = await validate();
+    confirmLoading.value = true;
     setDrawerProps({ confirmLoading: true });
+    
+    // 根据是否全天布防设置布防时段配置
+    const fullDayDefense = values.is_full_day_defense !== undefined ? values.is_full_day_defense : true;
+    if (fullDayDefense) {
+      // 全天布防：设置为全防模式
+      values.defense_mode = 'full';
+      values.defense_schedule = JSON.stringify(Array(7).fill(null).map(() => Array(24).fill(1)));
+    } else {
+      // 非全天布防：使用布防时段配置
+      values.defense_mode = defenseSchedule.value.mode;
+      values.defense_schedule = JSON.stringify(defenseSchedule.value.schedule);
+    }
+    
+    // 移除前端字段，不发送到后端
+    delete values.is_full_day_defense;
     
     if (modalData.value.type === 'edit' && modalData.value.record) {
       const response = await updateAlgorithmTask(modalData.value.record.id, values);
@@ -256,12 +421,72 @@ const handleSubmit = async () => {
     console.error('提交失败', error);
     createMessage.error('提交失败');
   } finally {
+    confirmLoading.value = false;
     setDrawerProps({ confirmLoading: false });
   }
 };
 
 const handleServicesRefresh = () => {
   emit('success');
+};
+
+// 重置表单
+const handleReset = () => {
+  resetFields();
+  // 如果是新建模式，重置为默认值
+  if (!modalData.value.record) {
+    isFullDayDefense.value = true;
+    setFieldsValue({
+      task_type: 'realtime',
+      is_enabled: false,
+      frame_skip: 1,
+      is_full_day_defense: true,
+    });
+  } else {
+      // 如果是编辑模式，恢复到原始值
+      const record = modalData.value.record;
+      // 提取模型ID列表
+      const modelIds = record.algorithm_services
+        ?.map((service: any) => service.model_id)
+        .filter((id: number) => id !== null && id !== undefined) || [];
+      
+      // 判断是否全天布防
+      const fullDayDefense = record.defense_mode === 'full';
+      isFullDayDefense.value = fullDayDefense;
+      
+      setFieldsValue({
+        task_name: record.task_name,
+        task_type: record.task_type || 'realtime',
+        device_ids: record.device_ids || [],
+        space_id: record.space_id,
+        cron_expression: record.cron_expression,
+        frame_skip: record.frame_skip || 1,
+        model_ids: modelIds,
+        pusher_id: record.pusher_id,
+        is_enabled: record.is_enabled,
+        is_full_day_defense: fullDayDefense,
+      });
+      
+      // 恢复布防时段配置
+      if (record.defense_mode && record.defense_schedule) {
+        try {
+          const schedule = typeof record.defense_schedule === 'string' 
+            ? JSON.parse(record.defense_schedule) 
+            : record.defense_schedule;
+          defenseSchedule.value = {
+            mode: record.defense_mode,
+            schedule: schedule,
+          };
+        } catch (e) {
+          console.error('解析布防时段配置失败', e);
+        }
+      }
+  }
+};
+
+// 关闭抽屉
+const handleClose = () => {
+  closeDrawer();
 };
 </script>
 

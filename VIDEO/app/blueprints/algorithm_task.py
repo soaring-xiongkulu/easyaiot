@@ -104,8 +104,9 @@ def create_task():
             space_id=data.get('space_id'),
             cron_expression=data.get('cron_expression'),
             frame_skip=data.get('frame_skip', 1),
-            description=data.get('description'),
-            is_enabled=data.get('is_enabled', False)
+            is_enabled=data.get('is_enabled', False),
+            defense_mode=data.get('defense_mode'),
+            defense_schedule=data.get('defense_schedule')
         )
         
         return jsonify({

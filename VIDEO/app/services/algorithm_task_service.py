@@ -23,8 +23,9 @@ def create_algorithm_task(task_name: str,
                          space_id: Optional[int] = None,
                          cron_expression: Optional[str] = None,
                          frame_skip: int = 1,
-                         description: Optional[str] = None,
-                         is_enabled: bool = False) -> AlgorithmTask:
+                         is_enabled: bool = False,
+                         defense_mode: Optional[str] = None,
+                         defense_schedule: Optional[str] = None) -> AlgorithmTask:
     """创建算法任务"""
     try:
         # 验证任务类型
@@ -69,6 +70,36 @@ def create_algorithm_task(task_name: str,
         prefix = "REALTIME_TASK" if task_type == 'realtime' else "SNAP_TASK"
         task_code = f"{prefix}_{uuid.uuid4().hex[:8].upper()}"
         
+        # 处理布防时段配置
+        if defense_mode:
+            if defense_mode not in ['full', 'half', 'day', 'night']:
+                raise ValueError(f"无效的布防模式: {defense_mode}，必须是 'full', 'half', 'day' 或 'night'")
+        else:
+            defense_mode = 'half'  # 默认半防模式
+        
+        # 如果未提供defense_schedule，根据模式生成默认值
+        if not defense_schedule:
+            if defense_mode == 'full':
+                # 全防模式：全部填充
+                import json
+                schedule = [[1] * 24 for _ in range(7)]
+                defense_schedule = json.dumps(schedule)
+            elif defense_mode == 'day':
+                # 白天模式：6:00-18:00填充
+                import json
+                schedule = [[1 if 6 <= h < 18 else 0 for h in range(24)] for _ in range(7)]
+                defense_schedule = json.dumps(schedule)
+            elif defense_mode == 'night':
+                # 夜间模式：18:00-6:00填充
+                import json
+                schedule = [[1 if h >= 18 or h < 6 else 0 for h in range(24)] for _ in range(7)]
+                defense_schedule = json.dumps(schedule)
+            else:
+                # 半防模式：全部清空
+                import json
+                schedule = [[0] * 24 for _ in range(7)]
+                defense_schedule = json.dumps(schedule)
+        
         task = AlgorithmTask(
             task_name=task_name,
             task_code=task_code,
@@ -79,8 +110,9 @@ def create_algorithm_task(task_name: str,
             space_id=space_id,
             cron_expression=cron_expression,
             frame_skip=frame_skip,
-            description=description,
-            is_enabled=is_enabled
+            is_enabled=is_enabled,
+            defense_mode=defense_mode,
+            defense_schedule=defense_schedule
         )
         
         db.session.add(task)
@@ -146,8 +178,15 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
         updatable_fields = [
             'task_name', 'task_type', 'extractor_id', 'sorter_id', 'pusher_id',
             'space_id', 'cron_expression', 'frame_skip',
-            'description', 'is_enabled', 'status', 'exception_reason'
+            'is_enabled', 'status', 'exception_reason',
+            'defense_mode', 'defense_schedule'
         ]
+        
+        # 验证布防模式
+        if 'defense_mode' in kwargs:
+            defense_mode = kwargs['defense_mode']
+            if defense_mode and defense_mode not in ['full', 'half', 'day', 'night']:
+                raise ValueError(f"无效的布防模式: {defense_mode}，必须是 'full', 'half', 'day' 或 'night'")
         
         for field in updatable_fields:
             if field in kwargs:

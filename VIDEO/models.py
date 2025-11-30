@@ -505,6 +505,10 @@ class AlgorithmTask(db.Model):
     
     description = db.Column(db.String(500), nullable=True, comment='任务描述')
     
+    # 布防时段配置
+    defense_mode = db.Column(db.String(20), default='half', nullable=False, comment='布防模式[full:全防模式,half:半防模式,day:白天模式,night:夜间模式]')
+    defense_schedule = db.Column(db.Text, nullable=True, comment='布防时段配置（JSON格式，7天×24小时的二维数组）')
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -554,7 +558,8 @@ class AlgorithmTask(db.Model):
             'last_process_time': self.last_process_time.isoformat() if self.last_process_time else None,
             'last_success_time': self.last_success_time.isoformat() if self.last_success_time else None,
             'last_capture_time': self.last_capture_time.isoformat() if self.last_capture_time else None,
-            'description': self.description,
+            'defense_mode': self.defense_mode,
+            'defense_schedule': self.defense_schedule,
             'algorithm_services': services_list,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None

@@ -54,8 +54,9 @@ export interface AlgorithmTask {
   total_detections: number;
   last_process_time?: string;
   last_success_time?: string;
-  description?: string;
   algorithm_services?: AlgorithmModelService[];
+  defense_mode?: string; // 布防模式: full(全防), half(半防), day(白天), night(夜间)
+  defense_schedule?: string | number[][]; // 布防时段: JSON字符串或二维数组，7天×24小时
   created_at?: string;
   updated_at?: string;
 }
@@ -95,8 +96,10 @@ export const createAlgorithmTask = (data: {
   space_id?: number;
   cron_expression?: string;
   frame_skip?: number;
-  description?: string;
+  model_ids?: number[];
   is_enabled?: boolean;
+  defense_mode?: string;
+  defense_schedule?: string;
 }) => {
   return commonApi<{ code: number; msg: string; data: AlgorithmTask }>(
     'post',
