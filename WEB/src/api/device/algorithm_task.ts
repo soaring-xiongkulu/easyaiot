@@ -13,8 +13,8 @@ export interface AlgorithmTask {
   id: number;
   task_name: string;
   task_code: string;
-  device_id: string;
-  device_name?: string;
+  device_ids?: string[];
+  device_names?: string[];
   extractor_id?: number;
   extractor_name?: string;
   sorter_id?: number;
@@ -59,9 +59,9 @@ export const getAlgorithmTask = (task_id: number) => {
 
 export const createAlgorithmTask = (data: {
   task_name: string;
-  device_id: string;
   extractor_id?: number;
   sorter_id?: number;
+  device_ids?: string[];
   description?: string;
   is_enabled?: boolean;
 }) => {

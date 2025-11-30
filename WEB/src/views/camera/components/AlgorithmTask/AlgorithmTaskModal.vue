@@ -104,14 +104,16 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema }] = 
       },
     },
     {
-      field: 'device_id',
-      label: '摄像头',
+      field: 'device_ids',
+      label: '关联摄像头',
       component: 'Select',
-      required: true,
+      required: false,
       componentProps: {
-        placeholder: '请选择摄像头',
+        placeholder: '请选择摄像头（可多选）',
         options: deviceOptions,
+        mode: 'multiple',
         showSearch: true,
+        allowClear: true,
         filterOption: (input: string, option: any) => {
           return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
         },
@@ -180,7 +182,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     taskId.value = record.id;
     await setFieldsValue({
       task_name: record.task_name,
-      device_id: record.device_id,
+      device_ids: record.device_ids || [],
       extractor_id: record.extractor_id,
       sorter_id: record.sorter_id,
       description: record.description,
@@ -191,8 +193,8 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     if (modalData.value.type === 'view') {
       updateSchema([
         { field: 'task_name', componentProps: { disabled: true } },
-        { field: 'device_id', componentProps: { disabled: true } },
         { field: 'extractor_id', componentProps: { disabled: true } },
+        { field: 'device_ids', componentProps: { disabled: true } },
         { field: 'sorter_id', componentProps: { disabled: true } },
         { field: 'description', componentProps: { disabled: true } },
         { field: 'is_enabled', componentProps: { disabled: true } },

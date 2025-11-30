@@ -45,10 +45,6 @@
               </a-dropdown>
             </template>
             <div class="card-content">
-              <div class="info-item">
-                <span class="label">摄像头:</span>
-                <span class="value">{{ item.device_name || item.device_id }}</span>
-              </div>
               <div class="info-item" v-if="item.extractor_name">
                 <span class="label">抽帧器:</span>
                 <span class="value">{{ item.extractor_name }}</span>
@@ -56,6 +52,10 @@
               <div class="info-item" v-if="item.sorter_name">
                 <span class="label">排序器:</span>
                 <span class="value">{{ item.sorter_name }}</span>
+              </div>
+              <div class="info-item" v-if="item.device_names && item.device_names.length > 0">
+                <span class="label">关联摄像头:</span>
+                <span class="value">{{ item.device_names.join(', ') }}</span>
               </div>
               <div class="info-item">
                 <span class="label">运行状态:</span>

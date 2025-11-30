@@ -85,15 +85,11 @@ def create_task():
         if not task_name:
             return jsonify({'code': 400, 'msg': '任务名称不能为空'}), 400
         
-        device_id = data.get('device_id')
-        if not device_id:
-            return jsonify({'code': 400, 'msg': '设备ID不能为空'}), 400
-        
         task = create_algorithm_task(
             task_name=task_name,
-            device_id=device_id,
             extractor_id=data.get('extractor_id'),
             sorter_id=data.get('sorter_id'),
+            device_ids=data.get('device_ids'),
             description=data.get('description'),
             is_enabled=data.get('is_enabled', True)
         )

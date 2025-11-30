@@ -384,6 +384,15 @@ class Sorter(db.Model):
         }
 
 
+# 算法任务和摄像头的多对多关联表
+algorithm_task_device = db.Table(
+    'algorithm_task_device',
+    db.Column('task_id', db.Integer, db.ForeignKey('algorithm_task.id', ondelete='CASCADE'), primary_key=True, comment='算法任务ID'),
+    db.Column('device_id', db.String(100), db.ForeignKey('device.id', ondelete='CASCADE'), primary_key=True, comment='摄像头ID'),
+    db.Column('created_at', db.DateTime, default=datetime.utcnow, comment='创建时间')
+)
+
+
 class AlgorithmTask(db.Model):
     """算法任务表（用于分析实时RTSP/RTMP流）"""
     __tablename__ = 'algorithm_task'
@@ -391,7 +400,6 @@ class AlgorithmTask(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     task_name = db.Column(db.String(255), nullable=False, comment='任务名称')
     task_code = db.Column(db.String(255), nullable=False, unique=True, comment='任务编号（唯一标识）')
-    device_id = db.Column(db.String(100), db.ForeignKey('device.id', ondelete='CASCADE'), nullable=False, comment='关联的摄像头ID')
     extractor_id = db.Column(db.Integer, db.ForeignKey('frame_extractor.id', ondelete='SET NULL'), nullable=True, comment='关联的抽帧器ID')
     sorter_id = db.Column(db.Integer, db.ForeignKey('sorter.id', ondelete='SET NULL'), nullable=True, comment='关联的排序器ID')
     
@@ -413,7 +421,7 @@ class AlgorithmTask(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # 关联关系
-    device = db.relationship('Device', backref='algorithm_tasks', lazy=True)
+    devices = db.relationship('Device', secondary=algorithm_task_device, backref='algorithm_task_list', lazy=True)  # 多对多关系
     extractor = db.relationship('FrameExtractor', backref='algorithm_tasks', lazy=True)
     sorter = db.relationship('Sorter', backref='algorithm_tasks', lazy=True)
     algorithm_services = db.relationship('AlgorithmModelService', backref='algorithm_task', lazy=True, cascade='all, delete-orphan')
@@ -422,12 +430,17 @@ class AlgorithmTask(db.Model):
         """转换为字典"""
         services_list = [s.to_dict() for s in self.algorithm_services] if self.algorithm_services else []
         
+        # 获取关联的摄像头列表
+        device_list = self.devices if self.devices else []
+        device_ids = [d.id for d in device_list]
+        device_names = [d.name or d.id for d in device_list]
+        
         return {
             'id': self.id,
             'task_name': self.task_name,
             'task_code': self.task_code,
-            'device_id': self.device_id,
-            'device_name': self.device.name if self.device else None,
+            'device_ids': device_ids,
+            'device_names': device_names,
             'extractor_id': self.extractor_id,
             'extractor_name': self.extractor.extractor_name if self.extractor else None,
             'sorter_id': self.sorter_id,

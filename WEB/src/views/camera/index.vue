@@ -125,6 +125,12 @@
         <TabPane key="5" tab="算法任务">
           <SnapTask/>
         </TabPane>
+        <TabPane key="6" tab="抽帧器">
+          <FrameExtractor ref="frameExtractorRef"/>
+        </TabPane>
+        <TabPane key="7" tab="排序器">
+          <Sorter ref="sorterRef"/>
+        </TabPane>
       </Tabs>
     </div>
   </div>
@@ -156,6 +162,8 @@ import SnapSpace from "./components/SnapSpace/index.vue";
 import SnapTask from "./components/SnapTask/index.vue";
 import RecordSpace from "./components/RecordSpace/index.vue";
 import VideoCardList from "./components/VideoCardList/index.vue";
+import FrameExtractor from "./components/FrameExtractor/index.vue";
+import Sorter from "./components/Sorter/index.vue";
 
 defineOptions({name: 'CAMERA'})
 
@@ -186,6 +194,12 @@ const snapSpaceRef = ref();
 // 录像空间组件引用
 const recordSpaceRef = ref();
 
+// 抽帧器组件引用
+const frameExtractorRef = ref();
+
+// 排序器组件引用
+const sorterRef = ref();
+
 // Tab切换
 const handleTabClick = (activeKey: string) => {
   state.activeKey = activeKey;
@@ -196,6 +210,14 @@ const handleTabClick = (activeKey: string) => {
   // 切换到录像空间标签页时，刷新数据
   if (activeKey === '4' && recordSpaceRef.value) {
     recordSpaceRef.value.refresh();
+  }
+  // 切换到抽帧器标签页时，刷新数据
+  if (activeKey === '6' && frameExtractorRef.value) {
+    frameExtractorRef.value.refresh?.();
+  }
+  // 切换到排序器标签页时，刷新数据
+  if (activeKey === '7' && sorterRef.value) {
+    sorterRef.value.refresh?.();
   }
 };
 

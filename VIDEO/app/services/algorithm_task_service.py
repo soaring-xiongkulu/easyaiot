@@ -9,20 +9,24 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from models import db, AlgorithmTask, Device, FrameExtractor, Sorter
+from models import db, AlgorithmTask, Device, FrameExtractor, Sorter, algorithm_task_device
 
 logger = logging.getLogger(__name__)
 
 
-def create_algorithm_task(task_name: str, device_id: str,
+def create_algorithm_task(task_name: str,
                          extractor_id: Optional[int] = None,
                          sorter_id: Optional[int] = None,
+                         device_ids: Optional[List[str]] = None,
                          description: Optional[str] = None,
                          is_enabled: bool = True) -> AlgorithmTask:
     """创建算法任务"""
     try:
-        # 验证设备是否存在
-        device = Device.query.get_or_404(device_id)
+        device_id_list = device_ids or []
+        
+        # 验证所有设备是否存在
+        for dev_id in device_id_list:
+            Device.query.get_or_404(dev_id)
         
         # 验证抽帧器是否存在（如果提供）
         if extractor_id:
@@ -38,7 +42,6 @@ def create_algorithm_task(task_name: str, device_id: str,
         task = AlgorithmTask(
             task_name=task_name,
             task_code=task_code,
-            device_id=device_id,
             extractor_id=extractor_id,
             sorter_id=sorter_id,
             description=description,
@@ -46,9 +49,16 @@ def create_algorithm_task(task_name: str, device_id: str,
         )
         
         db.session.add(task)
+        db.session.flush()  # 先flush以获取task.id
+        
+        # 关联多个摄像头
+        if device_id_list:
+            devices = Device.query.filter(Device.id.in_(device_id_list)).all()
+            task.devices = devices
+        
         db.session.commit()
         
-        logger.info(f"创建算法任务成功: task_id={task.id}, task_name={task_name}")
+        logger.info(f"创建算法任务成功: task_id={task.id}, task_name={task_name}, device_ids={device_id_list}")
         return task
     except Exception as e:
         db.session.rollback()
@@ -61,9 +71,13 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
         
-        # 验证设备是否存在（如果提供）
-        if 'device_id' in kwargs:
-            Device.query.get_or_404(kwargs['device_id'])
+        # 处理设备ID列表
+        device_id_list = kwargs.pop('device_ids', None)
+        
+        # 验证所有设备是否存在（如果提供）
+        if device_id_list is not None:
+            for dev_id in device_id_list:
+                Device.query.get_or_404(dev_id)
         
         # 验证抽帧器是否存在（如果提供）
         if 'extractor_id' in kwargs and kwargs['extractor_id']:
@@ -74,7 +88,7 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             Sorter.query.get_or_404(kwargs['sorter_id'])
         
         updatable_fields = [
-            'task_name', 'device_id', 'extractor_id', 'sorter_id',
+            'task_name', 'extractor_id', 'sorter_id',
             'description', 'is_enabled', 'status', 'exception_reason'
         ]
         
@@ -82,10 +96,15 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             if field in kwargs:
                 setattr(task, field, kwargs[field])
         
+        # 更新多对多关系
+        if device_id_list is not None:
+            devices = Device.query.filter(Device.id.in_(device_id_list)).all() if device_id_list else []
+            task.devices = devices
+        
         task.updated_at = datetime.utcnow()
         db.session.commit()
         
-        logger.info(f"更新算法任务成功: task_id={task_id}")
+        logger.info(f"更新算法任务成功: task_id={task_id}, device_ids={device_id_list}")
         return task
     except Exception as e:
         db.session.rollback()
@@ -135,7 +154,8 @@ def list_algorithm_tasks(page_no: int = 1, page_size: int = 10,
             )
         
         if device_id:
-            query = query.filter_by(device_id=device_id)
+            # 通过多对多关系查询
+            query = query.filter(AlgorithmTask.devices.any(Device.id == device_id))
         
         if is_enabled is not None:
             query = query.filter_by(is_enabled=is_enabled)
