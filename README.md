@@ -105,7 +105,7 @@ EasyAIoT其实不是一个项目，而是五个项目。
 
 </div>
 
-###本土化支持
+### 🌍 本土化支持
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 EasyAIoT积极响应本土化战略，全面支持本土化硬件和操作系统，为用户提供安全可控的AIoT解决方案：
