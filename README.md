@@ -105,10 +105,10 @@ EasyAIoT其实不是一个项目，而是五个项目。
 
 </div>
 
-### 🇨🇳 信创支持
+### 🌍 本土化支持
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT积极响应国家信创战略，全面支持信创硬件和操作系统，为政企用户提供安全可控的AIoT解决方案：
+EasyAIoT积极响应本土化战略，全面支持本土化硬件和操作系统，为用户提供安全可控的AIoT解决方案：
 </p>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
@@ -117,7 +117,7 @@ EasyAIoT积极响应国家信创战略，全面支持信创硬件和操作系统
 <h4 style="margin-top: 0; color: white; font-size: 18px;">🖥️ 服务器端支持</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
   <li>完美兼容海光（Hygon）x86架构处理器</li>
-  <li>支持国产服务器硬件平台</li>
+  <li>支持本土化服务器硬件平台</li>
   <li>提供针对性的性能优化方案</li>
   <li>确保企业级应用的稳定运行</li>
 </ul>
@@ -137,9 +137,9 @@ EasyAIoT积极响应国家信创战略，全面支持信创硬件和操作系统
 <h4 style="margin-top: 0; color: white; font-size: 18px;">🖱️ 操作系统支持</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
   <li>兼容麒麟（Kylin）操作系统</li>
-  <li>支持方德（Founder）等国产Linux发行版</li>
-  <li>适配统信UOS等主流国产操作系统</li>
-  <li>提供完整的信创部署方案</li>
+  <li>支持方德（Founder）等本土化Linux发行版</li>
+  <li>适配统信UOS等主流本土化操作系统</li>
+  <li>提供完整的本土化部署方案</li>
 </ul>
 </div>
 

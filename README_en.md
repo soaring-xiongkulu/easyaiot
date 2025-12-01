@@ -105,10 +105,10 @@ What's the benefit? Suppose you are on a resource-constrained device (like an RK
 
 </div>
 
-### 🇨🇳 Domestic Hardware & OS Support
+### 🌍 Localization Support
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT actively responds to national information innovation strategies, providing comprehensive support for domestic hardware and operating systems, delivering secure and controllable AIoT solutions for government and enterprise users:
+EasyAIoT actively responds to localization strategies, providing comprehensive support for localized hardware and operating systems, delivering secure and controllable AIoT solutions for users:
 </p>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
@@ -117,7 +117,7 @@ EasyAIoT actively responds to national information innovation strategies, provid
 <h4 style="margin-top: 0; color: white; font-size: 18px;">🖥️ Server-Side Support</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
   <li>Full compatibility with Hygon x86 architecture processors</li>
-  <li>Support for domestic server hardware platforms</li>
+  <li>Support for localized server hardware platforms</li>
   <li>Targeted performance optimization solutions</li>
   <li>Ensures stable operation of enterprise applications</li>
 </ul>
@@ -137,9 +137,9 @@ EasyAIoT actively responds to national information innovation strategies, provid
 <h4 style="margin-top: 0; color: white; font-size: 18px;">🖱️ Operating System Support</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
   <li>Compatible with Kylin operating system</li>
-  <li>Support for domestic Linux distributions like Founder</li>
-  <li>Adaptation to mainstream domestic operating systems like UOS</li>
-  <li>Provides complete domestic deployment solutions</li>
+  <li>Support for localized Linux distributions like Founder</li>
+  <li>Adaptation to mainstream localized operating systems like UOS</li>
+  <li>Provides complete localized deployment solutions</li>
 </ul>
 </div>
 
