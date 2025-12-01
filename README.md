@@ -213,6 +213,50 @@ EasyAIoT支持在Linux、Mac、Windows三大主流操作系统上部署，为不
 <strong>统一体验</strong>：无论选择哪种操作系统，EasyAIoT都提供一致的安装脚本和部署文档，确保跨平台部署体验的一致性。
 </p>
 
+## 🇨🇳 国产化支持
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+EasyAIoT积极响应国家信创战略，全面支持国产化硬件和操作系统，为政企用户提供安全可控的AIoT解决方案：
+</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+
+<div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🖥️ 服务器端支持</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>完美兼容海光（Hygon）x86架构处理器</li>
+  <li>支持国产服务器硬件平台</li>
+  <li>提供针对性的性能优化方案</li>
+  <li>确保企业级应用的稳定运行</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">📱 边缘端支持</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>全面支持瑞芯微（Rockchip）ARM架构芯片</li>
+  <li>完美适配RK3588等主流边缘计算平台</li>
+  <li>针对边缘场景进行深度优化</li>
+  <li>实现边缘智能的轻量化部署</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🖱️ 操作系统支持</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>兼容麒麟（Kylin）操作系统</li>
+  <li>支持方德（Founder）等国产Linux发行版</li>
+  <li>适配统信UOS等主流国产操作系统</li>
+  <li>提供完整的国产化部署方案</li>
+</ul>
+</div>
+
+</div>
+
+<p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+<strong>信创保障</strong>：EasyAIoT致力于构建自主可控的AIoT技术生态，通过全面的国产化适配，为政企用户提供安全、可靠、高效的智能物联网解决方案，助力国家信创产业发展。
+</p>
+
 ## ☁️ EasyAIoT = AI + IoT = 云边端一体化解决方案
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

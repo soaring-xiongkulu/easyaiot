@@ -213,6 +213,50 @@ EasyAIoT supports deployment on Linux, Mac, and Windows, providing flexible and 
 <strong>Unified Experience</strong>: Regardless of the operating system chosen, EasyAIoT provides consistent installation scripts and deployment documentation, ensuring a uniform cross-platform deployment experience.
 </p>
 
+## 🇨🇳 Domestic Hardware & OS Support
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+EasyAIoT actively responds to national information innovation strategies, providing comprehensive support for domestic hardware and operating systems, delivering secure and controllable AIoT solutions for government and enterprise users:
+</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+
+<div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🖥️ Server-Side Support</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>Full compatibility with Hygon x86 architecture processors</li>
+  <li>Support for domestic server hardware platforms</li>
+  <li>Targeted performance optimization solutions</li>
+  <li>Ensures stable operation of enterprise applications</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">📱 Edge-Side Support</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>Comprehensive support for Rockchip ARM architecture chips</li>
+  <li>Perfect adaptation to mainstream edge computing platforms like RK3588</li>
+  <li>Deep optimization for edge scenarios</li>
+  <li>Enables lightweight deployment of edge intelligence</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🖱️ Operating System Support</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>Compatible with Kylin operating system</li>
+  <li>Support for domestic Linux distributions like Founder</li>
+  <li>Adaptation to mainstream domestic operating systems like UOS</li>
+  <li>Provides complete domestic deployment solutions</li>
+</ul>
+</div>
+
+</div>
+
+<p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+<strong>Information Innovation Assurance</strong>: EasyAIoT is committed to building an autonomous and controllable AIoT technology ecosystem. Through comprehensive domestic hardware and OS adaptation, we provide secure, reliable, and efficient intelligent IoT solutions for government and enterprise users, supporting the development of national information innovation industries.
+</p>
+
 ## ☁️ EasyAIoT = AI + IoT = Cloud-Edge Integrated Solution
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
