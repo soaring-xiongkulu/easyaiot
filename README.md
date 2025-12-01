@@ -145,10 +145,6 @@ EasyAIoT积极响应国家信创战略，全面支持信创硬件和操作系统
 
 </div>
 
-<p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
-<strong>信创保障</strong>：EasyAIoT致力于构建自主可控的AIoT技术生态，通过全面的信创适配，为政企用户提供安全、可靠、高效的智能物联网解决方案，助力国家信创产业发展。
-</p>
-
 ## 🎯 适用场景
 
 <img src=".image/适用场景.png" alt="适用场景" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">

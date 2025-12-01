@@ -145,10 +145,6 @@ EasyAIoT actively responds to national information innovation strategies, provid
 
 </div>
 
-<p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
-<strong>Information Innovation Assurance</strong>: EasyAIoT is committed to building an autonomous and controllable AIoT technology ecosystem. Through comprehensive domestic hardware and OS adaptation, we provide secure, reliable, and efficient intelligent IoT solutions for government and enterprise users, supporting the development of national information innovation industries.
-</p>
-
 ## 🎯 Application Scenarios
 
 ![Application Scenarios.png](.image/适用场景.png)
