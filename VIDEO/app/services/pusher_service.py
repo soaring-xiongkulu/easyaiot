@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 def create_pusher(pusher_name: str,
                   video_stream_enabled: bool = False,
                   video_stream_url: Optional[str] = None,
+                  device_rtmp_mapping: Optional[dict] = None,
                   video_stream_format: str = 'rtmp',
                   video_stream_quality: str = 'high',
                   event_alert_enabled: bool = False,
@@ -57,11 +58,24 @@ def create_pusher(pusher_name: str,
             except json.JSONDecodeError:
                 raise ValueError("事件告警模板必须是有效的JSON格式")
         
+        # 验证并格式化多摄像头RTMP映射
+        device_rtmp_mapping_json = None
+        if device_rtmp_mapping:
+            try:
+                if isinstance(device_rtmp_mapping, str):
+                    json.loads(device_rtmp_mapping)  # 验证JSON格式
+                    device_rtmp_mapping_json = device_rtmp_mapping
+                else:
+                    device_rtmp_mapping_json = json.dumps(device_rtmp_mapping)
+            except json.JSONDecodeError:
+                raise ValueError("多摄像头RTMP映射必须是有效的JSON格式")
+        
         pusher = Pusher(
             pusher_name=pusher_name,
             pusher_code=pusher_code,
             video_stream_enabled=video_stream_enabled,
             video_stream_url=video_stream_url,
+            device_rtmp_mapping=device_rtmp_mapping_json,
             video_stream_format=video_stream_format,
             video_stream_quality=video_stream_quality,
             event_alert_enabled=event_alert_enabled,
@@ -115,9 +129,22 @@ def update_pusher(pusher_id: int, **kwargs) -> Pusher:
                 except json.JSONDecodeError:
                     raise ValueError("事件告警模板必须是有效的JSON格式")
         
+        # 处理多摄像头RTMP映射
+        if 'device_rtmp_mapping' in kwargs:
+            mapping = kwargs['device_rtmp_mapping']
+            if mapping:
+                try:
+                    if isinstance(mapping, str):
+                        json.loads(mapping)  # 验证JSON格式
+                        kwargs['device_rtmp_mapping'] = mapping
+                    else:
+                        kwargs['device_rtmp_mapping'] = json.dumps(mapping)
+                except json.JSONDecodeError:
+                    raise ValueError("多摄像头RTMP映射必须是有效的JSON格式")
+        
         updatable_fields = [
             'pusher_name', 'video_stream_enabled', 'video_stream_url',
-            'video_stream_format', 'video_stream_quality',
+            'device_rtmp_mapping', 'video_stream_format', 'video_stream_quality',
             'event_alert_enabled', 'event_alert_url', 'event_alert_method',
             'event_alert_format', 'event_alert_headers', 'event_alert_template',
             'description', 'is_enabled'

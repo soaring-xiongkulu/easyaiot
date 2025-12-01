@@ -433,7 +433,9 @@ class Pusher(db.Model):
     
     # 推送视频流配置（仅实时算法任务使用）
     video_stream_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否启用推送视频流')
-    video_stream_url = db.Column(db.String(500), nullable=True, comment='视频流推送地址（RTMP/RTSP等）')
+    video_stream_url = db.Column(db.String(500), nullable=True, comment='视频流推送地址（RTMP/RTSP等，单摄像头时使用）')
+    # 多摄像头RTMP推送映射(JSON格式: {"device_id1": "rtmp://url1", "device_id2": "rtmp://url2"})
+    device_rtmp_mapping = db.Column(db.Text, nullable=True, comment='多摄像头RTMP推送映射（JSON格式，device_id -> rtmp_url）')
     video_stream_format = db.Column(db.String(50), default='rtmp', nullable=False, comment='视频流格式[rtmp:RTMP,rtsp:RTSP,webrtc:WebRTC]')
     video_stream_quality = db.Column(db.String(50), default='high', nullable=False, comment='视频流质量[low:低,medium:中,high:高]')
     
@@ -477,12 +479,21 @@ class Pusher(db.Model):
             except:
                 template = self.event_alert_template
         
+        # 解析多摄像头RTMP映射
+        device_rtmp_mapping = None
+        if self.device_rtmp_mapping:
+            try:
+                device_rtmp_mapping = json.loads(self.device_rtmp_mapping)
+            except:
+                device_rtmp_mapping = self.device_rtmp_mapping
+        
         return {
             'id': self.id,
             'pusher_name': self.pusher_name,
             'pusher_code': self.pusher_code,
             'video_stream_enabled': self.video_stream_enabled,
             'video_stream_url': self.video_stream_url,
+            'device_rtmp_mapping': device_rtmp_mapping,
             'video_stream_format': self.video_stream_format,
             'video_stream_quality': self.video_stream_quality,
             'event_alert_enabled': self.event_alert_enabled,
@@ -503,6 +514,29 @@ class Pusher(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+    
+    def get_rtmp_url_for_device(self, device_id: str) -> str:
+        """
+        获取指定摄像头的RTMP推送地址
+        
+        Args:
+            device_id: 摄像头ID
+        
+        Returns:
+            str: RTMP推送地址
+        """
+        import json
+        # 优先使用多摄像头映射
+        if self.device_rtmp_mapping:
+            try:
+                mapping = json.loads(self.device_rtmp_mapping)
+                if isinstance(mapping, dict) and device_id in mapping:
+                    return mapping[device_id]
+            except:
+                pass
+        
+        # 如果没有映射,使用默认的video_stream_url
+        return self.video_stream_url or ''
 
 
 # 算法任务和摄像头的多对多关联表
