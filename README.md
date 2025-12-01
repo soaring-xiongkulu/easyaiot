@@ -205,6 +205,10 @@ EasyAIoT支持在Linux、Mac、Windows三大主流操作系统上部署，为不
 
 </div>
 
+<p style="font-size: 14px; line-height: 1.8; color: #e74c3c; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #fee; border-left: 4px solid #e74c3c; border-radius: 4px;">
+<strong>⚠️ Windows部署说明</strong>：Windows一键部署脚本目前还存在问题，短期内不会解决相关问题。建议Windows用户参考部署文档进行手动部署，或使用Linux/Mac环境进行部署。
+</p>
+
 <p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
 <strong>统一体验</strong>：无论选择哪种操作系统，EasyAIoT都提供一致的安装脚本和部署文档，确保跨平台部署体验的一致性。
 </p>

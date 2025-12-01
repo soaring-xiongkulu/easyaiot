@@ -205,6 +205,10 @@ EasyAIoT supports deployment on Linux, Mac, and Windows, providing flexible and 
 
 </div>
 
+<p style="font-size: 14px; line-height: 1.8; color: #e74c3c; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #fee; border-left: 4px solid #e74c3c; border-radius: 4px;">
+<strong>⚠️ Windows Deployment Notice</strong>: The Windows one-click deployment script currently has issues that will not be resolved in the short term. Windows users are advised to refer to the deployment documentation for manual deployment, or use Linux/Mac environments for deployment.
+</p>
+
 <p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
 <strong>Unified Experience</strong>: Regardless of the operating system chosen, EasyAIoT provides consistent installation scripts and deployment documentation, ensuring a uniform cross-platform deployment experience.
 </p>
