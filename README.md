@@ -209,7 +209,7 @@ EasyAIoT支持在Linux、Mac、Windows三大主流操作系统上部署，为不
 <strong>统一体验</strong>：无论选择哪种操作系统，EasyAIoT都提供一致的安装脚本和部署文档，确保跨平台部署体验的一致性。
 </p>
 
-## ☁️ EasyAIoT = AI + IoT = 云边一体化解决方案
+## ☁️ EasyAIoT = AI + IoT = 云边端一体化解决方案
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 支持上千种垂直场景，支持AI模型定制化和AI算法定制化开发，深度融合。
