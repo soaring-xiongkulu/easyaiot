@@ -105,10 +105,10 @@ EasyAIoT其实不是一个项目，而是五个项目。
 
 </div>
 
-### 🇨🇳 国产化支持
+### 🇨🇳 信创支持
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT积极响应国家信创战略，全面支持国产化硬件和操作系统，为政企用户提供安全可控的AIoT解决方案：
+EasyAIoT积极响应国家信创战略，全面支持信创硬件和操作系统，为政企用户提供安全可控的AIoT解决方案：
 </p>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
@@ -139,14 +139,14 @@ EasyAIoT积极响应国家信创战略，全面支持国产化硬件和操作系
   <li>兼容麒麟（Kylin）操作系统</li>
   <li>支持方德（Founder）等国产Linux发行版</li>
   <li>适配统信UOS等主流国产操作系统</li>
-  <li>提供完整的国产化部署方案</li>
+  <li>提供完整的信创部署方案</li>
 </ul>
 </div>
 
 </div>
 
 <p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
-<strong>信创保障</strong>：EasyAIoT致力于构建自主可控的AIoT技术生态，通过全面的国产化适配，为政企用户提供安全、可靠、高效的智能物联网解决方案，助力国家信创产业发展。
+<strong>信创保障</strong>：EasyAIoT致力于构建自主可控的AIoT技术生态，通过全面的信创适配，为政企用户提供安全、可靠、高效的智能物联网解决方案，助力国家信创产业发展。
 </p>
 
 ## 🎯 适用场景
