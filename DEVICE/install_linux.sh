@@ -413,6 +413,7 @@ DEVICE模块 Docker Compose 管理脚本
     - iot-dataset
     - iot-tdengine
     - iot-file
+    - iot-message
 
 EOF
 }

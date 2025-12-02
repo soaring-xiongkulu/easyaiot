@@ -1,0 +1,62 @@
+services:
+  # MySQL 初始化容器（自动修复权限）
+  # 在 MySQL 启动前自动运行，修复数据目录权限问题
+  MySQL-init:
+    image: mysql:8.0
+    container_name: mysql-init
+    user: "0:0"
+    volumes:
+      - ./mysql_data/data:/var/lib/mysql
+      - ./mysql_data/log:/var/log/mysql
+    command:
+      [
+        "/bin/bash",
+        "-c",
+        "mkdir -p /var/lib/mysql /var/log/mysql && chown -R 999:999 /var/lib/mysql /var/log/mysql && chmod -R 755 /var/lib/mysql && chmod -R 755 /var/log/mysql && echo '[MySQL Init] 权限设置完成'",
+      ]
+    restart: "no"
+    networks:
+      - easyaiot-network
+
+  # MySQL Server
+  MySQL:
+    image: mysql:8.0
+    container_name: mysql-server
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=iot45722414822
+      - MYSQL_DATABASE=mysql
+      - MYSQL_USER=mysql
+      - MYSQL_PASSWORD=iot45722414822
+    volumes:
+      - ./mysql_data/data:/var/lib/mysql
+      - ./mysql_data/log:/var/log/mysql
+      # SQL 文件挂载（按字母顺序执行）
+      - ./init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-piot45722414822"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - easyaiot-network
+
+# 磁盘挂载
+volumes:
+  mysql_data:
+    driver: local
+
+# 网络配置
+# 注意：当宿主机IP发生变化后，如果容器无法加入网络，请执行以下命令修复：
+# 1. docker network rm easyaiot-network
+# 2. docker network create easyaiot-network
+# 3. docker-compose restart
+networks:
+  easyaiot-network:
+    name: easyaiot-network
+    external: true
+
