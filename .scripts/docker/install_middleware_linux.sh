@@ -1089,10 +1089,10 @@ install_docker() {
         return 1
     fi
     
-    # 根据系统类型安装 Docker
+    # 根据系统类型安装 Docker（使用华为云镜像源）
     case "$os_id" in
         ubuntu|debian)
-            print_info "检测到 Debian/Ubuntu 系统，开始安装 Docker..."
+            print_info "检测到 Debian/Ubuntu 系统，开始安装 Docker（使用华为云镜像源）..."
             
             # 卸载旧版本
             apt-get remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
@@ -1105,23 +1105,29 @@ install_docker() {
                 gnupg \
                 lsb-release > /dev/null 2>&1
             
-            # 添加 Docker 官方 GPG 密钥
+            # 添加 Docker 官方 GPG 密钥（使用华为云镜像加速）
             install -m 0755 -d /etc/apt/keyrings
-            curl -fsSL https://download.docker.com/linux/$os_id/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+            # 尝试使用华为云镜像加速下载 GPG 密钥，如果失败则使用官方源
+            if ! curl -fsSL --connect-timeout 10 --max-time 30 https://mirrors.huaweicloud.com/docker-ce/linux/$os_id/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg 2>/dev/null; then
+                print_warning "华为云镜像下载 GPG 密钥失败，使用官方源..."
+                curl -fsSL https://download.docker.com/linux/$os_id/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+            fi
             chmod a+r /etc/apt/keyrings/docker.gpg
             
-            # 设置仓库
+            # 设置仓库（使用华为云镜像源）
             echo \
-              "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$os_id \
+              "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.huaweicloud.com/docker-ce/linux/$os_id \
               $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
             
-            # 安装 Docker Engine
+            # 安装 Docker Engine（包含 docker-compose-plugin）
             apt-get update -qq > /dev/null 2>&1
             apt-get install -qq -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin > /dev/null 2>&1
             
+            print_success "Docker 和 Docker Compose 已通过华为云镜像源安装完成"
+            
             ;;
         centos|rhel|fedora)
-            print_info "检测到 CentOS/RHEL/Fedora 系统，开始安装 Docker..."
+            print_info "检测到 CentOS/RHEL/Fedora 系统，开始安装 Docker（使用华为云镜像源）..."
             
             # 卸载旧版本
             yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine 2>/dev/null || true
@@ -1129,11 +1135,16 @@ install_docker() {
             # 安装依赖
             yum install -y yum-utils
             
-            # 添加 Docker 仓库
-            yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+            # 添加 Docker 仓库（使用华为云镜像源）
+            if ! yum-config-manager --add-repo https://mirrors.huaweicloud.com/docker-ce/linux/centos/docker-ce.repo 2>/dev/null; then
+                print_warning "华为云镜像添加仓库失败，使用官方源..."
+                yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+            fi
             
-            # 安装 Docker Engine
+            # 安装 Docker Engine（包含 docker-compose-plugin）
             yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            
+            print_success "Docker 和 Docker Compose 已通过华为云镜像源安装完成"
             
             ;;
         *)
@@ -1208,109 +1219,16 @@ EOF
     fi
 }
 
-# 从 GitHub 下载 Docker Compose
-download_docker_compose_from_github() {
-    print_section "从 GitHub 下载 Docker Compose v2.35.1"
-    
-    if [ "$EUID" -ne 0 ]; then
-        print_warning "安装 Docker Compose 需要 root 权限，跳过自动安装"
-        print_info "请手动安装 Docker Compose 后继续，或使用 sudo 运行此脚本"
-        print_info "下载地址: https://github.com/docker/compose/releases/tag/v2.35.1"
-        return 1
-    fi
-    
-    local compose_version="v2.35.1"
-    local compose_path="/usr/bin/docker-compose"
-    
-    # 检测系统架构
-    local arch=$(uname -m)
-    local compose_arch=""
-    
-    case "$arch" in
-        x86_64)
-            compose_arch="x86_64"
-            ;;
-        aarch64|arm64)
-            compose_arch="aarch64"
-            ;;
-        armv7l|armv6l)
-            compose_arch="armv7"
-            ;;
-        *)
-            print_error "不支持的系统架构: $arch"
-            return 1
-            ;;
-    esac
-    
-    local compose_url="https://github.com/docker/compose/releases/download/${compose_version}/docker-compose-linux-${compose_arch}"
-    
-    print_info "正在从 GitHub 下载 Docker Compose..."
-    print_info "版本: $compose_version"
-    print_info "架构: $compose_arch"
-    print_info "URL: $compose_url"
-    
-    # 下载文件到临时位置
-    local temp_file=$(mktemp)
-    
-    if ! curl -L -f "$compose_url" -o "$temp_file" 2>/dev/null; then
-        print_error "下载 Docker Compose 失败"
-        rm -f "$temp_file"
-        return 1
-    fi
-    
-    # 检查下载的文件是否有效（应该是一个可执行文件）
-    if [ ! -s "$temp_file" ]; then
-        print_error "下载的文件为空"
-        rm -f "$temp_file"
-        return 1
-    fi
-    
-    # 如果目标文件已存在，先备份
-    if [ -f "$compose_path" ]; then
-        print_info "检测到已存在的 docker-compose，创建备份..."
-        mv "$compose_path" "${compose_path}.bak.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
-    fi
-    
-    # 移动文件到目标位置并设置权限（只给所有者添加，避免需要 root 权限）
-    if mv "$temp_file" "$compose_path"; then
-        chmod u+x "$compose_path"
-        print_success "Docker Compose 已下载并安装到: $compose_path"
-        
-        # 验证安装
-        if check_command docker-compose; then
-            local installed_version=$(docker-compose --version 2>&1)
-            print_success "Docker Compose 安装成功: $installed_version"
-            return 0
-        else
-            print_warning "Docker Compose 已安装但验证失败"
-            return 1
-        fi
-    else
-        print_error "移动文件到 $compose_path 失败"
-        rm -f "$temp_file"
-        return 1
-    fi
-}
-
-# 安装 Docker Compose
+# 安装 Docker Compose（直接使用包管理器，不再从 GitHub 下载）
 install_docker_compose() {
     print_section "安装 Docker Compose"
     
     if [ "$EUID" -ne 0 ]; then
         print_warning "安装 Docker Compose 需要 root 权限，跳过自动安装"
         print_info "请手动安装 Docker Compose 后继续，或使用 sudo 运行此脚本"
-        print_info "下载地址: https://github.com/docker/compose/releases/tag/v2.35.1"
+        print_info "Docker Compose 会随 Docker 一起安装（docker-compose-plugin）"
         return 1
     fi
-    
-    # 优先从 GitHub 下载指定版本
-    print_info "从 GitHub 下载 Docker Compose v2.35.1..."
-    if download_docker_compose_from_github; then
-        return 0
-    fi
-    
-    # 如果下载失败，尝试使用包管理器安装
-    print_warning "从 GitHub 下载失败，尝试使用包管理器安装..."
     
     # 检测系统类型
     if [ -f /etc/os-release ]; then
@@ -1321,15 +1239,15 @@ install_docker_compose() {
         return 1
     fi
     
-    # 根据系统类型安装 Docker Compose
+    # 根据系统类型安装 Docker Compose Plugin（使用华为云镜像源）
     case "$os_id" in
         ubuntu|debian)
-            print_info "检测到 Debian/Ubuntu 系统，安装 Docker Compose Plugin..."
+            print_info "检测到 Debian/Ubuntu 系统，安装 Docker Compose Plugin（使用华为云镜像源）..."
             apt-get update -qq > /dev/null 2>&1
             apt-get install -qq -y docker-compose-plugin > /dev/null 2>&1
             ;;
         centos|rhel|fedora)
-            print_info "检测到 CentOS/RHEL/Fedora 系统，安装 Docker Compose Plugin..."
+            print_info "检测到 CentOS/RHEL/Fedora 系统，安装 Docker Compose Plugin（使用华为云镜像源）..."
             yum install -y docker-compose-plugin
             ;;
         *)
@@ -1433,36 +1351,59 @@ check_and_install_docker_compose() {
             echo ""
             
             while true; do
-                echo -ne "${YELLOW}[提示]${NC} 是否升级 Docker Compose 到 v2.35.1？(y/N): "
+                echo -ne "${YELLOW}[提示]${NC} 是否升级 Docker Compose？(y/N): "
                 read -r response
                 case "$response" in
                     [yY][eE][sS]|[yY])
                         if [ "$EUID" -ne 0 ]; then
                             print_warning "升级 Docker Compose 需要 root 权限，跳过自动升级"
                             print_info "请手动升级 Docker Compose 后继续，或使用 sudo 运行此脚本"
-                            print_info "下载地址: https://github.com/docker/compose/releases/tag/v2.35.1"
+                            print_info "升级命令: sudo apt-get update && sudo apt-get install --upgrade docker-compose-plugin"
                             return 1
                         fi
-                        print_info "正在升级 Docker Compose..."
-                        # 从 GitHub 下载指定版本
-                        if download_docker_compose_from_github; then
-                            if check_docker_compose_version; then
-                                COMPOSE_CMD="docker-compose"
-                                print_success "Docker Compose 升级成功"
-                                return 0
-                            else
-                                print_warning "Docker Compose 升级后版本仍不符合要求"
-                                return 1
-                            fi
+                        print_info "正在升级 Docker Compose（使用包管理器）..."
+                        # 检测系统类型
+                        if [ -f /etc/os-release ]; then
+                            . /etc/os-release
+                            local os_id="$ID"
                         else
-                            print_warning "Docker Compose 升级失败，请手动升级后重试"
+                            print_error "无法检测操作系统类型"
+                            return 1
+                        fi
+                        
+                        # 使用包管理器升级
+                        case "$os_id" in
+                            ubuntu|debian)
+                                apt-get update -qq > /dev/null 2>&1
+                                apt-get install --upgrade -qq -y docker-compose-plugin > /dev/null 2>&1
+                                ;;
+                            centos|rhel|fedora)
+                                yum update -y docker-compose-plugin
+                                ;;
+                            *)
+                                print_error "不支持的操作系统: $os_id"
+                                return 1
+                                ;;
+                        esac
+                        
+                        if check_docker_compose_version; then
+                            # 重新检查并设置 COMPOSE_CMD
+                            if check_command docker-compose; then
+                                COMPOSE_CMD="docker-compose"
+                            else
+                                COMPOSE_CMD="docker compose"
+                            fi
+                            print_success "Docker Compose 升级成功"
+                            return 0
+                        else
+                            print_warning "Docker Compose 升级后版本仍不符合要求"
                             return 1
                         fi
                         ;;
                     [nN][oO]|[nN]|"")
                         print_warning "Docker Compose 版本不符合要求，但安装流程将继续"
                         print_info "请手动升级 Docker Compose 到 v2.35.0+"
-                        print_info "下载地址: https://github.com/docker/compose/releases/tag/v2.35.1"
+                        print_info "升级命令: sudo apt-get update && sudo apt-get install --upgrade docker-compose-plugin"
                         return 1
                         ;;
                     *)
@@ -1477,6 +1418,7 @@ check_and_install_docker_compose() {
     echo ""
     print_info "Docker Compose 是运行中间件服务的必需组件"
     print_info "要求版本: v2.35.0 或更高"
+    print_info "Docker Compose 会通过包管理器安装（docker-compose-plugin）"
     echo ""
     
     while true; do
@@ -1506,7 +1448,7 @@ check_and_install_docker_compose() {
             [nN][oO]|[nN]|"")
                 print_warning "Docker Compose 是必需的，但安装流程将继续"
                 print_info "请确保已安装 Docker Compose v2.35.0+"
-                print_info "下载地址: https://github.com/docker/compose/releases/tag/v2.35.1"
+                print_info "安装命令: sudo apt-get update && sudo apt-get install docker-compose-plugin"
                 return 1
                 ;;
             *)
