@@ -1956,19 +1956,19 @@ create_all_storage_directories() {
     # 格式: "目录路径:UID:GID:权限"
     local storage_dirs=(
         "${SCRIPT_DIR}/standalone-logs:::"              # Nacos 日志（使用默认权限）
-        "${SCRIPT_DIR}/db_data/data:999:999:700"       # PostgreSQL 数据
-        "${SCRIPT_DIR}/db_data/log:999:999:755"        # PostgreSQL 日志
+        "${SCRIPT_DIR}/db_data/data:999:999:777"       # PostgreSQL 数据
+        "${SCRIPT_DIR}/db_data/log:999:999:777"        # PostgreSQL 日志
         "${SCRIPT_DIR}/taos_data/data:::"              # TDengine 数据（使用默认权限）
         "${SCRIPT_DIR}/taos_data/log:::"               # TDengine 日志（使用默认权限）
-        "${SCRIPT_DIR}/redis_data/data:999:999:755"   # Redis 数据
-        "${SCRIPT_DIR}/redis_data/logs:999:999:755"    # Redis 日志
-        "${SCRIPT_DIR}/mq_data/data:1000:1000:755"    # Kafka 数据（uid=1000, gid=1000）
+        "${SCRIPT_DIR}/redis_data/data:999:999:777"   # Redis 数据
+        "${SCRIPT_DIR}/redis_data/logs:999:999:777"    # Redis 日志
+        "${SCRIPT_DIR}/mq_data/data:1000:1000:777"    # Kafka 数据（uid=1000, gid=1000）
         "${SCRIPT_DIR}/minio_data/data:::"             # MinIO 数据（使用默认权限）
         "${SCRIPT_DIR}/minio_data/config:::"           # MinIO 配置（使用默认权限）
         "${SCRIPT_DIR}/srs_data/conf:::"               # SRS 配置（使用默认权限）
         "${SCRIPT_DIR}/srs_data/data:::"              # SRS 数据（使用默认权限）
         "${SCRIPT_DIR}/srs_data/playbacks:::"          # SRS 回放（使用默认权限）
-        "${SCRIPT_DIR}/nodered_data/data:1000:1000:755" # NodeRED 数据
+        "${SCRIPT_DIR}/nodered_data/data:1000:1000:777" # NodeRED 数据
     )
     
     local created_count=0

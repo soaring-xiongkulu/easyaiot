@@ -49,7 +49,7 @@ services:
       [
         "/bin/bash",
         "-c",
-        "mkdir -p /var/lib/postgresql/data /var/log/postgresql && chown -R 999:999 /var/lib/postgresql/data /var/log/postgresql && chmod -R 700 /var/lib/postgresql/data && chmod -R 755 /var/log/postgresql && echo '[PostgreSQL Init] 权限设置完成'",
+        "mkdir -p /var/lib/postgresql/data /var/log/postgresql && chown -R 999:999 /var/lib/postgresql/data /var/log/postgresql && chmod -R 777 /var/lib/postgresql/data && chmod -R 777 /var/log/postgresql && echo '[PostgreSQL Init] 权限设置完成'",
       ]
     restart: "no"
     networks:
