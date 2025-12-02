@@ -1855,6 +1855,206 @@ check_filesystem_mount_status() {
     return 0  # 可写
 }
 
+# 检查磁盘空间
+check_disk_space() {
+    local path="$1"
+    local min_free_gb="${2:-1}"  # 默认至少需要 1GB 可用空间
+    local min_free_percent="${3:-10}"  # 默认至少需要 10% 可用空间
+    
+    if [ ! -e "$path" ]; then
+        # 如果路径不存在，检查父目录
+        path=$(dirname "$path" 2>/dev/null || echo "/")
+    fi
+    
+    local df_output=$(df -h "$path" 2>/dev/null | tail -1)
+    if [ -z "$df_output" ]; then
+        print_warning "无法获取路径 $path 的磁盘空间信息"
+        return 1
+    fi
+    
+    local total=$(echo "$df_output" | awk '{print $2}')
+    local used=$(echo "$df_output" | awk '{print $3}')
+    local available=$(echo "$df_output" | awk '{print $4}')
+    local use_percent=$(echo "$df_output" | awk '{print $5}' | sed 's/%//')
+    local filesystem=$(echo "$df_output" | awk '{print $1}')
+    local mount_point=$(echo "$df_output" | awk '{print $6}')
+    
+    # 提取可用空间的数值（GB）
+    local available_gb=0
+    if echo "$available" | grep -qiE "G|Gi"; then
+        available_gb=$(echo "$available" | sed 's/[^0-9.]//g' | awk '{print int($1)}')
+    elif echo "$available" | grep -qiE "M|Mi"; then
+        local available_mb=$(echo "$available" | sed 's/[^0-9.]//g' | awk '{print int($1)}')
+        available_gb=$((available_mb / 1024))
+    elif echo "$available" | grep -qiE "T|Ti"; then
+        local available_tb=$(echo "$available" | sed 's/[^0-9.]//g' | awk '{print int($1)}')
+        available_gb=$((available_tb * 1024))
+    fi
+    
+    # 计算可用空间百分比
+    local available_percent=$((100 - use_percent))
+    
+    print_info "磁盘空间检查: $mount_point ($filesystem)"
+    print_info "  总空间: $total"
+    print_info "  已用: $used (${use_percent}%)"
+    print_info "  可用: $available (${available_percent}%)"
+    
+    # 检查是否空间不足
+    local space_issue=0
+    if [ "$use_percent" -ge 100 ]; then
+        print_error "  磁盘空间已满（使用率 100%）"
+        space_issue=1
+    elif [ "$use_percent" -ge 95 ]; then
+        print_error "  磁盘空间严重不足（使用率 >= 95%）"
+        space_issue=1
+    elif [ "$use_percent" -ge 90 ]; then
+        print_warning "  磁盘空间不足（使用率 >= 90%）"
+        space_issue=1
+    elif [ "$available_percent" -lt "$min_free_percent" ]; then
+        print_warning "  可用空间百分比不足（${available_percent}% < ${min_free_percent}%）"
+        space_issue=1
+    elif [ "$available_gb" -lt "$min_free_gb" ]; then
+        print_warning "  可用空间不足（${available_gb}GB < ${min_free_gb}GB）"
+        space_issue=1
+    else
+        print_success "  磁盘空间充足"
+    fi
+    
+    if [ $space_issue -eq 1 ]; then
+        return 1
+    fi
+    
+    return 0
+}
+
+# 检查所有关键路径的磁盘空间
+check_all_disk_space() {
+    print_section "检查磁盘空间"
+    
+    local has_issue=0
+    local critical_paths=()
+    
+    # 检查 /run (tmpfs，Docker snap 使用)
+    if [ -d "/run" ]; then
+        print_info "检查 /run (tmpfs) 磁盘空间..."
+        if ! check_disk_space "/run" 1 10; then
+            print_error "/run (tmpfs) 空间不足，这可能导致 Docker 容器启动失败"
+            print_warning "解决方案："
+            print_info "  1. 清理 /run 目录中的临时文件"
+            print_info "  2. 重启系统以清理 tmpfs"
+            print_info "  3. 检查是否有大量临时文件占用空间"
+            critical_paths+=("/run")
+            has_issue=1
+        fi
+        echo ""
+    fi
+    
+    # 检查 Docker 数据目录
+    local docker_data_root=""
+    if [ -f /etc/docker/daemon.json ]; then
+        # 尝试从 daemon.json 读取 data-root
+        docker_data_root=$(python3 -c "import json; f=open('/etc/docker/daemon.json'); d=json.load(f); print(d.get('data-root', ''))" 2>/dev/null || echo "")
+    fi
+    
+    if [ -z "$docker_data_root" ]; then
+        # 默认路径
+        if [ -d "/var/lib/docker" ]; then
+            docker_data_root="/var/lib/docker"
+        elif [ -d "/var/snap/docker/common/var-lib-docker" ]; then
+            docker_data_root="/var/snap/docker/common/var-lib-docker"
+        fi
+    fi
+    
+    if [ -n "$docker_data_root" ] && [ -d "$docker_data_root" ]; then
+        print_info "检查 Docker 数据目录磁盘空间: $docker_data_root"
+        if ! check_disk_space "$docker_data_root" 5 15; then
+            print_error "Docker 数据目录空间不足，这可能导致容器启动失败"
+            print_warning "解决方案："
+            print_info "  1. 清理 Docker 未使用的资源: docker system prune -a"
+            print_info "  2. 清理 Docker 卷: docker volume prune"
+            print_info "  3. 清理 Docker 镜像: docker image prune -a"
+            print_info "  4. 检查并删除未使用的容器: docker container prune"
+            critical_paths+=("$docker_data_root")
+            has_issue=1
+        fi
+        echo ""
+    fi
+    
+    # 检查项目目录所在文件系统
+    if [ -n "$SCRIPT_DIR" ]; then
+        print_info "检查项目目录磁盘空间: $SCRIPT_DIR"
+        if ! check_disk_space "$SCRIPT_DIR" 2 10; then
+            print_error "项目目录空间不足，这可能导致数据目录创建失败"
+            print_warning "解决方案："
+            print_info "  1. 清理项目目录中的临时文件和日志"
+            print_info "  2. 清理旧的容器数据目录"
+            print_info "  3. 将项目迁移到空间更大的磁盘"
+            critical_paths+=("$SCRIPT_DIR")
+            has_issue=1
+        fi
+        echo ""
+    fi
+    
+    # 检查根文件系统
+    print_info "检查根文件系统磁盘空间: /"
+    if ! check_disk_space "/" 2 10; then
+        print_warning "根文件系统空间不足"
+        print_info "这可能会影响系统整体运行"
+        critical_paths+=("/")
+        has_issue=1
+    fi
+    echo ""
+    
+    if [ $has_issue -eq 1 ]; then
+        print_error "检测到磁盘空间问题！"
+        echo ""
+        print_warning "以下路径存在磁盘空间问题："
+        for path in "${critical_paths[@]}"; do
+            print_warning "  - $path"
+        done
+        echo ""
+        print_warning "建议在继续之前先解决磁盘空间问题，否则容器可能无法启动"
+        echo ""
+        
+        # 提供快速清理建议
+        print_section "快速清理建议"
+        print_info "1. 清理 Docker 未使用的资源（推荐）："
+        print_info "   docker system prune -a --volumes"
+        echo ""
+        print_info "2. 清理系统临时文件："
+        print_info "   sudo apt clean"
+        print_info "   sudo apt autoremove"
+        echo ""
+        print_info "3. 检查大文件："
+        print_info "   sudo du -h --max-depth=1 / | sort -hr | head -20"
+        echo ""
+        print_info "4. 清理日志文件："
+        print_info "   sudo journalctl --vacuum-time=7d"
+        echo ""
+        
+        while true; do
+            echo -ne "${YELLOW}[提示]${NC} 是否继续启动容器（可能会失败）？(y/N): "
+            read -r response
+            case "$response" in
+                [yY][eE][sS]|[yY])
+                    print_warning "继续启动容器，但可能会因为空间不足而失败"
+                    return 0
+                    ;;
+                [nN][oO]|[nN]|"")
+                    print_info "已取消启动，请先解决磁盘空间问题"
+                    exit 1
+                    ;;
+                *)
+                    print_warning "请输入 y 或 N"
+                    ;;
+            esac
+        done
+    else
+        print_success "所有关键路径的磁盘空间检查通过"
+        return 0
+    fi
+}
+
 # 创建所有中间件的存储目录
 create_all_storage_directories() {
     print_info "创建所有中间件存储目录..."
@@ -4126,6 +4326,10 @@ install_middleware() {
     # 检查端口占用
     check_and_clean_ports
     
+    # 检查磁盘空间（在启动容器之前）
+    echo ""
+    check_all_disk_space
+    
     print_info "启动所有中间件服务..."
     if $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"; then
         print_success "容器启动命令执行完成"
@@ -4236,6 +4440,10 @@ start_middleware() {
     # 检查端口占用
     check_and_clean_ports
     
+    # 检查磁盘空间（在启动容器之前）
+    echo ""
+    check_all_disk_space
+    
     print_info "启动所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
     
@@ -4287,6 +4495,10 @@ restart_middleware() {
     
     prepare_srs_config
     prepare_emqx_volumes
+    
+    # 检查磁盘空间（在启动容器之前）
+    echo ""
+    check_all_disk_space
     
     print_info "重启所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" restart 2>&1 | tee -a "$LOG_FILE"
@@ -4566,6 +4778,10 @@ update_middleware() {
     # 检查并拉取缺失的镜像（如果镜像已存在则跳过拉取）
     echo ""
     check_and_pull_images
+    
+    # 检查磁盘空间（在启动容器之前）
+    echo ""
+    check_all_disk_space
     
     print_info "重启所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
