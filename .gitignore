@@ -37,9 +37,15 @@ hs_err_pid*
 *.iml
 
 # .scripts/docker 中间件数据目录和日志目录
-.scripts/docker/*_data/
-.scripts/docker/*logs/
-.scripts/docker/**/*logs/
+.scripts/docker/db_data/
+.scripts/docker/logs/
+.scripts/docker/minio_data/
+.scripts/docker/mq_data/
+.scripts/docker/nodered_data/
+.scripts/docker/redis_data/
+.scripts/docker/srs_data/
+.scripts/docker/standalone-logs/
+.scripts/docker/taos_data/
 
 # .scripts/nexus3 数据目录
 .scripts/nexus3/nexus_data/
