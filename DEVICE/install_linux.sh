@@ -413,15 +413,25 @@ build_and_start() {
     print_info "开始构建并启动所有服务（在容器中编译，显示完整日志）..."
     
     # 确保权限正确
+    print_info "检查 Docker Compose 配置文件..."
     check_compose_file
+    print_success "配置文件检查完成"
     
-    cd "$SCRIPT_DIR"
+    print_info "切换到脚本目录: $SCRIPT_DIR"
+    if ! cd "$SCRIPT_DIR"; then
+        print_error "无法切换到目录: $SCRIPT_DIR"
+        exit 1
+    fi
+    print_success "当前工作目录: $(pwd)"
     
     # 验证 Docker 可以访问 docker-compose.yml
     # 使用 -f 明确指定配置文件路径，确保可靠性
+    print_info "验证 Docker Compose 可以读取配置文件..."
     local compose_test_output
+    set +e  # 暂时关闭错误退出，以便捕获退出码
     compose_test_output=$($DOCKER_COMPOSE -f "$COMPOSE_FILE" config 2>&1)
     local compose_test_exit=$?
+    set -e  # 重新开启错误退出
     
     if [ $compose_test_exit -ne 0 ]; then
         print_error "Docker Compose 无法读取配置文件"
@@ -472,22 +482,65 @@ build_and_start() {
                 print_success "问题已修复，可以继续"
             fi
         fi
+    else
+        print_success "Docker Compose 配置文件验证通过"
     fi
     
     # 使用 --progress=plain 显示完整输出
     # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
     
+    # 显示调试信息
+    print_info "当前工作目录: $(pwd)"
+    print_info "Docker Compose 文件: $COMPOSE_FILE"
+    print_info "使用的 Docker Compose 命令: $DOCKER_COMPOSE"
+    
+    # 检查 Docker daemon 是否运行
+    print_info "检查 Docker daemon 状态..."
+    if ! docker info > /dev/null 2>&1; then
+        print_error "Docker daemon 未运行，请先启动 Docker 服务"
+        print_info "尝试启动: sudo systemctl start docker"
+        exit 1
+    fi
+    print_success "Docker daemon 运行正常"
+    
+    # 再次验证配置文件
+    print_info "验证 Docker Compose 配置文件..."
+    if ! $DOCKER_COMPOSE -f "$COMPOSE_FILE" config > /dev/null 2>&1; then
+        print_error "Docker Compose 配置文件验证失败"
+        print_info "尝试查看详细错误:"
+        $DOCKER_COMPOSE -f "$COMPOSE_FILE" config
+        exit 1
+    fi
+    print_success "配置文件验证通过"
+    
+    print_info "准备执行: $DOCKER_COMPOSE up -d --build"
+    echo
+    
     # 直接执行命令并实时输出
     local exit_code
     
     # 执行构建和启动命令（不使用 --progress，兼容所有版本）
+    # 直接执行并显示输出，同时捕获退出码
+    print_info "开始执行 Docker Compose 命令..."
+    set +e  # 暂时关闭错误退出，以便捕获退出码
     $DOCKER_COMPOSE up -d --build
     exit_code=$?
+    set -e  # 重新开启错误退出
+    
+    echo  # 添加空行分隔
     
     # 检查命令是否成功
     if [ $exit_code -ne 0 ]; then
         print_error "服务构建或启动失败（退出码: $exit_code）"
+        print_info "尝试诊断问题..."
+        echo
+        diagnose_compose_issue "$COMPOSE_FILE"
         exit 1
+    fi
+    
+    # 如果命令成功但没有输出，给出提示
+    if [ $exit_code -eq 0 ]; then
+        print_info "Docker Compose 命令执行完成"
     fi
     
     # 验证容器是否真的创建了
