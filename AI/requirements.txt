@@ -1,3 +1,4 @@
+--index-url https://pypi.tuna.tsinghua.edu.cn/simple
 # 基础依赖
 # 固定 setuptools 版本以解决 pkg_resources 弃用警告
 setuptools<81
