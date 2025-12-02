@@ -242,6 +242,9 @@ install_nexus() {
     echo ""
     print_info "提示：首次登录后系统会要求修改默认密码"
     echo ""
+    print_warning "已知问题提示：如果使用 Azure Blob Store，请避免在修复任务中启用完整性检查"
+    print_info "详细信息请查看: ${SCRIPT_DIR}/KNOWN_ISSUES.md"
+    echo ""
     return 0
 }
 
@@ -353,9 +356,13 @@ show_status() {
     else
         print_warning "Nexus3 容器未运行"
         echo ""
-        print_info "访问地址: ${GREEN}http://localhost:$NEXUS_PORT${NC}"
-        print_info "（请先启动服务: ./install.sh start）"
+            print_info "访问地址: ${GREEN}http://localhost:$NEXUS_PORT${NC}"
+            print_info "（请先启动服务: ./install.sh start）"
     fi
+    
+    echo ""
+    print_warning "已知问题提示：如果使用 Azure Blob Store，请避免在修复任务中启用完整性检查"
+    print_info "详细信息请查看: ${SCRIPT_DIR}/KNOWN_ISSUES.md"
 }
 
 # 查看日志
