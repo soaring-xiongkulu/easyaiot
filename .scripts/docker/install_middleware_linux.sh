@@ -36,6 +36,7 @@ COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yml"
 # 日志文件配置
 LOG_DIR="${SCRIPT_DIR}/logs"
 mkdir -p "$LOG_DIR"
+chmod -R 777 "$LOG_DIR" 2>/dev/null || sudo chmod -R 777 "$LOG_DIR" 2>/dev/null || true
 LOG_FILE="${LOG_DIR}/install_middleware_$(date +%Y%m%d_%H%M%S).log"
 
 # 初始化日志文件
@@ -1728,17 +1729,17 @@ create_nodered_directories() {
     # 如果当前用户有权限，则设置；否则只创建目录
     if [ "$EUID" -eq 0 ]; then
         chown -R 1000:1000 "$nodered_data_dir"
-        chmod -R 755 "$nodered_data_dir"
-        print_success "NodeRED 数据目录权限已设置 (UID 1000:1000)"
+        chmod -R 777 "$nodered_data_dir"
+        print_success "NodeRED 数据目录权限已设置 (UID 1000:1000, 777)"
     else
         # 非 root 用户尝试使用 sudo（如果可用）
         if command -v sudo &> /dev/null; then
             sudo chown -R 1000:1000 "$nodered_data_dir" 2>/dev/null && \
-            sudo chmod -R 755 "$nodered_data_dir" 2>/dev/null && \
-            print_success "NodeRED 数据目录权限已设置 (UID 1000:1000)" || \
-            print_warning "无法设置 NodeRED 目录权限，可能需要手动设置: sudo chown -R 1000:1000 $nodered_data_dir"
+            sudo chmod -R 777 "$nodered_data_dir" 2>/dev/null && \
+            print_success "NodeRED 数据目录权限已设置 (UID 1000:1000, 777)" || \
+            print_warning "无法设置 NodeRED 目录权限，可能需要手动设置: sudo chmod -R 777 $nodered_data_dir"
         else
-            print_warning "无法设置 NodeRED 目录权限，请手动执行: sudo chown -R 1000:1000 $nodered_data_dir"
+            print_warning "无法设置 NodeRED 目录权限，请手动执行: sudo chmod -R 777 $nodered_data_dir"
         fi
     fi
 }
@@ -1757,19 +1758,19 @@ create_postgresql_directories() {
     # 如果当前用户有权限，则设置；否则只创建目录
     if [ "$EUID" -eq 0 ]; then
         chown -R 999:999 "$postgresql_data_dir" "$postgresql_log_dir"
-        chmod -R 700 "$postgresql_data_dir"
-        chmod -R 755 "$postgresql_log_dir"
-        print_success "PostgreSQL 数据目录权限已设置 (UID 999:999)"
+        chmod -R 777 "$postgresql_data_dir"
+        chmod -R 777 "$postgresql_log_dir"
+        print_success "PostgreSQL 数据目录权限已设置 (UID 999:999, 777)"
     else
         # 非 root 用户尝试使用 sudo（如果可用）
         if command -v sudo &> /dev/null; then
             sudo chown -R 999:999 "$postgresql_data_dir" "$postgresql_log_dir" 2>/dev/null && \
-            sudo chmod -R 700 "$postgresql_data_dir" 2>/dev/null && \
-            sudo chmod -R 755 "$postgresql_log_dir" 2>/dev/null && \
-            print_success "PostgreSQL 数据目录权限已设置 (UID 999:999)" || \
-            print_warning "无法设置 PostgreSQL 目录权限，可能需要手动设置: sudo chown -R 999:999 $postgresql_data_dir $postgresql_log_dir"
+            sudo chmod -R 777 "$postgresql_data_dir" 2>/dev/null && \
+            sudo chmod -R 777 "$postgresql_log_dir" 2>/dev/null && \
+            print_success "PostgreSQL 数据目录权限已设置 (UID 999:999, 777)" || \
+            print_warning "无法设置 PostgreSQL 目录权限，可能需要手动设置: sudo chmod -R 777 $postgresql_data_dir $postgresql_log_dir"
         else
-            print_warning "无法设置 PostgreSQL 目录权限，请手动执行: sudo chown -R 999:999 $postgresql_data_dir $postgresql_log_dir"
+            print_warning "无法设置 PostgreSQL 目录权限，请手动执行: sudo chmod -R 777 $postgresql_data_dir $postgresql_log_dir"
         fi
     fi
 }
@@ -1788,19 +1789,19 @@ create_redis_directories() {
     # 如果当前用户有权限，则设置；否则只创建目录
     if [ "$EUID" -eq 0 ]; then
         chown -R 999:999 "$redis_data_dir" "$redis_log_dir"
-        chmod -R 755 "$redis_data_dir"
-        chmod -R 755 "$redis_log_dir"
-        print_success "Redis 数据目录权限已设置 (UID 999:999)"
+        chmod -R 777 "$redis_data_dir"
+        chmod -R 777 "$redis_log_dir"
+        print_success "Redis 数据目录权限已设置 (UID 999:999, 777)"
     else
         # 非 root 用户尝试使用 sudo（如果可用）
         if command -v sudo &> /dev/null; then
             sudo chown -R 999:999 "$redis_data_dir" "$redis_log_dir" 2>/dev/null && \
-            sudo chmod -R 755 "$redis_data_dir" 2>/dev/null && \
-            sudo chmod -R 755 "$redis_log_dir" 2>/dev/null && \
-            print_success "Redis 数据目录权限已设置 (UID 999:999)" || \
-            print_warning "无法设置 Redis 目录权限，可能需要手动设置: sudo chown -R 999:999 $redis_data_dir $redis_log_dir"
+            sudo chmod -R 777 "$redis_data_dir" 2>/dev/null && \
+            sudo chmod -R 777 "$redis_log_dir" 2>/dev/null && \
+            print_success "Redis 数据目录权限已设置 (UID 999:999, 777)" || \
+            print_warning "无法设置 Redis 目录权限，可能需要手动设置: sudo chmod -R 777 $redis_data_dir $redis_log_dir"
         else
-            print_warning "无法设置 Redis 目录权限，请手动执行: sudo chown -R 999:999 $redis_data_dir $redis_log_dir"
+            print_warning "无法设置 Redis 目录权限，请手动执行: sudo chmod -R 777 $redis_data_dir $redis_log_dir"
         fi
     fi
 }
@@ -1845,17 +1846,17 @@ create_kafka_directories() {
     # 如果当前用户有权限，则设置；否则只创建目录
     if [ "$EUID" -eq 0 ]; then
         chown -R 1000:1000 "$kafka_data_dir"
-        chmod -R 755 "$kafka_data_dir"
-        print_success "Kafka 数据目录权限已设置 (UID 1000:1000)"
+        chmod -R 777 "$kafka_data_dir"
+        print_success "Kafka 数据目录权限已设置 (UID 1000:1000, 777)"
     else
         # 非 root 用户尝试使用 sudo（如果可用）
         if command -v sudo &> /dev/null; then
             sudo chown -R 1000:1000 "$kafka_data_dir" 2>/dev/null && \
-            sudo chmod -R 755 "$kafka_data_dir" 2>/dev/null && \
-            print_success "Kafka 数据目录权限已设置 (UID 1000:1000)" || \
-            print_warning "无法设置 Kafka 目录权限，可能需要手动设置: sudo chown -R 1000:1000 $kafka_data_dir"
+            sudo chmod -R 777 "$kafka_data_dir" 2>/dev/null && \
+            print_success "Kafka 数据目录权限已设置 (UID 1000:1000, 777)" || \
+            print_warning "无法设置 Kafka 目录权限，可能需要手动设置: sudo chmod -R 777 $kafka_data_dir"
         else
-            print_warning "无法设置 Kafka 目录权限，请手动执行: sudo chown -R 1000:1000 $kafka_data_dir"
+            print_warning "无法设置 Kafka 目录权限，请手动执行: sudo chmod -R 777 $kafka_data_dir"
         fi
     fi
 }
@@ -2001,14 +2002,17 @@ create_all_storage_directories() {
             if [ -n "$uid" ] && [ -n "$gid" ]; then
                 if [ "$EUID" -eq 0 ]; then
                     chown -R "${uid}:${gid}" "$dir_path" 2>/dev/null || true
-                    if [ -n "$perms" ]; then
-                        chmod -R "$perms" "$dir_path" 2>/dev/null || true
-                    fi
+                    chmod -R 777 "$dir_path" 2>/dev/null || true
                 elif command -v sudo &> /dev/null; then
                     sudo chown -R "${uid}:${gid}" "$dir_path" 2>/dev/null || true
-                    if [ -n "$perms" ]; then
-                        sudo chmod -R "$perms" "$dir_path" 2>/dev/null || true
-                    fi
+                    sudo chmod -R 777 "$dir_path" 2>/dev/null || true
+                fi
+            else
+                # 即使没有指定 UID/GID，也设置777权限
+                if [ "$EUID" -eq 0 ]; then
+                    chmod -R 777 "$dir_path" 2>/dev/null || true
+                elif command -v sudo &> /dev/null; then
+                    sudo chmod -R 777 "$dir_path" 2>/dev/null || true
                 fi
             fi
             created_count=$((created_count + 1))
@@ -2030,8 +2034,43 @@ create_all_storage_directories() {
         fi
     done
     
+    # 统一设置所有已创建目录的777权限
+    print_info "统一设置所有存储目录为777权限..."
+    for dir_spec in "${storage_dirs[@]}"; do
+        IFS=':' read -r dir_path uid gid perms <<< "$dir_spec"
+        if [ -n "$dir_path" ] && [ -d "$dir_path" ]; then
+            if [ "$EUID" -eq 0 ]; then
+                chmod -R 777 "$dir_path" 2>/dev/null || true
+            elif command -v sudo &> /dev/null; then
+                sudo chmod -R 777 "$dir_path" 2>/dev/null || true
+            fi
+        fi
+    done
+    
+    # 同时设置所有父目录为777权限
+    local parent_dirs=(
+        "${SCRIPT_DIR}/standalone-logs"
+        "${SCRIPT_DIR}/db_data"
+        "${SCRIPT_DIR}/taos_data"
+        "${SCRIPT_DIR}/redis_data"
+        "${SCRIPT_DIR}/mq_data"
+        "${SCRIPT_DIR}/minio_data"
+        "${SCRIPT_DIR}/srs_data"
+        "${SCRIPT_DIR}/nodered_data"
+        "${SCRIPT_DIR}/logs"
+    )
+    for parent_dir in "${parent_dirs[@]}"; do
+        if [ -d "$parent_dir" ]; then
+            if [ "$EUID" -eq 0 ]; then
+                chmod -R 777 "$parent_dir" 2>/dev/null || true
+            elif command -v sudo &> /dev/null; then
+                sudo chmod -R 777 "$parent_dir" 2>/dev/null || true
+            fi
+        fi
+    done
+    
     if [ $created_count -eq $total_count ]; then
-        print_success "所有存储目录已创建（${created_count}/${total_count}）"
+        print_success "所有存储目录已创建并设置为777权限（${created_count}/${total_count}）"
     else
         print_error "部分存储目录创建失败（${created_count}/${total_count}）"
         if [ ${#failed_dirs[@]} -gt 0 ]; then
