@@ -17,7 +17,7 @@ services:
       - JVM_MS=128m
       - JVM_MMS=320m
     volumes:
-      - ./standalone-logs/:/home/nacos/logs
+      - ./standalone-logs/:/home/nacos/logs:rw
     ports:
       - "9849:9849"
       - "8848:8848"
@@ -43,8 +43,8 @@ services:
     container_name: postgres-init
     user: "0:0"
     volumes:
-      - ./db_data/data:/var/lib/postgresql/data
-      - ./db_data/log:/var/log/postgresql
+      - ./db_data/data:/var/lib/postgresql/data:rw
+      - ./db_data/log:/var/log/postgresql:rw
     command:
       [
         "/bin/bash",
@@ -69,14 +69,14 @@ services:
       - POSTGRES_DB=postgres
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
-      - ./db_data/data:/var/lib/postgresql/data
-      - ./db_data/log:/var/log/postgresql
+      - ./db_data/data:/var/lib/postgresql/data:rw
+      - ./db_data/log:/var/log/postgresql:rw
       # SQL 文件挂载（按字母顺序执行）
-      - ../postgresql:/docker-entrypoint-initdb.d
+      - ../postgresql:/docker-entrypoint-initdb.d:rw
       # 数据库初始化脚本（00- 前缀确保在 SQL 文件之前执行）
-      - ./init-databases.sh:/docker-entrypoint-initdb.d/00-init-databases.sh:ro
+      - ./init-databases.sh:/docker-entrypoint-initdb.d/00-init-databases.sh:rw
       # PostgreSQL entrypoint 脚本（自动修复权限）
-      - ./postgresql-entrypoint.sh:/postgresql-entrypoint.sh:ro
+      - ./postgresql-entrypoint.sh:/postgresql-entrypoint.sh:rw
     # 使用自定义 entrypoint，在启动前自动修复权限
     # 容器以 root 启动，entrypoint 会修复权限后切换到 postgres 用户
     # 这样可以自动解决 "could not open file global/pg_filenode.map: Permission denied" 错误
@@ -106,9 +106,9 @@ services:
       - "6043-6049:6043-6049/tcp"
       - "6043-6049:6043-6049/udp"
     volumes:
-      - "./taos_data/data:/var/lib/taos"
-      - "./taos_data/log:/var/log/taos"
-      - ./tdengine-entrypoint.sh:/tdengine-entrypoint.sh:ro
+      - "./taos_data/data:/var/lib/taos:rw"
+      - "./taos_data/log:/var/log/taos:rw"
+      - ./tdengine-entrypoint.sh:/tdengine-entrypoint.sh:rw
     entrypoint: ["/bin/bash", "/tdengine-entrypoint.sh"]
     healthcheck:
       test: ["CMD-SHELL", "taos -h localhost -s 'select 1;' || exit 1"]
@@ -132,8 +132,8 @@ services:
       - TDENGINE_PORT=6030
       - DB_NAME=iot_device
     volumes:
-      - ./init-tdengine.sh:/init-tdengine.sh:ro
-      - ../tdengine:/init-sql:ro
+      - ./init-tdengine.sh:/init-tdengine.sh:rw
+      - ../tdengine:/init-sql:rw
     command: ["/bin/bash", "/init-tdengine.sh"]
     restart: "no"
     networks:
@@ -161,8 +161,8 @@ services:
       --tcp-backlog 511
       --maxmemory-policy allkeys-lru
     volumes:
-      - "./redis_data/data:/data"
-      - "./redis_data/logs:/logs"
+      - "./redis_data/data:/data:rw"
+      - "./redis_data/logs:/logs:rw"
     healthcheck:
       test:
         [
@@ -209,7 +209,7 @@ services:
       - KAFKA_LOG_RETENTION_HOURS=168
       - KAFKA_LOG_DIRS=/var/lib/kafka/data
     volumes:
-      - ./mq_data/data:/var/lib/kafka/data
+      - ./mq_data/data:/var/lib/kafka/data:rw
     healthcheck:
       test:
         [
@@ -237,8 +237,8 @@ services:
       - MINIO_ROOT_PASSWORD=basiclab@iot975248395
     command: server /data --console-address ":9001"
     volumes:
-      - "./minio_data/data:/data"
-      - "./minio_data/config:/root/.minio"
+      - "./minio_data/data:/data:rw"
+      - "./minio_data/config:/root/.minio:rw"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -261,9 +261,9 @@ services:
     environment:
       - TZ=Asia/Shanghai
     volumes:
-      - "./srs_data/conf:/usr/local/srs/conf"
-      - "./srs_data/conf:/opt/srs/trunk/conf"
-      - "/data:/data"
+      - "./srs_data/conf:/usr/local/srs/conf:rw"
+      - "./srs_data/conf:/opt/srs/trunk/conf:rw"
+      - "/data:/data:rw"
     command: ["./objs/srs", "-c", "conf/docker.conf"]
     working_dir: /usr/local/srs
     healthcheck:
@@ -288,7 +288,7 @@ services:
       - NODE_OPTIONS=--max-old-space-size=512
     user: "1000:1000"
     volumes:
-      - "./nodered_data/data:/data"
+      - "./nodered_data/data:/data:rw"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:1880/ || exit 1"]
       interval: 30s
