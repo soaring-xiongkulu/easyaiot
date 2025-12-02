@@ -119,17 +119,8 @@ def update_space(space_id):
 
 @record_bp.route('/space/<int:space_id>', methods=['DELETE'])
 def delete_space(space_id):
-    """删除监控录像空间（已禁用：监控录像空间跟随设备，删除设备时会自动删除）"""
+    """删除监控录像空间"""
     try:
-        # 检查监控录像空间是否有关联的设备
-        space = get_record_space(space_id)
-        if space.device_id:
-            return jsonify({
-                'code': 403,
-                'msg': '监控录像空间跟随设备，不能单独删除。请删除关联的设备，监控录像空间会自动删除。'
-            }), 403
-        
-        # 如果没有关联设备，允许删除（兼容旧数据）
         delete_record_space(space_id)
         return jsonify({
             'code': 0,

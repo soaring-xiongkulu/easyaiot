@@ -131,17 +131,8 @@ def update_space(space_id):
 
 @snap_bp.route('/space/<int:space_id>', methods=['DELETE'])
 def delete_space(space_id):
-    """删除抓拍空间（已禁用：抓拍空间跟随设备，删除设备时会自动删除）"""
+    """删除抓拍空间"""
     try:
-        # 检查抓拍空间是否有关联的设备
-        space = get_snap_space(space_id)
-        if space.device_id:
-            return jsonify({
-                'code': 403,
-                'msg': '抓拍空间跟随设备，不能单独删除。请删除关联的设备，抓拍空间会自动删除。'
-            }), 403
-        
-        # 如果没有关联设备，允许删除（兼容旧数据）
         delete_snap_space(space_id)
         return jsonify({
             'code': 0,

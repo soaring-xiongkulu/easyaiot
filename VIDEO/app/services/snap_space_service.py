@@ -223,23 +223,28 @@ def check_space_has_images(space_id):
     try:
         snap_space = SnapSpace.query.get_or_404(space_id)
         bucket_name = snap_space.bucket_name
-        space_code = snap_space.space_code
         
         minio_client = get_minio_client()
         if not minio_client.bucket_exists(bucket_name):
             return False, 0
         
-        # 统计该空间文件夹下的所有文件（排除文件夹标记）
-        # 现在路径是 device_id/filename，不再使用 space_code 前缀
+        # 统计该空间下的所有文件（排除文件夹标记）
+        # 如果空间关联了设备，检查 device_id/ 前缀下的文件
+        # 如果空间没有关联设备，检查整个bucket下的文件
         file_count = 0
-        objects = minio_client.list_objects(bucket_name, prefix="", recursive=True)
+        if snap_space.device_id:
+            # 只检查该设备文件夹下的文件
+            device_prefix = f"{snap_space.device_id}/"
+            objects = minio_client.list_objects(bucket_name, prefix=device_prefix, recursive=True)
+        else:
+            # 空间没有关联设备，检查整个bucket下的文件
+            objects = minio_client.list_objects(bucket_name, prefix="", recursive=True)
+        
         for obj in objects:
             if not obj.object_name.endswith('/'):  # 不是文件夹标记
                 file_count += 1
-                if file_count > 0:  # 只要有一个文件就返回True
-                    return True, file_count
         
-        return False, 0
+        return file_count > 0, file_count
     except Exception as e:
         logger.error(f"检查抓拍空间图片失败: {str(e)}", exc_info=True)
         return False, 0
