@@ -1811,8 +1811,35 @@ create_kafka_directories() {
     
     print_info "创建 Kafka 数据目录并设置权限..."
     
+    # 检查文件系统是否可写
+    local parent_dir=$(dirname "$kafka_data_dir")
+    if ! check_filesystem_writable "$parent_dir"; then
+        print_error "无法创建 Kafka 数据目录: $kafka_data_dir"
+        print_error "原因: 父目录 $parent_dir 所在文件系统不可写"
+        print_error "请检查文件系统挂载状态并解决只读问题"
+        return 1
+    fi
+    
     # 创建目录
-    mkdir -p "$kafka_data_dir"
+    local mkdir_output=""
+    mkdir_output=$(mkdir -p "$kafka_data_dir" 2>&1)
+    local mkdir_exit_code=$?
+    
+    if [ $mkdir_exit_code -ne 0 ]; then
+        print_error "创建 Kafka 数据目录失败: $kafka_data_dir"
+        print_error "错误信息: $mkdir_output"
+        
+        # 检查是否是只读文件系统错误
+        if echo "$mkdir_output" | grep -qiE "read-only|readonly|read only|permission denied"; then
+            print_error "检测到文件系统只读错误"
+            echo ""
+            print_error "文件系统挂载信息:"
+            df -h "$parent_dir" 2>/dev/null || true
+            echo ""
+            print_error "请检查文件系统挂载状态并解决只读问题"
+        fi
+        return 1
+    fi
     
     # Kafka 容器默认使用 UID 1000, GID 1000 (appuser 用户)
     # 如果当前用户有权限，则设置；否则只创建目录
@@ -1833,9 +1860,96 @@ create_kafka_directories() {
     fi
 }
 
+# 检查文件系统是否可写
+check_filesystem_writable() {
+    local test_path="$1"
+    local test_file=""
+    
+    # 如果路径是目录，在目录内创建测试文件
+    if [ -d "$test_path" ]; then
+        test_file="${test_path}/.write_test_$$"
+    else
+        # 如果路径不存在，尝试创建父目录并测试
+        local parent_dir=$(dirname "$test_path")
+        if [ ! -d "$parent_dir" ]; then
+            # 尝试创建父目录
+            if ! mkdir -p "$parent_dir" 2>/dev/null; then
+                return 1
+            fi
+        fi
+        test_file="${parent_dir}/.write_test_$$"
+    fi
+    
+    # 尝试创建测试文件
+    if touch "$test_file" 2>/dev/null; then
+        rm -f "$test_file" 2>/dev/null
+        return 0
+    else
+        return 1
+    fi
+}
+
+# 检查文件系统挂载状态
+check_filesystem_mount_status() {
+    local path="$1"
+    
+    # 获取路径所在的挂载点
+    local mount_point=$(df "$path" 2>/dev/null | tail -1 | awk '{print $6}')
+    local mount_info=$(df -h "$path" 2>/dev/null | tail -1)
+    local filesystem=$(echo "$mount_info" | awk '{print $1}')
+    local mount_options=""
+    
+    # 获取挂载选项
+    if [ -f /proc/mounts ]; then
+        mount_options=$(grep -E "^${filesystem}[[:space:]]" /proc/mounts 2>/dev/null | awk '{print $4}' | head -1 || echo "")
+    fi
+    
+    # 检查是否包含 ro (read-only)
+    if echo "$mount_options" | grep -qE "(^|,)ro(,|$)"; then
+        return 1  # 只读
+    fi
+    
+    return 0  # 可写
+}
+
 # 创建所有中间件的存储目录
 create_all_storage_directories() {
     print_info "创建所有中间件存储目录..."
+    
+    # 首先检查脚本目录所在文件系统是否可写
+    if ! check_filesystem_writable "$SCRIPT_DIR"; then
+        print_error "文件系统只读错误：无法在 $SCRIPT_DIR 创建目录"
+        echo ""
+        print_error "检测到文件系统为只读状态，无法创建数据目录"
+        echo ""
+        
+        # 检查挂载状态
+        if ! check_filesystem_mount_status "$SCRIPT_DIR"; then
+            print_error "文件系统挂载为只读模式"
+            print_info "挂载信息:"
+            df -h "$SCRIPT_DIR" 2>/dev/null | tail -1 || true
+            echo ""
+        fi
+        
+        print_warning "解决方案："
+        echo ""
+        print_info "1. 检查文件系统挂载状态："
+        print_info "   mount | grep $(df "$SCRIPT_DIR" 2>/dev/null | tail -1 | awk '{print $1}')"
+        echo ""
+        print_info "2. 如果是只读挂载，需要重新挂载为可写："
+        print_info "   sudo mount -o remount,rw $(df "$SCRIPT_DIR" 2>/dev/null | tail -1 | awk '{print $1}')"
+        echo ""
+        print_info "3. 或者将项目部署到可写的文件系统，例如："
+        print_info "   - /home/用户名/easyaiot"
+        print_info "   - /data/easyaiot"
+        print_info "   - /var/lib/easyaiot"
+        echo ""
+        print_info "4. 检查磁盘空间是否已满："
+        print_info "   df -h"
+        echo ""
+        print_error "无法继续安装，请先解决文件系统只读问题"
+        exit 1
+    fi
     
     # 定义所有需要创建的存储目录及其权限设置
     # 格式: "目录路径:UID:GID:权限"
@@ -1858,6 +1972,7 @@ create_all_storage_directories() {
     
     local created_count=0
     local total_count=${#storage_dirs[@]}
+    local failed_dirs=()
     
     for dir_spec in "${storage_dirs[@]}"; do
         # 解析目录规格
@@ -1867,8 +1982,21 @@ create_all_storage_directories() {
             continue
         fi
         
+        # 检查父目录是否可写
+        local parent_dir=$(dirname "$dir_path")
+        if ! check_filesystem_writable "$parent_dir"; then
+            print_error "无法创建目录: $dir_path"
+            print_error "原因: 父目录 $parent_dir 所在文件系统不可写"
+            failed_dirs+=("$dir_path")
+            continue
+        fi
+        
         # 创建目录
-        if mkdir -p "$dir_path" 2>/dev/null; then
+        local mkdir_output=""
+        mkdir_output=$(mkdir -p "$dir_path" 2>&1)
+        local mkdir_exit_code=$?
+        
+        if [ $mkdir_exit_code -eq 0 ]; then
             # 如果指定了 UID/GID，尝试设置权限
             if [ -n "$uid" ] && [ -n "$gid" ]; then
                 if [ "$EUID" -eq 0 ]; then
@@ -1885,14 +2013,37 @@ create_all_storage_directories() {
             fi
             created_count=$((created_count + 1))
         else
-            print_warning "创建目录失败: $dir_path"
+            print_error "创建目录失败: $dir_path"
+            print_error "错误信息: $mkdir_output"
+            failed_dirs+=("$dir_path")
+            
+            # 检查是否是只读文件系统错误
+            if echo "$mkdir_output" | grep -qiE "read-only|readonly|read only|permission denied"; then
+                print_error "检测到文件系统只读错误"
+                echo ""
+                print_error "文件系统挂载信息:"
+                df -h "$parent_dir" 2>/dev/null || true
+                echo ""
+                print_error "请检查文件系统挂载状态并解决只读问题"
+                echo ""
+            fi
         fi
     done
     
     if [ $created_count -eq $total_count ]; then
         print_success "所有存储目录已创建（${created_count}/${total_count}）"
     else
-        print_warning "部分存储目录创建失败（${created_count}/${total_count}）"
+        print_error "部分存储目录创建失败（${created_count}/${total_count}）"
+        if [ ${#failed_dirs[@]} -gt 0 ]; then
+            echo ""
+            print_error "失败的目录列表:"
+            for failed_dir in "${failed_dirs[@]}"; do
+                print_error "  - $failed_dir"
+            done
+            echo ""
+            print_error "这可能导致容器启动失败，请先解决文件系统问题"
+            exit 1
+        fi
     fi
 }
 
