@@ -1,139 +1,101 @@
-# 使用PyTorch官方镜像（包含CUDA支持，Python 3.10）
-# 注意：本镜像仅支持 x86_64 架构，ARM架构不支持容器化部署
-# 升级到PyTorch 2.1.0以支持OpenVINO 2025.3.0（需要torch.float8_e4m3fn）
-ARG BASE_IMAGE=pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
-FROM ${BASE_IMAGE}
+# 使用PyTorch官方镜像作为基础镜像
+FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime AS base
 
-# 设置非交互式环境，避免构建时卡住
-ARG DEBIAN_FRONTEND=noninteractive
-ENV DEBIAN_FRONTEND=noninteractive
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    TZ=Asia/Shanghai \
+    CUDA_VISIBLE_DEVICES=0 \
+    QT_QPA_PLATFORM=xcb \
+    QT_X11_NO_MITSHM=1
 
 # 设置工作目录
 WORKDIR /app
 
-# 设置环境变量
-ENV PYTHONUNBUFFERED=1
-ENV CUDA_VISIBLE_DEVICES=0
-ENV TZ=Asia/Shanghai
+# ======================= 第一阶段：系统依赖安装 =======================
+FROM base AS dependencies
 
-# 设置时区，避免时区配置交互式提示
-RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-    echo "Asia/Shanghai" > /etc/timezone
+# 配置镜像源和时区
+RUN set -ex && \
+    # 设置时区
+    ln -sf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone && \
+    # 配置apt镜像源
+    sed -i 's|http://.*archive.ubuntu.com|https://mirrors.huaweicloud.com|g' /etc/apt/sources.list && \
+    sed -i 's|http://.*security.ubuntu.com|https://mirrors.huaweicloud.com|g' /etc/apt/sources.list
 
-# 配置镜像源（使用华为云镜像加速，自动检测操作系统）
-RUN OS_ID=$(cat /etc/os-release 2>/dev/null | grep "^ID=" | cut -d'=' -f2 | tr -d '"' || echo "ubuntu") && \
-    OS_VERSION=$(cat /etc/os-release 2>/dev/null | grep "^VERSION_CODENAME=" | cut -d'=' -f2 | tr -d '"' || cat /etc/os-release 2>/dev/null | grep "^VERSION_ID=" | cut -d'=' -f2 | tr -d '"' | cut -d'.' -f1 || echo "jammy") && \
-    if [ "$OS_ID" = "ubuntu" ]; then \
-        sed -i 's|http://.*archive.ubuntu.com|https://mirrors.huaweicloud.com|g' /etc/apt/sources.list 2>/dev/null || true; \
-        sed -i 's|http://.*security.ubuntu.com|https://mirrors.huaweicloud.com|g' /etc/apt/sources.list 2>/dev/null || true; \
-        if [ ! -f /etc/apt/sources.list ] || ! grep -q "mirrors.huaweicloud.com" /etc/apt/sources.list 2>/dev/null; then \
-            echo "deb https://mirrors.huaweicloud.com/ubuntu/ ${OS_VERSION} main restricted universe multiverse" > /etc/apt/sources.list && \
-            echo "deb https://mirrors.huaweicloud.com/ubuntu/ ${OS_VERSION}-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
-            echo "deb https://mirrors.huaweicloud.com/ubuntu/ ${OS_VERSION}-security main restricted universe multiverse" >> /etc/apt/sources.list && \
-            echo "deb https://mirrors.huaweicloud.com/ubuntu/ ${OS_VERSION}-backports main restricted universe multiverse" >> /etc/apt/sources.list; \
-        fi; \
-    elif [ "$OS_ID" = "debian" ]; then \
-        sed -i 's/deb.debian.org/mirrors.huaweicloud.com/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true; \
-        sed -i 's|deb.debian.org|mirrors.huaweicloud.com|g' /etc/apt/sources.list 2>/dev/null || true; \
-        if [ ! -f /etc/apt/sources.list ] || ! grep -q "mirrors.huaweicloud.com" /etc/apt/sources.list 2>/dev/null; then \
-            echo "deb https://mirrors.huaweicloud.com/debian/ ${OS_VERSION} main contrib non-free non-free-firmware" > /etc/apt/sources.list && \
-            echo "deb https://mirrors.huaweicloud.com/debian/ ${OS_VERSION}-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
-            echo "deb https://mirrors.huaweicloud.com/debian-security/ ${OS_VERSION}-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
-        fi; \
-    elif [ "$OS_ID" = "centos" ] || [ "$OS_ID" = "rhel" ]; then \
-        mkdir -p /etc/yum.repos.d/backup 2>/dev/null || true; \
-        mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/backup/ 2>/dev/null || true; \
-        cat > /etc/yum.repos.d/CentOS-Base.repo <<EOF && \
-[base] \
-name=CentOS-\$releasever - Base - mirrors.huaweicloud.com \
-baseurl=https://mirrors.huaweicloud.com/centos/\$releasever/os/\$basearch/ \
-gpgcheck=1 \
-enabled=1 \
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-\$releasever \
-\
-[updates] \
-name=CentOS-\$releasever - Updates - mirrors.huaweicloud.com \
-baseurl=https://mirrors.huaweicloud.com/centos/\$releasever/updates/\$basearch/ \
-gpgcheck=1 \
-enabled=1 \
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-\$releasever \
-\
-[extras] \
-name=CentOS-\$releasever - Extras - mirrors.huaweicloud.com \
-baseurl=https://mirrors.huaweicloud.com/centos/\$releasever/extras/\$basearch/ \
-gpgcheck=1 \
-enabled=1 \
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-\$releasever \
-EOF \
-        yum clean all 2>/dev/null || dnf clean all 2>/dev/null || true; \
-    else \
-        echo "deb https://mirrors.huaweicloud.com/ubuntu/ jammy main restricted universe multiverse" > /etc/apt/sources.list && \
-        echo "deb https://mirrors.huaweicloud.com/ubuntu/ jammy-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
-        echo "deb https://mirrors.huaweicloud.com/ubuntu/ jammy-security main restricted universe multiverse" >> /etc/apt/sources.list && \
-        echo "deb https://mirrors.huaweicloud.com/ubuntu/ jammy-backports main restricted universe multiverse" >> /etc/apt/sources.list; \
-    fi || true
-
-# 安装基本工具（根据不同的宿主机架构修改）
-RUN apt-get update && \
+# 安装系统依赖包（单层RUN提高缓存效率）
+RUN set -ex && \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
-    gcc git zip unzip wget curl vim htop libgl1 libglib2.0-0 libpython3-dev gnupg g++ libusb-1.0-0 libsm6 \
-    libgomp1 libgtk-3-0 libavcodec-dev libavformat-dev libswscale-dev \
-    && rm -rf /var/lib/apt/lists/*
+        ca-certificates \
+        curl \
+        wget \
+        git \
+        vim \
+        htop \
+        gnupg \
+        gcc \
+        g++ \
+        make \
+        libgl1 \
+        libglib2.0-0 \
+        libpython3-dev \
+        libusb-1.0-0 \
+        libsm6 \
+        libgomp1 \
+        libgtk-3-0 \
+        x11-apps \
+        libgl1-mesa-glx \
+        libxcb-xinerama0 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# 安装 X11 依赖（可视化，如果需要）
-# 注意：镜像源已在上面配置，这里直接使用
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    x11-apps \
-    libgl1-mesa-glx \
-    libxcb-xinerama0 \
-    && rm -rf /var/lib/apt/lists/*
+# ======================= 第二阶段：Python依赖安装 =======================
+FROM dependencies AS python-deps
 
-# 设置环境变量（可视化）
-ENV QT_QPA_PLATFORM=xcb
-ENV QT_X11_NO_MITSHM=1
+# 复制requirements文件（利用Docker缓存层）
+COPY requirements.txt .
 
-# 安装 pip 并更新到最新版本，同时配置使用阿里源
-RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \
-    && pip config set install.trusted-host mirrors.aliyun.com \
-    && pip install --upgrade pip --timeout 30 --retries 3 -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+# 使用清华源安装Python依赖
+RUN set -ex && \
+    pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple && \
+    pip install -r requirements.txt --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-# 复制requirements文件
-COPY requirements.txt requirements.txt
+# ======================= 第三阶段：应用部署 =======================
+FROM python-deps AS runtime
 
-# 安装Python依赖（PyTorch已预装，无需重复安装）
-RUN pip install -r requirements.txt --timeout 30 --retries 3 -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
-
-# 复制应用代码
+# 复制项目源码
 COPY . .
 
-# 创建必要的目录
-RUN mkdir -p data/uploads data/datasets data/models data/inference_results temp_uploads static/models
+# 创建必要的目录结构
+RUN set -ex && \
+    mkdir -p \
+        data/uploads \
+        data/datasets \
+        data/models \
+        data/inference_results \
+        temp_uploads \
+        static/models && \
+    # 设置执行权限
+    chmod +x run.py
 
-# 设置权限
-RUN chmod +x run.py
-
-# 创建非root用户（-m 参数自动创建主目录）
-RUN groupadd -r appuser && useradd -r -m -g appuser appuser
-
-# 创建必要的用户目录并设置权限
-RUN mkdir -p /home/appuser/.paddlex/temp /home/appuser/.config/Ultralytics && \
-    chown -R appuser:appuser /home/appuser
-
-# 设置目录权限
-RUN chown -R appuser:appuser /app
+# 创建非root用户和权限设置
+RUN set -ex && \
+    groupadd -r appuser && \
+    useradd -r -m -g appuser appuser && \
+    mkdir -p /home/appuser/.paddlex/temp /home/appuser/.config/Ultralytics && \
+    chown -R appuser:appuser /app /home/appuser
 
 # 切换到非root用户
 USER appuser
 
-# 暴露端口（默认5000，可通过环境变量FLASK_RUN_PORT修改）
+# 暴露端口
 EXPOSE 5000
 
 # 健康检查
-# 注意：start-period设置为90秒，因为应用启动时会等待Nacos服务（最多30秒）
-# 加上应用初始化时间，总共可能需要60-90秒
 HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
-    CMD curl -f http://localhost:5000/actuator/health || exit 1
+    CMD curl -fs http://localhost:5000/actuator/health > /dev/null || exit 1
 
 # 启动命令
 CMD ["python", "run.py"]
