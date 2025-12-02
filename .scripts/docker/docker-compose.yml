@@ -79,7 +79,8 @@ services:
       - ./init-databases.sh:/docker-entrypoint-initdb.d/00-init-databases.sh:rw
       # PostgreSQL entrypoint 脚本（自动修复权限）
       # 注意：确保 ./postgresql-entrypoint.sh 文件存在，否则挂载会失败
-      - ./postgresql-entrypoint.sh:/postgresql-entrypoint.sh:rw
+      # 使用相对路径（相对于 docker-compose.yml 所在目录）
+      - ./postgresql-entrypoint.sh:/postgresql-entrypoint.sh:ro
     # 使用自定义 entrypoint，在启动前自动修复权限
     # 容器以 root 启动，entrypoint 会修复权限后切换到 postgres 用户
     # 这样可以自动解决 "could not open file global/pg_filenode.map: Permission denied" 错误
