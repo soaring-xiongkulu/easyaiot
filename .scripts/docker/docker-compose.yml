@@ -72,10 +72,13 @@ services:
       - ./db_data/data:/var/lib/postgresql/data:rw
       - ./db_data/log:/var/log/postgresql:rw
       # SQL 文件挂载（按字母顺序执行）
+      # 注意：确保 ../postgresql 目录存在，否则挂载会失败
       - ../postgresql:/docker-entrypoint-initdb.d:rw
       # 数据库初始化脚本（00- 前缀确保在 SQL 文件之前执行）
+      # 注意：确保 ./init-databases.sh 文件存在，否则挂载会失败
       - ./init-databases.sh:/docker-entrypoint-initdb.d/00-init-databases.sh:rw
       # PostgreSQL entrypoint 脚本（自动修复权限）
+      # 注意：确保 ./postgresql-entrypoint.sh 文件存在，否则挂载会失败
       - ./postgresql-entrypoint.sh:/postgresql-entrypoint.sh:rw
     # 使用自定义 entrypoint，在启动前自动修复权限
     # 容器以 root 启动，entrypoint 会修复权限后切换到 postgres 用户
@@ -108,6 +111,8 @@ services:
     volumes:
       - "./taos_data/data:/var/lib/taos:rw"
       - "./taos_data/log:/var/log/taos:rw"
+      # TDengine entrypoint 脚本（自动修复权限）
+      # 注意：确保 ./tdengine-entrypoint.sh 文件存在，否则挂载会失败
       - ./tdengine-entrypoint.sh:/tdengine-entrypoint.sh:rw
     entrypoint: ["/bin/bash", "/tdengine-entrypoint.sh"]
     healthcheck:
@@ -132,7 +137,11 @@ services:
       - TDENGINE_PORT=6030
       - DB_NAME=iot_device
     volumes:
+      # TDengine 初始化脚本
+      # 注意：确保 ./init-tdengine.sh 文件存在，否则挂载会失败
       - ./init-tdengine.sh:/init-tdengine.sh:rw
+      # TDengine SQL 文件目录
+      # 注意：确保 ../tdengine 目录存在，否则挂载会失败
       - ../tdengine:/init-sql:rw
     command: ["/bin/bash", "/init-tdengine.sh"]
     restart: "no"
