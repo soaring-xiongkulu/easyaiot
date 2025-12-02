@@ -1,63 +1,95 @@
-# 使用maven镜像进行底层编译
+# ======================= 构建阶段 =======================
 FROM maven:3.9.11-eclipse-temurin-21-alpine AS build
 
-# 配置 Maven 使用阿里镜像源
-RUN mkdir -p /root/.m2 && \
-    echo '<?xml version="1.0" encoding="UTF-8"?>' > /root/.m2/settings.xml && \
-    echo '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"' >> /root/.m2/settings.xml && \
-    echo '          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"' >> /root/.m2/settings.xml && \
-    echo '          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">' >> /root/.m2/settings.xml && \
-    echo '  <mirrors>' >> /root/.m2/settings.xml && \
-    echo '    <mirror>' >> /root/.m2/settings.xml && \
-    echo '      <id>aliyun</id>' >> /root/.m2/settings.xml && \
-    echo '      <mirrorOf>central</mirrorOf>' >> /root/.m2/settings.xml && \
-    echo '      <name>Aliyun Maven</name>' >> /root/.m2/settings.xml && \
-    echo '      <url>https://maven.aliyun.com/nexus/content/groups/public/</url>' >> /root/.m2/settings.xml && \
-    echo '    </mirror>' >> /root/.m2/settings.xml && \
-    echo '  </mirrors>' >> /root/.m2/settings.xml && \
-    echo '</settings>' >> /root/.m2/settings.xml
+# 使用更简洁的HERE文档配置Maven镜像
+RUN mkdir -p /root/.m2 && cat > /root/.m2/settings.xml <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <mirrors>
+    <mirror>
+      <id>aliyun</id>
+      <mirrorOf>central</mirrorOf>
+      <name>Aliyun Maven</name>
+      <url>https://maven.aliyun.com/nexus/content/groups/public/</url>
+    </mirror>
+  </mirrors>
+  <localRepository>/root/.m2/repository</localRepository>
+  <interactiveMode>false</interactiveMode>
+  <offline>false</offline>
+</settings>
+EOF
 
 # 设置工作目录
 WORKDIR /app
 
-# 复制根目录的 pom.xml、lombok.config 和所有模块
+# 阶段1: 复制配置文件构建依赖层（优化Docker缓存）
 COPY pom.xml .
 COPY lombok.config .
+
+# 复制各模块pom.xml构建独立的依赖缓存层
+COPY iot-parent/pom.xml ./iot-parent/
+COPY iot-common/pom.xml ./iot-common/
+COPY iot-system/pom.xml ./iot-system/
+COPY iot-infra/pom.xml ./iot-infra/
+
+# 动态过滤不需要的模块引用
+RUN awk '
+/<modules>/,/<\/modules>/ {
+    if (/<module>iot-(gateway|file|dataset|device|tdengine|sink|message)<\/module>/) next
+    print
+}' pom.xml > pom.xml.filtered && \
+mv pom.xml.filtered pom.xml
+
+# 并行预下载依赖（最大化构建性能）
+RUN mvn dependency:resolve-plugins dependency:go-offline -T 2C -B
+
+# 阶段2: 复制所有源代码
 COPY iot-parent ./iot-parent
 COPY iot-common ./iot-common
 COPY iot-system ./iot-system
 COPY iot-infra ./iot-infra
 
-# 修改 pom.xml，只保留需要的模块，避免 Maven 检查不存在的模块
-RUN sed -i.bak \
-    -e '/<module>iot-gateway<\/module>/d' \
-    -e '/<module>iot-file<\/module>/d' \
-    -e '/<module>iot-dataset<\/module>/d' \
-    -e '/<module>iot-device<\/module>/d' \
-    -e '/<module>iot-tdengine<\/module>/d' \
-    -e '/<module>iot-sink<\/module>/d' \
-    -e '/<module>iot-message<\/module>/d' \
-    pom.xml && rm -f pom.xml.bak
+# 编译基础设施模块（基础设施服务通常依赖较多，需要详细调试）
+RUN mvn clean package -DskipTests -Dmaven.test.skip=true -T 2C -pl iot-infra/iot-infra-biz -am -X
 
-# 编译项目（只编译 iot-infra-biz 及其依赖）
-RUN mvn clean package -DskipTests -pl iot-infra/iot-infra-biz -am
+# ======================= 运行时阶段 =======================
+FROM bellsoft/liberica-openjdk-debian:21.0.8
 
-# 切换镜像 - 使用 Java 21
-FROM bellsoft/liberica-openjdk-rocky:21.0.8-cds
+# 安全设置：创建专用运行用户
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# 创建目录，并使用它作为工作目录
-RUN mkdir -p /iot-infra-biz
-WORKDIR /iot-infra-biz
+# 创建应用目录并设置权限
+RUN mkdir -p /app && chown -R appuser:appuser /app
+WORKDIR /app
 
-# 从build阶段中拷贝产物
-COPY --from=build /app/iot-infra/iot-infra-biz/target/iot-infra-biz.jar app.jar
+# 复制构建产物并保留正确的所有权
+COPY --from=build --chown=appuser:appuser /app/iot-infra/iot-infra-biz/target/iot-infra-biz.jar app.jar
 
-# 设置 TZ 时区
-# 设置 JAVA_OPTS 环境变量，可通过 docker run -e "JAVA_OPTS=" 进行覆盖
-ENV TZ=Asia/Shanghai JAVA_OPTS="-Xms512m -Xmx512m"
+# 基础设施服务环境变量配置
+ENV TZ=Asia/Shanghai \
+    LANG=C.UTF-8 \
+    SERVER_PORT=48082 \
+    # 基础设施服务可能需要更多内存支持缓存和连接池
+    JAVA_OPTS="-Xms512m -Xmx1024m -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom -Duser.timezone=Asia/Shanghai -Dspring.profiles.active=prod" \
+    # 基础设施服务特定的配置
+    INFRA_CACHE_SIZE="1000" \
+    DB_CONNECTION_POOL_SIZE="20"
 
-# 暴露后端项目的 48082 端口
+# 创建必要的运行时目录
+RUN mkdir -p /app/{logs,config,cache} && chown -R appuser:appuser /app
+
+# 暴露服务端口
 EXPOSE 48082
 
-# 启动后端项目
-CMD java ${JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom -jar app.jar
+# 基础设施服务健康检查（考虑其核心服务特性）
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
+    CMD curl -f http://localhost:${SERVER_PORT}/actuator/health > /dev/null 2>&1 || \
+    wget --spider http://localhost:${SERVER_PORT}/actuator/health 2>/dev/null || exit 1
+
+# 切换到非root用户
+USER appuser
+
+# 确保正确的信号处理
+ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -jar app.jar"]
