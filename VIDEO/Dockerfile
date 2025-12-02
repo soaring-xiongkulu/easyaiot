@@ -39,28 +39,28 @@ RUN OS_ID=$(cat /etc/os-release 2>/dev/null | grep "^ID=" | cut -d'=' -f2 | tr -
     elif [ "$OS_ID" = "centos" ] || [ "$OS_ID" = "rhel" ]; then \
         mkdir -p /etc/yum.repos.d/backup 2>/dev/null || true; \
         mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/backup/ 2>/dev/null || true; \
-        cat > /etc/yum.repos.d/CentOS-Base.repo <<EOF && \
-[base] \
-name=CentOS-\$releasever - Base - mirrors.huaweicloud.com \
-baseurl=https://mirrors.huaweicloud.com/centos/\$releasever/os/\$basearch/ \
-gpgcheck=1 \
-enabled=1 \
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-\$releasever \
-\
-[updates] \
-name=CentOS-\$releasever - Updates - mirrors.huaweicloud.com \
-baseurl=https://mirrors.huaweicloud.com/centos/\$releasever/updates/\$basearch/ \
-gpgcheck=1 \
-enabled=1 \
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-\$releasever \
-\
-[extras] \
-name=CentOS-\$releasever - Extras - mirrors.huaweicloud.com \
-baseurl=https://mirrors.huaweicloud.com/centos/\$releasever/extras/\$basearch/ \
-gpgcheck=1 \
-enabled=1 \
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-\$releasever \
-EOF \
+        cat > /etc/yum.repos.d/CentOS-Base.repo <<'EOF'
+[base]
+name=CentOS-$releasever - Base - mirrors.huaweicloud.com
+baseurl=https://mirrors.huaweicloud.com/centos/$releasever/os/$basearch/
+gpgcheck=1
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-$releasever
+
+[updates]
+name=CentOS-$releasever - Updates - mirrors.huaweicloud.com
+baseurl=https://mirrors.huaweicloud.com/centos/$releasever/updates/$basearch/
+gpgcheck=1
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-$releasever
+
+[extras]
+name=CentOS-$releasever - Extras - mirrors.huaweicloud.com
+baseurl=https://mirrors.huaweicloud.com/centos/$releasever/extras/$basearch/
+gpgcheck=1
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-$releasever
+EOF
         yum clean all 2>/dev/null || dnf clean all 2>/dev/null || true; \
     else \
         echo "deb https://mirrors.huaweicloud.com/ubuntu/ jammy main restricted universe multiverse" > /etc/apt/sources.list && \
