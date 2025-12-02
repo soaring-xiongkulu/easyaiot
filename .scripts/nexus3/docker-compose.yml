@@ -1,0 +1,30 @@
+services:
+  # Nexus Repository Manager 3
+  nexus:
+    image: sonatype/nexus3:3.81.1-alpine
+    container_name: nexus-server
+    restart: always
+    ports:
+      - "18081:8081"
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./nexus_data:/nexus-data
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - easyaiot-network
+
+# 网络配置
+# 注意：当宿主机IP发生变化后，如果容器无法加入网络，请执行以下命令修复：
+# 1. docker network rm easyaiot-network
+# 2. docker network create easyaiot-network
+# 3. docker-compose restart
+networks:
+  easyaiot-network:
+    name: easyaiot-network
+    external: true

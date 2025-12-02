@@ -313,6 +313,132 @@ check_docker_compose() {
     print_info "使用命令: $COMPOSE_CMD"
 }
 
+# 配置 Docker 镜像源
+configure_docker_mirror() {
+    print_info "配置 Docker 镜像源..."
+    
+    local docker_config_dir="/etc/docker"
+    local docker_config_file="$docker_config_dir/daemon.json"
+    
+    if [ "$EUID" -ne 0 ]; then
+        print_warning "配置 Docker 镜像源需要 root 权限，跳过此步骤"
+        return 0
+    fi
+    
+    # 创建 docker 配置目录
+    mkdir -p "$docker_config_dir"
+    
+    # 使用 Python 精确检查和配置
+    print_info "正在检查并配置 Docker 镜像源..."
+    
+    local output_file=$(mktemp)
+    local python_exit_code=0
+    
+    python3 << EOF > "$output_file" 2>&1
+import json
+import sys
+import os
+
+config_file = "$docker_config_file"
+# 只使用 docker.1ms.run 镜像源
+recommended_mirrors = [
+    "https://docker.1ms.run/"
+]
+
+# 读取现有配置
+config = {}
+if os.path.exists(config_file):
+    try:
+        with open(config_file, 'r') as f:
+            config = json.load(f)
+    except Exception as e:
+        print(f"CONFIG_ERROR:读取配置文件失败: {e}", file=sys.stderr)
+        sys.exit(1)
+
+needs_update = False
+changes = []
+
+# 设置镜像源为只包含 docker.1ms.run
+if "registry-mirrors" not in config:
+    config["registry-mirrors"] = recommended_mirrors
+    needs_update = True
+    changes.append("添加 registry-mirrors 配置")
+else:
+    # 检查现有镜像源是否只包含 docker.1ms.run
+    existing_mirrors = config.get("registry-mirrors", [])
+    if not isinstance(existing_mirrors, list):
+        existing_mirrors = []
+    
+    # 标准化镜像源地址（去除尾部斜杠）
+    normalized_recommended = [m.rstrip('/') for m in recommended_mirrors]
+    normalized_existing = [m.rstrip('/') for m in existing_mirrors]
+    
+    # 如果现有镜像源与推荐的不一致，则更新
+    if set(normalized_existing) != set(normalized_recommended):
+        config["registry-mirrors"] = recommended_mirrors
+        needs_update = True
+        changes.append(f"更新镜像源为: {', '.join(recommended_mirrors)}")
+
+# 写入配置文件
+if needs_update:
+    try:
+        with open(config_file, 'w') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        print("CONFIG_UPDATED")
+        for change in changes:
+            print(f"CHANGE:{change}")
+    except Exception as e:
+        print(f"CONFIG_ERROR:{e}", file=sys.stderr)
+        sys.exit(1)
+else:
+    print("CONFIG_OK")
+EOF
+    
+    python_exit_code=$?
+    local config_updated=false
+    local config_ok=false
+    
+    # 解析 Python 输出
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [[ $line == CONFIG_UPDATED ]]; then
+            config_updated=true
+        elif [[ $line == CONFIG_OK ]]; then
+            config_ok=true
+        elif [[ $line == CHANGE:* ]]; then
+            local change="${line#CHANGE:}"
+            print_info "配置变更: $change"
+        elif [[ $line == CONFIG_ERROR:* ]]; then
+            local error="${line#CONFIG_ERROR:}"
+            print_error "配置失败: $error"
+            rm -f "$output_file"
+            return 1
+        fi
+    done < "$output_file"
+    
+    rm -f "$output_file"
+    
+    if [ $python_exit_code -ne 0 ]; then
+        print_error "Docker 镜像源配置检查失败"
+        return 1
+    fi
+    
+    if [ "$config_ok" = true ]; then
+        print_success "Docker 镜像源配置已完整（已使用 https://docker.1ms.run/）"
+    elif [ "$config_updated" = true ]; then
+        print_success "Docker 镜像源配置已更新为 https://docker.1ms.run/"
+        
+        # 重启 Docker 服务使配置生效
+        if systemctl is-active --quiet docker; then
+            print_info "正在重启 Docker 服务以使配置生效..."
+            systemctl daemon-reload
+            systemctl restart docker
+            print_success "Docker 服务已重启"
+        fi
+    else
+        print_warning "Docker 镜像源配置检查完成，但未发现需要更新的配置"
+    fi
+}
+
 # 创建统一网络
 create_network() {
     print_info "创建统一网络 easyaiot-network..."
@@ -655,6 +781,7 @@ install_linux() {
     
     check_docker "$@"
     check_docker_compose
+    configure_docker_mirror
     create_network
     
     local success_count=0

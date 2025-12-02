@@ -517,13 +517,8 @@ import os
 
 config_file = "$docker_config_file"
 has_gpu = $has_gpu
-# 推荐的镜像源列表（按优先级排序）
+# 推荐的镜像源列表（只保留 docker.1ms.run）
 recommended_mirrors = [
-    "https://docker.m.daocloud.io",
-    "https://registry.docker-cn.com",
-    "https://quay.mirrors.ustc.edu.cn",
-    "https://hub-mirror.c.163.com",
-    "https://dockerhub.icu",
     "https://docker.1ms.run/"
 ]
 nvidia_runtime = {

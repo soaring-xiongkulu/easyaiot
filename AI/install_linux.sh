@@ -530,16 +530,31 @@ install_service() {
     
     print_info "构建 Docker 镜像..."
     print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $BASE_IMAGE"
+    print_warning "首次构建可能需要较长时间（10-30分钟），请耐心等待..."
+    print_info "正在下载基础镜像和安装依赖..."
+    print_info "构建进度将实时显示，请勿中断..."
+    echo ""
+    
     # 使用环境变量传递架构配置给docker-compose
     # 注意：Docker会自动检测当前架构，无需指定--platform参数
-    BUILD_OUTPUT=$(BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build 2>&1)
-    BUILD_STATUS=$?
-    # 只显示错误和警告信息
-    echo "$BUILD_OUTPUT" | grep -iE "(error|warning|failed|失败|警告)" || true
+    # 实时显示构建输出，同时捕获错误
+    BUILD_LOG="/tmp/docker_build_$$.log"
+    set +e  # 暂时关闭错误退出，以便捕获构建状态
+    BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build 2>&1 | tee "$BUILD_LOG"
+    BUILD_STATUS=${PIPESTATUS[0]}
+    set -e  # 重新开启错误退出
+    
     if [ $BUILD_STATUS -ne 0 ]; then
         print_error "镜像构建失败"
+        print_info "查看详细错误信息:"
+        grep -iE "(error|warning|failed|失败|警告)" "$BUILD_LOG" | tail -20 || true
+        rm -f "$BUILD_LOG"
         exit 1
     fi
+    
+    rm -f "$BUILD_LOG"
+    echo ""
+    print_success "镜像构建完成！"
     
     print_info "启动服务..."
     $COMPOSE_CMD up -d --quiet-pull 2>&1 | grep -v "^Creating\|^Starting\|^Pulling\|^Waiting\|^Container" || true
@@ -640,16 +655,30 @@ build_image() {
     configure_architecture
     
     print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $BASE_IMAGE"
+    print_warning "重新构建可能需要较长时间（10-30分钟），请耐心等待..."
+    print_info "正在重新下载基础镜像和安装依赖..."
+    print_info "构建进度将实时显示，请勿中断..."
+    echo ""
+    
     # 使用环境变量传递架构配置给docker-compose
     # 注意：Docker会自动检测当前架构，无需指定--platform参数
-    BUILD_OUTPUT=$(BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build --no-cache 2>&1)
-    BUILD_STATUS=$?
-    # 只显示错误和警告信息
-    echo "$BUILD_OUTPUT" | grep -iE "(error|warning|failed|失败|警告)" || true
+    # 实时显示构建输出，同时捕获错误
+    BUILD_LOG="/tmp/docker_build_$$.log"
+    set +e  # 暂时关闭错误退出，以便捕获构建状态
+    BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build --no-cache 2>&1 | tee "$BUILD_LOG"
+    BUILD_STATUS=${PIPESTATUS[0]}
+    set -e  # 重新开启错误退出
+    
     if [ $BUILD_STATUS -ne 0 ]; then
         print_error "镜像构建失败"
+        print_info "查看详细错误信息:"
+        grep -iE "(error|warning|failed|失败|警告)" "$BUILD_LOG" | tail -20 || true
+        rm -f "$BUILD_LOG"
         exit 1
     fi
+    
+    rm -f "$BUILD_LOG"
+    echo ""
     print_success "镜像构建完成"
 }
 
@@ -687,16 +716,31 @@ update_service() {
     
     print_info "重新构建镜像..."
     print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $BASE_IMAGE"
+    print_warning "构建可能需要较长时间（10-30分钟），请耐心等待..."
+    print_info "正在构建镜像..."
+    print_info "构建进度将实时显示，请勿中断..."
+    echo ""
+    
     # 使用环境变量传递架构配置给docker-compose
     # 注意：Docker会自动检测当前架构，无需指定--platform参数
-    BUILD_OUTPUT=$(BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build 2>&1)
-    BUILD_STATUS=$?
-    # 只显示错误和警告信息
-    echo "$BUILD_OUTPUT" | grep -iE "(error|warning|failed|失败|警告)" || true
+    # 实时显示构建输出，同时捕获错误
+    BUILD_LOG="/tmp/docker_build_$$.log"
+    set +e  # 暂时关闭错误退出，以便捕获构建状态
+    BASE_IMAGE=$BASE_IMAGE $COMPOSE_CMD build 2>&1 | tee "$BUILD_LOG"
+    BUILD_STATUS=${PIPESTATUS[0]}
+    set -e  # 重新开启错误退出
+    
     if [ $BUILD_STATUS -ne 0 ]; then
         print_error "镜像构建失败"
+        print_info "查看详细错误信息:"
+        grep -iE "(error|warning|failed|失败|警告)" "$BUILD_LOG" | tail -20 || true
+        rm -f "$BUILD_LOG"
         exit 1
     fi
+    
+    rm -f "$BUILD_LOG"
+    echo ""
+    print_success "镜像构建完成！"
     
     print_info "重启服务..."
     $COMPOSE_CMD up -d --quiet-pull 2>&1 | grep -v "^Creating\|^Starting\|^Pulling\|^Waiting\|^Container" || true
