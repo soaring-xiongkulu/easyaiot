@@ -49,10 +49,95 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# 检查docker-compose.yml是否存在
+# 检查并修复文件权限
+fix_file_permissions() {
+    local file_path="$1"
+    local min_perms="$2"
+    
+    if [ ! -e "$file_path" ]; then
+        return 1
+    fi
+    
+    # 获取当前权限
+    local current_perms=$(stat -c "%a" "$file_path" 2>/dev/null || echo "000")
+    
+    # 检查权限是否足够
+    if [ "$current_perms" -lt "$min_perms" ] 2>/dev/null; then
+        print_info "修复文件权限: $file_path (当前: $current_perms, 需要: $min_perms)"
+        if [ "$EUID" -eq 0 ]; then
+            chmod "$min_perms" "$file_path" 2>/dev/null || return 1
+        elif command -v sudo &> /dev/null; then
+            sudo chmod "$min_perms" "$file_path" 2>/dev/null || return 1
+        else
+            print_warning "无法修复权限，请手动执行: chmod $min_perms $file_path"
+            return 1
+        fi
+    fi
+    
+    return 0
+}
+
+# 检查并修复目录权限
+fix_directory_permissions() {
+    local dir_path="$1"
+    local min_perms="$2"
+    
+    if [ ! -d "$dir_path" ]; then
+        return 1
+    fi
+    
+    # 获取当前权限
+    local current_perms=$(stat -c "%a" "$dir_path" 2>/dev/null || echo "000")
+    
+    # 检查权限是否足够
+    if [ "$current_perms" -lt "$min_perms" ] 2>/dev/null; then
+        print_info "修复目录权限: $dir_path (当前: $current_perms, 需要: $min_perms)"
+        if [ "$EUID" -eq 0 ]; then
+            chmod "$min_perms" "$dir_path" 2>/dev/null || return 1
+        elif command -v sudo &> /dev/null; then
+            sudo chmod "$min_perms" "$dir_path" 2>/dev/null || return 1
+        else
+            print_warning "无法修复权限，请手动执行: chmod $min_perms $dir_path"
+            return 1
+        fi
+    fi
+    
+    return 0
+}
+
+# 检查docker-compose.yml是否存在并修复权限
 check_compose_file() {
     if [ ! -f "$COMPOSE_FILE" ]; then
         print_error "docker-compose.yml文件不存在: $COMPOSE_FILE"
+        exit 1
+    fi
+    
+    # 检查并修复文件权限（至少需要 644，Docker 需要读取）
+    if ! fix_file_permissions "$COMPOSE_FILE" "644"; then
+        print_warning "无法自动修复 docker-compose.yml 权限，尝试手动修复..."
+        # 尝试使用更宽松的权限
+        if [ "$EUID" -eq 0 ]; then
+            chmod 644 "$COMPOSE_FILE" 2>/dev/null || chmod 755 "$COMPOSE_FILE" 2>/dev/null || true
+        elif command -v sudo &> /dev/null; then
+            sudo chmod 644 "$COMPOSE_FILE" 2>/dev/null || sudo chmod 755 "$COMPOSE_FILE" 2>/dev/null || true
+        fi
+    fi
+    
+    # 检查并修复脚本目录权限（至少需要 755）
+    if ! fix_directory_permissions "$SCRIPT_DIR" "755"; then
+        print_warning "无法自动修复脚本目录权限，尝试手动修复..."
+        if [ "$EUID" -eq 0 ]; then
+            chmod 755 "$SCRIPT_DIR" 2>/dev/null || true
+        elif command -v sudo &> /dev/null; then
+            sudo chmod 755 "$SCRIPT_DIR" 2>/dev/null || true
+        fi
+    fi
+    
+    # 验证文件是否可读
+    if [ ! -r "$COMPOSE_FILE" ]; then
+        print_error "docker-compose.yml 文件不可读: $COMPOSE_FILE"
+        print_error "当前权限: $(stat -c "%a %U:%G" "$COMPOSE_FILE" 2>/dev/null || echo "未知")"
+        print_error "请手动修复权限: chmod 644 $COMPOSE_FILE"
         exit 1
     fi
 }
@@ -146,6 +231,10 @@ check_and_build_jars() {
 # 构建所有镜像
 build_images() {
     print_info "开始构建所有Docker镜像（在容器中编译，显示完整日志）..."
+    
+    # 确保权限正确
+    check_compose_file
+    
     cd "$SCRIPT_DIR"
     # 使用 --progress=plain 显示完整输出
     # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
@@ -169,7 +258,41 @@ build_images() {
 # 构建并启动所有服务
 build_and_start() {
     print_info "开始构建并启动所有服务（在容器中编译，显示完整日志）..."
+    
+    # 确保权限正确
+    check_compose_file
+    
     cd "$SCRIPT_DIR"
+    
+    # 验证 Docker 可以访问 docker-compose.yml
+    if ! $DOCKER_COMPOSE config > /dev/null 2>&1; then
+        print_error "Docker Compose 无法读取配置文件"
+        print_error "文件路径: $COMPOSE_FILE"
+        print_error "文件权限: $(stat -c "%a %U:%G" "$COMPOSE_FILE" 2>/dev/null || echo "未知")"
+        print_error "目录权限: $(stat -c "%a %U:%G" "$SCRIPT_DIR" 2>/dev/null || echo "未知")"
+        print_info "尝试修复权限..."
+        
+        # 尝试修复权限
+        if [ "$EUID" -eq 0 ]; then
+            chmod 644 "$COMPOSE_FILE" 2>/dev/null || true
+            chmod 755 "$SCRIPT_DIR" 2>/dev/null || true
+        elif command -v sudo &> /dev/null; then
+            sudo chmod 644 "$COMPOSE_FILE" 2>/dev/null || true
+            sudo chmod 755 "$SCRIPT_DIR" 2>/dev/null || true
+        fi
+        
+        # 再次验证
+        if ! $DOCKER_COMPOSE config > /dev/null 2>&1; then
+            print_error "权限修复后仍无法读取配置文件"
+            print_error "请手动检查并修复权限:"
+            print_error "  chmod 644 $COMPOSE_FILE"
+            print_error "  chmod 755 $SCRIPT_DIR"
+            exit 1
+        else
+            print_success "权限已修复，可以继续"
+        fi
+    fi
+    
     # 使用 --progress=plain 显示完整输出
     # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
     
@@ -343,6 +466,10 @@ clean_all() {
 # 更新服务（重新构建并重启）
 update_services() {
     print_info "更新所有服务（在容器中重新构建并重启，显示完整日志）..."
+    
+    # 确保权限正确
+    check_compose_file
+    
     cd "$SCRIPT_DIR"
     # 使用 --progress=plain 显示完整输出
     # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
