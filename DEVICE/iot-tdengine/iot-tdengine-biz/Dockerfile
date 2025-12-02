@@ -1,28 +1,36 @@
-# 使用maven镜像进行底层编译
+# ======================= 构建阶段 =======================
 FROM maven:3.9.11-eclipse-temurin-21-alpine AS build
 
-# 配置 Maven 使用阿里镜像源
+# 配置Maven阿里云镜像（简化配置）
 RUN mkdir -p /root/.m2 && \
-    echo '<?xml version="1.0" encoding="UTF-8"?>' > /root/.m2/settings.xml && \
-    echo '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"' >> /root/.m2/settings.xml && \
-    echo '          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"' >> /root/.m2/settings.xml && \
-    echo '          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">' >> /root/.m2/settings.xml && \
-    echo '  <mirrors>' >> /root/.m2/settings.xml && \
-    echo '    <mirror>' >> /root/.m2/settings.xml && \
-    echo '      <id>aliyun</id>' >> /root/.m2/settings.xml && \
-    echo '      <mirrorOf>central</mirrorOf>' >> /root/.m2/settings.xml && \
-    echo '      <name>Aliyun Maven</name>' >> /root/.m2/settings.xml && \
-    echo '      <url>https://maven.aliyun.com/nexus/content/groups/public/</url>' >> /root/.m2/settings.xml && \
-    echo '    </mirror>' >> /root/.m2/settings.xml && \
-    echo '  </mirrors>' >> /root/.m2/settings.xml && \
-    echo '</settings>' >> /root/.m2/settings.xml
+    cat > /root/.m2/settings.xml << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <mirrors>
+    <mirror>
+      <id>aliyun</id>
+      <mirrorOf>central</mirrorOf>
+      <name>Aliyun Maven</name>
+      <url>https://maven.aliyun.com/nexus/content/groups/public/</url>
+    </mirror>
+  </mirrors>
+  <localRepository>/root/.m2/repository</localRepository>
+</settings>
+EOF
 
 # 设置工作目录
 WORKDIR /app
 
-# 复制根目录的 pom.xml、lombok.config 和所有模块
+# 复制pom文件（利用Docker缓存层）
 COPY pom.xml .
 COPY lombok.config .
+
+# 下载依赖（提前执行，利用缓存）
+RUN mvn dependency:go-offline -B
+
+# 复制源代码
 COPY iot-parent ./iot-parent
 COPY iot-common ./iot-common
 COPY iot-system ./iot-system
@@ -30,34 +38,45 @@ COPY iot-infra ./iot-infra
 COPY iot-device ./iot-device
 COPY iot-tdengine ./iot-tdengine
 
-# 修改 pom.xml，只保留需要的模块，避免 Maven 检查不存在的模块
-RUN sed -i.bak \
-    -e '/<module>iot-gateway<\/module>/d' \
-    -e '/<module>iot-file<\/module>/d' \
-    -e '/<module>iot-dataset<\/module>/d' \
-    -e '/<module>iot-sink<\/module>/d' \
-    -e '/<module>iot-message<\/module>/d' \
-    pom.xml && rm -f pom.xml.bak
+# 过滤不需要的模块（优化pom.xml）
+RUN awk '
+/<modules>/,/<\/modules>/ {
+    if (/<module>iot-(gateway|file|dataset|sink|message)<\/module>/) next
+    print
+}' pom.xml > pom.xml.filtered && \
+mv pom.xml.filtered pom.xml
 
-# 编译项目（只编译 iot-tdengine-biz 及其依赖）
-RUN mvn clean package -DskipTests -pl iot-tdengine/iot-tdengine-biz -am
+# 编译目标模块
+RUN mvn clean package -DskipTests -Dmaven.test.skip=true -pl iot-tdengine/iot-tdengine-biz -am
 
-# 切换镜像 - 使用 Java 21
-FROM bellsoft/liberica-openjdk-rocky:21.0.8-cds
+# ======================= 运行时阶段 =======================
+FROM bellsoft/liberica-openjdk-rocky:21.0.8-cds AS runtime
 
-# 创建目录，并使用它作为工作目录
-RUN mkdir -p /iot-tdengine-biz
-WORKDIR /iot-tdengine-biz
+# 安全设置：创建非root用户
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# 从build阶段中拷贝产物
-COPY --from=build /app/iot-tdengine/iot-tdengine-biz/target/iot-tdengine-biz.jar app.jar
+# 创建工作目录并设置权限
+RUN mkdir -p /app && chown -R appuser:appgroup /app
+WORKDIR /app
 
-# 设置 TZ 时区
-# 设置 JAVA_OPTS 环境变量，可通过 docker run -e "JAVA_OPTS=" 进行覆盖
-ENV TZ=Asia/Shanghai JAVA_OPTS="-Xms512m -Xmx512m"
+# 从构建阶段复制jar文件
+COPY --from=build --chown=appuser:appgroup /app/iot-tdengine/iot-tdengine-biz/target/iot-tdengine-biz.jar app.jar
 
-# 暴露后端项目的 48091 端口
+# 环境变量配置
+ENV TZ=Asia/Shanghai \
+    LANG=C.UTF-8 \
+    SERVER_PORT=48091 \
+    JAVA_OPTS="-Xms512m -Xmx512m -Djava.security.egd=file:/dev/./urandom"
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:${SERVER_PORT}/actuator/health || exit 1
+
+# 切换到非root用户
+USER appuser
+
+# 暴露端口
 EXPOSE 48091
 
-# 启动后端项目
-CMD java ${JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom -jar app.jar
+# 启动应用（使用exec形式）
+ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -jar app.jar"]
