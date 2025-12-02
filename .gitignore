@@ -41,3 +41,6 @@ hs_err_pid*
 .scripts/docker/*logs/
 .scripts/docker/**/*logs/
 
+# .scripts/nexus3 数据目录
+.scripts/nexus3/nexus_data/
+
