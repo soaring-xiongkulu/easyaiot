@@ -16,7 +16,7 @@ ENV TZ=Asia/Shanghai
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone
 
-# 配置镜像源（使用华为云镜像加速，自动检测操作系统）
+# 配置镜像源（使用华为云镜像加速，支持Ubuntu和Debian）
 RUN OS_ID=$(cat /etc/os-release 2>/dev/null | grep "^ID=" | cut -d'=' -f2 | tr -d '"' || echo "ubuntu") && \
     OS_VERSION=$(cat /etc/os-release 2>/dev/null | grep "^VERSION_CODENAME=" | cut -d'=' -f2 | tr -d '"' || cat /etc/os-release 2>/dev/null | grep "^VERSION_ID=" | cut -d'=' -f2 | tr -d '"' | cut -d'.' -f1 || echo "jammy") && \
     if [ "$OS_ID" = "ubuntu" ]; then \
@@ -36,37 +36,6 @@ RUN OS_ID=$(cat /etc/os-release 2>/dev/null | grep "^ID=" | cut -d'=' -f2 | tr -
             echo "deb https://mirrors.huaweicloud.com/debian/ ${OS_VERSION}-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
             echo "deb https://mirrors.huaweicloud.com/debian-security/ ${OS_VERSION}-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
         fi; \
-    elif [ "$OS_ID" = "centos" ] || [ "$OS_ID" = "rhel" ]; then \
-        mkdir -p /etc/yum.repos.d/backup 2>/dev/null || true; \
-        mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/backup/ 2>/dev/null || true; \
-        cat > /etc/yum.repos.d/CentOS-Base.repo <<'EOF'
-[base]
-name=CentOS-$releasever - Base - mirrors.huaweicloud.com
-baseurl=https://mirrors.huaweicloud.com/centos/$releasever/os/$basearch/
-gpgcheck=1
-enabled=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-$releasever
-
-[updates]
-name=CentOS-$releasever - Updates - mirrors.huaweicloud.com
-baseurl=https://mirrors.huaweicloud.com/centos/$releasever/updates/$basearch/
-gpgcheck=1
-enabled=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-$releasever
-
-[extras]
-name=CentOS-$releasever - Extras - mirrors.huaweicloud.com
-baseurl=https://mirrors.huaweicloud.com/centos/$releasever/extras/$basearch/
-gpgcheck=1
-enabled=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-$releasever
-EOF
-        yum clean all 2>/dev/null || dnf clean all 2>/dev/null || true; \
-    else \
-        echo "deb https://mirrors.huaweicloud.com/ubuntu/ jammy main restricted universe multiverse" > /etc/apt/sources.list && \
-        echo "deb https://mirrors.huaweicloud.com/ubuntu/ jammy-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
-        echo "deb https://mirrors.huaweicloud.com/ubuntu/ jammy-security main restricted universe multiverse" >> /etc/apt/sources.list && \
-        echo "deb https://mirrors.huaweicloud.com/ubuntu/ jammy-backports main restricted universe multiverse" >> /etc/apt/sources.list; \
     fi || true
 
 # 安装基本工具
