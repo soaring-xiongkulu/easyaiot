@@ -312,6 +312,47 @@ services:
       iot-infra:
         condition: service_healthy
 
+  iot-sink:
+    build:
+      context: .
+      dockerfile: iot-sink/iot-sink-biz/Dockerfile
+      cache_from:
+        - iot-sink-biz:build
+    image: iot-sink-biz
+    container_name: iot-sink
+    user: root
+    environment:
+      - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
+      - JAVA_OPTS=-Xms512m -Xmx512m
+      - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=Nacos:8848 # 配置中心地址（使用Docker服务名）
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE= # 使用默认命名空间（public）
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=Nacos:8848 # 注册中心地址（使用Docker服务名）
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE= # 使用默认命名空间（public）
+      - SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL=jdbc:postgresql://PostgresSQL:5432/iot-device20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified # PostgreSQL数据库地址（使用Docker服务名）
+      - SPRING_REDIS_HOST=Redis # Redis地址（使用Docker服务名）
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=Kafka:9092 # Kafka地址（使用Docker服务名）
+      # SkyWalking配置（如需要，请取消注释并配置）
+      # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
+      # - SW_AGENT_NAME=iot-sink
+      # - SW_AGENT_TRACE_IGNORE_PATH=Redisson/PING,/actuator/**,/admin/**
+      # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
+    volumes:
+      - ${HOME}/docker/iot-device/logs:/root/logs/
+      # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:48092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    restart: always
+    networks:
+      - easyaiot-network
+    depends_on:
+      iot-infra:
+        condition: service_healthy
+
 networks:
   easyaiot-network:
     name: easyaiot-network
