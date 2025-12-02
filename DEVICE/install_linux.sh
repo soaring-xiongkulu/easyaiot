@@ -105,6 +105,159 @@ fix_directory_permissions() {
     return 0
 }
 
+# 诊断 Docker Compose 配置问题
+diagnose_compose_issue() {
+    local compose_file="$1"
+    
+    print_info "开始诊断 Docker Compose 配置问题..."
+    echo
+    
+    # 1. 检查文件是否存在
+    print_info "1. 检查文件存在性..."
+    if [ ! -f "$compose_file" ]; then
+        print_error "文件不存在: $compose_file"
+        return 1
+    fi
+    print_success "文件存在"
+    echo
+    
+    # 2. 检查文件权限
+    print_info "2. 检查文件权限..."
+    local file_perms=$(stat -c "%a" "$compose_file" 2>/dev/null || echo "未知")
+    local file_owner=$(stat -c "%U:%G" "$compose_file" 2>/dev/null || echo "未知")
+    print_info "   权限: $file_perms"
+    print_info "   所有者: $file_owner"
+    
+    # 3. 检查文件系统挂载选项
+    print_info "3. 检查文件系统挂载选项..."
+    local mount_info=$(df -h "$compose_file" 2>/dev/null | tail -1)
+    print_info "   挂载信息: $mount_info"
+    local mount_point=$(echo "$mount_info" | awk '{print $NF}')
+    local mount_opts=$(mount | grep -E "^[^ ]+ on $mount_point " | head -1 | grep -oE "\([^)]+\)" | tr -d '()' || echo "未知")
+    print_info "   挂载选项: $mount_opts"
+    
+    # 检查是否有 noexec 或 nosuid
+    if echo "$mount_opts" | grep -q "noexec"; then
+        print_warning "   警告: 文件系统挂载了 noexec 选项，可能影响执行"
+    fi
+    if echo "$mount_opts" | grep -q "nosuid"; then
+        print_warning "   警告: 文件系统挂载了 nosuid 选项"
+    fi
+    echo
+    
+    # 4. 检查 SELinux 状态（如果存在）
+    print_info "4. 检查 SELinux 状态..."
+    if command -v getenforce &> /dev/null; then
+        local selinux_status=$(getenforce 2>/dev/null || echo "未知")
+        print_info "   SELinux 状态: $selinux_status"
+        if [ "$selinux_status" != "Disabled" ]; then
+            local selinux_context=$(ls -Z "$compose_file" 2>/dev/null | awk '{print $NF}' || echo "未知")
+            print_info "   SELinux 上下文: $selinux_context"
+        fi
+    else
+        print_info "   SELinux 未安装或不可用"
+    fi
+    echo
+    
+    # 5. 检查 Docker 用户组
+    print_info "5. 检查 Docker 用户组..."
+    if getent group docker > /dev/null 2>&1; then
+        local docker_gid=$(getent group docker | cut -d: -f3)
+        print_info "   Docker 组 GID: $docker_gid"
+        if [ "$EUID" -eq 0 ]; then
+            print_info "   当前用户: root (UID 0)"
+        else
+            local current_groups=$(id -Gn)
+            if echo "$current_groups" | grep -q "docker"; then
+                print_success "   当前用户在 docker 组中"
+            else
+                print_warning "   当前用户不在 docker 组中"
+            fi
+        fi
+    else
+        print_warning "   Docker 组不存在"
+    fi
+    echo
+    
+    # 6. 尝试直接读取文件
+    print_info "6. 测试文件可读性..."
+    if [ -r "$compose_file" ]; then
+        print_success "   文件可读"
+    else
+        print_error "   文件不可读"
+    fi
+    
+    # 7. 尝试使用 Docker Compose 验证配置
+    print_info "7. 测试 Docker Compose 配置验证..."
+    local compose_error
+    compose_error=$($DOCKER_COMPOSE -f "$compose_file" config 2>&1)
+    local compose_exit_code=$?
+    
+    if [ $compose_exit_code -eq 0 ]; then
+        print_success "   Docker Compose 配置验证成功"
+        return 0
+    else
+        print_error "   Docker Compose 配置验证失败"
+        print_error "   错误信息:"
+        echo "$compose_error" | sed 's/^/   /'
+        return 1
+    fi
+}
+
+# 修复 Docker Compose 配置访问问题
+fix_compose_access() {
+    local compose_file="$1"
+    local script_dir="$2"
+    
+    print_info "尝试修复 Docker Compose 配置访问问题..."
+    
+    # 1. 修复文件权限
+    if [ "$EUID" -eq 0 ]; then
+        chmod 644 "$compose_file" 2>/dev/null || true
+        chmod 755 "$script_dir" 2>/dev/null || true
+    elif command -v sudo &> /dev/null; then
+        sudo chmod 644 "$compose_file" 2>/dev/null || true
+        sudo chmod 755 "$script_dir" 2>/dev/null || true
+    fi
+    
+    # 2. 修复 SELinux 上下文（如果启用）
+    if command -v getenforce &> /dev/null && [ "$(getenforce 2>/dev/null)" != "Disabled" ]; then
+        if command -v chcon &> /dev/null; then
+            print_info "修复 SELinux 上下文..."
+            if [ "$EUID" -eq 0 ]; then
+                chcon -R -t container_file_t "$script_dir" 2>/dev/null || true
+            elif command -v sudo &> /dev/null; then
+                sudo chcon -R -t container_file_t "$script_dir" 2>/dev/null || true
+            fi
+        fi
+    fi
+    
+    # 3. 如果文件在 /dev/shm 下，可能需要特殊处理
+    if echo "$compose_file" | grep -q "^/dev/shm"; then
+        print_warning "检测到文件在 /dev/shm (tmpfs) 中"
+        print_info "tmpfs 文件系统可能有特殊限制"
+        
+        # 尝试将文件所有者改为当前用户（如果是 root，可能需要改为 docker 用户）
+        if [ "$EUID" -eq 0 ]; then
+            # root 用户，检查是否有 docker 用户
+            if id docker > /dev/null 2>&1; then
+                print_info "尝试将文件所有者改为 docker 用户..."
+                chown docker:docker "$compose_file" 2>/dev/null || true
+                chown -R docker:docker "$script_dir" 2>/dev/null || true
+            fi
+        fi
+    fi
+    
+    # 4. 最后尝试使用更宽松的权限
+    if [ "$EUID" -eq 0 ]; then
+        chmod 755 "$compose_file" 2>/dev/null || true
+        chmod 755 "$script_dir" 2>/dev/null || true
+    elif command -v sudo &> /dev/null; then
+        sudo chmod 755 "$compose_file" 2>/dev/null || true
+        sudo chmod 755 "$script_dir" 2>/dev/null || true
+    fi
+}
+
 # 检查docker-compose.yml是否存在并修复权限
 check_compose_file() {
     if [ ! -f "$COMPOSE_FILE" ]; then
@@ -265,31 +418,59 @@ build_and_start() {
     cd "$SCRIPT_DIR"
     
     # 验证 Docker 可以访问 docker-compose.yml
-    if ! $DOCKER_COMPOSE config > /dev/null 2>&1; then
+    # 使用 -f 明确指定配置文件路径，确保可靠性
+    local compose_test_output
+    compose_test_output=$($DOCKER_COMPOSE -f "$COMPOSE_FILE" config 2>&1)
+    local compose_test_exit=$?
+    
+    if [ $compose_test_exit -ne 0 ]; then
         print_error "Docker Compose 无法读取配置文件"
-        print_error "文件路径: $COMPOSE_FILE"
-        print_error "文件权限: $(stat -c "%a %U:%G" "$COMPOSE_FILE" 2>/dev/null || echo "未知")"
-        print_error "目录权限: $(stat -c "%a %U:%G" "$SCRIPT_DIR" 2>/dev/null || echo "未知")"
-        print_info "尝试修复权限..."
+        echo
         
-        # 尝试修复权限
-        if [ "$EUID" -eq 0 ]; then
-            chmod 644 "$COMPOSE_FILE" 2>/dev/null || true
-            chmod 755 "$SCRIPT_DIR" 2>/dev/null || true
-        elif command -v sudo &> /dev/null; then
-            sudo chmod 644 "$COMPOSE_FILE" 2>/dev/null || true
-            sudo chmod 755 "$SCRIPT_DIR" 2>/dev/null || true
-        fi
-        
-        # 再次验证
-        if ! $DOCKER_COMPOSE config > /dev/null 2>&1; then
-            print_error "权限修复后仍无法读取配置文件"
-            print_error "请手动检查并修复权限:"
-            print_error "  chmod 644 $COMPOSE_FILE"
-            print_error "  chmod 755 $SCRIPT_DIR"
-            exit 1
-        else
-            print_success "权限已修复，可以继续"
+        # 运行详细诊断
+        if ! diagnose_compose_issue "$COMPOSE_FILE"; then
+            echo
+            print_info "尝试自动修复..."
+            fix_compose_access "$COMPOSE_FILE" "$SCRIPT_DIR"
+            echo
+            
+            # 再次验证（使用明确指定的文件路径）
+            compose_test_output=$($DOCKER_COMPOSE -f "$COMPOSE_FILE" config 2>&1)
+            compose_test_exit=$?
+            
+            if [ $compose_test_exit -ne 0 ]; then
+                print_error "自动修复失败，详细错误信息:"
+                echo "$compose_test_output" | sed 's/^/  /'
+                echo
+                print_error "可能的解决方案:"
+                
+                # 如果文件在 /dev/shm 下，提供特殊建议
+                if echo "$COMPOSE_FILE" | grep -q "^/dev/shm"; then
+                    print_warning "检测到项目在 /dev/shm (tmpfs) 中，这可能导致权限问题"
+                    print_error "建议解决方案:"
+                    print_error "  方案1（推荐）: 将项目移动到其他位置"
+                    print_error "    sudo mv /dev/shm/easyaiot /opt/easyaiot"
+                    print_error "    cd /opt/easyaiot/DEVICE && ./install_linux.sh install"
+                    print_error ""
+                    print_error "  方案2: 检查 /dev/shm 挂载选项"
+                    print_error "    mount | grep /dev/shm"
+                    print_error "    如果看到 noexec 或 nosuid，可能需要重新挂载"
+                    print_error ""
+                fi
+                
+                print_error "  方案3: 检查 SELinux 上下文"
+                print_error "    ls -Z $COMPOSE_FILE"
+                print_error "    如果需要，修复上下文: sudo chcon -R -t container_file_t $SCRIPT_DIR"
+                print_error ""
+                print_error "  方案4: 检查 Docker daemon 日志"
+                print_error "    journalctl -u docker.service -n 50"
+                print_error ""
+                print_error "  方案5: 检查文件系统是否可写"
+                print_error "    touch $SCRIPT_DIR/.test_write && rm $SCRIPT_DIR/.test_write"
+                exit 1
+            else
+                print_success "问题已修复，可以继续"
+            fi
         fi
     fi
     
