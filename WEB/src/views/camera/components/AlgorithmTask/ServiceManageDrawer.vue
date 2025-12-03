@@ -113,6 +113,7 @@ import {
   getFrameExtractor,
   getSorter,
   getPusher,
+  getTaskServicesStatus,
   getTaskExtractorLogs,
   getTaskSorterLogs,
   getTaskPusherLogs,
@@ -308,99 +309,120 @@ const formatDateTime = (dateString: string) => {
 const loadServiceInfo = async (taskId: number) => {
   loading.value = true;
   try {
-    // 获取任务详情
-    // 注意：由于响应转换器在 isTransformResponse: true 时，如果 code === 0 且没有 total 字段，
-    // 会直接返回 data.data（即任务对象本身），而不是包含 code 的完整响应
-    const taskResponse = await getAlgorithmTask(taskId);
+    // 并行获取任务详情和服务状态
+    const [taskResponse, servicesStatusResponse] = await Promise.all([
+      getAlgorithmTask(taskId).catch((err) => {
+        console.error('获取任务信息失败', err);
+        return null;
+      }),
+      getTaskServicesStatus(taskId).catch((err) => {
+        console.error('获取服务状态失败', err);
+        return null;
+      }),
+    ]);
     
-    // 检查返回的是完整响应对象还是直接的数据对象
-    if (taskResponse && typeof taskResponse === 'object' && 'code' in taskResponse) {
-      // 如果是完整响应对象（包含 code 字段）
-      if (taskResponse.code !== 0) {
-        createMessage.error(taskResponse.msg || '获取任务信息失败');
-        return;
-      }
-      taskInfo.value = taskResponse.data;
-    } else {
-      // 如果直接返回的是数据对象（响应转换器已处理）
-      taskInfo.value = taskResponse as AlgorithmTask;
-    }
-    
-    // 并行获取三个服务的信息
-    const promises: Promise<any>[] = [];
-    
-    if (taskInfo.value.extractor_id) {
-      promises.push(
-        getFrameExtractor(taskInfo.value.extractor_id).catch((err) => {
-          console.error('获取抽帧器信息失败', err);
-          return null;
-        })
-      );
-    } else {
-      promises.push(Promise.resolve(null));
-    }
-    
-    if (taskInfo.value.sorter_id) {
-      promises.push(
-        getSorter(taskInfo.value.sorter_id).catch((err) => {
-          console.error('获取排序器信息失败', err);
-          return null;
-        })
-      );
-    } else {
-      promises.push(Promise.resolve(null));
-    }
-    
-    if (taskInfo.value.pusher_id) {
-      promises.push(
-        getPusher(taskInfo.value.pusher_id).catch((err) => {
-          console.error('获取推送器信息失败', err);
-          return null;
-        })
-      );
-    } else {
-      promises.push(Promise.resolve(null));
-    }
-    
-    const results = await Promise.all(promises);
-    
-    // 处理抽帧器响应
-    if (results[0]) {
-      if (results[0] && typeof results[0] === 'object' && 'code' in results[0]) {
-        // 完整响应对象
-        extractorInfo.value = results[0].code === 0 ? results[0].data : null;
+    // 处理任务详情响应
+    if (taskResponse) {
+      if (taskResponse && typeof taskResponse === 'object' && 'code' in taskResponse) {
+        // 如果是完整响应对象（包含 code 字段）
+        if (taskResponse.code !== 0) {
+          createMessage.error(taskResponse.msg || '获取任务信息失败');
+          return;
+        }
+        taskInfo.value = taskResponse.data;
       } else {
-        // 直接返回的数据对象
-        extractorInfo.value = results[0] as FrameExtractor;
+        // 如果直接返回的是数据对象（响应转换器已处理）
+        taskInfo.value = taskResponse as AlgorithmTask;
       }
-    } else {
-      extractorInfo.value = null;
     }
     
-    // 处理排序器响应
-    if (results[1]) {
-      if (results[1] && typeof results[1] === 'object' && 'code' in results[1]) {
+    // 处理服务状态响应
+    if (servicesStatusResponse) {
+      if (servicesStatusResponse && typeof servicesStatusResponse === 'object' && 'code' in servicesStatusResponse) {
         // 完整响应对象
-        sorterInfo.value = results[1].code === 0 ? results[1].data : null;
+        if (servicesStatusResponse.code === 0 && servicesStatusResponse.data) {
+          extractorInfo.value = servicesStatusResponse.data.extractor;
+          sorterInfo.value = servicesStatusResponse.data.sorter;
+          pusherInfo.value = servicesStatusResponse.data.pusher;
+        }
       } else {
-        // 直接返回的数据对象
-        sorterInfo.value = results[1] as Sorter;
+        // 直接返回的数据对象（响应转换器已处理）
+        const statusData = servicesStatusResponse as any;
+        extractorInfo.value = statusData.extractor || null;
+        sorterInfo.value = statusData.sorter || null;
+        pusherInfo.value = statusData.pusher || null;
       }
     } else {
-      sorterInfo.value = null;
-    }
-    
-    // 处理推送器响应
-    if (results[2]) {
-      if (results[2] && typeof results[2] === 'object' && 'code' in results[2]) {
-        // 完整响应对象
-        pusherInfo.value = results[2].code === 0 ? results[2].data : null;
+      // 如果统一接口失败，回退到分别获取
+      const promises: Promise<any>[] = [];
+      
+      if (taskInfo.value?.extractor_id) {
+        promises.push(
+          getFrameExtractor(taskInfo.value.extractor_id).catch((err) => {
+            console.error('获取抽帧器信息失败', err);
+            return null;
+          })
+        );
       } else {
-        // 直接返回的数据对象
-        pusherInfo.value = results[2] as Pusher;
+        promises.push(Promise.resolve(null));
       }
-    } else {
-      pusherInfo.value = null;
+      
+      if (taskInfo.value?.sorter_id) {
+        promises.push(
+          getSorter(taskInfo.value.sorter_id).catch((err) => {
+            console.error('获取排序器信息失败', err);
+            return null;
+          })
+        );
+      } else {
+        promises.push(Promise.resolve(null));
+      }
+      
+      if (taskInfo.value?.pusher_id) {
+        promises.push(
+          getPusher(taskInfo.value.pusher_id).catch((err) => {
+            console.error('获取推送器信息失败', err);
+            return null;
+          })
+        );
+      } else {
+        promises.push(Promise.resolve(null));
+      }
+      
+      const results = await Promise.all(promises);
+      
+      // 处理抽帧器响应
+      if (results[0]) {
+        if (results[0] && typeof results[0] === 'object' && 'code' in results[0]) {
+          extractorInfo.value = results[0].code === 0 ? results[0].data : null;
+        } else {
+          extractorInfo.value = results[0] as FrameExtractor;
+        }
+      } else {
+        extractorInfo.value = null;
+      }
+      
+      // 处理排序器响应
+      if (results[1]) {
+        if (results[1] && typeof results[1] === 'object' && 'code' in results[1]) {
+          sorterInfo.value = results[1].code === 0 ? results[1].data : null;
+        } else {
+          sorterInfo.value = results[1] as Sorter;
+        }
+      } else {
+        sorterInfo.value = null;
+      }
+      
+      // 处理推送器响应
+      if (results[2]) {
+        if (results[2] && typeof results[2] === 'object' && 'code' in results[2]) {
+          pusherInfo.value = results[2].code === 0 ? results[2].data : null;
+        } else {
+          pusherInfo.value = results[2] as Pusher;
+        }
+      } else {
+        pusherInfo.value = null;
+      }
     }
   } catch (error) {
     console.error('加载服务信息失败', error);

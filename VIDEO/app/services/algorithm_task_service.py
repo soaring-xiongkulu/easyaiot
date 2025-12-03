@@ -442,11 +442,19 @@ def start_algorithm_task(task_id: int):
     """启动算法任务"""
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
-        task.run_status = 'running'
+        task.is_enabled = True
         task.status = 0
         task.exception_reason = None
         task.updated_at = datetime.utcnow()
         db.session.commit()
+        
+        # 启动任务相关的服务（抽帧器、推送器、排序器）
+        try:
+            from app.services.algorithm_task_launcher_service import start_task_services
+            start_task_services(task_id, task)
+        except Exception as e:
+            logger.warning(f"启动任务 {task_id} 的服务时出错: {str(e)}", exc_info=True)
+            # 不抛出异常，允许任务启动但服务可能未启动
         
         logger.info(f"启动算法任务成功: task_id={task_id}")
         return task
@@ -460,9 +468,17 @@ def stop_algorithm_task(task_id: int):
     """停止算法任务"""
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
-        task.run_status = 'stopped'
+        task.is_enabled = False
         task.updated_at = datetime.utcnow()
         db.session.commit()
+        
+        # 停止任务相关的服务（抽帧器、推送器、排序器）
+        try:
+            from app.services.algorithm_task_launcher_service import stop_all_task_services
+            stop_all_task_services(task_id)
+        except Exception as e:
+            logger.warning(f"停止任务 {task_id} 的服务时出错: {str(e)}", exc_info=True)
+            # 不抛出异常，允许任务停止但服务可能未停止
         
         logger.info(f"停止算法任务成功: task_id={task_id}")
         return task
@@ -476,16 +492,34 @@ def restart_algorithm_task(task_id: int):
     """重启算法任务"""
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
-        task.run_status = 'restarting'
+        # 重启：先停止再启动
+        task.is_enabled = False
         task.updated_at = datetime.utcnow()
         db.session.commit()
         
-        # 这里可以添加实际的重启逻辑
-        # 暂时先设置为running
-        task.run_status = 'running'
+        # 停止任务相关的服务
+        try:
+            from app.services.algorithm_task_launcher_service import stop_all_task_services
+            stop_all_task_services(task_id)
+        except Exception as e:
+            logger.warning(f"停止任务 {task_id} 的服务时出错: {str(e)}", exc_info=True)
+        
+        # 等待一下，确保服务完全停止
+        import time
+        time.sleep(2)
+        
+        # 然后重新启动
+        task.is_enabled = True
         task.status = 0
         task.exception_reason = None
         db.session.commit()
+        
+        # 启动任务相关的服务
+        try:
+            from app.services.algorithm_task_launcher_service import start_task_services
+            start_task_services(task_id, task)
+        except Exception as e:
+            logger.warning(f"启动任务 {task_id} 的服务时出错: {str(e)}", exc_info=True)
         
         logger.info(f"重启算法任务成功: task_id={task_id}")
         return task

@@ -498,14 +498,15 @@ def create_app():
             traceback.print_exc()
         
         # 启动自动抽帧线程（每分钟从所有在线摄像头的RTSP流中抽帧）
-        try:
-            from app.services.auto_frame_extraction_service import start_auto_frame_extraction
-            start_auto_frame_extraction(app)
-            print("✅ 自动抽帧线程启动成功（每分钟执行一次）")
-        except Exception as e:
-            print(f"❌ 启动自动抽帧线程失败: {str(e)}")
-            import traceback
-            traceback.print_exc()
+        # 已禁用：由算法任务来处理抽帧，不再单独启动自动抽帧
+        # try:
+        #     from app.services.auto_frame_extraction_service import start_auto_frame_extraction
+        #     start_auto_frame_extraction(app)
+        #     print("✅ 自动抽帧线程启动成功（每分钟执行一次）")
+        # except Exception as e:
+        #     print(f"❌ 启动自动抽帧线程失败: {str(e)}")
+        #     import traceback
+        #     traceback.print_exc()
         
         # 启动心跳超时检查任务（每分钟检查一次）
         try:
@@ -561,6 +562,13 @@ def create_app():
                             db.session.commit()
                             total = len(timeout_extractors) + len(timeout_sorters) + len(timeout_pushers)
                             logger.info(f"已更新 {total} 个服务状态为stopped")
+                        
+                        # 清理已停止的进程
+                        try:
+                            from app.services.algorithm_task_launcher_service import cleanup_stopped_processes
+                            cleanup_stopped_processes()
+                        except Exception as e:
+                            logger.warning(f"清理已停止的进程失败: {str(e)}")
                 except Exception as e:
                     logger.error(f"检查心跳超时失败: {str(e)}")
                     try:
@@ -581,6 +589,17 @@ def create_app():
             print(f"❌ 启动心跳超时检查任务失败: {str(e)}")
             import traceback
             traceback.print_exc()
+        
+        # 自动启动所有启用的算法任务的服务
+        # 已禁用：不再自动启动算法任务服务，由用户手动启动
+        # try:
+        #     from app.services.algorithm_task_launcher_service import auto_start_all_tasks
+        #     auto_start_all_tasks(app)
+        #     print("✅ 算法任务服务自动启动完成")
+        # except Exception as e:
+        #     print(f"❌ 自动启动算法任务服务失败: {str(e)}")
+        #     import traceback
+        #     traceback.print_exc()
 
     return app
 

@@ -835,7 +835,6 @@ def init_all_tasks():
         tasks = SnapTask.query.filter_by(is_enabled=True).all()
         for task in tasks:
             add_task_to_scheduler(task.id)
-        logger.info(f"已初始化 {len(tasks)} 个抓拍任务到调度器")
     except Exception as e:
         logger.error(f"初始化任务失败: {str(e)}", exc_info=True)
 

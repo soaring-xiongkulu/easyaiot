@@ -849,6 +849,64 @@ def receive_pusher_heartbeat():
         }), 500
 
 
+# ====================== 服务状态查询接口 ======================
+@algorithm_task_bp.route('/task/<int:task_id>/services/status', methods=['GET'])
+def get_task_services_status(task_id):
+    """获取算法任务的所有服务状态信息（抽帧器、排序器、推送器）"""
+    try:
+        from models import AlgorithmTask
+        task = AlgorithmTask.query.get(task_id)
+        if not task:
+            return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
+        
+        result = {
+            'extractor': None,
+            'sorter': None,
+            'pusher': None
+        }
+        
+        # 获取抽帧器状态
+        # 优先通过任务的extractor_id查询，如果没有则通过task_id查询
+        extractor = None
+        if task.extractor_id:
+            extractor = FrameExtractor.query.get(task.extractor_id)
+        if not extractor:
+            # 通过task_id查询关联的抽帧器
+            extractor = FrameExtractor.query.filter_by(task_id=task_id).first()
+        if extractor:
+            result['extractor'] = extractor.to_dict()
+        
+        # 获取排序器状态（仅实时算法任务）
+        if task.task_type == 'realtime':
+            sorter = None
+            if task.sorter_id:
+                sorter = Sorter.query.get(task.sorter_id)
+            if not sorter:
+                # 通过task_id查询关联的排序器
+                sorter = Sorter.query.filter_by(task_id=task_id).first()
+            if sorter:
+                result['sorter'] = sorter.to_dict()
+        
+        # 获取推送器状态
+        pusher = None
+        if task.pusher_id:
+            pusher = Pusher.query.get(task.pusher_id)
+        if not pusher:
+            # 通过task_id查询关联的推送器
+            pusher = Pusher.query.filter_by(task_id=task_id).first()
+        if pusher:
+            result['pusher'] = pusher.to_dict()
+        
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': result
+        })
+    except Exception as e:
+        logger.error(f"获取算法任务服务状态失败: {str(e)}", exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
 # ====================== 日志查看接口 ======================
 @algorithm_task_bp.route('/task/<int:task_id>/extractor/logs', methods=['GET'])
 def get_task_extractor_logs(task_id):

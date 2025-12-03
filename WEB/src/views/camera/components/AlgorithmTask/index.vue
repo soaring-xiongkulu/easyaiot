@@ -60,7 +60,7 @@
             <template #renderItem="{ item }">
               <ListItem :class="item.is_enabled ? 'task-item normal' : 'task-item error'">
                 <div class="task-info">
-                  <div class="status">{{ item.is_enabled ? '已启用' : '已禁用' }}</div>
+                  <div class="status">{{ item.is_enabled ? '运行中' : '已停止' }}</div>
                   <div class="title o2">{{ item.task_name || item.id }}</div>
                   <div class="props">
                     <div class="flex" style="justify-content: space-between;">
@@ -88,7 +88,7 @@
                     <div class="btn" @click="handleManageServices(item)" title="帧管道管理器">
                       <Icon icon="ant-design:setting-outlined" :size="15" color="#3B82F6" />
                     </div>
-                    <div class="btn" v-if="item.run_status === 'running'" @click="handleStop(item)">
+                    <div class="btn" v-if="item.is_enabled" @click="handleStop(item)">
                       <Icon icon="ant-design:pause-circle-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <div class="btn" v-else @click="handleStart(item)">
@@ -239,7 +239,7 @@ const getTableActions = (record: AlgorithmTask) => {
     },
   ];
 
-  if (record.run_status === 'running') {
+  if (record.is_enabled) {
     actions.push({
       icon: 'ant-design:pause-circle-outlined',
       tooltip: '停止',
@@ -498,23 +498,6 @@ const handleSuccess = () => {
   }
 };
 
-const getRunStatusColor = (status: string) => {
-  const colorMap: Record<string, string> = {
-    running: 'green',
-    stopped: 'default',
-    restarting: 'orange',
-  };
-  return colorMap[status] || 'default';
-};
-
-const getRunStatusText = (status: string) => {
-  const textMap: Record<string, string> = {
-    running: '运行中',
-    stopped: '已停止',
-    restarting: '重启中',
-  };
-  return textMap[status] || status;
-};
 
 // 暴露刷新方法给父组件
 defineExpose({

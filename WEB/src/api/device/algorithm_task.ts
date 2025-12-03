@@ -47,8 +47,7 @@ export interface AlgorithmTask {
   last_capture_time?: string;
   // 通用字段
   status: number; // 0:正常, 1:异常
-  is_enabled: boolean;
-  run_status: string; // running:运行中, stopped:已停止, restarting:重启中
+  is_enabled: boolean; // true:运行中, false:已停止
   exception_reason?: string;
   total_frames: number;
   total_detections: number;
@@ -431,6 +430,26 @@ export const updatePusher = (pusher_id: number, data: Partial<Pusher>) => {
 
 export const deletePusher = (pusher_id: number) => {
   return commonApi('delete', `${ALGORITHM_PREFIX}/pusher/${pusher_id}`);
+};
+
+// ====================== 服务状态查询接口 ======================
+export interface TaskServicesStatus {
+  extractor: FrameExtractor | null;
+  sorter: Sorter | null;
+  pusher: Pusher | null;
+}
+
+export interface TaskServicesStatusResponse {
+  code: number;
+  msg: string;
+  data: TaskServicesStatus;
+}
+
+export const getTaskServicesStatus = (task_id: number) => {
+  return commonApi<TaskServicesStatusResponse>(
+    'get',
+    `${ALGORITHM_PREFIX}/task/${task_id}/services/status`
+  );
 };
 
 // ====================== 日志查看接口 ======================

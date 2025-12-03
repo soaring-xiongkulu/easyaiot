@@ -635,7 +635,6 @@ class AlgorithmTask(db.Model):
             'frame_skip': self.frame_skip,
             'status': self.status,
             'is_enabled': self.is_enabled,
-            'run_status': self.run_status,
             'exception_reason': self.exception_reason,
             'total_frames': self.total_frames,
             'total_detections': self.total_detections,
