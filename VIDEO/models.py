@@ -849,9 +849,10 @@ SnapTask.detection_regions = db.relationship(
     'DetectionRegion',
     primaryjoin='SnapTask.id == DetectionRegion.task_id',
     foreign_keys=[DetectionRegion.task_id],
-    backref=db.backref('snap_task', lazy=True),
+    backref=db.backref('snap_task', lazy=True, overlaps="detection_regions,algorithm_task_ref"),
     lazy=True,
-    cascade='all, delete-orphan'
+    cascade='all, delete-orphan',
+    overlaps="detection_regions,algorithm_task_ref"
 )
 
 # 配置 AlgorithmTask 和 DetectionRegion 的关系
@@ -859,7 +860,8 @@ AlgorithmTask.detection_regions = db.relationship(
     'DetectionRegion',
     primaryjoin='AlgorithmTask.id == DetectionRegion.task_id',
     foreign_keys=[DetectionRegion.task_id],
-    backref=db.backref('algorithm_task_ref', lazy=True),
+    backref=db.backref('algorithm_task_ref', lazy=True, overlaps="detection_regions,snap_task"),
     lazy=True,
-    cascade='all, delete-orphan'
+    cascade='all, delete-orphan',
+    overlaps="detection_regions,snap_task"
 )
