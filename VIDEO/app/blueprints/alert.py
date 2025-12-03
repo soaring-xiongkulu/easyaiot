@@ -8,10 +8,12 @@ from pathlib import Path
 import logging
 import time
 from threading import Lock
+from urllib.parse import unquote, parse_qs, urlparse
 from app.services.alert_service import (
     get_alert_list,
     get_alert_count,
-    create_alert
+    create_alert,
+    get_dashboard_statistics
 )
 
 # 创建Alert蓝图
@@ -58,6 +60,17 @@ def get_alert_count_route():
         return api_response(500, f'获取失败: {str(e)}')
 
 
+@alert_bp.route('/statistics', methods=['GET'])
+def get_dashboard_statistics_route():
+    """获取仪表板统计信息（统一接口）"""
+    try:
+        result = get_dashboard_statistics()
+        return api_response(data=result)
+    except Exception as e:
+        logger.error(f'获取仪表板统计信息失败: {str(e)}')
+        return api_response(500, f'获取失败: {str(e)}')
+
+
 @alert_bp.route('/image')
 def get_alert_image():
     """获取报警图片（支持本地文件和MinIO存储）"""
@@ -66,20 +79,30 @@ def get_alert_image():
         if not path:
             return api_response(400, '路径参数不能为空')
         
-        # 检查是否是MinIO路径（格式：alert-images/YYYY/MM/DD/...）
-        if path.startswith('alert-images/'):
+        # 检查是否是MinIO下载URL格式（/api/v1/buckets/{bucket_name}/objects/download?prefix=...）
+        if path.startswith('/api/v1/buckets/') and '/objects/download' in path:
             try:
                 from app.services.minio_service import ModelService
                 from minio.error import S3Error
                 from io import BytesIO
                 
-                # 解析MinIO路径：alert-images/object_name
-                parts = path.split('/', 1)
-                if len(parts) != 2:
-                    return api_response(400, f'MinIO路径格式错误: {path}')
+                # 解析URL：/api/v1/buckets/{bucket_name}/objects/download?prefix={object_name}
+                parsed = urlparse(path)
+                query_params = parse_qs(parsed.query)
                 
-                bucket_name = parts[0]
-                object_name = parts[1]
+                # 提取bucket_name和object_name
+                path_parts = parsed.path.split('/')
+                if len(path_parts) < 5 or path_parts[1] != 'api' or path_parts[2] != 'v1' or path_parts[3] != 'buckets':
+                    return api_response(400, f'MinIO URL格式错误: {path}')
+                
+                bucket_name = path_parts[4]
+                prefix = query_params.get('prefix', [None])[0]
+                
+                if not prefix:
+                    return api_response(400, f'MinIO URL缺少prefix参数: {path}')
+                
+                # URL解码prefix
+                object_name = unquote(prefix)
                 
                 # 获取MinIO客户端
                 minio_client = ModelService.get_minio_client()
