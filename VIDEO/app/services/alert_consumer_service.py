@@ -13,6 +13,7 @@ from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Dict, Optional
+from urllib.parse import quote
 
 from flask import current_app
 from kafka import KafkaConsumer
@@ -304,8 +305,10 @@ def upload_image_to_minio(image_path: str, alert_id: int, device_id: str) -> Opt
         
         logger.debug(f"告警图片上传成功: {bucket_name}/{object_name}, 大小: {file_size} 字节")
         
-        # 返回MinIO对象路径（用于存储到数据库）
-        return f"{bucket_name}/{object_name}"
+        # 返回MinIO下载URL（用于存储到数据库）
+        # 格式：/api/v1/buckets/{bucket_name}/objects/download?prefix={url_encoded_object_name}
+        download_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={quote(object_name, safe='')}"
+        return download_url
         
     except S3Error as e:
         error_msg = str(e)
@@ -362,30 +365,25 @@ def process_alert_message(message: Dict):
                     logger.debug(f"告警 {alert_id} 图片上传跳过：MinIO清空后等待期内（还需等待 {wait_remaining:.1f} 秒）")
                     return
         
-        # 在Flask应用上下文中执行数据库操作
-        with current_app.app_context():
-            # 查询告警记录（告警记录已经在alert_hook_service中先插入数据库）
-            alert = Alert.query.get(alert_id)
-            if not alert:
-                logger.warning(f"告警记录不存在: alert_id={alert_id}")
-                return
-            
-            # 如果已经上传过（image_path已经是MinIO路径），跳过
-            if alert.image_path and (alert.image_path.startswith('alert-images/') or 'alert-images/' in alert.image_path):
-                logger.debug(f"告警 {alert_id} 图片已上传到MinIO，跳过")
-                return
-            
-            # 上传图片到MinIO（如果不在等待期内）
-            device_id = message.get('device_id', 'unknown')
-            minio_path = upload_image_to_minio(image_path, alert_id, device_id)
-            
-            if minio_path:
+        # 上传图片到MinIO（如果不在等待期内）
+        device_id = message.get('device_id', 'unknown')
+        minio_path = upload_image_to_minio(image_path, alert_id, device_id)
+        
+        if minio_path:
+            # 在Flask应用上下文中执行数据库操作
+            with current_app.app_context():
+                # 查询告警记录（告警记录已经在alert_hook_service中先插入数据库）
+                alert = Alert.query.get(alert_id)
+                if not alert:
+                    logger.warning(f"告警记录不存在: alert_id={alert_id}")
+                    return
+                
                 # 更新数据库中的image_path
                 alert.image_path = minio_path
                 db.session.commit()
                 logger.debug(f"告警 {alert_id} 图片路径已更新: {minio_path}")
-            else:
-                logger.warning(f"告警 {alert_id} 图片上传失败，保留原始路径: {image_path}")
+        else:
+            logger.warning(f"告警 {alert_id} 图片上传失败，保留原始路径: {image_path}")
                 
     except Exception as e:
         logger.error(f"处理告警消息失败: {str(e)}", exc_info=True)

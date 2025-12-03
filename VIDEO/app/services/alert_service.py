@@ -255,3 +255,87 @@ def patch_alerts_record(dvr_info: dict):
         logger.error(f'更新报警记录失败: {str(e)}')
         db.session.rollback()
         raise
+
+
+def get_dashboard_statistics() -> dict:
+    """获取仪表板统计信息
+    
+    Returns:
+        dict: 包含以下统计信息的字典：
+            - alarm_count: 告警总数
+            - today_alarm_count: 今日告警数
+            - camera_count: 摄像头数量
+            - algorithm_count: 算法数量
+            - model_count: 模型数量（如果AI服务可用则返回实际值，否则返回0）
+    """
+    try:
+        from models import Device, AlgorithmTask
+        
+        # 统计告警总数
+        alarm_count = Alert.query.count()
+        
+        # 统计今日告警数（从今天00:00:00开始，使用北京时区）
+        from datetime import timezone
+        import pytz
+        
+        # 获取北京时区的当前时间
+        beijing_tz = pytz.timezone('Asia/Shanghai')
+        beijing_now = datetime.now(beijing_tz)
+        today_start = beijing_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # 由于Alert.time是带时区的，需要确保时区一致
+        today_alarm_count = Alert.query.filter(Alert.time >= today_start).count()
+        
+        # 统计摄像头数量
+        camera_count = Device.query.count()
+        
+        # 统计算法数量（算法任务数量）
+        algorithm_count = AlgorithmTask.query.count()
+        
+        # 统计模型数量（通过DEVICE网关访问AI服务，如果失败则返回0）
+        model_count = 0
+        try:
+            import os
+            import requests
+            
+            # 从环境变量获取DEVICE网关地址，如果没有则使用默认值
+            # 网关端口是48080，AI服务路由前缀是 /admin-api/model
+            gateway_url = os.environ.get('DEVICE_GATEWAY_URL', 'http://localhost:48080')
+            # 通过网关访问AI服务的模型列表接口
+            # 网关路由配置：/admin-api/model/** -> model-server，StripPrefix=1
+            # 所以完整路径是：http://网关:48080/admin-api/model/list
+            ai_api_url = f"{gateway_url.rstrip('/')}/admin-api/model/list"
+            
+            # 调用AI服务的模型列表接口（只获取第一页，用于统计总数）
+            response = requests.get(
+                ai_api_url,
+                params={'pageNo': 1, 'pageSize': 1},
+                timeout=2  # 2秒超时，避免阻塞
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('code') == 0:
+                    model_count = data.get('total', 0)
+        except Exception as e:
+            # 如果AI服务不可用，记录日志但不影响其他统计
+            logger.debug(f'无法获取模型数量（AI服务可能不可用）: {str(e)}')
+            model_count = 0
+        
+        return {
+            'alarm_count': alarm_count,
+            'today_alarm_count': today_alarm_count,
+            'camera_count': camera_count,
+            'algorithm_count': algorithm_count,
+            'model_count': model_count
+        }
+    except Exception as e:
+        logger.error(f'获取仪表板统计信息失败: {str(e)}')
+        # 返回默认值，避免前端报错
+        return {
+            'alarm_count': 0,
+            'today_alarm_count': 0,
+            'camera_count': 0,
+            'algorithm_count': 0,
+            'model_count': 0
+        }
