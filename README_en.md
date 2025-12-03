@@ -298,6 +298,10 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
 
 ## 📸 Screenshots
 <div>
+  <img src=".image/banner/banner-video1000.gif" alt="Screenshot 1" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner-video1001.gif" alt="Screenshot 1" width="49%">
+</div>
+<div>
   <img src=".image/banner/banner1001.png" alt="Screenshot 1" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1000.png" alt="Screenshot 1" width="49%">
 </div>

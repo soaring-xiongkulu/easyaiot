@@ -113,6 +113,9 @@ TRACKING_CENTER_SIMILARITY_THRESHOLD = 150  # 中心点相似度阈值（像素�
 TRACKING_LEAVE_TIME_THRESHOLD = 0.5  # 确认物体离开所需的时间阈值（秒）
 TRACKING_LEAVE_PERCENT_THRESHOLD = 0.0  # 确认物体离开时所需的检测比（从有到无），0表示只要检测比<=0就认为离开
 
+# 绘制优化配置
+LABEL_DRAW_INTERVAL = 10  # 文字标签绘制间隔（每N帧绘制一次文字标签，其他帧只绘制框），减少画面卡顿
+
 # 全局变量
 ffmpeg_process = None
 buffer_streamer_thread = None  # 缓流器线程
@@ -637,7 +640,7 @@ def put_chinese_text(img, text, position, font_scale=0.6, color=(0, 0, 0), thick
     return img
 
 
-def draw_tracked_detections(frame, tracked_detections, timestamp):
+def draw_tracked_detections(frame, tracked_detections, timestamp, frame_number=None, draw_labels=True):
     """
     在原始帧上绘制追踪目标的缓存框（用于未处理完成的帧）
     
@@ -645,11 +648,18 @@ def draw_tracked_detections(frame, tracked_detections, timestamp):
         frame: 原始帧（OpenCV图像，BGR格式）
         tracked_detections: 追踪目标列表，每个元素包含追踪信息
         timestamp: 当前时间戳
+        frame_number: 当前帧号，用于控制文字标签绘制频率
+        draw_labels: 是否绘制文字标签（如果为False，只绘制框）
     
     Returns:
         绘制后的帧
     """
     annotated_frame = frame.copy()
+    
+    # 根据帧号决定是否绘制文字标签（减少绘制频率以提升性能）
+    should_draw_labels = draw_labels
+    if frame_number is not None:
+        should_draw_labels = draw_labels and (frame_number % LABEL_DRAW_INTERVAL == 0)
     
     for tracked_det in tracked_detections:
         x1, y1, x2, y2 = tracked_det['bbox']
@@ -670,48 +680,50 @@ def draw_tracked_detections(frame, tracked_detections, timestamp):
         cv2.rectangle(overlay, (x1, y1), (x2, y2), color, thickness)
         cv2.addWeighted(overlay, alpha, annotated_frame, 1 - alpha, 0, annotated_frame)
         
-        # 格式化时间信息
-        start_time_str = datetime.fromtimestamp(first_seen_time).strftime("%H:%M:%S")
-        duration_str = f"{duration:.1f}s"
-        
-        # 画标签（包含追踪ID、时间信息和持续时间）- 使用英文避免中文显示问题（缩小字体）
-        label_lines = [
-            f"ID:{track_id} {class_name}",
-            f"Conf: {confidence:.2f}",
-            f"Start: {start_time_str}",
-            f"Dur: {duration_str}"
-        ]
-        
-        # 计算标签总高度（缩小字体和行高）
-        font_scale = 0.4  # 减小字体大小从0.6到0.4
-        line_height = 12  # 减小行高从18到12
-        label_height = len(label_lines) * line_height + 6  # 减小内边距从10到6
-        
-        # 估算标签宽度（缩小）
-        label_width = 0
-        for line in label_lines:
-            estimated_width = len(line) * 8  # 减小字符宽度估算从12到8
-            label_width = max(label_width, estimated_width)
-        
-        # 标签背景
-        label_bg_y1 = max(0, y1 - label_height)
-        label_bg_y2 = y1
-        label_bg_x1 = x1
-        label_bg_x2 = min(annotated_frame.shape[1], x1 + label_width + 15)
-        cv2.rectangle(annotated_frame, (label_bg_x1, label_bg_y1), (label_bg_x2, label_bg_y2), color, cv2.FILLED)
-        
-        # 绘制标签文本（使用中文绘制函数）
-        y_offset = y1 - 8
-        for line in reversed(label_lines):  # 从下往上绘制
-            annotated_frame = put_chinese_text(
-                annotated_frame, 
-                line, 
-                (x1 + 8, y_offset), 
-                font_scale=font_scale, 
-                color=(0, 0, 0),  # 黑色文本
-                thickness=1
-            )
-            y_offset -= line_height
+        # 只在需要时绘制文字标签（减少绘制频率以提升性能）
+        if should_draw_labels:
+            # 格式化时间信息
+            start_time_str = datetime.fromtimestamp(first_seen_time).strftime("%H:%M:%S")
+            duration_str = f"{duration:.1f}s"
+            
+            # 画标签（包含追踪ID、时间信息和持续时间）- 使用英文避免中文显示问题（缩小字体）
+            label_lines = [
+                f"ID:{track_id} {class_name}",
+                f"Conf: {confidence:.2f}",
+                f"Start: {start_time_str}",
+                f"Dur: {duration_str}"
+            ]
+            
+            # 计算标签总高度（缩小字体和行高）
+            font_scale = 0.4  # 减小字体大小从0.6到0.4
+            line_height = 12  # 减小行高从18到12
+            label_height = len(label_lines) * line_height + 6  # 减小内边距从10到6
+            
+            # 估算标签宽度（缩小）
+            label_width = 0
+            for line in label_lines:
+                estimated_width = len(line) * 8  # 减小字符宽度估算从12到8
+                label_width = max(label_width, estimated_width)
+            
+            # 标签背景
+            label_bg_y1 = max(0, y1 - label_height)
+            label_bg_y2 = y1
+            label_bg_x1 = x1
+            label_bg_x2 = min(annotated_frame.shape[1], x1 + label_width + 15)
+            cv2.rectangle(annotated_frame, (label_bg_x1, label_bg_y1), (label_bg_x2, label_bg_y2), color, cv2.FILLED)
+            
+            # 绘制标签文本（使用中文绘制函数）
+            y_offset = y1 - 8
+            for line in reversed(label_lines):  # 从下往上绘制
+                annotated_frame = put_chinese_text(
+                    annotated_frame, 
+                    line, 
+                    (x1 + 8, y_offset), 
+                    font_scale=font_scale, 
+                    color=(0, 0, 0),  # 黑色文本
+                    thickness=1
+                )
+                y_offset -= line_height
     
     return annotated_frame
 
@@ -1424,7 +1436,8 @@ def buffer_streamer_worker():
                                             interpolated_frame = draw_tracked_detections(
                                                 original_frame, 
                                                 cached_tracks, 
-                                                current_timestamp
+                                                current_timestamp,
+                                                frame_number=next_output_frame
                                             )
                                             frame_buffer[next_output_frame]['frame'] = interpolated_frame
                                             frame_buffer[next_output_frame]['processed'] = True
@@ -1511,7 +1524,8 @@ def buffer_streamer_worker():
                         output_frame = draw_tracked_detections(
                             output_frame.copy(), 
                             cached_tracks, 
-                            current_timestamp
+                            current_timestamp,
+                            frame_number=next_output_frame
                         )
                         is_processed = True  # 标记为已处理
                         if next_output_frame % 50 == 0:
@@ -1719,6 +1733,9 @@ def yolo_detection_worker(worker_id: int):
                     tracked_detections = [dict(det, track_id=0, is_cached=False, first_seen_time=timestamp, duration=0.0) for det in raw_detections]
                 
                 # 在图像上画框（包括追踪ID、时间信息）
+                # 根据帧号决定是否绘制文字标签（减少绘制频率以提升性能）
+                should_draw_labels = (frame_number % LABEL_DRAW_INTERVAL == 0)
+                
                 if tracked_detections:
                     for tracked_det in tracked_detections:
                         x1, y1, x2, y2 = tracked_det['bbox']
@@ -1750,49 +1767,51 @@ def yolo_detection_worker(worker_id: int):
                         else:
                             cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), color, thickness)
                         
-                        # 格式化时间信息
-                        start_time_str = datetime.fromtimestamp(first_seen_time).strftime("%H:%M:%S")
-                        duration_str = f"{duration:.1f}s"
-                        
-                        # 画标签（包含追踪ID、时间信息和持续时间）- 使用英文避免中文显示问题
-                        label_lines = [
-                            f"ID:{track_id} {class_name}",
-                            f"Conf: {confidence:.2f}",
-                            f"Start: {start_time_str}",
-                            f"Dur: {duration_str}"
-                        ]
-                        
-                        # 计算标签总高度（使用PIL字体估算，更准确）- 缩小字体
-                        font_scale = 0.4  # 减小字体大小从0.6到0.4
-                        line_height = 12  # 减小行高从18到12
-                        label_height = len(label_lines) * line_height + 6  # 减小内边距从10到6
-                        
-                        # 估算标签宽度（缩小）
-                        label_width = 0
-                        for line in label_lines:
-                            # 粗略估算：中文字符约18像素宽，英文字符约10像素宽
-                            estimated_width = len(line) * 8  # 减小字符宽度估算从12到8
-                            label_width = max(label_width, estimated_width)
-                        
-                        # 标签背景
-                        label_bg_y1 = max(0, y1 - label_height)
-                        label_bg_y2 = y1
-                        label_bg_x1 = x1
-                        label_bg_x2 = min(annotated_frame.shape[1], x1 + label_width + 15)
-                        cv2.rectangle(annotated_frame, (label_bg_x1, label_bg_y1), (label_bg_x2, label_bg_y2), color, cv2.FILLED)
-                        
-                        # 绘制标签文本（使用中文绘制函数）
-                        y_offset = y1 - 8
-                        for line in reversed(label_lines):  # 从下往上绘制
-                            annotated_frame = put_chinese_text(
-                                annotated_frame, 
-                                line, 
-                                (x1 + 8, y_offset), 
-                                font_scale=font_scale, 
-                                color=(0, 0, 0),  # 黑色文本
-                                thickness=1
-                            )
-                            y_offset -= line_height
+                        # 只在需要时绘制文字标签（减少绘制频率以提升性能）
+                        if should_draw_labels:
+                            # 格式化时间信息
+                            start_time_str = datetime.fromtimestamp(first_seen_time).strftime("%H:%M:%S")
+                            duration_str = f"{duration:.1f}s"
+                            
+                            # 画标签（包含追踪ID、时间信息和持续时间）- 使用英文避免中文显示问题
+                            label_lines = [
+                                f"ID:{track_id} {class_name}",
+                                f"Conf: {confidence:.2f}",
+                                f"Start: {start_time_str}",
+                                f"Dur: {duration_str}"
+                            ]
+                            
+                            # 计算标签总高度（使用PIL字体估算，更准确）- 缩小字体
+                            font_scale = 0.4  # 减小字体大小从0.6到0.4
+                            line_height = 12  # 减小行高从18到12
+                            label_height = len(label_lines) * line_height + 6  # 减小内边距从10到6
+                            
+                            # 估算标签宽度（缩小）
+                            label_width = 0
+                            for line in label_lines:
+                                # 粗略估算：中文字符约18像素宽，英文字符约10像素宽
+                                estimated_width = len(line) * 8  # 减小字符宽度估算从12到8
+                                label_width = max(label_width, estimated_width)
+                            
+                            # 标签背景
+                            label_bg_y1 = max(0, y1 - label_height)
+                            label_bg_y2 = y1
+                            label_bg_x1 = x1
+                            label_bg_x2 = min(annotated_frame.shape[1], x1 + label_width + 15)
+                            cv2.rectangle(annotated_frame, (label_bg_x1, label_bg_y1), (label_bg_x2, label_bg_y2), color, cv2.FILLED)
+                            
+                            # 绘制标签文本（使用中文绘制函数）
+                            y_offset = y1 - 8
+                            for line in reversed(label_lines):  # 从下往上绘制
+                                annotated_frame = put_chinese_text(
+                                    annotated_frame, 
+                                    line, 
+                                    (x1 + 8, y_offset), 
+                                    font_scale=font_scale, 
+                                    color=(0, 0, 0),  # 黑色文本
+                                    thickness=1
+                                )
+                                y_offset -= line_height
                         
                         # 添加到检测结果
                         detections.append({
@@ -2007,6 +2026,9 @@ def main():
     logger.info(f"   相似度阈值: {TRACKING_SIMILARITY_THRESHOLD}")
     logger.info(f"   最大存活: {TRACKING_MAX_AGE} 帧")
     logger.info(f"   平滑系数: {TRACKING_SMOOTH_ALPHA}")
+    logger.info("")
+    logger.info("🎨 绘制优化配置:")
+    logger.info(f"   文字标签绘制间隔: 每 {LABEL_DRAW_INTERVAL} 帧绘制一次（其他帧只绘制框）")
     logger.info("")
     logger.info("按 Ctrl+C 停止所有服务")
     logger.info("=" * 60)
