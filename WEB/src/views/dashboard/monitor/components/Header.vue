@@ -26,6 +26,10 @@ defineOptions({
   name: 'MonitorHeader'
 })
 
+const props = defineProps<{
+  activeVideos?: any[]
+}>()
+
 const router = useRouter()
 
 const handleGoToAdmin = () => {
@@ -63,13 +67,27 @@ onUnmounted(() => {
 <style lang="less" scoped>
 .monitor-header {
   height: 70px;
-  background: url(@/assets/images/bigscreen/head_bg.png) no-repeat center center;
-  background-size: 100% 100%;
+  background: linear-gradient(135deg, rgba(15, 34, 73, 0.8), rgba(24, 46, 90, 0.6));
+  border-bottom: 1px solid rgba(52, 134, 218, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 0 30px rgba(52, 134, 218, 0.1);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 30px;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      linear-gradient(90deg, transparent 0%, rgba(52, 134, 218, 0.05) 50%, transparent 100%),
+      radial-gradient(circle at top left, rgba(52, 134, 218, 0.1), transparent 50%);
+    pointer-events: none;
+  }
 }
 
 .header-left {
@@ -80,26 +98,32 @@ onUnmounted(() => {
 
 .date-time {
   font-size: 16px;
-  color: #bde4ff;
+  color: rgba(200, 220, 255, 0.95);
   font-weight: 500;
+  text-shadow: 0 0 8px rgba(52, 134, 218, 0.5);
+  position: relative;
+  z-index: 1;
 }
 
 .header-center {
   flex: 1;
   display: flex;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
 }
 
 .platform-title {
-  color: #bde4ff;
+  color: #ffffff;
   text-align: center;
-  height: 100%;
   font-size: 32px;
-  line-height: 87px;
+  line-height: 1.2;
   letter-spacing: .06rem;
   font-weight: bold;
   margin: 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 8px rgba(52, 134, 218, 0.5);
+  position: relative;
+  z-index: 1;
 
   a {
     color: #fff;
@@ -121,17 +145,21 @@ onUnmounted(() => {
 
 .user-role {
   font-size: 16px;
-  color: #bde4ff;
+  color: rgba(200, 220, 255, 0.95);
   padding: 6px 16px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(52, 134, 218, 0.15);
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(52, 134, 218, 0.3);
   cursor: pointer;
   transition: all 0.3s;
+  position: relative;
+  z-index: 1;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(52, 134, 218, 0.25);
+    border-color: rgba(52, 134, 218, 0.6);
     color: #ffffff;
+    box-shadow: 0 0 12px rgba(52, 134, 218, 0.3);
   }
 }
 </style>

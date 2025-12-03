@@ -5,6 +5,7 @@
     :footer=null
     :width="900"
     :canFullscreen="true"
+    :zIndex="10000"
     @cancel="handleCancel"
   >
     <div class="ant-modal-content">
