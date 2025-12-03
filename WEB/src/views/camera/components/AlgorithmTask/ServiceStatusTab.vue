@@ -121,7 +121,7 @@ import { ref, watch, onMounted } from 'vue';
 import { Card, Descriptions, DescriptionsItem, Tag, Button, Spin, Row, Col, Empty } from 'ant-design-vue';
 import { FileTextOutlined } from '@ant-design/icons-vue';
 import { useModal } from '@/components/Modal';
-import { getAlgorithmTask } from '@/api/device/algorithm_task';
+import { getAlgorithmTask, getTaskServicesStatus } from '@/api/device/algorithm_task';
 import { getTaskExtractorLogs, getTaskSorterLogs, getTaskPusherLogs } from '@/api/device/algorithm_task';
 import type { AlgorithmTask, FrameExtractor, Sorter, Pusher } from '@/api/device/algorithm_task';
 import moment from 'moment';
@@ -146,11 +146,24 @@ const loadServiceStatus = async () => {
   
   try {
     loading.value = true;
-    const response = await getAlgorithmTask(props.task.id);
-    if (response.code === 0 && response.data) {
-      // 从任务详情中获取服务状态信息
-      // 注意：这里需要后端在返回任务详情时包含服务状态信息
-      // 如果后端没有返回，可以单独调用接口获取
+    const response = await getTaskServicesStatus(props.task.id);
+    
+    // 处理响应
+    let statusData: any = null;
+    if (response && typeof response === 'object' && 'code' in response) {
+      // 完整响应对象
+      if (response.code === 0 && response.data) {
+        statusData = response.data;
+      }
+    } else {
+      // 直接返回的数据对象（响应转换器已处理）
+      statusData = response;
+    }
+    
+    if (statusData) {
+      extractorStatus.value = statusData.extractor || null;
+      sorterStatus.value = statusData.sorter || null;
+      pusherStatus.value = statusData.pusher || null;
     }
   } catch (error) {
     console.error('加载服务状态失败', error);

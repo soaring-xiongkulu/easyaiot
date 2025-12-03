@@ -42,34 +42,12 @@ export function getBasicColumns(): BasicColumn[] {
     },
     {
       title: '运行状态',
-      dataIndex: 'run_status',
-      width: 100,
-      customRender: ({ text }) => {
-        const colorMap: Record<string, string> = {
-          running: 'green',
-          stopped: 'default',
-          restarting: 'orange',
-        };
-        const textMap: Record<string, string> = {
-          running: '运行中',
-          stopped: '已停止',
-          restarting: '重启中',
-        };
-        return (
-          <Tag color={colorMap[text] || 'default'}>
-            {textMap[text] || text}
-          </Tag>
-        );
-      },
-    },
-    {
-      title: '启用状态',
       dataIndex: 'is_enabled',
       width: 100,
       customRender: ({ text }) => {
         return (
-          <Tag color={text ? 'green' : 'red'}>
-            {text ? '已启用' : '已禁用'}
+          <Tag color={text ? 'green' : 'default'}>
+            {text ? '运行中' : '已停止'}
           </Tag>
         );
       },
