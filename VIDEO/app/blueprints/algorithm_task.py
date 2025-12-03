@@ -58,7 +58,7 @@ def get_task(task_id):
             'data': task.to_dict()
         })
     except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
+        return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'获取算法任务失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
@@ -145,7 +145,7 @@ def delete_task(task_id):
             'msg': '删除成功'
         })
     except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
+        return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'删除算法任务失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
@@ -166,7 +166,7 @@ def start_task(task_id):
             'data': task_dict
         })
     except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
+        return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'启动算法任务失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
@@ -183,7 +183,7 @@ def stop_task(task_id):
             'data': task.to_dict()
         })
     except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
+        return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'停止算法任务失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
@@ -200,7 +200,7 @@ def restart_task(task_id):
             'data': task.to_dict()
         })
     except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
+        return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'重启算法任务失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
@@ -234,9 +234,9 @@ def receive_realtime_heartbeat():
         task = AlgorithmTask.query.get(task_id)
         if not task:
             return jsonify({
-                'code': 404,
+                'code': 400,
                 'msg': f'算法任务不存在：task_id={task_id}'
-            }), 404
+            }), 400
         
         # 更新心跳信息
         task.service_last_heartbeat = datetime.utcnow()
@@ -284,7 +284,7 @@ def get_task_services_status(task_id):
     try:
         task = AlgorithmTask.query.get(task_id)
         if not task:
-            return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
+            return jsonify({'code': 400, 'msg': '算法任务不存在'}), 400
         
         result = {
             'realtime_service': None
@@ -348,7 +348,7 @@ def get_task_extractor_logs(task_id):
     try:
         task = AlgorithmTask.query.get(task_id)
         if not task:
-            return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
+            return jsonify({'code': 400, 'msg': '算法任务不存在'}), 400
         
         # 新架构统一使用realtime_algorithm_service，对于实时算法任务，使用统一的日志路径
         if task.task_type == 'realtime':
@@ -393,7 +393,7 @@ def get_task_sorter_logs(task_id):
     try:
         task = AlgorithmTask.query.get(task_id)
         if not task:
-            return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
+            return jsonify({'code': 400, 'msg': '算法任务不存在'}), 400
         
         # 新架构统一使用realtime_algorithm_service，对于实时算法任务，使用统一的日志路径
         if task.task_type == 'realtime':
@@ -438,7 +438,7 @@ def get_task_pusher_logs(task_id):
     try:
         task = AlgorithmTask.query.get(task_id)
         if not task:
-            return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
+            return jsonify({'code': 400, 'msg': '算法任务不存在'}), 400
         
         # 新架构统一使用realtime_algorithm_service，对于实时算法任务，使用统一的日志路径
         if task.task_type == 'realtime':
@@ -483,7 +483,7 @@ def get_task_realtime_logs(task_id):
     try:
         task = AlgorithmTask.query.get(task_id)
         if not task:
-            return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
+            return jsonify({'code': 400, 'msg': '算法任务不存在'}), 400
         
         if task.task_type != 'realtime':
             return jsonify({'code': 400, 'msg': '该接口仅支持实时算法任务'}), 400
@@ -522,7 +522,7 @@ def get_task_streams(task_id):
         import json
         task = AlgorithmTask.query.get(task_id)
         if not task:
-            return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
+            return jsonify({'code': 400, 'msg': '算法任务不存在'}), 400
         
         # 获取关联的摄像头列表
         device_list = task.devices if task.devices else []

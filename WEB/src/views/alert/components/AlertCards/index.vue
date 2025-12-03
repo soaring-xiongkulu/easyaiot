@@ -27,14 +27,14 @@
           <template #renderItem="{ item }">
             <ListItem class="alert-item normal">
               <div class="alert-info">
-                <div class="title o2">{{ item.device_name || item.device_id || '未知设备' }}</div>
+                <div class="title o2">{{ item.event || '未知事件' }}</div>
                 <div class="props">
                   <div class="flex" style="justify-content: space-between;">
                     <div class="prop">
                       <div class="label">设备ID</div>
-                      <div class="value" @click="handleCopy(item.device_id)" style="cursor: pointer;">
+                      <div class="value" @click="handleCopyDeviceId(item.device_id)" style="cursor: pointer;">
                         <Icon icon="tdesign:copy-filled" color="#4287FCFF" :size="12" style="margin-right: 4px;"/>
-                        {{ item.device_id || '-' }}
+                        {{ formatDeviceId(item.device_id) }}
                       </div>
                     </div>
                     <div class="prop">
@@ -44,8 +44,8 @@
                   </div>
                   <div class="flex" style="justify-content: space-between;">
                     <div class="prop">
-                      <div class="label">告警事件</div>
-                      <div class="value">{{ item.event || '-' }}</div>
+                      <div class="label">摄像头</div>
+                      <div class="value">{{ item.device_name || '-' }}</div>
                     </div>
                     <div class="prop">
                       <div class="label">告警对象</div>
@@ -60,7 +60,7 @@
                   <div class="btn" @click="handleViewImage(item)" v-if="item.image_path">
                     <Icon icon="ion:image-sharp" :size="15" color="#3B82F6" />
                   </div>
-                  <div class="btn" @click="handleViewVideo(item)" v-if="item.record_path">
+                  <div class="btn" @click="handleViewVideo(item)" v-if="item.device_id && item.time">
                     <Icon icon="icon-park-outline:video" :size="15" color="#3B82F6" />
                   </div>
                 </div>
@@ -85,7 +85,6 @@ import { isFunction } from '@/utils/is';
 import { useMessage } from '@/hooks/web/useMessage';
 import { Icon } from '@/components/Icon';
 import moment from 'moment';
-import { getAlertImage } from '@/api/device/calculate';
 import ALERT from "@/assets/images/alert/alert.png";
 
 const ListItem = List.Item;
@@ -306,11 +305,47 @@ function formatTime(time: string) {
   return moment(time).format('YYYY-MM-DD HH:mm:ss');
 }
 
+// 格式化设备ID显示（超过8个字符省略）
+function formatDeviceId(deviceId: string | null | undefined): string {
+  if (!deviceId) return '-';
+  if (deviceId.length <= 8) return deviceId;
+  return deviceId.substring(0, 8) + '...';
+}
+
+// 复制设备ID（完整ID）
+async function handleCopyDeviceId(deviceId: string | null | undefined) {
+  if (!deviceId) {
+    createMessage.warn('设备ID为空');
+    return;
+  }
+  if (navigator.clipboard) {
+    await navigator.clipboard.writeText(deviceId);
+  } else {
+    // 降级方案
+    const textarea = document.createElement('textarea');
+    textarea.value = deviceId;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+  }
+  createMessage.success('复制成功');
+}
+
 async function handleViewImage(record: object) {
+  if (!record['image_path']) {
+    createMessage.warn('告警图片不存在');
+    return;
+  }
   emit('viewImage', record);
 }
 
 async function handleViewVideo(record: object) {
+  if (!record['device_id'] || !record['time']) {
+    createMessage.warn('缺少必要信息：设备ID或告警时间');
+    return;
+  }
+  
   emit('viewVideo', record);
 }
 

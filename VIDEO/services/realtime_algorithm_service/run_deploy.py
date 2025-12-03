@@ -85,6 +85,10 @@ device_pushers = {}  # {device_id: subprocess.Popen}
 device_pusher_stderr_threads = {}  # {device_id: threading.Thread}
 device_pusher_stderr_buffers = {}  # {device_id: list} 存储stderr输出
 device_pusher_stderr_locks = {}  # {device_id: threading.Lock}
+# 告警抑制：记录每个设备上次告警推送时间
+last_alert_time = {}  # {device_id: timestamp}
+alert_suppression_interval = 5.0  # 告警抑制间隔：5秒
+alert_time_lock = threading.Lock()  # 告警时间戳锁，确保线程安全
 
 # 配置参数（从数据库读取）
 SOURCE_FPS = 25
@@ -1285,40 +1289,61 @@ def buffer_streamer_worker(device_id: str):
                 if is_processed:
                     detections = frame_data.get('detections', [])
                     if detections and task_config and task_config.alert_hook_enabled:
-                        # 发送告警（每个检测结果发送一次）
-                        for det in detections:
-                            try:
-                                # 保存告警图片到本地
-                                image_path = save_alert_image(
-                                    output_frame,
-                                    device_id,
-                                    next_output_frame,
-                                    det
-                                )
-                                
-                                # 构建告警数据（参照告警表字段）
-                                alert_data = {
-                                    'object': det.get('class_name', 'unknown'),
-                                    'event': 'detection',  # 默认事件类型
-                                    'device_id': device_id,
-                                    'device_name': device_name,
-                                    'time': datetime.fromtimestamp(current_timestamp).strftime('%Y-%m-%d %H:%M:%S'),
-                                    'information': json.dumps({
-                                        'track_id': det.get('track_id', 0),
-                                        'confidence': det.get('confidence', 0),
-                                        'bbox': det.get('bbox', []),
-                                        'frame_number': next_output_frame,
-                                        'first_seen_time': datetime.fromtimestamp(det.get('first_seen_time', current_timestamp)).isoformat() if det.get('first_seen_time') else None,
-                                        'duration': det.get('duration', 0)
-                                    }),
-                                    # 不直接传输图片，而是传输图片所在磁盘路径
-                                    'image_path': image_path if image_path else None,
-                                }
-                                
-                                # 异步发送告警到hook接口
-                                send_alert_hook_async(alert_data)
-                            except Exception as e:
-                                logger.error(f"发送告警失败: {str(e)}", exc_info=True)
+                        # 告警抑制：使用锁保护时间戳的访问和更新，确保线程安全
+                        current_time = time.time()
+                        with alert_time_lock:
+                            last_time = last_alert_time.get(device_id, 0)
+                            time_since_last_alert = current_time - last_time
+                            
+                            # 如果距离上次推送已经超过5秒，才发送告警
+                            if time_since_last_alert >= alert_suppression_interval:
+                                # 立即更新上次告警时间（在发送告警之前），防止同一秒内多次推送
+                                last_alert_time[device_id] = current_time
+                                should_send_alert = True
+                            else:
+                                # 不到5秒，跳过告警推送
+                                should_send_alert = False
+                                logger.debug(f"设备 {device_id} 告警抑制：距离上次推送仅 {time_since_last_alert:.2f} 秒，跳过告警推送（需要间隔5秒）")
+                        
+                        # 在锁外发送告警，避免长时间持有锁
+                        if should_send_alert:
+                            # 发送告警（每个检测结果发送一次）
+                            for det in detections:
+                                try:
+                                    # 保存告警图片到本地
+                                    image_path = save_alert_image(
+                                        output_frame,
+                                        device_id,
+                                        next_output_frame,
+                                        det
+                                    )
+                                    
+                                    # 构建告警数据（参照告警表字段）
+                                    # 获取算法名称（任务名称）
+                                    algorithm_name = task_config.task_name if task_config and hasattr(task_config, 'task_name') else 'detection'
+                                    
+                                    alert_data = {
+                                        'object': det.get('class_name', 'unknown'),
+                                        'event': algorithm_name,  # 使用算法名称作为事件类型
+                                        'device_id': device_id,
+                                        'device_name': device_name,
+                                        'time': datetime.fromtimestamp(current_timestamp).strftime('%Y-%m-%d %H:%M:%S'),
+                                        'information': json.dumps({
+                                            'track_id': det.get('track_id', 0),
+                                            'confidence': det.get('confidence', 0),
+                                            'bbox': det.get('bbox', []),
+                                            'frame_number': next_output_frame,
+                                            'first_seen_time': datetime.fromtimestamp(det.get('first_seen_time', current_timestamp)).isoformat() if det.get('first_seen_time') else None,
+                                            'duration': det.get('duration', 0)
+                                        }),
+                                        # 不直接传输图片，而是传输图片所在磁盘路径
+                                        'image_path': image_path if image_path else None,
+                                    }
+                                    
+                                    # 异步发送告警到hook接口
+                                    send_alert_hook_async(alert_data)
+                                except Exception as e:
+                                    logger.error(f"发送告警失败: {str(e)}", exc_info=True)
                 
                 # 推送到RTMP流
                 if pusher_process and pusher_process.poll() is None and rtmp_url:

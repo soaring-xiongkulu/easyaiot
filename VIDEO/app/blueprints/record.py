@@ -55,7 +55,7 @@ def get_space(space_id):
             'data': space.to_dict()
         })
     except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
+        return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'获取监控录像空间失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
@@ -68,9 +68,9 @@ def get_space_by_device(device_id):
         space = get_record_space_by_device_id(device_id)
         if not space:
             return jsonify({
-                'code': 404,
+                'code': 400,
                 'msg': f'设备 {device_id} 没有关联的监控录像空间'
-            }), 404
+            }), 400
         return jsonify({
             'code': 0,
             'msg': 'success',
@@ -188,7 +188,7 @@ def get_video(space_id, object_name):
             download_name=filename
         )
     except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
+        return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'获取监控录像失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500

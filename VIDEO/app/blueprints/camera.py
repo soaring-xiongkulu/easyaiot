@@ -10,6 +10,7 @@ import subprocess
 import threading
 import time
 import uuid
+from datetime import timezone, timedelta
 from operator import or_
 from typing import Optional
 
@@ -76,7 +77,7 @@ class FFmpegDaemon:
                     stdin=subprocess.PIPE,
                     text=False
                 )
-                logger.debug(f"启动FFmpeg: {' '.join(ffmpeg_cmd)}")
+                logger.info(f"启动FFmpeg: {' '.join(ffmpeg_cmd)}")
 
                 # 实时监控输出（仅记录错误和警告）
                 while self._running:
@@ -137,12 +138,12 @@ def auto_start_streaming():
                 if device.id in ffmpeg_processes:
                     daemon = ffmpeg_processes[device.id]
                     if daemon._running:
-                        logger.debug(f"设备 {device.id} 的流媒体转发已在运行中")
+                        logger.info(f"设备 {device.id} 的流媒体转发已在运行中")
                         continue
 
                 # 创建并启动守护线程
                 ffmpeg_processes[device.id] = FFmpegDaemon(device.id)
-                logger.debug(f"设备 {device.id} 的流媒体转发已自动启动")
+                logger.info(f"设备 {device.id} 的流媒体转发已自动启动")
 
     except Exception as e:
         logger.error(f"自动启动流媒体转发失败: {str(e)}", exc_info=True)
@@ -152,7 +153,9 @@ def auto_start_streaming():
 @camera_bp.route('/device/<string:device_id>/stream/start', methods=['POST'])
 def start_ffmpeg_stream(device_id):
     try:
-        device = Device.query.get_or_404(device_id)
+        device = Device.query.get(device_id)
+        if not device:
+            return jsonify({'code': 400, 'msg': f'设备不存在: ID={device_id}'}), 400
         
         # 如果摄像头地址是 rtmp，则不启动推送
         if device.source and device.source.strip().lower().startswith('rtmp://'):
@@ -215,7 +218,7 @@ def get_stream_status(device_id):
     try:
         device = Device.query.get(device_id)
         if not device:
-            return jsonify({'code': 404, 'msg': f'设备 {device_id} 不存在'}), 404
+            return jsonify({'code': 400, 'msg': f'设备 {device_id} 不存在'}), 400
 
         status = 'stopped'
         pid = None
@@ -334,7 +337,7 @@ def get_device_info(device_id):
         })
     except ValueError as e:
         logger.error(f'获取设备详情失败: {str(e)}')
-        return jsonify({'code': 404, 'msg': f'设备 {device_id} 不存在'}), 404
+        return jsonify({'code': 400, 'msg': f'设备 {device_id} 不存在'}), 400
     except Exception as e:
         logger.error(f'获取设备详情失败: {str(e)}')
         return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
@@ -464,7 +467,7 @@ def delete_device(device_id):
         })
     except ValueError as e:
         logger.error(f'删除设备失败: {str(e)}')
-        return jsonify({'code': 404, 'msg': str(e)}), 404
+        return jsonify({'code': 400, 'msg': str(e)}), 400
     except RuntimeError as e:
         logger.error(f'删除设备失败: {str(e)}')
         return jsonify({'code': 500, 'msg': str(e)}), 500
@@ -499,7 +502,7 @@ def control_ptz(device_id: str):
         camera = get_camera_by_id(device_id)  # 您需要实现这个函数
 
         if not camera:
-            return jsonify({'error': 'Camera not found'}), 404
+            return jsonify({'error': 'Camera not found'}), 400
 
         # 执行PTZ移动
         camera.move((x, y, z))
@@ -647,7 +650,9 @@ def rtsp_capture_task(device_id, rtsp_url, interval, max_count):
 def start_rtsp_capture(device_id):
     """启动RTSP截图"""
     try:
-        device = Device.query.get_or_404(device_id)
+        device = Device.query.get(device_id)
+        if not device:
+            return jsonify({'code': 400, 'msg': f'设备不存在: ID={device_id}'}), 400
         data = request.get_json()
         rtsp_url = data.get('rtsp_url', device.source)
         interval = data.get('interval', 5)
@@ -689,7 +694,7 @@ def stop_rtsp_capture(device_id):
             if rtsp_tasks[device_id]['thread']:
                 rtsp_tasks[device_id]['thread'].join(timeout=5.0)
             return jsonify({'code': 0, 'msg': 'RTSP截图任务已停止'})
-        return jsonify({'code': 404, 'msg': '未找到运行的RTSP截图任务'}), 404
+        return jsonify({'code': 400, 'msg': '未找到运行的RTSP截图任务'}), 400
     except Exception as e:
         logger.error(f"停止RTSP截图失败: {str(e)}")
         return jsonify({'code': 500, 'msg': f'停止RTSP截图失败: {str(e)}'}), 500
@@ -750,7 +755,9 @@ def onvif_capture_task(device_id, snapshot_uri, username, password, interval, ma
 def start_onvif_capture(device_id):
     """启动ONVIF截图"""
     try:
-        device = Device.query.get_or_404(device_id)
+        device = Device.query.get(device_id)
+        if not device:
+            return jsonify({'code': 400, 'msg': f'设备不存在: ID={device_id}'}), 400
         data = request.get_json()
         interval = data.get('interval', 10)
         max_count = data.get('max_count', 100)
@@ -794,7 +801,7 @@ def stop_onvif_capture(device_id):
             if onvif_tasks[device_id]['thread']:
                 onvif_tasks[device_id]['thread'].join(timeout=5.0)
             return jsonify({'code': 0, 'msg': 'ONVIF截图任务已停止'})
-        return jsonify({'code': 404, 'msg': '未找到运行的ONVIF截图任务'}), 404
+        return jsonify({'code': 400, 'msg': '未找到运行的ONVIF截图任务'}), 400
     except Exception as e:
         logger.error(f"停止ONVIF截图失败: {str(e)}")
         return jsonify({'code': 500, 'msg': f'停止ONVIF截图失败: {str(e)}'}), 500
@@ -822,7 +829,9 @@ def onvif_status(device_id):
 def capture_snapshot(device_id):
     """从RTSP/RTMP流抓取一帧图片并存入数据库"""
     try:
-        device = Device.query.get_or_404(device_id)
+        device = Device.query.get(device_id)
+        if not device:
+            return jsonify({'code': 400, 'msg': f'设备不存在: ID={device_id}'}), 400
         
         if not device.source:
             return jsonify({'code': 400, 'msg': '设备源地址为空'}), 400
@@ -1037,7 +1046,7 @@ def on_dvr_callback():
             return jsonify({'code': 0, 'msg': None})
         
         # 记录完整的回调数据用于调试
-        logger.debug(f"on_dvr回调：收到回调数据 {data}")
+        logger.info(f"on_dvr回调：收到回调数据 {data}")
         
         # 从回调数据中提取信息
         # SRS回调数据结构示例：
@@ -1069,7 +1078,7 @@ def on_dvr_callback():
                 device = Device.query.get(potential_device_id)
                 if device:
                     device_id = potential_device_id
-                    logger.debug(f"on_dvr回调：从流名称中提取设备ID stream={stream}, device_id={device_id}")
+                    logger.info(f"on_dvr回调：从流名称中提取设备ID stream={stream}, device_id={device_id}")
         
         # 如果还是找不到，尝试通过rtmp_stream字段匹配设备
         # 查询rtmp_stream包含该流名称的设备
@@ -1091,7 +1100,7 @@ def on_dvr_callback():
                 ).first()
                 if device:
                     device_id = device.id
-                    logger.debug(f"on_dvr回调：通过rtmp_stream匹配到设备 stream={stream}, device_id={device_id}, pattern={pattern}")
+                    logger.info(f"on_dvr回调：通过rtmp_stream匹配到设备 stream={stream}, device_id={device_id}, pattern={pattern}")
                     break
         
         # 如果仍然找不到，尝试从文件路径中提取设备ID
@@ -1108,7 +1117,7 @@ def on_dvr_callback():
                         device = Device.query.get(potential_id)
                         if device:
                             device_id = potential_id
-                            logger.debug(f"on_dvr回调：从文件路径中提取设备ID file_path={file_path}, device_id={device_id}")
+                            logger.info(f"on_dvr回调：从文件路径中提取设备ID file_path={file_path}, device_id={device_id}")
                             break
                         # 如果作为设备ID找不到，尝试通过rtmp_stream匹配
                         if not device:
@@ -1118,14 +1127,14 @@ def on_dvr_callback():
                                 ).first()
                                 if device:
                                     device_id = device.id
-                                    logger.debug(f"on_dvr回调：从文件路径中通过rtmp_stream匹配到设备 file_path={file_path}, stream={potential_id}, device_id={device_id}, pattern={pattern}")
+                                    logger.info(f"on_dvr回调：从文件路径中通过rtmp_stream匹配到设备 file_path={file_path}, stream={potential_id}, device_id={device_id}, pattern={pattern}")
                                     break
                         if device:
                             break
             except Exception as e:
-                logger.debug(f"on_dvr回调：从文件路径提取设备ID失败 file_path={file_path}, error={str(e)}")
+                logger.info(f"on_dvr回调：从文件路径提取设备ID失败 file_path={file_path}, error={str(e)}")
         
-        logger.debug(f"on_dvr回调：开始处理录像 device_id={device_id}, stream={stream}, file_path={file_path}")
+        logger.info(f"on_dvr回调：开始处理录像 device_id={device_id}, stream={stream}, file_path={file_path}")
         
         # 如果仍然找不到设备，记录警告并返回
         if not device:
@@ -1136,14 +1145,14 @@ def on_dvr_callback():
         record_space = get_record_space_by_device_id(device_id)
         if not record_space:
             try:
-                logger.debug(f"on_dvr回调：为设备 {device_id} 创建录像空间")
+                logger.info(f"on_dvr回调：为设备 {device_id} 创建录像空间")
                 record_space = create_record_space_for_device(device_id, device.name)
-                logger.debug(f"on_dvr回调：录像空间创建成功 space_id={record_space.id}, bucket_name={record_space.bucket_name}")
+                logger.info(f"on_dvr回调：录像空间创建成功 space_id={record_space.id}, bucket_name={record_space.bucket_name}")
             except Exception as e:
                 logger.error(f"on_dvr回调：创建设备录像空间失败 device_id={device_id}, error={str(e)}", exc_info=True)
                 return jsonify({'code': 0, 'msg': None})
         else:
-            logger.debug(f"on_dvr回调：使用现有录像空间 space_id={record_space.id}, bucket_name={record_space.bucket_name}")
+            logger.info(f"on_dvr回调：使用现有录像空间 space_id={record_space.id}, bucket_name={record_space.bucket_name}")
         
         # 处理文件路径：可能是绝对路径，也可能是相对路径（需要结合cwd）
         cwd = data.get('cwd', '')
@@ -1157,7 +1166,7 @@ def on_dvr_callback():
             # 如果既不是绝对路径，也没有cwd，尝试直接使用
             absolute_file_path = file_path
         
-        logger.debug(f"on_dvr回调：处理后的文件路径 absolute_file_path={absolute_file_path}, cwd={cwd}, original_file={file_path}")
+        logger.info(f"on_dvr回调：处理后的文件路径 absolute_file_path={absolute_file_path}, cwd={cwd}, original_file={file_path}")
         
         # 等待文件创建完成（SRS可能在回调时文件还在写入中）
         max_retries = 10
@@ -1176,11 +1185,11 @@ def on_dvr_callback():
                         # 文件大小稳定且不为0，说明文件已创建完成
                         file_exists = True
                         file_size = size1
-                        logger.debug(f"on_dvr回调：文件已就绪 file_path={absolute_file_path}, size={file_size} bytes, attempts={attempt + 1}")
+                        logger.info(f"on_dvr回调：文件已就绪 file_path={absolute_file_path}, size={file_size} bytes, attempts={attempt + 1}")
                         break
                 except OSError as e:
                     # 文件可能还在创建中，继续等待
-                    logger.debug(f"on_dvr回调：文件可能还在创建中 attempt={attempt + 1}, error={str(e)}")
+                    logger.info(f"on_dvr回调：文件可能还在创建中 attempt={attempt + 1}, error={str(e)}")
                     pass
             
             if attempt < max_retries - 1:
@@ -1194,7 +1203,7 @@ def on_dvr_callback():
         # 文件路径格式：/data/playbacks/live/{device_id}/{year}/{month}/{day}/{filename}
         # 例如：/data/playbacks/live/1764341204704370850/2025/11/28/1764352410083.flv
         path_parts = absolute_file_path.split(os.sep)
-        logger.debug(f"on_dvr回调：路径解析 path_parts={path_parts}")
+        logger.info(f"on_dvr回调：路径解析 path_parts={path_parts}")
         
         # 查找设备ID在路径中的位置，然后提取日期部分
         # 路径结构：['', 'data', 'playbacks', 'live', device_id, year, month, day, filename]
@@ -1230,14 +1239,21 @@ def on_dvr_callback():
                 month = path_parts[live_index + 3]
                 day = path_parts[live_index + 4]
                 date_dir = f"{year}/{month}/{day}"
-                # 从路径解析的日期构建record_time
+                # 优先使用文件修改时间作为record_time（包含完整的时间信息）
+                # 如果文件修改时间不可用，则使用从路径解析的日期（时间为00:00:00）
                 try:
-                    record_time = datetime(int(year), int(month), int(day))
-                except (ValueError, TypeError):
-                    # 如果日期解析失败，使用文件修改时间
                     file_mtime = os.path.getmtime(absolute_file_path)
                     record_time = datetime.fromtimestamp(file_mtime)
-                logger.debug(f"on_dvr回调：从路径解析日期成功 date_dir={date_dir}, year={year}, month={month}, day={day}")
+                    logger.info(f"on_dvr回调：使用文件修改时间作为record_time date_dir={date_dir}, record_time={record_time}")
+                except (OSError, ValueError):
+                    # 如果获取文件修改时间失败，使用从路径解析的日期
+                    try:
+                        record_time = datetime(int(year), int(month), int(day))
+                        logger.warning(f"on_dvr回调：无法获取文件修改时间，使用路径日期 date_dir={date_dir}, record_time={record_time}")
+                    except (ValueError, TypeError):
+                        # 如果日期解析也失败，使用当前时间
+                        record_time = datetime.utcnow()
+                        logger.warning(f"on_dvr回调：日期解析失败，使用当前时间 record_time={record_time}")
         except (IndexError, ValueError) as e:
             # 如果解析失败，使用文件修改时间作为备选方案
             logger.warning(f"on_dvr回调：从路径解析日期失败 error={str(e)}, file_path={absolute_file_path}", exc_info=True)
@@ -1265,7 +1281,7 @@ def on_dvr_callback():
         
         # 构建MinIO对象名称：device_id/YYYY/MM/DD/filename
         object_name = f"{device_id}/{date_dir}/{filename}"
-        logger.debug(f"on_dvr回调：准备上传到MinIO bucket={record_space.bucket_name}, object_name={object_name}, file_size={file_size} bytes")
+        logger.info(f"on_dvr回调：准备上传到MinIO bucket={record_space.bucket_name}, object_name={object_name}, file_size={file_size} bytes")
         
         # 上传到MinIO
         minio_client = get_minio_client()
@@ -1275,7 +1291,7 @@ def on_dvr_callback():
         if not minio_client.bucket_exists(bucket_name):
             try:
                 minio_client.make_bucket(bucket_name)
-                logger.debug(f"on_dvr回调：创建MinIO bucket {bucket_name}")
+                logger.info(f"on_dvr回调：创建MinIO bucket {bucket_name}")
             except Exception as e:
                 logger.error(f"on_dvr回调：创建MinIO bucket失败 bucket_name={bucket_name}, error={str(e)}", exc_info=True)
                 return jsonify({'code': 0, 'msg': None})
@@ -1288,12 +1304,12 @@ def on_dvr_callback():
                 absolute_file_path,
                 content_type=content_type
             )
-            logger.debug(f"on_dvr回调：录像上传成功 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, file_size={file_size} bytes")
+            logger.info(f"on_dvr回调：录像上传成功 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, file_size={file_size} bytes")
             
             # 抽取视频封面
             thumbnail_path = None
             try:
-                logger.debug(f"on_dvr回调：开始抽取视频封面 video_path={absolute_file_path}")
+                logger.info(f"on_dvr回调：开始抽取视频封面 video_path={absolute_file_path}")
                 frame = extract_thumbnail_from_video(absolute_file_path, output_path=None, frame_position=0.1)
                 
                 if frame is not None:
@@ -1320,7 +1336,7 @@ def on_dvr_callback():
                             )
                             # 构建封面的URL格式：/api/v1/buckets/{bucket_name}/objects/download?prefix={thumbnail_object_name}
                             thumbnail_path = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={quote(thumbnail_object_name, safe='')}"
-                            logger.debug(f"on_dvr回调：封面上传成功 device_id={device_id}, thumbnail_path={thumbnail_path}")
+                            logger.info(f"on_dvr回调：封面上传成功 device_id={device_id}, thumbnail_path={thumbnail_path}")
                         finally:
                             # 删除临时文件
                             try:
@@ -1350,10 +1366,15 @@ def on_dvr_callback():
                 except:
                     pass
                 
-                # 确定录制时间
+                # 确定录制时间（如果之前没有设置，使用文件修改时间）
                 if 'record_time' not in locals():
-                    file_mtime = os.path.getmtime(absolute_file_path)
-                    record_time = datetime.fromtimestamp(file_mtime)
+                    try:
+                        file_mtime = os.path.getmtime(absolute_file_path)
+                        record_time = datetime.fromtimestamp(file_mtime)
+                    except (OSError, ValueError):
+                        # 如果获取文件修改时间失败，使用当前时间
+                        record_time = datetime.utcnow()
+                        logger.warning(f"on_dvr回调：无法获取文件修改时间，使用当前时间作为record_time")
                 
                 # 构建录像文件的URL格式：/api/v1/buckets/{bucket_name}/objects/download?prefix={object_name}
                 file_path_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={quote(object_name, safe='')}"
@@ -1379,11 +1400,16 @@ def on_dvr_callback():
                     existing_playback.file_size = file_size
                     if duration > 0:
                         existing_playback.duration = duration
-                    existing_playback.updated_at = datetime.utcnow()
+                    # 使用带时区的本地时间（Asia/Shanghai，UTC+8）
+                    shanghai_tz = timezone(timedelta(hours=8))
+                    existing_playback.updated_at = datetime.now(shanghai_tz)
                     db.session.commit()
-                    logger.debug(f"on_dvr回调：更新Playback记录 playback_id={existing_playback.id}, file_path={file_path_url}, thumbnail_path={thumbnail_path}")
+                    logger.info(f"on_dvr回调：更新Playback记录 playback_id={existing_playback.id}, file_path={file_path_url}, thumbnail_path={thumbnail_path}")
                 else:
                     # 创建新记录
+                    # 使用带时区的本地时间（Asia/Shanghai，UTC+8）
+                    shanghai_tz = timezone(timedelta(hours=8))
+                    current_time = datetime.now(shanghai_tz)
                     playback = Playback(
                         file_path=file_path_url,
                         event_time=record_time,
@@ -1391,11 +1417,13 @@ def on_dvr_callback():
                         device_name=device.name if device else '',
                         duration=duration if duration > 0 else 1,  # 至少1秒
                         thumbnail_path=thumbnail_path,
-                        file_size=file_size
+                        file_size=file_size,
+                        created_at=current_time,
+                        updated_at=current_time
                     )
                     db.session.add(playback)
                     db.session.commit()
-                    logger.debug(f"on_dvr回调：创建Playback记录 playback_id={playback.id}, file_path={file_path_url}, thumbnail_path={thumbnail_path}")
+                    logger.info(f"on_dvr回调：创建Playback记录 playback_id={playback.id}, file_path={file_path_url}, thumbnail_path={thumbnail_path}")
             except Exception as e:
                 logger.error(f"on_dvr回调：创建/更新Playback记录失败 device_id={device_id}, error={str(e)}", exc_info=True)
                 db.session.rollback()
@@ -1411,7 +1439,7 @@ def on_dvr_callback():
             logger.error(f"on_dvr回调：上传录像失败 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, error={str(e)}", exc_info=True)
             return jsonify({'code': 0, 'msg': None})
         
-        logger.debug(f"on_dvr回调：处理完成 device_id={device_id}, object_name={object_name}, thumbnail_path={thumbnail_path}")
+        logger.info(f"on_dvr回调：处理完成 device_id={device_id}, object_name={object_name}, thumbnail_path={thumbnail_path}")
         return jsonify({'code': 0, 'msg': None})
         
     except Exception as e:
@@ -1506,7 +1534,9 @@ def create_directory():
 def update_directory(directory_id):
     """更新目录"""
     try:
-        directory = DeviceDirectory.query.get_or_404(directory_id)
+        directory = DeviceDirectory.query.get(directory_id)
+        if not directory:
+            return jsonify({'code': 400, 'msg': f'目录不存在: ID={directory_id}'}), 400
         data = request.get_json()
         if not data:
             return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
@@ -1567,7 +1597,9 @@ def update_directory(directory_id):
 def delete_directory(directory_id):
     """删除目录"""
     try:
-        directory = DeviceDirectory.query.get_or_404(directory_id)
+        directory = DeviceDirectory.query.get(directory_id)
+        if not directory:
+            return jsonify({'code': 400, 'msg': f'目录不存在: ID={directory_id}'}), 400
         
         # 检查是否有子目录
         children_count = DeviceDirectory.query.filter_by(parent_id=directory_id).count()
@@ -1599,7 +1631,9 @@ def delete_directory(directory_id):
 def list_directory_devices(directory_id):
     """查询目录下的设备列表"""
     try:
-        directory = DeviceDirectory.query.get_or_404(directory_id)
+        directory = DeviceDirectory.query.get(directory_id)
+        if not directory:
+            return jsonify({'code': 400, 'msg': f'目录不存在: ID={directory_id}'}), 400
         
         # 获取请求参数
         page_no = int(request.args.get('pageNo', 1))
@@ -1662,7 +1696,9 @@ def list_directory_devices(directory_id):
 def move_device_to_directory(device_id):
     """移动设备到目录"""
     try:
-        device = Device.query.get_or_404(device_id)
+        device = Device.query.get(device_id)
+        if not device:
+            return jsonify({'code': 400, 'msg': f'设备不存在: ID={device_id}'}), 400
         data = request.get_json()
         
         # 检查参数是否存在（兼容处理：允许directory_id为None/null来解除关联）
@@ -1701,7 +1737,9 @@ def move_device_to_directory(device_id):
 def get_directory_info(directory_id):
     """获取目录详情"""
     try:
-        directory = DeviceDirectory.query.get_or_404(directory_id)
+        directory = DeviceDirectory.query.get(directory_id)
+        if not directory:
+            return jsonify({'code': 400, 'msg': f'目录不存在: ID={directory_id}'}), 400
         
         # 获取目录下的设备数量
         device_count = Device.query.filter_by(directory_id=directory_id).count()

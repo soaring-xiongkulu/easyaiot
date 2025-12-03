@@ -3,7 +3,7 @@
 @email andywebjava@163.com
 @wechat EasyAIoT2025
 """
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from flask_sqlalchemy import SQLAlchemy
 
@@ -18,8 +18,8 @@ class DeviceDirectory(db.Model):
     parent_id = db.Column(db.Integer, db.ForeignKey('device_directory.id', ondelete='CASCADE'), nullable=True, comment='父目录ID，NULL表示根目录')
     description = db.Column(db.String(500), nullable=True, comment='目录描述')
     sort_order = db.Column(db.Integer, default=0, nullable=False, comment='排序顺序')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     # 自关联关系：子目录
     children = db.relationship('DeviceDirectory', backref=db.backref('parent', remote_side=[id]), lazy=True, cascade='all, delete-orphan')
@@ -51,8 +51,8 @@ class Device(db.Model):
     auto_snap_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否开启自动抓拍[默认不开启]')
     directory_id = db.Column(db.Integer, db.ForeignKey('device_directory.id', ondelete='SET NULL'), nullable=True, comment='所属目录ID')
     images = db.relationship('Image', backref='project', lazy=True, cascade='all, delete-orphan')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
 
 class Image(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -61,7 +61,7 @@ class Image(db.Model):
     path = db.Column(db.String(500), nullable=False)
     width = db.Column(db.Integer, nullable=False)
     height = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
     device_id = db.Column(db.String(100), db.ForeignKey('device.id'))  # 添加设备ID外键
 
 class Nvr(db.Model):
@@ -97,8 +97,8 @@ class SnapSpace(db.Model):
     save_time = db.Column(db.Integer, default=0, nullable=False, comment='文件保存时间[0:永久保存,>=7(单位:天)]')
     description = db.Column(db.String(500), nullable=True, comment='空间描述')
     device_id = db.Column(db.String(100), db.ForeignKey('device.id', ondelete='SET NULL'), nullable=True, unique=True, comment='关联的设备ID（一对一关系）')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     # 关联的抓拍任务
     snap_tasks = db.relationship('SnapTask', backref='snap_space', lazy=True, cascade='all, delete-orphan')
@@ -134,8 +134,8 @@ class RecordSpace(db.Model):
     save_time = db.Column(db.Integer, default=0, nullable=False, comment='文件保存时间[0:永久保存,>=7(单位:天)]')
     description = db.Column(db.String(500), nullable=True, comment='空间描述')
     device_id = db.Column(db.String(100), db.ForeignKey('device.id', ondelete='SET NULL'), nullable=True, unique=True, comment='关联的设备ID（一对一关系）')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     # 关联的设备
     device = db.relationship('Device', backref='record_space', uselist=False)
@@ -205,8 +205,8 @@ class SnapTask(db.Model):
     last_capture_time = db.Column(db.DateTime, nullable=True, comment='最后抓拍时间')
     last_success_time = db.Column(db.DateTime, nullable=True, comment='最后成功时间')
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     # 关联的检测区域（不使用数据库外键约束，仅ORM关系）
     # 注意：DetectionRegion.task_id 没有外键约束，需要通过 primaryjoin 明确指定关系
@@ -292,8 +292,8 @@ class DetectionRegion(db.Model):
     is_enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用该区域')
     sort_order = db.Column(db.Integer, default=0, nullable=False, comment='排序顺序')
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     # 关联的区域模型服务配置
     region_services = db.relationship('RegionModelService', backref='detection_region', lazy=True, cascade='all, delete-orphan')
@@ -352,8 +352,8 @@ class FrameExtractor(db.Model):
     log_path = db.Column(db.String(500), nullable=True, comment='日志文件路径')
     task_id = db.Column(db.Integer, nullable=True, comment='关联的算法任务ID')
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     def to_dict(self):
         """转换为字典"""
@@ -398,8 +398,8 @@ class Sorter(db.Model):
     log_path = db.Column(db.String(500), nullable=True, comment='日志文件路径')
     task_id = db.Column(db.Integer, nullable=True, comment='关联的算法任务ID')
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     def to_dict(self):
         """转换为字典"""
@@ -459,8 +459,8 @@ class Pusher(db.Model):
     log_path = db.Column(db.String(500), nullable=True, comment='日志文件路径')
     task_id = db.Column(db.Integer, nullable=True, comment='关联的算法任务ID')
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     def to_dict(self):
         """转换为字典"""
@@ -544,7 +544,7 @@ algorithm_task_device = db.Table(
     'algorithm_task_device',
     db.Column('task_id', db.Integer, db.ForeignKey('algorithm_task.id', ondelete='CASCADE'), primary_key=True, comment='算法任务ID'),
     db.Column('device_id', db.String(100), db.ForeignKey('device.id', ondelete='CASCADE'), primary_key=True, comment='摄像头ID'),
-    db.Column('created_at', db.DateTime, default=datetime.utcnow, comment='创建时间')
+    db.Column('created_at', db.DateTime, default=lambda: datetime.utcnow(), comment='创建时间')
 )
 
 
@@ -610,8 +610,8 @@ class AlgorithmTask(db.Model):
     defense_mode = db.Column(db.String(20), default='half', nullable=False, comment='布防模式[full:全防模式,half:半防模式,day:白天模式,night:夜间模式]')
     defense_schedule = db.Column(db.Text, nullable=True, comment='布防时段配置（JSON格式，7天×24小时的二维数组）')
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     # 关联关系
     devices = db.relationship('Device', secondary=algorithm_task_device, backref='algorithm_task_list', lazy=True)  # 多对多关系
@@ -699,8 +699,8 @@ class TrackingTarget(db.Model):
     total_detections = db.Column(db.Integer, default=0, nullable=False, comment='总检测次数')
     information = db.Column(db.Text, nullable=True, comment='详细信息（JSON格式）')
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     # 关联关系
     algorithm_task = db.relationship('AlgorithmTask', backref='tracking_targets', lazy=True)
@@ -754,8 +754,8 @@ class AlgorithmModelService(db.Model):
     is_enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用')
     sort_order = db.Column(db.Integer, default=0, nullable=False, comment='排序顺序')
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     def to_dict(self):
         """转换为字典"""
@@ -811,8 +811,8 @@ class RegionModelService(db.Model):
     is_enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用')
     sort_order = db.Column(db.Integer, default=0, nullable=False, comment='排序顺序')
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     def to_dict(self):
         """转换为字典"""
@@ -872,8 +872,8 @@ class DeviceStorageConfig(db.Model):
     last_snap_cleanup_time = db.Column(db.DateTime, nullable=True, comment='最后抓拍图片清理时间')
     last_video_cleanup_time = db.Column(db.DateTime, nullable=True, comment='最后录像清理时间')
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     def to_dict(self):
         """转换为字典"""
@@ -909,8 +909,9 @@ class Playback(db.Model):
     duration = db.Column(db.SmallInteger(), nullable=False)  # 时长/秒
     thumbnail_path = db.Column(db.String(200), nullable=True)  # 封面图路径
     file_size = db.Column(db.BigInteger(), nullable=True)  # 文件大小（字节）
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # 创建时间
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # 更新时间
+    # 使用带时区的本地时间（Asia/Shanghai，UTC+8）
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone(timedelta(hours=8))))  # 创建时间
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone(timedelta(hours=8))), onupdate=lambda: datetime.now(timezone(timedelta(hours=8))))  # 更新时间
     
     def to_dict(self):
         """转换为字典"""

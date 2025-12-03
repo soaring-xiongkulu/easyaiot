@@ -67,7 +67,7 @@ def get_space(space_id):
             'data': space.to_dict()
         })
     except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
+        return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'获取抓拍空间失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
@@ -80,9 +80,9 @@ def get_space_by_device(device_id):
         space = get_snap_space_by_device_id(device_id)
         if not space:
             return jsonify({
-                'code': 404,
+                'code': 400,
                 'msg': f'设备 {device_id} 没有关联的抓拍空间'
-            }), 404
+            }), 400
         return jsonify({
             'code': 0,
             'msg': 'success',
@@ -205,7 +205,7 @@ def get_task(task_id):
             'data': task
         })
     except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
+        return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'获取抓拍任务失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
@@ -458,7 +458,9 @@ def list_regions(task_id):
 def get_region(region_id):
     """获取检测区域详情"""
     try:
-        region = DetectionRegion.query.get_or_404(region_id)
+        region = DetectionRegion.query.get(region_id)
+        if not region:
+            return jsonify({'code': 400, 'msg': f'检测区域不存在: ID={region_id}'}), 400
         return jsonify({
             'code': 0,
             'msg': 'success',
@@ -524,7 +526,9 @@ def create_region():
 def update_region(region_id):
     """更新检测区域"""
     try:
-        region = DetectionRegion.query.get_or_404(region_id)
+        region = DetectionRegion.query.get(region_id)
+        if not region:
+            return jsonify({'code': 400, 'msg': f'检测区域不存在: ID={region_id}'}), 400
         data = request.get_json()
         if not data:
             return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
@@ -575,7 +579,9 @@ def update_region(region_id):
 def delete_region(region_id):
     """删除检测区域"""
     try:
-        region = DetectionRegion.query.get_or_404(region_id)
+        region = DetectionRegion.query.get(region_id)
+        if not region:
+            return jsonify({'code': 400, 'msg': f'检测区域不存在: ID={region_id}'}), 400
         db.session.delete(region)
         db.session.commit()
         
@@ -882,7 +888,7 @@ def get_space_image(space_id, object_name):
             headers={'Content-Disposition': f'inline; filename="{filename}"'}
         )
     except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
+        return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'获取抓拍图片失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500

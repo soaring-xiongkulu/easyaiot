@@ -4,7 +4,7 @@
 @wechat EasyAIoT2025
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from operator import or_
 
 from flask import Blueprint, request, jsonify
@@ -95,7 +95,9 @@ def list_playbacks():
 def get_playback_info(playback_id):
     """获取单个录像回放详情"""
     try:
-        playback = Playback.query.get_or_404(playback_id)
+        playback = Playback.query.get(playback_id)
+        if not playback:
+            return jsonify({'code': 400, 'msg': f'录像回放不存在: ID={playback_id}'}), 400
         return jsonify({
             'code': 0,
             'msg': 'success',
@@ -127,6 +129,9 @@ def create_playback():
             return jsonify({'code': 400, 'msg': 'event_time格式错误，应为ISO格式'}), 400
 
         # 创建录像回放记录
+        # 使用带时区的本地时间（Asia/Shanghai，UTC+8）
+        shanghai_tz = timezone(timedelta(hours=8))
+        current_time = datetime.now(shanghai_tz)
         playback = Playback(
             file_path=data['file_path'],
             event_time=event_time,
@@ -134,7 +139,9 @@ def create_playback():
             device_name=data['device_name'],
             duration=int(data['duration']),
             thumbnail_path=data.get('thumbnail_path'),
-            file_size=data.get('file_size')
+            file_size=data.get('file_size'),
+            created_at=current_time,
+            updated_at=current_time
         )
 
         db.session.add(playback)
@@ -159,7 +166,9 @@ def create_playback():
 def update_playback(playback_id):
     """更新录像回放记录"""
     try:
-        playback = Playback.query.get_or_404(playback_id)
+        playback = Playback.query.get(playback_id)
+        if not playback:
+            return jsonify({'code': 400, 'msg': f'录像回放不存在: ID={playback_id}'}), 400
         data = request.get_json()
         if not data:
             return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
@@ -204,7 +213,9 @@ def update_playback(playback_id):
 def delete_playback(playback_id):
     """删除录像回放记录"""
     try:
-        playback = Playback.query.get_or_404(playback_id)
+        playback = Playback.query.get(playback_id)
+        if not playback:
+            return jsonify({'code': 400, 'msg': f'录像回放不存在: ID={playback_id}'}), 400
         db.session.delete(playback)
         db.session.commit()
 
@@ -222,9 +233,11 @@ def delete_playback(playback_id):
 def get_playback_thumbnail(playback_id):
     """获取录像回放封面图"""
     try:
-        playback = Playback.query.get_or_404(playback_id)
+        playback = Playback.query.get(playback_id)
+        if not playback:
+            return jsonify({'code': 400, 'msg': f'录像回放不存在: ID={playback_id}'}), 400
         if not playback.thumbnail_path:
-            return jsonify({'code': 404, 'msg': '该录像没有封面图'}), 404
+            return jsonify({'code': 400, 'msg': '该录像没有封面图'}), 400
 
         return jsonify({
             'code': 0,

@@ -56,6 +56,32 @@ export const getAlertRecord = (path) => {
   return commonApi('get', Api.Alarm + '/record?path=' + path, {}, {}, false, 'blob');
 };
 
+// 根据告警时间和设备ID查询对应的录像
+export const queryAlertRecord = async (params: {
+  device_id: string;
+  alert_time: string;
+  time_range?: number;
+}) => {
+  const res = await commonApi('get', Api.Alarm + '/record/query', {params}, {}, false);
+  // 处理响应数据
+  if (res && res.data) {
+    const responseData = res.data;
+    // 如果code是400（业务错误），抛出错误让前端处理
+    if (responseData.code === 400) {
+      const error: any = new Error(responseData.message || '未找到匹配的录像');
+      error.response = { data: responseData };
+      error.data = responseData;
+      throw error;
+    }
+    // 成功情况，返回数据
+    if (responseData.data) {
+      return responseData.data;
+    }
+    return responseData;
+  }
+  return res;
+};
+
 export const generatePlayback = (params) => {
   return commonApi('post', Api.Alarm + '/generatePlayback', {params});
 };
