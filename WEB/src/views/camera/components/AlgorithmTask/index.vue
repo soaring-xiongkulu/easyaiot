@@ -426,11 +426,20 @@ const handleDelete = async (record: AlgorithmTask) => {
 const handleStart = async (record: AlgorithmTask) => {
   try {
     const response = await startAlgorithmTask(record.id);
-    if (response.code === 0) {
+    // 由于 isTransformResponse: true，成功时返回的是任务对象，而不是包含 code 的响应对象
+    if (response && (response as any).id) {
       createMessage.success('启动成功');
       handleSuccess();
+    } else if (response && typeof response === 'object' && 'code' in response) {
+      // 如果返回的是完整响应对象（包含 code）
+      if ((response as any).code === 0) {
+        createMessage.success('启动成功');
+        handleSuccess();
+      } else {
+        createMessage.error((response as any).msg || '启动失败');
+      }
     } else {
-      createMessage.error(response.msg || '启动失败');
+      createMessage.error('启动失败');
     }
   } catch (error) {
     console.error('启动算法任务失败', error);
@@ -441,11 +450,20 @@ const handleStart = async (record: AlgorithmTask) => {
 const handleStop = async (record: AlgorithmTask) => {
   try {
     const response = await stopAlgorithmTask(record.id);
-    if (response.code === 0) {
+    // 由于 isTransformResponse: true，成功时返回的是任务对象，而不是包含 code 的响应对象
+    if (response && (response as any).id) {
       createMessage.success('停止成功');
       handleSuccess();
+    } else if (response && typeof response === 'object' && 'code' in response) {
+      // 如果返回的是完整响应对象（包含 code）
+      if ((response as any).code === 0) {
+        createMessage.success('停止成功');
+        handleSuccess();
+      } else {
+        createMessage.error((response as any).msg || '停止失败');
+      }
     } else {
-      createMessage.error(response.msg || '停止失败');
+      createMessage.error('停止失败');
     }
   } catch (error) {
     console.error('停止算法任务失败', error);
