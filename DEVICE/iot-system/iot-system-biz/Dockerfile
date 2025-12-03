@@ -63,12 +63,11 @@ WORKDIR /app
 COPY --from=build --chown=appuser:appuser /app/iot-system/iot-system-biz/target/iot-system-biz.jar app.jar
 
 # 系统服务专用环境变量配置
+# 系统服务需要稳定的内存配置，适合处理核心业务逻辑
 ENV TZ=Asia/Shanghai \
     LANG=C.UTF-8 \
     SERVER_PORT=48099 \
-    # 系统服务需要稳定的内存配置，适合处理核心业务逻辑
-    JAVA_OPTS="-Xms512m -Xmx1024m -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Djava.security.egd=file:/dev/./urandom -Duser.timezone=Asia/Shanghai -Dfile.encoding=UTF-8" \
-
+    JAVA_OPTS="-Xms512m -Xmx1024m -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Djava.security.egd=file:/dev/./urandom -Duser.timezone=Asia/Shanghai -Dfile.encoding=UTF-8"
 
 # 创建运行时必要的目录结构
 RUN mkdir -p /app/{logs,config,data,temp,backup} && chown -R appuser:appuser /app
