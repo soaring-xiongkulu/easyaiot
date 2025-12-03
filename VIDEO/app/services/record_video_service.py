@@ -9,7 +9,7 @@ import zipfile
 import io
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
-from urllib.parse import quote
+from urllib.parse import quote, urlparse, parse_qs
 from flask import current_app
 from minio import Minio
 from minio.error import S3Error
@@ -18,6 +18,29 @@ from models import db, RecordSpace, Playback
 from app.services.record_space_service import get_minio_client
 
 logger = logging.getLogger(__name__)
+
+
+def extract_prefix_from_url(url: str) -> Optional[str]:
+    """
+    从URL中提取prefix参数
+    格式: /api/v1/buckets/{bucket_name}/objects/download?prefix={prefix}
+    如果url不是URL格式，则直接返回url（兼容旧格式）
+    """
+    if not url:
+        return None
+    
+    # 如果不是URL格式（不包含/api/v1/buckets），直接返回（兼容旧格式）
+    if not url.startswith('/api/v1/buckets/'):
+        return url
+    
+    try:
+        parsed = urlparse(url)
+        query_params = parse_qs(parsed.query)
+        prefix = query_params.get('prefix', [None])[0]
+        return prefix
+    except Exception as e:
+        logger.warning(f"从URL提取prefix失败: {url}, 错误: {str(e)}")
+        return None
 
 
 def list_record_videos(space_id: int, device_id: Optional[str] = None, 
@@ -71,11 +94,33 @@ def list_record_videos(space_id: int, device_id: Optional[str] = None,
                 video_objects.append(obj)
         
         # 批量查询Playback记录
+        # 需要兼容URL格式和旧格式（object_name）
         playback_map = {}
         if video_object_names:
+            # 先尝试用object_name直接查询（兼容旧格式）
             playbacks = Playback.query.filter(Playback.file_path.in_(video_object_names)).all()
             for playback in playbacks:
-                playback_map[playback.file_path] = playback
+                # 从playback.file_path中提取prefix，用于匹配
+                extracted_prefix = extract_prefix_from_url(playback.file_path)
+                if extracted_prefix:
+                    # 使用提取的prefix作为key（对应obj.object_name）
+                    playback_map[extracted_prefix] = playback
+                else:
+                    # 如果提取失败，使用原始file_path（兼容旧格式）
+                    playback_map[playback.file_path] = playback
+            
+            # 同时构建URL格式的查询条件（兼容新格式）
+            url_formatted_names = [
+                f"/api/v1/buckets/{bucket_name}/objects/download?prefix={quote(name, safe='')}"
+                for name in video_object_names
+            ]
+            playbacks_by_url = Playback.query.filter(Playback.file_path.in_(url_formatted_names)).all()
+            for playback in playbacks_by_url:
+                # 从playback.file_path中提取prefix，用于匹配
+                extracted_prefix = extract_prefix_from_url(playback.file_path)
+                if extracted_prefix:
+                    # 使用提取的prefix作为key（对应obj.object_name）
+                    playback_map[extracted_prefix] = playback
         
         # 遍历视频对象，构建视频列表
         for obj in video_objects:
@@ -89,8 +134,12 @@ def list_record_videos(space_id: int, device_id: Optional[str] = None,
                 duration = None
                 
                 if playback and playback.thumbnail_path:
-                    # 如果Playback记录中有封面路径，构建下载URL
-                    thumbnail_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={quote(playback.thumbnail_path, safe='')}"
+                    # 如果Playback记录中的thumbnail_path已经是URL格式，直接使用
+                    if playback.thumbnail_path.startswith('/api/v1/buckets/'):
+                        thumbnail_url = playback.thumbnail_path
+                    else:
+                        # 如果是旧格式（object_name），构建URL
+                        thumbnail_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={quote(playback.thumbnail_path, safe='')}"
                 else:
                     # 如果没有Playback记录，尝试根据视频文件名构建封面路径
                     # 将视频文件扩展名替换为 .jpg

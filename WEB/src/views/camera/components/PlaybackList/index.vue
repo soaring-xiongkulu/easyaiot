@@ -57,7 +57,7 @@
       </template>
     </PlaybackCardList>
 
-    <DialogPlayer title="录像播放" @register="registerPlayerAddModel" />
+    <DialogPlayer @register="registerPlayerAddModel" />
   </div>
 </template>
 
@@ -313,14 +313,35 @@ async function handleFormReset() {
   reload();
 }
 
+// 获取录像播放地址
+const getPlaybackUrl = (filePath: string): string => {
+  if (!filePath) return '';
+  // 如果是完整URL，直接返回
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    return filePath;
+  }
+  // 如果是相对路径，拼接API前缀
+  if (filePath.startsWith('/')) {
+    return `${import.meta.env.VITE_GLOB_API_URL || ''}${filePath}`;
+  }
+  // 其他情况直接返回
+  return filePath;
+};
+
 // 播放录像
 const handlePlay = (record: PlaybackInfo) => {
-  // 这里需要根据实际的播放器组件来调整
-  // 假设使用DialogPlayer组件
+  // 获取播放地址
+  const httpStream = getPlaybackUrl(record.file_path);
+  
+  if (!httpStream) {
+    createMessage.warning('录像文件地址无效，无法播放');
+    return;
+  }
+  
+  // 打开播放器，与算法任务保持一致
   openPlayerAddModel(true, {
-    ...record,
-    rtmp_stream: record.file_path, // 使用文件路径作为播放源
-    http_stream: record.file_path
+    id: record.device_id,
+    http_stream: httpStream,
   });
 };
 

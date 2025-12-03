@@ -110,49 +110,19 @@
         </Spin>
       </div>
     </div>
-
-    <!-- 视频播放模态框 -->
-    <a-modal
-      v-model:open="playVisible"
-      :title="playVideo?.filename"
-      :footer="null"
-      :width="1000"
-    >
-      <div style="text-align: center">
-        <video
-          v-if="playVideo"
-          :src="getVideoUrl(playVideo)"
-          controls
-          style="width: 100%; max-height: 600px;"
-        />
-      </div>
-    </a-modal>
-
-    <!-- 视频预览模态框 -->
-    <a-modal
-      v-model:open="previewVisible"
-      :title="previewVideo?.filename"
-      :footer="null"
-      :width="800"
-    >
-      <div style="text-align: center">
-        <video
-          v-if="previewVideo"
-          :src="getVideoUrl(previewVideo)"
-          controls
-          style="width: 100%; max-height: 500px;"
-        />
-      </div>
-    </a-modal>
+    
+    <!-- 视频播放器弹框 -->
+    <DialogPlayer @register="registerPlayerModal" />
   </BasicModal>
 </template>
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
 import { List, Spin } from 'ant-design-vue';
-import { BasicModal, useModalInner } from '@/components/Modal';
+import { BasicModal, useModalInner, useModal } from '@/components/Modal';
 import { useMessage } from '@/hooks/web/useMessage';
 import { getRecordVideoList, deleteRecordVideos, type RecordVideo } from '@/api/device/record';
+import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue';
 
 defineOptions({ name: 'RecordVideoModal' });
 
@@ -166,9 +136,10 @@ const videoList = ref<RecordVideo[]>([]);
 const loading = ref(false);
 const selectedRowKeys = ref<string[]>([]);
 const previewVisible = ref(false);
-const playVisible = ref(false);
 const previewVideo = ref<RecordVideo | null>(null);
-const playVideo = ref<RecordVideo | null>(null);
+
+// 播放器弹框
+const [registerPlayerModal, { openModal: openPlayerModal }] = useModal();
 
 // 分页相关
 const page = ref(1);
@@ -206,6 +177,15 @@ function pageSizeChange(_current: number, size: number) {
 const getVideoUrl = (record: RecordVideo) => {
   // 优先使用后台返回的 url 字段，如果没有则使用 object_name 构建
   if (record.url) {
+    // 如果是完整URL（以http://或https://开头），直接返回
+    if (record.url.startsWith('http://') || record.url.startsWith('https://')) {
+      return record.url;
+    }
+    // 如果是相对路径（以/api/v1/buckets开头），添加前端启动地址前缀
+    if (record.url.startsWith('/api/v1/buckets')) {
+      return `${window.location.origin}${record.url}`;
+    }
+    // 其他情况直接返回
     return record.url;
   }
   if (!modalData.value.space_id) return '';
@@ -342,13 +322,18 @@ const handleSelectChange = (key: string, checked: boolean) => {
 };
 
 const handlePlay = (record: RecordVideo) => {
-  playVideo.value = record;
-  playVisible.value = true;
-  // 也可以使用 DialogPlayer 组件
-  // openPlayerModal(true, {
-  //   rtmp_stream: getVideoUrl(record),
-  //   http_stream: getVideoUrl(record),
-  // });
+  const videoUrl = getVideoUrl(record);
+  
+  if (!videoUrl) {
+    createMessage.warning('录像文件地址无效，无法播放');
+    return;
+  }
+  
+  // 使用 DialogPlayer 组件打开播放器
+  openPlayerModal(true, {
+    id: modalData.value.space_id || 0,
+    http_stream: videoUrl,
+  });
 };
 
 const handlePreview = (record: RecordVideo) => {

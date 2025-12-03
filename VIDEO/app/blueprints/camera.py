@@ -19,6 +19,7 @@ import requests
 from flask import Blueprint, current_app, request, jsonify
 from minio import Minio
 from minio.error import S3Error
+from urllib.parse import quote
 
 from app.services.camera_service import *
 from app.services.camera_service import (
@@ -1317,7 +1318,8 @@ def on_dvr_callback():
                                 tmp_thumbnail_path,
                                 content_type='image/jpeg'
                             )
-                            thumbnail_path = thumbnail_object_name
+                            # 构建封面的URL格式：/api/v1/buckets/{bucket_name}/objects/download?prefix={thumbnail_object_name}
+                            thumbnail_path = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={quote(thumbnail_object_name, safe='')}"
                             logger.debug(f"on_dvr回调：封面上传成功 device_id={device_id}, thumbnail_path={thumbnail_path}")
                         finally:
                             # 删除临时文件
@@ -1353,25 +1355,37 @@ def on_dvr_callback():
                     file_mtime = os.path.getmtime(absolute_file_path)
                     record_time = datetime.fromtimestamp(file_mtime)
                 
-                # 查找是否已存在相同文件路径的记录
+                # 构建录像文件的URL格式：/api/v1/buckets/{bucket_name}/objects/download?prefix={object_name}
+                file_path_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={quote(object_name, safe='')}"
+                
+                # 查找是否已存在相同文件路径的记录（兼容旧格式和新格式）
+                # 先尝试用URL格式查询
                 existing_playback = Playback.query.filter_by(
-                    file_path=object_name,
+                    file_path=file_path_url,
                     device_id=device_id
                 ).first()
                 
+                # 如果没找到，尝试用旧格式（object_name）查询（兼容旧数据）
+                if not existing_playback:
+                    existing_playback = Playback.query.filter_by(
+                        file_path=object_name,
+                        device_id=device_id
+                ).first()
+                
                 if existing_playback:
-                    # 更新现有记录
+                    # 更新现有记录（同时更新为URL格式）
+                    existing_playback.file_path = file_path_url
                     existing_playback.thumbnail_path = thumbnail_path
                     existing_playback.file_size = file_size
                     if duration > 0:
                         existing_playback.duration = duration
                     existing_playback.updated_at = datetime.utcnow()
                     db.session.commit()
-                    logger.debug(f"on_dvr回调：更新Playback记录 playback_id={existing_playback.id}, thumbnail_path={thumbnail_path}")
+                    logger.debug(f"on_dvr回调：更新Playback记录 playback_id={existing_playback.id}, file_path={file_path_url}, thumbnail_path={thumbnail_path}")
                 else:
                     # 创建新记录
                     playback = Playback(
-                        file_path=object_name,
+                        file_path=file_path_url,
                         event_time=record_time,
                         device_id=device_id,
                         device_name=device.name if device else '',
@@ -1381,7 +1395,7 @@ def on_dvr_callback():
                     )
                     db.session.add(playback)
                     db.session.commit()
-                    logger.debug(f"on_dvr回调：创建Playback记录 playback_id={playback.id}, thumbnail_path={thumbnail_path}")
+                    logger.debug(f"on_dvr回调：创建Playback记录 playback_id={playback.id}, file_path={file_path_url}, thumbnail_path={thumbnail_path}")
             except Exception as e:
                 logger.error(f"on_dvr回调：创建/更新Playback记录失败 device_id={device_id}, error={str(e)}", exc_info=True)
                 db.session.rollback()
