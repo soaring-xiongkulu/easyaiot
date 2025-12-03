@@ -559,12 +559,24 @@ class AlgorithmTask(db.Model):
     # 任务类型：realtime=实时算法任务（分析RTSP/RTMP流），snap=抓拍算法任务（分析抽帧图片）
     task_type = db.Column(db.String(20), default='realtime', nullable=False, comment='任务类型[realtime:实时算法任务,snap:抓拍算法任务]')
     
-    # 抽帧器和排序器（仅实时算法任务使用）
-    extractor_id = db.Column(db.Integer, db.ForeignKey('frame_extractor.id', ondelete='SET NULL'), nullable=True, comment='关联的抽帧器ID（仅实时算法任务）')
-    sorter_id = db.Column(db.Integer, db.ForeignKey('sorter.id', ondelete='SET NULL'), nullable=True, comment='关联的排序器ID（仅实时算法任务）')
+    # 模型配置（直接选择模型列表，不再依赖模型服务接口）
+    model_ids = db.Column(db.Text, nullable=True, comment='关联的模型ID列表（JSON格式，如[1,2,3]）')
+    model_names = db.Column(db.Text, nullable=True, comment='关联的模型名称列表（逗号分隔，冗余字段，用于快速显示）')
     
-    # 推送器（实时算法任务和抓拍算法任务都使用）
-    pusher_id = db.Column(db.Integer, db.ForeignKey('pusher.id', ondelete='SET NULL'), nullable=True, comment='关联的推送器ID')
+    # 实时算法任务配置
+    extract_interval = db.Column(db.Integer, default=5, nullable=False, comment='抽帧间隔（每N帧抽一次，仅实时算法任务）')
+    rtmp_input_url = db.Column(db.String(500), nullable=True, comment='RTMP输入流地址（仅实时算法任务）')
+    rtmp_output_url = db.Column(db.String(500), nullable=True, comment='RTMP输出流地址（仅实时算法任务）')
+    
+    # 追踪配置
+    tracking_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否启用目标追踪')
+    tracking_similarity_threshold = db.Column(db.Float, default=0.2, nullable=False, comment='追踪相似度阈值')
+    tracking_max_age = db.Column(db.Integer, default=25, nullable=False, comment='追踪目标最大存活帧数')
+    tracking_smooth_alpha = db.Column(db.Float, default=0.25, nullable=False, comment='追踪平滑系数')
+    
+    # 告警配置
+    alert_hook_url = db.Column(db.String(500), nullable=True, comment='告警Hook HTTP接口地址')
+    alert_hook_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否启用告警Hook')
     
     # 抓拍相关配置（仅抓拍算法任务使用）
     space_id = db.Column(db.Integer, db.ForeignKey('snap_space.id', ondelete='CASCADE'), nullable=True, comment='所属抓拍空间ID（仅抓拍算法任务）')
@@ -576,6 +588,13 @@ class AlgorithmTask(db.Model):
     is_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否启用[0:停用,1:启用]')
     run_status = db.Column(db.String(20), default='stopped', nullable=False, comment='运行状态[running:运行中,stopped:已停止,restarting:重启中]')
     exception_reason = db.Column(db.String(500), nullable=True, comment='异常原因')
+    
+    # 服务状态信息（仅实时算法任务使用）
+    service_server_ip = db.Column(db.String(45), nullable=True, comment='服务运行服务器IP')
+    service_port = db.Column(db.Integer, nullable=True, comment='服务端口')
+    service_process_id = db.Column(db.Integer, nullable=True, comment='服务进程ID')
+    service_last_heartbeat = db.Column(db.DateTime, nullable=True, comment='服务最后心跳时间')
+    service_log_path = db.Column(db.String(500), nullable=True, comment='服务日志路径')
     
     # 统计信息
     total_frames = db.Column(db.Integer, default=0, nullable=False, comment='总处理帧数')
@@ -591,25 +610,26 @@ class AlgorithmTask(db.Model):
     defense_mode = db.Column(db.String(20), default='half', nullable=False, comment='布防模式[full:全防模式,half:半防模式,day:白天模式,night:夜间模式]')
     defense_schedule = db.Column(db.Text, nullable=True, comment='布防时段配置（JSON格式，7天×24小时的二维数组）')
     
-    # 算法服务冗余字段（用于快速显示，避免跨模块查询）
-    service_names = db.Column(db.Text, nullable=True, comment='关联的算法服务名称列表（逗号分隔，用于快速显示）')
-    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # 关联关系
     devices = db.relationship('Device', secondary=algorithm_task_device, backref='algorithm_task_list', lazy=True)  # 多对多关系
-    extractor = db.relationship('FrameExtractor', backref='algorithm_tasks', lazy=True)
-    sorter = db.relationship('Sorter', backref='algorithm_tasks', lazy=True)
-    pusher = db.relationship('Pusher', backref='algorithm_tasks', lazy=True)
     snap_space = db.relationship('SnapSpace', backref='algorithm_tasks', lazy=True)
-    algorithm_services = db.relationship('AlgorithmModelService', backref='algorithm_task', lazy=True, cascade='all, delete-orphan')
     # 检测区域关联（通过task_id关联，支持统一后的算法任务，不使用数据库外键约束）
     # 注意：关系在文件末尾使用实际列对象配置
     
     def to_dict(self):
         """转换为字典"""
-        services_list = [s.to_dict() for s in self.algorithm_services] if self.algorithm_services else []
+        import json
+        
+        # 解析模型ID列表
+        model_ids_list = []
+        if self.model_ids:
+            try:
+                model_ids_list = json.loads(self.model_ids) if isinstance(self.model_ids, str) else self.model_ids
+            except:
+                pass
         
         # 获取关联的摄像头列表
         device_list = self.devices if self.devices else []
@@ -623,12 +643,17 @@ class AlgorithmTask(db.Model):
             'task_type': self.task_type,
             'device_ids': device_ids,
             'device_names': device_names,
-            'extractor_id': self.extractor_id,
-            'extractor_name': self.extractor.extractor_name if self.extractor else None,
-            'sorter_id': self.sorter_id,
-            'sorter_name': self.sorter.sorter_name if self.sorter else None,
-            'pusher_id': self.pusher_id,
-            'pusher_name': self.pusher.pusher_name if self.pusher else None,
+            'model_ids': model_ids_list,
+            'model_names': self.model_names,
+            'extract_interval': self.extract_interval,
+            'rtmp_input_url': self.rtmp_input_url,
+            'rtmp_output_url': self.rtmp_output_url,
+            'tracking_enabled': self.tracking_enabled,
+            'tracking_similarity_threshold': self.tracking_similarity_threshold,
+            'tracking_max_age': self.tracking_max_age,
+            'tracking_smooth_alpha': self.tracking_smooth_alpha,
+            'alert_hook_url': self.alert_hook_url,
+            'alert_hook_enabled': self.alert_hook_enabled,
             'space_id': self.space_id,
             'space_name': self.snap_space.space_name if self.snap_space else None,
             'cron_expression': self.cron_expression,
@@ -644,8 +669,68 @@ class AlgorithmTask(db.Model):
             'last_capture_time': self.last_capture_time.isoformat() if self.last_capture_time else None,
             'defense_mode': self.defense_mode,
             'defense_schedule': self.defense_schedule,
-            'algorithm_services': services_list,
-            'service_names': self.service_names,  # 冗余字段，用于快速显示
+            'service_server_ip': self.service_server_ip,
+            'service_port': self.service_port,
+            'service_process_id': self.service_process_id,
+            'service_last_heartbeat': self.service_last_heartbeat.isoformat() if self.service_last_heartbeat else None,
+            'service_log_path': self.service_log_path,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class TrackingTarget(db.Model):
+    """追踪目标记录表（记录对象出现、停留、离开时间等信息）"""
+    __tablename__ = 'tracking_target'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('algorithm_task.id', ondelete='CASCADE'), nullable=False, comment='所属算法任务ID')
+    device_id = db.Column(db.String(100), nullable=False, comment='设备ID')
+    device_name = db.Column(db.String(255), nullable=True, comment='设备名称')
+    track_id = db.Column(db.Integer, nullable=False, comment='追踪ID（同一任务内唯一）')
+    class_id = db.Column(db.Integer, nullable=True, comment='类别ID')
+    class_name = db.Column(db.String(100), nullable=True, comment='类别名称')
+    first_seen_time = db.Column(db.DateTime, nullable=False, comment='首次出现时间')
+    last_seen_time = db.Column(db.DateTime, nullable=True, comment='最后出现时间')
+    leave_time = db.Column(db.DateTime, nullable=True, comment='离开时间')
+    duration = db.Column(db.Float, nullable=True, comment='停留时长（秒）')
+    first_seen_frame = db.Column(db.Integer, nullable=True, comment='首次出现帧号')
+    last_seen_frame = db.Column(db.Integer, nullable=True, comment='最后出现帧号')
+    total_detections = db.Column(db.Integer, default=0, nullable=False, comment='总检测次数')
+    information = db.Column(db.Text, nullable=True, comment='详细信息（JSON格式）')
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 关联关系
+    algorithm_task = db.relationship('AlgorithmTask', backref='tracking_targets', lazy=True)
+    
+    def to_dict(self):
+        """转换为字典"""
+        import json
+        information_dict = None
+        if self.information:
+            try:
+                information_dict = json.loads(self.information) if isinstance(self.information, str) else self.information
+            except:
+                pass
+        
+        return {
+            'id': self.id,
+            'task_id': self.task_id,
+            'device_id': self.device_id,
+            'device_name': self.device_name,
+            'track_id': self.track_id,
+            'class_id': self.class_id,
+            'class_name': self.class_name,
+            'first_seen_time': self.first_seen_time.isoformat() if self.first_seen_time else None,
+            'last_seen_time': self.last_seen_time.isoformat() if self.last_seen_time else None,
+            'leave_time': self.leave_time.isoformat() if self.leave_time else None,
+            'duration': self.duration,
+            'first_seen_frame': self.first_seen_frame,
+            'last_seen_frame': self.last_seen_frame,
+            'total_detections': self.total_detections,
+            'information': information_dict,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

@@ -100,6 +100,12 @@ const refreshTimer = ref<NodeJS.Timeout | null>(null);
 const isScrolling = ref(false);
 
 const [register, {closeModal}] = useModalInner(async (data) => {
+  // 先清除之前的定时器
+  if (refreshTimer.value) {
+    clearInterval(refreshTimer.value);
+    refreshTimer.value = null;
+  }
+  
   if (data && data.record) {
     currentServiceId.value = data.record.id;
     // 重置滚动状态，确保打开时滚动到底部
@@ -110,6 +116,12 @@ const [register, {closeModal}] = useModalInner(async (data) => {
     setTimeout(() => {
       scrollToBottom();
     }, 100);
+    
+    // 如果有有效的服务ID，自动开启自动刷新
+    if (data.record.id) {
+      autoRefresh.value = true;
+      startAutoRefresh();
+    }
   }
 });
 

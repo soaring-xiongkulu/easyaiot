@@ -73,9 +73,13 @@
                         <div class="value">{{ item.device_names.join(', ') }}</div>
                       </div>
                     </div>
-                    <div class="prop">
+                    <div class="prop" v-if="item.model_names">
+                      <div class="label">关联模型</div>
+                      <div class="value">{{ item.model_names }}</div>
+                    </div>
+                    <div class="prop" v-else-if="item.algorithm_services && item.algorithm_services.length > 0">
                       <div class="label">关联算法服务</div>
-                      <div class="value">{{ item.service_names || (item.algorithm_services && item.algorithm_services.length > 0 ? item.algorithm_services.map(s => s.service_name).join(', ') : '') }}</div>
+                      <div class="value">{{ item.algorithm_services.map(s => s.service_name).join(', ') }}</div>
                     </div>
                   </div>
                   <div class="btns">
@@ -124,7 +128,37 @@
     <AlgorithmTaskModal @register="registerModal" @success="handleSuccess" />
     
     <!-- 服务管理抽屉 -->
-    <ServiceManageDrawer @register="registerServiceDrawer" />
+    <ServiceManageDrawer @register="registerServiceDrawer" @success="handleSuccess" />
+    
+    <!-- 视频播放模态框 -->
+    <DialogPlayer @register="registerPlayerModal" />
+    
+    <!-- 摄像头选择模态框 -->
+    <BasicModal
+      v-model:open="cameraSelectVisible"
+      title="选择摄像头"
+      @ok="handleConfirmCamera"
+      @cancel="cameraSelectVisible = false"
+    >
+      <div v-if="cameraStreams.length === 0" style="text-align: center; padding: 20px;">
+        <Empty description="暂无可用推流地址" />
+      </div>
+      <RadioGroup v-else v-model:value="selectedCameraIndex" style="width: 100%;">
+        <Radio
+          v-for="(stream, index) in cameraStreams"
+          :key="stream.device_id"
+          :value="index"
+          style="display: block; margin-bottom: 12px;"
+        >
+          <div>
+            <div style="font-weight: 500;">{{ stream.device_name }}</div>
+            <div style="font-size: 12px; color: #999; margin-top: 4px;">
+              {{ stream.pusher_http_url || stream.http_stream || stream.pusher_rtmp_url || stream.rtmp_stream || '无推流地址' }}
+            </div>
+          </div>
+        </Radio>
+      </RadioGroup>
+    </BasicModal>
   </div>
 </template>
 
@@ -140,22 +174,27 @@ import {
   StopOutlined,
   SwapOutlined,
 } from '@ant-design/icons-vue';
-import { List, Popconfirm, Spin } from 'ant-design-vue';
+import { List, Popconfirm, Spin, Empty, RadioGroup, Radio } from 'ant-design-vue';
 import { useDrawer } from '@/components/Drawer';
 import { BasicForm, useForm } from '@/components/Form';
 import { BasicTable, TableAction, useTable } from '@/components/Table';
 import { useMessage } from '@/hooks/web/useMessage';
 import { Icon } from '@/components/Icon';
+import { useModal } from '@/components/Modal';
+import { BasicModal } from '@/components/Modal';
 import {
   listAlgorithmTasks,
   deleteAlgorithmTask,
   startAlgorithmTask,
   stopAlgorithmTask,
   updateAlgorithmTask,
+  getTaskStreams,
   type AlgorithmTask,
+  type CameraStreamInfo,
 } from '@/api/device/algorithm_task';
 import AlgorithmTaskModal from './AlgorithmTaskModal.vue';
 import ServiceManageDrawer from './ServiceManageDrawer.vue';
+import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue';
 import { getBasicColumns, getFormConfig } from './Data';
 import AI_TASK_IMAGE from '@/assets/images/video/ai-task.png';
 
@@ -173,6 +212,13 @@ const taskList = ref<AlgorithmTask[]>([]);
 const loading = ref(false);
 const [registerModal, { openDrawer }] = useDrawer();
 const [registerServiceDrawer, { openDrawer: openServiceDrawer }] = useDrawer();
+const [registerPlayerModal, { openModal: openPlayerModal }] = useModal();
+
+// 摄像头选择和播放相关
+const cameraSelectVisible = ref(false);
+const cameraStreams = ref<CameraStreamInfo[]>([]);
+const selectedCameraIndex = ref<number>(0);
+const currentTask = ref<AlgorithmTask | null>(null);
 
 // 分页相关
 const page = ref(1);
@@ -426,14 +472,24 @@ const handleDelete = async (record: AlgorithmTask) => {
 const handleStart = async (record: AlgorithmTask) => {
   try {
     const response = await startAlgorithmTask(record.id);
-    // 由于 isTransformResponse: true，成功时返回的是任务对象，而不是包含 code 的响应对象
+    // 由于 isTransformResponse: true，成功时返回的是任务对象（data.data），而不是包含 code 的响应对象
     if (response && (response as any).id) {
-      createMessage.success('启动成功');
+      // 检查是否有 already_running 字段
+      if ((response as any).already_running) {
+        createMessage.warning('任务运行中');
+      } else {
+        createMessage.success('启动成功');
+      }
       handleSuccess();
     } else if (response && typeof response === 'object' && 'code' in response) {
       // 如果返回的是完整响应对象（包含 code）
       if ((response as any).code === 0) {
-        createMessage.success('启动成功');
+        const data = (response as any).data || response;
+        if (data && data.already_running) {
+          createMessage.warning('任务运行中');
+        } else {
+          createMessage.success('启动成功');
+        }
         handleSuccess();
       } else {
         createMessage.error((response as any).msg || '启动失败');
@@ -496,6 +552,154 @@ const handleSuccess = () => {
   } else {
     loadTasks();
   }
+};
+
+// 播放推流
+const handlePlayStream = async (record: AlgorithmTask) => {
+  if (!record.is_enabled) {
+    createMessage.warning('任务未运行，无法播放推流');
+    return;
+  }
+  
+  try {
+    // 获取推流地址列表
+    // 注意：由于 isTransformResponse: true，响应转换器会直接返回 data.data
+    // 所以 response 可能是数组，也可能是包含 code 的完整响应对象
+    const response = await getTaskStreams(record.id);
+    console.log('获取推流地址响应:', response);
+    
+    // 处理响应：可能是数组，也可能是包含 code 的对象
+    let streams: CameraStreamInfo[] = [];
+    if (Array.isArray(response)) {
+      // 直接是数组
+      streams = response;
+      console.log('响应是数组，摄像头数量:', streams.length);
+    } else if (response && typeof response === 'object' && 'code' in response) {
+      // 完整响应对象
+      if (response.code === 0 && response.data && Array.isArray(response.data)) {
+        streams = response.data;
+        console.log('响应是对象，摄像头数量:', streams.length);
+      } else {
+        console.warn('响应code不为0或data不是数组:', response);
+        createMessage.warning(response.msg || '该任务未关联摄像头或暂无推流地址');
+        return;
+      }
+    } else {
+      console.warn('响应格式不正确:', response);
+      createMessage.warning('该任务未关联摄像头或暂无推流地址');
+      return;
+    }
+    
+    if (streams.length === 0) {
+      createMessage.warning('该任务未关联摄像头或暂无推流地址');
+      return;
+    }
+    
+    cameraStreams.value = streams;
+    currentTask.value = record;
+    
+    // 过滤出有推流地址的摄像头（优先检查RTMP地址）
+    const availableStreams = cameraStreams.value.filter(s => 
+      s.pusher_rtmp_url || s.rtmp_stream || s.pusher_http_url || s.http_stream
+    );
+    
+    if (availableStreams.length === 0) {
+      createMessage.warning('该任务关联的摄像头暂无推流地址');
+      return;
+    }
+    
+    // 如果只有一个摄像头，直接播放
+    if (availableStreams.length === 1) {
+      playCameraStream(availableStreams[0]);
+    } else {
+      // 多个摄像头，显示选择对话框
+      cameraStreams.value = availableStreams;
+      selectedCameraIndex.value = 0;
+      cameraSelectVisible.value = true;
+    }
+  } catch (error) {
+    console.error('获取推流地址失败', error);
+    createMessage.error('获取推流地址失败');
+  }
+};
+
+// 确认选择摄像头并播放
+const handleConfirmCamera = () => {
+  if (cameraStreams.value.length > 0 && selectedCameraIndex.value >= 0) {
+    const selectedStream = cameraStreams.value[selectedCameraIndex.value];
+    playCameraStream(selectedStream);
+    cameraSelectVisible.value = false;
+  }
+};
+
+// 将RTMP地址转换为HTTP FLV地址
+const convertRtmpToHttp = (rtmpUrl: string): string | null => {
+  if (!rtmpUrl || !rtmpUrl.startsWith('rtmp://')) {
+    return null;
+  }
+  
+  try {
+    // 解析RTMP地址：rtmp://server:port/path
+    const url = new URL(rtmpUrl);
+    const server = url.hostname;
+    const port = url.port || '1935';
+    let path = url.pathname.substring(1); // 去掉开头的 /
+    
+    // 如果路径为空，使用默认路径
+    if (!path) {
+      path = 'live';
+    }
+    
+    // 添加.flv后缀（如果还没有）
+    if (!path.endsWith('.flv')) {
+      path = `${path}.flv`;
+    }
+    
+    // 生成HTTP FLV地址（默认使用8080端口）
+    return `http://${server}:8080/${path}`;
+  } catch (error) {
+    console.error('RTMP地址转换失败:', error);
+    return null;
+  }
+};
+
+// 播放摄像头推流
+const playCameraStream = (stream: CameraStreamInfo) => {
+  // 优先使用推送器的RTMP地址，转换为HTTP地址
+  // 其次使用摄像头的RTMP地址，转换为HTTP地址
+  // 最后使用已有的HTTP地址
+  let httpStream: string | null = null;
+  
+  // 1. 优先使用推送器的RTMP地址
+  if (stream.pusher_rtmp_url) {
+    httpStream = convertRtmpToHttp(stream.pusher_rtmp_url);
+  }
+  
+  // 2. 如果没有，使用推送器的HTTP地址
+  if (!httpStream && stream.pusher_http_url) {
+    httpStream = stream.pusher_http_url;
+  }
+  
+  // 3. 如果还没有，使用摄像头的RTMP地址
+  if (!httpStream && stream.rtmp_stream) {
+    httpStream = convertRtmpToHttp(stream.rtmp_stream);
+  }
+  
+  // 4. 最后使用摄像头的HTTP地址
+  if (!httpStream && stream.http_stream) {
+    httpStream = stream.http_stream;
+  }
+  
+  if (!httpStream) {
+    createMessage.warning(`摄像头 ${stream.device_name} 暂无推流地址`);
+    return;
+  }
+  
+  // 打开播放器
+  openPlayerModal(true, {
+    id: stream.device_id,
+    http_stream: httpStream,
+  });
 };
 
 

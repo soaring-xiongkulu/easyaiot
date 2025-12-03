@@ -80,14 +80,18 @@ export function getBasicColumns(): BasicColumn[] {
       },
     },
     {
-      title: '算法服务数',
-      dataIndex: 'algorithm_services',
-      width: 100,
-      customRender: ({ text }) => {
-        if (!text || !Array.isArray(text)) {
-          return 0;
+      title: '关联模型',
+      dataIndex: 'model_names',
+      width: 200,
+      customRender: ({ text, record }) => {
+        if (text) {
+          return text;
         }
-        return `${text.length} 个`;
+        // 兼容旧数据：显示算法服务
+        if (record.algorithm_services && Array.isArray(record.algorithm_services) && record.algorithm_services.length > 0) {
+          return record.algorithm_services.map((s: any) => s.service_name).join(', ');
+        }
+        return '--';
       },
     },
     {

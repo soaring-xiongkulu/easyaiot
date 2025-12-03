@@ -60,6 +60,7 @@ load_env_file(args.env)
 # 配置日志级别，减少第三方库的详细输出
 logging.getLogger('nacos').setLevel(logging.WARNING)
 logging.getLogger('apscheduler').setLevel(logging.WARNING)
+logging.getLogger('werkzeug').setLevel(logging.WARNING)  # 禁用 Werkzeug 访问日志
 
 # 配置主应用日志
 logger = logging.getLogger(__name__)
@@ -133,6 +134,15 @@ def create_app():
     app.config['MINIO_ACCESS_KEY'] = os.environ.get('MINIO_ACCESS_KEY', 'minioadmin')
     app.config['MINIO_SECRET_KEY'] = os.environ.get('MINIO_SECRET_KEY', 'minioadmin')
     app.config['MINIO_SECURE'] = os.environ.get('MINIO_SECURE', 'false').lower() == 'true'
+    
+    # Kafka配置
+    app.config['KAFKA_BOOTSTRAP_SERVERS'] = os.environ.get('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
+    app.config['KAFKA_ALERT_TOPIC'] = os.environ.get('KAFKA_ALERT_TOPIC', 'iot-alert-notification')
+    app.config['KAFKA_REQUEST_TIMEOUT_MS'] = int(os.environ.get('KAFKA_REQUEST_TIMEOUT_MS', '5000'))
+    app.config['KAFKA_RETRIES'] = int(os.environ.get('KAFKA_RETRIES', '1'))
+    app.config['KAFKA_RETRY_BACKOFF_MS'] = int(os.environ.get('KAFKA_RETRY_BACKOFF_MS', '100'))
+    app.config['KAFKA_METADATA_MAX_AGE_MS'] = int(os.environ.get('KAFKA_METADATA_MAX_AGE_MS', '300000'))
+    app.config['KAFKA_INIT_RETRY_INTERVAL'] = int(os.environ.get('KAFKA_INIT_RETRY_INTERVAL', '60'))
 
     # 创建数据目录
     os.makedirs('data/uploads', exist_ok=True)
@@ -229,7 +239,12 @@ def create_app():
                         ('cron_expression', 'VARCHAR(255)'),
                         ('frame_skip', 'INTEGER NOT NULL DEFAULT 1'),
                         ('total_captures', 'INTEGER NOT NULL DEFAULT 0'),
-                        ('last_capture_time', 'TIMESTAMP')
+                        ('last_capture_time', 'TIMESTAMP'),
+                        ('service_server_ip', 'VARCHAR(45)'),
+                        ('service_port', 'INTEGER'),
+                        ('service_process_id', 'INTEGER'),
+                        ('service_last_heartbeat', 'TIMESTAMP'),
+                        ('service_log_path', 'VARCHAR(500)')
                     ]:
                         result = db.session.execute(text(f"""
                             SELECT EXISTS (
@@ -591,15 +606,14 @@ def create_app():
             traceback.print_exc()
         
         # 自动启动所有启用的算法任务的服务
-        # 已禁用：不再自动启动算法任务服务，由用户手动启动
-        # try:
-        #     from app.services.algorithm_task_launcher_service import auto_start_all_tasks
-        #     auto_start_all_tasks(app)
-        #     print("✅ 算法任务服务自动启动完成")
-        # except Exception as e:
-        #     print(f"❌ 自动启动算法任务服务失败: {str(e)}")
-        #     import traceback
-        #     traceback.print_exc()
+        try:
+            from app.services.algorithm_task_launcher_service import auto_start_all_tasks
+            auto_start_all_tasks(app)
+            print("✅ 算法任务服务自动启动完成")
+        except Exception as e:
+            print(f"❌ 自动启动算法任务服务失败: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     return app
 

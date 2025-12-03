@@ -121,8 +121,13 @@ import { ref, watch, onMounted } from 'vue';
 import { Card, Descriptions, DescriptionsItem, Tag, Button, Spin, Row, Col, Empty } from 'ant-design-vue';
 import { FileTextOutlined } from '@ant-design/icons-vue';
 import { useModal } from '@/components/Modal';
-import { getAlgorithmTask, getTaskServicesStatus } from '@/api/device/algorithm_task';
-import { getTaskExtractorLogs, getTaskSorterLogs, getTaskPusherLogs } from '@/api/device/algorithm_task';
+import { 
+  getAlgorithmTask, 
+  getTaskServicesStatus,
+  getTaskExtractorLogs, 
+  getTaskSorterLogs, 
+  getTaskPusherLogs 
+} from '@/api/device/algorithm_task';
 import type { AlgorithmTask, FrameExtractor, Sorter, Pusher } from '@/api/device/algorithm_task';
 import moment from 'moment';
 import ServiceLogsModal from './ServiceLogsModal.vue';

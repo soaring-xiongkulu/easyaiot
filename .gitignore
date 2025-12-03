@@ -50,3 +50,5 @@ hs_err_pid*
 # .scripts/nexus3 数据目录
 .scripts/nexus3/nexus_data/
 
+# alert_images 文件夹
+**/alert_images/

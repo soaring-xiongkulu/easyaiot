@@ -213,7 +213,6 @@ def create_alert(alert_data: dict) -> dict:
         db.session.add(alert)
         db.session.commit()
         
-        logger.info(f'成功创建报警记录: device_id={alert_data["device_id"]}, event={alert_data["event"]}')
         return _alert_to_dict(alert)
     except ValueError as e:
         logger.error(f'创建报警记录参数错误: {str(e)}')

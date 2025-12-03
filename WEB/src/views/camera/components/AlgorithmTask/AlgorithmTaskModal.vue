@@ -4,7 +4,7 @@
     @register="register" 
     :title="modalTitle" 
     @ok="handleSubmit"
-    width="1000"
+    width="1200"
     placement="right"
     :showFooter="true"
     :showCancelBtn="false"
@@ -29,14 +29,6 @@
           </div>
         </div>
       </a-tab-pane>
-      <a-tab-pane key="services" tab="算法服务" :disabled="!taskId">
-        <AlgorithmServiceList
-          v-if="taskId"
-          :task-id="taskId"
-          @refresh="handleServicesRefresh"
-        />
-        <a-empty v-else description="请先保存基础配置，然后才能配置算法服务" />
-      </a-tab-pane>
       <a-tab-pane key="status" tab="服务状态" :disabled="!taskId">
         <ServiceStatusTab
           v-if="taskId && formValues"
@@ -56,13 +48,11 @@ import { useMessage } from '@/hooks/web/useMessage';
 import {
   createAlgorithmTask,
   updateAlgorithmTask,
-  listPushers,
   type AlgorithmTask,
 } from '@/api/device/algorithm_task';
 import { getDeviceList } from '@/api/device/camera';
 import { getSnapSpaceList } from '@/api/device/snap';
-import { getDeployServicePage } from '@/api/device/model';
-import AlgorithmServiceList from './AlgorithmServiceList.vue';
+import { getModelPage } from '@/api/device/model';
 import DefenseSchedulePicker from './DefenseSchedulePicker.vue';
 import ServiceStatusTab from './ServiceStatusTab.vue';
 
@@ -83,9 +73,8 @@ const defenseSchedule = ref<{ mode: string; schedule: number[][] }>({
 
 const deviceOptions = ref<Array<{ label: string; value: string }>>([]);
 const spaceOptions = ref<Array<{ label: string; value: number }>>([]);
-const deployServiceOptions = ref<Array<{ label: string; value: number }>>([]);
-const deployServiceMap = ref<Map<number, any>>(new Map()); // 存储完整的部署服务信息
-const pusherOptions = ref<Array<{ label: string; value: number }>>([]);
+const modelOptions = ref<Array<{ label: string; value: number }>>([]);
+const modelMap = ref<Map<number, any>>(new Map()); // 存储完整的模型信息
 
 // 加载设备列表
 const loadDevices = async () => {
@@ -114,48 +103,70 @@ const loadSpaces = async () => {
 };
 
 
-// 加载部署服务列表（用于创建算法服务）
-const loadDeployServices = async () => {
+// 加载模型列表（用于选择模型）
+const loadModels = async () => {
   try {
-    const response = await getDeployServicePage({ pageNo: 1, pageSize: 1000 });
-    if (response.code === 0 && response.data) {
-      // 清空之前的映射
-      deployServiceMap.value.clear();
+    const response = await getModelPage({ pageNo: 1, pageSize: 1000 });
+    // 处理响应数据：可能是转换后的数组，也可能是包含 code/data 的对象
+    let allModels: any[] = [];
+    if (Array.isArray(response)) {
+      allModels = response;
+    } else if (response && response.code === 0 && response.data) {
+      allModels = Array.isArray(response.data) ? response.data : [];
+    } else if (response && response.data && Array.isArray(response.data)) {
+      allModels = response.data;
+    }
+    
+    // 清空之前的映射
+    modelMap.value.clear();
+    
+    // 构建选项列表和完整模型信息映射
+    const dbModelOptions = allModels.map((item: any) => {
+      // 保存完整的模型信息
+      modelMap.value.set(item.id, item);
       
-      // 构建选项列表和完整服务信息映射
-      deployServiceOptions.value = (response.data || []).map((item: any) => {
-        // 保存完整的服务信息
-        deployServiceMap.value.set(item.id, item);
-        
-        return {
-          label: `${item.service_name}${item.model_name ? ` (${item.model_name})` : ''}`,
-          value: item.id, // 部署服务ID
-        };
-      });
-    }
+      return {
+        label: `${item.name}${item.version ? ` (v${item.version})` : ''}`,
+        value: item.id, // 模型ID
+      };
+    });
+    
+    // 添加默认模型选项（yolo11n.pt、yolov8n.pt）
+    // 使用负数ID来标识默认模型，避免与数据库中的模型ID冲突
+    const defaultModels = [
+      {
+        label: 'yolo11n.pt (默认模型)',
+        value: -1, // 使用 -1 表示 yolo11n.pt
+      },
+      {
+        label: 'yolov8n.pt (默认模型)',
+        value: -2, // 使用 -2 表示 yolov8n.pt
+      },
+    ];
+    
+    // 保存默认模型信息到映射中
+    modelMap.value.set(-1, {
+      id: -1,
+      name: 'yolo11n.pt',
+      model_path: 'yolo11n.pt',
+      version: '默认',
+    });
+    modelMap.value.set(-2, {
+      id: -2,
+      name: 'yolov8n.pt',
+      model_path: 'yolov8n.pt',
+      version: '默认',
+    });
+    
+    // 将默认模型放在最前面，然后添加数据库中的模型
+    modelOptions.value = [...defaultModels, ...dbModelOptions];
   } catch (error) {
-    console.error('加载部署服务列表失败', error);
-  }
-};
-
-// 加载推送器列表
-const loadPushers = async () => {
-  try {
-    // 将布尔值转换为整数：true -> 1
-    const response = await listPushers({ pageNo: 1, pageSize: 1000, is_enabled: 1 });
-    if (response.code === 0 && response.data) {
-      pusherOptions.value = (response.data || []).map((item) => ({
-        label: item.pusher_name,
-        value: item.id,
-      }));
-    }
-  } catch (error) {
-    console.error('加载推送器列表失败', error);
+    console.error('加载模型列表失败', error);
   }
 };
 
 const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getFieldsValue }] = useForm({
-  labelWidth: 120,
+  labelWidth: 150,
   baseColProps: { span: 24 },
   schemas: [
     {
@@ -230,29 +241,13 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       ifShow: ({ values }) => values.task_type === 'snap',
     },
     {
-      field: 'pusher_id',
-      label: '告警通知',
-      component: 'Select',
-      required: false,
-      componentProps: {
-        placeholder: '请选择告警通知推送器（可选）',
-        options: pusherOptions,
-        allowClear: true,
-        showSearch: true,
-        filterOption: (input: string, option: any) => {
-          return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
-        },
-      },
-      helpMessage: '选择告警通知推送器，不配置则不发送告警通知',
-    },
-    {
-      field: 'selected_service_ids',
-      label: '关联算法服务',
+      field: 'model_ids',
+      label: '关联模型',
       component: 'Select',
       required: true,
       componentProps: {
-        placeholder: '请选择部署服务（可多选，将自动创建算法服务）',
-        options: deployServiceOptions,
+        placeholder: '请选择模型（可多选）',
+        options: modelOptions,
         mode: 'multiple',
         showSearch: true,
         allowClear: true,
@@ -260,16 +255,78 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
           return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
         },
       },
-      helpMessage: '选择部署服务，创建任务时将自动创建对应的算法服务',
+      helpMessage: '选择要使用的模型列表，模型文件本地没有会自动下载',
+      ifShow: ({ values }) => values.task_type === 'realtime',
     },
     {
-      field: 'is_enabled',
-      label: '是否启用',
+      field: 'extract_interval',
+      label: '抽帧间隔',
+      component: 'InputNumber',
+      componentProps: {
+        placeholder: '每N帧抽一次',
+        min: 1,
+      },
+      helpMessage: '实时算法任务中，每N帧抽一次进行检测（默认5）',
+      ifShow: ({ values }) => values.task_type === 'realtime',
+    },
+    {
+      field: 'tracking_enabled',
+      label: '启用目标追踪',
       component: 'Switch',
       componentProps: {
         checkedChildren: '是',
         unCheckedChildren: '否',
       },
+      helpMessage: '是否启用目标追踪功能，启用后会记录对象出现时间、停留时间、离开时间等信息',
+      ifShow: ({ values }) => values.task_type === 'realtime',
+    },
+    {
+      field: 'tracking_similarity_threshold',
+      label: '追踪相似度阈值',
+      component: 'InputNumber',
+      componentProps: {
+        placeholder: '0.2',
+        min: 0,
+        max: 1,
+        step: 0.1,
+      },
+      helpMessage: '追踪相似度匹配阈值（0-1），值越小匹配越宽松',
+      ifShow: ({ values }) => values.task_type === 'realtime' && values.tracking_enabled,
+    },
+    {
+      field: 'tracking_max_age',
+      label: '追踪最大存活帧数',
+      component: 'InputNumber',
+      componentProps: {
+        placeholder: '25',
+        min: 1,
+      },
+      helpMessage: '追踪目标最大存活帧数（未匹配时保留的帧数）',
+      ifShow: ({ values }) => values.task_type === 'realtime' && values.tracking_enabled,
+    },
+    {
+      field: 'tracking_smooth_alpha',
+      label: '追踪平滑系数',
+      component: 'InputNumber',
+      componentProps: {
+        placeholder: '0.25',
+        min: 0,
+        max: 1,
+        step: 0.05,
+      },
+      helpMessage: '追踪平滑系数（0-1），值越大越平滑',
+      ifShow: ({ values }) => values.task_type === 'realtime' && values.tracking_enabled,
+    },
+    {
+      field: 'alert_hook_enabled',
+      label: '启用告警Hook',
+      component: 'Switch',
+      componentProps: {
+        checkedChildren: '是',
+        unCheckedChildren: '否',
+      },
+      helpMessage: '是否启用告警Hook接口，启用后会接收实时分析中的告警信息并存储到Kafka（默认开启，接口地址固定）',
+      ifShow: ({ values }) => values.task_type === 'realtime',
     },
     {
       field: 'is_full_day_defense',
@@ -301,36 +358,24 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   resetFields();
   
   // 加载选项数据
-  await Promise.all([loadDevices(), loadSpaces(), loadDeployServices(), loadPushers()]);
+  await Promise.all([loadDevices(), loadSpaces(), loadModels()]);
   
   if (modalData.value.record) {
     const record = modalData.value.record;
     taskId.value = record.id;
-    // 从 algorithm_services 中提取部署服务ID列表（用于回显）
-    // 通过 model_id 或 service_url 匹配部署服务
-    const serviceIds: number[] = [];
-    if (record.algorithm_services && record.algorithm_services.length > 0) {
-      record.algorithm_services.forEach((service: any) => {
-        // 通过 model_id 匹配
-        if (service.model_id) {
-          for (const [id, deployService] of deployServiceMap.value.entries()) {
-            if (deployService.model_id === service.model_id) {
-              serviceIds.push(id);
-              break;
-            }
-          }
+    // 从 model_ids 中提取模型ID列表（用于回显）
+    const modelIds: number[] = [];
+    if (record.model_ids && Array.isArray(record.model_ids)) {
+      modelIds.push(...record.model_ids);
+    } else if (record.model_ids && typeof record.model_ids === 'string') {
+      try {
+        const parsed = JSON.parse(record.model_ids);
+        if (Array.isArray(parsed)) {
+          modelIds.push(...parsed);
         }
-        // 如果 model_id 匹配不到，尝试通过 service_url 匹配
-        if (service.service_url && serviceIds.length === 0) {
-          for (const [id, deployService] of deployServiceMap.value.entries()) {
-            if (deployService.inference_endpoint === service.service_url || 
-                deployService.service_url === service.service_url) {
-              serviceIds.push(id);
-              break;
-            }
-          }
-        }
-      });
+      } catch (e) {
+        console.error('解析model_ids失败', e);
+      }
     }
     
     // 恢复布防时段配置
@@ -361,11 +406,6 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     const fullDayDefense = record.defense_mode === 'full';
     isFullDayDefense.value = fullDayDefense;
     
-    // 确保 is_enabled 是布尔值（Switch 组件需要布尔值）
-    const isEnabled = typeof record.is_enabled === 'boolean' 
-      ? record.is_enabled 
-      : (record.is_enabled === 1 || record.is_enabled === '1');
-    
     await setFieldsValue({
       task_name: record.task_name,
       task_type: record.task_type || 'realtime',
@@ -373,9 +413,13 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       space_id: record.space_id,
       cron_expression: record.cron_expression,
       frame_skip: record.frame_skip || 1,
-      selected_service_ids: serviceIds,
-      pusher_id: record.pusher_id,
-      is_enabled: isEnabled,
+      model_ids: modelIds,
+      extract_interval: record.extract_interval || 5,
+      tracking_enabled: record.tracking_enabled || false,
+      tracking_similarity_threshold: record.tracking_similarity_threshold || 0.2,
+      tracking_max_age: record.tracking_max_age || 25,
+      tracking_smooth_alpha: record.tracking_smooth_alpha || 0.25,
+      alert_hook_enabled: record.alert_hook_enabled !== undefined ? record.alert_hook_enabled : true,
       is_full_day_defense: fullDayDefense,
     });
     
@@ -389,8 +433,12 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
         { field: 'cron_expression', componentProps: { disabled: true } },
         { field: 'frame_skip', componentProps: { disabled: true } },
         { field: 'model_ids', componentProps: { disabled: true } },
-        { field: 'pusher_id', componentProps: { disabled: true } },
-        { field: 'is_enabled', componentProps: { disabled: true } },
+        { field: 'extract_interval', componentProps: { disabled: true } },
+        { field: 'tracking_enabled', componentProps: { disabled: true } },
+        { field: 'tracking_similarity_threshold', componentProps: { disabled: true } },
+        { field: 'tracking_max_age', componentProps: { disabled: true } },
+        { field: 'tracking_smooth_alpha', componentProps: { disabled: true } },
+        { field: 'alert_hook_enabled', componentProps: { disabled: true } },
         { field: 'is_full_day_defense', componentProps: { disabled: true } },
       ]);
       setDrawerProps({ showOkBtn: false });
@@ -402,8 +450,13 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     isFullDayDefense.value = true; // 默认全天布防
     await setFieldsValue({
       task_type: 'realtime',
-      is_enabled: false,
       frame_skip: 1,
+      extract_interval: 5,
+      tracking_enabled: false,
+      tracking_similarity_threshold: 0.2,
+      tracking_max_age: 25,
+      tracking_smooth_alpha: 0.25,
+      alert_hook_enabled: true, // 默认开启告警Hook
       is_full_day_defense: true, // 默认全天布防
     });
     // 重置布防时段为默认值（全天布防）
@@ -441,10 +494,11 @@ const handleSubmit = async () => {
     confirmLoading.value = true;
     setDrawerProps({ confirmLoading: true });
     
-    // 将布尔值转换为整数：true -> 1, false -> 0
-    if (values.is_enabled !== undefined) {
-      values.is_enabled = values.is_enabled === true || values.is_enabled === 'true' ? 1 : 0;
+    // 新建任务时，默认设置为未启用状态（需要通过启动按钮来启动）
+    if (modalData.value.type !== 'edit') {
+      values.is_enabled = 0;
     }
+    // 编辑任务时，不修改 is_enabled 状态（保持原值，通过启动/停止按钮控制）
     
     // 根据是否全天布防设置布防时段配置
     const fullDayDefense = values.is_full_day_defense !== undefined ? values.is_full_day_defense : true;
@@ -461,31 +515,17 @@ const handleSubmit = async () => {
     // 移除前端字段，不发送到后端
     delete values.is_full_day_defense;
     
-    // 如果选择了 selected_service_ids，构建 algorithm_services 数组
-    if (values.selected_service_ids && values.selected_service_ids.length > 0) {
-      const algorithmServices = values.selected_service_ids.map((serviceId: number) => {
-        const deployService = deployServiceMap.value.get(serviceId);
-        if (deployService) {
-          return {
-            service_name: deployService.service_name || `Service_${serviceId}`,
-            service_url: deployService.inference_endpoint || deployService.service_url,
-            service_type: deployService.service_type || null,
-            model_id: deployService.model_id || null,
-            threshold: deployService.threshold || null,
-            request_method: deployService.request_method || 'POST',
-            request_headers: deployService.request_headers || null,
-            request_body_template: deployService.request_body_template || null,
-            timeout: deployService.timeout || 30,
-            is_enabled: deployService.is_enabled !== undefined ? deployService.is_enabled : true,
-            sort_order: 0,
-          };
-        }
-        return null;
-      }).filter((service: any) => service !== null);
-      
-      // 使用 algorithm_services
-      values.algorithm_services = algorithmServices;
-      delete values.selected_service_ids; // 删除临时字段
+    // 确保 model_ids 是数组格式
+    if (values.model_ids && !Array.isArray(values.model_ids)) {
+      values.model_ids = [values.model_ids];
+    }
+    
+    // 实时算法任务必须指定模型ID列表
+    if (values.task_type === 'realtime' && (!values.model_ids || values.model_ids.length === 0)) {
+      createMessage.error('实时算法任务必须选择至少一个模型');
+      confirmLoading.value = false;
+      setDrawerProps({ confirmLoading: false });
+      return;
     }
     
     if (modalData.value.type === 'edit' && modalData.value.record) {
@@ -522,22 +562,24 @@ const handleSubmit = async () => {
   }
 };
 
-const handleServicesRefresh = () => {
-  emit('success');
-};
 
 // 重置表单
 const handleReset = () => {
   resetFields();
-  // 如果是新建模式，重置为默认值
-  if (!modalData.value.record) {
-    isFullDayDefense.value = true; // 默认全天布防
-    setFieldsValue({
-      task_type: 'realtime',
-      is_enabled: false,
-      frame_skip: 1,
-      is_full_day_defense: true, // 默认全天布防
-    });
+    // 如果是新建模式，重置为默认值
+    if (!modalData.value.record) {
+      isFullDayDefense.value = true; // 默认全天布防
+      setFieldsValue({
+        task_type: 'realtime',
+        frame_skip: 1,
+        extract_interval: 5,
+        tracking_enabled: false,
+        tracking_similarity_threshold: 0.2,
+        tracking_max_age: 25,
+        tracking_smooth_alpha: 0.25,
+        alert_hook_enabled: true, // 默认开启告警Hook
+        is_full_day_defense: true, // 默认全天布防
+      });
     // 重置布防时段为默认值（全天布防）
     defenseSchedule.value = {
       mode: 'full', // 默认全防模式
@@ -546,40 +588,24 @@ const handleReset = () => {
   } else {
       // 如果是编辑模式，恢复到原始值
       const record = modalData.value.record;
-      // 从 algorithm_services 中提取部署服务ID列表（用于回显）
-      const serviceIds: number[] = [];
-      if (record.algorithm_services && record.algorithm_services.length > 0) {
-        record.algorithm_services.forEach((service: any) => {
-          // 通过 model_id 匹配
-          if (service.model_id) {
-            for (const [id, deployService] of deployServiceMap.value.entries()) {
-              if (deployService.model_id === service.model_id) {
-                serviceIds.push(id);
-                break;
-              }
-            }
+      // 从 model_ids 中提取模型ID列表（用于回显）
+      const modelIds: number[] = [];
+      if (record.model_ids && Array.isArray(record.model_ids)) {
+        modelIds.push(...record.model_ids);
+      } else if (record.model_ids && typeof record.model_ids === 'string') {
+        try {
+          const parsed = JSON.parse(record.model_ids);
+          if (Array.isArray(parsed)) {
+            modelIds.push(...parsed);
           }
-          // 如果 model_id 匹配不到，尝试通过 service_url 匹配
-          if (service.service_url && serviceIds.length === 0) {
-            for (const [id, deployService] of deployServiceMap.value.entries()) {
-              if (deployService.inference_endpoint === service.service_url || 
-                  deployService.service_url === service.service_url) {
-                serviceIds.push(id);
-                break;
-              }
-            }
-          }
-        });
+        } catch (e) {
+          console.error('解析model_ids失败', e);
+        }
       }
       
       // 判断是否全天布防
       const fullDayDefense = record.defense_mode === 'full';
       isFullDayDefense.value = fullDayDefense;
-      
-      // 确保 is_enabled 是布尔值（Switch 组件需要布尔值）
-      const isEnabled = typeof record.is_enabled === 'boolean' 
-        ? record.is_enabled 
-        : (record.is_enabled === 1 || record.is_enabled === '1');
       
       setFieldsValue({
         task_name: record.task_name,
@@ -588,10 +614,14 @@ const handleReset = () => {
         space_id: record.space_id,
         cron_expression: record.cron_expression,
         frame_skip: record.frame_skip || 1,
-        selected_service_ids: serviceIds,
-        pusher_id: record.pusher_id,
-        is_enabled: isEnabled,
-        is_full_day_defense: fullDayDefense,
+        model_ids: modelIds,
+        extract_interval: record.extract_interval || 5,
+        tracking_enabled: record.tracking_enabled || false,
+        tracking_similarity_threshold: record.tracking_similarity_threshold || 0.2,
+      tracking_max_age: record.tracking_max_age || 25,
+      tracking_smooth_alpha: record.tracking_smooth_alpha || 0.25,
+      alert_hook_enabled: record.alert_hook_enabled !== undefined ? record.alert_hook_enabled : true,
+      is_full_day_defense: fullDayDefense,
       });
       
       // 恢复布防时段配置

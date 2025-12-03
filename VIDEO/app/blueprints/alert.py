@@ -89,7 +89,7 @@ def get_alert_record():
 
 @alert_bp.route('/hook', methods=['POST'])
 def create_alert_hook():
-    """Hook回调接口：通过HTTP添加告警记录
+    """Hook回调接口：通过HTTP接收实时分析中的告警信息，存储到数据库并发送到Kafka
     
     请求体格式（JSON）:
     {
@@ -100,7 +100,7 @@ def create_alert_hook():
         "region": "区域A",            // 可选：区域
         "information": {...},         // 可选：详细信息（可以是对象或字符串）
         "time": "2024-01-01 12:00:00", // 可选：报警时间（默认当前时间）
-        "image_path": "/path/to/image.jpg", // 可选：图片路径
+        "image_path": "/path/to/image.jpg", // 可选：图片路径（不直接传输图片，而是传输图片所在磁盘路径）
         "record_path": "/path/to/video.mp4" // 可选：录像路径
     }
     """
@@ -113,9 +113,10 @@ def create_alert_hook():
         if not alert_data:
             return api_response(400, '请求体不能为空')
         
-        # 调用服务创建告警记录
-        result = create_alert(alert_data)
-        return api_response(200, '告警记录创建成功', result)
+        # 调用服务创建告警记录（会同时存储到数据库和发送到Kafka）
+        from app.services.alert_hook_service import process_alert_hook
+        result = process_alert_hook(alert_data)
+        return api_response(200, '告警记录处理成功', result)
     except ValueError as e:
         logger.error(f'创建告警记录参数错误: {str(e)}')
         return api_response(400, f'参数错误: {str(e)}')

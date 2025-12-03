@@ -9,27 +9,11 @@ import os
 from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 
-from models import db, FrameExtractor, Sorter, Pusher
+from models import db, AlgorithmTask, FrameExtractor, Sorter, Pusher, Device
 from app.services.algorithm_task_service import (
     create_algorithm_task, update_algorithm_task, delete_algorithm_task,
     get_algorithm_task, list_algorithm_tasks, start_algorithm_task,
     stop_algorithm_task, restart_algorithm_task
-)
-from app.services.frame_extractor_service import (
-    create_frame_extractor, update_frame_extractor, delete_frame_extractor,
-    get_frame_extractor, list_frame_extractors
-)
-from app.services.sorter_service import (
-    create_sorter, update_sorter, delete_sorter,
-    get_sorter, list_sorters
-)
-from app.services.pusher_service import (
-    create_pusher, update_pusher, delete_pusher,
-    get_pusher, list_pushers
-)
-from app.services.algorithm_service import (
-    create_task_algorithm_service, update_task_algorithm_service,
-    delete_task_algorithm_service, get_task_algorithm_services
 )
 
 algorithm_task_bp = Blueprint('algorithm_task', __name__)
@@ -99,17 +83,22 @@ def create_task():
         task = create_algorithm_task(
             task_name=task_name,
             task_type=task_type,
-            extractor_id=data.get('extractor_id'),
-            sorter_id=data.get('sorter_id'),
-            pusher_id=data.get('pusher_id'),
             device_ids=data.get('device_ids'),
+            model_ids=data.get('model_ids'),  # 模型ID列表
+            extract_interval=data.get('extract_interval', 5),
+            # rtmp_input_url和rtmp_output_url不再从请求中获取，改为从摄像头列表获取
+            tracking_enabled=data.get('tracking_enabled', False),
+            tracking_similarity_threshold=data.get('tracking_similarity_threshold', 0.2),
+            tracking_max_age=data.get('tracking_max_age', 25),
+            tracking_smooth_alpha=data.get('tracking_smooth_alpha', 0.25),
+            alert_hook_url=data.get('alert_hook_url'),
+            alert_hook_enabled=data.get('alert_hook_enabled', False),
             space_id=data.get('space_id'),
             cron_expression=data.get('cron_expression'),
             frame_skip=data.get('frame_skip', 1),
             is_enabled=data.get('is_enabled', False),
             defense_mode=data.get('defense_mode'),
-            defense_schedule=data.get('defense_schedule'),
-            algorithm_services=data.get('algorithm_services')
+            defense_schedule=data.get('defense_schedule')
         )
         
         return jsonify({
@@ -166,11 +155,15 @@ def delete_task(task_id):
 def start_task(task_id):
     """启动算法任务"""
     try:
-        task = start_algorithm_task(task_id)
+        task, message, already_running = start_algorithm_task(task_id)
+        # 将任务数据转换为字典，并添加 already_running 字段
+        task_dict = task.to_dict()
+        task_dict['already_running'] = already_running
+        
         return jsonify({
             'code': 0,
-            'msg': '启动成功',
-            'data': task.to_dict()
+            'msg': message,  # "任务运行中" 或 "启动成功"
+            'data': task_dict
         })
     except ValueError as e:
         return jsonify({'code': 404, 'msg': str(e)}), 404
@@ -213,490 +206,57 @@ def restart_task(task_id):
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
-# ====================== 抽帧器管理接口 ======================
-@algorithm_task_bp.route('/extractor/list', methods=['GET'])
-def list_extractors():
-    """查询抽帧器列表"""
-    try:
-        page_no = int(request.args.get('pageNo', 1))
-        page_size = int(request.args.get('pageSize', 10))
-        search = request.args.get('search', '').strip() or None
-        
-        result = list_frame_extractors(page_no, page_size, search)
-        return jsonify({
-            'code': 0,
-            'msg': 'success',
-            'data': result['items'],
-            'total': result['total']
-        })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error(f'查询抽帧器列表失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/extractor/<int:extractor_id>', methods=['GET'])
-def get_extractor(extractor_id):
-    """获取抽帧器详情"""
-    try:
-        extractor = get_frame_extractor(extractor_id)
-        return jsonify({
-            'code': 0,
-            'msg': 'success',
-            'data': extractor.to_dict()
-        })
-    except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
-    except Exception as e:
-        logger.error(f'获取抽帧器失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/extractor', methods=['POST'])
-def create_extractor():
-    """创建抽帧器"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
-        
-        extractor_name = data.get('extractor_name')
-        if not extractor_name:
-            return jsonify({'code': 400, 'msg': '抽帧器名称不能为空'}), 400
-        
-        extractor = create_frame_extractor(
-            extractor_name=extractor_name,
-            extractor_type=data.get('extractor_type', 'interval'),
-            interval=data.get('interval', 1),
-            description=data.get('description'),
-            is_enabled=data.get('is_enabled', True)
-        )
-        
-        return jsonify({
-            'code': 0,
-            'msg': '创建成功',
-            'data': extractor.to_dict()
-        })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error(f'创建抽帧器失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/extractor/<int:extractor_id>', methods=['PUT'])
-def update_extractor(extractor_id):
-    """更新抽帧器"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
-        
-        extractor = update_frame_extractor(extractor_id, **data)
-        
-        return jsonify({
-            'code': 0,
-            'msg': '更新成功',
-            'data': extractor.to_dict()
-        })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error(f'更新抽帧器失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/extractor/<int:extractor_id>', methods=['DELETE'])
-def delete_extractor(extractor_id):
-    """删除抽帧器"""
-    try:
-        delete_frame_extractor(extractor_id)
-        return jsonify({
-            'code': 0,
-            'msg': '删除成功'
-        })
-    except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
-    except Exception as e:
-        logger.error(f'删除抽帧器失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-# ====================== 排序器管理接口 ======================
-@algorithm_task_bp.route('/sorter/list', methods=['GET'])
-def list_sorters_route():
-    """查询排序器列表"""
-    try:
-        page_no = int(request.args.get('pageNo', 1))
-        page_size = int(request.args.get('pageSize', 10))
-        search = request.args.get('search', '').strip() or None
-        
-        result = list_sorters(page_no, page_size, search)
-        return jsonify({
-            'code': 0,
-            'msg': 'success',
-            'data': result['items'],
-            'total': result['total']
-        })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error(f'查询排序器列表失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/sorter/<int:sorter_id>', methods=['GET'])
-def get_sorter_route(sorter_id):
-    """获取排序器详情"""
-    try:
-        sorter = get_sorter(sorter_id)
-        return jsonify({
-            'code': 0,
-            'msg': 'success',
-            'data': sorter.to_dict()
-        })
-    except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
-    except Exception as e:
-        logger.error(f'获取排序器失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/sorter', methods=['POST'])
-def create_sorter_route():
-    """创建排序器"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
-        
-        sorter_name = data.get('sorter_name')
-        if not sorter_name:
-            return jsonify({'code': 400, 'msg': '排序器名称不能为空'}), 400
-        
-        sorter = create_sorter(
-            sorter_name=sorter_name,
-            sorter_type=data.get('sorter_type', 'confidence'),
-            sort_order=data.get('sort_order', 'desc'),
-            description=data.get('description'),
-            is_enabled=data.get('is_enabled', True)
-        )
-        
-        return jsonify({
-            'code': 0,
-            'msg': '创建成功',
-            'data': sorter.to_dict()
-        })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error(f'创建排序器失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/sorter/<int:sorter_id>', methods=['PUT'])
-def update_sorter_route(sorter_id):
-    """更新排序器"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
-        
-        sorter = update_sorter(sorter_id, **data)
-        
-        return jsonify({
-            'code': 0,
-            'msg': '更新成功',
-            'data': sorter.to_dict()
-        })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error(f'更新排序器失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/sorter/<int:sorter_id>', methods=['DELETE'])
-def delete_sorter_route(sorter_id):
-    """删除排序器"""
-    try:
-        delete_sorter(sorter_id)
-        return jsonify({
-            'code': 0,
-            'msg': '删除成功'
-        })
-    except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
-    except Exception as e:
-        logger.error(f'删除排序器失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-# ====================== 算法任务的服务管理接口 ======================
-@algorithm_task_bp.route('/task/<int:task_id>/services', methods=['GET'])
-def list_task_services(task_id):
-    """获取算法任务的所有算法服务"""
-    try:
-        services = get_task_algorithm_services(task_id)
-        return jsonify({
-            'code': 0,
-            'msg': 'success',
-            'data': [s.to_dict() for s in services]
-        })
-    except Exception as e:
-        logger.error(f'获取算法任务服务列表失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/task/<int:task_id>/service', methods=['POST'])
-def create_task_service(task_id):
-    """为算法任务创建算法服务"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
-        
-        service_name = data.get('service_name')
-        if not service_name:
-            return jsonify({'code': 400, 'msg': '服务名称不能为空'}), 400
-        
-        service_url = data.get('service_url')
-        if not service_url:
-            return jsonify({'code': 400, 'msg': '服务URL不能为空'}), 400
-        
-        service = create_task_algorithm_service(
-            task_id=task_id,
-            service_name=service_name,
-            service_url=service_url,
-            service_type=data.get('service_type'),
-            model_id=data.get('model_id'),
-            threshold=data.get('threshold'),
-            request_method=data.get('request_method', 'POST'),
-            request_headers=data.get('request_headers'),
-            request_body_template=data.get('request_body_template'),
-            timeout=data.get('timeout', 30),
-            is_enabled=data.get('is_enabled', True),
-            sort_order=data.get('sort_order', 0)
-        )
-        
-        return jsonify({
-            'code': 0,
-            'msg': '创建成功',
-            'data': service.to_dict()
-        })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error(f'创建算法服务失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/task/service/<int:service_id>', methods=['PUT'])
-def update_task_service(service_id):
-    """更新算法任务的算法服务"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
-        
-        service = update_task_algorithm_service(service_id, **data)
-        
-        return jsonify({
-            'code': 0,
-            'msg': '更新成功',
-            'data': service.to_dict()
-        })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error(f'更新算法服务失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/task/service/<int:service_id>', methods=['DELETE'])
-def delete_task_service(service_id):
-    """删除算法任务的算法服务"""
-    try:
-        delete_task_algorithm_service(service_id)
-        return jsonify({
-            'code': 0,
-            'msg': '删除成功'
-        })
-    except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
-    except Exception as e:
-        logger.error(f'删除算法服务失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-# ====================== 推送器管理接口 ======================
-@algorithm_task_bp.route('/pusher/list', methods=['GET'])
-def list_pushers_route():
-    """查询推送器列表"""
-    try:
-        page_no = int(request.args.get('pageNo', 1))
-        page_size = int(request.args.get('pageSize', 10))
-        search = request.args.get('search', '').strip() or None
-        is_enabled = request.args.get('is_enabled')
-        is_enabled = bool(int(is_enabled)) if is_enabled else None
-        
-        result = list_pushers(page_no, page_size, search, is_enabled)
-        return jsonify({
-            'code': 0,
-            'msg': 'success',
-            'data': result['items'],
-            'total': result['total']
-        })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error(f'查询推送器列表失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/pusher/<int:pusher_id>', methods=['GET'])
-def get_pusher_route(pusher_id):
-    """获取推送器详情"""
-    try:
-        pusher = get_pusher(pusher_id)
-        return jsonify({
-            'code': 0,
-            'msg': 'success',
-            'data': pusher.to_dict()
-        })
-    except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
-    except Exception as e:
-        logger.error(f'获取推送器失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/pusher', methods=['POST'])
-def create_pusher_route():
-    """创建推送器"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
-        
-        pusher_name = data.get('pusher_name')
-        if not pusher_name:
-            return jsonify({'code': 400, 'msg': '推送器名称不能为空'}), 400
-        
-        pusher = create_pusher(
-            pusher_name=pusher_name,
-            video_stream_enabled=data.get('video_stream_enabled', False),
-            video_stream_url=data.get('video_stream_url'),
-            video_stream_format=data.get('video_stream_format', 'rtmp'),
-            video_stream_quality=data.get('video_stream_quality', 'high'),
-            event_alert_enabled=data.get('event_alert_enabled', False),
-            event_alert_url=data.get('event_alert_url'),
-            event_alert_method=data.get('event_alert_method', 'http'),
-            event_alert_format=data.get('event_alert_format', 'json'),
-            event_alert_headers=data.get('event_alert_headers'),
-            event_alert_template=data.get('event_alert_template'),
-            description=data.get('description'),
-            is_enabled=data.get('is_enabled', True)
-        )
-        
-        return jsonify({
-            'code': 0,
-            'msg': '创建成功',
-            'data': pusher.to_dict()
-        })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error(f'创建推送器失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/pusher/<int:pusher_id>', methods=['PUT'])
-def update_pusher_route(pusher_id):
-    """更新推送器"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
-        
-        pusher = update_pusher(pusher_id, **data)
-        
-        return jsonify({
-            'code': 0,
-            'msg': '更新成功',
-            'data': pusher.to_dict()
-        })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error(f'更新推送器失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
-
-@algorithm_task_bp.route('/pusher/<int:pusher_id>', methods=['DELETE'])
-def delete_pusher_route(pusher_id):
-    """删除推送器"""
-    try:
-        delete_pusher(pusher_id)
-        return jsonify({
-            'code': 0,
-            'msg': '删除成功'
-        })
-    except ValueError as e:
-        return jsonify({'code': 404, 'msg': str(e)}), 404
-    except Exception as e:
-        logger.error(f'删除推送器失败: {str(e)}', exc_info=True)
-        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+# ====================== 抽帧器、排序器、推送器、算法服务管理接口已移除 ======================
+# 新架构统一使用realtime_algorithm_service，不再需要这些独立的服务管理接口
 
 
 # ====================== 心跳接收接口 ======================
-@algorithm_task_bp.route('/heartbeat/extractor', methods=['POST'])
-def receive_extractor_heartbeat():
-    """接收抽帧器心跳"""
+# 抽帧器、排序器、推送器的心跳接口已移除，统一使用实时算法服务心跳接口
+
+
+@algorithm_task_bp.route('/heartbeat/realtime', methods=['POST'])
+def receive_realtime_heartbeat():
+    """接收实时算法服务心跳"""
     try:
         data = request.get_json()
-        extractor_id = data.get('extractor_id')
+        task_id = data.get('task_id')
         server_ip = data.get('server_ip')
         port = data.get('port')
         process_id = data.get('process_id')
         log_path = data.get('log_path')
-        task_id = data.get('task_id')
         
-        if not extractor_id:
+        if not task_id:
             return jsonify({
                 'code': 400,
-                'msg': '缺少必要参数：extractor_id'
+                'msg': '缺少必要参数：task_id'
             }), 400
         
-        extractor = FrameExtractor.query.get(extractor_id)
-        if not extractor:
+        task = AlgorithmTask.query.get(task_id)
+        if not task:
             return jsonify({
                 'code': 404,
-                'msg': f'抽帧器不存在：extractor_id={extractor_id}'
+                'msg': f'算法任务不存在：task_id={task_id}'
             }), 404
         
         # 更新心跳信息
-        extractor.last_heartbeat = datetime.utcnow()
+        task.service_last_heartbeat = datetime.utcnow()
         if server_ip:
-            extractor.server_ip = server_ip
+            task.service_server_ip = server_ip
         if port:
-            extractor.port = port
+            task.service_port = port
         if process_id:
-            extractor.process_id = process_id
+            task.service_process_id = process_id
         if log_path:
-            extractor.log_path = log_path
-        elif not extractor.log_path:
-            # 如果没有log_path，根据extractor_id生成
+            task.service_log_path = log_path
+        elif not task.service_log_path:
+            # 如果没有log_path，根据task_id生成
             video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
             log_base_dir = os.path.join(video_root, 'logs')
-            extractor.log_path = os.path.join(log_base_dir, f'frame_extractor_{extractor_id}')
-        if task_id:
-            extractor.task_id = task_id
+            task.service_log_path = os.path.join(log_base_dir, f'task_{task_id}')
         
-        # 更新状态为running
-        if extractor.status != 'stopped':
-            extractor.status = 'running'
+        # 更新运行状态为running
+        if task.run_status != 'stopped':
+            task.run_status = 'running'
         
         db.session.commit()
         
@@ -704,144 +264,12 @@ def receive_extractor_heartbeat():
             'code': 0,
             'msg': '心跳接收成功',
             'data': {
-                'extractor_id': extractor.id,
-                'extractor_name': extractor.extractor_name
+                'task_id': task.id,
+                'task_name': task.task_name
             }
         })
     except Exception as e:
-        logger.error(f"接收抽帧器心跳失败: {str(e)}", exc_info=True)
-        db.session.rollback()
-        return jsonify({
-            'code': 500,
-            'msg': f'服务器内部错误: {str(e)}'
-        }), 500
-
-
-@algorithm_task_bp.route('/heartbeat/sorter', methods=['POST'])
-def receive_sorter_heartbeat():
-    """接收排序器心跳"""
-    try:
-        data = request.get_json()
-        sorter_id = data.get('sorter_id')
-        server_ip = data.get('server_ip')
-        port = data.get('port')
-        process_id = data.get('process_id')
-        log_path = data.get('log_path')
-        task_id = data.get('task_id')
-        
-        if not sorter_id:
-            return jsonify({
-                'code': 400,
-                'msg': '缺少必要参数：sorter_id'
-            }), 400
-        
-        sorter = Sorter.query.get(sorter_id)
-        if not sorter:
-            return jsonify({
-                'code': 404,
-                'msg': f'排序器不存在：sorter_id={sorter_id}'
-            }), 404
-        
-        # 更新心跳信息
-        sorter.last_heartbeat = datetime.utcnow()
-        if server_ip:
-            sorter.server_ip = server_ip
-        if port:
-            sorter.port = port
-        if process_id:
-            sorter.process_id = process_id
-        if log_path:
-            sorter.log_path = log_path
-        elif not sorter.log_path:
-            # 如果没有log_path，根据sorter_id生成
-            video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-            log_base_dir = os.path.join(video_root, 'logs')
-            sorter.log_path = os.path.join(log_base_dir, f'sorter_{sorter_id}')
-        if task_id:
-            sorter.task_id = task_id
-        
-        # 更新状态为running
-        if sorter.status != 'stopped':
-            sorter.status = 'running'
-        
-        db.session.commit()
-        
-        return jsonify({
-            'code': 0,
-            'msg': '心跳接收成功',
-            'data': {
-                'sorter_id': sorter.id,
-                'sorter_name': sorter.sorter_name
-            }
-        })
-    except Exception as e:
-        logger.error(f"接收排序器心跳失败: {str(e)}", exc_info=True)
-        db.session.rollback()
-        return jsonify({
-            'code': 500,
-            'msg': f'服务器内部错误: {str(e)}'
-        }), 500
-
-
-@algorithm_task_bp.route('/heartbeat/pusher', methods=['POST'])
-def receive_pusher_heartbeat():
-    """接收推送器心跳"""
-    try:
-        data = request.get_json()
-        pusher_id = data.get('pusher_id')
-        server_ip = data.get('server_ip')
-        port = data.get('port')
-        process_id = data.get('process_id')
-        log_path = data.get('log_path')
-        task_id = data.get('task_id')
-        
-        if not pusher_id:
-            return jsonify({
-                'code': 400,
-                'msg': '缺少必要参数：pusher_id'
-            }), 400
-        
-        pusher = Pusher.query.get(pusher_id)
-        if not pusher:
-            return jsonify({
-                'code': 404,
-                'msg': f'推送器不存在：pusher_id={pusher_id}'
-            }), 404
-        
-        # 更新心跳信息
-        pusher.last_heartbeat = datetime.utcnow()
-        if server_ip:
-            pusher.server_ip = server_ip
-        if port:
-            pusher.port = port
-        if process_id:
-            pusher.process_id = process_id
-        if log_path:
-            pusher.log_path = log_path
-        elif not pusher.log_path:
-            # 如果没有log_path，根据pusher_id生成
-            video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-            log_base_dir = os.path.join(video_root, 'logs')
-            pusher.log_path = os.path.join(log_base_dir, f'pusher_{pusher_id}')
-        if task_id:
-            pusher.task_id = task_id
-        
-        # 更新状态为running
-        if pusher.status != 'stopped':
-            pusher.status = 'running'
-        
-        db.session.commit()
-        
-        return jsonify({
-            'code': 0,
-            'msg': '心跳接收成功',
-            'data': {
-                'pusher_id': pusher.id,
-                'pusher_name': pusher.pusher_name
-            }
-        })
-    except Exception as e:
-        logger.error(f"接收推送器心跳失败: {str(e)}", exc_info=True)
+        logger.error(f"接收实时算法服务心跳失败: {str(e)}", exc_info=True)
         db.session.rollback()
         return jsonify({
             'code': 500,
@@ -852,50 +280,56 @@ def receive_pusher_heartbeat():
 # ====================== 服务状态查询接口 ======================
 @algorithm_task_bp.route('/task/<int:task_id>/services/status', methods=['GET'])
 def get_task_services_status(task_id):
-    """获取算法任务的所有服务状态信息（抽帧器、排序器、推送器）"""
+    """获取算法任务的所有服务状态信息"""
     try:
-        from models import AlgorithmTask
         task = AlgorithmTask.query.get(task_id)
         if not task:
             return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
         
         result = {
-            'extractor': None,
-            'sorter': None,
-            'pusher': None
+            'realtime_service': None
         }
         
-        # 获取抽帧器状态
-        # 优先通过任务的extractor_id查询，如果没有则通过task_id查询
-        extractor = None
-        if task.extractor_id:
-            extractor = FrameExtractor.query.get(task.extractor_id)
-        if not extractor:
-            # 通过task_id查询关联的抽帧器
-            extractor = FrameExtractor.query.filter_by(task_id=task_id).first()
-        if extractor:
-            result['extractor'] = extractor.to_dict()
-        
-        # 获取排序器状态（仅实时算法任务）
+        # 实时算法任务：返回统一服务的状态
         if task.task_type == 'realtime':
-            sorter = None
-            if task.sorter_id:
-                sorter = Sorter.query.get(task.sorter_id)
-            if not sorter:
-                # 通过task_id查询关联的排序器
-                sorter = Sorter.query.filter_by(task_id=task_id).first()
-            if sorter:
-                result['sorter'] = sorter.to_dict()
-        
-        # 获取推送器状态
-        pusher = None
-        if task.pusher_id:
-            pusher = Pusher.query.get(task.pusher_id)
-        if not pusher:
-            # 通过task_id查询关联的推送器
-            pusher = Pusher.query.filter_by(task_id=task_id).first()
-        if pusher:
-            result['pusher'] = pusher.to_dict()
+            # 检查守护进程是否在运行（即使心跳未上报）
+            daemon_running = False
+            try:
+                from app.services.algorithm_task_launcher_service import _running_daemons, _daemons_lock
+                with _daemons_lock:
+                    if task_id in _running_daemons:
+                        daemon = _running_daemons[task_id]
+                        if daemon._running and daemon._process and daemon._process.poll() is None:
+                            daemon_running = True
+            except Exception as e:
+                logger.debug(f"检查守护进程状态失败: {str(e)}")
+            
+            # 根据心跳和守护进程状态判断服务状态
+            has_recent_heartbeat = task.service_last_heartbeat and (datetime.utcnow() - task.service_last_heartbeat).total_seconds() < 60
+            if has_recent_heartbeat:
+                service_status = 'running'
+            elif daemon_running:
+                # 守护进程在运行但心跳未上报（可能是刚启动，心跳还未上报）
+                service_status = 'running'
+            else:
+                service_status = 'stopped'
+            
+            # 构建实时算法服务状态信息
+            realtime_service = {
+                'task_id': task.id,
+                'task_name': task.task_name,
+                'server_ip': task.service_server_ip,
+                'port': task.service_port,
+                'process_id': task.service_process_id,
+                'last_heartbeat': task.service_last_heartbeat.isoformat() if task.service_last_heartbeat else None,
+                'log_path': task.service_log_path,
+                'status': service_status,
+                'run_status': task.run_status
+            }
+            result['realtime_service'] = realtime_service
+        else:
+            # 抓拍算法任务：不需要服务状态
+            pass
         
         return jsonify({
             'code': 0,
@@ -912,22 +346,40 @@ def get_task_services_status(task_id):
 def get_task_extractor_logs(task_id):
     """获取算法任务的抽帧器日志"""
     try:
-        from models import AlgorithmTask
         task = AlgorithmTask.query.get(task_id)
         if not task:
             return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
         
-        if not task.extractor_id:
-            return jsonify({'code': 400, 'msg': '该算法任务未配置抽帧器'}), 400
-        
-        extractor = FrameExtractor.query.get(task.extractor_id)
-        if not extractor:
-            return jsonify({'code': 404, 'msg': '抽帧器不存在'}), 404
-        
-        lines = int(request.args.get('lines', 100))
-        date = request.args.get('date', '').strip()
-        
-        return get_service_logs(extractor, lines, date if date else None)
+        # 新架构统一使用realtime_algorithm_service，对于实时算法任务，使用统一的日志路径
+        if task.task_type == 'realtime':
+            # 对于实时算法任务，使用统一的日志路径
+            lines = int(request.args.get('lines', 100))
+            date = request.args.get('date', '').strip()
+            
+            # 创建一个模拟的服务对象，用于调用get_service_logs
+            class RealtimeServiceObj:
+                def __init__(self, log_path):
+                    self.log_path = log_path
+                    self.id = task_id
+            
+            # 确定日志路径
+            if task.service_log_path:
+                log_path = task.service_log_path
+            else:
+                video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                log_base_dir = os.path.join(video_root, 'logs')
+                log_path = os.path.join(log_base_dir, f'task_{task_id}')
+            
+            service_obj = RealtimeServiceObj(log_path)
+            return get_service_logs(service_obj, lines, date if date else None)
+        else:
+            # 对于抓拍算法任务，检查是否有extractor_id（旧架构）
+            # 注意：新架构的AlgorithmTask模型中没有extractor_id字段
+            # 这里为了兼容性，直接返回提示信息
+            return jsonify({
+                'code': 400,
+                'msg': '新架构已统一使用实时算法服务，请使用realtime日志接口'
+            }), 400
     except ValueError as e:
         return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
@@ -939,22 +391,40 @@ def get_task_extractor_logs(task_id):
 def get_task_sorter_logs(task_id):
     """获取算法任务的排序器日志"""
     try:
-        from models import AlgorithmTask
         task = AlgorithmTask.query.get(task_id)
         if not task:
             return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
         
-        if not task.sorter_id:
-            return jsonify({'code': 400, 'msg': '该算法任务未配置排序器'}), 400
-        
-        sorter = Sorter.query.get(task.sorter_id)
-        if not sorter:
-            return jsonify({'code': 404, 'msg': '排序器不存在'}), 404
-        
-        lines = int(request.args.get('lines', 100))
-        date = request.args.get('date', '').strip()
-        
-        return get_service_logs(sorter, lines, date if date else None)
+        # 新架构统一使用realtime_algorithm_service，对于实时算法任务，使用统一的日志路径
+        if task.task_type == 'realtime':
+            # 对于实时算法任务，使用统一的日志路径
+            lines = int(request.args.get('lines', 100))
+            date = request.args.get('date', '').strip()
+            
+            # 创建一个模拟的服务对象，用于调用get_service_logs
+            class RealtimeServiceObj:
+                def __init__(self, log_path):
+                    self.log_path = log_path
+                    self.id = task_id
+            
+            # 确定日志路径
+            if task.service_log_path:
+                log_path = task.service_log_path
+            else:
+                video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                log_base_dir = os.path.join(video_root, 'logs')
+                log_path = os.path.join(log_base_dir, f'task_{task_id}')
+            
+            service_obj = RealtimeServiceObj(log_path)
+            return get_service_logs(service_obj, lines, date if date else None)
+        else:
+            # 对于抓拍算法任务，检查是否有sorter_id（旧架构）
+            # 注意：新架构的AlgorithmTask模型中没有sorter_id字段
+            # 这里为了兼容性，直接返回提示信息
+            return jsonify({
+                'code': 400,
+                'msg': '新架构已统一使用实时算法服务，请使用realtime日志接口'
+            }), 400
     except ValueError as e:
         return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
@@ -966,26 +436,164 @@ def get_task_sorter_logs(task_id):
 def get_task_pusher_logs(task_id):
     """获取算法任务的推送器日志"""
     try:
-        from models import AlgorithmTask
         task = AlgorithmTask.query.get(task_id)
         if not task:
             return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
         
-        if not task.pusher_id:
-            return jsonify({'code': 400, 'msg': '该算法任务未配置推送器'}), 400
-        
-        pusher = Pusher.query.get(task.pusher_id)
-        if not pusher:
-            return jsonify({'code': 404, 'msg': '推送器不存在'}), 404
-        
-        lines = int(request.args.get('lines', 100))
-        date = request.args.get('date', '').strip()
-        
-        return get_service_logs(pusher, lines, date if date else None)
+        # 新架构统一使用realtime_algorithm_service，对于实时算法任务，使用统一的日志路径
+        if task.task_type == 'realtime':
+            # 对于实时算法任务，使用统一的日志路径
+            lines = int(request.args.get('lines', 100))
+            date = request.args.get('date', '').strip()
+            
+            # 创建一个模拟的服务对象，用于调用get_service_logs
+            class RealtimeServiceObj:
+                def __init__(self, log_path):
+                    self.log_path = log_path
+                    self.id = task_id
+            
+            # 确定日志路径
+            if task.service_log_path:
+                log_path = task.service_log_path
+            else:
+                video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                log_base_dir = os.path.join(video_root, 'logs')
+                log_path = os.path.join(log_base_dir, f'task_{task_id}')
+            
+            service_obj = RealtimeServiceObj(log_path)
+            return get_service_logs(service_obj, lines, date if date else None)
+        else:
+            # 对于抓拍算法任务，检查是否有pusher_id（旧架构）
+            # 注意：新架构的AlgorithmTask模型中没有pusher_id字段
+            # 这里为了兼容性，直接返回提示信息
+            return jsonify({
+                'code': 400,
+                'msg': '新架构已统一使用实时算法服务，请使用realtime日志接口'
+            }), 400
     except ValueError as e:
         return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f"获取推送器日志失败: {str(e)}", exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@algorithm_task_bp.route('/task/<int:task_id>/realtime/logs', methods=['GET'])
+def get_task_realtime_logs(task_id):
+    """获取实时算法任务的日志"""
+    try:
+        task = AlgorithmTask.query.get(task_id)
+        if not task:
+            return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
+        
+        if task.task_type != 'realtime':
+            return jsonify({'code': 400, 'msg': '该接口仅支持实时算法任务'}), 400
+        
+        lines = int(request.args.get('lines', 100))
+        date = request.args.get('date', '').strip()
+        
+        # 创建一个模拟的服务对象，用于调用get_service_logs
+        class RealtimeServiceObj:
+            def __init__(self, log_path):
+                self.log_path = log_path
+                self.id = task_id
+        
+        # 确定日志路径
+        if task.service_log_path:
+            log_path = task.service_log_path
+        else:
+            video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            log_base_dir = os.path.join(video_root, 'logs')
+            log_path = os.path.join(log_base_dir, f'task_{task_id}')
+        
+        service_obj = RealtimeServiceObj(log_path)
+        return get_service_logs(service_obj, lines, date if date else None)
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except Exception as e:
+        logger.error(f"获取实时算法服务日志失败: {str(e)}", exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+# ====================== 推流地址查询接口 ======================
+@algorithm_task_bp.route('/task/<int:task_id>/streams', methods=['GET'])
+def get_task_streams(task_id):
+    """获取算法任务关联的摄像头推流地址列表"""
+    try:
+        import json
+        task = AlgorithmTask.query.get(task_id)
+        if not task:
+            return jsonify({'code': 404, 'msg': '算法任务不存在'}), 404
+        
+        # 获取关联的摄像头列表
+        device_list = task.devices if task.devices else []
+        if not device_list:
+            return jsonify({
+                'code': 0,
+                'msg': 'success',
+                'data': []
+            })
+        
+        # 构建摄像头推流地址列表
+        streams = []
+        for device in device_list:
+            stream_info = {
+                'device_id': device.id,
+                'device_name': device.name or device.id,
+                'http_stream': device.http_stream,
+                'rtmp_stream': device.rtmp_stream,
+                'source': device.source,
+            }
+            
+            # 对于实时算法任务，优先使用摄像头的推流地址
+            # 对于抓拍算法任务，如果有推送器配置，尝试从推送器获取推流地址
+            if task.task_type == 'snap':
+                # 查找关联的推送器（通过抓拍空间查找）
+                if task.space_id:
+                    from models import SnapSpace
+                    snap_space = SnapSpace.query.get(task.space_id)
+                    if snap_space and snap_space.pusher_id:
+                        pusher = Pusher.query.get(snap_space.pusher_id)
+                        if pusher and pusher.video_stream_enabled:
+                            # 优先使用多摄像头映射
+                            if pusher.device_rtmp_mapping:
+                                try:
+                                    mapping = json.loads(pusher.device_rtmp_mapping) if isinstance(pusher.device_rtmp_mapping, str) else pusher.device_rtmp_mapping
+                                    if isinstance(mapping, dict) and device.id in mapping:
+                                        stream_info['pusher_rtmp_url'] = mapping[device.id]
+                                        # 从RTMP地址生成HTTP地址（假设使用8080端口）
+                                        rtmp_url = mapping[device.id]
+                                        if rtmp_url and rtmp_url.startswith('rtmp://'):
+                                            # 提取路径部分
+                                            path = rtmp_url.split('/', 3)[-1] if '/' in rtmp_url[7:] else ''
+                                            if path and not path.endswith('.flv'):
+                                                path = f"{path}.flv"
+                                            # 假设HTTP服务器在8080端口
+                                            server = rtmp_url.split('://')[1].split('/')[0].split(':')[0]
+                                            stream_info['pusher_http_url'] = f"http://{server}:8080/{path}" if path else None
+                                except:
+                                    pass
+                            
+                            # 如果没有映射，使用默认的video_stream_url
+                            if 'pusher_rtmp_url' not in stream_info and pusher.video_stream_url:
+                                stream_info['pusher_rtmp_url'] = pusher.video_stream_url
+                                # 从RTMP地址生成HTTP地址
+                                rtmp_url = pusher.video_stream_url
+                                if rtmp_url and rtmp_url.startswith('rtmp://'):
+                                    path = rtmp_url.split('/', 3)[-1] if '/' in rtmp_url[7:] else ''
+                                    if path and not path.endswith('.flv'):
+                                        path = f"{path}.flv"
+                                    server = rtmp_url.split('://')[1].split('/')[0].split(':')[0]
+                                    stream_info['pusher_http_url'] = f"http://{server}:8080/{path}" if path else None
+            
+            streams.append(stream_info)
+        
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': streams
+        })
+    except Exception as e:
+        logger.error(f"获取算法任务推流地址失败: {str(e)}", exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
@@ -997,15 +605,8 @@ def get_service_logs(service_obj, lines: int = 100, date: str = None):
         log_base_dir = os.path.join(video_root, 'logs')
         
         if not service_obj.log_path:
-            # 根据服务类型生成日志目录
-            if isinstance(service_obj, FrameExtractor):
-                service_log_dir = os.path.join(log_base_dir, f'frame_extractor_{service_obj.id}')
-            elif isinstance(service_obj, Sorter):
-                service_log_dir = os.path.join(log_base_dir, f'sorter_{service_obj.id}')
-            elif isinstance(service_obj, Pusher):
-                service_log_dir = os.path.join(log_base_dir, f'pusher_{service_obj.id}')
-            else:
-                service_log_dir = os.path.join(log_base_dir, str(service_obj.id))
+            # 根据服务类型生成日志目录（仅支持实时算法服务）
+            service_log_dir = os.path.join(log_base_dir, str(service_obj.id))
         else:
             service_log_dir = service_obj.log_path
         

@@ -10,25 +10,29 @@ from datetime import datetime
 from typing import List, Optional
 from sqlalchemy.orm import joinedload
 
-from models import db, AlgorithmTask, Device, FrameExtractor, Sorter, Pusher, SnapSpace, algorithm_task_device
-from app.services.algorithm_service import create_task_algorithm_service
+from models import db, AlgorithmTask, Device, SnapSpace, algorithm_task_device
+import json
 
 logger = logging.getLogger(__name__)
 
 
 def create_algorithm_task(task_name: str,
                          task_type: str = 'realtime',
-                         extractor_id: Optional[int] = None,
-                         sorter_id: Optional[int] = None,
-                         pusher_id: Optional[int] = None,
                          device_ids: Optional[List[str]] = None,
+                         model_ids: Optional[List[int]] = None,
+                         extract_interval: int = 5,
+                         tracking_enabled: bool = False,
+                         tracking_similarity_threshold: float = 0.2,
+                         tracking_max_age: int = 25,
+                         tracking_smooth_alpha: float = 0.25,
+                         alert_hook_url: Optional[str] = None,
+                         alert_hook_enabled: bool = False,
                          space_id: Optional[int] = None,
                          cron_expression: Optional[str] = None,
                          frame_skip: int = 1,
                          is_enabled: bool = False,
                          defense_mode: Optional[str] = None,
-                         defense_schedule: Optional[str] = None,
-                         algorithm_services: Optional[List[dict]] = None) -> AlgorithmTask:
+                         defense_schedule: Optional[str] = None) -> AlgorithmTask:
     """创建算法任务"""
     try:
         # 验证任务类型
@@ -41,16 +45,78 @@ def create_algorithm_task(task_name: str,
         for dev_id in device_id_list:
             Device.query.get_or_404(dev_id)
         
-        # 实时算法任务：验证抽帧器和排序器（可选）
+        # 实时算法任务：验证模型ID列表
         if task_type == 'realtime':
-            if extractor_id:
-                FrameExtractor.query.get_or_404(extractor_id)
-            if sorter_id:
-                Sorter.query.get_or_404(sorter_id)
+            if not model_ids:
+                raise ValueError("实时算法任务必须指定模型ID列表")
+            # 验证模型是否存在并获取模型名称（支持默认模型和数据库模型）
+            model_names_list = []
+            # 默认模型映射：负数ID -> 模型文件路径
+            default_model_map = {
+                -1: 'yolo11n.pt',
+                -2: 'yolov8n.pt',
+            }
+            try:
+                # 调用AI模块API获取模型信息（仅对正数ID，即数据库中的模型）
+                import requests
+                import os
+                ai_service_url = os.getenv('AI_SERVICE_URL', 'http://localhost:5000')
+                for model_id in model_ids:
+                    # 如果是负数ID，表示默认模型
+                    if model_id < 0:
+                        model_file = default_model_map.get(model_id)
+                        if model_file:
+                            model_names_list.append(f"{model_file} (默认模型)")
+                        else:
+                            logger.warning(f"未知的默认模型ID: {model_id}")
+                            model_names_list.append(f"默认模型_{model_id}")
+                    else:
+                        # 正数ID，从数据库获取模型信息
+                        try:
+                            response = requests.get(
+                                f"{ai_service_url}/model/{model_id}",
+                                headers={'X-Authorization': f'Bearer {os.getenv("JWT_TOKEN", "")}'},
+                                timeout=5
+                            )
+                            if response.status_code == 200:
+                                model_data = response.json()
+                                if model_data.get('code') == 0:
+                                    model_info = model_data.get('data', {})
+                                    model_name = model_info.get('name', f'Model_{model_id}')
+                                    model_version = model_info.get('version', '')
+                                    if model_version:
+                                        model_names_list.append(f"{model_name} (v{model_version})")
+                                    else:
+                                        model_names_list.append(model_name)
+                                else:
+                                    logger.warning(f"获取模型 {model_id} 信息失败: {model_data.get('msg')}")
+                                    model_names_list.append(f"Model_{model_id}")
+                            else:
+                                logger.warning(f"获取模型 {model_id} 信息失败: HTTP {response.status_code}")
+                                model_names_list.append(f"Model_{model_id}")
+                        except Exception as e:
+                            logger.warning(f"获取模型 {model_id} 信息异常: {str(e)}")
+                            model_names_list.append(f"Model_{model_id}")
+            except Exception as e:
+                logger.warning(f"调用AI模块API获取模型信息失败: {str(e)}，使用默认名称")
+                # 对于默认模型，使用模型文件名；对于数据库模型，使用Model_ID格式
+                model_names_list = []
+                for mid in model_ids:
+                    if mid < 0:
+                        model_file = default_model_map.get(mid)
+                        if model_file:
+                            model_names_list.append(f"{model_file} (默认模型)")
+                        else:
+                            model_names_list.append(f"默认模型_{mid}")
+                    else:
+                        model_names_list.append(f"Model_{mid}")
+            
+            model_ids_json = json.dumps(model_ids)
+            model_names = ','.join(model_names_list) if model_names_list else None
         else:
-            # 抓拍算法任务：不需要抽帧器和排序器
-            extractor_id = None
-            sorter_id = None
+            # 抓拍算法任务：不需要模型列表
+            model_ids_json = None
+            model_names = None
         
         # 抓拍算法任务：验证抓拍空间
         if task_type == 'snap':
@@ -64,10 +130,6 @@ def create_algorithm_task(task_name: str,
             space_id = None
             cron_expression = None
             frame_skip = 1
-        
-        # 验证推送器是否存在（如果提供）
-        if pusher_id:
-            Pusher.query.get_or_404(pusher_id)
         
         # 生成唯一编号
         prefix = "REALTIME_TASK" if task_type == 'realtime' else "SNAP_TASK"
@@ -84,32 +146,40 @@ def create_algorithm_task(task_name: str,
         if not defense_schedule:
             if defense_mode == 'full':
                 # 全防模式：全部填充
-                import json
                 schedule = [[1] * 24 for _ in range(7)]
                 defense_schedule = json.dumps(schedule)
             elif defense_mode == 'day':
                 # 白天模式：6:00-18:00填充
-                import json
                 schedule = [[1 if 6 <= h < 18 else 0 for h in range(24)] for _ in range(7)]
                 defense_schedule = json.dumps(schedule)
             elif defense_mode == 'night':
                 # 夜间模式：18:00-6:00填充
-                import json
                 schedule = [[1 if h >= 18 or h < 6 else 0 for h in range(24)] for _ in range(7)]
                 defense_schedule = json.dumps(schedule)
             else:
                 # 半防模式：全部清空
-                import json
                 schedule = [[0] * 24 for _ in range(7)]
                 defense_schedule = json.dumps(schedule)
+        
+        # 如果启用了告警Hook但没有提供URL，自动设置为固定的网关路径
+        if alert_hook_enabled and not alert_hook_url:
+            alert_hook_url = '/admin-api/video/alert/hook'
         
         task = AlgorithmTask(
             task_name=task_name,
             task_code=task_code,
             task_type=task_type,
-            extractor_id=extractor_id,
-            sorter_id=sorter_id,
-            pusher_id=pusher_id,
+            model_ids=model_ids_json,
+            model_names=model_names,
+            extract_interval=extract_interval if task_type == 'realtime' else 5,
+            rtmp_input_url=None,  # 不再使用，从摄像头列表获取RTSP流地址
+            rtmp_output_url=None,  # 不再使用，从摄像头列表获取RTMP流地址
+            tracking_enabled=tracking_enabled if task_type == 'realtime' else False,
+            tracking_similarity_threshold=tracking_similarity_threshold if task_type == 'realtime' else 0.2,
+            tracking_max_age=tracking_max_age if task_type == 'realtime' else 25,
+            tracking_smooth_alpha=tracking_smooth_alpha if task_type == 'realtime' else 0.25,
+            alert_hook_url=alert_hook_url,
+            alert_hook_enabled=alert_hook_enabled,
             space_id=space_id,
             cron_expression=cron_expression,
             frame_skip=frame_skip,
@@ -126,78 +196,10 @@ def create_algorithm_task(task_name: str,
             devices = Device.query.filter(Device.id.in_(device_id_list)).all()
             task.devices = devices
         
-        # 根据前端传递的算法服务信息创建算法服务（在提交事务之前）
-        service_names_list = []
-        if algorithm_services:
-            # 前端直接传递完整的算法服务信息
-            from models import AlgorithmModelService
-            import json
-            
-            for idx, service_data in enumerate(algorithm_services):
-                try:
-                    # 验证必要字段
-                    service_name = service_data.get('service_name')
-                    service_url = service_data.get('service_url') or service_data.get('inference_endpoint')
-                    
-                    if not service_name:
-                        logger.warning(f"算法服务缺少 service_name，跳过创建")
-                        continue
-                    
-                    if not service_url:
-                        logger.warning(f"算法服务 {service_name} 缺少 service_url 或 inference_endpoint，跳过创建")
-                        continue
-                    
-                    # 处理请求头和请求体模板（可能是字符串或字典）
-                    request_headers = service_data.get('request_headers')
-                    if isinstance(request_headers, dict):
-                        request_headers = json.dumps(request_headers)
-                    elif isinstance(request_headers, str):
-                        # 已经是字符串，直接使用
-                        pass
-                    else:
-                        request_headers = None
-                    
-                    request_body_template = service_data.get('request_body_template')
-                    if isinstance(request_body_template, dict):
-                        request_body_template = json.dumps(request_body_template)
-                    elif isinstance(request_body_template, str):
-                        # 已经是字符串，直接使用
-                        pass
-                    else:
-                        request_body_template = None
-                    
-                    # 创建算法服务（在事务内）
-                    service = AlgorithmModelService(
-                        task_id=task.id,
-                        service_name=service_name,
-                        service_url=service_url,
-                        service_type=service_data.get('service_type'),
-                        model_id=service_data.get('model_id'),
-                        threshold=service_data.get('threshold'),
-                        request_method=service_data.get('request_method', 'POST'),
-                        request_headers=request_headers,
-                        request_body_template=request_body_template,
-                        timeout=service_data.get('timeout', 30),
-                        is_enabled=service_data.get('is_enabled', True),
-                        sort_order=service_data.get('sort_order', idx)
-                    )
-                    
-                    db.session.add(service)
-                    service_names_list.append(service_name)
-                    logger.info(f"为任务 {task.id} 创建算法服务成功: service_name={service_name}, service_url={service_url}")
-                except Exception as e:
-                    logger.error(f"创建算法服务失败: service_data={service_data}, error={str(e)}", exc_info=True)
-                    # 继续处理其他服务，不中断整个流程
-                    continue
-        
-        # 保存服务名称列表到冗余字段
-        if service_names_list:
-            task.service_names = ', '.join(service_names_list)
-        
         # 提交所有更改（包括任务和算法服务）
         db.session.commit()
         
-        logger.info(f"创建算法任务成功: task_id={task.id}, task_name={task_name}, task_type={task_type}, device_ids={device_id_list}, algorithm_services_count={len(algorithm_services) if algorithm_services else 0}")
+        logger.info(f"创建算法任务成功: task_id={task.id}, task_name={task_name}, task_type={task_type}, device_ids={device_id_list}, model_ids={model_ids}")
         return task
     except Exception as e:
         db.session.rollback()
@@ -214,8 +216,8 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
         # 处理设备ID列表
         device_id_list = kwargs.pop('device_ids', None)
         
-        # 处理算法服务列表
-        algorithm_services = kwargs.pop('algorithm_services', None)
+        # 处理模型ID列表
+        model_ids = kwargs.pop('model_ids', None)
         
         # 验证所有设备是否存在（如果提供）
         if device_id_list is not None:
@@ -224,11 +226,74 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
         
         # 根据任务类型验证字段
         if task_type == 'realtime':
-            # 实时算法任务：验证抽帧器和排序器（可选）
-            if 'extractor_id' in kwargs and kwargs['extractor_id']:
-                FrameExtractor.query.get_or_404(kwargs['extractor_id'])
-            if 'sorter_id' in kwargs and kwargs['sorter_id']:
-                Sorter.query.get_or_404(kwargs['sorter_id'])
+            # 实时算法任务：验证模型ID列表
+            if model_ids is not None:
+                if not model_ids:
+                    raise ValueError("实时算法任务必须指定模型ID列表")
+                # 验证模型是否存在并获取模型名称（支持默认模型和数据库模型）
+                model_names_list = []
+                # 默认模型映射：负数ID -> 模型文件路径
+                default_model_map = {
+                    -1: 'yolo11n.pt',
+                    -2: 'yolov8n.pt',
+                }
+                try:
+                    # 调用AI模块API获取模型信息（仅对正数ID，即数据库中的模型）
+                    import requests
+                    import os
+                    ai_service_url = os.getenv('AI_SERVICE_URL', 'http://localhost:5000')
+                    for model_id in model_ids:
+                        # 如果是负数ID，表示默认模型
+                        if model_id < 0:
+                            model_file = default_model_map.get(model_id)
+                            if model_file:
+                                model_names_list.append(f"{model_file} (默认模型)")
+                            else:
+                                logger.warning(f"未知的默认模型ID: {model_id}")
+                                model_names_list.append(f"默认模型_{model_id}")
+                        else:
+                            # 正数ID，从数据库获取模型信息
+                            try:
+                                response = requests.get(
+                                    f"{ai_service_url}/model/{model_id}",
+                                    headers={'X-Authorization': f'Bearer {os.getenv("JWT_TOKEN", "")}'},
+                                    timeout=5
+                                )
+                                if response.status_code == 200:
+                                    model_data = response.json()
+                                    if model_data.get('code') == 0:
+                                        model_info = model_data.get('data', {})
+                                        model_name = model_info.get('name', f'Model_{model_id}')
+                                        model_version = model_info.get('version', '')
+                                        if model_version:
+                                            model_names_list.append(f"{model_name} (v{model_version})")
+                                        else:
+                                            model_names_list.append(model_name)
+                                    else:
+                                        logger.warning(f"获取模型 {model_id} 信息失败: {model_data.get('msg')}")
+                                        model_names_list.append(f"Model_{model_id}")
+                                else:
+                                    logger.warning(f"获取模型 {model_id} 信息失败: HTTP {response.status_code}")
+                                    model_names_list.append(f"Model_{model_id}")
+                            except Exception as e:
+                                logger.warning(f"获取模型 {model_id} 信息异常: {str(e)}")
+                                model_names_list.append(f"Model_{model_id}")
+                except Exception as e:
+                    logger.warning(f"调用AI模块API获取模型信息失败: {str(e)}，使用默认名称")
+                    # 对于默认模型，使用模型文件名；对于数据库模型，使用Model_ID格式
+                    model_names_list = []
+                    for mid in model_ids:
+                        if mid < 0:
+                            model_file = default_model_map.get(mid)
+                            if model_file:
+                                model_names_list.append(f"{model_file} (默认模型)")
+                            else:
+                                model_names_list.append(f"默认模型_{mid}")
+                        else:
+                            model_names_list.append(f"Model_{mid}")
+                
+                kwargs['model_ids'] = json.dumps(model_ids)
+                kwargs['model_names'] = ','.join(model_names_list) if model_names_list else None
             # 清除抓拍相关字段
             if 'space_id' in kwargs:
                 kwargs['space_id'] = None
@@ -241,18 +306,22 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             if 'space_id' in kwargs and kwargs['space_id']:
                 SnapSpace.query.get_or_404(kwargs['space_id'])
             # 清除实时算法任务相关字段
-            if 'extractor_id' in kwargs:
-                kwargs['extractor_id'] = None
-            if 'sorter_id' in kwargs:
-                kwargs['sorter_id'] = None
+            if 'model_ids' in kwargs:
+                kwargs['model_ids'] = None
+            if 'model_names' in kwargs:
+                kwargs['model_names'] = None
         
         # 验证推送器是否存在（如果提供）
         if 'pusher_id' in kwargs and kwargs['pusher_id']:
             Pusher.query.get_or_404(kwargs['pusher_id'])
         
         updatable_fields = [
-            'task_name', 'task_type', 'extractor_id', 'sorter_id', 'pusher_id',
-            'space_id', 'cron_expression', 'frame_skip',
+            'task_name', 'task_type', 'pusher_id',
+            'model_ids', 'model_names',  # 模型配置
+            'extract_interval',  # 实时算法任务配置（rtmp_input_url和rtmp_output_url不再使用，从摄像头列表获取）
+            'tracking_enabled', 'tracking_similarity_threshold', 'tracking_max_age', 'tracking_smooth_alpha',  # 追踪配置
+            'alert_hook_url', 'alert_hook_enabled',  # 告警配置
+            'space_id', 'cron_expression', 'frame_skip',  # 抓拍算法任务配置
             'is_enabled', 'status', 'exception_reason',
             'defense_mode', 'defense_schedule'
         ]
@@ -263,6 +332,11 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             if defense_mode and defense_mode not in ['full', 'half', 'day', 'night']:
                 raise ValueError(f"无效的布防模式: {defense_mode}，必须是 'full', 'half', 'day' 或 'night'")
         
+        # 如果启用了告警Hook但没有提供URL，自动设置为固定的网关路径
+        if 'alert_hook_enabled' in kwargs and kwargs['alert_hook_enabled']:
+            if 'alert_hook_url' not in kwargs or not kwargs.get('alert_hook_url'):
+                kwargs['alert_hook_url'] = '/admin-api/video/alert/hook'
+        
         for field in updatable_fields:
             if field in kwargs:
                 setattr(task, field, kwargs[field])
@@ -272,82 +346,10 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             devices = Device.query.filter(Device.id.in_(device_id_list)).all() if device_id_list else []
             task.devices = devices
         
-        # 处理算法服务列表（如果提供）
-        service_names_list = []
-        if algorithm_services is not None:
-            # 前端直接传递完整的算法服务信息
-            from models import AlgorithmModelService
-            import json
-            
-            # 删除旧的算法服务
-            AlgorithmModelService.query.filter_by(task_id=task_id).delete()
-            
-            # 创建新的算法服务
-            if algorithm_services:
-                for idx, service_data in enumerate(algorithm_services):
-                    try:
-                        # 验证必要字段
-                        service_name = service_data.get('service_name')
-                        service_url = service_data.get('service_url') or service_data.get('inference_endpoint')
-                        
-                        if not service_name:
-                            logger.warning(f"算法服务缺少 service_name，跳过创建")
-                            continue
-                        
-                        if not service_url:
-                            logger.warning(f"算法服务 {service_name} 缺少 service_url 或 inference_endpoint，跳过创建")
-                            continue
-                        
-                        # 处理请求头和请求体模板（可能是字符串或字典）
-                        request_headers = service_data.get('request_headers')
-                        if isinstance(request_headers, dict):
-                            request_headers = json.dumps(request_headers)
-                        elif isinstance(request_headers, str):
-                            # 已经是字符串，直接使用
-                            pass
-                        else:
-                            request_headers = None
-                        
-                        request_body_template = service_data.get('request_body_template')
-                        if isinstance(request_body_template, dict):
-                            request_body_template = json.dumps(request_body_template)
-                        elif isinstance(request_body_template, str):
-                            # 已经是字符串，直接使用
-                            pass
-                        else:
-                            request_body_template = None
-                        
-                        # 创建算法服务（在事务内）
-                        service = AlgorithmModelService(
-                            task_id=task.id,
-                            service_name=service_name,
-                            service_url=service_url,
-                            service_type=service_data.get('service_type'),
-                            model_id=service_data.get('model_id'),
-                            threshold=service_data.get('threshold'),
-                            request_method=service_data.get('request_method', 'POST'),
-                            request_headers=request_headers,
-                            request_body_template=request_body_template,
-                            timeout=service_data.get('timeout', 30),
-                            is_enabled=service_data.get('is_enabled', True),
-                            sort_order=service_data.get('sort_order', idx)
-                        )
-                        
-                        db.session.add(service)
-                        service_names_list.append(service_name)
-                        logger.info(f"为任务 {task.id} 更新算法服务成功: service_name={service_name}, service_url={service_url}")
-                    except Exception as e:
-                        logger.error(f"更新算法服务失败: service_data={service_data}, error={str(e)}", exc_info=True)
-                        # 继续处理其他服务，不中断整个流程
-                        continue
-            
-            # 更新服务名称列表到冗余字段
-            task.service_names = ', '.join(service_names_list) if service_names_list else None
-        
         task.updated_at = datetime.utcnow()
         db.session.commit()
         
-        logger.info(f"更新算法任务成功: task_id={task_id}, task_type={task_type}, device_ids={device_id_list}, algorithm_services_count={len(algorithm_services) if algorithm_services else 0}")
+        logger.info(f"更新算法任务成功: task_id={task_id}, task_type={task_type}, device_ids={device_id_list}, model_ids={model_ids}")
         return task
     except Exception as e:
         db.session.rollback()
@@ -374,11 +376,7 @@ def get_algorithm_task(task_id: int) -> AlgorithmTask:
     """获取算法任务详情"""
     try:
         task = AlgorithmTask.query.options(
-            joinedload(AlgorithmTask.algorithm_services),
             joinedload(AlgorithmTask.devices),
-            joinedload(AlgorithmTask.extractor),
-            joinedload(AlgorithmTask.sorter),
-            joinedload(AlgorithmTask.pusher),
             joinedload(AlgorithmTask.snap_space)
         ).get_or_404(task_id)
         return task
@@ -395,11 +393,7 @@ def list_algorithm_tasks(page_no: int = 1, page_size: int = 10,
     """查询算法任务列表"""
     try:
         query = AlgorithmTask.query.options(
-            joinedload(AlgorithmTask.algorithm_services),
             joinedload(AlgorithmTask.devices),
-            joinedload(AlgorithmTask.extractor),
-            joinedload(AlgorithmTask.sorter),
-            joinedload(AlgorithmTask.pusher),
             joinedload(AlgorithmTask.snap_space)
         )
         
@@ -439,7 +433,11 @@ def list_algorithm_tasks(page_no: int = 1, page_size: int = 10,
 
 
 def start_algorithm_task(task_id: int):
-    """启动算法任务"""
+    """启动算法任务
+    
+    Returns:
+        tuple[AlgorithmTask, str, bool]: (任务对象, 消息, 是否已运行)
+    """
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
         task.is_enabled = True
@@ -449,15 +447,23 @@ def start_algorithm_task(task_id: int):
         db.session.commit()
         
         # 启动任务相关的服务（抽帧器、推送器、排序器）
+        service_message = "启动成功"
+        already_running = False
         try:
             from app.services.algorithm_task_launcher_service import start_task_services
-            start_task_services(task_id, task)
+            success, msg, is_running = start_task_services(task_id, task)
+            if success:
+                service_message = msg
+                already_running = is_running
+            else:
+                service_message = msg
+                logger.warning(f"启动任务 {task_id} 的服务失败: {msg}")
         except Exception as e:
             logger.warning(f"启动任务 {task_id} 的服务时出错: {str(e)}", exc_info=True)
-            # 不抛出异常，允许任务启动但服务可能未启动
+            service_message = f"服务启动异常: {str(e)}"
         
-        logger.info(f"启动算法任务成功: task_id={task_id}")
-        return task
+        logger.info(f"启动算法任务成功: task_id={task_id}, message={service_message}, already_running={already_running}")
+        return task, service_message, already_running
     except Exception as e:
         db.session.rollback()
         logger.error(f"启动算法任务失败: {str(e)}", exc_info=True)
@@ -489,37 +495,30 @@ def stop_algorithm_task(task_id: int):
 
 
 def restart_algorithm_task(task_id: int):
-    """重启算法任务"""
+    """重启算法任务（使用守护进程的 restart 方法，更高效）"""
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
-        # 重启：先停止再启动
-        task.is_enabled = False
-        task.updated_at = datetime.utcnow()
-        db.session.commit()
-        
-        # 停止任务相关的服务
-        try:
-            from app.services.algorithm_task_launcher_service import stop_all_task_services
-            stop_all_task_services(task_id)
-        except Exception as e:
-            logger.warning(f"停止任务 {task_id} 的服务时出错: {str(e)}", exc_info=True)
-        
-        # 等待一下，确保服务完全停止
-        import time
-        time.sleep(2)
-        
-        # 然后重新启动
         task.is_enabled = True
         task.status = 0
         task.exception_reason = None
+        task.updated_at = datetime.utcnow()
         db.session.commit()
         
-        # 启动任务相关的服务
+        # 尝试使用守护进程的 restart 方法（如果守护进程在运行）
         try:
-            from app.services.algorithm_task_launcher_service import start_task_services
-            start_task_services(task_id, task)
+            from app.services.algorithm_task_launcher_service import restart_task_services, start_task_services
+            # 先尝试重启（如果守护进程在运行）
+            if not restart_task_services(task_id):
+                # 如果重启失败（守护进程未运行），则启动服务
+                logger.info(f"守护进程未运行，启动服务: task_id={task_id}")
+                start_task_services(task_id, task)
         except Exception as e:
-            logger.warning(f"启动任务 {task_id} 的服务时出错: {str(e)}", exc_info=True)
+            logger.warning(f"重启任务 {task_id} 的服务时出错: {str(e)}", exc_info=True)
+            # 如果出错，尝试启动服务
+            try:
+                start_task_services(task_id, task)
+            except Exception as e2:
+                logger.error(f"启动任务 {task_id} 的服务也失败: {str(e2)}", exc_info=True)
         
         logger.info(f"重启算法任务成功: task_id={task_id}")
         return task

@@ -1054,23 +1054,90 @@ def on_dvr_callback():
             logger.warning("on_dvr回调：文件路径为空，回调数据: %s", data)
             return jsonify({'code': 0, 'msg': None})
         
-        # stream字段的值就是设备ID（例如：'1764341204704370850'）
+        # stream字段的值可能是设备ID，也可能是流名称（如 video1_input）
+        # 首先尝试将stream直接作为设备ID查询
         device_id = stream
-        logger.info(f"on_dvr回调：开始处理录像 device_id={device_id}, file_path={file_path}")
-        
-        # 检查设备是否存在
         device = Device.query.get(device_id)
+        
+        # 如果直接查询不到，尝试从流名称中提取设备ID
+        # 流名称格式可能是：live/{device_id} 或 {device_id}
         if not device:
-            logger.warning(f"on_dvr回调：设备不存在 device_id={device_id}, stream={stream}")
+            # 尝试从流名称中提取设备ID（如果格式是 live/{device_id}）
+            if stream.startswith('live/'):
+                potential_device_id = stream[5:]  # 移除 'live/' 前缀
+                device = Device.query.get(potential_device_id)
+                if device:
+                    device_id = potential_device_id
+                    logger.debug(f"on_dvr回调：从流名称中提取设备ID stream={stream}, device_id={device_id}")
+        
+        # 如果还是找不到，尝试通过rtmp_stream字段匹配设备
+        # 查询rtmp_stream包含该流名称的设备
+        if not device:
+            # 构建可能的RTMP地址格式：rtmp://*/live/{stream} 或 rtmp://*/{stream}
+            possible_rtmp_patterns = [
+                f"live/{stream}",  # 最常见：rtmp://host/live/video1_input
+                stream,  # 直接匹配：rtmp://host/video1_input
+                f"/live/{stream}",  # 带斜杠：rtmp://host/live/video1_input
+                f"/{stream}",  # 带斜杠：rtmp://host/video1_input
+                f"live/{stream}/",  # 带尾部斜杠
+                f"{stream}/"  # 带尾部斜杠
+            ]
+            
+            # 查询rtmp_stream字段包含这些模式的设备
+            for pattern in possible_rtmp_patterns:
+                device = Device.query.filter(
+                    Device.rtmp_stream.like(f'%{pattern}%')
+                ).first()
+                if device:
+                    device_id = device.id
+                    logger.debug(f"on_dvr回调：通过rtmp_stream匹配到设备 stream={stream}, device_id={device_id}, pattern={pattern}")
+                    break
+        
+        # 如果仍然找不到，尝试从文件路径中提取设备ID
+        # 文件路径格式：/data/playbacks/live/{device_id}/YYYY/MM/DD/filename
+        # 或：/data/playbacks/live/{stream}/YYYY/MM/DD/filename
+        if not device and file_path:
+            try:
+                path_parts = file_path.split(os.sep)
+                # 查找 'live' 目录后面的部分，可能是设备ID或流名称
+                for i, part in enumerate(path_parts):
+                    if part == 'live' and i + 1 < len(path_parts):
+                        potential_id = path_parts[i + 1]
+                        # 尝试作为设备ID查询
+                        device = Device.query.get(potential_id)
+                        if device:
+                            device_id = potential_id
+                            logger.debug(f"on_dvr回调：从文件路径中提取设备ID file_path={file_path}, device_id={device_id}")
+                            break
+                        # 如果作为设备ID找不到，尝试通过rtmp_stream匹配
+                        if not device:
+                            for pattern in [f"live/{potential_id}", potential_id, f"/live/{potential_id}", f"/{potential_id}"]:
+                                device = Device.query.filter(
+                                    Device.rtmp_stream.like(f'%{pattern}%')
+                                ).first()
+                                if device:
+                                    device_id = device.id
+                                    logger.debug(f"on_dvr回调：从文件路径中通过rtmp_stream匹配到设备 file_path={file_path}, stream={potential_id}, device_id={device_id}, pattern={pattern}")
+                                    break
+                        if device:
+                            break
+            except Exception as e:
+                logger.debug(f"on_dvr回调：从文件路径提取设备ID失败 file_path={file_path}, error={str(e)}")
+        
+        logger.debug(f"on_dvr回调：开始处理录像 device_id={device_id}, stream={stream}, file_path={file_path}")
+        
+        # 如果仍然找不到设备，记录警告并返回
+        if not device:
+            logger.warning(f"on_dvr回调：设备不存在 stream={stream}, 已尝试多种匹配方式")
             return jsonify({'code': 0, 'msg': None})
         
         # 获取或创建设备的录像空间
         record_space = get_record_space_by_device_id(device_id)
         if not record_space:
             try:
-                logger.info(f"on_dvr回调：为设备 {device_id} 创建录像空间")
+                logger.debug(f"on_dvr回调：为设备 {device_id} 创建录像空间")
                 record_space = create_record_space_for_device(device_id, device.name)
-                logger.info(f"on_dvr回调：录像空间创建成功 space_id={record_space.id}, bucket_name={record_space.bucket_name}")
+                logger.debug(f"on_dvr回调：录像空间创建成功 space_id={record_space.id}, bucket_name={record_space.bucket_name}")
             except Exception as e:
                 logger.error(f"on_dvr回调：创建设备录像空间失败 device_id={device_id}, error={str(e)}", exc_info=True)
                 return jsonify({'code': 0, 'msg': None})
@@ -1197,7 +1264,7 @@ def on_dvr_callback():
         
         # 构建MinIO对象名称：device_id/YYYY/MM/DD/filename
         object_name = f"{device_id}/{date_dir}/{filename}"
-        logger.info(f"on_dvr回调：准备上传到MinIO bucket={record_space.bucket_name}, object_name={object_name}, file_size={file_size} bytes")
+        logger.debug(f"on_dvr回调：准备上传到MinIO bucket={record_space.bucket_name}, object_name={object_name}, file_size={file_size} bytes")
         
         # 上传到MinIO
         minio_client = get_minio_client()
@@ -1207,7 +1274,7 @@ def on_dvr_callback():
         if not minio_client.bucket_exists(bucket_name):
             try:
                 minio_client.make_bucket(bucket_name)
-                logger.info(f"on_dvr回调：创建MinIO bucket {bucket_name}")
+                logger.debug(f"on_dvr回调：创建MinIO bucket {bucket_name}")
             except Exception as e:
                 logger.error(f"on_dvr回调：创建MinIO bucket失败 bucket_name={bucket_name}, error={str(e)}", exc_info=True)
                 return jsonify({'code': 0, 'msg': None})
@@ -1220,12 +1287,12 @@ def on_dvr_callback():
                 absolute_file_path,
                 content_type=content_type
             )
-            logger.info(f"on_dvr回调：录像上传成功 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, file_size={file_size} bytes")
+            logger.debug(f"on_dvr回调：录像上传成功 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, file_size={file_size} bytes")
             
             # 抽取视频封面
             thumbnail_path = None
             try:
-                logger.info(f"on_dvr回调：开始抽取视频封面 video_path={absolute_file_path}")
+                logger.debug(f"on_dvr回调：开始抽取视频封面 video_path={absolute_file_path}")
                 frame = extract_thumbnail_from_video(absolute_file_path, output_path=None, frame_position=0.1)
                 
                 if frame is not None:
@@ -1251,7 +1318,7 @@ def on_dvr_callback():
                                 content_type='image/jpeg'
                             )
                             thumbnail_path = thumbnail_object_name
-                            logger.info(f"on_dvr回调：封面上传成功 device_id={device_id}, thumbnail_path={thumbnail_path}")
+                            logger.debug(f"on_dvr回调：封面上传成功 device_id={device_id}, thumbnail_path={thumbnail_path}")
                         finally:
                             # 删除临时文件
                             try:
@@ -1300,7 +1367,7 @@ def on_dvr_callback():
                         existing_playback.duration = duration
                     existing_playback.updated_at = datetime.utcnow()
                     db.session.commit()
-                    logger.info(f"on_dvr回调：更新Playback记录 playback_id={existing_playback.id}, thumbnail_path={thumbnail_path}")
+                    logger.debug(f"on_dvr回调：更新Playback记录 playback_id={existing_playback.id}, thumbnail_path={thumbnail_path}")
                 else:
                     # 创建新记录
                     playback = Playback(
@@ -1314,7 +1381,7 @@ def on_dvr_callback():
                     )
                     db.session.add(playback)
                     db.session.commit()
-                    logger.info(f"on_dvr回调：创建Playback记录 playback_id={playback.id}, thumbnail_path={thumbnail_path}")
+                    logger.debug(f"on_dvr回调：创建Playback记录 playback_id={playback.id}, thumbnail_path={thumbnail_path}")
             except Exception as e:
                 logger.error(f"on_dvr回调：创建/更新Playback记录失败 device_id={device_id}, error={str(e)}", exc_info=True)
                 db.session.rollback()
@@ -1330,7 +1397,7 @@ def on_dvr_callback():
             logger.error(f"on_dvr回调：上传录像失败 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, error={str(e)}", exc_info=True)
             return jsonify({'code': 0, 'msg': None})
         
-        logger.info(f"on_dvr回调：处理完成 device_id={device_id}, object_name={object_name}, thumbnail_path={thumbnail_path}")
+        logger.debug(f"on_dvr回调：处理完成 device_id={device_id}, object_name={object_name}, thumbnail_path={thumbnail_path}")
         return jsonify({'code': 0, 'msg': None})
         
     except Exception as e:
