@@ -24,7 +24,7 @@
           v-for="record in recordList"
           :key="record.id"
           :class="['thumbnail-item', { active: selectedRecordId === record.id }]"
-          @click="handleSelectRecord(record)"
+          @click="handlePlay(record)"
         >
           <div class="thumbnail-image">
             <img 
@@ -35,6 +35,13 @@
             />
             <div v-else class="thumbnail-placeholder">
               <Icon icon="ant-design:video-camera-outlined" :size="24" />
+            </div>
+            <!-- 播放图标 -->
+            <div class="play-icon">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="24" cy="24" r="24" fill="rgba(0, 0, 0, 0.5)"/>
+                <path d="M18 14L34 24L18 34V14Z" fill="white"/>
+              </svg>
             </div>
             <div class="thumbnail-time">{{ formatTime(record.time) }}</div>
           </div>
@@ -65,16 +72,31 @@
         </div>
       </div>
     </div>
+    
+    <!-- 视频播放器弹窗 -->
+    <DialogPlayer @register="registerPlayerModal" />
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { DatePicker, Button } from 'ant-design-vue'
 import { Icon } from '@/components/Icon'
 import dayjs, { Dayjs } from 'dayjs'
+import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue'
+import { useModal } from '@/components/Modal'
+import { useMessage } from '@/hooks/web/useMessage'
+import { queryAlertRecord } from '@/api/device/calculate'
 
 const { RangePicker } = DatePicker
+const { createMessage } = useMessage()
+
+// 播放器弹窗
+const [registerPlayerModal, { openModal: openPlayerModal }] = useModal()
+
+// 防重复提示：记录最近提示的时间和内容
+let lastVideoErrorTime = 0
+let lastVideoErrorMsg = ''
 
 defineOptions({
   name: 'RecordPanel'
@@ -83,6 +105,7 @@ defineOptions({
 const props = defineProps<{
   recordList?: any[]
   currentTime?: string
+  deviceId?: string | number // 设备ID，用于查询录像
 }>()
 
 const emit = defineEmits<{
@@ -122,10 +145,130 @@ const formatHour = (hour: number) => {
   return `${String(hour).padStart(2, '0')}:00`
 }
 
-// 选择记录
-const handleSelectRecord = (record: any) => {
+// 获取录像播放地址（参考录像空间的处理方式）
+const getVideoUrl = (videoUrl: string): string => {
+  if (!videoUrl) return ''
+  // 如果是完整URL，直接返回
+  if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
+    return videoUrl
+  }
+  // 如果是相对路径（以/api/v1/buckets开头），添加前端启动地址前缀
+  if (videoUrl.startsWith('/api/v1/buckets')) {
+    return `${window.location.origin}${videoUrl}`
+  }
+  // 其他相对路径，拼接API前缀
+  if (videoUrl.startsWith('/')) {
+    return `${import.meta.env.VITE_GLOB_API_URL || ''}${videoUrl}`
+  }
+  // 其他情况直接返回
+  return videoUrl
+}
+
+// 防重复提示函数：3秒内相同错误只提示一次
+function showVideoErrorOnce(message: string) {
+  const now = Date.now()
+  // 如果3秒内提示过相同内容，则不再提示
+  if (now - lastVideoErrorTime < 3000 && lastVideoErrorMsg === message) {
+    return
+  }
+  lastVideoErrorTime = now
+  lastVideoErrorMsg = message
+  createMessage.warn(message)
+}
+
+// 播放录像
+const handlePlay = async (record: any) => {
+  console.log('handlePlay 被调用，record:', record)
+  
+  // 更新选中状态和时间
   selectedRecordId.value = record.id
   emit('time-change', record.time)
+  
+  // 检查 openPlayerModal 是否可用
+  if (!openPlayerModal || typeof openPlayerModal !== 'function') {
+    console.error('openPlayerModal 不可用:', openPlayerModal)
+    createMessage.error('播放器未初始化，请刷新页面重试')
+    return
+  }
+  
+  try {
+    // 如果record直接有video_url，直接使用
+    if (record.video_url || record.url) {
+      const videoUrl = getVideoUrl(record.video_url || record.url)
+      console.log('使用 record 中的 video_url:', videoUrl)
+      
+      try {
+        await nextTick()
+        openPlayerModal(true, {
+          id: record.device_id || props.deviceId || 0,
+          http_stream: videoUrl,
+        })
+        console.log('成功调用 openPlayerModal')
+      } catch (modalError: any) {
+        console.error('调用 openPlayerModal 失败:', modalError)
+        createMessage.error('打开播放器失败: ' + (modalError?.message || '未知错误'))
+      }
+      return
+    }
+  
+    // 如果没有video_url，需要根据device_id和time查询
+    const deviceId = record.device_id || props.deviceId
+    if (!deviceId || !record.time) {
+      console.warn('缺少必要信息:', { deviceId, time: record.time })
+      createMessage.warn('缺少必要信息：设备ID或录像时间')
+      return
+    }
+    
+    console.log('开始查询录像，deviceId:', deviceId, 'time:', record.time)
+    
+    // 查询录像URL
+    const result = await queryAlertRecord({
+      device_id: String(deviceId),
+      alert_time: record.time,
+      time_range: 60, // 前后60秒
+    })
+
+    console.log('查询录像结果:', result)
+
+    if (result && result.video_url) {
+      // 处理录像URL，添加前缀
+      const videoUrl = getVideoUrl(result.video_url)
+      console.log('获取到录像URL:', videoUrl)
+      
+      // 使用DialogPlayer播放，参数格式：{ id, http_stream }
+      try {
+        await nextTick()
+        openPlayerModal(true, {
+          id: deviceId,
+          http_stream: videoUrl,
+        })
+        console.log('成功调用 openPlayerModal')
+        // 重置错误记录
+        lastVideoErrorTime = 0
+        lastVideoErrorMsg = ''
+      } catch (modalError: any) {
+        console.error('调用 openPlayerModal 失败:', modalError)
+        createMessage.error('打开播放器失败: ' + (modalError?.message || '未知错误'))
+      }
+    } else {
+      // 检查是否是业务错误（code=400）
+      const errorMsg = result?.message || '暂未找到该时间段的录像文件'
+      console.warn('未找到录像:', errorMsg)
+      showVideoErrorOnce(errorMsg)
+    }
+  } catch (error: any) {
+    console.error('播放录像失败:', error)
+    // 处理业务错误（HTTP 200但code=400）
+    const errorData = error?.response?.data || error?.data
+    if (errorData && errorData.code === 400) {
+      const errorMsg = errorData.message || '暂未找到该时间段的录像文件'
+      showVideoErrorOnce(errorMsg)
+    } else {
+      // 其他错误
+      const errorMsg = error?.response?.data?.message || error?.message || '播放录像失败，请稍后重试'
+      showVideoErrorOnce(errorMsg)
+    }
+  }
 }
 
 // 时间范围变化
@@ -248,6 +391,11 @@ const handleQuery = () => {
   
   &:hover {
     transform: translateY(-4px);
+    
+    .thumbnail-image {
+      border-color: #1890ff;
+      box-shadow: 0 0 8px rgba(24, 144, 255, 0.3);
+    }
   }
   
   &.active {
@@ -283,6 +431,21 @@ const handleQuery = () => {
     color: rgba(255, 255, 255, 0.3);
   }
   
+  .play-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 10;
+  }
+  
+  &:hover .play-icon {
+    opacity: 1;
+  }
+  
   .thumbnail-time {
     position: absolute;
     bottom: 0;
@@ -293,6 +456,7 @@ const handleQuery = () => {
     font-size: 11px;
     padding: 4px 6px;
     text-align: center;
+    z-index: 5;
   }
 }
 
