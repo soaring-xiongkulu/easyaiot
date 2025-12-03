@@ -1,7 +1,7 @@
 <template>
   <div class="alarm-panel">
     <div class="panel-header">
-      <div class="header-title">告警记录</div>
+      <div class="header-title">告警事件</div>
       <div class="header-count">
         今日告警 <span class="count-number">{{ todayAlarmCount }}</span> 次
       </div>
@@ -15,10 +15,12 @@
       >
         <div class="alarm-image">
           <img 
-            v-if="alarm.image" 
-            :src="alarm.image" 
+            v-if="getImageUrl(alarm) && !alarm.imageError" 
+            :src="getImageUrl(alarm)" 
             alt="告警图片"
             class="alarm-img"
+            @error="handleImageError(alarm)"
+            @load="handleImageLoad(alarm)"
           />
           <div v-else class="alarm-icon">
             <Icon 
@@ -85,6 +87,59 @@ const getAlarmColor = (level: string) => {
   }
   return colorMap[level] || '#ff4d4f'
 }
+
+// 获取图片URL
+const getImageUrl = (alarm: any): string | null => {
+  if (!alarm.image) return null
+  
+  const imagePath = alarm.image
+  
+  // 如果是完整URL，直接返回
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath
+  }
+  
+  // 如果是MinIO路径（以/api/v1/buckets开头），添加前端启动地址前缀
+  if (imagePath.startsWith('/api/v1/buckets')) {
+    return `${window.location.origin}${imagePath}`
+  }
+  
+  // 如果是相对路径（以/api开头），添加前端启动地址前缀
+  if (imagePath.startsWith('/api/')) {
+    return `${window.location.origin}${imagePath}`
+  }
+  
+  // 如果是绝对路径（以/opt/、/data/、/var/等系统路径开头），通过API端点获取
+  if (imagePath.startsWith('/opt/') || imagePath.startsWith('/data/') || imagePath.startsWith('/var/') || imagePath.startsWith('/usr/') || imagePath.startsWith('/home/')) {
+    const apiUrl = import.meta.env.VITE_GLOB_API_URL || ''
+    // 对路径进行URL编码
+    const encodedPath = encodeURIComponent(imagePath)
+    return apiUrl ? `${apiUrl}/video/alert/image?path=${encodedPath}` : `/video/alert/image?path=${encodedPath}`
+  }
+  
+  // 其他以/开头的路径，也通过API端点获取（可能是其他绝对路径）
+  if (imagePath.startsWith('/')) {
+    const apiUrl = import.meta.env.VITE_GLOB_API_URL || ''
+    // 对路径进行URL编码
+    const encodedPath = encodeURIComponent(imagePath)
+    return apiUrl ? `${apiUrl}/video/alert/image?path=${encodedPath}` : `/video/alert/image?path=${encodedPath}`
+  }
+  
+  // 其他情况直接返回
+  return imagePath
+}
+
+// 处理图片加载错误
+const handleImageError = (alarm: any) => {
+  // 标记图片加载失败，显示占位图标
+  alarm.imageError = true
+}
+
+// 处理图片加载成功
+const handleImageLoad = (alarm: any) => {
+  // 确保清除错误标记
+  alarm.imageError = false
+}
 </script>
 
 <style lang="less" scoped>
@@ -92,37 +147,35 @@ const getAlarmColor = (level: string) => {
   width: 320px;
   height: 100%;
   padding: 0;
-  background: rgba(0, 70, 190, .1);
+  background: linear-gradient(135deg, rgba(15, 34, 73, 0.8), rgba(24, 46, 90, 0.6));
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  border: 1px solid #3486da;
+  border: 1px solid rgba(52, 134, 218, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 0 30px rgba(52, 134, 218, 0.1);
+  border-radius: 8px;
   padding: 3px;
   
-  &:before, &:after {
+  &::before {
+    content: '';
     position: absolute;
-    width: 17px;
-    height: 17px;
-    content: "";
-    border-top: 3px solid #3486da;
-    top: -2px;
-  }
-  
-  &:before {
-    border-left: 3px solid #3486da;
-    left: -2px;
-  }
-  
-  &:after {
-    border-right: 3px solid #3486da;
-    right: -2px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      linear-gradient(90deg, transparent 0%, rgba(52, 134, 218, 0.05) 50%, transparent 100%),
+      radial-gradient(circle at top left, rgba(52, 134, 218, 0.1), transparent 50%);
+    pointer-events: none;
+    border-radius: 8px;
   }
 }
 
 .panel-header {
   text-align: center;
-  background: #0c2854;
+  background: rgba(52, 134, 218, 0.08);
+  border-bottom: 1px solid rgba(52, 134, 218, 0.3);
   color: #fff;
   font-size: 16px;
   height: 60px;
@@ -133,6 +186,8 @@ const getAlarmColor = (level: string) => {
   flex-direction: column;
   gap: 4px;
   justify-content: center;
+  position: relative;
+  z-index: 1;
   
   .header-title {
     font-size: 16px;
@@ -183,14 +238,18 @@ const getAlarmColor = (level: string) => {
   gap: 12px;
   padding: 12px;
   margin-bottom: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, rgba(52, 134, 218, 0.15), rgba(48, 82, 174, 0.1));
+  border: 1px solid rgba(52, 134, 218, 0.3);
   border-radius: 6px;
   border-left: 3px solid #ff4d4f;
   transition: all 0.3s;
+  position: relative;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(52, 134, 218, 0.25), rgba(48, 82, 174, 0.15));
+    border-color: rgba(52, 134, 218, 0.6);
     transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(52, 134, 218, 0.2);
   }
   
   &:last-child {
@@ -308,29 +367,4 @@ const getAlarmColor = (level: string) => {
   }
 }
 
-.boxfoot {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  left: 0;
-  
-  &:before, &:after {
-    position: absolute;
-    width: 17px;
-    height: 17px;
-    content: "";
-    border-bottom: 3px solid #3486da;
-    bottom: -2px;
-  }
-  
-  &:before {
-    border-left: 3px solid #3486da;
-    left: -2px;
-  }
-  
-  &:after {
-    border-right: 3px solid #3486da;
-    right: -2px;
-  }
-}
 </style>
