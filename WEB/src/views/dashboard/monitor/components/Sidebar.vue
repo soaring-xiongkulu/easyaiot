@@ -1,54 +1,89 @@
 <template>
   <div class="monitor-sidebar">
-    <!-- 标签页 -->
-    <div class="sidebar-tabs">
-      <div
-        v-for="tab in tabs"
-        :key="tab.key"
-        :class="['tab-item', { active: activeTab === tab.key }]"
-        @click="activeTab = tab.key"
-      >
-        {{ tab.label }}
+    <!-- 全局总览 -->
+    <div class="sidebar-section overview-section">
+      <div class="section-header">
+        <Icon icon="ant-design:dashboard-outlined" :size="16" class="header-icon" />
+        <span class="section-title">全局总览</span>
+      </div>
+      <div class="statistics-cards">
+        <div class="stat-card">
+          <div class="stat-icon alarm">
+            <Icon icon="ant-design:warning-outlined" :size="24" />
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">告警数量</div>
+            <div class="stat-value">{{ statistics.alarmCount }}</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon camera">
+            <Icon icon="ant-design:video-camera-outlined" :size="24" />
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">摄像头数量</div>
+            <div class="stat-value">{{ statistics.cameraCount }}</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon algorithm">
+            <Icon icon="ant-design:code-outlined" :size="24" />
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">算法数量</div>
+            <div class="stat-value">{{ statistics.algorithmCount }}</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon model">
+            <Icon icon="ant-design:database-outlined" :size="24" />
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">模型数量</div>
+            <div class="stat-value">{{ statistics.modelCount }}</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 搜索框 -->
-    <div class="sidebar-search">
-      <a-input
-        v-model:value="searchText"
-        placeholder="请输入设备名称"
-        allow-clear
-        class="search-input"
-      >
-        <template #prefix>
-          <Icon icon="ant-design:search-outlined"/>
-        </template>
-      </a-input>
-    </div>
-
-    <!-- 设备树 -->
-    <div class="sidebar-tree">
-      <a-spin :spinning="loading">
-        <a-tree
-          v-if="filteredTreeData.length > 0"
-          v-model:expandedKeys="expandedKeys"
-          v-model:selectedKeys="selectedKeys"
-          :tree-data="filteredTreeData"
-          :field-names="{ children: 'children', title: 'title', key: 'key', icon: 'icon' }"
-          @select="handleSelect"
-          class="device-tree"
+    <!-- 设备目录 -->
+    <div class="sidebar-section directory-section">
+      <div class="section-header">
+        <Icon icon="ant-design:folder-outlined" :size="16" class="header-icon" />
+        <span class="section-title">设备目录</span>
+        <div class="header-actions">
+          <span class="device-count" v-if="!loading && treeData.length > 0">
+            {{ getTotalDeviceCount(treeData) }} 个设备
+          </span>
+        </div>
+      </div>
+      <!-- 设备树 -->
+      <div class="sidebar-tree">
+        <BasicTree
+          :tree-data="treeData"
+          :expanded-keys="expandedKeys"
+          :selected-keys="selectedKeys"
+          :loading="loading"
+          search
+          :default-expand-all="true"
+          :click-row-to-expand="false"
+          :render-icon="renderTreeIcon"
+          tree-wrapper-class-name="sidebar-tree-wrapper"
+          @update:expanded-keys="handleExpandedKeysChange"
+          @select="handleTreeSelect"
         />
-        <a-empty v-else description="暂无设备目录" />
-      </a-spin>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import {computed, ref, watch, onMounted, h} from 'vue'
-import {Input as AInput} from 'ant-design-vue'
+import {computed, ref, watch, onMounted, onUnmounted, h} from 'vue'
 import {Icon} from '@/components/Icon'
+import {BasicTree} from '@/components/Tree'
+import type {TreeItem} from '@/components/Tree'
 import {getDirectoryList, getDirectoryDevices, getDeviceList, type DeviceDirectory, type DeviceInfo} from '@/api/device/camera'
+import {queryAlarmList, getDashboardStatistics} from '@/api/device/calculate'
 import {useMessage} from '@/hooks/web/useMessage'
 
 defineOptions({
@@ -61,26 +96,29 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'device-change', device: any): void
+  (e: 'device-play', device: any): void
 }>()
 
 const {createMessage} = useMessage()
 
-const tabs = [
-  {key: 'directory', label: '设备目录'}
-]
-
-const activeTab = ref('directory')
-const searchText = ref('')
 const expandedKeys = ref<string[]>([])
 const selectedKeys = ref<string[]>([])
-const treeData = ref<any[]>([])
+const treeData = ref<TreeItem[]>([])
 const loading = ref(false)
 
+// 统计数据
+const statistics = ref({
+  alarmCount: 0,
+  cameraCount: 0,
+  algorithmCount: 0,
+  modelCount: 0
+})
+
 // 将目录和设备转换为树形结构
-const convertToTreeData = (directories: DeviceDirectory[], devices: DeviceInfo[]): any[] => {
+const convertToTreeData = (directories: DeviceDirectory[], devices: DeviceInfo[]): TreeItem[] => {
   return directories.map((dir) => {
     const directoryKey = `dir_${dir.id}`
-    const children: any[] = []
+    const children: TreeItem[] = []
     
     // 添加子目录
     if (dir.children && dir.children.length > 0) {
@@ -97,8 +135,8 @@ const convertToTreeData = (directories: DeviceDirectory[], devices: DeviceInfo[]
         isDevice: true,
         isDirectory: false,
         device: device,
-        icon: () => h(Icon, { icon: 'ant-design:video-camera-outlined' }),
-      })
+        icon: 'ant-design:camera-filled',
+      } as TreeItem)
     })
     
     return {
@@ -106,9 +144,9 @@ const convertToTreeData = (directories: DeviceDirectory[], devices: DeviceInfo[]
       title: dir.name,
       isDirectory: true,
       directory: dir,
+      icon: 'ant-design:folder-outlined',
       children: children.length > 0 ? children : undefined,
-      icon: () => h(Icon, { icon: 'ant-design:folder-outlined' }),
-    }
+    } as TreeItem
   })
 }
 
@@ -125,7 +163,25 @@ const loadTreeData = async () => {
       pageNo: 1,
       pageSize: 10000, // 获取所有设备
     })
-    const deviceData = deviceResponse.code !== undefined ? deviceResponse.data : deviceResponse
+    
+    // 处理设备数据 - 可能是数组或包含list/records的对象
+    let deviceData: any[] = []
+    if (deviceResponse) {
+      if (Array.isArray(deviceResponse)) {
+        deviceData = deviceResponse
+      } else if (deviceResponse.code !== undefined) {
+        deviceData = deviceResponse.data?.list || deviceResponse.data?.records || deviceResponse.data || []
+      } else if (deviceResponse.list) {
+        deviceData = deviceResponse.list
+      } else if (deviceResponse.records) {
+        deviceData = deviceResponse.records
+      } else if (Array.isArray(deviceResponse.data)) {
+        deviceData = deviceResponse.data
+      }
+    }
+    
+    console.log('目录数据:', dirData)
+    console.log('设备数据:', deviceData)
     
     if (dirData && Array.isArray(dirData) && deviceData && Array.isArray(deviceData)) {
       // 获取没有目录的设备
@@ -143,12 +199,13 @@ const loadTreeData = async () => {
             isDevice: true,
             isDirectory: false,
             device: device,
-            icon: () => h(Icon, { icon: 'ant-design:video-camera-outlined' }),
-          })
+            icon: 'ant-design:camera-filled',
+          } as TreeItem)
         })
       }
       
       treeData.value = tree
+      console.log('树形数据:', treeData.value)
       
       // 默认展开所有目录节点
       const getAllKeys = (nodes: any[]): string[] => {
@@ -164,74 +221,123 @@ const loadTreeData = async () => {
         return keys
       }
       expandedKeys.value = getAllKeys(treeData.value)
+      
+      // 摄像头数量会在loadStatistics中统一更新，这里不需要单独设置
     } else {
+      console.warn('数据格式不正确:', { dirData, deviceData })
       treeData.value = []
+      // 如果至少有一些数据，显示提示
+      if (!dirData || !Array.isArray(dirData)) {
+        createMessage.warning('目录数据格式不正确')
+      }
+      if (!deviceData || !Array.isArray(deviceData)) {
+        createMessage.warning('设备数据格式不正确')
+      }
     }
   } catch (error) {
     console.error('加载设备目录失败', error)
-    createMessage.error('加载设备目录失败')
+    createMessage.error('加载设备目录失败: ' + (error as Error).message)
     treeData.value = []
   } finally {
     loading.value = false
   }
 }
 
-// 过滤后的树数据
-const filteredTreeData = computed(() => {
-  if (!searchText.value) {
-    return treeData.value
+// 加载统计数据
+const loadStatistics = async () => {
+  try {
+    // 调用统一的统计接口
+    const statsResponse = await getDashboardStatistics()
+    if (statsResponse) {
+      statistics.value.alarmCount = statsResponse.alarm_count || 0
+      statistics.value.cameraCount = statsResponse.camera_count || 0
+      statistics.value.algorithmCount = statsResponse.algorithm_count || 0
+      statistics.value.modelCount = statsResponse.model_count || 0
+    }
+  } catch (error) {
+    console.error('加载统计数据失败', error)
+    // 发生错误时使用默认值
+    statistics.value.alarmCount = 0
+    statistics.value.cameraCount = 0
+    statistics.value.algorithmCount = 0
+    statistics.value.modelCount = 0
   }
+}
 
-  const filterTree = (nodes: any[]): any[] => {
-    return nodes
-      .map(node => {
-        const match = node.title.toLowerCase().includes(searchText.value.toLowerCase())
-        const filteredChildren = node.children ? filterTree(node.children) : []
+// 处理展开/收起变化
+const handleExpandedKeysChange = (keys: string[]) => {
+  expandedKeys.value = keys
+}
 
-        if (match || filteredChildren.length > 0) {
-          return {
-            ...node,
-            children: filteredChildren.length > 0 ? filteredChildren : node.children
-          }
-        }
-        return null
+// 处理树节点选择
+const handleTreeSelect = (keys: string[], info: any) => {
+  if (keys.length === 0) {
+    return
+  }
+  
+  const selectedKey = keys[0]
+  const node = findNodeByKey(treeData.value, selectedKey)
+  
+  if (node && node.isDevice && node.device) {
+    const device = {
+      id: node.device.id,
+      name: node.device.name || node.device.id,
+      location: getFullPath(node, treeData.value),
+      device: node.device,
+    }
+    selectedKeys.value = [selectedKey]
+    emit('device-change', device)
+    
+    // 检查是否有流地址，优先使用http_stream（大屏地址使用摄像头的http地址）
+    if (node.device.http_stream || node.device.rtmp_stream) {
+      emit('device-play', {
+        ...device,
+        http_stream: node.device.http_stream, // 优先传递http_stream
+        rtmp_stream: node.device.rtmp_stream,
       })
-      .filter(Boolean)
-  }
-
-  return filterTree(treeData.value)
-})
-
-// 选择设备
-const handleSelect = (selectedKeysValue: any[], info: any) => {
-  if (selectedKeysValue.length > 0 && info.node) {
-    const node = info.node
-    // 只处理设备节点，忽略目录节点
-    if (node.isDevice && node.device) {
-      const device = {
-        id: node.device.id,
-        name: node.device.name || node.device.id,
-        location: getFullPath(node, treeData.value),
-        device: node.device,
-      }
-      emit('device-change', device)
     }
   }
 }
 
+// 根据key查找节点
+const findNodeByKey = (nodes: TreeItem[], key: string): TreeItem | null => {
+  for (const node of nodes) {
+    if (node.key === key) {
+      return node as TreeItem
+    }
+    if (node.children && node.children.length > 0) {
+      const found = findNodeByKey(node.children as TreeItem[], key)
+      if (found) {
+        return found
+      }
+    }
+  }
+  return null
+}
+
+// 渲染树节点图标
+const renderTreeIcon = (node: TreeItem) => {
+  if (node.isDirectory) {
+    return 'ant-design:folder-outlined'
+  } else if (node.isDevice) {
+    return 'ant-design:camera-filled'
+  }
+  return ''
+}
+
 // 获取完整路径
-const getFullPath = (node: any, treeNodes: any[]): string => {
-  const path: string[] = [node.title]
+const getFullPath = (node: TreeItem, treeNodes: TreeItem[]): string => {
+  const path: string[] = [node.title as string]
 
   // 递归查找父节点路径
-  const findPath = (nodes: any[], targetKey: string, currentPath: string[] = []): string[] | null => {
+  const findPath = (nodes: TreeItem[], targetKey: string, currentPath: string[] = []): string[] | null => {
     for (const n of nodes) {
-      const newPath = [...currentPath, n.title]
+      const newPath = [...currentPath, n.title as string]
       if (n.key === targetKey) {
         return newPath
       }
       if (n.children && n.children.length > 0) {
-        const found = findPath(n.children, targetKey, newPath)
+        const found = findPath(n.children as TreeItem[], targetKey, newPath)
         if (found) {
           return found
         }
@@ -240,128 +346,410 @@ const getFullPath = (node: any, treeNodes: any[]): string => {
     return null
   }
 
-  const fullPath = findPath(treeNodes, node.key)
-  return fullPath ? fullPath.join(' / ') : node.title
+  const fullPath = findPath(treeNodes, node.key as string)
+  return fullPath ? fullPath.join(' / ') : (node.title as string)
 }
 
-// 监听搜索文本变化，自动展开匹配的节点
-watch(searchText, (newVal) => {
-  if (newVal) {
-    const expandKeys: string[] = []
-    const findKeys = (nodes: any[]) => {
-      nodes.forEach(node => {
-        if (node.title.toLowerCase().includes(newVal.toLowerCase())) {
-          expandKeys.push(node.key)
-        }
-        if (node.children) {
-          findKeys(node.children)
-        }
-      })
-    }
-    findKeys(treeData.value)
-    expandedKeys.value = [...new Set([...expandedKeys.value, ...expandKeys])]
+// 获取设备总数
+const getTotalDeviceCount = (nodes: TreeItem[]): number => {
+  let count = 0
+  const countDevices = (nodes: TreeItem[]) => {
+    nodes.forEach(node => {
+      if (node.isDevice) {
+        count++
+      }
+      if (node.children && node.children.length > 0) {
+        countDevices(node.children as TreeItem[])
+      }
+    })
   }
-})
+  countDevices(nodes)
+  return count
+}
+
+// 刷新定时器
+let statisticsTimer: any = null
 
 // 组件挂载时加载数据
 onMounted(() => {
   loadTreeData()
+  // 初始加载统计数据
+  loadStatistics()
+  
+  // 错峰刷新：延迟1秒开始，每5秒刷新一次统计数据（1秒、6秒、11秒...）
+  setTimeout(() => {
+    loadStatistics()
+    statisticsTimer = setInterval(() => {
+      loadStatistics()
+    }, 5000)
+  }, 1000)
+})
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if (statisticsTimer) {
+    clearInterval(statisticsTimer)
+    statisticsTimer = null
+  }
 })
 </script>
 
 <style lang="less" scoped>
 .monitor-sidebar {
   width: 280px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
+  gap: 16px;
   overflow: hidden;
 }
 
-.sidebar-tabs {
+.sidebar-section {
+  background: linear-gradient(135deg, rgba(15, 34, 73, 0.8), rgba(24, 46, 90, 0.6));
+  border-radius: 8px;
+  border: 1px solid rgba(52, 134, 218, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 0 30px rgba(52, 134, 218, 0.1);
+  position: relative;
+  overflow: hidden;
   display: flex;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0 12px;
+  flex-direction: column;
 
-  .tab-item {
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      linear-gradient(90deg, transparent 0%, rgba(52, 134, 218, 0.05) 50%, transparent 100%),
+      radial-gradient(circle at top left, rgba(52, 134, 218, 0.1), transparent 50%);
+    pointer-events: none;
+    border-radius: 8px;
+  }
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(52, 134, 218, 0.3);
+  background: rgba(52, 134, 218, 0.08);
+  position: relative;
+  z-index: 1;
+
+  .header-icon {
+    color: #3486da;
+    filter: drop-shadow(0 0 4px rgba(52, 134, 218, 0.6));
+  }
+
+  .section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 0 8px rgba(52, 134, 218, 0.5);
+    letter-spacing: 0.5px;
     flex: 1;
-    padding: 12px 8px;
-    text-align: center;
-    cursor: pointer;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 14px;
-    transition: all 0.3s;
-    border-bottom: 2px solid transparent;
+  }
 
-    &:hover {
-      color: rgba(255, 255, 255, 0.9);
-    }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 
-    &.active {
-      color: #1890ff;
-      border-bottom-color: #1890ff;
-      font-weight: 500;
+    .device-count {
+      font-size: 12px;
+      color: rgba(200, 220, 255, 0.7);
+      padding: 2px 8px;
+      background: rgba(52, 134, 218, 0.15);
+      border-radius: 4px;
+      border: 1px solid rgba(52, 134, 218, 0.3);
     }
   }
 }
 
-.sidebar-search {
+.overview-section {
+  flex-shrink: 0;
+}
+
+.directory-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.statistics-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 8px;
   padding: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 1;
+}
 
-  .search-input {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.stat-card {
+  background: linear-gradient(135deg, rgba(52, 134, 218, 0.15), rgba(48, 82, 174, 0.1));
+  border: 1px solid rgba(52, 134, 218, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
 
-    :deep(.ant-input) {
-      background: transparent;
-      color: #ffffff;
-      border: none;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(52, 134, 218, 0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
 
-      &::placeholder {
-        color: rgba(255, 255, 255, 0.4);
-      }
+  &:hover {
+    border-color: rgba(52, 134, 218, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 134, 218, 0.2);
+
+    &::before {
+      opacity: 1;
     }
 
-    :deep(.ant-input-prefix) {
+    .stat-icon {
+      transform: scale(1.1);
+    }
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    position: relative;
+    z-index: 1;
+
+    &.alarm {
+      background: linear-gradient(135deg, rgba(255, 77, 79, 0.2), rgba(255, 77, 79, 0.1));
+      color: #ff4d4f;
+      border: 1px solid rgba(255, 77, 79, 0.3);
+    }
+
+    &.camera {
+      background: linear-gradient(135deg, rgba(52, 134, 218, 0.2), rgba(52, 134, 218, 0.1));
+      color: #3486da;
+      border: 1px solid rgba(52, 134, 218, 0.3);
+    }
+
+    &.algorithm {
+      background: linear-gradient(135deg, rgba(82, 196, 26, 0.2), rgba(82, 196, 26, 0.1));
+      color: #52c41a;
+      border: 1px solid rgba(82, 196, 26, 0.3);
+    }
+
+    &.model {
+      background: linear-gradient(135deg, rgba(250, 173, 20, 0.2), rgba(250, 173, 20, 0.1));
+      color: #faad14;
+      border: 1px solid rgba(250, 173, 20, 0.3);
+    }
+  }
+
+  .stat-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+    z-index: 1;
+
+    .stat-label {
+      font-size: 11px;
       color: rgba(255, 255, 255, 0.6);
+      white-space: nowrap;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1;
+      text-shadow: 0 0 8px rgba(52, 134, 218, 0.5);
     }
   }
 }
 
 .sidebar-tree {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
   padding: 8px;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(to bottom, rgba(15, 34, 73, 0.4), rgba(24, 46, 90, 0.3));
 
-  .device-tree {
-    background: transparent;
-    color: #ffffff;
+  // 覆盖 BasicTree 的所有背景色
+  :deep(.tree) {
+    background: transparent !important;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
 
-    :deep(.ant-tree-node-selected) {
-      background: rgba(24, 144, 255, 0.2) !important;
+  // 覆盖 xingyuv-tree 类的背景色
+  :deep(.xingyuv-tree) {
+    background: transparent !important;
+  }
+
+  // 隐藏 BasicTree 的标题栏，只保留搜索框
+  :deep(.tree-header) {
+    padding: 8px 0;
+    border-bottom: none !important;
+    background: rgba(15, 34, 73, 0.3) !important;
+    margin-bottom: 8px;
+
+    .tree-header-title {
+      display: none; // 隐藏标题
     }
+  }
 
-    :deep(.ant-tree-title) {
-      color: rgba(255, 255, 255, 0.8);
+  // 去掉搜索框下方的所有边框
+  :deep(.tree-header-search) {
+    border-bottom: none !important;
+  }
+
+  // 增大 xingyuv-tree-header 下方的间距
+  :deep(.xingyuv-tree-header) {
+    margin-bottom: 12px !important;
+    border-bottom: none !important;
+  }
+
+  // 覆盖 Spin 组件的背景
+  :deep(.ant-spin-container) {
+    background: transparent !important;
+  }
+
+  // 覆盖 ScrollContainer 的背景
+  :deep(.scroll-container) {
+    background: transparent !important;
+  }
+
+  :deep(.ant-tree) {
+    background: transparent !important;
+    color: rgba(200, 220, 255, 0.9);
+  }
+
+  // 覆盖树节点的背景
+  :deep(.ant-tree-list) {
+    background: transparent !important;
+  }
+
+  :deep(.ant-tree-list-holder) {
+    background: transparent !important;
+  }
+
+  :deep(.ant-tree-list-holder-inner) {
+    background: transparent !important;
+  }
+
+  :deep(.ant-tree-treenode) {
+    background: transparent !important;
+  }
+
+  :deep(.ant-tree-node-content-wrapper) {
+    background: transparent !important;
+    color: rgba(200, 220, 255, 0.9);
+    transition: all 0.25s;
+
+    &:hover {
+      background: rgba(52, 134, 218, 0.12) !important;
+      color: #ffffff;
+    }
+  }
+
+  :deep(.ant-tree-node-selected) {
+    .ant-tree-node-content-wrapper {
+      background: linear-gradient(90deg, rgba(52, 134, 218, 0.3), rgba(52, 134, 218, 0.15)) !important;
+      color: #6bb3ff !important;
+    }
+  }
+
+  :deep(.ant-tree-switcher) {
+    color: rgba(52, 134, 218, 0.8);
+    background: transparent !important;
+  }
+
+  :deep(.ant-tree-title) {
+    color: inherit;
+  }
+
+  // 覆盖 Empty 组件的背景
+  :deep(.ant-empty) {
+    background: transparent !important;
+  }
+
+  // 搜索框样式
+  :deep(.tree-header-search) {
+    .ant-input {
+      background: rgba(52, 134, 218, 0.15) !important;
+      border: 1px solid rgba(52, 134, 218, 0.4);
+      border-radius: 6px;
+      color: rgba(200, 220, 255, 0.95);
+
+      &::placeholder {
+        color: rgba(200, 220, 255, 0.5);
+      }
 
       &:hover {
-        color: #ffffff;
+        border-color: rgba(52, 134, 218, 0.6);
+        background: rgba(52, 134, 218, 0.2) !important;
+      }
+
+      &:focus {
+        border-color: #3486da;
+        box-shadow: 0 0 12px rgba(52, 134, 218, 0.5);
+        background: rgba(52, 134, 218, 0.25) !important;
       }
     }
+  }
+}
 
-    :deep(.ant-tree-node-selected .ant-tree-title) {
-      color: #1890ff;
-    }
+.sidebar-tree-wrapper {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: transparent !important;
 
-    :deep(.ant-tree-switcher) {
-      color: rgba(255, 255, 255, 0.6);
-    }
+  // 自定义滚动条
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
 
-    :deep(.ant-tree-iconEle) {
-      color: rgba(255, 255, 255, 0.6);
+  &::-webkit-scrollbar-track {
+    background: rgba(52, 134, 218, 0.1);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(52, 134, 218, 0.5);
+    border-radius: 3px;
+    transition: all 0.3s;
+
+    &:hover {
+      background: rgba(52, 134, 218, 0.7);
     }
   }
 }
