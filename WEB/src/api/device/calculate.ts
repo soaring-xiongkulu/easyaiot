@@ -1,4 +1,5 @@
 import {defHttp} from '@/utils/http/axios';
+import { dedupeRequest } from '@/utils/requestDedupe';
 
 enum Api {
   Alarm = '/video/alert',
@@ -24,20 +25,28 @@ const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url, params = {}, 
   );
 };
 
-// 告警事件
+// 告警事件（带请求去重）
 export const queryAlarmList = async (params) => {
-  const res = await commonApi('get', Api.Alarm + '/page', {params}, {}, false);
-  // 后端返回格式: { code: 200, message: "success", data: { alert_list: [], total: 100 } }
-  // 当 isTransformResponse: false 时，返回的是整个 Axios 响应对象，需要访问 res.data 获取实际响应
-  // 然后访问 res.data.data 获取实际数据
-  if (res && res.data && res.data.data) {
-    return res.data.data;
-  }
-  // 兼容处理：如果结构不同，尝试直接返回 res.data
-  if (res && res.data) {
-    return res.data;
-  }
-  return res;
+  const url = Api.Alarm + '/page';
+  return dedupeRequest(
+    async () => {
+      const res = await commonApi('get', url, {params}, {}, false);
+      // 后端返回格式: { code: 200, message: "success", data: { alert_list: [], total: 100 } }
+      // 当 isTransformResponse: false 时，返回的是整个 Axios 响应对象，需要访问 res.data 获取实际响应
+      // 然后访问 res.data.data 获取实际数据
+      if (res && res.data && res.data.data) {
+        return res.data.data;
+      }
+      // 兼容处理：如果结构不同，尝试直接返回 res.data
+      if (res && res.data) {
+        return res.data;
+      }
+      return res;
+    },
+    url,
+    params,
+    1000 // 1秒内相同参数的请求会被去重
+  );
 };
 
 export const deleteAlarm = (id) => {
@@ -84,4 +93,26 @@ export const queryAlertRecord = async (params: {
 
 export const generatePlayback = (params) => {
   return commonApi('post', Api.Alarm + '/generatePlayback', {params});
+};
+
+// 获取仪表板统计信息（统一接口，带请求去重）
+export const getDashboardStatistics = async () => {
+  const url = Api.Alarm + '/statistics';
+  return dedupeRequest(
+    async () => {
+      const res = await commonApi('get', url, {}, {}, false);
+      // 后端返回格式: { code: 200, message: "success", data: { alarm_count, today_alarm_count, camera_count, algorithm_count, model_count } }
+      if (res && res.data && res.data.data) {
+        return res.data.data;
+      }
+      // 兼容处理：如果结构不同，尝试直接返回 res.data
+      if (res && res.data) {
+        return res.data;
+      }
+      return res;
+    },
+    url,
+    undefined, // 统计接口无参数
+    1000 // 1秒内相同请求会被去重
+  );
 };

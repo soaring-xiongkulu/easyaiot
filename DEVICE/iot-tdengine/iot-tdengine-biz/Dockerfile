@@ -48,8 +48,8 @@ RUN mvn clean package -DskipTests -Dmaven.test.skip=true -pl iot-tdengine/iot-td
 # ======================= 运行时阶段 =======================
 FROM bellsoft/liberica-openjdk-rocky:21.0.8-cds AS runtime
 
-# 安全设置：创建非root用户
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# 安全设置：创建非root用户（Rocky Linux 使用 groupadd/useradd）
+RUN groupadd -r appgroup -g 1001 && useradd -r -u 1001 -g appgroup appuser
 
 # 创建工作目录并设置权限
 RUN mkdir -p /app && chown -R appuser:appgroup /app

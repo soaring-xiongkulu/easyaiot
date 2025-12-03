@@ -1022,6 +1022,71 @@ def extract_thumbnail_from_video(video_path, output_path=None, frame_position=0.
         return None if output_path is None else False
 
 
+def cleanup_device_recordings(device_id: str, max_recordings: int = 50, keep_ratio: float = 0.1):
+    """清理指定设备目录下的SRS录像文件，当录像数量超过限制时，删除最旧的录像
+    
+    Args:
+        device_id: 设备ID
+        max_recordings: 最大录像数量，超过此数量时触发清理（默认50个）
+        keep_ratio: 保留比例（0.0-1.0），例如0.1表示保留最新的10%（删除90%）
+    """
+    import os
+    try:
+        # SRS录像目录路径：/data/playbacks/live/{device_id}/
+        srs_record_dir = os.getenv('SRS_RECORD_DIR', '/data/playbacks')
+        device_record_dir = os.path.join(srs_record_dir, 'live', str(device_id))
+        
+        if not os.path.exists(device_record_dir):
+            logger.debug(f"设备录像目录不存在: {device_record_dir}")
+            return
+        
+        # 递归获取该设备目录下的所有.flv录像文件
+        recording_files = []
+        for root, dirs, files in os.walk(device_record_dir):
+            for filename in files:
+                if filename.lower().endswith('.flv'):
+                    file_path = os.path.join(root, filename)
+                    if os.path.isfile(file_path):
+                        # 获取文件修改时间
+                        try:
+                            mtime = os.path.getmtime(file_path)
+                            recording_files.append((file_path, mtime))
+                        except Exception as e:
+                            logger.warning(f"获取文件修改时间失败: {file_path}, 错误: {str(e)}")
+                            continue
+        
+        total_recordings = len(recording_files)
+        
+        # 如果录像数量未超过限制，不需要清理
+        if total_recordings <= max_recordings:
+            logger.debug(f"设备 {device_id} 录像目录检查: 总数={total_recordings}, 未超过限制={max_recordings}")
+            return
+        
+        # 按修改时间排序（最旧的在前）
+        recording_files.sort(key=lambda x: x[1])
+        
+        # 计算需要保留的录像数量（最新的10%）
+        keep_count = max(1, int(total_recordings * keep_ratio))
+        
+        # 计算需要删除的录像数量（最旧的90%）
+        delete_count = total_recordings - keep_count
+        
+        # 删除最旧的录像
+        deleted_count = 0
+        for i in range(delete_count):
+            try:
+                file_path = recording_files[i][0]
+                os.remove(file_path)
+                deleted_count += 1
+            except Exception as e:
+                logger.warning(f"删除设备 {device_id} 录像失败: {file_path}, 错误: {str(e)}")
+        
+        if deleted_count > 0:
+            logger.info(f"设备 {device_id} 录像清理完成: 目录={device_record_dir}, 总数={total_recordings}, 删除={deleted_count}, 保留={keep_count}")
+    except Exception as e:
+        logger.error(f"清理设备 {device_id} 录像失败: {str(e)}", exc_info=True)
+
+
 @camera_bp.route('/callback/on_dvr', methods=['POST'])
 def on_dvr_callback():
     """SRS录像生成回调接口
@@ -1064,7 +1129,7 @@ def on_dvr_callback():
             logger.warning("on_dvr回调：文件路径为空，回调数据: %s", data)
             return jsonify({'code': 0, 'msg': None})
         
-        # stream字段的值可能是设备ID，也可能是流名称（如 video1_input）
+        # stream字段的值可能是设备ID，也可能是流名称
         # 首先尝试将stream直接作为设备ID查询
         device_id = stream
         device = Device.query.get(device_id)
@@ -1085,10 +1150,10 @@ def on_dvr_callback():
         if not device:
             # 构建可能的RTMP地址格式：rtmp://*/live/{stream} 或 rtmp://*/{stream}
             possible_rtmp_patterns = [
-                f"live/{stream}",  # 最常见：rtmp://host/live/video1_input
-                stream,  # 直接匹配：rtmp://host/video1_input
-                f"/live/{stream}",  # 带斜杠：rtmp://host/live/video1_input
-                f"/{stream}",  # 带斜杠：rtmp://host/video1_input
+                f"live/{stream}",  # 最常见：rtmp://host/live/{device_id}
+                stream,  # 直接匹配：rtmp://host/{device_id}
+                f"/live/{stream}",  # 带斜杠：rtmp://host/live/{device_id}
+                f"/{stream}",  # 带斜杠：rtmp://host/{device_id}
                 f"live/{stream}/",  # 带尾部斜杠
                 f"{stream}/"  # 带尾部斜杠
             ]
@@ -1428,6 +1493,13 @@ def on_dvr_callback():
                 logger.error(f"on_dvr回调：创建/更新Playback记录失败 device_id={device_id}, error={str(e)}", exc_info=True)
                 db.session.rollback()
                 # 记录创建失败不影响主流程，继续执行
+            
+            # 清理设备目录下的旧录像（超过50个时，删除最旧的90%）
+            try:
+                cleanup_device_recordings(device_id, max_recordings=50, keep_ratio=0.1)
+            except Exception as e:
+                logger.error(f"on_dvr回调：清理设备录像失败 device_id={device_id}, error={str(e)}", exc_info=True)
+                # 清理失败不影响主流程，继续执行
             
             # 可选：上传成功后删除本地文件（根据需求决定）
             # os.remove(absolute_file_path)
