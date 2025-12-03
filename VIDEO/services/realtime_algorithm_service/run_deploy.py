@@ -90,15 +90,26 @@ last_alert_time = {}  # {device_id: timestamp}
 alert_suppression_interval = 5.0  # 告警抑制间隔：5秒
 alert_time_lock = threading.Lock()  # 告警时间戳锁，确保线程安全
 
-# 配置参数（从数据库读取）
-SOURCE_FPS = 25
-TARGET_WIDTH = 1280
-TARGET_HEIGHT = 720
+# 配置参数（从数据库读取，支持环境变量覆盖以降低CPU占用）
+# 帧率：降低可减少CPU占用和推流速度
+SOURCE_FPS = int(os.getenv('SOURCE_FPS', '15'))  # 默认15fps（原25fps）
+# 分辨率：降低可大幅减少CPU占用和推流速度
+TARGET_WIDTH = int(os.getenv('TARGET_WIDTH', '640'))  # 默认640（原1280）
+TARGET_HEIGHT = int(os.getenv('TARGET_HEIGHT', '360'))  # 默认360（原720）
 TARGET_RESOLUTION = (TARGET_WIDTH, TARGET_HEIGHT)
-EXTRACT_INTERVAL = 5
-BUFFER_SIZE = 70
-MIN_BUFFER_FRAMES = 15
-MAX_WAIT_TIME = 0.08
+EXTRACT_INTERVAL = int(os.getenv('EXTRACT_INTERVAL', '5'))
+BUFFER_SIZE = int(os.getenv('BUFFER_SIZE', '70'))
+MIN_BUFFER_FRAMES = int(os.getenv('MIN_BUFFER_FRAMES', '15'))
+MAX_WAIT_TIME = float(os.getenv('MAX_WAIT_TIME', '0.08'))
+# FFmpeg编码参数（优化以降低CPU占用）
+FFMPEG_PRESET = os.getenv('FFMPEG_PRESET', 'ultrafast')  # 编码预设：ultrafast最快，CPU占用最低
+FFMPEG_VIDEO_BITRATE = os.getenv('FFMPEG_VIDEO_BITRATE', '500k')  # 视频比特率：降低可减少推流速度（原1500k）
+FFMPEG_THREADS = os.getenv('FFMPEG_THREADS', None)  # 编码线程数：None表示自动，可设置为较小值降低CPU
+# GOP大小：2秒一个关键帧（在SOURCE_FPS定义后计算）
+FFMPEG_GOP_SIZE_ENV = os.getenv('FFMPEG_GOP_SIZE', None)
+FFMPEG_GOP_SIZE = int(FFMPEG_GOP_SIZE_ENV) if FFMPEG_GOP_SIZE_ENV else (SOURCE_FPS * 2)
+# YOLO检测参数（优化以降低CPU占用）
+YOLO_IMG_SIZE = int(os.getenv('YOLO_IMG_SIZE', '416'))  # 检测分辨率：降低可减少CPU占用（原640）
 
 
 def download_model_file(model_id: int, model_path: str) -> Optional[str]:
@@ -414,13 +425,13 @@ def send_alert_hook_async(alert_data: Dict):
     thread.start()
 
 
-def cleanup_alert_images(alert_image_dir: str, max_images: int = 1000, keep_ratio: float = 0.1):
+def cleanup_alert_images(alert_image_dir: str, max_images: int = 300, keep_ratio: float = 0.1):
     """清理告警图片目录，当图片数量超过限制时，删除最旧的图片
     
     Args:
         alert_image_dir: 告警图片目录路径
-        max_images: 最大图片数量，超过此数量时触发清理
-        keep_ratio: 保留比例（0.0-1.0），例如0.1表示保留最新的10%
+        max_images: 最大图片数量，超过此数量时触发清理（默认300张）
+        keep_ratio: 保留比例（0.0-1.0），例如0.1表示保留最新的10%（删除90%）
     """
     try:
         if not os.path.exists(alert_image_dir):
@@ -557,8 +568,8 @@ def save_alert_image(frame: np.ndarray, device_id: str, frame_number: int, detec
         
         logger.debug(f"告警图片已保存: {image_path}")
         
-        # 保存后检查并清理旧图片（超过1000张时，删除最旧的90%）
-        cleanup_alert_images(alert_image_dir, max_images=1000, keep_ratio=0.1)
+        # 保存后检查并清理旧图片（超过300张时，删除最旧的90%）
+        cleanup_alert_images(alert_image_dir, max_images=300, keep_ratio=0.1)
         
         return image_path
     except Exception as e:
@@ -873,13 +884,14 @@ def buffer_streamer_worker(device_id: str):
                 if not rtmp_url:
                     logger.warning(f"设备 {device_id} RTMP输出流地址不存在，跳过推送")
                 else:
-                    # 构建 ffmpeg 命令
-                    # 添加 RTMP 推流所需的参数：
-                    # -g: GOP 大小（关键帧间隔），设置为2秒一个关键帧
+                    # 构建 ffmpeg 命令（优化版本：低CPU占用、低推流速度）
+                    # 优化参数说明：
+                    # -preset ultrafast: 最快编码，最低CPU占用
+                    # -b:v 500k: 降低视频比特率，减少推流速度
+                    # -threads: 限制编码线程数，降低CPU占用
+                    # -g: GOP 大小（关键帧间隔），增大可减少关键帧频率
                     # -keyint_min: 最小关键帧间隔
-                    # -strict experimental: 允许使用实验性编码器特性
                     # -f flv: 输出格式为 FLV（RTMP 标准格式）
-                    # 注意：RTMP 推流时，FFmpeg 会自动处理连接，但需要确保服务器可访问
                     ffmpeg_cmd = [
                         "ffmpeg",
                         "-y",
@@ -891,19 +903,28 @@ def buffer_streamer_worker(device_id: str):
                         "-r", str(SOURCE_FPS),
                         "-i", "-",
                         "-c:v", "libx264",
-                        "-b:v", "1500k",
+                        "-b:v", FFMPEG_VIDEO_BITRATE,  # 使用配置的比特率（默认500k）
                         "-pix_fmt", "yuv420p",
-                        "-preset", "ultrafast",
-                        "-g", str(SOURCE_FPS * 2),  # GOP 大小：2秒一个关键帧
+                        "-preset", FFMPEG_PRESET,  # 使用配置的预设（默认ultrafast）
+                        "-g", str(FFMPEG_GOP_SIZE),  # GOP 大小：2秒一个关键帧
                         "-keyint_min", str(SOURCE_FPS),  # 最小关键帧间隔：1秒
                         "-strict", "experimental",
                         "-f", "flv",
-                        rtmp_url
                     ]
                     
-                    logger.info(f"🚀 启动设备 {device_id} 推送进程")
+                    # 如果配置了线程数限制，添加线程参数
+                    if FFMPEG_THREADS is not None:
+                        ffmpeg_cmd.extend(["-threads", str(FFMPEG_THREADS)])
+                    
+                    # 添加输出地址
+                    ffmpeg_cmd.append(rtmp_url)
+                    
+                    logger.info(f"🚀 启动设备 {device_id} 推送进程（优化模式：低CPU占用）")
                     logger.info(f"   📺 推流地址: {rtmp_url}")
                     logger.info(f"   📐 尺寸: {width}x{height}, 帧率: {SOURCE_FPS}fps")
+                    logger.info(f"   🎬 编码预设: {FFMPEG_PRESET}, 比特率: {FFMPEG_VIDEO_BITRATE}, GOP: {FFMPEG_GOP_SIZE}")
+                    if FFMPEG_THREADS is not None:
+                        logger.info(f"   🧵 编码线程数: {FFMPEG_THREADS}")
                     logger.debug(f"   FFmpeg命令: {' '.join(ffmpeg_cmd)}")
                     
                     try:
@@ -1128,9 +1149,9 @@ def buffer_streamer_worker(device_id: str):
                 
                 # 如果该帧需要抽帧但还未处理完成，等待处理完成（在锁外等待）
                 if is_extracted and next_output_frame in pending_frames:
-                    # 等待处理完成，缩短等待时间以提升流畅度
+                    # 等待处理完成，优化CPU占用
                     wait_start = time.time()
-                    check_interval = 0.003  # 每3ms检查一次，更频繁，提升响应速度
+                    check_interval = 0.01  # 每10ms检查一次，减少CPU轮询频率
                     
                     while next_output_frame in pending_frames and (time.time() - wait_start) < MAX_WAIT_TIME:
                         time.sleep(check_interval)
@@ -1173,11 +1194,11 @@ def buffer_streamer_worker(device_id: str):
                     
                     # 如果超时仍未处理完成，再等待一小段时间，尽量等待处理完成
                     if next_output_frame in pending_frames:
-                        # 再给一次机会，等待额外的时间（缩短到0.02秒以提升流畅度）
+                        # 再给一次机会，等待额外的时间（优化CPU占用）
                         extra_wait_start = time.time()
                         extra_wait_time = 0.02
                         while next_output_frame in pending_frames and (time.time() - extra_wait_start) < extra_wait_time:
-                            time.sleep(0.005)
+                            time.sleep(0.01)  # 增加sleep时间，减少轮询频率
                             # 再次检查推帧队列
                             try:
                                 push_data = push_queues[device_id].get_nowait()
@@ -1384,6 +1405,20 @@ def buffer_streamer_worker(device_id: str):
                 time.sleep(frame_interval - elapsed)
             last_frame_time = time.time()
             
+            # 优化CPU占用：在处理完所有队列后，如果没有更多工作，短暂休眠
+            # 检查是否有待处理的帧或队列中有数据
+            has_pending_work = False
+            with buffer_locks[device_id]:
+                if len(frame_buffers[device_id]) > 0 or len(pending_frames) > 0:
+                    has_pending_work = True
+            
+            # 如果队列为空且没有待处理帧，短暂休眠以减少CPU占用
+            try:
+                if not has_pending_work and push_queues[device_id].empty():
+                    time.sleep(0.005)  # 5ms，减少空轮询
+            except:
+                pass
+            
         except Exception as e:
             logger.error(f"❌ 设备 {device_id} 缓流器异常: {str(e)}", exc_info=True)
             time.sleep(2)
@@ -1423,6 +1458,7 @@ def extractor_worker():
     
     while not stop_event.is_set():
         try:
+            has_work = False
             # 遍历所有设备的抽帧队列
             for device_id, extract_queue in extract_queues.items():
                 try:
@@ -1432,6 +1468,8 @@ def extractor_worker():
                     timestamp = frame_data['timestamp']
                     device_id_from_data = frame_data.get('device_id', device_id)
                     frame_id = f"{device_id_from_data}_frame_{frame_number}_{int(timestamp)}"
+                    
+                    has_work = True
                     
                     # 将帧发送给YOLO检测（带设备ID和位置信息）
                     detection_queue = detection_queues.get(device_id_from_data)
@@ -1462,8 +1500,11 @@ def extractor_worker():
                 except Exception as e:
                     logger.error(f"❌ 设备 {device_id} 抽帧器异常: {str(e)}", exc_info=True)
             
-            # 避免CPU占用过高
-            time.sleep(0.01)
+            # 优化CPU占用：如果本轮没有工作，增加sleep时间
+            if not has_work:
+                time.sleep(0.05)  # 50ms，减少空轮询
+            else:
+                time.sleep(0.01)  # 10ms，有工作时短暂休眠
             
         except Exception as e:
             logger.error(f"❌ 抽帧器异常: {str(e)}", exc_info=True)
@@ -1564,6 +1605,7 @@ def yolo_detection_worker(worker_id: int):
     
     while not stop_event.is_set():
         try:
+            has_work = False
             # 遍历所有设备的检测队列
             for device_id, detection_queue in detection_queues.items():
                 try:
@@ -1574,22 +1616,28 @@ def yolo_detection_worker(worker_id: int):
                     device_id_from_data = detection_data.get('device_id', device_id)
                     frame_id = detection_data.get('frame_id', f"{device_id_from_data}_frame_{frame_number}")
                     
+                    has_work = True
                     consecutive_errors = 0  # 重置错误计数
                     
                     # 减少日志输出
                     if frame_number % 10 == 0:
                         logger.info(f"🔍 [Worker {worker_id}] 开始检测: {frame_id}")
                     
-                    # 使用所有YOLO模型进行检测（合并结果）
+                    # 使用所有YOLO模型进行检测（合并结果，优化参数以降低CPU占用）
                     all_detections = []
                     try:
                         for model_id, yolo_model in yolo_models.items():
                             try:
+                                # 优化检测参数以降低CPU占用：
+                                # - imgsz: 降低检测分辨率（默认416，原640）
+                                # - conf: 保持默认置信度阈值
+                                # - iou: 保持默认IOU阈值
+                                # - device: 使用CPU（如果支持GPU可改为'cuda'）
                                 results = yolo_model(
                                     frame,
                                     conf=0.25,
                                     iou=0.45,
-                                    imgsz=640,
+                                    imgsz=YOLO_IMG_SIZE,  # 使用配置的检测分辨率（默认416，原640）
                                     verbose=False,
                                     half=False,
                                     device='cpu'
@@ -1699,8 +1747,11 @@ def yolo_detection_worker(worker_id: int):
                     else:
                         time.sleep(1)
             
-            # 避免CPU占用过高
-            time.sleep(0.01)
+            # 优化CPU占用：如果本轮没有工作，增加sleep时间
+            if not has_work:
+                time.sleep(0.05)  # 50ms，减少空轮询
+            else:
+                time.sleep(0.01)  # 10ms，有工作时短暂休眠
             
         except Exception as e:
             consecutive_errors += 1
@@ -1730,7 +1781,16 @@ def signal_handler(sig, frame):
 def main():
     """主函数"""
     logger.info("=" * 60)
-    logger.info("🚀 统一的实时算法任务服务启动")
+    logger.info("🚀 统一的实时算法任务服务启动（优化模式：低CPU占用）")
+    logger.info("=" * 60)
+    logger.info("📊 优化配置参数:")
+    logger.info(f"   视频分辨率: {TARGET_WIDTH}x{TARGET_HEIGHT} (原1280x720)")
+    logger.info(f"   视频帧率: {SOURCE_FPS}fps (原25fps)")
+    logger.info(f"   FFmpeg编码预设: {FFMPEG_PRESET}")
+    logger.info(f"   视频比特率: {FFMPEG_VIDEO_BITRATE} (原1500k)")
+    logger.info(f"   GOP大小: {FFMPEG_GOP_SIZE} (2秒一个关键帧)")
+    logger.info(f"   编码线程数: {FFMPEG_THREADS if FFMPEG_THREADS else '自动'}")
+    logger.info(f"   YOLO检测分辨率: {YOLO_IMG_SIZE} (原640)")
     logger.info("=" * 60)
     
     # 加载任务配置

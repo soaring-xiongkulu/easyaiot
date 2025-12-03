@@ -59,8 +59,8 @@ logger = logging.getLogger(__name__)
 # 全局配置（将在main函数中根据命令行参数设置）
 VIDEO_FILE = None  # 将在main函数中设置
 YOLO_MODEL_PATH = video_root / "yolo11n.pt"
-RTMP_INPUT_URL = "rtmp://localhost:1935/live/video1_input"  # ffmpeg 推送的地址
-RTMP_OUTPUT_URL = "rtmp://localhost:1935/live/video1"  # 最终推送的地址
+RTMP_INPUT_URL = "rtmp://localhost:1935/live/test_input"  # ffmpeg 推送的地址
+RTMP_OUTPUT_URL = "rtmp://localhost:1935/live/test_output"  # 最终推送的地址
 RTMP_SERVER_HOST = "localhost"
 RTMP_SERVER_PORT = 1935
 
@@ -778,7 +778,7 @@ def check_and_stop_existing_stream(stream_url: str):
     """检查并停止现有的 RTMP 流（通过 SRS HTTP API）"""
     try:
         # 从 RTMP URL 中提取流名称
-        # rtmp://localhost:1935/live/video1_input -> live/video1_input
+        # rtmp://localhost:1935/live/test_input -> live/test_input
         if "rtmp://" in stream_url:
             stream_path = stream_url.split("rtmp://")[1].split("/", 1)[1] if "/" in stream_url.split("rtmp://")[1] else ""
         else:

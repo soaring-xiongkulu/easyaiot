@@ -79,8 +79,8 @@ python test_services_pipeline.py --video /path/to/your/video.mp4
 
 脚本默认使用以下RTMP地址：
 
-- **输入流**：`rtmp://localhost:1935/live/video1_input`
-- **输出流**：`rtmp://localhost:1935/live/video1`
+- **输入流**：`rtmp://localhost:1935/live/test_input`
+- **输出流**：`rtmp://localhost:1935/live/test_output`
 - **服务器地址**：`localhost:1935`
 
 ### 视频处理配置

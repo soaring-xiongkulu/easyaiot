@@ -564,7 +564,7 @@ class AlgorithmTask(db.Model):
     model_names = db.Column(db.Text, nullable=True, comment='关联的模型名称列表（逗号分隔，冗余字段，用于快速显示）')
     
     # 实时算法任务配置
-    extract_interval = db.Column(db.Integer, default=5, nullable=False, comment='抽帧间隔（每N帧抽一次，仅实时算法任务）')
+    extract_interval = db.Column(db.Integer, default=25, nullable=False, comment='抽帧间隔（每N帧抽一次，仅实时算法任务）')
     rtmp_input_url = db.Column(db.String(500), nullable=True, comment='RTMP输入流地址（仅实时算法任务）')
     rtmp_output_url = db.Column(db.String(500), nullable=True, comment='RTMP输出流地址（仅实时算法任务）')
     
