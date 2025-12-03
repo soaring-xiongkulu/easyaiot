@@ -60,15 +60,25 @@ def check_video_file():
     return True
 
 
-def start_streaming(rtmp_url=None, video_file=None, loop=True, log_level="info"):
+def start_streaming(rtmp_url=None, video_file=None, loop=True, log_level="info",
+                    preset="ultrafast", video_bitrate="500k", audio_bitrate="64k",
+                    fps=None, scale=None, threads=None, gop_size=30, no_audio=False):
     """
-    启动视频推流
+    启动视频推流（优化版本：低CPU占用、低推流速度）
     
     Args:
         rtmp_url: RTMP 推流地址，默认为 rtmp://localhost:1935/live/1764341204704370850
         video_file: 视频文件路径，默认为 VIDEO/video/video1.mp4
         loop: 是否循环播放，默认为 True
         log_level: ffmpeg 日志级别，默认为 info
+        preset: 编码预设，默认为 ultrafast（最快，最低CPU）
+        video_bitrate: 视频比特率，默认为 500k（降低推流速度）
+        audio_bitrate: 音频比特率，默认为 64k
+        fps: 目标帧率，None 表示使用原始帧率，降低帧率可减少CPU
+        scale: 分辨率缩放，格式如 "640:360"，None 表示不缩放
+        threads: 编码线程数，None 表示自动，降低可减少CPU占用
+        gop_size: GOP大小（关键帧间隔），增大可减少CPU
+        no_audio: 是否禁用音频，禁用可减少CPU占用
     """
     global ffmpeg_process
     
@@ -77,27 +87,65 @@ def start_streaming(rtmp_url=None, video_file=None, loop=True, log_level="info")
     if video_file is None:
         video_file = VIDEO_FILE
     
-    # 构建 ffmpeg 命令
+    # 构建 ffmpeg 命令（优化参数以降低CPU和推流速度）
     cmd = [
         "ffmpeg",
         "-re",  # 以原始帧率读取输入
         "-stream_loop", "-1" if loop else "0",  # -1 表示无限循环，0 表示不循环
         "-i", str(video_file),  # 输入文件
-        "-c:v", "libx264",  # 视频编码器
-        "-preset", "veryfast",  # 编码速度预设
-        "-tune", "zerolatency",  # 零延迟调优
-        "-c:a", "aac",  # 音频编码器
-        "-b:v", "2000k",  # 视频比特率
-        "-b:a", "128k",  # 音频比特率
+    ]
+    
+    # 视频编码参数（优化以降低CPU）
+    cmd.extend(["-c:v", "libx264"])  # 视频编码器
+    cmd.extend(["-preset", preset])  # 编码预设：ultrafast 最快，CPU占用最低
+    # 移除 -tune zerolatency，因为它会增加CPU使用
+    
+    # 降低视频比特率以减少推流速度
+    cmd.extend(["-b:v", video_bitrate])
+    
+    # 设置GOP大小，增大可减少关键帧频率，降低CPU
+    cmd.extend(["-g", str(gop_size)])
+    
+    # 限制帧率以降低CPU和推流速度
+    if fps is not None:
+        cmd.extend(["-r", str(fps)])
+    
+    # 分辨率缩放以降低CPU和推流速度
+    if scale is not None:
+        cmd.extend(["-vf", f"scale={scale}"])
+    
+    # 限制编码线程数以降低CPU占用
+    if threads is not None:
+        cmd.extend(["-threads", str(threads)])
+    
+    # 音频编码参数（优化以降低CPU）
+    if no_audio:
+        cmd.extend(["-an"])  # 禁用音频
+    else:
+        cmd.extend(["-c:a", "aac"])  # 音频编码器
+        cmd.extend(["-b:a", audio_bitrate])  # 降低音频比特率
+    
+    # 输出格式和地址
+    cmd.extend([
         "-f", "flv",  # 输出格式
         "-loglevel", log_level,  # 日志级别
         rtmp_url  # RTMP 推流地址
-    ]
+    ])
     
-    print(f"\n🚀 开始推流...")
+    print(f"\n🚀 开始推流（优化模式：低CPU占用）...")
     print(f"   视频文件: {video_file}")
     print(f"   推流地址: {rtmp_url}")
     print(f"   循环播放: {'是' if loop else '否'}")
+    print(f"   编码预设: {preset}")
+    print(f"   视频比特率: {video_bitrate}")
+    print(f"   音频比特率: {'禁用' if no_audio else audio_bitrate}")
+    if fps is not None:
+        print(f"   目标帧率: {fps} fps")
+    if scale is not None:
+        print(f"   分辨率缩放: {scale}")
+    if threads is not None:
+        print(f"   编码线程数: {threads}")
+    print(f"   GOP大小: {gop_size}")
     print(f"\n📺 推流命令: {' '.join(cmd)}\n")
     
     try:
@@ -186,7 +234,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例:
-  # 使用默认配置推流
+  # 使用默认配置推流（已优化：低CPU占用、低推流速度）
   python test_video.py
   
   # 指定自定义 RTMP 地址
@@ -198,8 +246,23 @@ def main():
   # 不循环播放（只播放一次）
   python test_video.py --no-loop
   
-  # 显示详细日志
-  python test_video.py --log-level debug
+  # 进一步降低CPU占用：降低帧率到15fps
+  python test_video.py --fps 15
+  
+  # 降低分辨率和帧率以进一步减少CPU占用
+  python test_video.py --scale 640:360 --fps 15
+  
+  # 禁用音频以降低CPU占用
+  python test_video.py --no-audio
+  
+  # 限制编码线程数（如2个线程）
+  python test_video.py --threads 2
+  
+  # 降低视频比特率到300k（进一步降低推流速度）
+  python test_video.py --video-bitrate 300k
+  
+  # 组合优化：最低CPU占用配置
+  python test_video.py --fps 15 --scale 640:360 --video-bitrate 300k --no-audio --threads 2
         """
     )
     
@@ -231,6 +294,62 @@ def main():
         help='ffmpeg 日志级别 (默认: info)'
     )
     
+    parser.add_argument(
+        '--preset',
+        type=str,
+        choices=['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow'],
+        default='ultrafast',
+        help='编码预设，ultrafast 最快但质量较低，可降低CPU占用 (默认: ultrafast)'
+    )
+    
+    parser.add_argument(
+        '--video-bitrate',
+        type=str,
+        default='500k',
+        help='视频比特率，降低可减少推流速度和CPU占用 (默认: 500k)'
+    )
+    
+    parser.add_argument(
+        '--audio-bitrate',
+        type=str,
+        default='64k',
+        help='音频比特率 (默认: 64k)'
+    )
+    
+    parser.add_argument(
+        '--fps',
+        type=int,
+        default=None,
+        help='目标帧率，降低可减少CPU占用和推流速度 (默认: 使用原始帧率)'
+    )
+    
+    parser.add_argument(
+        '--scale',
+        type=str,
+        default=None,
+        help='分辨率缩放，格式如 "640:360"，降低可减少CPU占用 (默认: 不缩放)'
+    )
+    
+    parser.add_argument(
+        '--threads',
+        type=int,
+        default=None,
+        help='编码线程数，降低可减少CPU占用 (默认: 自动)'
+    )
+    
+    parser.add_argument(
+        '--gop-size',
+        type=int,
+        default=30,
+        help='GOP大小（关键帧间隔），增大可减少CPU占用 (默认: 30)'
+    )
+    
+    parser.add_argument(
+        '--no-audio',
+        action='store_true',
+        help='禁用音频，可减少CPU占用'
+    )
+    
     args = parser.parse_args()
     
     # 注册信号处理器
@@ -257,7 +376,15 @@ def main():
         rtmp_url=args.rtmp,
         video_file=video_path,
         loop=not args.no_loop,
-        log_level=args.log_level
+        log_level=args.log_level,
+        preset=args.preset,
+        video_bitrate=args.video_bitrate,
+        audio_bitrate=args.audio_bitrate,
+        fps=args.fps,
+        scale=args.scale,
+        threads=args.threads,
+        gop_size=args.gop_size,
+        no_audio=args.no_audio
     )
 
 
