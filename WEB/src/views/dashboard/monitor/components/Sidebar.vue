@@ -66,9 +66,7 @@ const emit = defineEmits<{
 const {createMessage} = useMessage()
 
 const tabs = [
-  {key: 'directory', label: '设备目录'},
-  {key: 'ai', label: '智能分析'},
-  {key: 'tag', label: '预置点位'}
+  {key: 'directory', label: '设备目录'}
 ]
 
 const activeTab = ref('directory')
