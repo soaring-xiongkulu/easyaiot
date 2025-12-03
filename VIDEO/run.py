@@ -464,6 +464,17 @@ def create_app():
                 # 忽略调度器未运行或已关闭的异常
                 pass
         atexit.register(safe_shutdown_scheduler)
+        
+        # 安全关闭Kafka消费者
+        def safe_shutdown_consumer():
+            try:
+                from app.services.alert_consumer_service import stop_alert_consumer
+                stop_alert_consumer()
+                print('✅ Kafka告警消息消费者已安全关闭')
+            except Exception as e:
+                # 忽略消费者未运行或已关闭的异常
+                pass
+        atexit.register(safe_shutdown_consumer)
 
     # 应用启动后自动启动需要推流的设备
     with app.app_context():
@@ -472,6 +483,15 @@ def create_app():
             auto_start_streaming()
         except Exception as e:
             print(f"❌ 自动启动推流设备失败: {str(e)}")
+    
+    # 启动Kafka告警消息消费者
+    with app.app_context():
+        try:
+            from app.services.alert_consumer_service import start_alert_consumer
+            start_alert_consumer(app)
+            print("✅ Kafka告警消息消费者已启动")
+        except Exception as e:
+            print(f"❌ 启动Kafka告警消息消费者失败: {str(e)}")
     
     # 启动抓拍空间自动清理任务（每天凌晨2点执行）
     with app.app_context():

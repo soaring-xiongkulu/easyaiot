@@ -53,17 +53,65 @@ def get_alert_count_route():
 
 @alert_bp.route('/image')
 def get_alert_image():
-    """获取报警图片"""
+    """获取报警图片（支持本地文件和MinIO存储）"""
     try:
         path = request.args.get('path')
         if not path:
             return api_response(400, '路径参数不能为空')
         
-        file_path = Path(path)
-        if not file_path.exists():
-            return api_response(404, f'文件不存在: {path}')
-        
-        return send_file(str(file_path))
+        # 检查是否是MinIO路径（格式：alert-images/YYYY/MM/DD/...）
+        if path.startswith('alert-images/'):
+            try:
+                from app.services.minio_service import ModelService
+                from minio.error import S3Error
+                from io import BytesIO
+                
+                # 解析MinIO路径：alert-images/object_name
+                parts = path.split('/', 1)
+                if len(parts) != 2:
+                    return api_response(400, f'MinIO路径格式错误: {path}')
+                
+                bucket_name = parts[0]
+                object_name = parts[1]
+                
+                # 获取MinIO客户端
+                minio_client = ModelService.get_minio_client()
+                
+                # 检查存储桶是否存在
+                if not minio_client.bucket_exists(bucket_name):
+                    return api_response(404, f'MinIO存储桶不存在: {bucket_name}')
+                
+                # 从MinIO获取对象
+                try:
+                    stat = minio_client.stat_object(bucket_name, object_name)
+                    data = minio_client.get_object(bucket_name, object_name)
+                    content = data.read()
+                    data.close()
+                    data.release_conn()
+                    
+                    # 返回文件内容
+                    from flask import Response
+                    return Response(
+                        content,
+                        mimetype=stat.content_type or 'image/jpeg',
+                        headers={
+                            'Content-Disposition': f'inline; filename={object_name.split("/")[-1]}'
+                        }
+                    )
+                except S3Error as e:
+                    if e.code == 'NoSuchKey':
+                        return api_response(404, f'MinIO对象不存在: {object_name}')
+                    raise
+            except Exception as e:
+                logger.error(f'从MinIO获取报警图片失败: {str(e)}', exc_info=True)
+                return api_response(500, f'从MinIO获取失败: {str(e)}')
+        else:
+            # 本地文件路径
+            file_path = Path(path)
+            if not file_path.exists():
+                return api_response(404, f'文件不存在: {path}')
+            
+            return send_file(str(file_path))
     except Exception as e:
         logger.error(f'获取报警图片失败: {str(e)}')
         return api_response(500, f'获取失败: {str(e)}')
