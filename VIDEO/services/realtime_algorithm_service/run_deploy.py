@@ -463,6 +463,66 @@ def cleanup_alert_images(alert_image_dir: str, max_images: int = 1000, keep_rati
         logger.error(f"清理告警图片失败: {str(e)}", exc_info=True)
 
 
+def cleanup_srs_recordings(srs_record_dir: str = '/data/playbacks', max_recordings: int = 500, keep_ratio: float = 0.1):
+    """清理SRS录像目录，当录像数量超过限制时，删除最旧的录像
+    
+    Args:
+        srs_record_dir: SRS录像目录路径，默认为 /data/playbacks
+        max_recordings: 最大录像数量，超过此数量时触发清理
+        keep_ratio: 保留比例（0.0-1.0），例如0.1表示保留最新的10%
+    """
+    try:
+        if not os.path.exists(srs_record_dir):
+            logger.debug(f"SRS录像目录不存在: {srs_record_dir}")
+            return
+        
+        # 递归获取所有.flv录像文件
+        recording_files = []
+        for root, dirs, files in os.walk(srs_record_dir):
+            for filename in files:
+                if filename.lower().endswith('.flv'):
+                    file_path = os.path.join(root, filename)
+                    if os.path.isfile(file_path):
+                        # 获取文件修改时间
+                        try:
+                            mtime = os.path.getmtime(file_path)
+                            recording_files.append((file_path, mtime))
+                        except Exception as e:
+                            logger.warning(f"获取文件修改时间失败: {file_path}, 错误: {str(e)}")
+                            continue
+        
+        total_recordings = len(recording_files)
+        
+        # 如果录像数量未超过限制，不需要清理
+        if total_recordings <= max_recordings:
+            logger.debug(f"SRS录像目录检查: 总数={total_recordings}, 未超过限制={max_recordings}")
+            return
+        
+        # 按修改时间排序（最旧的在前）
+        recording_files.sort(key=lambda x: x[1])
+        
+        # 计算需要保留的录像数量（最新的10%）
+        keep_count = max(1, int(total_recordings * keep_ratio))
+        
+        # 计算需要删除的录像数量（最旧的90%）
+        delete_count = total_recordings - keep_count
+        
+        # 删除最旧的录像
+        deleted_count = 0
+        for i in range(delete_count):
+            try:
+                file_path = recording_files[i][0]
+                os.remove(file_path)
+                deleted_count += 1
+            except Exception as e:
+                logger.warning(f"删除SRS录像失败: {file_path}, 错误: {str(e)}")
+        
+        if deleted_count > 0:
+            logger.info(f"SRS录像清理完成: 目录={srs_record_dir}, 总数={total_recordings}, 删除={deleted_count}, 保留={keep_count}")
+    except Exception as e:
+        logger.error(f"清理SRS录像失败: {str(e)}", exc_info=True)
+
+
 def save_alert_image(frame: np.ndarray, device_id: str, frame_number: int, detection: Dict) -> Optional[str]:
     """保存告警图片到本地目录
     
@@ -563,6 +623,27 @@ def heartbeat_worker():
             logger.error(f"心跳上报线程异常: {str(e)}", exc_info=True)
             time.sleep(10)
     logger.info("💓 心跳上报线程停止")
+
+
+def srs_recording_cleanup_worker():
+    """SRS录像清理工作线程"""
+    logger.info("🧹 SRS录像清理线程启动")
+    # 获取SRS录像目录路径（可通过环境变量配置，默认为 /data/playbacks）
+    srs_record_dir = os.getenv('SRS_RECORD_DIR', '/data/playbacks')
+    
+    while not stop_event.is_set():
+        try:
+            # 清理SRS录像目录（超过500个时，删除最旧的90%）
+            cleanup_srs_recordings(srs_record_dir, max_recordings=500, keep_ratio=0.1)
+            # 每60秒检查一次
+            for _ in range(60):
+                if stop_event.is_set():
+                    break
+                time.sleep(1)
+        except Exception as e:
+            logger.error(f"SRS录像清理线程异常: {str(e)}", exc_info=True)
+            time.sleep(60)
+    logger.info("🧹 SRS录像清理线程停止")
 
 
 def save_tracking_target(track_data: Dict):
@@ -1659,6 +1740,11 @@ def main():
     logger.info("💓 启动心跳上报线程...")
     heartbeat_thread = threading.Thread(target=heartbeat_worker, daemon=True)
     heartbeat_thread.start()
+    
+    # 启动SRS录像清理线程
+    logger.info("🧹 启动SRS录像清理线程...")
+    srs_cleanup_thread = threading.Thread(target=srs_recording_cleanup_worker, daemon=True)
+    srs_cleanup_thread.start()
     
     # 启动追踪目标保存线程（如果启用追踪）
     if task_config and task_config.tracking_enabled:
