@@ -1,22 +1,10 @@
 services:
-  # ======================= Base 构建服务 =======================
-  # 此服务用于在 Maven 镜像中编译整个 DEVICE 项目
-  # 编译后的 Jar 包将通过 docker build --output 提取到 ./target/jars 目录
-  # 注意：此服务仅用于构建，不直接运行容器
-  base-builder:
-    build:
-      context: .
-      dockerfile: Dockerfile.base
-      target: output  # 构建到 output 阶段
-    image: device-base-builder
-    profiles:
-      - build  # 只在 build profile 时运行
-
   iot-gateway:
     build:
       context: .
-      dockerfile: iot-gateway/Dockerfile
-    image: iot-gateway
+      dockerfile: Dockerfile
+      target: iot-gateway
+    image: iot-gateway:latest
     container_name: iot-gateway
     user: root
     environment:
@@ -42,8 +30,9 @@ services:
   iot-system:
     build:
       context: .
-      dockerfile: iot-system/iot-system-biz/Dockerfile
-    image: iot-module-system-biz
+      dockerfile: Dockerfile
+      target: iot-system
+    image: iot-module-system-biz:latest
     container_name: iot-system
     user: root
     environment:
@@ -77,8 +66,9 @@ services:
   iot-infra:
     build:
       context: .
-      dockerfile: iot-infra/iot-infra-biz/Dockerfile
-    image: iot-module-infra-biz
+      dockerfile: Dockerfile
+      target: iot-infra
+    image: iot-module-infra-biz:latest
     container_name: iot-infra
     user: root
     environment:
@@ -117,8 +107,9 @@ services:
   iot-device:
     build:
       context: .
-      dockerfile: iot-device/iot-device-biz/Dockerfile
-    image: iot-module-device-biz
+      dockerfile: Dockerfile
+      target: iot-device
+    image: iot-module-device-biz:latest
     container_name: iot-device
     user: root
     environment:
@@ -156,8 +147,9 @@ services:
   iot-dataset:
     build:
       context: .
-      dockerfile: iot-dataset/iot-dataset-biz/Dockerfile
-    image: iot-module-dataset-biz
+      dockerfile: Dockerfile
+      target: iot-dataset
+    image: iot-module-dataset-biz:latest
     container_name: iot-dataset
     user: root
     environment:
@@ -196,8 +188,9 @@ services:
   iot-tdengine:
     build:
       context: .
-      dockerfile: iot-tdengine/iot-tdengine-biz/Dockerfile
-    image: iot-module-tdengine-biz
+      dockerfile: Dockerfile
+      target: iot-tdengine
+    image: iot-module-tdengine-biz:latest
     container_name: iot-tdengine
     user: root
     environment:
@@ -234,8 +227,9 @@ services:
   iot-file:
     build:
       context: .
-      dockerfile: iot-file/iot-file-biz/Dockerfile
-    image: iot-module-file-biz
+      dockerfile: Dockerfile
+      target: iot-file
+    image: iot-module-file-biz:latest
     container_name: iot-file
     user: root
     environment:
@@ -274,8 +268,9 @@ services:
   iot-message:
     build:
       context: .
-      dockerfile: iot-message/iot-message-biz/Dockerfile
-    image: iot-module-message-biz
+      dockerfile: Dockerfile
+      target: iot-message
+    image: iot-module-message-biz:latest
     container_name: iot-message
     user: root
     environment:
@@ -312,8 +307,9 @@ services:
   iot-sink:
     build:
       context: .
-      dockerfile: iot-sink/iot-sink-biz/Dockerfile
-    image: iot-sink-biz
+      dockerfile: Dockerfile
+      target: iot-sink
+    image: iot-sink-biz:latest
     container_name: iot-sink
     user: root
     environment:
