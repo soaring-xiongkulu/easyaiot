@@ -72,8 +72,8 @@ COPY iot-message/iot-message-biz/pom.xml ./iot-message/iot-message-biz/
 RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|file|dataset|device|tdengine|sink)<\/module>/) next } 1' pom.xml > pom.xml.filtered && \
 mv pom.xml.filtered pom.xml
 
-# 并行预下载依赖（消息服务通常依赖较多中间件）
-RUN mvn dependency:resolve-plugins dependency:go-offline -T 2C -B
+# 预下载依赖（单线程避免锁冲突，消息服务通常依赖较多中间件）
+RUN mvn dependency:resolve-plugins dependency:go-offline -B
 
 # 阶段2: 复制源代码
 COPY iot-parent ./iot-parent

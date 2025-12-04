@@ -69,8 +69,8 @@ COPY iot-infra/iot-infra-biz/pom.xml ./iot-infra/iot-infra-biz/
 RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|file|dataset|device|tdengine|sink|message)<\/module>/) next } 1' pom.xml > pom.xml.filtered && \
 mv pom.xml.filtered pom.xml
 
-# 并行预下载依赖（最大化构建性能）
-RUN mvn dependency:resolve-plugins dependency:go-offline -T 2C -B
+# 预下载依赖（单线程避免锁冲突）
+RUN mvn dependency:resolve-plugins dependency:go-offline -B
 
 # 阶段2: 复制所有源代码
 COPY iot-parent ./iot-parent
