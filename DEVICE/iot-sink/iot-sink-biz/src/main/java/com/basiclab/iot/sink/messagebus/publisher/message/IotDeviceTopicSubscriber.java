@@ -61,18 +61,20 @@ public class IotDeviceTopicSubscriber implements IotMessageSubscriber<IotDeviceM
     @Override
     public void onMessage(IotDeviceMessage message) {
         try {
-            log.debug("[onMessage][接收到设备消息，messageId: {}, topic: {}, method: {}, deviceId: {}]",
-                    message.getId(), message.getTopic(), message.getMethod(), message.getDeviceId());
-
             // 1. 校验消息
             if (message == null) {
                 log.warn("[onMessage][消息为空]");
                 return;
             }
 
+            log.debug("[onMessage][接收到设备消息，messageId: {}, topic: {}, method: {}, deviceId: {}]",
+                    message.getId(), message.getTopic(), message.getMethod(), message.getDeviceId());
+
             String topic = message.getTopic();
             if (StrUtil.isBlank(topic)) {
-                log.warn("[onMessage][消息 Topic 为空，messageId: {}]", message.getId());
+                // 如果消息的 topic 为空，说明该消息不应该被此订阅器处理
+                // 使用 debug 级别避免无限打印警告日志
+                log.debug("[onMessage][消息 Topic 为空，跳过处理，messageId: {}]", message.getId());
                 return;
             }
 
