@@ -27,6 +27,51 @@ WORKDIR /app
 COPY pom.xml .
 COPY lombok.config .
 
+# 复制各模块 pom.xml
+COPY iot-parent/pom.xml ./iot-parent/
+COPY iot-common/pom.xml ./iot-common/
+COPY iot-system/pom.xml ./iot-system/
+COPY iot-infra/pom.xml ./iot-infra/
+COPY iot-device/pom.xml ./iot-device/
+COPY iot-tdengine/pom.xml ./iot-tdengine/
+
+# 复制所有子模块的 pom.xml（Maven 需要这些文件来解析模块结构）
+RUN mkdir -p iot-common/iot-common-base iot-common/iot-common-env iot-common/iot-common-mybatis \
+    iot-common/iot-common-redis iot-common/iot-common-web iot-common/iot-common-security \
+    iot-common/iot-common-protection iot-common/iot-common-job iot-common/iot-common-mq \
+    iot-common/iot-common-rpc iot-common/iot-common-excel iot-common/iot-common-test \
+    iot-common/iot-common-tenant iot-common/iot-common-data-permission iot-common/iot-common-ip \
+    iot-common/iot-common-swagger iot-common/iot-common-protocol \
+    iot-system/iot-system-api iot-system/iot-system-biz \
+    iot-infra/iot-infra-api iot-infra/iot-infra-biz \
+    iot-device/iot-device-api iot-device/iot-device-biz \
+    iot-tdengine/iot-tdengine-api iot-tdengine/iot-tdengine-biz
+COPY iot-common/iot-common-base/pom.xml ./iot-common/iot-common-base/
+COPY iot-common/iot-common-env/pom.xml ./iot-common/iot-common-env/
+COPY iot-common/iot-common-mybatis/pom.xml ./iot-common/iot-common-mybatis/
+COPY iot-common/iot-common-redis/pom.xml ./iot-common/iot-common-redis/
+COPY iot-common/iot-common-web/pom.xml ./iot-common/iot-common-web/
+COPY iot-common/iot-common-security/pom.xml ./iot-common/iot-common-security/
+COPY iot-common/iot-common-protection/pom.xml ./iot-common/iot-common-protection/
+COPY iot-common/iot-common-job/pom.xml ./iot-common/iot-common-job/
+COPY iot-common/iot-common-mq/pom.xml ./iot-common/iot-common-mq/
+COPY iot-common/iot-common-rpc/pom.xml ./iot-common/iot-common-rpc/
+COPY iot-common/iot-common-excel/pom.xml ./iot-common/iot-common-excel/
+COPY iot-common/iot-common-test/pom.xml ./iot-common/iot-common-test/
+COPY iot-common/iot-common-tenant/pom.xml ./iot-common/iot-common-tenant/
+COPY iot-common/iot-common-data-permission/pom.xml ./iot-common/iot-common-data-permission/
+COPY iot-common/iot-common-ip/pom.xml ./iot-common/iot-common-ip/
+COPY iot-common/iot-common-swagger/pom.xml ./iot-common/iot-common-swagger/
+COPY iot-common/iot-common-protocol/pom.xml ./iot-common/iot-common-protocol/
+COPY iot-system/iot-system-api/pom.xml ./iot-system/iot-system-api/
+COPY iot-system/iot-system-biz/pom.xml ./iot-system/iot-system-biz/
+COPY iot-infra/iot-infra-api/pom.xml ./iot-infra/iot-infra-api/
+COPY iot-infra/iot-infra-biz/pom.xml ./iot-infra/iot-infra-biz/
+COPY iot-device/iot-device-api/pom.xml ./iot-device/iot-device-api/
+COPY iot-device/iot-device-biz/pom.xml ./iot-device/iot-device-biz/
+COPY iot-tdengine/iot-tdengine-api/pom.xml ./iot-tdengine/iot-tdengine-api/
+COPY iot-tdengine/iot-tdengine-biz/pom.xml ./iot-tdengine/iot-tdengine-biz/
+
 # 下载依赖（提前执行，利用缓存）
 RUN mvn dependency:go-offline -B
 

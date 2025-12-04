@@ -34,6 +34,37 @@ COPY iot-common/pom.xml ./iot-common/
 COPY iot-system/pom.xml ./iot-system/
 COPY iot-infra/pom.xml ./iot-infra/
 
+# 复制所有子模块的 pom.xml（Maven 需要这些文件来解析模块结构）
+RUN mkdir -p iot-common/iot-common-base iot-common/iot-common-env iot-common/iot-common-mybatis \
+    iot-common/iot-common-redis iot-common/iot-common-web iot-common/iot-common-security \
+    iot-common/iot-common-protection iot-common/iot-common-job iot-common/iot-common-mq \
+    iot-common/iot-common-rpc iot-common/iot-common-excel iot-common/iot-common-test \
+    iot-common/iot-common-tenant iot-common/iot-common-data-permission iot-common/iot-common-ip \
+    iot-common/iot-common-swagger iot-common/iot-common-protocol \
+    iot-system/iot-system-api iot-system/iot-system-biz \
+    iot-infra/iot-infra-api iot-infra/iot-infra-biz
+COPY iot-common/iot-common-base/pom.xml ./iot-common/iot-common-base/
+COPY iot-common/iot-common-env/pom.xml ./iot-common/iot-common-env/
+COPY iot-common/iot-common-mybatis/pom.xml ./iot-common/iot-common-mybatis/
+COPY iot-common/iot-common-redis/pom.xml ./iot-common/iot-common-redis/
+COPY iot-common/iot-common-web/pom.xml ./iot-common/iot-common-web/
+COPY iot-common/iot-common-security/pom.xml ./iot-common/iot-common-security/
+COPY iot-common/iot-common-protection/pom.xml ./iot-common/iot-common-protection/
+COPY iot-common/iot-common-job/pom.xml ./iot-common/iot-common-job/
+COPY iot-common/iot-common-mq/pom.xml ./iot-common/iot-common-mq/
+COPY iot-common/iot-common-rpc/pom.xml ./iot-common/iot-common-rpc/
+COPY iot-common/iot-common-excel/pom.xml ./iot-common/iot-common-excel/
+COPY iot-common/iot-common-test/pom.xml ./iot-common/iot-common-test/
+COPY iot-common/iot-common-tenant/pom.xml ./iot-common/iot-common-tenant/
+COPY iot-common/iot-common-data-permission/pom.xml ./iot-common/iot-common-data-permission/
+COPY iot-common/iot-common-ip/pom.xml ./iot-common/iot-common-ip/
+COPY iot-common/iot-common-swagger/pom.xml ./iot-common/iot-common-swagger/
+COPY iot-common/iot-common-protocol/pom.xml ./iot-common/iot-common-protocol/
+COPY iot-system/iot-system-api/pom.xml ./iot-system/iot-system-api/
+COPY iot-system/iot-system-biz/pom.xml ./iot-system/iot-system-biz/
+COPY iot-infra/iot-infra-api/pom.xml ./iot-infra/iot-infra-api/
+COPY iot-infra/iot-infra-biz/pom.xml ./iot-infra/iot-infra-biz/
+
 # 动态过滤不需要的模块引用
 RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|file|dataset|device|tdengine|sink|message)<\/module>/) next } 1' pom.xml > pom.xml.filtered && \
 mv pom.xml.filtered pom.xml
