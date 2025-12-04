@@ -1,8 +1,5 @@
 package com.basiclab.iot.dataset.schedula;
 
-
-
-import com.basiclab.iot.common.text.UUID;
 import com.basiclab.iot.common.utils.DateUtils;
 import com.basiclab.iot.dataset.cache.StreamUrlCache;
 import com.basiclab.iot.dataset.dal.dataobject.DatasetImageDO;
@@ -12,9 +9,6 @@ import io.minio.UploadObjectArgs;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.bytedeco.javacv.FFmpegFrameGrabber;
-import org.bytedeco.javacv.Frame;
-import org.bytedeco.javacv.Java2DFrameConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +18,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.annotation.PostConstruct;
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
@@ -93,6 +85,7 @@ public class FrameProcessingPipeline {
     }
 
     // ========== 第一阶段：抽帧 ==========
+    // 注意：此功能已禁用，DEVICE 模块不涉及图像处理操作
     private void captureFrame(Map<String, String> streams) throws Exception {
         String datasetId = streams.get("datasetId");
         String rtmpUrl = streams.get("rtmpUrl");
@@ -111,45 +104,9 @@ public class FrameProcessingPipeline {
             return;
         }
         
-        FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(rtmpUrl);
-        try {
-            grabber.start();
-            
-            // 获取一帧图像
-            Frame frame = grabber.grabImage();
-            if (frame == null) {
-                log.warn("无法从流中获取帧，datasetId: {}, rtmpUrl: {}", datasetId, rtmpUrl);
-                return;
-            }
-
-            // 生成唯一文件名
-            String fileName = "frame_" + UUID.randomUUID() + ".jpg";
-            File outputFile = new File("/tmp/frames", fileName);
-
-            // 保存为JPEG
-            Java2DFrameConverter converter = new Java2DFrameConverter();
-            BufferedImage image = converter.convert(frame);
-            ImageIO.write(image, "jpg", outputFile);
-
-            // 获取图片宽高
-            int width = image.getWidth();
-            int height = image.getHeight();
-
-            // 创建任务对象
-            FrameCaptureTask task = new FrameCaptureTask(datasetId, rtmpUrl, fileName, outputFile, width, height, new Date());
-
-            // 放入队列（阻塞式）
-            captureQueue.put(task);
-        } catch (Exception e) {
-            log.error("处理 RTMP 流时出错，datasetId: {}, rtmpUrl: {}, 错误: {}", datasetId, rtmpUrl, e.getMessage());
-            throw e;
-        } finally {
-            try {
-                grabber.stop();
-            } catch (Exception e) {
-                log.warn("关闭 FFmpegFrameGrabber 时出错，datasetId: {}, rtmpUrl: {}", datasetId, rtmpUrl, e);
-            }
-        }
+        // FFmpeg 功能已移除，DEVICE 模块不涉及图像处理操作
+        log.debug("帧捕获功能已禁用，datasetId: {}, rtmpUrl: {}", datasetId, rtmpUrl);
+        return;
     }
 
     // ========== 第二阶段：上传Minio ==========

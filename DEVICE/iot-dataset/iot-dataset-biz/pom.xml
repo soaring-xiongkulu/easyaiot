@@ -49,12 +49,6 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
 
-        <!-- 图像处理 -->
-        <dependency>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>javacv-platform</artifactId>
-        </dependency>
-
         <!-- Web 相关 -->
         <dependency>
             <groupId>com.basiclab.iot</groupId>

@@ -88,7 +88,6 @@
         <tdEngine.version>3.1.0</tdEngine.version>
         <pagehelper.boot.version>1.4.1</pagehelper.boot.version>
         <poi.version>4.1.2</poi.version>
-        <javacv.version>1.5.7</javacv.version>
         <netty.version>4.1.77.Final</netty.version>
         <commons.fileupload.version>1.4</commons.fileupload.version>
         <tobato.version>1.27.2</tobato.version>
@@ -343,13 +342,6 @@
                 <groupId>org.apache.poi</groupId>
                 <artifactId>poi-ooxml-schemas</artifactId>
                 <version>${poi.version}</version>
-            </dependency>
-
-            <!-- 图像处理 -->
-            <dependency>
-                <groupId>org.bytedeco</groupId>
-                <artifactId>javacv-platform</artifactId>
-                <version>${javacv.version}</version>
             </dependency>
 
             <!-- Netty工具 -->
