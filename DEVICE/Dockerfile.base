@@ -31,16 +31,18 @@ WORKDIR /build
 COPY pom.xml .
 COPY lombok.config .
 COPY iot-parent/pom.xml ./iot-parent/
-# 复制所有 iot-* 模块的 pom.xml（使用通配符）
-# 使用脚本方式复制所有 pom.xml 到对应目录
-COPY iot-*/ ./temp-pom/
-RUN find ./temp-pom -name "pom.xml" -type f | while read pom_file; do \
-        rel_path=$(echo "$pom_file" | sed 's|^\./temp-pom/||'); \
-        target_dir=$(dirname "./$rel_path"); \
-        mkdir -p "$target_dir"; \
-        cp "$pom_file" "$target_dir/"; \
-    done && \
-    rm -rf ./temp-pom
+# 复制所有 iot-* 模块的 pom.xml（明确列出所有目录，避免通配符问题）
+# 注意：Docker 的 COPY 命令对目录通配符支持有限，需要明确列出
+COPY iot-common/pom.xml ./iot-common/
+COPY iot-dataset/pom.xml ./iot-dataset/
+COPY iot-device/pom.xml ./iot-device/
+COPY iot-file/pom.xml ./iot-file/
+COPY iot-gateway/pom.xml ./iot-gateway/
+COPY iot-infra/pom.xml ./iot-infra/
+COPY iot-message/pom.xml ./iot-message/
+COPY iot-sink/pom.xml ./iot-sink/
+COPY iot-system/pom.xml ./iot-system/
+COPY iot-tdengine/pom.xml ./iot-tdengine/
 
 # 第二步：跳过依赖预下载（在只有 POM 文件时无法解析 ${revision}）
 # 注意：由于项目使用了 ${revision} 变量，dependency:go-offline 无法在只有 POM 文件时正确解析
