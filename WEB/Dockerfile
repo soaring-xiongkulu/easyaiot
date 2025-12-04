@@ -1,23 +1,41 @@
 # 构建阶段
 FROM node:22-alpine3.21 AS builder
 
-# 配置npm国内镜像源（淘宝镜像）
-RUN npm config set registry https://registry.npmmirror.com/
+# 配置npm国内镜像源（淘宝镜像 - npmmirror.com是淘宝镜像的新地址）
+RUN npm config set registry https://registry.npmmirror.com/ && \
+    npm config set disturl https://npmmirror.com/dist && \
+    npm config set sass_binary_site https://npmmirror.com/mirrors/node-sass && \
+    npm config set electron_mirror https://npmmirror.com/mirrors/electron/ && \
+    npm config set puppeteer_download_host https://npmmirror.com/mirrors && \
+    npm config set chromedriver_cdnurl https://npmmirror.com/mirrors/chromedriver && \
+    npm config set operadriver_cdnurl https://npmmirror.com/mirrors/operadriver && \
+    npm config set phantomjs_cdnurl https://npmmirror.com/mirrors/phantomjs && \
+    npm config set selenium_cdnurl https://npmmirror.com/mirrors/selenium && \
+    npm config set node_inspector_cdnurl https://npmmirror.com/mirrors/node-inspector
 
 # 安装pnpm
 RUN npm install -g pnpm@9.0.4
 
 # 配置pnpm国内镜像源（淘宝镜像）
-RUN pnpm config set registry https://registry.npmmirror.com/
+RUN pnpm config set registry https://registry.npmmirror.com/ && \
+    pnpm config set network-timeout 600000 && \
+    pnpm config set fetch-retries 5 && \
+    pnpm config set fetch-retry-mintimeout 20000 && \
+    pnpm config set fetch-retry-maxtimeout 120000
 
 # 设置工作目录
 WORKDIR /app
 
-# 复制package文件（不复制pnpm-lock.yaml，让容器内重新生成）
+# 复制package文件和锁定文件（如果存在，提高安装可靠性）
 COPY package.json ./
+COPY pnpm-lock.yaml* ./
 
-# 安装依赖（不使用--frozen-lockfile，因为没有锁定文件）
-RUN pnpm install
+# 安装依赖（如果存在锁定文件则使用，否则重新生成）
+RUN if [ -f pnpm-lock.yaml ]; then \
+        pnpm install --frozen-lockfile; \
+    else \
+        pnpm install; \
+    fi
 
 # 复制源代码
 COPY . .
