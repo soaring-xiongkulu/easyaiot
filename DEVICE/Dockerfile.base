@@ -6,23 +6,10 @@
 FROM maven:3.9.11-eclipse-temurin-21-alpine AS builder
 
 # 配置 Maven 使用阿里云镜像源
-RUN mkdir -p /root/.m2 && cat > /root/.m2/settings.xml <<'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
-  <mirrors>
-    <mirror>
-      <id>aliyun</id>
-      <mirrorOf>central</mirrorOf>
-      <name>Aliyun Maven</name>
-      <url>https://maven.aliyun.com/nexus/content/groups/public/</url>
-    </mirror>
-  </mirrors>
-  <localRepository>/root/.m2/repository</localRepository>
-  <interactiveMode>false</interactiveMode>
-</settings>
-EOF
+RUN mkdir -p /root/.m2 && \
+    printf '<?xml version="1.0" encoding="UTF-8"?>\n<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"\n          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">\n  <mirrors>\n    <mirror>\n      <id>aliyun</id>\n      <mirrorOf>central</mirrorOf>\n      <name>Aliyun Maven</name>\n      <url>https://maven.aliyun.com/nexus/content/groups/public/</url>\n    </mirror>\n  </mirrors>\n  <localRepository>/root/.m2/repository</localRepository>\n  <interactiveMode>false</interactiveMode>\n</settings>\n' > /root/.m2/settings.xml && \
+    test -s /root/.m2/settings.xml && \
+    cat /root/.m2/settings.xml
 
 # 设置工作目录
 WORKDIR /build
