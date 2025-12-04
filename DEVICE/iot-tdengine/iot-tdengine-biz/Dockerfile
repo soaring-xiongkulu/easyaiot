@@ -72,6 +72,10 @@ COPY iot-device/iot-device-biz/pom.xml ./iot-device/iot-device-biz/
 COPY iot-tdengine/iot-tdengine-api/pom.xml ./iot-tdengine/iot-tdengine-api/
 COPY iot-tdengine/iot-tdengine-biz/pom.xml ./iot-tdengine/iot-tdengine-biz/
 
+# 过滤不需要的模块（在下载依赖之前，避免 Maven 查找不存在的模块）
+RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|file|dataset|sink|message)<\/module>/) next } 1' pom.xml > pom.xml.filtered && \
+mv pom.xml.filtered pom.xml
+
 # 下载依赖（提前执行，利用缓存）
 RUN mvn dependency:go-offline -B
 
@@ -82,10 +86,6 @@ COPY iot-system ./iot-system
 COPY iot-infra ./iot-infra
 COPY iot-device ./iot-device
 COPY iot-tdengine ./iot-tdengine
-
-# 过滤不需要的模块（优化pom.xml）
-RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|file|dataset|sink|message)<\/module>/) next } 1' pom.xml > pom.xml.filtered && \
-mv pom.xml.filtered pom.xml
 
 # 编译目标模块
 RUN mvn clean package -DskipTests -Dmaven.test.skip=true -pl iot-tdengine/iot-tdengine-biz -am
