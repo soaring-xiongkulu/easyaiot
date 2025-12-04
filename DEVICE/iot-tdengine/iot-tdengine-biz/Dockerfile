@@ -39,7 +39,7 @@ COPY iot-device ./iot-device
 COPY iot-tdengine ./iot-tdengine
 
 # 过滤不需要的模块（优化pom.xml）
-RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|file|dataset|sink|message)<\/module>/) next; print }' pom.xml > pom.xml.filtered && \
+RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|file|dataset|sink|message)<\/module>/) next } 1' pom.xml > pom.xml.filtered && \
 mv pom.xml.filtered pom.xml
 
 # 编译目标模块

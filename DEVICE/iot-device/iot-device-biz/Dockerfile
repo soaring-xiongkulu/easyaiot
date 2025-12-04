@@ -40,7 +40,7 @@ COPY iot-sink/pom.xml ./iot-sink/
 COPY iot-device/pom.xml ./iot-device/
 
 # 过滤不需要的模块，优化构建目标
-RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|dataset|message)<\/module>/) next; print }' pom.xml > pom.xml.filtered && \
+RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|dataset|message)<\/module>/) next } 1' pom.xml > pom.xml.filtered && \
 mv pom.xml.filtered pom.xml
 
 # 并行下载依赖，提高效率

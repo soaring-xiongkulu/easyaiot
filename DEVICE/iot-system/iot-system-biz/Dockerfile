@@ -34,7 +34,7 @@ COPY iot-system/pom.xml ./iot-system/
 COPY iot-infra/pom.xml ./iot-infra/
 
 # 动态过滤不需要的模块引用
-RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|file|dataset|device|tdengine|sink|message)<\/module>/) next; print }' pom.xml > pom.xml.filtered && \
+RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|file|dataset|device|tdengine|sink|message)<\/module>/) next } 1' pom.xml > pom.xml.filtered && \
 mv pom.xml.filtered pom.xml
 
 # 并行预下载依赖（系统服务需要稳定可靠的依赖解析）

@@ -35,7 +35,7 @@ COPY iot-infra/pom.xml ./iot-infra/
 COPY iot-file/pom.xml ./iot-file/
 
 # 过滤不需要的模块以优化构建范围
-RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|dataset|device|tdengine|sink|message)<\/module>/) next; print; if (/<\/modules>/) exit }' pom.xml > pom.xml.filtered && \
+RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|dataset|device|tdengine|sink|message)<\/module>/) next } 1' pom.xml > pom.xml.filtered && \
 mv pom.xml.filtered pom.xml
 
 # 应用依赖解析器，提前下载依赖（加速后续构建）

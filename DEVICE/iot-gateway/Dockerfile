@@ -34,7 +34,7 @@ COPY iot-system/pom.xml ./iot-system/
 COPY iot-gateway/pom.xml ./iot-gateway/
 
 # 动态过滤模块引用（网关服务通常需要核心基础模块）
-RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(infra|file|dataset|device|tdengine|sink|message)<\/module>/) next; print }' pom.xml > pom.xml.filtered && \
+RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(infra|file|dataset|device|tdengine|sink|message)<\/module>/) next } 1' pom.xml > pom.xml.filtered && \
 mv pom.xml.filtered pom.xml
 
 # 预下载所有依赖和插件（利用多线程加速）

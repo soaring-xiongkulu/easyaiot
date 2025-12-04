@@ -36,7 +36,7 @@ COPY iot-file/pom.xml ./iot-file/
 COPY iot-dataset/pom.xml ./iot-dataset/
 
 # 过滤不需要的模块
-RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|device|tdengine|sink|message)<\/module>/) next; print }' pom.xml > pom.xml.filtered && \
+RUN awk '/<modules>/,/<\/modules>/ { if (/<module>iot-(gateway|device|tdengine|sink|message)<\/module>/) next } 1' pom.xml > pom.xml.filtered && \
 mv pom.xml.filtered pom.xml
 
 # 下载依赖（优化构建缓存）
