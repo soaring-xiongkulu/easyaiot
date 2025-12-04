@@ -381,36 +381,178 @@ check_and_build_jars() {
     # 不再需要在宿主机上编译，所有编译都在Docker容器中完成
 }
 
-# 构建所有镜像
-build_images() {
-    print_info "开始构建所有Docker镜像（在容器中编译，显示完整日志）..."
+# 检查Jar包是否已存在
+check_jars_exist() {
+    local jars_dir="${SCRIPT_DIR}/target/jars"
+    
+    if [ ! -d "$jars_dir" ]; then
+        return 1
+    fi
+    
+    # 检查是否有jar文件
+    local jar_count=$(find "$jars_dir" -name "*.jar" -type f 2>/dev/null | wc -l)
+    
+    if [ "$jar_count" -gt 0 ]; then
+        return 0  # Jar包存在
+    else
+        return 1  # Jar包不存在
+    fi
+}
+
+# 检查所有运行时镜像是否已存在
+check_images_exist() {
+    local images=(
+        "iot-gateway:latest"
+        "iot-module-system-biz:latest"
+        "iot-module-infra-biz:latest"
+        "iot-module-device-biz:latest"
+        "iot-module-dataset-biz:latest"
+        "iot-module-tdengine-biz:latest"
+        "iot-module-file-biz:latest"
+        "iot-module-message-biz:latest"
+        "iot-sink-biz:latest"
+    )
+    
+    local missing_count=0
+    
+    for image in "${images[@]}"; do
+        if ! docker image inspect "$image" > /dev/null 2>&1; then
+            missing_count=$((missing_count + 1))
+        fi
+    done
+    
+    if [ "$missing_count" -eq 0 ]; then
+        return 0  # 所有镜像都存在
+    else
+        return 1  # 有镜像缺失
+    fi
+}
+
+# 第一阶段：构建 base-builder 并编译所有 Jar 包
+build_base_jars() {
+    print_info "========== 第一阶段：编译所有 Jar 包 =========="
+    
+    # 检查Jar包是否已存在
+    if check_jars_exist; then
+        print_success "Jar 包已存在，跳过编译阶段"
+        local jar_count=$(find "${SCRIPT_DIR}/target/jars" -name "*.jar" -type f 2>/dev/null | wc -l)
+        print_info "发现 $jar_count 个已存在的 Jar 包"
+        print_success "========== 第一阶段完成（跳过）=========="
+        echo
+        return 0
+    fi
     
     # 确保权限正确
     check_compose_file
     
     cd "$SCRIPT_DIR"
-    # 使用 --progress=plain 显示完整输出
-    # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
     
-    # 直接执行命令并实时输出
+    # 创建目标目录
+    print_info "创建 Jar 包输出目录..."
+    mkdir -p target/jars
+    
+    # 构建 base-builder 镜像到 output 阶段
+    print_info "构建 base-builder 镜像（编译所有模块）..."
+    if ! docker build -f Dockerfile.base --target output -t device-base-builder:latest .; then
+        print_error "构建 base-builder 镜像失败"
+        exit 1
+    fi
+    
+    print_success "镜像构建完成，开始提取 Jar 包..."
+    
+    # 使用临时容器提取 Jar 包
+    print_info "从镜像中提取 Jar 包到 target/jars 目录..."
+    local temp_container
+    temp_container="device-base-builder-temp-$(date +%s)"
+    
+    # 创建临时容器并复制文件
+    if ! docker create --name "$temp_container" device-base-builder:latest > /dev/null 2>&1; then
+        print_error "创建临时容器失败"
+        exit 1
+    fi
+    
+    # 从容器中复制 Jar 包到宿主机
+    if ! docker cp "$temp_container:/target/jars/." target/jars/; then
+        print_error "复制 Jar 包失败"
+        docker rm -f "$temp_container" > /dev/null 2>&1
+        exit 1
+    fi
+    
+    # 删除临时容器
+    docker rm -f "$temp_container" > /dev/null 2>&1
+    
+    # 验证所有 Jar 包（使用通配符，自动发现所有 jar 包）
+    print_info "验证 Jar 包..."
+    local jar_count=0
+    local jar_list=()
+    
+    # 使用通配符查找所有 jar 包
+    if [ -d "target/jars" ]; then
+        while IFS= read -r jar_file; do
+            if [ -f "$jar_file" ]; then
+                jar_name=$(basename "$jar_file")
+                jar_list+=("$jar_name")
+                jar_count=$((jar_count + 1))
+                print_success "  ✓ $jar_name"
+            fi
+        done < <(find target/jars -name "*.jar" -type f 2>/dev/null | sort)
+    fi
+    
+    if [ "$jar_count" -eq 0 ]; then
+        print_error "未找到任何 Jar 包！"
+        exit 1
+    fi
+    
+    print_success "所有 Jar 包验证通过（共 $jar_count 个）"
+    print_success "========== 第一阶段完成 =========="
+    echo
+}
+
+# 构建所有镜像（第二阶段：构建运行时镜像）
+build_images() {
+    print_info "========== 第二阶段：构建运行时镜像 =========="
+    
+    # 检查镜像是否已存在
+    if check_images_exist; then
+        print_success "所有运行时镜像已存在，跳过构建阶段"
+        print_success "========== 第二阶段完成（跳过）=========="
+        echo
+        return 0
+    fi
+    
+    # 检查 Jar 包是否存在
+    if [ ! -d "target/jars" ] || [ -z "$(ls -A target/jars/*.jar 2>/dev/null)" ]; then
+        print_warning "Jar 包目录不存在或为空，先执行第一阶段编译..."
+        build_base_jars
+    fi
+    
+    # 确保权限正确
+    check_compose_file
+    
+    cd "$SCRIPT_DIR"
+    
+    # 构建所有运行时镜像（排除 base-builder）
+    print_info "构建所有运行时镜像..."
     local exit_code
     
-    # 执行构建命令（不使用 --progress，兼容所有版本）
-    $DOCKER_COMPOSE build
+    # 构建所有服务镜像（不包括 base-builder）
+    $DOCKER_COMPOSE build --parallel
     exit_code=$?
     
     # 检查命令是否成功
     if [ $exit_code -ne 0 ]; then
-        print_error "镜像构建失败（退出码: $exit_code）"
+        print_error "运行时镜像构建失败（退出码: $exit_code）"
         exit 1
     fi
     
-    print_success "镜像构建完成（所有编译在容器中完成）"
+    print_success "========== 第二阶段完成：所有运行时镜像构建完成 =========="
+    echo
 }
 
-# 构建并启动所有服务
+# 构建并启动所有服务（三阶段构建流程）
 build_and_start() {
-    print_info "开始构建并启动所有服务（在容器中编译，显示完整日志）..."
+    print_info "========== 开始三阶段构建流程 =========="
+    echo
     
     # 确保权限正确
     print_info "检查 Docker Compose 配置文件..."
@@ -512,18 +654,29 @@ build_and_start() {
         exit 1
     fi
     print_success "配置文件验证通过"
+    echo
     
-    print_info "准备执行: $DOCKER_COMPOSE up -d --build"
+    # ========== 第一阶段：编译所有 Jar 包 ==========
+    # 如果Jar包已存在，则跳过此阶段
+    build_base_jars
+    
+    # ========== 第二阶段：构建运行时镜像 ==========
+    # 如果镜像已存在，则跳过此阶段，直接到第三阶段
+    build_images
+    
+    # ========== 第三阶段：启动所有服务 ==========
+    print_info "========== 第三阶段：启动所有服务 =========="
+    
+    print_info "准备启动所有服务..."
     echo
     
     # 直接执行命令并实时输出
     local exit_code
     
-    # 执行构建和启动命令（不使用 --progress，兼容所有版本）
-    # 直接执行并显示输出，同时捕获退出码
-    print_info "开始执行 Docker Compose 命令..."
+    # 启动所有服务（不重新构建，因为已经在第二阶段构建完成）
+    print_info "启动所有服务..."
     set +e  # 暂时关闭错误退出，以便捕获退出码
-    $DOCKER_COMPOSE up -d --build
+    $DOCKER_COMPOSE up -d
     exit_code=$?
     set -e  # 重新开启错误退出
     
@@ -554,7 +707,13 @@ build_and_start() {
         exit 1
     fi
     
-    print_success "服务构建并启动完成（所有编译在容器中完成，共 $container_count 个容器）"
+    print_success "========== 三阶段构建流程完成 =========="
+    print_success "服务构建并启动完成（共 $container_count 个容器）"
+    echo
+    print_info "Jar 包位置: $SCRIPT_DIR/target/jars/"
+    print_info "可以使用以下命令查看服务状态:"
+    print_info "  $0 status"
+    print_info "  $0 logs [服务名]"
 }
 
 # 启动所有服务
@@ -669,50 +828,79 @@ start_service() {
     print_success "服务 $service 启动完成"
 }
 
-# 清理（停止并删除容器）
+# 清理（停止并删除容器和Jar包）
 clean() {
-    print_warning "这将停止并删除所有容器，但保留镜像"
+    print_warning "这将停止并删除所有容器和Jar包，但保留镜像"
     read -p "确认继续? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         cd "$SCRIPT_DIR"
         $DOCKER_COMPOSE down
+        
+        # 清理Jar包
+        if [ -d "target/jars" ]; then
+            print_info "清理Jar包..."
+            rm -rf target/jars/*.jar
+            print_success "Jar包已清理"
+        fi
+        
         print_success "清理完成"
     else
         print_info "操作已取消"
     fi
 }
 
-# 完全清理（包括镜像）
+# 完全清理（包括镜像和Jar包）
 clean_all() {
-    print_warning "这将停止并删除所有容器和镜像"
+    print_warning "这将停止并删除所有容器、镜像和Jar包"
     read -p "确认继续? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         cd "$SCRIPT_DIR"
         $DOCKER_COMPOSE down --rmi all
+        
+        # 清理Jar包
+        if [ -d "target/jars" ]; then
+            print_info "清理Jar包..."
+            rm -rf target/jars/*.jar
+            print_success "Jar包已清理"
+        fi
+        
+        # 清理base-builder镜像（如果存在）
+        if docker image inspect device-base-builder:latest > /dev/null 2>&1; then
+            print_info "清理base-builder镜像..."
+            docker rmi device-base-builder:latest 2>/dev/null || true
+        fi
+        
         print_success "完全清理完成"
     else
         print_info "操作已取消"
     fi
 }
 
-# 更新服务（重新构建并重启）
+# 更新服务（重新构建并重启，使用三阶段构建）
 update_services() {
-    print_info "更新所有服务（在容器中重新构建并重启，显示完整日志）..."
+    print_info "========== 更新所有服务（三阶段构建流程）=========="
     
     # 确保权限正确
     check_compose_file
     
     cd "$SCRIPT_DIR"
-    # 使用 --progress=plain 显示完整输出
-    # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
     
-    # 直接执行命令并实时输出
+    # ========== 第一阶段：重新编译所有 Jar 包 ==========
+    print_info "重新编译所有 Jar 包..."
+    build_base_jars
+    
+    # ========== 第二阶段：重新构建运行时镜像 ==========
+    print_info "重新构建运行时镜像..."
+    build_images
+    
+    # ========== 第三阶段：重启所有服务 ==========
+    print_info "重启所有服务..."
     local exit_code
     
-    # 执行更新命令（不使用 --progress，兼容所有版本）
-    $DOCKER_COMPOSE up -d --build --force-recreate
+    # 强制重新创建并启动所有服务
+    $DOCKER_COMPOSE up -d --force-recreate
     exit_code=$?
     
     # 检查命令是否成功
@@ -732,18 +920,29 @@ update_services() {
         exit 1
     fi
     
-    print_success "服务更新完成（所有编译在容器中完成，共 $container_count 个容器）"
+    print_success "========== 服务更新完成（共 $container_count 个容器）=========="
 }
 
 # 显示帮助信息
 show_help() {
     cat << EOF
-DEVICE模块 Docker Compose 管理脚本
+DEVICE模块 Docker Compose 管理脚本（三阶段构建）
 
 用法: $0 [命令] [选项]
 
+三阶段构建流程:
+    第一阶段: base-builder 服务在 Maven 镜像中编译整个项目，生成所有 Jar 包
+    第二阶段: 使用编译好的 Jar 包构建各个模块的运行时镜像
+    第三阶段: 启动所有服务容器
+
+智能跳过机制:
+    - 如果 Jar 包已存在，则跳过第一阶段，直接进入第二阶段
+    - 如果运行时镜像已存在，则跳过第二阶段，直接进入第三阶段
+    - 执行 clean 或 clean-all 命令会清理 Jar 包，下次构建将重新编译
+
 命令:
-    build               构建所有Docker镜像（在容器中编译，无需宿主机Maven）
+    build               构建所有运行时镜像（需要先执行第一阶段编译 Jar 包）
+    build-base          第一阶段：编译所有 Jar 包（base-builder 服务）
     start               启动所有服务
     stop                停止所有服务
     restart             重启所有服务
@@ -753,14 +952,16 @@ DEVICE模块 Docker Compose 管理脚本
     restart-service     重启指定服务
     stop-service        停止指定服务
     start-service       启动指定服务
-    clean               清理（停止并删除容器，保留镜像）
-    clean-all           完全清理（停止并删除容器和镜像）
-    update              更新服务（在容器中重新构建并重启）
-    install             安装（构建并启动所有服务，在容器中编译）
+    clean               清理（停止并删除容器和Jar包，保留镜像）
+    clean-all           完全清理（停止并删除容器、镜像和Jar包）
+    update              更新服务（三阶段重新构建并重启）
+    install             安装（完整三阶段构建并启动所有服务）
     help                显示此帮助信息
 
 示例:
-    $0 install                    # 构建并启动所有服务
+    $0 install                    # 完整三阶段构建并启动所有服务
+    $0 build-base                 # 仅执行第一阶段：编译所有 Jar 包
+    $0 build                      # 仅执行第二阶段：构建运行时镜像
     $0 start                      # 启动所有服务
     $0 logs iot-gateway           # 查看iot-gateway的日志
     $0 restart-service iot-system # 重启iot-system服务
@@ -775,6 +976,10 @@ DEVICE模块 Docker Compose 管理脚本
     - iot-tdengine
     - iot-file
     - iot-message
+    - iot-sink
+
+Jar 包位置:
+    ./target/jars/                # 编译好的 Jar 包存储目录
 
 EOF
 }
@@ -786,6 +991,9 @@ main() {
     case "${1:-}" in
         build)
             build_images
+            ;;
+        build-base)
+            build_base_jars
             ;;
         start)
             start_services
@@ -848,78 +1056,87 @@ show_interactive_menu() {
         echo
         echo -e "${BLUE}========================================${NC}"
         echo -e "${BLUE}  DEVICE模块 Docker Compose 管理${NC}"
+        echo -e "${BLUE}  （三阶段构建流程）${NC}"
         echo -e "${BLUE}========================================${NC}"
-        echo "1) 安装/构建并启动所有服务"
-        echo "2) 启动所有服务"
-        echo "3) 停止所有服务"
-        echo "4) 重启所有服务"
-        echo "5) 查看服务状态"
-        echo "6) 查看日志（所有服务）"
-        echo "7) 查看日志（指定服务）"
-        echo "8) 重启指定服务"
-        echo "9) 停止指定服务"
-        echo "10) 启动指定服务"
-        echo "11) 更新服务（重新构建并重启）"
-        echo "12) 清理（删除容器，保留镜像）"
-        echo "13) 完全清理（删除容器和镜像）"
+        echo "1) 安装/构建并启动所有服务（三阶段）"
+        echo "2) 第一阶段：编译所有 Jar 包"
+        echo "3) 第二阶段：构建运行时镜像"
+        echo "4) 第三阶段：启动所有服务"
+        echo "5) 停止所有服务"
+        echo "6) 重启所有服务"
+        echo "7) 查看服务状态"
+        echo "8) 查看日志（所有服务）"
+        echo "9) 查看日志（指定服务）"
+        echo "10) 重启指定服务"
+        echo "11) 停止指定服务"
+        echo "12) 启动指定服务"
+        echo "13) 更新服务（三阶段重新构建并重启）"
+        echo "14) 清理（删除容器和Jar包，保留镜像）"
+        echo "15) 完全清理（删除容器、镜像和Jar包）"
         echo "0) 退出"
         echo
-        read -p "请选择操作 [0-13]: " choice
+        read -p "请选择操作 [0-15]: " choice
         
         case $choice in
             1)
                 build_and_start
                 ;;
             2)
-                start_services
+                build_base_jars
                 ;;
             3)
-                stop_services
+                build_images
                 ;;
             4)
-                restart_services
+                start_services
                 ;;
             5)
-                show_status
+                stop_services
                 ;;
             6)
-                show_logs
+                restart_services
                 ;;
             7)
-                echo "可用服务:"
-                cd "$SCRIPT_DIR"
-                $DOCKER_COMPOSE config --services
-                read -p "请输入服务名称: " service_name
-                show_logs "$service_name"
+                show_status
                 ;;
             8)
-                echo "可用服务:"
-                cd "$SCRIPT_DIR"
-                $DOCKER_COMPOSE config --services
-                read -p "请输入服务名称: " service_name
-                restart_service "$service_name"
+                show_logs
                 ;;
             9)
                 echo "可用服务:"
                 cd "$SCRIPT_DIR"
                 $DOCKER_COMPOSE config --services
                 read -p "请输入服务名称: " service_name
-                stop_service "$service_name"
+                show_logs "$service_name"
                 ;;
             10)
                 echo "可用服务:"
                 cd "$SCRIPT_DIR"
                 $DOCKER_COMPOSE config --services
                 read -p "请输入服务名称: " service_name
-                start_service "$service_name"
+                restart_service "$service_name"
                 ;;
             11)
-                update_services
+                echo "可用服务:"
+                cd "$SCRIPT_DIR"
+                $DOCKER_COMPOSE config --services
+                read -p "请输入服务名称: " service_name
+                stop_service "$service_name"
                 ;;
             12)
-                clean
+                echo "可用服务:"
+                cd "$SCRIPT_DIR"
+                $DOCKER_COMPOSE config --services
+                read -p "请输入服务名称: " service_name
+                start_service "$service_name"
                 ;;
             13)
+                update_services
+                ;;
+            14)
+                clean
+                ;;
+            15)
                 clean_all
                 ;;
             0)

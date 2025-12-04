@@ -1,0 +1,110 @@
+# ======================= Base 构建阶段 =======================
+# 此 Dockerfile 用于在 Maven 镜像中编译整个 DEVICE 项目
+# 编译后的 Jar 包将被复制到 target/jars 目录，供各模块 Dockerfile 使用
+
+# ==================== 第一阶段：编译阶段 ====================
+FROM maven:3.9.11-eclipse-temurin-21-alpine AS builder
+
+# 配置 Maven 使用阿里云镜像源
+RUN mkdir -p /root/.m2 && cat > /root/.m2/settings.xml <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <mirrors>
+    <mirror>
+      <id>aliyun</id>
+      <mirrorOf>central</mirrorOf>
+      <name>Aliyun Maven</name>
+      <url>https://maven.aliyun.com/nexus/content/groups/public/</url>
+    </mirror>
+  </mirrors>
+  <localRepository>/root/.m2/repository</localRepository>
+  <interactiveMode>false</interactiveMode>
+</settings>
+EOF
+
+# 设置工作目录
+WORKDIR /build
+
+# 第一步：复制 POM 文件（利用 Docker 缓存优化）
+COPY pom.xml .
+COPY lombok.config .
+COPY iot-parent/pom.xml ./iot-parent/
+# 复制所有 iot-* 模块的 pom.xml（使用通配符）
+# 使用脚本方式复制所有 pom.xml 到对应目录
+COPY iot-*/ ./temp-pom/
+RUN find ./temp-pom -name "pom.xml" -type f | while read pom_file; do \
+        rel_path=$(echo "$pom_file" | sed 's|^\./temp-pom/||'); \
+        target_dir=$(dirname "./$rel_path"); \
+        mkdir -p "$target_dir"; \
+        cp "$pom_file" "$target_dir/"; \
+    done && \
+    rm -rf ./temp-pom
+
+# 第二步：跳过依赖预下载（在只有 POM 文件时无法解析 ${revision}）
+# 注意：由于项目使用了 ${revision} 变量，dependency:go-offline 无法在只有 POM 文件时正确解析
+# 我们将在复制完整源码后，在构建阶段让 Maven 自动下载依赖
+
+# 第三步：复制完整源码
+COPY . .
+
+# 第四步：预下载依赖（在复制源码后，flatten 插件可以工作）
+# 先执行 process-resources 阶段来触发 flatten-maven-plugin 替换 ${revision}
+# 然后再下载依赖
+RUN mvn process-resources -B -Drevision=1.0.0 && \
+    mvn dependency:go-offline -B -Drevision=1.0.0 || \
+    (echo "依赖预下载失败，将在构建时自动下载" && true)
+
+# 第五步：构建项目（跳过测试）
+# 注意：需要指定 revision 参数，因为项目使用了 ${revision} 作为版本占位符
+RUN mvn clean package -DskipTests \
+    -Dmaven.test.skip=true \
+    -Dcheckstyle.skip=true \
+    -Drevision=1.0.0 \
+    -T 2C
+
+# 第六步：收集所有编译好的 Jar 包到统一目录
+# 创建目标目录
+RUN mkdir -p /target/jars
+
+# 收集 iot-gateway 的 jar 包（特殊处理，因为它在 iot-gateway/target/ 目录）
+RUN if [ -f /build/iot-gateway/target/iot-gateway.jar ]; then \
+        cp /build/iot-gateway/target/iot-gateway.jar /target/jars/iot-gateway.jar && \
+        echo "✓ 复制 iot-gateway.jar"; \
+    fi
+
+# 收集所有 iot-*-biz 模块的 jar 包（使用通配符）
+RUN find /build/iot-* -type d -name "*-biz" | while read biz_dir; do \
+        jar_file=$(find "$biz_dir/target" -name "*-biz.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" -not -name "*.original" -type f | head -1); \
+        if [ -n "$jar_file" ] && [ -f "$jar_file" ]; then \
+            jar_name=$(basename "$jar_file"); \
+            cp "$jar_file" "/target/jars/$jar_name" && \
+            echo "✓ 复制 $jar_name"; \
+        fi; \
+    done
+
+# 验证所有 Jar 包是否已生成
+RUN echo "=== 编译完成的 Jar 包列表 ===" && \
+    ls -lh /target/jars/ && \
+    echo "=== Jar 包验证完成 ==="
+
+# ==================== 第二阶段：输出阶段 ====================
+# 此阶段将所有编译好的 Jar 包复制到统一的 target/jars 目录
+# 使用 alpine 作为基础镜像，便于后续提取文件
+FROM alpine:latest AS output
+
+# 从 builder 阶段复制所有已收集的 Jar 包（使用通配符）
+COPY --from=builder /target/jars/ /target/jars/
+
+# 验证所有 Jar 包已复制
+RUN echo "=== Jar 包复制完成 ===" && \
+    ls -lh /target/jars/ && \
+    jar_count=$(ls -1 /target/jars/*.jar 2>/dev/null | wc -l) && \
+    if [ "$jar_count" -eq 0 ]; then \
+        echo "错误: 未找到任何 Jar 包！" && \
+        exit 1; \
+    else \
+        echo "=== 共找到 $jar_count 个 Jar 包，验证通过 ==="; \
+    fi
+

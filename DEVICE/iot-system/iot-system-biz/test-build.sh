@@ -41,7 +41,7 @@ if [ ! -f "Dockerfile" ]; then
     exit 1
 fi
 
-if [ ! -f "target/iot-system-biz.jar" ]; then
+if [ ! -f "target/jars/iot-system-biz.jar" ]; then
     echo -e "${RED}✗ JAR文件不存在${NC}"
     echo "  请先运行: mvn clean package"
     exit 1

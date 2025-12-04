@@ -29,20 +29,20 @@ echo ""
 
 # 检查JAR文件
 echo -e "${YELLOW}[2/6] 检查JAR文件...${NC}"
-if [ -f "target/iot-system-biz.jar" ]; then
+if [ -f "target/jars/iot-system-biz.jar" ]; then
     echo -e "${GREEN}✓ JAR文件存在${NC}"
     echo "  文件信息:"
-    ls -lh target/iot-system-biz.jar | awk '{print "  大小:", $5, "权限:", $1, "所有者:", $3":"$4}'
+    ls -lh target/jars/iot-system-biz.jar | awk '{print "  大小:", $5, "权限:", $1, "所有者:", $3":"$4}'
     
     # 检查文件类型
-    if file target/iot-system-biz.jar | grep -q "Java archive"; then
+    if file target/jars/iot-system-biz.jar | grep -q "Java archive"; then
         echo -e "${GREEN}✓ JAR文件格式正确${NC}"
     else
         echo -e "${RED}✗ JAR文件格式可能不正确${NC}"
     fi
     
     # 检查文件权限
-    if [ -r "target/iot-system-biz.jar" ]; then
+    if [ -r "target/jars/iot-system-biz.jar" ]; then
         echo -e "${GREEN}✓ JAR文件可读${NC}"
     else
         echo -e "${RED}✗ JAR文件不可读${NC}"
@@ -95,7 +95,7 @@ cd "$SCRIPT_DIR"
 echo "  当前目录: $SCRIPT_DIR"
 echo "  构建上下文: $SCRIPT_DIR"
 echo "  Dockerfile路径: $SCRIPT_DIR/Dockerfile"
-echo "  JAR文件路径: $SCRIPT_DIR/target/iot-system-biz.jar"
+echo "  JAR文件路径: $SCRIPT_DIR/target/jars/iot-system-biz.jar"
 echo ""
 
 # 检查docker-compose.yml配置

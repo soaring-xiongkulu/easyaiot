@@ -15,7 +15,7 @@
    - ✅ 暴露端口: `48099`
 
 2. **JAR 文件检查**
-   - ✅ JAR 文件存在: `target/iot-system-biz.jar`
+   - ✅ JAR 文件存在: `target/jars/iot-system-biz.jar`
    - ✅ 文件大小: 159M
    - ✅ 文件格式: Java archive (JAR)
    - ✅ 文件可读: 是
@@ -39,7 +39,7 @@
 FROM eclipse-temurin:8-jre
 RUN mkdir -p /iot-system-biz
 WORKDIR /iot-system-biz
-COPY ./target/iot-system-biz.jar app.jar
+COPY target/jars/iot-system-biz.jar app.jar
 ENV TZ=Asia/Shanghai JAVA_OPTS="-Xms512m -Xmx512m"
 EXPOSE 48099
 CMD ["sh", "-c", "java ${JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom -jar app.jar"]

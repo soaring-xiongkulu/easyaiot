@@ -1,4 +1,17 @@
 services:
+  # ======================= Base 构建服务 =======================
+  # 此服务用于在 Maven 镜像中编译整个 DEVICE 项目
+  # 编译后的 Jar 包将通过 docker build --output 提取到 ./target/jars 目录
+  # 注意：此服务仅用于构建，不直接运行容器
+  base-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+      target: output  # 构建到 output 阶段
+    image: device-base-builder
+    profiles:
+      - build  # 只在 build profile 时运行
+
   iot-gateway:
     build:
       context: .
