@@ -1,0 +1,10 @@
+*.png binary
+*.jpg binary
+*.mp4 binary
+*.flv binary
+*.pt binary
+*.onnx binary
+*.bin binary
+
+
+.image/ binary
