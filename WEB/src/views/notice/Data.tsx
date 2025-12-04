@@ -14,6 +14,7 @@ export const getTableColumns = () => {
           4: '企业微信',
           5: 'http',
           6: '钉钉',
+          7: '飞书',
         }[text];
       },
     },
@@ -42,6 +43,7 @@ export const getFormConfig = () => {
             { label: '企业微信', value: '4' },
             { label: 'http', value: '5' },
             { label: '钉钉', value: '6' },
+            { label: '飞书', value: '7' },
           ],
         },
       },
@@ -71,6 +73,7 @@ export const formSchemas = (handleNoticeType) => {
           {label: '企业号/企业微信', value: 4},
           {label: 'HTTP请求', value: 5},
           {label: '钉钉', value: 6},
+          {label: '飞书', value: 7},
         ],
         onChange: (e) => {
           handleNoticeType(e);
@@ -222,6 +225,17 @@ export const dindinSchemas = () => {
   ];
 };
 
+export const feishuSchemas = () => {
+  return [
+    {
+      field: 'feishuWebhook',
+      component: 'Input',
+      label: 'Webhook地址',
+      required: true,
+    },
+  ];
+};
+
 export const httpSchemas = () => {
   return [
     {
@@ -294,6 +308,7 @@ export const commonDetailSchema = [
         4: '企业微信',
         5: 'http',
         6: '钉钉',
+        7: '飞书',
       }[value];
     },
   },

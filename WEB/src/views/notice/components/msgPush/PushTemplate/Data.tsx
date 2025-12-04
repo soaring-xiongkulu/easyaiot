@@ -337,6 +337,46 @@ export const dindinSchemas = () => {
   ];
 };
 
+export const feishuSchemas = () => {
+  return [
+    ...msgTypeFiled,
+    {
+      field: 'radioType',
+      component: 'RadioGroup',
+      label: '消息通知方式',
+      componentProps: {
+        options: [
+          { label: '群机器人消息', value: '群机器人消息' },
+        ],
+      },
+      defaultValue: '群机器人消息',
+    },
+    {
+      field: 'webHook',
+      component: 'Input',
+      label: 'Webhook地址',
+      required: true,
+      ifShow: ({ values }) => {
+        return values.radioType == '群机器人消息';
+      },
+    },
+    {
+      field: 'feishuMsgType',
+      component: 'Select',
+      label: '消息类型',
+      componentProps: {
+        options: [
+          { value: '文本消息', label: '文本消息' },
+          { value: '富文本消息', label: '富文本消息' },
+          { value: '卡片消息', label: '卡片消息' },
+        ],
+      },
+      defaultValue: '文本消息',
+    },
+    ...commonConfigFileds,
+  ];
+};
+
 export const httpSchemas = () => {
   return [
     ...msgTypeFiled,
@@ -438,6 +478,7 @@ export const commonDetailSchema = [
         4: '企业微信',
         5: 'http',
         6: '钉钉',
+        7: '飞书',
       };
       return config[value] ?? '--';
     },

@@ -578,6 +578,12 @@ class AlgorithmTask(db.Model):
     alert_hook_url = db.Column(db.String(500), nullable=True, comment='告警Hook HTTP接口地址')
     alert_hook_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否启用告警Hook')
     
+    # 通知配置（新增）
+    notify_users = db.Column(db.Text, nullable=True, comment='通知人列表（JSON格式，包含用户ID、姓名、手机号、邮箱等）')
+    notify_methods = db.Column(db.String(100), nullable=True, comment='通知方式（多个用逗号分割）：sms:短信,email:邮件,wxcp/wechat:企业微信,http/webhook:HTTP请求,ding/dingtalk:钉钉,feishu/lark:飞书')
+    alarm_suppress_time = db.Column(db.Integer, default=300, nullable=False, comment='告警通知抑制时间（秒），防止频繁通知，默认5分钟')
+    last_notify_time = db.Column(db.DateTime, nullable=True, comment='最后通知时间')
+    
     # 抓拍相关配置（仅抓拍算法任务使用）
     space_id = db.Column(db.Integer, db.ForeignKey('snap_space.id', ondelete='CASCADE'), nullable=True, comment='所属抓拍空间ID（仅抓拍算法任务）')
     cron_expression = db.Column(db.String(255), nullable=True, comment='Cron表达式（仅抓拍算法任务）')
@@ -654,6 +660,10 @@ class AlgorithmTask(db.Model):
             'tracking_smooth_alpha': self.tracking_smooth_alpha,
             'alert_hook_url': self.alert_hook_url,
             'alert_hook_enabled': self.alert_hook_enabled,
+            'notify_users': json.loads(self.notify_users) if self.notify_users else None,
+            'notify_methods': self.notify_methods,
+            'alarm_suppress_time': self.alarm_suppress_time,
+            'last_notify_time': self.last_notify_time.isoformat() if self.last_notify_time else None,
             'space_id': self.space_id,
             'space_name': self.snap_space.space_name if self.snap_space else None,
             'cron_expression': self.cron_expression,

@@ -25,6 +25,8 @@ public class MessagePrepareVO {
 
     private TMsgSms t_Msg_Sms;
 
+    private TMsgFeishu t_Msg_Feishu;
+
     private List<TTemplateData> templateDataList;
 
     private int msgType;

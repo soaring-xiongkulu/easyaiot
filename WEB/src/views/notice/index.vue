@@ -89,6 +89,9 @@
               <TabPane key="5" tab="HTTP">
                 <http/>
               </TabPane>
+              <TabPane key="6" tab="飞书">
+                <feishu/>
+              </TabPane>
             </Tabs>
           </div>
         </TabPane>
@@ -113,6 +116,9 @@
                 <History :msgType="state.historyActiveKey"/>
               </TabPane>
               <TabPane key="6" tab="HTTP">
+                <History :msgType="state.historyActiveKey"/>
+              </TabPane>
+              <TabPane key="7" tab="飞书">
                 <History :msgType="state.historyActiveKey"/>
               </TabPane>
             </Tabs>
@@ -149,6 +155,7 @@ import ding from '@/views/notice/components/msgPush/ding/index.vue';
 import http from '@/views/notice/components/msgPush/http/index.vue';
 import sms from '@/views/notice/components/msgPush/sms/index.vue';
 import wechat from '@/views/notice/components/msgPush/wechat/index.vue';
+import feishu from '@/views/notice/components/msgPush/feishu/index.vue';
 
 import History from '@/views/notice/components/task/History/index.vue';
 import Group from '@/views/notice/components/user/Group/index.vue';

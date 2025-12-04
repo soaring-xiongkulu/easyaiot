@@ -47,6 +47,7 @@ import {
   tenxunyunSchemas,
   weixinApplyColumns,
   weixinSchemas,
+  feishuSchemas,
 } from '../../Data';
 import {messageConfigAdd, messageConfigUpdate} from '/@/api/modules/notice';
 import EditTable from './EditTable.vue';
@@ -127,6 +128,7 @@ function changeNoticeType(type) {
     4: weixinSchemas,
     5: httpSchemas,
     6: dindinSchemas,
+    7: feishuSchemas,
   };
   const fields = Object.keys(config)
     .map((c) => {

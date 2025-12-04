@@ -1,9 +1,8 @@
 package com.basiclab.iot.message.sendlogic;
 
 /**
- * <pre>
- * 消息类型常量
- * </pre>
+ * 消息类型枚举
+ * 支持6种通知方式：短信(阿里云/腾讯云)、邮件、企业微信、HTTP/webhook、钉钉、飞书
  *
  * @author 翱翔的雄库鲁
  * @email andywebjava@163.com
@@ -11,16 +10,20 @@ package com.basiclab.iot.message.sendlogic;
  * @since 2024-07-19
  */
 public enum MessageTypeEnum {
-    /**
-     * 消息类型
-     */
-
+    /** 阿里云短信 */
     ALI_YUN(1, "阿里云短信"),
+    /** 腾讯云短信 */
     TX_YUN(2, "腾讯云短信"),
+    /** 邮件 */
     EMAIL(3, "E-Mail"),
+    /** 企业微信 */
     WX_CP(4, "微信企业号/企业微信"),
+    /** HTTP/webhook */
     HTTP(5, "HTTP请求"),
-    DING(6, "钉钉");
+    /** 钉钉 */
+    DING(6, "钉钉"),
+    /** 飞书 */
+    FEISHU(7, "飞书");
 
     private int code;
 
@@ -32,6 +35,7 @@ public enum MessageTypeEnum {
     public static final int WX_CP_CODE = 4;
     public static final int HTTP_CODE = 5;
     public static final int DING_CODE = 6;
+    public static final int FEISHU_CODE = 7;
 
     MessageTypeEnum(int code, String name) {
         this.code = code;
@@ -58,6 +62,9 @@ public enum MessageTypeEnum {
                 break;
             case 6:
                 name = DING.name;
+                break;
+            case 7:
+                name = FEISHU.name;
                 break;
             default:
                 name = "";

@@ -35,6 +35,8 @@ public class MessagePrepareServiceImpl implements MessagePrepareService {
     @Autowired
     private TMsgWxCpMapper tMsgWxCpMapper;
     @Autowired
+    private TMsgFeishuMapper tMsgFeishuMapper;
+    @Autowired
     private TTemplateDataMapper templateDataMapper;
 
     @Autowired
@@ -76,6 +78,13 @@ public class MessagePrepareServiceImpl implements MessagePrepareService {
                 tMsgDing.setCreateTime(new Date());
                 tMsgDingMapper.insert(tMsgDing);
                 messagePrepareVO.setT_Msg_Ding(tMsgDing);
+                return messagePrepareVO;
+            case 7 :
+                TMsgFeishu tMsgFeishu = messagePrepareVO.getT_Msg_Feishu();
+                tMsgFeishu.setId(UUID.randomUUID().toString());
+                tMsgFeishu.setCreateTime(new Date());
+                tMsgFeishuMapper.insert(tMsgFeishu);
+                messagePrepareVO.setT_Msg_Feishu(tMsgFeishu);
                 return messagePrepareVO;
         }
         return messagePrepareVO;
@@ -131,6 +140,12 @@ public class MessagePrepareServiceImpl implements MessagePrepareService {
                 tMsgDingMapper.updateByPrimaryKeySelective(tMsgDing);
                 messagePrepareVO.setT_Msg_Ding(tMsgDing);
                 return messagePrepareVO;
+            case 7 :
+                TMsgFeishu tMsgFeishu = messagePrepareVO.getT_Msg_Feishu();
+                tMsgFeishu.setModifiedTime(new Date());
+                tMsgFeishuMapper.updateByPrimaryKeySelective(tMsgFeishu);
+                messagePrepareVO.setT_Msg_Feishu(tMsgFeishu);
+                return messagePrepareVO;
         }
         return messagePrepareVO;
     }
@@ -175,6 +190,9 @@ public class MessagePrepareServiceImpl implements MessagePrepareService {
             case 6 :
                 tMsgDingMapper.deleteByPrimaryKey(id);
                 return id;
+            case 7 :
+                tMsgFeishuMapper.deleteByPrimaryKey(id);
+                return id;
             default: return new String();
         }
     }
@@ -214,6 +232,13 @@ public class MessagePrepareServiceImpl implements MessagePrepareService {
                     tMsgDing.setUserGroupName(userGroupName);
                 }
                 return tMsgDings;
+            case 7:
+                List<TMsgFeishu> tMsgFeishus = tMsgFeishuMapper.selectByMsgTypeAndMsgName(msgType,msgName);
+                for(TMsgFeishu tMsgFeishu : CollectionUtils.emptyIfNull(tMsgFeishus)){
+                    String userGroupName = tPreviewUserGroupMapper.getGroupNameById(tMsgFeishu.getUserGroupId());
+                    tMsgFeishu.setUserGroupName(userGroupName);
+                }
+                return tMsgFeishus;
             default: return null;
         }
     }

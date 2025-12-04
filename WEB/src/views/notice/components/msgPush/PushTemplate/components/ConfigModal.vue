@@ -90,6 +90,7 @@
     weixinSchemas,
     dindinSchemas,
     httpSchemas,
+    feishuSchemas,
     templateColumns,
   } from '../Data';
   import VariableDefinitions from './VariableDefinitions.vue';
@@ -200,6 +201,7 @@
       weixin: 4,
       http: 5,
       ding: 6,
+      feishu: 7,
     };
     changeNoticeType(type);
     setTimeout(() => {
@@ -216,7 +218,7 @@
         // 消息类型
         messageType: 'textMsg',
         // 钉钉通知方式
-        radioType: '工作通知方式',
+        radioType: type === 'ding' ? '工作通知方式' : (type === 'feishu' ? '群机器人消息' : '工作通知方式'),
       });
     });
     reset();
@@ -229,6 +231,7 @@
       weixin: weixinSchemas,
       ding: dindinSchemas,
       http: httpSchemas,
+      feishu: feishuSchemas,
     };
     const fields = Object.keys(config)
       .map((c) => {
@@ -307,6 +310,7 @@
           4: 't_Msg_Wx_Cp',
           5: 't_Msg_Http',
           6: 't_Msg_Ding',
+          7: 't_Msg_Feishu',
         };
         const { id, msgType, ...t_Msg } = getFieldsValue();
         const _msgType = +msgType;

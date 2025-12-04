@@ -102,6 +102,10 @@ spring:
     # Kafka Consumer Listener 监听器配置
     listener:
       missing-topics-fatal: false # 消费监听接口监听的主题不存在时，默认会报错。所以通过设置为 false ，解决报错
+    # 告警通知相关配置
+    alert-notification:
+      topic: iot-alert-notification # 告警通知Kafka主题
+      group-id: iot-message-alert-notification-consumer # 消费者分组ID
 
 --- #################### 定时任务相关配置 ####################
 

@@ -87,6 +87,179 @@ def get_kafka_producer():
     return _producer
 
 
+def _query_alert_notification_config(device_id: str) -> Optional[Dict]:
+    """
+    查询设备的告警通知配置
+    
+    Args:
+        device_id: 设备ID
+    
+    Returns:
+        dict: 告警通知配置，包含以下字段：
+            - notify_users: 通知人列表（JSON格式）
+            - notify_methods: 通知方式（逗号分隔，支持：sms,email,wxcp,http,ding,feishu）
+            - phone_number: 手机号（兼容旧字段）
+            - email: 邮箱（兼容旧字段）
+            - alarm_type: 告警类型（兼容旧字段）
+        如果未找到配置或未开启告警，返回None
+    """
+    try:
+        from models import SnapTask, AlgorithmTask, Device
+        
+        # 先查询 SnapTask（抓拍任务）
+        snap_tasks = SnapTask.query.filter(
+            SnapTask.device_id == device_id,
+            SnapTask.alarm_enabled == True,
+            SnapTask.is_enabled == True
+        ).all()
+        
+        # 如果找到开启告警的抓拍任务，使用第一个任务的配置
+        if snap_tasks:
+            task = snap_tasks[0]
+            # 检查抑制时间
+            if task.last_notify_time:
+                suppress_seconds = task.alarm_suppress_time or 300
+                time_since_last_notify = (datetime.utcnow() - task.last_notify_time).total_seconds()
+                if time_since_last_notify < suppress_seconds:
+                    logger.debug(f"告警通知在抑制时间内，跳过发送: device_id={device_id}, "
+                               f"time_since_last_notify={time_since_last_notify:.0f}秒")
+                    return None
+            
+            # 组装通知配置
+            config = {
+                'task_id': task.id,
+                'task_name': task.task_name,
+                'notify_users': task.notify_users,
+                'notify_methods': task.notify_methods,
+                'phone_number': task.phone_number,  # 兼容旧字段
+                'email': task.email,  # 兼容旧字段
+                'alarm_type': task.alarm_type,  # 兼容旧字段
+                'alarm_suppress_time': task.alarm_suppress_time
+            }
+            
+            # 更新最后通知时间
+            try:
+                task.last_notify_time = datetime.utcnow()
+                db.session.commit()
+            except Exception as e:
+                logger.warning(f"更新最后通知时间失败: {str(e)}")
+                db.session.rollback()
+            
+            return config
+        
+        # 查询 AlgorithmTask（算法任务）- 通过多对多关系
+        algorithm_tasks = AlgorithmTask.query.join(
+            AlgorithmTask.devices
+        ).filter(
+            Device.id == device_id,
+            AlgorithmTask.alert_hook_enabled == True,
+            AlgorithmTask.is_enabled == True
+        ).all()
+        
+        # 如果找到开启告警Hook的算法任务，检查是否有通知配置
+        if algorithm_tasks:
+            task = algorithm_tasks[0]
+            # 检查是否有通知配置
+            if not task.notify_users and not task.notify_methods:
+                logger.debug(f"找到开启告警Hook的算法任务，但未配置通知: device_id={device_id}")
+                return None
+            
+            # 检查抑制时间
+            if task.last_notify_time:
+                suppress_seconds = task.alarm_suppress_time or 300
+                time_since_last_notify = (datetime.utcnow() - task.last_notify_time).total_seconds()
+                if time_since_last_notify < suppress_seconds:
+                    logger.debug(f"告警通知在抑制时间内，跳过发送: device_id={device_id}, "
+                               f"time_since_last_notify={time_since_last_notify:.0f}秒")
+                    return None
+            
+            # 组装通知配置
+            config = {
+                'task_id': task.id,
+                'task_name': task.task_name,
+                'notify_users': task.notify_users,
+                'notify_methods': task.notify_methods,
+                'alarm_suppress_time': task.alarm_suppress_time
+            }
+            
+            # 更新最后通知时间
+            try:
+                task.last_notify_time = datetime.utcnow()
+                db.session.commit()
+            except Exception as e:
+                logger.warning(f"更新最后通知时间失败: {str(e)}")
+                db.session.rollback()
+            
+            return config
+        
+        return None
+        
+    except Exception as e:
+        logger.error(f"查询告警通知配置失败: device_id={device_id}, error={str(e)}", exc_info=True)
+        return None
+
+
+def _build_notification_message(alert_record: Dict, alert_data: Dict, notification_config: Dict) -> Dict:
+    """
+    构建告警通知消息
+    
+    Args:
+        alert_record: 告警记录字典
+        alert_data: 原始告警数据字典
+        notification_config: 通知配置字典
+    
+    Returns:
+        dict: 通知消息字典
+    """
+    # 解析通知人列表
+    notify_users = []
+    if notification_config.get('notify_users'):
+        try:
+            notify_users = json.loads(notification_config['notify_users']) if isinstance(notification_config['notify_users'], str) else notification_config['notify_users']
+        except:
+            logger.warning(f"解析通知人列表失败: {notification_config.get('notify_users')}")
+    
+    # 解析通知方式
+    notify_methods = []
+    if notification_config.get('notify_methods'):
+        notify_methods = [m.strip() for m in notification_config['notify_methods'].split(',') if m.strip()]
+    
+    # 兼容旧字段：如果没有配置通知人和通知方式，使用旧的phone_number和email
+    if not notify_users and not notify_methods:
+        alarm_type = notification_config.get('alarm_type', 0)
+        if alarm_type == 0 or alarm_type == 2:  # 短信告警或短信+邮箱
+            if notification_config.get('phone_number'):
+                notify_methods.append('sms')
+                notify_users.extend([{'phone': phone.strip()} for phone in notification_config['phone_number'].split(',')])
+        if alarm_type == 1 or alarm_type == 2:  # 邮箱告警或短信+邮箱
+            if notification_config.get('email'):
+                notify_methods.append('email')
+                notify_users.extend([{'email': email.strip()} for email in notification_config['email'].split(',')])
+    
+    # 构建通知消息
+    message = {
+        'alert_id': alert_record.get('id'),
+        'task_id': notification_config.get('task_id'),
+        'task_name': notification_config.get('task_name'),
+        'device_id': alert_data.get('device_id'),
+        'device_name': alert_data.get('device_name'),
+        'alert': {
+            'object': alert_data.get('object'),
+            'event': alert_data.get('event'),
+            'region': alert_data.get('region'),
+            'information': alert_data.get('information'),
+            'image_path': alert_data.get('image_path'),
+            'record_path': alert_data.get('record_path'),
+            'time': alert_record.get('time')
+        },
+        'notify_users': notify_users,
+        'notify_methods': notify_methods,
+        'timestamp': datetime.now().isoformat()
+    }
+    
+    return message
+
+
 def process_alert_hook(alert_data: Dict) -> Dict:
     """
     处理告警Hook请求：存储到数据库并发送到Kafka
@@ -111,67 +284,62 @@ def process_alert_hook(alert_data: Dict) -> Dict:
         # 先存储到数据库
         alert_record = create_alert(alert_data)
         
-        # 发送到Kafka（如果可用）
-        producer = get_kafka_producer()
-        if producer is not None:
-            try:
-                message = {
-                    'id': alert_record.get('id'),
-                    'object': alert_data.get('object'),
-                    'event': alert_data.get('event'),
-                    'region': alert_data.get('region'),
-                    'device_id': alert_data.get('device_id'),
-                    'device_name': alert_data.get('device_name'),
-                    'information': alert_data.get('information'),
-                    'time': alert_record.get('time'),
-                    'image_path': alert_data.get('image_path'),
-                    'record_path': alert_data.get('record_path'),
-                    'timestamp': datetime.now().isoformat()
-                }
-                
-                # 从Flask配置中获取Kafka主题
+        # 查询告警通知配置
+        device_id = alert_data.get('device_id')
+        notification_config = None
+        if device_id:
+            notification_config = _query_alert_notification_config(device_id)
+        
+        # 如果开启了告警通知，发送到Kafka
+        if notification_config:
+            producer = get_kafka_producer()
+            if producer is not None:
                 try:
-                    kafka_topic = current_app.config.get('KAFKA_ALERT_TOPIC', 'iot-alert-notification')
-                except RuntimeError:
-                    import os
-                    kafka_topic = os.getenv('KAFKA_ALERT_TOPIC', 'iot-alert-notification')
-                
-                # 使用device_id作为key，确保同一设备的告警消息有序
-                future = producer.send(
-                    kafka_topic,
-                    key=str(alert_data.get('device_id', 'unknown')),
-                    value=message
-                )
-                
-                # 异步发送，不阻塞（减少超时时间）
-                try:
-                    record_metadata = future.get(timeout=2)  # 减少超时时间到2秒
-                    logger.debug(f"告警消息发送到Kafka成功: alert_id={alert_record.get('id')}, "
-                               f"topic={record_metadata.topic}, partition={record_metadata.partition}, "
-                               f"offset={record_metadata.offset}")
+                    # 构建通知消息
+                    notification_message = _build_notification_message(alert_record, alert_data, notification_config)
+                    
+                    # 从Flask配置中获取Kafka主题
+                    try:
+                        kafka_topic = current_app.config.get('KAFKA_ALERT_NOTIFICATION_TOPIC', 'iot-alert-notification')
+                    except RuntimeError:
+                        import os
+                        kafka_topic = os.getenv('KAFKA_ALERT_NOTIFICATION_TOPIC', 'iot-alert-notification')
+                    
+                    # 使用device_id作为key，确保同一设备的告警消息有序
+                    future = producer.send(
+                        kafka_topic,
+                        key=str(device_id),
+                        value=notification_message
+                    )
+                    
+                    # 异步发送，不阻塞（减少超时时间）
+                    try:
+                        record_metadata = future.get(timeout=2)  # 减少超时时间到2秒
+                        logger.info(f"告警通知消息发送到Kafka成功: alert_id={alert_record.get('id')}, "
+                                   f"topic={record_metadata.topic}, partition={record_metadata.partition}, "
+                                   f"offset={record_metadata.offset}")
+                    except Exception as e:
+                        # 发送失败，但不影响主流程，只记录警告
+                        logger.warning(f"告警通知消息发送到Kafka失败: alert_id={alert_record.get('id')}, error={str(e)}")
+                        # 如果连接失败，重置生产者，下次重新初始化
+                        if isinstance(e, (KafkaError, ConnectionError, TimeoutError)):
+                            try:
+                                _producer.close(timeout=0.5)
+                            except:
+                                pass
+                            _producer = None
                 except Exception as e:
-                    # 发送失败，但不影响主流程，只记录警告
-                    logger.warning(f"告警消息发送到Kafka失败: alert_id={alert_record.get('id')}, error={str(e)}")
-                    # 如果连接失败，重置生产者，下次重新初始化
+                    # 发送异常，但不影响主流程
+                    logger.warning(f"发送告警通知消息到Kafka异常: {str(e)}")
+                    # 如果连接失败，重置生产者
                     if isinstance(e, (KafkaError, ConnectionError, TimeoutError)):
                         try:
                             _producer.close(timeout=0.5)
                         except:
                             pass
                         _producer = None
-            except Exception as e:
-                # 发送异常，但不影响主流程
-                logger.warning(f"发送告警消息到Kafka异常: {str(e)}")
-                # 如果连接失败，重置生产者
-                if isinstance(e, (KafkaError, ConnectionError, TimeoutError)):
-                    try:
-                        _producer.close(timeout=0.5)
-                    except:
-                        pass
-                    _producer = None
-        else:
-            # Kafka不可用，静默跳过（不记录日志，避免日志过多）
-            pass
+            else:
+                logger.warning(f"Kafka不可用，跳过告警通知发送: alert_id={alert_record.get('id')}")
         
         return alert_record
         

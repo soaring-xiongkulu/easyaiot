@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.message.mapper.TMsgFeishuMapper">
+    <resultMap id="BaseResultMap" type="com.basiclab.iot.message.domain.entity.TMsgFeishu">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="msg_type" jdbcType="INTEGER" property="msgType"/>
+        <result column="msg_name" jdbcType="VARCHAR" property="msgName"/>
+        <result column="radio_type" jdbcType="VARCHAR" property="radioType"/>
+        <result column="feishu_msg_type" jdbcType="VARCHAR" property="feishuMsgType"/>
+        <result column="web_hook" jdbcType="VARCHAR" property="webHook"/>
+        <result column="content" jdbcType="VARCHAR" property="content"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="modified_time" jdbcType="TIMESTAMP" property="modifiedTime"/>
+        <result column="preview_user" jdbcType="VARCHAR" property="previewUser"/>
+        <result column="title" jdbcType="VARCHAR" property="title"/>
+        <result column="imgUrl" jdbcType="VARCHAR" property="imgUrl"/>
+        <result column="btnTxt" jdbcType="VARCHAR" property="btnTxt"/>
+        <result column="btnUrl" jdbcType="VARCHAR" property="btnUrl"/>
+        <result column="url" jdbcType="VARCHAR" property="url"/>
+        <result column="user_group_id" jdbcType="VARCHAR" property="userGroupId"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        id, msg_type, msg_name, radio_type, feishu_msg_type, web_hook, content, create_time,
+        modified_time, preview_user, title, imgUrl, btnTxt, btnUrl, url, user_group_id
+    </sql>
+    <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_msg_feishu
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+        delete from t_msg_feishu
+        where id = #{id,jdbcType=VARCHAR}
+    </delete>
+    <insert id="insert" parameterType="com.basiclab.iot.message.domain.entity.TMsgFeishu">
+        insert into t_msg_feishu (id, msg_type, msg_name,
+                                radio_type, feishu_msg_type, web_hook, content, create_time,
+                                modified_time, preview_user, title, imgUrl, btnTxt, btnUrl, url, user_group_id)
+        values (#{id,jdbcType=VARCHAR}, #{msgType,jdbcType=INTEGER}, #{msgName,jdbcType=VARCHAR},
+                #{radioType,jdbcType=VARCHAR}, #{feishuMsgType,jdbcType=VARCHAR}, #{webHook,jdbcType=VARCHAR},
+                #{content,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{modifiedTime,jdbcType=TIMESTAMP},
+                #{previewUser,jdbcType=VARCHAR}, #{title,jdbcType=VARCHAR}, #{imgUrl,jdbcType=VARCHAR},
+                #{btnTxt,jdbcType=VARCHAR}, #{btnUrl,jdbcType=VARCHAR}, #{url,jdbcType=VARCHAR},
+                #{userGroupId,jdbcType=VARCHAR})
+    </insert>
+    <insert id="insertSelective" parameterType="com.basiclab.iot.message.domain.entity.TMsgFeishu">
+        insert into t_msg_feishu
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="msgType != null">msg_type,</if>
+            <if test="msgName != null">msg_name,</if>
+            <if test="radioType != null">radio_type,</if>
+            <if test="feishuMsgType != null">feishu_msg_type,</if>
+            <if test="webHook != null">web_hook,</if>
+            <if test="content != null">content,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="modifiedTime != null">modified_time,</if>
+            <if test="previewUser != null">preview_user,</if>
+            <if test="title != null">title,</if>
+            <if test="imgUrl != null">imgUrl,</if>
+            <if test="btnTxt != null">btnTxt,</if>
+            <if test="btnUrl != null">btnUrl,</if>
+            <if test="url != null">url,</if>
+            <if test="userGroupId != null">user_group_id,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id,jdbcType=VARCHAR},</if>
+            <if test="msgType != null">#{msgType,jdbcType=INTEGER},</if>
+            <if test="msgName != null">#{msgName,jdbcType=VARCHAR},</if>
+            <if test="radioType != null">#{radioType,jdbcType=VARCHAR},</if>
+            <if test="feishuMsgType != null">#{feishuMsgType,jdbcType=VARCHAR},</if>
+            <if test="webHook != null">#{webHook,jdbcType=VARCHAR},</if>
+            <if test="content != null">#{content,jdbcType=VARCHAR},</if>
+            <if test="createTime != null">#{createTime,jdbcType=TIMESTAMP},</if>
+            <if test="modifiedTime != null">#{modifiedTime,jdbcType=TIMESTAMP},</if>
+            <if test="previewUser != null">#{previewUser,jdbcType=VARCHAR},</if>
+            <if test="title != null">#{title,jdbcType=VARCHAR},</if>
+            <if test="imgUrl != null">#{imgUrl,jdbcType=VARCHAR},</if>
+            <if test="btnTxt != null">#{btnTxt,jdbcType=VARCHAR},</if>
+            <if test="btnUrl != null">#{btnUrl,jdbcType=VARCHAR},</if>
+            <if test="url != null">#{url,jdbcType=VARCHAR},</if>
+            <if test="userGroupId != null">#{userGroupId,jdbcType=VARCHAR},</if>
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective" parameterType="com.basiclab.iot.message.domain.entity.TMsgFeishu">
+        update t_msg_feishu
+        <set>
+            <if test="msgType != null">msg_type = #{msgType,jdbcType=INTEGER},</if>
+            <if test="msgName != null">msg_name = #{msgName,jdbcType=VARCHAR},</if>
+            <if test="radioType != null">radio_type = #{radioType,jdbcType=VARCHAR},</if>
+            <if test="feishuMsgType != null">feishu_msg_type = #{feishuMsgType,jdbcType=VARCHAR},</if>
+            <if test="webHook != null">web_hook = #{webHook,jdbcType=VARCHAR},</if>
+            <if test="content != null">content = #{content,jdbcType=VARCHAR},</if>
+            <if test="createTime != null">create_time = #{createTime,jdbcType=TIMESTAMP},</if>
+            <if test="modifiedTime != null">modified_time = #{modifiedTime,jdbcType=TIMESTAMP},</if>
+            <if test="previewUser != null">preview_user = #{previewUser,jdbcType=VARCHAR},</if>
+            <if test="title != null">title = #{title,jdbcType=VARCHAR},</if>
+            <if test="imgUrl != null">imgUrl = #{imgUrl,jdbcType=VARCHAR},</if>
+            <if test="btnTxt != null">btnTxt = #{btnTxt,jdbcType=VARCHAR},</if>
+            <if test="btnUrl != null">btnUrl = #{btnUrl,jdbcType=VARCHAR},</if>
+            <if test="url != null">url = #{url,jdbcType=VARCHAR},</if>
+            <if test="userGroupId != null">user_group_id = #{userGroupId,jdbcType=VARCHAR},</if>
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+    <update id="updateByPrimaryKey" parameterType="com.basiclab.iot.message.domain.entity.TMsgFeishu">
+        update t_msg_feishu
+        set msg_type = #{msgType,jdbcType=INTEGER},
+            msg_name = #{msgName,jdbcType=VARCHAR},
+            radio_type = #{radioType,jdbcType=VARCHAR},
+            feishu_msg_type = #{feishuMsgType,jdbcType=VARCHAR},
+            web_hook = #{webHook,jdbcType=VARCHAR},
+            content = #{content,jdbcType=VARCHAR},
+            create_time = #{createTime,jdbcType=TIMESTAMP},
+            modified_time = #{modifiedTime,jdbcType=TIMESTAMP},
+            preview_user = #{previewUser,jdbcType=VARCHAR}
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+    <select id="selectByMsgTypeAndMsgName" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List"/>
+        from t_msg_feishu
+        <where>
+            msg_type = #{msgType,jdbcType=INTEGER}
+            <if test="msgName != null and msgName != ''">
+                and msg_name like concat('%', #{msgName,jdbcType=VARCHAR}, '%')
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+    <update id="updateByMsgTypeAndMsgName" parameterType="com.basiclab.iot.message.domain.entity.TMsgFeishu">
+        update t_msg_feishu
+        set feishu_msg_type = #{feishuMsgType,jdbcType=VARCHAR},
+            web_hook = #{webHook,jdbcType=VARCHAR},
+            content = #{content,jdbcType=VARCHAR},
+            radio_type = #{radioType,jdbcType=VARCHAR},
+            create_time = #{createTime,jdbcType=TIMESTAMP},
+            modified_time = #{modifiedTime,jdbcType=TIMESTAMP},
+            preview_user = #{previewUser,jdbcType=VARCHAR}
+        where msg_type = #{msgType,jdbcType=INTEGER}
+          and msg_name = #{msgName,jdbcType=VARCHAR}
+    </update>
+    <select id="selectByMsgType" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List"/>
+        from t_msg_feishu
+        where msg_type = #{msgType,jdbcType=INTEGER}
+    </select>
+</mapper>
+
