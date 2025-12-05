@@ -12,8 +12,9 @@ export const getColumns = (): BasicColumn[] => {
           2: '腾讯云短信',
           3: 'EMail',
           4: '企业微信',
-          5: 'http',
+          5: 'Webhook',
           6: '钉钉',
+          7: '飞书',
         }[text];
       },
     },
@@ -129,8 +130,9 @@ export const getPreviewUserColumns = (): BasicColumn[] => {
           2: '腾讯云短信',
           3: 'EMail',
           4: '企业微信',
-          5: 'http',
+          5: 'Webhook',
           6: '钉钉',
+          7: '飞书',
         }[text];
       },
     },

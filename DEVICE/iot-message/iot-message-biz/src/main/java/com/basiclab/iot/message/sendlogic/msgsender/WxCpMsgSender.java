@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 微信企业号模板消息发送器
+ * 企业微信模板消息发送器
  *
  * @author 翱翔的雄库鲁
  * @email andywebjava@163.com
@@ -101,7 +101,7 @@ public class WxCpMsgSender implements IMsgSender {
     }
 
     /**
-     * 微信企业号配置
+     * 企业微信配置
      *
      * @return WxCpConfigStorage
      */
@@ -140,7 +140,7 @@ public class WxCpMsgSender implements IMsgSender {
     }
 
     /**
-     * 获取微信企业号工具服务
+     * 获取企业微信工具服务
      *
      * @return WxCpService
      */

@@ -24,4 +24,6 @@ public interface TPushHistoryMapper {
     int updateByPrimaryKey(TPushHistory record);
 
     List<TPushHistory> selectByMsgType(@Param("msgType") Integer msgType,@Param("msgName")String msgName);
+
+    int deleteByMsgIdAndMsgType(@Param("msgId") String msgId, @Param("msgType") Integer msgType);
 }

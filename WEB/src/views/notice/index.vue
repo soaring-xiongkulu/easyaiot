@@ -86,11 +86,11 @@
               <TabPane key="4" tab="钉钉">
                 <ding/>
               </TabPane>
-              <TabPane key="5" tab="HTTP">
-                <http/>
-              </TabPane>
               <TabPane key="6" tab="飞书">
                 <feishu/>
+              </TabPane>
+              <TabPane key="5" tab="Webhook">
+                <http/>
               </TabPane>
             </Tabs>
           </div>
@@ -115,10 +115,10 @@
               <TabPane key="5" tab="钉钉">
                 <History :msgType="state.historyActiveKey"/>
               </TabPane>
-              <TabPane key="6" tab="HTTP">
+              <TabPane key="7" tab="飞书">
                 <History :msgType="state.historyActiveKey"/>
               </TabPane>
-              <TabPane key="7" tab="飞书">
+              <TabPane key="6" tab="Webhook">
                 <History :msgType="state.historyActiveKey"/>
               </TabPane>
             </Tabs>
@@ -132,7 +132,7 @@
         </TabPane>
       </Tabs>
       <!-- 新增/编辑配置 -->
-      <ConfigModal @register="registerConfigModal" @success="reload"/>
+      <ConfigModal @register="registerConfigModal" @success="handleSuccess"/>
       <!-- 通知记录 -->
       <DetailDrawer @register="registerDetailDrawer"/>
     </div>
@@ -206,13 +206,11 @@ function handleView(record) {
 //编辑按钮事件
 function handleEdit(record) {
   openConfigModal(true,{ type: 'edit', record })
-  cardListReload();
 }
 
 //删除按钮事件
 function handleDel(record) {
   handleDelete(record);
-  cardListReload();
 }
 
 // 切换视图
@@ -250,11 +248,19 @@ const [
   rowKey: 'id',
 });
 
+// 刷新列表（包括表格和卡片列表）
+function handleSuccess() {
+  reload();
+  if (cardListReload && typeof cardListReload === 'function') {
+    cardListReload();
+  }
+}
+
 const handleDelete = async ({id}) => {
   try {
     await messageConfigDelete({id});
     createMessage.success('删除成功');
-    reload();
+    handleSuccess();
   }catch (error) {
     console.error(error)
     createMessage.success('删除失败');

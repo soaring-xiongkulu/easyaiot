@@ -1,6 +1,7 @@
 import Icon from '@/components/Icon/index';
 import type { Rule } from 'ant-design-vue/es/form';
 import corpMessage from '@/assets/images/corp-message.png';
+import feishuLogo from '@/assets/images/notice/feishu.png';
 
 // 表单
 export const formSchemas = ({ isVariable }) => {
@@ -339,6 +340,14 @@ export const dindinSchemas = () => {
 
 export const feishuSchemas = () => {
   return [
+    {
+      field: 'msgType',
+      component: 'Input',
+      label: '类型',
+      render() {
+        return renderProvider('img', feishuLogo, '飞书');
+      },
+    },
     ...msgTypeFiled,
     {
       field: 'radioType',
@@ -476,7 +485,7 @@ export const commonDetailSchema = [
         2: '腾讯云短信',
         3: 'EMail',
         4: '企业微信',
-        5: 'http',
+        5: 'Webhook',
         6: '钉钉',
         7: '飞书',
       };

@@ -8,6 +8,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
@@ -38,6 +39,8 @@ public class MessagePrepareServiceImpl implements MessagePrepareService {
     private TMsgFeishuMapper tMsgFeishuMapper;
     @Autowired
     private TTemplateDataMapper templateDataMapper;
+    @Autowired
+    private TPushHistoryMapper tPushHistoryMapper;
 
     @Autowired
     private TPreviewUserGroupMapper tPreviewUserGroupMapper;
@@ -170,31 +173,77 @@ public class MessagePrepareServiceImpl implements MessagePrepareService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String delete(int msgType, String id) {
+        // 先检查记录是否存在
+        boolean recordExists = false;
         switch (msgType){
             case 1 :
-                tMsgSmsMapper.deleteByPrimaryKey(id);
-                return id;
             case 2 :
-                tMsgSmsMapper.deleteByPrimaryKey(id);
-                return id;
+                recordExists = tMsgSmsMapper.selectByPrimaryKey(id) != null;
+                break;
             case 3 :
-                tMsgMailMapper.deleteByPrimaryKey(id);
-                return id;
+                recordExists = tMsgMailMapper.selectByPrimaryKey(id) != null;
+                break;
             case 4 :
-                tMsgWxCpMapper.deleteByPrimaryKey(id);
-                return id;
+                recordExists = tMsgWxCpMapper.selectByPrimaryKey(id) != null;
+                break;
             case 5 :
-                tMsgHttpMapper.deleteByPrimaryKey(id);
-                return id;
+                recordExists = tMsgHttpMapper.selectByPrimaryKey(id) != null;
+                break;
             case 6 :
-                tMsgDingMapper.deleteByPrimaryKey(id);
-                return id;
+                recordExists = tMsgDingMapper.selectByPrimaryKey(id) != null;
+                break;
             case 7 :
-                tMsgFeishuMapper.deleteByPrimaryKey(id);
-                return id;
-            default: return new String();
+                recordExists = tMsgFeishuMapper.selectByPrimaryKey(id) != null;
+                break;
+            default: 
+                return "";
         }
+        
+        // 如果记录不存在，直接返回（认为删除成功，因为目标状态已经达成）
+        if (!recordExists) {
+            return id;
+        }
+        
+        // 先删除关联数据：模板数据和推送历史
+        templateDataMapper.deleteByMsgTypeAndMsgId(msgType, id);
+        tPushHistoryMapper.deleteByMsgIdAndMsgType(id, msgType);
+        
+        // 再删除主表数据
+        int result = 0;
+        switch (msgType){
+            case 1 :
+                result = tMsgSmsMapper.deleteByPrimaryKey(id);
+                break;
+            case 2 :
+                result = tMsgSmsMapper.deleteByPrimaryKey(id);
+                break;
+            case 3 :
+                result = tMsgMailMapper.deleteByPrimaryKey(id);
+                break;
+            case 4 :
+                result = tMsgWxCpMapper.deleteByPrimaryKey(id);
+                break;
+            case 5 :
+                result = tMsgHttpMapper.deleteByPrimaryKey(id);
+                break;
+            case 6 :
+                result = tMsgDingMapper.deleteByPrimaryKey(id);
+                break;
+            case 7 :
+                result = tMsgFeishuMapper.deleteByPrimaryKey(id);
+                break;
+            default: 
+                return "";
+        }
+        
+        // 检查删除结果（如果记录存在但删除失败，抛出异常）
+        if (result <= 0) {
+            throw new RuntimeException("删除失败，未找到要删除的记录，msgType=" + msgType + ", id=" + id);
+        }
+        
+        return id;
     }
 
     @Override

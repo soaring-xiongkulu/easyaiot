@@ -6,14 +6,6 @@ spring:
     gateway:
       # 路由配置项，对应 RouteDefinition 数组
       routes:
-        # 通知模块
-        - id: message-admin-api
-          uri: lb://message-server
-          predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
-            - Path=/admin-api/message/**
-          filters:
-            - StripPrefix=1
-            - RewritePath=/admin-api/device/v3/api-docs, /v3/api-docs # 配置，保证转发到 /v3/api-docs
         # VIDEO模块
         - id: video-admin-api
           uri: lb://video-server
@@ -61,7 +53,7 @@ spring:
             - Path=/admin-api/message/**
           filters:
             - StripPrefix=1
-            - RewritePath=/admin-api/device/v3/api-docs, /v3/api-docs # 配置，保证转发到 /v3/api-docs
+            - RewritePath=/admin-api/message/v3/api-docs, /v3/api-docs # 配置，保证转发到 /v3/api-docs
         ## device-server 服务
         - id: device-admin-api # 路由的编号
           uri: lb://device-server

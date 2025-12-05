@@ -8,8 +8,9 @@ const msgTypeOptions = {
   2: '腾讯云短信',
   3: 'EMail',
   4: '企业微信',
-  5: 'http',
+  5: 'Webhook',
   6: '钉钉',
+  7: '飞书',
 };
 
 export const getColumns = (): BasicColumn[] => {

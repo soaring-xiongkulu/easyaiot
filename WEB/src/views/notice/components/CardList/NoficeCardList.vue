@@ -25,7 +25,7 @@
                 <div class="status">启用</div>
                 <div class="title o2">
                   {{
-                    item.msgType == 1 ? '阿里云短信' : item.msgType == 2 ? '腾讯云短信' : item.msgType == 3 ? 'EMail' : item.msgType == 4 ? '企业微信' : item.msgType == 6 ? '钉钉' : 'HTTP'
+                    item.msgType == 1 ? '阿里云短信' : item.msgType == 2 ? '腾讯云短信' : item.msgType == 3 ? 'EMail' : item.msgType == 4 ? '企业微信' : item.msgType == 6 ? '钉钉' : item.msgType == 7 ? '飞书' : 'Webhook'
                   }}
                 </div>
                 <div class="props">
@@ -61,7 +61,7 @@
               </div>
               <div class="product-img">
                 <img
-                  :src="item.msgType == 1? ALIBABA : item.msgType == 2? TENGXUN : item.msgType == 3? EMAIL : item.msgType == 4? WEIXIN : item.msgType == 6? DINGDING : WEBHOOK"
+                  :src="item.msgType == 1? ALIBABA : item.msgType == 2? TENGXUN : item.msgType == 3? EMAIL : item.msgType == 4? WEIXIN : item.msgType == 6? DINGDING : item.msgType == 7? FEISHU : WEBHOOK"
                   alt="" class="img" :onclick="handleView.bind(null, item)">
               </div>
             </ListItem>
@@ -85,6 +85,7 @@ import EMAIL from "@/assets/images/notice/email.png";
 import TENGXUN from "@/assets/images/notice/tengxun.png";
 import WEBHOOK from "@/assets/images/notice/webhook.png";
 import WEIXIN from "@/assets/images/notice/weixin.png";
+import FEISHU from "@/assets/images/notice/feishu.png";
 import {useMessage} from "@/hooks/web/useMessage";
 import {formatToDateTime} from "@/utils/dateUtil";
 
@@ -131,8 +132,9 @@ const [registerForm, {validate}] = useForm({
           {label: '腾讯云短信', value: '2'},
           {label: 'EMail', value: '3'},
           {label: '企业微信', value: '4'},
-          {label: 'http', value: '5'},
           {label: '钉钉', value: '6'},
+          {label: '飞书', value: '7'},
+          {label: 'Webhook', value: '5'},
         ],
       },
     },

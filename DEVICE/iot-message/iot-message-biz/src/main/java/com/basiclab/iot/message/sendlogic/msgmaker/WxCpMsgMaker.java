@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * 企业号消息加工器
+ * 企业微信消息加工器
  *
  * @author 翱翔的雄库鲁
  * @email andywebjava@163.com
@@ -59,7 +59,7 @@ public class WxCpMsgMaker extends BaseMsgMaker implements IMsgMaker {
     }
 
     /**
-     * 组织消息-企业号
+     * 组织消息-企业微信
      *
      * @param msgId 消息数据
      * @return WxMpTemplateMessage

@@ -17,9 +17,9 @@ public enum MessageTypeEnum {
     /** 邮件 */
     EMAIL(3, "E-Mail"),
     /** 企业微信 */
-    WX_CP(4, "微信企业号/企业微信"),
+    WX_CP(4, "企业微信"),
     /** HTTP/webhook */
-    HTTP(5, "HTTP请求"),
+    HTTP(5, "Webhook"),
     /** 钉钉 */
     DING(6, "钉钉"),
     /** 飞书 */

@@ -123,7 +123,7 @@ public class ConfigUtil extends ConfigBaseUtil {
     private String maProxyPassword;
 
     /**
-     * 企业号企业id
+     * 企业微信企业id
      */
     private String wxCpCorpId;
 

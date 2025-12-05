@@ -328,15 +328,52 @@
         }
         // http
         if ([5].includes(_msgType)) {
+          // 先保存body和bodyType，避免被httpParams覆盖
+          // 使用 getFieldsValue() 确保获取所有字段值，包括隐藏的 body 和 bodyType
+          const allFields = getFieldsValue();
+          // 优先使用 allFields 中的值，因为 formModel 中可能包含最新的值
+          let bodyValue = allFields.body !== undefined ? allFields.body : t_Msg.body;
+          let bodyTypeValue = allFields.bodyType !== undefined ? allFields.bodyType : (t_Msg.bodyType || 'application/json');
+          
+          // 如果 bodyValue 是 undefined 或 null，设置为空字符串，确保 MyBatis 会更新该字段
+          if (bodyValue === undefined || bodyValue === null) {
+            bodyValue = '';
+          }
+          
+          console.log('保存前 - allFields:', allFields, 't_Msg:', t_Msg, 'bodyValue:', bodyValue, 'bodyTypeValue:', bodyTypeValue);
+          
           const httpParams = httpParamsRef.value.getParams();
+          console.log('httpParams:', httpParams);
+          
+          // 只覆盖params、headers、cookies，保留body和bodyType
           Object.keys(httpParams).forEach((key) => {
-            t_Msg[key] = httpParams[key];
+            // 确保不会覆盖 body 和 bodyType
+            if (key !== 'body' && key !== 'bodyType') {
+              t_Msg[key] = httpParams[key];
+            }
           });
-          // get
+          
+          // get请求不需要body
           if (t_Msg.method == 'GET') {
             delete t_Msg['bodyType'];
             delete t_Msg['body'];
+          } else {
+            // POST/PUT/PATCH等请求，始终设置body和bodyType
+            // 即使body是空字符串，也要设置，确保MyBatis会更新该字段
+            t_Msg.body = bodyValue;
+            t_Msg.bodyType = bodyTypeValue || 'application/json';
           }
+          
+          // 调试日志
+          console.log('保存HTTP消息 - 最终数据:', {
+            body: t_Msg.body,
+            bodyType: t_Msg.bodyType,
+            params: t_Msg.params,
+            headers: t_Msg.headers,
+            cookies: t_Msg.cookies,
+            method: t_Msg.method,
+            url: t_Msg.url
+          });
         }
 
         // templateDataList

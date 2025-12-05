@@ -17,6 +17,7 @@ enum Api {
   message_preview_user_queryByMsgType = '/message/preview/user/queryByMsgType',
   // 消息推送
   message_send = '/message/send',
+  message_send_body = '/message/messageSend',
 }
 
 const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url, params, headers = {}, isTransformResponse = true) => {
@@ -108,9 +109,79 @@ export const messagePreviewUserQueryByMsgType = (params) => {
   );
 };
 
-// 消息推送
+// 消息推送 - Body方式（优先使用）
+export const messageSendByBody = (data, headers = {}, cookies = {}) => {
+  // 使用 @RequestBody，传递完整的 DTO 对象
+  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+  
+  // 构建请求头，合并传入的 headers
+  const requestHeaders = {
+    'Content-Type': 'application/json',
+    // @ts-ignore
+    ignoreCancelToken: true,
+    ...headers,
+  };
+  
+  // 如果有 cookies，将其添加到请求头中
+  if (cookies && Object.keys(cookies).length > 0) {
+    const cookieString = Object.entries(cookies)
+      .map(([key, value]) => `${key}=${value}`)
+      .join('; ');
+    requestHeaders['Cookie'] = cookieString;
+  }
+  
+  return defHttp.post(
+    {
+      url: Api.message_send_body,
+      data: data,
+      headers: requestHeaders,
+    },
+    {
+      isTransformResponse: false,
+    },
+  );
+};
+
+// 消息推送 - Param方式（备用）
+export const messageSendByParam = ({ msgId, msgType }, headers = {}, cookies = {}) => {
+  // 后端接口使用 @RequestParam，期望从表单数据中获取参数
+  // 使用 data 对象，设置 Content-Type 为 application/x-www-form-urlencoded
+  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+  
+  // 构建请求头，合并传入的 headers
+  const requestHeaders = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    // @ts-ignore
+    ignoreCancelToken: true,
+    ...headers,
+  };
+  
+  // 如果有 cookies，将其添加到请求头中
+  if (cookies && Object.keys(cookies).length > 0) {
+    const cookieString = Object.entries(cookies)
+      .map(([key, value]) => `${key}=${value}`)
+      .join('; ');
+    requestHeaders['Cookie'] = cookieString;
+  }
+  
+  return defHttp.post(
+    {
+      url: Api.message_send,
+      data: {
+        msgId: String(msgId),
+        msgType: String(msgType),
+      },
+      headers: requestHeaders,
+    },
+    {
+      isTransformResponse: false,
+    },
+  );
+};
+
+// 消息推送 - 兼容旧接口（保持向后兼容）
 export const messageSend = ({ msgId, msgType }) => {
-  return commonApi('post', `${Api.message_send}?msgId=${msgId}&msgType=${msgType}`, {}, {}, false);
+  return messageSendByParam({ msgId, msgType });
 };
 
 // import {messageFileUpload} from '/@/api/modules/notice';

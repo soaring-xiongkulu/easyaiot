@@ -45,7 +45,15 @@ public class MessageSendController {
     @PostMapping("/messageSend")
     @ApiOperation("消息发送信息")
     public SendResult messageSend(@RequestBody MessageMailSendDto messageMailSendDto){
-        return messageSendCommon.messageSend(messageMailSendDto.getMsgType(),messageMailSendDto.getMsgId());
+        // 如果传递了完整的HTTP参数，使用新方法直接发送
+        if (messageMailSendDto.getMsgType() != null && messageMailSendDto.getMsgType() == 5) {
+            // HTTP/Webhook 类型，检查是否传递了完整的HTTP参数
+            if (messageMailSendDto.getMethod() != null && messageMailSendDto.getUrl() != null) {
+                return messageSendCommon.messageSendWithParams(messageMailSendDto);
+            }
+        }
+        // 其他情况或未传递完整参数时，使用原有方法（从数据库读取）
+        return messageSendCommon.messageSend(messageMailSendDto.getMsgType(), messageMailSendDto.getMsgId());
     }
 
 

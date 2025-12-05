@@ -30,6 +30,8 @@ public class SecurityConfiguration {
                         .antMatchers("/actuator/**").anonymous();
                 // RPC 服务的安全配置
                 registry.antMatchers(ApiConstants.PREFIX + "/**").permitAll();
+                // Webhook 测试接口的安全配置
+                registry.antMatchers("/message/webhook/test/**").permitAll();
             }
 
         };

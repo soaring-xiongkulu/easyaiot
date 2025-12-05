@@ -140,4 +140,11 @@
         </where>
         order by create_time desc
     </select>
+
+    <delete id="deleteByMsgIdAndMsgType">
+        delete
+        from t_push_history
+        where msg_id = #{msgId,jdbcType=VARCHAR}
+          and msg_type = #{msgType,jdbcType=INTEGER}
+    </delete>
 </mapper>

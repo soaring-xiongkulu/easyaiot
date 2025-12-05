@@ -61,7 +61,7 @@
         <TypographyTitle :level="5">2.通知配置说明</TypographyTitle>
         <TypographyParagraph>
           1、corpId<br />
-          企业号的唯一专属编号。<br />
+          企业微信的唯一专属编号。<br />
           获取路径：“企业微信”管理后台--“我的企业”--“企业ID”<br />
         </TypographyParagraph>
         <TypographyParagraph>

@@ -77,10 +77,10 @@ public class DingMsgMaker extends BaseMsgMaker implements IMsgMaker {
     }
 
     /**
-     * 组织消息-企业号
+     * 组织消息-钉钉
      *
      * @param msgId 消息数据
-     * @return WxMpTemplateMessage
+     * @return TMsgDing
      */
     @Override
     public TMsgDing makeMsg(String msgId) {
