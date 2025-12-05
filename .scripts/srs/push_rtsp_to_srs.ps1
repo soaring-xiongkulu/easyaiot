@@ -3,14 +3,6 @@
 #   命名参数: .\push_rtsp_to_srs.ps1 -RtspUrl "rtsp://192.168.1.100:554/stream" -SrsHost "192.168.1.200"
 #   位置参数: .\push_rtsp_to_srs.ps1 "rtsp://192.168.1.100:554/stream" "192.168.1.200"
 
-# 设置脚本文件编码为UTF-8（处理中文注释和字符串）
-$PSDefaultParameterValues['*:Encoding'] = 'utf8'
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$OutputEncoding = [System.Text.Encoding]::UTF8
-if ($PSVersionTable.PSVersion.Major -ge 6) {
-    [Console]::InputEncoding = [System.Text.Encoding]::UTF8
-}
-
 param(
     [Parameter(Mandatory=$true, Position=0)]
     [string]$RtspUrl,
@@ -30,6 +22,14 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$FfmpegPath
 )
+
+# 设置脚本文件编码为UTF-8（处理中文注释和字符串）
+$PSDefaultParameterValues['*:Encoding'] = 'utf8'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+if ($PSVersionTable.PSVersion.Major -ge 6) {
+    [Console]::InputEncoding = [System.Text.Encoding]::UTF8
+}
 
 # 设置默认值
 if (-not $SrsHost) { $SrsHost = "127.0.0.1" }
@@ -80,14 +80,18 @@ Write-Host "按 Ctrl+C 停止推流" -ForegroundColor Yellow
 Write-Host ""
 
 # 执行ffmpeg推流命令
-& $FfmpegPath `
-    -rtsp_transport tcp `
-    -i "$RtspUrl" `
-    -c:v copy `
-    -c:a copy `
-    -f flv `
-    -re `
-    "$RtmpUrl"
+# 使用参数数组方式传递，避免特殊字符问题
+$ffmpegArgs = @(
+    "-rtsp_transport", "tcp",
+    "-i", $RtspUrl,
+    "-c:v", "copy",
+    "-c:a", "copy",
+    "-f", "flv",
+    "-re",
+    $RtmpUrl
+)
+
+& $FfmpegPath $ffmpegArgs
 
 # 检查退出码
 if ($LASTEXITCODE -ne 0) {
