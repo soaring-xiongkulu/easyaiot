@@ -30,12 +30,12 @@ EasyAIoT 平台由以下核心模組組成：
 ### 系統要求
 
 - **操作系統**: 
-  - Linux (推薦 Ubuntu 20.04+ 或 CentOS 7+)
+  - Linux (推薦 Ubuntu 24.04)
   - macOS (推薦 macOS 10.15+)
   - Windows (推薦 Windows 10/11，需要 PowerShell 5.1+)
-- **內存**: 建議 8GB 以上
+- **內存**: 推薦 32GB（最低 16GB）
 - **磁盤**: 建議 50GB 以上可用空間
-- **CPU**: 建議 4 核以上
+- **CPU**: 推薦 8 核（最低 4 核）
 
 ### 軟件依賴
 

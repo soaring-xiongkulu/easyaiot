@@ -30,12 +30,12 @@ La plateforme EasyAIoT est composée des modules principaux suivants :
 ### Exigences système
 
 - **Système d'exploitation** :
-   - Linux (Ubuntu 20.04+ ou CentOS 7+ recommandés)
+   - Linux (Ubuntu 24.04 recommandé)
    - macOS (macOS 10.15+ recommandé)
    - Windows (Windows 10/11 recommandés, nécessite PowerShell 5.1+)
-- **Mémoire** : 8 Go ou plus recommandés
+- **Mémoire** : 32 Go recommandés (minimum 16 Go)
 - **Espace disque** : 50 Go d'espace libre ou plus recommandés
-- **CPU** : 4 cœurs ou plus recommandés
+- **CPU** : 8 cœurs recommandés (minimum 4 cœurs)
 
 ### Dépendances logicielles
 
