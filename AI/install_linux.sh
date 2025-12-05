@@ -459,17 +459,17 @@ create_env_file() {
             cp env.example .env.docker
             print_success ".env.docker 文件已从 env.example 创建"
             
-            # 自动配置中间件连接信息（使用Docker服务名称）
+            # 自动配置中间件连接信息（使用localhost，因为docker-compose.yaml使用host网络模式）
             print_info "自动配置中间件连接信息..."
             
-            # 更新数据库连接（使用中间件服务名称，注意：服务名是PostgresSQL）
-            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@PostgresSQL:5432/iot-ai20|' .env.docker
+            # 更新数据库连接（使用localhost，因为使用host网络模式，中间件端口已映射到宿主机）
+            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-ai20|' .env.docker
             
-            # 更新Nacos配置（使用中间件服务名称，注意：服务名是Nacos）
-            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=Nacos:8848|' .env.docker
+            # 更新Nacos配置（使用localhost，因为使用host网络模式）
+            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=localhost:8848|' .env.docker
             
-            # 更新MinIO配置（使用中间件服务名称，注意：服务名是MinIO）
-            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=MinIO:9000|' .env.docker
+            # 更新MinIO配置（使用localhost，因为使用host网络模式）
+            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=localhost:9000|' .env.docker
             sed -i 's|^MINIO_SECRET_KEY=.*|MINIO_SECRET_KEY=basiclab@iot975248395|' .env.docker
             
             # 更新Nacos密码
@@ -488,22 +488,22 @@ create_env_file() {
         print_info ".env.docker 文件已存在"
         print_info "检查并更新中间件连接信息..."
         
-        # 检查并更新数据库连接（如果还是localhost或旧的服务名）
-        if grep -q "DATABASE_URL=.*localhost" .env.docker || grep -q "DATABASE_URL=.*postgres-server" .env.docker; then
-            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@PostgresSQL:5432/iot-ai20|' .env.docker
-            print_info "已更新数据库连接为 PostgresSQL:5432"
+        # 检查并更新数据库连接（如果使用Docker服务名，改为localhost，因为使用host网络模式）
+        if grep -q "DATABASE_URL=.*PostgresSQL" .env.docker || grep -q "DATABASE_URL=.*postgres-server" .env.docker; then
+            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-ai20|' .env.docker
+            print_info "已更新数据库连接为 localhost:5432（host网络模式）"
         fi
         
-        # 检查并更新Nacos配置（如果还是IP地址或旧的服务名）
-        if grep -q "NACOS_SERVER=.*14\.18\.122\.2" .env.docker || grep -q "NACOS_SERVER=.*localhost" .env.docker || grep -q "NACOS_SERVER=.*nacos-server" .env.docker; then
-            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=Nacos:8848|' .env.docker
-            print_info "已更新Nacos连接为 Nacos:8848"
+        # 检查并更新Nacos配置（如果使用Docker服务名或IP地址，改为localhost，因为使用host网络模式）
+        if grep -q "NACOS_SERVER=.*Nacos" .env.docker || grep -q "NACOS_SERVER=.*14\.18\.122\.2" .env.docker || grep -q "NACOS_SERVER=.*nacos-server" .env.docker; then
+            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=localhost:8848|' .env.docker
+            print_info "已更新Nacos连接为 localhost:8848（host网络模式）"
         fi
         
-        # 检查并更新MinIO配置（如果还是localhost或旧的服务名）
-        if grep -q "MINIO_ENDPOINT=.*localhost" .env.docker || grep -q "MINIO_ENDPOINT=.*minio-server" .env.docker; then
-            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=MinIO:9000|' .env.docker
-            print_info "已更新MinIO连接为 MinIO:9000"
+        # 检查并更新MinIO配置（如果使用Docker服务名，改为localhost，因为使用host网络模式）
+        if grep -q "MINIO_ENDPOINT=.*MinIO" .env.docker || grep -q "MINIO_ENDPOINT=.*minio-server" .env.docker; then
+            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=localhost:9000|' .env.docker
+            print_info "已更新MinIO连接为 localhost:9000（host网络模式）"
         fi
         
         # 检查并更新Nacos命名空间（如果设置为local或其他非空值，则重置为空，使用默认命名空间）
