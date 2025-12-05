@@ -12,9 +12,19 @@
 </div>
 
 <h4 align="center" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; padding: 20px; font-weight: bold;">
-  <a href="./README_zh.md">中文文档</a>
+  <a href="./README.md">English</a>
   <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
-  <a href="README.md">English Document</a>
+  <a href="./README_zh.md">简体中文</a>
+  <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
+  <a href="./README_zh_tw.md">繁體中文</a>
+  <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
+  <a href="./README_ru.md">Русский</a>
+  <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
+  <a href="./README_fr.md">Français</a>
+  <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
+  <a href="./README_ja.md">日本語</a>
+  <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
+  <a href="./README_ko.md">한국어</a>
 </h4>
 
 ## 🌟 关于项目的一些思考
