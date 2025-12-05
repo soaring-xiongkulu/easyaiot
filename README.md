@@ -298,7 +298,7 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
 
 ## 📚 Deployment Documentation
 
-- [Platform Deployment Documentation](.doc/部署文档/平台部署文档_zh)
+- [Platform Deployment Documentation](.doc/部署文档/平台部署文档.md)
 
 ## 🎮 Demo Environment
 
