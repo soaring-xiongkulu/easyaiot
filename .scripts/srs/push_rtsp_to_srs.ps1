@@ -31,12 +31,19 @@ if ($PSVersionTable.PSVersion.Major -ge 6) {
     [Console]::InputEncoding = [System.Text.Encoding]::UTF8
 }
 
+# 验证必需参数
+if ([string]::IsNullOrWhiteSpace($RtspUrl)) {
+    Write-Host "错误: RTSP源地址参数不能为空" -ForegroundColor Red
+    Write-Host "使用方法: .\push_rtsp_to_srs.ps1 -RtspUrl `"rtsp://...`" [-SrsHost `"IP`"] [-FfmpegPath `"路径`"]" -ForegroundColor Yellow
+    exit 1
+}
+
 # 设置默认值
-if (-not $SrsHost) { $SrsHost = "127.0.0.1" }
+if ([string]::IsNullOrWhiteSpace($SrsHost)) { $SrsHost = "127.0.0.1" }
 if (-not $SrsPort) { $SrsPort = 1935 }
-if (-not $App) { $App = "live" }
-if (-not $Stream) { $Stream = "test" }
-if (-not $FfmpegPath) { $FfmpegPath = "ffmpeg" }
+if ([string]::IsNullOrWhiteSpace($App)) { $App = "live" }
+if ([string]::IsNullOrWhiteSpace($Stream)) { $Stream = "test" }
+if ([string]::IsNullOrWhiteSpace($FfmpegPath)) { $FfmpegPath = "ffmpeg" }
 
 # 检查ffmpeg是否可用
 try {
@@ -80,29 +87,24 @@ Write-Host "按 Ctrl+C 停止推流" -ForegroundColor Yellow
 Write-Host ""
 
 # 执行ffmpeg推流命令
-# 使用参数数组方式传递，避免特殊字符问题
-$ffmpegArgs = @(
-    "-rtsp_transport", "tcp",
-    "-i", $RtspUrl,
-    "-c:v", "copy",
-    "-c:a", "copy",
-    "-f", "flv",
-    "-re",
-    $RtmpUrl
-)
+# 使用cmd.exe来执行，避免PowerShell解析URL中的特殊字符（如&）
+# 这样可以确保RTSP URL中的&等特殊字符被正确传递给ffmpeg
+$ffmpegCmd = "`"$FfmpegPath`" -rtsp_transport tcp -i `"$RtspUrl`" -c:v copy -c:a copy -f flv -re `"$RtmpUrl`""
 
-& $FfmpegPath $ffmpegArgs
+# 使用cmd.exe执行，可以保持实时输出并正确处理特殊字符
+cmd.exe /c $ffmpegCmd
+$exitCode = $LASTEXITCODE
 
 # 检查退出码
-if ($LASTEXITCODE -ne 0) {
+if ($exitCode -ne 0) {
     Write-Host ""
-    Write-Host "推流失败，退出码: $LASTEXITCODE" -ForegroundColor Red
+    Write-Host "推流失败，退出码: $exitCode" -ForegroundColor Red
     Write-Host "可能的原因:" -ForegroundColor Yellow
     Write-Host "  1. RTSP源地址无法访问" -ForegroundColor Yellow
     Write-Host "  2. SRS服务器未运行或地址不正确" -ForegroundColor Yellow
     Write-Host "  3. 网络连接问题" -ForegroundColor Yellow
     Write-Host "  4. RTSP流格式不支持（可能需要重新编码）" -ForegroundColor Yellow
-    exit $LASTEXITCODE
+    exit $exitCode
 } else {
     Write-Host ""
     Write-Host "推流已停止" -ForegroundColor Green
