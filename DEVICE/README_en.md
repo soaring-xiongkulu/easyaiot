@@ -57,6 +57,13 @@ The DEVICE module is one of the core components of the EasyAIoT system, providin
 - Link tracing monitoring
 - Document access monitoring
 
+## 📢 Notification Management
+- **Multi-channel Notifications**: Supports 7 notification methods including Feishu, DingTalk, Enterprise WeChat, Email, Tencent Cloud SMS, Alibaba Cloud SMS, and Webhook
+- **Alert Notifications**: Supports real-time alert event notifications with configurable notification method combinations
+- **Notification Configuration**: Supports flexible notification rule configuration by user, role, department, etc.
+- **Notification History**: Supports notification sending history query and statistics
+- **Message Templates**: Supports custom message templates for personalized notification content
+
 ## 👥 System Management
 - Tenant management
 - User management

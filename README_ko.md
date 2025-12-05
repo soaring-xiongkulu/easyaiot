@@ -72,6 +72,7 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>규칙 엔진</strong>: 데이터 흐름 규칙, 메시지 라우팅, 데이터 변환</li>
   <li><strong>데이터 수집 및 저장</strong>: 디바이스 데이터 수집, 저장, 조회 및 분석</li>
   <li><strong>디바이스 상태 모니터링 및 경보 관리</strong>: 실시간 모니터링, 이상 경보, 지능형 의사결정</li>
+  <li><strong>알림 관리</strong>: Feishu, DingTalk, Enterprise WeChat, Email, Tencent Cloud SMS, Alibaba Cloud SMS, Webhook 등 7가지 알림 방식을 지원하여 유연한 다채널 경보 알림을 구현합니다.</li>
 </ul>
 
 ### 💡 기술 철학

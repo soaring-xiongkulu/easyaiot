@@ -72,6 +72,7 @@ EasyAIoT est une plateforme intelligente d'Internet des Objets (IoT) à intégra
   <li><strong>Moteur de règles</strong> : Règles de flux de données, routage des messages, transformation des données.</li>
   <li><strong>Collecte et stockage des données</strong> : Collecte, stockage, requête et analyse des données des appareils.</li>
   <li><strong>Surveillance d'état des appareils et gestion des alertes</strong> : Surveillance en temps réel, alertes d'anomalies, prise de décision intelligente.</li>
+  <li><strong>Gestion des notifications</strong> : Prend en charge 7 méthodes de notification, notamment Feishu, DingTalk, Enterprise WeChat, Email, Tencent Cloud SMS, Alibaba Cloud SMS et Webhook, permettant des notifications d'alerte flexibles et multi-canaux.</li>
 </ul>
 
 
