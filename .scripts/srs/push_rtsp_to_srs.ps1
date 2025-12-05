@@ -1,9 +1,10 @@
-# Windows环境下使用ffmpeg将RTSP流推送到SRS服务器
+﻿# Windows环境下使用ffmpeg将RTSP流推送到SRS服务器
 # 使用方法: 
 #   命名参数: .\push_rtsp_to_srs.ps1 -RtspUrl "rtsp://192.168.1.100:554/stream" -SrsHost "192.168.1.200"
 #   位置参数: .\push_rtsp_to_srs.ps1 "rtsp://192.168.1.100:554/stream" "192.168.1.200"
 
-# 设置控制台输出编码为UTF-8以正确显示中文
+# 设置脚本文件编码为UTF-8（处理中文注释和字符串）
+$PSDefaultParameterValues['*:Encoding'] = 'utf8'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 if ($PSVersionTable.PSVersion.Major -ge 6) {
