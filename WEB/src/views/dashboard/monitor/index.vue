@@ -51,7 +51,7 @@ const videoMonitorRef = ref<InstanceType<typeof VideoMonitor> | null>(null)
 const selectedDevice = ref<any>({
   id: '1',
   name: '华南小区西四路23号',
-  location: '开发区华南小区西四路23号'
+  location: ''
 })
 
 // 视频列表
