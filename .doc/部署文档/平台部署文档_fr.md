@@ -36,6 +36,7 @@ La plateforme EasyAIoT est composée des modules principaux suivants :
 - **Mémoire** : 32 Go recommandés (minimum 16 Go)
 - **Espace disque** : 50 Go d'espace libre ou plus recommandés
 - **CPU** : 8 cœurs recommandés (minimum 4 cœurs)
+- **Carte graphique** : NVIDIA GPU recommandé (minimum CPU)
 
 ### Dépendances logicielles
 
