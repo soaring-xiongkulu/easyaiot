@@ -18,6 +18,79 @@
 import argparse
 import os
 import sys
+import subprocess
+
+# 依赖检查和自动安装
+def check_and_install_dependencies():
+    """检查并自动安装必要的依赖包"""
+    required_packages = {
+        'dotenv': 'python-dotenv',
+        'sqlalchemy': 'sqlalchemy',
+        'psycopg2': 'psycopg2-binary'
+    }
+    
+    missing_packages = []
+    
+    # 检查每个依赖
+    for module_name, package_name in required_packages.items():
+        try:
+            if module_name == 'dotenv':
+                __import__('dotenv')
+            elif module_name == 'psycopg2':
+                __import__('psycopg2')
+            else:
+                __import__(module_name)
+        except ImportError:
+            missing_packages.append((module_name, package_name))
+    
+    # 如果有缺失的包，尝试自动安装
+    if missing_packages:
+        package_names = [pkg for _, pkg in missing_packages]
+        print(f"⚠️  检测到缺少以下依赖包: {', '.join(package_names)}")
+        print("正在尝试自动安装...")
+        
+        try:
+            # 使用清华镜像源加速安装
+            pip_args = [
+                sys.executable, '-m', 'pip', 'install',
+                '--index-url', 'https://pypi.tuna.tsinghua.edu.cn/simple',
+                '--quiet', '--upgrade'
+            ] + package_names
+            
+            result = subprocess.run(
+                pip_args,
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            
+            print(f"✅ 成功安装依赖包: {', '.join(package_names)}")
+            print("正在重新加载模块...")
+            
+            # 重新导入模块（清除导入缓存）
+            for module_name, _ in missing_packages:
+                if module_name in sys.modules:
+                    del sys.modules[module_name]
+        
+        except subprocess.CalledProcessError as e:
+            print(f"❌ 自动安装失败")
+            if e.stderr:
+                print(f"错误信息: {e.stderr}")
+            print(f"\n💡 请手动安装依赖包:")
+            print(f"   pip install {' '.join(package_names)}")
+            print(f"\n   或使用清华镜像源:")
+            print(f"   pip install -i https://pypi.tuna.tsinghua.edu.cn/simple {' '.join(package_names)}")
+            sys.exit(1)
+        except Exception as e:
+            print(f"❌ 安装过程中发生错误: {str(e)}")
+            print(f"\n💡 请手动安装依赖包:")
+            print(f"   pip install {' '.join(package_names)}")
+            sys.exit(1)
+
+# 在导入之前检查和安装依赖
+check_and_install_dependencies()
+
+# 现在可以安全导入
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
