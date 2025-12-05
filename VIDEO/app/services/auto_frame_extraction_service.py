@@ -195,13 +195,13 @@ def check_and_update_device_status(device):
         if device.ip:
             is_reachable = check_ip_reachable(device.ip)
             if not is_reachable:
-                # IP不可达，更新监控状态为离线
-                _monitor.update(device.id, device.ip)
+                # IP不可达，更新监控状态为离线（更新已有设备时，检查实际在线状态）
+                _monitor.update(device.id, device.ip, default_online=False)
                 logger.warning(f"设备 {device.id} (IP: {device.ip}) 不可达，状态设为离线")
                 return False
             else:
-                # IP可达，更新监控状态为在线
-                _monitor.update(device.id, device.ip)
+                # IP可达，更新监控状态为在线（更新已有设备时，检查实际在线状态）
+                _monitor.update(device.id, device.ip, default_online=False)
                 return True
         else:
             # 没有IP地址，尝试从RTSP流判断

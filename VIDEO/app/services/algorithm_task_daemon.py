@@ -226,6 +226,7 @@ class AlgorithmTaskDaemon:
                     
                     f_log.flush()
                     
+                    # 检查是否应该停止（在重启逻辑之前检查）
                     if not self._running:
                         self._log('守护进程收到停止信号，退出', 'INFO')
                         f_log.write(f'# [{datetime.now().isoformat()}] 算法任务服务已停止\n')
@@ -236,14 +237,43 @@ class AlgorithmTaskDaemon:
                     # 判断是否异常退出
                     if self._restart:
                         self._restart = False
+                        # 再次检查是否应该停止（可能在等待过程中收到停止信号）
+                        if not self._running:
+                            self._log('守护进程收到停止信号，取消重启', 'INFO')
+                            f_log.write(f'# [{datetime.now().isoformat()}] 守护进程收到停止信号，取消重启\n')
+                            f_log.flush()
+                            f_log.close()
+                            return
                         self._log('手动重启算法任务服务', 'INFO')
                         f_log.write(f'\n# [{datetime.now().isoformat()}] 手动重启算法任务服务......\n')
                         f_log.flush()
                     else:
+                        # 再次检查是否应该停止（可能在等待过程中收到停止信号）
+                        if not self._running:
+                            self._log('守护进程收到停止信号，取消自动重启', 'INFO')
+                            f_log.write(f'# [{datetime.now().isoformat()}] 守护进程收到停止信号，取消自动重启\n')
+                            f_log.flush()
+                            f_log.close()
+                            return
                         self._log(f'算法任务服务异常退出（返回码: {return_code}），将在5秒后重启', 'WARNING')
                         f_log.write(f'\n# [{datetime.now().isoformat()}] 算法任务服务异常退出（返回码: {return_code}），将在5秒后重启......\n')
                         f_log.flush()
-                        time.sleep(5)
+                        # 在等待期间，定期检查是否收到停止信号
+                        for _ in range(50):  # 5秒 = 50 * 0.1秒
+                            if not self._running:
+                                self._log('守护进程收到停止信号，取消自动重启', 'INFO')
+                                f_log.write(f'# [{datetime.now().isoformat()}] 守护进程收到停止信号，取消自动重启\n')
+                                f_log.flush()
+                                f_log.close()
+                                return
+                            time.sleep(0.1)
+                        # 等待结束后，再次检查是否应该停止
+                        if not self._running:
+                            self._log('守护进程收到停止信号，取消自动重启', 'INFO')
+                            f_log.write(f'# [{datetime.now().isoformat()}] 守护进程收到停止信号，取消自动重启\n')
+                            f_log.flush()
+                            f_log.close()
+                            return
                         self._log('算法任务服务重启', 'INFO')
                         f_log.write(f'# [{datetime.now().isoformat()}] 算法任务服务重启\n')
                         f_log.flush()
@@ -254,7 +284,15 @@ class AlgorithmTaskDaemon:
                     self._log(error_msg, 'ERROR')
                     f_log.write(f'\n# [{datetime.now().isoformat()}] [ERROR] {error_msg}\n')
                     f_log.flush()
-                    time.sleep(10)  # 发生异常时等待10秒后重试
+                    # 在等待期间，定期检查是否收到停止信号
+                    for _ in range(100):  # 10秒 = 100 * 0.1秒
+                        if not self._running:
+                            self._log('守护进程收到停止信号，退出异常处理', 'INFO')
+                            f_log.write(f'# [{datetime.now().isoformat()}] 守护进程收到停止信号，退出异常处理\n')
+                            f_log.flush()
+                            f_log.close()
+                            return
+                        time.sleep(0.1)
         finally:
             if f_log:
                 f_log.close()
@@ -267,13 +305,27 @@ class AlgorithmTaskDaemon:
 
     def stop(self):
         """停止服务"""
+        self._log('收到停止信号，正在停止守护进程...', 'INFO')
         self._running = False
         if self._process:
-            self._process.terminate()
             try:
-                self._process.wait(timeout=5)
-            except sp.TimeoutExpired:
-                self._process.kill()
+                # 先尝试优雅终止
+                self._process.terminate()
+                try:
+                    self._process.wait(timeout=5)
+                except sp.TimeoutExpired:
+                    # 如果5秒内没有退出，强制杀死
+                    self._log('进程未在5秒内退出，强制终止', 'WARNING')
+                    self._process.kill()
+                    try:
+                        self._process.wait(timeout=2)
+                    except sp.TimeoutExpired:
+                        pass
+            except Exception as e:
+                self._log(f'停止进程时出错: {str(e)}', 'WARNING')
+                # 如果进程已经不存在，忽略错误
+                pass
+        self._log('守护进程已停止', 'INFO')
 
     def _get_log_file_path(self) -> str:
         """获取日志文件路径（按日期）"""

@@ -216,6 +216,48 @@ ALTER SEQUENCE public.t_msg_ding_id_seq OWNED BY public.t_msg_ding.id;
 
 
 --
+-- Name: t_msg_feishu; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.t_msg_feishu (
+    id character varying(64) NOT NULL,
+    msg_type integer,
+    msg_name text,
+    radio_type text,
+    feishu_msg_type text,
+    web_hook text,
+    content text,
+    create_time timestamp without time zone,
+    modified_time timestamp without time zone,
+    preview_user character varying(1000),
+    title character varying(200),
+    "imgUrl" character varying(200),
+    "btnTxt" text,
+    "btnUrl" character varying(200),
+    url character varying(200),
+    user_group_id character varying(64),
+    tenant_id bigint DEFAULT 0 NOT NULL,
+    deleted smallint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.t_msg_feishu OWNER TO postgres;
+
+--
+-- Name: COLUMN t_msg_feishu.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.t_msg_feishu.tenant_id IS '租户编号';
+
+
+--
+-- Name: COLUMN t_msg_feishu.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.t_msg_feishu.deleted IS '是否删除';
+
+
+--
 -- Name: t_msg_http; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1206,6 +1248,14 @@ ALTER TABLE ONLY public.t_ding_app
 
 ALTER TABLE ONLY public.t_msg_ding
     ADD CONSTRAINT t_msg_ding_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: t_msg_feishu t_msg_feishu_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.t_msg_feishu
+    ADD CONSTRAINT t_msg_feishu_pkey PRIMARY KEY (id);
 
 
 --

@@ -45,8 +45,16 @@ export interface AlgorithmTask {
   tracking_max_age?: number; // 追踪目标最大存活帧数
   tracking_smooth_alpha?: number; // 追踪平滑系数
   // 告警配置
-  alert_hook_url?: string; // 告警Hook HTTP接口地址
-  alert_hook_enabled?: boolean; // 是否启用告警Hook
+  alert_event_enabled?: boolean; // 是否启用告警事件
+  alert_notification_enabled?: boolean; // 是否启用告警通知
+  alert_notification_config?: {
+    channels: Array<{
+      method: string; // 通知方式: sms, email, wxcp, http, ding, feishu
+      template_id: string | number; // 模板ID
+      template_name?: string; // 模板名称
+    }>;
+  };
+  alarm_suppress_time?: number; // 告警通知抑制时间（秒）
   // 抓拍相关字段（仅抓拍算法任务）
   space_id?: number;
   space_name?: string;
@@ -110,8 +118,16 @@ export const createAlgorithmTask = (data: {
   tracking_max_age?: number;
   tracking_smooth_alpha?: number;
   // 告警配置
-  alert_hook_url?: string;
-  alert_hook_enabled?: boolean;
+  alert_event_enabled?: boolean;
+  alert_notification_enabled?: boolean;
+  alert_notification_config?: {
+    channels: Array<{
+      method: string;
+      template_id: string | number;
+      template_name?: string;
+    }>;
+  };
+  alarm_suppress_time?: number;
   // 抓拍算法任务配置
   space_id?: number;
   cron_expression?: string;

@@ -157,7 +157,8 @@ def _to_dict(camera: Device) -> dict:
 def _add_online_monitor():
     """初始化设备在线监控"""
     for camera in _get_cameras():
-        _monitor.update(camera.id, camera.ip)
+        # 初始化已有设备时，检查实际在线状态，不设置默认在线
+        _monitor.update(camera.id, camera.ip, default_online=False)
     logger.debug('设备在线状态监控服务已初始化')
 
 
@@ -218,7 +219,8 @@ def _update_camera_ip(camera: Device, ip: str):
     
     # 如果摄像头地址是 rtmp，不需要 ONVIF 连接，只更新 IP 和监控
     if camera.source and camera.source.strip().lower().startswith('rtmp://'):
-        _monitor.update(camera.id, camera.ip)
+        # 更新已有设备IP时，检查实际在线状态
+        _monitor.update(camera.id, camera.ip, default_online=False)
         db.session.commit()
         logger.info(f'设备 {camera.id} IP地址已更新为 {ip}（RTMP设备，跳过ONVIF连接）')
         return
@@ -257,7 +259,8 @@ def _update_camera_ip(camera: Device, ip: str):
                 camera.stream = None
                 logger.warning(f'设备 {camera.id} 码流调整失败，已重置为默认码流')
 
-        _monitor.update(camera.id, camera.ip)
+        # 更新已有设备IP时，检查实际在线状态
+        _monitor.update(camera.id, camera.ip, default_online=False)
         db.session.commit()
         logger.info(f'设备 {camera.id} IP地址已更新为 {ip}')
     except Exception as e:
@@ -1043,8 +1046,8 @@ def update_camera(id: str, update_info: dict):
                 logger.warning(f'设备 {id} IP地址更新失败（ONVIF连接失败）: {str(e)}，将仅更新IP地址')
                 # 只更新IP地址，不通过ONVIF获取其他信息
                 camera.ip = new_ip
-                # 更新监控
-                _monitor.update(camera.id, new_ip)
+                # 更新监控（更新已有设备时，检查实际在线状态）
+                _monitor.update(camera.id, new_ip, default_online=False)
                 # 如果是RTMP设备，直接提交
                 if camera.source and camera.source.strip().lower().startswith('rtmp://'):
                     # 如果设备名称也变化了，同步更新空间名称

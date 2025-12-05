@@ -11,9 +11,13 @@ from typing import Optional
 
 class IpReachabilityMonitor:
     class _Monitor:
-        def __init__(self, ip: str):
+        def __init__(self, ip: str, default_online: bool = True):
             self.ip = ip
-            self.online = check_ip_reachable(ip)
+            # 如果设置了默认在线，则先设置为True，否则立即检查IP可达性
+            if default_online:
+                self.online = True
+            else:
+                self.online = check_ip_reachable(ip)
 
     def __init__(self, interval_seconds: Optional[int] = 10):
         self._monitors: dict[str, IpReachabilityMonitor._Monitor] = {}
@@ -34,8 +38,18 @@ class IpReachabilityMonitor:
 
         threading.Thread(target=monitor_online_thread, daemon=True).start()
 
-    def update(self, name: str, ip: str) -> bool:
-        monitor = IpReachabilityMonitor._Monitor(ip)
+    def update(self, name: str, ip: str, default_online: bool = True) -> bool:
+        """更新或添加设备监控
+        
+        Args:
+            name: 设备名称/ID
+            ip: 设备IP地址
+            default_online: 是否默认在线（新增设备时默认为True）
+        
+        Returns:
+            设备的在线状态
+        """
+        monitor = IpReachabilityMonitor._Monitor(ip, default_online=default_online)
         self._monitors[name] = monitor
         return monitor.online
 

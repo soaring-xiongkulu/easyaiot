@@ -25,8 +25,9 @@ def create_algorithm_task(task_name: str,
                          tracking_similarity_threshold: float = 0.2,
                          tracking_max_age: int = 25,
                          tracking_smooth_alpha: float = 0.25,
-                         alert_hook_url: Optional[str] = None,
-                         alert_hook_enabled: bool = False,
+                         alert_event_enabled: bool = False,
+                         alert_notification_enabled: bool = False,
+                         alert_notification_config: Optional[str] = None,
                          space_id: Optional[int] = None,
                          cron_expression: Optional[str] = None,
                          frame_skip: int = 1,
@@ -161,9 +162,9 @@ def create_algorithm_task(task_name: str,
                 schedule = [[0] * 24 for _ in range(7)]
                 defense_schedule = json.dumps(schedule)
         
-        # 如果启用了告警Hook但没有提供URL，自动设置为固定的网关路径
-        if alert_hook_enabled and not alert_hook_url:
-            alert_hook_url = '/admin-api/video/alert/hook'
+        # 处理告警通知配置（如果是字典，需要转换为JSON字符串）
+        if alert_notification_config and isinstance(alert_notification_config, dict):
+            alert_notification_config = json.dumps(alert_notification_config)
         
         task = AlgorithmTask(
             task_name=task_name,
@@ -178,8 +179,9 @@ def create_algorithm_task(task_name: str,
             tracking_similarity_threshold=tracking_similarity_threshold if task_type == 'realtime' else 0.2,
             tracking_max_age=tracking_max_age if task_type == 'realtime' else 25,
             tracking_smooth_alpha=tracking_smooth_alpha if task_type == 'realtime' else 0.25,
-            alert_hook_url=alert_hook_url,
-            alert_hook_enabled=alert_hook_enabled,
+            alert_event_enabled=alert_event_enabled,
+            alert_notification_enabled=alert_notification_enabled,
+            alert_notification_config=alert_notification_config,
             space_id=space_id,
             cron_expression=cron_expression,
             frame_skip=frame_skip,
@@ -320,7 +322,7 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             'model_ids', 'model_names',  # 模型配置
             'extract_interval',  # 实时算法任务配置（rtmp_input_url和rtmp_output_url不再使用，从摄像头列表获取）
             'tracking_enabled', 'tracking_similarity_threshold', 'tracking_max_age', 'tracking_smooth_alpha',  # 追踪配置
-            'alert_hook_url', 'alert_hook_enabled',  # 告警配置
+            'alert_event_enabled', 'alert_notification_enabled', 'alert_notification_config',  # 告警配置
             'space_id', 'cron_expression', 'frame_skip',  # 抓拍算法任务配置
             'is_enabled', 'status', 'exception_reason',
             'defense_mode', 'defense_schedule'
@@ -332,10 +334,10 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             if defense_mode and defense_mode not in ['full', 'half', 'day', 'night']:
                 raise ValueError(f"无效的布防模式: {defense_mode}，必须是 'full', 'half', 'day' 或 'night'")
         
-        # 如果启用了告警Hook但没有提供URL，自动设置为固定的网关路径
-        if 'alert_hook_enabled' in kwargs and kwargs['alert_hook_enabled']:
-            if 'alert_hook_url' not in kwargs or not kwargs.get('alert_hook_url'):
-                kwargs['alert_hook_url'] = '/admin-api/video/alert/hook'
+        # 处理告警通知配置（如果是字符串，需要转换为JSON字符串）
+        if 'alert_notification_config' in kwargs and kwargs['alert_notification_config']:
+            if isinstance(kwargs['alert_notification_config'], dict):
+                kwargs['alert_notification_config'] = json.dumps(kwargs['alert_notification_config'])
         
         for field in updatable_fields:
             if field in kwargs:

@@ -63,6 +63,12 @@ public class AlertNotificationMessage {
     private List<String> notifyMethods;
     
     /**
+     * 通知渠道和模板配置列表
+     * 格式：[{"method": "sms", "template_id": "xxx", "template_name": "xxx"}, ...]
+     */
+    private List<Map<String, Object>> channels;
+    
+    /**
      * 时间戳
      */
     private String timestamp;

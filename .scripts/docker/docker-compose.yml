@@ -85,7 +85,14 @@ services:
     # 容器以 root 启动，entrypoint 会修复权限后切换到 postgres 用户
     # 这样可以自动解决 "could not open file global/pg_filenode.map: Permission denied" 错误
     user: "0:0"
-    entrypoint: ["/bin/bash", "/postgresql-entrypoint.sh", "postgres"]
+    entrypoint: ["/bin/bash", "/postgresql-entrypoint.sh"]
+    # 设置 PostgreSQL 最大连接数为 10240（默认是 100）
+    # 注意：max_connections 需要根据系统资源调整，建议值：
+    # - 小型系统：200-300
+    # - 中型系统：500-800
+    # - 大型系统：1000+
+    # - 超大型系统：5000-10240
+    command: ["postgres", "-c", "max_connections=10240", "-c", "shared_buffers=256MB"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s

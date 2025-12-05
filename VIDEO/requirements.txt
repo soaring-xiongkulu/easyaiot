@@ -39,7 +39,7 @@ onvif-zeep==0.2.12
 # 任务调度
 APScheduler==3.10.4
 # Kafka消息队列
-kafka-python==2.0.2
+kafka-python==2.2.15
 # OCR识别
 paddlepaddle==3.2.0
 paddleocr==3.2.0

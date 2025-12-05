@@ -137,4 +137,18 @@ public class NotifyTemplateServiceImpl implements NotifyTemplateService {
         return StrUtil.format(content, params);
     }
 
+    @Override
+    public List<NotifyTemplateDO> listByType(Integer type) {
+        // type参数：如果为null，查询所有启用的模板；否则按type查询
+        com.basiclab.iot.common.core.query.LambdaQueryWrapperX<NotifyTemplateDO> wrapper = 
+                new com.basiclab.iot.common.core.query.LambdaQueryWrapperX<NotifyTemplateDO>()
+                        .eq(NotifyTemplateDO::getStatus, com.basiclab.iot.common.enums.CommonStatusEnum.ENABLE.getStatus());
+        
+        if (type != null) {
+            wrapper.eq(NotifyTemplateDO::getType, type);
+        }
+        
+        return notifyTemplateMapper.selectList(wrapper.orderByDesc(NotifyTemplateDO::getId));
+    }
+
 }

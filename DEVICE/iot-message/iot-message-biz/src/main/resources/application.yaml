@@ -99,9 +99,11 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: '*'
+        spring.json.value.default.type: com.basiclab.iot.message.domain.model.AlertNotificationMessage
     # Kafka Consumer Listener 监听器配置
     listener:
       missing-topics-fatal: false # 消费监听接口监听的主题不存在时，默认会报错。所以通过设置为 false ，解决报错
+      ack-mode: MANUAL # 手动确认模式，当监听器方法使用 Acknowledgment 参数时必须设置为 MANUAL
     # 告警通知相关配置
     alert-notification:
       topic: iot-alert-notification # 告警通知Kafka主题

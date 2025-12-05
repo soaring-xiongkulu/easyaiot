@@ -98,9 +98,6 @@ def _query_alert_notification_config(device_id: str) -> Optional[Dict]:
         dict: 告警通知配置，包含以下字段：
             - notify_users: 通知人列表（JSON格式）
             - notify_methods: 通知方式（逗号分隔，支持：sms,email,wxcp,http,ding,feishu）
-            - phone_number: 手机号（兼容旧字段）
-            - email: 邮箱（兼容旧字段）
-            - alarm_type: 告警类型（兼容旧字段）
         如果未找到配置或未开启告警，返回None
     """
     try:
@@ -131,9 +128,6 @@ def _query_alert_notification_config(device_id: str) -> Optional[Dict]:
                 'task_name': task.task_name,
                 'notify_users': task.notify_users,
                 'notify_methods': task.notify_methods,
-                'phone_number': task.phone_number,  # 兼容旧字段
-                'email': task.email,  # 兼容旧字段
-                'alarm_type': task.alarm_type,  # 兼容旧字段
                 'alarm_suppress_time': task.alarm_suppress_time
             }
             
@@ -152,16 +146,17 @@ def _query_alert_notification_config(device_id: str) -> Optional[Dict]:
             AlgorithmTask.devices
         ).filter(
             Device.id == device_id,
-            AlgorithmTask.alert_hook_enabled == True,
+            AlgorithmTask.alert_event_enabled == True,
+            AlgorithmTask.alert_notification_enabled == True,
             AlgorithmTask.is_enabled == True
         ).all()
         
-        # 如果找到开启告警Hook的算法任务，检查是否有通知配置
+        # 如果找到开启告警事件和告警通知的算法任务，检查是否有通知配置
         if algorithm_tasks:
             task = algorithm_tasks[0]
             # 检查是否有通知配置
-            if not task.notify_users and not task.notify_methods:
-                logger.debug(f"找到开启告警Hook的算法任务，但未配置通知: device_id={device_id}")
+            if not task.alert_notification_config:
+                logger.debug(f"找到开启告警事件和告警通知的算法任务，但未配置通知渠道和模板: device_id={device_id}")
                 return None
             
             # 检查抑制时间
@@ -173,12 +168,19 @@ def _query_alert_notification_config(device_id: str) -> Optional[Dict]:
                                f"time_since_last_notify={time_since_last_notify:.0f}秒")
                     return None
             
+            # 解析通知配置
+            notification_config_data = None
+            if task.alert_notification_config:
+                try:
+                    notification_config_data = json.loads(task.alert_notification_config) if isinstance(task.alert_notification_config, str) else task.alert_notification_config
+                except:
+                    logger.warning(f"解析告警通知配置失败: {task.alert_notification_config}")
+            
             # 组装通知配置
             config = {
                 'task_id': task.id,
                 'task_name': task.task_name,
-                'notify_users': task.notify_users,
-                'notify_methods': task.notify_methods,
+                'alert_notification_config': notification_config_data,
                 'alarm_suppress_time': task.alarm_suppress_time
             }
             
@@ -199,9 +201,37 @@ def _query_alert_notification_config(device_id: str) -> Optional[Dict]:
         return None
 
 
+def _get_notify_users_from_message_templates(channels: list) -> list:
+    """
+    从消息模板中获取通知人信息
+    
+    注意：告警通知使用的是系统通知模板（NotifyTemplate），而不是消息模板（TMsgMail等）。
+    系统通知模板不包含通知人信息，通知人信息应该从消息模板中获取。
+    但是，由于告警通知使用的是系统通知模板，我们需要通过其他方式获取通知人信息。
+    
+    Args:
+        channels: 通知渠道列表，格式：[{"method": "sms", "template_id": "xxx", "template_name": "xxx"}, ...]
+    
+    Returns:
+        list: 通知人列表，格式：[{"phone": "xxx"}, {"email": "xxx"}, ...]
+    """
+    notify_users = []
+    if not channels:
+        return notify_users
+    
+    # 注意：告警通知使用的是系统通知模板（NotifyTemplate），而不是消息模板（TMsgMail等）。
+    # 系统通知模板不包含通知人信息，所以这里暂时返回空列表。
+    # 通知人信息应该在配置告警通知时，从消息模板中获取并存储在 alert_notification_config 中。
+    # 或者，我们需要通过API调用消息服务来获取消息模板的通知人信息。
+    # 但是，由于告警通知使用的是系统通知模板，我们需要知道系统通知模板和消息模板的映射关系。
+    logger.debug(f"尝试从消息模板获取通知人，但告警通知使用的是系统通知模板，不包含通知人信息: channels={channels}")
+    
+    return notify_users
+
+
 def _build_notification_message(alert_record: Dict, alert_data: Dict, notification_config: Dict) -> Dict:
     """
-    构建告警通知消息
+    构建告警通知消息（使用驼峰命名以匹配 Java 端）
     
     Args:
         alert_record: 告警记录字典
@@ -211,49 +241,73 @@ def _build_notification_message(alert_record: Dict, alert_data: Dict, notificati
     Returns:
         dict: 通知消息字典
     """
+    # 从通知配置中提取渠道信息
+    alert_notification_config = notification_config.get('alert_notification_config')
+    channels = []
+    if alert_notification_config and isinstance(alert_notification_config, dict):
+        channels = alert_notification_config.get('channels', [])
+    
+    # 提取通知方式和模板信息
+    notify_methods = [ch.get('method') for ch in channels if ch.get('method')]
+    
     # 解析通知人列表
     notify_users = []
-    if notification_config.get('notify_users'):
+    notify_users_raw = notification_config.get('notify_users')
+    if notify_users_raw:
         try:
-            notify_users = json.loads(notification_config['notify_users']) if isinstance(notification_config['notify_users'], str) else notification_config['notify_users']
-        except:
-            logger.warning(f"解析通知人列表失败: {notification_config.get('notify_users')}")
+            if isinstance(notify_users_raw, str):
+                notify_users = json.loads(notify_users_raw)
+            elif isinstance(notify_users_raw, list):
+                notify_users = notify_users_raw
+        except Exception as e:
+            logger.warning(f"解析通知人列表失败: {str(e)}")
     
-    # 解析通知方式
-    notify_methods = []
-    if notification_config.get('notify_methods'):
-        notify_methods = [m.strip() for m in notification_config['notify_methods'].split(',') if m.strip()]
+    # 如果通知人列表为空，尝试从消息模板中获取（适用于AlgorithmTask）
+    if not notify_users and channels:
+        notify_users = _get_notify_users_from_message_templates(channels)
     
-    # 兼容旧字段：如果没有配置通知人和通知方式，使用旧的phone_number和email
-    if not notify_users and not notify_methods:
-        alarm_type = notification_config.get('alarm_type', 0)
-        if alarm_type == 0 or alarm_type == 2:  # 短信告警或短信+邮箱
-            if notification_config.get('phone_number'):
-                notify_methods.append('sms')
-                notify_users.extend([{'phone': phone.strip()} for phone in notification_config['phone_number'].split(',')])
-        if alarm_type == 1 or alarm_type == 2:  # 邮箱告警或短信+邮箱
-            if notification_config.get('email'):
-                notify_methods.append('email')
-                notify_users.extend([{'email': email.strip()} for email in notification_config['email'].split(',')])
+    # 如果通知人列表仍然为空，记录错误并跳过发送
+    if not notify_users:
+        logger.error(f"告警通知消息中没有通知人，跳过发送: alert_id={alert_record.get('id')}, "
+                     f"task_id={notification_config.get('task_id')}, "
+                     f"task_name={notification_config.get('task_name')}, "
+                     f"channels={channels}, "
+                     f"notification_config={notification_config}")
+        # 返回None，表示跳过发送
+        return None
     
-    # 构建通知消息
+    # 处理告警时间格式
+    alert_time = alert_record.get('time')
+    if alert_time:
+        if isinstance(alert_time, datetime):
+            alert_time = alert_time.strftime('%Y-%m-%d %H:%M:%S')
+        elif isinstance(alert_time, str):
+            # 如果已经是字符串，尝试格式化
+            try:
+                dt = datetime.strptime(alert_time, '%Y-%m-%d %H:%M:%S')
+                alert_time = dt.strftime('%Y-%m-%d %H:%M:%S')
+            except:
+                pass
+    
+    # 构建通知消息（使用驼峰命名以匹配 Java 端的 AlertNotificationMessage）
     message = {
-        'alert_id': alert_record.get('id'),
-        'task_id': notification_config.get('task_id'),
-        'task_name': notification_config.get('task_name'),
-        'device_id': alert_data.get('device_id'),
-        'device_name': alert_data.get('device_name'),
+        'alertId': alert_record.get('id'),  # 驼峰命名
+        'taskId': notification_config.get('task_id'),  # 驼峰命名
+        'taskName': notification_config.get('task_name'),  # 驼峰命名
+        'deviceId': alert_data.get('device_id'),  # 驼峰命名
+        'deviceName': alert_data.get('device_name'),  # 驼峰命名
         'alert': {
             'object': alert_data.get('object'),
             'event': alert_data.get('event'),
             'region': alert_data.get('region'),
             'information': alert_data.get('information'),
-            'image_path': alert_data.get('image_path'),
-            'record_path': alert_data.get('record_path'),
-            'time': alert_record.get('time')
+            'imagePath': alert_data.get('image_path'),  # 驼峰命名
+            'recordPath': alert_data.get('record_path'),  # 驼峰命名
+            'time': alert_time
         },
-        'notify_users': notify_users,
-        'notify_methods': notify_methods,
+        'channels': channels,  # 通知渠道和模板配置
+        'notifyMethods': notify_methods,  # 通知方式列表（驼峰命名，兼容旧接口）
+        'notifyUsers': notify_users,  # 通知人列表（驼峰命名）
         'timestamp': datetime.now().isoformat()
     }
     
@@ -297,6 +351,11 @@ def process_alert_hook(alert_data: Dict) -> Dict:
                 try:
                     # 构建通知消息
                     notification_message = _build_notification_message(alert_record, alert_data, notification_config)
+                    
+                    # 如果通知消息为None，说明通知人列表为空，跳过发送
+                    if notification_message is None:
+                        logger.warning(f"告警通知消息构建失败（通知人列表为空），跳过发送: alert_id={alert_record.get('id')}")
+                        return alert_record
                     
                     # 从Flask配置中获取Kafka主题
                     try:

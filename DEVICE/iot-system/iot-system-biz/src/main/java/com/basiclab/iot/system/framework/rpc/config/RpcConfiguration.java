@@ -2,6 +2,8 @@ package com.basiclab.iot.system.framework.rpc.config;
 
 import com.basiclab.iot.infra.api.file.FileApi;
 import com.basiclab.iot.infra.api.websocket.WebSocketSenderApi;
+import com.basiclab.iot.system.api.mail.MailTemplateApi;
+import com.basiclab.iot.system.api.notify.NotifyTemplateApi;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,6 +15,6 @@ import org.springframework.context.annotation.Configuration;
  * @wechat EasyAIoT2025
  */
 @Configuration(proxyBeanMethods = false)
-@EnableFeignClients(clients = {FileApi.class, WebSocketSenderApi.class})
+@EnableFeignClients(clients = {FileApi.class, WebSocketSenderApi.class, NotifyTemplateApi.class, MailTemplateApi.class})
 public class RpcConfiguration {
 }

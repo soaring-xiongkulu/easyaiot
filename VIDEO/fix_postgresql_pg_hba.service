@@ -1,0 +1,24 @@
+[Unit]
+Description=Auto-fix PostgreSQL pg_hba.conf on startup
+Documentation=file:///opt/projects/easyaiot/VIDEO/fix_postgresql_pg_hba_AUTO_START_README.md
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# 注意：安装脚本会自动更新 User 和 Group 为当前用户
+# 如果需要手动修改，请将 basiclab 替换为您的用户名
+User=basiclab
+Group=basiclab
+WorkingDirectory=/opt/projects/easyaiot/VIDEO
+ExecStart=/opt/projects/easyaiot/VIDEO/fix_postgresql_pg_hba_auto.sh
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=600
+
+# 如果服务失败，不重启（避免无限循环）
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
+

@@ -306,8 +306,8 @@ const [registerTable, {reload}] = useTable({
         }
       });
 
-      // 开始检查设备流状态
-      checkAllDevicesStreamStatus(data.data);
+      // 已禁用自动检查设备流状态
+      // checkAllDevicesStreamStatus(data.data);
     }
   }
 });
@@ -549,7 +549,8 @@ const handleCardToggleStream = async (record) => {
 
 // 组件挂载时启动状态检查定时器
 onMounted(() => {
-  startStatusCheckTimer();
+  // 已禁用自动状态检查定时器
+  // startStatusCheckTimer();
   // 处理路由参数，自动切换到指定tab
   const tab = route.query.tab as string;
   if (tab) {

@@ -1855,205 +1855,6 @@ check_filesystem_mount_status() {
     return 0  # 可写
 }
 
-# 检查磁盘空间
-check_disk_space() {
-    local path="$1"
-    local min_free_gb="${2:-1}"  # 默认至少需要 1GB 可用空间
-    local min_free_percent="${3:-10}"  # 默认至少需要 10% 可用空间
-    
-    if [ ! -e "$path" ]; then
-        # 如果路径不存在，检查父目录
-        path=$(dirname "$path" 2>/dev/null || echo "/")
-    fi
-    
-    local df_output=$(df -h "$path" 2>/dev/null | tail -1)
-    if [ -z "$df_output" ]; then
-        print_warning "无法获取路径 $path 的磁盘空间信息"
-        return 1
-    fi
-    
-    local total=$(echo "$df_output" | awk '{print $2}')
-    local used=$(echo "$df_output" | awk '{print $3}')
-    local available=$(echo "$df_output" | awk '{print $4}')
-    local use_percent=$(echo "$df_output" | awk '{print $5}' | sed 's/%//')
-    local filesystem=$(echo "$df_output" | awk '{print $1}')
-    local mount_point=$(echo "$df_output" | awk '{print $6}')
-    
-    # 提取可用空间的数值（GB）
-    local available_gb=0
-    if echo "$available" | grep -qiE "G|Gi"; then
-        available_gb=$(echo "$available" | sed 's/[^0-9.]//g' | awk '{print int($1)}')
-    elif echo "$available" | grep -qiE "M|Mi"; then
-        local available_mb=$(echo "$available" | sed 's/[^0-9.]//g' | awk '{print int($1)}')
-        available_gb=$((available_mb / 1024))
-    elif echo "$available" | grep -qiE "T|Ti"; then
-        local available_tb=$(echo "$available" | sed 's/[^0-9.]//g' | awk '{print int($1)}')
-        available_gb=$((available_tb * 1024))
-    fi
-    
-    # 计算可用空间百分比
-    local available_percent=$((100 - use_percent))
-    
-    print_info "磁盘空间检查: $mount_point ($filesystem)"
-    print_info "  总空间: $total"
-    print_info "  已用: $used (${use_percent}%)"
-    print_info "  可用: $available (${available_percent}%)"
-    
-    # 检查是否空间不足
-    local space_issue=0
-    if [ "$use_percent" -ge 100 ]; then
-        print_error "  磁盘空间已满（使用率 100%）"
-        space_issue=1
-    elif [ "$use_percent" -ge 95 ]; then
-        print_error "  磁盘空间严重不足（使用率 >= 95%）"
-        space_issue=1
-    elif [ "$use_percent" -ge 90 ]; then
-        print_warning "  磁盘空间不足（使用率 >= 90%）"
-        space_issue=1
-    elif [ "$available_percent" -lt "$min_free_percent" ]; then
-        print_warning "  可用空间百分比不足（${available_percent}% < ${min_free_percent}%）"
-        space_issue=1
-    elif [ "$available_gb" -lt "$min_free_gb" ]; then
-        print_warning "  可用空间不足（${available_gb}GB < ${min_free_gb}GB）"
-        space_issue=1
-    else
-        print_success "  磁盘空间充足"
-    fi
-    
-    if [ $space_issue -eq 1 ]; then
-        return 1
-    fi
-    
-    return 0
-}
-
-# 检查所有关键路径的磁盘空间
-check_all_disk_space() {
-    print_section "检查磁盘空间"
-    
-    local has_issue=0
-    local critical_paths=()
-    
-    # 检查 /run (tmpfs，Docker snap 使用)
-    if [ -d "/run" ]; then
-        print_info "检查 /run (tmpfs) 磁盘空间..."
-        if ! check_disk_space "/run" 1 10; then
-            print_error "/run (tmpfs) 空间不足，这可能导致 Docker 容器启动失败"
-            print_warning "解决方案："
-            print_info "  1. 清理 /run 目录中的临时文件"
-            print_info "  2. 重启系统以清理 tmpfs"
-            print_info "  3. 检查是否有大量临时文件占用空间"
-            critical_paths+=("/run")
-            has_issue=1
-        fi
-        echo ""
-    fi
-    
-    # 检查 Docker 数据目录
-    local docker_data_root=""
-    if [ -f /etc/docker/daemon.json ]; then
-        # 尝试从 daemon.json 读取 data-root
-        docker_data_root=$(python3 -c "import json; f=open('/etc/docker/daemon.json'); d=json.load(f); print(d.get('data-root', ''))" 2>/dev/null || echo "")
-    fi
-    
-    if [ -z "$docker_data_root" ]; then
-        # 默认路径
-        if [ -d "/var/lib/docker" ]; then
-            docker_data_root="/var/lib/docker"
-        elif [ -d "/var/snap/docker/common/var-lib-docker" ]; then
-            docker_data_root="/var/snap/docker/common/var-lib-docker"
-        fi
-    fi
-    
-    if [ -n "$docker_data_root" ] && [ -d "$docker_data_root" ]; then
-        print_info "检查 Docker 数据目录磁盘空间: $docker_data_root"
-        if ! check_disk_space "$docker_data_root" 5 15; then
-            print_error "Docker 数据目录空间不足，这可能导致容器启动失败"
-            print_warning "解决方案："
-            print_info "  1. 清理 Docker 未使用的资源: docker system prune -a"
-            print_info "  2. 清理 Docker 卷: docker volume prune"
-            print_info "  3. 清理 Docker 镜像: docker image prune -a"
-            print_info "  4. 检查并删除未使用的容器: docker container prune"
-            critical_paths+=("$docker_data_root")
-            has_issue=1
-        fi
-        echo ""
-    fi
-    
-    # 检查项目目录所在文件系统
-    if [ -n "$SCRIPT_DIR" ]; then
-        print_info "检查项目目录磁盘空间: $SCRIPT_DIR"
-        if ! check_disk_space "$SCRIPT_DIR" 2 10; then
-            print_error "项目目录空间不足，这可能导致数据目录创建失败"
-            print_warning "解决方案："
-            print_info "  1. 清理项目目录中的临时文件和日志"
-            print_info "  2. 清理旧的容器数据目录"
-            print_info "  3. 将项目迁移到空间更大的磁盘"
-            critical_paths+=("$SCRIPT_DIR")
-            has_issue=1
-        fi
-        echo ""
-    fi
-    
-    # 检查根文件系统
-    print_info "检查根文件系统磁盘空间: /"
-    if ! check_disk_space "/" 2 10; then
-        print_warning "根文件系统空间不足"
-        print_info "这可能会影响系统整体运行"
-        critical_paths+=("/")
-        has_issue=1
-    fi
-    echo ""
-    
-    if [ $has_issue -eq 1 ]; then
-        print_error "检测到磁盘空间问题！"
-        echo ""
-        print_warning "以下路径存在磁盘空间问题："
-        for path in "${critical_paths[@]}"; do
-            print_warning "  - $path"
-        done
-        echo ""
-        print_warning "建议在继续之前先解决磁盘空间问题，否则容器可能无法启动"
-        echo ""
-        
-        # 提供快速清理建议
-        print_section "快速清理建议"
-        print_info "1. 清理 Docker 未使用的资源（推荐）："
-        print_info "   docker system prune -a --volumes"
-        echo ""
-        print_info "2. 清理系统临时文件："
-        print_info "   sudo apt clean"
-        print_info "   sudo apt autoremove"
-        echo ""
-        print_info "3. 检查大文件："
-        print_info "   sudo du -h --max-depth=1 / | sort -hr | head -20"
-        echo ""
-        print_info "4. 清理日志文件："
-        print_info "   sudo journalctl --vacuum-time=7d"
-        echo ""
-        
-        while true; do
-            echo -ne "${YELLOW}[提示]${NC} 是否继续启动容器（可能会失败）？(y/N): "
-            read -r response
-            case "$response" in
-                [yY][eE][sS]|[yY])
-                    print_warning "继续启动容器，但可能会因为空间不足而失败"
-                    return 0
-                    ;;
-                [nN][oO]|[nN]|"")
-                    print_info "已取消启动，请先解决磁盘空间问题"
-                    exit 1
-                    ;;
-                *)
-                    print_warning "请输入 y 或 N"
-                    ;;
-            esac
-        done
-    else
-        print_success "所有关键路径的磁盘空间检查通过"
-        return 0
-    fi
-}
 
 # 创建所有中间件的存储目录
 create_all_storage_directories() {
@@ -2718,6 +2519,109 @@ EOF
         print_info "如果连接仍有问题，请重启 PostgreSQL 容器: docker restart postgres-server"
         return 1
     fi
+}
+
+# 配置 PostgreSQL max_connections（最大连接数）
+configure_postgresql_max_connections() {
+    print_section "配置 PostgreSQL 最大连接数"
+    
+    # 等待 PostgreSQL 就绪
+    if ! wait_for_postgresql; then
+        print_warning "PostgreSQL 未就绪，跳过 max_connections 配置"
+        return 1
+    fi
+    
+    # 目标最大连接数（可根据需要调整）
+    local target_max_connections=10240
+    
+    print_info "配置 PostgreSQL max_connections 为: $target_max_connections"
+    
+    # 检查当前 max_connections 配置
+    local current_max_conn=$(docker exec postgres-server psql -U postgres -d postgres -t -c "SHOW max_connections;" 2>/dev/null | tr -d ' ' || echo "")
+    
+    if [ -n "$current_max_conn" ] && [ "$current_max_conn" = "$target_max_connections" ]; then
+        print_success "PostgreSQL max_connections 已正确配置为: $target_max_connections"
+        return 0
+    fi
+    
+    if [ -n "$current_max_conn" ]; then
+        print_info "当前 max_connections: $current_max_conn，将更新为: $target_max_connections"
+    fi
+    
+    # 方法1: 通过修改 postgresql.conf 文件（需要重启容器才能生效）
+    local postgresql_conf_path="/var/lib/postgresql/data/postgresql.conf"
+    local pgdata_dir="/var/lib/postgresql/data/pgdata"
+    
+    # 如果使用 PGDATA 子目录，配置文件路径需要调整
+    if docker exec postgres-server test -f "$pgdata_dir/postgresql.conf" 2>/dev/null; then
+        postgresql_conf_path="$pgdata_dir/postgresql.conf"
+    fi
+    
+    # 备份配置文件
+    if docker exec postgres-server test -f "$postgresql_conf_path" 2>/dev/null; then
+        docker exec postgres-server cp "$postgresql_conf_path" "${postgresql_conf_path}.backup.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
+        print_info "已备份 postgresql.conf"
+    fi
+    
+    # 检查配置文件中是否已有 max_connections 设置
+    local has_max_conn=$(docker exec postgres-server grep -E "^max_connections\s*=" "$postgresql_conf_path" 2>/dev/null || echo "")
+    
+    if [ -n "$has_max_conn" ]; then
+        # 更新现有配置
+        print_info "更新现有 max_connections 配置..."
+        if docker exec postgres-server sed -i "s/^max_connections\s*=.*/max_connections = $target_max_connections/" "$postgresql_conf_path" 2>/dev/null; then
+            print_success "已更新 postgresql.conf 中的 max_connections 配置"
+        else
+            print_warning "更新配置文件失败，尝试使用 SQL 命令设置..."
+            # 使用 ALTER SYSTEM 命令（PostgreSQL 9.4+）
+            if docker exec postgres-server psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = $target_max_connections;" > /dev/null 2>&1; then
+                print_success "已通过 ALTER SYSTEM 命令设置 max_connections"
+                # 重新加载配置
+                docker exec postgres-server psql -U postgres -d postgres -c "SELECT pg_reload_conf();" > /dev/null 2>&1 || true
+                print_warning "注意：max_connections 的修改需要重启 PostgreSQL 容器才能完全生效"
+            else
+                print_error "无法设置 max_connections"
+                return 1
+            fi
+        fi
+    else
+        # 添加新配置
+        print_info "添加 max_connections 配置到 postgresql.conf..."
+        if docker exec postgres-server sh -c "echo '' >> $postgresql_conf_path && echo '# 最大连接数配置（由安装脚本自动添加）' >> $postgresql_conf_path && echo 'max_connections = $target_max_connections' >> $postgresql_conf_path" 2>/dev/null; then
+            print_success "已添加 max_connections 配置到 postgresql.conf"
+        else
+            # 使用 ALTER SYSTEM 命令作为备用方案
+            print_warning "添加配置到文件失败，尝试使用 ALTER SYSTEM 命令..."
+            if docker exec postgres-server psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = $target_max_connections;" > /dev/null 2>&1; then
+                print_success "已通过 ALTER SYSTEM 命令设置 max_connections"
+                # 重新加载配置
+                docker exec postgres-server psql -U postgres -d postgres -c "SELECT pg_reload_conf();" > /dev/null 2>&1 || true
+                print_warning "注意：max_connections 的修改需要重启 PostgreSQL 容器才能完全生效"
+            else
+                print_error "无法设置 max_connections"
+                return 1
+            fi
+        fi
+    fi
+    
+    # 注意：max_connections 需要重启容器才能生效
+    print_warning "重要提示：max_connections 的修改需要重启 PostgreSQL 容器才能完全生效"
+    print_info "当前配置已更新，但新值将在容器重启后生效"
+    print_info "如需立即生效，请执行: docker restart postgres-server"
+    
+    # 验证配置（虽然需要重启才能生效，但可以检查配置是否正确写入）
+    sleep 2
+    local verify_max_conn=$(docker exec postgres-server psql -U postgres -d postgres -t -c "SHOW max_connections;" 2>/dev/null | tr -d ' ' || echo "")
+    
+    if [ -n "$verify_max_conn" ]; then
+        if [ "$verify_max_conn" = "$target_max_connections" ]; then
+            print_success "max_connections 配置已生效: $verify_max_conn"
+        else
+            print_info "当前 max_connections: $verify_max_conn（配置已更新，重启容器后将变为: $target_max_connections）"
+        fi
+    fi
+    
+    return 0
 }
 
 # 等待 Nacos 服务就绪
@@ -4378,10 +4282,6 @@ install_middleware() {
     # 检查端口占用
     check_and_clean_ports
     
-    # 检查磁盘空间（在启动容器之前）
-    echo ""
-    check_all_disk_space
-    
     print_info "启动所有中间件服务..."
     if $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"; then
         print_success "容器启动命令执行完成"
@@ -4452,6 +4352,10 @@ install_middleware() {
     echo ""
     configure_postgresql_pg_hba
     
+    # 配置 PostgreSQL max_connections（最大连接数）
+    echo ""
+    configure_postgresql_max_connections
+    
     # 初始化数据库
     echo ""
     init_databases
@@ -4492,10 +4396,6 @@ start_middleware() {
     # 检查端口占用
     check_and_clean_ports
     
-    # 检查磁盘空间（在启动容器之前）
-    echo ""
-    check_all_disk_space
-    
     print_info "启动所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
     
@@ -4511,6 +4411,10 @@ start_middleware() {
     # 配置 PostgreSQL pg_hba.conf 允许从宿主机连接
     echo ""
     configure_postgresql_pg_hba
+    
+    # 配置 PostgreSQL max_connections（最大连接数）
+    echo ""
+    configure_postgresql_max_connections
 }
 
 # 停止所有中间件
@@ -4548,10 +4452,6 @@ restart_middleware() {
     prepare_srs_config
     prepare_emqx_volumes
     
-    # 检查磁盘空间（在启动容器之前）
-    echo ""
-    check_all_disk_space
-    
     print_info "重启所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" restart 2>&1 | tee -a "$LOG_FILE"
     
@@ -4567,6 +4467,10 @@ restart_middleware() {
     # 配置 PostgreSQL pg_hba.conf 允许从宿主机连接
     echo ""
     configure_postgresql_pg_hba
+    
+    # 配置 PostgreSQL max_connections（最大连接数）
+    echo ""
+    configure_postgresql_max_connections
 }
 
 # 查看所有中间件状态
@@ -4831,10 +4735,6 @@ update_middleware() {
     echo ""
     check_and_pull_images
     
-    # 检查磁盘空间（在启动容器之前）
-    echo ""
-    check_all_disk_space
-    
     print_info "重启所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
     
@@ -4910,6 +4810,7 @@ main() {
         fix-postgresql)
             ensure_postgresql_password
             configure_postgresql_pg_hba
+            configure_postgresql_max_connections
             ;;
         help|--help|-h)
             show_help

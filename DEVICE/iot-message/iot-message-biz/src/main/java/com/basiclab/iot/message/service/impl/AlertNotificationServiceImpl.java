@@ -8,10 +8,14 @@ import com.basiclab.iot.message.domain.model.vo.MessagePrepareVO;
 import com.basiclab.iot.message.sendlogic.MessageTypeEnum;
 import com.basiclab.iot.message.service.AlertNotificationService;
 import com.basiclab.iot.message.service.MessagePrepareService;
+import com.basiclab.iot.system.api.notify.NotifyTemplateApi;
+import com.basiclab.iot.system.api.notify.dto.NotifyTemplateRespDTO;
+import com.basiclab.iot.common.domain.CommonResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +37,9 @@ public class AlertNotificationServiceImpl implements AlertNotificationService {
 
     @Autowired
     private MessagePrepareService messagePrepareService;
+
+    @Resource
+    private NotifyTemplateApi notifyTemplateApi;
 
     /**
      * 通知方式到消息类型的映射表（优化：使用Map替代switch-case）
@@ -68,11 +75,13 @@ public class AlertNotificationServiceImpl implements AlertNotificationService {
     @Override
     public void processAlertNotification(AlertNotificationMessage notificationMessage) {
         try {
-            List<String> notifyMethods = notificationMessage.getNotifyMethods();
+            // 使用channels配置（新方式）
+            List<Map<String, Object>> channels = notificationMessage.getChannels();
             List<Map<String, Object>> notifyUsers = notificationMessage.getNotifyUsers();
 
-            if (notifyMethods == null || notifyMethods.isEmpty()) {
-                log.warn("告警通知消息中没有通知方式: alertId={}", notificationMessage.getAlertId());
+            // 检查channels配置
+            if (channels == null || channels.isEmpty()) {
+                log.warn("告警通知消息中没有通知渠道配置: alertId={}", notificationMessage.getAlertId());
                 return;
             }
 
@@ -81,17 +90,27 @@ public class AlertNotificationServiceImpl implements AlertNotificationService {
                 return;
             }
 
-            // 构建通知内容
-            String content = buildNotificationContent(notificationMessage);
-            String title = buildNotificationTitle(notificationMessage);
+            // 构建告警参数（用于模板替换）
+            Map<String, Object> templateParams = buildTemplateParams(notificationMessage);
 
-            // 根据通知方式发送通知
-            for (String method : notifyMethods) {
+            // 处理每个通知渠道
+            for (Map<String, Object> channel : channels) {
                 try {
+                    String method = (String) channel.get("method");
+                    Object templateIdObj = channel.get("template_id");
+                    if (method == null || templateIdObj == null) {
+                        log.warn("通知渠道配置不完整: method={}, template_id={}", method, templateIdObj);
+                        continue;
+                    }
+                    
+                    // 获取模板并格式化内容
+                    String content = getTemplateContent(templateIdObj, templateParams);
+                    String title = buildNotificationTitle(notificationMessage);
+                    
                     sendNotificationByMethod(method, notifyUsers, title, content, notificationMessage);
                 } catch (Exception e) {
-                    log.error("发送告警通知失败: method={}, alertId={}, error={}",
-                            method, notificationMessage.getAlertId(), e.getMessage(), e);
+                    log.error("发送告警通知失败: channel={}, alertId={}, error={}",
+                            channel, notificationMessage.getAlertId(), e.getMessage(), e);
                 }
             }
 
@@ -100,6 +119,104 @@ public class AlertNotificationServiceImpl implements AlertNotificationService {
                     notificationMessage.getAlertId(), e.getMessage(), e);
             throw e;
         }
+    }
+
+    /**
+     * 构建模板参数（用于${}占位符替换）
+     */
+    private Map<String, Object> buildTemplateParams(AlertNotificationMessage notificationMessage) {
+        Map<String, Object> params = new HashMap<>();
+        
+        AlertNotificationMessage.AlertInfo alert = notificationMessage.getAlert();
+        if (alert != null) {
+            params.put("object", alert.getObject());
+            params.put("event", alert.getEvent());
+            params.put("region", alert.getRegion() != null ? alert.getRegion() : "");
+            params.put("information", alert.getInformation() != null ? alert.getInformation().toString() : "");
+            params.put("time", alert.getTime() != null ? alert.getTime() : "");
+            params.put("image_path", alert.getImagePath() != null ? alert.getImagePath() : "");
+            params.put("record_path", alert.getRecordPath() != null ? alert.getRecordPath() : "");
+        }
+        
+        params.put("device_id", notificationMessage.getDeviceId());
+        params.put("device_name", notificationMessage.getDeviceName());
+        params.put("task_id", notificationMessage.getTaskId());
+        params.put("task_name", notificationMessage.getTaskName());
+        
+        return params;
+    }
+
+    /**
+     * 获取模板内容并格式化
+     */
+    private String getTemplateContent(Object templateIdObj, Map<String, Object> templateParams) {
+        try {
+            // 将template_id转换为Long
+            Long templateId = null;
+            if (templateIdObj instanceof Long) {
+                templateId = (Long) templateIdObj;
+            } else if (templateIdObj instanceof Integer) {
+                templateId = ((Integer) templateIdObj).longValue();
+            } else if (templateIdObj instanceof String) {
+                try {
+                    templateId = Long.parseLong((String) templateIdObj);
+                } catch (NumberFormatException e) {
+                    log.warn("模板ID格式错误: {}", templateIdObj);
+                    return buildDefaultContent(templateParams);
+                }
+            } else {
+                log.warn("模板ID类型不支持: {}", templateIdObj.getClass().getName());
+                return buildDefaultContent(templateParams);
+            }
+
+            // 通过API获取模板
+            CommonResult<NotifyTemplateRespDTO> result = notifyTemplateApi.getTemplate(templateId);
+            if (result != null && result.getCode() == 0 && result.getData() != null) {
+                NotifyTemplateRespDTO template = result.getData();
+                String templateContent = template.getContent();
+                
+                // 使用${}格式替换占位符
+                // 将模板中的${key}替换为实际值
+                String formattedContent = templateContent;
+                for (Map.Entry<String, Object> entry : templateParams.entrySet()) {
+                    String placeholder = "${" + entry.getKey() + "}";
+                    String value = entry.getValue() != null ? entry.getValue().toString() : "";
+                    formattedContent = formattedContent.replace(placeholder, value);
+                }
+                
+                return formattedContent;
+            } else {
+                log.warn("获取模板失败: templateId={}, result={}", templateId, result);
+                return buildDefaultContent(templateParams);
+            }
+            
+        } catch (Exception e) {
+            log.error("获取模板内容失败: templateId={}, error={}", templateIdObj, e.getMessage(), e);
+            return buildDefaultContent(templateParams);
+        }
+    }
+
+    /**
+     * 构建默认通知内容（当模板获取失败时使用）
+     */
+    private String buildDefaultContent(Map<String, Object> params) {
+        StringBuilder content = new StringBuilder();
+        content.append("【告警通知】\n");
+        content.append("设备名称: ").append(params.get("device_name")).append("\n");
+        content.append("设备ID: ").append(params.get("device_id")).append("\n");
+        if (params.get("object") != null) {
+            content.append("对象类型: ").append(params.get("object")).append("\n");
+        }
+        if (params.get("event") != null) {
+            content.append("事件类型: ").append(params.get("event")).append("\n");
+        }
+        if (params.get("region") != null && !params.get("region").toString().isEmpty()) {
+            content.append("区域: ").append(params.get("region")).append("\n");
+        }
+        if (params.get("time") != null && !params.get("time").toString().isEmpty()) {
+            content.append("告警时间: ").append(params.get("time")).append("\n");
+        }
+        return content.toString();
     }
 
     /**
@@ -349,41 +466,6 @@ public class AlertNotificationServiceImpl implements AlertNotificationService {
      */
     private String buildNotificationTitle(AlertNotificationMessage notificationMessage) {
         return String.format("告警通知-%s", notificationMessage.getDeviceName());
-    }
-
-    /**
-     * 构建通知内容
-     */
-    private String buildNotificationContent(AlertNotificationMessage notificationMessage) {
-        StringBuilder content = new StringBuilder();
-
-        AlertNotificationMessage.AlertInfo alert = notificationMessage.getAlert();
-        if (alert != null) {
-            content.append("【告警通知】\n");
-            content.append("设备名称: ").append(notificationMessage.getDeviceName()).append("\n");
-            content.append("设备ID: ").append(notificationMessage.getDeviceId()).append("\n");
-            content.append("对象类型: ").append(alert.getObject()).append("\n");
-            content.append("事件类型: ").append(alert.getEvent()).append("\n");
-
-            if (alert.getRegion() != null && !alert.getRegion().isEmpty()) {
-                content.append("区域: ").append(alert.getRegion()).append("\n");
-            }
-
-            if (alert.getTime() != null) {
-                content.append("告警时间: ").append(alert.getTime()).append("\n");
-            }
-
-            if (alert.getInformation() != null) {
-                content.append("详细信息: ").append(alert.getInformation()).append("\n");
-            }
-        } else {
-            content.append("【告警通知】\n");
-            content.append("设备: ").append(notificationMessage.getDeviceName())
-                   .append("(").append(notificationMessage.getDeviceId()).append(")\n");
-            content.append("发生告警，请及时处理。\n");
-        }
-
-        return content.toString();
     }
 }
 

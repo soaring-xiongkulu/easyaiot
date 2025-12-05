@@ -14,15 +14,15 @@
         <result column="modified_time" jdbcType="TIMESTAMP" property="modifiedTime"/>
         <result column="preview_user" jdbcType="VARCHAR" property="previewUser"/>
         <result column="title" jdbcType="VARCHAR" property="title"/>
-        <result column="imgUrl" jdbcType="VARCHAR" property="imgUrl"/>
-        <result column="btnTxt" jdbcType="VARCHAR" property="btnTxt"/>
-        <result column="btnUrl" jdbcType="VARCHAR" property="btnUrl"/>
+        <result column="img_url" jdbcType="VARCHAR" property="imgUrl"/>
+        <result column="btn_txt" jdbcType="VARCHAR" property="btnTxt"/>
+        <result column="btn_url" jdbcType="VARCHAR" property="btnUrl"/>
         <result column="url" jdbcType="VARCHAR" property="url"/>
         <result column="user_group_id" jdbcType="VARCHAR" property="userGroupId"/>
     </resultMap>
     <sql id="Base_Column_List">
         id, msg_type, msg_name, radio_type, ding_msg_type, agent_id, web_hook, content, create_time,
-    modified_time, preview_user,title,imgUrl,btnTxt,btnUrl,url,user_group_id
+    modified_time, preview_user,title,img_url,btn_txt,btn_url,url,user_group_id
     </sql>
     <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
         select
@@ -39,7 +39,7 @@
         insert into t_msg_ding (id, msg_type, msg_name,
                                 radio_type, ding_msg_type, agent_id,
                                 web_hook, content, create_time,
-                                modified_time, preview_user,title,imgUrl,btnTxt,btnUrl,url,user_group_id)
+                                modified_time, preview_user,title,img_url,btn_txt,btn_url,url,user_group_id)
         values (#{id,jdbcType=VARCHAR}, #{msgType,jdbcType=INTEGER}, #{msgName,jdbcType=VARCHAR},
                 #{radioType,jdbcType=VARCHAR}, #{dingMsgType,jdbcType=VARCHAR}, #{agentId,jdbcType=VARCHAR},
                 #{webHook,jdbcType=VARCHAR}, #{content,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP},
@@ -158,13 +158,13 @@
                 title = #{title,jdbcType=VARCHAR},
             </if>
             <if test="imgUrl != null">
-                imgUrl = #{imgUrl,jdbcType=VARCHAR},
+                img_url = #{imgUrl,jdbcType=VARCHAR},
             </if>
             <if test="btnTxt != null">
-                btnTxt = #{btnTxt,jdbcType=VARCHAR},
+                btn_txt = #{btnTxt,jdbcType=VARCHAR},
             </if>
             <if test="btnUrl != null">
-                btnUrl = #{btnUrl,jdbcType=VARCHAR},
+                btn_url = #{btnUrl,jdbcType=VARCHAR},
             </if>
             <if test="url != null">
                 url = #{url,jdbcType=VARCHAR},

@@ -6,6 +6,7 @@
 import datetime
 import io
 import logging
+import os
 import subprocess
 import threading
 import time
@@ -953,13 +954,102 @@ def refresh_devices():
 
 @camera_bp.route('/callback/on_publish', methods=['POST'])
 def on_publish_callback():
+    """SRS发布回调接口
+    当客户端尝试发布RTMP流时，SRS会调用此接口
+    如果检测到流已存在，会尝试停止旧的发布者，然后允许新的发布
+    
+    注意：此回调必须快速响应（建议<1秒），否则SRS可能会超时并拒绝推流
+    """
+    import threading
+    
+    # 立即返回允许推流，避免阻塞
+    # 流冲突检查在后台线程中异步执行
     try:
+        data = request.get_json()
+        if not data:
+            logger.debug("on_publish回调：请求数据为空，允许发布")
+            return jsonify({'code': 0, 'msg': None})
+        
+        # 从回调数据中提取流信息
+        stream_url = data.get('stream_url', '')  # 格式: /live/1764341204704370859
+        client_id = data.get('client_id', '')
+        app = data.get('app', '')
+        stream = data.get('stream', '')
+        
+        logger.debug(f"on_publish回调：收到推流请求 stream_url={stream_url}, client_id={client_id}, app={app}, stream={stream}")
+        
+        if not stream_url:
+            logger.debug(f"on_publish回调：流URL为空，允许发布 client_id={client_id}")
+            return jsonify({'code': 0, 'msg': None})
+        
+        # 在后台线程中异步检查并处理流冲突，避免阻塞回调响应
+        def check_and_stop_existing_stream_async():
+            try:
+                # 从stream_url提取流路径: /live/1764341204704370859 -> live/1764341204704370859
+                stream_path = stream_url.lstrip('/')
+                
+                # 获取SRS服务器地址（从环境变量或使用默认值）
+                srs_host = os.getenv('SRS_HOST', 'localhost')
+                srs_api_url = f"http://{srs_host}:1985/api/v1/streams/"
+                
+                # 获取所有流（使用较短的超时时间）
+                try:
+                    response = requests.get(srs_api_url, timeout=1)
+                    if response.status_code == 200:
+                        streams = response.json()
+                        
+                        # 查找匹配的流
+                        stream_list = []
+                        if isinstance(streams, dict) and 'streams' in streams:
+                            stream_list = streams['streams']
+                        elif isinstance(streams, list):
+                            stream_list = streams
+                        
+                        for existing_stream in stream_list:
+                            stream_app = existing_stream.get('app', '')
+                            stream_stream = existing_stream.get('stream', '')
+                            full_stream_path = f"{stream_app}/{stream_stream}" if stream_stream else stream_app
+                            
+                            # 检查是否匹配当前流
+                            if stream_path == full_stream_path or stream_path.endswith(full_stream_path) or full_stream_path.endswith(stream_path):
+                                publish_info = existing_stream.get('publish', {})
+                                publish_cid = publish_info.get('cid', '') if isinstance(publish_info, dict) else None
+                                
+                                # 如果已有发布者且不是当前客户端，尝试停止旧的发布者
+                                if publish_cid and publish_cid != client_id:
+                                    logger.warning(f"on_publish回调：检测到流 {stream_path} 已有发布者 (client_id={publish_cid})，尝试停止...")
+                                    
+                                    # 尝试断开发布者客户端连接
+                                    client_api_url = f"http://{srs_host}:1985/api/v1/clients/{publish_cid}"
+                                    try:
+                                        stop_response = requests.delete(client_api_url, timeout=1)
+                                        if stop_response.status_code in [200, 204]:
+                                            logger.info(f"on_publish回调：已停止旧的发布者 {publish_cid}，允许新发布")
+                                        else:
+                                            logger.warning(f"on_publish回调：停止旧发布者失败 (状态码: {stop_response.status_code})")
+                                    except Exception as e:
+                                        logger.warning(f"on_publish回调：停止旧发布者异常: {str(e)}")
+                                
+                                break
+                except requests.exceptions.Timeout:
+                    logger.debug(f"on_publish回调：检查现有流超时，跳过检查")
+                except Exception as e:
+                    logger.debug(f"on_publish回调：检查现有流时出错: {str(e)}")
+            except Exception as e:
+                logger.debug(f"on_publish回调：异步检查流冲突时出错: {str(e)}")
+        
+        # 启动后台线程处理流冲突检查（不阻塞回调响应）
+        threading.Thread(target=check_and_stop_existing_stream_async, daemon=True).start()
+        
+        # 立即返回允许发布（不等待流冲突检查完成）
         return jsonify({
             'code': 0,
             'msg': None
         })
-    except:
-        pass
+    except Exception as e:
+        logger.error(f"on_publish回调异常: {str(e)}", exc_info=True)
+        # 发生异常时也允许发布，避免影响正常流程
+        return jsonify({'code': 0, 'msg': None})
 
 
 def extract_thumbnail_from_video(video_path, output_path=None, frame_position=0.1):
@@ -974,9 +1064,69 @@ def extract_thumbnail_from_video(video_path, output_path=None, frame_position=0.
         如果output_path为None，返回图像数据（numpy array），否则返回True/False
     """
     try:
-        cap = cv2.VideoCapture(video_path)
-        if not cap.isOpened():
-            logger.error(f"无法打开视频文件: {video_path}")
+        # 检查文件是否存在
+        if not os.path.exists(video_path):
+            logger.error(f"视频文件不存在: {video_path}")
+            return None if output_path is None else False
+        
+        # 检查文件是否可读
+        if not os.access(video_path, os.R_OK):
+            logger.error(f"视频文件不可读: {video_path}")
+            return None if output_path is None else False
+        
+        # 确保文件已完全写入（等待文件大小稳定）
+        max_wait_attempts = 5
+        wait_interval = 0.3
+        for attempt in range(max_wait_attempts):
+            try:
+                size1 = os.path.getsize(video_path)
+                time.sleep(wait_interval)
+                size2 = os.path.getsize(video_path)
+                if size1 == size2 and size1 > 0:
+                    break
+            except OSError:
+                pass
+            if attempt == max_wait_attempts - 1:
+                logger.warning(f"视频文件可能仍在写入中: {video_path}")
+        
+        # 将路径转换为绝对路径
+        abs_video_path = os.path.abspath(video_path)
+        
+        # 尝试多种方式打开视频文件
+        cap = None
+        backends_to_try = [
+            (cv2.CAP_FFMPEG, "FFMPEG"),
+            (cv2.CAP_ANY, "ANY"),  # 自动选择后端
+        ]
+        
+        for backend, backend_name in backends_to_try:
+            try:
+                if backend == cv2.CAP_FFMPEG:
+                    # 对于FFMPEG，使用文件路径字符串
+                    cap = cv2.VideoCapture(abs_video_path, backend)
+                else:
+                    # 对于其他后端，直接使用路径
+                    cap = cv2.VideoCapture(abs_video_path, backend)
+                
+                if cap and cap.isOpened():
+                    # 尝试读取一帧来验证文件是否真的可读
+                    test_ret, _ = cap.read()
+                    if test_ret:
+                        # 重置到开头
+                        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                        logger.debug(f"成功使用{backend_name}后端打开视频: {abs_video_path}")
+                        break
+                    else:
+                        cap.release()
+                        cap = None
+            except Exception as e:
+                if cap:
+                    cap.release()
+                cap = None
+                logger.debug(f"使用{backend_name}后端打开视频失败: {abs_video_path}, error={str(e)}")
+        
+        if not cap or not cap.isOpened():
+            logger.error(f"无法打开视频文件（已尝试多种后端）: {abs_video_path}")
             return None if output_path is None else False
         
         # 获取视频总帧数
@@ -1111,7 +1261,7 @@ def on_dvr_callback():
             return jsonify({'code': 0, 'msg': None})
         
         # 记录完整的回调数据用于调试
-        logger.info(f"on_dvr回调：收到回调数据 {data}")
+        logger.debug(f"on_dvr回调：收到回调数据 {data}")
         
         # 从回调数据中提取信息
         # SRS回调数据结构示例：
@@ -1143,7 +1293,7 @@ def on_dvr_callback():
                 device = Device.query.get(potential_device_id)
                 if device:
                     device_id = potential_device_id
-                    logger.info(f"on_dvr回调：从流名称中提取设备ID stream={stream}, device_id={device_id}")
+                    logger.debug(f"on_dvr回调：从流名称中提取设备ID stream={stream}, device_id={device_id}")
         
         # 如果还是找不到，尝试通过rtmp_stream字段匹配设备
         # 查询rtmp_stream包含该流名称的设备
@@ -1165,7 +1315,7 @@ def on_dvr_callback():
                 ).first()
                 if device:
                     device_id = device.id
-                    logger.info(f"on_dvr回调：通过rtmp_stream匹配到设备 stream={stream}, device_id={device_id}, pattern={pattern}")
+                    logger.debug(f"on_dvr回调：通过rtmp_stream匹配到设备 stream={stream}, device_id={device_id}, pattern={pattern}")
                     break
         
         # 如果仍然找不到，尝试从文件路径中提取设备ID
@@ -1182,7 +1332,7 @@ def on_dvr_callback():
                         device = Device.query.get(potential_id)
                         if device:
                             device_id = potential_id
-                            logger.info(f"on_dvr回调：从文件路径中提取设备ID file_path={file_path}, device_id={device_id}")
+                            logger.debug(f"on_dvr回调：从文件路径中提取设备ID file_path={file_path}, device_id={device_id}")
                             break
                         # 如果作为设备ID找不到，尝试通过rtmp_stream匹配
                         if not device:
@@ -1192,14 +1342,14 @@ def on_dvr_callback():
                                 ).first()
                                 if device:
                                     device_id = device.id
-                                    logger.info(f"on_dvr回调：从文件路径中通过rtmp_stream匹配到设备 file_path={file_path}, stream={potential_id}, device_id={device_id}, pattern={pattern}")
+                                    logger.debug(f"on_dvr回调：从文件路径中通过rtmp_stream匹配到设备 file_path={file_path}, stream={potential_id}, device_id={device_id}, pattern={pattern}")
                                     break
                         if device:
                             break
             except Exception as e:
-                logger.info(f"on_dvr回调：从文件路径提取设备ID失败 file_path={file_path}, error={str(e)}")
+                logger.debug(f"on_dvr回调：从文件路径提取设备ID失败 file_path={file_path}, error={str(e)}")
         
-        logger.info(f"on_dvr回调：开始处理录像 device_id={device_id}, stream={stream}, file_path={file_path}")
+        logger.debug(f"on_dvr回调：开始处理录像 device_id={device_id}, stream={stream}, file_path={file_path}")
         
         # 如果仍然找不到设备，记录警告并返回
         if not device:
@@ -1210,14 +1360,14 @@ def on_dvr_callback():
         record_space = get_record_space_by_device_id(device_id)
         if not record_space:
             try:
-                logger.info(f"on_dvr回调：为设备 {device_id} 创建录像空间")
+                logger.debug(f"on_dvr回调：为设备 {device_id} 创建录像空间")
                 record_space = create_record_space_for_device(device_id, device.name)
-                logger.info(f"on_dvr回调：录像空间创建成功 space_id={record_space.id}, bucket_name={record_space.bucket_name}")
+                logger.debug(f"on_dvr回调：录像空间创建成功 space_id={record_space.id}, bucket_name={record_space.bucket_name}")
             except Exception as e:
                 logger.error(f"on_dvr回调：创建设备录像空间失败 device_id={device_id}, error={str(e)}", exc_info=True)
                 return jsonify({'code': 0, 'msg': None})
         else:
-            logger.info(f"on_dvr回调：使用现有录像空间 space_id={record_space.id}, bucket_name={record_space.bucket_name}")
+            logger.debug(f"on_dvr回调：使用现有录像空间 space_id={record_space.id}, bucket_name={record_space.bucket_name}")
         
         # 处理文件路径：可能是绝对路径，也可能是相对路径（需要结合cwd）
         cwd = data.get('cwd', '')
@@ -1231,7 +1381,7 @@ def on_dvr_callback():
             # 如果既不是绝对路径，也没有cwd，尝试直接使用
             absolute_file_path = file_path
         
-        logger.info(f"on_dvr回调：处理后的文件路径 absolute_file_path={absolute_file_path}, cwd={cwd}, original_file={file_path}")
+        logger.debug(f"on_dvr回调：处理后的文件路径 absolute_file_path={absolute_file_path}, cwd={cwd}, original_file={file_path}")
         
         # 等待文件创建完成（SRS可能在回调时文件还在写入中）
         max_retries = 10
@@ -1250,11 +1400,11 @@ def on_dvr_callback():
                         # 文件大小稳定且不为0，说明文件已创建完成
                         file_exists = True
                         file_size = size1
-                        logger.info(f"on_dvr回调：文件已就绪 file_path={absolute_file_path}, size={file_size} bytes, attempts={attempt + 1}")
+                        logger.debug(f"on_dvr回调：文件已就绪 file_path={absolute_file_path}, size={file_size} bytes, attempts={attempt + 1}")
                         break
                 except OSError as e:
                     # 文件可能还在创建中，继续等待
-                    logger.info(f"on_dvr回调：文件可能还在创建中 attempt={attempt + 1}, error={str(e)}")
+                    logger.debug(f"on_dvr回调：文件可能还在创建中 attempt={attempt + 1}, error={str(e)}")
                     pass
             
             if attempt < max_retries - 1:
@@ -1268,7 +1418,7 @@ def on_dvr_callback():
         # 文件路径格式：/data/playbacks/live/{device_id}/{year}/{month}/{day}/{filename}
         # 例如：/data/playbacks/live/1764341204704370850/2025/11/28/1764352410083.flv
         path_parts = absolute_file_path.split(os.sep)
-        logger.info(f"on_dvr回调：路径解析 path_parts={path_parts}")
+        logger.debug(f"on_dvr回调：路径解析 path_parts={path_parts}")
         
         # 查找设备ID在路径中的位置，然后提取日期部分
         # 路径结构：['', 'data', 'playbacks', 'live', device_id, year, month, day, filename]
@@ -1309,7 +1459,7 @@ def on_dvr_callback():
                 try:
                     file_mtime = os.path.getmtime(absolute_file_path)
                     record_time = datetime.fromtimestamp(file_mtime)
-                    logger.info(f"on_dvr回调：使用文件修改时间作为record_time date_dir={date_dir}, record_time={record_time}")
+                    logger.debug(f"on_dvr回调：使用文件修改时间作为record_time date_dir={date_dir}, record_time={record_time}")
                 except (OSError, ValueError):
                     # 如果获取文件修改时间失败，使用从路径解析的日期
                     try:
@@ -1346,7 +1496,7 @@ def on_dvr_callback():
         
         # 构建MinIO对象名称：device_id/YYYY/MM/DD/filename
         object_name = f"{device_id}/{date_dir}/{filename}"
-        logger.info(f"on_dvr回调：准备上传到MinIO bucket={record_space.bucket_name}, object_name={object_name}, file_size={file_size} bytes")
+        logger.debug(f"on_dvr回调：准备上传到MinIO bucket={record_space.bucket_name}, object_name={object_name}, file_size={file_size} bytes")
         
         # 上传到MinIO
         minio_client = get_minio_client()
@@ -1356,7 +1506,7 @@ def on_dvr_callback():
         if not minio_client.bucket_exists(bucket_name):
             try:
                 minio_client.make_bucket(bucket_name)
-                logger.info(f"on_dvr回调：创建MinIO bucket {bucket_name}")
+                logger.debug(f"on_dvr回调：创建MinIO bucket {bucket_name}")
             except Exception as e:
                 logger.error(f"on_dvr回调：创建MinIO bucket失败 bucket_name={bucket_name}, error={str(e)}", exc_info=True)
                 return jsonify({'code': 0, 'msg': None})
@@ -1369,12 +1519,14 @@ def on_dvr_callback():
                 absolute_file_path,
                 content_type=content_type
             )
-            logger.info(f"on_dvr回调：录像上传成功 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, file_size={file_size} bytes")
+            logger.debug(f"on_dvr回调：录像上传成功 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, file_size={file_size} bytes")
             
             # 抽取视频封面
             thumbnail_path = None
             try:
-                logger.info(f"on_dvr回调：开始抽取视频封面 video_path={absolute_file_path}")
+                # 在抽取封面之前，再次确保文件已完全写入（FLV文件可能需要更多时间）
+                time.sleep(0.5)  # 额外等待0.5秒，确保文件完全写入
+                logger.debug(f"on_dvr回调：开始抽取视频封面 video_path={absolute_file_path}")
                 frame = extract_thumbnail_from_video(absolute_file_path, output_path=None, frame_position=0.1)
                 
                 if frame is not None:
@@ -1401,7 +1553,7 @@ def on_dvr_callback():
                             )
                             # 构建封面的URL格式：/api/v1/buckets/{bucket_name}/objects/download?prefix={thumbnail_object_name}
                             thumbnail_path = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={quote(thumbnail_object_name, safe='')}"
-                            logger.info(f"on_dvr回调：封面上传成功 device_id={device_id}, thumbnail_path={thumbnail_path}")
+                            logger.debug(f"on_dvr回调：封面上传成功 device_id={device_id}, thumbnail_path={thumbnail_path}")
                         finally:
                             # 删除临时文件
                             try:
@@ -1469,7 +1621,7 @@ def on_dvr_callback():
                     shanghai_tz = timezone(timedelta(hours=8))
                     existing_playback.updated_at = datetime.now(shanghai_tz)
                     db.session.commit()
-                    logger.info(f"on_dvr回调：更新Playback记录 playback_id={existing_playback.id}, file_path={file_path_url}, thumbnail_path={thumbnail_path}")
+                    logger.debug(f"on_dvr回调：更新Playback记录 playback_id={existing_playback.id}, file_path={file_path_url}, thumbnail_path={thumbnail_path}")
                 else:
                     # 创建新记录
                     # 使用带时区的本地时间（Asia/Shanghai，UTC+8）
@@ -1488,7 +1640,7 @@ def on_dvr_callback():
                     )
                     db.session.add(playback)
                     db.session.commit()
-                    logger.info(f"on_dvr回调：创建Playback记录 playback_id={playback.id}, file_path={file_path_url}, thumbnail_path={thumbnail_path}")
+                    logger.debug(f"on_dvr回调：创建Playback记录 playback_id={playback.id}, file_path={file_path_url}, thumbnail_path={thumbnail_path}")
             except Exception as e:
                 logger.error(f"on_dvr回调：创建/更新Playback记录失败 device_id={device_id}, error={str(e)}", exc_info=True)
                 db.session.rollback()
@@ -1511,7 +1663,7 @@ def on_dvr_callback():
             logger.error(f"on_dvr回调：上传录像失败 device_id={device_id}, bucket={bucket_name}, object_name={object_name}, error={str(e)}", exc_info=True)
             return jsonify({'code': 0, 'msg': None})
         
-        logger.info(f"on_dvr回调：处理完成 device_id={device_id}, object_name={object_name}, thumbnail_path={thumbnail_path}")
+        logger.debug(f"on_dvr回调：处理完成 device_id={device_id}, object_name={object_name}, thumbnail_path={thumbnail_path}")
         return jsonify({'code': 0, 'msg': None})
         
     except Exception as e:

@@ -574,13 +574,12 @@ class AlgorithmTask(db.Model):
     tracking_max_age = db.Column(db.Integer, default=25, nullable=False, comment='追踪目标最大存活帧数')
     tracking_smooth_alpha = db.Column(db.Float, default=0.25, nullable=False, comment='追踪平滑系数')
     
-    # 告警配置
-    alert_hook_url = db.Column(db.String(500), nullable=True, comment='告警Hook HTTP接口地址')
-    alert_hook_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否启用告警Hook')
+    # 告警事件配置
+    alert_event_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否启用告警事件')
     
-    # 通知配置（新增）
-    notify_users = db.Column(db.Text, nullable=True, comment='通知人列表（JSON格式，包含用户ID、姓名、手机号、邮箱等）')
-    notify_methods = db.Column(db.String(100), nullable=True, comment='通知方式（多个用逗号分割）：sms:短信,email:邮件,wxcp/wechat:企业微信,http/webhook:HTTP请求,ding/dingtalk:钉钉,feishu/lark:飞书')
+    # 告警通知配置
+    alert_notification_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否启用告警通知')
+    alert_notification_config = db.Column(db.Text, nullable=True, comment='告警通知配置（JSON格式，包含通知渠道和模板配置，格式：{"channels": [{"method": "sms", "template_id": "xxx", "template_name": "xxx"}, ...]}）')
     alarm_suppress_time = db.Column(db.Integer, default=300, nullable=False, comment='告警通知抑制时间（秒），防止频繁通知，默认5分钟')
     last_notify_time = db.Column(db.DateTime, nullable=True, comment='最后通知时间')
     
@@ -658,10 +657,9 @@ class AlgorithmTask(db.Model):
             'tracking_similarity_threshold': self.tracking_similarity_threshold,
             'tracking_max_age': self.tracking_max_age,
             'tracking_smooth_alpha': self.tracking_smooth_alpha,
-            'alert_hook_url': self.alert_hook_url,
-            'alert_hook_enabled': self.alert_hook_enabled,
-            'notify_users': json.loads(self.notify_users) if self.notify_users else None,
-            'notify_methods': self.notify_methods,
+            'alert_event_enabled': self.alert_event_enabled,
+            'alert_notification_enabled': self.alert_notification_enabled,
+            'alert_notification_config': json.loads(self.alert_notification_config) if self.alert_notification_config else None,
             'alarm_suppress_time': self.alarm_suppress_time,
             'last_notify_time': self.last_notify_time.isoformat() if self.last_notify_time else None,
             'space_id': self.space_id,

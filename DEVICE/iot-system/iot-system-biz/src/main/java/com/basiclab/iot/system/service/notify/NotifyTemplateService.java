@@ -6,6 +6,7 @@ import com.basiclab.iot.system.controller.admin.notify.vo.template.NotifyTemplat
 import com.basiclab.iot.system.dal.dataobject.notify.NotifyTemplateDO;
 
 import javax.validation.Valid;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -71,5 +72,13 @@ public interface NotifyTemplateService {
      * @return 格式化后的内容
      */
     String formatNotifyTemplateContent(String content, Map<String, Object> params);
+
+    /**
+     * 根据类型查询通知模板列表
+     *
+     * @param type 模板类型
+     * @return 通知模板列表
+     */
+    List<NotifyTemplateDO> listByType(Integer type);
 
 }

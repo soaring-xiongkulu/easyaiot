@@ -475,6 +475,17 @@ def create_app():
                 # 忽略消费者未运行或已关闭的异常
                 pass
         atexit.register(safe_shutdown_consumer)
+        
+        # 安全关闭所有算法任务守护进程
+        def safe_shutdown_daemons():
+            try:
+                from app.services.algorithm_task_launcher_service import stop_all_daemons
+                stop_all_daemons()
+                print('✅ 所有算法任务守护进程已安全关闭')
+            except Exception as e:
+                # 忽略守护进程未运行或已关闭的异常
+                print(f'⚠️  关闭守护进程时出错: {str(e)}')
+        atexit.register(safe_shutdown_daemons)
 
     # 应用启动后自动启动需要推流的设备
     with app.app_context():

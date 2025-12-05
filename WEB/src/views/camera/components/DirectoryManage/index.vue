@@ -450,7 +450,8 @@ const [registerTable, { reload: reloadDeviceTable }] = useTable({
         });
         
         // 检查设备流状态
-        checkAllDevicesStreamStatus(filteredData);
+        // 已禁用自动检查设备流状态
+        // checkAllDevicesStreamStatus(filteredData);
         
         return {
           data: devicesWithStatus,

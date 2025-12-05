@@ -68,19 +68,37 @@ def get_kafka_consumer():
     
     # 尝试初始化
     try:
+        import socket
+        import uuid
+        # 生成唯一的消费者实例ID，避免重复加入组
+        hostname = socket.gethostname()
+        instance_id = f"{hostname}-{uuid.uuid4().hex[:8]}"
+        
         _consumer = KafkaConsumer(
             kafka_topic,
             bootstrap_servers=bootstrap_servers.split(','),
             group_id=consumer_group,
+            # 使用唯一的消费者实例ID，避免重复加入组导致频繁重新平衡
+            client_id=instance_id,
             value_deserializer=lambda m: json.loads(m.decode('utf-8')),
             key_deserializer=lambda k: k.decode('utf-8') if k else None,
-            auto_offset_reset='latest',  # 从最新消息开始消费
+            auto_offset_reset='latest',  # 从最新消息开始消费（只消费新消息，不消费历史消息）
+            # 优化会话和心跳配置，减少重新平衡频率
+            # 心跳间隔应该小于会话超时的1/3，确保及时发送心跳
+            session_timeout_ms=60000,  # 60秒会话超时（增加以容忍网络延迟）
+            heartbeat_interval_ms=10000,  # 10秒心跳间隔（小于session_timeout_ms/3）
+            max_poll_records=10,  # 每次最多拉取10条消息
+            max_poll_interval_ms=300000,  # 5分钟最大处理间隔
             enable_auto_commit=True,
-            auto_commit_interval_ms=1000,
+            auto_commit_interval_ms=5000,  # 5秒自动提交间隔（增加以减少提交频率）
             consumer_timeout_ms=1000,  # 1秒超时，避免阻塞
+            # 连接和元数据配置
+            # request_timeout_ms 必须大于 session_timeout_ms
+            request_timeout_ms=100000,  # 100秒请求超时（必须大于 session_timeout_ms=60000）
+            metadata_max_age_ms=300000,  # 5分钟元数据缓存
             api_version=(2, 5, 0),
         )
-        logger.info(f"Kafka消费者初始化成功: topic={kafka_topic}, group={consumer_group}, servers={bootstrap_servers}")
+        logger.info(f"Kafka消费者初始化成功: topic={kafka_topic}, group={consumer_group}, instance_id={instance_id}, servers={bootstrap_servers}")
         _consumer_init_failed = False
     except Exception as e:
         _consumer = None
@@ -339,12 +357,37 @@ def process_alert_message(message: Dict):
     处理告警消息：上传图片到MinIO并更新数据库
     注意：告警记录已经在alert_hook_service中先插入数据库，这里只负责上传图片
     
+    支持两种消息格式：
+    1. 通知消息格式（来自alert_hook_service）：
+       {
+           'alertId': ...,
+           'alert': {
+               'imagePath': ...,
+               ...
+           },
+           'deviceId': ...
+       }
+    2. 告警消息格式（旧格式）：
+       {
+           'id': ...,
+           'image_path': ...,
+           'device_id': ...
+       }
+    
     Args:
         message: Kafka消息内容（字典格式）
     """
     try:
-        alert_id = message.get('id')
-        image_path = message.get('image_path')
+        # 支持两种消息格式
+        # 格式1：通知消息（alertId, alert.imagePath）
+        alert_id = message.get('alertId') or message.get('id')
+        
+        # 从通知消息的 alert 对象中获取图片路径
+        alert_obj = message.get('alert', {})
+        image_path = alert_obj.get('imagePath') or alert_obj.get('image_path') or message.get('image_path')
+        
+        # 获取设备ID
+        device_id = message.get('deviceId') or message.get('device_id', 'unknown')
         
         if not alert_id:
             logger.warning(f"告警消息缺少ID字段: {message}")
@@ -366,7 +409,6 @@ def process_alert_message(message: Dict):
                     return
         
         # 上传图片到MinIO（如果不在等待期内）
-        device_id = message.get('device_id', 'unknown')
         minio_path = upload_image_to_minio(image_path, alert_id, device_id)
         
         if minio_path:
@@ -397,10 +439,11 @@ def process_alert_message(message: Dict):
 
 def consume_alert_messages():
     """消费Kafka告警消息的主循环"""
-    global _consumer_running
+    global _consumer_running, _consumer
     
     logger.info("开始消费Kafka告警消息...")
     _consumer_running = True
+    message_count = 0  # 消息计数器
     
     while _consumer_running:
         try:
@@ -410,38 +453,106 @@ def consume_alert_messages():
                 time.sleep(10)
                 continue
             
-            # 消费消息（带超时，避免阻塞）
-            for message in consumer:
-                if not _consumer_running:
-                    break
+            # 使用poll方式消费消息，避免generator already executing错误
+            # consumer_timeout_ms设置为1000ms，超时后返回空字典，不会阻塞
+            try:
+                message_pack = consumer.poll(timeout_ms=1000)
                 
-                try:
-                    # 解析消息
-                    message_value = message.value
-                    if isinstance(message_value, dict):
-                        logger.debug(f"收到告警消息: alert_id={message_value.get('id')}")
-                        process_alert_message(message_value)
-                    else:
-                        logger.warning(f"收到非字典格式的消息: {type(message_value)}")
-                except Exception as e:
-                    logger.error(f"处理消息失败: {str(e)}", exc_info=True)
-                    # 继续处理下一条消息，不中断消费
+                if not message_pack:
+                    # 没有消息，继续循环
                     continue
+                
+                # 处理收到的消息
+                for topic_partition, messages in message_pack.items():
+                    if not _consumer_running:
+                        break
+                    
+                    logger.debug(f"收到 {len(messages)} 条消息: topic={topic_partition.topic}, partition={topic_partition.partition}")
+                    
+                    for message in messages:
+                        if not _consumer_running:
+                            break
+                        
+                        try:
+                            # 解析消息
+                            message_value = message.value
+                            if isinstance(message_value, dict):
+                                # 支持两种消息格式：通知消息（alertId）和告警消息（id）
+                                alert_id = message_value.get('alertId') or message_value.get('id')
+                                message_count += 1
+                                logger.info(f"收到告警消息 #{message_count}: alert_id={alert_id}, topic={topic_partition.topic}, partition={topic_partition.partition}, offset={message.offset}")
+                                process_alert_message(message_value)
+                            else:
+                                logger.warning(f"收到非字典格式的消息: type={type(message_value)}, value={message_value}")
+                        except Exception as e:
+                            logger.error(f"处理消息失败: topic={topic_partition.topic}, partition={topic_partition.partition}, offset={message.offset}, error={str(e)}", exc_info=True)
+                            # 继续处理下一条消息，不中断消费
+                            continue
+                            
+            except ValueError as e:
+                # 处理generator already executing错误
+                if "generator already executing" in str(e):
+                    logger.error(f"Kafka消费者生成器冲突: {str(e)}，重置消费者")
+                    # 重置消费者
+                    if _consumer:
+                        try:
+                            _consumer.close(timeout=5)  # 优雅关闭，等待5秒
+                        except:
+                            pass
+                        _consumer = None
+                    time.sleep(5)  # 等待后重试
+                    continue
+                else:
+                    raise  # 重新抛出其他ValueError
                     
         except KafkaError as e:
-            logger.error(f"Kafka消费错误: {str(e)}")
-            # 重置消费者，下次重新初始化
-            global _consumer
-            if _consumer:
-                try:
-                    _consumer.close()
-                except:
-                    pass
-                _consumer = None
-            time.sleep(10)  # 等待后重试
+            error_msg = str(e)
+            logger.error(f"Kafka消费错误: {error_msg}")
+            
+            # 判断错误类型，决定是否需要重置消费者
+            # 如果是连接错误或协调器错误，需要重置
+            need_reset = any(keyword in error_msg.lower() for keyword in [
+                'connection', 'coordinator', 'not available', 'timeout', 
+                'network', 'broker', 'leader not available'
+            ])
+            
+            if need_reset:
+                logger.warning(f"检测到需要重置消费者的错误，将关闭并重新创建: {error_msg}")
+                if _consumer:
+                    try:
+                        _consumer.close(timeout=5)  # 优雅关闭，等待5秒
+                    except:
+                        pass
+                    _consumer = None
+                time.sleep(10)  # 等待后重试
+            else:
+                # 其他错误（如序列化错误等），不重置消费者，继续尝试
+                logger.warning(f"Kafka错误但不需要重置消费者，继续尝试: {error_msg}")
+                time.sleep(2)  # 短暂等待后继续
+                
         except Exception as e:
-            logger.error(f"消费告警消息异常: {str(e)}", exc_info=True)
-            time.sleep(10)  # 等待后重试
+            error_msg = str(e)
+            logger.error(f"消费告警消息异常: {error_msg}", exc_info=True)
+            
+            # 判断是否是严重错误，需要重置消费者
+            need_reset = any(keyword in error_msg.lower() for keyword in [
+                'generator already executing', 'connection', 'coordinator',
+                'not available', 'timeout', 'network', 'broker'
+            ])
+            
+            if need_reset:
+                logger.warning(f"检测到需要重置消费者的异常，将关闭并重新创建: {error_msg}")
+                if _consumer:
+                    try:
+                        _consumer.close(timeout=5)  # 优雅关闭，等待5秒
+                    except:
+                        pass
+                    _consumer = None
+                time.sleep(10)  # 等待后重试
+            else:
+                # 其他异常，不重置消费者，继续尝试
+                logger.warning(f"异常但不需要重置消费者，继续尝试: {error_msg}")
+                time.sleep(2)  # 短暂等待后继续
     
     logger.info("Kafka告警消息消费已停止")
 
@@ -471,15 +582,25 @@ def stop_alert_consumer():
     logger.info("正在停止告警消息消费者...")
     _consumer_running = False
     
+    # 优雅关闭消费者，等待未完成的消息处理
     if _consumer:
         try:
-            _consumer.close()
-        except:
-            pass
-        _consumer = None
+            logger.info("正在关闭Kafka消费者连接...")
+            _consumer.close(timeout=10)  # 等待10秒，确保优雅关闭
+            logger.info("Kafka消费者连接已关闭")
+        except Exception as e:
+            logger.warning(f"关闭Kafka消费者时出现异常: {str(e)}")
+        finally:
+            _consumer = None
     
+    # 等待消费者线程结束
     if _consumer_thread and _consumer_thread.is_alive():
-        _consumer_thread.join(timeout=5)
+        logger.info("等待消费者线程结束...")
+        _consumer_thread.join(timeout=10)  # 等待10秒
+        if _consumer_thread.is_alive():
+            logger.warning("消费者线程未在超时时间内结束")
+        else:
+            logger.info("消费者线程已结束")
     
     logger.info("告警消息消费者已停止")
 

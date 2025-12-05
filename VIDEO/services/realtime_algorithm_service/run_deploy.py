@@ -20,6 +20,7 @@ import cv2
 import numpy as np
 import requests
 import json
+import socket
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -33,6 +34,35 @@ sys.path.insert(0, video_root)
 
 # 导入VIDEO模块的模型
 from models import db, AlgorithmTask, Device
+
+# 导入Flask应用创建函数（用于设置应用上下文）
+try:
+    from run import create_app
+    _flask_app = None
+    def get_flask_app():
+        """获取Flask应用实例（单例模式）"""
+        global _flask_app
+        if _flask_app is None:
+            _flask_app = create_app()
+        return _flask_app
+except ImportError:
+    # 如果无法导入，创建一个简单的应用实例
+    _flask_app = None
+    def get_flask_app():
+        """获取Flask应用实例（fallback模式，当无法导入create_app时使用）"""
+        global _flask_app
+        if _flask_app is None:
+            from flask import Flask
+            app = Flask(__name__)
+            # 从环境变量获取数据库URL
+            database_url = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/iot_video')
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+            app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+            app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+            # 初始化数据库
+            db.init_app(app)
+            _flask_app = app
+        return _flask_app
 
 # 导入追踪器（使用相对导入）
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app', 'utils'))
@@ -110,6 +140,12 @@ FFMPEG_GOP_SIZE_ENV = os.getenv('FFMPEG_GOP_SIZE', None)
 FFMPEG_GOP_SIZE = int(FFMPEG_GOP_SIZE_ENV) if FFMPEG_GOP_SIZE_ENV else (SOURCE_FPS * 2)
 # YOLO检测参数（优化以降低CPU占用）
 YOLO_IMG_SIZE = int(os.getenv('YOLO_IMG_SIZE', '416'))  # 检测分辨率：降低可减少CPU占用（原640）
+# 队列大小配置（优化以处理高负载）
+DETECTION_QUEUE_SIZE = int(os.getenv('DETECTION_QUEUE_SIZE', '100'))  # 检测队列大小（默认100，原50）
+PUSH_QUEUE_SIZE = int(os.getenv('PUSH_QUEUE_SIZE', '100'))  # 推帧队列大小（默认100，原50）
+EXTRACT_QUEUE_SIZE = int(os.getenv('EXTRACT_QUEUE_SIZE', '50'))  # 抽帧队列大小（默认50）
+# 检测工作线程数量（优化以提升处理能力）
+YOLO_WORKER_THREADS = int(os.getenv('YOLO_WORKER_THREADS', '2'))  # YOLO检测线程数（默认2，原1）
 
 
 def download_model_file(model_id: int, model_path: str) -> Optional[str]:
@@ -372,10 +408,10 @@ def load_task_config():
             buffer_locks[device_id] = threading.Lock()
             frame_counts[device_id] = 0
             
-            # 初始化队列
-            extract_queues[device_id] = queue.Queue(maxsize=50)
-            detection_queues[device_id] = queue.Queue(maxsize=50)
-            push_queues[device_id] = queue.Queue(maxsize=50)
+            # 初始化队列（使用可配置的大小）
+            extract_queues[device_id] = queue.Queue(maxsize=EXTRACT_QUEUE_SIZE)
+            detection_queues[device_id] = queue.Queue(maxsize=DETECTION_QUEUE_SIZE)
+            push_queues[device_id] = queue.Queue(maxsize=PUSH_QUEUE_SIZE)
             
             # 初始化追踪器（如果启用）
             if task.tracking_enabled:
@@ -397,28 +433,21 @@ def load_task_config():
         return False
 
 
-def send_alert_hook_async(alert_data: Dict):
-    """异步发送告警到Hook接口（后台线程）"""
+def send_alert_event_async(alert_data: Dict):
+    """异步发送告警事件（后台线程）"""
     def _send():
         try:
-            if not task_config or not task_config.alert_hook_enabled or not task_config.alert_hook_url:
+            if not task_config or not task_config.alert_event_enabled:
                 return
             
-            # 构建完整的URL
-            hook_url = task_config.alert_hook_url
-            # 如果是相对路径（以/开头），使用网关地址构建完整URL
-            if hook_url.startswith('/'):
-                hook_url = f"{GATEWAY_URL.rstrip('/')}{hook_url}"
-            
-            response = requests.post(
-                hook_url,
-                json=alert_data,
-                timeout=5
-            )
-            response.raise_for_status()
-            # 不再打印告警发送成功的日志
+            # 获取Flask应用实例并设置应用上下文
+            app = get_flask_app()
+            with app.app_context():
+                # 发送告警事件到告警Hook接口（用于存储到数据库和Kafka）
+                from app.services.alert_hook_service import process_alert_hook
+                process_alert_hook(alert_data)
         except Exception as e:
-            logger.error(f"发送告警失败: {str(e)}", exc_info=True)
+            logger.error(f"发送告警事件失败: {str(e)}", exc_info=True)
     
     # 在后台线程中异步执行
     thread = threading.Thread(target=_send, daemon=True)
@@ -695,6 +724,266 @@ def save_tracking_targets_periodically():
     logger.info("💾 追踪目标处理线程停止")
 
 
+def check_rtmp_server_connection(rtmp_url: str) -> bool:
+    """检查RTMP服务器是否可用
+    
+    Args:
+        rtmp_url: RTMP推流地址，格式如 rtmp://localhost:1935/live/stream
+        
+    Returns:
+        bool: RTMP服务器是否可用
+    """
+    try:
+        # 从RTMP URL中提取主机和端口
+        if not rtmp_url.startswith('rtmp://'):
+            return False
+        
+        # 解析URL: rtmp://host:port/path -> (host, port)
+        url_part = rtmp_url.replace('rtmp://', '')
+        if '/' in url_part:
+            host_port = url_part.split('/')[0]
+        else:
+            host_port = url_part
+        
+        if ':' in host_port:
+            host, port_str = host_port.split(':', 1)
+            try:
+                port = int(port_str)
+            except ValueError:
+                port = 1935  # 默认RTMP端口
+        else:
+            host = host_port
+            port = 1935  # 默认RTMP端口
+        
+        # 尝试连接RTMP服务器端口
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(3)
+        result = sock.connect_ex((host, port))
+        sock.close()
+        
+        if result == 0:
+            return True
+        else:
+            return False
+    except Exception as e:
+        logger.debug(f"检查RTMP服务器连接时出错: {str(e)}")
+        return False
+
+
+def check_and_stop_existing_stream(stream_url: str):
+    """检查并停止现有的 RTMP 流（通过 SRS HTTP API）
+    
+    当检测到流已存在时，会检查流是否真的在活动：
+    1. 如果流存在但没有活跃的发布者（僵尸连接），直接清理流资源
+    2. 如果流存在且有发布者，检查发布者连接是否真的在活动
+    3. 如果发布者连接已断开，强制清理流资源
+    4. 如果发布者连接正常，断开发布者连接
+    
+    Args:
+        stream_url: RTMP流地址，格式如 rtmp://localhost:1935/live/stream
+    """
+    try:
+        # 从 RTMP URL 中提取流名称和主机
+        # rtmp://localhost:1935/live/test_input -> live/test_input
+        if not stream_url.startswith('rtmp://'):
+            logger.warning("⚠️  无效的RTMP URL格式，跳过流检查")
+            return
+        
+        # 解析URL: rtmp://host:port/path -> (host, port, path)
+        url_part = stream_url.replace('rtmp://', '')
+        if '/' in url_part:
+            host_port = url_part.split('/')[0]
+            stream_path = '/'.join(url_part.split('/')[1:])
+        else:
+            host_port = url_part
+            stream_path = ""
+        
+        if not stream_path:
+            logger.warning("⚠️  无法从 URL 中提取流路径，跳过流检查")
+            return
+        
+        # 提取主机地址（用于SRS API调用）
+        if ':' in host_port:
+            rtmp_host = host_port.split(':')[0]
+        else:
+            rtmp_host = host_port
+        
+        # SRS HTTP API 地址（默认端口 1985）
+        srs_api_url = f"http://{rtmp_host}:1985/api/v1/streams/"
+        srs_clients_api_url = f"http://{rtmp_host}:1985/api/v1/clients/"
+        
+        logger.info(f"🔍 检查现有流: {stream_path}")
+        
+        try:
+            # 获取所有流
+            response = requests.get(srs_api_url, timeout=3)
+            if response.status_code == 200:
+                streams = response.json()
+                
+                # 查找匹配的流
+                stream_to_stop = None
+                if isinstance(streams, dict) and 'streams' in streams:
+                    stream_list = streams['streams']
+                elif isinstance(streams, list):
+                    stream_list = streams
+                else:
+                    stream_list = []
+                
+                for stream in stream_list:
+                    stream_name = stream.get('name', '')
+                    stream_app = stream.get('app', '')
+                    stream_stream = stream.get('stream', '')
+                    
+                    # 匹配流路径（格式：app/stream）
+                    full_stream_path = f"{stream_app}/{stream_stream}" if stream_stream else stream_app
+                    
+                    if stream_path in full_stream_path or full_stream_path in stream_path:
+                        stream_to_stop = stream
+                        break
+                
+                if stream_to_stop:
+                    stream_id = stream_to_stop.get('id', '')
+                    publish_info = stream_to_stop.get('publish', {})
+                    publish_cid = publish_info.get('cid', '') if isinstance(publish_info, dict) else None
+                    
+                    logger.warning(f"⚠️  发现现有流: {stream_path} (ID: {stream_id})")
+                    
+                    # 检查是否有活跃的发布者
+                    if not publish_cid:
+                        # 流存在但没有发布者（僵尸流），直接清理
+                        logger.warning(f"   流存在但没有活跃的发布者（僵尸流），直接清理...")
+                        try:
+                            stop_url = f"{srs_api_url}{stream_id}"
+                            stop_response = requests.delete(stop_url, timeout=3)
+                            if stop_response.status_code in [200, 204]:
+                                logger.info(f"✅ 已清理僵尸流: {stream_path}")
+                                time.sleep(1)  # 等待流完全停止
+                                return
+                        except Exception as e:
+                            logger.warning(f"   清理僵尸流异常: {str(e)}")
+                    else:
+                        # 有发布者ID，检查发布者连接是否真的在活动
+                        logger.info(f"   检查发布者连接状态: {publish_cid}")
+                        try:
+                            # 获取客户端信息，检查连接是否真的存在
+                            client_info_url = f"{srs_clients_api_url}{publish_cid}"
+                            client_response = requests.get(client_info_url, timeout=2)
+                            
+                            if client_response.status_code == 200:
+                                client_info = client_response.json()
+                                # 检查客户端是否真的在活动
+                                client_active = client_info.get('active', True) if isinstance(client_info, dict) else True
+                                
+                                if not client_active:
+                                    # 客户端已断开，清理僵尸流
+                                    logger.warning(f"   发布者连接已断开（僵尸连接），清理流资源...")
+                                    try:
+                                        stop_url = f"{srs_api_url}{stream_id}"
+                                        stop_response = requests.delete(stop_url, timeout=3)
+                                        if stop_response.status_code in [200, 204]:
+                                            logger.info(f"✅ 已清理僵尸流: {stream_path}")
+                                            time.sleep(1)
+                                            return
+                                    except Exception as e:
+                                        logger.warning(f"   清理僵尸流异常: {str(e)}")
+                                else:
+                                    # 客户端连接正常，尝试断开
+                                    logger.info(f"   发布者连接正常，尝试断开连接...")
+                                    try:
+                                        stop_response = requests.delete(client_info_url, timeout=3)
+                                        if stop_response.status_code in [200, 204]:
+                                            logger.info(f"✅ 已断开发布者客户端，流将自动停止")
+                                            time.sleep(2)  # 等待流完全停止
+                                            return
+                                        else:
+                                            logger.warning(f"   断开客户端失败 (状态码: {stop_response.status_code})，尝试其他方法...")
+                                    except Exception as e:
+                                        logger.warning(f"   断开客户端异常: {str(e)}，尝试其他方法...")
+                            else:
+                                # 无法获取客户端信息，可能连接已断开，尝试清理流
+                                logger.warning(f"   无法获取发布者信息 (状态码: {client_response.status_code})，可能连接已断开，尝试清理流...")
+                                try:
+                                    # 先尝试断开客户端（即使可能已断开）
+                                    try:
+                                        requests.delete(client_info_url, timeout=2)
+                                    except:
+                                        pass
+                                    
+                                    # 然后清理流
+                                    stop_url = f"{srs_api_url}{stream_id}"
+                                    stop_response = requests.delete(stop_url, timeout=3)
+                                    if stop_response.status_code in [200, 204]:
+                                        logger.info(f"✅ 已清理流: {stream_path}")
+                                        time.sleep(1)
+                                        return
+                                except Exception as e:
+                                    logger.warning(f"   清理流异常: {str(e)}")
+                        except requests.exceptions.RequestException as e:
+                            # 无法连接到客户端API，可能连接已断开，尝试清理流
+                            logger.warning(f"   无法连接到客户端API: {str(e)}，尝试清理流...")
+                            try:
+                                stop_url = f"{srs_api_url}{stream_id}"
+                                stop_response = requests.delete(stop_url, timeout=3)
+                                if stop_response.status_code in [200, 204]:
+                                    logger.info(f"✅ 已清理流: {stream_path}")
+                                    time.sleep(1)
+                                    return
+                            except Exception as e2:
+                                logger.warning(f"   清理流异常: {str(e2)}")
+                    
+                    # 方法2: 尝试通过流ID停止（某些SRS版本支持）
+                    logger.info(f"   尝试通过流ID停止: {stream_id}")
+                    stop_url = f"{srs_api_url}{stream_id}"
+                    try:
+                        stop_response = requests.delete(stop_url, timeout=3)
+                        if stop_response.status_code in [200, 204]:
+                            logger.info(f"✅ 已停止现有流: {stream_path}")
+                            time.sleep(2)  # 等待流完全停止
+                            return
+                        else:
+                            logger.warning(f"   停止流失败 (状态码: {stop_response.status_code})")
+                    except Exception as e:
+                        logger.warning(f"   停止流异常: {str(e)}")
+                    
+                    # 方法3: 如果API都失败，尝试查找并杀死占用该流的ffmpeg进程
+                    logger.warning(f"⚠️  API方法失败，尝试查找占用该流的进程...")
+                    try:
+                        # 查找推流到该地址的ffmpeg进程
+                        result = subprocess.run(
+                            ["pgrep", "-f", f"rtmp://.*{stream_path.split('/')[-1]}"],
+                            capture_output=True,
+                            text=True,
+                            timeout=3
+                        )
+                        if result.returncode == 0 and result.stdout.strip():
+                            pids = result.stdout.strip().split('\n')
+                            for pid in pids:
+                                if pid.strip():
+                                    logger.info(f"   发现进程 PID: {pid.strip()}，正在终止...")
+                                    try:
+                                        subprocess.run(["kill", "-TERM", pid.strip()], timeout=2)
+                                        time.sleep(1)
+                                        logger.info(f"✅ 已终止进程: {pid.strip()}")
+                                    except:
+                                        pass
+                            time.sleep(2)  # 等待进程完全退出
+                            return
+                    except Exception as e:
+                        logger.warning(f"   查找进程失败: {str(e)}")
+                    
+                    logger.warning(f"⚠️  无法停止现有流，但将继续尝试推流...")
+                else:
+                    logger.info(f"✅ 未发现现有流: {stream_path}")
+            else:
+                logger.warning(f"⚠️  无法获取流列表 (状态码: {response.status_code})，继续尝试推流...")
+                
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"⚠️  无法连接到 SRS API: {str(e)}，继续尝试推流...")
+            
+    except Exception as e:
+        logger.warning(f"⚠️  检查现有流时出错: {str(e)}，继续尝试推流...")
+
+
 def read_ffmpeg_stderr(device_id: str, stderr_pipe, stderr_buffer: list, stderr_lock: threading.Lock):
     """实时读取FFmpeg进程的stderr输出"""
     try:
@@ -867,6 +1156,25 @@ def buffer_streamer_worker(device_id: str):
                         logger.warning(f"   最后输出: {stderr_lines[-3:]}")
                     else:
                         logger.warning(f"   未捕获到错误信息，可能是进程启动失败或RTMP服务器连接问题")
+                    
+                    # 检查RTMP服务器连接状态（仅在首次失败时检查，避免频繁检查）
+                    if pusher_retry_count == 0:
+                        if not check_rtmp_server_connection(rtmp_url):
+                            logger.warning("")
+                            logger.warning("=" * 60)
+                            logger.warning("💡 RTMP服务器连接检查失败，可能的原因和解决方案：")
+                            logger.warning("=" * 60)
+                            logger.warning("1. RTMP服务器（SRS）未运行")
+                            logger.warning("   - 检查SRS服务状态: docker ps | grep srs")
+                            logger.warning("")
+                            logger.warning("2. 启动SRS服务器：")
+                            logger.warning("   - 使用Docker Compose: cd /opt/projects/easyaiot/.scripts/docker && docker-compose up -d srs")
+                            logger.warning("   - 或使用Docker: docker run -d --name srs-server -p 1935:1935 -p 1985:1985 -p 8080:8080 ossrs/srs:5")
+                            logger.warning("")
+                            logger.warning("3. SRS HTTP回调服务未运行（常见原因）")
+                            logger.warning("   - 请确保VIDEO服务在端口48080上运行")
+                            logger.warning("=" * 60)
+                            logger.warning("")
                 
                 # 关闭旧进程
                 if pusher_process and pusher_process.poll() is None:
@@ -884,6 +1192,10 @@ def buffer_streamer_worker(device_id: str):
                 if not rtmp_url:
                     logger.warning(f"设备 {device_id} RTMP输出流地址不存在，跳过推送")
                 else:
+                    # 在启动推流前，检查并停止现有流（避免StreamBusy错误）
+                    logger.info(f"🔍 检查设备 {device_id} 是否存在占用该地址的流...")
+                    check_and_stop_existing_stream(rtmp_url)
+                    
                     # 构建 ffmpeg 命令（优化版本：低CPU占用、低推流速度）
                     # 优化参数说明：
                     # -preset ultrafast: 最快编码，最低CPU占用
@@ -980,6 +1292,35 @@ def buffer_streamer_worker(device_id: str):
                                 logger.error(f"   输出: {error_lines[-5:]}")
                             else:
                                 logger.error(f"   未捕获到错误信息，请检查RTMP服务器是否运行: {rtmp_url}")
+                            
+                            # 检查RTMP服务器连接状态
+                            if not check_rtmp_server_connection(rtmp_url):
+                                logger.error("")
+                                logger.error("=" * 60)
+                                logger.error("💡 RTMP服务器连接检查失败，可能的原因和解决方案：")
+                                logger.error("=" * 60)
+                                logger.error("1. RTMP服务器（SRS）未运行")
+                                logger.error("   - 检查SRS服务状态: docker ps | grep srs")
+                                logger.error("   - 或使用: systemctl status srs")
+                                logger.error("")
+                                logger.error("2. 启动SRS服务器：")
+                                logger.error("   - 使用Docker Compose: cd /opt/projects/easyaiot/.scripts/docker && docker-compose up -d srs")
+                                logger.error("   - 或使用Docker: docker run -d --name srs-server -p 1935:1935 -p 1985:1985 -p 8080:8080 ossrs/srs:5")
+                                logger.error("")
+                                logger.error("3. SRS HTTP回调服务未运行（常见原因）")
+                                logger.error("   - SRS配置了on_publish回调，但回调服务未启动")
+                                logger.error("   - 请确保VIDEO服务在端口48080上运行")
+                                logger.error("   - 检查服务: docker ps | grep video")
+                                logger.error("")
+                                logger.error("4. 检查RTMP端口是否监听：")
+                                logger.error("   - netstat -tuln | grep 1935")
+                                logger.error("   - 或: ss -tuln | grep 1935")
+                                logger.error("")
+                                logger.error("5. 测试RTMP连接：")
+                                logger.error("   - telnet localhost 1935")
+                                logger.error("   - 或: curl http://localhost:1985/api/v1/versions")
+                                logger.error("=" * 60)
+                                logger.error("")
                             
                             # 停止stderr线程
                             if stderr_thread.is_alive():
@@ -1309,7 +1650,7 @@ def buffer_streamer_worker(device_id: str):
                 # 如果帧已处理，检查是否有新的检测结果需要发送告警
                 if is_processed:
                     detections = frame_data.get('detections', [])
-                    if detections and task_config and task_config.alert_hook_enabled:
+                    if detections and task_config and task_config.alert_event_enabled:
                         # 告警抑制：使用锁保护时间戳的访问和更新，确保线程安全
                         current_time = time.time()
                         with alert_time_lock:
@@ -1361,8 +1702,8 @@ def buffer_streamer_worker(device_id: str):
                                         'image_path': image_path if image_path else None,
                                     }
                                     
-                                    # 异步发送告警到hook接口
-                                    send_alert_hook_async(alert_data)
+                                    # 异步发送告警事件
+                                    send_alert_event_async(alert_data)
                                 except Exception as e:
                                     logger.error(f"发送告警失败: {str(e)}", exc_info=True)
                 
@@ -1476,7 +1817,7 @@ def extractor_worker():
                     if detection_queue:
                         frame_sent = False
                         retry_count = 0
-                        max_retries = 10
+                        max_retries = 20  # 增加重试次数
                         while not frame_sent and retry_count < max_retries:
                             try:
                                 detection_queue.put_nowait({
@@ -1492,9 +1833,17 @@ def extractor_worker():
                             except queue.Full:
                                 retry_count += 1
                                 if retry_count < max_retries:
+                                    # 如果队列持续满，尝试丢弃最旧的帧（仅在重试多次后）
+                                    if retry_count >= 15:
+                                        try:
+                                            # 尝试获取并丢弃一个旧帧
+                                            detection_queue.get_nowait()
+                                            logger.debug(f"🔄 设备 {device_id_from_data} 检测队列满，丢弃最旧帧以腾出空间")
+                                        except queue.Empty:
+                                            pass
                                     time.sleep(0.01)
                                 else:
-                                    logger.warning(f"⚠️  设备 {device_id_from_data} 检测队列已满，帧 {frame_id} 多次重试失败")
+                                    logger.warning(f"⚠️  设备 {device_id_from_data} 检测队列已满，帧 {frame_id} 多次重试失败（队列大小: {DETECTION_QUEUE_SIZE}, 当前队列长度: {detection_queue.qsize()}）")
                 except queue.Empty:
                     continue
                 except Exception as e:
@@ -1716,7 +2065,7 @@ def yolo_detection_worker(worker_id: int):
                     if push_queue:
                         frame_sent = False
                         retry_count = 0
-                        max_retries = 10
+                        max_retries = 20  # 增加重试次数
                         while not frame_sent and retry_count < max_retries:
                             try:
                                 push_queue.put_nowait({
@@ -1732,9 +2081,17 @@ def yolo_detection_worker(worker_id: int):
                             except queue.Full:
                                 retry_count += 1
                                 if retry_count < max_retries:
+                                    # 如果队列持续满，尝试丢弃最旧的帧（仅在重试多次后）
+                                    if retry_count >= 15:
+                                        try:
+                                            # 尝试获取并丢弃一个旧帧
+                                            push_queue.get_nowait()
+                                            logger.debug(f"🔄 设备 {device_id_from_data} 推帧队列满，丢弃最旧帧以腾出空间")
+                                        except queue.Empty:
+                                            pass
                                     time.sleep(0.01)
                                 else:
-                                    logger.warning(f"⚠️  设备 {device_id_from_data} 推帧队列已满，帧 {frame_id} 多次重试失败")
+                                    logger.warning(f"⚠️  设备 {device_id_from_data} 推帧队列已满，帧 {frame_id} 多次重试失败（队列大小: {PUSH_QUEUE_SIZE}, 当前队列长度: {push_queue.qsize()}）")
                 except queue.Empty:
                     continue
                 except Exception as e:
@@ -1791,6 +2148,9 @@ def main():
     logger.info(f"   GOP大小: {FFMPEG_GOP_SIZE} (2秒一个关键帧)")
     logger.info(f"   编码线程数: {FFMPEG_THREADS if FFMPEG_THREADS else '自动'}")
     logger.info(f"   YOLO检测分辨率: {YOLO_IMG_SIZE} (原640)")
+    logger.info(f"   检测队列大小: {DETECTION_QUEUE_SIZE} (原50)")
+    logger.info(f"   推帧队列大小: {PUSH_QUEUE_SIZE} (原50)")
+    logger.info(f"   YOLO检测线程数: {YOLO_WORKER_THREADS} (原1)")
     logger.info("=" * 60)
     
     # 加载任务配置
@@ -1816,10 +2176,14 @@ def main():
     extractor_thread = threading.Thread(target=extractor_worker, daemon=True)
     extractor_thread.start()
     
-    # 启动YOLO检测线程（处理所有摄像头）
-    logger.info("🤖 启动YOLO检测线程（多摄像头并行）...")
-    yolo_thread = threading.Thread(target=yolo_detection_worker, args=(1,), daemon=True)
-    yolo_thread.start()
+    # 启动YOLO检测线程（处理所有摄像头，支持多线程）
+    logger.info(f"🤖 启动 {YOLO_WORKER_THREADS} 个YOLO检测线程（多摄像头并行）...")
+    yolo_threads = []
+    for worker_id in range(1, YOLO_WORKER_THREADS + 1):
+        yolo_thread = threading.Thread(target=yolo_detection_worker, args=(worker_id,), daemon=True)
+        yolo_thread.start()
+        yolo_threads.append(yolo_thread)
+        logger.info(f"   ✅ YOLO检测线程 {worker_id} 已启动")
     
     # 启动心跳上报线程
     logger.info("💓 启动心跳上报线程...")

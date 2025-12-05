@@ -109,8 +109,28 @@ public class DeviceInfoServiceImpl extends ServiceImpl<DeviceInfoMapper, DeviceI
         DeviceInfo deviceInfo = new DeviceInfo();
         deviceInfo.convertEntity(deviceInfoParams);
         deviceInfo.setCreateBy("admin");
-        deviceInfo.setDeviceId(UUID.getUUID());
-        deviceInfo.setConnectStatus(DeviceConnectStatusEnum.INIT.getValue());
+        // 如果 deviceId 为空，则生成新的 UUID
+        if (StringUtils.isEmpty(deviceInfo.getDeviceId())) {
+            deviceInfo.setDeviceId(UUID.getUUID());
+        }
+        
+        // 判断是否为视频源设备的摄像头，如果是，默认在线
+        String connectStatus = DeviceConnectStatusEnum.INIT.getValue();
+        if (deviceInfoParams.getConnectStatus() == null && deviceInfoParams.getDeviceIdentification() != null) {
+            // 通过设备标识查找网关设备
+            Device gatewayDevice = deviceService.findOneById(deviceInfoParams.getDeviceIdentification());
+            if (gatewayDevice != null && StringUtils.isNotEmpty(gatewayDevice.getDeviceType())) {
+                // 判断设备类型是否为视频设备（VIDEO_COMMON）
+                if (Device.deviceTypeEnum.VIDEO_COMMON.getType().equals(gatewayDevice.getDeviceType())) {
+                    connectStatus = DeviceConnectStatusEnum.ONLINE.getValue();
+                }
+            }
+        } else if (deviceInfoParams.getConnectStatus() != null) {
+            // 如果已经设置了连接状态，使用设置的值
+            connectStatus = deviceInfoParams.getConnectStatus();
+        }
+        
+        deviceInfo.setConnectStatus(connectStatus);
         deviceInfo.setShadowEnable(true);
         return baseMapper.insertDeviceInfo(deviceInfo);
     }
@@ -350,7 +370,16 @@ public class DeviceInfoServiceImpl extends ServiceImpl<DeviceInfoMapper, DeviceI
         deviceInfoParams.setManufacturerId(item.getManufacturerId());
         deviceInfoParams.setModel(item.getModel());
         deviceInfoParams.setDescription(item.getDescription());
-        deviceInfoParams.setConnectStatus(DeviceConnectStatusEnum.INIT.getValue());
+        
+        // 判断是否为视频源设备，如果是，摄像头默认在线
+        String connectStatus = DeviceConnectStatusEnum.INIT.getValue();
+        if (deviceDO != null && StringUtils.isNotEmpty(deviceDO.getDeviceType())) {
+            // 判断设备类型是否为视频设备（VIDEO_COMMON）
+            if (Device.deviceTypeEnum.VIDEO_COMMON.getType().equals(deviceDO.getDeviceType())) {
+                connectStatus = DeviceConnectStatusEnum.ONLINE.getValue();
+            }
+        }
+        deviceInfoParams.setConnectStatus(connectStatus);
         deviceInfoParams.setShadowEnable(true);
         return deviceInfoParams;
     }

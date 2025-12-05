@@ -246,3 +246,27 @@ def cleanup_stopped_processes():
                 pass
             del _running_daemons[task_id]
 
+
+def stop_all_daemons():
+    """停止所有守护进程（用于VIDEO服务关闭时清理）"""
+    with _daemons_lock:
+        if not _running_daemons:
+            logger.info("没有运行的守护进程，无需停止")
+            return
+        
+        logger.info(f"正在停止 {len(_running_daemons)} 个守护进程...")
+        task_ids = list(_running_daemons.keys())
+        
+        for task_id in task_ids:
+            try:
+                daemon = _running_daemons[task_id]
+                daemon.stop()
+                logger.info(f"✅ 停止守护进程成功: task_id={task_id}")
+            except Exception as e:
+                logger.error(f"❌ 停止守护进程失败: task_id={task_id}, error={str(e)}")
+            finally:
+                if task_id in _running_daemons:
+                    del _running_daemons[task_id]
+        
+        logger.info(f"✅ 所有守护进程已停止")
+

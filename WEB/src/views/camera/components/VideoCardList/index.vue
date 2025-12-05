@@ -259,11 +259,12 @@ onMounted(() => {
 });
 
 // 监听数据变化，自动检查流状态
-watch(() => data.value, (newData) => {
-  if (newData && newData.length > 0) {
-    checkAllDevicesStreamStatus(newData);
-  }
-}, { immediate: true });
+// 已禁用自动检查流状态
+// watch(() => data.value, (newData) => {
+//   if (newData && newData.length > 0) {
+//     checkAllDevicesStreamStatus(newData);
+//   }
+// }, { immediate: true });
 
 async function fetch(p = {}) {
   const {api, params} = props;

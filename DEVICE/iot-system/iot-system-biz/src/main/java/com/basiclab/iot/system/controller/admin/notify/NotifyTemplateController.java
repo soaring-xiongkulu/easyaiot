@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import java.util.List;
 
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
@@ -80,6 +81,14 @@ public class NotifyTemplateController {
     public CommonResult<PageResult<NotifyTemplateRespVO>> getNotifyTemplatePage(@Valid NotifyTemplatePageReqVO pageVO) {
         PageResult<NotifyTemplateDO> pageResult = notifyTemplateService.getNotifyTemplatePage(pageVO);
         return success(BeanUtils.toBean(pageResult, NotifyTemplateRespVO.class));
+    }
+
+    @GetMapping("/list-by-type")
+    @Operation(summary = "根据类型查询通知模板列表")
+    //@PreAuthorize("@ss.hasPermission('system:notify-template:query')")
+    public CommonResult<List<NotifyTemplateRespVO>> listByType(@RequestParam("type") Integer type) {
+        List<NotifyTemplateDO> templates = notifyTemplateService.listByType(type);
+        return success(BeanUtils.toBean(templates, NotifyTemplateRespVO.class));
     }
 
     @PostMapping("/send-notify")

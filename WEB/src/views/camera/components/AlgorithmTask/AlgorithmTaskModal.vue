@@ -4,7 +4,7 @@
     @register="register" 
     :title="modalTitle" 
     @ok="handleSubmit"
-    width="1200"
+    width="1400"
     placement="right"
     :showFooter="true"
     :showCancelBtn="false"
@@ -27,6 +27,22 @@
               :disabled="isViewMode"
             />
           </div>
+          <!-- 告警通知配置 -->
+          <div class="alert-notification-wrapper" v-if="showAlertNotificationConfig">
+            <!-- 告警抑制时间 -->
+            <a-form-item label="告警抑制时间（秒）" help="防止频繁通知，默认300秒（5分钟）">
+              <a-input-number
+                :value="alertNotificationConfig.suppress_time"
+                :min="0"
+                :max="3600"
+                :step="60"
+                placeholder="300"
+                :disabled="isViewMode"
+                @change="(value) => { alertNotificationConfig.suppress_time = value || 300; }"
+                style="width: 100%"
+              />
+            </a-form-item>
+          </div>
         </div>
       </a-tab-pane>
       <a-tab-pane key="status" tab="服务状态" :disabled="!taskId">
@@ -41,10 +57,12 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick, h, watch } from 'vue';
 import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
 import { BasicForm, useForm } from '@/components/Form';
 import { useMessage } from '@/hooks/web/useMessage';
+import { QuestionCircleOutlined } from '@ant-design/icons-vue';
+import { Switch, Popover, Button, Select } from 'ant-design-vue';
 import {
   createAlgorithmTask,
   updateAlgorithmTask,
@@ -53,6 +71,7 @@ import {
 import { getDeviceList } from '@/api/device/camera';
 import { getSnapSpaceList } from '@/api/device/snap';
 import { getModelPage } from '@/api/device/model';
+import { notifyTemplateQueryByType } from '@/api/device/notice';
 import DefenseSchedulePicker from './DefenseSchedulePicker.vue';
 import ServiceStatusTab from './ServiceStatusTab.vue';
 
@@ -66,15 +85,60 @@ const taskId = ref<number | null>(null);
 const formValues = ref<any>({});
 const confirmLoading = ref(false);
 const isFullDayDefense = ref<boolean>(true);
+const alertNotificationEnabled = ref<boolean>(false); // 告警通知启用状态
 const defenseSchedule = ref<{ mode: string; schedule: number[][] }>({
   mode: 'full',
   schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
+});
+const alertNotificationConfig = ref<any>({
+  enabled: false,
+  channels: [],
+  suppress_time: 300,
 });
 
 const deviceOptions = ref<Array<{ label: string; value: string }>>([]);
 const spaceOptions = ref<Array<{ label: string; value: number }>>([]);
 const modelOptions = ref<Array<{ label: string; value: number }>>([]);
 const modelMap = ref<Map<number, any>>(new Map()); // 存储完整的模型信息
+
+// 告警通知相关状态
+const notificationChannels = ref<string[]>([]); // 选中的通知渠道
+const channelTemplates = ref<Record<string, string | number>>({}); // 每个渠道的模板ID
+const templates = ref<Record<string, any[]>>({}); // 模板列表（按渠道分组）
+const templateLoading = ref<Record<string, boolean>>({}); // 模板加载状态
+
+// 可用通知渠道
+const availableChannels = [
+  { label: '短信', value: 'sms' },
+  { label: '邮件', value: 'email' },
+  { label: '企业微信', value: 'wxcp' },
+  { label: 'HTTP', value: 'http' },
+  { label: '钉钉', value: 'ding' },
+  { label: '飞书', value: 'feishu' },
+];
+
+// 通知渠道到消息类型的映射
+const channelToMsgType: Record<string, number> = {
+  sms: 1, // 阿里云短信
+  email: 3, // 邮件
+  wxcp: 4, // 企业微信
+  http: 5, // HTTP
+  ding: 6, // 钉钉
+  feishu: 7, // 飞书
+};
+
+// 占位符列表（包含占位符和说明）
+const placeholders = [
+  { placeholder: '${object}', description: '检测对象' },
+  { placeholder: '${event}', description: '事件类型' },
+  { placeholder: '${region}', description: '区域信息' },
+  { placeholder: '${information}', description: '详细信息' },
+  { placeholder: '${device_id}', description: '设备ID' },
+  { placeholder: '${device_name}', description: '设备名称' },
+  { placeholder: '${time}', description: '时间' },
+  { placeholder: '${image_path}', description: '图片路径' },
+  { placeholder: '${record_path}', description: '录像路径' },
+];
 
 // 加载设备列表
 const loadDevices = async () => {
@@ -165,7 +229,51 @@ const loadModels = async () => {
   }
 };
 
+// 获取渠道标签
+const getChannelLabel = (channel: string) => {
+  return availableChannels.find((c) => c.value === channel)?.label || channel;
+};
+
+// 加载模板列表
+const loadTemplates = async (channel: string) => {
+  if (templates.value[channel]?.length) {
+    return; // 已加载
+  }
+
+  templateLoading.value[channel] = true;
+  try {
+    const msgType = channelToMsgType[channel];
+    if (!msgType) {
+      console.warn(`未知的通知渠道: ${channel}`);
+      return;
+    }
+
+    const response = await notifyTemplateQueryByType({ msgType });
+    // 处理响应：可能是{code: 0, data: [...]}格式，也可能是直接返回数组
+    if (response) {
+      if (response.code === 0 && response.data) {
+        templates.value[channel] = Array.isArray(response.data) ? response.data : [];
+      } else if (Array.isArray(response)) {
+        // 如果直接返回数组
+        templates.value[channel] = response;
+      } else {
+        templates.value[channel] = [];
+        console.warn(`加载${getChannelLabel(channel)}模板失败:`, response?.msg || '未知错误');
+      }
+    } else {
+      templates.value[channel] = [];
+      console.warn(`加载${getChannelLabel(channel)}模板失败: 响应为空`);
+    }
+  } catch (error) {
+    console.error(`加载${getChannelLabel(channel)}模板失败:`, error);
+    templates.value[channel] = [];
+  } finally {
+    templateLoading.value[channel] = false;
+  }
+};
+
 const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getFieldsValue }] = useForm({
+  transformDateToString: false,
   labelWidth: 150,
   baseColProps: { span: 24 },
   schemas: [
@@ -318,24 +426,199 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       ifShow: ({ values }) => values.task_type === 'realtime' && values.tracking_enabled,
     },
     {
-      field: 'alert_hook_enabled',
-      label: '启用告警Hook',
-      component: 'Switch',
-      componentProps: {
+      field: 'alert_event_enabled',
+      label: '启用告警事件',
+      component: 'Input',
+      render: ({ model }) => {
+        return h('div', { class: 'alert-event-enabled-wrapper' }, [
+          h(Switch, {
+            checked: model.alert_event_enabled,
         checkedChildren: '是',
         unCheckedChildren: '否',
+            disabled: isViewMode.value,
+            onChange: async (checked: boolean) => {
+              model.alert_event_enabled = checked;
+              // 立即更新 formValues，确保 AlertNotificationConfig 组件能够及时响应
+              const currentValues = await getFieldsValue();
+              formValues.value = { ...currentValues, alert_event_enabled: checked };
+              // 如果关闭告警事件，同时关闭告警通知
+              if (!checked) {
+                alertNotificationEnabled.value = false;
+                alertNotificationConfig.value = {
+                  enabled: false,
+                  channels: [],
+                  suppress_time: 300,
+                };
+              }
+            },
+          }),
+          h(Popover, {
+            title: '算法任务占位符',
+            trigger: 'hover',
+            placement: 'rightTop',
+            getPopupContainer: (triggerNode) => triggerNode.parentElement || document.body,
+          }, {
+            content: () => h('div', { class: 'placeholder-box-small' }, 
+              placeholders.map((item) =>
+                h('div', { class: 'placeholder-item-small' }, [
+                  h('span', { class: 'placeholder-text' }, item.placeholder),
+                  h('span', { class: 'placeholder-separator' }, ': '),
+                  h('span', { class: 'placeholder-desc' }, item.description),
+                ])
+              )
+            ),
+            default: () => h(Button, {
+              type: 'text',
+              size: 'small',
+              class: 'placeholder-trigger-btn',
+            }, {
+              icon: () => h(QuestionCircleOutlined),
+            }),
+          }),
+        ]);
       },
-      helpMessage: '是否启用告警Hook接口，启用后会接收实时分析中的告警信息并存储到Kafka（默认开启，接口地址固定）',
+      helpMessage: '是否启用告警事件，启用后会记录告警信息',
       ifShow: ({ values }) => values.task_type === 'realtime',
+    },
+    {
+      field: 'alert_notification_enabled',
+      label: '启用告警通知',
+      component: 'Input',
+      render: ({ model }) => {
+        return h('div', { class: 'alert-notification-enabled-wrapper' }, [
+          h(Switch, {
+            checked: model.alert_notification_enabled,
+            checkedChildren: '是',
+            unCheckedChildren: '否',
+            disabled: isViewMode.value || !model.alert_event_enabled,
+            onChange: async (checked: boolean) => {
+              model.alert_notification_enabled = checked;
+              alertNotificationEnabled.value = checked;
+              // 立即同步更新 formValues，确保响应式更新
+              formValues.value = {
+                ...formValues.value,
+                alert_notification_enabled: checked
+              };
+              // 异步更新完整表单值（用于提交）
+              const currentValues = await getFieldsValue();
+              formValues.value = { ...currentValues, alert_notification_enabled: checked };
+              // 如果关闭告警通知，清空配置
+              if (!checked) {
+                notificationChannels.value = [];
+                channelTemplates.value = {};
+              }
+            },
+          }),
+        ]);
+      },
+      helpMessage: '是否启用告警通知，启用后会在告警事件发生时发送通知',
+      ifShow: ({ values }) => values.task_type === 'realtime' && values.alert_event_enabled,
+    },
+    {
+      field: 'notification_channels',
+      label: '通知渠道',
+      component: 'Select',
+      componentProps: {
+        placeholder: '请选择通知渠道（可多选）',
+        options: availableChannels.map(c => ({ label: c.label, value: c.value })),
+        mode: 'multiple',
+        showSearch: true,
+        allowClear: true,
+        filterOption: (input: string, option: any) => {
+          const label = option?.label || option?.children || '';
+          return label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+        },
+      },
+      ifShow: ({ values }) => values.task_type === 'realtime' && values.alert_event_enabled && values.alert_notification_enabled,
+    },
+    {
+      field: 'notification_templates',
+      label: '通知模板',
+      component: 'Input',
+      render: ({ model, values }) => {
+        const channels = values?.notification_channels || notificationChannels.value || [];
+        if (!channels || channels.length === 0) {
+          return h('div', { class: 'notification-templates-empty' }, '请先选择通知渠道');
+        }
+        return h('div', { 
+          class: 'notification-templates-wrapper',
+          style: {
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '12px',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            width: '100%',
+          }
+        }, [
+          channels.map((channel: string) => {
+            return h(Select, {
+              key: channel,
+              value: channelTemplates.value[channel],
+              placeholder: `请选择${getChannelLabel(channel)}模板`,
+              loading: templateLoading.value[channel],
+              showSearch: true,
+              allowClear: true,
+              filterOption: (input: string, option: any) => {
+                const label = option?.label || option?.children || '';
+                return label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+              },
+              options: templates.value[channel]?.map(t => ({ label: t.name, value: t.id })) || [],
+              onChange: (value: any) => {
+                if (value) {
+                  channelTemplates.value[channel] = value;
+                } else {
+                  delete channelTemplates.value[channel];
+                }
+              },
+              onFocus: () => {
+                if (!templates.value[channel]?.length) {
+                  loadTemplates(channel);
+                }
+              },
+              disabled: isViewMode.value,
+              style: { flex: '1 1 auto', minWidth: '200px', maxWidth: '300px' },
+            });
+          }),
+        ]);
+      },
+      ifShow: ({ values }) => values.task_type === 'realtime' && values.alert_event_enabled && values.alert_notification_enabled && values.notification_channels && values.notification_channels.length > 0,
     },
     {
       field: 'is_full_day_defense',
       label: '是否全天布防',
-      component: 'Switch',
-      componentProps: {
-        checkedChildren: '是',
-        unCheckedChildren: '否',
+      component: 'Input',
+      render: ({ model }) => {
+        return h('div', { class: 'full-day-defense-wrapper' }, [
+          h(Switch, {
+            checked: model.is_full_day_defense,
+            checkedChildren: '是',
+            unCheckedChildren: '否',
+            disabled: isViewMode.value,
+            onChange: (checked: boolean) => {
+              model.is_full_day_defense = checked;
+            },
+          }),
+          h(Popover, {
+            trigger: 'hover',
+            placement: 'rightTop',
+            getPopupContainer: (triggerNode) => triggerNode.parentElement || document.body,
+          }, {
+            content: () => h('div', { class: 'defense-tip-content' }, [
+              h('div', { class: 'tip-item' }, '全天布防模式下，系统将在24小时内持续监控并执行算法检测任务，不受时间限制。'),
+              h('div', { class: 'tip-item' }, '关闭全天布防后，可配置自定义布防时段，仅在指定时间段内执行监控任务，有效节省系统资源。'),
+            ]),
+            default: () => h(Button, {
+              type: 'text',
+              size: 'small',
+              class: 'placeholder-trigger-btn',
+            }, {
+              icon: () => h(QuestionCircleOutlined),
+            }),
+          }),
+        ]);
       },
+      helpMessage: '开启后将在全天24小时执行监控任务，关闭后可配置自定义布防时段',
     },
   ],
   showActionButtonGroup: false,
@@ -350,6 +633,13 @@ const modalTitle = computed(() => {
 });
 
 const isViewMode = computed(() => modalData.value.type === 'view');
+
+// 计算属性：是否显示告警通知配置
+const showAlertNotificationConfig = computed(() => {
+  return formValues.value?.alert_event_enabled && 
+         (formValues.value?.alert_notification_enabled || alertNotificationEnabled.value) && 
+         formValues.value?.task_type === 'realtime';
+});
 
 const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) => {
   modalData.value = data || {};
@@ -376,6 +666,46 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       } catch (e) {
         console.error('解析model_ids失败', e);
       }
+    }
+    
+    // 初始化告警通知配置
+    if (record.alert_notification_config) {
+      try {
+        const config = typeof record.alert_notification_config === 'string'
+          ? JSON.parse(record.alert_notification_config)
+          : record.alert_notification_config;
+        alertNotificationConfig.value = {
+          enabled: record.alert_notification_enabled || false,
+          channels: config.channels || [],
+          suppress_time: record.alarm_suppress_time || 300,
+        };
+        // 恢复通知渠道和模板
+        if (config.channels && Array.isArray(config.channels)) {
+          notificationChannels.value = config.channels.map((c: any) => c.method);
+          config.channels.forEach((channel: any) => {
+            channelTemplates.value[channel.method] = channel.template_id;
+            // 加载模板列表
+            loadTemplates(channel.method);
+          });
+        }
+      } catch (e) {
+        console.error('解析告警通知配置失败', e);
+        alertNotificationConfig.value = {
+          enabled: false,
+          channels: [],
+          suppress_time: 300,
+        };
+        notificationChannels.value = [];
+        channelTemplates.value = {};
+      }
+    } else {
+      alertNotificationConfig.value = {
+        enabled: false,
+        channels: [],
+        suppress_time: 300,
+      };
+      notificationChannels.value = [];
+      channelTemplates.value = {};
     }
     
     // 恢复布防时段配置
@@ -419,9 +749,17 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       tracking_similarity_threshold: record.tracking_similarity_threshold || 0.2,
       tracking_max_age: record.tracking_max_age || 25,
       tracking_smooth_alpha: record.tracking_smooth_alpha || 0.25,
-      alert_hook_enabled: record.alert_hook_enabled !== undefined ? record.alert_hook_enabled : true,
+      alert_event_enabled: record.alert_event_enabled !== undefined ? record.alert_event_enabled : false,
+      alert_notification_enabled: record.alert_notification_enabled !== undefined ? record.alert_notification_enabled : false,
+      notification_channels: notificationChannels.value,
       is_full_day_defense: fullDayDefense,
     });
+    
+    // 更新告警通知启用状态
+    alertNotificationEnabled.value = record.alert_notification_enabled !== undefined ? record.alert_notification_enabled : false;
+    
+    // 更新formValues以便AlertNotificationConfig组件响应
+    formValues.value = { ...formValues.value, ...await getFieldsValue() };
     
     // 查看模式禁用表单和按钮
     if (modalData.value.type === 'view') {
@@ -438,7 +776,10 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
         { field: 'tracking_similarity_threshold', componentProps: { disabled: true } },
         { field: 'tracking_max_age', componentProps: { disabled: true } },
         { field: 'tracking_smooth_alpha', componentProps: { disabled: true } },
-        { field: 'alert_hook_enabled', componentProps: { disabled: true } },
+        { field: 'alert_event_enabled', componentProps: { disabled: true } },
+        { field: 'alert_notification_enabled', componentProps: { disabled: true } },
+        { field: 'notification_channels', componentProps: { disabled: true } },
+        { field: 'notification_templates', componentProps: { disabled: true } },
         { field: 'is_full_day_defense', componentProps: { disabled: true } },
       ]);
       setDrawerProps({ showOkBtn: false });
@@ -456,9 +797,21 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       tracking_similarity_threshold: 0.2,
       tracking_max_age: 25,
       tracking_smooth_alpha: 0.25,
-      alert_hook_enabled: true, // 默认开启告警Hook
+      alert_event_enabled: false, // 默认关闭告警事件
+      notification_channels: [],
       is_full_day_defense: true, // 默认全天布防
     });
+    // 初始化告警通知相关状态
+    notificationChannels.value = [];
+    channelTemplates.value = {};
+    alertNotificationEnabled.value = false;
+    alertNotificationConfig.value = {
+      enabled: false,
+      channels: [],
+      suppress_time: 300,
+    };
+    // 更新formValues
+    formValues.value = { ...formValues.value, ...await getFieldsValue() };
     // 重置布防时段为默认值（全天布防）
     defenseSchedule.value = {
       mode: 'full', // 默认全防模式
@@ -469,7 +822,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
 });
 
 // 处理表单字段值变化
-const handleFieldValueChange = (key: string, value: any) => {
+const handleFieldValueChange = async (key: string, value: any) => {
   if (key === 'is_full_day_defense') {
     isFullDayDefense.value = value !== undefined ? value : true;
     // 如果切换到非全天布防，设置为半防模式并清空，让用户自己选择
@@ -485,6 +838,55 @@ const handleFieldValueChange = (key: string, value: any) => {
         schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
       };
     }
+  } else if (key === 'alert_event_enabled') {
+    // 如果关闭告警事件，同时关闭告警通知
+    if (!value) {
+      alertNotificationEnabled.value = false;
+      alertNotificationConfig.value = {
+        enabled: false,
+        channels: [],
+        suppress_time: 300,
+      };
+      notificationChannels.value = [];
+      channelTemplates.value = {};
+    }
+    // 立即更新 formValues，确保告警通知配置能够及时响应
+    const currentValues = await getFieldsValue();
+    formValues.value = { ...currentValues, alert_event_enabled: value };
+  } else if (key === 'alert_notification_enabled') {
+    // 告警通知启用状态变化时，立即更新 formValues
+    alertNotificationEnabled.value = value;
+    const currentValues = await getFieldsValue();
+    formValues.value = { ...currentValues, alert_notification_enabled: value };
+    // 如果关闭告警通知，清空配置
+    if (!value) {
+      notificationChannels.value = [];
+      channelTemplates.value = {};
+    }
+  } else if (key === 'notification_channels') {
+    // 通知渠道变化时，同步更新 notificationChannels
+    notificationChannels.value = value || [];
+    // 移除未选中渠道的模板
+    Object.keys(channelTemplates.value).forEach((channel) => {
+      if (!value || !value.includes(channel)) {
+        delete channelTemplates.value[channel];
+      }
+    });
+    // 加载新选中渠道的模板
+    if (value && Array.isArray(value)) {
+      value.forEach((channel: string) => {
+        if (!templates.value[channel]?.length) {
+          loadTemplates(channel);
+        }
+      });
+    }
+    // 同步更新 formValues
+    const currentValues = await getFieldsValue();
+    formValues.value = { ...currentValues, notification_channels: value };
+  } else {
+    // 其他字段变化时，也同步更新 formValues
+    const currentValues = await getFieldsValue();
+    formValues.value = { ...currentValues, [key]: value };
   }
 };
 
@@ -514,6 +916,34 @@ const handleSubmit = async () => {
     
     // 移除前端字段，不发送到后端
     delete values.is_full_day_defense;
+    
+    // 处理告警通知配置
+    // 获取所有已选择模板的渠道
+    const selectedChannels = Object.keys(channelTemplates.value).filter(
+      (method: string) => channelTemplates.value[method] !== undefined && channelTemplates.value[method] !== null
+    );
+    
+    if (values.alert_event_enabled && values.alert_notification_enabled && selectedChannels.length > 0) {
+      values.alert_notification_enabled = true;
+      // 构建通知渠道配置
+      const channels = selectedChannels.map((method: string) => {
+        const templateId = channelTemplates.value[method];
+        const template = templates.value[method]?.find((t: any) => t.id === templateId);
+        return {
+          method,
+          template_id: templateId,
+          template_name: template?.name || '',
+        };
+      });
+      values.alert_notification_config = {
+        channels: channels,
+      };
+      values.alarm_suppress_time = alertNotificationConfig.value.suppress_time || 300;
+    } else {
+      values.alert_notification_enabled = false;
+      values.alert_notification_config = null;
+    }
+    
     
     // 确保 model_ids 是数组格式
     if (values.model_ids && !Array.isArray(values.model_ids)) {
@@ -577,7 +1007,7 @@ const handleReset = () => {
         tracking_similarity_threshold: 0.2,
         tracking_max_age: 25,
         tracking_smooth_alpha: 0.25,
-        alert_hook_enabled: true, // 默认开启告警Hook
+      alert_event_enabled: false, // 默认关闭告警事件
         is_full_day_defense: true, // 默认全天布防
       });
     // 重置布防时段为默认值（全天布防）
@@ -620,7 +1050,7 @@ const handleReset = () => {
         tracking_similarity_threshold: record.tracking_similarity_threshold || 0.2,
       tracking_max_age: record.tracking_max_age || 25,
       tracking_smooth_alpha: record.tracking_smooth_alpha || 0.25,
-      alert_hook_enabled: record.alert_hook_enabled !== undefined ? record.alert_hook_enabled : true,
+      alert_event_enabled: record.alert_event_enabled !== undefined ? record.alert_event_enabled : false,
       is_full_day_defense: fullDayDefense,
       });
       
@@ -651,6 +1081,34 @@ const handleReset = () => {
   .defense-schedule-wrapper {
     margin-top: 8px;
   }
+  
+    .alert-notification-wrapper {
+    margin-top: 8px;
+    
+    :deep(.ant-divider) {
+      margin: 16px 0;
+    }
+  }
+  
+  .notification-templates-wrapper {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 12px !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    
+    :deep(.ant-select) {
+      flex: 1 1 auto !important;
+      min-width: 200px !important;
+      max-width: 300px !important;
+    }
+  }
+  
+  .notification-templates-empty {
+    color: rgba(0, 0, 0, 0.45);
+    font-size: 14px;
+  }
 }
 
 :deep(.ant-tabs-content-holder) {
@@ -666,6 +1124,100 @@ const handleReset = () => {
   display: flex;
   justify-content: flex-end;
   align-items: center;
+}
+
+.alert-notification-enabled-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alert-event-enabled-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.full-day-defense-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.defense-tip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 280px;
+  line-height: 1.6;
+  color: #fff;
+  
+  .tip-item {
+    font-size: 13px;
+  }
+}
+
+.placeholder-trigger-btn {
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8c8c8c;
+  
+  &:hover {
+    color: #1890ff;
+  }
+}
+
+.placeholder-box-small {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: #000;
+  padding: 12px;
+  border-radius: 4px;
+  min-width: 200px;
+}
+
+.placeholder-item-small {
+  display: flex;
+  align-items: center;
+  line-height: 1.5;
+  font-size: 12px;
+  color: #fff;
+  font-family: 'Courier New', 'Consolas', 'Monaco', monospace;
+}
+
+.placeholder-text {
+  color: #52c41a;
+  font-weight: 500;
+}
+
+.placeholder-separator {
+  color: #fff;
+  margin: 0 4px;
+}
+
+.placeholder-desc {
+  color: #fff;
+}
+
+// Popover 样式覆盖
+:deep(.ant-popover-inner) {
+  background-color: #000;
+}
+
+:deep(.ant-popover-inner-content) {
+  background-color: #000;
+  color: #fff;
+}
+
+:deep(.ant-popover-title) {
+  background-color: #000;
+  color: #fff;
+  border-bottom-color: #333;
 }
 </style>
 
