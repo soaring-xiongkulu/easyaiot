@@ -1,11 +1,20 @@
 # Windows环境下使用ffmpeg将RTSP流推送到SRS服务器
-# 使用方法: .\push_rtsp_to_srs.ps1 -RtspUrl "rtsp://192.168.1.100:554/stream" -SrsHost "192.168.1.200" -SrsPort 1935 -App "live" -Stream "test"
+# 使用方法: 
+#   命名参数: .\push_rtsp_to_srs.ps1 -RtspUrl "rtsp://192.168.1.100:554/stream" -SrsHost "192.168.1.200"
+#   位置参数: .\push_rtsp_to_srs.ps1 "rtsp://192.168.1.100:554/stream" "192.168.1.200"
+
+# 设置控制台输出编码为UTF-8以正确显示中文
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+if ($PSVersionTable.PSVersion.Major -ge 6) {
+    [Console]::InputEncoding = [System.Text.Encoding]::UTF8
+}
 
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$true, Position=0)]
     [string]$RtspUrl,
     
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory=$false, Position=1)]
     [string]$SrsHost = "127.0.0.1",
     
     [Parameter(Mandatory=$false)]
@@ -41,7 +50,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "RTSP推流到SRS配置" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "RTSP源地址: $RtspUrl" -ForegroundColor White
-Write-Host "SRS服务器: $SrsHost:$SrsPort" -ForegroundColor White
+Write-Host "SRS服务器: ${SrsHost}:${SrsPort}" -ForegroundColor White
 Write-Host "应用名称: $App" -ForegroundColor White
 Write-Host "流名称: $Stream" -ForegroundColor White
 Write-Host "RTMP推流地址: $RtmpUrl" -ForegroundColor Green
@@ -86,4 +95,3 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host ""
     Write-Host "推流已停止" -ForegroundColor Green
 }
-

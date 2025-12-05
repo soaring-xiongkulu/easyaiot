@@ -2,6 +2,9 @@
 REM Windows环境下使用ffmpeg将RTSP流推送到SRS服务器
 REM 使用方法: push_rtsp_to_srs.bat rtsp://192.168.1.100:554/stream 192.168.1.200 1935 live test
 
+REM 设置代码页为UTF-8以正确显示中文
+chcp 65001 >nul 2>&1
+
 setlocal enabledelayedexpansion
 
 REM 参数解析
