@@ -14,7 +14,7 @@ from pathlib import Path
 # 获取脚本所在目录
 SCRIPT_DIR = Path(__file__).parent.absolute()
 VIDEO_DIR = SCRIPT_DIR / "video"
-VIDEO_FILE = VIDEO_DIR / "video1.mp4"
+VIDEO_FILE = VIDEO_DIR / "video2.mp4"
 RTMP_URL = "rtmp://localhost:1935/live/1764341204704370850"
 
 # 全局变量用于存储 ffmpeg 进程
@@ -68,7 +68,7 @@ def start_streaming(rtmp_url=None, video_file=None, loop=True, log_level="info",
     
     Args:
         rtmp_url: RTMP 推流地址，默认为 rtmp://localhost:1935/live/1764341204704370850
-        video_file: 视频文件路径，默认为 VIDEO/video/video1.mp4
+        video_file: 视频文件路径，默认为 VIDEO/video/video2.mp4
         loop: 是否循环播放，默认为 True
         log_level: ffmpeg 日志级别，默认为 info
         preset: 编码预设，默认为 ultrafast（最快，最低CPU）
@@ -161,28 +161,59 @@ def start_streaming(rtmp_url=None, video_file=None, loop=True, log_level="info",
         print(f"   按 Ctrl+C 停止推流\n")
         
         # 实时输出 stderr（ffmpeg 的输出在 stderr）
+        stderr_output = ""
         while True:
             if ffmpeg_process.poll() is not None:
-                # 进程已结束
-                stderr_output = ffmpeg_process.stderr.read()
-                if stderr_output:
-                    print("\n📋 ffmpeg 输出:")
-                    print(stderr_output)
+                # 进程已结束，读取剩余输出
+                remaining = ffmpeg_process.stderr.read()
+                if remaining:
+                    stderr_output += remaining
                 break
             
             # 读取一行错误输出
             line = ffmpeg_process.stderr.readline()
             if line:
+                stderr_output += line
                 # 过滤掉一些不重要的信息
                 if log_level == "error" or "error" in line.lower() or "warning" in line.lower():
                     print(line.strip())
             
             time.sleep(0.1)
         
+        # 如果有输出，显示完整信息
+        if stderr_output:
+            print("\n📋 ffmpeg 输出:")
+            print(stderr_output)
+        
         # 检查退出码
         return_code = ffmpeg_process.returncode
         if return_code != 0:
             print(f"\n❌ 推流进程异常退出 (退出码: {return_code})")
+            
+            # 检查是否是RTMP连接错误
+            if stderr_output:
+                error_lower = stderr_output.lower()
+                if "error opening output" in error_lower or "input/output error" in error_lower:
+                    print("\n💡 可能的原因和解决方案：")
+                    print("   1. RTMP服务器未运行或连接被拒绝")
+                    print(f"      - 请确保RTMP服务器（SRS）在 {rtmp_url.split('://')[1].split('/')[0]} 上运行")
+                    print("      - 检查SRS服务状态: docker ps | grep srs 或 systemctl status srs")
+                    print("   2. SRS HTTP回调服务未运行（常见原因）")
+                    print("      - SRS配置了on_publish回调，但回调服务未启动")
+                    print("      - 请确保VIDEO服务在端口48080上运行")
+                    print("      - 检查服务: docker ps | grep video 或检查VIDEO服务状态")
+                    print("      - 查看SRS日志确认回调URL: http://127.0.0.1:48080/admin-api/video/camera/callback/on_publish")
+                    print("   3. RTMP服务器地址不正确")
+                    print(f"      - 当前地址: {rtmp_url}")
+                    print("      - 请使用 --rtmp 参数指定正确的RTMP地址")
+                    print("   4. 网络连接问题")
+                    print("      - 请检查防火墙设置")
+                    print("      - 请检查网络连接")
+                    print("\n📝 排查步骤：")
+                    print(f"   1. 检查RTMP端口: netstat -tuln | grep 1935")
+                    print(f"   2. 检查VIDEO服务端口: netstat -tuln | grep 48080")
+                    print(f"   3. 查看SRS日志确认具体错误信息")
+                    print(f"   4. 测试RTMP连接: telnet localhost 1935")
         else:
             print(f"\n✅ 推流进程正常退出")
         

@@ -2276,6 +2276,45 @@ prepare_emqx_volumes() {
     print_success "EMQX 容器和数据卷准备完成"
 }
 
+# 获取 Docker 网络网关 IP（用于容器访问宿主机服务）
+get_docker_network_gateway() {
+    local network_name="${1:-easyaiot-network}"
+    local gateway_ip=""
+    
+    # 方法1: 如果网络已存在，直接获取网关IP
+    if docker network inspect "$network_name" >/dev/null 2>&1; then
+        gateway_ip=$(docker network inspect "$network_name" --format='{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null | head -n 1)
+        if [ -n "$gateway_ip" ] && [[ "$gateway_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "$gateway_ip"
+            return 0
+        fi
+    fi
+    
+    # 方法2: 如果网络不存在，尝试创建网络后获取
+    if ! docker network inspect "$network_name" >/dev/null 2>&1; then
+        if docker network create "$network_name" >/dev/null 2>&1; then
+            gateway_ip=$(docker network inspect "$network_name" --format='{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null | head -n 1)
+            if [ -n "$gateway_ip" ] && [[ "$gateway_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo "$gateway_ip"
+                return 0
+            fi
+        fi
+    fi
+    
+    # 方法3: 使用默认Docker网关IP（通常是172.17.0.1或172.18.0.1）
+    if command -v ip &> /dev/null; then
+        gateway_ip=$(ip addr show docker0 2>/dev/null | grep "inet " | awk '{print $2}' | cut -d/ -f1)
+        if [ -n "$gateway_ip" ] && [[ "$gateway_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "$gateway_ip"
+            return 0
+        fi
+    fi
+    
+    # 方法4: 使用常见的Docker网络网关IP
+    echo "172.18.0.1"
+    return 0
+}
+
 # 准备 SRS 配置文件
 # 强制更新模式：无论配置文件是否存在，都重新生成并自动替换 IP 地址
 prepare_srs_config() {
@@ -2285,7 +2324,7 @@ prepare_srs_config() {
     
     print_info "准备 SRS 配置文件..."
     
-    # 获取宿主机 IP 地址
+    # 获取宿主机 IP 地址（用于VIDEO服务，如果VIDEO在宿主机运行）
     local host_ip=$(get_host_ip)
     if [ -z "$host_ip" ]; then
         print_warning "无法获取宿主机 IP，将使用 127.0.0.1（可能导致 VIDEO 模块回调失败）"
@@ -2294,20 +2333,31 @@ prepare_srs_config() {
         print_info "检测到宿主机 IP: $host_ip"
     fi
     
+    # 获取 Docker 网络网关 IP（用于Gateway服务，如果Gateway在宿主机运行）
+    local gateway_ip=$(get_docker_network_gateway "easyaiot-network")
+    if [ -z "$gateway_ip" ]; then
+        print_warning "无法获取 Docker 网络网关 IP，将使用 172.18.0.1"
+        gateway_ip="172.18.0.1"
+    else
+        print_info "检测到 Docker 网络网关 IP: $gateway_ip"
+    fi
+    
     # 创建目标目录
     mkdir -p "$srs_config_target"
     
     # 强制更新模式：无论配置文件是否存在，都重新生成
-    print_info "重新获取宿主机 IP 并重新生成配置文件..."
+    print_info "重新获取 IP 地址并重新生成配置文件..."
     
     # 尝试从源目录复制配置文件
     if [ -d "$srs_config_source" ] && [ -f "$srs_config_source/docker.conf" ]; then
         print_info "从源目录复制 SRS 配置文件..."
         if cp -f "$srs_config_source/docker.conf" "$srs_config_file" 2>/dev/null; then
-            # 替换配置文件中的所有 IP 地址为宿主机 IP
-            # 匹配模式: http://IP:6000 或 http://IP:6000/...
+            # 替换配置文件中的 Gateway 地址（48080端口）- 用于访问宿主机上的Gateway服务
+            sed -i -E "s|http://([0-9]{1,3}\.){3}[0-9]{1,3}:48080|http://${gateway_ip}:48080|g" "$srs_config_file"
+            # 替换配置文件中的 VIDEO 地址（6000端口）- 用于访问宿主机上的VIDEO服务
             sed -i -E "s|http://([0-9]{1,3}\.){3}[0-9]{1,3}:6000|http://${host_ip}:6000|g" "$srs_config_file"
-            print_info "已将配置文件中的 IP 地址更新为宿主机 IP: $host_ip"
+            print_info "已将配置文件中的 Gateway 地址更新为: $gateway_ip:48080"
+            print_info "已将配置文件中的 VIDEO 地址更新为: $host_ip:6000"
             print_success "SRS 配置文件已复制并更新: $srs_config_source/docker.conf -> $srs_config_file"
             # 验证文件确实存在
             if [ -f "$srs_config_file" ]; then
@@ -2374,15 +2424,16 @@ vhost __defaultVhost__ {
     }
     http_hooks {
         enabled             on;
-        on_dvr              http://${host_ip}:6000/video/camera/callback/on_dvr;
-        on_publish          http://${host_ip}:6000/video/camera/callback/on_publish;
+        on_dvr              http://${gateway_ip}:48080/admin-api/video/camera/callback/on_dvr;
+        on_publish          http://${gateway_ip}:48080/admin-api/video/camera/callback/on_publish;
     }
 }
 EOF
     
     # 验证文件是否创建成功
     if [ -f "$srs_config_file" ]; then
-        print_success "默认 SRS 配置文件已创建: $srs_config_file (使用宿主机 IP: $host_ip)"
+        print_success "默认 SRS 配置文件已创建: $srs_config_file"
+        print_info "  - Gateway 回调地址: http://${gateway_ip}:48080/admin-api/video/camera/callback/*"
         return 0
     else
         print_error "无法创建 SRS 配置文件: $srs_config_file"

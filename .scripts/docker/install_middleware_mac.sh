@@ -145,17 +145,92 @@ ensure_network() {
   docker network create "${NETWORK_NAME}" >/dev/null
 }
 
+# 获取 Docker 网络网关 IP（用于容器访问宿主机服务）
+get_docker_network_gateway() {
+  local network_name="${1:-easyaiot-network}"
+  local gateway_ip=""
+  
+  # 方法1: 如果网络已存在，直接获取网关IP
+  if docker network inspect "$network_name" >/dev/null 2>&1; then
+    gateway_ip=$(docker network inspect "$network_name" --format='{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null | head -n 1)
+    if [[ -n "$gateway_ip" && "$gateway_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "$gateway_ip"
+      return 0
+    fi
+  fi
+  
+  # 方法2: 如果网络不存在，尝试创建网络后获取
+  if ! docker network inspect "$network_name" >/dev/null 2>&1; then
+    if docker network create "$network_name" >/dev/null 2>&1; then
+      gateway_ip=$(docker network inspect "$network_name" --format='{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null | head -n 1)
+      if [[ -n "$gateway_ip" && "$gateway_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "$gateway_ip"
+        return 0
+      fi
+    fi
+  fi
+  
+  # 方法3: macOS上使用host.docker.internal（如果可用）
+  if ping -c 1 host.docker.internal >/dev/null 2>&1; then
+    # 在macOS上，容器可以通过host.docker.internal访问宿主机
+    # 但SRS配置需要IP地址，所以尝试解析
+    local resolved_ip=$(getent hosts host.docker.internal 2>/dev/null | awk '{print $1}' | head -n 1)
+    if [[ -n "$resolved_ip" && "$resolved_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "$resolved_ip"
+      return 0
+    fi
+  fi
+  
+  # 方法4: 使用常见的Docker网络网关IP
+  echo "172.18.0.1"
+  return 0
+}
+
 copy_srs_conf() {
   local src="${SCRIPT_DIR}/../srs/conf"
   local dst="${SCRIPT_DIR}/srs_data/conf"
   local target="${dst}/docker.conf"
-  [[ -f "$target" ]] && return
-  if [[ -f "${src}/docker.conf" ]]; then
-    mkdir -p "$dst"
-    cp -R "${src}/." "$dst/"
-    ok "SRS 配置已复制"
-  else
+  
+  if [[ ! -f "${src}/docker.conf" ]]; then
     warn "未找到默认 SRS 配置 (${src}/docker.conf)"
+    return
+  fi
+  
+  mkdir -p "$dst"
+  
+  # 获取 Docker 网络网关 IP（用于Gateway服务，如果Gateway在宿主机运行）
+  local gateway_ip=$(get_docker_network_gateway "${NETWORK_NAME}")
+  if [[ -z "$gateway_ip" ]]; then
+    warn "无法获取 Docker 网络网关 IP，将使用 172.18.0.1"
+    gateway_ip="172.18.0.1"
+  else
+    info "检测到 Docker 网络网关 IP: $gateway_ip"
+  fi
+  
+  # 复制配置文件
+  cp -R "${src}/." "$dst/"
+  
+  # 更新配置文件中的 Gateway 地址（48080端口）
+  if [[ -f "$target" ]]; then
+    # macOS使用BSD sed，需要指定备份扩展名
+    if sed -i '' -E "s|http://([0-9]{1,3}\.){3}[0-9]{1,3}:48080|http://${gateway_ip}:48080|g" "$target" 2>/dev/null; then
+      info "已将配置文件中的 Gateway 地址更新为: $gateway_ip:48080"
+      ok "SRS 配置已复制并更新"
+    else
+      # 如果sed -i失败，使用临时文件
+      local temp_file=$(mktemp)
+      if sed -E "s|http://([0-9]{1,3}\.){3}[0-9]{1,3}:48080|http://${gateway_ip}:48080|g" "$target" > "$temp_file" 2>/dev/null; then
+        mv "$temp_file" "$target"
+        info "已将配置文件中的 Gateway 地址更新为: $gateway_ip:48080"
+        ok "SRS 配置已复制并更新"
+      else
+        rm -f "$temp_file"
+        warn "无法更新 SRS 配置中的 IP 地址，使用原始配置"
+        ok "SRS 配置已复制"
+      fi
+    fi
+  else
+    ok "SRS 配置已复制"
   fi
 }
 
