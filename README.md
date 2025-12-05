@@ -22,8 +22,6 @@ My vision is for this system to be accessible worldwide, achieving truly zero ba
   <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
   <a href="./README_fr.md">Français</a>
   <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
-  <a href="./README_ja.md">日本語</a>
-  <span style="display: flex; align-items: center; color: #666; font-weight: bold;">|</span>
   <a href="./README_ko.md">한국어</a>
 </h4>
 
