@@ -7,11 +7,17 @@
 
 参数:
     --env: 指定环境配置文件，例如: --env=prod 会加载 .env.prod，默认加载 .env
-    --confirm: 确认删除操作（必须提供此参数才会真正执行删除）
+    --confirm: 跳过交互式确认，直接执行删除操作（谨慎使用）
 
 示例:
-    python drop_all_tables.py --confirm
-    python drop_all_tables.py --env=prod --confirm
+    python drop_all_tables.py                    # 交互式确认
+    python drop_all_tables.py --confirm          # 跳过确认直接删除
+    python drop_all_tables.py --env=prod         # 使用指定环境配置并交互式确认
+
+说明:
+    - 如果不提供 --confirm 参数，脚本会显示将要删除的表列表，并交互式询问确认
+    - 提供 --confirm 参数会跳过交互式确认，直接执行删除操作
+    - 建议在非交互式环境中使用 --confirm 参数
 
 警告: 此操作会永久删除所有数据，请谨慎使用！
 """
@@ -101,7 +107,7 @@ def parse_args():
     parser.add_argument('--env', type=str, default='', 
                        help='指定环境配置文件，例如: --env=prod 会加载 .env.prod，默认加载 .env')
     parser.add_argument('--confirm', action='store_true',
-                       help='确认删除操作（必须提供此参数才会真正执行删除）')
+                       help='跳过交互式确认，直接执行删除操作（谨慎使用）')
     return parser.parse_args()
 
 # 加载环境变量配置文件
@@ -133,14 +139,36 @@ def get_all_tables(engine):
     tables = inspector.get_table_names()
     return tables
 
+# 交互式确认
+def interactive_confirm(tables):
+    """交互式确认删除操作"""
+    print(f"\n⚠️  警告: 即将删除以下 {len(tables)} 个表:")
+    for i, table in enumerate(tables, 1):
+        print(f"   {i}. {table}")
+    
+    print("\n⚠️  此操作会永久删除所有数据，无法恢复！")
+    print("\n请确认是否继续删除操作？")
+    
+    while True:
+        try:
+            response = input("输入 'yes' 或 'y' 确认删除，输入 'no' 或 'n' 取消: ").strip().lower()
+            if response in ['yes', 'y']:
+                return True
+            elif response in ['no', 'n']:
+                print("❌ 操作已取消")
+                return False
+            else:
+                print("⚠️  请输入 'yes'/'y' 或 'no'/'n'")
+        except KeyboardInterrupt:
+            print("\n\n❌ 操作已取消（用户中断）")
+            return False
+        except EOFError:
+            print("\n\n❌ 操作已取消（输入结束）")
+            return False
+
 # 删除所有表
 def drop_all_tables(engine, confirm=False):
     """删除所有数据库表"""
-    if not confirm:
-        print("❌ 错误: 必须使用 --confirm 参数来确认删除操作")
-        print("💡 使用方法: python drop_all_tables.py --confirm")
-        return False
-    
     try:
         # 获取所有表名
         tables = get_all_tables(engine)
@@ -149,12 +177,12 @@ def drop_all_tables(engine, confirm=False):
             print("ℹ️  数据库中没有表需要删除")
             return True
         
-        print(f"\n⚠️  警告: 即将删除以下 {len(tables)} 个表:")
-        for i, table in enumerate(tables, 1):
-            print(f"   {i}. {table}")
+        # 如果没有通过命令行确认，则进行交互式确认
+        if not confirm:
+            if not interactive_confirm(tables):
+                return False
         
-        print("\n⚠️  此操作会永久删除所有数据，无法恢复！")
-        print("正在执行删除操作...\n")
+        print("\n正在执行删除操作...\n")
         
         # 使用事务执行删除
         with engine.connect() as conn:
