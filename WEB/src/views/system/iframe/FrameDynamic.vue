@@ -21,12 +21,24 @@
   import { useTabs } from '/@/hooks/web/useTabs';
 
   const route = useRoute();
-  const index = route.params?.id ?? -1;
-  const code = route.query?.code ?? -1;
+  const index = route.params?.id ?? '';
+  const code = route.query?.code ?? '';
+  const path = route.query?.path ?? '';
   const { setTitle } = useTabs();
-  setTitle(`${index}`);
-  let _initPath;
-  _initPath = route.query?.path + code;
+  setTitle(decodeURIComponent(String(index)) || 'NodeRed');
+  
+  // 构建完整的 iframe 路径
+  const _initPath = computed(() => {
+    if (path && code) {
+      // 如果 path 是相对路径，确保以 / 开头
+      const basePath = String(path).startsWith('/') ? path : `/${path}`;
+      // 拼接 code 到路径末尾
+      return `${basePath}${code}`;
+    } else if (path) {
+      return String(path).startsWith('/') ? path : `/${path}`;
+    }
+    return '';
+  });
 
   const loading = ref(false);
   const topRef = ref(50);

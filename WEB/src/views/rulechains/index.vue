@@ -285,6 +285,10 @@ export default defineComponent({
     }
 
     async function handleDelete(record) {
+      if (!record || !record.id || record.id === 'undefined') {
+        createMessage.error('规则链ID无效！');
+        return;
+      }
       try {
         await deleteflows(record.id);
         createMessage.success('删除成功！');
@@ -305,8 +309,17 @@ export default defineComponent({
     }
 
     async function deleteAll() {
+      if (!checkedKeys.value || checkedKeys.value.length === 0) {
+        createMessage.warning('请选择要删除的规则链！');
+        return;
+      }
+      const validKeys = checkedKeys.value.filter((item) => item && item !== 'undefined');
+      if (validKeys.length === 0) {
+        createMessage.error('没有有效的规则链ID！');
+        return;
+      }
       try {
-        await Promise.all([...checkedKeys.value.map((item) => deleteflows(item + ''))]);
+        await Promise.all([...validKeys.map((item) => deleteflows(item + ''))]);
         createMessage.success('删除成功！');
       }catch (error) {
     console.error(error)
@@ -321,9 +334,15 @@ export default defineComponent({
 
     //http://127.0.0.1:1880/#flow/
     function rowClickTable(record) {
+      if (!record || !record.id) {
+        createMessage.error('规则链信息无效！');
+        return;
+      }
+      // 使用代理路径访问 NodeRed，避免跨域问题
+      const nodeRedPath = '/dev-api/nodeRed/#flow/';
       go({
-        path: `/rulechains/index/${record.label} - 规则链`,
-        query: {code: record.id, path: "//localhost:1880/#flow/"}
+        path: `/rulechains/index/${encodeURIComponent(record.label || '规则链')}`,
+        query: {code: record.id, path: nodeRedPath}
       });
     }
 

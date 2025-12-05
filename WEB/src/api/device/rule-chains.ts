@@ -25,31 +25,43 @@ export const addFlows = (params) =>
 /**
  * @description: 获取规则链详细信息
  */
-export const getFlows = (key: string) =>
-  defHttp.get(
+export const getFlows = (key: string) => {
+  if (!key || key === 'undefined') {
+    return Promise.reject(new Error('规则链ID不能为空'));
+  }
+  return defHttp.get(
     {
       url: Api.NodeRed + '/flow/' + key,
     },
     {isTransformResponse: false},
   );
+};
 /**
  * @description: 更新规则
  */
-export const updateflows = (key, params) =>
-  defHttp.put(
+export const updateflows = (key, params) => {
+  if (!key || key === 'undefined') {
+    return Promise.reject(new Error('规则链ID不能为空'));
+  }
+  return defHttp.put(
     {
       url: Api.NodeRed + '/flow/' + key,
       params,
     },
     {isTransformResponse: false},
   );
+};
 /**
  * @description: 删除规则
  */
-export const deleteflows = (key) =>
-  defHttp.delete(
+export const deleteflows = (key) => {
+  if (!key || key === 'undefined') {
+    return Promise.reject(new Error('规则链ID不能为空'));
+  }
+  return defHttp.delete(
     {
       url: Api.NodeRed + '/flow/' + key,
     },
     {isTransformResponse: false},
   );
+};

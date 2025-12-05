@@ -47,10 +47,16 @@
         console.log('Data Received', data);
         id.value = data.id;
         setDrawerProps({ title: data.data + '-规则链详情' });
-        RulesInfo(id.value);
+        if (id.value) {
+          RulesInfo(id.value);
+        }
       }
 
       async function RulesInfo(id) {
+        if (!id || id === 'undefined') {
+          console.error('规则链ID无效:', id);
+          return;
+        }
         try {
           const ret = await getFlows(id);
           info.value = ret['data'];

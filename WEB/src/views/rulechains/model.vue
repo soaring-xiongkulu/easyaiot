@@ -106,10 +106,12 @@
         resetFields();
         tplType.value = info;
         const ModalTitle = tplType.value === 'add' ? '添加规则' : isEdit ? '编辑规则' : '导入规则';
-        if (isEdit) {
+        if (isEdit && data && data.id) {
           flowsId.value = data.id;
           getFlows(data.id).then((res) => {
             detail.value = res;
+          }).catch((error) => {
+            console.error('获取规则链详情失败:', error);
           });
           setFieldsValue({
             ...data,
@@ -128,6 +130,10 @@
             if (tplType.value === 'add') {
               await addFlows(params);
             } else if (tplType.value === 'edit') {
+              if (!flowsId.value || flowsId.value === 'undefined') {
+                createMessage.error('规则链ID无效！');
+                return;
+              }
               await updateflows(flowsId.value, params);
             }
             // const result = await updateflows(flowsId.value, params);
