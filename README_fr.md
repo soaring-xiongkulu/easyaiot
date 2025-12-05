@@ -1,4 +1,3 @@
-```markdown
 # EasyAIoT (Plateforme d'Application d'Algorithmes Intelligents à Intégration Cloud-Bord-Périphérique)
 
 [![Gitee star](https://gitee.com/volara/easyaiot/badge/star.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/stargazers)
@@ -710,4 +709,3 @@ Vos suggestions pour améliorer EasyAIoT sont les bienvenues.
 ## 🌟 Tendance de croissance des Stars
 
 [![Stargazers over time](https://starchart.cc/soaring-xiongkulu/easyaiot.svg?variant=adaptive)](https://starchart.cc/soaring-xiongkulu/easyaiot)
-```
