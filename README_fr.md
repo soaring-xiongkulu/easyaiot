@@ -296,7 +296,7 @@ EasyAIoT est un projet d'apprentissage open source, sans lien avec des activité
 
 ## 📚 Documentation de déploiement
 
-- [Documentation de déploiement de la plateforme](.doc/部署文档/平台部署文档.md)
+- [Documentation de déploiement de la plateforme](.doc/部署文档/平台部署文档_zh)
 
 ## 🎮 Environnement de démonstration
 
