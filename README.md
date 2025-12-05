@@ -1,10 +1,10 @@
-# EasyAIoT（云边端一体化智能算法应用平台）
+# EasyAIoT (Cloud-Edge-Device Integrated Collaborative Algorithm Application Platform)
 
 [![Gitee star](https://gitee.com/soaring-xiongkulu/easyaiot/badge/star.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/stargazers)
 [![Gitee fork](https://gitee.com/soaring-xiongkulu/easyaiot//badge/fork.svg?theme=gvp)](https://gitee.com/soaring-xiongkulu/easyaiot/members)
 
 <p style="font-size: 16px; line-height: 1.8; color: #555; font-weight: 400; margin: 20px 0;">
-我希望全世界都能使用这个系统，实现AI的真正0门槛，人人都能体验到AI带来的好处，而并不只是掌握在少数人手里。
+My vision is for this system to be accessible worldwide, achieving truly zero barriers to AI. Everyone should experience the benefits of AI, not just a privileged few.
 </p>
 
 <div align="center">
@@ -17,288 +17,291 @@
   <a href="./README_en.md">English Document</a>
 </h4>
 
-## 🌟 关于项目的一些思考
+## 🌟 Some Thoughts on the Project
 
-### 📍 项目定位
+### 📍 Project Positioning
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT的深度融合。平台通过算法任务管理、实时流分析、模型服务集群推理等核心能力，实现从设备接入到数据采集、AI分析、智能决策的全链路闭环，真正实现万物互联、万物智控。
+EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT. Through core capabilities such as algorithm task management, real-time stream analysis, and model service cluster inference, the platform achieves a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making, truly realizing interconnected everything and intelligent control of everything.
 </p>
 
-#### 🧠 AI能力
+#### 🧠 AI Capabilities
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>摄像头实时画面AI分析</strong>：支持摄像头实时画面的AI智能分析，可对实时视频流进行目标检测、行为分析、异常识别等AI算法处理，提供毫秒级响应的实时分析结果，支持多路视频并发分析</li>
-  <li><strong>云边端一体算法预警监控大屏</strong>：提供统一的云边端一体化算法预警监控大屏，实时展示设备状态、算法任务运行情况、告警事件统计、视频流分析结果等关键信息，支持多维度数据可视化展示，实现云端、边缘端、设备端的统一监控与管理，为决策者提供全局视角的智能监控指挥中心</li>
-  <li><strong>大规模摄像头管理</strong>：支持百级摄像头接入，提供采集、标注、训练、推理、导出、分析、告警、录像、存储、部署等全流程服务</li>
-  <li><strong>算法任务管理</strong>：支持创建和管理两种类型的算法任务，每个算法任务可灵活绑定抽帧器和排序器，实现精准的视频帧提取与结果排序
+  <li><strong>Real-Time Camera AI Analysis</strong>: Supports AI intelligent analysis of real-time camera feeds. Performs AI algorithm processing such as object detection, behavior analysis, and anomaly recognition on real-time video streams, providing millisecond-level response real-time analysis results, supporting concurrent analysis of multiple video streams</li>
+  <li><strong>Cloud-Edge-Device Integrated Algorithm Alert Monitoring Dashboard</strong>: Provides a unified cloud-edge-device integrated algorithm alert monitoring dashboard that displays key information in real-time, including device status, algorithm task operations, alarm event statistics, and video stream analysis results. Supports multi-dimensional data visualization, achieving unified monitoring and management of cloud, edge, and device layers, providing decision-makers with a global perspective intelligent monitoring command center</li>
+  <li><strong>Large-Scale Camera Management</strong>: Supports access to hundreds of cameras, providing end-to-end services including collection, annotation, training, inference, export, analysis, alerting, recording, storage, and deployment</li>
+  <li><strong>Algorithm Task Management</strong>: Supports creation and management of two types of algorithm tasks, each task can flexibly bind frame extractors and sorters to achieve precise video frame extraction and result sorting
     <ul style="margin: 5px 0; padding-left: 20px;">
-      <li><strong>实时算法任务</strong>：用于实时画面分析，支持RTSP/RTMP流实时处理，提供毫秒级响应能力，适用于监控、安防等实时场景</li>
-      <li><strong>抓拍算法任务</strong>：用于抓拍图像分析，对抓拍图片进行智能识别与分析，适用于事件回溯、图像检索等场景</li>
+      <li><strong>Real-Time Algorithm Tasks</strong>: Used for real-time video analysis, supporting RTSP/RTMP stream real-time processing with millisecond-level response capabilities, suitable for monitoring, security, and other real-time scenarios</li>
+      <li><strong>Snapshot Algorithm Tasks</strong>: Used for snapshot image analysis, performing intelligent recognition and analysis on captured images, suitable for event backtracking, image retrieval, and other scenarios</li>
     </ul>
   </li>
-  <li><strong>模型服务集群推理</strong>：支持分布式模型推理服务集群，实现智能负载均衡、故障自动切换与高可用保障，大幅提升推理吞吐量与系统稳定性</li>
-  <li><strong>布防时段管理</strong>：支持全防模式和半防模式两种布防策略，可灵活配置不同时段的布防规则，实现精准的时段化智能监控与告警</li>
-  <li><strong>OCR与语音识别</strong>：基于PaddleOCR实现高精度文字识别，支持语音转文本功能，提供多语言识别能力</li>
-  <li><strong>多模态视觉大模型</strong>：支持物体识别、文字识别等多种视觉任务，提供强大的图像理解与场景分析能力</li>
-  <li><strong>LLM大语言模型</strong>：支持RTSP流、视频、图像、语音、文本等多种输入格式的智能分析与理解，实现多模态内容理解</li>
-  <li><strong>模型部署与版本管理</strong>：支持AI模型的快速部署与版本管理，实现模型一键上线、版本回滚与灰度发布</li>
-  <li><strong>多实例管理</strong>：支持多个模型实例的并发运行与资源调度，提高系统利用率与资源利用效率</li>
-  <li><strong>摄像头抓拍</strong>：支持摄像头实时抓拍功能，可配置抓拍规则与触发条件，实现智能抓拍与事件记录</li>
-  <li><strong>抓拍空间管理</strong>：提供抓拍图片的存储空间管理，支持空间配额与清理策略，确保存储资源合理利用</li>
-  <li><strong>录像空间管理</strong>：提供录像文件的存储空间管理，支持自动清理与归档，实现存储资源的智能管理</li>
-  <li><strong>抓拍图片管理</strong>：支持抓拍图片的查看、检索、下载、删除等全生命周期管理，提供便捷的图片管理功能</li>
-  <li><strong>设备目录管理</strong>：提供设备树形目录管理，支持设备分组、层级管理与权限控制，实现设备的有序组织与精细化管理</li>
-  <li><strong>告警录像</strong>：支持告警事件自动触发录像功能，当检测到异常事件时自动录制相关视频片段，提供完整的告警证据链，支持告警录像的查看、下载和管理</li>
-  <li><strong>告警事件</strong>：提供完整的告警事件管理功能，支持告警事件的实时推送、历史查询、统计分析、事件处理与状态跟踪，实现告警全生命周期管理</li>
-  <li><strong>录像回放</strong>：支持历史录像的快速检索与回放功能，提供时间轴定位、倍速播放、关键帧跳转等便捷操作，支持多路视频同步回放，满足事件回溯与分析需求</li>
+  <li><strong>Model Service Cluster Inference</strong>: Supports distributed model inference service clusters, achieving intelligent load balancing, automatic failover, and high availability guarantees, significantly improving inference throughput and system stability</li>
+  <li><strong>Defense Time Period Management</strong>: Supports two defense strategies: full defense mode and half defense mode, allowing flexible configuration of defense rules for different time periods, achieving precise time-based intelligent monitoring and alerting</li>
+  <li><strong>OCR and Speech Recognition</strong>: High-precision text recognition based on PaddleOCR with speech-to-text functionality, providing multi-language recognition capabilities</li>
+  <li><strong>Multimodal Vision Large Models</strong>: Supports various vision tasks including object recognition and text recognition, providing powerful image understanding and scene analysis capabilities</li>
+  <li><strong>LLM Large Language Models</strong>: Supports intelligent analysis and understanding of multiple input formats including RTSP streams, video, images, audio, and text, achieving multimodal content understanding</li>
+  <li><strong>Model Deployment and Version Management</strong>: Supports rapid deployment and version management of AI models, enabling one-click model deployment, version rollback, and gray release</li>
+  <li><strong>Multi-Instance Management</strong>: Supports concurrent operation and resource scheduling of multiple model instances, improving system utilization and resource efficiency</li>
+  <li><strong>Camera Snapshot</strong>: Supports real-time camera snapshot functionality with configurable snapshot rules and trigger conditions, achieving intelligent snapshot capture and event recording</li>
+  <li><strong>Snapshot Storage Space Management</strong>: Provides storage space management for snapshot images with quota and cleanup policy support, ensuring rational utilization of storage resources</li>
+  <li><strong>Video Storage Space Management</strong>: Provides storage space management for video files with automatic cleanup and archiving, achieving intelligent storage resource management</li>
+  <li><strong>Snapshot Image Management</strong>: Supports full lifecycle management of snapshot images including viewing, searching, downloading, and deletion, providing convenient image management functionality</li>
+  <li><strong>Device Directory Management</strong>: Provides hierarchical device directory management with device grouping, multi-level management, and permission control, achieving organized and fine-grained device management</li>
+  <li><strong>Alarm Recording</strong>: Supports automatic recording triggered by alarm events. When abnormal events are detected, relevant video clips are automatically recorded, providing a complete alarm evidence chain. Supports viewing, downloading, and management of alarm recordings</li>
+  <li><strong>Alarm Events</strong>: Provides comprehensive alarm event management functionality, supporting real-time alarm event push, historical query, statistical analysis, event processing, and status tracking, achieving full lifecycle management of alarms</li>
+  <li><strong>Video Playback</strong>: Supports fast retrieval and playback of historical recordings, providing convenient operations such as timeline positioning, variable speed playback, and keyframe jumping. Supports synchronized playback of multiple video streams, meeting event backtracking and analysis needs</li>
 </ul>
 
-#### 🌐 IoT能力
+#### 🌐 IoT Capabilities
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>设备接入与管理</strong>：设备注册、认证、状态监控、生命周期管理</li>
-  <li><strong>产品与物模型管理</strong>：产品定义、物模型配置、产品管理</li>
-  <li><strong>多协议支持</strong>：MQTT、TCP、HTTP等多种物联网协议</li>
-  <li><strong>设备认证与动态注册</strong>：安全接入、身份认证、动态设备注册</li>
-  <li><strong>规则引擎</strong>：数据流转规则、消息路由、数据转换</li>
-  <li><strong>数据采集与存储</strong>：设备数据采集、存储、查询与分析</li>
-  <li><strong>设备状态监控与告警管理</strong>：实时监控、异常告警、智能决策</li>
+  <li><strong>Device Access and Management</strong>: Device registration, authentication, status monitoring, lifecycle management</li>
+  <li><strong>Product and Thing Model Management</strong>: Product definition, thing model configuration, product management</li>
+  <li><strong>Multi-Protocol Support</strong>: Multiple IoT protocols including MQTT, TCP, HTTP</li>
+  <li><strong>Device Authentication and Dynamic Registration</strong>: Secure access, identity authentication, dynamic device registration</li>
+  <li><strong>Rule Engine</strong>: Data flow rules, message routing, data transformation</li>
+  <li><strong>Data Collection and Storage</strong>: Device data collection, storage, query, and analysis</li>
+  <li><strong>Device Status Monitoring and Alert Management</strong>: Real-time monitoring, anomaly alerts, intelligent decision-making</li>
 </ul>
 
 
-### 💡 技术理念
+### 💡 Technical Philosophy
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-我们认为没有任何一个编程语言能够擅长所有事情，但通过三种编程语言的深度融合，EasyAIoT将发挥各自优势，构建强大的技术生态。
+We believe no single programming language excels at everything, but through the deep integration of three programming languages, EasyAIoT leverages the strengths of each to build a powerful technical ecosystem.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-Java擅长构建稳定可靠的平台架构，但不适合网络编程和AI编程；Python擅长网络编程和AI算法开发，但在高性能任务执行方面存在瓶颈；C++擅长高性能任务执行，但在平台开发和AI编程方面不如前两者。EasyAIoT采用三合一语言混编架构，充分发挥各语言优势，构建一个实现颇具挑战，但使用极其便捷的AIoT平台。
+Java excels at building stable and reliable platform architectures but is not suitable for network programming and AI development; Python excels at network programming and AI algorithm development but has bottlenecks in high-performance task execution; C++ excels at high-performance task execution but is less suitable than the other two for platform development and AI programming. EasyAIoT adopts a tri-lingual mixed programming architecture, fully leveraging the strengths of each language to build an AIoT platform that's challenging to implement but extremely easy to use.
 </p>
 
-![EasyAIoT平台架构.jpg](.image/iframe2.jpg)
+![EasyAIoT Platform Architecture.jpg](.image/iframe2.jpg)
 
-### 🔄 模块数据流转
+### 🔄 Module Data Flow
 
-<img src=".image/iframe3.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+<img src=".image/iframe3.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 
-### 🤖 零样本标注技术
+### 🤖 Zero-Shot Labeling Technology
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-创新性地依托大模型构建零样本标注技术体系（理想状态下完全去除人工标注环节，实现标注流程的自动化），该技术通过大模型生成初始数据并借助提示词技术完成自动标注，再经人机协同校验确保数据质量（可选），进而训练出初始小模型。该小模型通过持续迭代、自我优化，实现标注效率与模型精度的协同进化，最终推动系统性能不断攀升。
+Innovatively leveraging large models to construct a zero-shot labeling technical system (ideally completely eliminating manual labeling, achieving full automation of the labeling process), this technology generates initial data through large models and completes automatic labeling via prompt engineering. It then ensures data quality through optional human-machine collaborative verification, thereby training an initial small model. This small model, through continuous iteration and self-optimization, achieves co-evolution of labeling efficiency and model accuracy, ultimately driving continuous improvement in system performance.
 </p>
 
-<img src=".image/iframe4.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+<img src=".image/iframe4.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 
-### 🏗️ 项目架构特点
+### 🏗️ Project Architecture Features
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-EasyAIoT其实不是一个项目，而是五个项目。
+EasyAIoT is not actually one project; it is seven distinct projects.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-好处是什么呢？假如说你在一个受限的设备上（比如RK3588），你只需要拿出其中某个项目就可以独立部署，所以看似这个项目是云平台，其实他也可以是边缘平台。
+What's the benefit? Suppose you are on a resource-constrained device (like an RK3588). You can extract and independently deploy just one of those projects. Therefore, while this project appears to be a cloud platform, it simultaneously functions as an edge platform.
 </p>
 
 <div style="margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white;">
 
 <p style="font-size: 16px; line-height: 1.8; margin: 0; font-weight: 500;">
-🌟 真开源不易，如果这个项目对您有帮助，请您点亮一颗Star再离开，这将是对我最大的支持！<br>
-<small style="font-size: 14px; opacity: 0.9;">（在这个假开源横行的时代，这个项目就是一个异类，纯靠爱来发电）</small>
+🌟 Genuine open source is rare. If you find this project useful, please star it before leaving - your support means everything to us!<br>
+<small style="font-size: 14px; opacity: 0.9;">(In an era where fake open-source projects are rampant, this project stands out as an exception.)</small>
 </p>
 
 </div>
 
-### 🌍 本土化支持
+### 🌍 Localization Support
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT积极响应本土化战略，全面支持本土化硬件和操作系统，为用户提供安全可控的AIoT解决方案：
+EasyAIoT actively responds to localization strategies, providing comprehensive support for localized hardware and operating systems, delivering secure and controllable AIoT solutions for users:
 </p>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
 
 <div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-<h4 style="margin-top: 0; color: white; font-size: 18px;">🖥️ 服务器端支持</h4>
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🖥️ Server-Side Support</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-  <li>完美兼容海光（Hygon）x86架构处理器</li>
-  <li>支持本土化服务器硬件平台</li>
-  <li>提供针对性的性能优化方案</li>
-  <li>确保企业级应用的稳定运行</li>
+  <li>Full compatibility with Hygon x86 architecture processors</li>
+  <li>Support for localized server hardware platforms</li>
+  <li>Targeted performance optimization solutions</li>
+  <li>Ensures stable operation of enterprise applications</li>
 </ul>
 </div>
 
 <div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-<h4 style="margin-top: 0; color: white; font-size: 18px;">📱 边缘端支持</h4>
+<h4 style="margin-top: 0; color: white; font-size: 18px;">📱 Edge-Side Support</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-  <li>全面支持瑞芯微（Rockchip）ARM架构芯片</li>
-  <li>完美适配RK3588等主流边缘计算平台</li>
-  <li>针对边缘场景进行深度优化</li>
-  <li>实现边缘智能的轻量化部署</li>
+  <li>Comprehensive support for Rockchip ARM architecture chips</li>
+  <li>Perfect adaptation to mainstream edge computing platforms like RK3588</li>
+  <li>Deep optimization for edge scenarios</li>
+  <li>Enables lightweight deployment of edge intelligence</li>
 </ul>
 </div>
 
 <div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-<h4 style="margin-top: 0; color: white; font-size: 18px;">🖱️ 操作系统支持</h4>
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🖱️ Operating System Support</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-  <li>兼容麒麟（Kylin）操作系统</li>
-  <li>支持方德（Founder）等本土化Linux发行版</li>
-  <li>适配统信UOS等主流本土化操作系统</li>
-  <li>提供完整的本土化部署方案</li>
+  <li>Compatible with Kylin operating system</li>
+  <li>Support for localized Linux distributions like Founder</li>
+  <li>Adaptation to mainstream localized operating systems like UOS</li>
+  <li>Provides complete localized deployment solutions</li>
 </ul>
 </div>
 
 </div>
 
-## 🎯 适用场景
+## 🎯 Application Scenarios
 
-<img src=".image/适用场景.png" alt="适用场景" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+![Application Scenarios.png](.image/适用场景.png)
 
-## 🧩 项目结构
+## 🧩 Project Structure
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT由五个核心项目组成：
+EasyAIoT consists of five core projects:
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
 <tr>
-<td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50; width: 20%;">模块</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50;">描述</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50; width: 20%;">Module</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50;">Description</td>
 </tr>
 <tr>
-<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>WEB模块</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">基于Vue的前端管理界面，提供统一的用户交互体验</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>WEB Module</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">Frontend management interface based on Vue, providing a unified user interaction experience</td>
 </tr>
 <tr>
-<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>DEVICE模块</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>DEVICE Module</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>技术优势</strong>：基于JDK21，提供更好的性能和现代化特性</li>
-    <li><strong>设备管理</strong>：设备注册、认证、状态监控、生命周期管理</li>
-    <li><strong>产品管理</strong>：产品定义、物模型管理、产品配置</li>
-    <li><strong>协议支持</strong>：MQTT、TCP、HTTP等多种物联网协议</li>
-    <li><strong>设备认证</strong>：设备动态注册、身份认证、安全接入</li>
-    <li><strong>规则引擎</strong>：数据流转规则、消息路由、数据转换</li>
-    <li><strong>数据采集</strong>：设备数据采集、存储、查询与分析</li>
+    <li><strong>Technical Advantages</strong>: Based on JDK21, providing better performance and modern features</li>
+    <li><strong>Device Management</strong>: Device registration, authentication, status monitoring, lifecycle management</li>
+    <li><strong>Product Management</strong>: Product definition, thing model management, product configuration</li>
+    <li><strong>Protocol Support</strong>: Multiple IoT protocols including MQTT, TCP, HTTP</li>
+    <li><strong>Device Authentication</strong>: Device dynamic registration, identity authentication, secure access</li>
+    <li><strong>Rule Engine</strong>: Data flow rules, message routing, data transformation</li>
+    <li><strong>Data Collection</strong>: Device data collection, storage, query, and analysis</li>
   </ul>
 </td>
 </tr>
 <tr>
-<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>VIDEO模块</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>VIDEO Module</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>流媒体处理</strong>：支持RTSP/RTMP流实时处理与传输</li>
-    <li><strong>算法任务管理</strong>：支持实时算法任务和抓拍算法任务两种类型，分别用于实时画面分析和抓拍图像分析</li>
-    <li><strong>抽帧器与排序器</strong>：支持灵活的抽帧策略与结果排序机制，每个算法任务可绑定独立的抽帧器和排序器</li>
-    <li><strong>布防时段</strong>：支持全防模式和半防模式的时段化配置</li>
+    <li><strong>Stream Processing</strong>: Supports RTSP/RTMP stream real-time processing and transmission</li>
+    <li><strong>Algorithm Task Management</strong>: Supports real-time algorithm tasks and snapshot algorithm tasks, used for real-time video analysis and snapshot image analysis respectively</li>
+    <li><strong>Frame Extractor and Sorter</strong>: Supports flexible frame extraction strategies and result sorting mechanisms, each algorithm task can bind independent frame extractors and sorters</li>
+    <li><strong>Defense Time Period</strong>: Supports time-based configuration for full defense mode and half defense mode</li>
   </ul>
 </td>
 </tr>
 <tr>
-<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>AI模块</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>AI Module</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>智能分析</strong>：负责视频分析和AI算法执行</li>
-    <li><strong>模型服务集群</strong>：支持分布式模型推理服务，实现负载均衡与高可用</li>
-    <li><strong>实时推理</strong>：提供毫秒级响应的实时智能分析能力</li>
-    <li><strong>模型管理</strong>：支持模型部署、版本管理与多实例调度</li>
+    <li><strong>Intelligent Analysis</strong>: Responsible for video analysis and AI algorithm execution</li>
+    <li><strong>Model Service Cluster</strong>: Supports distributed model inference services, achieving load balancing and high availability</li>
+    <li><strong>Real-Time Inference</strong>: Provides millisecond-level response real-time intelligent analysis capabilities</li>
+    <li><strong>Model Management</strong>: Supports model deployment, version management, and multi-instance scheduling</li>
   </ul>
 </td>
 </tr>
 <tr>
-<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>TASK模块</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">基于C++的高性能任务处理模块，负责计算密集型任务执行</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>TASK Module</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">C++-based high-performance task processing module responsible for compute-intensive task execution</td>
 </tr>
 </table>
 
-## 🖥️ 跨平台部署优势
+## 🖥️ Cross-Platform Deployment Advantages
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT支持在Linux、Mac、Windows三大主流操作系统上部署，为不同环境下的用户提供灵活便捷的部署方案：
+EasyAIoT supports deployment on Linux, Mac, and Windows, providing flexible and convenient deployment solutions for users in different environments:
 </p>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
 
 <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-<h4 style="margin-top: 0; color: white; font-size: 18px;">🐧 Linux部署优势</h4>
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🐧 Linux Deployment Advantages</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-  <li>适合生产环境，稳定可靠，资源占用低</li>
-  <li>支持Docker容器化部署，一键启动所有服务</li>
-  <li>完美适配服务器、边缘计算设备（如RK3588等ARM架构设备）</li>
-  <li>提供完整的自动化安装脚本，简化部署流程</li>
+  <li>Ideal for production environments, stable and reliable with low resource consumption</li>
+  <li>Supports Docker containerized deployment with one-click service startup</li>
+  <li>Perfect compatibility with servers and edge computing devices (such as RK3588 and other ARM architecture devices)</li>
+  <li>Provides complete automated installation scripts to simplify deployment</li>
 </ul>
 </div>
 
 <div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-<h4 style="margin-top: 0; color: white; font-size: 18px;">🍎 Mac部署优势</h4>
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🍎 Mac Deployment Advantages</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-  <li>适合开发测试环境，与macOS系统深度集成</li>
-  <li>支持本地开发和调试，快速验证功能</li>
-  <li>提供便捷的安装脚本，支持Homebrew等包管理器</li>
+  <li>Suitable for development and testing environments with deep macOS integration</li>
+  <li>Supports local development and debugging for rapid feature validation</li>
+  <li>Provides convenient installation scripts compatible with package managers like Homebrew</li>
 </ul>
 </div>
 
 <div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-<h4 style="margin-top: 0; color: white; font-size: 18px;">🪟 Windows部署优势</h4>
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🪟 Windows Deployment Advantages</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-  <li>适合Windows服务器环境，降低学习成本</li>
-  <li>支持PowerShell自动化脚本，简化部署操作</li>
-  <li>兼容Windows Server和桌面版Windows系统</li>
-  <li>提供图形化安装向导，用户友好</li>
+  <li>Suitable for Windows server environments, reducing learning curve</li>
+  <li>Supports PowerShell automation scripts to simplify deployment operations</li>
+  <li>Compatible with both Windows Server and desktop Windows systems</li>
+  <li>Provides graphical installation wizards for user-friendly experience</li>
 </ul>
 </div>
 
 </div>
 
 <p style="font-size: 14px; line-height: 1.8; color: #e74c3c; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #fee; border-left: 4px solid #e74c3c; border-radius: 4px;">
-<strong>⚠️ Windows部署说明</strong>：Windows一键部署脚本目前还存在问题，短期内不会解决相关问题。建议Windows用户参考部署文档进行手动部署，或使用Linux/Mac环境进行部署。
+<strong>⚠️ Windows Deployment Notice</strong>: The Windows one-click deployment script currently has issues that will not be resolved in the short term. Windows users are advised to refer to the deployment documentation for manual deployment, or use Linux/Mac environments for deployment.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
-<strong>统一体验</strong>：无论选择哪种操作系统，EasyAIoT都提供一致的安装脚本和部署文档，确保跨平台部署体验的一致性。
+<strong>Unified Experience</strong>: Regardless of the operating system chosen, EasyAIoT provides consistent installation scripts and deployment documentation, ensuring a uniform cross-platform deployment experience.
 </p>
 
-## ☁️ EasyAIoT = AI + IoT = 云边端一体化解决方案
+## ☁️ EasyAIoT = AI + IoT = Cloud-Edge Integrated Solution
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-支持上千种垂直场景，支持AI模型定制化和AI算法定制化开发，深度融合。
+Supports thousands of vertical scenarios with customizable AI models and algorithm development.
 </p>
 
 <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3498db;">
-<h3 style="color: #2c3e50; margin-top: 0;">赋能万物智视：EasyAIoT</h3>
+<h3 style="color: #2c3e50; margin-top: 0;">Deep Integration Empowers Intelligent Vision for Everything</h3>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
-构筑了物联网设备（尤其是海量摄像头）的高效接入与管控网络。我们深度融合流媒体实时传输技术与前沿人工智能（AI），打造一体化服务核心。这套方案不仅打通了异构设备的互联互通，更将高清视频流与强大的AI解析引擎深度集成，赋予监控系统"智能之眼"——精准实现人脸识别、异常行为分析、风险人员布控及周界入侵检测。
+EasyAIoT constructs an efficient access and management network for IoT devices (especially massive cameras). We deeply integrate real-time streaming technology with cutting-edge AI to create a unified service core. This solution not only enables interoperability across heterogeneous devices but also deeply integrates HD video streams with powerful AI analytics engines, giving surveillance systems "intelligent eyes" – accurately enabling facial recognition, abnormal behavior analysis, risk personnel monitoring, and perimeter intrusion detection.
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
-平台支持两种类型的算法任务：实时算法任务用于RTSP/RTMP流的实时画面分析，提供毫秒级响应能力；抓拍算法任务用于抓拍图像的智能分析，支持事件回溯与图像检索。通过算法任务管理实现灵活的抽帧与排序策略，每个任务可绑定独立的抽帧器和排序器，结合模型服务集群推理能力，确保毫秒级响应与高可用保障。同时，提供全防模式和半防模式两种布防策略，可根据不同时段灵活配置监控规则，实现精准的时段化智能监控与告警。
+The platform supports two types of algorithm tasks: real-time algorithm tasks for real-time video analysis of RTSP/RTMP streams, providing millisecond-level response capabilities; snapshot algorithm tasks for intelligent analysis of captured images, supporting event backtracking and image retrieval. Through algorithm task management, flexible frame extraction and sorting strategies are achieved, with each task able to bind independent frame extractors and sorters. Combined with model service cluster inference capabilities, millisecond-level response and high availability are ensured. Additionally, two defense strategies are provided: full defense mode and half defense mode, allowing flexible configuration of monitoring rules for different time periods, achieving precise time-based intelligent monitoring and alerting.
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
-在物联网设备管理方面，EasyAIoT提供完整的设备生命周期管理能力，支持多种物联网协议（MQTT、TCP、HTTP），实现设备的快速接入、安全认证、实时监控和智能控制。通过规则引擎实现设备数据的智能流转与处理，结合AI能力对设备数据进行深度分析，实现从设备接入、数据采集、智能分析到决策执行的全流程自动化，真正实现万物互联、万物智控。
+In terms of IoT device management, EasyAIoT provides comprehensive device lifecycle management capabilities, supporting multiple IoT protocols (MQTT, TCP, HTTP) to achieve rapid device access, secure authentication, real-time monitoring, and intelligent control. Through the rule engine, intelligent data flow and processing of device data are realized, combined with AI capabilities for in-depth analysis of device data, achieving full-process automation from device access, data collection, intelligent analysis to decision execution, truly realizing interconnected everything and intelligent control of everything.
 </p>
 </div>
 
-<img src=".image/iframe1.jpg" alt="EasyAIoT平台架构" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+<img src=".image/iframe1.jpg" alt="EasyAIoT Platform Architecture" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
 
-## ⚠️ 免责声明
+## ⚠️ Disclaimer
 
-EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该项目时，应遵循法律法规，不得进行非法活动。如果EasyAIoT发现用户有违法行为，将会配合相关机关进行调查并向政府部门举报。用户因非法行为造成的任何法律责任均由用户自行承担，如因用户使用造成第三方损害的，用户应当依法予以赔偿。使用EasyAIoT所有相关资源均由用户自行承担风险.
+EasyAIoT is an open-source learning project unrelated to commercial activities. Users must comply with laws and
+regulations and refrain from illegal activities. If EasyAIoT discovers user violations, it will cooperate with
+authorities and report to government agencies. Users bear full legal responsibility for illegal actions and shall
+compensate third parties for damages caused by usage. All EasyAIoT-related resources are used at the user's own risk.
 
-## 📚 部署文档
+## 📚 Deployment Documentation
 
-- [平台部署文档](.doc/部署文档/平台部署文档.md)
+- [Platform Deployment Documentation](.doc/部署文档/平台部署文档.md)
 
-## 🎮 演示环境
+## 🎮 Demo Environment
 
-- 演示地址：http://36.111.47.113:8888/
-- 账号：admin
-- 密码：admin123
+- Demo URL: http://36.111.47.113:8888/
+- Username: admin
+- Password: admin123
 
-## ⚙️ 项目地址
+## ⚙️ Project Repositories
 
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot
 - Github: https://github.com/soaring-xiongkulu/easyaiot
 
-## 📸 截图
+## 📸 Screenshots
 <div>
   <img src=".image/banner/banner-video1000.gif" alt="Screenshot 1" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner-video1001.gif" alt="Screenshot 1" width="49%">
@@ -316,8 +319,8 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
   <img src=".image/banner/banner1077.jpg" alt="Screenshot 1" width="49%">
 </div>
 <div>
-  <img src=".image/banner/banner1006.jpg" alt="Screenshot 3" width="49%" style="margin-right: 10px">
-  <img src=".image/banner/banner1009.jpg" alt="Screenshot 1" width="49%">
+  <img src=".image/banner/banner1006.jpg" alt="Screenshot 3" width="49%">
+  <img src=".image/banner/banner1009.jpg" alt="Screenshot 1" width="49%" style="margin-right: 10px">
 </div>
 <div>
   <img src=".image/banner/banner1051.jpg" alt="Screenshot 8" width="49%" style="margin-right: 10px">
@@ -448,71 +451,71 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
   <img src=".image/banner/banner1002.png" alt="Screenshot 16" width="49%">
 </div>
 
-## 🛠️ 服务支持
+## 🛠️ Service Support
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-我们提供了各种服务方式帮助您深入了解EasyAIoT平台和代码，通过产品文档、技术交流群、付费教学等方式，你将获得如下服务：
+We offer various service options to help you gain an in-depth understanding of the EasyAIoT platform and its code. Through product documentation, technical exchange groups, paid tutorials, and more, you will receive the following services:
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 <thead>
 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-<th style="padding: 15px; text-align: left; font-weight: 600;">服务项</th>
-<th style="padding: 15px; text-align: left; font-weight: 600;">服务内容</th>
-<th style="padding: 15px; text-align: center; font-weight: 600;">服务收费</th>
-<th style="padding: 15px; text-align: left; font-weight: 600;">服务方式</th>
+<th style="padding: 15px; text-align: left; font-weight: 600;">Service Item</th>
+<th style="padding: 15px; text-align: left; font-weight: 600;">Service Content</th>
+<th style="padding: 15px; text-align: center; font-weight: 600;">Service Fee</th>
+<th style="padding: 15px; text-align: left; font-weight: 600;">Service Method</th>
 </tr>
 </thead>
 <tbody>
 <tr style="background-color: #f8f9fa;">
-<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">系统部署</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">在客户指定的网络和硬件环境中完成EasyAIoT部署</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">500元</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">线上部署支持</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">System Deployment</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Complete EasyAIoT deployment in the customer-specified network and hardware environment</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">¥500</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Online Deployment Support</td>
 </tr>
 <tr>
-<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">技术支持</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">提供各类部署、功能使用中遇到的问题答疑</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">200元</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">半小时内 线上远程支持</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Technical Support</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Provide solutions for issues encountered during deployment and functional usage</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">¥200</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Online Remote Support within 30 Minutes</td>
 </tr>
 <tr>
-<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">其他服务</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">垂直领域解决方案定制化开发；定制化时长、功能服务等</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">面议</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">面议</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Other Services</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Customized development for vertical industry solutions; tailored duration and functional services</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">Negotiable</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Negotiable</td>
 </tr>
 </tbody>
 </table>
 
-## 📞 联系方式（添加微信后，需关注公众号，拉入技术交流群）
+## 📞 Contact Information (After adding WeChat, please follow the official account to join the technical exchange group)
 
 <div>
-  <img src=".image/联系方式.jpg" alt="联系方式" width="30%">
+  <img src=".image/联系方式.jpg" alt="Contact Information" width="30%">
 </div>
 
-## 👥 公众号
+## 👥 Official Account
 
 <div>
-  <img src=".image/公众号.jpg" alt="公众号" width="30%">
+  <img src=".image/公众号.jpg" alt="Official Account" width="30%">
 </div>
 
-## 🪐 知识星球：
+## 🪐 Knowledge Planet:
 
 <p>
   <img src=".image/知识星球.jpg" alt="知识星球" width="30%">
 </p>
 
-## 💰 打赏赞助
+## 💰 Sponsorship
 
 <div>
-    <img src=".image/微信支付.jpg" alt="微信支付" width="30%" height="30%">
-    <img src=".image/支付宝支付.jpg" alt="支付宝支付" width="30%" height="10%">
+    <img src=".image/微信支付.jpg" alt="WeChat Pay" width="30%" height="30%">
+    <img src=".image/支付宝支付.jpg" alt="Alipay" width="30%" height="10%">
 </div>
 
-## 🙏 致谢
+## 🙏 Acknowledgements
 
-感谢以下各位对本项目包括但不限于代码贡献、问题反馈、资金捐赠等各种方式的支持！以下排名不分先后：
+Thanks to the following contributors for code, feedback, donations, and support (in no particular order):
 <table>
   <tbody>
     <tr>
@@ -679,23 +682,23 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
   </tbody>
 </table>
 
-## 💡 期望
+## 💡 Expectations
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-欢迎提出更好的意见，帮助完善 easyaiot
+We welcome suggestions for improvement to help refine easyaiot.
 </p>
 
-## 📄 版权
+## 📄 Copyright
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-翱翔的雄库鲁/easyaiot 采用 <a href="https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE" style="color: #3498db; text-decoration: none; font-weight: 600;">APACHE LICENSE 2.0</a> 开源协议，您在使用过程中，需要注意以下几点：
+Soaring Xiongkulu / easyaiot is licensed under the <a href="https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE" style="color: #3498db; text-decoration: none; font-weight: 600;">APACHE LICENSE 2.0</a>. When using the product, please note the following:
 </p>
 
 <ol style="font-size: 14px; line-height: 1.8; color: #444; margin: 15px 0; padding-left: 25px;">
-  <li>不得修改产品相关代码的源码头注释和出处；</li>
-  <li>不得应用于危害国家安全、荣誉和利益的行为，不能以任何形式用于非法目的；</li>
+  <li>Do not modify the source code header comments or attribution of the product-related code.</li>
+  <li>Do not use the product for any actions that endanger national security, honor, and interests, or for any illegal purposes.</li>
 </ol>
 
-## 🌟 Star增长趋势图
+## 🌟 Star Growth Trend Chart
 
 [![Stargazers over time](https://starchart.cc/soaring-xiongkulu/easyaiot.svg?variant=adaptive)](https://starchart.cc/soaring-xiongkulu/easyaiot)
