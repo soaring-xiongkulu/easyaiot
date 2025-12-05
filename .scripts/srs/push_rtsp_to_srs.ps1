@@ -16,20 +16,27 @@ param(
     [string]$RtspUrl,
     
     [Parameter(Mandatory=$false, Position=1)]
-    [string]$SrsHost = "127.0.0.1",
+    [string]$SrsHost,
     
     [Parameter(Mandatory=$false)]
-    [int]$SrsPort = 1935,
+    [int]$SrsPort,
     
     [Parameter(Mandatory=$false)]
-    [string]$App = "live",
+    [string]$App,
     
     [Parameter(Mandatory=$false)]
-    [string]$Stream = "test",
+    [string]$Stream,
     
     [Parameter(Mandatory=$false)]
-    [string]$FfmpegPath = "ffmpeg"
+    [string]$FfmpegPath
 )
+
+# 设置默认值
+if (-not $SrsHost) { $SrsHost = "127.0.0.1" }
+if (-not $SrsPort) { $SrsPort = 1935 }
+if (-not $App) { $App = "live" }
+if (-not $Stream) { $Stream = "test" }
+if (-not $FfmpegPath) { $FfmpegPath = "ffmpeg" }
 
 # 检查ffmpeg是否可用
 try {
