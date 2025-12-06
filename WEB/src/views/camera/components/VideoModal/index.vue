@@ -435,8 +435,22 @@ const getRules = () => {
     ];
     baseRules.port = [
       {required: true, message: '请输入摄像头端口', trigger: ['change']},
-      {type: 'number', message: '端口必须是数字', trigger: ['change'], transform: (value) => Number(value)},
-      {min: 1, max: 65535, message: '端口范围必须在1-65535之间', trigger: ['change']}
+      {
+        validator: (_rule, value) => {
+          if (!value || value === '') {
+            return Promise.reject('请输入摄像头端口');
+          }
+          const numValue = Number(value);
+          if (isNaN(numValue)) {
+            return Promise.reject('端口必须是数字');
+          }
+          if (numValue < 1 || numValue > 65535) {
+            return Promise.reject('端口范围必须在1-65535之间');
+          }
+          return Promise.resolve();
+        },
+        trigger: ['change']
+      }
     ];
     baseRules.username = [{required: true, message: '请输入用户名', trigger: ['change']}];
     baseRules.password = [{required: true, message: '请输入密码', trigger: ['change']}];
