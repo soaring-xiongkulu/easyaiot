@@ -2,14 +2,40 @@
 -- PostgreSQL database dump
 --
 
-\restrict 0f3vG0xh8oemMtLrXGYdGcCE89G8V8DDT5Ppl5fa1LlSiHDrfCfyu9c39lQXmLL
+\restrict jJvekh4qsQwg9NC8chVGiKFhvTdezWLZH80O4GSxCB2uKFFObckSowNHFhFbplA
 
--- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
--- Dumped by pg_dump version 16.10 (Ubuntu 16.10-0ubuntu0.24.04.1)
+-- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
+-- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+DROP DATABASE IF EXISTS "iot-message20";
+--
+-- Name: iot-message20; Type: DATABASE; Schema: -; Owner: -
+--
+
+CREATE DATABASE "iot-message20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
+
+
+\unrestrict jJvekh4qsQwg9NC8chVGiKFhvTdezWLZH80O4GSxCB2uKFFObckSowNHFhFbplA
+\encoding SQL_ASCII
+\connect -reuse-previous=on "dbname='iot-message20'"
+\restrict jJvekh4qsQwg9NC8chVGiKFhvTdezWLZH80O4GSxCB2uKFFObckSowNHFhFbplA
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -23,7 +49,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: message_config; Type: TABLE; Schema: public; Owner: postgres
+-- Name: message_config; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.message_config (
@@ -37,66 +63,64 @@ CREATE TABLE public.message_config (
 );
 
 
-ALTER TABLE public.message_config OWNER TO postgres;
-
 --
--- Name: TABLE message_config; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE message_config; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.message_config IS '消息配置表';
 
 
 --
--- Name: COLUMN message_config.configuration; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN message_config.configuration; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.message_config.configuration IS '配置信息';
 
 
 --
--- Name: COLUMN message_config.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN message_config.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.message_config.create_time IS '创建时间(只读)';
 
 
 --
--- Name: COLUMN message_config.creator_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN message_config.creator_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.message_config.creator_id IS '创建者ID(只读)';
 
 
 --
--- Name: COLUMN message_config.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN message_config.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.message_config.id IS 'id';
 
 
 --
--- Name: COLUMN message_config.msg_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN message_config.msg_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.message_config.msg_type IS '通知类型';
 
 
 --
--- Name: COLUMN message_config.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN message_config.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.message_config.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN message_config.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN message_config.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.message_config.deleted IS '是否删除';
 
 
 --
--- Name: t_ding_app; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_ding_app; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_ding_app (
@@ -112,24 +136,22 @@ CREATE TABLE public.t_ding_app (
 );
 
 
-ALTER TABLE public.t_ding_app OWNER TO postgres;
-
 --
--- Name: COLUMN t_ding_app.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_ding_app.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_ding_app.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_ding_app.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_ding_app.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_ding_app.deleted IS '是否删除';
 
 
 --
--- Name: t_ding_app_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: t_ding_app_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.t_ding_app_id_seq
@@ -141,17 +163,15 @@ CREATE SEQUENCE public.t_ding_app_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.t_ding_app_id_seq OWNER TO postgres;
-
 --
--- Name: t_ding_app_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: t_ding_app_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.t_ding_app_id_seq OWNED BY public.t_ding_app.id;
 
 
 --
--- Name: t_msg_ding; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_msg_ding; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_msg_ding (
@@ -177,24 +197,22 @@ CREATE TABLE public.t_msg_ding (
 );
 
 
-ALTER TABLE public.t_msg_ding OWNER TO postgres;
-
 --
--- Name: COLUMN t_msg_ding.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_ding.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_ding.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_msg_ding.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_ding.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_ding.deleted IS '是否删除';
 
 
 --
--- Name: t_msg_ding_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: t_msg_ding_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.t_msg_ding_id_seq
@@ -206,17 +224,15 @@ CREATE SEQUENCE public.t_msg_ding_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.t_msg_ding_id_seq OWNER TO postgres;
-
 --
--- Name: t_msg_ding_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: t_msg_ding_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.t_msg_ding_id_seq OWNED BY public.t_msg_ding.id;
 
 
 --
--- Name: t_msg_feishu; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_msg_feishu; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_msg_feishu (
@@ -241,24 +257,22 @@ CREATE TABLE public.t_msg_feishu (
 );
 
 
-ALTER TABLE public.t_msg_feishu OWNER TO postgres;
-
 --
--- Name: COLUMN t_msg_feishu.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_feishu.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_feishu.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_msg_feishu.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_feishu.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_feishu.deleted IS '是否删除';
 
 
 --
--- Name: t_msg_http; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_msg_http; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_msg_http (
@@ -281,24 +295,22 @@ CREATE TABLE public.t_msg_http (
 );
 
 
-ALTER TABLE public.t_msg_http OWNER TO postgres;
-
 --
--- Name: COLUMN t_msg_http.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_http.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_http.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_msg_http.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_http.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_http.deleted IS '是否删除';
 
 
 --
--- Name: t_msg_http_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: t_msg_http_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.t_msg_http_id_seq
@@ -310,17 +322,15 @@ CREATE SEQUENCE public.t_msg_http_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.t_msg_http_id_seq OWNER TO postgres;
-
 --
--- Name: t_msg_http_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: t_msg_http_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.t_msg_http_id_seq OWNED BY public.t_msg_http.id;
 
 
 --
--- Name: t_msg_kefu; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_msg_kefu; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_msg_kefu (
@@ -339,24 +349,22 @@ CREATE TABLE public.t_msg_kefu (
 );
 
 
-ALTER TABLE public.t_msg_kefu OWNER TO postgres;
-
 --
--- Name: COLUMN t_msg_kefu.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_kefu.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_kefu.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_msg_kefu.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_kefu.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_kefu.deleted IS '是否删除';
 
 
 --
--- Name: t_msg_ma_subscribe; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_msg_ma_subscribe; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_msg_ma_subscribe (
@@ -372,24 +380,22 @@ CREATE TABLE public.t_msg_ma_subscribe (
 );
 
 
-ALTER TABLE public.t_msg_ma_subscribe OWNER TO postgres;
-
 --
--- Name: COLUMN t_msg_ma_subscribe.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_ma_subscribe.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_ma_subscribe.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_msg_ma_subscribe.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_ma_subscribe.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_ma_subscribe.deleted IS '是否删除';
 
 
 --
--- Name: t_msg_ma_subscribe_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: t_msg_ma_subscribe_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.t_msg_ma_subscribe_id_seq
@@ -401,17 +407,15 @@ CREATE SEQUENCE public.t_msg_ma_subscribe_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.t_msg_ma_subscribe_id_seq OWNER TO postgres;
-
 --
--- Name: t_msg_ma_subscribe_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: t_msg_ma_subscribe_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.t_msg_ma_subscribe_id_seq OWNED BY public.t_msg_ma_subscribe.id;
 
 
 --
--- Name: t_msg_ma_template; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_msg_ma_template; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_msg_ma_template (
@@ -428,24 +432,22 @@ CREATE TABLE public.t_msg_ma_template (
 );
 
 
-ALTER TABLE public.t_msg_ma_template OWNER TO postgres;
-
 --
--- Name: COLUMN t_msg_ma_template.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_ma_template.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_ma_template.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_msg_ma_template.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_ma_template.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_ma_template.deleted IS '是否删除';
 
 
 --
--- Name: t_msg_ma_template_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: t_msg_ma_template_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.t_msg_ma_template_id_seq
@@ -457,17 +459,15 @@ CREATE SEQUENCE public.t_msg_ma_template_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.t_msg_ma_template_id_seq OWNER TO postgres;
-
 --
--- Name: t_msg_ma_template_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: t_msg_ma_template_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.t_msg_ma_template_id_seq OWNED BY public.t_msg_ma_template.id;
 
 
 --
--- Name: t_msg_mail; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_msg_mail; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_msg_mail (
@@ -487,24 +487,22 @@ CREATE TABLE public.t_msg_mail (
 );
 
 
-ALTER TABLE public.t_msg_mail OWNER TO postgres;
-
 --
--- Name: COLUMN t_msg_mail.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_mail.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_mail.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_msg_mail.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_mail.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_mail.deleted IS '是否删除';
 
 
 --
--- Name: t_msg_mp_subscribe; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_msg_mp_subscribe; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_msg_mp_subscribe (
@@ -524,24 +522,22 @@ CREATE TABLE public.t_msg_mp_subscribe (
 );
 
 
-ALTER TABLE public.t_msg_mp_subscribe OWNER TO postgres;
-
 --
--- Name: COLUMN t_msg_mp_subscribe.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_mp_subscribe.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_mp_subscribe.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_msg_mp_subscribe.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_mp_subscribe.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_mp_subscribe.deleted IS '是否删除';
 
 
 --
--- Name: t_msg_mp_template; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_msg_mp_template; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_msg_mp_template (
@@ -559,24 +555,22 @@ CREATE TABLE public.t_msg_mp_template (
 );
 
 
-ALTER TABLE public.t_msg_mp_template OWNER TO postgres;
-
 --
--- Name: COLUMN t_msg_mp_template.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_mp_template.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_mp_template.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_msg_mp_template.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_mp_template.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_mp_template.deleted IS '是否删除';
 
 
 --
--- Name: t_msg_sms; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_msg_sms; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_msg_sms (
@@ -594,24 +588,22 @@ CREATE TABLE public.t_msg_sms (
 );
 
 
-ALTER TABLE public.t_msg_sms OWNER TO postgres;
-
 --
--- Name: COLUMN t_msg_sms.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_sms.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_sms.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_msg_sms.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_sms.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_sms.deleted IS '是否删除';
 
 
 --
--- Name: t_msg_wx_cp; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_msg_wx_cp; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_msg_wx_cp (
@@ -635,24 +627,22 @@ CREATE TABLE public.t_msg_wx_cp (
 );
 
 
-ALTER TABLE public.t_msg_wx_cp OWNER TO postgres;
-
 --
--- Name: COLUMN t_msg_wx_cp.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_wx_cp.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_wx_cp.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_msg_wx_cp.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_wx_cp.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_wx_cp.deleted IS '是否删除';
 
 
 --
--- Name: t_msg_wx_uniform; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_msg_wx_uniform; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_msg_wx_uniform (
@@ -673,24 +663,22 @@ CREATE TABLE public.t_msg_wx_uniform (
 );
 
 
-ALTER TABLE public.t_msg_wx_uniform OWNER TO postgres;
-
 --
--- Name: COLUMN t_msg_wx_uniform.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_wx_uniform.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_wx_uniform.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_msg_wx_uniform.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_msg_wx_uniform.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_msg_wx_uniform.deleted IS '是否删除';
 
 
 --
--- Name: t_preview_user; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_preview_user; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_preview_user (
@@ -703,24 +691,22 @@ CREATE TABLE public.t_preview_user (
 );
 
 
-ALTER TABLE public.t_preview_user OWNER TO postgres;
-
 --
--- Name: COLUMN t_preview_user.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_preview_user.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_preview_user.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_preview_user.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_preview_user.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_preview_user.deleted IS '是否删除';
 
 
 --
--- Name: t_preview_user_group; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_preview_user_group; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_preview_user_group (
@@ -734,24 +720,22 @@ CREATE TABLE public.t_preview_user_group (
 );
 
 
-ALTER TABLE public.t_preview_user_group OWNER TO postgres;
-
 --
--- Name: COLUMN t_preview_user_group.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_preview_user_group.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_preview_user_group.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_preview_user_group.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_preview_user_group.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_preview_user_group.deleted IS '是否删除';
 
 
 --
--- Name: t_push_history; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_push_history; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_push_history (
@@ -768,24 +752,22 @@ CREATE TABLE public.t_push_history (
 );
 
 
-ALTER TABLE public.t_push_history OWNER TO postgres;
-
 --
--- Name: COLUMN t_push_history.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_push_history.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_push_history.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_push_history.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_push_history.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_push_history.deleted IS '是否删除';
 
 
 --
--- Name: t_template_data; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_template_data; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_template_data (
@@ -802,24 +784,22 @@ CREATE TABLE public.t_template_data (
 );
 
 
-ALTER TABLE public.t_template_data OWNER TO postgres;
-
 --
--- Name: COLUMN t_template_data.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_template_data.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_template_data.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_template_data.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_template_data.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_template_data.deleted IS '是否删除';
 
 
 --
--- Name: t_wx_account; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_wx_account; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_wx_account (
@@ -837,24 +817,22 @@ CREATE TABLE public.t_wx_account (
 );
 
 
-ALTER TABLE public.t_wx_account OWNER TO postgres;
-
 --
--- Name: COLUMN t_wx_account.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_wx_account.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_wx_account.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_wx_account.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_wx_account.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_wx_account.deleted IS '是否删除';
 
 
 --
--- Name: t_wx_cp_app; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_wx_cp_app; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_wx_cp_app (
@@ -872,24 +850,22 @@ CREATE TABLE public.t_wx_cp_app (
 );
 
 
-ALTER TABLE public.t_wx_cp_app OWNER TO postgres;
-
 --
--- Name: COLUMN t_wx_cp_app.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_wx_cp_app.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_wx_cp_app.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_wx_cp_app.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_wx_cp_app.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_wx_cp_app.deleted IS '是否删除';
 
 
 --
--- Name: t_wx_mp_user; Type: TABLE; Schema: public; Owner: postgres
+-- Name: t_wx_mp_user; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.t_wx_mp_user (
@@ -916,24 +892,22 @@ CREATE TABLE public.t_wx_mp_user (
 );
 
 
-ALTER TABLE public.t_wx_mp_user OWNER TO postgres;
-
 --
--- Name: COLUMN t_wx_mp_user.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_wx_mp_user.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_wx_mp_user.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN t_wx_mp_user.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN t_wx_mp_user.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.t_wx_mp_user.deleted IS '是否删除';
 
 
 --
--- Name: table_name_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: table_name_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.table_name_id_seq
@@ -945,38 +919,36 @@ CREATE SEQUENCE public.table_name_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.table_name_id_seq OWNER TO postgres;
-
 --
--- Name: table_name_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: table_name_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.table_name_id_seq OWNED BY public.t_msg_kefu.id;
 
 
 --
--- Name: t_msg_kefu id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: t_msg_kefu id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_kefu ALTER COLUMN id SET DEFAULT nextval('public.table_name_id_seq'::regclass);
 
 
 --
--- Name: t_msg_ma_subscribe id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: t_msg_ma_subscribe id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_ma_subscribe ALTER COLUMN id SET DEFAULT nextval('public.t_msg_ma_subscribe_id_seq'::regclass);
 
 
 --
--- Name: t_msg_ma_template id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: t_msg_ma_template id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_ma_template ALTER COLUMN id SET DEFAULT nextval('public.t_msg_ma_template_id_seq'::regclass);
 
 
 --
--- Data for Name: message_config; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: message_config; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.message_config (configuration, create_time, creator_id, id, msg_type, tenant_id, deleted) FROM stdin;
@@ -989,7 +961,7 @@ COPY public.message_config (configuration, create_time, creator_id, id, msg_type
 
 
 --
--- Data for Name: t_ding_app; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_ding_app; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_ding_app (id, app_name, agent_id, app_key, app_secret, create_time, modified_time, tenant_id, deleted) FROM stdin;
@@ -997,7 +969,7 @@ COPY public.t_ding_app (id, app_name, agent_id, app_key, app_secret, create_time
 
 
 --
--- Data for Name: t_msg_ding; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_msg_ding; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_msg_ding (id, msg_type, msg_name, radio_type, ding_msg_type, agent_id, web_hook, content, create_time, modified_time, preview_user, title, btntxt, btnurl, url, imgurl, user_group_id, tenant_id, deleted) FROM stdin;
@@ -1007,7 +979,15 @@ COPY public.t_msg_ding (id, msg_type, msg_name, radio_type, ding_msg_type, agent
 
 
 --
--- Data for Name: t_msg_http; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_msg_feishu; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.t_msg_feishu (id, msg_type, msg_name, radio_type, feishu_msg_type, web_hook, content, create_time, modified_time, preview_user, title, "imgUrl", "btnTxt", "btnUrl", url, user_group_id, tenant_id, deleted) FROM stdin;
+\.
+
+
+--
+-- Data for Name: t_msg_http; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_msg_http (id, msg_type, msg_name, method, url, params, headers, cookies, body, body_type, create_time, modified_time, preview_user, user_group_id, tenant_id, deleted) FROM stdin;
@@ -1019,7 +999,7 @@ c065f756-ccd1-4c9e-b09b-3fa7534f63cc	5	http001	GET	http://www.baidu.com	[{"id":0
 
 
 --
--- Data for Name: t_msg_kefu; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_msg_kefu; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_msg_kefu (id, msg_type, msg_name, kefu_msg_type, content, img_url, describe, url, create_time, modified_time, tenant_id, deleted) FROM stdin;
@@ -1027,7 +1007,7 @@ COPY public.t_msg_kefu (id, msg_type, msg_name, kefu_msg_type, content, img_url,
 
 
 --
--- Data for Name: t_msg_ma_subscribe; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_msg_ma_subscribe; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_msg_ma_subscribe (id, msg_type, msg_name, template_id, page, create_time, modified_time, tenant_id, deleted) FROM stdin;
@@ -1035,7 +1015,7 @@ COPY public.t_msg_ma_subscribe (id, msg_type, msg_name, template_id, page, creat
 
 
 --
--- Data for Name: t_msg_ma_template; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_msg_ma_template; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_msg_ma_template (id, msg_type, msg_name, template_id, page, emphasis_keyword, create_time, modified_time, tenant_id, deleted) FROM stdin;
@@ -1043,7 +1023,7 @@ COPY public.t_msg_ma_template (id, msg_type, msg_name, template_id, page, emphas
 
 
 --
--- Data for Name: t_msg_mail; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_msg_mail; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_msg_mail (id, msg_type, msg_name, title, cc, files, content, create_time, modified_time, preview_user, user_group_id, tenant_id, deleted) FROM stdin;
@@ -1058,7 +1038,7 @@ COPY public.t_msg_mail (id, msg_type, msg_name, title, cc, files, content, creat
 
 
 --
--- Data for Name: t_msg_mp_subscribe; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_msg_mp_subscribe; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_msg_mp_subscribe (id, msg_type, msg_name, template_id, url, ma_appid, ma_page_path, preview_user, wx_account_id, create_time, modified_time, tenant_id, deleted) FROM stdin;
@@ -1066,7 +1046,7 @@ COPY public.t_msg_mp_subscribe (id, msg_type, msg_name, template_id, url, ma_app
 
 
 --
--- Data for Name: t_msg_mp_template; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_msg_mp_template; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_msg_mp_template (id, msg_type, msg_name, template_id, url, ma_appid, ma_page_path, create_time, modified_time, tenant_id, deleted) FROM stdin;
@@ -1074,7 +1054,7 @@ COPY public.t_msg_mp_template (id, msg_type, msg_name, template_id, url, ma_appi
 
 
 --
--- Data for Name: t_msg_sms; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_msg_sms; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_msg_sms (id, msg_type, msg_name, template_id, content, create_time, modified_time, preview_user, user_group_id, tenant_id, deleted) FROM stdin;
@@ -1091,7 +1071,7 @@ b6c6ae8c-7577-4a74-af71-6de12323a1cc	1	阿里云短信消息模板2	test1	\N	202
 
 
 --
--- Data for Name: t_msg_wx_cp; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_msg_wx_cp; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_msg_wx_cp (id, msg_type, msg_name, cp_msg_type, agent_id, content, title, img_url, describe, url, btn_txt, create_time, modified_time, preview_user, user_group_id, tenant_id, deleted) FROM stdin;
@@ -1100,7 +1080,7 @@ COPY public.t_msg_wx_cp (id, msg_type, msg_name, cp_msg_type, agent_id, content,
 
 
 --
--- Data for Name: t_msg_wx_uniform; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_msg_wx_uniform; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_msg_wx_uniform (id, msg_type, msg_name, mp_template_id, ma_template_id, mp_url, ma_appid, ma_page_path, page, emphasis_keyword, create_time, modified_time, tenant_id, deleted) FROM stdin;
@@ -1108,7 +1088,7 @@ COPY public.t_msg_wx_uniform (id, msg_type, msg_name, mp_template_id, ma_templat
 
 
 --
--- Data for Name: t_preview_user; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_preview_user; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_preview_user (id, msg_type, preview_user, create_time, tenant_id, deleted) FROM stdin;
@@ -1131,7 +1111,7 @@ b1ff9e5a-7a0c-42d0-a27b-645291eb03e3	3	test1@test.com	2023-07-26 14:37:51.775	1	
 
 
 --
--- Data for Name: t_preview_user_group; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_preview_user_group; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_preview_user_group (id, msg_type, user_group_name, preview_user_id, create_time, tenant_id, deleted) FROM stdin;
@@ -1142,7 +1122,7 @@ c52b76fa-1ee7-4c5d-8305-075ea876272b	3	测试邮件用户组1	0b291ae8-4ce8-4a97
 
 
 --
--- Data for Name: t_push_history; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_push_history; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_push_history (id, msg_id, msg_type, msg_name, result, csv_file, create_time, modified_time, tenant_id, deleted) FROM stdin;
@@ -1151,7 +1131,7 @@ COPY public.t_push_history (id, msg_id, msg_type, msg_name, result, csv_file, cr
 
 
 --
--- Data for Name: t_template_data; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_template_data; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_template_data (id, msg_type, msg_id, name, value, color, create_time, modified_time, tenant_id, deleted) FROM stdin;
@@ -1161,7 +1141,7 @@ a07934ea-b5ec-49e4-9d7e-19392015259b	1	327fbcc3-900d-4ed5-8d3e-e0d77b1828b4	用�
 
 
 --
--- Data for Name: t_wx_account; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_wx_account; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_wx_account (id, account_type, account_name, app_id, app_secret, token, aes_key, create_time, modified_time, tenant_id, deleted) FROM stdin;
@@ -1169,7 +1149,7 @@ COPY public.t_wx_account (id, account_type, account_name, app_id, app_secret, to
 
 
 --
--- Data for Name: t_wx_cp_app; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_wx_cp_app; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_wx_cp_app (id, corpid, app_name, agent_id, secret, token, aes_key, create_time, modified_time, tenant_id, deleted) FROM stdin;
@@ -1177,7 +1157,7 @@ COPY public.t_wx_cp_app (id, corpid, app_name, agent_id, secret, token, aes_key,
 
 
 --
--- Data for Name: t_wx_mp_user; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: t_wx_mp_user; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.t_wx_mp_user (open_id, nickname, sex_desc, sex, language, city, province, country, head_img_url, subscribe_time, union_id, remark, group_id, subscribe_scene, qr_scene, qr_scene_str, create_time, modified_time, tenant_id, deleted) FROM stdin;
@@ -1185,49 +1165,49 @@ COPY public.t_wx_mp_user (open_id, nickname, sex_desc, sex, language, city, prov
 
 
 --
--- Name: t_ding_app_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: t_ding_app_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.t_ding_app_id_seq', 1, false);
 
 
 --
--- Name: t_msg_ding_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: t_msg_ding_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.t_msg_ding_id_seq', 1, false);
 
 
 --
--- Name: t_msg_http_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: t_msg_http_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.t_msg_http_id_seq', 1, false);
 
 
 --
--- Name: t_msg_ma_subscribe_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: t_msg_ma_subscribe_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.t_msg_ma_subscribe_id_seq', 1, false);
 
 
 --
--- Name: t_msg_ma_template_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: t_msg_ma_template_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.t_msg_ma_template_id_seq', 1, false);
 
 
 --
--- Name: table_name_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: table_name_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.table_name_id_seq', 1, false);
 
 
 --
--- Name: message_config message_config_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: message_config message_config_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.message_config
@@ -1235,7 +1215,7 @@ ALTER TABLE ONLY public.message_config
 
 
 --
--- Name: t_ding_app t_ding_app_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_ding_app t_ding_app_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_ding_app
@@ -1243,7 +1223,7 @@ ALTER TABLE ONLY public.t_ding_app
 
 
 --
--- Name: t_msg_ding t_msg_ding_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_msg_ding t_msg_ding_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_ding
@@ -1251,7 +1231,7 @@ ALTER TABLE ONLY public.t_msg_ding
 
 
 --
--- Name: t_msg_feishu t_msg_feishu_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_msg_feishu t_msg_feishu_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_feishu
@@ -1259,7 +1239,7 @@ ALTER TABLE ONLY public.t_msg_feishu
 
 
 --
--- Name: t_msg_http t_msg_http_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_msg_http t_msg_http_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_http
@@ -1267,7 +1247,7 @@ ALTER TABLE ONLY public.t_msg_http
 
 
 --
--- Name: t_msg_ma_subscribe t_msg_ma_subscribe_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_msg_ma_subscribe t_msg_ma_subscribe_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_ma_subscribe
@@ -1275,7 +1255,7 @@ ALTER TABLE ONLY public.t_msg_ma_subscribe
 
 
 --
--- Name: t_msg_ma_template t_msg_ma_template_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_msg_ma_template t_msg_ma_template_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_ma_template
@@ -1283,7 +1263,7 @@ ALTER TABLE ONLY public.t_msg_ma_template
 
 
 --
--- Name: t_msg_mail t_msg_mail_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_msg_mail t_msg_mail_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_mail
@@ -1291,7 +1271,7 @@ ALTER TABLE ONLY public.t_msg_mail
 
 
 --
--- Name: t_msg_mp_subscribe t_msg_mp_subscribe_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_msg_mp_subscribe t_msg_mp_subscribe_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_mp_subscribe
@@ -1299,7 +1279,7 @@ ALTER TABLE ONLY public.t_msg_mp_subscribe
 
 
 --
--- Name: t_msg_mp_template t_msg_mp_template_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_msg_mp_template t_msg_mp_template_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_mp_template
@@ -1307,7 +1287,7 @@ ALTER TABLE ONLY public.t_msg_mp_template
 
 
 --
--- Name: t_msg_sms t_msg_sms_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_msg_sms t_msg_sms_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_sms
@@ -1315,7 +1295,7 @@ ALTER TABLE ONLY public.t_msg_sms
 
 
 --
--- Name: t_msg_wx_cp t_msg_wx_cp_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_msg_wx_cp t_msg_wx_cp_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_wx_cp
@@ -1323,7 +1303,7 @@ ALTER TABLE ONLY public.t_msg_wx_cp
 
 
 --
--- Name: t_msg_wx_uniform t_msg_wx_uniform_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_msg_wx_uniform t_msg_wx_uniform_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_wx_uniform
@@ -1331,7 +1311,7 @@ ALTER TABLE ONLY public.t_msg_wx_uniform
 
 
 --
--- Name: t_preview_user_group t_preview_user_group_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_preview_user_group t_preview_user_group_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_preview_user_group
@@ -1339,7 +1319,7 @@ ALTER TABLE ONLY public.t_preview_user_group
 
 
 --
--- Name: t_preview_user t_preview_user_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_preview_user t_preview_user_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_preview_user
@@ -1347,7 +1327,7 @@ ALTER TABLE ONLY public.t_preview_user
 
 
 --
--- Name: t_push_history t_push_history_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_push_history t_push_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_push_history
@@ -1355,7 +1335,7 @@ ALTER TABLE ONLY public.t_push_history
 
 
 --
--- Name: t_template_data t_template_data_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_template_data t_template_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_template_data
@@ -1363,7 +1343,7 @@ ALTER TABLE ONLY public.t_template_data
 
 
 --
--- Name: t_wx_account t_wx_account_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_wx_account t_wx_account_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_wx_account
@@ -1371,7 +1351,7 @@ ALTER TABLE ONLY public.t_wx_account
 
 
 --
--- Name: t_wx_cp_app t_wx_cp_app_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_wx_cp_app t_wx_cp_app_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_wx_cp_app
@@ -1379,7 +1359,7 @@ ALTER TABLE ONLY public.t_wx_cp_app
 
 
 --
--- Name: t_wx_mp_user t_wx_mp_user_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_wx_mp_user t_wx_mp_user_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_wx_mp_user
@@ -1387,7 +1367,7 @@ ALTER TABLE ONLY public.t_wx_mp_user
 
 
 --
--- Name: t_msg_kefu table_name_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: t_msg_kefu table_name_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.t_msg_kefu
@@ -1398,5 +1378,5 @@ ALTER TABLE ONLY public.t_msg_kefu
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 0f3vG0xh8oemMtLrXGYdGcCE89G8V8DDT5Ppl5fa1LlSiHDrfCfyu9c39lQXmLL
+\unrestrict jJvekh4qsQwg9NC8chVGiKFhvTdezWLZH80O4GSxCB2uKFFObckSowNHFhFbplA
 

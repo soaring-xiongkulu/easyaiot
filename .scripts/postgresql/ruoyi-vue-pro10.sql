@@ -2,14 +2,40 @@
 -- PostgreSQL database dump
 --
 
-\restrict el4LXXySXiPH1G6se5csdG44V2hTfUdlwQRWpa1JiI14ectrdVfctGtg1hAe0kD
+\restrict PB3eHYYKB0NWA3Mn3rXzUgK9xqWC3kKr8cbNKxw4ru00zxW9zfoXbE6jZMdbObg
 
--- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
--- Dumped by pg_dump version 16.10 (Ubuntu 16.10-0ubuntu0.24.04.1)
+-- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
+-- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+DROP DATABASE IF EXISTS "ruoyi-vue-pro20";
+--
+-- Name: ruoyi-vue-pro20; Type: DATABASE; Schema: -; Owner: -
+--
+
+CREATE DATABASE "ruoyi-vue-pro20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
+
+
+\unrestrict PB3eHYYKB0NWA3Mn3rXzUgK9xqWC3kKr8cbNKxw4ru00zxW9zfoXbE6jZMdbObg
+\encoding SQL_ASCII
+\connect -reuse-previous=on "dbname='ruoyi-vue-pro20'"
+\restrict PB3eHYYKB0NWA3Mn3rXzUgK9xqWC3kKr8cbNKxw4ru00zxW9zfoXbE6jZMdbObg
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -19,7 +45,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: dataset_image_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: dataset_image_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.dataset_image_seq
@@ -30,10 +56,8 @@ CREATE SEQUENCE public.dataset_image_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.dataset_image_seq OWNER TO postgres;
-
 --
--- Name: dataset_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: dataset_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.dataset_seq
@@ -44,10 +68,8 @@ CREATE SEQUENCE public.dataset_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.dataset_seq OWNER TO postgres;
-
 --
--- Name: dataset_tag_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: dataset_tag_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.dataset_tag_seq
@@ -58,10 +80,8 @@ CREATE SEQUENCE public.dataset_tag_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.dataset_tag_seq OWNER TO postgres;
-
 --
--- Name: dataset_task_result_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: dataset_task_result_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.dataset_task_result_seq
@@ -72,10 +92,8 @@ CREATE SEQUENCE public.dataset_task_result_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.dataset_task_result_seq OWNER TO postgres;
-
 --
--- Name: dataset_task_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: dataset_task_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.dataset_task_seq
@@ -86,10 +104,8 @@ CREATE SEQUENCE public.dataset_task_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.dataset_task_seq OWNER TO postgres;
-
 --
--- Name: dataset_task_user_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: dataset_task_user_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.dataset_task_user_seq
@@ -100,10 +116,8 @@ CREATE SEQUENCE public.dataset_task_user_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.dataset_task_user_seq OWNER TO postgres;
-
 --
--- Name: dataset_video_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: dataset_video_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.dataset_video_seq
@@ -114,24 +128,20 @@ CREATE SEQUENCE public.dataset_video_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.dataset_video_seq OWNER TO postgres;
-
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
--- Name: dual; Type: TABLE; Schema: public; Owner: postgres
+-- Name: dual; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.dual (
 );
 
 
-ALTER TABLE public.dual OWNER TO postgres;
-
 --
--- Name: infra_api_access_log; Type: TABLE; Schema: public; Owner: postgres
+-- Name: infra_api_access_log; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.infra_api_access_log (
@@ -163,192 +173,190 @@ CREATE TABLE public.infra_api_access_log (
 );
 
 
-ALTER TABLE public.infra_api_access_log OWNER TO postgres;
-
 --
--- Name: TABLE infra_api_access_log; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE infra_api_access_log; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.infra_api_access_log IS 'API 访问日志表';
 
 
 --
--- Name: COLUMN infra_api_access_log.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.id IS '日志主键';
 
 
 --
--- Name: COLUMN infra_api_access_log.trace_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.trace_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.trace_id IS '链路追踪编号';
 
 
 --
--- Name: COLUMN infra_api_access_log.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.user_id IS '用户编号';
 
 
 --
--- Name: COLUMN infra_api_access_log.user_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.user_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.user_type IS '用户类型';
 
 
 --
--- Name: COLUMN infra_api_access_log.application_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.application_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.application_name IS '应用名';
 
 
 --
--- Name: COLUMN infra_api_access_log.request_method; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.request_method; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.request_method IS '请求方法名';
 
 
 --
--- Name: COLUMN infra_api_access_log.request_url; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.request_url; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.request_url IS '请求地址';
 
 
 --
--- Name: COLUMN infra_api_access_log.request_params; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.request_params; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.request_params IS '请求参数';
 
 
 --
--- Name: COLUMN infra_api_access_log.response_body; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.response_body; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.response_body IS '响应结果';
 
 
 --
--- Name: COLUMN infra_api_access_log.user_ip; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.user_ip; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.user_ip IS '用户 IP';
 
 
 --
--- Name: COLUMN infra_api_access_log.user_agent; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.user_agent; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.user_agent IS '浏览器 UA';
 
 
 --
--- Name: COLUMN infra_api_access_log.operate_module; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.operate_module; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.operate_module IS '操作模块';
 
 
 --
--- Name: COLUMN infra_api_access_log.operate_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.operate_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.operate_name IS '操作名';
 
 
 --
--- Name: COLUMN infra_api_access_log.operate_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.operate_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.operate_type IS '操作分类';
 
 
 --
--- Name: COLUMN infra_api_access_log.begin_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.begin_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.begin_time IS '开始请求时间';
 
 
 --
--- Name: COLUMN infra_api_access_log.end_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.end_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.end_time IS '结束请求时间';
 
 
 --
--- Name: COLUMN infra_api_access_log.duration; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.duration; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.duration IS '执行时长';
 
 
 --
--- Name: COLUMN infra_api_access_log.result_code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.result_code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.result_code IS '结果码';
 
 
 --
--- Name: COLUMN infra_api_access_log.result_msg; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.result_msg; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.result_msg IS '结果提示';
 
 
 --
--- Name: COLUMN infra_api_access_log.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.creator IS '创建者';
 
 
 --
--- Name: COLUMN infra_api_access_log.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN infra_api_access_log.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.updater IS '更新者';
 
 
 --
--- Name: COLUMN infra_api_access_log.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN infra_api_access_log.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN infra_api_access_log.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_access_log.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_access_log.tenant_id IS '租户编号';
 
 
 --
--- Name: infra_api_access_log_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: infra_api_access_log_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.infra_api_access_log_seq
@@ -359,10 +367,8 @@ CREATE SEQUENCE public.infra_api_access_log_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.infra_api_access_log_seq OWNER TO postgres;
-
 --
--- Name: infra_api_error_log; Type: TABLE; Schema: public; Owner: postgres
+-- Name: infra_api_error_log; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.infra_api_error_log (
@@ -397,24 +403,22 @@ CREATE TABLE public.infra_api_error_log (
 );
 
 
-ALTER TABLE public.infra_api_error_log OWNER TO postgres;
-
 --
--- Name: TABLE infra_api_error_log; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE infra_api_error_log; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.infra_api_error_log IS '系统异常日志';
 
 
 --
--- Name: COLUMN infra_api_error_log.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.id IS '编号';
 
 
 --
--- Name: COLUMN infra_api_error_log.trace_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.trace_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.trace_id IS '链路追踪编号
@@ -423,21 +427,21 @@ COMMENT ON COLUMN public.infra_api_error_log.trace_id IS '链路追踪编号
 
 
 --
--- Name: COLUMN infra_api_error_log.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.user_id IS '用户编号';
 
 
 --
--- Name: COLUMN infra_api_error_log.user_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.user_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.user_type IS '用户类型';
 
 
 --
--- Name: COLUMN infra_api_error_log.application_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.application_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.application_name IS '应用名
@@ -446,49 +450,49 @@ COMMENT ON COLUMN public.infra_api_error_log.application_name IS '应用名
 
 
 --
--- Name: COLUMN infra_api_error_log.request_method; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.request_method; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.request_method IS '请求方法名';
 
 
 --
--- Name: COLUMN infra_api_error_log.request_url; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.request_url; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.request_url IS '请求地址';
 
 
 --
--- Name: COLUMN infra_api_error_log.request_params; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.request_params; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.request_params IS '请求参数';
 
 
 --
--- Name: COLUMN infra_api_error_log.user_ip; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.user_ip; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.user_ip IS '用户 IP';
 
 
 --
--- Name: COLUMN infra_api_error_log.user_agent; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.user_agent; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.user_agent IS '浏览器 UA';
 
 
 --
--- Name: COLUMN infra_api_error_log.exception_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.exception_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.exception_time IS '异常发生时间';
 
 
 --
--- Name: COLUMN infra_api_error_log.exception_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.exception_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.exception_name IS '异常名
@@ -497,7 +501,7 @@ COMMENT ON COLUMN public.infra_api_error_log.exception_name IS '异常名
 
 
 --
--- Name: COLUMN infra_api_error_log.exception_message; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.exception_message; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.exception_message IS '异常导致的消息
@@ -506,7 +510,7 @@ COMMENT ON COLUMN public.infra_api_error_log.exception_message IS '异常导致�
 
 
 --
--- Name: COLUMN infra_api_error_log.exception_root_cause_message; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.exception_root_cause_message; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.exception_root_cause_message IS '异常导致的根消息
@@ -515,7 +519,7 @@ COMMENT ON COLUMN public.infra_api_error_log.exception_root_cause_message IS '�
 
 
 --
--- Name: COLUMN infra_api_error_log.exception_stack_trace; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.exception_stack_trace; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.exception_stack_trace IS '异常的栈轨迹
@@ -524,7 +528,7 @@ COMMENT ON COLUMN public.infra_api_error_log.exception_stack_trace IS '异常的
 
 
 --
--- Name: COLUMN infra_api_error_log.exception_class_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.exception_class_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.exception_class_name IS '异常发生的类全名
@@ -533,7 +537,7 @@ COMMENT ON COLUMN public.infra_api_error_log.exception_class_name IS '异常发�
 
 
 --
--- Name: COLUMN infra_api_error_log.exception_file_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.exception_file_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.exception_file_name IS '异常发生的类文件
@@ -542,7 +546,7 @@ COMMENT ON COLUMN public.infra_api_error_log.exception_file_name IS '异常发�
 
 
 --
--- Name: COLUMN infra_api_error_log.exception_method_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.exception_method_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.exception_method_name IS '异常发生的方法名
@@ -551,7 +555,7 @@ COMMENT ON COLUMN public.infra_api_error_log.exception_method_name IS '异常发
 
 
 --
--- Name: COLUMN infra_api_error_log.exception_line_number; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.exception_line_number; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.exception_line_number IS '异常发生的方法所在行
@@ -560,70 +564,70 @@ COMMENT ON COLUMN public.infra_api_error_log.exception_line_number IS '异常发
 
 
 --
--- Name: COLUMN infra_api_error_log.process_status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.process_status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.process_status IS '处理状态';
 
 
 --
--- Name: COLUMN infra_api_error_log.process_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.process_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.process_time IS '处理时间';
 
 
 --
--- Name: COLUMN infra_api_error_log.process_user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.process_user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.process_user_id IS '处理用户编号';
 
 
 --
--- Name: COLUMN infra_api_error_log.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.creator IS '创建者';
 
 
 --
--- Name: COLUMN infra_api_error_log.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN infra_api_error_log.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.updater IS '更新者';
 
 
 --
--- Name: COLUMN infra_api_error_log.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN infra_api_error_log.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN infra_api_error_log.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_api_error_log.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_api_error_log.tenant_id IS '租户编号';
 
 
 --
--- Name: infra_api_error_log_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: infra_api_error_log_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.infra_api_error_log_seq
@@ -634,10 +638,8 @@ CREATE SEQUENCE public.infra_api_error_log_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.infra_api_error_log_seq OWNER TO postgres;
-
 --
--- Name: infra_codegen_column; Type: TABLE; Schema: public; Owner: postgres
+-- Name: infra_codegen_column; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.infra_codegen_column (
@@ -667,178 +669,176 @@ CREATE TABLE public.infra_codegen_column (
 );
 
 
-ALTER TABLE public.infra_codegen_column OWNER TO postgres;
-
 --
--- Name: TABLE infra_codegen_column; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE infra_codegen_column; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.infra_codegen_column IS '代码生成表字段定义';
 
 
 --
--- Name: COLUMN infra_codegen_column.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.id IS '编号';
 
 
 --
--- Name: COLUMN infra_codegen_column.table_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.table_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.table_id IS '表编号';
 
 
 --
--- Name: COLUMN infra_codegen_column.column_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.column_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.column_name IS '字段名';
 
 
 --
--- Name: COLUMN infra_codegen_column.data_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.data_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.data_type IS '字段类型';
 
 
 --
--- Name: COLUMN infra_codegen_column.column_comment; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.column_comment; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.column_comment IS '字段描述';
 
 
 --
--- Name: COLUMN infra_codegen_column.nullable; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.nullable; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.nullable IS '是否允许为空';
 
 
 --
--- Name: COLUMN infra_codegen_column.primary_key; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.primary_key; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.primary_key IS '是否主键';
 
 
 --
--- Name: COLUMN infra_codegen_column.ordinal_position; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.ordinal_position; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.ordinal_position IS '排序';
 
 
 --
--- Name: COLUMN infra_codegen_column.java_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.java_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.java_type IS 'Java 属性类型';
 
 
 --
--- Name: COLUMN infra_codegen_column.java_field; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.java_field; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.java_field IS 'Java 属性名';
 
 
 --
--- Name: COLUMN infra_codegen_column.dict_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.dict_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.dict_type IS '字典类型';
 
 
 --
--- Name: COLUMN infra_codegen_column.example; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.example; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.example IS '数据示例';
 
 
 --
--- Name: COLUMN infra_codegen_column.create_operation; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.create_operation; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.create_operation IS '是否为 Create 创建操作的字段';
 
 
 --
--- Name: COLUMN infra_codegen_column.update_operation; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.update_operation; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.update_operation IS '是否为 Update 更新操作的字段';
 
 
 --
--- Name: COLUMN infra_codegen_column.list_operation; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.list_operation; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.list_operation IS '是否为 List 查询操作的字段';
 
 
 --
--- Name: COLUMN infra_codegen_column.list_operation_condition; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.list_operation_condition; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.list_operation_condition IS 'List 查询操作的条件类型';
 
 
 --
--- Name: COLUMN infra_codegen_column.list_operation_result; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.list_operation_result; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.list_operation_result IS '是否为 List 查询操作的返回字段';
 
 
 --
--- Name: COLUMN infra_codegen_column.html_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.html_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.html_type IS '显示类型';
 
 
 --
--- Name: COLUMN infra_codegen_column.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.creator IS '创建者';
 
 
 --
--- Name: COLUMN infra_codegen_column.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN infra_codegen_column.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.updater IS '更新者';
 
 
 --
--- Name: COLUMN infra_codegen_column.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN infra_codegen_column.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_column.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_column.deleted IS '是否删除';
 
 
 --
--- Name: infra_codegen_column_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: infra_codegen_column_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.infra_codegen_column_seq
@@ -849,10 +849,8 @@ CREATE SEQUENCE public.infra_codegen_column_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.infra_codegen_column_seq OWNER TO postgres;
-
 --
--- Name: infra_codegen_table; Type: TABLE; Schema: public; Owner: postgres
+-- Name: infra_codegen_table; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.infra_codegen_table (
@@ -883,185 +881,183 @@ CREATE TABLE public.infra_codegen_table (
 );
 
 
-ALTER TABLE public.infra_codegen_table OWNER TO postgres;
-
 --
--- Name: TABLE infra_codegen_table; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE infra_codegen_table; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.infra_codegen_table IS '代码生成表定义';
 
 
 --
--- Name: COLUMN infra_codegen_table.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.id IS '编号';
 
 
 --
--- Name: COLUMN infra_codegen_table.data_source_config_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.data_source_config_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.data_source_config_id IS '数据源配置的编号';
 
 
 --
--- Name: COLUMN infra_codegen_table.scene; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.scene; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.scene IS '生成场景';
 
 
 --
--- Name: COLUMN infra_codegen_table.table_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.table_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.table_name IS '表名称';
 
 
 --
--- Name: COLUMN infra_codegen_table.table_comment; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.table_comment; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.table_comment IS '表描述';
 
 
 --
--- Name: COLUMN infra_codegen_table.remark; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.remark IS '备注';
 
 
 --
--- Name: COLUMN infra_codegen_table.module_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.module_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.module_name IS '模块名';
 
 
 --
--- Name: COLUMN infra_codegen_table.business_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.business_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.business_name IS '业务名';
 
 
 --
--- Name: COLUMN infra_codegen_table.class_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.class_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.class_name IS '类名称';
 
 
 --
--- Name: COLUMN infra_codegen_table.class_comment; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.class_comment; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.class_comment IS '类描述';
 
 
 --
--- Name: COLUMN infra_codegen_table.author; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.author; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.author IS '作者';
 
 
 --
--- Name: COLUMN infra_codegen_table.template_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.template_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.template_type IS '模板类型';
 
 
 --
--- Name: COLUMN infra_codegen_table.front_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.front_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.front_type IS '前端类型';
 
 
 --
--- Name: COLUMN infra_codegen_table.parent_menu_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.parent_menu_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.parent_menu_id IS '父菜单编号';
 
 
 --
--- Name: COLUMN infra_codegen_table.master_table_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.master_table_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.master_table_id IS '主表的编号';
 
 
 --
--- Name: COLUMN infra_codegen_table.sub_join_column_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.sub_join_column_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.sub_join_column_id IS '子表关联主表的字段编号';
 
 
 --
--- Name: COLUMN infra_codegen_table.sub_join_many; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.sub_join_many; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.sub_join_many IS '主表与子表是否一对多';
 
 
 --
--- Name: COLUMN infra_codegen_table.tree_parent_column_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.tree_parent_column_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.tree_parent_column_id IS '树表的父字段编号';
 
 
 --
--- Name: COLUMN infra_codegen_table.tree_name_column_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.tree_name_column_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.tree_name_column_id IS '树表的名字字段编号';
 
 
 --
--- Name: COLUMN infra_codegen_table.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.creator IS '创建者';
 
 
 --
--- Name: COLUMN infra_codegen_table.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN infra_codegen_table.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.updater IS '更新者';
 
 
 --
--- Name: COLUMN infra_codegen_table.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN infra_codegen_table.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_codegen_table.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_codegen_table.deleted IS '是否删除';
 
 
 --
--- Name: infra_codegen_table_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: infra_codegen_table_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.infra_codegen_table_seq
@@ -1072,10 +1068,8 @@ CREATE SEQUENCE public.infra_codegen_table_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.infra_codegen_table_seq OWNER TO postgres;
-
 --
--- Name: infra_config; Type: TABLE; Schema: public; Owner: postgres
+-- Name: infra_config; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.infra_config (
@@ -1095,108 +1089,106 @@ CREATE TABLE public.infra_config (
 );
 
 
-ALTER TABLE public.infra_config OWNER TO postgres;
-
 --
--- Name: TABLE infra_config; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE infra_config; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.infra_config IS '参数配置表';
 
 
 --
--- Name: COLUMN infra_config.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_config.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_config.id IS '参数主键';
 
 
 --
--- Name: COLUMN infra_config.category; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_config.category; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_config.category IS '参数分组';
 
 
 --
--- Name: COLUMN infra_config.type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_config.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_config.type IS '参数类型';
 
 
 --
--- Name: COLUMN infra_config.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_config.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_config.name IS '参数名称';
 
 
 --
--- Name: COLUMN infra_config.config_key; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_config.config_key; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_config.config_key IS '参数键名';
 
 
 --
--- Name: COLUMN infra_config.value; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_config.value; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_config.value IS '参数键值';
 
 
 --
--- Name: COLUMN infra_config.visible; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_config.visible; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_config.visible IS '是否可见';
 
 
 --
--- Name: COLUMN infra_config.remark; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_config.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_config.remark IS '备注';
 
 
 --
--- Name: COLUMN infra_config.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_config.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_config.creator IS '创建者';
 
 
 --
--- Name: COLUMN infra_config.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_config.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_config.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN infra_config.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_config.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_config.updater IS '更新者';
 
 
 --
--- Name: COLUMN infra_config.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_config.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_config.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN infra_config.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_config.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_config.deleted IS '是否删除';
 
 
 --
--- Name: infra_config_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: infra_config_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.infra_config_seq
@@ -1207,10 +1199,8 @@ CREATE SEQUENCE public.infra_config_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.infra_config_seq OWNER TO postgres;
-
 --
--- Name: infra_data_source_config; Type: TABLE; Schema: public; Owner: postgres
+-- Name: infra_data_source_config; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.infra_data_source_config (
@@ -1227,87 +1217,85 @@ CREATE TABLE public.infra_data_source_config (
 );
 
 
-ALTER TABLE public.infra_data_source_config OWNER TO postgres;
-
 --
--- Name: TABLE infra_data_source_config; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE infra_data_source_config; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.infra_data_source_config IS '数据源配置表';
 
 
 --
--- Name: COLUMN infra_data_source_config.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_data_source_config.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_data_source_config.id IS '主键编号';
 
 
 --
--- Name: COLUMN infra_data_source_config.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_data_source_config.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_data_source_config.name IS '参数名称';
 
 
 --
--- Name: COLUMN infra_data_source_config.url; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_data_source_config.url; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_data_source_config.url IS '数据源连接';
 
 
 --
--- Name: COLUMN infra_data_source_config.username; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_data_source_config.username; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_data_source_config.username IS '用户名';
 
 
 --
--- Name: COLUMN infra_data_source_config.password; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_data_source_config.password; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_data_source_config.password IS '密码';
 
 
 --
--- Name: COLUMN infra_data_source_config.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_data_source_config.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_data_source_config.creator IS '创建者';
 
 
 --
--- Name: COLUMN infra_data_source_config.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_data_source_config.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_data_source_config.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN infra_data_source_config.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_data_source_config.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_data_source_config.updater IS '更新者';
 
 
 --
--- Name: COLUMN infra_data_source_config.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_data_source_config.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_data_source_config.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN infra_data_source_config.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_data_source_config.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_data_source_config.deleted IS '是否删除';
 
 
 --
--- Name: infra_data_source_config_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: infra_data_source_config_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.infra_data_source_config_seq
@@ -1318,10 +1306,8 @@ CREATE SEQUENCE public.infra_data_source_config_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.infra_data_source_config_seq OWNER TO postgres;
-
 --
--- Name: infra_file; Type: TABLE; Schema: public; Owner: postgres
+-- Name: infra_file; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.infra_file (
@@ -1340,101 +1326,99 @@ CREATE TABLE public.infra_file (
 );
 
 
-ALTER TABLE public.infra_file OWNER TO postgres;
-
 --
--- Name: TABLE infra_file; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE infra_file; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.infra_file IS '文件表';
 
 
 --
--- Name: COLUMN infra_file.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file.id IS '文件编号';
 
 
 --
--- Name: COLUMN infra_file.config_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file.config_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file.config_id IS '配置编号';
 
 
 --
--- Name: COLUMN infra_file.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file.name IS '文件名';
 
 
 --
--- Name: COLUMN infra_file.path; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file.path; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file.path IS '文件路径';
 
 
 --
--- Name: COLUMN infra_file.url; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file.url; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file.url IS '文件 URL';
 
 
 --
--- Name: COLUMN infra_file.type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file.type IS '文件类型';
 
 
 --
--- Name: COLUMN infra_file.size; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file.size; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file.size IS '文件大小';
 
 
 --
--- Name: COLUMN infra_file.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file.creator IS '创建者';
 
 
 --
--- Name: COLUMN infra_file.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN infra_file.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file.updater IS '更新者';
 
 
 --
--- Name: COLUMN infra_file.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN infra_file.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file.deleted IS '是否删除';
 
 
 --
--- Name: infra_file_config; Type: TABLE; Schema: public; Owner: postgres
+-- Name: infra_file_config; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.infra_file_config (
@@ -1452,94 +1436,92 @@ CREATE TABLE public.infra_file_config (
 );
 
 
-ALTER TABLE public.infra_file_config OWNER TO postgres;
-
 --
--- Name: TABLE infra_file_config; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE infra_file_config; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.infra_file_config IS '文件配置表';
 
 
 --
--- Name: COLUMN infra_file_config.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_config.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_config.id IS '编号';
 
 
 --
--- Name: COLUMN infra_file_config.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_config.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_config.name IS '配置名';
 
 
 --
--- Name: COLUMN infra_file_config.storage; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_config.storage; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_config.storage IS '存储器';
 
 
 --
--- Name: COLUMN infra_file_config.remark; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_config.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_config.remark IS '备注';
 
 
 --
--- Name: COLUMN infra_file_config.master; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_config.master; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_config.master IS '是否为主配置';
 
 
 --
--- Name: COLUMN infra_file_config.config; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_config.config; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_config.config IS '存储配置';
 
 
 --
--- Name: COLUMN infra_file_config.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_config.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_config.creator IS '创建者';
 
 
 --
--- Name: COLUMN infra_file_config.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_config.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_config.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN infra_file_config.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_config.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_config.updater IS '更新者';
 
 
 --
--- Name: COLUMN infra_file_config.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_config.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_config.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN infra_file_config.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_config.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_config.deleted IS '是否删除';
 
 
 --
--- Name: infra_file_config_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: infra_file_config_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.infra_file_config_seq
@@ -1550,10 +1532,8 @@ CREATE SEQUENCE public.infra_file_config_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.infra_file_config_seq OWNER TO postgres;
-
 --
--- Name: infra_file_content; Type: TABLE; Schema: public; Owner: postgres
+-- Name: infra_file_content; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.infra_file_content (
@@ -1569,80 +1549,78 @@ CREATE TABLE public.infra_file_content (
 );
 
 
-ALTER TABLE public.infra_file_content OWNER TO postgres;
-
 --
--- Name: TABLE infra_file_content; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE infra_file_content; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.infra_file_content IS '文件表';
 
 
 --
--- Name: COLUMN infra_file_content.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_content.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_content.id IS '编号';
 
 
 --
--- Name: COLUMN infra_file_content.config_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_content.config_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_content.config_id IS '配置编号';
 
 
 --
--- Name: COLUMN infra_file_content.path; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_content.path; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_content.path IS '文件路径';
 
 
 --
--- Name: COLUMN infra_file_content.content; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_content.content; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_content.content IS '文件内容';
 
 
 --
--- Name: COLUMN infra_file_content.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_content.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_content.creator IS '创建者';
 
 
 --
--- Name: COLUMN infra_file_content.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_content.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_content.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN infra_file_content.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_content.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_content.updater IS '更新者';
 
 
 --
--- Name: COLUMN infra_file_content.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_content.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_content.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN infra_file_content.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_file_content.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_file_content.deleted IS '是否删除';
 
 
 --
--- Name: infra_file_content_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: infra_file_content_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.infra_file_content_seq
@@ -1653,10 +1631,8 @@ CREATE SEQUENCE public.infra_file_content_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.infra_file_content_seq OWNER TO postgres;
-
 --
--- Name: infra_file_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: infra_file_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.infra_file_seq
@@ -1667,10 +1643,8 @@ CREATE SEQUENCE public.infra_file_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.infra_file_seq OWNER TO postgres;
-
 --
--- Name: infra_job; Type: TABLE; Schema: public; Owner: postgres
+-- Name: infra_job; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.infra_job (
@@ -1691,115 +1665,113 @@ CREATE TABLE public.infra_job (
 );
 
 
-ALTER TABLE public.infra_job OWNER TO postgres;
-
 --
--- Name: TABLE infra_job; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE infra_job; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.infra_job IS '定时任务表';
 
 
 --
--- Name: COLUMN infra_job.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.id IS '任务编号';
 
 
 --
--- Name: COLUMN infra_job.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.name IS '任务名称';
 
 
 --
--- Name: COLUMN infra_job.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.status IS '任务状态';
 
 
 --
--- Name: COLUMN infra_job.handler_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.handler_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.handler_name IS '处理器的名字';
 
 
 --
--- Name: COLUMN infra_job.handler_param; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.handler_param; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.handler_param IS '处理器的参数';
 
 
 --
--- Name: COLUMN infra_job.cron_expression; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.cron_expression; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.cron_expression IS 'CRON 表达式';
 
 
 --
--- Name: COLUMN infra_job.retry_count; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.retry_count; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.retry_count IS '重试次数';
 
 
 --
--- Name: COLUMN infra_job.retry_interval; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.retry_interval; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.retry_interval IS '重试间隔';
 
 
 --
--- Name: COLUMN infra_job.monitor_timeout; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.monitor_timeout; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.monitor_timeout IS '监控超时时间';
 
 
 --
--- Name: COLUMN infra_job.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.creator IS '创建者';
 
 
 --
--- Name: COLUMN infra_job.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN infra_job.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.updater IS '更新者';
 
 
 --
--- Name: COLUMN infra_job.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN infra_job.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job.deleted IS '是否删除';
 
 
 --
--- Name: infra_job_log; Type: TABLE; Schema: public; Owner: postgres
+-- Name: infra_job_log; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.infra_job_log (
@@ -1821,122 +1793,120 @@ CREATE TABLE public.infra_job_log (
 );
 
 
-ALTER TABLE public.infra_job_log OWNER TO postgres;
-
 --
--- Name: TABLE infra_job_log; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE infra_job_log; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.infra_job_log IS '定时任务日志表';
 
 
 --
--- Name: COLUMN infra_job_log.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.id IS '日志编号';
 
 
 --
--- Name: COLUMN infra_job_log.job_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.job_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.job_id IS '任务编号';
 
 
 --
--- Name: COLUMN infra_job_log.handler_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.handler_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.handler_name IS '处理器的名字';
 
 
 --
--- Name: COLUMN infra_job_log.handler_param; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.handler_param; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.handler_param IS '处理器的参数';
 
 
 --
--- Name: COLUMN infra_job_log.execute_index; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.execute_index; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.execute_index IS '第几次执行';
 
 
 --
--- Name: COLUMN infra_job_log.begin_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.begin_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.begin_time IS '开始执行时间';
 
 
 --
--- Name: COLUMN infra_job_log.end_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.end_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.end_time IS '结束执行时间';
 
 
 --
--- Name: COLUMN infra_job_log.duration; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.duration; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.duration IS '执行时长';
 
 
 --
--- Name: COLUMN infra_job_log.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.status IS '任务状态';
 
 
 --
--- Name: COLUMN infra_job_log.result; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.result; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.result IS '结果数据';
 
 
 --
--- Name: COLUMN infra_job_log.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.creator IS '创建者';
 
 
 --
--- Name: COLUMN infra_job_log.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN infra_job_log.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.updater IS '更新者';
 
 
 --
--- Name: COLUMN infra_job_log.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN infra_job_log.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN infra_job_log.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.infra_job_log.deleted IS '是否删除';
 
 
 --
--- Name: infra_job_log_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: infra_job_log_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.infra_job_log_seq
@@ -1947,10 +1917,8 @@ CREATE SEQUENCE public.infra_job_log_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.infra_job_log_seq OWNER TO postgres;
-
 --
--- Name: infra_job_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: infra_job_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.infra_job_seq
@@ -1961,10 +1929,8 @@ CREATE SEQUENCE public.infra_job_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.infra_job_seq OWNER TO postgres;
-
 --
--- Name: model_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: model_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.model_seq
@@ -1975,10 +1941,8 @@ CREATE SEQUENCE public.model_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.model_seq OWNER TO postgres;
-
 --
--- Name: model_server_quantify_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: model_server_quantify_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.model_server_quantify_seq
@@ -1989,10 +1953,8 @@ CREATE SEQUENCE public.model_server_quantify_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.model_server_quantify_seq OWNER TO postgres;
-
 --
--- Name: model_server_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: model_server_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.model_server_seq
@@ -2003,10 +1965,8 @@ CREATE SEQUENCE public.model_server_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.model_server_seq OWNER TO postgres;
-
 --
--- Name: model_server_test_image_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: model_server_test_image_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.model_server_test_image_seq
@@ -2017,10 +1977,8 @@ CREATE SEQUENCE public.model_server_test_image_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.model_server_test_image_seq OWNER TO postgres;
-
 --
--- Name: model_server_test_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: model_server_test_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.model_server_test_seq
@@ -2031,10 +1989,8 @@ CREATE SEQUENCE public.model_server_test_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.model_server_test_seq OWNER TO postgres;
-
 --
--- Name: model_server_test_video_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: model_server_test_video_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.model_server_test_video_seq
@@ -2045,10 +2001,8 @@ CREATE SEQUENCE public.model_server_test_video_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.model_server_test_video_seq OWNER TO postgres;
-
 --
--- Name: model_server_video_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: model_server_video_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.model_server_video_seq
@@ -2059,10 +2013,8 @@ CREATE SEQUENCE public.model_server_video_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.model_server_video_seq OWNER TO postgres;
-
 --
--- Name: model_type_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: model_type_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.model_type_seq
@@ -2073,10 +2025,8 @@ CREATE SEQUENCE public.model_type_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.model_type_seq OWNER TO postgres;
-
 --
--- Name: qrtz_blob_triggers; Type: TABLE; Schema: public; Owner: postgres
+-- Name: qrtz_blob_triggers; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.qrtz_blob_triggers (
@@ -2087,10 +2037,8 @@ CREATE TABLE public.qrtz_blob_triggers (
 );
 
 
-ALTER TABLE public.qrtz_blob_triggers OWNER TO postgres;
-
 --
--- Name: qrtz_calendars; Type: TABLE; Schema: public; Owner: postgres
+-- Name: qrtz_calendars; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.qrtz_calendars (
@@ -2100,10 +2048,8 @@ CREATE TABLE public.qrtz_calendars (
 );
 
 
-ALTER TABLE public.qrtz_calendars OWNER TO postgres;
-
 --
--- Name: qrtz_cron_triggers; Type: TABLE; Schema: public; Owner: postgres
+-- Name: qrtz_cron_triggers; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.qrtz_cron_triggers (
@@ -2115,10 +2061,8 @@ CREATE TABLE public.qrtz_cron_triggers (
 );
 
 
-ALTER TABLE public.qrtz_cron_triggers OWNER TO postgres;
-
 --
--- Name: qrtz_fired_triggers; Type: TABLE; Schema: public; Owner: postgres
+-- Name: qrtz_fired_triggers; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.qrtz_fired_triggers (
@@ -2138,10 +2082,8 @@ CREATE TABLE public.qrtz_fired_triggers (
 );
 
 
-ALTER TABLE public.qrtz_fired_triggers OWNER TO postgres;
-
 --
--- Name: qrtz_job_details; Type: TABLE; Schema: public; Owner: postgres
+-- Name: qrtz_job_details; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.qrtz_job_details (
@@ -2158,10 +2100,8 @@ CREATE TABLE public.qrtz_job_details (
 );
 
 
-ALTER TABLE public.qrtz_job_details OWNER TO postgres;
-
 --
--- Name: qrtz_locks; Type: TABLE; Schema: public; Owner: postgres
+-- Name: qrtz_locks; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.qrtz_locks (
@@ -2170,10 +2110,8 @@ CREATE TABLE public.qrtz_locks (
 );
 
 
-ALTER TABLE public.qrtz_locks OWNER TO postgres;
-
 --
--- Name: qrtz_paused_trigger_grps; Type: TABLE; Schema: public; Owner: postgres
+-- Name: qrtz_paused_trigger_grps; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.qrtz_paused_trigger_grps (
@@ -2182,10 +2120,8 @@ CREATE TABLE public.qrtz_paused_trigger_grps (
 );
 
 
-ALTER TABLE public.qrtz_paused_trigger_grps OWNER TO postgres;
-
 --
--- Name: qrtz_scheduler_state; Type: TABLE; Schema: public; Owner: postgres
+-- Name: qrtz_scheduler_state; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.qrtz_scheduler_state (
@@ -2196,10 +2132,8 @@ CREATE TABLE public.qrtz_scheduler_state (
 );
 
 
-ALTER TABLE public.qrtz_scheduler_state OWNER TO postgres;
-
 --
--- Name: qrtz_simple_triggers; Type: TABLE; Schema: public; Owner: postgres
+-- Name: qrtz_simple_triggers; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.qrtz_simple_triggers (
@@ -2212,10 +2146,8 @@ CREATE TABLE public.qrtz_simple_triggers (
 );
 
 
-ALTER TABLE public.qrtz_simple_triggers OWNER TO postgres;
-
 --
--- Name: qrtz_simprop_triggers; Type: TABLE; Schema: public; Owner: postgres
+-- Name: qrtz_simprop_triggers; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.qrtz_simprop_triggers (
@@ -2236,10 +2168,8 @@ CREATE TABLE public.qrtz_simprop_triggers (
 );
 
 
-ALTER TABLE public.qrtz_simprop_triggers OWNER TO postgres;
-
 --
--- Name: qrtz_triggers; Type: TABLE; Schema: public; Owner: postgres
+-- Name: qrtz_triggers; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.qrtz_triggers (
@@ -2262,10 +2192,8 @@ CREATE TABLE public.qrtz_triggers (
 );
 
 
-ALTER TABLE public.qrtz_triggers OWNER TO postgres;
-
 --
--- Name: system_dept; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_dept; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_dept (
@@ -2286,115 +2214,113 @@ CREATE TABLE public.system_dept (
 );
 
 
-ALTER TABLE public.system_dept OWNER TO postgres;
-
 --
--- Name: TABLE system_dept; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_dept; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_dept IS '部门表';
 
 
 --
--- Name: COLUMN system_dept.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.id IS '部门id';
 
 
 --
--- Name: COLUMN system_dept.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.name IS '部门名称';
 
 
 --
--- Name: COLUMN system_dept.parent_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.parent_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.parent_id IS '父部门id';
 
 
 --
--- Name: COLUMN system_dept.sort; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.sort; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.sort IS '显示顺序';
 
 
 --
--- Name: COLUMN system_dept.leader_user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.leader_user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.leader_user_id IS '负责人';
 
 
 --
--- Name: COLUMN system_dept.phone; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.phone; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.phone IS '联系电话';
 
 
 --
--- Name: COLUMN system_dept.email; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.email; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.email IS '邮箱';
 
 
 --
--- Name: COLUMN system_dept.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.status IS '部门状态（0正常 1停用）';
 
 
 --
--- Name: COLUMN system_dept.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_dept.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_dept.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_dept.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_dept.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_dept.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dept.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dept.tenant_id IS '租户编号';
 
 
 --
--- Name: system_dept_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_dept_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_dept_seq
@@ -2405,10 +2331,8 @@ CREATE SEQUENCE public.system_dept_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_dept_seq OWNER TO postgres;
-
 --
--- Name: system_dict_data; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_dict_data; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_dict_data (
@@ -2429,115 +2353,113 @@ CREATE TABLE public.system_dict_data (
 );
 
 
-ALTER TABLE public.system_dict_data OWNER TO postgres;
-
 --
--- Name: TABLE system_dict_data; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_dict_data; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_dict_data IS '字典数据表';
 
 
 --
--- Name: COLUMN system_dict_data.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.id IS '字典编码';
 
 
 --
--- Name: COLUMN system_dict_data.sort; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.sort; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.sort IS '字典排序';
 
 
 --
--- Name: COLUMN system_dict_data.label; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.label; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.label IS '字典标签';
 
 
 --
--- Name: COLUMN system_dict_data.value; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.value; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.value IS '字典键值';
 
 
 --
--- Name: COLUMN system_dict_data.dict_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.dict_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.dict_type IS '字典类型';
 
 
 --
--- Name: COLUMN system_dict_data.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.status IS '状态（0正常 1停用）';
 
 
 --
--- Name: COLUMN system_dict_data.color_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.color_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.color_type IS '颜色类型';
 
 
 --
--- Name: COLUMN system_dict_data.css_class; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.css_class; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.css_class IS 'css 样式';
 
 
 --
--- Name: COLUMN system_dict_data.remark; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.remark IS '备注';
 
 
 --
--- Name: COLUMN system_dict_data.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_dict_data.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_dict_data.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_dict_data.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_dict_data.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_data.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_data.deleted IS '是否删除';
 
 
 --
--- Name: system_dict_data_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_dict_data_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_dict_data_seq
@@ -2548,10 +2470,8 @@ CREATE SEQUENCE public.system_dict_data_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_dict_data_seq OWNER TO postgres;
-
 --
--- Name: system_dict_type; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_dict_type; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_dict_type (
@@ -2569,94 +2489,92 @@ CREATE TABLE public.system_dict_type (
 );
 
 
-ALTER TABLE public.system_dict_type OWNER TO postgres;
-
 --
--- Name: TABLE system_dict_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_dict_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_dict_type IS '字典类型表';
 
 
 --
--- Name: COLUMN system_dict_type.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_type.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_type.id IS '字典主键';
 
 
 --
--- Name: COLUMN system_dict_type.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_type.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_type.name IS '字典名称';
 
 
 --
--- Name: COLUMN system_dict_type.type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_type.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_type.type IS '字典类型';
 
 
 --
--- Name: COLUMN system_dict_type.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_type.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_type.status IS '状态（0正常 1停用）';
 
 
 --
--- Name: COLUMN system_dict_type.remark; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_type.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_type.remark IS '备注';
 
 
 --
--- Name: COLUMN system_dict_type.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_type.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_type.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_dict_type.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_type.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_type.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_dict_type.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_type.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_type.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_dict_type.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_type.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_type.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_dict_type.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_type.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_type.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_dict_type.deleted_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_dict_type.deleted_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_dict_type.deleted_time IS '删除时间';
 
 
 --
--- Name: system_dict_type_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_dict_type_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_dict_type_seq
@@ -2667,10 +2585,8 @@ CREATE SEQUENCE public.system_dict_type_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_dict_type_seq OWNER TO postgres;
-
 --
--- Name: system_login_log; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_login_log; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_login_log (
@@ -2692,122 +2608,120 @@ CREATE TABLE public.system_login_log (
 );
 
 
-ALTER TABLE public.system_login_log OWNER TO postgres;
-
 --
--- Name: TABLE system_login_log; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_login_log; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_login_log IS '系统访问记录';
 
 
 --
--- Name: COLUMN system_login_log.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.id IS '访问ID';
 
 
 --
--- Name: COLUMN system_login_log.log_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.log_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.log_type IS '日志类型';
 
 
 --
--- Name: COLUMN system_login_log.trace_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.trace_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.trace_id IS '链路追踪编号';
 
 
 --
--- Name: COLUMN system_login_log.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.user_id IS '用户编号';
 
 
 --
--- Name: COLUMN system_login_log.user_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.user_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.user_type IS '用户类型';
 
 
 --
--- Name: COLUMN system_login_log.username; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.username; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.username IS '用户账号';
 
 
 --
--- Name: COLUMN system_login_log.result; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.result; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.result IS '登陆结果';
 
 
 --
--- Name: COLUMN system_login_log.user_ip; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.user_ip; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.user_ip IS '用户 IP';
 
 
 --
--- Name: COLUMN system_login_log.user_agent; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.user_agent; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.user_agent IS '浏览器 UA';
 
 
 --
--- Name: COLUMN system_login_log.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_login_log.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_login_log.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_login_log.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_login_log.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_login_log.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_login_log.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_login_log.tenant_id IS '租户编号';
 
 
 --
--- Name: system_login_log_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_login_log_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_login_log_seq
@@ -2818,10 +2732,8 @@ CREATE SEQUENCE public.system_login_log_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_login_log_seq OWNER TO postgres;
-
 --
--- Name: system_mail_account; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_mail_account; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_mail_account (
@@ -2841,108 +2753,106 @@ CREATE TABLE public.system_mail_account (
 );
 
 
-ALTER TABLE public.system_mail_account OWNER TO postgres;
-
 --
--- Name: TABLE system_mail_account; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_mail_account; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_mail_account IS '邮箱账号表';
 
 
 --
--- Name: COLUMN system_mail_account.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_account.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_account.id IS '主键';
 
 
 --
--- Name: COLUMN system_mail_account.mail; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_account.mail; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_account.mail IS '邮箱';
 
 
 --
--- Name: COLUMN system_mail_account.username; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_account.username; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_account.username IS '用户名';
 
 
 --
--- Name: COLUMN system_mail_account.password; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_account.password; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_account.password IS '密码';
 
 
 --
--- Name: COLUMN system_mail_account.host; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_account.host; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_account.host IS 'SMTP 服务器域名';
 
 
 --
--- Name: COLUMN system_mail_account.port; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_account.port; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_account.port IS 'SMTP 服务器端口';
 
 
 --
--- Name: COLUMN system_mail_account.ssl_enable; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_account.ssl_enable; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_account.ssl_enable IS '是否开启 SSL';
 
 
 --
--- Name: COLUMN system_mail_account.starttls_enable; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_account.starttls_enable; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_account.starttls_enable IS '是否开启 STARTTLS';
 
 
 --
--- Name: COLUMN system_mail_account.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_account.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_account.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_mail_account.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_account.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_account.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_mail_account.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_account.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_account.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_mail_account.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_account.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_account.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_mail_account.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_account.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_account.deleted IS '是否删除';
 
 
 --
--- Name: system_mail_account_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_mail_account_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_mail_account_seq
@@ -2953,10 +2863,8 @@ CREATE SEQUENCE public.system_mail_account_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_mail_account_seq OWNER TO postgres;
-
 --
--- Name: system_mail_log; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_mail_log; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_mail_log (
@@ -2984,164 +2892,162 @@ CREATE TABLE public.system_mail_log (
 );
 
 
-ALTER TABLE public.system_mail_log OWNER TO postgres;
-
 --
--- Name: TABLE system_mail_log; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_mail_log; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_mail_log IS '邮件日志表';
 
 
 --
--- Name: COLUMN system_mail_log.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.id IS '编号';
 
 
 --
--- Name: COLUMN system_mail_log.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.user_id IS '用户编号';
 
 
 --
--- Name: COLUMN system_mail_log.user_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.user_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.user_type IS '用户类型';
 
 
 --
--- Name: COLUMN system_mail_log.to_mail; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.to_mail; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.to_mail IS '接收邮箱地址';
 
 
 --
--- Name: COLUMN system_mail_log.account_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.account_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.account_id IS '邮箱账号编号';
 
 
 --
--- Name: COLUMN system_mail_log.from_mail; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.from_mail; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.from_mail IS '发送邮箱地址';
 
 
 --
--- Name: COLUMN system_mail_log.template_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.template_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.template_id IS '模板编号';
 
 
 --
--- Name: COLUMN system_mail_log.template_code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.template_code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.template_code IS '模板编码';
 
 
 --
--- Name: COLUMN system_mail_log.template_nickname; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.template_nickname; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.template_nickname IS '模版发送人名称';
 
 
 --
--- Name: COLUMN system_mail_log.template_title; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.template_title; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.template_title IS '邮件标题';
 
 
 --
--- Name: COLUMN system_mail_log.template_content; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.template_content; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.template_content IS '邮件内容';
 
 
 --
--- Name: COLUMN system_mail_log.template_params; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.template_params; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.template_params IS '邮件参数';
 
 
 --
--- Name: COLUMN system_mail_log.send_status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.send_status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.send_status IS '发送状态';
 
 
 --
--- Name: COLUMN system_mail_log.send_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.send_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.send_time IS '发送时间';
 
 
 --
--- Name: COLUMN system_mail_log.send_message_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.send_message_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.send_message_id IS '发送返回的消息 ID';
 
 
 --
--- Name: COLUMN system_mail_log.send_exception; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.send_exception; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.send_exception IS '发送异常';
 
 
 --
--- Name: COLUMN system_mail_log.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_mail_log.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_mail_log.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_mail_log.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_mail_log.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_log.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_log.deleted IS '是否删除';
 
 
 --
--- Name: system_mail_log_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_mail_log_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_mail_log_seq
@@ -3152,10 +3058,8 @@ CREATE SEQUENCE public.system_mail_log_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_mail_log_seq OWNER TO postgres;
-
 --
--- Name: system_mail_template; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_mail_template; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_mail_template (
@@ -3177,122 +3081,120 @@ CREATE TABLE public.system_mail_template (
 );
 
 
-ALTER TABLE public.system_mail_template OWNER TO postgres;
-
 --
--- Name: TABLE system_mail_template; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_mail_template; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_mail_template IS '邮件模版表';
 
 
 --
--- Name: COLUMN system_mail_template.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.id IS '编号';
 
 
 --
--- Name: COLUMN system_mail_template.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.name IS '模板名称';
 
 
 --
--- Name: COLUMN system_mail_template.code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.code IS '模板编码';
 
 
 --
--- Name: COLUMN system_mail_template.account_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.account_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.account_id IS '发送的邮箱账号编号';
 
 
 --
--- Name: COLUMN system_mail_template.nickname; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.nickname; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.nickname IS '发送人名称';
 
 
 --
--- Name: COLUMN system_mail_template.title; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.title; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.title IS '模板标题';
 
 
 --
--- Name: COLUMN system_mail_template.content; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.content; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.content IS '模板内容';
 
 
 --
--- Name: COLUMN system_mail_template.params; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.params; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.params IS '参数数组';
 
 
 --
--- Name: COLUMN system_mail_template.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.status IS '开启状态';
 
 
 --
--- Name: COLUMN system_mail_template.remark; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.remark IS '备注';
 
 
 --
--- Name: COLUMN system_mail_template.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_mail_template.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_mail_template.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_mail_template.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_mail_template.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_mail_template.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_mail_template.deleted IS '是否删除';
 
 
 --
--- Name: system_mail_template_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_mail_template_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_mail_template_seq
@@ -3303,10 +3205,8 @@ CREATE SEQUENCE public.system_mail_template_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_mail_template_seq OWNER TO postgres;
-
 --
--- Name: system_menu; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_menu; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_menu (
@@ -3332,150 +3232,148 @@ CREATE TABLE public.system_menu (
 );
 
 
-ALTER TABLE public.system_menu OWNER TO postgres;
-
 --
--- Name: TABLE system_menu; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_menu; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_menu IS '菜单权限表';
 
 
 --
--- Name: COLUMN system_menu.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.id IS '菜单ID';
 
 
 --
--- Name: COLUMN system_menu.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.name IS '菜单名称';
 
 
 --
--- Name: COLUMN system_menu.permission; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.permission; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.permission IS '权限标识';
 
 
 --
--- Name: COLUMN system_menu.type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.type IS '菜单类型';
 
 
 --
--- Name: COLUMN system_menu.sort; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.sort; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.sort IS '显示顺序';
 
 
 --
--- Name: COLUMN system_menu.parent_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.parent_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.parent_id IS '父菜单ID';
 
 
 --
--- Name: COLUMN system_menu.path; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.path; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.path IS '路由地址';
 
 
 --
--- Name: COLUMN system_menu.icon; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.icon; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.icon IS '菜单图标';
 
 
 --
--- Name: COLUMN system_menu.component; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.component; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.component IS '组件路径';
 
 
 --
--- Name: COLUMN system_menu.component_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.component_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.component_name IS '组件名';
 
 
 --
--- Name: COLUMN system_menu.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.status IS '菜单状态';
 
 
 --
--- Name: COLUMN system_menu.visible; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.visible; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.visible IS '是否可见';
 
 
 --
--- Name: COLUMN system_menu.keep_alive; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.keep_alive; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.keep_alive IS '是否缓存';
 
 
 --
--- Name: COLUMN system_menu.always_show; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.always_show; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.always_show IS '是否总是显示';
 
 
 --
--- Name: COLUMN system_menu.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_menu.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_menu.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_menu.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_menu.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_menu.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_menu.deleted IS '是否删除';
 
 
 --
--- Name: system_menu_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_menu_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_menu_seq
@@ -3486,10 +3384,8 @@ CREATE SEQUENCE public.system_menu_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_menu_seq OWNER TO postgres;
-
 --
--- Name: system_notice; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_notice; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_notice (
@@ -3507,94 +3403,92 @@ CREATE TABLE public.system_notice (
 );
 
 
-ALTER TABLE public.system_notice OWNER TO postgres;
-
 --
--- Name: TABLE system_notice; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_notice; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_notice IS '通知公告表';
 
 
 --
--- Name: COLUMN system_notice.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notice.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notice.id IS '公告ID';
 
 
 --
--- Name: COLUMN system_notice.title; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notice.title; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notice.title IS '公告标题';
 
 
 --
--- Name: COLUMN system_notice.content; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notice.content; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notice.content IS '公告内容';
 
 
 --
--- Name: COLUMN system_notice.type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notice.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notice.type IS '公告类型（1通知 2公告）';
 
 
 --
--- Name: COLUMN system_notice.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notice.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notice.status IS '公告状态（0正常 1关闭）';
 
 
 --
--- Name: COLUMN system_notice.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notice.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notice.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_notice.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notice.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notice.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_notice.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notice.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notice.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_notice.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notice.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notice.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_notice.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notice.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notice.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_notice.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notice.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notice.tenant_id IS '租户编号';
 
 
 --
--- Name: system_notice_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_notice_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_notice_seq
@@ -3605,10 +3499,8 @@ CREATE SEQUENCE public.system_notice_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_notice_seq OWNER TO postgres;
-
 --
--- Name: system_notify_message; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_notify_message; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_notify_message (
@@ -3632,136 +3524,134 @@ CREATE TABLE public.system_notify_message (
 );
 
 
-ALTER TABLE public.system_notify_message OWNER TO postgres;
-
 --
--- Name: TABLE system_notify_message; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_notify_message; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_notify_message IS '站内信消息表';
 
 
 --
--- Name: COLUMN system_notify_message.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.id IS '用户ID';
 
 
 --
--- Name: COLUMN system_notify_message.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.user_id IS '用户id';
 
 
 --
--- Name: COLUMN system_notify_message.user_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.user_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.user_type IS '用户类型';
 
 
 --
--- Name: COLUMN system_notify_message.template_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.template_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.template_id IS '模版编号';
 
 
 --
--- Name: COLUMN system_notify_message.template_code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.template_code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.template_code IS '模板编码';
 
 
 --
--- Name: COLUMN system_notify_message.template_nickname; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.template_nickname; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.template_nickname IS '模版发送人名称';
 
 
 --
--- Name: COLUMN system_notify_message.template_content; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.template_content; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.template_content IS '模版内容';
 
 
 --
--- Name: COLUMN system_notify_message.template_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.template_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.template_type IS '模版类型';
 
 
 --
--- Name: COLUMN system_notify_message.template_params; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.template_params; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.template_params IS '模版参数';
 
 
 --
--- Name: COLUMN system_notify_message.read_status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.read_status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.read_status IS '是否已读';
 
 
 --
--- Name: COLUMN system_notify_message.read_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.read_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.read_time IS '阅读时间';
 
 
 --
--- Name: COLUMN system_notify_message.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_notify_message.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_notify_message.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_notify_message.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_notify_message.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_notify_message.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_message.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_message.tenant_id IS '租户编号';
 
 
 --
--- Name: system_notify_message_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_notify_message_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_notify_message_seq
@@ -3772,10 +3662,8 @@ CREATE SEQUENCE public.system_notify_message_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_notify_message_seq OWNER TO postgres;
-
 --
--- Name: system_notify_template; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_notify_template; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_notify_template (
@@ -3796,115 +3684,113 @@ CREATE TABLE public.system_notify_template (
 );
 
 
-ALTER TABLE public.system_notify_template OWNER TO postgres;
-
 --
--- Name: TABLE system_notify_template; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_notify_template; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_notify_template IS '站内信模板表';
 
 
 --
--- Name: COLUMN system_notify_template.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.id IS '主键';
 
 
 --
--- Name: COLUMN system_notify_template.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.name IS '模板名称';
 
 
 --
--- Name: COLUMN system_notify_template.code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.code IS '模版编码';
 
 
 --
--- Name: COLUMN system_notify_template.nickname; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.nickname; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.nickname IS '发送人名称';
 
 
 --
--- Name: COLUMN system_notify_template.content; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.content; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.content IS '模版内容';
 
 
 --
--- Name: COLUMN system_notify_template.type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.type IS '类型';
 
 
 --
--- Name: COLUMN system_notify_template.params; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.params; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.params IS '参数数组';
 
 
 --
--- Name: COLUMN system_notify_template.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.status IS '状态';
 
 
 --
--- Name: COLUMN system_notify_template.remark; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.remark IS '备注';
 
 
 --
--- Name: COLUMN system_notify_template.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_notify_template.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_notify_template.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_notify_template.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_notify_template.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_notify_template.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_notify_template.deleted IS '是否删除';
 
 
 --
--- Name: system_notify_template_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_notify_template_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_notify_template_seq
@@ -3915,10 +3801,8 @@ CREATE SEQUENCE public.system_notify_template_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_notify_template_seq OWNER TO postgres;
-
 --
--- Name: system_oauth2_access_token; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_oauth2_access_token; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_oauth2_access_token (
@@ -3940,122 +3824,120 @@ CREATE TABLE public.system_oauth2_access_token (
 );
 
 
-ALTER TABLE public.system_oauth2_access_token OWNER TO postgres;
-
 --
--- Name: TABLE system_oauth2_access_token; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_oauth2_access_token; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_oauth2_access_token IS 'OAuth2 访问令牌';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.id IS '编号';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.user_id IS '用户编号';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.user_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.user_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.user_type IS '用户类型';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.user_info; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.user_info; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.user_info IS '用户信息';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.access_token; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.access_token; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.access_token IS '访问令牌';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.refresh_token; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.refresh_token; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.refresh_token IS '刷新令牌';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.client_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.client_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.client_id IS '客户端编号';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.scopes; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.scopes; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.scopes IS '授权范围';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.expires_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.expires_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.expires_time IS '过期时间';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_oauth2_access_token.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_access_token.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_access_token.tenant_id IS '租户编号';
 
 
 --
--- Name: system_oauth2_access_token_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_oauth2_access_token_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_oauth2_access_token_seq
@@ -4066,10 +3948,8 @@ CREATE SEQUENCE public.system_oauth2_access_token_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_oauth2_access_token_seq OWNER TO postgres;
-
 --
--- Name: system_oauth2_approve; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_oauth2_approve; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_oauth2_approve (
@@ -4089,108 +3969,106 @@ CREATE TABLE public.system_oauth2_approve (
 );
 
 
-ALTER TABLE public.system_oauth2_approve OWNER TO postgres;
-
 --
--- Name: TABLE system_oauth2_approve; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_oauth2_approve; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_oauth2_approve IS 'OAuth2 批准表';
 
 
 --
--- Name: COLUMN system_oauth2_approve.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_approve.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_approve.id IS '编号';
 
 
 --
--- Name: COLUMN system_oauth2_approve.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_approve.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_approve.user_id IS '用户编号';
 
 
 --
--- Name: COLUMN system_oauth2_approve.user_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_approve.user_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_approve.user_type IS '用户类型';
 
 
 --
--- Name: COLUMN system_oauth2_approve.client_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_approve.client_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_approve.client_id IS '客户端编号';
 
 
 --
--- Name: COLUMN system_oauth2_approve.scope; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_approve.scope; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_approve.scope IS '授权范围';
 
 
 --
--- Name: COLUMN system_oauth2_approve.approved; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_approve.approved; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_approve.approved IS '是否接受';
 
 
 --
--- Name: COLUMN system_oauth2_approve.expires_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_approve.expires_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_approve.expires_time IS '过期时间';
 
 
 --
--- Name: COLUMN system_oauth2_approve.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_approve.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_approve.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_oauth2_approve.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_approve.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_approve.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_oauth2_approve.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_approve.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_approve.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_oauth2_approve.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_approve.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_approve.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_oauth2_approve.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_approve.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_approve.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_oauth2_approve.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_approve.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_approve.tenant_id IS '租户编号';
 
 
 --
--- Name: system_oauth2_approve_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_oauth2_approve_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_oauth2_approve_seq
@@ -4201,10 +4079,8 @@ CREATE SEQUENCE public.system_oauth2_approve_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_oauth2_approve_seq OWNER TO postgres;
-
 --
--- Name: system_oauth2_client; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_oauth2_client; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_oauth2_client (
@@ -4232,164 +4108,162 @@ CREATE TABLE public.system_oauth2_client (
 );
 
 
-ALTER TABLE public.system_oauth2_client OWNER TO postgres;
-
 --
--- Name: TABLE system_oauth2_client; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_oauth2_client; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_oauth2_client IS 'OAuth2 客户端表';
 
 
 --
--- Name: COLUMN system_oauth2_client.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.id IS '编号';
 
 
 --
--- Name: COLUMN system_oauth2_client.client_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.client_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.client_id IS '客户端编号';
 
 
 --
--- Name: COLUMN system_oauth2_client.secret; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.secret; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.secret IS '客户端密钥';
 
 
 --
--- Name: COLUMN system_oauth2_client.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.name IS '应用名';
 
 
 --
--- Name: COLUMN system_oauth2_client.logo; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.logo; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.logo IS '应用图标';
 
 
 --
--- Name: COLUMN system_oauth2_client.description; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.description; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.description IS '应用描述';
 
 
 --
--- Name: COLUMN system_oauth2_client.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.status IS '状态';
 
 
 --
--- Name: COLUMN system_oauth2_client.access_token_validity_seconds; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.access_token_validity_seconds; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.access_token_validity_seconds IS '访问令牌的有效期';
 
 
 --
--- Name: COLUMN system_oauth2_client.refresh_token_validity_seconds; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.refresh_token_validity_seconds; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.refresh_token_validity_seconds IS '刷新令牌的有效期';
 
 
 --
--- Name: COLUMN system_oauth2_client.redirect_uris; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.redirect_uris; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.redirect_uris IS '可重定向的 URI 地址';
 
 
 --
--- Name: COLUMN system_oauth2_client.authorized_grant_types; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.authorized_grant_types; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.authorized_grant_types IS '授权类型';
 
 
 --
--- Name: COLUMN system_oauth2_client.scopes; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.scopes; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.scopes IS '授权范围';
 
 
 --
--- Name: COLUMN system_oauth2_client.auto_approve_scopes; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.auto_approve_scopes; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.auto_approve_scopes IS '自动通过的授权范围';
 
 
 --
--- Name: COLUMN system_oauth2_client.authorities; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.authorities; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.authorities IS '权限';
 
 
 --
--- Name: COLUMN system_oauth2_client.resource_ids; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.resource_ids; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.resource_ids IS '资源';
 
 
 --
--- Name: COLUMN system_oauth2_client.additional_information; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.additional_information; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.additional_information IS '附加信息';
 
 
 --
--- Name: COLUMN system_oauth2_client.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_oauth2_client.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_oauth2_client.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_oauth2_client.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_oauth2_client.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_client.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_client.deleted IS '是否删除';
 
 
 --
--- Name: system_oauth2_client_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_oauth2_client_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_oauth2_client_seq
@@ -4400,10 +4274,8 @@ CREATE SEQUENCE public.system_oauth2_client_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_oauth2_client_seq OWNER TO postgres;
-
 --
--- Name: system_oauth2_code; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_oauth2_code; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_oauth2_code (
@@ -4425,122 +4297,120 @@ CREATE TABLE public.system_oauth2_code (
 );
 
 
-ALTER TABLE public.system_oauth2_code OWNER TO postgres;
-
 --
--- Name: TABLE system_oauth2_code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_oauth2_code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_oauth2_code IS 'OAuth2 授权码表';
 
 
 --
--- Name: COLUMN system_oauth2_code.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.id IS '编号';
 
 
 --
--- Name: COLUMN system_oauth2_code.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.user_id IS '用户编号';
 
 
 --
--- Name: COLUMN system_oauth2_code.user_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.user_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.user_type IS '用户类型';
 
 
 --
--- Name: COLUMN system_oauth2_code.code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.code IS '授权码';
 
 
 --
--- Name: COLUMN system_oauth2_code.client_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.client_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.client_id IS '客户端编号';
 
 
 --
--- Name: COLUMN system_oauth2_code.scopes; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.scopes; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.scopes IS '授权范围';
 
 
 --
--- Name: COLUMN system_oauth2_code.expires_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.expires_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.expires_time IS '过期时间';
 
 
 --
--- Name: COLUMN system_oauth2_code.redirect_uri; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.redirect_uri; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.redirect_uri IS '可重定向的 URI 地址';
 
 
 --
--- Name: COLUMN system_oauth2_code.state; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.state; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.state IS '状态';
 
 
 --
--- Name: COLUMN system_oauth2_code.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_oauth2_code.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_oauth2_code.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_oauth2_code.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_oauth2_code.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_oauth2_code.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_code.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_code.tenant_id IS '租户编号';
 
 
 --
--- Name: system_oauth2_code_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_oauth2_code_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_oauth2_code_seq
@@ -4551,10 +4421,8 @@ CREATE SEQUENCE public.system_oauth2_code_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_oauth2_code_seq OWNER TO postgres;
-
 --
--- Name: system_oauth2_refresh_token; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_oauth2_refresh_token; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_oauth2_refresh_token (
@@ -4574,108 +4442,106 @@ CREATE TABLE public.system_oauth2_refresh_token (
 );
 
 
-ALTER TABLE public.system_oauth2_refresh_token OWNER TO postgres;
-
 --
--- Name: TABLE system_oauth2_refresh_token; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_oauth2_refresh_token; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_oauth2_refresh_token IS 'OAuth2 刷新令牌';
 
 
 --
--- Name: COLUMN system_oauth2_refresh_token.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_refresh_token.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_refresh_token.id IS '编号';
 
 
 --
--- Name: COLUMN system_oauth2_refresh_token.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_refresh_token.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_refresh_token.user_id IS '用户编号';
 
 
 --
--- Name: COLUMN system_oauth2_refresh_token.refresh_token; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_refresh_token.refresh_token; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_refresh_token.refresh_token IS '刷新令牌';
 
 
 --
--- Name: COLUMN system_oauth2_refresh_token.user_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_refresh_token.user_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_refresh_token.user_type IS '用户类型';
 
 
 --
--- Name: COLUMN system_oauth2_refresh_token.client_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_refresh_token.client_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_refresh_token.client_id IS '客户端编号';
 
 
 --
--- Name: COLUMN system_oauth2_refresh_token.scopes; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_refresh_token.scopes; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_refresh_token.scopes IS '授权范围';
 
 
 --
--- Name: COLUMN system_oauth2_refresh_token.expires_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_refresh_token.expires_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_refresh_token.expires_time IS '过期时间';
 
 
 --
--- Name: COLUMN system_oauth2_refresh_token.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_refresh_token.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_refresh_token.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_oauth2_refresh_token.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_refresh_token.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_refresh_token.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_oauth2_refresh_token.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_refresh_token.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_refresh_token.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_oauth2_refresh_token.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_refresh_token.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_refresh_token.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_oauth2_refresh_token.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_refresh_token.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_refresh_token.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_oauth2_refresh_token.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_oauth2_refresh_token.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_oauth2_refresh_token.tenant_id IS '租户编号';
 
 
 --
--- Name: system_oauth2_refresh_token_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_oauth2_refresh_token_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_oauth2_refresh_token_seq
@@ -4686,10 +4552,8 @@ CREATE SEQUENCE public.system_oauth2_refresh_token_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_oauth2_refresh_token_seq OWNER TO postgres;
-
 --
--- Name: system_operate_log; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_operate_log; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_operate_log (
@@ -4715,150 +4579,148 @@ CREATE TABLE public.system_operate_log (
 );
 
 
-ALTER TABLE public.system_operate_log OWNER TO postgres;
-
 --
--- Name: TABLE system_operate_log; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_operate_log; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_operate_log IS '操作日志记录 V2 版本';
 
 
 --
--- Name: COLUMN system_operate_log.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.id IS '日志主键';
 
 
 --
--- Name: COLUMN system_operate_log.trace_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.trace_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.trace_id IS '链路追踪编号';
 
 
 --
--- Name: COLUMN system_operate_log.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.user_id IS '用户编号';
 
 
 --
--- Name: COLUMN system_operate_log.user_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.user_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.user_type IS '用户类型';
 
 
 --
--- Name: COLUMN system_operate_log.type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.type IS '操作模块类型';
 
 
 --
--- Name: COLUMN system_operate_log.sub_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.sub_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.sub_type IS '操作名';
 
 
 --
--- Name: COLUMN system_operate_log.biz_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.biz_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.biz_id IS '操作数据模块编号';
 
 
 --
--- Name: COLUMN system_operate_log.action; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.action; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.action IS '操作内容';
 
 
 --
--- Name: COLUMN system_operate_log.extra; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.extra; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.extra IS '拓展字段';
 
 
 --
--- Name: COLUMN system_operate_log.request_method; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.request_method; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.request_method IS '请求方法名';
 
 
 --
--- Name: COLUMN system_operate_log.request_url; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.request_url; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.request_url IS '请求地址';
 
 
 --
--- Name: COLUMN system_operate_log.user_ip; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.user_ip; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.user_ip IS '用户 IP';
 
 
 --
--- Name: COLUMN system_operate_log.user_agent; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.user_agent; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.user_agent IS '浏览器 UA';
 
 
 --
--- Name: COLUMN system_operate_log.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_operate_log.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_operate_log.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_operate_log.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_operate_log.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_operate_log.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_operate_log.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_operate_log.tenant_id IS '租户编号';
 
 
 --
--- Name: system_operate_log_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_operate_log_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_operate_log_seq
@@ -4869,10 +4731,8 @@ CREATE SEQUENCE public.system_operate_log_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_operate_log_seq OWNER TO postgres;
-
 --
--- Name: system_post; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_post; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_post (
@@ -4891,101 +4751,99 @@ CREATE TABLE public.system_post (
 );
 
 
-ALTER TABLE public.system_post OWNER TO postgres;
-
 --
--- Name: TABLE system_post; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_post; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_post IS '岗位信息表';
 
 
 --
--- Name: COLUMN system_post.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_post.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_post.id IS '岗位ID';
 
 
 --
--- Name: COLUMN system_post.code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_post.code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_post.code IS '岗位编码';
 
 
 --
--- Name: COLUMN system_post.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_post.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_post.name IS '岗位名称';
 
 
 --
--- Name: COLUMN system_post.sort; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_post.sort; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_post.sort IS '显示顺序';
 
 
 --
--- Name: COLUMN system_post.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_post.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_post.status IS '状态（0正常 1停用）';
 
 
 --
--- Name: COLUMN system_post.remark; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_post.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_post.remark IS '备注';
 
 
 --
--- Name: COLUMN system_post.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_post.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_post.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_post.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_post.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_post.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_post.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_post.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_post.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_post.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_post.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_post.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_post.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_post.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_post.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_post.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_post.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_post.tenant_id IS '租户编号';
 
 
 --
--- Name: system_post_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_post_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_post_seq
@@ -4996,10 +4854,8 @@ CREATE SEQUENCE public.system_post_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_post_seq OWNER TO postgres;
-
 --
--- Name: system_role; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_role; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_role (
@@ -5021,122 +4877,120 @@ CREATE TABLE public.system_role (
 );
 
 
-ALTER TABLE public.system_role OWNER TO postgres;
-
 --
--- Name: TABLE system_role; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_role; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_role IS '角色信息表';
 
 
 --
--- Name: COLUMN system_role.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.id IS '角色ID';
 
 
 --
--- Name: COLUMN system_role.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.name IS '角色名称';
 
 
 --
--- Name: COLUMN system_role.code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.code IS '角色权限字符串';
 
 
 --
--- Name: COLUMN system_role.sort; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.sort; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.sort IS '显示顺序';
 
 
 --
--- Name: COLUMN system_role.data_scope; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.data_scope; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.data_scope IS '数据范围（1：全部数据权限 2：自定数据权限 3：本部门数据权限 4：本部门及以下数据权限）';
 
 
 --
--- Name: COLUMN system_role.data_scope_dept_ids; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.data_scope_dept_ids; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.data_scope_dept_ids IS '数据范围(指定部门数组)';
 
 
 --
--- Name: COLUMN system_role.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.status IS '角色状态（0正常 1停用）';
 
 
 --
--- Name: COLUMN system_role.type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.type IS '角色类型';
 
 
 --
--- Name: COLUMN system_role.remark; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.remark IS '备注';
 
 
 --
--- Name: COLUMN system_role.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_role.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_role.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_role.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_role.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_role.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role.tenant_id IS '租户编号';
 
 
 --
--- Name: system_role_menu; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_role_menu; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_role_menu (
@@ -5152,80 +5006,78 @@ CREATE TABLE public.system_role_menu (
 );
 
 
-ALTER TABLE public.system_role_menu OWNER TO postgres;
-
 --
--- Name: TABLE system_role_menu; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_role_menu; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_role_menu IS '角色和菜单关联表';
 
 
 --
--- Name: COLUMN system_role_menu.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role_menu.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role_menu.id IS '自增编号';
 
 
 --
--- Name: COLUMN system_role_menu.role_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role_menu.role_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role_menu.role_id IS '角色ID';
 
 
 --
--- Name: COLUMN system_role_menu.menu_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role_menu.menu_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role_menu.menu_id IS '菜单ID';
 
 
 --
--- Name: COLUMN system_role_menu.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role_menu.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role_menu.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_role_menu.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role_menu.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role_menu.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_role_menu.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role_menu.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role_menu.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_role_menu.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role_menu.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role_menu.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_role_menu.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role_menu.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role_menu.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_role_menu.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_role_menu.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_role_menu.tenant_id IS '租户编号';
 
 
 --
--- Name: system_role_menu_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_role_menu_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_role_menu_seq
@@ -5236,10 +5088,8 @@ CREATE SEQUENCE public.system_role_menu_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_role_menu_seq OWNER TO postgres;
-
 --
--- Name: system_role_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_role_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_role_seq
@@ -5250,10 +5100,8 @@ CREATE SEQUENCE public.system_role_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_role_seq OWNER TO postgres;
-
 --
--- Name: system_sms_channel; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_sms_channel; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_sms_channel (
@@ -5273,108 +5121,106 @@ CREATE TABLE public.system_sms_channel (
 );
 
 
-ALTER TABLE public.system_sms_channel OWNER TO postgres;
-
 --
--- Name: TABLE system_sms_channel; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_sms_channel; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_sms_channel IS '短信渠道';
 
 
 --
--- Name: COLUMN system_sms_channel.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_channel.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_channel.id IS '编号';
 
 
 --
--- Name: COLUMN system_sms_channel.signature; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_channel.signature; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_channel.signature IS '短信签名';
 
 
 --
--- Name: COLUMN system_sms_channel.code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_channel.code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_channel.code IS '渠道编码';
 
 
 --
--- Name: COLUMN system_sms_channel.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_channel.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_channel.status IS '开启状态';
 
 
 --
--- Name: COLUMN system_sms_channel.remark; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_channel.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_channel.remark IS '备注';
 
 
 --
--- Name: COLUMN system_sms_channel.api_key; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_channel.api_key; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_channel.api_key IS '短信 API 的账号';
 
 
 --
--- Name: COLUMN system_sms_channel.api_secret; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_channel.api_secret; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_channel.api_secret IS '短信 API 的秘钥';
 
 
 --
--- Name: COLUMN system_sms_channel.callback_url; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_channel.callback_url; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_channel.callback_url IS '短信发送回调 URL';
 
 
 --
--- Name: COLUMN system_sms_channel.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_channel.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_channel.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_sms_channel.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_channel.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_channel.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_sms_channel.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_channel.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_channel.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_sms_channel.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_channel.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_channel.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_sms_channel.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_channel.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_channel.deleted IS '是否删除';
 
 
 --
--- Name: system_sms_channel_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_sms_channel_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_sms_channel_seq
@@ -5385,10 +5231,8 @@ CREATE SEQUENCE public.system_sms_channel_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_sms_channel_seq OWNER TO postgres;
-
 --
--- Name: system_sms_code; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_sms_code; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_sms_code (
@@ -5410,122 +5254,120 @@ CREATE TABLE public.system_sms_code (
 );
 
 
-ALTER TABLE public.system_sms_code OWNER TO postgres;
-
 --
--- Name: TABLE system_sms_code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_sms_code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_sms_code IS '手机验证码';
 
 
 --
--- Name: COLUMN system_sms_code.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.id IS '编号';
 
 
 --
--- Name: COLUMN system_sms_code.mobile; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.mobile; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.mobile IS '手机号';
 
 
 --
--- Name: COLUMN system_sms_code.code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.code IS '验证码';
 
 
 --
--- Name: COLUMN system_sms_code.create_ip; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.create_ip; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.create_ip IS '创建 IP';
 
 
 --
--- Name: COLUMN system_sms_code.scene; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.scene; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.scene IS '发送场景';
 
 
 --
--- Name: COLUMN system_sms_code.today_index; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.today_index; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.today_index IS '今日发送的第几条';
 
 
 --
--- Name: COLUMN system_sms_code.used; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.used; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.used IS '是否使用';
 
 
 --
--- Name: COLUMN system_sms_code.used_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.used_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.used_time IS '使用时间';
 
 
 --
--- Name: COLUMN system_sms_code.used_ip; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.used_ip; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.used_ip IS '使用 IP';
 
 
 --
--- Name: COLUMN system_sms_code.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_sms_code.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_sms_code.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_sms_code.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_sms_code.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_sms_code.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_code.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_code.tenant_id IS '租户编号';
 
 
 --
--- Name: system_sms_code_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_sms_code_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_sms_code_seq
@@ -5536,10 +5378,8 @@ CREATE SEQUENCE public.system_sms_code_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_sms_code_seq OWNER TO postgres;
-
 --
--- Name: system_sms_log; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_sms_log; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_sms_log (
@@ -5573,206 +5413,204 @@ CREATE TABLE public.system_sms_log (
 );
 
 
-ALTER TABLE public.system_sms_log OWNER TO postgres;
-
 --
--- Name: TABLE system_sms_log; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_sms_log; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_sms_log IS '短信日志';
 
 
 --
--- Name: COLUMN system_sms_log.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.id IS '编号';
 
 
 --
--- Name: COLUMN system_sms_log.channel_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.channel_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.channel_id IS '短信渠道编号';
 
 
 --
--- Name: COLUMN system_sms_log.channel_code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.channel_code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.channel_code IS '短信渠道编码';
 
 
 --
--- Name: COLUMN system_sms_log.template_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.template_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.template_id IS '模板编号';
 
 
 --
--- Name: COLUMN system_sms_log.template_code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.template_code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.template_code IS '模板编码';
 
 
 --
--- Name: COLUMN system_sms_log.template_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.template_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.template_type IS '短信类型';
 
 
 --
--- Name: COLUMN system_sms_log.template_content; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.template_content; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.template_content IS '短信内容';
 
 
 --
--- Name: COLUMN system_sms_log.template_params; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.template_params; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.template_params IS '短信参数';
 
 
 --
--- Name: COLUMN system_sms_log.api_template_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.api_template_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.api_template_id IS '短信 API 的模板编号';
 
 
 --
--- Name: COLUMN system_sms_log.mobile; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.mobile; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.mobile IS '手机号';
 
 
 --
--- Name: COLUMN system_sms_log.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.user_id IS '用户编号';
 
 
 --
--- Name: COLUMN system_sms_log.user_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.user_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.user_type IS '用户类型';
 
 
 --
--- Name: COLUMN system_sms_log.send_status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.send_status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.send_status IS '发送状态';
 
 
 --
--- Name: COLUMN system_sms_log.send_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.send_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.send_time IS '发送时间';
 
 
 --
--- Name: COLUMN system_sms_log.api_send_code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.api_send_code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.api_send_code IS '短信 API 发送结果的编码';
 
 
 --
--- Name: COLUMN system_sms_log.api_send_msg; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.api_send_msg; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.api_send_msg IS '短信 API 发送失败的提示';
 
 
 --
--- Name: COLUMN system_sms_log.api_request_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.api_request_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.api_request_id IS '短信 API 发送返回的唯一请求 ID';
 
 
 --
--- Name: COLUMN system_sms_log.api_serial_no; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.api_serial_no; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.api_serial_no IS '短信 API 发送返回的序号';
 
 
 --
--- Name: COLUMN system_sms_log.receive_status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.receive_status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.receive_status IS '接收状态';
 
 
 --
--- Name: COLUMN system_sms_log.receive_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.receive_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.receive_time IS '接收时间';
 
 
 --
--- Name: COLUMN system_sms_log.api_receive_code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.api_receive_code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.api_receive_code IS 'API 接收结果的编码';
 
 
 --
--- Name: COLUMN system_sms_log.api_receive_msg; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.api_receive_msg; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.api_receive_msg IS 'API 接收结果的说明';
 
 
 --
--- Name: COLUMN system_sms_log.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_sms_log.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_sms_log.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_sms_log.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_sms_log.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_log.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_log.deleted IS '是否删除';
 
 
 --
--- Name: system_sms_log_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_sms_log_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_sms_log_seq
@@ -5783,10 +5621,8 @@ CREATE SEQUENCE public.system_sms_log_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_sms_log_seq OWNER TO postgres;
-
 --
--- Name: system_sms_template; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_sms_template; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_sms_template (
@@ -5809,129 +5645,127 @@ CREATE TABLE public.system_sms_template (
 );
 
 
-ALTER TABLE public.system_sms_template OWNER TO postgres;
-
 --
--- Name: TABLE system_sms_template; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_sms_template; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_sms_template IS '短信模板';
 
 
 --
--- Name: COLUMN system_sms_template.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.id IS '编号';
 
 
 --
--- Name: COLUMN system_sms_template.type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.type IS '模板类型';
 
 
 --
--- Name: COLUMN system_sms_template.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.status IS '开启状态';
 
 
 --
--- Name: COLUMN system_sms_template.code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.code IS '模板编码';
 
 
 --
--- Name: COLUMN system_sms_template.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.name IS '模板名称';
 
 
 --
--- Name: COLUMN system_sms_template.content; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.content; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.content IS '模板内容';
 
 
 --
--- Name: COLUMN system_sms_template.params; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.params; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.params IS '参数数组';
 
 
 --
--- Name: COLUMN system_sms_template.remark; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.remark IS '备注';
 
 
 --
--- Name: COLUMN system_sms_template.api_template_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.api_template_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.api_template_id IS '短信 API 的模板编号';
 
 
 --
--- Name: COLUMN system_sms_template.channel_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.channel_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.channel_id IS '短信渠道编号';
 
 
 --
--- Name: COLUMN system_sms_template.channel_code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.channel_code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.channel_code IS '短信渠道编码';
 
 
 --
--- Name: COLUMN system_sms_template.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_sms_template.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_sms_template.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_sms_template.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_sms_template.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_sms_template.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_sms_template.deleted IS '是否删除';
 
 
 --
--- Name: system_sms_template_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_sms_template_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_sms_template_seq
@@ -5942,10 +5776,8 @@ CREATE SEQUENCE public.system_sms_template_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_sms_template_seq OWNER TO postgres;
-
 --
--- Name: system_social_client; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_social_client; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_social_client (
@@ -5966,115 +5798,113 @@ CREATE TABLE public.system_social_client (
 );
 
 
-ALTER TABLE public.system_social_client OWNER TO postgres;
-
 --
--- Name: TABLE system_social_client; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_social_client; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_social_client IS '社交客户端表';
 
 
 --
--- Name: COLUMN system_social_client.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.id IS '编号';
 
 
 --
--- Name: COLUMN system_social_client.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.name IS '应用名';
 
 
 --
--- Name: COLUMN system_social_client.social_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.social_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.social_type IS '社交平台的类型';
 
 
 --
--- Name: COLUMN system_social_client.user_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.user_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.user_type IS '用户类型';
 
 
 --
--- Name: COLUMN system_social_client.client_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.client_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.client_id IS '客户端编号';
 
 
 --
--- Name: COLUMN system_social_client.client_secret; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.client_secret; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.client_secret IS '客户端密钥';
 
 
 --
--- Name: COLUMN system_social_client.agent_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.agent_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.agent_id IS '代理编号';
 
 
 --
--- Name: COLUMN system_social_client.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.status IS '状态';
 
 
 --
--- Name: COLUMN system_social_client.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_social_client.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_social_client.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_social_client.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_social_client.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_social_client.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_client.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_client.tenant_id IS '租户编号';
 
 
 --
--- Name: system_social_client_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_social_client_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_social_client_seq
@@ -6085,10 +5915,8 @@ CREATE SEQUENCE public.system_social_client_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_social_client_seq OWNER TO postgres;
-
 --
--- Name: system_social_user; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_social_user; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_social_user (
@@ -6111,129 +5939,127 @@ CREATE TABLE public.system_social_user (
 );
 
 
-ALTER TABLE public.system_social_user OWNER TO postgres;
-
 --
--- Name: TABLE system_social_user; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_social_user; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_social_user IS '社交用户表';
 
 
 --
--- Name: COLUMN system_social_user.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.id IS '主键(自增策略)';
 
 
 --
--- Name: COLUMN system_social_user.type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.type IS '社交平台的类型';
 
 
 --
--- Name: COLUMN system_social_user.openid; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.openid; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.openid IS '社交 openid';
 
 
 --
--- Name: COLUMN system_social_user.token; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.token; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.token IS '社交 token';
 
 
 --
--- Name: COLUMN system_social_user.raw_token_info; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.raw_token_info; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.raw_token_info IS '原始 Token 数据，一般是 JSON 格式';
 
 
 --
--- Name: COLUMN system_social_user.nickname; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.nickname; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.nickname IS '用户昵称';
 
 
 --
--- Name: COLUMN system_social_user.avatar; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.avatar; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.avatar IS '用户头像';
 
 
 --
--- Name: COLUMN system_social_user.raw_user_info; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.raw_user_info; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.raw_user_info IS '原始用户数据，一般是 JSON 格式';
 
 
 --
--- Name: COLUMN system_social_user.code; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.code; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.code IS '最后一次的认证 code';
 
 
 --
--- Name: COLUMN system_social_user.state; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.state; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.state IS '最后一次的认证 state';
 
 
 --
--- Name: COLUMN system_social_user.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_social_user.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_social_user.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_social_user.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_social_user.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_social_user.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user.tenant_id IS '租户编号';
 
 
 --
--- Name: system_social_user_bind; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_social_user_bind; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_social_user_bind (
@@ -6251,94 +6077,92 @@ CREATE TABLE public.system_social_user_bind (
 );
 
 
-ALTER TABLE public.system_social_user_bind OWNER TO postgres;
-
 --
--- Name: TABLE system_social_user_bind; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_social_user_bind; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_social_user_bind IS '社交绑定表';
 
 
 --
--- Name: COLUMN system_social_user_bind.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user_bind.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user_bind.id IS '主键(自增策略)';
 
 
 --
--- Name: COLUMN system_social_user_bind.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user_bind.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user_bind.user_id IS '用户编号';
 
 
 --
--- Name: COLUMN system_social_user_bind.user_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user_bind.user_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user_bind.user_type IS '用户类型';
 
 
 --
--- Name: COLUMN system_social_user_bind.social_type; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user_bind.social_type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user_bind.social_type IS '社交平台的类型';
 
 
 --
--- Name: COLUMN system_social_user_bind.social_user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user_bind.social_user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user_bind.social_user_id IS '社交用户的编号';
 
 
 --
--- Name: COLUMN system_social_user_bind.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user_bind.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user_bind.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_social_user_bind.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user_bind.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user_bind.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_social_user_bind.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user_bind.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user_bind.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_social_user_bind.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user_bind.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user_bind.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_social_user_bind.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user_bind.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user_bind.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_social_user_bind.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_social_user_bind.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_social_user_bind.tenant_id IS '租户编号';
 
 
 --
--- Name: system_social_user_bind_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_social_user_bind_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_social_user_bind_seq
@@ -6349,10 +6173,8 @@ CREATE SEQUENCE public.system_social_user_bind_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_social_user_bind_seq OWNER TO postgres;
-
 --
--- Name: system_social_user_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_social_user_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_social_user_seq
@@ -6363,10 +6185,8 @@ CREATE SEQUENCE public.system_social_user_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_social_user_seq OWNER TO postgres;
-
 --
--- Name: system_tenant; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_tenant; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_tenant (
@@ -6388,126 +6208,124 @@ CREATE TABLE public.system_tenant (
 );
 
 
-ALTER TABLE public.system_tenant OWNER TO postgres;
-
 --
--- Name: TABLE system_tenant; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_tenant; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_tenant IS '租户表';
 
 
 --
--- Name: COLUMN system_tenant.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.id IS '租户编号';
 
 
 --
--- Name: COLUMN system_tenant.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.name IS '租户名';
 
 
 --
--- Name: COLUMN system_tenant.contact_user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.contact_user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.contact_user_id IS '联系人的用户编号';
 
 
 --
--- Name: COLUMN system_tenant.contact_name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.contact_name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.contact_name IS '联系人';
 
 
 --
--- Name: COLUMN system_tenant.contact_mobile; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.contact_mobile; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.contact_mobile IS '联系手机';
 
 
 --
--- Name: COLUMN system_tenant.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.status IS '租户状态（0正常 1停用）';
 
 
 --
--- Name: COLUMN system_tenant.website; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.website; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.website IS '绑定域名';
 
 
 --
--- Name: COLUMN system_tenant.package_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.package_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.package_id IS '租户套餐编号';
 
 
 --
--- Name: COLUMN system_tenant.expire_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.expire_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.expire_time IS '过期时间';
 
 
 --
--- Name: COLUMN system_tenant.account_count; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.account_count; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.account_count IS '账号数量';
 
 
 --
--- Name: COLUMN system_tenant.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_tenant.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_tenant.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_tenant.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_tenant.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant.deleted IS '是否删除';
 
 
 --
--- Name: system_tenant_package; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_tenant_package; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_tenant_package (
-    id bigint NOT NULL,
+    id bigint CONSTRAINT system_tenant_package_id_not_null1 NOT NULL,
     name character varying(30) NOT NULL,
     status smallint DEFAULT 0 NOT NULL,
     remark character varying(256) DEFAULT ''::character varying,
@@ -6520,87 +6338,85 @@ CREATE TABLE public.system_tenant_package (
 );
 
 
-ALTER TABLE public.system_tenant_package OWNER TO postgres;
-
 --
--- Name: TABLE system_tenant_package; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_tenant_package; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_tenant_package IS '租户套餐表';
 
 
 --
--- Name: COLUMN system_tenant_package.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant_package.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant_package.id IS '套餐编号';
 
 
 --
--- Name: COLUMN system_tenant_package.name; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant_package.name; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant_package.name IS '套餐名';
 
 
 --
--- Name: COLUMN system_tenant_package.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant_package.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant_package.status IS '租户状态（0正常 1停用）';
 
 
 --
--- Name: COLUMN system_tenant_package.remark; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant_package.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant_package.remark IS '备注';
 
 
 --
--- Name: COLUMN system_tenant_package.menu_ids; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant_package.menu_ids; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant_package.menu_ids IS '关联的菜单编号';
 
 
 --
--- Name: COLUMN system_tenant_package.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant_package.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant_package.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_tenant_package.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant_package.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant_package.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_tenant_package.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant_package.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant_package.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_tenant_package.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant_package.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant_package.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_tenant_package.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_tenant_package.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_tenant_package.deleted IS '是否删除';
 
 
 --
--- Name: system_tenant_package_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_tenant_package_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_tenant_package_seq
@@ -6611,10 +6427,8 @@ CREATE SEQUENCE public.system_tenant_package_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_tenant_package_seq OWNER TO postgres;
-
 --
--- Name: system_tenant_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_tenant_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_tenant_seq
@@ -6625,10 +6439,8 @@ CREATE SEQUENCE public.system_tenant_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_tenant_seq OWNER TO postgres;
-
 --
--- Name: system_user_post; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_user_post; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_user_post (
@@ -6644,80 +6456,78 @@ CREATE TABLE public.system_user_post (
 );
 
 
-ALTER TABLE public.system_user_post OWNER TO postgres;
-
 --
--- Name: TABLE system_user_post; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_user_post; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_user_post IS '用户岗位表';
 
 
 --
--- Name: COLUMN system_user_post.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_post.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_post.id IS 'id';
 
 
 --
--- Name: COLUMN system_user_post.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_post.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_post.user_id IS '用户ID';
 
 
 --
--- Name: COLUMN system_user_post.post_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_post.post_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_post.post_id IS '岗位ID';
 
 
 --
--- Name: COLUMN system_user_post.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_post.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_post.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_user_post.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_post.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_post.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_user_post.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_post.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_post.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_user_post.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_post.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_post.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_user_post.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_post.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_post.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_user_post.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_post.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_post.tenant_id IS '租户编号';
 
 
 --
--- Name: system_user_post_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_user_post_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_user_post_seq
@@ -6728,10 +6538,8 @@ CREATE SEQUENCE public.system_user_post_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_user_post_seq OWNER TO postgres;
-
 --
--- Name: system_user_role; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_user_role; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_user_role (
@@ -6747,80 +6555,78 @@ CREATE TABLE public.system_user_role (
 );
 
 
-ALTER TABLE public.system_user_role OWNER TO postgres;
-
 --
--- Name: TABLE system_user_role; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_user_role; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_user_role IS '用户和角色关联表';
 
 
 --
--- Name: COLUMN system_user_role.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_role.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_role.id IS '自增编号';
 
 
 --
--- Name: COLUMN system_user_role.user_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_role.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_role.user_id IS '用户ID';
 
 
 --
--- Name: COLUMN system_user_role.role_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_role.role_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_role.role_id IS '角色ID';
 
 
 --
--- Name: COLUMN system_user_role.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_role.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_role.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_user_role.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_role.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_role.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_user_role.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_role.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_role.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_user_role.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_role.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_role.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_user_role.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_role.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_role.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_user_role.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_user_role.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_user_role.tenant_id IS '租户编号';
 
 
 --
--- Name: system_user_role_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_user_role_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_user_role_seq
@@ -6831,10 +6637,8 @@ CREATE SEQUENCE public.system_user_role_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_user_role_seq OWNER TO postgres;
-
 --
--- Name: system_users; Type: TABLE; Schema: public; Owner: postgres
+-- Name: system_users; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.system_users (
@@ -6863,171 +6667,169 @@ CREATE TABLE public.system_users (
 );
 
 
-ALTER TABLE public.system_users OWNER TO postgres;
-
 --
--- Name: TABLE system_users; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: TABLE system_users; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.system_users IS '用户信息表';
 
 
 --
--- Name: COLUMN system_users.id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.id IS '用户ID';
 
 
 --
--- Name: COLUMN system_users.username; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.username; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.username IS '用户账号';
 
 
 --
--- Name: COLUMN system_users.password; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.password; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.password IS '密码';
 
 
 --
--- Name: COLUMN system_users.nickname; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.nickname; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.nickname IS '用户昵称';
 
 
 --
--- Name: COLUMN system_users.remark; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.remark IS '备注';
 
 
 --
--- Name: COLUMN system_users.dept_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.dept_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.dept_id IS '部门ID';
 
 
 --
--- Name: COLUMN system_users.post_ids; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.post_ids; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.post_ids IS '岗位编号数组';
 
 
 --
--- Name: COLUMN system_users.email; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.email; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.email IS '用户邮箱';
 
 
 --
--- Name: COLUMN system_users.mobile; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.mobile; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.mobile IS '手机号码';
 
 
 --
--- Name: COLUMN system_users.sex; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.sex; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.sex IS '用户性别';
 
 
 --
--- Name: COLUMN system_users.avatar; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.avatar; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.avatar IS '头像地址';
 
 
 --
--- Name: COLUMN system_users.status; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.status IS '帐号状态（0正常 1停用）';
 
 
 --
--- Name: COLUMN system_users.login_ip; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.login_ip; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.login_ip IS '最后登录IP';
 
 
 --
--- Name: COLUMN system_users.login_date; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.login_date; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.login_date IS '最后登录时间';
 
 
 --
--- Name: COLUMN system_users.creator; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.creator; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.creator IS '创建者';
 
 
 --
--- Name: COLUMN system_users.create_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.create_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.create_time IS '创建时间';
 
 
 --
--- Name: COLUMN system_users.updater; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.updater; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.updater IS '更新者';
 
 
 --
--- Name: COLUMN system_users.update_time; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.update_time; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.update_time IS '更新时间';
 
 
 --
--- Name: COLUMN system_users.deleted; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.deleted; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.deleted IS '是否删除';
 
 
 --
--- Name: COLUMN system_users.tenant_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.tenant_id IS '租户编号';
 
 
 --
--- Name: COLUMN system_users.integral; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.integral; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.integral IS '用户积分';
 
 
 --
--- Name: COLUMN system_users.do_experiment; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN system_users.do_experiment; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.system_users.do_experiment IS '是否在做实验：0-否，1-是';
 
 
 --
--- Name: system_users_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: system_users_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.system_users_seq
@@ -7038,10 +6840,8 @@ CREATE SEQUENCE public.system_users_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.system_users_seq OWNER TO postgres;
-
 --
--- Name: warehouse_dataset_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: warehouse_dataset_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.warehouse_dataset_seq
@@ -7052,10 +6852,8 @@ CREATE SEQUENCE public.warehouse_dataset_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.warehouse_dataset_seq OWNER TO postgres;
-
 --
--- Name: warehouse_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: warehouse_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.warehouse_seq
@@ -7066,10 +6864,8 @@ CREATE SEQUENCE public.warehouse_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.warehouse_seq OWNER TO postgres;
-
 --
--- Name: yudao_demo01_contact_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: yudao_demo01_contact_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.yudao_demo01_contact_seq
@@ -7080,10 +6876,8 @@ CREATE SEQUENCE public.yudao_demo01_contact_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.yudao_demo01_contact_seq OWNER TO postgres;
-
 --
--- Name: yudao_demo02_category_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: yudao_demo02_category_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.yudao_demo02_category_seq
@@ -7094,10 +6888,8 @@ CREATE SEQUENCE public.yudao_demo02_category_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.yudao_demo02_category_seq OWNER TO postgres;
-
 --
--- Name: yudao_demo03_course_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: yudao_demo03_course_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.yudao_demo03_course_seq
@@ -7108,10 +6900,8 @@ CREATE SEQUENCE public.yudao_demo03_course_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.yudao_demo03_course_seq OWNER TO postgres;
-
 --
--- Name: yudao_demo03_grade_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: yudao_demo03_grade_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.yudao_demo03_grade_seq
@@ -7122,10 +6912,8 @@ CREATE SEQUENCE public.yudao_demo03_grade_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.yudao_demo03_grade_seq OWNER TO postgres;
-
 --
--- Name: yudao_demo03_student_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: yudao_demo03_student_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.yudao_demo03_student_seq
@@ -7136,10 +6924,8 @@ CREATE SEQUENCE public.yudao_demo03_student_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.yudao_demo03_student_seq OWNER TO postgres;
-
 --
--- Data for Name: dual; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: dual; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.dual  FROM stdin;
@@ -7147,7 +6933,7 @@ COPY public.dual  FROM stdin;
 
 
 --
--- Data for Name: infra_api_access_log; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: infra_api_access_log; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.infra_api_access_log (id, trace_id, user_id, user_type, application_name, request_method, request_url, request_params, response_body, user_ip, user_agent, operate_module, operate_name, operate_type, begin_time, end_time, duration, result_code, result_msg, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -11266,7 +11052,7 @@ COPY public.infra_api_access_log (id, trace_id, user_id, user_type, application_
 
 
 --
--- Data for Name: infra_api_error_log; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: infra_api_error_log; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.infra_api_error_log (id, trace_id, user_id, user_type, application_name, request_method, request_url, request_params, user_ip, user_agent, exception_time, exception_name, exception_message, exception_root_cause_message, exception_stack_trace, exception_class_name, exception_file_name, exception_method_name, exception_line_number, process_status, process_time, process_user_id, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -15347,7 +15133,7 @@ COPY public.infra_api_error_log (id, trace_id, user_id, user_type, application_n
 
 
 --
--- Data for Name: infra_codegen_column; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: infra_codegen_column; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.infra_codegen_column (id, table_id, column_name, data_type, column_comment, nullable, primary_key, ordinal_position, java_type, java_field, dict_type, example, create_operation, update_operation, list_operation, list_operation_condition, list_operation_result, html_type, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -16598,7 +16384,7 @@ COPY public.infra_codegen_column (id, table_id, column_name, data_type, column_c
 
 
 --
--- Data for Name: infra_codegen_table; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: infra_codegen_table; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.infra_codegen_table (id, data_source_config_id, scene, table_name, table_comment, remark, module_name, business_name, class_name, class_comment, author, template_type, front_type, parent_menu_id, master_table_id, sub_join_column_id, sub_join_many, tree_parent_column_id, tree_name_column_id, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -16685,7 +16471,7 @@ COPY public.infra_codegen_table (id, data_source_config_id, scene, table_name, t
 
 
 --
--- Data for Name: infra_config; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: infra_config; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.infra_config (id, category, type, name, config_key, value, visible, remark, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -16700,7 +16486,7 @@ COPY public.infra_config (id, category, type, name, config_key, value, visible, 
 
 
 --
--- Data for Name: infra_data_source_config; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: infra_data_source_config; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.infra_data_source_config (id, name, url, username, password, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -16711,7 +16497,7 @@ COPY public.infra_data_source_config (id, name, url, username, password, creator
 
 
 --
--- Data for Name: infra_file; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: infra_file; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.infra_file (id, config_id, name, path, url, type, size, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -16720,7 +16506,7 @@ COPY public.infra_file (id, config_id, name, path, url, type, size, creator, cre
 
 
 --
--- Data for Name: infra_file_config; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: infra_file_config; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.infra_file_config (id, name, storage, remark, master, config, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -16730,7 +16516,7 @@ COPY public.infra_file_config (id, name, storage, remark, master, config, creato
 
 
 --
--- Data for Name: infra_file_content; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: infra_file_content; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.infra_file_content (id, config_id, path, content, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -16738,7 +16524,7 @@ COPY public.infra_file_content (id, config_id, path, content, creator, create_ti
 
 
 --
--- Data for Name: infra_job; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: infra_job; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.infra_job (id, name, status, handler_name, handler_param, cron_expression, retry_count, retry_interval, monitor_timeout, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -16757,7 +16543,7 @@ COPY public.infra_job (id, name, status, handler_name, handler_param, cron_expre
 
 
 --
--- Data for Name: infra_job_log; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: infra_job_log; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.infra_job_log (id, job_id, handler_name, handler_param, execute_index, begin_time, end_time, duration, status, result, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -16765,7 +16551,7 @@ COPY public.infra_job_log (id, job_id, handler_name, handler_param, execute_inde
 
 
 --
--- Data for Name: qrtz_blob_triggers; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: qrtz_blob_triggers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.qrtz_blob_triggers (sched_name, trigger_name, trigger_group, blob_data) FROM stdin;
@@ -16773,7 +16559,7 @@ COPY public.qrtz_blob_triggers (sched_name, trigger_name, trigger_group, blob_da
 
 
 --
--- Data for Name: qrtz_calendars; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: qrtz_calendars; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.qrtz_calendars (sched_name, calendar_name, calendar) FROM stdin;
@@ -16781,7 +16567,7 @@ COPY public.qrtz_calendars (sched_name, calendar_name, calendar) FROM stdin;
 
 
 --
--- Data for Name: qrtz_cron_triggers; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: qrtz_cron_triggers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.qrtz_cron_triggers (sched_name, trigger_name, trigger_group, cron_expression, time_zone_id) FROM stdin;
@@ -16789,7 +16575,7 @@ COPY public.qrtz_cron_triggers (sched_name, trigger_name, trigger_group, cron_ex
 
 
 --
--- Data for Name: qrtz_fired_triggers; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: qrtz_fired_triggers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.qrtz_fired_triggers (sched_name, entry_id, trigger_name, trigger_group, instance_name, fired_time, sched_time, priority, state, job_name, job_group, is_nonconcurrent, requests_recovery) FROM stdin;
@@ -16797,7 +16583,7 @@ COPY public.qrtz_fired_triggers (sched_name, entry_id, trigger_name, trigger_gro
 
 
 --
--- Data for Name: qrtz_job_details; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: qrtz_job_details; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.qrtz_job_details (sched_name, job_name, job_group, description, job_class_name, is_durable, is_nonconcurrent, is_update_data, requests_recovery, job_data) FROM stdin;
@@ -16805,7 +16591,7 @@ COPY public.qrtz_job_details (sched_name, job_name, job_group, description, job_
 
 
 --
--- Data for Name: qrtz_locks; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: qrtz_locks; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.qrtz_locks (sched_name, lock_name) FROM stdin;
@@ -16815,7 +16601,7 @@ schedulerName	TRIGGER_ACCESS
 
 
 --
--- Data for Name: qrtz_paused_trigger_grps; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: qrtz_paused_trigger_grps; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.qrtz_paused_trigger_grps (sched_name, trigger_group) FROM stdin;
@@ -16823,17 +16609,17 @@ COPY public.qrtz_paused_trigger_grps (sched_name, trigger_group) FROM stdin;
 
 
 --
--- Data for Name: qrtz_scheduler_state; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: qrtz_scheduler_state; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.qrtz_scheduler_state (sched_name, instance_name, last_checkin_time, checkin_interval) FROM stdin;
-schedulerName	master1763612175074	1763613965312	15000
-schedulerName	master1763612184687	1763613974691	15000
+schedulerName	master1765003687188	1765006963738	15000
+schedulerName	master1765003686101	1765006963900	15000
 \.
 
 
 --
--- Data for Name: qrtz_simple_triggers; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: qrtz_simple_triggers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.qrtz_simple_triggers (sched_name, trigger_name, trigger_group, repeat_count, repeat_interval, times_triggered) FROM stdin;
@@ -16841,7 +16627,7 @@ COPY public.qrtz_simple_triggers (sched_name, trigger_name, trigger_group, repea
 
 
 --
--- Data for Name: qrtz_simprop_triggers; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: qrtz_simprop_triggers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.qrtz_simprop_triggers (sched_name, trigger_name, trigger_group, str_prop_1, str_prop_2, str_prop_3, int_prop_1, int_prop_2, long_prop_1, long_prop_2, dec_prop_1, dec_prop_2, bool_prop_1, bool_prop_2) FROM stdin;
@@ -16849,7 +16635,7 @@ COPY public.qrtz_simprop_triggers (sched_name, trigger_name, trigger_group, str_
 
 
 --
--- Data for Name: qrtz_triggers; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: qrtz_triggers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.qrtz_triggers (sched_name, trigger_name, trigger_group, job_name, job_group, description, next_fire_time, prev_fire_time, priority, trigger_state, trigger_type, start_time, end_time, calendar_name, misfire_instr, job_data) FROM stdin;
@@ -16857,7 +16643,7 @@ COPY public.qrtz_triggers (sched_name, trigger_name, trigger_group, job_name, jo
 
 
 --
--- Data for Name: system_dept; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_dept; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_dept (id, name, parent_id, sort, leader_user_id, phone, email, status, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -16879,7 +16665,7 @@ COPY public.system_dept (id, name, parent_id, sort, leader_user_id, phone, email
 
 
 --
--- Data for Name: system_dict_data; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_dict_data; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_dict_data (id, sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -17252,7 +17038,7 @@ COPY public.system_dict_data (id, sort, label, value, dict_type, status, color_t
 
 
 --
--- Data for Name: system_dict_type; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_dict_type; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_dict_type (id, name, type, status, remark, creator, create_time, updater, update_time, deleted, deleted_time) FROM stdin;
@@ -17343,7 +17129,7 @@ COPY public.system_dict_type (id, name, type, status, remark, creator, create_ti
 
 
 --
--- Data for Name: system_login_log; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_login_log; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_login_log (id, log_type, trace_id, user_id, user_type, username, result, user_ip, user_agent, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -20353,11 +20139,13 @@ COPY public.system_login_log (id, log_type, trace_id, user_id, user_type, userna
 3004	100		1	2	admin	0	27.188.74.210	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36	\N	2025-09-03 14:21:04.529	\N	2025-09-03 14:21:04.529	0	1
 3005	100		1	2	admin	0	171.222.249.243	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36	\N	2025-09-03 14:50:50.211	\N	2025-09-03 14:50:50.211	0	1
 3006	100		1	2	admin	0	66.11.117.92	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36	\N	2025-09-03 14:50:53.699	\N	2025-09-03 14:50:53.699	0	1
+3008	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36	\N	2025-12-06 14:50:13.918737	\N	2025-12-06 14:50:13.918737	0	1
+3009	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36	\N	2025-12-06 15:29:33.36087	\N	2025-12-06 15:29:33.36087	0	1
 \.
 
 
 --
--- Data for Name: system_mail_account; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_mail_account; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_mail_account (id, mail, username, password, host, port, ssl_enable, starttls_enable, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -20369,7 +20157,7 @@ COPY public.system_mail_account (id, mail, username, password, host, port, ssl_e
 
 
 --
--- Data for Name: system_mail_log; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_mail_log; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_mail_log (id, user_id, user_type, to_mail, account_id, from_mail, template_id, template_code, template_nickname, template_title, template_content, template_params, send_status, send_time, send_message_id, send_exception, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -20377,7 +20165,7 @@ COPY public.system_mail_log (id, user_id, user_type, to_mail, account_id, from_m
 
 
 --
--- Data for Name: system_mail_template; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_mail_template; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_mail_template (id, name, code, account_id, nickname, title, content, params, status, remark, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -20388,7 +20176,7 @@ COPY public.system_mail_template (id, name, code, account_id, nickname, title, c
 
 
 --
--- Data for Name: system_menu; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_menu; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -20607,6 +20395,7 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 1237	文件配置		2	0	1243	file-config	fa-solid:file-signature	infra/fileConfig/index	InfraFileConfig	0	t	t	t		2022-03-15 14:35:28	1	2024-02-29 08:52:54	1
 2022	规格更新	product:property:update	3	3	2019				\N	0	t	t	t		2022-08-01 14:55:35		2022-12-12 20:26:33	1
 2023	规格删除	product:property:delete	3	4	2019				\N	0	t	t	t		2022-08-01 14:55:35		2022-12-12 20:26:37	1
+2569	产品删除	erp:product:delete	3	4	2565					0	t	t	t		2024-02-04 07:52:15	1	2024-02-04 17:22:22	1
 2019	商品属性		2	4	2000	property	ep:cold-drink	mall/product/property/index	ProductProperty	0	t	t	t		2022-08-01 14:55:35	1	2023-08-26 11:01:05	1
 2026	Banner查询	promotion:banner:query	3	1	2025					0	t	t	t		2022-08-01 14:56:14	1	2023-10-24 20:20:18	1
 2027	Banner创建	promotion:banner:create	3	2	2025					0	t	t	t		2022-08-01 14:56:14	1	2023-10-24 20:20:23	1
@@ -20712,6 +20501,7 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 2172	快递公司导出	trade:delivery:express:export	3	5	2167				\N	0	t	t	t		2023-05-18 09:37:53		2023-05-18 09:37:53	1
 2326	会员等级查询	member:level:query	3	1	2325				\N	0	t	t	t		2023-08-22 12:41:02		2023-08-22 12:41:02	1
 2167	快递公司		2	0	2165	express	ep:compass	mall/trade/delivery/express/index	Express	0	t	t	t	1	2023-05-18 09:27:21	1	2023-08-30 21:02:59	1
+2570	产品导出	erp:product:export	3	5	2565					0	t	t	t		2024-02-04 07:52:15	1	2024-02-04 17:22:26	1
 2174	快递运费模板查询	trade:delivery:express-template:query	3	1	2173				\N	0	t	t	t		2023-05-20 06:49:53		2023-05-20 06:49:53	1
 2175	快递运费模板创建	trade:delivery:express-template:create	3	2	2173				\N	0	t	t	t		2023-05-20 06:49:53		2023-05-20 06:49:53	1
 2176	快递运费模板更新	trade:delivery:express-template:update	3	3	2173				\N	0	t	t	t		2023-05-20 06:49:53		2023-05-20 06:49:53	1
@@ -20973,8 +20763,6 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 2583	库存管理		1	30	2563	stock	fa:window-restore			0	t	t	t	1	2024-02-05 00:29:37	1	2024-02-05 00:29:37	1
 2567	产品创建	erp:product:create	3	2	2565					0	t	t	t		2024-02-04 07:52:15	1	2024-02-04 17:22:12	1
 2568	产品更新	erp:product:update	3	3	2565					0	t	t	t		2024-02-04 07:52:15	1	2024-02-04 17:22:16	1
-2569	产品删除	erp:product:delete	3	4	2565					0	t	t	t		2024-02-04 07:52:15	1	2024-02-04 17:22:22	1
-2570	产品导出	erp:product:export	3	5	2565					0	t	t	t		2024-02-04 07:52:15	1	2024-02-04 17:22:26	1
 2565	产品信息		2	0	2564	product	fa-solid:apple-alt	erp/product/product/index	ErpProduct	0	t	t	t		2024-02-04 07:52:15	1	2024-02-05 14:42:11	1
 2572	分类查询	erp:product-category:query	3	1	2571				\N	0	t	t	t		2024-02-04 09:21:04		2024-02-04 09:21:04	1
 2573	分类创建	erp:product-category:create	3	2	2571				\N	0	t	t	t		2024-02-04 09:21:04		2024-02-04 09:21:04	1
@@ -21358,18 +21146,18 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 2967	训练详情	train:train:detail	2	99	0	TrainTaskDetail/:modelId	hugeicons:ai-brain-03	train/components/TrainTaskDetail/index	TrainTaskDetail	0	f	t	f	1	2025-08-31 18:45:27.291	1	2025-08-31 18:45:27.291	0
 1243	文件管理		1	20	0	/file	ep:files	\N		1	t	t	t	1	2022-03-16 23:47:40	1	2025-08-11 15:29:22.768	1
 2955	算法商城	store:store:query	2	35	0	store	ant-design:shop-twotone	store/index	Store	0	t	f	t	1	2024-09-19 11:53:03.112	1	2025-04-29 18:36:07.501	1
-2966	模型训练	train:train:query	2	9	0	train/index	hugeicons:ai-brain-03	train/index	Train	0	t	t	t	1	2025-08-31 18:41:46.818	1	2025-11-20 12:42:56.28065	0
 2961	数据标注	dataset:dataset:query	2	8	0	/dataset	gala:data	dataset/index	Dataset	0	t	t	t	1	2025-02-10 11:10:04.178	1	2025-11-20 12:43:00.112367	0
 1238	文件配置查询	infra:file-config:query	3	1	1237				\N	0	t	t	t		2022-03-15 14:35:28		2022-04-20 17:03:10	1
 1091	文件查询	infra:file:query	3	1	1090				\N	0	t	t	t		2021-03-12 20:16:20		2022-04-20 17:03:10	1
 2969	告警事件	alert:alert:query	2	35	0	alert	ant-design:alert-outlined	alert/index	Alarm	0	t	t	t	1	2025-11-20 12:41:30.270882	1	2025-11-20 12:41:30.270882	0
 2968	OTA升级	ota:ota:query	2	5	0	ota	ant-design:hourglass-outlined	ota/index	OtaVersion	0	t	t	t	1	2025-11-20 12:40:20.867024	1	2025-11-20 12:43:07.342901	0
 2970	通知管理	notice:notice:query	2	36	0	notice	ant-design:sound-outlined	notice/index	Notice	0	t	t	t	1	2025-11-20 12:42:17.013623	1	2025-11-20 12:43:51.584973	0
+2966	模型管理	train:train:query	2	9	0	train/index	hugeicons:ai-brain-03	train/index	Train	0	t	t	t	1	2025-08-31 18:41:46.818	1	2025-12-06 14:51:36.602328	0
 \.
 
 
 --
--- Data for Name: system_notice; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_notice; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_notice (id, title, content, type, status, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -21380,7 +21168,7 @@ COPY public.system_notice (id, title, content, type, status, creator, create_tim
 
 
 --
--- Data for Name: system_notify_message; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_notify_message; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_notify_message (id, user_id, user_type, template_id, template_code, template_nickname, template_content, template_type, template_params, read_status, read_time, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -21397,7 +21185,7 @@ COPY public.system_notify_message (id, user_id, user_type, template_id, template
 
 
 --
--- Data for Name: system_notify_template; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_notify_template; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_notify_template (id, name, code, nickname, content, type, params, status, remark, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -21405,7 +21193,7 @@ COPY public.system_notify_template (id, name, code, nickname, content, type, par
 
 
 --
--- Data for Name: system_oauth2_access_token; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_oauth2_access_token; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_oauth2_access_token (id, user_id, user_type, user_info, access_token, refresh_token, client_id, scopes, expires_time, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -24610,11 +24398,13 @@ COPY public.system_oauth2_access_token (id, user_id, user_type, user_info, acces
 5908	1	2	{"nickname":"IoT","deptId":"103"}	ebb24ac41a2f484eb32a9890936932da	afa7fec4c2b74913be3353be003e1d1b	default	\N	2025-09-03 15:20:50.221	\N	2025-09-03 14:50:50.222	\N	2025-09-03 14:50:50.222	0	1
 5910	1	2	{"nickname":"IoT","deptId":"103"}	972969bb946f4724ab8c618dc61829c5	dd4565fe199a48108e3de813cd3688a3	default	\N	2025-09-03 15:20:53.711	\N	2025-09-03 14:50:53.711	\N	2025-09-03 14:50:53.711	0	1
 5912	1	2	{"nickname":"IoT","deptId":"103"}	2514f9b7c56f436497d0d9a5550d3904	43d8c8af53e64ba9b46069dcc2568b1d	default	\N	2025-11-20 13:06:51.10594	\N	2025-11-20 12:36:51.109619	\N	2025-11-20 12:36:51.109619	0	1
+5914	1	2	{"nickname":"IoT","deptId":"103"}	ba89d9f66610428ea55569a595c9df14	9f2e1efeab68475ba2bc94ad60bb951f	default	\N	2025-12-06 15:20:13.996197	\N	2025-12-06 14:50:13.999666	\N	2025-12-06 14:50:13.999666	0	1
+5916	1	2	{"nickname":"IoT","deptId":"103"}	1fc3f620acc9433b83ce77f5847d299c	49d2813da3a5416995964145ef3fdeb8	default	\N	2025-12-06 15:59:33.38402	\N	2025-12-06 15:29:33.385377	\N	2025-12-06 15:29:33.385377	0	1
 \.
 
 
 --
--- Data for Name: system_oauth2_approve; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_oauth2_approve; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_oauth2_approve (id, user_id, user_type, client_id, scope, approved, expires_time, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -24622,7 +24412,7 @@ COPY public.system_oauth2_approve (id, user_id, user_type, client_id, scope, app
 
 
 --
--- Data for Name: system_oauth2_client; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_oauth2_client; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_oauth2_client (id, client_id, secret, name, logo, description, status, access_token_validity_seconds, refresh_token_validity_seconds, redirect_uris, authorized_grant_types, scopes, auto_approve_scopes, authorities, resource_ids, additional_information, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -24634,7 +24424,7 @@ COPY public.system_oauth2_client (id, client_id, secret, name, logo, description
 
 
 --
--- Data for Name: system_oauth2_code; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_oauth2_code; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_oauth2_code (id, user_id, user_type, code, client_id, scopes, expires_time, redirect_uri, state, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -24642,7 +24432,7 @@ COPY public.system_oauth2_code (id, user_id, user_type, code, client_id, scopes,
 
 
 --
--- Data for Name: system_oauth2_refresh_token; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_oauth2_refresh_token; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_oauth2_refresh_token (id, user_id, refresh_token, user_type, client_id, scopes, expires_time, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -27357,11 +27147,13 @@ COPY public.system_oauth2_refresh_token (id, user_id, refresh_token, user_type, 
 5907	1	afa7fec4c2b74913be3353be003e1d1b	2	default	\N	2025-10-03 14:50:50.217	\N	2025-09-03 14:50:50.218	\N	2025-09-03 14:50:50.218	0	1
 5909	1	dd4565fe199a48108e3de813cd3688a3	2	default	\N	2025-10-03 14:50:53.706	\N	2025-09-03 14:50:53.707	\N	2025-09-03 14:50:53.707	0	1
 5911	1	43d8c8af53e64ba9b46069dcc2568b1d	2	default	\N	2025-12-20 12:36:51.087893	\N	2025-11-20 12:36:51.091629	\N	2025-11-20 12:36:51.091629	0	1
+5913	1	9f2e1efeab68475ba2bc94ad60bb951f	2	default	\N	2026-01-05 14:50:13.977117	\N	2025-12-06 14:50:13.980451	\N	2025-12-06 14:50:13.980451	0	1
+5915	1	49d2813da3a5416995964145ef3fdeb8	2	default	\N	2026-01-05 15:29:33.369241	\N	2025-12-06 15:29:33.370818	\N	2025-12-06 15:29:33.370818	0	1
 \.
 
 
 --
--- Data for Name: system_operate_log; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_operate_log; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_operate_log (id, trace_id, user_id, user_type, type, sub_type, biz_id, action, extra, request_method, request_url, user_ip, user_agent, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -27371,7 +27163,7 @@ COPY public.system_operate_log (id, trace_id, user_id, user_type, type, sub_type
 
 
 --
--- Data for Name: system_post; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_post; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_post (id, code, name, sort, status, remark, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -27383,7 +27175,7 @@ COPY public.system_post (id, code, name, sort, status, remark, creator, create_t
 
 
 --
--- Data for Name: system_role; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_role; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_role (id, name, code, sort, data_scope, data_scope_dept_ids, status, type, remark, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -27396,7 +27188,7 @@ COPY public.system_role (id, name, code, sort, data_scope, data_scope_dept_ids, 
 
 
 --
--- Data for Name: system_role_menu; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_role_menu; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_role_menu (id, role_id, menu_id, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -28417,7 +28209,7 @@ COPY public.system_role_menu (id, role_id, menu_id, creator, create_time, update
 
 
 --
--- Data for Name: system_sms_channel; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_sms_channel; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_sms_channel (id, signature, code, status, remark, api_key, api_secret, callback_url, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -28428,7 +28220,7 @@ COPY public.system_sms_channel (id, signature, code, status, remark, api_key, ap
 
 
 --
--- Data for Name: system_sms_code; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_sms_code; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_sms_code (id, mobile, code, create_ip, scene, today_index, used, used_time, used_ip, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -28436,7 +28228,7 @@ COPY public.system_sms_code (id, mobile, code, create_ip, scene, today_index, us
 
 
 --
--- Data for Name: system_sms_log; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_sms_log; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_sms_log (id, channel_id, channel_code, template_id, template_code, template_type, template_content, template_params, api_template_id, mobile, user_id, user_type, send_status, send_time, api_send_code, api_send_msg, api_request_id, api_serial_no, receive_status, receive_time, api_receive_code, api_receive_msg, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -28444,7 +28236,7 @@ COPY public.system_sms_log (id, channel_id, channel_code, template_id, template_
 
 
 --
--- Data for Name: system_sms_template; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_sms_template; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_sms_template (id, type, status, code, name, content, params, remark, api_template_id, channel_id, channel_code, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -28464,7 +28256,7 @@ COPY public.system_sms_template (id, type, status, code, name, content, params, 
 
 
 --
--- Data for Name: system_social_client; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_social_client; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_social_client (id, name, social_type, user_type, client_id, client_secret, agent_id, status, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -28476,7 +28268,7 @@ COPY public.system_social_client (id, name, social_type, user_type, client_id, c
 
 
 --
--- Data for Name: system_social_user; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_social_user; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_social_user (id, type, openid, token, raw_token_info, nickname, avatar, raw_user_info, code, state, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -28484,7 +28276,7 @@ COPY public.system_social_user (id, type, openid, token, raw_token_info, nicknam
 
 
 --
--- Data for Name: system_social_user_bind; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_social_user_bind; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_social_user_bind (id, user_id, user_type, social_type, social_user_id, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -28492,7 +28284,7 @@ COPY public.system_social_user_bind (id, user_id, user_type, social_type, social
 
 
 --
--- Data for Name: system_tenant; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_tenant; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_tenant (id, name, contact_user_id, contact_name, contact_mobile, status, website, package_id, expire_time, account_count, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -28503,7 +28295,7 @@ COPY public.system_tenant (id, name, contact_user_id, contact_name, contact_mobi
 
 
 --
--- Data for Name: system_tenant_package; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_tenant_package; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_tenant_package (id, name, status, remark, menu_ids, creator, create_time, updater, update_time, deleted) FROM stdin;
@@ -28512,7 +28304,7 @@ COPY public.system_tenant_package (id, name, status, remark, menu_ids, creator, 
 
 
 --
--- Data for Name: system_user_post; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_user_post; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_user_post (id, user_id, post_id, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -28528,7 +28320,7 @@ COPY public.system_user_post (id, user_id, post_id, creator, create_time, update
 
 
 --
--- Data for Name: system_user_role; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_user_role; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_user_role (id, user_id, role_id, creator, create_time, updater, update_time, deleted, tenant_id) FROM stdin;
@@ -28552,7 +28344,7 @@ COPY public.system_user_role (id, user_id, role_id, creator, create_time, update
 
 
 --
--- Data for Name: system_users; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: system_users; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.system_users (id, username, password, nickname, remark, dept_id, post_ids, email, mobile, sex, avatar, status, login_ip, login_date, creator, create_time, updater, update_time, deleted, tenant_id, integral, do_experiment) FROM stdin;
@@ -28571,467 +28363,467 @@ COPY public.system_users (id, username, password, nickname, remark, dept_id, pos
 131	hh	$2a$04$jyH9h6.gaw8mpOjPfHIpx.8as2Rzfcmdlj5rlJFwgCw4rsv/MTb2K	呵呵	\N	100	[]	777@qq.com	15601882312	1		0		\N	1	2024-04-27 08:45:56	1	2024-04-27 08:45:56	1	1	0	0
 100	yudao	$2a$10$11U48RhyJ5pSBYWSn12AD./ld671.ycSzJHbyrtpeoMeYiw31eo8a	王总	不要吓我	104	[1]	yudao@iocoder.cn	15601691300	1		1	127.0.0.1	2022-07-09 23:03:33		2021-01-07 09:07:17	1	2025-08-14 09:39:37.486	0	1	0	0
 118	goudan	$2a$04$A7vqK6hfgoPeOGDgZoC1BOnVwTpDyBtQnlsOWBIqM8Wj9A6NTr0Tq	狗蛋	\N	103	[1]		15601691239	1		0	0:0:0:0:0:0:0:1	2024-07-24 11:23:40.932	1	2022-07-09 17:44:43	1	2025-08-14 11:34:37.076	0	1	0	0
-1	admin	$2a$10$mRMIYLDtRHlf6.9ipiqH1.Z.bh/R9dO9d5iHiGYPigi6r5KOoR2Wm	IoT	管理员	103	[1]	aoteman@126.com	18818260277	1	http://test.yudao.iocoder.cn/113dcbab48d22fc988151b98be2b8b4f262effdb5305c171cf1fe9a71801377a.png	0	127.0.0.1	2025-11-20 12:36:51.046575	admin	2021-01-05 17:03:47	\N	2025-11-20 12:36:51.050047	0	1	0	0
+1	admin	$2a$10$mRMIYLDtRHlf6.9ipiqH1.Z.bh/R9dO9d5iHiGYPigi6r5KOoR2Wm	IoT	管理员	103	[1]	aoteman@126.com	18818260277	1	http://test.yudao.iocoder.cn/113dcbab48d22fc988151b98be2b8b4f262effdb5305c171cf1fe9a71801377a.png	0	127.0.0.1	2025-12-06 15:29:33.363481	admin	2021-01-05 17:03:47	\N	2025-12-06 15:29:33.363787	0	1	0	0
 \.
 
 
 --
--- Name: dataset_image_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: dataset_image_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.dataset_image_seq', 1, false);
 
 
 --
--- Name: dataset_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: dataset_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.dataset_seq', 1, false);
 
 
 --
--- Name: dataset_tag_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: dataset_tag_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.dataset_tag_seq', 1, false);
 
 
 --
--- Name: dataset_task_result_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: dataset_task_result_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.dataset_task_result_seq', 1, false);
 
 
 --
--- Name: dataset_task_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: dataset_task_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.dataset_task_seq', 1, false);
 
 
 --
--- Name: dataset_task_user_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: dataset_task_user_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.dataset_task_user_seq', 1, false);
 
 
 --
--- Name: dataset_video_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: dataset_video_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.dataset_video_seq', 1, false);
 
 
 --
--- Name: infra_api_access_log_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: infra_api_access_log_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.infra_api_access_log_seq', 4407, true);
 
 
 --
--- Name: infra_api_error_log_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: infra_api_error_log_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.infra_api_error_log_seq', 7800, true);
 
 
 --
--- Name: infra_codegen_column_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: infra_codegen_column_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.infra_codegen_column_seq', 1278, true);
 
 
 --
--- Name: infra_codegen_table_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: infra_codegen_table_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.infra_codegen_table_seq', 80, true);
 
 
 --
--- Name: infra_config_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: infra_config_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.infra_config_seq', 13, false);
 
 
 --
--- Name: infra_data_source_config_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: infra_data_source_config_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.infra_data_source_config_seq', 3, true);
 
 
 --
--- Name: infra_file_config_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: infra_file_config_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.infra_file_config_seq', 23, false);
 
 
 --
--- Name: infra_file_content_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: infra_file_content_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.infra_file_content_seq', 1, false);
 
 
 --
--- Name: infra_file_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: infra_file_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.infra_file_seq', 1, true);
 
 
 --
--- Name: infra_job_log_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: infra_job_log_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.infra_job_log_seq', 1, false);
 
 
 --
--- Name: infra_job_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: infra_job_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.infra_job_seq', 28, false);
 
 
 --
--- Name: model_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: model_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.model_seq', 1, false);
 
 
 --
--- Name: model_server_quantify_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: model_server_quantify_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.model_server_quantify_seq', 1, false);
 
 
 --
--- Name: model_server_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: model_server_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.model_server_seq', 1, false);
 
 
 --
--- Name: model_server_test_image_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: model_server_test_image_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.model_server_test_image_seq', 1, false);
 
 
 --
--- Name: model_server_test_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: model_server_test_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.model_server_test_seq', 1, false);
 
 
 --
--- Name: model_server_test_video_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: model_server_test_video_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.model_server_test_video_seq', 1, false);
 
 
 --
--- Name: model_server_video_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: model_server_video_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.model_server_video_seq', 1, false);
 
 
 --
--- Name: model_type_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: model_type_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.model_type_seq', 1, false);
 
 
 --
--- Name: system_dept_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_dept_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_dept_seq', 114, false);
 
 
 --
--- Name: system_dict_data_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_dict_data_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_dict_data_seq', 1537, false);
 
 
 --
--- Name: system_dict_type_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_dict_type_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_dict_type_seq', 620, false);
 
 
 --
--- Name: system_login_log_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_login_log_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.system_login_log_seq', 3007, true);
+SELECT pg_catalog.setval('public.system_login_log_seq', 3009, true);
 
 
 --
--- Name: system_mail_account_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_mail_account_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_mail_account_seq', 5, false);
 
 
 --
--- Name: system_mail_log_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_mail_log_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_mail_log_seq', 1, false);
 
 
 --
--- Name: system_mail_template_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_mail_template_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_mail_template_seq', 16, false);
 
 
 --
--- Name: system_menu_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_menu_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_menu_seq', 2970, true);
 
 
 --
--- Name: system_notice_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_notice_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_notice_seq', 5, false);
 
 
 --
--- Name: system_notify_message_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_notify_message_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_notify_message_seq', 11, false);
 
 
 --
--- Name: system_notify_template_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_notify_template_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_notify_template_seq', 1, false);
 
 
 --
--- Name: system_oauth2_access_token_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_oauth2_access_token_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.system_oauth2_access_token_seq', 5912, true);
+SELECT pg_catalog.setval('public.system_oauth2_access_token_seq', 5916, true);
 
 
 --
--- Name: system_oauth2_approve_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_oauth2_approve_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_oauth2_approve_seq', 1, false);
 
 
 --
--- Name: system_oauth2_client_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_oauth2_client_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_oauth2_client_seq', 43, false);
 
 
 --
--- Name: system_oauth2_code_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_oauth2_code_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_oauth2_code_seq', 1, false);
 
 
 --
--- Name: system_oauth2_refresh_token_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_oauth2_refresh_token_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_oauth2_refresh_token_seq', 1, false);
 
 
 --
--- Name: system_operate_log_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_operate_log_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_operate_log_seq', 2, true);
 
 
 --
--- Name: system_post_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_post_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_post_seq', 6, false);
 
 
 --
--- Name: system_role_menu_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_role_menu_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_role_menu_seq', 5968, true);
 
 
 --
--- Name: system_role_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_role_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_role_seq', 112, false);
 
 
 --
--- Name: system_sms_channel_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_sms_channel_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_sms_channel_seq', 7, false);
 
 
 --
--- Name: system_sms_code_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_sms_code_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_sms_code_seq', 1, false);
 
 
 --
--- Name: system_sms_log_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_sms_log_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_sms_log_seq', 1, false);
 
 
 --
--- Name: system_sms_template_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_sms_template_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_sms_template_seq', 17, false);
 
 
 --
--- Name: system_social_client_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_social_client_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_social_client_seq', 44, false);
 
 
 --
--- Name: system_social_user_bind_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_social_user_bind_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_social_user_bind_seq', 1, false);
 
 
 --
--- Name: system_social_user_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_social_user_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_social_user_seq', 1, false);
 
 
 --
--- Name: system_tenant_package_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_tenant_package_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_tenant_package_seq', 112, false);
 
 
 --
--- Name: system_tenant_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_tenant_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_tenant_seq', 123, false);
 
 
 --
--- Name: system_user_post_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_user_post_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_user_post_seq', 125, false);
 
 
 --
--- Name: system_user_role_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_user_role_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_user_role_seq', 39, true);
 
 
 --
--- Name: system_users_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: system_users_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.system_users_seq', 132, false);
 
 
 --
--- Name: warehouse_dataset_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: warehouse_dataset_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.warehouse_dataset_seq', 1, false);
 
 
 --
--- Name: warehouse_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: warehouse_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.warehouse_seq', 1, false);
 
 
 --
--- Name: yudao_demo01_contact_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: yudao_demo01_contact_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.yudao_demo01_contact_seq', 2, false);
 
 
 --
--- Name: yudao_demo02_category_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: yudao_demo02_category_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.yudao_demo02_category_seq', 7, false);
 
 
 --
--- Name: yudao_demo03_course_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: yudao_demo03_course_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.yudao_demo03_course_seq', 14, false);
 
 
 --
--- Name: yudao_demo03_grade_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: yudao_demo03_grade_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.yudao_demo03_grade_seq', 10, false);
 
 
 --
--- Name: yudao_demo03_student_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: yudao_demo03_student_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.yudao_demo03_student_seq', 10, false);
 
 
 --
--- Name: infra_api_access_log pk_infra_api_access_log; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: infra_api_access_log pk_infra_api_access_log; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.infra_api_access_log
@@ -29039,7 +28831,7 @@ ALTER TABLE ONLY public.infra_api_access_log
 
 
 --
--- Name: infra_api_error_log pk_infra_api_error_log; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: infra_api_error_log pk_infra_api_error_log; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.infra_api_error_log
@@ -29047,7 +28839,7 @@ ALTER TABLE ONLY public.infra_api_error_log
 
 
 --
--- Name: infra_codegen_column pk_infra_codegen_column; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: infra_codegen_column pk_infra_codegen_column; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.infra_codegen_column
@@ -29055,7 +28847,7 @@ ALTER TABLE ONLY public.infra_codegen_column
 
 
 --
--- Name: infra_codegen_table pk_infra_codegen_table; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: infra_codegen_table pk_infra_codegen_table; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.infra_codegen_table
@@ -29063,7 +28855,7 @@ ALTER TABLE ONLY public.infra_codegen_table
 
 
 --
--- Name: infra_config pk_infra_config; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: infra_config pk_infra_config; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.infra_config
@@ -29071,7 +28863,7 @@ ALTER TABLE ONLY public.infra_config
 
 
 --
--- Name: infra_data_source_config pk_infra_data_source_config; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: infra_data_source_config pk_infra_data_source_config; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.infra_data_source_config
@@ -29079,7 +28871,7 @@ ALTER TABLE ONLY public.infra_data_source_config
 
 
 --
--- Name: infra_file pk_infra_file; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: infra_file pk_infra_file; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.infra_file
@@ -29087,7 +28879,7 @@ ALTER TABLE ONLY public.infra_file
 
 
 --
--- Name: infra_file_config pk_infra_file_config; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: infra_file_config pk_infra_file_config; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.infra_file_config
@@ -29095,7 +28887,7 @@ ALTER TABLE ONLY public.infra_file_config
 
 
 --
--- Name: infra_file_content pk_infra_file_content; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: infra_file_content pk_infra_file_content; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.infra_file_content
@@ -29103,7 +28895,7 @@ ALTER TABLE ONLY public.infra_file_content
 
 
 --
--- Name: infra_job pk_infra_job; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: infra_job pk_infra_job; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.infra_job
@@ -29111,7 +28903,7 @@ ALTER TABLE ONLY public.infra_job
 
 
 --
--- Name: infra_job_log pk_infra_job_log; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: infra_job_log pk_infra_job_log; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.infra_job_log
@@ -29119,7 +28911,7 @@ ALTER TABLE ONLY public.infra_job_log
 
 
 --
--- Name: system_dept pk_system_dept; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_dept pk_system_dept; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_dept
@@ -29127,7 +28919,7 @@ ALTER TABLE ONLY public.system_dept
 
 
 --
--- Name: system_dict_data pk_system_dict_data; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_dict_data pk_system_dict_data; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_dict_data
@@ -29135,7 +28927,7 @@ ALTER TABLE ONLY public.system_dict_data
 
 
 --
--- Name: system_dict_type pk_system_dict_type; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_dict_type pk_system_dict_type; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_dict_type
@@ -29143,7 +28935,7 @@ ALTER TABLE ONLY public.system_dict_type
 
 
 --
--- Name: system_login_log pk_system_login_log; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_login_log pk_system_login_log; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_login_log
@@ -29151,7 +28943,7 @@ ALTER TABLE ONLY public.system_login_log
 
 
 --
--- Name: system_mail_account pk_system_mail_account; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_mail_account pk_system_mail_account; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_mail_account
@@ -29159,7 +28951,7 @@ ALTER TABLE ONLY public.system_mail_account
 
 
 --
--- Name: system_mail_log pk_system_mail_log; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_mail_log pk_system_mail_log; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_mail_log
@@ -29167,7 +28959,7 @@ ALTER TABLE ONLY public.system_mail_log
 
 
 --
--- Name: system_mail_template pk_system_mail_template; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_mail_template pk_system_mail_template; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_mail_template
@@ -29175,7 +28967,7 @@ ALTER TABLE ONLY public.system_mail_template
 
 
 --
--- Name: system_menu pk_system_menu; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_menu pk_system_menu; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_menu
@@ -29183,7 +28975,7 @@ ALTER TABLE ONLY public.system_menu
 
 
 --
--- Name: system_notice pk_system_notice; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_notice pk_system_notice; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_notice
@@ -29191,7 +28983,7 @@ ALTER TABLE ONLY public.system_notice
 
 
 --
--- Name: system_notify_message pk_system_notify_message; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_notify_message pk_system_notify_message; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_notify_message
@@ -29199,7 +28991,7 @@ ALTER TABLE ONLY public.system_notify_message
 
 
 --
--- Name: system_notify_template pk_system_notify_template; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_notify_template pk_system_notify_template; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_notify_template
@@ -29207,7 +28999,7 @@ ALTER TABLE ONLY public.system_notify_template
 
 
 --
--- Name: system_oauth2_access_token pk_system_oauth2_access_token; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_oauth2_access_token pk_system_oauth2_access_token; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_oauth2_access_token
@@ -29215,7 +29007,7 @@ ALTER TABLE ONLY public.system_oauth2_access_token
 
 
 --
--- Name: system_oauth2_approve pk_system_oauth2_approve; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_oauth2_approve pk_system_oauth2_approve; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_oauth2_approve
@@ -29223,7 +29015,7 @@ ALTER TABLE ONLY public.system_oauth2_approve
 
 
 --
--- Name: system_oauth2_client pk_system_oauth2_client; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_oauth2_client pk_system_oauth2_client; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_oauth2_client
@@ -29231,7 +29023,7 @@ ALTER TABLE ONLY public.system_oauth2_client
 
 
 --
--- Name: system_oauth2_code pk_system_oauth2_code; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_oauth2_code pk_system_oauth2_code; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_oauth2_code
@@ -29239,7 +29031,7 @@ ALTER TABLE ONLY public.system_oauth2_code
 
 
 --
--- Name: system_oauth2_refresh_token pk_system_oauth2_refresh_token; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_oauth2_refresh_token pk_system_oauth2_refresh_token; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_oauth2_refresh_token
@@ -29247,7 +29039,7 @@ ALTER TABLE ONLY public.system_oauth2_refresh_token
 
 
 --
--- Name: system_operate_log pk_system_operate_log; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_operate_log pk_system_operate_log; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_operate_log
@@ -29255,7 +29047,7 @@ ALTER TABLE ONLY public.system_operate_log
 
 
 --
--- Name: system_post pk_system_post; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_post pk_system_post; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_post
@@ -29263,7 +29055,7 @@ ALTER TABLE ONLY public.system_post
 
 
 --
--- Name: system_role pk_system_role; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_role pk_system_role; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_role
@@ -29271,7 +29063,7 @@ ALTER TABLE ONLY public.system_role
 
 
 --
--- Name: system_role_menu pk_system_role_menu; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_role_menu pk_system_role_menu; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_role_menu
@@ -29279,7 +29071,7 @@ ALTER TABLE ONLY public.system_role_menu
 
 
 --
--- Name: system_sms_channel pk_system_sms_channel; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_sms_channel pk_system_sms_channel; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_sms_channel
@@ -29287,7 +29079,7 @@ ALTER TABLE ONLY public.system_sms_channel
 
 
 --
--- Name: system_sms_code pk_system_sms_code; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_sms_code pk_system_sms_code; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_sms_code
@@ -29295,7 +29087,7 @@ ALTER TABLE ONLY public.system_sms_code
 
 
 --
--- Name: system_sms_log pk_system_sms_log; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_sms_log pk_system_sms_log; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_sms_log
@@ -29303,7 +29095,7 @@ ALTER TABLE ONLY public.system_sms_log
 
 
 --
--- Name: system_sms_template pk_system_sms_template; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_sms_template pk_system_sms_template; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_sms_template
@@ -29311,7 +29103,7 @@ ALTER TABLE ONLY public.system_sms_template
 
 
 --
--- Name: system_social_client pk_system_social_client; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_social_client pk_system_social_client; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_social_client
@@ -29319,7 +29111,7 @@ ALTER TABLE ONLY public.system_social_client
 
 
 --
--- Name: system_social_user pk_system_social_user; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_social_user pk_system_social_user; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_social_user
@@ -29327,7 +29119,7 @@ ALTER TABLE ONLY public.system_social_user
 
 
 --
--- Name: system_social_user_bind pk_system_social_user_bind; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_social_user_bind pk_system_social_user_bind; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_social_user_bind
@@ -29335,7 +29127,7 @@ ALTER TABLE ONLY public.system_social_user_bind
 
 
 --
--- Name: system_tenant pk_system_tenant; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_tenant pk_system_tenant; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_tenant
@@ -29343,7 +29135,7 @@ ALTER TABLE ONLY public.system_tenant
 
 
 --
--- Name: system_tenant_package pk_system_tenant_package; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_tenant_package pk_system_tenant_package; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_tenant_package
@@ -29351,7 +29143,7 @@ ALTER TABLE ONLY public.system_tenant_package
 
 
 --
--- Name: system_user_post pk_system_user_post; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_user_post pk_system_user_post; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_user_post
@@ -29359,7 +29151,7 @@ ALTER TABLE ONLY public.system_user_post
 
 
 --
--- Name: system_user_role pk_system_user_role; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_user_role pk_system_user_role; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_user_role
@@ -29367,7 +29159,7 @@ ALTER TABLE ONLY public.system_user_role
 
 
 --
--- Name: system_users pk_system_users; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_users pk_system_users; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.system_users
@@ -29375,7 +29167,7 @@ ALTER TABLE ONLY public.system_users
 
 
 --
--- Name: qrtz_blob_triggers qrtz_blob_triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_blob_triggers qrtz_blob_triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_blob_triggers
@@ -29383,7 +29175,7 @@ ALTER TABLE ONLY public.qrtz_blob_triggers
 
 
 --
--- Name: qrtz_calendars qrtz_calendars_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_calendars qrtz_calendars_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_calendars
@@ -29391,7 +29183,7 @@ ALTER TABLE ONLY public.qrtz_calendars
 
 
 --
--- Name: qrtz_cron_triggers qrtz_cron_triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_cron_triggers qrtz_cron_triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_cron_triggers
@@ -29399,7 +29191,7 @@ ALTER TABLE ONLY public.qrtz_cron_triggers
 
 
 --
--- Name: qrtz_fired_triggers qrtz_fired_triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_fired_triggers qrtz_fired_triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_fired_triggers
@@ -29407,7 +29199,7 @@ ALTER TABLE ONLY public.qrtz_fired_triggers
 
 
 --
--- Name: qrtz_job_details qrtz_job_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_job_details qrtz_job_details_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_job_details
@@ -29415,7 +29207,7 @@ ALTER TABLE ONLY public.qrtz_job_details
 
 
 --
--- Name: qrtz_locks qrtz_locks_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_locks qrtz_locks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_locks
@@ -29423,7 +29215,7 @@ ALTER TABLE ONLY public.qrtz_locks
 
 
 --
--- Name: qrtz_paused_trigger_grps qrtz_paused_trigger_grps_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_paused_trigger_grps qrtz_paused_trigger_grps_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_paused_trigger_grps
@@ -29431,7 +29223,7 @@ ALTER TABLE ONLY public.qrtz_paused_trigger_grps
 
 
 --
--- Name: qrtz_scheduler_state qrtz_scheduler_state_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_scheduler_state qrtz_scheduler_state_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_scheduler_state
@@ -29439,7 +29231,7 @@ ALTER TABLE ONLY public.qrtz_scheduler_state
 
 
 --
--- Name: qrtz_simple_triggers qrtz_simple_triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_simple_triggers qrtz_simple_triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_simple_triggers
@@ -29447,7 +29239,7 @@ ALTER TABLE ONLY public.qrtz_simple_triggers
 
 
 --
--- Name: qrtz_simprop_triggers qrtz_simprop_triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_simprop_triggers qrtz_simprop_triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_simprop_triggers
@@ -29455,7 +29247,7 @@ ALTER TABLE ONLY public.qrtz_simprop_triggers
 
 
 --
--- Name: qrtz_triggers qrtz_triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_triggers qrtz_triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_triggers
@@ -29463,182 +29255,182 @@ ALTER TABLE ONLY public.qrtz_triggers
 
 
 --
--- Name: idx_infra_api_access_log_01; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_infra_api_access_log_01; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_infra_api_access_log_01 ON public.infra_api_access_log USING btree (create_time);
 
 
 --
--- Name: idx_qrtz_blob_triggers_sched_name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_blob_triggers_sched_name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_blob_triggers_sched_name ON public.qrtz_blob_triggers USING btree (sched_name, trigger_name, trigger_group);
 
 
 --
--- Name: idx_qrtz_ft_inst_job_req_rcvry; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_ft_inst_job_req_rcvry; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_ft_inst_job_req_rcvry ON public.qrtz_fired_triggers USING btree (sched_name, instance_name, requests_recovery);
 
 
 --
--- Name: idx_qrtz_ft_j_g; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_ft_j_g; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_ft_j_g ON public.qrtz_fired_triggers USING btree (sched_name, job_name, job_group);
 
 
 --
--- Name: idx_qrtz_ft_jg; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_ft_jg; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_ft_jg ON public.qrtz_fired_triggers USING btree (sched_name, job_group);
 
 
 --
--- Name: idx_qrtz_ft_t_g; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_ft_t_g; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_ft_t_g ON public.qrtz_fired_triggers USING btree (sched_name, trigger_name, trigger_group);
 
 
 --
--- Name: idx_qrtz_ft_tg; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_ft_tg; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_ft_tg ON public.qrtz_fired_triggers USING btree (sched_name, trigger_group);
 
 
 --
--- Name: idx_qrtz_ft_trig_inst_name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_ft_trig_inst_name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_ft_trig_inst_name ON public.qrtz_fired_triggers USING btree (sched_name, instance_name);
 
 
 --
--- Name: idx_qrtz_j_grp; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_j_grp; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_j_grp ON public.qrtz_job_details USING btree (sched_name, job_group);
 
 
 --
--- Name: idx_qrtz_j_req_recovery; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_j_req_recovery; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_j_req_recovery ON public.qrtz_job_details USING btree (sched_name, requests_recovery);
 
 
 --
--- Name: idx_qrtz_t_c; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_t_c; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_t_c ON public.qrtz_triggers USING btree (sched_name, calendar_name);
 
 
 --
--- Name: idx_qrtz_t_g; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_t_g; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_t_g ON public.qrtz_triggers USING btree (sched_name, trigger_group);
 
 
 --
--- Name: idx_qrtz_t_j; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_t_j; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_t_j ON public.qrtz_triggers USING btree (sched_name, job_name, job_group);
 
 
 --
--- Name: idx_qrtz_t_jg; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_t_jg; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_t_jg ON public.qrtz_triggers USING btree (sched_name, job_group);
 
 
 --
--- Name: idx_qrtz_t_n_g_state; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_t_n_g_state; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_t_n_g_state ON public.qrtz_triggers USING btree (sched_name, trigger_group, trigger_state);
 
 
 --
--- Name: idx_qrtz_t_n_state; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_t_n_state; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_t_n_state ON public.qrtz_triggers USING btree (sched_name, trigger_name, trigger_group, trigger_state);
 
 
 --
--- Name: idx_qrtz_t_next_fire_time; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_t_next_fire_time; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_t_next_fire_time ON public.qrtz_triggers USING btree (sched_name, next_fire_time);
 
 
 --
--- Name: idx_qrtz_t_nft_misfire; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_t_nft_misfire; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_t_nft_misfire ON public.qrtz_triggers USING btree (sched_name, misfire_instr, next_fire_time);
 
 
 --
--- Name: idx_qrtz_t_nft_st; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_t_nft_st; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_t_nft_st ON public.qrtz_triggers USING btree (sched_name, trigger_state, next_fire_time);
 
 
 --
--- Name: idx_qrtz_t_nft_st_misfire; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_t_nft_st_misfire; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_t_nft_st_misfire ON public.qrtz_triggers USING btree (sched_name, misfire_instr, next_fire_time, trigger_state);
 
 
 --
--- Name: idx_qrtz_t_nft_st_misfire_grp; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_t_nft_st_misfire_grp; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_t_nft_st_misfire_grp ON public.qrtz_triggers USING btree (sched_name, misfire_instr, next_fire_time, trigger_group, trigger_state);
 
 
 --
--- Name: idx_qrtz_t_state; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_qrtz_t_state; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_qrtz_t_state ON public.qrtz_triggers USING btree (sched_name, trigger_state);
 
 
 --
--- Name: idx_system_oauth2_access_token_01; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_system_oauth2_access_token_01; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_system_oauth2_access_token_01 ON public.system_oauth2_access_token USING btree (access_token);
 
 
 --
--- Name: idx_system_oauth2_access_token_02; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_system_oauth2_access_token_02; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_system_oauth2_access_token_02 ON public.system_oauth2_access_token USING btree (refresh_token);
 
 
 --
--- Name: idx_system_sms_code_01; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_system_sms_code_01; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_system_sms_code_01 ON public.system_sms_code USING btree (mobile);
 
 
 --
--- Name: qrtz_blob_triggers qrtz_blob_triggers_ibfk_1; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_blob_triggers qrtz_blob_triggers_ibfk_1; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_blob_triggers
@@ -29646,7 +29438,7 @@ ALTER TABLE ONLY public.qrtz_blob_triggers
 
 
 --
--- Name: qrtz_cron_triggers qrtz_cron_triggers_ibfk_1; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_cron_triggers qrtz_cron_triggers_ibfk_1; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_cron_triggers
@@ -29654,7 +29446,7 @@ ALTER TABLE ONLY public.qrtz_cron_triggers
 
 
 --
--- Name: qrtz_simple_triggers qrtz_simple_triggers_ibfk_1; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_simple_triggers qrtz_simple_triggers_ibfk_1; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_simple_triggers
@@ -29662,7 +29454,7 @@ ALTER TABLE ONLY public.qrtz_simple_triggers
 
 
 --
--- Name: qrtz_simprop_triggers qrtz_simprop_triggers_ibfk_1; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_simprop_triggers qrtz_simprop_triggers_ibfk_1; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_simprop_triggers
@@ -29670,7 +29462,7 @@ ALTER TABLE ONLY public.qrtz_simprop_triggers
 
 
 --
--- Name: qrtz_triggers qrtz_triggers_ibfk_1; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: qrtz_triggers qrtz_triggers_ibfk_1; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.qrtz_triggers
@@ -29681,5 +29473,5 @@ ALTER TABLE ONLY public.qrtz_triggers
 -- PostgreSQL database dump complete
 --
 
-\unrestrict el4LXXySXiPH1G6se5csdG44V2hTfUdlwQRWpa1JiI14ectrdVfctGtg1hAe0kD
+\unrestrict PB3eHYYKB0NWA3Mn3rXzUgK9xqWC3kKr8cbNKxw4ru00zxW9zfoXbE6jZMdbObg
 

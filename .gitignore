@@ -54,3 +54,6 @@ hs_err_pid*
 
 # alert_images 文件夹
 **/alert_images/
+
+# backup 文件夹
+**/backup/
