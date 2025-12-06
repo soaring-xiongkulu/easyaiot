@@ -419,21 +419,25 @@ const handleStart = async (record: any) => {
   if (record.status === 'running') return;
   try {
     const result = await batchStartDeployService(record.service_name);
-    if (result.code === 0) {
-      const data = result.data || {};
+    
+    // 现在 API 返回完整响应对象（包含 code、msg、data）
+    // 当 isTransformResponse: false 时，实际数据在 result.data 中
+    const responseData = result?.data || {};
+    if (result && responseData.code === 0) {
+      const data = responseData.data || {};
       const successCount = data.success_count || 0;
       const failCount = data.fail_count || 0;
       const errors = data.errors || [];
       
       // 优先使用后台返回的 msg
-      if (result.msg) {
+      if (responseData.msg) {
         // 根据成功/失败情况选择消息类型
         if (failCount === 0) {
-          createMessage.success(result.msg);
+          createMessage.success(responseData.msg);
         } else if (successCount === 0) {
-          createMessage.error(result.msg);
+          createMessage.error(responseData.msg);
         } else {
-          createMessage.warning(result.msg);
+          createMessage.warning(responseData.msg);
         }
       } else {
         // 如果后台没有返回 msg，则根据数据判断
@@ -486,13 +490,18 @@ const handleStart = async (record: any) => {
         }
       }
     } else {
-      createMessage.error(result.msg || '批量启动失败');
+      console.log(JSON.stringify(result))
+      // code !== 0 的情况
+      createMessage.error(responseData?.msg || '批量启动失败');
     }
+    
     fetch();
   } catch (error: any) {
-    const errorMsg = error?.response?.data?.msg || error?.message || '批量启动失败，请检查网络连接';
+    // 如果进入 catch，说明请求失败
+    console.error('批量启动异常:', error);
+    const errorData = error?.response?.data || error?.data || {};
+    const errorMsg = errorData.msg || error?.message || '批量启动失败，请检查网络连接';
     createMessage.error(`批量启动失败：${errorMsg}`);
-    console.error('批量启动失败:', error);
   }
 };
 
@@ -501,10 +510,12 @@ const handleStop = async (record: any) => {
   if (record.status !== 'running') return;
   try {
     const result = await batchStopDeployService(record.service_name);
-    if (result.code === 0) {
-      createMessage.success(result.msg || '批量停止成功');
+    // 当 isTransformResponse: false 时，实际数据在 result.data 中
+    const responseData = result?.data || {};
+    if (responseData.code === 0) {
+      createMessage.success(responseData.msg || '批量停止成功');
     } else {
-      createMessage.error(result.msg || '批量停止失败');
+      createMessage.error(responseData.msg || '批量停止失败');
     }
     fetch();
   } catch (error) {
@@ -518,10 +529,12 @@ const handleRestart = async (record: any) => {
   if (record.status !== 'running') return;
   try {
     const result = await batchRestartDeployService(record.service_name);
-    if (result.code === 0) {
-      createMessage.success(result.msg || '批量重启成功');
+    // 当 isTransformResponse: false 时，实际数据在 result.data 中
+    const responseData = result?.data || {};
+    if (responseData.code === 0) {
+      createMessage.success(responseData.msg || '批量重启成功');
     } else {
-      createMessage.error(result.msg || '批量重启失败');
+      createMessage.error(responseData.msg || '批量重启失败');
     }
     fetch();
   } catch (error) {

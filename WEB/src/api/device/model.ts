@@ -267,15 +267,18 @@ export const deleteDeployService = (serviceId) => {
 
 // 批量操作接口（按service_name）
 export const batchStartDeployService = (serviceName) => {
-  return commonApi('post', `${Api.DeployService}/batch/start`, {data: {service_name: serviceName}});
+  // 禁用 transformResponse 以获取完整响应对象（包含 code、msg、data）
+  return commonApi('post', `${Api.DeployService}/batch/start`, {data: {service_name: serviceName}}, {}, false);
 };
 
 export const batchStopDeployService = (serviceName) => {
-  return commonApi('post', `${Api.DeployService}/batch/stop`, {data: {service_name: serviceName}});
+  // 禁用 transformResponse 以获取完整响应对象（包含 code、msg、data）
+  return commonApi('post', `${Api.DeployService}/batch/stop`, {data: {service_name: serviceName}}, {}, false);
 };
 
 export const batchRestartDeployService = (serviceName) => {
-  return commonApi('post', `${Api.DeployService}/batch/restart`, {data: {service_name: serviceName}});
+  // 禁用 transformResponse 以获取完整响应对象（包含 code、msg、data）
+  return commonApi('post', `${Api.DeployService}/batch/restart`, {data: {service_name: serviceName}}, {}, false);
 };
 
 // 获取service_name的所有副本详情
