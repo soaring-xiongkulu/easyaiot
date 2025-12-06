@@ -225,6 +225,7 @@ export interface DeviceInfo {
   support_move: boolean;
   support_zoom: boolean;
   enable_forward: boolean;
+  cover_image_path?: string;
   created_at: string;
   updated_at: string;
 }

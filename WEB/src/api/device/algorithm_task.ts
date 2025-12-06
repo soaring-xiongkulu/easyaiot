@@ -562,6 +562,7 @@ export interface CameraStreamInfo {
   source?: string;
   pusher_rtmp_url?: string;
   pusher_http_url?: string;
+  cover_image_path?: string;  // 设备封面图路径
 }
 
 export interface TaskStreamsResponse {

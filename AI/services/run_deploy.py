@@ -470,6 +470,9 @@ def send_nacos_heartbeat():
     """发送Nacos心跳"""
     global nacos_client, nacos_service_name, server_ip, port
     
+    consecutive_errors = 0
+    max_consecutive_errors = 3
+    
     while True:
         try:
             if nacos_client and nacos_service_name:
@@ -478,10 +481,47 @@ def send_nacos_heartbeat():
                     ip=server_ip,
                     port=port
                 )
+                # 心跳成功，重置错误计数
+                consecutive_errors = 0
         except Exception as e:
-            logger.error(f"Nacos心跳发送异常: {str(e)}")
-        
-        time.sleep(5)  # 每5秒发送一次Nacos心跳
+            error_msg = str(e)
+            consecutive_errors += 1
+            
+            # 如果是权限错误，尝试重新注册服务
+            if "Insufficient privilege" in error_msg or "insufficient privilege" in error_msg.lower():
+                # 只在第一次或每10次错误时打印，减少日志噪音
+                if consecutive_errors == 1 or consecutive_errors % 10 == 0:
+                    logger.warning(f"Nacos心跳权限错误，尝试重新注册服务 (错误次数: {consecutive_errors})")
+                
+                # 尝试重新注册服务
+                try:
+                    if nacos_client and nacos_service_name:
+                        nacos_client.add_naming_instance(
+                            service_name=nacos_service_name,
+                            ip=server_ip,
+                            port=port,
+                            cluster_name="DEFAULT",
+                            healthy=True,
+                            ephemeral=True
+                        )
+                        logger.info(f"✅ 服务重新注册成功: {nacos_service_name}@{server_ip}:{port}")
+                        consecutive_errors = 0  # 重置错误计数
+                except Exception as reg_error:
+                    # 重新注册失败，只在每10次错误时打印
+                    if consecutive_errors % 10 == 0:
+                        logger.error(f"服务重新注册失败: {str(reg_error)}")
+            else:
+                # 其他错误，只在每10次错误时打印
+                if consecutive_errors % 10 == 0:
+                    logger.warning(f"Nacos心跳发送异常 (错误次数: {consecutive_errors}): {error_msg}")
+            
+            # 如果连续错误次数过多，增加等待时间
+            if consecutive_errors >= max_consecutive_errors:
+                time.sleep(30)  # 等待30秒后重试
+            else:
+                time.sleep(5)
+        else:
+            time.sleep(5)  # 每5秒发送一次Nacos心跳
 
 
 def send_ai_heartbeat():

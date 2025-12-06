@@ -50,6 +50,7 @@ class Device(db.Model):
     enable_forward = db.Column(db.Boolean, nullable=True)
     auto_snap_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否开启自动抓拍[默认不开启]')
     directory_id = db.Column(db.Integer, db.ForeignKey('device_directory.id', ondelete='SET NULL'), nullable=True, comment='所属目录ID')
+    cover_image_path = db.Column(db.String(500), nullable=True, comment='摄像头封面展示图路径')
     images = db.relationship('Image', backref='project', lazy=True, cascade='all, delete-orphan')
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
     updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
@@ -851,6 +852,57 @@ class RegionModelService(db.Model):
             'request_headers': headers,
             'request_body_template': body_template,
             'timeout': self.timeout,
+            'is_enabled': self.is_enabled,
+            'sort_order': self.sort_order,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class DeviceDetectionRegion(db.Model):
+    """设备检测区域表（独立于算法任务的区域检测配置）"""
+    __tablename__ = 'device_detection_region'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    device_id = db.Column(db.String(100), db.ForeignKey('device.id', ondelete='CASCADE'), nullable=False, comment='设备ID')
+    region_name = db.Column(db.String(255), nullable=False, comment='区域名称')
+    region_type = db.Column(db.String(50), default='polygon', nullable=False, comment='区域类型[polygon:多边形,line:线条]')
+    points = db.Column(db.Text, nullable=False, comment='区域坐标点(JSON格式，归一化坐标0-1)')
+    image_id = db.Column(db.Integer, db.ForeignKey('image.id', ondelete='SET NULL'), nullable=True, comment='参考图片ID（用于绘制区域的基准图片）')
+    
+    # 显示配置
+    color = db.Column(db.String(20), default='#FF5252', nullable=False, comment='区域显示颜色')
+    opacity = db.Column(db.Float, default=0.3, nullable=False, comment='区域透明度(0-1)')
+    
+    # 状态
+    is_enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用该区域')
+    sort_order = db.Column(db.Integer, default=0, nullable=False, comment='排序顺序')
+    
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
+    
+    # 关联关系
+    device = db.relationship('Device', backref='detection_regions', lazy=True)
+    image = db.relationship('Image', backref='device_detection_regions', lazy=True)
+    
+    def to_dict(self):
+        """转换为字典"""
+        import json
+        try:
+            points_data = json.loads(self.points) if self.points else []
+        except:
+            points_data = []
+        
+        return {
+            'id': self.id,
+            'device_id': self.device_id,
+            'region_name': self.region_name,
+            'region_type': self.region_type,
+            'points': points_data,
+            'image_id': self.image_id,
+            'image_path': self.image.path if self.image else None,
+            'color': self.color,
+            'opacity': self.opacity,
             'is_enabled': self.is_enabled,
             'sort_order': self.sort_order,
             'created_at': self.created_at.isoformat() if self.created_at else None,

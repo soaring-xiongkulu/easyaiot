@@ -73,13 +73,15 @@
                         <div class="value">{{ item.device_names.join(', ') }}</div>
                       </div>
                     </div>
-                    <div class="prop" v-if="item.model_names">
-                      <div class="label">关联模型</div>
-                      <div class="value">{{ item.model_names }}</div>
-                    </div>
-                    <div class="prop" v-else-if="item.algorithm_services && item.algorithm_services.length > 0">
-                      <div class="label">关联算法服务</div>
-                      <div class="value">{{ item.algorithm_services.map(s => s.service_name).join(', ') }}</div>
+                    <div class="flex" style="justify-content: space-between;" v-if="item.model_names || (item.algorithm_services && item.algorithm_services.length > 0)">
+                      <div class="prop" v-if="item.model_names">
+                        <div class="label">关联模型</div>
+                        <div class="value">{{ item.model_names }}</div>
+                      </div>
+                      <div class="prop" v-else-if="item.algorithm_services && item.algorithm_services.length > 0">
+                        <div class="label">关联算法服务</div>
+                        <div class="value">{{ item.algorithm_services.map(s => s.service_name).join(', ') }}</div>
+                      </div>
                     </div>
                   </div>
                   <div class="btns">
@@ -89,6 +91,14 @@
                     <div class="btn" @click="handleEdit(item)">
                       <Icon icon="ant-design:edit-filled" :size="15" color="#3B82F6" />
                     </div>
+                    <div 
+                      class="btn" 
+                      :class="{ disabled: !hasModels(item) || !hasCameras(item) }"
+                      @click="hasModels(item) && hasCameras(item) && handleOpenRegionDetection(item)" 
+                      :title="!hasModels(item) ? '请先配置算法模型列表' : !hasCameras(item) ? '请先配置摄像头列表' : '区域检测配置'"
+                    >
+                      <Icon icon="ant-design:aim-outlined" :size="15" color="#3B82F6" />
+                    </div>
                     <div class="btn" @click="handleManageServices(item)" title="帧管道管理器">
                       <Icon icon="ant-design:setting-outlined" :size="15" color="#3B82F6" />
                     </div>
@@ -96,7 +106,7 @@
                       <Icon icon="ant-design:pause-circle-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <div class="btn" v-else @click="handleStart(item)">
-                      <Icon icon="ant-design:play-circle-outlined" :size="15" color="#3B82F6" />
+                      <Icon icon="ant-design:swap-outline" :size="15" color="#3B82F6" />
                     </div>
                     <Popconfirm
                       title="是否确认删除？"
@@ -104,7 +114,7 @@
                       cancel-text="否"
                       @confirm="handleDelete(item)"
                     >
-                      <div class="btn">
+                      <div class="btn delete-btn">
                         <Icon icon="material-symbols:delete-outline-rounded" :size="15" color="#DC2626" />
                       </div>
                     </Popconfirm>
@@ -130,6 +140,9 @@
     <!-- 服务管理抽屉 -->
     <ServiceManageDrawer @register="registerServiceDrawer" @success="handleSuccess" />
     
+    <!-- 区域检测配置抽屉 -->
+    <DeviceRegionDetectionDrawer @register="registerRegionDrawer" />
+    
     <!-- 视频播放模态框 -->
     <DialogPlayer @register="registerPlayerModal" />
     
@@ -150,10 +163,24 @@
           :value="index"
           style="display: block; margin-bottom: 12px;"
         >
-          <div>
-            <div style="font-weight: 500;">{{ stream.device_name }}</div>
-            <div style="font-size: 12px; color: #999; margin-top: 4px;">
-              {{ stream.pusher_http_url || stream.http_stream || stream.pusher_rtmp_url || stream.rtmp_stream || '无推流地址' }}
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <!-- 封面图 -->
+            <div v-if="stream.cover_image_path" style="width: 80px; height: 60px; flex-shrink: 0;">
+              <img
+                :src="stream.cover_image_path"
+                alt="封面图"
+                style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;"
+              />
+            </div>
+            <div v-else style="width: 80px; height: 60px; flex-shrink: 0; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+              无封面
+            </div>
+            <!-- 设备信息 -->
+            <div style="flex: 1;">
+              <div style="font-weight: 500;">{{ stream.device_name }}</div>
+              <div style="font-size: 12px; color: #999; margin-top: 4px;">
+                {{ stream.pusher_http_url || stream.http_stream || stream.pusher_rtmp_url || stream.rtmp_stream || '无推流地址' }}
+              </div>
             </div>
           </div>
         </Radio>
@@ -194,6 +221,7 @@ import {
 } from '@/api/device/algorithm_task';
 import AlgorithmTaskModal from './AlgorithmTaskModal.vue';
 import ServiceManageDrawer from './ServiceManageDrawer.vue';
+import DeviceRegionDetectionDrawer from './DeviceRegionDetectionDrawer.vue';
 import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue';
 import { getBasicColumns, getFormConfig } from './Data';
 import AI_TASK_IMAGE from '@/assets/images/video/ai-task.png';
@@ -212,6 +240,7 @@ const taskList = ref<AlgorithmTask[]>([]);
 const loading = ref(false);
 const [registerModal, { openDrawer }] = useDrawer();
 const [registerServiceDrawer, { openDrawer: openServiceDrawer }] = useDrawer();
+const [registerRegionDrawer, { openDrawer: openRegionDrawer }] = useDrawer();
 const [registerPlayerModal, { openModal: openPlayerModal }] = useModal();
 
 // 摄像头选择和播放相关
@@ -265,6 +294,17 @@ const [registerTable, { reload }] = useTable({
   rowKey: 'id',
 });
 
+// 检查任务是否有摄像头列表
+const hasCameras = (record: AlgorithmTask) => {
+  return (record.device_ids && record.device_ids.length > 0) || 
+         (record.device_names && record.device_names.length > 0);
+};
+
+// 检查任务是否有算法模型列表
+const hasModels = (record: AlgorithmTask) => {
+  return record.model_ids && Array.isArray(record.model_ids) && record.model_ids.length > 0;
+};
+
 // 获取表格操作按钮
 const getTableActions = (record: AlgorithmTask) => {
   const actions = [
@@ -277,6 +317,26 @@ const getTableActions = (record: AlgorithmTask) => {
       icon: 'ant-design:edit-filled',
       tooltip: '编辑',
       onClick: () => handleEdit(record),
+    },
+    {
+      icon: 'ant-design:aim-outlined',
+      tooltip: !hasModels(record) 
+        ? '请先配置算法模型列表' 
+        : !hasCameras(record) 
+        ? '请先配置摄像头列表' 
+        : '区域检测配置',
+      disabled: !hasModels(record) || !hasCameras(record),
+      onClick: () => {
+        if (!hasModels(record)) {
+          createMessage.warning('请先配置算法模型列表');
+          return;
+        }
+        if (!hasCameras(record)) {
+          createMessage.warning('请先配置摄像头列表');
+          return;
+        }
+        handleOpenRegionDetection(record);
+      },
     },
     {
       icon: 'ant-design:setting-outlined',
@@ -452,6 +512,16 @@ const handleEdit = (record: AlgorithmTask) => {
 
 const handleManageServices = (record: AlgorithmTask) => {
   openServiceDrawer(true, { taskId: record.id });
+};
+
+const handleOpenRegionDetection = (record?: AlgorithmTask) => {
+  if (record) {
+    // 传入任务ID，只显示该任务关联的摄像头
+    openRegionDrawer(true, { taskId: record.id });
+  } else {
+    // 兼容旧逻辑：不传入任务ID，显示所有摄像头
+    openRegionDrawer(true);
+  }
 };
 
 const handleDelete = async (record: AlgorithmTask) => {
@@ -726,7 +796,7 @@ onMounted(() => {
   .toolbar-buttons {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
 }
 
@@ -802,10 +872,7 @@ onMounted(() => {
         color: #050708;
         line-height: 20px;
         height: 40px;
-        padding-right: 60px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        padding-right: 90px;
       }
 
       .props {
@@ -841,7 +908,7 @@ onMounted(() => {
         left: 16px;
         bottom: 16px;
         margin-top: 20px;
-        width: 180px;
+        width: 220px;
         height: 28px;
         border-radius: 45px;
         justify-content: space-around;
@@ -874,12 +941,35 @@ onMounted(() => {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #87CEEB;
+            color: #3B82F6;
             transition: color 0.3s;
           }
 
           &:hover :deep(.anticon) {
             color: #5BA3F5;
+          }
+
+          &.disabled {
+            cursor: not-allowed;
+            opacity: 0.4;
+
+            :deep(.anticon) {
+              color: #ccc;
+            }
+
+            &:hover :deep(.anticon) {
+              color: #ccc;
+            }
+          }
+
+          &.delete-btn {
+            :deep(.anticon) {
+              color: #DC2626;
+            }
+
+            &:hover :deep(.anticon) {
+              color: #DC2626;
+            }
           }
         }
       }

@@ -192,6 +192,10 @@ const algorithmTaskRef = ref();
 // Tab切换
 const handleTabClick = (activeKey: string) => {
   state.activeKey = activeKey;
+  // 切换到设备列表标签页时，刷新数据
+  if (activeKey === '1') {
+    handleSuccess();
+  }
   // 切换到抓拍空间标签页时，刷新数据
   if (activeKey === '3' && snapSpaceRef.value) {
     snapSpaceRef.value.refresh();

@@ -199,11 +199,11 @@ const loadModels = async () => {
     // 使用负数ID来标识默认模型，避免与数据库中的模型ID冲突
     const defaultModels = [
       {
-        label: 'yolo11n.pt (默认模型)',
+        label: 'yolo11n.pt',
         value: -1, // 使用 -1 表示 yolo11n.pt
       },
       {
-        label: 'yolov8n.pt (默认模型)',
+        label: 'yolov8n.pt',
         value: -2, // 使用 -2 表示 yolov8n.pt
       },
     ];
@@ -213,13 +213,13 @@ const loadModels = async () => {
       id: -1,
       name: 'yolo11n.pt',
       model_path: 'yolo11n.pt',
-      version: '默认',
+      version: undefined,
     });
     modelMap.value.set(-2, {
       id: -2,
       name: 'yolov8n.pt',
       model_path: 'yolov8n.pt',
-      version: '默认',
+      version: undefined,
     });
     
     // 将默认模型放在最前面，然后添加数据库中的模型

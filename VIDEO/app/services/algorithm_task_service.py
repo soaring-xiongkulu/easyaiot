@@ -349,6 +349,42 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             task.devices = devices
         
         task.updated_at = datetime.utcnow()
+        db.session.flush()  # 先flush以获取最新的task状态
+        
+        # 如果算法任务的模型列表被清空（实时算法任务），自动禁用相关设备的区域检测配置
+        if task_type == 'realtime':
+            # 检查更新后的模型列表是否为空
+            final_model_ids = task.model_ids
+            model_ids_empty = False
+            if not final_model_ids:
+                model_ids_empty = True
+            elif isinstance(final_model_ids, str):
+                if final_model_ids.strip() == '' or final_model_ids.strip() == '[]':
+                    model_ids_empty = True
+                else:
+                    try:
+                        model_ids_list = json.loads(final_model_ids)
+                        if not model_ids_list or len(model_ids_list) == 0:
+                            model_ids_empty = True
+                    except:
+                        # 如果解析失败，认为为空
+                        model_ids_empty = True
+            elif isinstance(final_model_ids, list):
+                if len(final_model_ids) == 0:
+                    model_ids_empty = True
+            
+            if model_ids_empty:
+                # 获取任务关联的所有设备
+                task_devices = task.devices if task.devices else []
+                if task_devices:
+                    from models import DeviceDetectionRegion
+                    for device in task_devices:
+                        # 禁用该设备的所有区域检测配置
+                        regions = DeviceDetectionRegion.query.filter_by(device_id=device.id).all()
+                        for region in regions:
+                            region.is_enabled = False
+                        logger.info(f"算法任务模型列表为空，自动禁用设备 {device.id} 的所有区域检测配置")
+        
         db.session.commit()
         
         logger.info(f"更新算法任务成功: task_id={task_id}, task_type={task_type}, device_ids={device_id_list}, model_ids={model_ids}")

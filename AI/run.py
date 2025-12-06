@@ -137,13 +137,59 @@ def get_local_ip():
 def send_heartbeat(client, ip, port, stop_event):
     """独立的心跳发送函数（支持安全停止）"""
     service_name = os.getenv('SERVICE_NAME', 'model-server')
+    consecutive_errors = 0
+    max_consecutive_errors = 3
+    
     while not stop_event.is_set():
         try:
+            # 检查客户端是否存在
+            if client is None:
+                time.sleep(10)  # 如果客户端不存在，等待更长时间
+                continue
+            
             client.send_heartbeat(service_name=service_name, ip=ip, port=port)
+            # 心跳成功，重置错误计数
+            consecutive_errors = 0
             # print(f"✅ 心跳发送成功: {service_name}@{ip}:{port}")
         except Exception as e:
-            print(f"❌ 心跳异常: {str(e)}")
-        time.sleep(5)
+            error_msg = str(e)
+            consecutive_errors += 1
+            
+            # 如果是权限错误，尝试重新注册服务
+            if "Insufficient privilege" in error_msg or "insufficient privilege" in error_msg.lower():
+                # 只在第一次或每10次错误时打印，减少日志噪音
+                if consecutive_errors == 1 or consecutive_errors % 10 == 0:
+                    print(f"⚠️  Nacos心跳权限错误，尝试重新注册服务 (错误次数: {consecutive_errors})")
+                
+                # 尝试重新注册服务
+                try:
+                    if client:
+                        client.add_naming_instance(
+                            service_name=service_name,
+                            ip=ip,
+                            port=port,
+                            cluster_name="DEFAULT",
+                            healthy=True,
+                            ephemeral=True
+                        )
+                        print(f"✅ 服务重新注册成功: {service_name}@{ip}:{port}")
+                        consecutive_errors = 0  # 重置错误计数
+                except Exception as reg_error:
+                    # 重新注册失败，只在每10次错误时打印
+                    if consecutive_errors % 10 == 0:
+                        print(f"❌ 服务重新注册失败: {str(reg_error)}")
+            else:
+                # 其他错误，只在每10次错误时打印
+                if consecutive_errors % 10 == 0:
+                    print(f"⚠️  心跳异常 (错误次数: {consecutive_errors}): {error_msg}")
+            
+            # 如果连续错误次数过多，增加等待时间
+            if consecutive_errors >= max_consecutive_errors:
+                time.sleep(30)  # 等待30秒后重试
+            else:
+                time.sleep(5)
+        else:
+            time.sleep(5)
 
 
 def create_app():

@@ -127,6 +127,15 @@ def create_app():
     database_url = database_url.replace("postgres://", "postgresql://", 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,  # 连接前检测连接是否有效
+        'pool_recycle': 3600,   # 1小时后回收连接
+        'pool_size': 10,        # 连接池大小
+        'max_overflow': 20,     # 最大溢出连接数
+        'connect_args': {
+            'connect_timeout': 10,  # 连接超时时间（秒）
+        }
+    }
     app.config['TIMEZONE'] = 'Asia/Shanghai'
     
     # MinIO对象存储配置
@@ -155,7 +164,7 @@ def create_app():
     db.init_app(app)
     with app.app_context():
         try:
-            from models import Device, Image, DeviceDirectory, SnapSpace, SnapTask, DetectionRegion, AlgorithmModelService, RegionModelService, DeviceStorageConfig, Playback, RecordSpace, AlgorithmTask, FrameExtractor, Sorter, Pusher
+            from models import Device, Image, DeviceDirectory, SnapSpace, SnapTask, DetectionRegion, AlgorithmModelService, RegionModelService, DeviceStorageConfig, Playback, RecordSpace, AlgorithmTask, FrameExtractor, Sorter, Pusher, DeviceDetectionRegion
             db.create_all()
             
             # 迁移：检查并添加缺失的列和表
@@ -208,8 +217,43 @@ def create_app():
                     db.session.commit()
                     print("✅ device.auto_snap_enabled 列添加成功")
                 
-                if directory_id_exists and auto_snap_enabled_exists:
-                    print("✅ 数据库迁移检查完成，所有列已存在")
+                # 检查 device 表的 cover_image_path 列是否存在
+                result = db.session.execute(text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'device' 
+                        AND column_name = 'cover_image_path'
+                    );
+                """))
+                cover_image_path_exists = result.scalar()
+                
+                if not cover_image_path_exists:
+                    print("⚠️  device.cover_image_path 列不存在，正在添加...")
+                    db.session.execute(text("""
+                        ALTER TABLE device 
+                        ADD COLUMN cover_image_path VARCHAR(500);
+                    """))
+                    db.session.commit()
+                    print("✅ device.cover_image_path 列添加成功")
+                
+                # 检查 device_detection_region 表是否存在
+                result = db.session.execute(text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'device_detection_region'
+                    );
+                """))
+                device_detection_region_exists = result.scalar()
+                
+                if not device_detection_region_exists:
+                    print("⚠️  device_detection_region 表不存在，正在创建...")
+                    db.create_all()  # 这会创建所有缺失的表
+                    print("✅ device_detection_region 表创建成功")
+                
+                if directory_id_exists and auto_snap_enabled_exists and cover_image_path_exists and device_detection_region_exists:
+                    print("✅ 数据库迁移检查完成，所有列和表已存在")
                 
                 # 检查 algorithm_task 表的新字段
                 try:
@@ -318,6 +362,15 @@ def create_app():
         print(f"✅ Algorithm Task Blueprint 注册成功")
     except Exception as e:
         print(f"❌ Algorithm Task Blueprint 注册失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    try:
+        from app.blueprints import device_detection_region
+        app.register_blueprint(device_detection_region.device_detection_region_bp, url_prefix='/video/device-detection')
+        print(f"✅ Device Detection Region Blueprint 注册成功")
+    except Exception as e:
+        print(f"❌ Device Detection Region Blueprint 注册失败: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -568,57 +621,73 @@ def create_app():
                     with app.app_context():
                         from datetime import datetime, timedelta
                         from models import db
+                        from sqlalchemy.exc import OperationalError, DisconnectionError
                         
                         timeout_threshold = datetime.utcnow() - timedelta(minutes=1)
                         
-                        # 检查抽帧器
-                        timeout_extractors = FrameExtractor.query.filter(
-                            FrameExtractor.status.in_(['running']),
-                            (FrameExtractor.last_heartbeat < timeout_threshold) | (FrameExtractor.last_heartbeat.is_(None))
-                        ).all()
-                        
-                        for extractor in timeout_extractors:
-                            old_status = extractor.status
-                            extractor.status = 'stopped'
-                            logger.info(f"抽帧器心跳超时，状态从 {old_status} 更新为 stopped: {extractor.extractor_name}")
-                        
-                        # 检查排序器
-                        timeout_sorters = Sorter.query.filter(
-                            Sorter.status.in_(['running']),
-                            (Sorter.last_heartbeat < timeout_threshold) | (Sorter.last_heartbeat.is_(None))
-                        ).all()
-                        
-                        for sorter in timeout_sorters:
-                            old_status = sorter.status
-                            sorter.status = 'stopped'
-                            logger.info(f"排序器心跳超时，状态从 {old_status} 更新为 stopped: {sorter.sorter_name}")
-                        
-                        # 检查推送器
-                        timeout_pushers = Pusher.query.filter(
-                            Pusher.status.in_(['running']),
-                            (Pusher.last_heartbeat < timeout_threshold) | (Pusher.last_heartbeat.is_(None))
-                        ).all()
-                        
-                        for pusher in timeout_pushers:
-                            old_status = pusher.status
-                            pusher.status = 'stopped'
-                            logger.info(f"推送器心跳超时，状态从 {old_status} 更新为 stopped: {pusher.pusher_name}")
-                        
-                        if timeout_extractors or timeout_sorters or timeout_pushers:
-                            db.session.commit()
-                            total = len(timeout_extractors) + len(timeout_sorters) + len(timeout_pushers)
-                            logger.info(f"已更新 {total} 个服务状态为stopped")
-                        
-                        # 清理已停止的进程
                         try:
-                            from app.services.algorithm_task_launcher_service import cleanup_stopped_processes
-                            cleanup_stopped_processes()
-                        except Exception as e:
-                            logger.warning(f"清理已停止的进程失败: {str(e)}")
+                            # 检查抽帧器
+                            timeout_extractors = FrameExtractor.query.filter(
+                                FrameExtractor.status.in_(['running']),
+                                (FrameExtractor.last_heartbeat < timeout_threshold) | (FrameExtractor.last_heartbeat.is_(None))
+                            ).all()
+                            
+                            for extractor in timeout_extractors:
+                                old_status = extractor.status
+                                extractor.status = 'stopped'
+                                logger.info(f"抽帧器心跳超时，状态从 {old_status} 更新为 stopped: {extractor.extractor_name}")
+                            
+                            # 检查排序器
+                            timeout_sorters = Sorter.query.filter(
+                                Sorter.status.in_(['running']),
+                                (Sorter.last_heartbeat < timeout_threshold) | (Sorter.last_heartbeat.is_(None))
+                            ).all()
+                            
+                            for sorter in timeout_sorters:
+                                old_status = sorter.status
+                                sorter.status = 'stopped'
+                                logger.info(f"排序器心跳超时，状态从 {old_status} 更新为 stopped: {sorter.sorter_name}")
+                            
+                            # 检查推送器
+                            timeout_pushers = Pusher.query.filter(
+                                Pusher.status.in_(['running']),
+                                (Pusher.last_heartbeat < timeout_threshold) | (Pusher.last_heartbeat.is_(None))
+                            ).all()
+                            
+                            for pusher in timeout_pushers:
+                                old_status = pusher.status
+                                pusher.status = 'stopped'
+                                logger.info(f"推送器心跳超时，状态从 {old_status} 更新为 stopped: {pusher.pusher_name}")
+                            
+                            if timeout_extractors or timeout_sorters or timeout_pushers:
+                                db.session.commit()
+                                total = len(timeout_extractors) + len(timeout_sorters) + len(timeout_pushers)
+                                logger.info(f"已更新 {total} 个服务状态为stopped")
+                            
+                            # 清理已停止的进程
+                            try:
+                                from app.services.algorithm_task_launcher_service import cleanup_stopped_processes
+                                cleanup_stopped_processes()
+                            except Exception as e:
+                                logger.warning(f"清理已停止的进程失败: {str(e)}")
+                                
+                        except (OperationalError, DisconnectionError) as db_error:
+                            # 数据库连接异常，尝试回滚并记录错误
+                            logger.warning(f"数据库连接异常，尝试重新连接: {str(db_error)}")
+                            try:
+                                db.session.rollback()
+                                # 尝试重新连接
+                                db.session.execute(text("SELECT 1"))
+                            except Exception as reconnect_error:
+                                logger.error(f"数据库重连失败: {str(reconnect_error)}")
+                                # 不抛出异常，让定时任务继续运行
                 except Exception as e:
-                    logger.error(f"检查心跳超时失败: {str(e)}")
+                    # 记录详细错误信息，但不中断定时任务
+                    logger.error(f"检查心跳超时失败: {str(e)}", exc_info=True)
                     try:
-                        db.session.rollback()
+                        with app.app_context():
+                            from models import db
+                            db.session.rollback()
                     except:
                         pass
             

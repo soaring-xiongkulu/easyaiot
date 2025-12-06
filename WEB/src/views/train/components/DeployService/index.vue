@@ -265,6 +265,7 @@ const handleBatchStart = async (record) => {
     }
     
     reload();
+    cardListReload();
   } catch (error: any) {
     // 如果进入 catch，说明请求失败
     console.error('批量启动异常:', error);
@@ -286,6 +287,7 @@ const handleBatchStop = async (record) => {
       createMessage.error(responseData.msg || '批量停止失败');
     }
     reload();
+    cardListReload();
   } catch (error) {
     createMessage.error('批量停止失败');
     console.error('批量停止失败:', error);
@@ -304,6 +306,7 @@ const handleBatchRestart = async (record) => {
       createMessage.error(responseData.msg || '批量重启失败');
     }
     reload();
+    cardListReload();
   } catch (error) {
     createMessage.error('批量重启失败');
     console.error('批量重启失败:', error);
@@ -322,6 +325,7 @@ const handleViewReplicas = async (record) => {
 // 副本刷新回调
 const handleReplicasRefresh = () => {
   reload();
+  cardListReload();
 };
 
 // 查看日志
@@ -342,6 +346,7 @@ const handleDelete = async (record) => {
     await deleteDeployService(record.id);
     createMessage.success('删除成功');
     reload();
+    cardListReload();
   } catch (error) {
     createMessage.error('删除失败');
     console.error('删除失败:', error);

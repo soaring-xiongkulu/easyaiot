@@ -212,7 +212,7 @@ def restart_task(task_id):
 
 
 # ====================== 心跳接收接口 ======================
-# 抽帧器、排序器、推送器的心跳接口已移除，统一使用实时算法服务心跳接口
+# 新架构统一使用实时算法服务心跳接口，旧的抽帧器、排序器、推送器心跳接口已移除
 
 
 @algorithm_task_bp.route('/heartbeat/realtime', methods=['POST'])
@@ -543,6 +543,7 @@ def get_task_streams(task_id):
                 'http_stream': device.http_stream,
                 'rtmp_stream': device.rtmp_stream,
                 'source': device.source,
+                'cover_image_path': device.cover_image_path,  # 添加设备封面图字段
             }
             
             # 对于实时算法任务，优先使用摄像头的推流地址
