@@ -112,6 +112,7 @@
 import {nextTick, onBeforeUnmount, onMounted, reactive, ref, watch} from 'vue';
 import {BasicTable, TableAction, useTable} from '@/components/Table';
 import {useMessage} from '@/hooks/web/useMessage';
+const {createMessage} = useMessage();
 import {useModal} from '@/components/Modal';
 import {useDrawer} from '@/components/Drawer';
 import {
@@ -134,7 +135,6 @@ import {getBasicColumns, getFormConfig} from './Data';
 import {Tag} from 'ant-design-vue';
 import {Icon} from "@/components/Icon";
 
-const {createMessage} = useMessage();
 
 // 模型选项列表
 const modelOptions = ref<any[]>([]);
@@ -190,13 +190,65 @@ const handleBatchStart = async (record) => {
   try {
     const result = await batchStartDeployService(record.service_name);
     if (result.code === 0) {
-      createMessage.success(result.msg || '批量启动成功');
+      const data = result.data || {};
+      const successCount = data.success_count || 0;
+      const failCount = data.fail_count || 0;
+      const errors = data.errors || [];
+      
+      // 如果全部成功
+      if (failCount === 0) {
+        createMessage.success(result.msg || '批量启动成功');
+      } 
+      // 如果全部失败
+      else if (successCount === 0) {
+        // 检查是否是模型文件相关错误
+        let errorMessage = '批量启动失败';
+        
+        if (errors.length > 0) {
+          const hasModelError = errors.some(err => 
+            err.includes('MinIO') || 
+            err.includes('Minio') || 
+            err.includes('模型文件不存在') || 
+            err.includes('模型文件下载失败')
+          );
+          
+          if (hasModelError) {
+            errorMessage = '模型不存在，启动失败';
+          } else {
+            // 其他错误，显示第一个错误信息
+            errorMessage = errors[0] || '批量启动失败';
+          }
+        }
+        
+        createMessage.error(errorMessage);
+      } 
+      // 如果部分成功部分失败
+      else {
+        // 检查是否有模型文件相关错误
+        let warningMessage = `批量启动部分成功：成功 ${successCount} 个，失败 ${failCount} 个`;
+        
+        if (errors.length > 0) {
+          const hasModelError = errors.some(err => 
+            err.includes('MinIO') || 
+            err.includes('Minio') || 
+            err.includes('模型文件不存在') || 
+            err.includes('模型文件下载失败')
+          );
+          
+          if (hasModelError) {
+            warningMessage = `部分服务启动失败：模型不存在，启动失败（成功 ${successCount} 个，失败 ${failCount} 个）`;
+          }
+        }
+        
+        createMessage.warning(warningMessage);
+      }
     } else {
       createMessage.error(result.msg || '批量启动失败');
     }
     reload();
-  } catch (error) {
-    createMessage.error('批量启动失败');
+  } catch (error: any) {
+    const errorMsg = error?.response?.data?.msg || error?.message || '批量启动失败，请检查网络连接';
+    createMessage.error(`批量启动失败：${errorMsg}`);
     console.error('批量启动失败:', error);
   }
 };
