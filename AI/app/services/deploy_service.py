@@ -112,7 +112,7 @@ def _find_available_port(start_port=8000, max_attempts=100, exclude_ports=None):
     return None
 
 
-def _download_model_to_local(model_path: str, model_id: int) -> str:
+def _download_model_to_local(model_path: str, model_id: int) -> tuple[str | None, str | None]:
     """下载模型文件到本地（如果是MinIO URL）
     
     Args:
@@ -120,7 +120,9 @@ def _download_model_to_local(model_path: str, model_id: int) -> str:
         model_id: 模型ID（用于创建存储目录）
     
     Returns:
-        str: 本地模型文件路径（绝对路径）
+        tuple: (local_path: str | None, error_message: str | None)
+               - 成功时返回 (本地路径, None)
+               - 失败时返回 (None, 错误信息)
     """
     # 获取AI模块根目录
     ai_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -135,10 +137,11 @@ def _download_model_to_local(model_path: str, model_id: int) -> str:
         
         if os.path.exists(model_path):
             logger.info(f'模型文件已存在（本地路径）: {model_path}')
-            return model_path
+            return model_path, None
         else:
-            logger.error(f'模型文件不存在: {model_path}')
-            raise ValueError(f'模型文件不存在: {model_path}')
+            error_msg = f'模型文件不存在: {model_path}'
+            logger.warning(error_msg)
+            return None, error_msg
     
     # 解析MinIO URL
     import urllib.parse
@@ -150,14 +153,18 @@ def _download_model_to_local(model_path: str, model_id: int) -> str:
         if len(path_parts) >= 5 and path_parts[3] == 'buckets':
             bucket_name = path_parts[4]
         else:
-            raise ValueError(f'URL格式不正确，无法提取bucket名称: {model_path}')
+            error_msg = f'URL格式不正确，无法提取bucket名称: {model_path}'
+            logger.warning(error_msg)
+            return None, error_msg
         
         # 提取object_key
         query_params = urllib.parse.parse_qs(parsed.query)
         object_key = query_params.get('prefix', [None])[0]
         
         if not object_key:
-            raise ValueError(f'URL中缺少prefix参数: {model_path}')
+            error_msg = f'URL中缺少prefix参数: {model_path}'
+            logger.warning(error_msg)
+            return None, error_msg
         
         # 创建模型存储目录（使用模型ID，而不是服务ID）
         # 使用绝对路径，相对于AI模块根目录
@@ -172,7 +179,7 @@ def _download_model_to_local(model_path: str, model_id: int) -> str:
         if os.path.exists(local_path):
             file_size = os.path.getsize(local_path)
             logger.info(f'模型文件已存在，跳过下载: {local_path}, 大小: {file_size} 字节')
-            return local_path
+            return local_path, None
         
         # 下载文件
         logger.info(f'开始从MinIO下载模型文件...')
@@ -188,14 +195,23 @@ def _download_model_to_local(model_path: str, model_id: int) -> str:
         if success:
             file_size = os.path.getsize(local_path)
             logger.info(f'模型文件下载成功: {local_path}, 大小: {file_size} 字节')
-            return local_path
+            return local_path, None
         else:
-            logger.error(f'模型文件下载失败: {error_msg}')
-            raise ValueError(f'模型文件下载失败: {error_msg}')
+            # 生成友好的错误提示
+            if error_msg and ('InvalidAccessKeyId' in error_msg or 'InvalidAccessKey' in error_msg or 'Access Key' in error_msg):
+                friendly_msg = f'模型文件下载失败：MinIO访问密钥配置错误，请检查MinIO配置（bucket: {bucket_name}）。提示：请确认MINIO_ACCESS_KEY和MINIO_SECRET_KEY配置正确。'
+            elif error_msg and '不存在' in error_msg or 'NoSuchKey' in error_msg:
+                friendly_msg = f'模型文件不存在于MinIO存储中（bucket: {bucket_name}）'
+            else:
+                friendly_msg = f'模型文件下载失败：{error_msg}（bucket: {bucket_name}）'
+            
+            logger.warning(friendly_msg)
+            return None, friendly_msg
             
     except Exception as e:
-        logger.error(f'下载模型文件异常: {str(e)}', exc_info=True)
-        raise
+        error_msg = f'下载模型文件异常: {str(e)}'
+        logger.error(error_msg, exc_info=True)
+        return None, error_msg
 
 
 def _infer_model_format(model: Model, model_path: str) -> str:
@@ -346,7 +362,19 @@ def deploy_model(model_id: int, start_port: int = 8000) -> dict:
             }
         
         # 下载模型文件到本地（如果是MinIO URL）
-        local_model_path = _download_model_to_local(model_path, model_id)
+        local_model_path, download_error = _download_model_to_local(model_path, model_id)
+        
+        # 如果模型下载失败，返回友好提示
+        if local_model_path is None:
+            logger.warning(f'模型文件下载失败，但继续创建服务记录')
+            ai_service.status = 'error'
+            db.session.commit()
+            return {
+                'code': 0,
+                'msg': download_error or '模型文件下载失败，请检查模型文件路径和MinIO配置',
+                'data': ai_service.to_dict(),
+                'warning': True  # 标记为警告，不是错误
+            }
         
         # 启动守护进程（传入所有必要参数，不需要数据库连接）
         logger.info(f'启动守护进程，服务ID: {ai_service.id}')
@@ -469,7 +497,19 @@ def start_service(service_id: int) -> dict:
                 logger.info('守护进程已停止，重新启动...')
         
         # 下载模型文件到本地（如果是MinIO URL）
-        local_model_path = _download_model_to_local(model_path, service.model_id)
+        local_model_path, download_error = _download_model_to_local(model_path, service.model_id)
+        
+        # 如果模型下载失败，返回友好提示
+        if local_model_path is None:
+            logger.warning(f'模型文件下载失败，无法启动服务')
+            service.status = 'error'
+            db.session.commit()
+            return {
+                'code': 0,
+                'msg': download_error or '模型文件下载失败，请检查模型文件路径和MinIO配置',
+                'data': service.to_dict(),
+                'warning': True  # 标记为警告，不是错误
+            }
         
         # 启动守护进程（传入所有必要参数，不需要数据库连接）
         logger.info('启动守护进程...')

@@ -323,12 +323,20 @@ const formatDateTime = (dateString: string) => {
 // 启动服务
 const handleStart = async (record) => {
   try {
-    await startDeployService(record.id);
-    createMessage.success('服务启动成功');
+    const response = await startDeployService(record.id);
+    // 检查响应中是否有警告标记
+    if (response && (response as any).warning) {
+      // 显示警告信息（模型下载失败但服务记录已创建）
+      const warningMsg = (response as any).msg || '模型文件下载失败，请检查模型文件路径和MinIO配置';
+      createMessage.warning(warningMsg);
+    } else {
+      createMessage.success('服务启动成功');
+    }
     emit('refresh');
     reload();
-  } catch (error) {
-    createMessage.error('服务启动失败');
+  } catch (error: any) {
+    const errorMsg = error?.response?.data?.msg || error?.message || '服务启动失败';
+    createMessage.error(errorMsg);
     console.error('服务启动失败:', error);
   }
 };

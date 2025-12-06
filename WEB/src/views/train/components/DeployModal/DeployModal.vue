@@ -142,10 +142,19 @@ const handleSubmit = async () => {
       start_port: formState.start_port,
     };
     
-    await deployModel(values);
-    createMessage.success('部署成功');
-    closeModal();
-    emit('success');
+    const response = await deployModel(values);
+    // 检查响应中是否有警告标记
+    if (response && (response as any).warning) {
+      // 显示警告信息（模型下载失败但服务记录已创建）
+      const warningMsg = (response as any).msg || '模型文件下载失败，请检查模型文件路径和MinIO配置';
+      createMessage.warning(warningMsg);
+      closeModal();
+      emit('success');
+    } else {
+      createMessage.success('部署成功');
+      closeModal();
+      emit('success');
+    }
   } catch (error: any) {
     console.error('部署失败:', error);
     // 直接显示后端返回的错误信息
