@@ -230,9 +230,11 @@ def _get_notify_users_from_message_templates(channels: list) -> list:
 
 
 
+
+
 def process_alert_hook(alert_data: Dict) -> Dict:
     """
-    处理告警Hook请求：仅发送到Kafka（Java端统一处理消息，包括存储到数据库）
+    处理告警Hook请求：仅发送到Kafka（Java端统一处理消息，包括区域比对、布防时段判断、存储到数据库）
     
     Args:
         alert_data: 告警数据字典，包含以下字段：

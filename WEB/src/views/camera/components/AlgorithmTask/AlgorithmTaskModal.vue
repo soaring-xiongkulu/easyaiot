@@ -595,8 +595,12 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
             checkedChildren: '是',
             unCheckedChildren: '否',
             disabled: isViewMode.value,
-            onChange: (checked: boolean) => {
+            onChange: async (checked: boolean) => {
               model.is_full_day_defense = checked;
+              // 使用 setFieldsValue 更新表单值，这会触发 field-value-change 事件
+              await setFieldsValue({ is_full_day_defense: checked });
+              // 手动触发 handleFieldValueChange 以确保 isFullDayDefense 状态立即更新
+              handleFieldValueChange('is_full_day_defense', checked);
             },
           }),
           h(Popover, {
@@ -708,33 +712,42 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       channelTemplates.value = {};
     }
     
+    // 判断是否全天布防（如果 defense_mode 为 'full'，则为全天布防）
+    const fullDayDefense = record.defense_mode === 'full';
+    isFullDayDefense.value = fullDayDefense;
+    
     // 恢复布防时段配置
-    if (record.defense_mode && record.defense_schedule) {
+    if (fullDayDefense) {
+      // 全天布防：设置为全防模式
+      defenseSchedule.value = {
+        mode: 'full',
+        schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
+      };
+    } else if (record.defense_mode && record.defense_schedule) {
+      // 非全天布防：恢复保存的配置
       try {
         const schedule = typeof record.defense_schedule === 'string' 
           ? JSON.parse(record.defense_schedule) 
           : record.defense_schedule;
         defenseSchedule.value = {
-          mode: record.defense_mode,
+          mode: record.defense_mode || 'half',
           schedule: schedule,
         };
       } catch (e) {
         console.error('解析布防时段配置失败', e);
+        // 解析失败时，使用半防模式并清空
         defenseSchedule.value = {
-          mode: 'full',
-          schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
+          mode: 'half',
+          schedule: Array(7).fill(null).map(() => Array(24).fill(0)),
         };
       }
     } else {
+      // 没有配置时，使用半防模式并清空
       defenseSchedule.value = {
-        mode: 'full',
-        schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
+        mode: 'half',
+        schedule: Array(7).fill(null).map(() => Array(24).fill(0)),
       };
     }
-    
-    // 判断是否全天布防（如果 defense_mode 为 'full'，则为全天布防）
-    const fullDayDefense = record.defense_mode === 'full';
-    isFullDayDefense.value = fullDayDefense;
     
     await setFieldsValue({
       task_name: record.task_name,
@@ -825,11 +838,12 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
 const handleFieldValueChange = async (key: string, value: any) => {
   if (key === 'is_full_day_defense') {
     isFullDayDefense.value = value !== undefined ? value : true;
-    // 如果切换到非全天布防，设置为半防模式并清空，让用户自己选择
+    // 如果切换到非全天布防，默认设置为半防模式并清空表格，让用户自己选择
     if (!value) {
+      // 半防模式：全部清空，让用户自己选择
       defenseSchedule.value = {
         mode: 'half',
-        schedule: Array(7).fill(null).map(() => Array(24).fill(0)), // 清空，让用户自己选择
+        schedule: Array(7).fill(null).map(() => Array(24).fill(0)),
       };
     } else {
       // 如果切换到全天布防，设置为全防模式
@@ -911,7 +925,18 @@ const handleSubmit = async () => {
     } else {
       // 非全天布防：使用布防时段配置
       values.defense_mode = defenseSchedule.value.mode;
-      values.defense_schedule = JSON.stringify(defenseSchedule.value.schedule);
+      const schedule = defenseSchedule.value.schedule;
+      
+      // 验证非全天布防模式下至少选择了一个时段
+      const hasSelectedTime = schedule.some(day => day.some(hour => hour === 1));
+      if (!hasSelectedTime) {
+        createMessage.error('非全天布防模式下，请至少选择一个布防时段');
+        confirmLoading.value = false;
+        setDrawerProps({ confirmLoading: false });
+        return;
+      }
+      
+      values.defense_schedule = JSON.stringify(schedule);
     }
     
     // 移除前端字段，不发送到后端
@@ -1055,18 +1080,36 @@ const handleReset = () => {
       });
       
       // 恢复布防时段配置
-      if (record.defense_mode && record.defense_schedule) {
+      if (fullDayDefense) {
+        // 全天布防：设置为全防模式
+        defenseSchedule.value = {
+          mode: 'full',
+          schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
+        };
+      } else if (record.defense_mode && record.defense_schedule) {
+        // 非全天布防：恢复保存的配置
         try {
           const schedule = typeof record.defense_schedule === 'string' 
             ? JSON.parse(record.defense_schedule) 
             : record.defense_schedule;
           defenseSchedule.value = {
-            mode: record.defense_mode,
+            mode: record.defense_mode || 'half',
             schedule: schedule,
           };
         } catch (e) {
           console.error('解析布防时段配置失败', e);
+          // 解析失败时，使用半防模式并清空
+          defenseSchedule.value = {
+            mode: 'half',
+            schedule: Array(7).fill(null).map(() => Array(24).fill(0)),
+          };
         }
+      } else {
+        // 没有配置时，使用半防模式并清空
+        defenseSchedule.value = {
+          mode: 'half',
+          schedule: Array(7).fill(null).map(() => Array(24).fill(0)),
+        };
       }
   }
 };

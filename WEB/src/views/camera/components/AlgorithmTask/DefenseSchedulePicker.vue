@@ -179,13 +179,37 @@ watch(
   () => props.modelValue,
   (newVal) => {
     if (newVal) {
-      defenseMode.value = newVal.mode || 'full';
-      if (newVal.schedule) {
-        schedule.value = JSON.parse(JSON.stringify(newVal.schedule));
+      const newMode = newVal.mode || 'full';
+      const newSchedule = newVal.schedule;
+      
+      // 如果模式改变了，需要同步更新内部状态
+      if (defenseMode.value !== newMode) {
+        defenseMode.value = newMode;
+      }
+      
+      // 如果提供了schedule，使用提供的schedule；否则根据模式生成默认schedule
+      if (newSchedule) {
+        schedule.value = JSON.parse(JSON.stringify(newSchedule));
+      } else {
+        // 如果没有提供schedule，根据模式生成默认值
+        if (newMode === 'full') {
+          schedule.value = Array(7).fill(null).map(() => Array(24).fill(1));
+        } else if (newMode === 'day') {
+          schedule.value = Array(7).fill(null).map(() =>
+            Array(24).fill(0).map((_, hour) => (hour >= 6 && hour < 21 ? 1 : 0))
+          );
+        } else if (newMode === 'night') {
+          schedule.value = Array(7).fill(null).map(() =>
+            Array(24).fill(0).map((_, hour) => (hour >= 21 || hour < 6 ? 1 : 0))
+          );
+        } else {
+          // 半防模式：全部清空
+          schedule.value = Array(7).fill(null).map(() => Array(24).fill(0));
+        }
       }
     }
   },
-  { deep: true }
+  { deep: true, immediate: true }
 );
 
 // 格式化小时显示
