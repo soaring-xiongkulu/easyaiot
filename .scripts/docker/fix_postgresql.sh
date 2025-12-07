@@ -56,13 +56,49 @@ check_docker() {
 
 # 停止 PostgreSQL 容器
 stop_postgresql() {
-    print_info "停止 PostgreSQL 容器..."
-    if docker ps --filter "name=postgres-server" --format "{{.Names}}" | grep -q "postgres-server"; then
-        docker stop postgres-server 2>/dev/null || true
-        print_success "PostgreSQL 容器已停止"
+    print_section "停止 PostgreSQL 容器"
+    
+    # 确定 docker compose 命令
+    local compose_cmd
+    if command -v docker-compose &> /dev/null; then
+        compose_cmd="docker-compose"
     else
-        print_info "PostgreSQL 容器未运行"
+        compose_cmd="docker compose"
     fi
+    
+    # 1. 先 kill 容器（强制终止）
+    print_info "步骤 1: 强制终止 PostgreSQL 容器..."
+    if docker ps --filter "name=postgres-server" --format "{{.Names}}" | grep -q "postgres-server"; then
+        docker kill postgres-server 2>/dev/null && print_success "容器已强制终止" || print_info "容器未运行，跳过 kill"
+    else
+        print_info "容器未运行，跳过 kill"
+    fi
+    
+    # 2. 然后 stop 容器（优雅停止，如果还在运行）
+    print_info "步骤 2: 优雅停止 PostgreSQL 容器..."
+    if docker ps -a --filter "name=postgres-server" --format "{{.Names}}" | grep -q "postgres-server"; then
+        docker stop postgres-server 2>/dev/null && print_success "容器已停止" || print_info "容器已停止"
+    else
+        print_info "容器不存在，跳过 stop"
+    fi
+    
+    # 3. 使用 docker-compose down 完全清理（包括网络等）
+    print_info "步骤 3: 使用 docker-compose 完全清理 PostgreSQL 服务..."
+    cd "$SCRIPT_DIR"
+    $compose_cmd stop PostgresSQL 2>/dev/null || true
+    $compose_cmd rm -f PostgresSQL 2>/dev/null || true
+    print_success "PostgreSQL 容器已完全清理"
+    
+    # 4. 确保容器完全移除
+    print_info "步骤 4: 确保容器完全移除..."
+    if docker ps -a --filter "name=postgres-server" --format "{{.Names}}" | grep -q "postgres-server"; then
+        docker rm -f postgres-server 2>/dev/null && print_success "残留容器已移除" || print_warning "无法移除残留容器"
+    else
+        print_success "容器已完全移除"
+    fi
+    
+    # 等待一下确保清理完成
+    sleep 2
 }
 
 # 修复数据目录权限
@@ -164,9 +200,14 @@ start_postgresql() {
     fi
     
     print_info "使用命令: $compose_cmd"
-    print_info "启动 PostgreSQL 容器..."
+    print_info "当前目录: $(pwd)"
     
-    if $compose_cmd up -d PostgresSQL 2>&1; then
+    # 切换到 docker-compose.yml 所在目录
+    cd "$SCRIPT_DIR"
+    
+    # 重新创建并启动 PostgreSQL 容器
+    print_info "重新创建并启动 PostgreSQL 容器..."
+    if $compose_cmd up -d --force-recreate --no-deps PostgresSQL 2>&1; then
         print_success "PostgreSQL 容器启动命令已执行"
         
         # 等待容器就绪
@@ -186,6 +227,8 @@ start_postgresql() {
         return 1
     else
         print_error "启动 PostgreSQL 容器失败"
+        print_info "尝试查看错误信息..."
+        $compose_cmd up -d PostgresSQL 2>&1 || true
         return 1
     fi
 }
@@ -215,11 +258,13 @@ main() {
     print_section "PostgreSQL 密码修复脚本"
     
     print_info "此脚本将："
-    print_info "  1. 停止 PostgreSQL 容器"
-    print_info "  2. 修复数据目录权限"
-    print_info "  3. 迁移数据（如果需要）"
-    print_info "  4. 重新启动 PostgreSQL 容器"
-    print_info "  5. 测试数据库连接"
+    print_info "  1. 强制终止 (kill) PostgreSQL 容器"
+    print_info "  2. 优雅停止 (stop) PostgreSQL 容器"
+    print_info "  3. 完全清理 (rm) PostgreSQL 容器"
+    print_info "  4. 修复数据目录权限"
+    print_info "  5. 迁移数据（如果需要）"
+    print_info "  6. 重新创建并启动 PostgreSQL 容器"
+    print_info "  7. 测试数据库连接"
     echo ""
     
     read -p "是否继续？(y/N): " -r response

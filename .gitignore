@@ -57,3 +57,6 @@ hs_err_pid*
 
 # backup 文件夹
 **/backup/
+
+# 排除 postgresql 初始化脚本
+!.scripts/postgresql/00-init-databases.sh
