@@ -9,12 +9,6 @@
           </template>
           抓拍图片
         </a-button>
-        <a-button @click="handleUpdateCover" :loading="updatingCover" :disabled="!currentImage">
-          <template #icon>
-            <PictureOutlined />
-          </template>
-          更新封面
-        </a-button>
         <a-button @click="handleClear" :disabled="!currentImage">
           <template #icon>
             <ClearOutlined />
@@ -182,7 +176,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { CameraOutlined, ClearOutlined, SaveOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons-vue';
+import { CameraOutlined, ClearOutlined, SaveOutlined, DeleteOutlined } from '@ant-design/icons-vue';
 import { Icon } from '@/components/Icon';
 import { useMessage } from '@/hooks/web/useMessage';
 import {
@@ -237,7 +231,6 @@ const tools = ref<Tool[]>([
 // 状态
 const activeTool = ref<string>(ToolType.SELECT);
 const capturing = ref(false);
-const updatingCover = ref(false);
 const saving = ref(false);
 const currentImage = ref<HTMLImageElement | null>(null);
 const currentImageId = ref<number | null>(props.initialImageId || null);
@@ -1104,7 +1097,6 @@ const handleCapture = async () => {
         const coverResponse = await updateDeviceCoverImage(props.deviceId);
         const coverResult = (coverResponse as any).data || coverResponse;
         if (coverResult.code === 0 && coverResult.data) {
-          createMessage.success('封面图已自动更新');
           emit('cover-updated', coverResult.data.image_url);
         } else {
           console.warn('自动更新封面图失败:', coverResult.msg);
@@ -1121,32 +1113,6 @@ const handleCapture = async () => {
     createMessage.error('抓拍失败');
   } finally {
     capturing.value = false;
-  }
-};
-
-// 更新封面
-const handleUpdateCover = async () => {
-  if (!props.deviceId) {
-    createMessage.error('设备ID不能为空');
-    return;
-  }
-
-  try {
-    updatingCover.value = true;
-    const response = await updateDeviceCoverImage(props.deviceId);
-    // 当isTransformResponse为false时，返回的是AxiosResponse对象，需要访问response.data
-    const result = (response as any).data || response;
-    if (result.code === 0 && result.data) {
-      createMessage.success('更新封面成功');
-      emit('cover-updated', result.data.image_url);
-    } else {
-      createMessage.error(result.msg || '更新封面失败');
-    }
-  } catch (error) {
-    console.error('更新封面失败', error);
-    createMessage.error('更新封面失败');
-  } finally {
-    updatingCover.value = false;
   }
 };
 

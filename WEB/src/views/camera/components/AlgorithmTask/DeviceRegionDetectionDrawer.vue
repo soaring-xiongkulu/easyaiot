@@ -163,18 +163,23 @@ const selectDevice = async (device: DeviceInfo) => {
         deviceImageIds.value[device.id] = regions[0].image_id;
       }
       console.log('selectDevice: 设置区域图片路径:', regions[0].image_path);
+    } else {
+      // 如果没有区域图片，使用封面图作为初始图片
+      // 优先使用最新的封面图，即使 deviceImagePaths 已经有值，也要检查并更新
+      if (device.cover_image_path) {
+        deviceImagePaths.value[device.id] = device.cover_image_path;
+        console.log('selectDevice: 使用封面图作为初始图片:', device.cover_image_path);
+      }
     }
   } catch (error) {
     console.error('加载设备区域配置失败', error);
     // 加载失败时，设置为空数组，表示已尝试加载但没有数据
     deviceRegions.value[device.id] = [];
-  }
-  
-  // 如果有封面图但没有区域图片，使用封面图作为初始图片
-  // 确保在设置 selectedDeviceId 之前，图片路径已经被设置
-  if (device.cover_image_path && !deviceImagePaths.value[device.id]) {
-    deviceImagePaths.value[device.id] = device.cover_image_path;
-    console.log('selectDevice: 使用封面图作为初始图片:', device.cover_image_path);
+    // 加载失败时，如果有封面图，使用封面图作为初始图片
+    if (device.cover_image_path) {
+      deviceImagePaths.value[device.id] = device.cover_image_path;
+      console.log('selectDevice: 加载区域失败，使用封面图作为初始图片:', device.cover_image_path);
+    }
   }
   
   console.log('selectDevice: 准备设置 selectedDeviceId, deviceRegions:', deviceRegions.value[device.id], 'deviceImagePaths:', deviceImagePaths.value[device.id]);
@@ -225,6 +230,16 @@ const handleCoverUpdated = async (imagePath: string) => {
     if (device) {
       (device as any).cover_image_path = imagePath;
     }
+    
+    // 同步更新 deviceImagePaths，确保下次打开canvas时使用最新的封面图
+    // 如果没有区域图片，则使用新的封面图作为canvas的初始图片
+    const regions = deviceRegions.value[selectedDeviceId.value] || [];
+    const hasRegionImage = regions.length > 0 && regions[0].image_path;
+    if (!hasRegionImage) {
+      deviceImagePaths.value[selectedDeviceId.value] = imagePath;
+      console.log('封面更新: 同步更新 deviceImagePaths 为新的封面图:', imagePath);
+    }
+    
     createMessage.success('封面图已更新');
     
     // 重新加载设备列表以获取最新的封面图信息
