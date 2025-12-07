@@ -21,7 +21,7 @@
           </template>
           清空画布
         </a-button>
-        <a-button type="primary" @click="handleSave" :disabled="regions.length === 0 || !currentImage" :loading="saving">
+        <a-button type="primary" @click="handleSave" :disabled="!currentImage" :loading="saving">
           <template #icon>
             <SaveOutlined />
           </template>
@@ -133,7 +133,7 @@
             :class="{ active: selectedRegionId === (region.id || index) }"
             @click="selectRegion(region.id || index)"
           >
-            <div class="region-name">{{ region.region_name || `区域 ${index + 1}` }}</div>
+            <div class="region-name">{{ getDisplayRegionName(region, index) }}</div>
             <div class="region-type">{{ getRegionTypeName(region.region_type) }}</div>
             <div class="region-models" :class="{ 'no-models': !region.model_ids || region.model_ids.length === 0 }">
               <span class="models-label">绑定模型：</span>
@@ -426,6 +426,36 @@ const getRegionTypeName = (type: string) => {
 const generateDefaultRegionName = (): string => {
   const count = regions.value.length + 1;
   return `区域 ${count}`;
+};
+
+// 获取显示用的区域名称（确保唯一性）
+const getDisplayRegionName = (region: DeviceDetectionRegion, index: number): string => {
+  // 如果区域有名称且不为空，直接使用
+  if (region.region_name && region.region_name.trim() !== '') {
+    return region.region_name;
+  }
+  // 否则使用基于索引的默认名称
+  return `区域 ${index + 1}`;
+};
+
+// 规范化区域名称，确保唯一性
+const normalizeRegionNames = (regionsList: DeviceDetectionRegion[]) => {
+  const usedNames = new Set<string>();
+  regionsList.forEach((region, index) => {
+    // 如果名称为空，使用默认名称
+    if (!region.region_name || region.region_name.trim() === '') {
+      region.region_name = `区域 ${index + 1}`;
+    }
+    // 确保名称唯一性：如果名称已存在，添加后缀
+    let finalName = region.region_name.trim();
+    let suffix = 1;
+    while (usedNames.has(finalName)) {
+      finalName = `${region.region_name.trim()} (${suffix})`;
+      suffix++;
+    }
+    region.region_name = finalName;
+    usedNames.add(finalName);
+  });
 };
 
 // 处理区域名称变化
@@ -1016,12 +1046,27 @@ const selectRegion = (id: number | string) => {
 };
 
 // 删除区域
-const deleteRegion = (id: number | string) => {
+const deleteRegion = async (id: number | string) => {
   const index = regions.value.findIndex(r => (r.id || regions.value.indexOf(r)) === id);
   if (index !== -1) {
+    const region = regions.value[index];
+    // 如果是有效的数据库ID（大于0的数字），调用API删除服务器上的区域
+    const isValidDbId = region.id && typeof region.id === 'number' && region.id > 0;
+    if (isValidDbId) {
+      try {
+        await deleteDeviceRegion(region.id);
+        console.log('已删除服务器上的区域:', region.id);
+      } catch (error) {
+        console.error('删除区域失败:', region.id, error);
+        createMessage.error('删除区域失败');
+        return; // 如果删除失败，不从前端移除
+      }
+    }
+    // 从前端数组中移除
     regions.value.splice(index, 1);
     if (selectedRegionId.value === id) {
       selectedRegionId.value = null;
+      selectedModelIds.value = [];
     }
     draw();
   }
@@ -1117,17 +1162,24 @@ const handleClear = () => {
 
 // 保存区域
 const handleSave = async () => {
-  if (regions.value.length === 0) {
-    createMessage.warning('请至少绘制一个区域');
-    return;
-  }
-
-  // 验证所有区域都有名称
-  for (let i = 0; i < regions.value.length; i++) {
-    const region = regions.value[i];
-    if (!region.region_name || region.region_name.trim() === '') {
-      // 如果名称为空，使用默认名称
-      region.region_name = `区域 ${i + 1}`;
+  // 验证所有区域都有名称，并确保唯一性（仅当有区域时）
+  if (regions.value.length > 0) {
+    const usedNames = new Set<string>();
+    for (let i = 0; i < regions.value.length; i++) {
+      const region = regions.value[i];
+      if (!region.region_name || region.region_name.trim() === '') {
+        // 如果名称为空，使用默认名称
+        region.region_name = `区域 ${i + 1}`;
+      }
+      // 确保名称唯一性：如果名称已存在，添加后缀
+      let finalName = region.region_name;
+      let suffix = 1;
+      while (usedNames.has(finalName)) {
+        finalName = `${region.region_name} (${suffix})`;
+        suffix++;
+      }
+      region.region_name = finalName;
+      usedNames.add(finalName);
     }
   }
 
@@ -1138,6 +1190,7 @@ const handleSave = async () => {
     const existingRegionsResponse = await getDeviceRegions(props.deviceId);
     const existingRegions = existingRegionsResponse.data || [];
     const existingRegionIds = new Set(existingRegions.map(r => r.id));
+    const currentRegionIds = new Set(regions.value.map(r => r.id).filter(id => id && typeof id === 'number' && id > 0));
 
     // 保存或更新每个区域
     for (const region of regions.value) {
@@ -1146,9 +1199,12 @@ const handleSave = async () => {
         ? region.region_name.trim() 
         : `区域 ${regions.value.indexOf(region) + 1}`;
       
-      if (region.id && existingRegionIds.has(region.id)) {
+      // 判断是否为有效的数据库ID（大于0的数字）
+      const isValidDbId = region.id && typeof region.id === 'number' && region.id > 0;
+      
+      if (isValidDbId && existingRegionIds.has(region.id)) {
         // 更新现有区域
-        await updateDeviceRegion(region.id, {
+        const updateResponse = await updateDeviceRegion(region.id, {
           region_name: regionName,
           region_type: region.region_type,
           points: region.points,
@@ -1158,9 +1214,21 @@ const handleSave = async () => {
           sort_order: region.sort_order,
           model_ids: region.model_ids || [],
         });
+        // 更新前端区域的ID（确保使用服务器返回的最新ID）
+        if (updateResponse.code === 0 && updateResponse.data) {
+          const index = regions.value.findIndex(r => r.id === region.id);
+          if (index !== -1) {
+            regions.value[index] = {
+              ...regions.value[index],
+              ...updateResponse.data,
+              color: region.color || updateResponse.data.color || generateRandomColor(),
+              model_ids: region.model_ids || updateResponse.data.model_ids || []
+            };
+          }
+        }
       } else {
         // 创建新区域
-        await createDeviceRegion(props.deviceId, {
+        const createResponse = await createDeviceRegion(props.deviceId, {
           region_name: regionName,
           region_type: region.region_type,
           points: region.points,
@@ -1171,13 +1239,40 @@ const handleSave = async () => {
           sort_order: region.sort_order,
           model_ids: region.model_ids || [],
         });
+        // 更新前端区域的ID（使用服务器返回的新ID）
+        if (createResponse.code === 0 && createResponse.data) {
+          const index = regions.value.findIndex(r => r === region);
+          if (index !== -1) {
+            // 使用服务器返回的完整数据更新前端区域，确保ID正确
+            regions.value[index] = {
+              ...createResponse.data,
+              color: region.color || createResponse.data.color || generateRandomColor(),
+              model_ids: region.model_ids || createResponse.data.model_ids || []
+            };
+            // 更新 existingRegionIds，避免重复创建
+            existingRegionIds.add(createResponse.data.id);
+            currentRegionIds.add(createResponse.data.id);
+          }
+        }
+      }
+    }
+
+    // 删除服务器上存在但前端不存在的区域
+    const regionsToDelete = existingRegions.filter(r => !currentRegionIds.has(r.id));
+    for (const regionToDelete of regionsToDelete) {
+      try {
+        await deleteDeviceRegion(regionToDelete.id);
+        console.log('已删除服务器上的区域:', regionToDelete.id);
+      } catch (error) {
+        console.error('删除区域失败:', regionToDelete.id, error);
+        // 继续删除其他区域，不中断流程
       }
     }
 
     createMessage.success('保存成功');
     emit('save', regions.value);
     
-    // 重新加载区域列表
+    // 重新加载区域列表（确保数据同步）
     const response = await getDeviceRegions(props.deviceId);
     if (response.code === 0 && response.data) {
       // 为没有颜色的区域分配随机颜色，保留model_ids
@@ -1186,6 +1281,10 @@ const handleSave = async () => {
         color: region.color || generateRandomColor(),
         model_ids: region.model_ids || []
       }));
+      // 规范化区域名称，确保唯一性
+      normalizeRegionNames(regions.value);
+      // 重新绘制
+      draw();
     }
   } catch (error) {
     console.error('保存失败', error);
@@ -1242,6 +1341,8 @@ watch(
           color: region.color || generateRandomColor(),
           model_ids: region.model_ids || []
         }));
+        // 规范化区域名称，确保唯一性
+        normalizeRegionNames(regions.value);
         console.log('watch: 区域配置已更新，区域数量:', regions.value.length, '图片已加载:', imageLoaded.value, 'imageDisplaySize:', imageDisplaySize.value);
         console.log('watch: 区域数据详情:', regions.value);
         
@@ -1357,6 +1458,8 @@ onMounted(async () => {
           color: region.color || generateRandomColor(),
           model_ids: region.model_ids || []
         }));
+        // 规范化区域名称，确保唯一性
+        normalizeRegionNames(regions.value);
         console.log('onMounted: 使用 props.initialRegions，区域数量:', regions.value.length);
         // 如果有区域，尝试加载对应的图片（优先使用区域图片）
         if (props.initialRegions[0].image_path) {
@@ -1390,6 +1493,8 @@ onMounted(async () => {
             color: region.color || generateRandomColor(),
             model_ids: region.model_ids || []
           }));
+          // 规范化区域名称，确保唯一性
+          normalizeRegionNames(regions.value);
           console.log('onMounted: 从服务器加载区域成功，区域数量:', regions.value.length);
           // 如果有区域，尝试加载对应的图片（优先使用区域图片）
           if (response.data.length > 0 && response.data[0].image_path) {
