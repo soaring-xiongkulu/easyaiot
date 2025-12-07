@@ -252,6 +252,27 @@ def create_app():
                     db.create_all()  # 这会创建所有缺失的表
                     print("✅ device_detection_region 表创建成功")
                 
+                # 检查 device_detection_region 表的 model_ids 列是否存在
+                if device_detection_region_exists:
+                    result = db.session.execute(text("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.columns 
+                            WHERE table_schema = 'public' 
+                            AND table_name = 'device_detection_region' 
+                            AND column_name = 'model_ids'
+                        );
+                    """))
+                    model_ids_exists = result.scalar()
+                    
+                    if not model_ids_exists:
+                        print("⚠️  device_detection_region.model_ids 列不存在，正在添加...")
+                        db.session.execute(text("""
+                            ALTER TABLE device_detection_region 
+                            ADD COLUMN model_ids TEXT;
+                        """))
+                        db.session.commit()
+                        print("✅ device_detection_region.model_ids 列添加成功")
+                
                 if directory_id_exists and auto_snap_enabled_exists and cover_image_path_exists and device_detection_region_exists:
                     print("✅ 数据库迁移检查完成，所有列和表已存在")
                 
@@ -518,16 +539,6 @@ def create_app():
                 pass
         atexit.register(safe_shutdown_scheduler)
         
-        # 安全关闭Kafka消费者
-        def safe_shutdown_consumer():
-            try:
-                from app.services.alert_consumer_service import stop_alert_consumer
-                stop_alert_consumer()
-                print('✅ Kafka告警消息消费者已安全关闭')
-            except Exception as e:
-                # 忽略消费者未运行或已关闭的异常
-                pass
-        atexit.register(safe_shutdown_consumer)
         
         # 安全关闭所有算法任务守护进程
         def safe_shutdown_daemons():
@@ -547,15 +558,6 @@ def create_app():
             auto_start_streaming()
         except Exception as e:
             print(f"❌ 自动启动推流设备失败: {str(e)}")
-    
-    # 启动Kafka告警消息消费者
-    with app.app_context():
-        try:
-            from app.services.alert_consumer_service import start_alert_consumer
-            start_alert_consumer(app)
-            print("✅ Kafka告警消息消费者已启动")
-        except Exception as e:
-            print(f"❌ 启动Kafka告警消息消费者失败: {str(e)}")
     
     # 启动抓拍空间自动清理任务（每天凌晨2点执行）
     with app.app_context():
@@ -620,7 +622,7 @@ def create_app():
                 try:
                     with app.app_context():
                         from datetime import datetime, timedelta
-                        from models import db
+                        from models import db, AlgorithmTask
                         from sqlalchemy.exc import OperationalError, DisconnectionError
                         
                         timeout_threshold = datetime.utcnow() - timedelta(minutes=1)
@@ -659,9 +661,21 @@ def create_app():
                                 pusher.status = 'stopped'
                                 logger.info(f"推送器心跳超时，状态从 {old_status} 更新为 stopped: {pusher.pusher_name}")
                             
-                            if timeout_extractors or timeout_sorters or timeout_pushers:
+                            # 检查算法任务（实时算法任务）
+                            timeout_algorithm_tasks = AlgorithmTask.query.filter(
+                                AlgorithmTask.run_status.in_(['running', 'restarting']),
+                                AlgorithmTask.task_type == 'realtime',
+                                ((AlgorithmTask.service_last_heartbeat < timeout_threshold) | (AlgorithmTask.service_last_heartbeat.is_(None)))
+                            ).all()
+                            
+                            for task in timeout_algorithm_tasks:
+                                old_status = task.run_status
+                                task.run_status = 'stopped'
+                                logger.info(f"算法任务心跳超时，状态从 {old_status} 更新为 stopped: task_id={task.id}, task_name={task.task_name}")
+                            
+                            if timeout_extractors or timeout_sorters or timeout_pushers or timeout_algorithm_tasks:
                                 db.session.commit()
-                                total = len(timeout_extractors) + len(timeout_sorters) + len(timeout_pushers)
+                                total = len(timeout_extractors) + len(timeout_sorters) + len(timeout_pushers) + len(timeout_algorithm_tasks)
                                 logger.info(f"已更新 {total} 个服务状态为stopped")
                             
                             # 清理已停止的进程

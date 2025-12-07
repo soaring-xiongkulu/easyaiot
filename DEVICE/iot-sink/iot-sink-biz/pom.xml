@@ -107,6 +107,12 @@
             <groupId>io.vertx</groupId>
             <artifactId>vertx-mqtt</artifactId>
         </dependency>
+
+        <!-- MinIO 相关 -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

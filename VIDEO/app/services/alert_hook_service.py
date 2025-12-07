@@ -1,5 +1,5 @@
 """
-告警Hook服务：处理实时分析中的告警信息，存储到数据库并发送到Kafka
+告警Hook服务：处理实时分析中的告警信息，仅发送到Kafka（Java端统一处理消息）
 @author 翱翔的雄库鲁
 @email andywebjava@163.com
 @wechat EasyAIoT2025
@@ -13,8 +13,7 @@ from typing import Dict, Optional
 from flask import current_app
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
-from models import db, Alert
-from app.services.alert_service import create_alert
+from models import db
 
 logger = logging.getLogger(__name__)
 
@@ -229,17 +228,184 @@ def _get_notify_users_from_message_templates(channels: list) -> list:
     return notify_users
 
 
-def _build_notification_message(alert_record: Dict, alert_data: Dict, notification_config: Dict) -> Dict:
+
+
+def process_alert_hook(alert_data: Dict) -> Dict:
     """
-    构建告警通知消息（使用驼峰命名以匹配 Java 端）
+    处理告警Hook请求：仅发送到Kafka（Java端统一处理消息，包括存储到数据库）
     
     Args:
-        alert_record: 告警记录字典
+        alert_data: 告警数据字典，包含以下字段：
+            - object: 对象类型（必填）
+            - event: 事件类型（必填）
+            - device_id: 设备ID（必填）
+            - device_name: 设备名称（必填）
+            - region: 区域（可选）
+            - information: 详细信息，可以是字符串或字典（可选）
+            - time: 报警时间，格式：'YYYY-MM-DD HH:MM:SS'（可选，默认当前时间）
+            - image_path: 图片路径（可选，不直接传输图片，而是传输图片所在磁盘路径）
+            - record_path: 录像路径（可选）
+    
+    Returns:
+        dict: 发送到Kafka的消息字典
+    """
+    global _producer
+    try:
+        # 查询告警通知配置
+        device_id = alert_data.get('device_id')
+        notification_config = None
+        if device_id:
+            notification_config = _query_alert_notification_config(device_id)
+        
+        # 构建告警消息（直接发送原始告警数据，Java端会处理）
+        # 如果开启了告警通知，发送到Kafka
+        if notification_config:
+            producer = get_kafka_producer()
+            if producer is not None:
+                try:
+                    # 构建通知消息（使用原始alert_data，不依赖数据库记录）
+                    notification_message = _build_notification_message_for_kafka(alert_data, notification_config)
+                    
+                    # 如果通知消息为None，说明通知人列表为空，跳过发送
+                    if notification_message is None:
+                        logger.warning(f"告警通知消息构建失败（通知人列表为空），跳过发送: device_id={device_id}")
+                        return {'status': 'skipped', 'reason': 'no_notify_users'}
+                    
+                    # 从Flask配置中获取Kafka主题
+                    try:
+                        kafka_topic = current_app.config.get('KAFKA_ALERT_NOTIFICATION_TOPIC', 'iot-alert-notification')
+                    except RuntimeError:
+                        import os
+                        kafka_topic = os.getenv('KAFKA_ALERT_NOTIFICATION_TOPIC', 'iot-alert-notification')
+                    
+                    # 使用device_id作为key，确保同一设备的告警消息有序
+                    future = producer.send(
+                        kafka_topic,
+                        key=str(device_id),
+                        value=notification_message
+                    )
+                    
+                    # 异步发送，不阻塞（减少超时时间）
+                    try:
+                        record_metadata = future.get(timeout=2)  # 减少超时时间到2秒
+                        logger.info(f"告警消息发送到Kafka成功: device_id={device_id}, "
+                                   f"topic={record_metadata.topic}, partition={record_metadata.partition}, "
+                                   f"offset={record_metadata.offset}")
+                        return {
+                            'status': 'success',
+                            'topic': record_metadata.topic,
+                            'partition': record_metadata.partition,
+                            'offset': record_metadata.offset
+                        }
+                    except Exception as e:
+                        # 发送失败，但不影响主流程，只记录警告
+                        logger.warning(f"告警消息发送到Kafka失败: device_id={device_id}, error={str(e)}")
+                        # 如果连接失败，重置生产者，下次重新初始化
+                        if isinstance(e, (KafkaError, ConnectionError, TimeoutError)):
+                            try:
+                                _producer.close(timeout=0.5)
+                            except:
+                                pass
+                            _producer = None
+                        return {'status': 'failed', 'error': str(e)}
+                except Exception as e:
+                    # 发送异常，但不影响主流程
+                    logger.warning(f"发送告警消息到Kafka异常: {str(e)}")
+                    # 如果连接失败，重置生产者
+                    if isinstance(e, (KafkaError, ConnectionError, TimeoutError)):
+                        try:
+                            _producer.close(timeout=0.5)
+                        except:
+                            pass
+                        _producer = None
+                    return {'status': 'failed', 'error': str(e)}
+            else:
+                logger.warning(f"Kafka不可用，跳过告警消息发送: device_id={device_id}")
+                return {'status': 'failed', 'error': 'Kafka不可用'}
+        else:
+            # 没有通知配置，也发送到Kafka（Java端可能需要处理）
+            producer = get_kafka_producer()
+            if producer is not None:
+                try:
+                    # 构建简单的告警消息（不包含通知配置）
+                    simple_message = {
+                        'deviceId': alert_data.get('device_id'),
+                        'deviceName': alert_data.get('device_name'),
+                        'alert': {
+                            'object': alert_data.get('object'),
+                            'event': alert_data.get('event'),
+                            'region': alert_data.get('region'),
+                            'information': alert_data.get('information'),
+                            'imagePath': alert_data.get('image_path'),
+                            'recordPath': alert_data.get('record_path'),
+                            'time': alert_data.get('time', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                        },
+                        'timestamp': datetime.now().isoformat()
+                    }
+                    
+                    # 从Flask配置中获取Kafka主题
+                    try:
+                        kafka_topic = current_app.config.get('KAFKA_ALERT_NOTIFICATION_TOPIC', 'iot-alert-notification')
+                    except RuntimeError:
+                        import os
+                        kafka_topic = os.getenv('KAFKA_ALERT_NOTIFICATION_TOPIC', 'iot-alert-notification')
+                    
+                    # 使用device_id作为key，确保同一设备的告警消息有序
+                    future = producer.send(
+                        kafka_topic,
+                        key=str(device_id),
+                        value=simple_message
+                    )
+                    
+                    # 异步发送，不阻塞
+                    try:
+                        record_metadata = future.get(timeout=2)
+                        logger.info(f"告警消息发送到Kafka成功（无通知配置）: device_id={device_id}, "
+                                   f"topic={record_metadata.topic}, partition={record_metadata.partition}, "
+                                   f"offset={record_metadata.offset}")
+                        return {
+                            'status': 'success',
+                            'topic': record_metadata.topic,
+                            'partition': record_metadata.partition,
+                            'offset': record_metadata.offset
+                        }
+                    except Exception as e:
+                        logger.warning(f"告警消息发送到Kafka失败: device_id={device_id}, error={str(e)}")
+                        if isinstance(e, (KafkaError, ConnectionError, TimeoutError)):
+                            try:
+                                _producer.close(timeout=0.5)
+                            except:
+                                pass
+                            _producer = None
+                        return {'status': 'failed', 'error': str(e)}
+                except Exception as e:
+                    logger.warning(f"发送告警消息到Kafka异常: {str(e)}")
+                    if isinstance(e, (KafkaError, ConnectionError, TimeoutError)):
+                        try:
+                            _producer.close(timeout=0.5)
+                        except:
+                            pass
+                        _producer = None
+                    return {'status': 'failed', 'error': str(e)}
+            else:
+                logger.warning(f"Kafka不可用，跳过告警消息发送: device_id={device_id}")
+                return {'status': 'failed', 'error': 'Kafka不可用'}
+        
+    except Exception as e:
+        logger.error(f"处理告警Hook失败: {str(e)}", exc_info=True)
+        raise RuntimeError(f"处理告警Hook失败: {str(e)}")
+
+
+def _build_notification_message_for_kafka(alert_data: Dict, notification_config: Dict) -> Optional[Dict]:
+    """
+    构建告警通知消息（用于发送到Kafka，不依赖数据库记录）
+    
+    Args:
         alert_data: 原始告警数据字典
         notification_config: 通知配置字典
     
     Returns:
-        dict: 通知消息字典
+        dict: 通知消息字典，如果通知人列表为空返回None
     """
     # 从通知配置中提取渠道信息
     alert_notification_config = notification_config.get('alert_notification_config')
@@ -266,18 +432,17 @@ def _build_notification_message(alert_record: Dict, alert_data: Dict, notificati
     if not notify_users and channels:
         notify_users = _get_notify_users_from_message_templates(channels)
     
-    # 如果通知人列表仍然为空，记录错误并跳过发送
+    # 如果通知人列表仍然为空，返回None
     if not notify_users:
-        logger.error(f"告警通知消息中没有通知人，跳过发送: alert_id={alert_record.get('id')}, "
+        logger.error(f"告警通知消息中没有通知人，跳过发送: device_id={alert_data.get('device_id')}, "
                      f"task_id={notification_config.get('task_id')}, "
                      f"task_name={notification_config.get('task_name')}, "
                      f"channels={channels}, "
                      f"notification_config={notification_config}")
-        # 返回None，表示跳过发送
         return None
     
     # 处理告警时间格式
-    alert_time = alert_record.get('time')
+    alert_time = alert_data.get('time')
     if alert_time:
         if isinstance(alert_time, datetime):
             alert_time = alert_time.strftime('%Y-%m-%d %H:%M:%S')
@@ -288,10 +453,11 @@ def _build_notification_message(alert_record: Dict, alert_data: Dict, notificati
                 alert_time = dt.strftime('%Y-%m-%d %H:%M:%S')
             except:
                 pass
+    else:
+        alert_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     # 构建通知消息（使用驼峰命名以匹配 Java 端的 AlertNotificationMessage）
     message = {
-        'alertId': alert_record.get('id'),  # 驼峰命名
         'taskId': notification_config.get('task_id'),  # 驼峰命名
         'taskName': notification_config.get('task_name'),  # 驼峰命名
         'deviceId': alert_data.get('device_id'),  # 驼峰命名
@@ -312,97 +478,4 @@ def _build_notification_message(alert_record: Dict, alert_data: Dict, notificati
     }
     
     return message
-
-
-def process_alert_hook(alert_data: Dict) -> Dict:
-    """
-    处理告警Hook请求：存储到数据库并发送到Kafka
-    
-    Args:
-        alert_data: 告警数据字典，包含以下字段：
-            - object: 对象类型（必填）
-            - event: 事件类型（必填）
-            - device_id: 设备ID（必填）
-            - device_name: 设备名称（必填）
-            - region: 区域（可选）
-            - information: 详细信息，可以是字符串或字典（可选）
-            - time: 报警时间，格式：'YYYY-MM-DD HH:MM:SS'（可选，默认当前时间）
-            - image_path: 图片路径（可选，不直接传输图片，而是传输图片所在磁盘路径）
-            - record_path: 录像路径（可选）
-    
-    Returns:
-        dict: 创建的报警记录字典
-    """
-    global _producer
-    try:
-        # 先存储到数据库
-        alert_record = create_alert(alert_data)
-        
-        # 查询告警通知配置
-        device_id = alert_data.get('device_id')
-        notification_config = None
-        if device_id:
-            notification_config = _query_alert_notification_config(device_id)
-        
-        # 如果开启了告警通知，发送到Kafka
-        if notification_config:
-            producer = get_kafka_producer()
-            if producer is not None:
-                try:
-                    # 构建通知消息
-                    notification_message = _build_notification_message(alert_record, alert_data, notification_config)
-                    
-                    # 如果通知消息为None，说明通知人列表为空，跳过发送
-                    if notification_message is None:
-                        logger.warning(f"告警通知消息构建失败（通知人列表为空），跳过发送: alert_id={alert_record.get('id')}")
-                        return alert_record
-                    
-                    # 从Flask配置中获取Kafka主题
-                    try:
-                        kafka_topic = current_app.config.get('KAFKA_ALERT_NOTIFICATION_TOPIC', 'iot-alert-notification')
-                    except RuntimeError:
-                        import os
-                        kafka_topic = os.getenv('KAFKA_ALERT_NOTIFICATION_TOPIC', 'iot-alert-notification')
-                    
-                    # 使用device_id作为key，确保同一设备的告警消息有序
-                    future = producer.send(
-                        kafka_topic,
-                        key=str(device_id),
-                        value=notification_message
-                    )
-                    
-                    # 异步发送，不阻塞（减少超时时间）
-                    try:
-                        record_metadata = future.get(timeout=2)  # 减少超时时间到2秒
-                        logger.info(f"告警通知消息发送到Kafka成功: alert_id={alert_record.get('id')}, "
-                                   f"topic={record_metadata.topic}, partition={record_metadata.partition}, "
-                                   f"offset={record_metadata.offset}")
-                    except Exception as e:
-                        # 发送失败，但不影响主流程，只记录警告
-                        logger.warning(f"告警通知消息发送到Kafka失败: alert_id={alert_record.get('id')}, error={str(e)}")
-                        # 如果连接失败，重置生产者，下次重新初始化
-                        if isinstance(e, (KafkaError, ConnectionError, TimeoutError)):
-                            try:
-                                _producer.close(timeout=0.5)
-                            except:
-                                pass
-                            _producer = None
-                except Exception as e:
-                    # 发送异常，但不影响主流程
-                    logger.warning(f"发送告警通知消息到Kafka异常: {str(e)}")
-                    # 如果连接失败，重置生产者
-                    if isinstance(e, (KafkaError, ConnectionError, TimeoutError)):
-                        try:
-                            _producer.close(timeout=0.5)
-                        except:
-                            pass
-                        _producer = None
-            else:
-                logger.warning(f"Kafka不可用，跳过告警通知发送: alert_id={alert_record.get('id')}")
-        
-        return alert_record
-        
-    except Exception as e:
-        logger.error(f"处理告警Hook失败: {str(e)}", exc_info=True)
-        raise RuntimeError(f"处理告警Hook失败: {str(e)}")
 

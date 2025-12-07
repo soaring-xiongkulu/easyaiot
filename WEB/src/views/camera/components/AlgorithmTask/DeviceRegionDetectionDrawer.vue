@@ -39,9 +39,6 @@
             </div>
             <div class="device-info">
               <div class="device-name">{{ device.name || device.id }}</div>
-              <div class="device-region-count">
-                已配置区域: {{ getDeviceRegionCount(device.id) }}
-              </div>
             </div>
           </div>
           <a-empty v-if="filteredDevices.length === 0" description="暂无摄像头" :image="false" />
@@ -127,38 +124,70 @@ const filteredDevices = computed(() => {
   );
 });
 
-// 获取设备区域数量
-const getDeviceRegionCount = (deviceId: string) => {
-  return deviceRegions.value[deviceId]?.length || 0;
-};
-
 // 选择设备
 const selectDevice = async (device: DeviceInfo) => {
-  selectedDeviceId.value = device.id;
+  // 先加载该设备的区域配置和图片路径，再设置 selectedDeviceId
+  // 这样可以确保 DeviceRegionDrawer 组件在渲染时就能获取到图片路径
   
-  // 加载该设备的区域配置
-  if (!deviceRegions.value[device.id]) {
-    try {
-      const response = await getDeviceRegions(device.id);
+  // 加载该设备的区域配置（即使已经加载过，也重新加载以确保数据最新）
+  try {
+    const response = await getDeviceRegions(device.id);
+    console.log('selectDevice: 获取区域数据响应:', response);
+    
+    // 处理响应：可能是直接返回数据，也可能是包含 code 的对象
+    let regions: DeviceDetectionRegion[] = [];
+    if (response && typeof response === 'object' && 'code' in response) {
       if (response.code === 0 && response.data) {
-        deviceRegions.value[device.id] = response.data;
-        // 如果有区域，获取对应的图片路径
-        if (response.data.length > 0 && response.data[0].image_path) {
-          deviceImagePaths.value[device.id] = response.data[0].image_path;
-          if (response.data[0].image_id) {
-            deviceImageIds.value[device.id] = response.data[0].image_id;
-          }
-        }
+        regions = Array.isArray(response.data) ? response.data : [];
+      } else {
+        console.warn('获取区域数据失败:', response.msg);
+        regions = [];
       }
-    } catch (error) {
-      console.error('加载设备区域配置失败', error);
+    } else if (Array.isArray(response)) {
+      // 如果直接返回数组
+      regions = response;
+    } else if (response && typeof response === 'object' && 'data' in response) {
+      // 如果响应有 data 字段
+      regions = Array.isArray(response.data) ? response.data : [];
     }
+    
+    console.log('selectDevice: 解析后的区域数据:', regions, '数量:', regions.length);
+    
+    // 确保即使数据为空数组，也要设置，这样组件知道已经加载过了
+    deviceRegions.value[device.id] = regions;
+    
+    // 如果有区域，获取对应的图片路径
+    if (regions.length > 0 && regions[0].image_path) {
+      deviceImagePaths.value[device.id] = regions[0].image_path;
+      if (regions[0].image_id) {
+        deviceImageIds.value[device.id] = regions[0].image_id;
+      }
+      console.log('selectDevice: 设置区域图片路径:', regions[0].image_path);
+    }
+  } catch (error) {
+    console.error('加载设备区域配置失败', error);
+    // 加载失败时，设置为空数组，表示已尝试加载但没有数据
+    deviceRegions.value[device.id] = [];
   }
   
   // 如果有封面图但没有区域图片，使用封面图作为初始图片
+  // 确保在设置 selectedDeviceId 之前，图片路径已经被设置
   if (device.cover_image_path && !deviceImagePaths.value[device.id]) {
     deviceImagePaths.value[device.id] = device.cover_image_path;
+    console.log('selectDevice: 使用封面图作为初始图片:', device.cover_image_path);
   }
+  
+  console.log('selectDevice: 准备设置 selectedDeviceId, deviceRegions:', deviceRegions.value[device.id], 'deviceImagePaths:', deviceImagePaths.value[device.id]);
+  
+  // 确保图片路径已设置后再设置 selectedDeviceId，这样组件渲染时就能获取到图片路径
+  // 使用 nextTick 确保响应式更新已完成
+  await nextTick();
+  selectedDeviceId.value = device.id;
+  
+  console.log('selectDevice: selectedDeviceId 已设置，传递给子组件的区域数据:', deviceRegions.value[device.id]);
+  
+  // 再次使用 nextTick 确保组件已渲染，然后触发图片加载
+  await nextTick();
 };
 
 // 搜索

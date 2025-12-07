@@ -88,6 +88,14 @@ def create_region(device_id):
         if not points or not isinstance(points, list):
             return jsonify({'code': 400, 'msg': '区域坐标点不能为空'}), 400
         
+        # 处理 model_ids
+        model_ids = data.get('model_ids')
+        if model_ids and not isinstance(model_ids, list):
+            try:
+                model_ids = json.loads(model_ids) if isinstance(model_ids, str) else model_ids
+            except:
+                model_ids = None
+        
         region = create_device_region(
             device_id=device_id,
             region_name=region_name,
@@ -97,7 +105,8 @@ def create_region(device_id):
             color=data.get('color', '#FF5252'),
             opacity=data.get('opacity', 0.3),
             is_enabled=data.get('is_enabled', True),
-            sort_order=data.get('sort_order', 0)
+            sort_order=data.get('sort_order', 0),
+            model_ids=model_ids
         )
         
         return jsonify({

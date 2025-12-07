@@ -13,6 +13,7 @@ import sys
 import re
 import threading
 import time
+import signal
 from datetime import datetime
 
 # 不再需要导入数据库模型，所有信息都通过参数传入
@@ -116,6 +117,7 @@ class AlgorithmTaskDaemon:
                     self._log(f'工作目录: {cwd}', 'DEBUG')
                     self._log(f'任务ID: {env.get("TASK_ID", "N/A")}', 'INFO')
                     
+                    # 使用进程组启动，以便能够一次性终止整个进程树
                     self._process = sp.Popen(
                         cmds,
                         stdout=sp.PIPE,
@@ -123,7 +125,8 @@ class AlgorithmTaskDaemon:
                         cwd=cwd,
                         env=env,
                         text=True,
-                        bufsize=1
+                        bufsize=1,
+                        preexec_fn=os.setsid  # 创建新的进程组
                     )
                     
                     self._log(f'进程已启动，PID: {self._process.pid}', 'INFO')
@@ -309,17 +312,41 @@ class AlgorithmTaskDaemon:
         self._running = False
         if self._process:
             try:
-                # 先尝试优雅终止
-                self._process.terminate()
+                # 先尝试优雅终止整个进程组
                 try:
-                    self._process.wait(timeout=5)
-                except sp.TimeoutExpired:
-                    # 如果5秒内没有退出，强制杀死
-                    self._log('进程未在5秒内退出，强制终止', 'WARNING')
-                    self._process.kill()
+                    # 使用进程组ID终止整个进程树（包括所有子进程和孙进程，如FFmpeg）
+                    pgid = os.getpgid(self._process.pid)
+                    self._log(f'终止进程组 {pgid} (主进程PID: {self._process.pid})', 'INFO')
+                    os.killpg(pgid, signal.SIGTERM)
+                except (ProcessLookupError, OSError) as e:
+                    # 如果进程组不存在，尝试直接终止主进程
+                    self._log(f'进程组不存在，直接终止主进程: {str(e)}', 'WARNING')
                     try:
-                        self._process.wait(timeout=2)
-                    except sp.TimeoutExpired:
+                        self._process.terminate()
+                    except ProcessLookupError:
+                        # 进程已经不存在
+                        self._log('进程已不存在', 'INFO')
+                        return
+                
+                # 等待进程退出
+                try:
+                    self._process.wait(timeout=10)  # 增加等待时间到10秒
+                    self._log('进程已优雅退出', 'INFO')
+                except sp.TimeoutExpired:
+                    # 如果10秒内没有退出，强制杀死整个进程组
+                    self._log('进程未在10秒内退出，强制终止整个进程组', 'WARNING')
+                    try:
+                        pgid = os.getpgid(self._process.pid)
+                        os.killpg(pgid, signal.SIGKILL)
+                    except (ProcessLookupError, OSError):
+                        # 如果进程组不存在，尝试直接杀死主进程
+                        try:
+                            self._process.kill()
+                        except ProcessLookupError:
+                            pass
+                    try:
+                        self._process.wait(timeout=3)
+                    except (sp.TimeoutExpired, ProcessLookupError):
                         pass
             except Exception as e:
                 self._log(f'停止进程时出错: {str(e)}', 'WARNING')

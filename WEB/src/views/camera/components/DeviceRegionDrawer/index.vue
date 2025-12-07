@@ -120,7 +120,7 @@
         </div>
       </div>
 
-      <!-- 右侧区域列表 -->
+      <!-- 右侧区域列表和配置面板 -->
       <div class="region-list-panel">
         <div class="panel-header">
           <span>检测区域 ({{ regions.length }})</span>
@@ -133,11 +133,14 @@
             :class="{ active: selectedRegionId === (region.id || index) }"
             @click="selectRegion(region.id || index)"
           >
-            <div class="region-name">{{ region.region_name || '' }}</div>
+            <div class="region-name">{{ region.region_name || `区域 ${index + 1}` }}</div>
             <div class="region-type">{{ getRegionTypeName(region.region_type) }}</div>
-            <div v-if="region.model_ids && region.model_ids.length > 0" class="region-models">
-              <span class="models-label">模型：</span>
-              <span class="models-value">{{ getSelectedModelNames(region.model_ids) }}</span>
+            <div class="region-models" :class="{ 'no-models': !region.model_ids || region.model_ids.length === 0 }">
+              <span class="models-label">绑定模型：</span>
+              <span v-if="region.model_ids && region.model_ids.length > 0" class="models-value">
+                {{ getSelectedModelNames(region.model_ids) }}
+              </span>
+              <span v-else class="models-empty">未绑定</span>
             </div>
             <div class="region-actions">
               <a-button
@@ -153,6 +156,24 @@
             </div>
           </div>
           <a-empty v-if="regions.length === 0" description="暂无区域" :image="false" />
+        </div>
+        
+        <!-- 区域配置面板 -->
+        <div v-if="selectedRegion" class="region-config-panel">
+          <div class="panel-header">
+            <span>区域配置</span>
+          </div>
+          <div class="config-content">
+            <a-form :model="selectedRegion" layout="vertical" size="small">
+              <a-form-item label="区域名称">
+                <a-input 
+                  v-model:value="selectedRegion.region_name" 
+                  placeholder="请输入区域名称"
+                  @blur="handleRegionNameChange"
+                />
+              </a-form-item>
+            </a-form>
+          </div>
         </div>
       </div>
     </div>
@@ -401,6 +422,28 @@ const getRegionTypeName = (type: string) => {
   return type;
 };
 
+// 生成默认区域名称
+const generateDefaultRegionName = (): string => {
+  const count = regions.value.length + 1;
+  return `区域 ${count}`;
+};
+
+// 处理区域名称变化
+const handleRegionNameChange = () => {
+  if (selectedRegion.value) {
+    // 如果名称为空，使用默认名称
+    if (!selectedRegion.value.region_name || selectedRegion.value.region_name.trim() === '') {
+      const index = regions.value.findIndex(r => 
+        (r.id || regions.value.indexOf(r)) === selectedRegionId.value
+      );
+      if (index !== -1) {
+        regions.value[index].region_name = `区域 ${index + 1}`;
+      }
+    }
+    draw();
+  }
+};
+
 // 生成随机颜色（专业灰色系）
 const generateRandomColor = (): string => {
   const colors = [
@@ -536,6 +579,7 @@ const resizeCanvas = () => {
 // 绘制
 const draw = () => {
   if (!ctx.value || !canvas.value) {
+    console.log('draw: canvas 未初始化');
     return;
   }
 
@@ -560,7 +604,27 @@ const draw = () => {
   }
 
   // 绘制已保存的区域
-  regions.value.forEach(region => {
+  console.log('draw: 准备绘制区域，区域数量:', regions.value.length, '图片已加载:', imageLoaded.value, 'imageDisplaySize:', imageDisplaySize.value);
+  console.log('draw: regions.value 详情:', JSON.parse(JSON.stringify(regions.value)));
+  
+  if (regions.value.length === 0) {
+    console.warn('draw: 区域列表为空，无法绘制');
+  }
+  
+  regions.value.forEach((region, index) => {
+    console.log(`draw: 绘制区域 ${index + 1}:`, {
+      id: region.id,
+      name: region.region_name,
+      type: region.region_type,
+      points: region.points?.length || 0,
+      pointsData: region.points
+    });
+    
+    if (!region.points || region.points.length === 0) {
+      console.warn(`draw: 区域 ${index + 1} (${region.region_name}) 没有点数据，跳过绘制`);
+      return;
+    }
+    
     drawRegion(region);
   });
 
@@ -572,7 +636,14 @@ const draw = () => {
 
 // 绘制单个区域
 const drawRegion = (region: DeviceDetectionRegion) => {
-  if (!ctx.value || !imageDisplaySize.value) return;
+  if (!ctx.value) {
+    console.log('drawRegion: ctx 未初始化');
+    return;
+  }
+  if (!imageDisplaySize.value) {
+    console.log('drawRegion: imageDisplaySize 未初始化，区域:', region.region_name);
+    return;
+  }
 
   const { x: imgX, y: imgY, width: imgWidth, height: imgHeight } = imageDisplaySize.value;
 
@@ -639,16 +710,33 @@ const drawRegion = (region: DeviceDetectionRegion) => {
           centerY = centerY / region.points.length;
         }
         
-        // 绘制模型名称在中心位置
-        ctx.value.fillStyle = '#212529';
+        // 测量文字宽度，用于绘制背景框
         ctx.value.font = 'bold 14px Inter';
         ctx.value.textAlign = 'center';
         ctx.value.textBaseline = 'middle';
-        // 添加文字描边以提高可读性
-        ctx.value.strokeStyle = '#ffffff';
+        const textMetrics = ctx.value.measureText(modelNames);
+        const textWidth = textMetrics.width;
+        const textHeight = 18; // 文字高度
+        const padding = 8; // 内边距
+        
+        // 绘制背景框（半透明白色背景）
+        ctx.value.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.value.strokeStyle = '#2C3E50';
         ctx.value.lineWidth = 2;
-        ctx.value.strokeText(modelNames, centerX, centerY);
+        const bgX = centerX - textWidth / 2 - padding;
+        const bgY = centerY - textHeight / 2 - padding;
+        const bgWidth = textWidth + padding * 2;
+        const bgHeight = textHeight + padding * 2;
+        ctx.value.fillRect(bgX, bgY, bgWidth, bgHeight);
+        ctx.value.strokeRect(bgX, bgY, bgWidth, bgHeight);
+        
+        // 绘制模型名称文字
+        ctx.value.fillStyle = '#2C3E50';
+        ctx.value.font = 'bold 14px Inter';
+        ctx.value.textAlign = 'center';
+        ctx.value.textBaseline = 'middle';
         ctx.value.fillText(modelNames, centerX, centerY);
+        
         // 恢复默认对齐方式
         ctx.value.textAlign = 'left';
         ctx.value.textBaseline = 'alphabetic';
@@ -837,7 +925,7 @@ const handleMouseUp = () => {
         const newRegion: DeviceDetectionRegion = {
           id: Date.now(),
           device_id: props.deviceId,
-          region_name: '',
+          region_name: generateDefaultRegionName(),
           region_type: 'rectangle',
           points: [
             { x: currentPoints.value[0].x, y: currentPoints.value[0].y },
@@ -881,7 +969,7 @@ const finishPolygon = () => {
     const newRegion: DeviceDetectionRegion = {
       id: Date.now(),
       device_id: props.deviceId,
-      region_name: '',
+      region_name: generateDefaultRegionName(),
       region_type: 'polygon',
       points: [...currentPoints.value],
       image_id: currentImageId.value || undefined,
@@ -1034,6 +1122,15 @@ const handleSave = async () => {
     return;
   }
 
+  // 验证所有区域都有名称
+  for (let i = 0; i < regions.value.length; i++) {
+    const region = regions.value[i];
+    if (!region.region_name || region.region_name.trim() === '') {
+      // 如果名称为空，使用默认名称
+      region.region_name = `区域 ${i + 1}`;
+    }
+  }
+
   try {
     saving.value = true;
     
@@ -1044,10 +1141,15 @@ const handleSave = async () => {
 
     // 保存或更新每个区域
     for (const region of regions.value) {
+      // 确保区域名称不为空
+      const regionName = region.region_name && region.region_name.trim() !== '' 
+        ? region.region_name.trim() 
+        : `区域 ${regions.value.indexOf(region) + 1}`;
+      
       if (region.id && existingRegionIds.has(region.id)) {
         // 更新现有区域
         await updateDeviceRegion(region.id, {
-          region_name: region.region_name,
+          region_name: regionName,
           region_type: region.region_type,
           points: region.points,
           color: region.color,
@@ -1059,7 +1161,7 @@ const handleSave = async () => {
       } else {
         // 创建新区域
         await createDeviceRegion(props.deviceId, {
-          region_name: region.region_name,
+          region_name: regionName,
           region_type: region.region_type,
           points: region.points,
           image_id: currentImageId.value || undefined,
@@ -1113,18 +1215,80 @@ watch(
   { immediate: false }
 );
 
+// 监听初始区域配置变化
+watch(
+  () => props.initialRegions,
+  (newRegions, oldRegions) => {
+    console.log('watch initialRegions: 新值:', newRegions, '新值长度:', newRegions?.length, '旧值:', oldRegions, '旧值长度:', oldRegions?.length);
+    
+    // 处理 undefined 或 null 的情况
+    const newRegionsArray = Array.isArray(newRegions) ? newRegions : [];
+    const oldRegionsArray = Array.isArray(oldRegions) ? oldRegions : [];
+    
+    // 检查数据是否真的变化了（通过比较长度和ID）
+    const newIds = newRegionsArray.map(r => r.id).filter(id => id != null).sort();
+    const oldIds = oldRegionsArray.map(r => r.id).filter(id => id != null).sort();
+    const idsChanged = JSON.stringify(newIds) !== JSON.stringify(oldIds);
+    const lengthChanged = (newRegionsArray.length !== oldRegionsArray.length);
+    
+    console.log('watch initialRegions: idsChanged:', idsChanged, 'lengthChanged:', lengthChanged, 'newLength:', newRegionsArray.length, 'oldLength:', oldRegionsArray.length);
+    
+    // 如果数据有变化，更新区域列表
+    if (idsChanged || lengthChanged || oldRegions === undefined) {
+      if (newRegionsArray.length > 0) {
+        // 当初始区域配置变化时，更新区域列表
+        regions.value = newRegionsArray.map(region => ({
+          ...region,
+          color: region.color || generateRandomColor(),
+          model_ids: region.model_ids || []
+        }));
+        console.log('watch: 区域配置已更新，区域数量:', regions.value.length, '图片已加载:', imageLoaded.value, 'imageDisplaySize:', imageDisplaySize.value);
+        console.log('watch: 区域数据详情:', regions.value);
+        
+        // 重新绘制画布（无论图片是否已加载，都会尝试绘制）
+        // 如果图片还没加载，等图片加载完成后会自动调用 draw()
+        if (imageLoaded.value && imageDisplaySize.value && imageDisplaySize.value.width > 0) {
+          console.log('watch: 立即绘制区域');
+          draw();
+        } else {
+          console.log('watch: 图片未加载或 imageDisplaySize 未初始化，等待图片加载完成后自动绘制');
+        }
+      } else {
+        // 如果传入空数组，清空区域
+        console.log('watch: 清空区域');
+        regions.value = [];
+        selectedRegionId.value = null;
+        if (imageLoaded.value && imageDisplaySize.value && imageDisplaySize.value.width > 0) {
+          draw();
+        }
+      }
+    } else {
+      console.log('watch: 区域数据未变化，跳过更新');
+    }
+  },
+  { deep: true, immediate: true } // 改为 immediate: true，确保初始值也能触发
+);
+
 // 监听初始图片路径变化
 watch(
   () => props.initialImagePath,
-  (newPath) => {
-    if (newPath && newPath !== currentImagePath.value) {
-      console.log('检测到新的图片路径:', newPath);
-      currentImagePath.value = newPath;
-      loadImage(newPath);
-    } else if (newPath && !currentImage.value) {
-      // 如果路径相同但图片未加载，也尝试加载
-      console.log('图片路径已存在但未加载，重新加载:', newPath);
-      loadImage(newPath);
+  (newPath, oldPath) => {
+    // 如果路径发生变化，或者路径存在但图片未加载，都重新加载
+    if (newPath) {
+      if (newPath !== currentImagePath.value || !currentImage.value) {
+        console.log('检测到新的图片路径:', newPath, '旧路径:', oldPath, '当前图片:', !!currentImage.value);
+        currentImagePath.value = newPath;
+        loadImage(newPath);
+      }
+    } else if (oldPath && !newPath) {
+      // 如果路径被清空，清空当前图片
+      console.log('图片路径被清空');
+      currentImage.value = null;
+      currentImagePath.value = null;
+      imageLoaded.value = false;
+      if (ctx.value && canvas.value) {
+        ctx.value.clearRect(0, 0, canvas.value.width, canvas.value.height);
+      }
     }
   },
   { immediate: true } // 改为 immediate: true，确保初始值也能触发
@@ -1181,36 +1345,73 @@ onMounted(async () => {
   }
 
   // 加载现有区域
+  // 优先使用 props.initialRegions，如果没有则从服务器加载
+  console.log('onMounted: props.initialRegions:', props.initialRegions, 'length:', props.initialRegions?.length);
   if (props.deviceId) {
-    try {
-      const response = await getDeviceRegions(props.deviceId);
-      if (response.code === 0 && response.data) {
-        // 为没有颜色的区域分配随机颜色，保留model_ids
-        regions.value = response.data.map(region => ({
+    // 如果已经有初始区域配置，优先使用它（即使为空数组也要检查，因为可能是异步传入的）
+    if (props.initialRegions && Array.isArray(props.initialRegions)) {
+      if (props.initialRegions.length > 0) {
+        // 使用初始区域配置，但确保有颜色和model_ids
+        regions.value = props.initialRegions.map(region => ({
           ...region,
           color: region.color || generateRandomColor(),
           model_ids: region.model_ids || []
         }));
+        console.log('onMounted: 使用 props.initialRegions，区域数量:', regions.value.length);
         // 如果有区域，尝试加载对应的图片（优先使用区域图片）
-        if (response.data.length > 0 && response.data[0].image_path) {
-          currentImagePath.value = response.data[0].image_path;
-          loadImage(response.data[0].image_path);
+        if (props.initialRegions[0].image_path) {
+          currentImagePath.value = props.initialRegions[0].image_path;
+          loadImage(props.initialRegions[0].image_path);
         } else if (props.initialImagePath && !currentImage.value) {
           // 如果没有区域图片，但有初始图片（封面图），使用封面图
           currentImagePath.value = props.initialImagePath;
           loadImage(props.initialImagePath);
         }
-      } else if (props.initialImagePath && !currentImage.value) {
-        // 如果没有区域，但有初始图片（封面图），使用封面图
-        currentImagePath.value = props.initialImagePath;
-        loadImage(props.initialImagePath);
+      } else {
+        // 如果 initialRegions 是空数组，说明已经加载过了但没有数据，不需要从服务器加载
+        console.log('onMounted: props.initialRegions 是空数组，不重新加载');
+        regions.value = [];
+        // 如果有初始图片，加载它
+        if (props.initialImagePath && !currentImage.value) {
+          currentImagePath.value = props.initialImagePath;
+          loadImage(props.initialImagePath);
+        }
       }
-    } catch (error) {
-      console.error('加载区域失败', error);
-      // 如果加载区域失败，但有初始图片（封面图），使用封面图
-      if (props.initialImagePath && !currentImage.value) {
-        currentImagePath.value = props.initialImagePath;
-        loadImage(props.initialImagePath);
+    } else {
+      // 如果没有初始区域配置，从服务器加载
+      console.log('onMounted: 从服务器加载区域配置');
+      try {
+        const response = await getDeviceRegions(props.deviceId);
+        console.log('onMounted: 服务器返回的区域数据:', response);
+        if (response.code === 0 && response.data) {
+          // 为没有颜色的区域分配随机颜色，保留model_ids
+          regions.value = response.data.map(region => ({
+            ...region,
+            color: region.color || generateRandomColor(),
+            model_ids: region.model_ids || []
+          }));
+          console.log('onMounted: 从服务器加载区域成功，区域数量:', regions.value.length);
+          // 如果有区域，尝试加载对应的图片（优先使用区域图片）
+          if (response.data.length > 0 && response.data[0].image_path) {
+            currentImagePath.value = response.data[0].image_path;
+            loadImage(response.data[0].image_path);
+          } else if (props.initialImagePath && !currentImage.value) {
+            // 如果没有区域图片，但有初始图片（封面图），使用封面图
+            currentImagePath.value = props.initialImagePath;
+            loadImage(props.initialImagePath);
+          }
+        } else if (props.initialImagePath && !currentImage.value) {
+          // 如果没有区域，但有初始图片（封面图），使用封面图
+          currentImagePath.value = props.initialImagePath;
+          loadImage(props.initialImagePath);
+        }
+      } catch (error) {
+        console.error('加载区域失败', error);
+        // 如果加载区域失败，但有初始图片（封面图），使用封面图
+        if (props.initialImagePath && !currentImage.value) {
+          currentImagePath.value = props.initialImagePath;
+          loadImage(props.initialImagePath);
+        }
       }
     }
   } else if (props.initialImagePath && !currentImage.value) {
@@ -1592,10 +1793,11 @@ onUnmounted(() => {
         }
       }
 
-      .region-list {
+        .region-list {
         flex: 1;
         overflow-y: auto;
         padding: 12px;
+        border-bottom: 1px solid @border-color;
 
         &::-webkit-scrollbar {
           width: 6px;
@@ -1687,6 +1889,10 @@ onUnmounted(() => {
             border-radius: 6px;
             border-left: 3px solid @border-hover;
 
+            &.no-models {
+              border-left-color: @text-muted;
+            }
+
             .models-label {
               color: @text-secondary;
               font-weight: 500;
@@ -1695,6 +1901,12 @@ onUnmounted(() => {
             .models-value {
               color: @light-text;
               font-weight: 600;
+            }
+
+            .models-empty {
+              color: @text-muted;
+              font-weight: 500;
+              font-style: italic;
             }
           }
 
@@ -1709,6 +1921,57 @@ onUnmounted(() => {
 
               &:hover {
                 transform: scale(1.1);
+              }
+            }
+          }
+        }
+      }
+
+      .region-config-panel {
+        border-top: 1px solid @border-color;
+        background: #ffffff;
+
+        .panel-header {
+          padding: 16px 20px;
+          font-weight: 600;
+          font-size: 15px;
+          color: @light-text;
+          border-bottom: 1px solid @border-color;
+          background: @light-bg;
+          position: relative;
+
+          &::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 2px;
+            background: @primary-color;
+          }
+        }
+
+        .config-content {
+          padding: 16px 20px;
+
+          :deep(.ant-form-item) {
+            margin-bottom: 16px;
+
+            .ant-form-item-label {
+              label {
+                font-weight: 500;
+                color: @light-text;
+              }
+            }
+
+            .ant-input {
+              border-radius: 6px;
+              border: 1px solid @border-color;
+              transition: all 0.2s ease;
+
+              &:focus {
+                border-color: @primary-color;
+                box-shadow: 0 0 0 2px rgba(44, 62, 80, 0.1);
               }
             }
           }

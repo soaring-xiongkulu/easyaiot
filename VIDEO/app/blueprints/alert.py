@@ -312,40 +312,4 @@ def _do_query_alert_record(device_id, alert_time_str, time_range):
     })
 
 
-@alert_bp.route('/hook', methods=['POST'])
-def create_alert_hook():
-    """Hook回调接口：通过HTTP接收实时分析中的告警信息，存储到数据库并发送到Kafka
-    
-    请求体格式（JSON）:
-    {
-        "object": "person",           // 必填：对象类型
-        "event": "intrusion",         // 必填：事件类型
-        "device_id": "camera_001",    // 必填：设备ID
-        "device_name": "摄像头1",      // 必填：设备名称
-        "region": "区域A",            // 可选：区域
-        "information": {...},         // 可选：详细信息（可以是对象或字符串）
-        "time": "2024-01-01 12:00:00", // 可选：报警时间（默认当前时间）
-        "image_path": "/path/to/image.jpg", // 可选：图片路径（不直接传输图片，而是传输图片所在磁盘路径）
-        "record_path": "/path/to/video.mp4" // 可选：录像路径
-    }
-    """
-    try:
-        # 获取JSON请求体
-        if not request.is_json:
-            return api_response(400, '请求体必须是JSON格式')
-        
-        alert_data = request.get_json()
-        if not alert_data:
-            return api_response(400, '请求体不能为空')
-        
-        # 调用服务创建告警记录（会同时存储到数据库和发送到Kafka）
-        from app.services.alert_hook_service import process_alert_hook
-        result = process_alert_hook(alert_data)
-        return api_response(200, '告警记录处理成功', result)
-    except ValueError as e:
-        logger.error(f'创建告警记录参数错误: {str(e)}')
-        return api_response(400, f'参数错误: {str(e)}')
-    except Exception as e:
-        logger.error(f'创建告警记录失败: {str(e)}')
-        return api_response(500, f'创建失败: {str(e)}')
 

@@ -51,6 +51,11 @@ spring:
           url: jdbc:TAOS-RS://10.0.0.87:6041/iot_device?user=root&password=taosdata&useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
           username: root
           password: taosdata
+        video: # VIDEO数据库数据源（用于访问Alert表）
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://10.0.0.87:5432/iot-video20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
+          username: postgres
+          password: iot45722414822
 
   # Redis 配置。Redisson 默认的配置足够使用，一般不需要进行调优
   redis:
@@ -64,6 +69,12 @@ spring:
 spring:
   # Kafka 配置项
   kafka:
+    # 默认监听器配置（@KafkaListener使用）
+    listener:
+      # 自动提交关闭，需要设置手动消息确认
+      ack-mode: manual_immediate
+      # 消费监听接口监听的主题不存在时，默认会报错，所以设置为false忽略错误
+      missing-topics-fatal: false
     #iot
     iot:
       producer:

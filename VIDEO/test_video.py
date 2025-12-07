@@ -60,6 +60,177 @@ def check_video_file():
     return True
 
 
+def tail_docker_log_follow(container_id, log_path="/data/srs.log"):
+    """
+    实时输出 Docker 容器的日志（类似 tail -f）
+    
+    Args:
+        container_id: Docker 容器ID或名称
+        log_path: 容器内日志文件路径
+    """
+    try:
+        cmd = ["docker", "exec", container_id, "tail", "-f", log_path]
+        
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+            bufsize=1
+        )
+        
+        print(f"✅ 开始实时输出日志 (按 Ctrl+C 停止)\n")
+        
+        try:
+            # 实时输出 stdout
+            while True:
+                if process.poll() is not None:
+                    # 进程已结束
+                    remaining = process.stdout.read()
+                    if remaining:
+                        print(remaining.rstrip())
+                    break
+                
+                line = process.stdout.readline()
+                if line:
+                    print(line.rstrip())
+                else:
+                    # 如果没有新行，稍微等待一下
+                    time.sleep(0.1)
+            
+            # 检查是否有错误输出
+            stderr_output = process.stderr.read()
+            if stderr_output:
+                print(f"\n⚠️  错误输出: {stderr_output.strip()}")
+            
+            # 检查退出码
+            if process.returncode != 0:
+                print(f"\n❌ 进程异常退出 (退出码: {process.returncode})")
+            
+        except KeyboardInterrupt:
+            print("\n\n🛑 收到停止信号，正在停止日志输出...")
+            process.terminate()
+            try:
+                process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+            print("✅ 日志输出已停止")
+            
+    except FileNotFoundError:
+        print("❌ Docker 未安装或不在 PATH 中")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ 实时输出日志时出错: {str(e)}")
+        sys.exit(1)
+
+
+def find_srs_container():
+    """
+    自动查找 SRS Docker 容器
+    
+    Returns:
+        容器ID或名称，如果未找到则返回None
+    """
+    import subprocess
+    
+    try:
+        # 首先尝试通过容器名称查找（最常见的名称）
+        common_names = ['srs-server', 'srs', 'srs-server-1']
+        for name in common_names:
+            result = subprocess.run(
+                ["docker", "ps", "--filter", f"name={name}", "--format", "{{.ID}}"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                container_id = result.stdout.strip().split('\n')[0]
+                print(f"✅ 找到 SRS 容器: {name} ({container_id})")
+                return container_id
+        
+        # 如果通过名称找不到，尝试通过镜像名称查找
+        result = subprocess.run(
+            ["docker", "ps", "--filter", "ancestor=ossrs/srs", "--format", "{{.ID}}\t{{.Names}}"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            lines = result.stdout.strip().split('\n')
+            for line in lines:
+                if line.strip():
+                    parts = line.strip().split('\t')
+                    container_id = parts[0]
+                    container_name = parts[1] if len(parts) > 1 else container_id
+                    print(f"✅ 找到 SRS 容器: {container_name} ({container_id})")
+                    return container_id
+        
+        # 如果还是找不到，列出所有运行中的容器供用户参考
+        print("❌ 未找到 SRS 容器")
+        print("\n💡 正在运行的容器:")
+        result = subprocess.run(
+            ["docker", "ps", "--format", "{{.ID}}\t{{.Names}}\t{{.Image}}"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            print(result.stdout)
+        print("\n💡 提示:")
+        print("   1. 确保 SRS 容器正在运行")
+        print("   2. 使用 --docker-container CONTAINER_ID 手动指定容器ID")
+        print("   3. 使用 --logs 实时输出日志")
+        
+        return None
+        
+    except FileNotFoundError:
+        print("❌ Docker 未安装或不在 PATH 中")
+        return None
+    except Exception as e:
+        print(f"❌ 查找 SRS 容器时出错: {str(e)}")
+        return None
+
+
+def read_docker_log(container_id, log_path="/data/srs.log", tail_lines=30):
+    """
+    从 Docker 容器读取日志
+    
+    Args:
+        container_id: Docker 容器ID或名称
+        log_path: 容器内日志文件路径
+        tail_lines: 读取最后N行
+    
+    Returns:
+        日志文本内容
+    """
+    try:
+        cmd = ["docker", "exec", container_id, "tail", "-n", str(tail_lines), log_path]
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode != 0:
+            print(f"❌ 读取 Docker 日志失败: {result.stderr}")
+            return None
+        
+        return result.stdout
+            
+    except FileNotFoundError:
+        print("❌ Docker 未安装或不在 PATH 中")
+        return None
+    except subprocess.TimeoutExpired:
+        print("❌ 读取 Docker 日志超时")
+        return None
+    except Exception as e:
+        print(f"❌ 读取 Docker 日志时出错: {str(e)}")
+        return None
+
+
 def start_streaming(rtmp_url=None, video_file=None, loop=True, log_level="info",
                     preset="ultrafast", video_bitrate="500k", audio_bitrate="64k",
                     fps=None, scale=None, threads=None, gop_size=30, no_audio=False):
@@ -200,7 +371,7 @@ def start_streaming(rtmp_url=None, video_file=None, loop=True, log_level="info",
                     print("      - 检查SRS服务状态: docker ps | grep srs 或 systemctl status srs")
                     print("   2. SRS HTTP回调服务未运行（常见原因）")
                     print("      - SRS配置了on_publish回调，但回调服务未启动")
-                    print("      - 请确保VIDEO服务在端口48080上运行")
+                    print("      - 请确保VIDEO服务在端口6000上运行，或网关服务在端口48080上运行")
                     print("      - 检查服务: docker ps | grep video 或检查VIDEO服务状态")
                     print("      - 查看SRS日志确认回调URL: http://127.0.0.1:48080/admin-api/video/camera/callback/on_publish")
                     print("   3. RTMP服务器地址不正确")
@@ -210,10 +381,16 @@ def start_streaming(rtmp_url=None, video_file=None, loop=True, log_level="info",
                     print("      - 请检查防火墙设置")
                     print("      - 请检查网络连接")
                     print("\n📝 排查步骤：")
-                    print(f"   1. 检查RTMP端口: netstat -tuln | grep 1935")
-                    print(f"   2. 检查VIDEO服务端口: netstat -tuln | grep 48080")
-                    print(f"   3. 查看SRS日志确认具体错误信息")
-                    print(f"   4. 测试RTMP连接: telnet localhost 1935")
+                    print(f"   1. 运行诊断工具: python {Path(__file__).parent / 'diagnose_rtmp_issue.py'}")
+                    print(f"   2. 检查RTMP端口: netstat -tuln | grep 1935")
+                    print(f"   3. 检查VIDEO服务端口: netstat -tuln | grep 6000")
+                    print(f"   4. 检查网关服务端口: netstat -tuln | grep 48080")
+                    print(f"   5. 查看SRS日志确认具体错误信息")
+                    print(f"   6. 测试RTMP连接: telnet localhost 1935")
+                    print("\n🔧 临时解决方案（仅用于测试）：")
+                    print("   如果VIDEO服务未运行，可以使用临时mock回调服务器：")
+                    print(f"   python {Path(__file__).parent / 'mock_callback_server.py'}")
+                    print("   然后确保SRS可以访问到mock服务器地址")
         else:
             print(f"\n✅ 推流进程正常退出")
         
@@ -249,6 +426,8 @@ def stop_streaming():
             print(f"❌ 停止推流时出错: {str(e)}")
         finally:
             ffmpeg_process = None
+
+
 
 
 def signal_handler(sig, frame):
@@ -294,6 +473,12 @@ def main():
   
   # 组合优化：最低CPU占用配置
   python test_video.py --fps 15 --scale 640:360 --video-bitrate 300k --no-audio --threads 2
+  
+  # 实时输出SRS日志（自动查找容器）
+  python test_video.py --logs
+  
+  # 实时输出SRS日志（指定容器ID）
+  python test_video.py --logs --docker-container 8f37de7c0680
         """
     )
     
@@ -381,7 +566,57 @@ def main():
         help='禁用音频，可减少CPU占用'
     )
     
+    parser.add_argument(
+        '--logs',
+        action='store_true',
+        help='实时输出SRS日志（类似 tail -f）。会自动查找SRS容器，或使用--docker-container指定'
+    )
+    
+    parser.add_argument(
+        '--docker-container',
+        type=str,
+        default=None,
+        metavar='CONTAINER_ID',
+        help='Docker容器ID或名称（用于实时输出日志）。如果不指定，会自动查找SRS容器'
+    )
+    
+    parser.add_argument(
+        '--docker-log-path',
+        type=str,
+        default='/data/srs.log',
+        help='Docker容器内日志文件路径 (默认: /data/srs.log)'
+    )
+    
     args = parser.parse_args()
+    
+    # 如果是实时输出日志
+    if args.logs:
+        print("=" * 60)
+        print("📋 实时输出SRS日志")
+        print("=" * 60)
+        
+        # 查找容器
+        container_id = args.docker_container
+        if not container_id:
+            container_id = find_srs_container()
+            if not container_id:
+                print("\n❌ 无法找到SRS容器，请使用 --docker-container 指定容器ID")
+                sys.exit(1)
+        
+        print(f"容器ID: {container_id}")
+        print(f"日志路径: {args.docker_log_path}\n")
+        
+        # 注册信号处理器以便优雅退出
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+        
+        # 实时输出日志
+        tail_docker_log_follow(
+            container_id,
+            log_path=args.docker_log_path
+        )
+        
+        sys.exit(0)
     
     # 注册信号处理器
     signal.signal(signal.SIGINT, signal_handler)

@@ -106,7 +106,7 @@
                       <Icon icon="ant-design:pause-circle-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <div class="btn" v-else @click="handleStart(item)">
-                      <Icon icon="ant-design:swap-outline" :size="15" color="#3B82F6" />
+                      <Icon icon="ant-design:play-circle-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <Popconfirm
                       title="是否确认删除？"

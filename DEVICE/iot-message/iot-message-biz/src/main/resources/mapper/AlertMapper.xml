@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.message.mapper.AlertMapper">
+    <resultMap id="BaseResultMap" type="com.basiclab.iot.message.domain.entity.AlertDO">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="object" jdbcType="VARCHAR" property="object"/>
+        <result column="event" jdbcType="VARCHAR" property="event"/>
+        <result column="region" jdbcType="VARCHAR" property="region"/>
+        <result column="information" jdbcType="VARCHAR" property="information"/>
+        <result column="time" jdbcType="TIMESTAMP" property="time"/>
+        <result column="device_id" jdbcType="VARCHAR" property="deviceId"/>
+        <result column="device_name" jdbcType="VARCHAR" property="deviceName"/>
+        <result column="image_path" jdbcType="VARCHAR" property="imagePath"/>
+        <result column="record_path" jdbcType="VARCHAR" property="recordPath"/>
+    </resultMap>
+    
+    <sql id="Base_Column_List">
+        id, object, event, region, information, time, device_id, device_name, image_path, record_path
+    </sql>
+    
+    <select id="selectById" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from alert
+        where id = #{id,jdbcType=INTEGER}
+    </select>
+    
+    <insert id="insert" parameterType="com.basiclab.iot.message.domain.entity.AlertDO" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into alert (object, event, region, information, time, device_id, device_name, image_path, record_path)
+        values (
+            #{object,jdbcType=VARCHAR},
+            #{event,jdbcType=VARCHAR},
+            #{region,jdbcType=VARCHAR},
+            #{information,jdbcType=VARCHAR},
+            #{time,jdbcType=TIMESTAMP},
+            #{deviceId,jdbcType=VARCHAR},
+            #{deviceName,jdbcType=VARCHAR},
+            #{imagePath,jdbcType=VARCHAR},
+            #{recordPath,jdbcType=VARCHAR}
+        )
+    </insert>
+    
+    <update id="updateImagePath">
+        update alert
+        set image_path = #{imagePath,jdbcType=VARCHAR}
+        where id = #{id,jdbcType=INTEGER}
+    </update>
+</mapper>
+

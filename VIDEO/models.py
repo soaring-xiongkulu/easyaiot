@@ -878,6 +878,9 @@ class DeviceDetectionRegion(db.Model):
     is_enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用该区域')
     sort_order = db.Column(db.Integer, default=0, nullable=False, comment='排序顺序')
     
+    # 模型绑定
+    model_ids = db.Column(db.Text, nullable=True, comment='关联的算法模型ID列表（JSON格式，如[1,2,3]）')
+    
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
     updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
@@ -893,6 +896,14 @@ class DeviceDetectionRegion(db.Model):
         except:
             points_data = []
         
+        # 解析 model_ids
+        model_ids_list = []
+        if self.model_ids:
+            try:
+                model_ids_list = json.loads(self.model_ids) if isinstance(self.model_ids, str) else self.model_ids
+            except:
+                model_ids_list = []
+        
         return {
             'id': self.id,
             'device_id': self.device_id,
@@ -905,6 +916,7 @@ class DeviceDetectionRegion(db.Model):
             'opacity': self.opacity,
             'is_enabled': self.is_enabled,
             'sort_order': self.sort_order,
+            'model_ids': model_ids_list,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

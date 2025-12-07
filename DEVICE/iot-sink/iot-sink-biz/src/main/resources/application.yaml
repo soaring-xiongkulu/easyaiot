@@ -82,6 +82,12 @@ easy-trans:
 spring:
   # Kafka 配置项，对应 KafkaProperties 配置类
   kafka:
+    # 默认监听器配置（@KafkaListener使用）
+    listener:
+      # 自动提交关闭，需要设置手动消息确认
+      ack-mode: manual_immediate
+      # 消费监听接口监听的主题不存在时，默认会报错，所以设置为false忽略错误
+      missing-topics-fatal: false
     #iot
     iot:
       producer:
@@ -241,6 +247,7 @@ iot:
       - system_mail_template
       - system_mail_log
       - system_notify_template
+      - alert # 告警表，屏蔽租户隔离
   sms-code: # 短信验证码相关的配置项
     expire-times: 10m
     send-frequency: 1m

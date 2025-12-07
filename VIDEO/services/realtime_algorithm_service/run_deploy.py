@@ -35,34 +35,33 @@ sys.path.insert(0, video_root)
 # 导入VIDEO模块的模型
 from models import db, AlgorithmTask, Device
 
-# 导入Flask应用创建函数（用于设置应用上下文）
-try:
-    from run import create_app
-    _flask_app = None
-    def get_flask_app():
-        """获取Flask应用实例（单例模式）"""
-        global _flask_app
-        if _flask_app is None:
-            _flask_app = create_app()
-        return _flask_app
-except ImportError:
-    # 如果无法导入，创建一个简单的应用实例
-    _flask_app = None
-    def get_flask_app():
-        """获取Flask应用实例（fallback模式，当无法导入create_app时使用）"""
-        global _flask_app
-        if _flask_app is None:
-            from flask import Flask
-            app = Flask(__name__)
-            # 从环境变量获取数据库URL
-            database_url = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/iot_video')
-            database_url = database_url.replace("postgres://", "postgresql://", 1)
-            app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-            app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-            # 初始化数据库
-            db.init_app(app)
-            _flask_app = app
-        return _flask_app
+# Flask应用实例（延迟创建，避免导入run模块时的副作用）
+_flask_app = None
+
+def get_flask_app():
+    """获取Flask应用实例（延迟创建，避免导入run模块时的副作用）"""
+    global _flask_app
+    if _flask_app is None:
+        from flask import Flask
+        app = Flask(__name__)
+        # 从环境变量获取数据库URL
+        database_url = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/iot_video')
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            'pool_pre_ping': True,
+            'pool_recycle': 3600,
+            'pool_size': 10,
+            'max_overflow': 20,
+            'connect_args': {
+                'connect_timeout': 10,
+            }
+        }
+        # 初始化数据库
+        db.init_app(app)
+        _flask_app = app
+    return _flask_app
 
 # 导入追踪器（使用相对导入）
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app', 'utils'))
@@ -378,7 +377,7 @@ def load_task_config():
         
         logger.info(f"✅ 成功加载 {len(yolo_models)} 个YOLO模型")
         
-        # 从摄像头列表获取RTSP和RTMP流地址（重新加载，确保获取最新地址）
+        # 从摄像头列表获取输入流地址（支持RTSP和RTMP）和RTMP输出流地址（重新加载，确保获取最新地址）
         # 注意：rtmp_input_url和rtmp_output_url字段已废弃，改为从摄像头列表获取
         device_streams = {}
         if task.devices:
@@ -387,7 +386,7 @@ def load_task_config():
             for device in task.devices:
                 # 刷新设备对象，确保获取最新的source和rtmp_stream
                 db_session.refresh(device)
-                # RTSP流地址作为输入（从device.source获取）
+                # 输入流地址（支持RTSP和RTMP格式，从device.source获取）
                 rtsp_url = device.source if device.source else None
                 # RTMP流地址作为输出（从device.rtmp_stream获取）
                 rtmp_url = device.rtmp_stream if device.rtmp_stream else None
@@ -396,7 +395,8 @@ def load_task_config():
                     'rtmp_url': rtmp_url,  # 输出流地址
                     'device_name': device.name or device.id
                 }
-                logger.info(f"📹 设备 {device.id} ({device.name or device.id}): RTSP={rtsp_url}, RTMP={rtmp_url}")
+                input_type = "RTSP" if rtsp_url and rtsp_url.startswith('rtsp://') else "RTMP" if rtsp_url and rtsp_url.startswith('rtmp://') else "输入流"
+                logger.info(f"📹 设备 {device.id} ({device.name or device.id}): {input_type}={rtsp_url}, RTMP输出={rtmp_url}")
         
         # 将设备流地址信息存储到task_config中（通过动态属性）
         task_config.device_streams = device_streams
@@ -553,16 +553,139 @@ def cleanup_srs_recordings(srs_record_dir: str = '/data/playbacks', max_recordin
         
         # 删除最旧的录像
         deleted_count = 0
+        failed_count = 0
         for i in range(delete_count):
+            file_path = recording_files[i][0]
             try:
-                file_path = recording_files[i][0]
+                # 检查文件是否存在
+                if not os.path.exists(file_path):
+                    logger.debug(f"文件不存在，跳过删除: {file_path}")
+                    continue
+                
+                # 检查文件是否可写
+                if not os.access(file_path, os.W_OK):
+                    # 检查目录权限（删除文件需要目录写权限）
+                    file_dir = os.path.dirname(file_path)
+                    if not os.access(file_dir, os.W_OK):
+                        try:
+                            import stat
+                            dir_stat = os.stat(file_dir)
+                            dir_uid = dir_stat.st_uid
+                            dir_gid = dir_stat.st_gid
+                            dir_mode = stat.filemode(dir_stat.st_mode)
+                            current_uid = os.getuid()
+                            import pwd
+                            try:
+                                dir_owner = pwd.getpwuid(dir_uid).pw_name
+                            except:
+                                dir_owner = f"UID:{dir_uid}"
+                            try:
+                                current_user = pwd.getpwuid(current_uid).pw_name
+                            except:
+                                current_user = f"UID:{current_uid}"
+                            logger.warning(
+                                f"目录权限不足，无法删除文件: {file_path}, "
+                                f"目录: {file_dir}, "
+                                f"目录所有者: {dir_owner}({dir_uid}:{dir_gid}), "
+                                f"当前用户: {current_user}({current_uid}), "
+                                f"目录权限: {dir_mode}"
+                            )
+                        except Exception:
+                            pass
+                        failed_count += 1
+                        continue
+                    
+                    # 尝试修改文件权限
+                    try:
+                        os.chmod(file_path, 0o644)
+                        logger.debug(f"已修改文件权限: {file_path}")
+                    except Exception as chmod_error:
+                        logger.warning(f"无法修改文件权限: {file_path}, 错误: {str(chmod_error)}")
+                        failed_count += 1
+                        continue
+                
+                # 尝试删除文件
                 os.remove(file_path)
                 deleted_count += 1
+                logger.debug(f"成功删除录像文件: {file_path}")
+            except PermissionError as e:
+                # 权限错误：可能是文件正在被SRS使用
+                failed_count += 1
+                # 获取详细的文件权限信息用于诊断
+                try:
+                    import stat
+                    file_stat = os.stat(file_path)
+                    file_uid = file_stat.st_uid
+                    file_gid = file_stat.st_gid
+                    file_mode = stat.filemode(file_stat.st_mode)
+                    current_uid = os.getuid()
+                    current_gid = os.getgid()
+                    import pwd
+                    import grp
+                    try:
+                        file_owner = pwd.getpwuid(file_uid).pw_name
+                    except:
+                        file_owner = f"UID:{file_uid}"
+                    try:
+                        current_user = pwd.getpwuid(current_uid).pw_name
+                    except:
+                        current_user = f"UID:{current_uid}"
+                    logger.warning(
+                        f"删除SRS录像失败（权限不足，可能正在使用）: {file_path}, "
+                        f"错误: {str(e)}, "
+                        f"文件所有者: {file_owner}({file_uid}:{file_gid}), "
+                        f"当前用户: {current_user}({current_uid}:{current_gid}), "
+                        f"文件权限: {file_mode}"
+                    )
+                except Exception as diag_error:
+                    logger.warning(f"删除SRS录像失败（权限不足，可能正在使用）: {file_path}, 错误: {str(e)}, 诊断信息获取失败: {str(diag_error)}")
+            except FileNotFoundError:
+                # 文件不存在（可能已被其他进程删除）
+                logger.debug(f"文件不存在，跳过删除: {file_path}")
+            except OSError as e:
+                # 其他操作系统错误
+                failed_count += 1
+                error_code = getattr(e, 'errno', None)
+                if error_code == 13:  # Permission denied
+                    # 获取详细的文件权限信息用于诊断
+                    try:
+                        import stat
+                        file_stat = os.stat(file_path)
+                        file_uid = file_stat.st_uid
+                        file_gid = file_stat.st_gid
+                        file_mode = stat.filemode(file_stat.st_mode)
+                        current_uid = os.getuid()
+                        current_gid = os.getgid()
+                        import pwd
+                        import grp
+                        try:
+                            file_owner = pwd.getpwuid(file_uid).pw_name
+                        except:
+                            file_owner = f"UID:{file_uid}"
+                        try:
+                            current_user = pwd.getpwuid(current_uid).pw_name
+                        except:
+                            current_user = f"UID:{current_uid}"
+                        logger.warning(
+                            f"删除SRS录像失败（权限拒绝）: {file_path}, "
+                            f"错误: {str(e)}, "
+                            f"文件所有者: {file_owner}({file_uid}:{file_gid}), "
+                            f"当前用户: {current_user}({current_uid}:{current_gid}), "
+                            f"文件权限: {file_mode}"
+                        )
+                    except Exception as diag_error:
+                        logger.warning(f"删除SRS录像失败（权限拒绝）: {file_path}, 错误: {str(e)}, 诊断信息获取失败: {str(diag_error)}")
+                elif error_code == 16:  # Device or resource busy
+                    logger.warning(f"删除SRS录像失败（文件正在使用）: {file_path}, 错误: {str(e)}")
+                else:
+                    logger.warning(f"删除SRS录像失败: {file_path}, 错误: {str(e)}")
             except Exception as e:
+                # 其他未知错误
+                failed_count += 1
                 logger.warning(f"删除SRS录像失败: {file_path}, 错误: {str(e)}")
         
-        if deleted_count > 0:
-            logger.info(f"SRS录像清理完成: 目录={srs_record_dir}, 总数={total_recordings}, 删除={deleted_count}, 保留={keep_count}")
+        if deleted_count > 0 or failed_count > 0:
+            logger.info(f"SRS录像清理完成: 目录={srs_record_dir}, 总数={total_recordings}, 删除={deleted_count}, 失败={failed_count}, 保留={keep_count}")
     except Exception as e:
         logger.error(f"清理SRS录像失败: {str(e)}", exc_info=True)
 
@@ -835,9 +958,12 @@ def check_and_stop_existing_stream(stream_url: str):
                     stream_stream = stream.get('stream', '')
                     
                     # 匹配流路径（格式：app/stream）
+                    # 使用精确匹配，避免误匹配其他流
                     full_stream_path = f"{stream_app}/{stream_stream}" if stream_stream else stream_app
                     
-                    if stream_path in full_stream_path or full_stream_path in stream_path:
+                    # 精确匹配：只有当流路径完全匹配时才停止
+                    # 这样可以避免误停止其他设备的流
+                    if stream_path == full_stream_path:
                         stream_to_stop = stream
                         break
                 
@@ -1025,12 +1151,17 @@ def buffer_streamer_worker(device_id: str):
     
     # 打印推流地址信息
     logger.info(f"📺 设备 {device_id} 流地址配置:")
-    logger.info(f"   RTSP输入流: {rtsp_url}")
+    input_stream_type = "RTSP" if rtsp_url and rtsp_url.startswith('rtsp://') else "RTMP" if rtsp_url and rtsp_url.startswith('rtmp://') else "输入流"
+    logger.info(f"   {input_stream_type}输入流: {rtsp_url}")
     logger.info(f"   RTMP推流地址: {rtmp_url if rtmp_url else '(未配置)'}")
     
     if not rtsp_url:
-        logger.error(f"设备 {device_id} RTSP流地址不存在，缓流器退出")
+        logger.error(f"设备 {device_id} 输入流地址不存在，缓流器退出")
         return
+    
+    # 兼容 RTSP 和 RTMP 两种格式的输入流
+    stream_type = "RTSP" if rtsp_url.startswith('rtsp://') else "RTMP" if rtsp_url.startswith('rtmp://') else "未知"
+    logger.info(f"📡 设备 {device_id} 输入流类型: {stream_type}")
     
     cap = None
     pusher_process = None
@@ -1057,27 +1188,28 @@ def buffer_streamer_worker(device_id: str):
     
     while not stop_event.is_set():
         try:
-            # 打开源 RTSP 流
+            # 打开源流（支持 RTSP 和 RTMP）
             if cap is None or not cap.isOpened():
-                logger.info(f"正在连接设备 {device_id} 的 RTSP 流: {rtsp_url} (重试次数: {retry_count})")
+                stream_type = "RTSP" if rtsp_url.startswith('rtsp://') else "RTMP" if rtsp_url.startswith('rtmp://') else "流"
+                logger.info(f"正在连接设备 {device_id} 的 {stream_type} 流: {rtsp_url} (重试次数: {retry_count})")
                 cap = cv2.VideoCapture(rtsp_url)
                 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                 
                 if not cap.isOpened():
                     retry_count += 1
                     if retry_count >= max_retries:
-                        logger.error(f"❌ 设备 {device_id} 连接 RTSP 流失败，已达到最大重试次数 {max_retries}")
+                        logger.error(f"❌ 设备 {device_id} 连接 {stream_type} 流失败，已达到最大重试次数 {max_retries}")
                         logger.info("等待30秒后重新尝试...")
                         time.sleep(30)
                         retry_count = 0
                     else:
-                        logger.warning(f"设备 {device_id} 无法打开 RTSP 流，等待重试... ({retry_count}/{max_retries})")
+                        logger.warning(f"设备 {device_id} 无法打开 {stream_type} 流，等待重试... ({retry_count}/{max_retries})")
                         time.sleep(2)
                     continue
                 
                 retry_count = 0
                 device_caps[device_id] = cap
-                logger.info(f"✅ 设备 {device_id} RTSP 流连接成功")
+                logger.info(f"✅ 设备 {device_id} {stream_type} 流连接成功")
             
             # 从源流读取帧
             ret, frame = cap.read()
@@ -1193,8 +1325,13 @@ def buffer_streamer_worker(device_id: str):
                     logger.warning(f"设备 {device_id} RTMP输出流地址不存在，跳过推送")
                 else:
                     # 在启动推流前，检查并停止现有流（避免StreamBusy错误）
-                    logger.info(f"🔍 检查设备 {device_id} 是否存在占用该地址的流...")
-                    check_and_stop_existing_stream(rtmp_url)
+                    # 重要：只检查推流地址，不检查输入流地址，避免误停止输入流
+                    # 如果输入流地址和推流地址相同，则跳过检查（避免误停止输入流）
+                    if rtsp_url and rtsp_url == rtmp_url:
+                        logger.warning(f"⚠️  设备 {device_id} 输入流地址和推流地址相同，跳过流检查（避免误停止输入流）")
+                    else:
+                        logger.info(f"🔍 检查设备 {device_id} 是否存在占用该地址的流...")
+                        check_and_stop_existing_stream(rtmp_url)
                     
                     # 构建 ffmpeg 命令（优化版本：低CPU占用、低推流速度）
                     # 优化参数说明：
@@ -2123,13 +2260,70 @@ def yolo_detection_worker(worker_id: int):
     logger.info(f"🤖 YOLO检测线程 {worker_id} 停止")
 
 
+def cleanup_all_resources():
+    """清理所有资源（FFmpeg进程、VideoCapture等）"""
+    logger.info("🧹 开始清理所有资源...")
+    
+    # 清理所有FFmpeg推送进程
+    for device_id, pusher_process in list(device_pushers.items()):
+        if pusher_process and pusher_process.poll() is None:
+            try:
+                logger.info(f"🛑 停止设备 {device_id} 的FFmpeg推送进程 (PID: {pusher_process.pid})")
+                pusher_process.stdin.close()
+                pusher_process.terminate()
+                try:
+                    pusher_process.wait(timeout=3)
+                    logger.info(f"✅ 设备 {device_id} 的FFmpeg推送进程已停止")
+                except subprocess.TimeoutExpired:
+                    logger.warning(f"⚠️ 设备 {device_id} 的FFmpeg推送进程未在3秒内退出，强制终止")
+                    pusher_process.kill()
+                    pusher_process.wait(timeout=1)
+            except Exception as e:
+                logger.error(f"❌ 停止设备 {device_id} 的FFmpeg推送进程失败: {str(e)}")
+                try:
+                    if pusher_process.poll() is None:
+                        pusher_process.kill()
+                except:
+                    pass
+        device_pushers.pop(device_id, None)
+    
+    # 清理所有VideoCapture对象
+    for device_id, cap in list(device_caps.items()):
+        if cap is not None:
+            try:
+                logger.info(f"🛑 释放设备 {device_id} 的VideoCapture")
+                cap.release()
+            except Exception as e:
+                logger.error(f"❌ 释放设备 {device_id} 的VideoCapture失败: {str(e)}")
+        device_caps.pop(device_id, None)
+    
+    # 清理stderr读取线程
+    for device_id, stderr_thread in list(device_pusher_stderr_threads.items()):
+        if stderr_thread and stderr_thread.is_alive():
+            try:
+                stderr_thread.join(timeout=1)
+            except:
+                pass
+        device_pusher_stderr_threads.pop(device_id, None)
+    
+    # 清理其他资源
+    device_pusher_stderr_buffers.clear()
+    device_pusher_stderr_locks.clear()
+    
+    logger.info("✅ 所有资源已清理")
+
+
 def signal_handler(sig, frame):
     """信号处理器"""
     logger.info("\n🛑 收到停止信号，正在关闭所有服务...")
     stop_event.set()
     
-    # 等待所有线程结束
-    time.sleep(2)
+    # 清理所有资源（FFmpeg进程、VideoCapture等）
+    cleanup_all_resources()
+    
+    # 等待所有线程结束（增加等待时间）
+    logger.info("⏳ 等待所有线程结束...")
+    time.sleep(3)
     
     logger.info("✅ 所有服务已停止")
     sys.exit(0)

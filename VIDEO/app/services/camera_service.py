@@ -1115,28 +1115,6 @@ def delete_camera(id: str):
     if not camera:
         raise ValueError(f'设备 {id} 不存在，无法删除')
 
-    # 检查设备关联的抓拍空间是否有图片
-    try:
-        from app.services.snap_space_service import check_device_space_has_images
-        has_images, image_count = check_device_space_has_images(id)
-        if has_images:
-            raise ValueError(f'设备关联的抓拍空间还有 {image_count} 张抓拍图片，无法删除设备。请先删除所有图片后再删除设备。')
-    except ValueError:
-        raise
-    except Exception as e:
-        logger.warning(f'检查设备抓拍空间图片失败: {str(e)}，继续删除设备')
-    
-    # 检查设备关联的监控录像空间是否有录像
-    try:
-        from app.services.record_space_service import check_device_space_has_videos
-        has_videos, video_count = check_device_space_has_videos(id)
-        if has_videos:
-            raise ValueError(f'设备关联的监控录像空间还有 {video_count} 个监控录像，无法删除设备。请先删除所有录像后再删除设备。')
-    except ValueError:
-        raise
-    except Exception as e:
-        logger.warning(f'检查设备监控录像空间录像失败: {str(e)}，继续删除设备')
-
     try:
         _monitor.delete(camera.id)
         _onvif_cameras.pop(id, None)

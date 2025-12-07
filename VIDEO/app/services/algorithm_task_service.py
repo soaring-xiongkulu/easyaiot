@@ -513,6 +513,7 @@ def stop_algorithm_task(task_id: int):
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
         task.is_enabled = False
+        task.run_status = 'stopped'
         task.updated_at = datetime.utcnow()
         db.session.commit()
         

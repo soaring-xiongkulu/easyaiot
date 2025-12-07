@@ -26,7 +26,7 @@ def get_device_regions(device_id: str) -> List[DeviceDetectionRegion]:
 
 def create_device_region(device_id: str, region_name: str, region_type: str, points: List[Dict],
                         image_id: Optional[int] = None, color: str = '#FF5252', opacity: float = 0.3,
-                        is_enabled: bool = True, sort_order: int = 0) -> DeviceDetectionRegion:
+                        is_enabled: bool = True, sort_order: int = 0, model_ids: Optional[List[int]] = None) -> DeviceDetectionRegion:
     """创建设备检测区域"""
     try:
         # 验证设备是否存在
@@ -43,6 +43,20 @@ def create_device_region(device_id: str, region_name: str, region_type: str, poi
         # 将points转换为JSON字符串
         points_json = json.dumps(points)
         
+        # 处理 model_ids
+        model_ids_json = None
+        if model_ids:
+            if isinstance(model_ids, list) and len(model_ids) > 0:
+                model_ids_json = json.dumps(model_ids)
+            elif isinstance(model_ids, str):
+                # 如果已经是JSON字符串，验证格式
+                try:
+                    parsed = json.loads(model_ids)
+                    if isinstance(parsed, list):
+                        model_ids_json = model_ids
+                except:
+                    pass
+        
         region = DeviceDetectionRegion(
             device_id=device_id,
             region_name=region_name,
@@ -52,7 +66,8 @@ def create_device_region(device_id: str, region_name: str, region_type: str, poi
             color=color,
             opacity=opacity,
             is_enabled=is_enabled,
-            sort_order=sort_order
+            sort_order=sort_order,
+            model_ids=model_ids_json
         )
         
         db.session.add(region)
@@ -100,6 +115,25 @@ def update_device_region(region_id: int, **kwargs) -> DeviceDetectionRegion:
             region.is_enabled = kwargs['is_enabled']
         if 'sort_order' in kwargs:
             region.sort_order = kwargs['sort_order']
+        if 'model_ids' in kwargs:
+            model_ids = kwargs['model_ids']
+            if model_ids:
+                if isinstance(model_ids, list) and len(model_ids) > 0:
+                    region.model_ids = json.dumps(model_ids)
+                elif isinstance(model_ids, str):
+                    # 如果已经是JSON字符串，验证格式
+                    try:
+                        parsed = json.loads(model_ids)
+                        if isinstance(parsed, list):
+                            region.model_ids = model_ids
+                        else:
+                            region.model_ids = None
+                    except:
+                        region.model_ids = None
+                else:
+                    region.model_ids = None
+            else:
+                region.model_ids = None
         
         region.updated_at = datetime.utcnow()
         db.session.commit()
