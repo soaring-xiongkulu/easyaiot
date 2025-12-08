@@ -1433,7 +1433,6 @@ def buffer_streamer_worker(device_id: str):
                         "-preset", FFMPEG_PRESET,  # 使用配置的预设（默认ultrafast）
                         "-g", str(FFMPEG_GOP_SIZE),  # GOP 大小：2秒一个关键帧
                         "-keyint_min", str(SOURCE_FPS),  # 最小关键帧间隔：1秒
-                        "-strict", "experimental",
                         "-f", "flv",
                     ]
                     
@@ -1468,7 +1467,8 @@ def buffer_streamer_worker(device_id: str):
                             stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,
-                            bufsize=0
+                            bufsize=0,
+                            shell=False  # 明确指定不使用shell，避免容器环境中的参数解析问题
                         )
                         
                         # 启动stderr读取线程

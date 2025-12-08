@@ -260,9 +260,6 @@ EasyAIoT는 Linux, Mac, Windows 세 가지 주류 운영체제에서의 배포�
 
 </div>
 
-<p style="font-size: 14px; line-height: 1.8; color: #e74c3c; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #fee; border-left: 4px solid #e74c3c; border-radius: 4px;">
-<strong>⚠️ Windows 배포 설명</strong>: Windows 원클릭 배포 스크립트에는 현재 문제가 있으며, 단기간 내에 관련 문제를 해결하지 않을 예정입니다. Windows 사용자는 배포 문서를 참고하여 수동 배포를 진행하거나, Linux/Mac 환경을 사용하여 배포하는 것을 권장합니다.
-</p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
 <strong>통일된 경험</strong>: 어떤 운영체제를 선택하든 EasyAIoT는 일관된 설치 스크립트와 배포 문서를 제공하여 크로스 플랫폼 배포 경험의 일관성을 보장합니다.
@@ -526,6 +523,47 @@ EasyAIoT 플랫폼과 코드를 깊이 이해하실 수 있도록 다양한 서�
 <div>
     <img src=".image/微信支付.jpg" alt="위챗페이" width="30%" height="30%">
     <img src=".image/支付宝支付.jpg" alt="알리페이" width="30%" height="10%">
+</div>
+
+## 🤝 기여 가이드
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+우리는 모든 형태의 기여를 환영합니다! 코드 개발자, 문서 작성자, 문제 보고자이든 상관없이 여러분의 기여가 EasyAIoT를 더 좋게 만드는 데 도움이 될 것입니다. 다음은 주요 기여 방법입니다:
+</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+
+<div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">💻 코드 기여</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>프로젝트를 GitHub/Gitee 계정으로 Fork</li>
+  <li>기능 브랜치 생성 (git checkout -b feature/AmazingFeature)</li>
+  <li>변경사항 커밋 (git commit -m 'Add some AmazingFeature')</li>
+  <li>브랜치에 푸시 (git push origin feature/AmazingFeature)</li>
+  <li>Pull Request 제출</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">📚 문서 기여</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>기존 문서 내용 개선</li>
+  <li>사용 예제 및 모범 사례 추가</li>
+  <li>다국어 번역 제공</li>
+  <li>문서 오류 수정</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🌟 기타 기여 방법</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>버그 보고 및 수정</li>
+  <li>기능 개선 제안</li>
+  <li>커뮤니티 토론 참여 및 다른 개발자 도움</li>
+  <li>사용 경험 및 사례 공유</li>
+</ul>
+</div>
+
 </div>
 
 ## 🙏 감사의 말

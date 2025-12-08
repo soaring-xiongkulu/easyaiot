@@ -174,47 +174,17 @@ Si tous les services fonctionnent normalement, les adresses d'accès aux service
 
 ### Déploiement Windows
 
-#### 1. Obtenir le code du projet
+Pour des instructions détaillées sur le déploiement Windows, y compris la préparation de l'environnement, le déploiement des middleware, le démarrage des services et le dépannage, veuillez consulter le [Guide de déploiement Windows](平台Windows部署文档_fr.md) dédié.
 
-```powershell
-# Cloner le projet (si ce n'est pas déjà fait)
-git clone <url-du-dépôt>
-cd easyaiot
-```
+Le guide de déploiement Windows fournit des instructions étape par étape complètes, couvrant :
+- Exigences système et configuration de l'environnement
+- Installation et configuration des middleware
+- Procédures de démarrage des services
+- Configuration de la diffusion vidéo en continu
+- Problèmes courants et solutions
+- Référence des commandes
 
-#### 2. Accéder au répertoire des scripts
-
-```powershell
-cd .scripts\docker
-```
-
-#### 3. Définir la politique d'exécution (si nécessaire)
-
-Si c'est la première fois que vous exécutez un script PowerShell, vous devrez peut-être définir la politique d'exécution :
-
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-#### 4. Installer tous les services en un clic
-
-```powershell
-.\install_win.ps1 install
-```
-
-Cette commande va :
-- Vérifier l'environnement Docker et Docker Compose
-- Créer le réseau unifié `easyaiot-network`
-- Installer tous les modules dans l'ordre des dépendances
-- Démarrer tous les conteneurs de services
-
-#### 5. Vérifier le statut des services
-
-```powershell
-.\install_win.ps1 verify
-```
-
-Si tous les services fonctionnent normalement, les adresses d'accès aux services seront affichées.
+Ce guide est spécialement conçu pour les systèmes Windows 10/11 et couvre les scénarios de déploiement local.
 
 ## Instructions d'utilisation des scripts
 
@@ -892,35 +862,15 @@ Les journaux des scripts contiennent :
 
 #### Windows
 
-1. **Préparation de l'environnement**
-   ```powershell
-   # Vérifier les exigences système
-   systeminfo | findstr /C:"Nom du système d'exploitation" /C:"Mémoire physique totale"
-   
-   # Installer Docker Desktop pour Windows
-   # Référence : https://docs.docker.com/desktop/install/windows-install/
-   ```
+Pour le déploiement Windows, veuillez consulter le [Guide de déploiement Windows](平台Windows部署文档_fr.md) dédié, qui fournit des instructions étape par étape complètes. Le guide couvre les scénarios de déploiement local sur les systèmes Windows 10/11, notamment :
 
-2. **Obtenir le code**
-   ```powershell
-   git clone <url-du-dépôt>
-   cd easyaiot
-   ```
+- La préparation de l'environnement et les exigences système
+- L'installation et la configuration des middleware
+- Les procédures de démarrage des services
+- La configuration de la diffusion vidéo en continu
+- Le dépannage et les problèmes courants
 
-3. **Exécuter l'installation**
-   ```powershell
-   cd .scripts\docker
-   .\install_win.ps1 install
-   ```
-
-4. **Vérifier le déploiement**
-   ```powershell
-   .\install_win.ps1 verify
-   ```
-
-5. **Accéder aux services**
-   - Ouvrir le navigateur et accéder aux adresses des services
-   - Vérifier que les services fonctionnent normalement
+**Remarque** : Le guide de déploiement Windows se concentre principalement sur le déploiement local. Pour un déploiement basé sur Docker sous Windows, vous pouvez utiliser le script `install_win.ps1`, mais des instructions détaillées sont disponibles dans le guide de déploiement Windows.
 
 ### Maintenance quotidienne
 

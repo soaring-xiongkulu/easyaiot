@@ -174,47 +174,17 @@ chmod +x install_mac.sh
 
 ### Windows 部署
 
-#### 1. 獲取項目代碼
+有關 Windows 部署的詳細說明，包括環境準備、中間件部署、服務啟動和故障排除等內容，請參閱專門的 [Windows 部署指南](平台Windows部署文档_zh_tw.md)。
 
-```powershell
-# 克隆項目（如果還沒有）
-git clone <repository-url>
-cd easyaiot
-```
+Windows 部署指南提供了全面的分步說明，涵蓋：
+- 系統要求和環境配置
+- 中間件安裝與配置
+- 服務啟動流程
+- 視訊串流媒體配置
+- 常見問題與解決方案
+- 常用命令參考
 
-#### 2. 進入腳本目錄
-
-```powershell
-cd .scripts\docker
-```
-
-#### 3. 設置執行策略（如需要）
-
-如果首次運行 PowerShell 腳本，可能需要設置執行策略：
-
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-#### 4. 一鍵安裝所有服務
-
-```powershell
-.\install_win.ps1 install
-```
-
-該命令會：
-- 檢查 Docker 和 Docker Compose 環境
-- 創建統一網絡 `easyaiot-network`
-- 按依賴順序安裝所有模組
-- 啟動所有服務容器
-
-#### 5. 驗證服務狀態
-
-```powershell
-.\install_win.ps1 verify
-```
-
-如果所有服務正常運行，將顯示服務訪問地址。
+該指南專門針對 Windows 10/11 系統，並涵蓋本地部署場景。
 
 ## 腳本使用說明
 
@@ -892,35 +862,15 @@ docker-compose logs -f
 
 #### Windows
 
-1. **環境準備**
-   ```powershell
-   # 檢查系統要求
-   systeminfo | findstr /C:"OS Name" /C:"Total Physical Memory"
-   
-   # 安裝 Docker Desktop for Windows
-   # 參考: https://docs.docker.com/desktop/install/windows-install/
-   ```
+Windows 部署請參閱專門的 [Windows 部署指南](平台Windows部署文档_zh_tw.md)，該指南提供了全面的分步說明。指南涵蓋 Windows 10/11 系統上的本地部署場景，包括：
 
-2. **獲取代碼**
-   ```powershell
-   git clone <repository-url>
-   cd easyaiot
-   ```
+- 環境準備和系統要求
+- 中間件安裝與配置
+- 服務啟動流程
+- 視訊串流媒體配置
+- 故障排除和常見問題
 
-3. **執行安裝**
-   ```powershell
-   cd .scripts\docker
-   .\install_win.ps1 install
-   ```
-
-4. **驗證部署**
-   ```powershell
-   .\install_win.ps1 verify
-   ```
-
-5. **訪問服務**
-   - 打開瀏覽器訪問各服務地址
-   - 檢查服務是否正常運行
+**注意**：Windows 部署指南主要關注本地部署。如需在 Windows 上進行基於 Docker 的部署，可以使用 `install_win.ps1` 腳本，詳細說明請參閱 Windows 部署指南。
 
 ### 日常運維
 

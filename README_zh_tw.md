@@ -261,9 +261,6 @@ EasyAIoT支持在Linux、Mac、Windows三大主流操作系統上部署，為不
 
 </div>
 
-<p style="font-size: 14px; line-height: 1.8; color: #e74c3c; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #fee; border-left: 4px solid #e74c3c; border-radius: 4px;">
-<strong>⚠️ Windows部署說明</strong>：Windows一鍵部署腳本目前還存在問題，短期內不會解決相關問題。建議Windows用戶參考部署文檔進行手動部署，或使用Linux/Mac環境進行部署。
-</p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
 <strong>統一體驗</strong>：無論選擇哪種操作系統，EasyAIoT都提供一致的安裝腳本和部署文檔，確保跨平臺部署體驗的一致性。
@@ -527,6 +524,47 @@ EasyAIoT是一個開源學習項目，與商業行為無關。用戶在使用該
 <div>
     <img src=".image/微信支付.jpg" alt="微信支付" width="30%" height="30%">
     <img src=".image/支付寶支付.jpg" alt="支付寶支付" width="30%" height="10%">
+</div>
+
+## 🤝 貢獻指南
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+我們歡迎所有形式的貢獻！無論您是代碼開發者、文檔編寫者，還是問題反饋者，您的貢獻都將幫助 EasyAIoT 變得更好。以下是幾種主要的貢獻方式：
+</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+
+<div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">💻 代碼貢獻</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>Fork 項目到您的 GitHub/Gitee 賬號</li>
+  <li>創建特性分支 (git checkout -b feature/AmazingFeature)</li>
+  <li>提交更改 (git commit -m 'Add some AmazingFeature')</li>
+  <li>推送到分支 (git push origin feature/AmazingFeature)</li>
+  <li>提交 Pull Request</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">📚 文檔貢獻</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>完善現有文檔內容</li>
+  <li>補充使用示例和最佳實踐</li>
+  <li>提供多語言翻譯</li>
+  <li>修正文檔錯誤</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🌟 其他貢獻方式</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>報告並修復 Bug</li>
+  <li>提出功能改進建議</li>
+  <li>參與社區討論，幫助其他開發者</li>
+  <li>分享使用經驗和案例</li>
+</ul>
+</div>
+
 </div>
 
 ## 🙏 致謝

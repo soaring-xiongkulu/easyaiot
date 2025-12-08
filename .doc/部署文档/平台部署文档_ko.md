@@ -174,47 +174,17 @@ chmod +x install_mac.sh
 
 ### Windows 배포
 
-#### 1. 프로젝트 코드 가져오기
+Windows 배포에 대한 자세한 지침(환경 준비, 미들웨어 배포, 서비스 시작 및 문제 해결 포함)은 전용 [Windows 배포 가이드](平台Windows部署文档_ko.md)를 참조하세요.
 
-```powershell
-# 프로젝트 클론 (아직 없는 경우)
-git clone <repository-url>
-cd easyaiot
-```
+Windows 배포 가이드는 다음을 포함한 포괄적인 단계별 지침을 제공합니다:
+- 시스템 요구사항 및 환경 설정
+- 미들웨어 설치 및 구성
+- 서비스 시작 절차
+- 비디오 스트리밍 구성
+- 일반적인 문제 및 해결 방법
+- 명령 참조
 
-#### 2. 스크립트 디렉토리로 이동
-
-```powershell
-cd .scripts\docker
-```
-
-#### 3. 실행 정책 설정 (필요한 경우)
-
-PowerShell 스크립트를 처음 실행하는 경우 실행 정책을 설정해야 할 수 있습니다:
-
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-#### 4. 모든 서비스 일괄 설치
-
-```powershell
-.\install_win.ps1 install
-```
-
-이 명령은 다음을 수행합니다:
-- Docker 및 Docker Compose 환경 확인
-- 통합 네트워크 `easyaiot-network` 생성
-- 의존성 순서에 따라 모든 모듈 설치
-- 모든 서비스 컨테이너 시작
-
-#### 5. 서비스 상태 확인
-
-```powershell
-.\install_win.ps1 verify
-```
-
-모든 서비스가 정상적으로 실행 중이면 서비스 접근 주소가 표시됩니다.
+이 가이드는 Windows 10/11 시스템을 위해 특별히 제작되었으며 로컬 배포 시나리오를 다룹니다.
 
 ## 스크립트 사용 설명
 
@@ -892,35 +862,15 @@ docker-compose logs -f
 
 #### Windows
 
-1. **환경 준비**
-   ```powershell
-   # 시스템 요구사항 확인
-   systeminfo | findstr /C:"OS Name" /C:"Total Physical Memory"
-   
-   # Docker Desktop for Windows 설치
-   # 참고: https://docs.docker.com/desktop/install/windows-install/
-   ```
+Windows 배포의 경우 전용 [Windows 배포 가이드](平台Windows部署文档_ko.md)를 참조하세요. 이 가이드는 포괄적인 단계별 지침을 제공합니다. 가이드는 Windows 10/11 시스템의 로컬 배포 시나리오를 다루며 다음을 포함합니다:
 
-2. **코드 가져오기**
-   ```powershell
-   git clone <repository-url>
-   cd easyaiot
-   ```
+- 환경 준비 및 시스템 요구사항
+- 미들웨어 설치 및 구성
+- 서비스 시작 절차
+- 비디오 스트리밍 구성
+- 문제 해결 및 일반적인 문제
 
-3. **설치 실행**
-   ```powershell
-   cd .scripts\docker
-   .\install_win.ps1 install
-   ```
-
-4. **배포 확인**
-   ```powershell
-   .\install_win.ps1 verify
-   ```
-
-5. **서비스 접근**
-    - 브라우저에서 각 서비스 주소 접근
-    - 서비스가 정상적으로 실행 중인지 확인
+**참고**: Windows 배포 가이드는 주로 로컬 배포에 중점을 둡니다. Windows에서 Docker 기반 배포의 경우 `install_win.ps1` 스크립트를 사용할 수 있지만, 자세한 지침은 Windows 배포 가이드에서 확인할 수 있습니다.
 
 ### 일상적인 운영 관리
 

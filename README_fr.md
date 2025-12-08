@@ -261,9 +261,6 @@ EasyAIoT prend en charge le déploiement sur les trois principaux systèmes d'ex
 
 </div>
 
-<p style="font-size: 14px; line-height: 1.8; color: #e74c3c; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #fee; border-left: 4px solid #e74c3c; border-radius: 4px;">
-<strong>⚠️ Note sur le déploiement Windows</strong> : Le script de déploiement en un clic pour Windows présente actuellement des problèmes qui ne seront pas résolus à court terme. Il est recommandé aux utilisateurs Windows de se référer à la documentation de déploiement pour une installation manuelle, ou d'utiliser un environnement Linux/Mac.
-</p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
 <strong>Expérience unifiée</strong> : Quel que soit le système d'exploitation choisi, EasyAIoT fournit des scripts d'installation et une documentation de déploiement cohérents, garantissant une expérience de déploiement multiplateforme uniforme.
@@ -527,6 +524,47 @@ Nous offrons diverses méthodes de service pour vous aider à mieux comprendre l
 <div>
     <img src=".image/微信支付.jpg" alt="Paiement WeChat" width="30%" height="30%">
     <img src=".image/支付宝支付.jpg" alt="Paiement Alipay" width="30%" height="10%">
+</div>
+
+## 🤝 Guide de contribution
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+Nous accueillons toutes les formes de contributions ! Que vous soyez développeur de code, rédacteur de documentation ou rapporteur de problèmes, votre contribution aidera à améliorer EasyAIoT. Voici les principales façons de contribuer :
+</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+
+<div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">💻 Contribution au code</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>Forkez le projet sur votre compte GitHub/Gitee</li>
+  <li>Créez une branche de fonctionnalité (git checkout -b feature/AmazingFeature)</li>
+  <li>Commitez vos modifications (git commit -m 'Add some AmazingFeature')</li>
+  <li>Poussez vers la branche (git push origin feature/AmazingFeature)</li>
+  <li>Ouvrez une Pull Request</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">📚 Contribution à la documentation</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>Améliorez le contenu de la documentation existante</li>
+  <li>Ajoutez des exemples d'utilisation et des meilleures pratiques</li>
+  <li>Fournissez des traductions multilingues</li>
+  <li>Corrigez les erreurs de documentation</li>
+</ul>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">🌟 Autres façons de contribuer</h4>
+<ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+  <li>Signalez et corrigez les bugs</li>
+  <li>Suggérez des améliorations de fonctionnalités</li>
+  <li>Participez aux discussions de la communauté et aidez les autres développeurs</li>
+  <li>Partagez vos expériences d'utilisation et des études de cas</li>
+</ul>
+</div>
+
 </div>
 
 ## 🙏 Remerciements
