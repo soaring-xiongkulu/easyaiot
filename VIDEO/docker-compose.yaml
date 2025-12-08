@@ -75,6 +75,13 @@ services:
       - HTTPS_PROXY=${HTTPS_PROXY:-}
       - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1}
 
+    # 配置hosts映射，将kafka-server映射到宿主机IP
+    # 注意：虽然使用host网络模式，但添加此配置可以确保kafka-server域名解析正确
+    # 使用host-gateway自动解析为宿主机IP（Docker 20.10+支持）
+    # 如果host-gateway不工作，可以手动指定IP，例如：- "kafka-server:192.168.1.100"
+    extra_hosts:
+      - "kafka-server:host-gateway"
+
     # 重启策略
     restart: unless-stopped
 

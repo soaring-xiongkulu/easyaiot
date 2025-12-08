@@ -122,6 +122,8 @@ services:
       - SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL=jdbc:postgresql://PostgresSQL:5432/iot-device20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified # PostgreSQL数据库地址（使用Docker服务名）
       - SPRING_REDIS_HOST=Redis # Redis地址（使用Docker服务名）
       - MINIO_ENDPOINT=http://MinIO:9000 # Minio地址（使用Docker服务名）
+      - SPRING_KAFKA_IOT_PRODUCER_BOOTSTRAP_SERVERS=Kafka:9092 # Kafka生产者地址（使用Docker服务名）
+      - SPRING_KAFKA_IOT_CONSUMER_BOOTSTRAP_SERVERS=Kafka:9092 # Kafka消费者地址（使用Docker服务名）
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-device
@@ -281,7 +283,15 @@ services:
       - SPRING_CLOUD_NACOS_SERVER_ADDR=Nacos:8848 # 注册中心地址（使用Docker服务名）
       - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE= # 使用默认命名空间（public）
       - SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL=jdbc:postgresql://PostgresSQL:5432/iot-message20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified # PostgreSQL数据库地址（使用Docker服务名）
+      - SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_USERNAME=postgres # PostgreSQL数据库用户名
+      - SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_PASSWORD=iot45722414822 # PostgreSQL数据库密码
+      - SPRING_DATASOURCE_DYNAMIC_DATASOURCE_VIDEO_URL=jdbc:postgresql://PostgresSQL:5432/iot-video20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified # VIDEO数据库地址（使用Docker服务名）
+      - SPRING_DATASOURCE_DYNAMIC_DATASOURCE_VIDEO_USERNAME=postgres # VIDEO数据库用户名
+      - SPRING_DATASOURCE_DYNAMIC_DATASOURCE_VIDEO_PASSWORD=iot45722414822 # VIDEO数据库密码
       - SPRING_REDIS_HOST=Redis # Redis地址（使用Docker服务名）
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=Kafka:9092 # Kafka地址（使用Docker服务名）
+      - MINIO_ENDPOINT=http://MinIO # Minio地址（使用Docker服务名）
+      - MINIO_PORT=9000 # Minio端口
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-message
@@ -290,6 +300,11 @@ services:
     volumes:
       - ${HOME}/docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
+    # 配置hosts映射，将kafka-server映射到宿主机IP
+    # 使用host-gateway自动解析为宿主机IP（Docker 20.10+支持）
+    # 如果host-gateway不工作，可以手动指定IP，例如：- "kafka-server:192.168.1.100"
+    extra_hosts:
+      - "kafka-server:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48093"]
       interval: 30s
@@ -320,8 +335,12 @@ services:
       - SPRING_CLOUD_NACOS_SERVER_ADDR=Nacos:8848 # 注册中心地址（使用Docker服务名）
       - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE= # 使用默认命名空间（public）
       - SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL=jdbc:postgresql://PostgresSQL:5432/iot-device20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified # PostgreSQL数据库地址（使用Docker服务名）
+      - SPRING_DATASOURCE_DYNAMIC_DATASOURCE_TDENGINE_URL=jdbc:TAOS-RS://TDengine:6041/iot_device?user=root&password=taosdata&useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8 # TDengine数据库地址（使用Docker服务名）
+      - SPRING_DATASOURCE_DYNAMIC_DATASOURCE_VIDEO_URL=jdbc:postgresql://PostgresSQL:5432/iot-video20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified # VIDEO数据库地址（使用Docker服务名）
       - SPRING_REDIS_HOST=Redis # Redis地址（使用Docker服务名）
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=Kafka:9092 # Kafka地址（使用Docker服务名）
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=Kafka:9092 # Kafka地址（使用Docker服务名，用于标准配置）
+      - SPRING_KAFKA_IOT_PRODUCER_BOOTSTRAP_SERVERS=Kafka:9092 # Kafka生产者地址（使用Docker服务名，用于自定义iot配置）
+      - SPRING_KAFKA_IOT_CONSUMER_BOOTSTRAP_SERVERS=Kafka:9092 # Kafka消费者地址（使用Docker服务名，用于自定义iot配置）
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-sink
@@ -330,6 +349,11 @@ services:
     volumes:
       - ${HOME}/docker/iot-device/logs:/root/logs/
       # - /data/skywalking/skywalking-agent:/data/skywalking/skywalking-agent
+    # 配置hosts映射，将kafka-server映射到宿主机IP
+    # 使用host-gateway自动解析为宿主机IP（Docker 20.10+支持）
+    # 如果host-gateway不工作，可以手动指定IP，例如：- "kafka-server:192.168.1.100"
+    extra_hosts:
+      - "kafka-server:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48092"]
       interval: 30s

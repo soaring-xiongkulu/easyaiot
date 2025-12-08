@@ -202,15 +202,21 @@ services:
     image: apache/kafka:3.8.0
     container_name: kafka-server
     restart: always
-    network_mode: host # 使用host网络模式，直接使用宿主机网络
+    ports:
+      - "9092:9092"
+      - "9093:9093"
     environment:
       - TZ=Asia/Shanghai
-      # 可选：手动指定宿主机 IP（如果不设置，entrypoint 脚本会自动获取）
-      # - KAFKA_HOST_IP=192.168.1.100
       - KAFKA_NODE_ID=1
       - KAFKA_PROCESS_ROLES=broker,controller
       - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      # KAFKA_ADVERTISED_LISTENERS 和 KAFKA_CONTROLLER_QUORUM_VOTERS 由 entrypoint 脚本自动设置
+      # 使用Kafka服务名作为advertised listener，支持Docker网络模式
+      # DEVICE服务（Docker网络）通过Kafka:9092连接
+      # VIDEO服务（host模式）通过localhost:9092连接（端口已映射到宿主机）
+      # 注意：VIDEO服务使用localhost连接时，Kafka会返回Kafka:9092作为advertised listener
+      # 但客户端会继续使用初始连接地址localhost:9092，不会影响连接
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://Kafka:9092
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@Kafka:9093
       - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
       - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
@@ -226,10 +232,11 @@ services:
       - KAFKA_LOG_DIRS=/var/lib/kafka/data
     volumes:
       - ./mq_data/data:/var/lib/kafka/data:rw
-      # Kafka entrypoint 脚本（自动获取宿主机 IP 并配置）
-      # 注意：确保 ./kafka-entrypoint.sh 文件存在，否则挂载会失败
-      - ./kafka-entrypoint.sh:/kafka-entrypoint.sh:ro
-    entrypoint: ["/bin/bash", "/kafka-entrypoint.sh"]
+    # 使用 extra_hosts 让 Kafka 容器内也能通过 hosts 解析服务
+    # host.docker.internal 指向宿主机（Docker 20.10+ 支持）
+    # 如果系统不支持，可以通过环境变量 HOST_IP 动态配置
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test:
         [
@@ -240,6 +247,8 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    networks:
+      - easyaiot-network
 
   # MinIO Server
   MinIO:
