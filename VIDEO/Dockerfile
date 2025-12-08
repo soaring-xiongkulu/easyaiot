@@ -1,5 +1,5 @@
 # 使用PyTorch官方镜像作为基础镜像（与AI服务保持一致）
-FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime AS base
+FROM pytorch/pytorch:2.9.0-cuda12.8-cudnn9-devel AS base
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1 \
