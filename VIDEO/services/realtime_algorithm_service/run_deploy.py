@@ -131,9 +131,18 @@ BUFFER_SIZE = int(os.getenv('BUFFER_SIZE', '70'))
 MIN_BUFFER_FRAMES = int(os.getenv('MIN_BUFFER_FRAMES', '15'))
 MAX_WAIT_TIME = float(os.getenv('MAX_WAIT_TIME', '0.08'))
 # FFmpeg编码参数（优化以降低CPU占用）
-FFMPEG_PRESET = os.getenv('FFMPEG_PRESET', 'ultrafast')  # 编码预设：ultrafast最快，CPU占用最低
-FFMPEG_VIDEO_BITRATE = os.getenv('FFMPEG_VIDEO_BITRATE', '500k')  # 视频比特率：降低可减少推流速度（原1500k）
-FFMPEG_THREADS = os.getenv('FFMPEG_THREADS', None)  # 编码线程数：None表示自动，可设置为较小值降低CPU
+# FFmpeg编码参数（优化以降低CPU占用）
+# 处理空字符串的情况，确保参数有效
+FFMPEG_PRESET_ENV = os.getenv('FFMPEG_PRESET', 'ultrafast')
+FFMPEG_PRESET = FFMPEG_PRESET_ENV.strip() if FFMPEG_PRESET_ENV and FFMPEG_PRESET_ENV.strip() else 'ultrafast'  # 编码预设：ultrafast最快，CPU占用最低
+
+FFMPEG_VIDEO_BITRATE_ENV = os.getenv('FFMPEG_VIDEO_BITRATE', '500k')
+FFMPEG_VIDEO_BITRATE = FFMPEG_VIDEO_BITRATE_ENV.strip() if FFMPEG_VIDEO_BITRATE_ENV and FFMPEG_VIDEO_BITRATE_ENV.strip() else '500k'  # 视频比特率：降低可减少推流速度（原1500k）
+
+# 编码线程数：None表示自动，可设置为较小值降低CPU
+# 处理空字符串的情况，确保只有有效的数字字符串才会被使用
+FFMPEG_THREADS_ENV = os.getenv('FFMPEG_THREADS', None)
+FFMPEG_THREADS = None if not FFMPEG_THREADS_ENV or FFMPEG_THREADS_ENV.strip() == '' else FFMPEG_THREADS_ENV.strip()
 # GOP大小：2秒一个关键帧（在SOURCE_FPS定义后计算）
 FFMPEG_GOP_SIZE_ENV = os.getenv('FFMPEG_GOP_SIZE', None)
 FFMPEG_GOP_SIZE = int(FFMPEG_GOP_SIZE_ENV) if FFMPEG_GOP_SIZE_ENV else (SOURCE_FPS * 2)
@@ -1362,8 +1371,17 @@ def buffer_streamer_worker(device_id: str):
                     ]
                     
                     # 如果配置了线程数限制，添加线程参数
-                    if FFMPEG_THREADS is not None:
-                        ffmpeg_cmd.extend(["-threads", str(FFMPEG_THREADS)])
+                    # 确保 FFMPEG_THREADS 是有效的非空值
+                    if FFMPEG_THREADS is not None and str(FFMPEG_THREADS).strip():
+                        try:
+                            # 验证是否为有效的整数
+                            threads_value = int(FFMPEG_THREADS)
+                            if threads_value > 0:
+                                ffmpeg_cmd.extend(["-threads", str(threads_value)])
+                            else:
+                                logger.warning(f"   ⚠️  FFMPEG_THREADS 值无效 ({FFMPEG_THREADS})，跳过线程数限制")
+                        except (ValueError, TypeError):
+                            logger.warning(f"   ⚠️  FFMPEG_THREADS 值无效 ({FFMPEG_THREADS})，跳过线程数限制")
                     
                     # 添加输出地址
                     ffmpeg_cmd.append(rtmp_url)
@@ -1372,9 +1390,10 @@ def buffer_streamer_worker(device_id: str):
                     logger.info(f"   📺 推流地址: {rtmp_url}")
                     logger.info(f"   📐 尺寸: {width}x{height}, 帧率: {SOURCE_FPS}fps")
                     logger.info(f"   🎬 编码预设: {FFMPEG_PRESET}, 比特率: {FFMPEG_VIDEO_BITRATE}, GOP: {FFMPEG_GOP_SIZE}")
-                    if FFMPEG_THREADS is not None:
+                    if FFMPEG_THREADS is not None and str(FFMPEG_THREADS).strip():
                         logger.info(f"   🧵 编码线程数: {FFMPEG_THREADS}")
                     logger.debug(f"   FFmpeg命令: {' '.join(ffmpeg_cmd)}")
+                    logger.debug(f"   FFmpeg命令参数列表: {ffmpeg_cmd}")
                     
                     try:
                         pusher_process = subprocess.Popen(
@@ -1411,6 +1430,8 @@ def buffer_streamer_worker(device_id: str):
                             
                             exit_code = pusher_process.returncode
                             logger.error(f"❌ 设备 {device_id} 推送进程启动失败 (退出码: {exit_code})")
+                            logger.error(f"   FFmpeg命令: {' '.join(ffmpeg_cmd)}")
+                            logger.error(f"   FFmpeg命令参数列表: {ffmpeg_cmd}")
                             
                             # 提取关键错误信息
                             key_errors = []
@@ -1418,7 +1439,7 @@ def buffer_streamer_worker(device_id: str):
                                 line_lower = line.lower()
                                 if any(skip in line_lower for skip in ['version', 'copyright', 'built with', 'configuration:', 'libav']):
                                     continue
-                                if any(keyword in line_lower for keyword in ['error', 'failed', 'cannot', 'unable', 'invalid', 'connection refused', 'connection reset', 'timeout', 'no such file', 'permission denied']):
+                                if any(keyword in line_lower for keyword in ['error', 'failed', 'cannot', 'unable', 'invalid', 'connection refused', 'connection reset', 'timeout', 'no such file', 'permission denied', 'splitting', 'option not found']):
                                     key_errors.append(line)
                             
                             if key_errors:
