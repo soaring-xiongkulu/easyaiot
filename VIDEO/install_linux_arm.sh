@@ -129,6 +129,32 @@ detect_architecture() {
     export ARM_BASE_IMAGE
 }
 
+# 检查本地是否有 ffmpeg 文件
+check_local_ffmpeg() {
+    local ffmpeg_file="ffmpeg-master-latest-linuxarm64-gpl.tar.xz"
+    
+    if [ -f "$ffmpeg_file" ]; then
+        local file_size=$(stat -f%z "$ffmpeg_file" 2>/dev/null || stat -c%s "$ffmpeg_file" 2>/dev/null || echo 0)
+        if [ "$file_size" -gt 1048576 ]; then  # 大于 1MB
+            print_success "发现本地 ffmpeg 文件: $ffmpeg_file (大小: $(numfmt --to=iec-i --suffix=B $file_size 2>/dev/null || echo ${file_size} bytes))"
+            print_info "将优先使用本地文件，不从 GitHub 下载"
+            return 0
+        else
+            print_warning "本地 ffmpeg 文件存在但大小异常，将从 GitHub 下载"
+            # 删除异常文件，避免 Dockerfile COPY 失败
+            rm -f "$ffmpeg_file"
+            return 1
+        fi
+    else
+        print_info "未找到本地 ffmpeg 文件: $ffmpeg_file"
+        print_info "构建时将从 GitHub 下载"
+        # 创建一个空占位符文件，避免 Dockerfile COPY 命令失败
+        # Dockerfile 会检查文件大小，如果文件为空或很小则跳过使用
+        touch "$ffmpeg_file" 2>/dev/null || true
+        return 1
+    fi
+}
+
 # 配置ARM架构的Dockerfile
 configure_arm_dockerfile() {
     print_info "配置 ARM 架构 Dockerfile..."
@@ -159,6 +185,9 @@ configure_arm_dockerfile() {
         cp Dockerfile.arm Dockerfile
         print_success "已创建 ARM 版本的 Dockerfile"
     fi
+    
+    # 检查本地是否有 ffmpeg 文件
+    check_local_ffmpeg
 }
 
 # 恢复原始 Dockerfile（可选）
@@ -405,6 +434,9 @@ install_service() {
     create_directories
     create_env_file
     
+    # 检查本地 ffmpeg 文件
+    check_local_ffmpeg
+    
     print_info "构建 Docker 镜像（ARM架构）..."
     print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $ARM_BASE_IMAGE"
     print_warning "首次构建可能需要较长时间（20-40分钟），请耐心等待..."
@@ -433,6 +465,15 @@ install_service() {
     rm -f "$BUILD_LOG"
     echo ""
     print_success "镜像构建完成！"
+    
+    # 清理占位符文件（如果存在）
+    if [ -f "ffmpeg-master-latest-linuxarm64-gpl.tar.xz" ]; then
+        local file_size=$(stat -f%z "ffmpeg-master-latest-linuxarm64-gpl.tar.xz" 2>/dev/null || stat -c%s "ffmpeg-master-latest-linuxarm64-gpl.tar.xz" 2>/dev/null || echo 0)
+        if [ "$file_size" -le 1048576 ]; then  # 小于等于 1MB，可能是占位符文件
+            rm -f "ffmpeg-master-latest-linuxarm64-gpl.tar.xz"
+            print_info "已清理占位符文件"
+        fi
+    fi
     
     print_info "启动服务..."
     $COMPOSE_CMD up -d
@@ -538,6 +579,9 @@ build_image() {
     detect_architecture
     configure_arm_dockerfile
     
+    # 检查本地 ffmpeg 文件
+    check_local_ffmpeg
+    
     print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $ARM_BASE_IMAGE"
     print_warning "重新构建可能需要较长时间（20-40分钟），请耐心等待..."
     print_info "正在重新下载基础镜像和安装依赖..."
@@ -565,6 +609,15 @@ build_image() {
     rm -f "$BUILD_LOG"
     echo ""
     print_success "镜像构建完成"
+    
+    # 清理占位符文件（如果存在）
+    if [ -f "ffmpeg-master-latest-linuxarm64-gpl.tar.xz" ]; then
+        local file_size=$(stat -f%z "ffmpeg-master-latest-linuxarm64-gpl.tar.xz" 2>/dev/null || stat -c%s "ffmpeg-master-latest-linuxarm64-gpl.tar.xz" 2>/dev/null || echo 0)
+        if [ "$file_size" -le 1048576 ]; then  # 小于等于 1MB，可能是占位符文件
+            rm -f "ffmpeg-master-latest-linuxarm64-gpl.tar.xz"
+            print_info "已清理占位符文件"
+        fi
+    fi
 }
 
 # 清理服务
@@ -600,6 +653,9 @@ update_service() {
     clean_compose_cache
     check_network
     
+    # 检查本地 ffmpeg 文件
+    check_local_ffmpeg
+    
     print_info "拉取最新代码..."
     git pull || print_warning "Git pull 失败，继续使用当前代码"
     
@@ -631,6 +687,15 @@ update_service() {
     rm -f "$BUILD_LOG"
     echo ""
     print_success "镜像构建完成！"
+    
+    # 清理占位符文件（如果存在）
+    if [ -f "ffmpeg-master-latest-linuxarm64-gpl.tar.xz" ]; then
+        local file_size=$(stat -f%z "ffmpeg-master-latest-linuxarm64-gpl.tar.xz" 2>/dev/null || stat -c%s "ffmpeg-master-latest-linuxarm64-gpl.tar.xz" 2>/dev/null || echo 0)
+        if [ "$file_size" -le 1048576 ]; then  # 小于等于 1MB，可能是占位符文件
+            rm -f "ffmpeg-master-latest-linuxarm64-gpl.tar.xz"
+            print_info "已清理占位符文件"
+        fi
+    fi
     
     print_info "重启服务..."
     $COMPOSE_CMD up -d

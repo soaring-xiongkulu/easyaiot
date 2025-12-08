@@ -17,6 +17,11 @@ WORKDIR /app
 # ======================= 第一阶段：系统依赖安装 =======================
 FROM base AS dependencies
 
+# 复制本地 ffmpeg 文件（如果存在，优先使用本地文件）
+# 注意：如果文件不存在，构建脚本会创建一个空占位符文件以避免构建失败
+# Dockerfile 会在 RUN 命令中检查文件大小，如果文件为空或很小则跳过使用
+COPY ffmpeg-master-latest-linuxarm64-gpl.tar.xz* /tmp/
+
 # manylinuxaarch64-builder 基于 CentOS，使用 yum 包管理器
 # 安装系统依赖包（包含视频处理所需的ffmpeg和相关库）
 RUN set -ex && \
@@ -67,8 +72,18 @@ RUN set -ex && \
         echo "ffmpeg 不在 EPEL 仓库中，使用预编译静态二进制文件安装（官方推荐方法）..." && \
         # 使用预编译静态二进制文件（静态二进制文件是自包含的，不需要额外的依赖库）
         cd /tmp && \
-        # 优先尝试从 GitHub BtbN/FFmpeg-Builds 下载 ARM64 版本（支持 ARM64）
-        if wget -q --spider "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz" 2>/dev/null; then \
+        # 优先检查本地是否有 ffmpeg 文件（从构建上下文复制）
+        # 检查文件是否存在且大小大于 1MB（避免使用占位符文件）
+        if [ -f "ffmpeg-master-latest-linuxarm64-gpl.tar.xz" ] && [ $(stat -f%z "ffmpeg-master-latest-linuxarm64-gpl.tar.xz" 2>/dev/null || stat -c%s "ffmpeg-master-latest-linuxarm64-gpl.tar.xz" 2>/dev/null || echo 0) -gt 1048576 ]; then \
+            echo "使用本地 ffmpeg 文件（从构建上下文）..." && \
+            tar -xf ffmpeg-master-latest-linuxarm64-gpl.tar.xz && \
+            cp ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg /usr/local/bin/ && \
+            cp ffmpeg-master-latest-linuxarm64-gpl/bin/ffprobe /usr/local/bin/ && \
+            chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe && \
+            rm -rf /tmp/ffmpeg-* && \
+            echo "ffmpeg 已从本地文件安装"; \
+        # 如果本地文件不存在，尝试从 GitHub BtbN/FFmpeg-Builds 下载 ARM64 版本（支持 ARM64）
+        elif wget -q --spider "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz" 2>/dev/null; then \
             echo "从 GitHub BtbN/FFmpeg-Builds 下载 ARM64 版本..." && \
             wget -q "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz" && \
             tar -xf ffmpeg-master-latest-linuxarm64-gpl.tar.xz && \
