@@ -202,16 +202,15 @@ services:
     image: apache/kafka:3.8.0
     container_name: kafka-server
     restart: always
-    ports:
-      - "9092:9092"
-      - "9093:9093"
+    network_mode: host # 使用host网络模式，直接使用宿主机网络
     environment:
       - TZ=Asia/Shanghai
+      # 可选：手动指定宿主机 IP（如果不设置，entrypoint 脚本会自动获取）
+      # - KAFKA_HOST_IP=192.168.1.100
       - KAFKA_NODE_ID=1
       - KAFKA_PROCESS_ROLES=broker,controller
       - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-server:9092
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka-server:9093
+      # KAFKA_ADVERTISED_LISTENERS 和 KAFKA_CONTROLLER_QUORUM_VOTERS 由 entrypoint 脚本自动设置
       - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
       - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
@@ -227,6 +226,10 @@ services:
       - KAFKA_LOG_DIRS=/var/lib/kafka/data
     volumes:
       - ./mq_data/data:/var/lib/kafka/data:rw
+      # Kafka entrypoint 脚本（自动获取宿主机 IP 并配置）
+      # 注意：确保 ./kafka-entrypoint.sh 文件存在，否则挂载会失败
+      - ./kafka-entrypoint.sh:/kafka-entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/kafka-entrypoint.sh"]
     healthcheck:
       test:
         [
@@ -237,8 +240,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
-    networks:
-      - easyaiot-network
 
   # MinIO Server
   MinIO:
