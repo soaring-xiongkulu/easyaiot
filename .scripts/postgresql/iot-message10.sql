@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict jJvekh4qsQwg9NC8chVGiKFhvTdezWLZH80O4GSxCB2uKFFObckSowNHFhFbplA
+\restrict H8wWC7rKztIbVXw3IetLLuU0ELZSmTjcNxRGlXWkFO5RXsXeqAesgNwF5EYSTsv
 
 -- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
 -- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)
@@ -27,10 +27,10 @@ DROP DATABASE IF EXISTS "iot-message20";
 CREATE DATABASE "iot-message20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict jJvekh4qsQwg9NC8chVGiKFhvTdezWLZH80O4GSxCB2uKFFObckSowNHFhFbplA
+\unrestrict H8wWC7rKztIbVXw3IetLLuU0ELZSmTjcNxRGlXWkFO5RXsXeqAesgNwF5EYSTsv
 \encoding SQL_ASCII
 \connect -reuse-previous=on "dbname='iot-message20'"
-\restrict jJvekh4qsQwg9NC8chVGiKFhvTdezWLZH80O4GSxCB2uKFFObckSowNHFhFbplA
+\restrict H8wWC7rKztIbVXw3IetLLuU0ELZSmTjcNxRGlXWkFO5RXsXeqAesgNwF5EYSTsv
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -1033,7 +1033,7 @@ COPY public.t_msg_mail (id, msg_type, msg_name, title, cc, files, content, creat
 5ee8cd54-6cd7-4a5e-99b8-ed8f76eccd2f	3	哇哈哈	您好			哇哈哈	2023-07-25 14:23:29.162	2023-07-25 14:28:03.585	andywebjava@163.com	\N	1	0
 5195a5ea-5c7a-4b6d-a0d4-313ead959a63	3	email001	email001	email001@si.com		test	2023-07-25 15:05:40.656	2023-07-25 15:08:30.067	andywebjava@163.com	\N	1	0
 807db0ec-4d8a-4414-a4d1-ec6abfc59979	3	email002	email002	email002@si.com		1	2023-07-25 15:08:56.214	2023-07-25 17:23:36.962	andywebjava@163.com	\N	1	0
-515bdf64-20e9-4035-b6bf-6cc6364a5372	3	邮件测试推送	邮件测试推送	1184152227@qq.com	{"id":0,"filePath":"http://120.77.217.53:39000/messagenotificationfile/annex/2023/07/26/31216695-bd3d-4749-8d31-f0c506e12fca.pdf","fileName":"2021年上半年全员信息安全考试培训材料.pdf"}	这是一封来自统一消息通知平台的测试邮件",\n                    "<h1>恭喜，配置正确，邮件发送成功！</h1><p>来自统一消息通知平台，一款专注于批量推送的小而美的工具。</p>	2023-07-24 17:26:01.549	2023-07-26 10:02:13.329	andywebjava@163.com	\N	1	0
+515bdf64-20e9-4035-b6bf-6cc6364a5372	3	EasyAIoT邮件测试模板	EasyAIoT算法任务邮件测试推送		{"id":0,"filePath":"http://120.77.217.53:39000/messagenotificationfile/annex/2023/07/26/31216695-bd3d-4749-8d31-f0c506e12fca.pdf","fileName":""}	这是一封来自EasyAIoT的测试邮件	2023-07-24 17:26:01.549	2025-12-07 11:32:27.487	andywebjava@163.com	c52b76fa-1ee7-4c5d-8305-075ea876272b	1	0
 \.
 
 
@@ -1106,7 +1106,7 @@ c25d6e8b-9a6f-4a4a-9b76-1f043f2afda7	3	1131473524@qq.com	2023-07-25 10:43:21.961
 23a2d3aa-d424-4929-97a2-88312dc0c20b	4	pengjian	2023-07-25 10:43:22.005	1	0
 2b09cc4b-9404-4165-833a-fed4d6a415b8	1	13397682981	2023-07-25 15:22:22.823	1	0
 a2ce3671-5e50-49a2-9281-710b96749ef0	3	test0@test.com	2023-07-26 14:37:51.746	1	0
-b1ff9e5a-7a0c-42d0-a27b-645291eb03e3	3	test1@test.com	2023-07-26 14:37:51.775	1	0
+b1ff9e5a-7a0c-42d0-a27b-645291eb03e3	3	853017739@qq.com	2023-07-26 14:37:51.775	1	0
 \.
 
 
@@ -1116,8 +1116,8 @@ b1ff9e5a-7a0c-42d0-a27b-645291eb03e3	3	test1@test.com	2023-07-26 14:37:51.775	1	
 
 COPY public.t_preview_user_group (id, msg_type, user_group_name, preview_user_id, create_time, tenant_id, deleted) FROM stdin;
 53761ad7-8a08-4023-8529-96d5171ed542	1	测试阿里云用户组1	b0a89baa-38b3-407a-8f67-39207aa66d56	2023-07-27 11:54:35.738	1	0
-c52b76fa-1ee7-4c5d-8305-075ea876272b	3	测试邮件用户组1	0b291ae8-4ce8-4a97-aab4-737a312f4efd,0dec81aa-4c8e-4b45-a4bb-59743c500f26	2023-07-27 09:31:54.007	1	0
 5337a7f5-e947-4b93-818e-b1629f515103	6	dingding	918171cd-c25f-46a6-8bae-f2f7ffba8c96,6ea907a6-6082-4d99-9539-e888477fd717	2023-07-27 11:54:23.204	1	0
+c52b76fa-1ee7-4c5d-8305-075ea876272b	3	EasyAIoT测试分组	0b291ae8-4ce8-4a97-aab4-737a312f4efd,0dec81aa-4c8e-4b45-a4bb-59743c500f26,b1ff9e5a-7a0c-42d0-a27b-645291eb03e3	2023-07-27 09:31:54.007	1	0
 \.
 
 
@@ -1378,5 +1378,5 @@ ALTER TABLE ONLY public.t_msg_kefu
 -- PostgreSQL database dump complete
 --
 
-\unrestrict jJvekh4qsQwg9NC8chVGiKFhvTdezWLZH80O4GSxCB2uKFFObckSowNHFhFbplA
+\unrestrict H8wWC7rKztIbVXw3IetLLuU0ELZSmTjcNxRGlXWkFO5RXsXeqAesgNwF5EYSTsv
 

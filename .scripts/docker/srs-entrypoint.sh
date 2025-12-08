@@ -30,3 +30,4 @@ echo "[SRS Entrypoint] ✓ umask 已设置为 0000（新文件权限: 666）"
 # 使用 exec 确保信号正确传递
 exec "$@"
 
+

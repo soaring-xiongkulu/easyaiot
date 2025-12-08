@@ -2,12 +2,40 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 16.2
--- Dumped by pg_dump version 16.2
+\restrict iZdoLve0psaXcY7NooGzB4hLPfmHYo8jVbUQlbmoLe1ZTFSJSrlcdJlRzcF0l70
+
+-- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
+-- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+DROP DATABASE IF EXISTS "iot-ai20";
+--
+-- Name: iot-ai20; Type: DATABASE; Schema: -; Owner: -
+--
+
+CREATE DATABASE "iot-ai20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
+
+
+\unrestrict iZdoLve0psaXcY7NooGzB4hLPfmHYo8jVbUQlbmoLe1ZTFSJSrlcdJlRzcF0l70
+\encoding SQL_ASCII
+\connect -reuse-previous=on "dbname='iot-ai20'"
+\restrict iZdoLve0psaXcY7NooGzB4hLPfmHYo8jVbUQlbmoLe1ZTFSJSrlcdJlRzcF0l70
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -21,7 +49,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: ai_service; Type: TABLE; Schema: public; Owner: postgres
+-- Name: ai_service; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.ai_service (
@@ -44,10 +72,8 @@ CREATE TABLE public.ai_service (
 );
 
 
-ALTER TABLE public.ai_service OWNER TO postgres;
-
 --
--- Name: ai_service_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: ai_service_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.ai_service_id_seq
@@ -59,17 +85,15 @@ CREATE SEQUENCE public.ai_service_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.ai_service_id_seq OWNER TO postgres;
-
 --
--- Name: ai_service_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: ai_service_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.ai_service_id_seq OWNED BY public.ai_service.id;
 
 
 --
--- Name: export_record; Type: TABLE; Schema: public; Owner: postgres
+-- Name: export_record; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.export_record (
@@ -85,10 +109,8 @@ CREATE TABLE public.export_record (
 );
 
 
-ALTER TABLE public.export_record OWNER TO postgres;
-
 --
--- Name: export_record_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: export_record_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.export_record_id_seq
@@ -100,17 +122,15 @@ CREATE SEQUENCE public.export_record_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.export_record_id_seq OWNER TO postgres;
-
 --
--- Name: export_record_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: export_record_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.export_record_id_seq OWNED BY public.export_record.id;
 
 
 --
--- Name: inference_task; Type: TABLE; Schema: public; Owner: postgres
+-- Name: inference_task; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.inference_task (
@@ -129,10 +149,8 @@ CREATE TABLE public.inference_task (
 );
 
 
-ALTER TABLE public.inference_task OWNER TO postgres;
-
 --
--- Name: inference_task_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: inference_task_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.inference_task_id_seq
@@ -144,17 +162,15 @@ CREATE SEQUENCE public.inference_task_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.inference_task_id_seq OWNER TO postgres;
-
 --
--- Name: inference_task_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: inference_task_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.inference_task_id_seq OWNED BY public.inference_task.id;
 
 
 --
--- Name: llm_config; Type: TABLE; Schema: public; Owner: postgres
+-- Name: llm_config; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.llm_config (
@@ -192,10 +208,8 @@ CREATE TABLE public.llm_config (
 );
 
 
-ALTER TABLE public.llm_config OWNER TO postgres;
-
 --
--- Name: llm_config_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: llm_config_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.llm_config_id_seq
@@ -207,17 +221,15 @@ CREATE SEQUENCE public.llm_config_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.llm_config_id_seq OWNER TO postgres;
-
 --
--- Name: llm_config_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: llm_config_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.llm_config_id_seq OWNED BY public.llm_config.id;
 
 
 --
--- Name: model; Type: TABLE; Schema: public; Owner: postgres
+-- Name: model; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.model (
@@ -237,10 +249,8 @@ CREATE TABLE public.model (
 );
 
 
-ALTER TABLE public.model OWNER TO postgres;
-
 --
--- Name: model_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: model_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.model_id_seq
@@ -252,17 +262,15 @@ CREATE SEQUENCE public.model_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.model_id_seq OWNER TO postgres;
-
 --
--- Name: model_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: model_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.model_id_seq OWNED BY public.model.id;
 
 
 --
--- Name: ocr_result; Type: TABLE; Schema: public; Owner: postgres
+-- Name: ocr_result; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.ocr_result (
@@ -279,10 +287,8 @@ CREATE TABLE public.ocr_result (
 );
 
 
-ALTER TABLE public.ocr_result OWNER TO postgres;
-
 --
--- Name: ocr_result_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: ocr_result_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.ocr_result_id_seq
@@ -294,17 +300,15 @@ CREATE SEQUENCE public.ocr_result_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.ocr_result_id_seq OWNER TO postgres;
-
 --
--- Name: ocr_result_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: ocr_result_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.ocr_result_id_seq OWNED BY public.ocr_result.id;
 
 
 --
--- Name: speech_record; Type: TABLE; Schema: public; Owner: postgres
+-- Name: speech_record; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.speech_record (
@@ -323,10 +327,8 @@ CREATE TABLE public.speech_record (
 );
 
 
-ALTER TABLE public.speech_record OWNER TO postgres;
-
 --
--- Name: speech_record_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: speech_record_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.speech_record_id_seq
@@ -338,17 +340,15 @@ CREATE SEQUENCE public.speech_record_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.speech_record_id_seq OWNER TO postgres;
-
 --
--- Name: speech_record_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: speech_record_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.speech_record_id_seq OWNED BY public.speech_record.id;
 
 
 --
--- Name: train_task; Type: TABLE; Schema: public; Owner: postgres
+-- Name: train_task; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.train_task (
@@ -368,10 +368,8 @@ CREATE TABLE public.train_task (
 );
 
 
-ALTER TABLE public.train_task OWNER TO postgres;
-
 --
--- Name: train_task_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: train_task_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.train_task_id_seq
@@ -383,84 +381,82 @@ CREATE SEQUENCE public.train_task_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.train_task_id_seq OWNER TO postgres;
-
 --
--- Name: train_task_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: train_task_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.train_task_id_seq OWNED BY public.train_task.id;
 
 
 --
--- Name: ai_service id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: ai_service id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ai_service ALTER COLUMN id SET DEFAULT nextval('public.ai_service_id_seq'::regclass);
 
 
 --
--- Name: export_record id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: export_record id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.export_record ALTER COLUMN id SET DEFAULT nextval('public.export_record_id_seq'::regclass);
 
 
 --
--- Name: inference_task id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: inference_task id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.inference_task ALTER COLUMN id SET DEFAULT nextval('public.inference_task_id_seq'::regclass);
 
 
 --
--- Name: llm_config id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: llm_config id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.llm_config ALTER COLUMN id SET DEFAULT nextval('public.llm_config_id_seq'::regclass);
 
 
 --
--- Name: model id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: model id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.model ALTER COLUMN id SET DEFAULT nextval('public.model_id_seq'::regclass);
 
 
 --
--- Name: ocr_result id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: ocr_result id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ocr_result ALTER COLUMN id SET DEFAULT nextval('public.ocr_result_id_seq'::regclass);
 
 
 --
--- Name: speech_record id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: speech_record id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.speech_record ALTER COLUMN id SET DEFAULT nextval('public.speech_record_id_seq'::regclass);
 
 
 --
--- Name: train_task id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: train_task id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.train_task ALTER COLUMN id SET DEFAULT nextval('public.train_task_id_seq'::regclass);
 
 
 --
--- Data for Name: ai_service; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: ai_service; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.ai_service (id, model_id, service_name, server_ip, port, inference_endpoint, status, mac_address, deploy_time, last_heartbeat, process_id, log_path, model_version, format, created_at, updated_at) FROM stdin;
-1	3	model_3_onnx_1.0.1	192.168.11.28	9999	http://192.168.11.28:9999/inference	stopped	30:c1:05:16:5a:68	2025-11-23 05:03:15.111839	2025-11-23 07:32:50.532574	3441497	/data/projects/easyaiot/AI/logs/1	1.0.1	onnx	2025-11-23 05:03:15.113205	2025-11-23 09:23:10.980337
-2	3	model_3_onnx_1.0.1	192.168.11.28	10001	http://192.168.11.28:10001/inference	stopped	30:c1:05:16:5a:68	2025-11-23 05:03:47.157704	2025-11-23 07:32:50.969954	3441508	/data/projects/easyaiot/AI/logs/2	1.0.1	onnx	2025-11-23 05:03:47.158308	2025-11-23 09:23:11.221297
-3	3	model_3_onnx_1.0.1	192.168.11.28	10002	http://192.168.11.28:10002/inference	stopped	30:c1:05:16:5a:68	2025-11-23 05:03:55.644905	2025-11-23 07:32:51.751028	3441537	/data/projects/easyaiot/AI/logs/3	1.0.1	onnx	2025-11-23 05:03:55.645332	2025-11-23 09:23:11.254737
+1	3	model_3_pytorch_1.0.1	192.168.11.28	9999	http://192.168.11.28:9999/inference	stopped	30:c1:05:16:5a:68	2025-11-23 05:03:15.111839	2025-12-07 11:56:19.903674	619555	/opt/projects/easyaiot/AI/logs/1	1.0.1	pytorch	2025-11-23 05:03:15.113205	2025-12-07 11:57:41.80199
+2	3	model_3_pytorch_1.0.1	192.168.11.28	10001	http://192.168.11.28:10001/inference	stopped	30:c1:05:16:5a:68	2025-11-23 05:03:47.157704	2025-12-07 11:56:20.377716	619565	/opt/projects/easyaiot/AI/logs/2	1.0.1	pytorch	2025-11-23 05:03:47.158308	2025-12-07 11:57:41.802013
+3	3	model_3_pytorch_1.0.1	192.168.11.28	10002	http://192.168.11.28:10002/inference	stopped	30:c1:05:16:5a:68	2025-11-23 05:03:55.644905	2025-12-07 11:56:20.889598	619690	/opt/projects/easyaiot/AI/logs/3	1.0.1	pytorch	2025-11-23 05:03:55.645332	2025-12-07 11:57:41.80202
 \.
 
 
 --
--- Data for Name: export_record; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: export_record; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.export_record (id, model_id, model_name, format, minio_path, local_path, created_at, status, message) FROM stdin;
@@ -469,7 +465,7 @@ COPY public.export_record (id, model_id, model_name, format, minio_path, local_p
 
 
 --
--- Data for Name: inference_task; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: inference_task; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.inference_task (id, model_id, inference_type, input_source, output_path, processed_frames, start_time, end_time, status, error_message, processing_time, stream_output_url) FROM stdin;
@@ -529,7 +525,7 @@ COPY public.inference_task (id, model_id, inference_type, input_source, output_p
 
 
 --
--- Data for Name: llm_config; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: llm_config; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.llm_config (id, name, description, model_type, icon_url, vendor, base_url, api_key, model, api_version, request_timeout, max_retries, context_window, max_output_tokens, supported_features, temperature, system_prompt, is_customizable, rag_enabled, prompt_template, domain_adaptation, input_token_price, output_token_price, avg_response_time, total_tokens_used, monthly_budget, is_active, status, created_at, updated_at, last_test_time) FROM stdin;
@@ -537,7 +533,7 @@ COPY public.llm_config (id, name, description, model_type, icon_url, vendor, bas
 
 
 --
--- Data for Name: model; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: model; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.model (id, name, description, model_path, image_url, version, created_at, updated_at, onnx_model_path, torchscript_model_path, tensorrt_model_path, openvino_model_path, rknn_model_path) FROM stdin;
@@ -551,7 +547,7 @@ COPY public.model (id, name, description, model_path, image_url, version, create
 
 
 --
--- Data for Name: ocr_result; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: ocr_result; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.ocr_result (id, text, confidence, bbox, polygon, page_num, line_num, word_num, image_url, created_at) FROM stdin;
@@ -559,7 +555,7 @@ COPY public.ocr_result (id, text, confidence, bbox, polygon, page_num, line_num,
 
 
 --
--- Data for Name: speech_record; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: speech_record; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.speech_record (id, order_id, audio_file_path, filename, file_size, duration, recognized_text, confidence, status, created_at, completed_at, error_message) FROM stdin;
@@ -567,7 +563,7 @@ COPY public.speech_record (id, order_id, audio_file_path, filename, file_size, d
 
 
 --
--- Data for Name: train_task; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: train_task; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.train_task (id, model_id, progress, dataset_path, hyperparameters, start_time, end_time, status, train_log, checkpoint_dir, metrics_path, minio_model_path, train_results_path) FROM stdin;
@@ -595,63 +591,63 @@ COPY public.train_task (id, model_id, progress, dataset_path, hyperparameters, s
 
 
 --
--- Name: ai_service_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: ai_service_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.ai_service_id_seq', 3, true);
 
 
 --
--- Name: export_record_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: export_record_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.export_record_id_seq', 1, true);
 
 
 --
--- Name: inference_task_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: inference_task_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.inference_task_id_seq', 56, true);
 
 
 --
--- Name: llm_config_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: llm_config_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.llm_config_id_seq', 1, false);
 
 
 --
--- Name: model_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: model_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.model_id_seq', 8, true);
 
 
 --
--- Name: ocr_result_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: ocr_result_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.ocr_result_id_seq', 1, false);
 
 
 --
--- Name: speech_record_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: speech_record_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.speech_record_id_seq', 1, false);
 
 
 --
--- Name: train_task_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: train_task_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.train_task_id_seq', 20, true);
 
 
 --
--- Name: ai_service ai_service_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ai_service ai_service_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ai_service
@@ -659,7 +655,7 @@ ALTER TABLE ONLY public.ai_service
 
 
 --
--- Name: export_record export_record_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: export_record export_record_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.export_record
@@ -667,7 +663,7 @@ ALTER TABLE ONLY public.export_record
 
 
 --
--- Name: inference_task inference_task_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: inference_task inference_task_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.inference_task
@@ -675,7 +671,7 @@ ALTER TABLE ONLY public.inference_task
 
 
 --
--- Name: llm_config llm_config_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: llm_config llm_config_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.llm_config
@@ -683,7 +679,7 @@ ALTER TABLE ONLY public.llm_config
 
 
 --
--- Name: llm_config llm_config_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: llm_config llm_config_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.llm_config
@@ -691,7 +687,7 @@ ALTER TABLE ONLY public.llm_config
 
 
 --
--- Name: model model_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: model model_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.model
@@ -699,7 +695,7 @@ ALTER TABLE ONLY public.model
 
 
 --
--- Name: ocr_result ocr_result_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ocr_result ocr_result_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ocr_result
@@ -707,7 +703,7 @@ ALTER TABLE ONLY public.ocr_result
 
 
 --
--- Name: speech_record speech_record_order_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: speech_record speech_record_order_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.speech_record
@@ -715,7 +711,7 @@ ALTER TABLE ONLY public.speech_record
 
 
 --
--- Name: speech_record speech_record_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: speech_record speech_record_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.speech_record
@@ -723,7 +719,7 @@ ALTER TABLE ONLY public.speech_record
 
 
 --
--- Name: train_task train_task_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: train_task train_task_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.train_task
@@ -731,7 +727,7 @@ ALTER TABLE ONLY public.train_task
 
 
 --
--- Name: ai_service ai_service_model_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ai_service ai_service_model_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ai_service
@@ -739,7 +735,7 @@ ALTER TABLE ONLY public.ai_service
 
 
 --
--- Name: export_record export_record_model_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: export_record export_record_model_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.export_record
@@ -747,7 +743,7 @@ ALTER TABLE ONLY public.export_record
 
 
 --
--- Name: inference_task inference_task_model_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: inference_task inference_task_model_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.inference_task
@@ -755,7 +751,7 @@ ALTER TABLE ONLY public.inference_task
 
 
 --
--- Name: train_task train_task_model_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: train_task train_task_model_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.train_task
@@ -765,4 +761,6 @@ ALTER TABLE ONLY public.train_task
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict iZdoLve0psaXcY7NooGzB4hLPfmHYo8jVbUQlbmoLe1ZTFSJSrlcdJlRzcF0l70
 
