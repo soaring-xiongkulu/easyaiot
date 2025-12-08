@@ -1658,6 +1658,90 @@ get_host_ip() {
     return 1
 }
 
+# 检查并配置 /etc/hosts 中的 kafka-server 映射
+configure_kafka_server_hosts() {
+    print_section "检查并配置 kafka-server hosts 映射"
+    
+    local hosts_file="/etc/hosts"
+    local hostname="kafka-server"
+    
+    # 检查 /etc/hosts 中是否已存在 kafka-server 配置
+    if grep -qE "^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\s+${hostname}\s*$" "$hosts_file" 2>/dev/null || \
+       grep -qE "^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\s+.*\s+${hostname}\s*$" "$hosts_file" 2>/dev/null; then
+        print_info "检测到 /etc/hosts 中已存在 kafka-server 配置"
+        # 显示现有配置
+        local existing_line=$(grep -E "^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\s+.*${hostname}" "$hosts_file" 2>/dev/null | head -1)
+        if [ -n "$existing_line" ]; then
+            print_info "现有配置: $existing_line"
+        fi
+        return 0
+    fi
+    
+    # 如果没有配置，获取宿主机 IP
+    print_info "未检测到 kafka-server 配置，正在获取宿主机 IP..."
+    local host_ip=$(get_host_ip)
+    
+    if [ -z "$host_ip" ]; then
+        print_warning "无法获取宿主机 IP，跳过 kafka-server hosts 配置"
+        print_info "如果后续需要从宿主机访问 kafka-server，请手动配置 /etc/hosts"
+        return 1
+    fi
+    
+    print_info "检测到宿主机 IP: $host_ip"
+    
+    # 检查是否有 root 权限
+    if [ "$EUID" -ne 0 ]; then
+        print_warning "配置 /etc/hosts 需要 root 权限，跳过自动配置"
+        print_info "请手动执行以下命令配置 kafka-server hosts 映射："
+        print_info "  echo '$host_ip kafka-server' | sudo tee -a /etc/hosts"
+        return 1
+    fi
+    
+    # 备份 hosts 文件
+    local backup_file="${hosts_file}.bak.$(date +%Y%m%d_%H%M%S)"
+    if cp "$hosts_file" "$backup_file" 2>/dev/null; then
+        print_info "已备份 /etc/hosts 到: $backup_file"
+    else
+        print_warning "无法备份 /etc/hosts，继续配置..."
+    fi
+    
+    # 添加 kafka-server 映射
+    print_info "正在添加 kafka-server 映射到 /etc/hosts..."
+    
+    # 检查是否已有该 IP 的配置行（避免重复添加）
+    if grep -qE "^\s*${host_ip}\s+" "$hosts_file" 2>/dev/null; then
+        # 如果该 IP 已存在，检查是否已包含 kafka-server
+        if grep -qE "^\s*${host_ip}\s+.*${hostname}" "$hosts_file" 2>/dev/null; then
+            print_info "该 IP 的配置行中已包含 kafka-server，跳过添加"
+            return 0
+        else
+            # 在该 IP 的配置行中添加 kafka-server
+            print_info "在该 IP 的配置行中添加 kafka-server..."
+            sed -i -E "s/^(\s*${host_ip}\s+.*)$/\1 ${hostname}/" "$hosts_file" 2>/dev/null
+            if [ $? -eq 0 ]; then
+                print_success "已在该 IP 的配置行中添加 kafka-server"
+                return 0
+            else
+                print_warning "添加失败，尝试添加新行..."
+            fi
+        fi
+    fi
+    
+    # 添加新行
+    if echo "$host_ip $hostname" >> "$hosts_file" 2>/dev/null; then
+        print_success "已添加 kafka-server 映射到 /etc/hosts: $host_ip $hostname"
+        return 0
+    else
+        print_error "无法添加 kafka-server 映射到 /etc/hosts"
+        # 如果备份文件存在，尝试恢复
+        if [ -f "$backup_file" ]; then
+            print_info "尝试恢复备份文件..."
+            cp "$backup_file" "$hosts_file" 2>/dev/null || true
+        fi
+        return 1
+    fi
+}
+
 # 创建并设置 NodeRED 数据目录权限
 create_nodered_directories() {
     local nodered_data_dir="${SCRIPT_DIR}/nodered_data/data"
@@ -4272,6 +4356,9 @@ install_middleware() {
     prepare_srs_config
     prepare_emqx_volumes
     
+    # 检查并配置 kafka-server hosts 映射
+    configure_kafka_server_hosts
+    
     # 检查并拉取缺失的镜像（如果镜像已存在则跳过拉取）
     echo ""
     check_and_pull_images
@@ -4390,6 +4477,9 @@ start_middleware() {
     prepare_srs_config
     prepare_emqx_volumes
     
+    # 检查并配置 kafka-server hosts 映射
+    configure_kafka_server_hosts
+    
     # 清理残留容器
     cleanup_stale_containers
     
@@ -4451,6 +4541,9 @@ restart_middleware() {
     
     prepare_srs_config
     prepare_emqx_volumes
+    
+    # 检查并配置 kafka-server hosts 映射
+    configure_kafka_server_hosts
     
     print_info "重启所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" restart 2>&1 | tee -a "$LOG_FILE"
@@ -4730,6 +4823,9 @@ update_middleware() {
     
     prepare_srs_config
     prepare_emqx_volumes
+    
+    # 检查并配置 kafka-server hosts 映射
+    configure_kafka_server_hosts
     
     # 检查并拉取缺失的镜像（如果镜像已存在则跳过拉取）
     echo ""
