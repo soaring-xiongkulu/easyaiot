@@ -573,6 +573,10 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 以下是对EasyAIoT项目做出重大贡献的杰出贡献者，他们的贡献对项目的发展起到了关键推动作用，我们表示最诚挚的感谢！
 </p>
 
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+我们特别感谢以下社区成员为项目发展做出的重大贡献：
+</p>
+
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 <thead>
 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">

@@ -572,6 +572,10 @@ EasyAIoT 플랫폼과 코드를 깊이 이해하실 수 있도록 다양한 서�
 다음은 EasyAIoT 프로젝트에 중요한 기여를 한 탁월한 기여자들입니다. 그들의 기여는 프로젝트 개발을 촉진하는 데 핵심적인 역할을 했습니다. 진심으로 감사드립니다!
 </p>
 
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+다음 커뮤니티 구성원들이 프로젝트 발전에 기여한 중요한 기여에 대해 특별히 감사드립니다:
+</p>
+
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 <thead>
 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">

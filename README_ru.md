@@ -573,6 +573,10 @@ EasyAIoT — это проект с открытым исходным кодом
 Ниже представлены выдающиеся участники, внесшие значительный вклад в проект EasyAIoT. Их вклад сыграл ключевую роль в развитии проекта. Мы выражаем нашу самую искреннюю благодарность!
 </p>
 
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+Мы особенно благодарны следующим членам сообщества за их значительный вклад в развитие проекта:
+</p>
+
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 <thead>
 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">

@@ -573,6 +573,10 @@ Nous accueillons toutes les formes de contributions ! Que vous soyez développeu
 Voici les contributeurs exceptionnels qui ont apporté une contribution significative au projet EasyAIoT. Leurs contributions ont joué un rôle clé dans la promotion du développement du projet. Nous exprimons notre gratitude la plus sincère !
 </p>
 
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+Nous remercions particulièrement les membres suivants de la communauté pour leur contribution significative au développement du projet :
+</p>
+
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 <thead>
 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
