@@ -573,10 +573,6 @@ EasyAIoT是一個開源學習項目，與商業行為無關。用戶在使用該
 以下是對EasyAIoT項目做出重大貢獻的傑出貢獻者，他們的貢獻對項目的發展起到了關鍵推動作用，我們表示最誠摯的感謝！
 </p>
 
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-我們特別感謝以下社區成員為項目發展做出的重大貢獻：
-</p>
-
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 <thead>
 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
@@ -605,7 +601,7 @@ EasyAIoT是一個開源學習項目，與商業行為無關。用戶在使用該
 </table>
 
 <p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
-<strong>特別致謝</strong>：以上貢獻者的工作為EasyAIoT項目的跨平台部署能力奠定了堅實基礎，他們的專業精神和無私奉獻精神值得我們學習和尊敬。再次向這些傑出的貢獻者表示最誠摯的感謝！[Salute]
+<strong>特別致謝</strong>：以上貢獻者的工作為EasyAIoT項目的跨平台部署能力奠定了堅實基礎，他們的專業精神和無私奉獻精神值得我們學習和尊敬。再次向這些傑出的貢獻者表示最誠摯的感謝！🙏
 </p>
 
 ## 🙏 致謝

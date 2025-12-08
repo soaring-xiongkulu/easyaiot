@@ -576,10 +576,6 @@ We welcome all forms of contributions! Whether you are a code developer, documen
 The following are outstanding contributors who have made significant contributions to the EasyAIoT project. Their contributions have played a key role in promoting the project's development. We express our most sincere gratitude!
 </p>
 
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-We especially thank the following community members for their significant contributions to the project's development:
-</p>
-
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 <thead>
 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
@@ -608,7 +604,7 @@ We especially thank the following community members for their significant contri
 </table>
 
 <p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
-<strong>Special Thanks</strong>: The work of the above contributors has laid a solid foundation for EasyAIoT's cross-platform deployment capabilities. Their professionalism and selfless dedication are worthy of our learning and respect. Once again, we express our most sincere gratitude to these outstanding contributors! [Salute]
+<strong>Special Thanks</strong>: The work of the above contributors has laid a solid foundation for EasyAIoT's cross-platform deployment capabilities. Their professionalism and selfless dedication are worthy of our learning and respect. Once again, we express our most sincere gratitude to these outstanding contributors! 🙏
 </p>
 
 ## 🙏 Acknowledgements
