@@ -1200,9 +1200,69 @@ def buffer_streamer_worker(device_id: str):
             # 打开源流（支持 RTSP 和 RTMP）
             if cap is None or not cap.isOpened():
                 stream_type = "RTSP" if rtsp_url.startswith('rtsp://') else "RTMP" if rtsp_url.startswith('rtmp://') else "流"
+                
+                # 对于 RTMP 流，先检查服务器是否可用
+                if rtsp_url.startswith('rtmp://'):
+                    if not check_rtmp_server_connection(rtsp_url):
+                        retry_count += 1
+                        if retry_count >= max_retries:
+                            logger.error(f"❌ 设备 {device_id} RTMP 服务器不可用，已达到最大重试次数 {max_retries}")
+                            logger.info("等待30秒后重新尝试...")
+                            time.sleep(30)
+                            retry_count = 0
+                        else:
+                            logger.warning(f"设备 {device_id} RTMP 服务器不可用，等待重试... ({retry_count}/{max_retries})")
+                            time.sleep(2)
+                        continue
+                
                 logger.info(f"正在连接设备 {device_id} 的 {stream_type} 流: {rtsp_url} (重试次数: {retry_count})")
-                cap = cv2.VideoCapture(rtsp_url)
-                cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                
+                # 强制使用 FFmpeg 后端，避免 OpenCV 尝试其他后端导致错误
+                try:
+                    # 对于 RTMP/RTSP 流，使用 FFmpeg 后端
+                    if rtsp_url.startswith('rtmp://') or rtsp_url.startswith('rtsp://'):
+                        cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
+                    else:
+                        cap = cv2.VideoCapture(rtsp_url)
+                    
+                    # 设置缓冲区大小为1，减少延迟
+                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                    
+                    # 设置超时参数（毫秒）- 对于 RTMP/RTSP 流设置合理的超时
+                    # 注意：这些属性可能在某些 OpenCV 版本中不可用，使用 try-except 处理
+                    if rtsp_url.startswith('rtmp://') or rtsp_url.startswith('rtsp://'):
+                        try:
+                            # 设置连接超时为10秒（10000毫秒）
+                            cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 10000)
+                        except (AttributeError, cv2.error):
+                            # 如果属性不存在，忽略错误
+                            pass
+                        try:
+                            # 设置读取超时为5秒（5000毫秒）
+                            cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 5000)
+                        except (AttributeError, cv2.error):
+                            # 如果属性不存在，忽略错误
+                            pass
+                    
+                except Exception as e:
+                    logger.error(f"设备 {device_id} 创建 VideoCapture 时出错: {str(e)}")
+                    # 确保释放资源
+                    if cap is not None:
+                        try:
+                            cap.release()
+                        except:
+                            pass
+                        cap = None
+                    retry_count += 1
+                    if retry_count >= max_retries:
+                        logger.error(f"❌ 设备 {device_id} 连接 {stream_type} 流失败，已达到最大重试次数 {max_retries}")
+                        logger.info("等待30秒后重新尝试...")
+                        time.sleep(30)
+                        retry_count = 0
+                    else:
+                        logger.warning(f"设备 {device_id} 无法打开 {stream_type} 流，等待重试... ({retry_count}/{max_retries})")
+                        time.sleep(2)
+                    continue
                 
                 if not cap.isOpened():
                     retry_count += 1
@@ -1214,6 +1274,13 @@ def buffer_streamer_worker(device_id: str):
                     else:
                         logger.warning(f"设备 {device_id} 无法打开 {stream_type} 流，等待重试... ({retry_count}/{max_retries})")
                         time.sleep(2)
+                    # 确保释放资源
+                    if cap is not None:
+                        try:
+                            cap.release()
+                        except:
+                            pass
+                        cap = None
                     continue
                 
                 retry_count = 0
