@@ -573,41 +573,32 @@ EasyAIoT是一個開源學習項目，與商業行為無關。用戶在使用該
 以下是對EasyAIoT項目做出重大貢獻的傑出貢獻者，他們的貢獻對項目的發展起到了關鍵推動作用，我們表示最誠摯的感謝！
 </p>
 
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
-
-<div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-<h4 style="margin-top: 0; color: white; font-size: 18px;">℡夏別</h4>
-<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
-為推動EasyAIoT項目貢獻Windows部署文檔，為Windows平台用戶提供了完整的部署指南，大大降低了Windows環境下的部署難度，讓更多用戶能夠便捷地使用EasyAIoT平台。
-</p>
-<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 感謝您的傑出貢獻！</p>
-</div>
-
-<div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-<h4 style="margin-top: 0; color: white; font-size: 18px;">YiYaYiYaho</h4>
-<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
-為推動EasyAIoT項目貢獻Mac容器一鍵部署腳本，為Mac平台用戶提供了自動化部署解決方案，顯著簡化了Mac環境下的部署流程，提升了開發者和用戶的部署體驗。
-</p>
-<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 感謝您的傑出貢獻！</p>
-</div>
-
-<div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-<h4 style="margin-top: 0; color: white; font-size: 18px;">山寒</h4>
-<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
-為推動EasyAIoT項目貢獻Linux容器部署腳本，為Linux平台用戶提供了容器化部署方案，實現了快速、可靠的容器部署，為生產環境的穩定運行提供了重要保障。
-</p>
-<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 感謝您的傑出貢獻！</p>
-</div>
-
-<div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-<h4 style="margin-top: 0; color: white; font-size: 18px;">玖零。</h4>
-<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
-為推動EasyAIoT項目貢獻Linux容器部署腳本，進一步完善了Linux平台的容器化部署方案，為不同Linux發行版用戶提供了更多選擇，推動了項目的跨平台部署能力。
-</p>
-<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 感謝您的傑出貢獻！</p>
-</div>
-
-</div>
+<table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+<thead>
+<tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+<th style="padding: 15px; text-align: left; font-weight: 600; border: 1px solid #e0e0e0;">貢獻者</th>
+<th style="padding: 15px; text-align: left; font-weight: 600; border: 1px solid #e0e0e0;">貢獻內容</th>
+</tr>
+</thead>
+<tbody>
+<tr style="background-color: #f8f9fa;">
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 20%;">℡夏別</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">為推動EasyAIoT項目貢獻Windows部署文檔，為Windows平台用戶提供了完整的部署指南，大大降低了Windows環境下的部署難度，讓更多用戶能夠便捷地使用EasyAIoT平台。</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 20%;">YiYaYiYaho</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">為推動EasyAIoT項目貢獻Mac容器一鍵部署腳本，為Mac平台用戶提供了自動化部署解決方案，顯著簡化了Mac環境下的部署流程，提升了開發者和用戶的部署體驗。</td>
+</tr>
+<tr style="background-color: #f8f9fa;">
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 20%;">山寒</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">為推動EasyAIoT項目貢獻Linux容器部署腳本，為Linux平台用戶提供了容器化部署方案，實現了快速、可靠的容器部署，為生產環境的穩定運行提供了重要保障。</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 20%;">玖零。</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">為推動EasyAIoT項目貢獻Linux容器部署腳本，進一步完善了Linux平台的容器化部署方案，為不同Linux發行版用戶提供了更多選擇，推動了項目的跨平台部署能力。</td>
+</tr>
+</tbody>
+</table>
 
 <p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
 <strong>特別致謝</strong>：以上貢獻者的工作為EasyAIoT項目的跨平台部署能力奠定了堅實基礎，他們的專業精神和無私奉獻精神值得我們學習和尊敬。再次向這些傑出的貢獻者表示最誠摯的感謝！[Salute]
