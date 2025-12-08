@@ -567,6 +567,52 @@ Nous accueillons toutes les formes de contributions ! Que vous soyez développeu
 
 </div>
 
+## 🌟 Contributeurs majeurs
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+Voici les contributeurs exceptionnels qui ont apporté une contribution significative au projet EasyAIoT. Leurs contributions ont joué un rôle clé dans la promotion du développement du projet. Nous exprimons notre gratitude la plus sincère !
+</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+
+<div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">℡夏别</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+A contribué à la documentation de déploiement Windows pour le projet EasyAIoT, fournissant un guide de déploiement complet pour les utilisateurs de la plateforme Windows, réduisant considérablement la difficulté de déploiement dans les environnements Windows et permettant à plus d'utilisateurs d'utiliser facilement la plateforme EasyAIoT.
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 Merci pour votre contribution exceptionnelle !</p>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">YiYaYiYaho</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+A contribué au script de déploiement en un clic de conteneurs Mac pour le projet EasyAIoT, fournissant une solution de déploiement automatisé pour les utilisateurs de la plateforme Mac, simplifiant considérablement le processus de déploiement dans les environnements Mac et améliorant l'expérience de déploiement pour les développeurs et les utilisateurs.
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 Merci pour votre contribution exceptionnelle !</p>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">山寒</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+A contribué au script de déploiement de conteneurs Linux pour le projet EasyAIoT, fournissant une solution de déploiement conteneurisé pour les utilisateurs de la plateforme Linux, réalisant un déploiement de conteneurs rapide et fiable, et fournissant des garanties importantes pour un fonctionnement stable dans les environnements de production.
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 Merci pour votre contribution exceptionnelle !</p>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">玖零。</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+A contribué au script de déploiement de conteneurs Linux pour le projet EasyAIoT, améliorant davantage la solution de déploiement conteneurisé pour les plateformes Linux, fournissant plus d'options pour les utilisateurs de différentes distributions Linux et promouvant les capacités de déploiement multiplateforme du projet.
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 Merci pour votre contribution exceptionnelle !</p>
+</div>
+
+</div>
+
+<p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+<strong>Remerciements spéciaux</strong> : Le travail des contributeurs ci-dessus a jeté des bases solides pour les capacités de déploiement multiplateforme d'EasyAIoT. Leur professionnalisme et leur dévouement désintéressé méritent notre apprentissage et notre respect. Encore une fois, nous exprimons notre gratitude la plus sincère à ces contributeurs exceptionnels ! [Salute]
+</p>
+
 ## 🙏 Remerciements
 
 Nous remercions les personnes suivantes pour leur soutien à ce projet, sous forme de contributions de code, de retours sur problèmes, de dons financiers, etc. ! L'ordre ci-dessous n'est pas hiérarchique :

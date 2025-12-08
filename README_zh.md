@@ -567,6 +567,52 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 
 </div>
 
+## 🌟 重大贡献者
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+以下是对EasyAIoT项目做出重大贡献的杰出贡献者，他们的贡献对项目的发展起到了关键推动作用，我们表示最诚挚的感谢！
+</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+
+<div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">℡夏别</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+为推动EasyAIoT项目贡献Windows部署文档，为Windows平台用户提供了完整的部署指南，大大降低了Windows环境下的部署难度，让更多用户能够便捷地使用EasyAIoT平台。
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 感谢您的杰出贡献！</p>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">YiYaYiYaho</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+为推动EasyAIoT项目贡献Mac容器一键部署脚本，为Mac平台用户提供了自动化部署解决方案，显著简化了Mac环境下的部署流程，提升了开发者和用户的部署体验。
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 感谢您的杰出贡献！</p>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">山寒</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+为推动EasyAIoT项目贡献Linux容器部署脚本，为Linux平台用户提供了容器化部署方案，实现了快速、可靠的容器部署，为生产环境的稳定运行提供了重要保障。
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 感谢您的杰出贡献！</p>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">玖零。</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+为推动EasyAIoT项目贡献Linux容器部署脚本，进一步完善了Linux平台的容器化部署方案，为不同Linux发行版用户提供了更多选择，推动了项目的跨平台部署能力。
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 感谢您的杰出贡献！</p>
+</div>
+
+</div>
+
+<p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+<strong>特别致谢</strong>：以上贡献者的工作为EasyAIoT项目的跨平台部署能力奠定了坚实基础，他们的专业精神和无私奉献精神值得我们学习和尊敬。再次向这些杰出的贡献者表示最诚挚的感谢！[Salute]
+</p>
+
 ## 🙏 致谢
 
 感谢以下各位对本项目包括但不限于代码贡献、问题反馈、资金捐赠等各种方式的支持！以下排名不分先后：

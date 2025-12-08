@@ -570,6 +570,52 @@ We welcome all forms of contributions! Whether you are a code developer, documen
 
 </div>
 
+## 🌟 Major Contributors
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+The following are outstanding contributors who have made significant contributions to the EasyAIoT project. Their contributions have played a key role in promoting the project's development. We express our most sincere gratitude!
+</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+
+<div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">℡夏别</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+Contributed Windows deployment documentation for the EasyAIoT project, providing a complete deployment guide for Windows platform users, greatly reducing the deployment difficulty in Windows environments, and enabling more users to easily use the EasyAIoT platform.
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 Thank you for your outstanding contribution!</p>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">YiYaYiYaho</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+Contributed Mac container one-click deployment script for the EasyAIoT project, providing an automated deployment solution for Mac platform users, significantly simplifying the deployment process in Mac environments, and improving the deployment experience for developers and users.
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 Thank you for your outstanding contribution!</p>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">山寒</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+Contributed Linux container deployment script for the EasyAIoT project, providing a containerized deployment solution for Linux platform users, achieving fast and reliable container deployment, and providing important guarantees for stable operation in production environments.
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 Thank you for your outstanding contribution!</p>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">玖零。</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+Contributed Linux container deployment script for the EasyAIoT project, further improving the containerized deployment solution for Linux platforms, providing more options for users of different Linux distributions, and promoting the project's cross-platform deployment capabilities.
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 Thank you for your outstanding contribution!</p>
+</div>
+
+</div>
+
+<p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+<strong>Special Thanks</strong>: The work of the above contributors has laid a solid foundation for EasyAIoT's cross-platform deployment capabilities. Their professionalism and selfless dedication are worthy of our learning and respect. Once again, we express our most sincere gratitude to these outstanding contributors! [Salute]
+</p>
+
 ## 🙏 Acknowledgements
 
 Thanks to the following contributors for code, feedback, donations, and support (in no particular order):

@@ -566,6 +566,52 @@ EasyAIoT 플랫폼과 코드를 깊이 이해하실 수 있도록 다양한 서�
 
 </div>
 
+## 🌟 주요 기여자
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+다음은 EasyAIoT 프로젝트에 중요한 기여를 한 탁월한 기여자들입니다. 그들의 기여는 프로젝트 개발을 촉진하는 데 핵심적인 역할을 했습니다. 진심으로 감사드립니다!
+</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+
+<div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">℡夏别</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+EasyAIoT 프로젝트를 위해 Windows 배포 문서를 기여하여 Windows 플랫폼 사용자에게 완전한 배포 가이드를 제공하고, Windows 환경에서의 배포 난이도를 크게 낮춰 더 많은 사용자가 EasyAIoT 플랫폼을 편리하게 사용할 수 있도록 했습니다.
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 탁월한 기여에 감사드립니다!</p>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">YiYaYiYaho</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+EasyAIoT 프로젝트를 위해 Mac 컨테이너 원클릭 배포 스크립트를 기여하여 Mac 플랫폼 사용자에게 자동화된 배포 솔루션을 제공하고, Mac 환경에서의 배포 프로세스를 크게 단순화하여 개발자와 사용자의 배포 경험을 향상시켰습니다.
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 탁월한 기여에 감사드립니다!</p>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">山寒</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+EasyAIoT 프로젝트를 위해 Linux 컨테이너 배포 스크립트를 기여하여 Linux 플랫폼 사용자에게 컨테이너화된 배포 솔루션을 제공하고, 빠르고 안정적인 컨테이너 배포를 실현하여 프로덕션 환경의 안정적인 운영을 위한 중요한 보장을 제공했습니다.
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 탁월한 기여에 감사드립니다!</p>
+</div>
+
+<div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<h4 style="margin-top: 0; color: white; font-size: 18px;">玖零。</h4>
+<p style="font-size: 14px; line-height: 1.8; margin: 10px 0;">
+EasyAIoT 프로젝트를 위해 Linux 컨테이너 배포 스크립트를 기여하여 Linux 플랫폼의 컨테이너화된 배포 솔루션을 더욱 개선하고, 다양한 Linux 배포판 사용자에게 더 많은 선택권을 제공하며, 프로젝트의 크로스 플랫폼 배포 능력을 촉진했습니다.
+</p>
+<p style="font-size: 16px; margin-top: 15px; text-align: center;">🙏 탁월한 기여에 감사드립니다!</p>
+</div>
+
+</div>
+
+<p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+<strong>특별 감사</strong>: 위 기여자들의 작업은 EasyAIoT 프로젝트의 크로스 플랫폼 배포 능력에 견고한 기반을 마련했습니다. 그들의 전문성과 무사심한 헌신은 우리가 배우고 존경할 가치가 있습니다. 다시 한 번 이 탁월한 기여자들에게 진심으로 감사드립니다! [Salute]
+</p>
+
 ## 🙏 감사의 말
 
 다음 분들께 코드 기여, 문제 피드백, 자금 기부 등 다양한 방식으로 이 프로젝트를 지원해 주셔서 감사드립니다! 아래 순서는 무작위입니다:
