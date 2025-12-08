@@ -412,10 +412,13 @@ install_service() {
     print_info "构建进度将实时显示，请勿中断..."
     echo ""
     
-    # 使用 --platform 参数指定 ARM 平台
+    # 使用环境变量 DOCKER_DEFAULT_PLATFORM 指定 ARM 平台
+    # 注意：docker compose v2 的 build 命令不支持 --platform 参数
     BUILD_LOG="/tmp/docker_build_$$.log"
     set +e  # 暂时关闭错误退出，以便捕获构建状态
-    DOCKER_BUILDKIT=1 $COMPOSE_CMD build --platform "$DOCKER_PLATFORM" 2>&1 | tee "$BUILD_LOG"
+    export DOCKER_BUILDKIT=1
+    export DOCKER_DEFAULT_PLATFORM="$DOCKER_PLATFORM"
+    eval "$COMPOSE_CMD build" 2>&1 | tee "$BUILD_LOG"
     BUILD_STATUS=${PIPESTATUS[0]}
     set -e  # 重新开启错误退出
     
@@ -541,9 +544,13 @@ build_image() {
     print_info "构建进度将实时显示，请勿中断..."
     echo ""
     
+    # 使用环境变量 DOCKER_DEFAULT_PLATFORM 指定 ARM 平台
+    # 注意：docker compose v2 的 build 命令不支持 --platform 参数
     BUILD_LOG="/tmp/docker_build_$$.log"
     set +e  # 暂时关闭错误退出，以便捕获构建状态
-    DOCKER_BUILDKIT=1 $COMPOSE_CMD build --no-cache --platform "$DOCKER_PLATFORM" 2>&1 | tee "$BUILD_LOG"
+    export DOCKER_BUILDKIT=1
+    export DOCKER_DEFAULT_PLATFORM="$DOCKER_PLATFORM"
+    eval "$COMPOSE_CMD build --no-cache" 2>&1 | tee "$BUILD_LOG"
     BUILD_STATUS=${PIPESTATUS[0]}
     set -e  # 重新开启错误退出
     
@@ -603,9 +610,13 @@ update_service() {
     print_info "构建进度将实时显示，请勿中断..."
     echo ""
     
+    # 使用环境变量 DOCKER_DEFAULT_PLATFORM 指定 ARM 平台
+    # 注意：docker compose v2 的 build 命令不支持 --platform 参数
     BUILD_LOG="/tmp/docker_build_$$.log"
     set +e  # 暂时关闭错误退出，以便捕获构建状态
-    DOCKER_BUILDKIT=1 $COMPOSE_CMD build --platform "$DOCKER_PLATFORM" 2>&1 | tee "$BUILD_LOG"
+    export DOCKER_BUILDKIT=1
+    export DOCKER_DEFAULT_PLATFORM="$DOCKER_PLATFORM"
+    eval "$COMPOSE_CMD build" 2>&1 | tee "$BUILD_LOG"
     BUILD_STATUS=${PIPESTATUS[0]}
     set -e  # 重新开启错误退出
     
