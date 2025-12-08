@@ -270,11 +270,7 @@ services:
     image: ossrs/srs:5
     container_name: srs-server
     restart: always
-    ports:
-      - "1935:1935"
-      - "1985:1985"
-      - "8080:8080"
-      - "8000:8000/udp"
+    network_mode: host # 使用host网络模式，直接使用宿主机网络
     environment:
       - TZ=Asia/Shanghai
     volumes:
@@ -290,8 +286,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
-    networks:
-      - easyaiot-network
 
   # Node-RED Server
   NodeRED:
