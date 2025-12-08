@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # ============================================
-# EasyAIoT 统一安装脚本
+# EasyAIoT 统一安装脚本 (ARM架构版本)
 # ============================================
 # 使用方法：
-#   ./install_linux.sh [命令]
+#   ./install_linux_arm.sh [命令]
 #
 # 可用命令：
 #   install    - 安装并启动所有服务（首次运行）
@@ -39,11 +39,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 日志文件配置
 LOG_DIR="${SCRIPT_DIR}/logs"
 mkdir -p "$LOG_DIR"
-LOG_FILE="${LOG_DIR}/install_linux_$(date +%Y%m%d_%H%M%S).log"
+LOG_FILE="${LOG_DIR}/install_linux_arm_$(date +%Y%m%d_%H%M%S).log"
 
 # 初始化日志文件
 echo "=========================================" >> "$LOG_FILE"
-echo "EasyAIoT 统一安装脚本日志" >> "$LOG_FILE"
+echo "EasyAIoT 统一安装脚本日志 (ARM架构)" >> "$LOG_FILE"
 echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
 echo "命令: $*" >> "$LOG_FILE"
 echo "=========================================" >> "$LOG_FILE"
@@ -130,6 +130,35 @@ print_section() {
     log_to_file ""
 }
 
+# 检测服务器架构并验证是否为ARM
+detect_architecture() {
+    print_info "检测服务器架构..."
+    ARCH=$(uname -m)
+    
+    case "$ARCH" in
+        aarch64|arm64)
+            ARCH="aarch64"
+            print_success "检测到 ARM 架构: $ARCH (aarch64/arm64)"
+            ;;
+        armv7l|armv6l)
+            ARCH="armv7l"
+            print_warning "检测到 ARM 架构: $ARCH (armv7l/armv6l)"
+            print_warning "注意：armv7l/armv6l 架构可能不完全支持，建议使用 aarch64/arm64"
+            ;;
+        x86_64|amd64)
+            print_error "检测到 x86_64 架构"
+            print_error "本脚本专用于 ARM 架构部署"
+            print_info "如需在 x86_64 架构上部署，请使用 install_linux.sh"
+            exit 1
+            ;;
+        *)
+            print_error "未识别的架构: $ARCH"
+            print_error "本脚本仅支持 ARM 架构（aarch64/arm64/armv7l/armv6l）"
+            exit 1
+            ;;
+    esac
+}
+
 # 检查命令是否存在
 check_command() {
     if ! command -v "$1" &> /dev/null; then
@@ -154,7 +183,7 @@ check_docker_permission() {
             echo "     然后重新登录或运行: newgrp docker"
             echo ""
             echo "  2. 或者使用 sudo 运行此脚本："
-            echo "     sudo ./install_linux.sh $*"
+            echo "     sudo ./install_linux_arm.sh $*"
             echo ""
         elif echo "$error_msg" | grep -qi "Is the docker daemon running"; then
             print_error "Docker daemon 未运行"
@@ -583,10 +612,10 @@ execute_module_command() {
     
     cd "$PROJECT_ROOT/$module"
     
-    # 特殊处理.scripts/docker模块（使用install_middleware_linux_snap.sh脚本）
+    # 特殊处理.scripts/docker模块（使用install_middleware_linux.sh脚本）
     if [ "$module" = ".scripts/docker" ]; then
-        # 检查install_middleware_linux_snap.sh文件
-        local install_file="install_middleware_linux_snap.sh"
+        # 检查install_middleware_linux.sh文件
+        local install_file="install_middleware_linux.sh"
         if [ ! -f "$install_file" ]; then
             print_warning "模块 $module 没有 $install_file 文件，跳过"
             return 1
@@ -691,6 +720,26 @@ execute_module_command() {
                 return 1
                 ;;
         esac
+    # 特殊处理AI和VIDEO模块（使用install_linux_arm.sh脚本）
+    elif [ "$module" = "AI" ] || [ "$module" = "VIDEO" ]; then
+        # 检查install_linux_arm.sh文件
+        if [ ! -f "install_linux_arm.sh" ]; then
+            print_warning "模块 $module 没有 install_linux_arm.sh 脚本，跳过"
+            return 1
+        fi
+        
+        # 修复换行符
+        fix_line_endings "install_linux_arm.sh"
+        
+        print_info "执行 $module_name: $command (ARM架构)"
+        
+        if bash install_linux_arm.sh "$command" 2>&1 | tee -a "$LOG_FILE"; then
+            print_success "$module_name: $command 执行成功"
+            return 0
+        else
+            print_error "$module_name: $command 执行失败"
+            return 1
+        fi
     else
         # 其他模块使用install_linux.sh脚本
         if [ ! -f "install_linux.sh" ]; then
@@ -777,8 +826,9 @@ verify_service_health() {
 
 # 安装所有服务
 install_linux() {
-    print_section "开始安装所有服务"
+    print_section "开始安装所有服务 (ARM架构)"
     
+    detect_architecture
     check_docker "$@"
     check_docker_compose
     configure_docker_mirror
@@ -869,8 +919,9 @@ wait_for_base_services() {
 
 # 启动所有服务
 start_all() {
-    print_section "启动所有服务"
+    print_section "启动所有服务 (ARM架构)"
     
+    detect_architecture
     check_docker "$@"
     check_docker_compose
     create_network
@@ -915,8 +966,9 @@ stop_all() {
 
 # 重启所有服务
 restart_all() {
-    print_section "重启所有服务"
+    print_section "重启所有服务 (ARM架构)"
     
+    detect_architecture
     check_docker "$@"
     check_docker_compose
     create_network
@@ -965,8 +1017,9 @@ view_logs() {
 
 # 构建所有镜像
 build_all() {
-    print_section "构建所有镜像"
+    print_section "构建所有镜像 (ARM架构)"
     
+    detect_architecture
     check_docker "$@"
     check_docker_compose
     
@@ -977,7 +1030,6 @@ build_all() {
     
     print_success "所有镜像构建完成"
 }
-
 
 # 清理所有服务
 clean_all() {
@@ -1008,8 +1060,9 @@ clean_all() {
 
 # 更新所有服务
 update_all() {
-    print_section "更新所有服务"
+    print_section "更新所有服务 (ARM架构)"
     
+    detect_architecture
     check_docker "$@"
     check_docker_compose
     create_network
@@ -1062,16 +1115,18 @@ verify_all() {
             echo -e "  ${RED}✗ $failed${NC}"
         done
         echo ""
-        print_info "查看日志: ./install_linux.sh logs"
+        print_info "查看日志: ./install_linux_arm.sh logs"
         return 1
     fi
 }
 
 # 检查 Docker 和 Docker Compose 安装状态
 check_environment() {
-    print_section "检查运行环境"
+    print_section "检查运行环境 (ARM架构)"
     
+    detect_architecture
     echo ""
+    
     print_info "=== 检查 Docker ==="
     if check_command docker; then
         local docker_version=$(docker --version 2>/dev/null || echo "未知版本")
@@ -1137,7 +1192,7 @@ check_environment() {
     echo ""
     print_info "=== 系统信息 ==="
     print_info "操作系统: $(uname -s) $(uname -r)"
-    print_info "架构: $(uname -m)"
+    print_info "架构: $(uname -m) (ARM)"
     print_info "用户: $(whoami)"
     
     echo ""
@@ -1146,10 +1201,10 @@ check_environment() {
 
 # 显示帮助信息
 show_help() {
-    echo "EasyAIoT 统一安装脚本"
+    echo "EasyAIoT 统一安装脚本 (ARM架构版本)"
     echo ""
     echo "使用方法:"
-    echo "  ./install_linux.sh [命令] [模块]"
+    echo "  ./install_linux_arm.sh [命令] [模块]"
     echo ""
     echo "可用命令:"
     echo "  install         - 安装并启动所有服务（首次运行）"
@@ -1170,6 +1225,12 @@ show_help() {
     for module in "${MODULES[@]}"; do
         echo "  - ${MODULE_NAMES[$module]} ($module)"
     done
+    echo ""
+    echo "注意："
+    echo "  - 本脚本专用于 ARM 架构（aarch64/arm64）"
+    echo "  - AI 和 VIDEO 模块将使用 install_linux_arm.sh 脚本"
+    echo "  - 其他模块使用标准 install_linux.sh 脚本"
+    echo "  - 如需在 x86_64 架构上部署，请使用 install_linux.sh"
     echo ""
 }
 
