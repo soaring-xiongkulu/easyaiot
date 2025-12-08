@@ -64,50 +64,32 @@ RUN set -ex && \
     if yum install -y ffmpeg ffmpeg-devel 2>/dev/null; then \
         echo "ffmpeg 已从 EPEL 仓库安装"; \
     else \
-        echo "ffmpeg 不在 EPEL 仓库中，使用预编译静态二进制文件安装..." && \
-        # 安装 ffmpeg 运行时依赖库
-        yum install -y \
-            libx264 \
-            libx265 \
-            libvpx \
-            libfdk-aac \
-            libmp3lame \
-            libopus \
-            libvorbis \
-            freetype \
-            fontconfig \
-            libass \
-            && \
-        # 下载并安装预编译的 ffmpeg 静态二进制文件（ARM64）
+        echo "ffmpeg 不在 EPEL 仓库中，使用预编译静态二进制文件安装（官方推荐方法）..." && \
+        # 使用预编译静态二进制文件（静态二进制文件是自包含的，不需要额外的依赖库）
         cd /tmp && \
-        FFMPEG_VERSION="6.1.1" && \
-        FFMPEG_ARCH="arm64" && \
-        # 尝试从 GitHub releases 下载（如果可用）
+        # 优先尝试从 GitHub BtbN/FFmpeg-Builds 下载 ARM64 版本（支持 ARM64）
         if wget -q --spider "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz" 2>/dev/null; then \
+            echo "从 GitHub BtbN/FFmpeg-Builds 下载 ARM64 版本..." && \
             wget -q "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz" && \
             tar -xf ffmpeg-master-latest-linuxarm64-gpl.tar.xz && \
             cp ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg /usr/local/bin/ && \
             cp ffmpeg-master-latest-linuxarm64-gpl/bin/ffprobe /usr/local/bin/ && \
             chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe && \
             rm -rf /tmp/ffmpeg-* && \
-            echo "ffmpeg 已从 GitHub 安装"; \
+            echo "ffmpeg 已从 GitHub BtbN/FFmpeg-Builds 安装"; \
+        # 备用方案：尝试从 johnvansickle.com 下载（如果有 ARM64 版本）
+        elif wget -q --spider "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz" 2>/dev/null; then \
+            echo "从 johnvansickle.com 下载 ARM64 静态二进制文件..." && \
+            wget -q "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz" && \
+            tar -xf ffmpeg-release-arm64-static.tar.xz && \
+            cp ffmpeg-*-static/ffmpeg /usr/local/bin/ && \
+            cp ffmpeg-*-static/ffprobe /usr/local/bin/ && \
+            chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe && \
+            rm -rf /tmp/ffmpeg-* && \
+            echo "ffmpeg 已从 johnvansickle.com 安装"; \
         else \
-            # 如果 GitHub 不可用，尝试从源码编译（较慢但可靠）
-            echo "GitHub 预编译版本不可用，开始从源码编译..." && \
-            yum install -y \
-                nasm \
-                yasm \
-                libx264-devel \
-                libx265-devel \
-                libvpx-devel \
-                libfdk-aac-devel \
-                libmp3lame-devel \
-                libopus-devel \
-                libvorbis-devel \
-                freetype-devel \
-                fontconfig-devel \
-                libass-devel \
-                && \
+            echo "预编译版本不可用，使用简化配置从源码编译（不启用所有编解码器）..." && \
+            yum install -y nasm yasm && \
             wget -q https://ffmpeg.org/releases/ffmpeg-6.1.1.tar.bz2 && \
             tar -xjf ffmpeg-6.1.1.tar.bz2 && \
             cd ffmpeg-6.1.1 && \
@@ -115,17 +97,6 @@ RUN set -ex && \
                 --prefix=/usr/local \
                 --enable-gpl \
                 --enable-version3 \
-                --enable-nonfree \
-                --enable-libx264 \
-                --enable-libx265 \
-                --enable-libvpx \
-                --enable-libfdk-aac \
-                --enable-libmp3lame \
-                --enable-libopus \
-                --enable-libvorbis \
-                --enable-libfreetype \
-                --enable-libfontconfig \
-                --enable-libass \
                 --enable-shared \
                 --disable-static \
                 --enable-pic \
@@ -135,7 +106,7 @@ RUN set -ex && \
             ldconfig && \
             cd / && \
             rm -rf /tmp/ffmpeg-6.1.1* && \
-            echo "ffmpeg 已从源码编译安装"; \
+            echo "ffmpeg 已从源码编译安装（简化配置）"; \
         fi; \
     fi \
         && \
