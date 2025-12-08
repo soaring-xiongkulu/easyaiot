@@ -4,7 +4,6 @@
 > 업데이트 날짜: 2025년 12월 6일
 > 지원 시스템: Windows 10/11
 
----
 
 ## 목차
 
@@ -17,7 +16,6 @@
 7. [자주 사용하는 명령어 요약](#7-자주-사용하는-명령어-요약)
 8. [부록](#8-부록)
 
----
 
 ## 1. 시스템 개요
 
@@ -65,7 +63,6 @@ EasyAIoT는 IoT + AI 비디오 분석 플랫폼으로, 카메라 연결, 비디�
 | AI | Python FastAPI | 8100 | AI 추론 서비스 |
 | DEVICE | Spring Boot | 여러 개 | 디바이스 관리 마이크로서비스 |
 
----
 
 ## 2. 환경 준비
 
@@ -150,7 +147,6 @@ F:\EASYLOT\kafka\   ###自行下载
 F:\EASYLOT\TDengine\  ####自行下载
 ```
 
----
 
 ## 3. 미들웨어 배포
 
@@ -184,7 +180,6 @@ $env:PGPASSWORD='iot45722414822'
 & "F:\EASYLOT\PostgreSQL16\bin\psql.exe" -h localhost -U postgres -c "\l"
 ```
 
----
 
 ### 3.2 Redis
 
@@ -206,7 +201,6 @@ cd F:\EASYLOT\Redis
 # PONG을 반환해야 합니다
 ```
 
----
 
 ### 3.3 Nacos
 
@@ -233,7 +227,6 @@ http://localhost:8848/nacos
 2. "네임스페이스"로 이동
 3. 네임스페이스를 생성하고 ID를 `local`로 설정
 
----
 
 ### 3.4 MinIO
 
@@ -256,7 +249,6 @@ cd F:\EASYLOT\minio
 API: http://localhost:9000
 ```
 
----
 
 ### 3.5 Kafka
 
@@ -276,7 +268,6 @@ cd F:\EASYLOT\kafka
 .\bin\windows\kafka-server-start.bat .\config\server.properties
 ```
 
----
 
 ### 3.6 TDengine
 
@@ -302,7 +293,6 @@ cd F:\EASYLOT\TDengine
 .\taos.exe -u root -p taosdata
 ```
 
----
 
 ### 3.7 SRS 스트리밍 서버 (Docker)
 
@@ -376,7 +366,6 @@ docker logs srs-server
 docker rm srs-server
 ```
 
----
 
 ## 4. 서비스 시작
 
@@ -390,7 +379,6 @@ docker rm srs-server
 4. AI 서비스 (Python)
 5. WEB 프론트엔드 (Vue)
 
----
 
 ### 4.2 DEVICE 마이크로서비스 시작
 
@@ -420,7 +408,6 @@ mvn spring-boot:run
 - 시스템: `DEVICE/iot-system/iot-system-biz/src/main/resources/bootstrap-dev.yaml`
 - 인프라: `DEVICE/iot-infra/iot-infra-biz/src/main/resources/bootstrap-dev.yaml`
 
----
 
 ### 4.3 VIDEO 서비스 시작
 
@@ -465,7 +452,6 @@ python run.py
 
 서비스 시작 후 포트 수신: 6000
 
----
 
 ### 4.4 AI 서비스 시작
 
@@ -485,7 +471,6 @@ python run.py
 
 서비스 시작 후 포트 수신: 8100
 
----
 
 ### 4.5 WEB 프론트엔드 시작
 
@@ -509,7 +494,6 @@ npm run dev
 - 사용자 이름: admin
 - 비밀번호: admin123
 
----
 
 ## 5. 비디오 스트리밍 구성
 
@@ -574,7 +558,6 @@ npm run dev
    - 미디어 → 네트워크 스트림 열기
    - 입력: `rtmp://127.0.0.1:1935/live/camera1`
 
----
 
 ## 6. 문제 기록 및 해결 방법
 
@@ -603,7 +586,6 @@ $env:PGPASSWORD='iot45722414822'
 & "F:\EASYLOT\PostgreSQL16\bin\psql.exe" -h localhost -U postgres -d "iot-video20" -c "UPDATE device SET rtmp_stream = 'rtmp://127.0.0.1:1935/live/cam_' || SUBSTRING(id, 1, 8), http_stream = 'http://127.0.0.1:8080/live/cam_' || SUBSTRING(id, 1, 8) || '.flv';"
 ```
 
----
 
 ### 6.2 FFmpeg 경로 문제 (Windows)
 
@@ -634,7 +616,6 @@ Windows 시스템에서 FFmpeg가 시스템 PATH에 추가되지 않은 경우 �
    ]
    ```
 
----
 
 ### 6.3 SRS Docker 구성 daemon 문제
 
@@ -650,7 +631,6 @@ SRS 구성 파일에서 설정:
 daemon off;
 ```
 
----
 
 ### 6.4 포트 8080이 사용 중
 
@@ -667,7 +647,6 @@ SRS의 HTTP-FLV 포트 8080이 다른 서비스와 충돌합니다.
 
 3. Java 게이트웨이가 48080 포트를 사용하는지 확인하고 8080이 아닌지 확인합니다.
 
----
 
 ### 6.5 flv.js 플레이어 오디오 문제
 
@@ -694,7 +673,6 @@ SRS의 HTTP-FLV 포트 8080이 다른 서비스와 충돌합니다.
    });
    ```
 
----
 
 ### 6.6 데이터베이스 연결 실패
 
@@ -712,7 +690,6 @@ VIDEO 서비스 시작 시 데이터베이스 연결 오류가 발생합니다.
 
 3. `VIDEO/.env`의 DATABASE_URL 구성 확인
 
----
 
 ### 6.7 Nacos 등록 실패
 
@@ -729,7 +706,6 @@ VIDEO 서비스 시작 시 데이터베이스 연결 오류가 발생합니다.
 
 3. 구성 파일의 Nacos 주소 및 비밀번호 확인
 
----
 
 ### 6.8 프론트엔드 인증 코드가 표시되지 않음
 
@@ -744,7 +720,6 @@ VIDEO 서비스 시작 시 데이터베이스 연결 오류가 발생합니다.
 2. 프론트엔드 구성의 API 주소가 올바른지 확인
 3. 브라우저 콘솔의 네트워크 요청 오류 확인
 
----
 
 ## 7. 자주 사용하는 명령어 요약
 
@@ -828,7 +803,6 @@ cd F:\EASYLOT\easyaiot-V4.0.0\WEB
 npm run dev
 ```
 
----
 
 ## 8. 부록
 
@@ -913,7 +887,6 @@ A:
 2. 네임스페이스 `local`이 존재하는지 확인
 3. 비밀번호가 올바른지 확인
 
----
 
 > 문서 끝
 > 문제가 있으면 AI에 문의하세요

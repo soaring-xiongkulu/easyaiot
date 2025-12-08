@@ -4,7 +4,6 @@
 > Date de mise à jour : 6 décembre 2025
 > Systèmes pris en charge : Windows 10/11
 
----
 
 ## Table des matières
 
@@ -17,7 +16,6 @@
 7. [Résumé des commandes courantes](#7-résumé-des-commandes-courantes)
 8. [Annexe](#8-annexe)
 
----
 
 ## 1. Vue d'ensemble du système
 
@@ -65,7 +63,6 @@ EasyAIoT est une plateforme d'analyse vidéo IoT + IA qui prend en charge la con
 | AI | Python FastAPI | 8100 | Service d'inférence IA |
 | DEVICE | Spring Boot | Plusieurs | Microservices de gestion d'appareils |
 
----
 
 ## 2. Préparation de l'environnement
 
@@ -150,7 +147,6 @@ F:\EASYLOT\kafka\   ###自行下载
 F:\EASYLOT\TDengine\  ####自行下载
 ```
 
----
 
 ## 3. Déploiement des middleware
 
@@ -184,7 +180,6 @@ $env:PGPASSWORD='iot45722414822'
 & "F:\EASYLOT\PostgreSQL16\bin\psql.exe" -h localhost -U postgres -c "\l"
 ```
 
----
 
 ### 3.2 Redis
 
@@ -206,7 +201,6 @@ cd F:\EASYLOT\Redis
 # Devrait retourner PONG
 ```
 
----
 
 ### 3.3 Nacos
 
@@ -233,7 +227,6 @@ http://localhost:8848/nacos
 2. Accédez à « Espaces de noms »
 3. Créez un espace de noms, définissez l'ID sur `local`
 
----
 
 ### 3.4 MinIO
 
@@ -256,7 +249,6 @@ Console : http://localhost:9001
 API : http://localhost:9000
 ```
 
----
 
 ### 3.5 Kafka
 
@@ -276,7 +268,6 @@ cd F:\EASYLOT\kafka
 .\bin\windows\kafka-server-start.bat .\config\server.properties
 ```
 
----
 
 ### 3.6 TDengine
 
@@ -302,7 +293,6 @@ cd F:\EASYLOT\TDengine
 .\taos.exe -u root -p taosdata
 ```
 
----
 
 ### 3.7 Serveur de streaming SRS (Docker)
 
@@ -376,7 +366,6 @@ docker logs srs-server
 docker rm srs-server
 ```
 
----
 
 ## 4. Démarrage des services
 
@@ -390,7 +379,6 @@ docker rm srs-server
 4. Service AI (Python)
 5. Frontend WEB (Vue)
 
----
 
 ### 4.2 Démarrage des microservices DEVICE
 
@@ -420,7 +408,6 @@ mvn spring-boot:run
 - Système : `DEVICE/iot-system/iot-system-biz/src/main/resources/bootstrap-dev.yaml`
 - Infrastructure : `DEVICE/iot-infra/iot-infra-biz/src/main/resources/bootstrap-dev.yaml`
 
----
 
 ### 4.3 Démarrage du service VIDEO
 
@@ -465,7 +452,6 @@ python run.py
 
 Le service écoute sur le port : 6000 après le démarrage
 
----
 
 ### 4.4 Démarrage du service AI
 
@@ -485,7 +471,6 @@ python run.py
 
 Le service écoute sur le port : 8100 après le démarrage
 
----
 
 ### 4.5 Démarrage du frontend WEB
 
@@ -509,7 +494,6 @@ Adresse d'accès après le démarrage du service : http://localhost:3100
 - Nom d'utilisateur : admin
 - Mot de passe : admin123
 
----
 
 ## 5. Configuration du streaming vidéo
 
@@ -574,7 +558,6 @@ Après un streaming réussi, vous pouvez tester la lecture de la manière suivan
    - Média → Ouvrir un flux réseau
    - Entrez : `rtmp://127.0.0.1:1935/live/camera1`
 
----
 
 ## 6. Enregistrement des problèmes et solutions
 
@@ -603,7 +586,6 @@ $env:PGPASSWORD='iot45722414822'
 & "F:\EASYLOT\PostgreSQL16\bin\psql.exe" -h localhost -U postgres -d "iot-video20" -c "UPDATE device SET rtmp_stream = 'rtmp://127.0.0.1:1935/live/cam_' || SUBSTRING(id, 1, 8), http_stream = 'http://127.0.0.1:8080/live/cam_' || SUBSTRING(id, 1, 8) || '.flv';"
 ```
 
----
 
 ### 6.2 Problème de chemin FFmpeg (Windows)
 
@@ -634,7 +616,6 @@ Dans le système Windows, si FFmpeg n'est pas ajouté au PATH système, il est n
    ]
    ```
 
----
 
 ### 6.3 Problème de configuration daemon SRS Docker
 
@@ -650,7 +631,6 @@ Dans le fichier de configuration SRS, définissez :
 daemon off;
 ```
 
----
 
 ### 6.4 Port 8080 occupé
 
@@ -667,7 +647,6 @@ Le port HTTP-FLV SRS 8080 entre en conflit avec d'autres services.
 
 3. Assurez-vous que la passerelle Java utilise le port 48080, pas 8080.
 
----
 
 ### 6.5 Problème audio du lecteur flv.js
 
@@ -694,7 +673,6 @@ La caméra peut ne pas avoir de flux audio, mais FFmpeg tente d'encoder l'audio,
    });
    ```
 
----
 
 ### 6.6 Échec de connexion à la base de données
 
@@ -712,7 +690,6 @@ Lors du démarrage du service VIDEO, une erreur de connexion à la base de donn�
 
 3. Vérifiez la configuration DATABASE_URL dans `VIDEO/.env`
 
----
 
 ### 6.7 Échec d'enregistrement Nacos
 
@@ -729,7 +706,6 @@ Le service ne peut pas s'enregistrer dans Nacos au démarrage.
 
 3. Vérifiez l'adresse et le mot de passe Nacos dans le fichier de configuration
 
----
 
 ### 6.8 Le code de vérification du frontend ne s'affiche pas
 
@@ -744,7 +720,6 @@ Cela se produit généralement parce que le service de passerelle n'est pas dém
 2. Vérifiez que l'adresse API du frontend est correctement configurée
 3. Vérifiez les erreurs de requête réseau dans la console du navigateur
 
----
 
 ## 7. Résumé des commandes courantes
 
@@ -828,7 +803,6 @@ cd F:\EASYLOT\easyaiot-V4.0.0\WEB
 npm run dev
 ```
 
----
 
 ## 8. Annexe
 
@@ -913,7 +887,6 @@ R :
 2. Vérifiez si l'espace de noms `local` existe
 3. Vérifiez si le mot de passe est correct
 
----
 
 > Fin du document
 > En cas de problème, contactez l'IA

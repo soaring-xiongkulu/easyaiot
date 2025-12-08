@@ -4,7 +4,6 @@
 > Update Date: December 6, 2025
 > Compatible Systems: Windows 10/11
 
----
 
 ## Table of Contents
 
@@ -17,7 +16,6 @@
 7. [Common Commands Summary](#7-common-commands-summary)
 8. [Appendix](#8-appendix)
 
----
 
 ## 1. System Overview
 
@@ -65,7 +63,6 @@ EasyAIoT is an Internet of Things + AI video analytics platform, supporting feat
 | AI | Python FastAPI | 8100 | AI Inference Service |
 | DEVICE | Spring Boot | Multiple | Device Management Microservices |
 
----
 
 ## 2. Environment Preparation
 
@@ -150,7 +147,6 @@ F:\EASYLOT\kafka\   ### Download yourself
 F:\EASYLOT\TDengine\  #### Download yourself
 ```
 
----
 
 ## 3. Middleware Deployment
 
@@ -184,7 +180,6 @@ $env:PGPASSWORD='iot45722414822'
 & "F:\EASYLOT\PostgreSQL16\bin\psql.exe" -h localhost -U postgres -c "\l"
 ```
 
----
 
 ### 3.2 Redis
 
@@ -206,7 +201,6 @@ cd F:\EASYLOT\Redis
 # Should return PONG
 ```
 
----
 
 ### 3.3 Nacos
 
@@ -233,7 +227,6 @@ http://localhost:8848/nacos
 2. Go to "Namespace Management"
 3. Create a namespace, set ID to `local`
 
----
 
 ### 3.4 MinIO
 
@@ -256,7 +249,6 @@ Console: http://localhost:9001
 API: http://localhost:9000
 ```
 
----
 
 ### 3.5 Kafka
 
@@ -276,7 +268,6 @@ cd F:\EASYLOT\kafka
 .\bin\windows\kafka-server-start.bat .\config\server.properties
 ```
 
----
 
 ### 3.6 TDengine
 
@@ -302,7 +293,6 @@ cd F:\EASYLOT\TDengine
 .\taos.exe -u root -p taosdata
 ```
 
----
 
 ### 3.7 SRS Streaming Media Server (Docker)
 
@@ -376,7 +366,6 @@ docker logs srs-server
 docker rm srs-server
 ```
 
----
 
 ## 4. Service Startup
 
@@ -390,7 +379,6 @@ docker rm srs-server
 4. AI Service (Python)
 5. WEB Frontend (Vue)
 
----
 
 ### 4.2 DEVICE Microservices Startup
 
@@ -420,7 +408,6 @@ mvn spring-boot:run
 - System: `DEVICE/iot-system/iot-system-biz/src/main/resources/bootstrap-dev.yaml`
 - Infrastructure: `DEVICE/iot-infra/iot-infra-biz/src/main/resources/bootstrap-dev.yaml`
 
----
 
 ### 4.3 VIDEO Service Startup
 
@@ -465,7 +452,6 @@ python run.py
 
 Service starts listening on port: 6000
 
----
 
 ### 4.4 AI Service Startup
 
@@ -485,7 +471,6 @@ python run.py
 
 Service starts listening on port: 8100
 
----
 
 ### 4.5 WEB Frontend Startup
 
@@ -509,7 +494,6 @@ Access address after service starts: http://localhost:3100
 - Username: admin
 - Password: admin123
 
----
 
 
 ## 5. Video Streaming Configuration
@@ -575,7 +559,6 @@ After successful streaming, test playback in the following ways:
     - Media → Open Network Stream
     - Input: `rtmp://127.0.0.1:1935/live/camera1`
 
----
 
 ## 6. Troubleshooting Records & Solutions
 
@@ -604,7 +587,6 @@ $env:PGPASSWORD='iot45722414822'
 & "F:\EASYLOT\PostgreSQL16\bin\psql.exe" -h localhost -U postgres -d "iot-video20" -c "UPDATE device SET rtmp_stream = 'rtmp://127.0.0.1:1935/live/cam_' || SUBSTRING(id, 1, 8), http_stream = 'http://127.0.0.1:8080/live/cam_' || SUBSTRING(id, 1, 8) || '.flv';"
 ```
 
----
 
 ### 6.2 FFmpeg Path Issue (Windows)
 
@@ -635,7 +617,6 @@ On Windows systems, if FFmpeg is not added to the system PATH, the full path mus
    ]
    ```
 
----
 
 ### 6.3 SRS Docker Configuration Daemon Issue
 
@@ -651,7 +632,6 @@ Set in the SRS configuration file:
 daemon off;
 ```
 
----
 
 ### 6.4 Port 8080 Occupied
 
@@ -668,7 +648,6 @@ SRS's HTTP-FLV port 8080 conflicts with other services.
 
 3. Ensure the Java gateway is using port 48080, not 8080.
 
----
 
 ### 6.5 flv.js Player Audio Issue
 
@@ -695,7 +674,6 @@ The camera might not have an audio stream, but FFmpeg tries to encode audio caus
    });
    ```
 
----
 
 ### 6.6 Database Connection Failure
 
@@ -713,7 +691,6 @@ VIDEO service reports a database connection error on startup.
 
 3. Check the DATABASE_URL configuration in `VIDEO/.env`
 
----
 
 ### 6.7 Nacos Registration Failure
 
@@ -730,7 +707,6 @@ Services cannot register to Nacos on startup.
 
 3. Check the Nacos address and password in the configuration files
 
----
 
 ### 6.8 Frontend CAPTCHA Not Displaying
 
@@ -745,7 +721,6 @@ Usually caused by the DEVICE gateway service not starting, or incorrect port con
 2. Confirm the API address configured in the frontend is correct
 3. Check network request errors in the browser console
 
----
 
 ## 7. Common Commands Summary
 
@@ -829,7 +804,6 @@ cd F:\EASYLOT\easyaiot-V4.0.0\WEB
 npm run dev
 ```
 
----
 
 ## 8. Appendix
 
@@ -914,7 +888,6 @@ A:
 2. Check if the namespace `local` exists
 3. Check if the password is correct
 
----
 
 > End of Document
 > If you have any questions, please contact AI

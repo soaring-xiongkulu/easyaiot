@@ -4,7 +4,6 @@
 > 更新日期：2025年12月6日
 > 適用系統：Windows 10/11
 
----
 
 ## 目錄
 
@@ -17,7 +16,6 @@
 7. [常用命令匯總](#7-常用命令匯總)
 8. [附錄](#8-附錄)
 
----
 
 ## 1. 系統概述
 
@@ -65,7 +63,6 @@ EasyAIoT 是一個物聯網+AI視頻分析平台，支持攝像頭接入、視�
 | AI | Python FastAPI | 8100 | AI推理服務 |
 | DEVICE | Spring Boot | 多個 | 設備管理微服務 |
 
----
 
 ## 2. 環境準備
 
@@ -150,7 +147,6 @@ F:\EASYLOT\kafka\   ###自行下載
 F:\EASYLOT\TDengine\  ####自行下載
 ```
 
----
 
 ## 3. 中間件部署
 
@@ -184,7 +180,6 @@ $env:PGPASSWORD='iot45722414822'
 & "F:\EASYLOT\PostgreSQL16\bin\psql.exe" -h localhost -U postgres -c "\l"
 ```
 
----
 
 ### 3.2 Redis
 
@@ -206,7 +201,6 @@ cd F:\EASYLOT\Redis
 # 應返回 PONG
 ```
 
----
 
 ### 3.3 Nacos
 
@@ -233,7 +227,6 @@ http://localhost:8848/nacos
 2. 進入「命名空間」
 3. 創建命名空間，ID 設置為 `local`
 
----
 
 ### 3.4 MinIO
 
@@ -256,7 +249,6 @@ cd F:\EASYLOT\minio
 API：http://localhost:9000
 ```
 
----
 
 ### 3.5 Kafka
 
@@ -276,7 +268,6 @@ cd F:\EASYLOT\kafka
 .\bin\windows\kafka-server-start.bat .\config\server.properties
 ```
 
----
 
 ### 3.6 TDengine
 
@@ -302,7 +293,6 @@ cd F:\EASYLOT\TDengine
 .\taos.exe -u root -p taosdata
 ```
 
----
 
 ### 3.7 SRS 流媒體服務器（Docker）
 
@@ -376,7 +366,6 @@ docker logs srs-server
 docker rm srs-server
 ```
 
----
 
 ## 4. 服務啟動
 
@@ -390,7 +379,6 @@ docker rm srs-server
 4. AI 服務（Python）
 5. WEB 前端（Vue）
 
----
 
 ### 4.2 DEVICE 微服務啟動
 
@@ -420,7 +408,6 @@ mvn spring-boot:run
 - 系統：`DEVICE/iot-system/iot-system-biz/src/main/resources/bootstrap-dev.yaml`
 - 基礎設施：`DEVICE/iot-infra/iot-infra-biz/src/main/resources/bootstrap-dev.yaml`
 
----
 
 ### 4.3 VIDEO 服務啟動
 
@@ -465,7 +452,6 @@ python run.py
 
 服務啟動後監聽端口：6000
 
----
 
 ### 4.4 AI 服務啟動
 
@@ -485,7 +471,6 @@ python run.py
 
 服務啟動後監聽端口：8100
 
----
 
 ### 4.5 WEB 前端啟動
 
@@ -509,7 +494,6 @@ npm run dev
 - 用戶名：admin
 - 密碼：admin123
 
----
 
 ## 5. 視頻流媒體配置
 
@@ -574,7 +558,6 @@ npm run dev
    - 媒體 → 打開網絡串流
    - 輸入：`rtmp://127.0.0.1:1935/live/camera1`
 
----
 
 ## 6. 踩坑記錄與解決方案
 
@@ -603,7 +586,6 @@ $env:PGPASSWORD='iot45722414822'
 & "F:\EASYLOT\PostgreSQL16\bin\psql.exe" -h localhost -U postgres -d "iot-video20" -c "UPDATE device SET rtmp_stream = 'rtmp://127.0.0.1:1935/live/cam_' || SUBSTRING(id, 1, 8), http_stream = 'http://127.0.0.1:8080/live/cam_' || SUBSTRING(id, 1, 8) || '.flv';"
 ```
 
----
 
 ### 6.2 FFmpeg 路徑問題（Windows）
 
@@ -634,7 +616,6 @@ Windows 系統中，如果 FFmpeg 沒有添加到系統 PATH，需要使用完�
    ]
    ```
 
----
 
 ### 6.3 SRS Docker 配置 daemon 問題
 
@@ -650,7 +631,6 @@ SRS 配置文件中 `daemon on;` 會導致 SRS 進入後台運行，但 Docker �
 daemon off;
 ```
 
----
 
 ### 6.4 端口 8080 被佔用
 
@@ -667,7 +647,6 @@ SRS 的 HTTP-FLV 端口 8080 與其他服務衝突。
 
 3. 確保 Java 網關使用的是 48080 端口，不是 8080。
 
----
 
 ### 6.5 flv.js 播放器音頻問題
 
@@ -694,7 +673,6 @@ SRS 的 HTTP-FLV 端口 8080 與其他服務衝突。
    });
    ```
 
----
 
 ### 6.6 數據庫連接失敗
 
@@ -712,7 +690,6 @@ VIDEO 服務啟動時報數據庫連接錯誤。
 
 3. 檢查 `VIDEO/.env` 中的 DATABASE_URL 配置
 
----
 
 ### 6.7 Nacos 註冊失敗
 
@@ -729,7 +706,6 @@ VIDEO 服務啟動時報數據庫連接錯誤。
 
 3. 檢查配置文件中的 Nacos 地址和密碼
 
----
 
 ### 6.8 前端驗證碼不顯示
 
@@ -744,7 +720,6 @@ VIDEO 服務啟動時報數據庫連接錯誤。
 2. 確認前端配置的 API 地址正確
 3. 檢查瀏覽器控制台的網絡請求錯誤
 
----
 
 ## 7. 常用命令匯總
 
@@ -828,7 +803,6 @@ cd F:\EASYLOT\easyaiot-V4.0.0\WEB
 npm run dev
 ```
 
----
 
 ## 8. 附錄
 
@@ -913,7 +887,6 @@ A:
 2. 檢查命名空間 `local` 是否存在
 3. 檢查密碼是否正確
 
----
 
 > 文檔結束
 > 如有問題，請聯繫AI
