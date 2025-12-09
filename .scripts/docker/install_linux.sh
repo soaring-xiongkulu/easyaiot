@@ -599,6 +599,8 @@ execute_module_command() {
         
         if bash "$install_file" "$command" 2>&1 | tee -a "$LOG_FILE"; then
             print_success "$module_name: $command 执行成功"
+            print_info "等待 5 秒以确保数据库服务完全启动..."
+            sleep 5
             return 0
         else
             print_error "$module_name: $command 执行失败"

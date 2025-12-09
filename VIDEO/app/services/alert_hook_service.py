@@ -21,6 +21,9 @@ _producer = None
 _producer_init_failed = False
 _last_init_attempt_time = 0
 _init_retry_interval = 60  # 初始化失败后，60秒内不再重试
+# 警告抑制：记录上次输出 Kafka 不可用警告的时间，避免日志刷屏
+_last_kafka_unavailable_warning_time = 0
+_kafka_unavailable_warning_interval = 300  # 每5分钟最多输出一次警告
 
 
 def get_kafka_producer():
@@ -30,24 +33,53 @@ def get_kafka_producer():
     # 从Flask配置中获取Kafka配置
     try:
         bootstrap_servers = current_app.config.get('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
-        request_timeout_ms = current_app.config.get('KAFKA_REQUEST_TIMEOUT_MS', 5000)
-        retries = current_app.config.get('KAFKA_RETRIES', 1)
-        retry_backoff_ms = current_app.config.get('KAFKA_RETRY_BACKOFF_MS', 100)
+        request_timeout_ms = current_app.config.get('KAFKA_REQUEST_TIMEOUT_MS', 30000)  # 增加到30秒
+        retries = current_app.config.get('KAFKA_RETRIES', 3)  # 增加到3次
+        retry_backoff_ms = current_app.config.get('KAFKA_RETRY_BACKOFF_MS', 1000)  # 增加到1秒
         metadata_max_age_ms = current_app.config.get('KAFKA_METADATA_MAX_AGE_MS', 300000)
         init_retry_interval = current_app.config.get('KAFKA_INIT_RETRY_INTERVAL', 60)
+        max_block_ms = current_app.config.get('KAFKA_MAX_BLOCK_MS', 60000)  # 最大阻塞时间60秒
+        delivery_timeout_ms = current_app.config.get('KAFKA_DELIVERY_TIMEOUT_MS', 120000)  # 消息传递超时120秒
     except RuntimeError:
         # 不在Flask应用上下文中，使用环境变量作为后备
         import os
         bootstrap_servers = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
-        request_timeout_ms = int(os.getenv('KAFKA_REQUEST_TIMEOUT_MS', '5000'))
-        retries = int(os.getenv('KAFKA_RETRIES', '1'))
-        retry_backoff_ms = int(os.getenv('KAFKA_RETRY_BACKOFF_MS', '100'))
+        request_timeout_ms = int(os.getenv('KAFKA_REQUEST_TIMEOUT_MS', '30000'))  # 增加到30秒
+        retries = int(os.getenv('KAFKA_RETRIES', '3'))  # 增加到3次
+        retry_backoff_ms = int(os.getenv('KAFKA_RETRY_BACKOFF_MS', '1000'))  # 增加到1秒
         metadata_max_age_ms = int(os.getenv('KAFKA_METADATA_MAX_AGE_MS', '300000'))
         init_retry_interval = int(os.getenv('KAFKA_INIT_RETRY_INTERVAL', '60'))
+        max_block_ms = int(os.getenv('KAFKA_MAX_BLOCK_MS', '60000'))
+        delivery_timeout_ms = int(os.getenv('KAFKA_DELIVERY_TIMEOUT_MS', '120000'))
     
-    # 如果已经初始化成功，直接返回
+    # 重要：realtime_algorithm_service 使用 host 网络模式，必须使用 localhost 访问 Kafka
+    # 如果配置中包含容器名（Kafka 或 kafka-server），强制使用 localhost
+    # 这样可以避免在 host 网络模式下尝试解析容器名导致的连接失败
+    if 'Kafka' in bootstrap_servers or 'kafka-server' in bootstrap_servers:
+        logger.warning(f'检测到 Kafka 配置使用容器名 "{bootstrap_servers}"，强制覆盖为 localhost:9092（realtime_algorithm_service 使用 host 网络模式）')
+        bootstrap_servers = 'localhost:9092'
+    
+    # 如果已经初始化成功，检查连接健康状态
     if _producer is not None:
-        return _producer
+        try:
+            # 尝试获取元数据来检查连接是否健康
+            # 注意：某些版本的 kafka-python 可能没有 list_topics 方法
+            # 使用更通用的方法检查连接
+            if hasattr(_producer, 'list_topics'):
+                _producer.list_topics(timeout=1)
+            else:
+                # 如果没有 list_topics 方法，尝试发送一个空的 Future 来检查连接
+                # 或者直接返回，让后续的 send 操作来验证连接
+                pass
+            return _producer
+        except Exception as e:
+            # 连接已断开，重置生产者
+            logger.warning(f"Kafka生产者连接已断开，将重新初始化: {str(e)}")
+            try:
+                _producer.close(timeout=1)
+            except:
+                pass
+            _producer = None
     
     # 如果之前初始化失败，且距离上次尝试时间不足，不再重试
     current_time = time.time()
@@ -60,20 +92,31 @@ def get_kafka_producer():
             bootstrap_servers=bootstrap_servers.split(','),
             value_serializer=lambda v: json.dumps(v, ensure_ascii=False).encode('utf-8'),
             key_serializer=lambda k: k.encode('utf-8') if k else None,
-            # 添加连接超时和重试限制
+            # 连接超时和重试配置
             request_timeout_ms=request_timeout_ms,
             connections_max_idle_ms=300000,  # 连接最大空闲时间5分钟
             retries=retries,
             retry_backoff_ms=retry_backoff_ms,
             # 减少元数据刷新频率，避免频繁连接
             metadata_max_age_ms=metadata_max_age_ms,
-            # 连接超时设置
-            api_version=(2, 5, 0),  # 指定API版本，避免版本探测
+            # 最大阻塞时间（用于send等操作）
+            max_block_ms=max_block_ms,
+            # 消息传递超时
+            delivery_timeout_ms=delivery_timeout_ms,
+            # 指定API版本，避免版本探测（使用 (2, 5) 而不是 (2, 5, 0)）
+            api_version=(2, 5),
+            # 启用幂等性，确保消息不重复
+            enable_idempotence=True,
+            # 批量发送配置（提高性能）
+            batch_size=16384,  # 16KB
+            linger_ms=10,  # 等待10ms以批量发送
         )
         # KafkaProducer在创建时会自动尝试连接
         # 如果连接失败，构造函数会抛出异常，这会被外层的try-except捕获
         # 这里我们只需要记录成功日志
-        logger.info(f"Kafka生产者初始化成功: {bootstrap_servers}")
+        logger.info(f"Kafka生产者初始化成功: {bootstrap_servers}, "
+                   f"request_timeout_ms={request_timeout_ms}, retries={retries}, "
+                   f"retry_backoff_ms={retry_backoff_ms}")
         _producer_init_failed = False
     except Exception as e:
         _producer = None
@@ -251,7 +294,7 @@ def process_alert_hook(alert_data: Dict) -> Dict:
     Returns:
         dict: 发送到Kafka的消息字典
     """
-    global _producer
+    global _producer, _last_kafka_unavailable_warning_time, _kafka_unavailable_warning_interval
     try:
         # 查询告警通知配置
         device_id = alert_data.get('device_id')
@@ -287,9 +330,9 @@ def process_alert_hook(alert_data: Dict) -> Dict:
                         value=notification_message
                     )
                     
-                    # 异步发送，不阻塞（减少超时时间）
+                    # 异步发送，等待结果（增加超时时间以提高成功率）
                     try:
-                        record_metadata = future.get(timeout=2)  # 减少超时时间到2秒
+                        record_metadata = future.get(timeout=10)  # 增加到10秒，给连接更多时间
                         logger.info(f"告警消息发送到Kafka成功: device_id={device_id}, "
                                    f"topic={record_metadata.topic}, partition={record_metadata.partition}, "
                                    f"offset={record_metadata.offset}")
@@ -303,26 +346,34 @@ def process_alert_hook(alert_data: Dict) -> Dict:
                         # 发送失败，但不影响主流程，只记录警告
                         logger.warning(f"告警消息发送到Kafka失败: device_id={device_id}, error={str(e)}")
                         # 如果连接失败，重置生产者，下次重新初始化
-                        if isinstance(e, (KafkaError, ConnectionError, TimeoutError)):
+                        if isinstance(e, (KafkaError, ConnectionError, TimeoutError)) or 'socket disconnected' in str(e).lower():
                             try:
-                                _producer.close(timeout=0.5)
+                                _producer.close(timeout=1)
                             except:
                                 pass
                             _producer = None
+                            logger.info(f"已重置Kafka生产者，将在下次发送时重新初始化")
                         return {'status': 'failed', 'error': str(e)}
                 except Exception as e:
                     # 发送异常，但不影响主流程
                     logger.warning(f"发送告警消息到Kafka异常: {str(e)}")
                     # 如果连接失败，重置生产者
-                    if isinstance(e, (KafkaError, ConnectionError, TimeoutError)):
+                    if isinstance(e, (KafkaError, ConnectionError, TimeoutError)) or 'socket disconnected' in str(e).lower():
                         try:
-                            _producer.close(timeout=0.5)
+                            _producer.close(timeout=1)
                         except:
                             pass
                         _producer = None
-                    return {'status': 'failed', 'error': str(e)}
+                        logger.info(f"已重置Kafka生产者，将在下次发送时重新初始化")
+                        return {'status': 'failed', 'error': str(e)}
             else:
-                logger.warning(f"Kafka不可用，跳过告警消息发送: device_id={device_id}")
+                # 警告抑制：避免日志刷屏，每5分钟最多输出一次警告
+                current_time = time.time()
+                if (current_time - _last_kafka_unavailable_warning_time) >= _kafka_unavailable_warning_interval:
+                    logger.warning(f"Kafka不可用，跳过告警消息发送: device_id={device_id}（将在 {_kafka_unavailable_warning_interval} 秒后再次提醒）")
+                    _last_kafka_unavailable_warning_time = current_time
+                else:
+                    logger.debug(f"Kafka不可用，跳过告警消息发送: device_id={device_id}")
                 return {'status': 'failed', 'error': 'Kafka不可用'}
         else:
             # 没有通知配置，也发送到Kafka（Java端可能需要处理）
@@ -359,9 +410,9 @@ def process_alert_hook(alert_data: Dict) -> Dict:
                         value=simple_message
                     )
                     
-                    # 异步发送，不阻塞
+                    # 异步发送，等待结果（增加超时时间以提高成功率）
                     try:
-                        record_metadata = future.get(timeout=2)
+                        record_metadata = future.get(timeout=10)  # 增加到10秒
                         logger.info(f"告警消息发送到Kafka成功（无通知配置）: device_id={device_id}, "
                                    f"topic={record_metadata.topic}, partition={record_metadata.partition}, "
                                    f"offset={record_metadata.offset}")
@@ -373,24 +424,32 @@ def process_alert_hook(alert_data: Dict) -> Dict:
                         }
                     except Exception as e:
                         logger.warning(f"告警消息发送到Kafka失败: device_id={device_id}, error={str(e)}")
-                        if isinstance(e, (KafkaError, ConnectionError, TimeoutError)):
+                        if isinstance(e, (KafkaError, ConnectionError, TimeoutError)) or 'socket disconnected' in str(e).lower():
                             try:
-                                _producer.close(timeout=0.5)
+                                _producer.close(timeout=1)
                             except:
                                 pass
                             _producer = None
+                            logger.info(f"已重置Kafka生产者，将在下次发送时重新初始化")
                         return {'status': 'failed', 'error': str(e)}
                 except Exception as e:
                     logger.warning(f"发送告警消息到Kafka异常: {str(e)}")
-                    if isinstance(e, (KafkaError, ConnectionError, TimeoutError)):
+                    if isinstance(e, (KafkaError, ConnectionError, TimeoutError)) or 'socket disconnected' in str(e).lower():
                         try:
-                            _producer.close(timeout=0.5)
+                            _producer.close(timeout=1)
                         except:
                             pass
                         _producer = None
+                        logger.info(f"已重置Kafka生产者，将在下次发送时重新初始化")
                     return {'status': 'failed', 'error': str(e)}
             else:
-                logger.warning(f"Kafka不可用，跳过告警消息发送: device_id={device_id}")
+                # 警告抑制：避免日志刷屏，每5分钟最多输出一次警告
+                current_time = time.time()
+                if (current_time - _last_kafka_unavailable_warning_time) >= _kafka_unavailable_warning_interval:
+                    logger.warning(f"Kafka不可用，跳过告警消息发送: device_id={device_id}（将在 {_kafka_unavailable_warning_interval} 秒后再次提醒）")
+                    _last_kafka_unavailable_warning_time = current_time
+                else:
+                    logger.debug(f"Kafka不可用，跳过告警消息发送: device_id={device_id}")
                 return {'status': 'failed', 'error': 'Kafka不可用'}
         
     except Exception as e:

@@ -45,6 +45,13 @@ def get_kafka_producer():
         metadata_max_age_ms = int(os.getenv('KAFKA_METADATA_MAX_AGE_MS', '300000'))
         init_retry_interval = int(os.getenv('KAFKA_INIT_RETRY_INTERVAL', '60'))
     
+    # 重要：realtime_algorithm_service 使用 host 网络模式，必须使用 localhost 访问 Kafka
+    # 如果配置中包含容器名（Kafka 或 kafka-server），强制使用 localhost
+    # 这样可以避免在 host 网络模式下尝试解析容器名导致的连接失败
+    if 'Kafka' in bootstrap_servers or 'kafka-server' in bootstrap_servers:
+        logger.warning(f'检测到 Kafka 配置使用容器名 "{bootstrap_servers}"，强制覆盖为 localhost:9092（realtime_algorithm_service 使用 host 网络模式）')
+        bootstrap_servers = 'localhost:9092'
+    
     # 如果已经初始化成功，直接返回
     if _producer is not None:
         return _producer

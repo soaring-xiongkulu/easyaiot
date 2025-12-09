@@ -210,14 +210,14 @@ services:
       - KAFKA_NODE_ID=1
       - KAFKA_PROCESS_ROLES=broker,controller
       - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      # 使用Kafka服务名作为advertised listener，支持Docker网络模式
-      # DEVICE服务（Docker网络）通过Kafka:9092连接
-      # VIDEO服务（host模式）通过localhost:9092连接（端口已映射到宿主机）
-      # 注意：VIDEO服务使用localhost连接时，Kafka会返回Kafka:9092作为advertised listener
-      # 但客户端会继续使用初始连接地址localhost:9092，不会影响连接
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://Kafka:9092
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@Kafka:9093
+      # 配置 advertised listeners 以支持不同的网络模式：
+      # - Kafka:9092 - 用于 Docker 网络内的服务（如 DEVICE 服务）
+      # - localhost:9092 - 用于 host 网络模式的服务（如 VIDEO 服务）
+      # 注意：当客户端从 localhost:9092 连接时，Kafka 会返回 localhost:9092 作为 advertised listener
+      # 但为了兼容 Docker 网络模式，我们同时提供两个地址
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://Kafka:9092,PLAINTEXT://localhost:9092
       - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@Kafka:9093
       - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
       - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
@@ -241,7 +241,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1",
+          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1",
         ]
       interval: 30s
       timeout: 10s

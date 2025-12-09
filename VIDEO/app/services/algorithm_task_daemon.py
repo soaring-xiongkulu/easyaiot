@@ -408,10 +408,22 @@ class AlgorithmTaskDaemon:
         video_service_port = os.getenv('FLASK_RUN_PORT', '6000')
         env['VIDEO_SERVICE_PORT'] = video_service_port
         
+        # 重要：realtime_algorithm_service 使用 host 网络模式，必须使用 localhost 访问 Kafka
+        # 如果环境变量中配置了容器名（如 Kafka:9092），需要强制覆盖为 localhost:9092
+        # 这样可以避免在 host 网络模式下尝试解析容器名导致的连接失败
+        kafka_bootstrap_servers = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
+        # 如果配置中包含容器名（Kafka 或 kafka-server），强制使用 localhost
+        if 'Kafka' in kafka_bootstrap_servers or 'kafka-server' in kafka_bootstrap_servers:
+            self._log(f'检测到 Kafka 配置使用容器名，强制覆盖为 localhost:9092（realtime_algorithm_service 使用 host 网络模式）', 'INFO')
+            env['KAFKA_BOOTSTRAP_SERVERS'] = 'localhost:9092'
+        else:
+            # 如果已经是 localhost 或 IP 地址，直接使用
+            env['KAFKA_BOOTSTRAP_SERVERS'] = kafka_bootstrap_servers
+        
         # 设置日志路径
         env['LOG_PATH'] = self._log_path
         
-        self._log(f'环境变量已设置: TASK_ID={env["TASK_ID"]}, VIDEO_SERVICE_PORT={env["VIDEO_SERVICE_PORT"]}', 'DEBUG')
+        self._log(f'环境变量已设置: TASK_ID={env["TASK_ID"]}, VIDEO_SERVICE_PORT={env["VIDEO_SERVICE_PORT"]}, KAFKA_BOOTSTRAP_SERVERS={env["KAFKA_BOOTSTRAP_SERVERS"]}', 'DEBUG')
         
         return cmds, deploy_service_dir, env
 

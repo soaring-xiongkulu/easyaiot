@@ -34,7 +34,7 @@ EasyAIoT 平台由以下核心模块组成：
   - macOS (推荐 macOS 10.15+)
   - Windows (推荐 Windows 10/11，需要 PowerShell 5.1+)
 - **内存**: 推荐 32GB（最低 16GB）
-- **磁盘**: 建议 50GB 以上可用空间
+- **磁盘**: 建议 200GB 以上可用空间
 - **CPU**: 推荐 8 核（最低 4 核）
 - **显卡**: 推荐 NVIDIA GPU（最低 CPU）
 

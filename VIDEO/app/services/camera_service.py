@@ -19,7 +19,7 @@ from wsdiscovery import WSDiscovery, Scope
 
 from app.services.onvif_service import OnvifCamera
 from app.utils.ip_utils import IpReachabilityMonitor
-from models import Device, db
+from models import Device, db, DeviceDetectionRegion
 
 # 全局变量定义
 _onvif_cameras = {}
@@ -1116,6 +1116,12 @@ def delete_camera(id: str):
         raise ValueError(f'设备 {id} 不存在，无法删除')
 
     try:
+        # 先删除设备相关的检测区域，避免外键约束错误
+        regions = DeviceDetectionRegion.query.filter_by(device_id=id).all()
+        for region in regions:
+            db.session.delete(region)
+        logger.info(f'已删除设备 {id} 的 {len(regions)} 个检测区域')
+        
         _monitor.delete(camera.id)
         _onvif_cameras.pop(id, None)
         db.session.delete(camera)

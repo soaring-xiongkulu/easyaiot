@@ -193,14 +193,15 @@ export const useMultipleTabStore = defineStore('app-multiple-tab', {
 
       // If the current is the leftmost tab
       if (index === 0) {
-        // There is only one tab, then jump to the homepage, otherwise jump to the right tab
-        if (this.tabList.length === 1) {
-          toTarget = PageEnum.BASE_HOME
-        }
-        else {
+        // If there is a tab on the right, jump to the right tab, otherwise jump to the homepage
+        if (this.tabList.length > 1 && this.tabList[index + 1]) {
           //  Jump to the right tab
           const page = this.tabList[index + 1]
           toTarget = getToTarget(page)
+        }
+        else {
+          // There is only one tab, then jump to the homepage
+          toTarget = PageEnum.BASE_HOME
         }
       }
       else {

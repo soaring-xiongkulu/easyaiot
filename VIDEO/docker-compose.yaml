@@ -57,7 +57,9 @@ services:
       - REDIS_HOST=${REDIS_HOST:-localhost}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-basiclab@iot975248395}
-      # Kafka配置（使用localhost，因为使用host网络模式）
+      # Kafka配置（使用宿主机IP或localhost，因为使用host网络模式，不能使用容器名）
+      # 如果Kafka运行在宿主机上，使用localhost:9092
+      # 如果Kafka运行在其他机器上，使用宿主机IP，例如：192.168.1.100:9092
       - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
       # TDengine配置（使用localhost，因为使用host网络模式）
       - TDENGINE_HOST=${TDENGINE_HOST:-localhost}
@@ -75,12 +77,12 @@ services:
       - HTTPS_PROXY=${HTTPS_PROXY:-}
       - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1}
 
-    # 配置hosts映射，将kafka-server映射到宿主机IP
-    # 注意：虽然使用host网络模式，但添加此配置可以确保kafka-server域名解析正确
-    # 使用host-gateway自动解析为宿主机IP（Docker 20.10+支持）
-    # 如果host-gateway不工作，可以手动指定IP，例如：- "kafka-server:192.168.1.100"
-    extra_hosts:
-      - "kafka-server:host-gateway"
+    # 注意：使用host网络模式时，不需要配置extra_hosts
+    # 容器直接使用宿主机网络栈，Kafka配置应使用宿主机IP或localhost，不能使用容器名
+    # 如果Kafka运行在宿主机上，使用localhost:9092
+    # 如果Kafka运行在其他机器上，使用宿主机IP，例如：192.168.1.100:9092
+    # extra_hosts:
+    #   - "kafka-server:host-gateway"
 
     # 重启策略
     restart: unless-stopped

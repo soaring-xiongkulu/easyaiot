@@ -145,7 +145,13 @@ def create_app():
     app.config['MINIO_SECURE'] = os.environ.get('MINIO_SECURE', 'false').lower() == 'true'
     
     # Kafka配置
-    app.config['KAFKA_BOOTSTRAP_SERVERS'] = os.environ.get('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
+    # 重要：VIDEO服务使用 host 网络模式，必须使用 localhost 访问 Kafka
+    # 如果环境变量中配置了容器名（如 Kafka:9092），需要强制覆盖为 localhost:9092
+    kafka_bootstrap_servers = os.environ.get('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
+    if 'Kafka' in kafka_bootstrap_servers or 'kafka-server' in kafka_bootstrap_servers:
+        print(f'⚠️  检测到 Kafka 配置使用容器名，强制覆盖为 localhost:9092（VIDEO服务使用 host 网络模式）')
+        kafka_bootstrap_servers = 'localhost:9092'
+    app.config['KAFKA_BOOTSTRAP_SERVERS'] = kafka_bootstrap_servers
     app.config['KAFKA_ALERT_TOPIC'] = os.environ.get('KAFKA_ALERT_TOPIC', 'iot-alert-notification')
     app.config['KAFKA_REQUEST_TIMEOUT_MS'] = int(os.environ.get('KAFKA_REQUEST_TIMEOUT_MS', '5000'))
     app.config['KAFKA_RETRIES'] = int(os.environ.get('KAFKA_RETRIES', '1'))
