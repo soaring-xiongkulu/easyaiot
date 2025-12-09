@@ -205,16 +205,17 @@ services:
     ports:
       - "9092:9092"
       - "9093:9093"
+      - "9094:9094"
     environment:
       - TZ=Asia/Shanghai
       - KAFKA_NODE_ID=1
       - KAFKA_PROCESS_ROLES=broker,controller
-      - KAFKA_LISTENERS=INTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      - KAFKA_LISTENERS=INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094,CONTROLLER://0.0.0.0:9093
       # 配置 advertised listeners 以支持不同的网络模式：
       # - INTERNAL://Kafka:9092 - 用于 Docker 网络内的服务（如 DEVICE 服务）
-      # - EXTERNAL://localhost:9092 - 用于 host 网络模式的服务（如 VIDEO 服务）
+      # - EXTERNAL://localhost:9094 - 用于 host 网络模式的服务（如 VIDEO 服务）
       # 注意：每个监听器必须有不同的名称，否则 Kafka 会报错
-      - KAFKA_ADVERTISED_LISTENERS=INTERNAL://Kafka:9092,EXTERNAL://localhost:9092
+      - KAFKA_ADVERTISED_LISTENERS=INTERNAL://Kafka:9092,EXTERNAL://localhost:9094
       - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
       - KAFKA_CONTROLLER_QUORUM_VOTERS=1@Kafka:9093
       - KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
