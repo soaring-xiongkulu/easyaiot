@@ -18,9 +18,6 @@
             <div v-else-if="isVideo" class="media-preview">
               <video controls :src="getMediaUrl(record.input_source)" />
             </div>
-            <div v-else-if="isStream" class="media-preview">
-              <video controls :src="record.input_source" autoplay muted />
-            </div>
             <div v-else class="media-preview">
               <a-alert type="warning" message="不支持的输入类型" />
             </div>
@@ -145,7 +142,6 @@ const isPlaying = ref(true);
 // 计算属性
 const isImage = computed(() => props.record?.inference_type === 'image');
 const isVideo = computed(() => props.record?.inference_type === 'video');
-const isStream = computed(() => props.record?.inference_type === 'rtsp');
 
 const resultType = computed(() => {
   if (!props.record) return 'unknown';
@@ -227,12 +223,7 @@ const getFileExtension = (path: string) => {
 
 // 监听记录变化
 watch(() => props.record, (newRecord) => {
-  if (newRecord.inference_type === 'rtsp') {
-    setTimeout(() => {
-      const video = document.querySelector('.stream-result video') as HTMLVideoElement;
-      if (video) video.play().catch(e => console.error('播放失败:', e));
-    }, 500);
-  }
+  // 可以在这里添加其他监听逻辑
 }, { immediate: true });
 </script>
 

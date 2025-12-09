@@ -73,12 +73,12 @@
                         <div class="value">{{ item.device_names.join(', ') }}</div>
                       </div>
                     </div>
-                    <div class="flex" style="justify-content: space-between;" v-if="item.model_names || (item.algorithm_services && item.algorithm_services.length > 0)">
-                      <div class="prop" v-if="item.model_names">
+                    <div class="flex" style="justify-content: space-between;">
+                      <div class="prop">
                         <div class="label">关联模型</div>
-                        <div class="value">{{ item.model_names }}</div>
+                        <div class="value">{{ item.model_names || '--' }}</div>
                       </div>
-                      <div class="prop" v-else-if="item.algorithm_services && item.algorithm_services.length > 0">
+                      <div class="prop" v-if="item.algorithm_services && item.algorithm_services.length > 0 && !item.model_names">
                         <div class="label">关联算法服务</div>
                         <div class="value">{{ item.algorithm_services.map(s => s.service_name).join(', ') }}</div>
                       </div>
@@ -225,6 +225,7 @@ import DeviceRegionDetectionDrawer from './DeviceRegionDetectionDrawer.vue';
 import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue';
 import { getBasicColumns, getFormConfig } from './Data';
 import AI_TASK_IMAGE from '@/assets/images/video/ai-task.png';
+import SNAP_TASK_IMAGE from '@/assets/images/video/snap-task.png';
 
 const ListItem = List.Item;
 
@@ -438,7 +439,7 @@ const paginationProp = ref({
 
 // 根据任务类型获取图片
 const getTaskImage = (taskType: string) => {
-  return AI_TASK_IMAGE;
+  return taskType === 'snap' ? SNAP_TASK_IMAGE : AI_TASK_IMAGE;
 };
 
 // 表单提交

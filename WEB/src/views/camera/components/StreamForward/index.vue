@@ -78,10 +78,6 @@
                           />
                         </div>
                       </div>
-                      <div class="prop">
-                        <div class="label">活跃流数</div>
-                        <div class="value">{{ item.active_streams || 0 }}/{{ item.total_streams || 0 }}</div>
-                      </div>
                     </div>
                     <div class="flex" style="justify-content: space-between;">
                       <div class="prop">
@@ -431,7 +427,10 @@ const handleStart = async (record: StreamForwardTask) => {
       } else {
         createMessage.success('启动成功');
       }
-      handleSuccess();
+      // 延迟刷新，等待服务启动和心跳上报
+      setTimeout(() => {
+        handleSuccess();
+      }, 2000);
     } else if (response && typeof response === 'object' && 'code' in response) {
       if ((response as any).code === 0) {
         const data = (response as any).data || response;
@@ -440,7 +439,10 @@ const handleStart = async (record: StreamForwardTask) => {
         } else {
           createMessage.success('启动成功');
         }
-        handleSuccess();
+        // 延迟刷新，等待服务启动和心跳上报
+        setTimeout(() => {
+          handleSuccess();
+        }, 2000);
       } else {
         createMessage.error((response as any).msg || '启动失败');
       }
@@ -480,11 +482,17 @@ const handleRestart = async (record: StreamForwardTask) => {
     const response = await restartStreamForwardTask(record.id);
     if (response && (response as any).id) {
       createMessage.success('重启成功');
-      handleSuccess();
+      // 延迟刷新，等待服务重启和心跳上报
+      setTimeout(() => {
+        handleSuccess();
+      }, 2000);
     } else if (response && typeof response === 'object' && 'code' in response) {
       if ((response as any).code === 0) {
         createMessage.success('重启成功');
-        handleSuccess();
+        // 延迟刷新，等待服务重启和心跳上报
+        setTimeout(() => {
+          handleSuccess();
+        }, 2000);
       } else {
         createMessage.error((response as any).msg || '重启失败');
       }

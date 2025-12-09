@@ -32,9 +32,8 @@ def create_algorithm_task(task_name: str,
                          alert_event_enabled: bool = False,
                          alert_notification_enabled: bool = False,
                          alert_notification_config: Optional[str] = None,
-                         space_id: Optional[int] = None,
                          cron_expression: Optional[str] = None,
-                         frame_skip: int = 1,
+                         frame_skip: int = 25,
                          is_enabled: bool = False,
                          defense_mode: Optional[str] = None,
                          defense_schedule: Optional[str] = None) -> AlgorithmTask:
@@ -50,17 +49,15 @@ def create_algorithm_task(task_name: str,
         for dev_id in device_id_list:
             Device.query.get_or_404(dev_id)
         
-        # 检查摄像头是否已经在运行的推流转发任务中使用
+        # 检查摄像头是否已经在启用的推流转发任务中使用
         if device_id_list:
             has_conflict, conflicts = check_device_conflict_with_stream_forward_tasks(device_id_list)
             if has_conflict:
                 conflict_msg = format_conflict_message(conflicts, 'stream_forward')
                 raise ValueError(f"摄像头冲突：{conflict_msg}。同一个摄像头不能同时用于推流转发和算法任务。")
         
-        # 实时算法任务：验证模型ID列表
-        if task_type == 'realtime':
-            if not model_ids:
-                raise ValueError("实时算法任务必须指定模型ID列表")
+        # 算法任务（实时和抓拍）：验证模型ID列表
+        if model_ids:
             # 验证模型是否存在并获取模型名称（支持默认模型和数据库模型）
             model_names_list = []
             # 默认模型映射：负数ID -> 模型文件路径
@@ -126,22 +123,18 @@ def create_algorithm_task(task_name: str,
             model_ids_json = json.dumps(model_ids)
             model_names = ','.join(model_names_list) if model_names_list else None
         else:
-            # 抓拍算法任务：不需要模型列表
+            # 如果没有提供模型ID列表，设置为None
             model_ids_json = None
             model_names = None
         
-        # 抓拍算法任务：验证抓拍空间
+        # 抓拍算法任务：验证Cron表达式
         if task_type == 'snap':
-            if not space_id:
-                raise ValueError("抓拍算法任务必须指定抓拍空间")
-            SnapSpace.query.get_or_404(space_id)
             if not cron_expression:
                 raise ValueError("抓拍算法任务必须指定Cron表达式")
         else:
-            # 实时算法任务：不需要抓拍空间和Cron表达式
-            space_id = None
+            # 实时算法任务：不需要Cron表达式
             cron_expression = None
-            frame_skip = 1
+            frame_skip = 25
         
         # 生成唯一编号
         prefix = "REALTIME_TASK" if task_type == 'realtime' else "SNAP_TASK"
@@ -193,7 +186,7 @@ def create_algorithm_task(task_name: str,
             alert_event_enabled=alert_event_enabled,
             alert_notification_enabled=alert_notification_enabled,
             alert_notification_config=alert_notification_config,
-            space_id=space_id,
+            space_id=None,
             cron_expression=cron_expression,
             frame_skip=frame_skip,
             is_enabled=is_enabled,
@@ -237,19 +230,16 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             for dev_id in device_id_list:
                 Device.query.get_or_404(dev_id)
             
-            # 检查摄像头是否已经在运行的推流转发任务中使用（排除当前任务）
+            # 检查摄像头是否已经在启用的推流转发任务中使用（排除当前任务）
             if device_id_list:
                 has_conflict, conflicts = check_device_conflict_with_stream_forward_tasks(device_id_list, exclude_task_id=task_id)
                 if has_conflict:
                     conflict_msg = format_conflict_message(conflicts, 'stream_forward')
                     raise ValueError(f"摄像头冲突：{conflict_msg}。同一个摄像头不能同时用于推流转发和算法任务。")
         
-        # 根据任务类型验证字段
-        if task_type == 'realtime':
-            # 实时算法任务：验证模型ID列表
-            if model_ids is not None:
-                if not model_ids:
-                    raise ValueError("实时算法任务必须指定模型ID列表")
+        # 处理模型ID列表（实时和抓拍算法任务都支持）
+        if model_ids is not None:
+            if model_ids:
                 # 验证模型是否存在并获取模型名称（支持默认模型和数据库模型）
                 model_names_list = []
                 # 默认模型映射：负数ID -> 模型文件路径
@@ -314,22 +304,23 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
                 
                 kwargs['model_ids'] = json.dumps(model_ids)
                 kwargs['model_names'] = ','.join(model_names_list) if model_names_list else None
-            # 清除抓拍相关字段
+            else:
+                # 如果传入空列表，清空模型关联
+                kwargs['model_ids'] = None
+                kwargs['model_names'] = None
+        
+        # 根据任务类型清除不相关字段
+        if task_type == 'realtime':
+            # 实时算法任务：清除抓拍相关字段
             if 'space_id' in kwargs:
                 kwargs['space_id'] = None
             if 'cron_expression' in kwargs:
                 kwargs['cron_expression'] = None
             if 'frame_skip' in kwargs:
-                kwargs['frame_skip'] = 1
+                kwargs['frame_skip'] = 25
         else:
-            # 抓拍算法任务：验证抓拍空间
-            if 'space_id' in kwargs and kwargs['space_id']:
-                SnapSpace.query.get_or_404(kwargs['space_id'])
-            # 清除实时算法任务相关字段
-            if 'model_ids' in kwargs:
-                kwargs['model_ids'] = None
-            if 'model_names' in kwargs:
-                kwargs['model_names'] = None
+            # 抓拍算法任务：保留模型字段，不需要清除
+            pass
         
         # 验证推送器是否存在（如果提供）
         if 'pusher_id' in kwargs and kwargs['pusher_id']:
@@ -341,7 +332,7 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             'extract_interval',  # 实时算法任务配置（rtmp_input_url和rtmp_output_url不再使用，从摄像头列表获取）
             'tracking_enabled', 'tracking_similarity_threshold', 'tracking_max_age', 'tracking_smooth_alpha',  # 追踪配置
             'alert_event_enabled', 'alert_notification_enabled', 'alert_notification_config',  # 告警配置
-            'space_id', 'cron_expression', 'frame_skip',  # 抓拍算法任务配置
+            'cron_expression', 'frame_skip',  # 抓拍算法任务配置
             'is_enabled', 'status', 'exception_reason',
             'defense_mode', 'defense_schedule'
         ]
@@ -497,7 +488,7 @@ def start_algorithm_task(task_id: int):
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
         
-        # 检查摄像头是否已经在运行的推流转发任务中使用
+        # 检查摄像头是否已经在启用的推流转发任务中使用
         if task.devices:
             device_ids = [d.id for d in task.devices]
             has_conflict, conflicts = check_device_conflict_with_stream_forward_tasks(device_ids)

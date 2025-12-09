@@ -75,7 +75,6 @@
           <a-radio-group v-model:value="formState.inferenceType">
             <a-radio-button value="image">图片推理</a-radio-button>
             <a-radio-button value="video">视频推理</a-radio-button>
-            <a-radio-button value="rtsp">RTSP流推理</a-radio-button>
           </a-radio-group>
         </a-form-item>
 
@@ -120,18 +119,6 @@
               上传视频文件
             </a-button>
           </a-upload>
-        </a-form-item>
-
-        <!-- RTSP流输入 -->
-        <a-form-item
-          v-if="formState.inferenceType === 'rtsp'"
-          label="RTSP地址"
-          required
-        >
-          <a-input
-            v-model:value="formState.rtspUrl"
-            placeholder="请输入RTSP流地址"
-          />
         </a-form-item>
 
         <!-- 执行按钮 -->
@@ -196,8 +183,7 @@ const formState = reactive({
   projectId: null,
   modelType: 'pretrained',
   systemModel: 'yolov5',
-  inferenceType: 'image',
-  rtspUrl: ''
+  inferenceType: 'image'
 });
 
 // 加载项目列表
@@ -263,10 +249,6 @@ const handleSubmit = async () => {
 
   if (formState.inferenceType === 'video' && videoFiles.value.length > 0) {
     formData.append('video_file', videoFiles.value[0].originFileObj);
-  }
-
-  if (formState.inferenceType === 'rtsp') {
-    formData.append('rtsp_url', formState.rtspUrl);
   }
 
   loading.value = true;

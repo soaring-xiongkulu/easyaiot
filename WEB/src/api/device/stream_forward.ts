@@ -8,7 +8,8 @@ const commonApi = <T = any>(
   url: string,
   data?: any,
   headers = {},
-  isTransformResponse = true
+  isTransformResponse = true,
+  errorMessageMode?: 'none' | 'message' | 'modal' // 如果未指定，使用默认值（message）
 ) => {
   defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
 
@@ -16,7 +17,7 @@ const commonApi = <T = any>(
     url,
     headers: { ...headers },
     ...(method === 'get' ? { params: data } : { data })
-  }, { isTransformResponse });
+  }, { isTransformResponse, errorMessageMode });
 };
 
 // ====================== 类型定义 ======================
@@ -39,7 +40,6 @@ export interface StreamForwardTask {
   service_last_heartbeat?: string;
   service_log_path?: string;
   total_streams: number;
-  active_streams: number;
   last_process_time?: string;
   last_success_time?: string;
   description?: string;
@@ -93,7 +93,10 @@ export const createStreamForwardTask = (data: {
   return commonApi<{ code: number; msg: string; data: StreamForwardTask }>(
     'post',
     `${STREAM_FORWARD_PREFIX}/task`,
-    data
+    data,
+    {},
+    true,
+    'none' // 不自动显示错误，由组件处理
   );
 };
 
@@ -104,7 +107,10 @@ export const updateStreamForwardTask = (task_id: number, data: Partial<StreamFor
   return commonApi<{ code: number; msg: string; data: StreamForwardTask }>(
     'put',
     `${STREAM_FORWARD_PREFIX}/task/${task_id}`,
-    data
+    data,
+    {},
+    true,
+    'none' // 不自动显示错误，由组件处理
   );
 };
 
@@ -162,7 +168,6 @@ export const getStreamForwardTaskStatus = (task_id: number) => {
       log_path?: string;
       status: 'running' | 'stopped';
       run_status: 'running' | 'stopped' | 'restarting';
-      active_streams: number;
       total_streams: number;
     };
   }>('get', `${STREAM_FORWARD_PREFIX}/task/${task_id}/status`);

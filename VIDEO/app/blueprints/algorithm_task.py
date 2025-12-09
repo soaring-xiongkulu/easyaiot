@@ -94,9 +94,8 @@ def create_task():
             alert_event_enabled=data.get('alert_event_enabled', False),
             alert_notification_enabled=data.get('alert_notification_enabled', False),
             alert_notification_config=data.get('alert_notification_config'),
-            space_id=data.get('space_id'),
             cron_expression=data.get('cron_expression'),
-            frame_skip=data.get('frame_skip', 1),
+            frame_skip=data.get('frame_skip', 25),
             is_enabled=data.get('is_enabled', False),
             defense_mode=data.get('defense_mode'),
             defense_schedule=data.get('defense_schedule')
@@ -107,8 +106,13 @@ def create_task():
             'msg': '创建成功',
             'data': task.to_dict()
         })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except (ValueError, RuntimeError) as e:
+        # 提取错误消息，如果是 RuntimeError 包装的 ValueError，提取原始消息
+        error_msg = str(e)
+        if isinstance(e, RuntimeError) and '创建算法任务失败:' in error_msg:
+            # 提取冒号后的消息
+            error_msg = error_msg.split('创建算法任务失败:', 1)[-1].strip()
+        return jsonify({'code': 400, 'msg': error_msg}), 400
     except Exception as e:
         logger.error(f'创建算法任务失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
@@ -129,8 +133,13 @@ def update_task(task_id):
             'msg': '更新成功',
             'data': task.to_dict()
         })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except (ValueError, RuntimeError) as e:
+        # 提取错误消息，如果是 RuntimeError 包装的 ValueError，提取原始消息
+        error_msg = str(e)
+        if isinstance(e, RuntimeError) and '更新算法任务失败:' in error_msg:
+            # 提取冒号后的消息
+            error_msg = error_msg.split('更新算法任务失败:', 1)[-1].strip()
+        return jsonify({'code': 400, 'msg': error_msg}), 400
     except Exception as e:
         logger.error(f'更新算法任务失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
@@ -166,8 +175,13 @@ def start_task(task_id):
             'msg': message,  # "任务运行中" 或 "启动成功"
             'data': task_dict
         })
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except (ValueError, RuntimeError) as e:
+        # 提取错误消息，如果是 RuntimeError 包装的 ValueError，提取原始消息
+        error_msg = str(e)
+        if isinstance(e, RuntimeError) and '启动算法任务失败:' in error_msg:
+            # 提取冒号后的消息
+            error_msg = error_msg.split('启动算法任务失败:', 1)[-1].strip()
+        return jsonify({'code': 400, 'msg': error_msg}), 400
     except Exception as e:
         logger.error(f'启动算法任务失败: {str(e)}', exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
@@ -546,46 +560,7 @@ def get_task_streams(task_id):
                 'cover_image_path': device.cover_image_path,  # 添加设备封面图字段
             }
             
-            # 对于实时算法任务，优先使用摄像头的推流地址
-            # 对于抓拍算法任务，如果有推送器配置，尝试从推送器获取推流地址
-            if task.task_type == 'snap':
-                # 查找关联的推送器（通过抓拍空间查找）
-                if task.space_id:
-                    from models import SnapSpace
-                    snap_space = SnapSpace.query.get(task.space_id)
-                    if snap_space and snap_space.pusher_id:
-                        pusher = Pusher.query.get(snap_space.pusher_id)
-                        if pusher and pusher.video_stream_enabled:
-                            # 优先使用多摄像头映射
-                            if pusher.device_rtmp_mapping:
-                                try:
-                                    mapping = json.loads(pusher.device_rtmp_mapping) if isinstance(pusher.device_rtmp_mapping, str) else pusher.device_rtmp_mapping
-                                    if isinstance(mapping, dict) and device.id in mapping:
-                                        stream_info['pusher_rtmp_url'] = mapping[device.id]
-                                        # 从RTMP地址生成HTTP地址（假设使用8080端口）
-                                        rtmp_url = mapping[device.id]
-                                        if rtmp_url and rtmp_url.startswith('rtmp://'):
-                                            # 提取路径部分
-                                            path = rtmp_url.split('/', 3)[-1] if '/' in rtmp_url[7:] else ''
-                                            if path and not path.endswith('.flv'):
-                                                path = f"{path}.flv"
-                                            # 假设HTTP服务器在8080端口
-                                            server = rtmp_url.split('://')[1].split('/')[0].split(':')[0]
-                                            stream_info['pusher_http_url'] = f"http://{server}:8080/{path}" if path else None
-                                except:
-                                    pass
-                            
-                            # 如果没有映射，使用默认的video_stream_url
-                            if 'pusher_rtmp_url' not in stream_info and pusher.video_stream_url:
-                                stream_info['pusher_rtmp_url'] = pusher.video_stream_url
-                                # 从RTMP地址生成HTTP地址
-                                rtmp_url = pusher.video_stream_url
-                                if rtmp_url and rtmp_url.startswith('rtmp://'):
-                                    path = rtmp_url.split('/', 3)[-1] if '/' in rtmp_url[7:] else ''
-                                    if path and not path.endswith('.flv'):
-                                        path = f"{path}.flv"
-                                    server = rtmp_url.split('://')[1].split('/')[0].split(':')[0]
-                                    stream_info['pusher_http_url'] = f"http://{server}:8080/{path}" if path else None
+            # 对于实时算法任务和抓拍算法任务，都直接使用摄像头的推流地址
             
             streams.append(stream_info)
         

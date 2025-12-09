@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 def check_device_conflict_with_algorithm_tasks(device_ids: List[str], 
                                                 exclude_task_id: Optional[int] = None) -> tuple[bool, List[dict]]:
     """
-    检查摄像头是否已经在运行的算法任务中使用
+    检查摄像头是否已经在启用的算法任务中使用
     
     Args:
         device_ids: 要检查的摄像头ID列表
@@ -32,17 +32,14 @@ def check_device_conflict_with_algorithm_tasks(device_ids: List[str],
     
     conflicts = []
     
-    # 查询所有正在运行的算法任务（is_enabled=True 且 run_status='running'）
-    running_algorithm_tasks = AlgorithmTask.query.filter(
-        and_(
-            AlgorithmTask.is_enabled == True,
-            AlgorithmTask.run_status == 'running'
-        )
+    # 查询所有启用的算法任务（is_enabled=True），因为启用的任务会占用摄像头资源
+    enabled_algorithm_tasks = AlgorithmTask.query.filter(
+        AlgorithmTask.is_enabled == True
     ).all()
     
     # 如果指定了排除的任务ID，过滤掉
     if exclude_task_id:
-        running_algorithm_tasks = [t for t in running_algorithm_tasks if t.id != exclude_task_id]
+        enabled_algorithm_tasks = [t for t in enabled_algorithm_tasks if t.id != exclude_task_id]
     
     # 检查每个摄像头
     for device_id in device_ids:
@@ -50,8 +47,8 @@ def check_device_conflict_with_algorithm_tasks(device_ids: List[str],
         if not device:
             continue
         
-        # 检查该摄像头是否在这些运行中的算法任务中
-        for task in running_algorithm_tasks:
+        # 检查该摄像头是否在这些启用的算法任务中
+        for task in enabled_algorithm_tasks:
             if task.devices:
                 task_device_ids = [d.id for d in task.devices]
                 if device_id in task_device_ids:

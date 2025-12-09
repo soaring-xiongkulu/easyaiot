@@ -134,7 +134,6 @@ def _to_dict(camera: Device) -> dict:
         'rtmp_stream': camera.rtmp_stream,
         'http_stream': camera.http_stream,
         'enable_forward': camera.enable_forward,
-        'auto_snap_enabled': camera.auto_snap_enabled if hasattr(camera, 'auto_snap_enabled') else False,
         'stream': camera.stream,
         'ip': camera.ip,
         'port': camera.port,
@@ -963,7 +962,7 @@ def update_camera(id: str, update_info: dict):
     for k, v in (item for item in update_info.items() if item[1] is not None):
         if hasattr(camera, k):
             # 对于布尔值字段，处理空字符串和字符串类型的布尔值
-            if k in ['enable_forward', 'support_move', 'support_zoom', 'auto_snap_enabled']:
+            if k in ['enable_forward', 'support_move', 'support_zoom']:
                 # 如果是空字符串，跳过该字段的更新
                 if v == '':
                     continue

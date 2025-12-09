@@ -114,30 +114,6 @@
                 </label>
               </div>
             </div>
-            <div class="source-content" v-else-if="state.activeSource === 'rtsp'">
-              <input
-                type="text"
-                class="input-field"
-                placeholder="输入RTSP流地址"
-                v-model="state.rtspUrl"
-              >
-              <button class="btn btn-primary" @click="connectRTSP">
-                <LinkOutlined class="icon" />
-                <span>连接流</span>
-              </button>
-            </div>
-            <div class="source-content" v-else-if="state.activeSource === 'camera'">
-              <select class="input-field" v-model="state.selectedCamera">
-                <option value="">选择摄像头</option>
-                <option v-for="camera in cameraOptions" :key="camera.value" :value="camera.value">
-                  {{ camera.label }}
-                </option>
-              </select>
-              <button class="btn btn-primary" @click="toggleCamera">
-                <CameraOutlined class="icon" />
-                <span>{{ state.cameraActive ? '关闭摄像头' : '开启摄像头' }}</span>
-              </button>
-            </div>
           </div>
         </div>
 
@@ -359,8 +335,6 @@ import {
   CloseOutlined,
   PictureOutlined,
   VideoCameraOutlined,
-  LinkOutlined,
-  CameraOutlined,
   LeftOutlined,
   RightOutlined,
   ExperimentOutlined,
@@ -413,9 +387,6 @@ interface AppState {
   uploadedImageFile: File | null;
   uploadedVideoFile: File | null;
   uploadedVideoUrl: string | null;
-  rtspUrl: string;
-  selectedCamera: string;
-  cameraActive: boolean;
   detectionResult: string | null;
   detectionCount: number;
   averageConfidence: number;
@@ -455,9 +426,6 @@ const state = reactive<AppState>({
   uploadedImageFile: null,
   uploadedVideoFile: null,
   uploadedVideoUrl: null,
-  rtspUrl: '',
-  selectedCamera: '',
-  cameraActive: false,
   detectionResult: null,
   detectionCount: 0,
   averageConfidence: 0,
@@ -486,14 +454,7 @@ const POLLING_INTERVAL = 1000;
 
 const sourceOptions = [
   { value: 'image', label: '图片上传' },
-  { value: 'video', label: '视频上传' },
-  { value: 'rtsp', label: 'RTSP流' },
-  { value: 'camera', label: '摄像头' }
-];
-
-const cameraOptions = [
-  { value: 'camera1', label: '摄像头 1' },
-  { value: 'camera2', label: '摄像头 2' }
+  { value: 'video', label: '视频上传' }
 ];
 
 const imageInput = ref<HTMLInputElement | null>(null);
@@ -545,11 +506,6 @@ const startDetection = async () => {
     return;
   }
 
-  if (state.activeSource === 'rtsp' && !state.rtspUrl) {
-    createMessage.warning('请输入RTSP流地址');
-    return;
-  }
-
   state.inferenceLoading = true;
   state.detectionStatus = 'running';
   state.statusText = '推理中...';
@@ -586,8 +542,6 @@ const startDetection = async () => {
     } else if (state.activeSource === 'video' && state.historyInputSource) {
       // 从历史记录还原的视频，使用 input_source URL
       formData.append('input_source', state.historyInputSource);
-    } else if (state.activeSource === 'rtsp') {
-      formData.append('input_source', state.rtspUrl);
     }
 
     // 判断使用哪个接口：优先使用模型服务接口（集群接口）
@@ -683,12 +637,9 @@ const startDetection = async () => {
           state.statusText = '推理失败';
           return;
         }
-      } else if (state.activeSource === 'rtsp' && result.stream_url) {
-        state.detectionResult = result.stream_url;
-        createMessage.success('RTSP流推理已启动');
       }
       
-      // 图片推理和RTSP推理在这里设置完成状态
+      // 图片推理在这里设置完成状态
       state.detectionStatus = 'completed';
       state.statusText = '推理完成';
       createMessage.success('推理执行成功');
@@ -797,33 +748,6 @@ const handleVideoUpload = (event: Event) => {
   }
 };
 
-const connectRTSP = () => {
-  if (!state.rtspUrl) {
-    createMessage.warning('请输入RTSP流地址');
-    return;
-  }
-  if (!state.rtspUrl.startsWith('rtsp://')) {
-    createMessage.warning('RTSP地址格式不正确，应以rtsp://开头');
-    return;
-  }
-  createMessage.info(`RTSP流地址已设置: ${state.rtspUrl}`);
-};
-
-const toggleCamera = () => {
-  if (!state.selectedCamera) {
-    alert('请先选择摄像头');
-    return;
-  }
-
-  state.cameraActive = !state.cameraActive;
-  if (state.cameraActive) {
-    alert(`正在开启 ${state.selectedCamera}`);
-    // 这里可以添加实际的摄像头开启逻辑
-  } else {
-    alert(`正在关闭 ${state.selectedCamera}`);
-    // 这里可以添加实际的摄像头关闭逻辑
-  }
-};
 
 
 // 加载模型列表
@@ -1266,7 +1190,6 @@ const handleHistoryRecordChange = async () => {
     state.uploadedImageFile = null;
     state.uploadedVideoFile = null;
     state.uploadedVideoUrl = null;
-    state.rtspUrl = '';
     state.historyInputSource = null;
     state.detectionResult = null;
     state.detectionCount = 0;
@@ -1327,11 +1250,7 @@ const handleHistoryRecordChange = async () => {
       state.historyInputSource = inputSource;
     }
     
-    if (inferenceType === 'rtsp' || inputSource.startsWith('rtsp://')) {
-      // RTSP 流
-      state.activeSource = 'rtsp';
-      state.rtspUrl = inputSource;
-    } else if (inferenceType === 'image') {
+    if (inferenceType === 'image') {
       // 图片
       state.activeSource = 'image';
       // 如果 input_source 是 URL，可以直接使用
@@ -1347,21 +1266,16 @@ const handleHistoryRecordChange = async () => {
       }
     } else if (inputSource) {
       // 如果没有 inference_type，尝试根据 input_source 推断
-      if (inputSource.startsWith('rtsp://')) {
-        state.activeSource = 'rtsp';
-        state.rtspUrl = inputSource;
-      } else {
-        const lowerSource = inputSource.toLowerCase();
-        if (lowerSource.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/)) {
-          state.activeSource = 'image';
-          if (inputSource.startsWith('http://') || inputSource.startsWith('https://') || inputSource.startsWith('/')) {
-            state.uploadedImage = getMediaUrl(inputSource);
-          }
-        } else if (lowerSource.match(/\.(mp4|avi|mov|mkv|webm|flv)$/)) {
-          state.activeSource = 'video';
-          if (inputSource.startsWith('http://') || inputSource.startsWith('https://') || inputSource.startsWith('/')) {
-            state.uploadedVideoUrl = getMediaUrl(inputSource);
-          }
+      const lowerSource = inputSource.toLowerCase();
+      if (lowerSource.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/)) {
+        state.activeSource = 'image';
+        if (inputSource.startsWith('http://') || inputSource.startsWith('https://') || inputSource.startsWith('/')) {
+          state.uploadedImage = getMediaUrl(inputSource);
+        }
+      } else if (lowerSource.match(/\.(mp4|avi|mov|mkv|webm|flv)$/)) {
+        state.activeSource = 'video';
+        if (inputSource.startsWith('http://') || inputSource.startsWith('https://') || inputSource.startsWith('/')) {
+          state.uploadedVideoUrl = getMediaUrl(inputSource);
         }
       }
     }

@@ -36,7 +36,7 @@ def create_stream_forward_task(task_name: str,
         for dev_id in device_id_list:
             Device.query.get_or_404(dev_id)
         
-        # 检查摄像头是否已经在运行的算法任务中使用
+        # 检查摄像头是否已经在启用的算法任务中使用
         if device_id_list:
             has_conflict, conflicts = check_device_conflict_with_algorithm_tasks(device_id_list)
             if has_conflict:
@@ -100,7 +100,7 @@ def update_stream_forward_task(task_id: int, **kwargs) -> StreamForwardTask:
             for dev_id in device_id_list:
                 Device.query.get_or_404(dev_id)
             
-            # 检查摄像头是否已经在运行的算法任务中使用（排除当前任务）
+            # 检查摄像头是否已经在启用的算法任务中使用（排除当前任务）
             if device_id_list:
                 has_conflict, conflicts = check_device_conflict_with_algorithm_tasks(device_id_list, exclude_task_id=task_id)
                 if has_conflict:
@@ -242,7 +242,7 @@ def start_stream_forward_task(task_id: int) -> tuple[StreamForwardTask, str, boo
         if not task.devices or len(task.devices) == 0:
             raise ValueError("推流转发任务必须关联至少一个摄像头")
         
-        # 检查摄像头是否已经在运行的算法任务中使用
+        # 检查摄像头是否已经在启用的算法任务中使用
         device_ids = [d.id for d in task.devices]
         has_conflict, conflicts = check_device_conflict_with_algorithm_tasks(device_ids)
         if has_conflict:
@@ -287,7 +287,6 @@ def stop_stream_forward_task(task_id: int) -> StreamForwardTask:
         
         # 更新状态
         task.is_enabled = False
-        task.active_streams = 0
         db.session.commit()
         
         logger.info(f"停止推流转发任务成功: task_id={task_id}")

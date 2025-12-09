@@ -77,7 +77,6 @@ const statusMap = {
 const inferenceTypeMap = {
   image: '图片推理',
   video: '视频推理',
-  rtsp: '实时流推理',
 };
 
 const getStatusColor = (status: string) => {

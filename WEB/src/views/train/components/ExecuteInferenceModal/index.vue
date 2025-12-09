@@ -45,13 +45,11 @@
             >
               <SelectOption value="image">图片推理</SelectOption>
               <SelectOption value="video">视频推理</SelectOption>
-              <SelectOption value="rtsp">实时流推理</SelectOption>
             </Select>
           </FormItem>
 
           <!-- 输入源 (图片/视频) -->
           <FormItem
-            v-if="modelRef.inference_type !== 'rtsp'"
             label="输入源"
             name="input_source"
             v-bind="validateInfos.input_source"
@@ -71,20 +69,6 @@
             <div v-if="modelRef.input_source" style="margin-top: 8px">
               已上传文件: {{ fileName }}
             </div>
-          </FormItem>
-
-          <!-- RTSP地址 -->
-          <FormItem
-            v-if="modelRef.inference_type === 'rtsp'"
-            label="RTSP地址"
-            name="rtsp_url"
-            v-bind="validateInfos.rtsp_url"
-          >
-            <Input
-              v-model:value="modelRef.rtsp_url"
-              :disabled="state.isView"
-              placeholder="rtsp://example.com:554/stream"
-            />
           </FormItem>
         </Form>
       </Spin>
@@ -106,9 +90,8 @@ import {useGlobSetting} from "@/hooks/setting";
 interface InferenceModel {
   id?: number | null;
   model_id: number | string | null; // 修改为支持字符串类型
-  inference_type: 'image' | 'video' | 'rtsp';
+  inference_type: 'image' | 'video';
   input_source: string;
-  rtsp_url: string;
 }
 
 const {createMessage} = useMessage();
@@ -133,7 +116,6 @@ const modelRef = reactive<InferenceModel>({
   model_id: 'default',
   inference_type: 'image',
   input_source: '',
-  rtsp_url: '',
 });
 
 // 计算上传文件接受类型
@@ -170,26 +152,6 @@ const rulesRef = reactive({
   ],
   inference_type: [
     {required: true, message: '请选择推理类型', trigger: ['blur', 'change']}
-  ],
-  rtsp_url: [
-    {
-      required: true,
-      message: '请输入RTSP地址',
-      trigger: 'blur',
-      validator: () => {
-        if (modelRef.inference_type === 'rtsp') {
-          if (!modelRef.rtsp_url) {
-            return Promise.reject('请输入RTSP地址');
-          }
-          // RTSP地址验证
-          const rtspRegex = /^rtsp:\/\/[a-zA-Z0-9.-]+(:\d+)?(\/[a-zA-Z0-9_-]+)*$/;
-          if (!rtspRegex.test(modelRef.rtsp_url)) {
-            return Promise.reject('请输入有效的RTSP地址格式（如：rtsp://example.com:554/stream）');
-          }
-        }
-        return Promise.resolve();
-      }
-    }
   ]
 });
 
@@ -245,14 +207,8 @@ async function handleOk() {
     const payload: Partial<InferenceModel> = {
       model_id: modelRef.model_id === 'default' ? null : modelRef.model_id,
       inference_type: modelRef.inference_type,
+      input_source: modelRef.input_source,
     };
-
-    // 根据推理类型设置不同的输入源
-    if (modelRef.inference_type === 'rtsp') {
-      payload.rtsp_url = modelRef.rtsp_url;
-    } else {
-      payload.input_source = modelRef.input_source;
-    }
 
     // 根据是否编辑调用不同API
     const api = state.isEdit && modelRef.id

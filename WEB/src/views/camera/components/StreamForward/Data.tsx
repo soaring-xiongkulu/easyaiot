@@ -67,14 +67,6 @@ export function getBasicColumns(): BasicColumn[] {
       },
     },
     {
-      title: '活跃流数',
-      dataIndex: 'active_streams',
-      width: 100,
-      customRender: ({ text, record }) => {
-        return `${text || 0}/${record.total_streams || 0}`;
-      },
-    },
-    {
       width: 200,
       title: '操作',
       dataIndex: 'action',

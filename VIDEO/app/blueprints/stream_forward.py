@@ -106,6 +106,10 @@ def create_task():
         return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'创建推流转发任务失败: {str(e)}', exc_info=True)
+        # 检查是否是摄像头冲突错误
+        error_msg = str(e)
+        if '摄像头冲突' in error_msg or '不能同时用于' in error_msg:
+            return jsonify({'code': 400, 'msg': error_msg}), 400
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
@@ -142,6 +146,10 @@ def update_task(task_id):
         return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'更新推流转发任务失败: {str(e)}', exc_info=True)
+        # 检查是否是摄像头冲突错误
+        error_msg = str(e)
+        if '摄像头冲突' in error_msg or '不能同时用于' in error_msg:
+            return jsonify({'code': 400, 'msg': error_msg}), 400
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
@@ -179,6 +187,10 @@ def start_task(task_id):
         return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'启动推流转发任务失败: {str(e)}', exc_info=True)
+        # 检查是否是摄像头冲突错误
+        error_msg = str(e)
+        if '摄像头冲突' in error_msg or '不能同时用于' in error_msg:
+            return jsonify({'code': 400, 'msg': error_msg}), 400
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
@@ -227,7 +239,6 @@ def receive_heartbeat():
         port = data.get('port')
         process_id = data.get('process_id')
         log_path = data.get('log_path')
-        active_streams = data.get('active_streams', 0)
         
         if not task_id:
             return jsonify({
@@ -257,9 +268,6 @@ def receive_heartbeat():
             video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
             log_base_dir = os.path.join(video_root, 'logs')
             task.service_log_path = os.path.join(log_base_dir, f'stream_forward_task_{task_id}')
-        
-        # 更新活跃流数量
-        task.active_streams = active_streams
         
         db.session.commit()
         
@@ -301,15 +309,20 @@ def get_task_status(task_id):
         except Exception as e:
             logger.debug(f"检查守护进程状态失败: {str(e)}")
         
-        # 根据心跳和守护进程状态判断服务状态
-        has_recent_heartbeat = task.service_last_heartbeat and (datetime.utcnow() - task.service_last_heartbeat).total_seconds() < 60
-        if has_recent_heartbeat:
-            service_status = 'running'
-        elif daemon_running:
-            # 守护进程在运行但心跳未上报（可能是刚启动，心跳还未上报）
-            service_status = 'running'
-        else:
+        # 根据 is_enabled、心跳和守护进程状态判断服务状态
+        # 优先考虑 is_enabled 字段：如果 is_enabled=False，即使有心跳也应该返回 stopped
+        if not task.is_enabled:
             service_status = 'stopped'
+        else:
+            # is_enabled=True 时，再根据心跳和守护进程状态判断
+            has_recent_heartbeat = task.service_last_heartbeat and (datetime.utcnow() - task.service_last_heartbeat).total_seconds() < 60
+            if has_recent_heartbeat:
+                service_status = 'running'
+            elif daemon_running:
+                # 守护进程在运行但心跳未上报（可能是刚启动，心跳还未上报）
+                service_status = 'running'
+            else:
+                service_status = 'stopped'
         
         # 构建服务状态信息
         service_info = {
@@ -321,7 +334,6 @@ def get_task_status(task_id):
             'last_heartbeat': task.service_last_heartbeat.isoformat() if task.service_last_heartbeat else None,
             'log_path': task.service_log_path,
             'status': service_status,
-            'active_streams': task.active_streams,
             'total_streams': task.total_streams
         }
         

@@ -215,17 +215,6 @@
                 />
               </FormItem>
             </Col>
-            <Col :span="12">
-              <FormItem label="自动抓拍" name="auto_snap_enabled"
-                        v-bind=validateInfos.auto_snap_enabled>
-                <Select
-                  :options="state.autoSnapEnabledList"
-                  @change="handleCLickChange"
-                  v-model:value="modelRef.auto_snap_enabled"
-                  allowClear
-                />
-              </FormItem>
-            </Col>
           </Row>
         </Form>
       </Spin>
@@ -273,10 +262,6 @@ const state = reactive({
     {label: "启用", value: true},
     {label: "不启用", value: false},
   ],
-  autoSnapEnabledList: [
-    {label: "开启", value: true},
-    {label: "关闭", value: false},
-  ],
   supportMoveList: [
     {label: "支持", value: true},
     {label: "不支持", value: false},
@@ -307,7 +292,6 @@ const modelRef = reactive({
   hardware_id: '',
   support_move: '',
   support_zoom: '',
-  auto_snap_enabled: false, // 是否开启自动抓拍（默认不开启）
   cameraType: 'custom', // 摄像头类型：custom, hikvision, dahua, uniview
 });
 

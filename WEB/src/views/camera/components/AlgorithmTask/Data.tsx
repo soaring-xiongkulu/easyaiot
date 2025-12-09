@@ -22,14 +22,6 @@ export function getBasicColumns(): BasicColumn[] {
       },
     },
     {
-      title: '抓拍空间',
-      dataIndex: 'space_name',
-      width: 120,
-      customRender: ({ text }) => {
-        return text || '--';
-      },
-    },
-    {
       title: '关联摄像头',
       dataIndex: 'device_names',
       width: 200,
@@ -86,6 +78,10 @@ export function getBasicColumns(): BasicColumn[] {
       customRender: ({ text, record }) => {
         if (text) {
           return text;
+        }
+        // 如果没有 model_names 但有 model_ids，显示模型数量
+        if (record.model_ids && Array.isArray(record.model_ids) && record.model_ids.length > 0) {
+          return `已配置 ${record.model_ids.length} 个模型`;
         }
         // 兼容旧数据：显示算法服务
         if (record.algorithm_services && Array.isArray(record.algorithm_services) && record.algorithm_services.length > 0) {

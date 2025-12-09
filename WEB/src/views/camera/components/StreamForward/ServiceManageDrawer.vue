@@ -50,10 +50,6 @@
                   <span class="label">最后心跳:</span>
                   <span>{{ formatDateTime(record.last_heartbeat) }}</span>
                 </div>
-                <div v-if="record.active_streams !== undefined">
-                  <span class="label">活跃流数:</span>
-                  <span>{{ record.active_streams }}/{{ record.total_streams || 0 }}</span>
-                </div>
               </div>
             </template>
             <template v-else-if="column.dataIndex === 'action'">
@@ -199,9 +195,14 @@ const serviceList = computed(() => {
   if (taskInfo.value) {
     const deviceIds = taskInfo.value.device_ids || [];
     const deviceNames = taskInfo.value.device_names || [];
-    const status = serviceStatusInfo.value 
-      ? (serviceStatusInfo.value.status || serviceStatusInfo.value.run_status || 'stopped')
-      : 'stopped';
+    // 优先考虑 is_enabled 字段：如果 is_enabled=false，即使服务状态是 running 也应该显示为 stopped
+    let status = 'stopped';
+    if (taskInfo.value.is_enabled) {
+      // is_enabled=true 时，再根据服务状态信息判断
+      status = serviceStatusInfo.value 
+        ? (serviceStatusInfo.value.status || serviceStatusInfo.value.run_status || 'stopped')
+        : 'stopped';
+    }
     
     // 为每个摄像头创建一条记录
     deviceIds.forEach((deviceId: string, index: number) => {
@@ -220,7 +221,6 @@ const serviceList = computed(() => {
         process_id: serviceStatusInfo.value?.process_id,
         last_heartbeat: serviceStatusInfo.value?.last_heartbeat,
         log_path: serviceStatusInfo.value?.log_path,
-        active_streams: serviceStatusInfo.value?.active_streams,
         total_streams: serviceStatusInfo.value?.total_streams || deviceIds.length,
         rtmp_stream: cameraStream?.rtmp_stream,
         http_stream: cameraStream?.http_stream,

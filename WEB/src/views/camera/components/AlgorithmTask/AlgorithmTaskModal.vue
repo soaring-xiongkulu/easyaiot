@@ -69,7 +69,6 @@ import {
   type AlgorithmTask,
 } from '@/api/device/algorithm_task';
 import { getDeviceList, getDeviceConflicts } from '@/api/device/camera';
-import { getSnapSpaceList } from '@/api/device/snap';
 import { getModelPage } from '@/api/device/model';
 import { notifyTemplateQueryByType } from '@/api/device/notice';
 import DefenseSchedulePicker from './DefenseSchedulePicker.vue';
@@ -97,7 +96,6 @@ const alertNotificationConfig = ref<any>({
 });
 
 const deviceOptions = ref<Array<{ label: string; value: string }>>([]);
-const spaceOptions = ref<Array<{ label: string; value: number }>>([]);
 const modelOptions = ref<Array<{ label: string; value: number }>>([]);
 const modelMap = ref<Map<number, any>>(new Map()); // 存储完整的模型信息
 
@@ -175,18 +173,6 @@ const loadDevices = async () => {
   }
 };
 
-// 加载抓拍空间列表
-const loadSpaces = async () => {
-  try {
-    const response = await getSnapSpaceList({ pageNo: 1, pageSize: 1000 });
-    spaceOptions.value = (response.data || []).map((item) => ({
-      label: item.space_name,
-      value: item.id,
-    }));
-  } catch (error) {
-    console.error('加载抓拍空间列表失败', error);
-  }
-};
 
 
 // 加载模型列表（用于选择模型）
@@ -338,15 +324,22 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       },
     },
     {
-      field: 'space_id',
-      label: '抓拍空间',
+      field: 'model_ids',
+      label: '关联模型',
       component: 'Select',
       required: true,
       componentProps: {
-        placeholder: '请选择抓拍空间',
-        options: spaceOptions,
+        placeholder: '请选择模型（可多选）',
+        options: modelOptions,
+        mode: 'multiple',
+        showSearch: true,
+        allowClear: true,
+        filterOption: (input: string, option: any) => {
+          return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+        },
       },
-      ifShow: ({ values }) => values.task_type === 'snap',
+      helpMessage: '选择要使用的模型列表，模型文件本地没有会自动下载',
+      ifShow: ({ values }) => values.task_type === 'realtime' || values.task_type === 'snap',
     },
     {
       field: 'cron_expression',
@@ -367,26 +360,8 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         placeholder: '每N帧抓一次',
         min: 1,
       },
-      helpMessage: '抽帧模式下，每N帧抓一次（默认1）',
+      helpMessage: '抽帧模式下，每N帧抓一次（默认25）',
       ifShow: ({ values }) => values.task_type === 'snap',
-    },
-    {
-      field: 'model_ids',
-      label: '关联模型',
-      component: 'Select',
-      required: true,
-      componentProps: {
-        placeholder: '请选择模型（可多选）',
-        options: modelOptions,
-        mode: 'multiple',
-        showSearch: true,
-        allowClear: true,
-        filterOption: (input: string, option: any) => {
-          return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
-        },
-      },
-      helpMessage: '选择要使用的模型列表，模型文件本地没有会自动下载',
-      ifShow: ({ values }) => values.task_type === 'realtime',
     },
     {
       field: 'extract_interval',
@@ -674,7 +649,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   resetFields();
   
   // 加载选项数据
-  await Promise.all([loadDevices(), loadSpaces(), loadModels()]);
+  await Promise.all([loadDevices(), loadModels()]);
   
   if (modalData.value.record) {
     const record = modalData.value.record;
@@ -775,9 +750,8 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       task_name: record.task_name,
       task_type: record.task_type || 'realtime',
       device_ids: record.device_ids || [],
-      space_id: record.space_id,
       cron_expression: record.cron_expression,
-      frame_skip: record.frame_skip || 1,
+      frame_skip: record.frame_skip || 25,
       model_ids: modelIds,
       extract_interval: record.extract_interval || 25,
       tracking_enabled: record.tracking_enabled || false,
@@ -802,7 +776,6 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
         { field: 'task_name', componentProps: { disabled: true } },
         { field: 'task_type', componentProps: { disabled: true } },
         { field: 'device_ids', componentProps: { disabled: true } },
-        { field: 'space_id', componentProps: { disabled: true } },
         { field: 'cron_expression', componentProps: { disabled: true } },
         { field: 'frame_skip', componentProps: { disabled: true } },
         { field: 'model_ids', componentProps: { disabled: true } },
@@ -826,7 +799,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     isFullDayDefense.value = true; // 默认全天布防
     await setFieldsValue({
       task_type: 'realtime',
-      frame_skip: 1,
+      frame_skip: 25,
       extract_interval: 25,
       tracking_enabled: false,
       tracking_similarity_threshold: 0.2,
@@ -997,9 +970,9 @@ const handleSubmit = async () => {
       values.model_ids = [values.model_ids];
     }
     
-    // 实时算法任务必须指定模型ID列表
-    if (values.task_type === 'realtime' && (!values.model_ids || values.model_ids.length === 0)) {
-      createMessage.error('实时算法任务必须选择至少一个模型');
+    // 算法任务（实时和抓拍）必须指定模型ID列表
+    if ((values.task_type === 'realtime' || values.task_type === 'snap') && (!values.model_ids || values.model_ids.length === 0)) {
+      createMessage.error('算法任务必须选择至少一个模型');
       confirmLoading.value = false;
       setDrawerProps({ confirmLoading: false });
       return;
@@ -1030,9 +1003,22 @@ const handleSubmit = async () => {
         createMessage.error((response as any)?.msg || '创建失败');
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('提交失败', error);
-    createMessage.error('提交失败');
+    // 尝试从错误对象中提取错误消息
+    let errorMsg = '提交失败';
+    if (error?.response?.data?.msg) {
+      errorMsg = error.response.data.msg;
+    } else if (error?.data?.msg) {
+      errorMsg = error.data.msg;
+    } else if (error?.msg) {
+      errorMsg = error.msg;
+    } else if (typeof error === 'string') {
+      errorMsg = error;
+    } else if (error?.message) {
+      errorMsg = error.message;
+    }
+    createMessage.error(errorMsg);
   } finally {
     confirmLoading.value = false;
     setDrawerProps({ confirmLoading: false });
@@ -1048,7 +1034,7 @@ const handleReset = () => {
       isFullDayDefense.value = true; // 默认全天布防
       setFieldsValue({
         task_type: 'realtime',
-        frame_skip: 1,
+        frame_skip: 25,
         extract_interval: 25,
         tracking_enabled: false,
         tracking_similarity_threshold: 0.2,
@@ -1088,9 +1074,8 @@ const handleReset = () => {
         task_name: record.task_name,
         task_type: record.task_type || 'realtime',
         device_ids: record.device_ids || [],
-        space_id: record.space_id,
         cron_expression: record.cron_expression,
-        frame_skip: record.frame_skip || 1,
+        frame_skip: record.frame_skip || 25,
         model_ids: modelIds,
         extract_interval: record.extract_interval || 25,
         tracking_enabled: record.tracking_enabled || false,

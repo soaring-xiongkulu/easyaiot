@@ -1060,7 +1060,6 @@ class StreamForwardTask(db.Model):
     
     # 统计信息
     total_streams = db.Column(db.Integer, default=0, nullable=False, comment='总推流数')
-    active_streams = db.Column(db.Integer, default=0, nullable=False, comment='当前活跃推流数')
     last_process_time = db.Column(db.DateTime, nullable=True, comment='最后处理时间')
     last_success_time = db.Column(db.DateTime, nullable=True, comment='最后成功时间')
     
@@ -1097,7 +1096,6 @@ class StreamForwardTask(db.Model):
             'service_last_heartbeat': self.service_last_heartbeat.isoformat() if self.service_last_heartbeat else None,
             'service_log_path': self.service_log_path,
             'total_streams': self.total_streams,
-            'active_streams': self.active_streams,
             'last_process_time': self.last_process_time.isoformat() if self.last_process_time else None,
             'last_success_time': self.last_success_time.isoformat() if self.last_success_time else None,
             'description': self.description,

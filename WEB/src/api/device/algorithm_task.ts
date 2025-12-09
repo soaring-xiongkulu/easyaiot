@@ -9,7 +9,7 @@ import {defHttp} from '@/utils/http/axios';
 const ALGORITHM_PREFIX = '/video/algorithm';
 
 // 通用请求封装
-const commonApi = <T = any>(method: 'get' | 'post' | 'delete' | 'put', url: string, options: { params?: any; data?: any } = {}) => {
+const commonApi = <T = any>(method: 'get' | 'post' | 'delete' | 'put', url: string, options: { params?: any; data?: any; errorMessageMode?: 'none' | 'message' | 'modal' } = {}) => {
   defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
 
   return defHttp[method]({
@@ -21,6 +21,7 @@ const commonApi = <T = any>(method: 'get' | 'post' | 'delete' | 'put', url: stri
     ...(method === 'get' ? { params: options.params } : { data: options.data || options.params }),
   }, {
     isTransformResponse: true,
+    errorMessageMode: options.errorMessageMode, // 如果未指定，使用默认值（message）
   }) as Promise<T>;
 };
 
@@ -56,8 +57,6 @@ export interface AlgorithmTask {
   };
   alarm_suppress_time?: number; // 告警通知抑制时间（秒）
   // 抓拍相关字段（仅抓拍算法任务）
-  space_id?: number;
-  space_name?: string;
   cron_expression?: string;
   frame_skip?: number;
   total_captures?: number;
@@ -129,7 +128,6 @@ export const createAlgorithmTask = (data: {
   };
   alarm_suppress_time?: number;
   // 抓拍算法任务配置
-  space_id?: number;
   cron_expression?: string;
   frame_skip?: number;
   // 通用配置
@@ -140,7 +138,7 @@ export const createAlgorithmTask = (data: {
   return commonApi<{ code: number; msg: string; data: AlgorithmTask }>(
     'post',
     `${ALGORITHM_PREFIX}/task`,
-    { data }
+    { data, errorMessageMode: 'none' } // 不自动显示错误，由组件处理
   );
 };
 
@@ -148,7 +146,7 @@ export const updateAlgorithmTask = (task_id: number, data: Partial<AlgorithmTask
   return commonApi<{ code: number; msg: string; data: AlgorithmTask }>(
     'put',
     `${ALGORITHM_PREFIX}/task/${task_id}`,
-    { data }
+    { data, errorMessageMode: 'none' } // 不自动显示错误，由组件处理
   );
 };
 

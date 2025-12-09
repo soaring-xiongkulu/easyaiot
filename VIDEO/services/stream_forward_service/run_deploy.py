@@ -954,12 +954,6 @@ def send_heartbeat():
         # 构建日志路径
         log_path_for_heartbeat = SERVICE_LOG_DIR if 'SERVICE_LOG_DIR' in globals() else os.path.join(video_root, 'logs', f'stream_forward_task_{TASK_ID}')
         
-        # 计算活跃流数量
-        active_streams = 0
-        for device_id, pusher in device_pushers.items():
-            if pusher and pusher.poll() is None:
-                active_streams += 1
-        
         # 构建心跳URL（使用localhost，不依赖GATEWAY_URL）
         heartbeat_url = f"http://localhost:{VIDEO_SERVICE_PORT}/video/stream-forward/heartbeat"
         
@@ -971,13 +965,12 @@ def send_heartbeat():
                 'server_ip': server_ip,
                 'port': int(VIDEO_SERVICE_PORT),
                 'process_id': process_id,
-                'log_path': log_path_for_heartbeat,
-                'active_streams': active_streams
+                'log_path': log_path_for_heartbeat
             },
             timeout=5
         )
         response.raise_for_status()
-        logger.debug(f"心跳上报成功: task_id={TASK_ID}, active_streams={active_streams}")
+        logger.debug(f"心跳上报成功: task_id={TASK_ID}")
         # 心跳成功，更新状态为正常
         update_task_status(status=0, exception_reason=None)
     except Exception as e:
@@ -1194,11 +1187,6 @@ def main():
         # 更新任务状态为已停止
         try:
             update_task_status(status=0, exception_reason=None)
-            with get_flask_app().app_context():
-                task = StreamForwardTask.query.get(TASK_ID)
-                if task:
-                    task.active_streams = 0
-                    db.session.commit()
         except Exception as e:
             logger.warning(f"更新任务停止状态失败: {str(e)}")
         

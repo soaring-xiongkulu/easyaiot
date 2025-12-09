@@ -24,7 +24,6 @@ export function getInferenceColumns(): BasicColumn[] {
         const typeMap: Record<string, string> = {
           image: '图片',
           video: '视频',
-          rtsp: 'RTSP流',
         };
         return typeMap[text] || text;
       }
@@ -68,7 +67,7 @@ export function getInferenceColumns(): BasicColumn[] {
       dataIndex: 'processed_frames',
       width: 100,
       customRender: ({ text, record }) =>
-        record.inference_type === 'video' || record.inference_type === 'rtsp'
+        record.inference_type === 'video'
           ? text || '0'
           : '--'
     },
@@ -117,7 +116,6 @@ export function getInferenceFormConfig() {
             { label: '全部', value: '' },
             { label: '图片', value: 'image' },
             { label: '视频', value: 'video' },
-            { label: 'RTSP流', value: 'rtsp' },
           ],
         },
       },

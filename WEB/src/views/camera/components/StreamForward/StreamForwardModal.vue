@@ -311,7 +311,20 @@ const handleSubmit = async () => {
     }
   } catch (error: any) {
     console.error('提交失败', error);
-    createMessage.error(error?.msg || '提交失败');
+    // 尝试从错误对象中提取错误消息
+    let errorMsg = '提交失败';
+    if (error?.response?.data?.msg) {
+      errorMsg = error.response.data.msg;
+    } else if (error?.data?.msg) {
+      errorMsg = error.data.msg;
+    } else if (error?.msg) {
+      errorMsg = error.msg;
+    } else if (typeof error === 'string') {
+      errorMsg = error;
+    } else if (error?.message) {
+      errorMsg = error.message;
+    }
+    createMessage.error(errorMsg);
   } finally {
     confirmLoading.value = false;
     setDrawerProps({ confirmLoading: false });
