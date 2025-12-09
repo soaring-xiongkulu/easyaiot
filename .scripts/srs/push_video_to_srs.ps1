@@ -1,4 +1,4 @@
-﻿# Windows环境下使用ffmpeg将本地视频文件推送到SRS服务器
+# Windows环境下使用ffmpeg将本地视频文件推送到SRS服务器
 # 使用方法: 
 #   默认执行: .\push_video_to_srs.ps1
 #   命名参数: .\push_video_to_srs.ps1 -SrsHost "192.168.1.200" -Stream "camera01"
@@ -40,8 +40,6 @@ if ($PSVersionTable.PSVersion.Major -ge 6) {
 
 # 获取脚本所在目录的绝对路径
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-# 获取项目根目录（脚本在 .scripts/srs/ 下，向上两级）
-$ProjectRoot = Split-Path -Parent (Split-Path -Parent $ScriptDir)
 
 # 设置默认值
 if ([string]::IsNullOrWhiteSpace($SrsHost)) { $SrsHost = "127.0.0.1" }
@@ -50,14 +48,33 @@ if ([string]::IsNullOrWhiteSpace($App)) { $App = "live" }
 if ([string]::IsNullOrWhiteSpace($Stream)) { $Stream = "test" }
 if ([string]::IsNullOrWhiteSpace($FfmpegPath)) { $FfmpegPath = "ffmpeg" }
 
-# 设置默认视频文件路径（相对路径，相对于项目根目录）
+# 设置默认视频文件路径（在脚本同级目录查找）
 if ([string]::IsNullOrWhiteSpace($VideoFile)) {
-    $VideoFileRelative = "VIDEO/video/video2.mp4"
-    $VideoFile = Join-Path $ProjectRoot $VideoFileRelative
+    # 在脚本同级目录查找视频文件
+    $VideoExtensions = @("*.mp4", "*.avi", "*.mov", "*.mkv", "*.flv", "*.wmv", "*.webm", "*.m4v")
+    $FoundVideo = $null
+    
+    foreach ($ext in $VideoExtensions) {
+        $videos = Get-ChildItem -Path $ScriptDir -Filter $ext -File -ErrorAction SilentlyContinue
+        if ($videos.Count -gt 0) {
+            $FoundVideo = $videos[0].FullName
+            break
+        }
+    }
+    
+    if ($null -eq $FoundVideo) {
+        Write-Host "错误: 在脚本同级目录未找到视频文件" -ForegroundColor Red
+        Write-Host "脚本目录: $ScriptDir" -ForegroundColor Yellow
+        Write-Host "支持的视频格式: mp4, avi, mov, mkv, flv, wmv, webm, m4v" -ForegroundColor Yellow
+        Write-Host "请将视频文件放在脚本同级目录，或使用 -VideoFile 参数指定视频文件路径" -ForegroundColor Yellow
+        exit 1
+    }
+    
+    $VideoFile = $FoundVideo
 } else {
-    # 如果用户提供的路径是相对路径，则相对于项目根目录
+    # 如果用户提供的路径是相对路径，则相对于脚本目录
     if (-not [System.IO.Path]::IsPathRooted($VideoFile)) {
-        $VideoFile = Join-Path $ProjectRoot $VideoFile
+        $VideoFile = Join-Path $ScriptDir $VideoFile
     }
 }
 
@@ -65,7 +82,6 @@ if ([string]::IsNullOrWhiteSpace($VideoFile)) {
 if (-not (Test-Path $VideoFile -PathType Leaf)) {
     Write-Host "错误: 视频文件不存在: $VideoFile" -ForegroundColor Red
     Write-Host "请检查文件路径是否正确，或使用 -VideoFile 参数指定视频文件路径" -ForegroundColor Yellow
-    Write-Host "默认路径: VIDEO/video/video2.mp4 (相对于项目根目录)" -ForegroundColor Yellow
     exit 1
 }
 
@@ -85,10 +101,13 @@ try {
 # 构建RTMP推流地址
 $RtmpUrl = "rtmp://${SrsHost}:${SrsPort}/${App}/${Stream}"
 
-# 显示视频文件路径（如果是项目根目录下的文件，显示相对路径）
+# 显示视频文件路径（如果是脚本目录下的文件，显示相对路径）
 $VideoFileDisplay = $VideoFile
-if ($VideoFile.StartsWith($ProjectRoot)) {
-    $VideoFileDisplay = $VideoFile.Substring($ProjectRoot.Length + 1)
+if ($VideoFile.StartsWith($ScriptDir)) {
+    $VideoFileDisplay = $VideoFile.Substring($ScriptDir.Length + 1)
+    if ([string]::IsNullOrWhiteSpace($VideoFileDisplay)) {
+        $VideoFileDisplay = Split-Path -Leaf $VideoFile
+    }
 }
 
 Write-Host "========================================" -ForegroundColor Cyan

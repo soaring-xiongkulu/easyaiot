@@ -6,13 +6,9 @@
 
 # 获取脚本所在目录的绝对路径
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# 获取项目根目录（脚本在 .scripts/srs/ 下，向上两级）
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# 默认参数（使用相对路径）
-VIDEO_FILE_RELATIVE="VIDEO/video/video2.mp4"
-# 将相对路径转换为绝对路径
-VIDEO_FILE="$PROJECT_ROOT/$VIDEO_FILE_RELATIVE"
+# 默认参数
+VIDEO_FILE=""
 SRS_HOST="127.0.0.1"
 SRS_PORT=1935
 APP="live"
@@ -36,7 +32,7 @@ show_usage() {
     echo "  $0 [选项]"
     echo ""
     echo "可选参数:"
-    echo "  -v, --video <视频文件>        视频文件路径 (默认: $VIDEO_FILE_RELATIVE)"
+    echo "  -v, --video <视频文件>        视频文件路径 (默认: 自动查找脚本同级目录的视频文件)"
     echo "  -h, --host <SRS主机>          SRS服务器IP地址 (默认: 127.0.0.1)"
     echo "  -p, --port <SRS端口>          SRS服务器RTMP端口 (默认: 1935)"
     echo "  -a, --app <应用名>            应用名称 (默认: live)"
@@ -60,9 +56,9 @@ show_usage() {
 while [[ $# -gt 0 ]]; do
     case $1 in
         -v|--video)
-            # 如果传入的是相对路径，则相对于项目根目录
+            # 如果传入的是相对路径，则相对于脚本目录
             if [[ "$2" != /* ]]; then
-                VIDEO_FILE="$PROJECT_ROOT/$2"
+                VIDEO_FILE="$SCRIPT_DIR/$2"
             else
                 VIDEO_FILE="$2"
             fi
@@ -109,6 +105,30 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# 如果没有指定视频文件，则在脚本同级目录查找
+if [[ -z "$VIDEO_FILE" ]]; then
+    # 视频文件扩展名列表
+    VIDEO_EXTENSIONS=("mp4" "avi" "mov" "mkv" "flv" "wmv" "webm" "m4v")
+    FOUND_VIDEO=""
+    
+    for ext in "${VIDEO_EXTENSIONS[@]}"; do
+        # 查找第一个匹配的视频文件
+        FOUND_VIDEO=$(find "$SCRIPT_DIR" -maxdepth 1 -type f -iname "*.${ext}" | head -n 1)
+        if [[ -n "$FOUND_VIDEO" ]]; then
+            VIDEO_FILE="$FOUND_VIDEO"
+            break
+        fi
+    done
+    
+    if [[ -z "$VIDEO_FILE" ]]; then
+        echo -e "${RED}错误: 在脚本同级目录未找到视频文件${NC}"
+        echo -e "${YELLOW}脚本目录: $SCRIPT_DIR${NC}"
+        echo -e "${YELLOW}支持的视频格式: mp4, avi, mov, mkv, flv, wmv, webm, m4v${NC}"
+        echo -e "${YELLOW}请将视频文件放在脚本同级目录，或使用 -v 参数指定视频文件路径${NC}"
+        exit 1
+    fi
+fi
+
 # 检查视频文件是否存在
 if [[ ! -f "$VIDEO_FILE" ]]; then
     echo -e "${RED}错误: 视频文件不存在: $VIDEO_FILE${NC}"
@@ -135,9 +155,13 @@ echo -e "${GREEN}检测到ffmpeg: $FFMPEG_VERSION${NC}"
 RTMP_URL="rtmp://${SRS_HOST}:${SRS_PORT}/${APP}/${STREAM}"
 
 # 显示配置信息
-# 如果视频文件在项目根目录下，显示相对路径；否则显示绝对路径
-if [[ "$VIDEO_FILE" == "$PROJECT_ROOT"/* ]]; then
-    VIDEO_FILE_DISPLAY="${VIDEO_FILE#$PROJECT_ROOT/}"
+# 如果视频文件在脚本目录下，显示相对路径；否则显示绝对路径
+if [[ "$VIDEO_FILE" == "$SCRIPT_DIR"/* ]]; then
+    VIDEO_FILE_DISPLAY="${VIDEO_FILE#$SCRIPT_DIR/}"
+    # 如果相对路径为空，则只显示文件名
+    if [[ -z "$VIDEO_FILE_DISPLAY" ]]; then
+        VIDEO_FILE_DISPLAY="$(basename "$VIDEO_FILE")"
+    fi
 else
     VIDEO_FILE_DISPLAY="$VIDEO_FILE"
 fi
