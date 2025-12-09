@@ -504,7 +504,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 ## 📞 联系方式（添加微信后，需关注公众号，拉入技术交流群）
 
 <div>
-  <img src=".image/联系方式.jpg" alt="联系方式" width="30%">
+  <img src=".image/联系方式.jpg" alt="联系方式" width="30%" style="margin-right: 20px;">
   <img src=".image/联系方式2.png" alt="联系方式" width="30%">
 </div>
 

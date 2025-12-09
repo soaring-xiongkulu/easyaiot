@@ -507,7 +507,7 @@ We offer various service options to help you gain an in-depth understanding of t
 ## 📞 Contact Information (After adding WeChat, please follow the official account to join the technical exchange group)
 
 <div>
-  <img src=".image/联系方式.jpg" alt="Contact Information" width="30%">
+  <img src=".image/联系方式.jpg" alt="Contact Information" width="30%" style="margin-right: 20px;">
   <img src=".image/联系方式2.png" alt="Contact Information" width="30%">
 </div>
 
