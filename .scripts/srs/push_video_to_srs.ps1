@@ -1,4 +1,4 @@
-﻿# Windows环境下使用ffmpeg将本地视频文件推送到SRS服务器
+# Windows环境下使用ffmpeg将本地视频文件推送到SRS服务器
 # 使用方法: 
 #   默认执行: .\push_video_to_srs.ps1
 #   命名参数: .\push_video_to_srs.ps1 -SrsHost "192.168.1.200" -Stream "camera01"
@@ -154,6 +154,9 @@ if (-not $NoLoop) {
     $ffmpegCmd += " -stream_loop -1"
 }
 
+# 添加输入选项（-re 应该放在输入文件之前）
+$ffmpegCmd += " -re"
+
 # 添加输入文件
 $ffmpegCmd += " -i `"$VideoFile`""
 
@@ -163,20 +166,20 @@ if ($ReEncode) {
     Write-Host "FFmpeg命令参数:" -ForegroundColor Cyan
     Write-Host "  -c:v libx264 -preset ultrafast -tune zerolatency" -ForegroundColor Gray
     Write-Host "  -c:a aac -b:a 128k" -ForegroundColor Gray
-    Write-Host "  -f flv -re -fflags nobuffer -flags low_delay" -ForegroundColor Gray
+    Write-Host "  -f flv -fflags nobuffer -flags low_delay" -ForegroundColor Gray
     Write-Host ""
     $ffmpegCmd += " -c:v libx264 -preset ultrafast -tune zerolatency -c:a aac -b:a 128k"
 } else {
     Write-Host "使用copy模式（性能更好，但需要编码格式兼容）" -ForegroundColor Yellow
     Write-Host "FFmpeg命令参数:" -ForegroundColor Cyan
     Write-Host "  -c:v copy -c:a copy" -ForegroundColor Gray
-    Write-Host "  -f flv -re -fflags nobuffer -flags low_delay" -ForegroundColor Gray
+    Write-Host "  -f flv -fflags nobuffer -flags low_delay" -ForegroundColor Gray
     Write-Host ""
     $ffmpegCmd += " -c:v copy -c:a copy"
 }
 
-# 添加输出参数
-$ffmpegCmd += " -f flv -re -fflags nobuffer -flags low_delay -flvflags no_duration_filesize `"$RtmpUrl`""
+# 添加输出参数（-re 已移到输入选项部分）
+$ffmpegCmd += " -f flv -fflags nobuffer -flags low_delay -flvflags no_duration_filesize `"$RtmpUrl`""
 
 # 显示执行的命令（用于调试）
 Write-Host "执行命令: $ffmpegCmd" -ForegroundColor DarkGray
