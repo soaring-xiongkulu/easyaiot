@@ -505,6 +505,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 
 <div>
   <img src=".image/联系方式.jpg" alt="联系方式" width="30%">
+  <img src=".image/联系方式2.png" alt="联系方式" width="30%">
 </div>
 
 ## 👥 公众号

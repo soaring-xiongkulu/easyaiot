@@ -505,6 +505,7 @@ Nous offrons diverses méthodes de service pour vous aider à mieux comprendre l
 
 <div>
   <img src=".image/联系方式.jpg" alt="Informations de contact" width="30%">
+  <img src=".image/联系方式2.png" alt="Informations de contact" width="30%">
 </div>
 
 ## 👥 Compte officiel (WeChat)

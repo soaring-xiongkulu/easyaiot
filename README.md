@@ -508,6 +508,7 @@ We offer various service options to help you gain an in-depth understanding of t
 
 <div>
   <img src=".image/联系方式.jpg" alt="Contact Information" width="30%">
+  <img src=".image/联系方式2.png" alt="Contact Information" width="30%">
 </div>
 
 ## 👥 Official Account

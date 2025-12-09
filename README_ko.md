@@ -504,6 +504,7 @@ EasyAIoT 플랫폼과 코드를 깊이 이해하실 수 있도록 다양한 서�
 
 <div>
   <img src=".image/联系方式.jpg" alt="연락처" width="30%">
+  <img src=".image/联系方式2.png" alt="연락처" width="30%">
 </div>
 
 ## 👥 공식 계정
