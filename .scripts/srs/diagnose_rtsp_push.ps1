@@ -118,3 +118,5 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "诊断完成" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
+
+
