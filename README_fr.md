@@ -47,6 +47,7 @@ EasyAIoT est une plateforme intelligente d'Internet des Objets (IoT) à intégra
       <li><strong>Tâches algorithmiques de capture d'images</strong> : Utilisées pour l'analyse des images capturées (instantanés). Effectuent une reconnaissance et une analyse intelligente des images capturées. Adaptées aux scénarios de revue d'événements, de recherche d'images, etc.</li>
     </ul>
   </li>
+  <li><strong>Redirection de flux</strong> : Prend en charge la visualisation directe des flux vidéo en temps réel des caméras sans activer les fonctionnalités d'analyse IA. En créant des tâches de redirection de flux, plusieurs caméras peuvent être redirigées par lots, permettant la visualisation synchrone de plusieurs flux vidéo pour répondre aux besoins des scénarios de surveillance vidéo pure.</li>
   <li><strong>Raisonnement en cluster de services de modèles</strong> : Prend en charge un cluster distribué de services de raisonnement de modèles, réalisant un équilibrage de charge intelligent, une bascule automatique en cas de défaillance et une haute disponibilité, améliorant considérablement le débit de raisonnement et la stabilité du système.</li>
   <li><strong>Gestion des plages horaires de surveillance</strong> : Prend en charge deux stratégies de surveillance : mode de surveillance complète et mode de surveillance partielle. Permet de configurer de manière flexible les règles de surveillance pour différentes périodes, réalisant une surveillance et des alertes intelligentes et précises selon les horaires.</li>
   <li><strong>OCR et reconnaissance vocale</strong> : Basé sur PaddleOCR pour une reconnaissance de texte haute précision. Prend en charge la conversion de la parole en texte et offre des capacités de reconnaissance multilingue.</li>
@@ -354,6 +355,10 @@ EasyAIoT est un projet d'apprentissage open source, sans lien avec des activité
 <div>
   <img src=".image/banner/banner1052.jpg" alt="Capture d'écran 7" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1054.jpg" alt="Capture d'écran 7" width="49%">
+</div>
+<div>
+  <img src=".image/banner/banner1083.jpg" alt="Capture d'écran 7" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1084.jpg" alt="Capture d'écran 7" width="49%">
 </div>
 <div>
   <img src=".image/banner/banner1055.jpg" alt="Capture d'écran 7" width="49%" style="margin-right: 10px">

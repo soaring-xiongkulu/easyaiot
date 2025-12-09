@@ -47,6 +47,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專註於AI與IoT�
       <li><strong>抓拍算法任務</strong>：用於抓拍圖像分析，對抓拍圖片進行智能識別與分析，適用於事件回溯、圖像檢索等場景</li>
     </ul>
   </li>
+  <li><strong>推流轉發</strong>：支持在無需啟用AI分析功能的情況下，直接觀看攝像頭實時畫面。通過創建推流轉發任務，可將多路攝像頭進行批量推送，實現多路視頻流的同步觀看，滿足純視頻監控場景需求</li>
   <li><strong>模型服務集群推理</strong>：支持分佈式模型推理服務集群，實現智能負載均衡、故障自動切換與高可用保障，大幅提升推理吞吐量與系統穩定性</li>
   <li><strong>布防時段管理</strong>：支持全防模式和半防模式兩種布防策略，可靈活配置不同時段的布防規則，實現精準的時段化智能監控與告警</li>
   <li><strong>OCR與語音識別</strong>：基於PaddleOCR實現高精度文字識別，支持語音轉文本功能，提供多語言識別能力</li>
@@ -354,6 +355,10 @@ EasyAIoT是一個開源學習項目，與商業行為無關。用戶在使用該
 <div>
   <img src=".image/banner/banner1052.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1054.jpg" alt="Screenshot 7" width="49%">
+</div>
+<div>
+  <img src=".image/banner/banner1083.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1084.jpg" alt="Screenshot 7" width="49%">
 </div>
 <div>
   <img src=".image/banner/banner1055.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">

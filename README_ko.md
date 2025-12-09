@@ -47,6 +47,7 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
       <li><strong>캡처 알고리즘 태스크</strong>: 캡처 이미지 분석에 사용되며, 캡처 이미지에 대한 지능형 식별 및 분석을 수행하여 이벤트 복원, 이미지 검색 등의 시나리오에 적합합니다.</li>
     </ul>
   </li>
+  <li><strong>스트림 전달</strong>: AI 분석 기능을 활성화하지 않고도 카메라 실시간 영상을 직접 시청할 수 있습니다. 스트림 전달 작업을 생성하여 여러 카메라를 일괄 전달할 수 있으며, 여러 비디오 스트림의 동기화된 시청을 실현하여 순수 비디오 모니터링 시나리오 요구사항을 충족합니다.</li>
   <li><strong>모델 서비스 클러스터 추론</strong>: 분산형 모델 추론 서비스 클러스터를 지원하여 지능형 부하 분산, 장애 자동 전환 및 고가용성 보장을 실현하며, 추론 처리량과 시스템 안정성을 크게 향상시킵니다.</li>
   <li><strong>방어 시간대 관리</strong>: 완전 방어 모드(All-defense)와 반방어 모드(Semi-defense) 두 가지 방어 전략을 지원하며, 다른 시간대의 방어 규칙을 유연하게 구성하여 정밀한 시간대별 지능형 모니터링 및 경보를 실현합니다.</li>
   <li><strong>OCR 및 음성 인식</strong>: PaddleOCR 기반의 고정밀 문자 인식을 구현하며, 음성-텍스트 변환 기능을 지원하고 다중 언어 인식 능력을 제공합니다.</li>
@@ -353,6 +354,10 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 <div>
   <img src=".image/banner/banner1052.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1054.jpg" alt="Screenshot 7" width="49%">
+</div>
+<div>
+  <img src=".image/banner/banner1083.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1084.jpg" alt="Screenshot 7" width="49%">
 </div>
 <div>
   <img src=".image/banner/banner1055.jpg" alt="Screenshot 7" width="49%" style="margin-right: 10px">
