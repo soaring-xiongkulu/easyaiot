@@ -1,4 +1,4 @@
-# Windows环境下使用ffmpeg将本地视频文件推送到SRS服务器
+﻿# Windows环境下使用ffmpeg将本地视频文件推送到SRS服务器
 # 使用方法: 
 #   默认执行: .\push_video_to_srs.ps1
 #   命名参数: .\push_video_to_srs.ps1 -SrsHost "192.168.1.200" -Stream "camera01"
