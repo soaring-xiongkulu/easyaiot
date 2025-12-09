@@ -503,7 +503,7 @@ EasyAIoT 플랫폼과 코드를 깊이 이해하실 수 있도록 다양한 서�
 ## 📞 연락처 (위챗(WeChat) 추가 후, 공식 계정을 팔로우하고 기술 교류 그룹에 초대해 드립니다)
 
 <div>
-  <img src=".image/联系方式.jpg" alt="연락처" width="30%" style="margin-right: 20px;">
+  <img src=".image/联系方式.jpg" alt="연락처" width="30%" style="margin-right: 50px;">
   <img src=".image/联系方式2.png" alt="연락처" width="30%">
 </div>
 
