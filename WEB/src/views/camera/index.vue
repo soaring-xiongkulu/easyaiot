@@ -125,6 +125,9 @@
         <TabPane key="5" tab="算法任务">
           <AlgorithmTask ref="algorithmTaskRef"/>
         </TabPane>
+        <TabPane key="6" tab="推流转发">
+          <StreamForward ref="streamForwardRef"/>
+        </TabPane>
       </Tabs>
     </div>
   </div>
@@ -156,6 +159,7 @@ import SnapSpace from "./components/SnapSpace/index.vue";
 import AlgorithmTask from "./components/AlgorithmTask/index.vue";
 import RecordSpace from "./components/RecordSpace/index.vue";
 import VideoCardList from "./components/VideoCardList/index.vue";
+import StreamForward from "./components/StreamForward/index.vue";
 
 defineOptions({name: 'CAMERA'})
 
@@ -189,6 +193,9 @@ const recordSpaceRef = ref();
 // 算法任务组件引用
 const algorithmTaskRef = ref();
 
+// 推流转发组件引用
+const streamForwardRef = ref();
+
 // Tab切换
 const handleTabClick = (activeKey: string) => {
   state.activeKey = activeKey;
@@ -207,6 +214,10 @@ const handleTabClick = (activeKey: string) => {
   // 切换到算法任务标签页时，刷新数据
   if (activeKey === '5' && algorithmTaskRef.value) {
     algorithmTaskRef.value.refresh();
+  }
+  // 切换到推流转发标签页时，刷新数据
+  if (activeKey === '6' && streamForwardRef.value) {
+    streamForwardRef.value.refresh();
   }
 };
 

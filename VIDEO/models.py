@@ -548,6 +548,14 @@ algorithm_task_device = db.Table(
     db.Column('created_at', db.DateTime, default=lambda: datetime.utcnow(), comment='创建时间')
 )
 
+# 推流转发任务和摄像头的多对多关联表
+stream_forward_task_device = db.Table(
+    'stream_forward_task_device',
+    db.Column('stream_forward_task_id', db.Integer, db.ForeignKey('stream_forward_task.id', ondelete='CASCADE'), primary_key=True, comment='推流转发任务ID'),
+    db.Column('device_id', db.String(100), db.ForeignKey('device.id', ondelete='CASCADE'), primary_key=True, comment='摄像头ID'),
+    db.Column('created_at', db.DateTime, default=lambda: datetime.utcnow(), comment='创建时间')
+)
+
 
 class AlgorithmTask(db.Model):
     """算法任务表（统一管理实时算法任务和抓拍算法任务）"""
@@ -1023,3 +1031,78 @@ AlgorithmTask.detection_regions = db.relationship(
     cascade='all, delete-orphan',
     overlaps="detection_regions,snap_task"
 )
+
+
+class StreamForwardTask(db.Model):
+    """推流转发任务表（用于批量推送多个摄像头实时画面，无需AI）"""
+    __tablename__ = 'stream_forward_task'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    task_name = db.Column(db.String(255), nullable=False, comment='任务名称')
+    task_code = db.Column(db.String(255), nullable=False, unique=True, comment='任务编号（唯一标识）')
+    
+    # 推流配置
+    output_format = db.Column(db.String(50), default='rtmp', nullable=False, comment='输出格式[rtmp:RTMP,rtsp:RTSP]')
+    output_quality = db.Column(db.String(50), default='high', nullable=False, comment='输出质量[low:低,medium:中,high:高]')
+    output_bitrate = db.Column(db.String(50), nullable=True, comment='输出码率（如512k,1M等，为空则使用默认值）')
+    
+    # 状态管理
+    status = db.Column(db.SmallInteger, default=0, nullable=False, comment='状态[0:正常,1:异常]')
+    is_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否启用[0:停用,1:启用]')
+    run_status = db.Column(db.String(20), default='stopped', nullable=False, comment='运行状态[running:运行中,stopped:已停止,restarting:重启中]')
+    exception_reason = db.Column(db.String(500), nullable=True, comment='异常原因')
+    
+    # 服务状态信息
+    service_server_ip = db.Column(db.String(45), nullable=True, comment='服务运行服务器IP')
+    service_port = db.Column(db.Integer, nullable=True, comment='服务端口')
+    service_process_id = db.Column(db.Integer, nullable=True, comment='服务进程ID')
+    service_last_heartbeat = db.Column(db.DateTime, nullable=True, comment='服务最后心跳时间')
+    service_log_path = db.Column(db.String(500), nullable=True, comment='服务日志路径')
+    
+    # 统计信息
+    total_streams = db.Column(db.Integer, default=0, nullable=False, comment='总推流数')
+    active_streams = db.Column(db.Integer, default=0, nullable=False, comment='当前活跃推流数')
+    last_process_time = db.Column(db.DateTime, nullable=True, comment='最后处理时间')
+    last_success_time = db.Column(db.DateTime, nullable=True, comment='最后成功时间')
+    
+    description = db.Column(db.String(500), nullable=True, comment='任务描述')
+    
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
+    
+    # 关联关系
+    devices = db.relationship('Device', secondary=stream_forward_task_device, backref='stream_forward_task_list', lazy=True)  # 多对多关系
+    
+    def to_dict(self):
+        """转换为字典"""
+        # 获取关联的摄像头列表
+        device_list = self.devices if self.devices else []
+        device_ids = [d.id for d in device_list]
+        device_names = [d.name or d.id for d in device_list]
+        
+        return {
+            'id': self.id,
+            'task_name': self.task_name,
+            'task_code': self.task_code,
+            'device_ids': device_ids,
+            'device_names': device_names,
+            'output_format': self.output_format,
+            'output_quality': self.output_quality,
+            'output_bitrate': self.output_bitrate,
+            'status': self.status,
+            'is_enabled': self.is_enabled,
+            'run_status': self.run_status,
+            'exception_reason': self.exception_reason,
+            'service_server_ip': self.service_server_ip,
+            'service_port': self.service_port,
+            'service_process_id': self.service_process_id,
+            'service_last_heartbeat': self.service_last_heartbeat.isoformat() if self.service_last_heartbeat else None,
+            'service_log_path': self.service_log_path,
+            'total_streams': self.total_streams,
+            'active_streams': self.active_streams,
+            'last_process_time': self.last_process_time.isoformat() if self.last_process_time else None,
+            'last_success_time': self.last_success_time.isoformat() if self.last_success_time else None,
+            'description': self.description,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }

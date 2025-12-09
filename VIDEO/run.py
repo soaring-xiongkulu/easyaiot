@@ -20,7 +20,7 @@ from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
 
-from app.blueprints import camera, alert, snap, playback, record, algorithm_task
+from app.blueprints import camera, alert, snap, playback, record, algorithm_task, stream_forward
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -387,6 +387,12 @@ def create_app():
     try:
         app.register_blueprint(algorithm_task.algorithm_task_bp, url_prefix='/video/algorithm')
         print(f"✅ Algorithm Task Blueprint 注册成功")
+    except Exception as e:
+        print(f"❌ Algorithm Task Blueprint 注册失败: {str(e)}")
+    
+    try:
+        app.register_blueprint(stream_forward.stream_forward_bp, url_prefix='/video/stream-forward')
+        print(f"✅ Stream Forward Blueprint 注册成功")
     except Exception as e:
         print(f"❌ Algorithm Task Blueprint 注册失败: {str(e)}")
         import traceback
