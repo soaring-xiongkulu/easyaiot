@@ -68,7 +68,7 @@ import {
   updateAlgorithmTask,
   type AlgorithmTask,
 } from '@/api/device/algorithm_task';
-import { getDeviceList } from '@/api/device/camera';
+import { getDeviceList, getDeviceConflicts } from '@/api/device/camera';
 import { getSnapSpaceList } from '@/api/device/snap';
 import { getModelPage } from '@/api/device/model';
 import { notifyTemplateQueryByType } from '@/api/device/notice';
@@ -143,11 +143,33 @@ const placeholders = [
 // 加载设备列表
 const loadDevices = async () => {
   try {
-    const response = await getDeviceList({ pageNo: 1, pageSize: 1000 });
-    deviceOptions.value = (response.data || []).map((item) => ({
-      label: item.name || item.id,
-      value: item.id,
-    }));
+    // 并行加载设备列表和冲突列表
+    const [deviceResponse, conflictResponse] = await Promise.all([
+      getDeviceList({ pageNo: 1, pageSize: 1000 }),
+      getDeviceConflicts('algorithm')
+    ]);
+    
+    // 获取冲突的摄像头ID列表
+    const conflictDeviceIds = conflictResponse.code === 0 && conflictResponse.data 
+      ? new Set(conflictResponse.data) 
+      : new Set();
+    
+    deviceOptions.value = (deviceResponse.data || []).map((item) => {
+      const isDisabled = conflictDeviceIds.has(item.id);
+      return {
+        label: `${item.name || item.id}${isDisabled ? ' (已在推流转发任务中使用)' : ''}`,
+        value: item.id,
+        disabled: isDisabled,
+      };
+    });
+    
+    // 更新表单schema，设置禁用选项
+    updateSchema({
+      field: 'device_ids',
+      componentProps: {
+        options: deviceOptions.value,
+      },
+    });
   } catch (error) {
     console.error('加载设备列表失败', error);
   }

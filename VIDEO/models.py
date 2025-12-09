@@ -1049,7 +1049,6 @@ class StreamForwardTask(db.Model):
     # 状态管理
     status = db.Column(db.SmallInteger, default=0, nullable=False, comment='状态[0:正常,1:异常]')
     is_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否启用[0:停用,1:启用]')
-    run_status = db.Column(db.String(20), default='stopped', nullable=False, comment='运行状态[running:运行中,stopped:已停止,restarting:重启中]')
     exception_reason = db.Column(db.String(500), nullable=True, comment='异常原因')
     
     # 服务状态信息
@@ -1091,7 +1090,6 @@ class StreamForwardTask(db.Model):
             'output_bitrate': self.output_bitrate,
             'status': self.status,
             'is_enabled': self.is_enabled,
-            'run_status': self.run_status,
             'exception_reason': self.exception_reason,
             'service_server_ip': self.service_server_ip,
             'service_port': self.service_port,

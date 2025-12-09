@@ -153,7 +153,7 @@ class StreamForwardDaemon:
         """获取部署参数"""
         try:
             # 获取服务脚本路径
-            video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             service_script = os.path.join(video_root, 'services', 'stream_forward_service', 'run_deploy.py')
             
             if not os.path.exists(service_script):
@@ -169,7 +169,28 @@ class StreamForwardDaemon:
             
             # 环境变量
             env = os.environ.copy()
+            # 重要：设置 PYTHONUNBUFFERED，确保输出实时（与 algorithm_task_daemon 保持一致）
+            env['PYTHONUNBUFFERED'] = '1'
             env['TASK_ID'] = str(self._task_id)
+            
+            # 设置VIDEO服务API地址（用于心跳上报）
+            video_service_port = os.getenv('FLASK_RUN_PORT', '6000')
+            env['VIDEO_SERVICE_PORT'] = video_service_port
+            
+            # 确保关键环境变量被传递
+            if 'DATABASE_URL' not in env:
+                self._log('DATABASE_URL环境变量未设置，服务可能无法连接数据库', 'WARNING')
+            # 注意：心跳上报不再依赖 GATEWAY_URL，直接使用 localhost:VIDEO_SERVICE_PORT
+            # if 'GATEWAY_URL' not in env:
+            #     self._log('GATEWAY_URL环境变量未设置，心跳上报可能失败', 'WARNING')
+            # JWT_TOKEN 也不再需要，心跳上报直接使用 localhost
+            # if 'JWT_TOKEN' not in env:
+            #     self._log('JWT_TOKEN环境变量未设置，心跳上报可能失败', 'WARNING')
+            
+            # 设置日志路径
+            env['LOG_PATH'] = self._log_path
+            
+            self._log(f'环境变量已设置: TASK_ID={env["TASK_ID"]}, VIDEO_SERVICE_PORT={env["VIDEO_SERVICE_PORT"]}, LOG_PATH={env["LOG_PATH"]}', 'DEBUG')
             
             return cmds, cwd, env
             
@@ -184,24 +205,41 @@ class StreamForwardDaemon:
         
         if self._process:
             try:
-                # 终止进程组（包括所有子进程）
-                if os.name != 'nt':
-                    os.killpg(os.getpgid(self._process.pid), signal.SIGTERM)
-                else:
-                    self._process.terminate()
-                
-                # 等待进程结束
-                try:
-                    self._process.wait(timeout=5)
-                except sp.TimeoutExpired:
-                    # 如果5秒内未结束，强制终止
+                # 检查进程是否还在运行
+                if self._process.poll() is None:
+                    # 终止进程组（包括所有子进程）
                     if os.name != 'nt':
-                        os.killpg(os.getpgid(self._process.pid), signal.SIGKILL)
+                        try:
+                            os.killpg(os.getpgid(self._process.pid), signal.SIGTERM)
+                        except (ProcessLookupError, OSError):
+                            # 进程组不存在，直接终止进程
+                            self._process.terminate()
                     else:
-                        self._process.kill()
-                    self._process.wait()
-                
-                self._log(f'服务进程已停止，PID: {self._process.pid}', 'INFO')
+                        self._process.terminate()
+                    
+                    # 等待进程结束
+                    try:
+                        self._process.wait(timeout=5)
+                        self._log(f'服务进程已停止，PID: {self._process.pid}', 'INFO')
+                    except sp.TimeoutExpired:
+                        # 如果5秒内未结束，强制终止
+                        self._log(f'服务进程未在5秒内结束，强制终止，PID: {self._process.pid}', 'WARNING')
+                        if os.name != 'nt':
+                            try:
+                                os.killpg(os.getpgid(self._process.pid), signal.SIGKILL)
+                            except (ProcessLookupError, OSError):
+                                self._process.kill()
+                        else:
+                            self._process.kill()
+                        try:
+                            self._process.wait(timeout=2)
+                        except sp.TimeoutExpired:
+                            pass
+                        self._log(f'服务进程已强制终止，PID: {self._process.pid}', 'INFO')
+                else:
+                    # 进程已经退出
+                    exit_code = self._process.returncode
+                    self._log(f'服务进程已退出，PID: {self._process.pid}, 退出码: {exit_code}', 'INFO')
             except Exception as e:
                 self._log(f'停止服务进程失败: {str(e)}', 'WARNING')
             finally:
@@ -213,10 +251,19 @@ class StreamForwardDaemon:
         self._restart = True
         if self._process:
             try:
-                if os.name != 'nt':
-                    os.killpg(os.getpgid(self._process.pid), signal.SIGTERM)
+                # 检查进程是否还在运行
+                if self._process.poll() is None:
+                    if os.name != 'nt':
+                        try:
+                            os.killpg(os.getpgid(self._process.pid), signal.SIGTERM)
+                        except (ProcessLookupError, OSError):
+                            # 进程组不存在，直接终止进程
+                            self._process.terminate()
+                    else:
+                        self._process.terminate()
                 else:
-                    self._process.terminate()
+                    # 进程已经退出，直接重启
+                    self._log('服务进程已退出，将立即重启', 'INFO')
             except Exception as e:
                 self._log(f'终止服务进程失败: {str(e)}', 'WARNING')
 

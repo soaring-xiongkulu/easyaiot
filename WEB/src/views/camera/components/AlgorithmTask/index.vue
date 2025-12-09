@@ -99,8 +99,8 @@
                     >
                       <Icon icon="ant-design:aim-outlined" :size="15" color="#3B82F6" />
                     </div>
-                    <div class="btn" @click="handleManageServices(item)" title="帧管道管理器">
-                      <Icon icon="ant-design:setting-outlined" :size="15" color="#3B82F6" />
+                    <div class="btn" @click="handleManageServices(item)" title="心跳信息">
+                      <Icon icon="ant-design:heart-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <div class="btn" v-if="item.is_enabled" @click="handleStop(item)">
                       <Icon icon="ant-design:pause-circle-outlined" :size="15" color="#3B82F6" />
@@ -339,8 +339,8 @@ const getTableActions = (record: AlgorithmTask) => {
       },
     },
     {
-      icon: 'ant-design:setting-outlined',
-      tooltip: '帧管道管理器',
+      icon: 'ant-design:heart-outlined',
+      tooltip: '心跳信息',
       onClick: () => handleManageServices(record),
     },
   ];

@@ -184,7 +184,7 @@ export const getStreamForwardTaskLogs = (task_id: number, params?: {
       log_file: string;
       is_all_file: boolean;
     };
-  }>('get', `${STREAM_FORWARD_PREFIX}/task/${task_id}/logs`, { params });
+  }>('get', `${STREAM_FORWARD_PREFIX}/task/${task_id}/logs`, params);
 };
 
 /**

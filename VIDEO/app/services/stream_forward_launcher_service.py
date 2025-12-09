@@ -289,3 +289,71 @@ def start_stream_forward_task(task_id: int):
             if task_id in _starting_tasks:
                 del _starting_tasks[task_id]
 
+
+def auto_start_all_tasks(app=None):
+    """自动启动所有启用的推流转发任务的服务
+    
+    Args:
+        app: Flask应用实例（用于应用上下文）
+    """
+    try:
+        if app:
+            with app.app_context():
+                _auto_start_all_tasks_internal()
+        else:
+            _auto_start_all_tasks_internal()
+    except Exception as e:
+        logger.error(f"❌ 自动启动推流转发任务服务失败: {str(e)}", exc_info=True)
+
+
+def _auto_start_all_tasks_internal():
+    """内部函数：自动启动所有启用的推流转发任务的服务
+    
+    只根据 is_enabled 来判断任务是否需要启动：
+    - is_enabled=True: 运行中，需要启动服务
+    - is_enabled=False: 已停止，不需要启动服务
+    """
+    try:
+        # 先查询所有任务，用于诊断
+        all_tasks = StreamForwardTask.query.all()
+        
+        if all_tasks:
+            logger.info(f"📊 数据库中共有 {len(all_tasks)} 个推流转发任务")
+            # 输出所有任务的状态信息
+            for task in all_tasks:
+                device_count = len(task.devices) if task.devices else 0
+                status = "运行中" if task.is_enabled else "已停止"
+                logger.info(f"  任务 {task.id} ({task.task_name}): is_enabled={task.is_enabled} ({status}), 设备数={device_count}")
+        
+        # 查询所有启用的推流转发任务（只根据 is_enabled 判断）
+        tasks = StreamForwardTask.query.filter(
+            StreamForwardTask.is_enabled == True
+        ).all()
+        
+        if not tasks:
+            logger.info("没有需要启动的推流转发任务（is_enabled=True）")
+            return
+        
+        logger.info(f"发现 {len(tasks)} 个需要启动的推流转发任务（is_enabled=True），开始启动服务...")
+        
+        success_count = 0
+        for task in tasks:
+            try:
+                # 检查任务是否有关联的设备
+                if not task.devices or len(task.devices) == 0:
+                    logger.warning(f"任务 {task.id} ({task.task_name}) 没有关联的摄像头，跳过")
+                    continue
+                
+                # 启动任务的服务
+                start_stream_forward_task(task.id)
+                success_count += 1
+                logger.info(f"✅ 任务 {task.id} ({task.task_name}) 的服务启动成功")
+                    
+            except Exception as e:
+                logger.error(f"❌ 启动任务 {task.id} 的服务时出错: {str(e)}", exc_info=True)
+        
+        logger.info(f"✅ 自动启动完成: {success_count}/{len(tasks)} 个任务的服务启动成功")
+        
+    except Exception as e:
+        logger.error(f"❌ 自动启动推流转发任务服务失败: {str(e)}", exc_info=True)
+

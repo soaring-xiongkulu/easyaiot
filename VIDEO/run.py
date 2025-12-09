@@ -740,6 +740,16 @@ def create_app():
             print(f"❌ 自动启动算法任务服务失败: {str(e)}")
             import traceback
             traceback.print_exc()
+        
+        # 自动启动所有启用的推流转发任务的服务
+        try:
+            from app.services.stream_forward_launcher_service import auto_start_all_tasks
+            auto_start_all_tasks(app)
+            print("✅ 推流转发任务服务自动启动完成")
+        except Exception as e:
+            print(f"❌ 自动启动推流转发任务服务失败: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     return app
 

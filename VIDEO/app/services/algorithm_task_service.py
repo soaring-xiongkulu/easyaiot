@@ -11,6 +11,10 @@ from typing import List, Optional
 from sqlalchemy.orm import joinedload
 
 from models import db, AlgorithmTask, Device, SnapSpace, algorithm_task_device
+from app.utils.device_conflict_checker import (
+    check_device_conflict_with_stream_forward_tasks,
+    format_conflict_message
+)
 import json
 
 logger = logging.getLogger(__name__)
@@ -45,6 +49,13 @@ def create_algorithm_task(task_name: str,
         # 验证所有设备是否存在
         for dev_id in device_id_list:
             Device.query.get_or_404(dev_id)
+        
+        # 检查摄像头是否已经在运行的推流转发任务中使用
+        if device_id_list:
+            has_conflict, conflicts = check_device_conflict_with_stream_forward_tasks(device_id_list)
+            if has_conflict:
+                conflict_msg = format_conflict_message(conflicts, 'stream_forward')
+                raise ValueError(f"摄像头冲突：{conflict_msg}。同一个摄像头不能同时用于推流转发和算法任务。")
         
         # 实时算法任务：验证模型ID列表
         if task_type == 'realtime':
@@ -225,6 +236,13 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
         if device_id_list is not None:
             for dev_id in device_id_list:
                 Device.query.get_or_404(dev_id)
+            
+            # 检查摄像头是否已经在运行的推流转发任务中使用（排除当前任务）
+            if device_id_list:
+                has_conflict, conflicts = check_device_conflict_with_stream_forward_tasks(device_id_list, exclude_task_id=task_id)
+                if has_conflict:
+                    conflict_msg = format_conflict_message(conflicts, 'stream_forward')
+                    raise ValueError(f"摄像头冲突：{conflict_msg}。同一个摄像头不能同时用于推流转发和算法任务。")
         
         # 根据任务类型验证字段
         if task_type == 'realtime':
@@ -478,6 +496,15 @@ def start_algorithm_task(task_id: int):
     """
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
+        
+        # 检查摄像头是否已经在运行的推流转发任务中使用
+        if task.devices:
+            device_ids = [d.id for d in task.devices]
+            has_conflict, conflicts = check_device_conflict_with_stream_forward_tasks(device_ids)
+            if has_conflict:
+                conflict_msg = format_conflict_message(conflicts, 'stream_forward')
+                raise ValueError(f"摄像头冲突：{conflict_msg}。同一个摄像头不能同时用于推流转发和算法任务。")
+        
         task.is_enabled = True
         task.status = 0
         task.exception_reason = None

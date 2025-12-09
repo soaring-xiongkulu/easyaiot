@@ -122,11 +122,11 @@
         <TabPane key="4" tab="录像空间">
           <RecordSpace ref="recordSpaceRef"/>
         </TabPane>
-        <TabPane key="5" tab="算法任务">
-          <AlgorithmTask ref="algorithmTaskRef"/>
-        </TabPane>
         <TabPane key="6" tab="推流转发">
           <StreamForward ref="streamForwardRef"/>
+        </TabPane>
+        <TabPane key="5" tab="算法任务">
+          <AlgorithmTask ref="algorithmTaskRef"/>
         </TabPane>
       </Tabs>
     </div>

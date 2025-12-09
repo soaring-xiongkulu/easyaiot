@@ -405,3 +405,17 @@ export const stopAllStreams = async (deviceIds: string[]) => {
 export const captureSnapshot = (device_id: string) => {
   return commonApi('post', `${CAMERA_PREFIX}/device/${device_id}/snapshot`, {}, {}, false);
 };
+
+// ====================== 摄像头冲突检查接口 ======================
+/**
+ * 获取正在使用的摄像头ID列表（用于推流转发或算法任务）
+ * @param task_type 任务类型：'stream_forward'（推流转发）或 'algorithm'（算法任务），不传则返回所有冲突的摄像头
+ * @returns 包含冲突摄像头ID列表的响应
+ */
+export const getDeviceConflicts = (task_type?: 'stream_forward' | 'algorithm') => {
+  return commonApi<{ code: number; msg: string; data: string[] }>(
+    'get',
+    `${CAMERA_PREFIX}/device/conflicts`,
+    task_type ? { task_type } : {}
+  );
+};

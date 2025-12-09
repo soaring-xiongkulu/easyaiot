@@ -75,6 +75,18 @@ def create_task():
         if not task_name:
             return jsonify({'code': 400, 'msg': '任务名称不能为空'}), 400
         
+        # 处理 is_enabled 参数，确保正确转换为布尔值
+        is_enabled = data.get('is_enabled', False)
+        if isinstance(is_enabled, str):
+            # 如果是字符串，转换为布尔值
+            is_enabled = is_enabled.lower() in ('true', '1', 'yes', 'on')
+        elif isinstance(is_enabled, int):
+            # 如果是数字，转换为布尔值
+            is_enabled = bool(is_enabled)
+        elif not isinstance(is_enabled, bool):
+            # 如果是其他类型，默认为 False
+            is_enabled = False
+        
         task = create_stream_forward_task(
             task_name=task_name,
             device_ids=data.get('device_ids'),
@@ -82,7 +94,7 @@ def create_task():
             output_quality=data.get('output_quality', 'high'),
             output_bitrate=data.get('output_bitrate'),
             description=data.get('description'),
-            is_enabled=data.get('is_enabled', False)
+            is_enabled=is_enabled
         )
         
         return jsonify({
@@ -104,6 +116,20 @@ def update_task(task_id):
         data = request.get_json()
         if not data:
             return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
+        
+        # 处理 is_enabled 参数，确保正确转换为布尔值
+        if 'is_enabled' in data:
+            is_enabled = data['is_enabled']
+            if isinstance(is_enabled, str):
+                # 如果是字符串，转换为布尔值
+                is_enabled = is_enabled.lower() in ('true', '1', 'yes', 'on')
+            elif isinstance(is_enabled, int):
+                # 如果是数字，转换为布尔值
+                is_enabled = bool(is_enabled)
+            elif not isinstance(is_enabled, bool):
+                # 如果是其他类型，默认为 False
+                is_enabled = False
+            data['is_enabled'] = is_enabled
         
         task = update_stream_forward_task(task_id, **data)
         
@@ -235,10 +261,6 @@ def receive_heartbeat():
         # 更新活跃流数量
         task.active_streams = active_streams
         
-        # 更新运行状态为running
-        if task.run_status != 'stopped':
-            task.run_status = 'running'
-        
         db.session.commit()
         
         return jsonify({
@@ -299,7 +321,6 @@ def get_task_status(task_id):
             'last_heartbeat': task.service_last_heartbeat.isoformat() if task.service_last_heartbeat else None,
             'log_path': task.service_log_path,
             'status': service_status,
-            'run_status': task.run_status,
             'active_streams': task.active_streams,
             'total_streams': task.total_streams
         }

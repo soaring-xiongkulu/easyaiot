@@ -39,7 +39,7 @@
           >
             <template #header>
               <div style="display: flex;align-items: center;justify-content: space-between;flex-direction: row;">
-                <span style="padding-left: 7px;font-size: 16px;font-weight: 500;line-height: 24px;">推流转发任务列表</span>
+                <span style="padding-left: 7px;font-size: 16px;font-weight: 500;line-height: 24px;">推流任务列表</span>
                 <div style="display: flex; gap: 8px;">
                   <a-button type="primary" @click="handleCreate">
                     <template #icon>
@@ -60,12 +60,23 @@
               <ListItem :class="item.is_enabled ? 'task-item normal' : 'task-item error'">
                 <div class="task-info">
                   <div class="status">{{ item.is_enabled ? '运行中' : '已停止' }}</div>
-                  <div class="title o2">{{ item.task_name || item.id }}</div>
+                  <div class="title o2" :title="item.task_name || item.id">{{ item.task_name || item.id }}</div>
                   <div class="props">
                     <div class="flex" style="justify-content: space-between;">
                       <div class="prop">
                         <div class="label">关联摄像头</div>
-                        <div class="value">{{ item.device_names && item.device_names.length > 0 ? item.device_names.join(', ') : '无' }}</div>
+                        <div class="value" style="display: flex; align-items: center; gap: 4px;">
+                          <span>{{ item.device_names && item.device_names.length > 0 ? (item.device_names.length > 1 ? item.device_names[0] + '...' : item.device_names[0]) : '无' }}</span>
+                          <Icon 
+                            v-if="item.device_names && item.device_names.length > 0" 
+                            icon="ant-design:copy-outlined" 
+                            :size="14" 
+                            color="#666"
+                            style="cursor: pointer; flex-shrink: 0;"
+                            @click.stop="handleCopyDeviceNames(item)"
+                            title="复制所有摄像头名称"
+                          />
+                        </div>
                       </div>
                       <div class="prop">
                         <div class="label">活跃流数</div>
@@ -90,11 +101,17 @@
                     <div class="btn" @click="handleEdit(item)">
                       <Icon icon="ant-design:edit-filled" :size="15" color="#3B82F6" />
                     </div>
+                    <div class="btn" @click="handleViewServiceInfo(item)" title="心跳信息">
+                      <Icon icon="ant-design:heart-outlined" :size="15" color="#3B82F6" />
+                    </div>
                     <div class="btn" v-if="item.is_enabled" @click="handleStop(item)">
                       <Icon icon="ant-design:pause-circle-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <div class="btn" v-else @click="handleStart(item)">
                       <Icon icon="ant-design:play-circle-outlined" :size="15" color="#3B82F6" />
+                    </div>
+                    <div class="btn" v-if="item.is_enabled" @click="handleRestart(item)" title="重启">
+                      <Icon icon="ant-design:reload-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <Popconfirm
                       title="是否确认删除？"
@@ -110,7 +127,7 @@
                 </div>
                 <div class="task-img">
                   <img
-                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect fill='%234287FC' width='100' height='100'/%3E%3Ctext fill='%23fff' x='50' y='50' text-anchor='middle' dominant-baseline='middle' font-size='20'%3E推流%3C/text%3E%3C/svg%3E"
+                    src="@/assets/images/video/push-stream.png"
                     alt="" 
                     class="img" 
                     @click="handleView(item)">
@@ -124,6 +141,12 @@
 
     <!-- 创建/编辑模态框 -->
     <StreamForwardModal @register="registerModal" @success="handleSuccess" />
+    
+    <!-- 日志查看模态框 -->
+    <StreamForwardLogsModal @register="registerLogsModal" />
+    
+    <!-- 服务管理抽屉（心跳信息） -->
+    <ServiceManageDrawer @register="registerServiceDrawer" @success="handleSuccess" />
   </div>
 </template>
 
@@ -139,14 +162,19 @@ import { BasicTable, TableAction, useTable } from '@/components/Table';
 import { useMessage } from '@/hooks/web/useMessage';
 import { Icon } from '@/components/Icon';
 import { useDrawer } from '@/components/Drawer';
+import { useModal } from '@/components/Modal';
+import { copyText } from '@/utils/copyTextToClipboard';
 import {
   listStreamForwardTasks,
   deleteStreamForwardTask,
   startStreamForwardTask,
   stopStreamForwardTask,
+  restartStreamForwardTask,
   type StreamForwardTask,
 } from '@/api/device/stream_forward';
 import StreamForwardModal from './StreamForwardModal.vue';
+import StreamForwardLogsModal from './StreamForwardLogsModal.vue';
+import ServiceManageDrawer from './ServiceManageDrawer.vue';
 import { getBasicColumns, getFormConfig } from './Data';
 
 const ListItem = List.Item;
@@ -162,6 +190,8 @@ const viewMode = ref<'table' | 'card'>('card');
 const taskList = ref<StreamForwardTask[]>([]);
 const loading = ref(false);
 const [registerModal, { openDrawer }] = useDrawer();
+const [registerLogsModal, { openModal: openLogsModal }] = useModal();
+const [registerServiceDrawer, { openDrawer: openServiceDrawer }] = useDrawer();
 
 // 分页相关
 const page = ref(1);
@@ -178,7 +208,7 @@ const searchParams = ref<{
 const [registerTable, { reload }] = useTable({
   canResize: true,
   showIndexColumn: false,
-  title: '推流转发任务列表',
+  title: '推流任务列表',
   api: listStreamForwardTasks,
   beforeFetch: (params) => {
     let is_enabled = undefined;
@@ -217,6 +247,11 @@ const getTableActions = (record: StreamForwardTask) => {
       tooltip: '编辑',
       onClick: () => handleEdit(record),
     },
+    {
+      icon: 'ant-design:heart-outlined',
+      tooltip: '心跳信息',
+      onClick: () => handleViewServiceInfo(record),
+    },
   ];
 
   if (record.is_enabled) {
@@ -224,6 +259,11 @@ const getTableActions = (record: StreamForwardTask) => {
       icon: 'ant-design:pause-circle-outlined',
       tooltip: '停止',
       onClick: () => handleStop(record),
+    });
+    actions.push({
+      icon: 'ant-design:reload-outlined',
+      tooltip: '重启',
+      onClick: () => handleRestart(record),
     });
   } else {
     actions.push({
@@ -273,13 +313,13 @@ const loadTasks = async () => {
       taskList.value = response.data || [];
       total.value = response.total || 0;
     } else {
-      createMessage.error(response.msg || '加载推流转发任务列表失败');
+      createMessage.error(response.msg || '加载推流任务列表失败');
       taskList.value = [];
       total.value = 0;
     }
   } catch (error) {
-    console.error('加载推流转发任务列表失败', error);
-    createMessage.error('加载推流转发任务列表失败');
+    console.error('加载推流任务列表失败', error);
+    createMessage.error('加载推流任务列表失败');
     taskList.value = [];
     total.value = 0;
   } finally {
@@ -435,12 +475,51 @@ const handleStop = async (record: StreamForwardTask) => {
   }
 };
 
+const handleRestart = async (record: StreamForwardTask) => {
+  try {
+    const response = await restartStreamForwardTask(record.id);
+    if (response && (response as any).id) {
+      createMessage.success('重启成功');
+      handleSuccess();
+    } else if (response && typeof response === 'object' && 'code' in response) {
+      if ((response as any).code === 0) {
+        createMessage.success('重启成功');
+        handleSuccess();
+      } else {
+        createMessage.error((response as any).msg || '重启失败');
+      }
+    } else {
+      createMessage.error('重启失败');
+    }
+  } catch (error) {
+    console.error('重启推流转发任务失败', error);
+    createMessage.error('重启失败');
+  }
+};
+
 const handleSuccess = () => {
   if (viewMode.value === 'table') {
     reload();
   } else {
     loadTasks();
   }
+};
+
+// 复制摄像头名称
+const handleCopyDeviceNames = (item: StreamForwardTask) => {
+  if (!item.device_names || item.device_names.length === 0) {
+    createMessage.warning('无摄像头名称可复制');
+    return;
+  }
+  const deviceNamesText = item.device_names.join(', ');
+  copyText(deviceNamesText, '摄像头名称已复制到剪贴板');
+};
+
+// 查看服务信息（心跳信息）
+const handleViewServiceInfo = (record: StreamForwardTask) => {
+  openServiceDrawer(true, {
+    taskId: record.id,
+  });
 };
 
 // 刷新方法（供父组件调用）
@@ -460,110 +539,204 @@ onMounted(() => {
 });
 </script>
 
-<style lang="less" scoped>
-.stream-forward-card-list-wrapper {
-  .task-item {
-    background: #fff;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 12px;
+<style scoped lang="less">
+#stream-forward {
+  .toolbar-buttons {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s;
+    gap: 10px;
+  }
+}
 
-    &:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
+.stream-forward-card-list-wrapper {
+  :deep(.ant-list-header) {
+    border-block-end: 0;
+  }
+  :deep(.ant-list-header) {
+    padding-top: 0;
+    padding-bottom: 8px;
+  }
+  :deep(.ant-list) {
+    padding: 6px;
+  }
+  :deep(.ant-list-item) {
+    margin: 6px;
+  }
+  :deep(.task-item) {
+    overflow: hidden;
+    box-shadow: 0 0 4px #00000026;
+    border-radius: 8px;
+    padding: 16px 0;
+    position: relative;
+    background-color: #fff;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: 104% 104%;
+    transition: all 0.5s;
+    min-height: 208px;
+    height: 100%;
 
     &.normal {
-      border-left: 4px solid #52c41a;
+      background-image: url('@/assets/images/product/blue-bg.719b437a.png');
+
+      .task-info .status {
+        background: #d9dffd;
+        color: #266CFBFF;
+      }
     }
 
     &.error {
-      border-left: 4px solid #ff4d4f;
+      background-image: url('@/assets/images/product/red-bg.101af5ac.png');
+
+      .task-info .status {
+        background: #fad7d9;
+        color: #d43030;
+      }
     }
 
     .task-info {
-      flex: 1;
+      flex-direction: column;
+      max-width: calc(100% - 128px);
+      padding-left: 16px;
 
       .status {
+        min-width: 90px;
+        height: 25px;
+        border-radius: 6px 0 0 6px;
         font-size: 12px;
-        color: #999;
-        margin-bottom: 8px;
+        font-weight: 500;
+        line-height: 25px;
+        text-align: center;
+        position: absolute;
+        right: 0;
+        top: 16px;
+        padding: 0 8px;
+        white-space: nowrap;
       }
 
       .title {
         font-size: 16px;
-        font-weight: 500;
-        margin-bottom: 12px;
-        color: #333;
+        font-weight: 600;
+        color: #050708;
+        line-height: 20px;
+        height: 40px;
+        padding-right: 90px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .props {
-        margin-bottom: 12px;
+        margin-top: 10px;
 
         .prop {
+          flex: 1;
+          margin-bottom: 10px;
+
           .label {
             font-size: 12px;
-            color: #999;
-            margin-bottom: 4px;
+            font-weight: 400;
+            color: #666;
+            line-height: 14px;
           }
 
           .value {
             font-size: 14px;
-            color: #333;
+            font-weight: 600;
+            color: #050708;
+            line-height: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 6px;
           }
         }
       }
 
       .btns {
         display: flex;
-        gap: 8px;
+        position: absolute;
+        left: 16px;
+        bottom: 16px;
+        margin-top: 20px;
+        width: 220px;
+        height: 28px;
+        border-radius: 45px;
+        justify-content: space-around;
+        padding: 0 10px;
+        align-items: center;
+        border: 2px solid #266cfbff;
 
         .btn {
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 4px;
+          width: 28px;
+          text-align: center;
+          position: relative;
           cursor: pointer;
-          transition: all 0.3s;
 
-          &:hover {
-            background: #f0f0f0;
+          &:before {
+            content: '';
+            display: block;
+            position: absolute;
+            width: 1px;
+            height: 7px;
+            background-color: #e2e2e2;
+            left: 0;
+            top: 9px;
           }
 
-          &.delete-btn:hover {
-            background: #fff1f0;
+          &:first-child:before {
+            display: none;
+          }
+
+          :deep(.anticon) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3B82F6;
+            transition: color 0.3s;
+          }
+
+          &:hover :deep(.anticon) {
+            color: #5BA3F5;
+          }
+
+          &.disabled {
+            cursor: not-allowed;
+            opacity: 0.4;
+
+            :deep(.anticon) {
+              color: #ccc;
+            }
+
+            &:hover :deep(.anticon) {
+              color: #ccc;
+            }
+          }
+
+          &.delete-btn {
+            :deep(.anticon) {
+              color: #DC2626;
+            }
+
+            &:hover :deep(.anticon) {
+              color: #DC2626;
+            }
           }
         }
       }
     }
 
     .task-img {
-      width: 100px;
-      height: 100px;
-      flex-shrink: 0;
-      margin-left: 16px;
+      position: absolute;
+      right: 20px;
+      top: 50px;
 
-      .img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 8px;
+      img {
         cursor: pointer;
+        width: 120px;
       }
     }
   }
-}
-
-.toolbar-buttons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 </style>
 
