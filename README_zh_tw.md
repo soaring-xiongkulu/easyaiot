@@ -321,6 +321,18 @@ EasyAIoT是一個開源學習項目，與商業行為無關。用戶在使用該
   <img src=".image/banner/banner1075.jpg" alt="Screenshot 1" width="49%">
 </div>
 <div>
+  <img src=".image/banner/banner1085.jpg" alt="Screenshot 1" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1086.jpg" alt="Screenshot 1" width="49%">
+</div>
+<div>
+  <img src=".image/banner/banner1087.jpg" alt="Screenshot 1" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1088.jpg" alt="Screenshot 1" width="49%">
+</div>
+<div>
+  <img src=".image/banner/banner1089.jpg" alt="Screenshot 1" width="49%" style="margin-right: 10px">
+  <img src=".image/banner/banner1090.jpg" alt="Screenshot 1" width="49%">
+</div>
+<div>
   <img src=".image/banner/banner1078.jpg" alt="Screenshot 1" width="49%" style="margin-right: 10px">
   <img src=".image/banner/banner1077.jpg" alt="Screenshot 1" width="49%">
 </div>
