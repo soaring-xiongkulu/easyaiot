@@ -1,0 +1,216 @@
+cmake_minimum_required(VERSION 3.5)
+
+PROJECT (TASK)
+
+set(CMAKE_CXX_STANDARD 17)
+
+# 平台判断
+if(WIN32)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread")
+endif()
+
+set(CMAKE_BUILD_TYPE DEBUG)
+
+if(MSVC)
+    SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /W4 /Zi")
+    SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /W4")
+else()
+    SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb")
+    SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
+endif()
+
+# 查找依赖库
+find_package(OpenCV REQUIRED)
+message(STATUS "OpenCV: ${OpenCV_INCLUDE_DIRS}")
+message(STATUS "${OpenCV_VERSION}")
+
+find_package(CURL REQUIRED)
+find_package(jsoncpp REQUIRED)
+find_package(glog REQUIRED)
+
+# Windows平台使用vcpkg或手动指定路径
+if(WIN32)
+    # 假设使用vcpkg安装依赖
+    # 如果手动安装，需要指定路径
+    # set(ONNXRUNTIME_ROOT "C:/path/to/onnxruntime")
+    # set(FFMPEG_ROOT "C:/path/to/ffmpeg")
+    
+    include_directories(
+        ${OpenCV_INCLUDE_DIRS}
+        ${CMAKE_SOURCE_DIR}/src/
+        ${CMAKE_SOURCE_DIR}/3rdparty/cpp-httplib/
+        # 如果手动安装ONNX Runtime
+        # ${ONNXRUNTIME_ROOT}/include
+    )
+    
+    link_directories(
+        # 如果手动安装
+        # ${ONNXRUNTIME_ROOT}/lib
+        # ${FFMPEG_ROOT}/lib
+    )
+else()
+    # Linux平台
+    link_directories(
+        /usr/lib/
+        /usr/local/lib/
+        /usr/local/openssl/lib
+    )
+
+    include_directories(
+        /usr/include/
+        /usr/local/include
+        /usr/local/include/onnxruntime
+        ${OpenCV_INCLUDE_DIRS}
+        ${CMAKE_SOURCE_DIR}/src/
+        ${CMAKE_SOURCE_DIR}/3rdparty/cpp-httplib/
+    )
+endif()
+
+file (GLOB Src_SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
+
+add_executable(${PROJECT_NAME} ${Src_SOURCES})
+
+# 链接库
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME}
+        ${OpenCV_LIBS}
+        # Windows下FFmpeg库名
+        avformat avcodec avutil swscale
+        # CURL
+        CURL::libcurl
+        # jsoncpp
+        jsoncpp_lib
+        # glog
+        glog::glog
+        # ONNX Runtime
+        onnxruntime
+        # Windows系统库
+        ws2_32
+        bcrypt
+    )
+else()
+    # Linux链接
+    target_link_libraries(${PROJECT_NAME}
+        ${OpenCV_LIBS}
+        avformat avcodec avutil
+        png z
+        curl curlpp
+        crypto ssl
+        inih INIReader
+        pugixml
+        jsoncpp
+        glog
+        onnxruntime
+        pthread
+    )
+endif()
+
+
+PROJECT (TASK)
+
+set(CMAKE_CXX_STANDARD 17)
+
+# 平台判断
+if(WIN32)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread")
+endif()
+
+set(CMAKE_BUILD_TYPE DEBUG)
+
+if(MSVC)
+    SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /W4 /Zi")
+    SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /W4")
+else()
+    SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb")
+    SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
+endif()
+
+# 查找依赖库
+find_package(OpenCV REQUIRED)
+message(STATUS "OpenCV: ${OpenCV_INCLUDE_DIRS}")
+message(STATUS "${OpenCV_VERSION}")
+
+find_package(CURL REQUIRED)
+find_package(jsoncpp REQUIRED)
+find_package(glog REQUIRED)
+
+# Windows平台使用vcpkg或手动指定路径
+if(WIN32)
+    # 假设使用vcpkg安装依赖
+    # 如果手动安装，需要指定路径
+    # set(ONNXRUNTIME_ROOT "C:/path/to/onnxruntime")
+    # set(FFMPEG_ROOT "C:/path/to/ffmpeg")
+    
+    include_directories(
+        ${OpenCV_INCLUDE_DIRS}
+        ${CMAKE_SOURCE_DIR}/src/
+        ${CMAKE_SOURCE_DIR}/3rdparty/cpp-httplib/
+        # 如果手动安装ONNX Runtime
+        # ${ONNXRUNTIME_ROOT}/include
+    )
+    
+    link_directories(
+        # 如果手动安装
+        # ${ONNXRUNTIME_ROOT}/lib
+        # ${FFMPEG_ROOT}/lib
+    )
+else()
+    # Linux平台
+    link_directories(
+        /usr/lib/
+        /usr/local/lib/
+        /usr/local/openssl/lib
+    )
+
+    include_directories(
+        /usr/include/
+        /usr/local/include
+        /usr/local/include/onnxruntime
+        ${OpenCV_INCLUDE_DIRS}
+        ${CMAKE_SOURCE_DIR}/src/
+        ${CMAKE_SOURCE_DIR}/3rdparty/cpp-httplib/
+    )
+endif()
+
+file (GLOB Src_SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
+
+add_executable(${PROJECT_NAME} ${Src_SOURCES})
+
+# 链接库
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME}
+        ${OpenCV_LIBS}
+        # Windows下FFmpeg库名
+        avformat avcodec avutil swscale
+        # CURL
+        CURL::libcurl
+        # jsoncpp
+        jsoncpp_lib
+        # glog
+        glog::glog
+        # ONNX Runtime
+        onnxruntime
+        # Windows系统库
+        ws2_32
+        bcrypt
+    )
+else()
+    # Linux链接
+    target_link_libraries(${PROJECT_NAME}
+        ${OpenCV_LIBS}
+        avformat avcodec avutil
+        png z
+        curl curlpp
+        crypto ssl
+        inih INIReader
+        pugixml
+        jsoncpp
+        glog
+        onnxruntime
+        pthread
+    )
+endif()

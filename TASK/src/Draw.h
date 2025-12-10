@@ -1,7 +1,4 @@
 
-// @author 翱翔的雄库鲁
-// @email andywebjava@163.com
-// @wechat EasyAIoT2025
 
 #ifndef RK3588_DEMO_CV_DRAW_H
 #define RK3588_DEMO_CV_DRAW_H

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI实时监控播放器 - HLS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #2c3e50;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        video {
+            width: 100%;
+            max-width: 1000px;
+            height: auto;
+            background: #000;
+            display: block;
+            margin: 0 auto;
+            border: 3px solid #27ae60;
+            border-radius: 10px;
+        }
+        .info {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(39, 174, 96, 0.2);
+            border-radius: 8px;
+        }
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 5px;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .status.loading { background: #f39c12; }
+        .status.playing { background: #27ae60; }
+        .status.error { background: #e74c3c; }
+        .btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background: #219a52;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .log {
+            background: #1a252f;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 AI实时监控 - HLS播放器</h1>
+        
+        <video id="videoElement" controls autoplay muted></video>
+        
+        <div class="controls">
+            <button class="btn" onclick="startPlay()">▶️ 开始播放</button>
+            <button class="btn" onclick="stopPlay()">⏹️ 停止播放</button>
+            <button class="btn" onclick="reload()">🔄 重新加载</button>
+        </div>
+        
+        <div class="info">
+            <p>
+                <strong>播放地址：</strong>
+                <code id="playUrl">http://localhost:8088/live/stream_test/hls.m3u8</code>
+                <span id="status" class="status loading">正在加载...</span>
+            </p>
+            <p><strong>协议：</strong>HLS | <strong>预期延迟：</strong>3-5秒</p>
+        </div>
+        
+        <div class="log" id="logArea"></div>
+    </div>
+
+    <!-- HLS.js -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        let hlsPlayer = null;
+        const videoElement = document.getElementById('videoElement');
+        const statusElement = document.getElementById('status');
+        const logArea = document.getElementById('logArea');
+        
+        // ZLMediaKit HLS地址
+        const STREAM_URL = 'http://localhost:8088/live/stream_test/hls.m3u8';
+
+        function log(msg) {
+            const time = new Date().toLocaleTimeString();
+            logArea.innerHTML += `[${time}] ${msg}<br>`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(msg);
+        }
+
+        function updateStatus(text, className) {
+            statusElement.textContent = text;
+            statusElement.className = 'status ' + className;
+        }
+
+        function startPlay() {
+            log('检查 HLS.js 是否加载...');
+            
+            if (typeof Hls === 'undefined') {
+                log('❌ HLS.js 未加载');
+                updateStatus('加载失败', 'error');
+                return;
+            }
+            
+            log('✓ HLS.js 已加载');
+
+            // 清理旧播放器
+            if (hlsPlayer) {
+                log('清理旧播放器...');
+                hlsPlayer.destroy();
+                hlsPlayer = null;
+            }
+
+            try {
+                updateStatus('正在连接...', 'loading');
+                log('创建播放器，URL: ' + STREAM_URL);
+
+                if (Hls.isSupported()) {
+                    hlsPlayer = new Hls({
+                        debug: false,
+                        enableWorker: true,
+                        lowLatencyMode: true,
+                        backBufferLength: 90
+                    });
+
+                    hlsPlayer.loadSource(STREAM_URL);
+                    hlsPlayer.attachMedia(videoElement);
+                    log('播放器已附加到视频元素');
+
+                    hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+                        log('✓ HLS清单已解析');
+                        videoElement.play().then(() => {
+                            log('✓ 播放已开始');
+                            updateStatus('正在播放', 'playing');
+                        }).catch((e) => {
+                            log('⚠️ 自动播放被阻止: ' + e.message);
+                        });
+                    });
+
+                    hlsPlayer.on(Hls.Events.ERROR, (event, data) => {
+                        log('❌ HLS错误: ' + data.type + ' - ' + data.details);
+                        if (data.fatal) {
+                            updateStatus('播放错误', 'error');
+                            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                                log('尝试恢复网络错误...');
+                                hlsPlayer.startLoad();
+                            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                                log('尝试恢复媒体错误...');
+                                hlsPlayer.recoverMediaError();
+                            }
+                        }
+                    });
+
+                    hlsPlayer.on(Hls.Events.FRAG_LOADED, () => {
+                        updateStatus('正在播放', 'playing');
+                    });
+
+                } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                    // Safari原生支持HLS
+                    log('使用Safari原生HLS支持');
+                    videoElement.src = STREAM_URL;
+                    videoElement.play().then(() => {
+                        log('✓ 播放已开始');
+                        updateStatus('正在播放', 'playing');
+                    }).catch((e) => {
+                        log('⚠️ 自动播放被阻止: ' + e.message);
+                    });
+                } else {
+                    log('❌ 浏览器不支持HLS');
+                    updateStatus('浏览器不支持', 'error');
+                }
+
+            } catch (e) {
+                log('❌ 创建播放器失败: ' + e.message);
+                updateStatus('创建失败', 'error');
+            }
+        }
+
+        function stopPlay() {
+            if (hlsPlayer) {
+                log('停止播放...');
+                hlsPlayer.destroy();
+                hlsPlayer = null;
+                updateStatus('已停止', 'error');
+                log('播放器已销毁');
+            }
+            videoElement.pause();
+            videoElement.src = '';
+        }
+
+        function reload() {
+            log('重新加载...');
+            stopPlay();
+            setTimeout(() => {
+                startPlay();
+            }, 500);
+        }
+
+        // 页面加载完成后自动播放
+        window.addEventListener('load', () => {
+            log('页面加载完成，等待 HLS.js...');
+            setTimeout(() => {
+                if (typeof Hls !== 'undefined') {
+                    startPlay();
+                } else {
+                    log('❌ HLS.js 加载超时');
+                    updateStatus('HLS.js 加载失败', 'error');
+                }
+            }, 1000);
+        });
+
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', () => {
+            stopPlay();
+        });
+    </script>
+</body>
+</html>

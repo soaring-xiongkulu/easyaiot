@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI实时监控播放器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #2c3e50;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        video {
+            width: 100%;
+            max-width: 1000px;
+            height: auto;
+            background: #000;
+            display: block;
+            margin: 0 auto;
+            border: 3px solid #3498db;
+            border-radius: 10px;
+        }
+        .info {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(52, 152, 219, 0.2);
+            border-radius: 8px;
+        }
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 5px;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .status.loading { background: #f39c12; }
+        .status.playing { background: #27ae60; }
+        .status.error { background: #e74c3c; }
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background: #2980b9;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .log {
+            background: #1a252f;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 AI实时监控 - HTTP-FLV播放器</h1>
+        
+        <video id="videoElement" controls autoplay muted></video>
+        
+        <div class="controls">
+            <button class="btn" onclick="startPlay()">▶️ 开始播放</button>
+            <button class="btn" onclick="stopPlay()">⏹️ 停止播放</button>
+            <button class="btn" onclick="reload()">🔄 重新加载</button>
+        </div>
+        
+        <div class="info">
+            <p>
+                <strong>播放地址：</strong>
+                <code id="playUrl">http://localhost:8088/live/stream_test.flv</code>
+                <span id="status" class="status loading">正在加载...</span>
+            </p>
+            <p><strong>协议：</strong>HTTP-FLV | <strong>预期延迟：</strong>500ms-1秒</p>
+        </div>
+        
+        <div class="log" id="logArea"></div>
+    </div>
+
+    <!-- 正确引入 flv.js -->
+    <script src="https://cdn.jsdelivr.net/npm/flv.js@latest/dist/flv.min.js"></script>
+    <script>
+        let flvPlayer = null;
+        const videoElement = document.getElementById('videoElement');
+        const statusElement = document.getElementById('status');
+        const logArea = document.getElementById('logArea');
+        
+        // ZLMediaKit HTTP-FLV地址
+        // 端口8088是ZLM的HTTP-FLV端口
+        const STREAM_URL = 'http://localhost:8088/live/stream_test.flv';
+
+        function log(msg) {
+            const time = new Date().toLocaleTimeString();
+            logArea.innerHTML += `[${time}] ${msg}<br>`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(msg);
+        }
+
+        function updateStatus(text, className) {
+            statusElement.textContent = text;
+            statusElement.className = 'status ' + className;
+        }
+
+        function startPlay() {
+            log('检查 flv.js 是否加载...');
+            
+            if (typeof flvjs === 'undefined') {
+                log('❌ flv.js 未加载');
+                alert('flv.js 加载失败，请检查网络连接');
+                updateStatus('加载失败', 'error');
+                return;
+            }
+            
+            log('✓ flv.js 已加载');
+
+            if (!flvjs.isSupported()) {
+                log('❌ 浏览器不支持 FLV');
+                alert('您的浏览器不支持 FLV 播放\n建议使用 Chrome, Edge 或 Firefox');
+                updateStatus('浏览器不支持', 'error');
+                return;
+            }
+            
+            log('✓ 浏览器支持 FLV');
+
+            // 清理旧播放器
+            if (flvPlayer) {
+                log('清理旧播放器...');
+                flvPlayer.destroy();
+                flvPlayer = null;
+            }
+
+            try {
+                updateStatus('正在连接...', 'loading');
+                log('创建播放器，URL: ' + STREAM_URL);
+
+                flvPlayer = flvjs.createPlayer({
+                    type: 'flv',
+                    url: STREAM_URL,
+                    isLive: true,
+                    hasAudio: false,
+                    hasVideo: true
+                }, {
+                    enableWorker: false,
+                    enableStashBuffer: false,
+                    stashInitialSize: 128,
+                    lazyLoad: false
+                });
+
+                flvPlayer.attachMediaElement(videoElement);
+                log('播放器已附加到视频元素');
+                
+                flvPlayer.load();
+                log('开始加载流...');
+
+                // 事件监听
+                flvPlayer.on(flvjs.Events.ERROR, (errorType, errorDetail, errorInfo) => {
+                    log('❌ 播放错误: ' + errorType + ' - ' + errorDetail);
+                    console.error('播放错误:', errorType, errorDetail, errorInfo);
+                    updateStatus('播放错误: ' + errorDetail, 'error');
+                });
+
+                flvPlayer.on(flvjs.Events.LOADING_COMPLETE, () => {
+                    log('加载完成');
+                });
+
+                flvPlayer.on(flvjs.Events.RECOVERED_EARLY_EOF, () => {
+                    log('⚠️ 流提前结束，尝试恢复');
+                });
+
+                flvPlayer.on(flvjs.Events.MEDIA_INFO, (info) => {
+                    log('✓ 收到媒体信息: ' + info.width + 'x' + info.height);
+                    console.log('媒体信息:', info);
+                    updateStatus('正在播放', 'playing');
+                });
+
+                // 开始播放
+                flvPlayer.play().then(() => {
+                    log('✓ 播放已开始');
+                    updateStatus('正在播放', 'playing');
+                }).catch((e) => {
+                    log('⚠️ 自动播放被阻止: ' + e.message);
+                    console.warn('自动播放被阻止，请点击视频播放按钮');
+                });
+
+            } catch (e) {
+                log('❌ 创建播放器失败: ' + e.message);
+                console.error('创建播放器失败:', e);
+                updateStatus('创建失败: ' + e.message, 'error');
+            }
+        }
+
+        function stopPlay() {
+            if (flvPlayer) {
+                log('停止播放...');
+                flvPlayer.pause();
+                flvPlayer.unload();
+                flvPlayer.detachMediaElement();
+                flvPlayer.destroy();
+                flvPlayer = null;
+                updateStatus('已停止', 'error');
+                log('播放器已销毁');
+            }
+        }
+
+        function reload() {
+            log('重新加载...');
+            stopPlay();
+            setTimeout(() => {
+                startPlay();
+            }, 500);
+        }
+
+        // 页面加载完成后自动播放
+        window.addEventListener('load', () => {
+            log('页面加载完成，等待 flv.js...');
+            setTimeout(() => {
+                if (typeof flvjs !== 'undefined') {
+                    startPlay();
+                } else {
+                    log('❌ flv.js 加载超时');
+                    updateStatus('flv.js 加载失败', 'error');
+                }
+            }, 1000);
+        });
+
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', () => {
+            stopPlay();
+        });
+    </script>
+</body>
+</html>

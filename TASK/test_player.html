@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>TASK模块 - 低延迟AI监控播放器</title>
+    <script src="https://cdn.jsdelivr.net/npm/flv.js@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .player-wrapper {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        #videoContainer {
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .info-panel {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .info-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .info-card h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .info-card p {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+        .status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .status.playing {
+            background: #4CAF50;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        .status.error {
+            background: #f44336;
+            color: white;
+        }
+        .status.loading {
+            background: #ff9800;
+            color: white;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .stat-item {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 TASK模块 - 超低延迟AI实时监控</h1>
+        
+        <div class="player-wrapper">
+            <div id="videoContainer">
+                <video id="videoElement" controls autoplay muted></video>
+            </div>
+            
+            <div class="info-panel">
+                <div class="info-card">
+                    <h3>播放状态</h3>
+                    <p><span id="status" class="status loading">正在连接...</span></p>
+                </div>
+                <div class="info-card">
+                    <h3>流地址</h3>
+                    <p style="font-size: 13px;">http://localhost/live/stream_test.live.flv</p>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="latency">--</div>
+                    <div class="stat-label">延迟 (ms)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="fps">--</div>
+                    <div class="stat-label">帧率 (FPS)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="resolution">--</div>
+                    <div class="stat-label">分辨率</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        if (flvjs.isSupported()) {
+            var videoElement = document.getElementById('videoElement');
+            var statusElement = document.getElementById('status');
+            var latencyElement = document.getElementById('latency');
+            var fpsElement = document.getElementById('fps');
+            var resolutionElement = document.getElementById('resolution');
+            
+            // 超低延迟配置
+            var flvPlayer = flvjs.createPlayer({
+                type: 'flv',
+                url: 'http://localhost/live/stream_test.live.flv',
+                isLive: true,
+                hasAudio: false,
+                cors: true
+            }, {
+                enableWorker: false,              // 禁用Worker以减少延迟
+                enableStashBuffer: false,         // 禁用缓冲
+                stashInitialSize: 64,             // 最小初始缓冲 (降低到64)
+                lazyLoad: false,                  // 禁用懒加载
+                lazyLoadMaxDuration: 0,           // 最小懒加载时间
+                autoCleanupSourceBuffer: true,    // 自动清理缓冲
+                fixAudioTimestampGap: false       // 不修复音频时间戳
+            });
+            
+            flvPlayer.attachMediaElement(videoElement);
+            flvPlayer.load();
+            
+            // 媒体信息事件
+            flvPlayer.on(flvjs.Events.MEDIA_INFO, function(info) {
+                console.log('媒体信息:', info);
+                if (info.width && info.height) {
+                    resolutionElement.textContent = info.width + 'x' + info.height;
+                }
+            });
+            
+            // 错误处理
+            flvPlayer.on(flvjs.Events.ERROR, function(errorType, errorDetail, errorInfo) {
+                console.error('播放错误:', errorType, errorDetail, errorInfo);
+                statusElement.textContent = '播放失败: ' + errorDetail;
+                statusElement.className = 'status error';
+            });
+            
+            // 播放开始
+            videoElement.addEventListener('playing', function() {
+                statusElement.textContent = '正在播放';
+                statusElement.className = 'status playing';
+                console.log('开始播放');
+            });
+            
+            // 尝试播放
+            flvPlayer.play().catch(function(e) {
+                console.log('自动播放失败，请点击播放按钮:', e);
+                statusElement.textContent = '点击播放';
+                statusElement.className = 'status loading';
+            });
+            
+            // 实时监控延迟和帧率
+            let lastTime = Date.now();
+            let frameCount = 0;
+            
+            videoElement.addEventListener('timeupdate', function() {
+                // 计算缓冲延迟
+                if (videoElement.buffered.length > 0) {
+                    const bufferedEnd = videoElement.buffered.end(0);
+                    const currentTime = videoElement.currentTime;
+                    const latency = Math.round((bufferedEnd - currentTime) * 1000);
+                    latencyElement.textContent = latency;
+                    
+                    // 🚀 激进的延迟控制 - 保持在500ms以内
+                    if (latency > 500) {  // 延迟超过500ms立即跳转
+                        videoElement.currentTime = bufferedEnd - 0.2;  // 保持200ms缓冲
+                        console.log('延迟过高，跳转到最新帧:', latency + 'ms');
+                    }
+                }
+                
+                // 计算帧率
+                frameCount++;
+                const now = Date.now();
+                if (now - lastTime >= 1000) {
+                    fpsElement.textContent = frameCount;
+                    frameCount = 0;
+                    lastTime = now;
+                }
+            });
+            
+            // 🎯 定期清理缓冲区（每2秒检查一次）
+            setInterval(function() {
+                if (videoElement.buffered.length > 0) {
+                    const bufferedEnd = videoElement.buffered.end(0);
+                    const currentTime = videoElement.currentTime;
+                    const latency = (bufferedEnd - currentTime) * 1000;
+                    
+                    // 如果延迟超过400ms，强制跳转
+                    if (latency > 400) {
+                        videoElement.currentTime = bufferedEnd - 0.15;
+                        console.log('定期清理: 跳转到最新帧');
+                    }
+                }
+            }, 2000);
+            
+        } else {
+            alert('浏览器不支持FLV.js播放\n请使用Chrome、Edge或Firefox浏览器');
+        }
+    </script>
+</body>
+</html>

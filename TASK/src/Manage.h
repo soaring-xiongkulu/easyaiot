@@ -1,7 +1,3 @@
-// @author 翱翔的雄库鲁
-// @email andywebjava@163.com
-// @wechat EasyAIoT2025
-
 #ifndef MANAGE_H_
 #define MANAGE_H_
 
@@ -17,23 +13,10 @@
 
 #include "Config.h"
 
-std::atomic<int> s_exit(0);
-
-void procSignal(int s) {
-    LOG(INFO) << "receive signal: " << s << ",will exit...";
-    s_exit.store(1, std::memory_order_release);
-}
-
-void installSignalCallback() {
-    struct sigaction sigIntHandler;
-    sigIntHandler.sa_flags = 0;
-    sigIntHandler.sa_handler = procSignal;
-    sigemptyset(&sigIntHandler.sa_mask);
-    sigaction(SIGINT, &sigIntHandler, nullptr);
-    sigaction(SIGQUIT, &sigIntHandler, nullptr);
-    sigaction(SIGTERM, &sigIntHandler, nullptr);
-    sigaction(SIGPIPE, &sigIntHandler, nullptr);
-}
+// 声明全局变量和函数（定义在Manage.cpp中）
+extern std::atomic<int> s_exit;
+void procSignal(int s);
+void installSignalCallback();
 
 class Server {
 public:

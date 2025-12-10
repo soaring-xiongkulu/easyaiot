@@ -1,8 +1,5 @@
-// @author 翱翔的雄库鲁
-// @email andywebjava@163.com
-// @wechat EasyAIoT2025
-
 #include <random>
+#include <glog/logging.h>
 
 #include "Yolov11Engine.h"
 
@@ -29,30 +26,62 @@ Yolov11Engine::~Yolov11Engine()
 
 int Yolov11Engine::LoadModel(std::string model_path, std::vector<std::string> model_class)
 {
-    onnxEnv = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "YOLOV11");
-    onnxSessionOptions = Ort::SessionOptions();
-    onnxSessionOptions.SetGraphOptimizationLevel(ORT_ENABLE_BASIC);
-    std::vector<std::string> providers = Ort::GetAvailableProviders();
-    auto f = std::find(providers.begin(), providers.end(), "CUDAExecutionProvider");
-    if (f != providers.end()) {
-        OrtCUDAProviderOptions cudaOption;
-        cudaOption.device_id = 0;
-        onnxSessionOptions.AppendExecutionProvider_CUDA(cudaOption);
+    try {
+        LOG(INFO) << "[YOLO] Creating ONNX Runtime environment...";
+        onnxEnv = Ort::Env(ORT_LOGGING_LEVEL_VERBOSE, "YOLOV11");
+        
+        LOG(INFO) << "[YOLO] Setting up session options...";
+        onnxSessionOptions = Ort::SessionOptions();
+        onnxSessionOptions.SetGraphOptimizationLevel(ORT_ENABLE_EXTENDED);  // Enable optimizations for DirectML
+        onnxSessionOptions.SetExecutionMode(ExecutionMode::ORT_SEQUENTIAL);
+        onnxSessionOptions.DisableMemPattern();  // DirectML requires this
+        
+        // Temporarily using CPU mode - DirectML provider DLL not available
+        #ifdef _WIN32
+        LOG(INFO) << "[YOLO] Using CPU mode (async inference enabled)";
+        LOG(INFO) << "[YOLO] DirectML disabled - onnxruntime_providers_dml.dll not found";
+        // TODO: Enable DirectML GPU once provider DLL is obtained
+        #else
+        LOG(INFO) << "[YOLO] Using CPU execution (Linux)";
+        #endif
+        
+        LOG(INFO) << "[YOLO] Loading model: " << model_path;
+        
+        // ONNX Runtime on Windows requires wide string path
+        #ifdef _WIN32
+            std::wstring wModelPath(model_path.begin(), model_path.end());
+            onnxSession = Ort::Session(onnxEnv, wModelPath.c_str(), onnxSessionOptions);
+        #else
+            onnxSession = Ort::Session(onnxEnv, model_path.c_str(), onnxSessionOptions);
+        #endif
+        
+        LOG(INFO) << "[YOLO] Model loaded successfully";
+        
+        if (!model_class.empty()) {
+            g_classes = model_class;
+            LOG(INFO) << "[YOLO] Using " << model_class.size() << " custom classes";
+        } else {
+            LOG(INFO) << "[YOLO] Using default COCO classes (" << g_classes.size() << " classes)";
+        }
+        
+        ready_ = true;
+        return 0;
+        
+    } catch (const Ort::Exception& e) {
+        LOG(ERROR) << "[YOLO] ONNX Runtime exception: " << e.what();
+        return -1;
+    } catch (const std::exception& e) {
+        LOG(ERROR) << "[YOLO] Exception loading model: " << e.what();
+        return -2;
     }
-    onnxSession = Ort::Session(onnxEnv, model_path.c_str(), onnxSessionOptions);
-    if (model_class.empty()) {
-        g_classes = model_class;
-    }
-    ready_ = true;
-    return 0;
 }
 
 int Yolov11Engine::Inference(const cv::Mat& image, std::vector<DetectObject> &detections)
 {
     int image_w = image.cols;
     int image_h = image.rows;
-    float score_threshold = 0.5;
-    float nms_threshold = 0.5;
+    float score_threshold = 0.25;  // Lower threshold for better detection
+    float nms_threshold = 0.45;
     std::vector<std::string> input_node_names;
     std::vector<std::string> output_node_names;
     size_t numInputNodes = onnxSession.GetInputCount();
@@ -95,23 +124,32 @@ int Yolov11Engine::Inference(const cv::Mat& image, std::vector<DetectObject> &de
     std::array<int64_t, 4> input_shape_info{ 1, 3, input_h, input_w };
 
     auto allocator_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
-    Ort::Value input_tensor_ = Ort::Value::CreateTensor<float>(allocator_info, blob.ptr<float>(), tpixels, input_shape_info.data(), input_shape_info.size());
-    const std::array<const char*, 1> inputNames = { input_node_names[0].c_str() };
-    const std::array<const char*, 1> outNames = { output_node_names[0].c_str() };
+    Ort::Value input_tensor = Ort::Value::CreateTensor<float>(allocator_info, blob.ptr<float>(), tpixels, input_shape_info.data(), input_shape_info.size());
 
-    std::vector<Ort::Value> ort_outputs = onnxSession.Run(Ort::RunOptions{ nullptr }, inputNames.data(), &input_tensor_, 1, outNames.data(), outNames.size());
+    std::vector<const char*> inputNames{ input_node_names[0].c_str() };
+    std::vector<const char*> outNames{ output_node_names[0].c_str() };
+
+    std::vector<Ort::Value> ort_outputs;
+    try {
+        ort_outputs = onnxSession.Run(Ort::RunOptions{ nullptr }, inputNames.data(), &input_tensor, 1, outNames.data(), outNames.size());
+    }
+    catch (std::exception e) {
+        std::cout << e.what() << std::endl;
+    }
+
     const float* pdata = ort_outputs[0].GetTensorMutableData<float>();
     cv::Mat dout(output_dim, output_row, CV_32F, (float*)pdata);
-    cv::Mat det_output = dout.t(); // 8400x84
+    cv::Mat det_output = dout.t();
+
     std::vector<cv::Rect> boxes;
     std::vector<int> classIds;
     std::vector<float> confidences;
-
     for (int i = 0; i < det_output.rows; i++) {
-        cv::Mat classes_scores = det_output.row(i).colRange(4, 84);
+        cv::Mat classes_scores = det_output.row(i).colRange(4, output_dim);
         cv::Point classIdPoint;
         double score;
-        minMaxLoc(classes_scores, 0, &score, 0, &classIdPoint);
+        cv::minMaxLoc(classes_scores, 0, &score, 0, &classIdPoint);
+
         if (score > score_threshold)
         {
             float cx = det_output.at<float>(i, 0);
@@ -122,7 +160,6 @@ int Yolov11Engine::Inference(const cv::Mat& image, std::vector<DetectObject> &de
             int y = static_cast<int>((cy - 0.5 * oh) * y_factor);
             int width = static_cast<int>(ow * x_factor);
             int height = static_cast<int>(oh * y_factor);
-
             cv::Rect box;
             box.x = x;
             box.y = y;
@@ -134,30 +171,41 @@ int Yolov11Engine::Inference(const cv::Mat& image, std::vector<DetectObject> &de
             confidences.push_back(score);
         }
     }
-
     std::vector<int> indexes;
     cv::dnn::NMSBoxes(boxes, confidences, score_threshold, nms_threshold, indexes);
-    for (size_t i = 0; i < indexes.size(); i++) {
-
-        int index = indexes[i];
-        int class_id = classIds[index];
-        float class_score = confidences[index];
-        cv::Rect box = boxes[index];
-        DetectObject detect;
-        detect.x1 = box.x;
-        detect.y1 = box.y;
-        detect.x2 = box.x + box.width;
-        detect.y2 = box.y + box.height;
-        detect.class_id = class_id;
-        detect.class_name = g_classes[class_id];
-        detect.class_score = class_score;
-        detections.push_back(detect);
+    detections.clear();
+    
+    // Debug logging (first detection only to avoid spam)
+    static int debug_count = 0;
+    if (debug_count < 3) {
+        LOG(INFO) << "[YOLO] Raw detections: " << boxes.size() << ", After NMS: " << indexes.size();
+        debug_count++;
     }
-    return true;
+    
+    for (size_t i = 0; i < indexes.size(); i++) {
+        DetectObject detection;
+        int index = indexes[i];
+        int idx = classIds[index];
+        cv::Rect box = boxes[index];
+        detection.x1 = box.x;
+        detection.y1 = box.y;
+        detection.x2 = box.x + box.width;
+        detection.y2 = box.y + box.height;
+        detection.class_id = idx;
+        detection.class_name = g_classes[idx];
+        detection.class_score = confidences[index];
+        detections.push_back(detection);
+        
+        // Debug: print first few detections
+        if (debug_count < 3 && i < 3) {
+            LOG(INFO) << "[YOLO] Detected: " << g_classes[idx] 
+                      << " (" << (int)(confidences[index]*100) << "%)";
+        }
+    }
+    return 0;
 }
 
 int Yolov11Engine::Run(cv::Mat& image, std::vector<DetectObject>& detections)
 {
-    Inference(image, detections);
-    return 0;
+    return Inference(image, detections);
 }
