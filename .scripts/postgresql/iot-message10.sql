@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict H8wWC7rKztIbVXw3IetLLuU0ELZSmTjcNxRGlXWkFO5RXsXeqAesgNwF5EYSTsv
+\restrict KHFDWPhP0Fkqc74oFyTgcny9jkeydPFfMFqZiAzqDCn8AOeZJBEYRgbIm8eaWSF
 
 -- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
 -- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)
@@ -27,10 +27,10 @@ DROP DATABASE IF EXISTS "iot-message20";
 CREATE DATABASE "iot-message20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict H8wWC7rKztIbVXw3IetLLuU0ELZSmTjcNxRGlXWkFO5RXsXeqAesgNwF5EYSTsv
+\unrestrict KHFDWPhP0Fkqc74oFyTgcny9jkeydPFfMFqZiAzqDCn8AOeZJBEYRgbIm8eaWSF
 \encoding SQL_ASCII
 \connect -reuse-previous=on "dbname='iot-message20'"
-\restrict H8wWC7rKztIbVXw3IetLLuU0ELZSmTjcNxRGlXWkFO5RXsXeqAesgNwF5EYSTsv
+\restrict KHFDWPhP0Fkqc74oFyTgcny9jkeydPFfMFqZiAzqDCn8AOeZJBEYRgbIm8eaWSF
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -956,7 +956,8 @@ COPY public.message_config (configuration, create_time, creator_id, id, msg_type
 {"txyunAppId":"1111","txyunAppKey":"1","txyunSign":"1"}	1689905782221	25ea1da0-ed50-11ed-b15c-5face31d80ce	92042652-fec4-4e3d-aeff-0e2378233d87	2	1	0
 {"isHttpUseProxy":true,"host":"12.12.13","port":"80","userName":"a","password":"a"}	1689906394550	25ea1da0-ed50-11ed-b15c-5face31d80ce	00a66566-3a4a-4894-a9ab-18f6eb1d1497	5	1	0
 {"aliyunAccessKeyId":"LTAI5tAzfKSJigmEYGRNBGU8","aliyunAccessKeySecret":"JbUZ4fHNmYDniY9OFfF8qBUiEbPbCQ","aliyunSign":"短信通知"}	1689905755523	25ea1da0-ed50-11ed-b15c-5face31d80ce	5e52b025-2ebd-4a5c-ae31-3752327cb526	1	1	0
-{"mailHost":"smtp.qq.com","mailPort":465,"mailFrom":"853017739@qq.com","mailUser":"853017739@qq.com","mailPassword":"gorttpgwqdiabdfc","starttlsEnable":false,"sslEnable":true}	1689749908832	25ea1da0-ed50-11ed-b15c-5face31d80ce	83440192-e39b-4674-98a7-c4f2e70fea8e	3	1	0
+{"feishuWebhook":"https://www.feishu.cn/flow/api/trigger-webhook/71e645fe33a058cb414d1e4e46bfce4d"}	1765352183596	25ea1da0-ed50-11ed-b15c-5face31d80ce	f2174096-0159-4211-939a-d28f43ab000f	7	0	0
+{"mailHost":"smtp.qq.com","mailPort":465,"mailFrom":"xxxxx@qq.com","mailUser":"xxxxx@qq.com","mailPassword":"gorttpgwqdiabdfc","starttlsEnable":false,"sslEnable":true}	1689749908832	25ea1da0-ed50-11ed-b15c-5face31d80ce	83440192-e39b-4674-98a7-c4f2e70fea8e	3	1	0
 \.
 
 
@@ -991,10 +992,6 @@ COPY public.t_msg_feishu (id, msg_type, msg_name, radio_type, feishu_msg_type, w
 --
 
 COPY public.t_msg_http (id, msg_type, msg_name, method, url, params, headers, cookies, body, body_type, create_time, modified_time, preview_user, user_group_id, tenant_id, deleted) FROM stdin;
-233b5141-0d06-4f04-a411-486635218698	5	http	POST	http://www.baidu.com	[{"id":0,"name":"p1","value":"p1"}]	[{"id":0,"name":"h1","value":"h1"}]	[{"id":0,"name":"c1","value":"c1","domain":"c1","path":"c1","time":"1690169035649"}]	消息内容	application/json	2023-07-24 11:24:24.178	\N	\N	\N	1	0
-d294013c-551a-4cf2-ac69-9048680b569f	5	http2	GET	1	[]	[]	[]	\N	\N	2023-07-25 11:00:58.377	\N	\N	\N	1	0
-5ad3a737-6cd2-49ca-b649-2eec29a940c8	5	http推送测试	POST	http://123.com	[{"id":0,"name":"test","value":"test"}]	[{"id":0,"name":"Content-Type","value":"application/json"},{"id":1,"name":"Keep-Alive","value":"timeout=60"},{"id":2,"name":"Connection","value":"keep-alive"}]	[]	{"test":"test”}	application/json	2023-07-25 11:47:40.465	\N	\N	\N	1	0
-c065f756-ccd1-4c9e-b09b-3fa7534f63cc	5	http001	GET	http://www.baidu.com	[{"id":0,"name":"1","value":"1"},{"id":1,"name":"2","value":"2"}]	[{"id":0,"name":"1","value":"1"}]	[]	\N	\N	2023-07-25 15:21:17.794	2023-07-25 15:21:31.18	\N	\N	1	0
 \.
 
 
@@ -1027,13 +1024,17 @@ COPY public.t_msg_ma_template (id, msg_type, msg_name, template_id, page, emphas
 --
 
 COPY public.t_msg_mail (id, msg_type, msg_name, title, cc, files, content, create_time, modified_time, preview_user, user_group_id, tenant_id, deleted) FROM stdin;
-944e8411-8c13-4e9e-9b14-f8edf0aeeeae	3	邮件1	aa	ss@si.com	{"id":0,"filePath":"http://120.77.217.53:39000/messagenotificationfile/annex/2023/07/24/1ebd6786-2012-42af-9c2d-d753926e5d1a.jpg","fileName":"规划要做的20个服务.jpg"}	aa	2023-07-24 09:30:20.301	2023-07-24 17:14:22.378	andywebjava@163.com	\N	1	0
-05753441-d5d9-43c1-a7a0-667108a19df4	3	用户分组测试	用户分组测试	aa@Si.com	{"id":0,"filePath":"","fileName":""}	test	2023-07-27 14:46:14.457	2023-07-27 14:48:33.654	andywebjava@163.com	\N	1	0
-1	3	邮件测试发送	邮件测试发送		{"id":"001","fileName":"接口文档.txt","filePath":"http://120.77.217.53:39000/thingsboardfile/mailAnnex/2023/07/21/e2147071-2061-4755-b318-2fa33652bc30.txt"}	邮件测试发送_20230724	2023-07-24 08:30:20.301	2023-07-24 17:24:39.519	andywebjava@163.com	\N	1	0
-5ee8cd54-6cd7-4a5e-99b8-ed8f76eccd2f	3	哇哈哈	您好			哇哈哈	2023-07-25 14:23:29.162	2023-07-25 14:28:03.585	andywebjava@163.com	\N	1	0
-5195a5ea-5c7a-4b6d-a0d4-313ead959a63	3	email001	email001	email001@si.com		test	2023-07-25 15:05:40.656	2023-07-25 15:08:30.067	andywebjava@163.com	\N	1	0
-807db0ec-4d8a-4414-a4d1-ec6abfc59979	3	email002	email002	email002@si.com		1	2023-07-25 15:08:56.214	2023-07-25 17:23:36.962	andywebjava@163.com	\N	1	0
-515bdf64-20e9-4035-b6bf-6cc6364a5372	3	EasyAIoT邮件测试模板	EasyAIoT算法任务邮件测试推送		{"id":0,"filePath":"http://120.77.217.53:39000/messagenotificationfile/annex/2023/07/26/31216695-bd3d-4749-8d31-f0c506e12fca.pdf","fileName":""}	这是一封来自EasyAIoT的测试邮件	2023-07-24 17:26:01.549	2025-12-07 11:32:27.487	andywebjava@163.com	c52b76fa-1ee7-4c5d-8305-075ea876272b	1	0
+907aec07-5b5f-4d88-bef0-9991262099f2	3	告警通知	告警通知-大门设备	\N	\N	【告警通知】\n设备名称: 大门设备\n设备ID: 1764341204704370850\n对象类型: car\n事件类型: 江北初中监控安防任务\n告警时间: 2025-12-10 15:13:00	2025-12-10 15:13:05.796	\N	xxxxx@163.com	\N	0	0
+794f743b-1fd1-4ac6-8a41-a18353806474	3	告警通知	告警通知-大门设备	\N	\N	【告警通知】\n设备名称: 大门设备\n设备ID: 1764341204704370850\n对象类型: truck\n事件类型: 江北初中监控安防任务\n告警时间: 2025-12-10 14:46:00	2025-12-10 14:46:05.836	\N	xxxxx@163.com	\N	0	0
+5356e214-9673-4d48-b952-2894dc584765	3	告警通知	告警通知-大门设备	\N	\N	【告警通知】\n设备名称: 大门设备\n设备ID: 1764341204704370850\n对象类型: car\n事件类型: 江北初中监控安防任务\n告警时间: 2025-12-10 14:52:00	2025-12-10 14:52:05.574	\N	xxxxx@163.com	\N	0	0
+5186b29e-1a14-494e-8dd3-af314f464d26	3	告警通知	告警通知-大门设备	\N	\N	【告警通知】\n设备名称: 大门设备\n设备ID: 1764341204704370850\n对象类型: car\n事件类型: 江北初中监控安防任务\n告警时间: 2025-12-10 14:57:00	2025-12-10 14:57:05.951	\N	xxxxx@163.com	\N	0	0
+bf366265-b98c-4bc9-8b12-a8c2426c2110	3	告警通知	告警通知-大门设备	\N	\N	【告警通知】\n设备名称: 大门设备\n设备ID: 1764341204704370850\n对象类型: car\n事件类型: 江北初中监控安防任务\n告警时间: 2025-12-10 15:03:00	2025-12-10 15:03:05.63	\N	xxxxx@163.com	\N	0	0
+ade227fe-5ff3-4eda-9647-c133c0636189	3	告警通知	告警通知-大门设备	\N	\N	【告警通知】\n设备名称: 大门设备\n设备ID: 1764341204704370850\n对象类型: car\n事件类型: 江北初中监控安防任务\n告警时间: 2025-12-10 15:19:00	2025-12-10 15:19:05.567	\N	xxxxx@163.com	\N	0	0
+e3a0432d-b0b2-438b-9681-9bfcc6a90873	3	告警通知	告警通知-大门设备	\N	\N	【告警通知】\n设备名称: 大门设备\n设备ID: 1764341204704370850\n对象类型: car\n事件类型: 江北初中监控安防任务\n告警时间: 2025-12-10 15:24:00	2025-12-10 15:24:05.7	\N	xxxxx@163.com	\N	0	0
+175bc751-760d-40df-956b-ac2b3f374c60	3	告警通知	告警通知-大门设备	\N	\N	【告警通知】\n设备名称: 大门设备\n设备ID: 1764341204704370850\n对象类型: car\n事件类型: 江北初中监控安防任务\n告警时间: 2025-12-10 15:29:00	2025-12-10 15:29:05.71	\N	xxxxx@163.com	\N	0	0
+5bdb23a7-4e2d-46de-b746-7745d6fc6eb5	3	告警通知	告警通知-大门设备	\N	\N	【告警通知】\n设备名称: 大门设备\n设备ID: 1764341204704370850\n对象类型: car\n事件类型: 江北初中监控安防任务\n告警时间: 2025-12-10 15:35:00	2025-12-10 15:35:05.676	\N	xxxxx@163.com	\N	0	0
+0d5b118a-2d4e-4f76-a212-8d172648aed4	3	告警通知	告警通知-大门设备	\N	\N	【告警通知】\n设备名称: 大门设备\n设备ID: 1764341204704370850\n对象类型: car\n事件类型: 江北初中监控安防任务\n告警时间: 2025-12-10 15:40:00	2025-12-10 15:40:05.795	\N	xxxxx@163.com	\N	0	0
+fb6cd163-9339-4df1-8b93-6a0af93197ab	3	告警通知	告警通知-大门设备	\N	\N	【告警通知】\n设备名称: 大门设备\n设备ID: 1764341204704370850\n对象类型: car\n事件类型: 江北初中监控安防任务\n告警时间: 2025-12-10 15:46:00	2025-12-10 15:46:05.811	\N	xxxxx@163.com	\N	0	0
 \.
 
 
@@ -1058,15 +1059,6 @@ COPY public.t_msg_mp_template (id, msg_type, msg_name, template_id, url, ma_appi
 --
 
 COPY public.t_msg_sms (id, msg_type, msg_name, template_id, content, create_time, modified_time, preview_user, user_group_id, tenant_id, deleted) FROM stdin;
-327fbcc3-900d-4ed5-8d3e-e0d77b1828b4	1	阿里云短信消息模板	test1	\N	2023-07-20 11:23:57.285	\N	13548739321	\N	1	0
-8287105d-8692-44a9-8728-3981401323b9	2	tengxun	aaa1	\N	2023-07-24 10:07:44.482	\N	13548739321	\N	1	0
-b6c6ae8c-7577-4a74-af71-6de12323a1cc	1	阿里云短信消息模板2	test1	\N	2023-07-20 11:21:48.505	\N	13548739321	\N	1	0
-7f5da3de-acc6-4268-903e-82f44f5acfbe	1	aliyun	aa1	\N	2023-07-24 11:01:00.255	\N	13548739321	\N	1	0
-1fd097c4-ff9f-46b9-8d14-96fafbcfa916	2	tentxunyun001	txy1110	\N	2023-07-25 15:10:56.575	2023-07-25 15:11:13.499	13387641922	\N	1	0
-1	1	阿里云短信test	sms_001	\N	\N	2023-07-25 15:35:10.764	13548739321	\N	1	0
-12113123-a79b-498a-b8e7-79cec71fa34c	2	tengxunyun002	002	\N	2023-07-25 15:13:15.758	2023-07-25 15:36:25.936	13387641922	\N	1	0
-92e5a1a6-6d2f-4568-9668-07d05d71bace	1	阿里云告警通知模板	SMS_462165066	\N	2023-07-24 10:55:44.406	2023-07-26 14:09:34.971	13548739321	\N	1	0
-0fe8e818-7ab1-460c-a6f9-2362019f0376	1	用户分组测试	001	\N	2023-07-27 14:50:06.721	2023-07-27 15:01:32.966	\N	53761ad7-8a08-4023-8529-96d5171ed542	1	0
 \.
 
 
@@ -1075,7 +1067,6 @@ b6c6ae8c-7577-4a74-af71-6de12323a1cc	1	阿里云短信消息模板2	test1	\N	202
 --
 
 COPY public.t_msg_wx_cp (id, msg_type, msg_name, cp_msg_type, agent_id, content, title, img_url, describe, url, btn_txt, create_time, modified_time, preview_user, user_group_id, tenant_id, deleted) FROM stdin;
-4be6326c-bb47-44c1-838a-84634e4c47d5	4	企业微信001	图文消息	1	\N	test	test	test1	test	\N	2023-07-25 15:19:27.145	2023-07-25 15:19:33.581	pengjian	\N	1	0
 \.
 
 
@@ -1092,21 +1083,7 @@ COPY public.t_msg_wx_uniform (id, msg_type, msg_name, mp_template_id, ma_templat
 --
 
 COPY public.t_preview_user (id, msg_type, preview_user, create_time, tenant_id, deleted) FROM stdin;
-9615869e-4da3-43f9-9536-c591023e568b	1	aaa	2023-07-21 11:47:29.174	1	0
-6ea907a6-6082-4d99-9539-e888477fd717	6	1	2023-07-21 11:50:56.586	1	0
-81bd8aa7-beb1-4b61-926a-862a7166eeca	4	22	2023-07-21 11:51:02.152	1	0
-fefa03e1-8599-443e-9c72-d3d8639c16e5	2	1	2023-07-21 11:51:10.29	1	0
-b0a89baa-38b3-407a-8f67-39207aa66d56	1	13548739321	2023-07-21 17:22:47.761	1	0
-15cb5775-7fea-4735-bd4b-cde521dd89c8	3	1184152227@qq.com	2023-07-24 18:09:44.11	1	0
-0b291ae8-4ce8-4a97-aab4-737a312f4efd	3	1769324819@qq.com	2023-07-20 11:02:02.195	1	0
-9d5b9618-0ece-4b48-8c94-ad985af512b7	1	13387641922	2023-07-25 10:43:21.895	1	0
-9ae077f1-9c44-4af9-85fe-fdc09392f94f	2	13387641922	2023-07-25 10:43:21.94	1	0
-c25d6e8b-9a6f-4a4a-9b76-1f043f2afda7	3	1131473524@qq.com	2023-07-25 10:43:21.961	1	0
-918171cd-c25f-46a6-8bae-f2f7ffba8c96	6	manager9115	2023-07-25 10:43:21.984	1	0
-23a2d3aa-d424-4929-97a2-88312dc0c20b	4	pengjian	2023-07-25 10:43:22.005	1	0
-2b09cc4b-9404-4165-833a-fed4d6a415b8	1	13397682981	2023-07-25 15:22:22.823	1	0
-a2ce3671-5e50-49a2-9281-710b96749ef0	3	test0@test.com	2023-07-26 14:37:51.746	1	0
-b1ff9e5a-7a0c-42d0-a27b-645291eb03e3	3	853017739@qq.com	2023-07-26 14:37:51.775	1	0
+b1ff9e5a-7a0c-42d0-a27b-645291eb03e3	3	xxxxx@163.com	2023-07-26 14:37:51.775	1	0
 \.
 
 
@@ -1115,9 +1092,7 @@ b1ff9e5a-7a0c-42d0-a27b-645291eb03e3	3	853017739@qq.com	2023-07-26 14:37:51.775	
 --
 
 COPY public.t_preview_user_group (id, msg_type, user_group_name, preview_user_id, create_time, tenant_id, deleted) FROM stdin;
-53761ad7-8a08-4023-8529-96d5171ed542	1	测试阿里云用户组1	b0a89baa-38b3-407a-8f67-39207aa66d56	2023-07-27 11:54:35.738	1	0
-5337a7f5-e947-4b93-818e-b1629f515103	6	dingding	918171cd-c25f-46a6-8bae-f2f7ffba8c96,6ea907a6-6082-4d99-9539-e888477fd717	2023-07-27 11:54:23.204	1	0
-c52b76fa-1ee7-4c5d-8305-075ea876272b	3	EasyAIoT测试分组	0b291ae8-4ce8-4a97-aab4-737a312f4efd,0dec81aa-4c8e-4b45-a4bb-59743c500f26,b1ff9e5a-7a0c-42d0-a27b-645291eb03e3	2023-07-27 09:31:54.007	1	0
+43785cb5-c36a-429c-824b-fc32ee7a3df5	3	EasyAIoT测试分组	b1ff9e5a-7a0c-42d0-a27b-645291eb03e3	2025-12-10 14:22:45.3	0	0
 \.
 
 
@@ -1126,7 +1101,16 @@ c52b76fa-1ee7-4c5d-8305-075ea876272b	3	EasyAIoT测试分组	0b291ae8-4ce8-4a97-a
 --
 
 COPY public.t_push_history (id, msg_id, msg_type, msg_name, result, csv_file, create_time, modified_time, tenant_id, deleted) FROM stdin;
-245f6a94-8f65-4c94-b14e-0740ddfc62d3	1	3	邮件测试发送	成功	\N	2023-07-24 14:31:00.626	\N	1	0
+5b50deca-7078-4622-a070-ff3b3ae4dcc9	5356e214-9673-4d48-b952-2894dc584765	3	告警通知	失败，失败原因：收件人列表为空，无法发送邮件。请检查邮件模板是否配置了用户组，以及用户组中是否包含有效的邮箱地址	\N	2025-12-10 14:52:05.675	\N	0	0
+f6a0f0ab-9eab-4bea-84ac-3de4cc343843	5186b29e-1a14-494e-8dd3-af314f464d26	3	告警通知	失败，失败原因：收件人列表为空，无法发送邮件。请检查邮件模板是否配置了用户组，以及用户组中是否包含有效的邮箱地址	\N	2025-12-10 14:57:05.99	\N	0	0
+e69ee9d8-20bf-4b96-8cd0-f9df9ab5b8b5	bf366265-b98c-4bc9-8b12-a8c2426c2110	3	告警通知	成功	\N	2025-12-10 15:03:06.538	\N	0	0
+6ff49950-a9fa-4771-892b-fa17dd373634	907aec07-5b5f-4d88-bef0-9991262099f2	3	告警通知	成功	\N	2025-12-10 15:13:06.464	\N	0	0
+cff756ca-97fe-433e-86c3-85f9ed2d2448	ade227fe-5ff3-4eda-9647-c133c0636189	3	告警通知	成功	\N	2025-12-10 15:19:06.381	\N	0	0
+30157675-407b-4d5b-a33c-c454ad212b1c	e3a0432d-b0b2-438b-9681-9bfcc6a90873	3	告警通知	成功	\N	2025-12-10 15:24:06.48	\N	0	0
+bf38c472-c3e6-4cdb-807e-c75ca044451b	175bc751-760d-40df-956b-ac2b3f374c60	3	告警通知	成功	\N	2025-12-10 15:29:06.505	\N	0	0
+213297e3-64f3-4e39-9ade-058ddd11fa83	5bdb23a7-4e2d-46de-b746-7745d6fc6eb5	3	告警通知	成功	\N	2025-12-10 15:35:06.315	\N	0	0
+5dd04995-921e-498f-9fe4-b9b0e10983a9	0d5b118a-2d4e-4f76-a212-8d172648aed4	3	告警通知	成功	\N	2025-12-10 15:40:06.373	\N	0	0
+dca51709-6a52-4b90-bca8-24cd1abcedb3	fb6cd163-9339-4df1-8b93-6a0af93197ab	3	告警通知	成功	\N	2025-12-10 15:46:06.441	\N	0	0
 \.
 
 
@@ -1378,5 +1362,5 @@ ALTER TABLE ONLY public.t_msg_kefu
 -- PostgreSQL database dump complete
 --
 
-\unrestrict H8wWC7rKztIbVXw3IetLLuU0ELZSmTjcNxRGlXWkFO5RXsXeqAesgNwF5EYSTsv
+\unrestrict KHFDWPhP0Fkqc74oFyTgcny9jkeydPFfMFqZiAzqDCn8AOeZJBEYRgbIm8eaWSF
 

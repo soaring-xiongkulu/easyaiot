@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict iZdoLve0psaXcY7NooGzB4hLPfmHYo8jVbUQlbmoLe1ZTFSJSrlcdJlRzcF0l70
+\restrict TKL0Vd1y8K1hrZobVstDzQGdfrNgfbbITaK6efuZrUyoKceDOTkn9W4NliURTfp
 
 -- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
 -- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)
@@ -27,10 +27,10 @@ DROP DATABASE IF EXISTS "iot-ai20";
 CREATE DATABASE "iot-ai20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict iZdoLve0psaXcY7NooGzB4hLPfmHYo8jVbUQlbmoLe1ZTFSJSrlcdJlRzcF0l70
+\unrestrict TKL0Vd1y8K1hrZobVstDzQGdfrNgfbbITaK6efuZrUyoKceDOTkn9W4NliURTfp
 \encoding SQL_ASCII
 \connect -reuse-previous=on "dbname='iot-ai20'"
-\restrict iZdoLve0psaXcY7NooGzB4hLPfmHYo8jVbUQlbmoLe1ZTFSJSrlcdJlRzcF0l70
+\restrict TKL0Vd1y8K1hrZobVstDzQGdfrNgfbbITaK6efuZrUyoKceDOTkn9W4NliURTfp
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -762,5 +762,5 @@ ALTER TABLE ONLY public.train_task
 -- PostgreSQL database dump complete
 --
 
-\unrestrict iZdoLve0psaXcY7NooGzB4hLPfmHYo8jVbUQlbmoLe1ZTFSJSrlcdJlRzcF0l70
+\unrestrict TKL0Vd1y8K1hrZobVstDzQGdfrNgfbbITaK6efuZrUyoKceDOTkn9W4NliURTfp
 

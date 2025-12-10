@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict N3Y203OOCzg2H9wCGSgEOP39OvuRwDsdzTBNCSf9MAODmjxP7xf94m8Ifn7yg5F
+\restrict Gwec60wQpIkzZYnvHMQeCECPQng1lYPmKuJyhM7nrtOK9CxhIL4279CASV5xNys
 
 -- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
 -- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)
@@ -27,10 +27,10 @@ DROP DATABASE IF EXISTS "iot-device20";
 CREATE DATABASE "iot-device20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict N3Y203OOCzg2H9wCGSgEOP39OvuRwDsdzTBNCSf9MAODmjxP7xf94m8Ifn7yg5F
+\unrestrict Gwec60wQpIkzZYnvHMQeCECPQng1lYPmKuJyhM7nrtOK9CxhIL4279CASV5xNys
 \encoding SQL_ASCII
 \connect -reuse-previous=on "dbname='iot-device20'"
-\restrict N3Y203OOCzg2H9wCGSgEOP39OvuRwDsdzTBNCSf9MAODmjxP7xf94m8Ifn7yg5F
+\restrict Gwec60wQpIkzZYnvHMQeCECPQng1lYPmKuJyhM7nrtOK9CxhIL4279CASV5xNys
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -6629,5 +6629,5 @@ CREATE TRIGGER update_iot_app_updated_time BEFORE UPDATE ON public.app FOR EACH 
 -- PostgreSQL database dump complete
 --
 
-\unrestrict N3Y203OOCzg2H9wCGSgEOP39OvuRwDsdzTBNCSf9MAODmjxP7xf94m8Ifn7yg5F
+\unrestrict Gwec60wQpIkzZYnvHMQeCECPQng1lYPmKuJyhM7nrtOK9CxhIL4279CASV5xNys
 

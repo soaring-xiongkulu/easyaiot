@@ -27,16 +27,44 @@ message(STATUS "OpenCV: ${OpenCV_INCLUDE_DIRS}")
 message(STATUS "${OpenCV_VERSION}")
 
 find_package(CURL REQUIRED)
-find_package(jsoncpp REQUIRED)
-find_package(glog REQUIRED)
 
-# Windows下需要手动查找FFmpeg库
+# Windows下使用find_package，Linux下使用find_library
 if(WIN32)
+    find_package(jsoncpp REQUIRED)
+    find_package(glog REQUIRED)
+    # Windows下需要手动查找FFmpeg库
     find_library(AVCODEC_LIBRARY avcodec REQUIRED)
     find_library(AVFORMAT_LIBRARY avformat REQUIRED)
     find_library(AVUTIL_LIBRARY avutil REQUIRED)
     find_library(SWSCALE_LIBRARY swscale REQUIRED)
     message(STATUS "FFmpeg libraries found")
+else()
+    # Linux下使用find_library查找jsoncpp和glog
+    # 尝试多个可能的库名
+    find_library(JSONCPP_LIBRARY 
+        NAMES jsoncpp libjsoncpp.so.25 libjsoncpp.so.1.9.5
+        PATHS /usr/lib /usr/lib/x86_64-linux-gnu /lib /lib/x86_64-linux-gnu
+        REQUIRED
+    )
+    find_library(GLOG_LIBRARY 
+        NAMES glog libglog.so.1 libglog.so.0.6.0
+        PATHS /usr/lib /usr/lib/x86_64-linux-gnu /lib /lib/x86_64-linux-gnu
+        REQUIRED
+    )
+    find_library(INIH_LIBRARY
+        NAMES inih libinih.so.1 libinih.so.55
+        PATHS /usr/lib /usr/lib/x86_64-linux-gnu /lib /lib/x86_64-linux-gnu
+        REQUIRED
+    )
+    find_library(PUGIXML_LIBRARY
+        NAMES pugixml libpugixml.so.1 libpugixml.so.1.14
+        PATHS /usr/lib /usr/lib/x86_64-linux-gnu /lib /lib/x86_64-linux-gnu
+        REQUIRED
+    )
+    message(STATUS "jsoncpp library: ${JSONCPP_LIBRARY}")
+    message(STATUS "glog library: ${GLOG_LIBRARY}")
+    message(STATUS "inih library: ${INIH_LIBRARY}")
+    message(STATUS "pugixml library: ${PUGIXML_LIBRARY}")
 endif()
 
 # Windows平台使用ONNX Runtime DirectML (支持RTX 5060)
@@ -76,10 +104,17 @@ else()
         /usr/include/
         /usr/local/include
         /usr/local/include/onnxruntime
+        /usr/local/openvino/3rdparty/jsoncpp/include
+        # 优先使用系统的OpenCV头文件，确保与链接的库版本匹配
         ${OpenCV_INCLUDE_DIRS}
+        # 使用OpenVINO的OpenCV头文件（作为备选）
+        /usr/local/openvino/3rdparty/opencv/include
         ${CMAKE_SOURCE_DIR}/src/
         ${CMAKE_SOURCE_DIR}/3rdparty/cpp-httplib/
     )
+    
+    # 不定义OpenCV版本宏，让OpenCV自己定义版本
+    # 移除硬编码版本定义以避免与OpenVINO的OpenCV 4.7冲突
 endif()
 
 # 收集所有源文件
@@ -121,16 +156,24 @@ if(WIN32)
     )
 else()
     # Linux链接
+    # 使用pkg-config获取完整的OpenCV库列表
+    execute_process(
+        COMMAND pkg-config --libs opencv4
+        OUTPUT_VARIABLE OPENCV_PKG_LIBS
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    message(STATUS "OpenCV pkg-config libs: ${OPENCV_PKG_LIBS}")
+    
     target_link_libraries(${PROJECT_NAME}
-        ${OpenCV_LIBS}
-        avformat avcodec avutil
+        ${OPENCV_PKG_LIBS}
+        avformat avcodec avutil swscale
         png z
-        curl curlpp
+        curl
         crypto ssl
-        inih INIReader
-        pugixml
-        jsoncpp
-        glog
+        ${INIH_LIBRARY}
+        ${PUGIXML_LIBRARY}
+        ${JSONCPP_LIBRARY}
+        ${GLOG_LIBRARY}
         onnxruntime
         pthread
     )

@@ -128,6 +128,9 @@
         <TabPane key="5" tab="算法任务">
           <AlgorithmTask ref="algorithmTaskRef"/>
         </TabPane>
+        <TabPane key="7" tab="大模型管理">
+          <LLMManage ref="llmManageRef"/>
+        </TabPane>
       </Tabs>
     </div>
   </div>
@@ -160,6 +163,7 @@ import AlgorithmTask from "./components/AlgorithmTask/index.vue";
 import RecordSpace from "./components/RecordSpace/index.vue";
 import VideoCardList from "./components/VideoCardList/index.vue";
 import StreamForward from "./components/StreamForward/index.vue";
+import LLMManage from "./components/LLMManage/index.vue";
 
 defineOptions({name: 'CAMERA'})
 
@@ -196,6 +200,9 @@ const algorithmTaskRef = ref();
 // 推流转发组件引用
 const streamForwardRef = ref();
 
+// 大模型管理组件引用
+const llmManageRef = ref();
+
 // Tab切换
 const handleTabClick = (activeKey: string) => {
   state.activeKey = activeKey;
@@ -218,6 +225,10 @@ const handleTabClick = (activeKey: string) => {
   // 切换到推流转发标签页时，刷新数据
   if (activeKey === '6' && streamForwardRef.value) {
     streamForwardRef.value.refresh();
+  }
+  // 切换到大模型管理标签页时，刷新数据
+  if (activeKey === '7' && llmManageRef.value) {
+    llmManageRef.value.refresh();
   }
 };
 
