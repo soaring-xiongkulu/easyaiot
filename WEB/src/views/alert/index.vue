@@ -17,6 +17,11 @@
           <span style="cursor: pointer" @click="handleCopy(record['device_name'])"><Icon
             icon="tdesign:copy-filled" color="#4287FCFF"/> {{ record['device_name'] }}</span>
         </template>
+        <template v-if="column.key === 'task_type'">
+          <a-tag :color="getTaskTypeColor(record['task_type'])">
+            {{ getTaskTypeText(record['task_type']) }}
+          </a-tag>
+        </template>
         <template v-if="column.dataIndex === 'action'">
           <TableAction
             :actions="[
@@ -296,6 +301,30 @@ function formatDeviceId(deviceId: string | null | undefined): string {
   if (!deviceId) return '-';
   if (deviceId.length <= 8) return deviceId;
   return deviceId.substring(0, 8) + '...';
+}
+
+// 获取任务类型文本
+function getTaskTypeText(taskType: string | null | undefined): string {
+  if (!taskType) return '实时';
+  // 兼容 'snap' 和 'snapshot' 两种值
+  if (taskType === 'snap' || taskType === 'snapshot') {
+    return '抓拍';
+  } else if (taskType === 'realtime') {
+    return '实时';
+  }
+  return taskType;
+}
+
+// 获取任务类型标签颜色
+function getTaskTypeColor(taskType: string | null | undefined): string {
+  if (!taskType) return 'blue';
+  // 兼容 'snap' 和 'snapshot' 两种值
+  if (taskType === 'snap' || taskType === 'snapshot') {
+    return 'green';
+  } else if (taskType === 'realtime') {
+    return 'blue';
+  }
+  return 'default';
 }
 
 async function handleCopy(record: object) {

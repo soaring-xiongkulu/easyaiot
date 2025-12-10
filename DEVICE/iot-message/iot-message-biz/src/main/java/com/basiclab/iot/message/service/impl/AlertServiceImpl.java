@@ -19,7 +19,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 告警处理服务实现
@@ -511,6 +513,40 @@ public class AlertServiceImpl implements AlertService {
             alertDO.setDeviceName(notificationMessage.getDeviceName());
             alertDO.setImagePath(alert.getImagePath());
             alertDO.setRecordPath(alert.getRecordPath());
+            
+            // 提取并设置 task_type（优先从 alert.taskType 获取，如果没有则从 information 中提取）
+            String taskType = alert.getTaskType();
+            if (taskType == null || taskType.isEmpty()) {
+                // 如果 alert.taskType 为空，尝试从 information 中提取
+                if (information != null) {
+                    try {
+                        if (information instanceof String) {
+                            // 尝试解析JSON字符串
+                            ObjectMapper mapper = new ObjectMapper();
+                            Map<String, Object> infoMap = mapper.readValue((String) information, Map.class);
+                            if (infoMap != null && infoMap.containsKey("task_type")) {
+                                taskType = (String) infoMap.get("task_type");
+                            }
+                        } else if (information instanceof Map) {
+                            Map<String, Object> infoMap = (Map<String, Object>) information;
+                            if (infoMap.containsKey("task_type")) {
+                                taskType = (String) infoMap.get("task_type");
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("从information中提取task_type失败: {}", e.getMessage());
+                    }
+                }
+            }
+            // 兼容 'snapshot' 值，统一转换为 'snap'
+            if ("snapshot".equals(taskType)) {
+                taskType = "snap";
+            }
+            // 如果仍然为空，设置默认值
+            if (taskType == null || taskType.isEmpty()) {
+                taskType = "realtime";
+            }
+            alertDO.setTaskType(taskType);
             
             // 插入数据库（使用@DS("video")注解的Mapper会自动切换到VIDEO数据库）
             int result = alertMapper.insert(alertDO);

@@ -23,6 +23,23 @@ export function getBasicColumns(): BasicColumn[] {
       width: 120,
     },
     {
+      title: '任务类型',
+      dataIndex: 'task_type',
+      width: 100,
+      customRender: ({text}) => {
+        if (!text) {
+          return '实时';
+        }
+        // 兼容 'snap' 和 'snapshot' 两种值
+        if (text === 'snap' || text === 'snapshot') {
+          return '抓拍';
+        } else if (text === 'realtime') {
+          return '实时';
+        }
+        return text;
+      },
+    },
+    {
       title: '告警对象',
       dataIndex: 'object',
       width: 120,

@@ -45,12 +45,16 @@ def get_kafka_producer():
         metadata_max_age_ms = int(os.getenv('KAFKA_METADATA_MAX_AGE_MS', '300000'))
         init_retry_interval = int(os.getenv('KAFKA_INIT_RETRY_INTERVAL', '60'))
     
-    # 重要：realtime_algorithm_service 使用 host 网络模式，必须使用 localhost 访问 Kafka
+    # 重要：VIDEO服务使用 host 网络模式，必须使用 localhost 访问 Kafka
     # 如果配置中包含容器名（Kafka 或 kafka-server），强制使用 localhost
     # 这样可以避免在 host 网络模式下尝试解析容器名导致的连接失败
+    original_bootstrap_servers = bootstrap_servers
     if 'Kafka' in bootstrap_servers or 'kafka-server' in bootstrap_servers:
-        logger.warning(f'检测到 Kafka 配置使用容器名 "{bootstrap_servers}"，强制覆盖为 localhost:9092（realtime_algorithm_service 使用 host 网络模式）')
+        logger.warning(f'⚠️  检测到 Kafka 配置使用容器名 "{bootstrap_servers}"，强制覆盖为 localhost:9092（VIDEO服务使用 host 网络模式）')
         bootstrap_servers = 'localhost:9092'
+    
+    # 记录最终使用的 bootstrap_servers（用于调试）
+    logger.debug(f'Kafka bootstrap_servers: {bootstrap_servers} (原始值: {original_bootstrap_servers})')
     
     # 如果已经初始化成功，直接返回
     if _producer is not None:
@@ -63,8 +67,17 @@ def get_kafka_producer():
     
     # 尝试初始化
     try:
+        # 确保 bootstrap_servers 是列表格式
+        bootstrap_servers_list = bootstrap_servers.split(',') if isinstance(bootstrap_servers, str) else bootstrap_servers
+        # 再次检查并清理，确保不包含容器名
+        bootstrap_servers_list = [s.strip() for s in bootstrap_servers_list if s.strip() and 'Kafka' not in s and 'kafka-server' not in s]
+        if not bootstrap_servers_list:
+            bootstrap_servers_list = ['localhost:9092']
+        
+        logger.info(f"正在初始化 Kafka 生产者: bootstrap_servers={bootstrap_servers_list}")
+        
         _producer = KafkaProducer(
-            bootstrap_servers=bootstrap_servers.split(','),
+            bootstrap_servers=bootstrap_servers_list,
             value_serializer=lambda v: json.dumps(v, ensure_ascii=False).encode('utf-8'),
             key_serializer=lambda k: k.encode('utf-8') if k else None,
             # 添加连接超时和重试限制
@@ -75,19 +88,29 @@ def get_kafka_producer():
             # 减少元数据刷新频率，避免频繁连接
             metadata_max_age_ms=metadata_max_age_ms,
             # 连接超时设置
-            api_version=(2, 5, 0),  # 指定API版本，避免版本探测
+            api_version=(2, 5),  # 指定API版本，避免版本探测（使用 (2, 5) 而不是 (2, 5, 0)）
+            # 客户端ID，便于在日志中识别
+            client_id='video-notification-producer',
         )
         # KafkaProducer在创建时会自动尝试连接
         # 如果连接失败，构造函数会抛出异常，这会被外层的try-except捕获
         # 这里我们只需要记录成功日志
-        logger.info(f"Kafka生产者初始化成功: {bootstrap_servers}")
+        logger.info(f"✅ Kafka生产者初始化成功: bootstrap_servers={bootstrap_servers_list}")
         _producer_init_failed = False
     except Exception as e:
         _producer = None
         _producer_init_failed = True
         _last_init_attempt_time = current_time
+        # 记录详细错误信息，包括 bootstrap_servers 的值
+        error_msg = str(e)
+        logger.error(f"❌ Kafka生产者初始化失败: bootstrap_servers={bootstrap_servers}, error={error_msg}")
+        # 如果错误信息中包含 'Kafka:9092'，说明 broker 返回了容器名，需要检查 Kafka broker 配置
+        if 'Kafka:9092' in error_msg or 'Kafka' in error_msg:
+            logger.error(f"⚠️  检测到错误信息中包含容器名 'Kafka'，这通常是因为 Kafka broker 的 "
+                        f"KAFKA_ADVERTISED_LISTENERS 配置问题。请确保 Kafka broker 的配置包含 "
+                        f"PLAINTEXT://localhost:9092")
         # 只记录警告，不抛出异常，避免影响主功能
-        logger.warning(f"Kafka生产者初始化失败: {str(e)}，将在 {init_retry_interval} 秒后重试")
+        logger.warning(f"Kafka生产者初始化失败，将在 {init_retry_interval} 秒后重试")
         return None
     
     return _producer

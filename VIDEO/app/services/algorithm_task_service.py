@@ -7,10 +7,10 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict
 from sqlalchemy.orm import joinedload
 
-from models import db, AlgorithmTask, Device, SnapSpace, algorithm_task_device
+from models import db, AlgorithmTask, Device, SnapSpace, algorithm_task_device, Pusher
 from app.utils.device_conflict_checker import (
     check_device_conflict_with_stream_forward_tasks,
     format_conflict_message
@@ -18,6 +18,293 @@ from app.utils.device_conflict_checker import (
 import json
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_notify_users_from_templates(channels: List[Dict]) -> List[Dict]:
+    """
+    从消息模板中提取通知人信息并保存到配置中
+    通知人不只是推送消息的信息，推送消息下面还关联着用户分组和用户管理，
+    最终要拿到具体每个用户的通知方式和具体内容（邮箱号、手机号等）
+    
+    Args:
+        channels: 通知渠道列表，格式：[{"method": "sms", "template_id": "xxx", "template_name": "xxx"}, ...]
+    
+    Returns:
+        list: 通知人列表，格式：[{"id": "xxx", "name": "xxx", "phone": "xxx", "email": "xxx", ...}, ...]
+    """
+    notify_users = []
+    if not channels:
+        return notify_users
+    
+    try:
+        import os
+        import requests
+        
+        # 获取消息服务API地址
+        try:
+            from flask import current_app
+            message_service_url = current_app.config.get('MESSAGE_SERVICE_URL', 'http://localhost:48080')
+            jwt_token = current_app.config.get('JWT_TOKEN', os.getenv('JWT_TOKEN', ''))
+        except RuntimeError:
+            message_service_url = os.getenv('MESSAGE_SERVICE_URL', 'http://localhost:48080')
+            jwt_token = os.getenv('JWT_TOKEN', '')
+        
+        # 构建认证请求头
+        headers = {}
+        if jwt_token:
+            headers['Authorization'] = f'Bearer {jwt_token}'
+        
+        # 消息类型映射
+        method_to_msg_type = {
+            'sms': 1,  # 短信（阿里云/腾讯云）
+            'email': 3,  # 邮件
+            'mail': 3,  # 邮件（别名）
+            'wxcp': 4,  # 企业微信
+            'wechat': 4,  # 企业微信（别名）
+            'weixin': 4,  # 企业微信（别名）
+            'http': 5,  # HTTP
+            'webhook': 5,  # HTTP（别名）
+            'ding': 6,  # 钉钉
+            'dingtalk': 6,  # 钉钉（别名）
+            'feishu': 7,  # 飞书
+            'lark': 7,  # 飞书（别名）
+        }
+        
+        # 使用字典去重，key为用户ID
+        all_notify_users = {}
+        
+        for channel in channels:
+            method = channel.get('method', '').lower()
+            template_id = channel.get('template_id')
+            
+            if not template_id:
+                continue
+            
+            msg_type = method_to_msg_type.get(method)
+            if not msg_type:
+                logger.warning(f"不支持的通知方式: {method}")
+                continue
+            
+            try:
+                # 调用消息服务API获取模板详情（通过网关访问）
+                template_url = f"{message_service_url}/admin-api/message/template/get"
+                params = {
+                    'id': template_id,
+                    'msgType': msg_type
+                }
+                
+                logger.info(f"📞 调用消息服务API获取模板详情: method={method}, template_id={template_id}, msg_type={msg_type}, url={template_url}")
+                
+                response = requests.get(template_url, params=params, headers=headers, timeout=5)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    logger.info(f"📥 模板API响应: code={result.get('code')}, success={result.get('success')}")
+                    if result.get('code') == 0 or result.get('success'):
+                        template_data = result.get('data') or result
+                        logger.info(f"📋 模板数据: {template_data}")
+                        
+                        # 获取userGroupId
+                        user_group_id = template_data.get('userGroupId') or template_data.get('user_group_id')
+                        logger.info(f"👥 从模板获取到userGroupId: {user_group_id}")
+                        
+                        if user_group_id:
+                            # 第一步：调用用户组API获取用户组详情（包含preview_user_id和用户列表）（通过网关访问）
+                            user_group_detail_url = f"{message_service_url}/admin-api/message/preview/user/group/query"
+                            user_group_detail_params = {'id': user_group_id}
+                            
+                            logger.info(f"📞 调用用户组API: url={user_group_detail_url}, params={user_group_detail_params}")
+                            user_group_detail_response = requests.get(user_group_detail_url, params=user_group_detail_params, headers=headers, timeout=5)
+                            
+                            if user_group_detail_response.status_code == 200:
+                                user_group_detail_result = user_group_detail_response.json()
+                                logger.info(f"📥 用户组API响应: code={user_group_detail_result.get('code')}, success={user_group_detail_result.get('success')}")
+                                if user_group_detail_result.get('code') == 0 or user_group_detail_result.get('success'):
+                                    # 获取用户组数据（TableDataInfo的data字段是列表）
+                                    user_group_list = user_group_detail_result.get('data', [])
+                                    if not isinstance(user_group_list, list):
+                                        user_group_list = []
+                                    
+                                    logger.info(f"👥 用户组列表长度: {len(user_group_list)}")
+                                    if user_group_list and len(user_group_list) > 0:
+                                        user_group_data = user_group_list[0]
+                                        logger.info(f"📋 用户组数据: {user_group_data}")
+                                        
+                                        # 优先使用用户组返回的用户列表（如果包含）
+                                        t_preview_users = user_group_data.get('tPreviewUsers') or user_group_data.get('t_preview_users')
+                                        logger.info(f"👤 用户组中的用户列表: tPreviewUsers={t_preview_users}")
+                                        
+                                        if t_preview_users and isinstance(t_preview_users, list) and len(t_preview_users) > 0:
+                                            # 直接使用用户组返回的用户列表
+                                            for user_detail_data in t_preview_users:
+                                                if isinstance(user_detail_data, dict):
+                                                    # 获取用户的msgType（优先使用用户自己的msgType）
+                                                    user_msg_type = user_detail_data.get('msgType') or msg_type
+                                                    
+                                                    # 构建完整的用户信息（提取所有字段）
+                                                    user_info = {
+                                                        'id': user_detail_data.get('id'),
+                                                        'msgType': user_msg_type,
+                                                        'previewUser': user_detail_data.get('previewUser') or user_detail_data.get('preview_user'),
+                                                        'name': user_detail_data.get('name'),  # 如果有name字段
+                                                    }
+                                                    
+                                                    # 根据用户的msgType提取对应的联系方式（而不是channel的method）
+                                                    preview_user = user_info.get('previewUser')
+                                                    if preview_user:
+                                                        # 根据msgType设置联系方式
+                                                        if user_msg_type == 1:  # 短信
+                                                            user_info['phone'] = preview_user
+                                                            user_info['mobile'] = preview_user
+                                                        elif user_msg_type == 3:  # 邮件
+                                                            user_info['email'] = preview_user
+                                                            user_info['mail'] = preview_user
+                                                        elif user_msg_type == 4:  # 企业微信
+                                                            user_info['wxcp_userid'] = preview_user
+                                                            user_info['wechat_userid'] = preview_user
+                                                        elif user_msg_type == 6:  # 钉钉
+                                                            user_info['ding_userid'] = preview_user
+                                                            user_info['dingtalk_userid'] = preview_user
+                                                        elif user_msg_type == 7:  # 飞书
+                                                            user_info['feishu_userid'] = preview_user
+                                                            user_info['lark_userid'] = preview_user
+                                                    
+                                                    # 使用用户ID作为key去重
+                                                    user_key = user_info.get('id')
+                                                    if user_key and user_key not in all_notify_users:
+                                                        all_notify_users[user_key] = user_info
+                                                    elif user_key in all_notify_users:
+                                                        # 如果已存在，合并信息（保留所有联系方式）
+                                                        existing_user = all_notify_users[user_key]
+                                                        # 合并时，保留所有联系方式字段
+                                                        for key, value in user_info.items():
+                                                            if value is not None:
+                                                                existing_user[key] = value
+                                            
+                                            logger.info(f"从模板 {template_id} 的用户组 {user_group_id} 获取到 {len(t_preview_users)} 个用户（从用户组API）")
+                                        else:
+                                            # 如果用户组API没有返回用户列表，则通过preview_user_id获取
+                                            preview_user_ids_str = user_group_data.get('previewUserId') or user_group_data.get('preview_user_id')
+                                            
+                                            if preview_user_ids_str:
+                                                # 第二步：根据用户ID列表获取用户详情
+                                                preview_user_ids = [uid.strip() for uid in preview_user_ids_str.split(',') if uid.strip()]
+                                                
+                                                if preview_user_ids:
+                                                    # 调用用户API获取用户详情（通过网关访问）
+                                                    for user_id in preview_user_ids:
+                                                        try:
+                                                            user_detail_url = f"{message_service_url}/admin-api/message/preview/user/query"
+                                                            user_detail_params = {'id': user_id, 'msgType': msg_type}
+                                                            
+                                                            user_detail_response = requests.get(user_detail_url, params=user_detail_params, headers=headers, timeout=5)
+                                                            
+                                                            if user_detail_response.status_code == 200:
+                                                                user_detail_result = user_detail_response.json()
+                                                                if user_detail_result.get('code') == 0 or user_detail_result.get('success'):
+                                                                    # 获取用户数据（TableDataInfo的data字段是列表）
+                                                                    user_detail_list = user_detail_result.get('data', [])
+                                                                    if not isinstance(user_detail_list, list):
+                                                                        user_detail_list = []
+                                                                    
+                                                                    if user_detail_list and len(user_detail_list) > 0:
+                                                                        user_detail_data = user_detail_list[0]
+                                                                        
+                                                                        # 获取用户的msgType（优先使用用户自己的msgType）
+                                                                        user_msg_type = user_detail_data.get('msgType') or msg_type
+                                                                        
+                                                                        # 构建完整的用户信息（提取所有字段）
+                                                                        user_info = {
+                                                                            'id': user_detail_data.get('id') or user_id,
+                                                                            'msgType': user_msg_type,
+                                                                            'previewUser': user_detail_data.get('previewUser') or user_detail_data.get('preview_user'),
+                                                                            'name': user_detail_data.get('name'),  # 如果有name字段
+                                                                        }
+                                                                        
+                                                                        # 根据用户的msgType提取对应的联系方式（而不是channel的method）
+                                                                        preview_user = user_info.get('previewUser')
+                                                                        if preview_user:
+                                                                            # 根据msgType设置联系方式
+                                                                            if user_msg_type == 1:  # 短信
+                                                                                user_info['phone'] = preview_user
+                                                                                user_info['mobile'] = preview_user
+                                                                            elif user_msg_type == 3:  # 邮件
+                                                                                user_info['email'] = preview_user
+                                                                                user_info['mail'] = preview_user
+                                                                            elif user_msg_type == 4:  # 企业微信
+                                                                                user_info['wxcp_userid'] = preview_user
+                                                                                user_info['wechat_userid'] = preview_user
+                                                                            elif user_msg_type == 6:  # 钉钉
+                                                                                user_info['ding_userid'] = preview_user
+                                                                                user_info['dingtalk_userid'] = preview_user
+                                                                            elif user_msg_type == 7:  # 飞书
+                                                                                user_info['feishu_userid'] = preview_user
+                                                                                user_info['lark_userid'] = preview_user
+                                                                        
+                                                                        # 使用用户ID作为key去重
+                                                                        user_key = user_info.get('id')
+                                                                        if user_key and user_key not in all_notify_users:
+                                                                            all_notify_users[user_key] = user_info
+                                                                        elif user_key in all_notify_users:
+                                                                            # 如果已存在，合并信息（保留所有联系方式）
+                                                                            existing_user = all_notify_users[user_key]
+                                                                            # 合并时，保留所有联系方式字段
+                                                                            for key, value in user_info.items():
+                                                                                if value is not None:
+                                                                                    existing_user[key] = value
+                                                                            
+                                                        except requests.exceptions.RequestException as e:
+                                                            logger.warning(f"获取用户 {user_id} 详情失败: {str(e)}")
+                                                            continue
+                                                        except Exception as e:
+                                                            logger.warning(f"获取用户 {user_id} 详情异常: {str(e)}")
+                                                            continue
+                                                    
+                                                    logger.info(f"从模板 {template_id} 的用户组 {user_group_id} 获取到 {len(preview_user_ids)} 个用户（通过用户API）")
+                                                else:
+                                                    logger.warning(f"用户组 {user_group_id} 中没有配置用户ID")
+                                            else:
+                                                logger.warning(f"用户组 {user_group_id} 中没有配置 previewUserId")
+                                    else:
+                                        logger.warning(f"用户组 {user_group_id} 查询结果为空")
+                                else:
+                                    logger.warning(f"⚠️  获取用户组 {user_group_id} 详情失败: code={user_group_detail_result.get('code')}, msg={user_group_detail_result.get('msg')}, result={user_group_detail_result}")
+                            else:
+                                logger.warning(f"⚠️  调用用户组API失败: HTTP {user_group_detail_response.status_code}, response={user_group_detail_response.text[:200]}")
+                        else:
+                            logger.warning(f"⚠️  模板 {template_id} 中没有配置 userGroupId，无法获取通知人信息")
+                    else:
+                        logger.warning(f"⚠️  获取模板 {template_id} 详情失败: code={result.get('code')}, msg={result.get('msg')}, result={result}")
+                else:
+                    logger.warning(f"⚠️  调用消息服务API失败: HTTP {response.status_code}, template_id={template_id}, response={response.text[:200]}")
+                    
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"调用消息服务API异常: method={method}, template_id={template_id}, error={str(e)}")
+                continue
+            except Exception as e:
+                logger.warning(f"从消息模板获取通知人异常: method={method}, template_id={template_id}, error={str(e)}")
+                continue
+        
+        # 将字典转换为列表
+        notify_users = list(all_notify_users.values())
+        
+        if notify_users:
+            logger.info(f"✅ 从消息模板提取到 {len(notify_users)} 个通知人（包含完整用户信息）")
+            # 打印每个通知人的详细信息（用于调试）
+            for idx, user in enumerate(notify_users):
+                logger.info(f"  通知人 {idx+1}: id={user.get('id')}, msgType={user.get('msgType')}, "
+                          f"phone={user.get('phone')}, email={user.get('email')}, "
+                          f"wxcp_userid={user.get('wxcp_userid')}, ding_userid={user.get('ding_userid')}, "
+                          f"feishu_userid={user.get('feishu_userid')}, previewUser={user.get('previewUser')}, "
+                          f"name={user.get('name')}")
+        else:
+            logger.warning(f"⚠️  从消息模板提取通知人失败，返回空列表: channels={channels}")
+            logger.warning(f"⚠️  请检查：1) 消息模板是否配置了userGroupId 2) 用户组是否包含用户 3) API调用是否成功 4) 用户组中的用户是否有previewUser字段")
+        
+    except Exception as e:
+        logger.error(f"从消息模板提取通知人异常: {str(e)}", exc_info=True)
+    
+    return notify_users
 
 
 def create_algorithm_task(task_name: str,
@@ -166,9 +453,55 @@ def create_algorithm_task(task_name: str,
                 schedule = [[0] * 24 for _ in range(7)]
                 defense_schedule = json.dumps(schedule)
         
-        # 处理告警通知配置（如果是字典，需要转换为JSON字符串）
-        if alert_notification_config and isinstance(alert_notification_config, dict):
-            alert_notification_config = json.dumps(alert_notification_config)
+        # 处理告警通知配置（如果是字典或字符串，需要转换为JSON字符串）
+        # 在保存前，从消息模板中提取通知人信息并保存到配置中
+        if alert_notification_config:
+            # 如果是字符串，先解析为字典
+            if isinstance(alert_notification_config, str):
+                try:
+                    config_dict = json.loads(alert_notification_config)
+                except json.JSONDecodeError:
+                    logger.warning(f"⚠️  告警通知配置JSON解析失败: {alert_notification_config[:100]}")
+                    config_dict = {}
+            elif isinstance(alert_notification_config, dict):
+                config_dict = alert_notification_config
+            else:
+                logger.warning(f"⚠️  告警通知配置类型不支持: {type(alert_notification_config)}")
+                config_dict = {}
+            
+            # 确保config_dict是字典
+            if isinstance(config_dict, dict):
+                channels = config_dict.get('channels', [])
+                logger.info(f"开始处理告警通知配置: channels数量={len(channels) if channels else 0}")
+                if channels:
+                    # 从消息模板中提取通知人信息
+                    logger.info(f"开始从消息模板提取通知人信息: channels={channels}")
+                    notify_users = _extract_notify_users_from_templates(channels)
+                    if notify_users:
+                        # 将通知人信息添加到配置中
+                        config_dict['notify_users'] = notify_users
+                        logger.info(f"✅ 从消息模板提取到 {len(notify_users)} 个通知人，已保存到配置中")
+                        # 打印每个通知人的详细信息（用于调试）
+                        for idx, user in enumerate(notify_users):
+                            logger.info(f"  通知人 {idx+1}: id={user.get('id')}, msgType={user.get('msgType')}, "
+                                      f"phone={user.get('phone')}, email={user.get('email')}, "
+                                      f"wxcp_userid={user.get('wxcp_userid')}, ding_userid={user.get('ding_userid')}, "
+                                      f"feishu_userid={user.get('feishu_userid')}, previewUser={user.get('previewUser')}")
+                    else:
+                        logger.warning(f"⚠️  未能从消息模板提取通知人信息，配置中将不包含通知人。请检查：1) 消息模板是否配置了userGroupId 2) 用户组是否包含用户 3) API调用是否成功")
+                else:
+                    logger.warning(f"⚠️  告警通知配置中没有channels字段或channels为空")
+                
+                # 确保channels字段存在（即使为空）
+                if 'channels' not in config_dict:
+                    config_dict['channels'] = []
+                
+                # 转换为JSON字符串保存
+                alert_notification_config = json.dumps(config_dict, ensure_ascii=False)
+                logger.info(f"最终保存的告警通知配置: {alert_notification_config[:500]}")  # 只打印前500字符，避免日志过长
+            else:
+                logger.warning(f"⚠️  告警通知配置解析后不是字典类型: {type(config_dict)}")
+                alert_notification_config = None
         
         task = AlgorithmTask(
             task_name=task_name,
@@ -217,6 +550,11 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
     """更新算法任务"""
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
+        
+        # 校验：只有在停用状态下才能编辑（排除is_enabled字段本身的更新）
+        if task.is_enabled and 'is_enabled' not in kwargs:
+            raise ValueError('任务运行中，无法编辑，请先停止任务')
+        
         task_type = kwargs.get('task_type', task.task_type)
         
         # 处理设备ID列表
@@ -343,10 +681,56 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             if defense_mode and defense_mode not in ['full', 'half', 'day', 'night']:
                 raise ValueError(f"无效的布防模式: {defense_mode}，必须是 'full', 'half', 'day' 或 'night'")
         
-        # 处理告警通知配置（如果是字符串，需要转换为JSON字符串）
+        # 处理告警通知配置（如果是字典或字符串，需要转换为JSON字符串）
+        # 在保存前，从消息模板中提取通知人信息并保存到配置中
         if 'alert_notification_config' in kwargs and kwargs['alert_notification_config']:
-            if isinstance(kwargs['alert_notification_config'], dict):
-                kwargs['alert_notification_config'] = json.dumps(kwargs['alert_notification_config'])
+            alert_notification_config = kwargs['alert_notification_config']
+            # 如果是字符串，先解析为字典
+            if isinstance(alert_notification_config, str):
+                try:
+                    config_dict = json.loads(alert_notification_config)
+                except json.JSONDecodeError:
+                    logger.warning(f"⚠️  告警通知配置JSON解析失败: {alert_notification_config[:100]}")
+                    config_dict = {}
+            elif isinstance(alert_notification_config, dict):
+                config_dict = alert_notification_config
+            else:
+                logger.warning(f"⚠️  告警通知配置类型不支持: {type(alert_notification_config)}")
+                config_dict = {}
+            
+            # 确保config_dict是字典
+            if isinstance(config_dict, dict):
+                channels = config_dict.get('channels', [])
+                logger.info(f"开始处理告警通知配置（更新）: channels数量={len(channels) if channels else 0}")
+                if channels:
+                    # 从消息模板中提取通知人信息
+                    logger.info(f"开始从消息模板提取通知人信息（更新）: channels={channels}")
+                    notify_users = _extract_notify_users_from_templates(channels)
+                    if notify_users:
+                        # 将通知人信息添加到配置中
+                        config_dict['notify_users'] = notify_users
+                        logger.info(f"✅ 从消息模板提取到 {len(notify_users)} 个通知人，已保存到配置中（更新）")
+                        # 打印每个通知人的详细信息（用于调试）
+                        for idx, user in enumerate(notify_users):
+                            logger.info(f"  通知人 {idx+1}: id={user.get('id')}, msgType={user.get('msgType')}, "
+                                      f"phone={user.get('phone')}, email={user.get('email')}, "
+                                      f"wxcp_userid={user.get('wxcp_userid')}, ding_userid={user.get('ding_userid')}, "
+                                      f"feishu_userid={user.get('feishu_userid')}, previewUser={user.get('previewUser')}")
+                    else:
+                        logger.warning(f"⚠️  未能从消息模板提取通知人信息，配置中将不包含通知人（更新）。请检查：1) 消息模板是否配置了userGroupId 2) 用户组是否包含用户 3) API调用是否成功")
+                else:
+                    logger.warning(f"⚠️  告警通知配置中没有channels字段或channels为空（更新）")
+                
+                # 确保channels字段存在（即使为空）
+                if 'channels' not in config_dict:
+                    config_dict['channels'] = []
+                
+                # 转换为JSON字符串保存
+                kwargs['alert_notification_config'] = json.dumps(config_dict, ensure_ascii=False)
+                logger.info(f"最终保存的告警通知配置（更新）: {kwargs['alert_notification_config'][:500]}")  # 只打印前500字符
+            else:
+                logger.warning(f"⚠️  告警通知配置解析后不是字典类型（更新）: {type(config_dict)}")
+                kwargs['alert_notification_config'] = None
         
         for field in updatable_fields:
             if field in kwargs:
@@ -408,11 +792,18 @@ def delete_algorithm_task(task_id: int):
     """删除算法任务"""
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
+        
+        # 校验：只有在停用状态下才能删除
+        if task.is_enabled:
+            raise ValueError('任务运行中，无法删除，请先停止任务')
+        
         db.session.delete(task)
         db.session.commit()
         
         logger.info(f"删除算法任务成功: task_id={task_id}")
         return True
+    except ValueError:
+        raise
     except Exception as e:
         db.session.rollback()
         logger.error(f"删除算法任务失败: {str(e)}", exc_info=True)

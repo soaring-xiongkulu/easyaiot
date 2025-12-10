@@ -29,6 +29,9 @@ public class MailMsgMaker {
      */
     public TMsgMail makeMsg(String msgId, String mailContent) {
        TMsgMail tMsgMail = tMsgMailMapper.selectByPrimaryKey(msgId);
+       if (tMsgMail == null) {
+           throw new RuntimeException("邮件消息不存在: msgId=" + msgId);
+       }
        if(StringUtils.isNotEmpty(mailContent)){
            tMsgMail.setContent(mailContent);
        }

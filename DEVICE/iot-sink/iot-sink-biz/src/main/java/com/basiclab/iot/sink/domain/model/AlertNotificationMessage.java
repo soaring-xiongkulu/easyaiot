@@ -66,6 +66,13 @@ public class AlertNotificationMessage {
     private String timestamp;
     
     /**
+     * 是否需要发送通知
+     * true: 需要发送通知（有通知配置且通知人列表不为空）
+     * false: 不需要发送通知（没有通知配置或通知人列表为空）
+     */
+    private Boolean shouldNotify;
+    
+    /**
      * 告警信息内部类
      */
     @Data
@@ -77,6 +84,7 @@ public class AlertNotificationMessage {
         private String imagePath;
         private String recordPath;
         private String time;
+        private String taskType;  // 告警事件类型[realtime:实时算法任务,snap:抓拍算法任务]
     }
 }
 

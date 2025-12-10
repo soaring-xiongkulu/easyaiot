@@ -125,7 +125,9 @@ const loadAlarmList = async () => {
           time: item.time || item.alert_time || item.created_at || '',
           image: imageUrl,
           device_name: item.device_name,
-          device_id: item.device_id
+          device_id: item.device_id,
+          task_type: item.task_type,
+          information: item.information
         }
       })
     } else {

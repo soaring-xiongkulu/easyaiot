@@ -126,6 +126,11 @@ def update_task(task_id):
         if not data:
             return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
         
+        # 校验：只有在停用状态下才能编辑（排除is_enabled字段本身的更新）
+        task = AlgorithmTask.query.get_or_404(task_id)
+        if task.is_enabled and 'is_enabled' not in data:
+            return jsonify({'code': 400, 'msg': '任务运行中，无法编辑，请先停止任务'}), 400
+        
         task = update_algorithm_task(task_id, **data)
         
         return jsonify({
@@ -149,6 +154,11 @@ def update_task(task_id):
 def delete_task(task_id):
     """删除算法任务"""
     try:
+        # 校验：只有在停用状态下才能删除
+        task = AlgorithmTask.query.get_or_404(task_id)
+        if task.is_enabled:
+            return jsonify({'code': 400, 'msg': '任务运行中，无法删除，请先停止任务'}), 400
+        
         delete_algorithm_task(task_id)
         return jsonify({
             'code': 0,
@@ -302,33 +312,37 @@ def get_task_services_status(task_id):
             return jsonify({'code': 400, 'msg': '算法任务不存在'}), 400
         
         result = {
-            'realtime_service': None
+            'realtime_service': None,
+            'snap_service': None,  # 抓拍算法任务的统一服务
+            'extractor': None,
+            'sorter': None,
+            'pusher': None
         }
+        
+        # 检查守护进程是否在运行（即使心跳未上报）
+        daemon_running = False
+        try:
+            from app.services.algorithm_task_launcher_service import _running_daemons, _daemons_lock
+            with _daemons_lock:
+                if task_id in _running_daemons:
+                    daemon = _running_daemons[task_id]
+                    if daemon._running and daemon._process and daemon._process.poll() is None:
+                        daemon_running = True
+        except Exception as e:
+            logger.debug(f"检查守护进程状态失败: {str(e)}")
+        
+        # 根据心跳和守护进程状态判断服务状态
+        has_recent_heartbeat = task.service_last_heartbeat and (datetime.utcnow() - task.service_last_heartbeat).total_seconds() < 60
+        if has_recent_heartbeat:
+            service_status = 'running'
+        elif daemon_running:
+            # 守护进程在运行但心跳未上报（可能是刚启动，心跳还未上报）
+            service_status = 'running'
+        else:
+            service_status = 'stopped'
         
         # 实时算法任务：返回统一服务的状态
         if task.task_type == 'realtime':
-            # 检查守护进程是否在运行（即使心跳未上报）
-            daemon_running = False
-            try:
-                from app.services.algorithm_task_launcher_service import _running_daemons, _daemons_lock
-                with _daemons_lock:
-                    if task_id in _running_daemons:
-                        daemon = _running_daemons[task_id]
-                        if daemon._running and daemon._process and daemon._process.poll() is None:
-                            daemon_running = True
-            except Exception as e:
-                logger.debug(f"检查守护进程状态失败: {str(e)}")
-            
-            # 根据心跳和守护进程状态判断服务状态
-            has_recent_heartbeat = task.service_last_heartbeat and (datetime.utcnow() - task.service_last_heartbeat).total_seconds() < 60
-            if has_recent_heartbeat:
-                service_status = 'running'
-            elif daemon_running:
-                # 守护进程在运行但心跳未上报（可能是刚启动，心跳还未上报）
-                service_status = 'running'
-            else:
-                service_status = 'stopped'
-            
             # 构建实时算法服务状态信息
             realtime_service = {
                 'task_id': task.id,
@@ -342,9 +356,20 @@ def get_task_services_status(task_id):
                 'run_status': task.run_status
             }
             result['realtime_service'] = realtime_service
-        else:
-            # 抓拍算法任务：不需要服务状态
-            pass
+        elif task.task_type == 'snap':
+            # 抓拍算法任务：返回统一服务的状态（类似实时算法任务）
+            snap_service = {
+                'task_id': task.id,
+                'task_name': task.task_name,
+                'server_ip': task.service_server_ip,
+                'port': task.service_port,
+                'process_id': task.service_process_id,
+                'last_heartbeat': task.service_last_heartbeat.isoformat() if task.service_last_heartbeat else None,
+                'log_path': task.service_log_path,
+                'status': service_status,
+                'run_status': task.run_status
+            }
+            result['snap_service'] = snap_service
         
         return jsonify({
             'code': 0,
@@ -365,14 +390,14 @@ def get_task_extractor_logs(task_id):
         if not task:
             return jsonify({'code': 400, 'msg': '算法任务不存在'}), 400
         
-        # 新架构统一使用realtime_algorithm_service，对于实时算法任务，使用统一的日志路径
-        if task.task_type == 'realtime':
-            # 对于实时算法任务，使用统一的日志路径
+        # 新架构统一使用算法服务，对于实时算法任务和抓拍算法任务，都使用统一的日志路径
+        if task.task_type in ['realtime', 'snap']:
+            # 对于实时算法任务和抓拍算法任务，使用统一的日志路径
             lines = int(request.args.get('lines', 100))
             date = request.args.get('date', '').strip()
             
             # 创建一个模拟的服务对象，用于调用get_service_logs
-            class RealtimeServiceObj:
+            class AlgorithmServiceObj:
                 def __init__(self, log_path):
                     self.log_path = log_path
                     self.id = task_id
@@ -385,15 +410,13 @@ def get_task_extractor_logs(task_id):
                 log_base_dir = os.path.join(video_root, 'logs')
                 log_path = os.path.join(log_base_dir, f'task_{task_id}')
             
-            service_obj = RealtimeServiceObj(log_path)
+            service_obj = AlgorithmServiceObj(log_path)
             return get_service_logs(service_obj, lines, date if date else None)
         else:
-            # 对于抓拍算法任务，检查是否有extractor_id（旧架构）
-            # 注意：新架构的AlgorithmTask模型中没有extractor_id字段
-            # 这里为了兼容性，直接返回提示信息
+            # 未知的任务类型
             return jsonify({
                 'code': 400,
-                'msg': '新架构已统一使用实时算法服务，请使用realtime日志接口'
+                'msg': f'不支持的任务类型: {task.task_type}'
             }), 400
     except ValueError as e:
         return jsonify({'code': 400, 'msg': str(e)}), 400
@@ -494,20 +517,20 @@ def get_task_pusher_logs(task_id):
 
 @algorithm_task_bp.route('/task/<int:task_id>/realtime/logs', methods=['GET'])
 def get_task_realtime_logs(task_id):
-    """获取实时算法任务的日志"""
+    """获取算法任务的日志（支持实时算法任务和抓拍算法任务）"""
     try:
         task = AlgorithmTask.query.get(task_id)
         if not task:
             return jsonify({'code': 400, 'msg': '算法任务不存在'}), 400
         
-        if task.task_type != 'realtime':
-            return jsonify({'code': 400, 'msg': '该接口仅支持实时算法任务'}), 400
+        if task.task_type not in ['realtime', 'snap']:
+            return jsonify({'code': 400, 'msg': f'不支持的任务类型: {task.task_type}'}), 400
         
         lines = int(request.args.get('lines', 100))
         date = request.args.get('date', '').strip()
         
         # 创建一个模拟的服务对象，用于调用get_service_logs
-        class RealtimeServiceObj:
+        class AlgorithmServiceObj:
             def __init__(self, log_path):
                 self.log_path = log_path
                 self.id = task_id
@@ -520,7 +543,7 @@ def get_task_realtime_logs(task_id):
             log_base_dir = os.path.join(video_root, 'logs')
             log_path = os.path.join(log_base_dir, f'task_{task_id}')
         
-        service_obj = RealtimeServiceObj(log_path)
+        service_obj = AlgorithmServiceObj(log_path)
         return get_service_logs(service_obj, lines, date if date else None)
     except ValueError as e:
         return jsonify({'code': 400, 'msg': str(e)}), 400

@@ -70,7 +70,16 @@
                       </div>
                       <div class="prop" v-if="item.device_names && item.device_names.length > 0">
                         <div class="label">关联摄像头</div>
-                        <div class="value">{{ item.device_names.join(', ') }}</div>
+                        <div class="value" style="display: flex; align-items: center; gap: 4px;">
+                          <span>{{ item.device_names.length > 1 ? item.device_names[0] + '...' : item.device_names[0] }}</span>
+                          <CopyOutlined 
+                            :size="14" 
+                            color="#666"
+                            style="cursor: pointer; flex-shrink: 0;"
+                            @click.stop="handleCopyDeviceNames(item)"
+                            :title="'复制所有摄像头名称'"
+                          />
+                        </div>
                       </div>
                     </div>
                     <div class="flex" style="justify-content: space-between;">
@@ -88,19 +97,33 @@
                     <div class="btn" @click="handleView(item)">
                       <Icon icon="ant-design:eye-filled" :size="15" color="#3B82F6" />
                     </div>
-                    <div class="btn" @click="handleEdit(item)">
+                    <div 
+                      class="btn" 
+                      :class="{ disabled: item.is_enabled }"
+                      @click="!item.is_enabled && handleEdit(item)"
+                      :title="item.is_enabled ? '任务运行中，无法编辑' : '编辑'"
+                    >
                       <Icon icon="ant-design:edit-filled" :size="15" color="#3B82F6" />
                     </div>
                     <div 
                       class="btn" 
-                      :class="{ disabled: !hasModels(item) || !hasCameras(item) }"
-                      @click="hasModels(item) && hasCameras(item) && handleOpenRegionDetection(item)" 
-                      :title="!hasModels(item) ? '请先配置算法模型列表' : !hasCameras(item) ? '请先配置摄像头列表' : '区域检测配置'"
+                      :class="{ disabled: item.is_enabled || !hasModels(item) || !hasCameras(item) }"
+                      @click="!item.is_enabled && hasModels(item) && hasCameras(item) && handleOpenRegionDetection(item)" 
+                      :title="item.is_enabled ? '任务运行中，无法配置' : !hasModels(item) ? '请先配置算法模型列表' : !hasCameras(item) ? '请先配置摄像头列表' : '区域检测配置'"
                     >
                       <Icon icon="ant-design:aim-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <div class="btn" @click="handleManageServices(item)" title="心跳信息">
                       <Icon icon="ant-design:heart-outlined" :size="15" color="#3B82F6" />
+                    </div>
+                    <div 
+                      v-if="item.task_type === 'snap'"
+                      class="btn snap-space-btn" 
+                      :class="{ disabled: !hasCameras(item) }"
+                      @click="hasCameras(item) && handleOpenSnapSpace(item)" 
+                      :title="!hasCameras(item) ? '请先配置摄像头列表' : '查看抓拍空间'"
+                    >
+                      <Icon icon="ant-design:folder-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <div class="btn" v-if="item.is_enabled" @click="handleStop(item)">
                       <Icon icon="ant-design:pause-circle-outlined" :size="15" color="#3B82F6" />
@@ -112,9 +135,14 @@
                       title="是否确认删除？"
                       ok-text="是"
                       cancel-text="否"
+                      :disabled="item.is_enabled"
                       @confirm="handleDelete(item)"
                     >
-                      <div class="btn delete-btn">
+                      <div 
+                        class="btn delete-btn"
+                        :class="{ disabled: item.is_enabled }"
+                        :title="item.is_enabled ? '任务运行中，无法删除' : '删除'"
+                      >
                         <Icon icon="material-symbols:delete-outline-rounded" :size="15" color="#DC2626" />
                       </div>
                     </Popconfirm>
@@ -142,6 +170,9 @@
     
     <!-- 区域检测配置抽屉 -->
     <DeviceRegionDetectionDrawer @register="registerRegionDrawer" />
+    
+    <!-- 抓拍空间抽屉 -->
+    <SnapSpaceDrawer @register="registerSnapSpaceDrawer" />
     
     <!-- 视频播放模态框 -->
     <DialogPlayer @register="registerPlayerModal" />
@@ -200,6 +231,7 @@ import {
   PlayCircleOutlined,
   StopOutlined,
   SwapOutlined,
+  CopyOutlined,
 } from '@ant-design/icons-vue';
 import { List, Popconfirm, Spin, Empty, RadioGroup, Radio } from 'ant-design-vue';
 import { useDrawer } from '@/components/Drawer';
@@ -207,6 +239,7 @@ import { BasicForm, useForm } from '@/components/Form';
 import { BasicTable, TableAction, useTable } from '@/components/Table';
 import { useMessage } from '@/hooks/web/useMessage';
 import { Icon } from '@/components/Icon';
+import { copyText } from '@/utils/copyTextToClipboard';
 import { useModal } from '@/components/Modal';
 import { BasicModal } from '@/components/Modal';
 import {
@@ -222,6 +255,7 @@ import {
 import AlgorithmTaskModal from './AlgorithmTaskModal.vue';
 import ServiceManageDrawer from './ServiceManageDrawer.vue';
 import DeviceRegionDetectionDrawer from './DeviceRegionDetectionDrawer.vue';
+import SnapSpaceDrawer from './SnapSpaceDrawer.vue';
 import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue';
 import { getBasicColumns, getFormConfig } from './Data';
 import AI_TASK_IMAGE from '@/assets/images/video/ai-task.png';
@@ -242,6 +276,7 @@ const loading = ref(false);
 const [registerModal, { openDrawer }] = useDrawer();
 const [registerServiceDrawer, { openDrawer: openServiceDrawer }] = useDrawer();
 const [registerRegionDrawer, { openDrawer: openRegionDrawer }] = useDrawer();
+const [registerSnapSpaceDrawer, { openDrawer: openSnapSpaceDrawer }] = useDrawer();
 const [registerPlayerModal, { openModal: openPlayerModal }] = useModal();
 
 // 摄像头选择和播放相关
@@ -306,6 +341,16 @@ const hasModels = (record: AlgorithmTask) => {
   return record.model_ids && Array.isArray(record.model_ids) && record.model_ids.length > 0;
 };
 
+// 复制摄像头名称
+const handleCopyDeviceNames = (item: AlgorithmTask) => {
+  if (!item.device_names || item.device_names.length === 0) {
+    createMessage.warning('无摄像头名称可复制');
+    return;
+  }
+  const deviceNamesText = item.device_names.join(', ');
+  copyText(deviceNamesText, '摄像头名称已复制到剪贴板');
+};
+
 // 获取表格操作按钮
 const getTableActions = (record: AlgorithmTask) => {
   const actions = [
@@ -316,18 +361,31 @@ const getTableActions = (record: AlgorithmTask) => {
     },
     {
       icon: 'ant-design:edit-filled',
-      tooltip: '编辑',
-      onClick: () => handleEdit(record),
+      tooltip: record.is_enabled ? '任务运行中，无法编辑' : '编辑',
+      disabled: record.is_enabled,
+      onClick: () => {
+        if (record.is_enabled) {
+          createMessage.warning('任务运行中，无法编辑，请先停止任务');
+          return;
+        }
+        handleEdit(record);
+      },
     },
     {
       icon: 'ant-design:aim-outlined',
-      tooltip: !hasModels(record) 
+      tooltip: record.is_enabled
+        ? '任务运行中，无法配置'
+        : !hasModels(record) 
         ? '请先配置算法模型列表' 
         : !hasCameras(record) 
         ? '请先配置摄像头列表' 
         : '区域检测配置',
-      disabled: !hasModels(record) || !hasCameras(record),
+      disabled: record.is_enabled || !hasModels(record) || !hasCameras(record),
       onClick: () => {
+        if (record.is_enabled) {
+          createMessage.warning('任务运行中，无法配置，请先停止任务');
+          return;
+        }
         if (!hasModels(record)) {
           createMessage.warning('请先配置算法模型列表');
           return;
@@ -340,11 +398,27 @@ const getTableActions = (record: AlgorithmTask) => {
       },
     },
     {
-      icon: 'ant-design:heart-outlined',
+      icon: 'ant-design:folder-outlined',
       tooltip: '心跳信息',
       onClick: () => handleManageServices(record),
     },
   ];
+
+  // 抓拍算法任务添加抓拍空间按钮
+  if (record.task_type === 'snap') {
+    actions.push({
+      icon: 'ant-design:folder-outlined',
+      tooltip: !hasCameras(record) ? '请先配置摄像头列表' : '查看抓拍空间',
+      disabled: !hasCameras(record),
+      onClick: () => {
+        if (!hasCameras(record)) {
+          createMessage.warning('请先配置摄像头列表');
+          return;
+        }
+        handleOpenSnapSpace(record);
+      },
+    });
+  }
 
   if (record.is_enabled) {
     actions.push({
@@ -362,7 +436,8 @@ const getTableActions = (record: AlgorithmTask) => {
 
   actions.push({
     icon: 'material-symbols:delete-outline-rounded',
-    tooltip: '删除',
+    tooltip: record.is_enabled ? '任务运行中，无法删除' : '删除',
+    disabled: record.is_enabled,
     popConfirm: {
       title: '确定删除此算法任务？',
       confirm: () => handleDelete(record),
@@ -508,6 +583,11 @@ const handleView = (record: AlgorithmTask) => {
 };
 
 const handleEdit = (record: AlgorithmTask) => {
+  // 校验：只有在停用状态下才能编辑
+  if (record.is_enabled) {
+    createMessage.warning('任务运行中，无法编辑，请先停止任务');
+    return;
+  }
   openDrawer(true, { type: 'edit', record });
 };
 
@@ -516,6 +596,11 @@ const handleManageServices = (record: AlgorithmTask) => {
 };
 
 const handleOpenRegionDetection = (record?: AlgorithmTask) => {
+  // 校验：只有在停用状态下才能配置区域检测
+  if (record && record.is_enabled) {
+    createMessage.warning('任务运行中，无法配置，请先停止任务');
+    return;
+  }
   if (record) {
     // 传入任务ID，只显示该任务关联的摄像头
     openRegionDrawer(true, { taskId: record.id });
@@ -525,7 +610,24 @@ const handleOpenRegionDetection = (record?: AlgorithmTask) => {
   }
 };
 
+const handleOpenSnapSpace = (record: AlgorithmTask) => {
+  if (!record.device_ids || record.device_ids.length === 0) {
+    createMessage.warning('任务未关联摄像头');
+    return;
+  }
+  openSnapSpaceDrawer(true, { 
+    taskId: record.id,
+    deviceIds: record.device_ids,
+    deviceNames: record.device_names || []
+  });
+};
+
 const handleDelete = async (record: AlgorithmTask) => {
+  // 校验：只有在停用状态下才能删除
+  if (record.is_enabled) {
+    createMessage.warning('任务运行中，无法删除，请先停止任务');
+    return;
+  }
   try {
     const response = await deleteAlgorithmTask(record.id);
     if (response.code === 0) {
@@ -970,6 +1072,45 @@ onMounted(() => {
 
             &:hover :deep(.anticon) {
               color: #DC2626;
+            }
+          }
+
+          &.snap-space-btn {
+            position: relative;
+            
+            :deep(.anticon) {
+              color: #10B981;
+              transition: all 0.3s ease;
+            }
+
+            &:hover:not(.disabled) :deep(.anticon) {
+              color: #059669;
+              transform: scale(1.1);
+            }
+
+            &.disabled {
+              :deep(.anticon) {
+                color: #ccc;
+              }
+            }
+
+            // 添加一个小的背景高亮效果
+            &::after {
+              content: '';
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 24px;
+              height: 24px;
+              border-radius: 50%;
+              background: rgba(16, 185, 129, 0.1);
+              opacity: 0;
+              transition: opacity 0.3s ease;
+            }
+
+            &:hover:not(.disabled)::after {
+              opacity: 1;
             }
           }
         }

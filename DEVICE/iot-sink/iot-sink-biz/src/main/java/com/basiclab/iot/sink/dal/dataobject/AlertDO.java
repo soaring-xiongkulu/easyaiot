@@ -63,5 +63,30 @@ public class AlertDO {
      * 录像路径
      */
     private String recordPath;
+    
+    /**
+     * 告警事件类型[realtime:实时算法任务,snap:抓拍算法任务]
+     */
+    private String taskType;
+    
+    /**
+     * 通知人列表（JSON格式，格式：[{"phone": "xxx", "email": "xxx", "name": "xxx"}, ...]）
+     */
+    private String notifyUsers;
+    
+    /**
+     * 通知渠道配置（JSON格式，格式：[{"method": "sms", "template_id": "xxx"}, ...]）
+     */
+    private String channels;
+    
+    /**
+     * 是否已发送通知
+     */
+    private Boolean notificationSent;
+    
+    /**
+     * 通知发送时间
+     */
+    private LocalDateTime notificationSentTime;
 }
 

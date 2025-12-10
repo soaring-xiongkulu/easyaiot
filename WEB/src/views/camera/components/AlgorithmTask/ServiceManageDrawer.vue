@@ -24,13 +24,7 @@
           row-key="id"
         >
           <template #bodyCell="{ column, record }">
-            <template v-if="column.dataIndex === 'service_name'">
-              <div class="service-name-cell">
-                <Icon :icon="getServiceIcon(record.service_type)" :size="20"/>
-                <span class="service-name">{{ record.service_name }}</span>
-              </div>
-            </template>
-            <template v-else-if="column.dataIndex === 'status'">
+            <template v-if="column.dataIndex === 'status'">
               <Tag :color="getStatusColor(record.status)">
                 {{ getStatusText(record.status) }}
               </Tag>
@@ -58,7 +52,7 @@
                   type="text"
                   size="small"
                   @click="handleViewLogs(record)"
-                  :disabled="!record.log_path && record.service_type !== 'realtime'"
+                  :disabled="!record.log_path && record.service_type !== 'realtime' && record.service_type !== 'snap'"
                   :title="'查看日志'"
                   class="action-btn"
                 >
@@ -67,7 +61,19 @@
                   </template>
                 </Button>
                 <Button
-                  v-if="taskInfo && taskInfo.is_enabled && record.status === 'running'"
+                  v-if="taskInfo && taskInfo.task_type === 'snap' && record.service_type === 'snap'"
+                  type="text"
+                  size="small"
+                  @click="handleViewSnapSpaces(record)"
+                  :title="'查看抓拍空间'"
+                  class="action-btn"
+                >
+                  <template #icon>
+                    <FolderOutlined/>
+                  </template>
+                </Button>
+                <Button
+                  v-if="taskInfo && taskInfo.is_enabled && record.status === 'running' && taskInfo.task_type === 'realtime'"
                   type="text"
                   size="small"
                   @click="handlePlayStream"
@@ -131,6 +137,49 @@
     <!-- 视频播放模态框 -->
     <DialogPlayer @register="registerPlayerModal" />
     
+    <!-- 抓拍空间查看模态框 -->
+    <BasicModal
+      v-model:open="snapSpacesVisible"
+      title="查看抓拍空间"
+      width="1000px"
+      :footer="null"
+    >
+      <div v-if="snapSpacesLoading" style="text-align: center; padding: 40px;">
+        <Spin />
+      </div>
+      <div v-else-if="snapSpacesList.length === 0" style="text-align: center; padding: 40px;">
+        <Empty description="暂无抓拍空间" />
+      </div>
+      <div v-else class="snap-spaces-list">
+        <div 
+          v-for="item in snapSpacesList" 
+          :key="item.device_id"
+          class="snap-space-item"
+        >
+          <div class="device-info">
+            <span class="device-name">{{ item.device_name || item.device_id }}</span>
+            <span class="device-id">({{ item.device_id }})</span>
+          </div>
+          <div class="space-info" v-if="item.space">
+            <span class="space-name">{{ item.space.space_name }}</span>
+            <Button 
+              type="primary" 
+              size="small"
+              @click="handleViewSnapImages(item.space.id, item.device_id, item.device_name)"
+            >
+              查看抓拍空间
+            </Button>
+          </div>
+          <div v-else class="no-space">
+            <span style="color: #999;">暂无抓拍空间</span>
+          </div>
+        </div>
+      </div>
+    </BasicModal>
+    
+    <!-- 抓拍图片查看模态框 -->
+    <SnapImageModal @register="registerSnapImageModal"/>
+    
     <!-- 摄像头选择模态框 -->
     <BasicModal
       v-model:open="cameraSelectVisible"
@@ -170,6 +219,7 @@ import {
   PlayCircleOutlined,
   ReloadOutlined,
   VideoCameraOutlined,
+  FolderOutlined,
 } from '@ant-design/icons-vue';
 import {Tag, Button, Empty, Spin, RadioGroup, Radio} from 'ant-design-vue';
 import {Icon} from '@/components/Icon';
@@ -195,6 +245,8 @@ import ServiceLogsModal from './ServiceLogsModal.vue';
 import {useModal} from '@/components/Modal';
 import {BasicModal} from '@/components/Modal';
 import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue';
+import SnapImageModal from '@/views/camera/components/SnapSpace/SnapImageModal.vue';
+import {getSnapSpaceByDeviceId, type SnapSpace} from '@/api/device/snap';
 
 defineOptions({name: 'ServiceManageDrawer'});
 
@@ -203,11 +255,21 @@ const emit = defineEmits(['close', 'success']);
 const {createMessage} = useMessage();
 const [registerLogsModal, {openModal: openLogsModal}] = useModal();
 const [registerPlayerModal, {openModal: openPlayerModal}] = useModal();
+const [registerSnapImageModal, {openModal: openSnapImageModal}] = useModal();
 
 // 摄像头选择和播放相关
 const cameraSelectVisible = ref(false);
 const cameraStreams = ref<CameraStreamInfo[]>([]);
 const selectedCameraIndex = ref<number>(0);
+
+// 抓拍空间相关
+const snapSpacesVisible = ref(false);
+const snapSpacesLoading = ref(false);
+const snapSpacesList = ref<Array<{
+  device_id: string;
+  device_name?: string;
+  space: SnapSpace | null;
+}>>([]);
 
 const loading = ref(false);
 const taskInfo = ref<AlgorithmTask | null>(null);
@@ -215,6 +277,7 @@ const extractorInfo = ref<FrameExtractor | null>(null);
 const sorterInfo = ref<Sorter | null>(null);
 const pusherInfo = ref<Pusher | null>(null);
 const realtimeServiceInfo = ref<RealtimeServiceStatus | null>(null);
+const snapServiceInfo = ref<RealtimeServiceStatus | null>(null);
 
 const drawerTitle = computed(() => {
   return '帧管道管理器';
@@ -229,6 +292,10 @@ const serviceList = computed(() => {
 
   // 实时算法任务：显示统一服务（即使服务状态为空也显示）
   if (taskInfo.value && taskInfo.value.task_type === 'realtime') {
+    // 获取关联的设备名称（多个设备用逗号分隔）
+    const deviceNames = taskInfo.value.device_names || [];
+    const deviceNameStr = deviceNames.length > 0 ? deviceNames.join(', ') : undefined;
+    
     // 总是显示实时算法服务，即使服务状态信息为空
     if (realtimeServiceInfo.value) {
       // 有服务状态信息
@@ -236,6 +303,7 @@ const serviceList = computed(() => {
         id: `realtime_${taskInfo.value.id}`,
         service_type: 'realtime',
         service_name: '实时算法服务',
+        device_name: deviceNameStr,
         status: realtimeServiceInfo.value.status || realtimeServiceInfo.value.run_status || 'stopped',
         server_ip: realtimeServiceInfo.value.server_ip,
         port: realtimeServiceInfo.value.port,
@@ -253,6 +321,7 @@ const serviceList = computed(() => {
         id: `realtime_${taskInfo.value.id}`,
         service_type: 'realtime',
         service_name: '实时算法服务',
+        device_name: deviceNameStr,
         status: 'stopped',
         server_ip: undefined,
         port: undefined,
@@ -267,54 +336,92 @@ const serviceList = computed(() => {
     }
   }
 
-  // 抓拍算法任务：显示抽帧器、排序器、推送器
+  // 抓拍算法任务：为每个关联的设备显示一条服务记录
   if (taskInfo.value && taskInfo.value.task_type === 'snap') {
-    if (extractorInfo.value) {
-      list.push({
-        id: `extractor_${extractorInfo.value.id}`,
-        service_type: 'extractor',
-        service_name: extractorInfo.value.extractor_name || '抽帧器',
-        status: extractorInfo.value.status || 'stopped',
-        server_ip: extractorInfo.value.server_ip,
-        port: extractorInfo.value.port,
-        process_id: extractorInfo.value.process_id,
-        last_heartbeat: extractorInfo.value.last_heartbeat,
-        log_path: extractorInfo.value.log_path,
-        raw_data: extractorInfo.value,
+    // 获取关联的设备列表
+    const deviceIds = taskInfo.value.device_ids || [];
+    const deviceNames = taskInfo.value.device_names || [];
+    
+    if (deviceIds.length > 0) {
+      // 为每个设备创建一条服务记录
+      deviceIds.forEach((deviceId: string, index: number) => {
+        const deviceName = deviceNames[index] || deviceId;
+        
+    if (snapServiceInfo.value) {
+      // 有服务状态信息
+      const serviceItem = {
+            id: `snap_${taskInfo.value.id}_${deviceId}`,
+        service_type: 'snap',
+            service_name: `抓拍算法服务 - ${deviceName}`,
+            device_id: deviceId,
+            device_name: deviceName,
+        status: snapServiceInfo.value.status || snapServiceInfo.value.run_status || 'stopped',
+        server_ip: snapServiceInfo.value.server_ip,
+        port: snapServiceInfo.value.port,
+        process_id: snapServiceInfo.value.process_id,
+        last_heartbeat: snapServiceInfo.value.last_heartbeat,
+        log_path: snapServiceInfo.value.log_path,
+        raw_data: snapServiceInfo.value,
         actionLoading: false,
+      };
+      console.log('添加抓拍服务项:', serviceItem);
+      list.push(serviceItem);
+    } else {
+      // 没有服务状态信息，显示默认项（服务未启动）
+          const defaultItem = {
+            id: `snap_${taskInfo.value.id}_${deviceId}`,
+            service_type: 'snap',
+            service_name: `抓拍算法服务 - ${deviceName}`,
+            device_id: deviceId,
+            device_name: deviceName,
+            status: 'stopped',
+            server_ip: undefined,
+            port: undefined,
+            process_id: undefined,
+            last_heartbeat: undefined,
+            log_path: undefined,
+            raw_data: null,
+            actionLoading: false,
+          };
+          console.log('添加默认抓拍服务项:', defaultItem);
+          list.push(defaultItem);
+        }
       });
-    }
-
-    if (sorterInfo.value) {
-      list.push({
-        id: `sorter_${sorterInfo.value.id}`,
-        service_type: 'sorter',
-        service_name: sorterInfo.value.sorter_name || '排序器',
-        status: sorterInfo.value.status || 'stopped',
-        server_ip: sorterInfo.value.server_ip,
-        port: sorterInfo.value.port,
-        process_id: sorterInfo.value.process_id,
-        last_heartbeat: sorterInfo.value.last_heartbeat,
-        log_path: sorterInfo.value.log_path,
-        raw_data: sorterInfo.value,
+    } else {
+      // 没有关联设备，显示一条默认记录
+      if (snapServiceInfo.value) {
+        const serviceItem = {
+          id: `snap_${taskInfo.value.id}`,
+          service_type: 'snap',
+          service_name: '抓拍算法服务',
+          status: snapServiceInfo.value.status || snapServiceInfo.value.run_status || 'stopped',
+          server_ip: snapServiceInfo.value.server_ip,
+          port: snapServiceInfo.value.port,
+          process_id: snapServiceInfo.value.process_id,
+          last_heartbeat: snapServiceInfo.value.last_heartbeat,
+          log_path: snapServiceInfo.value.log_path,
+          raw_data: snapServiceInfo.value,
+          actionLoading: false,
+        };
+        console.log('添加抓拍服务项（无设备）:', serviceItem);
+        list.push(serviceItem);
+      } else {
+      const defaultItem = {
+        id: `snap_${taskInfo.value.id}`,
+        service_type: 'snap',
+        service_name: '抓拍算法服务',
+        status: 'stopped',
+        server_ip: undefined,
+        port: undefined,
+        process_id: undefined,
+        last_heartbeat: undefined,
+        log_path: undefined,
+        raw_data: null,
         actionLoading: false,
-      });
-    }
-
-    if (pusherInfo.value) {
-      list.push({
-        id: `pusher_${pusherInfo.value.id}`,
-        service_type: 'pusher',
-        service_name: pusherInfo.value.pusher_name || '推送器',
-        status: pusherInfo.value.status || 'stopped',
-        server_ip: pusherInfo.value.server_ip,
-        port: pusherInfo.value.port,
-        process_id: pusherInfo.value.process_id,
-        last_heartbeat: pusherInfo.value.last_heartbeat,
-        log_path: pusherInfo.value.log_path,
-        raw_data: pusherInfo.value,
-        actionLoading: false,
-      });
+      };
+        console.log('添加默认抓拍服务项（无设备）:', defaultItem);
+      list.push(defaultItem);
+      }
     }
   }
 
@@ -363,10 +470,11 @@ const serviceList = computed(() => {
 // 表格列定义
 const getColumns = () => [
   {
-    title: '服务名称',
-    dataIndex: 'service_name',
+    title: '摄像头',
+    dataIndex: 'device_name',
     width: 150,
     fixed: 'left',
+    customRender: ({text}: { text: string }) => text || '--',
   },
   {
     title: '运行状态',
@@ -417,6 +525,7 @@ const columns = getColumns();
 const getServiceIcon = (serviceType: string) => {
   const iconMap: Record<string, string> = {
     realtime: 'ant-design:thunderbolt-outlined',
+    snap: 'ant-design:camera-outlined',
     algorithm: 'ant-design:robot-outlined',
     extractor: 'ant-design:file-image-outlined',
     sorter: 'ant-design:sort-ascending-outlined',
@@ -508,6 +617,7 @@ const loadServiceInfo = async (taskId: number) => {
           pusherInfo.value = servicesStatusResponse.data.pusher || null;
           // 即使 realtime_service 为 null，也要设置为 null（而不是 undefined）
           realtimeServiceInfo.value = servicesStatusResponse.data.realtime_service ?? null;
+          snapServiceInfo.value = servicesStatusResponse.data.snap_service ?? null;
           console.log('服务状态数据:', servicesStatusResponse.data);
           console.log('实时服务信息:', realtimeServiceInfo.value);
           console.log('实时服务信息类型:', typeof realtimeServiceInfo.value);
@@ -523,6 +633,7 @@ const loadServiceInfo = async (taskId: number) => {
         sorterInfo.value = statusData.sorter || null;
         pusherInfo.value = statusData.pusher || null;
         realtimeServiceInfo.value = statusData.realtime_service ?? null;
+        snapServiceInfo.value = statusData.snap_service ?? null;
         console.log('服务状态数据（已转换）:', statusData);
         console.log('实时服务信息（已转换）:', realtimeServiceInfo.value);
         console.log('实时服务信息类型（已转换）:', typeof realtimeServiceInfo.value);
@@ -624,10 +735,124 @@ const handleViewLogs = async (record: any) => {
     return;
   }
 
+  // 对于抓拍算法任务，使用 'snap' 作为服务类型，但实际调用 realtime 日志接口
+  const serviceType = record.service_type === 'snap' ? 'realtime' : record.service_type;
+  
   openLogsModal(true, {
     title: `${record.service_name} - 日志`,
     taskId: taskInfo.value.id,
-    serviceType: record.service_type,
+    serviceType: serviceType,
+  });
+};
+
+// 查看抓拍空间
+const handleViewSnapSpaces = async (record: any) => {
+  // 如果记录中有设备ID，直接使用该设备的抓拍空间
+  if (record.device_id && record.device_name) {
+    const deviceId = record.device_id;
+    const deviceName = record.device_name;
+    
+    try {
+      const response = await getSnapSpaceByDeviceId(deviceId);
+      const space = response && typeof response === 'object' && 'code' in response 
+        ? (response.code === 0 ? response.data : null)
+        : (response as SnapSpace | null);
+      
+      if (space) {
+        handleViewSnapImages(space.id, deviceId, deviceName);
+      } else {
+        createMessage.warning(`摄像头 ${deviceName} 暂无抓拍空间`);
+      }
+    } catch (error) {
+      console.error(`获取设备 ${deviceId} 的抓拍空间失败:`, error);
+      createMessage.error('获取抓拍空间失败');
+    }
+    return;
+  }
+
+  // 兼容旧逻辑：如果没有设备ID，使用任务的所有设备（这种情况应该不会出现）
+  if (!taskInfo.value || !taskInfo.value.device_ids || taskInfo.value.device_ids.length === 0) {
+    createMessage.warning('任务未关联摄像头');
+    return;
+  }
+
+  // 如果只有一个摄像头，直接打开该摄像头的抓拍空间
+  if (taskInfo.value.device_ids.length === 1) {
+    const deviceId = taskInfo.value.device_ids[0];
+    const deviceName = taskInfo.value.device_names?.[0] || deviceId;
+    
+    try {
+      const response = await getSnapSpaceByDeviceId(deviceId);
+      const space = response && typeof response === 'object' && 'code' in response 
+        ? (response.code === 0 ? response.data : null)
+        : (response as SnapSpace | null);
+      
+      if (space) {
+        handleViewSnapImages(space.id, deviceId, deviceName);
+      } else {
+        createMessage.warning(`摄像头 ${deviceName} 暂无抓拍空间`);
+      }
+    } catch (error) {
+      console.error(`获取设备 ${deviceId} 的抓拍空间失败:`, error);
+      createMessage.error('获取抓拍空间失败');
+    }
+    return;
+  }
+
+  // 多个摄像头，显示列表（这种情况应该不会出现，因为每条记录都有device_id）
+  snapSpacesVisible.value = true;
+  snapSpacesLoading.value = true;
+  snapSpacesList.value = [];
+
+  try {
+    // 获取所有设备的抓拍空间
+    const promises = taskInfo.value.device_ids.map(async (deviceId: string) => {
+      try {
+        const response = await getSnapSpaceByDeviceId(deviceId);
+        const space = response && typeof response === 'object' && 'code' in response 
+          ? (response.code === 0 ? response.data : null)
+          : (response as SnapSpace | null);
+        
+        // 获取设备名称
+        const deviceName = taskInfo.value?.device_names?.find((name: string, index: number) => 
+          taskInfo.value?.device_ids?.[index] === deviceId
+        ) || deviceId;
+
+        return {
+          device_id: deviceId,
+          device_name: deviceName,
+          space: space,
+        };
+      } catch (error) {
+        console.error(`获取设备 ${deviceId} 的抓拍空间失败:`, error);
+        return {
+          device_id: deviceId,
+          device_name: taskInfo.value?.device_names?.find((name: string, index: number) => 
+            taskInfo.value?.device_ids?.[index] === deviceId
+          ) || deviceId,
+          space: null,
+        };
+      }
+    });
+
+    const results = await Promise.all(promises);
+    snapSpacesList.value = results;
+  } catch (error) {
+    console.error('加载抓拍空间失败:', error);
+    createMessage.error('加载抓拍空间失败');
+  } finally {
+    snapSpacesLoading.value = false;
+  }
+};
+
+// 查看抓拍图片
+const handleViewSnapImages = (spaceId: number, deviceId: string, deviceName?: string) => {
+  // 关闭抓拍空间列表模态框
+  snapSpacesVisible.value = false;
+  // 直接打开抓拍图片模态框
+  openSnapImageModal(true, {
+    space_id: spaceId,
+    space_name: deviceName || `设备 ${deviceId} 的抓拍空间`,
   });
 };
 
@@ -937,6 +1162,7 @@ const [register] = useDrawerInner(async (data) => {
   sorterInfo.value = null;
   pusherInfo.value = null;
   realtimeServiceInfo.value = null;
+  snapServiceInfo.value = null;
 
   if (data && data.taskId) {
     await loadServiceInfo(data.taskId);
@@ -1054,6 +1280,56 @@ const [register] = useDrawerInner(async (data) => {
     border: none;
     font-weight: 500;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+}
+
+.snap-spaces-list {
+  padding: 16px 0;
+  
+  .snap-space-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    background: #fafafa;
+    border-radius: 6px;
+    border: 1px solid #e8e8e8;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    .device-info {
+      flex: 1;
+      
+      .device-name {
+        font-weight: 500;
+        color: #262626;
+        margin-right: 8px;
+      }
+      
+      .device-id {
+        color: #8c8c8c;
+        font-size: 12px;
+      }
+    }
+    
+    .space-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      
+      .space-name {
+        color: #595959;
+        font-size: 14px;
+      }
+    }
+    
+    .no-space {
+      color: #999;
+      font-size: 14px;
+    }
   }
 }
 </style>

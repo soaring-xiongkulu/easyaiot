@@ -89,8 +89,21 @@ public class AlertNotificationConsumer {
                 return;
             }
 
-            log.info("开始处理告警: deviceId={}, deviceName={}", 
-                    message.getDeviceId(), message.getDeviceName());
+            log.info("开始处理告警: deviceId={}, deviceName={}, taskId={}, taskName={}", 
+                    message.getDeviceId(), message.getDeviceName(), message.getTaskId(), message.getTaskName());
+            
+            // 记录通知配置信息
+            List<Map<String, Object>> channels = message.getChannels();
+            List<Map<String, Object>> notifyUsers = message.getNotifyUsers();
+            List<String> notifyMethods = message.getNotifyMethods();
+            Boolean shouldNotify = message.getShouldNotify();
+            
+            log.info("📊 告警通知配置信息: deviceId={}, taskId={}, shouldNotify={}, " +
+                    "channels数量={}, notifyUsers数量={}, notifyMethods={}", 
+                    message.getDeviceId(), message.getTaskId(), shouldNotify,
+                    (channels != null ? channels.size() : 0),
+                    (notifyUsers != null ? notifyUsers.size() : 0),
+                    notifyMethods);
             
             // 1. 处理告警：存储到数据库、上传图片到MinIO（无论是否开启通知，都要执行）
             final Integer[] alertIdRef = new Integer[1];
@@ -100,12 +113,12 @@ public class AlertNotificationConsumer {
                 // 如果存储成功，更新消息中的alertId
                 if (alertId != null) {
                     message.setAlertId(alertId);
-                    log.info("告警处理成功: alertId={}", alertId);
+                    log.info("✅ 告警处理成功: alertId={}, deviceId={}", alertId, message.getDeviceId());
                 } else {
-                    log.warn("告警处理失败，未返回alertId");
+                    log.warn("⚠️  告警处理失败，未返回alertId: deviceId={}", message.getDeviceId());
                 }
             } catch (Exception e) {
-                log.error("处理告警失败（存储数据库/上传图片）: deviceId={}, error={}", 
+                log.error("❌ 处理告警失败（存储数据库/上传图片）: deviceId={}, error={}", 
                         message.getDeviceId(), e.getMessage(), e);
                 // 即使告警处理失败，也继续处理通知（如果配置了通知）
             }
@@ -113,13 +126,19 @@ public class AlertNotificationConsumer {
             // 2. 如果开启了通知，发送到通知主题供iot-message消费
             try {
                 // 检查是否有通知配置
-                List<Map<String, Object>> channels = message.getChannels();
-                List<Map<String, Object>> notifyUsers = message.getNotifyUsers();
-                
                 boolean hasNotificationConfig = (channels != null && !channels.isEmpty()) 
                         && (notifyUsers != null && !notifyUsers.isEmpty());
                 
-                if (hasNotificationConfig) {
+                // 优先使用shouldNotify字段，如果没有则根据配置判断
+                if (shouldNotify == null) {
+                    shouldNotify = hasNotificationConfig;
+                }
+                
+                log.info("📋 告警通知判断: deviceId={}, alertId={}, shouldNotify={}, " +
+                        "hasNotificationConfig={}", 
+                        message.getDeviceId(), alertIdRef[0], shouldNotify, hasNotificationConfig);
+                
+                if (shouldNotify && hasNotificationConfig) {
                     // 发送到通知主题供iot-message消费
                     if (iotKafkaTemplate != null) {
                         try {
@@ -127,33 +146,47 @@ public class AlertNotificationConsumer {
                             String notificationMessageJson = JsonUtils.toJsonString(message);
                             final Integer finalAlertId = alertIdRef[0];
                             
+                            log.info("📤 准备发送告警通知消息到通知主题: alertId={}, deviceId={}, topic={}, " +
+                                    "notifyUsers数量={}, notifyMethods={}, channels数量={}", 
+                                    finalAlertId, message.getDeviceId(), notificationSendTopic,
+                                    (notifyUsers != null ? notifyUsers.size() : 0),
+                                    notifyMethods,
+                                    (channels != null ? channels.size() : 0));
+                            
                             // 发送到通知主题
                             iotKafkaTemplate.send(notificationSendTopic, message.getDeviceId(), notificationMessageJson)
                                     .addCallback(
                                             result -> {
                                                 if (result != null) {
-                                                    log.info("告警通知消息已发送到通知主题: topic={}, partition={}, offset={}, alertId={}", 
+                                                    log.info("✅ 告警通知消息已发送到通知主题: alertId={}, topic={}, partition={}, offset={}, " +
+                                                            "notifyUsers数量={}, notifyMethods={}", 
+                                                            finalAlertId,
                                                             result.getRecordMetadata().topic(),
                                                             result.getRecordMetadata().partition(),
                                                             result.getRecordMetadata().offset(),
-                                                            finalAlertId);
+                                                            (notifyUsers != null ? notifyUsers.size() : 0),
+                                                            notifyMethods);
                                                 }
                                             },
                                             failure -> {
-                                                log.error("发送告警通知消息到通知主题失败: alertId={}, error={}", 
-                                                        finalAlertId, failure.getMessage(), failure);
+                                                log.error("❌ 发送告警通知消息到通知主题失败: alertId={}, deviceId={}, error={}", 
+                                                        finalAlertId, message.getDeviceId(), failure.getMessage(), failure);
                                             }
                                     );
                         } catch (Exception e) {
-                            log.error("发送告警通知消息到通知主题异常: alertId={}, error={}", 
-                                    alertIdRef[0], e.getMessage(), e);
+                            log.error("❌ 发送告警通知消息到通知主题异常: alertId={}, deviceId={}, error={}", 
+                                    alertIdRef[0], message.getDeviceId(), e.getMessage(), e);
                         }
                     } else {
-                        log.warn("KafkaTemplate不可用，无法发送通知消息: alertId={}", alertIdRef[0]);
+                        log.warn("⚠️  KafkaTemplate不可用，无法发送通知消息: alertId={}, deviceId={}", 
+                                alertIdRef[0], message.getDeviceId());
                     }
                 } else {
-                    log.debug("告警消息中没有通知配置，跳过发送通知: deviceId={}, alertId={}", 
-                            message.getDeviceId(), alertIdRef[0]);
+                    log.info("ℹ️  告警消息中没有通知配置或shouldNotify=false，跳过发送通知: " +
+                            "deviceId={}, alertId={}, shouldNotify={}, channels数量={}, notifyUsers数量={}", 
+                            message.getDeviceId(), alertIdRef[0], shouldNotify,
+                            (channels != null ? channels.size() : 0),
+                            (notifyUsers != null ? notifyUsers.size() : 0));
                 }
             } catch (Exception e) {
                 log.error("处理告警通知发送失败: alertId={}, deviceId={}, error={}", 

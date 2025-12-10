@@ -62,16 +62,29 @@ public class MailMsgSender {
         try {
             TMsgMail mailMsg = mailMsgMaker.makeMsg(msgId,content);
             sendResult.setMsgName(mailMsg.getMsgName());
-//            String previewUser = mailMsg.getPreviewUser();
+            String previewUser = mailMsg.getPreviewUser();
             String files = mailMsg.getFiles();
             List<File> mailFiles = new ArrayList<>();
             getMailFiles(files, mailFiles);
             List<String> tos = Lists.newArrayList();
-//            tos.add(previewUser);
-            // 获取用户组中的目标用户
+            
+            // 优先使用直接指定的收件人（previewUser）
+            if (StringUtils.isNotEmpty(previewUser)) {
+                // 支持多个收件人，用逗号分隔
+                String[] recipients = previewUser.split(",");
+                for (String recipient : recipients) {
+                    String trimmedRecipient = recipient.trim();
+                    if (StringUtils.isNotEmpty(trimmedRecipient)) {
+                        tos.add(trimmedRecipient);
+                    }
+                }
+                log.info("从previewUser获取收件人: {}", tos);
+            }
+            
+            // 如果previewUser为空，则从用户组中获取目标用户
             String userGroupId = mailMsg.getUserGroupId();
             log.info("邮件模板 userGroupId: {}", userGroupId);
-            if(StringUtils.isNotEmpty(userGroupId)){
+            if (CollectionUtils.isEmpty(tos) && StringUtils.isNotEmpty(userGroupId)) {
                String previewUserId = tPreviewUserGroupMapper.queryPreviewUserIds(userGroupId);
                log.info("查询到的 previewUserId: {}", previewUserId);
                if(StringUtils.isNotEmpty(previewUserId)){
@@ -82,13 +95,13 @@ public class MailMsgSender {
                } else {
                    log.warn("用户组 {} 中没有配置用户ID", userGroupId);
                }
-            } else {
-                log.warn("邮件模板中没有配置 userGroupId");
+            } else if (CollectionUtils.isEmpty(tos)) {
+                log.warn("邮件模板中没有配置 userGroupId 且 previewUser 为空");
             }
             
             // 验证收件人列表是否为空
             if (CollectionUtils.isEmpty(tos)) {
-                String errorMsg = "收件人列表为空，无法发送邮件。请检查邮件模板是否配置了用户组，以及用户组中是否包含有效的邮箱地址";
+                String errorMsg = "收件人列表为空，无法发送邮件。请检查邮件模板是否配置了收件人(previewUser)或用户组(userGroupId)，以及用户组中是否包含有效的邮箱地址";
                 log.error(errorMsg);
                 sendResult.setSuccess(false);
                 sendResult.setInfo(errorMsg);

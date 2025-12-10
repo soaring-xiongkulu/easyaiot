@@ -53,6 +53,13 @@ export const getSnapSpace = (space_id: number) => {
 };
 
 /**
+ * 根据设备ID获取抓拍空间
+ */
+export const getSnapSpaceByDeviceId = (device_id: string) => {
+  return commonApi('get', `${SNAP_PREFIX}/space/device/${device_id}`);
+};
+
+/**
  * 创建抓拍空间
  */
 export const createSnapSpace = (data: {

@@ -49,8 +49,11 @@
         <include refid="Base_Column_List"/>
         from t_preview_user
         <where>
+            <if test="tPreviewUser.id != null and tPreviewUser.id != ''">
+                and id = #{tPreviewUser.id}
+            </if>
             <if test="tPreviewUser.msgType != null and tPreviewUser.msgType != ''">
-                msg_type = #{tPreviewUser.msgType}
+                and msg_type = #{tPreviewUser.msgType}
             </if>
         </where>
         order by create_time desc

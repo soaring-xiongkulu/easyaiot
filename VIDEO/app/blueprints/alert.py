@@ -15,6 +15,7 @@ from app.services.alert_service import (
     create_alert,
     get_dashboard_statistics
 )
+from app.services.alert_hook_service import process_alert_hook
 
 # 创建Alert蓝图
 alert_bp = Blueprint('alert', __name__)
@@ -163,6 +164,28 @@ def get_alert_record():
     except Exception as e:
         logger.error(f'获取报警录像失败: {str(e)}')
         return api_response(500, f'获取失败: {str(e)}')
+
+
+@alert_bp.route('/hook', methods=['POST'])
+def alert_hook():
+    """告警Hook接口：接收告警事件并发送到Kafka"""
+    try:
+        data = request.get_json()
+        if not data:
+            return api_response(400, '请求数据不能为空')
+        
+        # 调用告警Hook服务处理
+        result = process_alert_hook(data)
+        
+        if result.get('status') == 'success':
+            return api_response(200, '告警事件已发送', result)
+        elif result.get('status') == 'skipped':
+            return api_response(200, '告警事件已跳过', result)
+        else:
+            return api_response(500, f"告警事件处理失败: {result.get('error', '未知错误')}", result)
+    except Exception as e:
+        logger.error(f'处理告警Hook失败: {str(e)}', exc_info=True)
+        return api_response(500, f'处理失败: {str(e)}')
 
 
 @alert_bp.route('/record/query', methods=['GET'])

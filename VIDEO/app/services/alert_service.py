@@ -25,22 +25,80 @@ def _alert_to_dict(alert: Alert) -> dict:
     }
     
     # 处理 information 字段（如果是 JSON 字符串则解析）
+    information_dict = None
     if alert.information is not None:
         if isinstance(alert.information, str):
             try:
-                result['information'] = json.loads(alert.information)
+                information_dict = json.loads(alert.information)
+                result['information'] = information_dict
             except (json.JSONDecodeError, TypeError):
                 result['information'] = alert.information
         else:
+            information_dict = alert.information
             result['information'] = alert.information
     else:
         result['information'] = None
+    
+    # 优先使用字段中的 task_type，如果没有则从 information 中提取（兼容旧数据）
+    task_type = alert.task_type
+    if not task_type:
+        # 兼容旧数据：从 information 中提取 task_type
+        if information_dict and isinstance(information_dict, dict):
+            task_type = information_dict.get('task_type')
+        elif alert.information and isinstance(alert.information, str):
+            try:
+                parsed_info = json.loads(alert.information)
+                if isinstance(parsed_info, dict):
+                    task_type = parsed_info.get('task_type')
+            except (json.JSONDecodeError, TypeError):
+                pass
+    
+    # 设置 task_type 字段（如果存在）
+    if task_type:
+        result['task_type'] = task_type
+    else:
+        # 默认值：如果没有找到 task_type，默认为 'realtime'
+        result['task_type'] = 'realtime'
     
     # 处理 time 字段（转换为字符串格式）
     if alert.time is not None and hasattr(alert.time, 'strftime'):
         result['time'] = alert.time.strftime('%Y-%m-%d %H:%M:%S')
     else:
         result['time'] = alert.time
+    
+    # 处理 notify_users 字段（如果是 JSON 字符串则解析）
+    if alert.notify_users is not None:
+        if isinstance(alert.notify_users, str):
+            try:
+                result['notify_users'] = json.loads(alert.notify_users)
+            except (json.JSONDecodeError, TypeError):
+                result['notify_users'] = alert.notify_users
+        else:
+            result['notify_users'] = alert.notify_users
+    else:
+        result['notify_users'] = None
+    
+    # 处理 channels 字段（如果是 JSON 字符串则解析）
+    if alert.channels is not None:
+        if isinstance(alert.channels, str):
+            try:
+                result['channels'] = json.loads(alert.channels)
+            except (json.JSONDecodeError, TypeError):
+                result['channels'] = alert.channels
+        else:
+            result['channels'] = alert.channels
+    else:
+        result['channels'] = None
+    
+    # 处理 notification_sent 和 notification_sent_time 字段
+    result['notification_sent'] = alert.notification_sent if hasattr(alert, 'notification_sent') else False
+    if hasattr(alert, 'notification_sent_time') and alert.notification_sent_time is not None:
+        if hasattr(alert.notification_sent_time, 'strftime'):
+            result['notification_sent_time'] = alert.notification_sent_time.strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            result['notification_sent_time'] = alert.notification_sent_time
+    else:
+        result['notification_sent_time'] = None
     
     return result
 
@@ -54,6 +112,8 @@ def _get_alert_filter_query(args: dict) -> Query:
         query = query.filter(Alert.event == args['event'])
     if 'device_id' in args and args['device_id']:
         query = query.filter(Alert.device_id == args['device_id'])
+    if 'task_type' in args and args['task_type']:
+        query = query.filter(Alert.task_type == args['task_type'])
     if 'begin_datetime' in args and args['begin_datetime']:
         query = query.filter(Alert.time >= datetime.strptime(args['begin_datetime'], '%Y-%m-%d %H:%M:%S'))
     if 'end_datetime' in args and args['end_datetime']:
@@ -72,6 +132,7 @@ def get_alert_list(args: dict) -> dict:
             - object: 对象类型过滤（可选）
             - event: 事件类型过滤（可选）
             - device_id: 设备ID过滤（可选）
+            - task_type: 任务类型过滤（可选，'realtime'或'snap'）
             - begin_datetime: 开始时间过滤，格式：'YYYY-MM-DD HH:MM:SS'（可选）
             - end_datetime: 结束时间过滤，格式：'YYYY-MM-DD HH:MM:SS'（可选）
     
@@ -171,6 +232,8 @@ def create_alert(alert_data: dict) -> dict:
             - time: 报警时间，格式：'YYYY-MM-DD HH:MM:SS'（可选，默认当前时间）
             - image_path: 图片路径（可选）
             - record_path: 录像路径（可选）
+            - notify_users: 通知人列表（可选，JSON格式或列表）
+            - channels: 通知渠道配置（可选，JSON格式或列表）
     
     Returns:
         dict: 创建的报警记录字典
@@ -195,7 +258,56 @@ def create_alert(alert_data: dict) -> dict:
         information = alert_data.get('information')
         if information is not None:
             if isinstance(information, dict):
-                information = json.dumps(information, ensure_ascii=False)
+                # 如果 information 是字典，移除 task_type（因为已经单独存储到字段中）
+                information = information.copy()
+                information.pop('task_type', None)  # 移除task_type，避免冗余
+                information = json.dumps(information, ensure_ascii=False) if information else None
+            elif isinstance(information, str):
+                # 如果 information 是字符串，尝试解析并移除 task_type
+                try:
+                    info_dict = json.loads(information)
+                    if isinstance(info_dict, dict):
+                        info_dict.pop('task_type', None)  # 移除task_type，避免冗余
+                        information = json.dumps(info_dict, ensure_ascii=False) if info_dict else None
+                except (json.JSONDecodeError, TypeError):
+                    # 如果解析失败，保持原样
+                    pass
+        
+        # 获取 task_type（优先从 alert_data 中获取，如果没有则默认为 'realtime'）
+        task_type = alert_data.get('task_type', 'realtime')
+        # 兼容 'snapshot' 值，统一转换为 'snap'
+        if task_type == 'snapshot':
+            task_type = 'snap'
+        
+        # 处理 notify_users 字段
+        notify_users = alert_data.get('notify_users')
+        if notify_users is not None:
+            if isinstance(notify_users, (dict, list)):
+                notify_users = json.dumps(notify_users, ensure_ascii=False)
+            elif isinstance(notify_users, str):
+                # 如果已经是字符串，验证是否为有效的JSON
+                try:
+                    json.loads(notify_users)
+                except (json.JSONDecodeError, TypeError):
+                    logger.warning(f'notify_users 不是有效的JSON格式: {notify_users}')
+                    notify_users = None
+        else:
+            notify_users = None
+        
+        # 处理 channels 字段
+        channels = alert_data.get('channels')
+        if channels is not None:
+            if isinstance(channels, (dict, list)):
+                channels = json.dumps(channels, ensure_ascii=False)
+            elif isinstance(channels, str):
+                # 如果已经是字符串，验证是否为有效的JSON
+                try:
+                    json.loads(channels)
+                except (json.JSONDecodeError, TypeError):
+                    logger.warning(f'channels 不是有效的JSON格式: {channels}')
+                    channels = None
+        else:
+            channels = None
         
         # 创建报警记录
         alert = Alert(
@@ -207,7 +319,10 @@ def create_alert(alert_data: dict) -> dict:
             information=information,
             time=alert_time,
             image_path=alert_data.get('image_path'),
-            record_path=alert_data.get('record_path')
+            record_path=alert_data.get('record_path'),
+            task_type=task_type,
+            notify_users=notify_users,
+            channels=channels
         )
         
         db.session.add(alert)

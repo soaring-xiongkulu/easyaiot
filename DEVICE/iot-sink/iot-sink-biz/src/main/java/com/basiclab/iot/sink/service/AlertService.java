@@ -20,5 +20,14 @@ public interface AlertService {
      * @return 告警ID（如果存储成功）
      */
     Integer processAlert(AlertNotificationMessage notificationMessage);
+    
+    /**
+     * 处理抓拍算法任务告警消息：存储到数据库（类型为抓拍算法任务）、上传图片到MinIO抓拍空间
+     * 无论是否开启通知，都会执行存储和上传操作
+     *
+     * @param notificationMessage 告警通知消息
+     * @return 告警ID（如果存储成功）
+     */
+    Integer processSnapshotAlert(AlertNotificationMessage notificationMessage);
 }
 

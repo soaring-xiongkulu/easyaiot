@@ -12,10 +12,11 @@
         <result column="device_name" jdbcType="VARCHAR" property="deviceName"/>
         <result column="image_path" jdbcType="VARCHAR" property="imagePath"/>
         <result column="record_path" jdbcType="VARCHAR" property="recordPath"/>
+        <result column="task_type" jdbcType="VARCHAR" property="taskType"/>
     </resultMap>
     
     <sql id="Base_Column_List">
-        id, object, event, region, information, time, device_id, device_name, image_path, record_path
+        id, object, event, region, information, time, device_id, device_name, image_path, record_path, task_type
     </sql>
     
     <select id="selectById" parameterType="java.lang.Integer" resultMap="BaseResultMap">
@@ -26,7 +27,7 @@
     </select>
     
     <insert id="insert" parameterType="com.basiclab.iot.message.domain.entity.AlertDO" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
-        insert into alert (object, event, region, information, time, device_id, device_name, image_path, record_path)
+        insert into alert (object, event, region, information, time, device_id, device_name, image_path, record_path, task_type)
         values (
             #{object,jdbcType=VARCHAR},
             #{event,jdbcType=VARCHAR},
@@ -36,7 +37,8 @@
             #{deviceId,jdbcType=VARCHAR},
             #{deviceName,jdbcType=VARCHAR},
             #{imagePath,jdbcType=VARCHAR},
-            #{recordPath,jdbcType=VARCHAR}
+            #{recordPath,jdbcType=VARCHAR},
+            #{taskType,jdbcType=VARCHAR}
         )
     </insert>
     

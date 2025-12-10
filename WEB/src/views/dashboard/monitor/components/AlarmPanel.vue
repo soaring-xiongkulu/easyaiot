@@ -35,9 +35,9 @@
           <div class="alarm-title">{{ alarm.title || alarm.event || '未知事件' }}</div>
           <div class="alarm-meta">
             <span 
-              :class="['alarm-level', `level-${alarm.level}`]"
+              :class="['task-type-tag', getTaskTypeClass(alarm)]"
             >
-              {{ alarm.level }}
+              {{ getTaskTypeText(alarm) }}
             </span>
             <span class="alarm-location">{{ alarm.device_name || alarm.location || '未知设备' }}</span>
           </div>
@@ -86,6 +86,55 @@ const getAlarmColor = (level: string) => {
     '四级': '#1890ff'
   }
   return colorMap[level] || '#ff4d4f'
+}
+
+// 获取任务类型
+const getTaskType = (alarm: any): string | null => {
+  // 优先从 information 字段中获取 task_type
+  let taskType = null
+  if (alarm.information) {
+    if (typeof alarm.information === 'object' && alarm.information.task_type) {
+      taskType = alarm.information.task_type
+    } else if (typeof alarm.information === 'string') {
+      try {
+        const info = JSON.parse(alarm.information)
+        taskType = info?.task_type
+      } catch (e) {
+        // 解析失败，忽略
+      }
+    }
+  }
+  
+  // 如果 information 中没有，尝试从 alarm 本身获取
+  if (!taskType && alarm.task_type) {
+    taskType = alarm.task_type
+  }
+  
+  return taskType
+}
+
+// 获取任务类型文本
+const getTaskTypeText = (alarm: any): string => {
+  const taskType = getTaskType(alarm)
+  
+  // 根据 task_type 返回文本
+  if (taskType === 'snap' || taskType === 'snapshot') {
+    return '抓拍'
+  } else {
+    return '实时'
+  }
+}
+
+// 获取任务类型样式类
+const getTaskTypeClass = (alarm: any): string => {
+  const taskType = getTaskType(alarm)
+  
+  // 根据 task_type 返回样式类
+  if (taskType === 'snap' || taskType === 'snapshot') {
+    return 'task-type-snap'
+  } else {
+    return 'task-type-realtime'
+  }
 }
 
 // 获取图片URL
@@ -304,38 +353,42 @@ const handleImageLoad = (alarm: any) => {
   flex-wrap: wrap;
 }
 
-.alarm-level {
-  display: inline-block;
-  padding: 2px 8px;
+.task-type-tag {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  background: rgba(255, 77, 79, 0.2);
-  color: #ff4d4f;
-  border: 1px solid #ff4d4f;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   
-  &.level-一级 {
-    background: rgba(255, 77, 79, 0.2);
-    color: #ff4d4f;
-    border-color: #ff4d4f;
+  &.task-type-realtime {
+    background: #3B82F6;
+    color: #ffffff;
+    border: 1px solid #2563EB;
+    
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+      background: #2563EB;
+    }
   }
   
-  &.level-二级 {
-    background: rgba(255, 152, 0, 0.2);
-    color: #ff9800;
-    border-color: #ff9800;
-  }
-  
-  &.level-三级 {
-    background: rgba(255, 193, 7, 0.2);
-    color: #ffc107;
-    border-color: #ffc107;
-  }
-  
-  &.level-四级 {
-    background: rgba(24, 144, 255, 0.2);
-    color: #1890ff;
-    border-color: #1890ff;
+  &.task-type-snap {
+    background: #10B981;
+    color: #ffffff;
+    border: 1px solid #059669;
+    
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+      background: #059669;
+    }
   }
 }
 

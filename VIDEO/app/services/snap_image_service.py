@@ -42,11 +42,17 @@ def list_snap_images(space_id: int, device_id: Optional[str] = None,
         if not minio_client.bucket_exists(bucket_name):
             return {'items': [], 'total': 0, 'page_no': page_no, 'page_size': page_size}
         
-        # 构建前缀：device_id/ 或 空（列出所有设备）
+        # 构建前缀：使用传入的device_id，如果没有则使用抓拍空间关联的device_id
+        # 每个抓拍空间只关联一个设备，所以只显示该设备的图片
         if device_id:
             prefix = f"{device_id}/"
+        elif snap_space.device_id:
+            # 如果未传入device_id，使用抓拍空间关联的设备ID
+            prefix = f"{snap_space.device_id}/"
         else:
-            prefix = ""  # 列出所有设备目录
+            # 如果抓拍空间也没有关联设备，返回空列表（这种情况不应该发生）
+            logger.warning(f"抓拍空间 {space_id} 没有关联设备，返回空列表")
+            return {'items': [], 'total': 0, 'page_no': page_no, 'page_size': page_size}
         
         # 获取所有对象
         images = []
@@ -222,8 +228,19 @@ def cleanup_old_images_by_days(space_id: int, days: int) -> Dict:
         
         # 获取该空间文件夹下所有需要处理的图片（现在路径是 device_id/filename）
         objects_to_process = []
-        # 不再使用 space_code 前缀，直接列出所有对象
-        objects = minio_client.list_objects(bucket_name, prefix="", recursive=True)
+        # 根据抓拍空间关联的设备ID过滤图片，只处理该设备的图片
+        if snap_space.device_id:
+            device_prefix = f"{snap_space.device_id}/"
+            objects = minio_client.list_objects(bucket_name, prefix=device_prefix, recursive=True)
+        else:
+            # 如果抓拍空间没有关联设备，返回空结果（这种情况不应该发生）
+            logger.warning(f"抓拍空间 {space_id} 没有关联设备，跳过清理")
+            return {
+                'processed_count': 0,
+                'deleted_count': 0,
+                'archived_count': 0,
+                'error_count': 0
+            }
         
         for obj in objects:
             if obj.object_name.endswith('/'):  # 跳过文件夹标记

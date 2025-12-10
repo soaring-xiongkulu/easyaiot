@@ -27,6 +27,7 @@ from typing import Optional, List, Dict, Any
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
+from croniter import croniter
 
 # 添加VIDEO模块路径
 video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -59,24 +60,6 @@ def get_flask_app():
             }
         }
         
-        # 重要：设置 Kafka 配置，realtime_algorithm_service 使用 host 网络模式
-        # 必须使用 localhost 访问 Kafka，不能使用容器名
-        kafka_bootstrap_servers = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
-        # 如果配置中包含容器名（Kafka 或 kafka-server），强制使用 localhost
-        if 'Kafka' in kafka_bootstrap_servers or 'kafka-server' in kafka_bootstrap_servers:
-            logger.info(f'检测到 Kafka 配置使用容器名，强制覆盖为 localhost:9092（realtime_algorithm_service 使用 host 网络模式）')
-            kafka_bootstrap_servers = 'localhost:9092'
-        
-        app.config['KAFKA_BOOTSTRAP_SERVERS'] = kafka_bootstrap_servers
-        app.config['KAFKA_ALERT_NOTIFICATION_TOPIC'] = os.getenv('KAFKA_ALERT_NOTIFICATION_TOPIC', 'iot-alert-notification')
-        app.config['KAFKA_REQUEST_TIMEOUT_MS'] = int(os.getenv('KAFKA_REQUEST_TIMEOUT_MS', '30000'))
-        app.config['KAFKA_RETRIES'] = int(os.getenv('KAFKA_RETRIES', '3'))
-        app.config['KAFKA_RETRY_BACKOFF_MS'] = int(os.getenv('KAFKA_RETRY_BACKOFF_MS', '1000'))
-        app.config['KAFKA_METADATA_MAX_AGE_MS'] = int(os.getenv('KAFKA_METADATA_MAX_AGE_MS', '300000'))
-        app.config['KAFKA_INIT_RETRY_INTERVAL'] = int(os.getenv('KAFKA_INIT_RETRY_INTERVAL', '60'))
-        app.config['KAFKA_MAX_BLOCK_MS'] = int(os.getenv('KAFKA_MAX_BLOCK_MS', '60000'))
-        app.config['KAFKA_DELIVERY_TIMEOUT_MS'] = int(os.getenv('KAFKA_DELIVERY_TIMEOUT_MS', '120000'))
-        
         # 初始化数据库
         db.init_app(app)
         _flask_app = app
@@ -89,13 +72,6 @@ from tracker import SimpleTracker
 # 加载环境变量
 load_dotenv()
 
-# 重要：realtime_algorithm_service 使用 host 网络模式，必须使用 localhost 访问 Kafka
-# 在加载环境变量后，立即强制覆盖 Kafka 配置，确保使用 localhost
-kafka_bootstrap_servers = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
-if 'Kafka' in kafka_bootstrap_servers or 'kafka-server' in kafka_bootstrap_servers:
-    os.environ['KAFKA_BOOTSTRAP_SERVERS'] = 'localhost:9092'
-    print(f'⚠️  检测到 Kafka 配置使用容器名，已强制覆盖为 localhost:9092（realtime_algorithm_service 使用 host 网络模式）')
-
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -103,69 +79,6 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
-
-def configure_kafka_hosts():
-    """配置 /etc/hosts 文件，将 Kafka 映射到 127.0.0.1
-    
-    这样可以确保即使 Kafka 元数据返回 Kafka 主机名，也能正确解析到 127.0.0.1
-    """
-    hosts_file = '/etc/hosts'
-    kafka_host_entry = '127.0.0.1\tKafka'
-    
-    try:
-        # 检查是否已经有 Kafka 映射
-        if os.path.exists(hosts_file):
-            with open(hosts_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                # 检查是否已经存在 Kafka 映射（支持多种格式）
-                if 'Kafka' in content:
-                    # 检查是否已经映射到 127.0.0.1
-                    lines = content.split('\n')
-                    for line in lines:
-                        # 检查行是否包含 Kafka 和 127.0.0.1（忽略注释和空行）
-                        stripped_line = line.strip()
-                        if stripped_line and not stripped_line.startswith('#'):
-                            if 'Kafka' in stripped_line and '127.0.0.1' in stripped_line:
-                                logger.info('✅ /etc/hosts 中已存在 Kafka 映射到 127.0.0.1')
-                                return
-                    # 如果存在但映射不正确，需要更新（但需要 root 权限，这里只记录）
-                    logger.warning('⚠️  /etc/hosts 中已存在 Kafka 映射，但可能不是 127.0.0.1，需要手动检查')
-                    return
-        
-        # 尝试添加 hosts 映射（需要 root 权限）
-        try:
-            with open(hosts_file, 'a', encoding='utf-8') as f:
-                f.write(f'\n{kafka_host_entry}\n')
-            logger.info('✅ 已成功配置 /etc/hosts：将 Kafka 映射到 127.0.0.1')
-        except PermissionError:
-            # 如果没有权限，尝试使用 subprocess（在容器中可能不适用）
-            logger.warning('⚠️  无法直接修改 /etc/hosts（需要 root 权限），尝试使用 echo 命令...')
-            try:
-                # 使用 subprocess 尝试添加（可能需要 sudo）
-                result = subprocess.run(
-                    ['sh', '-c', f'echo "{kafka_host_entry}" >> {hosts_file}'],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-                if result.returncode == 0:
-                    logger.info('✅ 已成功配置 /etc/hosts：将 Kafka 映射到 127.0.0.1')
-                else:
-                    error_msg = result.stderr.strip() if result.stderr else '未知错误'
-                    logger.warning(f'⚠️  无法自动配置 /etc/hosts: {error_msg}')
-                    logger.warning(f'   请手动添加：{kafka_host_entry}')
-                    logger.warning(f'   或者在容器启动时使用 --add-host Kafka:127.0.0.1 参数')
-            except Exception as e:
-                logger.warning(f'⚠️  无法自动配置 /etc/hosts: {str(e)}')
-                logger.warning(f'   请手动添加：{kafka_host_entry}')
-                logger.warning(f'   或者在容器启动时使用 --add-host Kafka:127.0.0.1 参数')
-    except Exception as e:
-        logger.warning(f'⚠️  配置 /etc/hosts 时出错: {str(e)}')
-        logger.warning(f'   请手动添加：{kafka_host_entry}')
-        logger.warning(f'   或者在容器启动时使用 --add-host Kafka:127.0.0.1 参数')
-
-# 配置 Kafka hosts 映射（在配置日志之后调用，以便使用 logger）
-configure_kafka_hosts()
 
 # 全局变量
 TASK_ID = int(os.getenv('TASK_ID', '0'))
@@ -197,21 +110,16 @@ detection_queues = {}  # {device_id: queue.Queue}
 push_queues = {}  # {device_id: queue.Queue}
 # 摄像头流连接（VideoCapture对象）
 device_caps = {}  # {device_id: cv2.VideoCapture}
-# 摄像头推送进程（FFmpeg进程）
-device_pushers = {}  # {device_id: subprocess.Popen}
-# FFmpeg进程的stderr读取线程和错误信息
-device_pusher_stderr_threads = {}  # {device_id: threading.Thread}
-device_pusher_stderr_buffers = {}  # {device_id: list} 存储stderr输出
-device_pusher_stderr_locks = {}  # {device_id: threading.Lock}
-# 告警抑制：记录每个设备上次告警推送时间
-last_alert_time = {}  # {device_id: timestamp}
-alert_suppression_interval = 5.0  # 告警抑制间隔：5秒
-alert_time_lock = threading.Lock()  # 告警时间戳锁，确保线程安全
+# 告警抑制：记录每个设备上次告警推送时间（抓拍算法任务不使用告警抑制）
+# 注意：抓拍算法任务不需要告警抑制，所有检测到的告警都会立即发送
+last_alert_time = {}  # {device_id: timestamp}（已废弃，不再使用）
+alert_suppression_interval = 5.0  # 告警抑制间隔：5秒（已废弃，不再使用）
+alert_time_lock = threading.Lock()  # 告警时间戳锁（已废弃，不再使用）
 
 # 配置参数（从数据库读取，支持环境变量覆盖以降低CPU占用）
-# 帧率：降低可减少CPU占用和推流速度
+# 帧率：降低可减少CPU占用
 SOURCE_FPS = int(os.getenv('SOURCE_FPS', '15'))  # 默认15fps（原25fps）
-# 分辨率：降低可大幅减少CPU占用和推流速度
+# 分辨率：降低可大幅减少CPU占用
 TARGET_WIDTH = int(os.getenv('TARGET_WIDTH', '640'))  # 默认640（原1280）
 TARGET_HEIGHT = int(os.getenv('TARGET_HEIGHT', '360'))  # 默认360（原720）
 TARGET_RESOLUTION = (TARGET_WIDTH, TARGET_HEIGHT)
@@ -221,26 +129,13 @@ MIN_BUFFER_FRAMES = int(os.getenv('MIN_BUFFER_FRAMES', '15'))
 MAX_WAIT_TIME = float(os.getenv('MAX_WAIT_TIME', '0.08'))
 # FFmpeg编码参数（优化以降低CPU占用）
 # FFmpeg编码参数（优化以降低CPU占用）
-# 处理空字符串的情况，确保参数有效
-FFMPEG_PRESET_ENV = os.getenv('FFMPEG_PRESET', 'ultrafast')
-FFMPEG_PRESET = FFMPEG_PRESET_ENV.strip() if FFMPEG_PRESET_ENV and FFMPEG_PRESET_ENV.strip() else 'ultrafast'  # 编码预设：ultrafast最快，CPU占用最低
-
-FFMPEG_VIDEO_BITRATE_ENV = os.getenv('FFMPEG_VIDEO_BITRATE', '500k')
-FFMPEG_VIDEO_BITRATE = FFMPEG_VIDEO_BITRATE_ENV.strip() if FFMPEG_VIDEO_BITRATE_ENV and FFMPEG_VIDEO_BITRATE_ENV.strip() else '500k'  # 视频比特率：降低可减少推流速度（原1500k）
-
-# 编码线程数：None表示自动，可设置为较小值降低CPU
-# 处理空字符串的情况，确保只有有效的数字字符串才会被使用
-FFMPEG_THREADS_ENV = os.getenv('FFMPEG_THREADS', None)
-FFMPEG_THREADS = None if not FFMPEG_THREADS_ENV or FFMPEG_THREADS_ENV.strip() == '' else FFMPEG_THREADS_ENV.strip()
-# GOP大小：2秒一个关键帧（在SOURCE_FPS定义后计算）
-FFMPEG_GOP_SIZE_ENV = os.getenv('FFMPEG_GOP_SIZE', None)
-FFMPEG_GOP_SIZE = int(FFMPEG_GOP_SIZE_ENV) if FFMPEG_GOP_SIZE_ENV else (SOURCE_FPS * 2)
+# 注意：抓拍算法任务不推流，不需要FFmpeg编码参数
 # YOLO检测参数（优化以降低CPU占用）
 YOLO_IMG_SIZE = int(os.getenv('YOLO_IMG_SIZE', '416'))  # 检测分辨率：降低可减少CPU占用（原640）
 # 队列大小配置（优化以处理高负载）
 DETECTION_QUEUE_SIZE = int(os.getenv('DETECTION_QUEUE_SIZE', '100'))  # 检测队列大小（默认100，原50）
 PUSH_QUEUE_SIZE = int(os.getenv('PUSH_QUEUE_SIZE', '100'))  # 推帧队列大小（默认100，原50）
-EXTRACT_QUEUE_SIZE = int(os.getenv('EXTRACT_QUEUE_SIZE', '50'))  # 抽帧队列大小（默认50）
+EXTRACT_QUEUE_SIZE = int(os.getenv('EXTRACT_QUEUE_SIZE', '1'))  # 抽帧队列大小（默认1，每个摄像头只保留1帧）
 # 检测工作线程数量（优化以提升处理能力）
 YOLO_WORKER_THREADS = int(os.getenv('YOLO_WORKER_THREADS', '2'))  # YOLO检测线程数（默认2，原1）
 
@@ -475,26 +370,23 @@ def load_task_config():
         
         logger.info(f"✅ 成功加载 {len(yolo_models)} 个YOLO模型")
         
-        # 从摄像头列表获取输入流地址（支持RTSP和RTMP）和RTMP输出流地址（重新加载，确保获取最新地址）
-        # 注意：rtmp_input_url和rtmp_output_url字段已废弃，改为从摄像头列表获取
+        # 从摄像头列表获取输入流地址（支持RTSP和RTMP）
+        # 注意：抓拍算法任务不推流，只读取输入流
         device_streams = {}
         if task.devices:
             # 刷新设备关联关系，确保获取最新的设备信息
             db_session.refresh(task)
             for device in task.devices:
-                # 刷新设备对象，确保获取最新的source和rtmp_stream
+                # 刷新设备对象，确保获取最新的source
                 db_session.refresh(device)
                 # 输入流地址（支持RTSP和RTMP格式，从device.source获取）
                 rtsp_url = device.source if device.source else None
-                # RTMP流地址作为输出（从device.rtmp_stream获取）
-                rtmp_url = device.rtmp_stream if device.rtmp_stream else None
                 device_streams[device.id] = {
                     'rtsp_url': rtsp_url,  # 输入流地址
-                    'rtmp_url': rtmp_url,  # 输出流地址
                     'device_name': device.name or device.id
                 }
                 input_type = "RTSP" if rtsp_url and rtsp_url.startswith('rtsp://') else "RTMP" if rtsp_url and rtsp_url.startswith('rtmp://') else "输入流"
-                logger.info(f"📹 设备 {device.id} ({device.name or device.id}): {input_type}={rtsp_url}, RTMP输出={rtmp_url}")
+                logger.info(f"📹 设备 {device.id} ({device.name or device.id}): {input_type}={rtsp_url}")
         
         # 将设备流地址信息存储到task_config中（通过动态属性）
         task_config.device_streams = device_streams
@@ -511,6 +403,10 @@ def load_task_config():
             detection_queues[device_id] = queue.Queue(maxsize=DETECTION_QUEUE_SIZE)
             push_queues[device_id] = queue.Queue(maxsize=PUSH_QUEUE_SIZE)
             
+            # 初始化cron相关变量（清理旧状态）
+            if device_id in device_last_extract_cron_time:
+                device_last_extract_cron_time.pop(device_id, None)
+            
             # 初始化追踪器（如果启用）
             if task.tracking_enabled:
                 trackers[device_id] = SimpleTracker(
@@ -519,6 +415,13 @@ def load_task_config():
                     smooth_alpha=task.tracking_smooth_alpha
                 )
                 logger.info(f"设备 {device_id} 追踪器初始化成功")
+        
+        # 记录cron表达式配置（如果存在）
+        cron_expression = getattr(task, 'cron_expression', None)
+        if cron_expression and cron_expression.strip():
+            logger.info(f"⏰ 抓拍算法任务已配置cron表达式: {cron_expression}，将按cron时间执行抽帧")
+        else:
+            logger.info(f"⏰ 抓拍算法任务未配置cron表达式，将按抽帧间隔持续抽帧")
         
         logger.info(f"任务配置加载成功: {task.task_name}, 模型IDs: {model_ids}, 关联设备数: {len(device_streams)}")
         
@@ -531,21 +434,117 @@ def load_task_config():
         return False
 
 
+# 存储每个设备上次抽帧的cron时间点（用于确保每个cron时间点只抽1帧）
+device_last_extract_cron_time = {}  # {device_id: 上次抽帧的cron时间点（datetime对象）}
+device_extract_cron_lock = threading.Lock()  # 保护device_last_extract_cron_time的锁
+
+
+def should_extract_frame_by_cron(device_id: str, current_time: float) -> bool:
+    """检查当前时间是否匹配cron表达式，决定是否应该抽帧
+    确保每个cron时间点只抽1帧，抽完后停止，直到下一个cron时间点
+    
+    Args:
+        device_id: 设备ID
+        current_time: 当前时间戳
+    
+    Returns:
+        bool: True表示应该抽帧，False表示不应该抽帧（静默）
+    """
+    global task_config, device_last_extract_cron_time
+    
+    # 如果没有任务配置，默认允许抽帧（向后兼容）
+    if not task_config:
+        return True
+    
+    # 获取cron表达式（仅抓拍算法任务有cron配置）
+    cron_expression = getattr(task_config, 'cron_expression', None)
+    
+    # 如果没有配置cron表达式，默认允许抽帧（向后兼容）
+    if not cron_expression or not cron_expression.strip():
+        return True
+    
+    try:
+        # 每次检查时都创建新的cron迭代器，基于当前时间
+        current_dt = datetime.fromtimestamp(current_time)
+        cron_iter = croniter(cron_expression, current_dt)
+        
+        # 获取当前时间的上一个执行时间（这是当前应该执行的cron时间点）
+        prev_time = cron_iter.get_prev(datetime)
+        next_time = cron_iter.get_next(datetime)
+        
+        # 计算时间差
+        time_since_prev = (current_dt - prev_time).total_seconds()
+        time_to_next = (next_time - current_dt).total_seconds()
+        
+        # 判断当前时间是否在cron执行时间窗口内
+        # 只检查距离上一个执行时间是否在窗口内（前后各2秒的容差窗口）
+        cron_window = 2.0  # cron执行时间窗口（秒）
+        # 确保当前时间在prev_time之后，且距离prev_time小于窗口时间
+        in_cron_window = time_since_prev >= 0 and time_since_prev < cron_window
+        
+        # 确保每个cron时间点只抽1帧（使用锁保护，避免并发问题）
+        should_extract = False
+        if in_cron_window:
+            # 使用锁保护，确保原子性检查和更新
+            with device_extract_cron_lock:
+                # 检查是否已经在当前cron时间点抽过帧了
+                last_extract_cron_time = device_last_extract_cron_time.get(device_id)
+                
+                # 如果还没有抽过帧，或者上次抽帧的cron时间点与当前不同，则允许抽帧
+                if last_extract_cron_time is None or last_extract_cron_time != prev_time:
+                    should_extract = True
+                    # 立即更新上次抽帧的cron时间点（在返回True之前就更新，避免并发问题）
+                    device_last_extract_cron_time[device_id] = prev_time
+                    logger.info(f"⏰ 设备 {device_id} cron匹配，允许抽帧: 当前时间={current_dt.strftime('%Y-%m-%d %H:%M:%S')}, cron时间点={prev_time.strftime('%Y-%m-%d %H:%M:%S')}, 距离上一个执行时间={time_since_prev:.2f}秒")
+                else:
+                    # 已经在当前cron时间点抽过帧了，不再抽帧
+                    should_extract = False
+                    logger.debug(f"🔇 设备 {device_id} 已在当前cron时间点抽过帧，跳过: cron时间点={prev_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        else:
+            # 不在cron时间窗口内，不抽帧
+            should_extract = False
+        
+        return should_extract
+        
+    except Exception as e:
+        logger.error(f"❌ 设备 {device_id} 检查cron表达式失败: cron={cron_expression}, error={str(e)}", exc_info=True)
+        # 出错时默认不允许抽帧，避免影响正常功能
+        return False
+
+
 def send_alert_event_async(alert_data: Dict):
-    """异步发送告警事件（后台线程）"""
+    """异步发送告警事件到 sink hook 接口（后台线程）- 抓拍算法任务专用"""
     def _send():
         try:
+            device_id = alert_data.get('device_id')
             if not task_config or not task_config.alert_event_enabled:
+                logger.warning(f"⚠️  告警事件未启用，跳过发送: device_id={device_id}, alert_event_enabled={task_config.alert_event_enabled if task_config else None}")
                 return
             
-            # 获取Flask应用实例并设置应用上下文
-            app = get_flask_app()
-            with app.app_context():
-                # 发送告警事件到告警Hook接口（用于存储到数据库和Kafka）
-                from app.services.alert_hook_service import process_alert_hook
-                process_alert_hook(alert_data)
+            logger.info(f"🚨 开始异步发送告警事件: device_id={device_id}, object={alert_data.get('object')}, event={alert_data.get('event')}")
+            
+            # 通过 HTTP 发送告警事件到 sink hook 接口
+            # sink 会负责将告警投入 Kafka
+            try:
+                # 标记为抓拍算法任务（确保task_type正确传递）
+                alert_data['task_type'] = 'snapshot'
+                # 如果information是字典，也添加task_type
+                if 'information' in alert_data and isinstance(alert_data['information'], dict):
+                    alert_data['information']['task_type'] = 'snapshot'
+                response = requests.post(
+                    ALERT_HOOK_URL,
+                    json=alert_data,
+                    timeout=5,
+                    headers={'Content-Type': 'application/json'}
+                )
+                if response.status_code == 200:
+                    logger.debug(f"告警事件已发送到 sink hook: device_id={device_id}")
+                else:
+                    logger.warning(f"发送告警事件到 sink hook 失败: status_code={response.status_code}, response={response.text}")
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"发送告警事件到 sink hook 异常: {str(e)}")
         except Exception as e:
-            logger.error(f"发送告警事件失败: {str(e)}", exc_info=True)
+            logger.error(f"❌ 发送告警事件失败: device_id={alert_data.get('device_id')}, error={str(e)}", exc_info=True)
     
     # 在后台线程中异步执行
     thread = threading.Thread(target=_send, daemon=True)
@@ -813,52 +812,6 @@ def save_tracking_targets_periodically():
     logger.info("💾 追踪目标处理线程停止")
 
 
-def check_rtmp_server_connection(rtmp_url: str) -> bool:
-    """检查RTMP服务器是否可用
-    
-    Args:
-        rtmp_url: RTMP推流地址，格式如 rtmp://localhost:1935/live/stream
-        
-    Returns:
-        bool: RTMP服务器是否可用
-    """
-    try:
-        # 从RTMP URL中提取主机和端口
-        if not rtmp_url.startswith('rtmp://'):
-            return False
-        
-        # 解析URL: rtmp://host:port/path -> (host, port)
-        url_part = rtmp_url.replace('rtmp://', '')
-        if '/' in url_part:
-            host_port = url_part.split('/')[0]
-        else:
-            host_port = url_part
-        
-        if ':' in host_port:
-            host, port_str = host_port.split(':', 1)
-            try:
-                port = int(port_str)
-            except ValueError:
-                port = 1935  # 默认RTMP端口
-        else:
-            host = host_port
-            port = 1935  # 默认RTMP端口
-        
-        # 尝试连接RTMP服务器端口
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(3)
-        result = sock.connect_ex((host, port))
-        sock.close()
-        
-        if result == 0:
-            return True
-        else:
-            return False
-    except Exception as e:
-        logger.debug(f"检查RTMP服务器连接时出错: {str(e)}")
-        return False
-
-
 def check_and_stop_existing_stream(stream_url: str):
     """检查并停止现有的 RTMP 流（通过 SRS HTTP API）
     
@@ -1076,26 +1029,6 @@ def check_and_stop_existing_stream(stream_url: str):
         logger.warning(f"⚠️  检查现有流时出错: {str(e)}，继续尝试推流...")
 
 
-def read_ffmpeg_stderr(device_id: str, stderr_pipe, stderr_buffer: list, stderr_lock: threading.Lock):
-    """实时读取FFmpeg进程的stderr输出"""
-    try:
-        for line in iter(stderr_pipe.readline, b''):
-            if not line:
-                break
-            try:
-                line_str = line.decode('utf-8', errors='ignore').strip()
-                if line_str:
-                    with stderr_lock:
-                        stderr_buffer.append(line_str)
-                        # 只保留最近100行
-                        if len(stderr_buffer) > 100:
-                            stderr_buffer.pop(0)
-            except:
-                pass
-    except Exception as e:
-        logger.debug(f"设备 {device_id} stderr读取线程异常: {str(e)}")
-    finally:
-        stderr_pipe.close()
 
 
 def buffer_streamer_worker(device_id: str):
@@ -1112,14 +1045,12 @@ def buffer_streamer_worker(device_id: str):
         return
     
     rtsp_url = device_stream_info.get('rtsp_url')
-    rtmp_url = device_stream_info.get('rtmp_url')
     device_name = device_stream_info.get('device_name', device_id)
     
-    # 打印推流地址信息
+    # 打印输入流地址信息
     logger.info(f"📺 设备 {device_id} 流地址配置:")
     input_stream_type = "RTSP" if rtsp_url and rtsp_url.startswith('rtsp://') else "RTMP" if rtsp_url and rtsp_url.startswith('rtmp://') else "输入流"
     logger.info(f"   {input_stream_type}输入流: {rtsp_url}")
-    logger.info(f"   RTMP推流地址: {rtmp_url if rtmp_url else '(未配置)'}")
     
     if not rtsp_url:
         logger.error(f"设备 {device_id} 输入流地址不存在，缓流器退出")
@@ -1130,21 +1061,12 @@ def buffer_streamer_worker(device_id: str):
     logger.info(f"📡 设备 {device_id} 输入流类型: {stream_type}")
     
     cap = None
-    pusher_process = None
     frame_width = None
     frame_height = None
     next_output_frame = 1
     retry_count = 0
     max_retries = 5
     pending_frames = set()
-    pusher_retry_count = 0  # FFmpeg 推送进程重试计数
-    pusher_max_retries = 3  # FFmpeg 推送进程最大重试次数
-    last_pusher_failure_time = 0  # 上次推送进程失败的时间
-    
-    # 初始化stderr缓冲区
-    if device_id not in device_pusher_stderr_buffers:
-        device_pusher_stderr_buffers[device_id] = []
-        device_pusher_stderr_locks[device_id] = threading.Lock()
     
     # 流畅度优化：基于时间戳的帧率控制
     frame_interval = 1.0 / SOURCE_FPS
@@ -1157,20 +1079,6 @@ def buffer_streamer_worker(device_id: str):
             # 打开源流（支持 RTSP 和 RTMP）
             if cap is None or not cap.isOpened():
                 stream_type = "RTSP" if rtsp_url.startswith('rtsp://') else "RTMP" if rtsp_url.startswith('rtmp://') else "流"
-                
-                # 对于 RTMP 流，先检查服务器是否可用
-                if rtsp_url.startswith('rtmp://'):
-                    if not check_rtmp_server_connection(rtsp_url):
-                        retry_count += 1
-                        if retry_count >= max_retries:
-                            logger.error(f"❌ 设备 {device_id} RTMP 服务器不可用，已达到最大重试次数 {max_retries}")
-                            logger.info("等待30秒后重新尝试...")
-                            time.sleep(30)
-                            retry_count = 0
-                        else:
-                            logger.warning(f"设备 {device_id} RTMP 服务器不可用，等待重试... ({retry_count}/{max_retries})")
-                            time.sleep(2)
-                        continue
                 
                 logger.info(f"正在连接设备 {device_id} 的 {stream_type} 流: {rtsp_url} (重试次数: {retry_count})")
                 
@@ -1256,7 +1164,16 @@ def buffer_streamer_worker(device_id: str):
                 time.sleep(1)
                 continue
             
-            # 更新该设备的帧计数
+            # 抓拍算法任务：只在cron时间点处理1帧，其他帧完全跳过
+            current_timestamp = time.time()
+            
+            # 检查cron表达式，如果不在cron时间点，直接跳过这帧
+            if not should_extract_frame_by_cron(device_id, current_timestamp):
+                # 不在cron时间点，跳过这帧，不处理
+                continue
+            
+            # 到了cron时间点，处理这1帧
+            # 更新该设备的帧计数（仅用于日志）
             frame_counts[device_id] += 1
             frame_count = frame_counts[device_id]
             
@@ -1265,682 +1182,136 @@ def buffer_streamer_worker(device_id: str):
             if (original_width, original_height) != TARGET_RESOLUTION:
                 frame = cv2.resize(frame, TARGET_RESOLUTION, interpolation=cv2.INTER_LINEAR)
             
-            height, width = TARGET_HEIGHT, TARGET_WIDTH
+            # 将帧发送到抽帧队列进行分析（队列容量为1，新帧会顶掉旧帧）
+            pending_frames.add(frame_count)
+            frame_sent = False
+            try:
+                # 尝试直接放入
+                extract_queues[device_id].put_nowait({
+                    'frame': frame.copy(),
+                    'frame_number': frame_count,
+                    'timestamp': current_timestamp,
+                    'device_id': device_id
+                })
+                frame_sent = True
+                logger.info(f"📸 设备 {device_id} 在cron时间点抽帧: 帧号={frame_count}, 时间={datetime.fromtimestamp(current_timestamp).strftime('%Y-%m-%d %H:%M:%S')}")
+            except queue.Full:
+                # 队列已满，取出旧的帧（顶一个），再放入新的
+                try:
+                    old_frame_data = extract_queues[device_id].get_nowait()
+                    logger.debug(f"🔄 设备 {device_id} 抽帧队列已满，丢弃旧帧 {old_frame_data.get('frame_number')}，放入新帧 {frame_count}")
+                except queue.Empty:
+                    pass
+                # 再次尝试放入新帧
+                try:
+                    extract_queues[device_id].put_nowait({
+                        'frame': frame.copy(),
+                        'frame_number': frame_count,
+                        'timestamp': current_timestamp,
+                        'device_id': device_id
+                    })
+                    frame_sent = True
+                    logger.info(f"📸 设备 {device_id} 在cron时间点抽帧: 帧号={frame_count}, 时间={datetime.fromtimestamp(current_timestamp).strftime('%Y-%m-%d %H:%M:%S')}")
+                except queue.Full:
+                    logger.warning(f"⚠️  设备 {device_id} 抽帧队列放入失败，帧 {frame_count} 被丢弃")
             
-            # 初始化推送进程（为该设备）- 只在需要时启动，避免频繁重启
-            if pusher_process is None or pusher_process.poll() is not None:
-                # 如果进程已退出，记录原因并添加重试延迟
-                if pusher_process and pusher_process.poll() is not None:
-                    # 检查是否需要等待重试（避免频繁重启）
-                    current_time = time.time()
-                    time_since_last_failure = current_time - last_pusher_failure_time
-                    min_retry_interval = 2.0  # 最小重试间隔：2秒
-                    
-                    if time_since_last_failure < min_retry_interval:
-                        # 如果距离上次失败时间太短，等待一段时间
-                        wait_time = min_retry_interval - time_since_last_failure
-                        logger.debug(f"设备 {device_id} 推送进程失败后等待 {wait_time:.1f} 秒后重试...")
-                        time.sleep(wait_time)
-                    
-                    last_pusher_failure_time = time.time()
-                    # 停止stderr读取线程
-                    stderr_thread = device_pusher_stderr_threads.pop(device_id, None)
-                    if stderr_thread and stderr_thread.is_alive():
-                        try:
-                            # 等待线程结束（最多等待1秒）
-                            stderr_thread.join(timeout=1)
-                        except:
-                            pass
-                    
-                    # 获取stderr错误信息
-                    stderr_lines = []
-                    with device_pusher_stderr_locks[device_id]:
-                        stderr_lines = device_pusher_stderr_buffers[device_id].copy()
-                        device_pusher_stderr_buffers[device_id].clear()
-                    
-                    exit_code = pusher_process.returncode
-                    logger.warning(f"⚠️  设备 {device_id} 推送进程已退出 (退出码: {exit_code})")
-                    
-                    # 提取关键错误信息（过滤掉版本信息等）
-                    error_lines = []
-                    for line in stderr_lines:
-                        line_lower = line.lower()
-                        # 跳过版本信息、配置信息等
-                        if any(skip in line_lower for skip in ['version', 'copyright', 'built with', 'configuration:', 'libav']):
-                            continue
-                        # 保留错误、警告、失败等信息
-                        if any(keyword in line_lower for keyword in ['error', 'failed', 'warning', 'cannot', 'unable', 'invalid', 'connection refused', 'connection reset', 'timeout']):
-                            error_lines.append(line)
-                    
-                    if error_lines:
-                        logger.warning(f"   关键错误信息:")
-                        for err_line in error_lines[-10:]:  # 只显示最后10行关键错误
-                            logger.warning(f"   {err_line}")
-                    elif stderr_lines:
-                        # 如果没有关键错误，显示最后几行
-                        logger.warning(f"   最后输出: {stderr_lines[-3:]}")
-                    else:
-                        logger.warning(f"   未捕获到错误信息，可能是进程启动失败或RTMP服务器连接问题")
-                    
-                    # 检查RTMP服务器连接状态（仅在首次失败时检查，避免频繁检查）
-                    if pusher_retry_count == 0:
-                        if not check_rtmp_server_connection(rtmp_url):
-                            logger.warning("")
-                            logger.warning("=" * 60)
-                            logger.warning("💡 RTMP服务器连接检查失败，可能的原因和解决方案：")
-                            logger.warning("=" * 60)
-                            logger.warning("1. RTMP服务器（SRS）未运行")
-                            logger.warning("   - 检查SRS服务状态: docker ps | grep srs")
-                            logger.warning("")
-                            logger.warning("2. 启动SRS服务器：")
-                            logger.warning("   - 使用Docker Compose: cd /opt/projects/easyaiot/.scripts/docker && docker-compose up -d srs")
-                            logger.warning("   - 或使用Docker: docker run -d --name srs-server -p 1935:1935 -p 1985:1985 -p 8080:8080 ossrs/srs:5")
-                            logger.warning("")
-                            logger.warning("3. SRS HTTP回调服务未运行（常见原因）")
-                            logger.warning("   - 请确保VIDEO服务在端口48080上运行")
-                            logger.warning("=" * 60)
-                            logger.warning("")
-                
-                # 关闭旧进程
-                if pusher_process and pusher_process.poll() is None:
-                    try:
-                        pusher_process.stdin.close()
-                        pusher_process.terminate()
-                        pusher_process.wait(timeout=2)
-                    except:
-                        if pusher_process.poll() is None:
-                            pusher_process.kill()
-                
-                frame_width = width
-                frame_height = height
-                
-                if not rtmp_url:
-                    logger.warning(f"设备 {device_id} RTMP输出流地址不存在，跳过推送")
-                else:
-                    # 在启动推流前，检查并停止现有流（避免StreamBusy错误）
-                    # 重要：只检查推流地址，不检查输入流地址，避免误停止输入流
-                    # 如果输入流地址和推流地址相同，则跳过检查（避免误停止输入流）
-                    if rtsp_url and rtsp_url == rtmp_url:
-                        logger.warning(f"⚠️  设备 {device_id} 输入流地址和推流地址相同，跳过流检查（避免误停止输入流）")
-                    else:
-                        logger.info(f"🔍 检查设备 {device_id} 是否存在占用该地址的流...")
-                        check_and_stop_existing_stream(rtmp_url)
-                    
-                    # 构建 ffmpeg 命令（优化版本：低CPU占用、低推流速度）
-                    # 优化参数说明：
-                    # -preset ultrafast: 最快编码，最低CPU占用
-                    # -b:v 500k: 降低视频比特率，减少推流速度
-                    # -threads: 限制编码线程数，降低CPU占用
-                    # -g: GOP 大小（关键帧间隔），增大可减少关键帧频率
-                    # -keyint_min: 最小关键帧间隔
-                    # -f flv: 输出格式为 FLV（RTMP 标准格式）
-                    ffmpeg_cmd = [
-                        "ffmpeg",
-                        "-y",
-                        "-fflags", "nobuffer",
-                        "-f", "rawvideo",
-                        "-vcodec", "rawvideo",
-                        "-pix_fmt", "bgr24",
-                        "-s", f"{width}x{height}",
-                        "-r", str(SOURCE_FPS),
-                        "-i", "-",
-                        "-c:v", "libx264",
-                        "-b:v", FFMPEG_VIDEO_BITRATE,  # 使用配置的比特率（默认500k）
-                        "-pix_fmt", "yuv420p",
-                        "-preset", FFMPEG_PRESET,  # 使用配置的预设（默认ultrafast）
-                        "-g", str(FFMPEG_GOP_SIZE),  # GOP 大小：2秒一个关键帧
-                        "-keyint_min", str(SOURCE_FPS),  # 最小关键帧间隔：1秒
-                        "-f", "flv",
-                    ]
-                    
-                    # 如果配置了线程数限制，添加线程参数
-                    # 确保 FFMPEG_THREADS 是有效的非空值
-                    if FFMPEG_THREADS is not None and str(FFMPEG_THREADS).strip():
-                        try:
-                            # 验证是否为有效的整数
-                            threads_value = int(FFMPEG_THREADS)
-                            if threads_value > 0:
-                                ffmpeg_cmd.extend(["-threads", str(threads_value)])
-                            else:
-                                logger.warning(f"   ⚠️  FFMPEG_THREADS 值无效 ({FFMPEG_THREADS})，跳过线程数限制")
-                        except (ValueError, TypeError):
-                            logger.warning(f"   ⚠️  FFMPEG_THREADS 值无效 ({FFMPEG_THREADS})，跳过线程数限制")
-                    
-                    # 添加输出地址
-                    ffmpeg_cmd.append(rtmp_url)
-                    
-                    logger.info(f"🚀 启动设备 {device_id} 推送进程（优化模式：低CPU占用）")
-                    logger.info(f"   📺 推流地址: {rtmp_url}")
-                    logger.info(f"   📐 尺寸: {width}x{height}, 帧率: {SOURCE_FPS}fps")
-                    logger.info(f"   🎬 编码预设: {FFMPEG_PRESET}, 比特率: {FFMPEG_VIDEO_BITRATE}, GOP: {FFMPEG_GOP_SIZE}")
-                    if FFMPEG_THREADS is not None and str(FFMPEG_THREADS).strip():
-                        logger.info(f"   🧵 编码线程数: {FFMPEG_THREADS}")
-                    logger.debug(f"   FFmpeg命令: {' '.join(ffmpeg_cmd)}")
-                    logger.debug(f"   FFmpeg命令参数列表: {ffmpeg_cmd}")
-                    
-                    try:
-                        pusher_process = subprocess.Popen(
-                            ffmpeg_cmd,
-                            stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            bufsize=0,
-                            shell=False  # 明确指定不使用shell，避免容器环境中的参数解析问题
-                        )
-                        
-                        # 启动stderr读取线程
-                        stderr_buffer = device_pusher_stderr_buffers[device_id]
-                        stderr_lock = device_pusher_stderr_locks[device_id]
-                        stderr_thread = threading.Thread(
-                            target=read_ffmpeg_stderr,
-                            args=(device_id, pusher_process.stderr, stderr_buffer, stderr_lock),
-                            daemon=True
-                        )
-                        stderr_thread.start()
-                        device_pusher_stderr_threads[device_id] = stderr_thread
-                        
-                        # 等待一小段时间，检查进程是否立即退出
-                        time.sleep(0.5)
-                        
-                        if pusher_process.poll() is not None:
-                            # 等待stderr线程读取一些输出
-                            time.sleep(0.3)
-                            
-                            # 获取错误信息
-                            error_lines = []
-                            with device_pusher_stderr_locks[device_id]:
-                                error_lines = device_pusher_stderr_buffers[device_id].copy()
-                                device_pusher_stderr_buffers[device_id].clear()
-                            
-                            exit_code = pusher_process.returncode
-                            logger.error(f"❌ 设备 {device_id} 推送进程启动失败 (退出码: {exit_code})")
-                            logger.error(f"   FFmpeg命令: {' '.join(ffmpeg_cmd)}")
-                            logger.error(f"   FFmpeg命令参数列表: {ffmpeg_cmd}")
-                            
-                            # 提取关键错误信息
-                            key_errors = []
-                            for line in error_lines:
-                                line_lower = line.lower()
-                                if any(skip in line_lower for skip in ['version', 'copyright', 'built with', 'configuration:', 'libav']):
-                                    continue
-                                if any(keyword in line_lower for keyword in ['error', 'failed', 'cannot', 'unable', 'invalid', 'connection refused', 'connection reset', 'timeout', 'no such file', 'permission denied', 'splitting', 'option not found']):
-                                    key_errors.append(line)
-                            
-                            if key_errors:
-                                logger.error(f"   关键错误:")
-                                for err in key_errors[-10:]:
-                                    logger.error(f"   {err}")
-                            elif error_lines:
-                                logger.error(f"   输出: {error_lines[-5:]}")
-                            else:
-                                logger.error(f"   未捕获到错误信息，请检查RTMP服务器是否运行: {rtmp_url}")
-                            
-                            # 检查RTMP服务器连接状态
-                            if not check_rtmp_server_connection(rtmp_url):
-                                logger.error("")
-                                logger.error("=" * 60)
-                                logger.error("💡 RTMP服务器连接检查失败，可能的原因和解决方案：")
-                                logger.error("=" * 60)
-                                logger.error("1. RTMP服务器（SRS）未运行")
-                                logger.error("   - 检查SRS服务状态: docker ps | grep srs")
-                                logger.error("   - 或使用: systemctl status srs")
-                                logger.error("")
-                                logger.error("2. 启动SRS服务器：")
-                                logger.error("   - 使用Docker Compose: cd /opt/projects/easyaiot/.scripts/docker && docker-compose up -d srs")
-                                logger.error("   - 或使用Docker: docker run -d --name srs-server -p 1935:1935 -p 1985:1985 -p 8080:8080 ossrs/srs:5")
-                                logger.error("")
-                                logger.error("3. SRS HTTP回调服务未运行（常见原因）")
-                                logger.error("   - SRS配置了on_publish回调，但回调服务未启动")
-                                logger.error("   - 请确保VIDEO服务在端口48080上运行")
-                                logger.error("   - 检查服务: docker ps | grep video")
-                                logger.error("")
-                                logger.error("4. 检查RTMP端口是否监听：")
-                                logger.error("   - netstat -tuln | grep 1935")
-                                logger.error("   - 或: ss -tuln | grep 1935")
-                                logger.error("")
-                                logger.error("5. 测试RTMP连接：")
-                                logger.error("   - telnet localhost 1935")
-                                logger.error("   - 或: curl http://localhost:1985/api/v1/versions")
-                                logger.error("=" * 60)
-                                logger.error("")
-                            
-                            # 停止stderr线程
-                            if stderr_thread.is_alive():
-                                stderr_thread.join(timeout=0.5)
-                            device_pusher_stderr_threads.pop(device_id, None)
-                            
-                            pusher_retry_count += 1
-                            if pusher_retry_count >= pusher_max_retries:
-                                logger.error(f"❌ 设备 {device_id} 推送进程启动失败次数过多 ({pusher_retry_count}/{pusher_max_retries})，等待10秒后重置重试计数")
-                                time.sleep(10)
-                                pusher_retry_count = 0
-                            
-                            pusher_process = None
-                        else:
-                            # 推送进程启动成功，重置重试计数
-                            pusher_retry_count = 0
-                            device_pushers[device_id] = pusher_process
-                            logger.info(f"✅ 设备 {device_id} 推送进程已启动 (PID: {pusher_process.pid})")
-                            logger.info(f"   📺 推流地址: {rtmp_url}")
-                            logger.info(f"   📐 输出参数: {width}x{height} @ {SOURCE_FPS}fps")
-                            
-                            # 额外等待一小段时间，确保 RTMP 连接已建立
-                            time.sleep(0.3)
-                    except Exception as e:
-                        logger.error(f"❌ 设备 {device_id} 启动推送进程异常: {str(e)}", exc_info=True)
-                        pusher_process = None
-            elif frame_width != width or frame_height != height:
-                # 分辨率变化，需要重启推送进程
-                logger.info(f"🔄 设备 {device_id} 分辨率变化 ({frame_width}x{frame_height} -> {width}x{height})，重启推送进程")
-                if pusher_process and pusher_process.poll() is None:
-                    try:
-                        pusher_process.stdin.close()
-                        pusher_process.terminate()
-                        pusher_process.wait(timeout=2)
-                    except:
-                        if pusher_process.poll() is None:
-                            pusher_process.kill()
-                
-                # 停止stderr读取线程
-                stderr_thread = device_pusher_stderr_threads.pop(device_id, None)
-                if stderr_thread and stderr_thread.is_alive():
-                    try:
-                        stderr_thread.join(timeout=1)
-                    except:
-                        pass
-                
-                pusher_process = None
-                device_pushers.pop(device_id, None)
-            
-            # 将帧存入该设备的缓冲区
+            # 将帧存入缓冲区（仅用于等待检测结果和发送告警）
             with buffer_locks[device_id]:
                 frame_buffer = frame_buffers[device_id]
-                
-                # 清理旧帧（保持缓冲区大小）
-                # 注意：只清理已经输出过的帧，并且不清理正在处理中的帧（pending_frames）
-                # 参考测试脚本，使用更保守的清理策略
-                buffer_threshold = int(BUFFER_SIZE * 0.98)
-                if len(frame_buffer) >= buffer_threshold:
-                    frames_to_remove = []
-                    for frame_num in frame_buffer.keys():
-                        # 只清理已经输出过的帧，并且不在pending_frames中（不在处理中）
-                        # 更保守：只清理明显超出最小缓冲要求的帧
-                        if frame_num < next_output_frame and frame_num not in pending_frames and len(frame_buffer) > MIN_BUFFER_FRAMES * 3:
-                            frames_to_remove.append(frame_num)
-                    
-                    frames_to_remove.sort()
-                    # 只清理少量帧，不要过度清理
-                    remove_count = min(2, max(1, len(frame_buffer) - buffer_threshold + 1))
-                    for frame_num in frames_to_remove[:remove_count]:
-                        frame_buffer.pop(frame_num, None)
-                
-                # 紧急清理：如果缓冲区仍然过大（>99%），才强制清理最旧的已输出帧（但不在处理中）
-                if len(frame_buffer) >= int(BUFFER_SIZE * 0.99):
-                    frames_to_remove_urgent = []
-                    for frame_num in frame_buffer.keys():
-                        # 只清理已经输出过的帧，并且不在pending_frames中（不在处理中）
-                        if frame_num < next_output_frame and frame_num not in pending_frames:
-                            frames_to_remove_urgent.append(frame_num)
-                    
-                    if frames_to_remove_urgent:
-                        frames_to_remove_urgent.sort()
-                        # 只清理最旧的1帧，非常保守
-                        oldest_frame = frames_to_remove_urgent[0]
-                        frame_buffer.pop(oldest_frame, None)
-                
                 frame_buffer[frame_count] = {
                     'frame': frame.copy(),
                     'frame_number': frame_count,
-                    'timestamp': time.time(),
-                    'processed': False
+                    'timestamp': current_timestamp,
+                    'processed': False,
+                    'is_extracted': True  # 标记为抽帧的帧
                 }
-                
-                # 如果该帧需要抽帧，发送给抽帧器
-                if frame_count % EXTRACT_INTERVAL == 0:
-                    pending_frames.add(frame_count)
-                    frame_sent = False
-                    retry_count = 0
-                    max_retries = 5
-                    while not frame_sent and retry_count < max_retries:
-                        try:
-                            extract_queues[device_id].put_nowait({
-                                'frame': frame.copy(),
-                                'frame_number': frame_count,
-                                'timestamp': frame_buffer[frame_count]['timestamp'],
-                                'device_id': device_id
-                            })
-                            frame_sent = True
-                        except queue.Full:
-                            retry_count += 1
-                            if retry_count < max_retries:
-                                time.sleep(0.01)
-                            else:
-                                logger.warning(f"⚠️  设备 {device_id} 抽帧队列已满，帧 {frame_count} 等待处理中...")
             
-            # 检查推帧队列，将处理后的帧插入缓冲区
-            processed_count = 0
-            max_process_per_cycle = 20  # 增加每次处理的帧数，加快处理速度
-            while processed_count < max_process_per_cycle:
+            # 等待检测结果（最多等待5秒）
+            wait_start = time.time()
+            max_wait_time = 5.0
+            while frame_count in pending_frames and (time.time() - wait_start) < max_wait_time:
+                # 检查推帧队列，获取检测结果
                 try:
                     push_data = push_queues[device_id].get_nowait()
                     processed_frame = push_data['frame']
-                    frame_number = push_data['frame_number']
+                    fn = push_data['frame_number']
                     detections = push_data.get('detections', [])
                     
                     with buffer_locks[device_id]:
                         frame_buffer = frame_buffers[device_id]
-                        if frame_number in frame_buffer:
-                            frame_buffer[frame_number]['frame'] = processed_frame
-                            frame_buffer[frame_number]['processed'] = True
-                            frame_buffer[frame_number]['detections'] = detections
-                            pending_frames.discard(frame_number)
-                            if frame_number % 10 == 0:
-                                logger.info(f"✅ 设备 {device_id} 帧 {frame_number} 已更新处理后的帧（{len(detections)}个检测目标）")
-                        else:
-                            # 如果帧不在缓冲区中，可能是已经被清理了
-                            # 检查是否是因为处理太慢导致的（帧号小于当前输出帧号）
-                            if frame_number < next_output_frame:
-                                # 帧已经被输出过了，这是正常的清理（不记录警告）
-                                if frame_number % 50 == 0:
-                                    logger.debug(f"设备 {device_id} 帧 {frame_number} 不在缓冲区中（已输出，正常清理）")
-                            else:
-                                # 帧号大于等于当前输出帧号，但不在缓冲区中，可能是被过早清理了
-                                # 这种情况不应该发生，记录警告
-                                logger.warning(f"⚠️  设备 {device_id} 帧 {frame_number} 不在缓冲区中，可能已被清理（当前输出帧: {next_output_frame}）")
-                            # 即使帧不在缓冲区中，也要从pending_frames中移除，避免内存泄漏
-                            pending_frames.discard(frame_number)
-                    processed_count += 1
-                except queue.Empty:
-                    break
-            
-            # 输出帧（按顺序输出，支持追踪缓存框绘制）
-            output_count = 0
-            max_output_per_cycle = 2  # 每次最多输出2帧
-            
-            while output_count < max_output_per_cycle:
-                with buffer_locks[device_id]:
-                    frame_buffer = frame_buffers[device_id]
-                    
-                    if next_output_frame not in frame_buffer:
-                        break
-                    
-                    frame_data = frame_buffer[next_output_frame]
-                    output_frame = frame_data['frame']
-                    is_processed = frame_data.get('processed', False)
-                    current_timestamp = frame_data.get('timestamp', time.time())
-                    is_extracted = (next_output_frame % EXTRACT_INTERVAL == 0)
-                
-                # 如果该帧需要抽帧但还未处理完成，等待处理完成（在锁外等待）
-                if is_extracted and next_output_frame in pending_frames:
-                    # 等待处理完成，优化CPU占用
-                    wait_start = time.time()
-                    check_interval = 0.01  # 每10ms检查一次，减少CPU轮询频率
-                    
-                    while next_output_frame in pending_frames and (time.time() - wait_start) < MAX_WAIT_TIME:
-                        time.sleep(check_interval)
-                        # 持续检查推帧队列，处理所有到达的帧（关键：确保不遗漏）
-                        processed_in_wait = 0
-                        while processed_in_wait < 20:  # 增加处理数量
-                            try:
-                                push_data = push_queues[device_id].get_nowait()
-                                processed_frame = push_data['frame']
-                                fn = push_data['frame_number']
-                                detections = push_data.get('detections', [])
-                                with buffer_locks[device_id]:
-                                    frame_buffer = frame_buffers[device_id]
-                                    if fn in frame_buffer:
-                                        frame_buffer[fn]['frame'] = processed_frame
-                                        frame_buffer[fn]['processed'] = True
-                                        frame_buffer[fn]['detections'] = detections
-                                        pending_frames.discard(fn)
-                                        
-                                        # 如果目标帧已处理完成，立即退出
-                                        if fn == next_output_frame:
-                                            # 更新帧数据
-                                            frame_data = frame_buffer[next_output_frame]
-                                            output_frame = frame_data['frame']
-                                            is_processed = True
-                                            break
-                                processed_in_wait += 1
-                            except queue.Empty:
-                                break
-                        
-                        # 如果目标帧已处理完成，退出等待循环
-                        if next_output_frame not in pending_frames:
-                            # 重新获取帧数据（可能已更新）
-                            with buffer_locks[device_id]:
-                                if next_output_frame in frame_buffers[device_id]:
-                                    frame_data = frame_buffers[device_id][next_output_frame]
-                                    output_frame = frame_data['frame']
-                                    is_processed = frame_data.get('processed', False)
-                            break
-                    
-                    # 如果超时仍未处理完成，再等待一小段时间，尽量等待处理完成
-                    if next_output_frame in pending_frames:
-                        # 再给一次机会，等待额外的时间（优化CPU占用）
-                        extra_wait_start = time.time()
-                        extra_wait_time = 0.02
-                        while next_output_frame in pending_frames and (time.time() - extra_wait_start) < extra_wait_time:
-                            time.sleep(0.01)  # 增加sleep时间，减少轮询频率
-                            # 再次检查推帧队列
-                            try:
-                                push_data = push_queues[device_id].get_nowait()
-                                processed_frame = push_data['frame']
-                                fn = push_data['frame_number']
-                                detections = push_data.get('detections', [])
-                                with buffer_locks[device_id]:
-                                    frame_buffer = frame_buffers[device_id]
-                                    if fn in frame_buffer:
-                                        frame_buffer[fn]['frame'] = processed_frame
-                                        frame_buffer[fn]['processed'] = True
-                                        frame_buffer[fn]['detections'] = detections
-                                        pending_frames.discard(fn)
-                                        if fn == next_output_frame:
-                                            frame_data = frame_buffer[next_output_frame]
-                                            output_frame = frame_data['frame']
-                                            is_processed = True
-                                            break
-                            except queue.Empty:
-                                pass
-                
-                # 在输出前，最后检查一次推帧队列，确保不遗漏已处理的帧
-                last_check_count = 0
-                while last_check_count < 5:  # 快速检查几次
-                    try:
-                        push_data = push_queues[device_id].get_nowait()
-                        processed_frame = push_data['frame']
-                        fn = push_data['frame_number']
-                        detections = push_data.get('detections', [])
-                        with buffer_locks[device_id]:
-                            frame_buffer = frame_buffers[device_id]
-                            if fn in frame_buffer:
-                                frame_buffer[fn]['frame'] = processed_frame
-                                frame_buffer[fn]['processed'] = True
-                                frame_buffer[fn]['detections'] = detections
-                                pending_frames.discard(fn)
-                                # 如果正好是目标帧，更新输出帧
-                                if fn == next_output_frame:
-                                    frame_data = frame_buffer[next_output_frame]
-                                    output_frame = frame_data['frame']
-                                    is_processed = True
-                        last_check_count += 1
-                    except queue.Empty:
-                        break
-                
-                # 重新获取帧数据（可能已更新）
-                with buffer_locks[device_id]:
-                    if next_output_frame in frame_buffers[device_id]:
-                        frame_data = frame_buffers[device_id][next_output_frame]
-                        output_frame = frame_data['frame']
-                        is_processed = frame_data.get('processed', False)
-                        current_timestamp = frame_data.get('timestamp', time.time())
-                
-                # 如果帧未处理完成，尝试使用追踪器缓存框或最近一次检测结果
-                if not is_processed:
-                    # 优先使用追踪器缓存框（如果启用追踪）
-                    if task_config and task_config.tracking_enabled:
-                        tracker = trackers.get(device_id)
-                        if tracker:
-                            cached_tracks = tracker.get_all_tracks(current_time=current_timestamp, frame_number=next_output_frame)
-                            if cached_tracks:
-                                # 使用追踪器的缓存框绘制原始帧
-                                output_frame = draw_detections(
-                                    output_frame.copy(), 
-                                    cached_tracks, 
-                                    frame_number=next_output_frame,
-                                    tracking_enabled=task_config.tracking_enabled
-                                )
-                                is_processed = True
-                                if next_output_frame % 50 == 0:
-                                    logger.info(f"✅ 设备 {device_id} 帧 {next_output_frame} 使用追踪器缓存框绘制（{len(cached_tracks)}个目标）")
-                    
-                    # 如果追踪器没有缓存框，使用最近一次检测结果进行插值绘制
-                    if not is_processed and last_processed_detections:
-                        # 将最近一次检测结果转换为追踪检测格式
-                        interpolated_detections = []
-                        for det in last_processed_detections:
-                            bbox = det.get('bbox', [])
-                            # 确保bbox有效（非空且包含4个元素）
-                            if bbox and len(bbox) == 4:
-                                interpolated_detections.append({
-                                    'bbox': bbox,
-                                    'class_name': det.get('class_name', 'unknown'),
-                                    'confidence': det.get('confidence', 0.0),
-                                    'track_id': det.get('track_id', 0),
-                                    'is_cached': True,  # 标记为插值框
-                                    'first_seen_time': det.get('first_seen_time', current_timestamp),
-                                    'duration': det.get('duration', 0.0)
-                                })
-                        
-                        if interpolated_detections:
-                            # 使用最近一次检测结果绘制原始帧
-                            output_frame = draw_detections(
-                                output_frame.copy(), 
-                                interpolated_detections, 
-                                frame_number=next_output_frame,
-                                tracking_enabled=task_config.tracking_enabled if task_config else False
-                            )
-                            is_processed = True
-                            if next_output_frame % 50 == 0:
-                                logger.info(f"✅ 设备 {device_id} 帧 {next_output_frame} 使用插值检测框绘制（{len(interpolated_detections)}个目标）")
-                else:
-                    # 帧已处理，记录检测目标数量（用于调试）
-                    detections = frame_data.get('detections', [])
-                    if next_output_frame % 50 == 0 and detections:
-                        logger.info(f"✅ 设备 {device_id} 帧 {next_output_frame} 使用已处理的帧（{len(detections)}个检测目标）")
-                
-                # 如果帧已处理，检查是否有新的检测结果需要发送告警
-                if is_processed:
-                    detections = frame_data.get('detections', [])
-                    if detections and task_config and task_config.alert_event_enabled:
-                        # 告警抑制：使用锁保护时间戳的访问和更新，确保线程安全
-                        current_time = time.time()
-                        with alert_time_lock:
-                            last_time = last_alert_time.get(device_id, 0)
-                            time_since_last_alert = current_time - last_time
+                        if fn in frame_buffer:
+                            frame_buffer[fn]['frame'] = processed_frame
+                            frame_buffer[fn]['processed'] = True
+                            frame_buffer[fn]['detections'] = detections
+                            pending_frames.discard(fn)
                             
-                            # 如果距离上次推送已经超过5秒，才发送告警
-                            if time_since_last_alert >= alert_suppression_interval:
-                                # 立即更新上次告警时间（在发送告警之前），防止同一秒内多次推送
-                                last_alert_time[device_id] = current_time
-                                should_send_alert = True
-                            else:
-                                # 不到5秒，跳过告警推送
-                                should_send_alert = False
-                                logger.debug(f"设备 {device_id} 告警抑制：距离上次推送仅 {time_since_last_alert:.2f} 秒，跳过告警推送（需要间隔5秒）")
-                        
-                        # 在锁外发送告警，避免长时间持有锁
-                        if should_send_alert:
-                            # 发送告警（每个检测结果发送一次）
-                            for det in detections:
-                                try:
-                                    # 保存告警图片到本地
-                                    image_path = save_alert_image(
-                                        output_frame,
-                                        device_id,
-                                        next_output_frame,
-                                        det
-                                    )
-                                    
-                                    # 构建告警数据（参照告警表字段）
-                                    # 获取算法名称（任务名称）
-                                    algorithm_name = task_config.task_name if task_config and hasattr(task_config, 'task_name') else 'detection'
-                                    
-                                    alert_data = {
-                                        'object': det.get('class_name', 'unknown'),
-                                        'event': algorithm_name,  # 使用算法名称作为事件类型
-                                        'device_id': device_id,
-                                        'device_name': device_name,
-                                        'time': datetime.fromtimestamp(current_timestamp).strftime('%Y-%m-%d %H:%M:%S'),
-                                        'information': json.dumps({
-                                            'track_id': det.get('track_id', 0),
-                                            'confidence': det.get('confidence', 0),
-                                            'bbox': det.get('bbox', []),
-                                            'frame_number': next_output_frame,
-                                            'first_seen_time': datetime.fromtimestamp(det.get('first_seen_time', current_timestamp)).isoformat() if det.get('first_seen_time') else None,
-                                            'duration': det.get('duration', 0)
-                                        }),
-                                        # 不直接传输图片，而是传输图片所在磁盘路径
-                                        'image_path': image_path if image_path else None,
-                                    }
-                                    
-                                    # 异步发送告警事件
-                                    send_alert_event_async(alert_data)
-                                except Exception as e:
-                                    logger.error(f"发送告警失败: {str(e)}", exc_info=True)
-                
-                # 推送到RTMP流
-                if pusher_process and pusher_process.poll() is None and rtmp_url:
-                    try:
-                        pusher_process.stdin.write(output_frame.tobytes())
-                        pusher_process.stdin.flush()
-                    except Exception as e:
-                        logger.error(f"❌ 设备 {device_id} 推送帧失败: {str(e)}")
-                        if pusher_process.poll() is not None:
-                            pusher_process = None
-                            device_pushers.pop(device_id, None)
-                
-                # 清理已输出的帧
+                            # 如果是当前抽帧的帧，发送告警
+                            if fn == frame_count:
+                                frame_data = frame_buffer[fn]
+                                output_frame = frame_data['frame']
+                                current_timestamp = frame_data.get('timestamp', time.time())
+                                
+                                # 只在抽帧的帧上发送告警
+                                if detections and task_config and task_config.alert_event_enabled:
+                                    logger.info(f"🚨 设备 {device_id} 抽帧帧 {frame_count} 开始发送告警：检测到 {len(detections)} 个目标")
+                                    # 发送告警（每个检测结果发送一次）
+                                    for det in detections:
+                                        try:
+                                            # 保存告警图片到本地
+                                            image_path = save_alert_image(
+                                                output_frame,
+                                                device_id,
+                                                frame_count,
+                                                det
+                                            )
+                                            
+                                            # 构建告警数据（参照告警表字段）
+                                            # 获取算法名称（任务名称）
+                                            algorithm_name = task_config.task_name if task_config and hasattr(task_config, 'task_name') else 'detection'
+                                            
+                                            alert_data = {
+                                                'object': det.get('class_name', 'unknown'),
+                                                'event': algorithm_name,  # 使用算法名称作为事件类型
+                                                'device_id': device_id,
+                                                'device_name': device_name,
+                                                'time': datetime.fromtimestamp(current_timestamp).strftime('%Y-%m-%d %H:%M:%S'),
+                                                'information': json.dumps({
+                                                    'track_id': det.get('track_id', 0),
+                                                    'confidence': det.get('confidence', 0),
+                                                    'bbox': det.get('bbox', []),
+                                                    'frame_number': frame_count,
+                                                    'first_seen_time': datetime.fromtimestamp(det.get('first_seen_time', current_timestamp)).isoformat() if det.get('first_seen_time') else None,
+                                                    'duration': det.get('duration', 0)
+                                                }),
+                                                # 不直接传输图片，而是传输图片所在磁盘路径
+                                                'image_path': image_path if image_path else None,
+                                            }
+                                            
+                                            # 异步发送告警事件
+                                            logger.info(f"📤 设备 {device_id} 抽帧帧 {frame_count} 异步发送告警事件: object={alert_data['object']}, event={alert_data['event']}")
+                                            send_alert_event_async(alert_data)
+                                        except Exception as e:
+                                            logger.error(f"发送告警失败: {str(e)}", exc_info=True)
+                                
+                                # 告警发送完成后，清理该帧
+                                frame_buffer.pop(frame_count, None)
+                                logger.info(f"✅ 设备 {device_id} 抽帧帧 {frame_count} 处理完成，已清理")
+                                break  # 处理完成，退出等待循环
+                except queue.Empty:
+                    # 没有检测结果，继续等待
+                    time.sleep(0.1)  # 100ms
+            
+            # 如果超时仍未处理完成，清理该帧
+            if frame_count in pending_frames:
                 with buffer_locks[device_id]:
                     frame_buffer = frame_buffers[device_id]
-                    frame_buffer.pop(next_output_frame, None)
-                    next_output_frame += 1
-                
-                # 更新插值用的上一帧结果
-                if is_processed:
-                    last_processed_frame = output_frame.copy()
-                    last_processed_detections = frame_data.get('detections', [])
-                
-                output_count += 1
+                    if frame_count in frame_buffer:
+                        frame_buffer.pop(frame_count, None)
+                    pending_frames.discard(frame_count)
+                logger.warning(f"⚠️  设备 {device_id} 抽帧帧 {frame_count} 处理超时，已清理")
             
-            # 如果还有未输出的帧，使用插值帧
-            if output_count == 0 and last_processed_frame is not None and pusher_process and pusher_process.poll() is None and rtmp_url:
-                try:
-                    pusher_process.stdin.write(last_processed_frame.tobytes())
-                    pusher_process.stdin.flush()
-                except Exception as e:
-                    logger.error(f"❌ 设备 {device_id} 推送插值帧失败: {str(e)}")
-            
-            # 流畅度优化：基于时间戳的帧率控制
-            current_time = time.time()
-            elapsed = current_time - last_frame_time
-            if elapsed < frame_interval:
-                time.sleep(frame_interval - elapsed)
-            last_frame_time = time.time()
-            
-            # 优化CPU占用：在处理完所有队列后，如果没有更多工作，短暂休眠
-            # 检查是否有待处理的帧或队列中有数据
-            has_pending_work = False
-            with buffer_locks[device_id]:
-                if len(frame_buffers[device_id]) > 0 or len(pending_frames) > 0:
-                    has_pending_work = True
-            
-            # 如果队列为空且没有待处理帧，短暂休眠以减少CPU占用
-            try:
-                if not has_pending_work and push_queues[device_id].empty():
-                    time.sleep(0.005)  # 5ms，减少空轮询
-            except:
-                pass
+            # 优化CPU占用：短暂休眠，避免频繁读取帧
+            time.sleep(0.1)  # 100ms
             
         except Exception as e:
             logger.error(f"❌ 设备 {device_id} 缓流器异常: {str(e)}", exc_info=True)
@@ -1950,27 +1321,6 @@ def buffer_streamer_worker(device_id: str):
     if cap is not None:
         cap.release()
         device_caps.pop(device_id, None)
-    if pusher_process and pusher_process.poll() is None:
-        try:
-            pusher_process.stdin.close()
-            pusher_process.terminate()
-            pusher_process.wait(timeout=2)
-        except:
-            if pusher_process.poll() is None:
-                pusher_process.kill()
-        device_pushers.pop(device_id, None)
-    
-    # 停止stderr读取线程
-    stderr_thread = device_pusher_stderr_threads.pop(device_id, None)
-    if stderr_thread and stderr_thread.is_alive():
-        try:
-            stderr_thread.join(timeout=1)
-        except:
-            pass
-    
-    # 清理stderr缓冲区
-    device_pusher_stderr_buffers.pop(device_id, None)
-    device_pusher_stderr_locks.pop(device_id, None)
     
     logger.info(f"💾 设备 {device_id} 缓流器线程停止")
 
@@ -2306,31 +1656,10 @@ def yolo_detection_worker(worker_id: int):
 
 
 def cleanup_all_resources():
-    """清理所有资源（FFmpeg进程、VideoCapture等）"""
+    """清理所有资源（VideoCapture等）"""
     logger.info("🧹 开始清理所有资源...")
     
-    # 清理所有FFmpeg推送进程
-    for device_id, pusher_process in list(device_pushers.items()):
-        if pusher_process and pusher_process.poll() is None:
-            try:
-                logger.info(f"🛑 停止设备 {device_id} 的FFmpeg推送进程 (PID: {pusher_process.pid})")
-                pusher_process.stdin.close()
-                pusher_process.terminate()
-                try:
-                    pusher_process.wait(timeout=3)
-                    logger.info(f"✅ 设备 {device_id} 的FFmpeg推送进程已停止")
-                except subprocess.TimeoutExpired:
-                    logger.warning(f"⚠️ 设备 {device_id} 的FFmpeg推送进程未在3秒内退出，强制终止")
-                    pusher_process.kill()
-                    pusher_process.wait(timeout=1)
-            except Exception as e:
-                logger.error(f"❌ 停止设备 {device_id} 的FFmpeg推送进程失败: {str(e)}")
-                try:
-                    if pusher_process.poll() is None:
-                        pusher_process.kill()
-                except:
-                    pass
-        device_pushers.pop(device_id, None)
+    # 注意：抓拍算法任务不推流，不需要清理FFmpeg推送进程
     
     # 清理所有VideoCapture对象
     for device_id, cap in list(device_caps.items()):
@@ -2341,19 +1670,6 @@ def cleanup_all_resources():
             except Exception as e:
                 logger.error(f"❌ 释放设备 {device_id} 的VideoCapture失败: {str(e)}")
         device_caps.pop(device_id, None)
-    
-    # 清理stderr读取线程
-    for device_id, stderr_thread in list(device_pusher_stderr_threads.items()):
-        if stderr_thread and stderr_thread.is_alive():
-            try:
-                stderr_thread.join(timeout=1)
-            except:
-                pass
-        device_pusher_stderr_threads.pop(device_id, None)
-    
-    # 清理其他资源
-    device_pusher_stderr_buffers.clear()
-    device_pusher_stderr_locks.clear()
     
     logger.info("✅ 所有资源已清理")
 
@@ -2382,10 +1698,6 @@ def main():
     logger.info("📊 优化配置参数:")
     logger.info(f"   视频分辨率: {TARGET_WIDTH}x{TARGET_HEIGHT} (原1280x720)")
     logger.info(f"   视频帧率: {SOURCE_FPS}fps (原25fps)")
-    logger.info(f"   FFmpeg编码预设: {FFMPEG_PRESET}")
-    logger.info(f"   视频比特率: {FFMPEG_VIDEO_BITRATE} (原1500k)")
-    logger.info(f"   GOP大小: {FFMPEG_GOP_SIZE} (2秒一个关键帧)")
-    logger.info(f"   编码线程数: {FFMPEG_THREADS if FFMPEG_THREADS else '自动'}")
     logger.info(f"   YOLO检测分辨率: {YOLO_IMG_SIZE} (原640)")
     logger.info(f"   检测队列大小: {DETECTION_QUEUE_SIZE} (原50)")
     logger.info(f"   推帧队列大小: {PUSH_QUEUE_SIZE} (原50)")

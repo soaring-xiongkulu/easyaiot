@@ -56,35 +56,50 @@ public class MessagePrepareServiceImpl implements MessagePrepareService {
                 return addSmsMessage(messagePrepareVO,2);
             case 3 :
                 TMsgMail tMsgMail = messagePrepareVO.getT_Msg_Mail();
-                tMsgMail.setId(UUID.randomUUID().toString());
+                // 如果ID已存在，使用已有ID；否则生成新ID
+                if (tMsgMail.getId() == null || tMsgMail.getId().isEmpty()) {
+                    tMsgMail.setId(UUID.randomUUID().toString());
+                }
                 tMsgMail.setCreateTime(new Date());
                 tMsgMailMapper.insert(tMsgMail);
                 messagePrepareVO.setT_Msg_Mail(tMsgMail);
                 return messagePrepareVO;
             case 4 :
                 TMsgWxCp tMsgWxCp = messagePrepareVO.getT_Msg_Wx_Cp();
-                tMsgWxCp.setId(UUID.randomUUID().toString());
+                // 如果ID已存在，使用已有ID；否则生成新ID
+                if (tMsgWxCp.getId() == null || tMsgWxCp.getId().isEmpty()) {
+                    tMsgWxCp.setId(UUID.randomUUID().toString());
+                }
                 tMsgWxCp.setCreateTime(new Date());
                 tMsgWxCpMapper.insert(tMsgWxCp);
                 messagePrepareVO.setT_Msg_Wx_Cp(tMsgWxCp);
                 return messagePrepareVO;
             case 5 :
                 TMsgHttp tMsgHttp = messagePrepareVO.getT_Msg_Http();
-                tMsgHttp.setId(UUID.randomUUID().toString());
+                // 如果ID已存在，使用已有ID；否则生成新ID
+                if (tMsgHttp.getId() == null || tMsgHttp.getId().isEmpty()) {
+                    tMsgHttp.setId(UUID.randomUUID().toString());
+                }
                 tMsgHttp.setCreateTime(new Date());
                 tMsgHttpMapper.insert(tMsgHttp);
                 messagePrepareVO.setT_Msg_Http(tMsgHttp);
                 return messagePrepareVO;
             case 6 :
                 TMsgDing tMsgDing = messagePrepareVO.getT_Msg_Ding();
-                tMsgDing.setId(UUID.randomUUID().toString());
+                // 如果ID已存在，使用已有ID；否则生成新ID
+                if (tMsgDing.getId() == null || tMsgDing.getId().isEmpty()) {
+                    tMsgDing.setId(UUID.randomUUID().toString());
+                }
                 tMsgDing.setCreateTime(new Date());
                 tMsgDingMapper.insert(tMsgDing);
                 messagePrepareVO.setT_Msg_Ding(tMsgDing);
                 return messagePrepareVO;
             case 7 :
                 TMsgFeishu tMsgFeishu = messagePrepareVO.getT_Msg_Feishu();
-                tMsgFeishu.setId(UUID.randomUUID().toString());
+                // 如果ID已存在，使用已有ID；否则生成新ID
+                if (tMsgFeishu.getId() == null || tMsgFeishu.getId().isEmpty()) {
+                    tMsgFeishu.setId(UUID.randomUUID().toString());
+                }
                 tMsgFeishu.setCreateTime(new Date());
                 tMsgFeishuMapper.insert(tMsgFeishu);
                 messagePrepareVO.setT_Msg_Feishu(tMsgFeishu);
@@ -97,7 +112,10 @@ public class MessagePrepareServiceImpl implements MessagePrepareService {
     private MessagePrepareVO addSmsMessage(MessagePrepareVO messagePrepareVO,int msgType) {
         TMsgSms tMsgSms = messagePrepareVO.getT_Msg_Sms();
         List<TTemplateData> templateDataList = messagePrepareVO.getTemplateDataList();
-        tMsgSms.setId(UUID.randomUUID().toString());
+        // 如果ID已存在，使用已有ID；否则生成新ID
+        if (tMsgSms.getId() == null || tMsgSms.getId().isEmpty()) {
+            tMsgSms.setId(UUID.randomUUID().toString());
+        }
         tMsgSms.setCreateTime(new Date());
         tMsgSmsMapper.insert(tMsgSms);
         messagePrepareVO.setT_Msg_Sms(tMsgSms);

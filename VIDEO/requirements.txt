@@ -38,6 +38,8 @@ WSDiscovery==2.1.2
 onvif-zeep==0.2.12
 # 任务调度
 APScheduler==3.10.4
+# Cron表达式解析
+croniter>=1.4.1
 # Kafka消息队列
 kafka-python>=2.0.2
 # OCR识别

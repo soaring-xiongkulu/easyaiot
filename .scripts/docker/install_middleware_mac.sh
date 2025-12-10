@@ -252,13 +252,15 @@ cmd_install() {
   info "启动服务..."
   compose up -d
   update_nacos_password || warn "自动修改 Nacos 密码失败，请稍后手动确认"
+  sleep 5
+  bash "${SCRIPT_DIR}/set_permanent_token.sh" >/dev/null 2>&1 || true
   ok "安装完成"
   cmd_status
 }
 
-cmd_start()  { ensure_ready; info "启动服务..."; compose up -d; update_nacos_password || warn "自动修改 Nacos 密码失败，请稍后手动确认"; ok "已启动"; }
+cmd_start()  { ensure_ready; info "启动服务..."; compose up -d; update_nacos_password || warn "自动修改 Nacos 密码失败，请稍后手动确认"; sleep 5; bash "${SCRIPT_DIR}/set_permanent_token.sh" >/dev/null 2>&1 || true; ok "已启动"; }
 cmd_stop()   { ensure_ready; info "停止服务..."; compose down; ok "已停止"; }
-cmd_restart(){ ensure_ready; info "重启服务..."; compose down; compose up -d; update_nacos_password || warn "自动修改 Nacos 密码失败，请稍后手动确认"; ok "已重启"; }
+cmd_restart(){ ensure_ready; info "重启服务..."; compose down; compose up -d; update_nacos_password || warn "自动修改 Nacos 密码失败，请稍后手动确认"; sleep 5; bash "${SCRIPT_DIR}/set_permanent_token.sh" >/dev/null 2>&1 || true; ok "已重启"; }
 cmd_status() { ensure_ready; compose ps; echo ""; docker ps --filter "name=ai-service" --format "table {{.Names}}\t{{.Status}}"; }
 
 cmd_logs() {
@@ -288,6 +290,8 @@ cmd_update() {
   compose build --build-arg BASE_IMAGE="${BASE_IMAGE}" --build-arg DOCKER_PLATFORM="${DOCKER_PLATFORM}"
   compose up -d
   update_nacos_password || warn "自动修改 Nacos 密码失败，请稍后手动确认"
+  sleep 5
+  bash "${SCRIPT_DIR}/set_permanent_token.sh" >/dev/null 2>&1 || true
   ok "更新完成"
   cmd_status
 }

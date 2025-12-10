@@ -26,17 +26,19 @@ class AlgorithmTaskDaemon:
     所有必要的信息都通过参数传入。
     """
 
-    def __init__(self, task_id: int, log_path: str):
+    def __init__(self, task_id: int, log_path: str, task_type: str = 'realtime'):
         """
         初始化守护进程
         
         Args:
             task_id: 任务ID
             log_path: 日志文件路径（目录）
+            task_type: 任务类型 ('realtime' 实时算法任务, 'snap' 抓拍算法任务)
         """
         self._process = None
         self._task_id = task_id
         self._log_path = log_path
+        self._task_type = task_type
         self._running = True  # 守护线程是否继续运行
         self._restart = False  # 手动重启标志
         threading.Thread(target=self._daemon, daemon=True).start()
@@ -364,11 +366,15 @@ class AlgorithmTaskDaemon:
 
     def _get_deploy_args(self) -> tuple:
         """获取部署服务的启动参数"""
-        self._log(f'任务信息: 任务ID: {self._task_id}', 'DEBUG')
+        self._log(f'任务信息: 任务ID: {self._task_id}, 任务类型: {self._task_type}', 'DEBUG')
         
-        # 获取部署脚本路径
+        # 根据任务类型选择服务路径
         video_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        deploy_service_dir = os.path.join(video_root, 'services', 'realtime_algorithm_service')
+        if self._task_type == 'snap':
+            deploy_service_dir = os.path.join(video_root, 'services', 'snapshot_algorithm_service')
+        else:  # realtime
+            deploy_service_dir = os.path.join(video_root, 'services', 'realtime_algorithm_service')
+        
         deploy_script = os.path.join(deploy_service_dir, 'run_deploy.py')
         
         self._log(f'部署脚本路径: {deploy_script}', 'DEBUG')

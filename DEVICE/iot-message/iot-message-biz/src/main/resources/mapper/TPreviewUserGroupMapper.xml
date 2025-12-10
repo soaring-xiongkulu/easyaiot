@@ -53,6 +53,9 @@
         <include refid="Base_Column_List"/>
         from t_preview_user_group
         <where>
+            <if test="id != null and id != ''">
+               and id = #{id}
+            </if>
             <if test="msgType != null and msgType != ''">
                and msg_type = #{msgType}
             </if>

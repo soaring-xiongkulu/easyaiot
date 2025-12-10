@@ -18,6 +18,7 @@ from datetime import datetime
 
 from models import db, AlgorithmTask
 from .algorithm_task_daemon import AlgorithmTaskDaemon
+from .snap_space_service import get_snap_space_by_device_id, create_snap_space_for_device
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ def get_service_script_path(service_type: str) -> str:
     """获取服务脚本路径
     
     Args:
-        service_type: 服务类型 ('realtime' 统一服务)
+        service_type: 服务类型 ('realtime' 实时算法服务, 'snap' 抓拍算法服务)
     
     Returns:
         str: 服务脚本的绝对路径
@@ -44,7 +45,8 @@ def get_service_script_path(service_type: str) -> str:
     video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
     service_paths = {
-        'realtime': os.path.join(video_root, 'services', 'realtime_algorithm_service', 'run_deploy.py')
+        'realtime': os.path.join(video_root, 'services', 'realtime_algorithm_service', 'run_deploy.py'),
+        'snap': os.path.join(video_root, 'services', 'snapshot_algorithm_service', 'run_deploy.py')
     }
     
     return service_paths.get(service_type)
@@ -401,9 +403,8 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
         return (True, "任务正在启动中", True)
     
     try:
-        # 实时算法任务：启动统一的实时算法任务服务
-        # 抓拍算法任务：不需要启动服务（使用定时任务）
-        if task.task_type == 'realtime':
+        # 实时算法任务和抓拍算法任务都需要启动服务进程
+        if task.task_type in ['realtime', 'snap']:
             # 检查是否已经有运行的守护进程（在清理之前检查，避免误杀正在运行的进程）
             should_cleanup = True
             with _daemons_lock:
@@ -480,12 +481,13 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
             log_path = _get_log_path(task_id)
             
             # 启动守护进程（传入所有必要参数，不需要数据库连接）
-            logger.info(f'启动守护进程，任务ID: {task_id}')
+            logger.info(f'启动守护进程，任务ID: {task_id}, 任务类型: {task.task_type}')
             daemon = None
             with _daemons_lock:
                 daemon = AlgorithmTaskDaemon(
                     task_id=task_id,
-                    log_path=log_path
+                    log_path=log_path,
+                    task_type=task.task_type
                 )
                 _running_daemons[task_id] = daemon
             
@@ -510,12 +512,13 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
                 logger.debug(f'新进程已启动 (PID: {process_pid})，再次清理遗留进程（会保护新进程）...')
                 cleanup_orphaned_processes(task_id)
             
-            logger.info(f"✅ 任务 {task_id} 的实时算法服务启动成功（守护进程已启动）")
+            task_type_name = "实时算法" if task.task_type == 'realtime' else "抓拍算法"
+            logger.info(f"✅ 任务 {task_id} 的{task_type_name}服务启动成功（守护进程已启动）")
             return (True, "启动成功", False)
-        else:  # snap
-            # 抓拍算法任务不需要启动服务进程
-            logger.info(f"抓拍算法任务 {task_id} 不需要启动服务进程")
-            return (True, "启动成功", False)
+        else:
+            # 未知的任务类型
+            logger.warning(f"未知的任务类型: {task.task_type}，跳过启动")
+            return (False, f"未知的任务类型: {task.task_type}", False)
             
     except Exception as e:
         logger.error(f"❌ 启动任务 {task_id} 的服务失败: {str(e)}", exc_info=True)
@@ -570,9 +573,33 @@ def _auto_start_all_tasks_internal():
                     if not task.model_ids:
                         logger.warning(f"任务 {task.id} ({task.task_name}) 缺少模型ID配置，跳过")
                         continue
-                else:  # snap
-                    # 抓拍算法任务不需要启动服务进程
-                    logger.info(f"抓拍算法任务 {task.id} ({task.task_name}) 不需要启动服务进程")
+                elif task.task_type == 'snap':
+                    # 抓拍算法任务需要模型ID列表
+                    if not task.model_ids:
+                        logger.warning(f"任务 {task.id} ({task.task_name}) 缺少模型ID配置，跳过")
+                        continue
+                    
+                    # 确保任务关联的所有设备都有抓拍空间（如果没有则自动创建）
+                    if not task.devices or len(task.devices) == 0:
+                        logger.warning(f"任务 {task.id} ({task.task_name}) 没有关联的设备，跳过")
+                        continue
+                    
+                    # 为每个关联的设备确保有抓拍空间
+                    for device in task.devices:
+                        try:
+                            # 检查设备是否已有抓拍空间
+                            snap_space = get_snap_space_by_device_id(device.id)
+                            if not snap_space:
+                                # 如果没有，自动创建
+                                logger.info(f"为设备 {device.id} ({device.name or device.id}) 自动创建抓拍空间")
+                                create_snap_space_for_device(device.id, device.name)
+                            else:
+                                logger.debug(f"设备 {device.id} 已有抓拍空间: {snap_space.space_name}")
+                        except Exception as e:
+                            logger.error(f"为设备 {device.id} 创建/获取抓拍空间失败: {str(e)}", exc_info=True)
+                            # 继续处理其他设备，不中断整个任务
+                else:
+                    logger.warning(f"任务 {task.id} ({task.task_name}) 未知的任务类型: {task.task_type}，跳过")
                     continue
                 
                 # 启动任务的服务

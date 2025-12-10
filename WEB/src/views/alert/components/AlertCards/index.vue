@@ -27,7 +27,12 @@
           <template #renderItem="{ item }">
             <ListItem class="alert-item normal">
               <div class="alert-info">
+                <div class="title-wrapper">
                 <div class="title o2">{{ item.event || '未知事件' }}</div>
+                  <span class="task-type-tag" :class="getTaskTypeClass(item)">
+                    {{ getTaskTypeText(item) }}
+                  </span>
+                </div>
                 <div class="props">
                   <div class="flex" style="justify-content: space-between;">
                     <div class="prop">
@@ -60,7 +65,7 @@
                   <div class="btn" @click="handleViewImage(item)" v-if="item.image_path">
                     <Icon icon="ion:image-sharp" :size="15" color="#3B82F6" />
                   </div>
-                  <div class="btn" @click="handleViewVideo(item)" v-if="item.device_id && item.time">
+                  <div class="btn" @click="handleViewVideo(item)" v-if="item.device_id && item.time && !isSnapTask(item)">
                     <Icon icon="icon-park-outline:video" :size="15" color="#3B82F6" />
                   </div>
                 </div>
@@ -305,6 +310,61 @@ function formatTime(time: string) {
   return moment(time).format('YYYY-MM-DD HH:mm:ss');
 }
 
+// 获取任务类型
+function getTaskType(item: any): string | null {
+  // 优先从 information 字段中获取 task_type
+  let taskType = null;
+  if (item.information) {
+    if (typeof item.information === 'object' && item.information.task_type) {
+      taskType = item.information.task_type;
+    } else if (typeof item.information === 'string') {
+      try {
+        const info = JSON.parse(item.information);
+        taskType = info?.task_type;
+      } catch (e) {
+        // 解析失败，忽略
+      }
+    }
+  }
+  
+  // 如果 information 中没有，尝试从 item 本身获取
+  if (!taskType && item.task_type) {
+    taskType = item.task_type;
+  }
+  
+  return taskType;
+}
+
+// 判断是否是抓拍任务
+function isSnapTask(item: any): boolean {
+  const taskType = getTaskType(item);
+  return taskType === 'snap' || taskType === 'snapshot';
+}
+
+// 获取任务类型文本
+function getTaskTypeText(item: any): string {
+  const taskType = getTaskType(item);
+  
+  // 根据 task_type 返回文本（不带括号，因为样式会处理）
+  if (taskType === 'snap' || taskType === 'snapshot') {
+    return '抓拍';
+  } else {
+    return '实时';
+  }
+}
+
+// 获取任务类型样式类
+function getTaskTypeClass(item: any): string {
+  const taskType = getTaskType(item);
+  
+  // 根据 task_type 返回样式类
+  if (taskType === 'snap' || taskType === 'snapshot') {
+    return 'task-type-snap';
+  } else {
+    return 'task-type-realtime';
+  }
+}
+
 // 格式化设备ID显示（超过8个字符省略）
 function formatDeviceId(deviceId: string | null | undefined): string {
   if (!deviceId) return '-';
@@ -420,24 +480,36 @@ onUnmounted(() => {
     padding-bottom: 8px;
   }
   :deep(.ant-list) {
-    padding: 6px;
+    padding: 8px;
   }
   :deep(.ant-list-item) {
-    margin: 6px;
+    margin: 8px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-4px);
+    }
   }
   :deep(.alert-item) {
     overflow: hidden;
-    box-shadow: 0 0 4px #00000026;
-    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
     padding: 16px 0;
     position: relative;
     background-color: #fff;
     background-repeat: no-repeat;
     background-position: center center;
     background-size: 104% 104%;
-    transition: all 0.5s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     min-height: 208px;
     height: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      border-color: rgba(59, 130, 246, 0.2);
+    }
 
     &.normal {
       background-image: url('@/assets/images/product/blue-bg.719b437a.png');
@@ -452,15 +524,63 @@ onUnmounted(() => {
       max-width: calc(100% - 128px);
       padding-left: 16px;
 
+      .title-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 40px;
+        margin-bottom: 2px;
+
       .title {
+          flex: 1;
         font-size: 16px;
         font-weight: 600;
         color: #050708;
         line-height: 20px;
-        height: 40px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+          min-width: 0; // 允许flex子元素收缩
+        }
+        
+        .task-type-tag {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 3px 10px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-weight: 500;
+          line-height: 1.2;
+          white-space: nowrap;
+          transition: all 0.3s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          
+          &.task-type-realtime {
+            background: #3B82F6;
+            color: #ffffff;
+            border: 1px solid #2563EB;
+            
+            &:hover {
+              transform: translateY(-1px);
+              box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+              background: #2563EB;
+            }
+          }
+          
+          &.task-type-snap {
+            background: #10B981;
+            color: #ffffff;
+            border: 1px solid #059669;
+            
+            &:hover {
+              transform: translateY(-1px);
+              box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+              background: #059669;
+            }
+          }
+        }
       }
 
       .props {
@@ -468,26 +588,32 @@ onUnmounted(() => {
 
         .prop {
           flex: 1;
-          margin-bottom: 10px;
+        margin-bottom: 12px;
 
           .label {
             font-size: 12px;
-            font-weight: 400;
-            color: #666;
-            line-height: 14px;
+          font-weight: 500;
+          color: #8B8B8B;
+          line-height: 16px;
+          margin-bottom: 4px;
+          letter-spacing: 0.2px;
           }
 
           .value {
             font-size: 14px;
             font-weight: 600;
-            color: #050708;
-            line-height: 14px;
+          color: #1F2937;
+          line-height: 18px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-top: 6px;
             display: flex;
             align-items: center;
+          transition: color 0.2s ease;
+          
+          &:hover {
+            color: #3B82F6;
+          }
           }
         }
       }
@@ -505,22 +631,38 @@ onUnmounted(() => {
         padding: 0 10px;
         align-items: center;
         border: 2px solid #266cfbff;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        
+        &:hover {
+          border-color: #3B82F6;
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+        }
 
         .btn {
           width: 28px;
+          height: 28px;
           text-align: center;
           position: relative;
           cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          transition: all 0.3s ease;
 
           &:before {
             content: '';
             display: block;
             position: absolute;
             width: 1px;
-            height: 7px;
-            background-color: #e2e2e2;
+            height: 14px;
+            background: linear-gradient(to bottom, transparent, #e2e2e2, transparent);
             left: 0;
-            top: 9px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.6;
           }
 
           &:first-child:before {
@@ -531,12 +673,22 @@ onUnmounted(() => {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #87CEEB;
-            transition: color 0.3s;
+            color: #3B82F6;
+            transition: all 0.3s ease;
+            font-size: 15px;
           }
 
-          &:hover :deep(.anticon) {
-            color: #5BA3F5;
+          &:hover {
+            background: rgba(59, 130, 246, 0.1);
+            transform: scale(1.1);
+            
+            :deep(.anticon) {
+              color: #2563EB;
+            }
+          }
+          
+          &:active {
+            transform: scale(0.95);
           }
         }
       }
@@ -546,13 +698,19 @@ onUnmounted(() => {
       position: absolute;
       right: 20px;
       top: 50px;
+      transition: transform 0.3s ease;
+
+      &:hover {
+        transform: scale(1.05);
+      }
 
       img {
         cursor: pointer;
         width: 120px;
         height: 90px;
         object-fit: cover;
-        border-radius: 4px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
       }
 
       .no-image {

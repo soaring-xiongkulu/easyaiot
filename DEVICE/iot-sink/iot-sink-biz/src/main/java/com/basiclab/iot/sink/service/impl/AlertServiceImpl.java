@@ -23,6 +23,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -89,20 +90,7 @@ public class AlertServiceImpl implements AlertService {
             log.info("开始处理告警: deviceId={}, deviceName={}, imagePath={}", 
                     deviceId, deviceName, imagePath);
 
-            // 1. 检查告警是否在检测区域内
-            String matchedRegionName = checkAlertRegion(notificationMessage);
-            if (matchedRegionName == null && hasDetectionRegions(deviceId)) {
-                // 如果配置了检测区域但没有匹配到，跳过处理
-                log.info("告警未匹配到检测区域，跳过处理: deviceId={}", deviceId);
-                return null;
-            }
-            
-            // 2. 如果匹配到区域，更新alert中的region字段
-            if (matchedRegionName != null) {
-                alert.setRegion(matchedRegionName);
-            }
-            
-            // 3. 检查是否在布防时段内
+            // 检查是否在布防时段内
             if (!checkDefenseSchedule(deviceId, alert.getTime())) {
                 log.info("告警不在布防时段内，跳过处理: deviceId={}", deviceId);
                 return null;
@@ -152,6 +140,313 @@ public class AlertServiceImpl implements AlertService {
                     notificationMessage != null ? notificationMessage.getDeviceId() : null, 
                     e.getMessage(), e);
             // 不抛出异常，避免影响消息确认
+            return null;
+        }
+    }
+
+    @Override
+    public Integer processSnapshotAlert(AlertNotificationMessage notificationMessage) {
+        try {
+            if (notificationMessage == null || notificationMessage.getAlert() == null) {
+                log.warn("抓拍算法任务告警消息为空，跳过处理");
+                return null;
+            }
+
+            AlertNotificationMessage.AlertInfo alert = notificationMessage.getAlert();
+            String deviceId = notificationMessage.getDeviceId();
+            String deviceName = notificationMessage.getDeviceName();
+            String imagePath = alert.getImagePath();
+
+            log.info("开始处理抓拍算法任务告警: deviceId={}, deviceName={}, imagePath={}", 
+                    deviceId, deviceName, imagePath);
+
+            // 检查是否在布防时段内
+            if (!checkDefenseSchedule(deviceId, alert.getTime())) {
+                log.info("抓拍算法任务告警不在布防时段内，跳过处理: deviceId={}", deviceId);
+                return null;
+            }
+
+            // 确保information中包含task_type='snapshot'（抓拍算法任务）
+            Object information = alert.getInformation();
+            if (information != null) {
+                try {
+                    Map<String, Object> informationMap = null;
+                    if (information instanceof String) {
+                        // 如果是字符串，尝试解析为JSON对象
+                        if (objectMapper != null) {
+                            informationMap = objectMapper.readValue((String) information, Map.class);
+                        }
+                    } else if (information instanceof Map) {
+                        informationMap = (Map<String, Object>) information;
+                    }
+                    
+                    // 如果成功解析为Map，确保包含task_type='snapshot'
+                    if (informationMap != null) {
+                        informationMap.put("task_type", "snapshot");
+                        // 更新alert中的information
+                        alert.setInformation(informationMap);
+                    } else if (information instanceof String) {
+                        // 如果解析失败，创建一个新的Map包含task_type
+                        informationMap = new HashMap<>();
+                        informationMap.put("task_type", "snapshot");
+                        informationMap.put("original", information);
+                        alert.setInformation(informationMap);
+                    }
+                } catch (Exception e) {
+                    log.warn("处理抓拍算法任务告警的information字段失败，将使用原始值: {}", e.getMessage());
+                    // 如果处理失败，创建一个新的Map包含task_type
+                    Map<String, Object> informationMap = new HashMap<>();
+                    informationMap.put("task_type", "snapshot");
+                    if (information != null) {
+                        informationMap.put("original", information.toString());
+                    }
+                    alert.setInformation(informationMap);
+                }
+            } else {
+                // 如果information为空，创建一个包含task_type的Map
+                Map<String, Object> informationMap = new HashMap<>();
+                informationMap.put("task_type", "snapshot");
+                alert.setInformation(informationMap);
+            }
+
+            // 获取告警ID（如果消息中已有alertId，说明Python端已插入数据库）
+            Integer alertId = notificationMessage.getAlertId();
+            
+            // 如果没有alertId，需要先存储告警到数据库（无论是否开启通知，都要存储）
+            if (alertId == null) {
+                alertId = saveAlertToDatabase(notificationMessage);
+                if (alertId == null) {
+                    log.warn("抓拍算法任务告警存储到数据库失败，跳过后续处理");
+                    return null;
+                }
+                log.info("抓拍算法任务告警已存储到数据库: alertId={}", alertId);
+            }
+            
+            // 如果没有图片路径，跳过图片上传
+            if (imagePath == null || imagePath.isEmpty()) {
+                log.debug("抓拍算法任务告警 {} 没有图片路径，跳过图片上传", alertId);
+                return alertId;
+            }
+
+            // 检查是否在清空后的等待期内（在数据库查询前检查，避免不必要的操作）
+            if (isInCleanupWaitPeriod()) {
+                log.debug("抓拍算法任务告警 {} 图片上传跳过：MinIO清空后等待期内", alertId);
+                return alertId;
+            }
+
+            // 上传图片到MinIO抓拍空间（无论是否开启通知，都要上传）
+            String minioPath = uploadImageToSnapSpace(imagePath, alertId, deviceId);
+            
+            if (minioPath != null && alertId != null) {
+                // 更新数据库中的图片路径
+                updateAlertImagePath(alertId, minioPath);
+                log.debug("抓拍算法任务告警 {} 图片路径已更新: {}", alertId, minioPath);
+            } else if (minioPath == null) {
+                log.warn("抓拍算法任务告警 {} 图片上传失败，保留原始路径: {}", alertId, imagePath);
+            }
+
+            log.info("抓拍算法任务告警处理完成: alertId={}", alertId);
+            return alertId;
+
+        } catch (Exception e) {
+            log.error("处理抓拍算法任务告警失败: deviceId={}, error={}", 
+                    notificationMessage != null ? notificationMessage.getDeviceId() : null, 
+                    e.getMessage(), e);
+            // 不抛出异常，避免影响消息确认
+            return null;
+        }
+    }
+
+    /**
+     * 上传图片到MinIO的抓拍空间存储桶
+     * 根据device_id查询snap_space获取bucket_name
+     * 如果最近5秒内清空过MinIO，将跳过上传
+     * 
+     * @param imagePath 本地图片路径
+     * @param alertId 告警ID
+     * @param deviceId 设备ID
+     * @return MinIO中的对象路径，如果失败返回null
+     */
+    private String uploadImageToSnapSpace(String imagePath, Integer alertId, String deviceId) {
+        // 检查是否在清空后的等待期内
+        if (isInCleanupWaitPeriod()) {
+            return null;
+        }
+
+        if (minioClient == null) {
+            log.warn("MinIO客户端不可用，跳过图片上传: imagePath={}", imagePath);
+            return null;
+        }
+
+        if (jdbcTemplate == null) {
+            log.warn("JdbcTemplate不可用，无法查询抓拍空间，跳过图片上传: imagePath={}", imagePath);
+            return null;
+        }
+
+        try {
+            // 检查本地文件是否存在
+            File imageFile = new File(imagePath);
+            if (!imageFile.exists() || !imageFile.isFile()) {
+                log.warn("抓拍图片文件不存在: imagePath={}", imagePath);
+                return null;
+            }
+
+            // 等待文件写入完成（文件大小稳定）
+            long fileSize = waitForFileStable(imageFile);
+            if (fileSize <= 0) {
+                log.warn("抓拍图片文件不可用或大小为0: imagePath={} (等待文件稳定后)", imagePath);
+                return null;
+            }
+
+            // 查询设备的抓拍空间bucket_name（从VIDEO数据库的snap_space表）
+            String bucketName = null;
+            try {
+                // 使用@DS("video")注解切换到VIDEO数据库
+                DynamicDataSourceContextHolder.push("video");
+                try {
+                    String sql = "SELECT bucket_name FROM snap_space WHERE device_id = ? LIMIT 1";
+                    List<String> results = jdbcTemplate.queryForList(sql, String.class, deviceId);
+                    if (results != null && !results.isEmpty()) {
+                        bucketName = results.get(0);
+                        log.info("查询到设备的抓拍空间bucket: deviceId={}, bucketName={}", deviceId, bucketName);
+                    } else {
+                        log.warn("设备没有关联的抓拍空间: deviceId={}", deviceId);
+                        return null;
+                    }
+                } finally {
+                    DynamicDataSourceContextHolder.clear();
+                }
+            } catch (Exception e) {
+                log.error("查询抓拍空间失败: deviceId={}, error={}", deviceId, e.getMessage(), e);
+                return null;
+            }
+
+            if (bucketName == null || bucketName.isEmpty()) {
+                log.warn("设备没有配置抓拍空间bucket: deviceId={}", deviceId);
+                return null;
+            }
+
+            // 确保存储桶存在
+            try {
+                boolean exists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
+                if (!exists) {
+                    minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
+                    log.info("创建MinIO抓拍空间存储桶: {}", bucketName);
+                }
+            } catch (Exception e) {
+                log.error("检查或创建MinIO抓拍空间存储桶失败: bucket={}, error={}", bucketName, e.getMessage(), e);
+                return null;
+            }
+
+            // 生成对象名称：使用设备ID目录结构，格式：deviceId/YYYY/MM/DD/snapshot_{alertId}_{timestamp}.jpg
+            String fileName = imageFile.getName();
+            String fileExt = "";
+            int lastDotIndex = fileName.lastIndexOf('.');
+            if (lastDotIndex > 0) {
+                fileExt = fileName.substring(lastDotIndex);
+            } else {
+                fileExt = ".jpg"; // 默认扩展名
+            }
+
+            LocalDateTime now = LocalDateTime.now();
+            String dateDir = now.format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+            String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+            String objectName = String.format("%s/%s/snapshot_%s_%s%s", 
+                    deviceId,
+                    dateDir, 
+                    alertId != null ? alertId : "unknown",
+                    timestamp,
+                    fileExt);
+
+            // 读取文件内容到内存，确保文件完整性（复用uploadImageToMinio的逻辑）
+            byte[] fileContent = null;
+            int maxRetries = 3;
+            int retryCount = 0;
+
+            while (retryCount < maxRetries) {
+                try (FileInputStream fileInputStream = new FileInputStream(imageFile)) {
+                    // 读取完整文件内容到内存
+                    fileContent = new byte[(int) fileSize];
+                    int bytesRead = 0;
+                    int totalBytesRead = 0;
+                    while (totalBytesRead < fileSize && (bytesRead = fileInputStream.read(
+                            fileContent, totalBytesRead, (int) fileSize - totalBytesRead)) != -1) {
+                        totalBytesRead += bytesRead;
+                    }
+
+                    // 验证读取的数据大小是否与文件大小一致
+                    if (totalBytesRead == fileSize) {
+                        // 读取成功，跳出重试循环
+                        break;
+                    } else {
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            log.debug("抓拍图片文件读取大小不匹配（重试 {}/{}）: 期望 {} 字节，实际读取 {} 字节，等待文件稳定后重试...",
+                                    retryCount, maxRetries, fileSize, totalBytesRead);
+                            Thread.sleep(200); // 等待200ms后重试
+                            // 重新等待文件稳定（文件可能还在写入）
+                            long newSize = waitForFileStable(imageFile);
+                            if (newSize > 0 && newSize != fileSize) {
+                                fileSize = newSize;
+                                fileContent = null; // 重置，重新读取
+                                retryCount = 0; // 重置重试计数，因为文件大小变化了
+                            }
+                        } else {
+                            log.warn("抓拍图片文件读取不完整（已重试 {} 次）: 期望 {} 字节，实际读取 {} 字节",
+                                    maxRetries, fileSize, totalBytesRead);
+                            return null;
+                        }
+                    }
+                } catch (Exception e) {
+                    retryCount++;
+                    if (retryCount < maxRetries) {
+                        log.debug("抓拍图片文件读取失败（重试 {}/{}）: {}，等待后重试...",
+                                retryCount, maxRetries, e.getMessage());
+                        Thread.sleep(200);
+                    } else {
+                        log.warn("抓拍图片文件读取失败（已重试 {} 次）: {}", maxRetries, e.getMessage());
+                        return null;
+                    }
+                }
+            }
+
+            if (fileContent == null || fileContent.length != fileSize) {
+                log.warn("抓拍图片文件读取失败: imagePath={}", imagePath);
+                return null;
+            }
+
+            // 确定Content-Type
+            String contentType = "application/octet-stream";
+            String lowerExt = fileExt.toLowerCase();
+            if (lowerExt.equals(".jpg") || lowerExt.equals(".jpeg")) {
+                contentType = "image/jpeg";
+            } else if (lowerExt.equals(".png")) {
+                contentType = "image/png";
+            }
+
+            // 使用putObject上传文件内容（从内存流上传，避免文件被修改的问题）
+            try (ByteArrayInputStream dataStream = new ByteArrayInputStream(fileContent)) {
+                minioClient.putObject(
+                        PutObjectArgs.builder()
+                                .bucket(bucketName)
+                                .object(objectName)
+                                .stream(dataStream, fileSize, -1)
+                                .contentType(contentType)
+                                .build());
+                
+                // 构建MinIO路径（格式：/api/v1/buckets/{bucketName}/objects/download?prefix={objectName}）
+                String minioPath = String.format("/api/v1/buckets/%s/objects/download?prefix=%s", 
+                        bucketName, 
+                        URLEncoder.encode(objectName, StandardCharsets.UTF_8.toString()));
+                
+                log.info("抓拍图片上传到MinIO成功: bucket={}, object={}, minioPath={}", 
+                        bucketName, objectName, minioPath);
+                return minioPath;
+            }
+
+        } catch (Exception e) {
+            log.error("上传抓拍图片到MinIO失败: imagePath={}, deviceId={}, error={}", 
+                    imagePath, deviceId, e.getMessage(), e);
             return null;
         }
     }
@@ -510,14 +805,30 @@ public class AlertServiceImpl implements AlertService {
             
             // 处理information字段（可能是对象，需要转换为JSON字符串）
             Object information = alert.getInformation();
+            Map<String, Object> informationMap = null;
+            
             if (information != null) {
                 if (information instanceof String) {
-                    alertDO.setInformation((String) information);
-                } else {
-                    // 如果是对象，转换为JSON字符串
+                    // 如果是字符串，尝试解析为JSON对象
                     try {
                         if (objectMapper != null) {
-                            alertDO.setInformation(objectMapper.writeValueAsString(information));
+                            informationMap = objectMapper.readValue((String) information, Map.class);
+                        } else {
+                            // 如果没有objectMapper，直接使用字符串
+                            alertDO.setInformation((String) information);
+                        }
+                    } catch (Exception e) {
+                        // 解析失败，直接使用字符串
+                        alertDO.setInformation((String) information);
+                    }
+                } else if (information instanceof Map) {
+                    informationMap = (Map<String, Object>) information;
+                } else {
+                    // 其他类型，尝试转换为JSON字符串
+                    try {
+                        if (objectMapper != null) {
+                            String jsonStr = objectMapper.writeValueAsString(information);
+                            informationMap = objectMapper.readValue(jsonStr, Map.class);
                         } else {
                             alertDO.setInformation(information.toString());
                         }
@@ -525,6 +836,41 @@ public class AlertServiceImpl implements AlertService {
                         log.warn("转换information为JSON失败，使用toString: {}", e.getMessage());
                         alertDO.setInformation(information.toString());
                     }
+                }
+            } else {
+                // 如果information为空，创建一个新的Map
+                informationMap = new HashMap<>();
+            }
+            
+            // 确保information中包含task_type
+            if (informationMap != null) {
+                // 如果information中没有task_type，尝试从其他地方获取
+                if (!informationMap.containsKey("task_type")) {
+                    // 检查是否是抓拍算法任务告警（通过方法名或消息来源判断）
+                    // 如果是在processSnapshotAlert中调用，应该已经包含task_type
+                    // 如果没有，默认为'realtime'（实时算法任务）
+                    // 注意：抓拍算法任务的task_type应该在Python端就已经设置好了
+                    informationMap.put("task_type", "realtime");
+                } else {
+                    // 如果已经有task_type，确保值正确（'snapshot' 或 'realtime'）
+                    String taskType = (String) informationMap.get("task_type");
+                    if (taskType == null || (!taskType.equals("snapshot") && !taskType.equals("realtime"))) {
+                        // 如果task_type值不正确，根据消息来源判断
+                        // 这里可以根据实际情况调整逻辑
+                        log.warn("告警信息中的task_type值不正确: {}, 将保持原值", taskType);
+                    }
+                }
+                
+                // 将Map转换为JSON字符串
+                try {
+                    if (objectMapper != null) {
+                        alertDO.setInformation(objectMapper.writeValueAsString(informationMap));
+                    } else {
+                        alertDO.setInformation(informationMap.toString());
+                    }
+                } catch (Exception e) {
+                    log.warn("转换information Map为JSON失败: {}", e.getMessage());
+                    alertDO.setInformation(informationMap.toString());
                 }
             }
             
@@ -549,6 +895,58 @@ public class AlertServiceImpl implements AlertService {
             alertDO.setDeviceName(notificationMessage.getDeviceName());
             alertDO.setImagePath(alert.getImagePath());
             alertDO.setRecordPath(alert.getRecordPath());
+            
+            // 提取并设置 task_type（优先从 alert.taskType 获取，如果没有则从 information 中提取）
+            String taskType = alert.getTaskType();
+            if (taskType == null || taskType.isEmpty()) {
+                // 如果 alert.taskType 为空，尝试从 information 中提取
+                if (informationMap != null && informationMap.containsKey("task_type")) {
+                    taskType = (String) informationMap.get("task_type");
+                }
+            }
+            // 兼容 'snapshot' 值，统一转换为 'snap'
+            if ("snapshot".equals(taskType)) {
+                taskType = "snap";
+            }
+            // 如果仍然为空，设置默认值
+            if (taskType == null || taskType.isEmpty()) {
+                taskType = "realtime";
+            }
+            alertDO.setTaskType(taskType);
+            
+            // 保存通知人信息
+            List<Map<String, Object>> notifyUsers = notificationMessage.getNotifyUsers();
+            if (notifyUsers != null && !notifyUsers.isEmpty()) {
+                try {
+                    if (objectMapper != null) {
+                        alertDO.setNotifyUsers(objectMapper.writeValueAsString(notifyUsers));
+                    } else {
+                        alertDO.setNotifyUsers(notifyUsers.toString());
+                    }
+                } catch (Exception e) {
+                    log.warn("转换notifyUsers为JSON失败: {}", e.getMessage());
+                    alertDO.setNotifyUsers(notifyUsers.toString());
+                }
+            }
+            
+            // 保存通知渠道配置
+            List<Map<String, Object>> channels = notificationMessage.getChannels();
+            if (channels != null && !channels.isEmpty()) {
+                try {
+                    if (objectMapper != null) {
+                        alertDO.setChannels(objectMapper.writeValueAsString(channels));
+                    } else {
+                        alertDO.setChannels(channels.toString());
+                    }
+                } catch (Exception e) {
+                    log.warn("转换channels为JSON失败: {}", e.getMessage());
+                    alertDO.setChannels(channels.toString());
+                }
+            }
+            
+            // 设置通知发送状态（初始为false，后续由iot-message服务更新）
+            alertDO.setNotificationSent(false);
+            alertDO.setNotificationSentTime(null);
             
             // 插入数据库（使用@DS("video")注解的Mapper会自动切换到VIDEO数据库）
             int result = alertMapper.insert(alertDO);
@@ -596,262 +994,6 @@ public class AlertServiceImpl implements AlertService {
         } catch (Exception e) {
             log.error("更新告警图片路径失败: alertId={}, minioPath={}, error={}", 
                     alertId, minioPath, e.getMessage(), e);
-        }
-    }
-
-    /**
-     * 检查告警是否在检测区域内
-     * 使用DynamicDataSourceContextHolder切换到VIDEO数据库
-     * 
-     * @param notificationMessage 告警通知消息
-     * @return 匹配的区域名称，如果没有匹配到区域但配置了区域则返回null，如果没有配置区域则返回空字符串
-     */
-    private String checkAlertRegion(AlertNotificationMessage notificationMessage) {
-        try {
-            if (jdbcTemplate == null) {
-                log.warn("JdbcTemplate不可用，跳过区域检测");
-                return ""; // 默认通过
-            }
-
-            String deviceId = notificationMessage.getDeviceId();
-            AlertNotificationMessage.AlertInfo alert = notificationMessage.getAlert();
-            Object information = alert.getInformation();
-
-            // 解析information字段获取bbox
-            if (information == null) {
-                return ""; // 没有information，默认通过
-            }
-
-            JsonNode infoNode;
-            if (information instanceof String) {
-                try {
-                    infoNode = objectMapper != null ? objectMapper.readTree((String) information) : null;
-                } catch (Exception e) {
-                    log.warn("解析information失败: {}", e.getMessage());
-                    return ""; // 解析失败，默认通过
-                }
-            } else if (information instanceof Map) {
-                infoNode = objectMapper != null ? objectMapper.valueToTree(information) : null;
-            } else {
-                return ""; // 未知格式，默认通过
-            }
-
-            if (infoNode == null || !infoNode.has("bbox")) {
-                return ""; // 没有bbox，默认通过
-            }
-
-            JsonNode bboxNode = infoNode.get("bbox");
-            if (!bboxNode.isArray() || bboxNode.size() != 4) {
-                return ""; // bbox格式错误，默认通过
-            }
-
-            double x1 = bboxNode.get(0).asDouble();
-            double y1 = bboxNode.get(1).asDouble();
-            double x2 = bboxNode.get(2).asDouble();
-            double y2 = bboxNode.get(3).asDouble();
-
-            // 计算bbox中心点（归一化坐标）
-            double bboxCenterX, bboxCenterY;
-            if (x1 <= 1.0 && y1 <= 1.0 && x2 <= 1.0 && y2 <= 1.0) {
-                // 已经是归一化坐标
-                bboxCenterX = (x1 + x2) / 2.0;
-                bboxCenterY = (y1 + y2) / 2.0;
-            } else {
-                // 绝对坐标，需要归一化（使用默认帧尺寸640x360）
-                double frameWidth = 640.0;
-                double frameHeight = 360.0;
-                bboxCenterX = (x1 + x2) / 2.0 / frameWidth;
-                bboxCenterY = (y1 + y2) / 2.0 / frameHeight;
-            }
-
-            // 切换到video数据源
-            DynamicDataSourceContextHolder.push("video");
-            try {
-                // 查询设备的检测区域列表
-                String sql = "SELECT id, region_name, region_type, points, model_ids, is_enabled " +
-                        "FROM device_detection_region " +
-                        "WHERE device_id = ? AND is_enabled = true " +
-                        "ORDER BY sort_order";
-                List<Map<String, Object>> regions = jdbcTemplate.queryForList(sql, deviceId);
-
-                if (regions == null || regions.isEmpty()) {
-                    return ""; // 没有配置检测区域，默认通过
-                }
-
-                // 获取算法任务的模型ID列表（用于匹配区域）
-                List<Integer> modelIds = getAlgorithmTaskModelIds(deviceId);
-
-                // 遍历所有区域，检查bbox是否在区域内
-                for (Map<String, Object> region : regions) {
-                    // 检查区域是否关联了模型（如果配置了model_ids）
-                    String modelIdsStr = (String) region.get("model_ids");
-                    if (modelIdsStr != null && !modelIdsStr.isEmpty() && modelIds != null && !modelIds.isEmpty()) {
-                        try {
-                            JsonNode regionModelIdsNode = objectMapper.readTree(modelIdsStr);
-                            if (regionModelIdsNode.isArray()) {
-                                boolean matched = false;
-                                for (JsonNode modelIdNode : regionModelIdsNode) {
-                                    if (modelIds.contains(modelIdNode.asInt())) {
-                                        matched = true;
-                                        break;
-                                    }
-                                }
-                                if (!matched) {
-                                    continue; // 区域关联的模型与任务模型不匹配，跳过
-                                }
-                            }
-                        } catch (Exception e) {
-                            log.warn("解析区域模型ID列表失败: {}", e.getMessage());
-                        }
-                    }
-
-                    // 解析区域坐标点
-                    String pointsStr = (String) region.get("points");
-                    if (pointsStr == null || pointsStr.isEmpty()) {
-                        continue;
-                    }
-
-                    try {
-                        JsonNode pointsNode = objectMapper.readTree(pointsStr);
-                        if (!pointsNode.isArray() || pointsNode.size() < 2) {
-                            continue;
-                        }
-
-                        String regionType = (String) region.get("region_type");
-                        if (isPointInRegion(bboxCenterX, bboxCenterY, pointsNode, regionType)) {
-                            String regionName = (String) region.get("region_name");
-                            log.info("告警匹配到检测区域: deviceId={}, regionName={}", deviceId, regionName);
-                            return regionName;
-                        }
-                    } catch (Exception e) {
-                        log.warn("解析区域坐标失败: regionId={}, error={}", region.get("id"), e.getMessage());
-                    }
-                }
-
-                // 没有匹配到任何区域，但配置了区域，返回null表示不通过
-                log.info("告警未匹配到任何检测区域: deviceId={}, bbox=[{},{},{},{}]", deviceId, x1, y1, x2, y2);
-                return null;
-            } finally {
-                // 恢复数据源
-                DynamicDataSourceContextHolder.clear();
-            }
-
-        } catch (Exception e) {
-            log.error("检查告警区域失败: deviceId={}, error={}", 
-                    notificationMessage != null ? notificationMessage.getDeviceId() : null, e.getMessage(), e);
-            // 出错时默认通过，避免影响正常流程
-            return "";
-        }
-    }
-
-    /**
-     * 检查是否配置了检测区域
-     * 使用DynamicDataSourceContextHolder切换到VIDEO数据库
-     */
-    private boolean hasDetectionRegions(String deviceId) {
-        try {
-            if (jdbcTemplate == null) {
-                return false;
-            }
-            // 切换到video数据源
-            DynamicDataSourceContextHolder.push("video");
-            try {
-                String sql = "SELECT COUNT(*) FROM device_detection_region WHERE device_id = ? AND is_enabled = true";
-                Integer count = jdbcTemplate.queryForObject(sql, Integer.class, deviceId);
-                return count != null && count > 0;
-            } finally {
-                // 恢复数据源
-                DynamicDataSourceContextHolder.clear();
-            }
-        } catch (Exception e) {
-            log.warn("检查检测区域配置失败: deviceId={}, error={}", deviceId, e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * 判断点是否在区域内
-     */
-    private boolean isPointInRegion(double x, double y, JsonNode pointsNode, String regionType) {
-        if (pointsNode == null || !pointsNode.isArray() || pointsNode.size() < 2) {
-            return false;
-        }
-
-        if ("polygon".equals(regionType)) {
-            // 多边形区域：使用射线法判断点是否在多边形内
-            return isPointInPolygon(x, y, pointsNode);
-        } else if ("line".equals(regionType)) {
-            // 线条区域：简化为判断点是否在多边形内（可以扩展为更精确的线段判断）
-            return isPointInPolygon(x, y, pointsNode);
-        } else {
-            log.warn("未知的区域类型: {}", regionType);
-            return false;
-        }
-    }
-
-    /**
-     * 使用射线法判断点是否在多边形内
-     */
-    private boolean isPointInPolygon(double x, double y, JsonNode polygon) {
-        if (polygon == null || !polygon.isArray() || polygon.size() < 3) {
-            return false;
-        }
-
-        boolean inside = false;
-        int j = polygon.size() - 1;
-
-        for (int i = 0; i < polygon.size(); i++) {
-            JsonNode pi = polygon.get(i);
-            JsonNode pj = polygon.get(j);
-
-            double xi = pi.has("x") ? pi.get("x").asDouble() : (pi.isArray() ? pi.get(0).asDouble() : 0);
-            double yi = pi.has("y") ? pi.get("y").asDouble() : (pi.isArray() ? pi.get(1).asDouble() : 0);
-            double xj = pj.has("x") ? pj.get("x").asDouble() : (pj.isArray() ? pj.get(0).asDouble() : 0);
-            double yj = pj.has("y") ? pj.get("y").asDouble() : (pj.isArray() ? pj.get(1).asDouble() : 0);
-
-            if (((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
-                inside = !inside;
-            }
-            j = i;
-        }
-
-        return inside;
-    }
-
-    /**
-     * 获取算法任务的模型ID列表
-     * 使用DynamicDataSourceContextHolder切换到VIDEO数据库
-     */
-    private List<Integer> getAlgorithmTaskModelIds(String deviceId) {
-        try {
-            if (jdbcTemplate == null) {
-                return null;
-            }
-            // 切换到video数据源
-            DynamicDataSourceContextHolder.push("video");
-            try {
-                String sql = "SELECT at.model_ids " +
-                        "FROM algorithm_task at " +
-                        "INNER JOIN algorithm_task_device atd ON at.id = atd.task_id " +
-                        "WHERE atd.device_id = ? AND at.alert_event_enabled = true AND at.is_enabled = true " +
-                        "LIMIT 1";
-                String modelIdsStr = jdbcTemplate.queryForObject(sql, String.class, deviceId);
-                if (modelIdsStr == null || modelIdsStr.isEmpty()) {
-                    return null;
-                }
-                JsonNode modelIdsNode = objectMapper.readTree(modelIdsStr);
-                if (modelIdsNode.isArray()) {
-                    return objectMapper.convertValue(modelIdsNode, 
-                            objectMapper.getTypeFactory().constructCollectionType(List.class, Integer.class));
-                }
-                return null;
-            } finally {
-                // 恢复数据源
-                DynamicDataSourceContextHolder.clear();
-            }
-        } catch (Exception e) {
-            log.warn("获取算法任务模型ID列表失败: deviceId={}, error={}", deviceId, e.getMessage());
-            return null;
         }
     }
 

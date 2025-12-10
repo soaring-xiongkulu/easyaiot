@@ -152,7 +152,8 @@ const loadLogs = async (taskId: number, serviceType: string) => {
     loading.value = true;
     let logsResponse;
     
-    if (serviceType === 'realtime') {
+    if (serviceType === 'realtime' || serviceType === 'snap') {
+      // 抓拍算法任务也使用 realtime 日志接口
       logsResponse = await getTaskRealtimeLogs(taskId, { lines: 500 });
     } else if (serviceType === 'extractor') {
       logsResponse = await getTaskExtractorLogs(taskId, { lines: 500 });

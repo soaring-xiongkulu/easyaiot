@@ -4368,6 +4368,9 @@ install_middleware() {
     # 初始化 MinIO
     echo ""
     init_minio
+    
+    sleep 5
+    bash "${SCRIPT_DIR}/set_permanent_token.sh" >/dev/null 2>&1 || true
 }
 
 # 启动所有中间件
@@ -4416,6 +4419,9 @@ start_middleware() {
     # 配置 PostgreSQL max_connections（最大连接数）
     echo ""
     configure_postgresql_max_connections
+    
+    sleep 5
+    bash "${SCRIPT_DIR}/set_permanent_token.sh" >/dev/null 2>&1 || true
 }
 
 # 停止所有中间件
@@ -4472,6 +4478,9 @@ restart_middleware() {
     # 配置 PostgreSQL max_connections（最大连接数）
     echo ""
     configure_postgresql_max_connections
+    
+    sleep 5
+    bash "${SCRIPT_DIR}/set_permanent_token.sh" >/dev/null 2>&1 || true
 }
 
 # 查看所有中间件状态

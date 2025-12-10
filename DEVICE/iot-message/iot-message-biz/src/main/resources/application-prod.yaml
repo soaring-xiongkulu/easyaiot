@@ -75,6 +75,30 @@ spring:
   # Kafka 配置项，对应 KafkaProperties 配置类
   kafka:
     bootstrap-servers: 10.0.0.87:9092 # 指定 Kafka Broker 地址，可以设置多个，以逗号分隔
+    # Kafka Producer 配置项
+    producer:
+      acks: 1 # 0-不应答。1-leader 应答。all-所有 leader 和 follower 应答。
+      retries: 3 # 发送失败时，重试发送的次数
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # 消息的 value 的序列化
+    # Kafka Consumer 配置项
+    consumer:
+      auto-offset-reset: earliest # 设置消费者分组最初的消费进度为 earliest
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: '*'
+        spring.json.value.default.type: com.basiclab.iot.message.domain.model.AlertNotificationMessage
+    # Kafka Consumer Listener 监听器配置
+    listener:
+      missing-topics-fatal: false # 消费监听接口监听的主题不存在时，默认会报错。所以通过设置为 false ，解决报错
+      ack-mode: MANUAL # 手动确认模式，当监听器方法使用 Acknowledgment 参数时必须设置为 MANUAL
+    # 告警通知相关配置
+    alert-notification:
+      send-topic: iot-alert-notification-send # 告警通知发送Kafka主题
+      send-group-id: iot-message-alert-notification-consumer # 消费者分组ID
+    # 抓拍算法任务告警通知相关配置
+    snapshot-alert:
+      send-topic: iot-snapshot-alert-notification-send # 抓拍算法任务告警通知发送Kafka主题
+      send-group-id: iot-message-snapshot-alert-notification-consumer # 消费者分组ID
 
 --- #################### 定时任务相关配置 ####################
 
@@ -140,6 +164,15 @@ logging:
   level:
     # 配置自己写的 MyBatis Mapper 打印日志
     com.basiclab.iot.message.mapper: DEBUG
+    # 降低 Kafka 客户端日志级别，避免连接断开时疯狂打印日志
+    # 注意：更具体的类名配置要放在包级别配置之前，确保优先级正确
+    org.apache.kafka.clients.NetworkClient: WARN
+    org.apache.kafka.clients.consumer.internals.ConsumerCoordinator: WARN
+    org.apache.kafka.clients.consumer.internals.AbstractCoordinator: WARN
+    org.apache.kafka.common.network.Selector: WARN
+    # 注意：不要设置 org.apache.kafka: INFO，因为它会覆盖上面的 WARN 配置
+    # 如果需要其他 Kafka 类的 INFO 日志，可以单独配置
+    org.springframework.kafka: INFO
 
 #请求处理的超时时间
 ribbon:

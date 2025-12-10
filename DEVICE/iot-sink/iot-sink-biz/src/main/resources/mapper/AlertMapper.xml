@@ -12,10 +12,16 @@
         <result column="device_name" jdbcType="VARCHAR" property="deviceName"/>
         <result column="image_path" jdbcType="VARCHAR" property="imagePath"/>
         <result column="record_path" jdbcType="VARCHAR" property="recordPath"/>
+        <result column="task_type" jdbcType="VARCHAR" property="taskType"/>
+        <result column="notify_users" jdbcType="VARCHAR" property="notifyUsers"/>
+        <result column="channels" jdbcType="VARCHAR" property="channels"/>
+        <result column="notification_sent" jdbcType="BOOLEAN" property="notificationSent"/>
+        <result column="notification_sent_time" jdbcType="TIMESTAMP" property="notificationSentTime"/>
     </resultMap>
     
     <sql id="Base_Column_List">
-        id, object, event, region, information, time, device_id, device_name, image_path, record_path
+        id, object, event, region, information, time, device_id, device_name, image_path, record_path, task_type, 
+        notify_users, channels, notification_sent, notification_sent_time
     </sql>
     
     <select id="selectById" parameterType="java.lang.Integer" resultMap="BaseResultMap">
@@ -26,7 +32,8 @@
     </select>
     
     <insert id="insert" parameterType="com.basiclab.iot.sink.dal.dataobject.AlertDO" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
-        insert into alert (object, event, region, information, time, device_id, device_name, image_path, record_path)
+        insert into alert (object, event, region, information, time, device_id, device_name, image_path, record_path, task_type, 
+                          notify_users, channels, notification_sent, notification_sent_time)
         values (
             #{object,jdbcType=VARCHAR},
             #{event,jdbcType=VARCHAR},
@@ -36,7 +43,12 @@
             #{deviceId,jdbcType=VARCHAR},
             #{deviceName,jdbcType=VARCHAR},
             #{imagePath,jdbcType=VARCHAR},
-            #{recordPath,jdbcType=VARCHAR}
+            #{recordPath,jdbcType=VARCHAR},
+            #{taskType,jdbcType=VARCHAR},
+            #{notifyUsers,jdbcType=VARCHAR},
+            #{channels,jdbcType=VARCHAR},
+            #{notificationSent,jdbcType=BOOLEAN},
+            #{notificationSentTime,jdbcType=TIMESTAMP}
         )
     </insert>
     

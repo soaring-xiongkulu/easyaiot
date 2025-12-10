@@ -84,6 +84,12 @@ class Alert(db.Model):
     device_name = db.Column(db.String(30), nullable=False)
     image_path = db.Column(db.String(200), nullable=True)
     record_path = db.Column(db.String(200), nullable=True)
+    task_type = db.Column(db.String(20), nullable=True, comment='告警事件类型[realtime:实时算法任务,snap:抓拍算法任务]')
+    # 通知人信息字段（用于追溯）
+    notify_users = db.Column(db.Text, nullable=True, comment='通知人列表（JSON格式，格式：[{"phone": "xxx", "email": "xxx", "name": "xxx"}, ...]）')
+    channels = db.Column(db.Text, nullable=True, comment='通知渠道配置（JSON格式，格式：[{"method": "sms", "template_id": "xxx"}, ...]）')
+    notification_sent = db.Column(db.Boolean, default=False, nullable=False, comment='是否已发送通知')
+    notification_sent_time = db.Column(db.DateTime, nullable=True, comment='通知发送时间')
 
 
 class SnapSpace(db.Model):
@@ -630,6 +636,8 @@ class AlgorithmTask(db.Model):
     # 关联关系
     devices = db.relationship('Device', secondary=algorithm_task_device, backref='algorithm_task_list', lazy=True)  # 多对多关系
     snap_space = db.relationship('SnapSpace', backref='algorithm_tasks', lazy=True)
+    # 算法模型服务关联（通过task_id关联）
+    algorithm_services = db.relationship('AlgorithmModelService', backref='algorithm_task', lazy=True, cascade='all, delete-orphan')
     # 检测区域关联（通过task_id关联，支持统一后的算法任务，不使用数据库外键约束）
     # 注意：关系在文件末尾使用实际列对象配置
     
@@ -649,6 +657,11 @@ class AlgorithmTask(db.Model):
         device_list = self.devices if self.devices else []
         device_ids = [d.id for d in device_list]
         device_names = [d.name or d.id for d in device_list]
+        
+        # 获取关联的算法模型服务列表
+        algorithm_services_list = []
+        if self.algorithm_services:
+            algorithm_services_list = [s.to_dict() for s in self.algorithm_services]
         
         return {
             'id': self.id,
@@ -691,6 +704,7 @@ class AlgorithmTask(db.Model):
             'service_process_id': self.service_process_id,
             'service_last_heartbeat': self.service_last_heartbeat.isoformat() if self.service_last_heartbeat else None,
             'service_log_path': self.service_log_path,
+            'algorithm_services': algorithm_services_list,  # 添加算法模型服务列表
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

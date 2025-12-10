@@ -153,6 +153,8 @@ def create_app():
         kafka_bootstrap_servers = 'localhost:9092'
     app.config['KAFKA_BOOTSTRAP_SERVERS'] = kafka_bootstrap_servers
     app.config['KAFKA_ALERT_TOPIC'] = os.environ.get('KAFKA_ALERT_TOPIC', 'iot-alert-notification')
+    app.config['KAFKA_ALERT_NOTIFICATION_TOPIC'] = os.environ.get('KAFKA_ALERT_NOTIFICATION_TOPIC', 'iot-alert-notification')
+    app.config['KAFKA_SNAPSHOT_ALERT_TOPIC'] = os.environ.get('KAFKA_SNAPSHOT_ALERT_TOPIC', 'iot-snapshot-alert')
     app.config['KAFKA_REQUEST_TIMEOUT_MS'] = int(os.environ.get('KAFKA_REQUEST_TIMEOUT_MS', '5000'))
     app.config['KAFKA_RETRIES'] = int(os.environ.get('KAFKA_RETRIES', '1'))
     app.config['KAFKA_RETRY_BACKOFF_MS'] = int(os.environ.get('KAFKA_RETRY_BACKOFF_MS', '100'))
@@ -339,6 +341,70 @@ def create_app():
                     print("✅ algorithm_task 表迁移检查完成")
                 except Exception as e:
                     print(f"⚠️  algorithm_task 表迁移检查失败: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    db.session.rollback()
+                
+                # 检查 alert 表的 task_type 字段
+                try:
+                    result = db.session.execute(text("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.columns 
+                            WHERE table_schema = 'public' 
+                            AND table_name = 'alert' 
+                            AND column_name = 'task_type'
+                        );
+                    """))
+                    alert_task_type_exists = result.scalar()
+                    
+                    if not alert_task_type_exists:
+                        print("⚠️  alert.task_type 列不存在，正在添加...")
+                        db.session.execute(text("""
+                            ALTER TABLE alert 
+                            ADD COLUMN task_type VARCHAR(20) NULL;
+                        """))
+                        db.session.commit()
+                        print("✅ alert.task_type 列添加成功")
+                        
+                        # 尝试从 information 字段中提取 task_type 并填充（兼容旧数据）
+                        try:
+                            # 使用 PostgreSQL 的 JSON 函数提取 task_type
+                            db.session.execute(text("""
+                                UPDATE alert 
+                                SET task_type = (
+                                    CASE 
+                                        WHEN information IS NOT NULL 
+                                             AND information::text LIKE '%"task_type"%' 
+                                             AND information::text LIKE '%"realtime"%' THEN 'realtime'
+                                        WHEN information IS NOT NULL 
+                                             AND information::text LIKE '%"task_type"%' 
+                                             AND (information::text LIKE '%"snap"%' OR information::text LIKE '%"snapshot"%') THEN 'snap'
+                                        ELSE 'realtime'
+                                    END
+                                )
+                                WHERE task_type IS NULL;
+                            """))
+                            db.session.commit()
+                            print("✅ 已从 information 字段迁移 task_type 数据")
+                        except Exception as e:
+                            print(f"⚠️  迁移 task_type 数据失败（不影响功能）: {str(e)}")
+                            db.session.rollback()
+                            
+                            # 如果迁移失败，至少设置默认值
+                            try:
+                                db.session.execute(text("""
+                                    UPDATE alert 
+                                    SET task_type = 'realtime'
+                                    WHERE task_type IS NULL;
+                                """))
+                                db.session.commit()
+                                print("✅ 已设置默认 task_type 值")
+                            except:
+                                pass
+                    
+                    print("✅ alert 表迁移检查完成")
+                except Exception as e:
+                    print(f"⚠️  alert 表迁移检查失败: {str(e)}")
                     import traceback
                     traceback.print_exc()
                     db.session.rollback()

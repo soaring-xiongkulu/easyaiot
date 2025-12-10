@@ -475,7 +475,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         ]);
       },
       helpMessage: '是否启用告警事件，启用后会记录告警信息',
-      ifShow: ({ values }) => values.task_type === 'realtime',
+      ifShow: ({ values }) => values.task_type === 'realtime' || values.task_type === 'snap',
     },
     {
       field: 'alert_notification_enabled',
@@ -509,7 +509,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         ]);
       },
       helpMessage: '是否启用告警通知，启用后会在告警事件发生时发送通知',
-      ifShow: ({ values }) => values.task_type === 'realtime' && values.alert_event_enabled,
+      ifShow: ({ values }) => (values.task_type === 'realtime' || values.task_type === 'snap') && values.alert_event_enabled,
     },
     {
       field: 'notification_channels',
@@ -526,7 +526,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
           return label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
         },
       },
-      ifShow: ({ values }) => values.task_type === 'realtime' && values.alert_event_enabled && values.alert_notification_enabled,
+      ifShow: ({ values }) => (values.task_type === 'realtime' || values.task_type === 'snap') && values.alert_event_enabled && values.alert_notification_enabled,
     },
     {
       field: 'notification_templates',
@@ -579,7 +579,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
           }),
         ]);
       },
-      ifShow: ({ values }) => values.task_type === 'realtime' && values.alert_event_enabled && values.alert_notification_enabled && values.notification_channels && values.notification_channels.length > 0,
+      ifShow: ({ values }) => (values.task_type === 'realtime' || values.task_type === 'snap') && values.alert_event_enabled && values.alert_notification_enabled && values.notification_channels && values.notification_channels.length > 0,
     },
     {
       field: 'is_full_day_defense',
@@ -639,7 +639,7 @@ const isViewMode = computed(() => modalData.value.type === 'view');
 const showAlertNotificationConfig = computed(() => {
   return formValues.value?.alert_event_enabled && 
          (formValues.value?.alert_notification_enabled || alertNotificationEnabled.value) && 
-         formValues.value?.task_type === 'realtime';
+         (formValues.value?.task_type === 'realtime' || formValues.value?.task_type === 'snap');
 });
 
 const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) => {

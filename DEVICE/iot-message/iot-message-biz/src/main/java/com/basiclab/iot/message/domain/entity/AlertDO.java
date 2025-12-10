@@ -63,5 +63,10 @@ public class AlertDO {
      * 录像路径
      */
     private String recordPath;
+    
+    /**
+     * 告警事件类型[realtime:实时算法任务,snap:抓拍算法任务]
+     */
+    private String taskType;
 }
 

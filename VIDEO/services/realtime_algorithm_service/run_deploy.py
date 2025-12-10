@@ -59,24 +59,6 @@ def get_flask_app():
             }
         }
         
-        # 重要：设置 Kafka 配置，realtime_algorithm_service 使用 host 网络模式
-        # 必须使用 localhost 访问 Kafka，不能使用容器名
-        kafka_bootstrap_servers = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
-        # 如果配置中包含容器名（Kafka 或 kafka-server），强制使用 localhost
-        if 'Kafka' in kafka_bootstrap_servers or 'kafka-server' in kafka_bootstrap_servers:
-            logger.info(f'检测到 Kafka 配置使用容器名，强制覆盖为 localhost:9092（realtime_algorithm_service 使用 host 网络模式）')
-            kafka_bootstrap_servers = 'localhost:9092'
-        
-        app.config['KAFKA_BOOTSTRAP_SERVERS'] = kafka_bootstrap_servers
-        app.config['KAFKA_ALERT_NOTIFICATION_TOPIC'] = os.getenv('KAFKA_ALERT_NOTIFICATION_TOPIC', 'iot-alert-notification')
-        app.config['KAFKA_REQUEST_TIMEOUT_MS'] = int(os.getenv('KAFKA_REQUEST_TIMEOUT_MS', '30000'))
-        app.config['KAFKA_RETRIES'] = int(os.getenv('KAFKA_RETRIES', '3'))
-        app.config['KAFKA_RETRY_BACKOFF_MS'] = int(os.getenv('KAFKA_RETRY_BACKOFF_MS', '1000'))
-        app.config['KAFKA_METADATA_MAX_AGE_MS'] = int(os.getenv('KAFKA_METADATA_MAX_AGE_MS', '300000'))
-        app.config['KAFKA_INIT_RETRY_INTERVAL'] = int(os.getenv('KAFKA_INIT_RETRY_INTERVAL', '60'))
-        app.config['KAFKA_MAX_BLOCK_MS'] = int(os.getenv('KAFKA_MAX_BLOCK_MS', '60000'))
-        app.config['KAFKA_DELIVERY_TIMEOUT_MS'] = int(os.getenv('KAFKA_DELIVERY_TIMEOUT_MS', '120000'))
-        
         # 初始化数据库
         db.init_app(app)
         _flask_app = app
@@ -89,13 +71,6 @@ from tracker import SimpleTracker
 # 加载环境变量
 load_dotenv()
 
-# 重要：realtime_algorithm_service 使用 host 网络模式，必须使用 localhost 访问 Kafka
-# 在加载环境变量后，立即强制覆盖 Kafka 配置，确保使用 localhost
-kafka_bootstrap_servers = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
-if 'Kafka' in kafka_bootstrap_servers or 'kafka-server' in kafka_bootstrap_servers:
-    os.environ['KAFKA_BOOTSTRAP_SERVERS'] = 'localhost:9092'
-    print(f'⚠️  检测到 Kafka 配置使用容器名，已强制覆盖为 localhost:9092（realtime_algorithm_service 使用 host 网络模式）')
-
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -103,69 +78,6 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
-
-def configure_kafka_hosts():
-    """配置 /etc/hosts 文件，将 Kafka 映射到 127.0.0.1
-    
-    这样可以确保即使 Kafka 元数据返回 Kafka 主机名，也能正确解析到 127.0.0.1
-    """
-    hosts_file = '/etc/hosts'
-    kafka_host_entry = '127.0.0.1\tKafka'
-    
-    try:
-        # 检查是否已经有 Kafka 映射
-        if os.path.exists(hosts_file):
-            with open(hosts_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                # 检查是否已经存在 Kafka 映射（支持多种格式）
-                if 'Kafka' in content:
-                    # 检查是否已经映射到 127.0.0.1
-                    lines = content.split('\n')
-                    for line in lines:
-                        # 检查行是否包含 Kafka 和 127.0.0.1（忽略注释和空行）
-                        stripped_line = line.strip()
-                        if stripped_line and not stripped_line.startswith('#'):
-                            if 'Kafka' in stripped_line and '127.0.0.1' in stripped_line:
-                                logger.info('✅ /etc/hosts 中已存在 Kafka 映射到 127.0.0.1')
-                                return
-                    # 如果存在但映射不正确，需要更新（但需要 root 权限，这里只记录）
-                    logger.warning('⚠️  /etc/hosts 中已存在 Kafka 映射，但可能不是 127.0.0.1，需要手动检查')
-                    return
-        
-        # 尝试添加 hosts 映射（需要 root 权限）
-        try:
-            with open(hosts_file, 'a', encoding='utf-8') as f:
-                f.write(f'\n{kafka_host_entry}\n')
-            logger.info('✅ 已成功配置 /etc/hosts：将 Kafka 映射到 127.0.0.1')
-        except PermissionError:
-            # 如果没有权限，尝试使用 subprocess（在容器中可能不适用）
-            logger.warning('⚠️  无法直接修改 /etc/hosts（需要 root 权限），尝试使用 echo 命令...')
-            try:
-                # 使用 subprocess 尝试添加（可能需要 sudo）
-                result = subprocess.run(
-                    ['sh', '-c', f'echo "{kafka_host_entry}" >> {hosts_file}'],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-                if result.returncode == 0:
-                    logger.info('✅ 已成功配置 /etc/hosts：将 Kafka 映射到 127.0.0.1')
-                else:
-                    error_msg = result.stderr.strip() if result.stderr else '未知错误'
-                    logger.warning(f'⚠️  无法自动配置 /etc/hosts: {error_msg}')
-                    logger.warning(f'   请手动添加：{kafka_host_entry}')
-                    logger.warning(f'   或者在容器启动时使用 --add-host Kafka:127.0.0.1 参数')
-            except Exception as e:
-                logger.warning(f'⚠️  无法自动配置 /etc/hosts: {str(e)}')
-                logger.warning(f'   请手动添加：{kafka_host_entry}')
-                logger.warning(f'   或者在容器启动时使用 --add-host Kafka:127.0.0.1 参数')
-    except Exception as e:
-        logger.warning(f'⚠️  配置 /etc/hosts 时出错: {str(e)}')
-        logger.warning(f'   请手动添加：{kafka_host_entry}')
-        logger.warning(f'   或者在容器启动时使用 --add-host Kafka:127.0.0.1 参数')
-
-# 配置 Kafka hosts 映射（在配置日志之后调用，以便使用 logger）
-configure_kafka_hosts()
 
 # 全局变量
 TASK_ID = int(os.getenv('TASK_ID', '0'))
@@ -532,18 +444,29 @@ def load_task_config():
 
 
 def send_alert_event_async(alert_data: Dict):
-    """异步发送告警事件（后台线程）"""
+    """异步发送告警事件到 sink hook 接口（后台线程）"""
     def _send():
         try:
             if not task_config or not task_config.alert_event_enabled:
                 return
             
-            # 获取Flask应用实例并设置应用上下文
-            app = get_flask_app()
-            with app.app_context():
-                # 发送告警事件到告警Hook接口（用于存储到数据库和Kafka）
-                from app.services.alert_hook_service import process_alert_hook
-                process_alert_hook(alert_data)
+            # 通过 HTTP 发送告警事件到 sink hook 接口
+            # sink 会负责将告警投入 Kafka
+            try:
+                # 标记为实时算法任务
+                alert_data['task_type'] = 'realtime'
+                response = requests.post(
+                    ALERT_HOOK_URL,
+                    json=alert_data,
+                    timeout=5,
+                    headers={'Content-Type': 'application/json'}
+                )
+                if response.status_code == 200:
+                    logger.debug(f"告警事件已发送到 sink hook: device_id={alert_data.get('device_id')}")
+                else:
+                    logger.warning(f"发送告警事件到 sink hook 失败: status_code={response.status_code}, response={response.text}")
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"发送告警事件到 sink hook 异常: {str(e)}")
         except Exception as e:
             logger.error(f"发送告警事件失败: {str(e)}", exc_info=True)
     
