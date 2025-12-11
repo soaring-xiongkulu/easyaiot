@@ -635,93 +635,26 @@ execute_module_command() {
             print_error "$module_name: $command 执行失败"
             return 1
         fi
-    # 特殊处理DEVICE模块（使用docker-compose.yml）
+    # 特殊处理DEVICE模块（使用install_linux.sh脚本）
     elif [ "$module" = "DEVICE" ]; then
-        # 检查docker-compose文件
-        local compose_file="docker-compose.yml"
-        if [ ! -f "$compose_file" ]; then
-            print_warning "模块 $module 没有 $compose_file 文件，跳过"
+        # 检查install_linux.sh文件
+        if [ ! -f "install_linux.sh" ]; then
+            print_warning "模块 $module 没有 install_linux.sh 脚本，跳过"
             return 1
         fi
         
-        # 确定docker compose命令
-        local compose_cmd
-        if check_command docker-compose; then
-            compose_cmd="docker-compose"
-        else
-            compose_cmd="docker compose"
-        fi
+        # 修复换行符
+        fix_line_endings "install_linux.sh"
         
         print_info "执行 $module_name: $command"
         
-        case "$command" in
-            install|start)
-                if $compose_cmd -f "$compose_file" up -d 2>&1 | tee -a "$LOG_FILE"; then
-                    print_success "$module_name: $command 执行成功"
-                    return 0
-                else
-                    print_error "$module_name: $command 执行失败"
-                    return 1
-                fi
-                ;;
-            stop)
-                if $compose_cmd -f "$compose_file" down 2>&1 | tee -a "$LOG_FILE"; then
-                    print_success "$module_name: $command 执行成功"
-                    return 0
-                else
-                    print_error "$module_name: $command 执行失败"
-                    return 1
-                fi
-                ;;
-            restart)
-                if $compose_cmd -f "$compose_file" restart 2>&1 | tee -a "$LOG_FILE"; then
-                    print_success "$module_name: $command 执行成功"
-                    return 0
-                else
-                    print_error "$module_name: $command 执行失败"
-                    return 1
-                fi
-                ;;
-            status)
-                $compose_cmd -f "$compose_file" ps 2>&1 | tee -a "$LOG_FILE"
-                return $?
-                ;;
-            logs)
-                $compose_cmd -f "$compose_file" logs --tail=100 2>&1 | tee -a "$LOG_FILE"
-                return $?
-                ;;
-            build)
-                if $compose_cmd -f "$compose_file" build --no-cache 2>&1 | tee -a "$LOG_FILE"; then
-                    print_success "$module_name: $command 执行成功"
-                    return 0
-                else
-                    print_error "$module_name: $command 执行失败"
-                    return 1
-                fi
-                ;;
-            clean)
-                if $compose_cmd -f "$compose_file" down -v 2>&1 | tee -a "$LOG_FILE"; then
-                    print_success "$module_name: $command 执行成功"
-                    return 0
-                else
-                    print_error "$module_name: $command 执行失败"
-                    return 1
-                fi
-                ;;
-            update)
-                if ($compose_cmd -f "$compose_file" pull && $compose_cmd -f "$compose_file" up -d) 2>&1 | tee -a "$LOG_FILE"; then
-                    print_success "$module_name: $command 执行成功"
-                    return 0
-                else
-                    print_error "$module_name: $command 执行失败"
-                    return 1
-                fi
-                ;;
-            *)
-                print_warning "未知命令: $command"
-                return 1
-                ;;
-        esac
+        if bash install_linux.sh "$command" 2>&1 | tee -a "$LOG_FILE"; then
+            print_success "$module_name: $command 执行成功"
+            return 0
+        else
+            print_error "$module_name: $command 执行失败"
+            return 1
+        fi
     # 特殊处理AI和VIDEO模块（使用install_linux_arm.sh脚本）
     elif [ "$module" = "AI" ] || [ "$module" = "VIDEO" ]; then
         # 检查install_linux_arm.sh文件

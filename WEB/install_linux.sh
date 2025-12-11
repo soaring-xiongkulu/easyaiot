@@ -475,8 +475,8 @@ install_service() {
     docker rm -f web-service 2>/dev/null || true
     $COMPOSE_CMD down --remove-orphans 2>/dev/null || true
     
-    print_info "构建 Docker 镜像..."
-    $COMPOSE_CMD build
+    print_info "构建 Docker 镜像（根据代码重新构建）..."
+    docker build -t web-service:latest .
     
     print_info "启动服务..."
     $COMPOSE_CMD up -d
@@ -588,7 +588,7 @@ build_image() {
     # 注意：前端构建现在在Docker容器内完成，构建镜像时会自动完成
     print_info "前端构建将在Docker容器内自动完成"
     
-    $COMPOSE_CMD build --no-cache
+    docker build -t web-service:latest --no-cache .
     print_success "镜像构建完成"
 }
 
@@ -611,6 +611,16 @@ clean_service() {
         print_info "删除镜像..."
         docker rmi web-service:latest 2>/dev/null || true
         
+        # 清理 dist 文件夹
+        print_info "清理 dist 文件夹..."
+        local dist_path="${SCRIPT_DIR}/dist"
+        if [ -d "$dist_path" ]; then
+            rm -rf "$dist_path"
+            print_success "已清理 dist 文件夹: $dist_path"
+        else
+            print_info "dist 文件夹不存在，跳过清理"
+        fi
+        
         print_success "清理完成"
     else
         print_info "已取消清理操作"
@@ -628,7 +638,7 @@ update_service() {
     
     # 注意：前端构建现在在Docker容器内完成，重新构建镜像时会自动完成
     print_info "重新构建镜像（前端构建将在容器内自动完成）..."
-    $COMPOSE_CMD build
+    docker build -t web-service:latest .
     
     print_info "重启服务..."
     $COMPOSE_CMD up -d

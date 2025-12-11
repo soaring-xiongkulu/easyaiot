@@ -321,8 +321,8 @@ install_service() {
     create_directories
     create_env_file
     
-    print_info "构建 Docker 镜像..."
-    $COMPOSE_CMD build
+    print_info "构建 Docker 镜像（根据代码重新构建）..."
+    docker build --target runtime -t video-service:latest .
     
     print_info "启动服务..."
     $COMPOSE_CMD up -d
@@ -422,7 +422,7 @@ build_image() {
     check_docker
     check_docker_compose
     
-    $COMPOSE_CMD build --no-cache
+    docker build --target runtime -t video-service:latest --no-cache .
     print_success "镜像构建完成"
 }
 
@@ -458,7 +458,7 @@ update_service() {
     git pull || print_warning "Git pull 失败，继续使用当前代码"
     
     print_info "重新构建镜像..."
-    $COMPOSE_CMD build
+    docker build --target runtime -t video-service:latest .
     
     print_info "重启服务..."
     $COMPOSE_CMD up -d

@@ -1,8 +1,5 @@
 services:
   web-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: web-service:latest
     container_name: web-service
     user: root

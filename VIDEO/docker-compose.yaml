@@ -1,8 +1,5 @@
 services:
   video-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: video-service:latest
     container_name: video-service
     user: root

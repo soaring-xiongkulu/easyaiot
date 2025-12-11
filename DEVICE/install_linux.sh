@@ -102,7 +102,7 @@ check_images_exist() {
     fi
 }
 
-# 构建所有镜像
+# 构建所有镜像（检查镜像是否存在，如果存在则跳过）
 build_images() {
     print_info "========== 构建所有运行时镜像 =========="
     
@@ -124,8 +124,54 @@ build_images() {
     print_info "构建所有运行时镜像..."
     local exit_code
     
-    # 构建所有服务镜像
-    $DOCKER_COMPOSE build --parallel
+    # 使用 docker build 命令构建所有服务镜像
+    print_info "使用 docker build 构建所有服务镜像..."
+    docker build --target iot-gateway -t iot-gateway:latest . && \
+    docker build --target iot-system -t iot-module-system-biz:latest . && \
+    docker build --target iot-infra -t iot-module-infra-biz:latest . && \
+    docker build --target iot-device -t iot-module-device-biz:latest . && \
+    docker build --target iot-dataset -t iot-module-dataset-biz:latest . && \
+    docker build --target iot-tdengine -t iot-module-tdengine-biz:latest . && \
+    docker build --target iot-file -t iot-module-file-biz:latest . && \
+    docker build --target iot-message -t iot-module-message-biz:latest . && \
+    docker build --target iot-sink -t iot-sink-biz:latest .
+    exit_code=$?
+    
+    # 检查命令是否成功
+    if [ $exit_code -ne 0 ]; then
+        print_error "运行时镜像构建失败（退出码: $exit_code）"
+        exit 1
+    fi
+    
+    print_success "========== 所有运行时镜像构建完成 =========="
+    echo
+}
+
+# 强制重新构建所有镜像（不检查镜像是否存在，用于 install 命令）
+build_images_force() {
+    print_info "========== 强制重新构建所有运行时镜像 =========="
+    
+    # 确保权限正确
+    check_compose_file
+    check_docker_daemon
+    
+    cd "$SCRIPT_DIR"
+    
+    # 构建所有运行时镜像
+    print_info "强制重新构建所有运行时镜像（根据代码重新构建）..."
+    local exit_code
+    
+    # 使用 docker build 命令构建所有服务镜像
+    print_info "使用 docker build 构建所有服务镜像..."
+    docker build --target iot-gateway -t iot-gateway:latest . && \
+    docker build --target iot-system -t iot-module-system-biz:latest . && \
+    docker build --target iot-infra -t iot-module-infra-biz:latest . && \
+    docker build --target iot-device -t iot-module-device-biz:latest . && \
+    docker build --target iot-dataset -t iot-module-dataset-biz:latest . && \
+    docker build --target iot-tdengine -t iot-module-tdengine-biz:latest . && \
+    docker build --target iot-file -t iot-module-file-biz:latest . && \
+    docker build --target iot-message -t iot-module-message-biz:latest . && \
+    docker build --target iot-sink -t iot-sink-biz:latest .
     exit_code=$?
     
     # 检查命令是否成功
@@ -174,8 +220,8 @@ build_and_start() {
     
     echo
     
-    # 构建所有镜像
-    build_images
+    # 强制重新构建所有镜像（install 时总是根据代码重新构建）
+    build_images_force
     
     # 启动所有服务
     print_info "========== 启动所有服务 =========="
@@ -337,6 +383,47 @@ clean() {
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         cd "$SCRIPT_DIR"
         $DOCKER_COMPOSE down
+        print_success "容器清理完成"
+        
+        # 清理各模块 target 目录下的 .jar 包
+        print_info "清理各模块 target 目录下的 .jar 包..."
+        local modules=(
+            "iot-dataset"
+            "iot-device"
+            "iot-file"
+            "iot-gateway"
+            "iot-infra"
+            "iot-message"
+            "iot-sink"
+            "iot-system"
+            "iot-tdengine"
+        )
+        
+        local jar_count=0
+        for module in "${modules[@]}"; do
+            local module_path="${SCRIPT_DIR}/${module}"
+            if [ -d "$module_path" ]; then
+                # 查找并删除该模块下所有 target 目录中的 .jar 文件
+                local found_jars
+                found_jars=$(find "$module_path" -type f -name "*.jar" -path "*/target/*" 2>/dev/null || true)
+                if [ -n "$found_jars" ]; then
+                    while IFS= read -r jar_file; do
+                        if [ -f "$jar_file" ]; then
+                            rm -f "$jar_file"
+                            jar_count=$((jar_count + 1))
+                            print_info "已删除: $jar_file"
+                        fi
+                    done <<< "$found_jars"
+                fi
+            fi
+        done
+        
+        if [ "$jar_count" -gt 0 ]; then
+            print_success "已清理 $jar_count 个 .jar 文件"
+        else
+            print_info "未找到需要清理的 .jar 文件"
+        fi
+        
         print_success "清理完成"
     else
         print_info "操作已取消"
@@ -369,7 +456,16 @@ update_services() {
     
     # 重新构建运行时镜像
     print_info "重新构建运行时镜像..."
-    build_images
+    print_info "使用 docker build 构建所有服务镜像..."
+    docker build --target iot-gateway -t iot-gateway:latest . && \
+    docker build --target iot-system -t iot-module-system-biz:latest . && \
+    docker build --target iot-infra -t iot-module-infra-biz:latest . && \
+    docker build --target iot-device -t iot-module-device-biz:latest . && \
+    docker build --target iot-dataset -t iot-module-dataset-biz:latest . && \
+    docker build --target iot-tdengine -t iot-module-tdengine-biz:latest . && \
+    docker build --target iot-file -t iot-module-file-biz:latest . && \
+    docker build --target iot-message -t iot-module-message-biz:latest . && \
+    docker build --target iot-sink -t iot-sink-biz:latest .
     
     # 重启所有服务
     print_info "重启所有服务..."

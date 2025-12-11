@@ -1,9 +1,5 @@
 services:
   iot-gateway:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: iot-gateway
     image: iot-gateway:latest
     container_name: iot-gateway
     user: root
@@ -27,10 +23,6 @@ services:
     restart: always
 
   iot-system:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: iot-system
     image: iot-module-system-biz:latest
     container_name: iot-system
     user: root
@@ -63,10 +55,6 @@ services:
       - easyaiot-network
 
   iot-infra:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: iot-infra
     image: iot-module-infra-biz:latest
     container_name: iot-infra
     user: root
@@ -104,10 +92,6 @@ services:
         condition: service_healthy
 
   iot-device:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: iot-device
     image: iot-module-device-biz:latest
     container_name: iot-device
     user: root
@@ -146,10 +130,6 @@ services:
         condition: service_healthy
 
   iot-dataset:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: iot-dataset
     image: iot-module-dataset-biz:latest
     container_name: iot-dataset
     user: root
@@ -187,10 +167,6 @@ services:
         condition: service_healthy
 
   iot-tdengine:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: iot-tdengine
     image: iot-module-tdengine-biz:latest
     container_name: iot-tdengine
     user: root
@@ -226,10 +202,6 @@ services:
         condition: service_healthy
 
   iot-file:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: iot-file
     image: iot-module-file-biz:latest
     container_name: iot-file
     user: root
@@ -267,10 +239,6 @@ services:
         condition: service_healthy
 
   iot-message:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: iot-message
     image: iot-module-message-biz:latest
     container_name: iot-message
     user: root
@@ -319,10 +287,6 @@ services:
         condition: service_healthy
 
   iot-sink:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: iot-sink
     image: iot-sink-biz:latest
     container_name: iot-sink
     user: root

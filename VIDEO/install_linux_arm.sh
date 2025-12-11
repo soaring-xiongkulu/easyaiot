@@ -437,20 +437,17 @@ install_service() {
     # 检查本地 ffmpeg 文件
     check_local_ffmpeg
     
-    print_info "构建 Docker 镜像（ARM架构）..."
+    print_info "构建 Docker 镜像（ARM架构，根据代码重新构建）..."
     print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $ARM_BASE_IMAGE"
     print_warning "首次构建可能需要较长时间（20-40分钟），请耐心等待..."
     print_info "正在下载基础镜像和安装依赖..."
     print_info "构建进度将实时显示，请勿中断..."
     echo ""
     
-    # 使用环境变量 DOCKER_DEFAULT_PLATFORM 指定 ARM 平台
-    # 注意：docker compose v2 的 build 命令不支持 --platform 参数
+    # 使用 docker build 命令构建镜像（install 时总是重新构建）
     BUILD_LOG="/tmp/docker_build_$$.log"
     set +e  # 暂时关闭错误退出，以便捕获构建状态
-    export DOCKER_BUILDKIT=1
-    export DOCKER_DEFAULT_PLATFORM="$DOCKER_PLATFORM"
-    eval "$COMPOSE_CMD build" 2>&1 | tee "$BUILD_LOG"
+    DOCKER_BUILDKIT=1 docker build --target runtime --platform "$DOCKER_PLATFORM" -t video-service:latest . 2>&1 | tee "$BUILD_LOG"
     BUILD_STATUS=${PIPESTATUS[0]}
     set -e  # 重新开启错误退出
     
@@ -588,13 +585,10 @@ build_image() {
     print_info "构建进度将实时显示，请勿中断..."
     echo ""
     
-    # 使用环境变量 DOCKER_DEFAULT_PLATFORM 指定 ARM 平台
-    # 注意：docker compose v2 的 build 命令不支持 --platform 参数
+    # 使用 docker build 命令构建镜像
     BUILD_LOG="/tmp/docker_build_$$.log"
     set +e  # 暂时关闭错误退出，以便捕获构建状态
-    export DOCKER_BUILDKIT=1
-    export DOCKER_DEFAULT_PLATFORM="$DOCKER_PLATFORM"
-    eval "$COMPOSE_CMD build --no-cache" 2>&1 | tee "$BUILD_LOG"
+    DOCKER_BUILDKIT=1 docker build --target runtime --platform "$DOCKER_PLATFORM" -t video-service:latest --no-cache . 2>&1 | tee "$BUILD_LOG"
     BUILD_STATUS=${PIPESTATUS[0]}
     set -e  # 重新开启错误退出
     
@@ -666,13 +660,10 @@ update_service() {
     print_info "构建进度将实时显示，请勿中断..."
     echo ""
     
-    # 使用环境变量 DOCKER_DEFAULT_PLATFORM 指定 ARM 平台
-    # 注意：docker compose v2 的 build 命令不支持 --platform 参数
+    # 使用 docker build 命令构建镜像
     BUILD_LOG="/tmp/docker_build_$$.log"
     set +e  # 暂时关闭错误退出，以便捕获构建状态
-    export DOCKER_BUILDKIT=1
-    export DOCKER_DEFAULT_PLATFORM="$DOCKER_PLATFORM"
-    eval "$COMPOSE_CMD build" 2>&1 | tee "$BUILD_LOG"
+    DOCKER_BUILDKIT=1 docker build --target runtime --platform "$DOCKER_PLATFORM" -t video-service:latest . 2>&1 | tee "$BUILD_LOG"
     BUILD_STATUS=${PIPESTATUS[0]}
     set -e  # 重新开启错误退出
     
