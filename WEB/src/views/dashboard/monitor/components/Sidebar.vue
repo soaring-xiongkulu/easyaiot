@@ -369,17 +369,37 @@ const getTotalDeviceCount = (nodes: TreeItem[]): number => {
 
 // 刷新定时器
 let statisticsTimer: any = null
+let delayTimer: any = null
+let isMounted = false
 
 // 组件挂载时加载数据
 onMounted(() => {
+  isMounted = true
+  
   loadTreeData()
   // 初始加载统计数据
   loadStatistics()
   
   // 错峰刷新：延迟1秒开始，每5秒刷新一次统计数据（1秒、6秒、11秒...）
-  setTimeout(() => {
+  delayTimer = setTimeout(() => {
+    // 检查组件是否仍然挂载
+    if (!isMounted) return
+    
     loadStatistics()
+    
+    // 再次检查组件是否仍然挂载
+    if (!isMounted) return
+    
     statisticsTimer = setInterval(() => {
+      // 每次执行前检查组件是否仍然挂载
+      if (!isMounted) {
+        if (statisticsTimer) {
+          clearInterval(statisticsTimer)
+          statisticsTimer = null
+        }
+        return
+      }
+      
       loadStatistics()
     }, 5000)
   }, 1000)
@@ -387,6 +407,15 @@ onMounted(() => {
 
 // 组件卸载时清理定时器
 onUnmounted(() => {
+  isMounted = false
+  
+  // 清理延迟定时器
+  if (delayTimer) {
+    clearTimeout(delayTimer)
+    delayTimer = null
+  }
+  
+  // 清理定时器
   if (statisticsTimer) {
     clearInterval(statisticsTimer)
     statisticsTimer = null

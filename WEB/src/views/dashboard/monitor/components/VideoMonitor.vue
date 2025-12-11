@@ -672,20 +672,48 @@ const handleRecordClick = async (record: any) => {
 
 let timeTimer: any = null
 let recordTimer: any = null
+let delayTimer: any = null
+let scrollCheckTimer: any = null
+let isMounted = false
 
 onMounted(() => {
+  isMounted = true
+  
   updateTime()
   timeTimer = setInterval(updateTime, 1000)
+  
   // 初始加载告警录像列表
   loadAlertRecords()
+  
   // 错峰刷新：延迟2秒开始，每5秒刷新一次告警录像列表（2秒、7秒、12秒...）
-  setTimeout(() => {
+  delayTimer = setTimeout(() => {
+    // 检查组件是否仍然挂载
+    if (!isMounted) return
+    
     loadAlertRecords()
-    recordTimer = setInterval(loadAlertRecords, 5000)
+    
+    // 再次检查组件是否仍然挂载
+    if (!isMounted) return
+    
+    recordTimer = setInterval(() => {
+      // 每次执行前检查组件是否仍然挂载
+      if (!isMounted) {
+        if (recordTimer) {
+          clearInterval(recordTimer)
+          recordTimer = null
+        }
+        return
+      }
+      
+      loadAlertRecords()
+    }, 5000)
   }, 2000)
+  
   // 等待DOM渲染后检查滚动状态
-  setTimeout(() => {
-    checkScrollStatus()
+  scrollCheckTimer = setTimeout(() => {
+    if (isMounted) {
+      checkScrollStatus()
+    }
   }, 100)
   
   // 监听窗口大小变化
@@ -693,12 +721,29 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  isMounted = false
+  
+  // 清理延迟定时器
+  if (delayTimer) {
+    clearTimeout(delayTimer)
+    delayTimer = null
+  }
+  
+  if (scrollCheckTimer) {
+    clearTimeout(scrollCheckTimer)
+    scrollCheckTimer = null
+  }
+  
   if (timeTimer) {
     clearInterval(timeTimer)
+    timeTimer = null
   }
+  
   if (recordTimer) {
     clearInterval(recordTimer)
+    recordTimer = null
   }
+  
   window.removeEventListener('resize', checkScrollStatus)
   
   // 清理所有视频播放器实例

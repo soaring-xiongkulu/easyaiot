@@ -157,9 +157,13 @@ const loadTodayAlarmCount = async () => {
 
 // 刷新定时器
 let refreshTimer: any = null
+let delayTimer: any = null
+let isMounted = false
 
 // 动态添加样式，隐藏顶部导航栏、标签页和左侧菜单，让大屏覆盖整个屏幕
 onMounted(() => {
+  isMounted = true
+  
   const style = document.createElement('style')
   style.id = 'monitor-dashboard-style'
   style.textContent = `
@@ -197,14 +201,30 @@ onMounted(() => {
   })
   
   // 错峰刷新：延迟3秒开始，每5秒刷新一次告警列表和今日告警次数（3秒、8秒、13秒...）
-  setTimeout(() => {
+  delayTimer = setTimeout(() => {
+    // 检查组件是否仍然挂载
+    if (!isMounted) return
+    
     Promise.all([
       loadAlarmList(),
       loadTodayAlarmCount()
     ]).catch(error => {
       console.error('刷新数据失败', error)
     })
+    
+    // 再次检查组件是否仍然挂载
+    if (!isMounted) return
+    
     refreshTimer = setInterval(() => {
+      // 每次执行前检查组件是否仍然挂载
+      if (!isMounted) {
+        if (refreshTimer) {
+          clearInterval(refreshTimer)
+          refreshTimer = null
+        }
+        return
+      }
+      
       Promise.all([
         loadAlarmList(),
         loadTodayAlarmCount()
@@ -216,9 +236,17 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  isMounted = false
+  
   const style = document.getElementById('monitor-dashboard-style')
   if (style) {
     document.head.removeChild(style)
+  }
+  
+  // 清理延迟定时器
+  if (delayTimer) {
+    clearTimeout(delayTimer)
+    delayTimer = null
   }
   
   // 清理定时器
