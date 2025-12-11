@@ -19,19 +19,23 @@
         <TabPane key="4" tab="模型部署">
           <DeployService></DeployService>
         </TabPane>
+        <TabPane key="5" tab="大模型管理">
+          <LLMManage ref="llmManageRef"></LLMManage>
+        </TabPane>
       </Tabs>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup name="TrainService">
-import {reactive, onMounted} from 'vue';
+import {reactive, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import { TabPane, Tabs } from "ant-design-vue";
 import ModelList from "@/views/train/components/ModelList/index.vue";
 import AiModelTool from "@/views/train/components/AiModelTool/index.vue";
 import ModelExport from "@/views/train/components/ModelExport/index.vue";
 import DeployService from "@/views/train/components/DeployService/index.vue";
+import LLMManage from "@/views/train/components/LLMManage/index.vue";
 
 defineOptions({name: 'TRAIN'})
 
@@ -41,8 +45,15 @@ const state = reactive({
   activeKey: '1'
 });
 
+// 大模型管理组件引用
+const llmManageRef = ref();
+
 const handleTabClick = (activeKey: string) => {
   state.activeKey = activeKey;
+  // 切换到大模型管理标签页时，刷新数据
+  if (activeKey === '5' && llmManageRef.value) {
+    llmManageRef.value.refresh();
+  }
 };
 
 // 处理路由参数，自动切换到指定tab

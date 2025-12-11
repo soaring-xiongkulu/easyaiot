@@ -1,19 +1,20 @@
 import { defHttp } from '@/utils/http/axios';
 
 enum Api {
-  LLM_LIST = '/admin-api/video/llm/list',
-  LLM_DETAIL = '/admin-api/video/llm/detail',
-  LLM_CREATE = '/admin-api/video/llm/create',
-  LLM_UPDATE = '/admin-api/video/llm/update',
-  LLM_DELETE = '/admin-api/video/llm/delete',
-  LLM_ACTIVATE = '/admin-api/video/llm/activate',
-  LLM_TEST = '/admin-api/video/llm/test',
-  LLM_VISION_ANALYZE = '/admin-api/video/llm/vision/analyze',
-  LLM_VISION_INFERENCE = '/admin-api/video/llm/vision/inference',
-  LLM_VISION_UNDERSTANDING = '/admin-api/video/llm/vision/understanding',
-  LLM_VISION_DEEP_THINKING = '/admin-api/video/llm/vision/deep-thinking',
-  LLM_VIDEO_INFERENCE = '/admin-api/video/llm/video/inference',
-  LLM_VIDEO_UNDERSTANDING = '/admin-api/video/llm/video/understanding',
+  LLM_LIST = '/model/llm/list',
+  LLM_DETAIL = '/model/llm/detail',
+  LLM_CREATE = '/model/llm/create',
+  LLM_UPDATE = '/model/llm/update',
+  LLM_DELETE = '/model/llm/delete',
+  LLM_ACTIVATE = '/model/llm/activate',
+  LLM_DEACTIVATE = '/model/llm/deactivate',
+  LLM_TEST = '/model/llm/test',
+  LLM_VISION_ANALYZE = '/model/llm/vision/analyze',
+  LLM_VISION_INFERENCE = '/model/llm/vision/inference',
+  LLM_VISION_UNDERSTANDING = '/model/llm/vision/understanding',
+  LLM_VISION_DEEP_THINKING = '/model/llm/vision/deep-thinking',
+  LLM_VIDEO_INFERENCE = '/model/llm/video/inference',
+  LLM_VIDEO_UNDERSTANDING = '/model/llm/video/understanding',
 }
 
 export interface LLMModel {
@@ -111,6 +112,11 @@ export const deleteLLM = (modelId: number) => {
 // 激活大模型
 export const activateLLM = (modelId: number) => {
   return defHttp.post<LLMDetailResponse>({ url: `${Api.LLM_ACTIVATE}/${modelId}` });
+};
+
+// 禁用大模型
+export const deactivateLLM = (modelId: number) => {
+  return defHttp.post<LLMDetailResponse>({ url: `${Api.LLM_DEACTIVATE}/${modelId}` });
 };
 
 // 测试大模型连接

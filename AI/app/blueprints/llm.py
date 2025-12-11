@@ -8,12 +8,14 @@ import json
 import logging
 import tempfile
 import os
+import uuid
 from datetime import datetime
 from typing import Optional, Dict, Any, Tuple
 from flask import Blueprint, request, jsonify
 import requests
 
 from db_models import LLMModel, db
+from app.services.minio_service import ModelService
 
 llm_bp = Blueprint('llm', __name__)
 logger = logging.getLogger(__name__)
@@ -219,6 +221,66 @@ def delete_llm(model_id):
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
+@llm_bp.route('/image_upload', methods=['POST'])
+def upload_llm_image():
+    """上传大模型图标图片"""
+    if 'file' not in request.files:
+        return jsonify({'code': 400, 'msg': '未找到文件'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'code': 400, 'msg': '未选择文件'}), 400
+
+    # 检查文件扩展名
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
+        return jsonify({'code': 400, 'msg': '只支持.jpg、.jpeg、.png、.gif、.webp格式的图片文件'}), 400
+
+    # 初始化变量
+    temp_path = None
+    try:
+        unique_filename = f"{uuid.uuid4().hex}{ext}"
+
+        # 创建临时目录和文件
+        temp_dir = 'temp_uploads'
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_path = os.path.join(temp_dir, unique_filename)
+        file.save(temp_path)
+
+        bucket_name = 'models'
+        object_key = f"llm_images/{unique_filename}"
+
+        # 上传到MinIO
+        upload_success, upload_error = ModelService.upload_to_minio(bucket_name, object_key, temp_path)
+        if upload_success:
+            # 生成URL（直接拼接字符串）
+            download_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={object_key}"
+
+            return jsonify({
+                'code': 0,
+                'msg': '图片上传成功',
+                'data': {
+                    'url': download_url,
+                    'fileName': file.filename
+                }
+            })
+        else:
+            return jsonify({'code': 500, 'msg': '文件上传到MinIO失败'}), 500
+
+    except Exception as e:
+        logger.error(f"图片上传失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+    finally:
+        # 确保删除临时文件（无论上传成功与否）
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+                logger.info(f"临时文件已删除: {temp_path}")
+            except OSError as e:
+                logger.error(f"删除临时文件失败: {temp_path}, 错误: {str(e)}")
+
+
 @llm_bp.route('/activate/<int:model_id>', methods=['POST'])
 def activate_llm(model_id):
     """激活大模型（同时取消其他模型的激活状态）"""
@@ -245,6 +307,32 @@ def activate_llm(model_id):
     except Exception as e:
         db.session.rollback()
         logger.error(f"激活大模型失败: {str(e)}")
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@llm_bp.route('/deactivate/<int:model_id>', methods=['POST'])
+def deactivate_llm(model_id):
+    """禁用大模型"""
+    try:
+        model = LLMModel.query.get(model_id)
+        if not model:
+            return jsonify({'code': 404, 'msg': '模型不存在'}), 404
+        
+        # 禁用当前模型
+        model.is_active = False
+        model.status = 'inactive'
+        model.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'code': 0,
+            'msg': '禁用成功',
+            'data': model.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"禁用大模型失败: {str(e)}")
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
