@@ -21,9 +21,9 @@ import requests
 from dotenv import load_dotenv
 from typing import List, Optional
 
-# 添加VIDEO模块路径
-video_root = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, video_root)
+# 添加AI模块路径
+ai_root = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, ai_root)
 
 # 阿里云百炼 API 端点
 DASHSCOPE_API_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
@@ -108,7 +108,7 @@ def parse_script_args():
 
 def load_environment(env_suffix: str = ''):
     """加载环境变量"""
-    env_file = os.path.join(video_root, '.env' + (f'.{env_suffix}' if env_suffix else ''))
+    env_file = os.path.join(ai_root, '.env' + (f'.{env_suffix}' if env_suffix else ''))
     if os.path.exists(env_file):
         load_dotenv(env_file)
         print(f"✅ 已加载环境变量文件: {env_file}")

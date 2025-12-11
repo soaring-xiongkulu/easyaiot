@@ -1,7 +1,7 @@
 # 使用PyTorch官方镜像（包含CUDA支持，Python 3.10）
 # 注意：本镜像仅支持 x86_64 架构，ARM架构不支持容器化部署
-# 升级到PyTorch 2.1.0以支持OpenVINO 2025.3.0（需要torch.float8_e4m3fn）
-ARG BASE_IMAGE=pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
+# 升级到PyTorch 2.9.0以支持最新功能
+ARG BASE_IMAGE=pytorch/pytorch:2.9.0-cuda12.8-cudnn9-runtime
 FROM ${BASE_IMAGE}
 
 # 设置非交互式环境，避免构建时卡住

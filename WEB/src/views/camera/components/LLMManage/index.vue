@@ -16,6 +16,12 @@
             </template>
             视觉推理
           </a-button>
+          <a-button type="default" @click="handleVideoInference">
+            <template #icon>
+              <Icon icon="ant-design:video-camera-outlined" />
+            </template>
+            视频推理
+          </a-button>
           <a-button @click="handleToggleViewMode" type="default">
             <template #icon>
               <SwapOutlined />
@@ -68,6 +74,12 @@
                       <Icon icon="ant-design:eye-outlined" />
                     </template>
                     视觉推理
+                  </a-button>
+                  <a-button type="default" @click="handleVideoInference">
+                    <template #icon>
+                      <Icon icon="ant-design:video-camera-outlined" />
+                    </template>
+                    视频推理
                   </a-button>
                   <a-button @click="handleToggleViewMode" type="default">
                     <template #icon>
@@ -136,6 +148,9 @@
     
     <!-- 视觉推理模态框 -->
     <VisionInferenceModal @register="registerVisionModal" />
+    
+    <!-- 视频推理模态框 -->
+    <VideoInferenceModal @register="registerVideoModal" />
   </div>
 </template>
 
@@ -152,12 +167,14 @@ import { getBasicColumns, getFormConfig } from './Data';
 import { getLLMList, deleteLLM, activateLLM, testLLM, type LLMModel } from '@/api/device/llm';
 import LLMModal from './LLMModal.vue';
 import VisionInferenceModal from './VisionInferenceModal.vue';
+import VideoInferenceModal from './VideoInferenceModal.vue';
 
 defineOptions({ name: 'LLMManage' });
 
 const { createMessage } = useMessage();
 const [registerModal, { openModal }] = useModal();
 const [registerVisionModal, { openModal: openVisionModal }] = useModal();
+const [registerVideoModal, { openModal: openVideoModal }] = useModal();
 
 // 视图模式
 const viewMode = ref<'table' | 'card'>('card');
@@ -461,6 +478,12 @@ const handleTest = async (record: LLMModel) => {
 const handleVisionInference = () => {
   // 直接打开视觉推理模态框，后端会检查是否有激活的模型
   openVisionModal(true);
+};
+
+// 视频推理
+const handleVideoInference = () => {
+  // 直接打开视频推理模态框，后端会检查是否有激活的模型
+  openVideoModal(true);
 };
 
 // 成功回调

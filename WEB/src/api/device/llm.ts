@@ -12,6 +12,8 @@ enum Api {
   LLM_VISION_INFERENCE = '/admin-api/video/llm/vision/inference',
   LLM_VISION_UNDERSTANDING = '/admin-api/video/llm/vision/understanding',
   LLM_VISION_DEEP_THINKING = '/admin-api/video/llm/vision/deep-thinking',
+  LLM_VIDEO_INFERENCE = '/admin-api/video/llm/video/inference',
+  LLM_VIDEO_UNDERSTANDING = '/admin-api/video/llm/video/understanding',
 }
 
 export interface LLMModel {
@@ -173,6 +175,48 @@ export const visionDeepThinking = (imageFile: File, prompt?: string) => {
   }
   return defHttp.post<VisionAnalyzeResponse>({
     url: Api.LLM_VISION_DEEP_THINKING,
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
+// 视频推理
+export const videoInference = (videoFile?: File, videoUrl?: string, prompt?: string) => {
+  const formData = new FormData();
+  if (videoFile) {
+    formData.append('video', videoFile);
+  }
+  if (videoUrl) {
+    formData.append('video_url', videoUrl);
+  }
+  if (prompt) {
+    formData.append('prompt', prompt);
+  }
+  return defHttp.post<VisionAnalyzeResponse>({
+    url: Api.LLM_VIDEO_INFERENCE,
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
+// 视频理解
+export const videoUnderstanding = (videoFile?: File, videoUrl?: string, prompt?: string) => {
+  const formData = new FormData();
+  if (videoFile) {
+    formData.append('video', videoFile);
+  }
+  if (videoUrl) {
+    formData.append('video_url', videoUrl);
+  }
+  if (prompt) {
+    formData.append('prompt', prompt);
+  }
+  return defHttp.post<VisionAnalyzeResponse>({
+    url: Api.LLM_VIDEO_UNDERSTANDING,
     data: formData,
     headers: {
       'Content-Type': 'multipart/form-data',

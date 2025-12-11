@@ -20,7 +20,7 @@ from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
 
-from app.blueprints import camera, alert, snap, playback, record, algorithm_task, stream_forward, llm
+from app.blueprints import camera, alert, snap, playback, record, algorithm_task, stream_forward
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -409,28 +409,6 @@ def create_app():
                     traceback.print_exc()
                     db.session.rollback()
                 
-                # 检查 llm_model 表是否存在
-                try:
-                    result = db.session.execute(text("""
-                        SELECT EXISTS (
-                            SELECT FROM information_schema.tables 
-                            WHERE table_schema = 'public' 
-                            AND table_name = 'llm_model'
-                        );
-                    """))
-                    llm_model_exists = result.scalar()
-                    
-                    if not llm_model_exists:
-                        print("⚠️  llm_model 表不存在，正在创建...")
-                        db.create_all()  # 这会创建所有缺失的表
-                        print("✅ llm_model 表创建成功")
-                    else:
-                        print("✅ llm_model 表已存在")
-                except Exception as e:
-                    print(f"⚠️  llm_model 表检查失败: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    db.session.rollback()
             except Exception as e:
                 print(f"⚠️  数据库迁移检查失败: {str(e)}")
                 import traceback
@@ -496,13 +474,6 @@ def create_app():
         import traceback
         traceback.print_exc()
     
-    try:
-        app.register_blueprint(llm.llm_bp, url_prefix='/video/llm')
-        print(f"✅ LLM Blueprint 注册成功")
-    except Exception as e:
-        print(f"❌ LLM Blueprint 注册失败: {str(e)}")
-        import traceback
-        traceback.print_exc()
 
     # 健康检查路由初始化
     def init_health_check(app):

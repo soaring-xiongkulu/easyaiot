@@ -61,7 +61,7 @@
               <strong>深度思考：</strong>多角度深度分析，包括关键信息、原因背景、影响后果和建议方案。
             </div>
           </div>
-        </a-form-item>
+        </FormItem>
       </div>
 
       <!-- 结果显示区域 -->

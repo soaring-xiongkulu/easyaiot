@@ -22,12 +22,12 @@ import sys
 import argparse
 from dotenv import load_dotenv
 
-# 添加VIDEO模块路径
-video_root = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, video_root)
+# 添加AI模块路径
+ai_root = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, ai_root)
 
 # 加载环境变量
-env_file = os.path.join(video_root, '.env')
+env_file = os.path.join(ai_root, '.env')
 if os.path.exists(env_file):
     load_dotenv(env_file)
     print(f"✅ 已加载环境变量文件: {env_file}")
@@ -36,7 +36,7 @@ else:
 
 # 导入 Flask 应用和模型
 from run import create_app
-from models import LLMModel, db
+from db_models import LLMModel, db
 
 
 def configure_qwenvl3_api_key(api_key: str, model_name: str = None, auto_create: bool = False):

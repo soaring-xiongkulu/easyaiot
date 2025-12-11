@@ -265,7 +265,7 @@ def create_app():
                         user = user_pass.split(':')[0]
                         safe_uri = database_uri.replace(user_pass, f"{user}:***")
             print(f"数据库连接: {safe_uri}")
-            from db_models import Model, TrainTask, ExportRecord, InferenceTask, LLMConfig, OCRResult, AIService
+            from db_models import Model, TrainTask, ExportRecord, InferenceTask, LLMModel, OCRResult, AIService
             db.create_all()
             print(f"✅ 数据库连接成功，表结构已创建/验证")
         except Exception as e:

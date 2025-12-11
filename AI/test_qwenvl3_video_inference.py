@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-测试视频深度思考大模型
+测试视频推理大模型
 根据阿里云百炼平台官方文档编写
 
 API 文档参考：
-https://bailian.console.aliyun.com/?spm=5176.29597918.J_C-NDPSQ8SFKWB4aef8i6I.4.298d7b08IRr02o&tab=doc#/doc/?type=model&url=2870973
+https://bailian.console.aliyun.com/?spm=5176.29597918.J_C-NDPSQ8SFKWB4aef8i6I.4.298d7b08IRr02o&tab=doc#/doc/?type=model&url=2877996
 
 @author 翱翔的雄库鲁
 @email andywebjava@163.com
@@ -19,49 +19,44 @@ import requests
 from dotenv import load_dotenv
 from typing import Optional
 
-# 添加VIDEO模块路径
-video_root = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, video_root)
+# 添加AI模块路径
+ai_root = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, ai_root)
 
 # 阿里云百炼 API 端点
 DASHSCOPE_API_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 DASHSCOPE_API_CHAT_URL = f"{DASHSCOPE_API_BASE_URL}/chat/completions"
 
-# 支持的模型名称（深度思考模式）
+# 支持的模型名称
 SUPPORTED_MODELS = [
     "qwen-vl-plus",
     "qwen-vl-max",
     "qwen-vl-max-latest",
     "qwen3-vl-plus",
-    "qwen3-vl-max",
-    "qwen3-max-preview"
+    "qwen3-vl-max"
 ]
 
 
 def parse_script_args():
     """解析脚本参数"""
     parser = argparse.ArgumentParser(
-        description='测试视频深度思考大模型',
+        description='测试视频推理大模型',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例:
   # 使用默认设置测试视频（Base64编码）
-  python test_video_deep_thinking.py /opt/projects/easyaiot/VIDEO/video/video2.mp4
+  python test_video_inference.py /opt/projects/easyaiot/VIDEO/video/video2.mp4
 
   # 使用公网URL
-  python test_video_deep_thinking.py --video-url https://example.com/video.mp4
+  python test_video_inference.py --video-url https://example.com/video.mp4
 
-  # 使用自定义提示词进行深度思考
-  python test_video_deep_thinking.py /opt/projects/easyaiot/VIDEO/video/video2.mp4 \\
-      --prompt "请对这个视频进行多角度深度分析"
+  # 使用自定义提示词进行推理
+  python test_video_inference.py /opt/projects/easyaiot/VIDEO/video/video2.mp4 \\
+      --prompt "请分析这个视频中的对象、场景和可能的行为"
 
   # 指定模型
-  python test_video_deep_thinking.py /opt/projects/easyaiot/VIDEO/video/video2.mp4 \\
-      --model qwen3-max-preview
-
-  # 关闭思考模式（仅对支持混合思考的模型有效）
-  python test_video_deep_thinking.py /opt/projects/easyaiot/VIDEO/video/video2.mp4 \\
-      --disable-thinking
+  python test_video_inference.py /opt/projects/easyaiot/VIDEO/video/video2.mp4 \\
+      --model qwen-vl-max-latest
         """
     )
     
@@ -80,22 +75,16 @@ def parse_script_args():
     parser.add_argument(
         '--prompt',
         type=str,
-        default='请对这个视频进行多角度深度分析和思考。',
-        help='提示词（默认: 请对这个视频进行多角度深度分析和思考。）'
+        default='请分析这个视频中的对象、场景和可能的行为。',
+        help='提示词（默认: 请分析这个视频中的对象、场景和可能的行为。）'
     )
     
     parser.add_argument(
         '--model',
         type=str,
-        default='qwen3-max-preview',
+        default='qwen-vl-max-latest',
         choices=SUPPORTED_MODELS,
-        help='模型名称（默认: qwen3-max-preview）'
-    )
-    
-    parser.add_argument(
-        '--disable-thinking',
-        action='store_true',
-        help='关闭思考模式（仅对支持混合思考的模型有效）'
+        help='模型名称（默认: qwen-vl-max-latest）'
     )
     
     parser.add_argument(
@@ -117,7 +106,7 @@ def parse_script_args():
 
 def load_environment(env_suffix: str = ''):
     """加载环境变量"""
-    env_file = os.path.join(video_root, '.env' + (f'.{env_suffix}' if env_suffix else ''))
+    env_file = os.path.join(ai_root, '.env' + (f'.{env_suffix}' if env_suffix else ''))
     if os.path.exists(env_file):
         load_dotenv(env_file)
         print(f"✅ 已加载环境变量文件: {env_file}")
@@ -169,16 +158,15 @@ def video_file_to_base64(video_path: str) -> str:
     return video_base64
 
 
-def call_video_deep_thinking_api(
+def call_video_inference_api(
     api_key: str,
     model: str,
     prompt: str,
     video_base64: Optional[str] = None,
-    video_url: Optional[str] = None,
-    enable_thinking: bool = True
+    video_url: Optional[str] = None
 ) -> dict:
     """
-    调用视频深度思考 API
+    调用视频推理 API
     
     Args:
         api_key: API Key
@@ -186,7 +174,6 @@ def call_video_deep_thinking_api(
         prompt: 提示词
         video_base64: 视频文件的 base64 编码
         video_url: 视频文件的公网URL
-        enable_thinking: 是否启用思考模式
     
     Returns:
         API 响应结果
@@ -223,11 +210,11 @@ def call_video_deep_thinking_api(
     else:
         raise ValueError("必须提供 video_base64 或 video_url 之一")
     
-    # 添加文本提示（深度思考模式：更注重多角度分析和推理）
-    thinking_prompt = f"作为深度思考专家，请对这个视频进行多角度深度分析：{prompt}"
+    # 添加文本提示（推理模式：更注重对象识别和场景分析）
+    inference_prompt = f"作为视觉推理专家，请分析这个视频：{prompt}"
     content.append({
         "type": "text",
-        "text": thinking_prompt
+        "text": inference_prompt
     })
     
     # 构建请求体
@@ -239,29 +226,14 @@ def call_video_deep_thinking_api(
                 "content": content
             }
         ],
-        "stream": True,
-        "stream_options": {
-            "include_usage": True
-        }
+        "stream": True
     }
     
-    # 添加思考模式参数
-    # 注意：enable_thinking 是阿里云百炼的非标准参数，需要通过 extra_body 传入
-    # 但 requests 库不支持 extra_body，我们尝试直接在 payload 中添加
-    # 如果模型支持混合思考模式，可以通过此参数控制
-    if enable_thinking:
-        # 尝试在 payload 中添加 enable_thinking 参数
-        # 某些API实现可能支持这种方式
-        payload["enable_thinking"] = True
-    
-    print(f"🤖 正在调用视频深度思考 API...")
+    print(f"🤖 正在调用视频推理 API...")
     print(f"   模型: {model}")
     print(f"   提示词: {prompt}")
-    print(f"   思考模式: {'启用' if enable_thinking else '关闭'}")
     
     # 发送请求
-    # 如果 enable_thinking 参数在 payload 中不起作用，可能需要使用 OpenAI SDK
-    # 或者通过其他方式传递参数
     response = requests.post(
         DASHSCOPE_API_CHAT_URL,
         headers=headers,
@@ -274,10 +246,9 @@ def call_video_deep_thinking_api(
     
     # 处理流式响应
     full_response = ""
-    thinking_content = ""
     usage_info = None
     
-    print(f"\n📝 思考过程:")
+    print(f"\n📝 推理结果:")
     print("-" * 60)
     
     for line in response.iter_lines():
@@ -296,20 +267,9 @@ def call_video_deep_thinking_api(
             try:
                 data = json.loads(data_str)
                 
-                # 提取思考内容（reasoning_content）
+                # 提取文本内容
                 if 'choices' in data and len(data['choices']) > 0:
-                    choice = data['choices'][0]
-                    
-                    # 思考内容
-                    if 'delta' in choice:
-                        delta = choice['delta']
-                        if 'reasoning_content' in delta:
-                            thinking_text = delta['reasoning_content']
-                            thinking_content += thinking_text
-                            print(f"[思考] {thinking_text}", end='', flush=True)
-                    
-                    # 回复内容
-                    delta = choice.get('delta', {})
+                    delta = data['choices'][0].get('delta', {})
                     if 'content' in delta:
                         content_text = delta['content']
                         full_response += content_text
@@ -325,11 +285,6 @@ def call_video_deep_thinking_api(
     print()  # 换行
     print("-" * 60)
     
-    # 显示思考内容总结
-    if thinking_content:
-        print(f"\n💭 思考内容摘要:")
-        print(f"   {thinking_content[:200]}..." if len(thinking_content) > 200 else thinking_content)
-    
     # 显示使用情况
     if usage_info:
         print(f"\n📊 Token 使用情况:")
@@ -339,7 +294,6 @@ def call_video_deep_thinking_api(
     
     return {
         'response': full_response,
-        'thinking': thinking_content,
         'usage': usage_info
     }
 
@@ -359,7 +313,7 @@ def main():
         sys.exit(1)
     
     print("=" * 60)
-    print("视频深度思考测试")
+    print("视频推理测试")
     print("=" * 60)
     print()
     
@@ -381,13 +335,12 @@ def main():
             print(f"🌐 使用视频URL: {video_url}")
         
         # 调用 API
-        result = call_video_deep_thinking_api(
+        result = call_video_inference_api(
             api_key=api_key,
             model=args.model,
             prompt=args.prompt,
             video_base64=video_base64,
-            video_url=video_url,
-            enable_thinking=not args.disable_thinking
+            video_url=video_url
         )
         
         print(f"\n" + "=" * 60)

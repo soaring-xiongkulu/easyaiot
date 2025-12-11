@@ -84,38 +84,62 @@ class InferenceTask(db.Model):
     processing_time = db.Column(db.Float)  # 单位：秒
     stream_output_url = db.Column(db.String(500))
 
-class LLMConfig(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)  # 配置名称
-    description = db.Column(db.Text)  # 配置描述
-    model_type = db.Column(db.String(50), default="text")  # 模型类型: text, vision, audio, multimodal
-    icon_url = db.Column(db.String(500))  # 模型图标/图片URL
-    vendor = db.Column(db.String(100))  # 模型供应商 (e.g., OpenAI, Anthropic)
-    base_url = db.Column(db.String(500), nullable=False)  # API基础URL
-    api_key = db.Column(db.String(200), nullable=False)  # API密钥
-    model = db.Column(db.String(100), nullable=False)  # 模型名称
-    api_version = db.Column(db.String(50))  # API版本
-    request_timeout = db.Column(db.Integer, default=30)  # 请求超时时间(秒)
-    max_retries = db.Column(db.Integer, default=3)  # 最大重试次数
-    context_window = db.Column(db.Integer)  # 上下文窗口大小
-    max_output_tokens = db.Column(db.Integer)  # 单次请求最大输出Token数
-    supported_features = db.Column(db.JSON)  # 支持的功能列表 (e.g., ['function_call', 'json_mode'])
-    temperature = db.Column(db.Float, default=0.7)  # 默认温度
-    system_prompt = db.Column(db.Text)  # 默认系统提示词
-    is_customizable = db.Column(db.Boolean, default=False)  # 是否支持微调
-    rag_enabled = db.Column(db.Boolean, default=False)  # 是否启用RAG
-    prompt_template = db.Column(db.Text)  # 预定义提示词模板
-    domain_adaptation = db.Column(db.String(100), default="general")  # 领域适配 (e.g., general, legal, financial)
-    input_token_price = db.Column(db.Float, default=0.0)  # 输入Token单价(RMB)
-    output_token_price = db.Column(db.Float, default=0.0)  # 输出Token单价(RMB)
-    avg_response_time = db.Column(db.Float)  # 平均响应时间(毫秒)
-    total_tokens_used = db.Column(db.BigInteger, default=0)  # 累计使用Token数
-    monthly_budget = db.Column(db.Float)  # 月度预算(RMB)
-    is_active = db.Column(db.Boolean, default=False)  # 是否为当前激活配置
-    status = db.Column(db.String(20), default='testing')  # 状态: active, disabled, testing
+class LLMModel(db.Model):
+    """大模型配置表（简化版）"""
+    __tablename__ = 'llm_config'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False, unique=True, comment='模型名称')
+    service_type = db.Column(db.String(20), default='online', nullable=False, comment='服务类型[online:线上服务,local:本地服务]')
+    vendor = db.Column(db.String(50), nullable=False, comment='供应商[aliyun:阿里云,openai:OpenAI,anthropic:Anthropic,local:本地服务]')
+    model_type = db.Column(db.String(50), default='vision', nullable=False, comment='模型类型[text:文本,vision:视觉,multimodal:多模态]')
+    model_name = db.Column(db.String(100), nullable=False, comment='模型标识（如qwen-vl-max）')
+    base_url = db.Column(db.String(500), nullable=False, comment='API基础URL')
+    api_key = db.Column(db.String(200), nullable=True, comment='API密钥（线上服务必填，本地服务可选）')
+    api_version = db.Column(db.String(50), nullable=True, comment='API版本')
+    
+    # 基础配置
+    temperature = db.Column(db.Float, default=0.7, nullable=False, comment='温度参数')
+    max_tokens = db.Column(db.Integer, default=2000, nullable=False, comment='最大输出token数')
+    timeout = db.Column(db.Integer, default=60, nullable=False, comment='请求超时时间（秒）')
+    
+    # 状态管理
+    is_active = db.Column(db.Boolean, default=False, nullable=False, comment='是否激活')
+    status = db.Column(db.String(20), default='inactive', nullable=False, comment='状态[active:激活,inactive:未激活,error:错误]')
+    last_test_time = db.Column(db.DateTime, nullable=True, comment='最后测试时间')
+    last_test_result = db.Column(db.Text, nullable=True, comment='最后测试结果')
+    
+    # 描述信息
+    description = db.Column(db.Text, nullable=True, comment='模型描述')
+    icon_url = db.Column(db.String(500), nullable=True, comment='图标URL')
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    last_test_time = db.Column(db.DateTime)  # 最后一次测试时间
+    
+    def to_dict(self):
+        """转换为字典"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'service_type': self.service_type,
+            'vendor': self.vendor,
+            'model_type': self.model_type,
+            'model_name': self.model_name,
+            'base_url': self.base_url,
+            'api_key': self.api_key[:10] + '***' if self.api_key else None,  # 只显示前10位
+            'api_version': self.api_version,
+            'temperature': self.temperature,
+            'max_tokens': self.max_tokens,
+            'timeout': self.timeout,
+            'is_active': self.is_active,
+            'status': self.status,
+            'last_test_time': self.last_test_time.isoformat() if self.last_test_time else None,
+            'last_test_result': self.last_test_result,
+            'description': self.description,
+            'icon_url': self.icon_url,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
 class OCRResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
