@@ -30,7 +30,7 @@
           <div class="section-title">
             <SettingOutlined class="icon" />
             <span>模型服务</span>
-            <Tooltip title="推理用模型服务优先级高于模型选择">
+            <Tooltip title="推理用模型服务优先级高于模型选择，但低于大模型">
               <QuestionCircleOutlined class="icon tip-icon" />
             </Tooltip>
             <ReloadOutlined class="icon refresh-icon" @click="loadDeployServices" :class="{ spinning: state.deployServicesLoading }" title="刷新服务列表" />
@@ -41,6 +41,28 @@
                 <option :value="null">请选择模型服务</option>
                 <option v-for="service in state.deployServices" :key="service.id" :value="service.id">
                   {{ service.model_name }}服务（v{{ service.model_version }}）
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 大模型选择（仅在图片推理时显示） -->
+        <div class="config-section" v-if="state.activeSource === 'image'">
+          <div class="section-title">
+            <SettingOutlined class="icon" />
+            <span>大模型</span>
+            <Tooltip title="推理用大模型优先级最高，高于模型服务和模型选择">
+              <QuestionCircleOutlined class="icon tip-icon" />
+            </Tooltip>
+            <ReloadOutlined class="icon refresh-icon" @click="loadLLMs" :class="{ spinning: state.llmsLoading }" title="刷新大模型列表" />
+          </div>
+          <div class="config-options">
+            <div class="input-group">
+              <select class="select-field" v-model="state.selectedLLMId" @change="handleLLMChange">
+                <option :value="null">请选择大模型</option>
+                <option v-for="llm in state.llms" :key="llm.id" :value="llm.id">
+                  {{ llm.name }} ({{ llm.model_type === 'vision' ? '视觉' : llm.model_type === 'text' ? '文本' : '多模态' }})
                 </option>
               </select>
             </div>
@@ -125,7 +147,7 @@
           </div>
           <div class="config-options">
             <div class="button-group">
-              <button class="btn btn-primary" @click="startDetection" :disabled="state.inferenceLoading || !state.selectedModelId">
+              <button class="btn btn-primary" @click="startDetection" :disabled="getStartButtonDisabled()">
                 <PlayCircleOutlined class="icon" />
                 <span v-if="state.inferenceLoading">推理中...</span>
                 <span v-else>开始检测</span>
@@ -175,8 +197,17 @@
                 <div class="video-title">
                   <span>检测结果</span>
                 </div>
-                <div class="video-content">
-                  <div v-if="state.detectionResult" class="detection-result">
+                <div class="video-content video-content-scrollable">
+                  <div v-if="state.llmTextResult" class="llm-text-result">
+                    <div class="llm-result-content" v-html="formatLLMResult(state.llmTextResult)"></div>
+                  </div>
+                  <div v-else-if="state.selectedLLMId && state.activeSource === 'image'" class="llm-text-result">
+                    <div class="llm-result-placeholder">
+                      <ExperimentOutlined class="icon" />
+                      <p>已选择大模型，请上传图片并点击"开始检测"进行推理</p>
+                    </div>
+                  </div>
+                  <div v-else-if="state.detectionResult" class="detection-result">
                     <img :src="state.detectionResult" alt="检测结果" class="preview-image" @error="handleImageError">
                     <div class="detection-overlay">
                       <div class="detection-info">
@@ -197,8 +228,17 @@
                 <div class="video-title">
                   <span>检测结果</span>
                 </div>
-                <div class="video-content">
-                  <div v-if="state.detectionResult" class="detection-result">
+                <div class="video-content video-content-scrollable">
+                  <div v-if="state.llmTextResult" class="llm-text-result">
+                    <div class="llm-result-content" v-html="formatLLMResult(state.llmTextResult)"></div>
+                  </div>
+                  <div v-else-if="state.selectedLLMId && state.activeSource === 'image'" class="llm-text-result">
+                    <div class="llm-result-placeholder">
+                      <ExperimentOutlined class="icon" />
+                      <p>已选择大模型，请上传图片并点击"开始检测"进行推理</p>
+                    </div>
+                  </div>
+                  <div v-else-if="state.detectionResult" class="detection-result">
                     <img :src="state.detectionResult" alt="检测结果" class="preview-image" @error="handleImageError">
                     <div class="detection-overlay">
                       <div class="detection-info">
@@ -324,6 +364,7 @@
 import { computed, reactive, ref, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getModelPage, runInference, runClusterInference, uploadInputFile, getInferenceTaskDetail, getInferenceTasks, getDeployServicePage } from "@/api/device/model";
+import { getLLMList, visionInference, activateLLM, type LLMModel } from "@/api/device/llm";
 import { useMessage } from '@/hooks/web/useMessage';
 import { Tooltip } from 'ant-design-vue';
 import {
@@ -345,6 +386,11 @@ import {
 } from '@ant-design/icons-vue';
 
 const { createMessage } = useMessage();
+
+// 接收父组件传递的初始大模型ID
+const props = defineProps<{
+  initialLLMId?: number | null;
+}>();
 
 // 类型定义
 
@@ -390,6 +436,7 @@ interface AppState {
   detectionResult: string | null;
   detectionCount: number;
   averageConfidence: number;
+  llmTextResult: string | null; // 大模型文本推理结果
   selectedModelId: number | string | null;
   models: Model[];
   loading: boolean;
@@ -410,6 +457,9 @@ interface AppState {
   deployServices: DeployService[]; // 部署服务列表
   selectedDeployServiceId: number | null; // 选中的部署服务ID
   deployServicesLoading: boolean; // 部署服务加载状态
+  llms: LLMModel[]; // 大模型列表
+  selectedLLMId: number | null; // 选中的大模型ID
+  llmsLoading: boolean; // 大模型加载状态
 }
 
 // 状态管理
@@ -429,6 +479,7 @@ const state = reactive<AppState>({
   detectionResult: null,
   detectionCount: 0,
   averageConfidence: 0,
+  llmTextResult: null,
   selectedModelId: 'yolov11',
   models: [],
   loading: false,
@@ -444,7 +495,10 @@ const state = reactive<AppState>({
   historyInputSource: null,
   deployServices: [],
   selectedDeployServiceId: null,
-  deployServicesLoading: false
+  deployServicesLoading: false,
+  llms: [],
+  selectedLLMId: null,
+  llmsLoading: false
 });
 
 // 轮询超时时间（5分钟）
@@ -470,6 +524,96 @@ const setActiveSource = (source: string) => {
   state.activeSource = source;
 };
 
+// 格式化大模型推理结果，将markdown格式转换为HTML
+const formatLLMResult = (text: string | null): string => {
+  if (!text) return '';
+  
+  let formatted = text
+    // 先转义HTML特殊字符（但保留我们需要的标记）
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  
+  // 处理分隔线（必须在其他处理之前）
+  formatted = formatted.replace(/^---$/gm, '<div class="result-divider"></div>');
+  
+  // 处理标题（按从大到小的顺序）
+  formatted = formatted.replace(/^####\s+(.+)$/gm, '<h4 class="result-h4">$1</h4>');
+  formatted = formatted.replace(/^###\s+(.+)$/gm, '<h3 class="result-h3">$1</h3>');
+  formatted = formatted.replace(/^##\s+(.+)$/gm, '<h2 class="result-h2">$1</h2>');
+  formatted = formatted.replace(/^#\s+(.+)$/gm, '<h1 class="result-h1">$1</h1>');
+  
+  // 处理引用块
+  formatted = formatted.replace(/^>\s+(.+)$/gm, '<div class="result-quote">$1</div>');
+  
+  // 处理有序列表（数字开头）
+  formatted = formatted.replace(/^(\d+)\.\s+(.+)$/gm, '<div class="result-list-item"><span class="list-number">$1.</span><span class="list-content">$2</span></div>');
+  
+  // 处理无序列表（- 或 * 开头）
+  formatted = formatted.replace(/^[-*]\s+(.+)$/gm, '<div class="result-list-item"><span class="list-bullet">•</span><span class="list-content">$1</span></div>');
+  
+  // 处理嵌套列表（以空格开头的列表项）
+  formatted = formatted.replace(/^(\s{2,})[-*]\s+(.+)$/gm, '<div class="result-list-item nested"><span class="list-bullet">◦</span><span class="list-content">$2</span></div>');
+  
+  // 处理粗体（**text**）
+  formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  
+  // 处理行内代码（`code`）
+  formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
+  
+  // 按段落分割并处理
+  const lines = formatted.split('\n');
+  const paragraphs: string[] = [];
+  let currentParagraph: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // 如果是空行，结束当前段落
+    if (!line) {
+      if (currentParagraph.length > 0) {
+        const paraText = currentParagraph.join(' ');
+        // 如果段落不是HTML标签开头，包装成p标签
+        if (!paraText.match(/^<[h|d|q|l]/)) {
+          paragraphs.push(`<p class="result-paragraph">${paraText}</p>`);
+        } else {
+          paragraphs.push(paraText);
+        }
+        currentParagraph = [];
+      }
+      continue;
+    }
+    
+    // 如果是HTML标签（标题、分隔线、引用、列表），直接添加
+    if (line.match(/^<[h|d|q|l]/)) {
+      if (currentParagraph.length > 0) {
+        const paraText = currentParagraph.join(' ');
+        if (!paraText.match(/^<[h|d|q|l]/)) {
+          paragraphs.push(`<p class="result-paragraph">${paraText}</p>`);
+        } else {
+          paragraphs.push(paraText);
+        }
+        currentParagraph = [];
+      }
+      paragraphs.push(line);
+    } else {
+      // 普通文本，添加到当前段落
+      currentParagraph.push(line);
+    }
+  }
+  
+  // 处理最后一个段落
+  if (currentParagraph.length > 0) {
+    const paraText = currentParagraph.join(' ');
+    if (!paraText.match(/^<[h|d|q|l]/)) {
+      paragraphs.push(`<p class="result-paragraph">${paraText}</p>`);
+    } else {
+      paragraphs.push(paraText);
+    }
+  }
+  
+  return paragraphs.join('\n');
+};
 
 const loadDetectionParams = async () => {
   try {
@@ -490,9 +634,36 @@ const loadDetectionParams = async () => {
   }
 };
 
+// 判断开始检测按钮是否应该被禁用
+const getStartButtonDisabled = (): boolean => {
+  // 如果正在推理中，禁用按钮
+  if (state.inferenceLoading) {
+    return true;
+  }
+  
+  // 图片推理：需要有大模型、模型服务或模型选择，以及图片文件
+  if (state.activeSource === 'image') {
+    const hasModel = state.selectedLLMId || state.selectedDeployServiceId || state.selectedModelId;
+    const hasImage = state.uploadedImageFile || state.historyInputSource;
+    return !hasModel || !hasImage;
+  }
+  
+  // 视频推理：需要有模型选择，以及视频文件
+  if (state.activeSource === 'video') {
+    const hasModel = state.selectedModelId;
+    const hasVideo = state.uploadedVideoFile || state.historyInputSource;
+    return !hasModel || !hasVideo;
+  }
+  
+  // 默认禁用
+  return true;
+};
+
 const startDetection = async () => {
-  if (!state.selectedModelId) {
-    createMessage.warning('请先选择模型');
+  // 检查是否有可用的模型（大模型、模型服务或模型选择）
+  const hasModel = state.selectedLLMId || state.selectedDeployServiceId || state.selectedModelId;
+  if (!hasModel) {
+    createMessage.warning('请先选择模型、模型服务或大模型');
     return;
   }
 
@@ -544,12 +715,52 @@ const startDetection = async () => {
       formData.append('input_source', state.historyInputSource);
     }
 
-    // 判断使用哪个接口：优先使用模型服务接口（集群接口）
+    // 判断使用哪个接口：优先级 大模型 > 模型服务 > 模型选择
     let response;
+    let useLLM = false;
     let useClusterService = false;
     
-    if (state.selectedDeployServiceId && state.activeSource === 'image') {
-      // 使用模型服务接口（集群接口）
+    // 优先级1：大模型（仅在图片推理时）
+    if (state.selectedLLMId && state.activeSource === 'image' && (state.uploadedImageFile || state.historyInputSource)) {
+      const selectedLLM = state.llms.find(llm => llm.id === state.selectedLLMId);
+      if (selectedLLM) {
+        useLLM = true;
+        // 先激活大模型（如果还未激活）
+        if (!selectedLLM.is_active) {
+          try {
+            await activateLLM(state.selectedLLMId);
+            // 更新本地状态
+            selectedLLM.is_active = true;
+            createMessage.success('大模型已激活');
+          } catch (error: any) {
+            console.error('激活大模型失败:', error);
+            createMessage.error(error?.response?.data?.msg || '激活大模型失败，请稍后重试');
+            state.inferenceLoading = false;
+            state.detectionStatus = 'failed';
+            state.statusText = '推理失败';
+            return;
+          }
+        }
+        // 使用大模型视觉推理接口
+        // 如果有上传的文件，使用文件；否则使用历史记录的 input_source
+        if (state.uploadedImageFile) {
+          response = await visionInference(state.uploadedImageFile, '请对这张图片进行视觉推理，分析图片中的对象、场景和可能的行为。');
+        } else {
+          // 如果只有历史记录的 input_source，需要先下载图片
+          createMessage.warning('使用历史记录时，请重新上传图片文件');
+          state.inferenceLoading = false;
+          state.detectionStatus = 'failed';
+          state.statusText = '推理失败';
+          return;
+        }
+      } else {
+        createMessage.warning('选中的大模型无效，将使用其他方式');
+        useLLM = false;
+      }
+    }
+    
+    // 优先级2：模型服务（仅在图片推理时，且未选择大模型）
+    if (!useLLM && state.selectedDeployServiceId && state.activeSource === 'image') {
       const selectedService = state.deployServices.find(s => s.id === state.selectedDeployServiceId);
       if (selectedService && selectedService.model_id) {
         useClusterService = true;
@@ -561,8 +772,8 @@ const startDetection = async () => {
       }
     }
     
-    // 如果未选择模型服务或模型服务无效，使用模型列表接口
-    if (!useClusterService) {
+    // 优先级3：模型选择（如果未选择大模型和模型服务）
+    if (!useLLM && !useClusterService) {
       // 调用推理接口
       // 重要：用户上传的模型应该传递实际的 model_id（数字），而不是转换为 0
       // 只有默认模型（yolov8/yolov11）才传递 0
@@ -580,6 +791,87 @@ const startDetection = async () => {
       }
       
       response = await runInference(modelId, formData);
+    }
+    
+    // 处理大模型响应
+    if (useLLM) {
+      // 记录原始响应，用于调试
+      console.log('大模型推理响应:', response);
+      
+      // 检查响应格式：可能是 { code: 0, data: { response: "..." }, msg: "..." } 或直接是 { response: "..." }
+      let llmResult = '';
+      let success = false;
+      let errorMsg = '';
+      
+      // 情况1：标准响应格式 { code: 0, data: { response: "..." }, msg: "..." }
+      if (response && typeof response === 'object' && 'code' in response) {
+        if (response.code === 0) {
+          success = true;
+          // 从 data.response 中提取结果
+          if (response.data && typeof response.data === 'object') {
+            llmResult = response.data.response || '';
+          } else if (typeof response.data === 'string') {
+            llmResult = response.data;
+          }
+          errorMsg = response.msg || '大模型推理执行成功';
+        } else {
+          success = false;
+          errorMsg = response.msg || '大模型推理失败';
+        }
+      } 
+      // 情况2：响应转换器已处理，直接是 data 对象 { response: "...", mode: "inference", ... }
+      else if (response && typeof response === 'object' && 'response' in response) {
+        success = true;
+        llmResult = response.response || '';
+        errorMsg = '大模型推理执行成功';
+      }
+      // 情况3：响应转换器已处理，但结构不同（嵌套的 data）
+      else if (response && typeof response === 'object' && 'data' in response) {
+        const data = response.data;
+        if (data && typeof data === 'object' && 'response' in data) {
+          success = true;
+          llmResult = data.response || '';
+          errorMsg = '大模型推理执行成功';
+        } else if (typeof data === 'string') {
+          success = true;
+          llmResult = data;
+          errorMsg = '大模型推理执行成功';
+        } else {
+          success = false;
+          errorMsg = '无法解析大模型响应格式';
+          console.error('大模型响应 data 格式无法识别:', data);
+        }
+      }
+      // 情况4：直接是字符串
+      else if (typeof response === 'string') {
+        success = true;
+        llmResult = response;
+        errorMsg = '大模型推理执行成功';
+      }
+      // 情况5：无法识别格式
+      else {
+        success = false;
+        errorMsg = '无法识别大模型响应格式';
+        console.error('大模型响应格式无法识别，原始响应:', response);
+        console.error('响应类型:', typeof response);
+        console.error('响应键:', response && typeof response === 'object' ? Object.keys(response) : 'N/A');
+      }
+      
+      if (success) {
+        // 大模型返回的是文本结果
+        state.llmTextResult = llmResult || '推理完成，但未返回结果';
+        state.detectionResult = null; // 大模型不返回图片，清空图片结果
+        state.detectionCount = 0;
+        state.averageConfidence = 0;
+        state.detectionStatus = 'completed';
+        state.statusText = '推理完成';
+        createMessage.success(errorMsg);
+        console.log('大模型推理结果已设置:', llmResult.substring(0, 100) + '...');
+        return;
+      } else {
+        console.error('大模型推理失败:', errorMsg);
+        throw new Error(errorMsg);
+      }
     }
     
     // 当 isTransformResponse: false 时，返回的是整个 Axios 响应对象，需要访问 response.data 获取实际响应
@@ -769,6 +1061,33 @@ const loadModels = async () => {
   }
 };
 
+// 加载大模型列表（仅加载已激活的大模型，用于模型推理）
+const loadLLMs = async () => {
+  state.llmsLoading = true;
+  try {
+    // 在模型推理时，只获取已激活的大模型
+    const response = await getLLMList({ page: 1, pageSize: 100, is_active: 'true' });
+    if (response && typeof response === 'object') {
+      if ('code' in response && response.code === 0 && response.data) {
+        // 标准格式：包含 code 和 data
+        state.llms = response.data.list || [];
+      } else if ('list' in response && Array.isArray(response.list)) {
+        // 转换器已解包的格式：直接包含 list
+        state.llms = response.list;
+      } else {
+        state.llms = [];
+      }
+    } else {
+      state.llms = [];
+    }
+  } catch (error: any) {
+    console.error('加载大模型列表失败:', error);
+    createMessage.error('加载大模型列表失败');
+  } finally {
+    state.llmsLoading = false;
+  }
+};
+
 // 加载部署服务列表
 const loadDeployServices = async () => {
   state.deployServicesLoading = true;
@@ -788,16 +1107,45 @@ const loadDeployServices = async () => {
   }
 };
 
+// 处理大模型选择变化
+const handleLLMChange = () => {
+  // 如果选择了大模型，清空模型选择和模型服务选择，并设置默认demo数据
+  if (state.selectedLLMId) {
+    state.selectedModelId = null;
+    state.selectedDeployServiceId = null;
+    // 立即清空检测结果，让界面切换到大模型样式
+    state.detectionResult = null;
+    state.detectionCount = 0;
+    state.averageConfidence = 0;
+  } else {
+    // 如果取消选择大模型，也清空相关结果
+    state.llmTextResult = null;
+  }
+  stopPollingInferenceResult();
+};
+
 // 处理部署服务选择变化
 const handleDeployServiceChange = () => {
+  // 如果选择了模型服务，清空大模型选择和模型选择
+  if (state.selectedDeployServiceId) {
+    state.selectedLLMId = null; // 恢复大模型下拉框为默认：请选择大模型
+    state.selectedModelId = null;
+  }
   state.detectionResult = null;
+  state.llmTextResult = null; // 清空大模型文本结果，恢复初始样式
   state.detectionCount = 0;
   state.averageConfidence = 0;
   stopPollingInferenceResult();
 };
 
 const handleModelChange = () => {
+  // 如果选择了模型，清空大模型选择和模型服务选择
+  if (state.selectedModelId) {
+    state.selectedLLMId = null; // 恢复大模型下拉框为默认：请选择大模型
+    state.selectedDeployServiceId = null;
+  }
   state.detectionResult = null;
+  state.llmTextResult = null; // 清空大模型文本结果，恢复初始样式
   state.detectionCount = 0;
   state.averageConfidence = 0;
   // 停止轮询
@@ -810,12 +1158,15 @@ const handleSourceChange = () => {
   cleanupVideoUrl();
   state.historyInputSource = null; // 清除历史记录的 input_source
   state.detectionResult = null;
+  state.llmTextResult = null;
   
-  // 如果切换到图片推理，加载部署服务列表；否则清空选择
+  // 如果切换到图片推理，加载大模型列表和部署服务列表；否则清空选择
   if (state.activeSource === 'image') {
+    loadLLMs();
     loadDeployServices();
   } else {
-    // 非图片推理时，清空模型服务选择（因为模型服务只支持图片推理）
+    // 非图片推理时，清空大模型和模型服务选择（因为大模型和模型服务只支持图片推理）
+    state.selectedLLMId = null;
     state.selectedDeployServiceId = null;
   }
 };
@@ -1169,6 +1520,7 @@ const handleHistoryRecordChange = async () => {
   if (!state.selectedHistoryRecordId) {
     // 清空选择时，清理状态
     state.detectionResult = null;
+    state.llmTextResult = null;
     state.detectionCount = 0;
     state.averageConfidence = 0;
     state.historyInputSource = null;
@@ -1192,6 +1544,7 @@ const handleHistoryRecordChange = async () => {
     state.uploadedVideoUrl = null;
     state.historyInputSource = null;
     state.detectionResult = null;
+    state.llmTextResult = null;
     state.detectionCount = 0;
     state.averageConfidence = 0;
     state.inferenceLoading = false;
@@ -1317,9 +1670,21 @@ onMounted(() => {
   loadModels();
   loadInferenceHistory();
   
-  // 如果是图片推理，加载部署服务列表
+  // 如果是图片推理，加载大模型列表和部署服务列表
   if (state.activeSource === 'image') {
+    loadLLMs();
     loadDeployServices();
+  }
+  
+  // 如果父组件传递了初始大模型ID，设置选中
+  if (props.initialLLMId) {
+    // 等待大模型列表加载完成后再设置
+    loadLLMs().then(() => {
+      const llm = state.llms.find(l => l.id === props.initialLLMId);
+      if (llm) {
+        state.selectedLLMId = props.initialLLMId;
+      }
+    });
   }
 });
 
@@ -1397,7 +1762,8 @@ body {
   flex-direction: column;
   background: #ffffff;
   border-right: none;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   transition: @panel-transition;
   flex-shrink: 0;
   height: 100%;
@@ -1431,7 +1797,7 @@ body {
   }
 
   .config-section {
-    padding: 20px;
+    padding: 14px 20px;
     border-bottom: none;
     background: transparent;
     margin: 0;
@@ -1451,7 +1817,7 @@ body {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 18px;
+      margin-bottom: 12px;
       font-weight: 600;
       font-size: 16px;
       color: @light-text;
@@ -1494,7 +1860,7 @@ body {
     .config-options {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 12px;
       overflow: hidden;
       flex: 1;
       min-height: 0;
@@ -1925,20 +2291,52 @@ body {
       .video-content {
         flex: 1;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         background: #ffffff;
         color: @light-text;
         font-size: 16px;
         position: relative;
-        overflow: hidden;
+        overflow-y: auto;
+        overflow-x: hidden;
         min-height: 0;
         max-width: 100%;
-        max-height: 100%;
         width: 100%;
-        height: 100%;
 
-        .image-preview, .detection-result, .video-preview {
+        // 可滚动的视频内容区域（用于大模型推理结果）
+        &.video-content-scrollable {
+          align-items: flex-start;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+
+        .image-preview {
+          width: 100%;
+          height: 100%;
+          max-width: 100%;
+          max-height: 100%;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          position: relative;
+          overflow: hidden;
+          box-sizing: border-box;
+          flex-shrink: 0;
+
+          .preview-image {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            box-sizing: border-box;
+            flex-shrink: 0;
+          }
+        }
+
+        .detection-result, .video-preview {
           width: 100%;
           height: 100%;
           max-width: 100%;
@@ -1949,6 +2347,7 @@ body {
           position: relative;
           overflow: hidden;
           box-sizing: border-box;
+          flex-shrink: 0;
 
           .preview-image {
             max-width: 100%;
@@ -1958,6 +2357,7 @@ body {
             object-fit: contain;
             display: block;
             box-sizing: border-box;
+            flex-shrink: 0;
           }
 
           .preview-video {
@@ -2038,12 +2438,175 @@ body {
           }
         }
 
+        .llm-text-result {
+          width: 100%;
+          flex: 1;
+          min-height: 0;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          background: #FFFFFF;
+          overflow: hidden;
+          box-sizing: border-box;
+          align-self: stretch;
+
+          .llm-result-placeholder {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            color: #999;
+            font-size: 14px;
+            text-align: center;
+
+            .icon {
+              font-size: 64px;
+              margin-bottom: 16px;
+              color: @primary-color;
+              opacity: 0.5;
+            }
+
+            p {
+              margin: 0;
+              line-height: 1.6;
+              color: #666;
+            }
+          }
+
+          .llm-result-content {
+            flex: 1;
+            min-height: 0;
+            font-size: 14px;
+            line-height: 1.8;
+            color: #333;
+            word-wrap: break-word;
+            overflow-y: auto;
+            padding: 12px;
+            background: #ffffff;
+
+            // 标题样式
+            :deep(.result-h1) {
+              font-size: 20px;
+              font-weight: 700;
+              color: @primary-color;
+              margin: 20px 0 16px 0;
+              padding-bottom: 12px;
+              border-bottom: 2px solid @border-color;
+            }
+
+            :deep(.result-h2) {
+              font-size: 18px;
+              font-weight: 600;
+              color: @primary-color;
+              margin: 18px 0 14px 0;
+              padding-bottom: 10px;
+              border-bottom: 1px solid #f0f0f0;
+            }
+
+            :deep(.result-h3) {
+              font-size: 16px;
+              font-weight: 600;
+              color: #333;
+              margin: 16px 0 12px 0;
+            }
+
+            :deep(.result-h4) {
+              font-size: 15px;
+              font-weight: 600;
+              color: #666;
+              margin: 14px 0 10px 0;
+            }
+
+            // 段落样式
+            :deep(.result-paragraph) {
+              margin: 12px 0;
+              line-height: 1.8;
+              color: #333;
+              text-align: justify;
+            }
+
+            // 列表样式
+            :deep(.result-list-item) {
+              display: flex;
+              margin: 8px 0;
+              padding-left: 8px;
+              line-height: 1.8;
+
+              &.nested {
+                padding-left: 24px;
+                margin: 4px 0;
+              }
+
+              .list-number {
+                font-weight: 600;
+                color: @primary-color;
+                margin-right: 8px;
+                min-width: 24px;
+              }
+
+              .list-bullet {
+                color: @primary-color;
+                margin-right: 8px;
+                font-weight: bold;
+              }
+
+              .list-content {
+                flex: 1;
+                color: #333;
+              }
+            }
+
+            // 分隔线样式
+            :deep(.result-divider) {
+              height: 1px;
+              background: linear-gradient(to right, transparent, @border-color, transparent);
+              margin: 20px 0;
+            }
+
+            // 引用样式
+            :deep(.result-quote) {
+              margin: 12px 0;
+              padding: 12px 16px;
+              background: #f5f5f5;
+              border-left: 4px solid @primary-color;
+              border-radius: 4px;
+              color: #666;
+              font-style: italic;
+              line-height: 1.8;
+            }
+
+            // 粗体样式
+            :deep(strong) {
+              color: @primary-color;
+              font-weight: 600;
+            }
+
+            // 代码样式
+            :deep(code) {
+              background: #f5f5f5;
+              padding: 2px 6px;
+              border-radius: 3px;
+              font-family: 'Courier New', monospace;
+              font-size: 13px;
+              color: #e83e8c;
+            }
+            border-radius: 6px;
+            border: 1px solid @border-color;
+          }
+        }
+
         .video-placeholder {
+          flex: 1;
           display: flex;
           flex-direction: column;
           align-items: center;
+          justify-content: center;
           gap: 20px;
           color: @text-secondary;
+          width: 100%;
+          min-height: 0;
 
           .icon {
             font-size: 64px;
@@ -2063,7 +2626,7 @@ body {
     .dual-video {
       display: flex;
       gap: 16px;
-      height: 100%;
+      height: 700px;
       width: 100%;
       min-width: 0;
       padding: 12px;
@@ -2071,16 +2634,20 @@ body {
       box-sizing: border-box;
       max-width: 100%;
       max-height: 100%;
+      align-items: stretch;
 
       .video-wrapper {
         flex: 1;
         min-width: 0;
-        min-height: 550px;
+        min-height: 0;
         height: 100%;
         border-right: none;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 
                     0 2px 8px rgba(0, 0, 0, 0.05);
         margin: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
 
         &:hover {
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 

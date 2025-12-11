@@ -198,10 +198,25 @@ const [register, { setModalProps, closeModal }] = useModalInner(async (data) => 
     // 编辑模式，获取详情
     try {
       state.editLoading = true;
+      // 先重置表单，清除之前的验证状态
+      resetFields();
       const response = await getLLMDetail(record.id);
-      if (response.code === 0) {
-        Object.assign(llmRef, response.data);
-        updateFieldsByServiceType(response.data.service_type || 'online');
+      // 处理不同的响应格式
+      let detailData = null;
+      if (response && typeof response === 'object') {
+        if ('code' in response && response.code === 0 && response.data) {
+          detailData = response.data;
+        } else if (!('code' in response)) {
+          // 响应转换器已处理，直接使用 response
+          detailData = response;
+        }
+      }
+      
+      if (detailData) {
+        Object.assign(llmRef, detailData);
+        updateFieldsByServiceType(detailData.service_type || 'online');
+      } else {
+        createMessage.error('获取大模型详情失败：数据格式错误');
       }
     } catch (error) {
       console.error('获取大模型详情失败', error);

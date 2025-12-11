@@ -11,7 +11,7 @@
           <ModelList></ModelList>
         </TabPane>
         <TabPane key="2" tab="模型推理">
-          <AiModelTool></AiModelTool>
+          <AiModelTool :initialLLMId="initialLLMId"></AiModelTool>
         </TabPane>
         <TabPane key="3" tab="模型导出">
           <ModelExport></ModelExport>
@@ -28,7 +28,7 @@
 </template>
 
 <script lang="ts" setup name="TrainService">
-import {reactive, onMounted, ref} from 'vue';
+import {reactive, onMounted, ref, computed} from 'vue';
 import {useRoute} from 'vue-router';
 import { TabPane, Tabs } from "ant-design-vue";
 import ModelList from "@/views/train/components/ModelList/index.vue";
@@ -55,6 +55,12 @@ const handleTabClick = (activeKey: string) => {
     llmManageRef.value.refresh();
   }
 };
+
+// 从路由参数获取大模型ID
+const initialLLMId = computed(() => {
+  const llmId = route.query.llmId as string;
+  return llmId ? parseInt(llmId, 10) : null;
+});
 
 // 处理路由参数，自动切换到指定tab
 onMounted(() => {

@@ -10,18 +10,6 @@
             </template>
             新建大模型
           </a-button>
-          <a-button type="default" @click="handleVisionInference">
-            <template #icon>
-              <Icon icon="ant-design:eye-outlined" />
-            </template>
-            视觉推理
-          </a-button>
-          <a-button type="default" @click="handleVideoInference">
-            <template #icon>
-              <Icon icon="ant-design:video-camera-outlined" />
-            </template>
-            视频推理
-          </a-button>
           <a-button @click="handleToggleViewMode" type="default">
             <template #icon>
               <SwapOutlined />
@@ -32,8 +20,8 @@
       </template>
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'status'">
-          <a-tag :color="getStatusColor(record.status)">
-            {{ getStatusText(record.status) }}
+          <a-tag :color="getStatusColor(record.status, record.is_active)">
+            {{ getStatusText(record.status, record.is_active) }}
           </a-tag>
         </template>
         <template v-else-if="column.dataIndex === 'is_active'">
@@ -68,18 +56,6 @@
                       <PlusOutlined />
                     </template>
                     新建大模型
-                  </a-button>
-                  <a-button type="default" @click="handleVisionInference">
-                    <template #icon>
-                      <Icon icon="ant-design:eye-outlined" />
-                    </template>
-                    视觉推理
-                  </a-button>
-                  <a-button type="default" @click="handleVideoInference">
-                    <template #icon>
-                      <Icon icon="ant-design:video-camera-outlined" />
-                    </template>
-                    视频推理
                   </a-button>
                   <a-button @click="handleToggleViewMode" type="default">
                     <template #icon>
@@ -124,14 +100,11 @@
                     <div class="btn" @click="handleEdit(item)">
                       <Icon icon="ant-design:edit-filled" :size="15" color="#3B82F6" />
                     </div>
-                    <div class="btn" @click="handleTest(item)">
-                      <Icon icon="ant-design:thunderbolt-filled" :size="15" color="#3B82F6" />
-                    </div>
                     <div v-if="item.is_active" class="btn" @click="handleDeactivate(item)">
-                      <Icon icon="ant-design:pause-circle-filled" :size="15" color="#3B82F6" />
+                      <Icon icon="ant-design:pause-circle-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <div v-else class="btn" @click="handleActivate(item)">
-                      <Icon icon="ant-design:play-circle-filled" :size="15" color="#3B82F6" />
+                      <Icon icon="ant-design:play-circle-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <Popconfirm
                       title="是否确认删除？"
@@ -161,17 +134,12 @@
 
     <!-- 大模型配置模态框 -->
     <LLMModal @register="registerModal" @success="handleSuccess" />
-    
-    <!-- 视觉推理模态框 -->
-    <VisionInferenceModal @register="registerVisionModal" />
-    
-    <!-- 视频推理模态框 -->
-    <VideoInferenceModal @register="registerVideoModal" />
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { BasicTable, TableAction, useTable } from '@/components/Table';
 import { BasicForm, useForm } from '@/components/Form';
 import { useModal } from '@/components/Modal';
@@ -183,15 +151,12 @@ import { useMessage } from '@/hooks/web/useMessage';
 import { getBasicColumns, getFormConfig } from './Data';
 import { getLLMList, deleteLLM, activateLLM, deactivateLLM, testLLM, type LLMModel } from '@/api/device/llm';
 import LLMModal from './LLMModal.vue';
-import VisionInferenceModal from './VisionInferenceModal.vue';
-import VideoInferenceModal from './VideoInferenceModal.vue';
 
 defineOptions({ name: 'LLMManage' });
 
 const { createMessage } = useMessage();
+const router = useRouter();
 const [registerModal, { openModal }] = useModal();
-const [registerVisionModal, { openModal: openVisionModal }] = useModal();
-const [registerVideoModal, { openModal: openVideoModal }] = useModal();
 
 // 视图模式
 const viewMode = ref<'table' | 'card'>('card');
@@ -291,24 +256,16 @@ const [registerForm, { getFieldsValue }] = useForm({
   ],
 });
 
-// 获取状态文本
-const getStatusText = (status: string) => {
-  const statusMap: Record<string, string> = {
-    active: '正常',
-    inactive: '未激活',
-    error: '错误',
-  };
-  return statusMap[status] || status;
+// 获取状态文本（基于is_active，不再使用status字段）
+const getStatusText = (status: string, isActive: boolean) => {
+  // 只根据is_active判断，不再使用status字段
+  return isActive ? '已激活' : '未激活';
 };
 
-// 获取状态颜色
-const getStatusColor = (status: string) => {
-  const colorMap: Record<string, string> = {
-    active: 'green',
-    inactive: 'default',
-    error: 'red',
-  };
-  return colorMap[status] || 'default';
+// 获取状态颜色（基于is_active，不再使用status字段）
+const getStatusColor = (status: string, isActive: boolean) => {
+  // 只根据is_active判断，不再使用status字段
+  return isActive ? 'green' : 'default';
 };
 
 // 获取服务类型文本
@@ -341,25 +298,16 @@ const getModelTypeText = (modelType: string) => {
   return typeMap[modelType] || modelType;
 };
 
-// 获取卡片类名
+// 获取卡片类名（只基于is_active判断）
 const getItemClass = (item: LLMModel) => {
-  // 如果已激活且状态为 active，使用 normal 样式
-  // 否则使用 error 样式
-  if (item.is_active && item.status === 'active') {
-    return 'model-item normal';
-  }
-  return 'model-item error';
+  // 只根据is_active判断，不再使用status字段
+  return item.is_active ? 'model-item normal' : 'model-item error';
 };
 
-// 获取状态显示文本
+// 获取状态显示文本（只基于is_active判断）
 const getStatusDisplayText = (item: LLMModel) => {
-  if (item.is_active && item.status === 'active') {
-    return '已激活';
-  }
-  if (item.status === 'error') {
-    return '错误';
-  }
-  return '未激活';
+  // 只根据is_active判断，不再使用status字段
+  return item.is_active ? '已激活' : '未激活';
 };
 
 // 根据模型类型获取图片
@@ -385,22 +333,17 @@ const getTableActions = (record: LLMModel) => {
       tooltip: '编辑',
       onClick: () => handleEdit(record),
     },
-    {
-      icon: 'ant-design:thunderbolt-filled',
-      tooltip: '测试',
-      onClick: () => handleTest(record),
-    },
   ];
 
   if (record.is_active) {
     actions.push({
-      icon: 'ant-design:pause-circle-filled',
+      icon: 'ant-design:pause-circle-outlined',
       tooltip: '禁用',
       onClick: () => handleDeactivate(record),
     });
   } else {
     actions.push({
-      icon: 'ant-design:play-circle-filled',
+      icon: 'ant-design:play-circle-outlined',
       tooltip: '激活',
       onClick: () => handleActivate(record),
     });
@@ -478,14 +421,14 @@ const handleSubmit = () => {
 // 创建
 const handleCreate = () => {
   openModal(true, {
-    type: 'create',
+    isUpdate: false,
   });
 };
 
 // 查看
 const handleView = (record: LLMModel) => {
   openModal(true, {
-    type: 'view',
+    isUpdate: false,
     record,
   });
 };
@@ -493,7 +436,7 @@ const handleView = (record: LLMModel) => {
 // 编辑
 const handleEdit = (record: LLMModel) => {
   openModal(true, {
-    type: 'edit',
+    isUpdate: true,
     record,
   });
 };
@@ -576,10 +519,12 @@ const handleTest = async (record: LLMModel) => {
     createMessage.loading({ content: '正在测试连接...', key: 'test' });
     const response = await testLLM(record.id!);
     // 检查响应格式：如果响应转换器已经处理过，可能只返回 data，也可能返回完整对象
+    let testSuccess = false;
     if (response && typeof response === 'object' && 'code' in response) {
       // 响应包含 code 字段，使用标准格式判断
       if (response.code === 0) {
         if (response.data && response.data.success) {
+          testSuccess = true;
           createMessage.success({ content: response.data.message || '测试成功', key: 'test' });
         } else {
           createMessage.warning({ content: response.data?.message || response.msg || '测试失败', key: 'test' });
@@ -593,6 +538,7 @@ const handleTest = async (record: LLMModel) => {
       // 此时 response 就是 { success: boolean, message: string, ... }
       if (response && 'success' in response) {
         if (response.success) {
+          testSuccess = true;
           createMessage.success({ content: response.message || '测试成功', key: 'test' });
         } else {
           createMessage.warning({ content: response.message || '测试失败', key: 'test' });
@@ -600,9 +546,22 @@ const handleTest = async (record: LLMModel) => {
         handleSuccess();
       } else {
         // 无法判断格式，默认成功
+        testSuccess = true;
         createMessage.success({ content: '测试完成', key: 'test' });
         handleSuccess();
       }
+    }
+    
+    // 测试成功后，跳转到模型推理页面，并传递大模型ID
+    if (testSuccess && record.id) {
+      // 跳转到训练页面，并切换到模型推理tab（key="2"），传递大模型ID
+      router.push({
+        path: '/train',
+        query: {
+          tab: '2',
+          llmId: record.id.toString()
+        }
+      });
     }
   } catch (error: any) {
     console.error('测试失败', error);
@@ -614,18 +573,6 @@ const handleTest = async (record: LLMModel) => {
       createMessage.error({ content: '测试失败', key: 'test' });
     }
   }
-};
-
-// 视觉推理
-const handleVisionInference = () => {
-  // 直接打开视觉推理模态框，后端会检查是否有激活的模型
-  openVisionModal(true);
-};
-
-// 视频推理
-const handleVideoInference = () => {
-  // 直接打开视频推理模态框，后端会检查是否有激活的模型
-  openVideoModal(true);
 };
 
 // 成功回调

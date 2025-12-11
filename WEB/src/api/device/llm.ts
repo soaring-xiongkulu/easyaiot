@@ -47,6 +47,7 @@ export interface LLMListParams {
   service_type?: string;
   vendor?: string;
   model_type?: string;
+  is_active?: string; // 过滤激活状态: 'true' | 'false' | '' (空字符串表示不过滤)
 }
 
 export interface LLMListResponse {
@@ -137,6 +138,7 @@ export const visionAnalyze = (imageFile: File, prompt?: string) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: 120000, // 120秒超时，大模型推理需要更长时间
   });
 };
 
@@ -153,6 +155,7 @@ export const visionInference = (imageFile: File, prompt?: string) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: 120000, // 120秒超时，大模型推理需要更长时间
   });
 };
 
@@ -169,6 +172,7 @@ export const visionUnderstanding = (imageFile: File, prompt?: string) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: 120000, // 120秒超时，大模型推理需要更长时间
   });
 };
 
@@ -185,6 +189,7 @@ export const visionDeepThinking = (imageFile: File, prompt?: string) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: 180000, // 180秒超时，深度思考模式需要更长时间
   });
 };
 
@@ -206,6 +211,7 @@ export const videoInference = (videoFile?: File, videoUrl?: string, prompt?: str
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: 300000, // 300秒超时，视频推理需要更长时间
   });
 };
 
@@ -227,5 +233,6 @@ export const videoUnderstanding = (videoFile?: File, videoUrl?: string, prompt?:
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: 300000, // 300秒超时，视频理解需要更长时间
   });
 };

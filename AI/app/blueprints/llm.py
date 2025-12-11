@@ -35,6 +35,7 @@ def get_llm_list():
         service_type = request.args.get('service_type', '')
         vendor = request.args.get('vendor', '')
         model_type = request.args.get('model_type', '')
+        is_active = request.args.get('is_active', '')
         
         query = LLMModel.query
         
@@ -46,6 +47,10 @@ def get_llm_list():
             query = query.filter(LLMModel.vendor == vendor)
         if model_type:
             query = query.filter(LLMModel.model_type == model_type)
+        # 如果指定了 is_active 参数，则过滤激活状态
+        if is_active != '':
+            is_active_bool = is_active.lower() in ('true', '1', 'yes')
+            query = query.filter(LLMModel.is_active == is_active_bool)
         
         total = query.count()
         models = query.order_by(LLMModel.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
@@ -355,13 +360,10 @@ def test_llm(model_id):
             # 其他线上供应商的测试逻辑
             test_result = test_generic_llm(model)
         
-        # 更新测试结果
+        # 更新测试结果（不改变状态，只记录测试时间和结果）
         model.last_test_time = datetime.utcnow()
         model.last_test_result = json.dumps(test_result, ensure_ascii=False)
-        if test_result.get('success'):
-            model.status = 'active'
-        else:
-            model.status = 'error'
+        # 注意：测试结果不影响模型状态，状态只能通过启用/禁用操作改变
         
         db.session.commit()
         
@@ -385,9 +387,15 @@ def get_active_model() -> Optional[LLMModel]:
 
 def build_api_url(base_url: str) -> str:
     """构建API端点URL"""
-    if base_url.endswith('/'):
-        return f"{base_url}v1/chat/completions"
+    # 移除末尾的斜杠
+    base_url = base_url.rstrip('/')
+    
+    # 检查base_url是否已经包含/v1
+    if '/v1' in base_url:
+        # 如果已经包含/v1，直接添加/chat/completions
+        return f"{base_url}/chat/completions"
     else:
+        # 如果没有/v1，添加/v1/chat/completions
         return f"{base_url}/v1/chat/completions"
 
 
@@ -611,6 +619,14 @@ def vision_analyze():
         # 获取提示词
         prompt = request.form.get('prompt', '请分析这张图片，描述其中的内容。')
         
+        # 记录输入参数
+        logger.info(f"=== 视觉分析请求开始 ===")
+        logger.info(f"模型ID: {model.id}, 模型名称: {model.name}, 模型标识: {model.model_name}")
+        logger.info(f"服务类型: {model.service_type}, 供应商: {model.vendor}")
+        logger.info(f"图片文件名: {image_file.filename}, 图片大小: {len(image_file.read())} bytes")
+        image_file.seek(0)  # 重置文件指针
+        logger.info(f"提示词: {prompt}")
+        
         # 保存上传的图像文件
         with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_image:
             image_file.save(temp_image.name)
@@ -622,6 +638,8 @@ def vision_analyze():
                 image_data = f.read()
                 base64_image = base64.b64encode(image_data).decode('utf-8')
             
+            logger.info(f"图片Base64编码长度: {len(base64_image)} 字符")
+            
             # 构建请求
             if model.service_type == 'local':
                 result = call_local_vision_llm(model, base64_image, prompt)
@@ -629,6 +647,11 @@ def vision_analyze():
                 result = call_aliyun_qwenvl3(model, base64_image, prompt)
             else:
                 result = call_generic_vision_llm(model, base64_image, prompt)
+            
+            # 记录返回参数
+            logger.info(f"=== 视觉分析请求成功 ===")
+            logger.info(f"返回结果长度: {len(result.get('response', ''))} 字符")
+            logger.info(f"返回结果预览: {result.get('response', '')[:200]}...")
             
             return jsonify({
                 'code': 0,
@@ -641,7 +664,11 @@ def vision_analyze():
                 os.unlink(image_path)
     
     except Exception as e:
-        logger.error(f"视觉分析失败: {str(e)}")
+        logger.error(f"=== 视觉分析请求失败 ===")
+        logger.error(f"错误信息: {str(e)}")
+        logger.error(f"错误类型: {type(e).__name__}")
+        import traceback
+        logger.error(f"错误堆栈: {traceback.format_exc()}")
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
@@ -649,6 +676,9 @@ def vision_analyze():
 
 def call_aliyun_qwenvl3(model: LLMModel, base64_image: str, prompt: str) -> dict:
     """调用阿里云QWENVL3模型（图片）"""
+    logger.info(f"--- 调用阿里云QWENVL3模型 ---")
+    logger.info(f"模型名称: {model.model_name}, Base URL: {model.base_url}")
+    
     headers = build_headers(model)
     api_url = build_api_url(model.base_url)
     
@@ -675,24 +705,54 @@ def call_aliyun_qwenvl3(model: LLMModel, base64_image: str, prompt: str) -> dict
         "temperature": model.temperature
     }
     
-    response = requests.post(
-        api_url,
-        headers=headers,
-        json=payload,
-        timeout=model.timeout
-    )
+    logger.info(f"请求URL: {api_url}")
+    logger.info(f"请求参数: model={payload['model']}, max_tokens={payload['max_tokens']}, temperature={payload['temperature']}")
+    logger.info(f"提示词: {prompt}")
+    logger.info(f"图片Base64长度: {len(base64_image)} 字符")
+    logger.info(f"超时设置: {model.timeout} 秒")
     
-    response.raise_for_status()
-    result = response.json()
-    
-    return {
-        'response': result.get('choices', [{}])[0].get('message', {}).get('content', ''),
-        'raw_result': result
-    }
+    import time
+    start_time = time.time()
+    try:
+        response = requests.post(
+            api_url,
+            headers=headers,
+            json=payload,
+            timeout=model.timeout
+        )
+        elapsed_time = time.time() - start_time
+        logger.info(f"API请求耗时: {elapsed_time:.2f} 秒")
+        logger.info(f"响应状态码: {response.status_code}")
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        response_text = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+        logger.info(f"返回结果长度: {len(response_text)} 字符")
+        logger.info(f"返回结果预览: {response_text[:200]}...")
+        
+        return {
+            'response': response_text,
+            'raw_result': result
+        }
+    except requests.exceptions.Timeout as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求超时 (耗时: {elapsed_time:.2f} 秒): {str(e)}")
+        raise
+    except requests.exceptions.RequestException as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求失败 (耗时: {elapsed_time:.2f} 秒): {str(e)}")
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"响应状态码: {e.response.status_code}")
+            logger.error(f"响应内容: {e.response.text[:500]}")
+        raise
 
 
 def call_generic_vision_llm(model: LLMModel, base64_image: str, prompt: str) -> dict:
     """调用通用视觉大模型（图片）"""
+    logger.info(f"--- 调用通用视觉大模型 ---")
+    logger.info(f"模型名称: {model.model_name}, Base URL: {model.base_url}")
+    
     headers = build_headers(model)
     api_url = build_api_url(model.base_url)
     
@@ -719,27 +779,57 @@ def call_generic_vision_llm(model: LLMModel, base64_image: str, prompt: str) -> 
         "temperature": model.temperature
     }
     
-    response = requests.post(
-        api_url,
-        headers=headers,
-        json=payload,
-        timeout=model.timeout
-    )
+    logger.info(f"请求URL: {api_url}")
+    logger.info(f"请求参数: model={payload['model']}, max_tokens={payload['max_tokens']}, temperature={payload['temperature']}")
+    logger.info(f"提示词: {prompt}")
+    logger.info(f"图片Base64长度: {len(base64_image)} 字符")
+    logger.info(f"超时设置: {model.timeout} 秒")
     
-    response.raise_for_status()
-    result = response.json()
-    
-    return {
-        'response': result.get('choices', [{}])[0].get('message', {}).get('content', ''),
-        'raw_result': result
-    }
+    import time
+    start_time = time.time()
+    try:
+        response = requests.post(
+            api_url,
+            headers=headers,
+            json=payload,
+            timeout=model.timeout
+        )
+        elapsed_time = time.time() - start_time
+        logger.info(f"API请求耗时: {elapsed_time:.2f} 秒")
+        logger.info(f"响应状态码: {response.status_code}")
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        response_text = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+        logger.info(f"返回结果长度: {len(response_text)} 字符")
+        logger.info(f"返回结果预览: {response_text[:200]}...")
+        
+        return {
+            'response': response_text,
+            'raw_result': result
+        }
+    except requests.exceptions.Timeout as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求超时 (耗时: {elapsed_time:.2f} 秒): {str(e)}")
+        raise
+    except requests.exceptions.RequestException as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求失败 (耗时: {elapsed_time:.2f} 秒): {str(e)}")
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"响应状态码: {e.response.status_code}")
+            logger.error(f"响应内容: {e.response.text[:500]}")
+        raise
 
 
 def call_local_vision_llm(model: LLMModel, base64_image: str, prompt: str) -> dict:
     """调用本地视觉大模型服务（图片）"""
+    logger.info(f"--- 调用本地视觉大模型 ---")
+    logger.info(f"模型名称: {model.model_name}, Base URL: {model.base_url}")
+    
     headers = build_headers(model)
     api_url = build_api_url(model.base_url)
-    
+
     payload = {
         "model": model.model_name,
         "messages": [
@@ -762,21 +852,48 @@ def call_local_vision_llm(model: LLMModel, base64_image: str, prompt: str) -> di
         "max_tokens": model.max_tokens,
         "temperature": model.temperature
     }
-    
-    response = requests.post(
-        api_url,
-        headers=headers,
-        json=payload,
-        timeout=model.timeout
-    )
-    
-    response.raise_for_status()
-    result = response.json()
-    
-    return {
-        'response': result.get('choices', [{}])[0].get('message', {}).get('content', ''),
-        'raw_result': result
-    }
+
+    logger.info(f"请求URL: {api_url}")
+    logger.info(f"请求参数: model={payload['model']}, max_tokens={payload['max_tokens']}, temperature={payload['temperature']}")
+    logger.info(f"提示词: {prompt}")
+    logger.info(f"图片Base64长度: {len(base64_image)} 字符")
+    logger.info(f"超时设置: {model.timeout} 秒")
+
+    import time
+    start_time = time.time()
+    try:
+        response = requests.post(
+            api_url,
+            headers=headers,
+            json=payload,
+            timeout=model.timeout
+        )
+        elapsed_time = time.time() - start_time
+        logger.info(f"API请求耗时: {elapsed_time:.2f} 秒")
+        logger.info(f"响应状态码: {response.status_code}")
+
+        response.raise_for_status()
+        result = response.json()
+
+        response_text = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+        logger.info(f"返回结果长度: {len(response_text)} 字符")
+        logger.info(f"返回结果预览: {response_text[:200]}...")
+
+        return {
+            'response': response_text,
+            'raw_result': result
+        }
+    except requests.exceptions.Timeout as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求超时 (耗时: {elapsed_time:.2f} 秒): {str(e)}")
+        raise
+    except requests.exceptions.RequestException as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求失败 (耗时: {elapsed_time:.2f} 秒): {str(e)}")
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"响应状态码: {e.response.status_code}")
+            logger.error(f"响应内容: {e.response.text[:500]}")
+        raise
 
 
 # ==================== 视频模型调用函数 ====================
@@ -790,6 +907,9 @@ def call_aliyun_video_with_mode(
     stream: bool = True
 ) -> dict:
     """调用阿里云视频大模型（支持不同模式，视频）"""
+    logger.info(f"--- 调用阿里云视频大模型 (模式: {mode}, 流式: {stream}) ---")
+    logger.info(f"模型名称: {model.model_name}, Base URL: {model.base_url}")
+    
     headers = build_headers(model)
     api_url = build_api_url(model.base_url)
     
@@ -805,6 +925,7 @@ def call_aliyun_video_with_mode(
             }
         }
         content.append(video_content)
+        logger.info(f"使用Base64视频，长度: {len(video_base64)} 字符")
     elif video_url:
         video_content = {
             "type": "video_url",
@@ -813,6 +934,7 @@ def call_aliyun_video_with_mode(
             }
         }
         content.append(video_content)
+        logger.info(f"使用视频URL: {video_url}")
     else:
         raise ValueError("必须提供 video_base64 或 video_url 之一")
     
@@ -850,32 +972,61 @@ def call_aliyun_video_with_mode(
     
     timeout = model.timeout * 3 if mode == 'deep-thinking' else model.timeout * 2
     
-    response = requests.post(
-        api_url,
-        headers=headers,
-        json=payload,
-        timeout=timeout,
-        stream=stream
-    )
+    logger.info(f"请求URL: {api_url}")
+    logger.info(f"请求参数: model={payload['model']}, max_tokens={payload['max_tokens']}, temperature={payload['temperature']}, stream={stream}")
+    logger.info(f"提示词: {enhanced_prompt}")
+    logger.info(f"超时设置: {timeout} 秒")
     
-    response.raise_for_status()
-    
-    if stream:
-        # 处理流式响应
-        full_response, usage_info = process_stream_response(response)
-        return {
-            'response': full_response,
-            'usage': usage_info,
-            'mode': mode
-        }
-    else:
-        # 处理非流式响应
-        result = response.json()
-        return {
-            'response': result.get('choices', [{}])[0].get('message', {}).get('content', ''),
-            'raw_result': result,
-            'mode': mode
-        }
+    import time
+    start_time = time.time()
+    try:
+        response = requests.post(
+            api_url,
+            headers=headers,
+            json=payload,
+            timeout=timeout,
+            stream=stream
+        )
+        elapsed_time = time.time() - start_time
+        logger.info(f"API请求耗时: {elapsed_time:.2f} 秒")
+        logger.info(f"响应状态码: {response.status_code}")
+        
+        response.raise_for_status()
+        
+        if stream:
+            # 处理流式响应
+            full_response, usage_info = process_stream_response(response)
+            logger.info(f"流式返回结果长度: {len(full_response)} 字符")
+            logger.info(f"返回结果预览: {full_response[:200]}...")
+            if usage_info:
+                logger.info(f"Token使用情况: {usage_info}")
+            return {
+                'response': full_response,
+                'usage': usage_info,
+                'mode': mode
+            }
+        else:
+            # 处理非流式响应
+            result = response.json()
+            response_text = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+            logger.info(f"返回结果长度: {len(response_text)} 字符")
+            logger.info(f"返回结果预览: {response_text[:200]}...")
+            return {
+                'response': response_text,
+                'raw_result': result,
+                'mode': mode
+            }
+    except requests.exceptions.Timeout as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求超时 (耗时: {elapsed_time:.2f} 秒, 超时设置: {timeout} 秒): {str(e)}")
+        raise
+    except requests.exceptions.RequestException as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求失败 (耗时: {elapsed_time:.2f} 秒): {str(e)}")
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"响应状态码: {e.response.status_code}")
+            logger.error(f"响应内容: {e.response.text[:500]}")
+        raise
 
 
 def call_generic_video_llm(
@@ -887,6 +1038,9 @@ def call_generic_video_llm(
     stream: bool = True
 ) -> dict:
     """调用通用视频大模型（支持不同模式，视频）"""
+    logger.info(f"--- 调用通用视频大模型 (模式: {mode}, 流式: {stream}) ---")
+    logger.info(f"模型名称: {model.model_name}, Base URL: {model.base_url}")
+    
     headers = build_headers(model)
     api_url = build_api_url(model.base_url)
     
@@ -902,6 +1056,7 @@ def call_generic_video_llm(
             }
         }
         content.append(video_content)
+        logger.info(f"使用Base64视频，长度: {len(video_base64)} 字符")
     elif video_url:
         video_content = {
             "type": "video_url",
@@ -910,6 +1065,7 @@ def call_generic_video_llm(
             }
         }
         content.append(video_content)
+        logger.info(f"使用视频URL: {video_url}")
     else:
         raise ValueError("必须提供 video_base64 或 video_url 之一")
     
@@ -943,30 +1099,59 @@ def call_generic_video_llm(
     
     timeout = model.timeout * 3 if mode == 'deep-thinking' else model.timeout * 2
     
-    response = requests.post(
-        api_url,
-        headers=headers,
-        json=payload,
-        timeout=timeout,
-        stream=stream
-    )
+    logger.info(f"请求URL: {api_url}")
+    logger.info(f"请求参数: model={payload['model']}, max_tokens={payload['max_tokens']}, temperature={payload['temperature']}, stream={stream}")
+    logger.info(f"提示词: {enhanced_prompt}")
+    logger.info(f"超时设置: {timeout} 秒")
     
-    response.raise_for_status()
-    
-    if stream:
-        full_response, usage_info = process_stream_response(response)
-        return {
-            'response': full_response,
-            'usage': usage_info,
-            'mode': mode
-        }
-    else:
-        result = response.json()
-        return {
-            'response': result.get('choices', [{}])[0].get('message', {}).get('content', ''),
-            'raw_result': result,
-            'mode': mode
-        }
+    import time
+    start_time = time.time()
+    try:
+        response = requests.post(
+            api_url,
+            headers=headers,
+            json=payload,
+            timeout=timeout,
+            stream=stream
+        )
+        elapsed_time = time.time() - start_time
+        logger.info(f"API请求耗时: {elapsed_time:.2f} 秒")
+        logger.info(f"响应状态码: {response.status_code}")
+        
+        response.raise_for_status()
+        
+        if stream:
+            full_response, usage_info = process_stream_response(response)
+            logger.info(f"流式返回结果长度: {len(full_response)} 字符")
+            logger.info(f"返回结果预览: {full_response[:200]}...")
+            if usage_info:
+                logger.info(f"Token使用情况: {usage_info}")
+            return {
+                'response': full_response,
+                'usage': usage_info,
+                'mode': mode
+            }
+        else:
+            result = response.json()
+            response_text = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+            logger.info(f"返回结果长度: {len(response_text)} 字符")
+            logger.info(f"返回结果预览: {response_text[:200]}...")
+            return {
+                'response': response_text,
+                'raw_result': result,
+                'mode': mode
+            }
+    except requests.exceptions.Timeout as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求超时 (耗时: {elapsed_time:.2f} 秒, 超时设置: {timeout} 秒): {str(e)}")
+        raise
+    except requests.exceptions.RequestException as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求失败 (耗时: {elapsed_time:.2f} 秒): {str(e)}")
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"响应状态码: {e.response.status_code}")
+            logger.error(f"响应内容: {e.response.text[:500]}")
+        raise
 
 
 @llm_bp.route('/vision/inference', methods=['POST'])
@@ -988,6 +1173,15 @@ def vision_inference():
         # 获取提示词，默认为视觉推理提示
         prompt = request.form.get('prompt', '请对这张图片进行视觉推理，分析图片中的对象、场景和可能的行为。')
         
+        # 记录输入参数
+        logger.info(f"=== 视觉推理请求开始 ===")
+        logger.info(f"模型ID: {model.id}, 模型名称: {model.name}, 模型标识: {model.model_name}")
+        logger.info(f"服务类型: {model.service_type}, 供应商: {model.vendor}")
+        logger.info(f"图片文件名: {image_file.filename}, 图片大小: {len(image_file.read())} bytes")
+        image_file.seek(0)  # 重置文件指针
+        logger.info(f"提示词: {prompt}")
+        logger.info(f"API URL: {build_api_url(model.base_url)}")
+        
         # 保存上传的图像文件
         with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_image:
             image_file.save(temp_image.name)
@@ -999,6 +1193,8 @@ def vision_inference():
                 image_data = f.read()
                 base64_image = base64.b64encode(image_data).decode('utf-8')
             
+            logger.info(f"图片Base64编码长度: {len(base64_image)} 字符")
+            
             # 构建请求（视觉推理模式）
             if model.service_type == 'local':
                 result = call_vision_llm_with_mode(model, base64_image, prompt, 'inference')
@@ -1006,6 +1202,12 @@ def vision_inference():
                 result = call_aliyun_vision_with_mode(model, base64_image, prompt, 'inference')
             else:
                 result = call_vision_llm_with_mode(model, base64_image, prompt, 'inference')
+            
+            # 记录返回参数
+            logger.info(f"=== 视觉推理请求成功 ===")
+            logger.info(f"返回结果长度: {len(result.get('response', ''))} 字符")
+            logger.info(f"返回结果预览: {result.get('response', '')[:200]}...")
+            logger.info(f"模式: {result.get('mode', 'unknown')}")
             
             return jsonify({
                 'code': 0,
@@ -1018,7 +1220,11 @@ def vision_inference():
                 os.unlink(image_path)
     
     except Exception as e:
-        logger.error(f"视觉推理失败: {str(e)}")
+        logger.error(f"=== 视觉推理请求失败 ===")
+        logger.error(f"错误信息: {str(e)}")
+        logger.error(f"错误类型: {type(e).__name__}")
+        import traceback
+        logger.error(f"错误堆栈: {traceback.format_exc()}")
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
@@ -1041,6 +1247,14 @@ def vision_understanding():
         # 获取提示词，默认为视觉理解提示
         prompt = request.form.get('prompt', '请深入理解这张图片的内容，包括场景描述、对象关系、情感色彩和潜在含义。')
         
+        # 记录输入参数
+        logger.info(f"=== 视觉理解请求开始 ===")
+        logger.info(f"模型ID: {model.id}, 模型名称: {model.name}, 模型标识: {model.model_name}")
+        logger.info(f"服务类型: {model.service_type}, 供应商: {model.vendor}")
+        logger.info(f"图片文件名: {image_file.filename}, 图片大小: {len(image_file.read())} bytes")
+        image_file.seek(0)  # 重置文件指针
+        logger.info(f"提示词: {prompt}")
+        
         # 保存上传的图像文件
         with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_image:
             image_file.save(temp_image.name)
@@ -1052,6 +1266,8 @@ def vision_understanding():
                 image_data = f.read()
                 base64_image = base64.b64encode(image_data).decode('utf-8')
             
+            logger.info(f"图片Base64编码长度: {len(base64_image)} 字符")
+            
             # 构建请求（视觉理解模式）
             if model.service_type == 'local':
                 result = call_vision_llm_with_mode(model, base64_image, prompt, 'understanding')
@@ -1059,6 +1275,11 @@ def vision_understanding():
                 result = call_aliyun_vision_with_mode(model, base64_image, prompt, 'understanding')
             else:
                 result = call_vision_llm_with_mode(model, base64_image, prompt, 'understanding')
+            
+            # 记录返回参数
+            logger.info(f"=== 视觉理解请求成功 ===")
+            logger.info(f"返回结果长度: {len(result.get('response', ''))} 字符")
+            logger.info(f"返回结果预览: {result.get('response', '')[:200]}...")
             
             return jsonify({
                 'code': 0,
@@ -1071,7 +1292,11 @@ def vision_understanding():
                 os.unlink(image_path)
     
     except Exception as e:
-        logger.error(f"视觉理解失败: {str(e)}")
+        logger.error(f"=== 视觉理解请求失败 ===")
+        logger.error(f"错误信息: {str(e)}")
+        logger.error(f"错误类型: {type(e).__name__}")
+        import traceback
+        logger.error(f"错误堆栈: {traceback.format_exc()}")
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
@@ -1094,6 +1319,14 @@ def vision_deep_thinking():
         # 获取提示词，默认为深度思考提示
         prompt = request.form.get('prompt', '请对这张图片进行深度思考和分析，包括：1. 图片中的关键信息；2. 可能的原因和背景；3. 潜在的影响和后果；4. 相关的建议和解决方案。')
         
+        # 记录输入参数
+        logger.info(f"=== 深度思考请求开始 ===")
+        logger.info(f"模型ID: {model.id}, 模型名称: {model.name}, 模型标识: {model.model_name}")
+        logger.info(f"服务类型: {model.service_type}, 供应商: {model.vendor}")
+        logger.info(f"图片文件名: {image_file.filename}, 图片大小: {len(image_file.read())} bytes")
+        image_file.seek(0)  # 重置文件指针
+        logger.info(f"提示词: {prompt}")
+        
         # 保存上传的图像文件
         with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_image:
             image_file.save(temp_image.name)
@@ -1105,6 +1338,8 @@ def vision_deep_thinking():
                 image_data = f.read()
                 base64_image = base64.b64encode(image_data).decode('utf-8')
             
+            logger.info(f"图片Base64编码长度: {len(base64_image)} 字符")
+            
             # 构建请求（深度思考模式）
             if model.service_type == 'local':
                 result = call_vision_llm_with_mode(model, base64_image, prompt, 'deep-thinking')
@@ -1112,6 +1347,11 @@ def vision_deep_thinking():
                 result = call_aliyun_vision_with_mode(model, base64_image, prompt, 'deep-thinking')
             else:
                 result = call_vision_llm_with_mode(model, base64_image, prompt, 'deep-thinking')
+            
+            # 记录返回参数
+            logger.info(f"=== 深度思考请求成功 ===")
+            logger.info(f"返回结果长度: {len(result.get('response', ''))} 字符")
+            logger.info(f"返回结果预览: {result.get('response', '')[:200]}...")
             
             return jsonify({
                 'code': 0,
@@ -1124,7 +1364,11 @@ def vision_deep_thinking():
                 os.unlink(image_path)
     
     except Exception as e:
-        logger.error(f"深度思考失败: {str(e)}")
+        logger.error(f"=== 深度思考请求失败 ===")
+        logger.error(f"错误信息: {str(e)}")
+        logger.error(f"错误类型: {type(e).__name__}")
+        import traceback
+        logger.error(f"错误堆栈: {traceback.format_exc()}")
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
@@ -1139,6 +1383,11 @@ def video_inference():
         if not model:
             return jsonify({'code': 400, 'msg': '请先激活一个大模型'}), 400
         
+        # 记录输入参数
+        logger.info(f"=== 视频推理请求开始 ===")
+        logger.info(f"模型ID: {model.id}, 模型名称: {model.name}, 模型标识: {model.model_name}")
+        logger.info(f"服务类型: {model.service_type}, 供应商: {model.vendor}")
+        
         # 获取视频数据（支持文件上传或URL）
         video_base64 = None
         video_url = None
@@ -1147,6 +1396,8 @@ def video_inference():
         if 'video' in request.files:
             video_file = request.files['video']
             if video_file.filename:
+                logger.info(f"视频文件名: {video_file.filename}, 视频大小: {len(video_file.read())} bytes")
+                video_file.seek(0)  # 重置文件指针
                 # 保存上传的视频文件
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_video:
                     video_file.save(temp_video.name)
@@ -1157,6 +1408,7 @@ def video_inference():
                         with open(video_path, 'rb') as f:
                             video_data = f.read()
                             video_base64 = base64.b64encode(video_data).decode('utf-8')
+                        logger.info(f"视频Base64编码长度: {len(video_base64)} 字符")
                     finally:
                         if os.path.exists(video_path):
                             os.unlink(video_path)
@@ -1164,6 +1416,8 @@ def video_inference():
         # 检查是否有视频URL
         if not video_base64:
             video_url = request.form.get('video_url') or request.json.get('video_url') if request.is_json else None
+            if video_url:
+                logger.info(f"视频URL: {video_url}")
         
         if not video_base64 and not video_url:
             return jsonify({'code': 400, 'msg': '请提供视频文件或视频URL'}), 400
@@ -1172,6 +1426,7 @@ def video_inference():
         prompt = request.form.get('prompt') or (request.json.get('prompt') if request.is_json else None)
         if not prompt:
             prompt = '请分析这个视频中的对象、场景和可能的行为。'
+        logger.info(f"提示词: {prompt}")
         
         # 构建请求（视频推理模式）
         if model.service_type == 'local':
@@ -1181,6 +1436,11 @@ def video_inference():
         else:
             result = call_generic_video_llm(model, video_base64, video_url, prompt, 'inference', stream=True)
         
+        # 记录返回参数
+        logger.info(f"=== 视频推理请求成功 ===")
+        logger.info(f"返回结果长度: {len(result.get('response', ''))} 字符")
+        logger.info(f"返回结果预览: {result.get('response', '')[:200]}...")
+        
         return jsonify({
             'code': 0,
             'msg': '视频推理成功',
@@ -1188,7 +1448,11 @@ def video_inference():
         })
     
     except Exception as e:
-        logger.error(f"视频推理失败: {str(e)}")
+        logger.error(f"=== 视频推理请求失败 ===")
+        logger.error(f"错误信息: {str(e)}")
+        logger.error(f"错误类型: {type(e).__name__}")
+        import traceback
+        logger.error(f"错误堆栈: {traceback.format_exc()}")
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
@@ -1201,6 +1465,11 @@ def video_understanding():
         if not model:
             return jsonify({'code': 400, 'msg': '请先激活一个大模型'}), 400
         
+        # 记录输入参数
+        logger.info(f"=== 视频理解请求开始 ===")
+        logger.info(f"模型ID: {model.id}, 模型名称: {model.name}, 模型标识: {model.model_name}")
+        logger.info(f"服务类型: {model.service_type}, 供应商: {model.vendor}")
+        
         # 获取视频数据（支持文件上传或URL）
         video_base64 = None
         video_url = None
@@ -1209,6 +1478,8 @@ def video_understanding():
         if 'video' in request.files:
             video_file = request.files['video']
             if video_file.filename:
+                logger.info(f"视频文件名: {video_file.filename}, 视频大小: {len(video_file.read())} bytes")
+                video_file.seek(0)  # 重置文件指针
                 # 保存上传的视频文件
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_video:
                     video_file.save(temp_video.name)
@@ -1219,6 +1490,7 @@ def video_understanding():
                         with open(video_path, 'rb') as f:
                             video_data = f.read()
                             video_base64 = base64.b64encode(video_data).decode('utf-8')
+                        logger.info(f"视频Base64编码长度: {len(video_base64)} 字符")
                     finally:
                         if os.path.exists(video_path):
                             os.unlink(video_path)
@@ -1226,6 +1498,8 @@ def video_understanding():
         # 检查是否有视频URL
         if not video_base64:
             video_url = request.form.get('video_url') or request.json.get('video_url') if request.is_json else None
+            if video_url:
+                logger.info(f"视频URL: {video_url}")
         
         if not video_base64 and not video_url:
             return jsonify({'code': 400, 'msg': '请提供视频文件或视频URL'}), 400
@@ -1234,6 +1508,7 @@ def video_understanding():
         prompt = request.form.get('prompt') or (request.json.get('prompt') if request.is_json else None)
         if not prompt:
             prompt = '请描述这个视频的内容。'
+        logger.info(f"提示词: {prompt}")
         
         # 构建请求（视频理解模式）
         if model.service_type == 'local':
@@ -1243,6 +1518,11 @@ def video_understanding():
         else:
             result = call_generic_video_llm(model, video_base64, video_url, prompt, 'understanding', stream=True)
         
+        # 记录返回参数
+        logger.info(f"=== 视频理解请求成功 ===")
+        logger.info(f"返回结果长度: {len(result.get('response', ''))} 字符")
+        logger.info(f"返回结果预览: {result.get('response', '')[:200]}...")
+        
         return jsonify({
             'code': 0,
             'msg': '视频理解成功',
@@ -1250,12 +1530,19 @@ def video_understanding():
         })
     
     except Exception as e:
-        logger.error(f"视频理解失败: {str(e)}")
+        logger.error(f"=== 视频理解请求失败 ===")
+        logger.error(f"错误信息: {str(e)}")
+        logger.error(f"错误类型: {type(e).__name__}")
+        import traceback
+        logger.error(f"错误堆栈: {traceback.format_exc()}")
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
 def call_aliyun_vision_with_mode(model: LLMModel, base64_image: str, prompt: str, mode: str) -> dict:
     """调用阿里云视觉大模型（支持不同模式，图片）"""
+    logger.info(f"--- 调用阿里云视觉大模型 (模式: {mode}) ---")
+    logger.info(f"模型名称: {model.model_name}, Base URL: {model.base_url}")
+    
     headers = build_headers(model)
     api_url = build_api_url(model.base_url)
     
@@ -1292,25 +1579,61 @@ def call_aliyun_vision_with_mode(model: LLMModel, base64_image: str, prompt: str
         payload["max_tokens"] = min(model.max_tokens * 2, 8000)
     
     timeout = model.timeout * 2 if mode == 'deep-thinking' else model.timeout
-    response = requests.post(
-        api_url,
-        headers=headers,
-        json=payload,
-        timeout=timeout
-    )
     
-    response.raise_for_status()
-    result = response.json()
+    # 记录请求参数（不记录完整的base64图片数据）
+    logger.info(f"请求URL: {api_url}")
+    logger.info(f"请求头: {dict(headers)} (隐藏Authorization)")
+    logger.info(f"请求参数: model={payload['model']}, max_tokens={payload['max_tokens']}, temperature={payload['temperature']}")
+    logger.info(f"提示词: {enhanced_prompt}")
+    logger.info(f"图片Base64长度: {len(base64_image)} 字符")
+    logger.info(f"超时设置: {timeout} 秒")
     
-    return {
-        'response': result.get('choices', [{}])[0].get('message', {}).get('content', ''),
-        'raw_result': result,
-        'mode': mode
-    }
+    import time
+    start_time = time.time()
+    try:
+        response = requests.post(
+            api_url,
+            headers=headers,
+            json=payload,
+            timeout=timeout
+        )
+        elapsed_time = time.time() - start_time
+        logger.info(f"API请求耗时: {elapsed_time:.2f} 秒")
+        logger.info(f"响应状态码: {response.status_code}")
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        # 记录返回结果
+        response_text = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+        logger.info(f"返回结果长度: {len(response_text)} 字符")
+        logger.info(f"返回结果预览: {response_text[:200]}...")
+        if 'usage' in result:
+            logger.info(f"Token使用情况: {result.get('usage', {})}")
+        
+        return {
+            'response': response_text,
+            'raw_result': result,
+            'mode': mode
+        }
+    except requests.exceptions.Timeout as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求超时 (耗时: {elapsed_time:.2f} 秒, 超时设置: {timeout} 秒): {str(e)}")
+        raise
+    except requests.exceptions.RequestException as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求失败 (耗时: {elapsed_time:.2f} 秒): {str(e)}")
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"响应状态码: {e.response.status_code}")
+            logger.error(f"响应内容: {e.response.text[:500]}")
+        raise
 
 
 def call_vision_llm_with_mode(model: LLMModel, base64_image: str, prompt: str, mode: str) -> dict:
     """调用通用视觉大模型（支持不同模式，图片）"""
+    logger.info(f"--- 调用通用视觉大模型 (模式: {mode}) ---")
+    logger.info(f"模型名称: {model.model_name}, Base URL: {model.base_url}")
+    
     headers = build_headers(model)
     api_url = build_api_url(model.base_url)
     
@@ -1345,18 +1668,51 @@ def call_vision_llm_with_mode(model: LLMModel, base64_image: str, prompt: str, m
         payload["max_tokens"] = min(model.max_tokens * 2, 8000)
     
     timeout = model.timeout * 2 if mode == 'deep-thinking' else model.timeout
-    response = requests.post(
-        api_url,
-        headers=headers,
-        json=payload,
-        timeout=timeout
-    )
     
-    response.raise_for_status()
-    result = response.json()
+    # 记录请求参数（不记录完整的base64图片数据）
+    logger.info(f"请求URL: {api_url}")
+    logger.info(f"请求头: {dict(headers)} (隐藏Authorization)")
+    logger.info(f"请求参数: model={payload['model']}, max_tokens={payload['max_tokens']}, temperature={payload['temperature']}")
+    logger.info(f"提示词: {enhanced_prompt}")
+    logger.info(f"图片Base64长度: {len(base64_image)} 字符")
+    logger.info(f"超时设置: {timeout} 秒")
     
-    return {
-        'response': result.get('choices', [{}])[0].get('message', {}).get('content', ''),
-        'raw_result': result,
-        'mode': mode
-    }
+    import time
+    start_time = time.time()
+    try:
+        response = requests.post(
+            api_url,
+            headers=headers,
+            json=payload,
+            timeout=timeout
+        )
+        elapsed_time = time.time() - start_time
+        logger.info(f"API请求耗时: {elapsed_time:.2f} 秒")
+        logger.info(f"响应状态码: {response.status_code}")
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        # 记录返回结果
+        response_text = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+        logger.info(f"返回结果长度: {len(response_text)} 字符")
+        logger.info(f"返回结果预览: {response_text[:200]}...")
+        if 'usage' in result:
+            logger.info(f"Token使用情况: {result.get('usage', {})}")
+        
+        return {
+            'response': response_text,
+            'raw_result': result,
+            'mode': mode
+        }
+    except requests.exceptions.Timeout as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求超时 (耗时: {elapsed_time:.2f} 秒, 超时设置: {timeout} 秒): {str(e)}")
+        raise
+    except requests.exceptions.RequestException as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"API请求失败 (耗时: {elapsed_time:.2f} 秒): {str(e)}")
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"响应状态码: {e.response.status_code}")
+            logger.error(f"响应内容: {e.response.text[:500]}")
+        raise
