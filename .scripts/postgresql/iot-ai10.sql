@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict TKL0Vd1y8K1hrZobVstDzQGdfrNgfbbITaK6efuZrUyoKceDOTkn9W4NliURTfp
+\restrict Xv8Ct7eezcQSAh7hFTLfc1pyVoEygblEL7c7S3gKa2vQe0ZwXSymmRzRMwY45KK
 
 -- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
 -- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)
@@ -27,10 +27,10 @@ DROP DATABASE IF EXISTS "iot-ai20";
 CREATE DATABASE "iot-ai20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict TKL0Vd1y8K1hrZobVstDzQGdfrNgfbbITaK6efuZrUyoKceDOTkn9W4NliURTfp
+\unrestrict Xv8Ct7eezcQSAh7hFTLfc1pyVoEygblEL7c7S3gKa2vQe0ZwXSymmRzRMwY45KK
 \encoding SQL_ASCII
 \connect -reuse-previous=on "dbname='iot-ai20'"
-\restrict TKL0Vd1y8K1hrZobVstDzQGdfrNgfbbITaK6efuZrUyoKceDOTkn9W4NliURTfp
+\restrict Xv8Ct7eezcQSAh7hFTLfc1pyVoEygblEL7c7S3gKa2vQe0ZwXSymmRzRMwY45KK
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -176,36 +176,144 @@ ALTER SEQUENCE public.inference_task_id_seq OWNED BY public.inference_task.id;
 CREATE TABLE public.llm_config (
     id integer NOT NULL,
     name character varying(100) NOT NULL,
-    description text,
-    model_type character varying(50),
-    icon_url character varying(500),
-    vendor character varying(100),
+    service_type character varying(20) NOT NULL,
+    vendor character varying(50) NOT NULL,
+    model_type character varying(50) NOT NULL,
+    model_name character varying(100) NOT NULL,
     base_url character varying(500) NOT NULL,
-    api_key character varying(200) NOT NULL,
-    model character varying(100) NOT NULL,
+    api_key character varying(200),
     api_version character varying(50),
-    request_timeout integer,
-    max_retries integer,
-    context_window integer,
-    max_output_tokens integer,
-    supported_features json,
-    temperature double precision,
-    system_prompt text,
-    is_customizable boolean,
-    rag_enabled boolean,
-    prompt_template text,
-    domain_adaptation character varying(100),
-    input_token_price double precision,
-    output_token_price double precision,
-    avg_response_time double precision,
-    total_tokens_used bigint,
-    monthly_budget double precision,
-    is_active boolean,
-    status character varying(20),
+    temperature double precision NOT NULL,
+    max_tokens integer NOT NULL,
+    timeout integer NOT NULL,
+    is_active boolean NOT NULL,
+    status character varying(20) NOT NULL,
+    last_test_time timestamp without time zone,
+    last_test_result text,
+    description text,
+    icon_url character varying(500),
     created_at timestamp without time zone,
-    updated_at timestamp without time zone,
-    last_test_time timestamp without time zone
+    updated_at timestamp without time zone
 );
+
+
+--
+-- Name: COLUMN llm_config.name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.name IS '模型名称';
+
+
+--
+-- Name: COLUMN llm_config.service_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.service_type IS '服务类型[online:线上服务,local:本地服务]';
+
+
+--
+-- Name: COLUMN llm_config.vendor; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.vendor IS '供应商[aliyun:阿里云,openai:OpenAI,anthropic:Anthropic,local:本地服务]';
+
+
+--
+-- Name: COLUMN llm_config.model_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.model_type IS '模型类型[text:文本,vision:视觉,multimodal:多模态]';
+
+
+--
+-- Name: COLUMN llm_config.model_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.model_name IS '模型标识（如qwen-vl-max）';
+
+
+--
+-- Name: COLUMN llm_config.base_url; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.base_url IS 'API基础URL';
+
+
+--
+-- Name: COLUMN llm_config.api_key; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.api_key IS 'API密钥（线上服务必填，本地服务可选）';
+
+
+--
+-- Name: COLUMN llm_config.api_version; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.api_version IS 'API版本';
+
+
+--
+-- Name: COLUMN llm_config.temperature; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.temperature IS '温度参数';
+
+
+--
+-- Name: COLUMN llm_config.max_tokens; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.max_tokens IS '最大输出token数';
+
+
+--
+-- Name: COLUMN llm_config.timeout; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.timeout IS '请求超时时间（秒）';
+
+
+--
+-- Name: COLUMN llm_config.is_active; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.is_active IS '是否激活';
+
+
+--
+-- Name: COLUMN llm_config.status; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.status IS '状态[active:激活,inactive:未激活,error:错误]';
+
+
+--
+-- Name: COLUMN llm_config.last_test_time; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.last_test_time IS '最后测试时间';
+
+
+--
+-- Name: COLUMN llm_config.last_test_result; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.last_test_result IS '最后测试结果';
+
+
+--
+-- Name: COLUMN llm_config.description; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.description IS '模型描述';
+
+
+--
+-- Name: COLUMN llm_config.icon_url; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.llm_config.icon_url IS '图标URL';
 
 
 --
@@ -449,9 +557,7 @@ ALTER TABLE ONLY public.train_task ALTER COLUMN id SET DEFAULT nextval('public.t
 --
 
 COPY public.ai_service (id, model_id, service_name, server_ip, port, inference_endpoint, status, mac_address, deploy_time, last_heartbeat, process_id, log_path, model_version, format, created_at, updated_at) FROM stdin;
-1	3	model_3_pytorch_1.0.1	192.168.11.28	9999	http://192.168.11.28:9999/inference	stopped	30:c1:05:16:5a:68	2025-11-23 05:03:15.111839	2025-12-07 11:56:19.903674	619555	/opt/projects/easyaiot/AI/logs/1	1.0.1	pytorch	2025-11-23 05:03:15.113205	2025-12-07 11:57:41.80199
-2	3	model_3_pytorch_1.0.1	192.168.11.28	10001	http://192.168.11.28:10001/inference	stopped	30:c1:05:16:5a:68	2025-11-23 05:03:47.157704	2025-12-07 11:56:20.377716	619565	/opt/projects/easyaiot/AI/logs/2	1.0.1	pytorch	2025-11-23 05:03:47.158308	2025-12-07 11:57:41.802013
-3	3	model_3_pytorch_1.0.1	192.168.11.28	10002	http://192.168.11.28:10002/inference	stopped	30:c1:05:16:5a:68	2025-11-23 05:03:55.644905	2025-12-07 11:56:20.889598	619690	/opt/projects/easyaiot/AI/logs/3	1.0.1	pytorch	2025-11-23 05:03:55.645332	2025-12-07 11:57:41.80202
+1	3	model_3_pytorch_1.0.1	192.168.11.28	9999	http://192.168.11.28:9999/inference	stopped	30:c1:05:16:5a:68	2025-11-23 05:03:15.111839	2025-12-11 14:34:14.839699	1252756	/opt/projects/easyaiot/AI/logs/1	1.0.1	pytorch	2025-11-23 05:03:15.113205	2025-12-11 14:34:14.839944
 \.
 
 
@@ -521,6 +627,9 @@ COPY public.inference_task (id, model_id, inference_type, input_source, output_p
 54	3	image	/api/v1/buckets/inference-inputs/objects/download?prefix=inputs/c405d0a6d8174a37814dea4006b06768.png	/api/v1/buckets/inference-results/objects/download?prefix=images/20251123/result_54_b0e652ad.jpg	\N	2025-11-22 23:00:08.050989	2025-11-23 07:00:08.18449	COMPLETED	\N	\N	\N
 55	3	image	/api/v1/buckets/inference-inputs/objects/download?prefix=inputs/5cc2477c48e0445593df8b8598571f20.png	/api/v1/buckets/inference-results/objects/download?prefix=images/20251123/result_55_66578186.jpg	\N	2025-11-22 23:25:45.133941	2025-11-22 23:25:45.540071	COMPLETED	\N	0.2248547077178955	\N
 56	3	image	/api/v1/buckets/inference-inputs/objects/download?prefix=inputs/6cee2c48d42f4c4a865f6cc750700319.png	/api/v1/buckets/inference-results/objects/download?prefix=images/20251123/result_56_4a376234.jpg	\N	2025-11-22 23:25:52.122922	2025-11-22 23:25:52.307409	COMPLETED	\N	0.17902803421020508	\N
+57	3	image	/api/v1/buckets/inference-inputs/objects/download?prefix=inputs/c9c68e2bbe024695bbe222e2adc5c048.jpg	/api/v1/buckets/inference-results/objects/download?prefix=images/20251211/result_57_7bd94791.jpg	\N	2025-12-11 05:59:24.144816	2025-12-11 13:59:26.372638	COMPLETED	\N	\N	\N
+58	\N	video	/api/v1/buckets/inference-inputs/objects/download?prefix=inputs/89e7e1bb332946ab87e5e0a4dd7a68af.mp4	/api/v1/buckets/inference-results/objects/download?prefix=videos/20251211/processed_58_1765436363.mp4	1800	2025-12-11 06:58:20.239395	2025-12-11 06:59:23.23634	COMPLETED	\N	59.400715827941895	\N
+59	\N	video	/api/v1/buckets/inference-inputs/objects/download?prefix=inputs/e4ae017b561c4d44b79d78714a11ff3a.mp4	/api/v1/buckets/inference-results/objects/download?prefix=videos/20251211/processed_59_1765436406.mp4	1800	2025-12-11 06:58:56.505407	2025-12-11 07:00:06.843887	COMPLETED	\N	66.74621534347534	\N
 \.
 
 
@@ -528,7 +637,8 @@ COPY public.inference_task (id, model_id, inference_type, input_source, output_p
 -- Data for Name: llm_config; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.llm_config (id, name, description, model_type, icon_url, vendor, base_url, api_key, model, api_version, request_timeout, max_retries, context_window, max_output_tokens, supported_features, temperature, system_prompt, is_customizable, rag_enabled, prompt_template, domain_adaptation, input_token_price, output_token_price, avg_response_time, total_tokens_used, monthly_budget, is_active, status, created_at, updated_at, last_test_time) FROM stdin;
+COPY public.llm_config (id, name, service_type, vendor, model_type, model_name, base_url, api_key, api_version, temperature, max_tokens, timeout, is_active, status, last_test_time, last_test_result, description, icon_url, created_at, updated_at) FROM stdin;
+2	QwenVL3视觉模型	online	aliyun	vision	qwen-vl-max	https://dashscope.aliyuncs.com/compatible-mode/v1	sk-xxxxxxxxxxxxxxxxxxx	\N	0.7	2000	60	t	active	2025-12-11 08:50:54.524481	{"success": false, "message": "连接测试失败: 404", "error": ""}	\N	/api/v1/buckets/models/objects/download?prefix=llm_images/0931043a235948cd8e4765455b7c5316.png	2025-12-11 07:43:43.887508	2025-12-11 11:26:41.294643
 \.
 
 
@@ -608,14 +718,14 @@ SELECT pg_catalog.setval('public.export_record_id_seq', 1, true);
 -- Name: inference_task_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.inference_task_id_seq', 56, true);
+SELECT pg_catalog.setval('public.inference_task_id_seq', 59, true);
 
 
 --
 -- Name: llm_config_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.llm_config_id_seq', 1, false);
+SELECT pg_catalog.setval('public.llm_config_id_seq', 3, true);
 
 
 --
@@ -762,5 +872,5 @@ ALTER TABLE ONLY public.train_task
 -- PostgreSQL database dump complete
 --
 
-\unrestrict TKL0Vd1y8K1hrZobVstDzQGdfrNgfbbITaK6efuZrUyoKceDOTkn9W4NliURTfp
+\unrestrict Xv8Ct7eezcQSAh7hFTLfc1pyVoEygblEL7c7S3gKa2vQe0ZwXSymmRzRMwY45KK
 

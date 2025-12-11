@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict zUeYrwPcWqFCQWpnHDs2H71GDxafIyvbCUKpH5c7evSnfJTSoVKuDbKF9aMvuyI
+\restrict 1pGN3ulZtMnMlFPPVf5rxtlNWZx6oNiZUuGovklap4MmxObR5VN5Mic5Hj109mk
 
 -- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
 -- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)
@@ -27,10 +27,10 @@ DROP DATABASE IF EXISTS "ruoyi-vue-pro20";
 CREATE DATABASE "ruoyi-vue-pro20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict zUeYrwPcWqFCQWpnHDs2H71GDxafIyvbCUKpH5c7evSnfJTSoVKuDbKF9aMvuyI
+\unrestrict 1pGN3ulZtMnMlFPPVf5rxtlNWZx6oNiZUuGovklap4MmxObR5VN5Mic5Hj109mk
 \encoding SQL_ASCII
 \connect -reuse-previous=on "dbname='ruoyi-vue-pro20'"
-\restrict zUeYrwPcWqFCQWpnHDs2H71GDxafIyvbCUKpH5c7evSnfJTSoVKuDbKF9aMvuyI
+\restrict 1pGN3ulZtMnMlFPPVf5rxtlNWZx6oNiZUuGovklap4MmxObR5VN5Mic5Hj109mk
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -16613,8 +16613,8 @@ COPY public.qrtz_paused_trigger_grps (sched_name, trigger_group) FROM stdin;
 --
 
 COPY public.qrtz_scheduler_state (sched_name, instance_name, last_checkin_time, checkin_interval) FROM stdin;
-schedulerName	master1765329108462	1765352859388	15000
-schedulerName	master1765329107602	1765352859451	15000
+schedulerName	master1765433835945	1765452502962	15000
+schedulerName	master1765433842225	1765452509244	15000
 \.
 
 
@@ -20172,6 +20172,16 @@ COPY public.system_login_log (id, log_type, trace_id, user_id, user_type, userna
 3038	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36	\N	2025-12-10 13:55:50.434336	\N	2025-12-10 13:55:50.434336	0	1
 3039	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36	\N	2025-12-10 14:30:18.957551	\N	2025-12-10 14:30:18.957551	0	1
 3040	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36	\N	2025-12-10 15:31:45.577615	\N	2025-12-10 15:31:45.577615	0	1
+3041	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36	\N	2025-12-11 13:37:41.110225	\N	2025-12-11 13:37:41.110225	0	1
+3042	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36	\N	2025-12-11 14:09:05.654947	\N	2025-12-11 14:09:05.654947	0	1
+3043	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36	\N	2025-12-11 14:50:56.822847	\N	2025-12-11 14:50:56.822847	0	1
+3044	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36	\N	2025-12-11 15:21:30.958187	\N	2025-12-11 15:21:30.958187	0	1
+3045	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36	\N	2025-12-11 15:54:10.948921	\N	2025-12-11 15:54:10.948921	0	1
+3046	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36	\N	2025-12-11 16:29:28.895213	\N	2025-12-11 16:29:28.895213	0	1
+3047	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36	\N	2025-12-11 17:22:41.96564	\N	2025-12-11 17:22:41.96564	0	1
+3048	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36	\N	2025-12-11 17:54:43.932255	\N	2025-12-11 17:54:43.932255	0	1
+3049	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36	\N	2025-12-11 18:25:49.206708	\N	2025-12-11 18:25:49.206708	0	1
+3050	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36	\N	2025-12-11 18:59:43.016542	\N	2025-12-11 18:59:43.016542	0	1
 \.
 
 
@@ -24462,6 +24472,16 @@ COPY public.system_oauth2_access_token (id, user_id, user_type, user_info, acces
 5974	1	2	{"nickname":"IoT","deptId":"103"}	9693e7451efe446785b770afa636319d	cf977f96acbc41318678f6fa9c1a9b88	default	\N	2025-12-10 14:25:50.462364	\N	2025-12-10 13:55:50.463621	\N	2025-12-10 13:55:50.463621	0	1
 5976	1	2	{"nickname":"IoT","deptId":"103"}	5c37f57140ee49818889b9cdd65371f0	a6ac9d1ed0c14d6f907e0f1ddb06a20a	default	\N	2025-12-10 15:00:18.978075	\N	2025-12-10 14:30:18.979381	\N	2025-12-10 14:30:18.979381	0	1
 5978	1	2	{"nickname":"IoT","deptId":"103"}	706d34e331d748f29d62a33b8af23416	bf6ad589f5ab4adcb0215eb7b55b37ef	default	\N	2025-12-10 16:01:45.606253	\N	2025-12-10 15:31:45.607504	\N	2025-12-10 15:31:45.607504	0	1
+5980	1	2	{"nickname":"IoT","deptId":"103"}	395a8462289c45e9ae6336d5cb424aeb	2693d92df7a84633b8c0b36100e25f5d	default	\N	2025-12-11 14:07:41.183802	\N	2025-12-11 13:37:41.1878	\N	2025-12-11 13:37:41.1878	0	1
+5982	1	2	{"nickname":"IoT","deptId":"103"}	bcf1f50da84947b2bbd8474610574aab	819d492993fe438dad8babe2f47ac1f1	default	\N	2025-12-11 14:39:05.681362	\N	2025-12-11 14:09:05.682818	\N	2025-12-11 14:09:05.682818	0	1
+5984	1	2	{"nickname":"IoT","deptId":"103"}	1a050f4e1cef450f8e51236388ea5ff6	7660549a74944c38b4840aa564c1b3e0	default	\N	2025-12-11 15:20:56.88022	\N	2025-12-11 14:50:56.883397	\N	2025-12-11 14:50:56.883397	0	1
+5986	1	2	{"nickname":"IoT","deptId":"103"}	6f046910c0364fa3b085087ecb1b72e2	3d5b39e02879418ca8b61e7d9250a5f3	default	\N	2025-12-11 15:51:30.986733	\N	2025-12-11 15:21:30.988363	\N	2025-12-11 15:21:30.988363	0	1
+5988	1	2	{"nickname":"IoT","deptId":"103"}	7d5ff07664e54ca6a6383aa64a712cc8	ffd7859b8e674839b8a0404b0ea5487a	default	\N	2025-12-11 16:24:10.996212	\N	2025-12-11 15:54:10.997697	\N	2025-12-11 15:54:10.997697	0	1
+5990	1	2	{"nickname":"IoT","deptId":"103"}	65bf559c9c824c4c85053f8298130d84	cc5cdb136df14e8fb5ba355510fd1daf	default	\N	2025-12-11 16:59:28.916575	\N	2025-12-11 16:29:28.917955	\N	2025-12-11 16:29:28.917955	0	1
+5992	1	2	{"nickname":"IoT","deptId":"103"}	c9e4b4d470e24fc4b3658ab12331ea8b	5549f1336a4245f0bbf3c3b9e4eb0e75	default	\N	2025-12-11 17:52:41.994303	\N	2025-12-11 17:22:41.995582	\N	2025-12-11 17:22:41.995582	0	1
+5994	1	2	{"nickname":"IoT","deptId":"103"}	14f6158d87dd4836b6ec1e024bcea780	1f05cba3c7c643b2ae465696622065a3	default	\N	2025-12-11 18:24:43.953303	\N	2025-12-11 17:54:43.954689	\N	2025-12-11 17:54:43.954689	0	1
+5996	1	2	{"nickname":"IoT","deptId":"103"}	8c37d27b0859449bbfe9e18176f50384	859444ab06a84a7ea70966d43d55ab1d	default	\N	2025-12-11 18:55:49.234382	\N	2025-12-11 18:25:49.235655	\N	2025-12-11 18:25:49.235655	0	1
+5998	1	2	{"nickname":"IoT","deptId":"103"}	2306f8d4655647beab8edf54930e4b6e	b9986bfc698e424297affda74b004ab6	default	\N	2025-12-11 19:29:43.043523	\N	2025-12-11 18:59:43.045691	\N	2025-12-11 18:59:43.045691	0	1
 \.
 
 
@@ -27242,6 +27262,16 @@ COPY public.system_oauth2_refresh_token (id, user_id, refresh_token, user_type, 
 5973	1	cf977f96acbc41318678f6fa9c1a9b88	2	default	\N	2026-01-09 13:55:50.448122	\N	2025-12-10 13:55:50.449447	\N	2025-12-10 13:55:50.449447	0	1
 5975	1	a6ac9d1ed0c14d6f907e0f1ddb06a20a	2	default	\N	2026-01-09 14:30:18.964007	\N	2025-12-10 14:30:18.965276	\N	2025-12-10 14:30:18.965276	0	1
 5977	1	bf6ad589f5ab4adcb0215eb7b55b37ef	2	default	\N	2026-01-09 15:31:45.591917	\N	2025-12-10 15:31:45.593312	\N	2025-12-10 15:31:45.593312	0	1
+5979	1	2693d92df7a84633b8c0b36100e25f5d	2	default	\N	2026-01-10 13:37:41.1632	\N	2025-12-11 13:37:41.167122	\N	2025-12-11 13:37:41.167122	0	1
+5981	1	819d492993fe438dad8babe2f47ac1f1	2	default	\N	2026-01-10 14:09:05.665758	\N	2025-12-11 14:09:05.667465	\N	2025-12-11 14:09:05.667465	0	1
+5983	1	7660549a74944c38b4840aa564c1b3e0	2	default	\N	2026-01-10 14:50:56.8631	\N	2025-12-11 14:50:56.866248	\N	2025-12-11 14:50:56.866248	0	1
+5985	1	3d5b39e02879418ca8b61e7d9250a5f3	2	default	\N	2026-01-10 15:21:30.969314	\N	2025-12-11 15:21:30.971323	\N	2025-12-11 15:21:30.971323	0	1
+5987	1	ffd7859b8e674839b8a0404b0ea5487a	2	default	\N	2026-01-10 15:54:10.975858	\N	2025-12-11 15:54:10.97797	\N	2025-12-11 15:54:10.97797	0	1
+5989	1	cc5cdb136df14e8fb5ba355510fd1daf	2	default	\N	2026-01-10 16:29:28.902023	\N	2025-12-11 16:29:28.903327	\N	2025-12-11 16:29:28.903327	0	1
+5991	1	5549f1336a4245f0bbf3c3b9e4eb0e75	2	default	\N	2026-01-10 17:22:41.979837	\N	2025-12-11 17:22:41.981081	\N	2025-12-11 17:22:41.981081	0	1
+5993	1	1f05cba3c7c643b2ae465696622065a3	2	default	\N	2026-01-10 17:54:43.938914	\N	2025-12-11 17:54:43.940279	\N	2025-12-11 17:54:43.940279	0	1
+5995	1	859444ab06a84a7ea70966d43d55ab1d	2	default	\N	2026-01-10 18:25:49.220181	\N	2025-12-11 18:25:49.221492	\N	2025-12-11 18:25:49.221492	0	1
+5997	1	b9986bfc698e424297affda74b004ab6	2	default	\N	2026-01-10 18:59:43.025427	\N	2025-12-11 18:59:43.026678	\N	2025-12-11 18:59:43.026678	0	1
 \.
 
 
@@ -28456,7 +28486,7 @@ COPY public.system_users (id, username, password, nickname, remark, dept_id, pos
 131	hh	$2a$04$jyH9h6.gaw8mpOjPfHIpx.8as2Rzfcmdlj5rlJFwgCw4rsv/MTb2K	呵呵	\N	100	[]	777@qq.com	15601882312	1		0		\N	1	2024-04-27 08:45:56	1	2024-04-27 08:45:56	1	1	0	0
 100	yudao	$2a$10$11U48RhyJ5pSBYWSn12AD./ld671.ycSzJHbyrtpeoMeYiw31eo8a	王总	不要吓我	104	[1]	yudao@iocoder.cn	15601691300	1		1	127.0.0.1	2022-07-09 23:03:33		2021-01-07 09:07:17	1	2025-08-14 09:39:37.486	0	1	0	0
 118	goudan	$2a$04$A7vqK6hfgoPeOGDgZoC1BOnVwTpDyBtQnlsOWBIqM8Wj9A6NTr0Tq	狗蛋	\N	103	[1]		15601691239	1		0	0:0:0:0:0:0:0:1	2024-07-24 11:23:40.932	1	2022-07-09 17:44:43	1	2025-08-14 11:34:37.076	0	1	0	0
-1	admin	$2a$10$mRMIYLDtRHlf6.9ipiqH1.Z.bh/R9dO9d5iHiGYPigi6r5KOoR2Wm	IoT	管理员	103	[1]	aoteman@126.com	18818260277	1	http://test.yudao.iocoder.cn/113dcbab48d22fc988151b98be2b8b4f262effdb5305c171cf1fe9a71801377a.png	0	127.0.0.1	2025-12-10 15:31:45.580669	admin	2021-01-05 17:03:47	\N	2025-12-10 15:31:45.580838	0	1	0	0
+1	admin	$2a$10$mRMIYLDtRHlf6.9ipiqH1.Z.bh/R9dO9d5iHiGYPigi6r5KOoR2Wm	IoT	管理员	103	[1]	aoteman@126.com	18818260277	1	http://test.yudao.iocoder.cn/113dcbab48d22fc988151b98be2b8b4f262effdb5305c171cf1fe9a71801377a.png	0	127.0.0.1	2025-12-11 18:59:43.021196	admin	2021-01-05 17:03:47	\N	2025-12-11 18:59:43.021425	0	1	0	0
 \.
 
 
@@ -28667,7 +28697,7 @@ SELECT pg_catalog.setval('public.system_dict_type_seq', 620, false);
 -- Name: system_login_log_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.system_login_log_seq', 3040, true);
+SELECT pg_catalog.setval('public.system_login_log_seq', 3050, true);
 
 
 --
@@ -28723,7 +28753,7 @@ SELECT pg_catalog.setval('public.system_notify_template_seq', 1, false);
 -- Name: system_oauth2_access_token_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.system_oauth2_access_token_seq', 5978, true);
+SELECT pg_catalog.setval('public.system_oauth2_access_token_seq', 5998, true);
 
 
 --
@@ -29566,5 +29596,5 @@ ALTER TABLE ONLY public.qrtz_triggers
 -- PostgreSQL database dump complete
 --
 
-\unrestrict zUeYrwPcWqFCQWpnHDs2H71GDxafIyvbCUKpH5c7evSnfJTSoVKuDbKF9aMvuyI
+\unrestrict 1pGN3ulZtMnMlFPPVf5rxtlNWZx6oNiZUuGovklap4MmxObR5VN5Mic5Hj109mk
 

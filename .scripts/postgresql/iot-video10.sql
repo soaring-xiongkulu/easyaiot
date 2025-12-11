@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict JG6rebXMlThIoc5plRCI92k9ouCd5aarEkHrkUaZQfTEr0bQqfLEME54hXRqk5f
+\restrict dfaogfywliEq5xIO8GodtJbvSm6tGNQrwOYwTWIIqp7MAPIEygKgePe6F02Tgf4
 
 -- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
 -- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)
@@ -27,10 +27,10 @@ DROP DATABASE IF EXISTS "iot-video20";
 CREATE DATABASE "iot-video20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict JG6rebXMlThIoc5plRCI92k9ouCd5aarEkHrkUaZQfTEr0bQqfLEME54hXRqk5f
+\unrestrict dfaogfywliEq5xIO8GodtJbvSm6tGNQrwOYwTWIIqp7MAPIEygKgePe6F02Tgf4
 \encoding SQL_ASCII
 \connect -reuse-previous=on "dbname='iot-video20'"
-\restrict JG6rebXMlThIoc5plRCI92k9ouCd5aarEkHrkUaZQfTEr0bQqfLEME54hXRqk5f
+\restrict dfaogfywliEq5xIO8GodtJbvSm6tGNQrwOYwTWIIqp7MAPIEygKgePe6F02Tgf4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -4280,6 +4280,7 @@ COPY public.alert (id, object, event, region, information, "time", device_id, de
 1528	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.676970899105072,"bbox":[168,223,256,316],"frame_number":15,"first_seen_time":"2025-12-10T14:54:00.214018","duration":0.0,"task_type":"snapshot"}	2025-12-10 14:54:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1528_20251210145400.jpg	\N	snap	\N	\N	f	\N
 1529	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.7193603515625,"bbox":[371,65,400,92],"frame_number":16,"first_seen_time":"2025-12-10T14:55:00.241987","duration":0.0,"task_type":"snapshot"}	2025-12-10 14:55:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1529_20251210145500.jpg	\N	snap	\N	\N	f	\N
 1530	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.6459169983863831,"bbox":[381,92,418,126],"frame_number":17,"first_seen_time":"2025-12-10T14:56:00.233768","duration":0.0,"task_type":"snapshot"}	2025-12-10 14:56:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1530_20251210145600.jpg	\N	snap	\N	\N	f	\N
+1562	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.753746747970581,"bbox":[262,95,295,127],"frame_number":31,"first_seen_time":"2025-12-10T15:27:00.239185","duration":0.0,"task_type":"snapshot"}	2025-12-10 15:27:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1562_20251210152700.jpg	\N	snap	\N	\N	f	\N
 1531	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.7142126560211182,"bbox":[73,44,109,67],"frame_number":1,"first_seen_time":"2025-12-10T14:57:00.295324","duration":0.0,"task_type":"snapshot"}	2025-12-10 14:57:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1531_20251210145700.jpg	\N	snap	[{"id":"b1ff9e5a-7a0c-42d0-a27b-645291eb03e3","msgType":3,"previewUser":"andywebjava@163.com","name":null,"email":"andywebjava@163.com","mail":"andywebjava@163.com"}]	[{"method":"email","template_id":"515bdf64-20e9-4035-b6bf-6cc6364a5372","template_name":"EasyAIoT邮件测试模板"}]	f	\N
 1532	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.6024962067604065,"bbox":[272,77,300,104],"frame_number":2,"first_seen_time":"2025-12-10T14:58:00.251352","duration":0.0,"task_type":"snapshot"}	2025-12-10 14:58:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1532_20251210145800.jpg	\N	snap	\N	\N	f	\N
 1533	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.7819464206695557,"bbox":[308,148,356,200],"frame_number":3,"first_seen_time":"2025-12-10T14:59:00.245024","duration":0.0,"task_type":"snapshot"}	2025-12-10 14:59:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1533_20251210145900.jpg	\N	snap	\N	\N	f	\N
@@ -4313,7 +4314,6 @@ COPY public.alert (id, object, event, region, information, "time", device_id, de
 1559	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.5480350255966187,"bbox":[110,20,136,39],"frame_number":28,"first_seen_time":"2025-12-10T15:24:00.190656","duration":0.0,"task_type":"snapshot"}	2025-12-10 15:24:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1559_20251210152400.jpg	\N	snap	\N	\N	f	\N
 1560	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.7875843048095703,"bbox":[185,105,232,144],"frame_number":29,"first_seen_time":"2025-12-10T15:25:00.151827","duration":0.0,"task_type":"snapshot"}	2025-12-10 15:25:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1560_20251210152500.jpg	\N	snap	\N	\N	f	\N
 1561	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.590467631816864,"bbox":[366,43,388,61],"frame_number":30,"first_seen_time":"2025-12-10T15:26:00.179075","duration":0.0,"task_type":"snapshot"}	2025-12-10 15:26:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1561_20251210152600.jpg	\N	snap	\N	\N	f	\N
-1562	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.753746747970581,"bbox":[262,95,295,127],"frame_number":31,"first_seen_time":"2025-12-10T15:27:00.239185","duration":0.0,"task_type":"snapshot"}	2025-12-10 15:27:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1562_20251210152700.jpg	\N	snap	\N	\N	f	\N
 1563	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.7534276843070984,"bbox":[478,282,619,353],"frame_number":32,"first_seen_time":"2025-12-10T15:28:00.228392","duration":0.0,"task_type":"snapshot"}	2025-12-10 15:28:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1563_20251210152800.jpg	\N	snap	\N	\N	f	\N
 1564	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.802209198474884,"bbox":[153,128,217,182],"frame_number":33,"first_seen_time":"2025-12-10T15:29:00.292743","duration":0.0,"task_type":"snapshot"}	2025-12-10 15:29:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1564_20251210152900.jpg	\N	snap	[{"id":"b1ff9e5a-7a0c-42d0-a27b-645291eb03e3","msgType":3,"previewUser":"andywebjava@163.com","name":null,"email":"andywebjava@163.com","mail":"andywebjava@163.com"}]	[{"method":"email","template_id":"515bdf64-20e9-4035-b6bf-6cc6364a5372","template_name":"EasyAIoT邮件测试模板"}]	f	\N
 1567	car	江北初中监控安防任务	\N	{"track_id":0,"confidence":0.6771325469017029,"bbox":[400,131,452,177],"frame_number":36,"first_seen_time":"2025-12-10T15:32:00.173906","duration":0.0,"task_type":"snapshot"}	2025-12-10 15:32:00+08	1764341204704370850	大门设备	/api/v1/buckets/snap-space/objects/download?prefix=1764341204704370850%2F2025%2F12%2F10%2Fsnapshot_1567_20251210153200.jpg	\N	snap	\N	\N	f	\N
@@ -4348,7 +4348,7 @@ COPY public.algorithm_model_service (id, task_id, service_name, service_url, ser
 --
 
 COPY public.algorithm_task (id, task_name, task_code, task_type, model_ids, model_names, extract_interval, rtmp_input_url, rtmp_output_url, tracking_enabled, tracking_similarity_threshold, tracking_max_age, tracking_smooth_alpha, alert_event_enabled, alert_notification_enabled, alert_notification_config, alarm_suppress_time, last_notify_time, space_id, cron_expression, frame_skip, status, is_enabled, run_status, exception_reason, service_server_ip, service_port, service_process_id, service_last_heartbeat, service_log_path, total_frames, total_detections, total_captures, last_process_time, last_success_time, last_capture_time, description, defense_mode, defense_schedule, created_at, updated_at) FROM stdin;
-8	江北初中监控安防任务	SNAP_TASK_DF76331B	snap	[-1]	yolo11n.pt (默认模型)	25	\N	\N	f	0.2	25	0.25	t	t	{"channels": [{"method": "email", "template_id": "515bdf64-20e9-4035-b6bf-6cc6364a5372", "template_name": "EasyAIoT邮件测试模板"}], "notify_users": [{"id": "b1ff9e5a-7a0c-42d0-a27b-645291eb03e3", "msgType": 3, "previewUser": "andywebjava@163.com", "name": null, "email": "andywebjava@163.com", "mail": "andywebjava@163.com"}]}	300	2025-12-10 07:46:00.52964	\N	*/1 * * * *	25	0	t	stopped	\N	192.168.11.28	\N	2320044	2025-12-10 07:47:42.472055	/opt/projects/easyaiot/VIDEO/logs/task_8	0	0	0	\N	\N	\N	\N	full	[[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]	2025-12-10 06:24:30.54663	2025-12-10 07:47:42.472818
+8	江北初中监控安防任务	SNAP_TASK_DF76331B	snap	[-1]	yolo11n.pt (默认模型)	25	\N	\N	f	0.2	25	0.25	t	t	{"channels": [{"method": "email", "template_id": "515bdf64-20e9-4035-b6bf-6cc6364a5372", "template_name": "EasyAIoT邮件测试模板"}], "notify_users": [{"id": "b1ff9e5a-7a0c-42d0-a27b-645291eb03e3", "msgType": 3, "previewUser": "andywebjava@163.com", "name": null, "email": "andywebjava@163.com", "mail": "andywebjava@163.com"}]}	300	2025-12-10 07:46:00.52964	\N	*/1 * * * *	25	0	t	stopped	\N	192.168.11.28	\N	925422	2025-12-11 11:28:25.815199	/opt/projects/easyaiot/VIDEO/logs/task_8	0	0	0	\N	\N	\N	\N	full	[[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]	2025-12-10 06:24:30.54663	2025-12-11 11:28:25.816302
 \.
 
 
@@ -7290,5 +7290,5 @@ ALTER TABLE ONLY public.stream_forward_task_device
 -- PostgreSQL database dump complete
 --
 
-\unrestrict JG6rebXMlThIoc5plRCI92k9ouCd5aarEkHrkUaZQfTEr0bQqfLEME54hXRqk5f
+\unrestrict dfaogfywliEq5xIO8GodtJbvSm6tGNQrwOYwTWIIqp7MAPIEygKgePe6F02Tgf4
 
