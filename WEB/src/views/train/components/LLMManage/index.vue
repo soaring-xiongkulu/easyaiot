@@ -36,100 +36,33 @@
     </BasicTable>
 
     <!-- 卡片模式 -->
-    <div v-else class="llm-manage-card-list-wrapper p-2">
-      <div class="p-4 bg-white" style="margin-bottom: 10px">
-        <BasicForm @register="registerForm" @submit="handleSubmit" @reset="handleSubmit" />
-      </div>
-      <div class="p-2 bg-white">
-        <Spin :spinning="loading">
-          <List
-            :grid="{ gutter: 12, xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 4 }"
-            :data-source="modelList"
-            :pagination="paginationProp"
-          >
-            <template #header>
-              <div style="display: flex; align-items: center; justify-content: space-between; flex-direction: row;">
-                <span style="padding-left: 7px; font-size: 16px; font-weight: 500; line-height: 24px;">大模型列表</span>
-                <div style="display: flex; gap: 8px;">
-                  <a-button type="primary" @click="handleCreate">
-                    <template #icon>
-                      <PlusOutlined />
-                    </template>
-                    新建大模型
-                  </a-button>
-                  <a-button @click="handleToggleViewMode" type="default">
-                    <template #icon>
-                      <SwapOutlined />
-                    </template>
-                    切换视图
-                  </a-button>
-                </div>
-              </div>
+    <div v-else>
+      <LLMManageCardList
+        :params="params"
+        :api="getLLMListApi"
+        @get-method="getMethod"
+        @delete="handleDel"
+        @view="handleView"
+        @edit="handleEdit"
+        @activate="handleActivate"
+        @deactivate="handleDeactivate"
+        @field-value-change="handleFieldValueChange"
+      >
+        <template #header>
+          <a-button type="primary" @click="handleCreate">
+            <template #icon>
+              <PlusOutlined />
             </template>
-            <template #renderItem="{ item }">
-              <ListItem :class="getItemClass(item)">
-                <div class="model-info">
-                  <div class="status">{{ getStatusDisplayText(item) }}</div>
-                  <div class="title o2">{{ item.name }}</div>
-                  <div class="props">
-                    <div class="flex" style="justify-content: space-between;">
-                      <div class="prop">
-                        <div class="label">服务类型</div>
-                        <div class="value">{{ getServiceTypeText(item.service_type) }}</div>
-                      </div>
-                      <div class="prop">
-                        <div class="label">供应商</div>
-                        <div class="value">{{ getVendorText(item.vendor) }}</div>
-                      </div>
-                    </div>
-                    <div class="flex" style="justify-content: space-between;">
-                      <div class="prop">
-                        <div class="label">模型类型</div>
-                        <div class="value">{{ getModelTypeText(item.model_type) }}</div>
-                      </div>
-                      <div class="prop">
-                        <div class="label">模型标识</div>
-                        <div class="value">{{ item.model_name }}</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="btns">
-                    <div class="btn" @click="handleView(item)">
-                      <Icon icon="ant-design:eye-filled" :size="15" color="#3B82F6" />
-                    </div>
-                    <div class="btn" @click="handleEdit(item)">
-                      <Icon icon="ant-design:edit-filled" :size="15" color="#3B82F6" />
-                    </div>
-                    <div v-if="item.is_active" class="btn" @click="handleDeactivate(item)">
-                      <Icon icon="ant-design:pause-circle-outlined" :size="15" color="#3B82F6" />
-                    </div>
-                    <div v-else class="btn" @click="handleActivate(item)">
-                      <Icon icon="ant-design:play-circle-outlined" :size="15" color="#3B82F6" />
-                    </div>
-                    <Popconfirm
-                      title="是否确认删除？"
-                      ok-text="是"
-                      cancel-text="否"
-                      @confirm="handleDelete(item)"
-                    >
-                      <div class="btn delete-btn">
-                        <Icon icon="material-symbols:delete-outline-rounded" :size="15" color="#DC2626" />
-                      </div>
-                    </Popconfirm>
-                  </div>
-                </div>
-                <div class="model-img">
-                  <img
-                    :src="getModelImage(item)"
-                    alt="" 
-                    class="img" 
-                    @click="handleView(item)">
-                </div>
-              </ListItem>
+            新建大模型
+          </a-button>
+          <a-button @click="handleToggleViewMode" type="default">
+            <template #icon>
+              <SwapOutlined />
             </template>
-          </List>
-        </Spin>
-      </div>
+            切换视图
+          </a-button>
+        </template>
+      </LLMManageCardList>
     </div>
 
     <!-- 大模型配置模态框 -->
@@ -141,16 +74,14 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { BasicTable, TableAction, useTable } from '@/components/Table';
-import { BasicForm, useForm } from '@/components/Form';
 import { useModal } from '@/components/Modal';
-import { List, ListItem, Spin, Popconfirm } from 'ant-design-vue';
+import { Col } from 'ant-design-vue';
 import { PlusOutlined, SwapOutlined } from '@ant-design/icons-vue';
-import { Icon } from '@/components/Icon';
-import AI_TASK_IMAGE from '@/assets/images/video/ai-task.png';
 import { useMessage } from '@/hooks/web/useMessage';
 import { getBasicColumns, getFormConfig } from './Data';
 import { getLLMList, deleteLLM, activateLLM, deactivateLLM, testLLM, type LLMModel } from '@/api/device/llm';
 import LLMModal from './LLMModal.vue';
+import LLMManageCardList from './LLMManageCardList.vue';
 
 defineOptions({ name: 'LLMManage' });
 
@@ -160,28 +91,15 @@ const [registerModal, { openModal }] = useModal();
 
 // 视图模式
 const viewMode = ref<'table' | 'card'>('card');
-const loading = ref(false);
-const modelList = ref<LLMModel[]>([]);
-const paginationProp = reactive({
-  current: 1,
-  pageSize: 12,
-  total: 0,
-  showSizeChanger: true,
-  showQuickJumper: true,
-  onChange: (page: number, pageSize: number) => {
-    paginationProp.current = page;
-    paginationProp.pageSize = pageSize;
-    fetchData();
-  },
-  onShowSizeChange: (current: number, size: number) => {
-    paginationProp.current = 1;
-    paginationProp.pageSize = size;
-    fetchData();
-  },
-});
+const params = {};
+let cardListReload = () => {};
+
+function getMethod(m: any) {
+  cardListReload = m;
+}
 
 // 表格配置
-const [registerTable, { reload }] = useTable({
+const [registerTable, { reload, getForm }] = useTable({
   canResize: true,
   showIndexColumn: false,
   title: '大模型列表',
@@ -198,63 +116,53 @@ const [registerTable, { reload }] = useTable({
   rowKey: 'id',
 });
 
-// 表单配置（卡片模式搜索）
-const [registerForm, { getFieldsValue }] = useForm({
-  labelWidth: 80,
-  baseColProps: { span: 6 },
-  schemas: [
-    {
-      field: 'name',
-      label: '模型名称',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入模型名称',
+// 大模型列表API（卡片模式）
+const getLLMListApi = async (params: any) => {
+  try {
+    const response = await getLLMList({
+      page: params.page || 1,
+      pageSize: params.pageSize || 18,
+      name: params.name || undefined,
+      vendor: params.vendor || undefined,
+      model_type: params.model_type || undefined,
+    });
+    
+    // HTTP 转换器可能返回两种格式：
+    // 1. { code: 0, data: { list: [], total: 0 }, msg: 'success' }
+    // 2. { list: [], total: 0 } (转换器自动解包了 data.data，当 total 在 data.data.total 中时)
+    let items: LLMModel[] = [];
+    let total = 0;
+    
+    if (response && typeof response === 'object') {
+      if ('code' in response && response.code === 0 && response.data) {
+        // 标准格式：包含 code 和 data
+        items = response.data.list || [];
+        total = response.data.total || 0;
+      } else if ('list' in response && Array.isArray(response.list)) {
+        // 转换器已解包的格式：直接包含 list 和 total
+        items = response.list;
+        total = response.total || 0;
+      }
+    }
+    
+    return {
+      success: true,
+      data: {
+        items,
+        total,
       },
-    },
-    {
-      field: 'service_type',
-      label: '服务类型',
-      component: 'Select',
-      componentProps: {
-        placeholder: '请选择服务类型',
-        options: [
-          { label: '全部', value: '' },
-          { label: '线上服务', value: 'online' },
-          { label: '本地服务', value: 'local' },
-        ],
+    };
+  } catch (error) {
+    console.error('获取大模型列表失败', error);
+    return {
+      success: false,
+      data: {
+        items: [],
+        total: 0,
       },
-    },
-    {
-      field: 'vendor',
-      label: '供应商',
-      component: 'Select',
-      componentProps: {
-        placeholder: '请选择供应商',
-        options: [
-          { label: '全部', value: '' },
-          { label: '阿里云', value: 'aliyun' },
-          { label: 'OpenAI', value: 'openai' },
-          { label: 'Anthropic', value: 'anthropic' },
-          { label: '本地服务', value: 'local' },
-        ],
-      },
-    },
-    {
-      field: 'model_type',
-      label: '模型类型',
-      component: 'Select',
-      componentProps: {
-        placeholder: '请选择模型类型',
-        options: [
-          { label: '全部', value: '' },
-          { label: '文本', value: 'text' },
-          { label: '视觉', value: 'vision' },
-          { label: '多模态', value: 'multimodal' },
-        ],
-      },
-    },
-  ],
-});
+    };
+  }
+};
 
 // 获取状态文本（基于is_active，不再使用status字段）
 const getStatusText = (status: string, isActive: boolean) => {
@@ -266,58 +174,6 @@ const getStatusText = (status: string, isActive: boolean) => {
 const getStatusColor = (status: string, isActive: boolean) => {
   // 只根据is_active判断，不再使用status字段
   return isActive ? 'green' : 'default';
-};
-
-// 获取服务类型文本
-const getServiceTypeText = (serviceType?: string) => {
-  const serviceTypeMap: Record<string, string> = {
-    online: '线上服务',
-    local: '本地服务',
-  };
-  return serviceTypeMap[serviceType || 'online'] || '线上服务';
-};
-
-// 获取供应商文本
-const getVendorText = (vendor: string) => {
-  const vendorMap: Record<string, string> = {
-    aliyun: '阿里云',
-    openai: 'OpenAI',
-    anthropic: 'Anthropic',
-    local: '本地服务',
-  };
-  return vendorMap[vendor] || vendor;
-};
-
-// 获取模型类型文本
-const getModelTypeText = (modelType: string) => {
-  const typeMap: Record<string, string> = {
-    text: '文本',
-    vision: '视觉',
-    multimodal: '多模态',
-  };
-  return typeMap[modelType] || modelType;
-};
-
-// 获取卡片类名（只基于is_active判断）
-const getItemClass = (item: LLMModel) => {
-  // 只根据is_active判断，不再使用status字段
-  return item.is_active ? 'model-item normal' : 'model-item error';
-};
-
-// 获取状态显示文本（只基于is_active判断）
-const getStatusDisplayText = (item: LLMModel) => {
-  // 只根据is_active判断，不再使用status字段
-  return item.is_active ? '已激活' : '未激活';
-};
-
-// 根据模型类型获取图片
-const getModelImage = (item: LLMModel) => {
-  // 如果模型有上传的图标URL，优先使用
-  if (item.icon_url) {
-    return item.icon_url;
-  }
-  // 否则使用默认图片
-  return AI_TASK_IMAGE;
 };
 
 // 获取表格操作按钮
@@ -365,57 +221,26 @@ const getTableActions = (record: LLMModel) => {
 const handleToggleViewMode = () => {
   viewMode.value = viewMode.value === 'table' ? 'card' : 'table';
   if (viewMode.value === 'card') {
-    fetchData();
+    cardListReload();
   }
 };
 
-// 获取数据（卡片模式）
-const fetchData = async () => {
-  try {
-    loading.value = true;
-    const formValues = await getFieldsValue();
-    const response = await getLLMList({
-      page: paginationProp.current,
-      pageSize: paginationProp.pageSize,
-      name: formValues.name,
-      service_type: formValues.service_type,
-      vendor: formValues.vendor,
-      model_type: formValues.model_type,
-    });
-    // HTTP 转换器可能返回两种格式：
-    // 1. { code: 0, data: { list: [], total: 0 }, msg: 'success' }
-    // 2. { list: [], total: 0 } (转换器自动解包了 data.data，当 total 在 data.data.total 中时)
-    if (response && typeof response === 'object') {
-      if ('code' in response && response.code === 0 && response.data) {
-        // 标准格式：包含 code 和 data
-        modelList.value = response.data.list || [];
-        paginationProp.total = response.data.total || 0;
-      } else if ('list' in response && Array.isArray(response.list)) {
-        // 转换器已解包的格式：直接包含 list 和 total
-        modelList.value = response.list;
-        paginationProp.total = response.total || 0;
-      } else {
-        // 兜底处理
-        modelList.value = [];
-        paginationProp.total = 0;
-      }
-    } else {
-      modelList.value = [];
-      paginationProp.total = 0;
-    }
-  } catch (error) {
-    console.error('获取大模型列表失败', error);
-    modelList.value = [];
-    paginationProp.total = 0;
-  } finally {
-    loading.value = false;
-  }
+// 处理表单字段值变化（卡片模式，实时监听）
+function handleFieldValueChange(field: string, value: any) {
+  // 可以在这里处理字段值变化
+}
+
+// 重置表单（表格模式）
+const handleTableReset = async () => {
+  const form = getForm();
+  await form.resetFields();
+  reload();
 };
 
-// 表单提交（搜索）
-const handleSubmit = () => {
-  paginationProp.current = 1;
-  fetchData();
+// 提交表单（表格模式）
+const handleTableSubmit = async () => {
+  const form = getForm();
+  await form.submit();
 };
 
 // 创建
@@ -439,6 +264,12 @@ const handleEdit = (record: LLMModel) => {
     isUpdate: true,
     record,
   });
+};
+
+// 删除（卡片模式）
+const handleDel = async (record: LLMModel) => {
+  await handleDelete(record);
+  cardListReload();
 };
 
 // 删除
@@ -580,7 +411,7 @@ const handleSuccess = () => {
   if (viewMode.value === 'table') {
     reload();
   } else {
-    fetchData();
+    cardListReload();
   }
 };
 
@@ -595,9 +426,7 @@ defineExpose({
 });
 
 onMounted(() => {
-  if (viewMode.value === 'card') {
-    fetchData();
-  }
+  // 卡片模式会在组件内部自动加载数据
 });
 </script>
 
@@ -607,207 +436,6 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 10px;
-  }
-}
-
-.llm-manage-card-list-wrapper {
-  :deep(.ant-list-header) {
-    border-block-end: 0;
-  }
-  :deep(.ant-list-header) {
-    padding-top: 0;
-    padding-bottom: 8px;
-  }
-  :deep(.ant-list) {
-    padding: 6px;
-  }
-  :deep(.ant-list-item) {
-    margin: 6px;
-  }
-  :deep(.model-item) {
-    overflow: hidden;
-    box-shadow: 0 0 4px #00000026;
-    border-radius: 8px;
-    padding: 16px 0;
-    position: relative;
-    background-color: #fff;
-    background-repeat: no-repeat;
-    background-position: center center;
-    background-size: 104% 104%;
-    transition: all 0.5s;
-    min-height: 208px;
-    height: 100%;
-
-    &.normal {
-      background-image: url('@/assets/images/product/blue-bg.719b437a.png');
-
-      .model-info .status {
-        background: #d9dffd;
-        color: #266CFBFF;
-      }
-    }
-
-    &.error {
-      background-image: url('@/assets/images/product/red-bg.101af5ac.png');
-
-      .model-info .status {
-        background: #fad7d9;
-        color: #d43030;
-      }
-    }
-
-    .model-info {
-      flex-direction: column;
-      max-width: calc(100% - 128px);
-      padding-left: 16px;
-
-      .status {
-        min-width: 90px;
-        height: 25px;
-        border-radius: 6px 0 0 6px;
-        font-size: 12px;
-        font-weight: 500;
-        line-height: 25px;
-        text-align: center;
-        position: absolute;
-        right: 0;
-        top: 16px;
-        padding: 0 8px;
-        white-space: nowrap;
-      }
-
-      .title {
-        font-size: 16px;
-        font-weight: 600;
-        color: #050708;
-        line-height: 20px;
-        height: 40px;
-        padding-right: 90px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-
-        &.o2 {
-          -webkit-line-clamp: 2;
-        }
-      }
-
-      .props {
-        margin-top: 10px;
-
-        .flex {
-          display: flex;
-        }
-
-        .prop {
-          flex: 1;
-          margin-bottom: 10px;
-
-          .label {
-            font-size: 12px;
-            font-weight: 400;
-            color: #666;
-            line-height: 14px;
-          }
-
-          .value {
-            font-size: 14px;
-            font-weight: 600;
-            color: #050708;
-            line-height: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-top: 6px;
-          }
-        }
-      }
-
-      .btns {
-        display: flex;
-        position: absolute;
-        left: 16px;
-        bottom: 16px;
-        margin-top: 20px;
-        width: 220px;
-        height: 28px;
-        border-radius: 45px;
-        justify-content: space-around;
-        padding: 0 10px;
-        align-items: center;
-        border: 2px solid #266cfbff;
-
-        .btn {
-          width: 28px;
-          text-align: center;
-          position: relative;
-          cursor: pointer;
-
-          &:before {
-            content: '';
-            display: block;
-            position: absolute;
-            width: 1px;
-            height: 7px;
-            background-color: #e2e2e2;
-            left: 0;
-            top: 9px;
-          }
-
-          &:first-child:before {
-            display: none;
-          }
-
-          :deep(.anticon) {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #3B82F6;
-            transition: color 0.3s;
-          }
-
-          &:hover :deep(.anticon) {
-            color: #5BA3F5;
-          }
-
-          &.disabled {
-            cursor: not-allowed;
-            opacity: 0.4;
-
-            :deep(.anticon) {
-              color: #ccc;
-            }
-
-            &:hover :deep(.anticon) {
-              color: #ccc;
-            }
-          }
-
-          &.delete-btn {
-            :deep(.anticon) {
-              color: #DC2626;
-            }
-
-            &:hover :deep(.anticon) {
-              color: #DC2626;
-            }
-          }
-        }
-      }
-    }
-
-    .model-img {
-      position: absolute;
-      right: 20px;
-      top: 50px;
-
-      img {
-        cursor: pointer;
-        width: 120px;
-      }
-    }
   }
 }
 </style>

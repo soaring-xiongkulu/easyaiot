@@ -124,7 +124,7 @@ const [registerForm, {validate, updateSchema}] = useForm({
   ],
   labelWidth: 80,
   baseColProps: {span: 6},
-  actionColOptions: {span: 24}, // 让按钮在第一行显示
+  actionColOptions: {span: 12}, // 让按钮在第一行显示
   autoSubmitOnEnter: true,
   submitFunc: handleSubmit,
 });

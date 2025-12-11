@@ -79,10 +79,6 @@ export function getFormConfig(): Partial<FormProps> {
   return {
     labelWidth: 80,
     baseColProps: { span: 6 },
-    actionColOptions: {
-      span: 12,
-      style: { textAlign: 'right' },
-    },
     schemas: [
       {
         field: 'name',
@@ -90,19 +86,6 @@ export function getFormConfig(): Partial<FormProps> {
         component: 'Input',
         componentProps: {
           placeholder: '请输入模型名称',
-        },
-      },
-      {
-        field: 'service_type',
-        label: '服务类型',
-        component: 'Select',
-        componentProps: {
-          placeholder: '请选择服务类型',
-          options: [
-            { label: '全部', value: '' },
-            { label: '线上服务', value: 'online' },
-            { label: '本地服务', value: 'local' },
-          ],
         },
       },
       {
