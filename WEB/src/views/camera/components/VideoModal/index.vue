@@ -824,7 +824,10 @@ function handleOk() {
       createMessage.success('操作成功');
       closeModal();
       resetFields();
-      emits('success');
+      // 延迟一下再触发刷新，确保后端状态已更新
+      setTimeout(() => {
+        emits('success');
+      }, 100);
     } catch (error) {
       createMessage.error('操作失败');
       console.error(error);

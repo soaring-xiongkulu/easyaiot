@@ -294,10 +294,10 @@ def _update_camera_ip(camera: Device, ip: str):
 
         # 判断是否是自定义摄像头
         is_custom = _is_custom_camera(camera)
-        # 更新已有设备IP时：自定义摄像头默认在线，其他设备检查实际在线状态
-        _monitor.update(camera.id, camera.ip, default_online=is_custom)
+        # 更新已有设备IP时：编辑后强制设置为在线状态
+        _monitor.update(camera.id, camera.ip, default_online=True)
         db.session.commit()
-        logger.info(f'设备 {camera.id} IP地址已更新为 {ip}')
+        logger.info(f'设备 {camera.id} IP地址已更新为 {ip}，强制设置为在线状态')
     except Exception as e:
         db.session.rollback()
         logger.error(f'更新设备 {camera.id} IP失败: {str(e)}')
@@ -1095,9 +1095,10 @@ def update_camera(id: str, update_info: dict):
                 # 优先使用请求中的cameraType字段，如果没有则通过设备特征判断
                 is_custom = is_custom_from_request or _is_custom_camera(camera)
                 
-                # 更新监控：自定义摄像头默认在线，其他设备检查实际在线状态
+                # 更新监控：编辑后强制设置为在线状态
                 if new_ip:
-                    _monitor.update(camera.id, new_ip, default_online=is_custom)
+                    _monitor.update(camera.id, new_ip, default_online=True)
+                    logger.debug(f'设备 {id} IP地址变更后强制设置为在线状态（新IP: {new_ip}）')
                 
                 # 如果是RTMP设备或自定义摄像头，直接提交
                 if camera.source and (camera.source.strip().lower().startswith('rtmp://') or is_custom):
@@ -1132,16 +1133,19 @@ def update_camera(id: str, update_info: dict):
     if not camera.model or not camera.model.strip():
         camera.model = 'Camera-EasyAIoT'
     
-    # 对于自定义摄像头，如果IP地址更新了，需要更新监控状态（默认在线）
-    # 注意：这里只处理非IP变更的情况，IP变更的情况在上面已经处理了
-    if 'ip' not in update_info and camera.ip:
-        # 判断是否是自定义摄像头
-        # 优先使用请求中的cameraType字段，如果没有则通过设备特征判断
-        is_custom = is_custom_from_request or _is_custom_camera(camera)
-        if is_custom:
-            # 自定义摄像头默认在线
-            _monitor.update(camera.id, camera.ip, default_online=True)
-            logger.debug(f'设备 {id} 是自定义摄像头，更新监控状态为在线')
+    # 强制更新监控状态为在线（编辑后确保设备显示为在线）
+    # 判断是否是自定义摄像头或RTMP设备
+    is_custom = is_custom_from_request or _is_custom_camera(camera)
+    is_rtmp = camera.source and camera.source.strip().lower().startswith('rtmp://')
+    
+    # 如果有IP地址，强制更新监控状态为在线
+    if camera.ip:
+        # 自定义摄像头、RTMP设备或编辑后的设备都强制设置为在线
+        _monitor.update(camera.id, camera.ip, default_online=True)
+        logger.debug(f'设备 {id} 编辑后强制设置为在线状态（IP: {camera.ip}）')
+    elif is_rtmp or is_custom:
+        # RTMP设备或自定义摄像头即使没有IP也默认在线（在_to_dict中处理）
+        logger.debug(f'设备 {id} 是{"RTMP设备" if is_rtmp else "自定义摄像头"}，无需IP监控，默认在线')
 
     # 如果设备名称发生变化，同步更新关联的抓拍空间和录像空间的名称
     if device_name_changed and camera.name:
