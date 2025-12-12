@@ -642,9 +642,14 @@ async function modelEdit(record) {
         modelRef[item] = record[item];
       }
     });
-    // 编辑模式下，如果 cameraType 不存在，设置为空字符串，避免验证错误
+    // 编辑模式下，如果 cameraType 不存在，尝试通过设备特征判断
     if (!modelRef.cameraType) {
-      modelRef.cameraType = '';
+      // 如果设备有source但没有IP或IP为空，可能是自定义摄像头
+      if (modelRef.source && (!modelRef.ip || !modelRef.ip.trim())) {
+        modelRef.cameraType = 'custom';
+      } else {
+        modelRef.cameraType = '';
+      }
     }
     state.editLoading = false;
     state.record = record;
@@ -770,8 +775,13 @@ function handleOk() {
         // 编辑时，过滤掉不必要的字段（如空的 cameraType）
         const updateData = {...modelRef};
         // 如果 cameraType 是空字符串，则不发送该字段
+        // 但对于自定义摄像头（cameraType === 'custom'），需要保留该字段以便后端识别
         if (updateData.cameraType === '') {
           delete updateData.cameraType;
+        }
+        // 如果是通过视频源添加的设备（type === 'source'），且是自定义类型，确保传递cameraType
+        if (state.type === 'source' && modelRef.cameraType === 'custom') {
+          updateData.cameraType = 'custom';
         }
         await updateDevice(modelRef.id, updateData);
       } else if (state.type === 'camera') {
@@ -781,6 +791,10 @@ function handleOk() {
           const updateData = {...modelRef};
           if (updateData.cameraType === '') {
             delete updateData.cameraType;
+          }
+          // 如果是自定义类型，确保传递cameraType
+          if (modelRef.cameraType === 'custom') {
+            updateData.cameraType = 'custom';
           }
           await updateDevice(modelRef.id, updateData);
         } else {
@@ -796,6 +810,10 @@ function handleOk() {
           const updateData = {...modelRef};
           if (updateData.cameraType === '') {
             delete updateData.cameraType;
+          }
+          // 如果是自定义类型，确保传递cameraType
+          if (modelRef.cameraType === 'custom') {
+            updateData.cameraType = 'custom';
           }
           await updateDevice(modelRef.id, updateData);
         } else {

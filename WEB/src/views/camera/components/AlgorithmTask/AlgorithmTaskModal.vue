@@ -96,7 +96,18 @@ const alertNotificationConfig = ref<any>({
 });
 
 const deviceOptions = ref<Array<{ label: string; value: string }>>([]);
-const modelOptions = ref<Array<{ label: string; value: number }>>([]);
+// 初始化时就包含默认模型，确保始终显示
+const defaultModels = [
+  {
+    label: 'yolo11n.pt',
+    value: -1, // 使用 -1 表示 yolo11n.pt
+  },
+  {
+    label: 'yolov8n.pt',
+    value: -2, // 使用 -2 表示 yolov8n.pt
+  },
+];
+const modelOptions = ref<Array<{ label: string; value: number }>>([...defaultModels]);
 const modelMap = ref<Map<number, any>>(new Map()); // 存储完整的模型信息
 
 // 告警通知相关状态
@@ -175,8 +186,27 @@ const loadDevices = async () => {
 
 
 
+// 初始化默认模型到映射中
+const initDefaultModels = () => {
+  modelMap.value.set(-1, {
+    id: -1,
+    name: 'yolo11n.pt',
+    model_path: 'yolo11n.pt',
+    version: undefined,
+  });
+  modelMap.value.set(-2, {
+    id: -2,
+    name: 'yolov8n.pt',
+    model_path: 'yolov8n.pt',
+    version: undefined,
+  });
+};
+
 // 加载模型列表（用于选择模型）
 const loadModels = async () => {
+  // 先初始化默认模型，确保它们始终存在
+  initDefaultModels();
+  
   try {
     const response = await getModelPage({ pageNo: 1, pageSize: 1000 });
     // 处理响应数据：可能是转换后的数组，也可能是包含 code/data 的对象
@@ -189,10 +219,7 @@ const loadModels = async () => {
       allModels = response.data;
     }
     
-    // 清空之前的映射
-    modelMap.value.clear();
-    
-    // 构建选项列表和完整模型信息映射
+    // 构建选项列表和完整模型信息映射（不清空默认模型）
     const dbModelOptions = allModels.map((item: any) => {
       // 保存完整的模型信息
       modelMap.value.set(item.id, item);
@@ -203,37 +230,13 @@ const loadModels = async () => {
       };
     });
     
-    // 添加默认模型选项（yolo11n.pt、yolov8n.pt）
-    // 使用负数ID来标识默认模型，避免与数据库中的模型ID冲突
-    const defaultModels = [
-      {
-        label: 'yolo11n.pt',
-        value: -1, // 使用 -1 表示 yolo11n.pt
-      },
-      {
-        label: 'yolov8n.pt',
-        value: -2, // 使用 -2 表示 yolov8n.pt
-      },
-    ];
-    
-    // 保存默认模型信息到映射中
-    modelMap.value.set(-1, {
-      id: -1,
-      name: 'yolo11n.pt',
-      model_path: 'yolo11n.pt',
-      version: undefined,
-    });
-    modelMap.value.set(-2, {
-      id: -2,
-      name: 'yolov8n.pt',
-      model_path: 'yolov8n.pt',
-      version: undefined,
-    });
-    
     // 将默认模型放在最前面，然后添加数据库中的模型
+    // 确保即使后端返回空列表，默认模型也会显示
     modelOptions.value = [...defaultModels, ...dbModelOptions];
   } catch (error) {
     console.error('加载模型列表失败', error);
+    // 即使加载失败，也确保默认模型显示
+    modelOptions.value = defaultModels;
   }
 };
 
@@ -647,6 +650,9 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   taskId.value = null;
   confirmLoading.value = false;
   resetFields();
+  
+  // 确保默认模型已初始化（在加载前）
+  initDefaultModels();
   
   // 加载选项数据
   await Promise.all([loadDevices(), loadModels()]);
