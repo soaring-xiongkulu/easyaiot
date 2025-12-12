@@ -351,57 +351,6 @@ def load_yolo_models(model_ids: List[int]) -> Dict[int, Any]:
         return {}
 
 
-def normalize_rtmp_url_for_host_network(rtmp_url: Optional[str]) -> Optional[str]:
-    """将RTMP URL中的IP地址或容器名转换为localhost（适用于host网络模式）
-    
-    由于realtime_algorithm_service使用host网络模式，必须使用localhost访问SRS服务器。
-    如果RTMP URL中包含IP地址（如192.168.0.200）或容器名（如srs-server），需要转换为localhost。
-    
-    Args:
-        rtmp_url: RTMP URL，格式如 rtmp://192.168.0.200:1935/live/stream
-        
-    Returns:
-        转换后的RTMP URL，格式如 rtmp://localhost:1935/live/stream
-    """
-    if not rtmp_url or not rtmp_url.startswith('rtmp://'):
-        return rtmp_url
-    
-    try:
-        # 解析URL: rtmp://host:port/path -> (host, port, path)
-        url_part = rtmp_url.replace('rtmp://', '')
-        if '/' in url_part:
-            host_port = url_part.split('/')[0]
-            path = '/' + '/'.join(url_part.split('/')[1:])
-        else:
-            host_port = url_part
-            path = ''
-        
-        if ':' in host_port:
-            host, port = host_port.split(':', 1)
-        else:
-            host = host_port
-            port = '1935'  # 默认RTMP端口
-        
-        # 如果host不是localhost或127.0.0.1，则转换为localhost
-        # 这样可以确保在host网络模式下正确访问SRS服务器
-        # 包括IP地址（如192.168.0.200）和容器名（如srs-server）都需要转换
-        if host not in ['localhost', '127.0.0.1']:
-            # 检测到IP地址或容器名，转换为localhost
-            logger.info(f'🔄 检测到RTMP URL使用IP地址或容器名 {host}，转换为localhost（realtime_algorithm_service使用host网络模式）')
-            logger.info(f'   原始地址: {rtmp_url}')
-            host = 'localhost'
-        
-        # 重新构建URL
-        normalized_url = f"rtmp://{host}:{port}{path}"
-        if normalized_url != rtmp_url:
-            logger.info(f'   转换后地址: {normalized_url}')
-        
-        return normalized_url
-    except Exception as e:
-        logger.warning(f"⚠️  转换RTMP URL失败: {str(e)}，使用原始URL: {rtmp_url}")
-        return rtmp_url
-
-
 def load_task_config():
     """从数据库加载任务配置（重启时会重新加载，确保获取最新的摄像头信息）"""
     global task_config, yolo_models, tracker
@@ -451,11 +400,9 @@ def load_task_config():
                 rtsp_url = device.source if device.source else None
                 # RTMP流地址作为输出（从device.rtmp_stream获取）
                 rtmp_url = device.rtmp_stream if device.rtmp_stream else None
-                # 重要：由于realtime_algorithm_service使用host网络模式，需要将RTMP URL中的IP地址转换为localhost
-                rtmp_url = normalize_rtmp_url_for_host_network(rtmp_url)
                 device_streams[device.id] = {
                     'rtsp_url': rtsp_url,  # 输入流地址
-                    'rtmp_url': rtmp_url,  # 输出流地址（已转换为localhost）
+                    'rtmp_url': rtmp_url,  # 输出流地址
                     'device_name': device.name or device.id
                 }
                 input_type = "RTSP" if rtsp_url and rtsp_url.startswith('rtsp://') else "RTMP" if rtsp_url and rtsp_url.startswith('rtmp://') else "输入流"
