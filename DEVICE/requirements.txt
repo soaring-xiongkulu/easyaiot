@@ -1,0 +1,12 @@
+# DEVICE 服务 Python 依赖包
+# 用于 drop_import_tables.py 脚本
+
+# 环境变量管理
+python-dotenv>=1.0.0
+
+# SQLAlchemy 数据库操作库
+sqlalchemy>=2.0.0
+
+# PostgreSQL 数据库驱动
+psycopg2-binary>=2.9.0
+

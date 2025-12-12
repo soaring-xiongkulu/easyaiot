@@ -15,6 +15,7 @@
     python drop_import_tables.py                    # 交互式确认
     python drop_import_tables.py --confirm          # 跳过确认直接执行
     python drop_import_tables.py --env=prod         # 使用指定环境配置并交互式确认
+    python drop_import_tables.py --skip-import      # 只删除表，不导入SQL文件
 
 说明:
     - 如果不提供 --confirm 参数，脚本会显示将要删除的表列表，并交互式询问确认
@@ -24,6 +25,9 @@
       * ruoyi-vue-pro20 -> ruoyi-vue-pro10.sql
       * iot-device20 -> iot-device10.sql
       * iot-message20 -> iot-message10.sql
+    - SQL文件路径: 项目根目录/.scripts/postgresql/
+    - 如果SQL文件不存在，脚本会只删除表而不导入（不会报错退出）
+    - 脚本使用SQLAlchemy直接执行SQL，不需要psql命令
 
 警告: 此操作会永久删除所有数据，请谨慎使用！
 """
@@ -179,10 +183,7 @@ def interactive_confirm_all_databases(db_tables_map):
     
     print(f"\n总计: {total_tables} 个表将被删除")
     print("\n⚠️  此操作会永久删除所有数据，无法恢复！")
-    print("删除后将自动导入以下SQL文件:")
-    for db_name, sql_file in DB_SQL_MAP.items():
-        print(f"  - {db_name} -> {sql_file}")
-    print("\n请确认是否继续删除和导入操作？")
+    print("\n请确认是否继续删除操作？")
     
     while True:
         try:
@@ -290,98 +291,149 @@ def check_database_exists(db_info, db_name):
         print(f"⚠️  检查数据库 '{db_name}' 是否存在时出错: {str(e)}")
         return False
 
+# 解析SQL文件为语句列表
+def parse_sql_file(sql_file_path):
+    """解析SQL文件，返回SQL语句列表"""
+    try:
+        with open(sql_file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 移除注释和空行
+        lines = content.split('\n')
+        cleaned_lines = []
+        in_multiline_comment = False
+        
+        for line in lines:
+            # 处理多行注释 /* ... */
+            if '/*' in line:
+                in_multiline_comment = True
+                line = line[:line.index('/*')]
+            if '*/' in line:
+                in_multiline_comment = False
+                line = line[line.index('*/') + 2:]
+            
+            if in_multiline_comment:
+                continue
+            
+            # 移除单行注释 --
+            if '--' in line:
+                line = line[:line.index('--')]
+            
+            # 移除psql元命令
+            if line.strip().startswith('\\'):
+                continue
+            
+            cleaned_lines.append(line)
+        
+        # 合并为完整内容并分割SQL语句
+        full_content = '\n'.join(cleaned_lines)
+        
+        # 按分号分割SQL语句（但要注意字符串中的分号）
+        statements = []
+        current = []
+        in_string = False
+        string_char = None
+        
+        for char in full_content:
+            current.append(char)
+            
+            if char in ("'", '"') and (len(current) == 1 or current[-2] != '\\'):
+                if not in_string:
+                    in_string = True
+                    string_char = char
+                elif char == string_char:
+                    in_string = False
+                    string_char = None
+            
+            if not in_string and char == ';':
+                stmt = ''.join(current).strip()
+                if stmt and not re.match(r'^\s*(DROP\s+DATABASE|CREATE\s+DATABASE)', stmt, re.IGNORECASE):
+                    statements.append(stmt)
+                current = []
+        
+        # 处理最后一个语句（如果没有分号结尾）
+        if current:
+            stmt = ''.join(current).strip()
+            if stmt and not re.match(r'^\s*(DROP\s+DATABASE|CREATE\s+DATABASE)', stmt, re.IGNORECASE):
+                statements.append(stmt)
+        
+        return [s for s in statements if s]
+        
+    except Exception as e:
+        print(f"⚠️  解析SQL文件时出错: {str(e)}")
+        return []
+
 # 导入SQL文件
-def import_sql_file(db_info, sql_file_path, target_database):
-    """使用psql命令导入SQL文件"""
+def import_sql_file(engine, sql_file_path, target_database):
+    """使用SQLAlchemy直接执行SQL文件"""
     if not os.path.exists(sql_file_path):
-        print(f"❌ SQL文件不存在: {sql_file_path}")
+        print(f"⚠️  SQL文件不存在: {sql_file_path}")
+        print(f"💡 将跳过导入步骤，仅删除表")
         return False
     
     print(f"\n正在导入SQL文件: {sql_file_path}")
     print(f"目标数据库: {target_database}\n")
     
-    # 创建临时文件，过滤掉DROP DATABASE和CREATE DATABASE语句
-    import tempfile
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.sql', delete=False) as temp_file:
-        temp_sql_path = temp_file.name
-        
-        # 读取并过滤SQL文件
-        with open(sql_file_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                # 移除DROP DATABASE、CREATE DATABASE语句，以及psql元命令
-                if not re.match(r'^\s*(DROP\s+DATABASE|CREATE\s+DATABASE|\\connect|\\unrestrict|\\restrict|\\encoding)', line, re.IGNORECASE):
-                    temp_file.write(line)
+    # 解析SQL文件
+    statements = parse_sql_file(sql_file_path)
+    
+    if not statements:
+        print("⚠️  SQL文件中没有有效的SQL语句")
+        return False
+    
+    print(f"📝 找到 {len(statements)} 条SQL语句，开始执行...\n")
     
     try:
-        # 构建psql命令
-        # 使用PGPASSWORD环境变量传递密码，避免在命令行中暴露
-        env = os.environ.copy()
-        if db_info['password']:
-            env['PGPASSWORD'] = db_info['password']
-        
-        # 构建psql连接字符串
-        # 格式: psql -h host -p port -U user -d database -f sql_file
-        psql_cmd = [
-            'psql',
-            '-h', db_info['host'],
-            '-p', str(db_info['port']),
-            '-U', db_info['user'],
-            '-d', target_database,
-            '-f', temp_sql_path,
-            '-q'  # 安静模式，只显示错误
-        ]
-        
-        result = subprocess.run(
-            psql_cmd,
-            env=env,
-            capture_output=True,
-            text=True,
-            check=False
-        )
-        
-        # 清理临时文件
-        os.unlink(temp_sql_path)
-        
-        if result.returncode == 0:
-            print("✅ SQL文件导入成功！")
-            return True
-        else:
-            # 检查是否只是警告（某些SQL文件可能包含警告但实际执行成功）
-            error_output = result.stderr
-            if error_output:
-                # 过滤掉常见的非致命错误
-                lines = error_output.split('\n')
-                fatal_errors = [line for line in lines 
-                              if line and 'ERROR' in line.upper() 
-                              and 'already exists' not in line.lower()
-                              and 'does not exist' not in line.lower()]
+        with engine.connect() as conn:
+            trans = conn.begin()
+            try:
+                executed_count = 0
+                error_count = 0
                 
-                if fatal_errors:
-                    print(f"⚠️  SQL文件导入时出现错误:")
-                    for error in fatal_errors[:5]:  # 只显示前5个错误
-                        print(f"   {error}")
+                for i, statement in enumerate(statements, 1):
+                    try:
+                        # 跳过空语句
+                        if not statement.strip():
+                            continue
+                        
+                        # 执行SQL语句
+                        conn.execute(text(statement))
+                        executed_count += 1
+                        
+                        # 每100条语句显示一次进度
+                        if executed_count % 100 == 0:
+                            print(f"   已执行 {executed_count}/{len(statements)} 条语句...")
+                        
+                    except Exception as e:
+                        error_count += 1
+                        # 只显示前10个错误，避免输出过多
+                        if error_count <= 10:
+                            error_msg = str(e).split('\n')[0]  # 只取第一行错误信息
+                            print(f"⚠️  执行第 {i} 条语句时出错: {error_msg}")
+                        elif error_count == 11:
+                            print(f"⚠️  ... 还有更多错误，将不再显示")
+                
+                # 提交事务
+                trans.commit()
+                
+                print(f"\n✅ SQL文件导入完成！")
+                print(f"   成功执行: {executed_count} 条语句")
+                if error_count > 0:
+                    print(f"   执行失败: {error_count} 条语句")
                     return False
-                else:
-                    print("✅ SQL文件导入完成（可能有警告，但已忽略）")
-                    return True
-            else:
-                print("✅ SQL文件导入成功！")
                 return True
                 
-    except FileNotFoundError:
-        print("❌ 错误: 未找到psql命令")
-        print("💡 请确保已安装PostgreSQL客户端工具")
-        # 清理临时文件
-        if os.path.exists(temp_sql_path):
-            os.unlink(temp_sql_path)
-        return False
+            except Exception as e:
+                trans.rollback()
+                print(f"\n❌ 导入SQL文件时发生错误: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return False
+                
     except Exception as e:
-        print(f"❌ 导入SQL文件时发生错误: {str(e)}")
+        print(f"❌ 连接数据库执行SQL时发生错误: {str(e)}")
         import traceback
         traceback.print_exc()
-        # 清理临时文件
-        if os.path.exists(temp_sql_path):
-            os.unlink(temp_sql_path)
         return False
 
 def main():
@@ -410,26 +462,35 @@ def main():
     # 强制使用localhost作为数据库主机
     database_url_for_sqlalchemy = re.sub(r'@[^:/]+', '@localhost', database_url_for_sqlalchemy)
     
-    # 解析数据库连接信息（用于psql命令）
+    # 解析数据库连接信息
     db_info = parse_database_url(database_url)
+    
+    # 获取项目根目录（提前获取，用于显示SQL文件状态）
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
     
     print(f"\n📊 数据库连接信息:")
     # 隐藏密码显示
     safe_url = database_url_for_sqlalchemy.split('@')[1] if '@' in database_url_for_sqlalchemy else database_url_for_sqlalchemy
     print(f"   数据库: {safe_url}")
     print(f"   将处理的数据库:")
+    sql_dir = os.path.join(project_root, '.scripts', 'postgresql')
     for db_name, sql_file in DB_SQL_MAP.items():
-        print(f"     - {db_name} -> {sql_file}")
+        sql_file_path = os.path.join(sql_dir, sql_file)
+        exists_mark = "✓" if os.path.exists(sql_file_path) else "✗"
+        print(f"     {exists_mark} {db_name} -> {sql_file}")
     print()
     
-    # 获取项目根目录
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(script_dir)
-    sql_dir = os.path.join(project_root, '.scripts', 'postgresql')
-    
+    # SQL目录不存在时给出警告，但不退出（允许只删除表）
     if not os.path.exists(sql_dir):
-        print(f"❌ SQL文件目录不存在: {sql_dir}")
-        sys.exit(1)
+        print(f"⚠️  SQL文件目录不存在: {sql_dir}")
+        if not args.skip_import:
+            print(f"💡 提示: 如果只想删除表而不导入，可以使用 --skip-import 参数")
+            print(f"💡 或者提供SQL文件目录路径")
+        if args.skip_import:
+            print(f"ℹ️  已设置 --skip-import，将只删除表，不导入SQL文件")
+        else:
+            print(f"⚠️  继续执行将只删除表，不会导入SQL文件")
     
     # 收集所有数据库的表信息（用于确认）
     db_tables_map = {}
@@ -465,8 +526,22 @@ def main():
     
     print("✅ 数据库连接成功\n")
     
+    # 检查SQL文件目录
+    sql_dir = os.path.join(project_root, '.scripts', 'postgresql')
+    sql_files_exist = {}
+    for db_name, sql_file in DB_SQL_MAP.items():
+        sql_file_path = os.path.join(sql_dir, sql_file)
+        sql_files_exist[db_name] = os.path.exists(sql_file_path)
+    
     # 如果没有通过命令行确认，则进行交互式确认
     if not args.confirm and not args.skip_drop:
+        # 更新确认信息，显示SQL文件状态
+        print("删除后将尝试导入以下SQL文件:")
+        for db_name, sql_file in DB_SQL_MAP.items():
+            exists_mark = "✓" if sql_files_exist.get(db_name, False) else "✗ (不存在)"
+            print(f"  {exists_mark} {db_name} -> {sql_file}")
+        print()
+        
         if not interactive_confirm_all_databases(db_tables_map):
             sys.exit(0)
     
@@ -482,11 +557,6 @@ def main():
         print(f"处理数据库: {db_name}")
         print(f"{'='*50}")
         
-        # 检查SQL文件是否存在
-        if not os.path.exists(sql_file_path):
-            print(f"❌ SQL文件不存在: {sql_file_path}")
-            continue
-        
         # 步骤1: 删除所有表
         if not args.skip_drop:
             drop_success = drop_all_tables(engine, db_name)
@@ -498,11 +568,20 @@ def main():
         
         # 步骤2: 导入SQL文件
         if not args.skip_import:
-            import_success = import_sql_file(db_info, sql_file_path, target_database=db_name)
-            if import_success:
-                success_count += 1
+            # 检查SQL文件是否存在
+            if os.path.exists(sql_file_path):
+                import_success = import_sql_file(engine, sql_file_path, target_database=db_name)
+                if import_success:
+                    success_count += 1
+                else:
+                    print(f"⚠️  导入数据库 '{db_name}' 的SQL文件时出现问题")
+                    # 即使导入失败，如果删除成功也算部分成功
+                    success_count += 1
             else:
-                print(f"❌ 导入数据库 '{db_name}' 的SQL文件失败")
+                print(f"⚠️  SQL文件不存在: {sql_file_path}")
+                print(f"💡 已删除表，但无法导入SQL文件（文件不存在）")
+                # 如果只是删除表，也算成功
+                success_count += 1
         else:
             print(f"ℹ️  跳过导入步骤")
             success_count += 1
