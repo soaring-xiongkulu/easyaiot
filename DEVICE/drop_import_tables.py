@@ -1,35 +1,30 @@
 #!/usr/bin/env python3
 """
-删除DEVICE服务所有数据库表并重新导入表结构的脚本
+删除DEVICE服务所有数据库表的脚本
 
 使用方法:
-    python drop_import_tables.py [--env=环境名] [--confirm] [--skip-drop] [--skip-import]
+    python drop_import_tables.py [--env=环境名] [--confirm]
 
 参数:
     --env: 指定环境配置文件，例如: --env=prod 会加载 .env.prod，默认加载 .env
-    --confirm: 跳过交互式确认，直接执行删除和导入操作（谨慎使用）
-    --skip-drop: 跳过删除表步骤，直接导入
-    --skip-import: 只删除表，不导入
+    --confirm: 跳过交互式确认，直接执行删除操作（谨慎使用）
 
 示例:
     python drop_import_tables.py                    # 交互式确认
     python drop_import_tables.py --confirm          # 跳过确认直接执行
     python drop_import_tables.py --env=prod         # 使用指定环境配置并交互式确认
-    python drop_import_tables.py --skip-import      # 只删除表，不导入SQL文件
 
 说明:
     - 如果不提供 --confirm 参数，脚本会显示将要删除的表列表，并交互式询问确认
-    - 提供 --confirm 参数会跳过交互式确认，直接执行删除和导入操作
+    - 提供 --confirm 参数会跳过交互式确认，直接执行删除操作
     - 建议在非交互式环境中使用 --confirm 参数
     - 脚本会处理以下数据库：
-      * ruoyi-vue-pro20 -> ruoyi-vue-pro10.sql
-      * iot-device20 -> iot-device10.sql
-      * iot-message20 -> iot-message10.sql
-    - SQL文件路径: 项目根目录/.scripts/postgresql/
-    - 如果SQL文件不存在，脚本会只删除表而不导入（不会报错退出）
+      * ruoyi-vue-pro20
+      * iot-device20
+      * iot-message20
     - 脚本使用SQLAlchemy直接执行SQL，不需要psql命令
 
-警告: 此操作会永久删除所有数据，请谨慎使用！
+警告: 此操作会永久删除所有数据，无法恢复，请谨慎使用！
 """
 import argparse
 import os
@@ -115,24 +110,20 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 
-# 数据库和SQL文件映射
-DB_SQL_MAP = {
-    "ruoyi-vue-pro20": "ruoyi-vue-pro10.sql",
-    "iot-device20": "iot-device10.sql",
-    "iot-message20": "iot-message10.sql"
-}
+# 要处理的数据库列表
+DATABASES = [
+    "ruoyi-vue-pro20",
+    "iot-device20",
+    "iot-message20"
+]
 
 # 解析命令行参数
 def parse_args():
-    parser = argparse.ArgumentParser(description='删除DEVICE服务所有数据库表并重新导入表结构')
+    parser = argparse.ArgumentParser(description='删除DEVICE服务所有数据库表')
     parser.add_argument('--env', type=str, default='', 
                        help='指定环境配置文件，例如: --env=prod 会加载 .env.prod，默认加载 .env')
     parser.add_argument('--confirm', action='store_true',
-                       help='跳过交互式确认，直接执行删除和导入操作（谨慎使用）')
-    parser.add_argument('--skip-drop', action='store_true',
-                       help='跳过删除表步骤，直接导入')
-    parser.add_argument('--skip-import', action='store_true',
-                       help='只删除表，不导入')
+                       help='跳过交互式确认，直接执行删除操作（谨慎使用）')
     return parser.parse_args()
 
 # 加载环境变量配置文件
@@ -465,7 +456,7 @@ def main():
     # 解析数据库连接信息
     db_info = parse_database_url(database_url)
     
-    # 获取项目根目录（提前获取，用于显示SQL文件状态）
+    # 获取项目根目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
     
@@ -474,29 +465,15 @@ def main():
     safe_url = database_url_for_sqlalchemy.split('@')[1] if '@' in database_url_for_sqlalchemy else database_url_for_sqlalchemy
     print(f"   数据库: {safe_url}")
     print(f"   将处理的数据库:")
-    sql_dir = os.path.join(project_root, '.scripts', 'postgresql')
-    for db_name, sql_file in DB_SQL_MAP.items():
-        sql_file_path = os.path.join(sql_dir, sql_file)
-        exists_mark = "✓" if os.path.exists(sql_file_path) else "✗"
-        print(f"     {exists_mark} {db_name} -> {sql_file}")
+    for db_name in DATABASES:
+        print(f"     - {db_name}")
     print()
-    
-    # SQL目录不存在时给出警告，但不退出（允许只删除表）
-    if not os.path.exists(sql_dir):
-        print(f"⚠️  SQL文件目录不存在: {sql_dir}")
-        if not args.skip_import:
-            print(f"💡 提示: 如果只想删除表而不导入，可以使用 --skip-import 参数")
-            print(f"💡 或者提供SQL文件目录路径")
-        if args.skip_import:
-            print(f"ℹ️  已设置 --skip-import，将只删除表，不导入SQL文件")
-        else:
-            print(f"⚠️  继续执行将只删除表，不会导入SQL文件")
     
     # 收集所有数据库的表信息（用于确认）
     db_tables_map = {}
     engines = {}
     
-    for db_name in DB_SQL_MAP.keys():
+    for db_name in DATABASES:
         # 检查数据库是否存在
         if not check_database_exists(db_info, db_name):
             print(f"⚠️  数据库 '{db_name}' 不存在，将跳过")
@@ -526,22 +503,8 @@ def main():
     
     print("✅ 数据库连接成功\n")
     
-    # 检查SQL文件目录
-    sql_dir = os.path.join(project_root, '.scripts', 'postgresql')
-    sql_files_exist = {}
-    for db_name, sql_file in DB_SQL_MAP.items():
-        sql_file_path = os.path.join(sql_dir, sql_file)
-        sql_files_exist[db_name] = os.path.exists(sql_file_path)
-    
     # 如果没有通过命令行确认，则进行交互式确认
-    if not args.confirm and not args.skip_drop:
-        # 更新确认信息，显示SQL文件状态
-        print("删除后将尝试导入以下SQL文件:")
-        for db_name, sql_file in DB_SQL_MAP.items():
-            exists_mark = "✓" if sql_files_exist.get(db_name, False) else "✗ (不存在)"
-            print(f"  {exists_mark} {db_name} -> {sql_file}")
-        print()
-        
+    if not args.confirm:
         if not interactive_confirm_all_databases(db_tables_map):
             sys.exit(0)
     
@@ -550,41 +513,16 @@ def main():
     total_count = len(engines)
     
     for db_name, engine in engines.items():
-        sql_file = DB_SQL_MAP[db_name]
-        sql_file_path = os.path.join(sql_dir, sql_file)
-        
         print(f"\n{'='*50}")
         print(f"处理数据库: {db_name}")
         print(f"{'='*50}")
         
-        # 步骤1: 删除所有表
-        if not args.skip_drop:
-            drop_success = drop_all_tables(engine, db_name)
-            if not drop_success:
-                print(f"❌ 删除数据库 '{db_name}' 的表失败，跳过导入")
-                continue
-        else:
-            print(f"ℹ️  跳过删除表步骤")
-        
-        # 步骤2: 导入SQL文件
-        if not args.skip_import:
-            # 检查SQL文件是否存在
-            if os.path.exists(sql_file_path):
-                import_success = import_sql_file(engine, sql_file_path, target_database=db_name)
-                if import_success:
-                    success_count += 1
-                else:
-                    print(f"⚠️  导入数据库 '{db_name}' 的SQL文件时出现问题")
-                    # 即使导入失败，如果删除成功也算部分成功
-                    success_count += 1
-            else:
-                print(f"⚠️  SQL文件不存在: {sql_file_path}")
-                print(f"💡 已删除表，但无法导入SQL文件（文件不存在）")
-                # 如果只是删除表，也算成功
-                success_count += 1
-        else:
-            print(f"ℹ️  跳过导入步骤")
+        # 删除所有表
+        drop_success = drop_all_tables(engine, db_name)
+        if drop_success:
             success_count += 1
+        else:
+            print(f"❌ 删除数据库 '{db_name}' 的表失败")
         
         # 关闭引擎连接
         engine.dispose()
