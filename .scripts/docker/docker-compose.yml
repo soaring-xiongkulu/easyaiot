@@ -123,12 +123,17 @@ services:
       # 注意：确保 ./tdengine-entrypoint.sh 文件存在，否则挂载会失败
       - ./tdengine-entrypoint.sh:/tdengine-entrypoint.sh:rw
     entrypoint: ["/bin/bash", "/tdengine-entrypoint.sh"]
+    # 增加文件描述符限制，解决 "Too many open files" 错误
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     healthcheck:
       test: ["CMD-SHELL", "taos -h localhost -s 'select 1;' || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 60s
     networks:
       - easyaiot-network
 

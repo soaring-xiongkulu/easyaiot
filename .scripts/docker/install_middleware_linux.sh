@@ -2760,21 +2760,67 @@ wait_for_kafka() {
 
 # 等待 TDengine 服务就绪
 wait_for_tdengine() {
-    local max_attempts=60
+    local max_attempts=90
     local attempt=0
     
     print_info "等待 TDengine 服务就绪..."
+    
+    # 首先检查容器是否在运行
+    if ! docker ps --format "{{.Names}}" | grep -q "^tdengine-server$"; then
+        print_error "TDengine 容器未运行"
+        return 1
+    fi
+    
     while [ $attempt -lt $max_attempts ]; do
-        # 使用 taos 命令测试连接
-        if docker exec tdengine-server taos -h localhost -s "select 1;" > /dev/null 2>&1; then
-            print_success "TDengine 服务已就绪"
-            return 0
+        # 检查容器健康状态
+        local health_status=$(docker inspect --format='{{.State.Health.Status}}' tdengine-server 2>/dev/null || echo "none")
+        
+        # 检查进程是否在运行
+        if ! docker exec tdengine-server pgrep -f taosd > /dev/null 2>&1; then
+            if [ $attempt -gt 10 ]; then
+                print_error "TDengine 进程未运行"
+                print_info "检查容器日志:"
+                docker logs --tail 20 tdengine-server 2>&1 | head -n 10
+                return 1
+            fi
         fi
+        
+        # 使用 taos 命令测试连接（带超时）
+        local test_result=$(timeout 5 docker exec tdengine-server taos -h localhost -s "select 1;" 2>&1)
+        local exit_code=$?
+        
+        if [ $exit_code -eq 0 ]; then
+            # 再次确认，检查集群状态（避免 cluster_id 为 0 的情况）
+            local cluster_check=$(timeout 5 docker exec tdengine-server taos -h localhost -s "show dnodes;" 2>&1 | grep -c "localhost\|online" || echo "0")
+            if [ "$cluster_check" -gt 0 ]; then
+                print_success "TDengine 服务已就绪（连接测试通过，集群状态正常）"
+                return 0
+            else
+                if [ $attempt -gt 30 ]; then
+                    print_warning "TDengine 连接成功但集群状态异常（cluster_id可能为0），继续等待..."
+                fi
+            fi
+        elif [ $exit_code -eq 124 ]; then
+            if [ $attempt -gt 20 ]; then
+                print_warning "TDengine 连接超时，继续等待..."
+            fi
+        fi
+        
         attempt=$((attempt + 1))
+        if [ $((attempt % 10)) -eq 0 ]; then
+            print_info "  等待中... ($attempt/$max_attempts)"
+            if [ "$health_status" != "none" ]; then
+                print_info "  容器健康状态: $health_status"
+            fi
+        fi
         sleep 2
     done
     
-    print_error "TDengine 服务未就绪"
+    print_error "TDengine 服务未就绪（等待了 $((max_attempts * 2)) 秒）"
+    print_info "检查容器状态:"
+    docker ps -a --filter "name=tdengine-server" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+    print_info "检查容器日志（最后20行）:"
+    docker logs --tail 20 tdengine-server 2>&1
     return 1
 }
 
@@ -2797,27 +2843,43 @@ create_tdengine_database() {
     
     print_info "创建 TDengine 数据库: $db_name"
     
+    # 首先验证 TDengine 服务是否就绪
+    if ! timeout 5 docker exec tdengine-server taos -h localhost -s "select 1;" > /dev/null 2>&1; then
+        print_error "TDengine 服务未就绪，无法创建数据库"
+        return 1
+    fi
+    
     # 检查数据库是否已存在
     if check_tdengine_database "$db_name"; then
         print_info "TDengine 数据库 $db_name 已存在，跳过创建"
         return 0
     fi
     
-    # 创建数据库（使用 if not exists 避免重复创建错误）
-    local output=$(docker exec tdengine-server taos -h localhost -s "create database if not exists $db_name;" 2>&1)
+    # 创建数据库（使用 if not exists 避免重复创建错误，添加超时）
+    local output=$(timeout 30 docker exec tdengine-server taos -h localhost -s "create database if not exists $db_name;" 2>&1)
     local exit_code=$?
     
     if [ $exit_code -eq 0 ]; then
         print_success "TDengine 数据库 $db_name 创建成功"
         return 0
+    elif [ $exit_code -eq 124 ]; then
+        print_error "TDengine 数据库 $db_name 创建超时"
+        return 1
     else
         # 检查是否是因为数据库已存在（某些情况下可能检测不到）
         if echo "$output" | grep -qiE "(already exists|exist)"; then
             print_info "TDengine 数据库 $db_name 已存在（检测到已存在消息）"
             return 0
         else
-            print_error "TDengine 数据库 $db_name 创建失败: $output"
-            return 1
+            # 检查是否是连接错误
+            if echo "$output" | grep -qiE "(Unable to establish connection|Operation timeout|connection refused)"; then
+                print_error "TDengine 数据库 $db_name 创建失败: 连接错误"
+                print_info "请检查 TDengine 服务状态: docker logs tdengine-server"
+                return 1
+            else
+                print_error "TDengine 数据库 $db_name 创建失败: $output"
+                return 1
+            fi
         fi
     fi
 }
@@ -2827,13 +2889,21 @@ execute_tdengine_sql_script() {
     local db_name=$1
     local sql_file=$2
     local error_log=$(mktemp)
+    local timeout_seconds=300  # 5分钟超时
     
     if [ ! -f "$sql_file" ]; then
         print_error "SQL 文件不存在: $sql_file"
         return 1
     fi
     
-    print_info "执行 TDengine SQL 脚本: $sql_file -> 数据库: $db_name"
+    print_info "执行 TDengine SQL 脚本: $sql_file -> 数据库: $db_name (超时: ${timeout_seconds}秒)"
+    
+    # 首先验证 TDengine 服务是否真正就绪
+    if ! timeout 5 docker exec tdengine-server taos -h localhost -s "select 1;" > /dev/null 2>&1; then
+        print_error "TDengine 服务未就绪，无法执行 SQL 脚本"
+        rm -f "$error_log"
+        return 1
+    fi
     
     # TDengine 执行 SQL 脚本的方式：
     # 方法1: 将 SQL 文件复制到容器内执行（推荐）
@@ -2850,9 +2920,10 @@ execute_tdengine_sql_script() {
         cat "$sql_file"
     } > "$temp_sql_content"
     
-    # 通过标准输入执行 SQL 脚本
+    # 通过标准输入执行 SQL 脚本，添加超时机制避免卡住
     # TDengine 的 taos 命令可以通过标准输入读取 SQL
-    local output=$(docker exec -i tdengine-server taos -h localhost < "$temp_sql_content" 2>"$error_log")
+    print_info "开始导入 SQL 脚本（这可能需要一些时间）..."
+    local output=$(timeout $timeout_seconds docker exec -i tdengine-server taos -h localhost < "$temp_sql_content" 2>"$error_log")
     local exit_code=$?
     
     # 清理临时文件
@@ -2862,6 +2933,15 @@ execute_tdengine_sql_script() {
         print_success "TDengine SQL 脚本执行成功: $sql_file"
         rm -f "$error_log"
         return 0
+    elif [ $exit_code -eq 124 ]; then
+        # 超时
+        local error_content=$(cat "$error_log" 2>/dev/null || echo "")
+        rm -f "$error_log"
+        print_error "TDengine SQL 脚本执行超时（超过 ${timeout_seconds} 秒）"
+        print_info "这通常表示 TDengine 服务未正常启动或响应缓慢"
+        print_info "错误信息: ${error_content:0:500}"
+        print_info "请检查 TDengine 服务状态: docker logs tdengine-server"
+        return 1
     else
         # 检查错误日志，忽略常见的非致命错误
         local error_content=$(cat "$error_log" 2>/dev/null || echo "")
@@ -2872,10 +2952,18 @@ execute_tdengine_sql_script() {
             print_success "TDengine SQL 脚本执行完成: $sql_file (可能有警告，但已忽略)"
             return 0
         else
-            print_warning "TDengine SQL 脚本执行可能有问题: $sql_file"
-            print_info "错误信息: $error_content"
-            # 即使有错误也继续，因为某些 SQL 文件可能包含错误处理
-            return 0
+            # 检查是否是连接错误
+            if echo "$error_content" | grep -qiE "(Unable to establish connection|Operation timeout|connection refused)"; then
+                print_error "TDengine SQL 脚本执行失败: 连接错误"
+                print_info "错误信息: ${error_content:0:500}"
+                print_info "请检查 TDengine 服务是否正常运行: docker logs tdengine-server"
+                return 1
+            else
+                print_warning "TDengine SQL 脚本执行可能有问题: $sql_file"
+                print_info "错误信息: ${error_content:0:500}"
+                # 即使有错误也继续，因为某些 SQL 文件可能包含错误处理
+                return 0
+            fi
         fi
     fi
 }
