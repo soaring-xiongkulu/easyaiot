@@ -258,15 +258,12 @@ def init_minio_buckets_and_upload():
         
         for bucket_name, dataset_dir, object_prefix in upload_tasks:
             if dataset_dir and os.path.isdir(dataset_dir):
-                # 检查存储桶是否已有数据（检查特定前缀）
-                if bucket_has_objects(bucket_name, object_prefix):
-                    print(f"UPLOAD_SKIP:{bucket_name}:存储桶已存在且已有数据（前缀: {object_prefix if object_prefix else '根目录'}），跳过上传")
-                else:
-                    upload_count, upload_success = upload_file_recursive(bucket_name, dataset_dir, object_prefix, dataset_dir)
-                    
-                    print(f"UPLOAD_RESULT:{bucket_name}:{upload_success}/{upload_count}")
-                    total_upload_count += upload_count
-                    total_upload_success += upload_success
+                # 直接执行上传，不管存储桶是否已有数据
+                upload_count, upload_success = upload_file_recursive(bucket_name, dataset_dir, object_prefix, dataset_dir)
+                
+                print(f"UPLOAD_RESULT:{bucket_name}:{upload_success}/{upload_count}")
+                total_upload_count += upload_count
+                total_upload_success += upload_success
             else:
                 print(f"UPLOAD_SKIP:{bucket_name}:数据集目录不存在或无效: {dataset_dir}")
         
