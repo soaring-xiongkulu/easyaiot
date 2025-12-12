@@ -30,6 +30,61 @@ class ModelService:
             secret_key=secret_key,
             secure=secure
         )
+    
+    @staticmethod
+    def _get_minio_config_info():
+        """获取MinIO配置信息（用于诊断，不包含敏感信息）"""
+        minio_endpoint = os.getenv('MINIO_ENDPOINT', 'MinIO:9000')
+        access_key = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
+        secure = os.getenv('MINIO_SECURE', 'false').lower() == 'true'
+        # 只显示访问密钥的前4个字符，用于诊断
+        access_key_display = access_key[:4] + '***' if len(access_key) > 4 else '***'
+        return {
+            'endpoint': minio_endpoint,
+            'access_key': access_key_display,
+            'secure': secure,
+            'access_key_set': bool(access_key),
+            'secret_key_set': bool(os.getenv('MINIO_SECRET_KEY'))
+        }
+    
+    @staticmethod
+    def _format_minio_error(e, operation="操作"):
+        """格式化MinIO错误信息，提供诊断信息"""
+        error_code = getattr(e, 'code', 'Unknown')
+        error_message = str(e)
+        
+        # 针对特定错误提供友好的错误信息
+        if error_code == 'InvalidAccessKeyId':
+            config_info = ModelService._get_minio_config_info()
+            friendly_msg = (
+                f"MinIO访问密钥配置错误：提供的Access Key ID不存在。\n"
+                f"诊断信息：\n"
+                f"  - MinIO端点: {config_info['endpoint']}\n"
+                f"  - Access Key: {config_info['access_key']}\n"
+                f"  - Access Key已设置: {config_info['access_key_set']}\n"
+                f"  - Secret Key已设置: {config_info['secret_key_set']}\n"
+                f"解决方案：\n"
+                f"  1. 检查环境变量 MINIO_ACCESS_KEY 和 MINIO_SECRET_KEY 是否正确设置\n"
+                f"  2. 确认MinIO服务器上的访问密钥与配置一致\n"
+                f"  3. 如果使用Docker，检查 .env.docker 文件或 docker-compose.yaml 中的环境变量配置\n"
+                f"  4. 如果MinIO服务已重新部署，可能需要更新访问密钥配置"
+            )
+            return friendly_msg
+        elif error_code == 'SignatureDoesNotMatch':
+            config_info = ModelService._get_minio_config_info()
+            friendly_msg = (
+                f"MinIO密钥签名不匹配：Secret Key可能不正确。\n"
+                f"诊断信息：\n"
+                f"  - MinIO端点: {config_info['endpoint']}\n"
+                f"  - Access Key: {config_info['access_key']}\n"
+                f"解决方案：检查环境变量 MINIO_SECRET_KEY 是否正确"
+            )
+            return friendly_msg
+        elif error_code == 'NoSuchBucket':
+            friendly_msg = f"MinIO存储桶不存在。请确认存储桶名称正确，或检查是否有权限创建存储桶"
+            return friendly_msg
+        else:
+            return f"MinIO {operation}错误: {error_message} (错误代码: {error_code})"
 
     @staticmethod
     def download_from_minio(bucket_name, object_name, destination_path):
@@ -61,8 +116,10 @@ class ModelService:
             current_app.logger.info(f"成功下载Minio对象: {bucket_name}/{object_name} -> {destination_path}")
             return True, None
         except S3Error as e:
-            error_msg = f"Minio下载错误: {str(e)}"
+            error_msg = ModelService._format_minio_error(e, "下载")
             current_app.logger.error(error_msg)
+            # 记录原始错误信息用于调试
+            current_app.logger.debug(f"MinIO下载原始错误: {str(e)}")
             return False, error_msg
         except Exception as e:
             error_msg = f"Minio下载未知错误: {str(e)}"
@@ -133,8 +190,10 @@ class ModelService:
                 return True, None
                 
         except S3Error as e:
-            error_msg = f"Minio目录下载错误: {str(e)}"
+            error_msg = ModelService._format_minio_error(e, "目录下载")
             current_app.logger.error(error_msg)
+            # 记录原始错误信息用于调试
+            current_app.logger.debug(f"MinIO目录下载原始错误: {str(e)}")
             return False, error_msg
         except Exception as e:
             error_msg = f"Minio目录下载未知错误: {str(e)}"
@@ -182,8 +241,10 @@ class ModelService:
                 return False, error_msg
 
         except S3Error as e:
-            error_msg = f"Minio上传错误: {str(e)}"
+            error_msg = ModelService._format_minio_error(e, "上传")
             current_app.logger.error(error_msg)
+            # 记录原始错误信息用于调试
+            current_app.logger.debug(f"MinIO上传原始错误: {str(e)}")
             return False, error_msg
         except Exception as e:
             error_msg = f"Minio上传未知错误: {str(e)}"
@@ -250,8 +311,10 @@ class ModelService:
 
             return True, None
         except S3Error as e:
-            error_msg = f"Minio目录上传错误: {str(e)}"
+            error_msg = ModelService._format_minio_error(e, "目录上传")
             current_app.logger.error(error_msg)
+            # 记录原始错误信息用于调试
+            current_app.logger.debug(f"MinIO目录上传原始错误: {str(e)}")
             return False, error_msg
         except Exception as e:
             error_msg = f"Minio目录上传未知错误: {str(e)}"
@@ -409,7 +472,10 @@ class ModelService:
                         raise
                         
         except S3Error as e:
-            current_app.logger.error(f"Minio删除错误: {str(e)}")
+            error_msg = ModelService._format_minio_error(e, "删除")
+            current_app.logger.error(error_msg)
+            # 记录原始错误信息用于调试
+            current_app.logger.debug(f"MinIO删除原始错误: {str(e)}")
             return False
         except Exception as e:
             current_app.logger.error(f"Minio删除未知错误: {str(e)}")
