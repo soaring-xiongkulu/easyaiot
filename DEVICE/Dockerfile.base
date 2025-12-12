@@ -47,11 +47,11 @@ RUN mvn process-resources -B -Drevision=1.0.0 && \
 
 # 第五步：构建项目（跳过测试）
 # 注意：需要指定 revision 参数，因为项目使用了 ${revision} 作为版本占位符
+# 注意：在 Docker 环境中，并行构建可能导致锁竞争问题，因此使用单线程构建
 RUN mvn clean package -DskipTests \
     -Dmaven.test.skip=true \
     -Dcheckstyle.skip=true \
-    -Drevision=1.0.0 \
-    -T 2C
+    -Drevision=1.0.0
 
 # 第六步：收集所有编译好的 Jar 包到统一目录
 # 创建目标目录

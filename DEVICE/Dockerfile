@@ -28,7 +28,8 @@ WORKDIR /app
 COPY . .
 
 # 跳过测试并打包所有模块
-RUN mvn clean package -DskipTests -Dmaven.test.skip=true -Drevision=1.0.0 -T 2C
+# 注意：在 Docker 环境中，并行构建可能导致锁竞争问题，因此使用单线程构建
+RUN mvn clean package -DskipTests -Dmaven.test.skip=true -Drevision=1.0.0
 
 # 运行时基础镜像
 FROM bellsoft/liberica-openjdk-rocky:21.0.8-cds AS runtime-base
