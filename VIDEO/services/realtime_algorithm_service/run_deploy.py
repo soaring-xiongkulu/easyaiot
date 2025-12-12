@@ -767,6 +767,12 @@ def check_rtmp_server_connection(rtmp_url: str) -> bool:
             host = host_port
             port = 1935  # 默认RTMP端口
         
+        # 重要：realtime_algorithm_service 使用 host 网络模式，必须使用 localhost 访问 SRS
+        # 如果 RTMP URL 中使用的是容器名（如 srs-server 或 srs），需要强制转换为 localhost
+        if host in ['srs-server', 'srs', 'SRS']:
+            logger.debug(f'检测到 SRS 配置使用容器名 {host}，强制转换为 localhost（realtime_algorithm_service 使用 host 网络模式）')
+            host = 'localhost'
+        
         # 尝试连接RTMP服务器端口
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(3)
@@ -819,6 +825,13 @@ def check_and_stop_existing_stream(stream_url: str):
             rtmp_host = host_port.split(':')[0]
         else:
             rtmp_host = host_port
+        
+        # 重要：realtime_algorithm_service 使用 host 网络模式，必须使用 localhost 访问 SRS
+        # 如果 RTMP URL 中使用的是容器名（如 srs-server 或 srs），需要强制转换为 localhost
+        # 这样可以避免在 host 网络模式下尝试解析容器名导致的连接失败
+        if rtmp_host in ['srs-server', 'srs', 'SRS']:
+            logger.info(f'检测到 SRS 配置使用容器名 {rtmp_host}，强制转换为 localhost（realtime_algorithm_service 使用 host 网络模式）')
+            rtmp_host = 'localhost'
         
         # SRS HTTP API 地址（默认端口 1985）
         srs_api_url = f"http://{rtmp_host}:1985/api/v1/streams/"

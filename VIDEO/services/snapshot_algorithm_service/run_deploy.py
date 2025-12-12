@@ -850,6 +850,13 @@ def check_and_stop_existing_stream(stream_url: str):
         else:
             rtmp_host = host_port
         
+        # 重要：算法服务可能使用 host 网络模式，必须使用 localhost 访问 SRS
+        # 如果 RTMP URL 中使用的是容器名（如 srs-server 或 srs），需要强制转换为 localhost
+        # 这样可以避免在 host 网络模式下尝试解析容器名导致的连接失败
+        if rtmp_host in ['srs-server', 'srs', 'SRS']:
+            logger.info(f'检测到 SRS 配置使用容器名 {rtmp_host}，强制转换为 localhost（算法服务可能使用 host 网络模式）')
+            rtmp_host = 'localhost'
+        
         # SRS HTTP API 地址（默认端口 1985）
         srs_api_url = f"http://{rtmp_host}:1985/api/v1/streams/"
         srs_clients_api_url = f"http://{rtmp_host}:1985/api/v1/clients/"
