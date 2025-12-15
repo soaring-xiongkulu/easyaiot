@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Mpw2ebPbz0YB8n6TuPjeUgQb7T8BtEzJVfdWxX3DwTzpggjKPupfK8fN73iexmv
+\restrict fZCIMJ7YUAJZdjJWBs0ZadWJBe6KODBYATxobaCnaCKZbrSM1W5SnGMQELjs81N
 
 -- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
 -- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)
@@ -27,10 +27,10 @@ DROP DATABASE IF EXISTS "iot-message20";
 CREATE DATABASE "iot-message20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict Mpw2ebPbz0YB8n6TuPjeUgQb7T8BtEzJVfdWxX3DwTzpggjKPupfK8fN73iexmv
+\unrestrict fZCIMJ7YUAJZdjJWBs0ZadWJBe6KODBYATxobaCnaCKZbrSM1W5SnGMQELjs81N
 \encoding SQL_ASCII
 \connect -reuse-previous=on "dbname='iot-message20'"
-\restrict Mpw2ebPbz0YB8n6TuPjeUgQb7T8BtEzJVfdWxX3DwTzpggjKPupfK8fN73iexmv
+\restrict fZCIMJ7YUAJZdjJWBs0ZadWJBe6KODBYATxobaCnaCKZbrSM1W5SnGMQELjs81N
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -1362,5 +1362,5 @@ ALTER TABLE ONLY public.t_msg_kefu
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Mpw2ebPbz0YB8n6TuPjeUgQb7T8BtEzJVfdWxX3DwTzpggjKPupfK8fN73iexmv
+\unrestrict fZCIMJ7YUAJZdjJWBs0ZadWJBe6KODBYATxobaCnaCKZbrSM1W5SnGMQELjs81N
 

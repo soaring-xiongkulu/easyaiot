@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 1pGN3ulZtMnMlFPPVf5rxtlNWZx6oNiZUuGovklap4MmxObR5VN5Mic5Hj109mk
+\restrict y1dOISb8BczJy80ZTFOkLIzSyJdswP42l8scWyIAIedt2NPkVM5Zq4Y10Ux4BgV
 
 -- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
 -- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)
@@ -27,10 +27,10 @@ DROP DATABASE IF EXISTS "ruoyi-vue-pro20";
 CREATE DATABASE "ruoyi-vue-pro20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict 1pGN3ulZtMnMlFPPVf5rxtlNWZx6oNiZUuGovklap4MmxObR5VN5Mic5Hj109mk
+\unrestrict y1dOISb8BczJy80ZTFOkLIzSyJdswP42l8scWyIAIedt2NPkVM5Zq4Y10Ux4BgV
 \encoding SQL_ASCII
 \connect -reuse-previous=on "dbname='ruoyi-vue-pro20'"
-\restrict 1pGN3ulZtMnMlFPPVf5rxtlNWZx6oNiZUuGovklap4MmxObR5VN5Mic5Hj109mk
+\restrict y1dOISb8BczJy80ZTFOkLIzSyJdswP42l8scWyIAIedt2NPkVM5Zq4Y10Ux4BgV
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -16613,8 +16613,8 @@ COPY public.qrtz_paused_trigger_grps (sched_name, trigger_group) FROM stdin;
 --
 
 COPY public.qrtz_scheduler_state (sched_name, instance_name, last_checkin_time, checkin_interval) FROM stdin;
-schedulerName	master1765433835945	1765452502962	15000
-schedulerName	master1765433842225	1765452509244	15000
+schedulerName	master1765804690050	1765804830015	15000
+schedulerName	master1765804658868	1765804830424	15000
 \.
 
 
@@ -29596,5 +29596,5 @@ ALTER TABLE ONLY public.qrtz_triggers
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 1pGN3ulZtMnMlFPPVf5rxtlNWZx6oNiZUuGovklap4MmxObR5VN5Mic5Hj109mk
+\unrestrict y1dOISb8BczJy80ZTFOkLIzSyJdswP42l8scWyIAIedt2NPkVM5Zq4Y10Ux4BgV
 
