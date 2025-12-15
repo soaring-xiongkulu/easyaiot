@@ -27,7 +27,7 @@ class AlgorithmTaskDaemon:
     所有必要的信息都通过参数传入。
     """
 
-    def __init__(self, task_id: int, log_path: str, task_type: str = 'realtime'):
+    def __init__(self, task_id: int, log_path: str, task_type: str = 'realtime', llm_enabled: bool = False, task_config_json: Optional[str] = None):
         """
         初始化守护进程
         
@@ -35,6 +35,8 @@ class AlgorithmTaskDaemon:
             task_id: 任务ID
             log_path: 日志文件路径（目录）
             task_type: 任务类型 ('realtime' 实时算法任务, 'snap' 抓拍算法任务)
+            llm_enabled: 是否启用LLM
+            task_config_json: 任务配置JSON字符串
         """
         self._process = None
         self._task_id = task_id
