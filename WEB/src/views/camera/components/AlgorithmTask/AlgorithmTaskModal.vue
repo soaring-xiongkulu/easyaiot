@@ -233,10 +233,26 @@ const loadModels = async () => {
     // 将默认模型放在最前面，然后添加数据库中的模型
     // 确保即使后端返回空列表，默认模型也会显示
     modelOptions.value = [...defaultModels, ...dbModelOptions];
+    
+    // 更新表单schema，设置模型选项
+    updateSchema({
+      field: 'model_ids',
+      componentProps: {
+        options: modelOptions.value,
+      },
+    });
   } catch (error) {
     console.error('加载模型列表失败', error);
     // 即使加载失败，也确保默认模型显示
     modelOptions.value = defaultModels;
+    
+    // 更新表单schema，设置默认模型选项
+    updateSchema({
+      field: 'model_ids',
+      componentProps: {
+        options: modelOptions.value,
+      },
+    });
   }
 };
 
@@ -653,6 +669,14 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   
   // 确保默认模型已初始化（在加载前）
   initDefaultModels();
+  
+  // 先更新表单schema，确保默认模型能立即显示
+  updateSchema({
+    field: 'model_ids',
+    componentProps: {
+      options: modelOptions.value,
+    },
+  });
   
   // 加载选项数据
   await Promise.all([loadDevices(), loadModels()]);
