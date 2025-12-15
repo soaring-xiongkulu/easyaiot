@@ -15,6 +15,7 @@ import threading
 import time
 import signal
 from datetime import datetime
+from typing import Optional
 
 # 不再需要导入数据库模型，所有信息都通过参数传入
 
