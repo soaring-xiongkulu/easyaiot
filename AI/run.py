@@ -213,6 +213,25 @@ def create_app():
     host = os.getenv('FLASK_RUN_HOST', '0.0.0.0')
     port = int(os.getenv('FLASK_RUN_PORT', 5000))
     
+    # 检测是否在容器环境中运行
+    def is_containerized():
+        """检测是否在容器环境中运行"""
+        # 检查常见的容器环境标识
+        if os.path.exists('/.dockerenv'):
+            return True
+        # 检查 cgroup 是否包含容器标识
+        try:
+            with open('/proc/self/cgroup', 'r') as f:
+                content = f.read()
+                if 'docker' in content or 'kubepods' in content or 'containerd' in content:
+                    return True
+        except:
+            pass
+        # 检查环境变量
+        if os.getenv('KUBERNETES_SERVICE_HOST') or os.getenv('DOCKER_CONTAINER'):
+            return True
+        return False
+    
     # 如果配置了 SERVER_NAME，使用它；否则根据 host 和 port 构建
     # 如果设置为空字符串、"none" 或 "disable"，则不设置 SERVER_NAME（避免警告）
     server_name = os.getenv('FLASK_SERVER_NAME')
@@ -224,19 +243,27 @@ def create_app():
         if auto_server_name == 'false':
             server_name = None
         else:
-            # 如果 host 是 0.0.0.0，尝试获取实际 IP
-            if host == '0.0.0.0':
-                try:
-                    actual_ip = os.getenv('POD_IP') or get_local_ip()
-                    server_name = f"{actual_ip}:{port}"
-                except Exception as e:
-                    # 如果无法获取 IP，不设置 SERVER_NAME（避免 localhost 警告）
-                    print(f"⚠️  无法获取本地IP，不设置SERVER_NAME以避免警告: {str(e)}")
-                    server_name = None
+            # 在容器环境中，默认不自动设置 SERVER_NAME，避免 Host 不匹配问题
+            # 只有在非容器环境或明确配置时才设置
+            if is_containerized():
+                # 容器环境中，不自动设置 SERVER_NAME，允许通过 localhost、127.0.0.1 或任何 IP 访问
+                server_name = None
+                print("ℹ️  检测到容器环境，不自动设置 SERVER_NAME（允许灵活访问）")
             else:
-                server_name = f"{host}:{port}"
+                # 非容器环境，按原逻辑设置
+                if host == '0.0.0.0':
+                    try:
+                        actual_ip = os.getenv('POD_IP') or get_local_ip()
+                        server_name = f"{actual_ip}:{port}"
+                    except Exception as e:
+                        # 如果无法获取 IP，不设置 SERVER_NAME（避免 localhost 警告）
+                        print(f"⚠️  无法获取本地IP，不设置SERVER_NAME以避免警告: {str(e)}")
+                        server_name = None
+                else:
+                    server_name = f"{host}:{port}"
     
     # 只在设置了 server_name 时才配置，避免 localhost 访问时的警告
+    # 注意：在容器环境中，建议不设置 SERVER_NAME 以避免 Host 不匹配的警告
     if server_name:
         app.config['SERVER_NAME'] = server_name
     app.config['APPLICATION_ROOT'] = os.getenv('FLASK_APPLICATION_ROOT', '/')
