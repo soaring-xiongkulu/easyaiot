@@ -54,6 +54,7 @@ RUN set -ex && \
         libswscale-dev \
         libmagic1 \
         ffmpeg \
+        iputils-ping \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
