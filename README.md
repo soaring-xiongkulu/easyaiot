@@ -816,13 +816,12 @@ We welcome suggestions for improvement to help refine easyaiot.
 ## 📄 Copyright
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-Soaring Xiongkulu / easyaiot is licensed under the <a href="https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE" style="color: #3498db; text-decoration: none; font-weight: 600;">APACHE LICENSE 2.0</a>. When using the product, please note the following:
+Soaring Xiongkulu / easyaiot is licensed under the <a href="https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE" style="color: #3498db; text-decoration: none; font-weight: 600;">MIT LICENSE</a>. We are committed to promoting the popularization and development of AI technology, enabling more people to freely use and benefit from this technology.
 </p>
 
-<ol style="font-size: 14px; line-height: 1.8; color: #444; margin: 15px 0; padding-left: 25px;">
-  <li>Do not modify the source code header comments or attribution of the product-related code.</li>
-  <li>Do not use the product for any actions that endanger national security, honor, and interests, or for any illegal purposes.</li>
-</ol>
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+<strong>Usage License</strong>: Individuals and enterprises can use it 100% free of charge, without the need to retain author or Copyright information. We believe the value of technology lies in its widespread use and continuous innovation, not in being bound by copyright. We hope you can freely use, modify, and distribute this project, making AI technology truly benefit everyone.
+</p>
 
 ## 🌟 Star Growth Trend Chart
 

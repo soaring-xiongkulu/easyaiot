@@ -812,13 +812,12 @@ EasyAIoT 플랫폼과 코드를 깊이 이해하실 수 있도록 다양한 서�
 ## 📄 저작권
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-翱翔的雄库鲁/easyaiot는 <a href="https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE" style="color: #3498db; text-decoration: none; font-weight: 600;">APACHE LICENSE 2.0</a> 오픈소스 라이선스를 채택합니다. 사용 과정에서 다음 사항에 유의해야 합니다:
+翱翔的雄库鲁/easyaiot는 <a href="https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE" style="color: #3498db; text-decoration: none; font-weight: 600;">MIT LICENSE</a> 오픈소스 라이선스를 채택합니다. 우리는 AI 기술의 대중화와 발전을 촉진하여 더 많은 사람들이 이 기술을 자유롭게 사용하고 혜택을 받을 수 있도록 노력하고 있습니다.
 </p>
 
-<ol style="font-size: 14px; line-height: 1.8; color: #444; margin: 15px 0; padding-left: 25px;">
-  <li>제품 관련 코드의 소스 헤더 주석과 출처를 수정해서는 안 됩니다;</li>
-  <li>국가 안전, 명예 및 이익을 해치는 행위에 사용해서는 안 되며, 불법적인 목적으로 어떤 형태로든 사용해서는 안 됩니다;</li>
-</ol>
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+<strong>사용 라이선스</strong>: 개인과 기업은 100% 무료로 사용할 수 있으며, 작성자 또는 저작권 정보를 유지할 필요가 없습니다. 우리는 기술의 가치가 널리 사용되고 지속적인 혁신에 있다고 믿으며, 저작권에 얽매이지 않습니다. 여러분이 이 프로젝트를 자유롭게 사용, 수정 및 배포하여 AI 기술이 모든 사람에게 진정으로 혜택을 줄 수 있기를 희망합니다.
+</p>
 
 ## 🌟 Star 증가 추세도
 

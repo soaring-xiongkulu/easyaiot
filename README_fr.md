@@ -813,13 +813,12 @@ Vos suggestions pour améliorer EasyAIoT sont les bienvenues.
 ## 📄 Licence
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-翱翔的雄库鲁/easyaiot utilise la licence open source <a href="https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE" style="color: #3498db; text-decoration: none; font-weight: 600;">APACHE LICENSE 2.0</a>. Lors de l'utilisation, veuillez noter les points suivants :
+翱翔的雄库鲁/easyaiot utilise la licence open source <a href="https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE" style="color: #3498db; text-decoration: none; font-weight: 600;">MIT LICENSE</a>. Nous nous engageons à promouvoir la popularisation et le développement de la technologie IA, permettant à plus de personnes d'utiliser librement et de bénéficier de cette technologie.
 </p>
 
-<ol style="font-size: 14px; line-height: 1.8; color: #444; margin: 15px 0; padding-left: 25px;">
-  <li>Ne pas modifier les commentaires d'en-tête du code source indiquant la provenance et l'origine du produit.</li>
-  <li>Ne pas l'utiliser pour des actes nuisant à la sécurité nationale, à l'honneur et aux intérêts du pays, ni à des fins illégales de quelque manière que ce soit.</li>
-</ol>
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+<strong>Licence d'utilisation</strong> : Les particuliers et les entreprises peuvent l'utiliser gratuitement à 100%, sans avoir besoin de conserver les informations sur l'auteur ou le droit d'auteur. Nous croyons que la valeur de la technologie réside dans son utilisation généralisée et son innovation continue, et non dans les contraintes du droit d'auteur. Nous espérons que vous pourrez librement utiliser, modifier et distribuer ce projet, rendant la technologie IA vraiment bénéfique pour tous.
+</p>
 
 ## 🌟 Tendance de croissance des Stars
 

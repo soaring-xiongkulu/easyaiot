@@ -813,13 +813,12 @@ EasyAIoT是一個開源學習項目，與商業行為無關。用戶在使用該
 ## 📄 版權
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-翺翔的雄庫魯/easyaiot 采用 <a href="https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE" style="color: #3498db; text-decoration: none; font-weight: 600;">APACHE LICENSE 2.0</a> 開源協議，您在使用過程中，需要註意以下幾點：
+翺翔的雄庫魯/easyaiot 采用 <a href="https://gitee.com/soaring-xiongkulu/easyaiot/blob/main/LICENSE" style="color: #3498db; text-decoration: none; font-weight: 600;">MIT LICENSE</a> 開源協議。我們致力於推動 AI 技術的普及與發展，讓更多人能夠自由使用和受益於這項技術。
 </p>
 
-<ol style="font-size: 14px; line-height: 1.8; color: #444; margin: 15px 0; padding-left: 25px;">
-  <li>不得修改產品相關代碼的源碼頭註釋和出處；</li>
-  <li>不得應用於危害國家安全、榮譽和利益的行為，不能以任何形式用於非法目的；</li>
-</ol>
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+<strong>使用許可</strong>：個人與企業可 100% 免費使用，無需保留作者、Copyright 資訊。我們相信技術的價值在於被廣泛使用和持續創新，而非被版權束縛。希望您能夠自由地使用、修改、分發本項目，讓 AI 技術真正惠及每一個人。
+</p>
 
 ## 🌟 Star增長趨勢圖
 
