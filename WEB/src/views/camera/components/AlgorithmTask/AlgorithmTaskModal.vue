@@ -1,15 +1,6 @@
 <template>
-  <BasicDrawer 
-    v-bind="$attrs" 
-    @register="register" 
-    :title="modalTitle" 
-    @ok="handleSubmit"
-    width="1400"
-    placement="right"
-    :showFooter="true"
-    :showCancelBtn="false"
-    :showOkBtn="false"
-  >
+  <BasicDrawer v-bind="$attrs" @register="register" :title="modalTitle" @ok="handleSubmit" width="1400"
+    placement="right" :showFooter="true" :showCancelBtn="false" :showOkBtn="false">
     <template #footer>
       <div class="footer-buttons">
         <a-button v-if="!isViewMode" @click="handleReset" class="mr-2">重置</a-button>
@@ -22,34 +13,21 @@
           <BasicForm @register="registerForm" @field-value-change="handleFieldValueChange" />
           <div class="defense-schedule-wrapper" v-if="!isFullDayDefense">
             <a-divider orientation="left">布防时段配置</a-divider>
-            <DefenseSchedulePicker
-              v-model:modelValue="defenseSchedule"
-              :disabled="isViewMode"
-            />
+            <DefenseSchedulePicker v-model:modelValue="defenseSchedule" :disabled="isViewMode" />
           </div>
           <!-- 告警通知配置 -->
           <div class="alert-notification-wrapper" v-if="showAlertNotificationConfig">
             <!-- 告警抑制时间 -->
             <a-form-item label="告警抑制时间（秒）" help="防止频繁通知，默认300秒（5分钟）">
-              <a-input-number
-                :value="alertNotificationConfig.suppress_time"
-                :min="0"
-                :max="3600"
-                :step="60"
-                placeholder="300"
-                :disabled="isViewMode"
-                @change="(value) => { alertNotificationConfig.suppress_time = value || 300; }"
-                style="width: 100%"
-              />
+              <a-input-number :value="alertNotificationConfig.suppress_time" :min="0" :max="3600" :step="60"
+                placeholder="300" :disabled="isViewMode"
+                @change="(value) => { alertNotificationConfig.suppress_time = value || 300; }" style="width: 100%" />
             </a-form-item>
           </div>
         </div>
       </a-tab-pane>
       <a-tab-pane key="status" tab="服务状态" :disabled="!taskId">
-        <ServiceStatusTab
-          v-if="taskId && formValues"
-          :task="formValues"
-        />
+        <ServiceStatusTab v-if="taskId && formValues" :task="formValues" />
         <a-empty v-else description="请先保存基础配置" />
       </a-tab-pane>
     </a-tabs>
@@ -157,12 +135,12 @@ const loadDevices = async () => {
       getDeviceList({ pageNo: 1, pageSize: 1000 }),
       getDeviceConflicts('algorithm')
     ]);
-    
+
     // 获取冲突的摄像头ID列表
-    const conflictDeviceIds = conflictResponse.code === 0 && conflictResponse.data 
-      ? new Set(conflictResponse.data) 
+    const conflictDeviceIds = conflictResponse.code === 0 && conflictResponse.data
+      ? new Set(conflictResponse.data)
       : new Set();
-    
+
     deviceOptions.value = (deviceResponse.data || []).map((item) => {
       const isDisabled = conflictDeviceIds.has(item.id);
       return {
@@ -171,7 +149,7 @@ const loadDevices = async () => {
         disabled: isDisabled,
       };
     });
-    
+
     // 更新表单schema，设置禁用选项
     updateSchema({
       field: 'device_ids',
@@ -206,7 +184,7 @@ const initDefaultModels = () => {
 const loadModels = async () => {
   // 先初始化默认模型，确保它们始终存在
   initDefaultModels();
-  
+
   try {
     const response = await getModelPage({ pageNo: 1, pageSize: 1000 });
     // 处理响应数据：可能是转换后的数组，也可能是包含 code/data 的对象
@@ -218,41 +196,25 @@ const loadModels = async () => {
     } else if (response && response.data && Array.isArray(response.data)) {
       allModels = response.data;
     }
-    
+
     // 构建选项列表和完整模型信息映射（不清空默认模型）
     const dbModelOptions = allModels.map((item: any) => {
       // 保存完整的模型信息
       modelMap.value.set(item.id, item);
-      
+
       return {
         label: `${item.name}${item.version ? ` (v${item.version})` : ''}`,
         value: item.id, // 模型ID
       };
     });
-    
+
     // 将默认模型放在最前面，然后添加数据库中的模型
     // 确保即使后端返回空列表，默认模型也会显示
     modelOptions.value = [...defaultModels, ...dbModelOptions];
-    
-    // 更新表单schema，设置模型选项
-    updateSchema({
-      field: 'model_ids',
-      componentProps: {
-        options: modelOptions.value,
-      },
-    });
   } catch (error) {
     console.error('加载模型列表失败', error);
     // 即使加载失败，也确保默认模型显示
     modelOptions.value = defaultModels;
-    
-    // 更新表单schema，设置默认模型选项
-    updateSchema({
-      field: 'model_ids',
-      componentProps: {
-        options: modelOptions.value,
-      },
-    });
   }
 };
 
@@ -449,8 +411,8 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         return h('div', { class: 'alert-event-enabled-wrapper' }, [
           h(Switch, {
             checked: model.alert_event_enabled,
-        checkedChildren: '是',
-        unCheckedChildren: '否',
+            checkedChildren: '是',
+            unCheckedChildren: '否',
             disabled: isViewMode.value,
             onChange: async (checked: boolean) => {
               model.alert_event_enabled = checked;
@@ -474,7 +436,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
             placement: 'rightTop',
             getPopupContainer: (triggerNode) => triggerNode.parentElement || document.body,
           }, {
-            content: () => h('div', { class: 'placeholder-box-small' }, 
+            content: () => h('div', { class: 'placeholder-box-small' },
               placeholders.map((item) =>
                 h('div', { class: 'placeholder-item-small' }, [
                   h('span', { class: 'placeholder-text' }, item.placeholder),
@@ -556,7 +518,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         if (!channels || channels.length === 0) {
           return h('div', { class: 'notification-templates-empty' }, '请先选择通知渠道');
         }
-        return h('div', { 
+        return h('div', {
           class: 'notification-templates-wrapper',
           style: {
             display: 'flex',
@@ -656,9 +618,9 @@ const isViewMode = computed(() => modalData.value.type === 'view');
 
 // 计算属性：是否显示告警通知配置
 const showAlertNotificationConfig = computed(() => {
-  return formValues.value?.alert_event_enabled && 
-         (formValues.value?.alert_notification_enabled || alertNotificationEnabled.value) && 
-         (formValues.value?.task_type === 'realtime' || formValues.value?.task_type === 'snap');
+  return formValues.value?.alert_event_enabled &&
+    (formValues.value?.alert_notification_enabled || alertNotificationEnabled.value) &&
+    (formValues.value?.task_type === 'realtime' || formValues.value?.task_type === 'snap');
 });
 
 const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) => {
@@ -666,21 +628,13 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   taskId.value = null;
   confirmLoading.value = false;
   resetFields();
-  
+
   // 确保默认模型已初始化（在加载前）
   initDefaultModels();
-  
-  // 先更新表单schema，确保默认模型能立即显示
-  updateSchema({
-    field: 'model_ids',
-    componentProps: {
-      options: modelOptions.value,
-    },
-  });
-  
+
   // 加载选项数据
   await Promise.all([loadDevices(), loadModels()]);
-  
+
   if (modalData.value.record) {
     const record = modalData.value.record;
     taskId.value = record.id;
@@ -698,7 +652,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
         console.error('解析model_ids失败', e);
       }
     }
-    
+
     // 初始化告警通知配置
     if (record.alert_notification_config) {
       try {
@@ -738,11 +692,11 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       notificationChannels.value = [];
       channelTemplates.value = {};
     }
-    
+
     // 判断是否全天布防（如果 defense_mode 为 'full'，则为全天布防）
     const fullDayDefense = record.defense_mode === 'full';
     isFullDayDefense.value = fullDayDefense;
-    
+
     // 恢复布防时段配置
     if (fullDayDefense) {
       // 全天布防：设置为全防模式
@@ -753,8 +707,8 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     } else if (record.defense_mode && record.defense_schedule) {
       // 非全天布防：恢复保存的配置
       try {
-        const schedule = typeof record.defense_schedule === 'string' 
-          ? JSON.parse(record.defense_schedule) 
+        const schedule = typeof record.defense_schedule === 'string'
+          ? JSON.parse(record.defense_schedule)
           : record.defense_schedule;
         defenseSchedule.value = {
           mode: record.defense_mode || 'half',
@@ -775,7 +729,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
         schedule: Array(7).fill(null).map(() => Array(24).fill(0)),
       };
     }
-    
+
     await setFieldsValue({
       task_name: record.task_name,
       task_type: record.task_type || 'realtime',
@@ -793,13 +747,13 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       notification_channels: notificationChannels.value,
       is_full_day_defense: fullDayDefense,
     });
-    
+
     // 更新告警通知启用状态
     alertNotificationEnabled.value = record.alert_notification_enabled !== undefined ? record.alert_notification_enabled : false;
-    
+
     // 更新formValues以便AlertNotificationConfig组件响应
     formValues.value = { ...formValues.value, ...await getFieldsValue() };
-    
+
     // 查看模式禁用表单和按钮
     if (modalData.value.type === 'view') {
       updateSchema([
@@ -822,10 +776,48 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       ]);
       setDrawerProps({ showOkBtn: false });
     } else {
+      // 编辑模式，确保所有字段可编辑
+      updateSchema([
+        { field: 'task_name', componentProps: { disabled: false } },
+        { field: 'task_type', componentProps: { disabled: false } },
+        { field: 'device_ids', componentProps: { disabled: false } },
+        { field: 'cron_expression', componentProps: { disabled: false } },
+        { field: 'frame_skip', componentProps: { disabled: false } },
+        { field: 'model_ids', componentProps: { disabled: false } },
+        { field: 'extract_interval', componentProps: { disabled: false } },
+        { field: 'tracking_enabled', componentProps: { disabled: false } },
+        { field: 'tracking_similarity_threshold', componentProps: { disabled: false } },
+        { field: 'tracking_max_age', componentProps: { disabled: false } },
+        { field: 'tracking_smooth_alpha', componentProps: { disabled: false } },
+        { field: 'alert_event_enabled', componentProps: { disabled: false } },
+        { field: 'alert_notification_enabled', componentProps: { disabled: false } },
+        { field: 'notification_channels', componentProps: { disabled: false } },
+        { field: 'notification_templates', componentProps: { disabled: false } },
+        { field: 'is_full_day_defense', componentProps: { disabled: false } },
+      ]);
       setDrawerProps({ showOkBtn: true });
     }
   } else {
-    // 新建模式，设置默认值
+    // 新建模式，设置默认值，并确保所有字段可编辑
+    // 先重置所有字段为可编辑状态，避免之前查看模式的disabled状态影响
+    updateSchema([
+      { field: 'task_name', componentProps: { disabled: false } },
+      { field: 'task_type', componentProps: { disabled: false } },
+      { field: 'device_ids', componentProps: { disabled: false } },
+      { field: 'cron_expression', componentProps: { disabled: false } },
+      { field: 'frame_skip', componentProps: { disabled: false } },
+      { field: 'model_ids', componentProps: { disabled: false } },
+      { field: 'extract_interval', componentProps: { disabled: false } },
+      { field: 'tracking_enabled', componentProps: { disabled: false } },
+      { field: 'tracking_similarity_threshold', componentProps: { disabled: false } },
+      { field: 'tracking_max_age', componentProps: { disabled: false } },
+      { field: 'tracking_smooth_alpha', componentProps: { disabled: false } },
+      { field: 'alert_event_enabled', componentProps: { disabled: false } },
+      { field: 'alert_notification_enabled', componentProps: { disabled: false } },
+      { field: 'notification_channels', componentProps: { disabled: false } },
+      { field: 'notification_templates', componentProps: { disabled: false } },
+      { field: 'is_full_day_defense', componentProps: { disabled: false } },
+    ]);
     isFullDayDefense.value = true; // 默认全天布防
     await setFieldsValue({
       task_type: 'realtime',
@@ -934,13 +926,13 @@ const handleSubmit = async () => {
     const values = await validate();
     confirmLoading.value = true;
     setDrawerProps({ confirmLoading: true });
-    
+
     // 新建任务时，默认设置为未启用状态（需要通过启动按钮来启动）
     if (modalData.value.type !== 'edit') {
       values.is_enabled = 0;
     }
     // 编辑任务时，不修改 is_enabled 状态（保持原值，通过启动/停止按钮控制）
-    
+
     // 根据是否全天布防设置布防时段配置
     const fullDayDefense = values.is_full_day_defense !== undefined ? values.is_full_day_defense : true;
     if (fullDayDefense) {
@@ -951,7 +943,7 @@ const handleSubmit = async () => {
       // 非全天布防：使用布防时段配置
       values.defense_mode = defenseSchedule.value.mode;
       const schedule = defenseSchedule.value.schedule;
-      
+
       // 验证非全天布防模式下至少选择了一个时段
       const hasSelectedTime = schedule.some(day => day.some(hour => hour === 1));
       if (!hasSelectedTime) {
@@ -960,19 +952,19 @@ const handleSubmit = async () => {
         setDrawerProps({ confirmLoading: false });
         return;
       }
-      
+
       values.defense_schedule = JSON.stringify(schedule);
     }
-    
+
     // 移除前端字段，不发送到后端
     delete values.is_full_day_defense;
-    
+
     // 处理告警通知配置
     // 获取所有已选择模板的渠道
     const selectedChannels = Object.keys(channelTemplates.value).filter(
       (method: string) => channelTemplates.value[method] !== undefined && channelTemplates.value[method] !== null
     );
-    
+
     if (values.alert_event_enabled && values.alert_notification_enabled && selectedChannels.length > 0) {
       values.alert_notification_enabled = true;
       // 构建通知渠道配置
@@ -993,13 +985,13 @@ const handleSubmit = async () => {
       values.alert_notification_enabled = false;
       values.alert_notification_config = null;
     }
-    
-    
+
+
     // 确保 model_ids 是数组格式
     if (values.model_ids && !Array.isArray(values.model_ids)) {
       values.model_ids = [values.model_ids];
     }
-    
+
     // 算法任务（实时和抓拍）必须指定模型ID列表
     if ((values.task_type === 'realtime' || values.task_type === 'snap') && (!values.model_ids || values.model_ids.length === 0)) {
       createMessage.error('算法任务必须选择至少一个模型');
@@ -1007,7 +999,7 @@ const handleSubmit = async () => {
       setDrawerProps({ confirmLoading: false });
       return;
     }
-    
+
     if (modalData.value.type === 'edit' && modalData.value.record) {
       const response = await updateAlgorithmTask(modalData.value.record.id, values);
       // 由于 isTransformResponse: true，成功时返回的是任务对象，而不是包含 code 的响应对象
@@ -1059,95 +1051,95 @@ const handleSubmit = async () => {
 // 重置表单
 const handleReset = () => {
   resetFields();
-    // 如果是新建模式，重置为默认值
-    if (!modalData.value.record) {
-      isFullDayDefense.value = true; // 默认全天布防
-      setFieldsValue({
-        task_type: 'realtime',
-        frame_skip: 25,
-        extract_interval: 25,
-        tracking_enabled: false,
-        tracking_similarity_threshold: 0.2,
-        tracking_max_age: 25,
-        tracking_smooth_alpha: 0.25,
+  // 如果是新建模式，重置为默认值
+  if (!modalData.value.record) {
+    isFullDayDefense.value = true; // 默认全天布防
+    setFieldsValue({
+      task_type: 'realtime',
+      frame_skip: 25,
+      extract_interval: 25,
+      tracking_enabled: false,
+      tracking_similarity_threshold: 0.2,
+      tracking_max_age: 25,
+      tracking_smooth_alpha: 0.25,
       alert_event_enabled: false, // 默认关闭告警事件
-        is_full_day_defense: true, // 默认全天布防
-      });
+      is_full_day_defense: true, // 默认全天布防
+    });
     // 重置布防时段为默认值（全天布防）
     defenseSchedule.value = {
       mode: 'full', // 默认全防模式
       schedule: Array(7).fill(null).map(() => Array(24).fill(1)), // 默认全部填充
     };
   } else {
-      // 如果是编辑模式，恢复到原始值
-      const record = modalData.value.record;
-      // 从 model_ids 中提取模型ID列表（用于回显）
-      const modelIds: number[] = [];
-      if (record.model_ids && Array.isArray(record.model_ids)) {
-        modelIds.push(...record.model_ids);
-      } else if (record.model_ids && typeof record.model_ids === 'string') {
-        try {
-          const parsed = JSON.parse(record.model_ids);
-          if (Array.isArray(parsed)) {
-            modelIds.push(...parsed);
-          }
-        } catch (e) {
-          console.error('解析model_ids失败', e);
+    // 如果是编辑模式，恢复到原始值
+    const record = modalData.value.record;
+    // 从 model_ids 中提取模型ID列表（用于回显）
+    const modelIds: number[] = [];
+    if (record.model_ids && Array.isArray(record.model_ids)) {
+      modelIds.push(...record.model_ids);
+    } else if (record.model_ids && typeof record.model_ids === 'string') {
+      try {
+        const parsed = JSON.parse(record.model_ids);
+        if (Array.isArray(parsed)) {
+          modelIds.push(...parsed);
         }
+      } catch (e) {
+        console.error('解析model_ids失败', e);
       }
-      
-      // 判断是否全天布防
-      const fullDayDefense = record.defense_mode === 'full';
-      isFullDayDefense.value = fullDayDefense;
-      
-      setFieldsValue({
-        task_name: record.task_name,
-        task_type: record.task_type || 'realtime',
-        device_ids: record.device_ids || [],
-        cron_expression: record.cron_expression,
-        frame_skip: record.frame_skip || 25,
-        model_ids: modelIds,
-        extract_interval: record.extract_interval || 25,
-        tracking_enabled: record.tracking_enabled || false,
-        tracking_similarity_threshold: record.tracking_similarity_threshold || 0.2,
+    }
+
+    // 判断是否全天布防
+    const fullDayDefense = record.defense_mode === 'full';
+    isFullDayDefense.value = fullDayDefense;
+
+    setFieldsValue({
+      task_name: record.task_name,
+      task_type: record.task_type || 'realtime',
+      device_ids: record.device_ids || [],
+      cron_expression: record.cron_expression,
+      frame_skip: record.frame_skip || 25,
+      model_ids: modelIds,
+      extract_interval: record.extract_interval || 25,
+      tracking_enabled: record.tracking_enabled || false,
+      tracking_similarity_threshold: record.tracking_similarity_threshold || 0.2,
       tracking_max_age: record.tracking_max_age || 25,
       tracking_smooth_alpha: record.tracking_smooth_alpha || 0.25,
       alert_event_enabled: record.alert_event_enabled !== undefined ? record.alert_event_enabled : false,
       is_full_day_defense: fullDayDefense,
-      });
-      
-      // 恢复布防时段配置
-      if (fullDayDefense) {
-        // 全天布防：设置为全防模式
+    });
+
+    // 恢复布防时段配置
+    if (fullDayDefense) {
+      // 全天布防：设置为全防模式
+      defenseSchedule.value = {
+        mode: 'full',
+        schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
+      };
+    } else if (record.defense_mode && record.defense_schedule) {
+      // 非全天布防：恢复保存的配置
+      try {
+        const schedule = typeof record.defense_schedule === 'string'
+          ? JSON.parse(record.defense_schedule)
+          : record.defense_schedule;
         defenseSchedule.value = {
-          mode: 'full',
-          schedule: Array(7).fill(null).map(() => Array(24).fill(1)),
+          mode: record.defense_mode || 'half',
+          schedule: schedule,
         };
-      } else if (record.defense_mode && record.defense_schedule) {
-        // 非全天布防：恢复保存的配置
-        try {
-          const schedule = typeof record.defense_schedule === 'string' 
-            ? JSON.parse(record.defense_schedule) 
-            : record.defense_schedule;
-          defenseSchedule.value = {
-            mode: record.defense_mode || 'half',
-            schedule: schedule,
-          };
-        } catch (e) {
-          console.error('解析布防时段配置失败', e);
-          // 解析失败时，使用半防模式并清空
-          defenseSchedule.value = {
-            mode: 'half',
-            schedule: Array(7).fill(null).map(() => Array(24).fill(0)),
-          };
-        }
-      } else {
-        // 没有配置时，使用半防模式并清空
+      } catch (e) {
+        console.error('解析布防时段配置失败', e);
+        // 解析失败时，使用半防模式并清空
         defenseSchedule.value = {
           mode: 'half',
           schedule: Array(7).fill(null).map(() => Array(24).fill(0)),
         };
       }
+    } else {
+      // 没有配置时，使用半防模式并清空
+      defenseSchedule.value = {
+        mode: 'half',
+        schedule: Array(7).fill(null).map(() => Array(24).fill(0)),
+      };
+    }
   }
 };
 </script>
@@ -1157,19 +1149,19 @@ const handleReset = () => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  
+
   .defense-schedule-wrapper {
     margin-top: 8px;
   }
-  
-    .alert-notification-wrapper {
+
+  .alert-notification-wrapper {
     margin-top: 8px;
-    
+
     :deep(.ant-divider) {
       margin: 16px 0;
     }
   }
-  
+
   .notification-templates-wrapper {
     display: flex !important;
     flex-direction: row !important;
@@ -1177,14 +1169,14 @@ const handleReset = () => {
     align-items: center !important;
     flex-wrap: wrap !important;
     width: 100% !important;
-    
+
     :deep(.ant-select) {
       flex: 1 1 auto !important;
       min-width: 200px !important;
       max-width: 300px !important;
     }
   }
-  
+
   .notification-templates-empty {
     color: rgba(0, 0, 0, 0.45);
     font-size: 14px;
@@ -1231,7 +1223,7 @@ const handleReset = () => {
   min-width: 280px;
   line-height: 1.6;
   color: #fff;
-  
+
   .tip-item {
     font-size: 13px;
   }
@@ -1245,7 +1237,7 @@ const handleReset = () => {
   align-items: center;
   justify-content: center;
   color: #8c8c8c;
-  
+
   &:hover {
     color: #1890ff;
   }
@@ -1300,4 +1292,3 @@ const handleReset = () => {
   border-bottom-color: #333;
 }
 </style>
-
