@@ -65,3 +65,44 @@ export const exportLabeledDataset = (datasetId: number, params: any) => {
 export const getAIServiceList = (params = {}) => {
   return commonApi('get', `${Api.AIService}/list`, { params }, {}, false);
 };
+
+// 单张图片AI标注
+export const labelSingleImage = (datasetId: number, imageId: number, params: any) => {
+  return commonApi('post', `${Api.AutoLabel}/${datasetId}/auto-label/image/${imageId}`, { params });
+};
+
+// 视频抽帧
+export const extractFramesFromVideo = (datasetId: number, formData: FormData) => {
+  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+  
+  return defHttp.post(
+    {
+      url: `${Api.AutoLabel}/${datasetId}/extract-frames`,
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+    {
+      isTransformResponse: true,
+    },
+  );
+};
+
+// 导入labelme数据集
+export const importLabelmeDataset = (datasetId: number, formData: FormData) => {
+  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+  
+  return defHttp.post(
+    {
+      url: `${Api.AutoLabel}/${datasetId}/import-labelme`,
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+    {
+      isTransformResponse: true,
+    },
+  );
+};

@@ -6,32 +6,44 @@
         <h1 class="app-title">自动化标注</h1>
       </div>
       <div class="header-right">
-        <a-space>
-          <a-button @click="handleImportDataset">
+        <Space size="small">
+          <Button @click="handleImportDataset">
             <template #icon><Icon icon="ant-design:upload-outlined" /></template>
-            导入数据集
-          </a-button>
-          <a-button type="primary" class="ai-label-btn" @click="handleAILabel">
+            添加数据集
+          </Button>
+          <Button type="primary" class="ai-label-btn" @click="handleAILabel">
             <template #icon><Icon icon="ant-design:robot-outlined" /></template>
-            AI自动标注
-          </a-button>
-          <a-button @click="handleClear">
+            AI标注
+          </Button>
+          <Button 
+            type="primary" 
+            :disabled="!currentImageId"
+            :loading="aiLabelLoading"
+            @click="handleLabelCurrentImage"
+          >
+            <template #icon><Icon icon="ant-design:robot-outlined" /></template>
+            AI标注当前图片
+          </Button>
+          <a-badge v-if="taskProgress" :count="taskProgress.processed_images" :number-style="{ backgroundColor: '#52c41a' }">
+            <span style="margin-right: 8px;">任务进度: {{ taskProgress.processed_images }}/{{ taskProgress.total_images }}</span>
+          </a-badge>
+          <Button @click="handleClear">
             <template #icon><Icon icon="ant-design:clear-outlined" /></template>
             清除
-          </a-button>
-          <a-button @click="handleSave">
+          </Button>
+          <Button @click="handleSave">
             <template #icon><Icon icon="ant-design:save-outlined" /></template>
             保存
-          </a-button>
-          <a-button @click="handleExport">
-            <template #icon><Icon icon="ant-design:export-outlined" /></template>
+          </Button>
+          <Button @click="handleExport">
+            <template #icon><Icon icon="ant-design:download-outlined" /></template>
             导出数据集
-          </a-button>
-          <a-button @click="handleSettings">
+          </Button>
+          <Button @click="handleSettings">
             <template #icon><Icon icon="ant-design:setting-outlined" /></template>
             设置
-          </a-button>
-        </a-space>
+          </Button>
+        </Space>
       </div>
     </div>
 
@@ -55,16 +67,18 @@
 
         <!-- 操作按钮 -->
         <div class="action-section">
-          <a-space>
-            <a-button type="text" size="small" @click="toggleSelectMode">
-              <Icon :icon="selectMode === 'multiple' ? 'ant-design:check-square-outlined' : 'ant-design:border-outlined'" />
-            </a-button>
+          <Space size="small">
+            <Button type="text" size="small" @click="toggleSelectMode">
+              <template #icon>
+                <Icon :icon="selectMode === 'multiple' ? 'ant-design:check-square-outlined' : 'ant-design:border-outlined'" />
+              </template>
+            </Button>
             <span class="image-count">共 {{ filteredImageList.length }} 张图片</span>
             <a-checkbox v-model:checked="selectAll" @change="handleSelectAll">全选</a-checkbox>
-            <a-button type="text" danger size="small" @click="handleDeleteSelected">
+            <Button type="text" size="small" @click="handleDeleteSelected">
               <template #icon><Icon icon="ant-design:delete-outlined" /></template>
-            </a-button>
-          </a-space>
+            </Button>
+          </Space>
         </div>
 
         <!-- 图片列表 -->
@@ -123,6 +137,7 @@
               @mousedown="handleCanvasMouseDown"
               @mousemove="handleCanvasMouseMove"
               @mouseup="handleCanvasMouseUp"
+              @resize="handleImageLoad"
             ></canvas>
           </div>
           <!-- 图像信息叠加 -->
@@ -154,7 +169,7 @@
                 class="color-picker"
               />
             </div>
-            <a-button type="primary" @click="handleAddLabel">+ 添加</a-button>
+            <Button type="primary" class="add-label-btn" @click="handleAddLabel">+ 添加</Button>
           </div>
           <div class="label-list">
             <div
@@ -165,12 +180,12 @@
               <div class="label-color" :style="{ backgroundColor: label.color }"></div>
               <span class="label-name">{{ label.name }}</span>
               <div class="label-actions">
-                <a-button type="text" size="small" @click="handleEditLabel(label)">
-                  <Icon icon="ant-design:edit-outlined" />
-                </a-button>
-                <a-button type="text" size="small" danger @click="handleDeleteLabel(label.id)">
-                  <Icon icon="ant-design:close-outlined" />
-                </a-button>
+                <Button type="text" size="small" @click="handleEditLabel(label)">
+                  <template #icon><Icon icon="ant-design:edit-outlined" /></template>
+                </Button>
+                <Button type="text" size="small" @click="handleDeleteLabel(label.id)">
+                  <template #icon><Icon icon="ant-design:close-outlined" /></template>
+                </Button>
               </div>
             </div>
           </div>
@@ -187,14 +202,13 @@
             >
               <div class="annotation-dot" :style="{ backgroundColor: annotation.color || '#52c41a' }"></div>
               <span class="annotation-label">{{ annotation.label }}</span>
-              <a-button
+              <Button
                 type="text"
                 size="small"
-                danger
                 @click="handleDeleteAnnotation(annotation.id || index)"
               >
-                <Icon icon="ant-design:delete-outlined" />
-              </a-button>
+                <template #icon><Icon icon="ant-design:delete-outlined" /></template>
+              </Button>
             </div>
             <div v-if="currentAnnotations.length === 0" class="empty-annotations">
               暂无标注
@@ -204,171 +218,11 @@
       </div>
     </div>
 
-    <!-- AI自动标注设置模态框 -->
-    <a-modal
-      v-model:open="aiLabelModalVisible"
-      :title="null"
-      width="600px"
-      :footer="null"
-      :closable="true"
-      :mask-closable="false"
-      class="ai-auto-label-modal"
-    >
-      <template #title>
-        <div class="modal-title">
-          <Icon icon="ant-design:robot-outlined" class="title-icon" />
-          <span>AI自动标注设置</span>
-        </div>
-      </template>
-      
-      <a-form
-        :model="aiLabelForm"
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 18 }"
-        :rules="aiLabelFormRules"
-        ref="aiLabelFormRef"
-        class="ai-label-form"
-      >
-        <a-form-item label="选择模型:" name="model_service_id" required>
-          <a-select
-            v-model:value="aiLabelForm.model_service_id"
-            placeholder="-- 请选择模型 --"
-            :loading="serviceLoading"
-            show-search
-            :filter-option="filterServiceOption"
-            allow-clear
-          >
-            <a-select-option
-              v-for="service in aiServiceList"
-              :key="service.id"
-              :value="service.id"
-            >
-              {{ service.service_name }}
-            </a-select-option>
-          </a-select>
-          <div class="form-hint">
-            请先在设置中安装YOLO11并下载或上传模型
-          </div>
-        </a-form-item>
-        
-        <a-form-item label="置信度阈值:" name="confidence_threshold" required>
-          <div class="confidence-slider-wrapper">
-            <a-slider
-              v-model:value="aiLabelForm.confidence_threshold"
-              :min="0.1"
-              :max="0.9"
-              :step="0.05"
-              :marks="{ 0.1: '0.1', 0.5: '0.5', 0.9: '0.9' }"
-            />
-            <div class="confidence-value">{{ aiLabelForm.confidence_threshold }}</div>
-          </div>
-          <div class="form-hint">
-            置信度越高,检测越严格,框越少
-          </div>
-        </a-form-item>
-        
-        <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
-          <a-checkbox v-model:checked="aiLabelForm.autoSwitchNext">
-            保存后自动切换到下一张图片
-          </a-checkbox>
-        </a-form-item>
-      </a-form>
-      
-      <template #footer>
-        <div class="modal-footer">
-          <a-button @click="handleCancelAILabel">取消</a-button>
-          <a-button 
-            type="primary" 
-            :loading="aiLabelLoading"
-            @click="handleStartAILabel"
-            class="start-ai-label-btn"
-          >
-            <template #icon><Icon icon="ant-design:play-circle-outlined" /></template>
-            开启AI标注
-          </a-button>
-        </div>
-      </template>
-    </a-modal>
-
-    <!-- 导入数据集模态框 -->
-    <a-modal
-      v-model:open="importModalVisible"
-      title="导入数据集"
-      width="500px"
-      @ok="handleConfirmImport"
-      @cancel="handleCancelImport"
-      :confirm-loading="importLoading"
-    >
-      <a-upload
-        v-model:file-list="importFileList"
-        :before-upload="beforeImportUpload"
-        accept=".zip"
-        :max-count="1"
-        :show-upload-list="true"
-      >
-        <a-button>
-          <template #icon><Icon icon="ant-design:upload-outlined" /></template>
-          选择ZIP文件
-        </a-button>
-      </a-upload>
-      <div class="upload-hint">
-        <p>支持ZIP格式压缩包，最大200MB</p>
-        <p>压缩包内应包含图片文件（JPG/PNG/JPEG等格式）</p>
-      </div>
-    </a-modal>
-
-    <!-- 导出数据集模态框 -->
-    <a-modal
-      v-model:open="exportModalVisible"
-      title="导出数据集"
-      width="500px"
-      @ok="handleConfirmExport"
-      @cancel="handleCancelExport"
-      :confirm-loading="exportLoading"
-    >
-      <a-form
-        :model="exportForm"
-        :label-col="{ span: 8 }"
-        :wrapper-col="{ span: 16 }"
-      >
-        <a-form-item label="导出格式:">
-          <a-select v-model:value="exportForm.format" placeholder="请选择导出格式">
-            <a-select-option value="yolo">YOLO格式</a-select-option>
-            <a-select-option value="coco">COCO格式</a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="训练集比例:">
-          <a-input-number
-            v-model:value="exportForm.train_ratio"
-            :min="0"
-            :max="1"
-            :step="0.1"
-            :precision="2"
-            style="width: 100%"
-          />
-        </a-form-item>
-        <a-form-item label="验证集比例:">
-          <a-input-number
-            v-model:value="exportForm.val_ratio"
-            :min="0"
-            :max="1"
-            :step="0.1"
-            :precision="2"
-            style="width: 100%"
-          />
-        </a-form-item>
-        <a-form-item label="测试集比例:">
-          <a-input-number
-            v-model:value="exportForm.test_ratio"
-            :min="0"
-            :max="1"
-            :step="0.1"
-            :precision="2"
-            style="width: 100%"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
+    <!-- 模态框组件 -->
+    <AILabelModal ref="aiLabelModalRef" @success="handleAILabelSuccess" />
+    <ImportDatasetModal ref="importModalRef" @success="handleImportSuccess" />
+    <ExportDatasetModal ref="exportModalRef" @success="handleExportSuccess" />
+    <SettingsModal ref="settingsModalRef" />
   </div>
 </template>
 
@@ -377,12 +231,24 @@ import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from
 import { useMessage } from '@/hooks/web/useMessage';
 import { Icon } from '@/components/Icon';
 import { useRoute } from 'vue-router';
+import { Button, Space } from 'ant-design-vue';
 import {
-  startAutoLabel,
-  getAIServiceList,
-  exportLabeledDataset
+  getAutoLabelTask,
+  labelSingleImage,
 } from '@/api/device/auto-label';
-import { getDatasetImagePage, uploadDatasetImage } from '@/api/device/dataset';
+import { 
+  getDatasetImagePage, 
+  getDatasetTagPage,
+  createDatasetTag,
+  updateDatasetTag,
+  deleteDatasetTag,
+  getDatasetImage,
+  updateDatasetImage
+} from '@/api/device/dataset';
+import AILabelModal from './AILabelModal/index.vue';
+import ImportDatasetModal from './ImportDatasetModal/index.vue';
+import ExportDatasetModal from './ExportDatasetModal/index.vue';
+import SettingsModal from './SettingsModal/index.vue';
 
 defineOptions({ name: 'AutoLabel' });
 
@@ -425,15 +291,10 @@ const annotationTools = [
 const activeTool = ref('rect');
 
 // 标签管理
-const labels = ref<any[]>([
-  { id: 1, name: 'safehat', color: '#52c41a' },
-  { id: 2, name: 'head', color: '#ff4d4f' },
-  { id: 3, name: 'person', color: '#1890ff' },
-  { id: 4, name: 'tv', color: '#13c2c2' },
-  { id: 5, name: 'hard hat', color: '#52c41a' },
-]);
+const labels = ref<any[]>([]);
 const newLabelName = ref('');
 const newLabelColor = ref('#52c41a');
+const editingLabel = ref<any>(null);
 
 // 当前图片的标注
 const currentAnnotations = ref<any[]>([]);
@@ -446,38 +307,23 @@ const imageElement = ref<HTMLImageElement | null>(null);
 const annotationCanvas = ref<HTMLCanvasElement | null>(null);
 let canvasContext: CanvasRenderingContext2D | null = null;
 
-// AI自动标注模态框
-const aiLabelModalVisible = ref(false);
-const aiLabelLoading = ref(false);
-const aiLabelFormRef = ref();
+// 模态框引用
+const aiLabelModalRef = ref();
+const importModalRef = ref();
+const exportModalRef = ref();
+const settingsModalRef = ref();
+
+// AI标注表单
 const aiLabelForm = reactive({
   model_service_id: undefined,
   confidence_threshold: 0.5,
   autoSwitchNext: false,
 });
-const aiLabelFormRules = {
-  model_service_id: [{ required: true, message: '请选择模型', trigger: 'change' }],
-  confidence_threshold: [{ required: true, message: '请设置置信度阈值', trigger: 'change' }],
-};
 
-// 导入数据集模态框
-const importModalVisible = ref(false);
-const importLoading = ref(false);
-const importFileList = ref<any[]>([]);
-
-// 导出数据集模态框
-const exportModalVisible = ref(false);
-const exportLoading = ref(false);
-const exportForm = reactive({
-  format: 'yolo',
-  train_ratio: 0.7,
-  val_ratio: 0.2,
-  test_ratio: 0.1,
-});
-
-// AI服务列表
-const aiServiceList = ref([]);
-const serviceLoading = ref(false);
+// 批量标注任务相关
+const currentTaskId = ref<number | undefined>(undefined);
+const taskProgressTimer = ref<any>(null);
+const taskProgress = ref<any>(null);
 
 // 加载数据集图片
 const loadDatasetImages = async () => {
@@ -491,7 +337,10 @@ const loadDatasetImages = async () => {
     });
     
     if (res.code === 0) {
-      imageList.value = res.data?.list || [];
+      imageList.value = (res.data?.list || []).map((img: any) => ({
+        ...img,
+        annotations: img.annotations ? (typeof img.annotations === 'string' ? JSON.parse(img.annotations) : img.annotations) : []
+      }));
       // 如果有图片，默认选中第一张
       if (imageList.value.length > 0 && !currentImageId.value) {
         selectImage(imageList.value[0]);
@@ -500,6 +349,32 @@ const loadDatasetImages = async () => {
   } catch (error) {
     console.error('加载图片列表失败:', error);
     createMessage.error('加载图片列表失败');
+  }
+};
+
+// 加载标签列表
+const loadLabels = async () => {
+  if (!datasetId.value) return;
+  
+  try {
+    const res = await getDatasetTagPage({
+      datasetId: datasetId.value,
+      pageNo: 1,
+      pageSize: 1000,
+    });
+    
+    if (res.code === 0) {
+      labels.value = (res.data?.list || []).map((tag: any) => ({
+        id: tag.id,
+        name: tag.name,
+        color: tag.color || '#52c41a',
+        shortcut: tag.shortcut,
+        description: tag.description
+      }));
+    }
+  } catch (error) {
+    console.error('加载标签列表失败:', error);
+    createMessage.error('加载标签列表失败');
   }
 };
 
@@ -547,17 +422,46 @@ const selectImage = (image: any) => {
 
 // 加载图片标注
 const loadImageAnnotations = async (imageId: number) => {
-  // TODO: 从API加载标注数据
-  // 这里先使用模拟数据
-  currentAnnotations.value = [
-    { id: 1, label: 'safehat', color: '#52c41a' },
-    { id: 2, label: 'safehat', color: '#52c41a' },
-  ];
-  
-  // 绘制标注框
-  nextTick(() => {
-    drawAnnotations();
-  });
+  try {
+    const res = await getDatasetImage({ id: imageId });
+    if (res.code === 0 && res.data) {
+      const image = res.data;
+      let annotations: any[] = [];
+      if (image.annotations) {
+        try {
+          annotations = typeof image.annotations === 'string' 
+            ? JSON.parse(image.annotations) 
+            : image.annotations;
+        } catch (e) {
+          console.error('解析标注数据失败:', e);
+          annotations = [];
+        }
+      }
+      
+      // 将标注数据转换为显示格式
+      currentAnnotations.value = annotations.map((ann: any, index: number) => {
+        const label = labels.value.find(l => l.name === ann.class || l.id === ann.labelId);
+        return {
+          id: ann.id || index,
+          label: ann.class || ann.label || '',
+          labelId: ann.labelId,
+          color: label?.color || '#52c41a',
+          points: ann.points || [],
+          confidence: ann.confidence,
+          bbox: ann.bbox,
+          type: ann.type || 'rectangle'
+        };
+      });
+      
+      // 绘制标注框
+      nextTick(() => {
+        drawAnnotations();
+      });
+    }
+  } catch (error) {
+    console.error('加载图片标注失败:', error);
+    currentAnnotations.value = [];
+  }
 };
 
 // 更新图像信息
@@ -573,7 +477,10 @@ const updateImageInfo = (image: any) => {
 const handleImageLoad = () => {
   nextTick(() => {
     initCanvas();
-    drawAnnotations();
+    // 延迟一下确保图片完全加载
+    setTimeout(() => {
+      drawAnnotations();
+    }, 100);
   });
 };
 
@@ -584,42 +491,116 @@ const initCanvas = () => {
   const canvas = annotationCanvas.value;
   const img = imageElement.value;
   
-  canvas.width = img.offsetWidth;
-  canvas.height = img.offsetHeight;
+  // 使用图片的实际显示尺寸
+  const rect = img.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  
+  // 设置canvas样式以匹配图片位置
+  canvas.style.width = `${rect.width}px`;
+  canvas.style.height = `${rect.height}px`;
   
   canvasContext = canvas.getContext('2d');
   if (canvasContext) {
     canvasContext.strokeStyle = '#52c41a';
     canvasContext.lineWidth = 2;
+    canvasContext.textBaseline = 'top';
   }
 };
 
 // 绘制标注框
 const drawAnnotations = () => {
-  if (!canvasContext || !annotationCanvas.value) return;
+  if (!canvasContext || !annotationCanvas.value || !imageElement.value) return;
   
   const ctx = canvasContext;
   const canvas = annotationCanvas.value;
+  const img = imageElement.value;
   
   // 清空画布
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  // 绘制标注框（示例）
-  // TODO: 根据实际标注数据绘制
-  currentAnnotations.value.forEach((anno, index) => {
-    // 示例：绘制一个矩形框
-    const x = 50 + index * 100;
-    const y = 50 + index * 80;
-    const width = 150;
-    const height = 100;
+  // 获取图片的实际显示尺寸和原始尺寸
+  const displayWidth = img.offsetWidth || img.clientWidth;
+  const displayHeight = img.offsetHeight || img.clientHeight;
+  const naturalWidth = img.naturalWidth || displayWidth;
+  const naturalHeight = img.naturalHeight || displayHeight;
+  
+  // 计算缩放比例
+  const scaleX = displayWidth / naturalWidth;
+  const scaleY = displayHeight / naturalHeight;
+  
+  // 绘制标注框
+  currentAnnotations.value.forEach((anno) => {
+    if (!anno.points || anno.points.length === 0) {
+      // 如果有bbox，转换为points
+      if (anno.bbox && Array.isArray(anno.bbox) && anno.bbox.length >= 4) {
+        const [x1, y1, x2, y2] = anno.bbox;
+        anno.points = [[x1, y1], [x2, y1], [x2, y2], [x1, y2]];
+      } else {
+        return;
+      }
+    }
     
     ctx.strokeStyle = anno.color || '#52c41a';
-    ctx.strokeRect(x, y, width, height);
+    ctx.lineWidth = 2;
+    ctx.font = 'bold 12px Arial';
     
-    // 绘制标签文字
-    ctx.fillStyle = anno.color || '#52c41a';
-    ctx.font = '12px Arial';
-    ctx.fillText(anno.label, x, y - 5);
+    if (anno.type === 'rectangle' && anno.points.length >= 4) {
+      // 矩形框
+      const xs = anno.points.map((p: number[]) => p[0] * scaleX);
+      const ys = anno.points.map((p: number[]) => p[1] * scaleY);
+      const x = Math.min(...xs);
+      const y = Math.min(...ys);
+      const width = Math.max(...xs) - x;
+      const height = Math.max(...ys) - y;
+      
+      // 绘制矩形框
+      ctx.strokeRect(x, y, width, height);
+      
+      // 绘制标签文字背景
+      const labelText = anno.label || '';
+      const confidenceText = anno.confidence ? ` (${(anno.confidence * 100).toFixed(1)}%)` : '';
+      const fullText = labelText + confidenceText;
+      const textMetrics = ctx.measureText(fullText);
+      const textHeight = 16;
+      const textPadding = 4;
+      
+      ctx.fillStyle = anno.color || '#52c41a';
+      ctx.fillRect(x, y - textHeight, textMetrics.width + textPadding * 2, textHeight);
+      
+      // 绘制标签文字
+      ctx.fillStyle = '#fff';
+      ctx.fillText(fullText, x + textPadding, y - textHeight + 3);
+    } else if (anno.points.length >= 2) {
+      // 多边形
+      ctx.beginPath();
+      anno.points.forEach((point: number[], index: number) => {
+        const x = point[0] * scaleX;
+        const y = point[1] * scaleY;
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.closePath();
+      ctx.stroke();
+      
+      // 绘制标签文字
+      if (anno.points.length > 0) {
+        const firstPoint = anno.points[0];
+        const x = firstPoint[0] * scaleX;
+        const y = firstPoint[1] * scaleY;
+        const labelText = anno.label || '';
+        const textMetrics = ctx.measureText(labelText);
+        
+        ctx.fillStyle = anno.color || '#52c41a';
+        ctx.fillRect(x, y - 16, textMetrics.width + 8, 16);
+        
+        ctx.fillStyle = '#fff';
+        ctx.fillText(labelText, x + 4, y - 13);
+      }
+    }
   });
 };
 
@@ -642,34 +623,91 @@ const setActiveTool = (toolId: string) => {
 };
 
 // 添加标签
-const handleAddLabel = () => {
+const handleAddLabel = async () => {
   if (!newLabelName.value.trim()) {
     createMessage.warning('请输入标签名称');
     return;
   }
   
-  const newLabel = {
-    id: Date.now(),
-    name: newLabelName.value.trim(),
-    color: newLabelColor.value,
-  };
+  if (!datasetId.value) {
+    createMessage.warning('请先选择数据集');
+    return;
+  }
   
-  labels.value.push(newLabel);
-  newLabelName.value = '';
-  newLabelColor.value = '#52c41a';
+  try {
+    // 生成快捷键（使用下一个可用的数字）
+    const maxShortcut = labels.value.length > 0 
+      ? Math.max(...labels.value.map(l => l.shortcut || 0))
+      : 0;
+    
+    const res = await createDatasetTag({
+      datasetId: datasetId.value,
+      name: newLabelName.value.trim(),
+      color: newLabelColor.value,
+      shortcut: maxShortcut + 1,
+      description: `标签: ${newLabelName.value.trim()}`
+    });
+    
+    if (res.code === 0) {
+      createMessage.success('标签添加成功');
+      newLabelName.value = '';
+      newLabelColor.value = '#52c41a';
+      await loadLabels();
+    } else {
+      createMessage.error(res.msg || '标签添加失败');
+    }
+  } catch (error) {
+    console.error('添加标签失败:', error);
+    createMessage.error('添加标签失败');
+  }
 };
 
 // 编辑标签
-const handleEditLabel = (label: any) => {
-  // TODO: 实现编辑标签逻辑
-  createMessage.info('编辑功能待实现');
+const handleEditLabel = async (label: any) => {
+  editingLabel.value = { ...label };
+  newLabelName.value = label.name;
+  newLabelColor.value = label.color;
+  
+  // 使用模态框或直接编辑
+  // 这里简化处理，直接更新
+  try {
+    const res = await updateDatasetTag({
+      id: label.id,
+      datasetId: datasetId.value,
+      name: newLabelName.value,
+      color: newLabelColor.value,
+      shortcut: label.shortcut,
+      description: label.description || ''
+    });
+    
+    if (res.code === 0) {
+      createMessage.success('标签更新成功');
+      await loadLabels();
+      editingLabel.value = null;
+      newLabelName.value = '';
+      newLabelColor.value = '#52c41a';
+    } else {
+      createMessage.error(res.msg || '标签更新失败');
+    }
+  } catch (error) {
+    console.error('更新标签失败:', error);
+    createMessage.error('更新标签失败');
+  }
 };
 
 // 删除标签
-const handleDeleteLabel = (labelId: number) => {
-  const index = labels.value.findIndex(l => l.id === labelId);
-  if (index > -1) {
-    labels.value.splice(index, 1);
+const handleDeleteLabel = async (labelId: number) => {
+  try {
+    const res = await deleteDatasetTag(labelId);
+    if (res.code === 0) {
+      createMessage.success('标签删除成功');
+      await loadLabels();
+    } else {
+      createMessage.error(res.msg || '标签删除失败');
+    }
+  } catch (error) {
+    console.error('删除标签失败:', error);
+    createMessage.error('删除标签失败');
   }
 };
 
@@ -694,13 +732,13 @@ const handleDeleteSelected = () => {
 
 // 顶部按钮处理
 const handleImportDataset = () => {
-  importModalVisible.value = true;
-  importFileList.value = [];
+  (window as any).__currentDatasetId__ = datasetId.value;
+  importModalRef.value?.openModal();
 };
 
 const handleAILabel = () => {
-  aiLabelModalVisible.value = true;
-  loadAIServiceList();
+  (window as any).__currentDatasetId__ = datasetId.value;
+  aiLabelModalRef.value?.openModal();
 };
 
 const handleClear = () => {
@@ -714,193 +752,223 @@ const handleSave = async () => {
     createMessage.warning('请先选择一张图片');
     return;
   }
-  // TODO: 实现保存标注逻辑
-  createMessage.success('保存成功');
-};
-
-const handleExport = () => {
-  exportModalVisible.value = true;
-  // 重置导出表单
-  exportForm.format = 'yolo';
-  exportForm.train_ratio = 0.7;
-  exportForm.val_ratio = 0.2;
-  exportForm.test_ratio = 0.1;
-};
-
-const handleSettings = () => {
-  createMessage.info('设置功能待实现');
-};
-
-// 加载AI服务列表
-const loadAIServiceList = async () => {
+  
+  if (!datasetId.value) {
+    createMessage.warning('请先选择数据集');
+    return;
+  }
+  
   try {
-    serviceLoading.value = true;
-    const res = await getAIServiceList();
+    // 将标注数据转换为后端格式
+    const annotationsData = currentAnnotations.value.map(ann => ({
+      class: ann.label,
+      labelId: ann.labelId,
+      points: ann.points,
+      confidence: ann.confidence,
+      bbox: ann.bbox,
+      type: ann.type || 'rectangle',
+      auto: ann.auto || false
+    }));
+    
+    const res = await updateDatasetImage({
+      id: currentImageId.value,
+      datasetId: datasetId.value,
+      annotations: JSON.stringify(annotationsData),
+      completed: currentAnnotations.value.length > 0 ? 1 : 0,
+      modificationCount: (currentImage.value?.modificationCount || 0) + 1
+    });
     
     if (res.code === 0) {
-      aiServiceList.value = (res.data || []).filter((s: any) => s.status === 'running');
+      createMessage.success('保存成功');
+      // 更新图片列表中的标注状态
+      const imageIndex = imageList.value.findIndex(img => img.id === currentImageId.value);
+      if (imageIndex > -1) {
+        imageList.value[imageIndex].annotations = annotationsData;
+        imageList.value[imageIndex].completed = currentAnnotations.value.length > 0 ? 1 : 0;
+      }
+      
+      // 如果设置了自动切换，切换到下一张
+      if (aiLabelForm.autoSwitchNext) {
+        switchToNextImage();
+      }
+      
+      // 更新全局表单数据
+      (window as any).__currentAILabelForm__ = aiLabelForm;
     } else {
-      createMessage.error(res.msg || '加载AI服务列表失败');
+      createMessage.error(res.msg || '保存失败');
     }
   } catch (error) {
-    console.error('加载AI服务列表失败:', error);
-    createMessage.error('加载AI服务列表失败');
-  } finally {
-    serviceLoading.value = false;
+    console.error('保存标注失败:', error);
+    createMessage.error('保存标注失败');
   }
 };
 
-// 开始AI自动标注
-const handleStartAILabel = async () => {
-  if (!aiLabelFormRef.value) return;
-  
-  try {
-    await aiLabelFormRef.value.validate();
-  } catch (error) {
+// 切换到下一张图片
+const switchToNextImage = () => {
+  const currentIndex = imageList.value.findIndex(img => img.id === currentImageId.value);
+  if (currentIndex >= 0 && currentIndex < imageList.value.length - 1) {
+    selectImage(imageList.value[currentIndex + 1]);
+  } else {
+    createMessage.info('已经是最后一张图片');
+  }
+};
+
+const handleExport = () => {
+  (window as any).__currentDatasetId__ = datasetId.value;
+  (window as any).__currentLabels__ = labels.value;
+  const exportForm = exportModalRef.value?.form;
+  if (exportForm) {
+    exportForm.format = 'yolo';
+    exportForm.train_ratio = 0.7;
+    exportForm.val_ratio = 0.2;
+    exportForm.test_ratio = 0.1;
+    exportForm.sampleType = 'all';
+    exportForm.selectedClasses = labels.value.map(l => l.name);
+    exportForm.filePrefix = '';
+  }
+  // 使用 nextTick 确保 labels 已更新
+  nextTick(() => {
+    exportModalRef.value?.openModal();
+  });
+};
+
+// 设置模态框
+const handleSettings = () => {
+  settingsModalRef.value?.loadInstalledModels();
+  settingsModalRef.value?.loadYOLO11Config();
+  settingsModalRef.value?.openModal();
+};
+
+// AI标注成功回调
+const handleAILabelSuccess = (data: any) => {
+  if (data?.taskId) {
+    currentTaskId.value = data.taskId;
+    // 开始监听任务进度
+    startTaskProgressMonitoring(data.taskId);
+  }
+  // 更新表单数据
+  if (data?.form) {
+    Object.assign(aiLabelForm, data.form);
+  }
+  // 刷新图片列表
+  loadDatasetImages();
+};
+
+// 单张图片AI标注
+const handleLabelCurrentImage = async () => {
+  if (!currentImageId.value) {
+    createMessage.warning('请先选择一张图片');
     return;
   }
   
   if (!datasetId.value) {
     createMessage.warning('请先选择数据集');
+    return;
+  }
+  
+  // 如果没有选择模型，先打开AI标注模态框
+  if (!aiLabelForm.model_service_id) {
+    (window as any).__currentDatasetId__ = datasetId.value;
+    aiLabelModalRef.value?.loadAIServiceList();
+    aiLabelModalRef.value?.openModal();
     return;
   }
   
   try {
     aiLabelLoading.value = true;
-    const res = await startAutoLabel(datasetId.value, {
+    const res = await labelSingleImage(datasetId.value, currentImageId.value, {
       model_service_id: aiLabelForm.model_service_id,
       confidence_threshold: aiLabelForm.confidence_threshold,
     });
     
     if (res.code === 0) {
-      createMessage.success('AI自动标注任务已启动');
-      aiLabelModalVisible.value = false;
-      // 如果设置了自动切换，在标注完成后自动切换到下一张
-      if (aiLabelForm.autoSwitchNext) {
-        // TODO: 监听标注完成事件，自动切换图片
+      createMessage.success(`AI标注完成，检测到 ${res.data?.count || 0} 个对象`);
+      
+      // 将AI标注结果转换为显示格式
+      if (res.data?.annotations && Array.isArray(res.data.annotations)) {
+        const aiAnnotations = res.data.annotations.map((ann: any, index: number) => {
+          const label = labels.value.find(l => l.name === ann.class);
+          return {
+            id: ann.id || Date.now() + index,
+            label: ann.class || '',
+            labelId: ann.labelId,
+            color: label?.color || '#52c41a',
+            points: ann.points || [],
+            confidence: ann.confidence,
+            bbox: ann.bbox,
+            type: ann.type || 'rectangle',
+            auto: true
+          };
+        });
+        
+        // 合并现有标注和AI标注（避免重复）
+        const existingLabels = currentAnnotations.value.map(a => a.label);
+        const newAnnotations = aiAnnotations.filter((a: any) => !existingLabels.includes(a.label));
+        currentAnnotations.value = [...currentAnnotations.value, ...newAnnotations];
+        
+        // 重新绘制标注框
+        nextTick(() => {
+          drawAnnotations();
+        });
       }
+      
       // 刷新图片列表
       await loadDatasetImages();
     } else {
-      createMessage.error(res.msg || '启动AI自动标注失败');
+      createMessage.error(res.msg || 'AI标注失败');
     }
   } catch (error) {
-    console.error('启动AI自动标注失败:', error);
-    createMessage.error('启动AI自动标注失败');
+    console.error('AI标注失败:', error);
+    createMessage.error('AI标注失败');
   } finally {
     aiLabelLoading.value = false;
   }
 };
 
-const handleCancelAILabel = () => {
-  aiLabelModalVisible.value = false;
-};
-
-const filterServiceOption = (input: string, option: any) => {
-  return option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0;
-};
-
-// 导入数据集相关方法
-const beforeImportUpload = (file: File) => {
-  const isZip = file.type === 'application/zip' || file.name.endsWith('.zip');
-  if (!isZip) {
-    createMessage.error('只能上传ZIP格式文件');
-    return false;
+// 监听任务进度
+const startTaskProgressMonitoring = (taskId: number) => {
+  if (taskProgressTimer.value) {
+    clearInterval(taskProgressTimer.value);
   }
-  const isLt200M = file.size / 1024 / 1024 < 200;
-  if (!isLt200M) {
-    createMessage.error('文件大小不能超过200MB');
-    return false;
-  }
-  return false; // 阻止自动上传
-};
-
-const handleConfirmImport = async () => {
-  if (importFileList.value.length === 0) {
-    createMessage.warning('请选择要导入的ZIP文件');
-    return;
-  }
-
-  if (!datasetId.value) {
-    createMessage.warning('请先选择数据集');
-    return;
-  }
-
-  try {
-    importLoading.value = true;
-    const file = importFileList.value[0].originFileObj;
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('datasetId', datasetId.value.toString());
-    formData.append('isZip', 'true');
-
-    await uploadDatasetImage(formData);
-    createMessage.success('导入成功');
-    importModalVisible.value = false;
-    importFileList.value = [];
-    // 刷新图片列表
-    await loadDatasetImages();
-  } catch (error) {
-    console.error('导入失败:', error);
-    createMessage.error('导入失败');
-  } finally {
-    importLoading.value = false;
-  }
-};
-
-const handleCancelImport = () => {
-  importModalVisible.value = false;
-  importFileList.value = [];
-};
-
-// 导出数据集相关方法
-const handleConfirmExport = async () => {
-  if (!datasetId.value) {
-    createMessage.warning('请先选择数据集');
-    return;
-  }
-
-  // 验证比例
-  const total = exportForm.train_ratio + exportForm.val_ratio + exportForm.test_ratio;
-  if (Math.abs(total - 1.0) > 0.01) {
-    createMessage.warning('训练集、验证集、测试集比例之和必须为1');
-    return;
-  }
-
-  try {
-    exportLoading.value = true;
-    const res = await exportLabeledDataset(datasetId.value, {
-      format: exportForm.format,
-      train_ratio: exportForm.train_ratio,
-      val_ratio: exportForm.val_ratio,
-      test_ratio: exportForm.test_ratio,
-    });
-
-    // 处理文件下载
-    if (res instanceof Blob) {
-      const url = window.URL.createObjectURL(res);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `dataset_${datasetId.value}_${Date.now()}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      createMessage.success('导出成功');
-      exportModalVisible.value = false;
-    } else {
-      createMessage.error('导出失败');
+  
+  taskProgressTimer.value = setInterval(async () => {
+    try {
+      const res = await getAutoLabelTask(datasetId.value!, taskId);
+      if (res.code === 0) {
+        taskProgress.value = res.data;
+        
+        // 如果任务完成，停止监听
+        if (res.data.status === 'COMPLETED' || res.data.status === 'FAILED') {
+          if (taskProgressTimer.value) {
+            clearInterval(taskProgressTimer.value);
+            taskProgressTimer.value = null;
+          }
+          
+          if (res.data.status === 'COMPLETED') {
+            createMessage.success(`标注任务完成！成功: ${res.data.success_count}, 失败: ${res.data.failed_count}`);
+          } else {
+            createMessage.error(`标注任务失败: ${res.data.error_message || '未知错误'}`);
+          }
+          
+          // 刷新图片列表
+          await loadDatasetImages();
+        }
+      }
+    } catch (error) {
+      console.error('获取任务进度失败:', error);
     }
-  } catch (error) {
-    console.error('导出失败:', error);
-    createMessage.error('导出失败');
-  } finally {
-    exportLoading.value = false;
-  }
+  }, 2000); // 每2秒刷新一次
 };
 
-const handleCancelExport = () => {
-  exportModalVisible.value = false;
+// 导入成功回调
+const handleImportSuccess = () => {
+  loadDatasetImages();
+  loadLabels();
+};
+
+// 导出成功回调
+const handleExportSuccess = () => {
+  // 导出成功后的处理
 };
 
 // 监听全选状态
@@ -908,19 +976,44 @@ watch(selectedImageIds, (newVal) => {
   selectAll.value = newVal.length === filteredImageList.value.length && filteredImageList.value.length > 0;
 }, { deep: true });
 
+// 窗口大小变化时重新绘制
+const handleResize = () => {
+  nextTick(() => {
+    initCanvas();
+    drawAnnotations();
+  });
+};
+
 // 组件挂载
 onMounted(() => {
   // 从路由参数获取数据集ID
   const id = route.params.id;
   if (id) {
     datasetId.value = Number(id);
+    (window as any).__currentDatasetId__ = datasetId.value;
     loadDatasetImages();
+    loadLabels();
   }
+  
+  // 恢复AI标注表单数据
+  if ((window as any).__currentAILabelForm__) {
+    Object.assign(aiLabelForm, (window as any).__currentAILabelForm__);
+  }
+  
+  // 监听窗口大小变化
+  window.addEventListener('resize', handleResize);
 });
 
 // 组件卸载
 onUnmounted(() => {
   // 清理资源
+  if (taskProgressTimer.value) {
+    clearInterval(taskProgressTimer.value);
+    taskProgressTimer.value = null;
+  }
+  
+  // 移除事件监听
+  window.removeEventListener('resize', handleResize);
 });
 </script>
 
@@ -954,9 +1047,14 @@ onUnmounted(() => {
 
   .header-right {
     .ai-label-btn {
-      background: #ffc107;
-      border-color: #ffc107;
-      color: #000;
+      background: #1890ff;
+      border-color: #1890ff;
+      color: #fff;
+      
+      &:hover {
+        background: #40a9ff;
+        border-color: #40a9ff;
+      }
     }
   }
 }
@@ -1014,15 +1112,15 @@ onUnmounted(() => {
         }
 
         &.active {
-          background: #fff1f0;
-          color: #ff4d4f;
+          background: #e6f7ff;
+          color: #1890ff;
           font-weight: 500;
-          border-left-color: #ff4d4f;
+          border-left-color: #1890ff;
           
           .image-checkbox {
             :deep(.ant-checkbox-checked .ant-checkbox-inner) {
-              background-color: #ff4d4f;
-              border-color: #ff4d4f;
+              background-color: #1890ff;
+              border-color: #1890ff;
             }
           }
         }
@@ -1141,6 +1239,8 @@ onUnmounted(() => {
         left: 0;
         pointer-events: auto;
         cursor: crosshair;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
       }
     }
 
@@ -1193,7 +1293,7 @@ onUnmounted(() => {
     .add-label-form {
       padding: 16px;
       display: flex;
-      gap: 8px;
+      gap: 4px;
       align-items: center;
 
       .color-picker-wrapper {
@@ -1204,6 +1304,10 @@ onUnmounted(() => {
           border-radius: 4px;
           cursor: pointer;
         }
+      }
+
+      .add-label-btn {
+        margin-left: 4px;
       }
     }
 
@@ -1275,6 +1379,10 @@ onUnmounted(() => {
           flex: 1;
           font-size: 14px;
         }
+
+        :deep(.ant-btn) {
+          margin-left: 4px;
+        }
       }
 
       .empty-annotations {
@@ -1287,96 +1395,4 @@ onUnmounted(() => {
   }
 }
 
-// AI自动标注弹窗样式
-:deep(.ai-auto-label-modal) {
-  .ant-modal-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid #e8e8e8;
-    
-    .modal-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 18px;
-      font-weight: 600;
-      color: #1f1f1f;
-      
-      .title-icon {
-        font-size: 20px;
-        color: #1890ff;
-      }
-    }
-  }
-  
-  .ant-modal-body {
-    padding: 24px;
-  }
-  
-  .ant-modal-close {
-    top: 20px;
-    right: 24px;
-  }
-  
-  .ai-label-form {
-    .ant-form-item-label {
-      > label {
-        font-weight: 500;
-        color: #333;
-      }
-    }
-    
-    .form-hint {
-      margin-top: 8px;
-      font-size: 12px;
-      color: #999;
-      line-height: 1.5;
-    }
-    
-    .confidence-slider-wrapper {
-      position: relative;
-      
-      .confidence-value {
-        position: absolute;
-        top: -8px;
-        right: 0;
-        font-size: 14px;
-        font-weight: 600;
-        color: #1890ff;
-      }
-    }
-  }
-  
-  .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    padding: 16px 24px;
-    border-top: 1px solid #e8e8e8;
-    
-    .start-ai-label-btn {
-      background: #1890ff;
-      border-color: #1890ff;
-      
-      &:hover {
-        background: #40a9ff;
-        border-color: #40a9ff;
-      }
-    }
-  }
-}
-
-// 导入/导出模态框样式
-.upload-hint {
-  margin-top: 16px;
-  padding: 12px;
-  background: #f5f5f5;
-  border-radius: 4px;
-  
-  p {
-    margin: 4px 0;
-    font-size: 12px;
-    color: #666;
-    line-height: 1.5;
-  }
-}
 </style>
