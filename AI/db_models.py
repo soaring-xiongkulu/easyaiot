@@ -249,3 +249,78 @@ class AIService(db.Model):
     def __repr__(self):
         return f'<AIService {self.service_name} ({self.status})>'
 
+
+class AutoLabelTask(db.Model):
+    """自动化标注任务表"""
+    __tablename__ = 'auto_label_task'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    dataset_id = db.Column(db.BigInteger, nullable=False, comment='数据集ID')
+    model_service_id = db.Column(db.Integer, db.ForeignKey('ai_service.id'), nullable=True, comment='AI服务ID')
+    status = db.Column(db.String(20), default='PENDING', nullable=False, comment='状态[PENDING:待处理,PROCESSING:处理中,COMPLETED:已完成,FAILED:失败]')
+    total_images = db.Column(db.Integer, default=0, comment='总图片数')
+    processed_images = db.Column(db.Integer, default=0, comment='已处理图片数')
+    success_count = db.Column(db.Integer, default=0, comment='成功标注数')
+    failed_count = db.Column(db.Integer, default=0, comment='失败数')
+    confidence_threshold = db.Column(db.Float, default=0.5, comment='置信度阈值')
+    created_at = db.Column(db.DateTime, default=beijing_now, comment='创建时间')
+    updated_at = db.Column(db.DateTime, default=beijing_now, onupdate=beijing_now, comment='更新时间')
+    started_at = db.Column(db.DateTime, nullable=True, comment='开始时间')
+    completed_at = db.Column(db.DateTime, nullable=True, comment='完成时间')
+    error_message = db.Column(db.Text, nullable=True, comment='错误信息')
+    
+    # 关系定义
+    model_service = db.relationship('AIService', backref=db.backref('auto_label_tasks', lazy='dynamic'))
+    
+    def to_dict(self):
+        """转换为字典格式"""
+        return {
+            'id': self.id,
+            'dataset_id': self.dataset_id,
+            'model_service_id': self.model_service_id,
+            'status': self.status,
+            'total_images': self.total_images,
+            'processed_images': self.processed_images,
+            'success_count': self.success_count,
+            'failed_count': self.failed_count,
+            'confidence_threshold': self.confidence_threshold,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'started_at': self.started_at.isoformat() if self.started_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'error_message': self.error_message
+        }
+    
+    def __repr__(self):
+        return f'<AutoLabelTask {self.id} ({self.status})>'
+
+
+class AutoLabelResult(db.Model):
+    """自动化标注结果表"""
+    __tablename__ = 'auto_label_result'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('auto_label_task.id'), nullable=False, comment='任务ID')
+    dataset_image_id = db.Column(db.BigInteger, nullable=False, comment='数据集图片ID')
+    annotations = db.Column(db.Text, nullable=True, comment='标注结果JSON')
+    status = db.Column(db.String(20), default='SUCCESS', nullable=False, comment='状态[SUCCESS:成功,FAILED:失败]')
+    error_message = db.Column(db.Text, nullable=True, comment='错误信息')
+    created_at = db.Column(db.DateTime, default=beijing_now, comment='创建时间')
+    
+    # 关系定义
+    task = db.relationship('AutoLabelTask', backref=db.backref('results', lazy='dynamic'))
+    
+    def to_dict(self):
+        """转换为字典格式"""
+        return {
+            'id': self.id,
+            'task_id': self.task_id,
+            'dataset_image_id': self.dataset_image_id,
+            'annotations': self.annotations,
+            'status': self.status,
+            'error_message': self.error_message,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+    
+    def __repr__(self):
+        return f'<AutoLabelResult {self.id} ({self.status})>'

@@ -292,7 +292,7 @@ def create_app():
                         user = user_pass.split(':')[0]
                         safe_uri = database_uri.replace(user_pass, f"{user}:***")
             print(f"数据库连接: {safe_uri}")
-            from db_models import Model, TrainTask, ExportRecord, InferenceTask, LLMModel, OCRResult, AIService
+            from db_models import Model, TrainTask, ExportRecord, InferenceTask, LLMModel, OCRResult, AIService, AutoLabelTask, AutoLabelResult
             db.create_all()
             print(f"✅ 数据库连接成功，表结构已创建/验证")
         except Exception as e:
@@ -307,7 +307,7 @@ def create_app():
 
     # 注册蓝图（延迟导入，避免在环境变量加载前就导入）
     try:
-        from app.blueprints import export, inference, model, train, train_task, llm, ocr, speech, deploy
+        from app.blueprints import export, inference, model, train, train_task, llm, ocr, speech, deploy, auto_label
         
         app.register_blueprint(export.export_bp, url_prefix='/model/export')
         app.register_blueprint(inference.inference_task_bp, url_prefix='/model/inference_task')
@@ -318,6 +318,7 @@ def create_app():
         app.register_blueprint(ocr.ocr_bp, url_prefix='/model/ocr')
         app.register_blueprint(speech.speech_bp, url_prefix='/model/speech')
         app.register_blueprint(deploy.deploy_service_bp, url_prefix='/model/deploy_service')
+        app.register_blueprint(auto_label.auto_label_bp, url_prefix='/dataset')
         
         # 注册集群推理接口（使用不同的路由，不影响原有推理接口）
         from app.blueprints import cluster
