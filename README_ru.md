@@ -513,13 +513,13 @@ EasyAIoT — это проект с открытым исходным кодом
 <tr style="background-color: #f8f9fa;">
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Развертывание системы</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Завершение развертывания EasyAIoT в указанной пользователем сетевой и аппаратной среде.</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">500 юаней</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">1000 юаней</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Онлайн поддержка развертывания</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Техническая поддержка</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Ответы на вопросы, возникающие при развертывании, использовании функций и т.д.</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">200 юаней</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">500 юаней</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Полчаса удаленной онлайн поддержки</td>
 </tr>
 <tr>

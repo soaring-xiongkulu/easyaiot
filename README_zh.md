@@ -513,13 +513,13 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 <tr style="background-color: #f8f9fa;">
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">系统部署</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">在客户指定的网络和硬件环境中完成EasyAIoT部署</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">500元</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">1000元</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">线上部署支持</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">技术支持</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">提供各类部署、功能使用中遇到的问题答疑</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">200元</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">500元</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">半小时内 线上远程支持</td>
 </tr>
 <tr>

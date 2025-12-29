@@ -516,13 +516,13 @@ We offer various service options to help you gain an in-depth understanding of t
 <tr style="background-color: #f8f9fa;">
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">System Deployment</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Complete EasyAIoT deployment in the customer-specified network and hardware environment</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">¥500</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">¥1000</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Online Deployment Support</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Technical Support</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Provide solutions for issues encountered during deployment and functional usage</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">¥200</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">¥500</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Online Remote Support within 30 Minutes</td>
 </tr>
 <tr>

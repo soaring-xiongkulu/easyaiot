@@ -513,13 +513,13 @@ Nous offrons diverses méthodes de service pour vous aider à mieux comprendre l
 <tr style="background-color: #f8f9fa;">
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Déploiement du système</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Réaliser le déploiement d'EasyAIoT dans l'environnement réseau et matériel spécifié par le client.</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">500 RMB</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">1000 RMB</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Support de déploiement en ligne</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Support technique</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Fournir des réponses aux questions concernant les problèmes rencontrés lors du déploiement et de l'utilisation des fonctionnalités.</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">200 RMB</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">500 RMB</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">Support à distance en ligne dans les 30 minutes</td>
 </tr>
 <tr>

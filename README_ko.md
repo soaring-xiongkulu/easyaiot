@@ -512,13 +512,13 @@ EasyAIoT 플랫폼과 코드를 깊이 이해하실 수 있도록 다양한 서�
 <tr style="background-color: #f8f9fa;">
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">시스템 배포</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">고객이 지정한 네트워크 및 하드웨어 환경에서 EasyAIoT 배포 완료</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">500위안</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">1000위안</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">온라인 배포 지원</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">기술 지원</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">다양한 배포, 기능 사용 중 발생한 문제에 대한 답변 제공</td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">200위안</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; text-align: center; color: #e74c3c; font-weight: 600;">500위안</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444;">30분 이내 온라인 원격 지원</td>
 </tr>
 <tr>
