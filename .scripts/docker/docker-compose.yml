@@ -139,7 +139,7 @@ services:
 
   # TDengine 初始化容器（在 TDengine 就绪后执行数据库和超级表初始化）
   TDengine-init:
-    image: tdengine/tdengine:3.3.0.0
+    image: tdengine/tdengine:3.3.8.4
     container_name: tdengine-init
     depends_on:
       TDengine:
@@ -352,6 +352,49 @@ services:
       interval: 5s
       timeout: 25s
       retries: 5
+    networks:
+      - easyaiot-network
+
+  # ZLMediaKit Media Server
+  ZLMediaKit:
+    image: zlmediakit/zlmediakit:master
+    container_name: zlmediakit-server
+    restart: always
+    ports:
+      - "6080:80/tcp"     # HTTP 播流端口
+      - "4443:443/tcp"    # HTTPS 播流端口
+      - "10935:10935/tcp" # RTMP 收流端口
+      - "10935:10935/udp" # RTMP 收流端口
+      - "5540:5540/tcp"   # RTSP 收流端口
+      - "5540:5540/udp"   # RTSP 收流端口
+      - "10000:10000/tcp" # RTP 收流端口
+      - "10000:10000/udp" # RTP 收流端口
+      - "8001:8001/tcp"   # WebRTC 端口（避免与SRS的8000端口冲突）
+      - "8001:8001/udp"   # WebRTC 端口（避免与SRS的8000端口冲突）
+      - "9002:9002/tcp"   # SRT 端口（避免与MinIO的9000端口冲突）
+      - "9002:9002/udp"   # SRT 端口（避免与MinIO的9000端口冲突）
+      - "10001:10001/tcp" # RTMP 端口（内部）
+      - "10002:10002/tcp" # RTSP 端口（内部）
+      - "10003:10003/tcp" # RTP Proxy 端口
+      - "30000-30500:30000-30500/udp" # RTP Proxy 端口范围
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - "../zlmediakit/www:/opt/media/bin/www:rw"
+      - "../zlmediakit/log:/opt/media/log:rw"
+      - "../zlmediakit/conf:/conf:rw"
+    command:
+      [
+        "MediaServer",
+        "-c", "/conf/config.ini",
+        "-l", "0"
+      ]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/index/api/getServerConfig || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     networks:
       - easyaiot-network
 

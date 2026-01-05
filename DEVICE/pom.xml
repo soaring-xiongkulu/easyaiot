@@ -14,7 +14,7 @@
         <!-- Maven编译时的依赖 -->
         <java.version>21</java.version>
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
-        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
         <swagger.start.version>3.0</swagger.start.version>
         <dockerfile-maven-plugin.version>1.4.12</dockerfile-maven-plugin.version>
         <docker.image.prefix>basiclab</docker.image.prefix>
@@ -24,8 +24,8 @@
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <!-- 编译时的编码 -->
         <maven.compiler.encoding>UTF-8</maven.compiler.encoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
     </properties>
 
     <modules>
@@ -41,6 +41,7 @@
         <module>iot-tdengine</module>
         <module>iot-sink</module>
         <module>iot-message</module>
+        <module>iot-gb28181</module>
     </modules>
 
     <name>${project.artifactId}</name>
@@ -277,6 +278,10 @@
         <repository>
             <id>oss-public</id>
             <url>https://oss.sonatype.org/content/repositories/public</url>
+        </repository>
+        <repository>
+            <id>ECC</id>
+            <url>https://maven.ecc.no/releases</url>
         </repository>
     </repositories>
 

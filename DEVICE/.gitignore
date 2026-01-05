@@ -35,4 +35,3 @@ hs_err_pid*
 /iot-registry/target
 /iot-visual/*/target
 *.iml
-

@@ -103,6 +103,8 @@
         <jimureport.version>1.6.6</jimureport.version>
         <xercesImpl.version>2.12.2</xercesImpl.version>
         <weixin-java.version>4.6.0</weixin-java.version>
+        <!-- Java 9+ 兼容性 -->
+        <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
     </properties>
 
     <dependencyManagement>
@@ -211,6 +213,13 @@
                 <groupId>com.github.xiaoymin</groupId> <!-- 接口文档 UI：knife4j【网关专属】 -->
                 <artifactId>knife4j-gateway-spring-boot-starter</artifactId>
                 <version>${knife4j.version}</version>
+            </dependency>
+
+            <!-- Java 9+ 兼容性：javax.annotation 在 Java 9+ 中已从 JDK 移除，需要显式添加 -->
+            <dependency>
+                <groupId>javax.annotation</groupId>
+                <artifactId>javax.annotation-api</artifactId>
+                <version>${javax.annotation-api.version}</version>
             </dependency>
 
             <!-- DB 相关 -->

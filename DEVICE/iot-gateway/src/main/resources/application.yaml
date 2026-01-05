@@ -126,6 +126,14 @@ spring:
             - Path=/admin-api/broker/**
           filters:
             - RewritePath=/admin-api/device/v3/api-docs, /v3/api-docs # 配置，保证转发到 /v3/api-docs
+        # GB28181服务
+        - id: gb28181-admin-api
+          uri: lb://iot-gb28181
+          predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+            - Path=/admin-api/gb28181/**
+          filters:
+            - RewritePath=/admin-api/gb28181/(?<segment>.*), /api/$\{segment} # 将 /admin-api/gb28181 前缀重写为 /api
+            - RewritePath=/admin-api/gb28181/v3/api-docs, /v3/api-docs # 配置，保证转发到 /v3/api-docs
       x-forwarded:
         prefix-enabled: false # 避免 Swagger 重复带上额外的 /admin-api/system 前缀
 
@@ -143,6 +151,9 @@ knife4j:
       - name: device-server
         service-name: device-server
         url: /admin-api/device/v3/api-docs
+      - name: gb28181-server
+        service-name: iot-gb28181
+        url: /admin-api/gb28181/v3/api-docs
 
 --- #################### BasicLab相关配置 ####################
 

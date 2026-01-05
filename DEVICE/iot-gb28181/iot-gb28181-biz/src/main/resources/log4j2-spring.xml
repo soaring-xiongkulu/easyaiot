@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--日志的级别以及优先级排序: OFF > FATAL > ERROR > WARN > INFO > DEBUG > TRACE > ALL -->
+<configuration status="WARN" monitorInterval="30">
+    <Properties>
+        <Property name="LOG_HOME">${sys:user.home}/logs</Property>
+        <Property name="logging.pattern">%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50}:%L - %msg%n</Property>
+    </Properties>
+
+    <Appenders>
+        <!-- 输出控制台日志的配置 -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${logging.pattern}"/>
+        </Console>
+
+        <!-- 文件日志追加器 -->
+        <RollingRandomAccessFile name="File" 
+                                 fileName="${LOG_HOME}/iot-gb28181.log"
+                                 filePattern="${LOG_HOME}/iot-gb28181-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout charset="UTF-8" pattern="${logging.pattern}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="100 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingRandomAccessFile>
+
+        <!-- SIP 日志追加器 - 单独的 SIP 日志文件 -->
+        <RollingRandomAccessFile name="SipRollingFile" 
+                                 fileName="${LOG_HOME}/sip.log"
+                                 filePattern="${LOG_HOME}/sip-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout charset="UTF-8" pattern="${logging.pattern}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="50 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingRandomAccessFile>
+    </Appenders>
+
+    <Loggers>
+        <!-- SIP 日志记录器 -->
+        <Logger name="com.genersoft.iot.vmp.gb28181.conf.StackLoggerImpl" level="INFO" additivity="true">
+            <AppenderRef ref="SipRollingFile"/>
+        </Logger>
+
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
+        </Root>
+    </Loggers>
+</configuration>
+

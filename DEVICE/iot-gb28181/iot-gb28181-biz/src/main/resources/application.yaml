@@ -1,0 +1,200 @@
+spring:
+  application:
+    name: iot-gb28181
+  main:
+    allow-circular-references: true # 允许循环依赖，因为项目是三层架构，无法避免这个情况。
+    allow-bean-definition-overriding: true # 允许 Bean 覆盖，例如说 Feign 等会存在重复定义的服务
+
+  # Servlet 配置
+  servlet:
+    # 文件上传相关配置项
+    multipart:
+      max-file-size: 10MB # 单个文件大小
+      max-request-size: 100MB # 设置总上传的文件大小
+  mvc:
+    pathmatch:
+      matching-strategy: ANT_PATH_MATCHER # 解决 SpringFox 与 SpringBoot 2.6.x 不兼容的问题，参见 SpringFoxHandlerProviderBeanPostProcessor 类
+    async:
+      request-timeout: 20000 # 设置接口超时时间
+  thymeleaf:
+    cache: false
+
+  # Jackson 配置项
+  jackson:
+    serialization:
+      write-dates-as-timestamps: true # 设置 LocalDateTime 的格式，使用时间戳
+      write-date-timestamps-as-nanoseconds: false # 设置不使用 nanoseconds 的格式。例如说 1611460870.401，而是直接 1611460870401
+      write-durations-as-timestamps: true # 设置 Duration 的格式，使用时间戳
+      fail-on-empty-beans: false # 允许序列化无属性的 Bean
+
+  # Cache 配置项
+  cache:
+    type: REDIS
+    redis:
+      time-to-live: 1h # 设置过期时间为 1 小时
+
+--- #################### 接口文档配置 ####################
+
+springdoc:
+  api-docs:
+    enabled: true # 1. 是否开启 Swagger 接文档的元数据
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true # 2.1 是否开启 Swagger 文档的官方 UI 界面
+    path: /swagger-ui.html
+  default-flat-param-object: true # 参见 https://doc.xiaominfo.com/docs/faq/v4/knife4j-parameterobject-flat-param 文档
+
+knife4j:
+  enable: true # 2.2 是否开启 Swagger 文档的 Knife4j UI 界面
+  setting:
+    language: zh_cn
+
+--- #################### BasicLab相关配置 ####################
+
+iot:
+  info:
+    version: 1.0.0
+    base-package: com.genersoft.iot.vmp
+  web:
+    admin-ui:
+      url: http://dashboard.iot.iocoder.cn # Admin 管理后台 UI 的地址
+
+# MyBatis Plus 的配置项
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true # 虽然默认为 true ，但是还是显示去指定下。
+  global-config:
+    db-config:
+      id-type: NONE # "智能"模式，基于 IdTypeEnvironmentPostProcessor + 数据源的类型，自动适配成 AUTO、INPUT 模式。
+      #      id-type: AUTO # 自增 ID，适合 MySQL 等直接自增的数据库
+      #      id-type: INPUT # 用户输入 ID，适合 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库
+      #      id-type: ASSIGN_ID # 分配 ID，默认使用雪花算法。注意，Oracle、PostgreSQL、Kingbase、DB2、H2 数据库时，需要去除实体类上的 @KeySequence 注解
+      logic-delete-value: 1 # 逻辑已删除值(默认为 1)
+      logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
+    banner: false # 关闭控制台的 Banner 打印
+  type-aliases-package: com.genersoft.iot.vmp
+  encryptor:
+    password: XDV71a+xqStEA3WH # 加解密的秘钥，可使用 https://www.imaegoo.com/2020/aes-key-generator/ 网站生成
+
+mybatis-plus-join:
+  banner: false # 关闭控制台的 Banner 打印
+
+# Spring Data Redis 配置
+spring:
+  data:
+    redis:
+      repositories:
+        enabled: false # 项目未使用到 Spring Data Redis 的 Repository，所以直接禁用，保证启动速度
+
+--- #################### 服务器配置 ####################
+
+# WVP监听的HTTP端口, 网页和接口调用都是这个端口
+server:
+  port: 48088
+  # HTTPS配置， 默认不开启
+  ssl:
+    # 是否开启HTTPS访问
+    enabled: false
+    # 证书文件路径，放置在resource/目录下即可，修改xxx为文件名
+    key-store: classpath:local.jks
+    # 证书密码
+    key-store-password: gpf64qmw
+    # 证书类型， 默认为jks，根据实际修改
+    key-store-type: JKS
+
+--- #################### 国标28181服务器配置 ####################
+
+# 作为28181服务器的配置
+sip:
+  # 28181服务监听的端口
+  port: 8116
+  # 根据国标6.1.2中规定，domain宜采用ID统一编码的前十位编码。国标附录D中定义前8位为中心编码（由省级、市级、区级、基层编号组成，参照GB/T 2260-2007）
+  # 后两位为行业编码，定义参照附录D.3
+  # 3701020049标识山东济南历下区 信息行业接入
+  domain: 4101050000
+  id: 41010500002000000001
+  # 默认设备认证密码，后续扩展使用设备单独密码, 移除密码将不进行校验
+  password: 12345678
+  # 是否存储alarm信息
+  alarm: false
+
+--- #################### 流媒体服务器配置 ####################
+
+#zlm 默认服务器配置
+media:
+  id: zlmediakit-1
+  # [必须修改] zlm服务器的内网IP
+  ip: 127.0.0.1
+  # [可选] 有公网IP就配置公网IP, 不可用域名
+  # wan_ip: 
+  # [必须修改] zlm服务器的http.port
+  http-port: 80
+  # [可选] zlm服务器访问WVP所使用的IP, 默认使用127.0.0.1，zlm和wvp没有部署在同一台服务器时必须配置
+  hook-ip: 127.0.0.1
+  # [必选选] zlm服务器的hook.admin_params=secret
+  secret: 035c73f7-bb6b-4889-a715-d9eb2d1925cc
+  # 启用多端口模式, 多端口模式使用端口区分每路流，兼容性更好。 单端口使用流的ssrc区分， 点播超时建议使用多端口测试
+  rtp:
+    # [可选] 是否启用多端口模式, 开启后会在portRange范围内选择端口用于媒体流传输
+    enable: true
+    # [可选] 在此范围内选择端口用于媒体流传输, 必须提前在zlm上配置该属性，不然自动配置此属性可能不成功
+    port-range: 30000,30500 # 端口范围
+    # [可选] 国标级联在此范围内选择端口发送媒体流,
+    send-port-range: 30000,30500 # 端口范围
+
+--- #################### 用户设置配置 ####################
+
+# [根据业务需求配置]
+user-settings:
+  # 点播/录像回放 等待超时时间,单位：毫秒
+  play-timeout: 180000
+  # [可选] 自动点播， 使用固定流地址进行播放时，如果未点播则自动进行点播, 需要rtp.enable=true
+  auto-apply-play: true
+  # 推流直播是否录制
+  record-push-live: true
+  # 国标是否录制
+  record-sip: true
+  # 国标点播 按需拉流, true：有人观看拉流，无人观看释放， false：拉起后不自动释放
+  stream-on-demand: true
+  # 是否返回Date属性，true：不返回，避免摄像头通过该参数自动校时，false：返回，摄像头可能会根据该时间校时
+  disable-date-header: false
+
+--- #################### RPC 远程调用相关配置 ####################
+
+--- #################### 消息队列相关 ####################
+
+# rocketmq 配置项，对应 RocketMQProperties 配置类
+rocketmq:
+  # Producer 配置项
+  producer:
+    group: ${spring.application.name}_PRODUCER # 生产者分组
+
+spring:
+  # Kafka 配置项，对应 KafkaProperties 配置类
+  kafka:
+    # Kafka Producer 配置项
+    producer:
+      acks: 1 # 0-不应答。1-leader 应答。all-所有 leader 和 follower 应答。
+      retries: 3 # 发送失败时，重试发送的次数
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # 消息的 value 的序列化
+    # Kafka Consumer 配置项
+    consumer:
+      auto-offset-reset: earliest # 设置消费者分组最初的消费进度为 earliest 。可参考博客 https://blog.csdn.net/lishuangzhe7047/article/details/74530417 理解
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: '*'
+    # Kafka Consumer Listener 监听器配置
+    listener:
+      missing-topics-fatal: false # 消费监听接口监听的主题不存在时，默认会报错。所以通过设置为 false ，解决报错
+
+--- #################### 定时任务相关配置 ####################
+
+xxl:
+  job:
+    executor:
+      appname: ${spring.application.name} # 执行器 AppName
+      logpath: ${user.home}/logs/xxl-job/${spring.application.name} # 执行器运行日志文件存储磁盘路径
+    accessToken: default_token # 执行器通讯TOKEN
+
+debug: false
+

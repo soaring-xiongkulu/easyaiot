@@ -58,6 +58,7 @@ MIDDLEWARE_SERVICES=(
     "SRS"
     "NodeRED"
     "EMQX"
+    "ZLMediaKit"
 )
 
 # 中间件端口映射
@@ -71,6 +72,7 @@ MIDDLEWARE_PORTS["MinIO"]="9000"
 MIDDLEWARE_PORTS["SRS"]="1935"
 MIDDLEWARE_PORTS["NodeRED"]="1880"
 MIDDLEWARE_PORTS["EMQX"]="1883"
+MIDDLEWARE_PORTS["ZLMediaKit"]="6080"
 
 # 中间件健康检查端点
 declare -A MIDDLEWARE_HEALTH_ENDPOINTS
@@ -83,6 +85,7 @@ MIDDLEWARE_HEALTH_ENDPOINTS["MinIO"]="/minio/health/live"
 MIDDLEWARE_HEALTH_ENDPOINTS["SRS"]="/api/v1/versions"
 MIDDLEWARE_HEALTH_ENDPOINTS["NodeRED"]="/"
 MIDDLEWARE_HEALTH_ENDPOINTS["EMQX"]="/api/v5/status"
+MIDDLEWARE_HEALTH_ENDPOINTS["ZLMediaKit"]="/index/api/getServerConfig"
 
 # 日志输出函数（去掉颜色代码后写入日志文件）
 log_to_file() {
@@ -1913,6 +1916,9 @@ create_all_storage_directories() {
         "${SCRIPT_DIR}/srs_data/data:::"              # SRS 数据（使用默认权限）
         "${SCRIPT_DIR}/srs_data/playbacks:::"          # SRS 回放（使用默认权限）
         "${SCRIPT_DIR}/nodered_data/data:1000:1000:777" # NodeRED 数据
+        "${SCRIPT_DIR}/../zlmediakit/www:::"         # ZLMediaKit Web 目录（使用默认权限）
+        "${SCRIPT_DIR}/../zlmediakit/log:::"         # ZLMediaKit 日志（使用默认权限）
+        "${SCRIPT_DIR}/../zlmediakit/conf:::"        # ZLMediaKit 配置（使用默认权限）
     )
     
     local created_count=0
@@ -2001,6 +2007,7 @@ create_all_storage_directories() {
         "${SCRIPT_DIR}/minio_data"
         "${SCRIPT_DIR}/srs_data"
         "${SCRIPT_DIR}/nodered_data"
+        "${SCRIPT_DIR}/../zlmediakit"
         "${SCRIPT_DIR}/logs"
     )
     for parent_dir in "${parent_dirs[@]}"; do
@@ -2115,6 +2122,252 @@ get_docker_network_gateway() {
     # 方法4: 使用常见的Docker网络网关IP
     echo "172.18.0.1"
     return 0
+}
+
+# 准备 ZLMediaKit 配置文件
+prepare_zlmediakit_config() {
+    local zlm_config_dir="${SCRIPT_DIR}/../zlmediakit/conf"
+    local zlm_config_file="${zlm_config_dir}/config.ini"
+    
+    print_info "准备 ZLMediaKit 配置文件..."
+    
+    # 创建目标目录
+    mkdir -p "$zlm_config_dir"
+    
+    # 检查配置文件是否已存在
+    if [ -f "$zlm_config_file" ]; then
+        print_success "ZLMediaKit 配置文件已存在: $zlm_config_file"
+        return 0
+    else
+        print_warning "ZLMediaKit 配置文件不存在，将创建默认配置"
+    fi
+    
+    # 如果复制失败或源文件不存在，创建默认配置文件
+    print_info "创建默认 ZLMediaKit 配置文件..."
+    cat > "$zlm_config_file" << 'EOF'
+[api]
+apiDebug=1
+defaultSnap=./www/logo.png
+downloadRoot=./www;
+secret=su6TiedN2rVAmBbIDX0aa0QTiBJLBdcf
+snapRoot=./www/snap/
+
+[cluster]
+origin_url=
+retry_count=3
+timeout_sec=15
+
+[ffmpeg]
+bin=/usr/bin/ffmpeg
+cmd=%s -re -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s
+log=./ffmpeg/ffmpeg.log
+restart_sec=0
+snap=%s -rtsp_transport tcp -i %s -y -f mjpeg -frames:v 1 %s
+
+[general]
+broadcast_player_count_changed=0
+check_nvidia_dev=1
+enableVhost=0
+enable_ffmpeg_log=0
+flowThreshold=1024
+listen_ip=::
+maxStreamWaitMS=15000
+mediaServerId=zlmediakit
+mergeWriteMS=0
+resetWhenRePlay=1
+streamNoneReaderDelayMS=20000
+unready_frame_cache=100
+wait_add_track_ms=3000
+wait_audio_track_data_ms=1000
+wait_track_ready_ms=10000
+
+[hls]
+broadcastRecordTs=0
+deleteDelaySec=10
+fastRegister=0
+fileBufSize=65536
+segDelay=0
+segDur=2
+segKeep=0
+segNum=3
+segRetain=5
+
+[hook]
+alive_interval=10.0
+enable=0
+on_flow_report=
+on_http_access=
+on_play=
+on_publish=
+on_record_mp4=
+on_record_ts=
+on_rtp_server_timeout=
+on_rtsp_auth=
+on_rtsp_realm=
+on_send_rtp_stopped=
+on_server_exited=
+on_server_keepalive=
+on_server_started=
+on_shell_login=
+on_stream_changed=
+on_stream_none_reader=
+on_stream_not_found=
+retry=1
+retry_delay=3.0
+stream_changed_schemas=rtsp/rtmp/fmp4/ts/hls/hls.fmp4
+timeoutSec=30
+
+[http]
+allow_cross_domains=1
+allow_ip_range=
+charSet=utf-8
+dirMenu=1
+forbidCacheSuffix=
+forwarded_ip_header=
+keepAliveSecond=30
+maxReqSize=40960
+port=80
+rootPath=./www
+sendBufSize=65536
+sslport=443
+virtualPath=
+
+[multicast]
+addrMax=239.255.255.255
+addrMin=239.0.0.0
+udpTTL=64
+
+[protocol]
+add_mute_audio=1
+auto_close=0
+continue_push_ms=3000
+enable_audio=1
+enable_fmp4=1
+enable_hls=0
+enable_hls_fmp4=0
+enable_mp4=0
+enable_rtmp=1
+enable_rtsp=1
+enable_ts=1
+fmp4_demand=0
+hls_demand=0
+hls_save_path=./www
+modify_stamp=2
+mp4_as_player=0
+mp4_max_second=3600
+mp4_save_path=./www
+paced_sender_ms=0
+rtmp_demand=0
+rtsp_demand=0
+ts_demand=0
+
+[record]
+appName=record
+enableFmp4=1
+fastStart=0
+fileBufSize=65536
+fileRepeat=0
+sampleMS=500
+
+[rtc]
+bfilter=0
+datachannel_echo=0
+externIP=
+maxRtpCacheMS=5000
+maxRtpCacheSize=2048
+max_bitrate=0
+min_bitrate=0
+nackIntervalRatio=1.0
+nackMaxCount=15
+nackMaxMS=3000
+nackMaxSize=2048
+nackRtpSize=8
+port=8000
+preferredCodecA=PCMA,PCMU,opus,mpeg4-generic
+preferredCodecV=H264,H265,AV1,VP9,VP8
+rembBitRate=0
+start_bitrate=0
+tcpPort=8000
+timeoutSec=30
+
+[rtmp]
+directProxy=1
+enhanced=0
+handshakeSecond=15
+keepAliveSecond=15
+port=10001
+sslport=0
+
+[rtp]
+audioMtuSize=600
+h264_stap_a=1
+lowLatency=0
+rtpMaxSize=10
+videoMtuSize=1400
+
+[rtp_proxy]
+dumpDir=
+gop_cache=1
+h264_pt=98
+h265_pt=99
+merge_frame=1
+opus_pt=100
+port=10003
+port_range=30000-30500
+ps_pt=96
+rtp_g711_dur_ms=100
+timeoutSec=15
+udp_recv_socket_buffer=4194304
+
+[rtsp]
+authBasic=0
+directProxy=1
+handshakeSecond=15
+keepAliveSecond=15
+lowLatency=0
+port=10002
+rtpTransportType=-1
+sslport=0
+
+[shell]
+maxReqSize=1024
+port=0
+
+[srt]
+latencyMul=4
+passPhrase=
+pktBufSize=8192
+port=9000
+timeoutSec=5
+EOF
+    
+    # 验证文件是否创建成功
+    if [ -f "$zlm_config_file" ]; then
+        print_success "默认 ZLMediaKit 配置文件已创建: $zlm_config_file"
+        return 0
+    else
+        print_error "无法创建 ZLMediaKit 配置文件: $zlm_config_file"
+        return 1
+    fi
+}
+
+# 等待 ZLMediaKit 服务就绪
+wait_for_zlmediakit() {
+    local max_attempts=60
+    local attempt=0
+    
+    print_info "等待 ZLMediaKit 服务就绪..."
+    while [ $attempt -lt $max_attempts ]; do
+        if curl -s --connect-timeout 2 "http://localhost:6080/index/api/getServerConfig" > /dev/null 2>&1; then
+            print_success "ZLMediaKit 服务已就绪"
+            return 0
+        fi
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+    
+    print_error "ZLMediaKit 服务未就绪"
+    return 1
 }
 
 # 准备 SRS 配置文件
@@ -3763,6 +4016,9 @@ extract_ports_from_compose() {
             "EMQX")
                 ports=("1883" "8883" "8083" "8084" "18083")
                 ;;
+            "ZLMediaKit")
+                ports=("6080" "4443" "10935" "5540" "10000" "8000" "9000")
+                ;;
         esac
     fi
     
@@ -3795,6 +4051,7 @@ check_and_clean_ports() {
             "SRS") container_name="srs-server" ;;
             "NodeRED") container_name="nodered-server" ;;
             "EMQX") container_name="emqx-server" ;;
+            "ZLMediaKit") container_name="zlmediakit-server" ;;
         esac
         
         if [ -n "$container_name" ]; then
@@ -4191,6 +4448,7 @@ check_and_clean_ports() {
                                     "SRS") container_name="srs-server" ;;
                                     "NodeRED") container_name="nodered-server" ;;
                                     "EMQX") container_name="emqx-server" ;;
+                                    "ZLMediaKit") container_name="zlmediakit-server" ;;
                                 esac
                                 
                                 if [ -n "$container_name" ]; then
@@ -4310,12 +4568,13 @@ cleanup_stale_containers() {
                 "SRS") container_names+=("srs-server") ;;
                 "NodeRED") container_names+=("nodered-server") ;;
                 "EMQX") container_names+=("emqx-server") ;;
+                "ZLMediaKit") container_names+=("zlmediakit-server") ;;
             esac
         fi
     done
     
     # 检查是否有停止的容器需要清理
-    local stale_containers=$(docker ps -a --filter "status=exited" --format "{{.Names}}" 2>/dev/null | grep -E "(nacos-server|postgres-server|tdengine-server|redis-server|kafka-server|minio-server|srs-server|nodered-server|emqx-server)" || echo "")
+    local stale_containers=$(docker ps -a --filter "status=exited" --format "{{.Names}}" 2>/dev/null | grep -E "(nacos-server|postgres-server|tdengine-server|redis-server|kafka-server|minio-server|srs-server|nodered-server|emqx-server|zlmediakit-server)" || echo "")
     
     if [ -n "$stale_containers" ]; then
         print_info "发现残留的停止容器，正在清理..."
@@ -4361,6 +4620,9 @@ install_middleware() {
     prepare_srs_config
     prepare_emqx_volumes
     
+    # 准备 ZLMediaKit 配置文件
+    prepare_zlmediakit_config
+    
     # 检查并拉取缺失的镜像（如果镜像已存在则跳过拉取）
     echo ""
     check_and_pull_images
@@ -4401,6 +4663,7 @@ install_middleware() {
             "SRS") container_name="srs-server" ;;
             "NodeRED") container_name="nodered-server" ;;
             "EMQX") container_name="emqx-server" ;;
+            "ZLMediaKit") container_name="zlmediakit-server" ;;
         esac
         
         if [ -n "$container_name" ]; then
@@ -4482,6 +4745,9 @@ start_middleware() {
     prepare_srs_config
     prepare_emqx_volumes
     
+    # 准备 ZLMediaKit 配置文件
+    prepare_zlmediakit_config
+    
     # 清理残留容器
     cleanup_stale_containers
     
@@ -4546,6 +4812,9 @@ restart_middleware() {
     
     prepare_srs_config
     prepare_emqx_volumes
+    
+    # 准备 ZLMediaKit 配置文件
+    prepare_zlmediakit_config
     
     print_info "重启所有中间件服务..."
     $COMPOSE_CMD -f "$COMPOSE_FILE" restart 2>&1 | tee -a "$LOG_FILE"
@@ -4733,6 +5002,7 @@ clean_middleware() {
             "minio_data"                 # MinIO 数据和配置
             "srs_data"                  # SRS 配置、数据和回放
             "nodered_data"              # NodeRED 数据
+            "../zlmediakit"           # ZLMediaKit 配置、数据和日志
         )
         
         # 删除每个存储目录
@@ -4828,6 +5098,9 @@ update_middleware() {
     
     prepare_srs_config
     prepare_emqx_volumes
+    
+    # 准备 ZLMediaKit 配置文件
+    prepare_zlmediakit_config
     
     # 检查并拉取缺失的镜像（如果镜像已存在则跳过拉取）
     echo ""
