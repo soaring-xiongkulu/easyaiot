@@ -23,19 +23,42 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class DynamicTask {
 
-    private ThreadPoolTaskScheduler threadPoolTaskScheduler;
+    private volatile ThreadPoolTaskScheduler threadPoolTaskScheduler;
 
     private final Map<String, ScheduledFuture<?>> futureMap = new ConcurrentHashMap<>();
     private final Map<String, Runnable> runnableMap = new ConcurrentHashMap<>();
 
     @PostConstruct
-    public void DynamicTask() {
-        threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
-        threadPoolTaskScheduler.setPoolSize(300);
-        threadPoolTaskScheduler.setWaitForTasksToCompleteOnShutdown(true);
-        threadPoolTaskScheduler.setAwaitTerminationSeconds(10);
-        threadPoolTaskScheduler.setThreadNamePrefix("dynamicTask-");
-        threadPoolTaskScheduler.initialize();
+    public void init() {
+        initThreadPoolTaskScheduler();
+    }
+
+    /**
+     * 初始化线程池任务调度器（线程安全）
+     */
+    private void initThreadPoolTaskScheduler() {
+        if (threadPoolTaskScheduler == null) {
+            synchronized (this) {
+                if (threadPoolTaskScheduler == null) {
+                    threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
+                    threadPoolTaskScheduler.setPoolSize(300);
+                    threadPoolTaskScheduler.setWaitForTasksToCompleteOnShutdown(true);
+                    threadPoolTaskScheduler.setAwaitTerminationSeconds(10);
+                    threadPoolTaskScheduler.setThreadNamePrefix("dynamicTask-");
+                    threadPoolTaskScheduler.initialize();
+                    log.debug("ThreadPoolTaskScheduler 初始化成功");
+                }
+            }
+        }
+    }
+
+    /**
+     * 确保线程池任务调度器已初始化（懒加载）
+     */
+    private void ensureInitialized() {
+        if (threadPoolTaskScheduler == null) {
+            initThreadPoolTaskScheduler();
+        }
     }
 
     /**
@@ -49,6 +72,7 @@ public class DynamicTask {
         if(ObjectUtils.isEmpty(key)) {
             return;
         }
+        ensureInitialized();
         ScheduledFuture<?> future = futureMap.get(key);
         if (future != null) {
             if (future.isCancelled()) {
@@ -81,12 +105,13 @@ public class DynamicTask {
         if(ObjectUtils.isEmpty(key)) {
             return;
         }
+        ensureInitialized();
         stop(key);
 
         // 获取执行的时刻
         Instant startInstant = Instant.now().plusMillis(TimeUnit.MILLISECONDS.toMillis(delay));
 
-        ScheduledFuture future = futureMap.get(key);
+        ScheduledFuture<?> future = futureMap.get(key);
         if (future != null) {
             if (future.isCancelled()) {
                 log.debug("任务【{}】已存在但是关闭状态！！！", key);

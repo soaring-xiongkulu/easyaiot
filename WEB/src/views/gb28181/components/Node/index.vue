@@ -1,5 +1,5 @@
 <template>
-  <div class="device-wrapper" style="height: 100%">
+  <div class="node-wrapper">
     <BasicTable @register="registerTable" v-if="state.isTableMode">
       <template #toolbar>
         <a-button type="primary" @click="openAddModal(true, { type: 'add' })"
@@ -292,7 +292,10 @@ function handleSuccess() {
   justify-content: center;
 }
 
-.device-wrapper {
+.node-wrapper {
+  height: 100%;
+  background-color: #f0f2f5;
+
   :deep(.ant-tabs-nav) {
     padding: 5px 0 0 25px;
   }
@@ -302,14 +305,15 @@ function handleSuccess() {
   }
 
   :deep(.card-list) {
-    margin: 16px 16px 0;
+    margin: 16px;
     display: flex;
     align-items: center;
-    justify-content: space-around;
+    justify-content: flex-start;
     gap: 24px;
+    flex-wrap: wrap;
 
     .card {
-      flex: 1;
+      flex: 0 0 calc(25% - 18px);
       background-color: #fff;
       min-width: 200px;
       min-height: 130px;
@@ -317,10 +321,18 @@ function handleSuccess() {
       display: flex;
       align-items: center;
       justify-content: space-around;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s;
+      border: 1px solid #e8e8e8;
+
+      &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+      }
 
       img {
         width: 100px;
-        transition: all linear .3s;
+        transition: all linear 0.3s;
       }
 
       .info {
@@ -331,10 +343,13 @@ function handleSuccess() {
         .num {
           font-size: 26px;
           font-weight: 600;
+          color: #333;
         }
 
         .label {
           font-weight: 600;
+          color: #666;
+          font-size: 14px;
         }
       }
     }

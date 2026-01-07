@@ -147,7 +147,7 @@ public interface MediaServerMapper {
     List<MediaServer> queryAllWithOutDefault(@Param("serverId") String serverId);
 
     @Delete("DELETE FROM wvp_media_server WHERE id=#{id} and server_id = #{serverId}")
-    void delOne(String id, @Param("serverId") String serverId);
+    void delOne(@Param("id") String id, @Param("serverId") String serverId);
 
     @Select("SELECT * FROM wvp_media_server WHERE ip=#{host} and http_port=#{port} and server_id = #{serverId}")
     MediaServer queryOneByHostAndPort(@Param("host") String host, @Param("port") int port, @Param("serverId") String serverId);

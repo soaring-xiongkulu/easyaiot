@@ -128,6 +128,18 @@
         <TabPane key="5" tab="算法任务">
           <AlgorithmTask ref="algorithmTaskRef"/>
         </TabPane>
+        <TabPane key="7" tab="GB28181分屏监控">
+          <Gb28181SplitScreen ref="gb28181SplitScreenRef"/>
+        </TabPane>
+        <TabPane key="8" tab="GB28181国标设备">
+          <Gb28181Video ref="gb28181VideoRef"/>
+        </TabPane>
+        <TabPane key="9" tab="GB28181拉流代理">
+          <Gb28181PullProxy ref="gb28181PullProxyRef"/>
+        </TabPane>
+        <TabPane key="10" tab="GB28181节点管理">
+          <Gb28181Node ref="gb28181NodeRef"/>
+        </TabPane>
       </Tabs>
     </div>
   </div>
@@ -160,6 +172,10 @@ import AlgorithmTask from "./components/AlgorithmTask/index.vue";
 import RecordSpace from "./components/RecordSpace/index.vue";
 import VideoCardList from "./components/VideoCardList/index.vue";
 import StreamForward from "./components/StreamForward/index.vue";
+import Gb28181SplitScreen from "@/views/gb28181/components/SplitScreen/index.vue";
+import Gb28181Video from "@/views/gb28181/components/Video/index.vue";
+import Gb28181PullProxy from "@/views/gb28181/components/PullProxy/index.vue";
+import Gb28181Node from "@/views/gb28181/components/Node/index.vue";
 
 defineOptions({name: 'CAMERA'})
 
@@ -196,6 +212,12 @@ const algorithmTaskRef = ref();
 // 推流转发组件引用
 const streamForwardRef = ref();
 
+// GB28181组件引用
+const gb28181SplitScreenRef = ref();
+const gb28181VideoRef = ref();
+const gb28181PullProxyRef = ref();
+const gb28181NodeRef = ref();
+
 // Tab切换
 const handleTabClick = (activeKey: string) => {
   state.activeKey = activeKey;
@@ -219,6 +241,19 @@ const handleTabClick = (activeKey: string) => {
   if (activeKey === '6' && streamForwardRef.value) {
     streamForwardRef.value.refresh();
   }
+  // 切换到GB28181相关标签页时，可以在这里添加刷新逻辑
+  // if (activeKey === '7' && gb28181SplitScreenRef.value) {
+  //   gb28181SplitScreenRef.value.refresh();
+  // }
+  // if (activeKey === '8' && gb28181VideoRef.value) {
+  //   gb28181VideoRef.value.refresh();
+  // }
+  // if (activeKey === '9' && gb28181PullProxyRef.value) {
+  //   gb28181PullProxyRef.value.refresh();
+  // }
+  // if (activeKey === '10' && gb28181NodeRef.value) {
+  //   gb28181NodeRef.value.refresh();
+  // }
 };
 
 // 切换视图模式

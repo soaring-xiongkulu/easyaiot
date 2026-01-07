@@ -3836,6 +3836,7 @@ init_databases() {
     DB_SQL_MAP["iot-video20"]="${sql_dir}/iot-video10.sql"
     DB_SQL_MAP["ruoyi-vue-pro20"]="${sql_dir}/ruoyi-vue-pro10.sql"
     DB_SQL_MAP["iot-message20"]="${sql_dir}/iot-message10.sql"
+    DB_SQL_MAP["iot-gb2818120"]="${sql_dir}/iot-gb2818110.sql"
     
     local success_count=0
     local total_count=${#DB_SQL_MAP[@]}
@@ -4069,6 +4070,77 @@ check_and_clean_ports() {
         fi
     done
     
+    # 特别处理 ZLMediaKit 的 UDP 端口范围（30000-30500）
+    print_info "检查并清理 ZLMediaKit UDP 端口范围（30000-30500）占用..."
+    local zlm_udp_ports_conflict=0
+    # 检查 UDP 端口范围中是否有被占用的端口（采样检查，避免检查所有端口）
+    for test_port in 30000 30100 30200 30300 30400 30454 30500; do
+        if command -v ss &> /dev/null; then
+            if ss -ulnp 2>/dev/null | grep -qE ":$test_port[[:space:]]|:$test_port$"; then
+                local port_info=$(ss -ulnp 2>/dev/null | grep -E ":$test_port[[:space:]]|:$test_port$" | head -1)
+                print_warning "检测到 UDP 端口 $test_port 被占用: $port_info"
+                zlm_udp_ports_conflict=1
+            fi
+        elif command -v netstat &> /dev/null; then
+            if netstat -ulnp 2>/dev/null | grep -qE ":$test_port[[:space:]]|:$test_port$"; then
+                local port_info=$(netstat -ulnp 2>/dev/null | grep -E ":$test_port[[:space:]]|:$test_port$" | head -1)
+                print_warning "检测到 UDP 端口 $test_port 被占用: $port_info"
+                zlm_udp_ports_conflict=1
+            fi
+        fi
+    done
+    
+    # 如果检测到 UDP 端口冲突，尝试清理
+    if [ $zlm_udp_ports_conflict -eq 1 ]; then
+        print_info "尝试清理占用 ZLMediaKit UDP 端口的进程..."
+        
+        # 方法1: 查找并停止所有 zlmediakit 相关进程
+        local zlm_pids=$(pgrep -f "zlmediakit\|MediaServer" 2>/dev/null || echo "")
+        if [ -n "$zlm_pids" ]; then
+            echo "$zlm_pids" | while read -r pid; do
+                if [ -n "$pid" ]; then
+                    local proc_name=$(ps -p "$pid" -o comm= 2>/dev/null || echo "")
+                    print_info "发现 ZLMediaKit 进程: $proc_name (PID: $pid)，尝试停止..."
+                    kill -TERM "$pid" 2>/dev/null || true
+                    sleep 1
+                    if kill -0 "$pid" 2>/dev/null; then
+                        print_info "强制停止进程 PID: $pid"
+                        kill -KILL "$pid" 2>/dev/null || true
+                    fi
+                fi
+            done
+            sleep 2
+        fi
+        
+        # 方法2: 再次检查 ZLMediaKit 容器
+        local zlm_containers=$(docker ps -a --filter "name=zlmediakit" --format "{{.ID}}" 2>/dev/null || echo "")
+        if [ -n "$zlm_containers" ]; then
+            echo "$zlm_containers" | while read -r container_id; do
+                if [ -n "$container_id" ]; then
+                    print_info "强制停止并删除 ZLMediaKit 容器: $container_id"
+                    docker stop -t 0 "$container_id" 2>/dev/null || true
+                    docker rm -f "$container_id" 2>/dev/null || true
+                fi
+            done
+            sleep 2
+        fi
+        
+        # 方法3: 查找占用 UDP 端口的进程并提示用户
+        if command -v lsof &> /dev/null; then
+            for test_port in 30000 30100 30200 30300 30400 30454 30500; do
+                local udp_process=$(lsof -i UDP:$test_port 2>/dev/null | grep -v COMMAND | head -1 || echo "")
+                if [ -n "$udp_process" ]; then
+                    local pid=$(echo "$udp_process" | awk '{print $2}')
+                    if [ -n "$pid" ] && [ "$pid" != "PID" ]; then
+                        print_warning "UDP 端口 $test_port 仍被进程占用 (PID: $pid)"
+                        print_info "进程信息: $udp_process"
+                        print_info "如需手动停止，请执行: sudo kill -9 $pid"
+                    fi
+                fi
+            done
+        fi
+    fi
+    
     # 等待端口释放（Docker 需要时间释放端口绑定）
     print_info "等待端口释放（最多等待 10 秒）..."
     local wait_count=0
@@ -4081,13 +4153,30 @@ check_and_clean_ports() {
                 continue
             fi
             
-            # 检查是否还有 Docker 容器占用端口
+            # 检查是否还有 Docker 容器占用端口（TCP）
             local docker_using_port=$(docker ps --format "{{.Ports}}" 2>/dev/null | grep -E ":$port->|0\.0\.0\.0:$port|:::$port" || echo "")
             if [ -n "$docker_using_port" ]; then
                 ports_still_in_use=1
                 break
             fi
         done
+        
+        # 检查 ZLMediaKit UDP 端口范围是否仍被占用
+        if [ $ports_still_in_use -eq 0 ]; then
+            for test_port in 30000 30100 30200 30300 30400 30454 30500; do
+                if command -v ss &> /dev/null; then
+                    if ss -ulnp 2>/dev/null | grep -qE ":$test_port[[:space:]]|:$test_port$"; then
+                        ports_still_in_use=1
+                        break
+                    fi
+                elif command -v netstat &> /dev/null; then
+                    if netstat -ulnp 2>/dev/null | grep -qE ":$test_port[[:space:]]|:$test_port$"; then
+                        ports_still_in_use=1
+                        break
+                    fi
+                fi
+            done
+        fi
         
         if [ $ports_still_in_use -eq 0 ]; then
             break
@@ -4109,6 +4198,38 @@ check_and_clean_ports() {
     
     # 检查所有中间件端口（包括所有映射的端口）
     for service in "${MIDDLEWARE_SERVICES[@]}"; do
+        # 特别处理 ZLMediaKit 的 UDP 端口范围
+        if [ "$service" = "ZLMediaKit" ]; then
+            print_info "检查 ZLMediaKit UDP 端口范围（30000-30500）..."
+            local zlm_udp_conflict=0
+            for test_port in 30000 30100 30200 30300 30400 30454 30500; do
+                local udp_port_in_use=0
+                if command -v ss &> /dev/null; then
+                    if ss -ulnp 2>/dev/null | grep -qE ":$test_port[[:space:]]|:$test_port$"; then
+                        udp_port_in_use=1
+                        local udp_info=$(ss -ulnp 2>/dev/null | grep -E ":$test_port[[:space:]]|:$test_port$" | head -1)
+                        print_warning "UDP 端口 $test_port 被占用: $udp_info"
+                    fi
+                elif command -v netstat &> /dev/null; then
+                    if netstat -ulnp 2>/dev/null | grep -qE ":$test_port[[:space:]]|:$test_port$"; then
+                        udp_port_in_use=1
+                        local udp_info=$(netstat -ulnp 2>/dev/null | grep -E ":$test_port[[:space:]]|:$test_port$" | head -1)
+                        print_warning "UDP 端口 $test_port 被占用: $udp_info"
+                    fi
+                fi
+                
+                if [ $udp_port_in_use -eq 1 ]; then
+                    zlm_udp_conflict=1
+                    conflict_ports+=("$test_port/udp")
+                fi
+            done
+            
+            if [ $zlm_udp_conflict -eq 1 ]; then
+                has_conflict=1
+                print_warning "ZLMediaKit UDP 端口范围存在冲突"
+            fi
+        fi
+        
         # 获取该服务的所有端口映射
         local service_ports=($(extract_ports_from_compose "$service"))
         
@@ -4264,13 +4385,24 @@ check_and_clean_ports() {
         
         # 检查是否有宿主机进程占用
         local has_host_process=0
-        for port in "${conflict_ports[@]}"; do
+        for port_entry in "${conflict_ports[@]}"; do
+            # 处理端口格式（可能是 "port" 或 "port/udp"）
+            local port="${port_entry%%/*}"
+            local port_type="${port_entry##*/}"
+            
             local docker_using=$(docker ps --format "{{.Ports}}" 2>/dev/null | grep -E ":$port->|0\.0\.0\.0:$port|:::$port" || echo "")
             if [ -z "$docker_using" ]; then
-                # 检查是否是宿主机进程
-                if command -v ss &> /dev/null && ss -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
-                    has_host_process=1
-                    break
+                # 检查是否是宿主机进程（TCP 或 UDP）
+                if [ "$port_type" = "udp" ]; then
+                    if command -v ss &> /dev/null && ss -ulnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
+                        has_host_process=1
+                        break
+                    fi
+                else
+                    if command -v ss &> /dev/null && ss -tlnp 2>/dev/null | grep -qE ":$port[[:space:]]|:$port$"; then
+                        has_host_process=1
+                        break
+                    fi
                 fi
             fi
         done
@@ -4299,7 +4431,65 @@ check_and_clean_ports() {
                     # 尝试停止宿主机服务
                     print_info "尝试停止宿主机上的服务..."
                     
-                    for port in "${conflict_ports[@]}"; do
+                    for port_entry in "${conflict_ports[@]}"; do
+                        # 处理端口格式（可能是 "port" 或 "port/udp"）
+                        local port="${port_entry%%/*}"
+                        local port_type="${port_entry##*/}"
+                        
+                        # 检查是否是 ZLMediaKit UDP 端口范围
+                        if [ "$port_type" = "udp" ] && [[ "$port" =~ ^30[0-5][0-9][0-9]$ ]]; then
+                            print_info "检测到 ZLMediaKit UDP 端口 $port 被占用，尝试清理..."
+                            
+                            # 查找并停止所有 zlmediakit 相关进程
+                            local zlm_pids=$(pgrep -f "zlmediakit\|MediaServer" 2>/dev/null || echo "")
+                            if [ -n "$zlm_pids" ]; then
+                                echo "$zlm_pids" | while read -r pid; do
+                                    if [ -n "$pid" ]; then
+                                        local proc_name=$(ps -p "$pid" -o comm= 2>/dev/null || echo "")
+                                        print_info "发现 ZLMediaKit 进程: $proc_name (PID: $pid)，尝试停止..."
+                                        sudo kill -TERM "$pid" 2>/dev/null || true
+                                        sleep 1
+                                        if kill -0 "$pid" 2>/dev/null; then
+                                            print_info "强制停止进程 PID: $pid"
+                                            sudo kill -KILL "$pid" 2>/dev/null || true
+                                        fi
+                                    fi
+                                done
+                                sleep 2
+                            fi
+                            
+                            # 查找并停止所有 ZLMediaKit 容器
+                            local zlm_containers=$(docker ps -a --filter "name=zlmediakit" --format "{{.ID}}" 2>/dev/null || echo "")
+                            if [ -n "$zlm_containers" ]; then
+                                echo "$zlm_containers" | while read -r container_id; do
+                                    if [ -n "$container_id" ]; then
+                                        print_info "强制停止并删除 ZLMediaKit 容器: $container_id"
+                                        docker stop -t 0 "$container_id" 2>/dev/null || true
+                                        docker rm -f "$container_id" 2>/dev/null || true
+                                    fi
+                                done
+                                sleep 2
+                            fi
+                            
+                            # 查找占用 UDP 端口的进程
+                            if command -v lsof &> /dev/null; then
+                                local udp_process=$(lsof -i UDP:$port 2>/dev/null | grep -v COMMAND | head -1 || echo "")
+                                if [ -n "$udp_process" ]; then
+                                    local pid=$(echo "$udp_process" | awk '{print $2}')
+                                    if [ -n "$pid" ] && [ "$pid" != "PID" ]; then
+                                        print_info "发现占用 UDP 端口 $port 的进程 (PID: $pid)，尝试停止..."
+                                        sudo kill -TERM "$pid" 2>/dev/null || true
+                                        sleep 1
+                                        if kill -0 "$pid" 2>/dev/null; then
+                                            print_info "强制停止进程 PID: $pid"
+                                            sudo kill -KILL "$pid" 2>/dev/null || true
+                                        fi
+                                    fi
+                                fi
+                            fi
+                            continue
+                        fi
+                        
                         # 检查是否是 Redis 端口
                         if [ "$port" = "6379" ]; then
                             print_info "检测到 Redis 端口 6379 被占用，尝试停止系统 Redis 服务..."
@@ -4989,6 +5179,13 @@ clean_middleware() {
             echo "$srs_containers" | xargs -r docker rm -f 2>&1 | tee -a "$LOG_FILE"
         fi
         
+        # 特别处理 ZLMediaKit 容器（如果存在）
+        local zlmediakit_containers=$(docker ps -a --filter "name=zlmediakit" --format "{{.Names}}" 2>/dev/null || echo "")
+        if [ -n "$zlmediakit_containers" ]; then
+            print_warning "发现 ZLMediaKit 残留容器，正在强制删除..."
+            echo "$zlmediakit_containers" | xargs -r docker rm -f 2>&1 | tee -a "$LOG_FILE"
+        fi
+        
         # 第五步：删除所有 bind mount 的宿主机存储目录
         print_info "删除所有 bind mount 存储目录..."
         
@@ -5002,8 +5199,10 @@ clean_middleware() {
             "minio_data"                 # MinIO 数据和配置
             "srs_data"                  # SRS 配置、数据和回放
             "nodered_data"              # NodeRED 数据
-            "../zlmediakit"           # ZLMediaKit 配置、数据和日志
         )
+        
+        # ZLMediaKit 目录需要特殊处理（相对路径）
+        local zlmediakit_dir="${SCRIPT_DIR}/../zlmediakit"
         
         # 删除每个存储目录
         local deleted_count=0
@@ -5038,6 +5237,31 @@ clean_middleware() {
                 deleted_count=$((deleted_count + 1))
             fi
         done
+        
+        # 删除 ZLMediaKit 目录（特殊处理）
+        if [ -d "$zlmediakit_dir" ]; then
+            print_info "删除存储目录: $zlmediakit_dir"
+            if rm -rf "$zlmediakit_dir" 2>/dev/null; then
+                print_success "已删除: zlmediakit"
+                deleted_count=$((deleted_count + 1))
+            elif command -v sudo &> /dev/null; then
+                print_info "尝试使用 sudo 删除: zlmediakit"
+                if sudo rm -rf "$zlmediakit_dir" 2>/dev/null; then
+                    print_success "已删除（使用 sudo）: zlmediakit"
+                    deleted_count=$((deleted_count + 1))
+                else
+                    print_warning "无法删除: zlmediakit（可能需要手动删除）"
+                    print_info "手动删除命令: sudo rm -rf $zlmediakit_dir"
+                fi
+            else
+                print_warning "无法删除: zlmediakit（可能需要 root 权限）"
+                print_info "请手动删除: rm -rf $zlmediakit_dir 或使用 root 权限删除"
+            fi
+        else
+            print_info "目录不存在，跳过: zlmediakit"
+            deleted_count=$((deleted_count + 1))
+        fi
+        total_count=$((total_count + 1))
         
         # 第六步：删除 Docker 具名卷（如果还有残留）
         print_info "检查并删除残留的 Docker 具名卷..."

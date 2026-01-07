@@ -1,5 +1,6 @@
 import {BasicColumn, FormProps} from "@/components/Table";
 import moment from "moment";
+import {Tag} from "ant-design-vue";
 
 export function getBasicColumns(): BasicColumn[] {
   return [
@@ -36,13 +37,13 @@ export function getBasicColumns(): BasicColumn[] {
     {
       title: '是否在线',
       dataIndex: 'onLine',
-      width: 50,
+      width: 90,
       customRender: ({text}) => {
-        if (text) {
-          return "在线";
-        } else {
-          return "离线";
-        }
+        return (
+          <Tag color={text ? 'green' : 'red'}>
+            {text ? '在线' : '离线'}
+          </Tag>
+        );
       },
     },
     {

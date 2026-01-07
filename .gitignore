@@ -52,6 +52,10 @@ hs_err_pid*
 # .scripts/nexus3 数据目录
 .scripts/nexus3/nexus_data/
 
+# .scripts/zlmediakit 数据目录（排除整个目录及其所有文件）
+.scripts/zlmediakit/
+**/.scripts/zlmediakit/**
+
 # alert_images 文件夹
 **/alert_images/
 

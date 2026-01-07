@@ -139,7 +139,7 @@ services:
 
   # TDengine 初始化容器（在 TDengine 就绪后执行数据库和超级表初始化）
   TDengine-init:
-    image: tdengine/tdengine:3.3.8.4
+    image: tdengine/tdengine:3.3.0.0
     container_name: tdengine-init
     depends_on:
       TDengine:
@@ -389,6 +389,11 @@ services:
         "-c", "/conf/config.ini",
         "-l", "0"
       ]
+    # 使用 extra_hosts 让 ZLMediaKit 容器内也能通过 hosts 解析宿主机
+    # host.docker.internal 指向宿主机（Docker 20.10+ 支持）
+    # 如果系统不支持，可以通过环境变量 HOST_IP 动态配置
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:80/index/api/getServerConfig || exit 1"]
       interval: 30s

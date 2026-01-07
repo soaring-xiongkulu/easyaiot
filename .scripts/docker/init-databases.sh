@@ -16,12 +16,13 @@ get_sql_file() {
         "iot-message20") echo "iot-message10.sql" ;;
         "iot-video20") echo "iot-video10.sql" ;;
         "iot-ai20") echo "iot-ai10.sql" ;;
+        "iot-gb2818120") echo "iot-gb2818110.sql" ;;
         *) echo "" ;;
     esac
 }
 
 # 数据库列表
-DATABASES=("ruoyi-vue-pro20" "iot-device20" "iot-message20" "iot-video20" "iot-ai20")
+DATABASES=("ruoyi-vue-pro20" "iot-device20" "iot-message20" "iot-video20" "iot-ai20" "iot-gb2818120")
 
 echo "=========================================="
 echo "开始初始化 PostgreSQL 数据库"

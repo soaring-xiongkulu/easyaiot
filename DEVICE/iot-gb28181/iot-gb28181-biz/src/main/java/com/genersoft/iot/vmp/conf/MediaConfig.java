@@ -9,8 +9,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.util.ObjectUtils;
 
+import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.UnknownHostException;
+import java.util.Enumeration;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -97,6 +100,47 @@ public class MediaConfig{
         }else {
             return streamIp;
         }
+    }
+
+    /**
+     * 获取 hook IP，如果配置为空或为默认值 127.0.0.1，则自动获取宿主机 IP
+     */
+    public String getHookIp() {
+        // 如果配置了具体的 IP 且不是默认值，直接返回
+        if (!ObjectUtils.isEmpty(hookIp) && !hookIp.equals("127.0.0.1")) {
+            return hookIp;
+        }
+        
+        // 自动获取宿主机 IP（排除 127.0.0.1 和 docker 接口）
+        try {
+            Enumeration<NetworkInterface> nifs = NetworkInterface.getNetworkInterfaces();
+            while (nifs.hasMoreElements()) {
+                NetworkInterface nif = nifs.nextElement();
+                // 跳过 docker 接口
+                if (nif.getName().startsWith("docker")) {
+                    continue;
+                }
+                
+                Enumeration<InetAddress> addresses = nif.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress addr = addresses.nextElement();
+                    if (addr instanceof Inet4Address) {
+                        String hostAddress = addr.getHostAddress();
+                        // 排除回环地址
+                        if (!hostAddress.equals("127.0.0.1") && !hostAddress.startsWith("169.254.")) {
+                            log.info("[自动获取 hook-ip] 检测到宿主机 IP: {}", hostAddress);
+                            return hostAddress;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[自动获取 hook-ip] 获取宿主机 IP 失败，使用默认值 127.0.0.1", e);
+        }
+        
+        // 如果自动获取失败，返回默认值
+        log.warn("[自动获取 hook-ip] 未能自动获取宿主机 IP，使用默认值 127.0.0.1");
+        return "127.0.0.1";
     }
 
     public MediaServer buildMediaSer(){
