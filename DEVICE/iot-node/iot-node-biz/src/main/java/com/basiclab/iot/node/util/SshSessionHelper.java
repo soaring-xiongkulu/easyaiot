@@ -123,6 +123,32 @@ public class SshSessionHelper implements AutoCloseable {
     }
 
     /**
+     * 上传文本内容到远程文件。
+     *
+     * @param content 文本内容
+     * @param remotePath 远程文件路径
+     */
+    public void uploadText(String content, String remotePath) throws JSchException, SftpException, IOException {
+        ChannelSftp sftp = null;
+        try {
+            sftp = (ChannelSftp) session.openChannel("sftp");
+            sftp.connect(CONNECT_TIMEOUT_MS);
+            int lastSlash = remotePath.lastIndexOf('/');
+            if (lastSlash > 0) {
+                ensureRemoteDir(remotePath.substring(0, lastSlash));
+            }
+            try (InputStream in = new java.io.ByteArrayInputStream(
+                    content.getBytes(StandardCharsets.UTF_8))) {
+                sftp.put(in, remotePath);
+            }
+        } finally {
+            if (sftp != null) {
+                sftp.disconnect();
+            }
+        }
+    }
+
+    /**
      * 递归上传本地目录到远程（跳过 __pycache__、.env、logs 等）。
      *
      * @return 上传的文件数

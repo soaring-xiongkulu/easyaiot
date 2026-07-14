@@ -26,8 +26,10 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.exception;
@@ -390,6 +392,59 @@ public class NodeWorkloadBundleServiceImpl implements NodeWorkloadBundleService 
                 ok ? "已就绪: " + marker : "缺少 " + remoteRoot + "/" + marker));
     }
 
+    /**
+     * 展开 requirements 文件中的 -r 引用，递归合并所有依赖。
+     * 解决 pip install -r 时找不到被引用文件的问题。
+     *
+     * @param sourceRoot 源码根目录
+     * @param reqFile 主 requirements 文件
+     * @param visited 已访问的文件集合（防止循环引用）
+     * @return 展开后的完整内容
+     */
+    private String expandRequirementsFile(String sourceRoot, File reqFile, Set<String> visited) {
+        if (reqFile == null || !reqFile.isFile() || visited.contains(reqFile.getAbsolutePath())) {
+            return "";
+        }
+        visited.add(reqFile.getAbsolutePath());
+        
+        StringBuilder sb = new StringBuilder();
+        try {
+            List<String> lines = Files.readAllLines(reqFile.toPath(), StandardCharsets.UTF_8);
+            for (String line : lines) {
+                String trimmed = line.trim();
+                // 跳过空行和注释
+                if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                    continue;
+                }
+                // 处理 -r 引用
+                if (trimmed.startsWith("-r ")) {
+                    String refFile = trimmed.substring(3).trim();
+                    File ref = new File(reqFile.getParent(), refFile);
+                    if (!ref.isAbsolute()) {
+                        ref = new File(sourceRoot, refFile);
+                    }
+                    log.debug("展开 requirements 引用: {} -> {}", reqFile.getName(), ref.getAbsolutePath());
+                    String expanded = expandRequirementsFile(sourceRoot, ref, visited);
+                    if (!expanded.isEmpty()) {
+                        sb.append(expanded).append("\n");
+                    }
+                } else {
+                    sb.append(line).append("\n");
+                }
+            }
+        } catch (Exception e) {
+            log.warn("读取 requirements 文件失败: {}, 错误: {}", reqFile.getAbsolutePath(), e.getMessage());
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 展开 requirements 文件中的 -r 引用（便捷方法）。
+     */
+    private String expandRequirementsFile(String sourceRoot, File reqFile) {
+        return expandRequirementsFile(sourceRoot, reqFile, new HashSet<>());
+    }
+
     private void syncBundleEnvFiles(
             SshSessionHelper ssh,
             String sourceRoot,
@@ -403,7 +458,12 @@ public class NodeWorkloadBundleServiceImpl implements NodeWorkloadBundleService 
         if (!req.isFile() || !install.isFile()) {
             throw exception("AI".equals(bundle.getModule()) ? AI_SOURCE_NOT_FOUND : VIDEO_SOURCE_NOT_FOUND);
         }
-        ssh.uploadFile(req.getAbsolutePath(), remoteBundle + "/requirements.txt");
+        
+        // 展开 -r 引用，将完整的 requirements 内容上传
+        String expandedContent = expandRequirementsFile(sourceRoot, req);
+        // 将展开后的内容上传为 requirements.txt
+        ssh.uploadText(expandedContent, remoteBundle + "/requirements.txt");
+        
         ssh.uploadFile(install.getAbsolutePath(), remoteBundle + "/" + WorkloadBundleDeployUtil.INSTALL_BUNDLE_ENV_SCRIPT);
         ssh.exec("chmod +x " + remoteBundle + "/" + WorkloadBundleDeployUtil.INSTALL_BUNDLE_ENV_SCRIPT, 10_000);
         if (getPip.isFile()) {
