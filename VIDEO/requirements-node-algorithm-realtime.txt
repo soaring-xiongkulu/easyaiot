@@ -8,3 +8,5 @@ croniter>=1.4.1
 minio==7.2.0
 nacos-sdk-python==2.0.9
 netifaces==0.11.0
+Pillow>=10.0.0
+ultralytics>=8.4.0,<9.0.0
