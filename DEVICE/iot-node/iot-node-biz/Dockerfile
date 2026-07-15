@@ -4,6 +4,8 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 RUN mkdir -p /app && chown -R appuser:appuser /app
 WORKDIR /app
 
+RUN microdnf install -y python311 python3-pip && microdnf clean all
+
 COPY target/jars/iot-node-biz.jar app.jar
 RUN chown appuser:appuser app.jar
 
