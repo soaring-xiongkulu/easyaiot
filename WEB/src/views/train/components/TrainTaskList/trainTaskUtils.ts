@@ -91,6 +91,37 @@ export function getCompletedEpochs(record?: {
   return Number(hp.completed_epochs) || 0;
 }
 
+export function formatTrainProgressDetail(record?: {
+  status?: string;
+  current_epoch?: number;
+  total_epochs?: number;
+  current_batch?: number;
+  total_batches?: number;
+  progress_phase?: string;
+  completed_epochs?: number;
+  hyperparameters?: unknown;
+}): string {
+  const hp = parseTrainHyperparameters(record?.hyperparameters);
+  const totalEpochs = Number(record?.total_epochs ?? hp.epochs) || 0;
+  const completedEpochs = getCompletedEpochs(record);
+  const currentEpoch = Number(record?.current_epoch ?? hp.current_epoch) || completedEpochs;
+  const currentBatch = Number(record?.current_batch ?? hp.current_batch) || 0;
+  const totalBatches = Number(record?.total_batches ?? hp.total_batches) || 0;
+  const phase = String(record?.progress_phase ?? hp.progress_phase ?? '');
+
+  if (currentEpoch > 0 && totalEpochs > 0) {
+    const parts = [`第 ${Math.min(currentEpoch, totalEpochs)}/${totalEpochs} 轮`];
+    if (totalBatches > 0) {
+      parts.push(`${phase === 'validation' ? '验证' : '批次'} ${Math.min(currentBatch, totalBatches)}/${totalBatches}`);
+    }
+    return parts.join(' · ');
+  }
+  if (completedEpochs > 0 && totalEpochs > 0) {
+    return `已完成 ${completedEpochs}/${totalEpochs} 轮`;
+  }
+  return '';
+}
+
 export function isCloudDatasetPath(path?: string): boolean {
   if (!path) return false;
   if (path.startsWith('/api/v1/buckets/')) return true;
@@ -111,6 +142,11 @@ export function parseTrainHyperparameters(raw: unknown) {
       taskName: hp.task_base_name ?? '',
       datasetSource: hp.dataset_source ?? 'local',
       completed_epochs: hp.completed_epochs ?? 0,
+      current_epoch: hp.current_epoch ?? 0,
+      current_batch: hp.current_batch ?? 0,
+      total_batches: hp.total_batches ?? 0,
+      progress_phase: hp.progress_phase ?? '',
+      progress_updated_at: hp.progress_updated_at ?? null,
       published_model_id: hp.published_model_id ?? null,
       published_version: hp.published_version ?? null,
     };

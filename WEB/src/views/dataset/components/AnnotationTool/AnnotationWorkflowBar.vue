@@ -6,6 +6,7 @@
         class="workflow-step"
         :class="stepClass(step)"
         :title="step.hint"
+        :disabled="step.disabled"
         @click="emit('action', step.key)"
       >
         <span class="step-dot">
@@ -31,6 +32,7 @@ const props = defineProps<{
   usageAllocated: boolean;
   annotationCompleted: boolean;
   syncedToMinio: boolean;
+  syncing: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -38,6 +40,14 @@ const emit = defineEmits<{
 }>();
 
 type StepStatus = 'pending' | 'active' | 'done';
+type WorkflowStep = {
+  key: WorkflowStepKey;
+  order: number;
+  label: string;
+  hint: string;
+  status: StepStatus;
+  disabled: boolean;
+};
 
 const currentKey = computed<WorkflowStepKey>(() => {
   if (props.totalImages <= 0) return 'import';
@@ -47,7 +57,7 @@ const currentKey = computed<WorkflowStepKey>(() => {
   return 'sync';
 });
 
-const steps = computed(() => {
+const steps = computed<WorkflowStep[]>(() => {
   const cur = currentKey.value;
   const done = (key: WorkflowStepKey): boolean => {
     if (key === 'import') return props.totalImages > 0;
@@ -69,6 +79,7 @@ const steps = computed(() => {
       label: '导入',
       hint: '添加图片、视频抽帧或从其他格式导入',
       status: status('import'),
+      disabled: false,
     },
     {
       key: 'annotate' as const,
@@ -79,6 +90,7 @@ const steps = computed(() => {
           ? `已完成 ${props.completedCount}/${props.totalImages} 张`
           : '导入图片后开始标注',
       status: status('annotate'),
+      disabled: false,
     },
     {
       key: 'split' as const,
@@ -86,22 +98,25 @@ const steps = computed(() => {
       label: '划分',
       hint: '按比例划分训练/验证/测试集',
       status: status('split'),
+      disabled: false,
     },
     {
       key: 'sync' as const,
       order: 4,
-      label: '同步',
-      hint: '同步到 Minio 供模型训练使用',
+      label: props.syncing ? '同步中' : '同步',
+      hint: props.syncing ? '同步任务正在执行，请等待完成' : '同步到 Minio 供模型训练使用',
       status: status('sync'),
+      disabled: props.syncing,
     },
   ];
 });
 
-function stepClass(step: { status: StepStatus }) {
+function stepClass(step: { status: StepStatus; disabled?: boolean }) {
   return {
     'is-done': step.status === 'done',
     'is-active': step.status === 'active',
     'is-pending': step.status === 'pending',
+    'is-disabled': !!step.disabled,
   };
 }
 </script>
@@ -132,6 +147,17 @@ function stepClass(step: { status: StepStatus }) {
   &:hover {
     background: #f5f5f5;
     color: #595959;
+  }
+
+  &:disabled,
+  &.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+
+    &:hover {
+      background: transparent;
+      color: inherit;
+    }
   }
 
   &.is-active {

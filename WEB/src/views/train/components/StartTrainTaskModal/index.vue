@@ -934,6 +934,18 @@ async function initTrainDrawer(data: Record<string, unknown> = {}) {
   } else if (data?.isRetrain && data?.record) {
     isRetrainMode.value = true;
     await fillFromRecord(data.record as Record<string, unknown>, 'retrain');
+  } else if (data?.datasetId) {
+    datasetSourceTab.value = 'cloud';
+    await loadDatasets();
+    cloudDatasetsLoaded.value = true;
+    const matched = datasetList.value.find(
+      (item) => String(item.id) === String(data.datasetId) && !!item.zipUrl,
+    );
+    if (matched) {
+      selectedDatasetId.value = matched.id;
+    } else {
+      createMessage.warning('当前数据集不可用于训练，请确认 MinIO 同步状态');
+    }
   }
 
   await loadGpuStatus();

@@ -22,6 +22,7 @@ import com.basiclab.iot.dataset.service.DatasetTagService;
 import com.basiclab.iot.dataset.service.annotation.DatasetAnnotationParseUtil;
 import com.basiclab.iot.dataset.service.annotation.YoloLabelContentBuilder;
 import com.basiclab.iot.dataset.service.ImportCancelChecker;
+import com.basiclab.iot.dataset.service.DatasetSyncTaskManager;
 import com.basiclab.iot.file.RemoteFileService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,7 +54,6 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntConsumer;
@@ -84,11 +84,12 @@ public class DatasetImageServiceImpl implements DatasetImageService {
     private static final int MAX_BATCH_DELETE_SIZE = 100;
     private static final int SYNC_EXPORT_BATCH_SIZE = 100;
 
-    private final Set<Long> syncingDatasetIds = ConcurrentHashMap.newKeySet();
-
     @Resource
     @Qualifier("uploadExecutor")
     private Executor uploadExecutor;
+
+    @Resource
+    private DatasetSyncTaskManager datasetSyncTaskManager;
 
     @Resource
     private DatasetImageMapper datasetImageMapper;
@@ -253,6 +254,10 @@ public class DatasetImageServiceImpl implements DatasetImageService {
 
     @Override
     public DatasetSyncCheckRespVO checkSyncCondition(Long datasetId) {
+        DatasetDO dataset = datasetMapper.selectById(datasetId);
+        if (dataset == null) {
+            throw exception(DATASET_NOT_EXISTS);
+        }
         long totalImages = datasetImageMapper.selectCount(new LambdaQueryWrapper<DatasetImageDO>()
                 .eq(DatasetImageDO::getDatasetId, datasetId));
 
@@ -269,11 +274,35 @@ public class DatasetImageServiceImpl implements DatasetImageService {
         boolean usageAllocated = totalImages > 0 && unallocatedCount == 0;
         boolean annotationCompleted = totalImages > 0 && unannotatedCount == 0;
         boolean syncReady = usageAllocated && annotationCompleted;
+        boolean syncedToMinio = CommonStatusEnum.YES.getStatus().equals(dataset.getIsSyncMinio())
+                || (dataset.getZipUrl() != null && !dataset.getZipUrl().isBlank());
+        DatasetSyncTaskManager.TaskSnapshot snapshot = datasetSyncTaskManager.getSnapshot(datasetId);
+        String syncStatus = syncedToMinio
+                ? DatasetSyncTaskManager.SyncStatus.SUCCEEDED.name()
+                : snapshot == null ? "IDLE" : snapshot.status().name();
+        String syncStage = syncedToMinio
+                ? DatasetSyncTaskManager.SyncStage.COMPLETED.name()
+                : snapshot == null ? null : snapshot.stage().name();
+        int syncProgress = syncedToMinio ? 100 : snapshot == null ? 0 : snapshot.progress();
+        int processedImages = syncedToMinio
+                ? (int) totalImages
+                : snapshot == null ? 0 : snapshot.processedImages();
 
         return DatasetSyncCheckRespVO.builder()
                 .usageAllocated(usageAllocated)
                 .annotationCompleted(annotationCompleted)
                 .syncReady(syncReady)
+                .syncing(DatasetSyncTaskManager.SyncStatus.QUEUED.name().equals(syncStatus)
+                        || DatasetSyncTaskManager.SyncStatus.RUNNING.name().equals(syncStatus))
+                .syncedToMinio(syncedToMinio)
+                .syncError(snapshot == null ? null : snapshot.error())
+                .syncStatus(syncStatus)
+                .syncStage(syncStage)
+                .syncProgress(syncProgress)
+                .processedImages(processedImages)
+                .syncSubmittedAt(snapshot == null ? null : snapshot.submittedAt())
+                .syncStartedAt(snapshot == null ? null : snapshot.startedAt())
+                .syncFinishedAt(snapshot == null ? null : snapshot.finishedAt())
                 .totalImages((int) totalImages)
                 .unallocatedCount((int) unallocatedCount)
                 .unannotatedCount((int) unannotatedCount)
@@ -282,31 +311,31 @@ public class DatasetImageServiceImpl implements DatasetImageService {
 
     @Override
     public String syncToMinio(Long datasetId) {
-        if (!syncingDatasetIds.add(datasetId)) {
+        DatasetSyncCheckRespVO check = checkSyncCondition(datasetId);
+        if (Boolean.TRUE.equals(check.getSyncedToMinio())) {
+            return "already-synced";
+        }
+        validateSyncCondition(check);
+        if (!datasetSyncTaskManager.submit(datasetId, check.getTotalImages(), () -> doSyncToMinio(datasetId))) {
             throw exception(DATASET_SYNC_IN_PROGRESS);
         }
-        try {
-            return doSyncToMinio(datasetId);
-        } finally {
-            syncingDatasetIds.remove(datasetId);
-        }
+        return "accepted";
     }
 
     private String doSyncToMinio(Long datasetId) {
         DatasetSyncCheckRespVO check = checkSyncCondition(datasetId);
-        if (check.getTotalImages() == null || check.getTotalImages() == 0) {
-            throw exception(DATASET_NO_IMAGES);
+        if (Boolean.TRUE.equals(check.getSyncedToMinio())) {
+            return "already-synced";
         }
-        if (!Boolean.TRUE.equals(check.getUsageAllocated())) {
-            throw exception(DATASET_USAGE_NOT_ALLOCATED);
-        }
-        if (!Boolean.TRUE.equals(check.getAnnotationCompleted())) {
-            throw exception(DATASET_ANNOTATION_INCOMPLETE);
-        }
+        validateSyncCondition(check);
+        datasetSyncTaskManager.updateProgress(
+                datasetId, DatasetSyncTaskManager.SyncStage.PREPARING, 3, 0);
         Path tempDir = createTempDirectoryStructure(datasetId);
         Path zipPath = null;
         try {
             int skippedCount = 0;
+            int processedCount = 0;
+            int totalImages = check.getTotalImages() == null ? 0 : check.getTotalImages();
             long lastImageId = 0L;
             while (true) {
                 List<DatasetImageDO> images = datasetImageMapper.selectSyncBatch(
@@ -327,15 +356,28 @@ public class DatasetImageServiceImpl implements DatasetImageService {
                         skippedCount++;
                         logger.warn("跳过文件 {}: {}", image.getName(), e.getMessage());
                     }
+                    processedCount++;
                 }
+                int exportProgress = totalImages == 0
+                        ? 70
+                        : 5 + (int) Math.round((processedCount * 65.0) / totalImages);
+                datasetSyncTaskManager.updateProgress(
+                        datasetId, DatasetSyncTaskManager.SyncStage.EXPORTING,
+                        Math.min(exportProgress, 70), processedCount);
                 lastImageId = images.get(images.size() - 1).getId();
             }
             if (skippedCount > 0) {
                 logger.warn("数据集 {} 打包完成，跳过 {} 个缺失文件", datasetId, skippedCount);
             }
             generateDataYaml(datasetId, tempDir);
+            datasetSyncTaskManager.updateProgress(
+                    datasetId, DatasetSyncTaskManager.SyncStage.PACKAGING, 75, processedCount);
             zipPath = compressDirectory(tempDir, datasetId);
+            datasetSyncTaskManager.updateProgress(
+                    datasetId, DatasetSyncTaskManager.SyncStage.UPLOADING, 88, processedCount);
             String zipUrl = uploadZipToMinio(zipPath, datasetId);
+            datasetSyncTaskManager.updateProgress(
+                    datasetId, DatasetSyncTaskManager.SyncStage.FINALIZING, 97, processedCount);
             DatasetDO updateDO = new DatasetDO();
             updateDO.setId(datasetId);
             updateDO.setZipUrl(zipUrl);
@@ -344,6 +386,18 @@ public class DatasetImageServiceImpl implements DatasetImageService {
             return zipUrl;
         } finally {
             cleanupTempFiles(tempDir, zipPath);
+        }
+    }
+
+    private void validateSyncCondition(DatasetSyncCheckRespVO check) {
+        if (check.getTotalImages() == null || check.getTotalImages() == 0) {
+            throw exception(DATASET_NO_IMAGES);
+        }
+        if (!Boolean.TRUE.equals(check.getUsageAllocated())) {
+            throw exception(DATASET_USAGE_NOT_ALLOCATED);
+        }
+        if (!Boolean.TRUE.equals(check.getAnnotationCompleted())) {
+            throw exception(DATASET_ANNOTATION_INCOMPLETE);
         }
     }
 

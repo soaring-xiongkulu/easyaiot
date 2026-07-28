@@ -49,9 +49,57 @@ export interface DatasetSyncCheckResult {
   usageAllocated: boolean;
   annotationCompleted: boolean;
   syncReady: boolean;
+  syncing: boolean;
+  syncedToMinio: boolean;
+  syncError: string | null;
+  syncStatus: DatasetSyncStatus;
+  syncStage: DatasetSyncStage | null;
+  syncProgress: number;
+  processedImages: number;
+  syncSubmittedAt: string | null;
+  syncStartedAt: string | null;
+  syncFinishedAt: string | null;
   totalImages: number;
   unallocatedCount: number;
   unannotatedCount: number;
+}
+
+export type DatasetSyncStatus = 'IDLE' | 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
+
+export type DatasetSyncStage =
+  | 'WAITING'
+  | 'PREPARING'
+  | 'EXPORTING'
+  | 'PACKAGING'
+  | 'UPLOADING'
+  | 'FINALIZING'
+  | 'COMPLETED'
+  | 'FAILED';
+
+export function parseDatasetSyncCheckResult(raw: unknown): DatasetSyncCheckResult {
+  const data = (raw as { data?: DatasetSyncCheckResult })?.data ?? (raw as DatasetSyncCheckResult);
+  const syncedToMinio = !!data?.syncedToMinio;
+  const syncing = !!data?.syncing;
+  const syncStatus = data?.syncStatus
+    ?? (syncedToMinio ? 'SUCCEEDED' : syncing ? 'RUNNING' : data?.syncError ? 'FAILED' : 'IDLE');
+  return {
+    usageAllocated: !!data?.usageAllocated,
+    annotationCompleted: !!data?.annotationCompleted,
+    syncReady: !!data?.syncReady,
+    syncing: syncing || syncStatus === 'QUEUED' || syncStatus === 'RUNNING',
+    syncedToMinio,
+    syncError: data?.syncError || null,
+    syncStatus,
+    syncStage: data?.syncStage ?? (syncedToMinio ? 'COMPLETED' : null),
+    syncProgress: Math.max(0, Math.min(100, data?.syncProgress ?? (syncedToMinio ? 100 : 0))),
+    processedImages: data?.processedImages ?? (syncedToMinio ? data?.totalImages ?? 0 : 0),
+    syncSubmittedAt: data?.syncSubmittedAt ?? null,
+    syncStartedAt: data?.syncStartedAt ?? null,
+    syncFinishedAt: data?.syncFinishedAt ?? null,
+    totalImages: data?.totalImages ?? 0,
+    unallocatedCount: data?.unallocatedCount ?? 0,
+    unannotatedCount: data?.unannotatedCount ?? 0,
+  };
 }
 
 // 数据集
@@ -135,9 +183,84 @@ export const checkSyncCondition = (datasetId) => {
 
 export const syncToMinio = (datasetId) => {
   return commonApi('post', `${Api.DatasetImage}/${datasetId}/sync-to-minio`, {
-    timeout: 30 * 60 * 1000,
+    timeout: 30 * 1000,
   });
 };
+
+interface DatasetSyncPollOptions {
+  intervalMs?: number;
+  timeoutMs?: number;
+  signal?: AbortSignal;
+  onStatus?: (status: DatasetSyncCheckResult) => void;
+  onPollError?: (error: Error, retryCount: number) => void;
+}
+
+export async function waitForDatasetMinioSync(
+  datasetId,
+  options: DatasetSyncPollOptions = {},
+): Promise<DatasetSyncCheckResult> {
+  const intervalMs = options.intervalMs ?? 2000;
+  const timeoutMs = options.timeoutMs ?? 30 * 60 * 1000;
+  const deadline = Date.now() + timeoutMs;
+  let consecutivePollErrors = 0;
+
+  while (true) {
+    if (options.signal?.aborted) {
+      throw abortError();
+    }
+    let status: DatasetSyncCheckResult;
+    try {
+      status = parseDatasetSyncCheckResult(await checkSyncCondition(datasetId));
+      consecutivePollErrors = 0;
+    } catch (error) {
+      if (options.signal?.aborted) {
+        throw abortError();
+      }
+      consecutivePollErrors++;
+      const pollError = error instanceof Error ? error : new Error('同步状态查询失败');
+      options.onPollError?.(pollError, consecutivePollErrors);
+      if (Date.now() >= deadline) {
+        throw new Error('暂时无法获取同步状态，请稍后刷新页面重试');
+      }
+      await waitForPoll(Math.min(intervalMs * consecutivePollErrors, 10_000), options.signal);
+      continue;
+    }
+    options.onStatus?.(status);
+    if (status.syncStatus === 'SUCCEEDED' || status.syncedToMinio) {
+      return status;
+    }
+    if (status.syncStatus === 'FAILED') {
+      throw new Error(status.syncError || '同步失败，请重新提交');
+    }
+    if (status.syncStatus !== 'QUEUED' && status.syncStatus !== 'RUNNING' && !status.syncing) {
+      throw new Error(status.syncError || '同步任务未启动或已停止');
+    }
+    if (Date.now() >= deadline) {
+      throw new Error('同步任务仍在后台运行，请稍后刷新查看');
+    }
+    await waitForPoll(intervalMs, options.signal);
+  }
+}
+
+function waitForPoll(delayMs: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, delayMs);
+    const onAbort = () => {
+      window.clearTimeout(timer);
+      reject(abortError());
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+function abortError(): Error {
+  const error = new Error('同步状态轮询已取消');
+  error.name = 'AbortError';
+  return error;
+}
 
 // 数据集标签
 export const createDatasetTag = (params) => {

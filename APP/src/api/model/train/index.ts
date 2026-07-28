@@ -10,6 +10,14 @@ export interface TrainTask {
   dataset_version?: string
   start_time?: string
   progress?: number
+  completed_epochs?: number
+  total_epochs?: number
+  current_epoch?: number
+  current_batch?: number
+  total_batches?: number
+  progress_phase?: 'train' | 'validation' | 'completed' | string
+  progress_updated_at?: number
+  progress_message?: string
   status?: string
   schedule_policy?: string
   service_server_ip?: string

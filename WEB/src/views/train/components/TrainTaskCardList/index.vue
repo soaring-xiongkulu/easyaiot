@@ -55,6 +55,9 @@
                           {{ getProgressPercent(item) }}%
                         </div>
                       </div>
+                      <div v-if="formatTrainProgressDetail(item)" class="progress-detail">
+                        {{ formatTrainProgressDetail(item) }}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -144,7 +147,7 @@ import {propTypes} from '@/utils/propTypes';
 import {isFunction} from '@/utils/is';
 import {Icon} from '@/components/Icon';
 import {getFormConfig} from '../TrainTaskList/Data';
-import {canPublishTrainTask, canResumeTrainTask, canRetrainTrainTask, formatTrainTaskTime, getPublishedModelId, isTrainTaskActive} from '../TrainTaskList/trainTaskUtils';
+import {canPublishTrainTask, canResumeTrainTask, canRetrainTrainTask, formatTrainProgressDetail, formatTrainTaskTime, getPublishedModelId, isTrainTaskActive} from '../TrainTaskList/trainTaskUtils';
 
 defineOptions({name: 'TrainTaskCardList'});
 
@@ -531,6 +534,14 @@ function handlePublish(record: Record<string, unknown>) {
               font-weight: 700;
               line-height: 14px;
               text-align: right;
+            }
+
+            .progress-detail {
+              margin-top: 4px;
+              color: #8c8c8c;
+              font-size: 12px;
+              line-height: 18px;
+              white-space: normal;
             }
           }
         }

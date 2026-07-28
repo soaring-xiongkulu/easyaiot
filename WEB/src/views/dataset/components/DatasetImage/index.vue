@@ -1,5 +1,13 @@
 <template>
   <div class="subDevice-wrapper">
+    <MinioSyncStatus
+      class="dataset-sync-status"
+      :status="syncCheck"
+      :connection-error="syncConnectionError"
+      @refresh="handleRefreshSyncStatus"
+      @retry="handleRetryMinioSync"
+      @start-train="handleStartTrain"
+    />
     <Alert
       v-if="syncCheck.totalImages > 0 && !syncCheck.usageAllocated"
       type="warning"
@@ -63,9 +71,9 @@
           type="default"
           :title="`是否确认同步数据集到Minio？`"
           preIcon="ant-design:cloud-upload-outlined"
-          :disabled="!syncCheck.syncReady"
+          :disabled="!syncCheck.syncReady || syncCheck.syncing || syncCheck.syncedToMinio"
         >
-          一键同步到Minio
+          {{ syncActionLabel }}
         </PopConfirmButton>
         <Button type="default" @click="handleClickSwap" preIcon="ant-design:swap-outlined">
           切换视图
@@ -170,9 +178,9 @@
             type="default"
             :title="`是否确认同步数据集到Minio？`"
             preIcon="ant-design:cloud-upload-outlined"
-            :disabled="!syncCheck.syncReady"
+            :disabled="!syncCheck.syncReady || syncCheck.syncing || syncCheck.syncedToMinio"
           >
-            一键同步到Minio
+            {{ syncActionLabel }}
           </PopConfirmButton>
           <Button type="default" @click="handleClickSwap" preIcon="ant-design:swap-outlined">
             切换视图
@@ -189,73 +197,90 @@ import {getBasicColumns, getFormConfig} from './data';
 import {useMessage} from '@/hooks/web/useMessage';
 import {BasicTable, TableAction, useTable} from '@/components/Table';
 import {Alert, Tag} from "ant-design-vue";
-import {useRoute} from "vue-router";
+import {useRoute, useRouter} from "vue-router";
 import {useModal} from "@/components/Modal";
 import {
   checkSyncCondition,
   type DatasetSyncCheckResult,
   deleteDatasetImage,
   deleteDatasetImages,
-  getDataset,
   getDatasetImagePage,
+  parseDatasetSyncCheckResult,
   resetDataset,
   splitDataset,
   syncToMinio,
+  waitForDatasetMinioSync,
 } from "@/api/device/dataset";
 import DatasetImageModal from "@/views/dataset/components/DatasetImageModal/index.vue";
 import {PopConfirmButton} from "@/components/Button";
-import {onMounted, reactive, ref} from "vue";
 import DatasetImageCardList from "@/views/dataset/components/DatasetImageCardList/index.vue";
+import MinioSyncStatus from "@/views/dataset/components/MinioSyncStatus/index.vue";
 import {createImgPreview} from "@/components/Preview";
+import {computed, onMounted, onUnmounted, reactive, ref} from "vue";
 
-const {createMessage} = useMessage();
+const {createMessage, createConfirm} = useMessage();
 
 const [registerAddModel, {openModal: openAddModal}] = useModal();
 
 defineOptions({name: 'DatasetImage'})
 
 const route = useRoute()
+const router = useRouter();
 const checkedKeys = ref<Array<string | number>>([]);
 
-const defaultSyncCheck = (): DatasetSyncCheckResult & { syncedToMinio: boolean } => ({
+const defaultSyncCheck = (): DatasetSyncCheckResult => ({
   usageAllocated: false,
   annotationCompleted: false,
   syncReady: false,
+  syncing: false,
+  syncedToMinio: false,
+  syncError: null,
+  syncStatus: 'IDLE',
+  syncStage: null,
+  syncProgress: 0,
+  processedImages: 0,
+  syncSubmittedAt: null,
+  syncStartedAt: null,
+  syncFinishedAt: null,
   totalImages: 0,
   unallocatedCount: 0,
   unannotatedCount: 0,
-  syncedToMinio: false,
 });
 
 const syncCheck = reactive(defaultSyncCheck());
+const syncConnectionError = ref<string | null>(null);
+let syncPollController: AbortController | null = null;
 
-function parseSyncCheckPayload(raw: unknown): DatasetSyncCheckResult {
-  const data = (raw as { data?: DatasetSyncCheckResult })?.data ?? (raw as DatasetSyncCheckResult);
-  return {
-    usageAllocated: !!data?.usageAllocated,
-    annotationCompleted: !!data?.annotationCompleted,
-    syncReady: !!data?.syncReady,
-    totalImages: data?.totalImages ?? 0,
-    unallocatedCount: data?.unallocatedCount ?? 0,
-    unannotatedCount: data?.unannotatedCount ?? 0,
-  };
-}
+const syncActionLabel = computed(() => {
+  if (syncCheck.syncStatus === 'QUEUED') return '排队中';
+  if (syncCheck.syncStatus === 'RUNNING') return `同步中 ${syncCheck.syncProgress}%`;
+  if (syncCheck.syncStatus === 'FAILED') return '重试同步';
+  if (syncCheck.syncedToMinio) return '已同步';
+  return '一键同步到Minio';
+});
 
 async function refreshSyncCheck() {
   try {
     const ret = await checkSyncCondition(route.params.id);
-    Object.assign(syncCheck, parseSyncCheckPayload(ret));
-    const datasetInfo = await getDataset({id: route.params.id});
-    syncCheck.syncedToMinio = datasetInfo?.isSyncMinio === 1 || !!datasetInfo?.zipUrl;
+    const status = parseDatasetSyncCheckResult(ret);
+    Object.assign(syncCheck, status);
+    syncConnectionError.value = null;
+    return status;
   } catch (error) {
     console.error('检查同步条件失败:', error);
-    Object.assign(syncCheck, defaultSyncCheck());
+    syncConnectionError.value = error instanceof Error ? error.message : '状态查询失败';
+    return null;
   }
 }
 
-onMounted(() => {
-  refreshSyncCheck();
+onMounted(async () => {
+  const status = await refreshSyncCheck();
+  if (status?.syncing) {
+    monitorMinioSync(false);
+  }
 });
+
+onUnmounted(() => syncPollController?.abort());
 
 const state = reactive({
   isTableMode: false,
@@ -345,9 +370,52 @@ function handleEdit(record) {
   openAddModal(true, {datasetId: route.params['id']});
 }
 
+function monitorMinioSync(notifyCompletion: boolean) {
+  syncPollController?.abort();
+  const controller = new AbortController();
+  syncPollController = controller;
+  void waitForDatasetMinioSync(route.params.id, {
+    signal: controller.signal,
+    onStatus: (status) => {
+      Object.assign(syncCheck, status);
+      syncConnectionError.value = null;
+    },
+    onPollError: (error) => {
+      syncConnectionError.value = error.message || '状态查询失败';
+    },
+  }).then(() => {
+    if (notifyCompletion) {
+      createMessage.success('数据集已同步到 Minio，可用于模型训练');
+    }
+    handleSuccess();
+  }).catch((error: Error) => {
+    if (error.name !== 'AbortError') {
+      createMessage.error(error.message || '同步数据集失败');
+      refreshSyncCheck();
+    }
+  }).finally(() => {
+    if (syncPollController === controller) {
+      syncPollController = null;
+    }
+  });
+}
+
 async function handleSyncToMinio() {
   try {
-    await refreshSyncCheck();
+    const latestStatus = await refreshSyncCheck();
+    if (!latestStatus) {
+      createMessage.error('无法确认当前同步状态，请检查网络后重试');
+      return;
+    }
+    if (syncCheck.syncedToMinio) {
+      createMessage.info('数据集已同步到 Minio，无需重复提交');
+      return;
+    }
+    if (syncCheck.syncing) {
+      createMessage.info('数据集正在同步，请等待完成');
+      monitorMinioSync(false);
+      return;
+    }
     if (!syncCheck.usageAllocated) {
       createMessage.error('请先点击「按比例划分数据集用途」，将图片划分为训练集/验证集/测试集后再同步');
       return;
@@ -358,12 +426,47 @@ async function handleSyncToMinio() {
     }
 
     await syncToMinio(route.params.id);
-    createMessage.success('数据集已同步到 Minio，可用于模型训练');
-    handleSuccess();
-  } catch (error) {
+    Object.assign(syncCheck, {
+      syncing: true,
+      syncError: null,
+      syncStatus: 'QUEUED',
+      syncStage: 'WAITING',
+      syncProgress: 0,
+      processedImages: 0,
+      syncSubmittedAt: new Date().toISOString(),
+      syncStartedAt: null,
+      syncFinishedAt: null,
+    });
+    syncConnectionError.value = null;
+    createMessage.info('同步任务已提交，正在后台处理');
+    monitorMinioSync(true);
+  } catch (error: any) {
     console.error('同步数据集失败:', error);
-    createMessage.error('同步数据集失败');
+    createMessage.error(error?.message || '同步数据集失败');
   }
+}
+
+async function handleRefreshSyncStatus() {
+  const status = await refreshSyncCheck();
+  if (status?.syncing) {
+    monitorMinioSync(false);
+  }
+}
+
+function handleRetryMinioSync() {
+  createConfirm({
+    iconType: 'warning',
+    title: '重新同步数据集到 MinIO？',
+    content: '将重新生成训练数据包并上传。',
+    onOk: handleSyncToMinio,
+  });
+}
+
+function handleStartTrain() {
+  void router.push({
+    path: '/train',
+    query: {tab: '6', launch: '1', datasetId: String(route.params.id)},
+  });
 }
 
 function onSelect(record, selected) {
@@ -459,6 +562,10 @@ async function handleDeleteAll() {
 
 <style lang="less" scoped>
 .dataset-workflow-alert {
+  margin-bottom: 12px;
+}
+
+.dataset-sync-status {
   margin-bottom: 12px;
 }
 

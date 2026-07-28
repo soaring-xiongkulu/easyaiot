@@ -41,6 +41,17 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
 
+    @Bean("datasetSyncExecutor")
+    public Executor datasetSyncExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(16);
+        executor.setThreadNamePrefix("DatasetSync-");
+        executor.initialize();
+        return executor;
+    }
+
     @Bean("importExecutor")
     public Executor importExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

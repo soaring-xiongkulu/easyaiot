@@ -10,6 +10,7 @@
           :usage-allocated="syncCheck.usageAllocated"
           :annotation-completed="syncCheck.annotationCompleted"
           :synced-to-minio="syncCheck.syncedToMinio"
+          :syncing="syncCheck.syncing"
           @action="onWorkflowAction"
         />
         <span v-if="totalImages > 0" class="toolbar-progress">
@@ -137,10 +138,10 @@
           </template>
         </Dropdown>
         <Dropdown :trigger="['click']" placement="bottomRight">
-          <button type="button" class="action-btn" :class="{ 'train-ready': syncCheck.syncReady && !syncCheck.syncedToMinio }">
+          <button type="button" class="action-btn" :class="{ 'train-ready': syncCheck.syncReady && !syncCheck.syncedToMinio && !syncCheck.syncing }">
             <Icon icon="ant-design:export-outlined"/>
             训练集
-            <span v-if="syncCheck.syncReady && !syncCheck.syncedToMinio" class="ready-badge"/>
+            <span v-if="syncCheck.syncReady && !syncCheck.syncedToMinio && !syncCheck.syncing" class="ready-badge"/>
             <Icon icon="ant-design:down-outlined" class="dropdown-caret"/>
           </button>
           <template #overlay>
@@ -151,6 +152,9 @@
                 </template>
                 <template v-else-if="!syncCheck.usageAllocated">
                   标注已完成，待划分用途
+                </template>
+                <template v-else-if="syncCheck.syncing">
+                  {{ syncCheck.syncStatus === 'QUEUED' ? '同步任务排队中' : `同步到 Minio ${syncCheck.syncProgress}%` }}
                 </template>
                 <template v-else-if="syncCheck.syncReady && !syncCheck.syncedToMinio">
                   可同步到 Minio
@@ -175,9 +179,9 @@
                 <Icon icon="ant-design:download-outlined"/>
                 导出数据集
               </MenuItem>
-              <MenuItem key="sync" :disabled="!syncCheck.syncReady" :title="syncDisabledReason">
+              <MenuItem key="sync" :disabled="!syncCheck.syncReady || syncCheck.syncing || syncCheck.syncedToMinio" :title="syncDisabledReason">
                 <Icon icon="ant-design:cloud-upload-outlined"/>
-                同步到 Minio
+                {{ syncActionLabel }}
               </MenuItem>
             </Menu>
           </template>
@@ -193,6 +197,15 @@
       :completed="completedCount"
       :tip="workflowTip"
       @tip-action="onTipAction"
+    />
+
+    <MinioSyncStatus
+      compact
+      :status="syncCheck"
+      :connection-error="syncConnectionError"
+      @refresh="handleRefreshSyncStatus"
+      @retry="handleSyncToMinio"
+      @start-train="handleStartTrain"
     />
 
     <!-- 主内容区 -->
@@ -523,12 +536,13 @@ import {
   deleteDatasetImages,
   type DatasetAnnotationImportResult,
   type DatasetSyncCheckResult,
-  getDataset,
   getDatasetImagePage,
+  parseDatasetSyncCheckResult,
   resetDataset,
   splitDataset,
   syncToMinio,
   updateDatasetImage,
+  waitForDatasetMinioSync,
 } from "@/api/device/dataset";
 import {
   colorWithAlpha,
@@ -562,6 +576,7 @@ import AnnotationProgressStrip, {
   type WorkflowTip,
 } from '@/views/dataset/components/AnnotationTool/AnnotationProgressStrip.vue';
 import AnnotationLabelPanel from '@/views/dataset/components/AnnotationTool/AnnotationLabelPanel.vue';
+import MinioSyncStatus from '@/views/dataset/components/MinioSyncStatus/index.vue';
 defineOptions({name: 'AnnotationTool'});
 
 const {createMessage, createConfirm} = useMessage();
@@ -573,38 +588,39 @@ const manageDrawerTab = ref<ManageDrawerTab>('tags');
 const [registerImageModal, {openModal: openImageUploadModalInner}] = useModal();
 const labelPanelRef = ref<InstanceType<typeof AnnotationLabelPanel> | null>(null);
 
-const defaultSyncCheck = (): DatasetSyncCheckResult & { syncedToMinio: boolean } => ({
+const defaultSyncCheck = (): DatasetSyncCheckResult => ({
   usageAllocated: false,
   annotationCompleted: false,
   syncReady: false,
+  syncing: false,
+  syncedToMinio: false,
+  syncError: null,
+  syncStatus: 'IDLE',
+  syncStage: null,
+  syncProgress: 0,
+  processedImages: 0,
+  syncSubmittedAt: null,
+  syncStartedAt: null,
+  syncFinishedAt: null,
   totalImages: 0,
   unallocatedCount: 0,
   unannotatedCount: 0,
-  syncedToMinio: false,
 });
 
 const syncCheck = reactive(defaultSyncCheck());
-
-function parseSyncCheckPayload(raw: unknown): DatasetSyncCheckResult {
-  const data = (raw as { data?: DatasetSyncCheckResult })?.data ?? (raw as DatasetSyncCheckResult);
-  return {
-    usageAllocated: !!data?.usageAllocated,
-    annotationCompleted: !!data?.annotationCompleted,
-    syncReady: !!data?.syncReady,
-    totalImages: data?.totalImages ?? 0,
-    unallocatedCount: data?.unallocatedCount ?? 0,
-    unannotatedCount: data?.unannotatedCount ?? 0,
-  };
-}
+const syncConnectionError = ref<string | null>(null);
+let syncPollController: AbortController | null = null;
 
 async function refreshSyncCheck() {
   try {
     const ret = await checkSyncCondition(route.params.id);
-    Object.assign(syncCheck, parseSyncCheckPayload(ret));
-    const datasetInfo = await getDataset({id: route.params.id});
-    syncCheck.syncedToMinio = datasetInfo?.isSyncMinio === 1 || !!datasetInfo?.zipUrl;
-  } catch {
-    Object.assign(syncCheck, defaultSyncCheck());
+    const status = parseDatasetSyncCheckResult(ret);
+    Object.assign(syncCheck, status);
+    syncConnectionError.value = null;
+    return status;
+  } catch (error) {
+    syncConnectionError.value = error instanceof Error ? error.message : '状态查询失败';
+    return null;
   }
 }
 const aiLabelModalRef = ref<InstanceType<typeof AILabelModal> | null>(null);
@@ -688,11 +704,21 @@ const pendingCount = computed(() => {
 });
 
 const syncDisabledReason = computed(() => {
+  if (syncCheck.syncing) return '数据集正在同步';
+  if (syncCheck.syncedToMinio) return '数据集已同步';
   if (syncCheck.syncReady) return '';
   if (totalImages.value === 0) return '请先导入图片';
   if (!syncCheck.annotationCompleted) return `尚有 ${pendingCount.value} 张未完成标注`;
   if (!syncCheck.usageAllocated) return '请先划分数据集用途';
   return '';
+});
+
+const syncActionLabel = computed(() => {
+  if (syncCheck.syncStatus === 'QUEUED') return '排队中';
+  if (syncCheck.syncStatus === 'RUNNING') return `同步中 ${syncCheck.syncProgress}%`;
+  if (syncCheck.syncStatus === 'FAILED') return '重新同步';
+  if (syncCheck.syncedToMinio) return '已同步';
+  return '同步到 Minio';
 });
 
 const aiBatchBtnTitle = computed(() => {
@@ -710,6 +736,15 @@ const workflowTip = computed((): WorkflowTip | null => {
       };
     }
     return {text: 'AI 批量标注已启动，正在处理…'};
+  }
+  if (syncCheck.syncStatus === 'QUEUED') {
+    return {text: 'MinIO 同步任务已提交，正在排队'};
+  }
+  if (syncCheck.syncStatus === 'RUNNING') {
+    return {text: `数据集正在同步到 Minio，当前进度 ${syncCheck.syncProgress}%`};
+  }
+  if (syncCheck.syncStatus === 'FAILED') {
+    return {text: `MinIO 同步失败：${syncCheck.syncError || '请重新同步'}`, action: 'sync', actionLabel: '重新同步'};
   }
   if (totalImages.value === 0) {
     return {text: '数据集为空，请先导入或上传图片', action: 'import', actionLabel: '去导入'};
@@ -2379,13 +2414,56 @@ function handleResetDataset(): void {
   });
 }
 
+function monitorMinioSync(notifyCompletion: boolean) {
+  syncPollController?.abort();
+  const controller = new AbortController();
+  syncPollController = controller;
+  void waitForDatasetMinioSync(route.params.id, {
+    signal: controller.signal,
+    onStatus: (status) => {
+      Object.assign(syncCheck, status);
+      syncConnectionError.value = null;
+    },
+    onPollError: (error) => {
+      syncConnectionError.value = error.message || '状态查询失败';
+    },
+  }).then(() => {
+    if (notifyCompletion) {
+      createMessage.success('数据集已同步到 Minio');
+    }
+    refreshSyncCheck();
+  }).catch((error: Error) => {
+    if (error.name !== 'AbortError') {
+      createMessage.error(error.message || '同步数据集失败');
+      refreshSyncCheck();
+    }
+  }).finally(() => {
+    if (syncPollController === controller) {
+      syncPollController = null;
+    }
+  });
+}
+
 function handleSyncToMinio(): void {
   createConfirm({
     iconType: 'info',
     title: '同步数据集到 Minio？',
     onOk: async () => {
       try {
-        await refreshSyncCheck();
+        const latestStatus = await refreshSyncCheck();
+        if (!latestStatus) {
+          createMessage.error('无法确认当前同步状态，请检查网络后重试');
+          return;
+        }
+        if (syncCheck.syncedToMinio) {
+          createMessage.info('数据集已同步到 Minio，无需重复提交');
+          return;
+        }
+        if (syncCheck.syncing) {
+          createMessage.info('数据集正在同步，请等待完成');
+          monitorMinioSync(false);
+          return;
+        }
         if (!syncCheck.usageAllocated) {
           createMessage.error('请先划分数据集用途后再同步');
           return;
@@ -2395,12 +2473,38 @@ function handleSyncToMinio(): void {
           return;
         }
         await syncToMinio(route.params.id);
-        createMessage.success('数据集已同步到 Minio');
-        await refreshSyncCheck();
-      } catch {
-        createMessage.error('同步数据集失败');
+        Object.assign(syncCheck, {
+          syncing: true,
+          syncError: null,
+          syncStatus: 'QUEUED',
+          syncStage: 'WAITING',
+          syncProgress: 0,
+          processedImages: 0,
+          syncSubmittedAt: new Date().toISOString(),
+          syncStartedAt: null,
+          syncFinishedAt: null,
+        });
+        syncConnectionError.value = null;
+        createMessage.info('同步任务已提交，正在后台处理');
+        monitorMinioSync(true);
+      } catch (error: any) {
+        createMessage.error(error?.message || '同步数据集失败');
       }
     },
+  });
+}
+
+async function handleRefreshSyncStatus() {
+  const status = await refreshSyncCheck();
+  if (status?.syncing) {
+    monitorMinioSync(false);
+  }
+}
+
+function handleStartTrain() {
+  void router.push({
+    path: '/train',
+    query: {tab: '6', launch: '1', datasetId: String(route.params.id)},
   });
 }
 
@@ -2501,7 +2605,11 @@ onMounted(() => {
 
   fetchLabels();
   fetchImages(1);
-  refreshSyncCheck();
+  refreshSyncCheck().then((status) => {
+    if (status?.syncing) {
+      monitorMinioSync(false);
+    }
+  });
   refreshSamModelStatus().then((ready) => {
     if (route.query.openSam === '1' && ready) {
       const nextQuery = { ...route.query };
@@ -2514,6 +2622,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopBatchTaskPoll();
+  syncPollController?.abort();
   window.removeEventListener('resize', handleResize);
   window.removeEventListener('keydown', handleKeyDown);
   window.removeEventListener('resize', resizeCanvas);

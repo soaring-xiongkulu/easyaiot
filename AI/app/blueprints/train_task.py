@@ -511,7 +511,8 @@ def _extract_class_names_from_minio_model(model_url: str) -> list[str]:
 
 
 def _serialize_task(task: TrainTask) -> dict:
-    completed_epochs = _get_completed_epochs(task.hyperparameters)
+    hyperparameters = _parse_train_hyperparameters(task.hyperparameters)
+    completed_epochs = int(hyperparameters.get('completed_epochs') or 0)
     can_resume = _task_can_resume(task)
     published_model_id = _get_published_model_id(task.hyperparameters)
     suggested_publish_version = None
@@ -536,6 +537,13 @@ def _serialize_task(task: TrainTask) -> dict:
         'minio_model_path': task.minio_model_path,
         'checkpoint_dir': task.checkpoint_dir,
         'completed_epochs': completed_epochs,
+        'total_epochs': int(hyperparameters.get('epochs') or 0),
+        'current_epoch': int(hyperparameters.get('current_epoch') or completed_epochs or 0),
+        'current_batch': int(hyperparameters.get('current_batch') or 0),
+        'total_batches': int(hyperparameters.get('total_batches') or 0),
+        'progress_phase': hyperparameters.get('progress_phase'),
+        'progress_updated_at': hyperparameters.get('progress_updated_at'),
+        'progress_message': hyperparameters.get('progress_message'),
         'can_resume': can_resume,
         'published_model_id': published_model_id,
         'published_version': _get_published_version(task.hyperparameters),

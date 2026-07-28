@@ -123,8 +123,12 @@ defineOptions({name: 'TrainTaskList'});
 const props = withDefaults(defineProps<{
   /** 模型训练 Tab 是否处于激活状态 */
   tabActive?: boolean;
+  autoOpen?: boolean;
+  initialDatasetId?: string;
 }>(), {
   tabActive: true,
+  autoOpen: false,
+  initialDatasetId: undefined,
 });
 
 const {createMessage} = useMessage();
@@ -152,6 +156,19 @@ let resultsBlobUrl: string | null = null;
 const [registerAddModel, {openDrawer: openTrainDrawer}] = useDrawer();
 const [registerTrainLogsModal, {openModal: openTrainLogsModal}] = useModal();
 const [registerPublishModal, {openModal: openPublishModal}] = useModal();
+const initialLaunchHandled = ref(false);
+
+watch(
+  () => [props.tabActive, props.autoOpen, props.initialDatasetId] as const,
+  ([tabActive, autoOpen, datasetId]) => {
+    if (!tabActive || !autoOpen || !datasetId || initialLaunchHandled.value) {
+      return;
+    }
+    initialLaunchHandled.value = true;
+    nextTick(() => openTrainDrawer(true, {datasetId}));
+  },
+  {immediate: true},
+);
 
 function getMethod(m: () => void) {
   cardListReload = m;

@@ -1,7 +1,7 @@
 import {BasicColumn, FormProps} from '@/components/Table';
 import {Progress, Tag} from 'ant-design-vue';
 import {formatClusterRuntime, formatSchedulePolicy} from '@/utils/clusterRuntime';
-import {formatTrainTaskTime} from './trainTaskUtils';
+import {formatTrainProgressDetail, formatTrainTaskTime} from './trainTaskUtils';
 
 const getProgressColor = (percent) => {
   const lightness = 45 + (percent / 100) * 30;
@@ -38,25 +38,29 @@ export function getBasicColumns(): BasicColumn[] {
     {
       title: '训练进度',
       dataIndex: 'progress',
-      width: 160,
+      width: 220,
       align: 'center',
       customRender: ({ record }) => {
         const progress = record.progress || 0;
+        const detail = formatTrainProgressDetail(record);
         return (
-          <div class="flex items-center w-full gap-2">
-            <div class="flex-1">
-              <Progress
-                percent={progress}
-                strokeColor={getProgressColor(progress)}
-                strokeWidth={12}
-                strokeLinecap="butt"
-                showInfo={false}
-                class="dynamic-progress"
-              />
+          <div class="w-full">
+            <div class="flex items-center w-full gap-2">
+              <div class="flex-1">
+                <Progress
+                  percent={progress}
+                  strokeColor={getProgressColor(progress)}
+                  strokeWidth={12}
+                  strokeLinecap="butt"
+                  showInfo={false}
+                  class="dynamic-progress"
+                />
+              </div>
+              <div class="text-black font-medium min-w-[40px] text-right">
+                {progress}%
+              </div>
             </div>
-            <div class="text-black font-medium min-w-[40px] text-right">
-              {progress}%
-            </div>
+            {detail && <div class="text-xs text-gray-500 mt-1 text-left">{detail}</div>}
           </div>
         );
       },

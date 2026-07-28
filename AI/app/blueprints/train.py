@@ -78,6 +78,12 @@ def _is_stop_requested(task_id, train_task=None) -> bool:
     return False
 
 
+def _raise_if_train_stop_requested(task_id) -> None:
+    """Abort at a trainer callback boundary so single-GPU jobs stop promptly."""
+    if _is_stop_requested(task_id):
+        raise RuntimeError('训练已被用户停止')
+
+
 def _watch_task_ddp_stop(task_id, model_dir, stop_event, log_fn=None) -> None:
     """轮询停止标志，并终止该训练目录对应的 Ultralytics DDP 进程树。"""
     stop_requested_at = None
@@ -509,6 +515,12 @@ def _get_completed_epochs(hp_text):
 
 def _get_total_epochs_from_hp(hp_text, default=20):
     return int(_parse_train_hyperparameters(hp_text).get('epochs') or default)
+
+
+def _format_model_loading_message(model_arch, resume_mode):
+    if resume_mode:
+        return '准备加载训练断点...'
+    return f'准备加载预训练模型: {model_arch}'
 
 
 def _update_hyperparameters_field(hp_text, **fields):
@@ -1441,11 +1453,15 @@ def train_model(task_id, epochs=20, model_arch='yolov8n.pt',
             update_log_local('已离线准备 Ultralytics 训练字体，DDP 子进程无需联网下载')
 
             # 更新状态：开始加载模型
+            model_loading_message = _format_model_loading_message(
+                model_arch,
+                resume_mode,
+            )
             train_status[task_id].update({
-                'message': '加载预训练模型...',
+                'message': model_loading_message,
                 'progress': 10
             })
-            update_log_local("加载预训练YOLOv8模型...", progress=10)
+            update_log_local(model_loading_message, progress=10)
 
             resume_train = False
             finalized_checkpoint_path = None
@@ -1572,8 +1588,7 @@ def train_model(task_id, epochs=20, model_arch='yolov8n.pt',
                     db.session.refresh(train_task)
                 except Exception:
                     pass
-                if _is_stop_requested(task_id):
-                    raise RuntimeError('训练已被用户停止')
+                _raise_if_train_stop_requested(task_id)
                 total_epochs_count = max(1, int(getattr(trainer, 'epochs', epochs)))
                 now_epoch = int(getattr(trainer, 'epoch', 0)) + 1
                 progress_delta = (
@@ -1610,6 +1625,7 @@ def train_model(task_id, epochs=20, model_arch='yolov8n.pt',
             }
 
             def on_train_batch_end(trainer):
+                _raise_if_train_stop_requested(task_id)
                 now_monotonic = time.monotonic()
                 train_loader = getattr(trainer, 'train_loader', None)
                 try:
