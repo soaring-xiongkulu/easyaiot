@@ -78,7 +78,7 @@ export const NODE_TERM = {
   clusterEnvVideo: '视频分析运行时',
   clusterEnvAi: '模型推理与训练',
   clusterEnvLlm: '大模型推理',
-  clusterEnvTransform: '数据流转',
+  clusterEnvTransform: '数据转发',
   pendingTitle: '节点待纳管',
   offlineTitle: '节点离线',
   maintenanceTitle: '维护模式',
@@ -414,7 +414,7 @@ export const WORKLOAD_BUNDLE_TYPES = [
   },
   {
     key: 'transform_runtime',
-    label: '数据流转 Runtime',
+    label: '数据转发 Runtime',
     module: 'TRANSFORM',
     remoteRoot: '/opt/easyaiot/TRANSFORM',
     pythonLauncher: '/opt/easyaiot/TRANSFORM/scripts/run-runtime.sh',

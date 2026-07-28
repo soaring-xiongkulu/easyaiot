@@ -53,7 +53,7 @@ export function isEdgeNodeEnabled(): boolean {
 
 /** mini / standard 均不部署可视化后端与编辑器，统一隐藏相关顶级菜单 */
 const VISUALIZE_HIDDEN_MENU_NAMES = ['可视化管理', '大屏管理', '可视化大屏'] as const;
-const TRANSFORM_HIDDEN_MENU_NAMES = ['系统对接', '数据流转'] as const;
+const TRANSFORM_HIDDEN_MENU_NAMES = ['系统对接', '数据转发'] as const;
 
 /** mini 形态隐藏的顶级菜单（与后端 system_menu.name 一致） */
 const MINI_HIDDEN_MENU_NAMES = new Set([
