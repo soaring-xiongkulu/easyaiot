@@ -17,6 +17,7 @@ public final class WorkloadBundleDeployUtil {
 
     public static final String REMOTE_VIDEO_ROOT = "/opt/easyaiot/VIDEO";
     public static final String REMOTE_AI_ROOT = "/opt/easyaiot/AI";
+    public static final String REMOTE_TRANSFORM_ROOT = "/opt/easyaiot/TRANSFORM";
     public static final String REMOTE_LIB_ROOT = "/opt/easyaiot/lib";
     public static final String BUNDLE_SUBDIR = ".bundles";
     public static final String PIP_WHEELS_DIR = "pip-wheels";
@@ -37,6 +38,9 @@ public final class WorkloadBundleDeployUtil {
     }
 
     public static String moduleRoot(WorkloadBundleTypeEnum bundle) {
+        if ("TRANSFORM".equals(bundle.getModule())) {
+            return REMOTE_TRANSFORM_ROOT;
+        }
         return "AI".equals(bundle.getModule()) ? REMOTE_AI_ROOT : REMOTE_VIDEO_ROOT;
     }
 
@@ -67,9 +71,16 @@ public final class WorkloadBundleDeployUtil {
                 return "requirements-node-model-train.txt";
             case POST_PROCESS:
                 return "requirements-node-post-process.txt";
+            case TRANSFORM_RUNTIME:
+                // Java runtime：无 pip requirements
+                return "";
             default:
                 throw new IllegalArgumentException("unknown bundle: " + bundle);
         }
+    }
+
+    public static boolean isJavaRuntimeBundle(WorkloadBundleTypeEnum bundle) {
+        return bundle == WorkloadBundleTypeEnum.TRANSFORM_RUNTIME;
     }
 
     public static String localWheelsCacheDir(String sourceRoot, WorkloadBundleTypeEnum bundle) {
@@ -126,6 +137,20 @@ public final class WorkloadBundleDeployUtil {
                         "app",
                         "services/post_process_worker"
                 );
+            case TRANSFORM_RUNTIME:
+                return Arrays.asList(
+                        "Dockerfile",
+                        "scripts/run-runtime.sh",
+                        "scripts/run-runtime-container.sh",
+                        "scripts/run-multi-containers.sh",
+                        "scripts/agent-deploy-containers.sh",
+                        "scripts/build-image.sh",
+                        "scripts/pipeline-distribute-run.sh",
+                        "scripts/wait-heartbeat.py",
+                        "transform-runtime/target/transform-runtime-1.0.0.jar",
+                        "dist/transform-runtime-1.0.0.tar.gz",
+                        "dist/transform-runtime-1.0.0.tar"
+                );
             default:
                 return Collections.emptyList();
         }
@@ -152,12 +177,17 @@ public final class WorkloadBundleDeployUtil {
                 return "services/train_worker/run_worker.py";
             case POST_PROCESS:
                 return "services/post_process_worker/run_worker.py";
+            case TRANSFORM_RUNTIME:
+                return "scripts/run-runtime.sh";
             default:
                 return "";
         }
     }
 
     public static String sourceRootMarker(WorkloadBundleTypeEnum bundle) {
+        if ("TRANSFORM".equals(bundle.getModule())) {
+            return "pom.xml";
+        }
         return "AI".equals(bundle.getModule()) ? "db_models.py" : "models.py";
     }
 
@@ -178,6 +208,12 @@ public final class WorkloadBundleDeployUtil {
                 return launcher + " -c \"import torch, ultralytics, yaml; print('OK')\"";
             case POST_PROCESS:
                 return launcher + " -c \"import flask, sqlalchemy, kafka; print('OK')\"";
+            case TRANSFORM_RUNTIME:
+                return "test -f /opt/easyaiot/TRANSFORM/scripts/run-runtime-container.sh "
+                        + "&& (docker image inspect easyaiot/transform-runtime:1.0.0 >/dev/null 2>&1 "
+                        + "|| test -f /opt/easyaiot/TRANSFORM/dist/transform-runtime-1.0.0.tar.gz "
+                        + "|| test -f /opt/easyaiot/TRANSFORM/dist/transform-runtime-1.0.0.tar) "
+                        + "&& echo OK";
             default:
                 return launcher + " -c \"print('OK')\"";
         }

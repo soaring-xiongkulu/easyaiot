@@ -47,10 +47,11 @@ INDEPENDENT_MODULES=(
 FULL_ONLY_MODULES=(
     "aiot-app|app-service|APP"
     "aiot-visualize-web|visualize-service|VISUALIZE"
+    "aiot-transform|transform-service|TRANSFORM"
 )
 
 PROFILE_DEPENDENT_REMOTES=(aiot-web)
-FULL_ONLY_REMOTES=(aiot-app aiot-visualize-web)
+FULL_ONLY_REMOTES=(aiot-app aiot-visualize-web aiot-transform)
 ALL_DEPLOY_PROFILES=(mini standard full)
 ALL_RUNTIME_ARCHS=(amd64 arm64)
 
@@ -98,8 +99,8 @@ runtime_is_single_arch_build() {
     [ -n "$a" ] && [ "$a" != "all" ]
 }
 
-# build-runtime 可选单模块（DEVICE / AI / VIDEO / WEB / APP / VISUALIZE）
-ALL_RUNTIME_BUILD_MODULES=(DEVICE AI VIDEO WEB APP VISUALIZE)
+# build-runtime 可选单模块（DEVICE / AI / VIDEO / WEB / APP / VISUALIZE / TRANSFORM）
+ALL_RUNTIME_BUILD_MODULES=(DEVICE AI VIDEO WEB APP VISUALIZE TRANSFORM)
 
 # 规范化 build-runtime 目标模块（空/all=全部；无效返回 INVALID）
 runtime_normalize_build_module() {
@@ -113,6 +114,7 @@ runtime_normalize_build_module() {
         web|aiot-web) echo "WEB" ;;
         app|aiot-app) echo "APP" ;;
         visualize|aiot-visualize-web|goview) echo "VISUALIZE" ;;
+        transform|aiot-transform) echo "TRANSFORM" ;;
         *) echo "INVALID" ;;
     esac
 }
@@ -136,7 +138,7 @@ runtime_apply_build_module_arg() {
     local normalized
     normalized=$(runtime_normalize_build_module "$arg")
     if [ "$normalized" = "INVALID" ]; then
-        runtime_img_msg error "无效的运行时模块: ${arg}，可选: all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE"
+        runtime_img_msg error "无效的运行时模块: ${arg}，可选: all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM"
         return 1
     fi
     if [ -n "$normalized" ]; then
@@ -148,10 +150,10 @@ runtime_apply_build_module_arg() {
     return 0
 }
 
-# 单模块 APP / VISUALIZE 与部署形态兼容性校验（均仅 full）
+# 单模块 APP / VISUALIZE / TRANSFORM 与部署形态兼容性校验（均仅 full）
 runtime_validate_build_module_profile() {
     case "${EASYAIOT_RUNTIME_BUILD_MODULE:-}" in
-        APP|VISUALIZE) ;;
+        APP|VISUALIZE|TRANSFORM) ;;
         *) return 0 ;;
     esac
     if [ "${EASYAIOT_RUNTIME_BUILD_ALL_PROFILES:-0}" = "1" ]; then
@@ -510,7 +512,7 @@ runtime_interactive_select_build_module() {
     if [ -n "${EASYAIOT_RUNTIME_BUILD_MODULE:-}" ]; then
         normalized=$(runtime_normalize_build_module "$EASYAIOT_RUNTIME_BUILD_MODULE")
         if [ "$normalized" = "INVALID" ]; then
-            runtime_img_msg error "无效的运行时模块: ${EASYAIOT_RUNTIME_BUILD_MODULE}，可选: all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE"
+            runtime_img_msg error "无效的运行时模块: ${EASYAIOT_RUNTIME_BUILD_MODULE}，可选: all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM"
             exit 1
         fi
         if [ -n "$normalized" ]; then
@@ -527,7 +529,7 @@ runtime_interactive_select_build_module() {
 
     echo ""
     echo "请选择要构建/推送的运行时模块："
-    echo "  1) 全部     — DEVICE + AI + VIDEO + WEB + APP + VISUALIZE（默认）"
+    echo "  1) 全部     — DEVICE + AI + VIDEO + WEB + APP + VISUALIZE + TRANSFORM（默认）"
     idx=2
     declare -A _MODULE_CHOICES=()
     for mod in "${ALL_RUNTIME_BUILD_MODULES[@]}"; do
@@ -538,6 +540,7 @@ runtime_interactive_select_build_module() {
             WEB)    echo "  ${idx}) WEB       — Web 前端（按上方所选部署形态）" ;;
             APP)    echo "  ${idx}) APP       — App 移动端 H5（仅 full 形态）" ;;
             VISUALIZE) echo "  ${idx}) VISUALIZE — 可视化编辑器（仅 full 形态）" ;;
+            TRANSFORM) echo "  ${idx}) TRANSFORM — 系统对接 Runtime（仅 full 形态）" ;;
         esac
         _MODULE_CHOICES[$idx]="$mod"
         idx=$((idx + 1))
@@ -1295,13 +1298,13 @@ runtime_images_invoke() {
 # 显示运行时镜像管理用法摘要
 runtime_images_usage() {
     cat <<EOF
-运行时镜像管理（业务模块 DEVICE/AI/VIDEO/WEB/APP/VISUALIZE，不含中间件；APP/VISUALIZE 仅 full）
+运行时镜像管理（业务模块 DEVICE/AI/VIDEO/WEB/APP/VISUALIZE/TRANSFORM，不含中间件；APP/VISUALIZE/TRANSFORM 仅 full）
 
 pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
   mini     — 仅拉 aiot-system（1/12）
   standard — 跳过 aiot-device、aiot-tdengine、aiot-visualize（9/12）
   full     — 拉全部 DEVICE（12/12，含 aiot-visualize）
-  build-runtime 默认构建/推送全部模块；可指定单模块 DEVICE|AI|VIDEO|WEB|APP|VISUALIZE
+  build-runtime 默认构建/推送全部模块；可指定单模块 DEVICE|AI|VIDEO|WEB|APP|VISUALIZE|TRANSFORM
   全量 build-runtime 仍构建/推送全量 DEVICE，供各形态共用远程仓库
 
 本地安装（含本地构建）:
@@ -1328,7 +1331,7 @@ pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
   EASYAIOT_RUNTIME_PUSH=1      构建后推送（仅 build-runtime）
   EASYAIOT_RUNTIME_BUILD_ALL_PROFILES=1  构建全部形态（仅 build-runtime）
   EASYAIOT_RUNTIME_BUILD_ARCH=all|amd64|arm64  目标架构（默认 all=全部；单架构时跳过 manifest）
-  EASYAIOT_RUNTIME_BUILD_MODULE=all|DEVICE|AI|VIDEO|WEB|APP|VISUALIZE  目标模块（默认 all=全部）
+  EASYAIOT_RUNTIME_BUILD_MODULE=all|DEVICE|AI|VIDEO|WEB|APP|VISUALIZE|TRANSFORM  目标模块（默认 all=全部）
   EASYAIOT_RUNTIME_FORCE_REBUILD=1       强制重建全部镜像（忽略本地缓存）
   EASYAIOT_RUNTIME_FORCE_REBUILD=0       复用本地镜像（已存在则跳过构建，直接推送）
   EASYAIOT_SKIP_REGISTRY_AUTH_CHECK=1     跳过 build-runtime 前的远程仓库登录/推送权限检查

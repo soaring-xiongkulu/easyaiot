@@ -7,6 +7,7 @@ import {
   contentModeOptions,
   getMenuTriggerOptions,
   menuTypeList,
+  mixSidebarDensityOptions,
   mixSidebarTriggerOptions,
   routerTransitionOptions,
   topMenuAlignOptions,
@@ -66,6 +67,7 @@ export default defineComponent({
       getCloseMixSidebarOnChange,
       getMixSideTrigger,
       getMixSideFixed,
+      getMixSidebarDensity,
     } = useMenuSetting()
 
     const { getShowHeader, getFixed: getHeaderFixed, getHeaderBgColor, getShowSearch } = useHeaderSetting()
@@ -194,6 +196,13 @@ export default defineComponent({
             event={HandlerEnum.MENU_TRIGGER_MIX_SIDEBAR}
             def={unref(getMixSideTrigger)}
             options={mixSidebarTriggerOptions}
+            disabled={!unref(getIsMixSidebar)}
+          />
+          <SelectItem
+            title={t('layout.setting.mixSidebarDensity')}
+            event={HandlerEnum.MENU_MIX_SIDEBAR_DENSITY}
+            def={unref(getMixSidebarDensity)}
+            options={mixSidebarDensityOptions}
             disabled={!unref(getIsMixSidebar)}
           />
           <SelectItem

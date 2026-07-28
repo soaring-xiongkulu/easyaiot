@@ -34,6 +34,7 @@ export interface MenuSetting {
   collapsedShowTitle: boolean
   mixSideTrigger: MixSidebarTriggerEnum
   mixSideFixed: boolean
+  mixSidebarDensity: 'compact' | 'standard' | 'comfortable'
 }
 
 export interface MultiTabsSetting {

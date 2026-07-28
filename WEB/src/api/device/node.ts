@@ -665,7 +665,8 @@ export type WorkloadBundleTypeKey =
   | 'ai_service'
   | 'llm_service'
   | 'auto_label'
-  | 'model_train';
+  | 'model_train'
+  | 'transform_runtime';
 
 export interface WorkloadBundleBatchReq {
   nodeIds: number[];

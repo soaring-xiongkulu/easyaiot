@@ -62,11 +62,14 @@ const props = withDefaults(
     initialNodeId?: number;
     initialNodeIds?: number[];
     showScopeBar?: boolean;
+    /** 默认隐藏本机控制面（platform）节点：分发目标不含本机默认实例 */
+    excludePlatform?: boolean;
   }>(),
   {
     roleFilter: 'computeWorkload',
     placeholder: '选择目标节点（需已配置 SSH 凭据）',
     showScopeBar: true,
+    excludePlatform: true,
   },
 );
 
@@ -108,9 +111,15 @@ function resolveNodeHost(value: number | string) {
 }
 
 function isEligibleNode(node: ComputeNodeVO) {
-  if (isPlatformNode(node)) return false;
+  if (props.excludePlatform && isPlatformNode(node)) return false;
   const roles = allowedRoles.value;
   if (roles && !roles.has(node.nodeRole || '')) return false;
+  return true;
+}
+
+function isListedNode(node: ComputeNodeVO) {
+  // 分发场景：本机 platform 默认不出现在列表，避免误选
+  if (props.excludePlatform && isPlatformNode(node)) return false;
   return true;
 }
 
@@ -119,7 +128,7 @@ function hasSshCredential(node: ComputeNodeVO) {
 }
 
 function rebuildNodeOptions() {
-  nodeOptions.value = scopedNodeList.value.map((node) => ({
+  nodeOptions.value = scopedNodeList.value.filter(isListedNode).map((node) => ({
     label: `${node.name} (${node.host}) — ${node.nodeRole || '?'} / ${node.status || 'unknown'}${hasSshCredential(node) ? '' : ' / 未配置 SSH'}`,
     value: node.id!,
     disabled: !isEligibleNode(node),
@@ -163,6 +172,14 @@ defineExpose({ loadNodes, selectedNodes, nodeList });
 
 watch(
   () => props.roleFilter,
+  () => {
+    rebuildNodeOptions();
+    syncSelectedNodeIds();
+  },
+);
+
+watch(
+  () => props.excludePlatform,
   () => {
     rebuildNodeOptions();
     syncSelectedNodeIds();

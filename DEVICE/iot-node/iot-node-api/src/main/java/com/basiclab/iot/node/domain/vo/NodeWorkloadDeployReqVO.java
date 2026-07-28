@@ -24,9 +24,14 @@ public class NodeWorkloadDeployReqVO {
     @NotBlank(message = "工作负载 ID 不能为空")
     private String workloadId;
 
-    @Schema(description = "启动命令", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "启动命令不能为空")
+    @Schema(description = "启动命令（runtime=process 时必填；runtime=docker 可空）")
     private List<String> command;
+
+    @Schema(description = "运行时: process | docker，默认 process")
+    private String runtime;
+
+    @Schema(description = "Docker 镜像（runtime=docker 时使用）")
+    private String image;
 
     @Schema(description = "工作目录")
     private String workDir;

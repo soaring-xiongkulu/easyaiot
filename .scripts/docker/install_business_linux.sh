@@ -3,7 +3,7 @@
 # ============================================
 # EasyAIoT 业务系统统一管理脚本
 # ============================================
-# 管理模块: DEVICE、AI、VIDEO、WEB、APP、VISUALIZE（不含中间件；APP/VISUALIZE 仅 full 全量形态）
+# 管理模块: DEVICE、AI、VIDEO、WEB、APP、VISUALIZE、TRANSFORM（不含中间件；APP/VISUALIZE/TRANSFORM 仅 full 全量形态）
 # 各模块实际逻辑委托给对应目录下的 install_linux.sh
 #
 # 用法:
@@ -99,7 +99,7 @@ ensure_industrial_demo_after_business_stack() {
 }
 
 # 业务模块（按依赖顺序：网关/微服务 -> AI/视频 -> 前端）
-ALL_MODULES=(DEVICE AI VIDEO WEB APP VISUALIZE)
+ALL_MODULES=(DEVICE AI VIDEO WEB APP VISUALIZE TRANSFORM)
 
 declare -A MODULE_NAMES=(
     [DEVICE]="Device 服务"
@@ -108,6 +108,7 @@ declare -A MODULE_NAMES=(
     [WEB]="Web 前端"
     [APP]="App 移动端 H5"
     [VISUALIZE]="可视化编辑器"
+    [TRANSFORM]="系统对接"
 )
 
 declare -A MODULE_PORTS=(
@@ -117,6 +118,7 @@ declare -A MODULE_PORTS=(
     [WEB]="8888"
     [APP]="9010"
     [VISUALIZE]="8002"
+    [TRANSFORM]="8080"
 )
 
 declare -A MODULE_HEALTH_ENDPOINTS=(
@@ -126,6 +128,7 @@ declare -A MODULE_HEALTH_ENDPOINTS=(
     [WEB]="/health"
     [APP]="/health"
     [VISUALIZE]="/health"
+    [TRANSFORM]="/actuator/health"
 )
 
 LOG_DIR="${SCRIPT_DIR}/logs"
@@ -457,11 +460,19 @@ execute_module() {
     [ -n "$mapped" ] || return 0
 
     if [ ! -d "$module_dir" ]; then
+        if [ "$module" = "TRANSFORM" ]; then
+            print_info "未检测到 TRANSFORM 目录，跳过系统对接部署"
+            return 0
+        fi
         print_warning "目录不存在，跳过: $module"
         return 1
     fi
 
     if [ ! -f "$install_script" ]; then
+        if [ "$module" = "TRANSFORM" ]; then
+            print_info "未检测到 TRANSFORM/install_linux.sh，跳过系统对接部署"
+            return 0
+        fi
         print_warning "未找到 $install_script，跳过 $module"
         return 1
     fi
@@ -622,7 +633,7 @@ usage() {
     cat <<EOF
 EasyAIoT 业务系统统一管理脚本
 
-管理模块: DEVICE、AI、VIDEO、WEB、APP、VISUALIZE（不含 Nacos/PostgreSQL 等中间件；APP/VISUALIZE 仅 full）
+管理模块: DEVICE、AI、VIDEO、WEB、APP、VISUALIZE、TRANSFORM（不含 Nacos/PostgreSQL 等中间件；APP/VISUALIZE/TRANSFORM 仅 full）
 
 用法:
   $0 <命令> [选项] [模块...]
@@ -651,7 +662,7 @@ EasyAIoT 业务系统统一管理脚本
   --continue-on-error    某模块失败后继续执行其余模块
 
 模块:
-  未指定时默认全部（按部署形态过滤），顺序为 DEVICE -> AI -> VIDEO -> WEB -> APP -> VISUALIZE
+  未指定时默认全部（按部署形态过滤），顺序为 DEVICE -> AI -> VIDEO -> WEB -> APP -> VISUALIZE -> TRANSFORM
   stop / clean / clean-all 时自动逆序执行
 
 示例:
@@ -670,6 +681,7 @@ EasyAIoT 业务系统统一管理脚本
   运行时镜像仓库配置: .scripts/docker/runtime_registry.conf
   环境变量 EASYAIOT_DEPLOY_PROFILE: mini(1) | standard(2) | full(3，默认)
   build-runtime 可选 EASYAIOT_RUNTIME_BUILD_ARCH: all(默认) | amd64 | arm64（单架构时跳过 manifest）
+  build-runtime 可选 EASYAIOT_RUNTIME_BUILD_MODULE: all(默认) | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM
   日志: $LOG_DIR/
 EOF
 }

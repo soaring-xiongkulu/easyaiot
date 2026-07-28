@@ -99,6 +99,9 @@ export function handler(event: HandlerEnum, value: any): DeepPartial<ProjectConf
     case HandlerEnum.MENU_FIXED_MIX_SIDEBAR:
       return { menuSetting: { mixSideFixed: value } }
 
+    case HandlerEnum.MENU_MIX_SIDEBAR_DENSITY:
+      return { menuSetting: { mixSidebarDensity: value } }
+
     // ============transition==================
     case HandlerEnum.OPEN_PAGE_LOADING:
       appStore.setPageLoading(false)

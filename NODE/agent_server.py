@@ -56,11 +56,17 @@ def deploy_workload():
         if not spec.get('workloadType') or not spec.get('workloadId'):
             return _err('workloadType 和 workloadId 必填')
         env = spec.get('env') or {}
+        runtime = (spec.get('runtime') or env.get('RUNTIME') or 'process').lower()
+        # TRANSFORM 镜像默认从 48096 起找空闲口，同节点可多容器
         if not env.get('PORT'):
-            port = find_available_port(int(env.get('START_PORT', 8000)))
+            start = int(env.get('START_PORT') or (48096 if runtime == 'docker' or spec.get('workloadType') == 'transform_runtime' else 8000))
+            port = find_available_port(start)
             if port:
                 env['PORT'] = str(port)
                 spec['env'] = env
+        # docker 模式允许 command 为空（由 Agent 组装 docker run）
+        if runtime != 'docker' and not (spec.get('command') or []):
+            return _err('command 不能为空')
         data = manager.deploy(spec)
         return _ok(data)
     except Exception as e:

@@ -124,6 +124,8 @@ const setting: ProjectConfig = {
     mixSideTrigger: MixSidebarTriggerEnum.CLICK,
     // Fixed expanded menu
     mixSideFixed: false,
+    // Mixed sidebar density
+    mixSidebarDensity: 'comfortable',
   },
 
   // Multi-label

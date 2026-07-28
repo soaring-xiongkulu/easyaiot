@@ -43,6 +43,8 @@ export function useMenuSetting() {
 
   const getMixSideFixed = computed(() => appStore.getMenuSetting.mixSideFixed)
 
+  const getMixSidebarDensity = computed(() => appStore.getMenuSetting.mixSidebarDensity || 'standard')
+
   const getTopMenuAlign = computed(() => appStore.getMenuSetting.topMenuAlign)
 
   const getCloseMixSidebarOnChange = computed(() => appStore.getMenuSetting.closeMixSidebarOnChange)
@@ -148,6 +150,7 @@ export function useMenuSetting() {
     getCloseMixSidebarOnChange,
     getMixSideTrigger,
     getMixSideFixed,
+    getMixSidebarDensity,
     mixSideHasChildren,
   }
 }

@@ -20,6 +20,7 @@ DATABASES=(
     "iot-video20"
     "iot-message20"
     "iot-node20"
+    "iot-transform20"
     "iot-visualize20"
     "ruoyi-vue-pro20"
 )

@@ -75,7 +75,8 @@ async function loadNodes() {
   nodesLoading.value = true;
   try {
     const res = await getNodePage({ pageNo: 1, pageSize: 500 });
-    nodeList.value = res?.data?.list || [];
+    // 分发目标不含本机控制面：列表直接隐藏 platform 节点
+    nodeList.value = (res?.data?.list || []).filter((node) => !isPlatformNode(node));
     nodeOptions.value = nodeList.value.map((node) => ({
       label: `${node.name} (${node.host}) — ${node.status || 'unknown'}`,
       value: node.id!,

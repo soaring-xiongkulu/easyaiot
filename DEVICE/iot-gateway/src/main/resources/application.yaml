@@ -72,6 +72,14 @@ spring:
             - Path=/admin-api/visualize/**
           filters:
             - RewritePath=/admin-api/visualize/v3/api-docs, /v3/api-docs
+        # TRANSFORM 数据流转（启即入 Group 的无状态 runtime）
+        - id: transform-admin-api
+          uri: lb://transform-server
+          predicates:
+            - Path=/admin-api/transform/**
+          filters:
+            - StripPrefix=1
+            - RewritePath=/admin-api/transform/v3/api-docs, /v3/api-docs
         # iot-sink 服务（算法后处理 Kafka 入队/消费/落库）
         - id: sink-admin-api
           uri: lb://sink-server

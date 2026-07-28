@@ -1,0 +1,2 @@
+requests>=2.31.0
+kafka-python>=2.0.2

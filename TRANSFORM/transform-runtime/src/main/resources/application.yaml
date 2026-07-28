@@ -1,0 +1,66 @@
+spring:
+  autoconfigure:
+    exclude: com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure
+  kafka:
+    consumer:
+      enable-auto-commit: false
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+    listener:
+      ack-mode: manual
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: ASSIGN_UUID
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  type-aliases-package: com.basiclab.iot.transform.runtime.dal.dataobject
+
+# 启用渠道 = 自动加入该渠道约定 Group，部署更多实例即可横向扩展
+transform:
+  # full | consume | deliver | edge | backup
+  role: ${TRANSFORM_ROLE:full}
+  topics:
+    deliver: iot_transform_deliver
+    dlq: iot_transform_dlq
+    archive: iot_transform_archive
+    command: iot_transform_command
+    telemetry: iot_transform_telemetry
+  backup:
+    dir: ${TRANSFORM_BACKUP_DIR:./data/transform-backup}
+  backup-dir: ${TRANSFORM_BACKUP_DIR:./data/transform-backup}
+  http:
+    timeout-ms: ${TRANSFORM_HTTP_TIMEOUT_MS:10000}
+  instance-id: ${TRANSFORM_INSTANCE_ID:}
+  node-id: ${TRANSFORM_NODE_ID:}
+  channels:
+    kafka: true
+    http: true
+    mqtt: false
+    jdbc: false
+    party: true
+  sense:
+    interval-ms: 15000
+  outbox:
+    batch-size: 100
+    max-attempts: 10
+    poll-interval-ms: 1000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.basiclab.iot.transform: INFO

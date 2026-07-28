@@ -1,0 +1,1 @@
+package com.basiclab.iot.transform.channel.party; import com.fasterxml.jackson.databind.ObjectMapper; import java.net.http.HttpClient; public class MesRestPartyConnector extends RestPartyConnector { public MesRestPartyConnector(HttpClient c,ObjectMapper m){super(c,m);} public String type(){return "mes.rest";} }

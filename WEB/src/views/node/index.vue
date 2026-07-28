@@ -18,6 +18,7 @@
         <TabPane key="7" :tab="NODE_PAGE.clusterEnvVideo" />
         <TabPane key="8" :tab="NODE_PAGE.clusterEnvAi" />
         <TabPane key="9" :tab="NODE_PAGE.clusterEnvLlm" />
+        <TabPane v-if="showTransformTab" key="11" :tab="NODE_PAGE.clusterEnvTransform" />
       </Tabs>
 
       <div class="node-tab-content">
@@ -66,6 +67,11 @@
           v-show="state.activeKey === '9'"
           :initial-node-ids="selectedNodeIds"
         />
+        <TransformWorkloadInit
+          v-if="tabMounted['11']"
+          v-show="state.activeKey === '11'"
+          :initial-node-ids="selectedNodeIds"
+        />
       </div>
     </div>
   </div>
@@ -84,21 +90,33 @@ import MediaEnvBatch from './components/MediaEnvBatch/index.vue';
 import MqttEnvBatch from './components/MqttEnvBatch/index.vue';
 import NodeManage from './components/NodeManage/index.vue';
 import StorageEnvBatch from './components/StorageEnvBatch/index.vue';
+import TransformWorkloadInit from './components/TransformWorkloadInit/index.vue';
 import VideoWorkloadInit from './components/VideoWorkloadInit/index.vue';
+import { isTransformEnabled } from '@/utils/deployProfile';
 import { NODE_PAGE, resolveLegacyWorkloadTab } from './utils/constants';
 import { useNodePageTabRequest } from './utils/useNodePageTab';
 
 defineOptions({ name: 'ComputeNodeIndex' });
 
-const NODE_TAB_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'] as const;
+const showTransformTab = isTransformEnabled();
+const NODE_TAB_KEYS = (showTransformTab
+  ? ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11']
+  : ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']) as const;
 
 const route = useRoute();
 const tabRequest = useNodePageTabRequest();
 
 function resolveRouteTab(): string {
   const raw = String(route.query.tab || '1');
+  if (!showTransformTab && raw === '11') {
+    return '1';
+  }
   if (raw === '3' && route.query.bundle) {
-    return resolveLegacyWorkloadTab(String(route.query.bundle));
+    const mapped = resolveLegacyWorkloadTab(String(route.query.bundle));
+    if (!showTransformTab && mapped === '11') {
+      return '1';
+    }
+    return mapped;
   }
   return raw;
 }

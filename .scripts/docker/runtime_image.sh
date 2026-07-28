@@ -32,7 +32,7 @@
 #                    - pull:  不指定则交互选择（默认 full）；指定则直接拉取该形态
 #   --arch <arch>    指定构建架构：all | amd64 | arm64（默认 all=全部架构）
 #                    单架构模式仅构建/推送该架构镜像，跳过多架构 manifest 更新
-#   --module <mod>   指定构建模块：all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE（默认 all=全部）
+#   --module <mod>   指定构建模块：all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM（默认 all=全部）
 #                    单模块模式仅构建/推送该模块镜像，跳过全量 install_linux.sh build
 #   --native-source  使用原始源（非国内镜像源），默认使用腾讯云镜像源加速
 #
@@ -63,9 +63,10 @@
 #     docker.cnb.cool/holmesian/easyaiot/aiot-web:amd64          → web-service:latest          (full)
 #     docker.cnb.cool/holmesian/easyaiot/aiot-web-mini:amd64     → web-service:latest-mini     (mini)
 #     docker.cnb.cool/holmesian/easyaiot/aiot-web-standard:amd64 → web-service:latest-standard (standard)
-#   仅 full 形态（APP 移动端 H5 / VISUALIZE 可视化编辑器）:
+#   仅 full 形态（APP 移动端 H5 / VISUALIZE 可视化编辑器 / TRANSFORM 系统对接）:
 #     docker.cnb.cool/holmesian/easyaiot/aiot-app:amd64              → app-service:latest
 #     docker.cnb.cool/holmesian/easyaiot/aiot-visualize-web:amd64    → visualize-service:latest
+#     docker.cnb.cool/holmesian/easyaiot/aiot-transform:amd64        → transform-service:latest
 #
 # 示例:
 #   bash .scripts/docker/runtime_image.sh build --push
@@ -216,7 +217,7 @@ fi
 if [ -n "${EASYAIOT_RUNTIME_BUILD_MODULE:-}" ]; then
     _bm_norm=$(runtime_normalize_build_module "$EASYAIOT_RUNTIME_BUILD_MODULE")
     if [ "$_bm_norm" = "INVALID" ]; then
-        print_error "无效的目标模块: ${EASYAIOT_RUNTIME_BUILD_MODULE}，可选: all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE"
+        print_error "无效的目标模块: ${EASYAIOT_RUNTIME_BUILD_MODULE}，可选: all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM"
         exit 1
     fi
     if [ -n "$_bm_norm" ]; then

@@ -53,6 +53,7 @@ export function isEdgeNodeEnabled(): boolean {
 
 /** mini / standard 均不部署可视化后端与编辑器，统一隐藏相关顶级菜单 */
 const VISUALIZE_HIDDEN_MENU_NAMES = ['可视化管理', '大屏管理', '可视化大屏'] as const;
+const TRANSFORM_HIDDEN_MENU_NAMES = ['系统对接', '数据流转'] as const;
 
 /** mini 形态隐藏的顶级菜单（与后端 system_menu.name 一致） */
 const MINI_HIDDEN_MENU_NAMES = new Set([
@@ -65,6 +66,7 @@ const MINI_HIDDEN_MENU_NAMES = new Set([
   '通知管理',
   '基础设施',
   ...VISUALIZE_HIDDEN_MENU_NAMES,
+  ...TRANSFORM_HIDDEN_MENU_NAMES,
 ]);
 
 /** standard 形态隐藏的顶级菜单 */
@@ -74,10 +76,16 @@ const STANDARD_HIDDEN_MENU_NAMES = new Set([
   'OTA升级',
   '规则引擎',
   ...VISUALIZE_HIDDEN_MENU_NAMES,
+  ...TRANSFORM_HIDDEN_MENU_NAMES,
 ]);
 
 /** full 形态才启用可视化（iot-visualize / VISUALIZE） */
 export function isVisualizeEnabled(): boolean {
+  return getDeployProfile() === 'full';
+}
+
+/** full 形态才启用系统对接（TRANSFORM） */
+export function isTransformEnabled(): boolean {
   return getDeployProfile() === 'full';
 }
 

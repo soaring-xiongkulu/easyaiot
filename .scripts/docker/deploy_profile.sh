@@ -107,10 +107,10 @@ is_full_deploy_profile() {
     [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ]
 }
 
-# 按部署形态判断业务模块是否启用（APP / VISUALIZE 仅 full 全量形态）
+# 按部署形态判断业务模块是否启用（APP / VISUALIZE / TRANSFORM 仅 full 全量形态）
 module_enabled_for_deploy_profile() {
     case "$1" in
-        APP|VISUALIZE) [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ] ;;
+        APP|VISUALIZE|TRANSFORM) [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ] ;;
         *) return 0 ;;
     esac
 }
@@ -234,15 +234,15 @@ print_deploy_profile_summary() {
     mini)
       echo "  业务: iot-system（48099）, VIDEO, AI, WEB（告警由 VIDEO 直连落库，无需 iot-sink/Kafka）"
       echo "  中间件: PostgreSQL, Redis, SRS"
-      echo "  不启动: Kafka, iot-sink, Nacos, MinIO, iot-gateway, iot-infra, Milvus, ZLMediaKit, NodeRED, FUXA, TDengine, EMQX、iot-visualize/VISUALIZE 及多数 DEVICE 模块"
+      echo "  不启动: Kafka, iot-sink, Nacos, MinIO, iot-gateway, iot-infra, Milvus, ZLMediaKit, NodeRED, FUXA, TDengine, EMQX、iot-visualize/VISUALIZE、TRANSFORM 及多数 DEVICE 模块"
       echo "  API 路由: nginx 将 /admin-api、/dev-api 直连宿主机 iot-system:48099（登录鉴权由 system 自身处理）"
       ;;
     standard)
-      echo "  不启动: TDengine, NodeRED, FUXA, iot-device, iot-tdengine, iot-visualize/VISUALIZE（可视化管理菜单亦不启用）"
+      echo "  不启动: TDengine, NodeRED, FUXA, iot-device, iot-tdengine, iot-visualize/VISUALIZE、TRANSFORM（相关菜单不启用）"
       echo "  其余模块与中间件全部启动（含 EMQX）"
       ;;
     full)
-      echo "  启动全部业务模块与中间件（含 APP 移动端 H5、iot-visualize/VISUALIZE、FUXA，推荐宿主机内存 ≥ 20 GB）"
+      echo "  启动全部业务模块与中间件（含 APP 移动端 H5、iot-visualize/VISUALIZE、TRANSFORM、FUXA，推荐宿主机内存 ≥ 20 GB）"
       ;;
   esac
 }
@@ -356,6 +356,7 @@ sync_deploy_profile_to_modules() {
     local root="${1:-$(_deploy_profile_repo_root)}"
     apply_python_service_deploy_env "$root"
     apply_device_deploy_env "$root"
+    apply_transform_deploy_env "$root"
     sync_web_deploy_profile_env "$root"
 }
 
@@ -371,6 +372,25 @@ apply_device_deploy_env() {
         _set_env_docker_kv "$env_file" IOT_SYSTEM_SPRING_PROFILES_ACTIVE "local"
     fi
     _set_env_docker_kv "$env_file" IOT_SINK_SPRING_PROFILES_ACTIVE "$(iot_sink_spring_profiles_active)"
+}
+
+# TRANSFORM：按形态写入 .env.docker（供运行脚本统一读取）
+apply_transform_deploy_env() {
+    local root="${1:-$(_deploy_profile_repo_root)}"
+    local env_file="${root}/TRANSFORM/.env.docker"
+    [ -d "${root}/TRANSFORM" ] || return 0
+    mkdir -p "$(dirname "$env_file")"
+    touch "$env_file"
+
+    _set_env_docker_kv "$env_file" EASYAIOT_DEPLOY_PROFILE "${EASYAIOT_DEPLOY_PROFILE:-full}"
+    _set_env_docker_kv "$env_file" SPRING_PROFILES_ACTIVE "local"
+    _set_env_docker_kv "$env_file" TRANSFORM_ROLE "full"
+    _set_env_docker_kv "$env_file" TRANSFORM_BACKUP_DIR "/opt/easyaiot/TRANSFORM/data/transform-backup"
+    _set_env_docker_kv "$env_file" KAFKA_BOOTSTRAP "Kafka:9092"
+    _set_env_docker_kv "$env_file" POSTGRES_URL "jdbc:postgresql://PostgresSQL:5432/iot-transform20"
+    _set_env_docker_kv "$env_file" POSTGRES_USERNAME "postgres"
+    _set_env_docker_kv "$env_file" POSTGRES_PASSWORD "iot45722414822"
+    _set_env_docker_kv "$env_file" SERVER_PORT "48096"
 }
 
 # 若 WEB 镜像构建时的形态与当前不一致，提示需 rebuild（前端 VITE_GLOB_DEPLOY_PROFILE 编译进镜像）

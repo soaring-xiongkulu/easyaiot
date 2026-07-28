@@ -24,6 +24,7 @@ export enum HandlerEnum {
   MENU_CLOSE_MIX_SIDEBAR_ON_CHANGE,
   MENU_TRIGGER_MIX_SIDEBAR,
   MENU_FIXED_MIX_SIDEBAR,
+  MENU_MIX_SIDEBAR_DENSITY,
 
   // header
   HEADER_SHOW,
@@ -148,5 +149,20 @@ export const mixSidebarTriggerOptions = [
   {
     value: MixSidebarTriggerEnum.CLICK,
     label: t('layout.setting.triggerClick'),
+  },
+]
+
+export const mixSidebarDensityOptions = [
+  {
+    value: 'compact',
+    label: t('layout.setting.mixSidebarDensityCompact'),
+  },
+  {
+    value: 'standard',
+    label: t('layout.setting.mixSidebarDensityStandard'),
+  },
+  {
+    value: 'comfortable',
+    label: t('layout.setting.mixSidebarDensityComfortable'),
   },
 ]

@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    dynamic:
+      primary: master
+      strict: true
+      datasource:
+        master:
+          type: com.alibaba.druid.pool.DruidDataSource
+          driver-class-name: org.postgresql.Driver
+          url: ${POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/iot-transform20}
+          username: ${POSTGRES_USERNAME:postgres}
+          password: ${POSTGRES_PASSWORD:iot45722414822}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:127.0.0.1:9092}

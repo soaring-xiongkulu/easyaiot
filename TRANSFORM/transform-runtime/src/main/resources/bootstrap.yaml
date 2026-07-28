@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: transform-server
+  profiles:
+    active: local
+server:
+  port: ${TRANSFORM_PORT:48096}
+logging:
+  file:
+    name: ${user.home}/logs/${spring.application.name}.log

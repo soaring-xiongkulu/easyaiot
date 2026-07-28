@@ -15,7 +15,7 @@
 #   status     - 查看所有服务状态
 #   logs       - 查看服务日志
 #   build           - 重新构建所有镜像（各模块本地构建）
-#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 DEVICE|AI|VIDEO|WEB|APP|VISUALIZE）
+#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 DEVICE|AI|VIDEO|WEB|APP|VISUALIZE|TRANSFORM）
 #   pull            - 从远程仓库拉取预构建运行时镜像（等同 runtime_image.sh pull）
 #   clean      - 清理所有容器和镜像
 #   clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，再删运行时镜像/构建缓存；保留跨架构基础镜像；不停中间件）
@@ -166,6 +166,7 @@ MODULES=(
     "WEB"              # Web前端服务
     "APP"              # App移动端H5（仅 full 全量形态）
     "VISUALIZE"        # 可视化编辑器（仅 full 全量形态）
+    "TRANSFORM"        # 系统对接（仅 full 全量形态）
 )
 
 # 模块名称映射
@@ -177,6 +178,7 @@ MODULE_NAMES["VIDEO"]="Video服务"
 MODULE_NAMES["WEB"]="Web前端服务"
 MODULE_NAMES["APP"]="App移动端H5"
 MODULE_NAMES["VISUALIZE"]="可视化编辑器"
+MODULE_NAMES["TRANSFORM"]="系统对接"
 
 # 模块端口映射
 declare -A MODULE_PORTS
@@ -187,6 +189,7 @@ MODULE_PORTS["VIDEO"]="6000"
 MODULE_PORTS["WEB"]="8888"
 MODULE_PORTS["APP"]="9010"
 MODULE_PORTS["VISUALIZE"]="8002"
+MODULE_PORTS["TRANSFORM"]="8080"
 
 # 模块健康检查端点
 declare -A MODULE_HEALTH_ENDPOINTS
@@ -197,6 +200,7 @@ MODULE_HEALTH_ENDPOINTS["VIDEO"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["WEB"]="/health"
 MODULE_HEALTH_ENDPOINTS["APP"]="/health"
 MODULE_HEALTH_ENDPOINTS["VISUALIZE"]="/health"
+MODULE_HEALTH_ENDPOINTS["TRANSFORM"]="/actuator/health"
 
 # 统计当前部署形态下参与 install 汇总的模块数（已启用且存在安装脚本）
 _count_installable_modules() {
@@ -719,12 +723,20 @@ execute_module_command() {
     install_file=$(module_install_script "$module")
 
     if [ ! -d "$PROJECT_ROOT/$module" ]; then
+        if [ "$module" = "TRANSFORM" ]; then
+            print_info "未检测到 TRANSFORM 目录，跳过系统对接部署"
+            return 0
+        fi
         print_warning "模块 $module 不存在，跳过"
         return 1
     fi
     cd "$PROJECT_ROOT/$module"
 
     if [ ! -f "$install_file" ]; then
+        if [ "$module" = "TRANSFORM" ]; then
+            print_info "未检测到 TRANSFORM/install_linux.sh，跳过系统对接部署"
+            return 0
+        fi
         print_warning "模块 $module 没有 $install_file 文件，跳过"
         return 1
     fi
@@ -734,7 +746,7 @@ execute_module_command() {
 
     local defer_agent_sync=0
     case "$module" in
-        DEVICE|AI|VIDEO|WEB|APP|VISUALIZE) defer_agent_sync=1 ;;
+        DEVICE|AI|VIDEO|WEB|APP|VISUALIZE|TRANSFORM) defer_agent_sync=1 ;;
     esac
     if [ "$defer_agent_sync" -eq 1 ]; then
         export EASYAIOT_DEFER_PLATFORM_AGENT_SYNC=1
@@ -1677,7 +1689,7 @@ show_help() {
     echo "  logs            - 查看所有服务日志"
     echo "  logs [模块]     - 查看指定模块日志"
     echo "  build           - 重新构建所有镜像（各模块本地构建）"
-    echo "  build-runtime [模块] - 构建/推送运行时镜像（推送成功后删本地镜像；可选 DEVICE|AI|VIDEO|WEB|APP|VISUALIZE）"
+    echo "  build-runtime [模块] - 构建/推送运行时镜像（推送成功后删本地镜像；可选 DEVICE|AI|VIDEO|WEB|APP|VISUALIZE|TRANSFORM）"
     echo "  pull            - 从远程仓库拉取预构建运行时镜像（交互式，默认 full）"
     echo "  clean           - 清理所有容器和镜像"
     echo "  clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，默认删运行时镜像+构建缓存；保留跨架构基础镜像）"
@@ -1706,7 +1718,7 @@ show_help() {
     echo "  EASYAIOT_APPLY_INDUSTRIAL_SEED=0   - 启动演示时不写入/刷新工业协议演示设备种子"
     echo "  EASYAIOT_RUNTIME_REGISTRY    - 运行时镜像仓库（默认见 runtime_registry.conf）"
     echo "  EASYAIOT_RUNTIME_BUILD_ARCH  - build-runtime 目标架构: all(默认) | amd64 | arm64"
-    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE"
+    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM"
     echo ""
 }
 

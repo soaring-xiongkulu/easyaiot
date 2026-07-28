@@ -48,6 +48,7 @@ const {
   setMenuSetting,
   getIsMixSidebar,
   getCollapsed,
+  getMixSidebarDensity,
 } = useMenuSetting()
 
 const { title } = useGlobSetting()
@@ -98,6 +99,19 @@ const getMenuEvents = computed(() => {
 })
 
 const getShowDragBar = computed(() => unref(getCanDrag))
+
+const getDensityClass = computed(() => {
+  return `${prefixCls}--density-${unref(getMixSidebarDensity)}`
+})
+
+const getModuleIconSize = computed(() => {
+  const density = unref(getMixSidebarDensity)
+  if (density === 'compact')
+    return unref(getCollapsed) ? 14 : 16
+  if (density === 'comfortable')
+    return unref(getCollapsed) ? 16 : 18
+  return unref(getCollapsed) ? 15 : 17
+})
 
 onMounted(async () => {
   menuModules.value = await getShallowMenus()
@@ -233,6 +247,7 @@ onClickOutside(wrap, () => {
   <div
     ref="wrap" :style="getWrapStyle" :class="[
       prefixCls,
+      getDensityClass,
       getMenuTheme,
       {
         open: openMenu,
@@ -262,7 +277,7 @@ onClickOutside(wrap, () => {
           >
           <Icon
             v-else
-            :class="`${prefixCls}-module__icon`" :size="getCollapsed ? 16 : 20"
+            :class="`${prefixCls}-module__icon`" :size="getModuleIconSize"
             :icon="item.icon || (item.meta && item.meta.icon)"
           />
           <p :class="`${prefixCls}-module__name`">
@@ -300,7 +315,43 @@ onClickOutside(wrap, () => {
 @width: 80px;
 
 .@{prefix-cls} {
+  --mix-module-item-padding-min: 6px;
+  --mix-module-item-padding-vh: 0.8vh;
+  --mix-module-item-padding-max: 9px;
+  --mix-module-icon-gap-min: 3px;
+  --mix-module-icon-gap-vh: 0.45vh;
+  --mix-module-icon-gap-max: 5px;
+  --mix-module-icon-font-min: 17px;
+  --mix-module-icon-font-vh: 1.6vh;
+  --mix-module-icon-font-max: 19px;
+  --mix-module-name-font-size: 12px;
   position: fixed;
+  &--density-compact {
+    --mix-module-item-padding-min: 5px;
+    --mix-module-item-padding-vh: 0.7vh;
+    --mix-module-item-padding-max: 8px;
+    --mix-module-icon-gap-min: 2px;
+    --mix-module-icon-gap-vh: 0.35vh;
+    --mix-module-icon-gap-max: 4px;
+    --mix-module-icon-font-min: 16px;
+    --mix-module-icon-font-vh: 1.5vh;
+    --mix-module-icon-font-max: 18px;
+    --mix-module-name-font-size: 11px;
+  }
+
+  &--density-comfortable {
+    --mix-module-item-padding-min: 7px;
+    --mix-module-item-padding-vh: 0.9vh;
+    --mix-module-item-padding-max: 10px;
+    --mix-module-icon-gap-min: 4px;
+    --mix-module-icon-gap-vh: 0.55vh;
+    --mix-module-icon-gap-max: 6px;
+    --mix-module-icon-font-min: 18px;
+    --mix-module-icon-font-vh: 1.75vh;
+    --mix-module-icon-font-max: 20px;
+    --mix-module-name-font-size: 12px;
+  }
+
   top: 0;
   left: 0;
   z-index: @layout-mix-sider-fixed-z-index;
@@ -408,7 +459,7 @@ onClickOutside(wrap, () => {
 
     &__item {
       position: relative;
-      padding: 12px 0;
+      padding: clamp(var(--mix-module-item-padding-min), var(--mix-module-item-padding-vh), var(--mix-module-item-padding-max)) 0;
       color: rgb(@primary-color / 65%);
       text-align: center;
       cursor: pointer;
@@ -437,14 +488,14 @@ onClickOutside(wrap, () => {
     }
 
     &__icon {
-      margin-bottom: 8px;
-      font-size: 24px;
+      margin-bottom: clamp(var(--mix-module-icon-gap-min), var(--mix-module-icon-gap-vh), var(--mix-module-icon-gap-max));
+      font-size: clamp(var(--mix-module-icon-font-min), var(--mix-module-icon-font-vh), var(--mix-module-icon-font-max));
       transition: all 0.2s;
     }
 
     &__name {
       margin-bottom: 0;
-      font-size: 12px;
+      font-size: var(--mix-module-name-font-size);
       transition: all 0.2s;
     }
   }

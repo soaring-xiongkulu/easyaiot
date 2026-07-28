@@ -153,3 +153,9 @@ VIDEO/ffmpeg-master-*.tar.xz
 
 # install 脚本按架构自动生成的 Docker 构建配置（DOCKER_PLATFORM / BASE_IMAGE）
 **/.env.arch
+
+# TRANSFORM 本地运行与构建产物（不随仓库分发）
+TRANSFORM/.env.docker
+TRANSFORM/.idea/
+TRANSFORM/data/
+TRANSFORM/dist/

@@ -220,7 +220,7 @@ public class NodeSchedulerServiceImpl implements NodeSchedulerService {
         return "ai_service".equals(workloadType) || "algorithm_task".equals(workloadType)
                 || "stream_forward".equals(workloadType) || "auto_label".equals(workloadType)
                 || "model_train".equals(workloadType) || "post_process".equals(workloadType)
-                || "llm_service".equals(workloadType);
+                || "llm_service".equals(workloadType) || "transform_runtime".equals(workloadType);
     }
 
     private List<String> resolveRequiredCapabilities(NodeSchedulerAllocateReqVO reqVO) {

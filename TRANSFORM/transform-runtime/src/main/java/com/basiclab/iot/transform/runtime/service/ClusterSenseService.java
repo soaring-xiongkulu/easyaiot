@@ -1,0 +1,1 @@
+package com.basiclab.iot.transform.runtime.service; import org.springframework.stereotype.Service; import java.util.*; @Service public class ClusterSenseService {public Map<String,Object> snapshot(){return Map.of("mode","stateless","groups",List.of("transform.http.deliver","transform.party.deliver"));}}

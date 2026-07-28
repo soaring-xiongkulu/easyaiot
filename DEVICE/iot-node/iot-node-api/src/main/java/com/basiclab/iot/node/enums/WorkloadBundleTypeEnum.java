@@ -18,7 +18,8 @@ public enum WorkloadBundleTypeEnum {
     LLM_SERVICE("llm_service", "大模型推理", "AI"),
     AUTO_LABEL("auto_label", "自动标注 Worker", "AI"),
     MODEL_TRAIN("model_train", "模型训练", "AI"),
-    POST_PROCESS("post_process", "AI 后处理", "VIDEO");
+    POST_PROCESS("post_process", "AI 后处理", "VIDEO"),
+    TRANSFORM_RUNTIME("transform_runtime", "数据流转 Runtime", "TRANSFORM");
 
     private final String type;
     private final String label;

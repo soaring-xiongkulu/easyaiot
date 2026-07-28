@@ -52,10 +52,17 @@ public class NodeCommandServiceImpl implements NodeCommandService {
         ComputeNodeDO node = validateOnlineNode(reqVO.getNodeId());
         nodeVideoWorkloadSyncService.syncBeforeDeploy(node, reqVO.getWorkloadType());
         nodeAiWorkloadSyncService.syncBeforeDeploy(node, reqVO.getWorkloadType());
+        String runtime = reqVO.getRuntime() == null || reqVO.getRuntime().isBlank()
+                ? "process" : reqVO.getRuntime().trim().toLowerCase();
+        if ("process".equals(runtime) && (reqVO.getCommand() == null || reqVO.getCommand().isEmpty())) {
+            throw exception(AGENT_COMMAND_FAILED, "runtime=process 时启动命令不能为空");
+        }
         Map<String, Object> body = new HashMap<>();
         body.put("workloadType", reqVO.getWorkloadType());
         body.put("workloadId", reqVO.getWorkloadId());
         body.put("command", reqVO.getCommand());
+        body.put("runtime", runtime);
+        body.put("image", reqVO.getImage());
         body.put("workDir", reqVO.getWorkDir());
         body.put("logDir", reqVO.getLogDir());
         body.put("gpuIds", reqVO.getGpuIds());

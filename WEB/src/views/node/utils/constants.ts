@@ -78,6 +78,7 @@ export const NODE_TERM = {
   clusterEnvVideo: '视频分析运行时',
   clusterEnvAi: '模型推理与训练',
   clusterEnvLlm: '大模型推理',
+  clusterEnvTransform: '数据流转',
   pendingTitle: '节点待纳管',
   offlineTitle: '节点离线',
   maintenanceTitle: '维护模式',
@@ -307,6 +308,7 @@ export const NODE_PAGE = {
   clusterEnvVideo: NODE_TERM.clusterEnvVideo,
   clusterEnvAi: NODE_TERM.clusterEnvAi,
   clusterEnvLlm: NODE_TERM.clusterEnvLlm,
+  clusterEnvTransform: NODE_TERM.clusterEnvTransform,
 } as const;
 
 /** 服务部署 Tab 键（与 index.vue TabPane key 一致） */
@@ -411,6 +413,15 @@ export const WORKLOAD_BUNDLE_TYPES = [
     desc: '批量分发 AI 后处理 Kafka Worker/Sink 运行时与脚本（集群订阅处理与落库）',
   },
   {
+    key: 'transform_runtime',
+    label: '数据流转 Runtime',
+    module: 'TRANSFORM',
+    remoteRoot: '/opt/easyaiot/TRANSFORM',
+    pythonLauncher: '/opt/easyaiot/TRANSFORM/scripts/run-runtime.sh',
+    scriptMarker: 'transform-runtime/target/transform-runtime-1.0.0.jar',
+    desc: '无镜像则打包 gzip → SSH 分发 load → Agent 多容器 → iot_transform_heartbeat 验收；节点维部署',
+  },
+  {
     key: 'ai_service',
     label: '模型服务',
     module: 'AI',
@@ -450,12 +461,16 @@ export const WORKLOAD_BUNDLE_TYPES = [
 
 export const VIDEO_WORKLOAD_BUNDLE_TYPES = WORKLOAD_BUNDLE_TYPES.filter((b) => b.module === 'VIDEO');
 export const AI_WORKLOAD_BUNDLE_TYPES = WORKLOAD_BUNDLE_TYPES.filter((b) => b.module === 'AI');
+export const TRANSFORM_WORKLOAD_BUNDLE_TYPES = WORKLOAD_BUNDLE_TYPES.filter(
+  (b) => b.module === 'TRANSFORM',
+);
 
 export type WorkloadBundleType = (typeof WORKLOAD_BUNDLE_TYPES)[number]['key'];
 
 /** 旧版「运行时分发」Tab 跳转：按 bundle 类型映射到新 Tab key */
-export function resolveLegacyWorkloadTab(bundleKey?: string): '7' | '8' | '9' {
+export function resolveLegacyWorkloadTab(bundleKey?: string): '7' | '8' | '9' | '11' {
   if (bundleKey === 'llm_service') return '9';
+  if (bundleKey === 'transform_runtime') return '11';
   if (bundleKey && AI_WORKLOAD_BUNDLE_TYPES.some((b) => b.key === bundleKey)) return '8';
   return '7';
 }

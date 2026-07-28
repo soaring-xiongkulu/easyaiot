@@ -36,7 +36,7 @@
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平台由 <strong>WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE</strong> 九个核心模块组成，以 Java 构建稳定管控底座、Python 承载 AI 与网络能力、C++ 驱动高性能计算任务，三语言混编各取所长。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>大疆机场与无人机空中视角接入</strong>、实时与抓拍算法任务、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、可编排业务后处理、联邦算力集群调度，以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置。
+平台由 <strong>WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE、TRANSFORM</strong> 十个核心模块组成，以 Java 构建稳定管控底座、Python 承载 AI 与网络能力、C++ 驱动高性能计算任务，三语言混编各取所长。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>大疆机场与无人机空中视角接入</strong>、实时与抓拍算法任务、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、可编排业务后处理、联邦算力集群调度，以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>TRANSFORM 多向数据流转引擎</strong>（基于 iot-sink Kafka，无状态自感知按约定 Group 横向扩展消费/投递，赋能 MES/ERP/CRM/WMS 等 N 方业务系统）。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">

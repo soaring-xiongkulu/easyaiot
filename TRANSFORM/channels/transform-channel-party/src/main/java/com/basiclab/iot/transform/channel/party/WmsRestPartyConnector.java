@@ -1,0 +1,1 @@
+package com.basiclab.iot.transform.channel.party; import com.fasterxml.jackson.databind.ObjectMapper; import java.net.http.HttpClient; public class WmsRestPartyConnector extends RestPartyConnector { public WmsRestPartyConnector(HttpClient c,ObjectMapper m){super(c,m);} public String type(){return "wms.rest";} }

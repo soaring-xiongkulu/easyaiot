@@ -1,0 +1,1 @@
+package com.basiclab.iot.transform.channel.party; import com.fasterxml.jackson.databind.ObjectMapper; import java.net.http.HttpClient; public class ErpRestPartyConnector extends RestPartyConnector { public ErpRestPartyConnector(HttpClient c,ObjectMapper m){super(c,m);} public String type(){return "erp.rest";} }

@@ -15,8 +15,11 @@ public class NodeWorkloadBundleBatchReqVO {
     @NotEmpty(message = "节点列表不能为空")
     private List<Long> nodeIds;
 
-    @Schema(description = "bundle 类型: stream_forward | algorithm_realtime | algorithm_snap | algorithm_patrol | post_process | ai_service",
+    @Schema(description = "bundle 类型: stream_forward | ... | transform_runtime",
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "bundleType 不能为空")
     private String bundleType;
+
+    @Schema(description = "TRANSFORM 全量分发后拉起的容器副本数（默认读配置，通常 1）")
+    private Integer replicas;
 }

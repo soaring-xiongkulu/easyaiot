@@ -92,3 +92,7 @@ APP/.pnpm-store/** -diff
 **/.pytest_cache/** -diff
 
 .image/ binary
+
+# TRANSFORM 运行时数据与离线构建产物：不参与 diff
+TRANSFORM/data/** -diff
+TRANSFORM/dist/** -diff

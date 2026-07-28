@@ -3876,6 +3876,10 @@ init_databases() {
         unset 'DB_SQL_MAP[iot-visualize20]'
         print_info "当前部署形态 (${EASYAIOT_DEPLOY_PROFILE}) 跳过数据库 iot-visualize20"
     fi
+    if ! module_enabled_for_deploy_profile TRANSFORM && [ -n "${DB_SQL_MAP[iot-transform20]+x}" ]; then
+        unset 'DB_SQL_MAP[iot-transform20]'
+        print_info "当前部署形态 (${EASYAIOT_DEPLOY_PROFILE}) 跳过数据库 iot-transform20"
+    fi
     
     local success_count=0
     local total_count=${#DB_SQL_MAP[@]}

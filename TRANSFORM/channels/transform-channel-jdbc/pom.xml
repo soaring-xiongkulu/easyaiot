@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.basiclab.iot</groupId>
+        <artifactId>transform</artifactId>
+        <version>${revision}</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <artifactId>transform-channel-jdbc</artifactId>
+    <name>transform-channel-jdbc</name>
+    <description>TRANSFORM 渠道模块：jdbc</description>
+    <dependencies>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>transform-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>transform-capability-consume</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>transform-capability-deliver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+    </dependencies>
+</project>
