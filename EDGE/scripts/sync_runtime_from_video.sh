@@ -31,6 +31,15 @@ for svc in realtime_algorithm_service snapshot_algorithm_service patrol_algorith
   fi
 done
 
+# 将 VIDEO 的中文检测标签绘制工具同步到 EDGE 公共运行库。
+# EDGE 实时/抓拍服务会从 lib.utf8_detection_label 导入该工具，用 Pillow + CJK
+# 字体绘制中文类别名；若重新生成 EDGE/runtime 时漏复制此文件，服务会因缺少
+# 模块而无法启动。这里保留独立副本，确保 EDGE 部署后不依赖 VIDEO 源码目录。
+mkdir -p "${DEST}/lib"
+cp -f \
+  "${ROOT}/VIDEO/app/utils/utf8_detection_label.py" \
+  "${DEST}/lib/utf8_detection_label.py"
+
 if [[ -f "${OVERLAY_APPLY}" ]]; then
   python3 "${OVERLAY_APPLY}"
 else
