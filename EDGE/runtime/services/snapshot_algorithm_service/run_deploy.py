@@ -59,6 +59,13 @@ from app.utils.cron_utils import (
     cron_slot_for_time,
 )
 from app.utils.onnx_inference import ONNXInference
+try:
+    from app.utils.utf8_detection_label import draw_detection_label
+except ModuleNotFoundError as exc:
+    if exc.name != "app.utils.utf8_detection_label":
+        raise
+    # EDGE/runtime 不依赖 VIDEO 源码，使用自身公共运行库。
+    from lib.utf8_detection_label import draw_detection_label
 from app.utils.algo_model_detect import run_model_detection
 from app.utils.face_capture_queue_service import (
     enqueue_face_capture,
@@ -2317,17 +2324,16 @@ def draw_detections(frame, tracked_detections, frame_number=None, tracking_enabl
             # 未启用追踪：只显示类别名
             text = class_name
 
-        # 计算文字大小
-        (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale,
-                                                              font_thickness)
-
-        # 在框的上方显示文字（不画背景卡片）
-        text_x = x1
-        text_y = max(text_height + 5, y1 - 5)
-
-        # 只绘制文字，不绘制背景卡片
-        cv2.putText(annotated_frame, text, (text_x, text_y),
-                    cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, font_thickness)
+        # 在框的上方显示文字；中文类别使用 Pillow + CJK 字体绘制
+        draw_detection_label(
+            annotated_frame,
+            text,
+            x1,
+            y1,
+            color,
+            font_scale=font_scale,
+            font_thickness=font_thickness,
+        )
 
     return annotated_frame
 
