@@ -211,16 +211,35 @@ check_desktop_prerequisites() {
     fi
   fi
 
-  # 3) Docker CLI
+  # 3) Docker CLI（Windows：常见安装路径未进 PATH 时自动补齐当前会话）
   local docker_cli_ok=0
+  if ! check_command docker && [ "$EASYAIOT_DESKTOP_OS" = "windows" ]; then
+    local _ddir
+    for _ddir in \
+      "/c/Program Files/Docker/Docker/resources/bin" \
+      "/c/Program Files (x86)/Docker/Docker/resources/bin" \
+      "$HOME/AppData/Local/Docker/resources/bin"
+    do
+      if [ -x "${_ddir}/docker.exe" ] || [ -x "${_ddir}/docker" ]; then
+        export PATH="${_ddir}:${PATH}"
+        print_info "已将 Docker CLI 加入当前会话 PATH: ${_ddir}"
+        break
+      fi
+    done
+  fi
   if check_command docker; then
     print_success "Docker CLI: $(docker --version 2>/dev/null | head -n1 || echo 已安装)"
     docker_cli_ok=1
   else
     missing+=("Docker Desktop（未找到 docker 命令）")
-    howto+=("下载安装 Docker Desktop: https://www.docker.com/products/docker-desktop")
     if [ "$EASYAIOT_DESKTOP_OS" = "windows" ]; then
-      howto+=("Windows 建议启用 WSL2 后端（安装向导中勾选）")
+      howto+=("推荐 PowerShell 一键引导:  .\\.scripts\\docker\\install_windows.ps1 bootstrap")
+      howto+=("或管理员执行:  wsl --install")
+      howto+=("然后:  winget install -e --id Docker.DockerDesktop")
+      howto+=("手动下载: https://www.docker.com/products/docker-desktop （建议勾选 WSL2 后端）")
+      howto+=("装完后重启终端（必要时重启电脑）再执行本脚本")
+    else
+      howto+=("下载安装 Docker Desktop: https://www.docker.com/products/docker-desktop")
     fi
   fi
 
@@ -272,11 +291,19 @@ check_desktop_prerequisites() {
       if [ "$docker_daemon_ok" -eq 0 ]; then
         if [ "$desktop_launchable" -eq 0 ]; then
           missing+=("Docker Desktop 未安装或引擎未运行（docker info 失败）")
+          if [ "$EASYAIOT_DESKTOP_OS" = "windows" ]; then
+            howto+=("推荐: .\\.scripts\\docker\\install_windows.ps1 bootstrap")
+          fi
           howto+=("下载安装并启动 Docker Desktop: https://www.docker.com/products/docker-desktop")
         else
           missing+=("Docker Desktop 引擎未运行（docker info 失败）")
           howto+=("请手动打开 Docker Desktop，等待状态栏显示 Running 后重试")
           howto+=("安装地址: https://www.docker.com/products/docker-desktop")
+        fi
+        if [ "$EASYAIOT_DESKTOP_OS" = "windows" ] && ! { [ -n "${WSL_DISTRO_NAME:-}" ] || grep -qi microsoft /proc/version 2>/dev/null; }; then
+          if ! command -v wsl.exe >/dev/null 2>&1 || ! wsl.exe --status >/dev/null 2>&1; then
+            howto+=("本机 WSL2 未就绪，Docker Desktop 后端可能无法启动，请先: wsl --install（完成后重启）")
+          fi
         fi
       fi
     fi
