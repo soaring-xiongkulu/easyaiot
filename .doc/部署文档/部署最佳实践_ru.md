@@ -27,7 +27,7 @@
 
 ## Два режима использования (подробно)
 
-Единые входные скрипты (`install_linux.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`) поддерживают **два эквивалентных способа использования**:
+Единые входные скрипты (`install_linux.sh` / `install_linux_centos.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`) поддерживают **два эквивалентных способа использования**:
 
 | Режим | Вход | Аудитория | Характеристики |
 |-------|------|-----------|----------------|
@@ -236,7 +236,7 @@ sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Ver
 
 | ПО | Требование |
 |----|------------|
-| ОС | Ubuntu 24.04+ (рекомендуется 26.04); также поддерживаются Kylin, ARM64 |
+| ОС | Ubuntu 24.04+ (рекомендуется 26.04); также поддерживаются CentOS/RHEL, Kylin, ARM64 |
 | Docker | Установлен, демон доступен |
 | Docker Compose | **v2.35.0+** (плагин `docker compose`) |
 | NVIDIA Driver / Container Toolkit | Только для сценариев с GPU |
@@ -426,13 +426,17 @@ docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi
 ## Особые среды
 
 ```bash
+# CentOS / RHEL / Rocky / Alma (автообновление Docker CE, порты firewalld)
+sudo .scripts/docker/install_linux_centos.sh install
+# Только Docker: sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
+
 # Kylin OS
 sudo .scripts/docker/install_linux_kylin.sh install
 
 # ARM64
 sudo .scripts/docker/install_linux_arm.sh install
 
-# macOS / Windows (только образы)
+# macOS / Windows
 bash .scripts/docker/install_mac.sh install
 bash .scripts/docker/install_windows.sh install
 ```

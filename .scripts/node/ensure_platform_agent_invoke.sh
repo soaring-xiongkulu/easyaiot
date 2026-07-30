@@ -21,12 +21,59 @@ _platform_agent_iot_node_enabled() {
     return 0
 }
 
+_resolve_platform_agent_script() {
+    local project_root="$1"
+    local preferred="${EASYAIOT_PLATFORM_AGENT_SCRIPT:-}"
+    local candidate=""
+
+    # 显式指定（可为相对仓库根或绝对路径）
+    if [[ -n "$preferred" ]]; then
+        if [[ "$preferred" = /* ]]; then
+            candidate="$preferred"
+        else
+            candidate="${project_root}/${preferred#./}"
+        fi
+        if [[ -f "$candidate" ]]; then
+            echo "$candidate"
+            return 0
+        fi
+    fi
+
+    # CentOS 7：优先兼容脚本（bash 4.2 / 旧 Python）
+    local os_id="" os_version="" os_major=""
+    if [[ -f /etc/os-release ]]; then
+        # shellcheck disable=SC1091
+        . /etc/os-release
+        os_id="${ID:-}"
+        os_version="${VERSION_ID:-}"
+    elif [[ -f /etc/redhat-release ]] && grep -qi centos /etc/redhat-release 2>/dev/null; then
+        os_id="centos"
+        os_version="$(grep -oE '[0-9]+(\.[0-9]+)?' /etc/redhat-release 2>/dev/null | head -1 || true)"
+    fi
+    os_major="${os_version%%.*}"
+    if [[ "$os_id" == "centos" && "$os_major" == "7" ]]; then
+        candidate="${project_root}/.scripts/node/ensure_platform_agent_centos7.sh"
+        if [[ -f "$candidate" ]]; then
+            echo "$candidate"
+            return 0
+        fi
+    fi
+
+    candidate="${project_root}/.scripts/node/ensure_platform_agent.sh"
+    if [[ -f "$candidate" ]]; then
+        echo "$candidate"
+        return 0
+    fi
+    return 1
+}
+
 ensure_platform_agent_if_needed() {
     local project_root="${EASYAIOT_PROJECT_ROOT:-${EASYAIOT_ROOT:-}}"
     if [[ -z "$project_root" ]]; then
         project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
     fi
-    local script="${project_root}/.scripts/node/ensure_platform_agent.sh"
+    local script
+    script="$(_resolve_platform_agent_script "$project_root")" || return 0
     if [[ ! -f "$script" ]]; then
         return 0
     fi

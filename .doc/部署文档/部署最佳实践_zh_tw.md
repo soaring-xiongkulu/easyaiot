@@ -27,7 +27,7 @@
 
 ## 兩種使用模式（詳細）
 
-統一入口腳本（`install_linux.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`）支援 **兩種等價用法**：
+統一入口腳本（`install_linux.sh` / `install_linux_centos.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`）支援 **兩種等價用法**：
 
 | 模式 | 入口 | 受眾 | 特點 |
 |------|------|------|------|
@@ -234,7 +234,7 @@ sudo .scripts/docker/install_linux.sh         # 1 部署 → 1 安裝 → 7 驗�
 
 | 軟體 | 要求 |
 |------|------|
-| 作業系統 | Ubuntu 24.04+（建議 26.04）；亦支援銀河麒麟、ARM64 |
+| 作業系統 | Ubuntu 24.04+（建議 26.04）；亦支援 CentOS/RHEL、銀河麒麟、ARM64 |
 | Docker | 已安裝且 daemon 可存取 |
 | Docker Compose | **v2.35.0+**（`docker compose` 插件） |
 | NVIDIA Driver / Container Toolkit | 僅 GPU 場景 |
@@ -424,18 +424,24 @@ docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi
 ## 特殊環境
 
 ```bash
+# CentOS / RHEL / Rocky / Alma（自動升級 Docker CE、放行 firewalld）
+sudo .scripts/docker/install_linux_centos.sh install
+# 僅準備 Docker：sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
+
 # 銀河麒麟
 sudo .scripts/docker/install_linux_kylin.sh install
 
 # ARM64
 sudo .scripts/docker/install_linux_arm.sh install
 
-# macOS（僅映像部署）
+# macOS
 bash .scripts/docker/install_mac.sh install
 
 # Windows
 bash .scripts/docker/install_windows.sh install
 ```
+
+CentOS 說明：入口 `install_linux_centos.sh` 會先準備 Docker CE（替換 CentOS 7 自帶 docker 1.13）、鏡像源與 firewalld，再轉交 `install_linux.sh`。詳見 [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明)。
 
 詳見 [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署)、[平台macOS部署文档_zh.md](./平台macOS部署文档_zh.md)、[平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md)。
 

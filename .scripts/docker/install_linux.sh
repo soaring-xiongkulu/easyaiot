@@ -859,7 +859,7 @@ install_linux() {
     print_section "开始安装所有服务"
 
     select_deploy_profile_for_install
-    export EASYAIOT_INSTALL_SCRIPT=".scripts/docker/install_linux.sh"
+    export EASYAIOT_INSTALL_SCRIPT="${EASYAIOT_INSTALL_SCRIPT:-.scripts/docker/install_linux.sh}"
     if ! runtime_images_acquire; then
         print_error "预构建镜像获取失败，已中止安装"
         return 1
@@ -1533,7 +1533,7 @@ update_all() {
     check_docker "$@"
     check_docker_compose
     configure_docker_mirror
-    export EASYAIOT_INSTALL_SCRIPT=".scripts/docker/install_linux.sh"
+    export EASYAIOT_INSTALL_SCRIPT="${EASYAIOT_INSTALL_SCRIPT:-.scripts/docker/install_linux.sh}"
     runtime_images_acquire_for_update
     prepare_runtime_environment
     create_network

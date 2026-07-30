@@ -36,10 +36,11 @@ EasyAIoT 采用 **Docker 容器化 + 统一安装脚本** 部署，平台由基�
 | 系统 | 脚本 |
 |------|------|
 | Linux x86 | `.scripts/docker/install_linux.sh` |
+| CentOS / RHEL 系 | `.scripts/docker/install_linux_centos.sh` |
 | Linux ARM | `.scripts/docker/install_linux_arm.sh` |
 | 银河麒麟 | `.scripts/docker/install_linux_kylin.sh` |
-| macOS（仅镜像部署） | `.scripts/docker/install_mac.sh` |
-| Windows（仅镜像部署） | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
+| macOS | `.scripts/docker/install_mac.sh` |
+| Windows | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
 ---
 
@@ -117,8 +118,8 @@ sudo .scripts/docker/install_linux.sh install
 
 ### 环境前提
 
-- 操作系统：**Ubuntu 24.04+**（建议 26.04）
-- Docker + Docker Compose **v2.35+**
+- 操作系统：**Ubuntu 24.04+**（建议 26.04）；亦支持 **CentOS/RHEL 系**、ARM、银河麒麟
+- Docker + Docker Compose **v2.35+**（CentOS 可用 `install_linux_centos.sh` 自动安装/升级 Docker CE）
 - 磁盘可用空间 **≥ 300 GB**
 
 ```bash
@@ -131,7 +132,12 @@ docker --version && docker compose version && docker ps
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
+# Ubuntu / 通用 Linux x86
 sudo .scripts/docker/install_linux.sh
+
+# CentOS / RHEL / Rocky / Alma（推荐；自动升级 Docker CE、配置镜像源与 firewalld）
+# sudo .scripts/docker/install_linux_centos.sh
+
 # 1 部署 → 1 首次安装 → 7 健康验证
 ```
 
@@ -145,10 +151,37 @@ cd easyaiot
 
 # 可选：拉取预构建镜像，缩短 install 耗时
 sudo .scripts/docker/install_linux.sh pull
+# CentOS：sudo .scripts/docker/install_linux_centos.sh pull
 
 sudo .scripts/docker/install_linux.sh install
+# CentOS：sudo .scripts/docker/install_linux_centos.sh install
+
 .scripts/docker/install_linux.sh verify
+# CentOS：.scripts/docker/install_linux_centos.sh verify
 ```
+
+### CentOS / RHEL 系说明
+
+适用：CentOS 7/8/Stream、Rocky Linux、AlmaLinux、RHEL 等。入口脚本会先完成环境准备，再转交 `install_linux.sh`：
+
+| 能力 | 说明 |
+|------|------|
+| Docker CE | 自动卸载 CentOS 7 自带 docker 1.13，并安装 docker-ce 20+ |
+| 镜像源 | 写入 `/etc/docker/daemon.json`（DaoCloud） |
+| firewalld | 自动放行 WEB/Gateway/媒体等常用端口（可用 `--no-firewall` 跳过） |
+| SELinux | Enforcing 时给出挂载目录提示 |
+| Agent | CentOS 7 自动使用 `ensure_platform_agent_centos7.sh` |
+
+```bash
+# 仅准备 Docker CE（不部署业务）
+sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
+
+# 跳过防火墙放行 / 跳过 Docker 升级（高级）
+sudo .scripts/docker/install_linux_centos.sh --no-firewall install
+sudo .scripts/docker/install_linux_centos.sh --no-upgrade-docker install
+```
+
+单独中间件（CentOS 7.9）：`.scripts/docker/start_postgresql_centos7.sh`、`start_minio_centos7.sh`、`start_nodered_centos7.sh`、`start_fuxa_centos7.sh`。
 
 ### 安装耗时
 
@@ -275,7 +308,7 @@ export EASYAIOT_DEPLOY_PROFILE=full && sudo .../install_linux.sh install  # 非�
 
 | 命令 | 说明 | Linux | macOS / Windows |
 |------|------|:----:|:---------------:|
-| `install` | 首次安装并启动 | ✓ | ✓（仅镜像） |
+| `install` | 首次安装并启动 | ✓ | ✓ |
 | `start` / `stop` / `restart` | 启停控制 | ✓ | ✓ |
 | `status` | 查看运行状态 | ✓ | ✓ |
 | `logs [模块]` | 查看日志，如 `logs VIDEO` | ✓ | ✓ |
@@ -388,7 +421,7 @@ cd .scripts/docker && ./analyze_merge_logs.sh --non-interactive --modules all --
 
 | 项目 | 要求 |
 |------|------|
-| 操作系统 | Ubuntu 24.04+（建议 26.04）；macOS / Windows 仅镜像部署；亦支持 ARM、银河麒麟 |
+| 操作系统 | Ubuntu 24.04+（建议 26.04）；亦支持 macOS、Windows、CentOS/RHEL、ARM、银河麒麟 |
 | CPU | 最低 4 核，推荐 8 核+ |
 | 内存 | 取决于部署规格（full ≥ 20 GB，推荐 32 GB） |
 | 磁盘 | 最低 300 GB 可用，推荐 500 GB+ SSD |

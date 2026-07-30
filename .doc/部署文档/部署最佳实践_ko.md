@@ -27,7 +27,7 @@
 
 ## 두 가지 사용 모드 (상세)
 
-통합 진입 스크립트(`install_linux.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`)는 **두 가지 동등한 사용 패턴**을 지원합니다:
+통합 진입 스크립트(`install_linux.sh` / `install_linux_centos.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`)는 **두 가지 동등한 사용 패턴**을 지원합니다:
 
 | 모드 | 진입 | 대상 | 특징 |
 |------|------|------|------|
@@ -236,7 +236,7 @@ sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Ver
 
 | 소프트웨어 | 요구 사항 |
 |------------|-----------|
-| OS | Ubuntu 24.04+ (26.04 권장); Kylin, ARM64도 지원 |
+| OS | Ubuntu 24.04+ (26.04 권장); CentOS/RHEL, Kylin, ARM64도 지원 |
 | Docker | 설치 및 데몬 접근 가능 |
 | Docker Compose | **v2.35.0+** (`docker compose` 플러그인) |
 | NVIDIA Driver / Container Toolkit | GPU 시나리오만 |
@@ -426,13 +426,17 @@ docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi
 ## 특수 환경
 
 ```bash
+# CentOS / RHEL / Rocky / Alma (Docker CE 자동 업그레이드, firewalld 포트 개방)
+sudo .scripts/docker/install_linux_centos.sh install
+# Docker만 준비: sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
+
 # Kylin OS
 sudo .scripts/docker/install_linux_kylin.sh install
 
 # ARM64
 sudo .scripts/docker/install_linux_arm.sh install
 
-# macOS / Windows (이미지 전용)
+# macOS / Windows
 bash .scripts/docker/install_mac.sh install
 bash .scripts/docker/install_windows.sh install
 ```

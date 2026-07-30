@@ -27,7 +27,7 @@
 
 ## Deux modes d'utilisation (détaillé)
 
-Les scripts d'entrée unifiés (`install_linux.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`) prennent en charge **deux modes d'utilisation équivalents** :
+Les scripts d'entrée unifiés (`install_linux.sh` / `install_linux_centos.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`) prennent en charge **deux modes d'utilisation équivalents** :
 
 | Mode | Entrée | Public cible | Caractéristiques |
 |------|--------|--------------|------------------|
@@ -236,7 +236,7 @@ Analyse mémoire :
 
 | Logiciel | Exigence |
 |----------|----------|
-| OS | Ubuntu 24.04+ (26.04 recommandé) ; Kylin, ARM64 également pris en charge |
+| OS | Ubuntu 24.04+ (26.04 recommandé) ; CentOS/RHEL, Kylin, ARM64 également pris en charge |
 | Docker | Installé et démon accessible |
 | Docker Compose | **v2.35.0+** (plugin `docker compose`) |
 | NVIDIA Driver / Container Toolkit | Scénarios GPU uniquement |
@@ -426,13 +426,17 @@ Multi-GPU : `export CUDA_VISIBLE_DEVICES=0,1`
 ## Environnements spéciaux
 
 ```bash
+# CentOS / RHEL / Rocky / Alma (mise à niveau Docker CE, ports firewalld)
+sudo .scripts/docker/install_linux_centos.sh install
+# Docker seulement : sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
+
 # Kylin OS
 sudo .scripts/docker/install_linux_kylin.sh install
 
 # ARM64
 sudo .scripts/docker/install_linux_arm.sh install
 
-# macOS / Windows (images only)
+# macOS / Windows
 bash .scripts/docker/install_mac.sh install
 bash .scripts/docker/install_windows.sh install
 ```

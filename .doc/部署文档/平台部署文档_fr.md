@@ -35,10 +35,11 @@ EasyAIoT est déployé via **des conteneurs Docker et un script d'installation u
 | OS | Script |
 |----|--------|
 | Linux x86 | `.scripts/docker/install_linux.sh` |
+| CentOS / RHEL | `.scripts/docker/install_linux_centos.sh` |
 | Linux ARM | `.scripts/docker/install_linux_arm.sh` |
 | Kylin | `.scripts/docker/install_linux_kylin.sh` |
-| macOS (images only) | `.scripts/docker/install_mac.sh` |
-| Windows (images only) | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
+| macOS | `.scripts/docker/install_mac.sh` |
+| Windows | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
 ---
 
@@ -117,8 +118,8 @@ sudo .scripts/docker/install_linux.sh install
 
 ### Prérequis
 
-- OS : **Ubuntu 24.04+** (26.04 recommandé)
-- Docker + Docker Compose **v2.35+**
+- OS : **Ubuntu 24.04+** (26.04 recommandé) ; également **CentOS/RHEL**, ARM, Kylin
+- Docker + Docker Compose **v2.35+** (sous CentOS : `install_linux_centos.sh` peut installer/mettre à niveau Docker CE)
 - **≥ 300 Go** d'espace disque libre
 
 ```bash
@@ -132,6 +133,7 @@ git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
 sudo .scripts/docker/install_linux.sh
+# CentOS / RHEL : sudo .scripts/docker/install_linux_centos.sh
 # 1 Deploy → 1 First install → 7 Health verify
 ```
 
@@ -145,10 +147,17 @@ cd easyaiot
 
 # Optionnel : télécharger les images préconstruites pour raccourcir l'installation
 sudo .scripts/docker/install_linux.sh pull
+# CentOS : sudo .scripts/docker/install_linux_centos.sh pull
 
 sudo .scripts/docker/install_linux.sh install
+# CentOS : sudo .scripts/docker/install_linux_centos.sh install
+
 .scripts/docker/install_linux.sh verify
 ```
+
+### Notes CentOS / RHEL
+
+Utilisez `.scripts/docker/install_linux_centos.sh` (CentOS 7/8/Stream, Rocky, Alma, RHEL). Détails (ZH) : [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明).
 
 ### Durée d'installation
 
@@ -305,7 +314,7 @@ Plus d'informations : [Dépannage](./部署最佳实践_fr.md#dépannage).
 
 | Élément | Exigence |
 |------|-------------|
-| OS | Ubuntu 24.04+ (26.04 recommandé) ; également macOS, Windows, ARM, Kylin |
+| OS | Ubuntu 24.04+ (26.04 recommandé) ; également macOS, Windows, CentOS/RHEL, ARM, Kylin |
 | CPU | Min. 4 cœurs, 8+ recommandés |
 | RAM | Dépend du profil (full ≥ 20 Go, 32 Go recommandés) |
 | Disque | Min. 300 Go libres, 500 Go+ SSD recommandé |

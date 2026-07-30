@@ -27,7 +27,7 @@
 
 ## Two Usage Modes (Detailed)
 
-Unified entry scripts (`install_linux.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`) support **two equivalent usage patterns**:
+Unified entry scripts (`install_linux.sh` / `install_linux_centos.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh` / `install_mac.sh` / `install_windows.sh`) support **two equivalent usage patterns**:
 
 | Mode | Entry | Audience | Characteristics |
 |------|-------|----------|-----------------|
@@ -236,7 +236,7 @@ Memory analysis:
 
 | Software | Requirement |
 |----------|-------------|
-| OS | Ubuntu 24.04+ (26.04 recommended); Kylin, ARM64 also supported |
+| OS | Ubuntu 24.04+ (26.04 recommended); CentOS/RHEL, Kylin, ARM64 also supported |
 | Docker | Installed and daemon accessible |
 | Docker Compose | **v2.35.0+** (`docker compose` plugin) |
 | NVIDIA Driver / Container Toolkit | GPU scenarios only |
@@ -426,18 +426,24 @@ Multi-GPU: `export CUDA_VISIBLE_DEVICES=0,1`
 ## Special Environments
 
 ```bash
+# CentOS / RHEL / Rocky / Alma (auto-upgrade Docker CE, open firewalld ports)
+sudo .scripts/docker/install_linux_centos.sh install
+# Docker only: sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
+
 # Kylin OS
 sudo .scripts/docker/install_linux_kylin.sh install
 
 # ARM64
 sudo .scripts/docker/install_linux_arm.sh install
 
-# macOS (image-only; Docker Desktop + bash 4+)
+# macOS (Docker Desktop + bash 4+)
 bash .scripts/docker/install_mac.sh install
 
 # Windows (PowerShell: install_windows.ps1; or Git Bash / WSL)
 bash .scripts/docker/install_windows.sh install
 ```
+
+CentOS notes: `install_linux_centos.sh` prepares Docker CE (replaces CentOS 7 stock docker 1.13), DaoCloud mirror, and firewalld; then delegates to `install_linux.sh`. On CentOS 7 the platform agent uses `ensure_platform_agent_centos7.sh`.
 
 Desktop notes: shared logic in `install_desktop_common.sh`; middleware via `install_middleware_desktop.sh`; no local build. See Chinese guides [macOS](./平台macOS部署文档_zh.md) / [Windows](./平台Windows部署文档_zh.md).
 

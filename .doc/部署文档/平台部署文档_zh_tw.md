@@ -36,10 +36,11 @@ EasyAIoT 採用 **Docker 容器化 + 統一安裝腳本** 部署，平台由基�
 | 系統 | 腳本 |
 |------|------|
 | Linux x86 | `.scripts/docker/install_linux.sh` |
+| CentOS / RHEL 系 | `.scripts/docker/install_linux_centos.sh` |
 | Linux ARM | `.scripts/docker/install_linux_arm.sh` |
 | 銀河麒麟 | `.scripts/docker/install_linux_kylin.sh` |
-| macOS（仅镜像） | `.scripts/docker/install_mac.sh` |
-| Windows（仅镜像） | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
+| macOS | `.scripts/docker/install_mac.sh` |
+| Windows | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
 ---
 
@@ -117,8 +118,8 @@ sudo .scripts/docker/install_linux.sh install
 
 ### 環境前提
 
-- 作業系統：**Ubuntu 24.04+**（建議 26.04）
-- Docker + Docker Compose **v2.35+**
+- 作業系統：**Ubuntu 24.04+**（建議 26.04）；亦支援 **CentOS/RHEL 系**、ARM、銀河麒麟
+- Docker + Docker Compose **v2.35+**（CentOS 可用 `install_linux_centos.sh` 自動安裝/升級 Docker CE）
 - 磁碟可用空間 **≥ 300 GB**
 
 ```bash
@@ -131,7 +132,12 @@ docker --version && docker compose version && docker ps
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
+# Ubuntu / 通用 Linux x86
 sudo .scripts/docker/install_linux.sh
+
+# CentOS / RHEL / Rocky / Alma
+# sudo .scripts/docker/install_linux_centos.sh
+
 # 1 部署 → 1 首次安裝 → 7 健康驗證
 ```
 
@@ -145,10 +151,17 @@ cd easyaiot
 
 # 可選：拉取預建構映像，縮短 install 耗時
 sudo .scripts/docker/install_linux.sh pull
+# CentOS：sudo .scripts/docker/install_linux_centos.sh pull
 
 sudo .scripts/docker/install_linux.sh install
+# CentOS：sudo .scripts/docker/install_linux_centos.sh install
+
 .scripts/docker/install_linux.sh verify
 ```
+
+### CentOS / RHEL 系說明
+
+適用 CentOS 7/8/Stream、Rocky、Alma、RHEL。入口 `install_linux_centos.sh` 會自動升級 Docker CE、配置鏡像源與 firewalld，再轉交 `install_linux.sh`。詳見簡體中文：[平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明)。
 
 ### 安裝耗時
 
@@ -319,7 +332,7 @@ cd .scripts/docker && ./analyze_merge_logs.sh --non-interactive --modules all --
 
 | 項目 | 要求 |
 |------|------|
-| 作業系統 | Ubuntu 24.04+（建議 26.04）；亦支援 macOS、Windows、ARM、銀河麒麟 |
+| 作業系統 | Ubuntu 24.04+（建議 26.04）；亦支援 macOS、Windows、CentOS/RHEL、ARM、銀河麒麟 |
 | CPU | 最低 4 核，建議 8 核+ |
 | 記憶體 | 取決於部署規格（full ≥ 20 GB，建議 32 GB） |
 | 磁碟 | 最低 300 GB 可用，建議 500 GB+ SSD |
