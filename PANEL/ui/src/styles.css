@@ -1,0 +1,209 @@
+:root {
+  /* 单一主色，其余灰度 */
+  --c-primary: #1677ff;
+  --c-primary-bg: #e6f4ff;
+  --c-primary-border: #91caff;
+  --c-text: #000000e0;
+  --c-text-2: #000000a6;
+  --c-text-3: #00000073;
+  --c-border: #ebebeb;
+  --c-border-2: #d9d9d9;
+  --c-fill: #f7f8fa;
+  --c-white: #ffffff;
+  --c-canvas: #ffffff;
+  --c-sidebar: #ffffff;
+  --c-success: #52c41a;
+  --c-warning: #faad14;
+  --c-danger: #ff4d4f;
+  --c-success-bg: #f6ffed;
+  --c-warning-bg: #fffbe6;
+  --c-danger-bg: #fff2f0;
+
+  /* 侧栏宽度容纳完整标题，菜单项纵向拉开更大气 */
+  --sidebar-w: 232px;
+  --header-h: 64px;
+  --radius: 8px;
+  --ctrl-h: 32px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
+  --space: 20px;
+  --space-lg: 28px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  height: 100%;
+  background: var(--c-white);
+  color: var(--c-text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5715;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* —— 页面骨架 —— */
+.page {
+  padding: var(--space-lg);
+  background: var(--c-white);
+  min-height: 0;
+}
+
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space);
+  margin-bottom: var(--space-lg);
+  min-height: 40px;
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+  color: var(--c-text);
+}
+
+.page-head p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--c-text-3);
+}
+
+.panel {
+  background: var(--c-white);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+}
+
+.panel-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 48px;
+  padding: 0 var(--space);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.panel-hd h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.panel-bd {
+  padding: var(--space);
+}
+
+.muted {
+  color: var(--c-text-3);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 资源条 */
+.meter {
+  height: 6px;
+  width: 100%;
+  background: var(--c-fill);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.meter > i {
+  display: block;
+  height: 100%;
+  background: var(--c-primary);
+  border-radius: 3px;
+}
+
+.meter.ok > i {
+  background: var(--c-success);
+}
+.meter.warn > i {
+  background: var(--c-warning);
+}
+.meter.danger > i {
+  background: var(--c-danger);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  background: var(--c-border-2);
+}
+.status-dot.on {
+  background: var(--c-success);
+}
+.status-dot.off {
+  background: var(--c-border-2);
+}
+
+.logs {
+  margin: 0;
+  padding: 12px 14px;
+  background: #141414;
+  color: #f5f5f5;
+  border-radius: var(--radius);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.65;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Ant Design：主色 + 实心按钮文字加粗，保证白字可读 */
+.ant-btn {
+  font-weight: 500;
+}
+
+.ant-btn-primary:not(.ant-btn-background-ghost):not(.ant-btn-link):not(.ant-btn-text) {
+  background: #0958d9 !important;
+  border-color: #0958d9 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.ant-btn-primary:not(.ant-btn-background-ghost):not(:disabled):hover {
+  background: #1677ff !important;
+  border-color: #1677ff !important;
+  color: #fff !important;
+}
+
+.ant-table-thead > tr > th {
+  background: var(--c-fill) !important;
+  color: var(--c-text-2) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+.ant-tag {
+  margin-inline-end: 0 !important;
+}

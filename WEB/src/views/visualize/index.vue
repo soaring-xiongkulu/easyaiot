@@ -63,6 +63,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: #ffffff;
 
   :deep(.ant-tabs-nav) {
     padding: 5px 0 0 25px;
@@ -72,7 +73,7 @@ onMounted(() => {
   .visualize-tab {
     flex: 1;
     min-height: 0;
-    padding: 16px 19px 12px 15px;
+    padding: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;

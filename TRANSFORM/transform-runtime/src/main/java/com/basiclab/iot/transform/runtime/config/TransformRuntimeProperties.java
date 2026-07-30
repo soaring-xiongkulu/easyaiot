@@ -20,6 +20,12 @@ public class TransformRuntimeProperties {
     /** 可选：所在 iot-node 节点 ID，便于泳道观测 */
     private String nodeId;
 
+    /**
+     * 机器维度主机标识（建议填计算节点 IP / 主机名）。
+     * Docker 内默认 hostname 是容器短 ID，不设此值会导致集群页按容器拆成多台「假机器」。
+     */
+    private String host = "";
+
     /** full、consume、deliver、edge、backup。edge 不订阅 iot-sink。 */
     private String role = "full";
 

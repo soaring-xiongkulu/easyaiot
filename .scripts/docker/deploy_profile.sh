@@ -107,10 +107,13 @@ is_full_deploy_profile() {
     [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ]
 }
 
-# 按部署形态判断业务模块是否启用（APP / VISUALIZE / TRANSFORM 仅 full 全量形态）
+# 按部署形态判断业务模块是否启用
+#   APP / VISUALIZE / TRANSFORM — 仅 full 全量形态
+#   PANEL — 所有形态默认启用（EASYAIOT_ENABLE_PANEL=0 可关闭）
 module_enabled_for_deploy_profile() {
     case "$1" in
         APP|VISUALIZE|TRANSFORM) [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ] ;;
+        PANEL) [ "${EASYAIOT_ENABLE_PANEL:-1}" != "0" ] ;;
         *) return 0 ;;
     esac
 }
@@ -233,16 +236,19 @@ print_deploy_profile_summary() {
   case "${EASYAIOT_DEPLOY_PROFILE}" in
     mini)
       echo "  业务: iot-system（48099）, VIDEO, AI, WEB（告警由 VIDEO 直连落库，无需 iot-sink/Kafka）"
+      echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
       echo "  中间件: PostgreSQL, Redis, SRS"
       echo "  不启动: Kafka, iot-sink, Nacos, MinIO, iot-gateway, iot-infra, Milvus, ZLMediaKit, NodeRED, FUXA, TDengine, EMQX、iot-visualize/VISUALIZE、TRANSFORM 及多数 DEVICE 模块"
       echo "  API 路由: nginx 将 /admin-api、/dev-api 直连宿主机 iot-system:48099（登录鉴权由 system 自身处理）"
       ;;
     standard)
       echo "  不启动: TDengine, NodeRED, FUXA, iot-device, iot-tdengine, iot-visualize/VISUALIZE、TRANSFORM（相关菜单不启用）"
+      echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
       echo "  其余模块与中间件全部启动（含 EMQX）"
       ;;
     full)
       echo "  启动全部业务模块与中间件（含 APP 移动端 H5、iot-visualize/VISUALIZE、TRANSFORM、FUXA，推荐宿主机内存 ≥ 20 GB）"
+      echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
       ;;
   esac
 }
@@ -253,19 +259,33 @@ lock_deploy_profile_for_child_installs() {
     export EASYAIOT_SKIP_PROFILE_PROMPT=1
 }
 
-# install 专用：交互终端下弹窗选择；上级已 lock 或 CI 非交互则直接沿用已选形态
+# install 专用：交互终端下弹窗选择；环境变量已指定 / 上级已 lock / 非交互则直接沿用
 select_deploy_profile_for_install() {
   if [ "${EASYAIOT_SKIP_PROFILE_PROMPT:-}" = "1" ]; then
     ensure_deploy_profile
+    lock_deploy_profile_for_child_installs
     return 0
   fi
-  if [ ! -t 0 ]; then
-    if [ -n "${EASYAIOT_DEPLOY_PROFILE:-}" ]; then
+
+  # 已通过环境变量显式指定形态时不弹菜单（含交互终端）
+  # 例: EASYAIOT_DEPLOY_PROFILE=full bash .../install_linux.sh install
+  case "${EASYAIOT_DEPLOY_PROFILE:-}" in
+    mini|standard|full)
       apply_deploy_profile
       save_deploy_profile
       lock_deploy_profile_for_child_installs
+      echo ""
+      if declare -F print_info >/dev/null 2>&1; then
+        print_info "使用环境变量指定的部署形态: $(_deploy_profile_desc) (EASYAIOT_DEPLOY_PROFILE=${EASYAIOT_DEPLOY_PROFILE})"
+      else
+        echo "[INFO] 使用环境变量指定的部署形态: $(_deploy_profile_desc) (EASYAIOT_DEPLOY_PROFILE=${EASYAIOT_DEPLOY_PROFILE})"
+      fi
+      echo ""
       return 0
-    fi
+      ;;
+  esac
+
+  if [ ! -t 0 ]; then
     load_saved_deploy_profile
     [ -z "${EASYAIOT_DEPLOY_PROFILE:-}" ] && export EASYAIOT_DEPLOY_PROFILE=full
     apply_deploy_profile

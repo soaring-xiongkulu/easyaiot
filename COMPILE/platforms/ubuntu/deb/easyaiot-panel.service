@@ -1,0 +1,20 @@
+[Unit]
+Description=EasyAIoT PANEL ops console
+Documentation=file:///usr/share/doc/easyaiot-panel/README
+After=network-online.target docker.service
+Wants=network-online.target
+# docker.service 可能不存在（仅有 CLI + sock），不设强依赖
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/easyaiot-panel/panel.env
+Environment=PANEL_ENV_FILE=/etc/easyaiot-panel/panel.env
+WorkingDirectory=/opt/easyaiot-panel
+ExecStart=/opt/easyaiot-panel/bin/easyaiot-panel
+Restart=on-failure
+RestartSec=5
+# 需访问 /var/run/docker.sock；若用非 root，请把用户加入 docker 组并改 User=
+# User=root
+
+[Install]
+WantedBy=multi-user.target

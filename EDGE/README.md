@@ -77,10 +77,8 @@ EDGE/
   edge/           # CLI 与运行时（enroll / mqtt / workload / task）
   runtime/        # 边缘算法执行包（自有；VIDEO 仅可选种子）
   scripts/        # sync_runtime_from_video.sh（种子 + overlays）
-  docs/           # 模块设计
   edge.env.example
   requirements.txt
 ```
 
-算法包说明：[`runtime/README.md`](runtime/README.md)  
-详细设计：[`docs/EDGE_MODULE_DESIGN.md`](docs/EDGE_MODULE_DESIGN.md)
+算法包说明：[`runtime/README.md`](runtime/README.md)

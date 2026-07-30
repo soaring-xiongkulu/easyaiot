@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="EasyAIoT Panel">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="22" fill="url(#g)"/>
+  <rect x="22" y="24" width="84" height="80" rx="10" fill="#0f172a" opacity="0.92"/>
+  <rect x="30" y="34" width="68" height="8" rx="4" fill="#22d3ee"/>
+  <circle cx="36" cy="70" r="6" fill="#60a5fa"/>
+  <circle cx="64" cy="70" r="6" fill="#22d3ee"/>
+  <circle cx="92" cy="70" r="6" fill="#38bdf8"/>
+  <path d="M36 92h56" stroke="#38bdf8" stroke-width="6" stroke-linecap="round"/>
+</svg>

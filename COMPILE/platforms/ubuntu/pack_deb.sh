@@ -1,0 +1,248 @@
+#!/usr/bin/env bash
+# 将已编译的 easyaiot-panel 打成 Ubuntu/Debian .deb 安装包
+#
+# 用法:
+#   bash COMPILE/platforms/ubuntu/pack_deb.sh
+#   PANEL_VERSION=105 bash COMPILE/platforms/ubuntu/pack_deb.sh   # 可选：固定版本；默认自动递增
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMPILE_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+REPO_ROOT="$(cd "${COMPILE_ROOT}/.." && pwd)"
+# shellcheck source=../../lib/resolve_panel_version.sh
+source "${COMPILE_ROOT}/lib/resolve_panel_version.sh"
+OUT_DIR="${COMPILE_OUT:-${COMPILE_ROOT}/dist/ubuntu}"
+DEB_SRC="${SCRIPT_DIR}/deb"
+# 统一图标资产目录（便于多平台复用）
+PANEL_LOGO="${COMPILE_PANEL_LOGO:-${COMPILE_ROOT}/assets/panel-logo.png}"
+DEB_VARIANT="${DEB_VARIANT:-ubuntu}" # ubuntu|arm|kylin
+ARCH_DEFAULT="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
+ARCH="${DEB_ARCH:-$ARCH_DEFAULT}"
+PKG_NAME="easyaiot-panel"
+STAGE="${COMPILE_DEB_STAGE:-${COMPILE_ROOT}/work/ubuntu-deb}"
+RUNTIME_ROOT="${STAGE}/opt/easyaiot-panel/runtime"
+
+INSTALL_SCRIPT_REL=".scripts/docker/install_linux.sh"
+PANEL_ENV_TEMPLATE="${DEB_SRC}/panel.env"
+INSTALL_SCRIPT_DOC="install_linux.sh"
+
+case "$DEB_VARIANT" in
+  arm)
+    INSTALL_SCRIPT_REL=".scripts/docker/install_linux_arm.sh"
+    PANEL_ENV_TEMPLATE="${DEB_SRC}/panel.env.arm"
+    INSTALL_SCRIPT_DOC="install_linux_arm.sh"
+    ;;
+  kylin)
+    INSTALL_SCRIPT_REL=".scripts/docker/install_linux_kylin.sh"
+    PANEL_ENV_TEMPLATE="${DEB_SRC}/panel.env.kylin"
+    INSTALL_SCRIPT_DOC="install_linux_kylin.sh"
+    ;;
+  *)
+    ;;
+esac
+
+log() { echo "[COMPILE/deb] $*"; }
+
+if ! command -v dpkg-deb >/dev/null 2>&1; then
+  echo "[COMPILE] 需要 dpkg-deb（apt install dpkg-dev）" >&2
+  exit 1
+fi
+
+BIN="${OUT_DIR}/easyaiot-panel"
+if [ ! -x "$BIN" ]; then
+  echo "[COMPILE] 缺少二进制: ${BIN}" >&2
+  echo "请先执行相应编译：bash COMPILE/build.sh ubuntu/ubuntu-arm/ubuntu-kylin" >&2
+  exit 1
+fi
+if [ ! -f "$PANEL_LOGO" ]; then
+  echo "[COMPILE] 缺少 PANEL logo: ${PANEL_LOGO}" >&2
+  exit 1
+fi
+
+# 前置检查通过后再递增版本（可用 PANEL_VERSION 覆盖）
+DEB_VERSION="$(resolve_panel_version)"
+if [ "$DEB_VARIANT" = "ubuntu" ]; then
+  DEB_FILE="${OUT_DIR}/${PKG_NAME}_${DEB_VERSION}_${ARCH}.deb"
+else
+  # arm/kylin 二者同为 arm64 时仍用文件名区分，避免拷贝/上传时混淆
+  DEB_FILE="${OUT_DIR}/${PKG_NAME}_${DEB_VERSION}_${DEB_VARIANT}_${ARCH}.deb"
+fi
+
+if ! rm -rf "$STAGE" 2>/dev/null; then
+  STAGE="/tmp/easyaiot-ubuntu-deb-${DEB_VARIANT}-${DEB_VERSION}-${ARCH}"
+  echo "[COMPILE/deb] staging 目录不可清理，回退到: ${STAGE}" >&2
+  rm -rf "$STAGE"
+fi
+mkdir -p \
+  "${STAGE}/DEBIAN" \
+  "${STAGE}/opt/easyaiot-panel/bin" \
+  "${RUNTIME_ROOT}" \
+  "${STAGE}/etc/easyaiot-panel" \
+  "${STAGE}/lib/systemd/system" \
+  "${STAGE}/usr/share/applications" \
+  "${STAGE}/usr/share/pixmaps" \
+  "${STAGE}/usr/share/doc/${PKG_NAME}" \
+  "${STAGE}/usr/bin"
+
+# 打入脱离仓库可运行的 runtime 树
+log "打包内置 runtime..."
+
+runtime_copy_file() {
+  local rel="$1"
+  local src="${REPO_ROOT}/${rel}"
+  local dst="${RUNTIME_ROOT}/${rel}"
+  [ -e "$src" ] || return 0
+  mkdir -p "$(dirname "$dst")"
+  cp -a "$src" "$dst"
+}
+
+runtime_copy_glob() {
+  local module="$1"
+  local pattern="$2"
+  local f rel
+  shopt -s nullglob
+  for f in "${REPO_ROOT}/${module}"/$pattern; do
+    rel="${f#${REPO_ROOT}/}"
+    runtime_copy_file "$rel"
+  done
+  shopt -u nullglob
+}
+
+# 1) 全局基础文件
+runtime_copy_file "LICENSE"
+runtime_copy_file "README.md"
+# 运行时版本由打包时写入，不再依赖仓库根 VERSION 文件
+printf 'V%s\n' "$DEB_VERSION" > "${RUNTIME_ROOT}/VERSION"
+
+# 2) .scripts（保留部署脚本，排除运行数据与日志）
+tar -C "${REPO_ROOT}" -cf - \
+  --exclude='.scripts/docker/*_data/**' \
+  --exclude='.scripts/docker/**/*_data/**' \
+  --exclude='.scripts/docker/**/run/**' \
+  --exclude='.scripts/docker/**/logs/**' \
+  --exclude='.scripts/docker/**/data/**' \
+  --exclude='.scripts/postgresql/backup/**' \
+  --exclude='.scripts/zlmediakit/www/snap/**' \
+  --exclude='.scripts/mqtt-demo/run/**' \
+  --exclude='.scripts/industrial-demo/run/**' \
+  .scripts | tar -C "${RUNTIME_ROOT}" -xf -
+
+# 3) 各业务模块：仅复制部署相关文件（不带源码目录）
+for module in DEVICE AI VIDEO WEB APP VISUALIZE TRANSFORM NODE; do
+  runtime_copy_glob "$module" "install_linux*.sh"
+  runtime_copy_glob "$module" "install_mac.sh"
+  runtime_copy_glob "$module" "docker-compose*.yml"
+  runtime_copy_glob "$module" "docker-compose*.yaml"
+  runtime_copy_glob "$module" ".env"
+  runtime_copy_glob "$module" ".env.*"
+  runtime_copy_glob "$module" "env.example"
+  runtime_copy_glob "$module" "Dockerfile"
+  runtime_copy_glob "$module" "Dockerfile.*"
+  runtime_copy_glob "$module" "requirements*.txt"
+  if [ -d "${REPO_ROOT}/${module}/conf" ]; then
+    runtime_copy_file "${module}/conf"
+  fi
+done
+
+# 4) 默认以预构建镜像部署，避免无源码场景触发本地 build
+# PULL_TAG 必须与 runtime_image.sh pull 打到本地的标签一致（默认 latest）。
+# 切勿使用 embedded：否则 runtime_images_pulled_ready 会去找 *:embedded 并误判未就绪，
+# 进而在无源码 runtime 上回退到本地 docker build，导致 PANEL 部署失败。
+mkdir -p "${RUNTIME_ROOT}/.scripts/docker"
+cat > "${RUNTIME_ROOT}/.scripts/docker/.runtime_images_pulled" <<EOF
+# Generated by COMPILE deb packer (source-free runtime mode)
+PULL_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+PULL_ARCH=${ARCH}
+PULL_PROFILE=full
+PULL_TAG=latest
+SOURCE_FREE=1
+EOF
+: > "${RUNTIME_ROOT}/.scripts/docker/.source_free_runtime"
+echo "full" > "${RUNTIME_ROOT}/.scripts/docker/.deploy_profile"
+
+# --- payload ---
+install -m 0755 "$BIN" "${STAGE}/opt/easyaiot-panel/bin/easyaiot-panel"
+ln -sf /opt/easyaiot-panel/bin/easyaiot-panel "${STAGE}/usr/bin/easyaiot-panel"
+
+install -m 0644 "${PANEL_ENV_TEMPLATE}" "${STAGE}/etc/easyaiot-panel/panel.env"
+install -m 0644 "${DEB_SRC}/easyaiot-panel.service" \
+  "${STAGE}/lib/systemd/system/easyaiot-panel.service"
+install -m 0755 "${DEB_SRC}/open-panel.sh" "${STAGE}/opt/easyaiot-panel/bin/open-panel.sh"
+install -m 0644 "${DEB_SRC}/easyaiot-panel.desktop" \
+  "${STAGE}/usr/share/applications/easyaiot-panel.desktop"
+# 生成圆形白底图标（外圈透明，减少白边）
+python3 - "$PANEL_LOGO" "${STAGE}/usr/share/pixmaps/easyaiot-panel.png" <<'PY'
+from PIL import Image
+from PIL import ImageDraw
+import sys
+
+src, dst = sys.argv[1], sys.argv[2]
+img = Image.open(src).convert("RGBA")
+
+# 统一输出尺寸，确保桌面环境缩放稳定
+size = 512
+canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+draw = ImageDraw.Draw(canvas)
+
+# 圆形白底，进一步减小白边
+margin = int(size * 0.015)
+draw.ellipse((margin, margin, size - margin, size - margin), fill=(255, 255, 255, 255))
+
+# logo 放大，减少内部留白
+inner = int((size - margin * 2) * 0.98)
+img.thumbnail((inner, inner), Image.Resampling.LANCZOS)
+x = (size - img.width) // 2
+y = (size - img.height) // 2
+canvas.alpha_composite(img, (x, y))
+
+# 保留透明外圈，桌面效果为圆形图标
+canvas.save(dst, format="PNG", optimize=True)
+PY
+install -m 0644 "${DEB_SRC}/copyright" "${STAGE}/usr/share/doc/${PKG_NAME}/copyright"
+
+cat > "${STAGE}/usr/share/doc/${PKG_NAME}/README" <<EOF
+EasyAIoT PANEL ${DEB_VERSION}
+
+安装后:
+  1. 默认使用包内 runtime: /opt/easyaiot-panel/runtime（无需依赖源码仓库）
+  2. 如需切换为外部仓库，可编辑 /etc/easyaiot-panel/panel.env 的 EASYAIOT_ROOT
+  3. 首次建议在 PANEL 的【部署】页点击“安装并启动（install）”，选择 full
+  4. 或命令行执行：EASYAIOT_DEPLOY_PROFILE=full bash /opt/easyaiot-panel/runtime/${INSTALL_SCRIPT_REL} install
+  5. sudo systemctl start easyaiot-panel
+  6. 打开 http://127.0.0.1:9200/
+
+二进制: /opt/easyaiot-panel/bin/easyaiot-panel
+也可直接: easyaiot-panel（已加入 PATH）
+
+运行时需要本机 Docker CLI，并能访问 /var/run/docker.sock。
+EOF
+
+gzip -9 -n -c "${STAGE}/usr/share/doc/${PKG_NAME}/README" \
+  > "${STAGE}/usr/share/doc/${PKG_NAME}/README.gz"
+rm -f "${STAGE}/usr/share/doc/${PKG_NAME}/README"
+
+# --- DEBIAN metadata ---
+sed \
+  -e "s/__VERSION__/${DEB_VERSION}/g" \
+  -e "s/__ARCH__/${ARCH}/g" \
+  -e "s#__INSTALL_SCRIPT__#${INSTALL_SCRIPT_DOC}#g" \
+  "${DEB_SRC}/control.in" > "${STAGE}/DEBIAN/control"
+# Installed-Size in KiB
+SIZE_KB="$(du -sk "${STAGE}/opt" "${STAGE}/etc" "${STAGE}/lib" "${STAGE}/usr" | awk '{s+=$1} END {print s}')"
+echo "Installed-Size: ${SIZE_KB}" >> "${STAGE}/DEBIAN/control"
+
+install -m 0755 "${DEB_SRC}/postinst" "${STAGE}/DEBIAN/postinst"
+install -m 0755 "${DEB_SRC}/prerm" "${STAGE}/DEBIAN/prerm"
+install -m 0755 "${DEB_SRC}/postrm" "${STAGE}/DEBIAN/postrm"
+
+printf '%s\n' '/etc/easyaiot-panel/panel.env' > "${STAGE}/DEBIAN/conffiles"
+
+# --- build ---
+mkdir -p "$OUT_DIR"
+dpkg-deb --root-owner-group --build "$STAGE" "$DEB_FILE"
+
+log "完成: ${DEB_FILE}"
+ls -lh "$DEB_FILE"
+dpkg-deb -I "$DEB_FILE"
+echo
+dpkg-deb -c "$DEB_FILE"

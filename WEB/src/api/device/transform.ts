@@ -34,6 +34,17 @@ export const getTransformOverview = async () => asObject(await defHttp.get({ url
 export const getTransformCluster = async () => asObject(await defHttp.get({ url: Api.Cluster }))
 export const getTransformInstances = async () => asList(await defHttp.get({ url: Api.Instances }))
 export const issueTransformCommand = (data: Recordable) => defHttp.post({ url: Api.Command, data })
+export const getTransformCommandAcks = async (commandId: string) =>
+  asList(await defHttp.get({ url: `${Api.Command}/${commandId}/acks` }))
+export const purgeTransformInstances = async (offlineOnly = true) =>
+  asObject(
+    await defHttp.post({
+      url: `${Api.Instances}/purge`,
+      params: { offlineOnly },
+    }),
+  )
+export const removeTransformInstance = (instanceId: string) =>
+  defHttp.delete({ url: `${Api.Instances}/${encodeURIComponent(instanceId)}` })
 
 export const getTransformPartyList = async () => asList(await defHttp.get({ url: Api.Party }))
 export const createTransformParty = (data: Recordable) => defHttp.post({ url: Api.Party, data })

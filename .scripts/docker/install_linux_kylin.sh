@@ -29,7 +29,7 @@
 # 部署形态（EASYAIOT_DEPLOY_PROFILE）：
 #   mini(1)     - 4G：iot-system + VIDEO/AI/WEB + 最小中间件（无 Kafka/iot-sink/Nacos/Gateway/Infra/可视化）
 #   standard(2) - 16G：不含 TDengine/iot-device/iot-tdengine/NodeRED/iot-visualize（含 EMQX）
-#   full(3)     - 全量（默认，约 20G；含 iot-visualize/VISUALIZE）
+#   full(3)     - 全量（默认，约 20G；含 iot-visualize/VISUALIZE、TRANSFORM）；PANEL 全形态启用
 # ============================================
 
 set -e
@@ -96,6 +96,7 @@ MODULES=(
     "APP"              # App移动端H5（仅 full 全量形态）
     "VISUALIZE"        # 可视化编辑器（仅 full 全量形态）
     "TRANSFORM"        # 系统对接（仅 full 全量形态）
+    "PANEL"            # 独立运维控制台（所有形态，默认启用）
 )
 
 # 模块名称映射
@@ -108,6 +109,7 @@ MODULE_NAMES["WEB"]="Web前端服务"
 MODULE_NAMES["APP"]="App移动端H5"
 MODULE_NAMES["VISUALIZE"]="可视化编辑器"
 MODULE_NAMES["TRANSFORM"]="系统对接"
+MODULE_NAMES["PANEL"]="运维控制台"
 
 # 模块端口映射
 declare -A MODULE_PORTS
@@ -118,7 +120,8 @@ MODULE_PORTS["VIDEO"]="6000"
 MODULE_PORTS["WEB"]="8888"
 MODULE_PORTS["APP"]="9010"
 MODULE_PORTS["VISUALIZE"]="8002"
-MODULE_PORTS["TRANSFORM"]="8080"
+MODULE_PORTS["TRANSFORM"]="48096"
+MODULE_PORTS["PANEL"]="9200"
 
 # 模块健康检查端点
 declare -A MODULE_HEALTH_ENDPOINTS
@@ -130,6 +133,7 @@ MODULE_HEALTH_ENDPOINTS["WEB"]="/health"
 MODULE_HEALTH_ENDPOINTS["APP"]="/health"
 MODULE_HEALTH_ENDPOINTS["VISUALIZE"]="/health"
 MODULE_HEALTH_ENDPOINTS["TRANSFORM"]="/actuator/health"
+MODULE_HEALTH_ENDPOINTS["PANEL"]="/health"
 
 # 日志输出函数（去掉颜色代码后写入日志文件）
 log_to_file() {
@@ -665,6 +669,10 @@ execute_module_command() {
             print_info "未检测到 TRANSFORM 目录，跳过系统对接部署"
             return 0
         fi
+        if [ "$module" = "PANEL" ]; then
+            print_info "未检测到 PANEL 目录，跳过运维控制台部署"
+            return 0
+        fi
         print_warning "模块 $module 不存在，跳过"
         return 1
     fi
@@ -673,6 +681,10 @@ execute_module_command() {
     if [ ! -f "$install_file" ]; then
         if [ "$module" = "TRANSFORM" ]; then
             print_info "未检测到 TRANSFORM/install_linux.sh，跳过系统对接部署"
+            return 0
+        fi
+        if [ "$module" = "PANEL" ]; then
+            print_info "未检测到 PANEL/install_linux.sh，跳过运维控制台部署"
             return 0
         fi
         print_warning "模块 $module 没有 $install_file 文件，跳过"
@@ -789,7 +801,10 @@ install_linux() {
     
     select_deploy_profile_for_install
     export EASYAIOT_INSTALL_SCRIPT=".scripts/docker/install_linux_kylin.sh"
-    runtime_images_acquire
+    if ! runtime_images_acquire; then
+        print_error "预构建镜像获取失败，已中止安装"
+        return 1
+    fi
 
     detect_architecture
     check_docker "$@"
@@ -805,6 +820,11 @@ install_linux() {
     if runtime_images_should_skip_build; then
         _skip_build=1
     else
+        if runtime_is_source_free_runtime; then
+            print_error "当前为 PANEL 无源码 runtime，禁止本地 docker build"
+            print_error "请先确保预构建镜像拉取成功后再安装（bash .scripts/docker/install_linux_kylin.sh pull）"
+            return 1
+        fi
         print_info "将进行本地构建（各模块 docker build，耗时较长）"
     fi
     
@@ -1004,6 +1024,8 @@ stop_runtime_modules() {
     local idx module
     for ((idx=${#stop_modules[@]}-1 ; idx>=0 ; idx--)); do
         module="${stop_modules[$idx]}"
+        # build-runtime 清理业务镜像时保留运维控制台
+        [ "$module" = "PANEL" ] && continue
         execute_module_command "$module" "stop" || print_warning "${MODULE_NAMES[$module]} 停止失败，继续其余模块"
         echo ""
     done
@@ -1270,6 +1292,12 @@ verify_all() {
         if module_enabled_for_deploy_profile VISUALIZE; then
             echo -e "  可视化编辑器:           http://localhost:8002"
         fi
+        if module_enabled_for_deploy_profile TRANSFORM; then
+            echo -e "  系统对接 (TRANSFORM):   http://localhost:48096"
+        fi
+        if module_enabled_for_deploy_profile PANEL; then
+            echo -e "  运维控制台 (PANEL):     http://localhost:9200"
+        fi
         echo ""
         return 0
     else
@@ -1372,7 +1400,7 @@ show_help() {
     echo "  logs            - 查看所有服务日志"
     echo "  logs [模块]     - 查看指定模块日志"
     echo "  build           - 重新构建所有镜像（各模块本地构建）"
-    echo "  build-runtime [模块] - 构建/推送运行时镜像到远程仓库（可选 DEVICE|AI|VIDEO|WEB|APP|VISUALIZE|TRANSFORM）"
+    echo "  build-runtime [模块] - 构建/推送运行时镜像到远程仓库（可选 DEVICE|AI|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）"
     echo "  pull            - 从远程仓库拉取预构建运行时镜像（交互式，默认 full）"
     echo "  clean           - 清理所有容器和镜像"
     echo "  clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，默认删运行时镜像+构建缓存；保留跨架构基础镜像）"
@@ -1404,7 +1432,7 @@ show_help() {
     echo "  FORCE_NETWORK_RECREATE=true  - 启动时强制重建 easyaiot-network（宿主机 IP 变更后使用）"
     echo "  HOST_IP=<ip>                 - 跳过自动探测，强制指定宿主机 IP"
     echo "  EASYAIOT_RUNTIME_BUILD_ARCH  - build-runtime 目标架构: all(默认) | amd64 | arm64"
-    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM"
+    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
     echo ""
 }
 

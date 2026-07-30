@@ -230,7 +230,7 @@ onMounted(() => {
   }
 
   .node-tab {
-    padding: 16px 19px 0 15px;
+    padding: 0;
 
     :deep(.node-tabs-bar .ant-tabs-nav) {
       padding: 5px 0 0 25px;

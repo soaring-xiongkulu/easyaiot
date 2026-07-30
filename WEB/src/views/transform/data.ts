@@ -8,13 +8,14 @@ export const partyTypeOptions = [
   { label: 'WMS（仓储）', value: 'wms.rest' },
   { label: 'CRM（客户）', value: 'crm.rest' },
   { label: 'OA（办公）', value: 'oa.rest' },
+  { label: '自定义 REST', value: 'custom.rest' },
 ]
 
 export const flowTypeOptions = [
-  { label: '设备数据', value: 'DATA' },
-  { label: '传感器数据', value: 'SENSOR' },
-  { label: '告警事件', value: 'ALERT' },
-  { label: '视觉识别结果', value: 'VIDEO_META' },
+  { label: '设备属性 / 消息', value: 'DATA', desc: '物模型属性上报、设备上行消息' },
+  { label: '传感器数据', value: 'SENSOR', desc: '传感器采集与工业协议点位' },
+  { label: '告警事件', value: 'ALERT', desc: '规则告警、抓拍告警通知' },
+  { label: '视觉识别结果', value: 'VIDEO_META', desc: '人脸 / 车牌 / 后处理结果' },
 ]
 
 export const channelOptions = [
@@ -23,6 +24,45 @@ export const channelOptions = [
   { label: 'MQTT', value: 'mqtt' },
   { label: '写对方数据库', value: 'jdbc' },
   { label: 'Kafka', value: 'kafka' },
+]
+
+/** 通道类型卡片（阿里云「数据目的」选择器风格） */
+export const channelMetaOptions = [
+  {
+    value: 'party',
+    label: '对接系统接口',
+    short: 'SYS',
+    color: '#5AD8A6',
+    desc: '转发至已配置的 MES / ERP / WMS 等系统',
+  },
+  {
+    value: 'http',
+    label: 'HTTP / Webhook',
+    short: 'HTTP',
+    color: '#5B8FF9',
+    desc: 'POST JSON 到任意 HTTP 地址，支持签名',
+  },
+  {
+    value: 'mqtt',
+    label: 'MQTT Topic',
+    short: 'MQTT',
+    color: '#6DC8EC',
+    desc: '发布到第三方 MQTT Broker 主题',
+  },
+  {
+    value: 'jdbc',
+    label: '业务数据库',
+    short: 'JDBC',
+    color: '#F6BD16',
+    desc: '写入对方业务库表（需配置连接）',
+  },
+  {
+    value: 'kafka',
+    label: 'Kafka Topic',
+    short: 'KFK',
+    color: '#945FB9',
+    desc: '投递到指定 Kafka Topic',
+  },
 ]
 
 export function systemTypeLabel(type?: string) {
@@ -66,7 +106,7 @@ export function formatHeartbeat(value: any) {
 }
 
 function renderEnabled(text: boolean) {
-  return h(Tag, { color: text ? 'green' : 'default' }, () => (text ? '启用' : '停用'))
+  return h(Tag, { color: text ? 'green' : 'default' }, () => (text ? '运行中' : '已停止'))
 }
 
 function renderOnline(text: boolean) {
@@ -80,31 +120,95 @@ function renderDeliveryStatus(text?: string) {
 
 export function getInstanceColumns(): BasicColumn[] {
   return [
-    { title: '实例 ID', dataIndex: 'instanceId', width: 220, ellipsis: true },
-    { title: '节点', dataIndex: 'nodeId', width: 120, customRender: ({ text }) => text || '—' },
-    { title: '主机', dataIndex: 'host', width: 140 },
-    { title: '角色', dataIndex: 'role', width: 90 },
+    { title: '实例', dataIndex: 'instanceId', width: 200, ellipsis: true },
+    { title: '节点', dataIndex: 'nodeId', width: 110, customRender: ({ text }) => text || '—' },
+    { title: '主机', dataIndex: 'host', width: 130, ellipsis: true },
+    { title: '角色', dataIndex: 'role', width: 90, customRender: ({ text }) => text || '—' },
+    { title: '状态', dataIndex: 'online', width: 90, customRender: ({ text }) => renderOnline(!!text) },
+    {
+      title: 'CPU',
+      dataIndex: 'cpuLoad',
+      width: 80,
+      customRender: ({ text }) => (text == null ? '—' : `${Number(text).toFixed(0)}%`),
+    },
+    {
+      title: '堆内存',
+      dataIndex: 'heap',
+      width: 110,
+      customRender: ({ record }) => {
+        const used = record?.heapUsedMb
+        const max = record?.heapMaxMb
+        if (used == null) return '—'
+        return max != null ? `${used}/${max} MB` : `${used} MB`
+      },
+    },
+    {
+      title: '消费 Lag',
+      dataIndex: 'maxConsumerLag',
+      width: 100,
+      customRender: ({ text }) => (text == null ? '—' : String(text)),
+    },
+    {
+      title: '投递成功率',
+      dataIndex: 'deliverSuccessRate',
+      width: 100,
+      customRender: ({ text }) =>
+        text == null ? '—' : `${(Number(text) * 100).toFixed(1)}%`,
+    },
     {
       title: '自适应',
       dataIndex: 'adaptDecision',
-      width: 100,
+      width: 90,
       customRender: ({ text }) => text || 'KEEP',
     },
-    { title: '状态', dataIndex: 'online', width: 90, customRender: ({ text }) => renderOnline(!!text) },
     {
       title: '最后心跳',
       dataIndex: 'lastHeartbeatTime',
-      width: 180,
+      width: 170,
       customRender: ({ text }) => formatHeartbeat(text),
     },
-    { title: '操作', dataIndex: 'action', width: 100 },
+    { title: '操作', dataIndex: 'action', width: 200 },
   ]
+}
+
+/** 运行集群下行指令 */
+export const clusterCommandOptions = [
+  {
+    value: 'PING',
+    label: 'PING',
+    desc: '探活：实例立即回传 PONG 遥测与指令回执',
+  },
+  {
+    value: 'RELOAD_CONFIG',
+    label: '重载配置',
+    desc: '确认规则/映射已从库生效，并回传 RELOADED',
+  },
+  {
+    value: 'SHUTDOWN_HINT',
+    label: '优雅停机',
+    desc: '进程优雅退出；Docker 副本需再调节点 Agent 硬停',
+  },
+]
+
+export function formatPercentRate(rate?: number | null) {
+  if (rate == null || Number.isNaN(Number(rate))) return '—'
+  return `${(Number(rate) * 100).toFixed(1)}%`
+}
+
+export function formatCpu(load?: number | null) {
+  if (load == null || Number.isNaN(Number(load))) return '—'
+  return `${Number(load).toFixed(0)}%`
+}
+
+export function formatHeap(used?: number | null, max?: number | null) {
+  if (used == null) return '—'
+  return max != null ? `${used} / ${max} MB` : `${used} MB`
 }
 
 export function getPartyColumns(): BasicColumn[] {
   return [
-    { title: '系统编码', dataIndex: 'id', width: 160 },
-    { title: '系统名称', dataIndex: 'name', width: 160 },
+    { title: '目的地编码', dataIndex: 'id', width: 160 },
+    { title: '目的地名称', dataIndex: 'name', width: 160 },
     {
       title: '系统类型',
       dataIndex: 'type',
@@ -114,7 +218,7 @@ export function getPartyColumns(): BasicColumn[] {
     {
       title: '状态',
       dataIndex: 'enabled',
-      width: 90,
+      width: 100,
       customRender: ({ text }) => renderEnabled(!!text),
     },
     { title: '操作', dataIndex: 'action', width: 120 },
@@ -125,30 +229,25 @@ export function getContractColumns(partyNameFn: (id?: string) => string): BasicC
   return [
     { title: '规则编码', dataIndex: 'id', width: 180 },
     {
-      title: '对接系统',
+      title: '数据目的',
       dataIndex: 'partyId',
       width: 160,
       customRender: ({ text }) => partyNameFn(text),
     },
     {
-      title: '数据类型',
+      title: '数据源类型',
       dataIndex: 'flowType',
-      width: 120,
+      width: 140,
       customRender: ({ text }) => flowTypeLabel(text),
     },
     {
-      title: '推送通道',
+      title: '转发通道',
       dataIndex: 'channel',
       width: 120,
       customRender: ({ text }) => channelLabel(text),
     },
     { title: '投递地址', dataIndex: 'endpoint', width: 240, ellipsis: true },
-    {
-      title: '状态',
-      dataIndex: 'enabled',
-      width: 90,
-      customRender: ({ text }) => renderEnabled(!!text),
-    },
+    { title: '运行状态', dataIndex: 'enabled', width: 100 },
     { title: '操作', dataIndex: 'action', width: 120 },
   ]
 }
@@ -166,7 +265,7 @@ export function getMappingColumns(): BasicColumn[] {
     {
       title: '状态',
       dataIndex: 'enabled',
-      width: 90,
+      width: 100,
       customRender: ({ text }) => renderEnabled(!!text),
     },
     { title: '操作', dataIndex: 'action', width: 120 },
@@ -178,31 +277,38 @@ export function getPipelineColumns(mappingNameFn: (id?: string) => string): Basi
     { title: '流程编码', dataIndex: 'id', width: 140 },
     { title: '流程名称', dataIndex: 'name', width: 140 },
     {
-      title: '数据类型',
+      title: '数据源类型',
       dataIndex: 'flowType',
-      width: 120,
+      width: 140,
       customRender: ({ text }) => flowTypeLabel(text),
     },
     {
-      title: '映射模板',
+      title: '解析器 / 映射',
       dataIndex: 'mappingId',
       width: 160,
       customRender: ({ text }) => mappingNameFn(text),
     },
-    { title: '启用', dataIndex: 'enabled', width: 90 },
+    { title: '运行状态', dataIndex: 'enabled', width: 100 },
     { title: '操作', dataIndex: 'action', width: 120 },
   ]
 }
 
 export function getOutboxColumns(partyNameFn: (id?: string) => string): BasicColumn[] {
   return [
-    { title: '记录编号', dataIndex: 'id', width: 180, ellipsis: true },
-    { title: '事件编号', dataIndex: 'eventId', width: 160, ellipsis: true },
+    { title: '记录编号', dataIndex: 'id', width: 160, ellipsis: true },
+    { title: '事件编号', dataIndex: 'eventId', width: 140, ellipsis: true },
     {
-      title: '对接系统',
+      title: '数据目的',
       dataIndex: 'partyId',
-      width: 140,
+      width: 120,
       customRender: ({ text }) => partyNameFn(text),
+    },
+    {
+      title: '规则',
+      dataIndex: 'contractId',
+      width: 140,
+      ellipsis: true,
+      customRender: ({ text }) => text || '—',
     },
     {
       title: '通道',
@@ -216,8 +322,15 @@ export function getOutboxColumns(partyNameFn: (id?: string) => string): BasicCol
       width: 100,
       customRender: ({ text }) => renderDeliveryStatus(text),
     },
-    { title: '重试次数', dataIndex: 'attempts', width: 90 },
-    { title: '操作', dataIndex: 'action', width: 90 },
+    { title: '重试', dataIndex: 'attempts', width: 70 },
+    {
+      title: '错误信息',
+      dataIndex: 'error',
+      width: 200,
+      ellipsis: true,
+      customRender: ({ text }) => text || '—',
+    },
+    { title: '操作', dataIndex: 'action', width: 140 },
   ]
 }
 
@@ -230,92 +343,19 @@ export function getDlqColumns(): BasicColumn[] {
   ]
 }
 
-/** 卡片视图字段定义（与表格列对齐） */
-export function getInstanceCardFields() {
-  return [
-    { key: 'nodeId', label: '节点', render: (r: Recordable) => r.nodeId || '—' },
-    { key: 'host', label: '主机' },
-    { key: 'role', label: '角色' },
-    {
-      key: 'adaptDecision',
-      label: '自适应',
-      render: (r: Recordable) => r.adaptDecision || 'KEEP',
-    },
-    {
-      key: 'lastHeartbeatTime',
-      label: '心跳',
-      render: (r: Recordable) => formatHeartbeat(r.lastHeartbeatTime),
-    },
-  ]
-}
-
-export function getPartyCardFields() {
-  return [
-    { key: 'id', label: '系统编码' },
-    { key: 'type', label: '系统类型', render: (r: Recordable) => systemTypeLabel(r.type) },
-  ]
-}
-
-export function getContractCardFields(partyNameFn: (id?: string) => string) {
-  return [
-    { key: 'partyId', label: '对接系统', render: (r: Recordable) => partyNameFn(r.partyId) },
-    { key: 'flowType', label: '数据类型', render: (r: Recordable) => flowTypeLabel(r.flowType) },
-    { key: 'channel', label: '推送通道', render: (r: Recordable) => channelLabel(r.channel) },
-    { key: 'endpoint', label: '投递地址' },
-  ]
-}
-
-export function getMappingCardFields() {
-  return [
-    { key: 'id', label: '模板编码' },
-    {
-      key: 'fields',
-      label: '字段数',
-      render: (r: Recordable) => String(Object.keys(r.fields || {}).length),
-    },
-  ]
-}
-
-export function getPipelineCardFields(mappingNameFn: (id?: string) => string) {
-  return [
-    { key: 'id', label: '流程编码' },
-    { key: 'flowType', label: '数据类型', render: (r: Recordable) => flowTypeLabel(r.flowType) },
-    {
-      key: 'mappingId',
-      label: '映射模板',
-      render: (r: Recordable) => mappingNameFn(r.mappingId),
-    },
-  ]
-}
-
-export function getOutboxCardFields(partyNameFn: (id?: string) => string) {
-  return [
-    { key: 'eventId', label: '事件编号' },
-    { key: 'partyId', label: '对接系统', render: (r: Recordable) => partyNameFn(r.partyId) },
-    { key: 'channel', label: '通道', render: (r: Recordable) => channelLabel(r.channel) },
-    { key: 'attempts', label: '重试次数' },
-  ]
-}
-
-export function getDlqCardFields() {
-  return [
-    { key: 'source', label: '失败来源' },
-    { key: 'reason', label: '失败原因' },
-  ]
-}
-
+/** @deprecated 抽屉改用结构化表单，保留兼容 */
 export function getPartyFormSchema(isEdit: boolean): FormSchema[] {
   return [
     {
       field: 'id',
-      label: '系统编码',
+      label: '目的地编码',
       component: 'Input',
       required: true,
       componentProps: { disabled: isEdit, placeholder: '如 demo-mes' },
     },
     {
       field: 'name',
-      label: '系统名称',
+      label: '目的地名称',
       component: 'Input',
       required: true,
       componentProps: { placeholder: '如 产线 MES' },
@@ -343,6 +383,7 @@ export function getPartyFormSchema(isEdit: boolean): FormSchema[] {
   ]
 }
 
+/** @deprecated */
 export function getContractFormSchema(
   isEdit: boolean,
   partyOptions: { label: string; value: string }[],
@@ -358,21 +399,21 @@ export function getContractFormSchema(
     },
     {
       field: 'partyId',
-      label: '对接系统',
+      label: '数据目的',
       component: 'Select',
       required: true,
-      componentProps: { options: partyOptions, placeholder: '请选择对接系统' },
+      componentProps: { options: partyOptions, placeholder: '请选择数据目的' },
     },
     {
       field: 'flowType',
-      label: '数据类型',
+      label: '数据源类型',
       component: 'Select',
       required: true,
       componentProps: { options: flowTypeOptions },
     },
     {
       field: 'channel',
-      label: '推送通道',
+      label: '转发通道',
       component: 'Select',
       required: true,
       componentProps: { options: channelOptions },
@@ -406,6 +447,7 @@ export function getContractFormSchema(
   ]
 }
 
+/** @deprecated */
 export function getMappingFormSchema(isEdit: boolean): FormSchema[] {
   return [
     {
@@ -442,6 +484,7 @@ export function getMappingFormSchema(isEdit: boolean): FormSchema[] {
   ]
 }
 
+/** @deprecated */
 export function getPipelineFormSchema(
   isEdit: boolean,
   mappingOptions: { label: string; value: string }[],
@@ -462,7 +505,7 @@ export function getPipelineFormSchema(
     },
     {
       field: 'flowType',
-      label: '数据类型',
+      label: '数据源类型',
       component: 'Select',
       required: true,
       componentProps: { options: flowTypeOptions },
@@ -487,5 +530,20 @@ export function parseJsonField(text: string, label: string) {
     return text?.trim() ? JSON.parse(text) : {}
   } catch {
     throw new Error(`${label} 不是合法 JSON`)
+  }
+}
+
+export function endpointPlaceholder(channel?: string) {
+  switch (channel) {
+    case 'mqtt':
+      return 'mqtt://broker:1883/topic/device/up'
+    case 'kafka':
+      return 'iot_transform_outbound'
+    case 'jdbc':
+      return 'jdbc:mysql://host:3306/db#table=device_data'
+    case 'party':
+      return 'http://mes.example.com/api/iot/ingest'
+    default:
+      return 'https://hook.example.com/iot/callback'
   }
 }

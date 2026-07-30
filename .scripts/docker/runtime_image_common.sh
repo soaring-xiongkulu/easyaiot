@@ -40,6 +40,7 @@ INDEPENDENT_MODULES=(
     "aiot-ai|ai-service|AI"
     "aiot-video|video-service|VIDEO"
     "aiot-web|web-service|WEB"
+    "aiot-panel|easyaiot/panel|PANEL"
 )
 
 # 仅 full 全量形态部署（远程名 ↔ 本地名，与 INDEPENDENT_MODULES 格式相同）
@@ -99,8 +100,8 @@ runtime_is_single_arch_build() {
     [ -n "$a" ] && [ "$a" != "all" ]
 }
 
-# build-runtime 可选单模块（DEVICE / AI / VIDEO / WEB / APP / VISUALIZE / TRANSFORM）
-ALL_RUNTIME_BUILD_MODULES=(DEVICE AI VIDEO WEB APP VISUALIZE TRANSFORM)
+# build-runtime 可选单模块（PANEL 全形态；APP/VISUALIZE/TRANSFORM 仅 full）
+ALL_RUNTIME_BUILD_MODULES=(DEVICE AI VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
 
 # 规范化 build-runtime 目标模块（空/all=全部；无效返回 INVALID）
 runtime_normalize_build_module() {
@@ -115,6 +116,7 @@ runtime_normalize_build_module() {
         app|aiot-app) echo "APP" ;;
         visualize|aiot-visualize-web|goview) echo "VISUALIZE" ;;
         transform|aiot-transform) echo "TRANSFORM" ;;
+        panel|aiot-panel|easyaiot/panel) echo "PANEL" ;;
         *) echo "INVALID" ;;
     esac
 }
@@ -138,7 +140,7 @@ runtime_apply_build_module_arg() {
     local normalized
     normalized=$(runtime_normalize_build_module "$arg")
     if [ "$normalized" = "INVALID" ]; then
-        runtime_img_msg error "无效的运行时模块: ${arg}，可选: all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM"
+        runtime_img_msg error "无效的运行时模块: ${arg}，可选: all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
         return 1
     fi
     if [ -n "$normalized" ]; then
@@ -390,14 +392,24 @@ runtime_verify_registry_push_access() {
     return 0
 }
 
-# 交互选择部署形态（默认 full）；非交互时使用环境变量或 full
+# 交互选择部署形态（默认 full）；非交互 / 已指定形态 / 无源码 runtime 时不弹窗
 runtime_interactive_select_profile() {
     local purpose="${1:-pull}"
-    if [ "${EASYAIOT_SKIP_PROFILE_PROMPT:-}" = "1" ]; then
+    if [ "${EASYAIOT_SKIP_PROFILE_PROMPT:-}" = "1" ] || [ "${EASYAIOT_SKIP_IMAGE_PROMPT:-0}" = "1" ]; then
         ensure_deploy_profile 2>/dev/null || export EASYAIOT_DEPLOY_PROFILE="${EASYAIOT_DEPLOY_PROFILE:-full}"
         return 0
     fi
-    if [ ! -t 0 ]; then
+    case "${EASYAIOT_DEPLOY_PROFILE:-}" in
+        mini|standard|full)
+            if declare -F apply_deploy_profile >/dev/null 2>&1; then
+                apply_deploy_profile
+                save_deploy_profile 2>/dev/null || true
+            fi
+            runtime_img_msg info "部署形态: $(runtime_profile_label "${EASYAIOT_DEPLOY_PROFILE}") (${EASYAIOT_DEPLOY_PROFILE})（环境变量已指定）"
+            return 0
+            ;;
+    esac
+    if [ ! -t 0 ] || runtime_is_source_free_runtime; then
         export EASYAIOT_DEPLOY_PROFILE="${EASYAIOT_DEPLOY_PROFILE:-full}"
         if declare -F apply_deploy_profile >/dev/null 2>&1; then
             apply_deploy_profile
@@ -512,7 +524,7 @@ runtime_interactive_select_build_module() {
     if [ -n "${EASYAIOT_RUNTIME_BUILD_MODULE:-}" ]; then
         normalized=$(runtime_normalize_build_module "$EASYAIOT_RUNTIME_BUILD_MODULE")
         if [ "$normalized" = "INVALID" ]; then
-            runtime_img_msg error "无效的运行时模块: ${EASYAIOT_RUNTIME_BUILD_MODULE}，可选: all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM"
+            runtime_img_msg error "无效的运行时模块: ${EASYAIOT_RUNTIME_BUILD_MODULE}，可选: all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
             exit 1
         fi
         if [ -n "$normalized" ]; then
@@ -529,7 +541,7 @@ runtime_interactive_select_build_module() {
 
     echo ""
     echo "请选择要构建/推送的运行时模块："
-    echo "  1) 全部     — DEVICE + AI + VIDEO + WEB + APP + VISUALIZE + TRANSFORM（默认）"
+    echo "  1) 全部     — DEVICE + AI + VIDEO + WEB + APP + VISUALIZE + TRANSFORM + PANEL（默认）"
     idx=2
     declare -A _MODULE_CHOICES=()
     for mod in "${ALL_RUNTIME_BUILD_MODULES[@]}"; do
@@ -541,6 +553,7 @@ runtime_interactive_select_build_module() {
             APP)    echo "  ${idx}) APP       — App 移动端 H5（仅 full 形态）" ;;
             VISUALIZE) echo "  ${idx}) VISUALIZE — 可视化编辑器（仅 full 形态）" ;;
             TRANSFORM) echo "  ${idx}) TRANSFORM — 系统对接 Runtime（仅 full 形态）" ;;
+            PANEL)  echo "  ${idx}) PANEL     — 独立运维控制台（全形态）" ;;
         esac
         _MODULE_CHOICES[$idx]="$mod"
         idx=$((idx + 1))
@@ -569,8 +582,13 @@ runtime_interactive_select_tag() {
     if [ -n "${EASYAIOT_RUNTIME_TAG:-}" ]; then
         return 0
     fi
-    if [ ! -t 0 ]; then
+    # PANEL 无源码 / 非交互 / 已跳过镜像菜单：默认 latest，不打断 install
+    if [ ! -t 0 ] \
+        || [ "${EASYAIOT_SKIP_IMAGE_PROMPT:-0}" = "1" ] \
+        || [ "${EASYAIOT_SKIP_PROFILE_PROMPT:-}" = "1" ] \
+        || runtime_is_source_free_runtime; then
         export EASYAIOT_RUNTIME_TAG="${TAG:-latest}"
+        runtime_img_msg info "镜像标签: ${EASYAIOT_RUNTIME_TAG}（自动）"
         return 0
     fi
     local tag_input=""
@@ -619,11 +637,24 @@ runtime_interactive_confirm_force_rebuild() {
     fi
 }
 
-# pull 前交互配置（install_linux.sh pull 等无参数入口）
+# pull 前配置：无源码 / 非交互 / 已跳过菜单时不询问 tag/profile
 runtime_images_prepare_pull_interactive() {
     runtime_log_registry_info
-    runtime_interactive_select_profile pull
-    runtime_interactive_select_tag
+    if [ ! -t 0 ] \
+        || [ "${EASYAIOT_SKIP_IMAGE_PROMPT:-0}" = "1" ] \
+        || [ "${EASYAIOT_SKIP_PROFILE_PROMPT:-}" = "1" ] \
+        || runtime_is_source_free_runtime; then
+        export EASYAIOT_DEPLOY_PROFILE="${EASYAIOT_DEPLOY_PROFILE:-full}"
+        export EASYAIOT_RUNTIME_TAG="${EASYAIOT_RUNTIME_TAG:-${TAG:-latest}}"
+        if declare -F apply_deploy_profile >/dev/null 2>&1; then
+            apply_deploy_profile
+            save_deploy_profile 2>/dev/null || true
+        fi
+        runtime_img_msg info "拉取参数: profile=${EASYAIOT_DEPLOY_PROFILE}, tag=${EASYAIOT_RUNTIME_TAG}"
+    else
+        runtime_interactive_select_profile pull
+        runtime_interactive_select_tag
+    fi
     runtime_load_registry
     export EASYAIOT_RUNTIME_REGISTRY="$RUNTIME_IMAGE_REGISTRY"
     export REGISTRY="$RUNTIME_IMAGE_REGISTRY"
@@ -899,6 +930,55 @@ runtime_pull_should_skip_image() {
 # ============================================================================
 # 拉取标记与本地镜像就绪检测
 # ============================================================================
+# 规范化标记中的本地镜像 tag（历史包曾误写 embedded，等价于 latest）
+runtime_normalize_pull_tag() {
+    case "${1:-latest}" in
+        ""|embedded|package|source-free|source_free) echo "latest" ;;
+        *) echo "$1" ;;
+    esac
+}
+
+# PANEL/deb 无源码 runtime：禁止回退到本地 docker build
+runtime_is_source_free_runtime() {
+    local root="${PROJECT_ROOT:-}"
+    local marker="${RUNTIME_IMAGES_MARKER}"
+    if [ -f "${SCRIPT_DIR}/.source_free_runtime" ]; then
+        return 0
+    fi
+    if [ -f "$marker" ] && grep -qE '^(SOURCE_FREE=1|# Generated by COMPILE .*source-free)' "$marker" 2>/dev/null; then
+        return 0
+    fi
+    # 启发式：DEVICE 仅有部署脚本、无 pom.xml
+    if [ -n "$root" ] && [ -f "${root}/DEVICE/install_linux.sh" ] && [ ! -f "${root}/DEVICE/pom.xml" ]; then
+        return 0
+    fi
+    return 1
+}
+
+# 写入/刷新拉取标记（供 pull 成功或部分成功后复用）
+runtime_images_write_pulled_marker() {
+    local arch="${1:-$(runtime_detect_arch)}"
+    local profile="${2:-${EASYAIOT_DEPLOY_PROFILE:-full}}"
+    local tag
+    tag="$(runtime_normalize_pull_tag "${3:-latest}")"
+    local marker="${RUNTIME_IMAGES_MARKER}"
+    local source_free_line=""
+    if runtime_is_source_free_runtime || [ -f "${SCRIPT_DIR}/.source_free_runtime" ]; then
+        source_free_line="SOURCE_FREE=1"
+    fi
+    mkdir -p "$(dirname "$marker")"
+    cat > "$marker" <<EOF
+# EasyAIoT 运行时镜像拉取标记
+# 此文件由 runtime_image.sh / install 自动生成或刷新
+# 各平台 install 脚本检测到此文件后会跳过 docker build，直接启动服务
+PULL_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+PULL_ARCH=${arch}
+PULL_PROFILE=${profile}
+PULL_TAG=${tag}
+${source_free_line}
+EOF
+}
+
 # 返回 0 = 已拉取且本地镜像齐全，可跳过构建
 runtime_images_pulled_ready() {
     local marker="${RUNTIME_IMAGES_MARKER}"
@@ -910,6 +990,7 @@ runtime_images_pulled_ready() {
     pull_arch=$(sed -n 's/^PULL_ARCH=//p' "$marker" 2>/dev/null || true)
     pull_profile=$(sed -n 's/^PULL_PROFILE=//p' "$marker" 2>/dev/null || true)
     pull_tag=$(sed -n 's/^PULL_TAG=//p' "$marker" 2>/dev/null || true)
+    pull_tag="$(runtime_normalize_pull_tag "$pull_tag")"
 
     local current_arch; current_arch=$(runtime_detect_arch)
     if [ "${pull_arch:-}" != "$current_arch" ]; then
@@ -928,7 +1009,7 @@ runtime_images_pulled_ready() {
     fi
 
     local -a check_images=()
-    runtime_images_collect_check_refs check_images "${pull_profile:-full}" "${pull_tag:-latest}"
+    runtime_images_collect_check_refs check_images "${pull_profile:-full}" "${pull_tag}"
 
     local img actual
     for img in "${check_images[@]}"; do
@@ -943,6 +1024,13 @@ runtime_images_pulled_ready() {
             return 1
         fi
     done
+
+    # 兼容旧包：标记里曾写 PULL_TAG=embedded，校验用 latest 通过后写回正确标记
+    local raw_tag
+    raw_tag=$(sed -n 's/^PULL_TAG=//p' "$marker" 2>/dev/null || true)
+    if [ "${raw_tag}" != "${pull_tag}" ]; then
+        runtime_images_write_pulled_marker "$current_arch" "${pull_profile:-full}" "$pull_tag"
+    fi
 
     runtime_img_msg ok "检测到预构建镜像已就绪 (${pull_arch}, ${pull_profile:-full})，跳过构建"
     return 0
@@ -1101,7 +1189,7 @@ runtime_print_install_local_build_help() {
     runtime_img_msg info "  bash ${install_script} start     # 镜像就绪后启动"
     echo ""
     if [ "$install_script" = ".scripts/docker/install_business_linux.sh" ]; then
-        runtime_img_msg info "（当前脚本仅含业务模块 DEVICE/AI/VIDEO/WEB/APP/VISUALIZE，不含中间件）"
+        runtime_img_msg info "（当前脚本仅含业务模块 DEVICE/AI/VIDEO/WEB/APP/VISUALIZE/TRANSFORM/PANEL，不含中间件）"
     else
         runtime_img_msg info "方案 3：仅构建/安装单个模块（示例 DEVICE）"
         runtime_img_msg info "  bash DEVICE/install_linux.sh build"
@@ -1128,6 +1216,23 @@ runtime_print_install_local_build_help() {
 runtime_images_acquire() {
     local skip_prompt="${1:-0}"
     local do_local_build=0
+    local source_free=0
+    if runtime_is_source_free_runtime; then
+        source_free=1
+    fi
+
+    # 无源码 runtime（PANEL 包）只能拉预构建镜像，禁止弹「本地构建」菜单
+    if [ "$source_free" -eq 1 ]; then
+        skip_prompt=1
+        export EASYAIOT_SKIP_IMAGE_PROMPT=1
+        export EASYAIOT_RUNTIME_TAG="${EASYAIOT_RUNTIME_TAG:-latest}"
+        if runtime_images_pulled_ready; then
+            runtime_img_msg info "无源码 runtime：预构建镜像已就绪，跳过拉取与构建"
+            export EASYAIOT_SKIP_BUILD=1
+            return 0
+        fi
+        runtime_img_msg info "无源码 runtime（PANEL）：自动拉取预构建镜像（不支持本地 docker build）"
+    fi
 
     if [ "$skip_prompt" != "1" ] && [ "${EASYAIOT_SKIP_IMAGE_PROMPT:-0}" != "1" ]; then
         if [ -t 0 ]; then
@@ -1148,10 +1253,15 @@ runtime_images_acquire() {
         else
             runtime_img_msg info "非交互模式，默认拉取预构建镜像"
         fi
-    elif runtime_images_pulled_ready; then
+    elif [ "$source_free" -eq 0 ] && runtime_images_pulled_ready; then
         export EASYAIOT_SKIP_BUILD=1
         export EASYAIOT_SKIP_IMAGE_PROMPT=1
         return 0
+    fi
+
+    if [ "$do_local_build" -eq 1 ] && [ "$source_free" -eq 1 ]; then
+        runtime_img_msg warn "无源码 runtime 不支持本地构建，改为拉取预构建镜像"
+        do_local_build=0
     fi
 
     if [ "$do_local_build" -eq 0 ]; then
@@ -1161,7 +1271,19 @@ runtime_images_acquire() {
         if runtime_images_invoke pull; then
             runtime_img_msg ok "预构建镜像拉取成功"
             export EASYAIOT_SKIP_BUILD=1
+        elif runtime_images_pulled_ready; then
+            # 个别镜像（如尚未发布的 aiot-transform）失败时，核心镜像仍可能已就绪
+            runtime_img_msg warn "部分远程镜像拉取失败，但本地核心预构建镜像已就绪，将跳过构建并继续安装"
+            export EASYAIOT_SKIP_BUILD=1
+            do_local_build=0
         else
+            if [ "$source_free" -eq 1 ]; then
+                runtime_img_msg error "预构建镜像不完整，且当前为无源码 runtime（PANEL 安装包），无法本地 docker build"
+                runtime_img_msg error "请检查仓库连通性，或确认远程已发布缺失镜像（如 aiot-transform）后重试 pull/install"
+                runtime_print_install_local_build_help pull
+                export EASYAIOT_SKIP_IMAGE_PROMPT=1
+                return 1
+            fi
             runtime_img_msg warn "预构建镜像拉取失败，install 将自动在各模块执行本地构建"
             runtime_print_install_local_build_help install
             do_local_build=1
@@ -1177,8 +1299,15 @@ runtime_images_acquire() {
 # 交互询问拉取最新预构建镜像或本地重建；成功拉取后设置 EASYAIOT_SKIP_BUILD
 runtime_images_acquire_for_update() {
     local do_local_build=0
+    local source_free=0
+    if runtime_is_source_free_runtime; then
+        source_free=1
+    fi
 
     if [ "${EASYAIOT_RUNTIME_FORCE_PULL:-0}" = "1" ]; then
+        do_local_build=0
+    elif [ "$source_free" -eq 1 ]; then
+        runtime_img_msg info "无源码 runtime（PANEL）：自动拉取最新预构建镜像（不支持本地重建）"
         do_local_build=0
     elif [ "${EASYAIOT_SKIP_IMAGE_PROMPT:-0}" = "1" ]; then
         if [ "${EASYAIOT_SKIP_BUILD:-0}" = "1" ]; then
@@ -1204,6 +1333,11 @@ runtime_images_acquire_for_update() {
         runtime_img_msg info "非交互模式，默认拉取最新预构建镜像"
     fi
 
+    if [ "$do_local_build" -eq 1 ] && [ "$source_free" -eq 1 ]; then
+        runtime_img_msg warn "无源码 runtime 不支持本地重建，改为拉取预构建镜像"
+        do_local_build=0
+    fi
+
     if [ "$do_local_build" -eq 0 ]; then
         runtime_img_msg info "正在拉取最新预构建镜像..."
         export EASYAIOT_RUNTIME_FORCE_PULL=1
@@ -1212,7 +1346,19 @@ runtime_images_acquire_for_update() {
         if runtime_images_invoke pull; then
             runtime_img_msg ok "预构建镜像更新成功"
             export EASYAIOT_SKIP_BUILD=1
+        elif runtime_images_pulled_ready; then
+            runtime_img_msg warn "部分远程镜像拉取失败，但本地核心预构建镜像已就绪，将跳过重建并继续更新"
+            export EASYAIOT_SKIP_BUILD=1
+            do_local_build=0
+            unset EASYAIOT_RUNTIME_FORCE_PULL
         else
+            if runtime_is_source_free_runtime; then
+                runtime_img_msg error "预构建镜像不完整，且当前为无源码 runtime（PANEL 安装包），无法本地重建"
+                runtime_print_install_local_build_help pull
+                unset EASYAIOT_RUNTIME_FORCE_PULL
+                export EASYAIOT_SKIP_IMAGE_PROMPT=1
+                return 1
+            fi
             runtime_img_msg warn "预构建镜像拉取失败，update 将自动在各模块执行本地重建"
             runtime_print_install_local_build_help update
             do_local_build=1
@@ -1298,13 +1444,13 @@ runtime_images_invoke() {
 # 显示运行时镜像管理用法摘要
 runtime_images_usage() {
     cat <<EOF
-运行时镜像管理（业务模块 DEVICE/AI/VIDEO/WEB/APP/VISUALIZE/TRANSFORM，不含中间件；APP/VISUALIZE/TRANSFORM 仅 full）
+运行时镜像管理（业务模块 DEVICE/AI/VIDEO/WEB/APP/VISUALIZE/TRANSFORM/PANEL，不含中间件；APP/VISUALIZE/TRANSFORM 仅 full；PANEL 全形态）
 
 pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
   mini     — 仅拉 aiot-system（1/12）
   standard — 跳过 aiot-device、aiot-tdengine、aiot-visualize（9/12）
   full     — 拉全部 DEVICE（12/12，含 aiot-visualize）
-  build-runtime 默认构建/推送全部模块；可指定单模块 DEVICE|AI|VIDEO|WEB|APP|VISUALIZE|TRANSFORM
+  build-runtime 默认构建/推送全部模块；可指定单模块 DEVICE|AI|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL
   全量 build-runtime 仍构建/推送全量 DEVICE，供各形态共用远程仓库
 
 本地安装（含本地构建）:
@@ -1312,6 +1458,11 @@ pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
   bash .scripts/docker/install_linux.sh build         # 仅本地构建镜像
   bash .scripts/docker/install_linux_arm.sh install   # ARM 架构
   bash .scripts/docker/install_business_linux.sh install  # 仅业务模块
+
+桌面端（仅镜像部署，禁止本地构建）:
+  bash .scripts/docker/install_mac.sh install
+  bash .scripts/docker/install_windows.sh install
+  # Windows PowerShell: .scripts/docker/install_windows.ps1 install
 
 远程镜像拉取/推送（交互式，默认部署形态 full）:
   bash .scripts/docker/install_linux.sh pull
@@ -1331,7 +1482,7 @@ pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
   EASYAIOT_RUNTIME_PUSH=1      构建后推送（仅 build-runtime）
   EASYAIOT_RUNTIME_BUILD_ALL_PROFILES=1  构建全部形态（仅 build-runtime）
   EASYAIOT_RUNTIME_BUILD_ARCH=all|amd64|arm64  目标架构（默认 all=全部；单架构时跳过 manifest）
-  EASYAIOT_RUNTIME_BUILD_MODULE=all|DEVICE|AI|VIDEO|WEB|APP|VISUALIZE|TRANSFORM  目标模块（默认 all=全部）
+  EASYAIOT_RUNTIME_BUILD_MODULE=all|DEVICE|AI|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL  目标模块（默认 all=全部）
   EASYAIOT_RUNTIME_FORCE_REBUILD=1       强制重建全部镜像（忽略本地缓存）
   EASYAIOT_RUNTIME_FORCE_REBUILD=0       复用本地镜像（已存在则跳过构建，直接推送）
   EASYAIOT_SKIP_REGISTRY_AUTH_CHECK=1     跳过 build-runtime 前的远程仓库登录/推送权限检查

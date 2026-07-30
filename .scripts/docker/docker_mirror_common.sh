@@ -14,10 +14,10 @@ if ! declare -f check_command >/dev/null 2>&1; then
     check_command() { command -v "$1" >/dev/null 2>&1; }
 fi
 
-# DaoCloud 对部分镜像会 403；默认改用更稳的公共代理，华为云专属加速器用 DOCKER_MIRROR 覆盖
-DOCKER_MIRROR="${DOCKER_MIRROR:-https://proxy.vvvv.ee}"
+# 默认公共代理；华为云专属加速器用 DOCKER_MIRROR 覆盖
+DOCKER_MIRROR="${DOCKER_MIRROR:-https://docker.1panel.live}"
 # 拉取回退链（逗号分隔主机名，不含协议）；可通过 DOCKER_MIRROR_FALLBACKS 覆盖
-DOCKER_MIRROR_FALLBACKS="${DOCKER_MIRROR_FALLBACKS:-proxy.vvvv.ee,docker.1panel.live,docker.1ms.run,docker.m.daocloud.io}"
+DOCKER_MIRROR_FALLBACKS="${DOCKER_MIRROR_FALLBACKS:-docker.1panel.live,docker.1ms.run,docker.m.daocloud.io}"
 # 国内公网 DNS；麒麟等系统 /etc/resolv.conf 常指向 ::1/127.0.0.53，Docker 内无法使用
 DOCKER_DNS="${DOCKER_DNS:-223.5.5.5,119.29.29.29}"
 
@@ -219,7 +219,7 @@ docker_pull_with_mirror_fallback() {
     # 主源优先
     [ -n "$primary" ] && hosts+=("$primary")
     # 回退链
-    IFS=',' read -r -a _fb <<< "${DOCKER_MIRROR_FALLBACKS:-proxy.vvvv.ee,docker.1panel.live,docker.1ms.run,docker.m.daocloud.io}"
+    IFS=',' read -r -a _fb <<< "${DOCKER_MIRROR_FALLBACKS:-docker.1panel.live,docker.1ms.run,docker.m.daocloud.io}"
     for h in "${_fb[@]}"; do
         h="${h#https://}"
         h="${h#http://}"

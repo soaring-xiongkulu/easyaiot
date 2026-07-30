@@ -44,4 +44,13 @@ public class NodeWorkloadController {
         return success(true);
     }
 
+    @PostMapping("/stop-by-id")
+    @Operation(summary = "按绑定反查节点后停止工作负载")
+    public CommonResult<Boolean> stopById(@RequestParam("workloadType") String workloadType,
+                                          @RequestParam("workloadId") String workloadId) {
+        nodeCommandService.stopWorkloadByBinding(workloadType, workloadId);
+        nodeSchedulerService.release(workloadType, workloadId);
+        return success(true);
+    }
+
 }

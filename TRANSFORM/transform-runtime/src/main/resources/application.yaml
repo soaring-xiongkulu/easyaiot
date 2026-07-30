@@ -42,6 +42,8 @@ transform:
     timeout-ms: ${TRANSFORM_HTTP_TIMEOUT_MS:10000}
   instance-id: ${TRANSFORM_INSTANCE_ID:}
   node-id: ${TRANSFORM_NODE_ID:}
+  # 机器 IP/主机名（节点分发时写入）；勿依赖 Docker 容器 hostname
+  host: ${TRANSFORM_HOST:}
   channels:
     kafka: true
     http: true

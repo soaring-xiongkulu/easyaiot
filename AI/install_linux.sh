@@ -421,6 +421,16 @@ EOF
 
 check_gpu() {
     if check_command nvidia-smi; then
+        local smi_indexes
+        smi_indexes=$(nvidia-smi --query-gpu=index --format=csv,noheader,nounits 2>/dev/null \
+            | awk '{$1=$1; print}' | paste -sd, -)
+        if ! echo "$smi_indexes" | grep -qE '^[0-9]+(,[0-9]+)*$'; then
+            print_warning "检测到 nvidia-smi，但无法与 NVIDIA 驱动通信，将使用 CPU 模式"
+            print_warning "$(nvidia-smi 2>&1 | head -n 1 || true)"
+            GPU_HARDWARE_DETECTED=false
+            GPU_AVAILABLE=false
+            return
+        fi
         GPU_HARDWARE_DETECTED=true
         print_info "检测到 NVIDIA GPU:"
         nvidia-smi --query-gpu=name,driver_version --format=csv,noheader,nounits 2>/dev/null | while IFS=, read -r name version; do
@@ -465,9 +475,9 @@ check_gpu() {
                 print_success "NVIDIA Container Toolkit 已正确配置"
                 GPU_AVAILABLE=true
             else
-                print_warning "Docker 支持 NVIDIA，但测试运行失败"
-                print_info "可能是镜像下载问题或权限问题，尝试启用 GPU 配置"
-                GPU_AVAILABLE=true
+                print_warning "Docker 支持 NVIDIA，但测试运行失败，回退 CPU 模式"
+                print_info "常见原因：驱动未加载、权限不足或 CUDA 测试镜像拉取失败"
+                GPU_AVAILABLE=false
             fi
         else
             print_warning "Docker daemon.json 中未配置 NVIDIA runtime"
@@ -479,12 +489,12 @@ check_gpu() {
                     print_success "Docker NVIDIA runtime 配置成功"
                     GPU_AVAILABLE=true
                 else
-                    print_warning "配置后仍无法检测到 NVIDIA runtime，尝试强制启用 GPU 配置"
-                    GPU_AVAILABLE=true
+                    print_warning "配置后仍无法检测到 NVIDIA runtime，将使用 CPU 模式"
+                    GPU_AVAILABLE=false
                 fi
             else
-                print_warning "配置失败，尝试强制启用 GPU 配置"
-                GPU_AVAILABLE=true
+                print_warning "配置失败，将使用 CPU 模式"
+                GPU_AVAILABLE=false
             fi
         fi
     else
@@ -542,8 +552,10 @@ configure_gpu() {
     host_devices=$(nvidia-smi --query-gpu=index --format=csv,noheader,nounits 2>/dev/null \
         | awk '{$1=$1; print}' | paste -sd, -)
     if ! echo "$host_devices" | grep -qE '^[0-9]+(,[0-9]+)*$'; then
-        print_error "无法读取有效的宿主机 GPU 列表: ${host_devices:-空}"
-        return 1
+        print_warning "无法读取有效的宿主机 GPU 列表，回退 CPU 模式: ${host_devices:-空}"
+        GPU_AVAILABLE=false
+        rm -f "$GPU_COMPOSE_OVERRIDE"
+        return 0
     fi
 
     override_devices=$(resolve_gpu_override_devices)

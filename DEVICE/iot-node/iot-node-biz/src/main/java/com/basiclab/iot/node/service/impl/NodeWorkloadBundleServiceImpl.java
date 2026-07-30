@@ -740,6 +740,7 @@ public class NodeWorkloadBundleServiceImpl implements NodeWorkloadBundleService 
                 env.put("START_PORT", String.valueOf(startPort));
                 env.put("TRANSFORM_INSTANCE_ID", wid);
                 env.put("TRANSFORM_NODE_ID", String.valueOf(node.getId()));
+                env.put("TRANSFORM_HOST", node.getHost() == null ? "" : node.getHost());
                 env.put("TRANSFORM_ROLE", "full");
                 env.put("KAFKA_BOOTSTRAP", transformKafkaBootstrap);
                 env.put("POSTGRES_URL", transformPostgresUrl);

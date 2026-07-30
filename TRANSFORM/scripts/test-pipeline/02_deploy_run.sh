@@ -96,7 +96,7 @@ case "$MODE" in
       fi
       docker run -d \
         --name "$name" \
-        --restart unless-stopped \
+        --restart on-failure:5 \
         -p "${port}:48096" \
         -e SERVER_PORT=48096 \
         -e TRANSFORM_INSTANCE_ID="$iid" \

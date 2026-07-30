@@ -161,17 +161,19 @@ class WorkloadManager:
         # 先清理同名残留
         subprocess.run(['docker', 'rm', '-f', container_name], capture_output=True, text=True)
 
+        # on-failure：优雅退出(exit 0)后不会被 Docker 自动拉起；unless-stopped 会把停机打成「假停」
+        restart_policy = (env.get('DOCKER_RESTART') or 'on-failure:5').strip() or 'on-failure:5'
         cmd = [
             'docker', 'run', '-d',
             '--name', container_name,
-            '--restart', 'unless-stopped',
+            '--restart', restart_policy,
             '-p', f'{host_port}:{container_port}',
             '-e', f'SERVER_PORT={container_port}',
             '-e', f'PORT={container_port}',
         ]
         # 透传常见环境变量
         passthrough = [
-            'TRANSFORM_INSTANCE_ID', 'TRANSFORM_NODE_ID', 'TRANSFORM_ROLE',
+            'TRANSFORM_INSTANCE_ID', 'TRANSFORM_NODE_ID', 'TRANSFORM_HOST', 'TRANSFORM_ROLE',
             'KAFKA_BOOTSTRAP', 'POSTGRES_URL', 'POSTGRES_USERNAME', 'POSTGRES_PASSWORD',
             'SPRING_PROFILES_ACTIVE', 'TRANSFORM_BACKUP_DIR', 'JAVA_OPTS', 'NACOS_ADDR',
         ]
@@ -211,20 +213,38 @@ class WorkloadManager:
             'port': int(host_port),
         }
 
+    def _container_name_for(self, workload_type: str, workload_id: str) -> str:
+        safe_id = ''.join(c if c.isalnum() or c in '-_' else '-' for c in str(workload_id))[:40]
+        return f'{workload_type}-{safe_id}'[:63].strip('-')
+
     def stop(self, workload_type: str, workload_id: str) -> bool:
+        """停止工作负载。Docker 场景即使 Agent 重启丢失内存，也按命名约定 / 实例环境变量硬删容器。"""
         key = self._key(workload_type, workload_id)
         with self._lock:
             record = self._workloads.get(key)
-        if not record:
-            return False
-        if record.runtime == 'docker' and record.container_name:
-            subprocess.run(['docker', 'rm', '-f', record.container_name], capture_output=True, text=True)
-        elif record.process is not None:
-            _terminate_process_tree(record.process.pid)
-        with self._lock:
-            self._workloads.pop(key, None)
-        logger.info('工作负载已停止 %s', key)
-        return True
+
+        stopped = False
+        if record:
+            if record.runtime == 'docker' and record.container_name:
+                stopped = _docker_rm_force(record.container_name) or stopped
+            elif record.process is not None:
+                _terminate_process_tree(record.process.pid)
+                stopped = True
+            with self._lock:
+                self._workloads.pop(key, None)
+
+        # Agent 重启后内存无记录：按约定名 + TRANSFORM_INSTANCE_ID 环境变量兜底
+        convention = self._container_name_for(workload_type, workload_id)
+        if record is None or (record.runtime == 'docker' and record.container_name != convention):
+            stopped = _docker_rm_force(convention) or stopped
+        for cname in _docker_find_by_env('TRANSFORM_INSTANCE_ID', str(workload_id)):
+            stopped = _docker_rm_force(cname) or stopped
+
+        if stopped:
+            logger.info('工作负载已停止 %s', key)
+        else:
+            logger.warning('未找到可停止的工作负载 %s（可能已停止）', key)
+        return stopped
 
 
 def _docker_running(container_name: str) -> bool:
@@ -236,6 +256,58 @@ def _docker_running(container_name: str) -> bool:
         return r.returncode == 0 and (r.stdout or '').strip().lower() == 'true'
     except Exception:
         return False
+
+
+def _docker_rm_force(container_name: str) -> bool:
+    if not container_name:
+        return False
+    try:
+        r = subprocess.run(
+            ['docker', 'rm', '-f', container_name],
+            capture_output=True, text=True, timeout=30,
+        )
+        if r.returncode == 0:
+            logger.info('docker rm -f %s', container_name)
+            return True
+        err = (r.stderr or r.stdout or '').strip()
+        # 容器不存在不算失败
+        if 'No such container' in err or 'No such object' in err:
+            return False
+        logger.warning('docker rm -f %s failed: %s', container_name, err)
+        return False
+    except Exception as e:
+        logger.warning('docker rm -f %s error: %s', container_name, e)
+        return False
+
+
+def _docker_find_by_env(env_key: str, env_value: str) -> List[str]:
+    """按容器环境变量查找名称（用于 Agent 重启后按 TRANSFORM_INSTANCE_ID 硬停）。"""
+    if not env_key or env_value is None or env_value == '':
+        return []
+    try:
+        listed = subprocess.run(
+            ['docker', 'ps', '-a', '--format', '{{.Names}}'],
+            capture_output=True, text=True, timeout=15,
+        )
+        if listed.returncode != 0:
+            return []
+        names = [n.strip() for n in (listed.stdout or '').splitlines() if n.strip()]
+        matched: List[str] = []
+        needle = f'{env_key}={env_value}'
+        for name in names:
+            insp = subprocess.run(
+                ['docker', 'inspect', '-f', '{{range .Config.Env}}{{println .}}{{end}}', name],
+                capture_output=True, text=True, timeout=10,
+            )
+            if insp.returncode != 0:
+                continue
+            envs = {(line or '').strip() for line in (insp.stdout or '').splitlines()}
+            if needle in envs:
+                matched.append(name)
+        return matched
+    except Exception as e:
+        logger.warning('docker find by env %s=%s failed: %s', env_key, env_value, e)
+        return []
 
 
 def _terminate_process_tree(pid: int):

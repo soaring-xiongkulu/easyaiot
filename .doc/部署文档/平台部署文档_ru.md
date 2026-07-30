@@ -37,8 +37,8 @@ EasyAIoT развёртывается с помощью **Docker-контейн�
 | Linux x86 | `.scripts/docker/install_linux.sh` |
 | Linux ARM | `.scripts/docker/install_linux_arm.sh` |
 | Kylin | `.scripts/docker/install_linux_kylin.sh` |
-| macOS | `.scripts/docker/install_mac.sh` |
-| Windows | `.scripts/docker/install_win.ps1` |
+| macOS (только образы) | `.scripts/docker/install_mac.sh` |
+| Windows (только образы) | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
 ---
 
@@ -157,6 +157,17 @@ sudo .scripts/docker/install_linux.sh install
 | Полная локальная сборка | от 30 минут до нескольких часов |
 
 Процесс `install`: выбор профиля → проверка окружения → создание сети → развёртывание middleware и модулей → ожидание health-check. См. [Развёртывание в один клик и пошаговое](./部署最佳实践_ru.md#развёртывание-в-один-клик).
+
+---
+
+## Развёртывание macOS / Windows (только образы)
+
+Настольные ОС поддерживают только **готовые образы** (`install_mac.sh` / `install_windows.ps1` / `install_windows.sh`). Локальный `build` / `build-runtime` недоступен. Подробности (ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署).
+
+```bash
+bash .scripts/docker/install_mac.sh install
+bash .scripts/docker/install_windows.sh install
+```
 
 ---
 

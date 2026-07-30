@@ -1,0 +1,9 @@
+.venv/
+*.pid
+logs/
+panel.env
+__pycache__/
+*.pyc
+ui/node_modules/
+ui/dist/
+.docker/

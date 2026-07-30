@@ -1,8 +1,101 @@
 # EasyAIoT 平台 Windows 本地部署指南
 
-> 文档版本：1.0
-> 更新日期：2025年12月6日
-> 适用系统：Windows 10/11
+> 文档版本：2.0  
+> 更新日期：2026-07-30  
+> 适用系统：Windows 10/11（推荐 Docker Desktop + WSL2）  
+> **推荐部署方式：预构建镜像一键部署**（见下文第 0 章）
+
+总览与跨平台对照见 [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署)。
+
+---
+
+## 0. 推荐：镜像一键部署（2026）
+
+Windows 桌面端与 macOS 一样，**只通过远程预构建镜像部署**，不在本机编译 Java / 前端 / Python 业务镜像。
+
+| 入口 | 说明 |
+|------|------|
+| `.scripts/docker/install_windows.ps1` | PowerShell：先汇总检测 Docker / Compose / Git Bash（或缺什么提示装什么并中止），再转发 |
+| `.scripts/docker/install_windows.sh` | 在 Git Bash / WSL 中直接执行（安装前同样会做前置检测） |
+
+**不支持**：`build`、`build-runtime`、`clean-build-runtime`。
+
+### 0.1 前置条件
+
+1. 安装并启动 [Docker Desktop](https://www.docker.com/products/docker-desktop)（建议启用 **WSL2** 后端）
+2. 安装 [Git for Windows](https://git-scm.com/download/win)（提供 `bash` 4+），或启用 WSL
+3. clone 本仓库（compose 与脚本需要；业务产物来自镜像仓库）
+4. 可选：Docker Desktop → Settings → Docker Engine 配置 `registry-mirrors`
+
+`install` / `pull` / `update` / `start` / `check` 会在真正部署前自动做前置检测：缺少组件时打印安装指引并**中止**，不会半途失败。
+
+建议先自检：
+
+```powershell
+.\.scripts\docker\install_windows.ps1 check
+```
+
+或：
+
+```powershell
+docker --version
+docker compose version
+docker info
+```
+
+### 0.2 快速安装
+
+```powershell
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+# 交互引导
+.\.scripts\docker\install_windows.ps1
+
+# 指定命令
+.\.scripts\docker\install_windows.ps1 pull
+.\.scripts\docker\install_windows.ps1 install
+.\.scripts\docker\install_windows.ps1 verify
+```
+
+Git Bash：
+
+```bash
+bash .scripts/docker/install_windows.sh install
+```
+
+非交互指定形态：
+
+```powershell
+$env:EASYAIOT_DEPLOY_PROFILE = "mini"
+.\.scripts\docker\install_windows.ps1 install
+```
+
+### 0.3 常用命令
+
+```powershell
+.\.scripts\docker\install_windows.ps1 start
+.\.scripts\docker\install_windows.ps1 stop
+.\.scripts\docker\install_windows.ps1 status
+.\.scripts\docker\install_windows.ps1 logs VIDEO
+.\.scripts\docker\install_windows.ps1 update
+.\.scripts\docker\install_windows.ps1 check
+.\.scripts\docker\install_windows.ps1 profile
+```
+
+安装完成后访问 `http://localhost:8888`（Gateway `:48080`，Nacos `:8848/nacos`）。
+
+### 0.4 排障速查
+
+| 问题 | 处理 |
+|------|------|
+| 找不到 bash | 安装 Git for Windows，或改用 WSL 后重跑 `install_windows.ps1` |
+| Docker 未就绪 | 启动 Docker Desktop，等待引擎 Ready |
+| 宿主机 IP 不准 | `$env:HOST_IP = "192.168.x.x"` 后重新 start/install |
+| `build` 被拒绝 | 预期行为；请用 `pull` + `install` |
+| 日志 | `.scripts/docker/logs/install_windows_*.log` |
+
+> 下文第 1～8 章为早期「本机安装 JDK / Node / Python 再部署」记录，适用于特殊排障或对照端口配置；**新环境请优先使用本章镜像部署**。
 
 ---
 

@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: easyaiot-panel
+Source: https://github.com/soaring-xiongkulu/easyaiot
+
+Files: *
+Copyright: EasyAIoT contributors
+License: Apache-2.0

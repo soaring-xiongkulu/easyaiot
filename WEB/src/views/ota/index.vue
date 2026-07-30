@@ -194,14 +194,14 @@ const handleDownload = async (record) => {
 }
 
 .device-wrapper {
-  padding: 16px;
+  padding: 0;
   box-sizing: border-box;
   min-height: calc(100vh - 88px);
-  background: transparent;
+  background: #ffffff;
 
   .page-content-card {
     background: #fff;
-    border-radius: 8px;
+    border-radius: 0;
     overflow: hidden;
   }
 

@@ -308,6 +308,8 @@ onMounted(() => {
 }
 
 .device-wrapper {
+  background: #ffffff;
+
   :deep(.ant-tabs-nav) {
     padding: 5px 0 0 25px;
   }
@@ -317,7 +319,7 @@ onMounted(() => {
   }
 
   .device-tab {
-    padding: 16px 19px 0 15px;
+    padding: 0;
 
     .ant-tabs {
       background-color: #FFFFFF;
@@ -428,7 +430,7 @@ onMounted(() => {
   }
 
   .device-tab {
-    padding: 16px 19px 0 15px;
+    padding: 0;
 
     .ant-tabs {
       background-color: #FFFFFF;

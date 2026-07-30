@@ -65,11 +65,12 @@ for i in $(seq 1 "$COUNT"); do
   fi
   docker run -d \
     --name "$name" \
-    --restart unless-stopped \
+    --restart on-failure:5 \
     -p "${port}:48096" \
     -e SERVER_PORT=48096 \
     -e TRANSFORM_INSTANCE_ID="$instance_id" \
     -e TRANSFORM_NODE_ID="$NODE_ID" \
+    -e TRANSFORM_HOST="$(hostname -I 2>/dev/null | awk '{print $1}')" \
     -e TRANSFORM_ROLE="$ROLE" \
     -e KAFKA_BOOTSTRAP="$KAFKA_EFF" \
     -e POSTGRES_URL="$POSTGRES_EFF" \

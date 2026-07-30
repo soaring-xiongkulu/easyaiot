@@ -1,9 +1,37 @@
 # EasyAIoT Platform Windows Local Deployment Guide
 
-> Document Version: 1.0
-> Update Date: December 6, 2025
-> Compatible Systems: Windows 10/11
+> Document Version: 2.0  
+> Update Date: 2026-07-30  
+> Compatible Systems: Windows 10/11 (Docker Desktop + WSL2 recommended)  
+> **Recommended: pre-built image one-click deploy** (section 0 below)
 
+Cross-platform overview: [Platform Deployment Guide](./平台部署文档.md#macos--windows-image-only-deploy). Chinese detail: [平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md).
+
+---
+
+## 0. Recommended: Image-Only Deploy (2026)
+
+| Entry | Notes |
+|-------|-------|
+| `.scripts/docker/install_windows.ps1` | PowerShell: checks Docker Desktop, forwards to Git Bash / WSL |
+| `.scripts/docker/install_windows.sh` | Run in Git Bash / WSL |
+
+**Not supported:** `build`, `build-runtime`, `clean-build-runtime`.
+
+### Quick start
+
+```powershell
+cd easyaiot
+.\.scripts\docker\install_windows.ps1 pull
+.\.scripts\docker\install_windows.ps1 install
+.\.scripts\docker\install_windows.ps1 verify
+```
+
+Then open `http://localhost:8888`.
+
+> Chapters 1–8 below are legacy notes for local JDK/Node/Python setups. Prefer section 0 for new environments.
+
+---
 
 ## Table of Contents
 

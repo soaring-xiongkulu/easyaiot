@@ -61,7 +61,7 @@ SEED_SCRIPT="${SCRIPT_DIR}/../node-red/seed_nodered_demo.sh"
 [ -n "${NODERED_IMAGE+x}" ] && _NODERED_IMAGE_FROM_ENV=1 || _NODERED_IMAGE_FROM_ENV=
 NODERED_IMAGE="${NODERED_IMAGE:-nodered/node-red:latest}"
 NODERED_IMAGE_ALIAS="${NODERED_IMAGE_ALIAS:-nodered/node-red:latest}"
-DOCKER_MIRROR="${DOCKER_MIRROR:-https://proxy.vvvv.ee/}"
+DOCKER_MIRROR="${DOCKER_MIRROR:-https://docker.1panel.live/}"
 
 FORCE_OS_CHECK=false
 WAIT_READY=true
@@ -334,7 +334,7 @@ configure_docker_mirror_local() {
 
     mkdir -p /etc/docker
 
-    if [ -f "$docker_config_file" ] && grep -qE 'proxy\.vvvv\.ee|docker\.m\.daocloud\.io|1panel\.live' "$docker_config_file" 2>/dev/null; then
+    if [ -f "$docker_config_file" ] && grep -qE 'docker\.m\.daocloud\.io|1panel\.live|1ms\.run' "$docker_config_file" 2>/dev/null; then
         print_success "Docker 镜像源已配置"
         return 0
     fi
@@ -490,7 +490,6 @@ ensure_nodered_image() {
 
     local candidates=(
         "${NODERED_IMAGE}"
-        "proxy.vvvv.ee/${official_path}"
         "docker.1panel.live/${official_path}"
         "docker.1ms.run/${official_path}"
         "docker.m.daocloud.io/${official_path}"
@@ -523,7 +522,7 @@ ensure_nodered_image() {
     fi
 
     print_error "无法拉取 Node-RED 镜像"
-    print_info "可手动: docker pull proxy.vvvv.ee/${official_path}"
+    print_info "可手动: docker pull docker.1panel.live/${official_path}"
     print_info "或: docker pull docker.m.daocloud.io/${official_path}"
     exit 1
 }

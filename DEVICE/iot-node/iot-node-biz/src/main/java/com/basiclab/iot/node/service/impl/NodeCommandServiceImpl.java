@@ -29,6 +29,7 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.except
 import static com.basiclab.iot.node.enums.ErrorCodeConstants.AGENT_COMMAND_FAILED;
 import static com.basiclab.iot.node.enums.ErrorCodeConstants.COMPUTE_NODE_NOT_EXISTS;
 import static com.basiclab.iot.node.enums.ErrorCodeConstants.COMPUTE_NODE_OFFLINE;
+import static com.basiclab.iot.node.enums.ErrorCodeConstants.WORKLOAD_BINDING_NOT_EXISTS;
 
 @Slf4j
 @Service
@@ -110,10 +111,12 @@ public class NodeCommandServiceImpl implements NodeCommandService {
         Map<String, Object> body = new HashMap<>();
         body.put("workloadType", workloadType);
         body.put("workloadId", workloadId);
-        try {
-            callAgent(node, "/workload/stop", body);
-        } catch (Exception e) {
-            log.warn("远程停止工作负载失败 nodeId={} {}:{} - {}", nodeId, workloadType, workloadId, e.getMessage());
+        // 硬停失败必须抛出，避免前端误以为已 docker rm
+        JSONObject data = callAgent(node, "/workload/stop", body);
+        // 新 Agent 会回 removed；显式 false 表示本机未找到容器/进程
+        if (data != null && data.containsKey("removed") && !data.getBool("removed", false)) {
+            throw exception(AGENT_COMMAND_FAILED,
+                    "未找到可停止的容器/进程 workloadId=" + workloadId);
         }
         NodeWorkloadBindingDO binding = nodeWorkloadBindingMapper.selectByWorkload(workloadType, workloadId);
         if (binding != null) {
@@ -121,6 +124,16 @@ public class NodeCommandServiceImpl implements NodeCommandService {
             binding.setProcessPid(null);
             nodeWorkloadBindingMapper.updateById(binding);
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void stopWorkloadByBinding(String workloadType, String workloadId) {
+        NodeWorkloadBindingDO binding = nodeWorkloadBindingMapper.selectByWorkload(workloadType, workloadId);
+        if (binding == null || binding.getNodeId() == null) {
+            throw exception(WORKLOAD_BINDING_NOT_EXISTS, workloadType + ":" + workloadId);
+        }
+        stopWorkload(binding.getNodeId(), workloadType, workloadId);
     }
 
     private ComputeNodeDO validateOnlineNode(Long nodeId) {

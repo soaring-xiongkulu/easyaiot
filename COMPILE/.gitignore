@@ -1,0 +1,9 @@
+dist/
+work/
+.panel-version
+*.spec.bak
+__pycache__/
+*.pyc
+.venv-build/
+.venv-build-*/
+*.log

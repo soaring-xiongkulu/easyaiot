@@ -212,6 +212,8 @@ export const NODE_DASHBOARD = {
   overviewCentralNodeAll: '全部中心节点',
   overviewBackToAll: '返回全部节点',
   overviewNodeFocusHint: '选择单个节点后，下方资源图表仅展示该节点数据',
+  openPanel: '运维面板',
+  openPanelHint: '打开 EasyAIoT PANEL：容器管理、一键部署与诊断',
   clusterLoad: '集群资源负载',
   sectionVram: '节点显存分布',
   sectionVramHint: '各 GPU 卡的显存使用率',

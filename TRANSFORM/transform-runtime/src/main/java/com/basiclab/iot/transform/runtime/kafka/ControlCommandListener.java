@@ -1,6 +1,5 @@
 package com.basiclab.iot.transform.runtime.kafka;
 
-import com.basiclab.iot.transform.capability.sense.SenseCapability;
 import com.basiclab.iot.transform.core.control.TransformCommand;
 import com.basiclab.iot.transform.core.contract.TransformTopics;
 import com.basiclab.iot.transform.runtime.service.ClusterControlService;

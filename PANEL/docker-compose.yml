@@ -1,0 +1,34 @@
+# EasyAIoT PANEL（独立控制台，不依赖 WEB）
+# 构建上下文为 PANEL/ 目录；宿主机仓库根通过 volume 挂到 /easyaiot
+
+services:
+  panel:
+    image: ${PANEL_IMAGE:-easyaiot/panel:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: easyaiot-panel
+    restart: unless-stopped
+    ports:
+      - "${PANEL_LISTEN_PORT:-9200}:9200"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 挂载仓库根，便于执行 install_*.sh / 读取部署形态
+      - ${EASYAIOT_ROOT:-..}:/easyaiot
+    environment:
+      EASYAIOT_ROOT: /easyaiot
+      # 容器内为 Linux；桌面原生包由 COMPILE 写入 install_mac/windows
+      INSTALL_SCRIPT: ${INSTALL_SCRIPT:-.scripts/docker/install_linux.sh}      PANEL_LISTEN_HOST: 0.0.0.0
+      PANEL_LISTEN_PORT: "9200"
+      PANEL_TOKEN: ${PANEL_TOKEN:-}
+      PANEL_ALLOW_DANGEROUS: ${PANEL_ALLOW_DANGEROUS:-1}
+      PANEL_JOB_TIMEOUT: ${PANEL_JOB_TIMEOUT:-7200}
+      PANEL_STATIC_DIR: /opt/panel/ui/dist
+      PANEL_WEB_URL: ${PANEL_WEB_URL:-}
+      PANEL_WEB_PORT: ${PANEL_WEB_PORT:-8888}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9200/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

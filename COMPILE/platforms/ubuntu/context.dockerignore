@@ -1,0 +1,17 @@
+# 精简上下文：仅允许 PANEL 运行所需文件 + COMPILE 打包文件
+*
+!PANEL/
+!PANEL/docker_ops.py
+!PANEL/stack_ops.py
+!PANEL/topology.py
+!PANEL/panel_server.py
+!PANEL/run_panel.py
+!PANEL/ui/
+!PANEL/ui/dist/
+!PANEL/ui/dist/**
+!COMPILE/
+!COMPILE/requirements-build.txt
+!COMPILE/platforms/
+!COMPILE/platforms/ubuntu/
+!COMPILE/platforms/ubuntu/panel.spec
+!COMPILE/platforms/ubuntu/Dockerfile

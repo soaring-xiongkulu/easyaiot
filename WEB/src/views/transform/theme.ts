@@ -1,0 +1,22 @@
+/** 数据转发 — 与节点管理 / theme.less 对齐的视觉 token */
+export const TF_THEME = {
+  primary: '#266cfb',
+  primaryHover: '#1a5ae8',
+  primarySoft: '#e8f0ff',
+  primaryBg: '#f0f5ff',
+  primaryBorder: '#adc6ff',
+  pageBg: '#ffffff',
+  cardBg: '#ffffff',
+  soft: '#fafbfc',
+  border: '#ebebeb',
+  borderLight: '#f5f5f5',
+  textPrimary: '#181818',
+  textBody: '#333333',
+  textSecondary: '#666666',
+  textMuted: '#999999',
+  success: '#00b42a',
+  warning: '#ff7d00',
+  danger: '#f53f3f',
+  radius: '8px',
+  shadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+} as const

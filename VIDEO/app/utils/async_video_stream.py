@@ -3,7 +3,7 @@ OpenCV 网络流异步解码：后台线程持续 VideoCapture.read()，主线�
 供 realtime_algorithm_service、stream_forward_service、snapshot_algorithm_service 等共用。
 
 环境变量：
-- AI_RTSP_ASYNC_READ（默认开启），见 VIDEO/docs/realtime_algorithm_rtsp_async_read.md。
+- AI_RTSP_ASYNC_READ（默认开启）。
 - AI_RTSP_ASYNC_QUEUE_MAX（默认 1）：异步缓冲深度；1 表示只保留「最新一帧」（追实时）；
   大于 1 时为 FIFO，恢复解码突增时可按序播放，减轻画面/OSD 突然跳几秒。
 """

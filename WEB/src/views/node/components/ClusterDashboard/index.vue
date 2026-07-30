@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { Button } from '@/components/Button';
 import { ApiSelect, RadioButtonGroup } from '@/components/Form';
+import { getPanelConsoleUrl, openPanelConsole } from '@/utils/panel';
 import TrendChart from './TrendChart.vue';
 import GaugePanel from './GaugePanel.vue';
 import GpuVramOverview from './GpuVramOverview.vue';
@@ -12,6 +13,8 @@ import { formatPercent, formatStorageRange } from '../../utils/clusterMetrics';
 import { NODE_DASHBOARD, NODE_METRIC, OVERVIEW_ALL_NODES_ID, TREND_SAMPLE_INTERVAL_OPTIONS } from '../../utils/constants';
 
 defineOptions({ name: 'ClusterDashboard' });
+
+const panelConsoleUrl = computed(() => getPanelConsoleUrl());
 
 const {
   loading,
@@ -137,6 +140,19 @@ const effectiveSelectedNodeIds = computed(() => {
 
 <template>
   <div class="overview-page">
+    <div class="overview-page__toolbar">
+      <Button
+        type="primary"
+        ghost
+        size="small"
+        preIcon="ant-design:control-outlined"
+        :title="`${NODE_DASHBOARD.openPanelHint}（${panelConsoleUrl}）`"
+        @click="openPanelConsole"
+      >
+        {{ NODE_DASHBOARD.openPanel }}
+      </Button>
+    </div>
+
     <section class="stat-cards">
       <div v-for="item in statCards" :key="item.label" class="stat-card">
         <span class="stat-card__label">{{ item.label }}</span>
@@ -303,6 +319,12 @@ const effectiveSelectedNodeIds = computed(() => {
 .overview-page {
   padding: 4px 8px 24px;
   background: @node-bg;
+}
+
+.overview-page__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
 }
 
 .stat-cards {

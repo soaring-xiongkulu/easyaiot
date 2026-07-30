@@ -9,4 +9,7 @@ public interface NodeCommandService {
 
     void stopWorkload(Long nodeId, String workloadType, String workloadId);
 
+    /** 按绑定表反查节点后硬停（心跳未带 TRANSFORM_NODE_ID 时可用） */
+    void stopWorkloadByBinding(String workloadType, String workloadId);
+
 }

@@ -19,8 +19,10 @@ const modelId = query.modelId
 
 <style lang="less" scoped>
 .train-wrapper {
+  background: #ffffff;
+
   .train-tab {
-    padding: 16px 19px 0 15px;
+    padding: 0;
     background-color: #FFFFFF;
   }
 }

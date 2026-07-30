@@ -36,7 +36,7 @@
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平臺由 <strong>WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE</strong> 九個核心模組組成，以 Java 構建穩定管控底座、Python 承載 AI 與網路能力、C++ 驅動高性能計算任務，三語言混編各取所長。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>大疆機場與無人機空中視角接入</strong>、即時與抓拍算法任務、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
+平臺由 <strong>WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE、TRANSFORM、PANEL</strong> 十一個核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>大疆機場與無人機空中視角接入</strong>、即時與抓拍算法任務、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -55,6 +55,28 @@
 EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT的深度融合。平臺通過算法任務管理、即時流分析、模型服務集羣推理等核心能力，實現從設備接入到數據採集、AI分析、智能決策的全鏈路閉環，真正實現萬物互聯、萬物智控。
 </p>
 
+### 🎛️ PANEL：一體機到場當天可裝可驗，值守不必等開發遠程
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+智能物聯網項目最容易卡在「最後一公里」：機器到了現場，卻<strong>裝不起來、驗不出去、出了故障只能等開發遠程敲命令</strong>，駐場成本與驗收週期都被人拖住。PANEL 是面向集成商與現場運維的<strong>獨立交付與值守入口</strong>——按檔位一鍵裝機、看清整機健康與依賴、啓停服務與查日誌當場辦完；<strong>業務管控臺尚未就緒時，也能先把整機拉起來、守住、交出去</strong>，把「機器到場 → 平臺可用 → 可驗收」從等人變成當天可閉環。
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>縮短驗收週期</strong>：到場按 mini / standard / full 選一檔即可裝機，進度與結果當場可見，少因命令記不全、步驟漏一步導致「裝一半不知卡在哪」，PoC 與正式交付都能更快過驗收</li>
+  <li><strong>降低駐場與遠程成本</strong>：容器是否在跑、資源是否吃緊、日誌卡在哪一目了然，重啓、清緩存、拉鏡像不必先翻文檔再等開發支援，值守人員可自助處置常見故障</li>
+  <li><strong>多項目一套口徑</strong>：同一套裝機與運維入口可複用到多臺一體機、多處機房，交付、值守、交接口徑一致，避免「每臺現場各一套口口相傳」</li>
+</ul>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
+📦 <strong>安裝包下載</strong>：Ubuntu / Debian、CentOS / RHEL、Windows、macOS 及 ARM / 麒麟等目標安裝包見 <a href="https://gitee.com/volara/easyaiot/releases" style="color: #3498db; text-decoration: none; font-weight: 600;">Gitee Releases</a>。
+</p>
+
+| | | |
+|:---:|:---:|:---:|
+| ![系統概覽](.image/banner/panel/panel_1000.png) | ![容器管理](.image/banner/panel/panel_1001.png) | ![容器日誌](.image/banner/panel/panel_1002.png) |
+| ![一鍵部署](.image/banner/panel/panel_1003.png) | ![鏡像就緒](.image/banner/panel/panel_1004.png) | ![鏡像拉取](.image/banner/panel/panel_1005.png) |
+| ![系統診斷](.image/banner/panel/panel_1006.png) | ![系統維護](.image/banner/panel/panel_1007.png) | ![服務拓撲](.image/banner/panel/panel_1008.png) |
+
 ### 🎯 三檔硬體，一套平臺
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -71,24 +93,9 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 <strong>安裝選型與資源符合性（實測）：</strong>
 </p>
 
-<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 12px 0;">
-  <div style="flex: 1 1 22%; min-width: 160px; text-align: center;">
-    <img src=".image/deploy-profile-menu.png" alt="部署选型" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-    <p style="font-size: 12px; color: #888; margin: 8px 4px 0;">按現場硬體形態選一檔</p>
-  </div>
-  <div style="flex: 1 1 22%; min-width: 160px; text-align: center;">
-    <img src=".image/deploy-profile-mini.png" alt="mini 实测符合性" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-    <p style="font-size: 12px; color: #888; margin: 8px 4px 0;"><strong>邊緣盒子（mini）</strong>：實測約 2 GB，單點可安心跑智能</p>
-  </div>
-  <div style="flex: 1 1 22%; min-width: 160px; text-align: center;">
-    <img src=".image/deploy-profile-standard.png" alt="standard 实测符合性" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-    <p style="font-size: 12px; color: #888; margin: 8px 4px 0;"><strong>AI 一體攝像頭（standard）</strong>：實測約 10 GB，組網覆蓋仍有餘量</p>
-  </div>
-  <div style="flex: 1 1 22%; min-width: 160px; text-align: center;">
-    <img src=".image/deploy-profile-full.png" alt="full 实测符合性" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-    <p style="font-size: 12px; color: #888; margin: 8px 4px 0;"><strong>AIoT 智能全棧一體機（full）</strong>：實測約 14 GB，全棧配齊可放心投產</p>
-  </div>
-</div>
+| | | |
+|:---:|:---:|:---:|
+| ![邊緣盒子 mini](.image/deploy-profile-mini.png) | ![AI 一體攝像頭 standard](.image/deploy-profile-standard.png) | ![全棧一體機 full](.image/deploy-profile-full.png) |
 
 #### 🧠 AI能力
 
@@ -101,22 +108,22 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
     </ul>
   </li>
   <li><strong>YOLO26 新一代目標檢測能力</strong>：平臺內置最新一代目標檢測能力，開箱即可用於即時畫面分析與抓拍識別，在相同硬體條件下可接入更多路攝像頭、響應更快、誤報更少。支持從數據採集、標註、訓練到上線推理的完整閉環，幫助用戶以更低成本持續迭代專屬檢測模型，快速覆蓋安全帽佩戴、人員闖入、煙火隱患等各類常見安防與工業場景，讓「看得準、算得快、擴得動」成爲預設可用能力</li>
-  <li><strong>YOLO26 人體姿態分析</strong>：在目標檢測能力之上新增人體關鍵點與骨架姿態分析，基於 YOLO26 Pose 模型開箱即用，支持圖片、視頻與攝像頭即時流三種輸入方式。圖片模式可同步輸出骨架標註與人數統計；視頻模式採用異步任務處理，進度可輪詢、結果可下載；攝像頭模式可對接 RTSP/RTMP 即時取流，將姿態識別結果疊加推流回顯，便於遠程盯防與行爲研判。模型推理頁提供「姿態分析」與「目標檢測」一鍵切換，置信度可調，與現有模型管理、歷史記錄、對照預覽等能力無縫銜接，適用於工地作業規範、健身動作評估、人羣聚集態勢感知等需要「看清人體結構與動作形態」的場景，讓平臺從「框出目標」進一步走向「理解姿態」</li>
+  <li><strong>YOLO26 人體姿態分析</strong>：在目標檢測能力之上新增人體關鍵點與骨架姿態分析，開箱即用，支持圖片、視頻與攝像頭即時流三種輸入方式。圖片模式可同步輸出骨架標註與人數統計；視頻模式支持進度跟蹤與結果下載；攝像頭模式可對接 RTSP/RTMP 即時取流，將姿態識別結果疊加推流回顯，便於遠程盯防與行爲研判。模型推理頁提供「姿態分析」與「目標檢測」一鍵切換，適用於工地作業規範、健身動作評估、人羣聚集態勢感知等需要「看清人體結構與動作形態」的場景，讓平臺從「框出目標」進一步走向「理解姿態」</li>
   <li><strong>多協議攝像頭接入支持</strong>：全面支持 GB28181 和 ONVIF 兩大主流視頻監控協議，實現標準化設備接入與管理。GB28181 作爲中國國家標準，完美適配國內主流監控設備；ONVIF 作爲國際通用標準，廣泛兼容全球主流品牌攝像頭。通過雙協議支持，平臺能夠無縫對接現有監控系統，實現設備的即插即用、自動發現與統一管理，大幅降低設備接入門檻，提升系統兼容性與擴展性，爲大規模攝像頭部署提供堅實的技術基礎。此外，新增 NVR 同網段/跨網段批量掃描、註冊與統一管控能力，覆蓋海康、大華、華爲、螢石、小米等主流品牌，支持基於設備原生協議的網段發現、一鍵登記及通道批量導入，進一步降低大規模監控設備的接入與運維成本</li>
-  <li><strong>大疆機場 / 無人機空中視角接入</strong>：突破固定攝像頭「只能看地面、難覆蓋廣域」的布控侷限，將大疆司空體系下的機場與無人機高空畫面納入平臺統一視頻與 AI 研判閉環。流媒體模組提供「接入大疆直播」能力：支持<strong>司空 API 開啓直播</strong>與<strong>手動直播源</strong>兩種接入方式——API 模式可配置司空 Host、項目編號、開啓直播接口、X-User-Token、工作空間與平臺名稱，按機場或無人機類型填寫設備 SN、camera_index、機場/無人機 SN、清晰度與 Token 有效期，一鍵拉起廠家直播流並自動登記設備；手動模式則支持直接填入 RTSP / RTMP / HTTP-FLV / HLS 等直播源。接入後系統以廠家迴流地址爲上游，經本地 SRS 轉推分發，前端以火山 RTC 等鏈路穩定播放；支持自動創建轉發任務，使空中畫面與國標/ONVIF 固定點位同屏共管。管理者可像管理固定攝像頭一樣調閱機場與飛行器實況，並進一步掛接即時 AI 分析、告警聯動與證據留存，快速覆蓋廣域巡查、應急勘察、周界補盲等傳統固定點位難以觸及的場景，顯著縮短「發現異常—鎖定現場—聯動處置」的響應鏈條，讓智慧安防從平面布控升級到天地一體協同感知</li>
+  <li><strong>大疆機場 / 無人機空中視角接入</strong>：突破固定攝像頭「只能看地面、難覆蓋廣域」的布控侷限，將大疆司空體系下的機場與無人機高空畫面納入平臺統一視頻與 AI 研判閉環。流媒體模組提供「接入大疆直播」能力：支持<strong>司空 API 開啓直播</strong>與<strong>手動直播源</strong>兩種接入方式——API 模式一鍵拉起廠家直播流並自動登記設備；手動模式則支持直接填入 RTSP / RTMP / HTTP-FLV / HLS 等直播源。接入後空中畫面可與國標/ONVIF 固定點位同屏共管，管理者可像管理固定攝像頭一樣調閱機場與飛行器實況，並進一步掛接即時 AI 分析、告警聯動與證據留存，快速覆蓋廣域巡查、應急勘察、周界補盲等傳統固定點位難以觸及的場景，顯著縮短「發現異常—鎖定現場—聯動處置」的響應鏈條，讓智慧安防從平面布控升級到天地一體協同感知</li>
   <li><strong>即時對講與雲臺遠控</strong>：打破「只能看、不能管」的傳統監控侷限，值守人員在即時預覽同屏即可完成語音喊話與雲臺操控——無需切換系統、不必親臨現場，即可遠程溝通、引導疏散或制止違規行爲，把響應從「派人到場」壓縮到「開口即達」。雲臺操控讓攝像頭隨心轉向、變焦聚焦，突發情況可迅速對準事發區域、放大細節，形成「看得清、指得準、喊得到」的一體化現場處置閉環。全面兼容 GB28181 與 ONVIF 設備，利舊現有監控資產，無需額外購置對講主機或第三方軟體，讓存量攝像頭即刻具備遠程溝通與靈活調度能力，顯著降低系統孤島與值守成本</li>
   <li><strong>可編排算法後處理</strong>：突破「只能檢出、難以研判」的能力瓶頸，在目標檢測之上增設獨立的業務研判層，將畫面感知結果轉化爲可運營、可追責、可統計的業務事件。支持按任務靈活定義人數統計、越線通行、停留超時、區域滯留、多條件複合告警等場景規則，無需反覆調整模型即可快速適配工地安監、園區安防、交通管控等差異化需求，把通用視覺能力鍛造成貼近現場的管理抓手。後處理與即時分析彼此獨立、並行運轉——監控畫面持續流暢研判，業務邏輯按需彈性擴展，研判結果自動沉澱存檔並驅動精準告警，顯著降低誤報漏報與人工複覈成本。業務人員專注規則表達，平臺負責分發執行與規模承載，讓「看得見」真正走向「判得清、管得住、用得起來」</li>
-  <li><strong>多中心節點 × 多工作節點聯邦集羣</strong>：面向跨區域、多機房與雲邊協同部署，平臺採用「N 箇中心節點 + N 個工作節點」聯邦架構——以中心節點爲統一控制面、工作節點爲算力與媒體執行面，構建可橫向擴展的分佈式調度體系。每個中心節點納管本域工作節點集羣，支持監測代理、分佈式存儲、流媒體引擎、音視頻轉碼、視頻分析運行時、模型推理與訓練等運行時分發與一鍵遠程部署；多中心節點可互聯同步，集羣泳道視圖直觀呈現「中心—工作」拓撲與資源水位，支持泳道級批量維護與組件分發。算法任務、自動標註流水線、推流轉發等工作負載按節點角色與 GPU 能力智能調度、隊列彈性分發，讓海量路數接入、高併發推理與分佈式訓練在同一集羣中協同運轉，真正做到「納得進、分得清、擴得開、管得全」</li>
-  <li><strong>SAM 零啓動自動標註編排流水線</strong>：面向「尚無標註樣本、尚無可用檢測模型」的冷啓動場景，平臺集成 SAM 開放詞彙分割能力與智能編排引擎，提供一鍵無人值守標註流水線。系統按策略自動串聯攝像頭抽幀採集、SAM 文本提示首批標註、達標後自動觸發 YOLO 微調訓練、量產階段以 YOLO 高速推理爲主並對漏檢樣本智能切換 SAM 回補、按進度週期性迭代訓練及數據集自動打包導出，完整貫通「採—標—訓—導」閉環。編排中樞即時感知流水線階段與標註進度，自主決策 SAM / YOLO / 混合補充等標註模式及訓練觸發時機，支持任務暫停恢復與本地/集羣算力隊列彈性調度；配合可視化策略配置與運行日誌，幫助用戶從零樣本、零模型起步快速沉澱專屬檢測能力，讓「開口定義類別、坐等模型成型」成爲數據集建設的預設可用路徑</li>
+  <li><strong>多中心節點 × 多工作節點聯邦集羣</strong>：面向跨區域、多機房與雲邊協同部署，平臺採用「N 箇中心節點 + N 個工作節點」聯邦架構——中心節點統一編排，工作節點承載算力與媒體執行，可橫向擴展。每個中心節點納管本域工作節點，支持流媒體、音視頻轉碼、視頻分析、模型推理與訓練等能力的遠程分發與一鍵部署；多中心可互聯同步，集羣泳道視圖直觀呈現「中心—工作」拓撲與資源水位。算法任務、自動標註流水線、推流轉發等工作負載按節點角色與 GPU 能力智能調度，讓海量路數接入、高併發推理與分佈式訓練在同一集羣中協同運轉，真正做到「納得進、分得清、擴得開、管得全」</li>
+  <li><strong>SAM 零啓動自動標註編排流水線</strong>：面向「尚無標註樣本、尚無可用檢測模型」的冷啓動場景，平臺集成 SAM 開放詞彙分割能力，提供一鍵無人值守標註流水線。系統按策略自動串聯攝像頭抽幀採集、文本提示首批標註、達標後自動觸發 YOLO 微調訓練、量產階段以 YOLO 高速推理爲主並對漏檢樣本智能切換 SAM 回補、按進度週期性迭代訓練及數據集自動打包導出，完整貫通「採—標—訓—導」閉環。支持任務暫停恢復與本地/集羣算力彈性調度，配合可視化策略配置與運行日誌，幫助用戶從零樣本、零模型起步快速沉澱專屬檢測能力，讓「開口定義類別、坐等模型成型」成爲數據集建設的預設可用路徑</li>
   <li><strong>萬級彈性算力集羣與橫向擴容池</strong>：面向超大規模 AI 與視頻業務，構建雲邊端一體的分佈式算力底座，將算法任務、推流轉發、算法服務、模型訓練與推理統一納入橫向負載均衡與彈性伸縮體系。新增伺服器一鍵納管入網即可成爲可調度算力單元，調度中樞按資源水位與業務壓力自動分發任務、平衡負載，實現從百路到萬路攝像頭、從單機到萬級節點的線性擴容——無需重複部署與手工調參，讓海量路數接入、高併發推理與分佈式訓練在同一算力池中協同運行，真正做到「擴得動、跑得穩、管得住」</li>
   <li><strong>無限聯邦邊緣集羣模式</strong>：面向廣域布點、弱網現場與分階段擴容場景，讓智能分析能力貼着業務就地部署——普通開發板與邊緣算力節點也可成爲隨時上線的值守單元。中心統一下發任務與策略，現場就近完成感知研判，告警與證據自動回傳匯聚，無需再爲每個網點堆疊重型伺服器與複雜運維體系。業務擴張時按需增配節點即可線性延展覆蓋半徑，做到「加一點，多一片；加一路，多一分保障」，真正實現算力隨場景生長、智能隨業務鋪開</li>
   <li><strong>天地圖空間可視化與以圖研判</strong>：接入國家天地圖，將攝像頭、告警與人車識別能力匯聚到一張地圖，讓監控從「看畫面」升級爲「看全局」。流媒體與告警模組均提供「地圖分佈」視圖，配合設備目錄樹按區域聚焦，一眼掌握卡口布局與在線狀態；支持地圖點選、地點搜索與批量導入座標，國標通道、NVR 通道與直連攝像頭均可快速完成布點，讓每路畫面都有清晰的空間歸屬。告警事件自動關聯攝像頭座標上圖展示，可按時間、事件類型、任務與業務標籤篩選，選中即可查看抓拍與錄像，幫助值守人員從「哪裏出事」快速切入處置。結合人臉庫與車牌庫識別能力，可將同一目標在多個點位上的命中記錄串聯成空間脈絡——<strong>以人尋跡</strong>，還原重點人員在布控範圍內的出現路線與活動範圍；<strong>以車尋跡</strong>，串聯過車記錄，快速定位車輛行經路徑與停留區域，爲尋人找車、巡防布控與事後覆盤提供直觀線索。移動類設備還支持軌跡回放，按時間軸重現巡邏與行進路線；矢量地圖與衛星影像隨心切換，自動適應視野，讓管理者以地圖爲綱、以圖爲媒，更快發現異常、鎖定目標、指揮調度</li>
-  <li><strong>Qwen / DeepSeek 多卡部署</strong>：支持將 Qwen、DeepSeek 等大語言模型以多卡並行方式部署上線，可按集羣與 Worker 維度靈活調度 GPU 算力，實現模型實例的彈性擴縮與負載均衡，滿足高併發推理與長上下文場景下的穩定服務能力</li>
+  <li><strong>Qwen / DeepSeek 多卡部署</strong>：支持將 Qwen、DeepSeek 等大語言模型以多卡並行方式部署上線，可按集羣靈活調度 GPU 算力，實現模型實例的彈性擴縮與負載均衡，滿足高併發推理與長上下文場景下的穩定服務能力</li>
   <li><strong>視覺大模型智能理解</strong>：集成QwenVL3視覺大模型，支持對即時視頻畫面進行深度視覺推理與語義理解，能夠對畫面內容進行智能分析與場景理解，提供更豐富的視覺認知能力，實現從像素級感知到語義級理解的跨越</li>
-  <li><strong>攝像頭即時畫面 AI 分析</strong>：面向 RTSP/RTMP 即時視頻流構建「拉流解碼 → 智能抽幀 → 模型推理 → 結構化出數 → 告警聯動」全鏈路分析管線，以毫秒級響應將畫面變化即時轉化爲可檢索、可研判的結構化檢測事件。觀看鏈路與算法鏈路架構解耦、分級碼率與多卡 GPU 協同調度並重，兼顧預覽清晰度與高路數併發吞吐；分析結果可無縫銜接檢測區域、佈防時段、人臉/車牌識別及可編排後處理規則，將傳統「人盯屏、事後翻」的值守模式升級爲「機器全時盯、異常秒推送、證據自動留」，讓即時視頻從被動觀看真正變爲主動感知與智能研判的基礎設施</li>
-  <li><strong>攝像頭智能巡檢</strong>：面向路數多、值守人力有限的監控場景，提供分屏巡檢與設備目錄批量巡檢能力，在有限併發連接下對大規模攝像頭進行輪巡式 AI 分析。支持輪詢、連接池、混合三種調度模式——可按設定間隔自動抓拍、運行檢測模型並聯動告警與人臉/車牌識別；混合模式下焦點路常駐盯防、背景路池化輪巡，兼顧重點布控與全域覆蓋。巡檢進度即時推送，抓拍幀自動入庫留存，支持從分屏畫面或設備目錄一鍵拉起數百路巡檢會話，以「少連接、廣覆蓋、快發現」的方式，將傳統人工逐屏翻看的值守模式升級爲智能化自動巡檢</li>
+  <li><strong>攝像頭即時畫面 AI 分析</strong>：面向 RTSP/RTMP 即時視頻流提供從拉流、抽幀、模型推理到結構化出數與告警聯動的全鏈路分析能力，以毫秒級響應將畫面變化即時轉化爲可檢索、可研判的結構化檢測事件。觀看與算法鏈路相互獨立，兼顧預覽清晰度與高路數併發吞吐；分析結果可無縫銜接檢測區域、佈防時段、人臉/車牌識別及可編排後處理規則，將傳統「人盯屏、事後翻」的值守模式升級爲「機器全時盯、異常秒推送、證據自動留」，讓即時視頻從被動觀看真正變爲主動感知與智能研判的基礎設施</li>
+  <li><strong>攝像頭智能巡檢</strong>：面向路數多、值守人力有限的監控場景，提供分屏巡檢與設備目錄批量巡檢能力，對大規模攝像頭進行輪巡式 AI 分析。支持輪詢、連接池、混合三種調度模式——可按設定間隔自動抓拍、運行檢測模型並聯動告警與人臉/車牌識別；混合模式下焦點路常駐盯防、背景路輪巡，兼顧重點布控與全域覆蓋。巡檢進度即時可見，抓拍自動留存，支持從分屏畫面或設備目錄一鍵拉起數百路巡檢，以「少連接、廣覆蓋、快發現」的方式，將傳統人工逐屏翻看的值守模式升級爲智能化自動巡檢</li>
   <li><strong>雲邊端一體算法預警監控大屏</strong>：提供統一的雲邊端一體化算法預警監控大屏，即時展示設備狀態、算法任務運行情況、告警事件統計、視頻流分析結果等關鍵資訊，支持多維度數據可視化展示，實現雲端、邊緣端、設備端的統一監控與管理，爲決策者提供全局視角的智能監控指揮中心</li>
-  <li><strong>人臉識別與人臉庫管理能力</strong>：支持在攝像頭任務中靈活開啓人臉識別能力，基於Milvus構建人臉庫與人臉特徵向量管理體系，提供人臉樣本/特徵的新增、查詢、更新、刪除與向量檢索能力。支持對抓拍畫面進行高效人臉比對與身份檢索，完整記錄匹配結果、抓拍圖片、攝像頭位置資訊與設備上下文，便於後續人員軌跡追溯、安防取證與多維度統計分析</li>
+  <li><strong>人臉識別與人臉庫管理能力</strong>：支持在攝像頭任務中靈活開啓人臉識別能力，提供人臉庫與人臉特徵管理體系，支持樣本/特徵的新增、查詢、更新、刪除與高效檢索。支持對抓拍畫面進行人臉比對與身份檢索，完整記錄匹配結果、抓拍圖片、攝像頭位置資訊與設備上下文，便於後續人員軌跡追溯、安防取證與多維度統計分析</li>
   <li><strong>車牌識別與車牌庫管理能力</strong>：支持在監控任務中一鍵啓用車牌識別，自動從過車畫面中識別車牌資訊，並與自建車牌庫即時比對。可靈活維護白名單、黑名單及業務標籤，車輛命中規則時即時告警聯動，幫助實現出入口通行管控、重點車輛布控、訪客與固定車輛分類管理等需求。支持自動收錄新出現車牌、完整留存抓拍與匹配記錄，便於事後查車、軌跡覈對與證據留存；識別過程與原有視頻分析並行運行，不影響監控與告警主流程的穩定性和即時性</li>
   <li><strong>設備檢測區域繪製</strong>：提供可視化的設備檢測區域繪製工具，支持在設備抓拍圖片上繪製四邊形和多邊形檢測區域，支持區域與算法模型靈活關聯配置，支持區域的可視化管理、編輯、刪除等操作，支持快捷鍵操作提升繪製效率，實現精準的區域檢測配置，爲算法任務提供精確的檢測範圍定義</li>
   <li><strong>智能聯動告警機制</strong>：支持檢測區域、佈防時段和事件告警的三重聯動機制，系統會智能判斷檢測到的事件是否同時滿足指定的檢測區域範圍、處於佈防時段內且匹配告警事件類型，只有同時滿足這三個條件時纔會觸發告警，實現精準的時空條件過濾，大幅降低誤報率，提升告警系統的準確性和實用性</li>
@@ -128,14 +135,14 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
     </ul>
   </li>
   <li><strong>數據集標註與多格式數據集管理</strong>：內置可視化圖像標註工作臺，支持矩形框、多邊形等標註形態，以及標註類別管理與進度跟蹤；全面兼容 YOLO、COCO、ImageFolder 等主流數據集格式的靈活導入與導出，並打通雲平臺數據集通道，支持雲端數據集的一鍵導入與同步導出，貫通「數據採集—人工標註—模型訓練—部署推理」全流程閉環</li>
-  <li><strong>多卡訓練、斷點續訓與節點側部署</strong>：突破「有卡用不上、任務控不住、中斷成果丟」的訓練落地瓶頸，系統性打通多卡算力利用、任務可控調度與節點側部署鏈路，讓現場 GPU 真正用得上、訓練任務真正控得住。平臺可自動識別並調度伺服器全部 GPU，用戶可在訓練頁按需選擇單卡或多卡，不再受限於「只能看到一張卡」；兼容多種常見數據集格式與目錄結構，支持大容量本地數據集上傳，訓練失敗後仍可保留原始數據快速重試，顯著降低數據準備與反覆折騰的成本。訓練進度全程可見，任務可停可續——避免中斷後成果丟失、點擊停止卻仍在後臺空轉等痛點，本地與遠程訓練調度在失敗時也能及時回退並給出清晰反饋。同步完善前端 GPU 選擇、繼續訓練與停止狀態展示，並修復模型發佈誤判失敗、自定義預覽圖被覆蓋、按名稱/版本查不到模型以及數據集同步易超時、易衝突等問題，讓「訓練—發佈—使用」閉環更順暢可靠</li>
+  <li><strong>多卡訓練、斷點續訓與節點側部署</strong>：突破「有卡用不上、任務控不住、中斷成果丟」的訓練瓶頸，打通多卡算力利用、任務可控調度與節點側部署，讓現場 GPU 真正用得上、訓練任務真正控得住。平臺可自動識別並調度伺服器全部 GPU，用戶可在訓練頁按需選擇單卡或多卡；兼容多種常見數據集格式，支持大容量本地數據集上傳，訓練失敗後仍可保留原始數據快速重試。訓練進度全程可見，任務可停可續，本地與遠程訓練失敗時也能及時回退並給出清晰反饋，讓「訓練—發佈—使用」閉環更順暢可靠</li>
   <li><strong>推流轉發</strong>：支持在無需啓用AI分析功能的情況下，直接觀看攝像頭即時畫面。通過創建推流轉發任務，可將多路攝像頭進行批量推送，實現多路視頻流的同步觀看，滿足純視頻監控場景需求</li>
   <li><strong>GPU 探測、負載分配與多卡協同</strong>：平臺具備 GPU 資源探測與智能分配能力，可自動識別可用 GPU 數量，並依據各卡即時負載將視頻編解碼與算法推理任務動態調度到多卡並行執行，在保障穩定性的前提下提升多路流處理吞吐與算力利用率，實現多卡場景下的畫面編解碼與模型推理協同</li>
-  <li><strong>智能傳輸協議與拉流高可靠</strong>：在 RTSP 等拉流鏈路上，系統可根據 URL/路徑等條件對傳輸層協議進行動態判斷與切換；預設對攝像頭拉流採用 UDP 傳輸以降低時延。當連續多幀出現灰屏、解碼異常或流塌縮（解碼失敗導致畫面停滯）時，自動觸發 RTSP 重連與鏈路恢復，降低長時間花屏、卡死對業務的影響</li>
-  <li><strong>觀看鏈路與算法鏈路分離及分級碼率</strong>：將「即時預覽/大屏觀看」與「算法分析抽幀」在數據鏈路與控制策略上解耦，由兩套獨立控制面分別管理。觀看側採用約 6500 Kbps 碼率，優先保障畫清晰、少卡頓的監控觀感；算法側採用約 3500 Kbps 碼率，在檢測精度與算力/帶寬佔用之間取得平衡，避免分析任務與觀看任務爭搶同一條高碼率通道，從架構上保障「看得清、不卡斷」與「算得動、可擴展」兼顧</li>
+  <li><strong>智能傳輸協議與拉流高可靠</strong>：在 RTSP 等拉流鏈路上，系統可按場景自動選擇合適的傳輸方式以兼顧時延與穩定性。當出現灰屏、解碼異常或畫面停滯時，自動觸發重連與鏈路恢復，降低長時間花屏、卡死對業務的影響</li>
+  <li><strong>觀看鏈路與算法鏈路分離及分級碼率</strong>：將「即時預覽/大屏觀看」與「算法分析抽幀」相互解耦、獨立調度。觀看側優先保障畫清晰、少卡頓；算法側在檢測精度與算力/帶寬佔用之間取得平衡，避免分析任務與觀看任務爭搶同一通道，保障「看得清、不卡斷」與「算得動、可擴展」兼顧</li>
   <li><strong>模型服務集羣推理</strong>：支持分佈式模型推理服務集羣，實現智能負載均衡、故障自動切換與高可用保障，大幅提升推理吞吐量與系統穩定性</li>
   <li><strong>佈防時段管理</strong>：支持全防模式和半防模式兩種佈防策略，可靈活配置不同時段的佈防規則，實現精準的時段化智能監控與告警</li>
-  <li><strong>OCR與語音識別</strong>：基於PaddleOCR實現高精度文字識別，支持語音轉文本功能，提供多語言識別能力</li>
+  <li><strong>OCR與語音識別</strong>：提供高精度文字識別與語音轉文本能力，支持多語言識別</li>
   <li><strong>多模態視覺大模型</strong>：支持物體識別、文字識別等多種視覺任務，提供強大的圖像理解與場景分析能力</li>
   <li><strong>LLM大語言模型</strong>：支持RTSP流、視頻、圖像、語音、文本等多種輸入格式的智能分析與理解，實現多模態內容理解</li>
   <li><strong>模型部署與版本管理</strong>：支持AI模型的快速部署與版本管理，實現模型一鍵上線、版本回滾與灰度發佈</li>
@@ -167,9 +174,9 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>產品模型管理</strong>：物聯網落地最貴的往往不是買設備，而是每接一類設備就重配一遍檔案。平臺以產品爲同類設備模板，支持創建、啓停、檢索與表格/卡片雙視圖，應用場景、廠商、型號一次配好——後續擴容直接套用產品模板，不用再逐臺從零填寫，同類設備一次建檔、多臺複用，把「設備接入成本」從線性增長壓成可複製資產</li>
   <li><strong>多類型產品建模</strong>：現場同時存在直連終端、邊緣網關、網關子設備與視頻設備時，若用同一套接入路徑硬套，拓撲必亂、協議必錯。平臺按直連、網關、網關子設備、視頻四類形態分開建產品，邊緣匯聚、直連終端與視頻設備各走各的接入路徑——拓撲不會混、協議不會配錯，爲後續規模化納管打好正確的產品骨架</li>
   <li><strong>產品接入協議與認證配置</strong>：每臺設備單獨約定協議與鑑權，是聯調返工的重災區。平臺在產品級一次定稿接入協議（MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA）、數據格式、認證方式與加解密策略，下屬設備自動繼承同一套規範——聯調時不再逐臺約定鑑權與報文格式，接入規範從「人口口相傳」變成「產品級可繼承契約」</li>
-  <li><strong>Modbus-TCP 工業以太網接入</strong>：面向電錶、PLC、變頻器等以太網側工控設備，平臺內置 Modbus-TCP 主站採集能力，按產品/設備配置主機地址、端口、從站號、寄存器測點與採集週期即可上線——輪詢讀數自動匯入設備影子與在線狀態，寄存器寫值與屬性下發貫通，讓工業測點與物聯網物模型、規則引擎、告警聯動同一套閉環，不必再外掛獨立數採軟體</li>
-  <li><strong>Modbus-RTU 串口現場接入</strong>：大量現場儀表仍掛在 RS-485 總線，若只能走 TCP 網關轉換，接入成本與故障點都會翻倍。平臺支持 Modbus-RTU 串口主站採集，可配置串口參數、從站地址、寄存器映射與讀寫週期，適配虛擬串口與真實串口場景——總線側設備同樣納入統一納管與上下行控制，補齊「以太網進不了、串口又管不住」的現場空白</li>
-  <li><strong>OPC UA 工業互聯接入</strong>：面向現代化工控與上位系統互聯場景，平臺支持 OPC UA 客戶端接入，按節點地址、命名空間與測點映射完成訂閱/讀寫配置——複雜設備模型可映射爲平臺物模型屬性，上行採集與下行寫點與現有設備影子、規則鏈、消息推送無縫銜接，讓 OPC UA 現場資產真正進入「看得見、控得住、可聯動」的 AIoT 運營體系</li>
+  <li><strong>Modbus-TCP 工業以太網接入</strong>：面向電錶、PLC、變頻器等以太網側工控設備，平臺內置 Modbus-TCP 主站採集能力，按產品/設備配置接入參數與測點即可上線——讀數自動匯入設備影子與在線狀態，寫值與屬性下發貫通，讓工業測點與物聯網物模型、規則引擎、告警聯動同一套閉環，不必再外掛獨立數採軟體</li>
+  <li><strong>Modbus-RTU 串口現場接入</strong>：大量現場儀表仍掛在 RS-485 總線，若只能走 TCP 網關轉換，接入成本與故障點都會翻倍。平臺支持 Modbus-RTU 串口主站採集，適配虛擬串口與真實串口場景——總線側設備同樣納入統一納管與上下行控制，補齊「以太網進不了、串口又管不住」的現場空白</li>
+  <li><strong>OPC UA 工業互聯接入</strong>：面向現代化工控與上位系統互聯場景，平臺支持 OPC UA 客戶端接入，完成訂閱/讀寫配置——複雜設備模型可映射爲平臺物模型屬性，上行採集與下行寫點與現有設備影子、規則鏈、消息推送無縫銜接，讓 OPC UA 現場資產真正進入「看得見、控得住、可聯動」的 AIoT 運營體系</li>
   <li><strong>物模型屬性定義</strong>：大屏、規則、告警若各寫一套測點名，後期必然互相聽不懂。平臺先把設備能上報、能讀寫的測點定清楚，支持標準模板與自定義，草稿改完再發布——大屏、規則、告警從此認同一套字段，「能看哪些量」有統一語義，測點名各說各話的返工從根上被掐掉</li>
   <li><strong>物模型服務定義</strong>：遠程啓停、復位若每做一個動作就寫一次性接口，控制面必然碎片化。平臺把設備可被遠程調用的服務及入參出參寫成契約，草稿編輯、發佈後生效——「能遠程做什麼」按契約填參即可，不必再爲每個動作堆一次性接口，控制能力可複用、可審計</li>
   <li><strong>物模型事件定義</strong>：設備會上報哪些業務事件若不事先約定，告警口徑必然前後打架。平臺先約定事件類型，草稿發佈後統一生效——事件日誌與規則觸發共用同一語義，「會發生哪些事」有統一口徑，告警不會各說各話</li>
@@ -210,6 +217,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>消息推送</strong>：再準的檢測、再完整的設備事件，若堵在系統裏等人翻，價值等於零。按渠道創建推送任務，可先測試再正式啓動——告警與業務事件直接落到責任人日常辦公入口，不堵在系統裏</li>
   <li><strong>推送歷史</strong>：通知是否發出、是否觸達若無記錄，審計與優化只能靠猜。各渠道推送記錄可回看——發出沒有、觸達沒有有據可查，審計與觸達策略優化都有底</li>
   <li><strong>通知用戶與分組</strong>：關鍵告警全員刷屏會造成告警疲勞，該到的人收不到又會漏報。維護通知用戶與分組，按角色、班次精準觸達——該到的人收得到，全員刷屏的告警疲勞也少了，讓「感知—研判—通知—處置」真正閉環到人</li>
+  <li><strong>TRANSFORM 多向業務流轉</strong>：平臺側告警、設備事件與業務結果若只能停在 EasyAIoT 內部，對接 MES / ERP / CRM / WMS 等系統仍要按項目定制接口，交付週期與返工成本都會被放大。TRANSFORM 把「轉給誰、按什麼規則轉、字段怎麼對上、投沒投到」收成可配置能力：數據目的、轉發規則與映射模板一次配好即可複用，投遞過程可監控、可回看——多方系統對接從「每家寫一次定制接口」變成「按約定配通、按軌跡驗收」，讓平臺數據真正進入客戶既有業務閉環</li>
 </ul>
 
 #### 📱 移動端APP
@@ -340,7 +348,7 @@ EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統
 ## 🧩 項目結構
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT由九個核心項目組成：
+EasyAIoT由十一個核心項目組成，並配套 COMPILE 多平臺打包交付能力：
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
@@ -350,7 +358,7 @@ EasyAIoT由九個核心項目組成：
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>WEB模組</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">基於Vue的前端管理界面，提供統一的用戶交互體驗</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">前端管理界面，提供統一的用戶交互體驗</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>APP模組</strong></td>
@@ -371,15 +379,14 @@ EasyAIoT由九個核心項目組成：
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>DEVICE模組</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>技術優勢</strong>：基於JDK21，提供更好的性能和現代化特性</li>
     <li><strong>設備管理</strong>：設備註冊、認證、狀態監控、生命週期管理</li>
     <li><strong>產品管理</strong>：產品定義、物模型管理、產品配置</li>
     <li><strong>協議支持</strong>：MQTT、TCP、HTTP、Modbus-TCP、Modbus-RTU、OPC UA 等多種物聯網與工業協議</li>
     <li><strong>設備認證</strong>：設備動態註冊、身份認證、安全接入</li>
     <li><strong>規則引擎</strong>：數據流轉規則、消息路由、數據轉換</li>
     <li><strong>數據採集</strong>：設備數據採集、存儲、查詢與分析</li>
-    <li><strong>節點控制面</strong>：內置 <code>iot-node</code> 微服務，提供計算/媒體節點 CRUD、SSH 連通測試、Agent 註冊與心跳、工作負載調度與媒體節點池分配等統一控制面能力</li>
-    <li><strong>可視化後臺</strong>：內置 <code>iot-visualize</code> 微服務（庫 <code>iot-visualize20</code>），統一管理大屏/組態項目、模板、素材、數據源與服務部署，爲 VISUALIZE 編輯器與 FUXA 組態提供工程元數據與發佈能力</li>
+    <li><strong>節點編排</strong>：計算/媒體節點納管、連通檢測、工作負載調度與媒體節點池分配</li>
+    <li><strong>可視化後臺</strong>：統一管理大屏/組態項目、模板、素材、數據源與服務部署，為可視化編輯器與工藝組態提供工程管理與發佈能力</li>
   </ul>
 </td>
 </tr>
@@ -387,12 +394,12 @@ EasyAIoT由九個核心項目組成：
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>NODE模組</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>節點代理</strong>：基於 Python 的邊緣/遠程節點 Agent，通過 <code>install.sh</code> 一鍵安裝爲 systemd 服務，部署於目標伺服器後自動接入平臺</li>
-    <li><strong>控制面通信</strong>：向 <code>iot-node</code> 控制面註冊並週期性心跳，即時上報 CPU、記憶體、磁盤、GPU 利用率及在運工作負載狀態</li>
-    <li><strong>遠程工作負載</strong>：通過 HTTP 接口（預設 9100 端口）接收控制面下發的部署/停止指令，在節點本地拉起 AI 模型服務、算法任務、FFmpeg 轉碼等工作負載</li>
-    <li><strong>媒體節點池</strong>：支持在節點上遠程 <code>docker compose</code> 部署 SRS/ZLM 流媒體棧，配合控制面實現設備與媒體節點的 Sticky 綁定與流地址生成</li>
-    <li><strong>節點角色</strong>：支持 compute（算力）、media（媒體）、hybrid（混合）三種角色，支撐 AI 推理、算法任務與流媒體業務的跨節點調度與彈性擴容</li>
-    <li><strong>離線友好</strong>：提供 pip wheels 離線依賴打包與 Agent 熱更新能力，適配無外網或受限網路環境下的批量節點納管</li>
+    <li><strong>節點代理</strong>：邊緣/遠程節點 Agent，一鍵安裝部署後自動接入平臺</li>
+    <li><strong>狀態上報</strong>：週期性心跳，即時上報 CPU、記憶體、磁盤、GPU 利用率及在運工作負載狀態</li>
+    <li><strong>遠程工作負載</strong>：接收平臺下發的部署/停止指令，在節點本地拉起 AI 模型服務、算法任務、音視頻轉碼等工作負載</li>
+    <li><strong>媒體節點池</strong>：支持在節點上遠程部署流媒體能力，實現設備與媒體節點綁定及流地址生成</li>
+    <li><strong>節點角色</strong>：支持算力、媒體、混合三種角色，支撐 AI 推理、算法任務與流媒體業務的跨節點調度與彈性擴容</li>
+    <li><strong>離線友好</strong>：支持離線依賴打包與 Agent 熱更新，適配無外網或受限網路環境下的批量節點納管</li>
   </ul>
 </td>
 </tr>
@@ -420,7 +427,7 @@ EasyAIoT由九個核心項目組成：
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>TASK模組</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">基於C++的高性能任務處理模組，負責計算密集型任務執行</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">高性能任務處理模組，負責計算密集型任務執行</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>EDGE模組</strong></td>
@@ -438,24 +445,52 @@ EasyAIoT由九個核心項目組成：
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>VISUALIZE模組</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>拖拽式大屏編輯器</strong>：第九核心模組，基於 GoView 的高性能低代碼可視化編輯器，專注畫布編輯與預覽，不含獨立登入與項目管理</li>
-    <li><strong>與 WEB 一體聯動</strong>：項目創建、模板、素材、數據源、發佈與投放在管理後臺「可視化」菜單完成；點擊「打開編輯器」跳轉本模組（預設 <code>:8002</code>）攜帶 Token 進入畫布</li>
+    <li><strong>拖拽式大屏編輯器</strong>：第九核心模組，高性能低代碼可視化編輯器，專注畫布編輯與預覽</li>
+    <li><strong>與 WEB 一體聯動</strong>：項目創建、模板、素材、數據源、發佈與投放在管理後臺「可視化」菜單完成；點擊「打開編輯器」即可進入畫布</li>
     <li><strong>大屏交付能力</strong>：圖表、指標與佈局拖拽配置，組件可掛接平臺數據源與 IoT 測點，支撐園區態勢、產線 KPI、設備運維、能源能耗等指揮大屏快速成屏</li>
-    <li><strong>與組態分工清晰</strong>：大屏（dashboard）走本模組編輯；工藝組態（scada）走 FUXA Web 組態；工程元數據統一由 DEVICE <code>iot-visualize</code> 管理</li>
+    <li><strong>與組態分工清晰</strong>：指揮大屏走本模組編輯；工藝組態走 Web 組態能力；工程元數據統一由 DEVICE 側可視化後臺管理</li>
     <li><strong>部署形態</strong>：與 APP 同屬 full 完整版能力，mini / standard 可按現場硬體跳過，降低邊緣精簡部署體積</li>
+  </ul>
+</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>TRANSFORM模組</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>多向業務流轉</strong>：第十核心模組，把平臺側告警、設備事件與業務結果按約定投遞到 MES / ERP / CRM / WMS 等外部系統，打通「平臺有數 → 業務系統用得上」的最後一公里</li>
+    <li><strong>可配置對接</strong>：數據目的、轉發規則與字段映射一次配好即可複用，減少「每接一家客戶系統就定制一套接口」的交付成本</li>
+    <li><strong>投遞可驗收</strong>：運行集羣與投遞軌跡可監控、可回看，聯調與驗收能回答「轉沒轉到、卡在哪一步」，少靠口頭對賬</li>
+    <li><strong>橫向擴展</strong>：流量上來後可按業務約定擴容消費與投遞能力，支撐多產線、多工廠、多系統並行對接</li>
+  </ul>
+</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>PANEL模組</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>交付與值守入口</strong>：第十一核心模組，獨立於業務管控臺——到場可裝、可驗、可守，縮短驗收週期，降低駐場與遠程支援成本</li>
+    <li><strong>當天可閉環</strong>：按檔位界面化裝機，進度與結果當場可見，業務管控臺未就緒也能先把整機拉起來並交出去</li>
+    <li><strong>自助排障</strong>：容器健康、資源水位、任務日誌與鏡像就緒度一目了然，常見啓停、拉鏡像、清緩存不必等開發敲命令</li>
+    <li><strong>多現場複用</strong>：同一套入口貫穿多臺一體機與多處機房，PoC 與量產交付口徑一致</li>
+  </ul>
+</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>COMPILE打包</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>多平臺交付物</strong>：把 PANEL 等能力打成 Ubuntu / Debian、CentOS / RHEL、Windows、macOS 及 ARM / 麒麟等目標安裝包或可執行文件，方便給客戶裝機，不必現場從源碼編譯</li>
+    <li><strong>縮短交付鏈路</strong>：集成商可按目標環境取對應安裝包完成部署與升級，安裝、啓停與卸載路徑統一，降低跨系統交付差異</li>
+    <li><strong>與 PANEL 配套</strong>：打包產物可直接用於現場運維入口落地，讓「能打包出去」和「到場能裝能守」同一條交付鏈打通</li>
   </ul>
 </td>
 </tr>
 </table>
 
-<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-如需深入瞭解各模組技術棧、微服務拆分、中間件拓撲與數據流轉細節，請參閱 <a href=".doc/架构设计/项目架构设计分析.md" style="color: #3498db; text-decoration: none; font-weight: 600;">項目架構設計分析</a>。
-</p>
-
 ## 🖥️ 跨平臺部署優勢
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT支持在Linux、Mac、Windows三大主流作業系統上部署，爲不同環境下的用戶提供靈活便捷的部署方案：
+EasyAIoT支持在Linux、Mac、Windows三大主流作業系統上部署，爲不同環境下的用戶提供靈活便捷的部署方案；配套 <strong>COMPILE</strong> 可按目標系統產出安裝包與可執行文件，配合 <strong>PANEL</strong> 完成到場裝機與日常值守：
 </p>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
@@ -795,11 +830,11 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 32%; min-width: 9rem;"><nobr>雨落流殇</nobr></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">爲推動 EasyAIoT 項目在超大規模流媒體承載方向的發展，貢獻 SRS 與 ZLMediaKit 異構流媒體伺服器集羣的部署架構與調度思路，提出多節點池協同、流媒體控制面與業務層解耦、存儲與上傳流水線及節點註冊調度等可擴展方案，爲平臺支撐萬級路攝像頭併發接入、穩定分發與彈性擴容奠定了重要的架構基礎。</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">爲推動 EasyAIoT 項目在超大規模流媒體承載方向的發展，貢獻異構流媒體伺服器集羣的部署與調度思路，提出多節點池協同、流媒體與業務層解耦及節點註冊調度等可擴展方案，爲平臺支撐萬級路攝像頭併發接入、穩定分發與彈性擴容奠定了重要的架構基礎。</td>
 </tr>
 <tr style="background-color: #f8f9fa;">
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 32%; min-width: 9rem;"><nobr>常康</nobr></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">爲推動 EasyAIoT 項目在智能交通與車輛管控方向的發展，獨立貢獻車牌識別算法與完整代碼實現，涵蓋基於 ONNX 的車牌定位檢測、號碼與顏色識別、雙層牌拼接與傾斜透視校正、車牌庫管理與多庫順序匹配、算法任務一鍵聯動及 Kafka 異步比對等核心鏈路，全面支持藍/黃/綠/白牌及新能源車牌等主流類型，使平臺「車牌識別與車牌庫管理能力」從能力規劃真正走向可落地、可閉環的生產應用。</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">爲推動 EasyAIoT 項目在智能交通與車輛管控方向的發展，獨立貢獻車牌識別算法與完整代碼實現，涵蓋車牌定位檢測、號碼與顏色識別、雙層牌拼接與傾斜透視校正、車牌庫管理與多庫順序匹配、算法任務一鍵聯動及異步比對等核心鏈路，全面支持藍/黃/綠/白牌及新能源車牌等主流類型，使平臺「車牌識別與車牌庫管理能力」從能力規劃真正走向可落地、可閉環的生產應用。</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 32%; min-width: 9rem;"><nobr>Li</nobr></td>
@@ -807,21 +842,21 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 </tr>
 <tr style="background-color: #f8f9fa;">
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 32%; min-width: 9rem;"><nobr>陈家林</nobr></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">爲推動 EasyAIoT 項目在物聯網設備互通、工業協議接入與空天視頻融合方向的發展，打通設備指令與狀態數據的上下行閉環，使平臺真正實現「下得去、看得見、控得住」；系統性貢獻 Modbus-TCP、Modbus-RTU、OPC UA 工業協議接入能力，完成以太網側與串口側工控設備及 OPC UA 節點的統一採集、寄存器/測點讀寫與物模型映射，使電錶、傳感器、PLC、控制器等海量工業設備數據可被平臺統一匯聚、監測與聯動，補齊「看得見現場、也聽得到設備」的關鍵拼圖；同時貢獻大疆司空機場與無人機畫面接入能力，把空中巡檢視角納入統一視頻與告警體系，顯著拓展平臺在工控數採、產線智控、廣域巡查、應急勘察與天地一體協同感知中的落地價值。</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">爲推動 EasyAIoT 項目在物聯網設備互通、工業協議接入與空天視頻融合方向的發展，打通設備指令與狀態數據的上下行閉環，使平臺真正實現「下得去、看得見、控得住」；系統性貢獻 Modbus-TCP、Modbus-RTU、OPC UA 工業協議接入能力，完成以太網側與串口側工控設備及 OPC UA 節點的統一採集、測點讀寫與物模型映射，使電錶、傳感器、PLC、控制器等海量工業設備數據可被平臺統一匯聚、監測與聯動，補齊「看得見現場、也聽得到設備」的關鍵拼圖；同時貢獻大疆司空機場與無人機畫面接入能力，把空中巡檢視角納入統一視頻與告警體系，顯著拓展平臺在工控數採、產線智控、廣域巡查、應急勘察與天地一體協同感知中的落地價值。</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 32%; min-width: 9rem;"><nobr>空空</nobr></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">爲推動 EasyAIoT 項目在攝像頭直連「從能發現走向能落地」方向的發展，補齊直連接入在認證、通道同步、配置變更與多品牌出流等關鍵短板，使平臺在真實 NVR / 多廠商現場具備可交付的可用性：打通設備登入憑證鏈路，讓帳號密碼認證穩定可用，直連設備真正「登得進、管得住」；重塑 NVR 同步通道後的取流模型——此前同步結果把 RTSP 主機寫成各通道攝像頭自身 IP，與「經 NVR 集中取流」的現場拓撲嚴重不符，導致同步看似成功、實況卻拉不起；修復後統一以 NVR 主機 IP 生成通道 RTSP 地址，讓批量同步出來的流可播、可用，顯著提升 NVR 規模化接入效率；修復設備編輯保存失敗並報錯的問題，保障接入參數可持續維護而非「一次寫入後無法再改」；同步建設國內常用監控品牌 RTSP URL 規則庫，並開放自定義品牌規則，使異廠商、異型號設備可按規則一鍵拼流出流，不必依賴人工試地址、也不必爲每個新品牌改平臺代碼，把直連能力從「掃得到設備」推進到「登得進、同步準、改得了、多品牌都能出流」的生產可用形態，爲後續雲臺與變焦等操控能力完善奠定堅實基礎。</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">爲推動 EasyAIoT 項目在攝像頭直連「從能發現走向能落地」方向的發展，補齊直連接入在認證、通道同步、配置變更與多品牌出流等關鍵短板，使平臺在真實 NVR / 多廠商現場具備可交付的可用性：打通設備登入認證，讓直連設備真正「登得進、管得住」；完善 NVR 同步通道後的取流模型，讓批量同步出來的流可播、可用，顯著提升 NVR 規模化接入效率；保障接入參數可持續維護；同步建設國內常用監控品牌出流規則庫，並開放自定義品牌規則，使異廠商、異型號設備可一鍵出流，不必依賴人工試地址，把直連能力從「掃得到設備」推進到「登得進、同步準、改得了、多品牌都能出流」的生產可用形態，爲後續雲臺與變焦等操控能力完善奠定堅實基礎。</td>
 </tr>
 <tr style="background-color: #f8f9fa;">
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 32%; min-width: 9rem;"><nobr>狗娃</nobr></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">爲推動 EasyAIoT 項目在「物聯網數據可展成屏」方向的發展，前瞻提出基於開源 GoView 落地可視化 Board（拖拽看板）模組的產品構想：傳統大屏往往每張屏、每個組件都要獨立手寫 SQL，交付慢、改一次動全身、業務人員幾乎無法自助做屏。Board 方案把圖表、指標與佈局交給拖拽畫布配置，並把組件變量直接掛接平臺 IoT 物模型測點——即時值與歷史值從設備側一鍵取用，不必再爲每張看板單獨拼查詢；讓園區態勢、產線 KPI、設備運維等大屏從「開發寫 SQL 才能出屏」升級爲「選測點、拖組件即可成屏」，顯著縮短可視化交付週期，把 IoT「後臺有數」真正變成「前臺有屏」的可運營能力。此前亦貢獻傳感器浮點數據預測、運行狀態屬性上下閾值配置、閾值告警與規則聯動，以及中心設備關聯子設備運行狀態一屏展示，打通「預測—定界—告警—規則—一屏掌控」設備運行閉環，使平臺設備側具備「看得見數、管得住界、告得出警、看得清全局」的能力。</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">爲推動 EasyAIoT 項目在「物聯網數據可展成屏」方向的發展，前瞻提出可視化 Board（拖拽看板）模組的產品構想：傳統大屏往往每張屏、每個組件都要獨立手寫查詢，交付慢、改一次動全身、業務人員幾乎無法自助做屏。Board 方案把圖表、指標與佈局交給拖拽畫布配置，並把組件直接掛接平臺 IoT 物模型測點——即時值與歷史值從設備側一鍵取用；讓園區態勢、產線 KPI、設備運維等大屏從「開發寫查詢才能出屏」升級爲「選測點、拖組件即可成屏」，顯著縮短可視化交付週期，把 IoT「後臺有數」真正變成「前臺有屏」的可運營能力。此前亦貢獻傳感器浮點數據預測、運行狀態屬性上下閾值配置、閾值告警與規則聯動，以及中心設備關聯子設備運行狀態一屏展示，打通「預測—定界—告警—規則—一屏掌控」設備運行閉環，使平臺設備側具備「看得見數、管得住界、告得出警、看得清全局」的能力。</td>
 </tr>
 </tbody>
 </table>
 
 <p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
-<strong>特別緻謝</strong>：以上貢獻者在跨平臺部署文件與腳本、國標視頻能力落地與 AI 聯調驗證、多卡訓練可用性與斷點續訓能力落地、多品牌攝像頭直連發現與批量接入、天地圖空間可視化完整落地、異構流媒體集羣部署與調度架構、車牌識別算法與完整代碼落地、EasyAIoT-Edge 邊緣側端到端串聯、校園開發者社羣組織與青年協作生態構建、物聯網設備上下行閉環與大疆司空空中視角接入、Modbus-TCP / Modbus-RTU / OPC UA 工業協議接入、攝像頭直連從發現到登入/同步/配置/多品牌出流的落地閉環、基於 GoView 的拖拽看板（Board）構想與 IoT 測點即時/歷史值直取集成、傳感器浮點數據預測與閾值告警規則及中心設備關聯子設備運行狀態一屏展示等不同方面推動了 EasyAIoT 的發展，他們的專業精神與無私奉獻值得我們學習與尊敬。再次向這些傑出的貢獻者表示最誠摯的感謝！🙏
+<strong>特別緻謝</strong>：以上貢獻者在跨平臺部署文件與腳本、國標視頻能力落地與 AI 聯調驗證、多卡訓練與斷點續訓、多品牌攝像頭直連發現與批量接入、天地圖空間可視化、異構流媒體集羣部署與調度、車牌識別算法與完整代碼、EasyAIoT-Edge 邊緣側端到端串聯、校園開發者社羣組織與青年協作生態構建、物聯網設備上下行閉環與大疆司空空中視角接入、Modbus-TCP / Modbus-RTU / OPC UA 工業協議接入、攝像頭直連從發現到登入/同步/配置/多品牌出流的閉環、拖拽看板（Board）構想與 IoT 測點即時/歷史值直取集成、傳感器浮點數據預測與閾值告警規則及中心設備關聯子設備運行狀態一屏展示等不同方面推動了 EasyAIoT 的發展，他們的專業精神與無私奉獻值得我們學習與尊敬。再次向這些傑出的貢獻者表示最誠摯的感謝！🙏
 </p>
 
 ## 💝 開源守望者
@@ -830,6 +865,17 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 
 <table>
   <tbody>
+                                <tr>
+      <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/open-source-guardian/lysss.jpg" width="80px;" alt="lysss"/><br /><sub><b>lysss</b></sub></a></td>
+      <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/open-source-guardian/Sean-宋阳.jpg" width="80px;" alt="Sean-宋阳"/><br /><sub><b>Sean-宋阳</b></sub></a></td>
+      <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/open-source-guardian/XYZ.jpg" width="80px;" alt="XYZ"/><br /><sub><b>XYZ</b></sub></a></td>
+      <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/open-source-guardian/大虚子民🎼.jpg" width="80px;" alt="大虚子民🎼"/><br /><sub><b>大虚子民🎼</b></sub></a></td>
+      <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/open-source-guardian/哈兰葱.jpg" width="80px;" alt="哈兰葱"/><br /><sub><b>哈兰葱</b></sub></a></td>
+      <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/open-source-guardian/曲超.jpg" width="80px;" alt="曲超"/><br /><sub><b>曲超</b></sub></a></td>
+      <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/open-source-guardian/李雪汉.jpg" width="80px;" alt="李雪汉"/><br /><sub><b>李雪汉</b></sub></a></td>
+      <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/open-source-guardian/梦影·清之韵.jpg" width="80px;" alt="梦影·清之韵"/><br /><sub><b>梦影·清之韵</b></sub></a></td>
+      <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/open-source-guardian/dasic.png" width="80px;" alt="dasic"/><br /><sub><b>dasic</b></sub></a></td>
+    </tr>
     <tr>
       <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/open-source-guardian/默者.png" width="80px;" alt="歐陽建輝"/><br /><sub><b>歐陽建輝</b></sub></a></td>
       <td align="center" valign="top" width="11.11%"><a href="javascript:void(0)" target="_blank"><img src="./.image/open-source-guardian/小满藏舟.png" width="80px;" alt="小滿藏舟"/><br /><sub><b>小滿藏舟</b></sub></a></td>

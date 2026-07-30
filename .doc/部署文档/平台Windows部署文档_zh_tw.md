@@ -1,9 +1,19 @@
 # EasyAIoT 平台 Windows 本地部署指南
 
-> 文檔版本：1.0
-> 更新日期：2025年12月6日
-> 適用系統：Windows 10/11
+> 文檔版本：2.0  
+> 更新日期：2026-07-30  
+> 適用系統：Windows 10/11  
+> **推薦：預建構映像一鍵部署**（見簡體專文第 0 章）
 
+完整說明請直接閱讀：[平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md#0-推荐镜像一键部署2026)
+
+```powershell
+.\.scripts\docker\install_windows.ps1 install
+```
+
+以下章節為早期本機 JDK/Node/Python 部署記錄，新環境請優先使用映像部署。
+
+---
 
 ## 目錄
 

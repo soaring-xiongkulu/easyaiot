@@ -20,6 +20,7 @@ public interface ErrorCodeConstants {
     ErrorCode AGENT_HOST_MISMATCH = new ErrorCode(1_005_002_001, "Agent 主机名与节点已绑定主机不一致，请检查是否多个 Agent 共用同一 NODE_ID");
     ErrorCode AGENT_CAPACITY_MISMATCH = new ErrorCode(1_005_002_002, "Agent 上报的内存/磁盘容量与已绑定指纹不一致，请检查是否多个 Agent 共用同一 NODE_ID");
     ErrorCode AGENT_COMMAND_FAILED = new ErrorCode(1_005_002_003, "Agent 命令执行失败: {}");
+    ErrorCode WORKLOAD_BINDING_NOT_EXISTS = new ErrorCode(1_005_002_004, "工作负载绑定不存在: {}");
     ErrorCode NODE_POOL_EXHAUSTED = new ErrorCode(1_005_003_000, "无可用节点，节点池已耗尽");
     ErrorCode MEDIA_BINDING_NOT_EXISTS = new ErrorCode(1_005_004_000, "设备媒体绑定不存在");
     ErrorCode MEDIA_DEPLOY_SSH_FAILED = new ErrorCode(1_005_004_001, "媒体栈 SSH 部署失败");

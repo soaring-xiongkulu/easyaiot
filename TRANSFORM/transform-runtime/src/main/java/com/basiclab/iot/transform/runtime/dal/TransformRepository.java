@@ -215,6 +215,28 @@ public class TransformRepository {
         return runtimeInstances.selectList(null).stream().map(this::runtimeInstance).toList();
     }
 
+    public boolean deleteRuntimeInstance(String instanceId) {
+        if (instanceId == null || instanceId.isBlank()) {
+            return false;
+        }
+        return runtimeInstances.deleteById(instanceId) > 0;
+    }
+
+    /**
+     * 删除心跳早于 cutoff 的实例记录（容器已销毁后的幽灵行）。
+     * @param keepInstanceId 可选，保留本机正在服务的实例，避免误删
+     */
+    public int deleteStaleRuntimeInstances(Instant cutoff, String keepInstanceId) {
+        LambdaQueryWrapper<RuntimeInstanceDO> q = new LambdaQueryWrapper<RuntimeInstanceDO>()
+                .and(w -> w.lt(RuntimeInstanceDO::getLastHeartbeatTime, cutoff)
+                        .or()
+                        .isNull(RuntimeInstanceDO::getLastHeartbeatTime));
+        if (keepInstanceId != null && !keepInstanceId.isBlank()) {
+            q.ne(RuntimeInstanceDO::getInstanceId, keepInstanceId);
+        }
+        return runtimeInstances.delete(q);
+    }
+
     public void upsertRuntimeInstance(RuntimeInstance value) {
         RuntimeInstanceDO d = new RuntimeInstanceDO();
         d.setInstanceId(value.getInstanceId());
@@ -246,7 +268,8 @@ public class TransformRepository {
             return null;
         }
         Instant hb = d.getLastHeartbeatTime();
-        boolean online = hb != null && hb.isAfter(Instant.now().minusSeconds(45));
+        // 感知周期默认 15s；窗口需覆盖调度抖动与跨节点 Kafka 汇聚延迟（与 NODE 侧 ~120s 对齐）
+        boolean online = hb != null && hb.isAfter(Instant.now().minusSeconds(90));
         String status = online ? (d.getStatus() == null ? "ONLINE" : d.getStatus()) : "OFFLINE";
         Map<String, Long> metrics = new HashMap<>();
         map(d.getMetricsJson()).forEach((k, v) -> {

@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+  remove|purge)
+    if command -v systemctl >/dev/null 2>&1; then
+      systemctl disable easyaiot-panel.service >/dev/null 2>&1 || true
+      systemctl daemon-reload || true
+    fi
+    if command -v update-desktop-database >/dev/null 2>&1; then
+      update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+    fi
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+      gtk-update-icon-cache -q /usr/share/icons/hicolor >/dev/null 2>&1 || true
+    fi
+    ;;
+esac
+
+exit 0

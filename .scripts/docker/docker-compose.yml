@@ -386,9 +386,9 @@ services:
 
   # FUXA Web SCADA / HMI（组态编辑器 + 运行态；仅 full 形态启动，mini/standard 跳过且不拉取镜像）
   # 编辑器: http://localhost:1881/editor  运行态: http://localhost:1881/home
-  # 默认经 proxy.vvvv.ee 拉取（实测 docker.1ms.run 对 FUXA 易卡住/401）
+  # 默认经 docker.1panel.live 拉取（docker.1ms.run 对 FUXA 易卡住/401）
   FUXA:
-    image: ${FUXA_IMAGE:-proxy.vvvv.ee/frangoteam/fuxa:1.3.3}
+    image: ${FUXA_IMAGE:-docker.1panel.live/frangoteam/fuxa:1.3.3}
     container_name: fuxa-server
     restart: always
     ports:

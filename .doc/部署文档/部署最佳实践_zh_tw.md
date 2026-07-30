@@ -429,7 +429,15 @@ sudo .scripts/docker/install_linux_kylin.sh install
 
 # ARM64
 sudo .scripts/docker/install_linux_arm.sh install
+
+# macOS（僅映像部署）
+bash .scripts/docker/install_mac.sh install
+
+# Windows
+bash .scripts/docker/install_windows.sh install
 ```
+
+詳見 [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署)、[平台macOS部署文档_zh.md](./平台macOS部署文档_zh.md)、[平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md)。
 
 ---
 

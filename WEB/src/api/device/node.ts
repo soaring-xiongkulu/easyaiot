@@ -671,7 +671,38 @@ export type WorkloadBundleTypeKey =
 export interface WorkloadBundleBatchReq {
   nodeIds: number[];
   bundleType: WorkloadBundleTypeKey;
+  /** TRANSFORM 全量分发后拉起的容器副本数 */
+  replicas?: number;
 }
+
+export const stopNodeWorkload = (
+  nodeId: number,
+  workloadType: string,
+  workloadId: string,
+) => {
+  return commonApi('post', `${Api.Node}/workload/stop`, {
+    params: { nodeId, workloadType, workloadId },
+  });
+};
+
+/** 心跳未带 TRANSFORM_NODE_ID 时，按绑定表反查节点硬停 */
+export const stopNodeWorkloadById = (workloadType: string, workloadId: string) => {
+  return commonApi('post', `${Api.Node}/workload/stop-by-id`, {
+    params: { workloadType, workloadId },
+  });
+};
+
+export const deployNodeWorkload = (data: {
+  nodeId: number;
+  workloadType: string;
+  workloadId: string;
+  runtime?: string;
+  image?: string;
+  env?: Record<string, string>;
+  command?: string[];
+}) => {
+  return commonApi('post', `${Api.Node}/workload/deploy`, { data });
+};
 
 export interface WorkloadBundleNodeResult {
   nodeId?: number;

@@ -37,8 +37,8 @@ EasyAIoT est déployé via **des conteneurs Docker et un script d'installation u
 | Linux x86 | `.scripts/docker/install_linux.sh` |
 | Linux ARM | `.scripts/docker/install_linux_arm.sh` |
 | Kylin | `.scripts/docker/install_linux_kylin.sh` |
-| macOS | `.scripts/docker/install_mac.sh` |
-| Windows | `.scripts/docker/install_win.ps1` |
+| macOS (images only) | `.scripts/docker/install_mac.sh` |
+| Windows (images only) | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
 ---
 
@@ -158,6 +158,17 @@ sudo .scripts/docker/install_linux.sh install
 | Construction locale complète | 30 minutes à plusieurs heures |
 
 Flux `install` : sélection du profil → vérification de l'environnement → création du réseau → déploiement du middleware et des modules → attente de santé. Voir [Déploiement en un clic et étape par étape](./部署最佳实践_fr.md#déploiement-en-un-clic).
+
+---
+
+## Déploiement macOS / Windows (images uniquement)
+
+Les plateformes bureau ne prennent en charge que le déploiement par **images préconstruites** (`install_mac.sh` / `install_windows.ps1` / `install_windows.sh`). Pas de `build` / `build-runtime` local. Détails (ZH) : [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署).
+
+```bash
+bash .scripts/docker/install_mac.sh install
+bash .scripts/docker/install_windows.sh install
+```
 
 ---
 

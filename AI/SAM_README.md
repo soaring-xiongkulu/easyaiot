@@ -1,7 +1,5 @@
 # SAM 万物分割 — 快速指南
 
-> 详细设计见 [docs/SAM_DEPLOYMENT_DESIGN.md](docs/SAM_DEPLOYMENT_DESIGN.md)
-
 SAM（Segment Anything Model）为 EasyAIoT 提供零样本图像分割能力，支持点/框提示交互标注与自动全图分割，后续可扩展文本描述万物识别（参考 [sam-changkang](https://gitee.com/ai-agents/sam-changkang)）。
 
 ## 1. 能力概览

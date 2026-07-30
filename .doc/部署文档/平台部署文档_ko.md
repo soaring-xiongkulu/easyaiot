@@ -37,8 +37,8 @@ EasyAIoT는 **Docker 컨테이너와 통합 설치 스크립트**를 통해 배�
 | Linux x86 | `.scripts/docker/install_linux.sh` |
 | Linux ARM | `.scripts/docker/install_linux_arm.sh` |
 | Kylin | `.scripts/docker/install_linux_kylin.sh` |
-| macOS | `.scripts/docker/install_mac.sh` |
-| Windows | `.scripts/docker/install_win.ps1` |
+| macOS (이미지 전용) | `.scripts/docker/install_mac.sh` |
+| Windows (이미지 전용) | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
 ---
 
@@ -157,6 +157,17 @@ sudo .scripts/docker/install_linux.sh install
 | 로컬 전체 빌드 | 30분~수시간 |
 
 `install` 흐름: 프로필 선택 → 환경 확인 → 네트워크 생성 → 미들웨어 및 모듈 배포 → 상태 대기. [원클릭 및 단계별 배포](./部署最佳实践_ko.md#원클릭-배포) 참조.
+
+---
+
+## macOS / Windows 이미지 전용 배포
+
+데스크톱은 **사전 빌드 이미지**만 지원합니다 (`install_mac.sh` / `install_windows.ps1` / `install_windows.sh`). 로컬 `build` / `build-runtime` 불가. 상세(ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署).
+
+```bash
+bash .scripts/docker/install_mac.sh install
+bash .scripts/docker/install_windows.sh install
+```
 
 ---
 

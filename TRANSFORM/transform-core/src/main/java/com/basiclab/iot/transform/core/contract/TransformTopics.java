@@ -9,6 +9,9 @@ public final class TransformTopics {
     /** 下行指令：Control / NODE / 管理 API → 各 runtime */
     public static final String COMMAND = "iot_transform_command";
 
+    /** 指令回执：各 runtime → 控制面（按 commandId 汇聚） */
+    public static final String COMMAND_ACK = "iot_transform_command_ack";
+
     /** 上行监测：各 runtime → 中心（并落盘 PG） */
     public static final String TELEMETRY = "iot_transform_telemetry";
 

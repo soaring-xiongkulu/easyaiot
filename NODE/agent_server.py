@@ -82,8 +82,8 @@ def stop_workload():
         workload_id = body.get('workloadId')
         if not workload_type or not workload_id:
             return _err('workloadType 和 workloadId 必填')
-        manager.stop(workload_type, workload_id)
-        return _ok({'stopped': True})
+        removed = manager.stop(workload_type, workload_id)
+        return _ok({'stopped': True, 'removed': bool(removed)})
     except Exception as e:
         logger.exception('停止失败')
         return _err(str(e))

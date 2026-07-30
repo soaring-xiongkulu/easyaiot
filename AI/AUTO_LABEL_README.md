@@ -1,8 +1,5 @@
 # 自动化标注功能说明
 
-> **详细设计文档**：[docs/AUTO_LABEL_DESIGN.md](docs/AUTO_LABEL_DESIGN.md)（架构、API、数据模型、部署、故障排查、前端易用性）  
-> 本文档为快速上手指南。
-
 ## 功能概述
 
 已实现完整的自动化标注功能，包括：
@@ -77,10 +74,8 @@ AUTO_LABEL_PROGRESS_COMMIT_INTERVAL=10     # 进度落库间隔（张）
 3. **标注格式** 与手工标注一致（归一化矩形 + `label` 类别名）
 4. **任务完成后** 前端会自动同步数据集标签（从标注扫描创建）
 5. Java `POST /dataset/{id}/auto-label` 为空桩，**请勿使用**；请走 model-server 接口
-6. SAM 零样本冷启动标注（规划）见 [SAM 设计文档](docs/SAM_UNIVERSAL_RECOGNITION_DESIGN.md)
 
 ## 相关文档
 
-- [详细设计文档](docs/AUTO_LABEL_DESIGN.md)
-- [SAM 万物识别设计](docs/SAM_UNIVERSAL_RECOGNITION_DESIGN.md)
 - [AI 模块 README](README.md)
+- [SAM 快速指南](SAM_README.md)

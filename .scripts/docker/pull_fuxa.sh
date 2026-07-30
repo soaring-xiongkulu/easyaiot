@@ -19,7 +19,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR}/docker_mirror_common.sh"
 
 FUXA_TAG="${FUXA_TAG:-1.3.3}"
-FUXA_IMAGE_LOCAL="${FUXA_IMAGE_LOCAL:-proxy.vvvv.ee/frangoteam/fuxa:${FUXA_TAG}}"
+FUXA_IMAGE_LOCAL="${FUXA_IMAGE_LOCAL:-docker.1panel.live/frangoteam/fuxa:${FUXA_TAG}}"
 # 同时打官方名标签，便于其它脚本按 frangoteam/fuxa 引用
 FUXA_IMAGE_ALIAS="${FUXA_IMAGE_ALIAS:-frangoteam/fuxa:${FUXA_TAG}}"
 
@@ -48,7 +48,7 @@ fi
 print_error "所有镜像源均拉取失败"
 echo ""
 echo "可手动尝试（任选）："
-echo "  docker pull proxy.vvvv.ee/frangoteam/fuxa:${FUXA_TAG}"
 echo "  docker pull docker.1panel.live/frangoteam/fuxa:${FUXA_TAG}"
+echo "  docker pull docker.1ms.run/frangoteam/fuxa:${FUXA_TAG}"
 echo "  cd ${SCRIPT_DIR} && docker compose up -d FUXA"
 exit 1

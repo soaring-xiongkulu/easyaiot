@@ -1,9 +1,15 @@
 # Guide de déploiement local de la plateforme EasyAIoT pour Windows
 
-> Version du document : 1.0
-> Date de mise à jour : 6 décembre 2025
-> Systèmes pris en charge : Windows 10/11
+> Version du document : 2.0  
+> Date de mise à jour : 2026-07-30  
+> Systèmes pris en charge : Windows 10/11  
+> **Recommandé : déploiement par images** — voir [平台Windows部署文档_zh.md §0](./平台Windows部署文档_zh.md#0-推荐镜像一键部署2026) / [EN](./平台Windows部署文档.md#0-recommended-image-only-deploy-2026)
 
+```powershell
+.\.scripts\docker\install_windows.ps1 install
+```
+
+---
 
 ## Table des matières
 

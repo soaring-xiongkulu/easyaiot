@@ -431,6 +431,10 @@ sudo .scripts/docker/install_linux_kylin.sh install
 
 # ARM64
 sudo .scripts/docker/install_linux_arm.sh install
+
+# macOS / Windows (только образы)
+bash .scripts/docker/install_mac.sh install
+bash .scripts/docker/install_windows.sh install
 ```
 
 ---

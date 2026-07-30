@@ -1,6 +1,7 @@
 package com.basiclab.iot.transform.runtime.web;
 
 import com.basiclab.iot.transform.core.control.TransformCommand;
+import com.basiclab.iot.transform.core.control.TransformCommandAck;
 import com.basiclab.iot.transform.core.domain.Contract;
 import com.basiclab.iot.transform.core.domain.DlqRecord;
 import com.basiclab.iot.transform.core.domain.MappingRule;
@@ -63,6 +64,8 @@ public class TransformAdminController {
 
     @GetMapping("/cluster/workers")
     public R<Map<String, Object>> workers() {
+        String localId = clusterControlService.localInstanceId();
+        String localHost = clusterControlService.localHost();
         return R.ok(Map.of(
                 "mode", "stateless",
                 "groups", List.of(
@@ -71,7 +74,10 @@ public class TransformAdminController {
                         "transform.party.deliver"
                 ),
                 "commandTopic", "iot_transform_command",
+                "commandAckTopic", "iot_transform_command_ack",
                 "telemetryTopic", "iot_transform_telemetry",
+                "localInstanceId", localId == null ? "" : localId,
+                "localHost", localHost == null ? "" : localHost,
                 "instances", clusterControlService.listInstances(),
                 "metrics", metricsService.snapshot()
         ));
@@ -82,10 +88,34 @@ public class TransformAdminController {
         return R.ok(clusterControlService.listInstances());
     }
 
+    @PostMapping("/cluster/instances/purge")
+    public R<Map<String, Object>> purgeInstances(
+            @RequestParam(value = "offlineOnly", defaultValue = "true") boolean offlineOnly) {
+        int removed = clusterControlService.purgeStaleInstances(offlineOnly);
+        return R.ok(Map.of(
+                "removed", removed,
+                "instances", clusterControlService.listInstances()
+        ));
+    }
+
+    @DeleteMapping("/cluster/instances/{instanceId}")
+    public R<Boolean> removeInstance(@PathVariable String instanceId) {
+        try {
+            return R.ok(clusterControlService.removeInstanceRecord(instanceId));
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        }
+    }
+
     @PostMapping("/cluster/command")
     public R<Map<String, String>> issueCommand(@RequestBody TransformCommand command) {
         String id = clusterControlService.issueCommand(command);
         return R.ok(Map.of("commandId", id));
+    }
+
+    @GetMapping("/cluster/command/{commandId}/acks")
+    public R<List<TransformCommandAck>> commandAcks(@PathVariable String commandId) {
+        return R.ok(clusterControlService.listCommandAcks(commandId));
     }
 
     // ---- Party ----

@@ -1,0 +1,40 @@
+# TRANSFORM 系统对接 Runtime（仅 full 全量形态）
+# 镜像：transform-service:latest（远程 aiot-transform → 本地 tag）
+services:
+  transform-service:
+    image: transform-service:latest
+    container_name: transform-service
+    user: root
+    ports:
+      - "${TRANSFORM_HOST_PORT:-48096}:48096"
+    env_file:
+      - .env.docker
+    environment:
+      - TZ=Asia/Shanghai
+      - SERVER_PORT=48096
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-local}
+      - TRANSFORM_ROLE=${TRANSFORM_ROLE:-full}
+      - TRANSFORM_INSTANCE_ID=${TRANSFORM_INSTANCE_ID:-transform-service}
+      - TRANSFORM_NODE_ID=${TRANSFORM_NODE_ID:-}
+      - TRANSFORM_BACKUP_DIR=/opt/easyaiot/TRANSFORM/data/transform-backup
+      - KAFKA_BOOTSTRAP=${KAFKA_BOOTSTRAP:-Kafka:9092}
+      - POSTGRES_URL=${POSTGRES_URL:-jdbc:postgresql://PostgresSQL:5432/iot-transform20}
+      - POSTGRES_USERNAME=${POSTGRES_USERNAME:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-iot45722414822}
+      - JAVA_OPTS=${JAVA_OPTS:--Xms256m -Xmx1024m}
+    volumes:
+      - ./data/transform-backup:/opt/easyaiot/TRANSFORM/data/transform-backup
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    networks:
+      - easyaiot-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  easyaiot-network:
+    name: easyaiot-network
+    external: true

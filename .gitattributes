@@ -96,3 +96,7 @@ APP/.pnpm-store/** -diff
 # TRANSFORM 运行时数据与离线构建产物：不参与 diff
 TRANSFORM/data/** -diff
 TRANSFORM/dist/** -diff
+
+# COMPILE 产物：不参与 diff（deb 与无扩展 ELF 二进制）
+COMPILE/dist/ubuntu/*.deb binary -diff
+COMPILE/dist/ubuntu/easyaiot-panel binary -diff

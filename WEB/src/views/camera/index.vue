@@ -1234,7 +1234,8 @@ onUnmounted(() => {
   }
 
   .camera-tab {
-    padding: 16px 19px 0 15px;
+    padding: 0;
+    background: #ffffff;
 
     :deep(.ant-tabs-nav) {
       padding: 5px 0 0 25px;

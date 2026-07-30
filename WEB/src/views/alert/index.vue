@@ -417,10 +417,11 @@ const handleClearAllAlerts = () => {
 <style scoped lang="less">
 .alert-page {
   min-height: 0;
+  background: #ffffff;
 }
 
 .alert-tab {
-  padding: 16px 19px 0 15px;
+  padding: 0;
 
   :deep(.ant-tabs-nav) {
     padding: 5px 0 0 25px;

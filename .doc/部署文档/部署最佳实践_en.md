@@ -431,7 +431,15 @@ sudo .scripts/docker/install_linux_kylin.sh install
 
 # ARM64
 sudo .scripts/docker/install_linux_arm.sh install
+
+# macOS (image-only; Docker Desktop + bash 4+)
+bash .scripts/docker/install_mac.sh install
+
+# Windows (PowerShell: install_windows.ps1; or Git Bash / WSL)
+bash .scripts/docker/install_windows.sh install
 ```
+
+Desktop notes: shared logic in `install_desktop_common.sh`; middleware via `install_middleware_desktop.sh`; no local build. See Chinese guides [macOS](./平台macOS部署文档_zh.md) / [Windows](./平台Windows部署文档_zh.md).
 
 ---
 

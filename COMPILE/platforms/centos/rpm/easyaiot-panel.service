@@ -1,0 +1,16 @@
+[Unit]
+Description=EasyAIoT PANEL ops console
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/easyaiot-panel/panel.env
+Environment=PANEL_ENV_FILE=/etc/easyaiot-panel/panel.env
+WorkingDirectory=/opt/easyaiot-panel
+ExecStart=/opt/easyaiot-panel/bin/easyaiot-panel
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

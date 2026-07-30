@@ -1,0 +1,215 @@
+name: COMPILE Multi-Platform Packaging
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_windows_installer:
+        description: "Build Windows NSIS installer (needs makensis on runner)"
+        required: false
+        default: false
+        type: boolean
+      build_macos_dmg:
+        description: "Build macOS .dmg package"
+        required: false
+        default: false
+        type: boolean
+      enable_centos_self_hosted:
+        description: "Enable CentOS rpm job"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  ubuntu-deb:
+    name: Ubuntu deb
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build deb package
+        run: |
+          bash COMPILE/build.sh deb
+          ls -lh COMPILE/dist/ubuntu
+
+      - name: Upload ubuntu artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: easyaiot-panel-ubuntu
+          path: |
+            COMPILE/dist/ubuntu/easyaiot-panel
+            COMPILE/dist/ubuntu/*.deb
+
+  windows-exe:
+    name: Windows exe
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build exe
+        run: |
+          bash COMPILE/build.sh windows
+          ls -lh COMPILE/dist/windows
+
+      - name: Upload windows exe artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: easyaiot-panel-windows-exe
+          path: |
+            COMPILE/dist/windows/easyaiot-panel.exe
+            COMPILE/dist/windows/panel.env
+            COMPILE/dist/windows/panel.env.example
+            COMPILE/dist/windows/run.bat
+            COMPILE/dist/windows/README.txt
+            COMPILE/dist/windows/runtime
+
+  windows-installer:
+    name: Windows installer (optional)
+    if: ${{ inputs.build_windows_installer }}
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install NSIS
+        run: choco install nsis -y
+
+      - name: Build windows installer
+        run: |
+          bash COMPILE/build.sh windows --installer
+          ls -lh COMPILE/dist/windows
+
+      - name: Upload windows installer artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: easyaiot-panel-windows-installer
+          path: COMPILE/dist/windows/*setup.exe
+
+  macos-bin:
+    name: macOS binary
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build macOS binary
+        run: |
+          bash COMPILE/build.sh macos
+          ls -lh COMPILE/dist/macos
+
+      - name: Upload macOS binary artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: easyaiot-panel-macos-bin
+          path: |
+            COMPILE/dist/macos/easyaiot-panel
+            COMPILE/dist/macos/panel.env
+            COMPILE/dist/macos/panel.env.example
+            COMPILE/dist/macos/run.command
+            COMPILE/dist/macos/README.txt
+            COMPILE/dist/macos/runtime
+
+  macos-dmg:
+    name: macOS dmg (optional)
+    if: ${{ inputs.build_macos_dmg }}
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build macOS dmg
+        run: |
+          bash COMPILE/build.sh macos --dmg
+          ls -lh COMPILE/dist/macos
+
+      - name: Upload macOS dmg artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: easyaiot-panel-macos-dmg
+          path: |
+            COMPILE/dist/macos/*.dmg
+            COMPILE/dist/macos/*.app/**
+
+  centos-rpm:
+    name: CentOS/RHEL rpm (containerized optional)
+    if: ${{ inputs.enable_centos_self_hosted }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build centos rpm (dockerized)
+        run: |
+          bash COMPILE/build.sh centos --docker
+          ls -lh COMPILE/dist/centos
+
+      - name: Upload centos artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: easyaiot-panel-centos
+          path: |
+            COMPILE/dist/centos/easyaiot-panel
+            COMPILE/dist/centos/*.rpm

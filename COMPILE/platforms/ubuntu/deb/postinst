@@ -1,0 +1,28 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+  configure)
+    if command -v systemctl >/dev/null 2>&1; then
+      systemctl daemon-reload || true
+      systemctl enable easyaiot-panel.service >/dev/null 2>&1 || true
+      # 首次安装不自动 start，避免未配置 EASYAIOT_ROOT 就拉起
+      if [ -n "$2" ]; then
+        systemctl try-restart easyaiot-panel.service >/dev/null 2>&1 || true
+      fi
+    fi
+    if command -v update-desktop-database >/dev/null 2>&1; then
+      update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+    fi
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+      gtk-update-icon-cache -q /usr/share/icons/hicolor >/dev/null 2>&1 || true
+    fi
+    echo "EasyAIoT PANEL 已安装。"
+    echo "  1) 默认使用包内 runtime：/opt/easyaiot-panel/runtime（无需外部仓库）"
+    echo "  2) 可在应用菜单点击 EasyAIoT Panel（会尝试启动服务并打开浏览器）"
+    echo "  3) 也可执行 sudo systemctl start easyaiot-panel 后访问 http://127.0.0.1:9200/"
+    echo "  4) 部署建议：在 PANEL 的【部署】页执行 install，并选择 full 形态"
+    ;;
+esac
+
+exit 0

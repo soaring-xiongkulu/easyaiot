@@ -1,9 +1,15 @@
 # EasyAIoT 플랫폼 Windows 로컬 배포 가이드
 
-> 문서 버전: 1.0
-> 업데이트 날짜: 2025년 12월 6일
-> 지원 시스템: Windows 10/11
+> 문서 버전: 2.0  
+> 업데이트 날짜: 2026-07-30  
+> 지원 시스템: Windows 10/11  
+> **권장: 이미지 배포** — [平台Windows部署文档_zh.md §0](./平台Windows部署文档_zh.md#0-推荐镜像一键部署2026) / [EN](./平台Windows部署文档.md#0-recommended-image-only-deploy-2026)
 
+```powershell
+.\.scripts\docker\install_windows.ps1 install
+```
+
+---
 
 ## 목차
 
