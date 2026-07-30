@@ -8,6 +8,10 @@
 #   ./install_windows.sh pull         # 仅拉取预构建镜像
 #   ./install_windows.sh start|stop|restart|status|logs|update|verify|check
 #
+# 若本机尚未安装 Docker Desktop / WSL2，请先用 PowerShell：
+#   .\.scripts\docker\install_windows.ps1 bootstrap
+# 然后再执行 install / check。
+#
 # 前置条件：
 #   - Docker Desktop for Windows（启用 WSL2 后端更佳）
 #   - Git for Windows（提供 bash）或 WSL

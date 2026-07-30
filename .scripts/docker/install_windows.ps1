@@ -1,4 +1,4 @@
-#Requires -Version 5.0
+﻿#Requires -Version 5.0
 <#
 .SYNOPSIS
   EasyAIoT Windows 镜像部署入口（PowerShell）
@@ -8,12 +8,30 @@
   缺什么就提示装什么并中止；全部通过后再转发到 install_windows.sh。
   仅支持拉取预构建镜像部署，不支持本地编译。
 
+  若本机尚未安装 Docker Desktop / WSL，可用：
+    .\install_windows.ps1 bootstrap
+    .\install_windows.ps1 -Bootstrap
+  或设置环境变量后重试：
+    $env:EASYAIOT_AUTO_INSTALL_DOCKER = "1"; .\install_windows.ps1 install
+
 .EXAMPLE
-  .\install_windows.ps1
-  .\install_windows.ps1 check
-  .\install_windows.ps1 install
-  .\install_windows.ps1 pull
+  .\install_windows.cmd
+  .\install_windows.cmd check
+  .\install_windows.cmd install
+  .\install_windows.cmd bootstrap
+
+  # 若直接跑 .ps1 报「禁止运行脚本」，可用：
+  #   powershell -ExecutionPolicy Bypass -File .\install_windows.ps1 bootstrap
+  # 或改当前用户策略（一次即可）：
+  #   Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 #>
+
+[CmdletBinding()]
+param(
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$CommandArgs = @(),
+    [switch]$Bootstrap
+)
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -23,6 +41,30 @@ function Write-Info($msg)  { Write-Host "[INFO] $msg" -ForegroundColor Cyan }
 function Write-Ok($msg)    { Write-Host "[OK]   $msg" -ForegroundColor Green }
 function Write-Warn($msg)  { Write-Host "[WARN] $msg" -ForegroundColor Yellow }
 function Write-Err($msg)   { Write-Host "[ERR]  $msg" -ForegroundColor Red }
+
+function Get-DockerBinCandidates {
+    @(
+        "$env:ProgramFiles\Docker\Docker\resources\bin",
+        "${env:ProgramFiles(x86)}\Docker\Docker\resources\bin",
+        "$env:LOCALAPPDATA\Docker\resources\bin",
+        "$env:ProgramFiles\Docker\Docker\resources"
+    )
+}
+
+function Ensure-DockerOnPath {
+    if (Get-Command docker -ErrorAction SilentlyContinue) { return $true }
+    foreach ($dir in (Get-DockerBinCandidates)) {
+        $exe = Join-Path $dir "docker.exe"
+        if (Test-Path $exe) {
+            if ($env:Path -notlike "*$dir*") {
+                $env:Path = "$dir;$env:Path"
+                Write-Info "已将 Docker CLI 加入当前会话 PATH: $dir"
+            }
+            return $true
+        }
+    }
+    return $false
+}
 
 function Find-BashCandidates {
     $candidates = New-Object System.Collections.Generic.List[string]
@@ -48,7 +90,11 @@ function Find-Bash {
     }
     $wsl = Get-Command wsl -ErrorAction SilentlyContinue
     if ($wsl) {
-        return @{ Kind = "wsl"; Path = "wsl" }
+        # wsl 存在不等于已安装发行版；仅当 --status 成功时采用
+        $null = & wsl --status 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            return @{ Kind = "wsl"; Path = "wsl" }
+        }
     }
     return $null
 }
@@ -73,6 +119,19 @@ function Find-DockerDesktopExe {
     ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 }
 
+function Test-WslInstalled {
+    $wsl = Get-Command wsl -ErrorAction SilentlyContinue
+    if (-not $wsl) { return $false }
+    $null = & wsl --status 2>$null
+    return ($LASTEXITCODE -eq 0)
+}
+
+function Test-IsAdmin {
+    $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($id)
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
 function Start-DockerDesktopIfNeeded {
     $dd = Find-DockerDesktopExe
     if ($dd) {
@@ -84,6 +143,7 @@ function Start-DockerDesktopIfNeeded {
 }
 
 function Test-DockerDaemonReady {
+    Ensure-DockerOnPath | Out-Null
     try {
         docker info 2>$null | Out-Null
         return ($LASTEXITCODE -eq 0)
@@ -92,12 +152,131 @@ function Test-DockerDaemonReady {
     }
 }
 
+function Install-WslIfNeeded {
+    if (Test-WslInstalled) {
+        Write-Ok "WSL: 已安装"
+        return $true
+    }
+    Write-Warn "未检测到可用的 WSL（Docker Desktop 通常需要 WSL2）"
+    if (-not (Test-IsAdmin)) {
+        Write-Err "安装 WSL 需要管理员权限。请用「以管理员身份运行」的 PowerShell 执行："
+        Write-Host "  wsl --install"
+        Write-Host "  或: .\install_windows.ps1 bootstrap"
+        return $false
+    }
+    Write-Info "正在安装 WSL（可能需要几分钟，完成后通常需重启）..."
+    & wsl --install --no-distribution
+    $rc = $LASTEXITCODE
+    if ($rc -ne 0) {
+        Write-Warn "wsl --install --no-distribution 退出码 $rc，尝试 wsl --install ..."
+        & wsl --install
+        $rc = $LASTEXITCODE
+    }
+    if (Test-WslInstalled) {
+        Write-Ok "WSL: 安装完成"
+        return $true
+    }
+    Write-Warn "WSL 组件可能已开始安装，但当前会话仍不可用。请重启电脑后再继续。"
+    Write-Host "  重启后执行: .\install_windows.ps1 bootstrap"
+    Write-Host "  或:           .\install_windows.ps1 install"
+    return $false
+}
+
+function Install-DockerDesktopIfNeeded {
+    Ensure-DockerOnPath | Out-Null
+    if (Get-Command docker -ErrorAction SilentlyContinue) {
+        Write-Ok ("Docker CLI: " + (docker --version 2>$null))
+        return $true
+    }
+    if (Find-DockerDesktopExe) {
+        Write-Ok "Docker Desktop: 已安装（CLI 稍后加入 PATH）"
+        Ensure-DockerOnPath | Out-Null
+        return $true
+    }
+
+    $winget = Get-Command winget -ErrorAction SilentlyContinue
+    if (-not $winget) {
+        Write-Err "未找到 winget，无法自动安装 Docker Desktop"
+        Write-Host "请手动下载安装: https://www.docker.com/products/docker-desktop"
+        return $false
+    }
+
+    Write-Info "正在通过 winget 安装 Docker Desktop（体积较大，请耐心等待）..."
+    & winget install -e --id Docker.DockerDesktop --accept-package-agreements --accept-source-agreements
+    $rc = $LASTEXITCODE
+    # winget: 0 成功；-1978335189 等表示已安装
+    if ($rc -ne 0 -and $rc -ne -1978335189) {
+        Write-Warn "winget 退出码 $rc，请检查是否需管理员权限或手动安装"
+    }
+
+    # 刷新当前会话 PATH（机器/用户 PATH 可能已更新，但本进程未继承）
+    $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ($machinePath -or $userPath) {
+        $env:Path = ($machinePath + ';' + $userPath)
+    }
+    Ensure-DockerOnPath | Out-Null
+
+    $dockerCmd = Get-Command docker -ErrorAction SilentlyContinue
+    if ($dockerCmd -or (Find-DockerDesktopExe)) {
+        Write-Ok 'Docker Desktop: install OK (or already present)'
+        return $true
+    }
+
+    Write-Err 'Docker Desktop installed but not detected yet. Sign out/reboot, or open Docker Desktop once to finish setup.'
+    Write-Host 'Download: https://www.docker.com/products/docker-desktop'
+    return $false
+}
+
+function Invoke-BootstrapDeps {
+    Write-Host ""
+    Write-Host "======== 自动安装 Windows 部署依赖 ========" -ForegroundColor Yellow
+    Write-Info "将尝试安装: WSL2（如缺失）+ Docker Desktop"
+    Write-Host ""
+
+    $wslOk = Install-WslIfNeeded
+    $dockerOk = Install-DockerDesktopIfNeeded
+
+    if ($dockerOk) {
+        $launched = Start-DockerDesktopIfNeeded
+        if ($launched) {
+            Write-Info "等待 Docker 引擎就绪..."
+            for ($i = 1; $i -le 60; $i++) {
+                Start-Sleep -Seconds 2
+                if (Test-DockerDaemonReady) {
+                    Write-Ok "Docker Desktop: 引擎已就绪"
+                    break
+                }
+                if (($i % 5) -eq 0) { Write-Info "等待 Docker Desktop 启动... ($i/60)" }
+            }
+        }
+    }
+
+    Write-Host ""
+    if ($dockerOk -and (Test-DockerDaemonReady)) {
+        Write-Ok "依赖已就绪，可继续: .\install_windows.ps1 install"
+        return 0
+    }
+    if ($dockerOk -and -not (Test-DockerDaemonReady)) {
+        Write-Warn "Docker 已安装但引擎未就绪。请打开 Docker Desktop，待 Running 后执行:"
+        Write-Host "  .\install_windows.ps1 check"
+        Write-Host "  .\install_windows.ps1 install"
+        return 2
+    }
+    if (-not $wslOk) {
+        Write-Warn "WSL 未就绪时，Docker Desktop 的 WSL2 后端可能无法启动。请先完成 WSL 安装并重启。"
+    }
+    return 1
+}
+
 function Invoke-PrerequisiteCheck {
     $missing = New-Object System.Collections.Generic.List[string]
     $howto = New-Object System.Collections.Generic.List[string]
 
     Write-Host ""
     Write-Host "======== 前置环境检测（Windows）========" -ForegroundColor Yellow
+
+    Ensure-DockerOnPath | Out-Null
 
     # 1) Docker CLI
     $dockerCli = Get-Command docker -ErrorAction SilentlyContinue
@@ -112,8 +291,11 @@ function Invoke-PrerequisiteCheck {
         }
     } else {
         [void]$missing.Add("Docker Desktop（未找到 docker 命令）")
-        [void]$howto.Add("下载安装 Docker Desktop: https://www.docker.com/products/docker-desktop")
-        [void]$howto.Add("安装时建议勾选 WSL2 后端；装完后重启终端再执行本脚本")
+        [void]$howto.Add("一键安装依赖:  .\install_windows.ps1 bootstrap")
+        [void]$howto.Add("或管理员 PowerShell:  wsl --install")
+        [void]$howto.Add("然后:  winget install -e --id Docker.DockerDesktop")
+        [void]$howto.Add("手动下载: https://www.docker.com/products/docker-desktop （建议勾选 WSL2 后端）")
+        [void]$howto.Add("装完后重启终端（必要时重启电脑）再执行本脚本")
     }
 
     # 2) Docker daemon
@@ -139,12 +321,15 @@ function Invoke-PrerequisiteCheck {
             if (-not $daemonOk) {
                 if (-not $launched) {
                     [void]$missing.Add("Docker Desktop 未安装或引擎未运行（docker info 失败）")
-                    [void]$howto.Add("下载安装 Docker Desktop: https://www.docker.com/products/docker-desktop")
+                    [void]$howto.Add("一键安装: .\install_windows.ps1 bootstrap")
+                    [void]$howto.Add("或下载: https://www.docker.com/products/docker-desktop")
                 } else {
                     [void]$missing.Add("Docker Desktop 引擎未运行（docker info 失败）")
                     [void]$howto.Add("请手动打开 Docker Desktop，等待托盘图标显示 Running 后重试")
                 }
-                [void]$howto.Add("安装地址: https://www.docker.com/products/docker-desktop")
+                if (-not (Test-WslInstalled)) {
+                    [void]$howto.Add("本机尚未就绪 WSL2，请先: wsl --install  （完成后重启）")
+                }
             }
         }
     }
@@ -208,6 +393,9 @@ function Invoke-PrerequisiteCheck {
             $n++
         }
         Write-Host ""
+        Write-Host "推荐一键引导安装依赖："
+        Write-Host "  .\install_windows.ps1 bootstrap"
+        Write-Host ""
         Write-Host "装好后可先自检："
         Write-Host "  .\install_windows.ps1 check"
         Write-Host ""
@@ -218,6 +406,34 @@ function Invoke-PrerequisiteCheck {
     return $bashInfo
 }
 
+# ---- 解析命令：支持 bootstrap / -Bootstrap / EASYAIOT_AUTO_INSTALL_DOCKER ----
+$forwardArgs = @()
+if ($CommandArgs -and $CommandArgs.Count -gt 0) {
+    $forwardArgs = @($CommandArgs)
+} elseif ($args.Count -gt 0) {
+    $forwardArgs = @($args)
+}
+
+$wantBootstrap = $Bootstrap.IsPresent
+if ($forwardArgs.Count -gt 0 -and ($forwardArgs[0] -ieq "bootstrap" -or $forwardArgs[0] -ieq "deps")) {
+    $wantBootstrap = $true
+    if ($forwardArgs.Count -gt 1) {
+        $forwardArgs = $forwardArgs[1..($forwardArgs.Count - 1)]
+    } else {
+        $forwardArgs = @()
+    }
+}
+if ($env:EASYAIOT_AUTO_INSTALL_DOCKER -eq "1") {
+    $wantBootstrap = $true
+}
+
+if ($wantBootstrap) {
+    $rc = Invoke-BootstrapDeps
+    if ($rc -ne 0) { exit $rc }
+    # bootstrap 且未附带后续子命令时结束
+    if ($forwardArgs.Count -eq 0) { exit 0 }
+}
+
 if (-not (Test-Path $BashScript)) {
     Write-Err "未找到 $BashScript"
     exit 1
@@ -225,16 +441,13 @@ if (-not (Test-Path $BashScript)) {
 
 $bashInfo = Invoke-PrerequisiteCheck
 
-# 转发参数（默认进入交互菜单）
-$forwardArgs = @()
-if ($args.Count -gt 0) {
-    $forwardArgs = $args
-}
-
 Write-Info "使用 $($bashInfo.Kind): $($bashInfo.Path)"
 Write-Info "转发到 install_windows.sh $($forwardArgs -join ' ')"
 
 $env:EASYAIOT_FORCE_WINDOWS = "1"
+
+# 确保 Git Bash 子进程也能找到 docker（MSYS 继承 Windows PATH）
+Ensure-DockerOnPath | Out-Null
 
 if ($bashInfo.Kind -eq "wsl") {
     $wslScript = (wsl wslpath -a "$BashScript" 2>$null)
