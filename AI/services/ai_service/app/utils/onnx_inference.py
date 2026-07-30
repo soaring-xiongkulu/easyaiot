@@ -148,15 +148,37 @@ def draw_detections(img, box, score, class_id, classes_dict: Dict[int, str], col
     # 创建标签文本，包括类名和得分
     class_name = classes_dict.get(class_id, f'class_{class_id}')
     label = f'{class_name}: {score:.2f}'
-    # 计算标签文本的尺寸
-    (label_width, label_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-    # 计算标签文本的位置
-    label_x = x1
-    label_y = y1 - 10 if y1 - 10 > label_height else y1 + 10
-    # 绘制填充的矩形作为标签文本的背景
-    cv2.rectangle(img, (label_x, label_y - label_height), (label_x + label_width, label_y + label_height), color, cv2.FILLED)
-    # 在图像上绘制标签文本
-    cv2.putText(img, label, (label_x, label_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+    label_x = int(x1)
+
+    # OpenCV Hershey 字体不支持中文；非 ASCII 标签改用 Pillow 加载 CJK 字体。
+    # 保留 ASCII 的 OpenCV 绘制路径，避免改变既有英文标签的字号和效果。
+    from app.utils.yolo_chinese_font import draw_utf8_label_on_bgr, get_pil_annotation_font
+
+    pil_font = get_pil_annotation_font(14)
+    if pil_font is not None and not str(label).isascii():
+        # Pillow 与 OpenCV 的字形度量方式不同，中文背景框必须按实际 CJK 字体重新计算。
+        bbox = pil_font.getbbox(label)
+        label_width = bbox[2] - bbox[0]
+        label_height = bbox[3] - bbox[1]
+    else:
+        (label_width, label_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+
+    # 背景框沿用原有类别颜色，并根据标签实际尺寸放置在检测框上方或框内。
+    label_y = int(y1 - 10 if y1 - 10 > label_height else y1 + 10)
+    cv2.rectangle(
+        img,
+        (label_x, label_y - label_height),
+        (label_x + label_width, label_y + label_height),
+        color,
+        cv2.FILLED,
+    )
+
+    # 中文由 Pillow 写入 BGR 图像；英文或字体不可用时保持原有 OpenCV 路径。
+    if pil_font is not None and not str(label).isascii():
+        if not draw_utf8_label_on_bgr(img, label, (label_x, label_y - label_height), font_size=14):
+            cv2.putText(img, label, (label_x, label_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+    else:
+        cv2.putText(img, label, (label_x, label_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
 
 
 def preprocess(img, input_width, input_height):
@@ -567,4 +589,3 @@ class ONNXInference:
         )
         # 返回处理后的图像和检测结果
         return output_image, detections
-

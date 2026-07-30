@@ -27,6 +27,13 @@ import numpy as np
 import logging
 from typing import Tuple, List, Dict, Any, Optional
 from PIL import Image
+try:
+    from app.utils.utf8_detection_label import draw_detection_label
+except ModuleNotFoundError as exc:
+    if exc.name != "app.utils.utf8_detection_label":
+        raise
+    # 兼容以 frame_extractor_service 为工作目录的独立启动方式。
+    from .utf8_detection_label import draw_detection_label
 
 try:
     import onnxruntime as ort
@@ -148,15 +155,18 @@ def draw_detections(img, box, score, class_id, classes_dict: Dict[int, str], col
     # 创建标签文本，包括类名和得分
     class_name = classes_dict.get(class_id, f'class_{class_id}')
     label = f'{class_name}: {score:.2f}'
-    # 计算标签文本的尺寸
-    (label_width, label_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-    # 计算标签文本的位置
-    label_x = x1
-    label_y = y1 - 10 if y1 - 10 > label_height else y1 + 10
-    # 绘制填充的矩形作为标签文本的背景
-    cv2.rectangle(img, (label_x, label_y - label_height), (label_x + label_width, label_y + label_height), color, cv2.FILLED)
-    # 在图像上绘制标签文本
-    cv2.putText(img, label, (label_x, label_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+    # 绘制标签及背景；中文类别使用 Pillow + CJK 字体绘制
+    draw_detection_label(
+        img,
+        label,
+        int(x1),
+        int(y1),
+        (0, 0, 0),
+        font_scale=0.5,
+        font_thickness=1,
+        cjk_font_size=18,
+        background_bgr=tuple(int(channel) for channel in color),
+    )
 
 
 def preprocess(img, input_width, input_height):
@@ -567,4 +577,3 @@ class ONNXInference:
         )
         # 返回处理后的图像和检测结果
         return output_image, detections
-
