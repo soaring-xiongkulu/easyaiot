@@ -44,7 +44,7 @@
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-📄 如需更完整的图文介绍，请参阅 <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT项目介绍 V2.0（PPT）</a>。
+📄 如需更完整的图文介绍，请参阅 <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT项目介绍 V2.0（PPT）</a>，以及 <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI视频监控分析平台（PDF）</a>。
 </p>
 
 ## 🌟 关于项目的一些思考
@@ -854,11 +854,15 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 32%; min-width: 9rem;"><nobr>狗娃</nobr></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">为推动 EasyAIoT 项目在「物联网数据可展成屏」方向的发展，前瞻提出可视化 Board（拖拽看板）模块的产品构想：传统大屏往往每张屏、每个组件都要独立手写查询，交付慢、改一次动全身、业务人员几乎无法自助做屏。Board 方案把图表、指标与布局交给拖拽画布配置，并把组件直接挂接平台 IoT 物模型测点——实时值与历史值从设备侧一键取用；让园区态势、产线 KPI、设备运维等大屏从「开发写查询才能出屏」升级为「选测点、拖组件即可成屏」，显著缩短可视化交付周期，把 IoT「后台有数」真正变成「前台有屏」的可运营能力。此前亦贡献传感器浮点数据预测、运行状态属性上下阈值配置、阈值告警与规则联动，以及中心设备关联子设备运行状态一屏展示，打通「预测—定界—告警—规则—一屏掌控」设备运行闭环，使平台设备侧具备「看得见数、管得住界、告得出警、看得清全局」的能力。</td>
 </tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 32%; min-width: 9rem;"><nobr>大老刘</nobr></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">为推动 EasyAIoT 项目在对外宣介与方案表达方向的发展，贡献《AI视频监控分析平台》图文介绍材料，系统梳理平台在 AI 视频监控分析场景下的能力全貌与落地价值，让更多用户、集成商与合作伙伴能快速理解平台定位与核心亮点，显著提升项目对外传播与商务沟通效率。</td>
+</tr>
 </tbody>
 </table>
 
 <p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
-<strong>特别致谢</strong>：以上贡献者在跨平台部署文档与脚本、国标视频能力与 AI 联调验证、多卡训练与断点续训、多品牌摄像头直连发现与批量接入、天地图空间可视化、异构流媒体集群部署与调度、车牌识别算法与完整代码、EasyAIoT-Edge 边缘侧端到端串联、校园开发者社群组织与青年协作生态构建、物联网设备上下行闭环与大疆司空空中视角接入、Modbus-TCP / Modbus-RTU / OPC UA 工业协议接入、摄像头直连从发现到登录/同步/配置/多品牌出流的闭环、拖拽看板（Board）构想与 IoT 测点实时/历史值直取集成、传感器浮点数据预测与阈值告警规则及中心设备关联子设备运行状态一屏展示等不同方面推动了 EasyAIoT 的发展，他们的专业精神与无私奉献值得我们学习与尊敬。再次向这些杰出的贡献者表示最诚挚的感谢！🙏
+<strong>特别致谢</strong>：以上贡献者在跨平台部署文档与脚本、国标视频能力与 AI 联调验证、多卡训练与断点续训、多品牌摄像头直连发现与批量接入、天地图空间可视化、异构流媒体集群部署与调度、车牌识别算法与完整代码、EasyAIoT-Edge 边缘侧端到端串联、校园开发者社群组织与青年协作生态构建、物联网设备上下行闭环与大疆司空空中视角接入、Modbus-TCP / Modbus-RTU / OPC UA 工业协议接入、摄像头直连从发现到登录/同步/配置/多品牌出流的闭环、拖拽看板（Board）构想与 IoT 测点实时/历史值直取集成、传感器浮点数据预测与阈值告警规则及中心设备关联子设备运行状态一屏展示、AI 视频监控分析平台图文介绍材料等不同方面推动了 EasyAIoT 的发展，他们的专业精神与无私奉献值得我们学习与尊敬。再次向这些杰出的贡献者表示最诚挚的感谢！🙏
 </p>
 
 ## 💝 开源守望者
