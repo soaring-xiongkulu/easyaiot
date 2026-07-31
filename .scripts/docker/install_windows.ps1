@@ -37,10 +37,40 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $BashScript = Join-Path $ScriptDir "install_windows.sh"
 
+# 控制台尽量用 UTF-8，避免中文提示乱码；外部命令（wsl 等）的本地化 stderr 仍可能乱码，探测时一律吞掉
+try {
+    if ($Host.Name -eq 'ConsoleHost') {
+        [Console]::InputEncoding  = [System.Text.UTF8Encoding]::new($false)
+        [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    }
+    $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    $null = cmd /c "chcp 65001 >nul"
+} catch { }
+
 function Write-Info($msg)  { Write-Host "[INFO] $msg" -ForegroundColor Cyan }
 function Write-Ok($msg)    { Write-Host "[OK]   $msg" -ForegroundColor Green }
 function Write-Warn($msg)  { Write-Host "[WARN] $msg" -ForegroundColor Yellow }
 function Write-Err($msg)   { Write-Host "[ERR]  $msg" -ForegroundColor Red }
+
+# 在 ErrorActionPreference=Stop 下，原生命令写 stderr 也会变成终止异常；探测类调用必须用 Continue + 丢弃输出
+function Invoke-NativeExitCode {
+    param(
+        [Parameter(Mandatory = $true)]
+        [scriptblock]$Command
+    )
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $Command 1>$null 2>$null
+        if ($null -ne $LASTEXITCODE) { return [int]$LASTEXITCODE }
+        return 0
+    } catch {
+        if ($null -ne $LASTEXITCODE) { return [int]$LASTEXITCODE }
+        return 1
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+}
 
 function Get-DockerBinCandidates {
     @(
@@ -91,8 +121,7 @@ function Find-Bash {
     $wsl = Get-Command wsl -ErrorAction SilentlyContinue
     if ($wsl) {
         # wsl 存在不等于已安装发行版；仅当 --status 成功时采用
-        $null = & wsl --status 2>$null
-        if ($LASTEXITCODE -eq 0) {
+        if ((Invoke-NativeExitCode { & wsl.exe --status }) -eq 0) {
             return @{ Kind = "wsl"; Path = "wsl" }
         }
     }
@@ -100,6 +129,8 @@ function Find-Bash {
 }
 
 function Test-BashVersion4Plus([string]$BashPath) {
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     try {
         $out = & $BashPath -c 'echo ${BASH_VERSINFO[0]}' 2>$null
         if ($LASTEXITCODE -ne 0) { return $false }
@@ -108,6 +139,8 @@ function Test-BashVersion4Plus([string]$BashPath) {
         return ($major -ge 4)
     } catch {
         return $false
+    } finally {
+        $ErrorActionPreference = $prev
     }
 }
 
@@ -122,8 +155,8 @@ function Find-DockerDesktopExe {
 function Test-WslInstalled {
     $wsl = Get-Command wsl -ErrorAction SilentlyContinue
     if (-not $wsl) { return $false }
-    $null = & wsl --status 2>$null
-    return ($LASTEXITCODE -eq 0)
+    # 未安装时 wsl 会输出本地化中文到 stderr，编码常与控制台不一致 → 乱码 + Stop 下抛异常
+    return ((Invoke-NativeExitCode { & wsl.exe --status }) -eq 0)
 }
 
 function Test-IsAdmin {
@@ -144,12 +177,8 @@ function Start-DockerDesktopIfNeeded {
 
 function Test-DockerDaemonReady {
     Ensure-DockerOnPath | Out-Null
-    try {
-        docker info 2>$null | Out-Null
-        return ($LASTEXITCODE -eq 0)
-    } catch {
-        return $false
-    }
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { return $false }
+    return ((Invoke-NativeExitCode { & docker info }) -eq 0)
 }
 
 function Install-WslIfNeeded {
@@ -165,12 +194,18 @@ function Install-WslIfNeeded {
         return $false
     }
     Write-Info "正在安装 WSL（可能需要几分钟，完成后通常需重启）..."
-    & wsl --install --no-distribution
-    $rc = $LASTEXITCODE
-    if ($rc -ne 0) {
-        Write-Warn "wsl --install --no-distribution 退出码 $rc，尝试 wsl --install ..."
-        & wsl --install
+    $prevEa = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & wsl.exe --install --no-distribution
         $rc = $LASTEXITCODE
+        if ($rc -ne 0) {
+            Write-Warn "wsl --install --no-distribution 退出码 $rc，尝试 wsl --install ..."
+            & wsl.exe --install
+            $rc = $LASTEXITCODE
+        }
+    } finally {
+        $ErrorActionPreference = $prevEa
     }
     if (Test-WslInstalled) {
         Write-Ok "WSL: 安装完成"
