@@ -3,20 +3,25 @@
 把 `PANEL`（及其他模块，后续扩展）编译打包为各平台可执行文件 / 安装包。
 
 当前已实现：
-- **Ubuntu 单文件** `easyaiot-panel` + **内置 runtime** `.deb`（`install_linux*.sh`）
-- **交互式打包菜单** `COMPILE/install_linux.sh`
+- **Ubuntu 单文件** `easyaiot-panel` + **内置 runtime** `.deb`（按架构绑定 `install_linux.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`）
+- **交互式打包菜单** `COMPILE/install_linux.sh`（Ubuntu / CentOS / Windows / 全量 Linux；macOS 请用 `build.sh macos`）
 - **Windows** `easyaiot-panel.exe` + **内置 runtime**（`install_windows.sh` 仅镜像部署）+ 可选 NSIS
 - **macOS** `easyaiot-panel` + **内置 runtime**（`install_mac.sh` 仅镜像部署）+ 可选 `.app` / `.dmg`
-- **CentOS/RHEL** `easyaiot-panel` + `.rpm`
+- **CentOS/RHEL** `easyaiot-panel` + `.rpm`（**不含**内置 runtime，需配置 `EASYAIOT_ROOT` 指向仓库根；部署可用仓库内 `install_linux_centos.sh`）
 
 ## 快速开始
 
 > **Ubuntu Docker 打包已加速：** 默认先在宿主机 `npm run build`，容器内只做 PyInstaller；
 > 构建上下文只含 PANEL 必要文件（约数 MB），不再把整个仓库塞进 dockerd，也不再在容器里跑 `npm install`（以前常卡 400s+）。
+>
+> **CentOS 默认也走 Docker**（`quay.io/centos/centos:stream9`），不必在 CentOS 物理机上打包。
 
 ```bash
 # 统一入口（交互菜单：部署操作 / 安装操作）
 bash COMPILE/install_linux.sh
+# 非交互改为本机构建：COMPILE_BUILD_MODE=local bash COMPILE/install_linux.sh
+# 非交互全量 Linux 包：bash COMPILE/install_linux.sh pack-all
+# Windows（须在 Windows 主机）：bash COMPILE/install_linux.sh windows [--installer]
 
 # x86/amd64 单文件
 bash COMPILE/build.sh ubuntu-x86
@@ -41,13 +46,13 @@ ls -lh COMPILE/dist/ubuntu-arm/easyaiot-panel_*_arm_arm64.deb
 bash COMPILE/build.sh ubuntu-kylin --deb
 ls -lh COMPILE/dist/ubuntu-kylin/easyaiot-panel_*_kylin_arm64.deb
 
-# Windows（需在 Windows 主机执行；产物含 runtime/ + install_windows.sh）
-bash COMPILE/build.sh windows
+# Windows（须在 Windows 主机；也可经统一入口）
+bash COMPILE/install_linux.sh windows
+bash COMPILE/install_linux.sh windows --installer   # 需 NSIS / makensis
+# 等价：bash COMPILE/build.sh windows [--installer]
 ls -lh COMPILE/dist/windows/easyaiot-panel.exe
 ls -ld COMPILE/dist/windows/runtime
 ls -lh COMPILE/dist/windows/panel.env COMPILE/dist/windows/run.bat
-# 可选安装包（需 NSIS / makensis；会打入 runtime）
-bash COMPILE/build.sh windows --installer
 # 运行：
 # COMPILE\dist\windows\run.bat
 # 然后在 PANEL「应用部署」执行 install（仅拉取预构建镜像）
@@ -63,20 +68,29 @@ bash COMPILE/build.sh macos --dmg
 # 运行：
 # ./COMPILE/dist/macos/run.command
 
-# CentOS/RHEL（需在对应主机执行）
+# CentOS/RHEL（默认 Docker 标准化构建；产出二进制 + .rpm）
 bash COMPILE/build.sh centos
+# 仅二进制：bash COMPILE/build.sh centos --no-rpm
+# 本机构建：bash COMPILE/build.sh centos --local   # 需 rpm-build + Node + Python
 ls -lh COMPILE/dist/centos/easyaiot-panel COMPILE/dist/centos/*.rpm
 # 安装 RPM：
-# sudo rpm -ivh COMPILE/dist/centos/easyaiot-panel-*.rpm
+# sudo rpm -Uvh COMPILE/dist/centos/easyaiot-panel-*.rpm
 # sudo systemctl daemon-reload
 # sudo systemctl enable --now easyaiot-panel
 #
-# 配置仓库根路径：
+# 配置仓库根路径（RPM 默认 /opt/easyaiot，需改成实际 clone 路径）：
 # sudoedit /etc/easyaiot-panel/panel.env
 # EASYAIOT_ROOT=/path/to/easyaiot
 
-# 安装/卸载管理（自动识别 deb/rpm）
+# 一次打全量 Linux 包（Ubuntu 三架构 deb + CentOS rpm；每个包都会让版本号 +1）
+bash COMPILE/install_linux.sh pack-all
+# 或：bash COMPILE/build.sh all-linux
+# 或：bash COMPILE/platforms/pack_all_linux.sh
+
+# 安装/卸载管理（自动识别 deb/rpm；也可指定架构或包路径）
 bash COMPILE/install_linux.sh install auto
+bash COMPILE/install_linux.sh install x86          # 或 arm / kylin
+bash COMPILE/install_linux.sh install --file COMPILE/dist/ubuntu/easyaiot-panel_126_amd64.deb
 bash COMPILE/install_linux.sh uninstall
 bash COMPILE/install_linux.sh status
 ```
@@ -93,24 +107,29 @@ cd /path/to/easyaiot
 
 # 检查脚本权限（如无执行权限可补上）
 ls -l COMPILE/build.sh
-chmod +x COMPILE/build.sh COMPILE/platforms/ubuntu/build.sh COMPILE/platforms/ubuntu/pack_deb.sh
+chmod +x COMPILE/build.sh \
+  COMPILE/platforms/ubuntu/build.sh COMPILE/platforms/ubuntu/pack_deb.sh \
+  COMPILE/platforms/centos/build.sh COMPILE/platforms/centos/pack_rpm.sh
 
 # 版本号在每次打包时自动递增（也可 PANEL_VERSION=105 固定指定）
 # 状态文件：COMPILE/.panel-version（gitignore，也可由 dist 已有包推断）
 ```
 
-如果要打 `.deb`：请确保“当前 shell 的 `python3`”能导入 `Pillow`（模块名 `PIL`）。
-`pack_deb.sh` 生成桌面图标时会用到这一点；若你在 `conda(base)` 里打包，可能需要 `deactivate` 或在当前 conda 环境安装 `pillow`（`python3 -m pip install pillow`）。
+如果要打 `.deb` / `.rpm`：请确保“当前 shell 的 `python3`”能导入 `Pillow`（模块名 `PIL`）。
+`pack_deb.sh` / `pack_rpm.sh` 生成桌面图标时会用到；若在 `conda(base)` 里打包，可能需要 `deactivate` 或 `python3 -m pip install pillow`。
 
 ## 前置依赖提示（按目标）
-- Windows/macOS：建议在对应 OS 本机执行，需本机具备 `Node.js + npm`、Python 3.11+。
-- CentOS/RHEL：需 `rpm-build`（提供 `rpmbuild`），同样需要 `Node.js + npm`、Python 3.11+。
+- **Ubuntu deb（Docker 默认）**：本机 `npm`（先编前端）、`docker`（含 buildx）、`dpkg-deb`（`apt install dpkg-dev`）、`python3`+Pillow。
+- **Ubuntu ARM / 麒麟**：同上；Docker 使用 `--platform linux/arm64`，宿主机需已注册 QEMU/binfmt（`docker buildx ls` 能看到 `linux/arm64`）。
+- **CentOS/RHEL（Docker 默认）**：只需本机 `docker`；容器内安装 `rpm-build` 并完成 PyInstaller。`--local` 时才需要本机 `rpm-build` + Node + Python 3.11+。
+- **Windows/macOS**：必须在对应 OS 本机（或对应 CI Runner）执行，需 `Node.js + npm`、Python 3.11+；Windows 可选 NSIS（`makensis`），macOS 可选 `.app` / `.dmg`。
 
 如果要走 Docker 构建（默认方式），还需要确认 Docker 可用：
 
 ```bash
 docker --version
 docker compose version
+docker buildx ls    # ARM/麒麟打包前确认有 linux/arm64
 ```
 
 ### 2) 生成 Ubuntu 单文件二进制（推荐先执行）
@@ -158,6 +177,8 @@ bash COMPILE/build.sh deb
 
 ```bash
 ls -lh COMPILE/dist/ubuntu/*.deb
+ls -lh COMPILE/dist/ubuntu-arm/*.deb
+ls -lh COMPILE/dist/ubuntu-kylin/*.deb
 ```
 
 预期产物示例（`<VERSION>` 为自动递增的数字版本）：
@@ -310,23 +331,100 @@ export EASYAIOT_ROOT=/path/to/easyaiot
 ./COMPILE/dist/ubuntu-kylin/easyaiot-panel
 ```
 
+### 6) CentOS/RHEL 打包与安装
+
+> CentOS **默认 Docker 构建**（`platforms/centos/Dockerfile`，基础镜像 `quay.io/centos/centos:stream9`）。
+> RPM **不打入**内置 runtime（与 Ubuntu deb 不同）：安装后必须把 `EASYAIOT_ROOT` 指到本机 EasyAIoT 仓库根，部署脚本用仓库内 `.scripts/docker/install_linux_centos.sh`。
+
+```bash
+# 默认：Docker 产出二进制 + rpm
+bash COMPILE/build.sh centos
+ls -lh COMPILE/dist/centos/easyaiot-panel COMPILE/dist/centos/easyaiot-panel-*.rpm
+
+# 仅二进制 / 本机构建
+bash COMPILE/build.sh centos --no-rpm
+bash COMPILE/build.sh centos --local          # 需本机 rpm-build + Node + Python
+```
+
+安装与配置：
+
+```bash
+sudo rpm -Uvh ./COMPILE/dist/centos/easyaiot-panel-*.rpm
+sudoedit /etc/easyaiot-panel/panel.env
+# 必改示例：
+# EASYAIOT_ROOT=/path/to/easyaiot
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now easyaiot-panel
+sudo systemctl status easyaiot-panel --no-pager
+# 浏览器：http://127.0.0.1:9200/
+```
+
+卸载：
+
+```bash
+sudo systemctl stop easyaiot-panel || true
+sudo rpm -e easyaiot-panel
+sudo systemctl daemon-reload
+```
+
+也可用统一入口（自动识别 rpm）：
+
+```bash
+bash COMPILE/install_linux.sh install auto
+bash COMPILE/install_linux.sh status
+bash COMPILE/install_linux.sh uninstall
+```
+
+### 7) 已安装 deb 的热修 / 强制升级（可选）
+
+部署脚本（如 `deploy_profile.sh`）修好后若不想整包重装，可把仓库改动同步进已装 runtime：
+
+```bash
+# 需 root；默认目标 /opt/easyaiot-panel/runtime
+sudo bash COMPILE/hotfix_panel_runtime_deploy.sh
+```
+
+强制用最新 x86 deb 覆盖安装并重启：
+
+```bash
+sudo bash COMPILE/force_upgrade_panel.sh
+```
+
+### 8) 常见打包问题
+
+| 现象 | 处理 |
+|------|------|
+| `EACCES` / `权限不够` 清理 `PANEL/ui/dist` 或 `COMPILE/work/ubuntu-docker-ctx` | 上次 Docker/`--output` 产物属主为 root。可用：`docker run --rm -v "$PWD/COMPILE/work:/w" -v "$PWD/PANEL/ui:/ui" alpine chown -R "$(id -u):$(id -g)" /w /ui/dist` |
+| ARM/麒麟 `docker build` 报 platform 不支持 | 确认 `docker buildx ls` 含 `linux/arm64`，并已安装 qemu-user-static / binfmt |
+| `pack_deb.sh` 报缺 `dpkg-deb` | `sudo apt install -y dpkg-dev` |
+| 图标阶段报缺 `PIL` | `python3 -m pip install pillow`（或退出会遮蔽系统 python 的 conda env） |
+| 连续打多包版本号跳很多 | 正常：每个 deb/rpm 都会 `+1`；可用 `PANEL_VERSION=130` 固定某一包版本 |
+| 交互菜单没有 macOS | 菜单已含 Ubuntu/CentOS/Windows/「全量Linux」；macOS 仍用 `bash COMPILE/build.sh macos` |
+
 ## 目录
 
 ```
 COMPILE/
-  build.sh                      # 统一入口
+  build.sh                      # 统一入口（ubuntu/windows/macos/centos/all-linux）
+  install_linux.sh              # 交互打包 + pack-all + windows + install/uninstall/status
+  interactive_pack.sh           # 被 install_linux.sh 默认调用的交互菜单
+  hotfix_panel_runtime_deploy.sh
+  force_upgrade_panel.sh
   lib/
     resolve_panel_version.sh    # 打包版本自动递增
+    pack_desktop_runtime.sh     # deb / Windows / macOS 共用的 source-free runtime 打包
   assets/
     panel-logo.png              # 各平台共享图标源文件
   requirements-build.txt
-  platforms/                     # 指向原 targets（构建平台脚本）
+  platforms/
+    pack_all_linux.sh           # Ubuntu×3 deb + CentOS rpm 一键打包
     ubuntu/
       Dockerfile
       panel.spec
-      build.sh                  # --docker / --local / --deb
-      pack_deb.sh               # 打 .deb
-      deb/                      # control、systemd、postinst…
+      build.sh                  # --docker / --local / --deb / --arm / --kylin
+      pack_deb.sh               # 打 .deb（内置 runtime）
+      deb/                      # control、systemd、postinst、panel.env*
     windows/
       panel.spec
       build.sh                  # Windows：.exe + runtime + 可选 NSIS
@@ -337,12 +435,16 @@ COMPILE/
       build.sh                  # macOS：二进制 + runtime + 可选 .app/.dmg
       panel.env                 # INSTALL_SCRIPT=install_mac.sh
     centos/
-      build.sh                  # CentOS/RHEL 本地构建二进制
-      pack_rpm.sh               # 生成 .rpm
+      Dockerfile                # 容器标准化构建（默认）
+      build.sh                  # --docker / --local / --rpm / --no-rpm
+      pack_rpm.sh               # 生成 .rpm（不含内置 runtime）
       rpm/                      # systemd/desktop/env 模板
   dist/ubuntu/                  # x86/amd64 产物（gitignore）
   dist/ubuntu-arm/              # arm64 产物（gitignore）
   dist/ubuntu-kylin/            # 麒麟 产物（gitignore）
+  dist/centos/                  # CentOS 二进制 + rpm（gitignore）
+  dist/windows/                 # Windows 产物（gitignore）
+  dist/macos/                   # macOS 产物（gitignore）
 ```
 
 ## 版本号
@@ -352,6 +454,7 @@ COMPILE/
 - 也可扫描 `COMPILE/dist/**` 已有包名推断当前最大值
 - 固定版本：`PANEL_VERSION=105 bash COMPILE/build.sh ubuntu-x86 --deb`
 - 起始基数：`PANEL_VERSION_BASE`（默认 `100`）
+- 一次打完 Ubuntu 三架构 + CentOS 会连续占用 4 个版本号（例如 126→129）
 
 ## 构建方式
 
@@ -359,10 +462,11 @@ COMPILE/
 |------|------|------|
 | Docker（默认） | `bash COMPILE/build.sh ubuntu-x86 / ubuntu-arm / ubuntu-kylin` | 输出对应架构 Linux 可执行文件（ARM/Kylin 使用 `linux/arm64` 构建） |
 | 本地 | `bash COMPILE/build.sh <target> --local` | 需在对应架构机器上执行（本机 Node + Python3） |
-| deb | `bash COMPILE/build.sh <target> --deb` | 产出对应 variant 的 `.deb`（x86/amd64、arm_arm64、kylin_arm64） |
-| windows | `bash COMPILE/build.sh windows` | 需在 Windows 主机执行，产出 `.exe` |
-| macos | `bash COMPILE/build.sh macos` | 需在 macOS 主机执行，产出 macOS 可执行文件 |
-| centos | `bash COMPILE/build.sh centos [--docker|--local] [--no-rpm]` | CentOS/RHEL 本地或容器标准化构建；默认产出二进制 + `.rpm` |
+| deb | `bash COMPILE/build.sh <target> --deb` | 产出对应 variant 的 `.deb`（含内置 runtime；x86/amd64、arm_arm64、kylin_arm64） |
+| windows | `bash COMPILE/build.sh windows [--installer]` | 需在 Windows 主机执行；默认 `.exe`+`runtime/`，可选 NSIS |
+| macos | `bash COMPILE/build.sh macos [--app|--dmg]` | 需在 macOS 主机执行；默认二进制+`runtime/`，可选 `.app`/`.dmg` |
+| centos | `bash COMPILE/build.sh centos [--docker|--local] [--no-rpm]` | 默认 Docker 产出二进制 + `.rpm`（无内置 runtime） |
+| all-linux | `bash COMPILE/build.sh all-linux` / `bash COMPILE/install_linux.sh pack-all` | 依次打 Ubuntu×3 deb + CentOS rpm |
 
 ## 运行时依赖
 
@@ -370,19 +474,23 @@ COMPILE/
 
 - **Docker CLI**（`docker` / `docker compose`）与 Docker Engine（Linux sock / Desktop）
 - **EasyAIoT runtime 根**（`EASYAIOT_ROOT`）
-  - Ubuntu deb 默认：`/opt/easyaiot-panel/runtime` → `install_linux*.sh`
+  - Ubuntu deb 默认：`/opt/easyaiot-panel/runtime` → 按包变体使用 `install_linux.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`
   - Windows / macOS 安装包：与二进制同级的 `runtime/` → `install_windows.sh` / `install_mac.sh`
-  - 也可指向本机 clone 的仓库根
+  - CentOS rpm：默认 `/opt/easyaiot`（占位），**须改为**本机仓库根 → 使用 `.scripts/docker/install_linux_centos.sh`
+  - 也可把任意平台的 `EASYAIOT_ROOT` 指到本机 clone 的仓库根
 
-| 平台 | `INSTALL_SCRIPT` | 本地 build |
-|------|------------------|------------|
-| Linux | `install_linux.sh`（arm/kylin 变体） | 支持 |
+| 平台 | `INSTALL_SCRIPT` | 本地 build（源码编译业务镜像） |
+|------|------------------|-------------------------------|
+| Ubuntu x86 | `install_linux.sh` | 支持 |
+| Ubuntu ARM | `install_linux_arm.sh` | 支持 |
+| 麒麟 ARM | `install_linux_kylin.sh` | 支持 |
+| CentOS/RHEL | `install_linux_centos.sh`（需仓库根） | 支持 |
 | macOS | `install_mac.sh` | **禁止**（仅镜像） |
 | Windows | `install_windows.sh` | **禁止**（仅镜像；需 Git Bash） |
 
-deb 安装后配置在 `/etc/easyaiot-panel/panel.env`；Windows/macOS 配置为安装目录下的 `panel.env`。
+deb / rpm 安装后配置在 `/etc/easyaiot-panel/panel.env`；Windows/macOS 配置为安装目录下的 `panel.env`。
 
 ## 说明
 
-- Windows/macOS 建议在对应系统本机或对应 CI Runner 执行；CentOS 已支持容器标准化构建。
-- 已提供 GitHub Actions 模板：`.github/workflows/compile-packaging.yml`（支持多平台与可选开关）。
+- Windows/macOS 须在对应系统本机或对应 CI Runner 执行；Ubuntu / CentOS 均可在任意已装 Docker 的 Linux 上交叉/标准化构建（ARM 需 qemu）。
+- 已提供 GitHub Actions 模板：`.github/workflows/compile-packaging.yml`（Ubuntu deb、Windows、macOS；CentOS 为可选 self-hosted 开关）。

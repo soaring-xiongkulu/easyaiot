@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# COMPILE Linux 统一入口：
-# - 默认：交互式打包
+# COMPILE 统一入口（Linux 安装包管理 + 多平台打包入口）：
+# - 默认：交互式打包（Ubuntu / CentOS / Windows / 全量 Linux）
+# - pack-all：一次打 Ubuntu×3 deb + CentOS rpm
+# - windows：Windows 主机打包 .exe（可选 --installer）
 # - install：安装/覆盖本地产物包（自动识别 deb/rpm）
 # - uninstall：卸载系统已安装 easyaiot-panel（自动识别 deb/rpm）
 # - status：查看是否已安装
@@ -16,6 +18,13 @@ usage() {
 用法:
   bash COMPILE/install_linux.sh
     # 默认进入交互式打包
+
+  bash COMPILE/install_linux.sh pack-all
+    # 一次打包 Ubuntu(x86/arm/kylin) deb + CentOS rpm
+
+  bash COMPILE/install_linux.sh windows
+  bash COMPILE/install_linux.sh windows --installer
+    # Windows 主机打包 .exe + runtime/（可选 NSIS 安装包；须在 Windows 上执行）
 
   bash COMPILE/install_linux.sh install [auto|x86|arm|kylin|--file <pkg-path>]
     # 安装/覆盖安装本地包（自动识别 deb/rpm）
@@ -268,6 +277,13 @@ main() {
   case "$cmd" in
     ""|build|package|pack)
       exec "${SCRIPT_DIR}/interactive_pack.sh"
+      ;;
+    pack-all|pack_all|all-linux|linux-all)
+      exec bash "${SCRIPT_DIR}/platforms/pack_all_linux.sh"
+      ;;
+    windows|win|pack-windows)
+      shift || true
+      exec bash "${SCRIPT_DIR}/build.sh" windows "$@"
       ;;
     install)
       do_install "$pm" "${2:-auto}" "${3:-}"

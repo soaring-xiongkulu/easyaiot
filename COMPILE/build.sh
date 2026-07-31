@@ -9,6 +9,7 @@
 #   bash COMPILE/build.sh windows         # Windows 主机产出 .exe
 #   bash COMPILE/build.sh macos           # macOS 主机产出可执行文件
 #   bash COMPILE/build.sh centos          # CentOS/RHEL 主机产出二进制 + .rpm
+#   bash COMPILE/build.sh all-linux       # Ubuntu×3 deb + CentOS rpm
 #   bash COMPILE/build.sh deb             # 同上
 #   bash COMPILE/build.sh list            # 列出可用目标
 set -euo pipefail
@@ -27,6 +28,7 @@ list_targets() {
   echo "  - windows         Windows 主机打包 .exe"
   echo "  - macos           macOS 主机打包可执行文件"
   echo "  - centos          CentOS/RHEL 主机打包二进制 + .rpm"
+  echo "  - all-linux       Ubuntu×3 deb + CentOS rpm（platforms/pack_all_linux.sh）"
   echo "  - deb             同 ubuntu --deb"
 }
 
@@ -57,6 +59,9 @@ case "$TARGET" in
     ;;
   centos|rhel|rpm)
     bash "${SCRIPT_DIR}/platforms/centos/build.sh" "$@"
+    ;;
+  all-linux|linux-all|pack-all|pack_all)
+    bash "${SCRIPT_DIR}/platforms/pack_all_linux.sh" "$@"
     ;;
   *)
     echo "[COMPILE] 未知目标: ${TARGET}" >&2
