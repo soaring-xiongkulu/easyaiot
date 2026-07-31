@@ -68,6 +68,36 @@ stop_legacy_host_process() {
     fi
     rm -f "$pid_file"
   fi
+
+  # COMPILE 打包安装的 systemd 宿主机服务也会占用 PANEL_LISTEN_PORT（默认 9200）
+  if command -v systemctl >/dev/null 2>&1; then
+    if systemctl is-active --quiet easyaiot-panel.service 2>/dev/null \
+      || systemctl is-enabled --quiet easyaiot-panel.service 2>/dev/null; then
+      echo "[PANEL] 停止宿主机 systemd 服务 easyaiot-panel（释放 :${PANEL_LISTEN_PORT}）"
+      systemctl stop easyaiot-panel.service 2>/dev/null || true
+      systemctl disable easyaiot-panel.service 2>/dev/null || true
+    fi
+  fi
+
+  # 兜底：仍占用端口的 /opt/easyaiot-panel 或同名二进制
+  local port="${PANEL_LISTEN_PORT:-9200}"
+  local pids
+  pids="$(ss -tlnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p"$" {print}' | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u || true)"
+  if [ -z "$pids" ]; then
+    pids="$(fuser "${port}/tcp" 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+$' || true)"
+  fi
+  local pid cmd
+  for pid in $pids; do
+    cmd="$(ps -p "$pid" -o args= 2>/dev/null || true)"
+    case "$cmd" in
+      *easyaiot-panel*|*PANEL*panel*)
+        echo "[PANEL] 停止占用 :${port} 的宿主机进程 pid=$pid ($cmd)"
+        kill "$pid" 2>/dev/null || true
+        sleep 1
+        kill -9 "$pid" 2>/dev/null || true
+        ;;
+    esac
+  done
 }
 
 image_exists() {

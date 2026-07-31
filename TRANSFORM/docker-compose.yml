@@ -17,6 +17,9 @@ services:
       - TRANSFORM_INSTANCE_ID=${TRANSFORM_INSTANCE_ID:-transform-service}
       - TRANSFORM_NODE_ID=${TRANSFORM_NODE_ID:-}
       - TRANSFORM_BACKUP_DIR=/opt/easyaiot/TRANSFORM/data/transform-backup
+      - NACOS_ADDR=${NACOS_ADDR:-Nacos:8848}
+      - NACOS_USERNAME=${NACOS_USERNAME:-nacos}
+      - NACOS_PASSWORD=${NACOS_PASSWORD:-basiclab@iot78475418754}
       - KAFKA_BOOTSTRAP=${KAFKA_BOOTSTRAP:-Kafka:9092}
       - POSTGRES_URL=${POSTGRES_URL:-jdbc:postgresql://PostgresSQL:5432/iot-transform20}
       - POSTGRES_USERNAME=${POSTGRES_USERNAME:-postgres}

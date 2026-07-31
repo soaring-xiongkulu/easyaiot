@@ -1,0 +1,6 @@
+services:
+  ai-service:
+    runtime: runc
+    environment:
+      USE_GPU: "False"
+      NVIDIA_VISIBLE_DEVICES: ""

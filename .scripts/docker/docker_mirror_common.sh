@@ -184,6 +184,9 @@ PYEOF
 
 # 从国内镜像前缀直连拉取并 tag 回原名（registry-mirrors 失效时的回退）
 # 用法: docker_pull_with_mirror_fallback [--platform linux/arm64] image:tag
+#
+# 支持目标已是「镜像站/官方路径」形式（如 docker.1panel.live/frangoteam/fuxa:1.3.3）：
+# 主源 403 时会剥离已知镜像站前缀，再按回退链拉取官方路径并 tag 回原名。
 docker_pull_with_mirror_fallback() {
     local platform_args=()
     while [ $# -gt 0 ]; do
@@ -201,6 +204,10 @@ docker_pull_with_mirror_fallback() {
     [ -n "$img" ] || return 1
 
     export DOCKER_CONTENT_TRUST=0
+
+    if docker image inspect "$img" &>/dev/null; then
+        return 0
+    fi
 
     if docker pull "${platform_args[@]}" "$img"; then
         return 0
@@ -233,26 +240,69 @@ docker_pull_with_mirror_fallback() {
         done
         [ "$dup" -eq 0 ] && hosts+=("$h")
     done
+    # 本机常见可用代理也纳入尝试（不写入 daemon，仅拉取回退）
+    for h in proxy.vvvv.ee dockerproxy.com; do
+        dup=0
+        for x in "${hosts[@]}"; do
+            [ "$x" = "$h" ] && dup=1 && break
+        done
+        [ "$dup" -eq 0 ] && hosts+=("$h")
+    done
+
+    # 剥离已知镜像站前缀，得到官方路径（frangoteam/fuxa:1.3.3 / library/redis:7 等）
+    local canonical="$img"
+    local known_mirrors=(
+        docker.1panel.live docker.1ms.run docker.m.daocloud.io
+        proxy.vvvv.ee dockerproxy.com docker.mirrors.ustc.edu.cn
+        hub-mirror.c.163.com mirror.ccs.tencentyun.com
+    )
+    for h in "${hosts[@]}" "${known_mirrors[@]}"; do
+        [ -z "$h" ] && continue
+        if [[ "$canonical" == "$h"/* ]]; then
+            canonical="${canonical#${h}/}"
+            # DaoCloud/部分源对官方库使用 library/ 前缀
+            break
+        fi
+    done
+    # library/xxx → 再尝试无 library 的官方短名本地标签
+    local canonical_nolib="$canonical"
+    if [[ "$canonical_nolib" == library/* ]]; then
+        canonical_nolib="${canonical_nolib#library/}"
+    fi
+
+    # 本地已有其它镜像站同内容时，直接 tag，避免再拉
+    local alt
+    for h in "${hosts[@]}" "${known_mirrors[@]}"; do
+        [ -z "$h" ] && continue
+        for alt in "${h}/${canonical}" "${h}/${canonical_nolib}" "$canonical" "$canonical_nolib"; do
+            [ -z "$alt" ] && continue
+            [ "$alt" = "$img" ] && continue
+            if docker image inspect "$alt" &>/dev/null; then
+                docker tag "$alt" "$img" 2>/dev/null || true
+                if docker image inspect "$img" &>/dev/null; then
+                    print_success "已用本地镜像 $alt 标记为 $img"
+                    return 0
+                fi
+            fi
+        done
+    done
 
     local mirror_host c
     for mirror_host in "${hosts[@]}"; do
-        # 已是该镜像站路径则跳过
-        if [[ "$img" == "$mirror_host"/* ]]; then
-            continue
-        fi
-        if [[ "$img" != */* ]]; then
-            c="${mirror_host}/library/${img}"
-        elif [[ "$img" == library/* ]]; then
-            c="${mirror_host}/${img}"
-        else
-            c="${mirror_host}/${img}"
-        fi
-        print_info "镜像源直连回退拉取: $c"
-        if docker pull "${platform_args[@]}" "$c"; then
-            docker tag "$c" "$img" 2>/dev/null || true
-            print_success "已拉取并标记为 $img"
-            return 0
-        fi
+        for c in "${mirror_host}/${canonical}" "${mirror_host}/${canonical_nolib}"; do
+            [ -z "$c" ] && continue
+            [ "$c" = "$img" ] && continue
+            # 已是该镜像站完整路径且刚才 pull 失败过则跳过重复
+            if [[ "$img" == "$mirror_host"/* ]] && [ "$c" = "$img" ]; then
+                continue
+            fi
+            print_info "镜像源直连回退拉取: $c"
+            if docker pull "${platform_args[@]}" "$c"; then
+                docker tag "$c" "$img" 2>/dev/null || true
+                print_success "已拉取并标记为 $img"
+                return 0
+            fi
+        done
     done
     return 1
 }

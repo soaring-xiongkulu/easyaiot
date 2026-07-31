@@ -114,8 +114,10 @@ DISABLED_BY_DEFAULT_MIDDLEWARE_SERVICES=(
 
 # 可选中间件：镜像拉取失败或启动失败时不阻塞其余核心服务启动
 # ZLMediaKit 是流媒体服务器（用于视频推拉流），启动失败不影响核心业务
+# FUXA 依赖第三方镜像源（1panel/1ms 等常 403/401），缺失时不应拖垮 Postgres/Redis/Nacos
 OPTIONAL_MIDDLEWARE_SERVICES=(
     "ZLMediaKit"
+    "FUXA"
 )
 
 # 中间件端口映射
@@ -220,6 +222,9 @@ check_command() {
 
 # shellcheck source=docker_compose_bundled.sh
 source "${SCRIPT_DIR}/docker_compose_bundled.sh"
+
+# shellcheck source=docker_mirror_common.sh
+source "${SCRIPT_DIR}/docker_mirror_common.sh"
 
 # 容器运行状态检查（供 wait_for_postgresql / post-install 等待逻辑使用）
 container_running() {
@@ -3952,17 +3957,34 @@ init_databases() {
 }
 
 # 从 docker-compose 配置中提取指定服务的镜像名
+# 注意：系统 awk 多为 mawk，不支持 \s，须用 [[:space:]] / [ \t]
 _get_service_image_from_compose() {
     local service_name="$1"
     mw_compose config 2>/dev/null | awk -v svc="$service_name" '
-        $0 ~ "^  " svc ":" { found=1 }
-        found && /^\s+image:/ {
-            gsub(/^\s+image:\s*/, "")
+        $0 ~ "^  " svc ":" { found=1; next }
+        found && /^  [^[:space:]]/ { exit }
+        found && /^[ \t]+image:[ \t]*/ {
+            sub(/^[ \t]+image:[ \t]*/, "")
             gsub(/["'\'']/, "")
             print
             exit
         }
     '
+}
+
+# 核心中间件是否至少有一部分在跑（用于区分「OCI 修复成功」与「compose up 完全失败」）
+_middleware_core_containers_running() {
+    local n
+    for n in postgres-server redis-server nacos-server; do
+        if docker ps --filter "name=^${n}$" --filter "status=running" --format '{{.Names}}' 2>/dev/null | grep -qx "$n"; then
+            return 0
+        fi
+        # name 过滤器在部分 Docker 上是子串匹配，再兜底精确名
+        if docker inspect --format '{{.State.Status}}' "$n" 2>/dev/null | grep -qx running; then
+            return 0
+        fi
+    done
+    return 1
 }
 
 # 判断 compose up 输出是否包含 OCI /dev/null 错误（rootless runc 间歇性失败）
@@ -4061,6 +4083,45 @@ compose_up_middleware() {
         _up_rc=$?
         cat "$_up_log" >> "$LOG_FILE"
     done
+
+    # 可选服务镜像拉取失败（如 FUXA 403）会导致整批 compose up 失败；
+    # 从待启动列表剔除仍缺镜像的可选服务后重试，避免拖垮 Postgres/Redis/Nacos。
+    if [ "$_up_rc" -ne 0 ]; then
+        local -a _retry_services=()
+        local -a _drop_optional=()
+        local _opt _img _is_opt _keep
+        for svc in "${up_services[@]}"; do
+            _is_opt=0
+            for _opt in "${OPTIONAL_MIDDLEWARE_SERVICES[@]}"; do
+                if [ "$svc" = "$_opt" ]; then
+                    _is_opt=1
+                    break
+                fi
+            done
+            _keep=1
+            if [ "$_is_opt" -eq 1 ]; then
+                _img="$(_get_service_image_from_compose "$svc")"
+                if [ -n "$_img" ] && ! docker image inspect "$_img" &>/dev/null; then
+                    _keep=0
+                    _drop_optional+=("$svc")
+                elif grep -qE "failed to resolve reference|403 Forbidden|manifest unknown|not found" "$_up_log" 2>/dev/null \
+                    && [ -n "$_img" ] && grep -qF "$_img" "$_up_log" 2>/dev/null; then
+                    _keep=0
+                    _drop_optional+=("$svc")
+                fi
+            fi
+            [ "$_keep" -eq 1 ] && _retry_services+=("$svc")
+        done
+        if [ ${#_drop_optional[@]} -gt 0 ] && [ ${#_retry_services[@]} -gt 0 ] \
+            && [ ${#_retry_services[@]} -lt ${#up_services[@]} ]; then
+            print_warning "因镜像不可用跳过可选中间件后重试：$(_format_service_list "${_drop_optional[@]}")"
+            : > "$_up_log"
+            mw_compose up -d "${_retry_services[@]}" > "$_up_log" 2>&1
+            _up_rc=$?
+            cat "$_up_log" >> "$LOG_FILE"
+            up_services=("${_retry_services[@]}")
+        fi
+    fi
     rm -f "$_up_log"
 
     # compose up 返回成功（exit 0）但部分容器可能处于 Created 状态（OCI 启动失败）。
@@ -4069,10 +4130,16 @@ compose_up_middleware() {
     _repair_created_middleware_containers
     local _repair_rc=$?
 
-    # 如果修复成功（没有 Created 容器或已全部修复），覆盖原始错误码
-    if [ $_repair_rc -eq 0 ] && [ "$_up_rc" -ne 0 ]; then
-        print_success "Created 容器已修复，中间件启动成功"
-        _up_rc=0
+    # 仅当 compose up 失败、Created 已修干净、且核心容器确实在跑时，才覆盖错误码。
+    # 切勿把「没有任何容器被创建」(repair 直接 return 0) 误判为启动成功。
+    if [ "$_up_rc" -ne 0 ]; then
+        if [ "$_repair_rc" -eq 0 ] && _middleware_core_containers_running; then
+            print_success "Created 容器已修复，中间件启动成功"
+            _up_rc=0
+        else
+            print_error "中间件 compose up 失败（exit=${_up_rc}），核心容器未就绪"
+            print_info "请查看日志中的 Image Pulling / Error 行（常见：FUXA 镜像源 403）"
+        fi
     fi
 
     return "$_up_rc"
@@ -4083,10 +4150,25 @@ compose_up_middleware() {
 # 返回 0=无 Created 容器或已全部修复；1=仍有 Created 容器未修复。
 _repair_created_middleware_containers() {
     local _created _n _status _svc _rc=0 _up_log _up_rc _retry _delay
+    local -a _mw_names=(
+        nacos-server postgres-server postgres-init redis-server kafka-server
+        minio-server milvus-server srs-server nodered-server fuxa-server
+        emqx-server zlmediakit-server tdengine-server tdengine-init
+    )
     _created=$(docker ps -a --filter "status=created" --format '{{.Names}}' 2>/dev/null || true)
     [ -z "$_created" ] && return 0
 
     for _n in $_created; do
+        # 只处理中间件容器，忽略业务服务（iot-* 等）的 Created 残留
+        local _is_mw=0 _mw
+        for _mw in "${_mw_names[@]}"; do
+            if [ "$_n" = "$_mw" ]; then
+                _is_mw=1
+                break
+            fi
+        done
+        [ "$_is_mw" -eq 1 ] || continue
+
         _status=$(docker inspect --format '{{.State.Status}}' "$_n" 2>/dev/null || echo "")
         [ "$_status" = "created" ] || continue
         print_warning "中间件容器 $_n 处于 Created 状态（OCI 启动失败，如 /dev/null 错误），尝试修复..."
@@ -4148,7 +4230,6 @@ _repair_created_middleware_containers() {
                 fi
             else
                 print_warning "mw_compose up -d $_svc 返回错误码 $_up_rc"
-                cat "$_up_log" >> "$LOG_FILE" 2>/dev/null || true
             fi
         fi
 
@@ -4277,11 +4358,10 @@ check_and_pull_images() {
 
     # 只拉缺失的镜像：原先缺 1 个就全量 compose pull，会为已存在的十几个镜像逐一联源比对，
     # 慢且被镜像源网络质量绑架（源端一个 blob 超时即整体失败）
-    # 拉取失败时回退到 docker.m.daocloud.io 前缀直连（registry-mirrors 在部分国产系统上仍会先解析 docker.io）
+    # 拉取失败时经 docker_pull_with_mirror_fallback 多源回退（含已带镜像站前缀的 FUXA）
     if [ $missing_images -gt 0 ]; then
         print_info "已存在 $existing_images 个镜像；缺失 $missing_images 个，仅拉取缺失镜像: ${missing_list[*]}"
         local _pull_img _pull_fail=0
-        local _mirror_host="docker.m.daocloud.io"
         for _pull_img in "${missing_list[@]}"; do
             # ★ nacos 镜像显式指定 platform，避免在 ARM 主机上拉取 amd64 版本导致 QEMU 模拟性能极差
             local _pull_args=()
@@ -4291,37 +4371,30 @@ check_and_pull_images() {
             fi
             export DOCKER_CONTENT_TRUST=0
             local _pull_ok=0
-            docker pull "${_pull_args[@]}" "$_pull_img" 2>&1 | tee -a "$LOG_FILE"
-            [ "${PIPESTATUS[0]}" -eq 0 ] && _pull_ok=1
-            # 直连失败时：经 DaoCloud 前缀拉取再 tag 回原名
-            if [ "$_pull_ok" -ne 1 ]; then
-                local _candidates=()
-                if [[ "$_pull_img" != */* ]]; then
-                    _candidates+=("${_mirror_host}/library/${_pull_img}")
-                elif [[ "$_pull_img" != "${_mirror_host}"/* ]]; then
-                    _candidates+=("${_mirror_host}/${_pull_img}")
+            if declare -f docker_pull_with_mirror_fallback >/dev/null 2>&1; then
+                docker_pull_with_mirror_fallback "${_pull_args[@]}" "$_pull_img" 2>&1 | tee -a "$LOG_FILE" || true
+            else
+                docker pull "${_pull_args[@]}" "$_pull_img" 2>&1 | tee -a "$LOG_FILE" || true
+            fi
+            docker image inspect "$_pull_img" &>/dev/null && _pull_ok=1
+            # FUXA：专用多源脚本再试一次
+            if [ "$_pull_ok" -ne 1 ] && echo "$_pull_img" | grep -qi 'frangoteam/fuxa'; then
+                if [ -f "${SCRIPT_DIR}/pull_fuxa.sh" ]; then
+                    print_info "尝试 pull_fuxa.sh 多源拉取 FUXA..."
+                    FUXA_IMAGE_LOCAL="$_pull_img" bash "${SCRIPT_DIR}/pull_fuxa.sh" 2>&1 | tee -a "$LOG_FILE" || true
+                    docker image inspect "$_pull_img" &>/dev/null && _pull_ok=1
                 fi
-                local _cand
-                for _cand in "${_candidates[@]}"; do
-                    print_info "镜像源直连回退: $_cand"
-                    docker pull "${_pull_args[@]}" "$_cand" 2>&1 | tee -a "$LOG_FILE"
-                    if [ "${PIPESTATUS[0]}" -eq 0 ]; then
-                        docker tag "$_cand" "$_pull_img" 2>/dev/null || true
-                        print_success "已拉取并标记为 $_pull_img"
-                        _pull_ok=1
-                        break
-                    fi
-                done
             fi
             if [ "$_pull_ok" -ne 1 ]; then
+                print_warning "镜像拉取失败: $_pull_img"
                 _pull_fail=1
             fi
         done
         if [ "$_pull_fail" -eq 0 ]; then
             print_success "缺失镜像拉取完成"
         else
-            print_warning "部分镜像拉取失败，up 时将自动重试（不影响已有镜像的服务启动）"
-            print_info "可手动: docker pull docker.m.daocloud.io/<命名空间>/<镜像>:<标签> && docker tag ... 原名"
+            print_warning "部分镜像拉取失败；可选服务（如 FUXA）将跳过，核心中间件仍会启动"
+            print_info "FUXA 可稍后手动: bash ${SCRIPT_DIR}/pull_fuxa.sh && docker compose -f ${COMPOSE_FILE} up -d FUXA"
             print_info "并确认 /etc/docker/daemon.json 含 dns: [\"223.5.5.5\",\"119.29.29.29\"] 后 systemctl restart docker"
         fi
     else

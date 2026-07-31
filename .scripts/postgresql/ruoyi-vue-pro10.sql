@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 5i0NZqjjG57jWzKO1N6D5hke7QBAmp8VAEnnS7g0zVUuiGgyeZvo5a2vmeJpsE9
+\restrict XSh5kp0ZaT8NrOlB8xtdQh6EDRH2BPmFnKhpTxv2MiuI4R0V1W7bDBfG6HOt2ns
 
 -- Dumped from database version 18.4 (Debian 18.4-1.pgdg13+1)
 -- Dumped by pg_dump version 18.4 (Debian 18.4-1.pgdg13+1)
@@ -27,10 +27,10 @@ DROP DATABASE IF EXISTS "ruoyi-vue-pro20";
 CREATE DATABASE "ruoyi-vue-pro20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict 5i0NZqjjG57jWzKO1N6D5hke7QBAmp8VAEnnS7g0zVUuiGgyeZvo5a2vmeJpsE9
+\unrestrict XSh5kp0ZaT8NrOlB8xtdQh6EDRH2BPmFnKhpTxv2MiuI4R0V1W7bDBfG6HOt2ns
 \encoding SQL_ASCII
 \connect -reuse-previous=on "dbname='ruoyi-vue-pro20'"
-\restrict 5i0NZqjjG57jWzKO1N6D5hke7QBAmp8VAEnnS7g0zVUuiGgyeZvo5a2vmeJpsE9
+\restrict XSh5kp0ZaT8NrOlB8xtdQh6EDRH2BPmFnKhpTxv2MiuI4R0V1W7bDBfG6HOt2ns
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -16613,8 +16613,8 @@ COPY public.qrtz_paused_trigger_grps (sched_name, trigger_group) FROM stdin;
 --
 
 COPY public.qrtz_scheduler_state (sched_name, instance_name, last_checkin_time, checkin_interval) FROM stdin;
-schedulerName	5f9655d019191785215096082	1785215100224	15000
-schedulerName	40640e3c22b91785215099256	1785215100597	15000
+schedulerName	f7b0e8d890f31785463597092	1785465458740	15000
+schedulerName	db39d223e8cb1785463611017	1785465459895	15000
 \.
 
 
@@ -20216,6 +20216,7 @@ COPY public.system_login_log (id, log_type, trace_id, user_id, user_type, userna
 3082	100		1	2	admin	0	127.0.0.1	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	\N	2026-07-17 15:02:47.575923	\N	2026-07-17 15:02:47.575923	0	1
 3083	100		1	2	admin	0	172.18.0.24	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	\N	2026-07-22 08:17:39.14615	\N	2026-07-22 08:17:39.14615	0	1
 3084	100		1	2	admin	0	172.18.0.25	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	\N	2026-07-22 08:28:44.823463	\N	2026-07-22 08:28:44.823463	0	1
+3085	100		1	2	admin	0	172.18.0.24	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	\N	2026-07-31 10:08:27.326352	\N	2026-07-31 10:08:27.326352	0	1
 \.
 
 
@@ -21255,15 +21256,14 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 3124	部署下线	visualize:deploy:offline	3	45	3101				\N	0	t	t	t	1	2026-07-21 13:00:39.505445	1	2026-07-21 13:00:39.505445	0
 2972	集群管理	node:node:query	2	0	0	node/index	ant-design:ungroup-outlined	node/index	ComputeNodeManage	0	t	t	t	1	2026-06-11 10:46:06.011163	1	2026-07-21 13:25:53.05001	0
 3101	可视化管理	visualize:project:query	2	1	0	index	ant-design:fund-outlined	visualize/index	Visualize	0	t	t	t	1	2026-07-21 10:53:12.992697	1	2026-07-21 14:22:48.737176	0
-3200	系统对接		1	47	0	/transform	ant-design:api-outlined	\N	\N	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
-3201	系统对接	transform:pipeline:query	2	1	3200	index	ant-design:api-outlined	transform/index	Transform	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
-3202	对接概览查询	transform:overview:query	3	1	3201				\N	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
-3203	目标系统查询	transform:party:query	3	2	3201				\N	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
-3204	目标系统维护	transform:party:update	3	3	3201				\N	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
-3205	推送规则查询	transform:contract:query	3	4	3201				\N	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
-3206	推送规则维护	transform:contract:update	3	5	3201				\N	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
-3207	推送记录再推	transform:outbox:replay	3	6	3201				\N	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
-3208	失败记录再推	transform:dlq:replay	3	7	3201				\N	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
+3202	对接概览查询	transform:overview:query	3	1	3200				\N	0	t	t	t	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0
+3203	目标系统查询	transform:party:query	3	2	3200				\N	0	t	t	t	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0
+3204	目标系统维护	transform:party:update	3	3	3200				\N	0	t	t	t	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0
+3205	推送规则查询	transform:contract:query	3	4	3200				\N	0	t	t	t	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0
+3206	推送规则维护	transform:contract:update	3	5	3200				\N	0	t	t	t	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0
+3207	推送记录再推	transform:outbox:replay	3	6	3200				\N	0	t	t	t	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0
+3208	失败记录再推	transform:dlq:replay	3	7	3200				\N	0	t	t	t	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0
+3200	数据转发		2	10	0	/transform	ant-design:send-outlined	transform/index	Transform	0	t	t	t	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:33:56.779115	0
 \.
 
 
@@ -24584,6 +24584,7 @@ COPY public.system_oauth2_access_token (id, user_id, user_type, user_info, acces
 6058	1	2	{"nickname":"IoT","deptId":"103"}	6df89a87b2f646f69e1d42d9362c2c64	41f03be248834709befb77a6b5aa7e86	default	\N	2026-08-16 15:02:47.651361	\N	2026-07-17 15:02:47.65544	\N	2026-07-17 15:02:47.65544	0	1
 6060	1	2	{"nickname":"IoT","deptId":"103"}	714ce7dee6fb4e098708d7d11f47cd65	7d2447d891b74963b8c8b67af282ec69	default	\N	2026-08-21 08:17:39.188213	\N	2026-07-22 08:17:39.190372	\N	2026-07-22 08:17:39.190372	0	1
 6062	1	2	{"nickname":"IoT","deptId":"103"}	8723c382ac6a44cc8dd43634971d3405	2d2f1d98a389448e9ca112579808e490	default	\N	2026-07-22 08:58:44.834066	\N	2026-07-22 08:28:44.834668	\N	2026-07-22 08:28:44.834668	0	1
+6064	1	2	{"nickname":"IoT","deptId":"103"}	912e210ced6e4fd4838a1ac44938485e	284169a54ef046469d4f99a9d8f549b8	default	\N	2026-08-30 10:08:27.367988	\N	2026-07-31 10:08:27.369829	\N	2026-07-31 10:08:27.369829	0	1
 \.
 
 
@@ -27406,6 +27407,7 @@ COPY public.system_oauth2_refresh_token (id, user_id, refresh_token, user_type, 
 6057	1	41f03be248834709befb77a6b5aa7e86	2	default	\N	2026-08-16 15:02:47.632455	\N	2026-07-17 15:02:47.635397	\N	2026-07-17 15:02:47.635397	0	1
 6059	1	7d2447d891b74963b8c8b67af282ec69	2	default	\N	2026-08-21 08:17:39.180953	\N	2026-07-22 08:17:39.183218	\N	2026-07-22 08:17:39.183218	0	1
 6061	1	2d2f1d98a389448e9ca112579808e490	2	default	\N	2026-08-21 08:28:44.831232	\N	2026-07-22 08:28:44.832134	\N	2026-07-22 08:28:44.832134	0	1
+6063	1	284169a54ef046469d4f99a9d8f549b8	2	default	\N	2026-08-30 10:08:27.362052	\N	2026-07-31 10:08:27.363952	\N	2026-07-31 10:08:27.363952	0	1
 \.
 
 
@@ -28487,15 +28489,14 @@ COPY public.system_role_menu (id, role_id, menu_id, creator, create_time, update
 5992	1	3123	1	2026-07-21 13:00:39.505445	1	2026-07-21 13:00:39.505445	0	1
 5993	1	3124	1	2026-07-21 13:00:39.505445	1	2026-07-21 13:00:39.505445	0	1
 5969	1	3100	1	2026-07-21 10:53:12.992697	1	2026-07-21 10:53:12.992697	1	1
-5994	1	3200	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0	1
-5995	1	3201	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0	1
-5996	1	3202	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0	1
-5997	1	3203	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0	1
-5998	1	3204	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0	1
-5999	1	3205	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0	1
-6000	1	3206	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0	1
-6001	1	3207	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0	1
-6002	1	3208	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0	1
+6003	1	3200	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0	1
+6004	1	3202	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0	1
+6005	1	3203	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0	1
+6006	1	3204	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0	1
+6007	1	3205	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0	1
+6008	1	3206	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0	1
+6009	1	3207	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0	1
+6010	1	3208	1	2026-07-31 10:18:57.451911	1	2026-07-31 10:18:57.451911	0	1
 \.
 
 
@@ -28654,7 +28655,7 @@ COPY public.system_users (id, username, password, nickname, remark, dept_id, pos
 131	hh	$2a$04$jyH9h6.gaw8mpOjPfHIpx.8as2Rzfcmdlj5rlJFwgCw4rsv/MTb2K	呵呵	\N	100	[]	777@qq.com	15601882312	1		0		\N	1	2024-04-27 08:45:56	1	2024-04-27 08:45:56	1	1	0	0
 100	yudao	$2a$10$11U48RhyJ5pSBYWSn12AD./ld671.ycSzJHbyrtpeoMeYiw31eo8a	王总	不要吓我	104	[1]	yudao@iocoder.cn	15601691300	1		1	127.0.0.1	2022-07-09 23:03:33		2021-01-07 09:07:17	1	2025-08-14 09:39:37.486	0	1	0	0
 118	goudan	$2a$04$A7vqK6hfgoPeOGDgZoC1BOnVwTpDyBtQnlsOWBIqM8Wj9A6NTr0Tq	狗蛋	\N	103	[1]		15601691239	1		0	0:0:0:0:0:0:0:1	2024-07-24 11:23:40.932	1	2022-07-09 17:44:43	1	2025-08-14 11:34:37.076	0	1	0	0
-1	admin	$2a$10$mRMIYLDtRHlf6.9ipiqH1.Z.bh/R9dO9d5iHiGYPigi6r5KOoR2Wm	IoT	管理员	103	[1]	aoteman@126.com	18818260277	1	http://test.yudao.iocoder.cn/113dcbab48d22fc988151b98be2b8b4f262effdb5305c171cf1fe9a71801377a.png	0	172.18.0.25	2026-07-22 08:28:44.827251	admin	2021-01-05 17:03:47	\N	2026-07-22 08:28:44.82742	0	1	0	0
+1	admin	$2a$10$mRMIYLDtRHlf6.9ipiqH1.Z.bh/R9dO9d5iHiGYPigi6r5KOoR2Wm	IoT	管理员	103	[1]	aoteman@126.com	18818260277	1	http://test.yudao.iocoder.cn/113dcbab48d22fc988151b98be2b8b4f262effdb5305c171cf1fe9a71801377a.png	0	172.18.0.24	2026-07-31 10:08:27.332425	admin	2021-01-05 17:03:47	\N	2026-07-31 10:08:27.333865	0	1	0	0
 \.
 
 
@@ -28865,7 +28866,7 @@ SELECT pg_catalog.setval('public.system_dict_type_seq', 620, false);
 -- Name: system_login_log_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.system_login_log_seq', 3084, true);
+SELECT pg_catalog.setval('public.system_login_log_seq', 3085, true);
 
 
 --
@@ -28921,7 +28922,7 @@ SELECT pg_catalog.setval('public.system_notify_template_seq', 1, false);
 -- Name: system_oauth2_access_token_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.system_oauth2_access_token_seq', 6062, true);
+SELECT pg_catalog.setval('public.system_oauth2_access_token_seq', 6064, true);
 
 
 --
@@ -28970,7 +28971,7 @@ SELECT pg_catalog.setval('public.system_post_seq', 6, false);
 -- Name: system_role_menu_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.system_role_menu_seq', 6002, true);
+SELECT pg_catalog.setval('public.system_role_menu_seq', 6010, true);
 
 
 --
@@ -29764,5 +29765,5 @@ ALTER TABLE ONLY public.qrtz_triggers
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 5i0NZqjjG57jWzKO1N6D5hke7QBAmp8VAEnnS7g0zVUuiGgyeZvo5a2vmeJpsE9
+\unrestrict XSh5kp0ZaT8NrOlB8xtdQh6EDRH2BPmFnKhpTxv2MiuI4R0V1W7bDBfG6HOt2ns
 

@@ -47,19 +47,33 @@ check_gpu() {
 configure_compose_gpu() {
     local compose_file="${1:-docker-compose.yaml}"
     local env_file="${2:-.env.docker}"
+    # 可选：服务名（默认 video-service，AI 也可传入 ai-service）
+    local service_name="${3:-}"
+    local override_file=".docker-compose.gpu.override.yaml"
 
     if [ ! -f "$compose_file" ]; then
         print_warning "未找到 compose 文件: $compose_file"
         return
     fi
 
+    # 从 compose 推断首个服务名（未显式传入时）
+    if [ -z "$service_name" ]; then
+        service_name=$(awk '/^services:/{s=1; next} s && /^  [A-Za-z0-9_-]+:/{gsub(/:/,""); gsub(/^ +/,""); print; exit}' "$compose_file" 2>/dev/null || true)
+        service_name="${service_name:-video-service}"
+    fi
+
     if [ "$GPU_AVAILABLE" = true ]; then
         print_info "启用 GPU 支持..."
+        rm -f "$override_file"
         if grep -qE '^[[:space:]]*# runtime: nvidia' "$compose_file"; then
             sed -i 's/^\([[:space:]]*\)# runtime: nvidia/\1runtime: nvidia/' "$compose_file"
         fi
         if grep -qE '^[[:space:]]*# deploy:' "$compose_file"; then
             sed -i '/^[[:space:]]*# deploy:/,/capabilities:.*gpu/ s/^\([[:space:]]*\)# /\1/' "$compose_file"
+        fi
+        # 去掉误留的 runtime: runc
+        if grep -qE '^[[:space:]]*runtime: runc' "$compose_file"; then
+            sed -i '/^[[:space:]]*runtime: runc/d' "$compose_file"
         fi
         if [ -f "$env_file" ] && grep -q '^USE_GPU=' "$env_file"; then
             sed -i 's/^USE_GPU=.*/USE_GPU=True/' "$env_file"
@@ -76,5 +90,26 @@ configure_compose_gpu() {
         if [ -f "$env_file" ] && grep -q '^USE_GPU=' "$env_file"; then
             sed -i 's/^USE_GPU=.*/USE_GPU=False/' "$env_file"
         fi
+        # daemon default-runtime=nvidia + 驱动未加载时，PyTorch 镜像（含 nvidia 标签）必须显式 runc
+        {
+            echo 'services:'
+            echo "  ${service_name}:"
+            echo '    runtime: runc'
+            echo '    environment:'
+            echo '      USE_GPU: "False"'
+            echo '      NVIDIA_VISIBLE_DEVICES: ""'
+        } > "$override_file"
+        print_success "已写入 CPU override（runtime: runc）: $override_file"
+    fi
+}
+
+# 返回 compose 附加 -f 参数（CPU/GPU override 存在时）
+gpu_compose_file_args() {
+    local base="${1:-docker-compose.yaml}"
+    local override=".docker-compose.gpu.override.yaml"
+    if [ -f "$override" ]; then
+        echo "-f ${base} -f ${override}"
+    else
+        echo "-f ${base}"
     fi
 }

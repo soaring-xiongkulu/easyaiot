@@ -7,9 +7,9 @@ const transform: AppRouteModule = {
   component: LAYOUT,
   redirect: '/transform/index',
   meta: {
-    orderNo: 47,
-    icon: 'ant-design:api-outlined',
-    title: '系统对接',
+    orderNo: 10,
+    icon: 'ant-design:send-outlined',
+    title: '数据转发',
     hideChildrenInMenu: true,
   },
   children: [
@@ -18,8 +18,8 @@ const transform: AppRouteModule = {
       name: 'Transform',
       component: () => import('@/views/transform/index.vue'),
       meta: {
-        title: '系统对接',
-        icon: 'ant-design:api-outlined',
+        title: '数据转发',
+        icon: 'ant-design:send-outlined',
         hideMenu: true,
       },
     },

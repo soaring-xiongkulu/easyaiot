@@ -18,7 +18,8 @@ services:
     environment:
       EASYAIOT_ROOT: /easyaiot
       # 容器内为 Linux；桌面原生包由 COMPILE 写入 install_mac/windows
-      INSTALL_SCRIPT: ${INSTALL_SCRIPT:-.scripts/docker/install_linux.sh}      PANEL_LISTEN_HOST: 0.0.0.0
+      INSTALL_SCRIPT: ${INSTALL_SCRIPT:-.scripts/docker/install_linux.sh}
+      PANEL_LISTEN_HOST: 0.0.0.0
       PANEL_LISTEN_PORT: "9200"
       PANEL_TOKEN: ${PANEL_TOKEN:-}
       PANEL_ALLOW_DANGEROUS: ${PANEL_ALLOW_DANGEROUS:-1}

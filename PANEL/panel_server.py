@@ -27,7 +27,8 @@ PANEL_JOB_TIMEOUT = int(os.environ.get('PANEL_JOB_TIMEOUT', '7200'))
 # EasyAIoT WEB 管控台地址；空则按请求主机 + PANEL_WEB_PORT 自动拼
 PANEL_WEB_URL = os.environ.get('PANEL_WEB_URL', '').strip()
 PANEL_WEB_PORT = (os.environ.get('PANEL_WEB_PORT', '8888').strip() or '8888')
-_WEB_HINTS = ('easyaiot-web', 'iot-web', 'web-nginx')
+# 与 WEB/docker-compose.yaml 的 container_name/image（web-service）及历史命名对齐
+_WEB_HINTS = ('web-service', 'easyaiot-web', 'iot-web', 'web-nginx', 'aiot-web')
 
 
 def _is_frozen() -> bool:

@@ -38,6 +38,15 @@ source "${EASYAIOT_ROOT}/.scripts/docker/gpu_compose_helpers.sh"
 # shellcheck source=../.scripts/docker/deploy_profile.sh
 source "${EASYAIOT_ROOT}/.scripts/docker/deploy_profile.sh"
 
+# 带 GPU/CPU override 的 compose 调用（CPU 模式下强制 runtime: runc）
+video_compose() {
+    local -a files=(-f docker-compose.yaml)
+    if [ -f .docker-compose.gpu.override.yaml ]; then
+        files+=(-f .docker-compose.gpu.override.yaml)
+    fi
+    $COMPOSE_CMD "${files[@]}" "$@"
+}
+
 # 打印带颜色的消息
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -477,7 +486,7 @@ install_service() {
     
     print_info "启动服务..."
     cleanup_renamed_containers
-    $COMPOSE_CMD up -d --remove-orphans
+    video_compose up -d --remove-orphans
 
     print_success "服务安装完成！"
     print_info "等待服务启动..."
@@ -510,7 +519,7 @@ start_service() {
     configure_compose_gpu "docker-compose.yaml" ".env.docker"
     
     cleanup_renamed_containers
-    $COMPOSE_CMD up -d --force-recreate --remove-orphans
+    video_compose up -d --force-recreate --remove-orphans
     print_success "服务已启动"
     check_status
 }
@@ -521,7 +530,7 @@ stop_service() {
     check_docker
     check_docker_compose
     
-    $COMPOSE_CMD down
+    video_compose down
     print_success "服务已停止"
 }
 
@@ -541,7 +550,7 @@ restart_service() {
     configure_compose_gpu "docker-compose.yaml" ".env.docker"
 
     cleanup_renamed_containers
-    $COMPOSE_CMD up -d --force-recreate --remove-orphans
+    video_compose up -d --force-recreate --remove-orphans
     print_success "服务已重启"
     check_status
 }
@@ -552,7 +561,7 @@ check_status() {
     check_docker
     check_docker_compose
     
-    $COMPOSE_CMD ps
+    video_compose ps
     
     echo ""
     print_info "容器健康状态:"
@@ -576,10 +585,10 @@ view_logs() {
     
     if [ "$1" == "-f" ] || [ "$1" == "--follow" ]; then
         print_info "实时查看日志（按 Ctrl+C 退出）..."
-        $COMPOSE_CMD logs -f --tail=50
+        video_compose logs -f --tail=50
     else
         print_info "查看最近日志（最近50行）..."
-        $COMPOSE_CMD logs --tail=50
+        video_compose logs --tail=50
     fi
 }
 
@@ -623,7 +632,7 @@ clean_service() {
     check_docker
     check_docker_compose
     print_info "停止并删除容器..."
-        $COMPOSE_CMD down -v
+        video_compose down -v
         
         print_info "删除镜像..."
         docker rmi video-service:latest 2>/dev/null || true
@@ -696,12 +705,12 @@ update_service() {
         # 构建完成后才重建容器：compose 检测到镜像变化「先停旧、再起新」，停机仅数秒
         print_info "应用新镜像（仅重建变更服务，最小化停机）..."
         cleanup_renamed_containers
-        $COMPOSE_CMD up -d --remove-orphans --no-deps video-service
+        video_compose up -d --remove-orphans --no-deps video-service
     else
         print_success "依赖未变，跳过镜像构建（业务代码经卷挂载，重启进程即可生效）"
         # 确保容器存在并应用任何 compose 配置变更（首次启用源码挂载时会在此处重建一次）
         cleanup_renamed_containers
-        $COMPOSE_CMD up -d --remove-orphans --no-deps video-service
+        video_compose up -d --remove-orphans --no-deps video-service
 
         # 是否需要重启进程以加载新源码：有新提交，或本地有未提交改动（git diff 脏）。
         # git diff --quiet HEAD 仅在出错或有已跟踪改动时返回非 0，用于捕获“改了代码没 commit”的场景；
@@ -715,7 +724,7 @@ update_service() {
 
         if [ "$code_changed" = "1" ]; then
             print_info "重启容器进程以加载最新源码（秒级）..."
-            $COMPOSE_CMD restart video-service
+            video_compose restart video-service
         else
             print_info "代码无变更，无需重启"
         fi

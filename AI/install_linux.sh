@@ -540,11 +540,26 @@ write_gpu_compose_override() {
     mv "$temp_file" "$GPU_COMPOSE_OVERRIDE"
 }
 
+write_cpu_compose_override() {
+    local temp_file="${GPU_COMPOSE_OVERRIDE}.tmp"
+    # daemon 若 default-runtime=nvidia，而驱动未加载时，带 com.nvidia.volumes.needed
+    # 标签的 PyTorch 镜像会在 CDI 阶段失败；强制 runc 才能纯 CPU 启动。
+    {
+        echo 'services:'
+        echo '  ai-service:'
+        echo '    runtime: runc'
+        echo '    environment:'
+        echo '      USE_GPU: "False"'
+        echo '      NVIDIA_VISIBLE_DEVICES: ""'
+    } > "$temp_file"
+    mv "$temp_file" "$GPU_COMPOSE_OVERRIDE"
+}
+
 configure_gpu() {
 
     if [ "$GPU_AVAILABLE" != true ]; then
-        rm -f "$GPU_COMPOSE_OVERRIDE"
-        print_success "未启用 GPU，容器将使用 CPU 模式"
+        write_cpu_compose_override
+        print_success "未启用 GPU，容器将使用 CPU 模式（runtime: runc）"
         return 0
     fi
 
@@ -554,7 +569,7 @@ configure_gpu() {
     if ! echo "$host_devices" | grep -qE '^[0-9]+(,[0-9]+)*$'; then
         print_warning "无法读取有效的宿主机 GPU 列表，回退 CPU 模式: ${host_devices:-空}"
         GPU_AVAILABLE=false
-        rm -f "$GPU_COMPOSE_OVERRIDE"
+        write_cpu_compose_override
         return 0
     fi
 
