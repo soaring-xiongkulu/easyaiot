@@ -183,8 +183,15 @@ check_docker_compose() {
 compose_up_or_fail() {
     local compose_log
     local -a compose_args=()
-    if [ -f "$GPU_COMPOSE_OVERRIDE" ]; then
-        compose_args=(-f docker-compose.yaml -f "$GPU_COMPOSE_OVERRIDE")
+    # 显式 -f 时会忽略 COMPOSE_FILE，需手动拼上桌面端 / GPU override
+    if [ -f "$GPU_COMPOSE_OVERRIDE" ] || [ -f docker-compose.desktop.yaml ]; then
+        compose_args=(-f docker-compose.yaml)
+        if [ -f docker-compose.desktop.yaml ] && { [ -n "${EASYAIOT_DESKTOP_OS:-}" ] || [ "${EASYAIOT_COMPOSE_DESKTOP:-0}" = "1" ]; }; then
+            compose_args+=(-f docker-compose.desktop.yaml)
+        fi
+        if [ -f "$GPU_COMPOSE_OVERRIDE" ]; then
+            compose_args+=(-f "$GPU_COMPOSE_OVERRIDE")
+        fi
     fi
     compose_log=$(mktemp)
     if ! $COMPOSE_CMD "${compose_args[@]}" up "$@" >"$compose_log" 2>&1; then
@@ -752,24 +759,37 @@ create_env_file() {
         fi
     else
         print_info ".env.docker 文件已存在"
-        print_info "检查并更新中间件连接信息..."
+        if [ -n "${EASYAIOT_DESKTOP_OS:-}" ] || [ "${EASYAIOT_COMPOSE_DESKTOP:-0}" = "1" ]; then
+            print_info "桌面端部署：使用容器网络中间件地址（postgres-server / iot-system）"
+            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@postgres-server:5432/iot-ai20|' .env.docker
+            if grep -q '^JAVA_BACKEND_URL=' .env.docker; then
+                sed -i 's|^JAVA_BACKEND_URL=.*|JAVA_BACKEND_URL=http://iot-system:48099|' .env.docker
+            fi
+            if grep -q '^REDIS_HOST=' .env.docker; then
+                sed -i 's|^REDIS_HOST=.*|REDIS_HOST=redis-server|' .env.docker
+            else
+                echo 'REDIS_HOST=redis-server' >> .env.docker
+            fi
+        else
+            print_info "检查并更新中间件连接信息..."
 
-        # 检查并更新数据库连接（如果使用Docker服务名，改为localhost，因为使用host网络模式）
-        if grep -q "DATABASE_URL=.*PostgresSQL" .env.docker || grep -q "DATABASE_URL=.*postgres-server" .env.docker; then
-            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-ai20|' .env.docker
-            print_info "已更新数据库连接为 localhost:5432（host网络模式）"
-        fi
+            # 检查并更新数据库连接（如果使用Docker服务名，改为localhost，因为使用host网络模式）
+            if grep -q "DATABASE_URL=.*PostgresSQL" .env.docker || grep -q "DATABASE_URL=.*postgres-server" .env.docker; then
+                sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-ai20|' .env.docker
+                print_info "已更新数据库连接为 localhost:5432（host网络模式）"
+            fi
 
-        # 检查并更新Nacos配置（如果使用Docker服务名或IP地址，改为localhost，因为使用host网络模式）
-        if grep -q "NACOS_SERVER=.*Nacos" .env.docker || grep -q "NACOS_SERVER=.*14\.18\.122\.2" .env.docker || grep -q "NACOS_SERVER=.*nacos-server" .env.docker; then
-            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=localhost:8848|' .env.docker
-            print_info "已更新Nacos连接为 localhost:8848（host网络模式）"
-        fi
+            # 检查并更新Nacos配置（如果使用Docker服务名或IP地址，改为localhost，因为使用host网络模式）
+            if grep -q "NACOS_SERVER=.*Nacos" .env.docker || grep -q "NACOS_SERVER=.*14\.18\.122\.2" .env.docker || grep -q "NACOS_SERVER=.*nacos-server" .env.docker; then
+                sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=localhost:8848|' .env.docker
+                print_info "已更新Nacos连接为 localhost:8848（host网络模式）"
+            fi
 
-        # 检查并更新MinIO配置（如果使用Docker服务名，改为localhost，因为使用host网络模式）
-        if grep -q "MINIO_ENDPOINT=.*MinIO" .env.docker || grep -q "MINIO_ENDPOINT=.*minio-server" .env.docker; then
-            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=localhost:9000|' .env.docker
-            print_info "已更新MinIO连接为 localhost:9000（host网络模式）"
+            # 检查并更新MinIO配置（如果使用Docker服务名，改为localhost，因为使用host网络模式）
+            if grep -q "MINIO_ENDPOINT=.*MinIO" .env.docker || grep -q "MINIO_ENDPOINT=.*minio-server" .env.docker; then
+                sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=localhost:9000|' .env.docker
+                print_info "已更新MinIO连接为 localhost:9000（host网络模式）"
+            fi
         fi
 
         # 检查并更新Nacos命名空间（如果设置为local或其他非空值，则重置为空，使用默认命名空间）

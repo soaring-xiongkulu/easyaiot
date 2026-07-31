@@ -30,6 +30,14 @@ BASE_IMAGE=""
 source "${SCRIPT_DIR}/deploy_profile.sh"
 ensure_deploy_profile
 
+# 国内镜像多源回退（与 Linux 中间件安装共用）
+print_info() { info "$1"; }
+print_success() { ok "$1"; }
+print_warning() { warn "$1"; }
+print_error() { err "$1"; }
+# shellcheck source=docker_mirror_common.sh
+source "${SCRIPT_DIR}/docker_mirror_common.sh"
+
 ensure_env_var() {
   local key="$1" value="$2"
   grep -q "^${key}=" "${ENV_FILE}" 2>/dev/null && return
@@ -156,6 +164,11 @@ compose_up_for_profile() {
     return 1
   fi
   info "启动中间件: ${up_services[*]}"
+  # Desktop 上部分镜像站 HEAD 会 403；本地已有镜像时避免 compose 再强拉失败
+  if compose up -d --pull never "${up_services[@]}" 2>/dev/null; then
+    return 0
+  fi
+  warn "compose up --pull never 失败，回退为默认 up（可能触发远程拉取）"
   compose up -d "${up_services[@]}"
 }
 
@@ -318,7 +331,7 @@ ensure_ready() {
 }
 
 pull_middleware_images() {
-  info "拉取中间件镜像（按当前部署形态）..."
+  info "拉取中间件镜像（国内镜像站多源回退: ${DOCKER_MIRROR_FALLBACKS}）..."
   apply_deploy_profile
   COMPOSE_PROFILE_ARGS=()
   local flags
@@ -347,8 +360,70 @@ pull_middleware_images() {
     warn "没有需要拉取的中间件服务"
     return 0
   fi
-  info "拉取: ${pull_services[*]}"
-  compose pull "${pull_services[@]}" || warn "部分中间件镜像拉取失败，将尝试直接启动（本地已有镜像可继续）"
+  info "拉取服务: ${pull_services[*]}"
+
+  # 仅拉缺失镜像，经 DaoCloud → 1ms → 1panel 回退（避免 compose pull 遇单源 403 整段失败）
+  local -a images=()
+  local img
+  while IFS= read -r img; do
+    [ -z "$img" ] && continue
+    local dup=0 x
+    for x in "${images[@]+"${images[@]}"}"; do
+      [ "$x" = "$img" ] && dup=1 && break
+    done
+    [ "$dup" -eq 0 ] && images+=("$img")
+  done < <(compose config --images 2>/dev/null | sort -u)
+
+  local missing=0 fail=0
+  local -a missing_list=()
+  for img in "${images[@]+"${images[@]}"}"; do
+    if docker image inspect "$img" >/dev/null 2>&1; then
+      continue
+    fi
+    missing=$((missing + 1))
+    missing_list+=("$img")
+  done
+
+  if [ "$missing" -eq 0 ]; then
+    ok "所需中间件镜像均已存在（${#images[@]} 个），跳过拉取"
+    return 0
+  fi
+
+  info "缺失 ${missing} 个镜像，开始多源拉取..."
+  export DOCKER_CONTENT_TRUST=0
+  local pull_ok
+  for img in "${missing_list[@]}"; do
+    pull_ok=0
+    # FUXA：专用脚本（1ms 优先；compose 固定 1panel 路径名）
+    if echo "$img" | grep -qi 'frangoteam/fuxa'; then
+      if [ -f "${SCRIPT_DIR}/pull_fuxa.sh" ]; then
+        info "FUXA 使用专用多源拉取: $img"
+        FUXA_IMAGE_LOCAL="$img" bash "${SCRIPT_DIR}/pull_fuxa.sh" || true
+        docker image inspect "$img" >/dev/null 2>&1 && pull_ok=1
+      fi
+    fi
+    if [ "$pull_ok" -ne 1 ]; then
+      local platform_args=()
+      if [ -n "${DOCKER_PLATFORM:-}" ] && echo "$img" | grep -q 'nacos/nacos-server'; then
+        platform_args=(--platform "${DOCKER_PLATFORM}")
+      fi
+      if docker_pull_with_mirror_fallback "${platform_args[@]+"${platform_args[@]}"}" "$img"; then
+        pull_ok=1
+      fi
+    fi
+    if [ "$pull_ok" -eq 1 ]; then
+      ok "已就绪: $img"
+    else
+      warn "拉取失败: $img"
+      fail=$((fail + 1))
+    fi
+  done
+
+  if [ "$fail" -eq 0 ]; then
+    ok "中间件镜像拉取完成"
+  else
+    warn "有 ${fail} 个镜像拉取失败；将尝试用本地已有镜像启动（可选组件可能跳过）"
+  fi
 }
 
 wait_for_health() {
@@ -425,17 +500,16 @@ update_nacos_password() {
     return 0
   fi
 
-  info "尝试使用 admin 初始化接口设置密码..."
-  local admin_init_response
-  admin_init_response=$(curl -s -X POST "${nacos_server}/nacos/v1/auth/users/admin" \
+  # Nacos 2.5+ 首次需创建 admin；匿名接口常固定初始密码为 nacos，再改成目标密码
+  info "尝试初始化 Nacos admin 用户..."
+  curl -s -X POST "${nacos_server}/nacos/v1/auth/users/admin" \
     -H "Content-Type: application/x-www-form-urlencoded" \
-    -d "password=${new_password}" 2>/dev/null || true)
-  if echo "$admin_init_response" | grep -qiE '"username":"nacos"|"code":200'; then
-    ok "Nacos 管理员密码初始化成功"
-    return 0
-  fi
+    -d "password=${default_password}" >/dev/null 2>&1 || true
+  curl -s -X POST "${nacos_server}/nacos/v1/auth/users/admin" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "password=${new_password}" >/dev/null 2>&1 || true
 
-  info "尝试使用默认密码登录并修改..."
+  info "尝试使用默认密码登录并修改为目标密码..."
   login_response=$(curl -s -X POST "${nacos_server}/nacos/v1/auth/login" \
     -d "username=${default_username}&password=${default_password}" 2>/dev/null || true)
 
@@ -449,12 +523,18 @@ update_nacos_password() {
 
   if [[ -n "$access_token" && "$access_token" != "null" ]]; then
     local change_response
-    change_response=$(curl -s -X PUT "${nacos_server}/nacos/v1/auth/users" \
-      -H "Authorization: Bearer ${access_token}" \
+    change_response=$(curl -s -X PUT "${nacos_server}/nacos/v1/auth/users?accessToken=${access_token}" \
       -H "Content-Type: application/x-www-form-urlencoded" \
       -d "username=${default_username}&newPassword=${new_password}" 2>/dev/null || true)
-    if echo "$change_response" | grep -qiE "\"code\":200|success|true"; then
+    if echo "$change_response" | grep -qiE "\"code\":200|success|true|update user ok"; then
       ok "Nacos 密码修改成功"
+      return 0
+    fi
+    # 再验证一次目标密码
+    login_response=$(curl -s -X POST "${nacos_server}/nacos/v1/auth/login" \
+      -d "username=${default_username}&password=${new_password}" 2>/dev/null || true)
+    if echo "$login_response" | grep -qiE '"accessToken"|\"token\"'; then
+      ok "Nacos 已使用期望密码"
       return 0
     fi
   fi

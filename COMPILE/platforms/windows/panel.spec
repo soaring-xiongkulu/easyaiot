@@ -11,6 +11,11 @@ UI_DIST = os.path.join(PANEL_DIR, 'ui', 'dist')
 if not os.path.isfile(os.path.join(UI_DIST, 'index.html')):
     raise SystemExit(f'UI dist missing: {UI_DIST}/index.html')
 
+# COMPILE/assets/panel-logo.png → panel.ico（由 build.sh 生成）
+ICON_FILE = os.environ.get('PANEL_ICON', '')
+if ICON_FILE and not os.path.isfile(ICON_FILE):
+    raise SystemExit(f'PANEL_ICON missing: {ICON_FILE}')
+
 a = Analysis(
     [os.path.join(PANEL_DIR, 'run_panel.py')],
     pathex=[PANEL_DIR],
@@ -60,4 +65,5 @@ exe = EXE(
     strip=False,
     upx=False,
     console=True,
+    icon=ICON_FILE if ICON_FILE else None,
 )

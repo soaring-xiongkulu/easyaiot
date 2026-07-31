@@ -382,42 +382,53 @@ create_env_file() {
         fi
     else
         print_info ".env.docker 文件已存在"
-        print_info "检查并更新中间件连接信息（使用host网络模式）..."
-        
-        # 检查并更新数据库连接（如果还是旧的服务名，改为localhost）
-        if grep -q "DATABASE_URL=.*PostgresSQL" .env.docker || grep -q "DATABASE_URL=.*postgres-server" .env.docker; then
-            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-video20|' .env.docker
-            print_info "已更新数据库连接为 localhost:5432（host网络模式）"
-        fi
-        
-        # 检查并更新Nacos配置（如果还是IP地址或旧的服务名，改为localhost）
-        if grep -q "NACOS_SERVER=.*14\.18\.122\.2" .env.docker || grep -q "NACOS_SERVER=.*Nacos" .env.docker || grep -q "NACOS_SERVER=.*nacos-server" .env.docker; then
-            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=localhost:8848|' .env.docker
-            print_info "已更新Nacos连接为 localhost:8848（host网络模式）"
-        fi
-        
-        # 检查并更新MinIO配置（如果还是旧的服务名，改为localhost）
-        if grep -q "MINIO_ENDPOINT=.*MinIO" .env.docker || grep -q "MINIO_ENDPOINT=.*minio-server" .env.docker; then
-            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=localhost:9000|' .env.docker
-            print_info "已更新MinIO连接为 localhost:9000（host网络模式）"
-        fi
-        
-        # 检查并更新Redis配置（如果还是旧的服务名，改为localhost）
-        if grep -q "REDIS_HOST=.*Redis" .env.docker || grep -q "REDIS_HOST=.*redis-server" .env.docker; then
-            sed -i 's|^REDIS_HOST=.*|REDIS_HOST=localhost|' .env.docker
-            print_info "已更新Redis连接为 localhost（host网络模式）"
-        fi
-        
-        # 检查并更新Kafka配置（如果还是旧的服务名，改为localhost）
-        if grep -q "KAFKA_BOOTSTRAP_SERVERS=.*Kafka" .env.docker || grep -q "KAFKA_BOOTSTRAP_SERVERS=.*kafka-server" .env.docker; then
-            sed -i 's|^KAFKA_BOOTSTRAP_SERVERS=.*|KAFKA_BOOTSTRAP_SERVERS=localhost:9092|' .env.docker
-            print_info "已更新Kafka连接为 localhost:9092（host网络模式）"
-        fi
-        
-        # 检查并更新TDengine配置（如果还是旧的服务名，改为localhost）
-        if grep -q "TDENGINE_HOST=.*TDengine" .env.docker || grep -q "TDENGINE_HOST=.*tdengine-server" .env.docker; then
-            sed -i 's|^TDENGINE_HOST=.*|TDENGINE_HOST=localhost|' .env.docker
-            print_info "已更新TDengine连接为 localhost（host网络模式）"
+        # Docker Desktop 使用 bridge + 服务名，不能改回 localhost（host 网络在 Desktop 无效）
+        if [ -n "${EASYAIOT_DESKTOP_OS:-}" ] || [ "${EASYAIOT_COMPOSE_DESKTOP:-0}" = "1" ]; then
+            print_info "桌面端部署：保留/使用容器网络中间件地址（postgres-server 等）"
+            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@postgres-server:5432/iot-video20|' .env.docker
+            if grep -q '^REDIS_HOST=' .env.docker; then
+                sed -i 's|^REDIS_HOST=.*|REDIS_HOST=redis-server|' .env.docker
+            else
+                echo 'REDIS_HOST=redis-server' >> .env.docker
+            fi
+        else
+            print_info "检查并更新中间件连接信息（使用host网络模式）..."
+            
+            # 检查并更新数据库连接（如果还是旧的服务名，改为localhost）
+            if grep -q "DATABASE_URL=.*PostgresSQL" .env.docker || grep -q "DATABASE_URL=.*postgres-server" .env.docker; then
+                sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-video20|' .env.docker
+                print_info "已更新数据库连接为 localhost:5432（host网络模式）"
+            fi
+            
+            # 检查并更新Nacos配置（如果还是IP地址或旧的服务名，改为localhost）
+            if grep -q "NACOS_SERVER=.*14\.18\.122\.2" .env.docker || grep -q "NACOS_SERVER=.*Nacos" .env.docker || grep -q "NACOS_SERVER=.*nacos-server" .env.docker; then
+                sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=localhost:8848|' .env.docker
+                print_info "已更新Nacos连接为 localhost:8848（host网络模式）"
+            fi
+            
+            # 检查并更新MinIO配置（如果还是旧的服务名，改为localhost）
+            if grep -q "MINIO_ENDPOINT=.*MinIO" .env.docker || grep -q "MINIO_ENDPOINT=.*minio-server" .env.docker; then
+                sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=localhost:9000|' .env.docker
+                print_info "已更新MinIO连接为 localhost:9000（host网络模式）"
+            fi
+            
+            # 检查并更新Redis配置（如果还是旧的服务名，改为localhost）
+            if grep -q "REDIS_HOST=.*Redis" .env.docker || grep -q "REDIS_HOST=.*redis-server" .env.docker; then
+                sed -i 's|^REDIS_HOST=.*|REDIS_HOST=localhost|' .env.docker
+                print_info "已更新Redis连接为 localhost（host网络模式）"
+            fi
+            
+            # 检查并更新Kafka配置（如果还是旧的服务名，改为localhost）
+            if grep -q "KAFKA_BOOTSTRAP_SERVERS=.*Kafka" .env.docker || grep -q "KAFKA_BOOTSTRAP_SERVERS=.*kafka-server" .env.docker; then
+                sed -i 's|^KAFKA_BOOTSTRAP_SERVERS=.*|KAFKA_BOOTSTRAP_SERVERS=localhost:9092|' .env.docker
+                print_info "已更新Kafka连接为 localhost:9092（host网络模式）"
+            fi
+            
+            # 检查并更新TDengine配置（如果还是旧的服务名，改为localhost）
+            if grep -q "TDENGINE_HOST=.*TDengine" .env.docker || grep -q "TDENGINE_HOST=.*tdengine-server" .env.docker; then
+                sed -i 's|^TDENGINE_HOST=.*|TDENGINE_HOST=localhost|' .env.docker
+                print_info "已更新TDengine连接为 localhost（host网络模式）"
+            fi
         fi
     fi
 

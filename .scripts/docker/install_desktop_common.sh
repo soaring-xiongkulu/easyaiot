@@ -244,9 +244,44 @@ check_desktop_prerequisites() {
   fi
 
   # 4) Docker daemon（可尝试拉起 Desktop；未安装则快速失败，不空等）
+  # Windows：优先轻量 docker version；引擎挂死时限时探测，避免无限阻塞
+  _docker_info_ok() {
+    if [ "$EASYAIOT_DESKTOP_OS" = "windows" ]; then
+      local _probe_cmd=(docker version --format '{{.Server.Version}}')
+      if command -v timeout >/dev/null 2>&1; then
+        local _ver
+        _ver="$(timeout 20 "${_probe_cmd[@]}" 2>/dev/null | head -n1 | tr -d '\r')"
+        [ -n "$_ver" ]
+        return $?
+      fi
+      # Git Bash 常无 GNU timeout：后台跑 + 轮询
+      "${_probe_cmd[@]}" >/tmp/easyaiot_docker_probe.$$ 2>/dev/null &
+      local _dipid=$!
+      local _di=0
+      while [ $_di -lt 20 ]; do
+        if ! kill -0 $_dipid 2>/dev/null; then
+          wait $_dipid
+          local _rc=$?
+          local _ver
+          _ver="$(tr -d '\r' </tmp/easyaiot_docker_probe.$$ 2>/dev/null | head -n1)"
+          rm -f /tmp/easyaiot_docker_probe.$$ 2>/dev/null || true
+          [ $_rc -eq 0 ] && [ -n "$_ver" ]
+          return $?
+        fi
+        sleep 1
+        _di=$((_di + 1))
+      done
+      kill $_dipid 2>/dev/null || true
+      wait $_dipid 2>/dev/null || true
+      rm -f /tmp/easyaiot_docker_probe.$$ 2>/dev/null || true
+      return 1
+    fi
+    docker info >/dev/null 2>&1
+  }
+
   local docker_daemon_ok=0
   if [ "$docker_cli_ok" -eq 1 ]; then
-    if docker info >/dev/null 2>&1; then
+    if _docker_info_ok; then
       print_success "Docker Desktop: 引擎已运行"
       docker_daemon_ok=1
     else
@@ -277,7 +312,7 @@ check_desktop_prerequisites() {
         local i
         for i in $(seq 1 45); do
           sleep 2
-          if docker info >/dev/null 2>&1; then
+          if _docker_info_ok; then
             print_success "Docker Desktop: 引擎已就绪"
             docker_daemon_ok=1
             break
@@ -473,8 +508,9 @@ prepare_desktop_environment() {
   require_desktop_prerequisites
   detect_host_ip_desktop
   create_network
-  # 桌面端跳过 Linux 专属：daemon.json 镜像源、RTP sysctl、/dev/null 深度诊断
-  print_info "镜像加速请在 Docker Desktop → Settings → Docker Engine 中配置 registry-mirrors"
+  # 桌面端：daemon.json 由 Docker Desktop 托管，不自动改；中间件拉取已默认走国内多源回退
+  print_info "中间件镜像默认走国内源: DaoCloud → 1ms → 1panel（可用 DOCKER_MIRROR 覆盖）"
+  print_info "可选：Docker Desktop → Settings → Docker Engine 增加 \"registry-mirrors\": [\"https://docker.m.daocloud.io\"]"
 }
 
 fix_line_endings() {
@@ -539,6 +575,24 @@ execute_module_command() {
   export EASYAIOT_SKIP_IMAGE_PROMPT=1
   export EASYAIOT_SKIP_BUILD=1
   export HOST_IP
+
+  # Docker Desktop：host 网络无法把端口暴露到宿主机，启用 bridge override
+  unset COMPOSE_FILE 2>/dev/null || true
+  case "$module" in
+    VIDEO|AI|DEVICE)
+      export EASYAIOT_COMPOSE_DESKTOP=1
+      if [ -f docker-compose.desktop.yaml ]; then
+        local base_compose="docker-compose.yaml"
+        [ -f docker-compose.yml ] && base_compose="docker-compose.yml"
+        local compose_files="${base_compose}:docker-compose.desktop.yaml"
+        if [ -f .docker-compose.gpu.override.yaml ]; then
+          compose_files="${compose_files}:.docker-compose.gpu.override.yaml"
+        fi
+        export COMPOSE_FILE="$compose_files"
+        print_info "已启用桌面端网络 override（bridge + 端口映射）: ${COMPOSE_FILE}"
+      fi
+      ;;
+  esac
 
   local defer_agent_sync=0
   case "$module" in

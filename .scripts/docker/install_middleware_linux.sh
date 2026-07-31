@@ -4371,19 +4371,21 @@ check_and_pull_images() {
             fi
             export DOCKER_CONTENT_TRUST=0
             local _pull_ok=0
-            if declare -f docker_pull_with_mirror_fallback >/dev/null 2>&1; then
-                docker_pull_with_mirror_fallback "${_pull_args[@]}" "$_pull_img" 2>&1 | tee -a "$LOG_FILE" || true
-            else
-                docker pull "${_pull_args[@]}" "$_pull_img" 2>&1 | tee -a "$LOG_FILE" || true
-            fi
-            docker image inspect "$_pull_img" &>/dev/null && _pull_ok=1
-            # FUXA：专用多源脚本再试一次
-            if [ "$_pull_ok" -ne 1 ] && echo "$_pull_img" | grep -qi 'frangoteam/fuxa'; then
+            # FUXA：专用多源（1ms 优先；compose 固定 1panel 路径名），勿走通用 DaoCloud 优先链
+            if echo "$_pull_img" | grep -qi 'frangoteam/fuxa'; then
                 if [ -f "${SCRIPT_DIR}/pull_fuxa.sh" ]; then
-                    print_info "尝试 pull_fuxa.sh 多源拉取 FUXA..."
+                    print_info "FUXA 使用专用多源拉取: $_pull_img"
                     FUXA_IMAGE_LOCAL="$_pull_img" bash "${SCRIPT_DIR}/pull_fuxa.sh" 2>&1 | tee -a "$LOG_FILE" || true
                     docker image inspect "$_pull_img" &>/dev/null && _pull_ok=1
                 fi
+            fi
+            if [ "$_pull_ok" -ne 1 ]; then
+                if declare -f docker_pull_with_mirror_fallback >/dev/null 2>&1; then
+                    docker_pull_with_mirror_fallback "${_pull_args[@]}" "$_pull_img" 2>&1 | tee -a "$LOG_FILE" || true
+                else
+                    docker pull "${_pull_args[@]}" "$_pull_img" 2>&1 | tee -a "$LOG_FILE" || true
+                fi
+                docker image inspect "$_pull_img" &>/dev/null && _pull_ok=1
             fi
             if [ "$_pull_ok" -ne 1 ]; then
                 print_warning "镜像拉取失败: $_pull_img"

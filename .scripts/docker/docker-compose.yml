@@ -386,7 +386,8 @@ services:
 
   # FUXA Web SCADA / HMI（组态编辑器 + 运行态；仅 full 形态启动，mini/standard 跳过且不拉取镜像）
   # 编辑器: http://localhost:1881/editor  运行态: http://localhost:1881/home
-  # 默认镜像站 docker.1panel.live；403 时由 pull_fuxa.sh / 多源回退 tag 到此名（也可 export FUXA_IMAGE=...）
+  # FUXA：compose 固定用 1panel 路径名；实际拉取见 pull_fuxa.sh（1ms 优先，DaoCloud 常 403）
+  # 也可 export FUXA_IMAGE=... 覆盖
   FUXA:
     image: ${FUXA_IMAGE:-docker.1panel.live/frangoteam/fuxa:1.3.3}
     container_name: fuxa-server

@@ -4,8 +4,8 @@
 # （若未提供 check_command / print_*，本文件提供简易回退）
 #
 # 环境变量:
-#   DOCKER_MIRROR   镜像源，默认优先华为云 SWR 加速器风格回退链（见 DOCKER_MIRROR_FALLBACKS）
-#                   也可设为个人华为云加速器: https://<id>.mirror.swr.myhuaweicloud.com
+#   DOCKER_MIRROR   镜像源，默认 DaoCloud 公共镜像（国内较稳）；可用华为云 SWR 加速器覆盖:
+#                   https://<id>.mirror.swr.myhuaweicloud.com
 #   DOCKER_DNS      逗号分隔 DNS，默认 223.5.5.5,119.29.29.29（阿里/腾讯）
 #   EASYAIOT_FORCE_DOCKER_DNS=1  强制写入 daemon.json DNS（即使 resolv.conf 非 loopback）
 #   EASYAIOT_FORCE_HOST_DNS=1    强制重写宿主机 /etc/resolv.conf
@@ -13,11 +13,24 @@
 if ! declare -f check_command >/dev/null 2>&1; then
     check_command() { command -v "$1" >/dev/null 2>&1; }
 fi
+if ! declare -f print_info >/dev/null 2>&1; then
+    print_info() { echo "[INFO] $1"; }
+fi
+if ! declare -f print_success >/dev/null 2>&1; then
+    print_success() { echo "[OK] $1"; }
+fi
+if ! declare -f print_warning >/dev/null 2>&1; then
+    print_warning() { echo "[WARN] $1"; }
+fi
+if ! declare -f print_error >/dev/null 2>&1; then
+    print_error() { echo "[ERR] $1" >&2; }
+fi
 
-# 默认公共代理；华为云专属加速器用 DOCKER_MIRROR 覆盖
-DOCKER_MIRROR="${DOCKER_MIRROR:-https://docker.1panel.live}"
+# 默认公共代理：DaoCloud 优先（1panel 对部分仓库 HEAD/pull 常 403）
+# 华为云专属加速器用 DOCKER_MIRROR 覆盖
+DOCKER_MIRROR="${DOCKER_MIRROR:-https://docker.m.daocloud.io}"
 # 拉取回退链（逗号分隔主机名，不含协议）；可通过 DOCKER_MIRROR_FALLBACKS 覆盖
-DOCKER_MIRROR_FALLBACKS="${DOCKER_MIRROR_FALLBACKS:-docker.1panel.live,docker.1ms.run,docker.m.daocloud.io}"
+DOCKER_MIRROR_FALLBACKS="${DOCKER_MIRROR_FALLBACKS:-docker.m.daocloud.io,docker.1ms.run,docker.1panel.live}"
 # 国内公网 DNS；麒麟等系统 /etc/resolv.conf 常指向 ::1/127.0.0.53，Docker 内无法使用
 DOCKER_DNS="${DOCKER_DNS:-223.5.5.5,119.29.29.29}"
 
@@ -215,7 +228,7 @@ docker_pull_with_mirror_fallback() {
 
     local primary="${DOCKER_MIRROR_HOST:-}"
     if [ -z "$primary" ]; then
-        primary="${DOCKER_MIRROR:-https://docker.1ms.run}"
+        primary="${DOCKER_MIRROR:-https://docker.m.daocloud.io}"
     fi
     primary="${primary#https://}"
     primary="${primary#http://}"
@@ -226,7 +239,7 @@ docker_pull_with_mirror_fallback() {
     # 主源优先
     [ -n "$primary" ] && hosts+=("$primary")
     # 回退链
-    IFS=',' read -r -a _fb <<< "${DOCKER_MIRROR_FALLBACKS:-docker.1panel.live,docker.1ms.run,docker.m.daocloud.io}"
+    IFS=',' read -r -a _fb <<< "${DOCKER_MIRROR_FALLBACKS:-docker.m.daocloud.io,docker.1ms.run,docker.1panel.live}"
     for h in "${_fb[@]}"; do
         h="${h#https://}"
         h="${h#http://}"
@@ -252,7 +265,7 @@ docker_pull_with_mirror_fallback() {
     # 剥离已知镜像站前缀，得到官方路径（frangoteam/fuxa:1.3.3 / library/redis:7 等）
     local canonical="$img"
     local known_mirrors=(
-        docker.1panel.live docker.1ms.run docker.m.daocloud.io
+        docker.m.daocloud.io docker.1ms.run docker.1panel.live
         proxy.vvvv.ee dockerproxy.com docker.mirrors.ustc.edu.cn
         hub-mirror.c.163.com mirror.ccs.tencentyun.com
     )
@@ -312,6 +325,10 @@ docker_pull_with_mirror_fallback() {
 # daemon.json 的 "dns" 只影响容器内解析，不影响 dockerd 自己拉镜像时的域名解析。
 # 错误形态: lookup xxx on [::1]:53: connection refused
 # 原因: /etc/resolv.conf 指向 ::1 / 127.0.0.53，但本机 53 端口无服务或不可用。
+#
+# Windows / Git Bash / Docker Desktop：
+#   Git Bash 的 /etc/resolv.conf 与 Docker Desktop（WSL2 VM）无关，不能按 Linux
+#   方式改 resolv.conf；应检测 Windows 本机 DNS，或直接探测 docker 引擎解析能力。
 # ---------------------------------------------------------------------------
 
 _dns_print_info() { if declare -f print_info >/dev/null 2>&1; then print_info "$1"; else echo "[INFO] $1"; fi; }
@@ -319,15 +336,80 @@ _dns_print_ok() { if declare -f print_success >/dev/null 2>&1; then print_succes
 _dns_print_warn() { if declare -f print_warning >/dev/null 2>&1; then print_warning "$1"; else echo "[WARN] $1"; fi; }
 _dns_print_err() { if declare -f print_error >/dev/null 2>&1; then print_error "$1"; else echo "[ERROR] $1"; fi; }
 
+# 是否为 Windows 桌面部署环境（Git Bash / MSYS / Cygwin / 强制标记 / WSL 跑 install_windows）
+_is_windows_docker_desktop_env() {
+    [ "${EASYAIOT_FORCE_WINDOWS:-0}" = "1" ] && return 0
+    [ "${EASYAIOT_DESKTOP_OS:-}" = "windows" ] && return 0
+    case "$(uname -s 2>/dev/null)" in
+        MINGW*|MSYS*|CYGWIN*) return 0 ;;
+    esac
+    return 1
+}
+
 # 返回当前 resolv.conf 中的 nameserver 列表（空格分隔）
 _host_nameservers() {
     [ -f /etc/resolv.conf ] || return 0
     awk 'BEGIN{IGNORECASE=1} /^[[:space:]]*nameserver[[:space:]]+/ {print $2}' /etc/resolv.conf 2>/dev/null | tr '\n' ' '
 }
 
-# 宿主机能否解析外部域名（与 dockerd 共用同一套 resolv.conf）
+# Windows 本机能否解析域名（优先 nslookup.exe / PowerShell，不依赖 Git Bash resolv.conf）
+_windows_host_dns_can_resolve() {
+    local host="${1:-docker.cnb.cool}"
+    local out=""
+
+    if command -v nslookup.exe >/dev/null 2>&1; then
+        out="$(nslookup.exe "$host" 2>&1 || true)"
+        echo "$out" | grep -Eqi 'Name:|Addresses?:|Address:' && \
+            ! echo "$out" | grep -Eqi "can't find|Non-existent|NXDOMAIN|找不到" && return 0
+    elif command -v nslookup >/dev/null 2>&1; then
+        out="$(nslookup "$host" 2>&1 || true)"
+        echo "$out" | grep -Eqi 'Name:|Addresses?:|Address:' && \
+            ! echo "$out" | grep -Eqi "can't find|Non-existent|NXDOMAIN|找不到" && return 0
+    fi
+
+    if command -v powershell.exe >/dev/null 2>&1; then
+        powershell.exe -NoProfile -Command \
+            "try { [void][System.Net.Dns]::GetHostAddresses('${host}'); exit 0 } catch { exit 1 }" \
+            >/dev/null 2>&1 && return 0
+    fi
+
+    # Windows ping：无 -c/-W；成功时输出含 TTL=
+    if command -v ping.exe >/dev/null 2>&1; then
+        ping.exe -n 1 -w 2000 "$host" 2>&1 | grep -Eqi 'TTL=|Reply from|来自' && return 0
+    fi
+    return 1
+}
+
+# Docker 引擎侧能否解析（比 Git Bash getent 更贴近真实 pull）
+_docker_engine_dns_can_resolve() {
+    local host="${1:-docker.cnb.cool}"
+    command -v docker >/dev/null 2>&1 || return 1
+    # 用业务仓库路径做轻量 inspect（触发 dockerd 域名解析，不真正落盘大镜像）
+    local probe_ref="${host}/soaring-xiongkulu/easyaiot/aiot-web:latest"
+    local err=""
+    err="$(docker manifest inspect "$probe_ref" 2>&1 || true)"
+    # DNS/连接拒绝算失败
+    if echo "$err" | grep -Eqi 'lookup .*(:53|connection refused)|no such host|Temporary failure in name resolution|Could not resolve host|Dial .*no such host'; then
+        return 1
+    fi
+    # 能连上仓库（成功/401/404/TLS 等）说明 DNS 已通
+    if [ -z "$err" ]; then
+        return 0
+    fi
+    if echo "$err" | grep -Eqi 'unauthorized|denied|not found|no such manifest|manifest unknown|TOOMANYREQUESTS|timeout|TLS|x509|mediaType|schemaVersion|digest|sha256|http:|401|403|404'; then
+        return 0
+    fi
+    # 其它错误偏保守：交由上层（本机 DNS 已通则可继续）
+    return 1
+}
+
+# 宿主机能否解析外部域名（Linux 用 resolv.conf；Windows 用本机解析器）
 _host_dns_can_resolve() {
     local host="${1:-docker.cnb.cool}"
+    if _is_windows_docker_desktop_env; then
+        _windows_host_dns_can_resolve "$host" && return 0
+        return 1
+    fi
     if command -v getent >/dev/null 2>&1; then
         getent hosts "$host" >/dev/null 2>&1 && return 0
     fi
@@ -343,7 +425,39 @@ PY
     return 1
 }
 
+_print_windows_dns_fix_guide() {
+    _dns_print_err "Docker Desktop 无法解析镜像仓库域名"
+    _dns_print_info "Git Bash 的 /etc/resolv.conf 与 Docker Desktop 无关，请勿按 Linux 方式修改。"
+    echo ""
+    echo "请按下列步骤排查后重试："
+    echo "----------------------------------------"
+    cat <<'EOF'
+1) 在 PowerShell 验证本机 DNS:
+   Resolve-DnsName docker.cnb.cool
+   nslookup docker.cnb.cool
+
+2) 验证 Docker 能否拉取:
+   docker pull docker.cnb.cool/soaring-xiongkulu/easyaiot/aiot-web:latest
+
+3) 若本机可解析但 docker pull 报 lookup ... :53:
+   - 打开 Docker Desktop → Settings → Docker Engine
+   - 增加（可与现有项合并）:
+     {
+       "dns": ["223.5.5.5", "119.29.29.29", "114.114.114.114"]
+     }
+   - Apply & Restart 后重试
+
+4) 检查 Windows「以太网/WLAN → 属性 → IPv4 → DNS」是否可用，
+   或临时设为 223.5.5.5 / 119.29.29.29
+EOF
+    echo "----------------------------------------"
+}
+
 _print_host_dns_fix_guide() {
+    if _is_windows_docker_desktop_env; then
+        _print_windows_dns_fix_guide
+        return 0
+    fi
     _dns_print_err "Docker 无法解析域名（典型: lookup ... on [::1]:53 connection refused）"
     _dns_print_info "这是宿主机 DNS 故障，不是镜像仓库或 registry-mirrors 问题。"
     _dns_print_info "daemon.json 里的 dns 只影响容器，不能修复 docker pull。"
@@ -381,6 +495,33 @@ EOF
     echo "----------------------------------------"
 }
 
+# Windows / Docker Desktop：不改 /etc/resolv.conf，只验证本机 DNS + 引擎解析
+_ensure_windows_docker_desktop_dns() {
+    local test_host="${1:-docker.cnb.cool}"
+
+    if _windows_host_dns_can_resolve "$test_host"; then
+        _dns_print_ok "Windows 本机 DNS 正常（可解析 ${test_host}）"
+        # 再轻量确认引擎侧；失败仅警告，不因 Git Bash 误判中止
+        if command -v docker >/dev/null 2>&1; then
+            if _docker_engine_dns_can_resolve "$test_host"; then
+                _dns_print_ok "Docker Desktop 引擎 DNS 可用"
+            else
+                _dns_print_warn "本机可解析 ${test_host}，继续拉取；若 pull 失败请检查 Docker Desktop DNS 设置"
+            fi
+        fi
+        return 0
+    fi
+
+    _dns_print_warn "Windows 本机暂时无法解析 ${test_host}，改用 Docker 引擎探测..."
+    if _docker_engine_dns_can_resolve "$test_host"; then
+        _dns_print_ok "Docker Desktop 引擎可解析 ${test_host}，继续拉取"
+        return 0
+    fi
+
+    _print_windows_dns_fix_guide
+    return 1
+}
+
 # 修复宿主机 /etc/resolv.conf（及 systemd-resolved），使 dockerd 能解析外网域名
 # 返回 0=可用；1=仍不可用（已打印修复指引）
 ensure_host_dns_for_docker() {
@@ -388,6 +529,12 @@ ensure_host_dns_for_docker() {
     local dns_list="${DOCKER_DNS:-223.5.5.5,119.29.29.29,114.114.114.114}"
     local ns
     ns="$(_host_nameservers)"
+
+    # Windows Desktop：Git Bash resolv.conf 无效，走专用路径
+    if _is_windows_docker_desktop_env; then
+        _ensure_windows_docker_desktop_dns "$test_host"
+        return $?
+    fi
 
     if _host_dns_can_resolve "$test_host"; then
         if [ "${EASYAIOT_FORCE_HOST_DNS:-0}" != "1" ]; then

@@ -60,13 +60,60 @@ if [ ! -d "$VENV_DIR" ]; then
 fi
 # shellcheck disable=SC1091
 source "${VENV_DIR}/Scripts/activate" 2>/dev/null || source "${VENV_DIR}/bin/activate"
-pip install -U pip
-pip install -r "${COMPILE_ROOT}/requirements-build.txt"
+# Windows venv 上直接 `pip install -U pip` 会报错，需用 python -m pip
+python -m pip install -U pip
+python -m pip install -r "${COMPILE_ROOT}/requirements-build.txt"
 
 export PANEL_SRC="${REPO_ROOT}/PANEL"
 WORK_DIR="${COMPILE_ROOT}/work/windows"
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"
+
+PANEL_LOGO="${COMPILE_PANEL_LOGO:-${COMPILE_ROOT}/assets/panel-logo.png}"
+PANEL_ICO="${OUT_DIR}/panel.ico"
+if [ ! -f "$PANEL_LOGO" ]; then
+  echo "[COMPILE/windows] 缺少图标: ${PANEL_LOGO}" >&2
+  exit 1
+fi
+log "从 panel-logo.png 生成圆形白底 Windows 图标 → ${PANEL_ICO}"
+python - "$PANEL_LOGO" "$PANEL_ICO" <<'PY'
+from PIL import Image
+from PIL import ImageDraw
+import os
+import sys
+
+src, dst = sys.argv[1], sys.argv[2]
+img = Image.open(src).convert("RGBA")
+
+# 与 Ubuntu deb 一致：圆形白底，外圈透明
+size = 512
+canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+draw = ImageDraw.Draw(canvas)
+margin = int(size * 0.015)
+draw.ellipse((margin, margin, size - margin, size - margin), fill=(255, 255, 255, 255))
+
+inner = int((size - margin * 2) * 0.98)
+img.thumbnail((inner, inner), Image.Resampling.LANCZOS)
+x = (size - img.width) // 2
+y = (size - img.height) // 2
+canvas.alpha_composite(img, (x, y))
+
+# 多尺寸 ICO（Pillow 按 sizes 缩放；勿用 append_images）
+canvas.save(
+    dst,
+    format="ICO",
+    sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
+)
+print(f"wrote {dst} ({os.path.getsize(dst)} bytes)")
+PY
+# PyInstaller 在 Windows 上需要原生路径
+if command -v cygpath >/dev/null 2>&1; then
+  export PANEL_ICON="$(cygpath -w "${PANEL_ICO}")"
+  export PANEL_SRC="$(cygpath -w "${REPO_ROOT}/PANEL")"
+else
+  export PANEL_ICON="${PANEL_ICO}"
+  export PANEL_SRC="${REPO_ROOT}/PANEL"
+fi
 
 log "PyInstaller 打包 .exe"
 pyinstaller \
@@ -144,14 +191,31 @@ if [ "$MAKE_INSTALLER" -eq 1 ]; then
 
   INSTALLER="${OUT_DIR}/easyaiot-panel-${VERSION}-setup.exe"
   TMP_NSI="${OUT_DIR}/installer.generated.nsi"
-  # NSIS 路径：Git Bash 下转为 Windows 反斜杠
-  OUT_WIN="${OUT_DIR//\//\\}"
-  INSTALLER_WIN="${INSTALLER//\//\\}"
-  sed \
-    -e "s|__VERSION__|${VERSION}|g" \
-    -e "s|__OUTFILE__|${INSTALLER_WIN}|g" \
-    -e "s|__DISTDIR__|${OUT_WIN}|g" \
-    "${SCRIPT_DIR}/installer.nsi" > "${TMP_NSI}"
+  # 用 Python 写 NSI；路径先转成 Windows 形式，避免 Git Bash /e/... 路径失效
+  if command -v cygpath >/dev/null 2>&1; then
+    NSI_TPL_WIN="$(cygpath -w "${SCRIPT_DIR}/installer.nsi")"
+    OUT_WIN="$(cygpath -w "${OUT_DIR}")"
+    INSTALLER_WIN="$(cygpath -w "${INSTALLER}")"
+    TMP_NSI_WIN="$(cygpath -w "${TMP_NSI}")"
+  else
+    NSI_TPL_WIN="${SCRIPT_DIR}/installer.nsi"
+    OUT_WIN="${OUT_DIR}"
+    INSTALLER_WIN="${INSTALLER}"
+    TMP_NSI_WIN="${TMP_NSI}"
+  fi
+  python - <<PY
+from pathlib import Path
+tpl = Path(r"""${NSI_TPL_WIN}""")
+out = Path(r"""${OUT_WIN}""")
+installer = Path(r"""${INSTALLER_WIN}""")
+text = tpl.read_text(encoding="utf-8")
+text = text.replace("__VERSION__", """${VERSION}""")
+text = text.replace("__OUTFILE__", str(installer))
+text = text.replace("__DISTDIR__", str(out))
+Path(r"""${TMP_NSI_WIN}""").write_text(text, encoding="utf-8-sig")
+print(f"NSI written: {Path(r'''${TMP_NSI_WIN}''')}")
+print(f"OutFile: {installer}")
+PY
 
   log "生成 NSIS 安装包（含 runtime）"
   makensis "${TMP_NSI}"

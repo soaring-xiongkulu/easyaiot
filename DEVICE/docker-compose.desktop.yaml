@@ -1,0 +1,30 @@
+# Docker Desktop (Windows / macOS) override
+# network_mode: host 在 Desktop 上不会把端口暴露到 Windows/macOS 宿主机，
+# 导致 WEB 经 gateway:host-gateway 访问 48080 失败。改为 bridge + 端口映射。
+services:
+  iot-gateway:
+    network_mode: !reset null
+    ports:
+      - "0.0.0.0:48080:48080"
+    environment:
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=Nacos:8848
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=Nacos:8848
+    networks:
+      easyaiot-network:
+        aliases:
+          - gateway
+
+  iot-gb28181:
+    network_mode: !reset null
+    ports:
+      - "0.0.0.0:48088:48088"
+    environment:
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=Nacos:8848
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=Nacos:8848
+    networks:
+      - easyaiot-network
+
+networks:
+  easyaiot-network:
+    name: easyaiot-network
+    external: true

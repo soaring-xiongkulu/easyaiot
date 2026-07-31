@@ -1,0 +1,25 @@
+# Docker Desktop (Windows / macOS) override
+# network_mode: host 在 Desktop 上不会把端口暴露到 Windows/macOS 宿主机，
+# 导致 WEB 经 video-host:host-gateway 访问 6000 失败。改为 bridge + 端口映射。
+services:
+  video-service:
+    network_mode: !reset null
+    ports:
+      - "${FLASK_RUN_PORT:-6000}:6000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # 覆盖 compose 内 localhost；应用仍会读挂载的 .env，桌面安装会改写 .env.docker
+      - DATABASE_URL=postgresql://postgres:iot45722414822@postgres-server:5432/iot-video20
+      - REDIS_HOST=redis-server
+      - NACOS_SERVER=host.docker.internal:8848
+      - MINIO_ENDPOINT=host.docker.internal:9000
+      - KAFKA_BOOTSTRAP_SERVERS=host.docker.internal:9092
+      - TDENGINE_HOST=host.docker.internal
+    networks:
+      - easyaiot-network
+
+networks:
+  easyaiot-network:
+    name: easyaiot-network
+    external: true

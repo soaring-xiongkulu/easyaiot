@@ -19,6 +19,7 @@
   .\install_windows.cmd check
   .\install_windows.cmd install
   .\install_windows.cmd bootstrap
+  .\install_windows.cmd movedata   # C 盘空间不足时，把 Docker 数据迁到 E:\DockerDesktop
 
   # 若直接跑 .ps1 报「禁止运行脚本」，可用：
   #   powershell -ExecutionPolicy Bypass -File .\install_windows.ps1 bootstrap
@@ -177,8 +178,32 @@ function Start-DockerDesktopIfNeeded {
 
 function Test-DockerDaemonReady {
     Ensure-DockerOnPath | Out-Null
-    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { return $false }
-    return ((Invoke-NativeExitCode { & docker info }) -eq 0)
+    $dockerCmd = Get-Command docker -ErrorAction SilentlyContinue
+    if (-not $dockerCmd) { return $false }
+    # 优先用轻量 version；docker info 在异常状态下可能长时间阻塞
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = $dockerCmd.Source
+        $psi.Arguments = "version --format {{.Server.Version}}"
+        $psi.UseShellExecute = $false
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.CreateNoWindow = $true
+        $p = [System.Diagnostics.Process]::Start($psi)
+        if (-not $p.WaitForExit(20000)) {
+            try { $p.Kill() } catch { }
+            return $false
+        }
+        if ($p.ExitCode -ne 0) { return $false }
+        $out = $p.StandardOutput.ReadToEnd().Trim()
+        return (-not [string]::IsNullOrWhiteSpace($out))
+    } catch {
+        return $false
+    } finally {
+        $ErrorActionPreference = $prev
+    }
 }
 
 function Install-WslIfNeeded {
@@ -461,6 +486,28 @@ if ($forwardArgs.Count -gt 0 -and ($forwardArgs[0] -ieq "bootstrap" -or $forward
 if ($env:EASYAIOT_AUTO_INSTALL_DOCKER -eq "1") {
     $wantBootstrap = $true
 }
+
+# C 盘不足：把 Docker Desktop WSL 数据迁到 E:\DockerDesktop
+if ($forwardArgs.Count -gt 0 -and ($forwardArgs[0] -ieq "movedata" -or $forwardArgs[0] -ieq "move-data" -or $forwardArgs[0] -ieq "migrate-disk")) {
+    $moveScript = Join-Path $ScriptDir "move_docker_data_to_e.ps1"
+    if (-not (Test-Path $moveScript)) {
+        Write-Err "未找到 $moveScript"
+        exit 1
+    }
+    Write-Info "转发到 move_docker_data_to_e.ps1 ..."
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $moveScript
+    exit $LASTEXITCODE
+}
+
+# C 盘告警（不自动迁移，仅提示）
+try {
+    $cFree = [math]::Round((Get-PSDrive C).Free / 1GB, 2)
+    if ($cFree -lt 10) {
+        Write-Warn ("C: 剩余仅 {0} GB。Docker 数据在 C: 时易出现 read-only / pull 失败。" -f $cFree)
+        Write-Host "  建议先迁移: .\install_windows.ps1 movedata"
+        Write-Host "  或:          powershell -ExecutionPolicy Bypass -File .\move_docker_data_to_e.ps1"
+    }
+} catch { }
 
 if ($wantBootstrap) {
     $rc = Invoke-BootstrapDeps

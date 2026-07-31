@@ -1,0 +1,25 @@
+# Docker Desktop (Windows / macOS) override
+# network_mode: host 在 Desktop 上不会把端口暴露到 Windows/macOS 宿主机，
+# 导致 WEB 经 ai-host:host-gateway 访问 5000 失败。改为 bridge + 端口映射。
+services:
+  ai-service:
+    network_mode: !reset null
+    ports:
+      - "${FLASK_RUN_PORT:-5000}:5000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - DATABASE_URL=postgresql://postgres:iot45722414822@postgres-server:5432/iot-ai20
+      - REDIS_HOST=redis-server
+      - NACOS_SERVER=host.docker.internal:8848
+      - MINIO_ENDPOINT=host.docker.internal:9000
+      - KAFKA_BOOTSTRAP_SERVERS=host.docker.internal:9092
+      - TDENGINE_HOST=host.docker.internal
+      - JAVA_BACKEND_URL=http://iot-system:48099
+    networks:
+      - easyaiot-network
+
+networks:
+  easyaiot-network:
+    name: easyaiot-network
+    external: true

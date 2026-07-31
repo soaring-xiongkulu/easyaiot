@@ -1550,9 +1550,14 @@ pull_all_images() {
 
     # ★ 拉取前必须先修好宿主机 DNS（daemon.json dns 无法修复 dockerd 自身解析）
     # 典型故障: lookup docker.cnb.cool on [::1]:53: connection refused
+    # Windows/Git Bash：不改 /etc/resolv.conf，走 Windows 本机 DNS / Docker Desktop 探测
     print_info "检查并修复宿主机 DNS（供 dockerd 解析镜像仓库）..."
     if ! ensure_host_dns_for_docker "docker.cnb.cool"; then
-        print_error "宿主机 DNS 不可用，已中止拉取。请按上方指引修复 /etc/resolv.conf 后重试。"
+        if [ "${EASYAIOT_DESKTOP_OS:-}" = "windows" ] || [ "${EASYAIOT_FORCE_WINDOWS:-0}" = "1" ]; then
+            print_error "DNS 不可用，已中止拉取。请按上方 Windows/Docker Desktop 指引排查后重试。"
+        else
+            print_error "宿主机 DNS 不可用，已中止拉取。请按上方指引修复 /etc/resolv.conf 后重试。"
+        fi
         return 1
     fi
 
@@ -1653,7 +1658,11 @@ pull_all_images() {
     fi
 
     if [ "${_EASYAIOT_DNS_ABORT}" -eq 1 ]; then
-        print_error "因宿主机 DNS 故障已中止后续拉取（避免无意义重试）。请先修复 /etc/resolv.conf。"
+        if [ "${EASYAIOT_DESKTOP_OS:-}" = "windows" ] || [ "${EASYAIOT_FORCE_WINDOWS:-0}" = "1" ]; then
+            print_error "因 DNS 故障已中止后续拉取。请检查 Windows 本机 DNS / Docker Desktop DNS 设置后重试。"
+        else
+            print_error "因宿主机 DNS 故障已中止后续拉取（避免无意义重试）。请先修复 /etc/resolv.conf。"
+        fi
         return 1
     fi
 
