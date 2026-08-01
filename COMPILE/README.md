@@ -37,20 +37,21 @@ ls -lh COMPILE/dist/ubuntu-kylin/easyaiot-panel
 
 # .deb 安装包（示例：打 x86）
 bash COMPILE/build.sh ubuntu-x86 --deb
-ls -lh COMPILE/dist/ubuntu/easyaiot-panel_*_amd64.deb
+ls -lh COMPILE/dist/ubuntu/easyaiot-panel-*-amd64.deb
 
 # 或：打 ARM / 麒麟
 bash COMPILE/build.sh ubuntu-arm --deb
-ls -lh COMPILE/dist/ubuntu-arm/easyaiot-panel_*_arm_arm64.deb
+ls -lh COMPILE/dist/ubuntu-arm/easyaiot-panel-*-arm-arm64.deb
 
 bash COMPILE/build.sh ubuntu-kylin --deb
-ls -lh COMPILE/dist/ubuntu-kylin/easyaiot-panel_*_kylin_arm64.deb
+ls -lh COMPILE/dist/ubuntu-kylin/easyaiot-panel-*-kylin-arm64.deb
 
 # Windows（须在 Windows 主机；也可经统一入口）
 bash COMPILE/install_linux.sh windows
 bash COMPILE/install_linux.sh windows --installer   # 需 NSIS / makensis
 # 等价：bash COMPILE/build.sh windows [--installer]
 ls -lh COMPILE/dist/windows/easyaiot-panel.exe
+ls -lh COMPILE/dist/windows/easyaiot-panel-*-amd64-setup.exe
 ls -ld COMPILE/dist/windows/runtime
 ls -lh COMPILE/dist/windows/panel.env COMPILE/dist/windows/run.bat
 # 运行：
@@ -65,7 +66,9 @@ ls -ld COMPILE/dist/macos/runtime
 ls -lh COMPILE/dist/macos/panel.env COMPILE/dist/macos/run.command
 # 安装包：.app + .dmg（含 Applications 快捷方式）
 bash COMPILE/build.sh macos --dmg
-ls -lh COMPILE/dist/macos/easyaiot-panel-*.dmg
+# Apple Silicon → easyaiot-panel-<VERSION>-arm64.dmg
+# Intel         → easyaiot-panel-<VERSION>-amd64.dmg
+ls -lh COMPILE/dist/macos/easyaiot-panel-*-{arm64,amd64}.dmg
 # 运行：打开 dmg 拖到 Applications，或 ./COMPILE/dist/macos/run.command
 
 # CentOS/RHEL（默认 Docker 标准化构建；产出二进制 + .rpm）
@@ -74,7 +77,7 @@ bash COMPILE/build.sh centos
 # 本机构建：bash COMPILE/build.sh centos --local   # 需 rpm-build + Node + Python
 ls -lh COMPILE/dist/centos/easyaiot-panel COMPILE/dist/centos/*.rpm
 # 安装 RPM：
-# sudo rpm -Uvh COMPILE/dist/centos/easyaiot-panel-*.rpm
+# sudo rpm -Uvh COMPILE/dist/centos/easyaiot-panel-*-amd64.rpm
 # sudo systemctl daemon-reload
 # sudo systemctl enable --now easyaiot-panel
 #
@@ -90,7 +93,7 @@ bash COMPILE/install_linux.sh pack-all
 # 安装/卸载管理（自动识别 deb/rpm；也可指定架构或包路径）
 bash COMPILE/install_linux.sh install auto
 bash COMPILE/install_linux.sh install x86          # 或 arm / kylin
-bash COMPILE/install_linux.sh install --file COMPILE/dist/ubuntu/easyaiot-panel_126_amd64.deb
+bash COMPILE/install_linux.sh install --file COMPILE/dist/ubuntu/easyaiot-panel-126-amd64.deb
 bash COMPILE/install_linux.sh uninstall
 bash COMPILE/install_linux.sh status
 ```
@@ -183,18 +186,18 @@ ls -lh COMPILE/dist/ubuntu-kylin/*.deb
 
 预期产物示例（`<VERSION>` 为自动递增的数字版本）：
 
-- x86/amd64：`COMPILE/dist/ubuntu/easyaiot-panel_<VERSION>_amd64.deb`
-- ARM64：`COMPILE/dist/ubuntu-arm/easyaiot-panel_<VERSION>_arm_arm64.deb`
-- 麒麟：`COMPILE/dist/ubuntu-kylin/easyaiot-panel_<VERSION>_kylin_arm64.deb`
+- x86/amd64：`COMPILE/dist/ubuntu/easyaiot-panel-<VERSION>-amd64.deb`
+- ARM64：`COMPILE/dist/ubuntu-arm/easyaiot-panel-<VERSION>-arm-arm64.deb`
+- 麒麟：`COMPILE/dist/ubuntu-kylin/easyaiot-panel-<VERSION>-kylin-arm64.deb`
 
 ### 4) 安装并验证 .deb
 
 ```bash
 # 安装
-sudo apt install ./COMPILE/dist/ubuntu/easyaiot-panel_*_amd64.deb
+sudo apt install ./COMPILE/dist/ubuntu/easyaiot-panel-*-amd64.deb
 # 或 ARM / 麒麟：
-# sudo apt install ./COMPILE/dist/ubuntu-arm/easyaiot-panel_*_arm_arm64.deb
-# sudo apt install ./COMPILE/dist/ubuntu-kylin/easyaiot-panel_*_kylin_arm64.deb
+# sudo apt install ./COMPILE/dist/ubuntu-arm/easyaiot-panel-*-arm-arm64.deb
+# sudo apt install ./COMPILE/dist/ubuntu-kylin/easyaiot-panel-*-kylin-arm64.deb
 
 # 配置 EasyAIoT 仓库根目录（非常关键）
 sudoedit /etc/easyaiot-panel/panel.env
@@ -229,13 +232,13 @@ sudo cp -a /etc/easyaiot-panel/panel.env "/etc/easyaiot-panel/panel.env.bak.$(da
 
 # 3) 安装/覆盖安装（二选一）
 # x86/amd64：
-sudo apt install -y ./COMPILE/dist/ubuntu/easyaiot-panel_*_amd64.deb
+sudo apt install -y ./COMPILE/dist/ubuntu/easyaiot-panel-*-amd64.deb
 # 或 ARM / 麒麟：
-# sudo apt install -y ./COMPILE/dist/ubuntu-arm/easyaiot-panel_*_arm_arm64.deb
-# sudo apt install -y ./COMPILE/dist/ubuntu-kylin/easyaiot-panel_*_kylin_arm64.deb
+# sudo apt install -y ./COMPILE/dist/ubuntu-arm/easyaiot-panel-*-arm-arm64.deb
+# sudo apt install -y ./COMPILE/dist/ubuntu-kylin/easyaiot-panel-*-kylin-arm64.deb
 
 # 如果你确实需要“强制重装同版本”（上面没生效/版本未变化时可用 dpkg 强制覆盖）：
-# sudo dpkg -i ./COMPILE/dist/ubuntu/easyaiot-panel_*_amd64.deb
+# sudo dpkg -i ./COMPILE/dist/ubuntu/easyaiot-panel-*-amd64.deb
 # sudo apt -f install
 
 # 4) 重新检查关键配置（非常关键）
@@ -299,10 +302,10 @@ cat /etc/easyaiot-panel/panel.env
 完整安装与验证请参考上方“**4) 安装并验证 .deb**”。如只需快速安装，可执行：
 
 ```bash
-sudo apt install ./COMPILE/dist/ubuntu/easyaiot-panel_*_amd64.deb
+sudo apt install ./COMPILE/dist/ubuntu/easyaiot-panel-*-amd64.deb
 # 或 ARM / 麒麟：
-# sudo apt install ./COMPILE/dist/ubuntu-arm/easyaiot-panel_*_arm_arm64.deb
-# sudo apt install ./COMPILE/dist/ubuntu-kylin/easyaiot-panel_*_kylin_arm64.deb
+# sudo apt install ./COMPILE/dist/ubuntu-arm/easyaiot-panel-*-arm-arm64.deb
+# sudo apt install ./COMPILE/dist/ubuntu-kylin/easyaiot-panel-*-kylin-arm64.deb
 sudo systemctl restart easyaiot-panel
 ```
 
@@ -339,7 +342,7 @@ export EASYAIOT_ROOT=/path/to/easyaiot
 ```bash
 # 默认：Docker 产出二进制 + rpm
 bash COMPILE/build.sh centos
-ls -lh COMPILE/dist/centos/easyaiot-panel COMPILE/dist/centos/easyaiot-panel-*.rpm
+ls -lh COMPILE/dist/centos/easyaiot-panel COMPILE/dist/centos/easyaiot-panel-*-{amd64,arm64}.rpm
 
 # 仅二进制 / 本机构建
 bash COMPILE/build.sh centos --no-rpm
@@ -349,7 +352,7 @@ bash COMPILE/build.sh centos --local          # 需本机 rpm-build + Node + Pyt
 安装与配置：
 
 ```bash
-sudo rpm -Uvh ./COMPILE/dist/centos/easyaiot-panel-*.rpm
+sudo rpm -Uvh ./COMPILE/dist/centos/easyaiot-panel-*-amd64.rpm
 sudoedit /etc/easyaiot-panel/panel.env
 # 必改示例：
 # EASYAIOT_ROOT=/path/to/easyaiot
@@ -451,7 +454,8 @@ bash COMPILE/build.sh macos --dmg
 | `COMPILE/dist/macos/panel.env` | 面板配置（`INSTALL_SCRIPT=install_mac.sh`） |
 | `COMPILE/dist/macos/run.command` | 双击启动包装 |
 | `COMPILE/dist/macos/EasyAIoT Panel.app` | macOS 应用包 |
-| `COMPILE/dist/macos/easyaiot-panel-<VERSION>.dmg` | 分发安装包 |
+| `COMPILE/dist/macos/easyaiot-panel-<VERSION>-arm64.dmg` | Apple Silicon（M 系列）安装包 |
+| `COMPILE/dist/macos/easyaiot-panel-<VERSION>-amd64.dmg` | Intel Mac 安装包 |
 
 安装：打开 dmg → 将 **EasyAIoT Panel** 拖到 **Applications** → 启动后访问 `http://127.0.0.1:9200/`，在面板「应用部署」中执行 `install`（需本机 Docker Desktop 已就绪）。
 
@@ -524,7 +528,7 @@ COMPILE/
 |------|------|------|
 | Docker（默认） | `bash COMPILE/build.sh ubuntu-x86 / ubuntu-arm / ubuntu-kylin` | 输出对应架构 Linux 可执行文件（ARM/Kylin 使用 `linux/arm64` 构建） |
 | 本地 | `bash COMPILE/build.sh <target> --local` | 需在对应架构机器上执行（本机 Node + Python3） |
-| deb | `bash COMPILE/build.sh <target> --deb` | 产出对应 variant 的 `.deb`（含内置 runtime；x86/amd64、arm_arm64、kylin_arm64） |
+| deb | `bash COMPILE/build.sh <target> --deb` | 产出对应 variant 的 `.deb`（含内置 runtime；x86/amd64、arm-arm64、kylin-arm64） |
 | windows | `bash COMPILE/build.sh windows [--installer]` | 需在 Windows 主机执行；默认 `.exe`+`runtime/`，可选 NSIS |
 | macos | `bash COMPILE/build.sh macos [--app|--dmg]` | 需在 macOS 主机执行；默认二进制+`runtime/`，可选 `.app`/`.dmg` |
 | centos | `bash COMPILE/build.sh centos [--docker|--local] [--no-rpm]` | 默认 Docker 产出二进制 + `.rpm`（无内置 runtime） |

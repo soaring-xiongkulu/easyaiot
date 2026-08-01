@@ -234,7 +234,7 @@ run_deploy_flow() {
     ls -lh "${dist_dir}"/easyaiot-panel-*.rpm 2>/dev/null || true
   else
     echo "deb："
-    ls -lh "${dist_dir}"/easyaiot-panel_*.deb 2>/dev/null || true
+    ls -lh "${dist_dir}"/easyaiot-panel-*.deb 2>/dev/null || true
   fi
   echo "部署打包完成。"
 }

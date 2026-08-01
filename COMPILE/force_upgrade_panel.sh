@@ -1,9 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-DEB="$(ls -1 "$ROOT/COMPILE/dist/ubuntu/easyaiot-panel"_*.deb 2>/dev/null | awk -F_ '{print $2"\t"$0}' | sort -n | tail -1 | cut -f2-)"
+
+# 选取最新 easyaiot-panel-<ver>-amd64.deb（中横线命名）
+DEB=""
+max_ver=""
+shopt -s nullglob
+for f in "$ROOT/COMPILE/dist/ubuntu/easyaiot-panel"-*-amd64.deb; do
+  base="$(basename "$f")"
+  if [[ "$base" =~ ^easyaiot-panel-([0-9]+([.][0-9]+)*)-amd64\.deb$ ]]; then
+    v="${BASH_REMATCH[1]}"
+    if [ -z "$max_ver" ] || [ "$(printf '%s\n%s\n' "$max_ver" "$v" | sort -V | tail -1)" = "$v" ]; then
+      if [ "$v" != "$max_ver" ] || [ -z "$DEB" ]; then
+        max_ver="$v"
+        DEB="$f"
+      fi
+    fi
+  fi
+done
+shopt -u nullglob
+
 if [ -z "${DEB}" ] || [ ! -f "$DEB" ]; then
-  echo "未找到 deb，请先: bash COMPILE/build.sh ubuntu --deb" >&2
+  echo "未找到 deb，请先: bash COMPILE/build.sh ubuntu-x86 --deb" >&2
   exit 1
 fi
 echo "[force] 安装: $DEB"

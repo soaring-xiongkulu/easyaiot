@@ -84,6 +84,9 @@ _scan_dist_max_version() {
 
   shopt -s nullglob
   for f in \
+    "${dist_root}"/ubuntu/easyaiot-panel-*.deb \
+    "${dist_root}"/ubuntu-arm/easyaiot-panel-*.deb \
+    "${dist_root}"/ubuntu-kylin/easyaiot-panel-*.deb \
     "${dist_root}"/ubuntu/easyaiot-panel_*.deb \
     "${dist_root}"/ubuntu-arm/easyaiot-panel_*.deb \
     "${dist_root}"/ubuntu-kylin/easyaiot-panel_*.deb \
@@ -93,11 +96,20 @@ _scan_dist_max_version() {
   do
     base="$(basename "$f")"
     ver=""
-    if [[ "$base" =~ ^easyaiot-panel_([0-9]+([.][0-9]+)*)_ ]]; then
+    # 统一中横线：easyaiot-panel-<ver>-amd64.deb / -arm-arm64.deb / -kylin-arm64.deb
+    #            easyaiot-panel-<ver>-amd64.rpm / -arm64.rpm
+    #            easyaiot-panel-<ver>-amd64-setup.exe
+    #            easyaiot-panel-<ver>-arm64.dmg / -amd64.dmg
+    if [[ "$base" =~ ^easyaiot-panel-([0-9]+([.][0-9]+)*)-(arm-arm64|kylin-arm64|amd64|arm64)(-setup)?\.(deb|rpm|dmg|exe)$ ]]; then
       ver="${BASH_REMATCH[1]}"
     elif [[ "$base" =~ ^easyaiot-panel-([0-9]+([.][0-9]+)*)-setup\.exe$ ]]; then
+      # 兼容旧 Windows 命名（无架构后缀）
+      ver="${BASH_REMATCH[1]}"
+    elif [[ "$base" =~ ^easyaiot-panel_([0-9]+([.][0-9]+)*)_ ]]; then
+      # 兼容旧 deb 命名（下划线）
       ver="${BASH_REMATCH[1]}"
     elif [[ "$base" =~ ^easyaiot-panel-([0-9]+([.][0-9]+)*)\.dmg$ ]]; then
+      # 兼容旧 macOS 命名（无架构后缀）
       ver="${BASH_REMATCH[1]}"
     elif [[ "$base" =~ ^easyaiot-panel-([0-9]+([.][0-9]+)*)- ]]; then
       ver="${BASH_REMATCH[1]}"

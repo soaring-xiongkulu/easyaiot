@@ -35,7 +35,7 @@ for arg in "$@"; do
       echo "用法: $0 [--app] [--dmg]"
       echo "产物: easyaiot-panel + runtime/（含 install_mac.sh）+ panel.env + run.command"
       echo "  --app  生成 EasyAIoT Panel.app（圆形白底图标，与 Linux 一致）"
-      echo "  --dmg  生成 .app + .dmg 安装包（含 Applications 快捷方式）"
+      echo "  --dmg  生成 .app + .dmg（文件名含架构：-arm64=Apple Silicon，-amd64=Intel）"
       exit 0
       ;;
     *)
@@ -108,8 +108,14 @@ chmod +x "${OUT_DIR}/easyaiot-panel"
 
 VERSION="$(resolve_panel_version)"
 case "$(uname -m)" in
-  arm64|aarch64) ARCH=arm64 ;;
-  *) ARCH=amd64 ;;
+  arm64|aarch64)
+    ARCH=arm64
+    ARCH_LABEL="Apple Silicon"
+    ;;
+  *)
+    ARCH=amd64
+    ARCH_LABEL="Intel"
+    ;;
 esac
 
 RUNTIME_DIR="${OUT_DIR}/runtime"
@@ -145,11 +151,12 @@ EOF
 chmod +x "${OUT_DIR}/run.command"
 
 cat > "${OUT_DIR}/README.txt" <<EOF
-EasyAIoT PANEL ${VERSION} (macOS)
+EasyAIoT PANEL ${VERSION} (macOS ${ARCH} / ${ARCH_LABEL})
 
 1. 安装并启动 Docker Desktop
 2. 建议: brew install bash（bash 4+）
-3. 安装包：打开 easyaiot-panel-${VERSION}.dmg，拖到 Applications
+3. 安装包：打开 easyaiot-panel-${VERSION}-${ARCH}.dmg，拖到 Applications
+   （本包仅适用于 ${ARCH_LABEL} Mac，勿混用其他架构包）
    或双击 run.command / 执行 ./easyaiot-panel
 4. 浏览器打开 http://127.0.0.1:9200/
 5. 在「应用部署」中执行 install（仅拉取预构建镜像）
@@ -158,6 +165,7 @@ EasyAIoT PANEL ${VERSION} (macOS)
 部署脚本: runtime/.scripts/docker/install_mac.sh
 配置: panel.env
 图标: COMPILE/assets/panel-logo.png（圆形白底，与 Linux 一致）
+架构: ${ARCH}（${ARCH_LABEL}）
 EOF
 
 log "完成: ${OUT_DIR}/easyaiot-panel + runtime/"
@@ -260,9 +268,12 @@ if [ "$MAKE_DMG" -eq 1 ]; then
     echo "[COMPILE/macos] 未找到 .app，无法生成 dmg" >&2
     exit 1
   fi
-  DMG_PATH="${OUT_DIR}/easyaiot-panel-${VERSION}.dmg"
+  # 文件名带架构，便于区分芯片：arm64=Apple Silicon，amd64=Intel
+  DMG_PATH="${OUT_DIR}/easyaiot-panel-${VERSION}-${ARCH}.dmg"
   DMG_STAGE="${OUT_DIR}/dmg-stage"
   rm -f "${DMG_PATH}"
+  # 清理同版本无架构后缀的旧命名，避免混淆
+  rm -f "${OUT_DIR}/easyaiot-panel-${VERSION}.dmg"
   rm -rf "${DMG_STAGE}"
   mkdir -p "${DMG_STAGE}"
   cp -a "${APP_DIR}" "${DMG_STAGE}/"
@@ -271,7 +282,7 @@ if [ "$MAKE_DMG" -eq 1 ]; then
   cp -f "${OUT_DIR}/README.txt" "${DMG_STAGE}/README.txt"
   cp -f "${CIRCLE_ICON_PNG}" "${DMG_STAGE}/.VolumeIcon.png" 2>/dev/null || true
 
-  log "生成 .dmg（含 Applications 快捷方式）→ ${DMG_PATH}"
+  log "生成 .dmg（${ARCH} / ${ARCH_LABEL}，含 Applications 快捷方式）→ ${DMG_PATH}"
   hdiutil create \
     -volname "${APP_NAME}" \
     -srcfolder "${DMG_STAGE}" \
@@ -280,6 +291,6 @@ if [ "$MAKE_DMG" -eq 1 ]; then
     -fs HFS+ \
     "${DMG_PATH}" >/dev/null
   rm -rf "${DMG_STAGE}"
-  log "已生成 .dmg: ${DMG_PATH}"
+  log "已生成 .dmg: ${DMG_PATH}（${ARCH} / ${ARCH_LABEL}）"
   ls -lh "${DMG_PATH}"
 fi
