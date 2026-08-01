@@ -856,11 +856,15 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 <td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 32%; min-width: 9rem;"><nobr>大老刘</nobr></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">爲推動 EasyAIoT 項目在對外宣介與方案表達方向的發展，貢獻《AI視頻監控分析平臺》圖文介紹材料，系統梳理平臺在 AI 視頻監控分析場景下的能力全貌與落地價值，讓更多用戶、集成商與合作伙伴能快速理解平臺定位與核心亮點，顯著提升項目對外傳播與商務溝通效率。</td>
 </tr>
+<tr style="background-color: #f8f9fa;">
+<td style="padding: 15px; border: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50; width: 32%; min-width: 9rem;"><nobr>劉兆中ᯤ⁵ᴳ</nobr></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; color: #444; line-height: 1.8;">爲推動 EasyAIoT 項目在 macOS 一鍵部署方向的發展，率先貢獻部分 Mac 一鍵部署腳本，把映像拉取、容器編排與環境前置檢查等主幹路徑基本打通，使後續完善只需補齊「最後一公里」；其探索與實踐爲團隊釐清了 Mac 側部署鏈路的關鍵節點與風險點，顯著縮短了後續工程化收尾的路徑，是 macOS 部署能力從零到可用過程中不可或缺的奠基性貢獻。</td>
+</tr>
 </tbody>
 </table>
 
 <p style="font-size: 14px; line-height: 1.8; color: #2c3e50; font-weight: 500; margin: 20px 0; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
-<strong>特別緻謝</strong>：以上貢獻者在跨平臺部署文件與腳本、國標視頻能力落地與 AI 聯調驗證、多卡訓練與斷點續訓、多品牌攝像頭直連發現與批量接入、天地圖空間可視化、異構流媒體集羣部署與調度、車牌識別算法與完整代碼、EasyAIoT-Edge 邊緣側端到端串聯、校園開發者社羣組織與青年協作生態構建、物聯網設備上下行閉環與大疆司空空中視角接入、Modbus-TCP / Modbus-RTU / OPC UA 工業協議接入、攝像頭直連從發現到登入/同步/配置/多品牌出流的閉環、拖拽看板（Board）構想與 IoT 測點即時/歷史值直取集成、傳感器浮點數據預測與閾值告警規則及中心設備關聯子設備運行狀態一屏展示、AI 視頻監控分析平臺圖文介紹材料等不同方面推動了 EasyAIoT 的發展，他們的專業精神與無私奉獻值得我們學習與尊敬。再次向這些傑出的貢獻者表示最誠摯的感謝！🙏
+<strong>特別緻謝</strong>：以上貢獻者在跨平臺部署文件與腳本、macOS 一鍵部署腳本奠基與鏈路探索、國標視頻能力落地與 AI 聯調驗證、多卡訓練與斷點續訓、多品牌攝像頭直連發現與批量接入、天地圖空間可視化、異構流媒體集羣部署與調度、車牌識別算法與完整代碼、EasyAIoT-Edge 邊緣側端到端串聯、校園開發者社羣組織與青年協作生態構建、物聯網設備上下行閉環與大疆司空空中視角接入、Modbus-TCP / Modbus-RTU / OPC UA 工業協議接入、攝像頭直連從發現到登入/同步/配置/多品牌出流的閉環、拖拽看板（Board）構想與 IoT 測點即時/歷史值直取集成、傳感器浮點數據預測與閾值告警規則及中心設備關聯子設備運行狀態一屏展示、AI 視頻監控分析平臺圖文介紹材料等不同方面推動了 EasyAIoT 的發展，他們的專業精神與無私奉獻值得我們學習與尊敬。再次向這些傑出的貢獻者表示最誠摯的感謝！🙏
 </p>
 
 ## 💝 開源守望者
