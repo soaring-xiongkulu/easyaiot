@@ -112,16 +112,15 @@ pick_deb_file() {
   case "$variant" in
     x86|amd64)
       # 整段作为 pattern 字符串传入，避免调用前 glob 展开
-      # 新命名：easyaiot-panel-<ver>-amd64.deb（中横线）
-      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/ubuntu/${PKG_NAME}-*-amd64.deb" "$min_bytes"
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/ubuntu/${PKG_NAME}_*_amd64.deb" "$min_bytes"
       return $?
       ;;
     arm|arm64)
-      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/ubuntu-arm/${PKG_NAME}-*-arm-arm64.deb" "$min_bytes"
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/ubuntu-arm/${PKG_NAME}_*_arm_arm64.deb" "$min_bytes"
       return $?
       ;;
     kylin)
-      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/ubuntu-kylin/${PKG_NAME}-*-kylin-arm64.deb" "$min_bytes"
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/ubuntu-kylin/${PKG_NAME}_*_kylin_arm64.deb" "$min_bytes"
       return $?
       ;;
     auto)

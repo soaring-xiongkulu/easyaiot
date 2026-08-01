@@ -60,13 +60,12 @@ if [ ! -f "$PANEL_LOGO" ]; then
 fi
 
 # 前置检查通过后再递增版本（可用 PANEL_VERSION 覆盖）
-# 分发文件名统一用中横线：easyaiot-panel-<ver>-amd64.deb / -arm-arm64.deb / -kylin-arm64.deb
 DEB_VERSION="$(resolve_panel_version)"
 if [ "$DEB_VARIANT" = "ubuntu" ]; then
-  DEB_FILE="${OUT_DIR}/${PKG_NAME}-${DEB_VERSION}-${ARCH}.deb"
+  DEB_FILE="${OUT_DIR}/${PKG_NAME}_${DEB_VERSION}_${ARCH}.deb"
 else
   # arm/kylin 二者同为 arm64 时仍用文件名区分，避免拷贝/上传时混淆
-  DEB_FILE="${OUT_DIR}/${PKG_NAME}-${DEB_VERSION}-${DEB_VARIANT}-${ARCH}.deb"
+  DEB_FILE="${OUT_DIR}/${PKG_NAME}_${DEB_VERSION}_${DEB_VARIANT}_${ARCH}.deb"
 fi
 
 if ! rm -rf "$STAGE" 2>/dev/null; then
@@ -240,11 +239,11 @@ printf '%s\n' '/etc/easyaiot-panel/panel.env' > "${STAGE}/DEBIAN/conffiles"
 
 # --- build ---
 mkdir -p "$OUT_DIR"
-# 清理同版本旧下划线命名，避免混淆
+# 清理同版本曾用中横线命名的产物，避免混淆
 if [ "$DEB_VARIANT" = "ubuntu" ]; then
-  rm -f "${OUT_DIR}/${PKG_NAME}_${DEB_VERSION}_${ARCH}.deb"
+  rm -f "${OUT_DIR}/${PKG_NAME}-${DEB_VERSION}-${ARCH}.deb"
 else
-  rm -f "${OUT_DIR}/${PKG_NAME}_${DEB_VERSION}_${DEB_VARIANT}_${ARCH}.deb"
+  rm -f "${OUT_DIR}/${PKG_NAME}-${DEB_VERSION}-${DEB_VARIANT}-${ARCH}.deb"
 fi
 dpkg-deb --root-owner-group --build "$STAGE" "$DEB_FILE"
 

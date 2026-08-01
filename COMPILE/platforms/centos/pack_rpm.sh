@@ -146,20 +146,7 @@ EOF
 log "rpmbuild 生成 RPM"
 rpmbuild --define "_topdir ${RPMBUILD_ROOT}" -bb "${SPEC_PATH}"
 mkdir -p "${OUT_DIR}"
-
-# 分发文件名统一中横线 + 架构后缀（避免 x86_64 下划线）：easyaiot-panel-<ver>-amd64.rpm
-case "${ARCH}" in
-  x86_64|amd64) FILE_ARCH=amd64 ;;
-  aarch64|arm64) FILE_ARCH=arm64 ;;
-  *) FILE_ARCH="${ARCH}" ;;
-esac
-RPM_OUT="${OUT_DIR}/${PKG_NAME}-${VERSION}-${FILE_ARCH}.rpm"
-BUILT_RPM="$(ls -1 "${RPMBUILD_ROOT}/RPMS/${ARCH}/${PKG_NAME}-${VERSION}-${RELEASE}."*.rpm 2>/dev/null | head -1 || true)"
-if [ -z "${BUILT_RPM}" ] || [ ! -f "${BUILT_RPM}" ]; then
-  echo "[COMPILE/centos] rpmbuild 未产出 RPM" >&2
-  exit 1
-fi
-cp -f "${BUILT_RPM}" "${RPM_OUT}"
-# 清理同版本旧命名，避免混淆
-rm -f "${OUT_DIR}/${PKG_NAME}-${VERSION}-${RELEASE}."*.rpm
-ls -lh "${RPM_OUT}"
+cp -f "${RPMBUILD_ROOT}/RPMS/${ARCH}/${PKG_NAME}-${VERSION}-${RELEASE}."*.rpm "${OUT_DIR}/"
+# 清理曾用中横线架构后缀的产物，避免混淆
+rm -f "${OUT_DIR}/${PKG_NAME}-${VERSION}-amd64.rpm" "${OUT_DIR}/${PKG_NAME}-${VERSION}-arm64.rpm"
+ls -lh "${OUT_DIR}/${PKG_NAME}-${VERSION}-${RELEASE}."*.rpm

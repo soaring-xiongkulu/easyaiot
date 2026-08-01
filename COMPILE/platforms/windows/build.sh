@@ -24,7 +24,6 @@ for arg in "$@"; do
     -h|--help)
       echo "用法: $0 [--installer]"
       echo "产物: easyaiot-panel.exe + runtime/（含 install_windows.sh）+ panel.env + run.bat"
-      echo "  --installer  生成 NSIS 安装包 easyaiot-panel-<ver>-amd64-setup.exe"
       exit 0
       ;;
     *)
@@ -190,9 +189,8 @@ if [ "$MAKE_INSTALLER" -eq 1 ]; then
     exit 1
   fi
 
-  # 分发文件名统一中横线 + 架构：easyaiot-panel-<ver>-amd64-setup.exe
-  INSTALLER="${OUT_DIR}/easyaiot-panel-${VERSION}-amd64-setup.exe"
-  rm -f "${OUT_DIR}/easyaiot-panel-${VERSION}-setup.exe"
+  INSTALLER="${OUT_DIR}/easyaiot-panel-${VERSION}-setup.exe"
+  rm -f "${OUT_DIR}/easyaiot-panel-${VERSION}-amd64-setup.exe"
   TMP_NSI="${OUT_DIR}/installer.generated.nsi"
   # 用 Python 写 NSI；路径先转成 Windows 形式，避免 Git Bash /e/... 路径失效
   if command -v cygpath >/dev/null 2>&1; then
