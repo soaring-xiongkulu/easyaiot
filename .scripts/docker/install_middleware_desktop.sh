@@ -24,6 +24,7 @@ ENV_FILE="${SCRIPT_DIR}/.env.docker"
 COMPOSE_CMD=()
 COMPOSE_PROFILE_ARGS=()
 DOCKER_PLATFORM=""
+NACOS_PLATFORM=""
 BASE_IMAGE=""
 
 # shellcheck source=deploy_profile.sh
@@ -112,8 +113,10 @@ ensure_compose() {
 compose() {
   local env_args=()
   [[ -f "${ENV_FILE}" ]] && env_args=(--env-file "${ENV_FILE}")
+  # NACOS_PLATFORM 必须与本机架构一致；默认 linux/amd64 会在 Apple Silicon 上走 QEMU，导致 Nacos 长期 unhealthy
   (cd "${SCRIPT_DIR}" && \
     DOCKER_PLATFORM="${DOCKER_PLATFORM}" \
+    NACOS_PLATFORM="${NACOS_PLATFORM:-${DOCKER_PLATFORM}}" \
     BASE_IMAGE="${BASE_IMAGE}" \
     "${COMPOSE_CMD[@]}" ${COMPOSE_PROFILE_ARGS[@]+"${COMPOSE_PROFILE_ARGS[@]}"} "${env_args[@]}" -f "${COMPOSE_FILE}" "$@")
 }
@@ -178,12 +181,16 @@ detect_arch() {
     arm64|aarch64) DOCKER_PLATFORM="linux/arm64" ;;
     *) err "不支持的架构: $(uname -m)"; exit 1 ;;
   esac
+  NACOS_PLATFORM="${NACOS_PLATFORM:-${DOCKER_PLATFORM}}"
   BASE_IMAGE="pytorch/pytorch:2.1.0-cpu"
   cat > "${ARCH_FILE}" <<EOF_ARCH
 DOCKER_PLATFORM=${DOCKER_PLATFORM}
+NACOS_PLATFORM=${NACOS_PLATFORM}
 BASE_IMAGE=${BASE_IMAGE}
 EOF_ARCH
-  ok "架构配置: ${DOCKER_PLATFORM}"
+  # 供业务模块子进程（AI install 等）与 compose 插值使用
+  export DOCKER_PLATFORM NACOS_PLATFORM BASE_IMAGE
+  ok "架构配置: ${DOCKER_PLATFORM}（Nacos: ${NACOS_PLATFORM}）"
 }
 
 ensure_dirs() {
@@ -218,6 +225,15 @@ ensure_env() {
   ensure_env_var "MINIO_SECRET_KEY" "basiclab@iot975248395"
   ensure_env_var "REDIS_PASSWORD" "basiclab@iot975248395"
   ensure_env_var "EMQX_DASHBOARD_PASSWORD" "basiclab@iot6874125784"
+  # 与本机架构对齐，避免 compose 默认 NACOS_PLATFORM=linux/amd64 在 Apple Silicon 上走 QEMU
+  if [ -n "${NACOS_PLATFORM:-}" ]; then
+    if grep -q "^NACOS_PLATFORM=" "${ENV_FILE}" 2>/dev/null; then
+      local tmp="${ENV_FILE}.tmp.$$"
+      sed "s|^NACOS_PLATFORM=.*|NACOS_PLATFORM=${NACOS_PLATFORM}|" "${ENV_FILE}" > "$tmp" && mv "$tmp" "${ENV_FILE}"
+    else
+      ensure_env_var "NACOS_PLATFORM" "${NACOS_PLATFORM}"
+    fi
+  fi
   ok ".env.docker 已准备"
 }
 
@@ -320,6 +336,34 @@ copy_srs_conf() {
   fi
 }
 
+# 若本地 Nacos 容器架构与本机不符（常见：Apple Silicon 误用 amd64 + QEMU），删除以便按 NACOS_PLATFORM 重建
+reconcile_nacos_platform() {
+  local want="${NACOS_PLATFORM:-}"
+  [ -n "$want" ] || return 0
+  docker inspect nacos-server >/dev/null 2>&1 || return 0
+
+  local expect_arch="" got_arch="" matched=0
+  case "$want" in
+    linux/arm64*|linux/aarch64*) expect_arch="arm64" ;;
+    linux/amd64*|linux/x86_64*) expect_arch="amd64" ;;
+    *) return 0 ;;
+  esac
+
+  got_arch=$(docker inspect nacos-server --format '{{.Architecture}}' 2>/dev/null || true)
+  [ -n "$got_arch" ] || got_arch=$(docker inspect nacos-server --format '{{.Platform}}' 2>/dev/null || true)
+  [ -n "$got_arch" ] || return 0
+
+  if [ "$expect_arch" = "arm64" ] && [[ "$got_arch" == *arm64* || "$got_arch" == *aarch64* ]]; then
+    matched=1
+  elif [ "$expect_arch" = "amd64" ] && [[ "$got_arch" == *amd64* || "$got_arch" == *x86_64* ]]; then
+    matched=1
+  fi
+  [ "$matched" -eq 1 ] && return 0
+
+  warn "Nacos 容器架构为 ${got_arch}，与本机期望 ${want} 不一致，将重建..."
+  docker rm -f nacos-server >/dev/null 2>&1 || true
+}
+
 ensure_ready() {
   ensure_docker
   ensure_compose
@@ -328,6 +372,7 @@ ensure_ready() {
   ensure_env
   ensure_network
   copy_srs_conf
+  reconcile_nacos_platform
 }
 
 pull_middleware_images() {
@@ -450,17 +495,28 @@ ensure_minio_buckets() {
   local failed=0
   local bucket
 
+  # minio/mc 精简镜像无 shell，不能用 `mc sh -c`；先 alias 再 mb
+  local mc_config_dir
+  mc_config_dir=$(mktemp -d)
+  if ! docker run --rm --network "${NETWORK_NAME}" \
+    -v "${mc_config_dir}:/root/.mc" \
+    minio/mc alias set local "http://MinIO:9000" "${access_key}" "${secret_key}" >/dev/null 2>&1; then
+    warn "MinIO mc alias 设置失败，跳过存储桶初始化"
+    rm -rf "$mc_config_dir"
+    return 1
+  fi
+
   for bucket in "${MINIO_BUCKETS[@]}"; do
     if docker run --rm --network "${NETWORK_NAME}" \
-      -e MINIO_ACCESS_KEY="${access_key}" \
-      -e MINIO_SECRET_KEY="${secret_key}" \
-      minio/mc sh -c 'mc alias set local http://MinIO:9000 "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY" >/dev/null 2>&1 && mc mb --ignore-existing "local/'"${bucket}"'" >/dev/null 2>&1'; then
+      -v "${mc_config_dir}:/root/.mc" \
+      minio/mc mb --ignore-existing "local/${bucket}" >/dev/null 2>&1; then
       ok "存储桶就绪: ${bucket}"
     else
       warn "存储桶初始化失败: ${bucket}"
       failed=$((failed + 1))
     fi
   done
+  rm -rf "$mc_config_dir"
 
   [[ $failed -eq 0 ]]
 }

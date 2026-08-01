@@ -172,7 +172,7 @@ Flux `install` : sélection du profil → vérification de l'environnement → c
 
 ## Déploiement macOS / Windows (images uniquement)
 
-Les plateformes bureau ne prennent en charge que le déploiement par **images préconstruites** (`install_mac.sh` / `install_windows.ps1` / `install_windows.sh`). Pas de `build` / `build-runtime` local. Détails (ZH) : [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署).
+Les plateformes bureau ne prennent en charge que le déploiement par **images préconstruites** (`install_mac.sh` / `install_windows.ps1` / `install_windows.sh`). Pas de `build` / `build-runtime` local. Détails : [macOS](./平台macOS部署文档_fr.md), [Windows](./平台Windows部署文档_fr.md). Vue d’ensemble (ZH) : [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署).
 
 ```bash
 bash .scripts/docker/install_mac.sh install

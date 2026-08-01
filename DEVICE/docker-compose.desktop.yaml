@@ -24,6 +24,12 @@ services:
     networks:
       - easyaiot-network
 
+  # Linux 默认挂载 /data/yolo_dataset；Desktop 上该绝对路径不可靠，改为项目内目录
+  iot-dataset:
+    volumes:
+      - ../.build-cache/device/logs:/root/logs/
+      - ../.build-cache/device/yolo_dataset:/data/yolo_dataset:ro
+
 networks:
   easyaiot-network:
     name: easyaiot-network

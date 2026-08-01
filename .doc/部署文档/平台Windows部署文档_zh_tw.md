@@ -1,17 +1,125 @@
 # EasyAIoT 平台 Windows 本地部署指南
 
-> 文檔版本：2.0  
-> 更新日期：2026-07-30  
-> 適用系統：Windows 10/11  
-> **推薦：預建構映像一鍵部署**（見簡體專文第 0 章）
+> 文檔版本：2.1  
+> 更新日期：2026-08-01  
+> 適用系統：Windows 10/11（推薦 Docker Desktop + WSL2）  
+> **推薦部署方式：預建構映像一鍵部署**（見下文第 0 章）
 
-完整說明請直接閱讀：[平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md#0-推荐镜像一键部署2026)
+總覽與跨平台對照見 [平台部署文档_zh_tw.md](./平台部署文档_zh_tw.md#macos--windows-鏡像部署)。  
+macOS 對照見 [平台macOS部署文档_zh_tw.md](./平台macOS部署文档_zh_tw.md)。  
+PANEL 安裝包編譯見 [COMPILE/README.md](../../COMPILE/README.md)。  
+簡體詳細說明：[平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md)。
+
+---
+
+## 0. 推薦：映像一鍵部署（2026）
+
+Windows 桌面端與 macOS 一樣，**只透過遠端預建構映像部署**，不在本機編譯 Java / 前端 / Python 業務映像。
+
+| 入口 | 說明 |
+|------|------|
+| `.scripts/docker/install_windows.ps1` | PowerShell：先彙總檢測 Docker / Compose / Git Bash（或缺什麼提示裝什麼並中止），再轉發 |
+| `.scripts/docker/install_windows.sh` | 在 Git Bash / WSL 中直接執行（安裝前同樣會做前置檢測） |
+
+**不支援**：`build`、`build-runtime`、`clean-build-runtime`。
+
+### 0.1 硬體與引擎記憶體
+
+| 規格 | 主機建議 | Docker / WSL2 引擎目標記憶體 |
+|------|----------|------------------------------|
+| mini | ≥ 8 GB | **4 GB** |
+| standard | ≥ 24 GB | **16 GB** |
+| full | ≥ 32 GB | **24 GB** |
+
+磁碟建議預留 **≥ 100 GB**。C 碟緊張時可：`.\.scripts\docker\install_windows.ps1 movedata`。
+
+### 0.2 前置條件
+
+1. 安裝並啟動 [Docker Desktop](https://www.docker.com/products/docker-desktop)（建議啟用 **WSL2** 後端）
+2. 安裝 [Git for Windows](https://git-scm.com/download/win)（提供 `bash` 4+），或啟用 WSL
+3. clone 本倉庫（compose 與腳本需要；業務產物來自映像倉庫）
+
+`install` / `pull` / `update` / `start` / `check` 會在真正部署前自動做前置檢測：缺少元件時列印安裝指引並**中止**。
+
+建議首次流程：
 
 ```powershell
-.\.scripts\docker\install_windows.ps1 install
+.\.scripts\docker\install_windows.ps1 bootstrap   # WSL2 + Docker Desktop + mirrors + resources
+.\.scripts\docker\install_windows.ps1 check
+.\.scripts\docker\install_windows.ps1 mirrors     # 國內 registry-mirrors（對齊 Linux）
+.\.scripts\docker\install_windows.ps1 resources   # mini 4G / standard 16G / full 24G
 ```
 
-以下章節為早期本機 JDK/Node/Python 部署記錄，新環境請優先使用映像部署。
+驗證：
+
+```powershell
+docker --version
+docker compose version
+docker info
+```
+
+**資源調配**：WSL2 後端以 `%USERPROFILE%\.wslconfig` 為準，腳本同時更新 Desktop `settings-store.json`。  
+覆蓋：`$env:EASYAIOT_DOCKER_MEMORY_GB` / `$env:EASYAIOT_DOCKER_CPUS`；跳過：`$env:EASYAIOT_DOCKER_SKIP_RESOURCES = "1"`。
+
+**國內映像加速**（與 Linux / macOS 一致）：寫入 `%USERPROFILE%\.docker\daemon.json`  
+預設 DaoCloud → 1ms → 1panel。**FUXA** 走 `pull_fuxa.sh`（**1ms 優先**）。跳過：`$env:EASYAIOT_DOCKER_SKIP_MIRROR = "1"`。  
+業務映像（如 `docker.cnb.cool`）不受 `registry-mirrors` 影響。
+
+### 0.3 快速安裝
+
+```powershell
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+.\.scripts\docker\install_windows.ps1
+.\.scripts\docker\install_windows.ps1 pull
+$env:EASYAIOT_DEPLOY_PROFILE = "full"
+.\.scripts\docker\install_windows.ps1 install
+.\.scripts\docker\install_windows.ps1 verify
+```
+
+Git Bash：
+
+```bash
+bash .scripts/docker/install_windows.sh install
+```
+
+### 0.4 常用命令
+
+| 命令 | 說明 |
+|------|------|
+| `bootstrap` | 安裝 WSL2 / Docker Desktop，並嘗試 mirrors + resources |
+| `check` | 前置自檢 |
+| `mirrors` | 配置國內 registry-mirrors |
+| `resources` | 調配引擎 CPU/記憶體（`resources force` 強制） |
+| `movedata` | 將 Docker WSL 資料遷到 E:\DockerDesktop |
+| `install` / `pull` / `update` | 部署與更新 |
+| `start` / `stop` / `status` / `logs` / `verify` | 維運 |
+| `profile` | 檢視部署形態 |
+
+```powershell
+.\.scripts\docker\install_windows.ps1 start
+.\.scripts\docker\install_windows.ps1 logs VIDEO
+.\.scripts\docker\install_windows.ps1 update
+```
+
+安裝完成後訪問：`http://localhost:8888`（Gateway `:48080`，Nacos `:8848/nacos`，FUXA full `:1881`）。
+
+### 0.5 排障速查
+
+| 問題 | 處理 |
+|------|------|
+| 找不到 bash | 安裝 Git for Windows，或改用 WSL 後重跑 `install_windows.ps1` |
+| Docker 未就緒 | 啟動 Docker Desktop，等待引擎 Ready；必要時先 `wsl --install` 並重啟 |
+| 引擎記憶體不足 | `.\install_windows.ps1 resources`；或編輯 `.wslconfig` 後 `wsl --shutdown` |
+| 中間件拉不動 | `.\install_windows.ps1 mirrors`；FUXA 看專用拉取日誌 |
+| 業務映像拉不動 | 檢查到 `runtime_registry.conf` 倉庫的網路/代理（非 registry-mirrors） |
+| C 碟滿 / pull 唯讀 | `.\install_windows.ps1 movedata` |
+| 宿主機 IP 不準 | `$env:HOST_IP = "192.168.x.x"` 後重新 start/install |
+| `build` 被拒絕 | 預期行為；請用 `pull` + `install` |
+| 日誌 | `.scripts/docker/logs/install_windows_*.log` |
+
+> 下文第 1～8 章為早期「本機安裝 JDK / Node / Python 再部署」記錄，適用於特殊排障或對照埠配置；**新環境請優先使用本章映像部署**。
 
 ---
 

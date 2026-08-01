@@ -1,11 +1,13 @@
 # EasyAIoT 平台 Windows 本地部署指南
 
-> 文档版本：2.0  
-> 更新日期：2026-07-30  
+> 文档版本：2.1  
+> 更新日期：2026-08-01  
 > 适用系统：Windows 10/11（推荐 Docker Desktop + WSL2）  
 > **推荐部署方式：预构建镜像一键部署**（见下文第 0 章）
 
-总览与跨平台对照见 [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署)。
+总览与跨平台对照见 [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署)。  
+macOS 对照见 [平台macOS部署文档_zh.md](./平台macOS部署文档_zh.md)。  
+PANEL 安装包编译见 [COMPILE/README.md](../../COMPILE/README.md)。
 
 ---
 
@@ -20,22 +22,34 @@ Windows 桌面端与 macOS 一样，**只通过远程预构建镜像部署**，�
 
 **不支持**：`build`、`build-runtime`、`clean-build-runtime`。
 
-### 0.1 前置条件
+### 0.1 硬件与引擎内存
+
+| 规格 | 主机建议 | Docker / WSL2 引擎目标内存 |
+|------|----------|----------------------------|
+| mini | ≥ 8 GB | **4 GB** |
+| standard | ≥ 24 GB | **16 GB** |
+| full | ≥ 32 GB | **24 GB** |
+
+磁盘建议预留 **≥ 100 GB**。C 盘紧张时可：`.\.scripts\docker\install_windows.ps1 movedata`。
+
+### 0.2 前置条件
 
 1. 安装并启动 [Docker Desktop](https://www.docker.com/products/docker-desktop)（建议启用 **WSL2** 后端）
 2. 安装 [Git for Windows](https://git-scm.com/download/win)（提供 `bash` 4+），或启用 WSL
 3. clone 本仓库（compose 与脚本需要；业务产物来自镜像仓库）
-4. 可选：Docker Desktop → Settings → Docker Engine 配置 `registry-mirrors`
 
-`install` / `pull` / `update` / `start` / `check` 会在真正部署前自动做前置检测：缺少组件时打印安装指引并**中止**，不会半途失败。
+`install` / `pull` / `update` / `start` / `check` 会在真正部署前自动做前置检测：缺少组件时打印安装指引并**中止**。
 
-建议先自检：
+建议首次流程：
 
 ```powershell
+.\.scripts\docker\install_windows.ps1 bootstrap   # WSL2 + Docker Desktop + mirrors + resources
 .\.scripts\docker\install_windows.ps1 check
+.\.scripts\docker\install_windows.ps1 mirrors     # 国内 registry-mirrors（对齐 Linux）
+.\.scripts\docker\install_windows.ps1 resources   # mini 4G / standard 16G / full 24G
 ```
 
-或：
+验证：
 
 ```powershell
 docker --version
@@ -43,17 +57,22 @@ docker compose version
 docker info
 ```
 
-### 0.2 快速安装
+**资源调配**：WSL2 后端以 `%USERPROFILE%\.wslconfig` 为准，脚本同时更新 Desktop `settings-store.json`。  
+覆盖：`$env:EASYAIOT_DOCKER_MEMORY_GB` / `$env:EASYAIOT_DOCKER_CPUS`；跳过：`$env:EASYAIOT_DOCKER_SKIP_RESOURCES = "1"`。
+
+**国内镜像加速**（与 Linux / macOS 一致）：写入 `%USERPROFILE%\.docker\daemon.json`  
+默认 DaoCloud → 1ms → 1panel。**FUXA** 走 `pull_fuxa.sh`（**1ms 优先**）。跳过：`$env:EASYAIOT_DOCKER_SKIP_MIRROR = "1"`。  
+业务镜像（如 `docker.cnb.cool`）不受 `registry-mirrors` 影响。
+
+### 0.3 快速安装
 
 ```powershell
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
-# 交互引导
 .\.scripts\docker\install_windows.ps1
-
-# 指定命令
 .\.scripts\docker\install_windows.ps1 pull
+$env:EASYAIOT_DEPLOY_PROFILE = "full"
 .\.scripts\docker\install_windows.ps1 install
 .\.scripts\docker\install_windows.ps1 verify
 ```
@@ -64,33 +83,37 @@ Git Bash：
 bash .scripts/docker/install_windows.sh install
 ```
 
-非交互指定形态：
+### 0.4 常用命令
 
-```powershell
-$env:EASYAIOT_DEPLOY_PROFILE = "mini"
-.\.scripts\docker\install_windows.ps1 install
-```
-
-### 0.3 常用命令
+| 命令 | 说明 |
+|------|------|
+| `bootstrap` | 安装 WSL2 / Docker Desktop，并尝试 mirrors + resources |
+| `check` | 前置自检 |
+| `mirrors` | 配置国内 registry-mirrors |
+| `resources` | 调配引擎 CPU/内存（`resources force` 强制） |
+| `movedata` | 将 Docker WSL 数据迁到 E:\DockerDesktop |
+| `install` / `pull` / `update` | 部署与更新 |
+| `start` / `stop` / `status` / `logs` / `verify` | 运维 |
+| `profile` | 查看部署形态 |
 
 ```powershell
 .\.scripts\docker\install_windows.ps1 start
-.\.scripts\docker\install_windows.ps1 stop
-.\.scripts\docker\install_windows.ps1 status
 .\.scripts\docker\install_windows.ps1 logs VIDEO
 .\.scripts\docker\install_windows.ps1 update
-.\.scripts\docker\install_windows.ps1 check
-.\.scripts\docker\install_windows.ps1 profile
 ```
 
-安装完成后访问 `http://localhost:8888`（Gateway `:48080`，Nacos `:8848/nacos`）。
+安装完成后访问：`http://localhost:8888`（Gateway `:48080`，Nacos `:8848/nacos`，FUXA full `:1881`）。
 
-### 0.4 排障速查
+### 0.5 排障速查
 
 | 问题 | 处理 |
 |------|------|
 | 找不到 bash | 安装 Git for Windows，或改用 WSL 后重跑 `install_windows.ps1` |
-| Docker 未就绪 | 启动 Docker Desktop，等待引擎 Ready |
+| Docker 未就绪 | 启动 Docker Desktop，等待引擎 Ready；必要时先 `wsl --install` 并重启 |
+| 引擎内存不足 | `.\install_windows.ps1 resources`；或编辑 `.wslconfig` 后 `wsl --shutdown` |
+| 中间件拉不动 | `.\install_windows.ps1 mirrors`；FUXA 看专用拉取日志 |
+| 业务镜像拉不动 | 检查到 `runtime_registry.conf` 仓库的网络/代理（非 registry-mirrors） |
+| C 盘满 / pull 只读 | `.\install_windows.ps1 movedata` |
 | 宿主机 IP 不准 | `$env:HOST_IP = "192.168.x.x"` 后重新 start/install |
 | `build` 被拒绝 | 预期行为；请用 `pull` + `install` |
 | 日志 | `.scripts/docker/logs/install_windows_*.log` |

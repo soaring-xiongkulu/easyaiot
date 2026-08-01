@@ -73,6 +73,7 @@ target_to_dist_dir() {
     ubuntu-kylin)            echo "${REPO_ROOT}/COMPILE/dist/ubuntu-kylin" ;;
     centos)                  echo "${REPO_ROOT}/COMPILE/dist/centos" ;;
     windows)                 echo "${REPO_ROOT}/COMPILE/dist/windows" ;;
+    macos)                   echo "${REPO_ROOT}/COMPILE/dist/macos" ;;
     *) echo "${REPO_ROOT}/COMPILE/dist/ubuntu" ;;
   esac
 }
@@ -142,10 +143,43 @@ run_windows_flow() {
   echo "Windows 打包完成。运行：${dist_dir}/run.bat"
 }
 
+run_macos_flow() {
+  if [[ "$(uname -s 2>/dev/null || true)" != "Darwin" ]]; then
+    echo "[pack] macOS 打包须在 macOS 主机执行。" >&2
+    echo "  请运行：bash COMPILE/build.sh macos --dmg" >&2
+    exit 1
+  fi
+
+  local out dist_dir
+  out="$(choose_one "选择输出类型（macOS）" \
+    "仅二进制+runtime" ".app" ".app+.dmg安装包")"
+  case "$out" in
+    仅二进制+runtime)
+      (cd "${REPO_ROOT}" && bash COMPILE/build.sh macos)
+      ;;
+    .app)
+      (cd "${REPO_ROOT}" && bash COMPILE/build.sh macos --app)
+      ;;
+    .app+.dmg安装包)
+      (cd "${REPO_ROOT}" && bash COMPILE/build.sh macos --dmg)
+      ;;
+    *) echo "未知输出类型：$out"; exit 1 ;;
+  esac
+
+  dist_dir="$(target_to_dist_dir macos)"
+  echo ""
+  echo "产物目录：${dist_dir}"
+  ls -lh "${dist_dir}/easyaiot-panel" 2>/dev/null || true
+  ls -ld "${dist_dir}/runtime" 2>/dev/null || true
+  ls -ld "${dist_dir}/EasyAIoT Panel.app" 2>/dev/null || true
+  ls -lh "${dist_dir}"/easyaiot-panel-*.dmg 2>/dev/null || true
+  echo "macOS 打包完成。图标为圆形白底（与 Linux 一致）。"
+}
+
 run_deploy_flow() {
   local target mode out dist_dir
   target="$(choose_one "选择打包目标" \
-    "ubuntu-x86" "ubuntu-arm" "ubuntu-kylin" "centos" "windows" \
+    "ubuntu-x86" "ubuntu-arm" "ubuntu-kylin" "centos" "windows" "macos" \
     "全量Linux(ubuntu×3 deb + centos rpm)")"
 
   if [[ "$target" == "全量Linux(ubuntu×3 deb + centos rpm)" ]]; then
@@ -154,6 +188,10 @@ run_deploy_flow() {
   fi
   if [[ "$target" == "windows" ]]; then
     run_windows_flow
+    return
+  fi
+  if [[ "$target" == "macos" ]]; then
+    run_macos_flow
     return
   fi
 

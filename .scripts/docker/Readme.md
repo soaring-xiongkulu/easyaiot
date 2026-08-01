@@ -8,6 +8,8 @@
 | **CentOS / RHEL / Rocky / Alma** | `./install_linux_centos.sh` |
 | Linux ARM | `./install_linux_arm.sh` |
 | 银河麒麟 | `./install_linux_kylin.sh` |
+| **macOS（仅预构建镜像）** | `./install_mac.sh` |
+| **Windows（仅预构建镜像）** | `./install_windows.ps1` / `./install_windows.sh` |
 
 ```bash
 # CentOS 推荐（自动安装/升级 Docker CE、配置镜像源与 firewalld）

@@ -1,13 +1,125 @@
 # Руководство по локальному развертыванию платформы EasyAIoT для Windows
 
-> Версия документа: 2.0  
-> Дата обновления: 2026-07-30  
-> Поддерживаемые системы: Windows 10/11  
-> **Рекомендуется: развёртывание образами** — [平台Windows部署文档_zh.md §0](./平台Windows部署文档_zh.md#0-推荐镜像一键部署2026) / [EN](./平台Windows部署文档.md#0-recommended-image-only-deploy-2026)
+> Версия документа: 2.1  
+> Дата обновления: 2026-08-01  
+> Поддерживаемые системы: Windows 10/11 (рекомендуется Docker Desktop + WSL2)  
+> **Рекомендуется: развёртывание предсобранными образами в один клик** (см. раздел 0 ниже)
+
+Обзор и кроссплатформенное сравнение: [Руководство по развертыванию платформы](./平台部署文档_ru.md#развёртывание-macos--windows-только-образы).  
+Соответствие macOS: [平台macOS部署文档_ru.md](./平台macOS部署文档_ru.md).  
+Сборка установщика PANEL: [COMPILE/README.md](../../COMPILE/README.md).  
+Подробности ZH / EN: [平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md) / [平台Windows部署文档.md](./平台Windows部署文档.md).
+
+---
+
+## 0. Рекомендуется: развёртывание только образами (2026)
+
+На Windows Desktop, как и на macOS, развёртывание идёт **только через удалённые предсобранные образы**. Не собирайте бизнес-образы Java / frontend / Python локально.
+
+| Точка входа | Примечание |
+|-------------|------------|
+| `.scripts/docker/install_windows.ps1` | PowerShell: проверяет Docker / Compose / Git Bash (выводит, что установить, и **прерывает** при отсутствии), затем передаёт управление |
+| `.scripts/docker/install_windows.sh` | Прямой запуск в Git Bash / WSL (те же предварительные проверки) |
+
+**Не поддерживается:** `build`, `build-runtime`, `clean-build-runtime`.
+
+### 0.1 Оборудование и память движка
+
+| Профиль | Рекомендация для хоста | Целевая память Docker / WSL2 |
+|---------|------------------------|------------------------------|
+| mini | ≥ 8 ГБ | **4 ГБ** |
+| standard | ≥ 24 ГБ | **16 ГБ** |
+| full | ≥ 32 ГБ | **24 ГБ** |
+
+Диск: резервируйте **≥ 100 ГБ**. Если диск C: заполнен: `.\.scripts\docker\install_windows.ps1 movedata`.
+
+### 0.2 Предварительные требования
+
+1. Установите и запустите [Docker Desktop](https://www.docker.com/products/docker-desktop) (рекомендуется бэкенд **WSL2**)
+2. Установите [Git for Windows](https://git-scm.com/download/win) (даёт `bash` 4+) или включите WSL
+3. Клонируйте этот репозиторий (нужны compose и скрипты; бизнес-артефакты — из реестра образов)
+
+`install` / `pull` / `update` / `start` / `check` перед реальным развёртыванием выполняют проверки; при отсутствии компонентов печатают инструкцию и **прерываются**.
+
+Рекомендуемый первый запуск:
 
 ```powershell
-.\.scripts\docker\install_windows.ps1 install
+.\.scripts\docker\install_windows.ps1 bootstrap   # WSL2 + Docker Desktop + mirrors + resources
+.\.scripts\docker\install_windows.ps1 check
+.\.scripts\docker\install_windows.ps1 mirrors     # китайские registry-mirrors (как в Linux)
+.\.scripts\docker\install_windows.ps1 resources   # mini 4G / standard 16G / full 24G
 ```
+
+Проверка:
+
+```powershell
+docker --version
+docker compose version
+docker info
+```
+
+**Настройка ресурсов:** для бэкенда WSL2 авторитетен `%USERPROFILE%\.wslconfig`; скрипт также обновляет Desktop `settings-store.json`.  
+Переопределение: `$env:EASYAIOT_DOCKER_MEMORY_GB` / `$env:EASYAIOT_DOCKER_CPUS`; пропуск: `$env:EASYAIOT_DOCKER_SKIP_RESOURCES = "1"`.
+
+**Ускорение образов в Китае** (как в Linux / macOS): пишет `%USERPROFILE%\.docker\daemon.json`  
+По умолчанию DaoCloud → 1ms → 1panel. **FUXA** идёт через `pull_fuxa.sh` (**приоритет 1ms**). Пропуск: `$env:EASYAIOT_DOCKER_SKIP_MIRROR = "1"`.  
+Бизнес-образы (например `docker.cnb.cool`) **не** затрагиваются `registry-mirrors`.
+
+### 0.3 Быстрая установка
+
+```powershell
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+.\.scripts\docker\install_windows.ps1
+.\.scripts\docker\install_windows.ps1 pull
+$env:EASYAIOT_DEPLOY_PROFILE = "full"
+.\.scripts\docker\install_windows.ps1 install
+.\.scripts\docker\install_windows.ps1 verify
+```
+
+Git Bash:
+
+```bash
+bash .scripts/docker/install_windows.sh install
+```
+
+### 0.4 Часто используемые команды
+
+| Команда | Примечание |
+|---------|------------|
+| `bootstrap` | Установка WSL2 / Docker Desktop, затем mirrors + resources |
+| `check` | Самопроверка предварительных условий |
+| `mirrors` | Настройка китайских registry-mirrors |
+| `resources` | Настройка CPU/памяти движка (`resources force` — принудительно) |
+| `movedata` | Перенос данных Docker WSL на E:\DockerDesktop |
+| `install` / `pull` / `update` | Развёртывание и обновление |
+| `start` / `stop` / `status` / `logs` / `verify` | Эксплуатация |
+| `profile` | Показать профиль развёртывания |
+
+```powershell
+.\.scripts\docker\install_windows.ps1 start
+.\.scripts\docker\install_windows.ps1 logs VIDEO
+.\.scripts\docker\install_windows.ps1 update
+```
+
+После установки откройте: `http://localhost:8888` (Gateway `:48080`, Nacos `:8848/nacos`, FUXA full `:1881`).
+
+### 0.5 Краткая диагностика
+
+| Проблема | Действие |
+|----------|----------|
+| bash не найден | Установите Git for Windows или перейдите на WSL и снова запустите `install_windows.ps1` |
+| Docker не готов | Запустите Docker Desktop и дождитесь Ready; при необходимости `wsl --install` и перезагрузка |
+| Недостаточно памяти движка | `.\install_windows.ps1 resources`; или отредактируйте `.wslconfig` и выполните `wsl --shutdown` |
+| Не тянется middleware | `.\install_windows.ps1 mirrors`; для FUXA смотрите отдельные логи pull |
+| Не тянутся бизнес-образы | Проверьте сеть/прокси до реестра из `runtime_registry.conf` (не registry-mirrors) |
+| C: заполнен / pull только чтение | `.\install_windows.ps1 movedata` |
+| Неверный IP хоста | `$env:HOST_IP = "192.168.x.x"` и повторный start/install |
+| `build` отклонён | Ожидаемое поведение; используйте `pull` + `install` |
+| Логи | `.scripts/docker/logs/install_windows_*.log` |
+
+> Главы 1–8 ниже — устаревшие записи о локальной установке JDK / Node / Python (для особой диагностики или сверки портов). **Для новой среды предпочтительно развёртывание образами из этого раздела.**
 
 ---
 

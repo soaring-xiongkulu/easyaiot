@@ -6,14 +6,17 @@ services:
   #     不声明 platform 时 Docker 优先使用本地缓存架构 → 若本地仅有 amd64 镜像则 QEMU 模拟运行，
   #     ARM 主机上性能极差且可能因 JVM 参数不兼容而启动失败
   #   - 不使用 slim 版：slim 内嵌 Java 8 + Derby 在 cgroup v2 宿主机上会 NPE 崩溃
-  #   - 声明 ${NACOS_PLATFORM:-linux/amd64} 允许通过环境变量覆盖架构
+  #   - 声明 ${NACOS_PLATFORM:-linux/amd64}；桌面端 install_middleware_desktop 会按本机架构写入
+  #   - Docker Desktop（尤其 Apple Silicon）上 JVM 冷启动较慢，healthcheck 放宽以免误杀
   Nacos:
     image: nacos/nacos-server:v2.5.1
     platform: ${NACOS_PLATFORM:-linux/amd64}
     container_name: nacos-server
-    restart: always
+    hostname: nacos-server
+    restart: unless-stopped
     environment:
-      - PREFER_HOST_MODE=hostname
+      # Desktop / bridge 网络下用 ip 更稳；Linux host 模式同样可用
+      - PREFER_HOST_MODE=ip
       - MODE=standalone
       - NACOS_AUTH_ENABLE=true
       - NACOS_AUTH_IDENTITY_KEY=nacos
@@ -38,8 +41,8 @@ services:
         ]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 60s
+      retries: 30
+      start_period: 300s
     networks:
       - easyaiot-network
 

@@ -1,35 +1,125 @@
 # EasyAIoT Platform Windows Local Deployment Guide
 
-> Document Version: 2.0  
-> Update Date: 2026-07-30  
+> Document Version: 2.1  
+> Update Date: 2026-08-01  
 > Compatible Systems: Windows 10/11 (Docker Desktop + WSL2 recommended)  
 > **Recommended: pre-built image one-click deploy** (section 0 below)
 
-Cross-platform overview: [Platform Deployment Guide](./平台部署文档.md#macos--windows-image-only-deploy). Chinese detail: [平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md).
+Cross-platform overview: [Platform Deployment Guide](./平台部署文档.md#macos--windows-image-only-deploy).  
+macOS counterpart: [平台macOS部署文档.md](./平台macOS部署文档.md).  
+PANEL installer build: [COMPILE/README.md](../../COMPILE/README.md).  
+Chinese detail: [平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md).
 
 ---
 
 ## 0. Recommended: Image-Only Deploy (2026)
 
+On Windows desktop, as on macOS, deploy **only via remote pre-built images**. Do not build Java / frontend / Python business images on the local machine.
+
 | Entry | Notes |
 |-------|-------|
-| `.scripts/docker/install_windows.ps1` | PowerShell: checks Docker Desktop, forwards to Git Bash / WSL |
-| `.scripts/docker/install_windows.sh` | Run in Git Bash / WSL |
+| `.scripts/docker/install_windows.ps1` | PowerShell: checks Docker / Compose / Git Bash (prints install guidance and aborts if missing), then forwards |
+| `.scripts/docker/install_windows.sh` | Run directly in Git Bash / WSL (same prerequisite checks before install) |
 
 **Not supported:** `build`, `build-runtime`, `clean-build-runtime`.
 
-### Quick start
+### 0.1 Hardware & Engine Memory
+
+| Profile | Host recommendation | Docker / WSL2 engine target memory |
+|---------|---------------------|------------------------------------|
+| mini | ≥ 8 GB | **4 GB** |
+| standard | ≥ 24 GB | **16 GB** |
+| full | ≥ 32 GB | **24 GB** |
+
+Disk: reserve **≥ 100 GB**. If C: is tight: `.\.scripts\docker\install_windows.ps1 movedata`.
+
+### 0.2 Prerequisites
+
+1. Install and start [Docker Desktop](https://www.docker.com/products/docker-desktop) (**WSL2** backend recommended)
+2. Install [Git for Windows](https://git-scm.com/download/win) (provides `bash` 4+), or enable WSL
+3. Clone this repository (compose and scripts required; business artifacts come from the image registry)
+
+`install` / `pull` / `update` / `start` / `check` run prerequisite checks before real deploy; if components are missing they print install guidance and **abort**.
+
+Recommended first-time flow:
 
 ```powershell
+.\.scripts\docker\install_windows.ps1 bootstrap   # WSL2 + Docker Desktop + mirrors + resources
+.\.scripts\docker\install_windows.ps1 check
+.\.scripts\docker\install_windows.ps1 mirrors     # China registry-mirrors (aligned with Linux)
+.\.scripts\docker\install_windows.ps1 resources   # mini 4G / standard 16G / full 24G
+```
+
+Verify:
+
+```powershell
+docker --version
+docker compose version
+docker info
+```
+
+**Resource tuning:** With WSL2 backend, `%USERPROFILE%\.wslconfig` is authoritative; the script also updates Desktop `settings-store.json`.  
+Override: `$env:EASYAIOT_DOCKER_MEMORY_GB` / `$env:EASYAIOT_DOCKER_CPUS`; skip: `$env:EASYAIOT_DOCKER_SKIP_RESOURCES = "1"`.
+
+**China image acceleration** (same as Linux / macOS): writes `%USERPROFILE%\.docker\daemon.json`  
+Default DaoCloud → 1ms → 1panel. **FUXA** uses `pull_fuxa.sh` (**1ms preferred**). Skip: `$env:EASYAIOT_DOCKER_SKIP_MIRROR = "1"`.  
+Business images (e.g. `docker.cnb.cool`) are **not** affected by `registry-mirrors`.
+
+### 0.3 Quick Install
+
+```powershell
+git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
+
+.\.scripts\docker\install_windows.ps1
 .\.scripts\docker\install_windows.ps1 pull
+$env:EASYAIOT_DEPLOY_PROFILE = "full"
 .\.scripts\docker\install_windows.ps1 install
 .\.scripts\docker\install_windows.ps1 verify
 ```
 
-Then open `http://localhost:8888`.
+Git Bash:
 
-> Chapters 1–8 below are legacy notes for local JDK/Node/Python setups. Prefer section 0 for new environments.
+```bash
+bash .scripts/docker/install_windows.sh install
+```
+
+### 0.4 Common Commands
+
+| Command | Notes |
+|---------|-------|
+| `bootstrap` | Install WSL2 / Docker Desktop, then try mirrors + resources |
+| `check` | Prerequisite self-check |
+| `mirrors` | Configure China registry-mirrors |
+| `resources` | Tune engine CPU/memory (`resources force` to force) |
+| `movedata` | Move Docker WSL data to E:\DockerDesktop |
+| `install` / `pull` / `update` | Deploy and update |
+| `start` / `stop` / `status` / `logs` / `verify` | Operations |
+| `profile` | Show deploy profile |
+
+```powershell
+.\.scripts\docker\install_windows.ps1 start
+.\.scripts\docker\install_windows.ps1 logs VIDEO
+.\.scripts\docker\install_windows.ps1 update
+```
+
+After install, open: `http://localhost:8888` (Gateway `:48080`, Nacos `:8848/nacos`, FUXA full `:1881`).
+
+### 0.5 Troubleshooting Quick Reference
+
+| Issue | Action |
+|-------|--------|
+| bash not found | Install Git for Windows, or switch to WSL and re-run `install_windows.ps1` |
+| Docker not ready | Start Docker Desktop and wait until Ready; if needed run `wsl --install` and reboot |
+| Engine memory too low | `.\install_windows.ps1 resources`; or edit `.wslconfig` then `wsl --shutdown` |
+| Middleware pull fails | `.\install_windows.ps1 mirrors`; for FUXA check dedicated pull logs |
+| Business image pull fails | Check network/proxy to the registry in `runtime_registry.conf` (not registry-mirrors) |
+| C: full / pull read-only | `.\install_windows.ps1 movedata` |
+| Host IP incorrect | Set `$env:HOST_IP = "192.168.x.x"` then re-run start/install |
+| `build` rejected | Expected; use `pull` + `install` |
+| Logs | `.scripts/docker/logs/install_windows_*.log` |
+
+> Chapters 1–8 below are legacy notes for local JDK / Node / Python setups (useful for special troubleshooting or port reference). **Prefer this section’s image deploy for new environments.**
 
 ---
 

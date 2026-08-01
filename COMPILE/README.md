@@ -4,9 +4,9 @@
 
 当前已实现：
 - **Ubuntu 单文件** `easyaiot-panel` + **内置 runtime** `.deb`（按架构绑定 `install_linux.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`）
-- **交互式打包菜单** `COMPILE/install_linux.sh`（Ubuntu / CentOS / Windows / 全量 Linux；macOS 请用 `build.sh macos`）
+- **交互式打包菜单** `COMPILE/install_linux.sh`（Ubuntu / CentOS / Windows / macOS / 全量 Linux）
 - **Windows** `easyaiot-panel.exe` + **内置 runtime**（`install_windows.sh` 仅镜像部署）+ 可选 NSIS
-- **macOS** `easyaiot-panel` + **内置 runtime**（`install_mac.sh` 仅镜像部署）+ 可选 `.app` / `.dmg`
+- **macOS** `easyaiot-panel` + **内置 runtime**（`install_mac.sh` 仅镜像部署）+ 可选 `.app` / `.dmg`（圆形白底图标，与 Linux 一致）
 - **CentOS/RHEL** `easyaiot-panel` + `.rpm`（**不含**内置 runtime，需配置 `EASYAIOT_ROOT` 指向仓库根；部署可用仓库内 `install_linux_centos.sh`）
 
 ## 快速开始
@@ -58,15 +58,15 @@ ls -lh COMPILE/dist/windows/panel.env COMPILE/dist/windows/run.bat
 # 然后在 PANEL「应用部署」执行 install（仅拉取预构建镜像）
 
 # macOS（需在 macOS 主机执行；产物含 runtime/ + install_mac.sh）
+# 图标源：COMPILE/assets/panel-logo.png → 圆形白底（与 Ubuntu/Windows 一致）
 bash COMPILE/build.sh macos
 ls -lh COMPILE/dist/macos/easyaiot-panel
 ls -ld COMPILE/dist/macos/runtime
 ls -lh COMPILE/dist/macos/panel.env COMPILE/dist/macos/run.command
-# 可选 .app / .dmg（.app 内含 Resources/runtime）
-bash COMPILE/build.sh macos --app
+# 安装包：.app + .dmg（含 Applications 快捷方式）
 bash COMPILE/build.sh macos --dmg
-# 运行：
-# ./COMPILE/dist/macos/run.command
+ls -lh COMPILE/dist/macos/easyaiot-panel-*.dmg
+# 运行：打开 dmg 拖到 Applications，或 ./COMPILE/dist/macos/run.command
 
 # CentOS/RHEL（默认 Docker 标准化构建；产出二进制 + .rpm）
 bash COMPILE/build.sh centos
@@ -122,7 +122,7 @@ chmod +x COMPILE/build.sh \
 - **Ubuntu deb（Docker 默认）**：本机 `npm`（先编前端）、`docker`（含 buildx）、`dpkg-deb`（`apt install dpkg-dev`）、`python3`+Pillow。
 - **Ubuntu ARM / 麒麟**：同上；Docker 使用 `--platform linux/arm64`，宿主机需已注册 QEMU/binfmt（`docker buildx ls` 能看到 `linux/arm64`）。
 - **CentOS/RHEL（Docker 默认）**：只需本机 `docker`；容器内安装 `rpm-build` 并完成 PyInstaller。`--local` 时才需要本机 `rpm-build` + Node + Python 3.11+。
-- **Windows/macOS**：必须在对应 OS 本机（或对应 CI Runner）执行，需 `Node.js + npm`、Python 3.11+；Windows 可选 NSIS（`makensis`），macOS 可选 `.app` / `.dmg`。
+- **Windows/macOS**：必须在对应 OS 本机（或对应 CI Runner）执行，需 `Node.js + npm`、Python 3.11+、Pillow（`requirements-build.txt`）；Windows 可选 NSIS（`makensis`）；macOS 打包 `.app`/`.dmg` 另需系统自带 `sips` / `iconutil` / `hdiutil`。
 
 如果要走 Docker 构建（默认方式），还需要确认 Docker 可用：
 
@@ -400,20 +400,82 @@ sudo bash COMPILE/force_upgrade_panel.sh
 | `pack_deb.sh` 报缺 `dpkg-deb` | `sudo apt install -y dpkg-dev` |
 | 图标阶段报缺 `PIL` | `python3 -m pip install pillow`（或退出会遮蔽系统 python 的 conda env） |
 | 连续打多包版本号跳很多 | 正常：每个 deb/rpm 都会 `+1`；可用 `PANEL_VERSION=130` 固定某一包版本 |
-| 交互菜单没有 macOS | 菜单已含 Ubuntu/CentOS/Windows/「全量Linux」；macOS 仍用 `bash COMPILE/build.sh macos` |
+| macOS 图标发白/方块 | 确认使用 `COMPILE/assets/panel-logo.png`；打包脚本会生成圆形白底再转 icns（`lib/make_circle_icon.py`） |
+| macOS `hdiutil` / `iconutil` 失败 | 在本机 Terminal 执行（勿在沙箱/无 GUI 环境）；确认 Xcode CLT 可用 |
+
+---
+
+## macOS 打包（.dmg）
+
+> 须在 **macOS 主机**执行。产物内置 `runtime/` + `install_mac.sh`（**仅镜像部署**，与桌面部署文档一致）。  
+> 部署侧说明见 [.doc/部署文档/平台macOS部署文档_zh.md](../.doc/部署文档/平台macOS部署文档_zh.md)。
+
+### 图标（与 Linux / Windows 一致）
+
+| 项 | 说明 |
+|----|------|
+| 源文件 | `COMPILE/assets/panel-logo.png`（可用 `COMPILE_PANEL_LOGO=` 覆盖） |
+| 算法 | `COMPILE/lib/make_circle_icon.py`：**圆形白底、外圈透明**（与 Ubuntu `pack_deb.sh` / Windows `build.sh` 同源） |
+| 中间产物 | `COMPILE/dist/macos/panel-icon-circle.png` |
+| App 图标 | `EasyAIoT Panel.app/Contents/Resources/panel.icns`（由圆形 PNG 经 `sips` + `iconutil` 生成） |
+
+```bash
+# 仅预览圆形图标
+python3 COMPILE/lib/make_circle_icon.py \
+  COMPILE/assets/panel-logo.png /tmp/panel-circle.png --size 512
+open /tmp/panel-circle.png
+```
+
+### 构建命令
+
+```bash
+# 交互菜单也可选 macos → .app+.dmg
+bash COMPILE/install_linux.sh
+
+# 仅二进制 + runtime + run.command
+bash COMPILE/build.sh macos
+
+# .app（含 Resources/runtime + 圆形图标）
+bash COMPILE/build.sh macos --app
+
+# 安装包：.app + .dmg（含 Applications 快捷方式与 README）
+bash COMPILE/build.sh macos --dmg
+```
+
+### 产物清单
+
+| 路径 | 说明 |
+|------|------|
+| `COMPILE/dist/macos/easyaiot-panel` | 可执行文件 |
+| `COMPILE/dist/macos/runtime/` | 内置部署树（含 `.scripts/docker/install_mac.sh`） |
+| `COMPILE/dist/macos/panel.env` | 面板配置（`INSTALL_SCRIPT=install_mac.sh`） |
+| `COMPILE/dist/macos/run.command` | 双击启动包装 |
+| `COMPILE/dist/macos/EasyAIoT Panel.app` | macOS 应用包 |
+| `COMPILE/dist/macos/easyaiot-panel-<VERSION>.dmg` | 分发安装包 |
+
+安装：打开 dmg → 将 **EasyAIoT Panel** 拖到 **Applications** → 启动后访问 `http://127.0.0.1:9200/`，在面板「应用部署」中执行 `install`（需本机 Docker Desktop 已就绪）。
+
+### 前置（macOS）
+
+- Node.js + npm（编 `PANEL/ui`）
+- Python 3.9+（建议 3.11+）与 venv；`pip install -r COMPILE/requirements-build.txt`（含 PyInstaller、Pillow）
+- 系统工具：`sips`、`iconutil`、`hdiutil`（随 macOS / CLT）
+
+---
 
 ## 目录
 
 ```
 COMPILE/
   build.sh                      # 统一入口（ubuntu/windows/macos/centos/all-linux）
-  install_linux.sh              # 交互打包 + pack-all + windows + install/uninstall/status
+  install_linux.sh              # 交互打包 + pack-all + windows/macos + install/uninstall/status
   interactive_pack.sh           # 被 install_linux.sh 默认调用的交互菜单
   hotfix_panel_runtime_deploy.sh
   force_upgrade_panel.sh
   lib/
     resolve_panel_version.sh    # 打包版本自动递增
     pack_desktop_runtime.sh     # deb / Windows / macOS 共用的 source-free runtime 打包
+    make_circle_icon.py         # 圆形白底图标（Ubuntu/Windows/macOS 共用算法）
   assets/
     panel-logo.png              # 各平台共享图标源文件
   requirements-build.txt
@@ -432,7 +494,7 @@ COMPILE/
       installer.nsi
     macos/
       panel.spec
-      build.sh                  # macOS：二进制 + runtime + 可选 .app/.dmg
+      build.sh                  # macOS：二进制 + runtime + 可选 .app/.dmg（圆形图标）
       panel.env                 # INSTALL_SCRIPT=install_mac.sh
     centos/
       Dockerfile                # 容器标准化构建（默认）

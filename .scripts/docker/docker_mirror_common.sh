@@ -195,6 +195,219 @@ PYEOF
     print_warning "未安装 jq/python3 且 $config_file 已存在，跳过自动配置（请手动确认 registry-mirrors 含 $DOCKER_MIRROR，并建议添加 dns: [\"223.5.5.5\",\"119.29.29.29\"]）"
 }
 
+# ---------------------------------------------------------------------------
+# Docker Desktop（macOS / Windows）：写入用户级 ~/.docker/daemon.json
+# 与 Linux configure_docker_mirror 同源（DOCKER_MIRROR / DOCKER_MIRROR_FALLBACKS）
+#
+# 说明：
+#   - registry-mirrors 主要加速 docker.io（中间件官方镜像）
+#   - FUXA 不走 DaoCloud 优先：compose 固定 docker.1panel.live/...，拉取见 pull_fuxa.sh（1ms 优先）
+#   - 业务预构建镜像在 docker.cnb.cool，不受 registry-mirrors 影响
+#   - 跳过：EASYAIOT_DOCKER_SKIP_MIRROR=1
+# ---------------------------------------------------------------------------
+_desktop_daemon_json_path() {
+    if [ -n "${DOCKER_CONFIG:-}" ]; then
+        echo "${DOCKER_CONFIG}/daemon.json"
+        return
+    fi
+    # Windows Git Bash：优先 USERPROFILE；WSL 内尽量落到 Windows 用户目录
+    if _is_windows_docker_desktop_env 2>/dev/null || [ "${EASYAIOT_DESKTOP_OS:-}" = "windows" ]; then
+        local win_home="${USERPROFILE:-}"
+        if [ -z "$win_home" ] && command -v cmd.exe >/dev/null 2>&1; then
+            win_home=$(cmd.exe /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r')
+        fi
+        if [ -n "$win_home" ]; then
+            # C:\Users\x → /c/Users/x（Git Bash）或 /mnt/c/Users/x（WSL）
+            if command -v cygpath >/dev/null 2>&1; then
+                echo "$(cygpath -u "$win_home")/.docker/daemon.json"
+                return
+            fi
+            if command -v wslpath >/dev/null 2>&1 && [[ "$win_home" == [A-Za-z]:* ]]; then
+                echo "$(wslpath -u "$win_home")/.docker/daemon.json"
+                return
+            fi
+            if [[ "$win_home" == [A-Za-z]:* ]]; then
+                local drive="${win_home:0:1}"
+                local rest="${win_home:2}"
+                rest="${rest//\\//}"
+                if [ -d "/mnt/${drive,,}" ]; then
+                    echo "/mnt/${drive,,}${rest}/.docker/daemon.json"
+                else
+                    echo "/${drive,,}${rest}/.docker/daemon.json"
+                fi
+                return
+            fi
+        fi
+    fi
+    echo "${HOME}/.docker/daemon.json"
+}
+
+# 合并写入 Desktop daemon.json；若有变更返回 0 且 stdout 打印 changed；已就绪返回 0 打印 ok；失败返回 1
+_merge_desktop_daemon_mirrors() {
+    local config_file="$1"
+    local primary="${DOCKER_MIRROR:-https://docker.m.daocloud.io}"
+    primary="${primary%/}"
+    if [[ "$primary" != http://* && "$primary" != https://* ]]; then
+        primary="https://${primary}"
+    fi
+
+    # Desktop 写入主源 + 回退链（与 Linux 拉取出处一致；引擎按序尝试）
+    local hosts=("$primary")
+    local h
+    IFS=',' read -r -a _fb <<< "${DOCKER_MIRROR_FALLBACKS:-docker.m.daocloud.io,docker.1ms.run,docker.1panel.live}"
+    for h in "${_fb[@]}"; do
+        h="${h#https://}"
+        h="${h#http://}"
+        h="${h%/}"
+        h="${h// /}"
+        [ -z "$h" ] && continue
+        local url="https://${h}"
+        local dup=0 x
+        for x in "${hosts[@]}"; do
+            [ "${x%/}" = "${url%/}" ] && dup=1 && break
+        done
+        [ "$dup" -eq 0 ] && hosts+=("$url")
+    done
+
+    mkdir -p "$(dirname "$config_file")"
+    if ! check_command python3; then
+        print_warning "未找到 python3，无法自动写入 Desktop daemon.json"
+        print_info "请在 Docker Desktop → Settings → Docker Engine 手动添加 registry-mirrors: ${hosts[*]}"
+        return 1
+    fi
+
+    local mirrors_arg
+    mirrors_arg=$(IFS=','; echo "${hosts[*]}")
+    python3 - "$config_file" "$mirrors_arg" <<'PY'
+import json, sys, os, shutil
+path, mirrors_csv = sys.argv[1], sys.argv[2]
+want = []
+for m in mirrors_csv.split(","):
+    m = m.strip().rstrip("/")
+    if not m:
+        continue
+    if not m.startswith("http://") and not m.startswith("https://"):
+        m = "https://" + m
+    want.append(m)
+
+if os.path.exists(path):
+    try:
+        cfg = json.load(open(path, encoding="utf-8"))
+    except Exception:
+        bak = path + ".easyaiot.broken.bak"
+        shutil.copy2(path, bak)
+        cfg = {}
+else:
+    cfg = {}
+
+cur = cfg.get("registry-mirrors") if isinstance(cfg.get("registry-mirrors"), list) else []
+cur_norm = [str(x).rstrip("/") for x in cur]
+want_norm = [str(x).rstrip("/") for x in want]
+if cur_norm == want_norm:
+    print("ok")
+    sys.exit(0)
+
+bak = path + ".easyaiot.bak"
+if os.path.exists(path) and not os.path.exists(bak):
+    shutil.copy2(path, bak)
+cfg["registry-mirrors"] = want
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(cfg, f, indent=2, ensure_ascii=False)
+    f.write("\n")
+print("changed")
+PY
+}
+
+_restart_docker_desktop_for_mirror() {
+    print_info "重启 Docker Desktop 以使 registry-mirrors 生效..."
+    if [ "$(uname -s 2>/dev/null)" = "Darwin" ] || [ "${EASYAIOT_DESKTOP_OS:-}" = "mac" ]; then
+        osascript -e 'quit app "Docker"' >/dev/null 2>&1 || true
+        sleep 3
+        pkill -f 'Docker Desktop' >/dev/null 2>&1 || true
+        pkill -f com.docker.backend >/dev/null 2>&1 || true
+        sleep 2
+        open -a Docker >/dev/null 2>&1 || true
+    elif command -v powershell.exe >/dev/null 2>&1; then
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -Command @'
+$ErrorActionPreference = "SilentlyContinue"
+Get-Process "Docker Desktop","com.docker.backend" -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Seconds 3
+if (Get-Command wsl.exe -ErrorAction SilentlyContinue) { wsl.exe --shutdown 2>$null }
+$exes = @(
+  "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe",
+  "${env:ProgramFiles(x86)}\Docker\Docker\Docker Desktop.exe",
+  "$env:LOCALAPPDATA\Docker\Docker Desktop.exe"
+)
+foreach ($e in $exes) { if (Test-Path $e) { Start-Process $e; break } }
+'@ >/dev/null 2>&1 || true
+    else
+        print_warning "请手动重启 Docker Desktop 后执行: docker info | grep -A5 Mirrors"
+        return 1
+    fi
+    local i
+    for i in $(seq 1 90); do
+        if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+            print_success "Docker 引擎已重新就绪"
+            return 0
+        fi
+        [ $((i % 10)) -eq 0 ] && print_info "等待 Docker 重启... (${i}/90)"
+        sleep 2
+    done
+    print_warning "Docker 重启后尚未就绪，请手动打开 Docker Desktop"
+    return 1
+}
+
+# 配置 Docker Desktop 国内镜像加速（对齐 Linux；FUXA 仍走 pull_fuxa.sh）
+configure_docker_mirror_desktop() {
+    if [ "${EASYAIOT_DOCKER_SKIP_MIRROR:-0}" = "1" ]; then
+        print_info "已设置 EASYAIOT_DOCKER_SKIP_MIRROR=1，跳过 Desktop 镜像源配置"
+        return 0
+    fi
+
+    print_info "配置 Docker Desktop 国内镜像源（与 Linux 一致）..."
+    print_info "  主源: ${DOCKER_MIRROR:-https://docker.m.daocloud.io}"
+    print_info "  回退: ${DOCKER_MIRROR_FALLBACKS:-docker.m.daocloud.io,docker.1ms.run,docker.1panel.live}"
+    print_info "  FUXA: 专用 pull_fuxa.sh（1ms 优先；DaoCloud 对 frangoteam 常 403）"
+
+    local config_file status
+    config_file=$(_desktop_daemon_json_path)
+    status=$(_merge_desktop_daemon_mirrors "$config_file") || {
+        print_warning "Desktop daemon.json 写入失败: $config_file"
+        return 1
+    }
+
+    case "$status" in
+        ok)
+            print_success "Docker Desktop 镜像源已就绪: $config_file"
+            ;;
+        changed)
+            print_success "已写入 registry-mirrors → $config_file"
+            if [ "${EASYAIOT_DOCKER_SKIP_MIRROR_RESTART:-0}" = "1" ]; then
+                print_warning "已跳过自动重启（EASYAIOT_DOCKER_SKIP_MIRROR_RESTART=1）；请手动重启 Docker Desktop"
+            else
+                _restart_docker_desktop_for_mirror || true
+            fi
+            ;;
+        *)
+            print_warning "未知合并结果: $status"
+            return 1
+            ;;
+    esac
+
+    # 展示生效情况
+    if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+        local mirrors_line
+        mirrors_line=$(docker info 2>/dev/null | grep -A8 -i 'Registry Mirrors' || true)
+        if [ -n "$mirrors_line" ]; then
+            print_info "当前 Registry Mirrors:"
+            echo "$mirrors_line" | sed 's/^/  /'
+        else
+            print_warning "docker info 尚未显示 Registry Mirrors；若刚写入请确认 Desktop 已完全重启"
+        fi
+    fi
+    return 0
+}
+
 # 从国内镜像前缀直连拉取并 tag 回原名（registry-mirrors 失效时的回退）
 # 用法: docker_pull_with_mirror_fallback [--platform linux/arm64] image:tag
 #

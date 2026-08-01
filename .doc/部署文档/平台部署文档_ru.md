@@ -171,7 +171,7 @@ sudo .scripts/docker/install_linux.sh install
 
 ## Развёртывание macOS / Windows (только образы)
 
-Настольные ОС поддерживают только **готовые образы** (`install_mac.sh` / `install_windows.ps1` / `install_windows.sh`). Локальный `build` / `build-runtime` недоступен. Подробности (ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署).
+Настольные ОС поддерживают только **готовые образы** (`install_mac.sh` / `install_windows.ps1` / `install_windows.sh`). Локальный `build` / `build-runtime` недоступен. Подробности: [macOS](./平台macOS部署文档_ru.md), [Windows](./平台Windows部署文档_ru.md). Обзор (ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署).
 
 ```bash
 bash .scripts/docker/install_mac.sh install

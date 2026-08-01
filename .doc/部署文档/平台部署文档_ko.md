@@ -171,7 +171,7 @@ sudo .scripts/docker/install_linux.sh install
 
 ## macOS / Windows 이미지 전용 배포
 
-데스크톱은 **사전 빌드 이미지**만 지원합니다 (`install_mac.sh` / `install_windows.ps1` / `install_windows.sh`). 로컬 `build` / `build-runtime` 불가. 상세(ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署).
+데스크톱은 **사전 빌드 이미지**만 지원합니다 (`install_mac.sh` / `install_windows.ps1` / `install_windows.sh`). 로컬 `build` / `build-runtime` 불가. 상세: [macOS](./平台macOS部署文档_ko.md), [Windows](./平台Windows部署文档_ko.md). 개요(ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署).
 
 ```bash
 bash .scripts/docker/install_mac.sh install

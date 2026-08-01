@@ -1,13 +1,125 @@
 # EasyAIoT 플랫폼 Windows 로컬 배포 가이드
 
-> 문서 버전: 2.0  
-> 업데이트 날짜: 2026-07-30  
-> 지원 시스템: Windows 10/11  
-> **권장: 이미지 배포** — [平台Windows部署文档_zh.md §0](./平台Windows部署文档_zh.md#0-推荐镜像一键部署2026) / [EN](./平台Windows部署文档.md#0-recommended-image-only-deploy-2026)
+> 문서 버전: 2.1  
+> 업데이트 날짜: 2026-08-01  
+> 지원 시스템: Windows 10/11 (Docker Desktop + WSL2 권장)  
+> **권장: 사전 빌드 이미지 원클릭 배포** (아래 0장 참고)
+
+크로스 플랫폼 개요: [플랫폼 배포 문서](./平台部署文档_ko.md#macos--windows-이미지-전용-배포).  
+macOS 대응: [平台macOS部署文档_ko.md](./平台macOS部署文档_ko.md).  
+PANEL 설치 패키지 빌드: [COMPILE/README.md](../../COMPILE/README.md).  
+ZH / EN 상세: [平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md) / [平台Windows部署文档.md](./平台Windows部署文档.md).
+
+---
+
+## 0. 권장: 이미지 전용 배포 (2026)
+
+Windows 데스크톱은 macOS와 같이 **원격 사전 빌드 이미지만으로 배포**하며, 로컬에서 Java / 프론트엔드 / Python 비즈니스 이미지를 빌드하지 않습니다.
+
+| 진입점 | 설명 |
+|--------|------|
+| `.scripts/docker/install_windows.ps1` | PowerShell: Docker / Compose / Git Bash를 검사(누락 시 설치 안내 후 **중단**)한 뒤 전달 |
+| `.scripts/docker/install_windows.sh` | Git Bash / WSL에서 직접 실행(설치 전 동일 사전 검사) |
+
+**미지원:** `build`, `build-runtime`, `clean-build-runtime`.
+
+### 0.1 하드웨어 및 엔진 메모리
+
+| 프로파일 | 호스트 권장 | Docker / WSL2 엔진 목표 메모리 |
+|----------|-------------|-------------------------------|
+| mini | ≥ 8 GB | **4 GB** |
+| standard | ≥ 24 GB | **16 GB** |
+| full | ≥ 32 GB | **24 GB** |
+
+디스크: **≥ 100 GB** 여유 권장. C: 드라이브가 부족하면: `.\.scripts\docker\install_windows.ps1 movedata`.
+
+### 0.2 사전 요구사항
+
+1. [Docker Desktop](https://www.docker.com/products/docker-desktop) 설치 및 시작 (**WSL2** 백엔드 권장)
+2. [Git for Windows](https://git-scm.com/download/win) 설치(`bash` 4+ 제공) 또는 WSL 활성화
+3. 이 저장소 clone (compose·스크립트 필요; 비즈니스 산출물은 이미지 레지스트리에서 제공)
+
+`install` / `pull` / `update` / `start` / `check`는 실제 배포 전 사전 검사를 수행하며, 구성 요소가 없으면 설치 안내를 출력하고 **중단**합니다.
+
+최초 권장 흐름:
 
 ```powershell
-.\.scripts\docker\install_windows.ps1 install
+.\.scripts\docker\install_windows.ps1 bootstrap   # WSL2 + Docker Desktop + mirrors + resources
+.\.scripts\docker\install_windows.ps1 check
+.\.scripts\docker\install_windows.ps1 mirrors     # 중국 registry-mirrors (Linux와 정렬)
+.\.scripts\docker\install_windows.ps1 resources   # mini 4G / standard 16G / full 24G
 ```
+
+검증:
+
+```powershell
+docker --version
+docker compose version
+docker info
+```
+
+**리소스 조정:** WSL2 백엔드에서는 `%USERPROFILE%\.wslconfig`가 기준이며, 스크립트는 Desktop `settings-store.json`도 갱신합니다.  
+덮어쓰기: `$env:EASYAIOT_DOCKER_MEMORY_GB` / `$env:EASYAIOT_DOCKER_CPUS`; 건너뛰기: `$env:EASYAIOT_DOCKER_SKIP_RESOURCES = "1"`.
+
+**중국 이미지 가속** (Linux / macOS와 동일): `%USERPROFILE%\.docker\daemon.json`에 기록  
+기본 DaoCloud → 1ms → 1panel. **FUXA**는 `pull_fuxa.sh` 사용(**1ms 우선**). 건너뛰기: `$env:EASYAIOT_DOCKER_SKIP_MIRROR = "1"`.  
+비즈니스 이미지(예: `docker.cnb.cool`)는 `registry-mirrors`의 영향을 **받지 않습니다**.
+
+### 0.3 빠른 설치
+
+```powershell
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+.\.scripts\docker\install_windows.ps1
+.\.scripts\docker\install_windows.ps1 pull
+$env:EASYAIOT_DEPLOY_PROFILE = "full"
+.\.scripts\docker\install_windows.ps1 install
+.\.scripts\docker\install_windows.ps1 verify
+```
+
+Git Bash:
+
+```bash
+bash .scripts/docker/install_windows.sh install
+```
+
+### 0.4 자주 쓰는 명령
+
+| 명령 | 설명 |
+|------|------|
+| `bootstrap` | WSL2 / Docker Desktop 설치 후 mirrors + resources 시도 |
+| `check` | 사전 자가 진단 |
+| `mirrors` | 중국 registry-mirrors 구성 |
+| `resources` | 엔진 CPU/메모리 조정 (`resources force`로 강제) |
+| `movedata` | Docker WSL 데이터를 E:\DockerDesktop으로 이전 |
+| `install` / `pull` / `update` | 배포 및 업데이트 |
+| `start` / `stop` / `status` / `logs` / `verify` | 운영 |
+| `profile` | 배포 프로파일 확인 |
+
+```powershell
+.\.scripts\docker\install_windows.ps1 start
+.\.scripts\docker\install_windows.ps1 logs VIDEO
+.\.scripts\docker\install_windows.ps1 update
+```
+
+설치 후 접속: `http://localhost:8888` (Gateway `:48080`, Nacos `:8848/nacos`, FUXA full `:1881`).
+
+### 0.5 빠른 문제 해결
+
+| 문제 | 조치 |
+|------|------|
+| bash를 찾을 수 없음 | Git for Windows 설치, 또는 WSL로 전환 후 `install_windows.ps1` 재실행 |
+| Docker 미준비 | Docker Desktop 시작 후 Ready 대기; 필요 시 `wsl --install` 후 재부팅 |
+| 엔진 메모리 부족 | `.\install_windows.ps1 resources`; 또는 `.wslconfig` 편집 후 `wsl --shutdown` |
+| 미들웨어 pull 실패 | `.\install_windows.ps1 mirrors`; FUXA는 전용 pull 로그 확인 |
+| 비즈니스 이미지 pull 실패 | `runtime_registry.conf` 레지스트리 네트워크/프록시 확인 (registry-mirrors 아님) |
+| C: 가득 참 / pull 읽기 전용 | `.\install_windows.ps1 movedata` |
+| 호스트 IP 부정확 | `$env:HOST_IP = "192.168.x.x"` 설정 후 start/install 재실행 |
+| `build` 거부 | 정상 동작; `pull` + `install` 사용 |
+| 로그 | `.scripts/docker/logs/install_windows_*.log` |
+
+> 아래 1~8장은 로컬 JDK / Node / Python 설치 후 배포하던 초기 기록입니다(특수 장애 대응·포트 참조용). **신규 환경은 본 장의 이미지 배포를 우선 사용하세요.**
 
 ---
 

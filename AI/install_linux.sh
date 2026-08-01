@@ -243,6 +243,18 @@ detect_architecture() {
             print_info "使用 PyTorch CUDA 镜像: $BASE_IMAGE"
             ;;
         aarch64|arm64|armv7l|armv6l)
+            # 桌面端（macOS Apple Silicon）或已拉取预构建镜像：允许 CPU 模式容器部署
+            if [ -n "${EASYAIOT_DESKTOP_OS:-}" ] || [ "${EASYAIOT_COMPOSE_DESKTOP:-0}" = "1" ] \
+              || [ "${EASYAIOT_SKIP_BUILD:-0}" = "1" ]; then
+                ARCH="aarch64"
+                DOCKER_PLATFORM="${DOCKER_PLATFORM:-linux/arm64}"
+                BASE_IMAGE="${BASE_IMAGE:-pytorch/pytorch:2.1.0-cpu}"
+                print_success "检测到 ARM 架构: $ARCH（桌面/镜像部署，CPU 模式）"
+                print_info "平台: $DOCKER_PLATFORM，基础镜像: $BASE_IMAGE"
+                export DOCKER_PLATFORM
+                export BASE_IMAGE
+                return 0
+            fi
             print_error "检测到 ARM 架构 ($ARCH)"
             print_error "NVIDIA 官方的 CUDA 容器化只支持 x86_64 架构"
             print_error "ARM 服务器不支持容器化部署，部署已终止"
@@ -250,6 +262,7 @@ detect_architecture() {
             print_info "如需在 ARM 服务器上运行，请考虑："
             print_info "1. 使用原生 Python 环境直接运行（非容器化）"
             print_info "2. 使用支持 ARM 的 CPU 版本 PyTorch（性能较低）"
+            print_info "3. macOS 请使用: .scripts/docker/install_mac.sh（预构建镜像）"
             exit 1
             ;;
         *)
@@ -275,9 +288,9 @@ configure_architecture() {
         echo "BASE_IMAGE=$BASE_IMAGE" >> .env.arch
         print_success "已创建架构配置文件 .env.arch"
     else
-        # 更新现有配置
-        sed -i "s|^DOCKER_PLATFORM=.*|DOCKER_PLATFORM=$DOCKER_PLATFORM|" .env.arch
-        sed -i "s|^BASE_IMAGE=.*|BASE_IMAGE=$BASE_IMAGE|" .env.arch
+        # 更新现有配置（临时文件方式，兼容 macOS BSD sed）
+        _set_env_docker_kv .env.arch DOCKER_PLATFORM "$DOCKER_PLATFORM"
+        _set_env_docker_kv .env.arch BASE_IMAGE "$BASE_IMAGE"
         print_info "已更新架构配置文件 .env.arch"
     fi
 
@@ -732,24 +745,14 @@ create_env_file() {
             cp env.example .env.docker
             print_success ".env.docker 文件已从 env.example 创建"
 
-            # 自动配置中间件连接信息（使用localhost，因为docker-compose.yaml使用host网络模式）
+            # 自动配置中间件连接信息（临时文件写回，兼容 macOS BSD sed）
             print_info "自动配置中间件连接信息..."
-
-            # 更新数据库连接（使用localhost，因为使用host网络模式，中间件端口已映射到宿主机）
-            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-ai20|' .env.docker
-
-            # 更新Nacos配置（使用localhost，因为使用host网络模式）
-            sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=localhost:8848|' .env.docker
-
-            # 更新MinIO配置（使用localhost，因为使用host网络模式）
-            sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=localhost:9000|' .env.docker
-            sed -i 's|^MINIO_SECRET_KEY=.*|MINIO_SECRET_KEY=basiclab@iot975248395|' .env.docker
-
-            # 更新Nacos密码
-            sed -i 's|^NACOS_PASSWORD=.*|NACOS_PASSWORD=basiclab@iot78475418754|' .env.docker
-
-            # 确保Nacos命名空间为空（使用默认命名空间）
-            sed -i 's|^NACOS_NAMESPACE=.*|NACOS_NAMESPACE=|' .env.docker
+            _set_env_docker_kv .env.docker DATABASE_URL "postgresql://postgres:iot45722414822@localhost:5432/iot-ai20"
+            _set_env_docker_kv .env.docker NACOS_SERVER "localhost:8848"
+            _set_env_docker_kv .env.docker MINIO_ENDPOINT "localhost:9000"
+            _set_env_docker_kv .env.docker MINIO_SECRET_KEY "basiclab@iot975248395"
+            _set_env_docker_kv .env.docker NACOS_PASSWORD "basiclab@iot78475418754"
+            _set_env_docker_kv .env.docker NACOS_NAMESPACE ""
 
             print_success "中间件连接信息已自动配置"
             print_info "如需修改其他配置，请编辑 .env.docker 文件"
@@ -761,40 +764,34 @@ create_env_file() {
         print_info ".env.docker 文件已存在"
         if [ -n "${EASYAIOT_DESKTOP_OS:-}" ] || [ "${EASYAIOT_COMPOSE_DESKTOP:-0}" = "1" ]; then
             print_info "桌面端部署：使用容器网络中间件地址（postgres-server / iot-system）"
-            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@postgres-server:5432/iot-ai20|' .env.docker
-            if grep -q '^JAVA_BACKEND_URL=' .env.docker; then
-                sed -i 's|^JAVA_BACKEND_URL=.*|JAVA_BACKEND_URL=http://iot-system:48099|' .env.docker
-            fi
-            if grep -q '^REDIS_HOST=' .env.docker; then
-                sed -i 's|^REDIS_HOST=.*|REDIS_HOST=redis-server|' .env.docker
-            else
-                echo 'REDIS_HOST=redis-server' >> .env.docker
-            fi
+            _set_env_docker_kv .env.docker DATABASE_URL "postgresql://postgres:iot45722414822@postgres-server:5432/iot-ai20"
+            _set_env_docker_kv .env.docker JAVA_BACKEND_URL "http://iot-system:48099"
+            _set_env_docker_kv .env.docker REDIS_HOST "redis-server"
         else
             print_info "检查并更新中间件连接信息..."
 
             # 检查并更新数据库连接（如果使用Docker服务名，改为localhost，因为使用host网络模式）
             if grep -q "DATABASE_URL=.*PostgresSQL" .env.docker || grep -q "DATABASE_URL=.*postgres-server" .env.docker; then
-                sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-ai20|' .env.docker
+                _set_env_docker_kv .env.docker DATABASE_URL "postgresql://postgres:iot45722414822@localhost:5432/iot-ai20"
                 print_info "已更新数据库连接为 localhost:5432（host网络模式）"
             fi
 
             # 检查并更新Nacos配置（如果使用Docker服务名或IP地址，改为localhost，因为使用host网络模式）
             if grep -q "NACOS_SERVER=.*Nacos" .env.docker || grep -q "NACOS_SERVER=.*14\.18\.122\.2" .env.docker || grep -q "NACOS_SERVER=.*nacos-server" .env.docker; then
-                sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=localhost:8848|' .env.docker
+                _set_env_docker_kv .env.docker NACOS_SERVER "localhost:8848"
                 print_info "已更新Nacos连接为 localhost:8848（host网络模式）"
             fi
 
             # 检查并更新MinIO配置（如果使用Docker服务名，改为localhost，因为使用host网络模式）
             if grep -q "MINIO_ENDPOINT=.*MinIO" .env.docker || grep -q "MINIO_ENDPOINT=.*minio-server" .env.docker; then
-                sed -i 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=localhost:9000|' .env.docker
+                _set_env_docker_kv .env.docker MINIO_ENDPOINT "localhost:9000"
                 print_info "已更新MinIO连接为 localhost:9000（host网络模式）"
             fi
         fi
 
         # 检查并更新Nacos命名空间（如果设置为local或其他非空值，则重置为空，使用默认命名空间）
         if grep -q "^NACOS_NAMESPACE=.*" .env.docker && ! grep -q "^NACOS_NAMESPACE=$" .env.docker; then
-            sed -i 's|^NACOS_NAMESPACE=.*|NACOS_NAMESPACE=|' .env.docker
+            _set_env_docker_kv .env.docker NACOS_NAMESPACE ""
             print_info "已更新Nacos命名空间为空（使用默认命名空间）"
         fi
     fi

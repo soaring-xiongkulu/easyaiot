@@ -11,6 +11,10 @@
   若本机尚未安装 Docker Desktop / WSL，可用：
     .\install_windows.ps1 bootstrap
     .\install_windows.ps1 -Bootstrap
+  调配引擎 CPU/内存（mini 4GB / standard 16GB / full 24GB）：
+    .\install_windows.ps1 resources
+  配置国内镜像加速（与 Linux 一致；FUXA 走专用 1ms 优先）：
+    .\install_windows.ps1 mirrors
   或设置环境变量后重试：
     $env:EASYAIOT_AUTO_INSTALL_DOCKER = "1"; .\install_windows.ps1 install
 
@@ -19,6 +23,8 @@
   .\install_windows.cmd check
   .\install_windows.cmd install
   .\install_windows.cmd bootstrap
+  .\install_windows.cmd mirrors
+  .\install_windows.cmd resources
   .\install_windows.cmd movedata   # C 盘空间不足时，把 Docker 数据迁到 E:\DockerDesktop
 
   # 若直接跑 .ps1 报「禁止运行脚本」，可用：
@@ -288,6 +294,274 @@ function Install-DockerDesktopIfNeeded {
     return $false
 }
 
+function Get-EasyAIoTResourceTargets {
+    $profile = if ($env:EASYAIOT_DEPLOY_PROFILE) { $env:EASYAIOT_DEPLOY_PROFILE.ToLower() } else { "full" }
+    $hostMem = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 0)
+    $hostCpu = (Get-CimInstance Win32_Processor | Measure-Object -Property NumberOfLogicalProcessors -Sum).Sum
+    if (-not $hostCpu) { $hostCpu = $env:NUMBER_OF_PROCESSORS }
+
+    switch ($profile) {
+        "mini"     { $wantMem = 4;  $wantCpu = 4; $wantDisk = 60 }
+        "standard" { $wantMem = 16; $wantCpu = 6; $wantDisk = 80 }
+        default    { $wantMem = 24; $wantCpu = 8; $wantDisk = 100 }
+    }
+    if ($env:EASYAIOT_DOCKER_MEMORY_GB) { $wantMem = [int]$env:EASYAIOT_DOCKER_MEMORY_GB }
+    if ($env:EASYAIOT_DOCKER_CPUS) { $wantCpu = [int]$env:EASYAIOT_DOCKER_CPUS }
+    if ($env:EASYAIOT_DOCKER_DISK_GB) { $wantDisk = [int]$env:EASYAIOT_DOCKER_DISK_GB }
+
+    $reserve = if ($hostMem -ge 32) { 8 } else { 4 }
+    $memCap = [math]::Max(4, [math]::Min($hostMem - $reserve, [math]::Floor($hostMem * 0.75)))
+    if ($wantMem -gt $memCap) { $wantMem = [int]$memCap }
+    $cpuCap = [math]::Max(2, $hostCpu - 1)
+    if ($wantCpu -gt $cpuCap) { $wantCpu = [int]$cpuCap }
+
+    return @{
+        Profile = $profile
+        MemoryGB = [int]$wantMem
+        Cpus = [int]$wantCpu
+        DiskGB = [int]$wantDisk
+        HostMemGB = [int]$hostMem
+        HostCpus = [int]$hostCpu
+    }
+}
+
+function Get-DockerEngineMemoryGB {
+    Ensure-DockerOnPath | Out-Null
+    if (-not (Test-DockerDaemonReady)) { return 0 }
+    try {
+        $bytes = [int64](docker info --format '{{.MemTotal}}' 2>$null)
+        if ($bytes -gt 0) { return [int][math]::Floor($bytes / 1GB) }
+    } catch { }
+    return 0
+}
+
+function Update-DockerDesktopSettingsStore {
+    param([int]$MemoryMiB, [int]$Cpus, [int]$DiskMiB, [int]$SwapMiB = 4096)
+    $paths = @(
+        (Join-Path $env:APPDATA "Docker\settings-store.json"),
+        (Join-Path $env:APPDATA "Docker\settings.json")
+    )
+    $patched = $false
+    foreach ($path in $paths) {
+        if (-not (Test-Path $path)) { continue }
+        try {
+            $bak = "$path.easyaiot.bak"
+            if (-not (Test-Path $bak)) { Copy-Item $path $bak -Force }
+            $json = Get-Content -Raw -Encoding UTF8 $path | ConvertFrom-Json
+            # PSCustomObject：动态加属性
+            $map = @{
+                memoryMiB = $MemoryMiB; MemoryMiB = $MemoryMiB
+                cpus = $Cpus; Cpus = $Cpus
+                diskSizeMiB = $DiskMiB; DiskSizeMiB = $DiskMiB
+                swapMiB = $SwapMiB; SwapMiB = $SwapMiB
+                useResourceSaver = $false; UseResourceSaver = $false
+            }
+            foreach ($k in $map.Keys) {
+                if ($null -eq $json.PSObject.Properties[$k]) {
+                    $json | Add-Member -NotePropertyName $k -NotePropertyValue $map[$k] -Force
+                } else {
+                    $json.$k = $map[$k]
+                }
+            }
+            $json | ConvertTo-Json -Depth 40 | Set-Content -Encoding UTF8 -Path $path
+            Write-Ok "已写入: $path"
+            $patched = $true
+        } catch {
+            Write-Warn ("更新失败 {0}: {1}" -f $path, $_.Exception.Message)
+        }
+    }
+    return $patched
+}
+
+function Update-WslConfigResources {
+    param([int]$MemoryGB, [int]$Cpus)
+    $cfg = Join-Path $env:USERPROFILE ".wslconfig"
+    $block = @"
+[wsl2]
+memory=${MemoryGB}GB
+processors=$Cpus
+swap=4GB
+localhostForwarding=true
+"@
+    try {
+        if (Test-Path $cfg) {
+            $text = Get-Content -Raw -Encoding UTF8 $cfg
+            if ($text -match '(?im)^\[wsl2\]') {
+                if ($text -match '(?im)^\s*memory\s*=') {
+                    $text = [regex]::Replace($text, '(?im)^\s*memory\s*=.*$', "memory=${MemoryGB}GB", 1)
+                } else {
+                    $text = [regex]::Replace($text, '(?im)^\[wsl2\]\s*$', "[wsl2]`r`nmemory=${MemoryGB}GB", 1)
+                }
+                if ($text -match '(?im)^\s*processors\s*=') {
+                    $text = [regex]::Replace($text, '(?im)^\s*processors\s*=.*$', "processors=$Cpus", 1)
+                } else {
+                    $text = [regex]::Replace($text, '(?im)^\[wsl2\]\s*$', "[wsl2]`r`nprocessors=$Cpus", 1)
+                }
+                if ($text -notmatch '(?im)^\s*swap\s*=') {
+                    $text = [regex]::Replace($text, '(?im)^\[wsl2\]\s*$', "[wsl2]`r`nswap=4GB", 1)
+                }
+                Set-Content -Encoding UTF8 -Path $cfg -Value $text.TrimEnd() -NoNewline
+                Add-Content -Encoding UTF8 -Path $cfg -Value ""
+            } else {
+                Add-Content -Encoding UTF8 -Path $cfg -Value "`r`n$block"
+            }
+        } else {
+            Set-Content -Encoding UTF8 -Path $cfg -Value $block
+        }
+        Write-Ok "已更新 WSL2 资源: $cfg"
+        return $true
+    } catch {
+        Write-Warn ("写入 .wslconfig 失败: {0}" -f $_.Exception.Message)
+        return $false
+    }
+}
+
+function Restart-DockerDesktopForResources {
+    Write-Info "重启 Docker Desktop / WSL 以使资源生效..."
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        Get-Process "Docker Desktop","com.docker.backend" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+        if (Get-Command wsl.exe -ErrorAction SilentlyContinue) {
+            & wsl.exe --shutdown 2>$null
+        }
+        Start-Sleep -Seconds 2
+        $dd = Find-DockerDesktopExe
+        if ($dd) { Start-Process $dd }
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+    for ($i = 1; $i -le 90; $i++) {
+        Start-Sleep -Seconds 2
+        if (Test-DockerDaemonReady) {
+            Write-Ok "Docker 引擎已重新就绪"
+            return $true
+        }
+        if (($i % 10) -eq 0) { Write-Info "等待 Docker 重启... ($i/90)" }
+    }
+    Write-Warn "重启后引擎尚未就绪，请手动打开 Docker Desktop"
+    return $false
+}
+
+function Update-DockerDesktopRegistryMirrors {
+    # 与 Linux / Mac：写入 %USERPROFILE%\.docker\daemon.json 国内 registry-mirrors
+    if ($env:EASYAIOT_DOCKER_SKIP_MIRROR -eq "1") {
+        Write-Info "已设置 EASYAIOT_DOCKER_SKIP_MIRROR=1，跳过镜像源配置"
+        return 0
+    }
+    $primary = if ($env:DOCKER_MIRROR) { $env:DOCKER_MIRROR.TrimEnd('/') } else { "https://docker.m.daocloud.io" }
+    if ($primary -notmatch '^https?://') { $primary = "https://$primary" }
+    $fb = if ($env:DOCKER_MIRROR_FALLBACKS) {
+        $env:DOCKER_MIRROR_FALLBACKS
+    } else {
+        "docker.m.daocloud.io,docker.1ms.run,docker.1panel.live"
+    }
+    $mirrors = New-Object System.Collections.Generic.List[string]
+    [void]$mirrors.Add($primary)
+    foreach ($h in ($fb -split ',')) {
+        $h = $h.Trim().TrimEnd('/')
+        if (-not $h) { continue }
+        $h = $h -replace '^https?://', ''
+        $url = "https://$h"
+        if (-not ($mirrors | Where-Object { $_.TrimEnd('/') -eq $url.TrimEnd('/') })) {
+            [void]$mirrors.Add($url)
+        }
+    }
+
+    Write-Host ""
+    Write-Host "======== 配置 Docker Desktop 国内镜像源（对齐 Linux）========" -ForegroundColor Yellow
+    Write-Info ("主源/回退: {0}" -f ($mirrors -join " → "))
+    Write-Info "FUXA 例外: pull_fuxa.sh 优先 docker.1ms.run（DaoCloud 对 frangoteam 常 403）"
+
+    $cfgPath = Join-Path $env:USERPROFILE ".docker\daemon.json"
+    $dir = Split-Path -Parent $cfgPath
+    if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+
+    $cfg = @{}
+    if (Test-Path $cfgPath) {
+        try {
+            $cfg = Get-Content -Raw -Encoding UTF8 $cfgPath | ConvertFrom-Json
+        } catch {
+            Copy-Item $cfgPath "$cfgPath.easyaiot.broken.bak" -Force
+            $cfg = [pscustomobject]@{}
+        }
+    } else {
+        $cfg = [pscustomobject]@{}
+    }
+
+    $cur = @()
+    if ($cfg.PSObject.Properties.Name -contains "registry-mirrors" -and $cfg."registry-mirrors") {
+        $cur = @($cfg."registry-mirrors" | ForEach-Object { "$_".TrimEnd('/') })
+    }
+    $want = @($mirrors | ForEach-Object { $_.TrimEnd('/') })
+    $same = ($cur.Count -eq $want.Count)
+    if ($same) {
+        for ($i = 0; $i -lt $cur.Count; $i++) {
+            if ($cur[$i] -ne $want[$i]) { $same = $false; break }
+        }
+    }
+    if ($same) {
+        Write-Ok "Docker Desktop 镜像源已就绪: $cfgPath"
+        return 0
+    }
+
+    $bak = "$cfgPath.easyaiot.bak"
+    if ((Test-Path $cfgPath) -and -not (Test-Path $bak)) { Copy-Item $cfgPath $bak -Force }
+    if ($null -eq $cfg.PSObject.Properties["registry-mirrors"]) {
+        $cfg | Add-Member -NotePropertyName "registry-mirrors" -NotePropertyValue @($mirrors) -Force
+    } else {
+        $cfg."registry-mirrors" = @($mirrors)
+    }
+    $cfg | ConvertTo-Json -Depth 40 | Set-Content -Encoding UTF8 -Path $cfgPath
+    Write-Ok "已写入 registry-mirrors → $cfgPath"
+
+    Write-Info "重启 Docker Desktop 以使镜像源生效..."
+    Restart-DockerDesktopForResources | Out-Null
+    return 0
+}
+
+function Invoke-ConfigureDockerResources {
+    param([switch]$Force)
+    if ($env:EASYAIOT_DOCKER_SKIP_RESOURCES -eq "1") {
+        Write-Info "已设置 EASYAIOT_DOCKER_SKIP_RESOURCES=1，跳过资源调配"
+        return 0
+    }
+
+    Write-Host ""
+    Write-Host "======== 调配 Docker 引擎资源（CPU / 内存 / 磁盘）========" -ForegroundColor Yellow
+    Ensure-DockerOnPath | Out-Null
+    $t = Get-EasyAIoTResourceTargets
+    $curMem = Get-DockerEngineMemoryGB
+    Write-Info ("部署形态: {0} · 主机约 {1}GB / {2} CPU" -f $t.Profile, $t.HostMemGB, $t.HostCpus)
+    Write-Info ("目标: {0} CPU / {1}GB 内存 / {2}GB 磁盘" -f $t.Cpus, $t.MemoryGB, $t.DiskGB)
+    Write-Info ("当前引擎内存: 约 {0}GB" -f $curMem)
+
+    if (-not $Force -and $curMem -ge $t.MemoryGB) {
+        Write-Ok "引擎资源已满足目标，无需调整"
+        return 0
+    }
+
+    $okStore = Update-DockerDesktopSettingsStore -MemoryMiB ($t.MemoryGB * 1024) -Cpus $t.Cpus -DiskMiB ($t.DiskGB * 1024)
+    $okWsl = Update-WslConfigResources -MemoryGB $t.MemoryGB -Cpus $t.Cpus
+    if (-not $okStore -and -not $okWsl) {
+        Write-Warn "未能自动写入配置。请在 Docker Desktop → Settings → Resources 手动将 Memory 调到 ≥$($t.MemoryGB)GB"
+        return 1
+    }
+
+    Restart-DockerDesktopForResources | Out-Null
+    Start-Sleep -Seconds 2
+    $curMem = Get-DockerEngineMemoryGB
+    Write-Info ("调整后引擎内存: 约 {0}GB" -f $curMem)
+    if ($curMem -ge $t.MemoryGB) {
+        Write-Ok "Docker 引擎内存已达标"
+        return 0
+    }
+    Write-Warn "配置已写入，引擎汇报仍约 ${curMem}GB。可稍后重试: .\install_windows.ps1 resources"
+    Write-Host "  或 GUI: Docker Desktop → Settings → Resources → Apply & Restart"
+    return 0
+}
+
 function Invoke-BootstrapDeps {
     Write-Host ""
     Write-Host "======== 自动安装 Windows 部署依赖 ========" -ForegroundColor Yellow
@@ -314,12 +588,19 @@ function Invoke-BootstrapDeps {
 
     Write-Host ""
     if ($dockerOk -and (Test-DockerDaemonReady)) {
-        Write-Ok "依赖已就绪，可继续: .\install_windows.ps1 install"
+        Write-Ok "依赖已就绪"
+        # 与 Linux 对齐：国内 registry-mirrors（FUXA 仍走 pull_fuxa.sh）
+        Update-DockerDesktopRegistryMirrors | Out-Null
+        # 按形态调高内存（WSL2/.settings）；full 默认常不足
+        Invoke-ConfigureDockerResources | Out-Null
+        Write-Info "可继续: .\install_windows.ps1 check"
+        Write-Info "         .\install_windows.ps1 install"
         return 0
     }
     if ($dockerOk -and -not (Test-DockerDaemonReady)) {
         Write-Warn "Docker 已安装但引擎未就绪。请打开 Docker Desktop，待 Running 后执行:"
         Write-Host "  .\install_windows.ps1 check"
+        Write-Host "  .\install_windows.ps1 resources"
         Write-Host "  .\install_windows.ps1 install"
         return 2
     }
@@ -497,6 +778,33 @@ if ($forwardArgs.Count -gt 0 -and ($forwardArgs[0] -ieq "movedata" -or $forwardA
     Write-Info "转发到 move_docker_data_to_e.ps1 ..."
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $moveScript
     exit $LASTEXITCODE
+}
+
+# 国内镜像加速（可在无 bash 时独立执行）
+if ($forwardArgs.Count -gt 0 -and (
+        $forwardArgs[0] -ieq "mirrors" -or $forwardArgs[0] -ieq "mirror" -or
+        $forwardArgs[0] -ieq "registry-mirrors" -or $forwardArgs[0] -ieq "docker-mirrors"
+    )) {
+    Ensure-DockerOnPath | Out-Null
+    exit (Update-DockerDesktopRegistryMirrors)
+}
+
+# 调配 Docker Desktop / WSL2 资源（可在无 bash 时独立执行）
+if ($forwardArgs.Count -gt 0 -and (
+        $forwardArgs[0] -ieq "resources" -or $forwardArgs[0] -ieq "tune" -or
+        $forwardArgs[0] -ieq "tune-resources" -or $forwardArgs[0] -ieq "docker-resources"
+    )) {
+    $force = $false
+    if ($forwardArgs.Count -gt 1 -and (
+            $forwardArgs[1] -ieq "force" -or $forwardArgs[1] -eq "1" -or
+            $forwardArgs[1] -ieq "-f" -or $forwardArgs[1] -ieq "--force"
+        )) { $force = $true }
+    Ensure-DockerOnPath | Out-Null
+    if ($force) {
+        exit (Invoke-ConfigureDockerResources -Force)
+    } else {
+        exit (Invoke-ConfigureDockerResources)
+    }
 }
 
 # C 盘告警（不自动迁移，仅提示）

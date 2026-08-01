@@ -1,13 +1,125 @@
 # Guide de déploiement local de la plateforme EasyAIoT pour Windows
 
-> Version du document : 2.0  
-> Date de mise à jour : 2026-07-30  
-> Systèmes pris en charge : Windows 10/11  
-> **Recommandé : déploiement par images** — voir [平台Windows部署文档_zh.md §0](./平台Windows部署文档_zh.md#0-推荐镜像一键部署2026) / [EN](./平台Windows部署文档.md#0-recommended-image-only-deploy-2026)
+> Version du document : 2.1  
+> Date de mise à jour : 2026-08-01  
+> Systèmes pris en charge : Windows 10/11 (Docker Desktop + WSL2 recommandé)  
+> **Recommandé : déploiement en un clic par images préconstruites** (voir section 0 ci-dessous)
+
+Vue d’ensemble multiplateforme : [Guide de déploiement de la plateforme](./平台部署文档_fr.md#déploiement-macos--windows-images-uniquement).  
+Correspondant macOS : [平台macOS部署文档_fr.md](./平台macOS部署文档_fr.md).  
+Compilation de l’installateur PANEL : [COMPILE/README.md](../../COMPILE/README.md).  
+Détail ZH / EN : [平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md) / [平台Windows部署文档.md](./平台Windows部署文档.md).
+
+---
+
+## 0. Recommandé : déploiement par images uniquement (2026)
+
+Sous Windows bureau, comme sous macOS, déployez **uniquement via des images préconstruites distantes**. Ne compilez pas les images métier Java / frontend / Python en local.
+
+| Entrée | Notes |
+|--------|-------|
+| `.scripts/docker/install_windows.ps1` | PowerShell : vérifie Docker / Compose / Git Bash (indique quoi installer et **interrompt** si manquant), puis relaie |
+| `.scripts/docker/install_windows.sh` | Exécution directe dans Git Bash / WSL (mêmes contrôles préalables) |
+
+**Non pris en charge :** `build`, `build-runtime`, `clean-build-runtime`.
+
+### 0.1 Matériel et mémoire du moteur
+
+| Profil | Recommandation hôte | Mémoire cible moteur Docker / WSL2 |
+|--------|---------------------|-------------------------------------|
+| mini | ≥ 8 Go | **4 Go** |
+| standard | ≥ 24 Go | **16 Go** |
+| full | ≥ 32 Go | **24 Go** |
+
+Disque : réserver **≥ 100 Go**. Si le disque C: est saturé : `.\.scripts\docker\install_windows.ps1 movedata`.
+
+### 0.2 Prérequis
+
+1. Installer et démarrer [Docker Desktop](https://www.docker.com/products/docker-desktop) (backend **WSL2** recommandé)
+2. Installer [Git for Windows](https://git-scm.com/download/win) (fournit `bash` 4+), ou activer WSL
+3. Cloner ce dépôt (compose et scripts requis ; les artefacts métier viennent du registre d’images)
+
+`install` / `pull` / `update` / `start` / `check` exécutent les contrôles préalables avant le déploiement réel ; en cas de composant manquant, ils affichent le guide d’installation et **interrompent**.
+
+Flux recommandé pour la première fois :
 
 ```powershell
-.\.scripts\docker\install_windows.ps1 install
+.\.scripts\docker\install_windows.ps1 bootstrap   # WSL2 + Docker Desktop + mirrors + resources
+.\.scripts\docker\install_windows.ps1 check
+.\.scripts\docker\install_windows.ps1 mirrors     # registry-mirrors Chine (aligné Linux)
+.\.scripts\docker\install_windows.ps1 resources   # mini 4G / standard 16G / full 24G
 ```
+
+Vérification :
+
+```powershell
+docker --version
+docker compose version
+docker info
+```
+
+**Réglage des ressources :** avec le backend WSL2, `%USERPROFILE%\.wslconfig` fait foi ; le script met aussi à jour `settings-store.json` de Desktop.  
+Surcharge : `$env:EASYAIOT_DOCKER_MEMORY_GB` / `$env:EASYAIOT_DOCKER_CPUS` ; ignorer : `$env:EASYAIOT_DOCKER_SKIP_RESOURCES = "1"`.
+
+**Accélération d’images en Chine** (identique à Linux / macOS) : écrit `%USERPROFILE%\.docker\daemon.json`  
+Par défaut DaoCloud → 1ms → 1panel. **FUXA** passe par `pull_fuxa.sh` (**1ms prioritaire**). Ignorer : `$env:EASYAIOT_DOCKER_SKIP_MIRROR = "1"`.  
+Les images métier (ex. `docker.cnb.cool`) ne sont **pas** affectées par `registry-mirrors`.
+
+### 0.3 Installation rapide
+
+```powershell
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+.\.scripts\docker\install_windows.ps1
+.\.scripts\docker\install_windows.ps1 pull
+$env:EASYAIOT_DEPLOY_PROFILE = "full"
+.\.scripts\docker\install_windows.ps1 install
+.\.scripts\docker\install_windows.ps1 verify
+```
+
+Git Bash :
+
+```bash
+bash .scripts/docker/install_windows.sh install
+```
+
+### 0.4 Commandes courantes
+
+| Commande | Notes |
+|----------|-------|
+| `bootstrap` | Installe WSL2 / Docker Desktop, puis tente mirrors + resources |
+| `check` | Autocontrôle des prérequis |
+| `mirrors` | Configure les registry-mirrors Chine |
+| `resources` | Ajuste CPU/mémoire du moteur (`resources force` pour forcer) |
+| `movedata` | Déplace les données Docker WSL vers E:\DockerDesktop |
+| `install` / `pull` / `update` | Déployer et mettre à jour |
+| `start` / `stop` / `status` / `logs` / `verify` | Exploitation |
+| `profile` | Afficher le profil de déploiement |
+
+```powershell
+.\.scripts\docker\install_windows.ps1 start
+.\.scripts\docker\install_windows.ps1 logs VIDEO
+.\.scripts\docker\install_windows.ps1 update
+```
+
+Après installation : `http://localhost:8888` (Gateway `:48080`, Nacos `:8848/nacos`, FUXA full `:1881`).
+
+### 0.5 Dépannage rapide
+
+| Problème | Action |
+|----------|--------|
+| bash introuvable | Installer Git for Windows, ou passer à WSL puis relancer `install_windows.ps1` |
+| Docker non prêt | Démarrer Docker Desktop et attendre Ready ; si besoin `wsl --install` puis redémarrer |
+| Mémoire moteur insuffisante | `.\install_windows.ps1 resources` ; ou éditer `.wslconfig` puis `wsl --shutdown` |
+| Échec pull middleware | `.\install_windows.ps1 mirrors` ; pour FUXA voir les journaux de pull dédiés |
+| Échec pull images métier | Vérifier réseau/proxy vers le registre de `runtime_registry.conf` (pas registry-mirrors) |
+| Disque C: plein / pull en lecture seule | `.\install_windows.ps1 movedata` |
+| IP hôte incorrecte | `$env:HOST_IP = "192.168.x.x"` puis relancer start/install |
+| `build` refusé | Comportement attendu ; utiliser `pull` + `install` |
+| Journaux | `.scripts/docker/logs/install_windows_*.log` |
+
+> Les chapitres 1 à 8 ci-dessous sont des notes héritées pour une installation locale JDK / Node / Python (dépannage spécial ou ports). **Pour un nouvel environnement, privilégiez le déploiement par images de cette section.**
 
 ---
 

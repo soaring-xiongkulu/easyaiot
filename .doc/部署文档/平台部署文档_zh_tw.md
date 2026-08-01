@@ -179,8 +179,8 @@ sudo .scripts/docker/install_linux.sh install
 桌面端（macOS、Windows）**僅支援預建構映像部署**，不在本機編譯。詳見簡體中文專文：
 
 - [平台部署文档_zh.md · macOS / Windows](./平台部署文档_zh.md#macos--windows-镜像部署)
-- [平台macOS部署文档_zh.md](./平台macOS部署文档_zh.md)
-- [平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md)
+- [平台macOS部署文档_zh_tw.md](./平台macOS部署文档_zh_tw.md)（簡體：[平台macOS部署文档_zh.md](./平台macOS部署文档_zh.md)）
+- [平台Windows部署文档_zh_tw.md](./平台Windows部署文档_zh_tw.md)（簡體：[平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md)）
 
 ```bash
 # macOS
