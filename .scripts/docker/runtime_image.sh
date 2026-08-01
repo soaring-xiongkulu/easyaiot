@@ -108,7 +108,9 @@ _log() {
     local label="$1" msg="$2"
     echo -e "${label}${msg}${NC}"
     # msg 来自 print_* 调用，均为纯文本（颜色仅在 label 中），无需 sed 剥离 ANSI
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${msg}" >> "$LOG_FILE"
+    # 运行中若 logs 目录被删（如误删 .scripts），自动重建，避免整段 pull 中止
+    mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${msg}" >> "$LOG_FILE" 2>/dev/null || true
 }
 print_info()    { _log "$BLUE" "[INFO] $1"; }
 print_success() { _log "$GREEN" "[OK] $1"; }
@@ -120,7 +122,8 @@ print_header()  {
     echo "============================================================"
     echo -e "${GREEN} $1${NC}"
     echo "============================================================"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
+    mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE" 2>/dev/null || true
 }
 
 # ============================================================================

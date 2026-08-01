@@ -119,7 +119,9 @@ log_to_file() {
   timestamp=$(date '+%Y-%m-%d %H:%M:%S')
   local clean_message
   clean_message=$(printf '%s' "$message" | sed -E 's/\x1B\[[0-9;]*[mGK]//g')
-  echo "[$timestamp] $clean_message" >> "$LOG_FILE"
+  # 运行中若 logs 被删，自动重建，避免 set -e 下写日志失败拖垮部署
+  mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+  echo "[$timestamp] $clean_message" >> "$LOG_FILE" 2>/dev/null || true
 }
 
 print_info() {
