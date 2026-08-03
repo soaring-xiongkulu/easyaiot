@@ -64,6 +64,6 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    console=True,
+    console=False,
     icon=ICON_FILE if ICON_FILE else None,
 )
