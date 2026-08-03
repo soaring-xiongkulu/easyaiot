@@ -38,12 +38,13 @@ source "${EASYAIOT_ROOT}/.scripts/docker/gpu_compose_helpers.sh"
 # shellcheck source=../.scripts/docker/deploy_profile.sh
 source "${EASYAIOT_ROOT}/.scripts/docker/deploy_profile.sh"
 
-# 带 GPU/CPU override 的 compose 调用（CPU 模式下强制 runtime: runc）
+# 带 GPU/CPU / source-free override 的 compose 调用
 video_compose() {
     local -a files=(-f docker-compose.yaml)
     if [ -f .docker-compose.gpu.override.yaml ]; then
         files+=(-f .docker-compose.gpu.override.yaml)
     fi
+    append_source_free_compose_file files
     $COMPOSE_CMD "${files[@]}" "$@"
 }
 

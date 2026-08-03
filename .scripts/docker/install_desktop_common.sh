@@ -1224,8 +1224,7 @@ wait_for_base_services() {
   fi
   if docker ps --filter "name=nacos-server" --format "{{.Names}}" 2>/dev/null | grep -q "nacos-server"; then
     # Docker Desktop（尤其 Apple Silicon）上 Nacos 冷启动可达数分钟，与 compose healthcheck start_period 对齐
-    wait_for_container_ready "Nacos" 150 2 \
-      curl -s --connect-timeout 2 "http://localhost:8848/nacos/actuator/health"
+    wait_for_container_ready "Nacos" 150 2 bash -c 'curl -sf --connect-timeout 2 --max-time 5 http://127.0.0.1:8848/nacos/actuator/health >/dev/null 2>&1 || docker exec nacos-server curl -sf --connect-timeout 2 --max-time 5 http://127.0.0.1:8848/nacos/actuator/health >/dev/null 2>&1 || [ "$(docker inspect -f "{{.State.Health.Status}}" nacos-server 2>/dev/null)" = "healthy" ]'
   fi
   if docker ps --filter "name=redis-server" --format "{{.Names}}" 2>/dev/null | grep -q "redis-server"; then
     wait_for_container_ready "Redis" 30 1 \
@@ -1240,8 +1239,7 @@ wait_for_base_services() {
 }
 
 wait_for_device_gateway() {
-  wait_for_container_ready "iot-gateway" 90 2 \
-    curl -s --connect-timeout 2 "http://localhost:48080/actuator/health"
+  wait_for_container_ready "iot-gateway" 180 2 bash -c 'curl -sf --connect-timeout 2 --max-time 5 http://127.0.0.1:48080/actuator/health >/dev/null 2>&1 || docker exec iot-gateway curl -sf --connect-timeout 2 --max-time 5 http://127.0.0.1:48080/actuator/health >/dev/null 2>&1 || [ "$(docker inspect -f "{{.State.Health.Status}}" iot-gateway 2>/dev/null)" = "healthy" ]'
 }
 
 collect_biz_modules() {
@@ -1313,7 +1311,11 @@ desktop_install() {
 
   for module in "${MODULES[@]}"; do
     if ! module_enabled_for_deploy_profile "$module"; then
-      print_info "跳过 $(module_name "$module")（形态 ${EASYAIOT_DEPLOY_PROFILE} 不包含）"
+      if [ "$module" = "PANEL" ]; then
+        print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)"
+      else
+        print_info "跳过 $(module_name "$module")（形态 ${EASYAIOT_DEPLOY_PROFILE} 不包含）"
+      fi
       continue
     fi
     local _inst="${PROJECT_ROOT}/${module}/$(module_install_script "$module")"

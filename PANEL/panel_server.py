@@ -24,6 +24,7 @@ PANEL_ALLOW_DANGEROUS = os.environ.get('PANEL_ALLOW_DANGEROUS', '1').strip().low
     '1', 'true', 'yes',
 )
 PANEL_JOB_TIMEOUT = int(os.environ.get('PANEL_JOB_TIMEOUT', '7200'))
+PANEL_JOB_HISTORY_LIMIT = int(os.environ.get('PANEL_JOB_HISTORY_LIMIT', '15'))
 # EasyAIoT WEB 管控台地址；空则按请求主机 + PANEL_WEB_PORT 自动拼
 PANEL_WEB_URL = os.environ.get('PANEL_WEB_URL', '').strip()
 PANEL_WEB_PORT = (os.environ.get('PANEL_WEB_PORT', '8888').strip() or '8888')
@@ -121,6 +122,7 @@ stack = StackOps(
     install_script=INSTALL_SCRIPT,
     allow_dangerous=PANEL_ALLOW_DANGEROUS,
     job_timeout=PANEL_JOB_TIMEOUT,
+    max_job_history=PANEL_JOB_HISTORY_LIMIT,
 )
 
 
@@ -383,7 +385,7 @@ def stack_meta():
 
 @app.get('/api/stack/jobs')
 def stack_jobs():
-    limit = int(request.args.get('limit', '20'))
+    limit = int(request.args.get('limit', str(PANEL_JOB_HISTORY_LIMIT)))
     return _ok({'list': stack.list_jobs(limit=limit)})
 
 

@@ -167,7 +167,7 @@ MODULES=(
     "APP"              # App移动端H5（仅 full 全量形态）
     "VISUALIZE"        # 可视化编辑器（仅 full 全量形态）
     "TRANSFORM"        # 系统对接（仅 full 全量形态）
-    "PANEL"            # 独立运维控制台（所有形态，默认启用）
+    "PANEL"            # 运维控制台：源码/Docker 可装；安装包本身即为 PANEL，部署默认跳过
 )
 
 # 模块名称映射
@@ -275,6 +275,42 @@ print_section() {
     log_to_file ""
 }
 
+# 是否运行在容器内（PANEL Docker 版等：无 systemd/sysctl，且网卡 IP 为桥接地址）
+_running_in_container() {
+    [ -f /.dockerenv ] && return 0
+    if [ -r /proc/1/cgroup ] && grep -Eq '(docker|containerd|kubepods|/libpod)' /proc/1/cgroup 2>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
+# Docker 默认桥接网段（容器内自动探测到的 172.17–31.x 通常不是宿主机 LAN IP）
+_is_likely_docker_bridge_ip() {
+    case "${1:-}" in
+        172.1[7-9].*|172.2[0-9].*|172.3[0-1].*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# 经 docker.sock + --network=host 探测真实宿主机出口 IP（PANEL 容器场景）
+_detect_host_ip_via_docker_host_net() {
+    check_command docker || return 1
+    docker info >/dev/null 2>&1 || return 1
+
+    local probe_img=""
+    for probe_img in alpine:latest docker.m.daocloud.io/library/alpine:latest busybox:latest; do
+        if docker image inspect "$probe_img" >/dev/null 2>&1; then
+            break
+        fi
+        probe_img=""
+    done
+    [ -n "$probe_img" ] || return 1
+
+    docker run --rm --network=host --entrypoint sh "$probe_img" -c \
+        "ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.*src \([0-9.]*\).*/\1/p'" \
+        2>/dev/null
+}
+
 # 检测宿主机 IPv4 地址，并导出给子模块安装脚本和 docker compose 使用
 detect_host_ip() {
     # 已显式导出 HOST_IP 时直接采用（错误提示承诺的逃生通道；也天然避免重复探测）
@@ -284,6 +320,17 @@ detect_host_ip() {
     fi
 
     local host_ip=""
+
+    # PANEL 等容器内：本机网卡是 Docker 桥接地址，需经 --network=host 探测宿主机
+    if _running_in_container; then
+        host_ip=$(_detect_host_ip_via_docker_host_net | head -n 1 | tr -d '[:space:]')
+        if [ -n "$host_ip" ] && ! _is_likely_docker_bridge_ip "$host_ip"; then
+            export HOST_IP="$host_ip"
+            print_info "检测到宿主机 IP（容器经 docker host 网络）: $HOST_IP"
+            return 0
+        fi
+        host_ip=""
+    fi
 
     if check_command ip; then
         host_ip=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')
@@ -303,6 +350,11 @@ detect_host_ip() {
         return 1
     fi
 
+    if _is_likely_docker_bridge_ip "$host_ip"; then
+        print_warning "检测到疑似 Docker 桥接 IP: $host_ip（媒体地址可能不正确）"
+        print_warning "请在 panel.env / 环境变量中设置 HOST_IP=<宿主机局域网 IP> 后重试"
+    fi
+
     export HOST_IP="$host_ip"
     print_info "检测到宿主机 IP: $HOST_IP"
     return 0
@@ -317,9 +369,21 @@ configure_rtp_port_reservation() {
         return 0
     fi
 
+    # PANEL 容器内写 /etc/sysctl.d 与 sysctl 只作用于容器，对宿主机无效
+    if _running_in_container; then
+        print_warning "容器环境无法配置宿主机 RTP 端口预留，已跳过"
+        print_info "建议在宿主机执行: echo '$expected_config' | sudo tee $sysctl_file && sudo sysctl --system"
+        return 0
+    fi
+
     if [ "$EUID" -ne 0 ]; then
         print_warning "配置 RTP 端口预留需要 root 权限，已跳过"
         print_warning "建议使用 sudo 运行安装脚本，以固化 30000-30500 端口预留"
+        return 0
+    fi
+
+    if ! check_command sysctl; then
+        print_warning "未找到 sysctl，跳过 RTP 端口预留（可稍后手动写入 $sysctl_file）"
         return 0
     fi
 
@@ -334,7 +398,10 @@ configure_rtp_port_reservation() {
     cat > "$sysctl_file" << EOF
 $expected_config
 EOF
-    sysctl --system > /dev/null
+    if ! sysctl --system > /dev/null 2>&1; then
+        print_warning "已写入 $sysctl_file，但 sysctl --system 未成功（配置将在下次重启后生效）"
+        return 0
+    fi
     print_success "RTP 端口预留已生效"
 }
 
@@ -572,12 +639,20 @@ check_docker_compose() {
 DOCKER_MIRROR="https://docker.m.daocloud.io/"
 
 # 配置变更后按需重启 Docker（仅服务在运行时）
+# 容器 / 无 systemd 环境：静默跳过，避免 set -e 下 command not found 干扰日志
 restart_docker_if_active() {
-    if systemctl is-active --quiet docker; then
+    if ! check_command systemctl; then
+        print_warning "未找到 systemctl，跳过重启 Docker（容器或非 systemd 环境）"
+        return 0
+    fi
+    if systemctl is-active --quiet docker 2>/dev/null; then
         print_info "正在重启 Docker 服务以使配置生效..."
-        systemctl daemon-reload
-        systemctl restart docker
-        print_success "Docker 服务已重启"
+        systemctl daemon-reload 2>/dev/null || true
+        if systemctl restart docker 2>/dev/null; then
+            print_success "Docker 服务已重启"
+        else
+            print_warning "Docker 重启失败，请稍后手动执行: sudo systemctl restart docker"
+        fi
     fi
 }
 
@@ -588,6 +663,12 @@ configure_docker_mirror() {
     print_info "配置 Docker 镜像源..."
 
     local config_file="/etc/docker/daemon.json"
+
+    # PANEL 容器内写 /etc/docker 不影响宿主机 dockerd
+    if _running_in_container; then
+        print_info "容器环境跳过写入宿主机 Docker 镜像源（请在宿主机配置 /etc/docker/daemon.json）"
+        return 0
+    fi
 
     if [ "$EUID" -ne 0 ]; then
         print_warning "配置 Docker 镜像源需要 root 权限，跳过此步骤"
@@ -732,7 +813,7 @@ execute_module_command() {
             return 0
         fi
         if [ "$module" = "PANEL" ]; then
-            print_info "未检测到 PANEL 目录，跳过运维控制台部署"
+            print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)（runtime 无 PANEL 目录）"
             return 0
         fi
         print_warning "模块 $module 不存在，跳过"
@@ -746,7 +827,7 @@ execute_module_command() {
             return 0
         fi
         if [ "$module" = "PANEL" ]; then
-            print_info "未检测到 PANEL/install_linux.sh，跳过运维控制台部署"
+            print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)（无 install_linux.sh）"
             return 0
         fi
         print_warning "模块 $module 没有 $install_file 文件，跳过"
@@ -892,7 +973,11 @@ install_linux() {
     
     for module in "${MODULES[@]}"; do
         if ! module_enabled_for_deploy_profile "$module"; then
-            print_info "跳过 ${MODULE_NAMES[$module]}（当前部署形态 ${EASYAIOT_DEPLOY_PROFILE} 不包含此模块）"
+            if [ "$module" = "PANEL" ]; then
+                print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)"
+            else
+                print_info "跳过 ${MODULE_NAMES[$module]}（当前部署形态 ${EASYAIOT_DEPLOY_PROFILE} 不包含此模块）"
+            fi
             continue
         fi
         print_section "安装 ${MODULE_NAMES[$module]}"
@@ -1004,6 +1089,21 @@ wait_for_container_ready() {
     return 1
 }
 
+# Nacos / MinIO：宿主机端口映射滞后时，容器内探测或 Docker healthy 亦算就绪
+_check_nacos_ready() {
+    curl -sf --connect-timeout 2 --max-time 5 "http://127.0.0.1:8848/nacos/actuator/health" >/dev/null 2>&1 && return 0
+    docker exec nacos-server curl -sf --connect-timeout 2 --max-time 5 \
+        "http://127.0.0.1:8848/nacos/actuator/health" >/dev/null 2>&1 && return 0
+    [ "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' nacos-server 2>/dev/null || echo none)" = "healthy" ]
+}
+
+_check_minio_ready() {
+    curl -sf --connect-timeout 2 --max-time 5 "http://127.0.0.1:9000/minio/health/live" >/dev/null 2>&1 && return 0
+    docker exec minio-server curl -sf --connect-timeout 2 --max-time 5 \
+        "http://127.0.0.1:9000/minio/health/live" >/dev/null 2>&1 && return 0
+    [ "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' minio-server 2>/dev/null || echo none)" = "healthy" ]
+}
+
 # 仅当容器在运行时才等待（容器未启动直接跳过）
 container_running() {
     docker ps --filter "name=$1" --format "{{.Names}}" | grep -q "$1"
@@ -1086,7 +1186,7 @@ wait_for_base_services() {
 
     if container_exists nacos-server; then
         if container_running nacos-server; then
-            wait_for_container_ready "Nacos" 60 2 curl -s --connect-timeout 2 "http://localhost:8848/nacos/actuator/health" || true
+            wait_for_container_ready "Nacos" 90 2 _check_nacos_ready || true
             _nacos_ok=true
         else
             print_error "Nacos 容器已创建但未运行，请检查: docker logs nacos-server"
@@ -1108,7 +1208,7 @@ wait_for_base_services() {
 
     if container_exists minio-server; then
         if container_running minio-server; then
-            wait_for_container_ready "MinIO" 30 2 curl -sf --connect-timeout 2 "http://localhost:9000/minio/health/live" || true
+            wait_for_container_ready "MinIO" 60 2 _check_minio_ready || true
         else
             print_error "MinIO 容器已创建但未运行！WEB 服务 nginx 将无法解析 'MinIO' 主机名"
             print_info "请检查: docker logs minio-server"
@@ -1125,6 +1225,16 @@ wait_for_base_services() {
 
 # 等待 DEVICE 模块的 iot-gateway 就绪（仅非 mini 形态）
 # 必须在 WEB 模块启动前调用，否则 nginx 代理到 gateway:48080 将返回 502→503
+_check_iot_gateway_ready() {
+    # 只探 health（根路径常 404，curl -f 会失败）；加 max-time 避免半开连接挂死
+    curl -sf --connect-timeout 2 --max-time 5 \
+        "http://127.0.0.1:48080/actuator/health" >/dev/null 2>&1 && return 0
+    # host 网络下 docker exec 与宿主机等价，但可绕过 localhost→::1 解析问题
+    docker exec iot-gateway curl -sf --connect-timeout 2 --max-time 5 \
+        "http://127.0.0.1:48080/actuator/health" >/dev/null 2>&1 && return 0
+    [ "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' iot-gateway 2>/dev/null || echo none)" = "healthy" ]
+}
+
 wait_for_device_gateway() {
     # mini 形态无 iot-gateway，直连 iot-system，无需等待
     if is_mini_deploy_profile; then
@@ -1159,33 +1269,32 @@ wait_for_device_gateway() {
         fi
     fi
 
-    # 等待端口 48080 可连接（网关 Spring Boot 完全启动）
-    # 使用 1s 间隔、200 次检测（最长 200s），比 3s*90=270s 更快感知就绪
-    # 同时检测 docker logs 是否已输出 "启动成功" 但端口尚未绑定（Spring Boot 特性）
+    # 等待健康检查通过（最长约 180s；Java 冷启动可能较慢）
     local _gw_port_ready=0
     local _gw_log_ready=0
     local _poll_attempt=0
     local _poll_elapsed=0
-    local _poll_max=200
+    local _poll_max="${IOT_GATEWAY_READY_MAX_ATTEMPTS:-180}"
     local _poll_interval=1
     print_info "等待 iot-gateway (48080) 服务就绪..."
     while [ $_poll_attempt -lt $_poll_max ]; do
-        if curl -sf --connect-timeout 2 -o /dev/null "http://localhost:48080/" 2>/dev/null || \
-           curl -sf --connect-timeout 2 -o /dev/null "http://localhost:48080/actuator/health" 2>/dev/null; then
+        if _check_iot_gateway_ready; then
             _gw_port_ready=1
             break
         fi
         # 检测 Spring Boot 是否已打印启动成功（提示用户只差端口绑定这一步了）
-        if [ $_gw_log_ready -eq 0 ] && docker logs iot-gateway --tail 5 2>/dev/null | grep -qE '(项目启动成功|Started .* in |JVM running for)'; then
+        if [ $_gw_log_ready -eq 0 ] && docker logs iot-gateway --tail 30 2>/dev/null | grep -qE '(项目启动成功|Started .* in |JVM running for)'; then
             _gw_log_ready=1
-            print_info "  Spring Boot 已初始化完成，正在等待 Netty 端口 48080 绑定..."
+            print_info "  Spring Boot 已初始化完成，正在等待健康检查通过..."
         fi
         _poll_attempt=$((_poll_attempt + 1))
         sleep "$_poll_interval"
         _poll_elapsed=$((_poll_elapsed + _poll_interval))
         # 每 10 秒输出友好进度提示
         if [ $((_poll_attempt % 10)) -eq 0 ] && [ $_poll_attempt -lt $_poll_max ]; then
-            print_info "  iot-gateway 仍在启动中...（已等待 ${_poll_elapsed}s，请耐心等待 Java 应用启动）"
+            local _health
+            _health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' iot-gateway 2>/dev/null || echo unknown)
+            print_info "  iot-gateway 仍在启动中...（已等待 ${_poll_elapsed}s，健康: ${_health}）"
         fi
     done
 
@@ -1193,11 +1302,11 @@ wait_for_device_gateway() {
         print_success "iot-gateway 已就绪（端口 48080 响应正常），WEB 服务可以安全启动"
     else
         print_warning "iot-gateway 在 ${_poll_elapsed}s 内未就绪，WEB 服务启动后 /dev-api/ 可能返回 503"
-        print_info "手动检查: curl -v http://localhost:48080/"
+        print_info "手动检查: curl -v http://127.0.0.1:48080/actuator/health"
         print_info "查看日志: docker logs iot-gateway --tail 50"
         # 如果日志显示启动成功但端口不通，给出明确提示
         if docker logs iot-gateway --tail 20 2>/dev/null | grep -qE '(项目启动成功|Started .* in )'; then
-            print_warning "Spring Boot 日志显示启动成功，但端口 48080 仍不可达，可能是网络或防火墙问题"
+            print_warning "Spring Boot 日志显示启动成功，但健康检查仍未通过，请检查端口 48080 / 防火墙"
         fi
         return 1
     fi

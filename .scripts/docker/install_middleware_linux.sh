@@ -211,6 +211,41 @@ print_section() {
     log_to_file ""
 }
 
+# 面板 / CI / 管道调用：stdin 非 TTY 或显式 noninteractive 时禁止阻塞 read。
+# 否则 set -e 下 `read` 遇 EOF 会直接 exit 1（面板一键部署典型故障）。
+_is_noninteractive() {
+    [ ! -t 0 ] \
+        || [ "${DEBIAN_FRONTEND:-}" = "noninteractive" ] \
+        || [ "${EASYAIOT_NONINTERACTIVE:-0}" = "1" ]
+}
+
+# 安全读取 y/N；非交互或 EOF 时返回默认值（默认 n）。
+# 用法: _read_yn "提示文字" "n"  → 将选择写入 REPLY_YN
+_read_yn() {
+    local prompt="$1"
+    local default="${2:-n}"
+    REPLY_YN="$default"
+    if _is_noninteractive; then
+        print_info "非交互模式，跳过询问「${prompt}」，默认: ${default}"
+        return 0
+    fi
+    echo -ne "${YELLOW}[提示]${NC} ${prompt} (y/N): "
+    # EOF 时 read 非 0；|| 兜底避免 set -e 直接退出
+    local response=""
+    read -r response || response=""
+    case "$response" in
+        [yY][eE][sS]|[yY]) REPLY_YN="y" ;;
+        [nN][oO]|[nN]|"") REPLY_YN="n" ;;
+        *) REPLY_YN="$response" ;;
+    esac
+}
+
+# 国内 apt 镜像关键词（sources.list 与 DEB822 .sources 通用）
+_APT_DOMESTIC_MIRROR_RE='(mirrors\.(tuna|aliyun|163|ustc|huawei|tencent)|tuna\.tsinghua|aliyun\.com|163\.com|ustc\.edu|huawei\.com|tencent\.com|mirror\.nju\.edu\.cn|mirrors\.bfsu\.edu\.cn)'
+
+_apt_content_is_domestic() {
+    echo "$1" | grep -qiE "$_APT_DOMESTIC_MIRROR_RE"
+}
 
 # 检查命令是否存在
 check_command() {
@@ -515,10 +550,18 @@ check_and_install_nvidia_container_toolkit() {
     print_info "nvidia-container-toolkit 是 Docker 容器使用 GPU 的必需组件"
     print_info "如果没有 NVIDIA GPU 或不需要 GPU 支持，可以跳过此步骤"
     echo ""
+
+    # 面板/CI 非交互：默认跳过，避免 read EOF 导致基础服务 install exit 1
+    if _is_noninteractive; then
+        print_info "非交互模式，跳过 nvidia-container-toolkit 安装"
+        print_info "如需 GPU，请稍后手动安装 nvidia-container-toolkit"
+        return 0
+    fi
     
     while true; do
         echo -ne "${YELLOW}[提示]${NC} 是否自动安装 nvidia-container-toolkit？(y/N): "
-        read -r response
+        local response=""
+        read -r response || response=""
         case "$response" in
             [yY][eE][sS]|[yY])
                 if [ "$EUID" -ne 0 ]; then
@@ -537,7 +580,8 @@ check_and_install_nvidia_container_toolkit() {
                     print_info "安装指南: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
                     echo ""
                     print_warning "是否继续安装其他服务？(y/N): "
-                    read -r continue_response
+                    local continue_response=""
+                    read -r continue_response || continue_response=""
                     case "$continue_response" in
                         [yY][eE][sS]|[yY])
                             print_info "继续安装其他服务..."
@@ -822,12 +866,17 @@ EOF
     elif [ "$config_updated" = true ]; then
         print_success "Docker 配置已更新"
         
-        # 重启 Docker 服务使配置生效
-        if systemctl is-active --quiet docker; then
+        # 重启 Docker 服务使配置生效（容器/无 systemd 环境跳过）
+        if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet docker 2>/dev/null; then
             print_info "正在重启 Docker 服务以使配置生效..."
-            systemctl daemon-reload
-            systemctl restart docker
-            print_success "Docker 服务已重启"
+            systemctl daemon-reload 2>/dev/null || true
+            if systemctl restart docker 2>/dev/null; then
+                print_success "Docker 服务已重启"
+            else
+                print_warning "Docker 重启失败，请稍后手动执行: sudo systemctl restart docker"
+            fi
+        elif [ -f /.dockerenv ]; then
+            print_warning "容器环境无法重启宿主机 Docker，daemon.json 变更需在宿主机手动 systemctl restart docker"
         fi
     else
         print_warning "Docker 配置检查完成，但未发现需要更新的配置"
@@ -912,15 +961,16 @@ configure_apt_mirror() {
         fi
     fi
     
-    # 如果主配置文件不是国内源，检查 sources.list.d 目录下的文件
+    # 如果主配置文件不是国内源，检查 sources.list.d（含 Ubuntu 26.04 DEB822 *.sources）
     if [ "$is_current_domestic" = false ] && [ -d "/etc/apt/sources.list.d" ]; then
-        for list_file in /etc/apt/sources.list.d/*.list; do
-            if [ -f "$list_file" ]; then
-                local file_content=$(cat "$list_file")
-                if echo "$file_content" | grep -qiE "(mirrors\.(tuna|aliyun|163|ustc|huawei|tencent)|tuna\.tsinghua|aliyun\.com|163\.com|ustc\.edu|huawei\.com|tencent\.com|mirror\.nju\.edu\.cn|mirrors\.bfsu\.edu\.cn)"; then
-                    is_current_domestic=true
-                    break
-                fi
+        local list_file
+        for list_file in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+            [ -f "$list_file" ] || continue
+            local file_content
+            file_content=$(cat "$list_file")
+            if echo "$file_content" | grep -qiE "(mirrors\.(tuna|aliyun|163|ustc|huawei|tencent)|tuna\.tsinghua|aliyun\.com|163\.com|ustc\.edu|huawei\.com|tencent\.com|mirror\.nju\.edu\.cn|mirrors\.bfsu\.edu\.cn)"; then
+                is_current_domestic=true
+                break
             fi
         done
     fi
@@ -954,8 +1004,10 @@ configure_apt_mirror() {
     
     if [ -f "$local_sources_list" ]; then
         local_sources_content=$(cat "$local_sources_list")
-        has_local_source=true
-        # 检查是否是国内源（包含常见国内镜像关键词）
+        # Ubuntu 26.04 的 sources.list 常为空/仅注释，真实源在 ubuntu.sources
+        if echo "$local_sources_content" | grep -qE '^[[:space:]]*deb(-src)?[[:space:]]'; then
+            has_local_source=true
+        fi
         if echo "$local_sources_content" | grep -qiE "(mirrors\.(tuna|aliyun|163|ustc|huawei|tencent)|tuna\.tsinghua|aliyun\.com|163\.com|ustc\.edu|huawei\.com|tencent\.com)"; then
             is_domestic_mirror=true
         fi
@@ -974,10 +1026,19 @@ configure_apt_mirror() {
         print_info "当前系统 apt 源可能下载较慢，建议替换为国内镜像源"
     fi
     echo ""
+
+    # 面板一键部署 stdin=DEVNULL：禁止阻塞 read，否则 set -e 下 EOF → exit 1
+    if _is_noninteractive; then
+        print_info "非交互模式（面板/CI），跳过 apt 源替换询问，保持当前配置"
+        echo "skip" > "$apt_mirror_marker" 2>/dev/null || true
+        return 0
+    fi
     
     while true; do
         echo -ne "${YELLOW}[提示]${NC} 是否替换 apt 源为国内源？(y/N): "
-        read -r response
+        # EOF 兜底，避免 set -e 无声退出
+        local response=""
+        read -r response || response=""
         case "$response" in
             [yY][eE][sS]|[yY])
                 # 用户选择替换
@@ -1016,14 +1077,37 @@ configure_apt_mirror() {
                     
                     if [ -z "$codename" ]; then
                         print_error "无法检测系统版本代号，跳过 apt 源配置"
-                        return 1
+                        return 0
                     fi
                     
                     print_info "检测到系统版本代号: $codename"
                     
                     # 根据系统类型配置国内源
                     if [ "$os_id" = "ubuntu" ]; then
-                        # Ubuntu 使用清华大学镜像源
+                        local ubuntu_sources="/etc/apt/sources.list.d/ubuntu.sources"
+                        # Ubuntu 24.04+/26.04 默认 DEB822：写入 ubuntu.sources，避免与空 sources.list 冲突
+                        if [ -f "$ubuntu_sources" ] || [ ! -s "$sources_list" ]; then
+                            mkdir -p /etc/apt/sources.list.d
+                            cp "$ubuntu_sources" "${ubuntu_sources}.bak.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
+                            cat > "$ubuntu_sources" << EOF
+Types: deb
+URIs: https://mirrors.tuna.tsinghua.edu.cn/ubuntu/
+Suites: $codename $codename-updates $codename-backports
+Components: main restricted universe multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+Types: deb
+URIs: https://mirrors.tuna.tsinghua.edu.cn/ubuntu/
+Suites: $codename-security
+Components: main restricted universe multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+EOF
+                            cat > "$sources_list" << EOF
+# Ubuntu apt sources are configured in /etc/apt/sources.list.d/ubuntu.sources (EasyAIoT)
+EOF
+                            print_success "已配置 Ubuntu 清华大学镜像源（DEB822）"
+                        else
+                        # Ubuntu 使用清华大学镜像源（classic sources.list）
                         cat > "$sources_list" << EOF
 # 清华大学 Ubuntu 镜像源
 deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $codename main restricted universe multiverse
@@ -1038,6 +1122,7 @@ deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $codename-security main restric
 # deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $codename-security main restricted universe multiverse
 EOF
                         print_success "已配置 Ubuntu 清华大学镜像源"
+                        fi
                     elif [ "$os_id" = "debian" ]; then
                         # Debian 使用清华大学镜像源
                         local debian_version=""
@@ -1155,9 +1240,15 @@ install_docker() {
     echo ""
     
     local docker_data_root=""
+    if _is_noninteractive; then
+        docker_data_root="${EASYAIOT_DOCKER_DATA_ROOT:-/var/lib/docker}"
+        print_info "非交互模式，使用 Docker data-root: $docker_data_root"
+    fi
     while true; do
-        echo -ne "${YELLOW}[提示]${NC} 请输入 Docker data-root 路径（直接回车使用默认路径）: "
-        read -r docker_data_root
+        if [ -z "$docker_data_root" ]; then
+            echo -ne "${YELLOW}[提示]${NC} 请输入 Docker data-root 路径（直接回车使用默认路径）: "
+            read -r docker_data_root || docker_data_root=""
+        fi
         
         # 如果用户直接回车，使用默认路径
         if [ -z "$docker_data_root" ]; then
@@ -1169,6 +1260,7 @@ install_docker() {
         # 验证路径格式（必须是绝对路径）
         if [[ ! "$docker_data_root" =~ ^/ ]]; then
             print_error "请输入绝对路径（以 / 开头）"
+            docker_data_root=""
             continue
         fi
         
@@ -1176,12 +1268,14 @@ install_docker() {
         if [ -d "$docker_data_root" ]; then
             if [ ! -w "$docker_data_root" ]; then
                 print_error "路径 $docker_data_root 不可写，请选择其他路径"
+                docker_data_root=""
                 continue
             fi
         else
             # 尝试创建目录
             if ! mkdir -p "$docker_data_root" 2>/dev/null; then
                 print_error "无法创建路径 $docker_data_root，请检查权限或选择其他路径"
+                docker_data_root=""
                 continue
             fi
         fi
@@ -1377,10 +1471,27 @@ check_and_install_docker() {
     echo ""
     print_info "Docker 是运行中间件服务的必需组件"
     echo ""
+
+    # 面板一键部署：非交互下自动尝试安装 Docker（而非阻塞/失败）
+    if _is_noninteractive; then
+        print_info "非交互模式，自动尝试安装 Docker..."
+        if [ "$EUID" -ne 0 ]; then
+            print_error "非交互安装 Docker 需要 root 权限"
+            return 1
+        fi
+        if install_docker; then
+            print_success "Docker 安装成功"
+            check_docker_permission "$@" || return 1
+            return 0
+        fi
+        print_error "Docker 自动安装失败，请手动安装后重试"
+        return 1
+    fi
     
     while true; do
         echo -ne "${YELLOW}[提示]${NC} 是否自动安装 Docker？(y/N): "
-        read -r response
+        local response=""
+        read -r response || response=""
         case "$response" in
             [yY][eE][sS]|[yY])
                 if install_docker; then
@@ -1443,7 +1554,13 @@ check_and_install_docker_compose() {
             
             while true; do
                 echo -ne "${YELLOW}[提示]${NC} 是否升级 Docker Compose？(y/N): "
-                read -r response
+                local response="n"
+                if _is_noninteractive; then
+                    print_info "非交互模式，自动尝试升级 Docker Compose..."
+                    response="y"
+                else
+                    read -r response || response=""
+                fi
                 case "$response" in
                     [yY][eE][sS]|[yY])
                         if [ "$EUID" -ne 0 ]; then
@@ -1487,7 +1604,13 @@ check_and_install_docker_compose() {
     
     while true; do
         echo -ne "${YELLOW}[提示]${NC} 是否自动安装 Docker Compose？(y/N): "
-        read -r response
+        local response="n"
+        if _is_noninteractive; then
+            print_info "非交互模式，自动安装 Docker Compose..."
+            response="y"
+        else
+            read -r response || response=""
+        fi
         case "$response" in
             [yY][eE][sS]|[yY])
                 if install_docker_compose; then
@@ -3139,21 +3262,66 @@ configure_postgresql_max_connections() {
     return 0
 }
 
+# Nacos HTTP 就绪：优先宿主机发布端口，失败则 docker exec 容器内探测。
+# 批量 compose up 时 docker-proxy/iptables 可能滞后，导致宿主机 localhost:8848
+# 长时间连不上，但容器内（及 easyaiot-network 上的业务服务）已经可用。
+_nacos_is_ready() {
+    if command -v curl >/dev/null 2>&1; then
+        if curl -sf --connect-timeout 2 --max-time 5 \
+            "http://127.0.0.1:8848/nacos/actuator/health" >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'nacos-server'; then
+        if docker exec nacos-server curl -sf --connect-timeout 2 --max-time 5 \
+            "http://127.0.0.1:8848/nacos/actuator/health" >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# 对 Nacos HTTP API 发请求（参数同 curl）。宿主机 8848 不通时回退到容器内 curl。
+# URL 请使用 http://127.0.0.1:8848/... 或 http://localhost:8848/...
+_curl_nacos() {
+    local out="" rc=0
+    out=$(curl -s -m 5 --connect-timeout 3 "$@" 2>/dev/null) || rc=$?
+    if [ "$rc" -eq 0 ]; then
+        printf '%s' "$out"
+        return 0
+    fi
+    if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'nacos-server'; then
+        return "$rc"
+    fi
+    local args=() a
+    for a in "$@"; do
+        a="${a//http:\/\/localhost:8848/http://127.0.0.1:8848}"
+        args+=("$a")
+    done
+    docker exec nacos-server curl -s -m 5 --connect-timeout 3 "${args[@]}" 2>/dev/null
+}
+
 # 等待 Nacos 服务就绪
 wait_for_nacos() {
-    local max_attempts=60
+    local max_attempts="${NACOS_READY_MAX_ATTEMPTS:-90}"
     local attempt=0
-    
+
     print_info "等待 Nacos 服务就绪..."
     while [ $attempt -lt $max_attempts ]; do
-        if curl -s --connect-timeout 2 "http://localhost:8848/nacos/actuator/health" > /dev/null 2>&1; then
+        if _nacos_is_ready; then
             print_success "Nacos 服务已就绪"
             return 0
         fi
         attempt=$((attempt + 1))
+        if [ $((attempt % 10)) -eq 0 ]; then
+            local st health
+            st=$(container_status nacos-server 2>/dev/null || echo "missing")
+            health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' nacos-server 2>/dev/null || echo "unknown")
+            print_info "等待 Nacos 就绪... (${attempt}/${max_attempts})，容器: ${st}，健康: ${health}"
+        fi
         sleep 2
     done
-    
+
     print_error "Nacos 服务未就绪"
     return 1
 }
@@ -3182,9 +3350,30 @@ EOF
     fi
 }
 
+# Milvus HTTP 就绪：宿主机发布端口优先，失败则容器内探测 / 采纳 Docker health=healthy。
+# 与 Nacos 相同：批量 compose up 后 docker-proxy 可能滞后，宿主机 curl 不通但容器内已就绪。
+_milvus_is_ready() {
+    if command -v curl >/dev/null 2>&1; then
+        if curl -sf --connect-timeout 2 --max-time 5 \
+            "http://127.0.0.1:9091/healthz" >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'milvus-server'; then
+        if docker exec milvus-server curl -sf --connect-timeout 2 --max-time 5 \
+            "http://127.0.0.1:9091/healthz" >/dev/null 2>&1; then
+            return 0
+        fi
+        local health
+        health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' milvus-server 2>/dev/null || echo none)
+        [ "$health" = "healthy" ] && return 0
+    fi
+    return 1
+}
+
 # 等待 Milvus 向量数据库就绪
 wait_for_milvus() {
-    local max_attempts=90
+    local max_attempts="${MILVUS_READY_MAX_ATTEMPTS:-90}"
     local attempt=0
 
     print_info "等待 Milvus 向量数据库就绪..."
@@ -3206,10 +3395,10 @@ wait_for_milvus() {
             continue
         fi
 
-        if curl -sf --connect-timeout 2 "http://localhost:9091/healthz" > /dev/null 2>&1; then
+        if _milvus_is_ready; then
             print_success "Milvus 向量数据库已就绪"
-            print_info "  健康检查: http://localhost:9091/healthz"
-            print_info "  gRPC 端口: localhost:19530"
+            print_info "  健康检查: http://127.0.0.1:9091/healthz"
+            print_info "  gRPC 端口: 127.0.0.1:19530"
             return 0
         fi
 
@@ -3374,9 +3563,13 @@ init_kafka_iot_topics() {
             --describe --topic "$topic" 2>&1) || true
 
         if echo "$describe_output" | grep -q "Topic: ${topic}"; then
-            current_partitions=$(echo "$describe_output" | grep -E "PartitionCount:|Partition:" | head -n 1 | grep -oE '[0-9]+' | head -n 1)
+            # 只取 PartitionCount:，勿用行内第一个数字（TopicId 常含数字，曾误判为 35/4/6…）
+            current_partitions=$(echo "$describe_output" \
+                | grep -oE 'PartitionCount:[[:space:]]*[0-9]+' \
+                | head -n 1 \
+                | grep -oE '[0-9]+$' || true)
             if [ -z "$current_partitions" ]; then
-                current_partitions=$(echo "$describe_output" | grep -c "Partition:" || echo "0")
+                current_partitions=$(echo "$describe_output" | grep -cE '[[:space:]]Partition:[[:space:]]*[0-9]+' || echo "0")
             fi
             if [ -n "$current_partitions" ] && [ "$current_partitions" -ge "$partitions" ] 2>/dev/null; then
                 print_success "主题 ${topic} 已存在，分区数 ${current_partitions}（>= ${partitions}）"
@@ -3386,7 +3579,9 @@ init_kafka_iot_topics() {
             alter_output=$(docker exec kafka-server /opt/kafka/bin/kafka-topics.sh \
                 --bootstrap-server localhost:9092 \
                 --alter --topic "$topic" --partitions "$partitions" 2>&1) || true
-            if echo "$alter_output" | grep -qiE "error|exception|failed"; then
+            if echo "$alter_output" | grep -qiE 'already has [[:digit:]]+ partition'; then
+                print_success "主题 ${topic} 分区数已满足要求（>= ${partitions}）"
+            elif echo "$alter_output" | grep -qiE "error|exception|failed"; then
                 print_warning "主题 ${topic} 扩容失败: ${alter_output}"
             else
                 print_success "主题 ${topic} 已扩容至 ${partitions} 分区"
@@ -3912,8 +4107,8 @@ init_databases() {
     echo ""
     if middleware_service_enabled Nacos && wait_for_nacos; then
         ensure_nacos_admin_user || print_warning "Nacos 账号初始化未完成，继续尝试验证..."
-        if curl -s -m 5 -X POST "http://localhost:8848/nacos/v1/auth/login" \
-            --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_INIT_PASSWORD}" 2>/dev/null \
+        if _curl_nacos -X POST "http://127.0.0.1:8848/nacos/v1/auth/login" \
+            --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_INIT_PASSWORD}" \
             | grep -q '"accessToken"'; then
             print_success "Nacos 账号验证通过（用户 nacos，密码与各服务 bootstrap 一致）"
         else
@@ -3924,7 +4119,12 @@ init_databases() {
             echo ""
             while true; do
                 echo -ne "${YELLOW}[提示]${NC} 是否已经完成 Nacos 密码配置（密码必须为: basiclab@iot78475418754）？(y/N): "
-                read -r response
+                if _is_noninteractive; then
+                    print_warning "非交互模式：Nacos 密码未验证通过，请稍后手动修正后重启相关服务"
+                    break
+                fi
+                local response=""
+                read -r response || response=""
                 case "$response" in
                     [yY][eE][sS]|[yY])
                         print_success "确认已配置 Nacos 密码，继续执行..."
@@ -5274,7 +5474,7 @@ fix_nacos_startup_failure() {
     health=$(docker inspect -f '{{.State.Health.Status}}' nacos-server 2>/dev/null) || health=""
 
     if [ "$status" = "running" ]; then
-        if curl -s -m 2 "http://localhost:8848/nacos/actuator/health" >/dev/null 2>&1; then
+        if _nacos_is_ready; then
             return 0
         fi
         [ "$health" = "healthy" ] && return 0
@@ -5320,49 +5520,49 @@ ensure_nacos_admin_user() {
     local resp token
 
     # 先用目标密码尝试登录；成功说明 admin 已正确初始化
-    if curl -s -m 5 -X POST "http://localhost:8848/nacos/v1/auth/login" \
-        --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_INIT_PASSWORD}" 2>/dev/null \
+    if _curl_nacos -X POST "http://127.0.0.1:8848/nacos/v1/auth/login" \
+        --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_INIT_PASSWORD}" \
         | grep -q '"accessToken"'; then
         # admin 已存在且密码正确，确保 dev 命名空间存在
-        token=$(curl -s -m 5 -X POST "http://localhost:8848/nacos/v1/auth/login" \
-            --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_INIT_PASSWORD}" 2>/dev/null \
+        token=$(_curl_nacos -X POST "http://127.0.0.1:8848/nacos/v1/auth/login" \
+            --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_INIT_PASSWORD}" \
             | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p')
         if [ -n "$token" ]; then
-            curl -s -m 5 -X POST "http://localhost:8848/nacos/v1/console/namespaces?accessToken=${token}" \
+            _curl_nacos -X POST "http://127.0.0.1:8848/nacos/v1/console/namespaces?accessToken=${token}" \
                 -d "customNamespaceId=dev&namespaceName=dev&namespaceDesc=dev" >/dev/null 2>&1 || true
         fi
         return 0
     fi
 
     # 目标密码登录失败，尝试旧版匿名 /v1/auth/users/admin 接口（兼容 Nacos <2.2）
-    resp=$(curl -s -m 5 -X POST "http://localhost:8848/nacos/v1/auth/users/admin" \
-        --data-urlencode "password=${NACOS_INIT_PASSWORD}" 2>/dev/null || true)
+    resp=$(_curl_nacos -X POST "http://127.0.0.1:8848/nacos/v1/auth/users/admin" \
+        --data-urlencode "password=${NACOS_INIT_PASSWORD}" || true)
     if echo "$resp" | grep -q '"username"'; then
         print_success "Nacos admin 用户已初始化（匿名接口，用户 nacos，密码与服务 bootstrap 一致）"
-        token=$(curl -s -m 5 -X POST "http://localhost:8848/nacos/v1/auth/login" \
-            --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_INIT_PASSWORD}" 2>/dev/null \
+        token=$(_curl_nacos -X POST "http://127.0.0.1:8848/nacos/v1/auth/login" \
+            --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_INIT_PASSWORD}" \
             | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p')
-        [ -n "$token" ] && curl -s -m 5 -X POST "http://localhost:8848/nacos/v1/console/namespaces?accessToken=${token}" \
+        [ -n "$token" ] && _curl_nacos -X POST "http://127.0.0.1:8848/nacos/v1/console/namespaces?accessToken=${token}" \
             -d "customNamespaceId=dev&namespaceName=dev&namespaceDesc=dev" >/dev/null 2>&1 || true
         print_info "Nacos 命名空间 dev 已创建"
         return 0
     fi
 
     # 匿名接口也失败，尝试用默认密码 nacos/nacos 登录（Nacos 2.5 首次启动默认账号）
-    token=$(curl -s -m 5 -X POST "http://localhost:8848/nacos/v1/auth/login" \
-        --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_DEFAULT_PASSWORD}" 2>/dev/null \
+    token=$(_curl_nacos -X POST "http://127.0.0.1:8848/nacos/v1/auth/login" \
+        --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_DEFAULT_PASSWORD}" \
         | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p')
     if [ -n "$token" ]; then
         print_info "使用 Nacos 默认密码登录成功，正在修改密码..."
         # 修改密码为目标密码
         local change_resp
-        change_resp=$(curl -s -m 5 -X PUT "http://localhost:8848/nacos/v1/auth/users?accessToken=${token}" \
+        change_resp=$(_curl_nacos -X PUT "http://127.0.0.1:8848/nacos/v1/auth/users?accessToken=${token}" \
             --data-urlencode "username=nacos" \
-            --data-urlencode "newPassword=${NACOS_INIT_PASSWORD}" 2>/dev/null || true)
+            --data-urlencode "newPassword=${NACOS_INIT_PASSWORD}" || true)
         if echo "$change_resp" | grep -qE '"code":200|"ok":true'; then
             print_success "Nacos admin 密码已更新为目标密码"
             # 确保 dev 命名空间
-            curl -s -m 5 -X POST "http://localhost:8848/nacos/v1/console/namespaces?accessToken=${token}" \
+            _curl_nacos -X POST "http://127.0.0.1:8848/nacos/v1/console/namespaces?accessToken=${token}" \
                 -d "customNamespaceId=dev&namespaceName=dev&namespaceDesc=dev" >/dev/null 2>&1 || true
             print_info "Nacos 命名空间 dev 已创建"
             return 0
@@ -5372,20 +5572,20 @@ ensure_nacos_admin_user() {
 
     # 最后兜底：用默认密码登录后直接 POST 创建用户（覆盖已存在的）
     if [ -z "$token" ]; then
-        token=$(curl -s -m 5 -X POST "http://localhost:8848/nacos/v1/auth/login" \
-            --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_DEFAULT_PASSWORD}" 2>/dev/null \
+        token=$(_curl_nacos -X POST "http://127.0.0.1:8848/nacos/v1/auth/login" \
+            --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_DEFAULT_PASSWORD}" \
             | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p')
     fi
     if [ -n "$token" ]; then
-        curl -s -m 5 -X POST "http://localhost:8848/nacos/v1/auth/users?accessToken=${token}" \
+        _curl_nacos -X POST "http://127.0.0.1:8848/nacos/v1/auth/users?accessToken=${token}" \
             --data-urlencode "username=nacos" \
             --data-urlencode "password=${NACOS_INIT_PASSWORD}" >/dev/null 2>&1 || true
         # 再验证
-        if curl -s -m 5 -X POST "http://localhost:8848/nacos/v1/auth/login" \
-            --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_INIT_PASSWORD}" 2>/dev/null \
+        if _curl_nacos -X POST "http://127.0.0.1:8848/nacos/v1/auth/login" \
+            --data-urlencode "username=nacos" --data-urlencode "password=${NACOS_INIT_PASSWORD}" \
             | grep -q '"accessToken"'; then
             print_success "Nacos admin 用户已创建并验证通过（用户 nacos，密码与服务 bootstrap 一致）"
-            curl -s -m 5 -X POST "http://localhost:8848/nacos/v1/console/namespaces?accessToken=${token}" \
+            _curl_nacos -X POST "http://127.0.0.1:8848/nacos/v1/console/namespaces?accessToken=${token}" \
                 -d "customNamespaceId=dev&namespaceName=dev&namespaceDesc=dev" >/dev/null 2>&1 || true
             print_info "Nacos 命名空间 dev 已创建"
             return 0
@@ -5906,7 +6106,9 @@ clean_middleware() {
     print_warning "这将删除所有中间件容器、数据卷和存储目录，确定要继续吗？(y/N)"
     print_info "注意：镜像不会被删除，以节省重新下载的时间"
     print_warning "警告：这将彻底删除所有数据，包括数据库、配置和日志！"
-    read -r response
+    # 非交互 stdin(EOF) 下 read 返回非 0，set -e 会退出——兜底为空(等同取消)
+    local response=""
+    read -r response || response=""
     
     if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
         print_section "清理所有中间件"

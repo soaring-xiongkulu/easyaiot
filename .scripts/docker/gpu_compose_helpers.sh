@@ -113,3 +113,23 @@ gpu_compose_file_args() {
         echo "-f ${base}"
     fi
 }
+
+# 无源码 runtime / 缺入口脚本时叠加 compose override，避免 ./:/app 盖掉镜像内应用
+should_use_source_free_compose() {
+    local root="${EASYAIOT_ROOT:-}"
+    [ -n "$root" ] && [ -f "${root}/.scripts/docker/.source_free_runtime" ] && return 0
+    [ ! -f "${SCRIPT_DIR:-.}/docker-entrypoint.sh" ] && return 0
+    [ ! -f "${SCRIPT_DIR:-.}/run.py" ] && return 0
+    return 1
+}
+
+# 向 compose -f 参数数组追加 source-free override（调用方传入 nameref 数组名）
+append_source_free_compose_file() {
+    local -n _files_ref=$1
+    if should_use_source_free_compose && [ -f docker-compose.source-free.yaml ]; then
+        _files_ref+=(-f docker-compose.source-free.yaml)
+        if type print_info >/dev/null 2>&1; then
+            print_info "无源码 runtime：使用 docker-compose.source-free.yaml（不挂载 ./:/app）"
+        fi
+    fi
+}

@@ -44,6 +44,7 @@ FORCE_PYTHON=false
 MINIO_ENDPOINT="127.0.0.1:9000"
 MINIO_ACCESS_KEY="minioadmin"
 MINIO_SECRET_KEY="basiclab@iot975248395"
+MINIO_MC_NETWORK="host"
 MC_IMAGE="minio/mc:latest"
 
 BUCKET_LIST=(
@@ -227,10 +228,12 @@ ensure_mc_image() {
 }
 
 # 在容器内执行 mc（minio/mc 镜像无 shell，需挂载配置目录复用 alias）
+# 宿主机 9000 不通时走 easyaiot-network + minio-server:9000（与 resolve_minio_endpoint 一致）
 mc_docker_run() {
     local mc_config_dir="$1"
     shift
-    docker run --rm --network host \
+    local net="${MINIO_MC_NETWORK:-host}"
+    docker run --rm --network "$net" \
         -v "${mc_config_dir}:/root/.mc" \
         "$MC_IMAGE" "$@"
 }
@@ -271,7 +274,7 @@ init_minio_with_mc() {
             dest="easyaiot/${bucket_name}"
         fi
         print_info "mc mirror: /data/${rel} -> ${dest}"
-        docker run --rm --network host \
+        docker run --rm --network "${MINIO_MC_NETWORK:-host}" \
             -v "${mc_config_dir}:/root/.mc" \
             -v "${minio_base_dir}:/data:ro" \
             "$MC_IMAGE" mirror --overwrite "/data/${rel}" "${dest}" || mc_rc=1
@@ -288,21 +291,51 @@ init_minio_with_mc() {
     return 1
 }
 
-# 等待 MinIO 服务就绪
+# 解析可用的 MinIO API 地址：优先宿主机发布端口，否则走 compose 网络（供 mc 容器访问）
+resolve_minio_endpoint() {
+    if curl -sf --connect-timeout 2 --max-time 5 \
+        "http://127.0.0.1:9000/minio/health/live" >/dev/null 2>&1; then
+        MINIO_ENDPOINT="127.0.0.1:9000"
+        MINIO_MC_NETWORK="host"
+        return 0
+    fi
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'minio-server'; then
+        if docker exec minio-server curl -sf --connect-timeout 2 --max-time 5 \
+            "http://127.0.0.1:9000/minio/health/live" >/dev/null 2>&1 \
+            || [ "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' minio-server 2>/dev/null)" = "healthy" ]; then
+            MINIO_ENDPOINT="minio-server:9000"
+            MINIO_MC_NETWORK="easyaiot-network"
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# 等待 MinIO 服务就绪（宿主机端口 / 容器内 / Docker healthy 任一即可）
+_minio_is_ready() {
+    resolve_minio_endpoint
+}
+
 wait_for_minio() {
-    local max_attempts=60
+    local max_attempts="${MINIO_READY_MAX_ATTEMPTS:-90}"
     local attempt=0
-    
+
     print_info "等待 MinIO 服务就绪..."
     while [ $attempt -lt $max_attempts ]; do
-        if curl -s --connect-timeout 2 "http://localhost:9000/minio/health/live" > /dev/null 2>&1; then
-            print_success "MinIO 服务已就绪"
+        if _minio_is_ready; then
+            print_success "MinIO 服务已就绪（${MINIO_ENDPOINT}，mc 网络: ${MINIO_MC_NETWORK:-host}）"
             return 0
         fi
         attempt=$((attempt + 1))
+        if [ $((attempt % 10)) -eq 0 ]; then
+            local st health
+            st=$(docker inspect -f '{{.State.Status}}' minio-server 2>/dev/null || echo missing)
+            health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' minio-server 2>/dev/null || echo unknown)
+            print_info "等待 MinIO 就绪... (${attempt}/${max_attempts})，容器: ${st}，健康: ${health}"
+        fi
         sleep 2
     done
-    
+
     print_error "MinIO 服务未就绪"
     return 1
 }

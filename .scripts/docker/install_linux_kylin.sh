@@ -96,7 +96,7 @@ MODULES=(
     "APP"              # App移动端H5（仅 full 全量形态）
     "VISUALIZE"        # 可视化编辑器（仅 full 全量形态）
     "TRANSFORM"        # 系统对接（仅 full 全量形态）
-    "PANEL"            # 独立运维控制台（所有形态，默认启用）
+    "PANEL"            # 运维控制台：源码/Docker 可装；安装包本身即为 PANEL，部署默认跳过
 )
 
 # 模块名称映射
@@ -218,6 +218,42 @@ detect_architecture() {
     esac
 }
 
+# 是否运行在容器内（PANEL Docker 版等：无 systemd/sysctl，且网卡 IP 为桥接地址）
+_running_in_container() {
+    [ -f /.dockerenv ] && return 0
+    if [ -r /proc/1/cgroup ] && grep -Eq '(docker|containerd|kubepods|/libpod)' /proc/1/cgroup 2>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
+# Docker 默认桥接网段（容器内自动探测到的 172.17–31.x 通常不是宿主机 LAN IP）
+_is_likely_docker_bridge_ip() {
+    case "${1:-}" in
+        172.1[7-9].*|172.2[0-9].*|172.3[0-1].*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# 经 docker.sock + --network=host 探测真实宿主机出口 IP（PANEL 容器场景）
+_detect_host_ip_via_docker_host_net() {
+    check_command docker || return 1
+    docker info >/dev/null 2>&1 || return 1
+
+    local probe_img=""
+    for probe_img in alpine:latest docker.m.daocloud.io/library/alpine:latest busybox:latest; do
+        if docker image inspect "$probe_img" >/dev/null 2>&1; then
+            break
+        fi
+        probe_img=""
+    done
+    [ -n "$probe_img" ] || return 1
+
+    docker run --rm --network=host --entrypoint sh "$probe_img" -c \
+        "ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.*src \([0-9.]*\).*/\1/p'" \
+        2>/dev/null
+}
+
 # 检测宿主机 IPv4 地址，并导出给子模块安装脚本和 docker compose 使用
 detect_host_ip() {
     # 已显式导出 HOST_IP 时直接采用（错误提示承诺的逃生通道；也天然避免重复探测）
@@ -227,6 +263,17 @@ detect_host_ip() {
     fi
 
     local host_ip=""
+
+    # PANEL 等容器内：本机网卡是 Docker 桥接地址，需经 --network=host 探测宿主机
+    if _running_in_container; then
+        host_ip=$(_detect_host_ip_via_docker_host_net | head -n 1 | tr -d '[:space:]')
+        if [ -n "$host_ip" ] && ! _is_likely_docker_bridge_ip "$host_ip"; then
+            export HOST_IP="$host_ip"
+            print_info "检测到宿主机 IP（容器经 docker host 网络）: $HOST_IP"
+            return 0
+        fi
+        host_ip=""
+    fi
 
     if check_command ip; then
         host_ip=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')
@@ -246,6 +293,11 @@ detect_host_ip() {
         return 1
     fi
 
+    if _is_likely_docker_bridge_ip "$host_ip"; then
+        print_warning "检测到疑似 Docker 桥接 IP: $host_ip（媒体地址可能不正确）"
+        print_warning "请在 panel.env / 环境变量中设置 HOST_IP=<宿主机局域网 IP> 后重试"
+    fi
+
     export HOST_IP="$host_ip"
     print_info "检测到宿主机 IP: $HOST_IP"
     return 0
@@ -260,9 +312,21 @@ configure_rtp_port_reservation() {
         return 0
     fi
 
+    # PANEL 容器内写 /etc/sysctl.d 与 sysctl 只作用于容器，对宿主机无效
+    if _running_in_container; then
+        print_warning "容器环境无法配置宿主机 RTP 端口预留，已跳过"
+        print_info "建议在宿主机执行: echo '$expected_config' | sudo tee $sysctl_file && sudo sysctl --system"
+        return 0
+    fi
+
     if [ "$EUID" -ne 0 ]; then
         print_warning "配置 RTP 端口预留需要 root 权限，已跳过"
         print_warning "建议使用 sudo 运行安装脚本，以固化 30000-30500 端口预留"
+        return 0
+    fi
+
+    if ! check_command sysctl; then
+        print_warning "未找到 sysctl，跳过 RTP 端口预留（可稍后手动写入 $sysctl_file）"
         return 0
     fi
 
@@ -277,7 +341,10 @@ configure_rtp_port_reservation() {
     cat > "$sysctl_file" << EOF
 $expected_config
 EOF
-    sysctl --system > /dev/null
+    if ! sysctl --system > /dev/null 2>&1; then
+        print_warning "已写入 $sysctl_file，但 sysctl --system 未成功（配置将在下次重启后生效）"
+        return 0
+    fi
     print_success "RTP 端口预留已生效"
 }
 
@@ -670,7 +737,7 @@ execute_module_command() {
             return 0
         fi
         if [ "$module" = "PANEL" ]; then
-            print_info "未检测到 PANEL 目录，跳过运维控制台部署"
+            print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)（runtime 无 PANEL 目录）"
             return 0
         fi
         print_warning "模块 $module 不存在，跳过"
@@ -684,7 +751,7 @@ execute_module_command() {
             return 0
         fi
         if [ "$module" = "PANEL" ]; then
-            print_info "未检测到 PANEL/install_linux.sh，跳过运维控制台部署"
+            print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)（无 install_linux.sh）"
             return 0
         fi
         print_warning "模块 $module 没有 $install_file 文件，跳过"
@@ -833,7 +900,11 @@ install_linux() {
     
     for module in "${MODULES[@]}"; do
         if ! module_enabled_for_deploy_profile "$module"; then
-            print_info "跳过 ${MODULE_NAMES[$module]}（当前部署形态 ${EASYAIOT_DEPLOY_PROFILE} 不包含此模块）"
+            if [ "$module" = "PANEL" ]; then
+                print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)"
+            else
+                print_info "跳过 ${MODULE_NAMES[$module]}（当前部署形态 ${EASYAIOT_DEPLOY_PROFILE} 不包含此模块）"
+            fi
             continue
         fi
         print_section "安装 ${MODULE_NAMES[$module]}"
@@ -902,7 +973,7 @@ wait_for_base_services() {
         wait_for_container_ready "PostgreSQL" 60 2 docker exec postgres-server pg_isready -U postgres || true
     fi
     if container_running nacos-server; then
-        wait_for_container_ready "Nacos" 60 2 curl -s --connect-timeout 2 "http://localhost:8848/nacos/actuator/health" || true
+            wait_for_container_ready "Nacos" 90 2 bash -c 'curl -sf --connect-timeout 2 --max-time 5 http://127.0.0.1:8848/nacos/actuator/health >/dev/null 2>&1 || docker exec nacos-server curl -sf --connect-timeout 2 --max-time 5 http://127.0.0.1:8848/nacos/actuator/health >/dev/null 2>&1 || [ "$(docker inspect -f "{{.State.Health.Status}}" nacos-server 2>/dev/null)" = "healthy" ]' || true
     fi
     if container_running redis-server; then
         wait_for_container_ready "Redis" 30 1 docker exec redis-server redis-cli ping || true

@@ -4,8 +4,8 @@ from __future__ import annotations
 import logging
 import os
 import platform
+import queue
 import re
-import select
 import shutil
 import signal
 import subprocess
@@ -77,12 +77,16 @@ def detect_host_platform() -> Dict[str, Any]:
     }
 
 
+def _is_wsl_system_bash(path: str) -> bool:
+    """识别 Windows 自带的 WSL 启动器 bash（不宜直接跑宿主机 Git Bash 脚本）。"""
+    norm = (path or '').replace('/', '\\').lower()
+    return norm.endswith('\\system32\\bash.exe') or norm.endswith('\\sysnative\\bash.exe')
+
+
 def resolve_bash_executable() -> str:
-    """解析可用的 bash（Windows 上优先 Git Bash）。"""
-    found = shutil.which('bash')
-    if found:
-        return found
-    if os.name == 'nt' or (platform.system() or '').lower().startswith('win'):
+    """解析可用的 bash（Windows 上优先 Git Bash，避免误用 system32\\bash.exe）。"""
+    is_win = os.name == 'nt' or (platform.system() or '').lower().startswith('win')
+    if is_win:
         candidates = [
             os.path.expandvars(r'%ProgramFiles%\Git\bin\bash.exe'),
             os.path.expandvars(r'%ProgramFiles%\Git\usr\bin\bash.exe'),
@@ -94,9 +98,98 @@ def resolve_bash_executable() -> str:
         for path in candidates:
             if path and os.path.isfile(path):
                 return path
-    raise FileNotFoundError(
-        '未找到 bash。Windows 请安装 Git for Windows，或确保 bash 在 PATH 中。'
-    )
+        found = shutil.which('bash')
+        if found and not _is_wsl_system_bash(found):
+            return found
+        raise FileNotFoundError(
+            '未找到 Git Bash。Windows 请安装 Git for Windows（不要仅依赖 system32\\bash.exe / WSL）。'
+        )
+    found = shutil.which('bash')
+    if found:
+        return found
+    raise FileNotFoundError('未找到 bash，请确保 bash 在 PATH 中。')
+
+
+def _is_docker_bridge_ip(ip: str) -> bool:
+    """Docker 默认桥接网段 172.17.0.0/16–172.31.0.0/16。"""
+    parts = (ip or '').split('.')
+    if len(parts) != 4:
+        return False
+    try:
+        a, b = int(parts[0]), int(parts[1])
+    except ValueError:
+        return False
+    return a == 172 and 17 <= b <= 31
+
+
+def _running_in_container() -> bool:
+    if os.path.exists('/.dockerenv'):
+        return True
+    try:
+        with open('/proc/1/cgroup', 'r', encoding='utf-8', errors='ignore') as f:
+            text = f.read()
+        return bool(re.search(r'(docker|containerd|kubepods|/libpod)', text))
+    except OSError:
+        return False
+
+
+def detect_lan_host_ip() -> Optional[str]:
+    """
+    探测可用于媒体回调的宿主机局域网 IP。
+    PANEL 容器内本机网卡是桥接地址，需经 docker --network=host 探测。
+    """
+    explicit = (os.environ.get('HOST_IP') or '').strip()
+    if explicit:
+        return explicit
+
+    docker = shutil.which('docker')
+    if docker and _running_in_container():
+        for image in (
+            'alpine:latest',
+            'docker.m.daocloud.io/library/alpine:latest',
+            'busybox:latest',
+        ):
+            try:
+                inspect = subprocess.run(
+                    [docker, 'image', 'inspect', image],
+                    capture_output=True,
+                    timeout=5,
+                    check=False,
+                )
+                if inspect.returncode != 0:
+                    continue
+                probe = subprocess.run(
+                    [
+                        docker, 'run', '--rm', '--network=host',
+                        '--entrypoint', 'sh', image, '-c',
+                        "ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.*src \\([0-9.]*\\).*/\\1/p'",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
+                )
+                ip = (probe.stdout or '').strip().splitlines()[0].strip() if probe.stdout else ''
+                if ip and not _is_docker_bridge_ip(ip):
+                    return ip
+            except (OSError, subprocess.TimeoutExpired, IndexError):
+                continue
+
+    # 非容器或探测失败：尽力用本机路由
+    try:
+        out = subprocess.run(
+            ['ip', 'route', 'get', '1.1.1.1'],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        m = re.search(r'\bsrc\s+(\d+\.\d+\.\d+\.\d+)', out.stdout or '')
+        if m and not _is_docker_bridge_ip(m.group(1)):
+            return m.group(1)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return None
 
 
 def _sanitize_log(text: str) -> str:
@@ -206,12 +299,14 @@ class StackOps:
         allow_dangerous: bool = False,
         job_timeout: int = 7200,
         max_log_chars: int = 400_000,
+        max_job_history: int = 15,
     ):
         self.project_root = project_root
         self.install_script = install_script
         self.allow_dangerous = allow_dangerous
         self.job_timeout = job_timeout
         self.max_log_chars = max_log_chars
+        self.max_job_history = max(1, int(max_job_history))
         self._jobs: Dict[str, Job] = {}
         self._lock = threading.Lock()
 
@@ -445,10 +540,25 @@ class StackOps:
                 return None
             return self._job_to_dict(job)
 
-    def list_jobs(self, limit: int = 20) -> List[Dict[str, Any]]:
+    def list_jobs(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        if limit is None:
+            limit = self.max_job_history
+        limit = max(1, int(limit))
         with self._lock:
             jobs = sorted(self._jobs.values(), key=lambda j: j.created_at, reverse=True)
             return [self._job_to_dict(j) for j in jobs[:limit]]
+
+    def _prune_jobs_locked(self) -> None:
+        """保留最近 max_job_history 条任务；不删除仍在排队/运行中的任务。"""
+        if len(self._jobs) <= self.max_job_history:
+            return
+        finished = sorted(
+            (j for j in self._jobs.values() if j.status not in ('queued', 'running')),
+            key=lambda j: j.created_at,
+        )
+        while len(self._jobs) > self.max_job_history and finished:
+            oldest = finished.pop(0)
+            self._jobs.pop(oldest.id, None)
 
     def start_job(
         self,
@@ -482,12 +592,14 @@ class StackOps:
         job = Job(id=uuid.uuid4().hex[:12], action=action, args=args)
         with self._lock:
             self._jobs[job.id] = job
+            self._prune_jobs_locked()
 
         env = os.environ.copy()
         if profile:
             env['EASYAIOT_DEPLOY_PROFILE'] = profile
         env.setdefault('EASYAIOT_DEPLOY_PROFILE', self.read_profile()['profile'])
         env['DEBIAN_FRONTEND'] = 'noninteractive'
+        env['EASYAIOT_NONINTERACTIVE'] = '1'
         env['TERM'] = 'dumb'
         env['NO_COLOR'] = '1'
         env['FORCE_COLOR'] = '0'
@@ -526,6 +638,13 @@ class StackOps:
                 key = str(k).strip()
                 if key in ALLOWED_JOB_ENV_KEYS and v is not None:
                     env[key] = str(v)
+
+        # PANEL 容器内自动注入真实宿主机 IP，避免媒体地址写成 172.x 桥接地址
+        if not (env.get('HOST_IP') or '').strip():
+            lan_ip = detect_lan_host_ip()
+            if lan_ip:
+                env['HOST_IP'] = lan_ip
+                logger.info('PANEL 注入 HOST_IP=%s', lan_ip)
 
         # clean 需要确认 y；无 TTY 时必须主动写入 stdin
         stdin_payload = b'y\n' if action == 'clean' else None
@@ -714,30 +833,69 @@ class StackOps:
         except psutil.NoSuchProcess:
             return
 
-        # 先尝试进程组
-        try:
-            os.killpg(pid, signal.SIGTERM)
-        except (ProcessLookupError, PermissionError, OSError):
-            try:
-                proc.terminate()
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                return
+        children = proc.children(recursive=True)
+        targets = children + [proc]
 
-        gone, alive = psutil.wait_procs([proc], timeout=3)
-        if not alive:
+        if os.name != 'nt':
+            # Unix：优先杀进程组（含 docker compose 子进程）
+            try:
+                os.killpg(pid, signal.SIGTERM)
+            except (ProcessLookupError, PermissionError, OSError):
+                for p in targets:
+                    try:
+                        p.terminate()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            gone, alive = psutil.wait_procs(targets, timeout=3)
+            if not alive:
+                return
+            try:
+                os.killpg(pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError, OSError):
+                for p in alive:
+                    try:
+                        p.kill()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            psutil.wait_procs(alive, timeout=2)
             return
-        try:
-            os.killpg(pid, signal.SIGKILL)
-        except (ProcessLookupError, PermissionError, OSError):
-            for p in alive:
-                try:
-                    p.kill()
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    pass
-        psutil.wait_procs(alive, timeout=2)
+
+        # Windows：无 killpg，逐个 terminate / kill
+        for p in targets:
+            try:
+                p.terminate()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        gone, alive = psutil.wait_procs(targets, timeout=3)
+        for p in alive:
+            try:
+                p.kill()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        if alive:
+            psutil.wait_procs(alive, timeout=2)
 
     @staticmethod
     def _kill_proc_tree(proc: subprocess.Popen) -> None:
+        if proc.pid is None:
+            return
+        if os.name == 'nt':
+            try:
+                StackOps._kill_pid_tree(proc.pid)
+            except Exception:
+                try:
+                    proc.terminate()
+                except Exception:
+                    pass
+            try:
+                proc.wait(timeout=3)
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+            return
+
         try:
             # start_new_session=True 时，杀掉整个进程组（含 docker compose 子进程）
             os.killpg(proc.pid, signal.SIGTERM)
@@ -765,17 +923,22 @@ class StackOps:
         cmd = [resolve_bash_executable(), self.install_script, job.action, *job.args]
         logger.info('启动任务 %s: %s', job.id, ' '.join(cmd))
         try:
-            proc = subprocess.Popen(
-                cmd,
-                cwd=self.project_root,
-                env=env,
-                stdin=subprocess.PIPE if stdin_payload is not None else subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=False,
-                bufsize=0,
-                start_new_session=True,
-            )
+            popen_kwargs: Dict[str, Any] = {
+                'cwd': self.project_root,
+                'env': env,
+                'stdin': subprocess.PIPE if stdin_payload is not None else subprocess.DEVNULL,
+                'stdout': subprocess.PIPE,
+                'stderr': subprocess.STDOUT,
+                'text': False,
+                'bufsize': 0,
+            }
+            if os.name == 'nt':
+                # Windows 无法用 start_new_session/killpg；用新进程组便于后续停止
+                popen_kwargs['creationflags'] = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0)
+            else:
+                popen_kwargs['start_new_session'] = True
+
+            proc = subprocess.Popen(cmd, **popen_kwargs)
             job._proc = proc
             if stdin_payload is not None and proc.stdin is not None:
                 try:
@@ -785,8 +948,6 @@ class StackOps:
                 except (BrokenPipeError, OSError):
                     pass
             assert proc.stdout is not None
-            out_fd = proc.stdout.fileno()
-            os.set_blocking(out_fd, False)
             merged_log = ''
 
             def _append(chunk: bytes) -> None:
@@ -803,6 +964,27 @@ class StackOps:
                 # 实时刷新：让轮询中的前端能立即拿到最新日志。
                 job.log = merged_log
 
+            # Windows 上 select() 只能用于 socket，对管道会触发 WinError 10038；
+            # 统一用读线程 + queue，Linux/macOS/Windows 都可用。
+            out_q: queue.Queue = queue.Queue()
+
+            def _reader() -> None:
+                try:
+                    while True:
+                        chunk = proc.stdout.read(4096)
+                        if not chunk:
+                            break
+                        out_q.put(chunk)
+                except Exception:
+                    pass
+                finally:
+                    out_q.put(None)
+
+            reader = threading.Thread(
+                target=_reader, name=f'job-{job.id}-stdout', daemon=True
+            )
+            reader.start()
+
             deadline = time.time() + self.job_timeout
             while True:
                 if job.status == 'cancelled':
@@ -814,34 +996,36 @@ class StackOps:
                     job.error = f'超时（>{self.job_timeout}s）'
                     job.status = 'failed'
                     break
-                if proc.poll() is not None:
-                    # 进程结束后尽量把缓冲区剩余内容读完。
-                    while True:
-                        try:
-                            chunk = os.read(out_fd, 4096)
-                        except BlockingIOError:
-                            break
-                        if not chunk:
-                            break
-                        _append(chunk)
+
+                try:
+                    chunk = out_q.get(timeout=0.2)
+                except queue.Empty:
+                    # 进程已退出且读线程结束：再排空队列
+                    if proc.poll() is not None and not reader.is_alive():
+                        while True:
+                            try:
+                                leftover = out_q.get_nowait()
+                            except queue.Empty:
+                                break
+                            if leftover is None:
+                                break
+                            _append(leftover)
+                        break
+                    continue
+
+                if chunk is None:
                     break
+                _append(chunk)
 
-                ready, _, _ = select.select([out_fd], [], [], 0.2)
-                if ready:
-                    try:
-                        chunk = os.read(out_fd, 4096)
-                    except BlockingIOError:
-                        chunk = b''
-                    _append(chunk)
-
+            reader.join(timeout=2)
             # 再排空一次，保留停止前的输出
             while True:
                 try:
-                    chunk = os.read(out_fd, 4096)
-                except (BlockingIOError, ValueError, OSError):
+                    chunk = out_q.get_nowait()
+                except queue.Empty:
                     break
-                if not chunk:
-                    break
+                if chunk is None:
+                    continue
                 _append(chunk)
 
             job.log = merged_log or job.log

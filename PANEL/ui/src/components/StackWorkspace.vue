@@ -157,7 +157,7 @@
           <div class="panel-hd"><h2>历史任务</h2></div>
           <div class="jobs">
             <button
-              v-for="j in jobs.slice(0, 4)"
+              v-for="j in jobs.slice(0, 15)"
               :key="j.id"
               type="button"
               class="job"
@@ -462,7 +462,7 @@ async function doKillProcesses(all: boolean, pid?: number | null) {
 
 async function loadJobs() {
   try {
-    jobs.value = (await listStackJobs(20)).list || []
+    jobs.value = (await listStackJobs(15)).list || []
   } catch {
     jobs.value = []
   }
@@ -934,8 +934,8 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 6px;
   padding: 8px 10px;
-  overflow: hidden;
-  max-height: 160px;
+  overflow-y: auto;
+  max-height: 420px;
 }
 
 .job {

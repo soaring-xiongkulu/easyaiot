@@ -35,11 +35,18 @@ DOCKER_MIRROR_FALLBACKS="${DOCKER_MIRROR_FALLBACKS:-docker.m.daocloud.io,docker.
 DOCKER_DNS="${DOCKER_DNS:-223.5.5.5,119.29.29.29}"
 
 restart_docker_if_active() {
+    if ! check_command systemctl; then
+        print_warning "未找到 systemctl，跳过重启 Docker（容器或非 systemd 环境）"
+        return 0
+    fi
     if systemctl is-active --quiet docker 2>/dev/null; then
         print_info "正在重启 Docker 服务以使配置生效..."
         systemctl daemon-reload 2>/dev/null || true
-        systemctl restart docker
-        print_success "Docker 服务已重启"
+        if systemctl restart docker 2>/dev/null; then
+            print_success "Docker 服务已重启"
+        else
+            print_warning "Docker 重启失败，请稍后手动执行: sudo systemctl restart docker"
+        fi
     fi
 }
 
@@ -68,6 +75,12 @@ configure_docker_mirror() {
     local config_file="/etc/docker/daemon.json"
     local want_dns=0
     local dns_csv="$DOCKER_DNS"
+
+    # PANEL 容器内写 /etc/docker 不影响宿主机 dockerd
+    if [ -f /.dockerenv ] || { [ -r /proc/1/cgroup ] && grep -Eq '(docker|containerd|kubepods|/libpod)' /proc/1/cgroup 2>/dev/null; }; then
+        print_info "容器环境跳过写入宿主机 Docker 镜像源（请在宿主机配置 /etc/docker/daemon.json）"
+        return 0
+    fi
 
     if _should_configure_docker_dns; then
         want_dns=1

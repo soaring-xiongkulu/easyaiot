@@ -109,13 +109,38 @@ is_full_deploy_profile() {
 
 # 按部署形态判断业务模块是否启用
 #   APP / VISUALIZE / TRANSFORM — 仅 full 全量形态
-#   PANEL — 所有形态默认启用（EASYAIOT_ENABLE_PANEL=0 可关闭）
+#   PANEL — 源码/Docker 部署默认启用；安装包（deb/桌面端）本身即为 PANEL，
+#           由 systemd/二进制托管，部署时不应再拉 Docker PANEL（EASYAIOT_ENABLE_PANEL=0）。
+#           无源码 runtime 未显式开启时也默认跳过。
 module_enabled_for_deploy_profile() {
     case "$1" in
         APP|VISUALIZE|TRANSFORM) [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ] ;;
-        PANEL) [ "${EASYAIOT_ENABLE_PANEL:-1}" != "0" ] ;;
+        PANEL)
+            case "${EASYAIOT_ENABLE_PANEL:-}" in
+                0|false|FALSE|no|NO|off|OFF) return 1 ;;
+                1|true|TRUE|yes|YES|on|ON) return 0 ;;
+            esac
+            # 未显式设置：PANEL 安装包 / 无源码 runtime 默认不二次部署
+            if type runtime_is_source_free_runtime >/dev/null 2>&1 && runtime_is_source_free_runtime; then
+                return 1
+            fi
+            [ "${EASYAIOT_ENABLE_PANEL:-1}" != "0" ]
+            ;;
         *) return 0 ;;
     esac
+}
+
+# 跳过 PANEL 部署时的说明（安装包场景避免误判为“形态少装了模块”）
+panel_skip_deploy_reason() {
+    if [ "${EASYAIOT_ENABLE_PANEL:-}" = "0" ] || [ "${EASYAIOT_ENABLE_PANEL:-}" = "false" ]; then
+        echo "安装包/本机 PANEL 已在运行，部署无需再装运维控制台"
+        return
+    fi
+    if type runtime_is_source_free_runtime >/dev/null 2>&1 && runtime_is_source_free_runtime; then
+        echo "无源码 runtime（PANEL 安装包）已提供运维入口，跳过 Docker PANEL"
+        return
+    fi
+    echo "已禁用 PANEL 模块部署（EASYAIOT_ENABLE_PANEL=0）"
 }
 
 # mini / standard 形态均不部署 TDengine 中间件

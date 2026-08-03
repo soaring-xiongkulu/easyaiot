@@ -152,16 +152,26 @@ onMounted(() => {
 async function fetch(p = {}) {
   const {api, params} = props;
   if (api && isFunction(api)) {
-    const res = await api({...params, pageNo: page.value, pageSize: pageSize.value, ...p});
-    let list = [];
-    res['data'].forEach((element) => {
-      if (element.type == 'tab') {
-        list.push(element);
-      }
-    });
-    data.value = list;
-    total.value = res.total;
-    hideLoading();
+    state.loading = true;
+    try {
+      const res = await api({...params, pageNo: page.value, pageSize: pageSize.value, ...p});
+      let list = [];
+      const body = res?.data ?? res;
+      const rows = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
+      rows.forEach((element) => {
+        if (element.type == 'tab') {
+          list.push(element);
+        }
+      });
+      data.value = list;
+      total.value = Array.isArray(body) ? list.length : (body?.total ?? list.length);
+    } catch (e) {
+      console.error('加载规则链列表失败', e);
+      data.value = [];
+      total.value = 0;
+    } finally {
+      hideLoading();
+    }
   }
 }
 

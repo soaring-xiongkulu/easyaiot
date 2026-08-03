@@ -180,8 +180,9 @@ spring:
             - RewritePath=/admin-api/gb28181/(?<segment>.*), /api/$\{segment} # 将 /admin-api/gb28181 前缀重写为 /api
             - RewritePath=/admin-api/gb28181/v3/api-docs, /v3/api-docs # 配置，保证转发到 /v3/api-docs
         # Node-RED Admin API（规则引擎 CRUD：/flows、/flow；编辑器静态资源仍由 nginx 直连）
+        # gateway 使用 host 网络，访问本机已映射的 1880；勿写死生产内网 IP
         - id: nodered-admin-api
-          uri: http://10.0.0.87:1880
+          uri: http://127.0.0.1:1880
           order: 0
           predicates:
             - Path=/admin-api/nodeRed/**

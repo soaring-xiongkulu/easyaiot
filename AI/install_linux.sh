@@ -183,8 +183,8 @@ check_docker_compose() {
 compose_up_or_fail() {
     local compose_log
     local -a compose_args=()
-    # 显式 -f 时会忽略 COMPOSE_FILE，需手动拼上桌面端 / GPU override
-    if [ -f "$GPU_COMPOSE_OVERRIDE" ] || [ -f docker-compose.desktop.yaml ]; then
+    # 显式 -f 时会忽略 COMPOSE_FILE，需手动拼上桌面端 / GPU / source-free override
+    if [ -f "$GPU_COMPOSE_OVERRIDE" ] || [ -f docker-compose.desktop.yaml ] || should_use_source_free_compose; then
         compose_args=(-f docker-compose.yaml)
         if [ -f docker-compose.desktop.yaml ] && { [ -n "${EASYAIOT_DESKTOP_OS:-}" ] || [ "${EASYAIOT_COMPOSE_DESKTOP:-0}" = "1" ]; }; then
             compose_args+=(-f docker-compose.desktop.yaml)
@@ -192,6 +192,7 @@ compose_up_or_fail() {
         if [ -f "$GPU_COMPOSE_OVERRIDE" ]; then
             compose_args+=(-f "$GPU_COMPOSE_OVERRIDE")
         fi
+        append_source_free_compose_file compose_args
     fi
     compose_log=$(mktemp)
     if ! $COMPOSE_CMD "${compose_args[@]}" up "$@" >"$compose_log" 2>&1; then

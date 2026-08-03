@@ -288,7 +288,7 @@ export const runStackAction = (payload: {
 }) => http.post('/api/stack/run', payload) as Promise<StackJob>
 export const getStackJob = (id: string) =>
   http.get(`/api/stack/jobs/${encodeURIComponent(id)}`) as Promise<StackJob>
-export const listStackJobs = (limit = 20) =>
+export const listStackJobs = (limit = 15) =>
   http.get('/api/stack/jobs', { params: { limit } }) as Promise<{ list: StackJob[] }>
 export const cancelStackJob = (id: string) =>
   http.post(`/api/stack/jobs/${encodeURIComponent(id)}/cancel`) as Promise<StackJob>

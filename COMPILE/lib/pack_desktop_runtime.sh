@@ -133,6 +133,8 @@ pack_source_free_runtime() {
     runtime_copy_glob "$module" "Dockerfile"
     runtime_copy_glob "$module" "Dockerfile.*"
     runtime_copy_glob "$module" "requirements*.txt"
+    # AI/VIDEO 无源码运行时必需：去掉 ./:/app 挂载的 override
+    runtime_copy_glob "$module" "docker-compose.source-free.yaml"
     if [ -d "${ROOT}/${module}/conf" ]; then
       runtime_copy_file "${module}/conf"
     fi
