@@ -139,37 +139,91 @@ if [ ! -f "${OUT_DIR}/panel.env" ]; then
   cp -f "${SCRIPT_DIR}/panel.env" "${OUT_DIR}/panel.env"
 fi
 
+# Compatibility stub: prefer run.vbs (no cmd/powershell flash)
 cat > "${OUT_DIR}/run.bat" <<'EOF'
 @echo off
-setlocal enabledelayedexpansion
-set HERE=%~dp0
-rem 去掉末尾反斜杠
-if "%HERE:~-1%"=="\" set HERE=%HERE:~0,-1%
+wscript "%~dp0run.vbs"
+EOF
 
-if "%EASYAIOT_ROOT%"=="" (
-  if exist "%HERE%\runtime\.scripts\docker\install_windows.sh" (
-    set EASYAIOT_ROOT=%HERE%\runtime
-  ) else (
-    rem 开发态：从 COMPILE\dist\windows 回推仓库根
-    set EASYAIOT_ROOT=%HERE%\..\..\..
-  )
-)
-if "%PANEL_ENV_FILE%"=="" set PANEL_ENV_FILE=%HERE%\panel.env
-if not exist "%PANEL_ENV_FILE%" if exist "%HERE%\panel.env.example" copy "%HERE%\panel.env.example" "%PANEL_ENV_FILE%" >nul
+# Silent launcher: no cmd / powershell. Shortcuts must point here.
+cat > "${OUT_DIR}/run.vbs" <<'EOF'
+Option Explicit
+Dim sh, fso, dir, env, exe, dd, i, already
+Set sh = CreateObject("WScript.Shell")
+Set fso = CreateObject("Scripting.FileSystemObject")
+dir = fso.GetParentFolderName(WScript.ScriptFullName)
+exe = dir & "\easyaiot-panel.exe"
 
-set INSTALL_SCRIPT=.scripts\docker\install_windows.sh
-set EASYAIOT_ENABLE_PANEL=0
+Set env = sh.Environment("PROCESS")
+If env("EASYAIOT_ROOT") = "" Then
+  If fso.FileExists(dir & "\runtime\.scripts\docker\install_windows.sh") Then
+    env("EASYAIOT_ROOT") = dir & "\runtime"
+  Else
+    env("EASYAIOT_ROOT") = dir & "\..\..\.."
+  End If
+End If
+If env("PANEL_ENV_FILE") = "" Then env("PANEL_ENV_FILE") = dir & "\panel.env"
+If Not fso.FileExists(env("PANEL_ENV_FILE")) Then
+  If fso.FileExists(dir & "\panel.env.example") Then
+    fso.CopyFile dir & "\panel.env.example", env("PANEL_ENV_FILE"), True
+  End If
+End If
+env("INSTALL_SCRIPT") = ".scripts\docker\install_windows.sh"
+env("EASYAIOT_ENABLE_PANEL") = "0"
 
-start "" http://127.0.0.1:9200/
-"%HERE%\easyaiot-panel.exe"
+If Not ProcExists("Docker Desktop.exe") And Not ProcExists("com.docker.backend.exe") Then
+  dd = ""
+  If fso.FileExists(sh.ExpandEnvironmentStrings("%ProgramFiles%\Docker\Docker\Docker Desktop.exe")) Then
+    dd = sh.ExpandEnvironmentStrings("%ProgramFiles%\Docker\Docker\Docker Desktop.exe")
+  ElseIf fso.FileExists(sh.ExpandEnvironmentStrings("%ProgramFiles(x86)%\Docker\Docker\Docker Desktop.exe")) Then
+    dd = sh.ExpandEnvironmentStrings("%ProgramFiles(x86)%\Docker\Docker\Docker Desktop.exe")
+  ElseIf fso.FileExists(sh.ExpandEnvironmentStrings("%LOCALAPPDATA%\Docker\Docker Desktop.exe")) Then
+    dd = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%\Docker\Docker Desktop.exe")
+  End If
+  If dd <> "" Then sh.Run """" & dd & """", 1, False
+End If
+
+already = ProcExists("easyaiot-panel.exe")
+If Not already Then
+  sh.Run """" & exe & """", 0, False
+  For i = 1 To 40
+    If HttpOk("http://127.0.0.1:9200/health") Then Exit For
+    WScript.Sleep 400
+  Next
+End If
+
+sh.Run "http://127.0.0.1:9200/", 1, False
+
+Function ProcExists(name)
+  Dim wmi, col
+  On Error Resume Next
+  Set wmi = GetObject("winmgmts:\\.\root\cimv2")
+  Set col = wmi.ExecQuery("SELECT ProcessId FROM Win32_Process WHERE Name='" & name & "'")
+  ProcExists = (Not col Is Nothing) And (col.Count > 0)
+  On Error GoTo 0
+End Function
+
+Function HttpOk(url)
+  Dim http
+  HttpOk = False
+  On Error Resume Next
+  Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+  If http Is Nothing Then Set http = CreateObject("MSXML2.XMLHTTP")
+  If http Is Nothing Then Exit Function
+  http.setTimeouts 1000, 1000, 1000, 1000
+  http.Open "GET", url, False
+  http.Send
+  HttpOk = (Err.Number = 0 And http.Status = 200)
+  On Error GoTo 0
+End Function
 EOF
 
 cat > "${OUT_DIR}/README.txt" <<EOF
 EasyAIoT PANEL ${VERSION} (Windows)
 
-1. 安装并启动 Docker Desktop
+1. 安装 Docker Desktop（首次）；启动时会自动尝试拉起它
 2. 安装 Git for Windows（提供 bash，PANEL 一键部署需要）
-3. 双击 run.bat，或运行 easyaiot-panel.exe
+3. 双击桌面「EasyAIoT Panel」（无黑窗后台运行），或运行 run.vbs / easyaiot-panel.exe
 4. 浏览器打开 http://127.0.0.1:9200/
 5. 在「应用部署」中执行 install（仅拉取预构建镜像，不本地编译）
 

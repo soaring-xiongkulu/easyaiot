@@ -3,11 +3,17 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 import subprocess
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger('easyaiot-panel.docker')
+
+# Windows GUI 宿主下调用 docker CLI 必须隐藏控制台，否则每次轮询都会闪黑框
+_WIN_NO_WINDOW = (
+    getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000) if os.name == 'nt' else 0
+)
 
 
 def docker_available() -> bool:
@@ -15,13 +21,16 @@ def docker_available() -> bool:
 
 
 def _run(args: List[str], timeout: int = 60) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        args,
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-        check=False,
-    )
+    kwargs: Dict[str, Any] = {
+        'args': args,
+        'capture_output': True,
+        'text': True,
+        'timeout': timeout,
+        'check': False,
+    }
+    if _WIN_NO_WINDOW:
+        kwargs['creationflags'] = _WIN_NO_WINDOW
+    return subprocess.run(**kwargs)
 
 
 def _parse_json_lines(text: str) -> List[Dict[str, Any]]:

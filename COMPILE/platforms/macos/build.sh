@@ -145,6 +145,17 @@ export EASYAIOT_ENABLE_PANEL="${EASYAIOT_ENABLE_PANEL:-0}"
 if [ ! -f "$PANEL_ENV_FILE" ] && [ -f "${HERE}/panel.env.example" ]; then
   cp "${HERE}/panel.env.example" "$PANEL_ENV_FILE"
 fi
+
+# 启动 PANEL 前尝试拉起 Docker Desktop（后台，不阻塞等待引擎；未安装则跳过）
+if ! pgrep -f '/Docker\.app/' >/dev/null 2>&1; then
+  if [ -d "/Applications/Docker.app" ] || [ -d "${HOME}/Applications/Docker.app" ]; then
+    echo "[EasyAIoT] 正在启动 Docker Desktop..."
+    open -a Docker >/dev/null 2>&1 || true
+  else
+    echo "[EasyAIoT] 未找到 Docker Desktop，部署前请先安装: https://www.docker.com/products/docker-desktop"
+  fi
+fi
+
 open "http://127.0.0.1:9200/" >/dev/null 2>&1 || true
 exec "${HERE}/easyaiot-panel"
 EOF
@@ -153,7 +164,7 @@ chmod +x "${OUT_DIR}/run.command"
 cat > "${OUT_DIR}/README.txt" <<EOF
 EasyAIoT PANEL ${VERSION} (macOS ${ARCH} / ${ARCH_LABEL})
 
-1. 安装并启动 Docker Desktop
+1. 安装 Docker Desktop（首次）；双击 run.command / .app 时会自动尝试启动它
 2. 建议: brew install bash（bash 4+）
 3. 安装包：打开 easyaiot-panel-${VERSION}-${ARCH}.dmg，拖到 Applications
    （本包仅适用于 ${ARCH_LABEL} Mac，勿混用其他架构包）
@@ -251,6 +262,17 @@ export EASYAIOT_ENABLE_PANEL="${EASYAIOT_ENABLE_PANEL:-0}"
 if [ ! -f "$PANEL_ENV_FILE" ] && [ -f "${RES}/panel.env.example" ]; then
   cp "${RES}/panel.env.example" "$PANEL_ENV_FILE"
 fi
+
+# 启动 PANEL 前尝试拉起 Docker Desktop（后台，不阻塞等待引擎；未安装则跳过）
+if ! pgrep -f '/Docker\.app/' >/dev/null 2>&1; then
+  if [ -d "/Applications/Docker.app" ] || [ -d "${HOME}/Applications/Docker.app" ]; then
+    echo "[EasyAIoT] 正在启动 Docker Desktop..."
+    open -a Docker >/dev/null 2>&1 || true
+  else
+    echo "[EasyAIoT] 未找到 Docker Desktop，部署前请先安装: https://www.docker.com/products/docker-desktop"
+  fi
+fi
+
 open "http://127.0.0.1:9200/" >/dev/null 2>&1 || true
 exec "${HERE}/easyaiot-panel"
 EOF

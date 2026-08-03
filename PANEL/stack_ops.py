@@ -23,6 +23,18 @@ _ANSI_RE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 # 桌面端仅镜像部署时禁用的动作
 DESKTOP_BLOCKED_ACTIONS = frozenset({'build', 'build-runtime', 'clean-build-runtime'})
 
+# Windows GUI 宿主下调用 docker/bash 必须隐藏控制台，否则会反复闪黑框
+_WIN_NO_WINDOW = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000) if os.name == 'nt' else 0
+_WIN_NEW_GROUP = (
+    getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0x00000200) if os.name == 'nt' else 0
+)
+
+
+def _win_run_kwargs() -> Dict[str, Any]:
+    if not _WIN_NO_WINDOW:
+        return {}
+    return {'creationflags': _WIN_NO_WINDOW}
+
 
 def detect_host_platform() -> Dict[str, Any]:
     """识别宿主机平台，并给出对应的一键部署脚本。"""
@@ -155,6 +167,7 @@ def detect_lan_host_ip() -> Optional[str]:
                     capture_output=True,
                     timeout=5,
                     check=False,
+                    **_win_run_kwargs(),
                 )
                 if inspect.returncode != 0:
                     continue
@@ -168,6 +181,7 @@ def detect_lan_host_ip() -> Optional[str]:
                     text=True,
                     timeout=30,
                     check=False,
+                    **_win_run_kwargs(),
                 )
                 ip = (probe.stdout or '').strip().splitlines()[0].strip() if probe.stdout else ''
                 if ip and not _is_docker_bridge_ip(ip):
@@ -183,6 +197,7 @@ def detect_lan_host_ip() -> Optional[str]:
             text=True,
             timeout=5,
             check=False,
+            **_win_run_kwargs(),
         )
         m = re.search(r'\bsrc\s+(\d+\.\d+\.\d+\.\d+)', out.stdout or '')
         if m and not _is_docker_bridge_ip(m.group(1)):
@@ -933,8 +948,8 @@ class StackOps:
                 'bufsize': 0,
             }
             if os.name == 'nt':
-                # Windows 无法用 start_new_session/killpg；用新进程组便于后续停止
-                popen_kwargs['creationflags'] = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0)
+                # 隐藏控制台 + 新进程组（便于停止）；GUI 宿主下缺 CREATE_NO_WINDOW 会反复闪黑框
+                popen_kwargs['creationflags'] = _WIN_NO_WINDOW | _WIN_NEW_GROUP
             else:
                 popen_kwargs['start_new_session'] = True
 

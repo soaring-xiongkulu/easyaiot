@@ -1,5 +1,5 @@
 ; EasyAIoT PANEL Windows Installer (NSIS)
-; Installs binary + panel.env + run.bat + bundled runtime (install_windows image deploy)
+; Installs binary + panel.env + run.bat/run.vbs + bundled runtime (install_windows image deploy)
 Unicode true
 !define APP_NAME "EasyAIoT Panel"
 !define APP_EXE "easyaiot-panel.exe"
@@ -24,16 +24,19 @@ Section "Install"
   File "__DISTDIR__\panel.env.example"
   File /nonfatal "__DISTDIR__\panel.env"
   File "__DISTDIR__\run.bat"
+  File "__DISTDIR__\run.vbs"
   File /nonfatal "__DISTDIR__\README.txt"
 
   ; Bundled EasyAIoT runtime (.scripts + module compose / install scripts)
   SetOutPath "$INSTDIR\runtime"
   File /r "__DISTDIR__\runtime\*.*"
 
+  ; SetOutPath 会影响快捷方式工作目录；切回安装根，避免 WD=runtime
+  SetOutPath "$INSTDIR"
   CreateDirectory "$SMPROGRAMS\EasyAIoT Panel"
-  ; 4th arg = icon file (run.bat itself has no icon)
-  CreateShortCut "$SMPROGRAMS\EasyAIoT Panel\EasyAIoT Panel.lnk" "$INSTDIR\run.bat" "" "$INSTDIR\panel.ico" 0
-  CreateShortCut "$DESKTOP\EasyAIoT Panel.lnk" "$INSTDIR\run.bat" "" "$INSTDIR\panel.ico" 0
+  ; 快捷方式指向 run.vbs：无黑窗；图标用 panel.ico
+  CreateShortCut "$SMPROGRAMS\EasyAIoT Panel\EasyAIoT Panel.lnk" "$INSTDIR\run.vbs" "" "$INSTDIR\panel.ico" 0
+  CreateShortCut "$DESKTOP\EasyAIoT Panel.lnk" "$INSTDIR\run.vbs" "" "$INSTDIR\panel.ico" 0
 
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\EasyAIoT Panel" "DisplayName" "${APP_NAME}"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\EasyAIoT Panel" "DisplayVersion" "${APP_VERSION}"
@@ -52,6 +55,7 @@ Section "Uninstall"
   Delete "$INSTDIR\panel.env.example"
   Delete "$INSTDIR\panel.env"
   Delete "$INSTDIR\run.bat"
+  Delete "$INSTDIR\run.vbs"
   Delete "$INSTDIR\README.txt"
   Delete "$INSTDIR\uninstall.exe"
   RMDir /r "$INSTDIR\runtime"
