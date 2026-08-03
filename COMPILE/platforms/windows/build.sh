@@ -128,6 +128,13 @@ if [ ! -f "${OUT_DIR}/easyaiot-panel.exe" ]; then
   exit 1
 fi
 
+# 旁路静态资源：与 exe 同级，避免仅依赖 %TEMP%\_MEI*（重启后易被清理导致 / 404）
+log "同步前端到产物目录 ui/dist"
+rm -rf "${OUT_DIR}/ui"
+mkdir -p "${OUT_DIR}/ui"
+cp -a "${REPO_ROOT}/PANEL/ui/dist" "${OUT_DIR}/ui/dist"
+test -f "${OUT_DIR}/ui/dist/index.html"
+
 VERSION="$(resolve_panel_version)"
 RUNTIME_DIR="${OUT_DIR}/runtime"
 log "打包内置 runtime（install_windows 镜像部署）→ ${RUNTIME_DIR}"
@@ -227,6 +234,7 @@ EasyAIoT PANEL ${VERSION} (Windows)
 4. 浏览器打开 http://127.0.0.1:9200/
 5. 在「应用部署」中执行 install（仅拉取预构建镜像，不本地编译）
 
+前端静态资源: %CD%\\ui\\dist（与 exe 同级，避免临时目录被清理）
 内置 runtime: %CD%\\runtime
 部署脚本: runtime\\.scripts\\docker\\install_windows.sh
 配置: panel.env（INSTALL_SCRIPT / EASYAIOT_ROOT）

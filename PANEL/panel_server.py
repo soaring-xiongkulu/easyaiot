@@ -110,11 +110,48 @@ INSTALL_SCRIPT = os.environ.get(
 if not os.path.isabs(INSTALL_SCRIPT):
     INSTALL_SCRIPT = os.path.join(PROJECT_ROOT, INSTALL_SCRIPT)
 
-STATIC_DIR = os.environ.get(
-    'PANEL_STATIC_DIR',
-    os.path.join(_HERE, 'ui', 'dist'),
-)
-HAS_UI = os.path.isdir(STATIC_DIR) and os.path.isfile(os.path.join(STATIC_DIR, 'index.html'))
+
+def _ui_index_path(static_dir: str) -> str:
+    return os.path.join(static_dir, 'index.html')
+
+
+def _is_ui_dir(static_dir: str) -> bool:
+    return bool(static_dir) and os.path.isdir(static_dir) and os.path.isfile(_ui_index_path(static_dir))
+
+
+def _static_dir_candidates() -> list[str]:
+    """前端静态目录候选：安装目录优先于 PyInstaller 临时解压目录。
+
+    onefile 会把资源解到 %TEMP%\\_MEI*；重启后杀软/清理可能删掉该目录里的文件，
+    导致进程仍在但 / 变成 Werkzeug 404。exe 同级 ui/dist 更稳定。
+    """
+    env = os.environ.get('PANEL_STATIC_DIR', '').strip()
+    out: list[str] = []
+    if env:
+        out.append(os.path.abspath(env))
+    out.append(os.path.join(_runtime_dir(), 'ui', 'dist'))
+    out.append(os.path.join(_HERE, 'ui', 'dist'))
+    # 去重且保序
+    seen: set[str] = set()
+    uniq: list[str] = []
+    for item in out:
+        key = os.path.normcase(os.path.abspath(item))
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(os.path.abspath(item))
+    return uniq
+
+
+def _resolve_static_dir() -> tuple[str, bool]:
+    for candidate in _static_dir_candidates():
+        if _is_ui_dir(candidate):
+            return candidate, True
+    fallback = _static_dir_candidates()[0]
+    return fallback, False
+
+
+STATIC_DIR, HAS_UI = _resolve_static_dir()
 
 app = Flask(__name__, static_folder=None)
 stack = StackOps(
@@ -215,10 +252,13 @@ def auth_middleware():
 
 @app.get('/health')
 def health():
+    global STATIC_DIR, HAS_UI
+    STATIC_DIR, HAS_UI = _resolve_static_dir()
     return _ok({
         'status': 'ok',
         'service': 'easyaiot-panel',
         'ui': HAS_UI,
+        'staticDir': STATIC_DIR,
         'ts': time.time(),
     })
 
@@ -469,22 +509,41 @@ def stack_processes_kill():
 @app.route('/<path:path>')
 def spa(path: str):
     """托管独立前端；未构建 UI 时返回 JSON 提示。"""
+    global STATIC_DIR, HAS_UI
     if path.startswith('api/'):
         return _err('not found', http_status=404)
-    if not HAS_UI:
+
+    # 每次请求重新探测：避免 _MEI* 临时目录被清理后仍用启动时的 HAS_UI 缓存
+    static_dir, has_ui = _resolve_static_dir()
+    STATIC_DIR, HAS_UI = static_dir, has_ui
+    if not has_ui:
         return _ok({
             'name': 'EasyAIoT PANEL',
             'version': '0.1.0',
             'ui': False,
-            'hint': '前端未打包。Docker：bash PANEL/install.sh build；本机可执行：bash COMPILE/build.sh ubuntu',
+            'staticDir': static_dir,
+            'hint': '前端未打包或静态资源丢失。请重装安装包，或设置 PANEL_STATIC_DIR 指向 ui/dist',
             'docs': 'GET /api/overview | /api/containers | /api/topology | /api/stack/actions',
         })
-    # 静态文件优先
-    if path:
-        candidate = os.path.join(STATIC_DIR, path)
-        if os.path.isfile(candidate):
-            return send_from_directory(STATIC_DIR, path)
-    return send_from_directory(STATIC_DIR, 'index.html')
+
+    try:
+        if path:
+            candidate = os.path.join(static_dir, path)
+            if os.path.isfile(candidate):
+                return send_from_directory(static_dir, path)
+        if not os.path.isfile(_ui_index_path(static_dir)):
+            HAS_UI = False
+            return _ok({
+                'name': 'EasyAIoT PANEL',
+                'version': '0.1.0',
+                'ui': False,
+                'staticDir': static_dir,
+                'hint': 'index.html 缺失，请重装 PANEL 或重新打包',
+            })
+        return send_from_directory(static_dir, 'index.html')
+    except Exception:
+        logger.exception('托管前端静态资源失败: %s', static_dir)
+        return _err(f'静态资源不可用: {static_dir}', http_status=404)
 
 
 def create_app() -> Flask:

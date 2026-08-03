@@ -27,6 +27,10 @@ Section "Install"
   File "__DISTDIR__\run.vbs"
   File /nonfatal "__DISTDIR__\README.txt"
 
+  ; 前端静态资源（exe 同级，不依赖 PyInstaller 临时解压目录）
+  SetOutPath "$INSTDIR\ui"
+  File /r "__DISTDIR__\ui\*.*"
+
   ; Bundled EasyAIoT runtime (.scripts + module compose / install scripts)
   SetOutPath "$INSTDIR\runtime"
   File /r "__DISTDIR__\runtime\*.*"
@@ -58,6 +62,7 @@ Section "Uninstall"
   Delete "$INSTDIR\run.vbs"
   Delete "$INSTDIR\README.txt"
   Delete "$INSTDIR\uninstall.exe"
+  RMDir /r "$INSTDIR\ui"
   RMDir /r "$INSTDIR\runtime"
   RMDir "$INSTDIR"
 
