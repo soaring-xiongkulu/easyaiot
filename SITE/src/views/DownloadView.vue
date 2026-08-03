@@ -9,7 +9,6 @@ import { LINKS } from '../data/site'
     <section class="page-hero">
       <div class="container">
         <SectionReveal>
-          <p class="eyebrow">Download</p>
           <h1 class="display section-title">下载安装包</h1>
           <p class="lead">
             官方安装包发布于 Gitee Releases。按操作系统与架构选择，再用 mini / standard / full 三档完成到场部署。

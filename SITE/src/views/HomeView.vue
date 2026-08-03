@@ -28,7 +28,6 @@ import { TAGLINE } from '../data/site'
     <section class="section">
       <div class="container">
         <SectionReveal>
-          <p class="eyebrow">One Platform</p>
           <h2 class="display section-title">三档硬件，一套平台</h2>
           <p class="lead">
             不必为装得下而砍能力、拆版本。按现场选一档即可，同一套 EasyAIoT 贯穿试点到全栈交付。
@@ -62,7 +61,6 @@ import { TAGLINE } from '../data/site'
     <section class="section loop-section">
       <div class="container grid-2">
         <SectionReveal>
-          <p class="eyebrow">AI + IoT</p>
           <h2 class="display section-title">看得见场，也管得住设备</h2>
           <p class="lead">
             纯物联看得见数却看不见场，纯视频看得见场却控不住设备。EasyAIoT 让「数」与「图」在同一屏里核实与处置。

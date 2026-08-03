@@ -8,7 +8,6 @@ import { docs } from '../data/docs'
     <section class="page-hero">
       <div class="container">
         <SectionReveal>
-          <p class="eyebrow">Documentation</p>
           <h1 class="display section-title">文档入口</h1>
           <p class="lead">
             官方文档仍托管在仓库中。这里汇总常用入口，便于查找部署、打包与各模块说明。

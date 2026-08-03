@@ -9,7 +9,6 @@ import { LINKS, MISSION, TAGLINE } from '../data/site'
     <section class="page-hero">
       <div class="container">
         <SectionReveal>
-          <p class="eyebrow">About</p>
           <h1 class="display section-title">关于 EasyAIoT</h1>
           <p class="lead">{{ TAGLINE }}。开源学习项目，致力于让 AI 真正 0 门槛。</p>
         </SectionReveal>
