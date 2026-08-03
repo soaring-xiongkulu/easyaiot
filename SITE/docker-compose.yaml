@@ -1,0 +1,41 @@
+# EasyAIoT 官方网站（纯静态）
+# 默认端口 8090；nginx 配置统一维护于 WEB/conf/nginx.site.conf
+services:
+  site-service:
+    image: site-service:latest
+    container_name: site-service
+    user: root
+
+    ports:
+      - "${SITE_PORT:-8090}:80"
+
+    volumes:
+      - ${NGINX_CONF:-../WEB/conf/nginx.site.conf}:/etc/nginx/nginx.conf:ro
+      - ./logs:/app/logs
+      - /etc/localtime:/etc/localtime:ro
+
+    environment:
+      - TZ=Asia/Shanghai
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries", "1", "--spider", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - easyaiot-network
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  easyaiot-network:
+    name: easyaiot-network
+    external: true

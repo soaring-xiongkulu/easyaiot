@@ -23,6 +23,7 @@
 #   verify     - 验证所有服务是否启动成功
 #   check      - 检查 Docker 和 Docker Compose 安装状态
 #   profile    - 显示当前部署形态与服务范围
+#   site [子命令] - 官方网站 SITE 独立部署
 #   menu       - 打开两层交互引导（同无参数）
 #   diagnose       - 问题分析定位（进入【分析】子菜单）
 #   analyze-logs   - 多模块日志合并分析（各模块约 500 行，带分割线）
@@ -1824,6 +1825,7 @@ show_help() {
     echo "交互引导两层结构:"
     echo "  1) 部署 — 安装/启停/更新/状态/日志等"
     echo "  2) 分析 — 日志合并/磁盘占用/健康检查等"
+    echo "  3) 官网 — SITE 官方网站独立部署"
     echo ""
     echo "可用命令:"
     echo "  install         - 安装并启动所有服务（首次运行）"
@@ -1842,11 +1844,17 @@ show_help() {
     echo "  verify          - 验证所有服务是否启动成功"
     echo "  check           - 检查 Docker 和 Docker Compose 安装状态"
     echo "  profile         - 显示当前部署形态与服务范围"
-    echo "  menu            - 打开两层交互引导（部署 / 分析）"
+    echo "  site [子命令]   - 官方网站 SITE 独立部署（默认 install）"
+    echo "  menu            - 打开两层交互引导（部署 / 分析 / 官网）"
     echo "  diagnose        - 进入【分析】子菜单"
     echo "  analyze-logs    - 多模块日志合并分析（各模块约 500 行，带分割线）"
     echo "  analyze-disk    - 项目关键目录磁盘占用分析"
     echo "  help            - 显示此帮助信息"
+    echo ""
+    echo "SITE 子命令（./install_linux.sh site <子命令>）:"
+    echo "  install | start | stop | restart | status | logs | build | clean | update"
+    echo "  也可直接: cd SITE && ./install_linux.sh <子命令>"
+    echo "  默认端口: http://localhost:8090"
     echo ""
     echo "模块列表:"
     for module in "${MODULES[@]}"; do
@@ -1864,7 +1872,41 @@ show_help() {
     echo "  EASYAIOT_RUNTIME_REGISTRY    - 运行时镜像仓库（默认见 runtime_registry.conf）"
     echo "  EASYAIOT_RUNTIME_BUILD_ARCH  - build-runtime 目标架构: all(默认) | amd64 | arm64"
     echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
+    echo "  SITE_PORT                    - 官网宿主机端口（默认 8090）"
     echo ""
+}
+
+# 官方网站 SITE：委托 SITE/install_linux.sh
+run_site_module() {
+    local site_cmd="${1:-install}"
+    local site_dir="${PROJECT_ROOT}/SITE"
+    local site_script="${site_dir}/install_linux.sh"
+
+    if [ ! -f "$site_script" ]; then
+        print_error "未找到官网模块脚本: ${site_script}"
+        return 1
+    fi
+    if [ ! -x "$site_script" ]; then
+        chmod +x "$site_script" || true
+    fi
+
+    case "$site_cmd" in
+        install|start|stop|restart|status|logs|build|clean|update|help|-h|--help)
+            print_section "SITE 官方网站（独立部署）"
+            print_info "执行: SITE/install_linux.sh ${site_cmd}"
+            (cd "$site_dir" && bash ./install_linux.sh "$site_cmd")
+            ;;
+        "")
+            print_section "SITE 官方网站（独立部署）"
+            print_info "执行: SITE/install_linux.sh install"
+            (cd "$site_dir" && bash ./install_linux.sh install)
+            ;;
+        *)
+            print_error "未知 SITE 子命令: ${site_cmd}"
+            echo "可用: install | start | stop | restart | status | logs | build | clean | update"
+            return 1
+            ;;
+    esac
 }
 
 # 主函数
@@ -1925,6 +1967,9 @@ main() {
         profile)
             ensure_deploy_profile
             print_deploy_profile_summary
+            ;;
+        site|website|官网)
+            run_site_module "${2:-install}"
             ;;
         diagnose|diagnose-tools)
             run_analyze_interactive_menu

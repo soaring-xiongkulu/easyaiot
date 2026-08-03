@@ -25,6 +25,12 @@
   <a href="./README_ko.md">한국어</a>
 </h4>
 
+## 🌐 官方网站
+
+EasyAIoT 官方网站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
+
+提供产品介绍、特性说明、三档硬件选型、安装包下载与文档入口，便于快速了解平台价值并开始落地。
+
 ## 📖 项目介绍
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -36,7 +42,7 @@
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平台由 <strong>WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE、TRANSFORM、PANEL</strong> 十一个核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>大疆机场与无人机空中视角接入</strong>、实时与抓拍算法任务、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、可编排业务后处理、联邦算力集群调度，以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置。
+平台由 <strong>WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>大疆机场与无人机空中视角接入</strong>、实时与抓拍算法任务、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、可编排业务后处理、联邦算力集群调度，以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、三档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -348,13 +354,24 @@ EasyAIoT积极响应本土化战略，全面支持本土化硬件和操作系统
 ## 🧩 项目结构
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT由十一个核心项目组成，并配套 COMPILE 多平台打包交付能力：
+EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE 等核心模块组成，并配套 COMPILE 多平台打包交付能力：
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50; width: 20%;">模块</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50;">描述</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>SITE模块</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>官方价值入口</strong>：面向访客、集成商与终端客户的独立官方网站，把「云边端一体化」讲清楚——先理解价值，再进入下载与部署</li>
+    <li><strong>缩短认知路径</strong>：产品特性、三档硬件选型、安装包入口与文档导览同站完成，减少「翻仓库、问人、找包」的沟通成本</li>
+    <li><strong>支撑选型决策</strong>：按 mini / standard / full 呈现边缘盒子、AI 一体摄像头与全栈一体机适用场景，帮助现场按硬件能力一次选对档位</li>
+    <li><strong>引流到落地</strong>：官网与演示环境、开源仓库、Releases 安装包形成闭环，让「看懂 → 试用 → 下载 → 装机」可连续完成</li>
+  </ul>
+</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>WEB模块</strong></td>
@@ -433,7 +450,7 @@ EasyAIoT由十一个核心项目组成，并配套 COMPILE 多平台打包交付
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>EDGE模块</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>无限联邦边缘集群模式</strong>：第八核心模块，把智能能力从中心延伸到现场——普通开发板与边缘节点可随时加入值守网络，算力随业务铺开，告警与证据自动汇聚上云</li>
+    <li><strong>无限联邦边缘集群模式</strong>：把智能能力从中心延伸到现场——普通开发板与边缘节点可随时加入值守网络，算力随业务铺开，告警与证据自动汇聚上云</li>
     <li><strong>现场轻量值守</strong>：专注就近感知与研判回传，不背负重型管控界面与本地业务系统，降低边缘部署门槛与长期运维负担</li>
     <li><strong>开箱接入、统一纳管</strong>：现场节点快速加入后由中心统一编排任务与策略，减少人工配置与分点分建成本</li>
     <li><strong>业务无缝延展</strong>：中心负责看全局、定规则，边缘负责盯现场、快响应；节点数量可随覆盖范围持续扩展，支撑实时分析、巡检与抓拍等场景横向铺开</li>
@@ -445,7 +462,7 @@ EasyAIoT由十一个核心项目组成，并配套 COMPILE 多平台打包交付
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>VISUALIZE模块</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>拖拽式大屏编辑器</strong>：第九核心模块，高性能低代码可视化编辑器，专注画布编辑与预览</li>
+    <li><strong>拖拽式大屏编辑器</strong>：高性能低代码可视化编辑器，专注画布编辑与预览</li>
     <li><strong>与 WEB 一体联动</strong>：项目创建、模板、素材、数据源、发布与投放在管理后台「可视化」菜单完成；点击「打开编辑器」即可进入画布</li>
     <li><strong>大屏交付能力</strong>：图表、指标与布局拖拽配置，组件可挂接平台数据源与 IoT 测点，支撑园区态势、产线 KPI、设备运维、能源能耗等指挥大屏快速成屏</li>
     <li><strong>与组态分工清晰</strong>：指挥大屏走本模块编辑；工艺组态走 Web 组态能力；工程元数据统一由 DEVICE 侧可视化后台管理</li>
@@ -457,7 +474,7 @@ EasyAIoT由十一个核心项目组成，并配套 COMPILE 多平台打包交付
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>TRANSFORM模块</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>多向业务流转</strong>：第十核心模块，把平台侧告警、设备事件与业务结果按约定投递到 MES / ERP / CRM / WMS 等外部系统，打通「平台有数 → 业务系统用得上」的最后一公里</li>
+    <li><strong>多向业务流转</strong>：把平台侧告警、设备事件与业务结果按约定投递到 MES / ERP / CRM / WMS 等外部系统，打通「平台有数 → 业务系统用得上」的最后一公里</li>
     <li><strong>可配置对接</strong>：数据目的、转发规则与字段映射一次配好即可复用，减少「每接一家客户系统就定制一套接口」的交付成本</li>
     <li><strong>投递可验收</strong>：运行集群与投递轨迹可监控、可回看，联调与验收能回答「转没转到、卡在哪一步」，少靠口头对账</li>
     <li><strong>横向扩展</strong>：流量上来后可按业务约定扩容消费与投递能力，支撑多产线、多工厂、多系统并行对接</li>
@@ -468,7 +485,7 @@ EasyAIoT由十一个核心项目组成，并配套 COMPILE 多平台打包交付
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>PANEL模块</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>交付与值守入口</strong>：第十一核心模块，独立于业务管控台——到场可装、可验、可守，缩短验收周期，降低驻场与远程支援成本</li>
+    <li><strong>交付与值守入口</strong>：独立于业务管控台——到场可装、可验、可守，缩短验收周期，降低驻场与远程支援成本</li>
     <li><strong>当天可闭环</strong>：按档位界面化装机，进度与结果当场可见，业务管控台未就绪也能先把整机拉起来并交出去</li>
     <li><strong>自助排障</strong>：容器健康、资源水位、任务日志与镜像就绪度一目了然，常见启停、拉镜像、清缓存不必等开发敲命令</li>
     <li><strong>多现场复用</strong>：同一套入口贯穿多台一体机与多处机房，PoC 与量产交付口径一致</li>

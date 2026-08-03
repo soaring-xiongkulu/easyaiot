@@ -124,6 +124,13 @@ APP/docs/.vitepress/cache
 APP/src/types/*
 !APP/src/types/auto-import.d.ts
 
+# SITE 构建产物、依赖与 pnpm 缓存（与 SITE/.gitignore 一致）
+SITE/node_modules/
+SITE/dist/
+SITE/dist-prebuilt/
+SITE/.pnpm-store/
+SITE/logs/
+
 # IDE / 包管理器缓存 / 测试缓存（仅本机，不随仓库分发）
 .vscode/
 .pnpm-store/

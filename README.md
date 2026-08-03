@@ -25,6 +25,12 @@ My vision is for this system to be accessible worldwide, achieving truly zero ba
   <a href="./README_ko.md">한국어</a>
 </h4>
 
+## 🌐 Official Website
+
+EasyAIoT Official Website: [http://36.111.47.113:8090/](http://36.111.47.113:8090/)
+
+Product introduction, feature overview, three hardware tiers, installer downloads, and documentation entry—so you can quickly understand the platform and start deploying.
+
 ## 📖 Project Overview
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -36,7 +42,7 @@ Many smart IoT projects hit the same wall at deployment: video systems, device p
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-The platform comprises eleven core modules—<strong>WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, and PANEL</strong>—with <strong>COMPILE</strong> handling multi-platform packaging and delivery. On the capability side, the platform covers GB28181 / ONVIF multi-protocol camera access, <strong>DJI dock and drone aerial view access</strong>, real-time and snapshot algorithm tasks, YOLO object detection and SAM zero-shot auto-annotation, face/plate recognition, orchestrable business post-processing, federated compute cluster scheduling, and <strong>Infinite Federated Edge Cluster mode</strong> (ordinary development boards ready out of the box, on-site intelligence for local decisions, alerts and evidence automatically aggregated to the cloud, compute scaling with business as needed), plus MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT device lifecycle management, and <strong>visualization dashboards and Web SCADA configuration</strong>, so device data can be displayed as command-center situational awareness and mapped back to process screens; plus the new <strong>TRANSFORM multidirectional data-flow engine</strong>, which delivers platform-side business events to external systems such as MES / ERP / CRM / WMS by contract—multi-party integration that is configurable, traceable, and reusable; and the companion <strong>PANEL delivery & watch entry</strong>, so appliances can be installed and accepted on arrival day, and watch/troubleshooting no longer wait on developers running remote commands every time. On the experience side, the Web console and mobile App / mini-program are capability-aligned, so command centers and field inspections share the same business logic—handle incidents anytime, anywhere.
+The platform comprises core modules including <strong>WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, and SITE</strong>, with <strong>COMPILE</strong> handling multi-platform packaging and delivery. On the capability side, the platform covers GB28181 / ONVIF multi-protocol camera access, <strong>DJI dock and drone aerial view access</strong>, real-time and snapshot algorithm tasks, YOLO object detection and SAM zero-shot auto-annotation, face/plate recognition, orchestrable business post-processing, federated compute cluster scheduling, and <strong>Infinite Federated Edge Cluster mode</strong> (ordinary development boards ready out of the box, on-site intelligence for local decisions, alerts and evidence automatically aggregated to the cloud, compute scaling with business as needed), plus MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT device lifecycle management, and <strong>visualization dashboards and Web SCADA configuration</strong>, so device data can be displayed as command-center situational awareness and mapped back to process screens; plus the new <strong>TRANSFORM multidirectional data-flow engine</strong>, which delivers platform-side business events to external systems such as MES / ERP / CRM / WMS by contract—multi-party integration that is configurable, traceable, and reusable; and the companion <strong>PANEL delivery & watch entry</strong>, so appliances can be installed and accepted on arrival day, and watch/troubleshooting no longer wait on developers running remote commands every time; plus the <strong>SITE official website</strong> to present product value, three hardware tiers, and installer entry—so visitors understand first, then download and deploy. On the experience side, the Web console and mobile App / mini-program are capability-aligned, so command centers and field inspections share the same business logic—handle incidents anytime, anywhere.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -348,13 +354,24 @@ EasyAIoT actively responds to localization strategies, providing comprehensive s
 ## 🧩 Project Structure
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT consists of eleven core projects, plus COMPILE multi-platform packaging and delivery:
+EasyAIoT comprises core modules including WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, and SITE, plus COMPILE multi-platform packaging and delivery:
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50; width: 20%;">Module</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50;">Description</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>SITE Module</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>Official value entry</strong>: Standalone official website for visitors, integrators, and end customers—explain cloud-edge-device integration clearly, then guide people to download and deploy</li>
+    <li><strong>Shorter learning path</strong>: Features, three hardware tiers, installer entry, and docs on one site—less time hunting the repo or asking around for packages</li>
+    <li><strong>Supports tier selection</strong>: Present mini / standard / full for edge boxes, AI cameras, and full-stack appliances so sites pick the right tier once</li>
+    <li><strong>From interest to install</strong>: Website, demo, open-source repos, and Releases form one loop—understand → try → download → install</li>
+  </ul>
+</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>WEB Module</strong></td>
@@ -433,7 +450,7 @@ EasyAIoT consists of eleven core projects, plus COMPILE multi-platform packaging
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>EDGE Module</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>Infinite Federated Edge Cluster Mode</strong>: The eighth core module—extends intelligence from the center to the field; ordinary development boards and edge nodes can join the watch network at any time, compute scales with business, alerts and evidence automatically aggregate to the cloud</li>
+    <li><strong>Infinite Federated Edge Cluster Mode</strong>: Extends intelligence from the center to the field; ordinary development boards and edge nodes can join the watch network at any time, compute scales with business, alerts and evidence automatically aggregate to the cloud</li>
     <li><strong>Lightweight On-Site Watch</strong>: Focuses on nearby perception and judgment with feedback—without carrying heavy control UI or local business systems, lowering edge deployment barriers and long-term ops burden</li>
     <li><strong>Out-of-the-Box Access, Unified Management</strong>: Field nodes join quickly and are orchestrated by the center for tasks and policies, reducing manual configuration and per-site build costs</li>
     <li><strong>Seamless Business Extension</strong>: The center sees the big picture and sets rules; edges watch the field and respond fast; node count grows with coverage, supporting horizontal scale-out for real-time analysis, patrol, and snapshot scenarios</li>
@@ -445,7 +462,7 @@ EasyAIoT consists of eleven core projects, plus COMPILE multi-platform packaging
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>VISUALIZE Module</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>Drag-and-Drop Dashboard Editor</strong>: The ninth core module—a high-performance low-code visualization editor focused on canvas editing and preview</li>
+    <li><strong>Drag-and-Drop Dashboard Editor</strong>: A high-performance low-code visualization editor focused on canvas editing and preview</li>
     <li><strong>Integrated with WEB</strong>: Project creation, templates, assets, data sources, publishing, and deployment are done in the admin console "Visualization" menu; click "Open Editor" to enter the canvas</li>
     <li><strong>Dashboard Delivery</strong>: Drag-and-drop charts, metrics, and layouts; components can connect to platform data sources and IoT metrics, supporting rapid command dashboards for campus situational awareness, production-line KPIs, equipment ops, energy consumption, and more</li>
     <li><strong>Clear Division with SCADA</strong>: Dashboards use this module; process SCADA uses Web SCADA capability; project metadata is unified under the DEVICE visualization backend</li>
@@ -457,7 +474,7 @@ EasyAIoT consists of eleven core projects, plus COMPILE multi-platform packaging
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>TRANSFORM Module</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>Multidirectional Business Flow</strong>: The tenth core module—delivers platform-side alerts, device events, and business results to external systems such as MES / ERP / CRM / WMS by contract, closing the last mile from “the platform has data” to “business systems can use it”</li>
+    <li><strong>Multidirectional Business Flow</strong>: Delivers platform-side alerts, device events, and business results to external systems such as MES / ERP / CRM / WMS by contract, closing the last mile from “the platform has data” to “business systems can use it”</li>
     <li><strong>Configurable Integration</strong>: Configure destinations, forwarding rules, and field mappings once and reuse them—cutting the cost of “custom APIs for every customer system”</li>
     <li><strong>Delivery You Can Accept</strong>: Runtime clusters and delivery trails are monitorable and reviewable, so integration and acceptance can answer “did it arrive, and where did it stall”—less verbal reconciliation</li>
     <li><strong>Horizontal Scale-Out</strong>: As traffic grows, expand consume and delivery capacity by business contract—supporting parallel integration across lines, plants, and systems</li>
@@ -468,7 +485,7 @@ EasyAIoT consists of eleven core projects, plus COMPILE multi-platform packaging
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>PANEL Module</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>Delivery & Watch Entry</strong>: The eleventh core module—independent of the business console: install, accept, and watch on arrival—shorten acceptance cycles and cut on-site / remote support cost</li>
+    <li><strong>Delivery & Watch Entry</strong>: Independent of the business console: install, accept, and watch on arrival—shorten acceptance cycles and cut on-site / remote support cost</li>
     <li><strong>Same-Day Closed Loop</strong>: UI-driven install by tier with progress and results on the spot; bring up and hand over the appliance even before the business console is ready</li>
     <li><strong>Self-Serve Troubleshooting</strong>: Container health, resource levels, task logs, and image readiness at a glance—common start/stop, pull, and cache cleanup without waiting for developer commands</li>
     <li><strong>Reuse Across Sites</strong>: One entry across appliances and machine rooms—PoC and production delivery share the same playbook</li>

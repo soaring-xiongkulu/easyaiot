@@ -25,6 +25,12 @@
   <a href="./README_ko.md">한국어</a>
 </h4>
 
+## 🌐 공식 웹사이트
+
+EasyAIoT 공식 웹사이트: [http://36.111.47.113:8090/](http://36.111.47.113:8090/)
+
+제품 소개, 기능 설명, 3단계 하드웨어 선택, 설치 패키지 다운로드와 문서 진입점을 제공하여 플랫폼 가치를 빠르게 이해하고 배포를 시작할 수 있습니다.
+
 ## 📖 프로젝트 소개
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -36,7 +42,7 @@
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-플랫폼은 <strong>WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL</strong> 열한 개 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다. 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간·스냅샷 알고리즘 작업, YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 합니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
+플랫폼은 <strong>WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다. 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간·스냅샷 알고리즘 작업, YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·3단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 합니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -348,13 +354,24 @@ EasyAIoT는 현지화 전략에 적극적으로 대응하며, 현지화 하드�
 ## 🧩 프로젝트 구조
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT는 열한 개의 핵심 프로젝트로 구성되며, COMPILE 다중 플랫폼 패키징·납품 능력을 함께 제공합니다:
+EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE 등 핵심 모듈로 구성되며, COMPILE 다중 플랫폼 패키징·납품 능력을 함께 제공합니다:
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50; width: 20%;">모듈</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50;">설명</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>SITE 모듈</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>공식 가치 진입점</strong>: 방문자·통합사·최종 고객을 위한 독립 공식 웹사이트 — 클라우드-엣지-디바이스 통합 가치를 명확히 설명한 뒤 다운로드와 배포로 안내</li>
+    <li><strong>인지 경로 단축</strong>: 제품 특성, 3단계 하드웨어 선택, 설치 패키지, 문서를 한 사이트에서 제공 — 저장소 검색·문의·패키지 찾기 비용 감소</li>
+    <li><strong>선택 의사결정 지원</strong>: mini / standard / full로 엣지 박스, AI 일체형 카메라, 풀스택 일체기 시나리오를 제시해 현장에서 한 번에 맞는 등급을 선택</li>
+    <li><strong>관심에서 설치까지</strong>: 공식 사이트, 데모, 오픈소스 저장소, Releases가 하나의 흐름을 형성 — 이해 → 체험 → 다운로드 → 설치</li>
+  </ul>
+</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>WEB 모듈</strong></td>
@@ -433,7 +450,7 @@ EasyAIoT는 열한 개의 핵심 프로젝트로 구성되며, COMPILE 다중 �
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>EDGE 모듈</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>무한 연합 엣지 클러스터 모드</strong>: 여덟 번째 핵심 모듈, 지능 역량을 중앙에서 현장으로 확장 — 일반 개발 보드와 엣지 노드가 언제든 근무 네트워크에 가입, 연산이 비즈니스에 따라 확장, 경보와 증거가 자동으로 클라우드에 집약</li>
+    <li><strong>무한 연합 엣지 클러스터 모드</strong>: 지능 역량을 중앙에서 현장으로 확장 — 일반 개발 보드와 엣지 노드가 언제든 근무 네트워크에 가입, 연산이 비즈니스에 따라 확장, 경보와 증거가 자동으로 클라우드에 집약</li>
     <li><strong>현장 경량 근무</strong>: 근접 인지·판단·회송에 집중, 무거운 관제 UI와 로컬 업무 시스템을 지지 않아 엣지 배포·장기 운영 부담 감소</li>
     <li><strong>즉시 접속·통합 관리</strong>: 현장 노드가 빠르게 가입하면 중앙이 작업·전략을 통합 오케스트레이션, 수동 구성·분점 분산 구축 비용 감소</li>
     <li><strong>비즈니스 seamless 확장</strong>: 중앙은 전역·규칙 담당, 엣지는 현장 감시·빠른 대응; 노드 수가 커버리지에 따라 지속 확장, 실시간 분석·순찰·캡처 등 시나리오 수평 확장</li>
@@ -445,7 +462,7 @@ EasyAIoT는 열한 개의 핵심 프로젝트로 구성되며, COMPILE 다중 �
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>VISUALIZE 모듈</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>드래그식 대형 화면 편집기</strong>: 아홉 번째 핵심 모듈, 고성능 로우코드 시각화 편집기, 캔버스 편집·미리보기에 집중</li>
+    <li><strong>드래그식 대형 화면 편집기</strong>: 고성능 로우코드 시각화 편집기, 캔버스 편집·미리보기에 집중</li>
     <li><strong>WEB 일체 연동</strong>: 프로젝트 생성, 템플릿, 소재, 데이터 소스, 배포·투입은 관리 백엔드 「시각화」 메뉴에서 완료; 「편집기 열기」 클릭 시 캔버스로 바로 진입</li>
     <li><strong>대형 화면 납품 역량</strong>: 차트, 지표, 레이아웃 드래그 구성, 컴포넌트가 플랫폼 데이터 소스·IoT 측정점에 연결, 단지 상황, 생산라인 KPI, 장비 운영, 에너지·소비 등 지휘 대형 화면 빠른 완성</li>
     <li><strong>SCADA와 역할 분담 명확</strong>: 지휘 대형 화면은 본 모듈에서 편집; 공정 SCADA는 Web SCADA 역량; 엔지니어링 메타데이터는 DEVICE 측 시각화 백엔드에서 통합 관리</li>
@@ -457,7 +474,7 @@ EasyAIoT는 열한 개의 핵심 프로젝트로 구성되며, COMPILE 다중 �
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>TRANSFORM 모듈</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>다방향 업무 흐름</strong>: 열 번째 핵심 모듈 — 플랫폼 측 경보·장치 이벤트·업무 결과를 계약에 따라 MES / ERP / CRM / WMS 등 외부 시스템으로 전달해 「플랫폼에 데이터 있음 → 업무 시스템이 쓸 수 있음」의 마지막 구간을 연결</li>
+    <li><strong>다방향 업무 흐름</strong>: 플랫폼 측 경보·장치 이벤트·업무 결과를 계약에 따라 MES / ERP / CRM / WMS 등 외부 시스템으로 전달해 「플랫폼에 데이터 있음 → 업무 시스템이 쓸 수 있음」의 마지막 구간을 연결</li>
     <li><strong>구성 가능 연동</strong>: 데이터 목적지·전달 규칙·필드 매핑을 한 번 구성해 재사용 — 「고객 시스템마다 맞춤 API」 비용을 줄임</li>
     <li><strong>검증 가능한 전달</strong>: 런타임 클러스터와 전달 궤적을 모니터링·회고 가능 — 「전달됐는지, 어디서 막혔는지」를 인수·연동에서 답할 수 있음</li>
     <li><strong>수평 확장</strong>: 트래픽 증가 시 업무 계약에 맞춰 소비·전달 능력을 확장 — 다수 라인·공장·시스템 병렬 연동 지원</li>
@@ -468,7 +485,7 @@ EasyAIoT는 열한 개의 핵심 프로젝트로 구성되며, COMPILE 다중 �
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>PANEL 모듈</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>납품·당직 진입점</strong>: 열한 번째 핵심 모듈 — 업무 콘솔과 독립: 도착 당일 설치·인수·당직 — 인수 주기 단축, 상주·원격 지원 비용 절감</li>
+    <li><strong>납품·당직 진입점</strong>: 업무 콘솔과 독립: 도착 당일 설치·인수·당직 — 인수 주기 단축, 상주·원격 지원 비용 절감</li>
     <li><strong>당일 폐쇄 루프</strong>: UI로 등급별 설치, 진행·결과를 현장에서 확인 — 업무 콘솔 준비 전에도 장비를 올리고 넘겨줄 수 있음</li>
     <li><strong>자체 장애 대응</strong>: 컨테이너 건강·자원 수위·작업 로그·이미지 준비도가 한눈에 — 흔한 기동/정지·pull·캐시 정리를 개발자 명령 없이 처리</li>
     <li><strong>다수 현장 재사용</strong>: 동일 진입점이 다수 일체형·다수 기기를 관통 — PoC와 양산 납품 기준 일치</li>

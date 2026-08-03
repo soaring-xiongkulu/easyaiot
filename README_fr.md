@@ -25,6 +25,12 @@ Mon souhait est que ce système soit utilisé dans le monde entier, rendant l'IA
   <a href="./README_ko.md">한국어</a>
 </h4>
 
+## 🌐 Site officiel
+
+Site officiel EasyAIoT : [http://36.111.47.113:8090/](http://36.111.47.113:8090/)
+
+Présentation produit, fonctionnalités, trois niveaux matériels, téléchargement des installateurs et accès à la documentation — pour comprendre rapidement la valeur de la plateforme et démarrer le déploiement.
+
 ## 📖 Présentation du projet
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -36,7 +42,7 @@ De nombreux projets IoT intelligents se heurtent au même obstacle lors du dépl
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-La plateforme comprend onze modules principaux — <strong>WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM et PANEL</strong> — avec <strong>COMPILE</strong> pour le packaging et la livraison multiplateformes. Côté capacités : accès caméra multi-protocoles GB28181 / ONVIF, <strong>accès vue aérienne dock/drone DJI</strong>, tâches algorithmiques temps réel et par capture, détection d'objets YOLO et annotation automatique SAM zero-shot, reconnaissance faciale/plaques, post-traitement métier orchestrable, planification de clusters de calcul fédérés, et <strong>mode cluster edge fédéré illimité</strong> (cartes de développement ordinaires prêtes à l'emploi, décision intelligente sur site, alertes et preuves agrégées automatiquement vers le cloud, puissance de calcul déployable selon les besoins), ainsi que la gestion du cycle de vie des appareils IoT MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA, et <strong>grands écrans de visualisation et synoptiques de processus Web</strong>, pour que les données alimentent la situation de commandement et les synoptiques de processus ; plus le nouvel <strong>engine TRANSFORM de flux de données multidirectionnel</strong>, qui livre les événements métier de la plateforme vers MES / ERP / CRM / WMS selon contrat — intégration multipartite configurable, traçable et réutilisable ; et l'<strong>entrée de livraison et de permanence PANEL</strong> pour installer et réceptionner l'appliance dès l'arrivée, sans attendre à chaque fois que les développeurs tapent des commandes à distance. Côté expérience : console Web et App mobile / mini-programme alignées — centres de commande et inspections terrain partagent la même logique métier, partout et à tout moment.
+La plateforme comprend notamment les modules <strong>WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL et SITE</strong>, avec <strong>COMPILE</strong> pour le packaging et la livraison multiplateformes. Côté capacités : accès caméra multi-protocoles GB28181 / ONVIF, <strong>accès vue aérienne dock/drone DJI</strong>, tâches algorithmiques temps réel et par capture, détection d'objets YOLO et annotation automatique SAM zero-shot, reconnaissance faciale/plaques, post-traitement métier orchestrable, planification de clusters de calcul fédérés, et <strong>mode cluster edge fédéré illimité</strong> (cartes de développement ordinaires prêtes à l'emploi, décision intelligente sur site, alertes et preuves agrégées automatiquement vers le cloud, puissance de calcul déployable selon les besoins), ainsi que la gestion du cycle de vie des appareils IoT MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA, et <strong>grands écrans de visualisation et synoptiques de processus Web</strong>, pour que les données alimentent la situation de commandement et les synoptiques de processus ; plus le nouvel <strong>engine TRANSFORM de flux de données multidirectionnel</strong>, qui livre les événements métier de la plateforme vers MES / ERP / CRM / WMS selon contrat — intégration multipartite configurable, traçable et réutilisable ; et l'<strong>entrée de livraison et de permanence PANEL</strong> pour installer et réceptionner l'appliance dès l'arrivée, sans attendre à chaque fois que les développeurs tapent des commandes à distance ; ainsi que le <strong>site officiel SITE</strong> pour présenter la valeur produit, trois niveaux matériels et l'entrée téléchargement — comprendre d'abord, puis télécharger et déployer. Côté expérience : console Web et App mobile / mini-programme alignées — centres de commande et inspections terrain partagent la même logique métier, partout et à tout moment.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -348,13 +354,24 @@ EasyAIoT répond activement à la stratégie de localisation, prenant pleinement
 ## 🧩 Structure du projet
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT est composé de onze projets principaux, avec COMPILE pour le packaging et la livraison multiplateformes :
+EasyAIoT comprend notamment WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL et SITE, avec COMPILE pour le packaging et la livraison multiplateformes :
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50; width: 20%;">Module</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50;">Description</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Module SITE</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>Entrée officielle</strong> : Site officiel indépendant pour visiteurs, intégrateurs et clients finaux — expliquer clairement l'intégration cloud-bord-périphérie, puis guider vers le téléchargement et le déploiement</li>
+    <li><strong>Parcours plus court</strong> : Fonctionnalités, trois niveaux matériels, installateurs et documentation sur un même site — moins de recherche dans le dépôt et d'explications orales</li>
+    <li><strong>Aide au choix de niveau</strong> : mini / standard / full pour boxes edge, caméras IA et appliances full-stack — choisir le bon niveau dès le départ</li>
+    <li><strong>De l'intérêt à l'installation</strong> : Site, démo, dépôts open source et Releases forment une boucle — comprendre → essayer → télécharger → installer</li>
+  </ul>
+</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Module WEB</strong></td>
@@ -433,7 +450,7 @@ EasyAIoT est composé de onze projets principaux, avec COMPILE pour le packaging
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Module EDGE</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>Mode cluster edge fédéré illimité</strong> : Huitième module principal — étend l'intelligence du centre vers le terrain ; cartes de développement ordinaires et nœuds edge rejoignent le réseau de veille à tout moment ; puissance de calcul déployée selon l'activité ; alertes et preuves agrégées vers le cloud</li>
+    <li><strong>Mode cluster edge fédéré illimité</strong> : Étend l'intelligence du centre vers le terrain ; cartes de développement ordinaires et nœuds edge rejoignent le réseau de veille à tout moment ; puissance de calcul déployée selon l'activité ; alertes et preuves agrégées vers le cloud</li>
     <li><strong>Veille légère sur site</strong> : Perception et analyse locales avec remontée — sans interface lourde ni système métier local, réduisant le seuil de déploiement edge et la charge d'exploitation</li>
     <li><strong>Accès prêt à l'emploi, gouvernance unifiée</strong> : Les nœuds terrain rejoignent rapidement le centre qui orchestre tâches et politiques — moins de configuration manuelle et de déploiement point par point</li>
     <li><strong>Extension métier transparente</strong> : Le centre voit l'ensemble et fixe les règles ; l'edge surveille le terrain et réagit vite ; le nombre de nœuds grandit avec la couverture — analyse temps réel, patrouille et capture à l'échelle</li>
@@ -445,7 +462,7 @@ EasyAIoT est composé de onze projets principaux, avec COMPILE pour le packaging
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Module VISUALIZE</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>Éditeur de grands écrans glisser-déposer</strong> : Neuvième module principal — éditeur de visualisation low-code haute performance, centré sur l'édition et l'aperçu du canevas</li>
+    <li><strong>Éditeur de grands écrans glisser-déposer</strong> : Éditeur de visualisation low-code haute performance, centré sur l'édition et l'aperçu du canevas</li>
     <li><strong>Intégration avec WEB</strong> : Création de projet, modèles, ressources, sources de données, publication et diffusion dans le menu « Visualisation » de la console ; « Ouvrir l'éditeur » bascule vers le canevas</li>
     <li><strong>Livraison de grands écrans</strong> : Graphiques, indicateurs et mise en page par glisser-déposer ; composants raccordables aux sources de données plateforme et points IoT — situation de campus, KPI de ligne, exploitation d'équipements, énergie, etc.</li>
     <li><strong>Complémentarité avec les synoptiques de processus</strong> : Grands écrans (dashboard) via ce module ; synoptiques de processus via les capacités Web de synoptique ; métadonnées de projet unifiées sous le backend de visualisation DEVICE</li>
@@ -457,7 +474,7 @@ EasyAIoT est composé de onze projets principaux, avec COMPILE pour le packaging
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Module TRANSFORM</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>Flux métier multidirectionnel</strong> : Dixième module cœur — livre alertes, événements appareil et résultats métier vers MES / ERP / CRM / WMS selon contrat, franchissant le dernier kilomètre « la plateforme a des données → les systèmes métier les utilisentent »</li>
+    <li><strong>Flux métier multidirectionnel</strong> : Livre alertes, événements appareil et résultats métier vers MES / ERP / CRM / WMS selon contrat, franchissant le dernier kilomètre « la plateforme a des données → les systèmes métier les utilisentent »</li>
     <li><strong>Intégration configurable</strong> : Destinations, règles de transfert et mappages de champs configurés une fois et réutilisables — moins de « API sur mesure pour chaque client »</li>
     <li><strong>Livraison vérifiable</strong> : Clusters d'exécution et traces de livraison monitorables et rejouables ; l'intégration et la recette répondent à « est-ce arrivé, où ça bloque » — moins de réconciliation orale</li>
     <li><strong>Extension horizontale</strong> : Avec le trafic, étendre consommation et livraison selon le contrat métier — multi-lignes, multi-usines, multi-systèmes en parallèle</li>
@@ -468,7 +485,7 @@ EasyAIoT est composé de onze projets principaux, avec COMPILE pour le packaging
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Module PANEL</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>Entrée livraison & permanence</strong> : Onzième module cœur — indépendant de la console métier : installer, réceptionner et tenir dès l'arrivée — raccourcir la recette, réduire le coût de présence et de support distant</li>
+    <li><strong>Entrée livraison & permanence</strong> : Indépendant de la console métier : installer, réceptionner et tenir dès l'arrivée — raccourcir la recette, réduire le coût de présence et de support distant</li>
     <li><strong>Boucle le jour même</strong> : Installation par niveau via interface, progrès et résultats visibles sur place ; monter et livrer l'appliance même avant la console métier</li>
     <li><strong>Diagnostic en autonomie</strong> : Santé des conteneurs, niveau des ressources, journaux de tâches et readiness des images d'un coup d'œil — start/stop, pull et nettoyage de cache courants sans attendre les commandes développeur</li>
     <li><strong>Réutilisation multi-sites</strong> : Une même entrée pour plusieurs appliances et salles machines — PoC et livraison série partagent le même référentiel</li>

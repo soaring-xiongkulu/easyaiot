@@ -10,11 +10,15 @@ services:
     # 端口映射
     ports:
       - "${WEB_PORT:-8888}:80"
+      # SITE 官网（nginx.conf / nginx.mini.conf 内 listen 8090）
+      - "${SITE_PORT:-8090}:8090"
 
     # 数据卷挂载
     volumes:
       # Nginx配置文件（mini 形态由 install_linux.sh 写入 NGINX_CONF=./conf/nginx.mini.conf）
       - ${NGINX_CONF:-./conf/nginx.conf}:/etc/nginx/nginx.conf:ro
+      # SITE 官网静态产物（可选）：先 pnpm --dir SITE build，再挂载
+      # - ${SITE_HTML:-../SITE/dist}:/usr/share/nginx/html/SITE:ro
       # WEB前端构建/运行日志目录（非nginx access/error日志）
       - ./logs:/app/logs
       # SSL证书（如果存在）
