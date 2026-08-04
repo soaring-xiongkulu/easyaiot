@@ -151,43 +151,19 @@ const effectiveSelectedNodeIds = computed(() => {
       </div>
     </section>
 
-    <button
-      type="button"
-      class="panel-console-entry"
-      :title="`${NODE_DASHBOARD.openPanelHint}（${panelConsoleUrl}）`"
-      @click="openPanelConsole"
-    >
-      <span class="panel-console-entry__icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-          <rect x="3" y="4" width="18" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6" />
-          <rect x="3" y="14" width="8" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6" />
-          <rect x="13" y="14" width="8" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6" />
-          <path d="M7 7h2M17 17h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-        </svg>
-      </span>
-      <span class="panel-console-entry__body">
-        <span class="panel-console-entry__title">{{ NODE_DASHBOARD.openPanel }}</span>
-        <span class="panel-console-entry__hint">{{ NODE_DASHBOARD.openPanelHint }}</span>
-      </span>
-      <span class="panel-console-entry__action">
-        {{ NODE_DASHBOARD.openPanelAction }}
-        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden="true">
-          <path
-            d="M6 3.5H3.5A1.5 1.5 0 0 0 2 5v7.5A1.5 1.5 0 0 0 3.5 14H11a1.5 1.5 0 0 0 1.5-1.5V10M9.5 2H14v4.5M7.5 8.5 14 2"
-            stroke="currentColor"
-            stroke-width="1.4"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </span>
-    </button>
-
     <section class="load-section">
       <div class="load-section__head">
         <h2 class="load-section__title">{{ NODE_DASHBOARD.clusterLoad }}</h2>
         <div class="load-section__head-right">
           <div class="load-section__scope-controls">
+            <Button
+              type="primary"
+              class="load-section__console-btn"
+              :title="panelConsoleUrl"
+              @click="openPanelConsole"
+            >
+              {{ NODE_DASHBOARD.openPanelAction }}
+            </Button>
             <label class="control-item load-section__central-node">
               <span>{{ NODE_DASHBOARD.overviewCentralNode }}</span>
               <ApiSelect
@@ -347,85 +323,6 @@ const effectiveSelectedNodeIds = computed(() => {
   margin-bottom: 16px;
 }
 
-.panel-console-entry {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  margin: 0 0 24px;
-  padding: 14px 18px;
-  border: 1px solid fade(@node-primary, 18%);
-  border-radius: @node-radius;
-  background: linear-gradient(90deg, @node-primary-bg 0%, @node-bg 72%);
-  color: @node-text-primary;
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-
-  &:hover {
-    border-color: fade(@node-primary, 42%);
-    box-shadow: @node-card-shadow-hover;
-    transform: translateY(-1px);
-
-    .panel-console-entry__action {
-      background: @node-primary;
-      color: #fff;
-    }
-  }
-
-  &:focus-visible {
-    outline: 2px solid fade(@node-primary, 55%);
-    outline-offset: 2px;
-  }
-}
-
-.panel-console-entry__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: fade(@node-primary, 10%);
-  color: @node-primary;
-}
-
-.panel-console-entry__body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
-.panel-console-entry__title {
-  font-size: @node-font-subtitle;
-  font-weight: 600;
-  line-height: 1.3;
-  color: @node-text-primary;
-}
-
-.panel-console-entry__hint {
-  font-size: @node-font-caption;
-  line-height: 1.4;
-  color: @node-text-secondary;
-}
-
-.panel-console-entry__action {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  padding: 7px 14px;
-  border-radius: 6px;
-  background: fade(@node-primary, 10%);
-  color: @node-primary;
-  font-size: @node-font-caption;
-  font-weight: 500;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
 .stat-card {
   display: flex;
   flex-direction: column;
@@ -508,6 +405,10 @@ const effectiveSelectedNodeIds = computed(() => {
   align-items: center;
   flex-wrap: wrap;
   gap: 12px 20px;
+  flex-shrink: 0;
+}
+
+.load-section__console-btn {
   flex-shrink: 0;
 }
 
@@ -710,16 +611,6 @@ const effectiveSelectedNodeIds = computed(() => {
 @media (max-width: 768px) {
   .stat-cards {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .panel-console-entry {
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 12px 14px;
-  }
-
-  .panel-console-entry__action {
-    margin-left: auto;
   }
 
   .load-section__head {

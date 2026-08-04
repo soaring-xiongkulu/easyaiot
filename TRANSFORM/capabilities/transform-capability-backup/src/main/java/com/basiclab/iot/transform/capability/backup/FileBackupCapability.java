@@ -1,0 +1,4 @@
+package com.basiclab.iot.transform.capability.backup;
+import com.basiclab.iot.transform.core.envelope.TransformEnvelope; import com.fasterxml.jackson.databind.ObjectMapper; import java.nio.file.*; import java.time.*;
+/** 将信封按日期归档为 JSON 文件。 */
+public class FileBackupCapability implements BackupCapability { private final Path root; private final ObjectMapper mapper; public FileBackupCapability(String root,ObjectMapper mapper){this.root=Paths.get(root);this.mapper=mapper;} public void archive(TransformEnvelope e){try{Path d=root.resolve(LocalDate.now(ZoneOffset.UTC).toString());Files.createDirectories(d);mapper.writeValue(d.resolve(e.getEventId()+".json").toFile(),e);}catch(Exception x){throw new IllegalStateException("archive failed",x);}} }

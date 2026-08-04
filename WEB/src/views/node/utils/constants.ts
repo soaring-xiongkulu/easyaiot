@@ -212,8 +212,6 @@ export const NODE_DASHBOARD = {
   overviewCentralNodeAll: '全部中心节点',
   overviewBackToAll: '返回全部节点',
   overviewNodeFocusHint: '选择单个节点后，下方资源图表仅展示该节点数据',
-  openPanel: '容器运维控制台',
-  openPanelHint: '容器管理、一键部署与运行诊断',
   openPanelAction: '打开控制台',
   clusterLoad: '集群资源负载',
   sectionVram: '节点显存分布',
