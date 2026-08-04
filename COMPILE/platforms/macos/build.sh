@@ -146,6 +146,13 @@ if [ ! -f "$PANEL_ENV_FILE" ] && [ -f "${HERE}/panel.env.example" ]; then
   cp "${HERE}/panel.env.example" "$PANEL_ENV_FILE"
 fi
 
+URL="${EASYAIOT_PANEL_URL:-http://127.0.0.1:9200/}"
+HEALTH_URL="${EASYAIOT_PANEL_HEALTH_URL:-http://127.0.0.1:9200/health}"
+
+panel_ready() {
+  curl -sf "$HEALTH_URL" >/dev/null 2>&1 || curl -sf "$URL" >/dev/null 2>&1
+}
+
 # 启动 PANEL 前尝试拉起 Docker Desktop（后台，不阻塞等待引擎；未安装则跳过）
 if ! pgrep -f '/Docker\.app/' >/dev/null 2>&1; then
   if [ -d "/Applications/Docker.app" ] || [ -d "${HOME}/Applications/Docker.app" ]; then
@@ -156,8 +163,30 @@ if ! pgrep -f '/Docker\.app/' >/dev/null 2>&1; then
   fi
 fi
 
-open "http://127.0.0.1:9200/" >/dev/null 2>&1 || true
-exec "${HERE}/easyaiot-panel"
+# 与 Windows 启动器一致：先等服务就绪再打开浏览器，避免空白/无法连接页
+if panel_ready; then
+  open "$URL" >/dev/null 2>&1 || true
+  exit 0
+fi
+
+"${HERE}/easyaiot-panel" &
+PANEL_PID=$!
+for _ in $(seq 1 60); do
+  if panel_ready; then
+    open "$URL" >/dev/null 2>&1 || true
+    wait "$PANEL_PID"
+    exit $?
+  fi
+  if ! kill -0 "$PANEL_PID" 2>/dev/null; then
+    echo "[EasyAIoT] PANEL 启动失败，请查看终端输出" >&2
+    wait "$PANEL_PID" || true
+    exit 1
+  fi
+  sleep 0.4
+done
+echo "[EasyAIoT] 等待 PANEL 就绪超时，仍尝试打开 ${URL}" >&2
+open "$URL" >/dev/null 2>&1 || true
+wait "$PANEL_PID"
 EOF
 chmod +x "${OUT_DIR}/run.command"
 
@@ -263,6 +292,14 @@ if [ ! -f "$PANEL_ENV_FILE" ] && [ -f "${RES}/panel.env.example" ]; then
   cp "${RES}/panel.env.example" "$PANEL_ENV_FILE"
 fi
 
+URL="${EASYAIOT_PANEL_URL:-http://127.0.0.1:9200/}"
+HEALTH_URL="${EASYAIOT_PANEL_HEALTH_URL:-http://127.0.0.1:9200/health}"
+LOG_FILE="${TMPDIR:-/tmp}/easyaiot-panel-open.log"
+
+panel_ready() {
+  curl -sf "$HEALTH_URL" >/dev/null 2>&1 || curl -sf "$URL" >/dev/null 2>&1
+}
+
 # 启动 PANEL 前尝试拉起 Docker Desktop（后台，不阻塞等待引擎；未安装则跳过）
 if ! pgrep -f '/Docker\.app/' >/dev/null 2>&1; then
   if [ -d "/Applications/Docker.app" ] || [ -d "${HOME}/Applications/Docker.app" ]; then
@@ -273,8 +310,30 @@ if ! pgrep -f '/Docker\.app/' >/dev/null 2>&1; then
   fi
 fi
 
-open "http://127.0.0.1:9200/" >/dev/null 2>&1 || true
-exec "${HERE}/easyaiot-panel"
+# 与 Windows 启动器一致：先等服务就绪再打开浏览器，避免空白/无法连接页
+if panel_ready; then
+  open "$URL" >/dev/null 2>&1 || true
+  exit 0
+fi
+
+"${HERE}/easyaiot-panel" >>"$LOG_FILE" 2>&1 &
+PANEL_PID=$!
+for _ in $(seq 1 60); do
+  if panel_ready; then
+    open "$URL" >/dev/null 2>&1 || true
+    wait "$PANEL_PID"
+    exit $?
+  fi
+  if ! kill -0 "$PANEL_PID" 2>/dev/null; then
+    echo "[EasyAIoT] PANEL 启动失败，日志: ${LOG_FILE}" >&2
+    wait "$PANEL_PID" || true
+    exit 1
+  fi
+  sleep 0.4
+done
+echo "[EasyAIoT] 等待 PANEL 就绪超时，仍尝试打开 ${URL}（日志: ${LOG_FILE}）" >&2
+open "$URL" >/dev/null 2>&1 || true
+wait "$PANEL_PID"
 EOF
   chmod +x "${MACOS_DIR}/open-panel"
 
