@@ -504,7 +504,7 @@ services:
       - "host.docker.internal:host-gateway"
     # 健康检查需带 secret（与 config.ini [api] secret 一致），否则 ZLM 返回 Required parameter missed: "secret"
     healthcheck:
-      test: ["CMD-SHELL", "SECRET=$$(grep '^[[:space:]]*secret=' /conf/config.ini 2>/dev/null | head -1 | cut -d= -f2); if [ -n \"$$SECRET\" ]; then curl -f \"http://localhost:80/index/api/getServerConfig?secret=$$SECRET\"; else curl -f http://localhost:80/index/api/getServerConfig; fi || exit 1"]
+      test: ["CMD-SHELL", "SECRET=$$(grep '^[[:space:]]*secret=' /conf/config.ini 2>/dev/null | head -1 | cut -d= -f2 | tr -d '[:space:]'); if [ -n \"$$SECRET\" ]; then curl -fsS -o /dev/null \"http://localhost:80/index/api/getServerConfig?secret=$$SECRET\"; else curl -fsS -o /dev/null http://localhost:80/index/api/getServerConfig; fi || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
