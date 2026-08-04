@@ -57,7 +57,7 @@
             cancel-text="否"
             @confirm="emit('delete', item)"
           >
-            <div class="btn" title="删除">
+            <div class="btn" title="删除" @click.stop>
               <Icon icon="material-symbols:delete-outline-rounded" :size="15" color="#DC2626" />
             </div>
           </Popconfirm>
@@ -298,6 +298,7 @@ const deviceImage = computed(() => {
       padding: 0 10px;
       align-items: center;
       border: 2px solid #266cfbff;
+      z-index: 2;
 
       .btn {
         width: 28px;

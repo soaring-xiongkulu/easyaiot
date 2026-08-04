@@ -147,10 +147,13 @@ iot:
     enable: true
     ignore-urls:
       - /admin-api/infra/file/*/get/** # 获取图片，和租户无关
+      - /admin-api/infra/platform-branding/get # 全平台品牌配置，匿名且跨租户读取
+      - /admin-api/infra/platform-branding/image/view # 品牌图片公开读取，不依赖租户请求头
     ignore-tables:
       - infra_codegen_column
       - infra_codegen_table
       - infra_config
+      - infra_platform_branding
       - infra_file_config
       - infra_file
       - infra_file_content

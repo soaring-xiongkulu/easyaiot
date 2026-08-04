@@ -2,7 +2,7 @@ import defaultLogo from '@/assets/images/logo.png'
 import defaultLightBg from '@/assets/images/light-bg.png'
 import defaultDarkBg from '@/assets/images/dark-bg.png'
 
-export const PLATFORM_BRANDING_STORAGE_KEY = 'PLATFORM_BRANDING_CONFIG'
+const PLATFORM_BRANDING_STORAGE_KEY = 'PLATFORM_BRANDING_CONFIG'
 export const PLATFORM_BRANDING_FAB_HIDDEN_KEY = 'PLATFORM_BRANDING_FAB_HIDDEN'
 
 export interface PlatformBrandingConfig {
@@ -10,18 +10,26 @@ export interface PlatformBrandingConfig {
   platformName: string
   /** 管理后台平台 Logo */
   platformLogo: string
+  /** 管理后台平台 Logo 文件编号，空值表示使用内置默认图片 */
+  platformLogoFileId: number | null
   /** 大屏顶部标题 */
   dashboardTitle: string
   /** 登录页左侧名称 */
   loginName: string
   /** 登录页 Logo */
   loginLogo: string
+  /** 登录页 Logo 文件编号，空值表示使用内置默认图片 */
+  loginLogoFileId: number | null
   /** 登录表单标题，留空则使用 i18n 默认文案 */
   loginFormTitle: string
   /** 登录页浅色背景 */
   loginBgLight: string
+  /** 登录页浅色背景文件编号，空值表示使用内置默认图片 */
+  loginBgLightFileId: number | null
   /** 登录页深色背景 */
   loginBgDark: string
+  /** 登录页深色背景文件编号，空值表示使用内置默认图片 */
+  loginBgDarkFileId: number | null
 }
 
 export function getDefaultPlatformBranding(): PlatformBrandingConfig {
@@ -29,39 +37,20 @@ export function getDefaultPlatformBranding(): PlatformBrandingConfig {
   return {
     platformName: envTitle,
     platformLogo: defaultLogo,
+    platformLogoFileId: null,
     dashboardTitle: '云边端一体算法预警监控平台',
     loginName: envTitle,
     loginLogo: defaultLogo,
+    loginLogoFileId: null,
     loginFormTitle: '',
     loginBgLight: defaultLightBg,
+    loginBgLightFileId: null,
     loginBgDark: defaultDarkBg,
+    loginBgDarkFileId: null,
   }
 }
 
-export function loadPlatformBrandingConfig(): PlatformBrandingConfig {
-  const defaults = getDefaultPlatformBranding()
-  const raw = readJson(PLATFORM_BRANDING_STORAGE_KEY)
-  if (!raw || typeof raw !== 'object') {
-    return { ...defaults }
-  }
-  const data = raw as Partial<PlatformBrandingConfig>
-  return {
-    platformName: pickString(data.platformName, defaults.platformName),
-    platformLogo: pickString(data.platformLogo, defaults.platformLogo),
-    dashboardTitle: pickString(data.dashboardTitle, defaults.dashboardTitle),
-    loginName: pickString(data.loginName, defaults.loginName),
-    loginLogo: pickString(data.loginLogo, defaults.loginLogo),
-    loginFormTitle: typeof data.loginFormTitle === 'string' ? data.loginFormTitle : defaults.loginFormTitle,
-    loginBgLight: pickString(data.loginBgLight, defaults.loginBgLight),
-    loginBgDark: pickString(data.loginBgDark, defaults.loginBgDark),
-  }
-}
-
-/** @returns 是否写入成功（空间不足等场景会返回 false） */
-export function savePlatformBrandingConfig(config: PlatformBrandingConfig): boolean {
-  return writeJson(PLATFORM_BRANDING_STORAGE_KEY, config)
-}
-
+/** 服务端配置加载成功后清除历史浏览器品牌数据，避免旧值再次成为配置来源 */
 export function clearPlatformBrandingConfig(): void {
   try {
     window.localStorage.removeItem(PLATFORM_BRANDING_STORAGE_KEY)
@@ -77,10 +66,6 @@ export function loadFabHiddenState(): boolean {
 
 export function saveFabHiddenState(hidden: boolean): void {
   writeJson(PLATFORM_BRANDING_FAB_HIDDEN_KEY, hidden)
-}
-
-function pickString(value: unknown, fallback: string): string {
-  return typeof value === 'string' && value.trim() ? value : fallback
 }
 
 /** 使用原生 JSON，避免通用 storage 工具在退出登录时被一并清空后的二次解析问题 */

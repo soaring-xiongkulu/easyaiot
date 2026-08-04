@@ -51,7 +51,7 @@
               <BrandingImageField
                 label="平台 Logo"
                 :preview="form.platformLogo"
-                @upload="(url) => updateImage('platformLogo', url)"
+                @upload="(image) => updateImage('platformLogo', image)"
               />
             </section>
 
@@ -80,7 +80,7 @@
               <BrandingImageField
                 label="登录页 Logo"
                 :preview="form.loginLogo"
-                @upload="(url) => updateImage('loginLogo', url)"
+                @upload="(image) => updateImage('loginLogo', image)"
               />
               <BrandingField label="登录表单标题" hint="留空则使用系统默认文案">
                 <input
@@ -94,13 +94,13 @@
                 label="浅色背景图"
                 :preview="form.loginBgLight"
                 accept-hint="建议 1920×1080"
-                @upload="(url) => updateImage('loginBgLight', url)"
+                @upload="(image) => updateImage('loginBgLight', image)"
               />
               <BrandingImageField
                 label="深色背景图"
                 :preview="form.loginBgDark"
                 accept-hint="建议 1920×1080"
-                @upload="(url) => updateImage('loginBgDark', url)"
+                @upload="(image) => updateImage('loginBgDark', image)"
               />
             </section>
           </div>
@@ -109,11 +109,11 @@
             <button
               type="button"
               class="panel-btn primary save-btn"
-              :disabled="!hasUnsavedChanges"
+              :disabled="!hasUnsavedChanges || saving"
               @click="handleSave"
             >
               <Icon icon="ant-design:save-outlined" :size="14" />
-              保存
+              {{ saving ? '保存中…' : '保存' }}
             </button>
             <div class="panel-footer-right">
               <button type="button" class="panel-btn" @click="handleHideFab">
@@ -137,7 +137,9 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, watch, defineComponent, h, ref, computed } from 'vue'
+import { computed, defineComponent, h, reactive, ref, watch } from 'vue'
+import type { PlatformBrandingImageVO } from '@/api/infra/platformBranding'
+import { uploadPlatformBrandingImage } from '@/api/infra/platformBranding'
 import { Icon } from '@/components/Icon'
 import { useMessage } from '@/hooks/web/useMessage'
 import { usePlatformBranding } from '@/hooks/web/usePlatformBranding'
@@ -147,12 +149,17 @@ import { Modal } from 'ant-design-vue'
 defineOptions({ name: 'PlatformBrandingFab' })
 
 const MAX_IMAGE_SIZE = 3 * 1024 * 1024
+const MAX_STORED_IMAGE_SIZE = 600 * 1024
+const MAX_IMAGE_WIDTH = 1920
+const MAX_IMAGE_HEIGHT = 1080
+const IMAGE_QUALITIES = [0.86, 0.72, 0.6, 0.5]
 
 const { createMessage } = useMessage()
 const { config, fabHidden, updateConfig, resetConfig, setFabHidden } = usePlatformBranding()
 
 const panelOpen = ref(false)
 const fabPeek = ref(false)
+const saving = ref(false)
 let peekTimer: ReturnType<typeof setTimeout> | null = null
 
 const PEEK_LEAVE_DELAY = 380
@@ -197,13 +204,21 @@ watch(panelOpen, (open) => {
   }
 })
 
-function handleSave() {
-  const ok = updateConfig({ ...form })
-  if (!ok) {
-    createMessage.error('保存失败，本地存储空间不足，请压缩图片后重试')
-    return
+async function handleSave() {
+  if (saving.value) return
+  saving.value = true
+  try {
+    await updateConfig({ ...form })
+    syncFormFromConfig()
+    createMessage.success('操作成功')
   }
-  createMessage.success('保存成功')
+  catch (error) {
+    console.error(error)
+    createMessage.error(getErrorMessage(error, '平台配置保存失败'))
+  }
+  finally {
+    saving.value = false
+  }
 }
 
 function handleClosePanel() {
@@ -211,8 +226,19 @@ function handleClosePanel() {
   panelOpen.value = false
 }
 
-function updateImage(field: keyof PlatformBrandingConfig, url: string) {
-  form[field] = url as never
+type BrandingImageFieldKey = 'platformLogo' | 'loginLogo' | 'loginBgLight' | 'loginBgDark'
+type BrandingImageFileIdKey = 'platformLogoFileId' | 'loginLogoFileId' | 'loginBgLightFileId' | 'loginBgDarkFileId'
+
+const imageFileIdFields: Record<BrandingImageFieldKey, BrandingImageFileIdKey> = {
+  platformLogo: 'platformLogoFileId',
+  loginLogo: 'loginLogoFileId',
+  loginBgLight: 'loginBgLightFileId',
+  loginBgDark: 'loginBgDarkFileId',
+}
+
+function updateImage(field: BrandingImageFieldKey, image: PlatformBrandingImageVO) {
+  form[field] = image.url
+  form[imageFileIdFields[field]] = image.fileId
 }
 
 function clearPeekTimer() {
@@ -274,12 +300,23 @@ function handleReset() {
     content: '确定恢复为初始设置吗？平台名称、Logo、登录背景及大屏标题将全部还原。',
     okText: '确定重置',
     cancelText: '取消',
-    onOk: () => {
-      resetConfig()
-      syncFormFromConfig()
-      createMessage.success('已恢复为初始设置')
+    onOk: async () => {
+      try {
+        await resetConfig()
+        syncFormFromConfig()
+        createMessage.success('已恢复并持久化为初始设置')
+      }
+      catch (error) {
+        console.error(error)
+        createMessage.error(getErrorMessage(error, '平台配置重置失败'))
+        throw error
+      }
     },
   })
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback
 }
 
 /** 图片上传表单项 */
@@ -293,6 +330,7 @@ const BrandingImageField = defineComponent({
   emits: ['upload'],
   setup(props, { emit }) {
     const inputRef = ref<HTMLInputElement | null>(null)
+    const uploading = ref(false)
 
     async function onFileChange(e: Event) {
       const file = (e.target as HTMLInputElement).files?.[0]
@@ -305,8 +343,23 @@ const BrandingImageField = defineComponent({
         createMessage.error('图片大小不能超过 3MB')
         return
       }
-      const url = await readFileAsDataUrl(file)
-      emit('upload', url)
+      try {
+        uploading.value = true
+        const { blob, compressed } = await optimizeImage(file)
+        const filename = compressed ? `${file.name.replace(/\.[^.]+$/, '') || 'branding'}.webp` : file.name
+        const uploaded = await uploadPlatformBrandingImage(blob, filename)
+        emit('upload', uploaded)
+        if (compressed) {
+          createMessage.info('图片已自动压缩后上传')
+        }
+      }
+      catch (error) {
+        console.error(error)
+        createMessage.error(getErrorMessage(error, '图片上传失败，请稍后重试'))
+      }
+      finally {
+        uploading.value = false
+      }
       if (inputRef.value) {
         inputRef.value.value = ''
       }
@@ -330,9 +383,10 @@ const BrandingImageField = defineComponent({
               {
                 type: 'button',
                 class: 'upload-btn',
+                disabled: uploading.value,
                 onClick: () => inputRef.value?.click(),
               },
-              '选择图片',
+              uploading.value ? '上传中…' : '选择图片',
             ),
             h('input', {
               ref: inputRef,
@@ -365,12 +419,74 @@ const BrandingField = defineComponent({
   },
 })
 
-function readFileAsDataUrl(file: File): Promise<string> {
+/** 压缩大尺寸位图，降低平台图片的网络传输与存储开销 */
+async function optimizeImage(file: File): Promise<{ blob: Blob; compressed: boolean }> {
+  if (file.type === 'image/svg+xml') {
+    if (file.size > MAX_STORED_IMAGE_SIZE) {
+      throw new Error('SVG 图片超过可持久化大小')
+    }
+    return { blob: file, compressed: false }
+  }
+
+  const image = await loadImage(file)
+  const initialScale = Math.min(1, MAX_IMAGE_WIDTH / image.naturalWidth, MAX_IMAGE_HEIGHT / image.naturalHeight)
+  if (file.size <= MAX_STORED_IMAGE_SIZE && initialScale === 1) {
+    return { blob: file, compressed: false }
+  }
+
+  let width = Math.max(1, Math.round(image.naturalWidth * initialScale))
+  let height = Math.max(1, Math.round(image.naturalHeight * initialScale))
+  let candidate: Blob | null = null
+
+  for (let resizeAttempt = 0; resizeAttempt < 4; resizeAttempt += 1) {
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const context = canvas.getContext('2d')
+    if (!context) {
+      throw new Error('浏览器不支持图片压缩')
+    }
+    context.drawImage(image, 0, 0, width, height)
+
+    for (const quality of IMAGE_QUALITIES) {
+      candidate = await canvasToBlob(canvas, quality)
+      if (candidate.size <= MAX_STORED_IMAGE_SIZE) {
+        return { blob: candidate, compressed: true }
+      }
+    }
+
+    width = Math.max(1, Math.round(width * 0.82))
+    height = Math.max(1, Math.round(height * 0.82))
+  }
+
+  throw new Error(`图片压缩后仍超过 ${MAX_STORED_IMAGE_SIZE} 字节`)
+}
+
+function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
+    const objectUrl = URL.createObjectURL(file)
+    const image = new Image()
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve(image)
+    }
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('图片读取失败'))
+    }
+    image.src = objectUrl
+  })
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob)
+        return
+      }
+      reject(new Error('图片压缩失败'))
+    }, 'image/webp', quality)
   })
 }
 </script>

@@ -8,6 +8,13 @@
     
     <div class="header-center">
       <div class="title-row">
+        <img
+          v-if="platformLogo"
+          data-testid="monitor-platform-logo"
+          class="platform-logo"
+          :src="platformLogo"
+          :alt="`${dashboardTitle} Logo`"
+        />
         <h1 class="platform-title">{{ dashboardTitle }}</h1>
         <PlatformBrandingFab />
       </div>
@@ -38,6 +45,8 @@ defineProps<{
 
 const router = useRouter()
 const { config } = usePlatformBranding()
+// IOT 首页与管理后台共用平台 Logo，保存后通过响应式配置即时更新
+const platformLogo = computed(() => config.value.platformLogo)
 const dashboardTitle = computed(() => config.value.dashboardTitle)
 
 const handleGoToAdmin = () => {
@@ -126,9 +135,17 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12px;
   max-width: 100%;
   position: relative;
   z-index: 1;
+}
+
+.platform-logo {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .platform-title {

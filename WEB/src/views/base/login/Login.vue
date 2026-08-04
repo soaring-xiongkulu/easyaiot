@@ -107,7 +107,7 @@ html[data-theme='dark'] {
   .@{prefix-cls} {
     padding: 0;
     /* 背景图不重复 */
-    background: url('@/assets/images/dark-bg.png') no-repeat ;
+    background: var(--platform-login-bg-dark, url('@/assets/images/dark-bg.png')) no-repeat;
     background-size: 100% 100%; /* 拉伸图片，适应容器 */
 
 
@@ -144,7 +144,7 @@ html[data-theme='dark'] {
 .@{prefix-cls} {
   padding: 0;
   //background-color: @dark-bg;
-  background: url("@/assets/images/light-bg.png") no-repeat;
+  background: var(--platform-login-bg-light, url('@/assets/images/light-bg.png')) no-repeat;
   background-size: 100% 100%; /* 拉伸图片，适应容器 */
 
   .@{prefix-cls}-form {

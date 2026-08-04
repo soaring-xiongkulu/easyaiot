@@ -1,4 +1,5 @@
 DELETE FROM "infra_config";
+DELETE FROM "infra_platform_branding";
 DELETE FROM "infra_file_config";
 DELETE FROM "infra_file";
 DELETE FROM "infra_job";
