@@ -8,12 +8,18 @@ COMPOSE_MIN_PATCH=0
 COMPOSE_MIN_VERSION="${COMPOSE_MIN_MAJOR}.${COMPOSE_MIN_MINOR}.${COMPOSE_MIN_PATCH}"
 
 _docker_compose_bundled_self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMPOSE_BUNDLED_DIR="$(cd "${_docker_compose_bundled_self_dir}/../docker-compose" && pwd)"
+# 桌面端 COMPILE 包会故意排除 .scripts/docker-compose（仅含 Linux 离线二进制）。
+# 目录缺失时不可强制 cd，否则 source 本文件即在 set -e 下直接失败。
+COMPOSE_BUNDLED_DIR="${_docker_compose_bundled_self_dir}/../docker-compose"
+if [ -d "${COMPOSE_BUNDLED_DIR}" ]; then
+    COMPOSE_BUNDLED_DIR="$(cd "${COMPOSE_BUNDLED_DIR}" && pwd)"
+fi
 
 # 按 uname -m 解析内置二进制路径
 resolve_bundled_compose_binary() {
     local arch src
     arch="$(uname -m 2>/dev/null || echo "")"
+    [ -d "${COMPOSE_BUNDLED_DIR}" ] || return 1
     case "$arch" in
         aarch64|arm64)
             src="${COMPOSE_BUNDLED_DIR}/docker-compose-linux-aarch64"

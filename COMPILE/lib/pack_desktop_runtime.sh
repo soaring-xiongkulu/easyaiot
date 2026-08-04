@@ -73,6 +73,9 @@ pack_source_free_runtime() {
 
   # .scripts（保留部署脚本，排除运行数据、日志、venv）
   # --no-same-owner：非 root 解包时避免 chown 失败
+  # 以下大目录桌面端不需要：
+  #   docker-compose/ — 仅 Linux 离线 compose 二进制；脚本侧已容忍缺失（docker_compose_bundled.sh）
+  #   go-view/ / nexus3/ / minio/ — 体积大或非桌面部署路径
   tar -C "${ROOT}" -cf - \
     --exclude='.scripts/docker/*_data' \
     --exclude='.scripts/docker/*_data/**' \

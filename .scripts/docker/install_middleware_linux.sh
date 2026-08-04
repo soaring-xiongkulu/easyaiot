@@ -4054,19 +4054,40 @@ init_databases() {
     # 数据库清单按命名规约自动发现：<名字>10.sql -> 库 <名字>20
     # （与 schema-sync/sync_schema_migra.sh 同一规约）。新增模块只需在
     # .scripts/postgresql/（或 .scripts/go-view/）放一个 *10.sql，无需再改本脚本硬编码清单。
-    local sql_dir="$(cd "${SCRIPT_DIR}/../postgresql" && pwd)"
-    local go_view_sql_dir="$(cd "${SCRIPT_DIR}/../go-view" && pwd)"
+    # go-view 在桌面 COMPILE 包中会被排除，缺失时不可强制 cd。
+    local sql_dir="${SCRIPT_DIR}/../postgresql"
+    local go_view_sql_dir="${SCRIPT_DIR}/../go-view"
+    if [ -d "$sql_dir" ]; then
+        sql_dir="$(cd "$sql_dir" && pwd)"
+    else
+        print_warning "未找到 postgresql SQL 目录: $sql_dir，跳过数据库初始化"
+        return 0
+    fi
+    if [ -d "$go_view_sql_dir" ]; then
+        go_view_sql_dir="$(cd "$go_view_sql_dir" && pwd)"
+    else
+        go_view_sql_dir=""
+    fi
     declare -A DB_SQL_MAP
     local _sqlf _base
-    for _sqlf in "$sql_dir"/*10.sql "$go_view_sql_dir"/*10.sql; do
+    for _sqlf in "$sql_dir"/*10.sql; do
         [ -e "$_sqlf" ] || continue
         _base="$(basename "$_sqlf" .sql)"
         case "$_base" in
             *10) DB_SQL_MAP["${_base%10}20"]="$_sqlf" ;;
         esac
     done
+    if [ -n "$go_view_sql_dir" ]; then
+        for _sqlf in "$go_view_sql_dir"/*10.sql; do
+            [ -e "$_sqlf" ] || continue
+            _base="$(basename "$_sqlf" .sql)"
+            case "$_base" in
+                *10) DB_SQL_MAP["${_base%10}20"]="$_sqlf" ;;
+            esac
+        done
+    fi
     if [ ${#DB_SQL_MAP[@]} -eq 0 ]; then
-        print_warning "未在 $sql_dir 或 $go_view_sql_dir 发现任何 *10.sql 文件，跳过数据库初始化"
+        print_warning "未在 $sql_dir${go_view_sql_dir:+ 或 $go_view_sql_dir} 发现任何 *10.sql 文件，跳过数据库初始化"
         return 0
     fi
     print_info "自动发现 ${#DB_SQL_MAP[@]} 个库: ${!DB_SQL_MAP[*]}"
