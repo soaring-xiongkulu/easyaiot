@@ -257,6 +257,7 @@ BUILD_ARCH_OPTIONS = [
 # 允许经 API 透传的环境变量（白名单）
 ALLOWED_JOB_ENV_KEYS = {
     'EASYAIOT_DEPLOY_PROFILE',
+    'EASYAIOT_DEPLOY_SCOPE',
     'EASYAIOT_SKIP_IMAGE_PROMPT',
     'EASYAIOT_SKIP_BUILD',
     'EASYAIOT_RUNTIME_FORCE_PULL',
@@ -280,15 +281,104 @@ DEPLOY_SCRIPT_MARKERS = (
     'install_middleware_linux.sh',
     'install_middleware_mac.sh',
     'install_middleware_desktop.sh',
+    'install_business_linux.sh',
+    'install_business_desktop.sh',
     'install_desktop_common.sh',
     'runtime_image.sh',
     'build-runtime',
 )
+DEPLOY_SCOPE_MARKERS = {
+    'all': DEPLOY_SCRIPT_MARKERS,
+    'middleware': (
+        'install_middleware_linux.sh',
+        'install_middleware_mac.sh',
+        'install_middleware_desktop.sh',
+    ),
+    'business': (
+        'install_business_linux.sh',
+        'install_business_desktop.sh',
+    ),
+}
 DEPLOY_CMD_HINTS = (
     'easyaiot',
     'EASYAIOT_DEPLOY_PROFILE',
     '.scripts/docker',
 )
+
+# 部署范围：全量 / 仅中间件 / 仅业务
+DEPLOY_SCOPES = frozenset({'all', 'middleware', 'business'})
+
+LIFECYCLE_COPY = {
+    'all': {
+        'install': ('安装全量', '一次安装并启动中间件 + 全部业务模块'),
+        'start': ('启动全量', '先中间件，再业务，全部拉起'),
+        'stop': ('停止全量', '停止业务与中间件全部服务'),
+        'restart': ('重启全量', '按序重启中间件与业务'),
+        'update': ('更新全量', '更新中间件与业务镜像并重启（桌面端仅拉取）'),
+    },
+    'middleware': {
+        'install': ('安装中间件', '仅安装基础服务：Nacos / Redis / Postgres / Kafka 等'),
+        'start': ('启动中间件', '仅启动中间件容器，不动业务模块'),
+        'stop': ('停止中间件', '仅停止中间件容器，业务仍可保留'),
+        'restart': ('重启中间件', '仅按序重启中间件'),
+        'update': ('更新中间件', '仅更新中间件镜像并重启'),
+    },
+    'business': {
+        'install': ('安装业务', '仅安装业务模块：DEVICE / AI / VIDEO / WEB 等（需中间件已就绪）'),
+        'start': ('启动业务', '仅启动业务服务，不操作中间件'),
+        'stop': ('停止业务', '仅停止业务服务，中间件保持运行'),
+        'restart': ('重启业务', '仅按序重启业务模块'),
+        'update': ('更新业务', '仅更新业务镜像并重启'),
+    },
+}
+
+
+def normalize_deploy_scope(scope: Optional[str]) -> str:
+    value = (scope or 'all').strip().lower()
+    if value not in DEPLOY_SCOPES:
+        raise ValueError(f'不支持的部署范围: {scope}（可选 all / middleware / business）')
+    return value
+
+
+def resolve_scope_script(project_root: str, scope: str, default_script: str) -> str:
+    """按部署范围解析要执行的安装脚本。"""
+    scope = normalize_deploy_scope(scope)
+    docker_dir = os.path.join(project_root, '.scripts', 'docker')
+    plat = detect_host_platform()
+    os_key = plat.get('os') or 'linux'
+
+    def _pick(*names: str) -> Optional[str]:
+        for name in names:
+            path = os.path.join(docker_dir, name)
+            if os.path.isfile(path):
+                return path
+        return None
+
+    if scope == 'all':
+        return default_script
+
+    if scope == 'middleware':
+        if os_key == 'linux':
+            found = _pick('install_middleware_linux.sh')
+        elif os_key == 'macos':
+            found = _pick('install_middleware_mac.sh', 'install_middleware_desktop.sh')
+        else:
+            found = _pick('install_middleware_desktop.sh')
+        if found:
+            return found
+        raise FileNotFoundError(f'未找到中间件部署脚本（scope=middleware）: {docker_dir}')
+
+    # business
+    if os_key == 'linux':
+        found = _pick('install_business_linux.sh')
+    else:
+        found = _pick('install_business_desktop.sh')
+        if not found:
+            # 回退：全量桌面脚本 + EASYAIOT_DEPLOY_SCOPE（由 start_job 注入）
+            found = default_script if os.path.isfile(default_script) else None
+    if found:
+        return found
+    raise FileNotFoundError(f'未找到业务部署脚本（scope=business）: {docker_dir}')
 
 
 @dataclass
@@ -296,6 +386,8 @@ class Job:
     id: str
     action: str
     args: List[str] = field(default_factory=list)
+    scope: str = 'all'
+    script: str = ''
     status: str = 'queued'  # queued|running|success|failed|cancelled
     created_at: float = field(default_factory=time.time)
     started_at: Optional[float] = None
@@ -353,43 +445,45 @@ class StackOps:
             'platform': detect_host_platform(),
         }
 
-    def list_actions(self) -> List[Dict[str, Any]]:
+    def list_actions(self, scope: str = 'all') -> List[Dict[str, Any]]:
+        scope = normalize_deploy_scope(scope)
+        copy = LIFECYCLE_COPY.get(scope) or LIFECYCLE_COPY['all']
         items = [
             {
                 'action': 'install',
-                'label': '安装并启动',
+                'label': copy['install'][0],
                 'category': 'lifecycle',
                 'dangerous': False,
-                'desc': '首次安装，按部署形态拉起服务',
+                'desc': copy['install'][1],
                 'supportsImageMode': True,
             },
             {
                 'action': 'start',
-                'label': '启动全部',
+                'label': copy['start'][0],
                 'category': 'lifecycle',
                 'dangerous': False,
-                'desc': '启动中间件与业务服务',
+                'desc': copy['start'][1],
             },
             {
                 'action': 'stop',
-                'label': '停止全部',
+                'label': copy['stop'][0],
                 'category': 'lifecycle',
                 'dangerous': False,
-                'desc': '停止所有模块服务',
+                'desc': copy['stop'][1],
             },
             {
                 'action': 'restart',
-                'label': '重启全部',
+                'label': copy['restart'][0],
                 'category': 'lifecycle',
                 'dangerous': False,
-                'desc': '按序重启所有服务',
+                'desc': copy['restart'][1],
             },
             {
                 'action': 'update',
-                'label': '更新重启',
+                'label': copy['update'][0],
                 'category': 'lifecycle',
                 'dangerous': False,
-                'desc': '更新镜像并重启（可选手动拉取或本地重建；桌面端仅拉取）',
+                'desc': copy['update'][1],
                 'supportsImageMode': True,
             },
             {
@@ -490,19 +584,35 @@ class StackOps:
         plat = detect_host_platform()
         if plat.get('desktopImageOnly'):
             items = [x for x in items if x['action'] not in DESKTOP_BLOCKED_ACTIONS]
+        # 分拆面板只暴露生命周期动作；镜像/诊断/维护仍走全量脚本页
+        if scope in ('middleware', 'business'):
+            items = [x for x in items if x.get('category') == 'lifecycle']
         return items
 
-    def list_meta(self) -> Dict[str, Any]:
+    def list_meta(self, scope: str = 'all') -> Dict[str, Any]:
+        scope = normalize_deploy_scope(scope)
         plat = detect_host_platform()
-        script_exists = os.path.isfile(self.install_script)
+        try:
+            script_path = resolve_scope_script(self.project_root, scope, self.install_script)
+        except FileNotFoundError as e:
+            script_path = self.install_script if scope == 'all' else ''
+            script_missing_msg = str(e)
+        else:
+            script_missing_msg = ''
+
+        script_exists = bool(script_path) and os.path.isfile(script_path)
         deploy_supported = bool(plat.get('deploySupported')) and script_exists
         message = plat.get('message') or ''
         hint = plat.get('hint') or ''
-        script_name = str(plat.get('scriptName') or os.path.basename(self.install_script))
+        script_name = (
+            os.path.basename(script_path)
+            if script_path
+            else str(plat.get('scriptName') or os.path.basename(self.install_script))
+        )
         desktop_only = bool(plat.get('desktopImageOnly'))
         if plat.get('deploySupported') and not script_exists:
-            message = (
-                f'未找到部署脚本：{self.install_script}。'
+            message = script_missing_msg or (
+                f'未找到部署脚本：{script_path or self.install_script}。'
                 '请确认已挂载 EasyAIoT 仓库根目录 / 安装包内置 runtime，'
                 '或设置正确的 INSTALL_SCRIPT / EASYAIOT_ROOT。'
             )
@@ -513,8 +623,14 @@ class StackOps:
         if not desktop_only:
             image_modes.append({'value': 'local', 'label': '本地构建镜像'})
 
+        scope_labels = {
+            'all': ('全量部署', '中间件 + 业务一次搞定'),
+            'middleware': ('中间件部署', '仅基础服务'),
+            'business': ('业务部署', '仅业务模块'),
+        }
+        cat_label, cat_desc = scope_labels.get(scope, scope_labels['all'])
         categories = [
-            {'key': 'lifecycle', 'label': '部署', 'desc': '安装 · 启停 · 更新'},
+            {'key': 'lifecycle', 'label': cat_label, 'desc': cat_desc},
             {
                 'key': 'image',
                 'label': '镜像',
@@ -531,19 +647,25 @@ class StackOps:
             'buildArchs': BUILD_ARCH_OPTIONS,
             'imageModes': image_modes,
             'allowDangerous': self.allow_dangerous,
-            'actions': self.list_actions(),
+            'actions': self.list_actions(scope=scope),
             'platform': plat,
             'deploySupported': deploy_supported,
             'deployMessage': message,
             'deployHint': hint,
             'desktopImageOnly': desktop_only,
-            'installScript': self.install_script,
+            'installScript': script_path or self.install_script,
             'installScriptExists': script_exists,
             'scriptName': script_name,
+            'scope': scope,
+            'scopes': [
+                {'value': 'all', 'label': '全量部署', 'desc': '中间件 + 业务一次安装'},
+                {'value': 'middleware', 'label': '中间件部署', 'desc': '仅 Nacos / Redis / Postgres 等'},
+                {'value': 'business', 'label': '业务部署', 'desc': '仅 DEVICE / AI / VIDEO / WEB 等'},
+            ],
         }
 
-    def assert_deploy_supported(self) -> None:
-        meta = self.list_meta()
+    def assert_deploy_supported(self, scope: str = 'all') -> None:
+        meta = self.list_meta(scope=scope)
         if meta.get('deploySupported'):
             return
         raise RuntimeError(meta.get('deployMessage') or '当前环境不支持一键部署')
@@ -555,12 +677,19 @@ class StackOps:
                 return None
             return self._job_to_dict(job)
 
-    def list_jobs(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    def list_jobs(
+        self, limit: Optional[int] = None, scope: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         if limit is None:
             limit = self.max_job_history
         limit = max(1, int(limit))
+        scope_filter = None
+        if scope:
+            scope_filter = normalize_deploy_scope(scope)
         with self._lock:
             jobs = sorted(self._jobs.values(), key=lambda j: j.created_at, reverse=True)
+            if scope_filter:
+                jobs = [j for j in jobs if (j.scope or 'all') == scope_filter]
             return [self._job_to_dict(j) for j in jobs[:limit]]
 
     def _prune_jobs_locked(self) -> None:
@@ -582,11 +711,13 @@ class StackOps:
         profile: Optional[str] = None,
         options: Optional[Dict[str, Any]] = None,
         env_extra: Optional[Dict[str, str]] = None,
+        scope: str = 'all',
     ) -> Dict[str, Any]:
         action = (action or '').strip().lower()
+        scope = normalize_deploy_scope(scope)
         if action not in ALLOWED_ACTIONS:
             raise ValueError(f'不支持的操作: {action}')
-        self.assert_deploy_supported()
+        self.assert_deploy_supported(scope=scope)
         plat = detect_host_platform()
         if plat.get('desktopImageOnly') and action in DESKTOP_BLOCKED_ACTIONS:
             raise ValueError(
@@ -595,8 +726,10 @@ class StackOps:
             )
         if action in DANGEROUS_ACTIONS and not self.allow_dangerous:
             raise ValueError('危险操作已禁用，请在 panel.env 设置 PANEL_ALLOW_DANGEROUS=1')
-        if not os.path.isfile(self.install_script):
-            raise FileNotFoundError(f'安装脚本不存在: {self.install_script}')
+
+        script_path = resolve_scope_script(self.project_root, scope, self.install_script)
+        if not os.path.isfile(script_path):
+            raise FileNotFoundError(f'安装脚本不存在: {script_path}')
 
         opts = options or {}
         args = list(extra_args or [])
@@ -604,7 +737,13 @@ class StackOps:
         if module and action in ('logs', 'build-runtime'):
             args = [module]
 
-        job = Job(id=uuid.uuid4().hex[:12], action=action, args=args)
+        job = Job(
+            id=uuid.uuid4().hex[:12],
+            action=action,
+            args=args,
+            scope=scope,
+            script=script_path,
+        )
         with self._lock:
             self._jobs[job.id] = job
             self._prune_jobs_locked()
@@ -621,6 +760,10 @@ class StackOps:
         # 面板调用一律非交互
         env['EASYAIOT_FROM_MENU'] = '0'
         env.setdefault('EASYAIOT_ROOT', self.project_root)
+        if scope in ('middleware', 'business'):
+            env['EASYAIOT_DEPLOY_SCOPE'] = scope
+        else:
+            env.pop('EASYAIOT_DEPLOY_SCOPE', None)
 
         image_mode = str(opts.get('imageMode') or '').strip().lower()
         # 桌面端强制拉取预构建镜像
@@ -689,22 +832,31 @@ class StackOps:
             self._kill_proc_tree(proc)
         # 同时清理可能残留的同名部署脚本进程
         try:
-            self.kill_deploy_processes(kill_all=True)
+            self.kill_deploy_processes(kill_all=True, scope=job.scope or 'all')
         except Exception:
             logger.exception('清理部署进程失败')
         return self.get_job(job_id) or {'id': job_id, 'status': 'cancelled'}
 
-    def list_deploy_processes(self) -> List[Dict[str, Any]]:
+    def list_deploy_processes(self, scope: Optional[str] = None) -> List[Dict[str, Any]]:
         """扫描宿主机上的 EasyAIoT 部署相关进程。"""
         try:
             import psutil
         except ImportError as e:
             raise RuntimeError('缺少 psutil，无法检测部署进程') from e
 
+        scope_filter = normalize_deploy_scope(scope) if scope else None
+        allowed_markers = (
+            set(DEPLOY_SCOPE_MARKERS.get(scope_filter) or DEPLOY_SCRIPT_MARKERS)
+            if scope_filter and scope_filter != 'all'
+            else None
+        )
+
         my_pid = os.getpid()
         owned_pids = set()
         with self._lock:
             for job in self._jobs.values():
+                if scope_filter and (job.scope or 'all') != scope_filter:
+                    continue
                 proc = job._proc
                 if proc is not None and proc.poll() is None and proc.pid:
                     owned_pids.add(proc.pid)
@@ -723,6 +875,8 @@ class StackOps:
                     continue
                 marker = self._match_deploy_marker(cmdline)
                 if not marker:
+                    continue
+                if allowed_markers is not None and marker not in allowed_markers:
                     continue
                 cmd = ' '.join(cmdline)
                 cwd = ''
@@ -790,6 +944,7 @@ class StackOps:
         self,
         pids: Optional[List[int]] = None,
         kill_all: bool = False,
+        scope: Optional[str] = None,
     ) -> Dict[str, Any]:
         """杀掉指定或全部检测到的部署进程（优先杀进程组）。"""
         try:
@@ -797,7 +952,8 @@ class StackOps:
         except ImportError as e:
             raise RuntimeError('缺少 psutil，无法停止部署进程') from e
 
-        detected = self.list_deploy_processes()
+        scope_filter = normalize_deploy_scope(scope) if scope else None
+        detected = self.list_deploy_processes(scope=scope_filter)
         if kill_all or not pids:
             target_pids = [int(p['pid']) for p in detected]
         else:
@@ -827,6 +983,8 @@ class StackOps:
         with self._lock:
             for job in self._jobs.values():
                 if job.status in ('queued', 'running'):
+                    if scope_filter and (job.scope or 'all') != scope_filter:
+                        continue
                     job.status = 'cancelled'
                     job.error = job.error or '用户停止部署进程'
                     job.finished_at = time.time()
@@ -835,7 +993,7 @@ class StackOps:
         return {
             'killed': killed,
             'errors': errors,
-            'remaining': self.list_deploy_processes(),
+            'remaining': self.list_deploy_processes(scope=scope_filter),
             'totalKilled': sum(1 for x in killed if x.get('ok')),
         }
 
@@ -935,7 +1093,7 @@ class StackOps:
     def _run_job(self, job: Job, env: Dict[str, str], stdin_payload: Optional[bytes] = None) -> None:
         job.status = 'running'
         job.started_at = time.time()
-        cmd = [resolve_bash_executable(), self.install_script, job.action, *job.args]
+        cmd = [resolve_bash_executable(), job.script or self.install_script, job.action, *job.args]
         logger.info('启动任务 %s: %s', job.id, ' '.join(cmd))
         try:
             popen_kwargs: Dict[str, Any] = {
@@ -1067,6 +1225,9 @@ class StackOps:
             'id': job.id,
             'action': job.action,
             'args': job.args,
+            'scope': job.scope or 'all',
+            'script': job.script or '',
+            'scriptName': os.path.basename(job.script) if job.script else '',
             'status': job.status,
             'createdAt': job.created_at,
             'startedAt': job.started_at,

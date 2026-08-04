@@ -415,18 +415,34 @@ def profile():
 
 @app.get('/api/stack/actions')
 def stack_actions():
-    return _ok({'actions': stack.list_actions(), 'allowDangerous': PANEL_ALLOW_DANGEROUS})
+    scope = (request.args.get('scope') or 'all').strip()
+    try:
+        return _ok({
+            'actions': stack.list_actions(scope=scope),
+            'allowDangerous': PANEL_ALLOW_DANGEROUS,
+            'scope': scope,
+        })
+    except ValueError as e:
+        return _err(str(e))
 
 
 @app.get('/api/stack/meta')
 def stack_meta():
-    return _ok(stack.list_meta())
+    scope = (request.args.get('scope') or 'all').strip()
+    try:
+        return _ok(stack.list_meta(scope=scope))
+    except ValueError as e:
+        return _err(str(e))
 
 
 @app.get('/api/stack/jobs')
 def stack_jobs():
     limit = int(request.args.get('limit', str(PANEL_JOB_HISTORY_LIMIT)))
-    return _ok({'list': stack.list_jobs(limit=limit)})
+    scope = request.args.get('scope')
+    try:
+        return _ok({'list': stack.list_jobs(limit=limit, scope=scope or None)})
+    except ValueError as e:
+        return _err(str(e))
 
 
 @app.get('/api/stack/jobs/<job_id>')
@@ -445,6 +461,7 @@ def stack_run():
     profile = body.get('profile')
     options = body.get('options') or {}
     env_extra = body.get('env') or {}
+    scope = body.get('scope') or 'all'
     if not isinstance(args, list):
         return _err('args 必须是数组')
     if options is not None and not isinstance(options, dict):
@@ -458,6 +475,7 @@ def stack_run():
             profile=profile,
             options=options if isinstance(options, dict) else {},
             env_extra={str(k): str(v) for k, v in (env_extra or {}).items()},
+            scope=str(scope),
         )
         return _ok(job)
     except Exception as e:
@@ -479,8 +497,9 @@ def stack_job_cancel(job_id: str):
 
 @app.get('/api/stack/processes')
 def stack_processes():
+    scope = request.args.get('scope')
     try:
-        rows = stack.list_deploy_processes()
+        rows = stack.list_deploy_processes(scope=scope or None)
         return _ok({'list': rows, 'total': len(rows)})
     except Exception as e:
         logger.exception('检测部署进程失败')
@@ -492,12 +511,14 @@ def stack_processes_kill():
     body = request.get_json(force=True, silent=True) or {}
     pids = body.get('pids') or []
     kill_all = bool(body.get('all'))
+    scope = body.get('scope')
     if pids and not isinstance(pids, list):
         return _err('pids 必须是数组')
     try:
         result = stack.kill_deploy_processes(
             pids=[int(x) for x in pids] if pids else None,
             kill_all=kill_all or not pids,
+            scope=str(scope) if scope else None,
         )
         return _ok(result)
     except Exception as e:

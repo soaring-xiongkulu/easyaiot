@@ -1,9 +1,9 @@
 <template>
   <StackWorkspace
     category="lifecycle"
-    scope="all"
-    title="全量部署"
-    subtitle="中间件 + 业务一次安装 / 启停 / 更新（完整平台）；右侧实时展示任务日志"
+    scope="middleware"
+    title="中间件部署"
+    subtitle="仅基础服务：Nacos · Redis · Postgres · Kafka · MinIO 等（不含业务模块）"
   />
 </template>
 

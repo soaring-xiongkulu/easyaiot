@@ -67,6 +67,31 @@ MODULES=(
   "PANEL"
 )
 
+# 面板分拆部署：EASYAIOT_DEPLOY_SCOPE=all|middleware|business
+apply_deploy_scope() {
+  local scope="${EASYAIOT_DEPLOY_SCOPE:-all}"
+  case "$scope" in
+    middleware)
+      MODULES=(".scripts/docker")
+      ;;
+    business)
+      local _filtered=()
+      local _m
+      for _m in "${MODULES[@]}"; do
+        [ "$_m" = ".scripts/docker" ] && continue
+        _filtered+=("$_m")
+      done
+      MODULES=("${_filtered[@]}")
+      ;;
+    all|"")
+      ;;
+    *)
+      echo -e "${YELLOW}[WARN]${NC} 未知 EASYAIOT_DEPLOY_SCOPE=${scope}，按 all 处理" >&2
+      ;;
+  esac
+}
+apply_deploy_scope
+
 # bash 3.2 兼容：用函数代替关联数组
 module_name() {
   case "$1" in

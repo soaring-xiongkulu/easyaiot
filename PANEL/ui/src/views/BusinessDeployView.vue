@@ -1,9 +1,9 @@
 <template>
   <StackWorkspace
     category="lifecycle"
-    scope="all"
-    title="全量部署"
-    subtitle="中间件 + 业务一次安装 / 启停 / 更新（完整平台）；右侧实时展示任务日志"
+    scope="business"
+    title="业务部署"
+    subtitle="仅业务模块：DEVICE · AI · VIDEO · WEB 等（不含中间件，需中间件已就绪）"
   />
 </template>
 

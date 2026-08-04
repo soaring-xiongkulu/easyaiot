@@ -15,7 +15,9 @@
 |------|------|
 | 系统概览 | 主机资源、部署形态、快捷入口；进入 WEB 管控台 |
 | 容器管理 | 启停 / 重启 / 资源 / 日志 |
-| 应用部署 | `install` `start` `stop` `restart` `update` + 进程管控 |
+| 全量部署 | 中间件 + 业务一次：`install` `start` `stop` `restart` `update` + 进程管控 |
+| 中间件部署 | 仅基础服务（Nacos / Redis / Postgres / Kafka 等），调用 `install_middleware_*.sh` |
+| 业务部署 | 仅业务模块（DEVICE / AI / VIDEO / WEB 等），调用 `install_business_*.sh` |
 | 镜像中心 | **本地管理** + **构建拉取**（桌面端仅 `pull`；Linux 另有 `build`/`build-runtime`） |
 | 系统诊断 | `check` `status` `verify` `profile` `logs` `analyze-logs` `analyze-disk` |
 | 系统维护 | `clean`（及 Linux 的 `clean-build-runtime`；默认开启，可用 `PANEL_ALLOW_DANGEROUS=0` 关闭） |
@@ -23,11 +25,11 @@
 
 概览页提供 **「进入管控台」**（WEB 未运行时显示「管控台未运行」），跳转到 WEB 管控台（默认 `http://<主机>:8888`）。
 
-> **桌面端：** macOS / Windows 安装 COMPILE 产物后，PANEL 会自动选用 `install_mac.sh` / `install_windows.sh`，并强制「拉取预构建镜像」模式。
+> **桌面端：** macOS / Windows 安装 COMPILE 产物后，PANEL 会自动选用 `install_mac.sh` / `install_windows.sh`，并强制「拉取预构建镜像」模式。中间件走 `install_middleware_desktop.sh`，业务走 `install_business_desktop.sh`（`EASYAIOT_DEPLOY_SCOPE=business`）。
 
 ## 打包后看不到新菜单？
 
-侧栏应显示 **7** 项：系统概览 / 容器管理 / 应用部署 / **镜像中心** / 系统诊断 / 系统维护 / 服务拓扑。
+侧栏应显示 **9** 项：系统概览 / 容器管理 / **全量部署** / **中间件部署** / **业务部署** / 镜像中心 / 系统诊断 / 系统维护 / 服务拓扑。
 
 ```bash
 # Linux deb

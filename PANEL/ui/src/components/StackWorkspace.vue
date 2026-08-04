@@ -150,7 +150,7 @@
               <a-button size="small" danger :loading="procKillLoading" @click="askKillOne(p)">杀掉</a-button>
             </div>
           </div>
-          <div v-else class="panel-bd muted">可检测并终止宿主机上的部署脚本进程（install_linux / install_mac / install_windows 等）。</div>
+          <div v-else class="panel-bd muted">可检测并终止宿主机上与当前面板相关的部署脚本进程。</div>
         </div>
 
         <div class="panel jobs-panel" v-if="jobs.length">
@@ -165,7 +165,7 @@
               @click="selectJob(j.id)"
             >
               <div>
-                <div class="job-name">{{ j.action }}</div>
+                <div class="job-name">{{ j.action }}<span v-if="j.scope && j.scope !== 'all'" class="job-scope"> · {{ j.scope }}</span></div>
                 <div class="muted mono">{{ j.id }}</div>
               </div>
               <a-tag :color="jobColor(j.status)">{{ j.status }}</a-tag>
@@ -234,6 +234,7 @@ import {
   listStackJobs,
   runStackAction,
   type DeployProcess,
+  type DeployScope,
   type StackAction,
   type StackJob,
 } from '../api'
@@ -243,11 +244,19 @@ const props = withDefaults(
     category: 'lifecycle' | 'image' | 'diagnose' | 'maintain'
     title: string
     subtitle?: string
+    /** 部署范围：全量 / 中间件 / 业务 */
+    scope?: DeployScope
     /** 嵌入页签时隐藏外层标题，由父级提供导航 */
     embedded?: boolean
   }>(),
-  { subtitle: '右侧实时展示任务日志', embedded: false },
+  { subtitle: '右侧实时展示任务日志', scope: 'all', embedded: false },
 )
+
+const scopeLabel = computed(() => {
+  if (props.scope === 'middleware') return '中间件'
+  if (props.scope === 'business') return '业务'
+  return '全量'
+})
 
 function stripAnsi(raw: string): string {
   return (raw || '')
@@ -372,7 +381,7 @@ function jobColor(status?: string) {
 }
 
 async function loadMeta() {
-  const [meta, prof] = await Promise.all([getStackMeta(), getProfile()])
+  const [meta, prof] = await Promise.all([getStackMeta(props.scope), getProfile()])
   actions.value = meta.actions || []
   allowDangerous.value = !!meta.allowDangerous
   deploySupported.value = meta.deploySupported !== false
@@ -392,7 +401,7 @@ async function loadMeta() {
 async function loadProcesses() {
   procLoading.value = true
   try {
-    processes.value = (await listDeployProcesses()).list || []
+    processes.value = (await listDeployProcesses(props.scope)).list || []
   } catch {
     processes.value = []
   } finally {
@@ -415,7 +424,7 @@ function askKillAll() {
   confirmDanger.value = true
   confirmRows.value = [
     { label: '进程数', value: String(processes.value.length || '检测后杀掉') },
-    { label: '范围', value: `${scriptName.value} / middleware / runtime_image` },
+    { label: '范围', value: `${scopeLabel.value} · ${scriptName.value}` },
   ]
   confirmOpen.value = true
 }
@@ -440,7 +449,7 @@ async function doKillProcesses(all: boolean, pid?: number | null) {
   confirmLoading.value = true
   procKillLoading.value = true
   try {
-    const result = await killDeployProcesses(all ? { all: true } : { pids: pid ? [pid] : [] })
+    const result = await killDeployProcesses(all ? { all: true, scope: props.scope } : { pids: pid ? [pid] : [], scope: props.scope })
     processes.value = result.remaining || []
     confirmOpen.value = false
     stopPoll()
@@ -462,7 +471,7 @@ async function doKillProcesses(all: boolean, pid?: number | null) {
 
 async function loadJobs() {
   try {
-    jobs.value = (await listStackJobs(15)).list || []
+    jobs.value = (await listStackJobs(15, props.scope)).list || []
   } catch {
     jobs.value = []
   }
@@ -545,11 +554,15 @@ function askRun(action: StackAction) {
   pendingAction = action
   const options = buildOptions(action)
   confirmTitle.value = `执行「${action.label}」`
-  confirmDesc.value = '将在仓库根目录调用统一安装脚本，请确认形态与命令。'
+  confirmDesc.value = `将在仓库根目录调用${scopeLabel.value}部署脚本，请确认形态与命令。`
   confirmWarn.value = action.dangerous
     ? '危险操作，可能删除容器或镜像。'
     : action.action === 'stop'
-      ? '停止全部服务会导致平台暂时不可用。'
+      ? props.scope === 'middleware'
+        ? '将停止全部中间件，依赖它们的业务服务可能异常。'
+        : props.scope === 'business'
+          ? '将停止全部业务服务；中间件会继续运行。'
+          : '将停止中间件与业务全部服务，平台暂时不可用。'
       : ''
   confirmOk.value = '确认执行'
   confirmDanger.value = !!action.dangerous || action.action === 'stop'
@@ -624,6 +637,7 @@ async function doRun() {
     const job = await runStackAction({
       action: pendingAction.action,
       profile: profile.value,
+      scope: props.scope,
       options: buildOptions(pendingAction),
     })
     autoScroll.value = true
@@ -646,7 +660,7 @@ async function doStop() {
       const job = await cancelStackJob(id)
       activeJob.value = job
     } else {
-      await killDeployProcesses({ all: true })
+      await killDeployProcesses({ all: true, scope: props.scope })
     }
     confirmOpen.value = false
     await loadJobs()
@@ -960,6 +974,12 @@ onUnmounted(() => {
 .job-name {
   font-weight: 600;
   font-size: 13px;
+}
+
+.job-scope {
+  font-weight: 500;
+  color: var(--c-text-3);
+  font-size: 12px;
 }
 
 .log-panel {

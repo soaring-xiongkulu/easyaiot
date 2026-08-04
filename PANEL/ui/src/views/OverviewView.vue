@@ -57,7 +57,23 @@
               :disabled="deployUnsupported"
               @click="emit('goto', 'deploy')"
             >
-              {{ deployUnsupported ? '部署不可用' : '前往部署' }}
+              {{ deployUnsupported ? '部署不可用' : '前往全量' }}
+            </a-button>
+            <a-button
+              size="small"
+              class="panel-btn"
+              :disabled="deployUnsupported"
+              @click="emit('goto', 'deploy-mw')"
+            >
+              仅中间件
+            </a-button>
+            <a-button
+              size="small"
+              class="panel-btn"
+              :disabled="deployUnsupported"
+              @click="emit('goto', 'deploy-biz')"
+            >
+              仅业务
             </a-button>
             <a-button size="small" class="panel-btn" @click="emit('goto', 'topology')">查看拓扑</a-button>
           </a-space>
@@ -73,8 +89,16 @@
               <span>启停 · 资源 · 日志</span>
             </button>
             <button type="button" class="entry" @click="emit('goto', 'deploy')">
-              <strong>应用部署</strong>
-              <span>安装 · 启停 · 更新</span>
+              <strong>全量部署</strong>
+              <span>中间件 + 业务一次搞定</span>
+            </button>
+            <button type="button" class="entry" @click="emit('goto', 'deploy-mw')">
+              <strong>中间件部署</strong>
+              <span>仅 Nacos / Redis / Kafka 等</span>
+            </button>
+            <button type="button" class="entry" @click="emit('goto', 'deploy-biz')">
+              <strong>业务部署</strong>
+              <span>仅 DEVICE / AI / VIDEO / WEB</span>
             </button>
             <button type="button" class="entry" @click="emit('goto', 'images')">
               <strong>镜像中心</strong>

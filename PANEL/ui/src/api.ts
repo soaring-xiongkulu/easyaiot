@@ -128,6 +128,9 @@ export interface StackJob {
   id: string
   action: string
   args: string[]
+  scope?: 'all' | 'middleware' | 'business' | string
+  script?: string
+  scriptName?: string
   status: string
   error?: string
   log?: string
@@ -149,6 +152,8 @@ export interface StackMeta {
   installScript?: string
   installScriptExists?: boolean
   scriptName?: string
+  scope?: 'all' | 'middleware' | 'business' | string
+  scopes?: { value: string; label: string; desc: string }[]
   platform?: {
     os?: string
     system?: string
@@ -276,20 +281,31 @@ export const getTopology = () =>
     summary: Record<string, number>
   }>
 export const getProfile = () => http.get('/api/profile') as Promise<Record<string, any>>
-export const getStackActions = () =>
-  http.get('/api/stack/actions') as Promise<{ actions: StackAction[]; allowDangerous: boolean }>
-export const getStackMeta = () => http.get('/api/stack/meta') as Promise<StackMeta>
+
+export type DeployScope = 'all' | 'middleware' | 'business'
+
+export const getStackActions = (scope: DeployScope = 'all') =>
+  http.get('/api/stack/actions', { params: { scope } }) as Promise<{
+    actions: StackAction[]
+    allowDangerous: boolean
+    scope?: string
+  }>
+export const getStackMeta = (scope: DeployScope = 'all') =>
+  http.get('/api/stack/meta', { params: { scope } }) as Promise<StackMeta>
 export const runStackAction = (payload: {
   action: string
   args?: string[]
   profile?: string
+  scope?: DeployScope
   options?: Record<string, unknown>
   env?: Record<string, string>
 }) => http.post('/api/stack/run', payload) as Promise<StackJob>
 export const getStackJob = (id: string) =>
   http.get(`/api/stack/jobs/${encodeURIComponent(id)}`) as Promise<StackJob>
-export const listStackJobs = (limit = 15) =>
-  http.get('/api/stack/jobs', { params: { limit } }) as Promise<{ list: StackJob[] }>
+export const listStackJobs = (limit = 15, scope?: DeployScope) =>
+  http.get('/api/stack/jobs', {
+    params: { limit, ...(scope ? { scope } : {}) },
+  }) as Promise<{ list: StackJob[] }>
 export const cancelStackJob = (id: string) =>
   http.post(`/api/stack/jobs/${encodeURIComponent(id)}/cancel`) as Promise<StackJob>
 
@@ -306,9 +322,15 @@ export interface DeployProcess {
   ownedByPanel?: boolean
 }
 
-export const listDeployProcesses = () =>
-  http.get('/api/stack/processes') as Promise<{ list: DeployProcess[]; total: number }>
-export const killDeployProcesses = (payload?: { pids?: number[]; all?: boolean }) =>
+export const listDeployProcesses = (scope?: DeployScope) =>
+  http.get('/api/stack/processes', {
+    params: scope ? { scope } : undefined,
+  }) as Promise<{ list: DeployProcess[]; total: number }>
+export const killDeployProcesses = (payload?: {
+  pids?: number[]
+  all?: boolean
+  scope?: DeployScope
+}) =>
   http.post('/api/stack/processes/kill', payload || { all: true }) as Promise<{
     killed: { pid: number; ok: boolean; error?: string }[]
     errors: string[]

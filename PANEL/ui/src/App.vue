@@ -64,6 +64,8 @@
           />
           <ContainersView v-else-if="tab === 'containers'" />
           <DeployView v-else-if="tab === 'deploy'" />
+          <MiddlewareDeployView v-else-if="tab === 'deploy-mw'" />
+          <BusinessDeployView v-else-if="tab === 'deploy-biz'" />
           <ImagesView v-else-if="tab === 'images'" />
           <DiagnoseView v-else-if="tab === 'diagnose'" />
           <MaintainView v-else-if="tab === 'maintain'" />
@@ -110,6 +112,8 @@ import OverviewView from './views/OverviewView.vue'
 import ContainersView from './views/ContainersView.vue'
 import TopologyView from './views/TopologyView.vue'
 import DeployView from './views/DeployView.vue'
+import MiddlewareDeployView from './views/MiddlewareDeployView.vue'
+import BusinessDeployView from './views/BusinessDeployView.vue'
 import ImagesView from './views/ImagesView.vue'
 import DiagnoseView from './views/DiagnoseView.vue'
 import MaintainView from './views/MaintainView.vue'
@@ -125,7 +129,7 @@ const webStatus = ref<'running' | 'stopped' | 'missing' | string>('missing')
 const webMessage = ref('')
 const webContainer = ref('')
 const webOpen = ref(false)
-const uiBuild = '20260730-img-compact'
+const uiBuild = '20260804-deploy-names'
 let timer: number | undefined
 let clockTimer: number | undefined
 
@@ -208,6 +212,8 @@ const ico = {
   home: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5z"/></svg>`,
   box: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></svg>`,
   deploy: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 19h14"/></svg>`,
+  middleware: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="6" rx="1.5"/><rect x="4" y="14" width="7" height="6" rx="1.5"/><rect x="13" y="14" width="7" height="6" rx="1.5"/></svg>`,
+  business: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19h16"/><path d="M7 19V9l5-4 5 4v10"/><path d="M10 19v-5h4v5"/></svg>`,
   image: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 16-5.5-5.5L8 18"/></svg>`,
   diagnose: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/><path d="M11 8.5v5M8.5 11h5"/></svg>`,
   maintain: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14.5 4.5 19 9l-8.5 8.5H6v-4.5L14.5 4.5z"/><path d="m12.5 6.5 5 5"/><path d="M4 20h16"/></svg>`,
@@ -217,7 +223,9 @@ const ico = {
 const menus = [
   { key: 'overview', label: '系统概览', icon: ico.home },
   { key: 'containers', label: '容器管理', icon: ico.box },
-  { key: 'deploy', label: '应用部署', icon: ico.deploy },
+  { key: 'deploy', label: '全量部署', icon: ico.deploy },
+  { key: 'deploy-mw', label: '中间件部署', icon: ico.middleware },
+  { key: 'deploy-biz', label: '业务部署', icon: ico.business },
   { key: 'images', label: '镜像中心', icon: ico.image },
   { key: 'diagnose', label: '系统诊断', icon: ico.diagnose },
   { key: 'maintain', label: '系统维护', icon: ico.maintain },
@@ -226,7 +234,7 @@ const menus = [
 
 const current = computed(() => menus.find((m) => m.key === tab.value))
 const isStackTab = computed(() =>
-  ['deploy', 'images', 'diagnose', 'maintain'].includes(tab.value),
+  ['deploy', 'deploy-mw', 'deploy-biz', 'images', 'diagnose', 'maintain'].includes(tab.value),
 )
 
 function saveToken() {
