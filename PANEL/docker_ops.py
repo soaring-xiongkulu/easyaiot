@@ -21,10 +21,14 @@ def docker_available() -> bool:
 
 
 def _run(args: List[str], timeout: int = 60) -> subprocess.CompletedProcess:
+    # 强制 UTF-8：中文 Windows 下 text=True 用默认编码时，docker ps 大段 JSON
+    # 可能被读成空串，导致容器列表恒为空；显式 utf-8 可稳定解析。
     kwargs: Dict[str, Any] = {
         'args': args,
         'capture_output': True,
         'text': True,
+        'encoding': 'utf-8',
+        'errors': 'replace',
         'timeout': timeout,
         'check': False,
     }
@@ -117,7 +121,11 @@ def container_stats(ids: Optional[List[str]] = None) -> Dict[str, Dict[str, Any]
     args = ['docker', 'stats', '--no-stream', '--format', '{{json .}}']
     if ids:
         args.extend(ids)
-    cp = _run(args, timeout=45)
+    try:
+        cp = _run(args, timeout=20)
+    except subprocess.TimeoutExpired:
+        logger.warning('docker stats 超时，跳过资源占用数据')
+        return {}
     if cp.returncode != 0:
         return {}
     out: Dict[str, Dict[str, Any]] = {}
