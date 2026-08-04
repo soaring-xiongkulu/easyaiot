@@ -39,6 +39,7 @@ from app.utils.ffmpeg_compat import (
     ffmpeg_rtsp_timeout_args as _ffmpeg_rtsp_timeout_args,
     ffmpeg_supports_rw_timeout as _ffmpeg_supports_rw_timeout,
 )
+from app.utils.ffmpeg_process_registry import stop_registered_process
 from app.utils.flighthub_source import (
     build_register_info as build_flighthub_register_info,
     flighthub_env,
@@ -489,11 +490,8 @@ def start_ffmpeg_stream(device_id):
 @camera_bp.route('/device/<string:device_id>/stream/stop', methods=['POST'])
 def stop_ffmpeg_stream(device_id):
     try:
+        stop_registered_process(ffmpeg_processes, ffmpeg_lock, device_id)
         with ffmpeg_lock:
-            if device_id in ffmpeg_processes:
-                ffmpeg_processes[device_id].stop()
-                del ffmpeg_processes[device_id]
-
             device = Device.query.get(device_id)
             if device:
                 device.enable_forward = False
@@ -1024,10 +1022,7 @@ def update_device(device_id):
         # 关闭观看转发时同步停止守护进程（与算法任务无关）
         ef = data.get('enable_forward')
         if ef is False or (isinstance(ef, str) and ef.lower() in ('false', '0', 'no', 'off')):
-            with ffmpeg_lock:
-                if device_id in ffmpeg_processes:
-                    ffmpeg_processes[device_id].stop()
-                    del ffmpeg_processes[device_id]
+            stop_registered_process(ffmpeg_processes, ffmpeg_lock, device_id)
 
         return jsonify({
             'code': 0,
@@ -1048,11 +1043,11 @@ def update_device(device_id):
 def delete_device(device_id):
     """删除设备"""
     try:
-        # 先停止可能的流媒体转发
-        if device_id in ffmpeg_processes and ffmpeg_processes[device_id]['process'] is not None:
-            process = ffmpeg_processes[device_id]['process']
-            if process.poll() is None:  # 进程仍在运行
-                stop_ffmpeg_stream(device_id)
+        # 停止转发属于删除前的尽力清理；子进程已退出等清理异常不能阻断设备删库。
+        try:
+            stop_registered_process(ffmpeg_processes, ffmpeg_lock, device_id)
+        except Exception as e:
+            logger.warning(f'删除设备前停止流媒体转发失败 {device_id}: {e}', exc_info=True)
 
         delete_camera(device_id)
         return jsonify({
@@ -1065,6 +1060,9 @@ def delete_device(device_id):
     except RuntimeError as e:
         logger.error(f'删除设备失败: {str(e)}')
         return jsonify({'code': 500, 'msg': str(e)}), 500
+    except Exception as e:
+        logger.error(f'删除设备失败（未知错误）: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'删除设备失败: {str(e)}'}), 500
 
 
 @camera_bp.route('/devices/batch-delete', methods=['POST'])
