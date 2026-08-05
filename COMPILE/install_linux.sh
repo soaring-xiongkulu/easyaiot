@@ -166,7 +166,8 @@ pick_rpm_file() {
       return $?
       ;;
     openeuler|oe|euler)
-      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*-*.openeuler.*.rpm" "$min_bytes" \
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*-*.oe2403.*.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*-*.openeuler.*.rpm" "$min_bytes" \
         || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*-openeuler.*.rpm" "$min_bytes" \
         || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*.rpm" "$min_bytes"
       return $?

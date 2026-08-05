@@ -91,7 +91,7 @@ ls -lh COMPILE/dist/centos/easyaiot-panel COMPILE/dist/centos/*.rpm
 bash COMPILE/build.sh openeuler
 # 仅二进制：bash COMPILE/build.sh openeuler --no-rpm
 # 本机构建：bash COMPILE/build.sh openeuler --local
-ls -lh COMPILE/dist/openeuler/easyaiot-panel COMPILE/dist/openeuler/easyaiot-panel-*-*.openeuler.*.rpm
+ls -lh COMPILE/dist/openeuler/easyaiot-panel COMPILE/dist/openeuler/easyaiot-panel-*-*.oe2403.*.rpm
 # 安装后改 EASYAIOT_ROOT，部署用：.scripts/docker/install_linux_openeuler.sh
 
 # 一次打全量 Linux 包（Ubuntu 三架构 deb + CentOS/openEuler rpm；每个包都会让版本号 +1）
@@ -201,7 +201,7 @@ ls -lh COMPILE/dist/ubuntu-kylin/*.deb
 - ARM64：`COMPILE/dist/ubuntu-arm/easyaiot-panel_<VERSION>_arm_arm64.deb`
 - **麒麟(Kylin)**：`COMPILE/dist/ubuntu-kylin/easyaiot-panel_<VERSION>_kylin_arm64.deb`
 - CentOS/RHEL：`COMPILE/dist/centos/easyaiot-panel-<VERSION>-1.el9.<arch>.rpm`（与包内 NEVRA 一致；el9 = RHEL/CentOS/Rocky/Alma 9 系）
-- **欧拉(openEuler)**：`COMPILE/dist/openeuler/easyaiot-panel-<VERSION>-1.openeuler.<arch>.rpm`（包内 Release=`1.oe2403`）
+- **欧拉(openEuler)**：`COMPILE/dist/openeuler/easyaiot-panel-<VERSION>-1.oe2403.<arch>.rpm`（与包内 NEVRA 一致；oe2403 = openEuler 24.03）
 
 ### 4) 安装并验证 .deb
 
@@ -400,7 +400,7 @@ bash COMPILE/install_linux.sh uninstall
 ```bash
 # 默认：Docker 产出二进制 + rpm
 bash COMPILE/build.sh openeuler
-ls -lh COMPILE/dist/openeuler/easyaiot-panel COMPILE/dist/openeuler/easyaiot-panel-*-*.openeuler.*.rpm
+ls -lh COMPILE/dist/openeuler/easyaiot-panel COMPILE/dist/openeuler/easyaiot-panel-*-*.oe2403.*.rpm
 
 # 仅二进制 / 本机构建 / 换基础镜像
 bash COMPILE/build.sh openeuler --no-rpm
@@ -411,7 +411,7 @@ COMPILE_OPENEULER_BASE_IMAGE=openeuler/openeuler:24.03-lts-sp3 bash COMPILE/buil
 安装与配置：
 
 ```bash
-sudo rpm -Uvh ./COMPILE/dist/openeuler/easyaiot-panel-*-*.openeuler.*.rpm
+sudo rpm -Uvh ./COMPILE/dist/openeuler/easyaiot-panel-*-*.oe2403.*.rpm
 sudoedit /etc/easyaiot-panel/panel.env
 # EASYAIOT_ROOT=/path/to/easyaiot
 

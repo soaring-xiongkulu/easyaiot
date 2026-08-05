@@ -86,9 +86,9 @@ canvas.alpha_composite(img, (x, y))
 canvas.save(dst, format="PNG", optimize=True)
 PY
 
-# RPM 元数据：标准 dist tag（oe2403）；发布文件名用可读的 openeuler
+# RPM 元数据与发布文件名统一用标准 dist tag（oe2403 = openEuler 24.03）
 DIST_TAG="${PANEL_DIST_TAG:-oe2403}"
-PUBLISH_OS="${PANEL_PUBLISH_OS:-openeuler}"
+PUBLISH_OS="${PANEL_PUBLISH_OS:-${DIST_TAG}}"
 
 cat > "$SPEC_PATH" <<EOF
 Name:           ${PKG_NAME}
@@ -154,8 +154,7 @@ log "rpmbuild 生成 openEuler RPM（Release=${RELEASE}.${DIST_TAG}）"
 rpmbuild --define "_topdir ${RPMBUILD_ROOT}" -bb "${SPEC_PATH}"
 mkdir -p "${OUT_DIR}"
 
-# 发布物可读名：easyaiot-panel-179-1.openeuler.x86_64.rpm
-# 包内 Release 仍为 1.oe2403（标准 openEuler dist tag）
+# 专业写法：与包内 NEVRA 一致，例 easyaiot-panel-180-1.oe2403.x86_64.rpm
 FINAL_RPM="${OUT_DIR}/${PKG_NAME}-${VERSION}-${RELEASE}.${PUBLISH_OS}.${ARCH}.rpm"
 shopt -s nullglob
 built=( "${RPMBUILD_ROOT}/RPMS/${ARCH}/${PKG_NAME}-${VERSION}-${RELEASE}."*.rpm )
@@ -172,4 +171,4 @@ for f in "${OUT_DIR}/${PKG_NAME}-${VERSION}"*.rpm; do
 done
 shopt -u nullglob
 ls -lh "${FINAL_RPM}"
-log "产物: ${FINAL_RPM}（包内 Release=${RELEASE}.${DIST_TAG}）"
+log "产物: ${FINAL_RPM}"
