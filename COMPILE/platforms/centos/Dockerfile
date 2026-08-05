@@ -56,7 +56,11 @@ RUN test -f /src/PANEL/ui/dist/index.html
 RUN set -eux; \
     if [ "${EL_RELEASE}" = "7" ]; then \
       if [ -f /opt/rh/rh-python38/enable ]; then \
+        set +u; \
+        # SCL enable 脚本会引用未定义的 MANPATH；临时关闭 nounset
+        # shellcheck disable=SC1091
         source /opt/rh/rh-python38/enable; \
+        set -u; \
         ln -sf "$(command -v python3)" /usr/local/bin/python3; \
         ln -sf "$(command -v pip3)" /usr/local/bin/pip3 || true; \
       fi; \
