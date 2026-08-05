@@ -1,42 +1,46 @@
 #!/usr/bin/env bash
-# 基于已编译 easyaiot-panel 生成 CentOS/RHEL RPM 包
+# 基于已编译 easyaiot-panel 生成 CentOS/RHEL RPM（el7 / el8 / el9）
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILE_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-REPO_ROOT="$(cd "${COMPILE_ROOT}/.." && pwd)"
+# shellcheck source=el_common.sh
+source "${SCRIPT_DIR}/el_common.sh"
 # shellcheck source=../../lib/resolve_panel_version.sh
 source "${COMPILE_ROOT}/lib/resolve_panel_version.sh"
-OUT_DIR="${COMPILE_OUT:-${COMPILE_ROOT}/dist/centos}"
+
+centos_resolve_el "${EL_RELEASE:-9}"
+
+OUT_DIR="${COMPILE_OUT:-${COMPILE_ROOT}/dist/centos-${EL_OUT_SUFFIX}}"
 RPM_SRC="${SCRIPT_DIR}/rpm"
 PANEL_LOGO="${COMPILE_PANEL_LOGO:-${COMPILE_ROOT}/assets/panel-logo.png}"
 ARCH="$(uname -m)"
 PKG_NAME="easyaiot-panel"
 RELEASE="${PANEL_RELEASE:-1}"
 
-RPMBUILD_ROOT="${COMPILE_ROOT}/work/centos-rpmbuild"
-BUILDROOT="${COMPILE_ROOT}/work/centos-buildroot"
+RPMBUILD_ROOT="${COMPILE_ROOT}/work/centos-${EL_OUT_SUFFIX}-rpmbuild"
+BUILDROOT="${COMPILE_ROOT}/work/centos-${EL_OUT_SUFFIX}-buildroot"
 SPEC_PATH="${RPMBUILD_ROOT}/SPECS/${PKG_NAME}.spec"
 
-log() { echo "[COMPILE/centos-rpm] $*"; }
+log() { echo "[COMPILE/centos-${EL_OUT_SUFFIX}-rpm] $*"; }
 
 if ! command -v rpmbuild >/dev/null 2>&1; then
-  echo "[COMPILE/centos] 需要 rpmbuild（请安装 rpm-build）" >&2
+  echo "[COMPILE/centos-${EL_OUT_SUFFIX}] 需要 rpmbuild（请安装 rpm-build）" >&2
   exit 1
 fi
 if ! command -v python3 >/dev/null 2>&1; then
-  echo "[COMPILE/centos] 需要 python3（图标处理）" >&2
+  echo "[COMPILE/centos-${EL_OUT_SUFFIX}] 需要 python3（图标处理）" >&2
   exit 1
 fi
 
 BIN="${OUT_DIR}/easyaiot-panel"
 if [ ! -x "$BIN" ]; then
-  echo "[COMPILE/centos] 缺少二进制: ${BIN}" >&2
-  echo "请先执行: bash COMPILE/build.sh centos" >&2
+  echo "[COMPILE/centos-${EL_OUT_SUFFIX}] 缺少二进制: ${BIN}" >&2
+  echo "请先执行: bash COMPILE/build.sh centos-el${EL_RELEASE}" >&2
   exit 1
 fi
 if [ ! -f "$PANEL_LOGO" ]; then
-  echo "[COMPILE/centos] 缺少 logo: ${PANEL_LOGO}" >&2
+  echo "[COMPILE/centos-${EL_OUT_SUFFIX}] 缺少 logo: ${PANEL_LOGO}" >&2
   exit 1
 fi
 
@@ -59,14 +63,14 @@ install -m 0644 "${RPM_SRC}/easyaiot-panel.desktop" "${BUILDROOT}/usr/share/appl
 install -m 0644 "${RPM_SRC}/easyaiot-panel.service" "${BUILDROOT}/usr/lib/systemd/system/easyaiot-panel.service"
 
 cat > "${BUILDROOT}/usr/share/doc/${PKG_NAME}/README" <<EOF
-EasyAIoT PANEL ${VERSION}
+EasyAIoT PANEL ${VERSION} (CentOS/RHEL ${DIST_TAG})
 
-1) 修改 /etc/easyaiot-panel/panel.env 中 EASYAIOT_ROOT
+1) 修改 /etc/easyaiot-panel/panel.env 中 EASYAIOT_ROOT 为本机仓库根
 2) systemctl enable --now easyaiot-panel
 3) 浏览器访问 http://127.0.0.1:9200/
+4) 平台部署: .scripts/docker/install_linux_centos.sh
 EOF
 
-# 生成圆形白底图标（和 Ubuntu 保持一致）
 python3 - "$PANEL_LOGO" "${BUILDROOT}/usr/share/pixmaps/easyaiot-panel.png" <<'PY'
 from PIL import Image, ImageDraw
 import sys
@@ -85,23 +89,23 @@ canvas.alpha_composite(img, (x, y))
 canvas.save(dst, format="PNG", optimize=True)
 PY
 
-# RPM 元数据与发布文件名统一用标准 dist tag（el9 = RHEL/CentOS/Rocky/Alma 9 系）
-DIST_TAG="${PANEL_DIST_TAG:-el9}"
+DIST_TAG="${PANEL_DIST_TAG:-el${EL_RELEASE}}"
 PUBLISH_OS="${PANEL_PUBLISH_OS:-${DIST_TAG}}"
 
 cat > "$SPEC_PATH" <<EOF
 Name:           ${PKG_NAME}
 Version:        ${VERSION}
 Release:        ${RELEASE}.${DIST_TAG}
-Summary:        EasyAIoT platform ops console (PANEL) for CentOS/RHEL
+Summary:        EasyAIoT platform ops console (PANEL) for CentOS/RHEL ${DIST_TAG}
 License:        Apache-2.0
 URL:            https://github.com/soaring-xiongkulu/easyaiot
 BuildArch:      ${ARCH}
 Requires:       systemd
 
 %description
-Independent ops panel for EasyAIoT on CentOS/RHEL: container management,
+Independent ops panel for EasyAIoT on CentOS/RHEL ${DIST_TAG}: container management,
 install script UI, topology and host overview.
+Deploy with .scripts/docker/install_linux_centos.sh after setting EASYAIOT_ROOT.
 
 %prep
 
@@ -151,13 +155,12 @@ log "rpmbuild 生成 CentOS/RHEL RPM（Release=${RELEASE}.${DIST_TAG}）"
 rpmbuild --define "_topdir ${RPMBUILD_ROOT}" -bb "${SPEC_PATH}"
 mkdir -p "${OUT_DIR}"
 
-# 专业写法：easyaiot-panel-179-1.el9.x86_64.rpm（与包内 NEVRA 一致）
 FINAL_RPM="${OUT_DIR}/${PKG_NAME}-${VERSION}-${RELEASE}.${PUBLISH_OS}.${ARCH}.rpm"
 shopt -s nullglob
 built=( "${RPMBUILD_ROOT}/RPMS/${ARCH}/${PKG_NAME}-${VERSION}-${RELEASE}."*.rpm )
 shopt -u nullglob
 if [ "${#built[@]}" -eq 0 ]; then
-  echo "[COMPILE/centos] rpmbuild 未产出 RPM" >&2
+  echo "[COMPILE/centos-${EL_OUT_SUFFIX}] rpmbuild 未产出 RPM" >&2
   exit 1
 fi
 cp -f "${built[0]}" "${FINAL_RPM}"
@@ -167,5 +170,12 @@ for f in "${OUT_DIR}/${PKG_NAME}-${VERSION}"*.rpm; do
   rm -f "$f"
 done
 shopt -u nullglob
+
+# el9 兼容旧路径 dist/centos
+if [ "$EL_RELEASE" = "9" ] && [ "${COMPILE_OUT_SKIP_LEGACY_LINK:-0}" != "1" ]; then
+  mkdir -p "${COMPILE_ROOT}/dist/centos"
+  cp -f "${FINAL_RPM}" "${COMPILE_ROOT}/dist/centos/"
+fi
+
 ls -lh "${FINAL_RPM}"
 log "产物: ${FINAL_RPM}"
