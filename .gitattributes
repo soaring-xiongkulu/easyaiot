@@ -41,7 +41,21 @@ Dockerfile.*   text eol=lf
 *.yaml         text eol=lf
 *.yml          text eol=lf
 .dockerignore  text eol=lf
+*.dockerignore text eol=lf
 env.example    text eol=lf
+# COMPILE 打包用文本（Linux 安装/桌面/systemd；Windows 上编辑也强制 LF）
+*.desktop      text eol=lf
+*.service      text eol=lf
+*.spec         text eol=lf
+*.nsi          text eol=lf
+panel.env      text eol=lf
+panel.env.*    text eol=lf
+# deb 维护脚本无扩展名，CRLF 会导致 dpkg 钩子失败
+COMPILE/platforms/ubuntu/deb/postinst  text eol=lf
+COMPILE/platforms/ubuntu/deb/postrm    text eol=lf
+COMPILE/platforms/ubuntu/deb/prerm     text eol=lf
+COMPILE/platforms/ubuntu/deb/control.in text eol=lf
+COMPILE/platforms/ubuntu/deb/copyright text eol=lf
 
 # ── 加固：以下文本文件也强制 LF（即使从 Windows 编辑/提交也规范化为 LF）──
 #   .env / .env.*  环境变量：CRLF 会给值末尾加 \r，污染密钥（如 STREAM_TICKET_SECRET 与 nginx 不一致致验签失败）、VITE_PROXY 等
@@ -103,6 +117,15 @@ SITE/.pnpm-store/** -diff
 TRANSFORM/data/** -diff
 TRANSFORM/dist/** -diff
 
-# COMPILE 产物：不参与 diff（deb 与无扩展 ELF 二进制）
-COMPILE/dist/ubuntu/*.deb binary -diff
-COMPILE/dist/ubuntu/easyaiot-panel binary -diff
+# COMPILE 产物 / 构建缓存：不参与 diff（体积大；与 .gitignore 对齐，防误加入仓库）
+COMPILE/dist/** -diff
+COMPILE/dist/**/*.deb binary -diff
+COMPILE/dist/**/*.rpm binary -diff
+COMPILE/dist/**/*.exe binary -diff
+COMPILE/dist/**/*.dmg binary -diff
+COMPILE/dist/**/*.zip binary -diff
+COMPILE/dist/**/easyaiot-panel binary -diff
+COMPILE/work/** -diff
+COMPILE/.venv-build/** -diff
+COMPILE/.venv-build-*/** -diff
+COMPILE/.panel-version -diff

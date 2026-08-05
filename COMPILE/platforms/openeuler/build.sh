@@ -67,8 +67,11 @@ build_local() {
   fi
   # shellcheck disable=SC1091
   source "${VENV_DIR}/bin/activate"
-  pip install -U pip
-  pip install -r "${COMPILE_ROOT}/requirements-build.txt"
+  # Docker/国内网络访问 pypi.org 常失败；未指定时默认清华源
+  export PIP_INDEX_URL="${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}"
+  export PIP_TRUSTED_HOST="${PIP_TRUSTED_HOST:-pypi.tuna.tsinghua.edu.cn}"
+  python3 -m pip install -U pip
+  python3 -m pip install -r "${COMPILE_ROOT}/requirements-build.txt"
 
   export PANEL_SRC="${REPO_ROOT}/PANEL"
   WORK_DIR="${COMPILE_ROOT}/work/openeuler"

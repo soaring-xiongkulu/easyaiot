@@ -171,7 +171,10 @@ TRANSFORM/.idea/
 TRANSFORM/data/
 TRANSFORM/dist/
 
-# COMPILE 打包产物与临时目录（不随仓库分发）
+# COMPILE 打包产物与临时目录（不随仓库分发；与 COMPILE/.gitignore 对齐）
 COMPILE/dist/
 COMPILE/work/
+COMPILE/.panel-version
+COMPILE/**/*.spec.bak
 COMPILE/.venv-build/
+COMPILE/.venv-build-*/

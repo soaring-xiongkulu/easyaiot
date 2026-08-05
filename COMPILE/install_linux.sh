@@ -159,11 +159,16 @@ pick_rpm_file() {
   local min_bytes=1000000
   case "$variant" in
     centos|rhel)
-      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*.rpm" "$min_bytes"
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*-*.el9.*.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*-*.centos.*.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*-centos.*.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*.rpm" "$min_bytes"
       return $?
       ;;
     openeuler|oe|euler)
-      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*.rpm" "$min_bytes"
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*-*.openeuler.*.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*-openeuler.*.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*.rpm" "$min_bytes"
       return $?
       ;;
     auto)

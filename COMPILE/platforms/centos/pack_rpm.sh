@@ -85,19 +85,23 @@ canvas.alpha_composite(img, (x, y))
 canvas.save(dst, format="PNG", optimize=True)
 PY
 
+# RPM 元数据与发布文件名统一用标准 dist tag（el9 = RHEL/CentOS/Rocky/Alma 9 系）
+DIST_TAG="${PANEL_DIST_TAG:-el9}"
+PUBLISH_OS="${PANEL_PUBLISH_OS:-${DIST_TAG}}"
+
 cat > "$SPEC_PATH" <<EOF
 Name:           ${PKG_NAME}
 Version:        ${VERSION}
-Release:        ${RELEASE}%{?dist}
-Summary:        EasyAIoT platform ops console (PANEL)
+Release:        ${RELEASE}.${DIST_TAG}
+Summary:        EasyAIoT platform ops console (PANEL) for CentOS/RHEL
 License:        Apache-2.0
 URL:            https://github.com/soaring-xiongkulu/easyaiot
 BuildArch:      ${ARCH}
 Requires:       systemd
 
 %description
-Independent ops panel for EasyAIoT: container management, install script UI,
-topology and host overview.
+Independent ops panel for EasyAIoT on CentOS/RHEL: container management,
+install script UI, topology and host overview.
 
 %prep
 
@@ -143,10 +147,25 @@ fi
 /usr/share/doc/${PKG_NAME}/README
 EOF
 
-log "rpmbuild 生成 RPM"
+log "rpmbuild 生成 CentOS/RHEL RPM（Release=${RELEASE}.${DIST_TAG}）"
 rpmbuild --define "_topdir ${RPMBUILD_ROOT}" -bb "${SPEC_PATH}"
 mkdir -p "${OUT_DIR}"
-cp -f "${RPMBUILD_ROOT}/RPMS/${ARCH}/${PKG_NAME}-${VERSION}-${RELEASE}."*.rpm "${OUT_DIR}/"
-# 清理曾用中横线架构后缀的产物，避免混淆
-rm -f "${OUT_DIR}/${PKG_NAME}-${VERSION}-amd64.rpm" "${OUT_DIR}/${PKG_NAME}-${VERSION}-arm64.rpm"
-ls -lh "${OUT_DIR}/${PKG_NAME}-${VERSION}-${RELEASE}."*.rpm
+
+# 专业写法：easyaiot-panel-179-1.el9.x86_64.rpm（与包内 NEVRA 一致）
+FINAL_RPM="${OUT_DIR}/${PKG_NAME}-${VERSION}-${RELEASE}.${PUBLISH_OS}.${ARCH}.rpm"
+shopt -s nullglob
+built=( "${RPMBUILD_ROOT}/RPMS/${ARCH}/${PKG_NAME}-${VERSION}-${RELEASE}."*.rpm )
+shopt -u nullglob
+if [ "${#built[@]}" -eq 0 ]; then
+  echo "[COMPILE/centos] rpmbuild 未产出 RPM" >&2
+  exit 1
+fi
+cp -f "${built[0]}" "${FINAL_RPM}"
+shopt -s nullglob
+for f in "${OUT_DIR}/${PKG_NAME}-${VERSION}"*.rpm; do
+  [ "$f" = "$FINAL_RPM" ] && continue
+  rm -f "$f"
+done
+shopt -u nullglob
+ls -lh "${FINAL_RPM}"
+log "产物: ${FINAL_RPM}"
