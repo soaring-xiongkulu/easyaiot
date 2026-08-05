@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # COMPILE 统一入口（Linux 安装包管理 + 多平台打包入口）：
 # - 默认：交互式打包（Ubuntu / CentOS / openEuler / Windows / 全量 Linux）
-# - pack-all：一次打 Ubuntu×3 deb + CentOS/openEuler rpm
+# - pack-all：一次打 Ubuntu×3 deb + centos-el9 + centos-arm-el9 + openEuler rpm
 # - windows：Windows 主机打包 .exe（可选 --installer）
 # - install：安装/覆盖本地产物包（自动识别 deb/rpm）
 # - uninstall：卸载系统已安装 easyaiot-panel（自动识别 deb/rpm）
@@ -20,14 +20,14 @@ usage() {
     # 默认进入交互式打包
 
   bash COMPILE/install_linux.sh pack-all
-    # 一次打包 Ubuntu(x86/arm/kylin) deb + CentOS/openEuler rpm
+    # 一次打包 Ubuntu(x86/arm/kylin) deb + CentOS(x86/arm)/openEuler rpm
 
   bash COMPILE/install_linux.sh windows
   bash COMPILE/install_linux.sh windows --installer
     # Windows 主机打包 .exe + runtime/（可选 NSIS 安装包；须在 Windows 上执行）
 
-  bash COMPILE/install_linux.sh install [auto|x86|arm|kylin|centos|openeuler|--file <pkg-path>]
-    # 安装/覆盖安装本地包（自动识别 deb/rpm）
+  bash COMPILE/install_linux.sh install [auto|x86|arm|kylin|centos-el7|centos-el8|centos-el9|centos-arm-el9|openeuler|--file <pkg-path>]
+    # 安装/覆盖安装本地包（自动识别 deb/rpm；centos / centos-arm 同义 el9）
 
   bash COMPILE/install_linux.sh uninstall
     # 卸载系统中已安装的 easyaiot-panel（自动识别 deb/rpm）
@@ -158,26 +158,74 @@ pick_rpm_file() {
   local variant="${1:-auto}"
   local min_bytes=1000000
   case "$variant" in
-    centos|rhel)
-      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*-*.el9.*.rpm" "$min_bytes" \
-        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*-*.centos.*.rpm" "$min_bytes" \
-        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*-centos.*.rpm" "$min_bytes" \
+    centos-el7|centos7|el7)
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-el7/${PKG_NAME}-*-*.el7.*.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-el7/${PKG_NAME}-*.rpm" "$min_bytes"
+      return $?
+      ;;
+    centos-el8|centos8|el8)
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-el8/${PKG_NAME}-*-*.el8.*.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-el8/${PKG_NAME}-*.rpm" "$min_bytes"
+      return $?
+      ;;
+    centos|rhel|centos-el9|centos9|el9)
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-el9/${PKG_NAME}-*-*.el9.*.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*-*.el9.*.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-el9/${PKG_NAME}-*.rpm" "$min_bytes" \
         || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*.rpm" "$min_bytes"
+      return $?
+      ;;
+    centos-arm-el7)
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-arm-el7/${PKG_NAME}-*-*.el7.aarch64.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-arm-el7/${PKG_NAME}-*.rpm" "$min_bytes"
+      return $?
+      ;;
+    centos-arm-el8)
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-arm-el8/${PKG_NAME}-*-*.el8.aarch64.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-arm-el8/${PKG_NAME}-*.rpm" "$min_bytes"
+      return $?
+      ;;
+    centos-arm|centos_arm|rhel-arm|centos-arm-el9)
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-arm-el9/${PKG_NAME}-*-*.el9.aarch64.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-arm/${PKG_NAME}-*-*.el9.aarch64.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-arm-el9/${PKG_NAME}-*.rpm" "$min_bytes" \
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-arm/${PKG_NAME}-*.rpm" "$min_bytes"
       return $?
       ;;
     openeuler|oe|euler)
       pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*-*.oe2403.*.rpm" "$min_bytes" \
         || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*-*.openeuler.*.rpm" "$min_bytes" \
-        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*-openeuler.*.rpm" "$min_bytes" \
         || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*.rpm" "$min_bytes"
       return $?
       ;;
     auto)
+      local arch major
+      arch="$(uname -m)"
+      major=""
+      if [ -f /etc/os-release ]; then
+        # shellcheck source=/dev/null
+        . /etc/os-release
+        major="${VERSION_ID%%.*}"
+      fi
       if is_openeuler; then
-        pick_rpm_file openeuler || pick_rpm_file centos
+        pick_rpm_file openeuler \
+          || pick_rpm_file centos \
+          || pick_rpm_file centos-arm
         return $?
       fi
-      pick_rpm_file centos || pick_rpm_file openeuler
+      if [[ "$arch" == "aarch64" || "$arch" == "arm64" ]]; then
+        case "$major" in
+          7) pick_rpm_file centos-arm-el7 || pick_rpm_file centos-arm || pick_rpm_file openeuler ;;
+          8) pick_rpm_file centos-arm-el8 || pick_rpm_file centos-arm || pick_rpm_file openeuler ;;
+          *) pick_rpm_file centos-arm || pick_rpm_file centos-arm-el8 || pick_rpm_file centos-arm-el7 || pick_rpm_file openeuler ;;
+        esac
+        return $?
+      fi
+      case "$major" in
+        7) pick_rpm_file centos-el7 || pick_rpm_file centos || pick_rpm_file openeuler ;;
+        8) pick_rpm_file centos-el8 || pick_rpm_file centos || pick_rpm_file openeuler ;;
+        *) pick_rpm_file centos || pick_rpm_file centos-el8 || pick_rpm_file centos-el7 || pick_rpm_file openeuler ;;
+      esac
       return $?
       ;;
     *)
@@ -256,7 +304,9 @@ do_install() {
       pkg_file="$(pick_deb_file "$mode" || true)"
     else
       case "$mode" in
-        centos|rhel|openeuler|oe|euler|auto)
+        centos|rhel|centos-el7|centos-el8|centos-el9|centos7|centos8|centos9|el7|el8|el9|\
+        centos-arm|centos_arm|rhel-arm|centos-arm-el7|centos-arm-el8|centos-arm-el9|\
+        openeuler|oe|euler|auto)
           pkg_file="$(pick_rpm_file "$mode" || true)"
           ;;
         *)
@@ -269,7 +319,7 @@ do_install() {
   if [ -z "${pkg_file}" ] || [ ! -f "${pkg_file}" ]; then
     echo "[install] 未找到可安装包，请先打包。" >&2
     echo "  deb 产物: COMPILE/dist/ubuntu*/*.deb" >&2
-    echo "  rpm 产物: COMPILE/dist/centos/*.rpm  COMPILE/dist/openeuler/*.rpm" >&2
+    echo "  rpm 产物: COMPILE/dist/centos-el{7,8,9}/*.rpm  COMPILE/dist/centos-arm-el{7,8,9}/*.rpm  COMPILE/dist/openeuler/*.rpm" >&2
     exit 1
   fi
 

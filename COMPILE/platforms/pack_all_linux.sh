@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# 依次打包 Ubuntu(x86/arm/kylin) deb + CentOS rpm + openEuler rpm
+# 依次打包全部 Linux 安装包：
+#   Ubuntu(x86/arm/kylin) deb
+#   CentOS/RHEL el7/el8/el9 x86 + ARM rpm
+#   openEuler rpm
 #
 # 用法:
 #   bash COMPILE/platforms/pack_all_linux.sh
 #   bash COMPILE/install_linux.sh pack-all
 #   bash COMPILE/build.sh all-linux
-#
-# 日志写到 COMPILE/work/logs/（work/ 为构建缓存，gitignore）
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -42,16 +43,27 @@ run() {
 echo "[$(date -Is)] pack_all_linux start root=${ROOT}"
 echo "panel-version-before=$(cat COMPILE/.panel-version 2>/dev/null || echo none)"
 
-# 确保前端可写（避免 root 残留导致 vite 失败）
 if [ -d PANEL/ui/dist ] && [ ! -w PANEL/ui/dist ]; then
   echo "PANEL/ui/dist 不可写，尝试 docker chown"
   docker run --rm -v "${ROOT}/PANEL/ui:/ui" alpine chown -R "$(id -u):$(id -g)" /ui/dist || true
 fi
 
+# Ubuntu deb
 run bash COMPILE/build.sh ubuntu-x86 --deb || true
 run bash COMPILE/build.sh ubuntu-arm --deb || true
 run bash COMPILE/build.sh ubuntu-kylin --deb || true
-run bash COMPILE/build.sh centos || true
+
+# CentOS/RHEL x86：el7 / el8 / el9
+run bash COMPILE/build.sh centos-el7 || true
+run bash COMPILE/build.sh centos-el8 || true
+run bash COMPILE/build.sh centos-el9 || true
+
+# CentOS/RHEL ARM：el7 / el8 / el9（Docker linux/arm64 交叉）
+run bash COMPILE/build.sh centos-arm-el7 || true
+run bash COMPILE/build.sh centos-arm-el8 || true
+run bash COMPILE/build.sh centos-arm-el9 || true
+
+# openEuler
 run bash COMPILE/build.sh openeuler || true
 
 echo ""
@@ -61,11 +73,25 @@ echo "=== artifacts (latest) ==="
 ls -lt COMPILE/dist/ubuntu/*.deb 2>/dev/null | head -3
 ls -lt COMPILE/dist/ubuntu-arm/*.deb 2>/dev/null | head -3
 ls -lt COMPILE/dist/ubuntu-kylin/*.deb 2>/dev/null | head -3
-ls -lt COMPILE/dist/centos/*.rpm 2>/dev/null | head -3
+ls -lt COMPILE/dist/centos-el7/*.rpm 2>/dev/null | head -3
+ls -lt COMPILE/dist/centos-el8/*.rpm 2>/dev/null | head -3
+ls -lt COMPILE/dist/centos-el9/*.rpm COMPILE/dist/centos/*.rpm 2>/dev/null | head -5
+ls -lt COMPILE/dist/centos-arm-el7/*.rpm 2>/dev/null | head -3
+ls -lt COMPILE/dist/centos-arm-el8/*.rpm 2>/dev/null | head -3
+ls -lt COMPILE/dist/centos-arm-el9/*.rpm COMPILE/dist/centos-arm/*.rpm 2>/dev/null | head -5
 ls -lt COMPILE/dist/openeuler/*.rpm 2>/dev/null | head -3
-ls -lh COMPILE/dist/ubuntu/easyaiot-panel COMPILE/dist/ubuntu-arm/easyaiot-panel \
-  COMPILE/dist/ubuntu-kylin/easyaiot-panel COMPILE/dist/centos/easyaiot-panel \
-  COMPILE/dist/openeuler/easyaiot-panel 2>/dev/null || true
+ls -lh \
+  COMPILE/dist/ubuntu/easyaiot-panel \
+  COMPILE/dist/ubuntu-arm/easyaiot-panel \
+  COMPILE/dist/ubuntu-kylin/easyaiot-panel \
+  COMPILE/dist/centos-el7/easyaiot-panel \
+  COMPILE/dist/centos-el8/easyaiot-panel \
+  COMPILE/dist/centos-el9/easyaiot-panel \
+  COMPILE/dist/centos-arm-el7/easyaiot-panel \
+  COMPILE/dist/centos-arm-el8/easyaiot-panel \
+  COMPILE/dist/centos-arm-el9/easyaiot-panel \
+  COMPILE/dist/openeuler/easyaiot-panel \
+  2>/dev/null || true
 echo "panel-version-after=$(cat COMPILE/.panel-version 2>/dev/null || echo none)"
 echo "log=${LOG}"
 exit "$fail"

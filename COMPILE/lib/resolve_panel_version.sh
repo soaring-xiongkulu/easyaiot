@@ -91,6 +91,13 @@ _scan_dist_max_version() {
     "${dist_root}"/ubuntu-arm/easyaiot-panel-*.deb \
     "${dist_root}"/ubuntu-kylin/easyaiot-panel-*.deb \
     "${dist_root}"/centos/easyaiot-panel-*.rpm \
+    "${dist_root}"/centos-el7/easyaiot-panel-*.rpm \
+    "${dist_root}"/centos-el8/easyaiot-panel-*.rpm \
+    "${dist_root}"/centos-el9/easyaiot-panel-*.rpm \
+    "${dist_root}"/centos-arm/easyaiot-panel-*.rpm \
+    "${dist_root}"/centos-arm-el7/easyaiot-panel-*.rpm \
+    "${dist_root}"/centos-arm-el8/easyaiot-panel-*.rpm \
+    "${dist_root}"/centos-arm-el9/easyaiot-panel-*.rpm \
     "${dist_root}"/openeuler/easyaiot-panel-*.rpm \
     "${dist_root}"/windows/easyaiot-panel-*-setup.exe \
     "${dist_root}"/macos/easyaiot-panel-*.dmg

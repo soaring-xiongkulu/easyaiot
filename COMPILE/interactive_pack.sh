@@ -71,7 +71,12 @@ target_to_dist_dir() {
     ubuntu-x86|ubuntu-amd64) echo "${REPO_ROOT}/COMPILE/dist/ubuntu" ;;
     ubuntu-arm)              echo "${REPO_ROOT}/COMPILE/dist/ubuntu-arm" ;;
     ubuntu-kylin)            echo "${REPO_ROOT}/COMPILE/dist/ubuntu-kylin" ;;
-    centos)                  echo "${REPO_ROOT}/COMPILE/dist/centos" ;;
+    centos|centos-el9)       echo "${REPO_ROOT}/COMPILE/dist/centos-el9" ;;
+    centos-el7)              echo "${REPO_ROOT}/COMPILE/dist/centos-el7" ;;
+    centos-el8)              echo "${REPO_ROOT}/COMPILE/dist/centos-el8" ;;
+    centos-arm|centos-arm-el9) echo "${REPO_ROOT}/COMPILE/dist/centos-arm-el9" ;;
+    centos-arm-el7)          echo "${REPO_ROOT}/COMPILE/dist/centos-arm-el7" ;;
+    centos-arm-el8)          echo "${REPO_ROOT}/COMPILE/dist/centos-arm-el8" ;;
     openeuler)               echo "${REPO_ROOT}/COMPILE/dist/openeuler" ;;
     windows)                 echo "${REPO_ROOT}/COMPILE/dist/windows" ;;
     macos)                   echo "${REPO_ROOT}/COMPILE/dist/macos" ;;
@@ -95,10 +100,10 @@ build_once() {
     fi
     if [[ "${want_pkg}" == "1" ]]; then
       case "$target" in
-        centos|openeuler) ;; # 默认打 rpm；--no-rpm 才跳过
+        centos|openeuler|centos-arm|centos-el7|centos-el8|centos-el9|centos-arm-el7|centos-arm-el8|centos-arm-el9) ;; # 默认打 rpm
         *) cmd+=("--deb") ;;
       esac
-    elif [[ "$target" == "centos" || "$target" == "openeuler" ]]; then
+    elif [[ "$target" == centos* || "$target" == "openeuler" ]]; then
       cmd+=("--no-rpm")
     fi
   fi
@@ -114,7 +119,7 @@ build_once() {
 run_pack_all_linux() {
   echo ""
   echo "将执行：bash COMPILE/platforms/pack_all_linux.sh"
-  echo "（依次：ubuntu-x86/arm/kylin --deb + centos + openeuler；日志在 COMPILE/work/logs/）"
+  echo "（依次：ubuntu-x86/arm/kylin --deb + centos-el{7,8,9} + centos-arm-el{7,8,9} + openeuler；日志在 COMPILE/work/logs/）"
   (cd "${REPO_ROOT}" && bash COMPILE/platforms/pack_all_linux.sh)
 }
 
@@ -180,10 +185,13 @@ run_macos_flow() {
 run_deploy_flow() {
   local target mode out dist_dir
   target="$(choose_one "选择打包目标" \
-    "ubuntu-x86" "ubuntu-arm" "ubuntu-kylin" "centos" "openeuler" "windows" "macos" \
-    "全量Linux(ubuntu×3 deb + centos/openeuler rpm)")"
+    "ubuntu-x86" "ubuntu-arm" "ubuntu-kylin" \
+    "centos-el7" "centos-el8" "centos-el9" \
+    "centos-arm-el7" "centos-arm-el8" "centos-arm-el9" \
+    "openeuler" "windows" "macos" \
+    "全量Linux(ubuntu×3 deb + centos-el{7,8,9} x86/arm + openeuler)")"
 
-  if [[ "$target" == "全量Linux(ubuntu×3 deb + centos/openeuler rpm)" ]]; then
+  if [[ "$target" == "全量Linux(ubuntu×3 deb + centos-el{7,8,9} x86/arm + openeuler)" ]]; then
     run_pack_all_linux
     return
   fi
@@ -203,7 +211,7 @@ run_deploy_flow() {
   fi
   echo "构建方式：${mode}（默认不交互；可通过 COMPILE_BUILD_MODE 覆盖）" >&2
 
-  if [[ "$target" == "centos" || "$target" == "openeuler" ]]; then
+  if [[ "$target" == centos* || "$target" == "openeuler" ]]; then
     out="$(choose_one "选择输出类型（RPM 系）" \
       "仅二进制" "二进制+rpm安装包")"
     case "$out" in
@@ -230,7 +238,7 @@ run_deploy_flow() {
   echo "产物目录：${dist_dir}"
   echo "二进制："
   ls -lh "${dist_dir}/easyaiot-panel" 2>/dev/null || true
-  if [[ "$target" == "centos" || "$target" == "openeuler" ]]; then
+  if [[ "$target" == centos* || "$target" == "openeuler" ]]; then
     echo "rpm："
     ls -lh "${dist_dir}"/easyaiot-panel-*.rpm 2>/dev/null || true
   else
@@ -248,7 +256,9 @@ run_install_flow() {
   case "$action" in
     安装/覆盖安装)
       target_hint="$(choose_one "选择安装包目标" \
-        "自动识别" "x86" "arm" "麒麟" "centos" "openeuler")"
+        "自动识别" "x86" "arm" "麒麟" \
+        "centos-el7" "centos-el8" "centos-el9" \
+        "centos-arm-el9" "openeuler")"
       case "$target_hint" in
         自动识别) target_hint="auto" ;;
         麒麟) target_hint="kylin" ;;
