@@ -310,7 +310,7 @@ L'avantage ? Si vous êtes sur un appareil aux ressources limitées (comme un RK
 ### 🌍 Support de localisation
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT répond activement à la stratégie de localisation, prenant pleinement en charge les matériels et systèmes d'exploitation locaux, offrant aux utilisateurs des solutions AIoT sûres et contrôlables. Nouveau support <strong>openEuler (欧拉)</strong> : déploiement en un clic et packaging RPM PANEL — le script d'entrée retire le docker-engine système obsolète, corrige le releasever du dépôt Docker CE, configure les miroirs nationaux et firewalld, puis installe la plateforme (profils) ; COMPILE produit les paquets <strong>openEuler (欧拉)</strong>, avec <code>install_linux_openeuler.sh</code> pour « installer à l'arrivée, opérer sur site ».
+EasyAIoT répond activement à la stratégie de localisation, prenant pleinement en charge les matériels et systèmes d'exploitation locaux, offrant aux utilisateurs des solutions AIoT sûres et contrôlables. Le déploiement et les paquets PANEL couvrent déjà des OS locaux tels que <strong>Kylin (麒麟) / openEuler (欧拉)</strong>.
 </p>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
@@ -338,7 +338,7 @@ EasyAIoT répond activement à la stratégie de localisation, prenant pleinement
 <div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
 <h4 style="margin-top: 0; color: white; font-size: 18px;">🖱️ Support des systèmes d'exploitation</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-  <li>Compatibilité avec <strong>Kylin (麒麟) / openEuler (欧拉)</strong> (script de déploiement en un clic + RPM PANEL)</li>
+  <li>Compatibilité avec <strong>Kylin (麒麟) / openEuler (欧拉)</strong></li>
   <li>Support des distributions Linux locales comme Founder (Fangde)</li>
   <li>Adaptation aux systèmes d'exploitation locaux mainstream comme Tongxin UOS</li>
   <li>Fournit des solutions de déploiement localisées complètes</li>
@@ -580,16 +580,6 @@ EasyAIoT est un projet d'apprentissage open source, sans lien avec des activité
 - [Déploiement image macOS](.doc/部署文档/平台macOS部署文档_fr.md) — Pull one-click d'images préconstruites (Docker Desktop)
 - [Déploiement image Windows](.doc/部署文档/平台Windows部署文档_fr.md) — Entrée recommandée `install_windows.ps1`
 - [Bonnes pratiques de déploiement](.doc/部署文档/部署最佳实践_fr.md) — Profils, prérequis, déploiement one-click (dont **Kylin (麒麟) / openEuler (欧拉)**), dépannage et production
-
-**Démarrage rapide openEuler (欧拉) :**
-
-```bash
-# Déploiement one-click (préparer Docker CE → installation plateforme)
-sudo .scripts/docker/install_linux_openeuler.sh install
-
-# Packaging RPM PANEL (optionnel)
-bash COMPILE/build.sh openeuler
-```
 
 ## 🎮 Environnement de démonstration
 

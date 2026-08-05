@@ -310,8 +310,7 @@ EasyAIoT는 사실 하나의 프로젝트가 아닌, 아홉 개의 프로젝트�
 ### 🌍 현지화 지원
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT는 현지화 전략에 적극적으로 대응하며, 현지화 하드웨어와 운영체제를 전면적으로 지원하여 사용자에게 안전하고 제어 가능한 AIoT 솔루션을 제공합니다. <strong>openEuler (欧拉)</strong> 원클릭 배포 및 PANEL RPM 패키징을 추가했습니다: 진입 스크립트가 기본 구형 docker-engine을 제거하고, Docker CE 저장소 releasever를 수정하며, 국내 미러와 firewalld를 구성한 뒤 플랫폼(프로파일) 설치를 완료합니다. COMPILE은 <strong>openEuler (欧拉)</strong> 전용 패키지를 만들고 <code>install_linux_openeuler.sh</code>와 함께 「도착 즉시 설치·현장 상주」를 실현합니다.
-</p>
+EasyAIoT는 현지화 전략에 적극적으로 대응하며, 현지화 하드웨어와 운영체제를 전면적으로 지원하여 사용자에게 안전하고 제어 가능한 AIoT 솔루션을 제공합니다. 이미 <strong>Kylin (麒麟) / openEuler (欧拉)</strong> 등 국산 OS의 배포와 PANEL 설치 패키지 납품을 지원합니다.</p>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
 
@@ -338,7 +337,7 @@ EasyAIoT는 현지화 전략에 적극적으로 대응하며, 현지화 하드�
 <div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
 <h4 style="margin-top: 0; color: white; font-size: 18px;">🖱️ 운영체제 지원</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-  <li><strong>Kylin (麒麟) / openEuler (欧拉)</strong>와 호환됩니다(원클릭 배포 스크립트 + PANEL RPM).</li>
+  <li><strong>Kylin (麒麟) / openEuler (欧拉)</strong>와 호환됩니다.</li>
   <li>팡더(Founder) 등 현지화 Linux 배포판을 지원합니다.</li>
   <li>통신 UOS 등 주류 현지화 운영체제에 적합합니다.</li>
   <li>완전한 현지화 배포 솔루션을 제공합니다.</li>
@@ -581,16 +580,6 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 - [Windows 이미지 배포](.doc/部署文档/平台Windows部署文档_ko.md) — `install_windows.ps1` 권장 진입점
 - [배포 모범 사례](.doc/部署文档/部署最佳实践_ko.md) — 프로파일, 환경 요구, 원클릭 배포(openEuler 포함), 운영 문제 해결 및 프로덕션 권장
 
-**openEuler (欧拉) 빠른 시작:**
-
-```bash
-# 원클릭 배포 (Docker CE 준비 → 플랫폼 설치)
-sudo .scripts/docker/install_linux_openeuler.sh install
-
-# PANEL RPM 패키징 (선택)
-bash COMPILE/build.sh openeuler
-```
-
 ## 🎮 데모 환경
 
 - 데모 주소: http://36.111.47.113:8888/
@@ -601,7 +590,6 @@ bash COMPILE/build.sh openeuler
 
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot
 - Github: https://github.com/soaring-xiongkulu/easyaiot
-
 
 ## 📸 스크린샷
 

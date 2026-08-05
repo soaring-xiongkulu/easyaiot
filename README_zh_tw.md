@@ -310,7 +310,7 @@ EasyAIoT其實不是一個項目，而是九個項目。
 ### 🌍 在地化支持
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統，爲用戶提供安全可控的AIoT解決方案。新增 <strong>歐拉(openEuler)</strong> 一鍵部署與 PANEL RPM 打包：入口腳本自動卸載自帶舊版 docker-engine、修復 Docker CE 倉庫版本號、配置國內鏡像源與 firewalld，再完成平臺全量/分檔安裝；COMPILE 可產出 <strong>歐拉(openEuler)</strong> 專用安裝包，配合 <code>install_linux_openeuler.sh</code> 實現「到場可裝、值守可守」。
+EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統，爲用戶提供安全可控的AIoT解決方案。已覆蓋 <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> 等國產作業系統的部署與 PANEL 安裝包交付。
 </p>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
@@ -338,7 +338,7 @@ EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統
 <div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
 <h4 style="margin-top: 0; color: white; font-size: 18px;">🖱️ 作業系統支持</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-  <li>兼容<strong>麒麟(Kylin) / 歐拉(openEuler)</strong>（一鍵部署腳本 + PANEL RPM 安裝包）</li>
+  <li>兼容<strong>麒麟(Kylin) / 歐拉(openEuler)</strong></li>
   <li>支持方德（Founder）等在地化Linux發行版</li>
   <li>適配統信UOS等主流在地化作業系統</li>
   <li>提供完整的在地化部署方案</li>
@@ -580,16 +580,6 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 - [macOS 映像部署](.doc/部署文档/平台macOS部署文档_zh_tw.md) — Docker Desktop 一鍵拉取預建構映像
 - [Windows 映像部署](.doc/部署文档/平台Windows部署文档_zh_tw.md) — `install_windows.ps1` 推薦入口
 - [部署最佳實踐](.doc/部署文档/部署最佳实践_zh_tw.md) — 規格選型、環境要求、一鍵部署（含 **麒麟(Kylin) / 歐拉(openEuler)**）、運維排錯與生產環境建議
-
-**歐拉(openEuler) 快速入口：**
-
-```bash
-# 一鍵部署（自動準備 Docker CE → 轉交平臺安裝）
-sudo .scripts/docker/install_linux_openeuler.sh install
-
-# PANEL RPM 打包（可選）
-bash COMPILE/build.sh openeuler
-```
 
 ## 🎮 演示環境
 

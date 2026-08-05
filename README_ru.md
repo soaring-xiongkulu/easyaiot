@@ -311,7 +311,7 @@ EasyAIoT на самом деле не один проект, а девять п
 ### 🌍 Поддержка локализации
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT активно поддерживает стратегию локализации, всесторонне поддерживает локальное оборудование и операционные системы, предоставляя пользователям безопасные и контролируемые решения AIoT. Добавлена поддержка <strong>openEuler (欧拉)</strong>: развёртывание в один клик и RPM-пакет PANEL — входной скрипт удаляет штатный устаревший docker-engine, исправляет releasever репозитория Docker CE, настраивает зеркала и firewalld, затем выполняет установку платформы; COMPILE собирает пакеты для <strong>openEuler (欧拉)</strong>, вместе с <code>install_linux_openeuler.sh</code> — «установил на площадке, можно дежурить».
+EasyAIoT активно поддерживает стратегию локализации, всесторонне поддерживает локальное оборудование и операционные системы, предоставляя пользователям безопасные и контролируемые решения AIoT. Уже поддерживаются отечественные ОС, такие как <strong>Kylin (麒麟) / openEuler (欧拉)</strong>, включая развёртывание и поставку PANEL.
 </p>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
@@ -339,7 +339,7 @@ EasyAIoT активно поддерживает стратегию локали
 <div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
 <h4 style="margin-top: 0; color: white; font-size: 18px;">🖱️ Поддержка операционных систем</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-  <li>Совместимость с <strong>Kylin (麒麟) / openEuler (欧拉)</strong> (скрипт one-click + RPM PANEL)</li>
+  <li>Совместимость с <strong>Kylin (麒麟) / openEuler (欧拉)</strong></li>
   <li>Поддержка локализованных дистрибутивов Linux, таких как Founder</li>
   <li>Адаптация к основным локализованным ОС, таким как Tongxin UOS</li>
   <li>Предоставление полных локализованных решений по развертыванию</li>
@@ -581,16 +581,6 @@ EasyAIoT — это проект с открытым исходным кодом
 - [Развёртывание образов macOS](.doc/部署文档/平台macOS部署文档_ru.md) — One-click pull предсобранных образов (Docker Desktop)
 - [Развёртывание образов Windows](.doc/部署文档/平台Windows部署文档_ru.md) — Рекомендуемый вход `install_windows.ps1`
 - [Лучшие практики развертывания](.doc/部署文档/部署最佳实践_ru.md) — Профили, требования, one-click (включая **Kylin (麒麟) / openEuler (欧拉)**), устранение неполадок и production
-
-**Быстрый старт openEuler (欧拉):**
-
-```bash
-# Развёртывание в один клик (подготовка Docker CE → установка платформы)
-sudo .scripts/docker/install_linux_openeuler.sh install
-
-# Сборка RPM PANEL (опционально)
-bash COMPILE/build.sh openeuler
-```
 
 ## 🎮 Демонстрационная среда
 

@@ -310,7 +310,7 @@ What's the benefit? Suppose you are on a resource-constrained device (like an RK
 ### 🌍 Localization Support
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT actively responds to localization strategies, providing comprehensive support for localized hardware and operating systems, delivering secure and controllable AIoT solutions for users. New <strong>openEuler (欧拉)</strong> one-click deploy and PANEL RPM packaging: the entry script removes the stock outdated docker-engine, fixes the Docker CE repo releasever, configures domestic mirrors and firewalld, then completes full/profile installs; COMPILE can produce <strong>openEuler (欧拉)</strong> packages, paired with <code>install_linux_openeuler.sh</code> for “install on arrival, watch on site”.
+EasyAIoT actively responds to localization strategies, providing comprehensive support for localized hardware and operating systems, delivering secure and controllable AIoT solutions for users. Deployment and PANEL packaging already cover domestic OS targets such as <strong>Kylin (麒麟) / openEuler (欧拉)</strong>.
 </p>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
@@ -338,7 +338,7 @@ EasyAIoT actively responds to localization strategies, providing comprehensive s
 <div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
 <h4 style="margin-top: 0; color: white; font-size: 18px;">🖱️ Operating System Support</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-  <li>Compatible with <strong>Kylin (麒麟) / openEuler (欧拉)</strong> (one-click deploy script + PANEL RPM)</li>
+  <li>Compatible with <strong>Kylin (麒麟) / openEuler (欧拉)</strong></li>
   <li>Support for localized Linux distributions like Founder</li>
   <li>Adaptation to mainstream localized operating systems like UOS</li>
   <li>Provides complete localized deployment solutions</li>
@@ -583,16 +583,6 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
 - [macOS Image Deploy](.doc/部署文档/平台macOS部署文档.md) — One-click pull of pre-built images with Docker Desktop
 - [Windows Image Deploy](.doc/部署文档/平台Windows部署文档.md) — `install_windows.ps1` recommended entry
 - [Deployment Best Practices](.doc/部署文档/部署最佳实践_en.md) — Profiles, environment requirements, one-click deploy (incl. **Kylin (麒麟) / openEuler (欧拉)**), troubleshooting, and production recommendations
-
-**openEuler (欧拉) quick start:**
-
-```bash
-# One-click deploy (prepare Docker CE → platform install)
-sudo .scripts/docker/install_linux_openeuler.sh install
-
-# PANEL RPM packaging (optional)
-bash COMPILE/build.sh openeuler
-```
 
 ## 🎮 Demo Environment
 
