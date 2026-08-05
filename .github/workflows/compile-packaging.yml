@@ -14,7 +14,22 @@ on:
         default: false
         type: boolean
       enable_centos_self_hosted:
-        description: "Enable CentOS rpm job"
+        description: "Enable CentOS el9 rpm job"
+        required: false
+        default: false
+        type: boolean
+      enable_centos_el7:
+        description: "Enable CentOS el7 rpm job"
+        required: false
+        default: false
+        type: boolean
+      enable_centos_el8:
+        description: "Enable CentOS el8 rpm job"
+        required: false
+        default: false
+        type: boolean
+      enable_centos_arm:
+        description: "Enable CentOS ARM64 el9 rpm job (dockerized cross-build)"
         required: false
         default: false
         type: boolean
@@ -199,25 +214,94 @@ jobs:
             COMPILE/dist/macos/*.app/**
 
   centos-rpm:
-    name: CentOS/RHEL rpm (containerized optional)
+    name: CentOS/RHEL el9 rpm
     if: ${{ inputs.enable_centos_self_hosted }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build centos rpm (dockerized)
+      - name: Build centos-el9 rpm (dockerized)
         run: |
-          bash COMPILE/build.sh centos --docker
-          ls -lh COMPILE/dist/centos
+          bash COMPILE/build.sh centos-el9 --docker
+          ls -lh COMPILE/dist/centos-el9
 
-      - name: Upload centos artifacts
+      - name: Upload centos-el9 artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: easyaiot-panel-centos
+          name: easyaiot-panel-centos-el9
           path: |
-            COMPILE/dist/centos/easyaiot-panel
-            COMPILE/dist/centos/*.rpm
+            COMPILE/dist/centos-el9/easyaiot-panel
+            COMPILE/dist/centos-el9/*.rpm
+
+  centos-el8-rpm:
+    name: CentOS/RHEL el8 rpm
+    if: ${{ inputs.enable_centos_el8 }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build centos-el8 rpm (dockerized)
+        run: |
+          bash COMPILE/build.sh centos-el8 --docker
+          ls -lh COMPILE/dist/centos-el8
+
+      - name: Upload centos-el8 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: easyaiot-panel-centos-el8
+          path: |
+            COMPILE/dist/centos-el8/easyaiot-panel
+            COMPILE/dist/centos-el8/*.rpm
+
+  centos-el7-rpm:
+    name: CentOS/RHEL el7 rpm
+    if: ${{ inputs.enable_centos_el7 }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build centos-el7 rpm (dockerized)
+        run: |
+          bash COMPILE/build.sh centos-el7 --docker
+          ls -lh COMPILE/dist/centos-el7
+
+      - name: Upload centos-el7 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: easyaiot-panel-centos-el7
+          path: |
+            COMPILE/dist/centos-el7/easyaiot-panel
+            COMPILE/dist/centos-el7/*.rpm
+
+  centos-arm-rpm:
+    name: CentOS/RHEL ARM64 el9 rpm (cross-build)
+    if: ${{ inputs.enable_centos_arm }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build centos-arm-el9 rpm (dockerized linux/arm64)
+        run: |
+          bash COMPILE/build.sh centos-arm-el9 --docker
+          ls -lh COMPILE/dist/centos-arm-el9
+
+      - name: Upload centos-arm-el9 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: easyaiot-panel-centos-arm-el9
+          path: |
+            COMPILE/dist/centos-arm-el9/easyaiot-panel
+            COMPILE/dist/centos-arm-el9/*.rpm
 
   openeuler-rpm:
     name: openEuler rpm (containerized optional)
