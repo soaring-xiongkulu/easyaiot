@@ -126,15 +126,6 @@ exec "\${HERE}/easyaiot-panel"
 EOF
   chmod +x "${OUT_DIR}/run.sh"
 
-  # 兼容旧路径：el9 额外同步到 dist/centos
-  if [ "$EL_RELEASE" = "9" ] && [ "${COMPILE_OUT_SKIP_LEGACY_LINK:-0}" != "1" ]; then
-    local legacy="${COMPILE_ROOT}/dist/centos"
-    mkdir -p "$legacy"
-    cp -f "${OUT_DIR}/easyaiot-panel" "${legacy}/easyaiot-panel" 2>/dev/null || true
-    cp -f "${OUT_DIR}/run.sh" "${legacy}/run.sh" 2>/dev/null || true
-    cp -f "${OUT_DIR}/panel.env.example" "${legacy}/panel.env.example" 2>/dev/null || true
-  fi
-
   log "完成: ${OUT_DIR}/easyaiot-panel"
   ls -lh "${OUT_DIR}/easyaiot-panel"
 
@@ -197,17 +188,6 @@ build_docker() {
   if [ -d "${OUT_DIR}/out" ]; then
     cp -f "${OUT_DIR}/out/"* "${OUT_DIR}/" 2>/dev/null || true
     rm -rf "${OUT_DIR}/out"
-  fi
-
-  if [ "$EL_RELEASE" = "9" ] && [ "${COMPILE_OUT_SKIP_LEGACY_LINK:-0}" != "1" ]; then
-    local legacy="${COMPILE_ROOT}/dist/centos"
-    mkdir -p "$legacy"
-    cp -f "${OUT_DIR}/easyaiot-panel" "${legacy}/easyaiot-panel" 2>/dev/null || true
-    shopt -s nullglob
-    for f in "${OUT_DIR}"/*.rpm; do
-      cp -f "$f" "$legacy/"
-    done
-    shopt -u nullglob
   fi
 
   ls -lh "${OUT_DIR}"

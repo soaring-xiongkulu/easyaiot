@@ -75,10 +75,10 @@ ls -lt COMPILE/dist/ubuntu-arm/*.deb 2>/dev/null | head -3
 ls -lt COMPILE/dist/ubuntu-kylin/*.deb 2>/dev/null | head -3
 ls -lt COMPILE/dist/centos-el7/*.rpm 2>/dev/null | head -3
 ls -lt COMPILE/dist/centos-el8/*.rpm 2>/dev/null | head -3
-ls -lt COMPILE/dist/centos-el9/*.rpm COMPILE/dist/centos/*.rpm 2>/dev/null | head -5
+ls -lt COMPILE/dist/centos-el9/*.rpm 2>/dev/null | head -3
 ls -lt COMPILE/dist/centos-arm-el7/*.rpm 2>/dev/null | head -3
 ls -lt COMPILE/dist/centos-arm-el8/*.rpm 2>/dev/null | head -3
-ls -lt COMPILE/dist/centos-arm-el9/*.rpm COMPILE/dist/centos-arm/*.rpm 2>/dev/null | head -5
+ls -lt COMPILE/dist/centos-arm-el9/*.rpm 2>/dev/null | head -3
 ls -lt COMPILE/dist/openeuler/*.rpm 2>/dev/null | head -3
 ls -lh \
   COMPILE/dist/ubuntu/easyaiot-panel \

@@ -19,7 +19,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     EL_RELEASE=${EL_RELEASE} \
     PANEL_DIST_TAG=el${EL_RELEASE} \
     PANEL_PUBLISH_OS=el${EL_RELEASE} \
-    COMPILE_OUT_SKIP_LEGACY_LINK=1 \
     COMPILE_CN_MIRROR=${COMPILE_CN_MIRROR} \
     PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
     PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn \

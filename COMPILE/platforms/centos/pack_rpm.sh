@@ -171,11 +171,5 @@ for f in "${OUT_DIR}/${PKG_NAME}-${VERSION}"*.rpm; do
 done
 shopt -u nullglob
 
-# el9 兼容旧路径 dist/centos
-if [ "$EL_RELEASE" = "9" ] && [ "${COMPILE_OUT_SKIP_LEGACY_LINK:-0}" != "1" ]; then
-  mkdir -p "${COMPILE_ROOT}/dist/centos"
-  cp -f "${FINAL_RPM}" "${COMPILE_ROOT}/dist/centos/"
-fi
-
 ls -lh "${FINAL_RPM}"
 log "产物: ${FINAL_RPM}"

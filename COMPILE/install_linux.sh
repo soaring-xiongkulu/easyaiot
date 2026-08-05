@@ -170,9 +170,7 @@ pick_rpm_file() {
       ;;
     centos|rhel|centos-el9|centos9|el9)
       pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-el9/${PKG_NAME}-*-*.el9.*.rpm" "$min_bytes" \
-        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*-*.el9.*.rpm" "$min_bytes" \
-        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-el9/${PKG_NAME}-*.rpm" "$min_bytes" \
-        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*.rpm" "$min_bytes"
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-el9/${PKG_NAME}-*.rpm" "$min_bytes"
       return $?
       ;;
     centos-arm-el7)
@@ -187,9 +185,7 @@ pick_rpm_file() {
       ;;
     centos-arm|centos_arm|rhel-arm|centos-arm-el9)
       pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-arm-el9/${PKG_NAME}-*-*.el9.aarch64.rpm" "$min_bytes" \
-        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-arm/${PKG_NAME}-*-*.el9.aarch64.rpm" "$min_bytes" \
-        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-arm-el9/${PKG_NAME}-*.rpm" "$min_bytes" \
-        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-arm/${PKG_NAME}-*.rpm" "$min_bytes"
+        || pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos-arm-el9/${PKG_NAME}-*.rpm" "$min_bytes"
       return $?
       ;;
     openeuler|oe|euler)

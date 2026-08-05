@@ -204,9 +204,9 @@ ls -lh COMPILE/dist/ubuntu-kylin/*.deb
 - x86/amd64：`COMPILE/dist/ubuntu/easyaiot-panel_<VERSION>_amd64.deb`
 - ARM64：`COMPILE/dist/ubuntu-arm/easyaiot-panel_<VERSION>_arm_arm64.deb`
 - **麒麟(Kylin)**：`COMPILE/dist/ubuntu-kylin/easyaiot-panel_<VERSION>_kylin_arm64.deb`
-- CentOS/RHEL x86 el9：`COMPILE/dist/centos-el9/easyaiot-panel-<VERSION>-1.el9.<arch>.rpm`（`centos` / `dist/centos` 同义兼容）
+- CentOS/RHEL x86 el9：`COMPILE/dist/centos-el9/easyaiot-panel-<VERSION>-1.el9.<arch>.rpm`（构建目标 `centos` 同义指向 el9）
 - CentOS/RHEL x86 el8 / el7：`COMPILE/dist/centos-el8/...el8...rpm`、`COMPILE/dist/centos-el7/...el7...rpm`
-- CentOS/RHEL ARM el9：`COMPILE/dist/centos-arm-el9/easyaiot-panel-<VERSION>-1.el9.aarch64.rpm`（`centos-arm` / `dist/centos-arm` 同义兼容）
+- CentOS/RHEL ARM el9：`COMPILE/dist/centos-arm-el9/easyaiot-panel-<VERSION>-1.el9.aarch64.rpm`（构建目标 `centos-arm` 同义指向 el9）
 - CentOS/RHEL ARM el8 / el7：`COMPILE/dist/centos-arm-el8/`、`COMPILE/dist/centos-arm-el7/`
 - **欧拉(openEuler)**：`COMPILE/dist/openeuler/easyaiot-panel-<VERSION>-1.oe2403.<arch>.rpm`（与包内 NEVRA 一致；oe2403 = openEuler 24.03）
 
@@ -366,11 +366,10 @@ export EASYAIOT_ROOT=/path/to/easyaiot
 >
 > 国内源：`COMPILE_CN_MIRROR=huawei`（默认）/`aliyun`/`tuna`。可选 `COMPILE_CN_REGISTRY=docker.1panel.live` 加速拉基础镜像。
 >
-> RPM **不打入**内置 runtime：安装后必须把 `EASYAIOT_ROOT` 指到本机仓库根，部署用 `.scripts/docker/install_linux_centos.sh`。  
-> el9 构建仍会额外同步一份到旧路径 `dist/centos/`（兼容）。
+> RPM **不打入**内置 runtime：安装后必须把 `EASYAIOT_ROOT` 指到本机仓库根，部署用 `.scripts/docker/install_linux_centos.sh`。
 
 ```bash
-bash COMPILE/build.sh centos-el9
+bash COMPILE/build.sh centos-el9    # 同 centos
 bash COMPILE/build.sh centos-el8
 bash COMPILE/build.sh centos-el7
 ls -lh COMPILE/dist/centos-el9/easyaiot-panel-*-*.el9.*.rpm
@@ -392,8 +391,7 @@ bash COMPILE/install_linux.sh install centos-el9
 ### 6.0) CentOS/RHEL ARM 打包与安装（el7 / el8 / el9）
 
 > 与 x86 相同按 EL 区分；默认 Docker `--platform linux/arm64` 交叉构建。  
-> `panel.env` 默认 `INSTALL_SCRIPT=.scripts/docker/install_linux_centos_arm.sh`。  
-> el9 兼容旧路径 `dist/centos-arm/`。
+> `panel.env` 默认 `INSTALL_SCRIPT=.scripts/docker/install_linux_centos_arm.sh`。
 
 ```bash
 bash COMPILE/build.sh centos-arm-el9    # 同 centos-arm
@@ -579,8 +577,8 @@ COMPILE/
   dist/ubuntu/                  # x86/amd64 产物（gitignore）
   dist/ubuntu-arm/              # arm64 产物（gitignore）
   dist/ubuntu-kylin/            # 麒麟 产物（gitignore）
-  dist/centos-el{7,8,9}/        # CentOS x86 按 EL 分目录（el9 另同步 dist/centos）
-  dist/centos-arm-el{7,8,9}/    # CentOS ARM 按 EL 分目录（el9 另同步 dist/centos-arm）
+  dist/centos-el{7,8,9}/        # CentOS x86 按 EL 分目录
+  dist/centos-arm-el{7,8,9}/    # CentOS ARM 按 EL 分目录
   dist/openeuler/               # openEuler 二进制 + rpm（gitignore）
   dist/windows/                 # Windows 产物（gitignore）
   dist/macos/                   # macOS 产物（gitignore）
