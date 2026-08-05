@@ -16,14 +16,14 @@
 > **Ubuntu Docker 打包已加速：** 默认先在宿主机 `npm run build`，容器内只做 PyInstaller；
 > 构建上下文只含 PANEL 必要文件（约数 MB），不再把整个仓库塞进 dockerd，也不再在容器里跑 `npm install`（以前常卡 400s+）。
 >
-> **CentOS 默认也走 Docker**，并按 EL 大版本分开打包：
-> - el9：`quay.io/centos/centos:stream9` → `COMPILE/dist/centos-el9/`（`centos` 同义）
-> - el8：`quay.io/centos/centos:stream8` → `COMPILE/dist/centos-el8/`
-> - el7：`quay.io/centos/centos:7` → `COMPILE/dist/centos-el7/`（容器内装 Python 3.8）
+> **CentOS 默认也走 Docker**，并按 EL 大版本分开打包（**包源默认华为云**，`COMPILE_CN_MIRROR=aliyun|tuna` 可切换）：
+> - el9：`rockylinux:9` → `COMPILE/dist/centos-el9/`（`centos` 同义）
+> - el8：`rockylinux:8` → `COMPILE/dist/centos-el8/`
+> - el7：`centos:7` → `COMPILE/dist/centos-el7/`（SCL rh-python38）
 >
 > **CentOS ARM** 同样区分 el7/el8/el9（`--platform linux/arm64`），产物在 `COMPILE/dist/centos-arm-el{7,8,9}/`。
-
-> **欧拉(openEuler)** 默认也走 Docker（`openeuler/openeuler:24.03`），不必在 **欧拉(openEuler)** 物理机上打包。
+>
+> **欧拉(openEuler)** 默认 Docker（`openeuler/openeuler:24.03`），dnf 默认华为云，**不做全量 `dnf update`**。
 
 ```bash
 # 统一入口（交互菜单：部署操作 / 安装操作）
@@ -360,9 +360,11 @@ export EASYAIOT_ROOT=/path/to/easyaiot
 >
 > | 目标 | 基础镜像 | 产物目录 | RPM 示例 |
 > |------|----------|----------|----------|
-> | `centos-el9`（`centos` 同义） | `quay.io/centos/centos:stream9` | `dist/centos-el9/` | `*-1.el9.x86_64.rpm` |
-> | `centos-el8` | `quay.io/centos/centos:stream8` | `dist/centos-el8/` | `*-1.el8.x86_64.rpm` |
-> | `centos-el7` | `quay.io/centos/centos:7` | `dist/centos-el7/` | `*-1.el7.x86_64.rpm` |
+> | `centos-el9`（`centos` 同义） | `rockylinux:9` + 国内 dnf | `dist/centos-el9/` | `*-1.el9.x86_64.rpm` |
+> | `centos-el8` | `rockylinux:8` + 国内 dnf | `dist/centos-el8/` | `*-1.el8.x86_64.rpm` |
+> | `centos-el7` | `centos:7` + 国内 vault/SCL | `dist/centos-el7/` | `*-1.el7.x86_64.rpm` |
+>
+> 国内源：`COMPILE_CN_MIRROR=huawei`（默认）/`aliyun`/`tuna`。可选 `COMPILE_CN_REGISTRY=docker.1panel.live` 加速拉基础镜像。
 >
 > RPM **不打入**内置 runtime：安装后必须把 `EASYAIOT_ROOT` 指到本机仓库根，部署用 `.scripts/docker/install_linux_centos.sh`。  
 > el9 构建仍会额外同步一份到旧路径 `dist/centos/`（兼容）。
@@ -404,6 +406,7 @@ bash COMPILE/install_linux.sh install centos-arm-el9
 ### 6.1) **欧拉(openEuler)** 打包与安装
 
 > **欧拉(openEuler)** 默认 Docker 构建（`platforms/openeuler/Dockerfile`，基础镜像 `openeuler/openeuler:24.03`）。
+> dnf 默认走华为云国内源（`COMPILE_CN_MIRROR`），不再执行全量 `dnf update`。
 > 与 CentOS 相同：**不含**内置 runtime；安装后改 `EASYAIOT_ROOT`，平台部署用 `.scripts/docker/install_linux_openeuler.sh`。
 
 ```bash
