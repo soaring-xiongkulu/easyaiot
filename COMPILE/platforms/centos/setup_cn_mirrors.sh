@@ -11,7 +11,8 @@ CN_MIRROR_VENDOR="${COMPILE_CN_MIRROR:-huawei}"
 case "$CN_MIRROR_VENDOR" in
   huawei|hw)
     EL7_VAULT="${COMPILE_EL7_MIRROR:-https://mirrors.huaweicloud.com/centos-vault/7.9.2009}"
-    ROCKY_MIRROR="${COMPILE_ROCKY_MIRROR:-https://mirrors.huaweicloud.com/rocky}"
+    # 注意：华为云路径是 rockylinux，不是 rocky（rocky 会返回门户 HTML）
+    ROCKY_MIRROR="${COMPILE_ROCKY_MIRROR:-https://mirrors.huaweicloud.com/rockylinux}"
     CENTOS_STREAM_MIRROR="${COMPILE_CENTOS_STREAM_MIRROR:-https://mirrors.huaweicloud.com/centos-stream}"
     ;;
   aliyun|ali)
@@ -21,7 +22,8 @@ case "$CN_MIRROR_VENDOR" in
     ;;
   tuna|tsinghua)
     EL7_VAULT="${COMPILE_EL7_MIRROR:-https://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009}"
-    ROCKY_MIRROR="${COMPILE_ROCKY_MIRROR:-https://mirrors.tuna.tsinghua.edu.cn/rockylinux}"
+    # 清华 rockylinux 路径偶发 404，回退阿里云
+    ROCKY_MIRROR="${COMPILE_ROCKY_MIRROR:-https://mirrors.aliyun.com/rockylinux}"
     CENTOS_STREAM_MIRROR="${COMPILE_CENTOS_STREAM_MIRROR:-https://mirrors.tuna.tsinghua.edu.cn/centos-stream}"
     ;;
   *)
@@ -83,20 +85,22 @@ EOF
 }
 
 setup_rocky() {
-  # Rocky Linux 8/9
-  if ls /etc/yum.repos.d/rocky*.repo >/dev/null 2>&1; then
-    sed -i \
-      -e 's|^mirrorlist=|#mirrorlist=|g' \
-      -e 's|^#baseurl=http://dl.rockylinux.org/\$contentdir|baseurl='"${ROCKY_MIRROR}"'|g' \
-      -e 's|^baseurl=http://dl.rockylinux.org/\$contentdir|baseurl='"${ROCKY_MIRROR}"'|g' \
-      /etc/yum.repos.d/rocky*.repo
+  if ! ls /etc/yum.repos.d/rocky*.repo >/dev/null 2>&1; then
+    return 0
   fi
+  echo "[COMPILE/cn-mirrors] rocky mirror=${ROCKY_MIRROR}"
+  sed -i \
+    -e 's|^mirrorlist=|#mirrorlist=|g' \
+    -e 's|^#baseurl=http://dl.rockylinux.org/\$contentdir|baseurl='"${ROCKY_MIRROR}"'|g' \
+    -e 's|^#baseurl=https://dl.rockylinux.org/\$contentdir|baseurl='"${ROCKY_MIRROR}"'|g' \
+    -e 's|^baseurl=http://dl.rockylinux.org/\$contentdir|baseurl='"${ROCKY_MIRROR}"'|g' \
+    -e 's|^baseurl=https://dl.rockylinux.org/\$contentdir|baseurl='"${ROCKY_MIRROR}"'|g' \
+    /etc/yum.repos.d/rocky*.repo
 }
 
 setup_centos_stream() {
   if ls /etc/yum.repos.d/CentOS-Stream-*.repo >/dev/null 2>&1 \
      || ls /etc/yum.repos.d/centos*.repo >/dev/null 2>&1; then
-    # Stream 8/9：改国内 centos-stream
     for f in /etc/yum.repos.d/CentOS-Stream-*.repo /etc/yum.repos.d/centos*.repo; do
       [ -f "$f" ] || continue
       sed -i \
@@ -122,7 +126,6 @@ case "$EL_RELEASE" in
     ;;
 esac
 
-# 清理可能残留的慢速源缓存
 if command -v dnf >/dev/null 2>&1; then
   dnf clean all >/dev/null 2>&1 || true
 elif command -v yum >/dev/null 2>&1; then
