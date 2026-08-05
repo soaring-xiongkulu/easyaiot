@@ -35,10 +35,11 @@ EasyAIoT развёртывается с помощью **Docker-контейн�
 | ОС | Скрипт |
 |----|--------|
 | Linux x86 | `.scripts/docker/install_linux.sh` |
-| CentOS / RHEL | `.scripts/docker/install_linux_centos.sh` |
+| CentOS / RHEL (x86) | `.scripts/docker/install_linux_centos.sh` |
+| **CentOS / RHEL · ARM** | `.scripts/docker/install_linux_centos_arm.sh` |
 | **Kylin (麒麟)** | `.scripts/docker/install_linux_kylin.sh` |
 | **openEuler (欧拉)** | `.scripts/docker/install_linux_openeuler.sh` |
-| Linux ARM | `.scripts/docker/install_linux_arm.sh` |
+| Linux ARM (общий) | `.scripts/docker/install_linux_arm.sh` |
 | macOS | `.scripts/docker/install_mac.sh` |
 | Windows | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
@@ -133,7 +134,8 @@ git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
 sudo .scripts/docker/install_linux.sh
-# CentOS / RHEL: sudo .scripts/docker/install_linux_centos.sh
+# CentOS / RHEL x86: sudo .scripts/docker/install_linux_centos.sh
+# CentOS / RHEL ARM: sudo .scripts/docker/install_linux_centos_arm.sh
 # openEuler: sudo .scripts/docker/install_linux_openeuler.sh
 # 1 Deploy → 1 First install → 7 Health verify
 ```
@@ -148,11 +150,13 @@ cd easyaiot
 
 # Необязательно: загрузить предсобранные образы для сокращения времени установки
 sudo .scripts/docker/install_linux.sh pull
-# CentOS: sudo .scripts/docker/install_linux_centos.sh pull
+# CentOS x86: sudo .scripts/docker/install_linux_centos.sh pull
+# CentOS ARM: sudo .scripts/docker/install_linux_centos_arm.sh pull
 # openEuler: sudo .scripts/docker/install_linux_openeuler.sh pull
 
 sudo .scripts/docker/install_linux.sh install
-# CentOS: sudo .scripts/docker/install_linux_centos.sh install
+# CentOS x86: sudo .scripts/docker/install_linux_centos.sh install
+# CentOS ARM: sudo .scripts/docker/install_linux_centos_arm.sh install
 # openEuler: sudo .scripts/docker/install_linux_openeuler.sh install
 
 .scripts/docker/install_linux.sh verify
@@ -160,7 +164,11 @@ sudo .scripts/docker/install_linux.sh install
 
 ### Примечания CentOS / RHEL
 
-Используйте `.scripts/docker/install_linux_centos.sh` (CentOS 7/8/Stream, Rocky, Alma, RHEL). Подробности (ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明).
+Используйте `.scripts/docker/install_linux_centos.sh` (CentOS 7/8/Stream, Rocky, Alma, RHEL · x86). Подробности (ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明).
+
+### Примечания CentOS / RHEL · ARM
+
+Используйте `.scripts/docker/install_linux_centos_arm.sh` (CentOS/RHEL aarch64/arm64). Та же подготовка Docker CE / зеркало / firewalld, затем делегирование `install_linux_arm.sh`. Подробности (ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系--arm-说明).
 
 ### Примечания **openEuler (欧拉)**
 

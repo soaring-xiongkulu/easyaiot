@@ -36,10 +36,11 @@ EasyAIoT 採用 **Docker 容器化 + 統一安裝腳本** 部署，平台由基�
 | 系統 | 腳本 |
 |------|------|
 | Linux x86 | `.scripts/docker/install_linux.sh` |
-| CentOS / RHEL 系 | `.scripts/docker/install_linux_centos.sh` |
+| CentOS / RHEL 系（x86） | `.scripts/docker/install_linux_centos.sh` |
+| **CentOS / RHEL 系 · ARM** | `.scripts/docker/install_linux_centos_arm.sh` |
 | **麒麟(Kylin)** | `.scripts/docker/install_linux_kylin.sh` |
 | **歐拉(openEuler)** | `.scripts/docker/install_linux_openeuler.sh` |
-| Linux ARM | `.scripts/docker/install_linux_arm.sh` |
+| Linux ARM（通用） | `.scripts/docker/install_linux_arm.sh` |
 | macOS | `.scripts/docker/install_mac.sh` |
 | Windows | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
@@ -136,8 +137,11 @@ cd easyaiot
 # Ubuntu / 通用 Linux x86
 sudo .scripts/docker/install_linux.sh
 
-# CentOS / RHEL / Rocky / Alma
+# CentOS / RHEL / Rocky / Alma x86
 # sudo .scripts/docker/install_linux_centos.sh
+
+# CentOS / RHEL 系 ARM
+# sudo .scripts/docker/install_linux_centos_arm.sh
 
 # openEuler（卸載自帶 docker-engine、修復倉庫 releasever、裝 Docker CE）
 # sudo .scripts/docker/install_linux_openeuler.sh
@@ -155,21 +159,28 @@ cd easyaiot
 
 # 可選：拉取預建構映像，縮短 install 耗時
 sudo .scripts/docker/install_linux.sh pull
-# CentOS：sudo .scripts/docker/install_linux_centos.sh pull
+# CentOS x86：sudo .scripts/docker/install_linux_centos.sh pull
+# CentOS ARM：sudo .scripts/docker/install_linux_centos_arm.sh pull
 # openEuler：sudo .scripts/docker/install_linux_openeuler.sh pull
 
 sudo .scripts/docker/install_linux.sh install
-# CentOS：sudo .scripts/docker/install_linux_centos.sh install
+# CentOS x86：sudo .scripts/docker/install_linux_centos.sh install
+# CentOS ARM：sudo .scripts/docker/install_linux_centos_arm.sh install
 # openEuler：sudo .scripts/docker/install_linux_openeuler.sh install
 
 .scripts/docker/install_linux.sh verify
-# CentOS：.scripts/docker/install_linux_centos.sh verify
+# CentOS x86：.scripts/docker/install_linux_centos.sh verify
+# CentOS ARM：.scripts/docker/install_linux_centos_arm.sh verify
 # openEuler：.scripts/docker/install_linux_openeuler.sh verify
 ```
 
 ### CentOS / RHEL 系說明
 
-適用 CentOS 7/8/Stream、Rocky、Alma、RHEL。入口 `install_linux_centos.sh` 會自動升級 Docker CE、配置鏡像源與 firewalld，再轉交 `install_linux.sh`。詳見簡體中文：[平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明)。
+適用 CentOS 7/8/Stream、Rocky、Alma、RHEL（x86）。入口 `install_linux_centos.sh` 會自動升級 Docker CE、配置鏡像源與 firewalld，再轉交 `install_linux.sh`。詳見簡體中文：[平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明)。
+
+### CentOS / RHEL 系 · ARM 說明
+
+適用 aarch64/arm64 上的 CentOS/RHEL 系。入口 `install_linux_centos_arm.sh` 完成與 x86 相同的環境準備後，轉交 `install_linux_arm.sh`（預設 `DOCKER_PLATFORM=linux/arm64`）。詳見簡體中文：[平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系--arm-说明)。
 
 ### **歐拉(openEuler)** 說明
 

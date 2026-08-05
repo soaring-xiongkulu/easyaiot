@@ -7,7 +7,8 @@
 - **交互式打包菜单** `COMPILE/install_linux.sh`（Ubuntu / CentOS / **麒麟(Kylin) / 欧拉(openEuler)** / Windows / macOS / 全量 Linux）
 - **Windows** `easyaiot-panel.exe` + **内置 runtime**（`install_windows.sh` 仅镜像部署）+ 可选 NSIS
 - **macOS** `easyaiot-panel` + **内置 runtime**（`install_mac.sh` 仅镜像部署）+ 可选 `.app` / `.dmg`（圆形白底图标，与 Linux 一致）
-- **CentOS/RHEL** `easyaiot-panel` + `.rpm`（**不含**内置 runtime，需配置 `EASYAIOT_ROOT` 指向仓库根；部署可用仓库内 `install_linux_centos.sh`）
+- **CentOS/RHEL x86** `easyaiot-panel` + `.rpm`，按 **el7 / el8 / el9** 分别构建（默认 el9；**不含**内置 runtime，需配置 `EASYAIOT_ROOT`；部署用 `install_linux_centos.sh`）
+- **CentOS/RHEL ARM** `easyaiot-panel` + `.rpm`，同样区分 **el7 / el8 / el9**（默认 el9；Docker `linux/arm64` 交叉构建；部署用 `install_linux_centos_arm.sh`）
 - **欧拉(openEuler)** `easyaiot-panel` + `.rpm`（同上；部署用仓库内 `install_linux_openeuler.sh`）
 
 ## 快速开始
@@ -15,8 +16,13 @@
 > **Ubuntu Docker 打包已加速：** 默认先在宿主机 `npm run build`，容器内只做 PyInstaller；
 > 构建上下文只含 PANEL 必要文件（约数 MB），不再把整个仓库塞进 dockerd，也不再在容器里跑 `npm install`（以前常卡 400s+）。
 >
-> **CentOS 默认也走 Docker**（`quay.io/centos/centos:stream9`），不必在 CentOS 物理机上打包。
+> **CentOS 默认也走 Docker**，并按 EL 大版本分开打包：
+> - el9：`quay.io/centos/centos:stream9` → `COMPILE/dist/centos-el9/`（`centos` 同义）
+> - el8：`quay.io/centos/centos:stream8` → `COMPILE/dist/centos-el8/`
+> - el7：`quay.io/centos/centos:7` → `COMPILE/dist/centos-el7/`（容器内装 Python 3.8）
 >
+> **CentOS ARM** 同样区分 el7/el8/el9（`--platform linux/arm64`），产物在 `COMPILE/dist/centos-arm-el{7,8,9}/`。
+
 > **欧拉(openEuler)** 默认也走 Docker（`openeuler/openeuler:24.03`），不必在 **欧拉(openEuler)** 物理机上打包。
 
 ```bash
@@ -73,19 +79,17 @@ bash COMPILE/build.sh macos --dmg
 ls -lh COMPILE/dist/macos/easyaiot-panel-*-{arm64,amd64}.dmg
 # 运行：打开 dmg 拖到 Applications，或 ./COMPILE/dist/macos/run.command
 
-# CentOS/RHEL（默认 Docker 标准化构建；产出二进制 + .rpm）
-bash COMPILE/build.sh centos
-# 仅二进制：bash COMPILE/build.sh centos --no-rpm
-# 本机构建：bash COMPILE/build.sh centos --local   # 需 rpm-build + Node + Python
-ls -lh COMPILE/dist/centos/easyaiot-panel COMPILE/dist/centos/*.rpm
-# 安装 RPM：
-# sudo rpm -Uvh COMPILE/dist/centos/easyaiot-panel-*-*.el9.*.rpm
-# sudo systemctl daemon-reload
-# sudo systemctl enable --now easyaiot-panel
-#
-# 配置仓库根路径（RPM 默认 /opt/easyaiot，需改成实际 clone 路径）：
-# sudoedit /etc/easyaiot-panel/panel.env
-# EASYAIOT_ROOT=/path/to/easyaiot
+# CentOS/RHEL x86 — 按 EL 版本分别打包（默认 el9）
+bash COMPILE/build.sh centos-el9          # 同: centos
+bash COMPILE/build.sh centos-el8
+bash COMPILE/build.sh centos-el7
+ls -lh COMPILE/dist/centos-el9/*.rpm COMPILE/dist/centos-el8/*.rpm COMPILE/dist/centos-el7/*.rpm
+
+# CentOS/RHEL ARM64 — 按 EL 版本交叉构建
+bash COMPILE/build.sh centos-arm-el9      # 同: centos-arm
+bash COMPILE/build.sh centos-arm-el8
+bash COMPILE/build.sh centos-arm-el7
+ls -lh COMPILE/dist/centos-arm-el9/*aarch64.rpm
 
 # openEuler（默认 Docker；基础镜像 openeuler/openeuler:24.03）
 bash COMPILE/build.sh openeuler
@@ -94,15 +98,13 @@ bash COMPILE/build.sh openeuler
 ls -lh COMPILE/dist/openeuler/easyaiot-panel COMPILE/dist/openeuler/easyaiot-panel-*-*.oe2403.*.rpm
 # 安装后改 EASYAIOT_ROOT，部署用：.scripts/docker/install_linux_openeuler.sh
 
-# 一次打全量 Linux 包（Ubuntu 三架构 deb + CentOS/openEuler rpm；每个包都会让版本号 +1）
+# 一次打全量 Linux 包（Ubuntu×3 deb + CentOS el7/el8/el9 x86+arm + openEuler；每包版本号 +1）
 bash COMPILE/install_linux.sh pack-all
 # 或：bash COMPILE/build.sh all-linux
-# 或：bash COMPILE/platforms/pack_all_linux.sh
 
-# 安装/卸载管理（自动识别 deb/rpm；也可指定架构或包路径）
+# 安装/卸载管理
 bash COMPILE/install_linux.sh install auto
-bash COMPILE/install_linux.sh install x86          # 或 arm / kylin / centos / openeuler
-bash COMPILE/install_linux.sh install --file COMPILE/dist/ubuntu/easyaiot-panel_126_amd64.deb
+bash COMPILE/install_linux.sh install centos-el9   # 或 centos-el8 / centos-el7 / centos-arm-el9
 bash COMPILE/install_linux.sh uninstall
 bash COMPILE/install_linux.sh status
 ```
@@ -121,7 +123,9 @@ cd /path/to/easyaiot
 ls -l COMPILE/build.sh
 chmod +x COMPILE/build.sh \
   COMPILE/platforms/ubuntu/build.sh COMPILE/platforms/ubuntu/pack_deb.sh \
+  COMPILE/platforms/centos/el_common.sh \
   COMPILE/platforms/centos/build.sh COMPILE/platforms/centos/pack_rpm.sh \
+  COMPILE/platforms/centos-arm/build.sh COMPILE/platforms/centos-arm/pack_rpm.sh \
   COMPILE/platforms/openeuler/build.sh COMPILE/platforms/openeuler/pack_rpm.sh
 
 # 版本号在每次打包时自动递增（也可 PANEL_VERSION=105 固定指定）
@@ -200,7 +204,10 @@ ls -lh COMPILE/dist/ubuntu-kylin/*.deb
 - x86/amd64：`COMPILE/dist/ubuntu/easyaiot-panel_<VERSION>_amd64.deb`
 - ARM64：`COMPILE/dist/ubuntu-arm/easyaiot-panel_<VERSION>_arm_arm64.deb`
 - **麒麟(Kylin)**：`COMPILE/dist/ubuntu-kylin/easyaiot-panel_<VERSION>_kylin_arm64.deb`
-- CentOS/RHEL：`COMPILE/dist/centos/easyaiot-panel-<VERSION>-1.el9.<arch>.rpm`（与包内 NEVRA 一致；el9 = RHEL/CentOS/Rocky/Alma 9 系）
+- CentOS/RHEL x86 el9：`COMPILE/dist/centos-el9/easyaiot-panel-<VERSION>-1.el9.<arch>.rpm`（`centos` / `dist/centos` 同义兼容）
+- CentOS/RHEL x86 el8 / el7：`COMPILE/dist/centos-el8/...el8...rpm`、`COMPILE/dist/centos-el7/...el7...rpm`
+- CentOS/RHEL ARM el9：`COMPILE/dist/centos-arm-el9/easyaiot-panel-<VERSION>-1.el9.aarch64.rpm`（`centos-arm` / `dist/centos-arm` 同义兼容）
+- CentOS/RHEL ARM el8 / el7：`COMPILE/dist/centos-arm-el8/`、`COMPILE/dist/centos-arm-el7/`
 - **欧拉(openEuler)**：`COMPILE/dist/openeuler/easyaiot-panel-<VERSION>-1.oe2403.<arch>.rpm`（与包内 NEVRA 一致；oe2403 = openEuler 24.03）
 
 ### 4) 安装并验证 .deb
@@ -347,49 +354,51 @@ export EASYAIOT_ROOT=/path/to/easyaiot
 ./COMPILE/dist/ubuntu-kylin/easyaiot-panel
 ```
 
-### 6) CentOS/RHEL 打包与安装
+### 6) CentOS/RHEL 打包与安装（el7 / el8 / el9）
 
-> CentOS **默认 Docker 构建**（`platforms/centos/Dockerfile`，基础镜像 `quay.io/centos/centos:stream9`）。
-> RPM **不打入**内置 runtime（与 Ubuntu deb 不同）：安装后必须把 `EASYAIOT_ROOT` 指到本机 EasyAIoT 仓库根，部署脚本用仓库内 `.scripts/docker/install_linux_centos.sh`。
+> 按 **EL 大版本分别构建**，产物目录与 RPM dist 标签一一对应：
+>
+> | 目标 | 基础镜像 | 产物目录 | RPM 示例 |
+> |------|----------|----------|----------|
+> | `centos-el9`（`centos` 同义） | `quay.io/centos/centos:stream9` | `dist/centos-el9/` | `*-1.el9.x86_64.rpm` |
+> | `centos-el8` | `quay.io/centos/centos:stream8` | `dist/centos-el8/` | `*-1.el8.x86_64.rpm` |
+> | `centos-el7` | `quay.io/centos/centos:7` | `dist/centos-el7/` | `*-1.el7.x86_64.rpm` |
+>
+> RPM **不打入**内置 runtime：安装后必须把 `EASYAIOT_ROOT` 指到本机仓库根，部署用 `.scripts/docker/install_linux_centos.sh`。  
+> el9 构建仍会额外同步一份到旧路径 `dist/centos/`（兼容）。
 
 ```bash
-# 默认：Docker 产出二进制 + rpm
-bash COMPILE/build.sh centos
-ls -lh COMPILE/dist/centos/easyaiot-panel COMPILE/dist/centos/easyaiot-panel-*-*.el9.*.rpm
-
-# 仅二进制 / 本机构建
-bash COMPILE/build.sh centos --no-rpm
-bash COMPILE/build.sh centos --local          # 需本机 rpm-build + Node + Python
+bash COMPILE/build.sh centos-el9
+bash COMPILE/build.sh centos-el8
+bash COMPILE/build.sh centos-el7
+ls -lh COMPILE/dist/centos-el9/easyaiot-panel-*-*.el9.*.rpm
 ```
 
-安装与配置：
+安装示例（el9）：
 
 ```bash
-sudo rpm -Uvh ./COMPILE/dist/centos/easyaiot-panel-*-*.el9.*.rpm
-sudoedit /etc/easyaiot-panel/panel.env
-# 必改示例：
-# EASYAIOT_ROOT=/path/to/easyaiot
-
-sudo systemctl daemon-reload
+sudo rpm -Uvh ./COMPILE/dist/centos-el9/easyaiot-panel-*-*.el9.*.rpm
+sudoedit /etc/easyaiot-panel/panel.env   # 改 EASYAIOT_ROOT
 sudo systemctl enable --now easyaiot-panel
-sudo systemctl status easyaiot-panel --no-pager
-# 浏览器：http://127.0.0.1:9200/
 ```
 
-卸载：
-
 ```bash
-sudo systemctl stop easyaiot-panel || true
-sudo rpm -e easyaiot-panel
-sudo systemctl daemon-reload
+bash COMPILE/install_linux.sh install centos-el9
+# 或 centos-el8 / centos-el7
 ```
 
-也可用统一入口（自动识别 rpm）：
+### 6.0) CentOS/RHEL ARM 打包与安装（el7 / el8 / el9）
+
+> 与 x86 相同按 EL 区分；默认 Docker `--platform linux/arm64` 交叉构建。  
+> `panel.env` 默认 `INSTALL_SCRIPT=.scripts/docker/install_linux_centos_arm.sh`。  
+> el9 兼容旧路径 `dist/centos-arm/`。
 
 ```bash
-bash COMPILE/install_linux.sh install centos
-bash COMPILE/install_linux.sh status
-bash COMPILE/install_linux.sh uninstall
+bash COMPILE/build.sh centos-arm-el9    # 同 centos-arm
+bash COMPILE/build.sh centos-arm-el8
+bash COMPILE/build.sh centos-arm-el7
+ls -lh COMPILE/dist/centos-arm-el9/easyaiot-panel-*-*.el9.aarch64.rpm
+bash COMPILE/install_linux.sh install centos-arm-el9
 ```
 
 ### 6.1) **欧拉(openEuler)** 打包与安装
@@ -519,7 +528,7 @@ bash COMPILE/build.sh macos --dmg
 
 ```
 COMPILE/
-  build.sh                      # 统一入口（ubuntu/windows/macos/centos/openeuler/all-linux）
+  build.sh                      # 统一入口（含 centos-el{7,8,9} / centos-arm-el{7,8,9}）
   install_linux.sh              # 交互打包 + pack-all + windows/macos + install/uninstall/status
   interactive_pack.sh           # 被 install_linux.sh 默认调用的交互菜单
   hotfix_panel_runtime_deploy.sh
@@ -532,7 +541,7 @@ COMPILE/
     panel-logo.png              # 各平台共享图标源文件
   requirements-build.txt
   platforms/
-    pack_all_linux.sh           # Ubuntu×3 deb + CentOS/openEuler rpm 一键打包
+    pack_all_linux.sh           # Ubuntu×3 deb + centos-el9 + centos-arm-el9 + openEuler
     ubuntu/
       Dockerfile
       panel.spec
@@ -549,10 +558,16 @@ COMPILE/
       build.sh                  # macOS：二进制 + runtime + 可选 .app/.dmg（圆形图标）
       panel.env                 # INSTALL_SCRIPT=install_mac.sh
     centos/
-      Dockerfile                # 容器标准化构建（默认）
-      build.sh                  # --docker / --local / --rpm / --no-rpm
-      pack_rpm.sh               # 生成 .rpm（不含内置 runtime）
+      el_common.sh              # el7/el8/el9 解析（centos 与 centos-arm 共用）
+      Dockerfile                # ARG EL_RELEASE=7|8|9
+      build.sh                  # --el7|--el8|--el9 [--docker|--local] [--rpm|--no-rpm]
+      pack_rpm.sh               # 生成 *.elN.*.rpm（不含内置 runtime）
       rpm/                      # systemd/desktop/env 模板
+    centos-arm/
+      Dockerfile                # linux/arm64 + EL_RELEASE
+      build.sh                  # --el7|--el8|--el9 [--docker|--local] [--rpm|--no-rpm]
+      pack_rpm.sh               # 生成 aarch64 *.elN.*.rpm
+      rpm/                      # INSTALL_SCRIPT=install_linux_centos_arm.sh
     openeuler/
       Dockerfile                # openEuler 24.03 容器标准化构建（默认）
       build.sh                  # --docker / --local / --rpm / --no-rpm
@@ -561,7 +576,8 @@ COMPILE/
   dist/ubuntu/                  # x86/amd64 产物（gitignore）
   dist/ubuntu-arm/              # arm64 产物（gitignore）
   dist/ubuntu-kylin/            # 麒麟 产物（gitignore）
-  dist/centos/                  # CentOS 二进制 + rpm（gitignore）
+  dist/centos-el{7,8,9}/        # CentOS x86 按 EL 分目录（el9 另同步 dist/centos）
+  dist/centos-arm-el{7,8,9}/    # CentOS ARM 按 EL 分目录（el9 另同步 dist/centos-arm）
   dist/openeuler/               # openEuler 二进制 + rpm（gitignore）
   dist/windows/                 # Windows 产物（gitignore）
   dist/macos/                   # macOS 产物（gitignore）
@@ -574,7 +590,7 @@ COMPILE/
 - 也可扫描 `COMPILE/dist/**` 已有包名推断当前最大值
 - 固定版本：`PANEL_VERSION=105 bash COMPILE/build.sh ubuntu-x86 --deb`
 - 起始基数：`PANEL_VERSION_BASE`（默认 `100`）
-- 一次打完 Ubuntu 三架构 + CentOS + **欧拉(openEuler)** 会连续占用多个版本号
+- 一次打完 Ubuntu 三架构 + centos-el9 + centos-arm-el9 + **欧拉(openEuler)** 会连续占用多个版本号；单独打 el7/el8 也会各占一个版本号
 
 ## 构建方式
 
@@ -585,9 +601,13 @@ COMPILE/
 | deb | `bash COMPILE/build.sh <target> --deb` | 产出对应 variant 的 `.deb`（含内置 runtime；x86/amd64、arm_arm64、kylin_arm64） |
 | windows | `bash COMPILE/build.sh windows [--installer]` | 需在 Windows 主机执行；默认 `.exe`+`runtime/`，可选 NSIS |
 | macos | `bash COMPILE/build.sh macos [--app|--dmg]` | 需在 macOS 主机执行；默认二进制+`runtime/`，可选 `.app`/`.dmg` |
-| centos | `bash COMPILE/build.sh centos [--docker|--local] [--no-rpm]` | 默认 Docker 产出二进制 + `.rpm`（无内置 runtime） |
+| centos-el9 | `bash COMPILE/build.sh centos-el9`（`centos` 同义） | Docker / stream9 → `dist/centos-el9/*.el9.*.rpm` |
+| centos-el8 | `bash COMPILE/build.sh centos-el8` | Docker / stream8 → `dist/centos-el8/*.el8.*.rpm` |
+| centos-el7 | `bash COMPILE/build.sh centos-el7` | Docker / centos:7 + Python3.8 → `dist/centos-el7/*.el7.*.rpm` |
+| centos-arm-el9 | `bash COMPILE/build.sh centos-arm-el9`（`centos-arm` 同义） | Docker `linux/arm64` → `dist/centos-arm-el9/*.el9.aarch64.rpm` |
+| centos-arm-el8/el7 | `bash COMPILE/build.sh centos-arm-el8` / `centos-arm-el7` | 同上交叉构建，产物分目录 |
 | openeuler | `bash COMPILE/build.sh openeuler [--docker|--local] [--no-rpm]` | 默认 Docker 产出二进制 + `.rpm`（无内置 runtime；基础镜像 `openeuler/openeuler:24.03`） |
-| all-linux | `bash COMPILE/build.sh all-linux` / `bash COMPILE/install_linux.sh pack-all` | 依次打 Ubuntu×3 deb + CentOS/**欧拉(openEuler)** rpm |
+| all-linux | `bash COMPILE/build.sh all-linux` / `bash COMPILE/install_linux.sh pack-all` | Ubuntu×3 deb + centos-el{7,8,9} x86/arm + openEuler |
 
 ## 运行时依赖
 
@@ -598,6 +618,7 @@ COMPILE/
   - Ubuntu deb 默认：`/opt/easyaiot-panel/runtime` → 按包变体使用 `install_linux.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`
   - Windows / macOS 安装包：与二进制同级的 `runtime/` → `install_windows.sh` / `install_mac.sh`
   - CentOS rpm：默认 `/opt/easyaiot`（占位），**须改为**本机仓库根 → 使用 `.scripts/docker/install_linux_centos.sh`
+  - CentOS ARM rpm：同上 → 使用 `.scripts/docker/install_linux_centos_arm.sh`（panel.env 已默认写入）
   - **欧拉(openEuler)** rpm：同上 → 使用 `.scripts/docker/install_linux_openeuler.sh`
   - 也可把任意平台的 `EASYAIOT_ROOT` 指到本机 clone 的仓库根
 
@@ -607,7 +628,8 @@ COMPILE/
 | Ubuntu ARM | `install_linux_arm.sh` | 支持 |
 | **麒麟(Kylin)** ARM | `install_linux_kylin.sh` | 支持 |
 | **欧拉(openEuler)** | `install_linux_openeuler.sh`（需仓库根） | 支持 |
-| CentOS/RHEL | `install_linux_centos.sh`（需仓库根） | 支持 |
+| CentOS/RHEL x86 | `install_linux_centos.sh`（需仓库根） | 支持 |
+| CentOS/RHEL ARM | `install_linux_centos_arm.sh`（需仓库根） | 支持 |
 | macOS | `install_mac.sh` | **禁止**（仅镜像） |
 | Windows | `install_windows.sh` | **禁止**（仅镜像；需 Git Bash） |
 

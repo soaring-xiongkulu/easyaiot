@@ -27,7 +27,7 @@
 
 ## Два режима использования (подробно)
 
-Единые входные скрипты (`install_linux.sh` / `install_linux_centos.sh` / `install_linux_openeuler.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`) поддерживают **два эквивалентных способа использования**:
+Единые входные скрипты (`install_linux.sh` / `install_linux_centos.sh` / `install_linux_centos_arm.sh` / `install_linux_openeuler.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`) поддерживают **два эквивалентных способа использования**:
 
 | Режим | Вход | Аудитория | Характеристики |
 |-------|------|-----------|----------------|
@@ -426,9 +426,13 @@ docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi
 ## Особые среды
 
 ```bash
-# CentOS / RHEL / Rocky / Alma (автообновление Docker CE, порты firewalld)
+# CentOS / RHEL / Rocky / Alma x86 (автообновление Docker CE, порты firewalld)
 sudo .scripts/docker/install_linux_centos.sh install
 # Только Docker: sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
+
+# CentOS / RHEL ARM (затем делегирование install_linux_arm.sh)
+sudo .scripts/docker/install_linux_centos_arm.sh install
+# Только Docker: sudo .scripts/docker/install_linux_centos_arm.sh --upgrade-docker-only
 
 # openEuler
 sudo .scripts/docker/install_linux_openeuler.sh install
@@ -437,7 +441,7 @@ sudo .scripts/docker/install_linux_openeuler.sh install
 # Kylin OS
 sudo .scripts/docker/install_linux_kylin.sh install
 
-# ARM64
+# ARM64 (общий)
 sudo .scripts/docker/install_linux_arm.sh install
 
 # macOS / Windows

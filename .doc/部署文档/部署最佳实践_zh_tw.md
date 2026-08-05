@@ -27,7 +27,7 @@
 
 ## 兩種使用模式（詳細）
 
-統一入口腳本（`install_linux.sh` / `install_linux_centos.sh` / `install_linux_openeuler.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`）支援 **兩種等價用法**：
+統一入口腳本（`install_linux.sh` / `install_linux_centos.sh` / `install_linux_centos_arm.sh` / `install_linux_openeuler.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`）支援 **兩種等價用法**：
 
 | 模式 | 入口 | 受眾 | 特點 |
 |------|------|------|------|
@@ -424,9 +424,13 @@ docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi
 ## 特殊環境
 
 ```bash
-# CentOS / RHEL / Rocky / Alma（自動升級 Docker CE、放行 firewalld）
+# CentOS / RHEL / Rocky / Alma x86（自動升級 Docker CE、放行 firewalld）
 sudo .scripts/docker/install_linux_centos.sh install
 # 僅準備 Docker：sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
+
+# CentOS / RHEL 系 ARM（環境準備後轉交 install_linux_arm.sh）
+sudo .scripts/docker/install_linux_centos_arm.sh install
+# 僅準備 Docker：sudo .scripts/docker/install_linux_centos_arm.sh --upgrade-docker-only
 
 # openEuler（卸載自帶 docker-engine、修復倉庫 releasever、裝 Docker CE）
 sudo .scripts/docker/install_linux_openeuler.sh install
@@ -435,7 +439,7 @@ sudo .scripts/docker/install_linux_openeuler.sh install
 # 銀河麒麟
 sudo .scripts/docker/install_linux_kylin.sh install
 
-# ARM64
+# ARM64（通用，非 EL 系）
 sudo .scripts/docker/install_linux_arm.sh install
 
 # macOS
@@ -445,7 +449,7 @@ bash .scripts/docker/install_mac.sh install
 bash .scripts/docker/install_windows.sh install
 ```
 
-CentOS 說明：入口 `install_linux_centos.sh` 會先準備 Docker CE（替換 CentOS 7 自帶 docker 1.13）、鏡像源與 firewalld，再轉交 `install_linux.sh`。詳見 [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明)。
+CentOS 說明：x86 入口 `install_linux_centos.sh` 會先準備 Docker CE（替換 CentOS 7 自帶 docker 1.13）、鏡像源與 firewalld，再轉交 `install_linux.sh`；ARM 入口 `install_linux_centos_arm.sh` 同樣準備環境後轉交 `install_linux_arm.sh`。詳見 [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系--arm-说明)。
 
 **歐拉(openEuler)** 說明：入口 `install_linux_openeuler.sh` 會卸載自帶 docker-engine、修復 `$releasever`、配置鏡像源/DNS 與 firewalld，再轉交 `install_linux.sh`。詳見 [平台部署文档_zh.md](./平台部署文档_zh.md#openeuler-24x-说明)。
 

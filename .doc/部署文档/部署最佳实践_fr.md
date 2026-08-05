@@ -27,7 +27,7 @@
 
 ## Deux modes d'utilisation (détaillé)
 
-Les scripts d'entrée unifiés (`install_linux.sh` / `install_linux_centos.sh` / `install_linux_openeuler.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`) prennent en charge **deux modes d'utilisation équivalents** :
+Les scripts d'entrée unifiés (`install_linux.sh` / `install_linux_centos.sh` / `install_linux_centos_arm.sh` / `install_linux_openeuler.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`) prennent en charge **deux modes d'utilisation équivalents** :
 
 | Mode | Entrée | Public cible | Caractéristiques |
 |------|--------|--------------|------------------|
@@ -426,9 +426,13 @@ Multi-GPU : `export CUDA_VISIBLE_DEVICES=0,1`
 ## Environnements spéciaux
 
 ```bash
-# CentOS / RHEL / Rocky / Alma (mise à niveau Docker CE, ports firewalld)
+# CentOS / RHEL / Rocky / Alma x86 (mise à niveau Docker CE, ports firewalld)
 sudo .scripts/docker/install_linux_centos.sh install
 # Docker seulement : sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
+
+# CentOS / RHEL ARM (puis délégation à install_linux_arm.sh)
+sudo .scripts/docker/install_linux_centos_arm.sh install
+# Docker seulement : sudo .scripts/docker/install_linux_centos_arm.sh --upgrade-docker-only
 
 # openEuler
 sudo .scripts/docker/install_linux_openeuler.sh install
@@ -437,7 +441,7 @@ sudo .scripts/docker/install_linux_openeuler.sh install
 # Kylin OS
 sudo .scripts/docker/install_linux_kylin.sh install
 
-# ARM64
+# ARM64 (générique)
 sudo .scripts/docker/install_linux_arm.sh install
 
 # macOS / Windows

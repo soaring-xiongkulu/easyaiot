@@ -27,7 +27,7 @@
 
 ## 두 가지 사용 모드 (상세)
 
-통합 진입 스크립트(`install_linux.sh` / `install_linux_centos.sh` / `install_linux_openeuler.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`)는 **두 가지 동등한 사용 패턴**을 지원합니다:
+통합 진입 스크립트(`install_linux.sh` / `install_linux_centos.sh` / `install_linux_centos_arm.sh` / `install_linux_openeuler.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`)는 **두 가지 동등한 사용 패턴**을 지원합니다:
 
 | 모드 | 진입 | 대상 | 특징 |
 |------|------|------|------|
@@ -426,9 +426,13 @@ docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi
 ## 특수 환경
 
 ```bash
-# CentOS / RHEL / Rocky / Alma (Docker CE 자동 업그레이드, firewalld 포트 개방)
+# CentOS / RHEL / Rocky / Alma x86 (Docker CE 자동 업그레이드, firewalld 포트 개방)
 sudo .scripts/docker/install_linux_centos.sh install
 # Docker만 준비: sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
+
+# CentOS / RHEL ARM (환경 준비 후 install_linux_arm.sh 위임)
+sudo .scripts/docker/install_linux_centos_arm.sh install
+# Docker만 준비: sudo .scripts/docker/install_linux_centos_arm.sh --upgrade-docker-only
 
 # openEuler
 sudo .scripts/docker/install_linux_openeuler.sh install
@@ -437,7 +441,7 @@ sudo .scripts/docker/install_linux_openeuler.sh install
 # Kylin OS
 sudo .scripts/docker/install_linux_kylin.sh install
 
-# ARM64
+# ARM64 (일반)
 sudo .scripts/docker/install_linux_arm.sh install
 
 # macOS / Windows

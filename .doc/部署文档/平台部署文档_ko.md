@@ -35,10 +35,11 @@ EasyAIoT는 **Docker 컨테이너와 통합 설치 스크립트**를 통해 배�
 | OS | 스크립트 |
 |----|--------|
 | Linux x86 | `.scripts/docker/install_linux.sh` |
-| CentOS / RHEL | `.scripts/docker/install_linux_centos.sh` |
+| CentOS / RHEL (x86) | `.scripts/docker/install_linux_centos.sh` |
+| **CentOS / RHEL · ARM** | `.scripts/docker/install_linux_centos_arm.sh` |
 | **Kylin (麒麟)** | `.scripts/docker/install_linux_kylin.sh` |
 | **openEuler (欧拉)** | `.scripts/docker/install_linux_openeuler.sh` |
-| Linux ARM | `.scripts/docker/install_linux_arm.sh` |
+| Linux ARM (일반) | `.scripts/docker/install_linux_arm.sh` |
 | macOS | `.scripts/docker/install_mac.sh` |
 | Windows | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
@@ -133,7 +134,8 @@ git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
 sudo .scripts/docker/install_linux.sh
-# CentOS / RHEL: sudo .scripts/docker/install_linux_centos.sh
+# CentOS / RHEL x86: sudo .scripts/docker/install_linux_centos.sh
+# CentOS / RHEL ARM: sudo .scripts/docker/install_linux_centos_arm.sh
 # openEuler: sudo .scripts/docker/install_linux_openeuler.sh
 # 1 Deploy → 1 First install → 7 Health verify
 ```
@@ -148,11 +150,13 @@ cd easyaiot
 
 # 선택: 사전 빌드 이미지를 가져와 설치 시간 단축
 sudo .scripts/docker/install_linux.sh pull
-# CentOS: sudo .scripts/docker/install_linux_centos.sh pull
+# CentOS x86: sudo .scripts/docker/install_linux_centos.sh pull
+# CentOS ARM: sudo .scripts/docker/install_linux_centos_arm.sh pull
 # openEuler: sudo .scripts/docker/install_linux_openeuler.sh pull
 
 sudo .scripts/docker/install_linux.sh install
-# CentOS: sudo .scripts/docker/install_linux_centos.sh install
+# CentOS x86: sudo .scripts/docker/install_linux_centos.sh install
+# CentOS ARM: sudo .scripts/docker/install_linux_centos_arm.sh install
 # openEuler: sudo .scripts/docker/install_linux_openeuler.sh install
 
 .scripts/docker/install_linux.sh verify
@@ -160,7 +164,11 @@ sudo .scripts/docker/install_linux.sh install
 
 ### CentOS / RHEL 참고
 
-`.scripts/docker/install_linux_centos.sh` 사용 (CentOS 7/8/Stream, Rocky, Alma, RHEL). 상세(ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明).
+`.scripts/docker/install_linux_centos.sh` 사용 (CentOS 7/8/Stream, Rocky, Alma, RHEL · x86). 상세(ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明).
+
+### CentOS / RHEL · ARM 참고
+
+`.scripts/docker/install_linux_centos_arm.sh` 사용 (aarch64/arm64 CentOS/RHEL). Docker CE / 미러 / firewalld 준비 후 `install_linux_arm.sh`에 위임. 상세(ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系--arm-说明).
 
 ### **openEuler (欧拉)** 참고
 
