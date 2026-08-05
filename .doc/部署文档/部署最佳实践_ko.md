@@ -236,7 +236,7 @@ sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Ver
 
 | 소프트웨어 | 요구 사항 |
 |------------|-----------|
-| OS | Ubuntu 24.04+ (26.04 권장); CentOS/RHEL, **Kylin (麒麟)/openEuler (欧拉)**, ARM64도 지원 |
+| OS | Ubuntu 24.04+ (26.04 권장); CentOS/RHEL, **Kylin (麒麟) / openEuler (欧拉)**, ARM64도 지원 |
 | Docker | 설치 및 데몬 접근 가능 |
 | Docker Compose | **v2.35.0+** (`docker compose` 플러그인) |
 | NVIDIA Driver / Container Toolkit | GPU 시나리오만 |

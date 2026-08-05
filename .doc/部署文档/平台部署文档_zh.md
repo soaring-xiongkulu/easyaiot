@@ -119,7 +119,7 @@ sudo .scripts/docker/install_linux.sh install
 
 ### 环境前提
 
-- 操作系统：**Ubuntu 24.04+**（建议 26.04）；亦支持 **CentOS/RHEL 系**、ARM、**麒麟(Kylin)/欧拉(openEuler)**
+- 操作系统：**Ubuntu 24.04+**（建议 26.04）；亦支持 **CentOS/RHEL 系**、ARM、**麒麟(Kylin) / 欧拉(openEuler)**
 - Docker + Docker Compose **v2.35+**（CentOS / **欧拉(openEuler)** 可用对应入口脚本自动安装/升级 Docker CE）
 - 磁盘可用空间 **≥ 300 GB**
 
@@ -483,7 +483,7 @@ cd .scripts/docker && ./analyze_merge_logs.sh --non-interactive --modules all --
 
 | 项目 | 要求 |
 |------|------|
-| 操作系统 | Ubuntu 24.04+（建议 26.04）；亦支持 macOS、Windows、CentOS/RHEL、ARM、**麒麟(Kylin)/欧拉(openEuler)** |
+| 操作系统 | Ubuntu 24.04+（建议 26.04）；亦支持 macOS、Windows、CentOS/RHEL、ARM、**麒麟(Kylin) / 欧拉(openEuler)** |
 | CPU | 最低 4 核，推荐 8 核+ |
 | 内存 | 取决于部署规格（Linux full ≥ 20 GB；桌面 full 引擎目标 24 GB，主机建议 ≥ 32 GB） |
 | 磁盘 | 最低 300 GB 可用，推荐 500 GB+ SSD |

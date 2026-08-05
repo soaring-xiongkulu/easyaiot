@@ -119,7 +119,7 @@ sudo .scripts/docker/install_linux.sh install
 
 ### Prérequis
 
-- OS : **Ubuntu 24.04+** (26.04 recommandé) ; également **CentOS/RHEL**, ARM, **Kylin (麒麟)/openEuler (欧拉)**
+- OS : **Ubuntu 24.04+** (26.04 recommandé) ; également **CentOS/RHEL**, ARM, **Kylin (麒麟) / openEuler (欧拉)**
 - Docker + Docker Compose **v2.35+** (sous CentOS / **openEuler (欧拉)** : le script d'entrée OS peut installer/mettre à niveau Docker CE)
 - **≥ 300 Go** d'espace disque libre
 
@@ -322,7 +322,7 @@ Plus d'informations : [Dépannage](./部署最佳实践_fr.md#dépannage).
 
 | Élément | Exigence |
 |------|-------------|
-| OS | Ubuntu 24.04+ (26.04 recommandé) ; également macOS, Windows, CentOS/RHEL, ARM, **Kylin (麒麟)/openEuler (欧拉)** |
+| OS | Ubuntu 24.04+ (26.04 recommandé) ; également macOS, Windows, CentOS/RHEL, ARM, **Kylin (麒麟) / openEuler (欧拉)** |
 | CPU | Min. 4 cœurs, 8+ recommandés |
 | RAM | Dépend du profil (full ≥ 20 Go, 32 Go recommandés) |
 | Disque | Min. 300 Go libres, 500 Go+ SSD recommandé |

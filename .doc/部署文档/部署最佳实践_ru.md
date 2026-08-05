@@ -236,7 +236,7 @@ sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Ver
 
 | ПО | Требование |
 |----|------------|
-| ОС | Ubuntu 24.04+ (рекомендуется 26.04); также поддерживаются CentOS/RHEL, **Kylin (麒麟)/openEuler (欧拉)**, ARM64 |
+| ОС | Ubuntu 24.04+ (рекомендуется 26.04); также поддерживаются CentOS/RHEL, **Kylin (麒麟) / openEuler (欧拉)**, ARM64 |
 | Docker | Установлен, демон доступен |
 | Docker Compose | **v2.35.0+** (плагин `docker compose`) |
 | NVIDIA Driver / Container Toolkit | Только для сценариев с GPU |

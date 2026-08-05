@@ -4,7 +4,7 @@
 
 当前已实现：
 - **Ubuntu 单文件** `easyaiot-panel` + **内置 runtime** `.deb`（按架构绑定 `install_linux.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`）
-- **交互式打包菜单** `COMPILE/install_linux.sh`（Ubuntu / CentOS / **麒麟(Kylin)/欧拉(openEuler)** / Windows / macOS / 全量 Linux）
+- **交互式打包菜单** `COMPILE/install_linux.sh`（Ubuntu / CentOS / **麒麟(Kylin) / 欧拉(openEuler)** / Windows / macOS / 全量 Linux）
 - **Windows** `easyaiot-panel.exe` + **内置 runtime**（`install_windows.sh` 仅镜像部署）+ 可选 NSIS
 - **macOS** `easyaiot-panel` + **内置 runtime**（`install_mac.sh` 仅镜像部署）+ 可选 `.app` / `.dmg`（圆形白底图标，与 Linux 一致）
 - **CentOS/RHEL** `easyaiot-panel` + `.rpm`（**不含**内置 runtime，需配置 `EASYAIOT_ROOT` 指向仓库根；部署可用仓库内 `install_linux_centos.sh`）
@@ -613,5 +613,5 @@ deb / rpm 安装后配置在 `/etc/easyaiot-panel/panel.env`；Windows/macOS 配
 
 ## 说明
 
-- Windows/macOS 须在对应系统本机或对应 CI Runner 执行；Ubuntu / CentOS / **麒麟(Kylin)/欧拉(openEuler)** 均可在任意已装 Docker 的 Linux 上交叉/标准化构建（ARM 需 qemu）。
+- Windows/macOS 须在对应系统本机或对应 CI Runner 执行；Ubuntu / CentOS / **麒麟(Kylin) / 欧拉(openEuler)** 均可在任意已装 Docker 的 Linux 上交叉/标准化构建（ARM 需 qemu）。
 - 已提供 GitHub Actions 模板：`.github/workflows/compile-packaging.yml`（Ubuntu deb、Windows、macOS；CentOS / **欧拉(openEuler)** 为可选开关）。

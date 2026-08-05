@@ -236,7 +236,7 @@ Memory analysis:
 
 | Software | Requirement |
 |----------|-------------|
-| OS | Ubuntu 24.04+ (26.04 recommended); CentOS/RHEL, **Kylin (麒麟)/openEuler (欧拉)**, ARM64 also supported |
+| OS | Ubuntu 24.04+ (26.04 recommended); CentOS/RHEL, **Kylin (麒麟) / openEuler (欧拉)**, ARM64 also supported |
 | Docker | Installed and daemon accessible |
 | Docker Compose | **v2.35.0+** (`docker compose` plugin) |
 | NVIDIA Driver / Container Toolkit | GPU scenarios only |

@@ -118,7 +118,7 @@ sudo .scripts/docker/install_linux.sh install
 
 ### Предварительные требования
 
-- ОС: **Ubuntu 24.04+** (рекомендуется 26.04); также **CentOS/RHEL**, ARM, **Kylin (麒麟)/openEuler (欧拉)**
+- ОС: **Ubuntu 24.04+** (рекомендуется 26.04); также **CentOS/RHEL**, ARM, **Kylin (麒麟) / openEuler (欧拉)**
 - Docker + Docker Compose **v2.35+** (на CentOS / **openEuler (欧拉)**: OS-скрипт может установить/обновить Docker CE)
 - **≥ 300 ГБ** свободного места на диске
 
@@ -321,7 +321,7 @@ cd .scripts/docker && ./analyze_merge_logs.sh --non-interactive --modules all --
 
 | Параметр | Требование |
 |------|-------------|
-| ОС | Ubuntu 24.04+ (рекомендуется 26.04); также macOS, Windows, CentOS/RHEL, ARM, **Kylin (麒麟)/openEuler (欧拉)** |
+| ОС | Ubuntu 24.04+ (рекомендуется 26.04); также macOS, Windows, CentOS/RHEL, ARM, **Kylin (麒麟) / openEuler (欧拉)** |
 | CPU | Мин. 4 ядра, рекомендуется 8+ |
 | RAM | Зависит от профиля (full ≥ 20 ГБ, рекомендуется 32 ГБ) |
 | Диск | Мин. 300 ГБ свободно, рекомендуется 500 ГБ+ SSD |

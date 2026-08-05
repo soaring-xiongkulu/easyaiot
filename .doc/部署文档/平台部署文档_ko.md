@@ -118,7 +118,7 @@ sudo .scripts/docker/install_linux.sh install
 
 ### 사전 요건
 
-- OS: **Ubuntu 24.04+** (26.04 권장); **CentOS/RHEL**, ARM, **Kylin (麒麟)/openEuler (欧拉)**도 지원
+- OS: **Ubuntu 24.04+** (26.04 권장); **CentOS/RHEL**, ARM, **Kylin (麒麟) / openEuler (欧拉)**도 지원
 - Docker + Docker Compose **v2.35+** (CentOS / **openEuler (欧拉)**에서는 OS 전용 진입 스크립트로 Docker CE 설치/업그레이드 가능)
 - **≥ 300 GB** 여유 디스크 공간
 
@@ -321,7 +321,7 @@ cd .scripts/docker && ./analyze_merge_logs.sh --non-interactive --modules all --
 
 | 항목 | 요구사항 |
 |------|----------|
-| OS | Ubuntu 24.04+ (26.04 권장); macOS, Windows, CentOS/RHEL, ARM, **Kylin (麒麟)/openEuler (欧拉)**도 지원 |
+| OS | Ubuntu 24.04+ (26.04 권장); macOS, Windows, CentOS/RHEL, ARM, **Kylin (麒麟) / openEuler (欧拉)**도 지원 |
 | CPU | 최소 4코어, 8코어 이상 권장 |
 | RAM | 프로필에 따라 다름 (full ≥ 20 GB, 32 GB 권장) |
 | 디스크 | 최소 300 GB 여유, 500 GB+ SSD 권장 |

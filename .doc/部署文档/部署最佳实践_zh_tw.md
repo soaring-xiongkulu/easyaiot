@@ -234,7 +234,7 @@ sudo .scripts/docker/install_linux.sh         # 1 部署 → 1 安裝 → 7 驗�
 
 | 軟體 | 要求 |
 |------|------|
-| 作業系統 | Ubuntu 24.04+（建議 26.04）；亦支援 CentOS/RHEL、**麒麟(Kylin)/歐拉(openEuler)**、ARM64 |
+| 作業系統 | Ubuntu 24.04+（建議 26.04）；亦支援 CentOS/RHEL、**麒麟(Kylin) / 歐拉(openEuler)**、ARM64 |
 | Docker | 已安裝且 daemon 可存取 |
 | Docker Compose | **v2.35.0+**（`docker compose` 插件） |
 | NVIDIA Driver / Container Toolkit | 僅 GPU 場景 |
