@@ -42,7 +42,7 @@ Many smart IoT projects hit the same wall at deployment: video systems, device p
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-The platform comprises core modules including <strong>WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, and SITE</strong>, with <strong>COMPILE</strong> handling multi-platform packaging and delivery. On the capability side, the platform covers GB28181 / ONVIF multi-protocol camera access, <strong>DJI dock and drone aerial view access</strong>, real-time and snapshot algorithm tasks, YOLO object detection and SAM zero-shot auto-annotation, face/plate recognition, orchestrable business post-processing, federated compute cluster scheduling, and <strong>Infinite Federated Edge Cluster mode</strong> (ordinary development boards ready out of the box, on-site intelligence for local decisions, alerts and evidence automatically aggregated to the cloud, compute scaling with business as needed), plus MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT device lifecycle management, and <strong>visualization dashboards and Web SCADA configuration</strong>, so device data can be displayed as command-center situational awareness and mapped back to process screens; plus the new <strong>TRANSFORM multidirectional data-flow engine</strong>, which delivers platform-side business events to external systems such as MES / ERP / CRM / WMS by contract—multi-party integration that is configurable, traceable, and reusable; and the companion <strong>PANEL delivery & watch entry</strong>, so appliances can be installed and accepted on arrival day, and watch/troubleshooting no longer wait on developers running remote commands every time; plus the <strong>SITE official website</strong> to present product value, three hardware tiers, and installer entry—so visitors understand first, then download and deploy. On the experience side, the Web console and mobile App / mini-program are capability-aligned, so command centers and field inspections share the same business logic—handle incidents anytime, anywhere.
+The platform comprises core modules including <strong>WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, and SITE</strong>, with <strong>COMPILE</strong> handling multi-platform packaging and delivery (including Ubuntu / CentOS / <strong>openEuler (欧拉)</strong> / Windows / macOS / ARM / Kylin (麒麟)). On the capability side, the platform covers GB28181 / ONVIF multi-protocol camera access, <strong>DJI dock and drone aerial view access</strong>, real-time and snapshot algorithm tasks, YOLO object detection and SAM zero-shot auto-annotation, face/plate recognition, orchestrable business post-processing, federated compute cluster scheduling, and <strong>Infinite Federated Edge Cluster mode</strong> (ordinary development boards ready out of the box, on-site intelligence for local decisions, alerts and evidence automatically aggregated to the cloud, compute scaling with business as needed), plus MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT device lifecycle management, and <strong>visualization dashboards and Web SCADA configuration</strong>, so device data can be displayed as command-center situational awareness and mapped back to process screens; plus the new <strong>TRANSFORM multidirectional data-flow engine</strong>, which delivers platform-side business events to external systems such as MES / ERP / CRM / WMS by contract—multi-party integration that is configurable, traceable, and reusable; and the companion <strong>PANEL delivery & watch entry</strong>, so appliances can be installed and accepted on arrival day, and watch/troubleshooting no longer wait on developers running remote commands every time; plus the <strong>SITE official website</strong> to present product value, three hardware tiers, and installer entry—so visitors understand first, then download and deploy. On the experience side, the Web console and mobile App / mini-program are capability-aligned, so command centers and field inspections share the same business logic—handle incidents anytime, anywhere.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -74,7 +74,7 @@ Smart IoT projects most often stall at the last mile: the machine is on site, ye
 </ul>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-📦 <strong>Installer download</strong>: Packages for Ubuntu / Debian, CentOS / RHEL, Windows, macOS, and ARM / Kylin targets are on <a href="https://gitee.com/volara/easyaiot/releases" style="color: #3498db; text-decoration: none; font-weight: 600;">Gitee Releases</a>.
+📦 <strong>Installer download</strong>: Packages for Ubuntu / Debian, CentOS / RHEL, <strong>openEuler (欧拉) 24.x</strong>, Windows, macOS, and ARM / Kylin (麒麟) targets are on <a href="https://gitee.com/volara/easyaiot/releases" style="color: #3498db; text-decoration: none; font-weight: 600;">Gitee Releases</a>.
 </p>
 
 | | | |
@@ -310,7 +310,7 @@ What's the benefit? Suppose you are on a resource-constrained device (like an RK
 ### 🌍 Localization Support
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT actively responds to localization strategies, providing comprehensive support for localized hardware and operating systems, delivering secure and controllable AIoT solutions for users:
+EasyAIoT actively responds to localization strategies, providing comprehensive support for localized hardware and operating systems, delivering secure and controllable AIoT solutions for users. New <strong>openEuler (欧拉) 24.x</strong> one-click deploy and PANEL RPM packaging: the entry script removes the stock outdated docker-engine, fixes the Docker CE repo releasever, configures domestic mirrors and firewalld, then completes full/profile installs; COMPILE can produce openEuler (欧拉) packages, paired with <code>install_linux_openeuler.sh</code> for “install on arrival, watch on site”.
 </p>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
@@ -338,7 +338,8 @@ EasyAIoT actively responds to localization strategies, providing comprehensive s
 <div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
 <h4 style="margin-top: 0; color: white; font-size: 18px;">🖱️ Operating System Support</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-  <li>Compatible with Kylin operating system</li>
+  <li>Compatible with <strong>openEuler (欧拉) 24.x</strong> (one-click deploy script + PANEL RPM)</li>
+  <li>Compatible with Kylin (麒麟) operating system</li>
   <li>Support for localized Linux distributions like Founder</li>
   <li>Adaptation to mainstream localized operating systems like UOS</li>
   <li>Provides complete localized deployment solutions</li>
@@ -496,7 +497,7 @@ EasyAIoT comprises core modules including WEB, APP, DEVICE, NODE, VIDEO, AI, TAS
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>COMPILE Packaging</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>Multi-Platform Artifacts</strong>: Package PANEL and related capabilities into installers or binaries for Ubuntu / Debian, CentOS / RHEL, Windows, macOS, and ARM / Kylin targets—so customers can install without compiling from source on site</li>
+    <li><strong>Multi-Platform Artifacts</strong>: Package PANEL and related capabilities into installers or binaries for Ubuntu / Debian, CentOS / RHEL, <strong>openEuler (欧拉) 24.x</strong>, Windows, macOS, and ARM / Kylin (麒麟) targets—so customers can install without compiling from source on site</li>
     <li><strong>Shorter Delivery Chain</strong>: Integrators pick the matching package for the target environment to deploy and upgrade—unified install, start/stop, and uninstall paths reduce cross-OS delivery variance</li>
     <li><strong>Paired with PANEL</strong>: Build outputs land the on-site ops entry directly, connecting “package it out” with “install and watch on arrival” on one delivery chain</li>
   </ul>
@@ -519,6 +520,7 @@ EasyAIoT supports deployment on Linux, Mac, and Windows, providing flexible and 
   <li>Supports Docker containerized deployment with one-click service startup</li>
   <li>Perfect compatibility with servers and edge computing devices (such as RK3588 and other ARM architecture devices)</li>
   <li>Provides complete automated installation scripts to simplify deployment</li>
+  <li>Covers mainstream server distros including Ubuntu, CentOS/RHEL, <strong>openEuler (欧拉) 24.x</strong>, and Kylin (麒麟)</li>
 </ul>
 </div>
 
@@ -578,8 +580,20 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
 
 ## 📚 Deployment Documentation
 
-- [Platform Deployment Documentation](.doc/部署文档/平台部署文档_zh.md) — Step-by-step deployment guide for Linux / Mac / Windows
-- [Deployment Best Practices](.doc/部署文档/部署最佳实践.md) — Environment requirements, one-click deployment, troubleshooting, and production recommendations
+- [Platform Deployment Documentation](.doc/部署文档/平台部署文档.md) — Step-by-step guide for Linux (Ubuntu / CentOS / **openEuler (欧拉) 24.x** / ARM / Kylin (麒麟)) / Mac / Windows
+- [macOS Image Deploy](.doc/部署文档/平台macOS部署文档.md) — One-click pull of pre-built images with Docker Desktop
+- [Windows Image Deploy](.doc/部署文档/平台Windows部署文档.md) — `install_windows.ps1` recommended entry
+- [Deployment Best Practices](.doc/部署文档/部署最佳实践_en.md) — Profiles, environment requirements, one-click deploy (incl. openEuler (欧拉)), troubleshooting, and production recommendations
+
+**openEuler (欧拉) quick start:**
+
+```bash
+# One-click deploy (prepare Docker CE → platform install)
+sudo .scripts/docker/install_linux_openeuler.sh install
+
+# PANEL RPM packaging (optional)
+bash COMPILE/build.sh openeuler
+```
 
 ## 🎮 Demo Environment
 

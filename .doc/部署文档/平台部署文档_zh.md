@@ -37,8 +37,9 @@ EasyAIoT 采用 **Docker 容器化 + 统一安装脚本** 部署，平台由基�
 |------|------|
 | Linux x86 | `.scripts/docker/install_linux.sh` |
 | CentOS / RHEL 系 | `.scripts/docker/install_linux_centos.sh` |
+| 欧拉(openEuler) 24.x | `.scripts/docker/install_linux_openeuler.sh` |
 | Linux ARM | `.scripts/docker/install_linux_arm.sh` |
-| 银河麒麟 | `.scripts/docker/install_linux_kylin.sh` |
+| 银河麒麟(Kylin) | `.scripts/docker/install_linux_kylin.sh` |
 | macOS | `.scripts/docker/install_mac.sh` |
 | Windows | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
@@ -118,8 +119,8 @@ sudo .scripts/docker/install_linux.sh install
 
 ### 环境前提
 
-- 操作系统：**Ubuntu 24.04+**（建议 26.04）；亦支持 **CentOS/RHEL 系**、ARM、银河麒麟
-- Docker + Docker Compose **v2.35+**（CentOS 可用 `install_linux_centos.sh` 自动安装/升级 Docker CE）
+- 操作系统：**Ubuntu 24.04+**（建议 26.04）；亦支持 **CentOS/RHEL 系**、**欧拉(openEuler) 24.x**、ARM、银河麒麟(Kylin)
+- Docker + Docker Compose **v2.35+**（CentOS / 欧拉(openEuler) 可用对应入口脚本自动安装/升级 Docker CE）
 - 磁盘可用空间 **≥ 300 GB**
 
 ```bash
@@ -138,6 +139,9 @@ sudo .scripts/docker/install_linux.sh
 # CentOS / RHEL / Rocky / Alma（推荐；自动升级 Docker CE、配置镜像源与 firewalld）
 # sudo .scripts/docker/install_linux_centos.sh
 
+# openEuler 24.x（推荐；卸载自带 docker-engine、修复仓库 releasever、装 Docker CE）
+# sudo .scripts/docker/install_linux_openeuler.sh
+
 # 1 部署 → 1 首次安装 → 7 健康验证
 ```
 
@@ -152,12 +156,15 @@ cd easyaiot
 # 可选：拉取预构建镜像，缩短 install 耗时
 sudo .scripts/docker/install_linux.sh pull
 # CentOS：sudo .scripts/docker/install_linux_centos.sh pull
+# openEuler：sudo .scripts/docker/install_linux_openeuler.sh pull
 
 sudo .scripts/docker/install_linux.sh install
 # CentOS：sudo .scripts/docker/install_linux_centos.sh install
+# openEuler：sudo .scripts/docker/install_linux_openeuler.sh install
 
 .scripts/docker/install_linux.sh verify
 # CentOS：.scripts/docker/install_linux_centos.sh verify
+# openEuler：.scripts/docker/install_linux_openeuler.sh verify
 ```
 
 ### CentOS / RHEL 系说明
@@ -182,6 +189,30 @@ sudo .scripts/docker/install_linux_centos.sh --no-upgrade-docker install
 ```
 
 单独中间件（CentOS 7.9）：`.scripts/docker/start_postgresql_centos7.sh`、`start_minio_centos7.sh`、`start_nodered_centos7.sh`、`start_fuxa_centos7.sh`。
+
+### 欧拉(openEuler) 24.x 说明
+
+适用：欧拉(openEuler) 24.03 LTS 等 24.x 版本（x86_64 / aarch64）。入口脚本 `install_linux_openeuler.sh` 会先完成环境准备，再转交 `install_linux.sh`：
+
+| 能力 | 说明 |
+|------|------|
+| Docker CE | 卸载自带 `docker-engine`（常见 18.09，与 CE 冲突），安装 docker-ce 20+ |
+| 仓库修复 | 将 `docker-ce.repo` 的 `$releasever` 固定为 el9（可用 `--el-release 7` 回退） |
+| 镜像源 / DNS | 写入 DaoCloud 镜像与公网 DNS（避免 loopback resolv 导致拉镜像失败） |
+| firewalld | 自动放行常用业务端口（可用 `--no-firewall` 跳过） |
+| SELinux | Enforcing 时给出挂载目录提示 |
+
+```bash
+# 仅准备 Docker CE（不部署业务）
+sudo .scripts/docker/install_linux_openeuler.sh --upgrade-docker-only
+
+# el9 仓库不可用时回退 el7
+sudo .scripts/docker/install_linux_openeuler.sh --el-release 7 install
+
+# 跳过防火墙放行 / 跳过 Docker 升级（高级）
+sudo .scripts/docker/install_linux_openeuler.sh --no-firewall install
+sudo .scripts/docker/install_linux_openeuler.sh --no-upgrade-docker install
+```
 
 ### 安装耗时
 
@@ -452,7 +483,7 @@ cd .scripts/docker && ./analyze_merge_logs.sh --non-interactive --modules all --
 
 | 项目 | 要求 |
 |------|------|
-| 操作系统 | Ubuntu 24.04+（建议 26.04）；亦支持 macOS、Windows、CentOS/RHEL、ARM、银河麒麟 |
+| 操作系统 | Ubuntu 24.04+（建议 26.04）；亦支持 macOS、Windows、CentOS/RHEL、欧拉(openEuler) 24.x、ARM、银河麒麟(Kylin) |
 | CPU | 最低 4 核，推荐 8 核+ |
 | 内存 | 取决于部署规格（Linux full ≥ 20 GB；桌面 full 引擎目标 24 GB，主机建议 ≥ 32 GB） |
 | 磁盘 | 最低 300 GB 可用，推荐 500 GB+ SSD |

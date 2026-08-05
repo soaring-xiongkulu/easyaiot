@@ -36,8 +36,9 @@ EasyAIoT는 **Docker 컨테이너와 통합 설치 스크립트**를 통해 배�
 |----|--------|
 | Linux x86 | `.scripts/docker/install_linux.sh` |
 | CentOS / RHEL | `.scripts/docker/install_linux_centos.sh` |
+| openEuler (欧拉) 24.x | `.scripts/docker/install_linux_openeuler.sh` |
 | Linux ARM | `.scripts/docker/install_linux_arm.sh` |
-| Kylin | `.scripts/docker/install_linux_kylin.sh` |
+| Kylin (麒麟) | `.scripts/docker/install_linux_kylin.sh` |
 | macOS | `.scripts/docker/install_mac.sh` |
 | Windows | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
@@ -117,8 +118,8 @@ sudo .scripts/docker/install_linux.sh install
 
 ### 사전 요건
 
-- OS: **Ubuntu 24.04+** (26.04 권장); **CentOS/RHEL**, ARM, Kylin도 지원
-- Docker + Docker Compose **v2.35+** (CentOS에서는 `install_linux_centos.sh`로 Docker CE 설치/업그레이드 가능)
+- OS: **Ubuntu 24.04+** (26.04 권장); **CentOS/RHEL**, **openEuler (欧拉) 24.x**, ARM, Kylin도 지원
+- Docker + Docker Compose **v2.35+** (CentOS / openEuler (欧拉)에서는 OS 전용 진입 스크립트로 Docker CE 설치/업그레이드 가능)
 - **≥ 300 GB** 여유 디스크 공간
 
 ```bash
@@ -133,6 +134,7 @@ cd easyaiot
 
 sudo .scripts/docker/install_linux.sh
 # CentOS / RHEL: sudo .scripts/docker/install_linux_centos.sh
+# openEuler 24.x: sudo .scripts/docker/install_linux_openeuler.sh
 # 1 Deploy → 1 First install → 7 Health verify
 ```
 
@@ -147,9 +149,11 @@ cd easyaiot
 # 선택: 사전 빌드 이미지를 가져와 설치 시간 단축
 sudo .scripts/docker/install_linux.sh pull
 # CentOS: sudo .scripts/docker/install_linux_centos.sh pull
+# openEuler: sudo .scripts/docker/install_linux_openeuler.sh pull
 
 sudo .scripts/docker/install_linux.sh install
 # CentOS: sudo .scripts/docker/install_linux_centos.sh install
+# openEuler: sudo .scripts/docker/install_linux_openeuler.sh install
 
 .scripts/docker/install_linux.sh verify
 ```
@@ -157,6 +161,10 @@ sudo .scripts/docker/install_linux.sh install
 ### CentOS / RHEL 참고
 
 `.scripts/docker/install_linux_centos.sh` 사용 (CentOS 7/8/Stream, Rocky, Alma, RHEL). 상세(ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明).
+
+### openEuler (欧拉) 24.x 참고
+
+`.scripts/docker/install_linux_openeuler.sh` 사용 (openEuler 24.03 LTS / 24.x). 시스템 `docker-engine` 제거, Docker CE 저장소 `$releasever` 수정, 미러/firewalld 구성 후 `install_linux.sh`에 위임. 상세(ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#openeuler-24x-说明).
 
 ### 설치 소요 시간
 
@@ -313,7 +321,7 @@ cd .scripts/docker && ./analyze_merge_logs.sh --non-interactive --modules all --
 
 | 항목 | 요구사항 |
 |------|----------|
-| OS | Ubuntu 24.04+ (26.04 권장); macOS, Windows, CentOS/RHEL, ARM, Kylin도 지원 |
+| OS | Ubuntu 24.04+ (26.04 권장); macOS, Windows, CentOS/RHEL, openEuler (欧拉) 24.x, ARM, Kylin도 지원 |
 | CPU | 최소 4코어, 8코어 이상 권장 |
 | RAM | 프로필에 따라 다름 (full ≥ 20 GB, 32 GB 권장) |
 | 디스크 | 최소 300 GB 여유, 500 GB+ SSD 권장 |

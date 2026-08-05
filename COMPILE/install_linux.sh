@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # COMPILE 统一入口（Linux 安装包管理 + 多平台打包入口）：
-# - 默认：交互式打包（Ubuntu / CentOS / Windows / 全量 Linux）
-# - pack-all：一次打 Ubuntu×3 deb + CentOS rpm
+# - 默认：交互式打包（Ubuntu / CentOS / openEuler / Windows / 全量 Linux）
+# - pack-all：一次打 Ubuntu×3 deb + CentOS/openEuler rpm
 # - windows：Windows 主机打包 .exe（可选 --installer）
 # - install：安装/覆盖本地产物包（自动识别 deb/rpm）
 # - uninstall：卸载系统已安装 easyaiot-panel（自动识别 deb/rpm）
@@ -20,13 +20,13 @@ usage() {
     # 默认进入交互式打包
 
   bash COMPILE/install_linux.sh pack-all
-    # 一次打包 Ubuntu(x86/arm/kylin) deb + CentOS rpm
+    # 一次打包 Ubuntu(x86/arm/kylin) deb + CentOS/openEuler rpm
 
   bash COMPILE/install_linux.sh windows
   bash COMPILE/install_linux.sh windows --installer
     # Windows 主机打包 .exe + runtime/（可选 NSIS 安装包；须在 Windows 上执行）
 
-  bash COMPILE/install_linux.sh install [auto|x86|arm|kylin|--file <pkg-path>]
+  bash COMPILE/install_linux.sh install [auto|x86|arm|kylin|centos|openeuler|--file <pkg-path>]
     # 安装/覆盖安装本地包（自动识别 deb/rpm）
 
   bash COMPILE/install_linux.sh uninstall
@@ -49,11 +49,22 @@ detect_pm() {
   echo "unknown"
 }
 
+is_openeuler() {
+  if [ -f /etc/openEuler-release ]; then
+    return 0
+  fi
+  if [ -f /etc/os-release ] && grep -Eiq '^ID=["'\'']?openeuler' /etc/os-release 2>/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
 is_kylin_like() {
   if [ -f /etc/kylin-release ] || [ -f /etc/neokylin-release ]; then
     return 0
   fi
-  if [ -f /etc/os-release ] && tr '[:upper:]' '[:lower:]' < /etc/os-release | awk '/kylin|neokylin|uos|uniontech|openeuler/{f=1} END{exit(f?0:1)}'; then
+  # 注意：openEuler 走 RPM，不在此匹配
+  if [ -f /etc/os-release ] && tr '[:upper:]' '[:lower:]' < /etc/os-release | awk '/kylin|neokylin|uos|uniontech/{f=1} END{exit(f?0:1)}'; then
     return 0
   fi
   return 1
@@ -144,7 +155,29 @@ pick_deb_file() {
 }
 
 pick_rpm_file() {
-  pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*.rpm" 1000000
+  local variant="${1:-auto}"
+  local min_bytes=1000000
+  case "$variant" in
+    centos|rhel)
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/centos/${PKG_NAME}-*.rpm" "$min_bytes"
+      return $?
+      ;;
+    openeuler|oe|euler)
+      pick_latest_by_pattern "${REPO_ROOT}/COMPILE/dist/openeuler/${PKG_NAME}-*.rpm" "$min_bytes"
+      return $?
+      ;;
+    auto)
+      if is_openeuler; then
+        pick_rpm_file openeuler || pick_rpm_file centos
+        return $?
+      fi
+      pick_rpm_file centos || pick_rpm_file openeuler
+      return $?
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 install_deb() {
@@ -216,14 +249,21 @@ do_install() {
     if [[ "$pm" == "deb" ]]; then
       pkg_file="$(pick_deb_file "$mode" || true)"
     else
-      pkg_file="$(pick_rpm_file || true)"
+      case "$mode" in
+        centos|rhel|openeuler|oe|euler|auto)
+          pkg_file="$(pick_rpm_file "$mode" || true)"
+          ;;
+        *)
+          pkg_file="$(pick_rpm_file auto || true)"
+          ;;
+      esac
     fi
   fi
 
   if [ -z "${pkg_file}" ] || [ ! -f "${pkg_file}" ]; then
     echo "[install] 未找到可安装包，请先打包。" >&2
     echo "  deb 产物: COMPILE/dist/ubuntu*/*.deb" >&2
-    echo "  rpm 产物: COMPILE/dist/centos/*.rpm" >&2
+    echo "  rpm 产物: COMPILE/dist/centos/*.rpm  COMPILE/dist/openeuler/*.rpm" >&2
     exit 1
   fi
 

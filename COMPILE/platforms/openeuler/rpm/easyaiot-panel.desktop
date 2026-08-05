@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=EasyAIoT Panel
+Comment=EasyAIoT platform ops console (PANEL)
+Exec=/opt/easyaiot-panel/bin/open-panel.sh
+Terminal=false
+Type=Application
+Icon=easyaiot-panel
+Categories=System;Development;Utility;
+StartupNotify=true

@@ -7,7 +7,7 @@
 #
 # 交互选择：
 #   1) 操作类型：部署操作 / 安装操作
-#   2) 部署操作：目标平台（Ubuntu/CentOS/Windows/全量Linux）+ 输出类型
+#   2) 部署操作：目标平台（Ubuntu/CentOS/openEuler/Windows/全量Linux）+ 输出类型
 #   3) 安装操作：安装 / 卸载 / 状态（deb/rpm）
 #
 # 默认构建方式（Linux 目标）：
@@ -72,6 +72,7 @@ target_to_dist_dir() {
     ubuntu-arm)              echo "${REPO_ROOT}/COMPILE/dist/ubuntu-arm" ;;
     ubuntu-kylin)            echo "${REPO_ROOT}/COMPILE/dist/ubuntu-kylin" ;;
     centos)                  echo "${REPO_ROOT}/COMPILE/dist/centos" ;;
+    openeuler)               echo "${REPO_ROOT}/COMPILE/dist/openeuler" ;;
     windows)                 echo "${REPO_ROOT}/COMPILE/dist/windows" ;;
     macos)                   echo "${REPO_ROOT}/COMPILE/dist/macos" ;;
     *) echo "${REPO_ROOT}/COMPILE/dist/ubuntu" ;;
@@ -81,7 +82,7 @@ target_to_dist_dir() {
 build_once() {
   local target="$1"
   local mode="$2"   # docker|local（windows 忽略）
-  local want_pkg="$3" # 0/1  （ubuntu: deb；centos: rpm；windows: NSIS）
+  local want_pkg="$3" # 0/1  （ubuntu: deb；centos/openeuler: rpm；windows: NSIS）
 
   local cmd=(bash "${REPO_ROOT}/COMPILE/build.sh" "${target}")
   if [[ "$target" == "windows" ]]; then
@@ -94,10 +95,10 @@ build_once() {
     fi
     if [[ "${want_pkg}" == "1" ]]; then
       case "$target" in
-        centos) ;; # centos 默认打 rpm；--no-rpm 才跳过
+        centos|openeuler) ;; # 默认打 rpm；--no-rpm 才跳过
         *) cmd+=("--deb") ;;
       esac
-    elif [[ "$target" == "centos" ]]; then
+    elif [[ "$target" == "centos" || "$target" == "openeuler" ]]; then
       cmd+=("--no-rpm")
     fi
   fi
@@ -113,7 +114,7 @@ build_once() {
 run_pack_all_linux() {
   echo ""
   echo "将执行：bash COMPILE/platforms/pack_all_linux.sh"
-  echo "（依次：ubuntu-x86/arm/kylin --deb + centos；日志在 COMPILE/work/logs/）"
+  echo "（依次：ubuntu-x86/arm/kylin --deb + centos + openeuler；日志在 COMPILE/work/logs/）"
   (cd "${REPO_ROOT}" && bash COMPILE/platforms/pack_all_linux.sh)
 }
 
@@ -179,10 +180,10 @@ run_macos_flow() {
 run_deploy_flow() {
   local target mode out dist_dir
   target="$(choose_one "选择打包目标" \
-    "ubuntu-x86" "ubuntu-arm" "ubuntu-kylin" "centos" "windows" "macos" \
-    "全量Linux(ubuntu×3 deb + centos rpm)")"
+    "ubuntu-x86" "ubuntu-arm" "ubuntu-kylin" "centos" "openeuler" "windows" "macos" \
+    "全量Linux(ubuntu×3 deb + centos/openeuler rpm)")"
 
-  if [[ "$target" == "全量Linux(ubuntu×3 deb + centos rpm)" ]]; then
+  if [[ "$target" == "全量Linux(ubuntu×3 deb + centos/openeuler rpm)" ]]; then
     run_pack_all_linux
     return
   fi
@@ -202,8 +203,8 @@ run_deploy_flow() {
   fi
   echo "构建方式：${mode}（默认不交互；可通过 COMPILE_BUILD_MODE 覆盖）" >&2
 
-  if [[ "$target" == "centos" ]]; then
-    out="$(choose_one "选择输出类型（CentOS）" \
+  if [[ "$target" == "centos" || "$target" == "openeuler" ]]; then
+    out="$(choose_one "选择输出类型（RPM 系）" \
       "仅二进制" "二进制+rpm安装包")"
     case "$out" in
       仅二进制) build_once "$target" "$mode" "0" ;;
@@ -229,7 +230,7 @@ run_deploy_flow() {
   echo "产物目录：${dist_dir}"
   echo "二进制："
   ls -lh "${dist_dir}/easyaiot-panel" 2>/dev/null || true
-  if [[ "$target" == "centos" ]]; then
+  if [[ "$target" == "centos" || "$target" == "openeuler" ]]; then
     echo "rpm："
     ls -lh "${dist_dir}"/easyaiot-panel-*.rpm 2>/dev/null || true
   else
@@ -247,7 +248,7 @@ run_install_flow() {
   case "$action" in
     安装/覆盖安装)
       target_hint="$(choose_one "选择安装包目标" \
-        "自动识别" "x86" "arm" "麒麟")"
+        "自动识别" "x86" "arm" "麒麟" "centos" "openeuler")"
       case "$target_hint" in
         自动识别) target_hint="auto" ;;
         麒麟) target_hint="kylin" ;;

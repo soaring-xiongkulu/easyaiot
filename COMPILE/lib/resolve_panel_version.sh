@@ -91,6 +91,7 @@ _scan_dist_max_version() {
     "${dist_root}"/ubuntu-arm/easyaiot-panel-*.deb \
     "${dist_root}"/ubuntu-kylin/easyaiot-panel-*.deb \
     "${dist_root}"/centos/easyaiot-panel-*.rpm \
+    "${dist_root}"/openeuler/easyaiot-panel-*.rpm \
     "${dist_root}"/windows/easyaiot-panel-*-setup.exe \
     "${dist_root}"/macos/easyaiot-panel-*.dmg
   do

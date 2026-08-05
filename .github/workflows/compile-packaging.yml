@@ -18,6 +18,11 @@ on:
         required: false
         default: false
         type: boolean
+      enable_openeuler:
+        description: "Enable openEuler rpm job (dockerized)"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -213,3 +218,24 @@ jobs:
           path: |
             COMPILE/dist/centos/easyaiot-panel
             COMPILE/dist/centos/*.rpm
+
+  openeuler-rpm:
+    name: openEuler rpm (containerized optional)
+    if: ${{ inputs.enable_openeuler }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build openEuler rpm (dockerized)
+        run: |
+          bash COMPILE/build.sh openeuler --docker
+          ls -lh COMPILE/dist/openeuler
+
+      - name: Upload openEuler artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: easyaiot-panel-openeuler
+          path: |
+            COMPILE/dist/openeuler/easyaiot-panel
+            COMPILE/dist/openeuler/*.rpm

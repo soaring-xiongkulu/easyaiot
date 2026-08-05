@@ -36,8 +36,9 @@ EasyAIoT est déployé via **des conteneurs Docker et un script d'installation u
 |----|--------|
 | Linux x86 | `.scripts/docker/install_linux.sh` |
 | CentOS / RHEL | `.scripts/docker/install_linux_centos.sh` |
+| openEuler (欧拉) 24.x | `.scripts/docker/install_linux_openeuler.sh` |
 | Linux ARM | `.scripts/docker/install_linux_arm.sh` |
-| Kylin | `.scripts/docker/install_linux_kylin.sh` |
+| Kylin (麒麟) | `.scripts/docker/install_linux_kylin.sh` |
 | macOS | `.scripts/docker/install_mac.sh` |
 | Windows | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
@@ -118,8 +119,8 @@ sudo .scripts/docker/install_linux.sh install
 
 ### Prérequis
 
-- OS : **Ubuntu 24.04+** (26.04 recommandé) ; également **CentOS/RHEL**, ARM, Kylin
-- Docker + Docker Compose **v2.35+** (sous CentOS : `install_linux_centos.sh` peut installer/mettre à niveau Docker CE)
+- OS : **Ubuntu 24.04+** (26.04 recommandé) ; également **CentOS/RHEL**, **openEuler (欧拉) 24.x**, ARM, Kylin (麒麟)
+- Docker + Docker Compose **v2.35+** (sous CentOS / openEuler (欧拉) : le script d'entrée OS peut installer/mettre à niveau Docker CE)
 - **≥ 300 Go** d'espace disque libre
 
 ```bash
@@ -134,6 +135,7 @@ cd easyaiot
 
 sudo .scripts/docker/install_linux.sh
 # CentOS / RHEL : sudo .scripts/docker/install_linux_centos.sh
+# openEuler 24.x : sudo .scripts/docker/install_linux_openeuler.sh
 # 1 Deploy → 1 First install → 7 Health verify
 ```
 
@@ -148,9 +150,11 @@ cd easyaiot
 # Optionnel : télécharger les images préconstruites pour raccourcir l'installation
 sudo .scripts/docker/install_linux.sh pull
 # CentOS : sudo .scripts/docker/install_linux_centos.sh pull
+# openEuler : sudo .scripts/docker/install_linux_openeuler.sh pull
 
 sudo .scripts/docker/install_linux.sh install
 # CentOS : sudo .scripts/docker/install_linux_centos.sh install
+# openEuler : sudo .scripts/docker/install_linux_openeuler.sh install
 
 .scripts/docker/install_linux.sh verify
 ```
@@ -158,6 +162,10 @@ sudo .scripts/docker/install_linux.sh install
 ### Notes CentOS / RHEL
 
 Utilisez `.scripts/docker/install_linux_centos.sh` (CentOS 7/8/Stream, Rocky, Alma, RHEL). Détails (ZH) : [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明).
+
+### Notes openEuler (欧拉) 24.x
+
+Utilisez `.scripts/docker/install_linux_openeuler.sh` (openEuler 24.03 LTS / 24.x). Remplace le `docker-engine` système, corrige `$releasever` du dépôt Docker CE, configure le miroir et firewalld, puis délègue à `install_linux.sh`. Détails (ZH) : [平台部署文档_zh.md](./平台部署文档_zh.md#openeuler-24x-说明).
 
 ### Durée d'installation
 
@@ -314,7 +322,7 @@ Plus d'informations : [Dépannage](./部署最佳实践_fr.md#dépannage).
 
 | Élément | Exigence |
 |------|-------------|
-| OS | Ubuntu 24.04+ (26.04 recommandé) ; également macOS, Windows, CentOS/RHEL, ARM, Kylin |
+| OS | Ubuntu 24.04+ (26.04 recommandé) ; également macOS, Windows, CentOS/RHEL, openEuler (欧拉) 24.x, ARM, Kylin (麒麟) |
 | CPU | Min. 4 cœurs, 8+ recommandés |
 | RAM | Dépend du profil (full ≥ 20 Go, 32 Go recommandés) |
 | Disque | Min. 300 Go libres, 500 Go+ SSD recommandé |

@@ -36,8 +36,9 @@ EasyAIoT развёртывается с помощью **Docker-контейн�
 |----|--------|
 | Linux x86 | `.scripts/docker/install_linux.sh` |
 | CentOS / RHEL | `.scripts/docker/install_linux_centos.sh` |
+| openEuler (欧拉) 24.x | `.scripts/docker/install_linux_openeuler.sh` |
 | Linux ARM | `.scripts/docker/install_linux_arm.sh` |
-| Kylin | `.scripts/docker/install_linux_kylin.sh` |
+| Kylin (麒麟) | `.scripts/docker/install_linux_kylin.sh` |
 | macOS | `.scripts/docker/install_mac.sh` |
 | Windows | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
@@ -117,8 +118,8 @@ sudo .scripts/docker/install_linux.sh install
 
 ### Предварительные требования
 
-- ОС: **Ubuntu 24.04+** (рекомендуется 26.04); также **CentOS/RHEL**, ARM, Kylin
-- Docker + Docker Compose **v2.35+** (на CentOS: `install_linux_centos.sh` может установить/обновить Docker CE)
+- ОС: **Ubuntu 24.04+** (рекомендуется 26.04); также **CentOS/RHEL**, **openEuler (欧拉) 24.x**, ARM, Kylin (麒麟)
+- Docker + Docker Compose **v2.35+** (на CentOS / openEuler (欧拉): OS-скрипт может установить/обновить Docker CE)
 - **≥ 300 ГБ** свободного места на диске
 
 ```bash
@@ -133,6 +134,7 @@ cd easyaiot
 
 sudo .scripts/docker/install_linux.sh
 # CentOS / RHEL: sudo .scripts/docker/install_linux_centos.sh
+# openEuler 24.x: sudo .scripts/docker/install_linux_openeuler.sh
 # 1 Deploy → 1 First install → 7 Health verify
 ```
 
@@ -147,9 +149,11 @@ cd easyaiot
 # Необязательно: загрузить предсобранные образы для сокращения времени установки
 sudo .scripts/docker/install_linux.sh pull
 # CentOS: sudo .scripts/docker/install_linux_centos.sh pull
+# openEuler: sudo .scripts/docker/install_linux_openeuler.sh pull
 
 sudo .scripts/docker/install_linux.sh install
 # CentOS: sudo .scripts/docker/install_linux_centos.sh install
+# openEuler: sudo .scripts/docker/install_linux_openeuler.sh install
 
 .scripts/docker/install_linux.sh verify
 ```
@@ -157,6 +161,10 @@ sudo .scripts/docker/install_linux.sh install
 ### Примечания CentOS / RHEL
 
 Используйте `.scripts/docker/install_linux_centos.sh` (CentOS 7/8/Stream, Rocky, Alma, RHEL). Подробности (ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明).
+
+### Примечания openEuler (欧拉) 24.x
+
+Используйте `.scripts/docker/install_linux_openeuler.sh` (openEuler 24.03 LTS / 24.x). Удаляет системный `docker-engine`, исправляет `$releasever` репозитория Docker CE, настраивает зеркало и firewalld, затем делегирует `install_linux.sh`. Подробности (ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#openeuler-24x-说明).
 
 ### Длительность установки
 
@@ -313,7 +321,7 @@ cd .scripts/docker && ./analyze_merge_logs.sh --non-interactive --modules all --
 
 | Параметр | Требование |
 |------|-------------|
-| ОС | Ubuntu 24.04+ (рекомендуется 26.04); также macOS, Windows, CentOS/RHEL, ARM, Kylin |
+| ОС | Ubuntu 24.04+ (рекомендуется 26.04); также macOS, Windows, CentOS/RHEL, openEuler (欧拉) 24.x, ARM, Kylin (麒麟) |
 | CPU | Мин. 4 ядра, рекомендуется 8+ |
 | RAM | Зависит от профиля (full ≥ 20 ГБ, рекомендуется 32 ГБ) |
 | Диск | Мин. 300 ГБ свободно, рекомендуется 500 ГБ+ SSD |

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 依次打包 Ubuntu(x86/arm/kylin) deb + CentOS rpm
+# 依次打包 Ubuntu(x86/arm/kylin) deb + CentOS rpm + openEuler rpm
 #
 # 用法:
 #   bash COMPILE/platforms/pack_all_linux.sh
@@ -52,6 +52,7 @@ run bash COMPILE/build.sh ubuntu-x86 --deb || true
 run bash COMPILE/build.sh ubuntu-arm --deb || true
 run bash COMPILE/build.sh ubuntu-kylin --deb || true
 run bash COMPILE/build.sh centos || true
+run bash COMPILE/build.sh openeuler || true
 
 echo ""
 echo "================================================================"
@@ -61,8 +62,10 @@ ls -lt COMPILE/dist/ubuntu/*.deb 2>/dev/null | head -3
 ls -lt COMPILE/dist/ubuntu-arm/*.deb 2>/dev/null | head -3
 ls -lt COMPILE/dist/ubuntu-kylin/*.deb 2>/dev/null | head -3
 ls -lt COMPILE/dist/centos/*.rpm 2>/dev/null | head -3
+ls -lt COMPILE/dist/openeuler/*.rpm 2>/dev/null | head -3
 ls -lh COMPILE/dist/ubuntu/easyaiot-panel COMPILE/dist/ubuntu-arm/easyaiot-panel \
-  COMPILE/dist/ubuntu-kylin/easyaiot-panel COMPILE/dist/centos/easyaiot-panel 2>/dev/null || true
+  COMPILE/dist/ubuntu-kylin/easyaiot-panel COMPILE/dist/centos/easyaiot-panel \
+  COMPILE/dist/openeuler/easyaiot-panel 2>/dev/null || true
 echo "panel-version-after=$(cat COMPILE/.panel-version 2>/dev/null || echo none)"
 echo "log=${LOG}"
 exit "$fail"
