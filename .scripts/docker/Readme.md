@@ -5,22 +5,27 @@
 | 系统 | 脚本 |
 |------|------|
 | Linux x86（通用） | `./install_linux.sh` |
-| **CentOS / RHEL / Rocky / Alma** | `./install_linux_centos.sh` |
+| **CentOS / RHEL / Rocky / Alma（x86）** | `./install_linux_centos.sh` |
+| **CentOS / RHEL 系 · ARM** | `./install_linux_centos_arm.sh` |
 | **麒麟(Kylin)** | `./install_linux_kylin.sh` |
 | **欧拉(openEuler)** | `./install_linux_openeuler.sh` |
-| Linux ARM | `./install_linux_arm.sh` |
+| Linux ARM（通用） | `./install_linux_arm.sh` |
 | **macOS（仅预构建镜像）** | `./install_mac.sh` |
 | **Windows（仅预构建镜像）** | `./install_windows.ps1` / `./install_windows.sh` |
 
 ```bash
-# CentOS 推荐（自动安装/升级 Docker CE、配置镜像源与 firewalld）
+# CentOS x86 推荐（自动安装/升级 Docker CE、配置镜像源与 firewalld）
 sudo .scripts/docker/install_linux_centos.sh install
+
+# CentOS ARM 推荐（同上环境准备，再转交 install_linux_arm.sh）
+sudo .scripts/docker/install_linux_centos_arm.sh install
 
 # openEuler 推荐（卸载自带 docker-engine、修复仓库 releasever、装 Docker CE）
 sudo .scripts/docker/install_linux_openeuler.sh install
 
 # 仅准备 Docker CE
 sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
+sudo .scripts/docker/install_linux_centos_arm.sh --upgrade-docker-only
 sudo .scripts/docker/install_linux_openeuler.sh --upgrade-docker-only
 ```
 
