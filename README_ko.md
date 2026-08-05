@@ -42,7 +42,7 @@ EasyAIoT 공식 웹사이트: [http://36.111.47.113:8090/](http://36.111.47.113:
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-플랫폼은 <strong>WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간·스냅샷 알고리즘 작업, YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·3단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 합니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
+플랫폼은 <strong>WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간·스냅샷 알고리즘 작업, YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·3단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 합니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -74,7 +74,7 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
 </ul>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-📦 <strong>설치 패키지 다운로드</strong>: Ubuntu / Debian, CentOS / RHEL, Windows, macOS 및 ARM / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> 대상 패키지는 <a href="https://gitee.com/volara/easyaiot/releases" style="color: #3498db; text-decoration: none; font-weight: 600;">Gitee Releases</a>에서 받을 수 있습니다.
+📦 <strong>설치 패키지 다운로드</strong>: Ubuntu / Debian, CentOS / RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 RPM), Windows, macOS 및 ARM / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> 대상 패키지는 <a href="https://gitee.com/volara/easyaiot/releases" style="color: #3498db; text-decoration: none; font-weight: 600;">Gitee Releases</a>에서 받을 수 있습니다.
 </p>
 
 | | | |
@@ -495,7 +495,7 @@ EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM,
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>COMPILE 패키징</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>다중 플랫폼 산출물</strong>: PANEL 등 능력을 Ubuntu / Debian, CentOS / RHEL, Windows, macOS 및 ARM / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> 대상 설치 패키지·실행 파일로 제작 — 현장에서 소스 컴파일 없이 고객 설치 가능</li>
+    <li><strong>다중 플랫폼 산출물</strong>: PANEL 등 능력을 Ubuntu / Debian, CentOS / RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지), Windows, macOS 및 ARM / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> 대상 설치 패키지·실행 파일로 제작 — 현장에서 소스 컴파일 없이 고객 설치 가능</li>
     <li><strong>납품 경로 단축</strong>: 통합사가 대상 환경에 맞는 패키지로 배포·업그레이드 — 설치·기동/정지·제거 경로를 통일해 OS 간 납품 편차 감소</li>
     <li><strong>PANEL과 연계</strong>: 패키지 산출물이 곧 현장 운영 진입점으로 이어져 「패키징」과 「도착 후 설치·당직」을 한 납품 사슬로 연결</li>
   </ul>
@@ -518,7 +518,7 @@ EasyAIoT는 Linux, Mac, Windows 세 가지 주류 운영체제에서의 배포�
   <li>Docker 컨테이너화 배포를 지원하여 모든 서비스를 원클릭으로 시작할 수 있습니다.</li>
   <li>서버, 엣지 컴퓨팅 디바이스 (예: RK3588 등 ARM 아키텍처 디바이스)에 완벽하게 적합합니다.</li>
   <li>완전한 자동화 설치 스크립트를 제공하여 배포 프로세스를 단순화합니다.</li>
-  <li>Ubuntu, CentOS/RHEL, <strong>Kylin (麒麟) / openEuler (欧拉)</strong> 등 주류 서버 배포판을 지원합니다.</li>
+  <li>Ubuntu, CentOS/RHEL <strong>7–9</strong>(<strong>CentOS ARM</strong> 포함), <strong>Kylin (麒麟) / openEuler (欧拉)</strong> 등 주류 서버 배포판을 지원합니다.</li>
 </ul>
 </div>
 
@@ -575,10 +575,10 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 
 ## 📚 배포 문서
 
-- [플랫폼 배포 문서](.doc/部署文档/平台部署文档_ko.md) — Linux(Ubuntu / CentOS / ARM / **Kylin (麒麟) / openEuler (欧拉)**) / Mac / Windows 단계별 가이드
+- [플랫폼 배포 문서](.doc/部署文档/平台部署文档_ko.md) — Linux(Ubuntu / CentOS·RHEL **7–9** / **CentOS ARM** / ARM / **Kylin (麒麟) / openEuler (欧拉)**) / Mac / Windows 단계별 가이드
 - [macOS 이미지 배포](.doc/部署文档/平台macOS部署文档_ko.md) — Docker Desktop으로 사전 빌드 이미지 원클릭 pull
 - [Windows 이미지 배포](.doc/部署文档/平台Windows部署文档_ko.md) — `install_windows.ps1` 권장 진입점
-- [배포 모범 사례](.doc/部署文档/部署最佳实践_ko.md) — 프로파일, 환경 요구, 원클릭 배포(openEuler 포함), 운영 문제 해결 및 프로덕션 권장
+- [배포 모범 사례](.doc/部署文档/部署最佳实践_ko.md) — 프로파일, 환경 요구, 원클릭 배포(CentOS **7–9** / **CentOS ARM** / **Kylin (麒麟) / openEuler (欧拉)** 포함), 운영 문제 해결 및 프로덕션 권장
 
 ## 🎮 데모 환경
 

@@ -120,8 +120,9 @@ sudo .scripts/docker/install_linux.sh install
 
 ### 环境前提
 
-- 操作系统：**Ubuntu 24.04+**（建议 26.04）；亦支持 **CentOS/RHEL 系**（含 **CentOS ARM**）、ARM、**麒麟(Kylin) / 欧拉(openEuler)**
+- 操作系统：**Ubuntu 24.04+**（建议 26.04）；亦支持 **CentOS/RHEL 系 7～9**（含 Stream / Rocky / Alma，以及 **CentOS ARM**）、ARM、**麒麟(Kylin) / 欧拉(openEuler)**
 - Docker + Docker Compose **v2.35+**（CentOS / CentOS ARM / **欧拉(openEuler)** 可用对应入口脚本自动安装/升级 Docker CE）
+- PANEL 安装包：CentOS/RHEL 按 **el7 / el8 / el9**（x86 + aarch64）分别产出，详见 [COMPILE/README.md](../../COMPILE/README.md)
 - 磁盘可用空间 **≥ 300 GB**
 
 ```bash
@@ -176,7 +177,7 @@ sudo .scripts/docker/install_linux.sh install
 
 ### CentOS / RHEL 系说明
 
-适用：CentOS 7/8/Stream、Rocky Linux、AlmaLinux、RHEL 等。入口脚本会先完成环境准备，再转交 `install_linux.sh`：
+适用：**CentOS / RHEL 7、8、9**（含 Stream）、Rocky Linux、AlmaLinux 等 x86。入口脚本会先完成环境准备，再转交 `install_linux.sh`。PANEL RPM 亦按 **el7 / el8 / el9** 分包（`COMPILE/dist/centos-el{7,8,9}/`）。
 
 | 能力 | 说明 |
 |------|------|
@@ -199,7 +200,7 @@ sudo .scripts/docker/install_linux_centos.sh --no-upgrade-docker install
 
 ### CentOS / RHEL 系 · ARM 说明
 
-适用：aarch64/arm64 上的 CentOS 7/8/Stream、Rocky、Alma、RHEL 等。入口脚本会先完成与 x86 CentOS 相同的环境准备，再转交 `install_linux_arm.sh`（ARM 镜像与 Dockerfile）：
+适用：aarch64/arm64 上的 **CentOS / RHEL 7、8、9**（含 Stream）、Rocky、Alma 等。入口脚本会先完成与 x86 CentOS 相同的环境准备，再转交 `install_linux_arm.sh`（ARM 镜像与 Dockerfile）。PANEL RPM 按 **el7 / el8 / el9** 分包（`COMPILE/dist/centos-arm-el{7,8,9}/`）：
 
 | 能力 | 说明 |
 |------|------|
@@ -511,7 +512,7 @@ cd .scripts/docker && ./analyze_merge_logs.sh --non-interactive --modules all --
 
 | 项目 | 要求 |
 |------|------|
-| 操作系统 | Ubuntu 24.04+（建议 26.04）；亦支持 macOS、Windows、CentOS/RHEL（含 **CentOS ARM**）、ARM、**麒麟(Kylin) / 欧拉(openEuler)** |
+| 操作系统 | Ubuntu 24.04+（建议 26.04）；亦支持 macOS、Windows、CentOS/RHEL **7～9**（含 **CentOS ARM**）、ARM、**麒麟(Kylin) / 欧拉(openEuler)** |
 | CPU | 最低 4 核，推荐 8 核+ |
 | 内存 | 取决于部署规格（Linux full ≥ 20 GB；桌面 full 引擎目标 24 GB，主机建议 ≥ 32 GB） |
 | 磁盘 | 最低 300 GB 可用，推荐 500 GB+ SSD |
