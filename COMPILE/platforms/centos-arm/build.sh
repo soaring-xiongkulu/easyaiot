@@ -39,6 +39,7 @@ for arg in "$@"; do
   esac
 done
 
+export PANEL_ARCH=aarch64
 centos_resolve_el "$EL_ARG"
 
 OUT_DIR="${COMPILE_OUT:-${COMPILE_ROOT}/dist/centos-arm-${EL_OUT_SUFFIX}}"
@@ -46,7 +47,7 @@ VENV_DIR="${COMPILE_ROOT}/.venv-build-centos-arm-${EL_OUT_SUFFIX}"
 IMAGE_TAG="${COMPILE_IMAGE:-easyaiot/compile-panel-centos:arm64-${EL_OUT_SUFFIX}}"
 BASE_IMAGE="${COMPILE_CENTOS_ARM_BASE_IMAGE:-${COMPILE_CENTOS_BASE_IMAGE:-${BASE_IMAGE_DEFAULT}}}"
 export COMPILE_OUT="$OUT_DIR"
-export PANEL_DIST_TAG PANEL_PUBLISH_OS EL_RELEASE PANEL_ARCH=aarch64
+export PANEL_DIST_TAG PANEL_PUBLISH_OS EL_RELEASE PANEL_ARCH
 
 log() { echo "[COMPILE/centos-arm-${EL_OUT_SUFFIX}] $*"; }
 
@@ -201,6 +202,7 @@ build_docker() {
     --build-arg EL_RELEASE="${EL_RELEASE}" \
     --build-arg BUILD_RPM="${DO_RPM}" \
     --build-arg PANEL_VERSION="${PANEL_VERSION_ARG}" \
+    --build-arg COMPILE_CN_MIRROR="${COMPILE_CN_MIRROR:-huawei}" \
     --target export \
     -t "${IMAGE_TAG}" \
     --output "type=local,dest=${OUT_DIR}" \

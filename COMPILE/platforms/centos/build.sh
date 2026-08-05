@@ -188,6 +188,7 @@ build_docker() {
     --build-arg EL_RELEASE="${EL_RELEASE}" \
     --build-arg BUILD_RPM="${DO_RPM}" \
     --build-arg PANEL_VERSION="${PANEL_VERSION_ARG}" \
+    --build-arg COMPILE_CN_MIRROR="${COMPILE_CN_MIRROR:-huawei}" \
     --target export \
     -t "${IMAGE_TAG}" \
     --output "type=local,dest=${OUT_DIR}" \
