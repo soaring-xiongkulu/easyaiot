@@ -6,9 +6,9 @@
 |------|------|
 | Linux x86（通用） | `./install_linux.sh` |
 | **CentOS / RHEL / Rocky / Alma** | `./install_linux_centos.sh` |
-| **欧拉(openEuler) 24.x** | `./install_linux_openeuler.sh` |
+| **麒麟(Kylin)** | `./install_linux_kylin.sh` |
+| **欧拉(openEuler)** | `./install_linux_openeuler.sh` |
 | Linux ARM | `./install_linux_arm.sh` |
-| 银河麒麟(Kylin) | `./install_linux_kylin.sh` |
 | **macOS（仅预构建镜像）** | `./install_mac.sh` |
 | **Windows（仅预构建镜像）** | `./install_windows.ps1` / `./install_windows.sh` |
 
@@ -16,7 +16,7 @@
 # CentOS 推荐（自动安装/升级 Docker CE、配置镜像源与 firewalld）
 sudo .scripts/docker/install_linux_centos.sh install
 
-# openEuler 24.x 推荐（卸载自带 docker-engine、修复仓库 releasever、装 Docker CE）
+# openEuler 推荐（卸载自带 docker-engine、修复仓库 releasever、装 Docker CE）
 sudo .scripts/docker/install_linux_openeuler.sh install
 
 # 仅准备 Docker CE

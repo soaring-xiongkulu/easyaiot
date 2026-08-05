@@ -42,7 +42,7 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平臺由 <strong>WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS / <strong>歐拉(openEuler)</strong> / Windows / macOS / ARM / 麒麟(Kylin)）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>大疆機場與無人機空中視角接入</strong>、即時與抓拍算法任務、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、三檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
+平臺由 <strong>WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS / <strong>麒麟(Kylin)/歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>大疆機場與無人機空中視角接入</strong>、即時與抓拍算法任務、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、三檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -74,7 +74,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 </ul>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-📦 <strong>安裝包下載</strong>：Ubuntu / Debian、CentOS / RHEL、<strong>歐拉(openEuler) 24.x</strong>、Windows、macOS 及 ARM / 麒麟(Kylin)等目標安裝包見 <a href="https://gitee.com/volara/easyaiot/releases" style="color: #3498db; text-decoration: none; font-weight: 600;">Gitee Releases</a>。
+📦 <strong>安裝包下載</strong>：Ubuntu / Debian、CentOS / RHEL、Windows、macOS 及 ARM / <strong>麒麟(Kylin)/歐拉(openEuler)</strong>等目標安裝包見 <a href="https://gitee.com/volara/easyaiot/releases" style="color: #3498db; text-decoration: none; font-weight: 600;">Gitee Releases</a>。
 </p>
 
 | | | |
@@ -310,7 +310,7 @@ EasyAIoT其實不是一個項目，而是九個項目。
 ### 🌍 在地化支持
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統，爲用戶提供安全可控的AIoT解決方案。新增 <strong>歐拉(openEuler) 24.x</strong> 一鍵部署與 PANEL RPM 打包：入口腳本自動卸載自帶舊版 docker-engine、修復 Docker CE 倉庫版本號、配置國內鏡像源與 firewalld，再完成平臺全量/分檔安裝；COMPILE 可產出 歐拉(openEuler) 專用安裝包，配合 <code>install_linux_openeuler.sh</code> 實現「到場可裝、值守可守」。
+EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統，爲用戶提供安全可控的AIoT解決方案。新增 <strong>歐拉(openEuler)</strong> 一鍵部署與 PANEL RPM 打包：入口腳本自動卸載自帶舊版 docker-engine、修復 Docker CE 倉庫版本號、配置國內鏡像源與 firewalld，再完成平臺全量/分檔安裝；COMPILE 可產出 <strong>歐拉(openEuler)</strong> 專用安裝包，配合 <code>install_linux_openeuler.sh</code> 實現「到場可裝、值守可守」。
 </p>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
@@ -338,8 +338,7 @@ EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統
 <div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
 <h4 style="margin-top: 0; color: white; font-size: 18px;">🖱️ 作業系統支持</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-  <li>兼容<strong>歐拉(openEuler) 24.x</strong>（一鍵部署腳本 + PANEL RPM 安裝包）</li>
-  <li>兼容麒麟(Kylin)作業系統</li>
+  <li>兼容<strong>麒麟(Kylin)/歐拉(openEuler)</strong>（一鍵部署腳本 + PANEL RPM 安裝包）</li>
   <li>支持方德（Founder）等在地化Linux發行版</li>
   <li>適配統信UOS等主流在地化作業系統</li>
   <li>提供完整的在地化部署方案</li>
@@ -497,7 +496,7 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE、
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>COMPILE打包</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>多平臺交付物</strong>：把 PANEL 等能力打成 Ubuntu / Debian、CentOS / RHEL、<strong>歐拉(openEuler) 24.x</strong>、Windows、macOS 及 ARM / 麒麟(Kylin)等目標安裝包或可執行文件，方便給客戶裝機，不必現場從源碼編譯</li>
+    <li><strong>多平臺交付物</strong>：把 PANEL 等能力打成 Ubuntu / Debian、CentOS / RHEL、Windows、macOS 及 ARM / <strong>麒麟(Kylin)/歐拉(openEuler)</strong>等目標安裝包或可執行文件，方便給客戶裝機，不必現場從源碼編譯</li>
     <li><strong>縮短交付鏈路</strong>：集成商可按目標環境取對應安裝包完成部署與升級，安裝、啓停與卸載路徑統一，降低跨系統交付差異</li>
     <li><strong>與 PANEL 配套</strong>：打包產物可直接用於現場運維入口落地，讓「能打包出去」和「到場能裝能守」同一條交付鏈打通</li>
   </ul>
@@ -520,7 +519,7 @@ EasyAIoT支持在Linux、Mac、Windows三大主流作業系統上部署，爲不
   <li>支持Docker容器化部署，一鍵啓動所有服務</li>
   <li>完美適配伺服器、邊緣計算設備（如RK3588等ARM架構設備）</li>
   <li>提供完整的自動化安裝腳本，簡化部署流程</li>
-  <li>覆蓋 Ubuntu、CentOS/RHEL、<strong>歐拉(openEuler) 24.x</strong>、銀河麒麟(Kylin)等主流伺服器發行版</li>
+  <li>覆蓋 Ubuntu、CentOS/RHEL、<strong>麒麟(Kylin)/歐拉(openEuler)</strong>等主流伺服器發行版</li>
 </ul>
 </div>
 
@@ -577,10 +576,10 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 
 ## 📚 部署文件
 
-- [平臺部署文件](.doc/部署文档/平台部署文档_zh_tw.md) — Linux（含 Ubuntu / CentOS / **歐拉(openEuler) 24.x** / ARM / 麒麟(Kylin)）/ Mac / Windows 分步部署指南
+- [平臺部署文件](.doc/部署文档/平台部署文档_zh_tw.md) — Linux（含 Ubuntu / CentOS / ARM / **麒麟(Kylin)/歐拉(openEuler)**）/ Mac / Windows 分步部署指南
 - [macOS 映像部署](.doc/部署文档/平台macOS部署文档_zh_tw.md) — Docker Desktop 一鍵拉取預建構映像
 - [Windows 映像部署](.doc/部署文档/平台Windows部署文档_zh_tw.md) — `install_windows.ps1` 推薦入口
-- [部署最佳實踐](.doc/部署文档/部署最佳实践_zh_tw.md) — 規格選型、環境要求、一鍵部署（含 歐拉(openEuler)）、運維排錯與生產環境建議
+- [部署最佳實踐](.doc/部署文档/部署最佳实践_zh_tw.md) — 規格選型、環境要求、一鍵部署（含 **麒麟(Kylin)/歐拉(openEuler)**）、運維排錯與生產環境建議
 
 **歐拉(openEuler) 快速入口：**
 

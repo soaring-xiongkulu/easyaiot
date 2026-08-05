@@ -37,9 +37,9 @@ EasyAIoT 采用 **Docker 容器化 + 统一安装脚本** 部署，平台由基�
 |------|------|
 | Linux x86 | `.scripts/docker/install_linux.sh` |
 | CentOS / RHEL 系 | `.scripts/docker/install_linux_centos.sh` |
-| 欧拉(openEuler) 24.x | `.scripts/docker/install_linux_openeuler.sh` |
+| **麒麟(Kylin)** | `.scripts/docker/install_linux_kylin.sh` |
+| **欧拉(openEuler)** | `.scripts/docker/install_linux_openeuler.sh` |
 | Linux ARM | `.scripts/docker/install_linux_arm.sh` |
-| 银河麒麟(Kylin) | `.scripts/docker/install_linux_kylin.sh` |
 | macOS | `.scripts/docker/install_mac.sh` |
 | Windows | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
@@ -119,8 +119,8 @@ sudo .scripts/docker/install_linux.sh install
 
 ### 环境前提
 
-- 操作系统：**Ubuntu 24.04+**（建议 26.04）；亦支持 **CentOS/RHEL 系**、**欧拉(openEuler) 24.x**、ARM、银河麒麟(Kylin)
-- Docker + Docker Compose **v2.35+**（CentOS / 欧拉(openEuler) 可用对应入口脚本自动安装/升级 Docker CE）
+- 操作系统：**Ubuntu 24.04+**（建议 26.04）；亦支持 **CentOS/RHEL 系**、ARM、**麒麟(Kylin)/欧拉(openEuler)**
+- Docker + Docker Compose **v2.35+**（CentOS / **欧拉(openEuler)** 可用对应入口脚本自动安装/升级 Docker CE）
 - 磁盘可用空间 **≥ 300 GB**
 
 ```bash
@@ -139,7 +139,7 @@ sudo .scripts/docker/install_linux.sh
 # CentOS / RHEL / Rocky / Alma（推荐；自动升级 Docker CE、配置镜像源与 firewalld）
 # sudo .scripts/docker/install_linux_centos.sh
 
-# openEuler 24.x（推荐；卸载自带 docker-engine、修复仓库 releasever、装 Docker CE）
+# openEuler（推荐；卸载自带 docker-engine、修复仓库 releasever、装 Docker CE）
 # sudo .scripts/docker/install_linux_openeuler.sh
 
 # 1 部署 → 1 首次安装 → 7 健康验证
@@ -190,9 +190,9 @@ sudo .scripts/docker/install_linux_centos.sh --no-upgrade-docker install
 
 单独中间件（CentOS 7.9）：`.scripts/docker/start_postgresql_centos7.sh`、`start_minio_centos7.sh`、`start_nodered_centos7.sh`、`start_fuxa_centos7.sh`。
 
-### 欧拉(openEuler) 24.x 说明
+### **欧拉(openEuler)** 说明
 
-适用：欧拉(openEuler) 24.03 LTS 等 24.x 版本（x86_64 / aarch64）。入口脚本 `install_linux_openeuler.sh` 会先完成环境准备，再转交 `install_linux.sh`：
+适用：**欧拉(openEuler)** 24.03 LTS 等 24.x 版本（x86_64 / aarch64）。入口脚本 `install_linux_openeuler.sh` 会先完成环境准备，再转交 `install_linux.sh`：
 
 | 能力 | 说明 |
 |------|------|
@@ -483,7 +483,7 @@ cd .scripts/docker && ./analyze_merge_logs.sh --non-interactive --modules all --
 
 | 项目 | 要求 |
 |------|------|
-| 操作系统 | Ubuntu 24.04+（建议 26.04）；亦支持 macOS、Windows、CentOS/RHEL、欧拉(openEuler) 24.x、ARM、银河麒麟(Kylin) |
+| 操作系统 | Ubuntu 24.04+（建议 26.04）；亦支持 macOS、Windows、CentOS/RHEL、ARM、**麒麟(Kylin)/欧拉(openEuler)** |
 | CPU | 最低 4 核，推荐 8 核+ |
 | 内存 | 取决于部署规格（Linux full ≥ 20 GB；桌面 full 引擎目标 24 GB，主机建议 ≥ 32 GB） |
 | 磁盘 | 最低 300 GB 可用，推荐 500 GB+ SSD |

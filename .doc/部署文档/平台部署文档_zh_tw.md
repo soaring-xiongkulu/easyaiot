@@ -37,9 +37,9 @@ EasyAIoT 採用 **Docker 容器化 + 統一安裝腳本** 部署，平台由基�
 |------|------|
 | Linux x86 | `.scripts/docker/install_linux.sh` |
 | CentOS / RHEL 系 | `.scripts/docker/install_linux_centos.sh` |
-| 歐拉(openEuler) 24.x | `.scripts/docker/install_linux_openeuler.sh` |
+| **麒麟(Kylin)** | `.scripts/docker/install_linux_kylin.sh` |
+| **歐拉(openEuler)** | `.scripts/docker/install_linux_openeuler.sh` |
 | Linux ARM | `.scripts/docker/install_linux_arm.sh` |
-| 銀河麒麟(Kylin) | `.scripts/docker/install_linux_kylin.sh` |
 | macOS | `.scripts/docker/install_mac.sh` |
 | Windows | `.scripts/docker/install_windows.ps1` / `install_windows.sh` |
 
@@ -119,8 +119,8 @@ sudo .scripts/docker/install_linux.sh install
 
 ### 環境前提
 
-- 作業系統：**Ubuntu 24.04+**（建議 26.04）；亦支援 **CentOS/RHEL 系**、**歐拉(openEuler) 24.x**、ARM、銀河麒麟(Kylin)
-- Docker + Docker Compose **v2.35+**（CentOS / 歐拉(openEuler) 可用對應入口腳本自動安裝/升級 Docker CE）
+- 作業系統：**Ubuntu 24.04+**（建議 26.04）；亦支援 **CentOS/RHEL 系**、ARM、**麒麟(Kylin)/歐拉(openEuler)**
+- Docker + Docker Compose **v2.35+**（CentOS / **歐拉(openEuler)** 可用對應入口腳本自動安裝/升級 Docker CE）
 - 磁碟可用空間 **≥ 300 GB**
 
 ```bash
@@ -139,7 +139,7 @@ sudo .scripts/docker/install_linux.sh
 # CentOS / RHEL / Rocky / Alma
 # sudo .scripts/docker/install_linux_centos.sh
 
-# openEuler 24.x（卸載自帶 docker-engine、修復倉庫 releasever、裝 Docker CE）
+# openEuler（卸載自帶 docker-engine、修復倉庫 releasever、裝 Docker CE）
 # sudo .scripts/docker/install_linux_openeuler.sh
 
 # 1 部署 → 1 首次安裝 → 7 健康驗證
@@ -171,9 +171,9 @@ sudo .scripts/docker/install_linux.sh install
 
 適用 CentOS 7/8/Stream、Rocky、Alma、RHEL。入口 `install_linux_centos.sh` 會自動升級 Docker CE、配置鏡像源與 firewalld，再轉交 `install_linux.sh`。詳見簡體中文：[平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明)。
 
-### 歐拉(openEuler) 24.x 說明
+### **歐拉(openEuler)** 說明
 
-適用 歐拉(openEuler) 24.03 LTS 等 24.x。入口 `install_linux_openeuler.sh` 會卸載自帶 docker-engine、修復倉庫 `$releasever`、配置鏡像源與 firewalld，再轉交 `install_linux.sh`。詳見簡體中文：[平台部署文档_zh.md](./平台部署文档_zh.md#openeuler-24x-说明)。
+適用 **歐拉(openEuler)** 24.03 LTS 等 24.x。入口 `install_linux_openeuler.sh` 會卸載自帶 docker-engine、修復倉庫 `$releasever`、配置鏡像源與 firewalld，再轉交 `install_linux.sh`。詳見簡體中文：[平台部署文档_zh.md](./平台部署文档_zh.md#openeuler-24x-说明)。
 
 ### 安裝耗時
 
@@ -344,7 +344,7 @@ cd .scripts/docker && ./analyze_merge_logs.sh --non-interactive --modules all --
 
 | 項目 | 要求 |
 |------|------|
-| 作業系統 | Ubuntu 24.04+（建議 26.04）；亦支援 macOS、Windows、CentOS/RHEL、歐拉(openEuler) 24.x、ARM、銀河麒麟(Kylin) |
+| 作業系統 | Ubuntu 24.04+（建議 26.04）；亦支援 macOS、Windows、CentOS/RHEL、ARM、**麒麟(Kylin)/歐拉(openEuler)** |
 | CPU | 最低 4 核，建議 8 核+ |
 | 記憶體 | 取決於部署規格（full ≥ 20 GB，建議 32 GB） |
 | 磁碟 | 最低 300 GB 可用，建議 500 GB+ SSD |

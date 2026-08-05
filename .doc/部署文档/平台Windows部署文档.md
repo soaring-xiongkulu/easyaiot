@@ -260,7 +260,7 @@ Middleware installation paths:
 F:\EASYLOT\PostgreSQL16\
 F:\EASYLOT\Redis\
 F:\EASYLOT\nacos\     #### Enable authentication    Search online for instructions
-F:\EASYLOT\minio\  ##### The project has database or MinIO passwords. All passwords must match those in the project configuration. E.g., MinIO username: minioadmin, password: iot******
+F:\EASYLOT\minio\  ##### The project has database or MinIO passwords. All passwords must match those in the project configuration. E.g., MinIO username: minioadmin, password: iot**
 F:\EASYLOT\kafka\   ### Download yourself
 F:\EASYLOT\TDengine\  #### Download yourself
 ```

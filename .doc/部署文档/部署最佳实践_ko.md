@@ -236,7 +236,7 @@ sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Ver
 
 | 소프트웨어 | 요구 사항 |
 |------------|-----------|
-| OS | Ubuntu 24.04+ (26.04 권장); CentOS/RHEL, openEuler (欧拉) 24.x, Kylin (麒麟), ARM64도 지원 |
+| OS | Ubuntu 24.04+ (26.04 권장); CentOS/RHEL, **Kylin (麒麟)/openEuler (欧拉)**, ARM64도 지원 |
 | Docker | 설치 및 데몬 접근 가능 |
 | Docker Compose | **v2.35.0+** (`docker compose` 플러그인) |
 | NVIDIA Driver / Container Toolkit | GPU 시나리오만 |
@@ -430,7 +430,7 @@ docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi
 sudo .scripts/docker/install_linux_centos.sh install
 # Docker만 준비: sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
 
-# openEuler 24.x
+# openEuler
 sudo .scripts/docker/install_linux_openeuler.sh install
 # Docker만 준비: sudo .scripts/docker/install_linux_openeuler.sh --upgrade-docker-only
 

@@ -4,11 +4,11 @@
 
 当前已实现：
 - **Ubuntu 单文件** `easyaiot-panel` + **内置 runtime** `.deb`（按架构绑定 `install_linux.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`）
-- **交互式打包菜单** `COMPILE/install_linux.sh`（Ubuntu / CentOS / 欧拉(openEuler) / Windows / macOS / 全量 Linux）
+- **交互式打包菜单** `COMPILE/install_linux.sh`（Ubuntu / CentOS / **麒麟(Kylin)/欧拉(openEuler)** / Windows / macOS / 全量 Linux）
 - **Windows** `easyaiot-panel.exe` + **内置 runtime**（`install_windows.sh` 仅镜像部署）+ 可选 NSIS
 - **macOS** `easyaiot-panel` + **内置 runtime**（`install_mac.sh` 仅镜像部署）+ 可选 `.app` / `.dmg`（圆形白底图标，与 Linux 一致）
 - **CentOS/RHEL** `easyaiot-panel` + `.rpm`（**不含**内置 runtime，需配置 `EASYAIOT_ROOT` 指向仓库根；部署可用仓库内 `install_linux_centos.sh`）
-- **欧拉(openEuler) 24.x** `easyaiot-panel` + `.rpm`（同上；部署用仓库内 `install_linux_openeuler.sh`）
+- **欧拉(openEuler)** `easyaiot-panel` + `.rpm`（同上；部署用仓库内 `install_linux_openeuler.sh`）
 
 ## 快速开始
 
@@ -17,7 +17,7 @@
 >
 > **CentOS 默认也走 Docker**（`quay.io/centos/centos:stream9`），不必在 CentOS 物理机上打包。
 >
-> **欧拉(openEuler) 默认也走 Docker**（`openeuler/openeuler:24.03`），不必在 欧拉(openEuler) 物理机上打包。
+> **欧拉(openEuler)** 默认也走 Docker（`openeuler/openeuler:24.03`），不必在 **欧拉(openEuler)** 物理机上打包。
 
 ```bash
 # 统一入口（交互菜单：部署操作 / 安装操作）
@@ -87,7 +87,7 @@ ls -lh COMPILE/dist/centos/easyaiot-panel COMPILE/dist/centos/*.rpm
 # sudoedit /etc/easyaiot-panel/panel.env
 # EASYAIOT_ROOT=/path/to/easyaiot
 
-# openEuler 24.x（默认 Docker；基础镜像 openeuler/openeuler:24.03）
+# openEuler（默认 Docker；基础镜像 openeuler/openeuler:24.03）
 bash COMPILE/build.sh openeuler
 # 仅二进制：bash COMPILE/build.sh openeuler --no-rpm
 # 本机构建：bash COMPILE/build.sh openeuler --local
@@ -133,9 +133,9 @@ chmod +x COMPILE/build.sh \
 
 ## 前置依赖提示（按目标）
 - **Ubuntu deb（Docker 默认）**：本机 `npm`（先编前端）、`docker`（含 buildx）、`dpkg-deb`（`apt install dpkg-dev`）、`python3`+Pillow。
-- **Ubuntu ARM / 麒麟(Kylin)**：同上；Docker 使用 `--platform linux/arm64`，宿主机需已注册 QEMU/binfmt（`docker buildx ls` 能看到 `linux/arm64`）。
+- Ubuntu ARM / **麒麟(Kylin)**：同上；Docker 使用 `--platform linux/arm64`，宿主机需已注册 QEMU/binfmt（`docker buildx ls` 能看到 `linux/arm64`）。
 - **CentOS/RHEL（Docker 默认）**：只需本机 `docker`；容器内安装 `rpm-build` 并完成 PyInstaller。`--local` 时才需要本机 `rpm-build` + Node + Python 3.11+。
-- **欧拉(openEuler) 24.x（Docker 默认）**：只需本机 `docker`；基础镜像 `openeuler/openeuler:24.03`（可用 `COMPILE_OPENEULER_BASE_IMAGE` 覆盖）。`--local` 时需本机 `rpm-build` + Node + Python。
+- **欧拉(openEuler)**（Docker 默认）：只需本机 `docker`；基础镜像 `openeuler/openeuler:24.03`（可用 `COMPILE_OPENEULER_BASE_IMAGE` 覆盖）。`--local` 时需本机 `rpm-build` + Node + Python。
 - **Windows/macOS**：必须在对应 OS 本机（或对应 CI Runner）执行，需 `Node.js + npm`、Python 3.11+、Pillow（`requirements-build.txt`）；Windows 可选 NSIS（`makensis`）；macOS 打包 `.app`/`.dmg` 另需系统自带 `sips` / `iconutil` / `hdiutil`。
 
 如果要走 Docker 构建（默认方式），还需要确认 Docker 可用：
@@ -199,7 +199,7 @@ ls -lh COMPILE/dist/ubuntu-kylin/*.deb
 
 - x86/amd64：`COMPILE/dist/ubuntu/easyaiot-panel_<VERSION>_amd64.deb`
 - ARM64：`COMPILE/dist/ubuntu-arm/easyaiot-panel_<VERSION>_arm_arm64.deb`
-- 麒麟(Kylin)：`COMPILE/dist/ubuntu-kylin/easyaiot-panel_<VERSION>_kylin_arm64.deb`
+- **麒麟(Kylin)**：`COMPILE/dist/ubuntu-kylin/easyaiot-panel_<VERSION>_kylin_arm64.deb`
 
 ### 4) 安装并验证 .deb
 
@@ -390,9 +390,9 @@ bash COMPILE/install_linux.sh status
 bash COMPILE/install_linux.sh uninstall
 ```
 
-### 6.1) 欧拉(openEuler) 24.x 打包与安装
+### 6.1) **欧拉(openEuler)** 打包与安装
 
-> 欧拉(openEuler) **默认 Docker 构建**（`platforms/openeuler/Dockerfile`，基础镜像 `openeuler/openeuler:24.03`）。
+> **欧拉(openEuler)** 默认 Docker 构建（`platforms/openeuler/Dockerfile`，基础镜像 `openeuler/openeuler:24.03`）。
 > 与 CentOS 相同：**不含**内置 runtime；安装后改 `EASYAIOT_ROOT`，平台部署用 `.scripts/docker/install_linux_openeuler.sh`。
 
 ```bash
@@ -445,7 +445,7 @@ sudo bash COMPILE/force_upgrade_panel.sh
 | 现象 | 处理 |
 |------|------|
 | `EACCES` / `权限不够` 清理 `PANEL/ui/dist` 或 `COMPILE/work/ubuntu-docker-ctx` | 上次 Docker/`--output` 产物属主为 root。可用：`docker run --rm -v "$PWD/COMPILE/work:/w" -v "$PWD/PANEL/ui:/ui" alpine chown -R "$(id -u):$(id -g)" /w /ui/dist` |
-| ARM/麒麟(Kylin) `docker build` 报 platform 不支持 | 确认 `docker buildx ls` 含 `linux/arm64`，并已安装 qemu-user-static / binfmt |
+| ARM/**麒麟(Kylin)** `docker build` 报 platform 不支持 | 确认 `docker buildx ls` 含 `linux/arm64`，并已安装 qemu-user-static / binfmt |
 | `pack_deb.sh` 报缺 `dpkg-deb` | `sudo apt install -y dpkg-dev` |
 | 图标阶段报缺 `PIL` | `python3 -m pip install pillow`（或退出会遮蔽系统 python 的 conda env） |
 | 连续打多包版本号跳很多 | 正常：每个 deb/rpm 都会 `+1`；可用 `PANEL_VERSION=130` 固定某一包版本 |
@@ -572,7 +572,7 @@ COMPILE/
 - 也可扫描 `COMPILE/dist/**` 已有包名推断当前最大值
 - 固定版本：`PANEL_VERSION=105 bash COMPILE/build.sh ubuntu-x86 --deb`
 - 起始基数：`PANEL_VERSION_BASE`（默认 `100`）
-- 一次打完 Ubuntu 三架构 + CentOS + 欧拉(openEuler) 会连续占用多个版本号
+- 一次打完 Ubuntu 三架构 + CentOS + **欧拉(openEuler)** 会连续占用多个版本号
 
 ## 构建方式
 
@@ -585,7 +585,7 @@ COMPILE/
 | macos | `bash COMPILE/build.sh macos [--app|--dmg]` | 需在 macOS 主机执行；默认二进制+`runtime/`，可选 `.app`/`.dmg` |
 | centos | `bash COMPILE/build.sh centos [--docker|--local] [--no-rpm]` | 默认 Docker 产出二进制 + `.rpm`（无内置 runtime） |
 | openeuler | `bash COMPILE/build.sh openeuler [--docker|--local] [--no-rpm]` | 默认 Docker 产出二进制 + `.rpm`（无内置 runtime；基础镜像 `openeuler/openeuler:24.03`） |
-| all-linux | `bash COMPILE/build.sh all-linux` / `bash COMPILE/install_linux.sh pack-all` | 依次打 Ubuntu×3 deb + CentOS/欧拉(openEuler) rpm |
+| all-linux | `bash COMPILE/build.sh all-linux` / `bash COMPILE/install_linux.sh pack-all` | 依次打 Ubuntu×3 deb + CentOS/**欧拉(openEuler)** rpm |
 
 ## 运行时依赖
 
@@ -596,16 +596,16 @@ COMPILE/
   - Ubuntu deb 默认：`/opt/easyaiot-panel/runtime` → 按包变体使用 `install_linux.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh`
   - Windows / macOS 安装包：与二进制同级的 `runtime/` → `install_windows.sh` / `install_mac.sh`
   - CentOS rpm：默认 `/opt/easyaiot`（占位），**须改为**本机仓库根 → 使用 `.scripts/docker/install_linux_centos.sh`
-  - 欧拉(openEuler) rpm：同上 → 使用 `.scripts/docker/install_linux_openeuler.sh`
+  - **欧拉(openEuler)** rpm：同上 → 使用 `.scripts/docker/install_linux_openeuler.sh`
   - 也可把任意平台的 `EASYAIOT_ROOT` 指到本机 clone 的仓库根
 
 | 平台 | `INSTALL_SCRIPT` | 本地 build（源码编译业务镜像） |
 |------|------------------|-------------------------------|
 | Ubuntu x86 | `install_linux.sh` | 支持 |
 | Ubuntu ARM | `install_linux_arm.sh` | 支持 |
-| 麒麟(Kylin) ARM | `install_linux_kylin.sh` | 支持 |
+| **麒麟(Kylin)** ARM | `install_linux_kylin.sh` | 支持 |
+| **欧拉(openEuler)** | `install_linux_openeuler.sh`（需仓库根） | 支持 |
 | CentOS/RHEL | `install_linux_centos.sh`（需仓库根） | 支持 |
-| 欧拉(openEuler) 24.x | `install_linux_openeuler.sh`（需仓库根） | 支持 |
 | macOS | `install_mac.sh` | **禁止**（仅镜像） |
 | Windows | `install_windows.sh` | **禁止**（仅镜像；需 Git Bash） |
 
@@ -613,5 +613,5 @@ deb / rpm 安装后配置在 `/etc/easyaiot-panel/panel.env`；Windows/macOS 配
 
 ## 说明
 
-- Windows/macOS 须在对应系统本机或对应 CI Runner 执行；Ubuntu / CentOS / 欧拉(openEuler) 均可在任意已装 Docker 的 Linux 上交叉/标准化构建（ARM 需 qemu）。
-- 已提供 GitHub Actions 模板：`.github/workflows/compile-packaging.yml`（Ubuntu deb、Windows、macOS；CentOS / 欧拉(openEuler) 为可选开关）。
+- Windows/macOS 须在对应系统本机或对应 CI Runner 执行；Ubuntu / CentOS / **麒麟(Kylin)/欧拉(openEuler)** 均可在任意已装 Docker 的 Linux 上交叉/标准化构建（ARM 需 qemu）。
+- 已提供 GitHub Actions 模板：`.github/workflows/compile-packaging.yml`（Ubuntu deb、Windows、macOS；CentOS / **欧拉(openEuler)** 为可选开关）。

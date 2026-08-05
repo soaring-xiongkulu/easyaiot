@@ -236,7 +236,7 @@ Memory analysis:
 
 | Software | Requirement |
 |----------|-------------|
-| OS | Ubuntu 24.04+ (26.04 recommended); CentOS/RHEL, openEuler (欧拉) 24.x, Kylin (麒麟), ARM64 also supported |
+| OS | Ubuntu 24.04+ (26.04 recommended); CentOS/RHEL, **Kylin (麒麟)/openEuler (欧拉)**, ARM64 also supported |
 | Docker | Installed and daemon accessible |
 | Docker Compose | **v2.35.0+** (`docker compose` plugin) |
 | NVIDIA Driver / Container Toolkit | GPU scenarios only |
@@ -430,7 +430,7 @@ Multi-GPU: `export CUDA_VISIBLE_DEVICES=0,1`
 sudo .scripts/docker/install_linux_centos.sh install
 # Docker only: sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
 
-# openEuler 24.x (replace stock docker-engine, fix repo releasever, install Docker CE)
+# openEuler (replace stock docker-engine, fix repo releasever, install Docker CE)
 sudo .scripts/docker/install_linux_openeuler.sh install
 # Docker only: sudo .scripts/docker/install_linux_openeuler.sh --upgrade-docker-only
 # el9 unavailable: --el-release 7
@@ -450,7 +450,7 @@ bash .scripts/docker/install_windows.sh install
 
 CentOS notes: `install_linux_centos.sh` prepares Docker CE (replaces CentOS 7 stock docker 1.13), DaoCloud mirror, and firewalld; then delegates to `install_linux.sh`. On CentOS 7 the platform agent uses `ensure_platform_agent_centos7.sh`.
 
-openEuler (欧拉) notes: `install_linux_openeuler.sh` removes conflicting stock `docker-engine`, rewrites Docker CE repo `$releasever` (default el9), configures DaoCloud mirror + DNS and firewalld, then delegates to `install_linux.sh`. Details (ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#openeuler-24x-说明).
+**openEuler (欧拉)** notes: `install_linux_openeuler.sh` removes conflicting stock `docker-engine`, rewrites Docker CE repo `$releasever` (default el9), configures DaoCloud mirror + DNS and firewalld, then delegates to `install_linux.sh`. Details (ZH): [平台部署文档_zh.md](./平台部署文档_zh.md#openeuler-24x-说明).
 
 Desktop notes: shared logic in `install_desktop_common.sh`; middleware via `install_middleware_desktop.sh`; no local build. See Chinese guides [macOS](./平台macOS部署文档_zh.md) / [Windows](./平台Windows部署文档_zh.md).
 

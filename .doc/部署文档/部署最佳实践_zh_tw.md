@@ -234,7 +234,7 @@ sudo .scripts/docker/install_linux.sh         # 1 部署 → 1 安裝 → 7 驗�
 
 | 軟體 | 要求 |
 |------|------|
-| 作業系統 | Ubuntu 24.04+（建議 26.04）；亦支援 CentOS/RHEL、歐拉(openEuler) 24.x、銀河麒麟(Kylin)、ARM64 |
+| 作業系統 | Ubuntu 24.04+（建議 26.04）；亦支援 CentOS/RHEL、**麒麟(Kylin)/歐拉(openEuler)**、ARM64 |
 | Docker | 已安裝且 daemon 可存取 |
 | Docker Compose | **v2.35.0+**（`docker compose` 插件） |
 | NVIDIA Driver / Container Toolkit | 僅 GPU 場景 |
@@ -428,7 +428,7 @@ docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi
 sudo .scripts/docker/install_linux_centos.sh install
 # 僅準備 Docker：sudo .scripts/docker/install_linux_centos.sh --upgrade-docker-only
 
-# openEuler 24.x（卸載自帶 docker-engine、修復倉庫 releasever、裝 Docker CE）
+# openEuler（卸載自帶 docker-engine、修復倉庫 releasever、裝 Docker CE）
 sudo .scripts/docker/install_linux_openeuler.sh install
 # 僅準備 Docker：sudo .scripts/docker/install_linux_openeuler.sh --upgrade-docker-only
 
@@ -447,7 +447,7 @@ bash .scripts/docker/install_windows.sh install
 
 CentOS 說明：入口 `install_linux_centos.sh` 會先準備 Docker CE（替換 CentOS 7 自帶 docker 1.13）、鏡像源與 firewalld，再轉交 `install_linux.sh`。詳見 [平台部署文档_zh.md](./平台部署文档_zh.md#centos--rhel-系说明)。
 
-歐拉(openEuler) 說明：入口 `install_linux_openeuler.sh` 會卸載自帶 docker-engine、修復 `$releasever`、配置鏡像源/DNS 與 firewalld，再轉交 `install_linux.sh`。詳見 [平台部署文档_zh.md](./平台部署文档_zh.md#openeuler-24x-说明)。
+**歐拉(openEuler)** 說明：入口 `install_linux_openeuler.sh` 會卸載自帶 docker-engine、修復 `$releasever`、配置鏡像源/DNS 與 firewalld，再轉交 `install_linux.sh`。詳見 [平台部署文档_zh.md](./平台部署文档_zh.md#openeuler-24x-说明)。
 
 詳見 [平台部署文档_zh.md](./平台部署文档_zh.md#macos--windows-镜像部署)、[平台macOS部署文档_zh.md](./平台macOS部署文档_zh.md)、[平台Windows部署文档_zh.md](./平台Windows部署文档_zh.md)。
 

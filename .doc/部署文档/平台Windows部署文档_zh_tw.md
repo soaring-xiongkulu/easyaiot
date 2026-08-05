@@ -260,7 +260,7 @@ F:\EASYLOT\easyaiot-V4.0.0\
 F:\EASYLOT\PostgreSQL16\
 F:\EASYLOT\Redis\
 F:\EASYLOT\nacos\     ####要開啟鑒權   自行百度
-F:\EASYLOT\minio\  #####項目裡邊有數據庫或者說minio的密碼  所有密碼都要和項目的配套一至  如minion  賬號：minionminion 密碼iot******
+F:\EASYLOT\minio\  #####項目裡邊有數據庫或者說minio的密碼  所有密碼都要和項目的配套一至  如minion  賬號：minionminion 密碼iot**
 F:\EASYLOT\kafka\   ###自行下載
 F:\EASYLOT\TDengine\  ####自行下載
 ```
