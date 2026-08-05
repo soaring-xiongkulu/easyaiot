@@ -9,6 +9,7 @@ OUT_DIR="${COMPILE_OUT:-${COMPILE_ROOT}/dist/openeuler}"
 VENV_DIR="${COMPILE_ROOT}/.venv-build-openeuler"
 IMAGE_TAG="${COMPILE_IMAGE:-easyaiot/compile-panel-openeuler:latest}"
 BASE_IMAGE="${COMPILE_OPENEULER_BASE_IMAGE:-openeuler/openeuler:24.03}"
+
 MODE="docker"
 DO_RPM=1
 
@@ -32,6 +33,7 @@ for arg in "$@"; do
       echo "用法: $0 [--docker|--local] [--rpm|--no-rpm]"
       echo "环境变量:"
       echo "  COMPILE_OPENEULER_BASE_IMAGE  默认 openeuler/openeuler:24.03"
+      echo "  COMPILE_CN_MIRROR             包源 huawei（默认）|aliyun|tuna"
       echo "  COMPILE_OUT                  默认 COMPILE/dist/openeuler"
       exit 0
       ;;
@@ -120,6 +122,14 @@ build_docker() {
     exit 1
   fi
 
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "[COMPILE/openeuler] Docker 打包需要本机 npm 先构建 PANEL/ui" >&2
+    exit 1
+  fi
+  log "宿主机构建前端 ui/dist（容器内不再跑 npm）"
+  (cd "${REPO_ROOT}/PANEL/ui" && npm install --no-audit --no-fund && npm run build)
+  test -f "${REPO_ROOT}/PANEL/ui/dist/index.html"
+
   mkdir -p "$OUT_DIR"
   CTX_DIR="${COMPILE_ROOT}/work/openeuler-docker-context"
   rm -rf "${CTX_DIR}"
@@ -142,7 +152,7 @@ build_docker() {
   fi
 
   if [ "$DO_RPM" -eq 1 ]; then
-    log "Docker 标准化构建 openEuler 二进制 + RPM (version=${PANEL_VERSION_ARG} base=${BASE_IMAGE})"
+    log "Docker 标准化构建 openEuler 二进制 + RPM (version=${PANEL_VERSION_ARG} base=${BASE_IMAGE} cn=${COMPILE_CN_MIRROR:-huawei})"
   else
     log "Docker 标准化构建 openEuler 二进制 (base=${BASE_IMAGE})"
   fi
@@ -151,6 +161,7 @@ build_docker() {
     --build-arg BASE_IMAGE="${BASE_IMAGE}" \
     --build-arg BUILD_RPM="${DO_RPM}" \
     --build-arg PANEL_VERSION="${PANEL_VERSION_ARG}" \
+    --build-arg COMPILE_CN_MIRROR="${COMPILE_CN_MIRROR:-huawei}" \
     --target export \
     -t "${IMAGE_TAG}" \
     --output "type=local,dest=${OUT_DIR}" \
