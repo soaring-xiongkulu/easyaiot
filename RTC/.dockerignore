@@ -1,0 +1,61 @@
+# Git / IDE
+.git
+.gitignore
+.idea
+.vscode
+*.iml
+*.ipr
+*.iws
+
+# Python 缓存与虚拟环境
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.venv/
+
+# 日志与临时文件
+*.log
+logs/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# 运行时数据（compose 卷挂载，勿打入镜像）
+data/
+
+# vendor 嵌套仓库元数据（源码本体由 Dockerfile COPY，.git 勿进构建上下文）
+vendor/go2rtc/.git/
+
+# 环境变量（运行时通过卷挂载 .env.docker）
+.env
+.env.*
+!.env.example
+!.env.docker
+
+# 安装 / 运维脚本（镜像内不需要）
+install_linux.sh
+
+# Docker 编排文件
+docker-compose.yaml
+docker-compose*.yaml
+Dockerfile*
+.dockerignore
+
+# 文档
+*.md
+README*
+LICENSE
+
+# 系统文件
+.DS_Store
+Thumbs.db

@@ -117,6 +117,10 @@ SITE/.pnpm-store/** -diff
 TRANSFORM/data/** -diff
 TRANSFORM/dist/** -diff
 
+# RTC 运行时数据与 vendor 源码：不参与 diff（vendor 含嵌套 .git，体积大）
+RTC/data/** -diff
+RTC/vendor/go2rtc/** -diff
+
 # COMPILE 产物 / 构建缓存：不参与 diff（体积大；与 .gitignore 对齐，防误加入仓库）
 COMPILE/dist/** -diff
 COMPILE/dist/**/*.deb binary -diff

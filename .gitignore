@@ -171,6 +171,11 @@ TRANSFORM/.idea/
 TRANSFORM/data/
 TRANSFORM/dist/
 
+# RTC 本地运行数据与 vendor 源码（go2rtc 由 install_linux.sh vendor 拉取，不随仓库分发）
+RTC/.env
+RTC/data/
+RTC/vendor/go2rtc/
+
 # COMPILE 打包产物与临时目录（不随仓库分发；与 COMPILE/.gitignore 对齐）
 COMPILE/dist/
 COMPILE/work/
