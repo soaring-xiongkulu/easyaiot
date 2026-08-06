@@ -5,6 +5,7 @@ export const LINKS = {
   compileReadme:
     'https://gitee.com/volara/easyaiot/blob/main/COMPILE/README.md',
   readmeZh: 'https://gitee.com/volara/easyaiot/blob/main/README_zh.md',
+  rtcReadme: 'https://gitee.com/volara/easyaiot/blob/main/RTC/README.md',
   demo: 'http://36.111.47.113:8888/',
 }
 
