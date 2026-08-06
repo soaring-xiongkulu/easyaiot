@@ -42,7 +42,7 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平臺由 <strong>WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>大疆機場與無人機空中視角接入</strong>、即時與抓拍算法任務、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、三檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
+平臺由 <strong>WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、TASK、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時與抓拍算法任務、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、三檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -83,6 +83,46 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 | ![一鍵部署](.image/banner/panel/panel_1003.png) | ![鏡像就緒](.image/banner/panel/panel_1004.png) | ![鏡像拉取](.image/banner/panel/panel_1005.png) |
 | ![系統診斷](.image/banner/panel/panel_1006.png) | ![系統維護](.image/banner/panel/panel_1007.png) | ![服務拓撲](.image/banner/panel/panel_1008.png) |
 
+### 📡 RTC：消費級攝像頭 P2P 橋接，讓「沒有 RTSP」的設備也能進平臺
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+家庭、門店與輕量安防場景裡，大量已在用的設備來自 <strong>Tapo、塗鴉、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 等品牌——它們普遍走廠商私有 P2P 協議，<strong>原生不提供標準 RTSP</strong>，傳統視頻監控平臺往往只能勸用戶另搭 Micam、Home Assistant 等中間件，接入鏈路長、運維割裂、AI 研判接不進來。EasyAIoT 新增獨立 <strong>RTC 模組</strong>，基於開源項目 <a href="https://github.com/AlexxIT/go2rtc" style="color: #3498db; text-decoration: none; font-weight: 600;">go2rtc</a>，<strong>一次打通上述九大品牌的取流與對講能力</strong>，把 P2P 橋接與平臺編排收成一體——消費級設備也能像國標/ONVIF 攝像頭一樣，<strong>註冊、預覽、推流轉發、掛 AI 任務、告警聯動</strong>全鏈路打通。
+</p>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
+<strong>已覆蓋品牌與典型價值場景：</strong>
+</p>
+
+<table style="width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 14px;">
+<tr>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50; width: 14%;">品牌</td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50; width: 18%;">廠商 / 生態</td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50; width: 28%;">典型設備</td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50;">落地價值</td>
+</tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Tapo</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;">TP-Link</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444;">家用 IPC、室內/室外槍機、球機</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444; line-height: 1.7;">門店、出租屋、小微店鋪<strong>低成本補盲</strong>；雲密碼直連，支持<strong>雙向對講</strong></td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Tuya</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;">塗鴉智能</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444;">塗鴉生態 IPC、門鈴、室內機</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444; line-height: 1.7;"><strong>海量白牌/OEM 攝像頭</strong>一次納管；出海與國內塗鴉系設備統一接入</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Ring</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;">Amazon</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444;">門鈴、室外機、Spotlight Cam</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444; line-height: 1.7;">海外社區、跨境電商倉<strong>門鈴監控入平臺</strong>；帳號綁定後本地 P2P 取流，支持<strong>遠程對講</strong></td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Nest</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;">Google</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444;">Nest Cam、Doorbell</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444; line-height: 1.7;">高端住宅、涉外項目<strong>Google 生態門鈴/攝像頭</strong>納入統一值守</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>小米</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;">米家 / Mi Home</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444;">米家攝像機、智能門鈴、室外機</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444; line-height: 1.7;">國內家庭與連鎖門店<strong>存量米家設備利舊</strong>；免 Micam 中間件，直連平臺掛 AI 分析</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Wyze</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;">Wyze</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444;">Wyze Cam v3/v4、門鈴、室外機</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444; line-height: 1.7;"><strong>極致性價比攝像頭</strong>批量入平臺；本地 P2P、支持<strong>雙向對講</strong></td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>DoorBird</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;">DoorBird</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444;">智能門鈴、門口機</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444; line-height: 1.7;">別墅、高端社區<strong>門口可視對講</strong>與平臺告警聯動</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>GoPro</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;">GoPro</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444;">HERO9–12（USB / Wi-Fi）</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444; line-height: 1.7;">巡檢、應急、運動視角<strong>機動機位</strong>；臨時機位快速入流</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Roborock</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top;">石頭科技</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444;">S6/S7/Qrevo MaxV 等帶攝像頭掃地機</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444; line-height: 1.7;"><strong>移動視角補盲</strong>——家具底部、床底等固定攝像頭看不到的區域</td></tr>
+</table>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Web 一鍵接入</strong>：管控臺「接入 RTC 攝像頭」入口，按品牌動態表單填參；Ring / Nest / 小米 / Wyze / Roborock 等 OAuth 類平臺經 go2rtc WebUI 完成帳號綁定後，複製源流 URL 即可登記</li>
+  <li><strong>全鏈路已打通</strong>：WEB 註冊 → VIDEO <code>/register/device/rtc-live</code> → RTC 管理 API → go2rtc P2P 取流 → 標準 RTSP 輸出 → SRS 推流轉發 → Jessibuca 播放與 AI 分析，<strong>九大品牌同一套流程</strong></li>
+  <li><strong>雙向對講</strong>：Tapo、Tuya、Ring、Wyze、DoorBird、Roborock 支持 go2rtc 雙向音頻，門鈴對講、遠程喊話與告警聯動可擴展</li>
+  <li><strong>生命週期聯動</strong>：設備刪除時自動清理 go2rtc 流配置；與設備目錄、地圖布點、算法任務體系無縫銜接</li>
+  <li><strong>Docker 一體化</strong>：<code>bash RTC/install_linux.sh start</code> 同時運行 go2rtc 核心與 Python 管理服務，host 網路適配 P2P 局域網直連</li>
+</ul>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
+📖 詳細接入文檔見 <a href="RTC/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">RTC 模組 README</a>。
+</p>
+
 ### 🎯 三檔硬體，一套平臺
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -115,8 +155,9 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   </li>
   <li><strong>YOLO26 新一代目標檢測能力</strong>：平臺內置最新一代目標檢測能力，開箱即可用於即時畫面分析與抓拍識別，在相同硬體條件下可接入更多路攝像頭、響應更快、誤報更少。支持從數據採集、標註、訓練到上線推理的完整閉環，幫助用戶以更低成本持續迭代專屬檢測模型，快速覆蓋安全帽佩戴、人員闖入、煙火隱患等各類常見安防與工業場景，讓「看得準、算得快、擴得動」成爲預設可用能力</li>
   <li><strong>YOLO26 人體姿態分析</strong>：在目標檢測能力之上新增人體關鍵點與骨架姿態分析，開箱即用，支持圖片、視頻與攝像頭即時流三種輸入方式。圖片模式可同步輸出骨架標註與人數統計；視頻模式支持進度跟蹤與結果下載；攝像頭模式可對接 RTSP/RTMP 即時取流，將姿態識別結果疊加推流回顯，便於遠程盯防與行爲研判。模型推理頁提供「姿態分析」與「目標檢測」一鍵切換，適用於工地作業規範、健身動作評估、人羣聚集態勢感知等需要「看清人體結構與動作形態」的場景，讓平臺從「框出目標」進一步走向「理解姿態」</li>
-  <li><strong>多協議攝像頭接入支持</strong>：全面支持 GB28181 和 ONVIF 兩大主流視頻監控協議，實現標準化設備接入與管理。GB28181 作爲中國國家標準，完美適配國內主流監控設備；ONVIF 作爲國際通用標準，廣泛兼容全球主流品牌攝像頭。通過雙協議支持，平臺能夠無縫對接現有監控系統，實現設備的即插即用、自動發現與統一管理，大幅降低設備接入門檻，提升系統兼容性與擴展性，爲大規模攝像頭部署提供堅實的技術基礎。此外，新增 NVR 同網段/跨網段批量掃描、註冊與統一管控能力，覆蓋海康、大華、華爲、螢石、小米等主流品牌，支持基於設備原生協議的網段發現、一鍵登記及通道批量導入，進一步降低大規模監控設備的接入與運維成本</li>
+  <li><strong>多協議攝像頭接入支持</strong>：全面支持 GB28181 和 ONVIF 兩大主流視頻監控協議，實現標準化設備接入與管理。GB28181 作爲中國國家標準，完美適配國內主流監控設備；ONVIF 作爲國際通用標準，廣泛兼容全球主流品牌攝像頭。通過雙協議支持，平臺能夠無縫對接現有監控系統，實現設備的即插即用、自動發現與統一管理，大幅降低設備接入門檻，提升系統兼容性與擴展性，爲大規模攝像頭部署提供堅實的技術基礎。此外，新增 NVR 同網段/跨網段批量掃描、註冊與統一管控能力，覆蓋海康、大華、華爲、螢石、小米等主流品牌，支持基於設備原生協議的網段發現、一鍵登記及通道批量導入；對於米家等原生不支持 RTSP 的消費級攝像頭，可通過 <strong>RTC 模組（go2rtc 橋接）</strong>納入同一平臺，進一步降低大規模監控設備的接入與運維成本</li>
   <li><strong>大疆機場 / 無人機空中視角接入</strong>：突破固定攝像頭「只能看地面、難覆蓋廣域」的布控侷限，將大疆司空體系下的機場與無人機高空畫面納入平臺統一視頻與 AI 研判閉環。流媒體模組提供「接入大疆直播」能力：支持<strong>司空 API 開啓直播</strong>與<strong>手動直播源</strong>兩種接入方式——API 模式一鍵拉起廠家直播流並自動登記設備；手動模式則支持直接填入 RTSP / RTMP / HTTP-FLV / HLS 等直播源。接入後空中畫面可與國標/ONVIF 固定點位同屏共管，管理者可像管理固定攝像頭一樣調閱機場與飛行器實況，並進一步掛接即時 AI 分析、告警聯動與證據留存，快速覆蓋廣域巡查、應急勘察、周界補盲等傳統固定點位難以觸及的場景，顯著縮短「發現異常—鎖定現場—聯動處置」的響應鏈條，讓智慧安防從平面布控升級到天地一體協同感知</li>
+  <li><strong>RTC 消費級攝像頭 P2P 橋接</strong>：一次打通 <strong>Tapo（TP-Link 家用/門店 IPC）、Tuya（塗鴉系白牌海量設備）、Ring / Nest（海外門鈴生態）、小米米家（國內家庭存量利舊）、Wyze（高性價比補點）、DoorBird（高端門口對講）、GoPro（機動巡檢機位）、Roborock（掃地機移動視角）</strong> 九大品牌——它們原生均不支持標準 RTSP，RTC 模組基於 go2rtc 提供 P2P 橋接與統一管理 API。Web 管控臺「接入 RTC 攝像頭」按品牌動態引導填參或 OAuth 綁定，一鍵完成 go2rtc 流註冊、VIDEO 設備登記與 SRS 推流轉發；橋接後與國標/ONVIF 專業攝像機<strong>同屏共管、同掛 AI 任務、同走告警聯動</strong>，把「家裡/門店已在用的攝像頭」和「項目裡的專業攝像機」納入同一套視頻研判體系</li>
   <li><strong>即時對講與雲臺遠控</strong>：打破「只能看、不能管」的傳統監控侷限，值守人員在即時預覽同屏即可完成語音喊話與雲臺操控——無需切換系統、不必親臨現場，即可遠程溝通、引導疏散或制止違規行爲，把響應從「派人到場」壓縮到「開口即達」。雲臺操控讓攝像頭隨心轉向、變焦聚焦，突發情況可迅速對準事發區域、放大細節，形成「看得清、指得準、喊得到」的一體化現場處置閉環。全面兼容 GB28181 與 ONVIF 設備，利舊現有監控資產，無需額外購置對講主機或第三方軟體，讓存量攝像頭即刻具備遠程溝通與靈活調度能力，顯著降低系統孤島與值守成本</li>
   <li><strong>可編排算法後處理</strong>：突破「只能檢出、難以研判」的能力瓶頸，在目標檢測之上增設獨立的業務研判層，將畫面感知結果轉化爲可運營、可追責、可統計的業務事件。支持按任務靈活定義人數統計、越線通行、停留超時、區域滯留、多條件複合告警等場景規則，無需反覆調整模型即可快速適配工地安監、園區安防、交通管控等差異化需求，把通用視覺能力鍛造成貼近現場的管理抓手。後處理與即時分析彼此獨立、並行運轉——監控畫面持續流暢研判，業務邏輯按需彈性擴展，研判結果自動沉澱存檔並驅動精準告警，顯著降低誤報漏報與人工複覈成本。業務人員專注規則表達，平臺負責分發執行與規模承載，讓「看得見」真正走向「判得清、管得住、用得起來」</li>
   <li><strong>多中心節點 × 多工作節點聯邦集羣</strong>：面向跨區域、多機房與雲邊協同部署，平臺採用「N 箇中心節點 + N 個工作節點」聯邦架構——中心節點統一編排，工作節點承載算力與媒體執行，可橫向擴展。每個中心節點納管本域工作節點，支持流媒體、音視頻轉碼、視頻分析、模型推理與訓練等能力的遠程分發與一鍵部署；多中心可互聯同步，集羣泳道視圖直觀呈現「中心—工作」拓撲與資源水位。算法任務、自動標註流水線、推流轉發等工作負載按節點角色與 GPU 能力智能調度，讓海量路數接入、高併發推理與分佈式訓練在同一集羣中協同運轉，真正做到「納得進、分得清、擴得開、管得全」</li>
@@ -291,7 +332,7 @@ Java擅長構建穩定可靠的平臺架構，但不適合網路編程和AI編�
 ### 🏗️ 項目架構特點
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-EasyAIoT其實不是一個項目，而是九個項目。
+EasyAIoT其實不是一個項目，而是多個可獨立部署的子項目（含 WEB、DEVICE、VIDEO、RTC、AI 等）。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -354,7 +395,7 @@ EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統
 ## 🧩 項目結構
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE 等核心模組組成，並配套 COMPILE 多平臺打包交付能力：
+EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、TASK、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE 等核心模組組成，並配套 COMPILE 多平臺打包交付能力：
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
@@ -375,7 +416,13 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE、
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>WEB模組</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">前端管理界面，提供統一的用戶交互體驗</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>統一管控界面</strong>：前端管理界面，提供統一的用戶交互體驗</li>
+    <li><strong>多協議設備接入嚮導</strong>：IPC / NVR / 國標 / RTC 平台分 Tab 引導，支持 ONVIF 掃描、跨網段掃描、手動 RTSP、大疆直播與消費級攝像頭 P2P 接入</li>
+    <li><strong>RTC 平台接入</strong>：「接入 RTC 攝像頭」快捷入口，按 <strong>Tapo / Tuya / Ring / Nest / 小米 / Wyze / DoorBird / GoPro / Roborock</strong> 九大品牌動態表單填參，OAuth 平台引導至 go2rtc WebUI 完成綁定</li>
+  </ul>
+</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>APP模組</strong></td>
@@ -383,7 +430,7 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE、
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>跨端覆蓋</strong>：一套建設、多端觸達，手機、小程序與 App 均可使用</li>
     <li><strong>能力對齊</strong>：與 PC 管控臺業務能力一致，支持多租戶切換</li>
-    <li><strong>設備管理</strong>：直連攝像頭、GB28181、NVR 等多協議統一納管，在線狀態與通道瀏覽，設備詳情內一鍵即時預覽</li>
+    <li><strong>設備管理</strong>：直連攝像頭、GB28181、NVR、RTC 消費級攝像頭等多協議統一納管，在線狀態與通道瀏覽，設備詳情內一鍵即時預覽</li>
     <li><strong>推流轉發</strong>：推流任務創建、啓停、集羣節點狀態與多路流地址查看</li>
     <li><strong>算法任務</strong>：即時/抓拍算法任務列表、啓停控制與檢測/幀數統計</li>
     <li><strong>告警中心</strong>：告警事件檢索、抓拍圖預覽、告警錄像點播回放</li>
@@ -424,10 +471,24 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、AI、TASK、EDGE、VISUALIZE、
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>VIDEO模組</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>流媒體處理</strong>：支持RTSP/RTMP流即時處理與傳輸</li>
+    <li><strong>流媒體處理</strong>：支持 RTSP/RTMP 流即時處理與傳輸</li>
+    <li><strong>多協議攝像頭接入</strong>：GB28181、ONVIF、NVR 批量掃描、大疆司空直播與 RTC 消費級攝像頭統一納管</li>
+    <li><strong>RTC 聯動 API</strong>：<code>/register/device/rtc-live</code> 一鍵完成 go2rtc 流註冊與設備入庫，刪除設備時自動清理 RTC 流</li>
     <li><strong>算法任務管理</strong>：支持即時算法任務和抓拍算法任務兩種類型，分別用於即時畫面分析和抓拍圖像分析</li>
     <li><strong>抽幀器與排序器</strong>：支持靈活的抽幀策略與結果排序機制，每個算法任務可綁定獨立的抽幀器和排序器</li>
     <li><strong>佈防時段</strong>：支持全防模式和半防模式的時段化配置</li>
+  </ul>
+</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>RTC模組</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>go2rtc</strong>：基於 <a href="https://github.com/AlexxIT/go2rtc">go2rtc</a> 源碼，vendor 隨 install 腳本拉取</li>
+    <li><strong>九大品牌 P2P 橋接</strong>：Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</li>
+    <li><strong>統一管理 API</strong>：平台註冊表、流 URL 構建、go2rtc REST 代理，默認端口 6100（管理）/ 1984（WebUI）/ 8554（RTSP）</li>
+    <li><strong>與 VIDEO 全鏈路打通</strong>：P2P 取流 → 標準 RTSP → SRS 推流 → Web 播放與 AI 分析</li>
+    <li><strong>Docker 一體化</strong>：單容器運行 go2rtc 核心 + Python 管理服務，host 網路適配 P2P 局域網直連</li>
   </ul>
 </td>
 </tr>

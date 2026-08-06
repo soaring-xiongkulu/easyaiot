@@ -42,7 +42,7 @@ Many smart IoT projects hit the same wall at deployment: video systems, device p
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-The platform comprises core modules including <strong>WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, and SITE</strong>, with <strong>COMPILE</strong> handling multi-platform packaging and delivery (including Ubuntu / CentOS·RHEL <strong>7–9</strong> (x86 + <strong>CentOS ARM</strong>, packages per el7/el8/el9) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM). On the capability side, the platform covers GB28181 / ONVIF multi-protocol camera access, <strong>DJI dock and drone aerial view access</strong>, real-time and snapshot algorithm tasks, YOLO object detection and SAM zero-shot auto-annotation, face/plate recognition, orchestrable business post-processing, federated compute cluster scheduling, and <strong>Infinite Federated Edge Cluster mode</strong> (ordinary development boards ready out of the box, on-site intelligence for local decisions, alerts and evidence automatically aggregated to the cloud, compute scaling with business as needed), plus MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT device lifecycle management, and <strong>visualization dashboards and Web SCADA configuration</strong>, so device data can be displayed as command-center situational awareness and mapped back to process screens; plus the new <strong>TRANSFORM multidirectional data-flow engine</strong>, which delivers platform-side business events to external systems such as MES / ERP / CRM / WMS by contract—multi-party integration that is configurable, traceable, and reusable; and the companion <strong>PANEL delivery & watch entry</strong>, so appliances can be installed and accepted on arrival day, and watch/troubleshooting no longer wait on developers running remote commands every time; plus the <strong>SITE official website</strong> to present product value, three hardware tiers, and installer entry—so visitors understand first, then download and deploy. On the experience side, the Web console and mobile App / mini-program are capability-aligned, so command centers and field inspections share the same business logic—handle incidents anytime, anywhere.
+The platform comprises core modules including <strong>WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, and SITE</strong>, with <strong>COMPILE</strong> handling multi-platform packaging and delivery (including Ubuntu / CentOS·RHEL <strong>7–9</strong> (x86 + <strong>CentOS ARM</strong>, packages per el7/el8/el9) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM). On the capability side, the platform covers GB28181 / ONVIF multi-protocol camera access, <strong>RTC consumer-camera P2P bridging</strong> (based on go2rtc, covering <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, and Roborock</strong>—store Tapo fill-in, Tuya white-label onboarding, overseas Ring/Nest doorbells, Xiaomi reuse, Wyze low-cost scale-out, DoorBird intercom, GoPro mobile views, Roborock vacuum cameras—with one-click Web onboarding into unified video and AI judgment), <strong>DJI dock and drone aerial view access</strong>, real-time and snapshot algorithm tasks, YOLO object detection and SAM zero-shot auto-annotation, face/plate recognition, orchestrable business post-processing, federated compute cluster scheduling, and <strong>Infinite Federated Edge Cluster mode</strong> (ordinary development boards ready out of the box, on-site intelligence for local decisions, alerts and evidence automatically aggregated to the cloud, compute scaling with business as needed), plus MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT device lifecycle management, and <strong>visualization dashboards and Web SCADA configuration</strong>, so device data can be displayed as command-center situational awareness and mapped back to process screens; plus the new <strong>TRANSFORM multidirectional data-flow engine</strong>, which delivers platform-side business events to external systems such as MES / ERP / CRM / WMS by contract—multi-party integration that is configurable, traceable, and reusable; and the companion <strong>PANEL delivery & watch entry</strong>, so appliances can be installed and accepted on arrival day, and watch/troubleshooting no longer wait on developers running remote commands every time; plus the <strong>SITE official website</strong> to present product value, three hardware tiers, and installer entry—so visitors understand first, then download and deploy. On the experience side, the Web console and mobile App / mini-program are capability-aligned, so command centers and field inspections share the same business logic—handle incidents anytime, anywhere.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -83,6 +83,46 @@ Smart IoT projects most often stall at the last mile: the machine is on site, ye
 | ![Deploy](.image/banner/panel/panel_1003.png) | ![Images](.image/banner/panel/panel_1004.png) | ![Pull](.image/banner/panel/panel_1005.png) |
 | ![Diagnose](.image/banner/panel/panel_1006.png) | ![Maintain](.image/banner/panel/panel_1007.png) | ![Topology](.image/banner/panel/panel_1008.png) |
 
+### 📡 RTC: Consumer-Camera P2P Bridging—Bring "No RTSP" Devices Into the Platform
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+In homes, retail stores, and light-security deployments, many devices already in use come from <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, and Roborock</strong>—they rely on vendor-private P2P protocols and <strong>do not expose standard RTSP</strong>. Traditional VMS platforms often push users toward Micam, Home Assistant, or other middleware, leaving long integration chains, fragmented ops, and no path to AI judgment. EasyAIoT adds a dedicated <strong>RTC module</strong> built on <a href="https://github.com/AlexxIT/go2rtc" style="color: #3498db; text-decoration: none; font-weight: 600;">go2rtc</a>, that <strong>unifies streaming and two-way audio for all nine brands</strong>—consumer devices can register, preview, relay, run AI tasks, and trigger alerts just like GB28181/ONVIF cameras.
+</p>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
+<strong>Supported brands and typical value:</strong>
+</p>
+
+<table style="width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 14px;">
+<tr>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; width: 14%;">Brand</td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; width: 18%;">Vendor</td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; width: 28%;">Typical devices</td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600;">Value</td>
+</tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Tapo</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">TP-Link</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">Home/store IPC, indoor/outdoor cams</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444; line-height: 1.7;"><strong>Low-cost blind-spot fill</strong> for shops; cloud-password connect; <strong>two-way audio</strong></td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Tuya</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">Tuya Smart</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">Tuya-ecosystem IPC, doorbells</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444; line-height: 1.7;"><strong>Mass white-label/OEM onboarding</strong>; one integration for countless rebranded cameras</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Ring</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">Amazon</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">Doorbells, outdoor cams</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444; line-height: 1.7;"><strong>Overseas doorbell monitoring</strong> in platform; local P2P after OAuth; remote talk</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Nest</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">Google</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">Nest Cam, Doorbell</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444; line-height: 1.7;"><strong>Google-ecosystem premium sites</strong> unified with pro cameras on one screen</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Xiaomi</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">Mi Home</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">Mi Home cams, doorbells</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444; line-height: 1.7;"><strong>Reuse installed Mi Home fleet</strong>; no Micam middleware; attach AI directly</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Wyze</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">Wyze</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">Wyze Cam v3/v4, doorbells</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444; line-height: 1.7;"><strong>Ultra-low-cost scale-out</strong>; local P2P; two-way audio for pilots</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>DoorBird</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">DoorBird</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">Smart doorbells, door stations</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444; line-height: 1.7;"><strong>Premium entry intercom</strong> + video; MJPEG/audio/talk in one bridge</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>GoPro</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">GoPro</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">HERO9–12 (USB / Wi-Fi)</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444; line-height: 1.7;"><strong>Mobile tactical views</strong> for patrol and emergency survey</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Roborock</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">Roborock</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">S6/S7/Qrevo MaxV vacuums with cameras</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444; line-height: 1.7;"><strong>Moving under-furniture views</strong> fixed cameras cannot reach; talk on supported models</td></tr>
+</table>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>One-click Web onboarding</strong>: "Connect RTC camera" in the console with per-brand dynamic forms; OAuth brands (Ring/Nest/Xiaomi/Wyze/Roborock) bind via go2rtc WebUI then paste stream URL</li>
+  <li><strong>Full pipeline wired</strong>: WEB → VIDEO <code>/register/device/rtc-live</code> → RTC API → go2rtc P2P → RTSP → SRS relay → Jessibuca + AI—<strong>same flow for all nine brands</strong></li>
+  <li><strong>Two-way audio</strong>: Tapo, Tuya, Ring, Wyze, DoorBird, Roborock support go2rtc intercom for remote talk and doorbell scenarios</li>
+  <li><strong>Lifecycle sync</strong>: Deleting a device cleans up go2rtc streams; works with device tree, map pins, and algorithm tasks</li>
+  <li><strong>Docker all-in-one</strong>: <code>bash RTC/install_linux.sh start</code> runs go2rtc + management API; host network for P2P LAN</li>
+</ul>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
+📖 See <a href="RTC/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">RTC module README</a> for details.
+</p>
+
 ### 🎯 Three Hardware Tiers, One Platform
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -115,8 +155,9 @@ Many intelligent IoT projects stall at deployment: <strong>full features won't f
   </li>
   <li><strong>YOLO26 Next-Generation Object Detection</strong>: Built-in next-generation object detection, ready out of the box for real-time feed analysis and snapshot recognition. On the same hardware, connect more camera streams with faster response and fewer false alarms. Supports the full loop from data collection, annotation, and training to deployment and inference—helping users iteratively build custom detection models at lower cost and quickly cover common security and industrial scenarios such as hard hat compliance, unauthorized entry, and fire hazards, making "see accurately, compute fast, scale easily" the default capability</li>
   <li><strong>YOLO26 Human Pose Analysis</strong>: Builds on object detection with human keypoint and skeleton pose analysis, ready out of the box. Supports three input modes—images, videos, and real-time camera streams. Image mode can synchronously output skeleton annotations and person counts; video mode supports progress tracking and result download; camera mode can connect to RTSP/RTMP live streams and overlay pose recognition results on relayed output for remote monitoring and behavior analysis. The model inference page provides one-click switching between "Pose Analysis" and "Object Detection", suitable for construction site compliance, fitness form assessment, crowd gathering awareness, and other scenarios that require understanding human structure and motion—moving the platform from "boxing targets" to "understanding poses"</li>
-  <li><strong>Multi-Protocol Camera Access Support</strong>: Comprehensive support for GB28181 and ONVIF, two mainstream video surveillance protocols, enabling standardized device access and management. GB28181, as China's national standard, perfectly adapts to mainstream domestic surveillance equipment; ONVIF, as an international universal standard, is widely compatible with global mainstream camera brands. Through dual-protocol support, the platform seamlessly integrates with existing surveillance systems, achieving plug-and-play device access, automatic discovery, and unified management, significantly reducing device access barriers, enhancing system compatibility and scalability, and providing a solid technical foundation for large-scale camera deployment. In addition, NVR batch scan, registration, and unified management across same-segment and cross-segment networks are supported, covering mainstream brands including Hikvision, Dahua, Huawei, Ezviz, and Xiaomi, with native-protocol subnet discovery, one-click registration, and batch channel import, further reducing the cost of large-scale surveillance device onboarding and operations</li>
+  <li><strong>Multi-Protocol Camera Access Support</strong>: Comprehensive support for GB28181 and ONVIF, two mainstream video surveillance protocols, enabling standardized device access and management. GB28181, as China's national standard, perfectly adapts to mainstream domestic surveillance equipment; ONVIF, as an international universal standard, is widely compatible with global mainstream camera brands. Through dual-protocol support, the platform seamlessly integrates with existing surveillance systems, achieving plug-and-play device access, automatic discovery, and unified management, significantly reducing device access barriers, enhancing system compatibility and scalability, and providing a solid technical foundation for large-scale camera deployment. In addition, NVR batch scan, registration, and unified management across same-segment and cross-segment networks are supported, covering mainstream brands including Hikvision, Dahua, Huawei, Ezviz, and Xiaomi, with native-protocol subnet discovery, one-click registration, and batch channel import. For consumer cameras such as Mi Home that natively lack RTSP, the <strong>RTC module (go2rtc bridge)</strong> brings them into the same platform, further reducing large-scale surveillance onboarding and ops costs</li>
   <li><strong>DJI dock / drone aerial view access</strong>: Breaks fixed-camera “ground-only, hard to cover wide areas” limits; brings DJI FlightHub dock and drone aerial video into the platform’s unified video and AI judgment loop. Streaming module offers “Connect DJI livestream”: supports <strong>FlightHub API start livestream</strong> and <strong>manual livestream source</strong> — API mode one-click pulls vendor livestream and auto-registers device; manual mode accepts RTSP / RTMP / HTTP-FLV / HLS sources. After connect, aerial views can share the same screen as GB28181/ONVIF fixed points. Operators can view dock/aircraft live like fixed cameras, and attach real-time AI analysis, alarm linkage and evidence retention—covering wide-area patrol, emergency survey, perimeter fill-in that fixed points cannot reach; shortens “detect—locate—respond”; upgrades security from planar deployment to sky–ground collaborative sensing.</li>
+  <li><strong>RTC Consumer-Camera P2P Bridging</strong>: One integration for <strong>Tapo (TP-Link home/store IPC), Tuya (mass white-label devices), Ring / Nest (overseas doorbell ecosystems), Xiaomi Mi Home (domestic reuse), Wyze (low-cost fill-in), DoorBird (premium entry intercom), GoPro (mobile patrol views), Roborock (vacuum mobile cameras)</strong>—all nine brands natively lack standard RTSP. The RTC module, built on go2rtc, provides P2P bridging and a unified management API. Web console "Connect RTC camera" guides per-brand form fill or OAuth binding, one-click go2rtc stream registration, VIDEO device enrollment, and SRS relay; after bridging, consumer and GB28181/ONVIF pro cameras <strong>share one screen, AI tasks, and alert linkage</strong>, bringing home/store cameras and project-grade devices into one video judgment system at lower integration and reuse cost</li>
   <li><strong>Real-Time Intercom & PTZ Remote Control</strong>: Breaks through traditional surveillance's "watch-only, can't act" limitation. Operators can conduct voice broadcasting and PTZ control on the same real-time preview screen—no system switching, no on-site presence required. Remotely communicate, guide evacuations, or stop violations, compressing response from "dispatch personnel" to "speak and reach instantly." PTZ control lets cameras pan, tilt, and zoom on demand—quickly aim at incident areas and magnify details during emergencies, forming an integrated on-site response loop of "see clearly, aim precisely, speak and reach." Fully compatible with GB28181 and ONVIF devices, leveraging existing surveillance assets without additional intercom hardware or third-party software, instantly upgrading deployed cameras with remote communication and flexible dispatch capabilities, significantly reducing system silos and monitoring costs</li>
   <li><strong>Orchestrable Algorithm Post-Processing</strong>: Breaks through the "detect but can't judge" bottleneck by adding an independent business judgment layer on top of object detection, transforming visual perception results into operable, accountable, and statistically trackable business events. Supports flexible per-task definition of scenario rules such as people counting, line-crossing, dwell timeout, area loitering, and multi-condition composite alerts—quickly adapting to differentiated needs in construction site safety supervision, campus security, and traffic control without repeatedly tuning models, forging general vision capabilities into field-ready management tools. Post-processing and real-time analysis run independently and in parallel—monitoring feeds continue smooth judgment while business logic scales elastically on demand; judgment results are automatically archived and drive precise alerts, significantly reducing false positives/negatives and manual review costs. Business users focus on rule expression while the platform handles distribution, execution, and scale—truly moving from "being able to see" to "judge clearly, control effectively, and put it to use"</li>
   <li><strong>Multi-Central-Node × Multi-Worker-Node Federated Cluster</strong>: Designed for cross-region, multi-datacenter, and cloud-edge collaborative deployments, the platform adopts an "N central nodes + N worker nodes" federated architecture—central nodes provide unified orchestration while worker nodes carry compute and media execution, scaling horizontally. Each central node manages its domain worker nodes, supporting remote distribution and one-click deployment of streaming, AV transcoding, video analytics, model inference, and training capabilities; multiple central nodes can interconnect and synchronize; the cluster swimlane view intuitively presents "central—worker" topology and resource levels. Algorithm tasks, auto-labeling pipelines, and stream relay workloads are intelligently scheduled by node role and GPU capability—enabling massive stream ingestion, high-concurrency inference, and distributed training to run together in one cluster, truly delivering "onboard easily, schedule clearly, scale openly, govern completely"</li>
@@ -291,7 +332,7 @@ Innovatively leveraging large models to construct a zero-shot labeling technical
 ### 🏗️ Project Architecture Features
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-EasyAIoT is not actually one project; it is nine distinct projects.
+EasyAIoT is not actually one project; it comprises multiple independently deployable sub-projects (WEB, DEVICE, VIDEO, RTC, AI, and more).
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -354,7 +395,7 @@ EasyAIoT actively responds to localization strategies, providing comprehensive s
 ## 🧩 Project Structure
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT comprises core modules including WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, and SITE, plus COMPILE multi-platform packaging and delivery:
+EasyAIoT comprises core modules including WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, and SITE, plus COMPILE multi-platform packaging and delivery:
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
@@ -375,7 +416,13 @@ EasyAIoT comprises core modules including WEB, APP, DEVICE, NODE, VIDEO, AI, TAS
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>WEB Module</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">Frontend management interface, providing a unified user interaction experience</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>Unified Admin UI</strong>: Frontend management interface with a consistent user experience</li>
+    <li><strong>Multi-Protocol Onboarding Wizard</strong>: Tabbed guides for IPC / NVR / GB28181 / RTC platforms; ONVIF scan, cross-subnet scan, manual RTSP, DJI livestream, and consumer-camera P2P access</li>
+    <li><strong>RTC Platform Access</strong>: "Connect RTC camera" shortcut with dynamic forms for <strong>Tapo / Tuya / Ring / Nest / Xiaomi / Wyze / DoorBird / GoPro / Roborock</strong>; OAuth platforms guided to go2rtc WebUI for binding</li>
+  </ul>
+</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>APP Module</strong></td>
@@ -383,7 +430,7 @@ EasyAIoT comprises core modules including WEB, APP, DEVICE, NODE, VIDEO, AI, TAS
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>Multi-Channel Access</strong>: One build, multiple touchpoints—phones, mini programs, and apps</li>
     <li><strong>Capability Parity</strong>: Matches PC admin console capabilities with multi-tenant switching</li>
-    <li><strong>Device Management</strong>: Unified management for direct cameras, GB28181, and NVR; online status and channel browsing with one-tap live preview in device details</li>
+    <li><strong>Device Management</strong>: Unified management for direct cameras, GB28181, NVR, and RTC consumer cameras; online status and channel browsing with one-tap live preview in device details</li>
     <li><strong>Stream Forwarding</strong>: Task creation, start/stop, cluster node status, and multi-stream URL viewing</li>
     <li><strong>Algorithm Tasks</strong>: Real-time/snapshot algorithm task list, start/stop control, and detection/frame stats</li>
     <li><strong>Alert Center</strong>: Alert search, snapshot preview, and alarm recording VOD playback</li>
@@ -425,9 +472,35 @@ EasyAIoT comprises core modules including WEB, APP, DEVICE, NODE, VIDEO, AI, TAS
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>Stream Processing</strong>: Supports RTSP/RTMP stream real-time processing and transmission</li>
+    <li><strong>Multi-Protocol Camera Access</strong>: Unified management for GB28181, ONVIF, NVR batch scan, DJI FlightHub livestream, and RTC consumer cameras</li>
+    <li><strong>RTC Integration API</strong>: <code>/register/device/rtc-live</code> one-click go2rtc stream registration and device enrollment; auto-cleanup of RTC streams on device delete</li>
     <li><strong>Algorithm Task Management</strong>: Supports real-time algorithm tasks and snapshot algorithm tasks, used for real-time video analysis and snapshot image analysis respectively</li>
     <li><strong>Frame Extractor and Sorter</strong>: Supports flexible frame extraction strategies and result sorting mechanisms, each algorithm task can bind independent frame extractors and sorters</li>
     <li><strong>Defense Time Period</strong>: Supports time-based configuration for full defense mode and half defense mode</li>
+  </ul>
+</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>RTC Module</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>go2rtc</strong>: Built on <a href="https://github.com/AlexxIT/go2rtc">go2rtc</a> source; vendor pulled by install script</li>
+    <li><strong>Nine-Brand P2P Bridging</strong>:
+      <ul style="margin: 4px 0; padding-left: 18px; line-height: 1.7;">
+        <li><strong>Tapo</strong> (TP-Link) — home/store IPC, cloud-password connect + two-way audio</li>
+        <li><strong>Tuya</strong> — mass white-label/OEM camera onboarding</li>
+        <li><strong>Ring</strong> (Amazon) — doorbells/outdoor cams for overseas sites</li>
+        <li><strong>Nest</strong> (Google) — Nest Cam / Doorbell for premium projects</li>
+        <li><strong>Xiaomi</strong> (Mi Home) — domestic fleet reuse without Micam</li>
+        <li><strong>Wyze</strong> — ultra-low-cost IPC for pilots and wide fill-in</li>
+        <li><strong>DoorBird</strong> — smart doorbell entry intercom + video</li>
+        <li><strong>GoPro</strong> — HERO9–12 mobile views / emergency patrol</li>
+        <li><strong>Roborock</strong> — vacuum cameras for moving under-furniture views</li>
+      </ul>
+    </li>
+    <li><strong>Unified Management API</strong>: Platform registry, stream URL builder, go2rtc REST proxy; default ports 6100 (mgmt) / 1984 (WebUI) / 8554 (RTSP)</li>
+    <li><strong>Full VIDEO Pipeline</strong>: P2P ingest → standard RTSP → SRS relay → Web playback and AI analysis—consumer and pro cameras under one ops model</li>
+    <li><strong>Docker All-in-One</strong>: Single container runs go2rtc core + Python management service; host network for P2P LAN access</li>
   </ul>
 </td>
 </tr>

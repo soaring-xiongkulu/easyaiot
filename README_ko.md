@@ -42,7 +42,7 @@ EasyAIoT 공식 웹사이트: [http://36.111.47.113:8090/](http://36.111.47.113:
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-플랫폼은 <strong>WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간·스냅샷 알고리즘 작업, YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·3단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 합니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
+플랫폼은 <strong>WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>RTC 소비자급 카메라 P2P 브리지</strong>(go2rtc 기반, <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드 지원 — 매장 Tapo 보완, Tuya 화이트라벨, 해외 Ring/Nest 초인종, Xiaomi 재활용, Wyze 저비용 확장, DoorBird 대화, GoPro 기동 시점, Roborock 청소기 카메라 — Web 원클릭 접속으로 통합 영상·AI 판정), <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간·스냅샷 알고리즘 작업, YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·3단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 합니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -83,6 +83,37 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
 | ![원클릭 배포](.image/banner/panel/panel_1003.png) | ![이미지 준비](.image/banner/panel/panel_1004.png) | ![이미지 pull](.image/banner/panel/panel_1005.png) |
 | ![시스템 진단](.image/banner/panel/panel_1006.png) | ![시스템 유지보수](.image/banner/panel/panel_1007.png) | ![서비스 토폴로지](.image/banner/panel/panel_1008.png) |
 
+### 📡 RTC: 소비자급 카메라 P2P 브리지 — 「RTSP 없음」 장치도 플랫폼에
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+가정, 매장, 경량 보안 현장에서 이미 사용 중인 <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 등은 벤더 전용 P2P 프로토콜을 사용하며 <strong>표준 RTSP를 제공하지 않습니다</strong>. EasyAIoT는 <a href="https://github.com/AlexxIT/go2rtc" style="color: #3498db; text-decoration: none; font-weight: 600;">go2rtc</a> 기반 <strong>RTC 모듈</strong>로 <strong>9대 브랜드의 스트리밍·양방향 오디오를 통합</strong> — GB28181/ONVIF와 동일하게 등록, 미리보기, 릴레이, AI 작업, 경보 연동이 가능합니다.
+</p>
+
+<table style="width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 14px;">
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; width: 14%;">브랜드</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; width: 18%;">제조사</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; width: 28%;">대표 장치</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600;">가치</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Tapo</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">TP-Link</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">가정/매장 IPC</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">저비용 사각지대 보완; 양방향 오디오</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Tuya</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">Tuya Smart</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">Tuya 생태 IPC</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">화이트라벨/OEM 대량 온보딩</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Ring</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">Amazon</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">초인종, 실외 카메라</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">해외 초인종 모니터링</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Nest</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">Google</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">Nest Cam, Doorbell</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">Google 생태 프리미엄 현장</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Xiaomi</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">Mi Home</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">Mi Home 카메라</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">기존 설치 장치 재활용</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Wyze</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">Wyze</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">Wyze Cam v3/v4</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">초저비용 확장</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>DoorBird</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">DoorBird</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">스마트 초인종</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">프리미엄 출입 대화</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>GoPro</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">GoPro</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">HERO9–12</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">기동 순찰 시점</td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>Roborock</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0;">Roborock</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">카메라 청소기</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">가구 아래 이동 시점</td></tr>
+</table>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Web 원클릭 접속</strong>: 「RTC 카메라 접속」브랜드별 동적 폼</li>
+  <li><strong>전체 파이프라인</strong>: WEB → VIDEO <code>/register/device/rtc-live</code> → RTC API → go2rtc P2P → RTSP → SRS → Jessibuca + AI</li>
+  <li><strong>양방향 오디오</strong>: Tapo, Tuya, Ring, Wyze, DoorBird, Roborock</li>
+  <li><strong>수명주기 동기화</strong>: 장치 삭제 시 go2rtc 스트림 자동 정리</li>
+  <li><strong>Docker 올인원</strong>: <code>bash RTC/install_linux.sh start</code>로 go2rtc + Python 관리 서비스 실행; P2P LAN용 host network</li>
+</ul>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
+📖 자세한 내용: <a href="RTC/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">RTC 모듈 README</a>
+</p>
+
 ### 🎯 세 가지 하드웨어, 하나의 플랫폼
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -115,8 +146,9 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   </li>
   <li><strong>YOLO26 차세대 객체 감지 기능</strong>: 플랫폼에 내장된 최신 세대 객체 감지 기능으로, 별도 설정 없이 실시간 화면 분석과 스냅샷 인식에 바로 활용할 수 있습니다. 동일한 하드웨어에서 더 많은 카메라 채널을 연결하고, 더 빠르게 응답하며, 오탐을 줄일 수 있습니다. 데이터 수집·라벨링·학습부터 배포·추론까지 전 과정을 지원하여, 낮은 비용으로 맞춤형 감지 모델을 지속적으로 개선하고, 안전모 착용, 무단 침입, 화재 위험 등 일반적인 보안·산업 시나리오를 빠르게 커버할 수 있어 「정확히 보고, 빠르게 연산하고, 유연하게 확장」이 기본 역량이 됩니다</li>
   <li><strong>YOLO26 인체 자세 분석</strong>: 객체 감지 기능 위에 인체 키포인트 및 골격 자세 분석을 추가하여, 별도 설정 없이 바로 사용할 수 있습니다. 이미지, 동영상, 카메라 실시간 스트림 세 가지 입력 방식을 지원합니다. 이미지 모드는 골격 주석과 인원 수 통계를 동시에 출력하고, 동영상 모드는 진행률 추적과 결과 다운로드를 지원하며, 카메라 모드는 RTSP/RTMP 실시간 스트림에 연결하여 자세 인식 결과를 오버레이하여 재스트리밍하여 원격 감시 및 행동 분석에 활용할 수 있습니다. 모델 추론 페이지에서 「자세 분석」과 「객체 감지」를 원클릭으로 전환할 수 있으며, 건설 현장 작업 규범, 피트니스 동작 평가, 군중 집결 상황 인식 등 「인체 구조와 동작 형태를 명확히 파악」해야 하는 시나리오에 적합하며, 플랫폼을 「대상을 박스로 표시」에서 「자세를 이해」하는 단계로 한 걸음 더 나아가게 합니다</li>
-  <li><strong>다중 프로토콜 카메라 접근 지원</strong>: GB28181 및 ONVIF 두 가지 주요 비디오 감시 프로토콜을 완전히 지원하여 표준화된 장치 접근 및 관리를 실현합니다. GB28181은 중국 국가 표준으로 국내 주요 감시 장비에 완벽하게 적합하며, ONVIF는 국제 범용 표준으로 전 세계 주요 카메라 브랜드와 광범위하게 호환됩니다. 이중 프로토콜 지원을 통해 플랫폼은 기존 감시 시스템과 원활하게 통합할 수 있으며, 플러그 앤 플레이 장치 접근, 자동 발견 및 통합 관리를 실현하여 장치 접근 장벽을 크게 낮추고 시스템 호환성과 확장성을 향상시키며 대규모 카메라 배포를 위한 견고한 기술 기반을 제공합니다. 또한 동일·교차 서브넷에서 NVR 일괄 스캔·등록·통합 관리 기능을 추가하였으며, 하이크비전·다화·화웨이·이즈비즈·샤오미 등 주요 브랜드를 지원합니다. 장치 네이티브 프로토콜 기반 서브넷 발견, 원클릭 등록, 채널 일괄 가져오기를 제공하여 대규모 감시 장비의 접속 및 운영 비용을 더욱 절감합니다</li>
+  <li><strong>다중 프로토콜 카메라 접근 지원</strong>: GB28181 및 ONVIF 두 가지 주요 비디오 감시 프로토콜을 완전히 지원하여 표준화된 장치 접근 및 관리를 실현합니다. GB28181은 중국 국가 표준으로 국내 주요 감시 장비에 완벽하게 적합하며, ONVIF는 국제 범용 표준으로 전 세계 주요 카메라 브랜드와 광범위하게 호환됩니다. 이중 프로토콜 지원을 통해 플랫폼은 기존 감시 시스템과 원활하게 통합할 수 있으며, 플러그 앤 플레이 장치 접근, 자동 발견 및 통합 관리를 실현하여 장치 접근 장벽을 크게 낮추고 시스템 호환성과 확장성을 향상시키며 대규모 카메라 배포를 위한 견고한 기술 기반을 제공합니다. 또한 동일·교차 서브넷에서 NVR 일괄 스캔·등록·통합 관리 기능을 추가하였으며, 하이크비전·다화·화웨이·이즈비즈·샤오미 등 주요 브랜드를 지원합니다. 장치 네이티브 프로토콜 기반 서브넷 발견, 원클릭 등록, 채널 일괄 가져오기를 제공합니다. Mi Home 등 RTSP 미지원 소비자급 카메라는 <strong>RTC 모듈(go2rtc 브리지)</strong>로 동일 플랫폼에 통합하여 대규모 감시 장비 접속·운영 비용을 더욱 절감합니다</li>
   <li><strong>DJI 도크 / 드론 공중 시야 접속</strong>: 고정 카메라의 「지면만 보고 광역 커버가 어렵다」는 한계를 넘어, DJI FlightHub 체계의 도크·드론 고공 영상을 플랫폼 통합 영상·AI 판정 루프에 포함합니다. 스트리밍 모듈의 「DJI 라이브 접속」: <strong>FlightHub API로 라이브 시작</strong>과 <strong>수동 라이브 소스</strong> 두 가지 접속 방식을 지원 — API 모드에서 원클릭으로 제조사 라이브 스트림을 수신하고 장치를 자동 등록; 수동 모드는 RTSP / RTMP / HTTP-FLV / HLS 등 라이브 소스를 직접 입력. 접속 후 공중 화면은 GB28181/ONVIF 고정 포인트와 동일 화면으로 공관할 수 있으며, 관리자는 고정 카메라처럼 도크·기체 실황을 조회하고 실시간 AI 분석, 경보 연동, 증거 보관을 추가로 연결할 수 있습니다 — 광역 순찰, 비상 정찰, 주경계 보완 등 고정 포인트로는 닿기 어려운 시나리오를 빠르게 커버하고 「발견—위치 확정—대응」 응답 체인을 크게 단축하여, 스마트 보안을 평면 배치에서 천지일체 협동 감지로 고도화합니다.</li>
+  <li><strong>RTC 소비자급 카메라 P2P 브리지</strong>: <strong>Tapo, Tuya, Ring/Nest, Xiaomi Mi Home, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드를 한 번에 — 표준 RTSP 미지원. go2rtc 기반 RTC 모듈이 P2P 브리지와 통합 관리 API 제공. Web 콘솔 「RTC 카메라 접속」브랜드별 폼/OAuth; 브리지 후 소비자급·GB28181/ONVIF 전문 카메라 <strong>동일 화면·AI 작업·경보 연동</strong></li>
   <li><strong>실시간 인터콤 및 PTZ 원격 제어</strong>: 전통적인 감시의 「볼 수만 있고, 관리할 수 없는」 한계를 돌파합니다. 감시 담당자는 실시간 미리보기 화면에서 음성 방송과 PTZ 제어를 동시에 수행할 수 있습니다 — 시스템 전환 없이, 현장 방문 없이 원격 소통, 대피 유도, 위반 행위 제지가 가능하며, 대응을 「현장 파견」에서 「말하면 즉시 도달」로 압축합니다. PTZ 제어로 카메라를 자유롭게 회전·줌·포커스할 수 있어, 돌발 상황 시 사고 지역을 신속히 조준하고 세부 사항을 확대하여 「잘 보고, 정확히 지시하고, 말하면 전달된다」는 일체화된 현장 대응 선순환을 형성합니다. GB28181 및 ONVIF 장치와 완벽 호환, 기존 감시 자산을 활용하고 별도의 인터콤 장비나 서드파티 소프트웨어 없이 배포된 카메라에 즉시 원격 소통 및 유연한 디스패치 기능을 부여하여, 시스템 사일로와 감시 비용을 크게 절감합니다</li>
   <li><strong>오케스트레이션 가능한 알고리즘 후처리</strong>: 「검출은 되지만 판단이 어렵다」는 역량 병목을 돌파하여, 객체 감지 위에 독립적인 업무 판단 계층을 추가하고 화면 인식 결과를 운영·추적·통계 가능한 업무 이벤트로 전환합니다. 작업별로 인원 집계, 경계선 통과, 체류 시간 초과, 구역 장기 체류, 다중 조건 복합 경보 등 시나리오 규칙을 유연하게 정의할 수 있어, 모델을 반복 조정하지 않고도 건설 현장 안전 감독, 단지 보안, 교통 통제 등 차별화된 요구에 빠르게 적응하고, 범용 시각 역량을 현장에 밀착한 관리 도구로 단련합니다. 후처리와 실시간 분석은 서로 독립적으로 병렬 운영됩니다 — 감시 화면은 끊김 없이 판단을 지속하고, 업무 로직은 필요에 따라 탄력적으로 확장되며, 판단 결과는 자동으로 축적·보관되어 정밀 경보를 구동하여 오탐·미탐과 수동 검토 비용을 크게 절감합니다. 업무 담당자는 규칙 표현에 집중하고, 플랫폼이 배포·실행·규모 확장을 담당하여 「볼 수 있다」에서 「명확히 판단하고, 통제하며, 실제로 활용한다」로 나아갑니다</li>
   <li><strong>다중 센터 노드 × 다중 워커 노드 연합 클러스터</strong>: 지역 간·다중 데이터센터·클라우드-엣지 협업 배포를 위해 플랫폼은 「N개 센터 노드 + N개 워커 노드」 연합 아키텍처를 채택합니다 — 센터 노드가 통합 오케스트레이션을, 워커 노드가 연산·미디어 실행을 담당하며 수평 확장이 가능합니다. 각 센터 노드는 소속 워커 노드를 관리하고, 스트리밍, 오디오·비디오 트랜스코딩, 영상 분석, 모델 추론·학습 등 역량의 원격 배포와 원클릭 배치를 지원합니다. 다중 센터 노드 간 상호 연동·동기화가 가능하며, 클러스터 스윔레인 뷰에서 「센터—워커」 토폴로지와 자원 수위를 직관적으로 표시합니다. 알고리즘 태스크, 자동 라벨링 파이프라인, 스트림 릴레이 등 워크로드는 노드 역할과 GPU 역량에 따라 지능적으로 스케줄링되어, 대량 스트림 접속·고동시성 추론·분산 학습이 동일 클러스터에서 협력 실행됩니다 — 「등록 용이, 스케줄 명확, 확장 유연, 통합 관리」를 실현합니다</li>
@@ -291,7 +323,7 @@ Java는 안정적이고 신뢰할 수 있는 플랫폼 아키텍처 구축에 �
 ### 🏗️ 프로젝트 아키텍처 특징
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-EasyAIoT는 사실 하나의 프로젝트가 아닌, 아홉 개의 프로젝트입니다.
+EasyAIoT는 사실 하나의 프로젝트가 아닌, WEB, DEVICE, VIDEO, RTC, AI 등 여러 독립 배포 가능한 하위 프로젝트로 구성됩니다.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -353,7 +385,7 @@ EasyAIoT는 현지화 전략에 적극적으로 대응하며, 현지화 하드�
 ## 🧩 프로젝트 구조
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE 등 핵심 모듈로 구성되며, COMPILE 다중 플랫폼 패키징·납품 능력을 함께 제공합니다:
+EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, TASK, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE 등 핵심 모듈로 구성되며, COMPILE 다중 플랫폼 패키징·납품 능력을 함께 제공합니다:
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
@@ -374,7 +406,13 @@ EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM,
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>WEB 모듈</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">프론트엔드 관리 인터페이스로, 통일된 사용자 상호작용 경험을 제공합니다.</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>통합 관리 UI</strong>: 프론트엔드 관리 인터페이스, 일관된 사용자 경험</li>
+    <li><strong>다중 프로토콜 온보딩</strong>: IPC / NVR / GB28181 / RTC; ONVIF, 교차 서브넷 스캔, RTSP, DJI 라이브, 소비자급 P2P</li>
+    <li><strong>RTC 플랫폼 접속</strong>: 「RTC 카메라 접속」<strong>Tapo / Tuya / Ring / Nest / Xiaomi / Wyze / DoorBird / GoPro / Roborock</strong> 브랜드별 동적 폼; OAuth는 go2rtc WebUI 바인딩</li>
+  </ul>
+</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>APP 모듈</strong></td>
@@ -382,7 +420,7 @@ EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM,
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>멀티 채널 접근</strong>: 한 번 구축, 여러 단말 — 스마트폰, 미니 프로그램, App</li>
     <li><strong>기능 일치</strong>: PC 관리 콘솔과 동일한 업무 기능, 멀티 테넌트 전환 지원</li>
-    <li><strong>디바이스 관리</strong>: 직접 연결 카메라, GB28181, NVR 등 통합 관리, 온라인 상태·채널 탐색, 상세에서 원터치 실시간 미리보기</li>
+    <li><strong>디바이스 관리</strong>: 직접 연결 카메라, GB28181, NVR, RTC 소비자급 카메라 등 통합 관리, 온라인 상태·채널 탐색, 상세에서 원터치 실시간 미리보기</li>
     <li><strong>스트림 전달</strong>: 작업 생성, 시작/중지, 클러스터 노드 상태 및 다중 스트림 URL 조회</li>
     <li><strong>알고리즘 작업</strong>: 실시간/스냅샷 알고리즘 작업 목록, 시작/중지 제어 및 검출/프레임 통계</li>
     <li><strong>경보 센터</strong>: 경보 이벤트 검색, 스냅샷 미리보기, 경보 녹화 VOD 재생</li>
@@ -424,9 +462,23 @@ EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, AI, TASK, EDGE, VISUALIZE, TRANSFORM,
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>스트리밍 미디어 처리</strong>: RTSP/RTMP 스트림 실시간 처리 및 전송 지원</li>
+    <li><strong>다중 프로토콜 카메라 접속</strong>: GB28181, ONVIF, NVR 일괄 스캔, DJI FlightHub 라이브, RTC 소비자급 카메라 통합 관리</li>
+    <li><strong>RTC 연동 API</strong>: <code>/register/device/rtc-live</code> 원클릭 go2rtc 스트림 등록·장치 등록; 삭제 시 RTC 스트림 자동 정리</li>
     <li><strong>알고리즘 태스크 관리</strong>: 실시간 알고리즘 태스크와 캡처 알고리즘 태스크 두 가지 유형을 지원하며, 각각 실시간 영상 분석과 캡처 이미지 분석에 사용됩니다.</li>
     <li><strong>프레임 추출기 및 정렬기</strong>: 유연한 프레임 추출 전략과 결과 정렬 메커니즘을 지원하며, 각 알고리즘 태스크는 독립적인 프레임 추출기와 정렬기에 바인딩할 수 있습니다.</li>
-    <li><strong>방어 시간대</strong>: 완전 방어 모드와 반방어 모드의 시간대별 구성 지원</li>
+    <li><strong>방범 시간대</strong>: 전체 방범 모드 및 반방범 모드의 시간대별 구성 지원</li>
+  </ul>
+</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>RTC 모듈</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>go2rtc</strong>: <a href="https://github.com/AlexxIT/go2rtc">go2rtc</a> 소스 기반; install 스크립트로 vendor pull</li>
+    <li><strong>9대 브랜드 P2P 브리지</strong>: Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</li>
+    <li><strong>통합 관리 API</strong>: 플랫폼 레지스트리, 스트림 URL 빌더, go2rtc REST 프록시; 포트 6100 / 1984 / 8554</li>
+    <li><strong>VIDEO 전체 파이프라인</strong>: P2P → RTSP → SRS → Web + AI</li>
+    <li><strong>Docker 올인원</strong>: go2rtc + Python 관리 서비스; P2P LAN용 host network</li>
   </ul>
 </td>
 </tr>
