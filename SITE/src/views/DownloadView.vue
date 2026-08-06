@@ -1,7 +1,40 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import SectionReveal from '../components/SectionReveal.vue'
-import { packages, profiles, RELEASES_URL } from '../data/downloads'
+import {
+  packages,
+  platformGroups,
+  profiles,
+  RELEASES_URL,
+  type DownloadPackage,
+} from '../data/downloads'
 import { LINKS } from '../data/site'
+
+const activeGroup = ref<string>('all')
+
+const filters = [
+  { id: 'all', label: '全部' },
+  ...platformGroups.map((g) => ({ id: g.id, label: g.title })),
+]
+
+const filteredPackages = computed(() => {
+  const group = activeGroup.value
+  if (group === 'all') return packages
+  if (group === 'domestic') {
+    return packages.filter((item) => item.category === 'domestic')
+  }
+  if (group === 'deb') {
+    return packages.filter((item) => item.format.includes('.deb'))
+  }
+  if (group === 'rpm') {
+    return packages.filter((item) => item.format.includes('.rpm'))
+  }
+  return packages.filter((item) => item.category === group)
+})
+
+function packageHref(_item: DownloadPackage) {
+  return RELEASES_URL
+}
 </script>
 
 <template>
@@ -11,7 +44,9 @@ import { LINKS } from '../data/site'
         <SectionReveal>
           <h1 class="display section-title">下载安装包</h1>
           <p class="lead">
-            官方安装包发布于 Gitee Releases。按操作系统与架构选择，再用 mini / standard / full 三档完成到场部署。
+            官方安装包发布于 Gitee Releases。覆盖 Ubuntu、CentOS/RHEL el7–el9（x86 /
+            ARM）、Windows、macOS、麒麟 (Kylin) 与 欧拉 (openEuler)，再按 mini / standard / full
+            三档完成到场部署。
           </p>
           <div class="hero-actions">
             <a class="btn btn-primary" :href="RELEASES_URL" target="_blank" rel="noopener">
@@ -28,20 +63,71 @@ import { LINKS } from '../data/site'
     <section class="section" style="padding-top: 12px">
       <div class="container">
         <SectionReveal>
-          <h2 class="display section-title">支持的平台</h2>
-          <p class="lead">安装包覆盖常见服务器、桌面与国产化目标环境。</p>
+          <h2 class="display section-title">平台覆盖</h2>
+          <p class="lead">按发行版族系选择，现场系统多一套选择就少一次临时编译。</p>
+        </SectionReveal>
+
+        <div class="group-grid">
+          <SectionReveal
+            v-for="(group, index) in platformGroups"
+            :key="group.id"
+            :class="`reveal-delay-${(index % 3) + 1}`"
+          >
+            <button
+              class="group-chip"
+              type="button"
+              :class="{ active: activeGroup === group.id }"
+              @click="activeGroup = activeGroup === group.id ? 'all' : group.id"
+            >
+              <strong>{{ group.title }}</strong>
+              <span>{{ group.summary }}</span>
+            </button>
+          </SectionReveal>
+        </div>
+      </div>
+    </section>
+
+    <section class="section package-section">
+      <div class="container">
+        <SectionReveal>
+          <div class="package-head">
+            <div>
+              <h2 class="display section-title">支持的安装包</h2>
+              <p class="lead">按操作系统与架构选择对应格式，点击前往 Releases 下载。</p>
+            </div>
+            <div class="filter-bar" role="tablist" aria-label="按平台筛选">
+              <button
+                v-for="item in filters"
+                :key="item.id"
+                class="filter-btn"
+                type="button"
+                role="tab"
+                :aria-selected="activeGroup === item.id"
+                :class="{ active: activeGroup === item.id }"
+                @click="activeGroup = item.id"
+              >
+                {{ item.label }}
+              </button>
+            </div>
+          </div>
         </SectionReveal>
 
         <div class="package-list">
           <SectionReveal
-            v-for="(item, index) in packages"
+            v-for="(item, index) in filteredPackages"
             :key="item.id"
             :class="`reveal-delay-${(index % 3) + 1}`"
           >
-            <a class="package-row" :href="RELEASES_URL" target="_blank" rel="noopener">
-              <div>
-                <h3>{{ item.platform }}</h3>
+            <a class="package-row" :href="packageHref(item)" target="_blank" rel="noopener">
+              <div class="package-main">
+                <div class="package-title-row">
+                  <h3>{{ item.platform }}</h3>
+                  <span class="format-tag">{{ item.format }}</span>
+                </div>
                 <p>{{ item.note }}</p>
+                <div class="highlights">
+                  <span v-for="tag in item.highlights" :key="tag">{{ tag }}</span>
+                </div>
               </div>
               <div class="package-side">
                 <span>{{ item.arch }}</span>
@@ -87,13 +173,14 @@ import { LINKS } from '../data/site'
         <SectionReveal>
           <h2 class="display">快速开始</h2>
           <ol>
-            <li>在 Gitee Releases 下载对应系统的安装包。</li>
+            <li>在 Gitee Releases 下载对应系统与架构的安装包（.deb / .rpm / .exe / .dmg）。</li>
             <li>安装后通过 PANEL 选择 mini / standard / full 完成装机。</li>
             <li>打开 WEB 管控台，接入摄像头与设备，启动算法任务。</li>
           </ol>
           <div class="links">
             <a :href="LINKS.github" target="_blank" rel="noopener">GitHub 镜像</a>
             <a :href="LINKS.gitee" target="_blank" rel="noopener">Gitee 仓库</a>
+            <a :href="LINKS.compileReadme" target="_blank" rel="noopener">COMPILE 说明</a>
           </div>
         </SectionReveal>
       </div>
@@ -107,6 +194,96 @@ import { LINKS } from '../data/site'
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 28px;
+}
+
+.group-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 32px;
+}
+
+.group-chip {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 18px 16px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.25s var(--ease),
+    background 0.25s var(--ease),
+    transform 0.25s var(--ease);
+}
+
+.group-chip:hover {
+  border-color: rgba(47, 111, 237, 0.35);
+  transform: translateY(-1px);
+}
+
+.group-chip.active {
+  border-color: rgba(47, 111, 237, 0.55);
+  background: rgba(47, 111, 237, 0.06);
+}
+
+.group-chip strong {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.group-chip span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.package-section {
+  padding-top: 8px;
+}
+
+.package-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-btn {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    color 0.2s var(--ease);
+}
+
+.filter-btn:hover {
+  border-color: rgba(47, 111, 237, 0.35);
+  color: var(--brand-deep);
+}
+
+.filter-btn.active {
+  border-color: transparent;
+  background: var(--brand);
+  color: #fff;
 }
 
 .package-list {
@@ -129,12 +306,33 @@ import { LINKS } from '../data/site'
   color: var(--brand-deep);
 }
 
+.package-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
 .package-row h3 {
-  margin: 0 0 6px;
+  margin: 0;
   font-family: var(--font-display);
   font-size: 22px;
   font-weight: 700;
   line-height: 1.35;
+}
+
+.format-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  font-family: var(--font-brand);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .package-row p {
@@ -142,13 +340,39 @@ import { LINKS } from '../data/site'
   color: var(--muted);
 }
 
+.highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.highlights span {
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 4px 0;
+}
+
+.highlights span::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--brand);
+  vertical-align: 1px;
+}
+
 .package-side {
   display: grid;
   justify-items: end;
   gap: 8px;
-  min-width: 120px;
+  min-width: 140px;
   color: var(--ink-soft);
   font-size: 14px;
+  text-align: right;
 }
 
 .package-side strong {
@@ -221,6 +445,10 @@ import { LINKS } from '../data/site'
 }
 
 @media (max-width: 900px) {
+  .group-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .profile-grid {
     grid-template-columns: 1fr;
   }
@@ -232,6 +460,17 @@ import { LINKS } from '../data/site'
 
   .package-side {
     justify-items: start;
+    text-align: left;
+  }
+
+  .package-head {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .group-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
