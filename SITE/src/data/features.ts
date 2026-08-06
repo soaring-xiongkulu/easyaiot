@@ -19,6 +19,18 @@ export const features: FeatureItem[] = [
     image: '/images/feature-video.jpg',
   },
   {
+    id: 'rtc',
+    title: '消费级摄像头 P2P 桥接',
+    summary:
+      '基于 go2rtc，把 Tapo、涂鸦、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock 等无 RTSP 设备纳入同一平台。',
+    points: [
+      '九大品牌 Web 一键接入，OAuth 平台经 go2rtc WebUI 绑定',
+      'P2P 取流 → 标准 RTSP → SRS 推流 → 播放与 AI 分析',
+      '双向对讲、设备删除自动清理流，与国标/ONVIF 同屏共管',
+    ],
+    image: '/images/feature-rtc.jpg',
+  },
+  {
     id: 'ai',
     title: 'AI 算法与联邦算力',
     summary: '从标注、训练到推理调度，同一套平台贯通视觉智能闭环。',
