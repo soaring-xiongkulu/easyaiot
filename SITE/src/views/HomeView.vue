@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import SectionReveal from '../components/SectionReveal.vue'
-import { profiles } from '../data/downloads'
+import { packages, platformGroups, profiles } from '../data/downloads'
 import { TAGLINE } from '../data/site'
+
+const platformCount = packages.length
 </script>
 
 <template>
@@ -16,7 +18,7 @@ import { TAGLINE } from '../data/site'
         <h1 class="brand-title hero-anim">EasyAIoT</h1>
         <p class="hero-line hero-anim delay-1">{{ TAGLINE }}</p>
         <p class="hero-support hero-anim delay-2">
-          同一套软件贯穿边缘盒子、AI 一体摄像头与全栈一体机——从设备接入到视觉研判，全链路贯通。
+          同一套软件贯穿边缘盒子、AI 一体摄像头与全栈一体机；安装包覆盖 Ubuntu、CentOS、Windows、macOS、麒麟 (Kylin) 与 欧拉 (openEuler)。
         </p>
         <div class="hero-actions hero-anim delay-3">
           <RouterLink class="btn btn-primary" to="/download">立即下载</RouterLink>
@@ -58,6 +60,32 @@ import { TAGLINE } from '../data/site'
       </div>
     </section>
 
+    <section class="section platform-section">
+      <div class="container grid-2">
+        <SectionReveal>
+          <h2 class="display section-title">更多系统，直接下载</h2>
+          <p class="lead">
+            现已提供 {{ platformCount }} 类官方安装包：Debian 系 .deb、CentOS/RHEL el7–el9（x86 /
+            ARM）.rpm、Windows / macOS 桌面包，以及 麒麟 (Kylin) / 欧拉 (openEuler)——到场少一次临时编译。
+          </p>
+          <ul class="platform-points">
+            <li v-for="group in platformGroups" :key="group.id">
+              <strong>{{ group.title }}</strong>
+              <span>{{ group.summary }}</span>
+            </li>
+          </ul>
+          <div class="cta-row">
+            <RouterLink class="btn btn-outline" to="/download">查看全部安装包</RouterLink>
+          </div>
+        </SectionReveal>
+        <SectionReveal class="reveal-delay-2">
+          <div class="media-frame">
+            <img src="/images/platform-coverage.jpg" alt="多操作系统安装包覆盖" />
+          </div>
+        </SectionReveal>
+      </div>
+    </section>
+
     <section class="section loop-section">
       <div class="container grid-2">
         <SectionReveal>
@@ -81,7 +109,7 @@ import { TAGLINE } from '../data/site'
       <div class="container close-inner">
         <SectionReveal>
           <h2 class="display">开始你的云边端智能落地</h2>
-          <p>安装包已就绪。选好系统与部署档位，当天即可装机验收。</p>
+          <p>多系统安装包已就绪。选好操作系统与部署档位，当天即可装机验收。</p>
           <RouterLink class="btn btn-primary" to="/download">前往下载</RouterLink>
         </SectionReveal>
       </div>
@@ -262,6 +290,36 @@ import { TAGLINE } from '../data/site'
 
 .cta-row {
   margin-top: 24px;
+}
+
+.platform-section {
+  background: linear-gradient(180deg, rgba(47, 111, 237, 0.035), transparent);
+}
+
+.platform-points {
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.platform-points li {
+  display: grid;
+  gap: 2px;
+}
+
+.platform-points strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.platform-points span {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .loop-section {

@@ -52,6 +52,18 @@ export const features: FeatureItem[] = [
     image: '/images/feature-panel.jpg',
   },
   {
+    id: 'platforms',
+    title: '多系统安装包与国产化',
+    summary:
+      'Ubuntu、CentOS/RHEL、Windows、macOS、麒麟 (Kylin)、欧拉 (openEuler) 一套交付口径，按现场系统直接下载安装。',
+    points: [
+      'Ubuntu / Debian .deb（amd64 / arm64，内置 runtime）',
+      'CentOS/RHEL el7–el9 x86 与 ARM 分版本 .rpm；Windows NSIS、macOS .dmg / .app',
+      '麒麟 (Kylin) ARM64 .deb、欧拉 (openEuler) .rpm 国产化适配',
+    ],
+    image: '/images/feature-platforms.jpg',
+  },
+  {
     id: 'visualize',
     title: '可视化大屏与组态',
     summary: '设备数据既能展成指挥态势，也能落回工艺画面。',

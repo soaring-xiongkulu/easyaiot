@@ -14,12 +14,13 @@ export const docs: DocLink[] = [
   },
   {
     title: 'COMPILE 打包交付',
-    description: '多平台安装包与可执行文件产出说明。',
+    description:
+      'Ubuntu / CentOS el7–el9 x86/ARM、Windows、macOS、麒麟 (Kylin)、欧拉 (openEuler) 全量打包说明。',
     href: LINKS.compileReadme,
   },
   {
     title: 'Gitee Releases',
-    description: '官方安装包发布页，按系统与架构下载。',
+    description: '官方安装包发布页，按系统、架构与包格式下载。',
     href: LINKS.releases,
   },
   {

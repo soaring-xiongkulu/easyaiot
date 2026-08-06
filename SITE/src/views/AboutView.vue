@@ -58,7 +58,7 @@ import { LINKS, MISSION, TAGLINE } from '../data/site'
       <div class="container close">
         <SectionReveal>
           <h2 class="display">从下载开始</h2>
-          <p>获取安装包，选择适合现场的部署档位，把云边端智能落到实处。</p>
+          <p>按操作系统下载安装包，选择适合现场的部署档位，把云边端智能落到实处。</p>
           <RouterLink class="btn btn-primary" to="/download">前往下载</RouterLink>
         </SectionReveal>
       </div>

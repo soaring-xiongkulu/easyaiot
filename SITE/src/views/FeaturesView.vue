@@ -33,7 +33,9 @@ import { features } from '../data/features'
       <div class="container cta">
         <SectionReveal>
           <h2 class="display">准备好落地了吗？</h2>
-          <p>按系统与架构下载安装包，三档部署任选。</p>
+          <p>
+            Ubuntu / CentOS / Windows / macOS / 麒麟 (Kylin) / 欧拉 (openEuler)，按系统与架构下载，三档部署任选。
+          </p>
           <RouterLink class="btn btn-primary" to="/download">前往下载</RouterLink>
         </SectionReveal>
       </div>
