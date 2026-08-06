@@ -450,6 +450,7 @@ collect_key_paths_report() {
     print_path_row "安装/运行脚本日志" ".scripts/docker/logs"
     print_path_row "Device 模块" "DEVICE"
     print_path_row "AI 模块" "AI"
+    print_path_row "RTC 模块" "RTC"
     print_path_row "Video 模块" "VIDEO"
     print_path_row "Web 模块" "WEB"
     print_path_row "App 模块" "APP"

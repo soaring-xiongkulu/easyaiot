@@ -32,7 +32,7 @@
 #                    - pull:  不指定则交互选择（默认 full）；指定则直接拉取该形态
 #   --arch <arch>    指定构建架构：all | amd64 | arm64（默认 all=全部架构）
 #                    单架构模式仅构建/推送该架构镜像，跳过多架构 manifest 更新
-#   --module <mod>   指定构建模块：all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL（默认 all=全部）
+#   --module <mod>   指定构建模块：all | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL（默认 all=全部）
 #                    单模块模式仅构建/推送该模块镜像，跳过全量 install_linux.sh build
 #   --native-source  使用原始源（非国内镜像源），默认使用腾讯云镜像源加速
 #
@@ -58,6 +58,7 @@
 #   共享镜像（全形态通用，pull 时按形态跳过不会启动的 DEVICE 服务）:
 #     docker.cnb.cool/holmesian/easyaiot/aiot-ai:amd64       → ai-service:latest
 #     docker.cnb.cool/holmesian/easyaiot/aiot-video:amd64    → video-service:latest
+#     docker.cnb.cool/holmesian/easyaiot/aiot-rtc:amd64      → rtc-service:latest
 #     docker.cnb.cool/holmesian/easyaiot/aiot-panel:amd64    → easyaiot/panel:latest
 #     mini 仅拉 aiot-system；standard 跳过 aiot-device/aiot-tdengine/aiot-visualize；full 拉全部 DEVICE
 #   形态相关镜像（WEB，全量形态均构建/推送）:
@@ -221,7 +222,7 @@ fi
 if [ -n "${EASYAIOT_RUNTIME_BUILD_MODULE:-}" ]; then
     _bm_norm=$(runtime_normalize_build_module "$EASYAIOT_RUNTIME_BUILD_MODULE")
     if [ "$_bm_norm" = "INVALID" ]; then
-        print_error "无效的目标模块: ${EASYAIOT_RUNTIME_BUILD_MODULE}，可选: all | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
+        print_error "无效的目标模块: ${EASYAIOT_RUNTIME_BUILD_MODULE}，可选: all | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
         exit 1
     fi
     if [ -n "$_bm_norm" ]; then
@@ -788,13 +789,13 @@ local_image_ready() {
 all_build_plan_images_ready_for_arch() {
     local target_arch="$1" profile mapping tmp rname lname
 
-    if runtime_build_includes_module AI || runtime_build_includes_module VIDEO || runtime_build_includes_module PANEL; then
+    if runtime_build_includes_module AI || runtime_build_includes_module RTC || runtime_build_includes_module VIDEO || runtime_build_includes_module PANEL; then
         for mapping in "${INDEPENDENT_MODULES[@]}"; do
             rname="${mapping%%|*}"; tmp="${mapping#*|}"; lname="${tmp%%|*}"
             is_profile_dependent "$rname" && continue
             local _imod="${mapping##*|}"
             case "$_imod" in
-                AI|VIDEO|PANEL) runtime_build_includes_module "$_imod" || continue ;;
+                AI|RTC|VIDEO|PANEL) runtime_build_includes_module "$_imod" || continue ;;
                 *) continue ;;
             esac
             local_image_ready "$lname" "" "$target_arch" || return 1
@@ -953,6 +954,7 @@ build_single_module() {
 
     case "$remote_name" in
         aiot-ai)    build_module_with_install_script "AI" "ai-service" "$local_ref" "$target_arch" ;;
+        aiot-rtc)   build_module_with_install_script "RTC" "rtc-service" "$local_ref" "$target_arch" ;;
         aiot-video) build_module_with_install_script "VIDEO" "video-service" "$local_ref" "$target_arch" ;;
         aiot-web)   build_module_with_install_script "WEB" "web-service" "$local_ref" "$target_arch" ;;
         aiot-app)   build_module_with_install_script "APP" "app-service" "$local_ref" "$target_arch" ;;
@@ -1018,13 +1020,13 @@ count_planned_images_for_arch() {
     local -a profiles=("$@")
     local count=0 mapping rname _bp
 
-    if runtime_build_includes_module AI || runtime_build_includes_module VIDEO || runtime_build_includes_module PANEL; then
+    if runtime_build_includes_module AI || runtime_build_includes_module RTC || runtime_build_includes_module VIDEO || runtime_build_includes_module PANEL; then
         for mapping in "${INDEPENDENT_MODULES[@]}"; do
             rname="${mapping%%|*}"
             is_profile_dependent "$rname" && continue
             local _imod="${mapping##*|}"
             case "$_imod" in
-                AI|VIDEO|PANEL) runtime_build_includes_module "$_imod" || continue ;;
+                AI|RTC|VIDEO|PANEL) runtime_build_includes_module "$_imod" || continue ;;
                 *) continue ;;
             esac
             count=$((count + 1))
@@ -1124,7 +1126,7 @@ build_all_modules() {
     if runtime_is_single_module_build; then
         echo "  构建模块: ${EASYAIOT_RUNTIME_BUILD_MODULE}（单模块）"
     else
-        echo "  构建模块: 全部 (DEVICE + AI + VIDEO + WEB + APP + VISUALIZE + TRANSFORM + PANEL)"
+        echo "  构建模块: 全部 (DEVICE + AI + RTC + VIDEO + WEB + APP + VISUALIZE + TRANSFORM + PANEL)"
     fi
     if runtime_is_single_arch_build; then
         echo "  架构模式: 单架构（跳过多架构 manifest 更新）"
@@ -1246,14 +1248,14 @@ build_all_modules() {
                 ;;
         esac
 
-        # ── 共享模块（AI + VIDEO + PANEL，全形态）──
-        if runtime_build_includes_module AI || runtime_build_includes_module VIDEO || runtime_build_includes_module PANEL; then
+        # ── 共享模块（AI + RTC + VIDEO + PANEL，全形态）──
+        if runtime_build_includes_module AI || runtime_build_includes_module RTC || runtime_build_includes_module VIDEO || runtime_build_includes_module PANEL; then
             for mapping in "${INDEPENDENT_MODULES[@]}"; do
                 local rname="${mapping%%|*}"; local tmp="${mapping#*|}"; local lname="${tmp%%|*}"
                 local _imod="${mapping##*|}"
                 is_profile_dependent "$rname" && continue
                 case "$_imod" in
-                    AI|VIDEO|PANEL) runtime_build_includes_module "$_imod" || continue ;;
+                    AI|RTC|VIDEO|PANEL) runtime_build_includes_module "$_imod" || continue ;;
                     *) continue ;;
                 esac
                 _build_push_track "$rname" "$lname" "" "$target_arch"

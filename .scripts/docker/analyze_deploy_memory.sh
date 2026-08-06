@@ -84,7 +84,7 @@ DEVICE_CONTAINERS=(
     iot-visualize iot-tdengine iot-file iot-message iot-sink iot-gb28181
 )
 APP_CONTAINERS=(
-    ai-service video-service web-service app-service
+    ai-service rtc-service video-service web-service app-service
     pusher-service sorter-service frame-extractor-service
 )
 

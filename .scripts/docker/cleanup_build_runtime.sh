@@ -3,7 +3,7 @@
 # EasyAIoT build-runtime 构建产物清理工具
 # ============================================
 # 清理 build-runtime / runtime_image.sh 构建过程中产生的：
-#   - 本地运行时镜像（ai-service / video-service / web-service / app-service / visualize-service / iot-* 等）
+#   - 本地运行时镜像（ai-service / rtc-service / video-service / web-service / app-service / visualize-service / iot-* 等）
 #   - 远程仓库标签镜像（<registry>/aiot-*:amd64|arm64|latest 等）
 #   - Docker 悬空镜像与 BuildKit 构建缓存
 #   - 项目 .build-cache 与 WEB/dist-prebuilt-* 中间产物（可选）
@@ -485,7 +485,7 @@ warn_running_services() {
         return 0
     fi
     local running
-    running=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -E '^(ai-service|video-service|web-service|app-service|visualize-service|iot-)' || true)
+    running=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -E '^(ai-service|rtc-service|video-service|web-service|app-service|visualize-service|iot-)' || true)
     if [ -n "$running" ]; then
         print_warn "检测到以下容器可能正在使用运行时镜像:"
         echo "$running" | sed 's/^/  /'

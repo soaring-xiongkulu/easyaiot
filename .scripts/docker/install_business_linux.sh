@@ -3,14 +3,14 @@
 # ============================================
 # EasyAIoT 业务系统统一管理脚本
 # ============================================
-# 管理模块: DEVICE、AI、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含中间件；APP/VISUALIZE/TRANSFORM 仅 full；PANEL 全形态）
+# 管理模块: DEVICE、AI、RTC、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含中间件；APP/VISUALIZE/TRANSFORM 仅 full；PANEL 全形态）
 # 各模块实际逻辑委托给对应目录下的 install_linux.sh
 #
 # 用法:
 #   ./install_business_linux.sh <命令> [选项] [模块...]
 #
 # 部署形态（EASYAIOT_DEPLOY_PROFILE）：
-#   mini(1)     - 4G：iot-system + VIDEO/AI/WEB（无可视化）
+#   mini(1)     - 4G：iot-system + VIDEO/AI/RTC/WEB（无可视化）
 #   standard(2) - 16G：不含 TDengine/iot-device/iot-tdengine/iot-visualize 等（含 EMQX）
 #   full(3)     - 全量（默认，约 20G；含 iot-visualize/VISUALIZE、TRANSFORM）
 #
@@ -98,12 +98,13 @@ ensure_industrial_demo_after_business_stack() {
     fi
 }
 
-# 业务模块（按依赖顺序：网关/微服务 -> AI/视频 -> 前端 -> 全量模块 -> 运维控制台）
-ALL_MODULES=(DEVICE AI VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
+# 业务模块（按依赖顺序：网关/微服务 -> AI/RTC/视频 -> 前端 -> 全量模块 -> 运维控制台）
+ALL_MODULES=(DEVICE AI RTC VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
 
 declare -A MODULE_NAMES=(
     [DEVICE]="Device 服务"
     [AI]="AI 服务"
+    [RTC]="RTC 服务"
     [VIDEO]="Video 服务"
     [WEB]="Web 前端"
     [APP]="App 移动端 H5"
@@ -115,6 +116,7 @@ declare -A MODULE_NAMES=(
 declare -A MODULE_PORTS=(
     [DEVICE]="48080"
     [AI]="5000"
+    [RTC]="6100"
     [VIDEO]="6000"
     [WEB]="8888"
     [APP]="9010"
@@ -126,6 +128,7 @@ declare -A MODULE_PORTS=(
 declare -A MODULE_HEALTH_ENDPOINTS=(
     [DEVICE]="/actuator/health"
     [AI]="/actuator/health"
+    [RTC]="/actuator/health"
     [VIDEO]="/actuator/health"
     [WEB]="/health"
     [APP]="/health"
@@ -644,7 +647,7 @@ usage() {
     cat <<EOF
 EasyAIoT 业务系统统一管理脚本
 
-管理模块: DEVICE、AI、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含 Nacos/PostgreSQL 等中间件；APP/VISUALIZE/TRANSFORM 仅 full；PANEL 全形态）
+管理模块: DEVICE、AI、RTC、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含 Nacos/PostgreSQL 等中间件；APP/VISUALIZE/TRANSFORM 仅 full；PANEL 全形态）
 
 用法:
   $0 <命令> [选项] [模块...]
@@ -673,7 +676,7 @@ EasyAIoT 业务系统统一管理脚本
   --continue-on-error    某模块失败后继续执行其余模块
 
 模块:
-  未指定时默认全部（按部署形态过滤），顺序为 DEVICE -> AI -> VIDEO -> WEB -> APP -> VISUALIZE -> TRANSFORM -> PANEL
+  未指定时默认全部（按部署形态过滤），顺序为 DEVICE -> AI -> RTC -> VIDEO -> WEB -> APP -> VISUALIZE -> TRANSFORM -> PANEL
   stop / clean / clean-all 时自动逆序执行
 
 示例:
@@ -692,7 +695,7 @@ EasyAIoT 业务系统统一管理脚本
   运行时镜像仓库配置: .scripts/docker/runtime_registry.conf
   环境变量 EASYAIOT_DEPLOY_PROFILE: mini(1) | standard(2) | full(3，默认)
   build-runtime 可选 EASYAIOT_RUNTIME_BUILD_ARCH: all(默认) | amd64 | arm64（单架构时跳过 manifest）
-  build-runtime 可选 EASYAIOT_RUNTIME_BUILD_MODULE: all(默认) | DEVICE | AI | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL
+  build-runtime 可选 EASYAIOT_RUNTIME_BUILD_MODULE: all(默认) | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL
   日志: $LOG_DIR/
 EOF
 }
