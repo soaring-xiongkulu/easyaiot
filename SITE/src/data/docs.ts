@@ -44,7 +44,7 @@ export const docs: DocLink[] = [
     href: 'https://gitee.com/volara/easyaiot/blob/main/DEVICE/README.md',
   },
   {
-    title: 'RTC 模块（go2rtc）',
+    title: 'RTC 模块',
     description:
       '消费级摄像头 P2P 桥接：九大品牌接入、流管理与 VIDEO 全链路集成说明。',
     href: LINKS.rtcReadme,
