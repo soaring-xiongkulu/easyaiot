@@ -24,6 +24,7 @@
             :initial-kind="deviceCreateInitial.kind"
             :initial-method="deviceCreateInitial.method"
             :initial-brand="deviceCreateInitial.brand"
+            :initial-tab="deviceCreateInitial.tab"
             @back="closeDeviceCreate"
             @success="handleDeviceCreateSuccess"
           />
@@ -58,6 +59,9 @@
                   <Checkbox v-model:checked="enableAi">启用 AI</Checkbox>
                   <Button type="primary" preIcon="material-symbols:flight-takeoff-rounded" @click="openDjiLiveDrawer()">
                     接入大疆直播
+                  </Button>
+                  <Button type="primary" preIcon="mdi:webcam" @click="openRtcDeviceCreate()">
+                    接入 RTC 摄像头
                   </Button>
                   <Button type="primary" preIcon="ant-design:video-camera-add-outlined" @click="openDeviceCreate()">
                     添加设备
@@ -145,6 +149,9 @@
                       <Checkbox v-model:checked="enableAi">启用 AI</Checkbox>
                       <Button type="primary" preIcon="material-symbols:flight-takeoff-rounded" @click="openDjiLiveDrawer()">
                         接入大疆直播
+                      </Button>
+                      <Button type="primary" preIcon="mdi:webcam" @click="openRtcDeviceCreate()">
+                        接入 RTC 摄像头
                       </Button>
                       <Button type="primary" preIcon="ant-design:video-camera-add-outlined" @click="openDeviceCreate()">
                         添加设备
@@ -377,10 +384,12 @@ const deviceCreateInitial = reactive<{
   kind: DeviceKind;
   method: CreateMethod;
   brand: CameraBrand;
+  tab?: string;
 }>({
   kind: 'camera',
   method: 'onvif',
   brand: 'custom',
+  tab: undefined,
 });
 
 // 存储空间组件引用
@@ -993,13 +1002,18 @@ const openAddModal = (type, record = null) => {
   });
 };
 
-function openDeviceCreate(query?: Partial<{ kind: DeviceKind; method: CreateMethod; brand: CameraBrand }>) {
+function openDeviceCreate(query?: Partial<{ kind: DeviceKind; method: CreateMethod; brand: CameraBrand; tab?: string }>) {
   if (query?.kind) {
     deviceCreateInitial.kind = !gb28181Enabled && query.kind === 'gb28181' ? 'camera' : query.kind;
   }
   if (query?.method) deviceCreateInitial.method = query.method;
   if (query?.brand) deviceCreateInitial.brand = query.brand;
+  deviceCreateInitial.tab = query?.tab;
   deviceCreateVisible.value = true;
+}
+
+function openRtcDeviceCreate() {
+  openDeviceCreate({ tab: 'rtc' });
 }
 
 function closeDeviceCreate() {

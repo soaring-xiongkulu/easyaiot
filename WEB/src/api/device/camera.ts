@@ -220,6 +220,63 @@ export const refreshDjiSkylinkLiveByDevice = (deviceId: string, data?: Partial<D
   return commonApi('post', `${CAMERA_PREFIX}/flighthub/live-stream/refresh-device/${deviceId}`, data || {}, {}, false);
 };
 
+// ====================== RTC / go2rtc 消费级摄像头 ======================
+export interface RtcPlatformField {
+  name: string;
+  label: string;
+  required?: boolean;
+  secret?: boolean;
+  placeholder?: string;
+  description?: string;
+}
+
+export interface RtcPlatform {
+  id: string;
+  name: string;
+  vendor: string;
+  schema: string;
+  auth_mode: 'local' | 'cloud' | 'oauth' | 'webui';
+  description: string;
+  fields: RtcPlatformField[];
+  supports_two_way_audio?: boolean;
+  supports_substream?: boolean;
+  notes?: string;
+}
+
+export interface RtcConfig {
+  service_url: string;
+  go2rtc_web_url: string;
+  rtsp_host: string;
+  rtsp_port: number;
+}
+
+export const getRtcConfig = () => {
+  return commonApi('get', `${CAMERA_PREFIX}/rtc/config`) as Promise<RtcConfig>;
+};
+
+export const getRtcPlatforms = () => {
+  return commonApi('get', `${CAMERA_PREFIX}/rtc/platforms`) as Promise<{ platforms: RtcPlatform[] }>;
+};
+
+export const buildRtcStreamUrl = (data: { platform: string; params: Record<string, unknown> }) => {
+  return commonApi('post', `${CAMERA_PREFIX}/rtc/build-url`, data) as Promise<{ platform: string; source: string }>;
+};
+
+export interface RtcLiveRegisterPayload {
+  name?: string;
+  platform?: string;
+  params?: Record<string, unknown>;
+  source?: string;
+  stream_name?: string;
+  stream?: 'main' | 'sub';
+  enable_forward?: boolean;
+  directory_id?: number;
+}
+
+export const registerRtcLiveDevice = (data: RtcLiveRegisterPayload) => {
+  return commonApi('post', `${CAMERA_PREFIX}/register/device/rtc-live`, data);
+};
+
 export const getNvrList = (includeCameras = false) => {
   return commonApi('get', `${CAMERA_PREFIX}/nvr/list`, {
     include_cameras: includeCameras ? 'true' : 'false',

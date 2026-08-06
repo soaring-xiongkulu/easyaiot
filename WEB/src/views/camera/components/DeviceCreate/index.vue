@@ -7,7 +7,7 @@
     </PageHeader>
 
     <Tabs
-      v-model:activeKey="selection.kind"
+      v-model:activeKey="activeTab"
       :animated="{ inkBar: true, tabPane: true }"
       :destroy-inactive-tab-pane="true"
       class="dc-tabs"
@@ -75,12 +75,20 @@
           </div>
         </div>
       </TabPane>
+
+      <TabPane key="rtc" tab="RTC 平台">
+        <div class="dc-pane">
+          <div class="dc-body">
+            <RtcPlatformPanel class="panel-host" @success="handlePanelSuccess" />
+          </div>
+        </div>
+      </TabPane>
     </Tabs>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { reactive, watch } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import { PageHeader, Tabs } from 'ant-design-vue';
 import { Button } from '@/components/Button';
 import {
@@ -94,6 +102,7 @@ import SegmentScanPanel from './panels/SegmentScanPanel.vue';
 import DirectRtspPanel from './panels/DirectRtspPanel.vue';
 import NvrManualPanel from './panels/NvrManualPanel.vue';
 import Gb28181AccessPanel from './panels/Gb28181AccessPanel.vue';
+import RtcPlatformPanel from './panels/RtcPlatformPanel.vue';
 import { isGb28181Enabled } from '@/utils/deployProfile';
 
 const TabPane = Tabs.TabPane;
@@ -104,9 +113,13 @@ const props = defineProps<{
   initialKind?: DeviceKind;
   initialMethod?: CreateMethod;
   initialBrand?: CameraBrand;
+  /** 初始 Tab：camera | nvr | gb28181 | rtc */
+  initialTab?: string;
 }>();
 
 const emit = defineEmits<{ back: []; success: [] }>();
+
+const activeTab = ref(props.initialTab || props.initialKind || 'camera');
 
 const kindMethodPrefs = reactive<Record<DeviceKind, CreateMethod>>({
   camera: props.initialMethod || getDefaultMethodForKind('camera'),
@@ -124,8 +137,14 @@ function syncSelectionFromPrefs(kind: DeviceKind) {
   selection.method = kindMethodPrefs[kind];
 }
 
-function handleKindTabChange(kind: string | number) {
-  syncSelectionFromPrefs(kind as DeviceKind);
+function handleKindTabChange(tab: string | number) {
+  const key = String(tab);
+  if (key === 'rtc' || key === 'gb28181') {
+    activeTab.value = key;
+    return;
+  }
+  syncSelectionFromPrefs(key as DeviceKind);
+  activeTab.value = key;
 }
 
 function handleMethodTabChange(method: string | number) {
@@ -142,6 +161,13 @@ function handlePanelSuccess() {
 }
 
 watch(
+  () => props.initialTab,
+  (v) => {
+    if (v) activeTab.value = v;
+  },
+);
+
+watch(
   () => props.initialKind,
   (v) => {
     if (v) {
@@ -150,6 +176,7 @@ watch(
         return;
       }
       syncSelectionFromPrefs(v);
+      if (!props.initialTab) activeTab.value = v;
     }
   },
 );

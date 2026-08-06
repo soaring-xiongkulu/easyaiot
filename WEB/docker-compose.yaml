@@ -41,6 +41,7 @@ services:
       - "ai-host:host-gateway"  # 用于访问使用host网络模式的ai-service（端口5000）
       - "srs-host:host-gateway"  # 用于访问使用host网络模式的SRS服务（端口1985）
       - "zlm-host:host-gateway"  # 用于访问ZLMediaKit(WVP/GB28181)的ws-flv/http-flv播流端口（宿主机6080）
+      - "rtc-host:host-gateway"  # 用于访问 RTC/go2rtc 服务（1984 WebUI、6100 管理 API）
       # 云端服务器备用方案：如果host-gateway不工作，取消下面的注释并替换为实际IP（注意！！这里的-绝对不能多出来多余的空格，否则配置失效导致nginx无法访问对应的服务！！）
       # 示例（请根据实际情况修改）：
      # - "gateway:192.168.11.28"        # Docker默认网关IP
