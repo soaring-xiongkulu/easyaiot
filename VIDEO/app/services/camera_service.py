@@ -30,6 +30,7 @@ from app.services.onvif_service import OnvifCamera
 from app.utils.gb28181_source import GB28181_SOURCE_PREFIX
 from app.utils.rtsp_url import parse_rtsp_auth
 from app.utils.ip_utils import IpReachabilityMonitor, resolve_ipv4_for_stream_urls
+from app.utils.rtc_source import cleanup_rtc_stream_for_device
 from models import Device, db, DeviceDetectionRegion, DeviceDirectory, DeviceTrackSession, DeviceTrackPoint
 
 DEFAULT_DIRECTORY_NAME = '默认分组'
@@ -1778,7 +1779,13 @@ def delete_camera(id: str):
         for region in regions:
             db.session.delete(region)
         logger.info(f'已删除设备 {id} 的 {len(regions)} 个检测区域')
-        
+
+        # RTC 设备：同步清理 go2rtc 流
+        try:
+            cleanup_rtc_stream_for_device(camera)
+        except Exception as rtc_exc:
+            logger.warning(f'清理 RTC 流失败（设备 {id}）: {rtc_exc}')
+
         _monitor.delete(camera.id)
         _onvif_cameras.pop(id, None)
         db.session.delete(camera)
