@@ -86,6 +86,33 @@ const platformCount = packages.length
       </div>
     </section>
 
+    <section class="section rtc-section">
+      <div class="container grid-2">
+        <SectionReveal>
+          <p class="eyebrow">RTC 模块</p>
+          <h2 class="display section-title">没有 RTSP，也能进平台</h2>
+          <p class="lead">
+            家庭、门店里已在用的 Tapo、涂鸦、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock
+            等设备，走厂商私有 P2P 协议、原生不提供标准 RTSP。EasyAIoT RTC 模块
+            一次打通九大品牌取流与对讲，与国标/ONVIF 摄像头同屏共管、同挂 AI 任务。
+          </p>
+          <ul class="rtc-points">
+            <li>Web 一键接入，按品牌动态表单填参</li>
+            <li>P2P 取流 → RTSP → SRS → 播放与 AI 分析</li>
+            <li>Tapo / Tuya / Ring / Wyze / DoorBird / Roborock 支持双向对讲</li>
+          </ul>
+          <div class="cta-row">
+            <RouterLink class="btn btn-outline" to="/features">查看 RTC 能力详情</RouterLink>
+          </div>
+        </SectionReveal>
+        <SectionReveal class="reveal-delay-2">
+          <div class="media-frame">
+            <img src="/images/feature-rtc.jpg" alt="消费级摄像头 P2P 桥接统一纳管" />
+          </div>
+        </SectionReveal>
+      </div>
+    </section>
+
     <section class="section loop-section">
       <div class="container grid-2">
         <SectionReveal>
@@ -324,6 +351,36 @@ const platformCount = packages.length
 
 .loop-section {
   background: linear-gradient(180deg, transparent, rgba(47, 111, 237, 0.04) 50%, transparent);
+}
+
+.rtc-section {
+  background: linear-gradient(180deg, rgba(47, 111, 237, 0.03), transparent);
+}
+
+.rtc-points {
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.rtc-points li {
+  position: relative;
+  padding-left: 16px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.rtc-points li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.75em;
+  width: 7px;
+  height: 1.5px;
+  background: var(--brand);
 }
 
 .close-section {
