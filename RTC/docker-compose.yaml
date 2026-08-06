@@ -1,0 +1,41 @@
+services:
+  rtc-service:
+    image: rtc-service:latest
+    container_name: rtc-service
+    user: root
+    entrypoint: ["/bin/bash", "/app/docker-entrypoint.sh"]
+    command: ["python", "run.py"]
+
+    env_file:
+      - .env.docker
+
+    # host 网络：P2P 摄像头本地直连、局域网发现
+    network_mode: host
+
+    volumes:
+      - ./:/app
+      - ./data/config:/config
+      - ./.env.docker:/app/.env:ro
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - FLASK_RUN_PORT=${FLASK_RUN_PORT:-6100}
+      - GO2RTC_API_URL=http://127.0.0.1:1984
+      - GO2RTC_CONFIG=/config/go2rtc.yaml
+      - TZ=${TZ:-Asia/Shanghai}
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6100/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

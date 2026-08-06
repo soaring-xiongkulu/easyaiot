@@ -1,0 +1,15 @@
+# EasyAIoT RTC — go2rtc 配置模板
+# 由 docker-entrypoint.sh 渲染到 /config/go2rtc.yaml
+
+api:
+  listen: "${GO2RTC_API_LISTEN}"
+  origin: "*"
+
+rtsp:
+  listen: "${GO2RTC_RTSP_LISTEN}"
+
+webrtc:
+  listen: "${GO2RTC_WEBRTC_LISTEN}"
+
+log:
+  level: info

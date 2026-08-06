@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.docker
+data/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# vendor/go2rtc 由 install_linux.sh vendor 拉取，不纳入版本控制（含嵌套 .git）
+vendor/go2rtc/

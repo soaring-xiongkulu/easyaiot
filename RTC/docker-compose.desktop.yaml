@@ -1,0 +1,24 @@
+# Docker Desktop (Windows / macOS) override
+# network_mode: host 在 Desktop 上不会把端口暴露到宿主机，改为 bridge + 端口映射。
+services:
+  rtc-service:
+    network_mode: !reset null
+    ports:
+      - "${FLASK_RUN_PORT:-6100}:6100"
+      - "1984:1984"
+      - "8554:8554"
+      - "8555:8555"
+      - "8555:8555/udp"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - GO2RTC_API_URL=http://127.0.0.1:1984
+      - VIDEO_SERVICE_URL=http://host.docker.internal:6000
+      - NACOS_SERVER=host.docker.internal:8848
+    networks:
+      - easyaiot-network
+
+networks:
+  easyaiot-network:
+    name: easyaiot-network
+    external: true

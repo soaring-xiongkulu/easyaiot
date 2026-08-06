@@ -1,0 +1,9 @@
+# PANEL / COMPILE 无源码 runtime：预构建镜像已含应用，禁止再挂 ./:/app（会盖掉镜像内代码）
+# 由 install_linux.sh 在检测到 .source_free_runtime 时自动叠加
+services:
+  rtc-service:
+    entrypoint: !reset null
+    command: !reset null
+    volumes: !override
+      - ./data/config:/config
+      - ./.env.docker:/app/.env:ro
