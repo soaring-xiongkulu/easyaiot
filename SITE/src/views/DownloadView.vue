@@ -201,12 +201,19 @@ function packageHref(_item: DownloadPackage) {
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-top: 32px;
+  align-items: stretch;
+}
+
+.group-grid :deep(.reveal) {
+  display: flex;
+  height: 100%;
 }
 
 .group-chip {
   display: grid;
   gap: 8px;
   width: 100%;
+  height: 100%;
   padding: 18px 16px;
   text-align: left;
   border: 1px solid var(--line);
