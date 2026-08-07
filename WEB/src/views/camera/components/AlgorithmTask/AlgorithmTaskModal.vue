@@ -64,7 +64,29 @@ import {
   pruneAlertClassNames,
 } from '@/views/camera/utils/modelAlertClasses';
 
+
 defineOptions({ name: 'AlgorithmTaskModal' });
+
+/** UI 六模式：task_mode ↔ task_type + executor */
+function baseTaskType(modeOrType?: string): 'realtime' | 'snap' | 'patrol' {
+  const raw = String(modeOrType || 'realtime');
+  const v = raw.endsWith('_cpp') ? raw.slice(0, -4) : raw;
+  if (v === 'snap' || v === 'patrol') return v;
+  return 'realtime';
+}
+function toTaskMode(taskType?: string, executor?: string): string {
+  const base = baseTaskType(taskType);
+  const ex = String(executor || 'python').toLowerCase();
+  return ex === 'cpp' || ex === 'c++' || ex === 'runtime' || ex === 'cxx' ? `${base}_cpp` : base;
+}
+function fromTaskMode(mode?: string): { task_type: 'realtime' | 'snap' | 'patrol'; executor: 'python' | 'cpp' } {
+  const m = String(mode || 'realtime');
+  if (m.endsWith('_cpp')) {
+    return { task_type: baseTaskType(m), executor: 'cpp' };
+  }
+  return { task_type: baseTaskType(m), executor: 'python' };
+}
+
 
 const { createMessage } = useMessage();
 const emit = defineEmits(['success', 'register']);
@@ -543,18 +565,23 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       },
     },
     {
-      field: 'task_type',
+      field: 'task_mode',
       label: '任务类型',
       component: 'Select',
       required: true,
       componentProps: {
         placeholder: '请选择任务类型',
         options: [
+          { label: '实时算法任务（高性能）', value: 'realtime_cpp' },
+          { label: '抓拍算法任务（高性能）', value: 'snap_cpp' },
+          { label: '巡检算法任务（高性能）', value: 'patrol_cpp' },
           { label: '实时算法任务', value: 'realtime' },
           { label: '抓拍算法任务', value: 'snap' },
           { label: '巡检算法任务', value: 'patrol' },
         ],
       },
+      helpMessage: '高性能：本机加速推理，适合大路数/低时延；未标注项为完整能力集（人脸/车牌/后处理等）。高性能暂仅支持本机部署',
+      defaultValue: 'realtime_cpp',
     },
     {
       field: 'patrol_interval_sec',
@@ -562,7 +589,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       component: 'InputNumber',
       defaultValue: 10,
       componentProps: { min: 3, max: 300 },
-      ifShow: ({ values }) => values.task_type === 'patrol',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'patrol',
     },
     {
       field: 'patrol_pool_size',
@@ -570,7 +597,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       component: 'InputNumber',
       defaultValue: 4,
       componentProps: { min: 1, max: 16 },
-      ifShow: ({ values }) => values.task_type === 'patrol',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'patrol',
     },
     {
       field: 'schedule_policy',
@@ -643,7 +670,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         },
       },
       helpMessage: '选择要使用的模型列表，模型文件本地没有会自动下载',
-      ifShow: ({ values }) => values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
     {
       field: 'cron_expression',
@@ -661,7 +688,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
             setFieldsValue({ cron_expression: value });
           },
         }),
-      ifShow: ({ values }) => values.task_type === 'snap',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'snap',
     },
     {
       field: 'frame_skip',
@@ -672,7 +699,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         min: 1,
       },
       helpMessage: '抽帧模式下，每N帧抓一次（默认25）',
-      ifShow: ({ values }) => values.task_type === 'snap',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'snap',
     },
     {
       field: 'extract_interval',
@@ -683,7 +710,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         min: 1,
       },
       helpMessage: '12=25fps下约每秒2次(默认); 1=全帧检测; 25=约每秒1次。推流帧率不受影响，数值越小框越及时但GPU占用越高。',
-      ifShow: ({ values }) => values.task_type === 'realtime',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime',
     },
     {
       field: 'detect_conf',
@@ -698,7 +725,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       },
       helpMessage: 'YOLO 模型检测置信度阈值，默认 0.5。值越高误检越少，但可能增加漏检。',
       ifShow: ({ values }) =>
-        values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol',
+        baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
     {
       field: 'motion_gate_enabled',
@@ -710,7 +737,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         unCheckedChildren: '否',
       },
       helpMessage: '在抽帧采样点评估画面变化；仅大面积持续变化时记录命中。风吹草动等局部抖动不会频繁触发额外检测。',
-      ifShow: ({ values }) => values.task_type === 'realtime',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime',
     },
     {
       field: 'motion_sensitivity',
@@ -725,7 +752,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         ],
       },
       helpMessage: '保守模式要求更大变化面积与连续确认，避免风吹草动误触发。',
-      ifShow: ({ values }) => values.task_type === 'realtime' && !!values.motion_gate_enabled,
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && !!values.motion_gate_enabled,
     },
     {
       field: 'tracking_enabled',
@@ -736,7 +763,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         unCheckedChildren: '否',
       },
       helpMessage: '是否启用目标追踪功能，启用后会记录对象出现时间、停留时间、离开时间等信息',
-      ifShow: ({ values }) => values.task_type === 'realtime',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime',
     },
     {
       field: 'tracking_similarity_threshold',
@@ -749,7 +776,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         step: 0.1,
       },
       helpMessage: '追踪相似度匹配阈值（0-1），值越小匹配越宽松',
-      ifShow: ({ values }) => values.task_type === 'realtime' && values.tracking_enabled,
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && values.tracking_enabled,
     },
     {
       field: 'tracking_max_age',
@@ -760,7 +787,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         min: 1,
       },
       helpMessage: '追踪目标最大存活帧数（未匹配时保留的帧数）',
-      ifShow: ({ values }) => values.task_type === 'realtime' && values.tracking_enabled,
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && values.tracking_enabled,
     },
     {
       field: 'tracking_smooth_alpha',
@@ -773,7 +800,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         step: 0.05,
       },
       helpMessage: '追踪平滑系数（0-1），值越大越平滑',
-      ifShow: ({ values }) => values.task_type === 'realtime' && values.tracking_enabled,
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && values.tracking_enabled,
     },
     {
       field: 'alert_event_enabled',
@@ -809,7 +836,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
           }),
         }),
       helpMessage: '是否启用告警事件，启用后会记录告警信息',
-      ifShow: ({ values }) => values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
     {
       field: 'alert_class_names',
@@ -834,7 +861,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         return [];
       },
       ifShow: ({ values }) =>
-        (values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol')
+        (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol')
         && !!values.alert_event_enabled,
     },
     {
@@ -852,7 +879,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       helpMessage:
         '同一摄像头两次上报告警事件的最小间隔，用于减轻 Kafka 积压。测试阶段可设为 0（不抑制）',
       ifShow: ({ values }) =>
-        (values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol') && !!values.alert_event_enabled,
+        (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') && !!values.alert_event_enabled,
     },
     {
       field: 'face_matching_enabled',
@@ -864,7 +891,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         unCheckedChildren: '否',
       },
       helpMessage: '开启后裁剪人脸并异步投递 Kafka 进行 1:N 库匹配',
-      ifShow: ({ values }) => values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
     {
       field: 'face_library_ids',
@@ -888,7 +915,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         return [];
       },
       ifShow: ({ values }) =>
-        (values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol') && !!values.face_matching_enabled,
+        (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') && !!values.face_matching_enabled,
     },
     {
       field: 'plate_matching_enabled',
@@ -900,7 +927,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         unCheckedChildren: '否',
       },
       helpMessage: '开启后独立队列识别车牌并异步投递 Kafka 进行库匹配（默认关闭）',
-      ifShow: ({ values }) => values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
     {
       field: 'plate_library_ids',
@@ -924,7 +951,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         return [];
       },
       ifShow: ({ values }) =>
-        (values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol') && !!values.plate_matching_enabled,
+        (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') && !!values.plate_matching_enabled,
     },
     {
       field: 'sam_supplement_enabled',
@@ -933,7 +960,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       defaultValue: false,
       componentProps: { checkedChildren: '开', unCheckedChildren: '关' },
       helpMessage: '在 YOLO 主检基础上叠加 SAM：Pipeline 精修 mask 或开放词汇补检',
-      ifShow: ({ values }) => values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
     {
       field: 'sam_pipeline_mode',
@@ -1001,7 +1028,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       componentProps: { checkedChildren: '开', unCheckedChildren: '关' },
       helpMessage: '开启后由 iot-sink Worker 异步分析人体骨骼（COCO-17），不占用算法任务算力；默认关闭',
       ifShow: ({ values }) =>
-        values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol',
+        baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
     {
       field: 'pose_model_file_path',
@@ -1049,7 +1076,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       componentProps: { checkedChildren: '开', unCheckedChildren: '关' },
       helpMessage: '开启后自动启用 YOLO Pose，并将检测姿态与场景姿态库匹配产生意图告警',
       ifShow: ({ values }) =>
-        values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol',
+        baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
     {
       field: 'pose_library_ids',
@@ -1073,7 +1100,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         return [];
       },
       ifShow: ({ values }) =>
-        (values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol') &&
+        (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') &&
         !!values.pose_intent_enabled,
     },
     {
@@ -1122,7 +1149,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       defaultValue: false,
       componentProps: { checkedChildren: '开', unCheckedChildren: '关' },
       helpMessage: '开启后检测结果将投递至后处理脚本进行业务判断；关闭时走默认告警逻辑',
-      ifShow: ({ values }) => values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
     {
       field: 'post_process_replicas',
@@ -1132,7 +1159,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       componentProps: { min: 1, max: 8, style: { width: '100%' } },
       helpMessage: '后处理 Worker 水平扩展副本数，多副本可提升并发处理能力',
       ifShow: ({ values }) =>
-        (values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol') &&
+        (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') &&
         !!values.post_process_enabled,
     },
     {
@@ -1146,7 +1173,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       },
       dynamicDisabled: ({ values }) => isViewMode.value || !values.alert_event_enabled,
       helpMessage: '是否启用告警通知，启用后会在告警事件发生时发送通知',
-      ifShow: ({ values }) => (values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol') && values.alert_event_enabled,
+      ifShow: ({ values }) => (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') && values.alert_event_enabled,
     },
     {
       field: 'alarm_suppress_time',
@@ -1163,7 +1190,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       helpMessage:
         '同一任务两次发送通知的最小间隔，默认 300 秒（5 分钟）。测试阶段可设为 0',
       ifShow: ({ values }) =>
-        (values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol') &&
+        (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') &&
         !!values.alert_event_enabled &&
         !!values.alert_notification_enabled,
     },
@@ -1184,7 +1211,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       },
       helpMessage:
         '企业微信工作通知需先在通知中心配置消息配置、用户分组与消息模板；群机器人/Webhook 仅需模板填写 Webhook',
-      ifShow: ({ values }) => (values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol') && values.alert_event_enabled && values.alert_notification_enabled,
+      ifShow: ({ values }) => (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') && values.alert_event_enabled && values.alert_notification_enabled,
     },
     {
       field: 'notification_templates',
@@ -1237,7 +1264,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
           }),
         ]);
       },
-      ifShow: ({ values }) => (values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol') && values.alert_event_enabled && values.alert_notification_enabled && values.notification_channels && values.notification_channels.length > 0,
+      ifShow: ({ values }) => (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') && values.alert_event_enabled && values.alert_notification_enabled && values.notification_channels && values.notification_channels.length > 0,
     },
     {
       field: 'is_full_day_defense',
@@ -1391,7 +1418,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
 
     await setFieldsValue({
       task_name: record.task_name,
-      task_type: record.task_type || 'realtime',
+      task_mode: toTaskMode(record.task_type, record.executor),
       schedule_policy: record.schedule_policy || 'local',
       prefer_gpu: record.prefer_gpu !== false,
       target_node_id: record.target_node_id ?? undefined,
@@ -1452,7 +1479,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     if (modalData.value.type === 'view') {
       updateSchema([
         { field: 'task_name', componentProps: { disabled: true } },
-        { field: 'task_type', componentProps: { disabled: true } },
+        { field: 'task_mode', componentProps: { disabled: true } },
         { field: 'schedule_policy', componentProps: { disabled: true } },
         { field: 'target_node_id', componentProps: { disabled: true } },
         { field: 'device_ids', componentProps: { disabled: true } },
@@ -1483,7 +1510,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       // 编辑模式，确保所有字段可编辑
       updateSchema([
         { field: 'task_name', componentProps: { disabled: false } },
-        { field: 'task_type', componentProps: { disabled: false } },
+        { field: 'task_mode', componentProps: { disabled: false } },
         { field: 'schedule_policy', componentProps: { disabled: false } },
         { field: 'target_node_id', componentProps: { disabled: false } },
         { field: 'device_ids', componentProps: { disabled: false } },
@@ -1514,7 +1541,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     // 先重置所有字段为可编辑状态，避免之前查看模式的disabled状态影响
     updateSchema([
       { field: 'task_name', componentProps: { disabled: false } },
-      { field: 'task_type', componentProps: { disabled: false } },
+      { field: 'task_mode', componentProps: { disabled: false } },
       { field: 'schedule_policy', componentProps: { disabled: false } },
       { field: 'target_node_id', componentProps: { disabled: false } },
       { field: 'device_ids', componentProps: { disabled: false } },
@@ -1540,7 +1567,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     ]);
     isFullDayDefense.value = true; // 默认全天布防
     await setFieldsValue({
-      task_type: 'realtime',
+      task_mode: 'realtime_cpp',
       schedule_policy: 'local',
       prefer_gpu: true,
       cron_expression: DEFAULT_SNAP_CRON,
@@ -1660,12 +1687,23 @@ const handleFieldValueChange = async (key: string, value: any) => {
     await setFieldsValue({ target_node_id: undefined });
     const currentValues = await getFieldsValue();
     formValues.value = { ...currentValues, schedule_policy: value, target_node_id: undefined };
-  } else if (key === 'task_type' && value === 'snap') {
+  } else if (key === 'task_mode' && typeof value === 'string' && value.endsWith('_cpp')) {
+    const currentValues = await getFieldsValue();
+    if (currentValues.schedule_policy && currentValues.schedule_policy !== 'local') {
+      await setFieldsValue({ schedule_policy: 'local', target_node_id: undefined });
+      createMessage.info('高性能模式暂仅支持本机部署，已切换为本地调度');
+    }
+    if (value === 'snap_cpp' && !currentValues.cron_expression?.trim()) {
+      await setFieldsValue({ cron_expression: DEFAULT_SNAP_CRON });
+    }
+    const after = await getFieldsValue();
+    formValues.value = { ...after, task_mode: value };
+  } else if (key === 'task_mode' && value === 'snap') {
     const currentValues = await getFieldsValue();
     if (!currentValues.cron_expression?.trim()) {
       await setFieldsValue({ cron_expression: DEFAULT_SNAP_CRON });
     }
-    formValues.value = { ...currentValues, task_type: value, cron_expression: currentValues.cron_expression || DEFAULT_SNAP_CRON };
+    formValues.value = { ...currentValues, task_mode: value, cron_expression: currentValues.cron_expression || DEFAULT_SNAP_CRON };
   } else if (key === 'notification_channels') {
     // 通知渠道变化时，同步更新 notificationChannels
     notificationChannels.value = value || [];
@@ -1700,6 +1738,18 @@ const handleSubmit = async () => {
     setDrawerProps({ confirmLoading: true });
 
     values.device_ids = await syncSelectedDeviceIds(values.device_ids || []);
+
+    // 六模式：先展开 task_type/executor，保留 task_mode 供后续 if 判断，提交前再删除
+    {
+      const mapped = fromTaskMode(values.task_mode || values.task_type);
+      values.task_type = mapped.task_type;
+      values.executor = mapped.executor;
+      values.task_mode = toTaskMode(mapped.task_type, mapped.executor);
+      if (mapped.executor === 'cpp') {
+        values.schedule_policy = 'local';
+        values.target_node_id = null;
+      }
+    }
 
     // 新建任务时，默认设置为未启用状态（需要通过启动按钮来启动）
     if (modalData.value.type !== 'edit') {
@@ -1834,7 +1884,7 @@ const handleSubmit = async () => {
     }
 
     // 算法任务（实时和抓拍）必须指定模型ID列表
-    if ((values.task_type === 'realtime' || values.task_type === 'snap' || values.task_type === 'patrol') && (!values.model_ids || values.model_ids.length === 0)) {
+    if ((baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') && (!values.model_ids || values.model_ids.length === 0)) {
       createMessage.error('算法任务必须选择至少一个模型');
       confirmLoading.value = false;
       setDrawerProps({ confirmLoading: false });
@@ -1900,7 +1950,7 @@ const handleSubmit = async () => {
     delete values.pose_intent_temporal_dtw;
     delete values.pose_intent_temporal_window;
 
-    if (values.task_type === 'realtime') {
+    if (baseTaskType(values.task_mode) === 'realtime') {
       values.motion_gate_enabled = values.motion_gate_enabled === true;
       values.motion_gate_config = values.motion_gate_enabled
         ? { preset: values.motion_sensitivity || 'conservative' }
@@ -1918,7 +1968,7 @@ const handleSubmit = async () => {
       values.post_process_replicas = 1;
     }
 
-    if (values.task_type === 'snap' && values.cron_expression) {
+    if (baseTaskType(values.task_mode) === 'snap' && values.cron_expression) {
       const cronCheck = validateSnapCronMinInterval(values.cron_expression);
       if (!cronCheck.valid) {
         createMessage.error(cronCheck.message || 'Cron 表达式无效');
@@ -1931,10 +1981,12 @@ const handleSubmit = async () => {
       }
     }
 
-    if (values.task_type === 'patrol') {
+    if (baseTaskType(values.task_mode) === 'patrol') {
       values.patrol_mode = 'pool';
       values.focus_device_id = null;
     }
+
+    delete values.task_mode;
 
     if (modalData.value.type === 'edit' && modalData.value.record) {
       const response = await updateAlgorithmTask(modalData.value.record.id, values);
@@ -1990,7 +2042,7 @@ const handleReset = () => {
   if (!modalData.value.record) {
     isFullDayDefense.value = true; // 默认全天布防
     setFieldsValue({
-      task_type: 'realtime',
+      task_mode: 'realtime_cpp',
       schedule_policy: 'local',
       prefer_gpu: true,
       target_node_id: undefined,
@@ -2055,7 +2107,7 @@ const handleReset = () => {
 
     setFieldsValue({
       task_name: record.task_name,
-      task_type: record.task_type || 'realtime',
+      task_mode: toTaskMode(record.task_type, record.executor),
       schedule_policy: record.schedule_policy || 'local',
       prefer_gpu: record.prefer_gpu !== false,
       target_node_id: record.target_node_id ?? undefined,
