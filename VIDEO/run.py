@@ -228,6 +228,7 @@ def create_app(start_background_tasks=None):
                 ensure_algorithm_task_post_process_columns,
                 ensure_algorithm_task_alert_class_columns,
                 ensure_algorithm_task_detect_conf_column,
+                ensure_algorithm_task_executor_columns,
             )
             ensure_algorithm_task_sam_columns(db.engine)
             ensure_algorithm_task_pose_columns(db.engine)
@@ -235,6 +236,7 @@ def create_app(start_background_tasks=None):
             ensure_algorithm_task_post_process_columns(db.engine)
             ensure_algorithm_task_alert_class_columns(db.engine)
             ensure_algorithm_task_detect_conf_column(db.engine)
+            ensure_algorithm_task_executor_columns(db.engine)
             
             # 迁移：检查并添加缺失的列和表
             try:
