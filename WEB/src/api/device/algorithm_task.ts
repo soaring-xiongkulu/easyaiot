@@ -33,6 +33,10 @@ export interface AlgorithmTask {
   task_name: string;
   task_code: string;
   task_type: 'realtime' | 'snap' | 'patrol';
+  /** 执行后端：python（默认）| cpp（本机 RUNTIME） */
+  executor?: 'python' | 'cpp' | string;
+  runtime_bin_path?: string;
+  runtime_control_port?: number;
   device_ids?: string[];
   device_names?: string[];
   pusher_id?: number;
