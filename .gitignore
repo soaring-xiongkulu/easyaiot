@@ -87,6 +87,7 @@ RTC/vendor/go2rtc/
 RUNTIME/build/
 RUNTIME/build-linux/
 RUNTIME/cmake-build-debug/
+RUNTIME/deploy.env
 # .scripts/docker 中间件数据目录和日志目录
 .scripts/docker/db_data/
 .scripts/docker/.deploy_profile

@@ -19,27 +19,75 @@ EasyAIoT 的 **C++ 帧执行器**（由原 TASK 演进）。负责拉流、解�
 | `snap` | Cron 调度抓拍（SnapScheduler） |
 | `patrol` | 多设备轮巡（PatrolScheduler） |
 
-> 当前仅本机部署；远程节点 `executor=cpp` 会被 VIDEO 拒绝。与 `EDGE/runtime/`（Python 边缘运行包）不是同一回事。
+> 本机与集群节点均支持 `executor=cpp`（需先经 iot-node 分发 RUNTIME）。与 `EDGE/runtime/`（Python 边缘运行包）不是同一回事。
 
-## 环境（本机已用 conda 配好）
+## GPU 推理策略（默认）
+
+- 默认 **prefer GPU**：ONNX Runtime 优先挂载 `CUDAExecutionProvider`，Session 创建失败则自动回退 CPU，任务不中断。
+- 配置（`[ai]` / 环境变量）：
+  - `prefer_gpu` / `RUNTIME_PREFER_GPU`（默认 `true`）
+  - `force_cpu` / `RUNTIME_FORCE_CPU`（强制仅 CPU）
+  - `gpu_device_id` / `RUNTIME_GPU_DEVICE_ID` 或 `CUDA_VISIBLE_DEVICES`
+- 日志会出现 `Using CUDA EP` 或 `Using CPU execution (fallback)`；`GET /health` 含 `infer_ep=cuda|cpu`。
+- **本轮不做**：TensorRT EP、FFmpeg NVDEC/NVENC。
+
+安装侧：检测到 `nvidia-smi` 时优先下载 **GPU ORT** 包（如 `onnxruntime-linux-x64-gpu-*`），写入 `deploy.env` 的 CUDA lib 路径；无 GPU / 下载失败则用 CPU 包并告警。
+
+## 集群分发（iot-node · 一键）
+
+**页面只需一步**：WEB「业务运行时分发」→ **高性能算法 · RUNTIME(C++)** →「分发 RUNTIME」  
+（或算法 bundle「全量分发」，会顺带安装 RUNTIME。）
+
+控制面后台自动串联：`install_linux.sh`（若未编译）→ `export_runtime_cpp.sh` → SSH 安装到节点 `/opt/easyaiot/RUNTIME`。
+
+- 节点二进制：`/opt/easyaiot/RUNTIME/bin/RUNTIME`
+- 远程任务：VIDEO 写 ini → Agent 落盘启动；模型走 Ceph
+- API：`POST /admin-api/node/workload-bundle/runtime-cpp/batch-deploy-ssh`
+- 关闭自动编译：环境变量 `RUNTIME_AUTO_INSTALL=0`（仅当你要手工控制编译时）
+
+## 一键部署（推荐 · 本机 VIDEO）
+
+VIDEO 各 Linux 安装入口通过共享脚本 [`VIDEO/scripts/ensure_runtime_cpp.sh`](../VIDEO/scripts/ensure_runtime_cpp.sh) 编译并挂载 RUNTIME：
+
+| 入口 | RUNTIME |
+|------|---------|
+| `VIDEO/install_linux.sh` | 编译 + 挂载 |
+| `VIDEO/install_linux_arm.sh` | 同上 |
+| `VIDEO/install_linux_kylin.sh` | 同上 |
+| 顶层 `install_business_linux.sh` / centos / openeuler | 委托 VIDEO，间接覆盖 |
+| `VIDEO/install_mac.sh` | **跳过**并打印说明（非 Linux / 无 CUDA 一键包） |
+| Windows | **本轮不管**；需手工编译或后续 DirectML 专题 |
+| 计算节点（集群） | 走上方 **集群分发**，不是 compose 挂载 |
+
+```bash
+# 业务一键部署里包含 VIDEO 时会连带执行
+./VIDEO/install_linux.sh install
+
+# 或单独安装 RUNTIME
+./RUNTIME/install_linux.sh
+```
+
+产出：
+
+- `RUNTIME/build/RUNTIME`
+- `RUNTIME/deploy.env`（供 VIDEO 写入 compose 挂载，含 ORT/CUDA lib）
+- `VIDEO/.docker-compose.runtime.override.yaml`（容器内 `/opt/easyaiot/RUNTIME` + conda/ORT[/cuda] lib）
+- `RUNTIME/.bundle-runtime/{arch}/easyaiot-runtime-*.tar.gz`（集群离线包）
+
+跳过：`EASYAIOT_RUNTIME_SKIP=1`  
+强制失败中止 VIDEO：`EASYAIOT_RUNTIME_REQUIRED=1`
+
+## 手动环境 / 编译
 
 系统 apt 无写权限时，使用 Miniconda 环境 `easyaiot-runtime`：
 
 ```bash
 source RUNTIME/scripts/env.sh
-# 或手动：
-# source ~/miniconda3/etc/profile.d/conda.sh && conda activate easyaiot-runtime
-```
-
-依赖：cmake、OpenCV 5、FFmpeg、glog 0.6、jsoncpp、libcurl，以及官方 ONNX Runtime C++ SDK（默认：仓库根 `.deps/onnxruntime-linux-x64-1.23.2`）。
-
-## 编译
-
-```bash
-source RUNTIME/scripts/env.sh
 ./RUNTIME/scripts/build_linux.sh
-# 产出: RUNTIME/build/RUNTIME
+# 或：./RUNTIME/install_linux.sh build
 ```
+
+依赖：cmake、OpenCV 5、FFmpeg、glog、jsoncpp、libcurl，以及官方 ONNX Runtime C++ SDK（有 GPU 时优先 `onnxruntime-linux-*-gpu-1.23.2`，否则 CPU 包；默认下载到仓库根 `.deps/`）。
 
 ## 运行
 
@@ -48,7 +96,7 @@ source RUNTIME/scripts/env.sh
 $RUNTIME_BIN RUNTIME/config/config.example.ini
 ```
 
-VIDEO 侧将任务 `executor` 设为 `cpp` 后，启停走原有任务接口即可（需保证 `LD_LIBRARY_PATH` 含 conda lib 与 ORT `lib`）。
+VIDEO 侧默认走高性能任务时，启停走原有任务接口即可。强制 CPU 可设 `RUNTIME_FORCE_CPU=1`。
 
 ## 流水线
 
@@ -56,8 +104,8 @@ VIDEO 侧将任务 `executor` 设为 `cpp` 后，启停走原有任务接口即�
 
 - 心跳：realtime/snap → `POST /video/algorithm/heartbeat/realtime`；patrol → `.../heartbeat/patrol`
 - 告警：`POST /video/alert/hook`（snap 的 hook `task_type` 为 `snapshot`）
-- 健康：`GET /health`（含 drop/latency 指标）；控制口可 `POST /stop` 优雅退出
+- 健康：`GET /health`；控制口可 `POST /stop` 优雅退出
 
 ## 配置
 
-见 [config/config.example.ini](config/config.example.ini)。VIDEO 对接段为 `[video_task]`，可含 `devices_json`、`cron_expression`、`patrol_*`、`frame_skip`、检测区域等。
+见 [config/config.example.ini](config/config.example.ini)。VIDEO 对接段为 `[video_task]`。
