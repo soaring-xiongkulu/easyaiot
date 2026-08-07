@@ -495,6 +495,12 @@ export const WORKLOAD_BUNDLE_COPY = {
   ffmpegDeploy: '分发 FFmpeg',
   ffmpegCheck: '检测 FFmpeg',
   ffmpegRemove: '删除 FFmpeg',
+  runtimeCppHint:
+    '一键分发：点击「分发 RUNTIME」即可。控制面若尚未编译会自动 install → 导出离线包 → SSH 安装到 /opt/easyaiot/RUNTIME（首次较久）。算法类「全量分发」也会自动带上。模型走 Ceph；推理默认 prefer GPU、失败回退 CPU。',
+  runtimeCppPath: '/opt/easyaiot/RUNTIME/bin/RUNTIME',
+  runtimeCppDeploy: '分发 RUNTIME',
+  runtimeCppCheck: '检测 RUNTIME',
+  runtimeCppRemove: '删除 RUNTIME',
 } as const;
 
 /** 集群洞察文案 */

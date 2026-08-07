@@ -872,6 +872,66 @@ export const batchRemoveFfmpegBySsh = async (data: NodeFfmpegBatchReq): Promise<
   return unwrapNodeApiData<WorkloadBundleBatchResult>(res);
 };
 
+// ---------- RUNTIME(C++) 离线分发 ----------
+
+export interface NodeRuntimeCppBatchReq {
+  nodeIds: number[];
+}
+
+export interface NodeRuntimeCppCheckResult {
+  runtimeReady?: boolean;
+  runtimePath?: string;
+  success?: boolean;
+  message?: string;
+  steps?: MediaDeployStepVO[];
+}
+
+export const checkRuntimeCppBySsh = async (nodeId: number): Promise<NodeRuntimeCppCheckResult> => {
+  const res = await commonApi(
+    'post',
+    `${BUNDLE_API}/runtime-cpp/check-ssh?nodeId=${nodeId}`,
+    {},
+    { isTransformResponse: false, timeout: 3 * 60 * 1000 },
+  );
+  return unwrapNodeApiData<NodeRuntimeCppCheckResult>(res);
+};
+
+export const batchCheckRuntimeCppBySsh = async (
+  data: NodeRuntimeCppBatchReq,
+): Promise<WorkloadBundleBatchResult> => {
+  const res = await commonApi(
+    'post',
+    `${BUNDLE_API}/runtime-cpp/batch-check-ssh`,
+    { data },
+    { isTransformResponse: false, timeout: BUNDLE_TIMEOUT },
+  );
+  return unwrapNodeApiData<WorkloadBundleBatchResult>(res);
+};
+
+export const batchDeployRuntimeCppBySsh = async (
+  data: NodeRuntimeCppBatchReq,
+): Promise<WorkloadBundleBatchResult> => {
+  const res = await commonApi(
+    'post',
+    `${BUNDLE_API}/runtime-cpp/batch-deploy-ssh`,
+    { data },
+    { isTransformResponse: false, timeout: BUNDLE_TIMEOUT },
+  );
+  return unwrapNodeApiData<WorkloadBundleBatchResult>(res);
+};
+
+export const batchRemoveRuntimeCppBySsh = async (
+  data: NodeRuntimeCppBatchReq,
+): Promise<WorkloadBundleBatchResult> => {
+  const res = await commonApi(
+    'post',
+    `${BUNDLE_API}/runtime-cpp/batch-remove-ssh`,
+    { data },
+    { isTransformResponse: false, timeout: BUNDLE_TIMEOUT },
+  );
+  return unwrapNodeApiData<WorkloadBundleBatchResult>(res);
+};
+
 // ── 中心节点联邦 / 泳道 ──
 
 export interface ClusterLaneVO {
