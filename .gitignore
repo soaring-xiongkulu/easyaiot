@@ -19,6 +19,8 @@ APP/.pnpm-store/
 APP/private.key
 APP/src/types/*
 !APP/src/types/auto-import.d.ts
+!APP/src/types/async-component.d.ts
+!APP/src/types/async-import.d.ts
 APP/.stylelintcache
 APP/tmp/
 **/backup/
