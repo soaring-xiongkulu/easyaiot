@@ -85,7 +85,11 @@ EOF
 }
 
 setup_rocky() {
-  if ! ls /etc/yum.repos.d/rocky*.repo >/dev/null 2>&1; then
+  # 镜像内文件名可能是 rocky*.repo 或 Rocky*.repo（大小写敏感）
+  shopt -s nullglob
+  local repos=(/etc/yum.repos.d/rocky*.repo /etc/yum.repos.d/Rocky*.repo)
+  shopt -u nullglob
+  if [ "${#repos[@]}" -eq 0 ]; then
     return 0
   fi
   echo "[COMPILE/cn-mirrors] rocky mirror=${ROCKY_MIRROR}"
@@ -95,7 +99,7 @@ setup_rocky() {
     -e 's|^#baseurl=https://dl.rockylinux.org/\$contentdir|baseurl='"${ROCKY_MIRROR}"'|g' \
     -e 's|^baseurl=http://dl.rockylinux.org/\$contentdir|baseurl='"${ROCKY_MIRROR}"'|g' \
     -e 's|^baseurl=https://dl.rockylinux.org/\$contentdir|baseurl='"${ROCKY_MIRROR}"'|g' \
-    /etc/yum.repos.d/rocky*.repo
+    "${repos[@]}"
 }
 
 setup_centos_stream() {

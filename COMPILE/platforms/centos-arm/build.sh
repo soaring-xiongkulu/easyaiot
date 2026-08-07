@@ -156,12 +156,21 @@ build_docker() {
     exit 1
   fi
 
-  if ! command -v npm >/dev/null 2>&1; then
-    echo "[COMPILE/centos-arm-${EL_OUT_SUFFIX}] Docker 打包需要本机 npm 先构建 PANEL/ui" >&2
-    exit 1
+  if [ "${SKIP_UI_BUILD:-0}" = "1" ] && [ -f "${REPO_ROOT}/PANEL/ui/dist/index.html" ]; then
+    log "复用已有前端 ui/dist"
+  else
+    if ! command -v npm >/dev/null 2>&1; then
+      echo "[COMPILE/centos-arm-${EL_OUT_SUFFIX}] Docker 打包需要本机 npm 先构建 PANEL/ui" >&2
+      exit 1
+    fi
+    if [ -d "${REPO_ROOT}/PANEL/ui/dist" ] && [ ! -w "${REPO_ROOT}/PANEL/ui/dist" ]; then
+      log "PANEL/ui/dist 不可写，尝试 docker chown"
+      docker run --rm -v "${REPO_ROOT}/PANEL/ui:/ui" alpine \
+        chown -R "$(id -u):$(id -g)" /ui/dist || true
+    fi
+    log "宿主机构建前端 ui/dist（容器内不再跑 npm）"
+    (cd "${REPO_ROOT}/PANEL/ui" && npm install --no-audit --no-fund && npm run build)
   fi
-  log "宿主机构建前端 ui/dist（容器内不再跑 npm）"
-  (cd "${REPO_ROOT}/PANEL/ui" && npm install --no-audit --no-fund && npm run build)
   test -f "${REPO_ROOT}/PANEL/ui/dist/index.html"
 
   mkdir -p "$OUT_DIR"
