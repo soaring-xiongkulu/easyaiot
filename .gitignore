@@ -69,6 +69,8 @@ hs_err_pid*
 # Log file
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
+# 本地烟雾测试 / 临时 ini 与日志（不随仓库分发）
+.tmp/
 *.nar
 # Node Agent 离线 pip wheel（体积大，勿提交）
 NODE/get-pip.py
