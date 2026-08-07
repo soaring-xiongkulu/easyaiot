@@ -5,6 +5,9 @@ export interface AlgorithmTask {
   task_name: string
   task_code?: string
   task_type: 'realtime' | 'snap' | 'patrol'
+  executor?: 'python' | 'cpp' | string
+  runtime_bin_path?: string
+  runtime_control_port?: number
   device_ids?: string[]
   device_names?: string[]
   model_ids?: number[]
@@ -97,12 +100,18 @@ export function deleteAlgorithmTask(taskId: number) {
   return http.delete(`/video/algorithm/task/${taskId}`)
 }
 
-export function getAlgorithmTaskTypeText(type?: string): string {
+export function getAlgorithmTaskTypeText(type?: string, executor?: string): string {
+  let base = '-'
   if (type === 'realtime')
-    return '实时'
-  if (type === 'snap')
-    return '抓拍'
-  if (type === 'patrol')
-    return '巡检'
-  return type || '-'
+    base = '实时'
+  else if (type === 'snap')
+    base = '抓拍'
+  else if (type === 'patrol')
+    base = '巡检'
+  else if (type)
+    base = type
+  const ex = String(executor || 'python').toLowerCase()
+  if (base !== '-' && (ex === 'cpp' || ex === 'c++' || ex === 'runtime' || ex === 'cxx'))
+    return `${base}(高性能)`
+  return base
 }
