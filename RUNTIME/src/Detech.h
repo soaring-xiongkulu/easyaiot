@@ -17,6 +17,8 @@
 #include "Datatype.h"
 #include "core/frame_pool.h"
 #include "pipeline/Pipeline.h"
+#include "pipeline/SnapScheduler.h"
+#include "pipeline/PatrolScheduler.h"
 
 extern "C" {
 #include "libavcodec/avcodec.h"
@@ -45,25 +47,23 @@ class Detech {
         bool _init_media_pusher();
         bool _init_media_alarmer();
         bool _init_control_server();
-        bool _on_play_event();
-        bool _on_push_event();
-        bool _release_media();
-        bool _release_pusher();
-        bool _release_alarmer();
         uint64_t _get_curtime_stamp_ms();
-        int _decode_frame_callback();
-        int _decode_frame_yolo11_detech();
-        int _decode_frame_alarm();
-        int _encode_frame_callback();
-        int _encode_frame_push_frame();
-        void _display_video_loop();
-        void _run_pipeline_loop();
 
-        bool _isInAlarmRegion(int centerX, int centerY);
+        void _run_pipeline_loop();
+        void _run_snap_loop();
+        void _run_patrol_loop();
+        void _display_video_loop();  // legacy; unused in headless production path
+
+        bool _isInAlarmRegion(int centerX, int centerY, int frameW = 0, int frameH = 0);
         void _drawAlarmRegions(cv::Mat& image);
 
-        void _sendAlarmCallback(const std::vector<DetectObject>& detections, const std::string& regionName);
+        void _sendAlarmCallback(const std::vector<DetectObject>& detections,
+                                const std::string& regionName,
+                                const cv::Mat& frame = cv::Mat(),
+                                const std::string& deviceId = "",
+                                const std::string& deviceName = "");
         bool _checkAlarmCooldown();
+        std::string _saveAlertImage(const cv::Mat& frame);
 
         void _startAlarmSenderThread();
         void _stopAlarmSenderThread();
@@ -77,14 +77,20 @@ class Detech {
         void _stopHeartbeatThread();
         void _heartbeatThreadFunc();
 
+        std::string _normalizedTaskType() const;
+
         struct AlarmData {
             std::vector<DetectObject> detections;
             std::string regionName;
+            std::string imagePath;
+            std::string deviceId;
+            std::string deviceName;
             uint64_t timestamp;
 
             AlarmData() : timestamp(0) {}
-            AlarmData(const std::vector<DetectObject>& dets, const std::string& region, uint64_t ts)
-                : detections(dets), regionName(region), timestamp(ts) {}
+            AlarmData(const std::vector<DetectObject>& dets, const std::string& region, uint64_t ts,
+                      const std::string& img = "", const std::string& did = "", const std::string& dname = "")
+                : detections(dets), regionName(region), imagePath(img), deviceId(did), deviceName(dname), timestamp(ts) {}
         };
 
     private:
@@ -117,12 +123,16 @@ class Detech {
         std::thread _controlServerThread;
         std::atomic<bool> _controlServerRunning{false};
         int _controlPort{0};
+        httplib::Server* _controlHttpServer{nullptr};
 
         std::thread _heartbeatThread;
         std::atomic<bool> _heartbeatRunning{false};
 
         runtime::PipelineMetrics _metrics;
         std::unique_ptr<runtime::Pipeline> _pipeline;
+        std::unique_ptr<runtime::SnapScheduler> _snapScheduler;
+        std::unique_ptr<runtime::PatrolScheduler> _patrolScheduler;
+        std::thread _workerThread;
 };
 
 #endif

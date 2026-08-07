@@ -6,9 +6,11 @@
 #include "Datatype.h"
 #include <chrono>
 #include <ctime>
+#include <fstream>
 #include <iomanip>
 #include <map>
 #include <sstream>
+#include <sys/stat.h>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/geometry.hpp>
 #include <unistd.h>
@@ -55,111 +57,102 @@ Detech::Detech(Config &config): _config(config) {
     LOG(INFO) << "[INIT] Config initialization completed";
 }
 
+std::string Detech::_normalizedTaskType() const {
+    std::string tt = _config.taskType;
+    if (tt == "snapshot") return "snap";
+    if (tt.empty()) return "realtime";
+    return tt;
+}
+
 Detech::~Detech() {
     LOG(INFO) << "[CLEANUP] Detech destructor called, cleaning up resources...";
+    stop();
 
-    _isRun = false;
+    if (_workerThread.joinable()) {
+        _workerThread.join();
+    }
     if (_pipeline) {
-        _pipeline->stop();
         _pipeline->join();
         _pipeline.reset();
     }
+    if (_snapScheduler) {
+        _snapScheduler->join();
+        _snapScheduler.reset();
+    }
+    if (_patrolScheduler) {
+        _patrolScheduler->join();
+        _patrolScheduler.reset();
+    }
 
     _stopHeartbeatThread();
-    
-    // 停止HTTP控制服务器
     _stopControlServer();
-    
-    // 停止告警发送线程（企业级队列版本）
     _stopAlarmSenderThread();
-    
-    // 释放RTMP编码器
+
     if (_rtmpEncoder) {
-        LOG(INFO) << "[CLEANUP] Releasing RTMP encoder...";
         _rtmpEncoder->release();
         delete _rtmpEncoder;
         _rtmpEncoder = nullptr;
     }
-    
-    // 释放HTTP客户端
     if (_httpClient) {
-        LOG(INFO) << "[CLEANUP] Releasing HTTP client...";
         delete _httpClient;
         _httpClient = nullptr;
     }
-    
     LOG(INFO) << "[CLEANUP] Detech cleanup completed successfully";
 }
 
 int Detech::start() {
     _isRun = true;
-    
-    LOG(INFO) << "[INIT] Step 1: Initializing YOLO detector...";
+    const std::string mode = _normalizedTaskType();
+    LOG(INFO) << "[INIT] task_type=" << mode;
+
     if (!_init_yolo11_detector()) {
         LOG(ERROR) << "[INIT] YOLO detector initialization failed!";
         return -1;
     }
-    LOG(INFO) << "[INIT] YOLO detector initialized successfully";
-    
-    LOG(INFO) << "[INIT] Step 2: Initializing media player...";
-    if (!_init_media_player()) {
-        LOG(ERROR) << "[INIT] Media player initialization failed!";
-        return -2;
+
+    // realtime needs FFmpeg long session; snap/patrol use OpenCV schedulers
+    if (mode == "realtime") {
+        if (!_init_media_player()) {
+            LOG(ERROR) << "[INIT] Media player initialization failed!";
+            return -2;
+        }
     }
-    LOG(INFO) << "[INIT] Media player initialized successfully";
-    
-    LOG(INFO) << "[INIT] Step 3: Initializing HTTP client...";
+
     if (!_init_http_client()) {
         LOG(ERROR) << "[INIT] HTTP client initialization failed!";
         return -3;
     }
-    LOG(INFO) << "[INIT] HTTP client initialized successfully";
-    
-    LOG(INFO) << "[INIT] Step 4: Initializing media alarmer...";
     if (!_init_media_alarmer()) {
-        LOG(ERROR) << "[INIT] Media alarmer initialization failed!";
         return -4;
     }
-    LOG(INFO) << "[INIT] Media alarmer initialized successfully";
-    
-    LOG(INFO) << "[INIT] Step 5: Initializing media pusher...";
-    if (!_init_media_pusher()) {
-        LOG(ERROR) << "[INIT] Media pusher initialization failed!";
-        return -5;
+    if (mode == "realtime") {
+        if (!_init_media_pusher()) {
+            return -5;
+        }
     }
-    LOG(INFO) << "[INIT] Media pusher initialized successfully";
-    
-    LOG(INFO) << "[INIT] Step 6: Initializing control server...";
     if (!_init_control_server()) {
-        LOG(ERROR) << "[INIT] Control server initialization failed!";
         return -6;
     }
-    LOG(INFO) << "[INIT] Control server initialized successfully";
-    
-    LOG(INFO) << "[INIT] Step 7: Starting alarm sender thread...";
-    _startAlarmSenderThread();  // 启动告警发送线程（企业级队列版本）
-    LOG(INFO) << "[INIT] Alarm sender thread started successfully";
-    
-    LOG(INFO) << "[INIT] Step 8: Starting control server...";
-    _startControlServer();  // 启动HTTP控制服务器线程
-    LOG(INFO) << "[INIT] Control server started successfully";
-    
-    LOG(INFO) << "[OK] All components initialized successfully!";
 
-    LOG(INFO) << "[INIT] Step 9: Starting heartbeat thread...";
+    _startAlarmSenderThread();
+    _startControlServer();
     _startHeartbeatThread();
-    
-    LOG(INFO) << "";
-    LOG(INFO) << "[VIDEO] Resolution: " << _videoWidth << "x" << _videoHeight << " @ " << _videoFps << " FPS";
-    if (_config.headless) {
-        LOG(INFO) << "[VIDEO] Headless pipeline mode (pull/decode/infer/emit rings)";
-        _run_pipeline_loop();
+
+    if (mode == "snap") {
+        LOG(INFO) << "[VIDEO] Snap scheduler mode";
+        _workerThread = std::thread([this]() { _run_snap_loop(); });
+    } else if (mode == "patrol") {
+        LOG(INFO) << "[VIDEO] Patrol scheduler mode";
+        _workerThread = std::thread([this]() { _run_patrol_loop(); });
+    } else if (_config.headless) {
+        LOG(INFO) << "[VIDEO] Headless realtime pipeline";
+        _workerThread = std::thread([this]() { _run_pipeline_loop(); });
     } else {
-        LOG(INFO) << "[VIDEO] Starting real-time video display...";
-        LOG(INFO) << "[VIDEO] Press 'q' or ESC to exit";
-        _display_video_loop();
+        LOG(WARNING) << "[VIDEO] Display mode not supported in production; forcing headless pipeline";
+        _workerThread = std::thread([this]() { _run_pipeline_loop(); });
     }
-    
+
+    LOG(INFO) << "[OK] RUNTIME started (non-blocking)";
     return 0;
 }
 
@@ -167,6 +160,12 @@ int Detech::stop() {
     _isRun = false;
     if (_pipeline) {
         _pipeline->stop();
+    }
+    if (_snapScheduler) {
+        _snapScheduler->stop();
+    }
+    if (_patrolScheduler) {
+        _patrolScheduler->stop();
     }
     return 0;
 }
@@ -182,12 +181,12 @@ void Detech::_run_pipeline_loop() {
         _videoFps,
         yolov11_thread_pool,
         &_rtmpEncoder,
-        [this](const std::vector<DetectObject>& dets, const std::string& region) {
+        [this](const std::vector<DetectObject>& dets, const std::string& region, const cv::Mat& snapshot) {
             if (_checkAlarmCooldown()) {
-                _sendAlarmCallback(dets, region);
+                _sendAlarmCallback(dets, region, snapshot);
             }
         },
-        [this](int cx, int cy) { return _isInAlarmRegion(cx, cy); },
+        [this](int cx, int cy) { return _isInAlarmRegion(cx, cy, _videoWidth, _videoHeight); },
         [this]() { return _streamingEnabled.load(); },
         &_metrics
     );
@@ -198,6 +197,48 @@ void Detech::_run_pipeline_loop() {
     if (_pipeline) {
         _pipeline->stop();
         _pipeline->join();
+    }
+}
+
+void Detech::_run_snap_loop() {
+    _snapScheduler = std::make_unique<runtime::SnapScheduler>(
+        _config,
+        yolov11_thread_pool,
+        [this](const std::vector<DetectObject>& dets, const std::string& region,
+               const std::string& deviceId, const std::string& deviceName, const cv::Mat& frame) {
+            if (_checkAlarmCooldown()) {
+                _sendAlarmCallback(dets, region, frame, deviceId, deviceName);
+            }
+        }
+    );
+    _snapScheduler->start();
+    while (_isRun && _snapScheduler && _snapScheduler->isRunning()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+    if (_snapScheduler) {
+        _snapScheduler->stop();
+        _snapScheduler->join();
+    }
+}
+
+void Detech::_run_patrol_loop() {
+    _patrolScheduler = std::make_unique<runtime::PatrolScheduler>(
+        _config,
+        yolov11_thread_pool,
+        [this](const std::vector<DetectObject>& dets, const std::string& region,
+               const std::string& deviceId, const std::string& deviceName, const cv::Mat& frame) {
+            if (_checkAlarmCooldown()) {
+                _sendAlarmCallback(dets, region, frame, deviceId, deviceName);
+            }
+        }
+    );
+    _patrolScheduler->start();
+    while (_isRun && _patrolScheduler && _patrolScheduler->isRunning()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+    if (_patrolScheduler) {
+        _patrolScheduler->stop();
+        _patrolScheduler->join();
     }
 }
 
@@ -308,17 +349,20 @@ void Detech::_startControlServer() {
 
 // 停止HTTP控制服务器线程
 void Detech::_stopControlServer() {
-    if (!_controlServerRunning.load()) {
+    if (!_controlServerRunning.load() && !_controlHttpServer) {
         return;
     }
-    
+
     LOG(INFO) << "[CONTROL] Stopping control server...";
     _controlServerRunning.store(false);
-    
+    if (_controlHttpServer) {
+        _controlHttpServer->stop();
+    }
+
     if (_controlServerThread.joinable()) {
         _controlServerThread.join();
     }
-    
+    _controlHttpServer = nullptr;
     LOG(INFO) << "[CONTROL] Control server stopped";
 }
 
@@ -332,6 +376,7 @@ void Detech::_controlServerThreadFunc() {
     try {
         // 创建HTTP服务器
         Server svr;
+        _controlHttpServer = &svr;
         
         // 健康检查接口（含流水线指标）
         svr.Get("/health", [this](const Request& req, Response& res) {
@@ -412,8 +457,10 @@ void Detech::_controlServerThreadFunc() {
         if (!svr.listen("0.0.0.0", _controlPort)) {
             LOG(ERROR) << "[CONTROL-THREAD] Failed to start control server on port " << _controlPort;
         }
+        _controlHttpServer = nullptr;
         
     } catch (const std::exception& e) {
+        _controlHttpServer = nullptr;
         LOG(ERROR) << "[CONTROL-THREAD] Exception in control server: " << e.what();
     }
     
@@ -483,13 +530,24 @@ bool Detech::_init_yolo11_detector() {
         LOG(INFO) << "[INIT] Model path: " << modelPath;
         
         std::vector<std::string> classes;
-        
-        // Load classes if configured
+
         if (!_config.modelClasses.empty()) {
             std::string classFile = _config.modelClasses.begin()->second;
             LOG(INFO) << "[INIT] Classes file: " << classFile;
-            // TODO: Load classes from file
-            // For now, use empty vector (will use default COCO classes)
+            std::ifstream ifs(classFile);
+            if (ifs.is_open()) {
+                std::string line;
+                while (std::getline(ifs, line)) {
+                    // trim
+                    size_t a = line.find_first_not_of(" \t\r\n");
+                    if (a == std::string::npos) continue;
+                    size_t b = line.find_last_not_of(" \t\r\n");
+                    classes.push_back(line.substr(a, b - a + 1));
+                }
+                LOG(INFO) << "[INIT] Loaded " << classes.size() << " classes from file";
+            } else {
+                LOG(WARNING) << "[INIT] Cannot open classes file, using default COCO names";
+            }
         }
         
         LOG(INFO) << "[INIT] Loading YOLO model with " << _config.threadNums << " threads...";
@@ -634,35 +692,42 @@ bool Detech::_init_media_alarmer() {
     return true;
 }
 
-// 检查检测框中心点是否在任何报警区域内
-bool Detech::_isInAlarmRegion(int centerX, int centerY) {
-    // 如果没有配置报警区域，默认全区域都触发告警
+// 检查检测框中心点是否在任何报警区域内（支持归一化 0-10000 坐标）
+bool Detech::_isInAlarmRegion(int centerX, int centerY, int frameW, int frameH) {
     if (_config.regions.empty()) {
         return true;
     }
-    
-    cv::Point2f center(centerX, centerY);
-    
-    // 遍历所有配置的报警区域
+
+    cv::Point2f center(static_cast<float>(centerX), static_cast<float>(centerY));
     for (const auto& regionPair : _config.regions) {
-        const std::vector<std::vector<cv::Point>>& polygons = regionPair.second;
-        
-        // 每个区域可能有多个多边形
-        for (const auto& polygon : polygons) {
+        for (const auto& polygon : regionPair.second) {
             if (polygon.size() < 3) {
-                continue;  // 多边形至少需要3个点
+                continue;
             }
-            
-            // 使用OpenCV的pointPolygonTest判断点是否在多边形内
-            // 返回值 >= 0 表示在多边形内或边上
-            double result = cv::pointPolygonTest(polygon, center, false);
-            if (result >= 0) {
-                return true;  // 在某个报警区域内
+            std::vector<cv::Point> scaled;
+            scaled.reserve(polygon.size());
+            bool looksNormalized = true;
+            for (const auto& pt : polygon) {
+                if (pt.x > 10000 || pt.y > 10000) {
+                    looksNormalized = false;
+                    break;
+                }
+            }
+            if (looksNormalized && frameW > 0 && frameH > 0) {
+                for (const auto& pt : polygon) {
+                    scaled.emplace_back(
+                        static_cast<int>(pt.x / 10000.0 * frameW),
+                        static_cast<int>(pt.y / 10000.0 * frameH));
+                }
+            } else {
+                scaled = polygon;
+            }
+            if (cv::pointPolygonTest(scaled, center, false) >= 0) {
+                return true;
             }
         }
     }
-    
-    return false;  // 不在任何报警区域内
+    return false;
 }
 
 // 绘制所有报警区域边界（半透明多边形）
@@ -829,12 +894,16 @@ void Detech::_alarmSenderThreadFunc() {
             Json::Value root;
             root["object"] = primaryObject;
             root["event"] = _config.algorithmName.empty() ? "detection" : _config.algorithmName;
-            root["device_id"] = _config.deviceId;
-            root["device_name"] = _config.deviceName.empty() ? _config.deviceId : _config.deviceName;
+            const std::string did = !alarmData.deviceId.empty() ? alarmData.deviceId : _config.deviceId;
+            const std::string dname = !alarmData.deviceName.empty()
+                ? alarmData.deviceName
+                : (_config.deviceName.empty() ? did : _config.deviceName);
+            root["device_id"] = did;
+            root["device_name"] = dname;
             root["task_type"] = _config.taskType.empty() ? "realtime" : _config.taskType;
             root["correlation_id"] = (_config.taskId.empty() ? "runtime" : _config.taskId) + "_" + ts;
             root["time"] = ts;
-            root["image_path"] = "";
+            root["image_path"] = alarmData.imagePath;
             root["region"] = alarmData.regionName;
 
             Json::Value info;
@@ -951,6 +1020,10 @@ void Detech::_heartbeatThreadFunc() {
             root["port"] = _config.controlPort;
             root["process_id"] = static_cast<int>(::getpid());
             root["log_path"] = _config.logPath;
+            if (_patrolScheduler) {
+                root["total_patrols"] = (Json::UInt64)_patrolScheduler->totalPatrols.load();
+                root["total_detections"] = (Json::UInt64)_patrolScheduler->totalDetections.load();
+            }
             Json::StreamWriterBuilder writer;
             writer["indentation"] = "";
             std::string body = Json::writeString(writer, root);
@@ -968,44 +1041,60 @@ void Detech::_heartbeatThreadFunc() {
     }
 }
 
-// 发送告警回调（企业级队列版本 - 只负责入队）
-void Detech::_sendAlarmCallback(const std::vector<DetectObject>& detections, const std::string& regionName) {
+std::string Detech::_saveAlertImage(const cv::Mat& frame) {
+    if (frame.empty()) {
+        return "";
+    }
+    std::string dir = _config.alertImageDir;
+    if (dir.empty()) {
+        dir = "alerts";
+    }
+    ::mkdir(dir.c_str(), 0755);
+    std::ostringstream name;
+    name << dir << "/alert_" << _config.taskId << "_" << _get_curtime_stamp_ms() << ".jpg";
+    try {
+        cv::Mat out = frame;
+        if (out.cols > 640) {
+            double scale = 640.0 / out.cols;
+            cv::resize(frame, out, cv::Size(), scale, scale);
+        }
+        if (cv::imwrite(name.str(), out)) {
+            return name.str();
+        }
+    } catch (...) {
+    }
+    return "";
+}
+
+// 发送告警回调（入队；可选落盘截图）
+void Detech::_sendAlarmCallback(const std::vector<DetectObject>& detections,
+                                const std::string& regionName,
+                                const cv::Mat& frame,
+                                const std::string& deviceId,
+                                const std::string& deviceName) {
     if (!_config.enableAlarm) {
         return;
     }
     if (_config.hookHttpUrl.empty() && _config.alertHookUrl.empty()) {
         return;
     }
-    
-    // 检查告警发送线程是否正在运行
     if (!_alarmThreadRunning.load()) {
         LOG(WARNING) << "[ALARM] Alarm sender thread not running, alarm dropped";
         return;
     }
-    
-    // 入队操作
+
+    std::string imagePath = _saveAlertImage(frame);
+
     {
         std::lock_guard<std::mutex> lock(_alarmQueueMutex);
-        
-        // 检查队列是否已满
         if (_alarmQueue.size() >= MAX_ALARM_QUEUE_SIZE) {
-            LOG(WARNING) << "[ALARM] Queue full (" << _alarmQueue.size() 
-                        << "/" << MAX_ALARM_QUEUE_SIZE << "), dropping oldest alarm";
-            _alarmQueue.pop();  // 移除最旧的告警
+            _alarmQueue.pop();
         }
-        
-        // 创建告警数据并入队
-        AlarmData alarmData(detections, regionName, _get_curtime_stamp_ms());
+        AlarmData alarmData(detections, regionName, _get_curtime_stamp_ms(), imagePath, deviceId, deviceName);
         _alarmQueue.push(std::move(alarmData));
-        
-        LOG(INFO) << "[ALARM] Alarm enqueued, queue size: " << _alarmQueue.size() 
-                  << "/" << MAX_ALARM_QUEUE_SIZE;
+        LOG(INFO) << "[ALARM] Alarm enqueued, queue size: " << _alarmQueue.size();
     }
-    
-    // 唤醒告警发送线程
     _alarmQueueCV.notify_one();
-    
-    // 更新最后告警时间（用于冷却机制）
     _lastAlarmTime = _get_curtime_stamp_ms();
 }
 
@@ -1153,7 +1242,7 @@ void Detech::_display_video_loop() {
                     int centerY = (y1 + y2) / 2;
                     
                     // 检查是否在报警区域内
-                    bool inAlarmRegion = _isInAlarmRegion(centerX, centerY);
+                    bool inAlarmRegion = _isInAlarmRegion(centerX, centerY, img.cols, img.rows);
                     if (inAlarmRegion) {
                         inRegionCount++;
                         
@@ -1217,7 +1306,7 @@ void Detech::_display_video_loop() {
                     if (!_config.regions.empty()) {
                         regionName = _config.regions.begin()->first;  // 获取第一个区域名称
                     }
-                    _sendAlarmCallback(alarmDetections, regionName);
+                    _sendAlarmCallback(alarmDetections, regionName, img);
                 }
             }
         }
