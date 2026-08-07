@@ -32,28 +32,12 @@ int Yolov11Engine::LoadModel(std::string model_path, std::vector<std::string> mo
         
         LOG(INFO) << "[YOLO] Setting up session options...";
         onnxSessionOptions = Ort::SessionOptions();
-        onnxSessionOptions.SetGraphOptimizationLevel(ORT_ENABLE_EXTENDED);  // Enable optimizations for DirectML
+        onnxSessionOptions.SetGraphOptimizationLevel(ORT_ENABLE_EXTENDED);
         onnxSessionOptions.SetExecutionMode(ExecutionMode::ORT_SEQUENTIAL);
-        onnxSessionOptions.DisableMemPattern();  // DirectML requires this
-        
-        // Temporarily using CPU mode - DirectML provider DLL not available
-        #ifdef _WIN32
-        LOG(INFO) << "[YOLO] Using CPU mode (async inference enabled)";
-        LOG(INFO) << "[YOLO] DirectML disabled - onnxruntime_providers_dml.dll not found";
-        // TODO: Enable DirectML GPU once provider DLL is obtained
-        #else
-        LOG(INFO) << "[YOLO] Using CPU execution (Linux)";
-        #endif
-        
+        LOG(INFO) << "[YOLO] Using CPU execution";
+
         LOG(INFO) << "[YOLO] Loading model: " << model_path;
-        
-        // ONNX Runtime on Windows requires wide string path
-        #ifdef _WIN32
-            std::wstring wModelPath(model_path.begin(), model_path.end());
-            onnxSession = Ort::Session(onnxEnv, wModelPath.c_str(), onnxSessionOptions);
-        #else
-            onnxSession = Ort::Session(onnxEnv, model_path.c_str(), onnxSessionOptions);
-        #endif
+        onnxSession = Ort::Session(onnxEnv, model_path.c_str(), onnxSessionOptions);
         
         LOG(INFO) << "[YOLO] Model loaded successfully";
         

@@ -5,9 +5,51 @@
 #include "Yolov11ThreadPool.h"
 #include "Datatype.h"
 #include <chrono>
+#include <ctime>
+#include <iomanip>
 #include <map>
+#include <sstream>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/geometry.hpp>
+#include <unistd.h>
 
 static Yolov11ThreadPool *yolov11_thread_pool = nullptr;
+
+namespace {
+std::string formatUtcNow() {
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    std::tm tm{};
+    gmtime_r(&t, &tm);
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%dT%H:%M:%SZ");
+    return oss.str();
+}
+
+bool parseHttpUrl(const std::string& url, std::string& host, int& port, std::string& path) {
+    size_t protocolPos = url.find("://");
+    if (protocolPos == std::string::npos) {
+        return false;
+    }
+    std::string rest = url.substr(protocolPos + 3);
+    size_t pathPos = rest.find('/');
+    std::string hostPort = pathPos == std::string::npos ? rest : rest.substr(0, pathPos);
+    path = pathPos == std::string::npos ? "/" : rest.substr(pathPos);
+    size_t colonPos = hostPort.find(':');
+    if (colonPos != std::string::npos) {
+        host = hostPort.substr(0, colonPos);
+        try {
+            port = std::stoi(hostPort.substr(colonPos + 1));
+        } catch (...) {
+            port = 80;
+        }
+    } else {
+        host = hostPort;
+        port = 80;
+    }
+    return !host.empty();
+}
+}  // namespace
 
 Detech::Detech(Config &config): _config(config) {
     LOG(INFO) << "[INIT] Config initialization completed";
@@ -15,6 +57,15 @@ Detech::Detech(Config &config): _config(config) {
 
 Detech::~Detech() {
     LOG(INFO) << "[CLEANUP] Detech destructor called, cleaning up resources...";
+
+    _isRun = false;
+    if (_pipeline) {
+        _pipeline->stop();
+        _pipeline->join();
+        _pipeline.reset();
+    }
+
+    _stopHeartbeatThread();
     
     // 停止HTTP控制服务器
     _stopControlServer();
@@ -94,22 +145,60 @@ int Detech::start() {
     LOG(INFO) << "[INIT] Control server started successfully";
     
     LOG(INFO) << "[OK] All components initialized successfully!";
+
+    LOG(INFO) << "[INIT] Step 9: Starting heartbeat thread...";
+    _startHeartbeatThread();
     
-    // Start video display loop
     LOG(INFO) << "";
-    LOG(INFO) << "[VIDEO] Starting real-time video display...";
     LOG(INFO) << "[VIDEO] Resolution: " << _videoWidth << "x" << _videoHeight << " @ " << _videoFps << " FPS";
-    LOG(INFO) << "[VIDEO] Press 'q' or ESC to exit";
-    LOG(INFO) << "";
-    
-    _display_video_loop();
+    if (_config.headless) {
+        LOG(INFO) << "[VIDEO] Headless pipeline mode (pull/decode/infer/emit rings)";
+        _run_pipeline_loop();
+    } else {
+        LOG(INFO) << "[VIDEO] Starting real-time video display...";
+        LOG(INFO) << "[VIDEO] Press 'q' or ESC to exit";
+        _display_video_loop();
+    }
     
     return 0;
 }
 
 int Detech::stop() {
     _isRun = false;
+    if (_pipeline) {
+        _pipeline->stop();
+    }
     return 0;
+}
+
+void Detech::_run_pipeline_loop() {
+    _pipeline = std::make_unique<runtime::Pipeline>(
+        _config,
+        _ffmpegFormatCtx,
+        _ffmpegCodecCtx,
+        _videoIndex,
+        _videoWidth,
+        _videoHeight,
+        _videoFps,
+        yolov11_thread_pool,
+        &_rtmpEncoder,
+        [this](const std::vector<DetectObject>& dets, const std::string& region) {
+            if (_checkAlarmCooldown()) {
+                _sendAlarmCallback(dets, region);
+            }
+        },
+        [this](int cx, int cy) { return _isInAlarmRegion(cx, cy); },
+        [this]() { return _streamingEnabled.load(); },
+        &_metrics
+    );
+    _pipeline->start();
+    while (_isRun && _pipeline && _pipeline->isRunning()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+    if (_pipeline) {
+        _pipeline->stop();
+        _pipeline->join();
+    }
 }
 
 // ==================== 动态推流控制实现 ====================
@@ -244,11 +333,22 @@ void Detech::_controlServerThreadFunc() {
         // 创建HTTP服务器
         Server svr;
         
-        // 健康检查接口
-        svr.Get("/health", [](const Request& req, Response& res) {
+        // 健康检查接口（含流水线指标）
+        svr.Get("/health", [this](const Request& req, Response& res) {
             Json::Value response;
             response["status"] = "ok";
-            response["service"] = "TASK Control Server";
+            response["service"] = "RUNTIME Control Server";
+            response["task_id"] = this->_config.taskId;
+            response["streaming"] = this->isStreaming();
+            Json::Value metrics;
+            metrics["packets_in"] = (Json::UInt64)this->_metrics.packetsIn.load();
+            metrics["frames_decoded"] = (Json::UInt64)this->_metrics.framesDecoded.load();
+            metrics["frames_dropped"] = (Json::UInt64)this->_metrics.framesDropped.load();
+            metrics["infer_in"] = (Json::UInt64)this->_metrics.inferIn.load();
+            metrics["infer_out"] = (Json::UInt64)this->_metrics.inferOut.load();
+            metrics["alarms_emitted"] = (Json::UInt64)this->_metrics.alarmsEmitted.load();
+            metrics["last_latency_ms"] = (Json::UInt64)this->_metrics.lastLatencyMs.load();
+            response["metrics"] = metrics;
             
             Json::StreamWriterBuilder writer;
             res.set_content(Json::writeString(writer, response), "application/json");
@@ -322,34 +422,35 @@ void Detech::_controlServerThreadFunc() {
 
 bool Detech::_init_http_client() {
     // cpp-httplib需要"host:port"格式，不是完整URL
-    // 从hookHttpUrl提取主机和端口
     std::string host = "localhost";
-    int port = 5000;
-    
-    // 简单解析：假设格式为 http://host:port/path
-    if (!_config.hookHttpUrl.empty()) {
-        size_t protocolEnd = _config.hookHttpUrl.find("://");
+    int port = 6000;
+    const std::string& hookUrl = !_config.alertHookUrl.empty()
+        ? _config.alertHookUrl
+        : _config.hookHttpUrl;
+
+    if (!hookUrl.empty()) {
+        size_t protocolEnd = hookUrl.find("://");
         if (protocolEnd != std::string::npos) {
             size_t hostStart = protocolEnd + 3;
-            size_t portStart = _config.hookHttpUrl.find(":", hostStart);
-            size_t pathStart = _config.hookHttpUrl.find("/", hostStart);
-            
+            size_t portStart = hookUrl.find(":", hostStart);
+            size_t pathStart = hookUrl.find("/", hostStart);
+
             if (portStart != std::string::npos && pathStart != std::string::npos) {
-                host = _config.hookHttpUrl.substr(hostStart, portStart - hostStart);
-                std::string portStr = _config.hookHttpUrl.substr(portStart + 1, pathStart - portStart - 1);
+                host = hookUrl.substr(hostStart, portStart - hostStart);
+                std::string portStr = hookUrl.substr(portStart + 1, pathStart - portStart - 1);
                 port = std::stoi(portStr);
             } else if (pathStart != std::string::npos) {
-                host = _config.hookHttpUrl.substr(hostStart, pathStart - hostStart);
+                host = hookUrl.substr(hostStart, pathStart - hostStart);
             }
         }
     }
-    
+
     LOG(INFO) << "[INIT] Creating HTTP client for " << host << ":" << port;
     _httpClient = new httplib::Client(host, port);
-    _httpClient->set_connection_timeout(5, 0);  // 5秒连接超时
-    _httpClient->set_read_timeout(5, 0);        // 5秒读取超时
-    _httpClient->set_write_timeout(5, 0);       // 5秒写入超时
-    
+    _httpClient->set_connection_timeout(5, 0);
+    _httpClient->set_read_timeout(5, 0);
+    _httpClient->set_write_timeout(5, 0);
+
     LOG(INFO) << "[INIT] HTTP client created successfully";
     return true;
 }
@@ -513,7 +614,7 @@ bool Detech::_init_media_alarmer() {
         return true;
     }
     
-    if (_config.hookHttpUrl.empty()) {
+    if (_config.hookHttpUrl.empty() && _config.alertHookUrl.empty()) {
         LOG(WARNING) << "[INIT] Alarm enabled but hook URL not configured";
         return true;
     }
@@ -525,7 +626,8 @@ bool Detech::_init_media_alarmer() {
     }
     
     LOG(INFO) << "[INIT] Alarm callback initialized";
-    LOG(INFO) << "  → Hook URL: " << _config.hookHttpUrl;
+    LOG(INFO) << "  → Hook URL: "
+              << (!_config.alertHookUrl.empty() ? _config.alertHookUrl : _config.hookHttpUrl);
     LOG(INFO) << "  → Confidence threshold: " << _config.alarmConfidenceThreshold;
     LOG(INFO) << "  → Cooldown time: " << _config.alarmCooldownTime << "s";
     
@@ -645,7 +747,7 @@ bool Detech::_checkAlarmCooldown() {
 
 // 启动告警发送线程
 void Detech::_startAlarmSenderThread() {
-    if (!_config.enableAlarm || _config.hookHttpUrl.empty()) {
+    if (!_config.enableAlarm || (_config.hookHttpUrl.empty() && _config.alertHookUrl.empty())) {
         LOG(INFO) << "[ALARM] Alarm disabled or no hook URL, skipping alarm thread";
         return;
     }
@@ -717,71 +819,78 @@ void Detech::_alarmSenderThreadFunc() {
             continue;
         }
         
-        // 发送告警（不持锁，避免阻塞队列）
+        // 发送告警（VIDEO /video/alert/hook 契约）
         try {
-            // 构建JSON数据
+            const std::string ts = formatUtcNow();
+            std::string primaryObject = alarmData.detections.empty()
+                ? "object"
+                : alarmData.detections.front().class_name;
+
             Json::Value root;
-            root["taskId"] = _config.taskId.empty() ? "camera_test" : _config.taskId;
-            root["timestamp"] = (Json::Value::Int64)alarmData.timestamp;
-            root["alarmType"] = "region_intrusion";
-            root["regionName"] = alarmData.regionName;
-            root["detectionCount"] = static_cast<int>(alarmData.detections.size());
-            
-            // 添加检测结果数组
+            root["object"] = primaryObject;
+            root["event"] = _config.algorithmName.empty() ? "detection" : _config.algorithmName;
+            root["device_id"] = _config.deviceId;
+            root["device_name"] = _config.deviceName.empty() ? _config.deviceId : _config.deviceName;
+            root["task_type"] = _config.taskType.empty() ? "realtime" : _config.taskType;
+            root["correlation_id"] = (_config.taskId.empty() ? "runtime" : _config.taskId) + "_" + ts;
+            root["time"] = ts;
+            root["image_path"] = "";
+            root["region"] = alarmData.regionName;
+
+            Json::Value info;
+            info["task_id"] = _config.taskId;
+            info["region"] = alarmData.regionName;
+            info["detection_count"] = static_cast<int>(alarmData.detections.size());
+            info["runtime_ts_ms"] = (Json::Value::UInt64)alarmData.timestamp;
             Json::Value detectionsArray(Json::arrayValue);
             for (const auto& det : alarmData.detections) {
                 Json::Value detObj;
                 detObj["class_name"] = det.class_name;
                 detObj["confidence"] = det.class_score;
-                
+                detObj["class_id"] = det.class_id;
                 Json::Value bbox(Json::arrayValue);
                 bbox.append(static_cast<int>(det.x1));
                 bbox.append(static_cast<int>(det.y1));
                 bbox.append(static_cast<int>(det.x2));
                 bbox.append(static_cast<int>(det.y2));
                 detObj["bbox"] = bbox;
-                
-                detObj["centerX"] = static_cast<int>((det.x1 + det.x2) / 2);
-                detObj["centerY"] = static_cast<int>((det.y1 + det.y2) / 2);
-                
                 detectionsArray.append(detObj);
             }
-            root["detections"] = detectionsArray;
-            
-            // 转换为字符串
+            info["detections"] = detectionsArray;
+            Json::StreamWriterBuilder compact;
+            compact["indentation"] = "";
+            root["information"] = Json::writeString(compact, info);
+
             Json::StreamWriterBuilder writer;
+            writer["indentation"] = "";
             std::string jsonStr = Json::writeString(writer, root);
-            
-            // 从完整URL中提取路径部分
-            std::string path = "/api/alarm/callback/123";
-            if (!_config.hookHttpUrl.empty()) {
-                size_t protocolEnd = _config.hookHttpUrl.find("://");
+
+            std::string path = "/video/alert/hook";
+            const std::string& hookUrl = !_config.alertHookUrl.empty()
+                ? _config.alertHookUrl
+                : _config.hookHttpUrl;
+            if (!hookUrl.empty()) {
+                size_t protocolEnd = hookUrl.find("://");
                 if (protocolEnd != std::string::npos) {
-                    size_t pathStart = _config.hookHttpUrl.find("/", protocolEnd + 3);
+                    size_t pathStart = hookUrl.find("/", protocolEnd + 3);
                     if (pathStart != std::string::npos) {
-                        path = _config.hookHttpUrl.substr(pathStart);
+                        path = hookUrl.substr(pathStart);
                     }
                 }
             }
-            
-            // 发送HTTP POST请求
-            LOG(INFO) << "[ALARM-THREAD] Sending callback to: " << _config.hookHttpUrl;
-            
+
+            LOG(INFO) << "[ALARM-THREAD] Sending VIDEO hook to: " << hookUrl;
             auto res = _httpClient->Post(path.c_str(), jsonStr, "application/json");
-            
             if (res && res->status == 200) {
-                LOG(INFO) << "[ALARM-THREAD] ✅ Callback sent successfully";
-                // 只在DEBUG模式打印响应体（减少日志输出）
-                // LOG(INFO) << "[ALARM-THREAD] Response: " << res->body;
+                LOG(INFO) << "[ALARM-THREAD] VIDEO hook accepted";
             } else {
-                LOG(ERROR) << "[ALARM-THREAD] ❌ Callback failed";
+                LOG(ERROR) << "[ALARM-THREAD] VIDEO hook failed";
                 if (res) {
-                    LOG(ERROR) << "  → HTTP Status: " << res->status;
+                    LOG(ERROR) << "  HTTP Status: " << res->status << " body=" << res->body;
                 } else {
-                    LOG(ERROR) << "  → Network error or timeout";
+                    LOG(ERROR) << "  Network error or timeout";
                 }
             }
-            
         } catch (const std::exception& e) {
             LOG(ERROR) << "[ALARM-THREAD] Exception while sending alarm: " << e.what();
         }
@@ -790,9 +899,81 @@ void Detech::_alarmSenderThreadFunc() {
     LOG(INFO) << "[ALARM-THREAD] Alarm sender thread exiting gracefully";
 }
 
+void Detech::_startHeartbeatThread() {
+    if (_config.heartbeatUrl.empty()) {
+        LOG(INFO) << "[HEARTBEAT] heartbeat_url not set, heartbeat disabled";
+        return;
+    }
+    if (_heartbeatRunning.load()) {
+        return;
+    }
+    _heartbeatRunning.store(true);
+    _heartbeatThread = std::thread(&Detech::_heartbeatThreadFunc, this);
+    LOG(INFO) << "[HEARTBEAT] thread started -> " << _config.heartbeatUrl;
+}
+
+void Detech::_stopHeartbeatThread() {
+    if (!_heartbeatRunning.load()) {
+        return;
+    }
+    _heartbeatRunning.store(false);
+    if (_heartbeatThread.joinable()) {
+        _heartbeatThread.join();
+    }
+    LOG(INFO) << "[HEARTBEAT] thread stopped";
+}
+
+void Detech::_heartbeatThreadFunc() {
+    std::string host;
+    int port = 80;
+    std::string path = "/video/algorithm/heartbeat/realtime";
+    if (!parseHttpUrl(_config.heartbeatUrl, host, port, path)) {
+        LOG(ERROR) << "[HEARTBEAT] invalid URL: " << _config.heartbeatUrl;
+        return;
+    }
+    httplib::Client client(host, port);
+    client.set_connection_timeout(3, 0);
+    client.set_read_timeout(3, 0);
+    client.set_write_timeout(3, 0);
+
+    int interval = _config.heartbeatIntervalSec > 0 ? _config.heartbeatIntervalSec : 10;
+    while (_heartbeatRunning.load() && _isRun) {
+        try {
+            Json::Value root;
+            int taskIdNum = 0;
+            try {
+                taskIdNum = std::stoi(_config.taskId);
+            } catch (...) {
+                taskIdNum = 0;
+            }
+            root["task_id"] = taskIdNum;
+            root["server_ip"] = "127.0.0.1";
+            root["port"] = _config.controlPort;
+            root["process_id"] = static_cast<int>(::getpid());
+            root["log_path"] = _config.logPath;
+            Json::StreamWriterBuilder writer;
+            writer["indentation"] = "";
+            std::string body = Json::writeString(writer, root);
+            auto res = client.Post(path.c_str(), body, "application/json");
+            if (!(res && res->status == 200)) {
+                LOG(WARNING) << "[HEARTBEAT] post failed status="
+                             << (res ? res->status : -1);
+            }
+        } catch (const std::exception& e) {
+            LOG(WARNING) << "[HEARTBEAT] exception: " << e.what();
+        }
+        for (int i = 0; i < interval * 10 && _heartbeatRunning.load() && _isRun; ++i) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+}
+
 // 发送告警回调（企业级队列版本 - 只负责入队）
 void Detech::_sendAlarmCallback(const std::vector<DetectObject>& detections, const std::string& regionName) {
-    if (!_config.enableAlarm || _config.hookHttpUrl.empty()) {
+    if (!_config.enableAlarm) {
+        return;
+    }
+    if (_config.hookHttpUrl.empty() && _config.alertHookUrl.empty()) {
         return;
     }
     

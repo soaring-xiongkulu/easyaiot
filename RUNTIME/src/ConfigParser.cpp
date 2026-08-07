@@ -163,6 +163,33 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
                 }
             }
         }
+        else if (currentSection == "video_task") {
+            if (key == "device_id") {
+                config.deviceId = value;
+            } else if (key == "device_name") {
+                config.deviceName = value;
+            } else if (key == "task_type") {
+                config.taskType = value.empty() ? "realtime" : value;
+            } else if (key == "algorithm_name" || key == "event") {
+                config.algorithmName = value.empty() ? "detection" : value;
+            } else if (key == "heartbeat_url") {
+                config.heartbeatUrl = value;
+            } else if (key == "alert_hook_url") {
+                config.alertHookUrl = value;
+                if (config.hookHttpUrl.empty()) {
+                    config.hookHttpUrl = value;
+                }
+            } else if (key == "log_path") {
+                config.logPath = value;
+            } else if (key == "heartbeat_interval_sec") {
+                config.heartbeatIntervalSec = parseInt(value);
+                if (config.heartbeatIntervalSec <= 0) {
+                    config.heartbeatIntervalSec = 10;
+                }
+            } else if (key == "headless") {
+                config.headless = parseBool(value);
+            }
+        }
         else if (currentSection == "features") {
             if (key == "enable_rtmp") {
                 config.enableRtmp = parseBool(value);
@@ -200,6 +227,10 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
         return false;
     }
     
+    if (!config.alertHookUrl.empty()) {
+        config.hookHttpUrl = config.alertHookUrl;
+    }
+
     if (config.enableAlarm && config.hookHttpUrl.empty()) {
         LOG(ERROR) << "[ERROR] Alarm detection enabled but callback URL not configured";
         return false;

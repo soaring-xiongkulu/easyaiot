@@ -1,9 +1,5 @@
 #include "Manage.h"
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 // 全局变量定义
 std::atomic<int> s_exit(0);
 
@@ -13,29 +9,6 @@ void procSignal(int s) {
     s_exit.store(1, std::memory_order_release);
 }
 
-#ifdef _WIN32
-// Windows平台信号处理
-BOOL WINAPI ConsoleHandler(DWORD signal) {
-    switch(signal) {
-        case CTRL_C_EVENT:
-        case CTRL_BREAK_EVENT:
-        case CTRL_CLOSE_EVENT:
-            procSignal(SIGINT);
-            return TRUE;
-        default:
-            return FALSE;
-    }
-}
-
-void installSignalCallback() {
-    SetConsoleCtrlHandler(ConsoleHandler, TRUE);
-    signal(SIGINT, procSignal);
-    signal(SIGTERM, procSignal);
-    signal(SIGABRT, procSignal);
-}
-
-#else
-// Linux/Unix平台信号处理
 void installSignalCallback() {
     struct sigaction sigIntHandler;
     sigIntHandler.sa_flags = 0;
@@ -46,7 +19,6 @@ void installSignalCallback() {
     sigaction(SIGTERM, &sigIntHandler, nullptr);
     sigaction(SIGPIPE, &sigIntHandler, nullptr);
 }
-#endif
 
 Server::Server(const Config &conf) : _local(conf) {
 }
