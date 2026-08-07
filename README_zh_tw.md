@@ -42,7 +42,7 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平臺由 <strong>WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、TASK、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時與抓拍算法任務、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、三檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
+平臺由 <strong>WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時與抓拍算法任務、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、三檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -146,6 +146,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 #### 🧠 AI能力
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>RUNTIME C++ 高速幀執行器</strong>：將原 TASK 演進爲獨立 <code>RUNTIME</code> 模組，專責即時視頻熱路徑——拉流、硬/軟解碼、YOLO 推理與結構化結果回傳。階段之間以環形隊列（滿則丟最舊幀）解耦，端到端延遲與丟幀可觀測；由 VIDEO 以 <code>executor=cpp</code> 按任務拉起，告警與心跳仍走 VIDEO 既有 hook / Kafka 閉環，預覽轉發與任務編排仍留在 VIDEO，<strong>不替代、不架空視頻平臺層</strong>。默認 <code>executor=python</code> 保持現網兼容，需要極致吞吐時一鍵切換 C++ 後端即可，讓「編排歸 VIDEO、算力歸 RUNTIME」成爲可落地的混編加速路徑</li>
   <li><strong>平臺名稱與 Logo 全觸點自定義</strong>：同一套 EasyAIoT 部署到現場後，用戶看到的應是「自己的平臺」，而不是通用產品名。監控大屏內置可視化「平臺標識設置」，管理員在界面中即可完成品牌替換——管理後臺可改平臺名稱與 Logo（同步側邊欄、瀏覽器標題）；監控大屏可獨立設置指揮標題；登入頁可自定義名稱、Logo、表單標題及淺色/深色背景圖，三處視覺統一、即時生效，並支持保存與一鍵重置。
     <ul style="margin: 5px 0; padding-left: 20px;">
       <li><strong>對系統集成商與方案商</strong>：省去前端改膚、二次開發與發版成本；PoC 演示與正式交付可快速切換爲客戶品牌，同一套代碼支撐多客戶項目，縮短回款週期、提高方案複用率</li>
@@ -175,10 +176,11 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>設備檢測區域繪製</strong>：提供可視化的設備檢測區域繪製工具，支持在設備抓拍圖片上繪製四邊形和多邊形檢測區域，支持區域與算法模型靈活關聯配置，支持區域的可視化管理、編輯、刪除等操作，支持快捷鍵操作提升繪製效率，實現精準的區域檢測配置，爲算法任務提供精確的檢測範圍定義</li>
   <li><strong>智能聯動告警機制</strong>：支持檢測區域、佈防時段和事件告警的三重聯動機制，系統會智能判斷檢測到的事件是否同時滿足指定的檢測區域範圍、處於佈防時段內且匹配告警事件類型，只有同時滿足這三個條件時纔會觸發告警，實現精準的時空條件過濾，大幅降低誤報率，提升告警系統的準確性和實用性</li>
   <li><strong>大規模攝像頭管理</strong>：支持百級攝像頭接入，提供採集、標註、訓練、推理、導出、分析、告警、錄像、存儲、部署等全流程服務</li>
-  <li><strong>算法任務管理</strong>：支持創建和管理兩種類型的算法任務，每個算法任務可靈活綁定抽幀器和排序器，實現精準的視頻幀提取與結果排序
+  <li><strong>算法任務管理</strong>：支持創建和管理即時、抓拍、巡檢等類型的算法任務，每個算法任務可靈活綁定抽幀器和排序器，實現精準的視頻幀提取與結果排序
     <ul style="margin: 5px 0; padding-left: 20px;">
-      <li><strong>即時算法任務</strong>：用於即時畫面分析，支持RTSP/RTMP流即時處理，提供毫秒級響應能力，適用於監控、安防等即時場景</li>
+      <li><strong>即時算法任務</strong>：用於即時畫面分析，支持RTSP/RTMP流即時處理；執行後端可選 <code>python</code>（默認，現有 run_deploy）或 <code>cpp</code>（拉起 RUNTIME 二進制），適用於監控、安防等即時場景</li>
       <li><strong>抓拍算法任務</strong>：用於抓拍圖像分析，對抓拍圖片進行智能識別與分析，適用於事件回溯、圖像檢索等場景</li>
+      <li><strong>巡檢算法任務</strong>：面向多路輪巡與連接池調度，以「少連接、廣覆蓋」完成批量 AI 巡檢</li>
     </ul>
   </li>
   <li><strong>數據集標註與多格式數據集管理</strong>：內置可視化圖像標註工作臺，支持矩形框、多邊形等標註形態，以及標註類別管理與進度跟蹤；全面兼容 YOLO、COCO、ImageFolder 等主流數據集格式的靈活導入與導出，並打通雲平臺數據集通道，支持雲端數據集的一鍵導入與同步導出，貫通「數據採集—人工標註—模型訓練—部署推理」全流程閉環</li>
@@ -312,7 +314,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-Java擅長構建穩定可靠的平臺架構，但不適合網路編程和AI編程；Python擅長網路編程和AI算法開發，但在高性能任務執行方面存在瓶頸；C++擅長高性能任務執行，但在平臺開發和AI編程方面不如前兩者。EasyAIoT採用三合一語言混編架構，充分發揮各語言優勢，構建一個實現頗具挑戰，但使用極其便捷的AIoT平臺。
+Java擅長構建穩定可靠的平臺架構，但不適合網路編程和AI編程；Python擅長網路編程和AI算法開發，但在高性能任務執行方面存在瓶頸；C++擅長高性能任務執行，但在平臺開發和AI編程方面不如前兩者。EasyAIoT採用三合一語言混編架構，充分發揮各語言優勢：Java 扛平臺控制面，Python 扛業務與算法編排（VIDEO/AI），C++ <strong>RUNTIME</strong> 扛即時視頻推理熱路徑——構建一個實現頗具挑戰，但使用極其便捷的AIoT平臺。
 </p>
 
 ![EasyAIoT平臺架構.jpg](.image/iframe2.jpg)
@@ -395,7 +397,7 @@ EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統
 ## 🧩 項目結構
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、TASK、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE 等核心模組組成，並配套 COMPILE 多平臺打包交付能力：
+EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE 等核心模組組成，並配套 COMPILE 多平臺打包交付能力：
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
@@ -474,7 +476,8 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、TASK、EDGE、VISUAL
     <li><strong>流媒體處理</strong>：支持 RTSP/RTMP 流即時處理與傳輸</li>
     <li><strong>多協議攝像頭接入</strong>：GB28181、ONVIF、NVR 批量掃描、大疆司空直播與 RTC 消費級攝像頭統一納管</li>
     <li><strong>RTC 聯動 API</strong>：<code>/register/device/rtc-live</code> 一鍵完成 go2rtc 流註冊與設備入庫，刪除設備時自動清理 RTC 流</li>
-    <li><strong>算法任務管理</strong>：支持即時算法任務和抓拍算法任務兩種類型，分別用於即時畫面分析和抓拍圖像分析</li>
+    <li><strong>算法任務管理</strong>：支持即時 / 抓拍 / 巡檢算法任務；即時任務可配置執行後端 <code>executor=python|cpp</code>（默認 python，cpp 時由本模組生成 ini 並拉起 RUNTIME）</li>
+    <li><strong>結果面統一</strong>：無論 Python 還是 C++ 執行器，告警均回本模組 <code>/video/alert/hook</code>，心跳寫入任務服務狀態，再匯入 Kafka / 落庫 / 通知</li>
     <li><strong>抽幀器與排序器</strong>：支持靈活的抽幀策略與結果排序機制，每個算法任務可綁定獨立的抽幀器和排序器</li>
     <li><strong>佈防時段</strong>：支持全防模式和半防模式的時段化配置</li>
   </ul>
@@ -504,8 +507,15 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、TASK、EDGE、VISUAL
 </td>
 </tr>
 <tr>
-<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>TASK模組</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">高性能任務處理模組，負責計算密集型任務執行</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>RUNTIME模組</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>C++ 幀熱路徑</strong>：由原 TASK 演進，專注拉流 → 解碼 → YOLO 推理 → 結果回傳，服務 VIDEO 的 <code>executor=cpp</code> 即時任務（不替代 VIDEO 編排/預覽/告警面）</li>
+    <li><strong>環形隊列流水線</strong>：Pull/Decode、Infer、Emit 分階段線程，幀環滿則丟最舊，保障即時優先與解碼不被推理阻塞</li>
+    <li><strong>與 VIDEO 契約打通</strong>：告警 POST <code>/video/alert/hook</code>，心跳 POST <code>/video/algorithm/heartbeat/realtime</code>，<code>/health</code> 暴露丟幀與延遲指標</li>
+    <li><strong>Linux 邊緣友好</strong>：CMake 產出獨立二進制，可與 conda / 系統依賴一併部署；默認 python 執行器可隨時回退</li>
+  </ul>
+</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>EDGE模組</strong></td>
@@ -622,7 +632,7 @@ EasyAIoT支持在Linux、Mac、Windows三大主流作業系統上部署，爲不
 構築了物聯網設備（尤其是海量攝像頭）的高效接入與管控網路。我們深度融合流媒體即時傳輸技術與前沿人工智能（AI），打造一體化服務核心。這套方案不僅打通了異構設備的互聯互通，更將高清視頻流與強大的AI解析引擎深度集成，賦予監控系統"智能之眼"——精準實現人臉識別、異常行爲分析、風險人員布控及周界入侵檢測。
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
-平臺支持兩種類型的算法任務：即時算法任務用於RTSP/RTMP流的即時畫面分析，提供毫秒級響應能力；抓拍算法任務用於抓拍圖像的智能分析，支持事件回溯與圖像檢索。通過算法任務管理實現靈活的抽幀與排序策略，每個任務可綁定獨立的抽幀器和排序器，結合模型服務集羣推理能力，確保毫秒級響應與高可用保障。同時，提供全防模式和半防模式兩種佈防策略，可根據不同時段靈活配置監控規則，實現精準的時段化智能監控與告警。
+平臺支持即時、抓拍與巡檢等類型的算法任務：即時算法任務用於 RTSP/RTMP 流的即時畫面分析，執行後端可選 Python（默認）或 C++ RUNTIME（<code>executor=cpp</code>），在編排與告警契約不變的前提下把熱路徑吞吐推到極致；抓拍算法任務用於抓拍圖像的智能分析，支持事件回溯與圖像檢索；巡檢任務面向多路輪巡覆蓋。通過算法任務管理實現靈活的抽幀與排序策略，每個任務可綁定獨立的抽幀器和排序器，結合模型服務集羣推理能力，確保毫秒級響應與高可用保障。同時，提供全防模式和半防模式兩種佈防策略，可根據不同時段靈活配置監控規則，實現精準的時段化智能監控與告警。
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
 在物聯網設備管理方面，EasyAIoT提供完整的設備生命週期管理能力，支持多種物聯網與工業協議（MQTT、TCP、HTTP、Modbus-TCP、Modbus-RTU、OPC UA），實現設備的快速接入、安全認證、即時監控和智能控制。通過規則引擎實現設備數據的智能流轉與處理，結合AI能力對設備數據進行深度分析，實現從設備接入、數據採集、智能分析到決策執行的全流程自動化，真正實現萬物互聯、萬物智控。
