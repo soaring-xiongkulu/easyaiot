@@ -1,185 +1,155 @@
-# Compiled class file
-*.class
 
-# Log file
-*.log
-# WEB 日志目录（与 WEB/.gitignore 中 logs/*、!logs/.gitkeep 一致）
-/WEB/logs/*
-!/WEB/logs/.gitkeep
-# WEB docker build 输出日志（与 WEB/.gitignore 中 docker-build-logs/*、!.gitkeep 一致）
-/WEB/docker-build-logs/*
-!/WEB/docker-build-logs/.gitkeep
-# WEB 预构建前端缓存（runtime_image.sh 提取，体积大，勿提交）
-/WEB/dist-prebuilt-full/
-/WEB/dist-prebuilt-mini/
-/WEB/dist-prebuilt-standard/
-.idea
-
+# 表结构同步产物（明文整库备份与差异 SQL，绝不可入库）
+# 媒体节点离线 Docker 镜像包（体积大，勿提交）
+# 排除 postgresql 初始化脚本
+# AI 模型权重（大文件由 ModelScope 或安装脚本下载，不随仓库分发）
+AI/models/
+**/alert_images/
+# alert_images 文件夹
+# APP 构建产物、依赖与 pnpm 缓存
+APP/dist/
+APP/docs/.vitepress/cache
+APP/docs/.vitepress/dist
+APP/.eslintcache
+APP/.hbuilderx
+APP/logs/
+APP/node_modules/
+APP/.playwright-cli/
+APP/.pnpm-store/
+APP/private.key
+APP/src/types/*
+!APP/src/types/auto-import.d.ts
+APP/.stylelintcache
+APP/tmp/
+**/backup/
+# backup 文件夹
 # BlueJ files
+.build-cache/**
+!.build-cache/README.md
+*.class
+.claude/changed-files-hook.sh
+# Claude Code 个人配置与本地钩子（仅本机，不随仓库分发）
+.claude/settings.local.json
+# CMake 构建目录
+.codegraph/
+# CodeGraph 本机索引数据（仅保留忽略规则文件）
+# COMPILE 打包产物与临时目录（不随仓库分发；与 COMPILE/.gitignore 对齐）
+# Compiled class file
+COMPILE/dist/
+COMPILE/.panel-version
+COMPILE/**/*.spec.bak
+COMPILE/.venv-build/
+COMPILE/work/
 *.ctxt
-
-target/
-**/target/
-/DEVICE/target
-/DEVICE/snap/
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
+.deps/
 DEVICE/.idea
-.flattened-pom.xml
-*.jar
-*.war
-*.nar
+DEVICE/iot-gb28181/iot-gb28181-biz/snap
+/DEVICE/snap/
+/DEVICE/target
+# Docker 构建依赖宿主机缓存（项目根 .build-cache，由 install_linux*.sh 创建）
 *.ear
-*.zip
-*.tar.gz
-*.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+**/.env.arch
+.flattened-pom.xml
 hs_err_pid*
-/DEVICE/.idea
-/iot-modules/*/target
-/iot-common/*/target
+# IDE / 包管理器缓存 / 测试缓存（仅本机，不随仓库分发）
+.idea
+*.iml
+# install 脚本按架构自动生成的 Docker 构建配置（DOCKER_PLATFORM / BASE_IMAGE）
 /iot-api/*/target
 /iot-auth/target
+/iot-common/*/target
 /iot-gateway/target
+/iot-modules/*/target
 /iot-registry/target
 /iot-visual/*/target
-*.iml
-
+*.jar
+# legacy TASK paths (compat)
+# Local SDK downloads
+*.log
+# Log file
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+*.nar
+# Node Agent 离线 pip wheel（体积大，勿提交）
+NODE/get-pip.py
+NODE/pip-wheels/
+# Package Files #
+.pnpm-store/
+*.pyc
+**/.pytest_cache/
+*.rar
+# RTC 本地运行数据与 vendor 源码（go2rtc 由 install_linux.sh vendor 拉取，不随仓库分发）
+RTC/data/
+RTC/.env
+RTC/vendor/go2rtc/
+RUNTIME/build/
+RUNTIME/build-linux/
+RUNTIME/cmake-build-debug/
 # .scripts/docker 中间件数据目录和日志目录
 .scripts/docker/db_data/
+.scripts/docker/.deploy_profile
+.scripts/docker/dify_data/
+.scripts/docker/fuxa_data/
+.scripts/docker/gpustack_data/
 .scripts/docker/logs/
+.scripts/docker/milvus_config/
+.scripts/docker/milvus_data/
 .scripts/docker/minio_data/
 .scripts/docker/mq_data/
 .scripts/docker/nodered_data/
 .scripts/docker/redis_data/
+.scripts/docker/.runtime_images_pulled
 .scripts/docker/srs_data/
 .scripts/docker/standalone-logs/
 .scripts/docker/taos_data/
-.scripts/docker/gpustack_data/
-.scripts/docker/dify_data/
-.scripts/docker/milvus_config/
-.scripts/docker/milvus_data/
 .scripts/docker/vscode_data/
-.scripts/docker/fuxa_data/
-
+.scripts/docker/.web_deploy_profile_built
+.scripts/media-cluster/images/*.tar
 # .scripts/nexus3 数据目录
 .scripts/nexus3/nexus_data/
-
-# ZLMediaKit 挂载目录（与 docker-compose 中 ../zlmediakit 对应）；运行时数据
-.scripts/zlmediakit/www/
-.scripts/zlmediakit/log/
-.scripts/zlmediakit/conf/config.ini
-
-# 媒体节点离线 Docker 镜像包（体积大，勿提交）
-.scripts/media-cluster/images/*.tar
-
-# Node Agent 离线 pip wheel（体积大，勿提交）
-NODE/pip-wheels/
-NODE/get-pip.py
-
-# alert_images 文件夹
-**/alert_images/
-
-# backup 文件夹
-**/backup/
-!TRANSFORM/capabilities/transform-capability-backup/src/main/java/com/basiclab/iot/transform/capability/backup/
-!TRANSFORM/capabilities/transform-capability-backup/src/main/java/com/basiclab/iot/transform/capability/backup/**
-!TRANSFORM/capabilities/transform-capability-backup/src/test/java/com/basiclab/iot/transform/capability/backup/
-!TRANSFORM/capabilities/transform-capability-backup/src/test/java/com/basiclab/iot/transform/capability/backup/**
-
-# 排除 postgresql 初始化脚本
 !.scripts/postgresql/00-init-databases.sh
-
-# Docker 构建依赖宿主机缓存（项目根 .build-cache，由 install_linux*.sh 创建）
-.build-cache/**
-!.build-cache/README.md
-
-# CMake 构建目录
-TASK/build-linux/
-TASK/build/
-TASK/cmake-build-debug/
-
-# VIDEO 人脸模型（大文件由 install 脚本或 WEB 人脸库页下载，不随仓库分发）
-VIDEO/face_rec.onnx
-VIDEO/face_matching_insightface_buffalo_l/
-VIDEO/face_capture_head_yolov8.onnx
-
-# AI 模型权重（大文件由 ModelScope 或安装脚本下载，不随仓库分发）
-AI/models/
-
-# APP 构建产物、依赖与 pnpm 缓存
-APP/node_modules/
-APP/dist/
-APP/.pnpm-store/
-APP/logs/
-APP/tmp/
-APP/.playwright-cli/
-APP/private.key
-APP/private.*.key
-APP/.hbuilderx
-APP/.stylelintcache
-APP/.eslintcache
-APP/docs/.vitepress/dist
-APP/docs/.vitepress/cache
-APP/src/types/*
-!APP/src/types/auto-import.d.ts
-
-# SITE 构建产物、依赖与 pnpm 缓存（与 SITE/.gitignore 一致）
-SITE/node_modules/
-SITE/dist/
-SITE/dist-prebuilt/
-SITE/.pnpm-store/
-SITE/logs/
-
-# IDE / 包管理器缓存 / 测试缓存（仅本机，不随仓库分发）
-.vscode/
-.pnpm-store/
-**/.pytest_cache/
-
-# CodeGraph 本机索引数据（仅保留忽略规则文件）
-.codegraph/
-
-# Claude Code 个人配置与本地钩子（仅本机，不随仓库分发）
-.claude/settings.local.json
-.claude/changed-files-hook.sh
-
-# 表结构同步产物（明文整库备份与差异 SQL，绝不可入库）
 .scripts/postgresql/schema-sync/backups/
 .scripts/postgresql/schema-sync/schema_diffs/
-
-venv
-.venv/
-*.pyc
-DEVICE/iot-gb28181/iot-gb28181-biz/snap
-VIDEO/data/models
-VIDEO/ffmpeg-master-*.tar.xz
-
-.scripts/docker/.deploy_profile
-.scripts/docker/.web_deploy_profile_built
-.scripts/docker/.runtime_images_pulled
-
-# install 脚本按架构自动生成的 Docker 构建配置（DOCKER_PLATFORM / BASE_IMAGE）
-**/.env.arch
-
+.scripts/zlmediakit/conf/config.ini
+.scripts/zlmediakit/log/
+.scripts/zlmediakit/www/
+# SITE 构建产物、依赖与 pnpm 缓存（与 SITE/.gitignore 一致）
+SITE/dist/
+SITE/dist-prebuilt/
+SITE/logs/
+SITE/node_modules/
+SITE/.pnpm-store/
+target/
+*.tar.gz
+# TASK/build/
+TASK/build-linux/
+# TASK/cmake-build-debug/
 # TRANSFORM 本地运行与构建产物（不随仓库分发）
-TRANSFORM/.env.docker
-TRANSFORM/.idea/
+!TRANSFORM/capabilities/transform-capability-backup/src/main/java/com/basiclab/iot/transform/capability/backup/
+!TRANSFORM/capabilities/transform-capability-backup/src/test/java/com/basiclab/iot/transform/capability/backup/
 TRANSFORM/data/
 TRANSFORM/dist/
-
-# RTC 本地运行数据与 vendor 源码（go2rtc 由 install_linux.sh vendor 拉取，不随仓库分发）
-RTC/.env
-RTC/data/
-RTC/vendor/go2rtc/
-
-# COMPILE 打包产物与临时目录（不随仓库分发；与 COMPILE/.gitignore 对齐）
-COMPILE/dist/
-COMPILE/work/
-COMPILE/.panel-version
-COMPILE/**/*.spec.bak
-COMPILE/.venv-build/
-COMPILE/.venv-build-*/
+TRANSFORM/.env.docker
+TRANSFORM/.idea/
+venv
+# VIDEO 人脸模型（大文件由 install 脚本或 WEB 人脸库页下载，不随仓库分发）
+VIDEO/data/models
+VIDEO/face_capture_head_yolov8.onnx
+VIDEO/face_matching_insightface_buffalo_l/
+VIDEO/face_rec.onnx
+VIDEO/ffmpeg-master-*.tar.xz
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+.vscode/
+*.war
+# WEB 日志目录（与 WEB/.gitignore 中 logs/*、!logs/.gitkeep 一致）
+# WEB 预构建前端缓存（runtime_image.sh 提取，体积大，勿提交）
+/WEB/dist-prebuilt-full/
+/WEB/dist-prebuilt-mini/
+/WEB/dist-prebuilt-standard/
+# WEB docker build 输出日志（与 WEB/.gitignore 中 docker-build-logs/*、!.gitkeep 一致）
+/WEB/docker-build-logs/*
+!/WEB/docker-build-logs/.gitkeep
+/WEB/logs/*
+!/WEB/logs/.gitkeep
+*.zip
+# ZLMediaKit 挂载目录（与 docker-compose 中 ../zlmediakit 对应）；运行时数据
