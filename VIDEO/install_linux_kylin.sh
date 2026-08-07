@@ -59,6 +59,25 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+ensure_cpp_runtime() {
+    bash "${EASYAIOT_ROOT}/VIDEO/scripts/ensure_runtime_cpp.sh" install
+}
+
+wire_cpp_runtime_override() {
+    bash "${EASYAIOT_ROOT}/VIDEO/scripts/ensure_runtime_cpp.sh" wire || true
+}
+
+video_compose() {
+    local -a files=(-f docker-compose.yaml)
+    if [ -f .docker-compose.runtime.override.yaml ]; then
+        files+=(-f .docker-compose.runtime.override.yaml)
+    fi
+    if [ -f .docker-compose.gpu.override.yaml ]; then
+        files+=(-f .docker-compose.gpu.override.yaml)
+    fi
+    $COMPOSE_CMD "${files[@]}" "$@"
+}
+
 prepare_cached_resources() {
     init_easyaiot_build_cache_dirs "$EASYAIOT_ROOT"
     local wheels
@@ -349,7 +368,7 @@ clean_compose_cache() {
     # 1. 停止并清理容器和网络连接
     print_info "执行 docker-compose down 清理容器和网络连接..."
     # 使用 eval 来正确处理包含空格的 COMPOSE_CMD
-    if eval "$COMPOSE_CMD down" 2>/dev/null; then
+    if eval "video_compose down" 2>/dev/null; then
         print_success "容器和网络连接已清理"
     else
         print_info "docker-compose down 执行完成（可能没有运行的容器）"
@@ -385,7 +404,10 @@ clean_compose_cache() {
     
     # 4. 清理 docker-compose 的临时文件（如果存在）
     print_info "清理 docker-compose 临时文件..."
-    find . -maxdepth 1 -name ".docker-compose.*" -type f -delete 2>/dev/null || true
+    find . -maxdepth 1 -name ".docker-compose.*" -type f \
+        ! -name ".docker-compose.gpu.override.yaml" \
+        ! -name ".docker-compose.runtime.override.yaml" \
+        -delete 2>/dev/null || true
     find . -maxdepth 1 -name "docker-compose.override.yml" -type f -delete 2>/dev/null || true
     find . -maxdepth 1 -name "docker-compose.override.yaml" -type f -delete 2>/dev/null || true
     
@@ -487,6 +509,7 @@ install_service() {
     create_directories
     download_face_rec_model
     create_env_file
+    ensure_cpp_runtime || true
     prepare_cached_resources
     
     if [ "${EASYAIOT_SKIP_BUILD:-0}" = "1" ] && docker image inspect video-service:latest >/dev/null 2>&1; then
@@ -507,7 +530,8 @@ install_service() {
     fi
     
     print_info "启动服务..."
-    $COMPOSE_CMD up -d
+    wire_cpp_runtime_override
+    video_compose up -d
     
     print_success "服务安装完成！"
     print_info "等待服务启动..."
@@ -536,7 +560,8 @@ start_service() {
         create_env_file
     fi
     
-    $COMPOSE_CMD up -d
+    wire_cpp_runtime_override
+    video_compose up -d
     print_success "服务已启动"
     check_status
 }
@@ -547,7 +572,7 @@ stop_service() {
     check_docker
     check_docker_compose
     
-    $COMPOSE_CMD down
+    video_compose down
     print_success "服务已停止"
 }
 
@@ -560,7 +585,7 @@ restart_service() {
     configure_kylin_dockerfile
     clean_compose_cache
     
-    $COMPOSE_CMD restart
+    video_compose restart
     print_success "服务已重启"
     check_status
 }
@@ -571,7 +596,7 @@ check_status() {
     check_docker
     check_docker_compose
     
-    $COMPOSE_CMD ps
+    video_compose ps
     
     echo ""
     print_info "容器健康状态:"
@@ -595,10 +620,10 @@ view_logs() {
     
     if [ "$1" == "-f" ] || [ "$1" == "--follow" ]; then
         print_info "实时查看日志（按 Ctrl+C 退出）..."
-        $COMPOSE_CMD logs -f --tail=50
+        video_compose logs -f --tail=50
     else
         print_info "查看最近日志（最近50行）..."
-        $COMPOSE_CMD logs --tail=50
+        video_compose logs --tail=50
     fi
 }
 
@@ -638,7 +663,7 @@ clean_service() {
         check_docker
         check_docker_compose
         print_info "停止并删除容器..."
-        $COMPOSE_CMD down -v
+        video_compose down -v
         
         print_info "删除镜像..."
         docker rmi video-service:latest 2>/dev/null || true
@@ -655,6 +680,7 @@ clean_service() {
 # 更新服务
 update_service() {
     print_info "更新服务..."
+    ensure_cpp_runtime || true
     check_docker
     check_docker_compose
     detect_architecture
@@ -680,7 +706,8 @@ update_service() {
     print_success "镜像构建完成！"
     
     print_info "重启服务..."
-    $COMPOSE_CMD up -d
+    wire_cpp_runtime_override
+    video_compose up -d
     
     print_success "服务更新完成"
     check_status

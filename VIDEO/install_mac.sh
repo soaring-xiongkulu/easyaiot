@@ -30,6 +30,7 @@ NC='\033[0m' # No Color
 # 脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+EASYAIOT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # 打印带颜色的消息
 print_info() {
@@ -47,6 +48,12 @@ print_warning() {
 print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
+
+ensure_cpp_runtime() {
+    # mac 上脚本会跳过编译并提示；保持与 Linux 入口一致
+    bash "${EASYAIOT_ROOT}/VIDEO/scripts/ensure_runtime_cpp.sh" install || true
+}
+
 
 # 检查命令是否存在
 check_command() {
@@ -331,6 +338,7 @@ install_service() {
     create_directories
     download_face_rec_model
     create_env_file
+    ensure_cpp_runtime
     
     if [ "${EASYAIOT_SKIP_BUILD:-0}" = "1" ] && docker image inspect video-service:latest >/dev/null 2>&1; then
         print_success "镜像已从远程拉取 (video-service:latest)，跳过构建"
@@ -485,6 +493,7 @@ clean_service() {
 # 更新服务
 update_service() {
     print_info "更新服务..."
+    ensure_cpp_runtime
     check_macos
     check_docker
     check_docker_compose

@@ -801,9 +801,9 @@ def create_algorithm_task(task_name: str,
         if executor == 'cpp':
             if task_type not in ('realtime', 'snap', 'patrol'):
                 raise ValueError(f'executor=cpp 不支持任务类型: {task_type}')
-            if (schedule_policy or 'local') != 'local':
-                raise ValueError('executor=cpp 暂仅支持本机部署（schedule_policy=local），远程节点部署尚未实现')
-            ensure_runtime_bin_ready(None)
+            # 本机需已编译 RUNTIME；远程依赖 iot-node 分发到节点
+            if (schedule_policy or 'local') == 'local':
+                ensure_runtime_bin_ready(None)
         if runtime_control_port is not None:
             runtime_control_port = int(runtime_control_port)
             if runtime_control_port < 8000 or runtime_control_port > 9000:
@@ -1118,11 +1118,8 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             if effective_executor == 'cpp':
                 if effective_type not in ('realtime', 'snap', 'patrol'):
                     raise ValueError(f'executor=cpp 不支持任务类型: {effective_type}')
-                if (effective_policy or 'local') != 'local':
-                    raise ValueError(
-                        'executor=cpp 暂仅支持本机部署（schedule_policy=local），远程节点部署尚未实现'
-                    )
-                ensure_runtime_bin_ready(task)
+                if (effective_policy or 'local') == 'local':
+                    ensure_runtime_bin_ready(task)
         if 'runtime_control_port' in kwargs and kwargs['runtime_control_port'] is not None:
             port = int(kwargs['runtime_control_port'])
             if port < 8000 or port > 9000:

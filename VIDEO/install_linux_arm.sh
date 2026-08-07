@@ -59,6 +59,26 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+ensure_cpp_runtime() {
+    bash "${EASYAIOT_ROOT}/VIDEO/scripts/ensure_runtime_cpp.sh" install
+}
+
+wire_cpp_runtime_override() {
+    bash "${EASYAIOT_ROOT}/VIDEO/scripts/ensure_runtime_cpp.sh" wire || true
+}
+
+# compose 调用：附带 RUNTIME override（若存在）
+video_compose() {
+    local -a files=(-f docker-compose.yaml)
+    if [ -f .docker-compose.runtime.override.yaml ]; then
+        files+=(-f .docker-compose.runtime.override.yaml)
+    fi
+    if [ -f .docker-compose.gpu.override.yaml ]; then
+        files+=(-f .docker-compose.gpu.override.yaml)
+    fi
+    $COMPOSE_CMD "${files[@]}" "$@"
+}
+
 # 清理 compose recreate 被中断后遗留的「改名孤儿容器」（形如 <12位hex>_video-service）。
 # recreate 时 compose 先把旧容器改名让出 container_name，中途被打断旧容器就残留；
 # 它若仍在运行会占住宿主机端口，新容器起不来。--remove-orphans 清不掉它
@@ -520,7 +540,10 @@ clean_compose_cache() {
     fi
     
     print_info "清理 docker-compose 临时文件..."
-    find . -maxdepth 1 -name ".docker-compose.*" -type f -delete 2>/dev/null || true
+    find . -maxdepth 1 -name ".docker-compose.*" -type f \
+        ! -name ".docker-compose.gpu.override.yaml" \
+        ! -name ".docker-compose.runtime.override.yaml" \
+        -delete 2>/dev/null || true
     find . -maxdepth 1 -name "docker-compose.override.yml" -type f -delete 2>/dev/null || true
     find . -maxdepth 1 -name "docker-compose.override.yaml" -type f -delete 2>/dev/null || true
     
@@ -617,6 +640,7 @@ install_service() {
     create_directories
     download_face_rec_model
     create_env_file
+    ensure_cpp_runtime || true
     prepare_cached_resources
     
     # 检查本地 ffmpeg 文件（找不到不影响构建，Dockerfile 内会从 GitHub 下载）
@@ -649,7 +673,8 @@ install_service() {
     
     print_info "启动服务..."
     cleanup_renamed_containers
-    $COMPOSE_CMD up -d --remove-orphans
+    wire_cpp_runtime_override
+    video_compose up -d --remove-orphans
     
     print_success "服务安装完成！"
     print_info "等待服务启动..."
@@ -681,7 +706,8 @@ start_service() {
     fi
     
     cleanup_renamed_containers
-    $COMPOSE_CMD up -d --force-recreate --remove-orphans
+    wire_cpp_runtime_override
+    video_compose up -d --force-recreate --remove-orphans
     print_success "服务已启动"
     check_status
 }
@@ -692,7 +718,7 @@ stop_service() {
     check_docker
     check_docker_compose
     
-    $COMPOSE_CMD down
+    video_compose down
     print_success "服务已停止"
 }
 
@@ -713,7 +739,8 @@ restart_service() {
     fi
 
     cleanup_renamed_containers
-    $COMPOSE_CMD up -d --force-recreate --remove-orphans
+    wire_cpp_runtime_override
+    video_compose up -d --force-recreate --remove-orphans
     print_success "服务已重启"
     check_status
 }
@@ -724,7 +751,7 @@ check_status() {
     check_docker
     check_docker_compose
     
-    $COMPOSE_CMD ps
+    video_compose ps
     
     echo ""
     print_info "容器健康状态:"
@@ -747,10 +774,10 @@ view_logs() {
     
     if [ "$1" == "-f" ] || [ "$1" == "--follow" ]; then
         print_info "实时查看日志（按 Ctrl+C 退出）..."
-        $COMPOSE_CMD logs -f --tail=50
+        video_compose logs -f --tail=50
     else
         print_info "查看最近日志（最近50行）..."
-        $COMPOSE_CMD logs --tail=50
+        video_compose logs --tail=50
     fi
 }
 
@@ -814,7 +841,7 @@ clean_service() {
     check_docker
     check_docker_compose
     print_info "停止并删除容器..."
-    $COMPOSE_CMD down -v
+    video_compose down -v
     
     print_info "删除镜像..."
     docker rmi video-service:latest 2>/dev/null || true
@@ -837,6 +864,7 @@ update_service() {
     detect_architecture
     configure_arm_dockerfile
     check_network
+    ensure_cpp_runtime || true
 
     # 记录更新前代码版本，用于判断依赖/构建文件是否变化
     local rev_before=""
@@ -899,11 +927,13 @@ update_service() {
         
         print_info "应用新镜像（仅重建变更服务，最小化停机）..."
         cleanup_renamed_containers
-        $COMPOSE_CMD up -d --remove-orphans --no-deps video-service
+        wire_cpp_runtime_override
+        video_compose up -d --remove-orphans --no-deps video-service
     else
         print_success "依赖未变，跳过镜像构建（业务代码经卷挂载，重启进程即可生效）"
         cleanup_renamed_containers
-        $COMPOSE_CMD up -d --remove-orphans --no-deps video-service
+        wire_cpp_runtime_override
+        video_compose up -d --remove-orphans --no-deps video-service
 
         local code_changed=0
         if [ -n "$rev_before" ] && [ "$rev_before" != "$rev_after" ]; then
@@ -914,7 +944,7 @@ update_service() {
 
         if [ "$code_changed" = "1" ]; then
             print_info "重启容器进程以加载最新源码（秒级）..."
-            $COMPOSE_CMD restart video-service
+            video_compose restart video-service
         else
             print_info "代码无变更，无需重启"
         fi

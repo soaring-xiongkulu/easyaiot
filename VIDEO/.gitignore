@@ -38,6 +38,8 @@ hs_err_pid*
 
 # install 脚本自动生成的架构配置
 .env.arch
+.docker-compose.runtime.override.yaml
+.docker-compose.gpu.override.yaml
 
 .build-cache
 .offline-cache

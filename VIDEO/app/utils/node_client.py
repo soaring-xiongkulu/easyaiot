@@ -196,6 +196,7 @@ def deploy_workload(
     log_dir: str,
     env: Dict[str, str],
     gpu_ids: Optional[str] = None,
+    files: Optional[List[Dict[str, str]]] = None,
 ) -> Dict[str, Any]:
     payload = {
         'nodeId': node_id,
@@ -207,6 +208,8 @@ def deploy_workload(
         'gpuIds': gpu_ids,
         'env': env,
     }
+    if files:
+        payload['files'] = files
     return _post('/workload/deploy', payload)
 
 

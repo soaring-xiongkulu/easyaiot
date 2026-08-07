@@ -1,8 +1,8 @@
 """
 RUNTIME (C++) 配置生成与二进制路径解析。
 
-VIDEO 仍负责编排；本模块在 executor=cpp 时写出 ini 并供 Daemon 拉起 RUNTIME。
-支持 realtime / snap / patrol 三种任务类型（本机）。
+VIDEO 仍负责编排；本模块在 executor=cpp 时写出 ini 并供 Daemon / 远程 Agent 拉起 RUNTIME。
+支持 realtime / snap / patrol（本机与集群节点）。
 """
 from __future__ import annotations
 
@@ -19,7 +19,16 @@ logger = logging.getLogger(__name__)
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    """Best-effort monorepo root (host) or VIDEO parent."""
+    video_root = Path(__file__).resolve().parents[2]
+    sibling_runtime = video_root.parent / 'RUNTIME'
+    if sibling_runtime.is_dir():
+        return video_root.parent
+    # Docker mount layout: /opt/easyaiot/RUNTIME
+    opt = Path('/opt/easyaiot')
+    if (opt / 'RUNTIME').is_dir():
+        return opt
+    return video_root.parent
 
 
 def resolve_runtime_bin(task: Optional[AlgorithmTask] = None) -> str:
@@ -33,6 +42,7 @@ def resolve_runtime_bin(task: Optional[AlgorithmTask] = None) -> str:
 
     root = _repo_root()
     candidates = [
+        Path('/opt/easyaiot/RUNTIME/build/RUNTIME'),
         root / 'RUNTIME' / 'build' / 'RUNTIME',
         root / 'RUNTIME' / 'build' / 'Release' / 'RUNTIME',
         root / 'RUNTIME' / 'build' / 'Debug' / 'RUNTIME',
@@ -40,7 +50,7 @@ def resolve_runtime_bin(task: Optional[AlgorithmTask] = None) -> str:
     for path in candidates:
         if path.is_file() and os.access(path, os.X_OK):
             return str(path)
-    return str(candidates[0])
+    return str(candidates[1] if (root / 'RUNTIME').is_dir() else candidates[0])
 
 
 def ensure_runtime_bin_ready(task: Optional[AlgorithmTask] = None) -> str:
@@ -67,10 +77,13 @@ def _resolve_rtsp_url(device: Device) -> str:
     return (device.source or '').strip()
 
 
-def _resolve_model_paths(task: AlgorithmTask) -> Tuple[str, str]:
+def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> Tuple[str, str]:
     root = _repo_root()
     default_onnx = root / 'RUNTIME' / 'models' / 'yolov11n.onnx'
     default_names = root / 'RUNTIME' / 'models' / 'coco.names'
+    # Remote install layout
+    remote_default_onnx = Path('/opt/easyaiot/RUNTIME/models/yolov11n.onnx')
+    remote_default_names = Path('/opt/easyaiot/RUNTIME/models/coco.names')
     env_model = (os.getenv('RUNTIME_MODEL_PATH') or '').strip()
     env_names = (os.getenv('RUNTIME_CLASSES_PATH') or '').strip()
 
@@ -81,6 +94,50 @@ def _resolve_model_paths(task: AlgorithmTask) -> Tuple[str, str]:
             model_ids = json.loads(raw) if isinstance(raw, str) else list(raw)
         except Exception:
             model_ids = []
+
+    if prefer_cluster and model_ids:
+        try:
+            import sys
+            lib = str((_repo_root() / '.scripts' / 'lib').resolve())
+            if lib not in sys.path:
+                sys.path.insert(0, lib)
+            from model_resolver import try_resolve_cluster_model_path, get_model_cluster_dir
+        except Exception as e:
+            logger.warning('cluster model resolver unavailable: %s', e)
+            try_resolve_cluster_model_path = None  # type: ignore
+            get_model_cluster_dir = None  # type: ignore
+        else:
+            for mid in model_ids:
+                try:
+                    mid_int = int(mid)
+                except Exception:
+                    continue
+                found = try_resolve_cluster_model_path(mid_int) if try_resolve_cluster_model_path else None
+                if found and str(found).lower().endswith('.onnx'):
+                    names = str(default_names if default_names.is_file() else (
+                        remote_default_names if remote_default_names.is_file() else (env_names or default_names)
+                    ))
+                    # companion .names next to weights if any
+                    sibling = Path(found).with_suffix('.names')
+                    if sibling.is_file():
+                        names = str(sibling)
+                    return str(found), names
+                # Prefer onnx under cluster dir even if resolver returned .pt first
+                if get_model_cluster_dir:
+                    model_dir = Path(get_model_cluster_dir(mid_int))
+                    if model_dir.is_dir():
+                        matches = sorted(model_dir.glob('*.onnx')) + sorted(model_dir.glob('*.ONNX'))
+                        if matches:
+                            names = str(default_names if default_names.is_file() else (
+                                remote_default_names if remote_default_names.is_file() else default_names
+                            ))
+                            return str(matches[0]), names
+                    # Ceph may not be mounted on control plane; still emit canonical remote path
+                    canonical = model_dir / 'model.onnx'
+                    names = str(remote_default_names if remote_default_names.is_file() else (
+                        default_names if default_names.is_file() else remote_default_names
+                    ))
+                    return str(canonical), names
 
     video_root = Path(__file__).resolve().parents[2]
     for mid in model_ids:
@@ -95,6 +152,10 @@ def _resolve_model_paths(task: AlgorithmTask) -> Tuple[str, str]:
                 if matches:
                     names = default_names if default_names.is_file() else (env_names or str(default_names))
                     return str(matches[0]), str(names)
+
+    if prefer_cluster and remote_default_onnx.is_file():
+        names = str(remote_default_names if remote_default_names.is_file() else (env_names or remote_default_names))
+        return str(remote_default_onnx), names
 
     onnx = env_model or str(default_onnx)
     names = env_names or str(default_names)
@@ -169,8 +230,15 @@ def _hook_task_type(task_type: str) -> str:
     return task_type or 'realtime'
 
 
-def generate_runtime_ini(task: AlgorithmTask, log_path: str) -> str:
-    """Generate RUNTIME ini for realtime/snap/patrol; returns absolute path."""
+def generate_runtime_ini(
+    task: AlgorithmTask,
+    log_path: str,
+    *,
+    prefer_cluster_model: bool = False,
+    write_local: bool = True,
+    remote_ini_path: Optional[str] = None,
+) -> str:
+    """Generate RUNTIME ini for realtime/snap/patrol; returns path (local or intended remote)."""
     task_type = (getattr(task, 'task_type', None) or 'realtime').strip().lower()
     if task_type == 'snapshot':
         task_type = 'snap'
@@ -190,9 +258,13 @@ def generate_runtime_ini(task: AlgorithmTask, log_path: str) -> str:
         if not _resolve_rtsp_url(d):
             raise ValueError(f'设备 {d.id} 无可用 RTSP/source 地址')
 
-    model_path, classes_path = _resolve_model_paths(task)
-    if not os.path.isfile(model_path):
+    model_path, classes_path = _resolve_model_paths(task, prefer_cluster=prefer_cluster_model)
+    if write_local and not os.path.isfile(model_path):
         raise ValueError(f'ONNX 模型不存在: {model_path}')
+    if prefer_cluster_model and not str(model_path).lower().endswith('.onnx'):
+        raise ValueError(
+            f'远程 cpp 需要 ONNX 模型，当前解析到: {model_path}。请确保模型已同步至集群且含 .onnx'
+        )
 
     video_base = resolve_video_service_base_url().rstrip('/')
     alert_hook = resolve_alert_hook_url()
@@ -214,7 +286,8 @@ def generate_runtime_ini(task: AlgorithmTask, log_path: str) -> str:
 
     log_dir = os.path.dirname(log_path) if log_path else str(runtime_config_dir())
     alert_image_dir = os.path.join(log_dir, 'alerts')
-    os.makedirs(alert_image_dir, exist_ok=True)
+    if write_local:
+        os.makedirs(alert_image_dir, exist_ok=True)
 
     devices_json = _devices_json(devices)
     # Escape for ini single-line: keep as JSON, no raw newlines
@@ -224,7 +297,37 @@ def generate_runtime_ini(task: AlgorithmTask, log_path: str) -> str:
 
     hook_tt = _hook_task_type(task_type)
 
-    ini_path = runtime_config_dir() / f'task_{task.id}.ini'
+    # GPU default on; USE_GPU=false / RUNTIME_FORCE_CPU forces CPU
+    use_gpu_env = (os.getenv('USE_GPU') or '').strip().lower()
+    force_cpu_env = (os.getenv('RUNTIME_FORCE_CPU') or '').strip().lower()
+    prefer_gpu = True
+    force_cpu = False
+    if force_cpu_env in ('1', 'true', 'yes', 'on'):
+        prefer_gpu = False
+        force_cpu = True
+    elif use_gpu_env in ('false', '0', 'no', 'off'):
+        prefer_gpu = False
+    prefer_gpu_env = (os.getenv('RUNTIME_PREFER_GPU') or '').strip().lower()
+    if prefer_gpu_env in ('false', '0', 'no', 'off'):
+        prefer_gpu = False
+    elif prefer_gpu_env in ('true', '1', 'yes', 'on'):
+        prefer_gpu = True
+    # Task-level prefer_gpu
+    if hasattr(task, 'prefer_gpu') and task.prefer_gpu is not None:
+        prefer_gpu = bool(task.prefer_gpu)
+        if not prefer_gpu:
+            force_cpu = True
+    try:
+        gpu_device_id = int(os.getenv('RUNTIME_GPU_DEVICE_ID') or '0')
+    except Exception:
+        gpu_device_id = 0
+    if gpu_device_id < 0:
+        gpu_device_id = 0
+
+    if remote_ini_path:
+        ini_path = Path(remote_ini_path)
+    else:
+        ini_path = runtime_config_dir() / f'task_{task.id}.ini'
     content = f"""# Auto-generated by VIDEO for executor=cpp — do not edit by hand while task is running
 [video]
 rtsp_url={rtsp_url}
@@ -239,6 +342,9 @@ model_path={model_path}
 classes_path={classes_path}
 threads=2
 frame_skip={frame_skip}
+prefer_gpu={'true' if prefer_gpu else 'false'}
+force_cpu={'true' if force_cpu else 'false'}
+gpu_device_id={gpu_device_id}
 
 [alarm]
 enable={'true' if task.alert_event_enabled else 'false'}
@@ -277,12 +383,49 @@ enable_alarm={'true' if task.alert_event_enabled else 'false'}
 [regions]
 {regions_block}
 """
-    ini_path.write_text(content, encoding='utf-8')
-    logger.info(
-        '已生成 RUNTIME 配置: %s (task_id=%s, type=%s, devices=%s)',
-        ini_path, task.id, task_type, len(devices),
-    )
+    if write_local:
+        ini_path.parent.mkdir(parents=True, exist_ok=True)
+        ini_path.write_text(content, encoding='utf-8')
+        logger.info(
+            '已生成 RUNTIME 配置: %s (task_id=%s, type=%s, devices=%s)',
+            ini_path, task.id, task_type, len(devices),
+        )
+    else:
+        # stash content for remote deploy callers
+        generate_runtime_ini.last_content = content  # type: ignore[attr-defined]
+        logger.info(
+            '已生成 RUNTIME 远程配置内容 (task_id=%s, type=%s, remote=%s)',
+            task.id, task_type, ini_path,
+        )
     return str(ini_path)
+
+
+def generate_runtime_ini_content(
+    task: AlgorithmTask,
+    log_path: str,
+    *,
+    prefer_cluster_model: bool = True,
+    remote_ini_path: Optional[str] = None,
+) -> Tuple[str, str]:
+    """Return (remote_ini_path, ini_content) without requiring local model file."""
+    path = generate_runtime_ini(
+        task,
+        log_path,
+        prefer_cluster_model=prefer_cluster_model,
+        write_local=False,
+        remote_ini_path=remote_ini_path or f'/opt/easyaiot/RUNTIME/config/task_{task.id}.ini',
+    )
+    content = getattr(generate_runtime_ini, 'last_content', '') or ''
+    if not content:
+        raise ValueError('生成 RUNTIME ini 内容失败')
+    return path, content
+
+
+REMOTE_RUNTIME_BIN = '/opt/easyaiot/RUNTIME/bin/RUNTIME'
+REMOTE_RUNTIME_LD_LIBRARY_PATH = (
+    '/opt/easyaiot/RUNTIME/lib:/usr/local/cuda/lib64:/usr/local/cuda/lib'
+    ':/usr/lib/x86_64-linux-gnu:/usr/lib/aarch64-linux-gnu'
+)
 
 
 def normalize_executor(value) -> str:
@@ -297,18 +440,43 @@ def normalize_executor(value) -> str:
 
 
 def runtime_library_path_env() -> str:
-    """Build LD_LIBRARY_PATH hint for conda + ORT SDK."""
+    """Build LD_LIBRARY_PATH hint for conda + ORT SDK + CUDA (host or Docker mounts)."""
     parts = []
     existing = (os.getenv('LD_LIBRARY_PATH') or '').strip()
     if existing:
         parts.append(existing)
+    for mounted in (
+        '/opt/easyaiot/runtime-conda-lib',
+        '/opt/easyaiot/ort-lib',
+        '/opt/easyaiot/cuda-lib',
+    ):
+        if os.path.isdir(mounted):
+            parts.append(mounted)
     conda = (os.getenv('CONDA_PREFIX') or '').strip()
     if conda:
         parts.append(os.path.join(conda, 'lib'))
-    # common local ORT layout
-    ort = _repo_root() / '.deps' / 'onnxruntime-linux-x64-1.23.2' / 'lib'
-    if ort.is_dir():
-        parts.append(str(ort))
+    # common local ORT layout (gpu preferred)
+    root = _repo_root()
+    for arch in ('x64', 'aarch64'):
+        for name in (
+            f'onnxruntime-linux-{arch}-gpu-1.23.2',
+            f'onnxruntime-linux-{arch}-1.23.2',
+        ):
+            ort = root / '.deps' / name / 'lib'
+            if ort.is_dir():
+                parts.append(str(ort))
+                break
+        else:
+            continue
+        break
+    for cuda_path in (
+        '/usr/local/cuda/lib64',
+        '/usr/local/cuda/lib',
+        '/usr/lib/x86_64-linux-gnu',
+        '/usr/lib/aarch64-linux-gnu',
+    ):
+        if os.path.isdir(cuda_path):
+            parts.append(cuda_path)
     # dedupe preserve order
     seen = set()
     out = []

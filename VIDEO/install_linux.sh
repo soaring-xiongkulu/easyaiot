@@ -38,11 +38,14 @@ source "${EASYAIOT_ROOT}/.scripts/docker/gpu_compose_helpers.sh"
 # shellcheck source=../.scripts/docker/deploy_profile.sh
 source "${EASYAIOT_ROOT}/.scripts/docker/deploy_profile.sh"
 
-# 带 GPU/CPU / source-free override 的 compose 调用
+# 带 GPU/CPU / RUNTIME / source-free override 的 compose 调用
 video_compose() {
     local -a files=(-f docker-compose.yaml)
     if [ -f .docker-compose.gpu.override.yaml ]; then
         files+=(-f .docker-compose.gpu.override.yaml)
+    fi
+    if [ -f .docker-compose.runtime.override.yaml ]; then
+        files+=(-f .docker-compose.runtime.override.yaml)
     fi
     append_source_free_compose_file files
     $COMPOSE_CMD "${files[@]}" "$@"
@@ -63,6 +66,15 @@ print_warning() {
 
 print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# 编译并挂载 RUNTIME（高性能算法任务默认依赖；实现见 scripts/ensure_runtime_cpp.sh）
+ensure_cpp_runtime() {
+    bash "${EASYAIOT_ROOT}/VIDEO/scripts/ensure_runtime_cpp.sh" install
+}
+
+wire_cpp_runtime_override() {
+    bash "${EASYAIOT_ROOT}/VIDEO/scripts/ensure_runtime_cpp.sh" wire || true
 }
 
 # 清理 compose recreate 被中断后遗留的「改名孤儿容器」（形如 <12位hex>_video-service）。
@@ -334,7 +346,10 @@ clean_compose_cache() {
     
     # 4. 清理 docker-compose 的临时文件（如果存在）
     print_info "清理 docker-compose 临时文件..."
-    find . -maxdepth 1 -name ".docker-compose.*" -type f -delete 2>/dev/null || true
+    find . -maxdepth 1 -name ".docker-compose.*" -type f \
+        ! -name ".docker-compose.gpu.override.yaml" \
+        ! -name ".docker-compose.runtime.override.yaml" \
+        -delete 2>/dev/null || true
     find . -maxdepth 1 -name "docker-compose.override.yml" -type f -delete 2>/dev/null || true
     find . -maxdepth 1 -name "docker-compose.override.yaml" -type f -delete 2>/dev/null || true
     
@@ -468,6 +483,7 @@ install_service() {
     create_directories
     download_face_rec_model
     create_env_file
+    ensure_cpp_runtime || true
     check_gpu
     configure_compose_gpu "docker-compose.yaml" ".env.docker"
 
@@ -513,7 +529,8 @@ start_service() {
 
     check_gpu
     configure_compose_gpu "docker-compose.yaml" ".env.docker"
-    
+    wire_cpp_runtime_override
+
     cleanup_renamed_containers
     video_compose up -d --force-recreate --remove-orphans
     print_success "服务已启动"
@@ -544,6 +561,7 @@ restart_service() {
     fi
     check_gpu
     configure_compose_gpu "docker-compose.yaml" ".env.docker"
+    wire_cpp_runtime_override
 
     cleanup_renamed_containers
     video_compose up -d --force-recreate --remove-orphans
@@ -651,6 +669,7 @@ update_service() {
     check_docker
     check_docker_compose
     check_network
+    ensure_cpp_runtime || true
 
     # 记录更新前代码版本，用于判断依赖/构建文件是否变化
     local rev_before=""
@@ -738,7 +757,7 @@ show_help() {
     echo "  ./install_linux.sh [命令]"
     echo ""
     echo "可用命令:"
-    echo "  install    - 安装并启动服务（首次运行）"
+    echo "  install    - 安装并启动服务（首次运行；含 RUNTIME 高性能执行器编译）"
     echo "  start      - 启动服务"
     echo "  stop       - 停止服务"
     echo "  restart    - 重启服务"
@@ -747,8 +766,12 @@ show_help() {
     echo "  logs -f    - 实时查看服务日志（最近50行）"
     echo "  build      - 重新构建镜像"
     echo "  clean      - 清理容器和镜像"
-    echo "  update     - 更新并重启服务"
+    echo "  update     - 更新并重启服务（含 RUNTIME 重编译）"
     echo "  help       - 显示此帮助信息"
+    echo ""
+    echo "环境变量:"
+    echo "  EASYAIOT_RUNTIME_SKIP=1      跳过 RUNTIME 编译"
+    echo "  EASYAIOT_RUNTIME_REQUIRED=1  RUNTIME 失败则中止 VIDEO 安装"
     echo ""
 }
 

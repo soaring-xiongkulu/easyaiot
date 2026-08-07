@@ -573,22 +573,37 @@ class AlgorithmTaskDaemon:
             'ALERT_HOOK_URL', 'VIDEO_SERVICE_HOST', 'VIDEO_SERVICE_URL', 'VIDEO_SERVICE_PORT',
             'POD_IP', 'HOST_IP', 'RUNTIME_MODEL_PATH', 'RUNTIME_CLASSES_PATH',
             'LD_LIBRARY_PATH', 'PATH',
+            'USE_GPU', 'RUNTIME_PREFER_GPU', 'RUNTIME_FORCE_CPU', 'RUNTIME_GPU_DEVICE_ID',
+            'CUDA_VISIBLE_DEVICES', 'NVIDIA_VISIBLE_DEVICES',
         ):
             val = os.getenv(key)
             if val is not None and val != '':
                 env[key] = val
         if self._extra_env:
             env.update(self._extra_env)
-        # Ensure ORT/conda libs are visible even if parent env missed them
-        if not (env.get('LD_LIBRARY_PATH') or '').strip():
-            try:
-                from app.services.runtime_config_service import runtime_library_path_env
-                lib_path = runtime_library_path_env()
-                if lib_path:
+        # Default prefer GPU unless explicitly disabled
+        if 'USE_GPU' not in env:
+            env['USE_GPU'] = 'true'
+        if 'RUNTIME_PREFER_GPU' not in env:
+            env['RUNTIME_PREFER_GPU'] = 'true'
+        # Ensure ORT/conda/CUDA libs are visible
+        try:
+            from app.services.runtime_config_service import runtime_library_path_env
+            lib_path = runtime_library_path_env()
+            if lib_path:
+                existing = (env.get('LD_LIBRARY_PATH') or '').strip()
+                if existing:
+                    # prepend resolved path but keep existing
+                    env['LD_LIBRARY_PATH'] = lib_path if lib_path == existing else f'{lib_path}:{existing}'
+                else:
                     env['LD_LIBRARY_PATH'] = lib_path
-            except Exception as e:
-                self._log(f'构建 LD_LIBRARY_PATH 失败: {e}', 'WARNING')
-        self._log(f'CPP 启动: {" ".join(cmds)}', 'INFO')
+        except Exception as e:
+            self._log(f'构建 LD_LIBRARY_PATH 失败: {e}', 'WARNING')
+        self._log(
+            f'CPP 启动: {" ".join(cmds)} (USE_GPU={env.get("USE_GPU")}, '
+            f'RUNTIME_PREFER_GPU={env.get("RUNTIME_PREFER_GPU")})',
+            'INFO',
+        )
         return cmds, cwd, env
 
     def _get_conda_python(self) -> str:

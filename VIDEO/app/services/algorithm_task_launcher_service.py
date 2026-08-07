@@ -287,6 +287,12 @@ def _build_task_deploy_env(task_id: int, task_type: str, log_path: str, server_h
 
 def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, bool]:
     from app.utils import node_client
+    from app.services.runtime_config_service import (
+        normalize_executor,
+        generate_runtime_ini_content,
+        REMOTE_RUNTIME_BIN,
+        REMOTE_RUNTIME_LD_LIBRARY_PATH,
+    )
 
     ok, sync_msg = _ensure_task_models_on_cluster(task)
     if not ok:
@@ -311,23 +317,54 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
     gpu_ids = allocation.get('gpuIds')
 
     video_root_remote = os.getenv('NODE_REMOTE_VIDEO_ROOT', '/opt/easyaiot/VIDEO')
-    service_dir = {
-        'realtime': 'realtime_algorithm_service',
-        'snap': 'snapshot_algorithm_service',
-        'patrol': 'patrol_algorithm_service',
-    }.get(task.task_type, 'realtime_algorithm_service')
-    work_dir = os.path.join(video_root_remote, 'services', service_dir)
     log_dir = os.path.join(video_root_remote, 'logs', f'task_{task_id}')
-    bundle = {
-        'snap': 'algorithm_snap',
-        'patrol': 'algorithm_patrol',
-    }.get(task.task_type, 'algorithm_realtime')
-    python_exec = resolve_video_bundle_python(bundle, video_root_remote)
-    deploy_script = os.path.join(work_dir, 'run_deploy.py')
-    command = [python_exec, deploy_script]
+    executor = normalize_executor(getattr(task, 'executor', None) or 'cpp')
+    files = None
+    work_dir = video_root_remote
 
-    env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
-    env['VIDEO_ROOT'] = video_root_remote
+    if executor == 'cpp':
+        if task.task_type not in ('realtime', 'snap', 'patrol'):
+            return (False, f'executor=cpp 不支持任务类型: {task.task_type}', False)
+        remote_ini = os.path.join(log_dir, 'runtime.ini')
+        try:
+            ini_path, ini_content = generate_runtime_ini_content(
+                task,
+                log_dir,
+                prefer_cluster_model=True,
+                remote_ini_path=remote_ini,
+            )
+        except Exception as e:
+            logger.error('生成远程 RUNTIME 配置失败: %s', e, exc_info=True)
+            return (False, f'生成远程 RUNTIME 配置失败: {e}', False)
+        command = [REMOTE_RUNTIME_BIN, ini_path]
+        work_dir = '/opt/easyaiot/RUNTIME'
+        env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
+        env['VIDEO_ROOT'] = video_root_remote
+        env['RUNTIME_BIN'] = REMOTE_RUNTIME_BIN
+        env['LD_LIBRARY_PATH'] = REMOTE_RUNTIME_LD_LIBRARY_PATH
+        env['USE_GPU'] = 'true' if getattr(task, 'prefer_gpu', True) else 'false'
+        env['RUNTIME_PREFER_GPU'] = env['USE_GPU']
+        if getattr(task, 'runtime_control_port', None):
+            task.service_port = int(task.runtime_control_port)
+        else:
+            task.service_port = 8000 + (int(task_id) % 1000)
+        files = [{'path': ini_path, 'content': ini_content, 'mode': '0644'}]
+    else:
+        service_dir = {
+            'realtime': 'realtime_algorithm_service',
+            'snap': 'snapshot_algorithm_service',
+            'patrol': 'patrol_algorithm_service',
+        }.get(task.task_type, 'realtime_algorithm_service')
+        work_dir = os.path.join(video_root_remote, 'services', service_dir)
+        bundle = {
+            'snap': 'algorithm_snap',
+            'patrol': 'algorithm_patrol',
+        }.get(task.task_type, 'algorithm_realtime')
+        python_exec = resolve_video_bundle_python(bundle, video_root_remote)
+        deploy_script = os.path.join(work_dir, 'run_deploy.py')
+        command = [python_exec, deploy_script]
+        env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
+        env['VIDEO_ROOT'] = video_root_remote
 
     result = node_client.deploy_workload(
         node_id=node_id,
@@ -338,6 +375,7 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
         log_dir=log_dir,
         env=env,
         gpu_ids=gpu_ids,
+        files=files,
     )
 
     task.node_id = node_id
@@ -348,10 +386,10 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
     db.session.commit()
 
     logger.info(
-        '算法任务远程部署成功 task_id=%s node_id=%s host=%s pid=%s',
-        task_id, node_id, host, result.get('pid'),
+        '算法任务远程部署成功 task_id=%s executor=%s node_id=%s host=%s pid=%s',
+        task_id, executor, node_id, host, result.get('pid'),
     )
-    return (True, f'已下发到节点 {host}', False)
+    return (True, f'已下发到节点 {host} ({executor})', False)
 
 
 def _stop_remote_task(task_id: int, node_id: Optional[int]) -> None:
@@ -737,11 +775,6 @@ def restart_task_services(task_id: int) -> bool:
     """
     _cancel_pending_stop_requests(task_id)
     task = AlgorithmTask.query.get(task_id)
-    if task:
-        executor_norm = (getattr(task, 'executor', None) or 'cpp').strip().lower()
-        if executor_norm in ('cpp', 'c++', 'runtime', 'cxx') and _use_remote_deploy(task):
-            logger.error('executor=cpp 暂仅支持本机部署，拒绝远程重启 task_id=%s', task_id)
-            return False
     if task and _use_remote_deploy(task):
         _stop_remote_task(task_id, task.node_id)
         _stop_post_process_cluster(task_id, task)
@@ -797,13 +830,6 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
     try:
         # 实时/抓拍/巡检算法任务都需要启动服务进程
         if task.task_type in ['realtime', 'snap', 'patrol']:
-            executor_norm = (getattr(task, 'executor', None) or 'cpp').strip().lower()
-            if executor_norm in ('cpp', 'c++', 'runtime', 'cxx') and _use_remote_deploy(task):
-                return (
-                    False,
-                    'executor=cpp 暂仅支持本机部署，请将调度策略设为 local',
-                    False,
-                )
             if _use_remote_deploy(task):
                 failover_sec = _algorithm_heartbeat_failover_seconds()
                 if task.node_id and not _heartbeat_stale(task.service_last_heartbeat, failover_sec):
@@ -895,12 +921,6 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
                 executor = 'cpp'
                 if task.task_type not in ('realtime', 'snap', 'patrol'):
                     return (False, f'executor=cpp 不支持任务类型: {task.task_type}', False)
-                if _use_remote_deploy(task):
-                    return (
-                        False,
-                        'executor=cpp 暂仅支持本机部署，请将调度策略设为 local',
-                        False,
-                    )
                 try:
                     from .runtime_config_service import (
                         generate_runtime_ini,
