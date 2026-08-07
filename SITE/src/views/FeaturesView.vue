@@ -13,7 +13,7 @@ import { features } from '../data/features'
           :key="item.id"
           :class="`reveal-delay-${(index % 3) + 1}`"
         >
-          <article class="feature-block" :class="{ reverse: index % 2 === 1 }">
+          <article class="feature-block" :id="item.id" :class="{ reverse: index % 2 === 1 }">
             <div class="feature-copy">
               <h2 class="display feature-title">{{ item.title }}</h2>
               <p class="feature-summary">{{ item.summary }}</p>
@@ -61,6 +61,7 @@ import { features } from '../data/features'
   align-items: start;
   padding: 36px 0;
   border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--header-h) + 16px);
 }
 
 .feature-block.reverse {

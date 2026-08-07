@@ -113,6 +113,32 @@ const platformCount = packages.length
       </div>
     </section>
 
+    <section class="section runtime-section">
+      <div class="container grid-2">
+        <SectionReveal class="reveal-delay-2">
+          <div class="media-frame">
+            <img src="/images/feature-runtime.jpg" alt="RUNTIME 实时视觉分析加速" />
+          </div>
+        </SectionReveal>
+        <SectionReveal>
+          <p class="eyebrow">RUNTIME 模块</p>
+          <h2 class="display section-title">画面不停，分析跟得上</h2>
+          <p class="lead">
+            预览、告警与任务编排还是原来那一套；现场路数多、要更跟手时，打开
+            RUNTIME 加速，让实时看、定时抓、多路巡都更快跟上画面，不必改使用习惯。
+          </p>
+          <ul class="runtime-points">
+            <li>实时监控更顺滑，高峰也不容易拖成积压</li>
+            <li>定时抓拍、多路轮巡同一套加速能力</li>
+            <li>按任务启用即可，平台侧预览与告警不变</li>
+          </ul>
+          <div class="cta-row">
+            <RouterLink class="btn btn-outline" to="/features#runtime">查看 RUNTIME 能力详情</RouterLink>
+          </div>
+        </SectionReveal>
+      </div>
+    </section>
+
     <section class="section loop-section">
       <div class="container grid-2">
         <SectionReveal>
@@ -357,7 +383,8 @@ const platformCount = packages.length
   background: linear-gradient(180deg, rgba(47, 111, 237, 0.03), transparent);
 }
 
-.rtc-points {
+.rtc-points,
+.runtime-points {
   margin: 20px 0 0;
   padding: 0;
   list-style: none;
@@ -365,7 +392,8 @@ const platformCount = packages.length
   gap: 10px;
 }
 
-.rtc-points li {
+.rtc-points li,
+.runtime-points li {
   position: relative;
   padding-left: 16px;
   color: var(--ink-soft);
@@ -373,7 +401,8 @@ const platformCount = packages.length
   line-height: 1.65;
 }
 
-.rtc-points li::before {
+.rtc-points li::before,
+.runtime-points li::before {
   content: '';
   position: absolute;
   left: 0;
@@ -381,6 +410,10 @@ const platformCount = packages.length
   width: 7px;
   height: 1.5px;
   background: var(--brand);
+}
+
+.runtime-section {
+  background: linear-gradient(180deg, transparent, rgba(47, 111, 237, 0.035) 50%, transparent);
 }
 
 .close-section {
