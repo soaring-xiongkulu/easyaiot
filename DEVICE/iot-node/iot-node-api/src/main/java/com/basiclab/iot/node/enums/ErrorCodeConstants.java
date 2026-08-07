@@ -27,6 +27,7 @@ public interface ErrorCodeConstants {
     ErrorCode MEDIA_CLUSTER_SOURCE_NOT_FOUND = new ErrorCode(1_005_004_002, "控制面未找到 media-cluster 源目录");
     ErrorCode VIDEO_SOURCE_NOT_FOUND = new ErrorCode(1_005_004_003, "控制面未找到 VIDEO 源码目录");
     ErrorCode AI_SOURCE_NOT_FOUND = new ErrorCode(1_005_004_004, "控制面未找到 AI 源码目录");
+    ErrorCode RUNTIME_SOURCE_NOT_FOUND = new ErrorCode(1_005_004_005, "控制面未找到 RUNTIME 源码目录（需已编译并可导出离线包）");
     ErrorCode AGENT_SOURCE_NOT_FOUND = new ErrorCode(1_005_005_000, "控制面未找到 Agent 源目录");
 
     ErrorCode STORAGE_CLUSTER_SOURCE_NOT_FOUND = new ErrorCode(1_005_006_000, "控制面未找到 Ceph storage-cluster 源目录");

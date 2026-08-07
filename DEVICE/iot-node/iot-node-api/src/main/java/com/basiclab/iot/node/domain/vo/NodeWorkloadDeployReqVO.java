@@ -45,4 +45,7 @@ public class NodeWorkloadDeployReqVO {
     @Schema(description = "环境变量")
     private Map<String, String> env;
 
+    @Schema(description = "部署前写入节点的文件列表（path + content），用于 RUNTIME ini 等")
+    private List<Map<String, String>> files;
+
 }

@@ -68,6 +68,9 @@ public class NodeCommandServiceImpl implements NodeCommandService {
         body.put("logDir", reqVO.getLogDir());
         body.put("gpuIds", reqVO.getGpuIds());
         body.put("env", reqVO.getEnv());
+        if (reqVO.getFiles() != null && !reqVO.getFiles().isEmpty()) {
+            body.put("files", reqVO.getFiles());
+        }
 
         JSONObject result = callAgent(node, "/workload/deploy", body);
         Integer pid = result.getInt("pid");

@@ -3,13 +3,15 @@ package com.basiclab.iot.node.controller;
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.node.domain.vo.NodeFfmpegBatchReqVO;
 import com.basiclab.iot.node.domain.vo.NodeFfmpegCheckRespVO;
+import com.basiclab.iot.node.domain.vo.NodeRuntimeCppBatchReqVO;
+import com.basiclab.iot.node.domain.vo.NodeRuntimeCppCheckRespVO;
 import com.basiclab.iot.node.domain.vo.NodeWorkloadBundleBatchReqVO;
 import com.basiclab.iot.node.domain.vo.NodeWorkloadBundleBatchRespVO;
 import com.basiclab.iot.node.domain.vo.NodeWorkloadBundleCheckRespVO;
 import com.basiclab.iot.node.service.NodeFfmpegDeployService;
+import com.basiclab.iot.node.service.NodeRuntimeCppDeployService;
 import com.basiclab.iot.node.service.NodeWorkloadBundleService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -31,6 +33,8 @@ public class NodeWorkloadBundleController {
     private NodeWorkloadBundleService nodeWorkloadBundleService;
     @Resource
     private NodeFfmpegDeployService nodeFfmpegDeployService;
+    @Resource
+    private NodeRuntimeCppDeployService nodeRuntimeCppDeployService;
 
     @PostMapping("/ffmpeg/check-ssh")
     @Operation(summary = "SSH 检测单节点 FFmpeg")
@@ -57,6 +61,33 @@ public class NodeWorkloadBundleController {
     public CommonResult<NodeWorkloadBundleBatchRespVO> batchRemoveFfmpegBySsh(
             @Valid @RequestBody NodeFfmpegBatchReqVO reqVO) {
         return success(nodeFfmpegDeployService.batchRemoveBySsh(reqVO));
+    }
+
+    @PostMapping("/runtime-cpp/check-ssh")
+    @Operation(summary = "SSH 检测单节点 RUNTIME(C++)")
+    public CommonResult<NodeRuntimeCppCheckRespVO> checkRuntimeCppBySsh(@RequestParam("nodeId") Long nodeId) {
+        return success(nodeRuntimeCppDeployService.checkBySsh(nodeId));
+    }
+
+    @PostMapping("/runtime-cpp/batch-check-ssh")
+    @Operation(summary = "SSH 批量检测 RUNTIME(C++)")
+    public CommonResult<NodeWorkloadBundleBatchRespVO> batchCheckRuntimeCppBySsh(
+            @Valid @RequestBody NodeRuntimeCppBatchReqVO reqVO) {
+        return success(nodeRuntimeCppDeployService.batchCheckBySsh(reqVO));
+    }
+
+    @PostMapping("/runtime-cpp/batch-deploy-ssh")
+    @Operation(summary = "SSH 批量离线分发 RUNTIME(C++ 高性能执行器)")
+    public CommonResult<NodeWorkloadBundleBatchRespVO> batchDeployRuntimeCppBySsh(
+            @Valid @RequestBody NodeRuntimeCppBatchReqVO reqVO) {
+        return success(nodeRuntimeCppDeployService.batchDeployBySsh(reqVO));
+    }
+
+    @PostMapping("/runtime-cpp/batch-remove-ssh")
+    @Operation(summary = "SSH 批量删除 RUNTIME(C++)")
+    public CommonResult<NodeWorkloadBundleBatchRespVO> batchRemoveRuntimeCppBySsh(
+            @Valid @RequestBody NodeRuntimeCppBatchReqVO reqVO) {
+        return success(nodeRuntimeCppDeployService.batchRemoveBySsh(reqVO));
     }
 
     @PostMapping("/check-ssh")
@@ -89,7 +120,7 @@ public class NodeWorkloadBundleController {
     }
 
     @PostMapping("/batch-deploy-full-ssh")
-    @Operation(summary = "SSH 批量全量分发（VIDEO 含 FFmpeg + 运行时 + 脚本）")
+    @Operation(summary = "SSH 批量全量分发（VIDEO 含 FFmpeg + RUNTIME + 运行时 + 脚本）")
     public CommonResult<NodeWorkloadBundleBatchRespVO> batchDeployFullBySsh(
             @Valid @RequestBody NodeWorkloadBundleBatchReqVO reqVO) {
         return success(nodeWorkloadBundleService.batchDeployFullBySsh(reqVO));

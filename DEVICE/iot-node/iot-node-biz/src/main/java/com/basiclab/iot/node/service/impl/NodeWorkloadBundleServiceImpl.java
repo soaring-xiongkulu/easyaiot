@@ -13,6 +13,7 @@ import com.basiclab.iot.node.domain.vo.NodeWorkloadDeployReqVO;
 import com.basiclab.iot.node.enums.WorkloadBundleTypeEnum;
 import com.basiclab.iot.node.service.NodeCommandService;
 import com.basiclab.iot.node.service.NodeFfmpegDeployService;
+import com.basiclab.iot.node.service.NodeRuntimeCppDeployService;
 import com.basiclab.iot.node.service.NodeWorkloadBundleService;
 import com.basiclab.iot.node.util.CredentialEncryptUtil;
 import com.basiclab.iot.node.util.FfmpegStaticDeployUtil;
@@ -58,6 +59,8 @@ public class NodeWorkloadBundleServiceImpl implements NodeWorkloadBundleService 
     private NodeSshCredentialMapper nodeSshCredentialMapper;
     @Resource
     private NodeFfmpegDeployService nodeFfmpegDeployService;
+    @Resource
+    private NodeRuntimeCppDeployService nodeRuntimeCppDeployService;
     @Resource
     private NodeCommandService nodeCommandService;
 
@@ -166,6 +169,16 @@ public class NodeWorkloadBundleServiceImpl implements NodeWorkloadBundleService 
                     result.setSuccess(false);
                     result.setMessage(lastFailedOutput(result.getSteps()));
                     return result;
+                }
+                // 算法类 bundle 额外分发 RUNTIME（高性能 executor=cpp）
+                if (bundle == WorkloadBundleTypeEnum.ALGORITHM_REALTIME
+                        || bundle == WorkloadBundleTypeEnum.ALGORITHM_SNAP
+                        || bundle == WorkloadBundleTypeEnum.ALGORITHM_PATROL) {
+                    if (!nodeRuntimeCppDeployService.deployOnNodeIfMissing(node.getId(), result.getSteps())) {
+                        result.setSuccess(false);
+                        result.setMessage(lastFailedOutput(result.getSteps()));
+                        return result;
+                    }
                 }
             }
             NodeWorkloadBundleNodeResultVO env = deployEnvInternal(node, bundle);

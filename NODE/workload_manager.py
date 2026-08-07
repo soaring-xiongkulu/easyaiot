@@ -100,6 +100,11 @@ class WorkloadManager:
             env['LOG_PATH'] = log_dir
             os.makedirs(log_dir, exist_ok=True)
 
+        # Optional: materialize config files before process start (e.g. RUNTIME ini)
+        files = spec.get('files') or []
+        if files:
+            _materialize_files(files)
+
         if runtime == 'docker':
             return self._deploy_docker(spec, key, env)
 
@@ -328,6 +333,29 @@ def _terminate_process_tree(pid: int):
                 pass
     except psutil.NoSuchProcess:
         pass
+
+
+def _materialize_files(files) -> None:
+    """Write deploy-time files onto the node (path + content)."""
+    for item in files or []:
+        if not isinstance(item, dict):
+            continue
+        path = (item.get('path') or '').strip()
+        content = item.get('content')
+        if not path or content is None:
+            continue
+        parent = os.path.dirname(path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        mode = item.get('mode')
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(str(content))
+        if mode:
+            try:
+                os.chmod(path, int(str(mode), 8) if isinstance(mode, str) else int(mode))
+            except Exception:
+                pass
+        logger.info('已写入部署文件: %s (%s bytes)', path, len(str(content)))
 
 
 def _ensure_model_local(model_path: str, model_id: str) -> Optional[str]:
