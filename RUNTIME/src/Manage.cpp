@@ -38,6 +38,7 @@ void Server::waitForShutdown() {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+    stop();
 }
 
 bool Server::start() {
@@ -61,8 +62,11 @@ bool Server::start() {
 }
 
 void Server::stop() {
-    _isRun.store(false, std::memory_order_release);
+    if (!_isRun.exchange(false, std::memory_order_acq_rel) && !_detectHandle) {
+        return;
+    }
     if (_detectHandle) {
+        _detectHandle->stop();
         _detectHandle.reset();
     }
     LOG(WARNING) << "ALL RELEASE success.";
