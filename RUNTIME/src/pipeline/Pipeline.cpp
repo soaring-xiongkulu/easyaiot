@@ -1,5 +1,6 @@
 #include "pipeline/Pipeline.h"
 
+#include <algorithm>
 #include <chrono>
 #include <glog/logging.h>
 #include <opencv2/opencv.hpp>
@@ -14,6 +15,19 @@ int64_t nowNs() {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(
                std::chrono::steady_clock::now().time_since_epoch())
         .count();
+}
+
+cv::Mat makeSnapshot(const cv::Mat& img) {
+    if (img.empty()) {
+        return {};
+    }
+    if (img.cols <= 640) {
+        return img.clone();
+    }
+    const double scale = 640.0 / static_cast<double>(img.cols);
+    cv::Mat resized;
+    cv::resize(img, resized, cv::Size(), scale, scale);
+    return resized;
 }
 }  // namespace
 
@@ -31,6 +45,7 @@ Pipeline::Pipeline(Config& config,
                    StreamingEnabledFn streamingFn,
                    PipelineMetrics* metrics)
     : config_(config),
+      rtspUrl_(config.rtspUrl),
       formatCtx_(formatCtx),
       codecCtx_(codecCtx),
       videoIndex_(videoIndex),
@@ -79,6 +94,90 @@ void Pipeline::join() {
     }
 }
 
+bool Pipeline::reopenStream() {
+    if (rtspUrl_.empty()) {
+        LOG(ERROR) << "[PIPELINE] reopenStream: empty rtsp url";
+        return false;
+    }
+
+    if (codecCtx_) {
+        avcodec_free_context(&codecCtx_);
+        codecCtx_ = nullptr;
+    }
+    if (formatCtx_) {
+        avformat_close_input(&formatCtx_);
+        formatCtx_ = nullptr;
+    }
+
+    formatCtx_ = avformat_alloc_context();
+    AVDictionary* fmt_options = nullptr;
+    av_dict_set(&fmt_options, "rtsp_transport", "tcp", 0);
+    av_dict_set(&fmt_options, "stimeout", "3000000", 0);
+    av_dict_set(&fmt_options, "timeout", "5000000", 0);
+
+    int ret = avformat_open_input(&formatCtx_, rtspUrl_.c_str(), nullptr, &fmt_options);
+    av_dict_free(&fmt_options);
+    if (ret != 0) {
+        char errbuf[128];
+        av_strerror(ret, errbuf, sizeof(errbuf));
+        LOG(ERROR) << "[PIPELINE] avformat_open_input failed: " << errbuf;
+        if (formatCtx_) {
+            avformat_free_context(formatCtx_);
+            formatCtx_ = nullptr;
+        }
+        return false;
+    }
+
+    if (avformat_find_stream_info(formatCtx_, nullptr) < 0) {
+        LOG(ERROR) << "[PIPELINE] avformat_find_stream_info failed";
+        avformat_close_input(&formatCtx_);
+        return false;
+    }
+
+    videoIndex_ = av_find_best_stream(formatCtx_, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    if (videoIndex_ < 0) {
+        LOG(ERROR) << "[PIPELINE] no video stream";
+        avformat_close_input(&formatCtx_);
+        return false;
+    }
+
+    AVCodecParameters* videoCodecPar = formatCtx_->streams[videoIndex_]->codecpar;
+    const AVCodec* videoCodec = avcodec_find_decoder(videoCodecPar->codec_id);
+    if (!videoCodec) {
+        LOG(ERROR) << "[PIPELINE] avcodec_find_decoder failed";
+        avformat_close_input(&formatCtx_);
+        return false;
+    }
+
+    codecCtx_ = avcodec_alloc_context3(videoCodec);
+    if (!codecCtx_ || avcodec_parameters_to_context(codecCtx_, videoCodecPar) != 0) {
+        LOG(ERROR) << "[PIPELINE] codec context setup failed";
+        if (codecCtx_) {
+            avcodec_free_context(&codecCtx_);
+        }
+        avformat_close_input(&formatCtx_);
+        return false;
+    }
+    if (avcodec_open2(codecCtx_, videoCodec, nullptr) < 0) {
+        LOG(ERROR) << "[PIPELINE] avcodec_open2 failed";
+        avcodec_free_context(&codecCtx_);
+        avformat_close_input(&formatCtx_);
+        return false;
+    }
+
+    AVStream* stream = formatCtx_->streams[videoIndex_];
+    if (stream->avg_frame_rate.den == 0) {
+        videoFps_ = 25;
+    } else {
+        videoFps_ = stream->avg_frame_rate.num / stream->avg_frame_rate.den;
+    }
+    videoWidth_ = codecCtx_->width;
+    videoHeight_ = codecCtx_->height;
+    LOG(INFO) << "[PIPELINE] reopened stream " << videoWidth_ << "x" << videoHeight_
+              << "@" << videoFps_ << "fps";
+    return true;
+}
+
 void Pipeline::pullDecodeLoop() {
     LOG(INFO) << "[PIPELINE-PULL] thread started";
     if (!formatCtx_ || !codecCtx_) {
@@ -116,15 +215,66 @@ void Pipeline::pullDecodeLoop() {
         return;
     }
 
+    int reconnectBackoffSec = 1;
+    const int kMaxBackoffSec = 30;
+
+    auto rebuildConverters = [&]() -> bool {
+        if (swsCtx) {
+            sws_freeContext(swsCtx);
+            swsCtx = nullptr;
+        }
+        if (buffer) {
+            av_free(buffer);
+            buffer = nullptr;
+        }
+        numBytes = av_image_get_buffer_size(AV_PIX_FMT_BGR24, videoWidth_, videoHeight_, 1);
+        buffer = static_cast<uint8_t*>(av_malloc(numBytes * sizeof(uint8_t)));
+        av_image_fill_arrays(frameBGR->data, frameBGR->linesize, buffer, AV_PIX_FMT_BGR24,
+                             videoWidth_, videoHeight_, 1);
+        swsCtx = sws_getContext(
+            videoWidth_, videoHeight_, codecCtx_->pix_fmt,
+            videoWidth_, videoHeight_, AV_PIX_FMT_BGR24,
+            SWS_BILINEAR, nullptr, nullptr, nullptr);
+        if (!swsCtx) {
+            LOG(ERROR) << "[PIPELINE-PULL] sws rebuild failed";
+            return false;
+        }
+        framePool_.reset(8, videoWidth_, videoHeight_);
+        return true;
+    };
+
     while (running_.load()) {
         int ret = av_read_frame(formatCtx_, packet);
         if (ret < 0) {
+            char errbuf[128];
+            av_strerror(ret, errbuf, sizeof(errbuf));
             if (ret == AVERROR_EOF) {
-                LOG(INFO) << "[PIPELINE-PULL] EOF";
-                break;
+                LOG(WARNING) << "[PIPELINE-PULL] EOF, attempting reconnect";
+            } else {
+                LOG(WARNING) << "[PIPELINE-PULL] read error: " << errbuf << ", attempting reconnect";
+            }
+
+            while (running_.load()) {
+                LOG(INFO) << "[PIPELINE-PULL] reconnect sleep " << reconnectBackoffSec << "s";
+                for (int s = 0; s < reconnectBackoffSec && running_.load(); ++s) {
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                }
+                if (!running_.load()) {
+                    break;
+                }
+                if (reopenStream() && rebuildConverters()) {
+                    reconnectBackoffSec = 1;
+                    LOG(INFO) << "[PIPELINE-PULL] reconnect success";
+                    break;
+                }
+                reconnectBackoffSec = std::min(reconnectBackoffSec * 2, kMaxBackoffSec);
+                LOG(WARNING) << "[PIPELINE-PULL] reopen failed, next backoff="
+                             << reconnectBackoffSec << "s";
             }
             continue;
         }
+        reconnectBackoffSec = 1;
+
         if (metrics_) {
             metrics_->packetsIn.fetch_add(1, std::memory_order_relaxed);
         }
@@ -191,8 +341,12 @@ void Pipeline::pullDecodeLoop() {
         }
     }
 
-    sws_freeContext(swsCtx);
-    av_free(buffer);
+    if (swsCtx) {
+        sws_freeContext(swsCtx);
+    }
+    if (buffer) {
+        av_free(buffer);
+    }
     av_frame_free(&frameBGR);
     av_frame_free(&frame);
     av_packet_free(&packet);
@@ -205,7 +359,7 @@ void Pipeline::inferLoop() {
     std::vector<DetectObject> lastDetections;
     int lastSubmittedFrameId = -1;
     int aiFrameInterval = 0;
-    const int SUBMIT_INTERVAL = 8;
+    const int submitInterval = std::max(1, config_.frameSkip);
     int localFrameId = 0;
 
     while (running_.load() || frameRing_.sizeApprox() > 0) {
@@ -232,7 +386,7 @@ void Pipeline::inferLoop() {
         int detectCount = 0;
 
         if (config_.enableAI && yoloPool_) {
-            if (aiFrameInterval % SUBMIT_INTERVAL == 0) {
+            if (aiFrameInterval % submitInterval == 0) {
                 yoloPool_->submitTask(img, 0, localFrameId);
                 lastSubmittedFrameId = localFrameId;
             }
@@ -279,6 +433,7 @@ void Pipeline::inferLoop() {
                     result.inferNs = nowNs();
                     result.detections = std::move(alarmDetections);
                     result.regionName = config_.regions.empty() ? "全画面" : config_.regions.begin()->first;
+                    result.snapshot = makeSnapshot(img);
                     if (metrics_) {
                         metrics_->lastLatencyMs.store(
                             static_cast<uint64_t>((result.inferNs - slot->captureNs) / 1000000),
@@ -315,7 +470,7 @@ void Pipeline::emitLoop() {
             continue;
         }
         if (alarmFn_) {
-            alarmFn_(result.detections, result.regionName);
+            alarmFn_(result.detections, result.regionName, result.snapshot);
             if (metrics_) {
                 metrics_->alarmsEmitted.fetch_add(1, std::memory_order_relaxed);
             }

@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <functional>
+#include <string>
 #include <thread>
 
 #include "Config.h"
@@ -30,7 +31,7 @@ namespace runtime {
  */
 class Pipeline {
 public:
-    using AlarmFn = std::function<void(const std::vector<DetectObject>&, const std::string&)>;
+    using AlarmFn = std::function<void(const std::vector<DetectObject>&, const std::string&, const cv::Mat&)>;
     using RegionFn = std::function<bool(int, int)>;
     using StreamingEnabledFn = std::function<bool()>;
 
@@ -59,8 +60,10 @@ private:
     void pullDecodeLoop();
     void inferLoop();
     void emitLoop();
+    bool reopenStream();
 
     Config& config_;
+    std::string rtspUrl_;
     AVFormatContext* formatCtx_;
     AVCodecContext* codecCtx_;
     int videoIndex_;
