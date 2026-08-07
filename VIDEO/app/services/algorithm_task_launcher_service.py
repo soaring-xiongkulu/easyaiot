@@ -854,6 +854,28 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
             extra_env = {}
             _inject_sam_supplement_env(extra_env, task)
             _inject_realtime_sampling_env(extra_env, task)
+
+            executor = (getattr(task, 'executor', None) or 'python').strip().lower()
+            runtime_bin = None
+            runtime_ini = None
+            if executor in ('cpp', 'c++', 'runtime', 'cxx'):
+                executor = 'cpp'
+                if task.task_type != 'realtime':
+                    return (False, 'executor=cpp 当前仅支持 realtime 任务', False)
+                try:
+                    from .runtime_config_service import generate_runtime_ini, resolve_runtime_bin
+                    runtime_bin = resolve_runtime_bin(task)
+                    runtime_ini = generate_runtime_ini(task, log_path)
+                    if getattr(task, 'runtime_control_port', None):
+                        task.service_port = int(task.runtime_control_port)
+                    else:
+                        task.service_port = 8000 + (int(task_id) % 1000)
+                    task.service_log_path = log_path
+                    db.session.commit()
+                except Exception as e:
+                    logger.error('生成 RUNTIME 配置失败: %s', e, exc_info=True)
+                    return (False, f'生成 RUNTIME 配置失败: {e}', False)
+
             daemon = None
             old_daemon_to_join = None
             with _daemons_lock:
@@ -878,6 +900,9 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
                     log_path=log_path,
                     task_type=task.task_type,
                     extra_env=extra_env,
+                    executor=executor,
+                    runtime_bin=runtime_bin,
+                    runtime_ini=runtime_ini,
                 )
                 _running_daemons[task_id] = daemon
 

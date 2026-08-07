@@ -35,6 +35,9 @@ class AlgorithmTaskDaemon:
         task_type: str = 'realtime',
         llm_enabled: bool = False,
         extra_env: dict = None,
+        executor: str = 'python',
+        runtime_bin: str = None,
+        runtime_ini: str = None,
     ):
         """
         初始化守护进程
@@ -45,12 +48,18 @@ class AlgorithmTaskDaemon:
             task_type: 任务类型 ('realtime' 实时算法任务, 'snap' 抓拍算法任务)
             llm_enabled: 是否启用LLM
             extra_env: 启动时注入子进程的额外环境变量（如 SAM 配置，避免守护进程查库）
+            executor: python | cpp
+            runtime_bin: RUNTIME 二进制路径（executor=cpp）
+            runtime_ini: RUNTIME 配置 ini 路径（executor=cpp）
         """
         self._process = None
         self._task_id = task_id
         self._log_path = log_path
         self._task_type = task_type
         self._extra_env = extra_env or {}
+        self._executor = (executor or 'python').strip().lower()
+        self._runtime_bin = runtime_bin
+        self._runtime_ini = runtime_ini
         self._running = True  # 守护线程是否继续运行
         self._restart = False  # 手动重启标志
         self._daemon_thread = threading.Thread(target=self._daemon, daemon=True)
@@ -118,15 +127,15 @@ class AlgorithmTaskDaemon:
                         break
                     
                     # 记录启动信息
-                    self._log(f'准备启动算法任务服务，任务ID: {self._task_id}', 'INFO')
+                    self._log(f'准备启动算法任务服务，任务ID: {self._task_id}, executor={self._executor}', 'INFO')
                     f_log.write(f'\n# ========== 启动算法任务服务 ==========\n')
                     f_log.write(f'# 时间: {datetime.now().isoformat()}\n')
                     f_log.write(f'# 任务ID: {self._task_id}\n')
-                    f_log.write(f'# Python解释器: {cmds[0]}\n')
-                    f_log.write(f'# 部署脚本: {cmds[1]}\n')
+                    f_log.write(f'# executor: {self._executor}\n')
+                    f_log.write(f'# 命令: {" ".join(cmds)}\n')
                     f_log.write(f'# 工作目录: {cwd}\n')
                     f_log.write(f'# 环境变量:\n')
-                    for key in ['TASK_ID', 'DATABASE_URL', 'VIDEO_SERVICE_PORT']:
+                    for key in ['TASK_ID', 'DATABASE_URL', 'VIDEO_SERVICE_PORT', 'RUNTIME_BIN']:
                         if key in env:
                             f_log.write(f'#   {key}={env[key]}\n')
                     f_log.write(f'# ===================================\n\n')
@@ -422,8 +431,14 @@ class AlgorithmTaskDaemon:
 
     def _get_deploy_args(self) -> tuple:
         """获取部署服务的启动参数"""
-        self._log(f'任务信息: 任务ID: {self._task_id}, 任务类型: {self._task_type}', 'DEBUG')
-        
+        self._log(
+            f'任务信息: 任务ID: {self._task_id}, 任务类型: {self._task_type}, executor={self._executor}',
+            'DEBUG',
+        )
+
+        if getattr(self, '_executor', 'python') == 'cpp':
+            return self._get_cpp_deploy_args()
+
         # 根据任务类型选择服务路径
         video_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         if self._task_type == 'snap':
@@ -533,6 +548,39 @@ class AlgorithmTaskDaemon:
         )
         
         return cmds, deploy_service_dir, env
+
+    def _get_cpp_deploy_args(self) -> tuple:
+        """拉起 RUNTIME 二进制（executor=cpp）。"""
+        runtime_bin = (self._runtime_bin or os.getenv('RUNTIME_BIN') or '').strip()
+        runtime_ini = (self._runtime_ini or '').strip()
+        if not runtime_bin or not os.path.isfile(runtime_bin):
+            self._log(f'RUNTIME 二进制不存在: {runtime_bin}', 'ERROR')
+            return None, None, None
+        if not os.access(runtime_bin, os.X_OK) and not runtime_bin.lower().endswith('.exe'):
+            self._log(f'RUNTIME 二进制不可执行: {runtime_bin}', 'ERROR')
+            return None, None, None
+        if not runtime_ini or not os.path.isfile(runtime_ini):
+            self._log(f'RUNTIME 配置不存在: {runtime_ini}', 'ERROR')
+            return None, None, None
+
+        cmds = [runtime_bin, runtime_ini]
+        cwd = os.path.dirname(runtime_bin) or os.getcwd()
+        env = os.environ.copy()
+        env['TASK_ID'] = str(self._task_id)
+        env['LOG_PATH'] = self._log_path
+        env['RUNTIME_BIN'] = runtime_bin
+        for key in (
+            'ALERT_HOOK_URL', 'VIDEO_SERVICE_HOST', 'VIDEO_SERVICE_URL', 'VIDEO_SERVICE_PORT',
+            'POD_IP', 'HOST_IP', 'RUNTIME_MODEL_PATH', 'RUNTIME_CLASSES_PATH',
+            'LD_LIBRARY_PATH', 'PATH',
+        ):
+            val = os.getenv(key)
+            if val is not None and val != '':
+                env[key] = val
+        if self._extra_env:
+            env.update(self._extra_env)
+        self._log(f'CPP 启动: {" ".join(cmds)}', 'INFO')
+        return cmds, cwd, env
 
     def _get_conda_python(self) -> str:
         """获取conda环境的Python路径"""

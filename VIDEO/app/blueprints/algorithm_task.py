@@ -136,6 +136,9 @@ def create_task():
             pose_intent_config=data.get('pose_intent_config'),
             post_process_enabled=data.get('post_process_enabled', False),
             post_process_replicas=data.get('post_process_replicas', 1),
+            executor=data.get('executor', 'python'),
+            runtime_bin_path=data.get('runtime_bin_path'),
+            runtime_control_port=data.get('runtime_control_port'),
         )
         
         return jsonify({
