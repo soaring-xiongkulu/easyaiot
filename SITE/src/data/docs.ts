@@ -50,6 +50,12 @@ export const docs: DocLink[] = [
     href: LINKS.rtcReadme,
   },
   {
+    title: 'RUNTIME 模块',
+    description:
+      '实时分析加速：按任务启用高性能执行，预览与告警仍走原平台；含构建与对接说明。',
+    href: LINKS.runtimeReadme,
+  },
+  {
     title: 'VIDEO / AI 模块',
     description: '视频接入与算法服务相关文档入口。',
     href: 'https://gitee.com/volara/easyaiot/tree/main',

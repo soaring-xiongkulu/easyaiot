@@ -52,8 +52,8 @@ cd SITE && ./install_linux.sh install
 
 | 路径 | 说明 |
 |------|------|
-| `/` | 首页 Hero + 三档硬件 + 多系统安装包 |
-| `/features` | 产品特性（含多系统 / 国产化） |
+| `/` | 首页 Hero + 三档硬件 + 多系统安装包 + RTC / RUNTIME |
+| `/features` | 产品特性（含 RTC、RUNTIME、多系统 / 国产化） |
 | `/download` | 安装包筛选下载与部署档位 |
 | `/docs` | 文档外链入口 |
 | `/about` | 关于与开源仓库 |

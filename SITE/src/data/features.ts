@@ -31,6 +31,18 @@ export const features: FeatureItem[] = [
     image: '/images/feature-rtc.jpg',
   },
   {
+    id: 'runtime',
+    title: 'RUNTIME 实时分析加速',
+    summary:
+      '需要更高实时性时按任务打开加速：画面跟得更紧，预览、告警与任务编排仍在原平台完成。',
+    points: [
+      '实时看场更顺滑，高峰优先保住最新画面',
+      '定时抓拍、多路轮巡共用同一套加速能力',
+      '按任务启用即可，不必改预览与告警习惯',
+    ],
+    image: '/images/feature-runtime.jpg',
+  },
+  {
     id: 'ai',
     title: 'AI 算法与联邦算力',
     summary: '从标注、训练到推理调度，同一套平台贯通视觉智能闭环。',
