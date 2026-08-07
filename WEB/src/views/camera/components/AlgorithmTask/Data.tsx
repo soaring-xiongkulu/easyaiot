@@ -14,11 +14,17 @@ export function getBasicColumns(): BasicColumn[] {
     {
       title: '任务类型',
       dataIndex: 'task_type',
-      width: 120,
-      customRender: ({ text }) => {
+      width: 160,
+      customRender: ({ text, record }) => {
+        const executor = String(record?.executor || 'python').toLowerCase();
+        const isCpp = executor === 'cpp' || executor === 'c++' || executor === 'runtime';
+        const base =
+          text === 'realtime' ? '实时算法任务' : text === 'patrol' ? '巡检算法任务' : '抓拍算法任务';
+        const label = isCpp ? `${base}（高性能）` : base;
+        const color = text === 'realtime' ? 'blue' : text === 'patrol' ? 'purple' : 'green';
         return (
-          <Tag color={text === 'realtime' ? 'blue' : text === 'patrol' ? 'purple' : 'green'}>
-            {text === 'realtime' ? '实时算法任务' : text === 'patrol' ? '巡检算法任务' : '抓拍算法任务'}
+          <Tag color={isCpp ? 'orange' : color}>
+            {label}
           </Tag>
         );
       },

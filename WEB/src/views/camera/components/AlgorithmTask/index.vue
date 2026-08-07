@@ -66,7 +66,7 @@
                     <div class="flex" style="justify-content: space-between;">
                       <div class="prop">
                         <div class="label">任务类型</div>
-                        <div class="value">{{ item.task_type === 'realtime' ? '实时算法任务' : item.task_type === 'patrol' ? '巡检算法任务' : '抓拍算法任务' }}</div>
+                        <div class="value">{{ formatTaskTypeLabel(item) }}</div>
                       </div>
                       <div class="prop" v-if="item.device_names && item.device_names.length > 0">
                         <div class="label">关联摄像头</div>
@@ -308,6 +308,20 @@ const searchParams = ref<{
   task_type?: 'realtime' | 'snap' | 'patrol';
   is_enabled?: boolean;
 }>({});
+
+function formatTaskTypeLabel(item: { task_type?: string; executor?: string }) {
+  const base =
+    item.task_type === 'realtime'
+      ? '实时算法任务'
+      : item.task_type === 'patrol'
+        ? '巡检算法任务'
+        : '抓拍算法任务';
+  const ex = String(item.executor || 'python').toLowerCase();
+  if (ex === 'cpp' || ex === 'c++' || ex === 'runtime' || ex === 'cxx') {
+    return `${base}（高性能）`;
+  }
+  return base;
+}
 
 // 表格模式配置
 const [registerTable, { reload }] = useTable({
