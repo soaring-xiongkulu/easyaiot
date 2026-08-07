@@ -310,11 +310,11 @@ The platform is ready to use out of the box, with multiple pre-trained models bu
 ### 💡 Technical Philosophy
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-We believe no single programming language excels at everything, but through the deep integration of three programming languages, EasyAIoT leverages the strengths of each to build a powerful technical ecosystem.
+We believe no single programming language excels at everything, but through the deep integration of five programming languages, EasyAIoT leverages the strengths of each to build a powerful technical ecosystem.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-Java excels at building stable and reliable platform architectures but is not suitable for network programming and AI development; Python excels at network programming and AI algorithm development but has bottlenecks in high-performance task execution; C++ excels at high-performance task execution but is less suitable than the other two for platform development and AI programming. EasyAIoT adopts a tri-lingual mixed programming architecture, fully leveraging each language’s strengths: Java owns the platform control plane, Python owns business and algorithm orchestration (VIDEO/AI), and C++ <strong>RUNTIME</strong> owns the real-time video inference hot path—building an AIoT platform that's challenging to implement but extremely easy to use.
+Java excels at building stable and reliable platform architectures, but is a poor fit for network programming and AI development; Python excels at network programming and AI algorithms, but hits bottlenecks in high-performance execution; C++ excels at high-performance task execution, but is ill-suited to platform architecture and AI programming; Go excels at high-concurrency networking and protocol implementation, but is ill-suited to platform control planes and AI algorithms; TypeScript excels at complex front-end interactions and type-safe engineered UIs, but is ill-suited to high-performance backend computing and AI inference. EasyAIoT adopts a five-in-one mixed-language architecture, letting each language do what it does best—building an AIoT platform that's challenging to implement yet extremely easy to use.
 </p>
 
 ![EasyAIoT Platform Architecture.jpg](.image/iframe2.jpg)

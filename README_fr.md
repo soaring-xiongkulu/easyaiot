@@ -301,11 +301,11 @@ La plateforme est prête à l'emploi, avec plusieurs modèles pré-entraînés i
 ### 💡 Philosophie technique
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-Nous pensons qu'aucun langage de programmation n'excelle en toute chose, mais grâce à une intégration profonde de trois langages de programmation, EasyAIoT exploite leurs avantages respectifs pour construire un écosystème technique puissant.
+Nous pensons qu'aucun langage de programmation n'excelle en toute chose, mais grâce à une intégration profonde de cinq langages de programmation, EasyAIoT exploite leurs avantages respectifs pour construire un écosystème technique puissant.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-Java excelle pour construire une architecture de plateforme stable et fiable, mais il n'est pas adapté à la programmation réseau et à l'IA ; Python excelle en programmation réseau et développement d'algorithmes d'IA, mais présente des limites pour l'exécution de tâches haute performance ; C++ excelle pour l'exécution de tâches haute performance, mais il est moins bon que les deux précédents pour le développement de plateformes et la programmation IA. EasyAIoT adopte une architecture hybride trilingue, exploitant pleinement les avantages de chaque langage : Java porte le plan de contrôle plateforme, Python l'orchestration métier et algorithmique (VIDEO/AI), C++ <strong>RUNTIME</strong> le chemin chaud d'inférence vidéo temps réel — pour construire une plateforme AIoT dont la réalisation est ambitieuse mais l'utilisation extrêmement simple.
+Java excelle pour construire une architecture de plateforme stable et fiable, mais convient mal à la programmation réseau et à l'IA ; Python excelle en programmation réseau et en algorithmes d'IA, mais bute sur l'exécution haute performance ; C++ excelle pour l'exécution de tâches haute performance, mais convient mal à l'architecture de plateforme et à la programmation IA ; Go excelle en réseau à haute concurrence et en implémentation de protocoles, mais convient mal au plan de contrôle plateforme et aux algorithmes d'IA ; TypeScript excelle pour des interactions front-end complexes et des interfaces industrialisées à typage sûr, mais convient mal au calcul backend haute performance et à l'inférence IA. EasyAIoT adopte une architecture hybride cinq-en-un, où chaque langage occupe son terrain de jeu — une plateforme AIoT ambitieuse à réaliser, mais extrêmement simple à utiliser.
 </p>
 
 ![Architecture de la plateforme EasyAIoT.jpg](.image/iframe2.jpg)
