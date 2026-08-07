@@ -62,6 +62,11 @@ typedef struct Config {
 
     // multi-device (snap/patrol; realtime may also list primary first)
     std::vector<DeviceStreamConfig> devices;
+
+    // AI execution backend: prefer CUDA EP, fallback CPU
+    bool preferGpu{true};
+    bool forceCpu{false};
+    int gpuDeviceId{0};
 } Config;
 
 #endif //CONFIG_H

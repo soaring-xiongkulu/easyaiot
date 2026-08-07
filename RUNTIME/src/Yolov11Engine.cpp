@@ -1,5 +1,6 @@
 #include <random>
 #include <glog/logging.h>
+#include <cstdlib>
 
 #include "Yolov11Engine.h"
 
@@ -24,38 +25,84 @@ Yolov11Engine::~Yolov11Engine()
     onnxSession.release();
 }
 
-int Yolov11Engine::LoadModel(std::string model_path, std::vector<std::string> model_class)
+int Yolov11Engine::createSession(const std::string& model_path, bool use_cuda, int gpu_device_id)
+{
+    onnxSessionOptions = Ort::SessionOptions();
+    onnxSessionOptions.SetGraphOptimizationLevel(ORT_ENABLE_EXTENDED);
+    onnxSessionOptions.SetExecutionMode(ExecutionMode::ORT_SEQUENTIAL);
+
+    if (use_cuda) {
+        OrtCUDAProviderOptions cuda_options{};
+        cuda_options.device_id = gpu_device_id;
+        cuda_options.arena_extend_strategy = 0;
+        cuda_options.gpu_mem_limit = SIZE_MAX;
+        cuda_options.cudnn_conv_algo_search = OrtCudnnConvAlgoSearchExhaustive;
+        cuda_options.do_copy_in_default_stream = 1;
+        onnxSessionOptions.AppendExecutionProvider_CUDA(cuda_options);
+        LOG(INFO) << "[YOLO] Appending CUDA EP device_id=" << gpu_device_id;
+    } else {
+        LOG(INFO) << "[YOLO] Using CPU execution";
+    }
+
+    onnxSession = Ort::Session(onnxEnv, model_path.c_str(), onnxSessionOptions);
+    inferEp_ = use_cuda ? "cuda" : "cpu";
+    return 0;
+}
+
+int Yolov11Engine::LoadModel(std::string model_path,
+                             std::vector<std::string> model_class,
+                             bool prefer_gpu,
+                             bool force_cpu,
+                             int gpu_device_id)
 {
     try {
         LOG(INFO) << "[YOLO] Creating ONNX Runtime environment...";
-        onnxEnv = Ort::Env(ORT_LOGGING_LEVEL_VERBOSE, "YOLOV11");
-        
-        LOG(INFO) << "[YOLO] Setting up session options...";
-        onnxSessionOptions = Ort::SessionOptions();
-        onnxSessionOptions.SetGraphOptimizationLevel(ORT_ENABLE_EXTENDED);
-        onnxSessionOptions.SetExecutionMode(ExecutionMode::ORT_SEQUENTIAL);
-        LOG(INFO) << "[YOLO] Using CPU execution";
+        onnxEnv = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "YOLOV11");
 
-        LOG(INFO) << "[YOLO] Loading model: " << model_path;
-        onnxSession = Ort::Session(onnxEnv, model_path.c_str(), onnxSessionOptions);
-        
-        LOG(INFO) << "[YOLO] Model loaded successfully";
-        
+        const bool try_cuda = prefer_gpu && !force_cpu;
+        bool loaded = false;
+
+        if (try_cuda) {
+            try {
+                createSession(model_path, true, gpu_device_id);
+                loaded = true;
+                LOG(INFO) << "[YOLO] Using CUDA EP";
+            } catch (const Ort::Exception& e) {
+                LOG(WARNING) << "[YOLO] CUDA EP failed, falling back to CPU: " << e.what();
+                onnxSession.release();
+                onnxSessionOptions.release();
+            } catch (const std::exception& e) {
+                LOG(WARNING) << "[YOLO] CUDA EP failed, falling back to CPU: " << e.what();
+                onnxSession.release();
+                onnxSessionOptions.release();
+            }
+        }
+
+        if (!loaded) {
+            createSession(model_path, false, gpu_device_id);
+            LOG(INFO) << "[YOLO] Using CPU execution"
+                      << (try_cuda ? " (fallback)" : "");
+        }
+
+        LOG(INFO) << "[YOLO] Model loaded successfully infer_ep=" << inferEp_;
+
         if (!model_class.empty()) {
             g_classes = model_class;
             LOG(INFO) << "[YOLO] Using " << model_class.size() << " custom classes";
         } else {
             LOG(INFO) << "[YOLO] Using default COCO classes (" << g_classes.size() << " classes)";
         }
-        
+
         ready_ = true;
         return 0;
-        
+
     } catch (const Ort::Exception& e) {
         LOG(ERROR) << "[YOLO] ONNX Runtime exception: " << e.what();
+        inferEp_ = "none";
         return -1;
     } catch (const std::exception& e) {
         LOG(ERROR) << "[YOLO] Exception loading model: " << e.what();
+        inferEp_ = "none";
         return -2;
     }
 }
@@ -118,7 +165,8 @@ int Yolov11Engine::Inference(const cv::Mat& image, std::vector<DetectObject> &de
         ort_outputs = onnxSession.Run(Ort::RunOptions{ nullptr }, inputNames.data(), &input_tensor, 1, outNames.data(), outNames.size());
     }
     catch (std::exception e) {
-        std::cout << e.what() << std::endl;
+        LOG(ERROR) << "[YOLO] Inference exception: " << e.what();
+        return -1;
     }
 
     const float* pdata = ort_outputs[0].GetTensorMutableData<float>();
@@ -191,5 +239,8 @@ int Yolov11Engine::Inference(const cv::Mat& image, std::vector<DetectObject> &de
 
 int Yolov11Engine::Run(cv::Mat& image, std::vector<DetectObject>& detections)
 {
+    if (!ready_) {
+        return -1;
+    }
     return Inference(image, detections);
 }

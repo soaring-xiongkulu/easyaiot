@@ -17,16 +17,31 @@ Yolov11ThreadPool::~Yolov11ThreadPool() {
     }
 }
 
-int Yolov11ThreadPool::setUp(std::string model_path, std::vector<std::string> model_class, int num_threads) {
+int Yolov11ThreadPool::setUp(std::string model_path,
+                             std::vector<std::string> model_class,
+                             int num_threads,
+                             bool prefer_gpu,
+                             bool force_cpu,
+                             int gpu_device_id) {
     for (size_t i = 0; i < num_threads; ++i) {
         std::shared_ptr<Yolov11Engine> Yolov11 = std::make_shared<Yolov11Engine>();
-        Yolov11->LoadModel(model_path, model_class);
+        int ret = Yolov11->LoadModel(model_path, model_class, prefer_gpu, force_cpu, gpu_device_id);
+        if (ret != 0) {
+            return ret;
+        }
         Yolov11_instances.push_back(Yolov11);
     }
     for (size_t i = 0; i < num_threads; ++i) {
         threads.emplace_back(&Yolov11ThreadPool::worker, this, i);
     }
     return 0;
+}
+
+std::string Yolov11ThreadPool::inferEp() const {
+    if (Yolov11_instances.empty() || !Yolov11_instances[0]) {
+        return "none";
+    }
+    return Yolov11_instances[0]->inferEp();
 }
 
 void Yolov11ThreadPool::worker(int id) {

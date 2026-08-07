@@ -31,12 +31,19 @@ public:
     ~Yolov11ThreadPool();
     std::map<int, std::map<int, std::vector<DetectObject>>> results;
 
-    int setUp(std::string model_path, std::vector<std::string> model_class, int num_threads = 3);
+    int setUp(std::string model_path,
+              std::vector<std::string> model_class,
+              int num_threads = 3,
+              bool prefer_gpu = true,
+              bool force_cpu = false,
+              int gpu_device_id = 0);
     int submitTask(const cv::Mat &img, int input_id, int frame_id);
     int getTargetResult(std::vector<DetectObject> &objects, int input_id, int frame_id);
     int getTargetImgResult(cv::Mat &img, int input_id, int frame_id);
     int getTargetResultNonBlock(std::vector<DetectObject> &objects, int input_id, int frame_id);
     void stopAll();
+    /** Aggregate EP from first engine instance: cuda|cpu|none */
+    std::string inferEp() const;
 };
 
 #endif // Yolov8_THREAD_POOL_H

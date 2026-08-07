@@ -5,6 +5,7 @@
 #include "ConfigParser.h"
 #include <json/json.h>
 #include <sstream>
+#include <cstdlib>
 
 std::string ConfigParser::trim(const std::string& str) {
     const std::string whitespace = " \t\r\n";
@@ -159,6 +160,13 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             } else if (key == "frame_skip") {
                 config.frameSkip = parseInt(value);
                 if (config.frameSkip <= 0) config.frameSkip = 8;
+            } else if (key == "prefer_gpu") {
+                config.preferGpu = parseBool(value);
+            } else if (key == "force_cpu") {
+                config.forceCpu = parseBool(value);
+            } else if (key == "gpu_device_id") {
+                config.gpuDeviceId = parseInt(value);
+                if (config.gpuDeviceId < 0) config.gpuDeviceId = 0;
             }
         }
         else if (currentSection == "alarm") {
@@ -307,6 +315,38 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             ? "alerts"
             : config.logPath.substr(0, slash) + "/alerts";
     }
+
+    // Environment overrides (deploy / VIDEO daemon)
+    if (const char* v = std::getenv("RUNTIME_FORCE_CPU")) {
+        if (parseBool(v)) {
+            config.forceCpu = true;
+            config.preferGpu = false;
+        }
+    }
+    if (const char* v = std::getenv("RUNTIME_PREFER_GPU")) {
+        config.preferGpu = parseBool(v);
+    }
+    if (const char* v = std::getenv("USE_GPU")) {
+        // Align with VIDEO python path: empty/true → prefer GPU; false → CPU
+        std::string s = trim(v);
+        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+        if (s == "false" || s == "0" || s == "no" || s == "off") {
+            config.preferGpu = false;
+        } else if (!s.empty()) {
+            config.preferGpu = true;
+        }
+    }
+    if (const char* v = std::getenv("RUNTIME_GPU_DEVICE_ID")) {
+        int id = parseInt(v);
+        if (id >= 0) config.gpuDeviceId = id;
+    }
+    if (config.forceCpu) {
+        config.preferGpu = false;
+    }
+
+    LOG(INFO) << "[CONFIG] AI prefer_gpu=" << (config.preferGpu ? "true" : "false")
+              << " force_cpu=" << (config.forceCpu ? "true" : "false")
+              << " gpu_device_id=" << config.gpuDeviceId;
 
     return true;
 }

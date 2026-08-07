@@ -3,21 +3,48 @@
 # Usage: source RUNTIME/scripts/env.sh
 
 _REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-_ORT="${ORT_ROOT:-$_REPO/.deps/onnxruntime-linux-x64-1.23.2}"
+_ARCH="$(uname -m)"
+case "$_ARCH" in
+  x86_64|amd64) _ARCH_TAG=x64 ;;
+  aarch64|arm64) _ARCH_TAG=aarch64 ;;
+  *) _ARCH_TAG=x64 ;;
+esac
+_ORT="${ORT_ROOT:-$_REPO/.deps/onnxruntime-linux-${_ARCH_TAG}-1.23.2}"
 
-if [[ -f /home/ubuntu/miniconda3/etc/profile.d/conda.sh ]]; then
-  # shellcheck disable=SC1091
-  source /home/ubuntu/miniconda3/etc/profile.d/conda.sh
-  conda activate easyaiot-runtime
+_find_conda_sh() {
+  local c
+  for c in \
+    "$HOME/miniconda3/etc/profile.d/conda.sh" \
+    "$HOME/anaconda3/etc/profile.d/conda.sh" \
+    /opt/conda/etc/profile.d/conda.sh \
+    /usr/local/miniconda3/etc/profile.d/conda.sh \
+    /home/ubuntu/miniconda3/etc/profile.d/conda.sh
+  do
+    [[ -f "$c" ]] && { echo "$c"; return 0; }
+  done
+  if command -v conda >/dev/null 2>&1; then
+    local base
+    base="$(conda info --base 2>/dev/null || true)"
+    [[ -n "$base" && -f "$base/etc/profile.d/conda.sh" ]] && { echo "$base/etc/profile.d/conda.sh"; return 0; }
+  fi
+  return 1
+}
+
+if _CS="$(_find_conda_sh)"; then
+  # shellcheck disable=SC1090
+  source "$_CS"
+  conda activate "${EASYAIOT_RUNTIME_CONDA_ENV:-easyaiot-runtime}" 2>/dev/null || true
 fi
 
 export ORT_ROOT="$_ORT"
-export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${_ORT}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-export PKG_CONFIG_PATH="${CONDA_PREFIX}/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
-export CMAKE_PREFIX_PATH="${CONDA_PREFIX}${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
+if [[ -n "${CONDA_PREFIX:-}" ]]; then
+  export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${_ORT}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+  export PKG_CONFIG_PATH="${CONDA_PREFIX}/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+  export CMAKE_PREFIX_PATH="${CONDA_PREFIX}${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
+fi
 export RUNTIME_BIN="${RUNTIME_BIN:-$_REPO/RUNTIME/build/RUNTIME}"
 
 echo "RUNTIME env ready"
-echo "  CONDA_PREFIX=$CONDA_PREFIX"
+echo "  CONDA_PREFIX=${CONDA_PREFIX:-}"
 echo "  RUNTIME_BIN=$RUNTIME_BIN"
 echo "  ORT_ROOT=$ORT_ROOT"

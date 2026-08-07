@@ -394,6 +394,14 @@ void Detech::_controlServerThreadFunc() {
             metrics["alarms_emitted"] = (Json::UInt64)this->_metrics.alarmsEmitted.load();
             metrics["last_latency_ms"] = (Json::UInt64)this->_metrics.lastLatencyMs.load();
             response["metrics"] = metrics;
+            if (yolov11_thread_pool) {
+                response["infer_ep"] = yolov11_thread_pool->inferEp();
+            } else {
+                response["infer_ep"] = "none";
+            }
+            response["prefer_gpu"] = this->_config.preferGpu;
+            response["force_cpu"] = this->_config.forceCpu;
+            response["gpu_device_id"] = this->_config.gpuDeviceId;
             
             Json::StreamWriterBuilder writer;
             res.set_content(Json::writeString(writer, response), "application/json");
@@ -550,13 +558,18 @@ bool Detech::_init_yolo11_detector() {
             }
         }
         
-        LOG(INFO) << "[INIT] Loading YOLO model with " << _config.threadNums << " threads...";
-        int ret = yolov11_thread_pool->setUp(modelPath, classes, _config.threadNums);
+        LOG(INFO) << "[INIT] Loading YOLO model with " << _config.threadNums << " threads"
+                  << " prefer_gpu=" << (_config.preferGpu ? "true" : "false")
+                  << " force_cpu=" << (_config.forceCpu ? "true" : "false")
+                  << " gpu_device_id=" << _config.gpuDeviceId;
+        int ret = yolov11_thread_pool->setUp(
+            modelPath, classes, _config.threadNums,
+            _config.preferGpu, _config.forceCpu, _config.gpuDeviceId);
         if (ret) {
             LOG(ERROR) << "[ERROR] YOLO thread pool initialization failed, error code: " << ret;
             return false;
         }
-        LOG(INFO) << "[OK] YOLO thread pool initialized";
+        LOG(INFO) << "[OK] YOLO thread pool initialized infer_ep=" << yolov11_thread_pool->inferEp();
     }
     return true;
 }
