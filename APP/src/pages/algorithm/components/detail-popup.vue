@@ -91,7 +91,7 @@ const detailRows = computed(() => {
     return []
   const t = task.value
   return [
-    { label: '任务类型', value: getAlgorithmTaskTypeText(t.task_type) },
+    { label: '任务类型', value: getAlgorithmTaskTypeText(t.task_type, (t as any).executor) },
     { label: '关联设备', value: t.device_names?.join('、') || (t.device_ids?.length ? `${t.device_ids.length} 个设备` : '-') },
     { label: '关联模型', value: t.model_names || '-' },
     { label: '告警事件', value: t.alert_event_enabled ? '已启用' : '未启用' },

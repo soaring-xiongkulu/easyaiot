@@ -17,16 +17,13 @@
           <view class="mb-12rpx text-26rpx text-[#666]">
             任务类型 <text class="text-[#f56c6c]">*</text>
           </view>
-          <wd-radio-group v-model="form.task_type" type="button" :disabled="isEdit">
-            <wd-radio value="realtime">
-              实时
-            </wd-radio>
-            <wd-radio value="snap">
-              抓拍
-            </wd-radio>
-            <wd-radio value="patrol">
-              巡检
-            </wd-radio>
+          <wd-radio-group v-model="form.task_mode" type="button" :disabled="isEdit">
+            <wd-radio value="realtime_cpp">实时(高性能)</wd-radio>
+            <wd-radio value="snap_cpp">抓拍(高性能)</wd-radio>
+            <wd-radio value="patrol_cpp">巡检(高性能)</wd-radio>
+            <wd-radio value="realtime">实时</wd-radio>
+            <wd-radio value="snap">抓拍</wd-radio>
+            <wd-radio value="patrol">巡检</wd-radio>
           </wd-radio-group>
         </view>
 
@@ -99,28 +96,28 @@
           </view>
         </view>
 
-        <view v-if="form.task_type === 'realtime'" class="mb-24rpx">
+        <view v-if="baseTaskType(form.task_mode) === 'realtime'" class="mb-24rpx">
           <view class="mb-12rpx text-26rpx text-[#666]">
             抽帧间隔
           </view>
           <wd-input v-model="extractIntervalText" type="number" placeholder="每 N 帧抽一次（默认 25）" clearable />
         </view>
 
-        <view v-if="form.task_type === 'realtime'" class="mb-24rpx flex items-center justify-between">
+        <view v-if="baseTaskType(form.task_mode) === 'realtime'" class="mb-24rpx flex items-center justify-between">
           <view class="text-26rpx text-[#666]">
             启用运动补检
           </view>
           <wd-switch v-model="form.motion_gate_enabled" />
         </view>
 
-        <view v-if="form.task_type === 'snap'" class="mb-24rpx">
+        <view v-if="baseTaskType(form.task_mode) === 'snap'" class="mb-24rpx">
           <view class="mb-12rpx text-26rpx text-[#666]">
             Cron 表达式 <text class="text-[#f56c6c]">*</text>
           </view>
           <wd-input v-model="form.cron_expression" placeholder="如 0 */5 * * * ?" clearable />
         </view>
 
-        <view v-if="form.task_type === 'patrol'" class="mb-24rpx">
+        <view v-if="baseTaskType(form.task_mode) === 'patrol'" class="mb-24rpx">
           <view class="mb-12rpx text-26rpx text-[#666]">
             巡检间隔(秒)
           </view>
@@ -249,9 +246,26 @@ const nodeOptions = ref<Array<{ label: string, value: number }>>([])
 const deviceSearch = ref('')
 const modelSearch = ref('')
 
+function baseTaskType(modeOrType?: string): 'realtime' | 'snap' | 'patrol' {
+  const raw = String(modeOrType || 'realtime')
+  const v = raw.endsWith('_cpp') ? raw.slice(0, -4) : raw
+  if (v === 'snap' || v === 'patrol') return v
+  return 'realtime'
+}
+function toTaskMode(taskType?: string, executor?: string): string {
+  const base = baseTaskType(taskType)
+  const ex = String(executor || 'python').toLowerCase()
+  return (ex === 'cpp' || ex === 'c++' || ex === 'runtime' || ex === 'cxx') ? `${base}_cpp` : base
+}
+function fromTaskMode(mode?: string): { task_type: 'realtime' | 'snap' | 'patrol'; executor: 'python' | 'cpp' } {
+  const m = String(mode || 'realtime')
+  if (m.endsWith('_cpp')) return { task_type: baseTaskType(m), executor: 'cpp' }
+  return { task_type: baseTaskType(m), executor: 'python' }
+}
+
 const form = reactive({
   task_name: '',
-  task_type: 'realtime' as 'realtime' | 'snap' | 'patrol',
+  task_mode: 'realtime_cpp' as string,
   device_ids: [] as string[],
   model_ids: [] as number[],
   schedule_policy: 'local' as 'local' | 'auto' | 'node',
@@ -320,7 +334,7 @@ const selectedNodeLabel = computed(() => {
 
 function resetForm() {
   form.task_name = ''
-  form.task_type = 'realtime'
+  form.task_mode = 'realtime_cpp'
   form.device_ids = []
   form.model_ids = []
   form.schedule_policy = 'local'
@@ -417,39 +431,44 @@ async function handleSubmit() {
     toast.warning('请选择目标节点')
     return
   }
-  if (form.task_type === 'snap' && !form.cron_expression.trim()) {
+  if (baseTaskType(form.task_mode) === 'snap' && !form.cron_expression.trim()) {
     toast.warning('请输入 Cron 表达式')
     return
   }
 
+  const mapped = fromTaskMode(form.task_mode)
   const payload: Record<string, any> = {
     task_name: form.task_name.trim(),
-    task_type: form.task_type,
+    task_type: mapped.task_type,
+    executor: mapped.executor,
     device_ids: form.device_ids,
     model_ids: form.model_ids,
-    schedule_policy: form.schedule_policy,
+    schedule_policy: mapped.executor === 'cpp' ? 'local' : form.schedule_policy,
     alert_event_enabled: form.alert_event_enabled,
     is_enabled: false,
   }
 
-  if (form.schedule_policy === 'auto')
+  if (mapped.executor === 'cpp') {
+    payload.target_node_id = null
+  }
+  else if (form.schedule_policy === 'auto')
     payload.prefer_gpu = form.prefer_gpu
-  if (form.schedule_policy === 'node')
+  if (mapped.executor !== 'cpp' && form.schedule_policy === 'node')
     payload.target_node_id = form.target_node_id
-  else
+  else if (mapped.executor !== 'cpp')
     payload.target_node_id = null
 
-  if (form.task_type === 'realtime' && form.extract_interval != null)
+  if (baseTaskType(form.task_mode) === 'realtime' && form.extract_interval != null)
     payload.extract_interval = form.extract_interval
-  if (form.task_type === 'realtime') {
+  if (baseTaskType(form.task_mode) === 'realtime') {
     payload.motion_gate_enabled = form.motion_gate_enabled
     payload.motion_gate_config = form.motion_gate_enabled
       ? { preset: 'conservative' }
       : null
   }
-  if (form.task_type === 'snap')
+  if (baseTaskType(form.task_mode) === 'snap')
     payload.cron_expression = form.cron_expression.trim()
-  if (form.task_type === 'patrol' && form.patrol_interval_sec != null)
+  if (baseTaskType(form.task_mode) === 'patrol' && form.patrol_interval_sec != null)
     payload.patrol_interval_sec = form.patrol_interval_sec
 
   submitting.value = true
@@ -487,7 +506,7 @@ async function openEdit(item: AlgorithmTask) {
   resetForm()
   await loadOptions()
   form.task_name = item.task_name
-  form.task_type = item.task_type
+  form.task_mode = toTaskMode(item.task_type, (item as any).executor)
   form.device_ids = [...(item.device_ids || [])]
   form.model_ids = [...(item.model_ids || [])]
   form.schedule_policy = item.schedule_policy || 'local'

@@ -46,7 +46,7 @@
 
             <view class="flex flex-wrap gap-12rpx">
               <wd-tag :type="getTaskTypeTagType(item.task_type)" plain>
-                {{ getAlgorithmTaskTypeText(item.task_type) }}
+                {{ getAlgorithmTaskTypeText(item.task_type, item.executor) }}
               </wd-tag>
               <wd-tag v-if="item.alert_event_enabled" type="warning" plain>
                 告警
