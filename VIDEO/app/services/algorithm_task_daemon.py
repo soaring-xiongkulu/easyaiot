@@ -35,7 +35,7 @@ class AlgorithmTaskDaemon:
         task_type: str = 'realtime',
         llm_enabled: bool = False,
         extra_env: dict = None,
-        executor: str = 'python',
+        executor: str = 'cpp',
         runtime_bin: str = None,
         runtime_ini: str = None,
     ):
@@ -57,7 +57,7 @@ class AlgorithmTaskDaemon:
         self._log_path = log_path
         self._task_type = task_type
         self._extra_env = extra_env or {}
-        self._executor = (executor or 'python').strip().lower()
+        self._executor = (executor or 'cpp').strip().lower()
         self._runtime_bin = runtime_bin
         self._runtime_ini = runtime_ini
         self._running = True  # 守护线程是否继续运行
@@ -579,6 +579,15 @@ class AlgorithmTaskDaemon:
                 env[key] = val
         if self._extra_env:
             env.update(self._extra_env)
+        # Ensure ORT/conda libs are visible even if parent env missed them
+        if not (env.get('LD_LIBRARY_PATH') or '').strip():
+            try:
+                from app.services.runtime_config_service import runtime_library_path_env
+                lib_path = runtime_library_path_env()
+                if lib_path:
+                    env['LD_LIBRARY_PATH'] = lib_path
+            except Exception as e:
+                self._log(f'构建 LD_LIBRARY_PATH 失败: {e}', 'WARNING')
         self._log(f'CPP 启动: {" ".join(cmds)}', 'INFO')
         return cmds, cwd, env
 

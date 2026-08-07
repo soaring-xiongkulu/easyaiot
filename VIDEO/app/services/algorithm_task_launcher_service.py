@@ -410,8 +410,9 @@ def cleanup_orphaned_processes(task_id: int, extra_protected_pids: set = None):
         task_id: 算法任务ID
         extra_protected_pids: 额外需要保护的 PID（如刚启动、尚未写入 daemon._process 时）
     """
-    # 仅清理实时算法服务，避免误杀 stream_forward 等同 TASK_ID 的 run_deploy
+    # 仅清理实时算法服务 / RUNTIME，避免误杀 stream_forward 等同 TASK_ID 的 run_deploy
     realtime_deploy_marker = os.path.join('realtime_algorithm_service', 'run_deploy.py')
+    runtime_ini_marker = f'task_{task_id}.ini'
     orphan_terminate_timeout = int(os.getenv('ALGORITHM_ORPHAN_TERMINATE_TIMEOUT', '12'))
     try:
         import psutil
@@ -453,17 +454,37 @@ def cleanup_orphaned_processes(task_id: int, extra_protected_pids: set = None):
                     continue
                 
                 cmdline_str = ' '.join(cmdline)
-                if realtime_deploy_marker not in cmdline_str:
+                is_python_deploy = realtime_deploy_marker in cmdline_str
+                is_runtime_bin = (
+                    runtime_ini_marker in cmdline_str
+                    and (
+                        'RUNTIME' in cmdline_str
+                        or any(
+                            str(arg).endswith('RUNTIME') or str(arg).endswith('RUNTIME.exe')
+                            for arg in cmdline
+                        )
+                    )
+                )
+                if not is_python_deploy and not is_runtime_bin:
                     continue
                 
-                # 检查是否是run_deploy.py进程且环境变量匹配
+                # 检查是否是目标任务进程
                 is_target = False
+
+                if is_runtime_bin:
+                    try:
+                        environ = proc.info.get('environ', {}) or {}
+                        if environ.get('TASK_ID') and environ.get('TASK_ID') != str(task_id):
+                            continue
+                    except Exception:
+                        pass
+                    is_target = True
                 
                 # 检查脚本路径是否为实时算法服务
                 script_path_match = any(
                     realtime_deploy_marker in str(arg) for arg in cmdline
                 )
-                if script_path_match:
+                if script_path_match and not is_target:
                     # 优先检查环境变量（最可靠）
                     try:
                         environ = proc.info.get('environ', {})
@@ -716,6 +737,11 @@ def restart_task_services(task_id: int) -> bool:
     """
     _cancel_pending_stop_requests(task_id)
     task = AlgorithmTask.query.get(task_id)
+    if task:
+        executor_norm = (getattr(task, 'executor', None) or 'cpp').strip().lower()
+        if executor_norm in ('cpp', 'c++', 'runtime', 'cxx') and _use_remote_deploy(task):
+            logger.error('executor=cpp 暂仅支持本机部署，拒绝远程重启 task_id=%s', task_id)
+            return False
     if task and _use_remote_deploy(task):
         _stop_remote_task(task_id, task.node_id)
         _stop_post_process_cluster(task_id, task)
@@ -769,8 +795,15 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
     _cancel_pending_stop_requests(task_id)
     
     try:
-        # 实时算法任务和抓拍算法任务都需要启动服务进程
+        # 实时/抓拍/巡检算法任务都需要启动服务进程
         if task.task_type in ['realtime', 'snap', 'patrol']:
+            executor_norm = (getattr(task, 'executor', None) or 'cpp').strip().lower()
+            if executor_norm in ('cpp', 'c++', 'runtime', 'cxx') and _use_remote_deploy(task):
+                return (
+                    False,
+                    'executor=cpp 暂仅支持本机部署，请将调度策略设为 local',
+                    False,
+                )
             if _use_remote_deploy(task):
                 failover_sec = _algorithm_heartbeat_failover_seconds()
                 if task.node_id and not _heartbeat_stale(task.service_last_heartbeat, failover_sec):
@@ -855,17 +888,30 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
             _inject_sam_supplement_env(extra_env, task)
             _inject_realtime_sampling_env(extra_env, task)
 
-            executor = (getattr(task, 'executor', None) or 'python').strip().lower()
+            executor = (getattr(task, 'executor', None) or 'cpp').strip().lower()
             runtime_bin = None
             runtime_ini = None
             if executor in ('cpp', 'c++', 'runtime', 'cxx'):
                 executor = 'cpp'
-                if task.task_type != 'realtime':
-                    return (False, 'executor=cpp 当前仅支持 realtime 任务', False)
+                if task.task_type not in ('realtime', 'snap', 'patrol'):
+                    return (False, f'executor=cpp 不支持任务类型: {task.task_type}', False)
+                if _use_remote_deploy(task):
+                    return (
+                        False,
+                        'executor=cpp 暂仅支持本机部署，请将调度策略设为 local',
+                        False,
+                    )
                 try:
-                    from .runtime_config_service import generate_runtime_ini, resolve_runtime_bin
-                    runtime_bin = resolve_runtime_bin(task)
+                    from .runtime_config_service import (
+                        generate_runtime_ini,
+                        ensure_runtime_bin_ready,
+                        runtime_library_path_env,
+                    )
+                    runtime_bin = ensure_runtime_bin_ready(task)
                     runtime_ini = generate_runtime_ini(task, log_path)
+                    lib_path = runtime_library_path_env()
+                    if lib_path:
+                        extra_env['LD_LIBRARY_PATH'] = lib_path
                     if getattr(task, 'runtime_control_port', None):
                         task.service_port = int(task.runtime_control_port)
                     else:
