@@ -4,6 +4,7 @@
 
 #include "ConfigParser.h"
 #include <json/json.h>
+#include <sstream>
 
 std::string ConfigParser::trim(const std::string& str) {
     const std::string whitespace = " \t\r\n";
@@ -39,31 +40,56 @@ bool ConfigParser::parseRegion(const std::string& regionJson, std::vector<cv::Po
     try {
         Json::Reader reader;
         Json::Value root;
-        
+
         if (!reader.parse(regionJson, root)) {
             LOG(ERROR) << "[ERROR] JSON parse failed: " << regionJson;
             return false;
         }
-        
+
         if (!root.isArray()) {
             LOG(ERROR) << "[ERROR] Region format error, should be array: " << regionJson;
             return false;
         }
-        
+
         points.clear();
         for (const auto& point : root) {
             if (point.isArray() && point.size() == 2) {
-                int x = point[0].asInt();
-                int y = point[1].asInt();
-                points.push_back(cv::Point(x, y));
+                // Support normalized 0-1 or absolute pixel coords
+                double x = point[0].asDouble();
+                double y = point[1].asDouble();
+                if (x >= 0.0 && x <= 1.0 && y >= 0.0 && y <= 1.0) {
+                    // Will be scaled later when video size known; store as 0-10000 fixed
+                    points.push_back(cv::Point(static_cast<int>(x * 10000), static_cast<int>(y * 10000)));
+                } else {
+                    points.push_back(cv::Point(static_cast<int>(x), static_cast<int>(y)));
+                }
             }
         }
-        
-        return points.size() >= 3;  // At least 3 points required for polygon
-        
+
+        return points.size() >= 3;
+
     } catch (const std::exception& e) {
         LOG(ERROR) << "[ERROR] Parse region exception: " << e.what();
         return false;
+    }
+}
+
+static void parseDevicesJson(const std::string& json, std::vector<DeviceStreamConfig>& out) {
+    Json::Reader reader;
+    Json::Value root;
+    if (!reader.parse(json, root) || !root.isArray()) {
+        return;
+    }
+    // Replace (not append): ini may list devices_json under both [video] and [video_task]
+    out.clear();
+    for (const auto& item : root) {
+        DeviceStreamConfig d;
+        d.deviceId = item.get("device_id", "").asString();
+        d.deviceName = item.get("device_name", d.deviceId).asString();
+        d.rtspUrl = item.get("rtsp_url", "").asString();
+        if (!d.deviceId.empty() && !d.rtspUrl.empty()) {
+            out.push_back(d);
+        }
     }
 }
 
@@ -73,38 +99,33 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
         LOG(ERROR) << "[ERROR] Cannot open config file: " << filename;
         return false;
     }
-    
+
     std::string line;
     std::string currentSection;
-    std::string currentModel;  // Current model name (for multi-model config)
-    
+    std::string currentModel;
+
     while (std::getline(file, line)) {
-        // Trim whitespace
         line = trim(line);
-        
-        // Skip empty lines and comments
+
         if (line.empty() || line[0] == '#' || line[0] == ';') {
             continue;
         }
-        
-        // Parse section name [section]
+
         if (line[0] == '[' && line[line.length()-1] == ']') {
             currentSection = line.substr(1, line.length()-2);
             currentSection = trim(currentSection);
             LOG(INFO) << "[CONFIG] Reading section: [" << currentSection << "]";
             continue;
         }
-        
-        // Parse key-value pair key=value
+
         size_t equalPos = line.find('=');
         if (equalPos == std::string::npos) {
             continue;
         }
-        
+
         std::string key = trim(line.substr(0, equalPos));
         std::string value = trim(line.substr(equalPos + 1));
-        
-        // Parse config based on section and key name
+
         if (currentSection == "video") {
             if (key == "rtsp_url") {
                 config.rtspUrl = value;
@@ -119,13 +140,14 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             } else if (key == "fps") {
                 config.rtmpFps = parseInt(value);
                 if (config.rtmpFps <= 0) config.rtmpFps = 25;
+            } else if (key == "devices_json") {
+                parseDevicesJson(value, config.devices);
             }
         }
         else if (currentSection == "ai") {
             if (key == "enable") {
                 config.enableAI = parseBool(value);
             } else if (key == "model_path") {
-                // Default model path
                 currentModel = "default";
                 config.modelPaths[currentModel] = value;
             } else if (key == "classes_path") {
@@ -134,6 +156,9 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             } else if (key == "threads") {
                 config.threadNums = parseInt(value);
                 if (config.threadNums <= 0) config.threadNums = 3;
+            } else if (key == "frame_skip") {
+                config.frameSkip = parseInt(value);
+                if (config.frameSkip <= 0) config.frameSkip = 8;
             }
         }
         else if (currentSection == "alarm") {
@@ -144,13 +169,15 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             } else if (key == "confidence_threshold") {
                 config.alarmConfidenceThreshold = parseFloat(value);
                 if (config.alarmConfidenceThreshold <= 0.0f || config.alarmConfidenceThreshold > 1.0f) {
-                    config.alarmConfidenceThreshold = 0.5f;  // 默认值
+                    config.alarmConfidenceThreshold = 0.5f;
                 }
             } else if (key == "cooldown_time") {
                 config.alarmCooldownTime = parseInt(value);
                 if (config.alarmCooldownTime < 0) {
-                    config.alarmCooldownTime = 30;  // 默认30秒
+                    config.alarmCooldownTime = 30;
                 }
+            } else if (key == "image_dir") {
+                config.alertImageDir = value;
             }
         }
         else if (currentSection == "task") {
@@ -159,7 +186,7 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             } else if (key == "control_port") {
                 config.controlPort = parseInt(value);
                 if (config.controlPort < 8000 || config.controlPort > 9000) {
-                    config.controlPort = 8000;  // 默认8000
+                    config.controlPort = 8000;
                 }
             }
         }
@@ -170,6 +197,9 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
                 config.deviceName = value;
             } else if (key == "task_type") {
                 config.taskType = value.empty() ? "realtime" : value;
+                if (config.taskType == "snapshot") {
+                    config.taskType = "snap";
+                }
             } else if (key == "algorithm_name" || key == "event") {
                 config.algorithmName = value.empty() ? "detection" : value;
             } else if (key == "heartbeat_url") {
@@ -188,6 +218,24 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
                 }
             } else if (key == "headless") {
                 config.headless = parseBool(value);
+            } else if (key == "cron_expression") {
+                config.cronExpression = value;
+            } else if (key == "patrol_mode") {
+                config.patrolMode = value.empty() ? "pool" : value;
+            } else if (key == "patrol_interval_sec") {
+                config.patrolIntervalSec = parseInt(value);
+                if (config.patrolIntervalSec < 3) config.patrolIntervalSec = 3;
+            } else if (key == "patrol_pool_size") {
+                config.patrolPoolSize = parseInt(value);
+                if (config.patrolPoolSize < 1) config.patrolPoolSize = 1;
+                if (config.patrolPoolSize > 16) config.patrolPoolSize = 16;
+            } else if (key == "frame_skip") {
+                config.frameSkip = parseInt(value);
+                if (config.frameSkip <= 0) config.frameSkip = 8;
+            } else if (key == "alert_image_dir") {
+                config.alertImageDir = value;
+            } else if (key == "devices_json") {
+                parseDevicesJson(value, config.devices);
             }
         }
         else if (currentSection == "features") {
@@ -200,11 +248,8 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             }
         }
         else if (currentSection == "regions") {
-            // Alarm region configuration
-            // Format: area_center=[[100,200],[300,400],[500,600]]
             std::vector<cv::Point> points;
             if (parseRegion(value, points)) {
-                // ✅ 使用配置文件中的区域名称（key），而不是currentModel
                 std::string regionName = key.empty() ? "default" : key;
                 config.regions[regionName].push_back(points);
                 LOG(INFO) << "  [OK] Alarm region '" << regionName << "' loaded: " << points.size() << " points";
@@ -213,20 +258,39 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             }
         }
     }
-    
+
     file.close();
-    
-    // 楠岃瘉蹇呴渶閰嶇疆
-    if (config.rtspUrl.empty()) {
+
+    // Ensure primary device stream exists
+    if (config.devices.empty() && !config.rtspUrl.empty()) {
+        DeviceStreamConfig d;
+        d.deviceId = config.deviceId.empty() ? "device" : config.deviceId;
+        d.deviceName = config.deviceName.empty() ? d.deviceId : config.deviceName;
+        d.rtspUrl = config.rtspUrl;
+        config.devices.push_back(d);
+    }
+    if (config.rtspUrl.empty() && !config.devices.empty()) {
+        config.rtspUrl = config.devices.front().rtspUrl;
+        if (config.deviceId.empty()) config.deviceId = config.devices.front().deviceId;
+        if (config.deviceName.empty()) config.deviceName = config.devices.front().deviceName;
+    }
+
+    const std::string tt = config.taskType;
+    const bool needsPersistentRtsp = (tt == "realtime" || tt.empty());
+    if (needsPersistentRtsp && config.rtspUrl.empty()) {
         LOG(ERROR) << "[ERROR] Missing required config: rtsp_url";
         return false;
     }
-    
+    if ((tt == "snap" || tt == "patrol") && config.devices.empty()) {
+        LOG(ERROR) << "[ERROR] snap/patrol requires at least one device stream";
+        return false;
+    }
+
     if (config.enableAI && config.modelPaths.empty()) {
         LOG(ERROR) << "[ERROR] AI inference enabled but model path not configured";
         return false;
     }
-    
+
     if (!config.alertHookUrl.empty()) {
         config.hookHttpUrl = config.alertHookUrl;
     }
@@ -235,6 +299,14 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
         LOG(ERROR) << "[ERROR] Alarm detection enabled but callback URL not configured";
         return false;
     }
-    
+
+    if (config.alertImageDir.empty() && !config.logPath.empty()) {
+        // default next to log
+        size_t slash = config.logPath.find_last_of("/\\");
+        config.alertImageDir = (slash == std::string::npos)
+            ? "alerts"
+            : config.logPath.substr(0, slash) + "/alerts";
+    }
+
     return true;
 }
