@@ -972,9 +972,9 @@ class AlgorithmTask(db.Model):
     target_node_id = db.Column(db.BigInteger, nullable=True, comment='指定部署节点ID')
     node_id = db.Column(db.BigInteger, nullable=True, comment='实际运行节点ID')
 
-    # 执行后端：python=现有 run_deploy；cpp=RUNTIME 二进制（仅 realtime）
-    executor = db.Column(db.String(20), default='python', nullable=False,
-                         comment='执行后端[python,cpp]，默认 python')
+    # 执行后端：python=现有 run_deploy；cpp=RUNTIME 二进制（realtime/snap/patrol，本机）
+    executor = db.Column(db.String(20), default='cpp', nullable=False,
+                         comment='执行后端[python,cpp]，默认 cpp')
     runtime_bin_path = db.Column(db.String(500), nullable=True,
                                  comment='RUNTIME 二进制路径（空则用 RUNTIME_BIN 或仓库默认）')
     runtime_control_port = db.Column(db.Integer, nullable=True,
@@ -1159,7 +1159,7 @@ class AlgorithmTask(db.Model):
             'prefer_gpu': self.prefer_gpu if self.prefer_gpu is not None else True,
             'target_node_id': self.target_node_id,
             'node_id': self.node_id,
-            'executor': getattr(self, 'executor', None) or 'python',
+            'executor': getattr(self, 'executor', None) or 'cpp',
             'runtime_bin_path': getattr(self, 'runtime_bin_path', None),
             'runtime_control_port': getattr(self, 'runtime_control_port', None),
             'service_server_ip': self.service_server_ip,
@@ -2414,7 +2414,7 @@ def ensure_algorithm_task_executor_columns(engine):
 
     log = logging.getLogger(__name__)
     columns = {
-        'executor': "VARCHAR(20) DEFAULT 'python'",
+        'executor': "VARCHAR(20) DEFAULT 'cpp'",
         'runtime_bin_path': 'VARCHAR(500)',
         'runtime_control_port': 'INTEGER',
     }

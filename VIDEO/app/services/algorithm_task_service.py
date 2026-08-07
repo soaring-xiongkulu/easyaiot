@@ -787,7 +787,7 @@ def create_algorithm_task(task_name: str,
                          pose_intent_config=None,
                          post_process_enabled: bool = False,
                          post_process_replicas: int = 1,
-                         executor: str = 'python',
+                         executor: str = 'cpp',
                          runtime_bin_path: Optional[str] = None,
                          runtime_control_port: Optional[int] = None) -> AlgorithmTask:
     """创建算法任务"""
@@ -796,10 +796,14 @@ def create_algorithm_task(task_name: str,
         if task_type not in ['realtime', 'snap', 'patrol']:
             raise ValueError(f"无效的任务类型: {task_type}，必须是 'realtime'、'snap' 或 'patrol'")
 
-        from app.services.runtime_config_service import normalize_executor
+        from app.services.runtime_config_service import normalize_executor, ensure_runtime_bin_ready
         executor = normalize_executor(executor)
-        if executor == 'cpp' and task_type != 'realtime':
-            raise ValueError('executor=cpp 当前仅支持 realtime 任务')
+        if executor == 'cpp':
+            if task_type not in ('realtime', 'snap', 'patrol'):
+                raise ValueError(f'executor=cpp 不支持任务类型: {task_type}')
+            if (schedule_policy or 'local') != 'local':
+                raise ValueError('executor=cpp 暂仅支持本机部署（schedule_policy=local），远程节点部署尚未实现')
+            ensure_runtime_bin_ready(None)
         if runtime_control_port is not None:
             runtime_control_port = int(runtime_control_port)
             if runtime_control_port < 8000 or runtime_control_port > 9000:
@@ -1065,7 +1069,7 @@ def create_algorithm_task(task_name: str,
             pose_intent_config=_serialize_pose_intent_config(pose_intent_config),
             post_process_enabled=bool(post_process_enabled),
             post_process_replicas=max(1, int(post_process_replicas or 1)),
-            executor=executor or 'python',
+            executor=executor or 'cpp',
             runtime_bin_path=(runtime_bin_path or None),
             runtime_control_port=runtime_control_port,
         )
@@ -1100,12 +1104,25 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
         
         task_type = kwargs.get('task_type', task.task_type)
 
-        if 'executor' in kwargs:
-            from app.services.runtime_config_service import normalize_executor
-            kwargs['executor'] = normalize_executor(kwargs.get('executor'))
+        if 'executor' in kwargs or 'task_type' in kwargs or 'schedule_policy' in kwargs:
+            from app.services.runtime_config_service import normalize_executor, ensure_runtime_bin_ready
+            if 'executor' in kwargs:
+                kwargs['executor'] = normalize_executor(kwargs.get('executor'))
+            effective_executor = normalize_executor(
+                kwargs.get('executor', getattr(task, 'executor', None) or 'cpp')
+            )
             effective_type = kwargs.get('task_type', task.task_type)
-            if kwargs['executor'] == 'cpp' and effective_type != 'realtime':
-                raise ValueError('executor=cpp 当前仅支持 realtime 任务')
+            effective_policy = kwargs.get(
+                'schedule_policy', getattr(task, 'schedule_policy', None) or 'local'
+            )
+            if effective_executor == 'cpp':
+                if effective_type not in ('realtime', 'snap', 'patrol'):
+                    raise ValueError(f'executor=cpp 不支持任务类型: {effective_type}')
+                if (effective_policy or 'local') != 'local':
+                    raise ValueError(
+                        'executor=cpp 暂仅支持本机部署（schedule_policy=local），远程节点部署尚未实现'
+                    )
+                ensure_runtime_bin_ready(task)
         if 'runtime_control_port' in kwargs and kwargs['runtime_control_port'] is not None:
             port = int(kwargs['runtime_control_port'])
             if port < 8000 or port > 9000:
