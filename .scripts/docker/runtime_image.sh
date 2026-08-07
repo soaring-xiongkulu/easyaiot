@@ -1569,6 +1569,8 @@ pull_all_images() {
     select_pull_profile
     local pull_profile="${EASYAIOT_DEPLOY_PROFILE}"
 
+    runtime_images_refresh_local
+
     # ★ 拉取前校验本地镜像架构，删除与当前系统不一致的残留镜像（避免仅按「存在」跳过拉取）
     runtime_images_ensure_arch_consistency "$CURRENT_ARCH" "$pull_profile" "$TAG"
 

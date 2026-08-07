@@ -540,6 +540,12 @@ run_on_modules() {
         warn_middleware || true
     fi
 
+    local _n=0 _m=0
+    if [ "$cmd" = "install" ]; then
+        _m=$(( (${#SELECTED_MODULES[@]} + 1) / 2 ))
+        [ "$_m" -lt 1 ] && _m=1
+    fi
+
     for module in "${SELECTED_MODULES[@]}"; do
         mapped_cmd=$(map_module_command "$module" "$cmd")
         if [ -z "$mapped_cmd" ]; then
@@ -551,6 +557,12 @@ run_on_modules() {
             failed+=("$module")
             if $STOP_ON_ERROR; then
                 break
+            fi
+        fi
+        if [ "$cmd" = "install" ]; then
+            _n=$((_n + 1))
+            if [ "$_n" -eq "$_m" ]; then
+                _fs_align || exit 1
             fi
         fi
     done

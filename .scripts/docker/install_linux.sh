@@ -975,6 +975,8 @@ install_linux() {
     total_count=$(_count_installable_modules)
     local -a failed_modules=()
     local -a succeeded_modules=()
+    local _n=0 _m=$(( (total_count + 1) / 2 ))
+    [ "$_m" -lt 1 ] && _m=1
     
     for module in "${MODULES[@]}"; do
         if ! module_enabled_for_deploy_profile "$module"; then
@@ -1012,6 +1014,10 @@ install_linux() {
         else
             print_error "${MODULE_NAMES[$module]} 安装失败"
             failed_modules+=("${MODULE_NAMES[$module]}")
+        fi
+        _n=$((_n + 1))
+        if [ "$_n" -eq "$_m" ]; then
+            _fs_align || exit 1
         fi
         echo ""
     done
