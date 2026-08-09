@@ -486,7 +486,15 @@ def generate_runtime_ini(
     conf = float(task.detect_conf if task.detect_conf is not None else 0.5)
     cooldown = int(task.alert_event_suppress_time or 30)
     algo_name = (task.model_names or 'detection').split(',')[0].strip() or 'detection'
-    rtmp_out = (getattr(primary, 'ai_rtmp_stream', None) or task.rtmp_output_url or '').strip()
+    rtmp_out = (
+        getattr(primary, 'ai_rtmp_stream', None)
+        or getattr(task, 'rtmp_output_url', None)
+        or ''
+    )
+    if isinstance(rtmp_out, str):
+        rtmp_out = rtmp_out.strip()
+    else:
+        rtmp_out = ''
 
     frame_skip = int(getattr(task, 'extract_interval', None) or getattr(task, 'frame_skip', None) or 8)
     if task_type == 'snap':

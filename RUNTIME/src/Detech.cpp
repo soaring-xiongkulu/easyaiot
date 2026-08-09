@@ -134,6 +134,11 @@ int Detech::start() {
         return -6;
     }
 
+    for (const auto& cap : _config.unsupportedCaps) {
+        LOG(WARNING) << "[CAP] unsupported cap=" << cap
+                     << " — not implemented in C++ frame-in path (see GET /health unsupported_caps)";
+    }
+
     _startAlarmSenderThread();
     _startControlServer();
     _startHeartbeatThread();
@@ -402,6 +407,11 @@ void Detech::_controlServerThreadFunc() {
             response["prefer_gpu"] = this->_config.preferGpu;
             response["force_cpu"] = this->_config.forceCpu;
             response["gpu_device_id"] = this->_config.gpuDeviceId;
+            Json::Value unsupported(Json::arrayValue);
+            for (const auto& cap : this->_config.unsupportedCaps) {
+                unsupported.append(cap);
+            }
+            response["unsupported_caps"] = unsupported;
             
             Json::StreamWriterBuilder writer;
             res.set_content(Json::writeString(writer, response), "application/json");
@@ -918,6 +928,8 @@ void Detech::_alarmSenderThreadFunc() {
             root["time"] = ts;
             root["image_path"] = alarmData.imagePath;
             root["region"] = alarmData.regionName;
+            root["face_detection_enabled"] = _config.faceDetectionEnabled;
+            root["plate_detection_enabled"] = _config.plateDetectionEnabled;
 
             Json::Value info;
             info["task_id"] = _config.taskId;
