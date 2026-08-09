@@ -108,8 +108,12 @@ def run_certify(case_id: Optional[str] = None, profile: Optional[str] = None) ->
     if case_id:
         case_ids = [case_id]
     elif profile:
-        filt = manifest.get("profiles", {}).get(profile, {}).get("case_filter", "P0")
-        case_ids = [c.id for c in parse_cases(manifest) if c.priority == filt]
+        prof = manifest.get("profiles", {}).get(profile, {})
+        if prof.get("case_ids"):
+            case_ids = list(prof["case_ids"])
+        else:
+            filt = prof.get("case_filter", "P0")
+            case_ids = [c.id for c in parse_cases(manifest) if c.priority == filt]
     else:
         case_ids = [c.id for c in parse_cases(manifest) if c.priority == "P0"]
 
@@ -123,7 +127,10 @@ def run_certify(case_id: Optional[str] = None, profile: Optional[str] = None) ->
             print(f"  {layer['layer']}: {layer['status']} — {layer.get('reason', '')}")
 
     report["ok"] = all_ok
-    report["note"] = "G-4.1 P0 certify" if all_ok else "red layers remain — see cases[].layers"
+    report["note"] = (
+        "G-4.2 P1 motion/tracking certify" if all_ok and profile == "win_cpp" else
+        ("G-4.1 P0 certify" if all_ok else "red layers remain — see cases[].layers")
+    )
     out = write_report(report, root)
     print(f"report: {out}")
     return 0 if all_ok else 1

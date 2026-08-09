@@ -1,0 +1,4271 @@
+{
+  "case_id": "rt_p1_tracking_stable",
+  "layer": "L_track",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T15:24:27",
+  "source": "runtime_parity_gate_cpp_parity_sample",
+  "status": "sampled",
+  "frames": [
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            404,
+            5,
+            640,
+            387
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            388,
+            59,
+            527,
+            209
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 1
+        }
+      ],
+      "frame_index": 1737
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        }
+      ],
+      "frame_index": 1741
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        }
+      ],
+      "frame_index": 1742
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        }
+      ],
+      "frame_index": 1743
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        }
+      ],
+      "frame_index": 1744
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        }
+      ],
+      "frame_index": 1745
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        }
+      ],
+      "frame_index": 1746
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        }
+      ],
+      "frame_index": 1747
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        }
+      ],
+      "frame_index": 1748
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        }
+      ],
+      "frame_index": 1749
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        }
+      ],
+      "frame_index": 1750
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        }
+      ],
+      "frame_index": 1751
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        }
+      ],
+      "frame_index": 1752
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        }
+      ],
+      "frame_index": 1753
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        }
+      ],
+      "frame_index": 1754
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        }
+      ],
+      "frame_index": 1755
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            400,
+            18,
+            611,
+            342
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        }
+      ],
+      "frame_index": 1756
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            571,
+            45,
+            728,
+            355
+          ],
+          "class": "person",
+          "confidence": 0.8424281477928162,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        }
+      ],
+      "frame_index": 1897
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            433,
+            15,
+            638,
+            383
+          ],
+          "class": "person",
+          "confidence": 0.9149871468544006,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        }
+      ],
+      "frame_index": 2257
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            398,
+            7,
+            615,
+            390
+          ],
+          "class": "person",
+          "confidence": 0.9149871468544006,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        }
+      ],
+      "frame_index": 2259
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            479,
+            1,
+            684,
+            389
+          ],
+          "class": "person",
+          "confidence": 0.9117896556854248,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        }
+      ],
+      "frame_index": 2429
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            383,
+            0,
+            565,
+            392
+          ],
+          "class": "person",
+          "confidence": 0.9360011219978333,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        }
+      ],
+      "frame_index": 2601
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            566,
+            33,
+            715,
+            377
+          ],
+          "class": "person",
+          "confidence": 0.8309950828552246,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        }
+      ],
+      "frame_index": 2753
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            611,
+            42,
+            753,
+            373
+          ],
+          "class": "person",
+          "confidence": 0.8309950828552246,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        }
+      ],
+      "frame_index": 2756
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            455,
+            14,
+            668,
+            383
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        }
+      ],
+      "frame_index": 2929
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            416,
+            7,
+            647,
+            386
+          ],
+          "class": "person",
+          "confidence": 0.9046720266342163,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        }
+      ],
+      "frame_index": 2932
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            574,
+            35,
+            736,
+            375
+          ],
+          "class": "person",
+          "confidence": 0.8309950828552246,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        }
+      ],
+      "frame_index": 3273
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            363,
+            19,
+            520,
+            332
+          ],
+          "class": "person",
+          "confidence": 0.9255881309509277,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            574,
+            35,
+            736,
+            375
+          ],
+          "class": "person",
+          "confidence": 0.8309950828552246,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        }
+      ],
+      "frame_index": 3436
+    },
+    {
+      "detections": [
+        {
+          "bbox_xyxy": [
+            358,
+            4,
+            528,
+            377
+          ],
+          "class": "person",
+          "confidence": 0.9255881309509277,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            574,
+            35,
+            736,
+            375
+          ],
+          "class": "person",
+          "confidence": 0.8309950828552246,
+          "track_id": 1
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 3
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 6
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 8
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 9
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 10
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 11
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 12
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 13
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 14
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 15
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 16
+        },
+        {
+          "bbox_xyxy": [
+            383,
+            77,
+            490,
+            150
+          ],
+          "class": "sink",
+          "confidence": 0.356012761592865,
+          "track_id": 17
+        }
+      ],
+      "frame_index": 3438
+    }
+  ],
+  "track_switch_count": 17
+}

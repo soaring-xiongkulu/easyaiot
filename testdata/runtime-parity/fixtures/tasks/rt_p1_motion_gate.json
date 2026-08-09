@@ -1,0 +1,13 @@
+{
+  "task_type": "realtime",
+  "executor": "python",
+  "device_source": "file://testdata/runtime-parity/media/people-detection.mp4",
+  "motion_gate_enabled": true,
+  "motion_gate_config": {
+    "preset": "sensitive",
+    "alert_motion_sync": false
+  },
+  "frame_skip": 4,
+  "task_id": "rt_p1_motion_gate_fixture",
+  "description": "G-4.2 motion gate — skip infer when below threshold on sample frames"
+}

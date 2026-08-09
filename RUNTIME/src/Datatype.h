@@ -35,6 +35,7 @@ struct DetectObject
     int class_id;
     std::string class_name;
     bool happen = false;
+    int track_id{-1};
 };
 
 static size_t nn_tensor_type_to_size(tensor_datatype_e type)

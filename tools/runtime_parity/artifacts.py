@@ -75,6 +75,25 @@ def skeleton_for_layer(layer: str, case: CaseSpec, executor: str) -> Dict[str, A
             "hook_url": f"http://127.0.0.1:{case.mock_hook_port or 18080}/alert",
             "_note": "Compare with golden/video/<case>/ hook captures",
         }
+    if layer == "L_track":
+        return {
+            **base,
+            "status": "placeholder",
+            "frames": [],
+            "track_switch_count": 0,
+            "_note": "Per-frame detections with track_id; id mapping ratio in certify",
+        }
+    if layer == "L_motion":
+        return {
+            **base,
+            "status": "placeholder",
+            "baseline_triggers": 0,
+            "motion_triggers": 0,
+            "infer_submits": 0,
+            "infer_skips_motion": 0,
+            "frames": [],
+            "_note": "Motion gate stats from RUNTIME parity_sample.json",
+        }
     return {**base, "status": "placeholder", "_note": f"Layer {layer} MVP skeleton"}
 
 

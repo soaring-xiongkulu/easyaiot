@@ -1,0 +1,7575 @@
+{
+  "case_id": "rt_p1_motion_gate",
+  "layer": "L_motion",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T15:23:03",
+  "source": "runtime_parity_gate_cpp_parity_sample",
+  "status": "sampled",
+  "baseline_triggers": 945,
+  "motion_triggers": 46,
+  "infer_submits": 47,
+  "infer_skips_motion": 898,
+  "frames": [
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 0,
+      "infer_skipped": false,
+      "reason": "warmup",
+      "score": 0.0,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 1,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0024270154535770416,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 2,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018651961581781507,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 3,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.003044117707759142,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.026111111044883728,
+      "frame_index": 4,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.007773420307785273,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0404166653752327,
+      "frame_index": 5,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.01250953134149313,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.027569444850087166,
+      "frame_index": 6,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.01871868222951889,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.030833333730697632,
+      "frame_index": 7,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.03245316073298454,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.045694444328546524,
+      "frame_index": 8,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.040683552622795105,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03222222253680229,
+      "frame_index": 9,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.016248637810349464,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.030138889327645302,
+      "frame_index": 10,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.016773149371147156,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.029999999329447746,
+      "frame_index": 11,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03596269339323044,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.029722223058342934,
+      "frame_index": 12,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.021869009360671043,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.015347221866250038,
+      "frame_index": 13,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0133278863504529,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.017291666939854622,
+      "frame_index": 14,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01333850808441639,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.015694444999098778,
+      "frame_index": 15,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.009302560240030289,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.014513889327645302,
+      "frame_index": 16,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.006447984836995602,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.004097222350537777,
+      "frame_index": 17,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0033943357411772013,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 18,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002209695056080818,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 19,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002163126366212964,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 20,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0022129628341645002,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 21,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002415849594399333,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 22,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018848039908334613,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 23,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019065904198214412,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 24,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019000543979927897,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 25,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001815631752833724,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 26,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001956427004188299,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 27,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001961873611435294,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 28,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018208060646429658,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 29,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001843137200921774,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 30,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019428104860708117,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 31,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018306099809706211,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 32,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.00266476022079587,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05701388791203499,
+      "frame_index": 33,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.016883986070752144,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.050833333283662796,
+      "frame_index": 34,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01647794246673584,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04715277627110481,
+      "frame_index": 35,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01901579461991787,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03194444626569748,
+      "frame_index": 36,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02441503293812275,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.042152777314186096,
+      "frame_index": 37,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.022186819463968277,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04374999925494194,
+      "frame_index": 38,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.017575981095433235,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03965277597308159,
+      "frame_index": 39,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01558251678943634,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05736111104488373,
+      "frame_index": 40,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.022209150716662407,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03986111283302307,
+      "frame_index": 41,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.022235838696360588,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.02458333410322666,
+      "frame_index": 42,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.016801742836833,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.015555555932223797,
+      "frame_index": 43,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.013453159481287003,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.010555555112659931,
+      "frame_index": 44,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.009450163692235947,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.012222222052514553,
+      "frame_index": 45,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.009926470927894115,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0005555555690079927,
+      "frame_index": 46,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0025547384284436703,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 47,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0021250001154839993,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 48,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002175653586164117,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 49,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0023357842583209276,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 50,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002280500950291753,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 51,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001974673243239522,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 52,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018504902254790068,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 53,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001743464032188058,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 54,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019735838286578655,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 55,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018540305318310857,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 56,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001180283259600401,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 57,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017742374911904335,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 58,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019057734170928597,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 59,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0023907951544970274,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 60,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018570261308923364,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.014652777463197708,
+      "frame_index": 61,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.007484204601496458,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05215277895331383,
+      "frame_index": 62,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.014296568930149078,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05590277910232544,
+      "frame_index": 63,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.01801198348402977,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.08097222447395325,
+      "frame_index": 64,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02785157971084118,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.08770833164453506,
+      "frame_index": 65,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.029790304601192474,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.09583333134651184,
+      "frame_index": 66,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03764433413743973,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07506944239139557,
+      "frame_index": 67,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0341465137898922,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.11097222566604614,
+      "frame_index": 68,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0432320274412632,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06611111015081406,
+      "frame_index": 69,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03108796291053295,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06868055462837219,
+      "frame_index": 70,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03135130554437637,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05659722164273262,
+      "frame_index": 71,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03116966411471367,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07041666656732559,
+      "frame_index": 72,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03908306360244751,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05319444462656975,
+      "frame_index": 73,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.028927015140652657,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04472222179174423,
+      "frame_index": 74,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02391231060028076,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.022708334028720856,
+      "frame_index": 75,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.016159040853381157,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.023541666567325592,
+      "frame_index": 76,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.015232298523187637,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.017291666939854622,
+      "frame_index": 77,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.00999291893094778,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.009652777574956417,
+      "frame_index": 78,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0056410678662359715,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0057638888247311115,
+      "frame_index": 79,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.004277505446225405,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0014583333395421505,
+      "frame_index": 80,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002362200291827321,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 81,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002174291992560029,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 82,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0006072984542697668,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 83,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0015416666865348816,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 84,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002125816885381937,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 85,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0027608931995928288,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 86,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018815359799191356,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 87,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017854030011221766,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 88,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017856752965599298,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 89,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0016835512360557914,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 90,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017796840984374285,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 91,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018036492401733994,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 92,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0016876362496986985,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 93,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017230393132194877,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 94,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018218954792246222,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 95,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002345588058233261,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 96,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017372004222124815,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 97,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018297930946573615,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 98,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018001089338213205,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 99,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018948802025988698,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 100,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017077886732295156,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 101,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0021454247180372477,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.042222220450639725,
+      "frame_index": 102,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.011986110359430313,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.08493055403232574,
+      "frame_index": 103,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.020921025425195694,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.039444442838430405,
+      "frame_index": 104,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.015049291774630547,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.02458333410322666,
+      "frame_index": 105,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.011956699192523956,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.014444444328546524,
+      "frame_index": 106,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.011538399383425713,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.01944444514811039,
+      "frame_index": 107,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.013031862676143646,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.014861111529171467,
+      "frame_index": 108,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.011822439730167389,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.004097222350537777,
+      "frame_index": 109,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0046258168295025826,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 110,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0022388342767953873,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 111,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001812091562896967,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 112,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019806644413620234,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 113,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019346405752003193,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 114,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019493463914841413,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 115,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018074618419632316,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 116,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001793300616554916,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 117,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018937907880172133,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 118,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.00936165638267994,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 119,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0028720044065266848,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.007569444365799427,
+      "frame_index": 120,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.004455065354704857,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03638888895511627,
+      "frame_index": 121,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.009049291722476482,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.02743055485188961,
+      "frame_index": 122,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.009407680481672287,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03152777627110481,
+      "frame_index": 123,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.012448529712855816,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06493055820465088,
+      "frame_index": 124,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.07353812456130981,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.030972221866250038,
+      "frame_index": 125,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.015633169561624527,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.02986111119389534,
+      "frame_index": 126,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.030115196481347084,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.026805555447936058,
+      "frame_index": 127,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.023066993802785873,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.027916666120290756,
+      "frame_index": 128,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.019422929733991623,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.023055555298924446,
+      "frame_index": 129,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.020416393876075745,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.014444444328546524,
+      "frame_index": 130,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.007559640798717737,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.010625000111758709,
+      "frame_index": 131,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.005156590603291988,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0057638888247311115,
+      "frame_index": 132,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.004095860756933689,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 133,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002471132902428508,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 134,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001900871517136693,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 135,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0017943900311365724,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 136,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018461329163983464,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 137,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001743736327625811,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 138,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0016405228525400162,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 139,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002059913007542491,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 140,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018741829553619027,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 141,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002016884507611394,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 142,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001784586114808917,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 143,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017336601158604026,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 144,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001843137200921774,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04298610985279083,
+      "frame_index": 145,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.014456971548497677,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07437500357627869,
+      "frame_index": 146,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.023169390857219696,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.04715277627110481,
+      "frame_index": 147,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01901579461991787,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03986111283302307,
+      "frame_index": 148,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02848774567246437,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.057500001043081284,
+      "frame_index": 149,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.025793572887778282,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.048402778804302216,
+      "frame_index": 150,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.017827069386839867,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05215277895331383,
+      "frame_index": 151,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.019125543534755707,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.049861110746860504,
+      "frame_index": 152,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.020284313708543777,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03395833447575569,
+      "frame_index": 153,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01915059983730316,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.02458333410322666,
+      "frame_index": 154,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.016801742836833,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.015555555932223797,
+      "frame_index": 155,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.013453159481287003,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.010555555112659931,
+      "frame_index": 156,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.009450163692235947,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0050694444216787815,
+      "frame_index": 157,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.008482570759952068,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.005138888955116272,
+      "frame_index": 158,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00437881238758564,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0016666667070239782,
+      "frame_index": 159,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0028747275937348604,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0024305556435137987,
+      "frame_index": 160,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0029196622781455517,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 161,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002019335515797138,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 162,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002041394356638193,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 163,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019531589932739735,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 164,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0022513617295771837,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 165,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002280500950291753,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 166,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018077341374009848,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 167,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001826797379180789,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 168,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0016876362496986985,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 169,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017502722330391407,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 170,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017671568784862757,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 171,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002002178691327572,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 172,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0016688453033566475,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 173,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0014044117415323853,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 174,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017655228730291128,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 175,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018845315789803863,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 176,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002732026157900691,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.028611110523343086,
+      "frame_index": 177,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.00995887815952301,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07319444417953491,
+      "frame_index": 178,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.021495914086699486,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.09256944805383682,
+      "frame_index": 179,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.030938997864723206,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.09680555760860443,
+      "frame_index": 180,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.032174836844205856,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.077152781188488,
+      "frame_index": 181,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04072140157222748,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07555555552244186,
+      "frame_index": 182,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02974591590464115,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06875000149011612,
+      "frame_index": 183,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.030948257073760033,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06979166716337204,
+      "frame_index": 184,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03032216802239418,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0811111107468605,
+      "frame_index": 185,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03517674282193184,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05965277925133705,
+      "frame_index": 186,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03115495666861534,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07124999910593033,
+      "frame_index": 187,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03888807073235512,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05375000089406967,
+      "frame_index": 188,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.029702341184020042,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04659722372889519,
+      "frame_index": 189,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02621459774672985,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.021805554628372192,
+      "frame_index": 190,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.016230937093496323,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.028680555522441864,
+      "frame_index": 191,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.016748366877436638,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.019999999552965164,
+      "frame_index": 192,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.01227614376693964,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.013055555522441864,
+      "frame_index": 193,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.006533768959343433,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.004652777686715126,
+      "frame_index": 194,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0037543573416769505,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0011805555550381541,
+      "frame_index": 195,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0030119826551526785,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 196,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0010449346154928207,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 197,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001987472642213106,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 198,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0022061546333134174,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 199,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002568627241998911,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 200,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018687363481149077,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 201,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017755990847945213,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 202,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018600218463689089,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 203,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017837689956650138,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 204,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017655228730291128,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 205,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018025599420070648,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 206,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001730936812236905,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 207,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001756808371283114,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 208,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018597494345158339,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 209,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0016933551523834467,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 210,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017922113183885813,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 211,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018586601363494992,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 212,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018393245991319418,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 213,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017499999376013875,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 214,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017736927838996053,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 215,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017077886732295156,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.041875001043081284,
+      "frame_index": 216,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.012318899855017662,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07895833253860474,
+      "frame_index": 217,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.02219880186021328,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.039791665971279144,
+      "frame_index": 218,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.018047930672764778,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.012708333320915699,
+      "frame_index": 219,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.012157679535448551,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.01944444514811039,
+      "frame_index": 220,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.013031862676143646,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0173611119389534,
+      "frame_index": 221,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.012560729868710041,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.006388888694345951,
+      "frame_index": 222,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0071116560138762,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 223,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002727941144257784,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 224,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002032951917499304,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 225,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019806644413620234,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 226,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019346405752003193,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 227,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019493463914841413,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 228,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018074618419632316,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 229,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001793300616554916,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 230,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018937907880172133,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 231,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.009553377516567707,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 232,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.00351171032525599,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.015347221866250038,
+      "frame_index": 233,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0054052285850048065,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03618055582046509,
+      "frame_index": 234,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.010853486135601997,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03256944566965103,
+      "frame_index": 235,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.011112472973763943,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.026597222313284874,
+      "frame_index": 236,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.028988560661673546,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.030416667461395264,
+      "frame_index": 237,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.0365152508020401,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.03222222253680229,
+      "frame_index": 238,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.022940905764698982,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.029097221791744232,
+      "frame_index": 239,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.014240195974707603,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03125,
+      "frame_index": 240,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.015046024695038795,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.030486110597848892,
+      "frame_index": 241,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.026006262749433517,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.029444444924592972,
+      "frame_index": 242,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02741612307727337,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.023541666567325592,
+      "frame_index": 243,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.016997821629047394,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.01354166679084301,
+      "frame_index": 244,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.011205609887838364,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.017986111342906952,
+      "frame_index": 245,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.013716774992644787,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.02159722149372101,
+      "frame_index": 246,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.012168573215603828,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.010625000111758709,
+      "frame_index": 247,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.005156590603291988,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.004097222350537777,
+      "frame_index": 248,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0033943357411772013,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 249,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002157679758965969,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 250,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019670480396598577,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 251,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0021895423997193575,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 252,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0021369827445596457,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 253,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019866558723151684,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 254,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017943900311365724,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 255,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018733660690486431,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 256,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017775053856894374,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 257,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018905227771028876,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 258,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018055555410683155,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 259,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017927560256794095,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 260,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0020966774318367243,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 261,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001815631752833724,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 262,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017854030011221766,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 263,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018575708381831646,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 264,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001922930357977748,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 265,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.003043845295906067,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.041875001043081284,
+      "frame_index": 266,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.012256808578968048,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0629861131310463,
+      "frame_index": 267,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.018353212624788284,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.059583332389593124,
+      "frame_index": 268,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.020751362666487694,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05243055522441864,
+      "frame_index": 269,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03385457396507263,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06798610836267471,
+      "frame_index": 270,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.027955882251262665,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.056736111640930176,
+      "frame_index": 271,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0202652495354414,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.053263887763023376,
+      "frame_index": 272,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02287091501057148,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03722222149372101,
+      "frame_index": 273,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.023015523329377174,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.01666666753590107,
+      "frame_index": 274,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.016489651054143906,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.013958333060145378,
+      "frame_index": 275,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.010804465971887112,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0018749999580904841,
+      "frame_index": 276,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0036824618000537157,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.00041666667675599456,
+      "frame_index": 277,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002547385636717081,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 278,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020852398592978716,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 279,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00197086064144969,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 280,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019240195397287607,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 281,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0025983115192502737,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 282,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019183006370440125,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 283,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001789760310202837,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 284,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017979303374886513,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 285,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018333332845941186,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 286,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002009531483054161,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 287,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0009566993685439229,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 288,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018246187828481197,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 289,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018611111445352435,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 290,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001958061009645462,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 291,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002414488000795245,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 292,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0026568628381937742,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.025555554777383804,
+      "frame_index": 293,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.009133715182542801,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07486110925674438,
+      "frame_index": 294,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.022480392828583717,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.11541666835546494,
+      "frame_index": 295,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.035698529332876205,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.12131944298744202,
+      "frame_index": 296,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04915740713477135,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.08618055284023285,
+      "frame_index": 297,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.033459149301052094,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.09083333611488342,
+      "frame_index": 298,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03646241873502731,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.08048611134290695,
+      "frame_index": 299,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.037670478224754333,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06979166716337204,
+      "frame_index": 300,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.035779956728219986,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07965277880430222,
+      "frame_index": 301,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04317020624876022,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0699305534362793,
+      "frame_index": 302,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03830746188759804,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03743055462837219,
+      "frame_index": 303,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.023998910561203957,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.022083332762122154,
+      "frame_index": 304,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.015691176056861877,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.009513888508081436,
+      "frame_index": 305,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.005030501168221235,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.004166666883975267,
+      "frame_index": 306,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0038809911347925663,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 307,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0011791938450187445,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 308,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0023521240800619125,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 309,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002536492422223091,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 310,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019498909823596478,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 311,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018513072282075882,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 312,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018357842927798629,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 313,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018374182982370257,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 314,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018330609891563654,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 315,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018401416018605232,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 316,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001749183051288128,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 317,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0022824073676019907,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 318,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019937362521886826,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 319,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001848856220021844,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 320,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018428649054840207,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 321,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018447712063789368,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 322,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002137254923582077,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.042569443583488464,
+      "frame_index": 323,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.012212962843477726,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05111110955476761,
+      "frame_index": 324,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.021308278664946556,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.024166665971279144,
+      "frame_index": 325,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.016905229538679123,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.026458334177732468,
+      "frame_index": 326,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.014597222208976746,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.010486111044883728,
+      "frame_index": 327,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.008802015334367752,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 328,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0025411220267415047,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 329,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021179195027798414,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 330,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001895152498036623,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 331,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002081154612824321,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 332,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019428104860708117,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 333,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0023107300512492657,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 334,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.009755718521773815,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 335,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.003485566470772028,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.031736109405756,
+      "frame_index": 336,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.009200435131788254,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03743055462837219,
+      "frame_index": 337,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.011766340583562851,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.032847221940755844,
+      "frame_index": 338,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.02291775681078434,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.029305554926395416,
+      "frame_index": 339,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03518899530172348,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04902777820825577,
+      "frame_index": 340,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03640931472182274,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.040486112236976624,
+      "frame_index": 341,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02926252782344818,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.026944443583488464,
+      "frame_index": 342,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04019635170698166,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.019236112013459206,
+      "frame_index": 343,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.014600218273699284,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.011250000447034836,
+      "frame_index": 344,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.006632352713495493,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 345,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020639977883547544,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 346,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018651961581781507,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 347,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0017372004222124815,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 348,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0017949346220120788,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 349,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020544661674648523,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 350,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019035948207601905,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 351,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018281590892001987,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 352,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018126361537724733,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 353,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001922930357977748,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 354,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.003365196054801345,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05416666716337204,
+      "frame_index": 355,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.01520806085318327,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.058125000447034836,
+      "frame_index": 356,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0171903595328331,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04756944626569748,
+      "frame_index": 357,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.016645152121782303,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07618055492639542,
+      "frame_index": 358,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.042901959270238876,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.042916666716337204,
+      "frame_index": 359,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0255326796323061,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.01875000074505806,
+      "frame_index": 360,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.018923746421933174,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.013888888992369175,
+      "frame_index": 361,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.010270697064697742,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0016666667070239782,
+      "frame_index": 362,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0037502723280340433,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 363,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0023703703191131353,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 364,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002069172216579318,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 365,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002052287571132183,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 366,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0025983115192502737,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 367,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019183006370440125,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 368,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018039216520264745,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 369,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001793572911992669,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 370,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018093681428581476,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 371,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001999183092266321,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 372,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0016590413870289922,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 373,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018613834399729967,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 374,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0025345860049128532,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 375,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0027050653006881475,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.025555554777383804,
+      "frame_index": 376,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.009133715182542801,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.09236110746860504,
+      "frame_index": 377,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.028199074789881706,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.13229165971279144,
+      "frame_index": 378,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03964025154709816,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.13152778148651123,
+      "frame_index": 379,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.05334477126598358,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.11194444447755814,
+      "frame_index": 380,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04345942288637161,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.09708333015441895,
+      "frame_index": 381,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.042625542730093,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.09090277552604675,
+      "frame_index": 382,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04924400895833969,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07277777791023254,
+      "frame_index": 383,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.039738014340400696,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.036249998956918716,
+      "frame_index": 384,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.025797659531235695,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.018611110746860504,
+      "frame_index": 385,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01221132930368185,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.006666666828095913,
+      "frame_index": 386,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.004939814563840628,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 387,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002085512038320303,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 388,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0022472767159342766,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 389,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0026625818572938442,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 390,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002043028362095356,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 391,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0017965686274692416,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 392,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018202614737674594,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 393,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001908496837131679,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 394,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018946077907457948,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 395,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001817810465581715,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 396,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001969499047845602,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 397,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0022933005820959806,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 398,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018828976899385452,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 399,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019384531769901514,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 400,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018390523036941886,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04194444417953491,
+      "frame_index": 401,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.012356753461062908,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06763888895511627,
+      "frame_index": 402,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.022180555388331413,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.03159722313284874,
+      "frame_index": 403,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01404411718249321,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.024097222834825516,
+      "frame_index": 404,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.017744554206728935,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.010486111044883728,
+      "frame_index": 405,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.008802015334367752,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 406,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0026772874407470226,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 407,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019806644413620234,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 408,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020422113593667746,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 409,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001970588229596615,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 410,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018905227771028876,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 411,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.009177015163004398,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.016388889402151108,
+      "frame_index": 412,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.006204793229699135,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04201388731598854,
+      "frame_index": 413,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01102287508547306,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05861110985279083,
+      "frame_index": 414,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.022072983905673027,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04236111044883728,
+      "frame_index": 415,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.04990876838564873,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.047708332538604736,
+      "frame_index": 416,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02812609076499939,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.036249998956918716,
+      "frame_index": 417,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.018824074417352676,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03916666656732559,
+      "frame_index": 418,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04359504580497742,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.023541666567325592,
+      "frame_index": 419,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01963208056986332,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.02090277709066868,
+      "frame_index": 420,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.017861656844615936,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.013472221791744232,
+      "frame_index": 421,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.006657951977103949,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0013888889225199819,
+      "frame_index": 422,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002744553377851844,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 423,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021819171961396933,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 424,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002277777763083577,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 425,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002098583849146962,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 426,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019847494550049305,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 427,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018809913890436292,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 428,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019904684741050005,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 429,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001858115429058671,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 430,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0020808822009712458,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 431,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018624727381393313,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 432,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019428104860708117,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 433,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002906590234488249,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04937500134110451,
+      "frame_index": 434,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.01419880148023367,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07131944596767426,
+      "frame_index": 435,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.02166830189526081,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.06430555880069733,
+      "frame_index": 436,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03612091764807701,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07868055254220963,
+      "frame_index": 437,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03125081583857536,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04680555686354637,
+      "frame_index": 438,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02384340949356556,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.026319444179534912,
+      "frame_index": 439,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.023425381630659103,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.014999999664723873,
+      "frame_index": 440,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.012090686708688736,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0010416667209938169,
+      "frame_index": 441,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.003912581596523523,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 442,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0023210784420371056,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 443,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021274511236697435,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 444,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002775871427729726,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 445,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002017429331317544,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 446,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018600218463689089,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 447,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001843409612774849,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 448,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018997821025550365,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 449,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.00185076252091676,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 450,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002467864891514182,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.003263888880610466,
+      "frame_index": 451,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0038760893512517214,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05701388791203499,
+      "frame_index": 452,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.018318355083465576,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.13722221553325653,
+      "frame_index": 453,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03967483714222908,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.13562500476837158,
+      "frame_index": 454,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.05654003471136093,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.1111111119389534,
+      "frame_index": 455,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.044359203428030014,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06701388955116272,
+      "frame_index": 456,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03051851876080036,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07923611253499985,
+      "frame_index": 457,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0497976578772068,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04159722104668617,
+      "frame_index": 458,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.029667755588889122,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.018611110746860504,
+      "frame_index": 459,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01221132930368185,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.007222222164273262,
+      "frame_index": 460,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0051004900597035885,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 461,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0023812635336071253,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 462,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0028504901565611362,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 463,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019613290205597878,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 464,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001828703680075705,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 465,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019400871824473143,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 466,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018826252780854702,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 467,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019308278569951653,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 468,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0026233659591525793,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 469,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019093137234449387,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 470,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001885893288999796,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 471,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0025422112084925175,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.009444444440305233,
+      "frame_index": 472,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.013639706186950207,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.017638888210058212,
+      "frame_index": 473,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.017467865720391273,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.010833333246409893,
+      "frame_index": 474,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.010776961222290993,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 475,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0031127450056374073,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 476,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0021456971298903227,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 477,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.00198175385594368,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 478,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0020408497657626867,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 479,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018480392172932625,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 480,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.009390795603394508,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.034236110746860504,
+      "frame_index": 481,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.00978131778538227,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.048819445073604584,
+      "frame_index": 482,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.013830610550940037,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04472222179174423,
+      "frame_index": 483,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.03692537918686867,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.049513887614011765,
+      "frame_index": 484,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.048049017786979675,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.035208333283662796,
+      "frame_index": 485,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.018456971272826195,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.032499998807907104,
+      "frame_index": 486,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03823011741042137,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.028958333656191826,
+      "frame_index": 487,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.022855119779706,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.021319445222616196,
+      "frame_index": 488,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.018162308260798454,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.02222222276031971,
+      "frame_index": 489,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.012316993437707424,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.010833333246409893,
+      "frame_index": 490,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0054700435139238834,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 491,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0023240740410983562,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 492,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002423747442662716,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 493,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021448801271617413,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 494,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019901960622519255,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 495,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001885893288999796,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 496,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018404138972982764,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 497,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001847494626417756,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 498,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0021456971298903227,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 499,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018333332845941186,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 500,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019261982524767518,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 501,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.00211655767634511,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.049791667610406876,
+      "frame_index": 502,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.015160675160586834,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.08229167014360428,
+      "frame_index": 503,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.025858115404844284,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06930555403232574,
+      "frame_index": 504,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04216476157307625,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06486111134290695,
+      "frame_index": 505,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.023855937644839287,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03916666656732559,
+      "frame_index": 506,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02612881176173687,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.024166665971279144,
+      "frame_index": 507,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.018139977008104324,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0014583333395421505,
+      "frame_index": 508,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.004104030318558216,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 509,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002565631875768304,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 510,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021089324727654457,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 511,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002732026157900691,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 512,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002018518513068557,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 513,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018461329163983464,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 514,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00211138348095119,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 515,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018041939474642277,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 516,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018812636844813824,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 517,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0022968410048633814,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.02604166604578495,
+      "frame_index": 518,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.00982053391635418,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.1123611107468605,
+      "frame_index": 519,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.0355125293135643,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.15187500417232513,
+      "frame_index": 520,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0570157952606678,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.14000000059604645,
+      "frame_index": 521,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.057194989174604416,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.1098611131310463,
+      "frame_index": 522,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0539771243929863,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07444444298744202,
+      "frame_index": 523,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.042587146162986755,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03020833246409893,
+      "frame_index": 524,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.026223039254546165,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.00798611156642437,
+      "frame_index": 525,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0058717322535812855,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 526,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002363017527386546,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 527,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002516884356737137,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 528,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0026928104925900698,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 529,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018921567825600505,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 530,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001911492319777608,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 531,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001882080570794642,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 532,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018583877244964242,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 533,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0025373094249516726,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 534,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018845315789803863,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 535,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018257080810144544,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 536,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002147058956325054,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03256944566965103,
+      "frame_index": 537,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.012946623377501965,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04500000178813934,
+      "frame_index": 538,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.017555011436343193,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.0173611119389534,
+      "frame_index": 539,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.012637799605727196,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0040277778171002865,
+      "frame_index": 540,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.005706699099391699,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 541,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00205582776106894,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 542,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021053922828286886,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 543,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018905227771028876,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 544,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.009390795603394508,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03951388970017433,
+      "frame_index": 545,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.010882353410124779,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.054652776569128036,
+      "frame_index": 546,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.014971678145229816,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04895833507180214,
+      "frame_index": 547,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.05183769017457962,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.050138890743255615,
+      "frame_index": 548,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03681127354502678,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.035972222685813904,
+      "frame_index": 549,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0173611119389534,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03958333283662796,
+      "frame_index": 550,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.042914487421512604,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.027569444850087166,
+      "frame_index": 551,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.024715686216950417,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.02090277709066868,
+      "frame_index": 552,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.017861656844615936,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.01354166679084301,
+      "frame_index": 553,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.006659586448222399,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 554,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0024986383505165577,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 555,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0025645424611866474,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 556,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0021767430007457733,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 557,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0020351307466626167,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 558,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018905227771028876,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 559,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001993464073166251,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 560,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001991557888686657,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 561,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019722222350537777,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 562,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018142701592296362,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 563,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002220860682427883,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.055416665971279144,
+      "frame_index": 564,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.01659313589334488,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.09069444239139557,
+      "frame_index": 565,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.032655227929353714,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07826388627290726,
+      "frame_index": 566,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03968246281147003,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05006944388151169,
+      "frame_index": 567,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0233564805239439,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.029722223058342934,
+      "frame_index": 568,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.025486109778285027,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.010694444179534912,
+      "frame_index": 569,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01289079524576664,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0010416667209938169,
+      "frame_index": 570,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.003998366184532642,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 571,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002494008745998144,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 572,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002606481546536088,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 573,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0022426468785852194,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 574,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001885893288999796,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 575,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00211138348095119,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 576,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018041939474642277,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 577,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018872548826038837,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 578,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0023965141735970974,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.030138889327645302,
+      "frame_index": 579,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.010469499044120312,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.11736111342906952,
+      "frame_index": 580,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.03632761165499687,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.14923611283302307,
+      "frame_index": 581,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.06604983657598495,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.10923611372709274,
+      "frame_index": 582,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04774727672338486,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06291666626930237,
+      "frame_index": 583,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04732733964920044,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.025624999776482582,
+      "frame_index": 584,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.022584423422813416,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0086805559694767,
+      "frame_index": 585,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.005677832290530205,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 586,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0024245642125606537,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 587,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002841230947524309,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 588,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019844770431518555,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 589,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00196514162234962,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 590,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019035948207601905,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 591,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018368735909461975,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 592,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002354847500100732,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 593,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0020157950930297375,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 594,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018436819082126021,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 595,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018739106599241495,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.036249998956918716,
+      "frame_index": 596,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.010611656121909618,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05409722402691841,
+      "frame_index": 597,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.02136792056262493,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.025833332911133766,
+      "frame_index": 598,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.018160676583647728,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.012500000186264515,
+      "frame_index": 599,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.011152505874633789,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 600,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.003120370442047715,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 601,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021007624454796314,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 602,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020103484857827425,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 603,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0023107300512492657,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 604,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.010003812611103058,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03951388970017433,
+      "frame_index": 605,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.010882353410124779,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05881944298744202,
+      "frame_index": 606,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.016139978542923927,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.050902776420116425,
+      "frame_index": 607,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.059076253324747086,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.048124998807907104,
+      "frame_index": 608,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.030566448345780373,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03652777895331383,
+      "frame_index": 609,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03470098227262497,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.029236111789941788,
+      "frame_index": 610,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.028957515954971313,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.02388888970017433,
+      "frame_index": 611,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.023332787677645683,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.014722222462296486,
+      "frame_index": 612,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0071751088835299015,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0017361111240461469,
+      "frame_index": 613,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0027486381586641073,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 614,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0026230935472995043,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 615,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0022156862542033195,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 616,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019773964304476976,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 617,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001730936812236905,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 618,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018643790390342474,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 619,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0021192810963839293,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 620,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.00186737475451082,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 621,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019498909823596478,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 622,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002941993298009038,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05701388791203499,
+      "frame_index": 623,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.016883986070752144,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.08513888716697693,
+      "frame_index": 624,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03749972581863403,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07972222566604614,
+      "frame_index": 625,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03260348364710808,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04895833507180214,
+      "frame_index": 626,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.023970860987901688,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.027013888582587242,
+      "frame_index": 627,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02385348454117775,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.012708333320915699,
+      "frame_index": 628,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.011541666463017464,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.003541666781529784,
+      "frame_index": 629,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0036454247310757637,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 630,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002379084937274456,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 631,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002636165590956807,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 632,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002053921576589346,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 633,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018880718853324652,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 634,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020958606619387865,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 635,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0016849128296598792,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 636,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018812636844813824,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 637,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002732026157900691,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05055555701255798,
+      "frame_index": 638,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.01653403975069523,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.14305555820465088,
+      "frame_index": 639,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04095751792192459,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.13256944715976715,
+      "frame_index": 640,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.05737635865807533,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.11874999850988388,
+      "frame_index": 641,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.05057652294635773,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.08388888835906982,
+      "frame_index": 642,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04983442276716232,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04597222059965134,
+      "frame_index": 643,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03467892110347748,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.014097222127020359,
+      "frame_index": 644,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.011848038993775845,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0011805555550381541,
+      "frame_index": 645,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.003149237483739853,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 646,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002525599207729101,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 647,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0026726580690592527,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 648,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019831154495477676,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 649,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00196514162234962,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 650,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001906045712530613,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 651,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019327342743054032,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 652,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002585784299299121,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 653,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018976035062223673,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 654,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019065904198214412,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03256944566965103,
+      "frame_index": 655,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.013069989159703255,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04500000178813934,
+      "frame_index": 656,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.019780773669481277,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.012500000186264515,
+      "frame_index": 657,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.011065632104873657,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 658,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002906590234488249,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 659,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021086600609123707,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 660,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019398147705942392,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 661,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.009256808087229729,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.02020833268761635,
+      "frame_index": 662,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0068161762319505215,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04472222179174423,
+      "frame_index": 663,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01314869336783886,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06437499821186066,
+      "frame_index": 664,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0699084922671318,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.042569443583488464,
+      "frame_index": 665,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02262881211936474,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03576388955116272,
+      "frame_index": 666,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.039813727140426636,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.02638888917863369,
+      "frame_index": 667,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.029785947874188423,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.014791666530072689,
+      "frame_index": 668,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.013125271536409855,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.005625000223517418,
+      "frame_index": 669,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.003992919344455004,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 670,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0024172114208340645,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 671,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002163398778066039,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 672,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019844770431518555,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 673,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0009360021795146167,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 674,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002057461766526103,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 675,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0021230936981737614,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 676,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018564814236015081,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 677,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002032135147601366,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05520833283662796,
+      "frame_index": 678,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.016835784539580345,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.09715277701616287,
+      "frame_index": 679,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03983033820986748,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07743055373430252,
+      "frame_index": 680,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03195098042488098,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04472222179174423,
+      "frame_index": 681,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02852587215602398,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.021319445222616196,
+      "frame_index": 682,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01704411767423153,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0014583333395421505,
+      "frame_index": 683,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.004333877936005592,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 684,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002464324701577425,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 685,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0029400871135294437,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 686,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002038943348452449,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 687,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020955882500857115,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 688,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018837145762518048,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 689,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001990740653127432,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 690,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002949618734419346,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06687500327825546,
+      "frame_index": 691,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.020642973482608795,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.15854166448116302,
+      "frame_index": 692,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.05328322574496269,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.13249999284744263,
+      "frame_index": 693,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.05287962779402733,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.11784721910953522,
+      "frame_index": 694,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.055739108473062515,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.059513889253139496,
+      "frame_index": 695,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04620751738548279,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.014097222127020359,
+      "frame_index": 696,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.011848038993775845,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0011805555550381541,
+      "frame_index": 697,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.003128540236502886,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 698,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0027031588833779097,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 699,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021083878818899393,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 700,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019133987370878458,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 701,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019204793497920036,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 702,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021367103327065706,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 703,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00262690638191998,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 704,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018883441807702184,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 705,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018352395854890347,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.036249998956918716,
+      "frame_index": 706,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.010541939176619053,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04652777686715126,
+      "frame_index": 707,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.019556917250156403,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.014097222127020359,
+      "frame_index": 708,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.017199618741869926,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0057638888247311115,
+      "frame_index": 709,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.007661492098122835,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 710,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021274511236697435,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 711,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019477123860269785,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 712,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.009256808087229729,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.025555554777383804,
+      "frame_index": 713,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.008020969107747078,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04715277627110481,
+      "frame_index": 714,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.019519062712788582,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.048124998807907104,
+      "frame_index": 715,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.061176471412181854,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.037291668355464935,
+      "frame_index": 716,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.020899781957268715,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03750000149011612,
+      "frame_index": 717,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04569798707962036,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0243055559694767,
+      "frame_index": 718,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.023683277890086174,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.011944444850087166,
+      "frame_index": 719,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.006072439718991518,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 720,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0026288125663995743,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 721,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0023240740410983562,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 722,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001978758256882429,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 723,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002002451103180647,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 724,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0020917756482958794,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 725,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001973311649635434,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 726,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002129901899024844,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05736111104488373,
+      "frame_index": 727,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.01740032620728016,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.0977083370089531,
+      "frame_index": 728,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04273992404341698,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07097221910953522,
+      "frame_index": 729,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.028757624328136444,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03930555656552315,
+      "frame_index": 730,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03033551201224327,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.01215277798473835,
+      "frame_index": 731,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.012907952070236206,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0029861112125217915,
+      "frame_index": 732,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.004229574929922819,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 733,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021620369516313076,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 734,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0025974945165216923,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 735,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020495643839240074,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 736,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001996187260374427,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 737,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019866558723151684,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0072916666977107525,
+      "frame_index": 738,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.005360294133424759,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.08548611402511597,
+      "frame_index": 739,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.027784314006567,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.1396527737379074,
+      "frame_index": 740,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.04426824674010277,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.12583333253860474,
+      "frame_index": 741,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.052062638103961945,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.11916666477918625,
+      "frame_index": 742,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.050868190824985504,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06812500208616257,
+      "frame_index": 743,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.048829518258571625,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.028680555522441864,
+      "frame_index": 744,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0240275040268898,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.006180555559694767,
+      "frame_index": 745,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0047418298199772835,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 746,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0026571350172162056,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 747,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0027102394960820675,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 748,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019147603306919336,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 749,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019223856506869197,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 750,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019498909823596478,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 751,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0026535948272794485,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 752,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018660130444914103,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 753,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0025501090567559004,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.009583333507180214,
+      "frame_index": 754,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.013196351006627083,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.01354166679084301,
+      "frame_index": 755,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.01823202520608902,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.004097222350537777,
+      "frame_index": 756,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.005504085216671228,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 757,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002202069852501154,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 758,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0021149239037185907,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 759,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018905227771028876,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 760,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.009229847230017185,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04180555418133736,
+      "frame_index": 761,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.011464324779808521,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0625,
+      "frame_index": 762,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.025505447760224342,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.05180555582046509,
+      "frame_index": 763,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.06021541357040405,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03916666656732559,
+      "frame_index": 764,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.022795751690864563,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03631944581866264,
+      "frame_index": 765,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04030827805399895,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.028750000521540642,
+      "frame_index": 766,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02577587217092514,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.014375000260770321,
+      "frame_index": 767,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.007096949964761734,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 768,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0024517972487956285,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 769,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00240904139354825,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 770,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002153594745323062,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 771,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00198175385594368,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 772,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020498367957770824,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 773,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020789760164916515,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 774,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020405773539096117,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.026180556043982506,
+      "frame_index": 775,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0097440080717206,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07534722238779068,
+      "frame_index": 776,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.026058822870254517,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.08097222447395325,
+      "frame_index": 777,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0435735285282135,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05513888970017433,
+      "frame_index": 778,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03145125135779381,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.021319445222616196,
+      "frame_index": 779,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.017124727368354797,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0008333333535119891,
+      "frame_index": 780,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.004918845370411873,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 781,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00265958602540195,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 782,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0029744007624685764,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 783,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020345861557871103,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 784,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021492373198270798,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 785,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019392701797187328,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 786,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0029242918826639652,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.08659721910953522,
+      "frame_index": 787,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.029274238273501396,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.15472222864627838,
+      "frame_index": 788,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.05977315083146095,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.12819445133209229,
+      "frame_index": 789,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.05360402911901474,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.06930555403232574,
+      "frame_index": 790,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04804820194840431,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.028958333656191826,
+      "frame_index": 791,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.025195805355906487,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.004305555485188961,
+      "frame_index": 792,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00424400856718421,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 793,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002809912897646427,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 794,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020087147131562233,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 795,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019335511606186628,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 796,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019055011216551065,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 797,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0025076253805309534,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 798,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019517972832545638,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 799,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018371458863839507,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.010416666977107525,
+      "frame_index": 800,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.013427832163870335,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.015625,
+      "frame_index": 801,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.019315088167786598,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.006874999962747097,
+      "frame_index": 802,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.007824074476957321,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 803,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0022453702986240387,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 804,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0021462419535964727,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 805,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.009183824062347412,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.046388890594244,
+      "frame_index": 806,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.01363425888121128,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0664583370089531,
+      "frame_index": 807,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.06168981269001961,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.04625000059604645,
+      "frame_index": 808,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.029972221702337265,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04104166850447655,
+      "frame_index": 809,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.044252995401620865,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.03354166820645332,
+      "frame_index": 810,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.030980663374066353,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.017569445073604584,
+      "frame_index": 811,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.011301470920443535,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0043750000186264515,
+      "frame_index": 812,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.003538943361490965,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 813,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0025054465513676405,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 814,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0023044664412736893,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 815,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019093137234449387,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 816,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020912308245897293,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 817,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021503267344087362,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 818,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019174836343154311,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.012430555187165737,
+      "frame_index": 819,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00685375789180398,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06541666388511658,
+      "frame_index": 820,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.029709694907069206,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.07305555790662766,
+      "frame_index": 821,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.033167485147714615,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04381944611668587,
+      "frame_index": 822,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.031158769503235817,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.015347221866250038,
+      "frame_index": 823,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.013721677474677563,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0016666667070239782,
+      "frame_index": 824,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0039430828765034676,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 825,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0028695533983409405,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 826,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002004629699513316,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 827,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019689544569700956,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 828,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019899236503988504,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 829,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0023646513000130653,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.014652777463197708,
+      "frame_index": 830,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.007722766604274511,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.09736111015081406,
+      "frame_index": 831,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03208932280540466,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.15305554866790771,
+      "frame_index": 832,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.060059912502765656,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.12409722059965134,
+      "frame_index": 833,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.05223202705383301,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.06493055820465088,
+      "frame_index": 834,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04715413972735405,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.028680555522441864,
+      "frame_index": 835,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0240275040268898,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.006041666492819786,
+      "frame_index": 836,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.004751089494675398,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 837,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0027464597951620817,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 838,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002076252829283476,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 839,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002015522914007306,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 840,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002098311670124531,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 841,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0027584421914070845,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 842,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018995098071172833,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 843,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021770151797682047,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.009583333507180214,
+      "frame_index": 844,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.012762255035340786,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.010694444179534912,
+      "frame_index": 845,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.017596404999494553,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0013194443890824914,
+      "frame_index": 846,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.004156590439379215,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 847,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0021274511236697435,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 848,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019477123860269785,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 849,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.00946813728660345,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.020763888955116272,
+      "frame_index": 850,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.007244825828820467,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.042569443583488464,
+      "frame_index": 851,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.013552014715969563,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06138888746500015,
+      "frame_index": 852,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.07185375690460205,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.040138889104127884,
+      "frame_index": 853,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03409558907151222,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.026944443583488464,
+      "frame_index": 854,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04029248282313347,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.009236111305654049,
+      "frame_index": 855,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00466094771400094,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 856,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0020604575984179974,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 857,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0027091503143310547,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 858,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.001974128419533372,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 859,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0022224944550544024,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 860,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019199346425011754,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 861,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.003688997821882367,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05277777835726738,
+      "frame_index": 862,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.026614651083946228,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07298611104488373,
+      "frame_index": 863,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03293246030807495,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04965277761220932,
+      "frame_index": 864,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03375762328505516,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.010625000111758709,
+      "frame_index": 865,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.01288916077464819,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0005555555690079927,
+      "frame_index": 866,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.003530228743329644,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 867,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002647331217303872,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 868,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0022674291394650936,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 869,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0020490195602178574,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 870,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002020424697548151,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 871,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0023989651817828417,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.08666666597127914,
+      "frame_index": 872,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.029360294342041016,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.15472222864627838,
+      "frame_index": 873,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.05977315083146095,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.12826389074325562,
+      "frame_index": 874,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.05393845587968826,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0664583370089531,
+      "frame_index": 875,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04777069762349129,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.028680555522441864,
+      "frame_index": 876,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0240275040268898,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.006180555559694767,
+      "frame_index": 877,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.004769880324602127,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 878,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0027107843197882175,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 879,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0022685183212161064,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 880,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019237472442910075,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 881,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019360021688044071,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 882,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002272331155836582,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 883,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0022540849167853594,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 884,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0018660130444914103,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 885,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002173747168853879,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.009583333507180214,
+      "frame_index": 886,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.012762255035340786,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.015555555932223797,
+      "frame_index": 887,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.01881372556090355,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.005833333358168602,
+      "frame_index": 888,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0075601851567626,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 889,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.00206154678016901,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 890,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002070261398330331,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 891,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.009264977648854256,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04923611134290695,
+      "frame_index": 892,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.013979029841721058,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06673610955476761,
+      "frame_index": 893,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.065444715321064,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.04277777671813965,
+      "frame_index": 894,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.025872277095913887,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.034236110746860504,
+      "frame_index": 895,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04719662293791771,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.009097222238779068,
+      "frame_index": 896,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.01756644994020462,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 897,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0028600217774510384,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 898,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002360294107347727,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 899,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021266338881105185,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 900,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002019063103944063,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 901,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021563181653618813,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 902,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019477123860269785,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.026180556043982506,
+      "frame_index": 903,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.009876633994281292,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.07701388746500015,
+      "frame_index": 904,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02913207933306694,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.08124999701976776,
+      "frame_index": 905,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03943818062543869,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.052986111491918564,
+      "frame_index": 906,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.028875544667243958,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.02437499910593033,
+      "frame_index": 907,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.02022031508386135,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0011805555550381541,
+      "frame_index": 908,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.004601307213306427,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 909,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0030305010732263327,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 910,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002007080474868417,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 911,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002098583849146962,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 912,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0019005992216989398,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 913,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002573529491201043,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04798611253499985,
+      "frame_index": 914,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.015577069483697414,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.1468055546283722,
+      "frame_index": 915,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.044080883264541626,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.14270833134651184,
+      "frame_index": 916,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0634392648935318,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.1054166629910469,
+      "frame_index": 917,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.055693626403808594,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04930555447936058,
+      "frame_index": 918,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.03806672245264053,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.008958333171904087,
+      "frame_index": 919,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.006917211227118969,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 920,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0026571350172162056,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 921,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0027429196052253246,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 922,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.001985566457733512,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 923,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0019311002688482404,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 924,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002608115551993251,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 925,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0018167211674153805,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04173611104488373,
+      "frame_index": 926,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.012129085138440132,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.05493055656552315,
+      "frame_index": 927,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.01846214570105076,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.013888888992369175,
+      "frame_index": 928,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.010480119846761227,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 929,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0027903050649911165,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 930,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0021290848962962627,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 931,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.00946813728660345,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.020763888955116272,
+      "frame_index": 932,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.007244825828820467,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.042569443583488464,
+      "frame_index": 933,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.013552014715969563,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.06138888746500015,
+      "frame_index": 934,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.07185375690460205,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.04333333298563957,
+      "frame_index": 935,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04121214523911476,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.033472221344709396,
+      "frame_index": 936,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.036569446325302124,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.014861111529171467,
+      "frame_index": 937,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.008090142160654068,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 938,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.0025043573696166277,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 939,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.002172385808080435,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 940,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.002124455291777849,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 941,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0021323529072105885,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.0,
+      "frame_index": 942,
+      "infer_skipped": true,
+      "reason": "below_threshold",
+      "score": 0.0022971131838858128,
+      "triggered": false
+    },
+    {
+      "changed_area_ratio": 0.056736111640930176,
+      "frame_index": 943,
+      "infer_skipped": false,
+      "reason": "motion",
+      "score": 0.017081700265407562,
+      "triggered": true
+    },
+    {
+      "changed_area_ratio": 0.10000000149011612,
+      "frame_index": 944,
+      "infer_skipped": true,
+      "reason": "cooldown",
+      "score": 0.04592456296086311,
+      "triggered": false
+    }
+  ]
+}

@@ -15,6 +15,11 @@
     "id_mapping_ratio_min": 0.9,
     "switch_count_ratio_max": 1.1
   },
+  "motion": {
+    "motion_trigger_count_tolerance": 50,
+    "infer_skip_ratio_min": 0.3,
+    "infer_skip_ratio_max": 1.8
+  },
   "overlay": {
     "p95_latency_ms_slack": 200
   },

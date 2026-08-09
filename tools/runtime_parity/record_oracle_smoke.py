@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .artifacts import layer_file_map, _write_json
 from .manifest import CaseSpec, find_case, load_manifest, parse_cases
+from .motion_track_sample import sample_motion_gate, sample_tracking
 from .paths import candidate_root, golden_dir, oracle_root, testdata_root
 
 
@@ -27,6 +28,11 @@ P0_CASES = {
     "rt_p0_detect_single_onnx",
     "rt_p0_heartbeat_lifecycle",
     "rt_p0_alert_hook_roi",
+}
+
+P1_G42_CASES = {
+    "rt_p1_motion_gate",
+    "rt_p1_tracking_stable",
 }
 
 SYNTHETIC_BBOX = [200, 150, 440, 330]
@@ -549,10 +555,35 @@ def _write_case_golden(case: CaseSpec, root: Path, manifest: Dict[str, Any], *, 
             raise RuntimeError(f"case {case.id} requires detection for alarm layer")
         return _alarm_payload(case, rec.det)
 
+    def motion() -> Dict[str, Any]:
+        media = _media_path(case, root, manifest)
+        preset = str(case.raw.get("motion_gate_preset") or "sensitive")
+        sample = sample_motion_gate(media, preset=preset, frame_skip=4)
+        return {
+            **_base_layer(case, "L_motion", source="oracle_smoke_motion_gate", limitations=rec.limitations),
+            "baseline_triggers": sample.baseline_triggers,
+            "motion_triggers": sample.motion_triggers,
+            "infer_submits": sample.infer_submits,
+            "infer_skips_motion": sample.infer_skips_motion,
+            "frames": sample.frames,
+        }
+
+    def track() -> Dict[str, Any]:
+        media = _media_path(case, root, manifest)
+        model_path = _model_paths()[0] if _model_paths() else (root / "RUNTIME" / "models" / "yolov11n.onnx")
+        sample = sample_tracking(media, onnx_model=model_path, frame_skip=4)
+        return {
+            **_base_layer(case, "L_track", source="oracle_smoke_tracking", limitations=rec.limitations),
+            "frames": sample.frames,
+            "track_switch_count": sample.track_switch_count,
+        }
+
     builders = {
         "L_lifecycle": lifecycle,
         "L_detect": detect,
         "L_alarm": alarm,
+        "L_motion": motion,
+        "L_track": track,
     }
     for layer, fname in layer_file_map(case).items():
         builder = builders.get(layer)
@@ -594,7 +625,7 @@ def run_record_oracle_smoke(case_id: Optional[str] = None, *, engine: str = "aut
     if case_id:
         cases = [find_case(manifest, case_id)]
     else:
-        cases = [c for c in parse_cases(manifest) if c.id in P0_CASES]
+        cases = [c for c in parse_cases(manifest) if c.id in P0_CASES | P1_G42_CASES]
 
     if not cases:
         print("record-oracle-smoke: no cases to record", file=sys.stderr)

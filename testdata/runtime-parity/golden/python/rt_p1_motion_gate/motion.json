@@ -1,0 +1,1121 @@
+{
+  "case_id": "rt_p1_motion_gate",
+  "layer": "L_motion",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T15:20:17",
+  "source": "oracle_smoke_motion_gate",
+  "status": "recorded",
+  "oracle_root": "F:\\acme\\.worktrees\\runtime-parity",
+  "limitations": "Smoke lifecycle recording without live oracle VIDEO; heartbeats are deterministic stubs. Media path verified from manifest Intel sample-video.",
+  "baseline_triggers": 138,
+  "motion_triggers": 1,
+  "infer_submits": 2,
+  "infer_skips_motion": 136,
+  "frames": [
+    {
+      "frame_index": 0,
+      "triggered": false,
+      "reason": "warmup",
+      "score": 0.0,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": false
+    },
+    {
+      "frame_index": 4,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001964,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 8,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001563,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 12,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002033,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 16,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.004093,
+      "changed_area_ratio": 0.004931,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 20,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.00781,
+      "changed_area_ratio": 0.028264,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 24,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.009556,
+      "changed_area_ratio": 0.028403,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 28,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.011112,
+      "changed_area_ratio": 0.032569,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 32,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.028989,
+      "changed_area_ratio": 0.026597,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 36,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.036515,
+      "changed_area_ratio": 0.030417,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 40,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.022941,
+      "changed_area_ratio": 0.032222,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 44,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.01424,
+      "changed_area_ratio": 0.029097,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 48,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.015046,
+      "changed_area_ratio": 0.03125,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 52,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.026006,
+      "changed_area_ratio": 0.030486,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 56,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.027416,
+      "changed_area_ratio": 0.029444,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 60,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.016998,
+      "changed_area_ratio": 0.023542,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 64,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.011206,
+      "changed_area_ratio": 0.013542,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 68,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.013717,
+      "changed_area_ratio": 0.017986,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 72,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.010294,
+      "changed_area_ratio": 0.015208,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 76,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.006109,
+      "changed_area_ratio": 0.012917,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 80,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.00434,
+      "changed_area_ratio": 0.007431,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 84,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002642,
+      "changed_area_ratio": 0.001181,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 88,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001916,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 92,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001958,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 96,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002183,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 100,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001946,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 104,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001844,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 108,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001814,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 112,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001829,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 116,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001774,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 120,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001907,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 124,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001529,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 128,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.0003,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 132,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001071,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 136,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001632,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 140,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001793,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 144,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001796,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 148,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002017,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 152,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001785,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 156,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001734,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 160,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001843,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 164,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001853,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 168,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001828,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 172,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001933,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 176,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.003021,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 180,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.00942,
+      "changed_area_ratio": 0.032778,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 184,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.012786,
+      "changed_area_ratio": 0.057361,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 188,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.01746,
+      "changed_area_ratio": 0.062639,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 192,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.016478,
+      "changed_area_ratio": 0.050833,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 196,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.019016,
+      "changed_area_ratio": 0.047153,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 200,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.024415,
+      "changed_area_ratio": 0.031944,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 204,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.022187,
+      "changed_area_ratio": 0.042153,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 208,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.017576,
+      "changed_area_ratio": 0.04375,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 212,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.015583,
+      "changed_area_ratio": 0.039653,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 216,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.016334,
+      "changed_area_ratio": 0.04125,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 220,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.019708,
+      "changed_area_ratio": 0.051736,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 224,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.019989,
+      "changed_area_ratio": 0.033333,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 228,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.016893,
+      "changed_area_ratio": 0.026736,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 232,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.014279,
+      "changed_area_ratio": 0.016528,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 236,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.010869,
+      "changed_area_ratio": 0.012639,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 240,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.009197,
+      "changed_area_ratio": 0.007847,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 244,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.004862,
+      "changed_area_ratio": 0.006806,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 248,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.003096,
+      "changed_area_ratio": 0.004028,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 252,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002652,
+      "changed_area_ratio": 0.003681,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 256,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002311,
+      "changed_area_ratio": 0.000417,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 260,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002125,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 264,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001976,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 268,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001981,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 272,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002312,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 276,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002078,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 280,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001866,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 284,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001752,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 288,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001741,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 292,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001743,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 296,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001809,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 300,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001993,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 304,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001637,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 308,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.000295,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 312,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001389,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 316,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001766,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 320,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001885,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 324,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002084,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 328,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002089,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 332,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002506,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 336,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002854,
+      "changed_area_ratio": 0.003264,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 340,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.008679,
+      "changed_area_ratio": 0.023958,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 344,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.017083,
+      "changed_area_ratio": 0.062153,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 348,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.02035,
+      "changed_area_ratio": 0.058889,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 352,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.028234,
+      "changed_area_ratio": 0.080278,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 356,
+      "triggered": true,
+      "reason": "motion",
+      "score": 0.032175,
+      "changed_area_ratio": 0.096806,
+      "infer_skipped": false
+    },
+    {
+      "frame_index": 360,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.040721,
+      "changed_area_ratio": 0.077153,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 364,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.029746,
+      "changed_area_ratio": 0.075556,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 368,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.026318,
+      "changed_area_ratio": 0.055764,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 372,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.029368,
+      "changed_area_ratio": 0.0675,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 376,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.031356,
+      "changed_area_ratio": 0.061181,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 380,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.031455,
+      "changed_area_ratio": 0.069236,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 384,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.036245,
+      "changed_area_ratio": 0.063542,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 388,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.033236,
+      "changed_area_ratio": 0.062222,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 392,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.027933,
+      "changed_area_ratio": 0.048056,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 396,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.020663,
+      "changed_area_ratio": 0.036389,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 400,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.016338,
+      "changed_area_ratio": 0.02875,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 404,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.013689,
+      "changed_area_ratio": 0.017153,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 408,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.008489,
+      "changed_area_ratio": 0.015,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 412,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.005064,
+      "changed_area_ratio": 0.009167,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 416,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.003754,
+      "changed_area_ratio": 0.004653,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 420,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.002856,
+      "changed_area_ratio": 0.000903,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 424,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.001869,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 428,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.000696,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 432,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.001903,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 436,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.002155,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 440,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.002498,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 444,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.001905,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 448,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.001827,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 452,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.001848,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 456,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.001747,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 460,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.001784,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 464,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.001766,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 468,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.001705,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 472,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.001806,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 476,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.001745,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 480,
+      "triggered": false,
+      "reason": "cooldown",
+      "score": 0.00198,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 484,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001467,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 488,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.00037,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 492,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001905,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 496,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001776,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 500,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001842,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 504,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.0018,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 508,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001749,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 512,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001774,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 516,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.001708,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 520,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.002145,
+      "changed_area_ratio": 0.0,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 524,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.011986,
+      "changed_area_ratio": 0.042222,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 528,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.020921,
+      "changed_area_ratio": 0.084931,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 532,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.015049,
+      "changed_area_ratio": 0.039444,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 536,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.011957,
+      "changed_area_ratio": 0.024583,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 540,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.011538,
+      "changed_area_ratio": 0.014444,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 544,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.012414,
+      "changed_area_ratio": 0.024028,
+      "infer_skipped": true
+    },
+    {
+      "frame_index": 548,
+      "triggered": false,
+      "reason": "below_threshold",
+      "score": 0.010713,
+      "changed_area_ratio": 0.027639,
+      "infer_skipped": true
+    }
+  ]
+}

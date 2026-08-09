@@ -1,0 +1,12 @@
+{
+  "task_type": "realtime",
+  "executor": "python",
+  "device_source": "file://testdata/runtime-parity/media/one-by-one-person-detection.mp4",
+  "tracking_enabled": true,
+  "tracking_similarity_threshold": 0.2,
+  "tracking_max_age": 25,
+  "tracking_smooth_alpha": 0.25,
+  "frame_skip": 4,
+  "task_id": "rt_p1_tracking_stable_fixture",
+  "description": "G-4.2 tracking — stable track_id on detections"
+}

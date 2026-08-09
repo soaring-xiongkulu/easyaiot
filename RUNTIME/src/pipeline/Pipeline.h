@@ -10,6 +10,9 @@
 #include "Datatype.h"
 #include "core/frame_pool.h"
 #include "core/spsc_ring.h"
+#include "motion/MotionGate.h"
+#include "parity/ParityRecorder.h"
+#include "tracking/SimpleTracker.h"
 
 extern "C" {
 #include "libavcodec/avcodec.h"
@@ -86,6 +89,13 @@ private:
     std::thread inferThread_;
     std::thread emitThread_;
     std::atomic<uint64_t> seqGen_{0};
+
+    std::unique_ptr<MotionGate> motionGate_;
+    std::unique_ptr<SimpleTracker> tracker_;
+    ParityRecorder parityRecorder_;
+    int inferSubmits_{0};
+    int inferSkipsMotion_{0};
+    int paritySampleIndex_{0};
 };
 
 }  // namespace runtime

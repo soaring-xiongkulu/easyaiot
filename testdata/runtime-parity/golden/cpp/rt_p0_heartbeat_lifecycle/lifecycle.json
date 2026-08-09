@@ -3,64 +3,64 @@
   "layer": "L_lifecycle",
   "executor": "cpp",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T14:51:01",
+  "sampled_at": "2026-08-09T15:24:55",
   "source": "runtime_parity_gate_cpp_sample",
   "status": "sampled",
   "boot": {
     "started": true,
     "exit_code": 1,
     "infer_ep": null,
-    "duration_sec": 22.76
+    "duration_sec": 22.44
   },
   "heartbeats": [
     {
       "seq": 1,
-      "task_id": 92596,
-      "process_id": 36532,
+      "task_id": 58272,
+      "process_id": 30884,
       "log_path": "logs/cpp_sample/rt_p0_heartbeat_lifecycle",
-      "timestamp_unix": 1786287039.1295218
+      "timestamp_unix": 1786289073.3063233
     },
     {
       "seq": 2,
-      "task_id": 92596,
-      "process_id": 36532,
+      "task_id": 58272,
+      "process_id": 30884,
       "log_path": "logs/cpp_sample/rt_p0_heartbeat_lifecycle",
-      "timestamp_unix": 1786287042.402407
+      "timestamp_unix": 1786289076.6511269
     },
     {
       "seq": 3,
-      "task_id": 92596,
-      "process_id": 36532,
+      "task_id": 58272,
+      "process_id": 30884,
       "log_path": "logs/cpp_sample/rt_p0_heartbeat_lifecycle",
-      "timestamp_unix": 1786287045.6727996
+      "timestamp_unix": 1786289079.970765
     },
     {
       "seq": 4,
-      "task_id": 92596,
-      "process_id": 36532,
+      "task_id": 58272,
+      "process_id": 30884,
       "log_path": "logs/cpp_sample/rt_p0_heartbeat_lifecycle",
-      "timestamp_unix": 1786287048.9540434
+      "timestamp_unix": 1786289083.2932649
     },
     {
       "seq": 5,
-      "task_id": 92596,
-      "process_id": 36532,
+      "task_id": 58272,
+      "process_id": 30884,
       "log_path": "logs/cpp_sample/rt_p0_heartbeat_lifecycle",
-      "timestamp_unix": 1786287052.220177
+      "timestamp_unix": 1786289086.7805264
     },
     {
       "seq": 6,
-      "task_id": 92596,
-      "process_id": 36532,
+      "task_id": 58272,
+      "process_id": 30884,
       "log_path": "logs/cpp_sample/rt_p0_heartbeat_lifecycle",
-      "timestamp_unix": 1786287055.5036783
+      "timestamp_unix": 1786289090.0822523
     },
     {
       "seq": 7,
-      "task_id": 92596,
-      "process_id": 36532,
+      "task_id": 58272,
+      "process_id": 30884,
       "log_path": "logs/cpp_sample/rt_p0_heartbeat_lifecycle",
-      "timestamp_unix": 1786287058.7721112
+      "timestamp_unix": 1786289093.3735855
     }
   ],
   "heartbeat_count": 7,

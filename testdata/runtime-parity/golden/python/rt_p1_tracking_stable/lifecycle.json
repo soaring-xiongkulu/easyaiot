@@ -1,0 +1,107 @@
+{
+  "case_id": "rt_p1_tracking_stable",
+  "layer": "L_lifecycle",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T15:20:17",
+  "source": "oracle_smoke_local_media",
+  "status": "recorded",
+  "oracle_root": "F:\\acme\\.worktrees\\runtime-parity",
+  "limitations": "Smoke lifecycle recording without live oracle VIDEO; heartbeats are deterministic stubs. Media path verified from manifest Intel sample-video.",
+  "boot": {
+    "exit_code": 0,
+    "started": true
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": "rt_p1_tracking_stable_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_tracking_stable/runtime.log",
+      "timestamp_unix": 1786288697.9755383
+    },
+    {
+      "seq": 2,
+      "task_id": "rt_p1_tracking_stable_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_tracking_stable/runtime.log",
+      "timestamp_unix": 1786288707.9755383
+    },
+    {
+      "seq": 3,
+      "task_id": "rt_p1_tracking_stable_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_tracking_stable/runtime.log",
+      "timestamp_unix": 1786288717.9755383
+    },
+    {
+      "seq": 4,
+      "task_id": "rt_p1_tracking_stable_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_tracking_stable/runtime.log",
+      "timestamp_unix": 1786288727.9755383
+    },
+    {
+      "seq": 5,
+      "task_id": "rt_p1_tracking_stable_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_tracking_stable/runtime.log",
+      "timestamp_unix": 1786288737.9755383
+    },
+    {
+      "seq": 6,
+      "task_id": "rt_p1_tracking_stable_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_tracking_stable/runtime.log",
+      "timestamp_unix": 1786288747.9755383
+    },
+    {
+      "seq": 7,
+      "task_id": "rt_p1_tracking_stable_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_tracking_stable/runtime.log",
+      "timestamp_unix": 1786288757.9755383
+    },
+    {
+      "seq": 8,
+      "task_id": "rt_p1_tracking_stable_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_tracking_stable/runtime.log",
+      "timestamp_unix": 1786288767.9755383
+    },
+    {
+      "seq": 9,
+      "task_id": "rt_p1_tracking_stable_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_tracking_stable/runtime.log",
+      "timestamp_unix": 1786288777.9755383
+    },
+    {
+      "seq": 10,
+      "task_id": "rt_p1_tracking_stable_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_tracking_stable/runtime.log",
+      "timestamp_unix": 1786288787.9755383
+    },
+    {
+      "seq": 11,
+      "task_id": "rt_p1_tracking_stable_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_tracking_stable/runtime.log",
+      "timestamp_unix": 1786288797.9755383
+    },
+    {
+      "seq": 12,
+      "task_id": "rt_p1_tracking_stable_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_tracking_stable/runtime.log",
+      "timestamp_unix": 1786288807.9755383
+    }
+  ],
+  "heartbeat_count": 12,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

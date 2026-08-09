@@ -1,0 +1,1909 @@
+{
+  "case_id": "rt_p1_tracking_stable",
+  "layer": "L_track",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T15:20:38",
+  "source": "oracle_smoke_tracking",
+  "status": "recorded",
+  "oracle_root": "F:\\acme\\.worktrees\\runtime-parity",
+  "limitations": "Smoke lifecycle recording without live oracle VIDEO; heartbeats are deterministic stubs. Media path verified from manifest Intel sample-video.",
+  "frames": [
+    {
+      "frame_index": 0,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.0,
+            264.0,
+            489.0,
+            333.0
+          ],
+          "class": "class_76",
+          "confidence": 0.5316,
+          "track_id": 1
+        }
+      ]
+    },
+    {
+      "frame_index": 4,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.75,
+            264.0,
+            489.75,
+            333.0
+          ],
+          "class": "class_76",
+          "confidence": 0.5348,
+          "track_id": 1
+        }
+      ]
+    },
+    {
+      "frame_index": 8,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.94,
+            264.0,
+            489.94,
+            333.0
+          ],
+          "class": "class_76",
+          "confidence": 0.5283,
+          "track_id": 1
+        }
+      ]
+    },
+    {
+      "frame_index": 32,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.23,
+            264.0,
+            489.23,
+            333.0
+          ],
+          "class": "class_76",
+          "confidence": 0.4269,
+          "track_id": 1
+        }
+      ]
+    },
+    {
+      "frame_index": 36,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.06,
+            264.0,
+            489.06,
+            333.0
+          ],
+          "class": "class_76",
+          "confidence": 0.4183,
+          "track_id": 1
+        }
+      ]
+    },
+    {
+      "frame_index": 52,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.76,
+            264.0,
+            489.76,
+            333.0
+          ],
+          "class": "class_76",
+          "confidence": 0.3982,
+          "track_id": 1
+        }
+      ]
+    },
+    {
+      "frame_index": 56,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.94,
+            264.0,
+            489.94,
+            333.0
+          ],
+          "class": "class_76",
+          "confidence": 0.4104,
+          "track_id": 1
+        }
+      ]
+    },
+    {
+      "frame_index": 60,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.99,
+            264.75,
+            489.24,
+            333.75
+          ],
+          "class": "class_76",
+          "confidence": 0.5794,
+          "track_id": 1
+        }
+      ]
+    },
+    {
+      "frame_index": 64,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            397.75,
+            264.94,
+            489.06,
+            333.94
+          ],
+          "class": "class_76",
+          "confidence": 0.3579,
+          "track_id": 1
+        }
+      ]
+    },
+    {
+      "frame_index": 76,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            361.0,
+            27.0,
+            539.0,
+            398.0
+          ],
+          "class": "person",
+          "confidence": 0.4997,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 80,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            369.25,
+            20.25,
+            529.25,
+            394.25
+          ],
+          "class": "person",
+          "confidence": 0.742,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 84,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            378.06,
+            17.81,
+            523.81,
+            388.06
+          ],
+          "class": "person",
+          "confidence": 0.4055,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 92,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            378.77,
+            11.95,
+            525.45,
+            380.52
+          ],
+          "class": "person",
+          "confidence": 0.4984,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 96,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            378.19,
+            12.74,
+            525.11,
+            380.88
+          ],
+          "class": "person",
+          "confidence": 0.5429,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 104,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            378.05,
+            13.68,
+            524.28,
+            387.72
+          ],
+          "class": "person",
+          "confidence": 0.3532,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 108,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.51,
+            12.42,
+            524.07,
+            390.18
+          ],
+          "class": "person",
+          "confidence": 0.4047,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 112,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.88,
+            13.61,
+            524.77,
+            388.54
+          ],
+          "class": "person",
+          "confidence": 0.5111,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 116,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.22,
+            13.15,
+            524.19,
+            385.89
+          ],
+          "class": "person",
+          "confidence": 0.4366,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 120,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            378.3,
+            13.04,
+            524.05,
+            388.97
+          ],
+          "class": "person",
+          "confidence": 0.5485,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 124,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            378.08,
+            13.01,
+            524.01,
+            388.24
+          ],
+          "class": "person",
+          "confidence": 0.576,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 128,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            378.02,
+            13.0,
+            524.75,
+            390.31
+          ],
+          "class": "person",
+          "confidence": 0.5655,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 132,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            378.75,
+            13.75,
+            524.94,
+            387.08
+          ],
+          "class": "person",
+          "confidence": 0.6073,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 136,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            378.94,
+            13.94,
+            524.98,
+            387.77
+          ],
+          "class": "person",
+          "confidence": 0.5973,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 140,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            378.98,
+            13.98,
+            525.0,
+            385.69
+          ],
+          "class": "person",
+          "confidence": 0.6038,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 144,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.0,
+            14.75,
+            524.25,
+            385.17
+          ],
+          "class": "person",
+          "confidence": 0.571,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 148,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.0,
+            14.94,
+            524.06,
+            385.04
+          ],
+          "class": "person",
+          "confidence": 0.5086,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 152,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.0,
+            15.73,
+            524.77,
+            385.01
+          ],
+          "class": "person",
+          "confidence": 0.6148,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 156,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.0,
+            15.93,
+            524.19,
+            385.75
+          ],
+          "class": "person",
+          "confidence": 0.5888,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 160,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.75,
+            14.48,
+            524.05,
+            385.94
+          ],
+          "class": "person",
+          "confidence": 0.3999,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 164,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.19,
+            14.87,
+            524.01,
+            385.98
+          ],
+          "class": "person",
+          "confidence": 0.3944,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 168,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.05,
+            14.97,
+            524.75,
+            386.75
+          ],
+          "class": "person",
+          "confidence": 0.4974,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 172,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.01,
+            14.99,
+            524.94,
+            383.94
+          ],
+          "class": "person",
+          "confidence": 0.588,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 176,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.75,
+            14.25,
+            524.98,
+            383.98
+          ],
+          "class": "person",
+          "confidence": 0.5449,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 180,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.44,
+            14.06,
+            525.0,
+            391.5
+          ],
+          "class": "person",
+          "confidence": 0.7945,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 184,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            387.86,
+            17.77,
+            569.25,
+            405.37
+          ],
+          "class": "person",
+          "confidence": 0.5662,
+          "track_id": 2
+        }
+      ]
+    },
+    {
+      "frame_index": 188,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            457.71,
+            29.94,
+            652.31,
+            393.09
+          ],
+          "class": "person",
+          "confidence": 0.8175,
+          "track_id": 2
+        },
+        {
+          "bbox_xyxy": [
+            393.0,
+            264.0,
+            490.0,
+            334.0
+          ],
+          "class": "class_76",
+          "confidence": 0.5203,
+          "track_id": 3
+        }
+      ]
+    },
+    {
+      "frame_index": 208,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.0,
+            264.75,
+            489.25,
+            334.0
+          ],
+          "class": "class_76",
+          "confidence": 0.3826,
+          "track_id": 3
+        }
+      ]
+    },
+    {
+      "frame_index": 220,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.0,
+            264.19,
+            489.06,
+            333.25
+          ],
+          "class": "class_76",
+          "confidence": 0.378,
+          "track_id": 3
+        }
+      ]
+    },
+    {
+      "frame_index": 224,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.0,
+            264.05,
+            489.02,
+            333.06
+          ],
+          "class": "class_76",
+          "confidence": 0.3679,
+          "track_id": 3
+        }
+      ]
+    },
+    {
+      "frame_index": 228,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            194.0,
+            338.0,
+            296.0,
+            430.0
+          ],
+          "class": "person",
+          "confidence": 0.5359,
+          "track_id": 4
+        },
+        {
+          "bbox_xyxy": [
+            393.0,
+            264.01,
+            489.0,
+            333.02
+          ],
+          "class": "class_76",
+          "confidence": 0.4203,
+          "track_id": 3
+        }
+      ]
+    },
+    {
+      "frame_index": 232,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            397.5,
+            264.0,
+            488.25,
+            333.75
+          ],
+          "class": "class_76",
+          "confidence": 0.697,
+          "track_id": 3
+        }
+      ]
+    },
+    {
+      "frame_index": 236,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            320.0,
+            66.0,
+            523.0,
+            431.0
+          ],
+          "class": "person",
+          "confidence": 0.8389,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 240,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            346.25,
+            37.5,
+            525.25,
+            428.75
+          ],
+          "class": "person",
+          "confidence": 0.9078,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 244,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            365.56,
+            10.88,
+            535.56,
+            380.19
+          ],
+          "class": "person",
+          "confidence": 0.8648,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            394.12,
+            258.75,
+            482.81,
+            370.69
+          ],
+          "class": "class_36",
+          "confidence": 0.4098,
+          "track_id": 3
+        }
+      ]
+    },
+    {
+      "frame_index": 248,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.14,
+            4.22,
+            548.64,
+            377.05
+          ],
+          "class": "person",
+          "confidence": 0.8677,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 252,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            384.54,
+            1.8,
+            546.66,
+            374.76
+          ],
+          "class": "person",
+          "confidence": 0.8488,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 256,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.63,
+            1.2,
+            543.17,
+            377.94
+          ],
+          "class": "person",
+          "confidence": 0.8614,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 260,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            377.66,
+            1.05,
+            541.54,
+            381.74
+          ],
+          "class": "person",
+          "confidence": 0.8677,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 264,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            376.41,
+            1.01,
+            540.39,
+            381.93
+          ],
+          "class": "person",
+          "confidence": 0.8583,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 268,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            377.6,
+            1.0,
+            540.85,
+            383.48
+          ],
+          "class": "person",
+          "confidence": 0.8627,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 272,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            378.65,
+            1.0,
+            541.71,
+            379.37
+          ],
+          "class": "person",
+          "confidence": 0.877,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 276,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.66,
+            1.75,
+            543.43,
+            376.84
+          ],
+          "class": "person",
+          "confidence": 0.8768,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 280,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.92,
+            1.94,
+            543.86,
+            379.96
+          ],
+          "class": "person",
+          "confidence": 0.8709,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 284,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.98,
+            1.98,
+            543.21,
+            381.49
+          ],
+          "class": "person",
+          "confidence": 0.8691,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 288,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.99,
+            2.0,
+            543.05,
+            381.12
+          ],
+          "class": "person",
+          "confidence": 0.8688,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 292,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.0,
+            2.0,
+            543.01,
+            379.53
+          ],
+          "class": "person",
+          "confidence": 0.8703,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 296,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.0,
+            2.0,
+            543.75,
+            380.63
+          ],
+          "class": "person",
+          "confidence": 0.861,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 300,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.0,
+            2.0,
+            543.94,
+            380.91
+          ],
+          "class": "person",
+          "confidence": 0.875,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 304,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.0,
+            2.0,
+            543.98,
+            381.73
+          ],
+          "class": "person",
+          "confidence": 0.8761,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 308,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.75,
+            2.0,
+            544.0,
+            381.93
+          ],
+          "class": "person",
+          "confidence": 0.8703,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 312,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.94,
+            2.0,
+            544.75,
+            381.98
+          ],
+          "class": "person",
+          "confidence": 0.8676,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 316,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.23,
+            2.0,
+            544.19,
+            382.0
+          ],
+          "class": "person",
+          "confidence": 0.8687,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 320,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.06,
+            2.0,
+            543.3,
+            379.75
+          ],
+          "class": "person",
+          "confidence": 0.8703,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 324,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.01,
+            2.0,
+            543.07,
+            379.94
+          ],
+          "class": "person",
+          "confidence": 0.8694,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 328,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.0,
+            2.0,
+            543.02,
+            380.73
+          ],
+          "class": "person",
+          "confidence": 0.8706,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 332,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.25,
+            2.0,
+            543.0,
+            380.93
+          ],
+          "class": "person",
+          "confidence": 0.8673,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 336,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.06,
+            2.0,
+            543.0,
+            380.98
+          ],
+          "class": "person",
+          "confidence": 0.8664,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 340,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.02,
+            2.0,
+            543.0,
+            381.0
+          ],
+          "class": "person",
+          "confidence": 0.8728,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 344,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.0,
+            2.0,
+            543.0,
+            381.0
+          ],
+          "class": "person",
+          "confidence": 0.8667,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 348,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.75,
+            2.0,
+            543.75,
+            380.25
+          ],
+          "class": "person",
+          "confidence": 0.8666,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 352,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            379.94,
+            2.0,
+            543.94,
+            377.81
+          ],
+          "class": "person",
+          "confidence": 0.8753,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 356,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.73,
+            2.75,
+            544.73,
+            377.95
+          ],
+          "class": "person",
+          "confidence": 0.8752,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 360,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.93,
+            2.19,
+            544.18,
+            379.49
+          ],
+          "class": "person",
+          "confidence": 0.8687,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 364,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.73,
+            2.8,
+            545.55,
+            379.87
+          ],
+          "class": "person",
+          "confidence": 0.8705,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 368,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            382.68,
+            2.2,
+            546.64,
+            379.22
+          ],
+          "class": "person",
+          "confidence": 0.8552,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 372,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            382.92,
+            2.05,
+            546.91,
+            378.3
+          ],
+          "class": "person",
+          "confidence": 0.8682,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 376,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            382.98,
+            2.01,
+            546.98,
+            378.83
+          ],
+          "class": "person",
+          "confidence": 0.8605,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 380,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            383.0,
+            2.0,
+            546.24,
+            379.71
+          ],
+          "class": "person",
+          "confidence": 0.8638,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 384,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            382.25,
+            2.0,
+            546.06,
+            380.68
+          ],
+          "class": "person",
+          "confidence": 0.8586,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 388,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.31,
+            2.0,
+            546.02,
+            381.67
+          ],
+          "class": "person",
+          "confidence": 0.8586,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 392,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.08,
+            1.25,
+            546.0,
+            379.67
+          ],
+          "class": "person",
+          "confidence": 0.863,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 396,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.02,
+            1.81,
+            546.0,
+            379.92
+          ],
+          "class": "person",
+          "confidence": 0.8665,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 400,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.0,
+            1.95,
+            545.25,
+            381.48
+          ],
+          "class": "person",
+          "confidence": 0.8703,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 404,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.75,
+            2.74,
+            545.06,
+            381.87
+          ],
+          "class": "person",
+          "confidence": 0.8682,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 408,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.94,
+            2.93,
+            545.02,
+            381.97
+          ],
+          "class": "person",
+          "confidence": 0.8711,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 412,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.23,
+            2.23,
+            545.0,
+            380.49
+          ],
+          "class": "person",
+          "confidence": 0.8706,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 416,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.06,
+            2.06,
+            545.0,
+            380.87
+          ],
+          "class": "person",
+          "confidence": 0.8697,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 420,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.01,
+            2.01,
+            544.25,
+            380.97
+          ],
+          "class": "person",
+          "confidence": 0.8737,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 424,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.0,
+            2.75,
+            544.06,
+            381.74
+          ],
+          "class": "person",
+          "confidence": 0.8675,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 428,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.75,
+            2.94,
+            544.77,
+            381.19
+          ],
+          "class": "person",
+          "confidence": 0.8624,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 432,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            380.44,
+            2.23,
+            550.94,
+            384.05
+          ],
+          "class": "person",
+          "confidence": 0.8585,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 436,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            407.11,
+            27.56,
+            592.99,
+            390.01
+          ],
+          "class": "person",
+          "confidence": 0.7725,
+          "track_id": 5
+        },
+        {
+          "bbox_xyxy": [
+            393.0,
+            186.0,
+            582.0,
+            390.0
+          ],
+          "class": "class_36",
+          "confidence": 0.5318,
+          "track_id": 6
+        }
+      ]
+    },
+    {
+      "frame_index": 440,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            540.0,
+            0.0,
+            731.0,
+            395.0
+          ],
+          "class": "person",
+          "confidence": 0.8328,
+          "track_id": 7
+        },
+        {
+          "bbox_xyxy": [
+            393.0,
+            264.0,
+            489.0,
+            333.0
+          ],
+          "class": "class_36",
+          "confidence": 0.5828,
+          "track_id": 8
+        }
+      ]
+    },
+    {
+      "frame_index": 444,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            588.75,
+            54.75,
+            758.0,
+            385.25
+          ],
+          "class": "person",
+          "confidence": 0.6726,
+          "track_id": 7
+        }
+      ]
+    },
+    {
+      "frame_index": 448,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            694.0,
+            259.0,
+            767.0,
+            368.0
+          ],
+          "class": "person",
+          "confidence": 0.3777,
+          "track_id": 9
+        }
+      ]
+    },
+    {
+      "frame_index": 456,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.0,
+            264.0,
+            489.0,
+            333.0
+          ],
+          "class": "class_76",
+          "confidence": 0.4479,
+          "track_id": 8
+        }
+      ]
+    },
+    {
+      "frame_index": 472,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.0,
+            264.0,
+            489.0,
+            333.0
+          ],
+          "class": "class_76",
+          "confidence": 0.4645,
+          "track_id": 8
+        }
+      ]
+    },
+    {
+      "frame_index": 476,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.0,
+            264.0,
+            489.0,
+            333.0
+          ],
+          "class": "class_76",
+          "confidence": 0.4676,
+          "track_id": 8
+        }
+      ]
+    },
+    {
+      "frame_index": 480,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.75,
+            264.0,
+            489.0,
+            333.0
+          ],
+          "class": "class_76",
+          "confidence": 0.5479,
+          "track_id": 8
+        }
+      ]
+    },
+    {
+      "frame_index": 484,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.94,
+            264.75,
+            489.0,
+            333.75
+          ],
+          "class": "class_76",
+          "confidence": 0.5575,
+          "track_id": 8
+        }
+      ]
+    },
+    {
+      "frame_index": 488,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            393.98,
+            264.94,
+            489.0,
+            333.94
+          ],
+          "class": "class_76",
+          "confidence": 0.551,
+          "track_id": 8
+        }
+      ]
+    },
+    {
+      "frame_index": 492,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            394.0,
+            264.98,
+            489.75,
+            333.98
+          ],
+          "class": "class_76",
+          "confidence": 0.4459,
+          "track_id": 8
+        }
+      ]
+    },
+    {
+      "frame_index": 496,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            394.0,
+            265.0,
+            489.19,
+            334.0
+          ],
+          "class": "class_76",
+          "confidence": 0.4464,
+          "track_id": 8
+        }
+      ]
+    },
+    {
+      "frame_index": 500,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            394.0,
+            265.0,
+            489.05,
+            334.0
+          ],
+          "class": "class_76",
+          "confidence": 0.5943,
+          "track_id": 8
+        }
+      ]
+    },
+    {
+      "frame_index": 504,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            394.0,
+            265.0,
+            489.01,
+            334.0
+          ],
+          "class": "class_76",
+          "confidence": 0.5904,
+          "track_id": 8
+        }
+      ]
+    },
+    {
+      "frame_index": 512,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            341.03,
+            54.89,
+            532.25,
+            420.0
+          ],
+          "class": "person",
+          "confidence": 0.8115,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 516,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            364.26,
+            32.47,
+            541.81,
+            429.0
+          ],
+          "class": "person",
+          "confidence": 0.8175,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 520,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            381.31,
+            12.62,
+            556.95,
+            402.75
+          ],
+          "class": "person",
+          "confidence": 0.8827,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 524,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            386.33,
+            3.15,
+            556.24,
+            395.44
+          ],
+          "class": "person",
+          "confidence": 0.7966,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 528,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            388.33,
+            0.79,
+            553.81,
+            392.86
+          ],
+          "class": "person",
+          "confidence": 0.8035,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 532,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            384.33,
+            1.7,
+            551.7,
+            393.71
+          ],
+          "class": "person",
+          "confidence": 0.8008,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 536,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            383.33,
+            1.92,
+            552.68,
+            393.93
+          ],
+          "class": "person",
+          "confidence": 0.8052,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 540,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            375.58,
+            1.98,
+            552.92,
+            397.73
+          ],
+          "class": "person",
+          "confidence": 0.8318,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 544,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            384.15,
+            2.0,
+            553.73,
+            398.68
+          ],
+          "class": "person",
+          "confidence": 0.8029,
+          "track_id": 5
+        }
+      ]
+    },
+    {
+      "frame_index": 548,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            388.54,
+            2.0,
+            554.68,
+            398.17
+          ],
+          "class": "person",
+          "confidence": 0.8129,
+          "track_id": 5
+        }
+      ]
+    }
+  ],
+  "track_switch_count": 9
+}

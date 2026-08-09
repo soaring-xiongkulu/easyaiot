@@ -56,6 +56,33 @@ def report_path(root: Optional[Path] = None) -> Path:
     return logs_dir(root) / "runtime_parity_report.json"
 
 
+def windows_runtime_path_entries(root: Optional[Path] = None) -> list[str]:
+    """DLL directories for RUNTIME.exe on Windows (mirrors deploy.env.ps1)."""
+    import sys
+
+    if sys.platform != "win32":
+        return []
+    base = root or candidate_root()
+    runtime = base / "RUNTIME"
+    vendor = runtime / "vendor" / "win-x64"
+    conda_pkgs = vendor / "conda-pkgs"
+    entries = [
+        runtime / "build-win" / "Release",
+        conda_pkgs / "libprotobuf" / "Library" / "bin",
+        conda_pkgs / "opencv" / "Library" / "bin",
+        conda_pkgs / "ffmpeg" / "Library" / "bin",
+        conda_pkgs / "jsoncpp" / "Library" / "bin",
+        vendor / "_conda_ffmpeg4" / "Library" / "bin",
+    ]
+    for candidate in (
+        "F:/anaconda/Library/bin",
+        os.path.expanduser("~/anaconda3/Library/bin"),
+        os.path.expanduser("~/miniconda3/Library/bin"),
+    ):
+        entries.append(Path(candidate))
+    return [str(p) for p in entries if p.is_dir()]
+
+
 def runtime_exe_candidates(root: Optional[Path] = None) -> list[Path]:
     """Search order for C++ RUNTIME binary."""
     base = root or candidate_root()

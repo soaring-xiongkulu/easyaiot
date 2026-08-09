@@ -948,6 +948,9 @@ void Detech::_alarmSenderThreadFunc() {
                 bbox.append(static_cast<int>(det.x2));
                 bbox.append(static_cast<int>(det.y2));
                 detObj["bbox"] = bbox;
+                if (det.track_id >= 0) {
+                    detObj["track_id"] = det.track_id;
+                }
                 detectionsArray.append(detObj);
             }
             info["detections"] = detectionsArray;

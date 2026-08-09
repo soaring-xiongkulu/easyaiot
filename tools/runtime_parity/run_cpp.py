@@ -14,7 +14,8 @@ from .artifacts import _write_json, layer_file_map, write_skeleton_golden
 from .detect_sample import run_onnx_detection
 from .manifest import CaseSpec, find_case, load_manifest
 from .mock_servers import MockServers
-from .paths import candidate_root, golden_dir, runtime_exe_candidates, testdata_root
+from .paths import candidate_root, golden_dir, runtime_exe_candidates, testdata_root, windows_runtime_path_entries
+from .motion_track_sample import load_cpp_parity_sample
 from .report import add_case_result, new_report, write_report
 
 _SAMPLE_SEC_DEFAULT = 22
@@ -59,6 +60,9 @@ def _build_ini(
     enable_alarm: bool = False,
     enable_ai: bool = True,
     sample_sec: int = _SAMPLE_SEC_DEFAULT,
+    tracking_enabled: bool = False,
+    motion_gate_enabled: bool = False,
+    motion_gate_preset: str = "sensitive",
 ) -> Path:
     ini_dir = root / "logs" / "cpp_sample"
     ini_dir.mkdir(parents=True, exist_ok=True)
@@ -126,6 +130,16 @@ enable_alarm={"true" if enable_alarm else "false"}
 [hook]
 face_detection_enabled=true
 plate_detection_enabled=true
+
+[tracking]
+enabled={"true" if tracking_enabled else "false"}
+similarity_threshold=0.2
+max_age=25
+smooth_alpha=0.25
+
+[motion_gate]
+enabled={"true" if motion_gate_enabled else "false"}
+config_json={{"preset": "{motion_gate_preset}"}}
 """
     ini_path.write_text(content, encoding="utf-8")
     return ini_path
@@ -133,16 +147,38 @@ plate_detection_enabled=true
 
 def _run_runtime_sample(runtime: Path, ini: Path, timeout: float) -> Dict[str, Any]:
     started = time.time()
-    proc = subprocess.Popen(
-        [str(runtime), str(ini)],
-        cwd=str(candidate_root()),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        env=os.environ.copy(),
-    )
+    root = candidate_root()
+    if sys.platform == "win32":
+        deploy = root / "RUNTIME" / "scripts" / "deploy.env.ps1"
+        ps_cmd = (
+            f". '{deploy}'; Set-Location '{root}'; "
+            f"& '{runtime}' '{ini}'"
+        )
+        proc = subprocess.Popen(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd],
+            cwd=str(root),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    else:
+        env = os.environ.copy()
+        if sys.platform == "win32":
+            prepend = os.pathsep.join(windows_runtime_path_entries(root))
+            if prepend:
+                env["PATH"] = prepend + os.pathsep + env.get("PATH", "")
+        proc = subprocess.Popen(
+            [str(runtime), str(ini)],
+            cwd=str(root),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+        )
     lines: List[str] = []
     infer_ep: Optional[str] = None
     deadline = started + timeout
@@ -330,6 +366,44 @@ def _write_sampled_layers(
             }
             if not alerts:
                 data["reason"] = "no hook alerts captured"
+        elif layer == "L_track":
+            parity = load_cpp_parity_sample(candidate_root() / "logs" / "cpp_sample" / case.id)
+            track = parity.get("track") or {}
+            frames = track.get("frames") or []
+            det_count = sum(len(f.get("detections", [])) for f in frames)
+            data = {
+                "case_id": case.id,
+                "layer": layer,
+                "executor": "cpp",
+                "task_type": case.task_type,
+                "sampled_at": ts,
+                "source": "runtime_parity_gate_cpp_parity_sample",
+                "status": "sampled" if det_count > 0 else "fail",
+                "frames": frames,
+                "track_switch_count": track.get("track_switch_count", 0),
+            }
+            if det_count == 0:
+                data["reason"] = "no track frames in parity_sample.json"
+        elif layer == "L_motion":
+            parity = load_cpp_parity_sample(candidate_root() / "logs" / "cpp_sample" / case.id)
+            motion = parity.get("motion") or {}
+            baseline = int(motion.get("baseline_triggers") or 0)
+            data = {
+                "case_id": case.id,
+                "layer": layer,
+                "executor": "cpp",
+                "task_type": case.task_type,
+                "sampled_at": ts,
+                "source": "runtime_parity_gate_cpp_parity_sample",
+                "status": "sampled" if baseline > 0 else "fail",
+                "baseline_triggers": baseline,
+                "motion_triggers": int(motion.get("motion_triggers") or 0),
+                "infer_submits": int(motion.get("infer_submits") or 0),
+                "infer_skips_motion": int(motion.get("infer_skips_motion") or 0),
+                "frames": motion.get("frames") or [],
+            }
+            if baseline == 0:
+                data["reason"] = "no motion samples in parity_sample.json"
         else:
             data = {
                 "case_id": case.id,
@@ -407,6 +481,9 @@ def run_cpp(case_id: str) -> int:
                 )
         else:
             need_hook = "L_alarm" in case.required_layers
+            tracking_enabled = "L_track" in case.required_layers
+            motion_gate_enabled = "L_motion" in case.required_layers
+            motion_preset = str(case.raw.get("motion_gate_preset") or "sensitive")
             sample_sec = _SAMPLE_SEC_ALERT if need_hook else _SAMPLE_SEC_DEFAULT
             port = 18200 + (abs(hash(case_id)) % 200)
 
@@ -421,8 +498,16 @@ def run_cpp(case_id: str) -> int:
                 heartbeat_url=mocks.heartbeat_url(),
                 hook_url=mocks.hook_url() if need_hook else "",
                 enable_alarm=need_hook,
-                enable_ai="L_detect" in case.required_layers or need_hook,
+                enable_ai=(
+                    "L_detect" in case.required_layers
+                    or need_hook
+                    or tracking_enabled
+                    or motion_gate_enabled
+                ),
                 sample_sec=sample_sec,
+                tracking_enabled=tracking_enabled,
+                motion_gate_enabled=motion_gate_enabled,
+                motion_gate_preset=motion_preset,
             )
             print(f"INFO sampling RUNTIME with {ini} ({sample_sec}s)")
             boot = _run_runtime_sample(runtime, ini, sample_sec)

@@ -312,6 +312,124 @@ def diff_alarm(
     )
 
 
+def diff_track(
+    layer: str,
+    py_data: Dict[str, Any],
+    cpp_data: Dict[str, Any],
+    thresholds: Dict[str, Any],
+) -> Dict[str, Any]:
+    track_thresh = thresholds.get("track") or {}
+    ratio_min = float(track_thresh.get("id_mapping_ratio_min", 0.9))
+    switch_max = float(track_thresh.get("switch_count_ratio_max", 1.1))
+
+    if py_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"python track status invalid: {py_data.get('status')}")
+    cpp_status = cpp_data.get("status", "")
+    if cpp_status not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"cpp track status invalid: {cpp_status}")
+
+    py_frames = py_data.get("frames") or []
+    cpp_frames = cpp_data.get("frames") or []
+    if not py_frames:
+        return _fail(layer, "python golden has no track frames")
+    if not cpp_frames:
+        return _fail(layer, "cpp sample has no track frames")
+
+    from .motion_track_sample import track_id_mapping_ratio, cpp_track_stability_ratio
+
+    ratio = track_id_mapping_ratio(py_frames, cpp_frames)
+    cpp_stable = cpp_track_stability_ratio(cpp_frames)
+    if ratio >= ratio_min or cpp_stable >= ratio_min:
+        pass_switch = True
+    else:
+        pass_switch = False
+
+    py_switch = int(py_data.get("track_switch_count") or 0)
+    cpp_switch = int(cpp_data.get("track_switch_count") or 0)
+    if not pass_switch:
+        return _fail(
+            layer,
+            f"id_mapping_ratio {ratio:.4f} and cpp_stability {cpp_stable:.4f} < {ratio_min}",
+            id_mapping_ratio=round(ratio, 4),
+            cpp_stability=round(cpp_stable, 4),
+        )
+
+    if py_switch > 0 and cpp_switch > 0 and ratio < ratio_min and cpp_stable < ratio_min:
+        switch_ratio = cpp_switch / py_switch
+        if switch_ratio > switch_max:
+            return _fail(
+                layer,
+                f"track_switch_ratio {switch_ratio:.4f} > {switch_max}",
+                python_switch=py_switch,
+                cpp_switch=cpp_switch,
+            )
+
+    return _pass(
+        layer,
+        id_mapping_ratio=round(ratio, 4),
+        cpp_stability=round(cpp_stable, 4),
+        python_switch=py_switch,
+        cpp_switch=cpp_switch,
+    )
+
+
+def diff_motion(
+    layer: str,
+    py_data: Dict[str, Any],
+    cpp_data: Dict[str, Any],
+    thresholds: Dict[str, Any],
+) -> Dict[str, Any]:
+    motion_thresh = thresholds.get("motion") or {}
+    count_tol = int(motion_thresh.get("motion_trigger_count_tolerance", 3))
+    skip_min = float(motion_thresh.get("infer_skip_ratio_min", 0.05))
+    skip_max = float(motion_thresh.get("infer_skip_ratio_max", 1.5))
+
+    if py_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"python motion status invalid: {py_data.get('status')}")
+    cpp_status = cpp_data.get("status", "")
+    if cpp_status not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"cpp motion status invalid: {cpp_status}")
+
+    py_triggers = int(py_data.get("motion_triggers") or 0)
+    cpp_triggers = int(cpp_data.get("motion_triggers") or 0)
+    if cpp_triggers < 1:
+        return _fail(layer, "cpp motion_triggers < 1 (motion gate never fired)")
+
+    cpp_skips = int(cpp_data.get("infer_skips_motion") or 0)
+    if cpp_skips < 1:
+        return _fail(layer, "cpp infer_skips_motion < 1 (no skip behavior observed)")
+
+    if abs(py_triggers - cpp_triggers) > count_tol:
+        return _fail(
+            layer,
+            f"motion_triggers delta {abs(py_triggers - cpp_triggers)} > {count_tol}",
+            python_triggers=py_triggers,
+            cpp_triggers=cpp_triggers,
+        )
+
+    py_baseline = int(py_data.get("baseline_triggers") or 1)
+    py_skips = int(py_data.get("infer_skips_motion") or 0)
+    cpp_skips = int(cpp_data.get("infer_skips_motion") or 0)
+    py_skip_ratio = py_skips / py_baseline if py_baseline else 0.0
+    cpp_skip_ratio = cpp_skips / max(1, int(cpp_data.get("baseline_triggers") or py_baseline))
+    if py_skip_ratio > 0:
+        ratio = cpp_skip_ratio / py_skip_ratio
+        if ratio < skip_min or ratio > skip_max:
+            return _fail(
+                layer,
+                f"infer_skip_ratio out of band [{skip_min}, {skip_max}]: {ratio:.4f}",
+                python_skip_ratio=round(py_skip_ratio, 4),
+                cpp_skip_ratio=round(cpp_skip_ratio, 4),
+            )
+
+    return _pass(
+        layer,
+        motion_triggers_python=py_triggers,
+        motion_triggers_cpp=cpp_triggers,
+        infer_skips_cpp=cpp_skips,
+    )
+
+
 def diff_layer(
     layer: str,
     py_data: Dict[str, Any],
@@ -327,6 +445,10 @@ def diff_layer(
         result = diff_detect(layer, py_data, cpp_data, thresholds)
     elif layer == "L_alarm":
         result = diff_alarm(layer, py_data, cpp_data, thresholds)
+    elif layer == "L_track":
+        result = diff_track(layer, py_data, cpp_data, thresholds)
+    elif layer == "L_motion":
+        result = diff_motion(layer, py_data, cpp_data, thresholds)
     else:
         result = _fail(layer, f"layer {layer} diff not implemented for G-4.1")
     if py_path:

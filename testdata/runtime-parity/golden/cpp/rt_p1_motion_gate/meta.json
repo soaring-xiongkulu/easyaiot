@@ -1,0 +1,53 @@
+{
+  "case_id": "rt_p1_motion_gate",
+  "executor": "cpp",
+  "required_layers": [
+    "L_lifecycle",
+    "L_motion"
+  ],
+  "written_at": "2026-08-09T15:23:03",
+  "artifacts": [
+    "lifecycle.json",
+    "motion.json"
+  ],
+  "runtime_boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": "cpu",
+    "duration_sec": 22.93,
+    "log_tail": [
+      "I20260809 23:23:01.529444 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.539490 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.552309 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.577184 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.600835 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.613956 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.623979 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.633567 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.645785 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.655784 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.665486 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.675096 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.685618 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.695166 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.706073 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.716622 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.726310 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.737309 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.747264 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.758929 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.770910 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.780449 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.791481 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.802876 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.824759 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:01.851539 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "W20260809 23:23:01.856070  1996 Pipeline.cpp:271] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260809 23:23:01.856070  1996 Pipeline.cpp:277] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260809 23:23:01.864125 12036 ParityRecorder.cpp:111] [PARITY] wrote logs/cpp_sample/rt_p1_motion_gate\\parity_sample.json",
+      "I20260809 23:23:02.864802  1996 Pipeline.cpp:195] [PIPELINE] reopened stream 768x432@12fps"
+    ]
+  },
+  "heartbeat_count": 7,
+  "hook_count": 0
+}

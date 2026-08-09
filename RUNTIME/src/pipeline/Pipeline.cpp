@@ -61,6 +61,21 @@ Pipeline::Pipeline(Config& config,
       frameRing_(8),
       resultRing_(64) {
     framePool_.reset(8, videoWidth_, videoHeight_);
+    if (config_.motionGateEnabled) {
+        MotionGateConfig mgCfg =
+            MotionGateConfig::fromJson(config_.motionGateConfigJson, true);
+        motionGate_ = std::make_unique<MotionGate>(mgCfg);
+        LOG(INFO) << "[PIPELINE] motion_gate enabled preset=" << mgCfg.preset
+                  << " min_area=" << mgCfg.minChangedAreaRatio;
+    }
+    if (config_.trackingEnabled) {
+        tracker_ = std::make_unique<SimpleTracker>(
+            config_.trackingSimilarityThreshold,
+            config_.trackingMaxAge,
+            config_.trackingSmoothAlpha);
+        LOG(INFO) << "[PIPELINE] tracking enabled similarity_threshold="
+                  << config_.trackingSimilarityThreshold;
+    }
 }
 
 Pipeline::~Pipeline() {
@@ -91,6 +106,10 @@ void Pipeline::join() {
     }
     if (emitThread_.joinable()) {
         emitThread_.join();
+    }
+    parityRecorder_.setInferCounts(inferSubmits_, inferSkipsMotion_);
+    if (config_.motionGateEnabled || config_.trackingEnabled) {
+        parityRecorder_.writeToFile(config_.logPath);
     }
 }
 
@@ -361,6 +380,7 @@ void Pipeline::inferLoop() {
     int aiFrameInterval = 0;
     const int submitInterval = std::max(1, config_.frameSkip);
     int localFrameId = 0;
+    const std::string deviceId = config_.deviceId.empty() ? "device" : config_.deviceId;
 
     while (running_.load() || frameRing_.sizeApprox() > 0) {
         int poolIndex = -1;
@@ -386,9 +406,30 @@ void Pipeline::inferLoop() {
         int detectCount = 0;
 
         if (config_.enableAI && yoloPool_) {
-            if (aiFrameInterval % submitInterval == 0) {
+            bool submitInfer = false;
+            bool inferSkippedMotion = false;
+            const bool isSampleFrame = (aiFrameInterval % submitInterval == 0);
+
+            MotionResult motionResult;
+            if (isSampleFrame && motionGate_) {
+                motionResult = motionGate_->onSampleFrame(deviceId, img, localFrameId);
+                submitInfer = motionResult.triggered || motionResult.reason == "warmup"
+                              || motionResult.reason == "disabled";
+                if (!submitInfer) {
+                    inferSkippedMotion = true;
+                    inferSkipsMotion_ += 1;
+                }
+                parityRecorder_.recordMotionSample(paritySampleIndex_++, motionResult, inferSkippedMotion);
+                parityRecorder_.setInferCounts(inferSubmits_, inferSkipsMotion_);
+                parityRecorder_.maybeFlush(config_.logPath);
+            } else if (isSampleFrame) {
+                submitInfer = true;
+            }
+
+            if (submitInfer && isSampleFrame) {
                 yoloPool_->submitTask(img, 0, localFrameId);
                 lastSubmittedFrameId = localFrameId;
+                inferSubmits_ += 1;
             }
             aiFrameInterval++;
             localFrameId++;
@@ -401,6 +442,13 @@ void Pipeline::inferLoop() {
                     lastDetections = detections;
                     break;
                 }
+            }
+
+            if (tracker_ && !lastDetections.empty() && isSampleFrame) {
+                lastDetections = tracker_->update(lastDetections, localFrameId - 1);
+                parityRecorder_.recordTrackSample(paritySampleIndex_++, lastDetections);
+                parityRecorder_.setInferCounts(inferSubmits_, inferSkipsMotion_);
+                parityRecorder_.maybeFlush(config_.logPath);
             }
 
             if (!lastDetections.empty()) {

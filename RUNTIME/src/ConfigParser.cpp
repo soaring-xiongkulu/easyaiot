@@ -3,6 +3,7 @@
  */
 
 #include "ConfigParser.h"
+#include "motion/MotionGate.h"
 #include <json/json.h>
 #include <sstream>
 #include <cstdlib>
@@ -444,8 +445,14 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             config.unsupportedCaps.push_back(cap);
         }
     };
-    if (config.trackingEnabled) addCap("CAP-TRACKING");
-    if (config.motionGateEnabled) addCap("CAP-MOTION-GATE");
+    if (config.trackingEnabled) {
+        LOG(INFO) << "[CONFIG] CAP-TRACKING enabled similarity_threshold="
+                  << config.trackingSimilarityThreshold << " max_age=" << config.trackingMaxAge;
+    }
+    if (config.motionGateEnabled) {
+        LOG(INFO) << "[CONFIG] CAP-MOTION-GATE enabled config_json="
+                  << (config.motionGateConfigJson.empty() ? "{}" : config.motionGateConfigJson);
+    }
     if (!config.alertClassNamesJson.empty() && config.alertClassNamesJson != "[]") {
         addCap("CAP-ALERT-CLASS-FILTER");
     }

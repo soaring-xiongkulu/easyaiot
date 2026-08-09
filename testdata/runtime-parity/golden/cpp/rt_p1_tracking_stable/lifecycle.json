@@ -1,0 +1,79 @@
+{
+  "case_id": "rt_p1_tracking_stable",
+  "layer": "L_lifecycle",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T15:24:27",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled",
+  "boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": "cpu",
+    "duration_sec": 23.4
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": 51682,
+      "process_id": 28688,
+      "log_path": "logs/cpp_sample/rt_p1_tracking_stable",
+      "timestamp_unix": 1786289043.643075
+    },
+    {
+      "seq": 2,
+      "task_id": 51682,
+      "process_id": 28688,
+      "log_path": "logs/cpp_sample/rt_p1_tracking_stable",
+      "timestamp_unix": 1786289046.904208
+    },
+    {
+      "seq": 3,
+      "task_id": 51682,
+      "process_id": 28688,
+      "log_path": "logs/cpp_sample/rt_p1_tracking_stable",
+      "timestamp_unix": 1786289050.1895823
+    },
+    {
+      "seq": 4,
+      "task_id": 51682,
+      "process_id": 28688,
+      "log_path": "logs/cpp_sample/rt_p1_tracking_stable",
+      "timestamp_unix": 1786289053.4758954
+    },
+    {
+      "seq": 5,
+      "task_id": 51682,
+      "process_id": 28688,
+      "log_path": "logs/cpp_sample/rt_p1_tracking_stable",
+      "timestamp_unix": 1786289056.739694
+    },
+    {
+      "seq": 6,
+      "task_id": 51682,
+      "process_id": 28688,
+      "log_path": "logs/cpp_sample/rt_p1_tracking_stable",
+      "timestamp_unix": 1786289060.0224345
+    },
+    {
+      "seq": 7,
+      "task_id": 51682,
+      "process_id": 28688,
+      "log_path": "logs/cpp_sample/rt_p1_tracking_stable",
+      "timestamp_unix": 1786289063.3185122
+    },
+    {
+      "seq": 8,
+      "task_id": 51682,
+      "process_id": 28688,
+      "log_path": "logs/cpp_sample/rt_p1_tracking_stable",
+      "timestamp_unix": 1786289066.5868514
+    }
+  ],
+  "heartbeat_count": 8,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

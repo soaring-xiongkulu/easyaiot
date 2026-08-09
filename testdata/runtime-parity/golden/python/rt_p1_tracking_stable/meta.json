@@ -1,0 +1,18 @@
+{
+  "case_id": "rt_p1_tracking_stable",
+  "executor": "python",
+  "required_layers": [
+    "L_lifecycle",
+    "L_track"
+  ],
+  "written_at": "2026-08-09T15:20:38",
+  "recording": "oracle_smoke",
+  "source": "oracle_smoke_local_media",
+  "status": "recorded",
+  "oracle_root": "F:\\acme\\.worktrees\\runtime-parity",
+  "artifacts": [
+    "lifecycle.json",
+    "track.json"
+  ],
+  "limitations": "Smoke lifecycle recording without live oracle VIDEO; heartbeats are deterministic stubs. Media path verified from manifest Intel sample-video."
+}
