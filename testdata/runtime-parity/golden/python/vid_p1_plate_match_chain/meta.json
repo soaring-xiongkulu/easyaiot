@@ -1,0 +1,12 @@
+{
+  "case_id": "vid_p1_plate_match_chain",
+  "executor": "python",
+  "required_layers": [
+    "L_plate"
+  ],
+  "written_at": "2026-08-09T17:11:56",
+  "artifacts": [
+    "plate_match.json"
+  ],
+  "sample_mode": "platform"
+}

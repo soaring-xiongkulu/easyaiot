@@ -142,6 +142,11 @@ def stream_from_parity(parity: Dict[str, Any]) -> Dict[str, Any]:
         "pushed_fail": int(st.get("pushed_fail") or 0),
         "meta_set": bool(st.get("meta_set")),
         "gray_frame_count": int(st.get("gray_frame_count") or 0),
+        "codec_name": str(st.get("codec_name") or ""),
+        "quality_profile": str(st.get("quality_profile") or ""),
+        "nvenc_requested": bool(st.get("nvenc_requested")),
+        "nvenc_fallback": bool(st.get("nvenc_fallback")),
+        "quality_downgraded": bool(st.get("quality_downgraded")),
     }
 
 

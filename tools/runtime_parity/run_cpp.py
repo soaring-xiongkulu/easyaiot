@@ -254,6 +254,28 @@ schedule_json={sched}
 [models]
 extra_paths={_json.dumps(resolved, ensure_ascii=False)}
 """
+
+    # CAP-GB28181-SRC: original gb28181:// + VIDEO-style resolved pull URL
+    gb_src = str(case.raw.get("gb28181_source") or case.raw.get("device_source") or "")
+    if gb_src.lower().startswith("gb28181://") or bool(case.raw.get("gb28181_enabled")):
+        content += f"""
+[stream_src]
+gb28181_enabled=true
+gb28181_resolved=true
+original_source={gb_src or "gb28181://parity_dev/ch01"}
+resolved_url={rel_media_s}
+"""
+
+    # CAP-NVENC-AUTO
+    if bool(case.raw.get("nvenc_auto")) or bool(case.raw.get("quality_auto_downgrade")):
+        qp = str(case.raw.get("quality_profile") or "high")
+        content += f"""
+[encoder]
+nvenc_auto=true
+quality_auto_downgrade=true
+quality_profile={qp}
+"""
+
     ini_path.write_text(content, encoding="utf-8")
     return ini_path
 
@@ -648,12 +670,17 @@ def _write_sampled_layers(
                 "pushed_ok": st["pushed_ok"],
                 "pushed_fail": st["pushed_fail"],
                 "gray_frame_count": int(probe.get("gray_frame_count") or st["gray_frame_count"] or 0),
+                "codec_name": st.get("codec_name") or (probe.get("codec_name") if probe else "") or "h264",
+                "quality_profile": st.get("quality_profile") or "",
+                "nvenc_requested": bool(st.get("nvenc_requested")),
+                "nvenc_fallback": bool(st.get("nvenc_fallback")),
+                "quality_downgraded": bool(st.get("quality_downgraded")),
                 "ffprobe": probe if probe else {
                     "width": width,
                     "height": height,
                     "fps": fps,
                     "bitrate_kbps": bitrate,
-                    "codec_name": "h264",
+                    "codec_name": st.get("codec_name") or "h264",
                     "gray_frame_count": 0,
                 },
             }

@@ -1,0 +1,30 @@
+{
+  "case_id": "rt_p2_quality_nvenc",
+  "layer": "L_stream",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T17:11:12",
+  "source": "runtime_parity_gate_cpp_parity_sample",
+  "status": "sampled",
+  "rtmp_url": "rtmp://127.0.0.1:1935/live/parity_rt_p2_quality_nvenc",
+  "width": 768,
+  "height": 432,
+  "fps": 12.0,
+  "bitrate_kbps": 3500.0,
+  "pushed_ok": 1600,
+  "pushed_fail": 0,
+  "gray_frame_count": 0,
+  "codec_name": "h264_nvenc",
+  "quality_profile": "high",
+  "nvenc_requested": true,
+  "nvenc_fallback": false,
+  "quality_downgraded": false,
+  "ffprobe": {
+    "width": 768,
+    "height": 432,
+    "fps": 12.0,
+    "bitrate_kbps": 3500.0,
+    "codec_name": "h264",
+    "gray_frame_count": 0
+  }
+}

@@ -59,8 +59,55 @@ class TestRuntimeIniContract(unittest.TestCase):
         self.assertNotIn('CAP-TRACKING=true', content)
         self.assertNotIn('CAP-FACE-MATCH=true', content)
         self.assertNotIn('CAP-FACE-FILTER=true', content)
+        self.assertNotIn('CAP-GB28181-SRC=true', content)
+        self.assertNotIn('CAP-NVENC-AUTO=true', content)
         self.assertTrue(path.endswith('task_99001.ini'))
 
+    def test_gb28181_resolves_into_stream_src(self):
+        from app.services import runtime_config_service as rcs
+
+        task = self._minimal_task(gb28181_source_enabled=True)
+        task.devices = [
+            SimpleNamespace(
+                id='dev_gb',
+                name='cam_gb',
+                source='gb28181://parity_dev/ch01',
+                ai_rtmp_stream='',
+            )
+        ]
+        with unittest.mock.patch.dict(
+            'os.environ',
+            {'GB28181_FIXTURE_MAP': 'gb28181://parity_dev/ch01=rtsp://127.0.0.1/parity'},
+            clear=False,
+        ):
+            with unittest.mock.patch.object(rcs, '_regions_ini_block', return_value=''):
+                with unittest.mock.patch.object(
+                    rcs, '_resolve_model_paths', return_value=('model.onnx', 'coco.names')
+                ):
+                    with unittest.mock.patch('os.path.isfile', return_value=True):
+                        rcs.generate_runtime_ini(task, '/tmp/runtime.log', write_local=False)
+        content = getattr(rcs.generate_runtime_ini, 'last_content', '')
+        self.assertIn('[stream_src]', content)
+        self.assertIn('gb28181_enabled=true', content)
+        self.assertIn('gb28181_resolved=true', content)
+        self.assertIn('resolved_url=rtsp://127.0.0.1/parity', content)
+        self.assertIn('rtsp_url=rtsp://127.0.0.1/parity', content)
+        self.assertNotIn('CAP-GB28181-SRC=true', content)
+
+    def test_nvenc_auto_emits_encoder_not_unsupported(self):
+        from app.services import runtime_config_service as rcs
+
+        task = self._minimal_task(nvenc_auto_quality=True, quality_auto_downgrade=True)
+        with unittest.mock.patch.object(rcs, '_regions_ini_block', return_value=''):
+            with unittest.mock.patch.object(
+                rcs, '_resolve_model_paths', return_value=('model.onnx', 'coco.names')
+            ):
+                with unittest.mock.patch('os.path.isfile', return_value=True):
+                    rcs.generate_runtime_ini(task, '/tmp/runtime.log', write_local=False)
+        content = getattr(rcs.generate_runtime_ini, 'last_content', '')
+        self.assertIn('[encoder]', content)
+        self.assertIn('nvenc_auto=true', content)
+        self.assertNotIn('CAP-NVENC-AUTO=true', content)
     def test_snap_uses_frame_skip_not_extract_interval(self):
         from app.services import runtime_config_service as rcs
 

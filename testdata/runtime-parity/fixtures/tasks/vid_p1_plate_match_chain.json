@@ -1,0 +1,7 @@
+{
+  "task_type": "video",
+  "executor": "cpp",
+  "plate_matching_enabled": true,
+  "plate_library_ids": [1],
+  "description": "cpp-only plate match chain"
+}

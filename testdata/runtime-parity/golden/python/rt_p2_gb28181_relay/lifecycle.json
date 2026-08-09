@@ -1,0 +1,107 @@
+{
+  "case_id": "rt_p2_gb28181_relay",
+  "layer": "L_lifecycle",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T14:54:52",
+  "source": "oracle_smoke_onnx",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Local Intel sample-video ONNX inference; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "boot": {
+    "exit_code": 0,
+    "started": true
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": "rt_p2_gb28181_relay_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_gb28181_relay/runtime.log",
+      "timestamp_unix": 1786287172.3463254
+    },
+    {
+      "seq": 2,
+      "task_id": "rt_p2_gb28181_relay_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_gb28181_relay/runtime.log",
+      "timestamp_unix": 1786287182.3463254
+    },
+    {
+      "seq": 3,
+      "task_id": "rt_p2_gb28181_relay_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_gb28181_relay/runtime.log",
+      "timestamp_unix": 1786287192.3463254
+    },
+    {
+      "seq": 4,
+      "task_id": "rt_p2_gb28181_relay_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_gb28181_relay/runtime.log",
+      "timestamp_unix": 1786287202.3463254
+    },
+    {
+      "seq": 5,
+      "task_id": "rt_p2_gb28181_relay_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_gb28181_relay/runtime.log",
+      "timestamp_unix": 1786287212.3463254
+    },
+    {
+      "seq": 6,
+      "task_id": "rt_p2_gb28181_relay_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_gb28181_relay/runtime.log",
+      "timestamp_unix": 1786287222.3463254
+    },
+    {
+      "seq": 7,
+      "task_id": "rt_p2_gb28181_relay_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_gb28181_relay/runtime.log",
+      "timestamp_unix": 1786287232.3463254
+    },
+    {
+      "seq": 8,
+      "task_id": "rt_p2_gb28181_relay_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_gb28181_relay/runtime.log",
+      "timestamp_unix": 1786287242.3463254
+    },
+    {
+      "seq": 9,
+      "task_id": "rt_p2_gb28181_relay_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_gb28181_relay/runtime.log",
+      "timestamp_unix": 1786287252.3463254
+    },
+    {
+      "seq": 10,
+      "task_id": "rt_p2_gb28181_relay_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_gb28181_relay/runtime.log",
+      "timestamp_unix": 1786287262.3463254
+    },
+    {
+      "seq": 11,
+      "task_id": "rt_p2_gb28181_relay_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_gb28181_relay/runtime.log",
+      "timestamp_unix": 1786287272.3463254
+    },
+    {
+      "seq": 12,
+      "task_id": "rt_p2_gb28181_relay_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_gb28181_relay/runtime.log",
+      "timestamp_unix": 1786287282.3463254
+    }
+  ],
+  "heartbeat_count": 12,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

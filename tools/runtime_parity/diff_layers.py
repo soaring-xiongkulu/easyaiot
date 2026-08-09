@@ -610,6 +610,25 @@ def diff_stream(
     if cpp_gray > gray_max:
         return _fail(layer, f"gray_frame_count {cpp_gray} > max {gray_max}")
 
+    # CAP-NVENC-AUTO: when requested, require software fallback meta on CPU (or nvenc success)
+    if bool(cpp_data.get("nvenc_requested")):
+        codec = str(cpp_data.get("codec_name") or (cpp_probe.get("codec_name") if cpp_probe else "") or "")
+        if not codec:
+            return _fail(layer, "nvenc_requested but codec_name missing")
+        if bool(cpp_data.get("nvenc_fallback")):
+            soft = codec.lower() in ("libx264", "h264", "x264")
+            if not soft:
+                return _fail(layer, f"nvenc_fallback set but codec_name={codec} not software")
+            if not bool(cpp_data.get("quality_downgraded")):
+                # Accept either explicit downgrade or medium/low profile after fallback
+                qp = str(cpp_data.get("quality_profile") or "").lower()
+                if qp not in ("low", "medium", "med"):
+                    return _fail(
+                        layer,
+                        "nvenc_fallback without quality_downgraded/medium|low profile",
+                        quality_profile=qp,
+                    )
+
     return _pass(
         layer,
         width=cpp_w,
@@ -618,6 +637,9 @@ def diff_stream(
         bitrate_kbps=cpp_br,
         pushed_ok=pushed,
         ffprobe_used=bool(cpp_probe.get("width")),
+        codec_name=str(cpp_data.get("codec_name") or ""),
+        nvenc_fallback=bool(cpp_data.get("nvenc_fallback")),
+        quality_profile=str(cpp_data.get("quality_profile") or ""),
     )
 
 
@@ -663,6 +685,22 @@ def diff_face(
     cpp_pub = int(cpp_data.get("publish_count") or cpp_data.get("process_count") or 0)
     if cpp_pub < 1:
         return _fail(layer, "cpp face match publish/process_count < 1")
+    return _pass(layer, publish_count_cpp=cpp_pub)
+
+
+def diff_plate(
+    layer: str,
+    py_data: Dict[str, Any],
+    cpp_data: Dict[str, Any],
+    thresholds: Dict[str, Any],
+) -> Dict[str, Any]:
+    if py_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"python plate status invalid: {py_data.get('status')}")
+    if cpp_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"cpp plate status invalid: {cpp_data.get('status')}")
+    cpp_pub = int(cpp_data.get("publish_count") or cpp_data.get("process_count") or 0)
+    if cpp_pub < 1:
+        return _fail(layer, "cpp plate match publish/process_count < 1")
     return _pass(layer, publish_count_cpp=cpp_pub)
 
 
@@ -775,6 +813,8 @@ def diff_layer(
         result = diff_kafka(layer, py_data, cpp_data, thresholds)
     elif layer == "L_face":
         result = diff_face(layer, py_data, cpp_data, thresholds)
+    elif layer == "L_plate":
+        result = diff_plate(layer, py_data, cpp_data, thresholds)
     elif layer == "L_post":
         result = diff_post(layer, py_data, cpp_data, thresholds)
     elif layer == "L_perf":

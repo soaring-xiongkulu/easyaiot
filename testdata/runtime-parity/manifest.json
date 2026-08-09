@@ -35,9 +35,12 @@
         "rt_p1_multi_model",
         "rt_p1_defense_armed",
         "snap_p1_snap_space",
-        "vid_p1_post_process_enqueue"
+        "vid_p1_post_process_enqueue",
+        "vid_p1_plate_match_chain",
+        "rt_p2_gb28181_relay",
+        "rt_p2_quality_nvenc"
       ],
-      "note": "P0 gap-close + G-4.2/4.3/4.4 + frame CAP P1 when RUNTIME.exe available"
+      "note": "P0 gap-close + G-4.2/4.3/4.4 + frame CAP P1/P2 (GB28181/NVENC/plate) when RUNTIME.exe available"
     }
   },
   "media": {
@@ -351,6 +354,45 @@
       "fixture": "fixtures/tasks/vid_p1_post_process_enqueue.json",
       "required_layers": ["L_post"],
       "description": "VIDEO 帧后：post_process/pose enqueue（cpp hook 触发）"
+    },
+    {
+      "id": "vid_p1_plate_match_chain",
+      "priority": "P1",
+      "task_type": "video",
+      "executor_baseline": "cpp",
+      "sample_mode": "platform",
+      "caps": ["CAP-PLATE-MATCH"],
+      "media_id": "person-bicycle-car-detection",
+      "fixture": "fixtures/tasks/vid_p1_plate_match_chain.json",
+      "required_layers": ["L_plate"],
+      "description": "仅 cpp 触发链：alert_post_orchestrator 入队车牌匹配（可 mock）"
+    },
+    {
+      "id": "rt_p2_gb28181_relay",
+      "priority": "P2",
+      "task_type": "realtime",
+      "executor_baseline": "python",
+      "caps": ["CAP-GB28181-SRC", "CAP-STREAM-INPUT"],
+      "media_id": "people-detection",
+      "fixture": "fixtures/tasks/rt_p2_gb28181_relay.json",
+      "required_layers": ["L_lifecycle", "L_detect"],
+      "gb28181_enabled": true,
+      "gb28181_source": "gb28181://parity_dev/ch01",
+      "description": "CAP-GB28181-SRC：夹具映射解析后拉流；lifecycle+detect"
+    },
+    {
+      "id": "rt_p2_quality_nvenc",
+      "priority": "P2",
+      "task_type": "realtime",
+      "executor_baseline": "python",
+      "caps": ["CAP-NVENC-AUTO", "CAP-QUALITY-AUTO"],
+      "media_id": "people-detection",
+      "fixture": "fixtures/tasks/rt_p2_quality_nvenc.json",
+      "required_layers": ["L_lifecycle", "L_stream"],
+      "nvenc_auto": true,
+      "quality_auto_downgrade": true,
+      "quality_profile": "high",
+      "description": "CAP-NVENC-AUTO：NVENC 不可用时软件回退+画质降档；encoder meta/ffprobe"
     }
   ]
 }

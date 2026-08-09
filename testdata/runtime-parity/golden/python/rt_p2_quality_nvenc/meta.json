@@ -1,0 +1,18 @@
+{
+  "case_id": "rt_p2_quality_nvenc",
+  "executor": "python",
+  "required_layers": [
+    "L_lifecycle",
+    "L_stream"
+  ],
+  "written_at": "2026-08-09T16:18:44",
+  "recording": "oracle_smoke",
+  "source": "oracle_smoke_local_media",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "artifacts": [
+    "lifecycle.json",
+    "stream.json"
+  ],
+  "limitations": "Smoke lifecycle/schedule recording without live oracle VIDEO; heartbeats/slots are deterministic stubs. Media path verified from manifest Intel sample-video."
+}

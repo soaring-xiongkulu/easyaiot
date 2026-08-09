@@ -167,6 +167,64 @@ def sample_vid_face_match_chain(case: CaseSpec, executor: str = "cpp") -> Dict[s
             os.remove(path)
 
 
+def sample_vid_plate_match_chain(case: CaseSpec, executor: str = "cpp") -> Dict[str, Dict[str, Any]]:
+    """CAP-PLATE-MATCH — VIDEO alert_post_orchestrator cpp path with mocks."""
+    from app.services import alert_post_orchestrator as apo
+
+    fd, path = tempfile.mkstemp(suffix=".jpg")
+    os.close(fd)
+    try:
+        cv2.imwrite(path, np.zeros((64, 64, 3), dtype=np.uint8))
+        task = SimpleNamespace(
+            id=91303,
+            task_name="parity-plate",
+            task_type="realtime",
+            executor="cpp",
+            face_matching_enabled=False,
+            plate_matching_enabled=True,
+            plate_library_ids="[1]",
+            face_library_ids="[]",
+            post_process_enabled=False,
+            pose_analysis_enabled=False,
+            pose_intent_enabled=False,
+        )
+        alert = {
+            "device_id": "dev1",
+            "device_name": "cam1",
+            "event": "detection",
+            "image_path": path,
+            "correlation_id": "corr-plate-1",
+            "information": {
+                "frame_number": 9,
+                "detections": [
+                    {"class_name": "car", "confidence": 0.89, "bbox": [10, 20, 120, 80]},
+                ],
+            },
+        }
+        with unittest.mock.patch.object(apo, "_resolve_task", return_value=task):
+            with unittest.mock.patch.object(apo, "_ensure_capture_workers"):
+                with unittest.mock.patch.object(apo, "_try_face_matching"):
+                    with unittest.mock.patch.object(apo, "_try_plate_matching") as plate_mock:
+                        with unittest.mock.patch.object(apo, "_try_post_process_enqueue"):
+                            summary = apo.run_post_alert_orchestration(alert, {"task_id": 91303})
+
+        ok = bool(summary.get("plate_matching")) and plate_mock.call_count == 1
+        plate = {
+            **_base(case, "L_plate", executor, source="platform_sample_orchestrator"),
+            "status": "sampled" if ok else "fail",
+            "publish_count": 1 if ok else 0,
+            "process_count": 1 if ok else 0,
+            "hit_count": 0,
+            "mock": True,
+            "orchestrator_summary": summary,
+            "reason": "" if ok else f"orchestrator did not enqueue plate matching: {summary}",
+        }
+        return {"L_plate": plate}
+    finally:
+        if os.path.isfile(path):
+            os.remove(path)
+
+
 def sample_vid_post_process(case: CaseSpec, executor: str = "cpp") -> Dict[str, Dict[str, Any]]:
     """CAP-POST-PROCESS — VIDEO hook enqueue path."""
     from app.services import alert_post_orchestrator as apo
@@ -332,6 +390,9 @@ def run_platform_case(case: CaseSpec) -> Tuple[int, List[Dict[str, Any]]]:
         py_layers = sample_vid_face_match_chain(case, "python")
         # Face match is VIDEO-owned; python golden mirrors cpp orchestrator contract
         cpp_layers = sample_vid_face_match_chain(case, "cpp")
+    elif cid == "vid_p1_plate_match_chain":
+        py_layers = sample_vid_plate_match_chain(case, "python")
+        cpp_layers = sample_vid_plate_match_chain(case, "cpp")
     elif cid == "vid_p1_post_process_enqueue":
         py_layers = sample_vid_post_process(case, "python")
         cpp_layers = sample_vid_post_process(case, "cpp")

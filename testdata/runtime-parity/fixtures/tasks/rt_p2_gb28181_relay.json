@@ -1,0 +1,10 @@
+{
+  "task_type": "realtime",
+  "executor": "python",
+  "device_source": "gb28181://parity_dev/ch01",
+  "gb28181_enabled": true,
+  "gb28181_source": "gb28181://parity_dev/ch01",
+  "frame_skip": 4,
+  "task_id": "rt_p2_gb28181_relay_fixture",
+  "description": "CAP-GB28181-SRC fixture: gb28181:// mapped to Intel people-detection media"
+}

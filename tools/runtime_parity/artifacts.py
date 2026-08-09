@@ -146,6 +146,14 @@ def skeleton_for_layer(layer: str, case: CaseSpec, executor: str) -> Dict[str, A
             "process_count": 0,
             "hit_count": 0,
         }
+    if layer == "L_plate":
+        return {
+            **base,
+            "status": "placeholder",
+            "publish_count": 0,
+            "process_count": 0,
+            "hit_count": 0,
+        }
     if layer == "L_post":
         return {
             **base,

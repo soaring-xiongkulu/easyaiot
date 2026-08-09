@@ -1,0 +1,107 @@
+{
+  "case_id": "rt_p2_quality_nvenc",
+  "layer": "L_lifecycle",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:18:44",
+  "source": "oracle_smoke_local_media",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Smoke lifecycle/schedule recording without live oracle VIDEO; heartbeats/slots are deterministic stubs. Media path verified from manifest Intel sample-video.",
+  "boot": {
+    "exit_code": 0,
+    "started": true
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": "rt_p2_quality_nvenc_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_quality_nvenc/runtime.log",
+      "timestamp_unix": 1786292204.8154037
+    },
+    {
+      "seq": 2,
+      "task_id": "rt_p2_quality_nvenc_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_quality_nvenc/runtime.log",
+      "timestamp_unix": 1786292214.8154037
+    },
+    {
+      "seq": 3,
+      "task_id": "rt_p2_quality_nvenc_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_quality_nvenc/runtime.log",
+      "timestamp_unix": 1786292224.8154037
+    },
+    {
+      "seq": 4,
+      "task_id": "rt_p2_quality_nvenc_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_quality_nvenc/runtime.log",
+      "timestamp_unix": 1786292234.8154037
+    },
+    {
+      "seq": 5,
+      "task_id": "rt_p2_quality_nvenc_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_quality_nvenc/runtime.log",
+      "timestamp_unix": 1786292244.8154037
+    },
+    {
+      "seq": 6,
+      "task_id": "rt_p2_quality_nvenc_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_quality_nvenc/runtime.log",
+      "timestamp_unix": 1786292254.8154037
+    },
+    {
+      "seq": 7,
+      "task_id": "rt_p2_quality_nvenc_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_quality_nvenc/runtime.log",
+      "timestamp_unix": 1786292264.8154037
+    },
+    {
+      "seq": 8,
+      "task_id": "rt_p2_quality_nvenc_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_quality_nvenc/runtime.log",
+      "timestamp_unix": 1786292274.8154037
+    },
+    {
+      "seq": 9,
+      "task_id": "rt_p2_quality_nvenc_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_quality_nvenc/runtime.log",
+      "timestamp_unix": 1786292284.8154037
+    },
+    {
+      "seq": 10,
+      "task_id": "rt_p2_quality_nvenc_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_quality_nvenc/runtime.log",
+      "timestamp_unix": 1786292294.8154037
+    },
+    {
+      "seq": 11,
+      "task_id": "rt_p2_quality_nvenc_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_quality_nvenc/runtime.log",
+      "timestamp_unix": 1786292304.8154037
+    },
+    {
+      "seq": 12,
+      "task_id": "rt_p2_quality_nvenc_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p2_quality_nvenc/runtime.log",
+      "timestamp_unix": 1786292314.8154037
+    }
+  ],
+  "heartbeat_count": 12,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

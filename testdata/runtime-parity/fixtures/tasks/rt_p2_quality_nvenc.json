@@ -1,0 +1,13 @@
+{
+  "task_type": "realtime",
+  "executor": "python",
+  "device_source": "file://testdata/runtime-parity/media/people-detection.mp4",
+  "enable_rtmp": true,
+  "enable_draw": true,
+  "nvenc_auto": true,
+  "quality_auto_downgrade": true,
+  "quality_profile": "high",
+  "frame_skip": 4,
+  "task_id": "rt_p2_quality_nvenc_fixture",
+  "description": "CAP-NVENC-AUTO: prefer NVENC then software fallback + quality downgrade"
+}
