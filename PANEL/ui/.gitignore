@@ -1,6 +1,0 @@
-node_modules
-dist
-dist-old-broken
-dist-stuck-*
-.DS_Store
-*.local

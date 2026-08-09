@@ -51,7 +51,7 @@ export function isEdgeNodeEnabled(): boolean {
   return !isMiniDeployProfile();
 }
 
-/** mini / standard 均不部署可视化后端与编辑器，统一隐藏相关顶级菜单 */
+/** acme 已移除 VISUALIZE 编辑器：全形态隐藏相关顶级菜单 */
 const VISUALIZE_HIDDEN_MENU_NAMES = ['可视化管理', '大屏管理', '可视化大屏'] as const;
 const TRANSFORM_HIDDEN_MENU_NAMES = ['系统对接', '数据转发'] as const;
 
@@ -79,9 +79,12 @@ const STANDARD_HIDDEN_MENU_NAMES = new Set([
   ...TRANSFORM_HIDDEN_MENU_NAMES,
 ]);
 
-/** full 形态才启用可视化（iot-visualize / VISUALIZE） */
+/** full 仍隐藏已移除的 VISUALIZE 菜单 */
+const FULL_HIDDEN_MENU_NAMES = new Set([...VISUALIZE_HIDDEN_MENU_NAMES]);
+
+/** VISUALIZE 已从产品树移除 */
 export function isVisualizeEnabled(): boolean {
-  return getDeployProfile() === 'full';
+  return false;
 }
 
 /** full 形态才启用系统对接（TRANSFORM） */
@@ -93,7 +96,7 @@ function getHiddenMenuNamesForDeployProfile(): Set<string> {
   const profile = getDeployProfile();
   if (profile === 'mini') return MINI_HIDDEN_MENU_NAMES;
   if (profile === 'standard') return STANDARD_HIDDEN_MENU_NAMES;
-  return new Set();
+  return FULL_HIDDEN_MENU_NAMES;
 }
 
 /** 当前部署形态下是否应隐藏该菜单项（按菜单名称匹配） */

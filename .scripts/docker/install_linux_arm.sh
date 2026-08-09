@@ -93,9 +93,7 @@ MODULES=(
     "AI"               # AI服务
     "VIDEO"            # Video服务
     "WEB"              # Web前端服务
-    "VISUALIZE"        # 可视化编辑器（仅 full 全量形态）
     "TRANSFORM"        # 系统对接（仅 full 全量形态）
-    "PANEL"            # 运维控制台：源码/Docker 可装；安装包本身即为 PANEL，部署默认跳过
 )
 
 # 模块名称映射
@@ -105,9 +103,7 @@ MODULE_NAMES["DEVICE"]="Device服务"
 MODULE_NAMES["AI"]="AI服务"
 MODULE_NAMES["VIDEO"]="Video服务"
 MODULE_NAMES["WEB"]="Web前端服务"
-MODULE_NAMES["VISUALIZE"]="可视化编辑器"
 MODULE_NAMES["TRANSFORM"]="系统对接"
-MODULE_NAMES["PANEL"]="运维控制台"
 
 # 模块端口映射
 declare -A MODULE_PORTS
@@ -116,9 +112,7 @@ MODULE_PORTS["DEVICE"]="48080"           # Gateway端口
 MODULE_PORTS["AI"]="5000"
 MODULE_PORTS["VIDEO"]="6000"
 MODULE_PORTS["WEB"]="8888"
-MODULE_PORTS["VISUALIZE"]="8002"
 MODULE_PORTS["TRANSFORM"]="48096"
-MODULE_PORTS["PANEL"]="9200"
 
 # 模块健康检查端点
 declare -A MODULE_HEALTH_ENDPOINTS
@@ -127,9 +121,7 @@ MODULE_HEALTH_ENDPOINTS["DEVICE"]="/actuator/health"  # Gateway健康检查
 MODULE_HEALTH_ENDPOINTS["AI"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["VIDEO"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["WEB"]="/health"
-MODULE_HEALTH_ENDPOINTS["VISUALIZE"]="/health"
 MODULE_HEALTH_ENDPOINTS["TRANSFORM"]="/actuator/health"
-MODULE_HEALTH_ENDPOINTS["PANEL"]="/health"
 
 # 日志输出函数（去掉颜色代码后写入日志文件）
 log_to_file() {
@@ -772,7 +764,7 @@ execute_module_command() {
 
     local defer_agent_sync=0
     case "$module" in
-        DEVICE|AI|VIDEO|WEB|VISUALIZE|TRANSFORM) defer_agent_sync=1 ;;
+        DEVICE|AI|VIDEO|WEB|TRANSFORM) defer_agent_sync=1 ;;
     esac
     if [ "$defer_agent_sync" -eq 1 ]; then
         export EASYAIOT_DEFER_PLATFORM_AGENT_SYNC=1

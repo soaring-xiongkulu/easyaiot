@@ -956,9 +956,7 @@ build_single_module() {
         aiot-ai)    build_module_with_install_script "AI" "ai-service" "$local_ref" "$target_arch" ;;
         aiot-video) build_module_with_install_script "VIDEO" "video-service" "$local_ref" "$target_arch" ;;
         aiot-web)   build_module_with_install_script "WEB" "web-service" "$local_ref" "$target_arch" ;;
-        aiot-visualize-web) build_module_with_install_script "VISUALIZE" "visualize-service" "$local_ref" "$target_arch" ;;
         aiot-transform) build_module_with_install_script "TRANSFORM" "transform-service" "$local_ref" "$target_arch" ;;
-        aiot-panel) build_module_with_install_script "PANEL" "easyaiot/panel" "$local_ref" "$target_arch" ;;
         *)
             # DEVICE 模块：统一由 build_device_all 处理
             build_device_all "$target_arch" || return 1

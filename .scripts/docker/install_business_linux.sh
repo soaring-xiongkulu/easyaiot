@@ -98,17 +98,15 @@ ensure_industrial_demo_after_business_stack() {
     fi
 }
 
-# 业务模块（按依赖顺序：网关/微服务 -> AI/视频 -> 前端 -> 全量模块 -> 运维控制台）
-ALL_MODULES=(DEVICE AI VIDEO WEB VISUALIZE TRANSFORM PANEL)
+# 业务模块（按依赖顺序：网关/微服务 -> AI/视频 -> 前端 -> 全量模块）
+ALL_MODULES=(DEVICE AI VIDEO WEB TRANSFORM)
 
 declare -A MODULE_NAMES=(
     [DEVICE]="Device 服务"
     [AI]="AI 服务"
     [VIDEO]="Video 服务"
     [WEB]="Web 前端"
-    [VISUALIZE]="可视化编辑器"
     [TRANSFORM]="系统对接"
-    [PANEL]="运维控制台"
 )
 
 declare -A MODULE_PORTS=(
@@ -116,9 +114,7 @@ declare -A MODULE_PORTS=(
     [AI]="5000"
     [VIDEO]="6000"
     [WEB]="8888"
-    [VISUALIZE]="8002"
     [TRANSFORM]="48096"
-    [PANEL]="9200"
 )
 
 declare -A MODULE_HEALTH_ENDPOINTS=(
@@ -126,9 +122,7 @@ declare -A MODULE_HEALTH_ENDPOINTS=(
     [AI]="/actuator/health"
     [VIDEO]="/actuator/health"
     [WEB]="/health"
-    [VISUALIZE]="/health"
     [TRANSFORM]="/actuator/health"
-    [PANEL]="/health"
 )
 
 LOG_DIR="${SCRIPT_DIR}/logs"

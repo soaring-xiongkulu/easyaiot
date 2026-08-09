@@ -61,9 +61,7 @@ MODULES=(
   "AI"
   "VIDEO"
   "WEB"
-  "VISUALIZE"
   "TRANSFORM"
-  "PANEL"
 )
 
 # 面板分拆部署：EASYAIOT_DEPLOY_SCOPE=all|middleware|business
@@ -99,9 +97,7 @@ module_name() {
     "AI") echo "AI服务" ;;
     "VIDEO") echo "Video服务" ;;
     "WEB") echo "Web前端服务" ;;
-    "VISUALIZE") echo "可视化编辑器" ;;
     "TRANSFORM") echo "系统对接" ;;
-    "PANEL") echo "运维控制台" ;;
     *) echo "$1" ;;
   esac
 }
@@ -113,9 +109,7 @@ module_port() {
     "AI") echo "5000" ;;
     "VIDEO") echo "6000" ;;
     "WEB") echo "8888" ;;
-    "VISUALIZE") echo "8002" ;;
     "TRANSFORM") echo "48096" ;;
-    "PANEL") echo "9200" ;;
     *) echo "" ;;
   esac
 }
@@ -127,9 +121,7 @@ module_health() {
     "AI") echo "/actuator/health" ;;
     "VIDEO") echo "/actuator/health" ;;
     "WEB") echo "/health" ;;
-    "VISUALIZE") echo "/health" ;;
     "TRANSFORM") echo "/actuator/health" ;;
-    "PANEL") echo "/health" ;;
     *) echo "" ;;
   esac
 }
@@ -1578,17 +1570,8 @@ print_access_urls() {
   echo -e "  API 网关:                http://localhost:48080"
   echo -e "  Nacos:                   http://localhost:8848/nacos"
   echo -e "  MinIO:                   http://localhost:9001"
-  if module_enabled_for_deploy_profile APP; then
-    echo -e "  App H5:                  http://localhost:9010"
-  fi
-  if module_enabled_for_deploy_profile VISUALIZE; then
-    echo -e "  可视化编辑器:            http://localhost:8002"
-  fi
   if module_enabled_for_deploy_profile TRANSFORM; then
     echo -e "  系统对接 (TRANSFORM):    http://localhost:48096"
-  fi
-  if module_enabled_for_deploy_profile PANEL; then
-    echo -e "  运维控制台 (PANEL):      http://localhost:9200"
   fi
   echo ""
 }

@@ -28,7 +28,7 @@
 
 ## 产品范围
 
-- **SITE / APP / RTC 已从产品树移除**（ADR-0002、ADR-0003）。
+- **SITE / APP / RTC / PANEL / VISUALIZE 已从产品树移除**（ADR-0002～0004）。
 
 ## 尚未覆盖（后续）
 

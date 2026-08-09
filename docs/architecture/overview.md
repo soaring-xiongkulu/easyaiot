@@ -7,8 +7,7 @@
 | VIDEO | 视频接入与转发 |
 | AI | 算法与推理服务 |
 | RUNTIME | 边缘运行时 |
-| PANEL | 交付与 Docker 编排入口 |
 
 公司将在此树深改；rebekah C++ 执行面尚未接入。
 
-> **SITE / APP / RTC**：已从 acme 产品树移除（ADR-0002、ADR-0003）。
+> **SITE / APP / RTC / PANEL / VISUALIZE**：已从 acme 产品树移除（ADR-0002～0004）。

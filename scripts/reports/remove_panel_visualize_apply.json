@@ -1,0 +1,58 @@
+{
+  "mode": "apply",
+  "started_at": "2026-08-09T05:56:25Z",
+  "notes": [
+    "Content patches (install scripts, menus, nginx, COMPILE) are manual editor edits — not this script.",
+    "DEVICE/iot-visualize Java microservice is NOT deleted here (lives under DEVICE); WEB visualize UI + VISUALIZE editor tree are removed. FUXA (:1881) is unrelated and kept."
+  ],
+  "errors": [],
+  "ops": [
+    {
+      "action": "delete_tree",
+      "path": "F:\\acme\\PANEL",
+      "detail": "remove tree (56 files)",
+      "bytes_hint": 20516174,
+      "file_count": 56
+    },
+    {
+      "action": "delete_tree",
+      "path": "F:\\acme\\VISUALIZE",
+      "detail": "remove tree (962 files)",
+      "bytes_hint": 18183015,
+      "file_count": 962
+    },
+    {
+      "action": "delete_tree",
+      "path": "F:\\acme\\WEB\\src\\views\\visualize",
+      "detail": "remove tree (21 files)",
+      "bytes_hint": 144214,
+      "file_count": 21
+    },
+    {
+      "action": "delete_file",
+      "path": "F:\\acme\\WEB\\src\\utils\\panel.ts",
+      "detail": "PANEL/VISUALIZE-only helper",
+      "bytes_hint": 858,
+      "file_count": 1
+    },
+    {
+      "action": "delete_file",
+      "path": "F:\\acme\\WEB\\src\\utils\\visualizeEditor.ts",
+      "detail": "PANEL/VISUALIZE-only helper",
+      "bytes_hint": 9242,
+      "file_count": 1
+    },
+    {
+      "action": "delete_file",
+      "path": "F:\\acme\\WEB\\src\\api\\device\\visualize.ts",
+      "detail": "PANEL/VISUALIZE-only helper",
+      "bytes_hint": 4779,
+      "file_count": 1
+    }
+  ],
+  "op_counts": {
+    "delete_tree": 3,
+    "delete_file": 3
+  },
+  "finished_at": "2026-08-09T05:56:26Z"
+}

@@ -128,7 +128,7 @@ tar -C "${REPO_ROOT}" -cf - \
   .scripts | tar -C "${RUNTIME_ROOT}" -xf -
 
 # 3) 各业务模块：仅复制部署相关文件（不带源码目录）
-for module in DEVICE AI VIDEO WEB VISUALIZE TRANSFORM NODE; do
+for module in DEVICE AI VIDEO WEB TRANSFORM NODE; do
   runtime_copy_glob "$module" "install_linux*.sh"
   runtime_copy_glob "$module" "install_mac.sh"
   runtime_copy_glob "$module" "docker-compose*.yml"

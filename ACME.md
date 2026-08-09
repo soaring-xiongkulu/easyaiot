@@ -22,3 +22,4 @@
 
 - 不含官方门户 **SITE**（已移除，见 `docs/adr/0002-remove-site.md`）。
 - 不含移动端 **APP**、不含消费级 **RTC/go2rtc**（已移除，见 `docs/adr/0003-remove-app-rtc.md`）。
+- 不含运维台 **PANEL**、不含大屏编辑器 **VISUALIZE**（已移除，见 `docs/adr/0004-remove-panel-visualize.md`）。

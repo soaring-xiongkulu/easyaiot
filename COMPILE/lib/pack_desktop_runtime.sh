@@ -123,7 +123,7 @@ pack_source_free_runtime() {
 
   # 业务模块：仅部署相关文件（不带源码）
   local module
-  for module in DEVICE AI VIDEO WEB VISUALIZE TRANSFORM NODE PANEL; do
+  for module in DEVICE AI VIDEO WEB TRANSFORM NODE; do
     runtime_copy_glob "$module" "install_linux*.sh"
     runtime_copy_glob "$module" "install_mac.sh"
     runtime_copy_glob "$module" "install.sh"

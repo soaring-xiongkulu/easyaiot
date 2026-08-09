@@ -15,7 +15,7 @@
 #   status     - 查看所有服务状态
 #   logs       - 查看服务日志
 #   build           - 重新构建所有镜像（各模块本地构建）
-#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 DEVICE|AI|VIDEO|WEB|VISUALIZE|TRANSFORM|PANEL）
+#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 DEVICE|AI|VIDEO|WEB|TRANSFORM）
 #   pull            - 从远程仓库拉取预构建运行时镜像（等同 runtime_image.sh pull）
 #   clean      - 清理所有容器和镜像
 #   clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，再删运行时镜像/构建缓存；保留跨架构基础镜像；不停中间件）
@@ -32,7 +32,7 @@
 # 部署形态（EASYAIOT_DEPLOY_PROFILE）：
 #   mini(1)     - 4G：iot-system + VIDEO/AI/WEB + 最小中间件（无 Kafka/iot-sink/Nacos/Gateway/Infra/可视化）
 #   standard(2) - 16G：不含 TDengine/iot-device/iot-tdengine/NodeRED/iot-visualize（含 EMQX）
-#   full(3)     - 全量（默认，约 20G）；含 iot-visualize/VISUALIZE、TRANSFORM；启动后自动拉起工业协议演示（Modbus TCP/RTU + OPC UA）；PANEL 全形态启用
+#   full(3)     - 全量（默认，约 20G）；含 TRANSFORM；启动后自动拉起工业协议演示（Modbus TCP/RTU + OPC UA）
 # ============================================
 
 set -e
@@ -165,9 +165,7 @@ MODULES=(
     "AI"               # AI服务
     "VIDEO"            # Video服务
     "WEB"              # Web前端服务
-    "VISUALIZE"        # 可视化编辑器（仅 full 全量形态）
     "TRANSFORM"        # 系统对接（仅 full 全量形态）
-    "PANEL"            # 运维控制台：源码/Docker 可装；安装包本身即为 PANEL，部署默认跳过
 )
 
 # 模块名称映射
@@ -177,9 +175,7 @@ MODULE_NAMES["DEVICE"]="Device服务"
 MODULE_NAMES["AI"]="AI服务"
 MODULE_NAMES["VIDEO"]="Video服务"
 MODULE_NAMES["WEB"]="Web前端服务"
-MODULE_NAMES["VISUALIZE"]="可视化编辑器"
 MODULE_NAMES["TRANSFORM"]="系统对接"
-MODULE_NAMES["PANEL"]="运维控制台"
 
 # 模块端口映射
 declare -A MODULE_PORTS
@@ -188,9 +184,7 @@ MODULE_PORTS["DEVICE"]="48080"           # Gateway端口
 MODULE_PORTS["AI"]="5000"
 MODULE_PORTS["VIDEO"]="6000"
 MODULE_PORTS["WEB"]="8888"
-MODULE_PORTS["VISUALIZE"]="8002"
 MODULE_PORTS["TRANSFORM"]="48096"
-MODULE_PORTS["PANEL"]="9200"
 
 # 模块健康检查端点
 declare -A MODULE_HEALTH_ENDPOINTS
@@ -199,9 +193,7 @@ MODULE_HEALTH_ENDPOINTS["DEVICE"]="/actuator/health"  # Gateway健康检查
 MODULE_HEALTH_ENDPOINTS["AI"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["VIDEO"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["WEB"]="/health"
-MODULE_HEALTH_ENDPOINTS["VISUALIZE"]="/health"
 MODULE_HEALTH_ENDPOINTS["TRANSFORM"]="/actuator/health"
-MODULE_HEALTH_ENDPOINTS["PANEL"]="/health"
 
 # 统计当前部署形态下参与 install 汇总的模块数（已启用且存在安装脚本）
 _count_installable_modules() {
@@ -836,7 +828,7 @@ execute_module_command() {
 
     local defer_agent_sync=0
     case "$module" in
-        DEVICE|AI|VIDEO|WEB|VISUALIZE|TRANSFORM) defer_agent_sync=1 ;;
+        DEVICE|AI|VIDEO|WEB|TRANSFORM) defer_agent_sync=1 ;;
     esac
     if [ "$defer_agent_sync" -eq 1 ]; then
         export EASYAIOT_DEFER_PLATFORM_AGENT_SYNC=1
@@ -1727,14 +1719,8 @@ verify_all() {
         echo -e "  AI服务:                http://localhost:5000"
         echo -e "  Video服务:             http://localhost:6000"
         echo -e "  Web前端:               http://localhost:8888"
-        if module_enabled_for_deploy_profile VISUALIZE; then
-            echo -e "  可视化编辑器:           http://localhost:8002"
-        fi
         if module_enabled_for_deploy_profile TRANSFORM; then
             echo -e "  系统对接 (TRANSFORM):   http://localhost:48096"
-        fi
-        if module_enabled_for_deploy_profile PANEL; then
-            echo -e "  运维控制台 (PANEL):     http://localhost:9200"
         fi
         echo ""
         return 0
@@ -1835,7 +1821,7 @@ show_help() {
     echo "  logs            - 查看所有服务日志"
     echo "  logs [模块]     - 查看指定模块日志"
     echo "  build           - 重新构建所有镜像（各模块本地构建）"
-    echo "  build-runtime [模块] - 构建/推送运行时镜像（推送成功后删本地镜像；可选 DEVICE|AI|VIDEO|WEB|VISUALIZE|TRANSFORM|PANEL）"
+    echo "  build-runtime [模块] - 构建/推送运行时镜像（推送成功后删本地镜像；可选 DEVICE|AI|VIDEO|WEB|TRANSFORM）"
     echo "  pull            - 从远程仓库拉取预构建运行时镜像（交互式，默认 full）"
     echo "  clean           - 清理所有容器和镜像"
     echo "  clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，默认删运行时镜像+构建缓存；保留跨架构基础镜像）"
@@ -1870,7 +1856,7 @@ show_help() {
     echo "  EASYAIOT_APPLY_INDUSTRIAL_SEED=0   - 启动演示时不写入/刷新工业协议演示设备种子"
     echo "  EASYAIOT_RUNTIME_REGISTRY    - 运行时镜像仓库（默认见 runtime_registry.conf）"
     echo "  EASYAIOT_RUNTIME_BUILD_ARCH  - build-runtime 目标架构: all(默认) | amd64 | arm64"
-    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | DEVICE | AI | VIDEO | WEB | VISUALIZE | TRANSFORM | PANEL"
+    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | DEVICE | AI | VIDEO | WEB | TRANSFORM"
     echo "  # SITE_PORT removed with SITE portal"
     echo ""
 }

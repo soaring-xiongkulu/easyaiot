@@ -108,39 +108,19 @@ is_full_deploy_profile() {
 }
 
 # 按部署形态判断业务模块是否启用
-#   VISUALIZE / TRANSFORM — 仅 full 全量形态
-#   PANEL — 源码/Docker 部署默认启用；安装包（deb/桌面端）本身即为 PANEL，
-#           由 systemd/二进制托管，部署时不应再拉 Docker PANEL（EASYAIOT_ENABLE_PANEL=0）。
-#           无源码 runtime 未显式开启时也默认跳过。
+#   TRANSFORM — 仅 full 全量形态
+#   PANEL / VISUALIZE / APP / SITE / RTC — 已从 acme 产品树移除（ADR-0002～0004），恒为禁用
 module_enabled_for_deploy_profile() {
     case "$1" in
-        VISUALIZE|TRANSFORM) [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ] ;;
-        PANEL)
-            case "${EASYAIOT_ENABLE_PANEL:-}" in
-                0|false|FALSE|no|NO|off|OFF) return 1 ;;
-                1|true|TRUE|yes|YES|on|ON) return 0 ;;
-            esac
-            # 未显式设置：PANEL 安装包 / 无源码 runtime 默认不二次部署
-            if type runtime_is_source_free_runtime >/dev/null 2>&1 && runtime_is_source_free_runtime; then
-                return 1
-            fi
-            [ "${EASYAIOT_ENABLE_PANEL:-1}" != "0" ]
-            ;;
+        TRANSFORM) [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ] ;;
+        PANEL|VISUALIZE|APP|SITE|RTC) return 1 ;;
         *) return 0 ;;
     esac
 }
 
-# 跳过 PANEL 部署时的说明（安装包场景避免误判为“形态少装了模块”）
+# 兼容旧安装脚本中的 PANEL 跳过文案（模块已移除）
 panel_skip_deploy_reason() {
-    if [ "${EASYAIOT_ENABLE_PANEL:-}" = "0" ] || [ "${EASYAIOT_ENABLE_PANEL:-}" = "false" ]; then
-        echo "安装包/本机 PANEL 已在运行，部署无需再装运维控制台"
-        return
-    fi
-    if type runtime_is_source_free_runtime >/dev/null 2>&1 && runtime_is_source_free_runtime; then
-        echo "无源码 runtime（PANEL 安装包）已提供运维入口，跳过 Docker PANEL"
-        return
-    fi
-    echo "已禁用 PANEL 模块部署（EASYAIOT_ENABLE_PANEL=0）"
+    echo "PANEL 已从产品树移除（ADR-0004），跳过运维控制台部署"
 }
 
 # mini / standard 形态均不部署 TDengine 中间件
@@ -151,7 +131,8 @@ is_tdengine_disabled_deploy_profile() {
     esac
 }
 
-# mini / standard 形态均不部署可视化（iot-visualize / VISUALIZE 编辑器 / FUXA / 相关菜单）
+# VISUALIZE 编辑器已移除；mini/standard 仍不部署 DEVICE/iot-visualize 与 FUXA 相关菜单路径
+# （full 可保留 iot-visualize Java 微服务与 FUXA，见 ADR-0004）
 is_visualize_disabled_deploy_profile() {
     case "${EASYAIOT_DEPLOY_PROFILE:-full}" in
         mini|standard) return 0 ;;
@@ -261,19 +242,16 @@ print_deploy_profile_summary() {
   case "${EASYAIOT_DEPLOY_PROFILE}" in
     mini)
       echo "  业务: iot-system（48099）, VIDEO, AI, WEB（告警由 VIDEO 直连落库，无需 iot-sink/Kafka）"
-      echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
       echo "  中间件: PostgreSQL, Redis, SRS"
-      echo "  不启动: Kafka, iot-sink, Nacos, MinIO, iot-gateway, iot-infra, Milvus, ZLMediaKit, NodeRED, FUXA, TDengine, EMQX、iot-visualize/VISUALIZE、TRANSFORM 及多数 DEVICE 模块"
+      echo "  不启动: Kafka, iot-sink, Nacos, MinIO, iot-gateway, iot-infra, Milvus, ZLMediaKit, NodeRED, FUXA, TDengine, EMQX、iot-visualize、TRANSFORM 及多数 DEVICE 模块"
       echo "  API 路由: nginx 将 /admin-api、/dev-api 直连宿主机 iot-system:48099（登录鉴权由 system 自身处理）"
       ;;
     standard)
-      echo "  不启动: TDengine, NodeRED, FUXA, iot-device, iot-tdengine, iot-visualize/VISUALIZE、TRANSFORM（相关菜单不启用）"
-      echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
+      echo "  不启动: TDengine, NodeRED, FUXA, iot-device, iot-tdengine, iot-visualize、TRANSFORM（相关菜单不启用）"
       echo "  其余模块与中间件全部启动"
       ;;
     full)
-      echo "  启动全部业务模块与中间件（含 iot-visualize/VISUALIZE、TRANSFORM、FUXA，推荐宿主机内存 ≥ 20 GB）"
-      echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
+      echo "  启动全部业务模块与中间件（含 TRANSFORM、FUXA；iot-visualize Java 可选保留，VISUALIZE 编辑器已移除；推荐宿主机内存 ≥ 20 GB）"
       ;;
   esac
 }
