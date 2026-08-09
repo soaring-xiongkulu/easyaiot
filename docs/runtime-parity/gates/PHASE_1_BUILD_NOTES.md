@@ -76,15 +76,16 @@ $env:PATH = @(
 .\RUNTIME\build-win\Release\RUNTIME.exe
 ```
 
-## G-1.2 `infer_ep` 探测计划（未执行）
+## G-1.2 `infer_ep` 探测（已过）
 
-1. 准备最小 `config.ini`（含 ONNX 模型路径、`force_cpu=1`）
-2. 启动 RUNTIME，检查日志行：`[YOLO] Model loaded successfully infer_ep=cpu`
-3. 期望：`infer_ep=cpu`（当前仅链入 CPU EP；DirectML/CUDA 为后续专题）
-4. 证据归档：daemon 日志片段写入 `PHASE_1_GATE.md`
+1. `. .\RUNTIME\scripts\deploy.env.ps1`（含 libprotobuf 3.21 PATH）
+2. 最小 ini：`force_cpu=true`，模型 `RUNTIME/models/yolov11n.onnx`，本地 mp4 作源
+3. 日志：`[YOLO] Model loaded successfully infer_ep=cpu`
+
+证据见 `PHASE_1_GATE.md`。
 
 ## 已知风险 / 未完成
 
 - `conda install` 在本机 solver OOM；长期应使用独立 `easyaiot-runtime` 环境或 vcpkg manifest
-- `deploy.env.ps1` 尚未生成（VIDEO daemon 拉起前 PATH 仍须手工设置）
 - G-1.3 / G-1.4 未开始
+- OpenCV 依赖 libprotobuf **3.21.x**；勿让 base conda 3.20 抢先加载
