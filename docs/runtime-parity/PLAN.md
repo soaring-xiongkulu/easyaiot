@@ -238,7 +238,7 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 - [x] patrol hybrid + focus
 - [x] snap-space / patrol 进度心跳字段对齐（能 VIDEO 做的不进 C++）
 - [x] P0 snap/patrol schedule cases 绿
-- [ ] Commit：`feat: align snap/patrol schedulers with python`
+- [x] Commit：`feat: align snap/patrol schedulers with python`
 
 ### Task 4.4: SAM 路径 — **已取消**
 
