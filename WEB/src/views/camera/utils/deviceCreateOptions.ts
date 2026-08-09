@@ -517,10 +517,10 @@ export const CAMERA_BRAND_PROTOCOLS: Record<CameraBrand, CameraBrandProtocol> = 
     rtspSubPath: '/xiaomi/{ch}/sub',
     channelStart: 0,
     rtspPathIdentifiers: ['/xiaomi/'],
-    privateProtocols: ['米家私有协议', 'EasyAIoT RTC 桥接', 'Go2RTC 桥接'],
+    privateProtocols: ['米家私有协议'],
     webInterfaceFeatures: [],
     defaultUsername: '',
-    remarks: '米家摄像头原生不支持 RTSP，可通过 EasyAIoT RTC 模块（go2rtc 桥接）取流',
+    remarks: '米家摄像头原生不支持 RTSP；acme 已移除 RTC/go2rtc 模块，请改用工业协议或外部桥接后的标准 RTSP',
   },
   tiandy: {
     brand: 'tiandy',

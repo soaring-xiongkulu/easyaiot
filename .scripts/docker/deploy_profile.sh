@@ -108,13 +108,13 @@ is_full_deploy_profile() {
 }
 
 # 按部署形态判断业务模块是否启用
-#   APP / VISUALIZE / TRANSFORM — 仅 full 全量形态
+#   VISUALIZE / TRANSFORM — 仅 full 全量形态
 #   PANEL — 源码/Docker 部署默认启用；安装包（deb/桌面端）本身即为 PANEL，
 #           由 systemd/二进制托管，部署时不应再拉 Docker PANEL（EASYAIOT_ENABLE_PANEL=0）。
 #           无源码 runtime 未显式开启时也默认跳过。
 module_enabled_for_deploy_profile() {
     case "$1" in
-        APP|VISUALIZE|TRANSFORM) [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ] ;;
+        VISUALIZE|TRANSFORM) [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ] ;;
         PANEL)
             case "${EASYAIOT_ENABLE_PANEL:-}" in
                 0|false|FALSE|no|NO|off|OFF) return 1 ;;
@@ -260,7 +260,7 @@ print_deploy_profile_summary() {
   warn_web_rebuild_if_profile_changed
   case "${EASYAIOT_DEPLOY_PROFILE}" in
     mini)
-      echo "  业务: iot-system（48099）, VIDEO, AI, RTC, WEB（告警由 VIDEO 直连落库，无需 iot-sink/Kafka）"
+      echo "  业务: iot-system（48099）, VIDEO, AI, WEB（告警由 VIDEO 直连落库，无需 iot-sink/Kafka）"
       echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
       echo "  中间件: PostgreSQL, Redis, SRS"
       echo "  不启动: Kafka, iot-sink, Nacos, MinIO, iot-gateway, iot-infra, Milvus, ZLMediaKit, NodeRED, FUXA, TDengine, EMQX、iot-visualize/VISUALIZE、TRANSFORM 及多数 DEVICE 模块"
@@ -269,10 +269,10 @@ print_deploy_profile_summary() {
     standard)
       echo "  不启动: TDengine, NodeRED, FUXA, iot-device, iot-tdengine, iot-visualize/VISUALIZE、TRANSFORM（相关菜单不启用）"
       echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
-      echo "  其余模块与中间件全部启动（含 EMQX、RTC）"
+      echo "  其余模块与中间件全部启动"
       ;;
     full)
-      echo "  启动全部业务模块与中间件（含 APP 移动端 H5、iot-visualize/VISUALIZE、TRANSFORM、FUXA、RTC，推荐宿主机内存 ≥ 20 GB）"
+      echo "  启动全部业务模块与中间件（含 iot-visualize/VISUALIZE、TRANSFORM、FUXA，推荐宿主机内存 ≥ 20 GB）"
       echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
       ;;
   esac

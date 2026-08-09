@@ -38,7 +38,6 @@ SERVICE_NODES: List[Dict[str, Any]] = [
     {'id': 'video', 'label': 'VIDEO', 'group': 'business', 'hints': ['easyaiot-video', 'video-server', 'iot-video']},
     {'id': 'ai', 'label': 'AI', 'group': 'business', 'hints': ['easyaiot-ai', 'ai-server', 'iot-ai']},
     {'id': 'transform', 'label': 'TRANSFORM', 'group': 'business', 'hints': ['transform-runtime', 'iot-transform']},
-    {'id': 'app', 'label': 'APP', 'group': 'ui', 'hints': ['easyaiot-app', 'iot-app']},
     {'id': 'visualize', 'label': 'VISUALIZE', 'group': 'ui', 'hints': ['easyaiot-visualize', 'visualize']},
     {'id': 'web', 'label': 'WEB', 'group': 'ui', 'hints': ['web-service', 'easyaiot-web', 'iot-web', 'web-nginx', 'aiot-web']},
     {'id': 'panel', 'label': 'PANEL', 'group': 'edge', 'hints': ['easyaiot-panel', 'panel-agent']},

@@ -357,7 +357,6 @@ _INDEPENDENT_IMAGES = [
     ('aiot-video', 'video-service', 'VIDEO', False, False),
     ('aiot-web', 'web-service', 'WEB', False, True),
     ('aiot-panel', 'easyaiot/panel', 'PANEL', False, False),
-    ('aiot-app', 'app-service', 'APP', True, False),
     ('aiot-visualize-web', 'visualize-service', 'VISUALIZE', True, False),
     ('aiot-transform', 'transform-service', 'TRANSFORM', True, False),
 ]

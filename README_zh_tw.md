@@ -42,7 +42,7 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平臺由 <strong>WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VISUALIZE、TRANSFORM、PANEL</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時與抓拍算法任務、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
+平臺由 <strong>WEB、DEVICE、NODE、VIDEO、AI、RUNTIME、EDGE、VISUALIZE、TRANSFORM、PANEL</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時與抓拍算法任務、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -334,7 +334,7 @@ Java擅長構建穩定可靠的平臺架構，卻不適合網路編程與AI開�
 ### 🏗️ 項目架構特點
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-EasyAIoT其實不是一個項目，而是多個可獨立部署的子項目（含 WEB、DEVICE、VIDEO、RTC、AI 等）。
+EasyAIoT其實不是一個項目，而是多個可獨立部署的子項目（含 WEB、DEVICE、VIDEO、AI 等）。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -397,7 +397,7 @@ EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統
 ## 🧩 項目結構
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VISUALIZE、TRANSFORM、PANEL 等核心模組組成，並配套 COMPILE 多平臺打包交付能力：
+EasyAIoT 由 WEB、DEVICE、NODE、VIDEO、AI、RUNTIME、EDGE、VISUALIZE、TRANSFORM、PANEL 等核心模組組成，並配套 COMPILE 多平臺打包交付能力：
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">

@@ -60,9 +60,6 @@
                   <Button type="primary" preIcon="material-symbols:flight-takeoff-rounded" @click="openDjiLiveDrawer()">
                     接入大疆直播
                   </Button>
-                  <Button type="primary" preIcon="mdi:webcam" @click="openRtcDeviceCreate()">
-                    接入 RTC 摄像头
-                  </Button>
                   <Button type="primary" preIcon="ant-design:video-camera-add-outlined" @click="openDeviceCreate()">
                     添加设备
                   </Button>
@@ -149,9 +146,6 @@
                       <Checkbox v-model:checked="enableAi">启用 AI</Checkbox>
                       <Button type="primary" preIcon="material-symbols:flight-takeoff-rounded" @click="openDjiLiveDrawer()">
                         接入大疆直播
-                      </Button>
-                      <Button type="primary" preIcon="mdi:webcam" @click="openRtcDeviceCreate()">
-                        接入 RTC 摄像头
                       </Button>
                       <Button type="primary" preIcon="ant-design:video-camera-add-outlined" @click="openDeviceCreate()">
                         添加设备
@@ -1010,10 +1004,6 @@ function openDeviceCreate(query?: Partial<{ kind: DeviceKind; method: CreateMeth
   if (query?.brand) deviceCreateInitial.brand = query.brand;
   deviceCreateInitial.tab = query?.tab;
   deviceCreateVisible.value = true;
-}
-
-function openRtcDeviceCreate() {
-  openDeviceCreate({ tab: 'rtc' });
 }
 
 function closeDeviceCreate() {

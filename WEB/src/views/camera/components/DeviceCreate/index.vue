@@ -75,14 +75,6 @@
           </div>
         </div>
       </TabPane>
-
-      <TabPane key="rtc" tab="RTC 平台">
-        <div class="dc-pane">
-          <div class="dc-body">
-            <RtcPlatformPanel class="panel-host" @success="handlePanelSuccess" />
-          </div>
-        </div>
-      </TabPane>
     </Tabs>
   </div>
 </template>
@@ -102,7 +94,6 @@ import SegmentScanPanel from './panels/SegmentScanPanel.vue';
 import DirectRtspPanel from './panels/DirectRtspPanel.vue';
 import NvrManualPanel from './panels/NvrManualPanel.vue';
 import Gb28181AccessPanel from './panels/Gb28181AccessPanel.vue';
-import RtcPlatformPanel from './panels/RtcPlatformPanel.vue';
 import { isGb28181Enabled } from '@/utils/deployProfile';
 
 const TabPane = Tabs.TabPane;
@@ -113,7 +104,7 @@ const props = defineProps<{
   initialKind?: DeviceKind;
   initialMethod?: CreateMethod;
   initialBrand?: CameraBrand;
-  /** 初始 Tab：camera | nvr | gb28181 | rtc */
+  /** 初始 Tab：camera | nvr | gb28181 */
   initialTab?: string;
 }>();
 
@@ -139,7 +130,7 @@ function syncSelectionFromPrefs(kind: DeviceKind) {
 
 function handleKindTabChange(tab: string | number) {
   const key = String(tab);
-  if (key === 'rtc' || key === 'gb28181') {
+  if (key === 'gb28181') {
     activeTab.value = key;
     return;
   }

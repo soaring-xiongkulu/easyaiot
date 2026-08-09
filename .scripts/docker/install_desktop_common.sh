@@ -59,10 +59,8 @@ MODULES=(
   ".scripts/docker"
   "DEVICE"
   "AI"
-  "RTC"
   "VIDEO"
   "WEB"
-  "APP"
   "VISUALIZE"
   "TRANSFORM"
   "PANEL"
@@ -99,10 +97,8 @@ module_name() {
     ".scripts/docker") echo "基础服务" ;;
     "DEVICE") echo "Device服务" ;;
     "AI") echo "AI服务" ;;
-    "RTC") echo "RTC服务" ;;
     "VIDEO") echo "Video服务" ;;
     "WEB") echo "Web前端服务" ;;
-    "APP") echo "App移动端H5" ;;
     "VISUALIZE") echo "可视化编辑器" ;;
     "TRANSFORM") echo "系统对接" ;;
     "PANEL") echo "运维控制台" ;;
@@ -115,10 +111,8 @@ module_port() {
     ".scripts/docker") echo "8848" ;;
     "DEVICE") echo "48080" ;;
     "AI") echo "5000" ;;
-    "RTC") echo "6100" ;;
     "VIDEO") echo "6000" ;;
     "WEB") echo "8888" ;;
-    "APP") echo "9010" ;;
     "VISUALIZE") echo "8002" ;;
     "TRANSFORM") echo "48096" ;;
     "PANEL") echo "9200" ;;
@@ -131,10 +125,8 @@ module_health() {
     ".scripts/docker") echo "/nacos/actuator/health" ;;
     "DEVICE") echo "/actuator/health" ;;
     "AI") echo "/actuator/health" ;;
-    "RTC") echo "/actuator/health" ;;
     "VIDEO") echo "/actuator/health" ;;
     "WEB") echo "/health" ;;
-    "APP") echo "/health" ;;
     "VISUALIZE") echo "/health" ;;
     "TRANSFORM") echo "/actuator/health" ;;
     "PANEL") echo "/health" ;;

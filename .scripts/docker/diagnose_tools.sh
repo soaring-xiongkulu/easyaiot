@@ -75,7 +75,7 @@ _print_deploy_header() {
     echo "  10) 查看当前部署形态（mini/standard/full）"
     echo "  11) 显示完整命令行帮助"
     echo "  12) 清理 build-runtime 构建产物"
-    echo "     说明：先停止业务服务（DEVICE/AI/VIDEO/WEB/APP），再删打包镜像/构建缓存；中间件不停"
+    echo "     说明：先停止业务服务（DEVICE/AI/VIDEO/WEB），再删打包镜像/构建缓存；中间件不停"
     echo ""
     echo "  0) 返回上级菜单"
     echo ""

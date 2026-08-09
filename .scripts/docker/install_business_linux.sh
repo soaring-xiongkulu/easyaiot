@@ -98,16 +98,14 @@ ensure_industrial_demo_after_business_stack() {
     fi
 }
 
-# 业务模块（按依赖顺序：网关/微服务 -> AI/RTC/视频 -> 前端 -> 全量模块 -> 运维控制台）
-ALL_MODULES=(DEVICE AI RTC VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
+# 业务模块（按依赖顺序：网关/微服务 -> AI/视频 -> 前端 -> 全量模块 -> 运维控制台）
+ALL_MODULES=(DEVICE AI VIDEO WEB VISUALIZE TRANSFORM PANEL)
 
 declare -A MODULE_NAMES=(
     [DEVICE]="Device 服务"
     [AI]="AI 服务"
-    [RTC]="RTC 服务"
     [VIDEO]="Video 服务"
     [WEB]="Web 前端"
-    [APP]="App 移动端 H5"
     [VISUALIZE]="可视化编辑器"
     [TRANSFORM]="系统对接"
     [PANEL]="运维控制台"
@@ -116,10 +114,8 @@ declare -A MODULE_NAMES=(
 declare -A MODULE_PORTS=(
     [DEVICE]="48080"
     [AI]="5000"
-    [RTC]="6100"
     [VIDEO]="6000"
     [WEB]="8888"
-    [APP]="9010"
     [VISUALIZE]="8002"
     [TRANSFORM]="48096"
     [PANEL]="9200"
@@ -128,10 +124,8 @@ declare -A MODULE_PORTS=(
 declare -A MODULE_HEALTH_ENDPOINTS=(
     [DEVICE]="/actuator/health"
     [AI]="/actuator/health"
-    [RTC]="/actuator/health"
     [VIDEO]="/actuator/health"
     [WEB]="/health"
-    [APP]="/health"
     [VISUALIZE]="/health"
     [TRANSFORM]="/actuator/health"
     [PANEL]="/health"

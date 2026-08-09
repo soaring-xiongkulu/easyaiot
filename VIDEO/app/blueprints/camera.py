@@ -49,14 +49,6 @@ from app.utils.flighthub_source import (
     resolve_device_type_from_record,
     start_flighthub_live,
 )
-from app.utils.rtc_source import (
-    build_rtc_stream_url,
-    get_rtc_public_config,
-    list_rtc_platforms,
-    register_rtc_live,
-    cleanup_rtc_stream_for_device,
-    is_rtc_device,
-)
 from app.utils.gb28181_source import resolve_gb28181_source
 from app.utils.node_client import resolve_java_backend_url
 from models import Device, db, Image, DeviceDirectory, DetectionRegion, StreamForwardTask, AlgorithmTask
@@ -835,73 +827,6 @@ def register_device():
 def get_flighthub_config():
     """返回司空 FlightHub 配置（机场/无人机共用同一套 OpenAPI）。"""
     return jsonify({'code': 0, 'msg': 'success', 'data': get_flighthub_public_config()})
-
-
-@camera_bp.route('/rtc/config', methods=['GET'])
-def get_rtc_config():
-    """返回 RTC / go2rtc 公共配置。"""
-    return jsonify({'code': 0, 'msg': 'success', 'data': get_rtc_public_config()})
-
-
-@camera_bp.route('/rtc/platforms', methods=['GET'])
-def get_rtc_platforms():
-    """返回 RTC 支持的摄像头平台列表。"""
-    try:
-        platforms = list_rtc_platforms()
-        return jsonify({'code': 0, 'msg': 'success', 'data': {'platforms': platforms}})
-    except Exception as e:
-        logger.error(f'RTC platforms fetch failed: {e}', exc_info=True)
-        return jsonify({'code': 502, 'msg': f'RTC 服务不可用: {e}'}), 502
-
-
-@camera_bp.route('/rtc/build-url', methods=['POST'])
-def build_rtc_url():
-    """预览 RTC 平台源流 URL（不注册）。"""
-    data = request.get_json(silent=True) or {}
-    platform = (data.get('platform') or '').strip()
-    params = data.get('params') or {}
-    if not platform:
-        return jsonify({'code': 400, 'msg': 'platform is required'}), 400
-    try:
-        source = build_rtc_stream_url(platform, params)
-        return jsonify({'code': 0, 'msg': 'success', 'data': {'platform': platform, 'source': source}})
-    except Exception as e:
-        logger.error(f'RTC build-url failed: {e}', exc_info=True)
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-
-
-@camera_bp.route('/register/device/rtc-live', methods=['POST'])
-def register_rtc_live_device():
-    """登记 RTC 平台摄像头（Tapo/Tuya/Ring 等），自动注册 go2rtc 流并写入 VIDEO。"""
-    data = request.get_json(silent=True) or {}
-    try:
-        result = register_rtc_live(data)
-        if not result.get('ok'):
-            return jsonify({
-                'code': int(result.get('code') or 500),
-                'msg': result.get('msg') or 'RTC live register failed',
-            }), int(result.get('code') or 500)
-
-        register_info = result['register_info']
-        if data.get('enable_forward') is not None:
-            register_info['enable_forward'] = bool(data.get('enable_forward'))
-        device_id = register_camera(register_info)
-        return jsonify({
-            'code': 0,
-            'msg': 'success',
-            'data': {
-                'id': device_id,
-                'platform': result.get('platform'),
-                'stream_name': result.get('stream_name'),
-                'source': register_info.get('source'),
-                'rtsp_url': result.get('rtsp_url'),
-                'play_urls': result.get('play_urls'),
-            },
-        })
-    except Exception as e:
-        logger.error(f'RTC live device register failed: {e}', exc_info=True)
-        db.session.rollback()
-        return jsonify({'code': 500, 'msg': str(e)}), 500
 
 
 @camera_bp.route('/register/device/dji-live', methods=['POST'])

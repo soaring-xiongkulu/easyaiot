@@ -18,4 +18,4 @@ acme 硬分叉产品 **不再包含 / 维护** EasyAIoT 官方门户模块 `SITE
 - 删除 `SITE/` 源码树与 `WEB/conf/nginx.site.conf`。
 - WEB nginx / docker-compose 去掉 8090 官网监听与映射。
 - 安装脚本 `site` 子命令改为明确失败桩。
-- 业务 WEB/APP/PANEL/DEVICE 不受影响。
+- 业务 WEB/PANEL/DEVICE 不受影响。

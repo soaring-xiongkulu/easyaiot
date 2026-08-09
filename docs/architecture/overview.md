@@ -11,4 +11,4 @@
 
 公司将在此树深改；rebekah C++ 执行面尚未接入。
 
-> **SITE**：已从 acme 产品树移除（ADR-0002）。
+> **SITE / APP / RTC**：已从 acme 产品树移除（ADR-0002、ADR-0003）。

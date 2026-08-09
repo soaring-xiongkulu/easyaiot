@@ -1,0 +1,44 @@
+{
+  "mode": "apply",
+  "started_at": "2026-08-09T05:42:03Z",
+  "notes": [
+    "Content patches (install scripts, nginx, WEB/VIDEO API, README) are manual editor edits — not this script.",
+    "Do NOT delete WEB rtcPlayer.vue / ZLMRTCClient.js (industrial WebRTC playback, unrelated to RTC module)."
+  ],
+  "errors": [],
+  "ops": [
+    {
+      "action": "delete_tree",
+      "path": "F:\\acme\\APP",
+      "detail": "remove module tree (445 files)",
+      "bytes_hint": 74428385,
+      "file_count": 445
+    },
+    {
+      "action": "delete_tree",
+      "path": "F:\\acme\\RTC",
+      "detail": "remove module tree (25 files)",
+      "bytes_hint": 48092,
+      "file_count": 25
+    },
+    {
+      "action": "delete_file",
+      "path": "F:\\acme\\WEB\\src\\views\\camera\\components\\DeviceCreate\\panels\\RtcPlatformPanel.vue",
+      "detail": "RTC/APP-only source file",
+      "bytes_hint": 8068,
+      "file_count": 1
+    },
+    {
+      "action": "delete_file",
+      "path": "F:\\acme\\VIDEO\\app\\utils\\rtc_source.py",
+      "detail": "RTC/APP-only source file",
+      "bytes_hint": 8057,
+      "file_count": 1
+    }
+  ],
+  "op_counts": {
+    "delete_tree": 2,
+    "delete_file": 2
+  },
+  "finished_at": "2026-08-09T05:42:03Z"
+}
