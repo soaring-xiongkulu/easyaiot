@@ -1,6 +1,7 @@
 #include "Yolov11ThreadPool.h"
 #include "Draw.h"
 #include <Yolov11Engine.h>
+#include <glog/logging.h>
 
 Yolov11ThreadPool::Yolov11ThreadPool() { stop = false; }
 
@@ -38,6 +39,51 @@ std::string Yolov11ThreadPool::inferEp() const {
         return "none";
     }
     return Yolov11_instances[0]->inferEp();
+}
+
+int Yolov11ThreadPool::loadExtraModels(const std::vector<std::string>& model_paths,
+                                       const std::vector<std::string>& model_class,
+                                       bool prefer_gpu,
+                                       bool force_cpu,
+                                       int gpu_device_id) {
+    std::lock_guard<std::mutex> lock(mtx_extra_);
+    extra_engines_.clear();
+    for (const auto& path : model_paths) {
+        if (path.empty()) {
+            continue;
+        }
+        auto engine = std::make_shared<Yolov11Engine>();
+        int ret = engine->LoadModel(path, model_class, prefer_gpu, force_cpu, gpu_device_id);
+        if (ret != 0) {
+            LOG(ERROR) << "[MULTI-MODEL] failed to load extra model path=" << path
+                       << " code=" << ret;
+            return ret;
+        }
+        extra_engines_.push_back(engine);
+        LOG(INFO) << "[MULTI-MODEL] CAP-MULTI-MODEL loaded extra ONNX path=" << path;
+    }
+    return 0;
+}
+
+void Yolov11ThreadPool::mergeExtraModelDetections(const cv::Mat& img,
+                                                  std::vector<DetectObject>& objects) {
+    std::vector<std::shared_ptr<Yolov11Engine>> engines;
+    {
+        std::lock_guard<std::mutex> lock(mtx_extra_);
+        engines = extra_engines_;
+    }
+    if (engines.empty() || img.empty()) {
+        return;
+    }
+    cv::Mat mutableImg = img;  // Yolov11Engine::Run takes non-const Mat&
+    for (auto& engine : engines) {
+        if (!engine) {
+            continue;
+        }
+        std::vector<DetectObject> extra;
+        engine->Run(mutableImg, extra);
+        objects.insert(objects.end(), extra.begin(), extra.end());
+    }
 }
 
 void Yolov11ThreadPool::worker(int id) {

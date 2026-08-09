@@ -298,34 +298,19 @@ def _contract_ini_block(task: AlgorithmTask, task_type: str, extra_model_paths: 
     unsupported: List[str] = []
 
     tracking_on = bool(getattr(task, 'tracking_enabled', False))
-    if tracking_on:
-        unsupported.append('CAP-TRACKING')
+    # CAP-TRACKING / CAP-MOTION-GATE implemented in C++ Pipeline (Phase 4) — not unsupported
     motion_on = bool(getattr(task, 'motion_gate_enabled', False))
-    if motion_on:
-        unsupported.append('CAP-MOTION-GATE')
     alert_classes = _json_list_field(getattr(task, 'alert_class_names', None))
-    if alert_classes != '[]':
-        unsupported.append('CAP-ALERT-CLASS-FILTER')
+    # CAP-ALERT-CLASS-FILTER / FACE / PLATE filters implemented in C++ AlertFilters
     face_det = bool(getattr(task, 'face_detection_enabled', True))
     plate_det = bool(getattr(task, 'plate_detection_enabled', True))
-    if face_det:
-        unsupported.append('CAP-FACE-FILTER')
-    if plate_det:
-        unsupported.append('CAP-PLATE-FILTER')
     face_match = bool(getattr(task, 'face_matching_enabled', False))
     plate_match = bool(getattr(task, 'plate_matching_enabled', False))
-    if face_match:
-        unsupported.append('CAP-FACE-MATCH')
-    if plate_match:
-        unsupported.append('CAP-PLATE-MATCH')
+    # CAP-FACE/PLATE-MATCH / POST-PROCESS / POSE owned by VIDEO frame-post — not cpp unsupported
     post_proc = bool(getattr(task, 'post_process_enabled', False))
-    if post_proc:
-        unsupported.append('CAP-POST-PROCESS')
     pose_on = bool(getattr(task, 'pose_analysis_enabled', False)) or bool(
         getattr(task, 'pose_intent_enabled', False)
     )
-    if pose_on:
-        unsupported.append('CAP-POSE')
     sam_on = bool(getattr(task, 'sam_supplement_enabled', False))
     if sam_on:
         unsupported.append('CAP-SAM-TASK')
@@ -334,14 +319,29 @@ def _contract_ini_block(task: AlgorithmTask, task_type: str, extra_model_paths: 
             task.id,
         )
     defense_sched = (getattr(task, 'defense_schedule', None) or '').strip()
-    if defense_sched:
-        unsupported.append('CAP-DEFENSE')
+    # CAP-DEFENSE implemented in C++ AlertFilters (schedule armed check)
     patrol_mode = (getattr(task, 'patrol_mode', None) or 'pool').strip() or 'pool'
     focus_id = (getattr(task, 'focus_device_id', None) or '').strip()
-    if patrol_mode == 'hybrid' or focus_id:
-        unsupported.append('CAP-PATROL-HYBRID')
-    if extra_model_paths:
-        unsupported.append('CAP-MULTI-MODEL')
+    # CAP-PATROL-HYBRID / ROTATE / MULTI-MODEL implemented in C++
+    # P2 deferred caps — explicit unsupported (no silent success)
+    gb28181 = bool(getattr(task, 'gb28181_source_enabled', False)) or bool(
+        getattr(task, 'use_gb28181', False)
+    )
+    if gb28181:
+        unsupported.append('CAP-GB28181-SRC')
+        logger.warning(
+            'task %s: CAP-GB28181-SRC requested but not yet implemented (P2 deferred)',
+            task.id,
+        )
+    nvenc_auto = bool(getattr(task, 'nvenc_auto_quality', False)) or bool(
+        getattr(task, 'quality_auto_downgrade', False)
+    )
+    if nvenc_auto:
+        unsupported.append('CAP-NVENC-AUTO')
+        logger.warning(
+            'task %s: CAP-NVENC-AUTO requested but not yet implemented (P2 deferred)',
+            task.id,
+        )
 
     motion_cfg = (getattr(task, 'motion_gate_config', None) or '').strip()
     pose_cfg = (getattr(task, 'pose_analysis_config', None) or '').strip()
@@ -419,27 +419,41 @@ extra_paths={json.dumps(extra_model_paths, ensure_ascii=False).replace(chr(10), 
 
 
 def _log_cpp_unsupported_fields(task: AlgorithmTask) -> None:
-    """G-2.1/G-2.3: WARNING when task enables CAPs not on RUNTIME hot path."""
+    """G-2.1/G-2.3: WARNING only for truly unimplemented / product-vetoed CAPs."""
     gaps = []
-    checks = (
-        ('tracking_enabled', 'CAP-TRACKING — C++ tracker parity pending Phase 4'),
-        ('motion_gate_enabled', 'CAP-MOTION-GATE — deferred to Phase 4'),
-        ('pose_analysis_enabled', 'pose analysis — not in RUNTIME hot path yet'),
-        ('pose_intent_enabled', 'pose intent — VIDEO/post path'),
-        ('sam_supplement_enabled', 'SAM supplement — product cut; must not silent-succeed'),
-        ('post_process_enabled', 'post_process — VIDEO Phase 3 absorb'),
-        ('face_matching_enabled', 'face matching — VIDEO Phase 3 absorb'),
-        ('plate_matching_enabled', 'plate matching — VIDEO Phase 3 absorb'),
-        ('alert_notification_enabled', 'alert notification — VIDEO-side only'),
-    )
-    for attr, note in checks:
-        if bool(getattr(task, attr, False)):
-            gaps.append(f'{attr}: {note}')
+    # Implemented frame-in or VIDEO-owned: do not WARN as unsupported.
+    if bool(getattr(task, 'sam_supplement_enabled', False)):
+        gaps.append('sam_supplement_enabled: CAP-SAM-TASK — product cut; must not silent-succeed')
+    if bool(getattr(task, 'gb28181_source_enabled', False)) or bool(
+        getattr(task, 'use_gb28181', False)
+    ):
+        gaps.append('gb28181: CAP-GB28181-SRC — P2 deferred')
+    if bool(getattr(task, 'nvenc_auto_quality', False)) or bool(
+        getattr(task, 'quality_auto_downgrade', False)
+    ):
+        gaps.append('nvenc_auto: CAP-NVENC-AUTO — P2 deferred')
     if gaps:
         logger.warning(
             'executor=cpp unsupported/deferred fields for task_id=%s: %s',
             getattr(task, 'id', None),
             '; '.join(gaps),
+        )
+    # INFO for VIDEO-owned frame-post (not a silent claim of cpp support)
+    video_owned = []
+    for attr, note in (
+        ('face_matching_enabled', 'CAP-FACE-MATCH owned_by=VIDEO'),
+        ('plate_matching_enabled', 'CAP-PLATE-MATCH owned_by=VIDEO'),
+        ('post_process_enabled', 'CAP-POST-PROCESS owned_by=VIDEO'),
+        ('pose_analysis_enabled', 'CAP-POSE owned_by=VIDEO'),
+        ('pose_intent_enabled', 'CAP-POSE owned_by=VIDEO'),
+    ):
+        if bool(getattr(task, attr, False)):
+            video_owned.append(f'{attr}: {note}')
+    if video_owned:
+        logger.info(
+            'executor=cpp VIDEO frame-post caps for task_id=%s: %s',
+            getattr(task, 'id', None),
+            '; '.join(video_owned),
         )
 
 

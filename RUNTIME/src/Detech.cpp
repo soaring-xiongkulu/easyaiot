@@ -4,6 +4,7 @@
 #include "Detech.h"
 #include "Yolov11ThreadPool.h"
 #include "Datatype.h"
+#include "pipeline/AlertFilters.h"
 #include <chrono>
 #include <ctime>
 #include <fstream>
@@ -580,6 +581,17 @@ bool Detech::_init_yolo11_detector() {
             return false;
         }
         LOG(INFO) << "[OK] YOLO thread pool initialized infer_ep=" << yolov11_thread_pool->inferEp();
+        if (!_config.extraModelPaths.empty()) {
+            int eret = yolov11_thread_pool->loadExtraModels(
+                _config.extraModelPaths, classes,
+                _config.preferGpu, _config.forceCpu, _config.gpuDeviceId);
+            if (eret != 0) {
+                LOG(ERROR) << "[ERROR] CAP-MULTI-MODEL extra model load failed code=" << eret;
+                return false;
+            }
+            LOG(INFO) << "[OK] CAP-MULTI-MODEL extra_models="
+                      << yolov11_thread_pool->extraModelCount();
+        }
     }
     return true;
 }
@@ -1128,6 +1140,17 @@ void Detech::_sendAlarmCallback(const std::vector<DetectObject>& detections,
         return;
     }
 
+    // Frame-in CAP filters (alert_class / face / plate / defense)
+    auto filtered = runtime::filterDetectionsForAlert(detections, _config);
+    if (filtered.empty()) {
+        LOG(INFO) << "[ALARM] skipped: empty after class/face/plate filter";
+        return;
+    }
+    if (!runtime::isDefenseArmed(_config)) {
+        LOG(INFO) << "[ALARM] skipped: CAP-DEFENSE not armed";
+        return;
+    }
+
     std::string imagePath = _saveAlertImage(frame);
 
     {
@@ -1135,7 +1158,7 @@ void Detech::_sendAlarmCallback(const std::vector<DetectObject>& detections,
         if (_alarmQueue.size() >= MAX_ALARM_QUEUE_SIZE) {
             _alarmQueue.pop();
         }
-        AlarmData alarmData(detections, regionName, _get_curtime_stamp_ms(), imagePath, deviceId, deviceName);
+        AlarmData alarmData(filtered, regionName, _get_curtime_stamp_ms(), imagePath, deviceId, deviceName);
         _alarmQueue.push(std::move(alarmData));
         LOG(INFO) << "[ALARM] Alarm enqueued, queue size: " << _alarmQueue.size();
     }

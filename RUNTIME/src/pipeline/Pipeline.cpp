@@ -7,6 +7,7 @@
 
 #include "RTMPEncoder.h"
 #include "Yolov11ThreadPool.h"
+#include "pipeline/AlertFilters.h"
 
 namespace runtime {
 
@@ -440,6 +441,10 @@ void Pipeline::inferLoop() {
                 int r = yoloPool_->getTargetResultNonBlock(detections, 0, checkFrame);
                 if (r == 0) {
                     lastDetections = detections;
+                    // CAP-MULTI-MODEL: serial extra ONNX merge on same frame
+                    if (yoloPool_->extraModelCount() > 0) {
+                        yoloPool_->mergeExtraModelDetections(img, lastDetections);
+                    }
                     break;
                 }
             }
@@ -474,6 +479,14 @@ void Pipeline::inferLoop() {
                         cv::rectangle(img, cv::Point(x1, y1), cv::Point(x2, y2), color, thickness);
                         drawnBoxes += 1;
                     }
+                }
+                // CAP-ALERT-CLASS / FACE / PLATE filters (Python-aligned)
+                if (!alarmDetections.empty()) {
+                    alarmDetections = filterDetectionsForAlert(alarmDetections, config_);
+                }
+                // CAP-DEFENSE: skip emit outside armed windows
+                if (!alarmDetections.empty() && !isDefenseArmed(config_)) {
+                    alarmDetections.clear();
                 }
 
                 // G-4.4: overlay visible latency = capture → draw complete

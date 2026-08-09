@@ -55,8 +55,10 @@ class TestRuntimeIniContract(unittest.TestCase):
         self.assertIn('face_detection_enabled=true', content)
         self.assertIn('plate_detection_enabled=false', content)
         self.assertIn('[unsupported]', content)
-        self.assertIn('CAP-TRACKING=true', content)
-        self.assertIn('CAP-FACE-MATCH=true', content)
+        # CAP-TRACKING / CAP-FACE-MATCH are implemented (cpp / VIDEO) — must NOT be unsupported
+        self.assertNotIn('CAP-TRACKING=true', content)
+        self.assertNotIn('CAP-FACE-MATCH=true', content)
+        self.assertNotIn('CAP-FACE-FILTER=true', content)
         self.assertTrue(path.endswith('task_99001.ini'))
 
     def test_snap_uses_frame_skip_not_extract_interval(self):

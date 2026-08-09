@@ -344,12 +344,42 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             }
         }
         else if (currentSection == "contract" || currentSection == "unsupported") {
-            // VIDEO-declared capabilities not implemented in-frame (or VIDEO-side only).
-            if (!key.empty() && parseBool(value)) {
-                config.unsupportedCaps.push_back(key);
+            // VIDEO-declared capabilities. Implemented frame-in / VIDEO-owned CAPs must
+            // not remain as WARNING unsupported even if stale ini still lists them.
+            static const char* kImplementedOrVideoOwned[] = {
+                "CAP-TRACKING",
+                "CAP-MOTION-GATE",
+                "CAP-ALERT-CLASS-FILTER",
+                "CAP-FACE-FILTER",
+                "CAP-PLATE-FILTER",
+                "CAP-FACE-MATCH",
+                "CAP-PLATE-MATCH",
+                "CAP-POST-PROCESS",
+                "CAP-POSE",
+                "CAP-DEFENSE",
+                "CAP-PATROL-HYBRID",
+                "CAP-PATROL-ROTATE",
+                "CAP-MULTI-MODEL",
+                "CAP-SNAP-SPACE",
+            };
+            bool implemented = false;
+            for (const char* known : kImplementedOrVideoOwned) {
+                if (key == known) {
+                    implemented = true;
+                    break;
+                }
             }
-            LOG(WARNING) << "[CONFIG] unsupported/deferred [" << currentSection << "] "
-                         << key << "=" << value;
+            if (implemented) {
+                LOG(INFO) << "[CONFIG] cap=" << key
+                          << " listed in [unsupported] but is implemented/VIDEO-owned; ignoring";
+            } else if (!key.empty() && parseBool(value)) {
+                config.unsupportedCaps.push_back(key);
+                LOG(WARNING) << "[CONFIG] unsupported/deferred [" << currentSection << "] "
+                             << key << "=" << value;
+            } else {
+                LOG(WARNING) << "[CONFIG] unsupported/deferred [" << currentSection << "] "
+                             << key << "=" << value;
+            }
         }
         else if (!currentSection.empty()) {
             LOG(WARNING) << "[CONFIG] unknown ini key ignored (no silent support): ["
@@ -438,7 +468,8 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
               << " force_cpu=" << (config.forceCpu ? "true" : "false")
               << " gpu_device_id=" << config.gpuDeviceId;
 
-    // G-2.3: derive unsupported caps from enabled contract fields (no silent success)
+    // G-2.3: derive unsupported caps — only truly unimplemented / product-vetoed.
+    // Implemented frame-in CAPs and VIDEO-owned frame-post CAPs must NOT land here.
     auto addCap = [&](const std::string& cap) {
         if (std::find(config.unsupportedCaps.begin(), config.unsupportedCaps.end(), cap)
             == config.unsupportedCaps.end()) {
@@ -454,22 +485,48 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
                   << (config.motionGateConfigJson.empty() ? "{}" : config.motionGateConfigJson);
     }
     if (!config.alertClassNamesJson.empty() && config.alertClassNamesJson != "[]") {
-        addCap("CAP-ALERT-CLASS-FILTER");
+        LOG(INFO) << "[CONFIG] CAP-ALERT-CLASS-FILTER enabled names=" << config.alertClassNamesJson;
     }
-    if (config.faceDetectionEnabled) addCap("CAP-FACE-FILTER");
-    if (config.plateDetectionEnabled) addCap("CAP-PLATE-FILTER");
-    if (config.faceMatchingEnabled) addCap("CAP-FACE-MATCH");
-    if (config.plateMatchingEnabled) addCap("CAP-PLATE-MATCH");
-    if (config.postProcessEnabled) addCap("CAP-POST-PROCESS");
-    if (config.poseAnalysisEnabled || config.poseIntentEnabled) addCap("CAP-POSE");
-    if (config.samSupplementEnabled) addCap("CAP-SAM-TASK");
-    if (!config.defenseScheduleJson.empty()) addCap("CAP-DEFENSE");
+    // CAP-FACE-FILTER / CAP-PLATE-FILTER: flags always honored in AlertFilters
+    LOG(INFO) << "[CONFIG] CAP-FACE-FILTER face_detection_enabled="
+              << (config.faceDetectionEnabled ? "true" : "false");
+    LOG(INFO) << "[CONFIG] CAP-PLATE-FILTER plate_detection_enabled="
+              << (config.plateDetectionEnabled ? "true" : "false");
+    // VIDEO frame-post ownership (not C++ unsupported)
+    if (config.faceMatchingEnabled) {
+        LOG(INFO) << "[CONFIG] CAP-FACE-MATCH owned_by=VIDEO (hook post-orchestration)";
+    }
+    if (config.plateMatchingEnabled) {
+        LOG(INFO) << "[CONFIG] CAP-PLATE-MATCH owned_by=VIDEO (hook post-orchestration)";
+    }
+    if (config.postProcessEnabled) {
+        LOG(INFO) << "[CONFIG] CAP-POST-PROCESS owned_by=VIDEO (hook post-orchestration)";
+    }
+    if (config.poseAnalysisEnabled || config.poseIntentEnabled) {
+        LOG(INFO) << "[CONFIG] CAP-POSE owned_by=VIDEO (hook post-orchestration)";
+    }
+    if (config.samSupplementEnabled) {
+        addCap("CAP-SAM-TASK");
+    }
+    if (!config.defenseScheduleJson.empty() && config.defenseScheduleJson != "{}") {
+        LOG(INFO) << "[CONFIG] CAP-DEFENSE enabled mode=" << config.defenseMode
+                  << " schedule_json=" << config.defenseScheduleJson;
+    }
     // CAP-PATROL-HYBRID implemented in PatrolScheduler (focus interval/2 + background pool).
     if (config.patrolMode == "hybrid" || !config.focusDeviceId.empty()) {
         LOG(INFO) << "[CONFIG] CAP-PATROL-HYBRID enabled mode=" << config.patrolMode
                   << " focus_device_id=" << config.focusDeviceId;
     }
-    if (!config.extraModelPaths.empty()) addCap("CAP-MULTI-MODEL");
+    if (config.patrolMode == "rotate") {
+        LOG(INFO) << "[CONFIG] CAP-PATROL-ROTATE enabled";
+    }
+    if (!config.extraModelPaths.empty()) {
+        LOG(INFO) << "[CONFIG] CAP-MULTI-MODEL enabled extra_count="
+                  << config.extraModelPaths.size();
+    }
+    // P2 deferred: parse-aware but not silently "supported"
+    // GB28181 / NVENC auto are accepted as known keys under [stream_src]/[encoder]
+    // when present in unsupported section from VIDEO; otherwise no silent claim.
     for (const auto& cap : config.unsupportedCaps) {
         LOG(WARNING) << "[CONFIG] unsupported cap=" << cap
                      << " (declared in ini or derived from enabled task fields)";

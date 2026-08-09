@@ -37,6 +37,14 @@ public:
               bool prefer_gpu = true,
               bool force_cpu = false,
               int gpu_device_id = 0);
+    /** CAP-MULTI-MODEL: load additional ONNX engines (serial merge after primary). */
+    int loadExtraModels(const std::vector<std::string>& model_paths,
+                        const std::vector<std::string>& model_class,
+                        bool prefer_gpu = true,
+                        bool force_cpu = false,
+                        int gpu_device_id = 0);
+    /** Run extra engines on img and append detections into `objects`. */
+    void mergeExtraModelDetections(const cv::Mat& img, std::vector<DetectObject>& objects);
     int submitTask(const cv::Mat &img, int input_id, int frame_id);
     int getTargetResult(std::vector<DetectObject> &objects, int input_id, int frame_id);
     int getTargetImgResult(cv::Mat &img, int input_id, int frame_id);
@@ -44,6 +52,11 @@ public:
     void stopAll();
     /** Aggregate EP from first engine instance: cuda|cpu|none */
     std::string inferEp() const;
+    size_t extraModelCount() const { return extra_engines_.size(); }
+
+private:
+    std::vector<std::shared_ptr<Yolov11Engine>> extra_engines_;
+    std::mutex mtx_extra_;
 };
 
 #endif // Yolov8_THREAD_POOL_H
