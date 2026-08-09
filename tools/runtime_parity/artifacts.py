@@ -105,6 +105,30 @@ def skeleton_for_layer(layer: str, case: CaseSpec, executor: str) -> Dict[str, A
             "device_intervals": {},
             "_note": "Snap cron slots / patrol intervals from parity_sample.json schedule",
         }
+    if layer == "L_overlay":
+        return {
+            **base,
+            "status": "placeholder",
+            "sample_count": 0,
+            "drawn_count": 0,
+            "p50_latency_ms": 0.0,
+            "p95_latency_ms": 0.0,
+            "frames": [],
+            "_note": "Overlay draw latency P95 from RUNTIME parity_sample.json",
+        }
+    if layer == "L_stream":
+        return {
+            **base,
+            "status": "placeholder",
+            "width": 0,
+            "height": 0,
+            "fps": 0.0,
+            "bitrate_kbps": 0.0,
+            "pushed_ok": 0,
+            "gray_frame_count": 0,
+            "ffprobe": {},
+            "_note": "RTMP stream profile via encoder meta + ffprobe",
+        }
     return {**base, "status": "placeholder", "_note": f"Layer {layer} MVP skeleton"}
 
 

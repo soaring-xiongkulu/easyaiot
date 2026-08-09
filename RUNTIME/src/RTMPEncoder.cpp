@@ -64,7 +64,8 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
     _codecCtx->time_base = AVRational{1, fps};
     _codecCtx->framerate = AVRational{fps, 1};
     _codecCtx->pix_fmt = AV_PIX_FMT_YUV420P;
-    _codecCtx->bit_rate = 2500000;  // 2.5Mbps - 平衡画质和带宽
+    _bitRate = 2500000;  // 2.5Mbps - 平衡画质和带宽
+    _codecCtx->bit_rate = _bitRate;
     _codecCtx->gop_size = 10;       // GOP=10帧(400ms) - 平衡延迟和编码效率
     _codecCtx->max_b_frames = 0;    // No B-frames for low latency
     _codecCtx->rc_buffer_size = _codecCtx->bit_rate / 2;  // 适度缓冲
@@ -198,11 +199,13 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
 bool RTMPEncoder::encodeAndPush(const cv::Mat& frame) {
     if (!_initialized) {
         LOG(ERROR) << "[RTMP] Encoder not initialized";
+        _pushedFail++;
         return false;
     }
     
     if (frame.empty()) {
         LOG(WARNING) << "[RTMP] Empty frame received";
+        _pushedFail++;
         return false;
     }
     
@@ -214,6 +217,7 @@ bool RTMPEncoder::encodeAndPush(const cv::Mat& frame) {
                        _yuvFrame->data, _yuvFrame->linesize);
     if (ret < 0) {
         LOG(ERROR) << "[RTMP] Failed to convert color space";
+        _pushedFail++;
         return false;
     }
     
@@ -227,6 +231,7 @@ bool RTMPEncoder::encodeAndPush(const cv::Mat& frame) {
         char errbuf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(ret, errbuf, sizeof(errbuf));
         LOG(ERROR) << "[RTMP] Failed to send frame: " << errbuf;
+        _pushedFail++;
         return false;
     }
     
@@ -240,6 +245,7 @@ bool RTMPEncoder::encodeAndPush(const cv::Mat& frame) {
             char errbuf[AV_ERROR_MAX_STRING_SIZE];
             av_strerror(ret, errbuf, sizeof(errbuf));
             LOG(ERROR) << "[RTMP] Failed to receive packet: " << errbuf;
+            _pushedFail++;
             return false;
         }
         
@@ -254,12 +260,14 @@ bool RTMPEncoder::encodeAndPush(const cv::Mat& frame) {
             av_strerror(ret, errbuf, sizeof(errbuf));
             LOG(ERROR) << "[RTMP] Failed to write frame: " << errbuf;
             av_packet_unref(_packet);
+            _pushedFail++;
             return false;
         }
         
         av_packet_unref(_packet);
     }
     
+    _pushedOk++;
     return true;
 }
 

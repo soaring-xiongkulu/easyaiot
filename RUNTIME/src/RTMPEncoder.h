@@ -49,6 +49,15 @@ public:
      */
     bool isInitialized() const { return _initialized; }
 
+    // Parity / G-4.4 stream sampling helpers
+    int width() const { return _width; }
+    int height() const { return _height; }
+    int fps() const { return _fps; }
+    int64_t bitRate() const { return _bitRate; }
+    int64_t pushedOk() const { return _pushedOk; }
+    int64_t pushedFail() const { return _pushedFail; }
+    const std::string& rtmpUrl() const { return _rtmpUrl; }
+
 private:
     AVFormatContext* _outputCtx;    // 输出格式上下文
     AVCodecContext* _codecCtx;      // 编码器上下文
@@ -61,6 +70,9 @@ private:
     int _width;                     // 视频宽度
     int _height;                    // 视频高度
     int _fps;                       // 视频帧率
+    int64_t _bitRate{2500000};      // 目标码率（与 init 一致）
+    int64_t _pushedOk{0};           // 成功推送帧计数（parity）
+    int64_t _pushedFail{0};         // 失败推送帧计数（parity）
     std::string _rtmpUrl;           // RTMP推流地址
     bool _initialized;              // 初始化标志
 };

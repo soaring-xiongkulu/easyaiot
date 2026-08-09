@@ -1,5 +1,6 @@
 #include "parity/ParityRecorder.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <glog/logging.h>
@@ -42,10 +43,58 @@ void ParityRecorder::recordScheduleEvent(const std::string& kind,
     samplesSinceFlush_ += 1;
 }
 
+void ParityRecorder::recordOverlaySample(int frameIndex, double latencyMs, int boxCount, bool drawn) {
+    OverlaySample sample;
+    sample.frameIndex = frameIndex;
+    sample.latencyMs = latencyMs;
+    sample.boxCount = boxCount;
+    sample.drawn = drawn;
+    overlaySamples_.push_back(sample);
+    samplesSinceFlush_ += 1;
+}
+
+void ParityRecorder::setStreamMeta(const std::string& rtmpUrl, int width, int height, int fps, int bitrateKbps) {
+    streamRtmpUrl_ = rtmpUrl;
+    streamWidth_ = width;
+    streamHeight_ = height;
+    streamFps_ = fps;
+    streamBitrateKbps_ = bitrateKbps;
+    streamMetaSet_ = true;
+    samplesSinceFlush_ += 1;
+}
+
+void ParityRecorder::recordStreamPush(bool ok) {
+    if (ok) {
+        streamPushedOk_ += 1;
+    } else {
+        streamPushedFail_ += 1;
+    }
+    samplesSinceFlush_ += 1;
+}
+
 void ParityRecorder::setInferCounts(int submits, int skipsMotion) {
     inferSubmits_ = submits;
     inferSkipsMotion_ = skipsMotion;
 }
+
+namespace {
+
+double percentileSorted(std::vector<double> values, double p) {
+    if (values.empty()) {
+        return 0.0;
+    }
+    std::sort(values.begin(), values.end());
+    if (values.size() == 1) {
+        return values[0];
+    }
+    const double idx = p * static_cast<double>(values.size() - 1);
+    const size_t lo = static_cast<size_t>(idx);
+    const size_t hi = std::min(lo + 1, values.size() - 1);
+    const double frac = idx - static_cast<double>(lo);
+    return values[lo] * (1.0 - frac) + values[hi] * frac;
+}
+
+}  // namespace
 
 bool ParityRecorder::writeToFile(const std::string& logPath) const {
     if (logPath.empty()) {
@@ -161,6 +210,43 @@ bool ParityRecorder::writeToFile(const std::string& logPath) const {
     schedule["mean_interval_sec"] = meanCount > 0 ? (sumMean / meanCount) : 0.0;
     root["schedule"] = schedule;
 
+    // L_overlay / CAP-OVERLAY-* — visible draw latency vs capture
+    Json::Value overlay(Json::objectValue);
+    Json::Value overlayFrames(Json::arrayValue);
+    std::vector<double> latencies;
+    int drawnCount = 0;
+    for (const auto& s : overlaySamples_) {
+        Json::Value item;
+        item["frame_index"] = s.frameIndex;
+        item["latency_ms"] = s.latencyMs;
+        item["box_count"] = s.boxCount;
+        item["drawn"] = s.drawn;
+        overlayFrames.append(item);
+        if (s.drawn) {
+            drawnCount += 1;
+            latencies.push_back(s.latencyMs);
+        }
+    }
+    overlay["sample_count"] = static_cast<int>(overlaySamples_.size());
+    overlay["drawn_count"] = drawnCount;
+    overlay["p50_latency_ms"] = percentileSorted(latencies, 0.50);
+    overlay["p95_latency_ms"] = percentileSorted(latencies, 0.95);
+    overlay["frames"] = overlayFrames;
+    root["overlay"] = overlay;
+
+    // L_stream / CAP-RTMP-PUSH — encoder meta + push counters
+    Json::Value stream(Json::objectValue);
+    stream["rtmp_url"] = streamRtmpUrl_;
+    stream["width"] = streamWidth_;
+    stream["height"] = streamHeight_;
+    stream["fps"] = streamFps_;
+    stream["bitrate_kbps"] = streamBitrateKbps_;
+    stream["pushed_ok"] = streamPushedOk_;
+    stream["pushed_fail"] = streamPushedFail_;
+    stream["meta_set"] = streamMetaSet_;
+    stream["gray_frame_count"] = 0;  // placeholder; ffprobe path may refine
+    root["stream"] = stream;
+
     const std::filesystem::path outPath = std::filesystem::path(logPath) / "parity_sample.json";
     std::ofstream ofs(outPath);
     if (!ofs.is_open()) {
@@ -181,7 +267,9 @@ void ParityRecorder::maybeFlush(const std::string& logPath) {
     if (samplesSinceFlush_ < 1) {
         return;
     }
-    if (motionSamples_.empty() && trackFrames_.empty() && scheduleEvents_.empty()) {
+    if (motionSamples_.empty() && trackFrames_.empty() && scheduleEvents_.empty()
+        && overlaySamples_.empty() && streamPushedOk_ == 0 && streamPushedFail_ == 0
+        && !streamMetaSet_) {
         return;
     }
     writeToFile(logPath);

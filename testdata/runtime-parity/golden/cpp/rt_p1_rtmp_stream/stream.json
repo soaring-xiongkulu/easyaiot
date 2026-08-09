@@ -1,0 +1,25 @@
+{
+  "case_id": "rt_p1_rtmp_stream",
+  "layer": "L_stream",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:18:14",
+  "source": "runtime_parity_gate_cpp_parity_sample",
+  "status": "sampled",
+  "rtmp_url": "rtmp://127.0.0.1:1935/live/parity_rt_p1_rtmp_stream",
+  "width": 768,
+  "height": 432,
+  "fps": 12.0,
+  "bitrate_kbps": 2500.0,
+  "pushed_ok": 1700,
+  "pushed_fail": 0,
+  "gray_frame_count": 0,
+  "ffprobe": {
+    "width": 768,
+    "height": 432,
+    "fps": 12.0,
+    "bitrate_kbps": 2500.0,
+    "codec_name": "h264",
+    "gray_frame_count": 0
+  }
+}

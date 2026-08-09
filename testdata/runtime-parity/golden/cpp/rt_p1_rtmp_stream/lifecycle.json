@@ -1,0 +1,86 @@
+{
+  "case_id": "rt_p1_rtmp_stream",
+  "layer": "L_lifecycle",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:18:14",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled",
+  "boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": "cpu",
+    "duration_sec": 28.97
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": 82970,
+      "process_id": 29416,
+      "log_path": "logs/cpp_sample/rt_p1_rtmp_stream",
+      "timestamp_unix": 1786292266.2435827
+    },
+    {
+      "seq": 2,
+      "task_id": 82970,
+      "process_id": 29416,
+      "log_path": "logs/cpp_sample/rt_p1_rtmp_stream",
+      "timestamp_unix": 1786292269.5308666
+    },
+    {
+      "seq": 3,
+      "task_id": 82970,
+      "process_id": 29416,
+      "log_path": "logs/cpp_sample/rt_p1_rtmp_stream",
+      "timestamp_unix": 1786292272.8005714
+    },
+    {
+      "seq": 4,
+      "task_id": 82970,
+      "process_id": 29416,
+      "log_path": "logs/cpp_sample/rt_p1_rtmp_stream",
+      "timestamp_unix": 1786292276.0624373
+    },
+    {
+      "seq": 5,
+      "task_id": 82970,
+      "process_id": 29416,
+      "log_path": "logs/cpp_sample/rt_p1_rtmp_stream",
+      "timestamp_unix": 1786292279.3393824
+    },
+    {
+      "seq": 6,
+      "task_id": 82970,
+      "process_id": 29416,
+      "log_path": "logs/cpp_sample/rt_p1_rtmp_stream",
+      "timestamp_unix": 1786292282.6225207
+    },
+    {
+      "seq": 7,
+      "task_id": 82970,
+      "process_id": 29416,
+      "log_path": "logs/cpp_sample/rt_p1_rtmp_stream",
+      "timestamp_unix": 1786292285.888625
+    },
+    {
+      "seq": 8,
+      "task_id": 82970,
+      "process_id": 29416,
+      "log_path": "logs/cpp_sample/rt_p1_rtmp_stream",
+      "timestamp_unix": 1786292289.1519935
+    },
+    {
+      "seq": 9,
+      "task_id": 82970,
+      "process_id": 29416,
+      "log_path": "logs/cpp_sample/rt_p1_rtmp_stream",
+      "timestamp_unix": 1786292292.4122705
+    }
+  ],
+  "heartbeat_count": 9,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

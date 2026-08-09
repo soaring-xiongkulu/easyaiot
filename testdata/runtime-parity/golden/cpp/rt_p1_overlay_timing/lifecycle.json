@@ -1,0 +1,72 @@
+{
+  "case_id": "rt_p1_overlay_timing",
+  "layer": "L_lifecycle",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:17:41",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled",
+  "boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": "cpu",
+    "duration_sec": 22.56
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": 82775,
+      "process_id": 20664,
+      "log_path": "logs/cpp_sample/rt_p1_overlay_timing",
+      "timestamp_unix": 1786292237.0180755
+    },
+    {
+      "seq": 2,
+      "task_id": 82775,
+      "process_id": 20664,
+      "log_path": "logs/cpp_sample/rt_p1_overlay_timing",
+      "timestamp_unix": 1786292240.268565
+    },
+    {
+      "seq": 3,
+      "task_id": 82775,
+      "process_id": 20664,
+      "log_path": "logs/cpp_sample/rt_p1_overlay_timing",
+      "timestamp_unix": 1786292243.542071
+    },
+    {
+      "seq": 4,
+      "task_id": 82775,
+      "process_id": 20664,
+      "log_path": "logs/cpp_sample/rt_p1_overlay_timing",
+      "timestamp_unix": 1786292246.8323345
+    },
+    {
+      "seq": 5,
+      "task_id": 82775,
+      "process_id": 20664,
+      "log_path": "logs/cpp_sample/rt_p1_overlay_timing",
+      "timestamp_unix": 1786292250.1075175
+    },
+    {
+      "seq": 6,
+      "task_id": 82775,
+      "process_id": 20664,
+      "log_path": "logs/cpp_sample/rt_p1_overlay_timing",
+      "timestamp_unix": 1786292253.3862538
+    },
+    {
+      "seq": 7,
+      "task_id": 82775,
+      "process_id": 20664,
+      "log_path": "logs/cpp_sample/rt_p1_overlay_timing",
+      "timestamp_unix": 1786292256.6768434
+    }
+  ],
+  "heartbeat_count": 7,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

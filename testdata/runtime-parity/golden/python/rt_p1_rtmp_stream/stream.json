@@ -1,0 +1,29 @@
+{
+  "case_id": "rt_p1_rtmp_stream",
+  "layer": "L_stream",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:18:44",
+  "source": "oracle_smoke_stream",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Smoke lifecycle/schedule recording without live oracle VIDEO; heartbeats/slots are deterministic stubs. Media path verified from manifest Intel sample-video.",
+  "rtmp_url": "rtmp://127.0.0.1:1935/live/parity_oracle_stub",
+  "width": 768,
+  "height": 432,
+  "fps": 12.0,
+  "bitrate_kbps": 2500.0,
+  "pushed_ok": 100,
+  "pushed_fail": 0,
+  "gray_frame_count": 0,
+  "codec_name": "h264",
+  "ffprobe": {
+    "width": 768,
+    "height": 432,
+    "fps": 12.0,
+    "bitrate_kbps": 2500.0,
+    "codec_name": "h264",
+    "gray_frame_count": 0
+  },
+  "_note": "oracle_smoke expected stream profile (SRS + RTMPEncoder + media fps)"
+}

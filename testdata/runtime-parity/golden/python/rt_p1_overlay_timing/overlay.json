@@ -1,0 +1,17 @@
+{
+  "case_id": "rt_p1_overlay_timing",
+  "layer": "L_overlay",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:17:12",
+  "source": "oracle_smoke_overlay",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Local Intel sample-video ONNX inference; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "sample_count": 40,
+  "drawn_count": 40,
+  "p50_latency_ms": 56.0,
+  "p95_latency_ms": 120.0,
+  "frames": [],
+  "_note": "oracle_smoke overlay latency stub (not dual-queue replay)"
+}

@@ -1,0 +1,107 @@
+{
+  "case_id": "rt_p1_overlay_timing",
+  "layer": "L_lifecycle",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:17:12",
+  "source": "oracle_smoke_onnx",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Local Intel sample-video ONNX inference; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "boot": {
+    "exit_code": 0,
+    "started": true
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": "rt_p1_overlay_timing_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_overlay_timing/runtime.log",
+      "timestamp_unix": 1786292112.394369
+    },
+    {
+      "seq": 2,
+      "task_id": "rt_p1_overlay_timing_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_overlay_timing/runtime.log",
+      "timestamp_unix": 1786292122.394369
+    },
+    {
+      "seq": 3,
+      "task_id": "rt_p1_overlay_timing_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_overlay_timing/runtime.log",
+      "timestamp_unix": 1786292132.394369
+    },
+    {
+      "seq": 4,
+      "task_id": "rt_p1_overlay_timing_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_overlay_timing/runtime.log",
+      "timestamp_unix": 1786292142.394369
+    },
+    {
+      "seq": 5,
+      "task_id": "rt_p1_overlay_timing_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_overlay_timing/runtime.log",
+      "timestamp_unix": 1786292152.394369
+    },
+    {
+      "seq": 6,
+      "task_id": "rt_p1_overlay_timing_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_overlay_timing/runtime.log",
+      "timestamp_unix": 1786292162.394369
+    },
+    {
+      "seq": 7,
+      "task_id": "rt_p1_overlay_timing_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_overlay_timing/runtime.log",
+      "timestamp_unix": 1786292172.394369
+    },
+    {
+      "seq": 8,
+      "task_id": "rt_p1_overlay_timing_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_overlay_timing/runtime.log",
+      "timestamp_unix": 1786292182.394369
+    },
+    {
+      "seq": 9,
+      "task_id": "rt_p1_overlay_timing_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_overlay_timing/runtime.log",
+      "timestamp_unix": 1786292192.394369
+    },
+    {
+      "seq": 10,
+      "task_id": "rt_p1_overlay_timing_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_overlay_timing/runtime.log",
+      "timestamp_unix": 1786292202.394369
+    },
+    {
+      "seq": 11,
+      "task_id": "rt_p1_overlay_timing_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_overlay_timing/runtime.log",
+      "timestamp_unix": 1786292212.394369
+    },
+    {
+      "seq": 12,
+      "task_id": "rt_p1_overlay_timing_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_overlay_timing/runtime.log",
+      "timestamp_unix": 1786292222.394369
+    }
+  ],
+  "heartbeat_count": 12,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

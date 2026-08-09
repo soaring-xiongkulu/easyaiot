@@ -1,0 +1,61 @@
+{
+  "case_id": "rt_p1_rtmp_stream",
+  "executor": "cpp",
+  "required_layers": [
+    "L_lifecycle",
+    "L_stream"
+  ],
+  "written_at": "2026-08-09T16:18:14",
+  "artifacts": [
+    "lifecycle.json",
+    "stream.json"
+  ],
+  "runtime_boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": "cpu",
+    "duration_sec": 28.97,
+    "log_tail": [
+      "I20260810 00:18:11.243978 27748 Pipeline.cpp:277] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260810 00:18:12.261749 27748 Pipeline.cpp:195] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260810 00:18:12.261749 27748 Pipeline.cpp:286] [PIPELINE-PULL] reconnect success",
+      "I20260810 00:18:12.334632 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "W20260810 00:18:12.412779 36140 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260810 00:18:12.417309 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.430279 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.440335 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.449936 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.457978 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.468587 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.475867 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.483623 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.519039 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.620615 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.636545 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.648551 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.662936 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.671240 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.683252 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.694235 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.703508 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.711746 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.719921 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.734238 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:12.903362 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "W20260810 00:18:13.095999 27748 Pipeline.cpp:271] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260810 00:18:13.095999 27748 Pipeline.cpp:277] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260810 00:18:13.138712 14664 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/rt_p1_rtmp_stream\\parity_sample.json",
+      "I20260810 00:18:14.117830 27748 Pipeline.cpp:195] [PIPELINE] reopened stream 768x432@12fps"
+    ],
+    "ffprobe": {
+      "width": 768,
+      "height": 432,
+      "fps": 12.0,
+      "bitrate_kbps": 2500.0,
+      "codec_name": "h264",
+      "gray_frame_count": 0
+    }
+  },
+  "heartbeat_count": 9,
+  "hook_count": 0
+}

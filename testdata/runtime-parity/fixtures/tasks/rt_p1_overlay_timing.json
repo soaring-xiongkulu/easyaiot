@@ -1,0 +1,9 @@
+{
+  "task_type": "realtime",
+  "executor": "python",
+  "device_source": "file://testdata/runtime-parity/media/people-detection.mp4",
+  "enable_draw": true,
+  "frame_skip": 4,
+  "task_id": "rt_p1_overlay_timing_fixture",
+  "description": "G-4.4 overlay visible latency — draw boxes on AI frames"
+}

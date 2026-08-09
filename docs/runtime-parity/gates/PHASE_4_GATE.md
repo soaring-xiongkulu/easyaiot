@@ -100,7 +100,43 @@ Report: `logs/runtime_parity_report.json`
 - Re-verify: `certify --profile win_cpp` exit **0** (10/10: prior 5 realtime + snap/patrol P0/P1)
 - **G-4.3 ACCEPTED**
 
-## G-4.4 — pending
+## G-4.4 — overlay / RTMP thresholds
 
-- G-4.4 overlay/RTMP thresholds (`thresholds.json` L_overlay/L_stream)
-- Phase 5 full certify / Python runtime removal
+| Case | Layers | CAP | Status |
+|------|--------|-----|--------|
+| `rt_p1_overlay_timing` | L_lifecycle, L_overlay, L_detect | CAP-OVERLAY-*, CAP-DRAW-OVERLAY | **PASS** |
+| `rt_p1_rtmp_stream` | L_lifecycle, L_stream | CAP-RTMP-PUSH, CAP-FIXED-RATE-PUSH | **PASS** |
+
+### Implementation summary
+
+- **C++** `ParityRecorder` samples overlay draw latency (capture→draw) and RTMP push meta/counters; `Pipeline` records on draw + `encodeAndPush`; `RTMPEncoder` exposes push/bitrate getters.
+- **Gate** `L_overlay` / `L_stream` diffs in `diff_layers.py`; `run_cpp` enables `enable_draw` / `enable_rtmp` and mid-run ffprobe against SRS HTTP-FLV (`http://127.0.0.1:8080/live/...flv`).
+- **Thresholds** `overlay.p95_latency_ms_slack=200`; `stream` width/height/fps/bitrate bands + `min_pushed_ok`.
+- **Dual-queue 1:1 not required** — P1 gate is overlay P95 slack + ffprobe profile.
+- **win_cpp** retains prior 10 cases and adds the two G-4.4 cases (12 total).
+
+### Certify commands (2026-08-10)
+
+```bat
+cd F:\acme\.worktrees\runtime-parity
+. .\RUNTIME\scripts\deploy.env.ps1
+set ACME_ORACLE_ROOT=F:\acme
+set ACME_CANDIDATE_ROOT=%CD%
+python tools\runtime_parity_gate.py record-oracle-smoke --case rt_p1_overlay_timing --engine onnx
+python tools\runtime_parity_gate.py record-oracle-smoke --case rt_p1_rtmp_stream --engine onnx
+python tools\runtime_parity_gate.py run --executor cpp --case rt_p1_overlay_timing
+python tools\runtime_parity_gate.py run --executor cpp --case rt_p1_rtmp_stream
+python tools\runtime_parity_gate.py certify --profile win_cpp
+```
+
+Exit code: **0** (12 `win_cpp` cases green: prior 10 + overlay + rtmp).
+
+Report: `logs/runtime_parity_report.json`
+
+### RTMP receive endpoint
+
+Local Docker `srs-server` on `1935` / HTTP-FLV `8080` (shared middleware). Stream name: `parity_rt_p1_rtmp_stream`.
+
+### Orchestrator acceptance
+
+- Pending orchestrator review (implementer does not self-ACCEPT).

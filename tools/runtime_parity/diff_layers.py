@@ -502,6 +502,125 @@ def diff_schedule(
     )
 
 
+def diff_overlay(
+    layer: str,
+    py_data: Dict[str, Any],
+    cpp_data: Dict[str, Any],
+    thresholds: Dict[str, Any],
+) -> Dict[str, Any]:
+    """G-4.4 L_overlay: cpp P95 latency ≤ python P95 + slack; require drawn boxes."""
+    ov = thresholds.get("overlay") or {}
+    slack = float(ov.get("p95_latency_ms_slack", 200))
+    min_drawn = int(ov.get("min_drawn_count", 1))
+
+    if py_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"python overlay status invalid: {py_data.get('status')}")
+    cpp_status = cpp_data.get("status", "")
+    if cpp_status not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"cpp overlay status invalid: {cpp_status}")
+
+    cpp_drawn = int(cpp_data.get("drawn_count") or 0)
+    if cpp_drawn < min_drawn:
+        return _fail(layer, f"cpp drawn_count {cpp_drawn} < min {min_drawn}")
+
+    py_p95 = float(py_data.get("p95_latency_ms") or 0.0)
+    cpp_p95 = float(cpp_data.get("p95_latency_ms") or 0.0)
+    if cpp_p95 <= 0:
+        return _fail(layer, "cpp p95_latency_ms missing or zero")
+    limit = py_p95 + slack
+    if cpp_p95 > limit:
+        return _fail(
+            layer,
+            f"cpp p95_latency_ms {cpp_p95:.1f} > python {py_p95:.1f} + slack {slack}",
+            python_p95=py_p95,
+            cpp_p95=cpp_p95,
+            slack_ms=slack,
+        )
+    return _pass(
+        layer,
+        python_p95_latency_ms=round(py_p95, 2),
+        cpp_p95_latency_ms=round(cpp_p95, 2),
+        drawn_count_cpp=cpp_drawn,
+        slack_ms=slack,
+    )
+
+
+def diff_stream(
+    layer: str,
+    py_data: Dict[str, Any],
+    cpp_data: Dict[str, Any],
+    thresholds: Dict[str, Any],
+) -> Dict[str, Any]:
+    """G-4.4 L_stream: resolution/fps/bitrate band + successful push (+ optional ffprobe)."""
+    st = thresholds.get("stream") or {}
+    w_tol = int(st.get("width_tolerance", 0))
+    h_tol = int(st.get("height_tolerance", 0))
+    fps_tol = float(st.get("fps_tolerance", 3.0))
+    br_min = float(st.get("bitrate_kbps_min", 200))
+    br_max = float(st.get("bitrate_kbps_max", 8000))
+    gray_max = int(st.get("gray_frame_max", 5))
+    min_push = int(st.get("min_pushed_ok", 10))
+
+    if py_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"python stream status invalid: {py_data.get('status')}")
+    cpp_status = cpp_data.get("status", "")
+    if cpp_status not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"cpp stream status invalid: {cpp_status}")
+
+    pushed = int(cpp_data.get("pushed_ok") or 0)
+    if pushed < min_push:
+        return _fail(layer, f"cpp pushed_ok {pushed} < min {min_push}")
+
+    # Prefer ffprobe fields when present; fall back to encoder meta.
+    cpp_probe = cpp_data.get("ffprobe") or {}
+    cpp_w = int(cpp_probe.get("width") or cpp_data.get("width") or 0)
+    cpp_h = int(cpp_probe.get("height") or cpp_data.get("height") or 0)
+    cpp_fps = float(cpp_probe.get("fps") or cpp_data.get("fps") or 0)
+    cpp_br = float(cpp_probe.get("bitrate_kbps") or cpp_data.get("bitrate_kbps") or 0)
+    cpp_gray = int(cpp_probe.get("gray_frame_count") or cpp_data.get("gray_frame_count") or 0)
+
+    py_probe = py_data.get("ffprobe") or {}
+    py_w = int(py_probe.get("width") or py_data.get("width") or 0)
+    py_h = int(py_probe.get("height") or py_data.get("height") or 0)
+    py_fps = float(py_probe.get("fps") or py_data.get("fps") or 0)
+
+    if cpp_w <= 0 or cpp_h <= 0:
+        return _fail(layer, "cpp stream width/height missing")
+    if py_w > 0 and abs(cpp_w - py_w) > w_tol:
+        return _fail(layer, f"width mismatch python={py_w} cpp={cpp_w}", python_w=py_w, cpp_w=cpp_w)
+    if py_h > 0 and abs(cpp_h - py_h) > h_tol:
+        return _fail(layer, f"height mismatch python={py_h} cpp={cpp_h}", python_h=py_h, cpp_h=cpp_h)
+
+    if py_fps > 0 and cpp_fps > 0 and abs(cpp_fps - py_fps) > fps_tol:
+        return _fail(
+            layer,
+            f"fps delta {abs(cpp_fps - py_fps):.2f} > {fps_tol}",
+            python_fps=py_fps,
+            cpp_fps=cpp_fps,
+        )
+
+    # Bitrate: use encoder target when ffprobe bitrate is 0 (common on live short probes)
+    if cpp_br > 0 and (cpp_br < br_min or cpp_br > br_max):
+        return _fail(
+            layer,
+            f"bitrate_kbps {cpp_br} outside [{br_min}, {br_max}]",
+            bitrate_kbps=cpp_br,
+        )
+
+    if cpp_gray > gray_max:
+        return _fail(layer, f"gray_frame_count {cpp_gray} > max {gray_max}")
+
+    return _pass(
+        layer,
+        width=cpp_w,
+        height=cpp_h,
+        fps=cpp_fps,
+        bitrate_kbps=cpp_br,
+        pushed_ok=pushed,
+        ffprobe_used=bool(cpp_probe.get("width")),
+    )
+
+
 def diff_layer(
     layer: str,
     py_data: Dict[str, Any],
@@ -523,6 +642,10 @@ def diff_layer(
         result = diff_motion(layer, py_data, cpp_data, thresholds)
     elif layer == "L_schedule":
         result = diff_schedule(layer, py_data, cpp_data, thresholds)
+    elif layer == "L_overlay":
+        result = diff_overlay(layer, py_data, cpp_data, thresholds)
+    elif layer == "L_stream":
+        result = diff_stream(layer, py_data, cpp_data, thresholds)
     else:
         result = _fail(layer, f"layer {layer} diff not implemented for G-4.1")
     if py_path:

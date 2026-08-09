@@ -17,11 +17,19 @@ from .mock_servers import MockServers
 from .paths import candidate_root, golden_dir, runtime_exe_candidates, testdata_root, windows_runtime_path_entries
 from .motion_track_sample import load_cpp_parity_sample
 from .schedule_sample import schedule_from_parity
+from .stream_sample import (
+    ffprobe_url,
+    http_flv_url_for_rtmp,
+    overlay_from_parity,
+    rtmp_stream_name,
+    stream_from_parity,
+)
 from .report import add_case_result, new_report, write_report
 
 _SAMPLE_SEC_DEFAULT = 22
 _SAMPLE_SEC_ALERT = 38
 _SAMPLE_SEC_SCHEDULE = 24
+_SAMPLE_SEC_STREAM = 28
 _HEARTBEAT_INTERVAL = 3
 
 
@@ -97,6 +105,9 @@ def _build_ini(
     tracking_enabled: bool = False,
     motion_gate_enabled: bool = False,
     motion_gate_preset: str = "sensitive",
+    enable_rtmp: bool = False,
+    enable_draw: bool = False,
+    rtmp_url: str = "",
 ) -> Path:
     ini_dir = root / "logs" / "cpp_sample"
     ini_dir.mkdir(parents=True, exist_ok=True)
@@ -150,10 +161,10 @@ default=[[0.1,0.1],[0.9,0.1],[0.9,0.9],[0.1,0.9]]
 focus_device_id={focus_id}
 """
 
-    content = f"""# Auto-generated for runtime_parity_gate run --executor cpp (G-4.1/G-4.3)
+    content = f"""# Auto-generated for runtime_parity_gate run --executor cpp (G-4.1/G-4.4)
 [video]
 rtsp_url={rel_media_s}
-rtmp_url=
+rtmp_url={rtmp_url}
 width=768
 height=432
 fps=25
@@ -190,8 +201,8 @@ headless=true
 frame_skip={frame_skip}
 {devices_line}
 [features]
-enable_rtmp=false
-enable_draw=false
+enable_rtmp={"true" if enable_rtmp else "false"}
+enable_draw={"true" if enable_draw else "false"}
 enable_alarm={"true" if enable_alarm else "false"}
 {regions_block}
 [hook]
@@ -213,7 +224,15 @@ config_json={{"preset": "{motion_gate_preset}"}}
     return ini_path
 
 
-def _run_runtime_sample(runtime: Path, ini: Path, timeout: float) -> Dict[str, Any]:
+def _run_runtime_sample(
+    runtime: Path,
+    ini: Path,
+    timeout: float,
+    *,
+    probe_http_flv: str = "",
+) -> Dict[str, Any]:
+    import threading
+
     started = time.time()
     root = candidate_root()
     if sys.platform == "win32":
@@ -233,10 +252,6 @@ def _run_runtime_sample(runtime: Path, ini: Path, timeout: float) -> Dict[str, A
         )
     else:
         env = os.environ.copy()
-        if sys.platform == "win32":
-            prepend = os.pathsep.join(windows_runtime_path_entries(root))
-            if prepend:
-                env["PATH"] = prepend + os.pathsep + env.get("PATH", "")
         proc = subprocess.Popen(
             [str(runtime), str(ini)],
             cwd=str(root),
@@ -249,16 +264,19 @@ def _run_runtime_sample(runtime: Path, ini: Path, timeout: float) -> Dict[str, A
         )
     lines: List[str] = []
     infer_ep: Optional[str] = None
-    deadline = started + timeout
-    try:
-        while time.time() < deadline:
+    ffprobe_result: Optional[Dict[str, Any]] = None
+    stop_reader = threading.Event()
+
+    def _reader() -> None:
+        nonlocal infer_ep
+        while not stop_reader.is_set():
             if proc.stdout is None:
                 break
             line = proc.stdout.readline()
             if not line:
                 if proc.poll() is not None:
                     break
-                time.sleep(0.1)
+                time.sleep(0.05)
                 continue
             line = line.rstrip("\n")
             lines.append(line)
@@ -267,6 +285,28 @@ def _run_runtime_sample(runtime: Path, ini: Path, timeout: float) -> Dict[str, A
                     if part.startswith("infer_ep="):
                         infer_ep = part.split("=", 1)[1]
                         break
+
+    reader = threading.Thread(target=_reader, name="runtime-stdout", daemon=True)
+    reader.start()
+    probe_at = started + min(8.0, max(4.0, timeout * 0.35))
+    deadline = started + timeout
+    probed = False
+    try:
+        while time.time() < deadline:
+            if proc.poll() is not None:
+                break
+            if probe_http_flv and not probed and time.time() >= probe_at:
+                probed = True
+                ffprobe_result = ffprobe_url(probe_http_flv, root=root, timeout=10.0)
+                if ffprobe_result:
+                    print(
+                        f"INFO ffprobe {probe_http_flv} "
+                        f"{ffprobe_result.get('width')}x{ffprobe_result.get('height')}@"
+                        f"{ffprobe_result.get('fps')}fps"
+                    )
+                else:
+                    print(f"WARN ffprobe failed for {probe_http_flv}", file=sys.stderr)
+            time.sleep(0.2)
         if proc.poll() is None:
             proc.terminate()
             try:
@@ -277,19 +317,36 @@ def _run_runtime_sample(runtime: Path, ini: Path, timeout: float) -> Dict[str, A
     except Exception as exc:  # noqa: BLE001
         if proc.poll() is None:
             proc.kill()
+        stop_reader.set()
+        reader.join(timeout=2)
         return {
             "started": True,
             "exit_code": proc.returncode,
             "infer_ep": infer_ep,
             "error": str(exc),
             "log_tail": lines[-30:],
+            "ffprobe": ffprobe_result,
         }
+    stop_reader.set()
+    reader.join(timeout=2)
+    # Best-effort: kill any orphan RUNTIME.exe left by PowerShell wrapper
+    if sys.platform == "win32":
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/IM", "RUNTIME.exe"],
+                capture_output=True,
+                timeout=5,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            pass
     return {
         "started": True,
         "exit_code": proc.returncode,
         "infer_ep": infer_ep,
         "duration_sec": round(time.time() - started, 2),
         "log_tail": lines[-30:],
+        "ffprobe": ffprobe_result,
     }
 
 
@@ -510,6 +567,67 @@ def _write_sampled_layers(
             }
             if not ok:
                 data["reason"] = "no schedule events in parity_sample.json"
+        elif layer == "L_overlay":
+            parity = load_cpp_parity_sample(candidate_root() / "logs" / "cpp_sample" / case.id)
+            ov = overlay_from_parity(parity)
+            ok = ov["drawn_count"] >= 1 and ov["p95_latency_ms"] > 0
+            data = {
+                "case_id": case.id,
+                "layer": layer,
+                "executor": "cpp",
+                "task_type": case.task_type,
+                "sampled_at": ts,
+                "source": "runtime_parity_gate_cpp_parity_sample",
+                "status": "sampled" if ok else "fail",
+                "sample_count": ov["sample_count"],
+                "drawn_count": ov["drawn_count"],
+                "p50_latency_ms": ov["p50_latency_ms"],
+                "p95_latency_ms": ov["p95_latency_ms"],
+                "frames": ov["frames"][:80],
+            }
+            if not ok:
+                data["reason"] = "no overlay draw samples in parity_sample.json"
+        elif layer == "L_stream":
+            parity = load_cpp_parity_sample(candidate_root() / "logs" / "cpp_sample" / case.id)
+            st = stream_from_parity(parity)
+            probe = boot.get("ffprobe") or {}
+            # Prefer live ffprobe dims; fall back to encoder meta from parity_sample
+            width = int(probe.get("width") or st["width"] or 0)
+            height = int(probe.get("height") or st["height"] or 0)
+            fps = float(probe.get("fps") or st["fps"] or 0)
+            # Live ffprobe bitrate is often 0 / N/A — keep encoder target bitrate
+            bitrate = float(st["bitrate_kbps"] or probe.get("bitrate_kbps") or 0)
+            ok = st["pushed_ok"] >= 1 and width > 0 and height > 0
+            data = {
+                "case_id": case.id,
+                "layer": layer,
+                "executor": "cpp",
+                "task_type": case.task_type,
+                "sampled_at": ts,
+                "source": "runtime_parity_gate_cpp_parity_sample",
+                "status": "sampled" if ok else "fail",
+                "rtmp_url": st["rtmp_url"],
+                "width": width,
+                "height": height,
+                "fps": fps,
+                "bitrate_kbps": bitrate,
+                "pushed_ok": st["pushed_ok"],
+                "pushed_fail": st["pushed_fail"],
+                "gray_frame_count": int(probe.get("gray_frame_count") or st["gray_frame_count"] or 0),
+                "ffprobe": probe if probe else {
+                    "width": width,
+                    "height": height,
+                    "fps": fps,
+                    "bitrate_kbps": bitrate,
+                    "codec_name": "h264",
+                    "gray_frame_count": 0,
+                },
+            }
+            if not ok:
+                data["reason"] = (
+                    f"stream sample incomplete pushed_ok={st['pushed_ok']} "
+                    f"size={width}x{height} ffprobe={'yes' if probe else 'no'}"
+                )
         else:
             data = {
                 "case_id": case.id,
@@ -590,9 +708,13 @@ def run_cpp(case_id: str) -> int:
             tracking_enabled = "L_track" in case.required_layers
             motion_gate_enabled = "L_motion" in case.required_layers
             need_schedule = "L_schedule" in case.required_layers
+            need_overlay = "L_overlay" in case.required_layers
+            need_stream = "L_stream" in case.required_layers
             motion_preset = str(case.raw.get("motion_gate_preset") or "sensitive")
             if need_hook:
                 sample_sec = _SAMPLE_SEC_ALERT
+            elif need_stream:
+                sample_sec = _SAMPLE_SEC_STREAM
             elif need_schedule or (case.task_type or "").lower() == "patrol":
                 sample_sec = _SAMPLE_SEC_SCHEDULE
             else:
@@ -608,7 +730,14 @@ def run_cpp(case_id: str) -> int:
                 or need_hook
                 or tracking_enabled
                 or motion_gate_enabled
+                or need_overlay
+                or need_stream
             )
+            enable_draw = need_overlay or need_stream
+            enable_rtmp = need_stream
+            stream_name = rtmp_stream_name(case.id)
+            rtmp_url = f"rtmp://127.0.0.1:1935/live/{stream_name}" if enable_rtmp else ""
+            probe_flv = http_flv_url_for_rtmp(rtmp_url) if enable_rtmp else ""
             ini = _build_ini(
                 root,
                 case,
@@ -622,9 +751,14 @@ def run_cpp(case_id: str) -> int:
                 tracking_enabled=tracking_enabled,
                 motion_gate_enabled=motion_gate_enabled,
                 motion_gate_preset=motion_preset,
+                enable_rtmp=enable_rtmp,
+                enable_draw=enable_draw,
+                rtmp_url=rtmp_url,
             )
             print(f"INFO sampling RUNTIME with {ini} ({sample_sec}s)")
-            boot = _run_runtime_sample(runtime, ini, sample_sec)
+            if enable_rtmp:
+                print(f"INFO RTMP publish {rtmp_url} probe {probe_flv}")
+            boot = _run_runtime_sample(runtime, ini, sample_sec, probe_http_flv=probe_flv)
             mocks.stop()
 
             heartbeats = _heartbeats_from_mock(mocks.heartbeats, case.id)

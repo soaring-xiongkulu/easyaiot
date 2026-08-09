@@ -1,0 +1,10 @@
+{
+  "task_type": "realtime",
+  "executor": "python",
+  "device_source": "file://testdata/runtime-parity/media/people-detection.mp4",
+  "enable_rtmp": true,
+  "enable_draw": true,
+  "frame_skip": 4,
+  "task_id": "rt_p1_rtmp_stream_fixture",
+  "description": "G-4.4 RTMP push — ffprobe resolution/fps/bitrate against SRS"
+}

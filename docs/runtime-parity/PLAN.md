@@ -247,8 +247,8 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 
 ### Task 4.5: RTMP / overlay 表现门槛
 
-- [ ] 不以双队列 1:1 复刻为阻塞；以 overlay 可见延迟阈值 + ffprobe 为 P1
-- [ ] Commit：`feat: cpp overlay/rtmp parity thresholds`
+- [x] 不以双队列 1:1 复刻为阻塞；以 overlay 可见延迟阈值 + ffprobe 为 P1
+- [x] Commit：`feat: cpp overlay/rtmp parity thresholds`
 
 ---
 

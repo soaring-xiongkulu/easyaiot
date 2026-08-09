@@ -639,6 +639,32 @@ def _write_case_golden(case: CaseSpec, root: Path, manifest: Dict[str, Any], *, 
             **sched,
         }
 
+    def overlay() -> Dict[str, Any]:
+        from .stream_sample import synthetic_overlay_oracle
+
+        return {
+            **_base_layer(case, "L_overlay", source="oracle_smoke_overlay", limitations=rec.limitations),
+            **synthetic_overlay_oracle(frame_skip=4, fps=25.0),
+        }
+
+    def stream() -> Dict[str, Any]:
+        from .stream_sample import ffprobe_url, synthetic_stream_oracle
+
+        media = _media_path(case, root, manifest)
+        # Align expected fps/resolution with Intel sample media (not hardcoded 25).
+        width, height, fps = 768, 432, 12
+        if media is not None and media.is_file():
+            probed = ffprobe_url(str(media), root=root, timeout=8.0)
+            if probed and probed.get("width"):
+                width = int(probed["width"])
+                height = int(probed["height"])
+                if float(probed.get("fps") or 0) > 0:
+                    fps = int(round(float(probed["fps"])))
+        return {
+            **_base_layer(case, "L_stream", source="oracle_smoke_stream", limitations=rec.limitations),
+            **synthetic_stream_oracle(width=width, height=height, fps=fps, bitrate_kbps=2500),
+        }
+
     builders = {
         "L_lifecycle": lifecycle,
         "L_detect": detect,
@@ -646,6 +672,8 @@ def _write_case_golden(case: CaseSpec, root: Path, manifest: Dict[str, Any], *, 
         "L_motion": motion,
         "L_track": track,
         "L_schedule": schedule,
+        "L_overlay": overlay,
+        "L_stream": stream,
     }
     for layer, fname in layer_file_map(case).items():
         builder = builders.get(layer)

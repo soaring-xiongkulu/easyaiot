@@ -453,6 +453,7 @@ void Pipeline::inferLoop() {
 
             if (!lastDetections.empty()) {
                 std::vector<DetectObject> alarmDetections;
+                int drawnBoxes = 0;
                 for (const auto& det : lastDetections) {
                     int x1 = static_cast<int>(det.x1);
                     int y1 = static_cast<int>(det.y1);
@@ -471,7 +472,17 @@ void Pipeline::inferLoop() {
                         cv::Scalar color = inAlarmRegion ? cv::Scalar(0, 0, 255) : cv::Scalar(255, 0, 0);
                         int thickness = inAlarmRegion ? 3 : 1;
                         cv::rectangle(img, cv::Point(x1, y1), cv::Point(x2, y2), color, thickness);
+                        drawnBoxes += 1;
                     }
+                }
+
+                // G-4.4: overlay visible latency = capture → draw complete
+                if (config_.enableDrawRtmp && drawnBoxes > 0) {
+                    const double latencyMs =
+                        static_cast<double>(nowNs() - slot->captureNs) / 1000000.0;
+                    parityRecorder_.recordOverlaySample(
+                        paritySampleIndex_++, latencyMs, drawnBoxes, true);
+                    parityRecorder_.maybeFlush(config_.logPath);
                 }
 
                 if (!alarmDetections.empty()) {
@@ -494,7 +505,24 @@ void Pipeline::inferLoop() {
 
         if (streamingFn_ && streamingFn_() && rtmpEncoder_ && *rtmpEncoder_ &&
             (*rtmpEncoder_)->isInitialized()) {
-            (*rtmpEncoder_)->encodeAndPush(img);
+            RTMPEncoder* enc = *rtmpEncoder_;
+            // One-shot stream meta for L_stream parity sampling
+            static thread_local bool streamMetaLogged = false;
+            if (!streamMetaLogged) {
+                parityRecorder_.setStreamMeta(
+                    enc->rtmpUrl(),
+                    enc->width(),
+                    enc->height(),
+                    enc->fps(),
+                    static_cast<int>(enc->bitRate() / 1000));
+                streamMetaLogged = true;
+            }
+            const bool ok = enc->encodeAndPush(img);
+            parityRecorder_.recordStreamPush(ok);
+            // Throttle flush: every ~25 pushes
+            if ((enc->pushedOk() + enc->pushedFail()) % 25 == 0) {
+                parityRecorder_.maybeFlush(config_.logPath);
+            }
         }
 
         if (metrics_) {

@@ -21,7 +21,19 @@
     "infer_skip_ratio_max": 1.8
   },
   "overlay": {
-    "p95_latency_ms_slack": 200
+    "p95_latency_ms_slack": 200,
+    "min_drawn_count": 1,
+    "_note": "cpp overlay P95 ≤ python P95 + slack; dual-queue 1:1 not required"
+  },
+  "stream": {
+    "width_tolerance": 0,
+    "height_tolerance": 0,
+    "fps_tolerance": 3.0,
+    "bitrate_kbps_min": 200,
+    "bitrate_kbps_max": 8000,
+    "gray_frame_max": 5,
+    "min_pushed_ok": 10,
+    "_note": "G-4.4 L_stream: ffprobe resolution/fps + encoder bitrate band; NVENC fallback is WARN"
   },
   "perf": {
     "alert_p95_ratio_max": 1.2,
