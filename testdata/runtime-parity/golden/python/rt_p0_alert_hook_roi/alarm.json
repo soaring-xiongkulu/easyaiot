@@ -1,0 +1,13 @@
+{
+  "case_id": "rt_p0_alert_hook_roi",
+  "layer": "L_alarm",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T13:06:02",
+  "source": "runtime_parity_gate_mvp",
+  "status": "placeholder",
+  "alerts": [],
+  "alert_count": 0,
+  "hook_url": "http://127.0.0.1:18080/alert",
+  "_note": "Compare with golden/video/<case>/ hook captures"
+}

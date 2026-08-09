@@ -1,0 +1,13 @@
+{
+  "case_id": "rt_p0_alert_hook_roi",
+  "layer": "L_detect",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T13:06:02",
+  "source": "runtime_parity_gate_mvp",
+  "status": "placeholder",
+  "frames": [],
+  "detection_count": 0,
+  "model": "onnx",
+  "_note": "bbox list per frame; IoU diff in certify"
+}
