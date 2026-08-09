@@ -3,6 +3,9 @@
 #include <cstdlib>
 
 #include "Yolov11Engine.h"
+#ifdef _WIN32
+#include "win_compat.h"
+#endif
 
 std::vector<std::string> g_classes = {
     "person", "bicycle", "car", "motorbike ", "aeroplane ", "bus ", "train", "truck ", "boat", "traffic light",
@@ -44,7 +47,12 @@ int Yolov11Engine::createSession(const std::string& model_path, bool use_cuda, i
         LOG(INFO) << "[YOLO] Using CPU execution";
     }
 
+#ifdef _WIN32
+    const std::wstring wmodel = runtime_widen_utf8(model_path);
+    onnxSession = Ort::Session(onnxEnv, wmodel.c_str(), onnxSessionOptions);
+#else
     onnxSession = Ort::Session(onnxEnv, model_path.c_str(), onnxSessionOptions);
+#endif
     inferEp_ = use_cuda ? "cuda" : "cpu";
     return 0;
 }

@@ -12,8 +12,8 @@ endif()
 # --- platform flags (Linux keeps pthread; MSVC uses default CRT threads) ---
 if(WIN32)
     if(MSVC)
-        add_compile_definitions(WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /EHsc /W3")
+        add_compile_definitions(WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS GLOG_NO_ABBREVIATED_SEVERITIES)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /EHsc /W3 /utf-8")
         set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od /Zi")
         set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")
     endif()
@@ -62,6 +62,22 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/3rdparty/cpp-httplib/
 )
 
+# find_library does not always export include dirs on Windows (conda-forge layout).
+if(WIN32)
+    if(JSONCPP_LIBRARY)
+        get_filename_component(_JSONCPP_LIB_DIR "${JSONCPP_LIBRARY}" DIRECTORY)
+        include_directories("${_JSONCPP_LIB_DIR}/../include")
+    endif()
+    if(AVFORMAT_LIBRARY)
+        get_filename_component(_FFMPEG_LIB_DIR "${AVFORMAT_LIBRARY}" DIRECTORY)
+        include_directories("${_FFMPEG_LIB_DIR}/../include")
+    endif()
+    if(GLOG_LIBRARY)
+        get_filename_component(_GLOG_LIB_DIR "${GLOG_LIBRARY}" DIRECTORY)
+        include_directories("${_GLOG_LIB_DIR}/../include")
+    endif()
+endif()
+
 if(ONNXRUNTIME_ROOT)
     include_directories(
         ${ONNXRUNTIME_ROOT}/include
@@ -103,10 +119,10 @@ set(OPENCV_LINK_LIBS
     opencv_imgproc
     opencv_imgcodecs
     opencv_dnn
-    opencv_geometry
     opencv_highgui
     opencv_videoio
 )
+# opencv_geometry is OpenCV 5+; pointPolygonTest lives in imgproc (OpenCV 4.x).
 message(STATUS "OpenCV link libs (minimal): ${OPENCV_LINK_LIBS}")
 
 set(OPTIONAL_LIBS "")

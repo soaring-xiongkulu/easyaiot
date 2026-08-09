@@ -12,7 +12,7 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <opencv2/imgproc.hpp>
-#include <opencv2/geometry.hpp>
+#include <opencv2/imgproc.hpp>
 #include "win_compat.h"
 
 static Yolov11ThreadPool *yolov11_thread_pool = nullptr;

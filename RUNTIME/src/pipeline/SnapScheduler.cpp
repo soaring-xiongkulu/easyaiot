@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <glog/logging.h>
-#include <opencv2/geometry.hpp>
+#include <opencv2/imgproc.hpp>
 #include <sstream>
 
 #include "Yolov11ThreadPool.h"

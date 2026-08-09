@@ -87,7 +87,14 @@ RTC/data/
 RTC/.env
 RTC/vendor/go2rtc/
 RUNTIME/build/
+RUNTIME/build-win/
 RUNTIME/build-linux/
+RUNTIME/vendor/win-x64/onnxruntime/
+RUNTIME/vendor/win-x64/*.zip
+RUNTIME/vendor/win-x64/_staging_ort/
+RUNTIME/vendor/win-x64/_staging_ort_py/
+RUNTIME/vendor/win-x64/conda-pkgs/
+RUNTIME/vendor/win-x64/_onnxruntime_bad/
 RUNTIME/cmake-build-debug/
 RUNTIME/deploy.env
 # .scripts/docker 中间件数据目录和日志目录

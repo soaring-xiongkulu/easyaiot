@@ -88,7 +88,11 @@ if (-not $Inner) {
 }
 
 if (Test-Path $OrtExtractRoot) {
-    Remove-Item -Recurse -Force $OrtExtractRoot
+    $empty = Join-Path $VendorRoot "_empty_for_robocopy"
+    New-Item -ItemType Directory -Force -Path $empty | Out-Null
+    robocopy $empty $OrtExtractRoot /MIR /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+    Remove-Item -Recurse -Force $empty -ErrorAction SilentlyContinue
+    Remove-Item -Recurse -Force $OrtExtractRoot -ErrorAction SilentlyContinue
 }
 New-Item -ItemType Directory -Force -Path $OrtExtractRoot | Out-Null
 Copy-Item -Path (Join-Path $Inner.FullName "*") -Destination $OrtExtractRoot -Recurse -Force

@@ -13,6 +13,7 @@
 #include <process.h>  // _getpid
 
 #include <ctime>
+#include <string>
 
 // Windows ignores POSIX mode; sufficient for alert image dirs (0755 intent on Linux).
 inline int runtime_mkdir(const char* path, int /*mode*/) {
@@ -30,6 +31,21 @@ inline int gmtime_r(const std::time_t* timep, std::tm* result) {
 
 inline int localtime_r(const std::time_t* timep, std::tm* result) {
     return localtime_s(result, timep) == 0 ? 0 : -1;
+}
+
+// ONNX Runtime Windows API expects wchar_t model paths (ORTCHAR_T).
+inline std::wstring runtime_widen_utf8(const std::string& path) {
+    if (path.empty()) {
+        return std::wstring();
+    }
+    const int len = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), static_cast<int>(path.size()),
+                                        nullptr, 0);
+    if (len <= 0) {
+        return std::wstring();
+    }
+    std::wstring wide(static_cast<size_t>(len), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, path.c_str(), static_cast<int>(path.size()), wide.data(), len);
+    return wide;
 }
 
 #else  // !_WIN32
