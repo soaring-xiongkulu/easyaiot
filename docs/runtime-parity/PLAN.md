@@ -256,10 +256,10 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 
 ### Task 5.1: 全 P0+P1 certify（Linux + win_cpp）
 
-- [ ] `certify --profile linux_full` 全绿
-- [ ] `certify --profile win_cpp` 全绿（或文档化豁免清单经产品签字）
-- [ ] 性能列不劣于 `thresholds.json`
-- [ ] 产出 `docs/runtime-parity/CERTIFY_STATUS.md` 附报告哈希
+- [x] `certify --profile linux_full` 全绿
+- [x] `certify --profile win_cpp` 全绿（或文档化豁免清单经产品签字）
+- [x] 性能列不劣于 `thresholds.json`
+- [x] 产出 `docs/runtime-parity/CERTIFY_STATUS.md` 附报告哈希
 
 ### Task 5.2: 默认只留 cpp + 删除 python 服务
 
@@ -268,9 +268,10 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 - Delete or quarantine: `VIDEO/services/realtime_algorithm_service/` 等三目录（可先移 `_retired/` 一版）
 - Modify: README / VIDEO README
 
-- [ ] 代码路径无法再选 `executor=python`
-- [ ] CI 去掉 python executor job，保留 parity gate
-- [ ] Commit：`feat: remove python algorithm runtime executors`
+- [x] 代码路径无法再选 `executor=python`（G-5.4）
+- [x] CI：本仓无独立 python executor job；parity gate 仍为本地 CLI（见 PHASE_5_GATE）
+- [ ] Quarantine/delete 三服务：仅 dry-run 完成，待编排 `--execute` 后再 commit
+- [ ] Commit：`feat: remove python algorithm runtime executors`（execute 后）
 
 ---
 
