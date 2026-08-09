@@ -1,5 +1,9 @@
 #include "Manage.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 // 全局变量定义
 std::atomic<int> s_exit(0);
 
@@ -10,6 +14,21 @@ void procSignal(int s) {
 }
 
 void installSignalCallback() {
+#ifdef _WIN32
+    // Windows: console ctrl events instead of POSIX sigaction (no SIGPIPE/SIGQUIT).
+    auto handler = [](DWORD ctrlType) -> BOOL {
+        switch (ctrlType) {
+            case CTRL_C_EVENT:
+            case CTRL_BREAK_EVENT:
+            case CTRL_CLOSE_EVENT:
+                procSignal(static_cast<int>(ctrlType));
+                return TRUE;
+            default:
+                return FALSE;
+        }
+    };
+    SetConsoleCtrlHandler(handler, TRUE);
+#else
     struct sigaction sigIntHandler;
     sigIntHandler.sa_flags = 0;
     sigIntHandler.sa_handler = procSignal;
@@ -18,6 +37,7 @@ void installSignalCallback() {
     sigaction(SIGQUIT, &sigIntHandler, nullptr);
     sigaction(SIGTERM, &sigIntHandler, nullptr);
     sigaction(SIGPIPE, &sigIntHandler, nullptr);
+#endif
 }
 
 Server::Server(const Config &conf) : _local(conf) {

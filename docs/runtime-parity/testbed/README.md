@@ -26,7 +26,7 @@ python tools\runtime_parity_gate.py doctor
 python docs\runtime-parity\testbed\mock_alert_hook.py --port 18080 --case rt_p0_alert_hook_roi
 ```
 
-- 默认监听 `0.0.0.0:18080`
+- 默认监听 `127.0.0.1:18080`（`--host` 可覆盖）
 - 每次 POST 写入 `hook_<n>.json`（body + 时间戳 + headers 摘要）
 - 停止：`Ctrl+C`
 
@@ -65,6 +65,13 @@ python tools\runtime_parity_gate.py record-python --case rt_p0_alert_hook_roi
 ```
 
 MVP：产出 `testdata/runtime-parity/golden/python/<case>/` 下分层 JSON 骨架。  
+**G-0.3 非 placeholder 路径（无需起 VIDEO）：**
+
+```bat
+python tools\runtime_parity_gate.py record-oracle-smoke
+python tools\runtime_parity_gate.py doctor --strict-golden
+```
+
 挂接真实 VIDEO：设置 `RPARITY_USE_VIDEO=1` 并确保 VIDEO 栈与 mock hook / RTSP 已起（后续 Phase 0 收尾）。
 
 ## 5. C++ 候选采样

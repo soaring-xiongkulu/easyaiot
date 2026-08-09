@@ -13,7 +13,7 @@
 #include <sys/stat.h>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/geometry.hpp>
-#include <unistd.h>
+#include "win_compat.h"
 
 static Yolov11ThreadPool *yolov11_thread_pool = nullptr;
 
@@ -1031,7 +1031,7 @@ void Detech::_heartbeatThreadFunc() {
             root["task_id"] = taskIdNum;
             root["server_ip"] = "127.0.0.1";
             root["port"] = _config.controlPort;
-            root["process_id"] = static_cast<int>(::getpid());
+            root["process_id"] = runtime_getpid();
             root["log_path"] = _config.logPath;
             if (_patrolScheduler) {
                 root["total_patrols"] = (Json::UInt64)_patrolScheduler->totalPatrols.load();
@@ -1062,7 +1062,7 @@ std::string Detech::_saveAlertImage(const cv::Mat& frame) {
     if (dir.empty()) {
         dir = "alerts";
     }
-    ::mkdir(dir.c_str(), 0755);
+    runtime_mkdir(dir.c_str(), 0755);
     std::ostringstream name;
     name << dir << "/alert_" << _config.taskId << "_" << _get_curtime_stamp_ms() << ".jpg";
     try {

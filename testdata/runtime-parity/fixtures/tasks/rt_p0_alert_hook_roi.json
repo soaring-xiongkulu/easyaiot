@@ -1,0 +1,15 @@
+{
+  "task_type": "realtime",
+  "executor": "python",
+  "device_source": "file://testdata/runtime-parity/media/media_person_roi_30s.mp4",
+  "model_paths": {
+    "detector": "models/yolo11n.onnx"
+  },
+  "alert_hook_url": "http://127.0.0.1:18080/alert",
+  "roi": {
+    "type": "polygon",
+    "points": [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]]
+  },
+  "task_id": "rt_p0_alert_hook_roi_fixture",
+  "description": "Phase 0 minimal fixture for ROI alert hook baseline"
+}

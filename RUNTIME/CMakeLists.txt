@@ -9,12 +9,34 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread")
-set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb")
-set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
+# --- platform flags (Linux keeps pthread; MSVC uses default CRT threads) ---
+if(WIN32)
+    if(MSVC)
+        add_compile_definitions(WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /EHsc /W3")
+        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od /Zi")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")
+    endif()
+    set(RUNTIME_VENDOR_ROOT "${CMAKE_SOURCE_DIR}/vendor/win-x64"
+        CACHE PATH "Windows vendor root (ORT/OpenCV/FFmpeg DLL layout)")
+    if(NOT ONNXRUNTIME_ROOT)
+        set(ONNXRUNTIME_ROOT "${RUNTIME_VENDOR_ROOT}/onnxruntime"
+            CACHE PATH "ONNX Runtime C++ SDK root" FORCE)
+    endif()
+    # conda-forge win-64: headers/libs under Library/
+    if(DEFINED ENV{CONDA_PREFIX})
+        list(APPEND CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX}/Library")
+    endif()
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread")
+    set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb")
+    set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
+endif()
 
 # Optional: path to official ONNX Runtime C++ SDK (include/ + lib/)
-set(ONNXRUNTIME_ROOT "" CACHE PATH "ONNX Runtime C++ SDK root")
+if(NOT ONNXRUNTIME_ROOT)
+    set(ONNXRUNTIME_ROOT "" CACHE PATH "ONNX Runtime C++ SDK root")
+endif()
 
 find_package(OpenCV REQUIRED)
 message(STATUS "OpenCV: ${OpenCV_INCLUDE_DIRS}")
@@ -49,17 +71,25 @@ if(ONNXRUNTIME_ROOT)
     link_directories(${ONNXRUNTIME_ROOT}/lib)
     message(STATUS "ONNXRUNTIME_ROOT: ${ONNXRUNTIME_ROOT}")
 else()
-    include_directories(
-        /usr/include
-        /usr/local/include
-        /usr/local/include/onnxruntime
-    )
+    if(WIN32)
+        message(WARNING "ONNXRUNTIME_ROOT not set; run scripts/fetch_deps_windows.ps1 or pass -DONNXRUNTIME_ROOT=...")
+    else()
+        include_directories(
+            /usr/include
+            /usr/local/include
+            /usr/local/include/onnxruntime
+        )
+    endif()
 endif()
 
 # OpenCV 5 conda layout: include/opencv5
 if(DEFINED ENV{CONDA_PREFIX})
     include_directories($ENV{CONDA_PREFIX}/include/opencv5)
     link_directories($ENV{CONDA_PREFIX}/lib)
+    if(WIN32)
+        include_directories($ENV{CONDA_PREFIX}/Library/include/opencv4)
+        link_directories($ENV{CONDA_PREFIX}/Library/lib)
+    endif()
 endif()
 
 file(GLOB_RECURSE Src_SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
@@ -87,6 +117,13 @@ if(PUGIXML_LIBRARY)
     list(APPEND OPTIONAL_LIBS ${PUGIXML_LIBRARY})
 endif()
 
+set(PLATFORM_LIBS "")
+if(WIN32)
+    list(APPEND PLATFORM_LIBS ws2_32)
+else()
+    list(APPEND PLATFORM_LIBS pthread dl)
+endif()
+
 target_link_libraries(${PROJECT_NAME}
     ${OPENCV_LINK_LIBS}
     ${AVFORMAT_LIBRARY}
@@ -98,6 +135,17 @@ target_link_libraries(${PROJECT_NAME}
     ${JSONCPP_LIBRARY}
     ${GLOG_LIBRARY}
     onnxruntime
-    pthread
-    dl
+    ${PLATFORM_LIBS}
 )
+
+# Windows: copy ORT runtime DLL next to RUNTIME.exe when using vendor layout
+if(WIN32 AND ONNXRUNTIME_ROOT)
+    set(_ORT_DLL "${ONNXRUNTIME_ROOT}/lib/onnxruntime.dll")
+    if(EXISTS "${_ORT_DLL}")
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${_ORT_DLL}"
+                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/onnxruntime.dll"
+            COMMENT "Copy onnxruntime.dll beside RUNTIME.exe")
+    endif()
+endif()

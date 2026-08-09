@@ -8,6 +8,7 @@
 #include <sstream>
 
 #include "Yolov11ThreadPool.h"
+#include "win_compat.h"
 
 namespace runtime {
 

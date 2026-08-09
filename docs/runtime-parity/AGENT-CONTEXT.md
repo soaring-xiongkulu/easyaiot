@@ -52,6 +52,16 @@ C++ RUNTIME：拉流→解码→(motion_gate)→ONNX→track→region→emit / R
 - 波次 commit；禁止 `git clean -fd`、`reset --hard`、force push main。  
 - 文件本体 copy/move/delete：仅 `python tools/runtime_parity/safe_fsops.py`（先 dry-run，编排确认后再 `--execute --confirm-token`）。  
 
+## 测试媒体（勿跑偏）
+
+- P0/环片媒体 = **intel-iot-devkit/sample-videos**（people / one-by-one / person-bicycle-car / face-demographics），与 rebekah 四路同源。  
+- **禁止**用 ffmpeg 色条生成片或不明来源视频冒充检测夹具。  
+- 下载脚本：`tools/runtime_parity/fetch_parity_media.py`。
+
+## 外部依赖
+
+- 能引用公开成熟依赖则优先；发现「引用 vs 手搓」时在报告中列出选项，**交编排 Agent 决策**，勿擅自引入大型依赖或私有 DLL。
+
 ## 学习仓边界
 
 可借鉴：`F:/biofactory/rebekah-learn` 的 MSVC、vendor、supervisor、certify 纪律。  

@@ -23,6 +23,16 @@ from typing import Optional
 from urllib.parse import urlparse
 
 
+def _validate_case_id(case_id: str) -> None:
+    """Reject path traversal and separators in --case."""
+    if not case_id or not case_id.strip():
+        raise ValueError("case id must be non-empty")
+    if ".." in case_id:
+        raise ValueError(f"case id must not contain '..': {case_id!r}")
+    if "/" in case_id or "\\" in case_id:
+        raise ValueError(f"case id must not contain path separators: {case_id!r}")
+
+
 def _resolve_golden_dir(case_id: str) -> Path:
     """Resolve output dir under candidate or oracle root."""
     for env_name in ("ACME_CANDIDATE_ROOT", "ACME_ORACLE_ROOT"):
@@ -111,7 +121,11 @@ def _make_handler(state: _HookState):
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Mock alert hook for runtime-parity")
-    parser.add_argument("--host", default="0.0.0.0", help="Bind host")
+    parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Bind host (default: 127.0.0.1 loopback)",
+    )
     parser.add_argument("--port", type=int, default=18080, help="Bind port")
     parser.add_argument(
         "--case",
@@ -119,6 +133,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="Case id; writes to golden/video/<case>/",
     )
     args = parser.parse_args(argv)
+
+    try:
+        _validate_case_id(args.case)
+    except ValueError as exc:
+        print(f"mock_alert_hook: invalid --case: {exc}", file=sys.stderr)
+        return 2
 
     state = _HookState()
     state.case_id = args.case

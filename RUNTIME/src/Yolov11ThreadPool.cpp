@@ -1,9 +1,5 @@
 #include "Yolov11ThreadPool.h"
 #include "Draw.h"
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <dirent.h>
 #include <Yolov11Engine.h>
 
 Yolov11ThreadPool::Yolov11ThreadPool() { stop = false; }

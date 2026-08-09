@@ -149,6 +149,8 @@ VIDEO/ffmpeg-master-*.tar.xz
 .local/
 .tools/
 .worktrees/
+# runtime-parity media binaries (fetch via tools/runtime_parity/fetch_parity_media.py)
+testdata/runtime-parity/media/*.mp4
 *.war
 # WEB 日志目录（与 WEB/.gitignore 中 logs/*、!logs/.gitkeep 一致）
 # WEB 预构建前端缓存（runtime_image.sh 提取，体积大，勿提交）

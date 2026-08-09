@@ -1,0 +1,8 @@
+{
+  "task_type": "realtime",
+  "executor": "python",
+  "device_source": "file://testdata/runtime-parity/media/media_static_30s.mp4",
+  "model_paths": {},
+  "task_id": "rt_p0_heartbeat_lifecycle_fixture",
+  "description": "Phase 0 minimal fixture for lifecycle heartbeat sampling"
+}

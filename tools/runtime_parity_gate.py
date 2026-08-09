@@ -27,6 +27,7 @@ if str(_TOOLS_DIR) not in sys.path:
 from runtime_parity.certify import run_certify
 from runtime_parity.doctor import run_doctor
 from runtime_parity.record import run_record_python
+from runtime_parity.record_oracle_smoke import run_record_oracle_smoke
 from runtime_parity.run_cpp import run_cpp
 
 
@@ -37,10 +38,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sp = p.add_subparsers(dest="command", required=True)
 
-    sp.add_parser("doctor", help="Check manifest, thresholds, directories")
+    dp = sp.add_parser("doctor", help="Check manifest, thresholds, directories")
+    dp.add_argument(
+        "--strict-golden",
+        action="store_true",
+        help="Fail if golden/python has status=placeholder (G-0.3)",
+    )
 
     rp = sp.add_parser("record-python", help="Record python oracle golden (MVP skeleton)")
     rp.add_argument("--case", required=True, help="Case id from manifest.json")
+
+    ros = sp.add_parser(
+        "record-oracle-smoke",
+        help="Write non-placeholder python golden via local media smoke path",
+    )
+    ros.add_argument(
+        "--case",
+        default=None,
+        help="Case id (default: all P0 cases in manifest)",
+    )
 
     runp = sp.add_parser("run", help="Run candidate executor sampling")
     runp.add_argument("--executor", choices=["cpp"], required=True)
@@ -60,9 +76,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "doctor":
-        return run_doctor()
+        return run_doctor(strict_golden=args.strict_golden)
     if args.command == "record-python":
         return run_record_python(args.case)
+    if args.command == "record-oracle-smoke":
+        return run_record_oracle_smoke(args.case)
     if args.command == "run":
         if args.executor != "cpp":
             print("Only --executor cpp is supported in Phase 0", file=sys.stderr)

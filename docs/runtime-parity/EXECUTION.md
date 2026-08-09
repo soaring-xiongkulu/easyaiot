@@ -250,6 +250,37 @@ Subagent **没有**主会话上下文。每次 prompt 必须包含：
 
 ---
 
+## 7.1 测试媒体来源（强制，防跑偏）
+
+parity / 预览环片 **必须**使用业界通用的 YOLO/OpenVINO 检测样例视频，与学习仓 `rebekah-learn` / `rebekah-core-rebuild` 的四路环片同源：
+
+| 本地名 | 上游 |
+|--------|------|
+| `people-detection.mp4` | [intel-iot-devkit/sample-videos](https://github.com/intel-iot-devkit/sample-videos) |
+| `one-by-one-person-detection.mp4` | 同上 |
+| `person-bicycle-car-detection.mp4` | 同上 |
+| `face-demographics-walking-and-pause.mp4` | 同上 |
+
+- **允许：** 脚本从上述 GitHub raw/release 下载；或经 `safe_fsops` 从本机已存在的同源副本（如 `F:/biofactory/rebekah-core-rebuild/testdata/loops/`）拷入 `testdata/runtime-parity/media/`（dry-run→审批→execute）。  
+- **禁止：** ffmpeg 色条/随机生成片、来路不明的网盘片、与 YOLO 检测无关的合成片充当 P0 媒体。  
+- Ultralytics 短样（如 `bus.jpg`/`zidane.jpg` 转短 mp4）仅可用于 **辅助**（如 face 单帧），不得替代上述四路主夹具。  
+- `media/README.md` 必须写清 URL 与许可证出处。
+
+入口脚本：`tools/runtime_parity/fetch_parity_media.py`（优先下载；可选 `--from-local-loops`）。
+
+---
+
+## 7.2 外部依赖优先（编排决策权）
+
+能用成熟外部依赖更好解决问题时，**优先引用**，禁止默认手搓：
+
+- 例：ORT 官方 win zip、OpenCV/FFmpeg（vcpkg/conda）、MediaMTX 镜像、intel sample-videos、公开 tracker 算法实现。  
+- **禁止**引入 rebekah 私有 CompatibleLib / 需再分发的闭源 DLL。  
+
+**流程：** Subagent 若发现「可引用外部依赖 vs 自研」选项，须在报告中列出候选（URL/许可证/体量/风险），**不得自行拍板引入新大型依赖**；由编排 Agent 决策后写入本手册或 gate 笔记再执行。
+
+---
+
 ## 8. 日常对照命令（摘要）
 
 ```bat
