@@ -163,6 +163,10 @@ VIDEO/ffmpeg-master-*.tar.xz
 *.zip
 # ZLMediaKit 挂载目录（与 docker-compose 中 ../zlmediakit 对应）；运行时数据
 
+# ultralytics auto-download weights (parity smoke; do not commit)
+/yolo11n.pt
+**/yolo11n.pt
+
 # runtime-parity / local run artifacts
 /logs/
 
