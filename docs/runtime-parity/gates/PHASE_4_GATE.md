@@ -14,6 +14,12 @@
 | G-4.3 | snap/patrol P0 schedule | 未在本波实现 | **PENDING** |
 | G-4.4 | overlay/RTMP thresholds | 未在本波实现 | **PENDING** |
 
+## Orchestrator acceptance (G-4.1)
+
+- 验收 [G-4.1 certify](a2d56c5f-73aa-4932-bf2c-0ecefb5670a2)：commits `0b6c8a6` / `69a112e` / `5dfb341`；编排复验 `certify --profile win_cpp` exit 0。
+- **G-4.1：PASS**。Phase 4 整体未完。
+- 下一波：**G-4.2**（`rt_p1_motion_gate` + `rt_p1_tracking_stable`）。
+
 ## G-4.1 证据
 
 ### certify 命令（win_cpp P0 三 case 全绿）
