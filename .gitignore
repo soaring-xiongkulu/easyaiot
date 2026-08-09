@@ -145,6 +145,10 @@ VIDEO/face_rec.onnx
 VIDEO/ffmpeg-master-*.tar.xz
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 .vscode/
+# Local tooling / agent workspaces (acme desktop)
+.local/
+.tools/
+.worktrees/
 *.war
 # WEB 日志目录（与 WEB/.gitignore 中 logs/*、!logs/.gitkeep 一致）
 # WEB 预构建前端缓存（runtime_image.sh 提取，体积大，勿提交）
@@ -158,3 +162,7 @@ VIDEO/ffmpeg-master-*.tar.xz
 !/WEB/logs/.gitkeep
 *.zip
 # ZLMediaKit 挂载目录（与 docker-compose 中 ../zlmediakit 对应）；运行时数据
+
+# runtime-parity / local run artifacts
+/logs/
+
