@@ -2,66 +2,55 @@
 
 > Candidate: `F:/acme/.worktrees/runtime-parity` (`feat/runtime-parity`)  
 > Date: **2026-08-10**  
-> Goal: Close HANDOFF §2.1 / CAP-BUSINESS-DECISIONS / reports/06 gaps that remained after G-5.* ACCEPTED.
+> Goal: Close remaining HANDOFF §2.1 / CAP-BUSINESS-DECISIONS debt after prior gap-close ACCEPTED (`ac60e59`/`0f30d73`/`7b91413`).
 
 ## Verdict
 
-**PASS (implementation wave)** — doctor exit 0; `linux_full` 11/11; `win_cpp` 23/23; implemented CAPs no longer land in `unsupportedCaps`.
+**PASS (follow-up debt wave)** — doctor exit 0; `linux_full` 11/11; `win_cpp` 26/26; CAP-PLATE-MATCH / CAP-GB28181-SRC / CAP-NVENC-AUTO no longer deferred as unsupported.
 
-### Orchestrator acceptance (2026-08-10)
+### Follow-up wave (this commit set)
 
-- Re-verify: `doctor` / `certify --profile linux_full` / `certify --profile win_cpp` all exit **0**
-- Commits: `ac60e59`, `0f30d73`, `7b91413`
-- **GAP-CLOSE WAVE ACCEPTED**
-- Remaining HANDOFF「要」debt (GB28181 / NVENC-AUTO / plate-match e2e) continues in follow-up wave — not silently closed.
+- Closed: `vid_p1_plate_match_chain`, `rt_p2_gb28181_relay`, `rt_p2_quality_nvenc`
+- Remaining HANDOFF「要」product debt: **CAP-SAM-TASK only** (explicit veto)
 
-## A. Missing P0 (reports/06, non-SAM)
+## A. Cases added this wave
 
 | Case | Layer(s) | Evidence |
 |------|----------|----------|
-| `vid_p0_hook_kafka` | L_kafka, L_alarm | platform mock: publish + suppress; golden keys include device_name/region |
-| `vid_p0_face_match_chain` | L_face | `alert_post_orchestrator` cpp path under mocks |
-| `e2e_p0_realtime_python_vs_cpp` | L_lifecycle, L_detect, L_alarm, L_e2e_alarm | frozen python golden vs live cpp RUNTIME |
-| `perf_p0_realtime_latency` | L_perf | relative to `thresholds.json` (p95 ratio/slack, fps, rss) |
+| `vid_p1_plate_match_chain` | L_plate | VIDEO `alert_post_orchestrator` cpp path (mirror face chain) |
+| `rt_p2_gb28181_relay` | L_lifecycle, L_detect | VIDEO resolve + `[stream_src]` → C++ consumes resolved URL; fixture map without WVP |
+| `rt_p2_quality_nvenc` | L_lifecycle, L_stream | C++ `RTMPEncoder` NVENC try → software fallback + quality profile; encoder meta |
 
-`linux_full` case_filter=P0 now includes the above (11 cases).  
-`win_cpp` includes the P0 gap-close set plus P1 CAP cases.
+`linux_full` remains P0-only (11).  
+`win_cpp` now 26 cases (prior 23 + 3).
 
-## B. Frame CAPs previously marked unsupported
+## B. CAP placement
 
 | CAP | Placement | Implementation |
 |-----|-----------|----------------|
-| CAP-ALERT-CLASS-FILTER | C++ `AlertFilters` | whitelist `alert_class_names` |
-| CAP-FACE-FILTER / CAP-PLATE-FILTER | C++ `AlertFilters` | drop face/plate classes when flag false |
-| CAP-MULTI-MODEL | C++ `Yolov11ThreadPool::loadExtraModels` | serial merge after primary |
-| CAP-DEFENSE | C++ `isDefenseArmed` | `active` / windows schedule; skip alerts when disarmed |
-| CAP-SNAP-SPACE | VIDEO platform sample | ingest count (no MinIO required in C++) |
-| CAP-PATROL-ROTATE | already in `PatrolScheduler` | case `patrol_p1_rotate_order` green |
-| CAP-POST-PROCESS / CAP-POSE | VIDEO owned | `vid_p1_post_process_enqueue`; **not** cpp unsupported |
-| CAP-FACE-MATCH / CAP-PLATE-MATCH | VIDEO owned | `vid_p0_face_match_chain`; **not** cpp unsupported |
-| CAP-TRACKING / CAP-MOTION-GATE / CAP-PATROL-HYBRID | already C++ | removed from VIDEO `[unsupported]` emit |
+| CAP-PLATE-MATCH | VIDEO owned | `platform_sample.sample_vid_plate_match_chain` + L_plate diff |
+| CAP-GB28181-SRC | VIDEO resolve → C++ consume | `resolve_gb28181_source` (+ `GB28181_FIXTURE_MAP`); ini `[stream_src]`; ConfigParser INFO; reject raw `gb28181://` |
+| CAP-NVENC-AUTO | C++ `RTMPEncoder` | Prefer `h264_nvenc`, fallback `libx264`; quality high→medium→low; parity stream meta |
 
-`ConfigParser` ignores stale `[unsupported]` listings for implemented/VIDEO-owned CAP IDs.  
-`runtime_config_service._contract_ini_block` only keeps product-vetoed/P2 deferred (SAM / GB28181 / NVENC-AUTO).
+`runtime_config_service._contract_ini_block` no longer lists GB28181/NVENC as unsupported when enabled.  
+Product-vetoed only: CAP-SAM-TASK.
 
-## C. Certify hashes (2026-08-10)
+## C. Certify hashes (2026-08-10 follow-up)
 
 | Profile | Exit | Cases | SHA256 |
 |---------|------|-------|--------|
-| `linux_full` | 0 | 11 | `136B780EBFB8962FC7D92D6B073A922898708A5F74943807D33D4A47CB06E6FE` |
-| `win_cpp` | 0 | 23 | `884B6263A48EF3C45B9A86C3A36BD2014C65385634955BF2ABE2DE09EC8298A6` |
+| `linux_full` | 0 | 11 | `BC5205904DFA8B9AA54694655C5AF1822319B89801242F2770DC684C72F217CA` |
+| `win_cpp` | 0 | 26 | `1ABB3A4B4CC2B8F4137A8F87F188BD7E19B098F454A4657A3976DF87725C4317` |
 
 Archives: `logs/certify_linux_full.json`, `logs/certify_win_cpp.json` (gitignored; hashes authoritative).
 
-## D. Debt still deferred (explicit, not silent)
+## D. Debt remaining (explicit)
 
 | CAP | Reason |
 |-----|--------|
 | CAP-SAM-TASK | Product veto (HANDOFF) |
-| CAP-GB28181-SRC | P2 — parse/flag → WARNING unsupported; no silent success |
-| CAP-NVENC-AUTO | P2 — same |
-| CAP-PLATE-MATCH e2e case `vid_p1_plate_match_chain` | Not in this wave; face chain covers orchestrator pattern |
 | Dual-queue overlay 1:1 | Already non-blocking per G-4.4 |
+| detect_conf 语义细对齐 | Open polish — not HANDOFF blocker |
 
 ## Commands
 

@@ -191,6 +191,7 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 
 - [x] 当任务启用 matching：用 hook `image_path` + detections 入队（等价 python `try_send_*_for_frame`）
 - [x] P0：`vid_p0_face_match_chain` 在 **仅 cpp 执行器** 下绿
+- [x] P1：`vid_p1_plate_match_chain` 在 **仅 cpp 执行器** 下绿
 - [x] Commit：`feat: trigger face/plate matching from alert hook`
 
 ### Task 3.2: 后处理 / 姿态投递
@@ -320,10 +321,9 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 | 项 | 状态 | 说明 |
 |----|------|------|
 | CAP-SAM-TASK | 不做 | HANDOFF 产品否决 |
-| CAP-GB28181-SRC | P2 | 请求时 WARNING unsupported；无静默成功 |
-| CAP-NVENC-AUTO | P2 | 同上 |
-| detect_conf 语义细对齐 | 开放 | Task 4.1 残留 |
-| `vid_p1_plate_match_chain` | 可补 | 本波次以 face orchestrator 证明模式 |
+| detect_conf 语义细对齐 | 开放 | Task 4.1 残留 polish |
 | UI `sam_supplement_*` 清理 | 可选 | 不阻塞主线 |
+
+已闭环（本 follow-up 波）：`CAP-GB28181-SRC`、`CAP-NVENC-AUTO`、`vid_p1_plate_match_chain`。
 
 权威证据：[`gates/PHASE_5_GAP_CLOSE.md`](./gates/PHASE_5_GAP_CLOSE.md)、[`CERTIFY_STATUS.md`](./CERTIFY_STATUS.md)。
