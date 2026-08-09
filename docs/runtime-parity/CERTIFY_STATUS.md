@@ -20,7 +20,7 @@ Reports under `/logs/` are gitignored; SHA256 below is authoritative. Copies arc
 | Exit code | **0** |
 | `ok` | `true` |
 | Report archive | `logs/certify_linux_full.json` |
-| SHA256 | `AB7394CBBF844939F855E2C7076143598A7E09C077E8F1876BC673AD4385D0F0` |
+| SHA256 | `EF6500DB3701B5FE67E62475A63E8AD888E518106DDA424FC3CB8AEB1600AB6B` |
 | Case count | **11** |
 
 ## detect_conf + POST /stop — `win_cpp`
@@ -31,7 +31,7 @@ Reports under `/logs/` are gitignored; SHA256 below is authoritative. Copies arc
 | Exit code | **0** |
 | `ok` | `true` |
 | Report archive | `logs/certify_win_cpp.json` |
-| SHA256 | `3A0CF8C4C6207DBC42288CFA5CB15B3A3C413327299945A1E970C9D847069F4D` |
+| SHA256 | `A89A258DAAEECBAAA5E71CF9869E55A4E7E147A85DAF2CD3403386BA492C8FF7` |
 | Case count | **27** |
 
 New / newly green:
@@ -51,4 +51,5 @@ See also [`gates/PHASE_5_GAP_CLOSE.md`](./gates/PHASE_5_GAP_CLOSE.md).
 ## Orchestrator re-verify (2026-08-10)
 
 `doctor` + both profiles exit **0** after detect_conf / POST /stop wave.  
-**C++ 必做债表项已闭环**（SAM 产品否决除外）。
+Updated SHA256 above from orchestrator re-archive.  
+**PROGRAM COMPLETE**（SAM 产品否决除外）。

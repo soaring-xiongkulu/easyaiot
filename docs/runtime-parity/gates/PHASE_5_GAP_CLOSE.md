@@ -52,8 +52,8 @@ Prior wave:
 
 | Profile | Exit | Cases | SHA256 |
 |---------|------|-------|--------|
-| `linux_full` | 0 | 11 | `AB7394CBBF844939F855E2C7076143598A7E09C077E8F1876BC673AD4385D0F0` |
-| `win_cpp` | 0 | 27 | `3A0CF8C4C6207DBC42288CFA5CB15B3A3C413327299945A1E970C9D847069F4D` |
+| `linux_full` | 0 | 11 | `EF6500DB3701B5FE67E62475A63E8AD888E518106DDA424FC3CB8AEB1600AB6B` |
+| `win_cpp` | 0 | 27 | `A89A258DAAEECBAAA5E71CF9869E55A4E7E147A85DAF2CD3403386BA492C8FF7` |
 
 Archives: `logs/certify_linux_full.json`, `logs/certify_win_cpp.json` (gitignored; hashes authoritative).
 
