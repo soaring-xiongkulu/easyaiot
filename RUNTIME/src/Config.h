@@ -67,6 +67,42 @@ typedef struct Config {
     bool preferGpu{true};
     bool forceCpu{false};
     int gpuDeviceId{0};
+
+    // [tracking] — parsed for contract; frame-in impl Phase 4
+    bool trackingEnabled{false};
+    float trackingSimilarityThreshold{0.2f};
+    int trackingMaxAge{25};
+    float trackingSmoothAlpha{0.25f};
+
+    // [motion_gate]
+    bool motionGateEnabled{false};
+    std::string motionGateConfigJson;
+
+    // [alert_filter] / [hook] — hook passthrough + future frame-in filter
+    std::string alertClassNamesJson;
+    bool faceDetectionEnabled{true};
+    bool plateDetectionEnabled{true};
+
+    // [matching] / [post_process] / [pose] — VIDEO frame-post (logged unsupported in C++)
+    bool faceMatchingEnabled{false};
+    bool plateMatchingEnabled{false};
+    bool postProcessEnabled{false};
+    bool poseAnalysisEnabled{false};
+    bool poseIntentEnabled{false};
+    bool samSupplementEnabled{false};
+
+    // [defense] — VIDEO consumes
+    std::string defenseMode{"half"};
+    std::string defenseScheduleJson;
+
+    // [patrol_extra]
+    std::string focusDeviceId;
+
+    // Extra ONNX paths beyond [ai] model_path (CAP-MULTI-MODEL)
+    std::vector<std::string> extraModelPaths;
+
+    // Declared in ini [unsupported] or derived at parse time (G-2.3)
+    std::vector<std::string> unsupportedCaps;
 } Config;
 
 #endif //CONFIG_H

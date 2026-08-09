@@ -248,6 +248,176 @@ def _bool01(val: object) -> str:
     return 'true' if bool(val) else 'false'
 
 
+def _json_list_field(raw) -> str:
+    """Serialize DB JSON list field for ini (single line)."""
+    if not raw:
+        return '[]'
+    try:
+        parsed = json.loads(raw) if isinstance(raw, str) else raw
+        if isinstance(parsed, list):
+            return json.dumps(parsed, ensure_ascii=False).replace('\n', '')
+    except Exception:
+        pass
+    return '[]'
+
+
+def _resolve_extra_model_paths(task: AlgorithmTask, primary_onnx: str) -> List[str]:
+    """All ONNX paths beyond the primary model_path (CAP-MULTI-MODEL contract)."""
+    root = _repo_root()
+    video_root = Path(__file__).resolve().parents[2]
+    paths: List[str] = []
+    model_ids = []
+    raw = task.model_ids
+    if raw:
+        try:
+            model_ids = json.loads(raw) if isinstance(raw, str) else list(raw)
+        except Exception:
+            model_ids = []
+    primary_resolved = str(Path(primary_onnx).resolve()) if primary_onnx else ''
+    for mid in model_ids:
+        try:
+            mid_int = int(mid)
+        except Exception:
+            continue
+        model_dir = video_root / 'data' / 'models' / str(mid_int)
+        if not model_dir.is_dir():
+            continue
+        for pattern in ('*.onnx', '*.ONNX'):
+            for match in sorted(model_dir.glob(pattern)):
+                resolved = str(match.resolve())
+                if resolved != primary_resolved and resolved not in paths:
+                    paths.append(resolved)
+    return paths
+
+
+def _contract_ini_block(task: AlgorithmTask, task_type: str, extra_model_paths: List[str]) -> Tuple[str, List[str]]:
+    """
+    Emit Phase 2 contract ini sections for AlgorithmTask fields.
+    Returns (ini_text, unsupported_cap_ids) for G-2.1 / G-2.3.
+    """
+    unsupported: List[str] = []
+
+    tracking_on = bool(getattr(task, 'tracking_enabled', False))
+    if tracking_on:
+        unsupported.append('CAP-TRACKING')
+    motion_on = bool(getattr(task, 'motion_gate_enabled', False))
+    if motion_on:
+        unsupported.append('CAP-MOTION-GATE')
+    alert_classes = _json_list_field(getattr(task, 'alert_class_names', None))
+    if alert_classes != '[]':
+        unsupported.append('CAP-ALERT-CLASS-FILTER')
+    face_det = bool(getattr(task, 'face_detection_enabled', True))
+    plate_det = bool(getattr(task, 'plate_detection_enabled', True))
+    if face_det:
+        unsupported.append('CAP-FACE-FILTER')
+    if plate_det:
+        unsupported.append('CAP-PLATE-FILTER')
+    face_match = bool(getattr(task, 'face_matching_enabled', False))
+    plate_match = bool(getattr(task, 'plate_matching_enabled', False))
+    if face_match:
+        unsupported.append('CAP-FACE-MATCH')
+    if plate_match:
+        unsupported.append('CAP-PLATE-MATCH')
+    post_proc = bool(getattr(task, 'post_process_enabled', False))
+    if post_proc:
+        unsupported.append('CAP-POST-PROCESS')
+    pose_on = bool(getattr(task, 'pose_analysis_enabled', False)) or bool(
+        getattr(task, 'pose_intent_enabled', False)
+    )
+    if pose_on:
+        unsupported.append('CAP-POSE')
+    sam_on = bool(getattr(task, 'sam_supplement_enabled', False))
+    if sam_on:
+        unsupported.append('CAP-SAM-TASK')
+        logger.warning(
+            'task %s: sam_supplement_enabled=true but CAP-SAM-TASK is product-vetoed for algorithm runtime',
+            task.id,
+        )
+    defense_sched = (getattr(task, 'defense_schedule', None) or '').strip()
+    if defense_sched:
+        unsupported.append('CAP-DEFENSE')
+    patrol_mode = (getattr(task, 'patrol_mode', None) or 'pool').strip() or 'pool'
+    focus_id = (getattr(task, 'focus_device_id', None) or '').strip()
+    if patrol_mode == 'hybrid' or focus_id:
+        unsupported.append('CAP-PATROL-HYBRID')
+    if extra_model_paths:
+        unsupported.append('CAP-MULTI-MODEL')
+
+    motion_cfg = (getattr(task, 'motion_gate_config', None) or '').strip()
+    pose_cfg = (getattr(task, 'pose_analysis_config', None) or '').strip()
+    pose_intent_cfg = (getattr(task, 'pose_intent_config', None) or '').strip()
+    face_lib = _json_list_field(getattr(task, 'face_library_ids', None))
+    plate_lib = _json_list_field(getattr(task, 'plate_library_ids', None))
+    match_tags = _json_list_field(getattr(task, 'matching_business_tags', None))
+    face_thresh = getattr(task, 'face_matching_threshold', None)
+    pose_lib = _json_list_field(getattr(task, 'pose_library_ids', None))
+    pose_thresh = getattr(task, 'pose_intent_threshold', None)
+    post_script = (getattr(task, 'post_process_script', None) or 'post_process.py').strip()
+    post_replicas = int(getattr(task, 'post_process_replicas', None) or 1)
+    defense_mode = (getattr(task, 'defense_mode', None) or 'half').strip() or 'half'
+
+    unsupported_lines = '\n'.join(f'{cap}=true' for cap in sorted(set(unsupported)))
+
+    block = f"""
+[tracking]
+enabled={'true' if tracking_on else 'false'}
+similarity_threshold={float(getattr(task, 'tracking_similarity_threshold', None) or 0.2)}
+max_age={int(getattr(task, 'tracking_max_age', None) or 25)}
+smooth_alpha={float(getattr(task, 'tracking_smooth_alpha', None) or 0.25)}
+
+[motion_gate]
+enabled={'true' if motion_on else 'false'}
+config_json={json.dumps(motion_cfg) if motion_cfg else '{}'}
+
+[alert_filter]
+alert_class_names={alert_classes}
+face_detection_enabled={'true' if face_det else 'false'}
+plate_detection_enabled={'true' if plate_det else 'false'}
+
+[hook]
+face_detection_enabled={'true' if face_det else 'false'}
+plate_detection_enabled={'true' if plate_det else 'false'}
+
+[matching]
+face_matching_enabled={'true' if face_match else 'false'}
+plate_matching_enabled={'true' if plate_match else 'false'}
+face_library_ids={face_lib}
+plate_library_ids={plate_lib}
+face_matching_threshold={'' if face_thresh is None else face_thresh}
+matching_business_tags={match_tags}
+
+[post_process]
+enabled={'true' if post_proc else 'false'}
+script={post_script}
+replicas={post_replicas}
+
+[pose]
+analysis_enabled={'true' if bool(getattr(task, 'pose_analysis_enabled', False)) else 'false'}
+analysis_config_json={json.dumps(pose_cfg) if pose_cfg else '{}'}
+intent_enabled={'true' if bool(getattr(task, 'pose_intent_enabled', False)) else 'false'}
+library_ids={pose_lib}
+intent_threshold={'' if pose_thresh is None else pose_thresh}
+intent_config_json={json.dumps(pose_intent_cfg) if pose_intent_cfg else '{}'}
+
+[sam]
+supplement_enabled={'true' if sam_on else 'false'}
+
+[defense]
+mode={defense_mode}
+schedule_json={json.dumps(defense_sched) if defense_sched else '{}'}
+
+[patrol_extra]
+focus_device_id={focus_id}
+
+[models]
+extra_paths={json.dumps(extra_model_paths, ensure_ascii=False).replace(chr(10), '')}
+
+[unsupported]
+{unsupported_lines}
+"""
+    return block, unsupported
+
+
 def _log_cpp_unsupported_fields(task: AlgorithmTask) -> None:
     """G-2.1/G-2.3: WARNING when task enables CAPs not on RUNTIME hot path."""
     gaps = []
@@ -319,7 +489,9 @@ def generate_runtime_ini(
     rtmp_out = (getattr(primary, 'ai_rtmp_stream', None) or task.rtmp_output_url or '').strip()
 
     frame_skip = int(getattr(task, 'extract_interval', None) or getattr(task, 'frame_skip', None) or 8)
-    if frame_skip <= 0:
+    if task_type == 'snap':
+        frame_skip = max(1, int(getattr(task, 'frame_skip', None) or 1))
+    elif frame_skip <= 0:
         frame_skip = 8
 
     cron = (getattr(task, 'cron_expression', None) or '').strip()
@@ -339,6 +511,13 @@ def generate_runtime_ini(
     regions_block = _regions_ini_block(devices)
 
     hook_tt = _hook_task_type(task_type)
+    extra_model_paths = _resolve_extra_model_paths(task, model_path)
+    contract_block, unsupported_caps = _contract_ini_block(task, task_type, extra_model_paths)
+    for cap in unsupported_caps:
+        logger.warning(
+            'RUNTIME ini task %s: unsupported cap=%s (written to [unsupported]; C++ will log WARNING at startup)',
+            task.id, cap,
+        )
 
     # GPU default on; USE_GPU=false / RUNTIME_FORCE_CPU forces CPU
     use_gpu_env = (os.getenv('USE_GPU') or '').strip().lower()
@@ -425,22 +604,7 @@ enable_alarm={'true' if task.alert_event_enabled else 'false'}
 
 [regions]
 {regions_block}
-
-# Phase 2 contract: declare non-frame / deferred CAPs so RUNTIME never silently pretends support.
-[unsupported]
-tracking={_bool01(getattr(task, 'tracking_enabled', False))}
-motion_gate={_bool01(getattr(task, 'motion_gate_enabled', False))}
-pose_analysis={_bool01(getattr(task, 'pose_analysis_enabled', False))}
-pose_intent={_bool01(getattr(task, 'pose_intent_enabled', False))}
-sam_supplement={_bool01(getattr(task, 'sam_supplement_enabled', False))}
-post_process={_bool01(getattr(task, 'post_process_enabled', False))}
-face_matching={_bool01(getattr(task, 'face_matching_enabled', False))}
-plate_matching={_bool01(getattr(task, 'plate_matching_enabled', False))}
-alert_notification={_bool01(getattr(task, 'alert_notification_enabled', False))}
-face_detection_flag={_bool01(getattr(task, 'face_detection_enabled', True))}
-plate_detection_flag={_bool01(getattr(task, 'plate_detection_enabled', True))}
-alert_class_names={(getattr(task, 'alert_class_names', None) or '').replace(chr(10), '')}
-"""
+{contract_block}"""
     _log_cpp_unsupported_fields(task)
     if write_local:
         ini_path.parent.mkdir(parents=True, exist_ok=True)

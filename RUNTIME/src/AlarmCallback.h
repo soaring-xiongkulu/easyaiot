@@ -18,6 +18,8 @@ struct VideoAlertContext {
     std::string deviceName;
     std::string taskType{"realtime"};
     std::string algorithmName{"detection"};
+    bool faceDetectionEnabled{true};
+    bool plateDetectionEnabled{true};
 };
 
 class AlarmCallback {

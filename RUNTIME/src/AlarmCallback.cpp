@@ -88,6 +88,8 @@ std::string AlarmCallback::buildVideoJsonBody(
     root["time"] = timestamp;
     root["image_path"] = imagePath;
     root["region"] = regionId;
+    root["face_detection_enabled"] = ctx.faceDetectionEnabled;
+    root["plate_detection_enabled"] = ctx.plateDetectionEnabled;
 
     Json::Value info;
     info["task_id"] = ctx.taskId;

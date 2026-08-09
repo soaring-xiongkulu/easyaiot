@@ -255,6 +255,83 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
                 config.enableAlarm = parseBool(value);
             }
         }
+        else if (currentSection == "tracking") {
+            if (key == "enabled") {
+                config.trackingEnabled = parseBool(value);
+            } else if (key == "similarity_threshold") {
+                config.trackingSimilarityThreshold = parseFloat(value);
+            } else if (key == "max_age") {
+                config.trackingMaxAge = parseInt(value);
+            } else if (key == "smooth_alpha") {
+                config.trackingSmoothAlpha = parseFloat(value);
+            }
+        }
+        else if (currentSection == "motion_gate") {
+            if (key == "enabled") {
+                config.motionGateEnabled = parseBool(value);
+            } else if (key == "config_json") {
+                config.motionGateConfigJson = value;
+            }
+        }
+        else if (currentSection == "alert_filter" || currentSection == "hook") {
+            if (key == "alert_class_names") {
+                config.alertClassNamesJson = value;
+            } else if (key == "face_detection_enabled") {
+                config.faceDetectionEnabled = parseBool(value);
+            } else if (key == "plate_detection_enabled") {
+                config.plateDetectionEnabled = parseBool(value);
+            }
+        }
+        else if (currentSection == "matching") {
+            if (key == "face_matching_enabled") {
+                config.faceMatchingEnabled = parseBool(value);
+            } else if (key == "plate_matching_enabled") {
+                config.plateMatchingEnabled = parseBool(value);
+            }
+        }
+        else if (currentSection == "post_process") {
+            if (key == "enabled") {
+                config.postProcessEnabled = parseBool(value);
+            }
+        }
+        else if (currentSection == "pose") {
+            if (key == "analysis_enabled") {
+                config.poseAnalysisEnabled = parseBool(value);
+            } else if (key == "intent_enabled") {
+                config.poseIntentEnabled = parseBool(value);
+            }
+        }
+        else if (currentSection == "sam") {
+            if (key == "supplement_enabled") {
+                config.samSupplementEnabled = parseBool(value);
+            }
+        }
+        else if (currentSection == "defense") {
+            if (key == "mode") {
+                config.defenseMode = value.empty() ? "half" : value;
+            } else if (key == "schedule_json") {
+                config.defenseScheduleJson = value;
+            }
+        }
+        else if (currentSection == "patrol_extra") {
+            if (key == "focus_device_id") {
+                config.focusDeviceId = value;
+            }
+        }
+        else if (currentSection == "models") {
+            if (key == "extra_paths") {
+                Json::Reader reader;
+                Json::Value root;
+                if (reader.parse(value, root) && root.isArray()) {
+                    config.extraModelPaths.clear();
+                    for (const auto& item : root) {
+                        if (item.isString() && !item.asString().empty()) {
+                            config.extraModelPaths.push_back(item.asString());
+                        }
+                    }
+                }
+            }
+        }
         else if (currentSection == "regions") {
             std::vector<cv::Point> points;
             if (parseRegion(value, points)) {
@@ -267,6 +344,9 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
         }
         else if (currentSection == "contract" || currentSection == "unsupported") {
             // VIDEO-declared capabilities not implemented in-frame (or VIDEO-side only).
+            if (!key.empty() && parseBool(value)) {
+                config.unsupportedCaps.push_back(key);
+            }
             LOG(WARNING) << "[CONFIG] unsupported/deferred [" << currentSection << "] "
                          << key << "=" << value;
         }
@@ -356,6 +436,33 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
     LOG(INFO) << "[CONFIG] AI prefer_gpu=" << (config.preferGpu ? "true" : "false")
               << " force_cpu=" << (config.forceCpu ? "true" : "false")
               << " gpu_device_id=" << config.gpuDeviceId;
+
+    // G-2.3: derive unsupported caps from enabled contract fields (no silent success)
+    auto addCap = [&](const std::string& cap) {
+        if (std::find(config.unsupportedCaps.begin(), config.unsupportedCaps.end(), cap)
+            == config.unsupportedCaps.end()) {
+            config.unsupportedCaps.push_back(cap);
+        }
+    };
+    if (config.trackingEnabled) addCap("CAP-TRACKING");
+    if (config.motionGateEnabled) addCap("CAP-MOTION-GATE");
+    if (!config.alertClassNamesJson.empty() && config.alertClassNamesJson != "[]") {
+        addCap("CAP-ALERT-CLASS-FILTER");
+    }
+    if (config.faceDetectionEnabled) addCap("CAP-FACE-FILTER");
+    if (config.plateDetectionEnabled) addCap("CAP-PLATE-FILTER");
+    if (config.faceMatchingEnabled) addCap("CAP-FACE-MATCH");
+    if (config.plateMatchingEnabled) addCap("CAP-PLATE-MATCH");
+    if (config.postProcessEnabled) addCap("CAP-POST-PROCESS");
+    if (config.poseAnalysisEnabled || config.poseIntentEnabled) addCap("CAP-POSE");
+    if (config.samSupplementEnabled) addCap("CAP-SAM-TASK");
+    if (!config.defenseScheduleJson.empty()) addCap("CAP-DEFENSE");
+    if (config.patrolMode == "hybrid" || !config.focusDeviceId.empty()) addCap("CAP-PATROL-HYBRID");
+    if (!config.extraModelPaths.empty()) addCap("CAP-MULTI-MODEL");
+    for (const auto& cap : config.unsupportedCaps) {
+        LOG(WARNING) << "[CONFIG] unsupported cap=" << cap
+                     << " (declared in ini or derived from enabled task fields)";
+    }
 
     return true;
 }
