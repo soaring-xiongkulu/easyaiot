@@ -94,11 +94,13 @@ Exit code: **0** (10 `win_cpp` cases green: 5 prior realtime + 5 snap/patrol).
 
 Report: `logs/runtime_parity_report.json`
 
-### Orchestrator acceptance
+### Orchestrator acceptance (2026-08-10)
 
-- *(pending — do not self-ACCEPTED)*
+- Commits: `88be2ea` (feat), `d57637f` (docs checkbox)
+- Re-verify: `certify --profile win_cpp` exit **0** (10/10: prior 5 realtime + snap/patrol P0/P1)
+- **G-4.3 ACCEPTED**
 
 ## G-4.4 — pending
 
-- G-4.4 overlay/RTMP thresholds
+- G-4.4 overlay/RTMP thresholds (`thresholds.json` L_overlay/L_stream)
 - Phase 5 full certify / Python runtime removal
