@@ -5,9 +5,47 @@
     "L_lifecycle",
     "L_detect"
   ],
-  "written_at": "2026-08-09T13:06:03",
+  "written_at": "2026-08-09T14:26:18",
   "artifacts": [
     "lifecycle.json",
     "detect.json"
-  ]
+  ],
+  "runtime_boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": "cpu",
+    "duration_sec": 20.27,
+    "log_tail": [
+      "I20260809 22:25:59.734213  8380 Pipeline.cpp:358] [PIPELINE-INFER] thread started",
+      "I20260809 22:26:00.525077  8728 Pipeline.cpp:462] [PIPELINE-EMIT] thread started",
+      "I20260809 22:26:00.963166 32848 Yolov11Engine.cpp:221] [YOLO] Raw detections: 11, After NMS: 1",
+      "I20260809 22:26:00.963166 32848 Yolov11Engine.cpp:241] [YOLO] Detected: person (83%)",
+      "I20260809 22:26:01.399420 32848 Yolov11Engine.cpp:221] [YOLO] Raw detections: 33, After NMS: 4",
+      "I20260809 22:26:01.399420 32848 Yolov11Engine.cpp:241] [YOLO] Detected: person (91%)",
+      "I20260809 22:26:01.399420 32848 Yolov11Engine.cpp:241] [YOLO] Detected: person (88%)",
+      "I20260809 22:26:01.399420 32848 Yolov11Engine.cpp:241] [YOLO] Detected: person (81%)",
+      "I20260809 22:26:01.667729 32848 Yolov11Engine.cpp:221] [YOLO] Raw detections: 0, After NMS: 0",
+      "W20260809 22:26:01.833981 33352 Pipeline.cpp:252] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260809 22:26:02.045281 33352 Pipeline.cpp:258] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260809 22:26:03.095487 33352 Pipeline.cpp:176] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260809 22:26:03.095487 33352 Pipeline.cpp:267] [PIPELINE-PULL] reconnect success",
+      "W20260809 22:26:05.363685 33352 Pipeline.cpp:252] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260809 22:26:05.363685 33352 Pipeline.cpp:258] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260809 22:26:06.455328 33352 Pipeline.cpp:176] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260809 22:26:06.455328 33352 Pipeline.cpp:267] [PIPELINE-PULL] reconnect success",
+      "W20260809 22:26:08.908828 33352 Pipeline.cpp:252] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260809 22:26:08.908828 33352 Pipeline.cpp:258] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260809 22:26:09.963065 33352 Pipeline.cpp:176] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260809 22:26:09.964064 33352 Pipeline.cpp:267] [PIPELINE-PULL] reconnect success",
+      "W20260809 22:26:12.191138 33352 Pipeline.cpp:252] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260809 22:26:12.191138 33352 Pipeline.cpp:258] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260809 22:26:13.267329 33352 Pipeline.cpp:176] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260809 22:26:13.268342 33352 Pipeline.cpp:267] [PIPELINE-PULL] reconnect success",
+      "W20260809 22:26:15.181840 33352 Pipeline.cpp:252] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260809 22:26:15.181840 33352 Pipeline.cpp:258] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260809 22:26:16.290244 33352 Pipeline.cpp:176] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260809 22:26:16.291245 33352 Pipeline.cpp:267] [PIPELINE-PULL] reconnect success",
+      "W20260809 22:26:18.723969 33352 Pipeline.cpp:252] [PIPELINE-PULL] EOF, attempting reconnect"
+    ]
+  }
 }

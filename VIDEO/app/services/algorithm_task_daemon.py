@@ -586,19 +586,23 @@ class AlgorithmTaskDaemon:
             env['USE_GPU'] = 'true'
         if 'RUNTIME_PREFER_GPU' not in env:
             env['RUNTIME_PREFER_GPU'] = 'true'
-        # Ensure ORT/conda/CUDA libs are visible
+        # Ensure ORT/conda/CUDA libs are visible (Linux LD_LIBRARY_PATH / Windows PATH)
         try:
             from app.services.runtime_config_service import runtime_library_path_env
             lib_path = runtime_library_path_env()
             if lib_path:
-                existing = (env.get('LD_LIBRARY_PATH') or '').strip()
-                if existing:
-                    # prepend resolved path but keep existing
-                    env['LD_LIBRARY_PATH'] = lib_path if lib_path == existing else f'{lib_path}:{existing}'
+                if os.name == 'nt':
+                    env['PATH'] = lib_path
                 else:
-                    env['LD_LIBRARY_PATH'] = lib_path
+                    existing = (env.get('LD_LIBRARY_PATH') or '').strip()
+                    if existing:
+                        env['LD_LIBRARY_PATH'] = (
+                            lib_path if lib_path == existing else f'{lib_path}:{existing}'
+                        )
+                    else:
+                        env['LD_LIBRARY_PATH'] = lib_path
         except Exception as e:
-            self._log(f'构建 LD_LIBRARY_PATH 失败: {e}', 'WARNING')
+            self._log(f'构建 runtime library PATH 失败: {e}', 'WARNING')
         self._log(
             f'CPP 启动: {" ".join(cmds)} (USE_GPU={env.get("USE_GPU")}, '
             f'RUNTIME_PREFER_GPU={env.get("RUNTIME_PREFER_GPU")})',

@@ -60,6 +60,7 @@ def runtime_exe_candidates(root: Optional[Path] = None) -> list[Path]:
     """Search order for C++ RUNTIME binary."""
     base = root or candidate_root()
     names = [
+        base / "RUNTIME" / "build-win" / "Release" / "RUNTIME.exe",
         base / "RUNTIME" / "build" / "Release" / "RUNTIME.exe",
         base / "RUNTIME" / "build" / "RUNTIME.exe",
         base / "RUNTIME" / "build" / "Release" / "RUNTIME",

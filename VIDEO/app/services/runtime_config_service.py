@@ -31,24 +31,37 @@ def _repo_root() -> Path:
     return video_root.parent
 
 
+def _is_runtime_bin(path: str) -> bool:
+    """True if path looks like a usable RUNTIME binary (Windows .exe friendly)."""
+    if not path or not os.path.isfile(path):
+        return False
+    lower = path.lower()
+    if lower.endswith('.exe') or lower.endswith('.bat') or lower.endswith('.cmd'):
+        return True
+    return os.access(path, os.X_OK)
+
+
 def resolve_runtime_bin(task: Optional[AlgorithmTask] = None) -> str:
     if task is not None:
         custom = (getattr(task, 'runtime_bin_path', None) or '').strip()
-        if custom and os.path.isfile(custom) and os.access(custom, os.X_OK):
+        if custom and _is_runtime_bin(custom):
             return custom
     env_bin = (os.getenv('RUNTIME_BIN') or '').strip()
-    if env_bin and os.path.isfile(env_bin) and os.access(env_bin, os.X_OK):
+    if env_bin and _is_runtime_bin(env_bin):
         return env_bin
 
     root = _repo_root()
     candidates = [
         Path('/opt/easyaiot/RUNTIME/build/RUNTIME'),
+        root / 'RUNTIME' / 'build-win' / 'Release' / 'RUNTIME.exe',
         root / 'RUNTIME' / 'build' / 'RUNTIME',
         root / 'RUNTIME' / 'build' / 'Release' / 'RUNTIME',
+        root / 'RUNTIME' / 'build' / 'Release' / 'RUNTIME.exe',
         root / 'RUNTIME' / 'build' / 'Debug' / 'RUNTIME',
+        root / 'RUNTIME' / 'build' / 'Debug' / 'RUNTIME.exe',
     ]
     for path in candidates:
-        if path.is_file() and os.access(path, os.X_OK):
+        if _is_runtime_bin(str(path)):
             return str(path)
     return str(candidates[1] if (root / 'RUNTIME').is_dir() else candidates[0])
 
@@ -58,9 +71,10 @@ def ensure_runtime_bin_ready(task: Optional[AlgorithmTask] = None) -> str:
     path = resolve_runtime_bin(task)
     if not path or not os.path.isfile(path):
         raise ValueError(
-            f'RUNTIME 二进制不存在: {path}。请先编译（source RUNTIME/scripts/env.sh && ./RUNTIME/scripts/build_linux.sh）'
+            f'RUNTIME 二进制不存在: {path}。请先编译（Windows: MSVC build-win；'
+            f'Linux: source RUNTIME/scripts/env.sh && ./RUNTIME/scripts/build_linux.sh）'
         )
-    if not os.access(path, os.X_OK):
+    if not _is_runtime_bin(path):
         raise ValueError(f'RUNTIME 二进制不可执行: {path}')
     return path
 
@@ -440,7 +454,39 @@ def normalize_executor(value) -> str:
 
 
 def runtime_library_path_env() -> str:
-    """Build LD_LIBRARY_PATH hint for conda + ORT SDK + CUDA (host or Docker mounts)."""
+    """Build LD_LIBRARY_PATH (Linux) or PATH-prepend list (Windows) for RUNTIME deps."""
+    root = _repo_root()
+    if os.name == 'nt':
+        parts = []
+        existing = (os.getenv('PATH') or '').strip()
+        vendor = root / 'RUNTIME' / 'vendor' / 'win-x64'
+        candidates = [
+            root / 'RUNTIME' / 'build-win' / 'Release',
+            vendor / 'conda-pkgs' / 'libprotobuf' / 'Library' / 'bin',
+            vendor / 'conda-pkgs' / 'opencv' / 'Library' / 'bin',
+            vendor / 'conda-pkgs' / 'ffmpeg' / 'Library' / 'bin',
+            vendor / 'conda-pkgs' / 'jsoncpp' / 'Library' / 'bin',
+            vendor / 'conda-pkgs' / 'ffmpeg4' / 'Library' / 'bin',
+            vendor / '_conda_ffmpeg4' / 'Library' / 'bin',
+            vendor / 'onnxruntime' / 'lib',
+        ]
+        conda = (os.getenv('CONDA_PREFIX') or '').strip()
+        if conda:
+            candidates.append(Path(conda) / 'Library' / 'bin')
+        for p in candidates:
+            if p.is_dir():
+                parts.append(str(p))
+        # preserve existing PATH last
+        if existing:
+            parts.append(existing)
+        seen = set()
+        out = []
+        for p in parts:
+            if p and p not in seen:
+                seen.add(p)
+                out.append(p)
+        return os.pathsep.join(out)
+
     parts = []
     existing = (os.getenv('LD_LIBRARY_PATH') or '').strip()
     if existing:
@@ -455,8 +501,6 @@ def runtime_library_path_env() -> str:
     conda = (os.getenv('CONDA_PREFIX') or '').strip()
     if conda:
         parts.append(os.path.join(conda, 'lib'))
-    # common local ORT layout (gpu preferred)
-    root = _repo_root()
     for arch in ('x64', 'aarch64'):
         for name in (
             f'onnxruntime-linux-{arch}-gpu-1.23.2',
@@ -477,7 +521,6 @@ def runtime_library_path_env() -> str:
     ):
         if os.path.isdir(cuda_path):
             parts.append(cuda_path)
-    # dedupe preserve order
     seen = set()
     out = []
     for p in parts:

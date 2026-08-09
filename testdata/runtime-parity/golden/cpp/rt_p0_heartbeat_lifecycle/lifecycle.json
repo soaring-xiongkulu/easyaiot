@@ -1,16 +1,16 @@
 {
-  "case_id": "rt_p0_detect_single_onnx",
+  "case_id": "rt_p0_heartbeat_lifecycle",
   "layer": "L_lifecycle",
   "executor": "cpp",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T14:26:18",
+  "sampled_at": "2026-08-09T14:24:59",
   "source": "runtime_parity_gate_cpp_sample",
   "status": "sampled",
   "boot": {
     "started": true,
     "exit_code": 1,
     "infer_ep": "cpu",
-    "duration_sec": 20.27
+    "duration_sec": 20.81
   },
   "heartbeats": [],
   "heartbeat_count": 0,

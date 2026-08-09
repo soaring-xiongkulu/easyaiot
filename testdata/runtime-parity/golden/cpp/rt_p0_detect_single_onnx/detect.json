@@ -3,12 +3,12 @@
   "layer": "L_detect",
   "executor": "cpp",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T13:06:03",
-  "source": "runtime_parity_gate_mvp",
-  "status": "not_sampled",
+  "sampled_at": "2026-08-09T14:26:18",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled_partial",
   "frames": [],
   "detection_count": 0,
   "model": "onnx",
-  "_note": "bbox list per frame; IoU diff in certify",
-  "reason": "RUNTIME binary not found"
+  "infer_ep": "cpu",
+  "_note": "Phase 1: boot/infer only; bbox certify deferred to Phase 4"
 }
