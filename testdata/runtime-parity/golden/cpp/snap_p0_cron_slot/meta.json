@@ -1,0 +1,53 @@
+{
+  "case_id": "snap_p0_cron_slot",
+  "executor": "cpp",
+  "required_layers": [
+    "L_lifecycle",
+    "L_schedule"
+  ],
+  "written_at": "2026-08-09T15:52:10",
+  "artifacts": [
+    "lifecycle.json",
+    "schedule.json"
+  ],
+  "runtime_boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": null,
+    "duration_sec": 25.15,
+    "log_tail": [
+      "I20260809 23:51:45.331483 30584 Detech.cpp:378] [CONTROL-THREAD] Control server thread running (Thread ID: 30584)",
+      "I20260809 23:51:45.331483 30584 Detech.cpp:379] [CONTROL-THREAD] Listening on http://0.0.0.0:8000",
+      "I20260809 23:51:45.332007 30584 Detech.cpp:467] [CONTROL-THREAD] ✅ Control server ready",
+      "I20260809 23:51:45.332007 30584 Detech.cpp:468] [CONTROL-THREAD] Available endpoints:",
+      "I20260809 23:51:45.332007 30584 Detech.cpp:469] [CONTROL-THREAD]   GET  /health - Health check",
+      "I20260809 23:51:45.332007 30584 Detech.cpp:470] [CONTROL-THREAD]   POST /control/streaming/start - Start streaming",
+      "I20260809 23:51:45.332007 30584 Detech.cpp:471] [CONTROL-THREAD]   POST /control/streaming/stop - Stop streaming",
+      "I20260809 23:51:45.332007 30584 Detech.cpp:472] [CONTROL-THREAD]   GET  /control/streaming/status - Get streaming status",
+      "I20260809 23:51:45.332007 28484 SnapScheduler.cpp:89] [SNAP] starting scheduler for 1 device(s) cron=\"*/5 * * * * *\" frameSkip=4s (CAP-CRON-SNAP: Asia/Shanghai 6-field)",
+      "I20260809 23:51:45.332523 23228 SnapScheduler.cpp:202] [SNAP] loop started",
+      "I20260809 23:51:45.332523 23228 SnapScheduler.cpp:133] [SNAP] opening stream device=dev_0 url=testdata/runtime-parity/media/people-detection.mp4",
+      "W20260809 23:51:45.333616 33648 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:51:45.385581 23228 SnapScheduler.cpp:236] [SNAP] cron slot fired device=dev_0 slot=20260809235145",
+      "I20260809 23:51:45.386582 23228 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_cron_slot\\parity_sample.json",
+      "W20260809 23:51:48.595980 33648 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:51:50.105399 23228 SnapScheduler.cpp:236] [SNAP] cron slot fired device=dev_0 slot=20260809235150",
+      "I20260809 23:51:50.106401 23228 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_cron_slot\\parity_sample.json",
+      "W20260809 23:51:51.866397 33648 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:51:55.001439 23228 SnapScheduler.cpp:236] [SNAP] cron slot fired device=dev_0 slot=20260809235155",
+      "I20260809 23:51:55.002447 23228 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_cron_slot\\parity_sample.json",
+      "W20260809 23:51:55.144079 33648 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "W20260809 23:51:58.409040 33648 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:52:00.080829 23228 SnapScheduler.cpp:236] [SNAP] cron slot fired device=dev_0 slot=20260809235200",
+      "I20260809 23:52:00.080829 23228 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_cron_slot\\parity_sample.json",
+      "W20260809 23:52:01.697729 33648 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "W20260809 23:52:04.971485 33648 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:52:05.158874 23228 SnapScheduler.cpp:236] [SNAP] cron slot fired device=dev_0 slot=20260809235205",
+      "I20260809 23:52:05.158874 23228 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_cron_slot\\parity_sample.json",
+      "W20260809 23:52:08.249186 33648 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:52:10.025555 23228 SnapScheduler.cpp:236] [SNAP] cron slot fired device=dev_0 slot=20260809235210"
+    ]
+  },
+  "heartbeat_count": 8,
+  "hook_count": 0
+}

@@ -1,0 +1,12 @@
+{
+  "task_type": "patrol",
+  "executor": "python",
+  "device_source": "file://testdata/runtime-parity/media/one-by-one-person-detection.mp4",
+  "patrol_mode": "hybrid",
+  "patrol_interval_sec": 6,
+  "patrol_pool_size": 2,
+  "focus_device_id": "dev_focus",
+  "device_count": 3,
+  "task_id": "patrol_p1_hybrid_focus_fixture",
+  "description": "G-4.3 CAP-PATROL-HYBRID — focus interval/2 + background pool"
+}

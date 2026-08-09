@@ -94,6 +94,17 @@ def skeleton_for_layer(layer: str, case: CaseSpec, executor: str) -> Dict[str, A
             "frames": [],
             "_note": "Motion gate stats from RUNTIME parity_sample.json",
         }
+    if layer == "L_schedule":
+        return {
+            **base,
+            "status": "placeholder",
+            "slot_count": 0,
+            "patrol_count": 0,
+            "events": [],
+            "mean_interval_sec": 0.0,
+            "device_intervals": {},
+            "_note": "Snap cron slots / patrol intervals from parity_sample.json schedule",
+        }
     return {**base, "status": "placeholder", "_note": f"Layer {layer} MVP skeleton"}
 
 

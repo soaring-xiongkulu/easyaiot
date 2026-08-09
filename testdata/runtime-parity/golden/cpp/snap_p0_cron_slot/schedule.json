@@ -1,0 +1,52 @@
+{
+  "case_id": "snap_p0_cron_slot",
+  "layer": "L_schedule",
+  "executor": "cpp",
+  "task_type": "snap",
+  "sampled_at": "2026-08-09T15:52:10",
+  "source": "runtime_parity_gate_cpp_parity_sample",
+  "status": "sampled",
+  "cron_expression": "*/5 * * * * *",
+  "slot_count": 6,
+  "patrol_count": 0,
+  "events": [
+    {
+      "device_id": "dev_0",
+      "kind": "cron_slot",
+      "slot_key": "20260809235145",
+      "unix_ts": 1786290705
+    },
+    {
+      "device_id": "dev_0",
+      "kind": "cron_slot",
+      "slot_key": "20260809235150",
+      "unix_ts": 1786290710
+    },
+    {
+      "device_id": "dev_0",
+      "kind": "cron_slot",
+      "slot_key": "20260809235155",
+      "unix_ts": 1786290715
+    },
+    {
+      "device_id": "dev_0",
+      "kind": "cron_slot",
+      "slot_key": "20260809235200",
+      "unix_ts": 1786290720
+    },
+    {
+      "device_id": "dev_0",
+      "kind": "cron_slot",
+      "slot_key": "20260809235205",
+      "unix_ts": 1786290725
+    },
+    {
+      "device_id": "dev_0",
+      "kind": "cron_slot",
+      "slot_key": "20260809235210",
+      "unix_ts": 1786290730
+    }
+  ],
+  "mean_interval_sec": 0.0,
+  "device_intervals": {}
+}

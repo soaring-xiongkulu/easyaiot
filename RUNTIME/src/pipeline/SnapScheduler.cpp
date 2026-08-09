@@ -8,6 +8,7 @@
 #include <sstream>
 
 #include "Yolov11ThreadPool.h"
+#include "cron/CronUtils.h"
 #include "win_compat.h"
 
 namespace runtime {
@@ -60,28 +61,6 @@ bool pointInRegions(const Config& config, int cx, int cy, int width, int height,
     return false;
 }
 
-bool matchCronField(const std::string& field, int value) {
-    if (field == "*" || field.empty()) {
-        return true;
-    }
-    if (field.size() >= 3 && field[0] == '*' && field[1] == '/') {
-        int step = std::atoi(field.c_str() + 2);
-        return step > 0 && (value % step) == 0;
-    }
-    int num = std::atoi(field.c_str());
-    return num == value;
-}
-
-bool parseCronFields(const std::string& expr, std::string& minute, std::string& hour) {
-    std::istringstream iss(expr);
-    std::string rest;
-    if (!(iss >> minute >> hour)) {
-        return false;
-    }
-    // Remaining day/month/dow ignored (expect "* * *")
-    return true;
-}
-
 }  // namespace
 
 SnapScheduler::SnapScheduler(Config& config, Yolov11ThreadPool* pool, AlarmFn alarmFn)
@@ -109,7 +88,8 @@ void SnapScheduler::start() {
     caps_.resize(config_.devices.size());
     LOG(INFO) << "[SNAP] starting scheduler for " << config_.devices.size() << " device(s)"
               << " cron=\"" << config_.cronExpression << "\""
-              << " frameSkip=" << config_.frameSkip << "s";
+              << " frameSkip=" << config_.frameSkip << "s"
+              << " (CAP-CRON-SNAP: Asia/Shanghai 6-field)";
     thread_ = std::thread(&SnapScheduler::loop, this);
 }
 
@@ -123,23 +103,19 @@ void SnapScheduler::join() {
     }
 }
 
-bool SnapScheduler::cronDue(std::time_t now, std::string& slotKey) {
-    std::tm tm{};
-    localtime_r(&now, &tm);
-    char buf[32];
-    std::snprintf(buf, sizeof(buf), "%04d%02d%02d%02d%02d",
-                  tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min);
-    slotKey = buf;
-    if (slotKey == lastSlot_) {
+bool SnapScheduler::cronDueForDevice(size_t idx, std::time_t now, std::string& slotKey) {
+    bool inWindow = false;
+    double offset = 0.0;
+    std::time_t fireEpoch = 0;
+    if (!cron::slotForTime(config_.cronExpression, now, inWindow, slotKey, offset, fireEpoch)) {
         return false;
     }
-
-    std::string minute;
-    std::string hour;
-    if (!parseCronFields(config_.cronExpression, minute, hour)) {
+    if (!inWindow || slotKey.empty()) {
         return false;
     }
-    if (!matchCronField(minute, tm.tm_min) || !matchCronField(hour, tm.tm_hour)) {
+    const std::string& deviceId = config_.devices[idx].deviceId;
+    auto it = lastSlotByDevice_.find(deviceId);
+    if (it != lastSlotByDevice_.end() && it->second == slotKey) {
         return false;
     }
     return true;
@@ -183,7 +159,7 @@ bool SnapScheduler::grabFrame(size_t idx, cv::Mat& out) {
     return true;
 }
 
-void SnapScheduler::processDevice(size_t idx, const cv::Mat& frame) {
+void SnapScheduler::processDevice(size_t idx, const cv::Mat& frame, const std::string& slotKey) {
     if (!pool_ || !config_.enableAI) {
         return;
     }
@@ -216,7 +192,8 @@ void SnapScheduler::processDevice(size_t idx, const cv::Mat& frame) {
     if (!alarmDetections.empty() && alarmFn_ && config_.enableAlarm) {
         LOG(INFO) << "[SNAP] alarm device=" << device.deviceId
                   << " dets=" << alarmDetections.size()
-                  << " region=" << regionName;
+                  << " region=" << regionName
+                  << " slot=" << slotKey;
         alarmFn_(alarmDetections, regionName, device.deviceId, device.deviceName, frame);
     }
 }
@@ -225,33 +202,49 @@ void SnapScheduler::loop() {
     LOG(INFO) << "[SNAP] loop started";
     while (running_.load()) {
         std::time_t now = std::time(nullptr);
-        bool fire = false;
-        std::string slotKey;
 
         if (config_.cronExpression.empty()) {
+            // CAP-CRON-NO-FALLBACK: no cron → frameSkip-second interval (product: differs from
+            // Python ~0.1s continuous extract; intentional cpp sampling interval).
             int interval = std::max(1, config_.frameSkip);
             if (lastIntervalFire_ == 0 || (now - lastIntervalFire_) >= interval) {
-                fire = true;
                 lastIntervalFire_ = now;
+                for (size_t i = 0; i < config_.devices.size() && running_.load(); ++i) {
+                    cv::Mat frame;
+                    if (!grabFrame(i, frame)) {
+                        continue;
+                    }
+                    const std::string slotKey = "interval_" + std::to_string(now);
+                    parityRecorder_.recordScheduleEvent(
+                        "snap_interval", config_.devices[i].deviceId, slotKey, now);
+                    processDevice(i, frame, slotKey);
+                }
+                parityRecorder_.maybeFlush(config_.logPath);
             }
-        } else if (cronDue(now, slotKey)) {
-            fire = true;
-            lastSlot_ = slotKey;
-            LOG(INFO) << "[SNAP] cron slot fired: " << slotKey;
-        }
-
-        if (fire) {
+        } else {
+            // Per-device cron window + slot dedupe (Python should_extract_frame_by_cron).
             for (size_t i = 0; i < config_.devices.size() && running_.load(); ++i) {
+                std::string slotKey;
+                if (!cronDueForDevice(i, now, slotKey)) {
+                    continue;
+                }
                 cv::Mat frame;
                 if (!grabFrame(i, frame)) {
                     continue;
                 }
-                processDevice(i, frame);
+                lastSlotByDevice_[config_.devices[i].deviceId] = slotKey;
+                LOG(INFO) << "[SNAP] cron slot fired device=" << config_.devices[i].deviceId
+                          << " slot=" << slotKey;
+                parityRecorder_.recordScheduleEvent(
+                    "cron_slot", config_.devices[i].deviceId, slotKey, now);
+                processDevice(i, frame, slotKey);
+                parityRecorder_.maybeFlush(config_.logPath);
             }
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
+    parityRecorder_.writeToFile(config_.logPath);
     LOG(INFO) << "[SNAP] loop exit";
 }
 

@@ -234,10 +234,10 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 
 ### Task 4.3: snap/patrol 调度对齐
 
-- [ ] Cron 东八区 6 段 / 槽位语义对齐 `cron_utils`
-- [ ] patrol hybrid + focus
-- [ ] snap-space / patrol 进度心跳字段对齐（能 VIDEO 做的不进 C++）
-- [ ] P0 snap/patrol schedule cases 绿
+- [x] Cron 东八区 6 段 / 槽位语义对齐 `cron_utils`
+- [x] patrol hybrid + focus
+- [x] snap-space / patrol 进度心跳字段对齐（能 VIDEO 做的不进 C++）
+- [x] P0 snap/patrol schedule cases 绿
 - [ ] Commit：`feat: align snap/patrol schedulers with python`
 
 ### Task 4.4: SAM 路径 — **已取消**

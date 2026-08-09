@@ -1,0 +1,106 @@
+{
+  "case_id": "patrol_p1_hybrid_focus",
+  "layer": "L_schedule",
+  "executor": "python",
+  "task_type": "patrol",
+  "sampled_at": "2026-08-09T15:51:30",
+  "source": "oracle_smoke_schedule",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Smoke lifecycle/schedule recording without live oracle VIDEO; heartbeats/slots are deterministic stubs. Media path verified from manifest Intel sample-video.",
+  "mode": "hybrid",
+  "slot_count": 0,
+  "patrol_count": 12,
+  "events": [
+    {
+      "kind": "patrol",
+      "device_id": "dev_focus",
+      "slot_key": "",
+      "unix_ts": 1786290670.1726313
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_1",
+      "slot_key": "",
+      "unix_ts": 1786290670.1726313
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_2",
+      "slot_key": "",
+      "unix_ts": 1786290670.1726313
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_focus",
+      "slot_key": "",
+      "unix_ts": 1786290676.1726313
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_1",
+      "slot_key": "",
+      "unix_ts": 1786290676.1726313
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_2",
+      "slot_key": "",
+      "unix_ts": 1786290676.1726313
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_focus",
+      "slot_key": "",
+      "unix_ts": 1786290682.1726313
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_1",
+      "slot_key": "",
+      "unix_ts": 1786290682.1726313
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_2",
+      "slot_key": "",
+      "unix_ts": 1786290682.1726313
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_focus",
+      "slot_key": "",
+      "unix_ts": 1786290688.1726313
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_1",
+      "slot_key": "",
+      "unix_ts": 1786290688.1726313
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_2",
+      "slot_key": "",
+      "unix_ts": 1786290688.1726313
+    }
+  ],
+  "mean_interval_sec": 6.0,
+  "device_intervals": {
+    "dev_focus": [
+      6.0,
+      6.0,
+      6.0
+    ],
+    "dev_1": [
+      6.0,
+      6.0,
+      6.0
+    ],
+    "dev_2": [
+      6.0,
+      6.0,
+      6.0
+    ]
+  }
+}

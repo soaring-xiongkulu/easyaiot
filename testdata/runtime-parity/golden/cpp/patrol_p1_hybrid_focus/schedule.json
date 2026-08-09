@@ -1,0 +1,153 @@
+{
+  "case_id": "patrol_p1_hybrid_focus",
+  "layer": "L_schedule",
+  "executor": "cpp",
+  "task_type": "patrol",
+  "sampled_at": "2026-08-09T15:56:25",
+  "source": "runtime_parity_gate_cpp_parity_sample",
+  "status": "sampled",
+  "cron_expression": null,
+  "slot_count": 0,
+  "patrol_count": 19,
+  "events": [
+    {
+      "device_id": "dev_focus",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290961
+    },
+    {
+      "device_id": "dev_1",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290961
+    },
+    {
+      "device_id": "dev_2",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290961
+    },
+    {
+      "device_id": "dev_focus",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290964
+    },
+    {
+      "device_id": "dev_focus",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290967
+    },
+    {
+      "device_id": "dev_1",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290967
+    },
+    {
+      "device_id": "dev_2",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290967
+    },
+    {
+      "device_id": "dev_focus",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290970
+    },
+    {
+      "device_id": "dev_focus",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290973
+    },
+    {
+      "device_id": "dev_1",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290973
+    },
+    {
+      "device_id": "dev_2",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290973
+    },
+    {
+      "device_id": "dev_focus",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290976
+    },
+    {
+      "device_id": "dev_focus",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290979
+    },
+    {
+      "device_id": "dev_1",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290979
+    },
+    {
+      "device_id": "dev_2",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290979
+    },
+    {
+      "device_id": "dev_focus",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290982
+    },
+    {
+      "device_id": "dev_focus",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290985
+    },
+    {
+      "device_id": "dev_1",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290985
+    },
+    {
+      "device_id": "dev_2",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786290985
+    }
+  ],
+  "mean_interval_sec": 4.5,
+  "device_intervals": {
+    "dev_1": [
+      6.0,
+      6.0,
+      6.0,
+      6.0
+    ],
+    "dev_2": [
+      6.0,
+      6.0,
+      6.0,
+      6.0
+    ],
+    "dev_focus": [
+      3.0,
+      3.0,
+      3.0,
+      3.0,
+      3.0,
+      3.0,
+      3.0,
+      3.0
+    ]
+  }
+}

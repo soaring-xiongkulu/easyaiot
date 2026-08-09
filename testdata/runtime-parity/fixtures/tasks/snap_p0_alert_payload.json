@@ -1,0 +1,9 @@
+{
+  "task_type": "snapshot",
+  "executor": "python",
+  "device_source": "file://testdata/runtime-parity/media/people-detection.mp4",
+  "frame_skip": 2,
+  "cron_expression": "",
+  "task_id": "snap_p0_alert_payload_fixture",
+  "description": "G-4.3 snap alert hook payload — task_type=snapshot fields"
+}

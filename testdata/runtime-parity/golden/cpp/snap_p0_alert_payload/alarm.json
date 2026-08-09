@@ -1,0 +1,44 @@
+{
+  "case_id": "snap_p0_alert_payload",
+  "layer": "L_alarm",
+  "executor": "cpp",
+  "task_type": "snapshot",
+  "sampled_at": "2026-08-09T15:52:53",
+  "source": "runtime_parity_gate_cpp_hook",
+  "status": "sampled",
+  "hook_url": "mock://127.0.0.1/alerts=1",
+  "alerts": [
+    {
+      "seq": 1,
+      "alert_type": "roi_confidence",
+      "bbox_xyxy": [
+        187.0,
+        312.0,
+        325.0,
+        430.0
+      ],
+      "class": "person",
+      "confidence": 0.5942,
+      "in_roi": true,
+      "cooldown_applied": false
+    }
+  ],
+  "alert_count": 1,
+  "hook_payloads": [
+    {
+      "correlation_id": "69636_2026-08-09T15:52:48Z",
+      "device_id": "dev_0",
+      "device_name": "dev_0",
+      "event": "detection",
+      "face_detection_enabled": true,
+      "image_path": "logs/cpp_sample/alerts/alert_69636_1786290768235.jpg",
+      "information": "{\"detection_count\":1,\"detections\":[{\"bbox\":[187,312,325,430],\"class_id\":0,\"class_name\":\"person\",\"confidence\":0.59421086311340332}],\"region\":\"default\",\"runtime_ts_ms\":1786290768249,\"task_id\":\"69636\"}",
+      "object": "person",
+      "plate_detection_enabled": true,
+      "region": "default",
+      "task_type": "snapshot",
+      "time": "2026-08-09T15:52:48Z"
+    }
+  ],
+  "expected_task_type": "snapshot"
+}

@@ -6,12 +6,14 @@
 #include <functional>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #include <opencv2/opencv.hpp>
 
 #include "Config.h"
 #include "Datatype.h"
+#include "parity/ParityRecorder.h"
 
 class Yolov11ThreadPool;
 
@@ -19,7 +21,8 @@ namespace runtime {
 
 /**
  * Snap mode: long-lived VideoCapture per device; fire on cron slot
- * (or every frameSkip seconds when cron is empty).
+ * (6-field Asia/Shanghai second-level, aligned with VIDEO cron_utils)
+ * or every frameSkip seconds when cron is empty.
  */
 class SnapScheduler {
 public:
@@ -37,17 +40,19 @@ public:
 
 private:
     void loop();
-    bool cronDue(std::time_t now, std::string& slotKey);
+    bool cronDueForDevice(size_t idx, std::time_t now, std::string& slotKey);
     bool ensureCapture(size_t idx);
     bool grabFrame(size_t idx, cv::Mat& out);
-    void processDevice(size_t idx, const cv::Mat& frame);
+    void processDevice(size_t idx, const cv::Mat& frame, const std::string& slotKey);
 
     Config& config_;
     Yolov11ThreadPool* pool_;
     AlarmFn alarmFn_;
+    ParityRecorder parityRecorder_;
     std::atomic<bool> running_{false};
     std::thread thread_;
-    std::string lastSlot_;
+    // Per-device last captured cron slot (Python device_last_extract_cron_time)
+    std::unordered_map<std::string, std::string> lastSlotByDevice_;
     std::time_t lastIntervalFire_{0};
     std::vector<cv::VideoCapture> caps_;
     std::atomic<int> frameId_{0};

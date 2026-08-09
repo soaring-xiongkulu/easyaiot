@@ -1,0 +1,137 @@
+{
+  "case_id": "patrol_p0_heartbeat_progress",
+  "layer": "L_lifecycle",
+  "executor": "cpp",
+  "task_type": "patrol",
+  "sampled_at": "2026-08-09T15:56:00",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled",
+  "boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": null,
+    "duration_sec": 24.42
+  },
+  "heartbeats": [
+    {
+      "seq": 2,
+      "task_id": 44702,
+      "process_id": 24464,
+      "log_path": "logs/cpp_sample/patrol_p0_heartbeat_progress",
+      "timestamp_unix": 1786290939.460678,
+      "total_patrols": 2,
+      "total_detections": 0,
+      "progress": {
+        "dev_0": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:55:39Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 3,
+      "task_id": 44702,
+      "process_id": 24464,
+      "log_path": "logs/cpp_sample/patrol_p0_heartbeat_progress",
+      "timestamp_unix": 1786290942.7379615,
+      "total_patrols": 3,
+      "total_detections": 0,
+      "progress": {
+        "dev_0": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:55:42Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 4,
+      "task_id": 44702,
+      "process_id": 24464,
+      "log_path": "logs/cpp_sample/patrol_p0_heartbeat_progress",
+      "timestamp_unix": 1786290946.0137682,
+      "total_patrols": 4,
+      "total_detections": 0,
+      "progress": {
+        "dev_0": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:55:45Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 5,
+      "task_id": 44702,
+      "process_id": 24464,
+      "log_path": "logs/cpp_sample/patrol_p0_heartbeat_progress",
+      "timestamp_unix": 1786290949.2824674,
+      "total_patrols": 5,
+      "total_detections": 0,
+      "progress": {
+        "dev_0": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:55:48Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 6,
+      "task_id": 44702,
+      "process_id": 24464,
+      "log_path": "logs/cpp_sample/patrol_p0_heartbeat_progress",
+      "timestamp_unix": 1786290952.5463753,
+      "total_patrols": 6,
+      "total_detections": 0,
+      "progress": {
+        "dev_0": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:55:51Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 7,
+      "task_id": 44702,
+      "process_id": 24464,
+      "log_path": "logs/cpp_sample/patrol_p0_heartbeat_progress",
+      "timestamp_unix": 1786290955.8286374,
+      "total_patrols": 7,
+      "total_detections": 0,
+      "progress": {
+        "dev_0": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:55:54Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 8,
+      "task_id": 44702,
+      "process_id": 24464,
+      "log_path": "logs/cpp_sample/patrol_p0_heartbeat_progress",
+      "timestamp_unix": 1786290959.0964,
+      "total_patrols": 8,
+      "total_detections": 0,
+      "progress": {
+        "dev_0": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:55:57Z",
+          "last_result": "ok"
+        }
+      }
+    }
+  ],
+  "heartbeat_count": 7,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path",
+    "total_patrols",
+    "total_detections"
+  ]
+}

@@ -52,8 +52,53 @@ Report: `logs/runtime_parity_report.json`
 - Re-verify: `certify --profile win_cpp` exit **0** (5 cases: 3×P0 + `rt_p1_motion_gate` + `rt_p1_tracking_stable`)
 - **G-4.2 ACCEPTED**
 
-## G-4.3 / G-4.4 — pending
+## G-4.3 — snap/patrol schedule P0
 
-- G-4.3 snap/patrol schedule P0 cases
+| Case | Layers | CAP | Status |
+|------|--------|-----|--------|
+| `snap_p0_cron_slot` | L_lifecycle, L_schedule | CAP-CRON-SNAP | **PASS** |
+| `snap_p0_alert_payload` | L_lifecycle, L_alarm | CAP-ALERT-HOOK (snapshot) | **PASS** |
+| `patrol_p0_pool_interval` | L_lifecycle, L_schedule | CAP-PATROL-POOL | **PASS** |
+| `patrol_p0_heartbeat_progress` | L_lifecycle | CAP-PATROL-PROGRESS | **PASS** |
+| `patrol_p1_hybrid_focus` | L_lifecycle, L_schedule | CAP-PATROL-HYBRID | **PASS** |
+
+### Implementation summary
+
+- **C++** `cron/CronUtils` — Asia/Shanghai (UTC+8) 5/6-field cron matching aligned with `VIDEO/app/utils/cron_utils.py` (match window + slot key).
+- **C++** `SnapScheduler` — per-device slot dedupe; parity `schedule` events for L_schedule.
+- **C++** `PatrolScheduler` — **hybrid** (focus `interval/2` + background `pool_size-1`); warmup 3 frames; parallel batch; `total_patrols`/`total_detections`/`progress` on heartbeat.
+- **Hook** snap alerts emit `task_type=snapshot` (Python-aligned).
+- **Testbed** P0/P1 cases in manifest `win_cpp`; `L_schedule` diff; oracle smoke + cpp sample.
+
+### Certify commands (2026-08-09)
+
+```bat
+cd F:\acme\.worktrees\runtime-parity
+. .\RUNTIME\scripts\deploy.env.ps1
+set ACME_ORACLE_ROOT=F:\acme
+set ACME_CANDIDATE_ROOT=%CD%
+python tools\runtime_parity_gate.py record-oracle-smoke --case snap_p0_cron_slot --engine onnx
+python tools\runtime_parity_gate.py record-oracle-smoke --case snap_p0_alert_payload --engine onnx
+python tools\runtime_parity_gate.py record-oracle-smoke --case patrol_p0_pool_interval --engine onnx
+python tools\runtime_parity_gate.py record-oracle-smoke --case patrol_p0_heartbeat_progress --engine onnx
+python tools\runtime_parity_gate.py record-oracle-smoke --case patrol_p1_hybrid_focus --engine onnx
+python tools\runtime_parity_gate.py run --executor cpp --case snap_p0_cron_slot
+python tools\runtime_parity_gate.py run --executor cpp --case snap_p0_alert_payload
+python tools\runtime_parity_gate.py run --executor cpp --case patrol_p0_pool_interval
+python tools\runtime_parity_gate.py run --executor cpp --case patrol_p0_heartbeat_progress
+python tools\runtime_parity_gate.py run --executor cpp --case patrol_p1_hybrid_focus
+python tools\runtime_parity_gate.py certify --profile win_cpp
+```
+
+Exit code: **0** (10 `win_cpp` cases green: 5 prior realtime + 5 snap/patrol).
+
+Report: `logs/runtime_parity_report.json`
+
+### Orchestrator acceptance
+
+- *(pending — do not self-ACCEPTED)*
+
+## G-4.4 — pending
+
 - G-4.4 overlay/RTMP thresholds
 - Phase 5 full certify / Python runtime removal

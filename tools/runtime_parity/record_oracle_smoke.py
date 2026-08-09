@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from .artifacts import layer_file_map, _write_json
 from .manifest import CaseSpec, find_case, load_manifest, parse_cases
 from .motion_track_sample import sample_motion_gate, sample_tracking
+from .schedule_sample import synthetic_patrol_schedule, synthetic_snap_schedule
 from .paths import candidate_root, golden_dir, oracle_root, testdata_root
 
 
@@ -33,6 +34,14 @@ P0_CASES = {
 P1_G42_CASES = {
     "rt_p1_motion_gate",
     "rt_p1_tracking_stable",
+}
+
+P0_G43_CASES = {
+    "snap_p0_cron_slot",
+    "snap_p0_alert_payload",
+    "patrol_p0_pool_interval",
+    "patrol_p0_heartbeat_progress",
+    "patrol_p1_hybrid_focus",
 }
 
 SYNTHETIC_BBOX = [200, 150, 440, 330]
@@ -444,24 +453,37 @@ def _lifecycle_payload(case: CaseSpec, *, source: str, limitations: str) -> Dict
     task_id = f"{case.id}_smoke"
     process_id = 42420
     log_path = f"logs/{case.id}/runtime.log"
+    fields_expected = ["task_id", "process_id", "log_path"]
+    is_patrol = (case.task_type or "").lower() == "patrol"
+    if is_patrol:
+        fields_expected = ["task_id", "process_id", "log_path", "total_patrols", "total_detections"]
     heartbeats: List[Dict[str, Any]] = []
     base_unix = time.time() - 120
     for i in range(12):
-        heartbeats.append(
-            {
-                "seq": i + 1,
-                "task_id": task_id,
-                "process_id": process_id,
-                "log_path": log_path,
-                "timestamp_unix": base_unix + i * 10,
+        hb: Dict[str, Any] = {
+            "seq": i + 1,
+            "task_id": task_id,
+            "process_id": process_id,
+            "log_path": log_path,
+            "timestamp_unix": base_unix + i * 10,
+        }
+        if is_patrol:
+            hb["total_patrols"] = i + 1
+            hb["total_detections"] = max(0, i // 2)
+            hb["progress"] = {
+                "dev_0": {
+                    "last_patrol_at": "2026-08-09T00:00:00Z",
+                    "last_result": "ok",
+                    "detection_count": "0",
+                }
             }
-        )
+        heartbeats.append(hb)
     return {
         **_base_layer(case, "L_lifecycle", source=source, limitations=limitations),
         "boot": {"exit_code": 0, "started": True},
         "heartbeats": heartbeats,
         "heartbeat_count": len(heartbeats),
-        "fields_expected": ["task_id", "process_id", "log_path"],
+        "fields_expected": fields_expected,
     }
 
 
@@ -503,12 +525,19 @@ def _alarm_payload(case: CaseSpec, det: DetectionRun) -> Dict[str, Any]:
             "cooldown_applied": False,
         }
     ]
-    return {
+    expected_tt = None
+    if (case.task_type or "").lower() in ("snap", "snapshot"):
+        expected_tt = "snapshot"
+    payload = {
         **_base_layer(case, "L_alarm", source=det.source, limitations=det.limitations),
         "hook_url": f"http://127.0.0.1:{hook_port}/alert",
         "alerts": alerts,
         "alert_count": len(alerts),
     }
+    if expected_tt:
+        payload["expected_task_type"] = expected_tt
+    return payload
+
 
 
 @dataclass
@@ -519,7 +548,7 @@ class CaseRecording:
 
 
 def _record_case(case: CaseSpec, root: Path, manifest: Dict[str, Any], *, engine: str = "auto") -> CaseRecording:
-    needs_detect = "L_detect" in case.required_layers
+    needs_detect = "L_detect" in case.required_layers or "L_alarm" in case.required_layers
     det: Optional[DetectionRun] = None
     if needs_detect:
         media = _media_path(case, root, manifest)
@@ -530,8 +559,8 @@ def _record_case(case: CaseSpec, root: Path, manifest: Dict[str, Any], *, engine
         _media_path(case, root, manifest)
         source = "oracle_smoke_local_media"
         limitations = (
-            "Smoke lifecycle recording without live oracle VIDEO; heartbeats are deterministic "
-            "stubs. Media path verified from manifest Intel sample-video."
+            "Smoke lifecycle/schedule recording without live oracle VIDEO; heartbeats/slots are "
+            "deterministic stubs. Media path verified from manifest Intel sample-video."
         )
     return CaseRecording(source=source, limitations=limitations, det=det)
 
@@ -578,12 +607,45 @@ def _write_case_golden(case: CaseSpec, root: Path, manifest: Dict[str, Any], *, 
             "track_switch_count": sample.track_switch_count,
         }
 
+    def schedule() -> Dict[str, Any]:
+        cron = str(case.raw.get("cron_expression") or "")
+        is_snap = (case.task_type or "").lower() in ("snap", "snapshot")
+        if is_snap:
+            sched = synthetic_snap_schedule(
+                case_id=case.id,
+                cron_expression=cron or "*/5 * * * * *",
+                duration_sec=20.0,
+                interval_sec=5.0,
+            )
+        else:
+            count = int(case.raw.get("device_count") or 1)
+            focus = str(case.raw.get("focus_device_id") or "")
+            device_ids = []
+            for i in range(max(1, count)):
+                if i == 0 and focus:
+                    device_ids.append(focus)
+                else:
+                    device_ids.append(f"dev_{i}")
+            interval = float(case.raw.get("patrol_interval_sec") or 5)
+            # hybrid focus fires more often — smoke uses base interval for stub simplicity
+            sched = synthetic_patrol_schedule(
+                device_ids=device_ids,
+                interval_sec=interval,
+                duration_sec=20.0,
+                mode=str(case.raw.get("patrol_mode") or "pool"),
+            )
+        return {
+            **_base_layer(case, "L_schedule", source="oracle_smoke_schedule", limitations=rec.limitations),
+            **sched,
+        }
+
     builders = {
         "L_lifecycle": lifecycle,
         "L_detect": detect,
         "L_alarm": alarm,
         "L_motion": motion,
         "L_track": track,
+        "L_schedule": schedule,
     }
     for layer, fname in layer_file_map(case).items():
         builder = builders.get(layer)
@@ -625,7 +687,7 @@ def run_record_oracle_smoke(case_id: Optional[str] = None, *, engine: str = "aut
     if case_id:
         cases = [find_case(manifest, case_id)]
     else:
-        cases = [c for c in parse_cases(manifest) if c.id in P0_CASES | P1_G42_CASES]
+        cases = [c for c in parse_cases(manifest) if c.id in P0_CASES | P1_G42_CASES | P0_G43_CASES]
 
     if not cases:
         print("record-oracle-smoke: no cases to record", file=sys.stderr)

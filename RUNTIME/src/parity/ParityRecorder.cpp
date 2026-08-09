@@ -4,6 +4,7 @@
 #include <fstream>
 #include <glog/logging.h>
 #include <json/json.h>
+#include <map>
 #include <set>
 
 namespace runtime {
@@ -25,6 +26,19 @@ void ParityRecorder::recordTrackSample(int frameIndex, const std::vector<DetectO
     frame.frameIndex = frameIndex;
     frame.detections = detections;
     trackFrames_.push_back(frame);
+    samplesSinceFlush_ += 1;
+}
+
+void ParityRecorder::recordScheduleEvent(const std::string& kind,
+                                         const std::string& deviceId,
+                                         const std::string& slotKey,
+                                         std::time_t unixTs) {
+    ScheduleEvent ev;
+    ev.kind = kind;
+    ev.deviceId = deviceId;
+    ev.slotKey = slotKey;
+    ev.unixTs = unixTs;
+    scheduleEvents_.push_back(ev);
     samplesSinceFlush_ += 1;
 }
 
@@ -73,7 +87,6 @@ bool ParityRecorder::writeToFile(const std::string& logPath) const {
 
     Json::Value track(Json::objectValue);
     Json::Value trackFrames(Json::arrayValue);
-    int switchCount = 0;
     for (const auto& frame : trackFrames_) {
         Json::Value frameObj;
         frameObj["frame_index"] = frame.frameIndex;
@@ -89,15 +102,11 @@ bool ParityRecorder::writeToFile(const std::string& logPath) const {
             detObj["confidence"] = det.class_score;
             detObj["track_id"] = det.track_id;
             dets.append(detObj);
-            if (det.track_id > switchCount) {
-                switchCount = det.track_id;
-            }
         }
         frameObj["detections"] = dets;
         trackFrames.append(frameObj);
     }
     track["frames"] = trackFrames;
-    int uniqueIds = 0;
     std::set<int> seenIds;
     for (const auto& frame : trackFrames_) {
         for (const auto& det : frame.detections) {
@@ -106,9 +115,51 @@ bool ParityRecorder::writeToFile(const std::string& logPath) const {
             }
         }
     }
-    uniqueIds = static_cast<int>(seenIds.size());
-    track["track_switch_count"] = uniqueIds;
+    track["track_switch_count"] = static_cast<int>(seenIds.size());
     root["track"] = track;
+
+    // L_schedule / CAP-CRON-SNAP / CAP-PATROL-*
+    Json::Value schedule(Json::objectValue);
+    Json::Value events(Json::arrayValue);
+    int cronSlots = 0;
+    int patrolEvents = 0;
+    std::map<std::string, std::vector<std::time_t>> byDevice;
+    for (const auto& ev : scheduleEvents_) {
+        Json::Value item;
+        item["kind"] = ev.kind;
+        item["device_id"] = ev.deviceId;
+        item["slot_key"] = ev.slotKey;
+        item["unix_ts"] = static_cast<Json::Int64>(ev.unixTs);
+        events.append(item);
+        if (ev.kind == "cron_slot" || ev.kind == "snap_interval") {
+            cronSlots += 1;
+        }
+        if (ev.kind == "patrol") {
+            patrolEvents += 1;
+            byDevice[ev.deviceId].push_back(ev.unixTs);
+        }
+    }
+    schedule["events"] = events;
+    schedule["slot_count"] = cronSlots;
+    schedule["patrol_count"] = patrolEvents;
+
+    Json::Value intervals(Json::objectValue);
+    double sumMean = 0.0;
+    int meanCount = 0;
+    for (const auto& kv : byDevice) {
+        Json::Value arr(Json::arrayValue);
+        const auto& ts = kv.second;
+        for (size_t i = 1; i < ts.size(); ++i) {
+            double delta = static_cast<double>(ts[i] - ts[i - 1]);
+            arr.append(delta);
+            sumMean += delta;
+            meanCount += 1;
+        }
+        intervals[kv.first] = arr;
+    }
+    schedule["device_intervals"] = intervals;
+    schedule["mean_interval_sec"] = meanCount > 0 ? (sumMean / meanCount) : 0.0;
+    root["schedule"] = schedule;
 
     const std::filesystem::path outPath = std::filesystem::path(logPath) / "parity_sample.json";
     std::ofstream ofs(outPath);
@@ -127,10 +178,10 @@ void ParityRecorder::maybeFlush(const std::string& logPath) {
     if (logPath.empty()) {
         return;
     }
-    if (samplesSinceFlush_ < 1 && !motionSamples_.empty()) {
+    if (samplesSinceFlush_ < 1) {
         return;
     }
-    if (motionSamples_.empty() && trackFrames_.empty()) {
+    if (motionSamples_.empty() && trackFrames_.empty() && scheduleEvents_.empty()) {
         return;
     }
     writeToFile(logPath);

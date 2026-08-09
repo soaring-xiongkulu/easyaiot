@@ -1,0 +1,207 @@
+{
+  "case_id": "patrol_p1_hybrid_focus",
+  "layer": "L_lifecycle",
+  "executor": "cpp",
+  "task_type": "patrol",
+  "sampled_at": "2026-08-09T15:56:25",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled",
+  "boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": null,
+    "duration_sec": 24.55
+  },
+  "heartbeats": [
+    {
+      "seq": 2,
+      "task_id": 48113,
+      "process_id": 8028,
+      "log_path": "logs/cpp_sample/patrol_p1_hybrid_focus",
+      "timestamp_unix": 1786290964.5514977,
+      "total_patrols": 4,
+      "total_detections": 0,
+      "progress": {
+        "dev_1": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:01Z",
+          "last_result": "ok"
+        },
+        "dev_2": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:01Z",
+          "last_result": "ok"
+        },
+        "dev_focus": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:04Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 3,
+      "task_id": 48113,
+      "process_id": 8028,
+      "log_path": "logs/cpp_sample/patrol_p1_hybrid_focus",
+      "timestamp_unix": 1786290967.8213968,
+      "total_patrols": 7,
+      "total_detections": 0,
+      "progress": {
+        "dev_1": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:07Z",
+          "last_result": "ok"
+        },
+        "dev_2": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:07Z",
+          "last_result": "ok"
+        },
+        "dev_focus": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:07Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 4,
+      "task_id": 48113,
+      "process_id": 8028,
+      "log_path": "logs/cpp_sample/patrol_p1_hybrid_focus",
+      "timestamp_unix": 1786290971.1141484,
+      "total_patrols": 8,
+      "total_detections": 0,
+      "progress": {
+        "dev_1": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:07Z",
+          "last_result": "ok"
+        },
+        "dev_2": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:07Z",
+          "last_result": "ok"
+        },
+        "dev_focus": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:10Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 5,
+      "task_id": 48113,
+      "process_id": 8028,
+      "log_path": "logs/cpp_sample/patrol_p1_hybrid_focus",
+      "timestamp_unix": 1786290974.3956833,
+      "total_patrols": 11,
+      "total_detections": 0,
+      "progress": {
+        "dev_1": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:13Z",
+          "last_result": "ok"
+        },
+        "dev_2": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:13Z",
+          "last_result": "ok"
+        },
+        "dev_focus": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:13Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 6,
+      "task_id": 48113,
+      "process_id": 8028,
+      "log_path": "logs/cpp_sample/patrol_p1_hybrid_focus",
+      "timestamp_unix": 1786290977.6913087,
+      "total_patrols": 12,
+      "total_detections": 0,
+      "progress": {
+        "dev_1": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:13Z",
+          "last_result": "ok"
+        },
+        "dev_2": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:13Z",
+          "last_result": "ok"
+        },
+        "dev_focus": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:16Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 7,
+      "task_id": 48113,
+      "process_id": 8028,
+      "log_path": "logs/cpp_sample/patrol_p1_hybrid_focus",
+      "timestamp_unix": 1786290980.9836254,
+      "total_patrols": 15,
+      "total_detections": 0,
+      "progress": {
+        "dev_1": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:19Z",
+          "last_result": "ok"
+        },
+        "dev_2": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:19Z",
+          "last_result": "ok"
+        },
+        "dev_focus": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:19Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 8,
+      "task_id": 48113,
+      "process_id": 8028,
+      "log_path": "logs/cpp_sample/patrol_p1_hybrid_focus",
+      "timestamp_unix": 1786290984.2544012,
+      "total_patrols": 16,
+      "total_detections": 0,
+      "progress": {
+        "dev_1": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:19Z",
+          "last_result": "ok"
+        },
+        "dev_2": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:19Z",
+          "last_result": "ok"
+        },
+        "dev_focus": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T15:56:22Z",
+          "last_result": "ok"
+        }
+      }
+    }
+  ],
+  "heartbeat_count": 7,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path",
+    "total_patrols",
+    "total_detections"
+  ]
+}

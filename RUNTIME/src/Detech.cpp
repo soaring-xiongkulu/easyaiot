@@ -923,7 +923,14 @@ void Detech::_alarmSenderThreadFunc() {
                 : (_config.deviceName.empty() ? did : _config.deviceName);
             root["device_id"] = did;
             root["device_name"] = dname;
-            root["task_type"] = _config.taskType.empty() ? "realtime" : _config.taskType;
+            // Python snap alerts use task_type=snapshot (DB/ini may store snap).
+            {
+                std::string hookTaskType = _config.taskType.empty() ? "realtime" : _config.taskType;
+                if (hookTaskType == "snap") {
+                    hookTaskType = "snapshot";
+                }
+                root["task_type"] = hookTaskType;
+            }
             root["correlation_id"] = (_config.taskId.empty() ? "runtime" : _config.taskId) + "_" + ts;
             root["time"] = ts;
             root["image_path"] = alarmData.imagePath;
@@ -1049,8 +1056,18 @@ void Detech::_heartbeatThreadFunc() {
             root["process_id"] = runtime_getpid();
             root["log_path"] = _config.logPath;
             if (_patrolScheduler) {
+                // CAP-PATROL-PROGRESS frame-in totals; per-device UI hub stays in VIDEO.
                 root["total_patrols"] = (Json::UInt64)_patrolScheduler->totalPatrols.load();
                 root["total_detections"] = (Json::UInt64)_patrolScheduler->totalDetections.load();
+                Json::Value progress(Json::objectValue);
+                for (const auto& kv : _patrolScheduler->deviceProgressSnapshot()) {
+                    Json::Value entry(Json::objectValue);
+                    for (const auto& field : kv.second) {
+                        entry[field.first] = field.second;
+                    }
+                    progress[kv.first] = entry;
+                }
+                root["progress"] = progress;
             }
             Json::StreamWriterBuilder writer;
             writer["indentation"] = "";

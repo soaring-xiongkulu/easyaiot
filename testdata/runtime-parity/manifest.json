@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Runtime parity frozen case manifest (Phase 0 MVP + G-4.2 P1). SAM algorithm-task cases excluded per HANDOFF.",
+  "description": "Runtime parity frozen case manifest (Phase 0 MVP + G-4.2 P1 + G-4.3 snap/patrol). SAM algorithm-task cases excluded per HANDOFF.",
   "profiles": {
     "linux_full": {
       "executors": ["python", "cpp"],
@@ -17,9 +17,14 @@
         "rt_p0_heartbeat_lifecycle",
         "rt_p0_alert_hook_roi",
         "rt_p1_motion_gate",
-        "rt_p1_tracking_stable"
+        "rt_p1_tracking_stable",
+        "snap_p0_cron_slot",
+        "snap_p0_alert_payload",
+        "patrol_p0_pool_interval",
+        "patrol_p0_heartbeat_progress",
+        "patrol_p1_hybrid_focus"
       ],
-      "note": "P0 + G-4.2 P1 motion/tracking when RUNTIME.exe is available on Windows"
+      "note": "P0 + G-4.2 P1 + G-4.3 snap/patrol when RUNTIME.exe is available on Windows"
     }
   },
   "media": {
@@ -98,6 +103,76 @@
       "fixture": "fixtures/tasks/rt_p1_tracking_stable.json",
       "required_layers": ["L_lifecycle", "L_track"],
       "description": "轻量追踪稳定 ID；Intel one-by-one-person 样例"
+    },
+    {
+      "id": "snap_p0_cron_slot",
+      "priority": "P0",
+      "task_type": "snap",
+      "executor_baseline": "python",
+      "caps": ["CAP-CRON-SNAP"],
+      "media_id": "people-detection",
+      "fixture": "fixtures/tasks/snap_p0_cron_slot.json",
+      "required_layers": ["L_lifecycle", "L_schedule"],
+      "cron_expression": "*/5 * * * * *",
+      "description": "G-4.3 CAP-CRON-SNAP：东八区 6 段秒级 Cron 槽位"
+    },
+    {
+      "id": "snap_p0_alert_payload",
+      "priority": "P0",
+      "task_type": "snapshot",
+      "executor_baseline": "python",
+      "caps": ["CAP-ALERT-HOOK", "CAP-ALERT-IMAGE"],
+      "media_id": "people-detection",
+      "fixture": "fixtures/tasks/snap_p0_alert_payload.json",
+      "required_layers": ["L_lifecycle", "L_alarm"],
+      "mock_hook_port": 18081,
+      "description": "G-4.3 snap 告警 payload：task_type=snapshot"
+    },
+    {
+      "id": "patrol_p0_pool_interval",
+      "priority": "P0",
+      "task_type": "patrol",
+      "executor_baseline": "python",
+      "caps": ["CAP-PATROL-POOL"],
+      "media_id": "one-by-one-person-detection",
+      "fixture": "fixtures/tasks/patrol_p0_pool_interval.json",
+      "required_layers": ["L_lifecycle", "L_schedule"],
+      "patrol_mode": "pool",
+      "patrol_interval_sec": 5,
+      "patrol_pool_size": 2,
+      "device_count": 3,
+      "description": "G-4.3 CAP-PATROL-POOL：pool 间隔调度"
+    },
+    {
+      "id": "patrol_p0_heartbeat_progress",
+      "priority": "P0",
+      "task_type": "patrol",
+      "executor_baseline": "python",
+      "caps": ["CAP-PATROL-PROGRESS", "CAP-HEARTBEAT"],
+      "media_id": "one-by-one-person-detection",
+      "fixture": "fixtures/tasks/patrol_p0_heartbeat_progress.json",
+      "required_layers": ["L_lifecycle"],
+      "patrol_mode": "pool",
+      "patrol_interval_sec": 3,
+      "patrol_pool_size": 1,
+      "device_count": 1,
+      "description": "G-4.3 CAP-PATROL-PROGRESS：心跳 total_patrols 递增"
+    },
+    {
+      "id": "patrol_p1_hybrid_focus",
+      "priority": "P1",
+      "task_type": "patrol",
+      "executor_baseline": "python",
+      "caps": ["CAP-PATROL-HYBRID"],
+      "media_id": "one-by-one-person-detection",
+      "fixture": "fixtures/tasks/patrol_p1_hybrid_focus.json",
+      "required_layers": ["L_lifecycle", "L_schedule"],
+      "patrol_mode": "hybrid",
+      "patrol_interval_sec": 6,
+      "patrol_pool_size": 2,
+      "focus_device_id": "dev_focus",
+      "device_count": 3,
+      "description": "G-4.3 CAP-PATROL-HYBRID：焦点半间隔 + 背景池"
     }
   ]
 }

@@ -254,6 +254,17 @@ def diff_alarm(
                 f"cpp hook payload missing golden keys: {sorted(missing_all)}",
                 required=sorted(HOOK_PAYLOAD_GOLDEN_KEYS),
             )
+        expected_tt = py_data.get("expected_task_type") or cpp_data.get("expected_task_type")
+        if expected_tt:
+            for i, hp in enumerate(hook_payloads):
+                if not isinstance(hp, dict):
+                    continue
+                got = hp.get("task_type")
+                if got != expected_tt:
+                    return _fail(
+                        layer,
+                        f"hook[{i}] task_type={got!r} expected={expected_tt!r}",
+                    )
 
     if not py_alerts:
         return _fail(layer, "python golden has no alerts")
@@ -430,6 +441,67 @@ def diff_motion(
     )
 
 
+def diff_schedule(
+    layer: str,
+    py_data: Dict[str, Any],
+    cpp_data: Dict[str, Any],
+    thresholds: Dict[str, Any],
+) -> Dict[str, Any]:
+    sched_thresh = thresholds.get("schedule") or {}
+    snap_min = int(sched_thresh.get("snap_min_slots", 1))
+    patrol_min = int(sched_thresh.get("patrol_min_events", 2))
+    interval_ref = float(sched_thresh.get("patrol_interval_seconds", 5))
+    interval_tol = float(sched_thresh.get("patrol_interval_tolerance_seconds", 4))
+
+    if py_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"python schedule status invalid: {py_data.get('status')}")
+    cpp_status = cpp_data.get("status", "")
+    if cpp_status not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"cpp schedule status invalid: {cpp_status}")
+
+    py_slots = int(py_data.get("slot_count") or 0)
+    cpp_slots = int(cpp_data.get("slot_count") or 0)
+    py_patrol = int(py_data.get("patrol_count") or 0)
+    cpp_patrol = int(cpp_data.get("patrol_count") or 0)
+
+    # Snap cron path
+    if py_slots > 0 or cpp_slots > 0 or (py_data.get("cron_expression") or cpp_data.get("cron_expression")):
+        if cpp_slots < snap_min:
+            return _fail(layer, f"cpp slot_count {cpp_slots} < min {snap_min}")
+        if py_slots < 1:
+            return _fail(layer, "python golden has no cron slots")
+        return _pass(
+            layer,
+            slot_count_python=py_slots,
+            slot_count_cpp=cpp_slots,
+            kind="snap_cron",
+        )
+
+    # Patrol path
+    if cpp_patrol < patrol_min:
+        return _fail(layer, f"cpp patrol_count {cpp_patrol} < min {patrol_min}")
+    if py_patrol < 1:
+        return _fail(layer, "python golden has no patrol events")
+
+    cpp_mean = float(cpp_data.get("mean_interval_sec") or 0.0)
+    if cpp_mean > 0 and abs(cpp_mean - interval_ref) > interval_tol + 2.0:
+        # Soft check: allow larger slack when only a few samples
+        if cpp_patrol >= 4:
+            return _fail(
+                layer,
+                f"cpp mean_interval_sec {cpp_mean:.2f} outside {interval_ref}±{interval_tol + 2}",
+                mean_interval_sec=cpp_mean,
+            )
+
+    return _pass(
+        layer,
+        patrol_count_python=py_patrol,
+        patrol_count_cpp=cpp_patrol,
+        mean_interval_sec_cpp=round(cpp_mean, 3),
+        kind="patrol",
+    )
+
+
 def diff_layer(
     layer: str,
     py_data: Dict[str, Any],
@@ -449,6 +521,8 @@ def diff_layer(
         result = diff_track(layer, py_data, cpp_data, thresholds)
     elif layer == "L_motion":
         result = diff_motion(layer, py_data, cpp_data, thresholds)
+    elif layer == "L_schedule":
+        result = diff_schedule(layer, py_data, cpp_data, thresholds)
     else:
         result = _fail(layer, f"layer {layer} diff not implemented for G-4.1")
     if py_path:

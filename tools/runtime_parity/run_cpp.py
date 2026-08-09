@@ -16,10 +16,12 @@ from .manifest import CaseSpec, find_case, load_manifest
 from .mock_servers import MockServers
 from .paths import candidate_root, golden_dir, runtime_exe_candidates, testdata_root, windows_runtime_path_entries
 from .motion_track_sample import load_cpp_parity_sample
+from .schedule_sample import schedule_from_parity
 from .report import add_case_result, new_report, write_report
 
 _SAMPLE_SEC_DEFAULT = 22
 _SAMPLE_SEC_ALERT = 38
+_SAMPLE_SEC_SCHEDULE = 24
 _HEARTBEAT_INTERVAL = 3
 
 
@@ -49,6 +51,38 @@ def _media_for_case(case_id: str, root: Path, manifest: dict) -> Optional[Path]:
     return path if path.is_file() else None
 
 
+def _task_type_for_ini(case: CaseSpec) -> str:
+    tt = (case.task_type or "realtime").lower()
+    if tt in ("snap", "snapshot"):
+        return "snapshot" if tt == "snapshot" else "snap"
+    if tt == "patrol":
+        return "patrol"
+    return "realtime"
+
+
+def _devices_json(case: CaseSpec, rel_media: str) -> str:
+    """Build devices_json for snap/patrol multi-device fixtures."""
+    import json as _json
+
+    count = int(case.raw.get("device_count") or 1)
+    focus = str(case.raw.get("focus_device_id") or "")
+    devices = []
+    for i in range(max(1, count)):
+        if i == 0 and focus:
+            did = focus
+        else:
+            did = f"dev_{i}"
+        devices.append(
+            {
+                "device_id": did,
+                "device_name": did,
+                "rtsp_url": rel_media,
+            }
+        )
+    # Compact JSON for ini (no spaces that break naive parsers)
+    return _json.dumps(devices, ensure_ascii=False, separators=(",", ":"))
+
+
 def _build_ini(
     root: Path,
     case: CaseSpec,
@@ -71,9 +105,11 @@ def _build_ini(
         rel_media = media.relative_to(root)
     except ValueError:
         rel_media = media
+    rel_media_s = rel_media.as_posix()
     model = root / "RUNTIME" / "models" / "yolov11n.onnx"
     names = root / "RUNTIME" / "models" / "coco.names"
     task_num = abs(hash(case.id)) % 90000 + 10000
+    task_type = _task_type_for_ini(case)
 
     regions_block = ""
     if enable_alarm:
@@ -83,9 +119,40 @@ def _build_ini(
 default=[[0.1,0.1],[0.9,0.1],[0.9,0.9],[0.1,0.9]]
 """
 
-    content = f"""# Auto-generated for runtime_parity_gate run --executor cpp (G-4.1)
+    cron_expr = str(case.raw.get("cron_expression") or "")
+    if not cron_expr and task_type in ("snap", "snapshot"):
+        # Prefer fixture file field via case raw; empty → frame_skip fallback
+        pass
+    frame_skip = 4
+    if task_type in ("snap", "snapshot") and not cron_expr:
+        frame_skip = 2
+
+    patrol_mode = str(case.raw.get("patrol_mode") or "pool")
+    patrol_interval = int(case.raw.get("patrol_interval_sec") or 5)
+    patrol_pool = int(case.raw.get("patrol_pool_size") or 2)
+    focus_id = str(case.raw.get("focus_device_id") or "")
+
+    devices_line = ""
+    patrol_extra = ""
+    if task_type in ("snap", "snapshot", "patrol"):
+        devices_line = f"devices_json={_devices_json(case, rel_media_s)}\n"
+    if task_type in ("snap", "snapshot"):
+        devices_line += f"cron_expression={cron_expr}\n"
+    if task_type == "patrol":
+        devices_line += (
+            f"patrol_mode={patrol_mode}\n"
+            f"patrol_interval_sec={patrol_interval}\n"
+            f"patrol_pool_size={patrol_pool}\n"
+        )
+        if focus_id:
+            patrol_extra = f"""
+[patrol_extra]
+focus_device_id={focus_id}
+"""
+
+    content = f"""# Auto-generated for runtime_parity_gate run --executor cpp (G-4.1/G-4.3)
 [video]
-rtsp_url={rel_media.as_posix()}
+rtsp_url={rel_media_s}
 rtmp_url=
 width=768
 height=432
@@ -113,15 +180,15 @@ control_port={control_port}
 [video_task]
 device_id=cpp_sample
 device_name={case.id}
-task_type=realtime
+task_type={task_type}
 algorithm_name=detection
 alert_hook_url={hook_url}
 heartbeat_url={heartbeat_url}
 heartbeat_interval_sec={_HEARTBEAT_INTERVAL}
 log_path=logs/cpp_sample/{case.id}
 headless=true
-frame_skip=4
-
+frame_skip={frame_skip}
+{devices_line}
 [features]
 enable_rtmp=false
 enable_draw=false
@@ -140,6 +207,7 @@ smooth_alpha=0.25
 [motion_gate]
 enabled={"true" if motion_gate_enabled else "false"}
 config_json={{"preset": "{motion_gate_preset}"}}
+{patrol_extra}
 """
     ini_path.write_text(content, encoding="utf-8")
     return ini_path
@@ -229,15 +297,20 @@ def _heartbeats_from_mock(captured: List[Dict[str, Any]], case_id: str) -> List[
     out: List[Dict[str, Any]] = []
     for i, rec in enumerate(captured):
         body = rec.get("body") or {}
-        out.append(
-            {
-                "seq": i + 1,
-                "task_id": body.get("task_id", case_id),
-                "process_id": body.get("process_id"),
-                "log_path": body.get("log_path", f"logs/cpp_sample/{case_id}"),
-                "timestamp_unix": rec.get("received_at_unix"),
-            }
-        )
+        entry: Dict[str, Any] = {
+            "seq": i + 1,
+            "task_id": body.get("task_id", case_id),
+            "process_id": body.get("process_id"),
+            "log_path": body.get("log_path", f"logs/cpp_sample/{case_id}"),
+            "timestamp_unix": rec.get("received_at_unix"),
+        }
+        if "total_patrols" in body:
+            entry["total_patrols"] = body.get("total_patrols")
+        if "total_detections" in body:
+            entry["total_detections"] = body.get("total_detections")
+        if "progress" in body:
+            entry["progress"] = body.get("progress")
+        out.append(entry)
     return out
 
 
@@ -304,6 +377,13 @@ def _write_sampled_layers(
         artifact = out_dir / fname
         if layer == "L_lifecycle":
             hb_ok = len(heartbeats) >= 1
+            fields_expected = ["task_id", "process_id", "log_path"]
+            if (case.task_type or "").lower() == "patrol":
+                fields_expected = ["task_id", "process_id", "log_path", "total_patrols", "total_detections"]
+            # For patrol progress case: require at least one heartbeat with total_patrols >= 1
+            progress_ok = True
+            if case.id == "patrol_p0_heartbeat_progress":
+                progress_ok = any(int(h.get("total_patrols") or 0) >= 1 for h in heartbeats)
             data: Dict[str, Any] = {
                 "case_id": case.id,
                 "layer": layer,
@@ -311,7 +391,7 @@ def _write_sampled_layers(
                 "task_type": case.task_type,
                 "sampled_at": ts,
                 "source": "runtime_parity_gate_cpp_sample",
-                "status": "sampled" if boot_ok and hb_ok else "fail",
+                "status": "sampled" if boot_ok and hb_ok and progress_ok else "fail",
                 "boot": {
                     "started": bool(boot.get("started")),
                     "exit_code": boot.get("exit_code"),
@@ -320,12 +400,14 @@ def _write_sampled_layers(
                 },
                 "heartbeats": heartbeats,
                 "heartbeat_count": len(heartbeats),
-                "fields_expected": ["task_id", "process_id", "log_path"],
+                "fields_expected": fields_expected,
             }
             if not boot_ok:
                 data["reason"] = boot.get("error") or "RUNTIME boot/infer failed"
             elif not hb_ok:
                 data["reason"] = "no heartbeats captured from mock server"
+            elif not progress_ok:
+                data["reason"] = "patrol heartbeats missing total_patrols>=1"
         elif layer == "L_detect":
             frames = det_run.frames if det_run else []
             det_count = sum(len(f.get("detections", [])) for f in frames)
@@ -364,6 +446,8 @@ def _write_sampled_layers(
                 "alert_count": len(alerts),
                 "hook_payloads": hook_bodies,
             }
+            if (case.task_type or "").lower() in ("snap", "snapshot"):
+                data["expected_task_type"] = "snapshot"
             if not alerts:
                 data["reason"] = "no hook alerts captured"
         elif layer == "L_track":
@@ -404,6 +488,28 @@ def _write_sampled_layers(
             }
             if baseline == 0:
                 data["reason"] = "no motion samples in parity_sample.json"
+        elif layer == "L_schedule":
+            parity = load_cpp_parity_sample(candidate_root() / "logs" / "cpp_sample" / case.id)
+            sched = schedule_from_parity(parity)
+            is_snap = (case.task_type or "").lower() in ("snap", "snapshot")
+            ok = (sched["slot_count"] >= 1) if is_snap else (sched["patrol_count"] >= 1)
+            data = {
+                "case_id": case.id,
+                "layer": layer,
+                "executor": "cpp",
+                "task_type": case.task_type,
+                "sampled_at": ts,
+                "source": "runtime_parity_gate_cpp_parity_sample",
+                "status": "sampled" if ok else "fail",
+                "cron_expression": case.raw.get("cron_expression"),
+                "slot_count": sched["slot_count"],
+                "patrol_count": sched["patrol_count"],
+                "events": sched["events"],
+                "mean_interval_sec": sched["mean_interval_sec"],
+                "device_intervals": sched["device_intervals"],
+            }
+            if not ok:
+                data["reason"] = "no schedule events in parity_sample.json"
         else:
             data = {
                 "case_id": case.id,
@@ -483,13 +589,26 @@ def run_cpp(case_id: str) -> int:
             need_hook = "L_alarm" in case.required_layers
             tracking_enabled = "L_track" in case.required_layers
             motion_gate_enabled = "L_motion" in case.required_layers
+            need_schedule = "L_schedule" in case.required_layers
             motion_preset = str(case.raw.get("motion_gate_preset") or "sensitive")
-            sample_sec = _SAMPLE_SEC_ALERT if need_hook else _SAMPLE_SEC_DEFAULT
+            if need_hook:
+                sample_sec = _SAMPLE_SEC_ALERT
+            elif need_schedule or (case.task_type or "").lower() == "patrol":
+                sample_sec = _SAMPLE_SEC_SCHEDULE
+            else:
+                sample_sec = _SAMPLE_SEC_DEFAULT
             port = 18200 + (abs(hash(case_id)) % 200)
 
             mocks = MockServers()
             mocks.start(heartbeat=True, hook=need_hook)
 
+            # Snap/patrol schedule cases can run with AI off when only L_schedule/L_lifecycle needed.
+            enable_ai = (
+                "L_detect" in case.required_layers
+                or need_hook
+                or tracking_enabled
+                or motion_gate_enabled
+            )
             ini = _build_ini(
                 root,
                 case,
@@ -498,12 +617,7 @@ def run_cpp(case_id: str) -> int:
                 heartbeat_url=mocks.heartbeat_url(),
                 hook_url=mocks.hook_url() if need_hook else "",
                 enable_alarm=need_hook,
-                enable_ai=(
-                    "L_detect" in case.required_layers
-                    or need_hook
-                    or tracking_enabled
-                    or motion_gate_enabled
-                ),
+                enable_ai=enable_ai,
                 sample_sec=sample_sec,
                 tracking_enabled=tracking_enabled,
                 motion_gate_enabled=motion_gate_enabled,
@@ -514,6 +628,9 @@ def run_cpp(case_id: str) -> int:
             mocks.stop()
 
             heartbeats = _heartbeats_from_mock(mocks.heartbeats, case.id)
+            # Patrol: drop early heartbeats before scheduler attaches progress fields.
+            if (case.task_type or "").lower() == "patrol":
+                heartbeats = [h for h in heartbeats if "total_patrols" in h]
             print(f"INFO boot infer_ep={boot.get('infer_ep')} heartbeats={len(heartbeats)} hooks={len(mocks.hooks)}")
 
             det_run = None

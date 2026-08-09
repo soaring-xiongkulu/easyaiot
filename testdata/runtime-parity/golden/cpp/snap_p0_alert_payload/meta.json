@@ -1,0 +1,53 @@
+{
+  "case_id": "snap_p0_alert_payload",
+  "executor": "cpp",
+  "required_layers": [
+    "L_lifecycle",
+    "L_alarm"
+  ],
+  "written_at": "2026-08-09T15:52:53",
+  "artifacts": [
+    "lifecycle.json",
+    "alarm.json"
+  ],
+  "runtime_boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": "cpu",
+    "duration_sec": 39.71,
+    "log_tail": [
+      "W20260809 23:52:20.685305  8668 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:52:22.210029 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "W20260809 23:52:23.975087  8668 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:52:24.100201 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "I20260809 23:52:26.188563 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "W20260809 23:52:27.261909  8668 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:52:28.081669 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "I20260809 23:52:30.172511 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "W20260809 23:52:30.531869  8668 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:52:32.261765 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "W20260809 23:52:33.801656  8668 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:52:34.144338 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "I20260809 23:52:36.258884 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "W20260809 23:52:37.084394  8668 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:52:38.157413 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "I20260809 23:52:40.243320 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "W20260809 23:52:40.353789  8668 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:52:42.140944 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "W20260809 23:52:43.613668  8668 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:52:44.250531 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "I20260809 23:52:46.136373 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "W20260809 23:52:46.894781  8668 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:52:48.234586 31752 SnapScheduler.cpp:193] [SNAP] alarm device=dev_0 dets=1 region=default slot=interval_1786290768",
+      "I20260809 23:52:48.248188 31752 Detech.cpp:1140] [ALARM] Alarm enqueued, queue size: 1",
+      "I20260809 23:52:48.248188 15020 Detech.cpp:901] [ALARM-THREAD] Dequeued alarm, remaining in queue: 0",
+      "I20260809 23:52:48.253118 15020 Detech.cpp:986] [ALARM-THREAD] Sending VIDEO hook to: http://127.0.0.1:51677/alert",
+      "I20260809 23:52:48.253731 31752 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/snap_p0_alert_payload\\parity_sample.json",
+      "E20260809 23:52:48.253731 15020 Detech.cpp:991] [ALARM-THREAD] VIDEO hook failed",
+      "E20260809 23:52:48.253731 15020 Detech.cpp:995]   Network error or timeout",
+      "I20260809 23:52:50.164038 31752 SnapScheduler.cpp:193] [SNAP] alarm device=dev_0 dets=1 region=default slot=interval_1786290770"
+    ]
+  },
+  "heartbeat_count": 13,
+  "hook_count": 1
+}

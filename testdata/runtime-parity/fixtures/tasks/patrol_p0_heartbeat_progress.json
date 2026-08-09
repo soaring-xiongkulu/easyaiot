@@ -1,0 +1,11 @@
+{
+  "task_type": "patrol",
+  "executor": "python",
+  "device_source": "file://testdata/runtime-parity/media/one-by-one-person-detection.mp4",
+  "patrol_mode": "pool",
+  "patrol_interval_sec": 3,
+  "patrol_pool_size": 1,
+  "device_count": 1,
+  "task_id": "patrol_p0_heartbeat_progress_fixture",
+  "description": "G-4.3 CAP-PATROL-PROGRESS — total_patrols/total_detections heartbeat fields"
+}

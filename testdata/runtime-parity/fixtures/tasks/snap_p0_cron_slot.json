@@ -1,0 +1,8 @@
+{
+  "task_type": "snap",
+  "executor": "python",
+  "device_source": "file://testdata/runtime-parity/media/people-detection.mp4",
+  "cron_expression": "*/5 * * * * *",
+  "task_id": "snap_p0_cron_slot_fixture",
+  "description": "G-4.3 CAP-CRON-SNAP — 6-field Asia/Shanghai every-5s slot (testbed-shortened from */30)"
+}

@@ -1,0 +1,53 @@
+{
+  "case_id": "patrol_p1_hybrid_focus",
+  "executor": "cpp",
+  "required_layers": [
+    "L_lifecycle",
+    "L_schedule"
+  ],
+  "written_at": "2026-08-09T15:56:25",
+  "artifacts": [
+    "lifecycle.json",
+    "schedule.json"
+  ],
+  "runtime_boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": null,
+    "duration_sec": 24.55,
+    "log_tail": [
+      "I20260809 23:56:07.434885 24924 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p1_hybrid_focus\\parity_sample.json",
+      "I20260809 23:56:07.434885 24924 PatrolScheduler.cpp:318] [PATROL] hybrid background batch size=1",
+      "I20260809 23:56:07.456866 12804 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p1_hybrid_focus\\parity_sample.json",
+      "I20260809 23:56:07.772568 24924 PatrolScheduler.cpp:318] [PATROL] hybrid background batch size=1",
+      "I20260809 23:56:07.793030  4444 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p1_hybrid_focus\\parity_sample.json",
+      "W20260809 23:56:07.821395 16708 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:56:10.143863 24924 PatrolScheduler.cpp:310] [PATROL] hybrid focus device=dev_focus interval=3",
+      "I20260809 23:56:10.167495 24924 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p1_hybrid_focus\\parity_sample.json",
+      "W20260809 23:56:11.114657 16708 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:56:13.017421 24924 PatrolScheduler.cpp:310] [PATROL] hybrid focus device=dev_focus interval=3",
+      "I20260809 23:56:13.046202 24924 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p1_hybrid_focus\\parity_sample.json",
+      "I20260809 23:56:13.046737 24924 PatrolScheduler.cpp:318] [PATROL] hybrid background batch size=1",
+      "I20260809 23:56:13.086742  7388 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p1_hybrid_focus\\parity_sample.json",
+      "I20260809 23:56:13.387552 24924 PatrolScheduler.cpp:318] [PATROL] hybrid background batch size=1",
+      "I20260809 23:56:13.411273 30532 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p1_hybrid_focus\\parity_sample.json",
+      "W20260809 23:56:14.395682 16708 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:56:16.280736 24924 PatrolScheduler.cpp:310] [PATROL] hybrid focus device=dev_focus interval=3",
+      "I20260809 23:56:16.309319 24924 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p1_hybrid_focus\\parity_sample.json",
+      "W20260809 23:56:17.692310 16708 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:56:19.174430 24924 PatrolScheduler.cpp:310] [PATROL] hybrid focus device=dev_focus interval=3",
+      "I20260809 23:56:19.197986 24924 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p1_hybrid_focus\\parity_sample.json",
+      "I20260809 23:56:19.197986 24924 PatrolScheduler.cpp:318] [PATROL] hybrid background batch size=1",
+      "I20260809 23:56:19.224931 16284 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p1_hybrid_focus\\parity_sample.json",
+      "I20260809 23:56:19.532687 24924 PatrolScheduler.cpp:318] [PATROL] hybrid background batch size=1",
+      "I20260809 23:56:19.557282 22768 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p1_hybrid_focus\\parity_sample.json",
+      "W20260809 23:56:20.984143 16708 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:56:22.444761 24924 PatrolScheduler.cpp:310] [PATROL] hybrid focus device=dev_focus interval=3",
+      "I20260809 23:56:22.521792 24924 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p1_hybrid_focus\\parity_sample.json",
+      "W20260809 23:56:24.255837 16708 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:56:25.410964 24924 PatrolScheduler.cpp:310] [PATROL] hybrid focus device=dev_focus interval=3"
+    ]
+  },
+  "heartbeat_count": 7,
+  "hook_count": 0
+}

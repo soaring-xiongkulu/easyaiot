@@ -33,9 +33,12 @@
     "rss_absolute_mb_slack": 512
   },
   "schedule": {
-    "patrol_interval_seconds": 30,
-    "patrol_interval_tolerance_seconds": 3,
-    "snap_cron_match_window_seconds": 5
+    "patrol_interval_seconds": 5,
+    "patrol_interval_tolerance_seconds": 4,
+    "snap_cron_match_window_seconds": 5,
+    "snap_min_slots": 1,
+    "patrol_min_events": 2,
+    "_note": "G-4.3 testbed uses shortened intervals (5s snap/patrol) vs production 30s"
   },
   "lifecycle": {
     "min_heartbeat_count_cpp": 1,

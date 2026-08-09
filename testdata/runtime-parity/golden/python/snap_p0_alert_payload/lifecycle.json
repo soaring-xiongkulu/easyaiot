@@ -1,0 +1,107 @@
+{
+  "case_id": "snap_p0_alert_payload",
+  "layer": "L_lifecycle",
+  "executor": "python",
+  "task_type": "snapshot",
+  "sampled_at": "2026-08-09T15:51:29",
+  "source": "oracle_smoke_onnx",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Local Intel sample-video ONNX inference; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "boot": {
+    "exit_code": 0,
+    "started": true
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": "snap_p0_alert_payload_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_alert_payload/runtime.log",
+      "timestamp_unix": 1786290569.6681669
+    },
+    {
+      "seq": 2,
+      "task_id": "snap_p0_alert_payload_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_alert_payload/runtime.log",
+      "timestamp_unix": 1786290579.6681669
+    },
+    {
+      "seq": 3,
+      "task_id": "snap_p0_alert_payload_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_alert_payload/runtime.log",
+      "timestamp_unix": 1786290589.6681669
+    },
+    {
+      "seq": 4,
+      "task_id": "snap_p0_alert_payload_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_alert_payload/runtime.log",
+      "timestamp_unix": 1786290599.6681669
+    },
+    {
+      "seq": 5,
+      "task_id": "snap_p0_alert_payload_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_alert_payload/runtime.log",
+      "timestamp_unix": 1786290609.6681669
+    },
+    {
+      "seq": 6,
+      "task_id": "snap_p0_alert_payload_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_alert_payload/runtime.log",
+      "timestamp_unix": 1786290619.6681669
+    },
+    {
+      "seq": 7,
+      "task_id": "snap_p0_alert_payload_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_alert_payload/runtime.log",
+      "timestamp_unix": 1786290629.6681669
+    },
+    {
+      "seq": 8,
+      "task_id": "snap_p0_alert_payload_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_alert_payload/runtime.log",
+      "timestamp_unix": 1786290639.6681669
+    },
+    {
+      "seq": 9,
+      "task_id": "snap_p0_alert_payload_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_alert_payload/runtime.log",
+      "timestamp_unix": 1786290649.6681669
+    },
+    {
+      "seq": 10,
+      "task_id": "snap_p0_alert_payload_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_alert_payload/runtime.log",
+      "timestamp_unix": 1786290659.6681669
+    },
+    {
+      "seq": 11,
+      "task_id": "snap_p0_alert_payload_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_alert_payload/runtime.log",
+      "timestamp_unix": 1786290669.6681669
+    },
+    {
+      "seq": 12,
+      "task_id": "snap_p0_alert_payload_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_alert_payload/runtime.log",
+      "timestamp_unix": 1786290679.6681669
+    }
+  ],
+  "heartbeat_count": 12,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

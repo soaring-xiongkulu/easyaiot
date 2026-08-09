@@ -1,0 +1,107 @@
+{
+  "case_id": "snap_p0_cron_slot",
+  "layer": "L_lifecycle",
+  "executor": "python",
+  "task_type": "snap",
+  "sampled_at": "2026-08-09T15:51:27",
+  "source": "oracle_smoke_local_media",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Smoke lifecycle/schedule recording without live oracle VIDEO; heartbeats/slots are deterministic stubs. Media path verified from manifest Intel sample-video.",
+  "boot": {
+    "exit_code": 0,
+    "started": true
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": "snap_p0_cron_slot_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_cron_slot/runtime.log",
+      "timestamp_unix": 1786290567.0675163
+    },
+    {
+      "seq": 2,
+      "task_id": "snap_p0_cron_slot_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_cron_slot/runtime.log",
+      "timestamp_unix": 1786290577.0675163
+    },
+    {
+      "seq": 3,
+      "task_id": "snap_p0_cron_slot_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_cron_slot/runtime.log",
+      "timestamp_unix": 1786290587.0675163
+    },
+    {
+      "seq": 4,
+      "task_id": "snap_p0_cron_slot_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_cron_slot/runtime.log",
+      "timestamp_unix": 1786290597.0675163
+    },
+    {
+      "seq": 5,
+      "task_id": "snap_p0_cron_slot_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_cron_slot/runtime.log",
+      "timestamp_unix": 1786290607.0675163
+    },
+    {
+      "seq": 6,
+      "task_id": "snap_p0_cron_slot_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_cron_slot/runtime.log",
+      "timestamp_unix": 1786290617.0675163
+    },
+    {
+      "seq": 7,
+      "task_id": "snap_p0_cron_slot_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_cron_slot/runtime.log",
+      "timestamp_unix": 1786290627.0675163
+    },
+    {
+      "seq": 8,
+      "task_id": "snap_p0_cron_slot_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_cron_slot/runtime.log",
+      "timestamp_unix": 1786290637.0675163
+    },
+    {
+      "seq": 9,
+      "task_id": "snap_p0_cron_slot_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_cron_slot/runtime.log",
+      "timestamp_unix": 1786290647.0675163
+    },
+    {
+      "seq": 10,
+      "task_id": "snap_p0_cron_slot_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_cron_slot/runtime.log",
+      "timestamp_unix": 1786290657.0675163
+    },
+    {
+      "seq": 11,
+      "task_id": "snap_p0_cron_slot_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_cron_slot/runtime.log",
+      "timestamp_unix": 1786290667.0675163
+    },
+    {
+      "seq": 12,
+      "task_id": "snap_p0_cron_slot_smoke",
+      "process_id": 42420,
+      "log_path": "logs/snap_p0_cron_slot/runtime.log",
+      "timestamp_unix": 1786290677.0675163
+    }
+  ],
+  "heartbeat_count": 12,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

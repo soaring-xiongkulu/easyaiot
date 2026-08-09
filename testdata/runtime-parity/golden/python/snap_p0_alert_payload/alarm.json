@@ -1,0 +1,30 @@
+{
+  "case_id": "snap_p0_alert_payload",
+  "layer": "L_alarm",
+  "executor": "python",
+  "task_type": "snapshot",
+  "sampled_at": "2026-08-09T15:51:29",
+  "source": "oracle_smoke_onnx",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Local Intel sample-video ONNX inference; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "hook_url": "http://127.0.0.1:18081/alert",
+  "alerts": [
+    {
+      "seq": 1,
+      "alert_type": "roi_confidence",
+      "bbox_xyxy": [
+        289.0,
+        140.0,
+        392.0,
+        398.0
+      ],
+      "class": "person",
+      "confidence": 0.7726,
+      "in_roi": true,
+      "cooldown_applied": false
+    }
+  ],
+  "alert_count": 1,
+  "expected_task_type": "snapshot"
+}

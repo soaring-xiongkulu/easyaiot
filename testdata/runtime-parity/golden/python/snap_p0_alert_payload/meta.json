@@ -1,0 +1,20 @@
+{
+  "case_id": "snap_p0_alert_payload",
+  "executor": "python",
+  "required_layers": [
+    "L_lifecycle",
+    "L_alarm"
+  ],
+  "written_at": "2026-08-09T15:51:29",
+  "recording": "oracle_smoke",
+  "source": "oracle_smoke_onnx",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "artifacts": [
+    "lifecycle.json",
+    "alarm.json"
+  ],
+  "limitations": "Local Intel sample-video ONNX inference; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "model": "F:\\acme\\RUNTIME\\models\\yolov11n.onnx",
+  "synthetic": false
+}

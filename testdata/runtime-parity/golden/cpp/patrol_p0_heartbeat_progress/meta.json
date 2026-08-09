@@ -1,0 +1,51 @@
+{
+  "case_id": "patrol_p0_heartbeat_progress",
+  "executor": "cpp",
+  "required_layers": [
+    "L_lifecycle"
+  ],
+  "written_at": "2026-08-09T15:56:00",
+  "artifacts": [
+    "lifecycle.json"
+  ],
+  "runtime_boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": null,
+    "duration_sec": 24.42,
+    "log_tail": [
+      "I20260809 23:55:36.184505 28988 Detech.cpp:470] [CONTROL-THREAD]   POST /control/streaming/start - Start streaming",
+      "I20260809 23:55:36.184505 28988 Detech.cpp:471] [CONTROL-THREAD]   POST /control/streaming/stop - Stop streaming",
+      "I20260809 23:55:36.184505 28988 Detech.cpp:472] [CONTROL-THREAD]   GET  /control/streaming/status - Get streaming status",
+      "I20260809 23:55:36.184505 40400 PatrolScheduler.cpp:96] [PATROL] starting scheduler for 1 device(s) mode=pool interval=3s pool_size=1 focus=(none)",
+      "I20260809 23:55:36.184505 39460 PatrolScheduler.cpp:262] [PATROL] loop started",
+      "I20260809 23:55:36.184505 39460 PatrolScheduler.cpp:336] [PATROL] pool batch size=1",
+      "W20260809 23:55:36.185976 11208 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:55:36.204643 29300 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p0_heartbeat_progress\\parity_sample.json",
+      "I20260809 23:55:39.070428 39460 PatrolScheduler.cpp:336] [PATROL] pool batch size=1",
+      "I20260809 23:55:39.086019  5648 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p0_heartbeat_progress\\parity_sample.json",
+      "W20260809 23:55:39.461217 11208 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:55:42.472435 39460 PatrolScheduler.cpp:336] [PATROL] pool batch size=1",
+      "I20260809 23:55:42.490402 34192 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p0_heartbeat_progress\\parity_sample.json",
+      "W20260809 23:55:42.738471 11208 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:55:45.351979 39460 PatrolScheduler.cpp:336] [PATROL] pool batch size=1",
+      "I20260809 23:55:45.378021 36988 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p0_heartbeat_progress\\parity_sample.json",
+      "W20260809 23:55:46.014739 11208 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:55:48.256016 39460 PatrolScheduler.cpp:336] [PATROL] pool batch size=1",
+      "I20260809 23:55:48.281065 19268 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p0_heartbeat_progress\\parity_sample.json",
+      "W20260809 23:55:49.283017 11208 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:55:51.145730 39460 PatrolScheduler.cpp:336] [PATROL] pool batch size=1",
+      "I20260809 23:55:51.170037 33264 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p0_heartbeat_progress\\parity_sample.json",
+      "W20260809 23:55:52.547888 11208 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:55:54.011299 39460 PatrolScheduler.cpp:336] [PATROL] pool batch size=1",
+      "I20260809 23:55:54.037905 13584 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p0_heartbeat_progress\\parity_sample.json",
+      "W20260809 23:55:55.828636 11208 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:55:57.381934 39460 PatrolScheduler.cpp:336] [PATROL] pool batch size=1",
+      "I20260809 23:55:57.405392 13868 ParityRecorder.cpp:173] [PARITY] wrote logs/cpp_sample/patrol_p0_heartbeat_progress\\parity_sample.json",
+      "W20260809 23:55:59.096400 11208 Detech.cpp:1077] [HEARTBEAT] post failed status=-1",
+      "I20260809 23:56:00.248587 39460 PatrolScheduler.cpp:336] [PATROL] pool batch size=1"
+    ]
+  },
+  "heartbeat_count": 7,
+  "hook_count": 0
+}

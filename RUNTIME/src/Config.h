@@ -56,7 +56,7 @@ typedef struct Config {
     std::string cronExpression;
 
     // patrol
-    std::string patrolMode{"pool"};  // pool | rotate
+    std::string patrolMode{"pool"};  // pool | rotate | hybrid
     int patrolIntervalSec{10};
     int patrolPoolSize{4};
 

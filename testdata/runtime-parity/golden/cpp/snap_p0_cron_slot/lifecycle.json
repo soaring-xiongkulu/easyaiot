@@ -1,0 +1,79 @@
+{
+  "case_id": "snap_p0_cron_slot",
+  "layer": "L_lifecycle",
+  "executor": "cpp",
+  "task_type": "snap",
+  "sampled_at": "2026-08-09T15:52:10",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled",
+  "boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": null,
+    "duration_sec": 25.15
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": 81048,
+      "process_id": 31988,
+      "log_path": "logs/cpp_sample/snap_p0_cron_slot",
+      "timestamp_unix": 1786290705.3330634
+    },
+    {
+      "seq": 2,
+      "task_id": 81048,
+      "process_id": 31988,
+      "log_path": "logs/cpp_sample/snap_p0_cron_slot",
+      "timestamp_unix": 1786290708.5947642
+    },
+    {
+      "seq": 3,
+      "task_id": 81048,
+      "process_id": 31988,
+      "log_path": "logs/cpp_sample/snap_p0_cron_slot",
+      "timestamp_unix": 1786290711.8663988
+    },
+    {
+      "seq": 4,
+      "task_id": 81048,
+      "process_id": 31988,
+      "log_path": "logs/cpp_sample/snap_p0_cron_slot",
+      "timestamp_unix": 1786290715.14353
+    },
+    {
+      "seq": 5,
+      "task_id": 81048,
+      "process_id": 31988,
+      "log_path": "logs/cpp_sample/snap_p0_cron_slot",
+      "timestamp_unix": 1786290718.4080315
+    },
+    {
+      "seq": 6,
+      "task_id": 81048,
+      "process_id": 31988,
+      "log_path": "logs/cpp_sample/snap_p0_cron_slot",
+      "timestamp_unix": 1786290721.6971822
+    },
+    {
+      "seq": 7,
+      "task_id": 81048,
+      "process_id": 31988,
+      "log_path": "logs/cpp_sample/snap_p0_cron_slot",
+      "timestamp_unix": 1786290724.9701834
+    },
+    {
+      "seq": 8,
+      "task_id": 81048,
+      "process_id": 31988,
+      "log_path": "logs/cpp_sample/snap_p0_cron_slot",
+      "timestamp_unix": 1786290728.2491875
+    }
+  ],
+  "heartbeat_count": 8,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

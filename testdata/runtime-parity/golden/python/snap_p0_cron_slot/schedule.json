@@ -1,0 +1,48 @@
+{
+  "case_id": "snap_p0_cron_slot",
+  "layer": "L_schedule",
+  "executor": "python",
+  "task_type": "snap",
+  "sampled_at": "2026-08-09T15:51:27",
+  "source": "oracle_smoke_schedule",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Smoke lifecycle/schedule recording without live oracle VIDEO; heartbeats/slots are deterministic stubs. Media path verified from manifest Intel sample-video.",
+  "cron_expression": "*/5 * * * * *",
+  "slot_count": 5,
+  "patrol_count": 0,
+  "events": [
+    {
+      "kind": "cron_slot",
+      "device_id": "cpp_sample",
+      "slot_key": "smoke_slot_1",
+      "unix_ts": 1786290667.0685165
+    },
+    {
+      "kind": "cron_slot",
+      "device_id": "cpp_sample",
+      "slot_key": "smoke_slot_2",
+      "unix_ts": 1786290672.0685165
+    },
+    {
+      "kind": "cron_slot",
+      "device_id": "cpp_sample",
+      "slot_key": "smoke_slot_3",
+      "unix_ts": 1786290677.0685165
+    },
+    {
+      "kind": "cron_slot",
+      "device_id": "cpp_sample",
+      "slot_key": "smoke_slot_4",
+      "unix_ts": 1786290682.0685165
+    },
+    {
+      "kind": "cron_slot",
+      "device_id": "cpp_sample",
+      "slot_key": "smoke_slot_5",
+      "unix_ts": 1786290687.0685165
+    }
+  ],
+  "mean_interval_sec": 5.0,
+  "device_intervals": {}
+}

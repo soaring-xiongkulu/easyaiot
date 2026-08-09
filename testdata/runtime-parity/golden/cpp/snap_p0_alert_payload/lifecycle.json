@@ -1,0 +1,114 @@
+{
+  "case_id": "snap_p0_alert_payload",
+  "layer": "L_lifecycle",
+  "executor": "cpp",
+  "task_type": "snapshot",
+  "sampled_at": "2026-08-09T15:52:53",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled",
+  "boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": "cpu",
+    "duration_sec": 39.71
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": 69636,
+      "process_id": 34560,
+      "log_path": "logs/cpp_sample/snap_p0_alert_payload",
+      "timestamp_unix": 1786290730.8663297
+    },
+    {
+      "seq": 2,
+      "task_id": 69636,
+      "process_id": 34560,
+      "log_path": "logs/cpp_sample/snap_p0_alert_payload",
+      "timestamp_unix": 1786290734.1287029
+    },
+    {
+      "seq": 3,
+      "task_id": 69636,
+      "process_id": 34560,
+      "log_path": "logs/cpp_sample/snap_p0_alert_payload",
+      "timestamp_unix": 1786290737.3986588
+    },
+    {
+      "seq": 4,
+      "task_id": 69636,
+      "process_id": 34560,
+      "log_path": "logs/cpp_sample/snap_p0_alert_payload",
+      "timestamp_unix": 1786290740.6853068
+    },
+    {
+      "seq": 5,
+      "task_id": 69636,
+      "process_id": 34560,
+      "log_path": "logs/cpp_sample/snap_p0_alert_payload",
+      "timestamp_unix": 1786290743.9745796
+    },
+    {
+      "seq": 6,
+      "task_id": 69636,
+      "process_id": 34560,
+      "log_path": "logs/cpp_sample/snap_p0_alert_payload",
+      "timestamp_unix": 1786290747.2609086
+    },
+    {
+      "seq": 7,
+      "task_id": 69636,
+      "process_id": 34560,
+      "log_path": "logs/cpp_sample/snap_p0_alert_payload",
+      "timestamp_unix": 1786290750.5313423
+    },
+    {
+      "seq": 8,
+      "task_id": 69636,
+      "process_id": 34560,
+      "log_path": "logs/cpp_sample/snap_p0_alert_payload",
+      "timestamp_unix": 1786290753.8016565
+    },
+    {
+      "seq": 9,
+      "task_id": 69636,
+      "process_id": 34560,
+      "log_path": "logs/cpp_sample/snap_p0_alert_payload",
+      "timestamp_unix": 1786290757.083881
+    },
+    {
+      "seq": 10,
+      "task_id": 69636,
+      "process_id": 34560,
+      "log_path": "logs/cpp_sample/snap_p0_alert_payload",
+      "timestamp_unix": 1786290760.3537905
+    },
+    {
+      "seq": 11,
+      "task_id": 69636,
+      "process_id": 34560,
+      "log_path": "logs/cpp_sample/snap_p0_alert_payload",
+      "timestamp_unix": 1786290763.6131394
+    },
+    {
+      "seq": 12,
+      "task_id": 69636,
+      "process_id": 34560,
+      "log_path": "logs/cpp_sample/snap_p0_alert_payload",
+      "timestamp_unix": 1786290766.8947823
+    },
+    {
+      "seq": 13,
+      "task_id": 69636,
+      "process_id": 34560,
+      "log_path": "logs/cpp_sample/snap_p0_alert_payload",
+      "timestamp_unix": 1786290770.1640391
+    }
+  ],
+  "heartbeat_count": 13,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "case_id": "patrol_p1_hybrid_focus",
+  "executor": "python",
+  "required_layers": [
+    "L_lifecycle",
+    "L_schedule"
+  ],
+  "written_at": "2026-08-09T15:51:30",
+  "recording": "oracle_smoke",
+  "source": "oracle_smoke_local_media",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "artifacts": [
+    "lifecycle.json",
+    "schedule.json"
+  ],
+  "limitations": "Smoke lifecycle/schedule recording without live oracle VIDEO; heartbeats/slots are deterministic stubs. Media path verified from manifest Intel sample-video."
+}

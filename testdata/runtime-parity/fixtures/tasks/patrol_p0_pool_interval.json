@@ -1,0 +1,11 @@
+{
+  "task_type": "patrol",
+  "executor": "python",
+  "device_source": "file://testdata/runtime-parity/media/one-by-one-person-detection.mp4",
+  "patrol_mode": "pool",
+  "patrol_interval_sec": 5,
+  "patrol_pool_size": 2,
+  "device_count": 3,
+  "task_id": "patrol_p0_pool_interval_fixture",
+  "description": "G-4.3 CAP-PATROL-POOL — 3 devices pool=2 interval=5s (testbed-shortened)"
+}

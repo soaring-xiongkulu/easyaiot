@@ -1,0 +1,127 @@
+{
+  "case_id": "patrol_p0_pool_interval",
+  "layer": "L_schedule",
+  "executor": "python",
+  "task_type": "patrol",
+  "sampled_at": "2026-08-09T15:51:29",
+  "source": "oracle_smoke_schedule",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Smoke lifecycle/schedule recording without live oracle VIDEO; heartbeats/slots are deterministic stubs. Media path verified from manifest Intel sample-video.",
+  "mode": "pool",
+  "slot_count": 0,
+  "patrol_count": 15,
+  "events": [
+    {
+      "kind": "patrol",
+      "device_id": "dev_0",
+      "slot_key": "",
+      "unix_ts": 1786290669.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_1",
+      "slot_key": "",
+      "unix_ts": 1786290669.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_2",
+      "slot_key": "",
+      "unix_ts": 1786290669.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_0",
+      "slot_key": "",
+      "unix_ts": 1786290674.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_1",
+      "slot_key": "",
+      "unix_ts": 1786290674.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_2",
+      "slot_key": "",
+      "unix_ts": 1786290674.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_0",
+      "slot_key": "",
+      "unix_ts": 1786290679.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_1",
+      "slot_key": "",
+      "unix_ts": 1786290679.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_2",
+      "slot_key": "",
+      "unix_ts": 1786290679.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_0",
+      "slot_key": "",
+      "unix_ts": 1786290684.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_1",
+      "slot_key": "",
+      "unix_ts": 1786290684.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_2",
+      "slot_key": "",
+      "unix_ts": 1786290684.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_0",
+      "slot_key": "",
+      "unix_ts": 1786290689.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_1",
+      "slot_key": "",
+      "unix_ts": 1786290689.8918917
+    },
+    {
+      "kind": "patrol",
+      "device_id": "dev_2",
+      "slot_key": "",
+      "unix_ts": 1786290689.8918917
+    }
+  ],
+  "mean_interval_sec": 5.0,
+  "device_intervals": {
+    "dev_0": [
+      5.0,
+      5.0,
+      5.0,
+      5.0
+    ],
+    "dev_1": [
+      5.0,
+      5.0,
+      5.0,
+      5.0
+    ],
+    "dev_2": [
+      5.0,
+      5.0,
+      5.0,
+      5.0
+    ]
+  }
+}

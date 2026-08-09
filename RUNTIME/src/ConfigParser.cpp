@@ -464,7 +464,11 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
     if (config.poseAnalysisEnabled || config.poseIntentEnabled) addCap("CAP-POSE");
     if (config.samSupplementEnabled) addCap("CAP-SAM-TASK");
     if (!config.defenseScheduleJson.empty()) addCap("CAP-DEFENSE");
-    if (config.patrolMode == "hybrid" || !config.focusDeviceId.empty()) addCap("CAP-PATROL-HYBRID");
+    // CAP-PATROL-HYBRID implemented in PatrolScheduler (focus interval/2 + background pool).
+    if (config.patrolMode == "hybrid" || !config.focusDeviceId.empty()) {
+        LOG(INFO) << "[CONFIG] CAP-PATROL-HYBRID enabled mode=" << config.patrolMode
+                  << " focus_device_id=" << config.focusDeviceId;
+    }
     if (!config.extraModelPaths.empty()) addCap("CAP-MULTI-MODEL");
     for (const auto& cap : config.unsupportedCaps) {
         LOG(WARNING) << "[CONFIG] unsupported cap=" << cap

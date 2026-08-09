@@ -1,0 +1,132 @@
+{
+  "case_id": "patrol_p0_pool_interval",
+  "layer": "L_schedule",
+  "executor": "cpp",
+  "task_type": "patrol",
+  "sampled_at": "2026-08-09T15:58:31",
+  "source": "runtime_parity_gate_cpp_parity_sample",
+  "status": "sampled",
+  "cron_expression": null,
+  "slot_count": 0,
+  "patrol_count": 16,
+  "events": [
+    {
+      "device_id": "dev_0",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291086
+    },
+    {
+      "device_id": "dev_1",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291087
+    },
+    {
+      "device_id": "dev_2",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291087
+    },
+    {
+      "device_id": "dev_0",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291091
+    },
+    {
+      "device_id": "dev_1",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291092
+    },
+    {
+      "device_id": "dev_2",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291092
+    },
+    {
+      "device_id": "dev_0",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291096
+    },
+    {
+      "device_id": "dev_1",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291097
+    },
+    {
+      "device_id": "dev_2",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291097
+    },
+    {
+      "device_id": "dev_0",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291101
+    },
+    {
+      "device_id": "dev_1",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291102
+    },
+    {
+      "device_id": "dev_2",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291102
+    },
+    {
+      "device_id": "dev_0",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291106
+    },
+    {
+      "device_id": "dev_1",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291107
+    },
+    {
+      "device_id": "dev_2",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291107
+    },
+    {
+      "device_id": "dev_0",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786291111
+    }
+  ],
+  "mean_interval_sec": 5.0,
+  "device_intervals": {
+    "dev_0": [
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0
+    ],
+    "dev_1": [
+      5.0,
+      5.0,
+      5.0,
+      5.0
+    ],
+    "dev_2": [
+      5.0,
+      5.0,
+      5.0,
+      5.0
+    ]
+  }
+}
