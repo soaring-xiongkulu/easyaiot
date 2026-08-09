@@ -1,7 +1,7 @@
 # Runtime Parity Certify Status
 
 > Candidate: `F:/acme/.worktrees/runtime-parity` (`feat/runtime-parity`)  
-> Recorded: **2026-08-10** (Phase 5 gap-close follow-up: plate / GB28181 / NVENC)
+> Recorded: **2026-08-10** (detect_conf + POST /stop closure)
 
 Environment:
 
@@ -12,7 +12,7 @@ Environment:
 
 Reports under `/logs/` are gitignored; SHA256 below is authoritative. Copies archived immediately after each profile to avoid overwrite.
 
-## Follow-up gap-close — `linux_full`
+## detect_conf + POST /stop — `linux_full`
 
 | Field | Value |
 |-------|-------|
@@ -20,12 +20,10 @@ Reports under `/logs/` are gitignored; SHA256 below is authoritative. Copies arc
 | Exit code | **0** |
 | `ok` | `true` |
 | Report archive | `logs/certify_linux_full.json` |
-| SHA256 | `543DD829C22466478C675C864E9A8AFF10A951D9CE14D332504CAC54B4537AE2` |
+| SHA256 | `AB7394CBBF844939F855E2C7076143598A7E09C077E8F1876BC673AD4385D0F0` |
 | Case count | **11** |
 
-P0 set unchanged (plate/GB28181/NVENC are P1/P2 → win_cpp only).
-
-## Follow-up gap-close — `win_cpp`
+## detect_conf + POST /stop — `win_cpp`
 
 | Field | Value |
 |-------|-------|
@@ -33,25 +31,24 @@ P0 set unchanged (plate/GB28181/NVENC are P1/P2 → win_cpp only).
 | Exit code | **0** |
 | `ok` | `true` |
 | Report archive | `logs/certify_win_cpp.json` |
-| SHA256 | `85BBB013FFD8FE94E488F25EFD5C3C5CD9FBE559BEE68B8C395D2480E18423D0` |
-| Case count | **26** |
+| SHA256 | `3A0CF8C4C6207DBC42288CFA5CB15B3A3C413327299945A1E970C9D847069F4D` |
+| Case count | **27** |
 
 New / newly green:
 
-1. `vid_p1_plate_match_chain` — L_plate (CAP-PLATE-MATCH)
-2. `rt_p2_gb28181_relay` — L_lifecycle + L_detect (CAP-GB28181-SRC)
-3. `rt_p2_quality_nvenc` — L_lifecycle + L_stream (CAP-NVENC-AUTO)
+1. `rt_p1_control_stop` — L_lifecycle with live `POST /stop` → `process_exited`
+2. CAP-INFER-THRESHOLD — C++ `score_threshold` = ini `confidence_threshold` / `detect_conf`
 
 ## Prior gap-close hashes (superseded)
 
 | Profile | Old SHA256 | Cases |
 |---------|------------|-------|
-| linux_full | `136B780E…D33D4A47CB06E6FE` | 11 |
-| win_cpp | `884B6263…EC8298A6` | 23 |
+| linux_full | `543DD829…4537AE2` | 11 |
+| win_cpp | `85BBB013…18423D0` | 26 |
 
 See also [`gates/PHASE_5_GAP_CLOSE.md`](./gates/PHASE_5_GAP_CLOSE.md).
 
-## Orchestrator final re-verify (2026-08-10)
+## Orchestrator re-verify (2026-08-10)
 
-Re-ran `doctor` + both profiles after follow-up wave; updated SHA256 above.  
-**Program complete** relative to HANDOFF / CAP-BUSINESS-DECISIONS（SAM 产品否决除外）.
+`doctor` + both profiles exit **0** after detect_conf / POST /stop wave.  
+**C++ 必做债表项已闭环**（SAM 产品否决除外）。

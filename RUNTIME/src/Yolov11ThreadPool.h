@@ -37,6 +37,8 @@ public:
               bool prefer_gpu = true,
               bool force_cpu = false,
               int gpu_device_id = 0);
+    /** Apply detect_conf to primary + extra engines (CAP-INFER-THRESHOLD). */
+    void setScoreThreshold(float threshold);
     /** CAP-MULTI-MODEL: load additional ONNX engines (serial merge after primary). */
     int loadExtraModels(const std::vector<std::string>& model_paths,
                         const std::vector<std::string>& model_class,

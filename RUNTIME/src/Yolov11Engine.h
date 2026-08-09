@@ -29,11 +29,16 @@ public:
     /** "cuda" | "cpu" | "none" */
     const std::string& inferEp() const { return inferEp_; }
 
+    /** CAP-INFER-THRESHOLD: align with Python detect_conf / ultralytics conf= (default 0.5). */
+    void setScoreThreshold(float threshold);
+    float scoreThreshold() const { return scoreThreshold_; }
+
 private:
     int Inference(const cv::Mat& image, std::vector<DetectObject> &objects);
     int createSession(const std::string& model_path, bool use_cuda, int gpu_device_id);
 
     bool ready_;
+    float scoreThreshold_{0.5f};
     std::string inferEp_{"none"};
     Ort::Env onnxEnv{ nullptr };
     Ort::SessionOptions onnxSessionOptions{ nullptr };

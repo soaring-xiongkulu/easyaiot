@@ -33,6 +33,10 @@ typedef struct Config {
     int videoHeight{1080};
     int rtmpFps{25};
 
+    // detect_conf (VIDEO confidence_threshold): used as YOLO/ONNX score_threshold.
+    // Python oracle applies the same value to ultralytics conf= / ONNXInference conf_threshold;
+    // there is no separate alarm conf — alarm filter uses the same threshold.
+    float detectConfidenceThreshold{0.5f};
     float alarmConfidenceThreshold{0.5f};
     int alarmCooldownTime{30};
 

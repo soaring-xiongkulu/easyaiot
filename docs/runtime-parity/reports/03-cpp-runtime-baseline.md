@@ -76,7 +76,7 @@ RTSP ──FFmpeg──► FrameRing(8, drop-oldest) ──► Infer(YOLO, skip=
 | `CAP-PT-ULTRALYTICS` | **缺失** | Python 可 `.pt`（ultralytics）；C++ 无 |
 | `CAP-GPU-CUDA-EP` | **已实现** | `AppendExecutionProvider_CUDA`；失败 catch 后 CPU；`GET /health` 返回 `infer_ep` |
 | `CAP-GPU-DIRECTML` | **缺失** | Windows 推理 EP 未实现 |
-| `CAP-INFER-THRESHOLD` | **部分** | 引擎内固定 `0.25`/`0.45` NMS；任务 `detect_conf` 仅用于 **告警**（`alarmConfidenceThreshold`），非推理阈值 |
+| `CAP-INFER-THRESHOLD` | **已实现** | `Yolov11Engine::scoreThreshold_` ← ini `[alarm] confidence_threshold` / `detect_conf`（与 VIDEO `task.detect_conf`、Python `_get_detect_conf`/`conf=` 同源）；告警过滤同值（Python 无独立告警阈值） |
 
 ### 2.4 检测后处理与 VIDEO 交互
 
@@ -99,7 +99,7 @@ RTSP ──FFmpeg──► FrameRing(8, drop-oldest) ──► Infer(YOLO, skip=
 | `CAP-DEFENSE-SCHEDULE` | **缺失** | 无 `defense_mode` / `defense_schedule` 布防时段 |
 | `CAP-HEARTBEAT` | **已实现** | 周期 POST `heartbeat_url`（realtime/patrol 路径由 VIDEO 生成）；含 `task_id/port/process_id/log_path`；patrol 附加 `total_patrols/total_detections` |
 | `CAP-RTMP` | **部分** | `RTMPEncoder` + `enable_rtmp`；可运行时 `/control/streaming/start|stop`；无 overlay 追踪插值 |
-| `CAP-CONTROL-HTTP` | **部分** | `GET /health`、推流控制；**无** README 写的 `POST /stop` 优雅退出 |
+| `CAP-CONTROL-HTTP` | **已实现** | `GET /health`、推流控制、**`POST /stop`** 优雅退出（保留 `/control/streaming/stop`） |
 | `CAP-HEADLESS` | **已实现** | `headless=true` 强制 pipeline；非 headless 亦强制 headless（display 路径未用于生产） |
 
 ### 2.5 ini 与 `generate_runtime_ini` 字段映射

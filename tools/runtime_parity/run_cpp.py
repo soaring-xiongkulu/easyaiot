@@ -286,8 +286,12 @@ def _run_runtime_sample(
     timeout: float,
     *,
     probe_http_flv: str = "",
+    control_port: int = 0,
+    hit_post_stop: bool = False,
 ) -> Dict[str, Any]:
     import threading
+    import urllib.error
+    import urllib.request
 
     started = time.time()
     root = candidate_root()
@@ -322,6 +326,7 @@ def _run_runtime_sample(
     infer_ep: Optional[str] = None
     ffprobe_result: Optional[Dict[str, Any]] = None
     stop_reader = threading.Event()
+    control_stop: Optional[Dict[str, Any]] = None
 
     def _reader() -> None:
         nonlocal infer_ep
@@ -342,15 +347,72 @@ def _run_runtime_sample(
                         infer_ep = part.split("=", 1)[1]
                         break
 
+    def _wait_health(port: int, deadline: float) -> bool:
+        url = f"http://127.0.0.1:{port}/health"
+        while time.time() < deadline:
+            try:
+                with urllib.request.urlopen(url, timeout=1.5) as resp:
+                    if resp.status == 200:
+                        return True
+            except (urllib.error.URLError, TimeoutError, OSError):
+                time.sleep(0.25)
+        return False
+
+    def _post_stop(port: int) -> Dict[str, Any]:
+        url = f"http://127.0.0.1:{port}/stop"
+        req = urllib.request.Request(url, data=b"{}", method="POST")
+        req.add_header("Content-Type", "application/json")
+        try:
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                body = resp.read().decode("utf-8", errors="replace")
+                try:
+                    payload = json.loads(body) if body else {}
+                except json.JSONDecodeError:
+                    payload = {"raw": body}
+                return {
+                    "ok": resp.status == 200 and bool(payload.get("success", True)),
+                    "http_status": resp.status,
+                    "response": payload,
+                    "endpoint": "/stop",
+                }
+        except Exception as exc:  # noqa: BLE001
+            return {"ok": False, "error": str(exc), "endpoint": "/stop"}
+
     reader = threading.Thread(target=_reader, name="runtime-stdout", daemon=True)
     reader.start()
     probe_at = started + min(8.0, max(4.0, timeout * 0.35))
     deadline = started + timeout
     probed = False
+    stop_hit = False
     try:
         while time.time() < deadline:
             if proc.poll() is not None:
                 break
+            if (
+                hit_post_stop
+                and control_port > 0
+                and not stop_hit
+                and time.time() >= started + 4.0
+            ):
+                if _wait_health(control_port, min(deadline, time.time() + 8.0)):
+                    control_stop = _post_stop(control_port)
+                    stop_hit = True
+                    print(
+                        f"INFO POST /stop port={control_port} ok={control_stop.get('ok')} "
+                        f"resp={control_stop.get('response') or control_stop.get('error')}"
+                    )
+                    # Allow graceful exit; do not terminate unless deadline exceeded.
+                    exit_deadline = time.time() + 12.0
+                    while time.time() < exit_deadline and time.time() < deadline:
+                        if proc.poll() is not None:
+                            break
+                        time.sleep(0.2)
+                    if proc.poll() is not None and control_stop is not None:
+                        control_stop["process_exited"] = True
+                        control_stop["exit_code"] = proc.returncode
+                    elif control_stop is not None:
+                        control_stop["process_exited"] = False
+                    break
             if probe_http_flv and not probed and time.time() >= probe_at:
                 probed = True
                 ffprobe_result = ffprobe_url(probe_http_flv, root=root, timeout=10.0)
@@ -370,6 +432,9 @@ def _run_runtime_sample(
             except subprocess.TimeoutExpired:
                 proc.kill()
                 proc.wait(timeout=3)
+            if control_stop is not None and "process_exited" not in control_stop:
+                control_stop["process_exited"] = False
+                control_stop["forced_terminate"] = True
     except Exception as exc:  # noqa: BLE001
         if proc.poll() is None:
             proc.kill()
@@ -382,6 +447,7 @@ def _run_runtime_sample(
             "error": str(exc),
             "log_tail": lines[-30:],
             "ffprobe": ffprobe_result,
+            "control_stop": control_stop,
         }
     stop_reader.set()
     reader.join(timeout=2)
@@ -403,6 +469,7 @@ def _run_runtime_sample(
         "duration_sec": round(time.time() - started, 2),
         "log_tail": lines[-30:],
         "ffprobe": ffprobe_result,
+        "control_stop": control_stop,
     }
 
 
@@ -515,6 +582,18 @@ def _write_sampled_layers(
                 "heartbeat_count": len(heartbeats),
                 "fields_expected": fields_expected,
             }
+            control_stop = boot.get("control_stop")
+            if isinstance(control_stop, dict):
+                data["control_stop"] = control_stop
+                # CAP-CONTROL-HTTP POST /stop must succeed and exit process
+                if case.id == "rt_p1_control_stop" or case.raw.get("hit_post_stop"):
+                    stop_ok = bool(control_stop.get("ok")) and bool(control_stop.get("process_exited"))
+                    if not stop_ok:
+                        data["status"] = "fail"
+                        data["reason"] = (
+                            data.get("reason")
+                            or f"POST /stop failed: {control_stop}"
+                        )
             if not boot_ok:
                 data["reason"] = boot.get("error") or "RUNTIME boot/infer failed"
             elif not hb_ok:
@@ -819,8 +898,9 @@ def run_cpp(case_id: str) -> int:
                 sample_sec = _SAMPLE_SEC_SCHEDULE
             else:
                 sample_sec = _SAMPLE_SEC_DEFAULT
-            port = 18200 + (abs(hash(case_id)) % 200)
-
+            # ConfigParser requires control_port in [8000, 9000]
+            control_port = 8000 + (abs(hash(case_id)) % 900)
+            hit_post_stop = bool(case.raw.get("hit_post_stop")) or case_id == "rt_p1_control_stop"
             mocks = MockServers()
             mocks.start(heartbeat=True, hook=need_hook)
 
@@ -842,7 +922,7 @@ def run_cpp(case_id: str) -> int:
                 root,
                 case,
                 media,
-                port,
+                control_port,
                 heartbeat_url=mocks.heartbeat_url(),
                 hook_url=mocks.hook_url() if need_hook else "",
                 enable_alarm=need_hook,
@@ -855,10 +935,19 @@ def run_cpp(case_id: str) -> int:
                 enable_draw=enable_draw,
                 rtmp_url=rtmp_url,
             )
-            print(f"INFO sampling RUNTIME with {ini} ({sample_sec}s)")
+            print(f"INFO sampling RUNTIME with {ini} ({sample_sec}s) control_port={control_port}")
+            if hit_post_stop:
+                print(f"INFO will hit POST http://127.0.0.1:{control_port}/stop after health")
             if enable_rtmp:
                 print(f"INFO RTMP publish {rtmp_url} probe {probe_flv}")
-            boot = _run_runtime_sample(runtime, ini, sample_sec, probe_http_flv=probe_flv)
+            boot = _run_runtime_sample(
+                runtime,
+                ini,
+                sample_sec,
+                probe_http_flv=probe_flv,
+                control_port=control_port,
+                hit_post_stop=hit_post_stop,
+            )
             mocks.stop()
 
             heartbeats = _heartbeats_from_mock(mocks.heartbeats, case.id)

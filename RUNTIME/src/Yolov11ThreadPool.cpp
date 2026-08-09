@@ -41,6 +41,20 @@ std::string Yolov11ThreadPool::inferEp() const {
     return Yolov11_instances[0]->inferEp();
 }
 
+void Yolov11ThreadPool::setScoreThreshold(float threshold) {
+    for (auto& engine : Yolov11_instances) {
+        if (engine) {
+            engine->setScoreThreshold(threshold);
+        }
+    }
+    std::lock_guard<std::mutex> lock(mtx_extra_);
+    for (auto& engine : extra_engines_) {
+        if (engine) {
+            engine->setScoreThreshold(threshold);
+        }
+    }
+}
+
 int Yolov11ThreadPool::loadExtraModels(const std::vector<std::string>& model_paths,
                                        const std::vector<std::string>& model_class,
                                        bool prefer_gpu,
@@ -58,6 +72,9 @@ int Yolov11ThreadPool::loadExtraModels(const std::vector<std::string>& model_pat
             LOG(ERROR) << "[MULTI-MODEL] failed to load extra model path=" << path
                        << " code=" << ret;
             return ret;
+        }
+        if (!Yolov11_instances.empty() && Yolov11_instances[0]) {
+            engine->setScoreThreshold(Yolov11_instances[0]->scoreThreshold());
         }
         extra_engines_.push_back(engine);
         LOG(INFO) << "[MULTI-MODEL] CAP-MULTI-MODEL loaded extra ONNX path=" << path;

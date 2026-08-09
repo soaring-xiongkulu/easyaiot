@@ -175,11 +175,15 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
                 config.enableAlarm = parseBool(value);
             } else if (key == "hook_url") {
                 config.hookHttpUrl = value;
-            } else if (key == "confidence_threshold") {
-                config.alarmConfidenceThreshold = parseFloat(value);
-                if (config.alarmConfidenceThreshold <= 0.0f || config.alarmConfidenceThreshold > 1.0f) {
-                    config.alarmConfidenceThreshold = 0.5f;
+            } else if (key == "confidence_threshold" || key == "detect_conf") {
+                // CAP-INFER-THRESHOLD: VIDEO writes task.detect_conf → confidence_threshold.
+                // Same value drives inference score_threshold and alarm confidence filter (Python parity).
+                float conf = parseFloat(value);
+                if (conf <= 0.0f || conf > 1.0f) {
+                    conf = 0.5f;
                 }
+                config.detectConfidenceThreshold = conf;
+                config.alarmConfidenceThreshold = conf;
             } else if (key == "cooldown_time") {
                 config.alarmCooldownTime = parseInt(value);
                 if (config.alarmCooldownTime < 0) {

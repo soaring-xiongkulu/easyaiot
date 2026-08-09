@@ -1,0 +1,8 @@
+{
+  "case_id": "rt_p1_control_stop",
+  "executor": "python",
+  "required_layers": ["L_lifecycle"],
+  "written_at": "2026-08-10T00:00:00",
+  "artifacts": ["lifecycle.json"],
+  "note": "Smoke oracle stub for POST /stop certify baseline"
+}

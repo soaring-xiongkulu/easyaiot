@@ -2,52 +2,51 @@
 
 > Candidate: `F:/acme/.worktrees/runtime-parity` (`feat/runtime-parity`)  
 > Date: **2026-08-10**  
-> Goal: Close remaining HANDOFF §2.1 / CAP-BUSINESS-DECISIONS debt after prior gap-close ACCEPTED (`ac60e59`/`0f30d73`/`7b91413`).
+> Goal: Close remaining HANDOFF §2.1 / CAP-BUSINESS-DECISIONS debt after prior gap-close ACCEPTED.
 
 ## Verdict
 
-**PASS (follow-up debt wave)** — doctor exit 0; `linux_full` 11/11; `win_cpp` 26/26; CAP-PLATE-MATCH / CAP-GB28181-SRC / CAP-NVENC-AUTO no longer deferred as unsupported.
+**PASS (detect_conf + POST /stop wave)** — doctor exit 0; `linux_full` / `win_cpp` certify green after CAP-INFER-THRESHOLD + CAP-CONTROL-HTTP closure.
 
-### Follow-up wave (this commit set)
+### This wave
 
-- Closed: `vid_p1_plate_match_chain`, `rt_p2_gb28181_relay`, `rt_p2_quality_nvenc`
+- Closed: **detect_conf 语义**（C++ `score_threshold` ← ini `confidence_threshold` / `detect_conf`；告警同值）
+- Closed: **`POST /stop`**（`rt_p1_control_stop`；保留 `/control/streaming/stop`）
 - Remaining HANDOFF「要」product debt: **CAP-SAM-TASK only** (explicit veto)
 
-### Orchestrator acceptance (2026-08-10)
+### Prior follow-up (still accepted)
 
-- Commits: `840fa89`, `0de78d8`, `a09a549`
-- Re-verify: `doctor` / `linux_full` / `win_cpp` exit **0** (26 win_cpp cases incl. plate/GB28181/NVENC)
-- CAP-BUSINESS-DECISIONS「要」项均有 certify 覆盖或产品否决（仅 SAM）
-- **FOLLOW-UP DEBT WAVE ACCEPTED — runtime parity program COMPLETE**
+- Closed: `vid_p1_plate_match_chain`, `rt_p2_gb28181_relay`, `rt_p2_quality_nvenc`
 
 ## A. Cases added this wave
 
 | Case | Layer(s) | Evidence |
 |------|----------|----------|
+| `rt_p1_control_stop` | L_lifecycle | Live `POST /stop` → JSON `{success,message,...}` → `process_exited` |
+
+Prior wave:
+
+| Case | Layer(s) | Evidence |
+|------|----------|----------|
 | `vid_p1_plate_match_chain` | L_plate | VIDEO `alert_post_orchestrator` cpp path (mirror face chain) |
-| `rt_p2_gb28181_relay` | L_lifecycle, L_detect | VIDEO resolve + `[stream_src]` → C++ consumes resolved URL; fixture map without WVP |
-| `rt_p2_quality_nvenc` | L_lifecycle, L_stream | C++ `RTMPEncoder` NVENC try → software fallback + quality profile; encoder meta |
+| `rt_p2_gb28181_relay` | L_lifecycle, L_detect | VIDEO resolve + `[stream_src]` → C++ consumes resolved URL |
+| `rt_p2_quality_nvenc` | L_lifecycle, L_stream | C++ `RTMPEncoder` NVENC try → software fallback |
 
-`linux_full` remains P0-only (11).  
-`win_cpp` now 26 cases (prior 23 + 3).
+## B. Implementation mapping
 
-## B. CAP placement
+| CAP | Where | Behavior |
+|-----|-------|----------|
+| CAP-INFER-THRESHOLD | `Yolov11Engine::scoreThreshold_` + `Config.detectConfidenceThreshold` | VIDEO `task.detect_conf` → ini `confidence_threshold` → inference + alarm (Python `_get_detect_conf` / `conf=`) |
+| CAP-CONTROL-HTTP | `Detech` `POST /stop` | Stop RTMP → respond JSON → `s_exit=1` → graceful process exit; `/health` until teardown |
 
-| CAP | Placement | Implementation |
-|-----|-----------|----------------|
-| CAP-PLATE-MATCH | VIDEO owned | `platform_sample.sample_vid_plate_match_chain` + L_plate diff |
-| CAP-GB28181-SRC | VIDEO resolve → C++ consume | `resolve_gb28181_source` (+ `GB28181_FIXTURE_MAP`); ini `[stream_src]`; ConfigParser INFO; reject raw `gb28181://` |
-| CAP-NVENC-AUTO | C++ `RTMPEncoder` | Prefer `h264_nvenc`, fallback `libx264`; quality high→medium→low; parity stream meta |
+`runtime_config_service` already writes `confidence_threshold={detect_conf}`.
 
-`runtime_config_service._contract_ini_block` no longer lists GB28181/NVENC as unsupported when enabled.  
-Product-vetoed only: CAP-SAM-TASK.
-
-## C. Certify hashes (2026-08-10 follow-up)
+## C. Certify hashes
 
 | Profile | Exit | Cases | SHA256 |
 |---------|------|-------|--------|
-| `linux_full` | 0 | 11 | `543DD829C22466478C675C864E9A8AFF10A951D9CE14D332504CAC54B4537AE2` |
-| `win_cpp` | 0 | 26 | `85BBB013FFD8FE94E488F25EFD5C3C5CD9FBE559BEE68B8C395D2480E18423D0` |
+| `linux_full` | 0 | 11 | `AB7394CBBF844939F855E2C7076143598A7E09C077E8F1876BC673AD4385D0F0` |
+| `win_cpp` | 0 | 27 | `3A0CF8C4C6207DBC42288CFA5CB15B3A3C413327299945A1E970C9D847069F4D` |
 
 Archives: `logs/certify_linux_full.json`, `logs/certify_win_cpp.json` (gitignored; hashes authoritative).
 
@@ -57,7 +56,6 @@ Archives: `logs/certify_linux_full.json`, `logs/certify_win_cpp.json` (gitignore
 |-----|--------|
 | CAP-SAM-TASK | Product veto (HANDOFF) |
 | Dual-queue overlay 1:1 | Already non-blocking per G-4.4 |
-| detect_conf 语义细对齐 | Open polish — not HANDOFF blocker |
 
 ## Commands
 

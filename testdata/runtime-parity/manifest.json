@@ -34,13 +34,14 @@
         "rt_p1_face_plate_filter",
         "rt_p1_multi_model",
         "rt_p1_defense_armed",
+        "rt_p1_control_stop",
         "snap_p1_snap_space",
         "vid_p1_post_process_enqueue",
         "vid_p1_plate_match_chain",
         "rt_p2_gb28181_relay",
         "rt_p2_quality_nvenc"
       ],
-      "note": "P0 gap-close + G-4.2/4.3/4.4 + frame CAP P1/P2 (GB28181/NVENC/plate) when RUNTIME.exe available"
+      "note": "P0 gap-close + G-4.2/4.3/4.4 + frame CAP P1/P2 (GB28181/NVENC/plate) + POST /stop when RUNTIME.exe available"
     }
   },
   "media": {
@@ -244,6 +245,18 @@
       "defense_mode": "half",
       "defense_schedule_json": {"active": true},
       "description": "CAP-DEFENSE：布防 active=true 时告警可发（禁止静默假支持）"
+    },
+    {
+      "id": "rt_p1_control_stop",
+      "priority": "P1",
+      "task_type": "realtime",
+      "executor_baseline": "python",
+      "caps": ["CAP-CONTROL-HTTP"],
+      "media_id": "one-by-one-person-detection",
+      "fixture": "fixtures/tasks/rt_p1_control_stop.json",
+      "required_layers": ["L_lifecycle"],
+      "hit_post_stop": true,
+      "description": "CAP-CONTROL-HTTP：POST /stop 优雅停任务并退出进程（保留 /control/streaming/stop）"
     },
     {
       "id": "snap_p0_cron_slot",

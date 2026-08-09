@@ -1,0 +1,36 @@
+{
+  "case_id": "rt_p1_control_stop",
+  "layer": "L_lifecycle",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-10T00:00:00",
+  "source": "oracle_smoke_control_stop",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Smoke lifecycle stub for CAP-CONTROL-HTTP; cpp sample hits live POST /stop and asserts process_exited.",
+  "boot": {
+    "exit_code": 0,
+    "started": true
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": "rt_p1_control_stop_smoke",
+      "process_id": 1,
+      "log_path": "logs/rt_p1_control_stop/runtime.log",
+      "timestamp_unix": 1786291200.0
+    }
+  ],
+  "heartbeat_count": 1,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ],
+  "control_stop": {
+    "ok": true,
+    "endpoint": "/stop",
+    "process_exited": true,
+    "note": "python oracle smoke stub; live verification is cpp sampler"
+  }
+}

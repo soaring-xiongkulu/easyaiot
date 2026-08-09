@@ -115,11 +115,24 @@ int Yolov11Engine::LoadModel(std::string model_path,
     }
 }
 
+void Yolov11Engine::setScoreThreshold(float threshold)
+{
+    if (threshold <= 0.0f || threshold > 1.0f) {
+        LOG(WARNING) << "[YOLO] invalid score_threshold=" << threshold << "; keeping "
+                     << scoreThreshold_;
+        return;
+    }
+    scoreThreshold_ = threshold;
+    LOG(INFO) << "[YOLO] score_threshold=" << scoreThreshold_
+              << " (detect_conf / confidence_threshold parity)";
+}
+
 int Yolov11Engine::Inference(const cv::Mat& image, std::vector<DetectObject> &detections)
 {
     int image_w = image.cols;
     int image_h = image.rows;
-    float score_threshold = 0.25;  // Lower threshold for better detection
+    // CAP-INFER-THRESHOLD: must match Python _get_detect_conf() → conf= / conf_threshold=
+    float score_threshold = scoreThreshold_;
     float nms_threshold = 0.45;
     std::vector<std::string> input_node_names;
     std::vector<std::string> output_node_names;

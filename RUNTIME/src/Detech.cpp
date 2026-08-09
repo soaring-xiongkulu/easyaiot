@@ -5,6 +5,7 @@
 #include "Yolov11ThreadPool.h"
 #include "Datatype.h"
 #include "pipeline/AlertFilters.h"
+#include <atomic>
 #include <chrono>
 #include <ctime>
 #include <fstream>
@@ -15,6 +16,9 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgproc.hpp>
 #include "win_compat.h"
+
+// Defined in Manage.cpp — POST /stop sets this so waitForShutdown exits cleanly.
+extern std::atomic<int> s_exit;
 
 static Yolov11ThreadPool *yolov11_thread_pool = nullptr;
 
@@ -394,6 +398,9 @@ void Detech::_controlServerThreadFunc() {
             response["service"] = "RUNTIME Control Server";
             response["task_id"] = this->_config.taskId;
             response["streaming"] = this->isStreaming();
+            response["detect_conf"] = this->_config.detectConfidenceThreshold;
+            response["alarm_confidence_threshold"] = this->_config.alarmConfidenceThreshold;
+            response["stopping"] = (s_exit.load(std::memory_order_acquire) != 0);
             Json::Value metrics;
             metrics["packets_in"] = (Json::UInt64)this->_metrics.packetsIn.load();
             metrics["frames_decoded"] = (Json::UInt64)this->_metrics.framesDecoded.load();
@@ -463,6 +470,32 @@ void Detech::_controlServerThreadFunc() {
             Json::StreamWriterBuilder writer;
             res.set_content(Json::writeString(writer, response), "application/json");
         });
+
+        // CAP-CONTROL-HTTP: task-level graceful stop (README POST /stop)
+        svr.Post("/stop", [this](const Request& req, Response& res) {
+            LOG(INFO) << "[CONTROL-THREAD] POST /stop — graceful task shutdown requested"
+                      << " taskId=" << this->_config.taskId;
+            // Stop RTMP first; pipeline/schedulers stop on main-thread waitForShutdown → Server::stop.
+            this->stopStreaming();
+
+            Json::Value response;
+            response["success"] = true;
+            response["message"] = "Stop accepted; RUNTIME will exit gracefully";
+            response["taskId"] = this->_config.taskId;
+            response["streaming"] = this->isStreaming();
+            response["stopping"] = true;
+
+            Json::StreamWriterBuilder writer;
+            res.set_content(Json::writeString(writer, response), "application/json");
+            res.status = 200;
+
+            // Defer s_exit so this response (and brief /health) can still complete.
+            std::thread([]() {
+                std::this_thread::sleep_for(std::chrono::milliseconds(150));
+                LOG(INFO) << "[CONTROL-THREAD] POST /stop — signaling process exit (s_exit=1)";
+                s_exit.store(1, std::memory_order_release);
+            }).detach();
+        });
         
         // 设置服务器参数
         svr.set_read_timeout(5, 0);   // 5秒超时
@@ -471,6 +504,7 @@ void Detech::_controlServerThreadFunc() {
         LOG(INFO) << "[CONTROL-THREAD] ✅ Control server ready";
         LOG(INFO) << "[CONTROL-THREAD] Available endpoints:";
         LOG(INFO) << "[CONTROL-THREAD]   GET  /health - Health check";
+        LOG(INFO) << "[CONTROL-THREAD]   POST /stop - Graceful task shutdown";
         LOG(INFO) << "[CONTROL-THREAD]   POST /control/streaming/start - Start streaming";
         LOG(INFO) << "[CONTROL-THREAD]   POST /control/streaming/stop - Stop streaming";
         LOG(INFO) << "[CONTROL-THREAD]   GET  /control/streaming/status - Get streaming status";
@@ -583,7 +617,9 @@ bool Detech::_init_yolo11_detector() {
             LOG(ERROR) << "[ERROR] YOLO thread pool initialization failed, error code: " << ret;
             return false;
         }
-        LOG(INFO) << "[OK] YOLO thread pool initialized infer_ep=" << yolov11_thread_pool->inferEp();
+        yolov11_thread_pool->setScoreThreshold(_config.detectConfidenceThreshold);
+        LOG(INFO) << "[OK] YOLO thread pool initialized infer_ep=" << yolov11_thread_pool->inferEp()
+                  << " detect_conf=" << _config.detectConfidenceThreshold;
         if (!_config.extraModelPaths.empty()) {
             int eret = yolov11_thread_pool->loadExtraModels(
                 _config.extraModelPaths, classes,
@@ -727,7 +763,9 @@ bool Detech::_init_media_alarmer() {
     LOG(INFO) << "[INIT] Alarm callback initialized";
     LOG(INFO) << "  → Hook URL: "
               << (!_config.alertHookUrl.empty() ? _config.alertHookUrl : _config.hookHttpUrl);
-    LOG(INFO) << "  → Confidence threshold: " << _config.alarmConfidenceThreshold;
+    LOG(INFO) << "  → Detect conf (score_threshold): " << _config.detectConfidenceThreshold;
+    LOG(INFO) << "  → Alarm confidence threshold: " << _config.alarmConfidenceThreshold
+              << " (same source as detect_conf; Python has no separate alarm conf)";
     LOG(INFO) << "  → Cooldown time: " << _config.alarmCooldownTime << "s";
     
     return true;

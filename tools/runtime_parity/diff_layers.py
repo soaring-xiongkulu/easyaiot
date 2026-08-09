@@ -56,11 +56,22 @@ def diff_lifecycle(
     if cpp_status not in _VALID_SAMPLE_STATUS:
         return _fail(layer, f"cpp status invalid: {cpp_status}")
 
+    # CAP-CONTROL-HTTP: POST /stop evidence (rt_p1_control_stop)
+    cpp_stop = cpp_data.get("control_stop")
+    if isinstance(cpp_stop, dict) or cpp_data.get("case_id") == "rt_p1_control_stop":
+        if not isinstance(cpp_stop, dict):
+            return _fail(layer, "cpp lifecycle missing control_stop for POST /stop case")
+        if not cpp_stop.get("ok"):
+            return _fail(layer, f"POST /stop not ok: {cpp_stop}", control_stop=cpp_stop)
+        if not cpp_stop.get("process_exited"):
+            return _fail(layer, f"POST /stop did not exit process: {cpp_stop}", control_stop=cpp_stop)
+
     return _pass(
         layer,
         heartbeat_count_cpp=cpp_hb_count,
         heartbeat_count_python=int(py_data.get("heartbeat_count") or 0),
         infer_ep=cpp_boot.get("infer_ep"),
+        control_stop=cpp_stop if isinstance(cpp_stop, dict) else None,
     )
 
 

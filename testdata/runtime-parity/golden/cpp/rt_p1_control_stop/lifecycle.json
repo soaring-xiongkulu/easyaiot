@@ -1,0 +1,51 @@
+{
+  "case_id": "rt_p1_control_stop",
+  "layer": "L_lifecycle",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T17:30:16",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled",
+  "boot": {
+    "started": true,
+    "exit_code": 0,
+    "infer_ep": null,
+    "duration_sec": 4.81
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": 81141,
+      "process_id": 32460,
+      "log_path": "logs/cpp_sample/rt_p1_control_stop",
+      "timestamp_unix": 1786296611.2578566
+    },
+    {
+      "seq": 2,
+      "task_id": 81141,
+      "process_id": 32460,
+      "log_path": "logs/cpp_sample/rt_p1_control_stop",
+      "timestamp_unix": 1786296614.5384996
+    }
+  ],
+  "heartbeat_count": 2,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ],
+  "control_stop": {
+    "ok": true,
+    "http_status": 200,
+    "response": {
+      "message": "Stop accepted; RUNTIME will exit gracefully",
+      "stopping": true,
+      "streaming": false,
+      "success": true,
+      "taskId": "81141"
+    },
+    "endpoint": "/stop",
+    "process_exited": true,
+    "exit_code": 0
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "task_type": "realtime",
+  "executor": "python",
+  "device_source": "file://testdata/runtime-parity/media/one-by-one-person-detection.mp4",
+  "model_paths": {},
+  "task_id": "rt_p1_control_stop_fixture",
+  "hit_post_stop": true,
+  "description": "POST /stop graceful shutdown; control HTTP must return success and process exits"
+}

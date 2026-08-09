@@ -221,10 +221,11 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 ### Task 4.1: 检测基线硬化
 
 - [x] 多 ONNX 串联（CAP-MULTI-MODEL）或明确「仅首模型」产品语义并改 UI
-- [ ] `detect_conf` / 引擎阈值语义与 Python 对齐（仍可继续收紧）
+- [x] `detect_conf` / 引擎阈值语义与 Python 对齐（ini `confidence_threshold` → score_threshold + alarm；同源）
 - [x] alert_class 过滤（CAP-ALERT-CLASS-FILTER）+ face/plate 类过滤
 - [x] P0 detect/alarm certify 绿；P1 `rt_p1_alert_class` / `rt_p1_face_plate_filter` / `rt_p1_multi_model` 绿
 - [x] Commit：`feat: harden cpp detection parity`（gap-close wave）
+- [x] Commit：`feat: align detect_conf and add POST /stop`（detect_conf + CAP-CONTROL-HTTP）
 
 ### Task 4.2: motion_gate + tracking
 
@@ -321,9 +322,8 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 | 项 | 状态 | 说明 |
 |----|------|------|
 | CAP-SAM-TASK | 不做 | HANDOFF 产品否决 |
-| detect_conf 语义细对齐 | 开放 | Task 4.1 残留 polish |
 | UI `sam_supplement_*` 清理 | 可选 | 不阻塞主线 |
 
-已闭环（本 follow-up 波）：`CAP-GB28181-SRC`、`CAP-NVENC-AUTO`、`vid_p1_plate_match_chain`。
+已闭环：`CAP-GB28181-SRC`、`CAP-NVENC-AUTO`、`vid_p1_plate_match_chain`、**detect_conf 语义**、**`POST /stop`**（`rt_p1_control_stop`）。
 
 权威证据：[`gates/PHASE_5_GAP_CLOSE.md`](./gates/PHASE_5_GAP_CLOSE.md)、[`CERTIFY_STATUS.md`](./CERTIFY_STATUS.md)。
