@@ -792,6 +792,22 @@ def process_alert_hook(alert_data: Dict) -> Dict:
         if task_type == 'snapshot':
             task_type = 'snap'
 
+        alert_event_task = None
+        if device_id:
+            alert_event_task = _query_alert_event_task(device_id, task_type)
+            if not alert_event_task:
+                logger.info(
+                    f"设备未关联已启用的告警事件任务，跳过: device_id={device_id}, task_type={task_type}"
+                )
+                return {'status': 'skipped', 'reason': 'alert_event_disabled'}
+
+        # executor=cpp：帧后匹配/后处理由 VIDEO 承接（等价 python run_deploy try_send_*）
+        try:
+            from app.services.alert_post_orchestrator import schedule_post_alert_orchestration
+            schedule_post_alert_orchestration(alert_data, alert_event_task)
+        except Exception as orch_exc:
+            logger.warning('告警帧后编排调度失败: %s', orch_exc)
+
         use_direct_persist = _should_use_direct_alert_persist()
 
         # Kafka 抑制仅作用于投递 Kafka；mini 直连落库由算法侧抑制，hook 不再二次拦截
@@ -803,15 +819,6 @@ def process_alert_hook(alert_data: Dict) -> Dict:
                     f"interval={suppress_seconds}s"
                 )
                 return {'status': 'suppressed', 'reason': 'alert_event_suppress_interval'}
-
-        alert_event_task = None
-        if device_id:
-            alert_event_task = _query_alert_event_task(device_id, task_type)
-            if not alert_event_task:
-                logger.info(
-                    f"设备未关联已启用的告警事件任务，跳过: device_id={device_id}, task_type={task_type}"
-                )
-                return {'status': 'skipped', 'reason': 'alert_event_disabled'}
 
         notification_config = None
         if device_id:

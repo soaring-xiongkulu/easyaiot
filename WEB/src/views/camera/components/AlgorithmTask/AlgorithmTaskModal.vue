@@ -86,6 +86,9 @@ function fromTaskMode(mode?: string): { task_type: 'realtime' | 'snap' | 'patrol
   }
   return { task_type: baseTaskType(m), executor: 'python' };
 }
+function isCppExecutor(values: any): boolean {
+  return String(values?.task_mode || '').endsWith('_cpp');
+}
 
 
 const { createMessage } = useMessage();
@@ -736,8 +739,8 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         checkedChildren: '是',
         unCheckedChildren: '否',
       },
-      helpMessage: '在抽帧采样点评估画面变化；仅大面积持续变化时记录命中。风吹草动等局部抖动不会频繁触发额外检测。',
-      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime',
+      helpMessage: '在抽帧采样点评估画面变化；仅大面积持续变化时记录命中。风吹草动等局部抖动不会频繁触发额外检测。高性能(C++)模式暂不支持，请使用完整能力(Python)。',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && !isCppExecutor(values),
     },
     {
       field: 'motion_sensitivity',
@@ -752,7 +755,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         ],
       },
       helpMessage: '保守模式要求更大变化面积与连续确认，避免风吹草动误触发。',
-      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && !!values.motion_gate_enabled,
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && !!values.motion_gate_enabled && !isCppExecutor(values),
     },
     {
       field: 'tracking_enabled',
@@ -762,8 +765,8 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         checkedChildren: '是',
         unCheckedChildren: '否',
       },
-      helpMessage: '是否启用目标追踪功能，启用后会记录对象出现时间、停留时间、离开时间等信息',
-      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime',
+      helpMessage: '是否启用目标追踪功能。高性能(C++)模式帧内追踪尚未支持，请使用完整能力(Python)。',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && !isCppExecutor(values),
     },
     {
       field: 'tracking_similarity_threshold',
@@ -776,7 +779,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         step: 0.1,
       },
       helpMessage: '追踪相似度匹配阈值（0-1），值越小匹配越宽松',
-      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && values.tracking_enabled,
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && values.tracking_enabled && !isCppExecutor(values),
     },
     {
       field: 'tracking_max_age',
@@ -787,7 +790,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         min: 1,
       },
       helpMessage: '追踪目标最大存活帧数（未匹配时保留的帧数）',
-      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && values.tracking_enabled,
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && values.tracking_enabled && !isCppExecutor(values),
     },
     {
       field: 'tracking_smooth_alpha',
@@ -800,7 +803,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         step: 0.05,
       },
       helpMessage: '追踪平滑系数（0-1），值越大越平滑',
-      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && values.tracking_enabled,
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' && values.tracking_enabled && !isCppExecutor(values),
     },
     {
       field: 'alert_event_enabled',
@@ -890,7 +893,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         checkedChildren: '是',
         unCheckedChildren: '否',
       },
-      helpMessage: '开启后裁剪人脸并异步投递 Kafka 进行 1:N 库匹配',
+      helpMessage: '开启后裁剪人脸并异步投递 Kafka 进行 1:N 库匹配。高性能(C++)模式在告警 hook 后由 VIDEO 触发。',
       ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
     {
@@ -926,7 +929,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         checkedChildren: '是',
         unCheckedChildren: '否',
       },
-      helpMessage: '开启后独立队列识别车牌并异步投递 Kafka 进行库匹配（默认关闭）',
+      helpMessage: '开启后独立队列识别车牌并异步投递 Kafka 进行库匹配。高性能(C++)模式在告警 hook 后由 VIDEO 触发。',
       ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
     {
@@ -959,8 +962,10 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       component: 'Switch',
       defaultValue: false,
       componentProps: { checkedChildren: '开', unCheckedChildren: '关' },
-      helpMessage: '在 YOLO 主检基础上叠加 SAM：Pipeline 精修 mask 或开放词汇补检',
-      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
+      helpMessage: '在 YOLO 主检基础上叠加 SAM：Pipeline 精修 mask 或开放词汇补检。高性能(C++)模式不支持算法任务 SAM。',
+      ifShow: ({ values }) =>
+        (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol')
+        && !isCppExecutor(values),
     },
     {
       field: 'sam_pipeline_mode',
@@ -1148,7 +1153,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       component: 'Switch',
       defaultValue: false,
       componentProps: { checkedChildren: '开', unCheckedChildren: '关' },
-      helpMessage: '开启后检测结果将投递至后处理脚本进行业务判断；关闭时走默认告警逻辑',
+      helpMessage: '开启后检测结果将投递至后处理脚本进行业务判断。高性能(C++)模式在告警 hook 后由 VIDEO 入队 iot-sink。',
       ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
     {
@@ -1576,7 +1581,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       detect_conf: 0.5,
       motion_gate_enabled: false,
       motion_sensitivity: 'conservative',
-      tracking_enabled: true,
+      tracking_enabled: false,
       tracking_similarity_threshold: 0.2,
       tracking_max_age: 25,
       tracking_smooth_alpha: 0.25,
@@ -1748,6 +1753,9 @@ const handleSubmit = async () => {
       if (mapped.executor === 'cpp') {
         values.schedule_policy = 'local';
         values.target_node_id = null;
+        values.tracking_enabled = false;
+        values.motion_gate_enabled = false;
+        values.sam_supplement_enabled = false;
       }
     }
 
@@ -2051,7 +2059,7 @@ const handleReset = () => {
       detect_conf: 0.5,
       motion_gate_enabled: false,
       motion_sensitivity: 'conservative',
-      tracking_enabled: true,
+      tracking_enabled: false,
       tracking_similarity_threshold: 0.2,
       tracking_max_age: 25,
       tracking_smooth_alpha: 0.25,
