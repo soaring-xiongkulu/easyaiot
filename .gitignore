@@ -166,3 +166,7 @@ VIDEO/ffmpeg-master-*.tar.xz
 # runtime-parity / local run artifacts
 /logs/
 
+
+# local acme env overlays (secrets)
+**/.env.acme
+
