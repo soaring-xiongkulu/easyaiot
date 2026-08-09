@@ -265,6 +265,15 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
                 LOG(WARNING) << "  [WARNING] Alarm region '" << key << "' parse failed";
             }
         }
+        else if (currentSection == "contract" || currentSection == "unsupported") {
+            // VIDEO-declared capabilities not implemented in-frame (or VIDEO-side only).
+            LOG(WARNING) << "[CONFIG] unsupported/deferred [" << currentSection << "] "
+                         << key << "=" << value;
+        }
+        else if (!currentSection.empty()) {
+            LOG(WARNING) << "[CONFIG] unknown ini key ignored (no silent support): ["
+                         << currentSection << "] " << key << "=" << value;
+        }
     }
 
     file.close();

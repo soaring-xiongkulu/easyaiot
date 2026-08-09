@@ -244,6 +244,35 @@ def _hook_task_type(task_type: str) -> str:
     return task_type or 'realtime'
 
 
+def _bool01(val: object) -> str:
+    return 'true' if bool(val) else 'false'
+
+
+def _log_cpp_unsupported_fields(task: AlgorithmTask) -> None:
+    """G-2.1/G-2.3: WARNING when task enables CAPs not on RUNTIME hot path."""
+    gaps = []
+    checks = (
+        ('tracking_enabled', 'CAP-TRACKING — C++ tracker parity pending Phase 4'),
+        ('motion_gate_enabled', 'CAP-MOTION-GATE — deferred to Phase 4'),
+        ('pose_analysis_enabled', 'pose analysis — not in RUNTIME hot path yet'),
+        ('pose_intent_enabled', 'pose intent — VIDEO/post path'),
+        ('sam_supplement_enabled', 'SAM supplement — product cut; must not silent-succeed'),
+        ('post_process_enabled', 'post_process — VIDEO Phase 3 absorb'),
+        ('face_matching_enabled', 'face matching — VIDEO Phase 3 absorb'),
+        ('plate_matching_enabled', 'plate matching — VIDEO Phase 3 absorb'),
+        ('alert_notification_enabled', 'alert notification — VIDEO-side only'),
+    )
+    for attr, note in checks:
+        if bool(getattr(task, attr, False)):
+            gaps.append(f'{attr}: {note}')
+    if gaps:
+        logger.warning(
+            'executor=cpp unsupported/deferred fields for task_id=%s: %s',
+            getattr(task, 'id', None),
+            '; '.join(gaps),
+        )
+
+
 def generate_runtime_ini(
     task: AlgorithmTask,
     log_path: str,
@@ -396,7 +425,23 @@ enable_alarm={'true' if task.alert_event_enabled else 'false'}
 
 [regions]
 {regions_block}
+
+# Phase 2 contract: declare non-frame / deferred CAPs so RUNTIME never silently pretends support.
+[unsupported]
+tracking={_bool01(getattr(task, 'tracking_enabled', False))}
+motion_gate={_bool01(getattr(task, 'motion_gate_enabled', False))}
+pose_analysis={_bool01(getattr(task, 'pose_analysis_enabled', False))}
+pose_intent={_bool01(getattr(task, 'pose_intent_enabled', False))}
+sam_supplement={_bool01(getattr(task, 'sam_supplement_enabled', False))}
+post_process={_bool01(getattr(task, 'post_process_enabled', False))}
+face_matching={_bool01(getattr(task, 'face_matching_enabled', False))}
+plate_matching={_bool01(getattr(task, 'plate_matching_enabled', False))}
+alert_notification={_bool01(getattr(task, 'alert_notification_enabled', False))}
+face_detection_flag={_bool01(getattr(task, 'face_detection_enabled', True))}
+plate_detection_flag={_bool01(getattr(task, 'plate_detection_enabled', True))}
+alert_class_names={(getattr(task, 'alert_class_names', None) or '').replace(chr(10), '')}
 """
+    _log_cpp_unsupported_fields(task)
     if write_local:
         ini_path.parent.mkdir(parents=True, exist_ok=True)
         ini_path.write_text(content, encoding='utf-8')
