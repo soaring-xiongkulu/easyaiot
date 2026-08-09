@@ -1,16 +1,16 @@
 {
-  "case_id": "rt_p0_heartbeat_lifecycle",
+  "case_id": "rt_p0_alert_hook_roi",
   "layer": "L_lifecycle",
   "executor": "cpp",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T14:33:48",
+  "sampled_at": "2026-08-09T14:34:10",
   "source": "runtime_parity_gate_cpp_sample",
   "status": "sampled",
   "boot": {
     "started": true,
     "exit_code": 1,
     "infer_ep": "cpu",
-    "duration_sec": 22.54
+    "duration_sec": 20.33
   },
   "heartbeats": [],
   "heartbeat_count": 0,

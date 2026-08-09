@@ -1,0 +1,14 @@
+{
+  "case_id": "rt_p0_alert_hook_roi",
+  "layer": "L_detect",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T14:34:10",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled_partial",
+  "frames": [],
+  "detection_count": 0,
+  "model": "onnx",
+  "infer_ep": "cpu",
+  "_note": "Phase 1: boot/infer only; bbox certify deferred to Phase 4"
+}

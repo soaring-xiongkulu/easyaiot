@@ -1,13 +1,12 @@
-# MediaMTX paths for runtime-parity testbed.
-# MP4 must exist under testdata/runtime-parity/media/ on the host.
+# MediaMTX: accept publishers from companion ffmpeg containers.
+# Path names must match docker-compose.media.yml publishers.
+
+logLevel: info
 
 paths:
   people:
     source: publisher
-    runOnDemand: ffmpeg -re -stream_loop -1 -i /media/people-detection.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$MTX_PATH
-    runOnDemandRestart: yes
-
   one_by_one:
     source: publisher
-    runOnDemand: ffmpeg -re -stream_loop -1 -i /media/one-by-one-person-detection.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$MTX_PATH
-    runOnDemandRestart: yes
+  all_others:
+    source: publisher

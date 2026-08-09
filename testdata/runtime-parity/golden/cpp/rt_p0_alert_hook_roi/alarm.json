@@ -1,0 +1,7 @@
+{
+  "case_id": "rt_p0_alert_hook_roi",
+  "layer": "L_alarm",
+  "executor": "cpp",
+  "status": "not_sampled",
+  "sampled_at": "2026-08-09T14:34:10"
+}
