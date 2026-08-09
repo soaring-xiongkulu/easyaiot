@@ -189,9 +189,9 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 - Modify: `VIDEO/app/services/alert_hook_service.py`
 - Reuse: `face_matching_kafka_service.py` / `plate_matching_kafka_service.py`
 
-- [ ] 当任务启用 matching：用 hook `image_path` + detections 入队（等价 python `try_send_*_for_frame`）
-- [ ] P0：`vid_p0_face_match_chain` 在 **仅 cpp 执行器** 下绿
-- [ ] Commit：`feat: trigger face/plate matching from alert hook`
+- [x] 当任务启用 matching：用 hook `image_path` + detections 入队（等价 python `try_send_*_for_frame`）
+- [x] P0：`vid_p0_face_match_chain` 在 **仅 cpp 执行器** 下绿
+- [x] Commit：`feat: trigger face/plate matching from alert hook`
 
 ### Task 3.2: 后处理 / 姿态投递
 
@@ -199,9 +199,9 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 - Modify: `alert_hook_service.py` 或新建 `executor_post_alert_orchestrator.py`
 - Reuse: `post_process_sink_client.py`
 
-- [ ] cpp 告警后 `enqueue_post_process_request`（开关来自 DB）
-- [ ] P1 platform cases 绿
-- [ ] Commit：`feat: enqueue post-process from cpp alerts`
+- [x] cpp 告警后 `enqueue_post_process_request`（开关来自 DB）
+- [x] P1 platform cases 绿（`vid_p1_post_process_enqueue`）
+- [x] Commit：`feat: enqueue post-process from cpp alerts`
 
 ### Task 3.3: UI 假开关治理
 
@@ -219,18 +219,18 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 
 ### Task 4.1: 检测基线硬化
 
-- [ ] 多 ONNX 串联或明确「仅首模型」产品语义并改 UI
-- [ ] `detect_conf` / 引擎阈值语义与 Python 对齐
-- [ ] alert_class 过滤
-- [ ] P0 detect/alarm certify 绿
-- [ ] Commit：`feat: harden cpp detection parity`
+- [x] 多 ONNX 串联（CAP-MULTI-MODEL）或明确「仅首模型」产品语义并改 UI
+- [ ] `detect_conf` / 引擎阈值语义与 Python 对齐（仍可继续收紧）
+- [x] alert_class 过滤（CAP-ALERT-CLASS-FILTER）+ face/plate 类过滤
+- [x] P0 detect/alarm certify 绿；P1 `rt_p1_alert_class` / `rt_p1_face_plate_filter` / `rt_p1_multi_model` 绿
+- [x] Commit：`feat: harden cpp detection parity`（gap-close wave）
 
 ### Task 4.2: motion_gate + tracking
 
-- [ ] 移植轻量 MotionGate（对照 `VIDEO/app/utils/motion_gate.py`）
-- [ ] Tracker 接口 + `track_id` 进 overlay/hook（思想可参考 rebekah Track，实现用公开算法）
-- [ ] P1：`rt_p1_motion_gate`、`rt_p1_tracking_stable`
-- [ ] Commit：`feat: cpp motion_gate and tracking`
+- [x] 移植轻量 MotionGate（对照 `VIDEO/app/utils/motion_gate.py`）
+- [x] Tracker 接口 + `track_id` 进 overlay/hook（思想可参考 rebekah Track，实现用公开算法）
+- [x] P1：`rt_p1_motion_gate`、`rt_p1_tracking_stable`
+- [x] Commit：`feat: cpp motion_gate and tracking`
 
 ### Task 4.3: snap/patrol 调度对齐
 
@@ -312,3 +312,18 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 - `docs/runtime-parity/reports/04-video-absorb-surface.md`
 - `docs/runtime-parity/reports/05-rebekah-windows-lessons.md`
 - `docs/runtime-parity/reports/06-equivalence-testbed.md`
+
+---
+
+## 债表（Gap-close 后仍 defer）
+
+| 项 | 状态 | 说明 |
+|----|------|------|
+| CAP-SAM-TASK | 不做 | HANDOFF 产品否决 |
+| CAP-GB28181-SRC | P2 | 请求时 WARNING unsupported；无静默成功 |
+| CAP-NVENC-AUTO | P2 | 同上 |
+| detect_conf 语义细对齐 | 开放 | Task 4.1 残留 |
+| `vid_p1_plate_match_chain` | 可补 | 本波次以 face orchestrator 证明模式 |
+| UI `sam_supplement_*` 清理 | 可选 | 不阻塞主线 |
+
+权威证据：[`gates/PHASE_5_GAP_CLOSE.md`](./gates/PHASE_5_GAP_CLOSE.md)、[`CERTIFY_STATUS.md`](./CERTIFY_STATUS.md)。
