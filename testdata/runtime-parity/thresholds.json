@@ -1,0 +1,33 @@
+{
+  "_note": "默认阈值待产品拍板；case 可在 manifest 中覆盖。禁止为过关静默降低阈值。",
+  "detect": {
+    "bbox_iou_min": 0.5,
+    "matched_bbox_ratio_min": 0.95,
+    "count_tolerance": 0
+  },
+  "alarm": {
+    "count_tolerance_per_minute": 1,
+    "payload_field_ignore": ["timestamp", "received_at", "image_path", "correlation_id"]
+  },
+  "track": {
+    "id_mapping_ratio_min": 0.9,
+    "switch_count_ratio_max": 1.1
+  },
+  "overlay": {
+    "p95_latency_ms_slack": 200
+  },
+  "perf": {
+    "alert_p95_ratio_max": 1.2,
+    "alert_p95_ms_slack": 200,
+    "fps_ratio_min": 0.9,
+    "cpu_ratio_max": 0.85,
+    "gpu_mem_ratio_max": 1.1,
+    "rss_ratio_max": 0.8,
+    "rss_absolute_mb_slack": 512
+  },
+  "schedule": {
+    "patrol_interval_seconds": 30,
+    "patrol_interval_tolerance_seconds": 3,
+    "snap_cron_match_window_seconds": 5
+  }
+}

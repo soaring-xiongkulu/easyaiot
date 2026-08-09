@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "description": "Runtime parity frozen case manifest (Phase 0 MVP). SAM algorithm-task cases excluded per HANDOFF.",
+  "profiles": {
+    "linux_full": {
+      "executors": ["python", "cpp"],
+      "case_filter": "P0"
+    },
+    "win_default": {
+      "executors": ["python"],
+      "case_filter": "P0"
+    },
+    "win_cpp": {
+      "executors": ["python", "cpp"],
+      "case_filter": "P0",
+      "note": "Enabled when RUNTIME.exe is available on Windows"
+    }
+  },
+  "cases": [
+    {
+      "id": "rt_p0_detect_single_onnx",
+      "priority": "P0",
+      "task_type": "realtime",
+      "executor_baseline": "python",
+      "caps": ["CAP-YOLO-INFER", "CAP-ONNX-INFER"],
+      "media_id": "media_person_roi_30s",
+      "fixture": "fixtures/tasks/rt_p0_detect_single_onnx.json",
+      "required_layers": ["L_lifecycle", "L_detect"],
+      "description": "单设备单 ONNX 检测基线；对齐 reports/03 黄金基线"
+    },
+    {
+      "id": "rt_p0_heartbeat_lifecycle",
+      "priority": "P0",
+      "task_type": "realtime",
+      "executor_baseline": "python",
+      "caps": ["CAP-HEARTBEAT", "CAP-TASK-BOOT"],
+      "media_id": "media_static_30s",
+      "fixture": "fixtures/tasks/rt_p0_heartbeat_lifecycle.json",
+      "required_layers": ["L_lifecycle"],
+      "description": "启动 2min 心跳 ≥10 次；字段 task_id/process_id/log_path"
+    },
+    {
+      "id": "rt_p0_alert_hook_roi",
+      "priority": "P0",
+      "task_type": "realtime",
+      "executor_baseline": "python",
+      "caps": ["CAP-ALERT-HOOK", "CAP-REGION-FILTER"],
+      "media_id": "media_person_roi_30s",
+      "fixture": "fixtures/tasks/rt_p0_alert_hook_roi.json",
+      "required_layers": ["L_lifecycle", "L_detect", "L_alarm"],
+      "mock_hook_port": 18080,
+      "description": "区域内置信度告警 + cooldown；Mock hook 比次数与 payload"
+    }
+  ]
+}
