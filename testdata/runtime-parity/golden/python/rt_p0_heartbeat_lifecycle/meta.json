@@ -4,8 +4,13 @@
   "required_layers": [
     "L_lifecycle"
   ],
-  "written_at": "2026-08-09T13:06:02",
+  "written_at": "2026-08-09T13:24:54",
+  "recording": "oracle_smoke",
+  "source": "oracle_smoke_local_media",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
   "artifacts": [
     "lifecycle.json"
-  ]
+  ],
+  "limitations": "Smoke lifecycle recording without live oracle VIDEO; heartbeats are deterministic stubs. Media path verified from manifest Intel sample-video."
 }

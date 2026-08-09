@@ -3,11 +3,67 @@
   "layer": "L_detect",
   "executor": "python",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T13:06:02",
-  "source": "runtime_parity_gate_mvp",
-  "status": "placeholder",
-  "frames": [],
-  "detection_count": 0,
-  "model": "onnx",
-  "_note": "bbox list per frame; IoU diff in certify"
+  "sampled_at": "2026-08-09T13:24:55",
+  "source": "oracle_smoke_ultralytics",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Local Intel sample-video inference via ultralytics; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "media_id": "people-detection",
+  "media_path": "F:\\acme\\.worktrees\\runtime-parity\\testdata\\runtime-parity\\media\\people-detection.mp4",
+  "frame_size": {
+    "width": 768,
+    "height": 432
+  },
+  "model": "ultralytics:F:\\acme\\VIDEO\\yolo11n.pt",
+  "frames": [
+    {
+      "frame_index": 30,
+      "timestamp_ms": 2500,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            289.85,
+            142.47,
+            393.72,
+            400.97
+          ],
+          "class": "person",
+          "confidence": 0.9007
+        }
+      ]
+    },
+    {
+      "frame_index": 45,
+      "timestamp_ms": 3750,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            409.36,
+            88.43,
+            500.52,
+            285.15
+          ],
+          "class": "person",
+          "confidence": 0.8446
+        }
+      ]
+    },
+    {
+      "frame_index": 60,
+      "timestamp_ms": 5000,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            574.95,
+            83.43,
+            660.22,
+            247.73
+          ],
+          "class": "person",
+          "confidence": 0.8749
+        }
+      ]
+    }
+  ],
+  "detection_count": 3
 }

@@ -1,7 +1,7 @@
 {
   "task_type": "realtime",
   "executor": "python",
-  "device_source": "file://testdata/runtime-parity/media/media_person_roi_30s.mp4",
+  "device_source": "file://testdata/runtime-parity/media/people-detection.mp4",
   "model_paths": {
     "detector": "models/yolo11n.onnx"
   },

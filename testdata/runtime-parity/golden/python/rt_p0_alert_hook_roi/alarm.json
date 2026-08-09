@@ -3,11 +3,27 @@
   "layer": "L_alarm",
   "executor": "python",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T13:06:02",
-  "source": "runtime_parity_gate_mvp",
-  "status": "placeholder",
-  "alerts": [],
-  "alert_count": 0,
+  "sampled_at": "2026-08-09T13:24:55",
+  "source": "oracle_smoke_ultralytics",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Local Intel sample-video inference via ultralytics; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
   "hook_url": "http://127.0.0.1:18080/alert",
-  "_note": "Compare with golden/video/<case>/ hook captures"
+  "alerts": [
+    {
+      "seq": 1,
+      "alert_type": "roi_confidence",
+      "bbox_xyxy": [
+        289.85,
+        142.47,
+        393.72,
+        400.97
+      ],
+      "class": "person",
+      "confidence": 0.9007,
+      "in_roi": true,
+      "cooldown_applied": false
+    }
+  ],
+  "alert_count": 1
 }

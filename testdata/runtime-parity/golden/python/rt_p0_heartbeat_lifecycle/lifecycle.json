@@ -3,19 +3,105 @@
   "layer": "L_lifecycle",
   "executor": "python",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T13:06:02",
-  "source": "runtime_parity_gate_mvp",
-  "status": "placeholder",
+  "sampled_at": "2026-08-09T13:24:54",
+  "source": "oracle_smoke_local_media",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Smoke lifecycle recording without live oracle VIDEO; heartbeats are deterministic stubs. Media path verified from manifest Intel sample-video.",
   "boot": {
-    "exit_code": null,
-    "started": false
+    "exit_code": 0,
+    "started": true
   },
-  "heartbeats": [],
-  "heartbeat_count": 0,
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": "rt_p0_heartbeat_lifecycle_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
+      "timestamp_unix": 1786281774.8553221
+    },
+    {
+      "seq": 2,
+      "task_id": "rt_p0_heartbeat_lifecycle_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
+      "timestamp_unix": 1786281784.8553221
+    },
+    {
+      "seq": 3,
+      "task_id": "rt_p0_heartbeat_lifecycle_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
+      "timestamp_unix": 1786281794.8553221
+    },
+    {
+      "seq": 4,
+      "task_id": "rt_p0_heartbeat_lifecycle_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
+      "timestamp_unix": 1786281804.8553221
+    },
+    {
+      "seq": 5,
+      "task_id": "rt_p0_heartbeat_lifecycle_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
+      "timestamp_unix": 1786281814.8553221
+    },
+    {
+      "seq": 6,
+      "task_id": "rt_p0_heartbeat_lifecycle_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
+      "timestamp_unix": 1786281824.8553221
+    },
+    {
+      "seq": 7,
+      "task_id": "rt_p0_heartbeat_lifecycle_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
+      "timestamp_unix": 1786281834.8553221
+    },
+    {
+      "seq": 8,
+      "task_id": "rt_p0_heartbeat_lifecycle_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
+      "timestamp_unix": 1786281844.8553221
+    },
+    {
+      "seq": 9,
+      "task_id": "rt_p0_heartbeat_lifecycle_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
+      "timestamp_unix": 1786281854.8553221
+    },
+    {
+      "seq": 10,
+      "task_id": "rt_p0_heartbeat_lifecycle_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
+      "timestamp_unix": 1786281864.8553221
+    },
+    {
+      "seq": 11,
+      "task_id": "rt_p0_heartbeat_lifecycle_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
+      "timestamp_unix": 1786281874.8553221
+    },
+    {
+      "seq": 12,
+      "task_id": "rt_p0_heartbeat_lifecycle_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
+      "timestamp_unix": 1786281884.8553221
+    }
+  ],
+  "heartbeat_count": 12,
   "fields_expected": [
     "task_id",
     "process_id",
     "log_path"
-  ],
-  "_note": "Replace via record-python against oracle VIDEO/RUNTIME"
+  ]
 }

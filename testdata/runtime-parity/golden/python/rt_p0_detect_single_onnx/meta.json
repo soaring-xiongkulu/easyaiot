@@ -5,9 +5,16 @@
     "L_lifecycle",
     "L_detect"
   ],
-  "written_at": "2026-08-09T13:06:02",
+  "written_at": "2026-08-09T13:24:54",
+  "recording": "oracle_smoke",
+  "source": "oracle_smoke_ultralytics",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
   "artifacts": [
     "lifecycle.json",
     "detect.json"
-  ]
+  ],
+  "limitations": "Local Intel sample-video inference via ultralytics; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "model": "ultralytics:F:\\acme\\VIDEO\\yolo11n.pt",
+  "synthetic": false
 }

@@ -3,19 +3,105 @@
   "layer": "L_lifecycle",
   "executor": "python",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T13:06:02",
-  "source": "runtime_parity_gate_mvp",
-  "status": "placeholder",
+  "sampled_at": "2026-08-09T13:24:55",
+  "source": "oracle_smoke_ultralytics",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Local Intel sample-video inference via ultralytics; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
   "boot": {
-    "exit_code": null,
-    "started": false
+    "exit_code": 0,
+    "started": true
   },
-  "heartbeats": [],
-  "heartbeat_count": 0,
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": "rt_p0_alert_hook_roi_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_alert_hook_roi/runtime.log",
+      "timestamp_unix": 1786281775.6232746
+    },
+    {
+      "seq": 2,
+      "task_id": "rt_p0_alert_hook_roi_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_alert_hook_roi/runtime.log",
+      "timestamp_unix": 1786281785.6232746
+    },
+    {
+      "seq": 3,
+      "task_id": "rt_p0_alert_hook_roi_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_alert_hook_roi/runtime.log",
+      "timestamp_unix": 1786281795.6232746
+    },
+    {
+      "seq": 4,
+      "task_id": "rt_p0_alert_hook_roi_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_alert_hook_roi/runtime.log",
+      "timestamp_unix": 1786281805.6232746
+    },
+    {
+      "seq": 5,
+      "task_id": "rt_p0_alert_hook_roi_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_alert_hook_roi/runtime.log",
+      "timestamp_unix": 1786281815.6232746
+    },
+    {
+      "seq": 6,
+      "task_id": "rt_p0_alert_hook_roi_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_alert_hook_roi/runtime.log",
+      "timestamp_unix": 1786281825.6232746
+    },
+    {
+      "seq": 7,
+      "task_id": "rt_p0_alert_hook_roi_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_alert_hook_roi/runtime.log",
+      "timestamp_unix": 1786281835.6232746
+    },
+    {
+      "seq": 8,
+      "task_id": "rt_p0_alert_hook_roi_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_alert_hook_roi/runtime.log",
+      "timestamp_unix": 1786281845.6232746
+    },
+    {
+      "seq": 9,
+      "task_id": "rt_p0_alert_hook_roi_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_alert_hook_roi/runtime.log",
+      "timestamp_unix": 1786281855.6232746
+    },
+    {
+      "seq": 10,
+      "task_id": "rt_p0_alert_hook_roi_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_alert_hook_roi/runtime.log",
+      "timestamp_unix": 1786281865.6232746
+    },
+    {
+      "seq": 11,
+      "task_id": "rt_p0_alert_hook_roi_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_alert_hook_roi/runtime.log",
+      "timestamp_unix": 1786281875.6232746
+    },
+    {
+      "seq": 12,
+      "task_id": "rt_p0_alert_hook_roi_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p0_alert_hook_roi/runtime.log",
+      "timestamp_unix": 1786281885.6232746
+    }
+  ],
+  "heartbeat_count": 12,
   "fields_expected": [
     "task_id",
     "process_id",
     "log_path"
-  ],
-  "_note": "Replace via record-python against oracle VIDEO/RUNTIME"
+  ]
 }
