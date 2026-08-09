@@ -47,7 +47,6 @@ SERVICE_NODES: List[Dict[str, Any]] = [
 SERVICE_EDGES: List[Tuple[str, str, str]] = [
     ('web', 'gateway', 'HTTP'),
     ('web', 'system', 'HTTP(mini)'),
-    ('app', 'gateway', 'HTTP'),
     ('gateway', 'system', 'RPC'),
     ('gateway', 'infra', 'RPC'),
     ('gateway', 'device', 'RPC'),
