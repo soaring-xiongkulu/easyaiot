@@ -1,4 +1,4 @@
-"""certify — layered diff skeleton (Phase 0 MVP)."""
+"""certify — layered diff python vs cpp golden (G-4.1)."""
 
 from __future__ import annotations
 
@@ -7,9 +7,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .artifacts import layer_file_map
+from .diff_layers import diff_layer
 from .manifest import find_case, load_manifest, load_thresholds, parse_cases
 from .paths import candidate_root, golden_dir, report_path
 from .report import add_case_result, new_report, write_report
+
+_INVALID_CPP_STATUS = frozenset({"placeholder", "fail", "not_sampled", "unknown"})
 
 
 def _load_layer(path: Path) -> Optional[Dict[str, Any]]:
@@ -46,32 +49,31 @@ def _diff_layer(
     py_status = py_data.get("status", "unknown")
     cpp_status = cpp_data.get("status", "unknown")
 
-    if cpp_status == "not_sampled":
-        return {
-            "layer": layer,
-            "status": "not_sampled",
-            "reason": cpp_data.get("reason", "cpp not sampled"),
-            "python_artifact": str(py_path),
-            "cpp_artifact": str(cpp_path),
-        }
-    if py_status == "placeholder" or cpp_status == "placeholder":
+    if py_status == "placeholder":
         return {
             "layer": layer,
             "status": "fail",
-            "reason": "MVP placeholder artifacts cannot certify pass",
+            "reason": "python golden is placeholder",
+            "python_artifact": str(py_path),
+            "cpp_artifact": str(cpp_path),
+        }
+    if cpp_status in _INVALID_CPP_STATUS:
+        return {
+            "layer": layer,
+            "status": "not_sampled" if cpp_status == "not_sampled" else "fail",
+            "reason": cpp_data.get("reason", f"cpp status={cpp_status}"),
             "python_artifact": str(py_path),
             "cpp_artifact": str(cpp_path),
         }
 
-    # Future: real IoU / alarm count diff using thresholds
-    return {
-        "layer": layer,
-        "status": "fail",
-        "reason": "diff not implemented in Phase 0 MVP",
-        "python_artifact": str(py_path),
-        "cpp_artifact": str(cpp_path),
-        "thresholds_ref": list(thresholds.keys()),
-    }
+    return diff_layer(
+        layer,
+        py_data,
+        cpp_data,
+        thresholds,
+        py_path=str(py_path),
+        cpp_path=str(cpp_path),
+    )
 
 
 def certify_case(case_id: str, profile: Optional[str] = None) -> Dict[str, Any]:
@@ -88,10 +90,11 @@ def certify_case(case_id: str, profile: Optional[str] = None) -> Dict[str, Any]:
         result = _diff_layer(layer, py_base / fname, cpp_base / fname, thresholds_data)
         layer_results.append(result)
 
+    case_ok = all(l.get("status") == "pass" for l in layer_results)
     return {
         "case_id": case_id,
         "profile": profile,
-        "ok": False,
+        "ok": case_ok,
         "layers": layer_results,
     }
 
@@ -110,16 +113,17 @@ def run_certify(case_id: Optional[str] = None, profile: Optional[str] = None) ->
     else:
         case_ids = [c.id for c in parse_cases(manifest) if c.priority == "P0"]
 
+    all_ok = True
     for cid in case_ids:
         result = certify_case(cid, profile)
         add_case_result(report, cid, result["layers"], executor="cpp")
+        all_ok = all_ok and result["ok"]
         print(f"certify: {cid} ok={result['ok']}")
         for layer in result["layers"]:
             print(f"  {layer['layer']}: {layer['status']} — {layer.get('reason', '')}")
 
-    # Phase 0: never ok=true unless all layers pass with real samples
-    report["ok"] = False
-    report["note"] = "Phase 0 MVP: certify always ok=false until real golden diff passes"
+    report["ok"] = all_ok
+    report["note"] = "G-4.1 P0 certify" if all_ok else "red layers remain — see cases[].layers"
     out = write_report(report, root)
     print(f"report: {out}")
-    return 1  # non-zero until real parity
+    return 0 if all_ok else 1
