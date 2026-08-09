@@ -8,6 +8,13 @@
 
 **PASS (implementation wave)** — doctor exit 0; `linux_full` 11/11; `win_cpp` 23/23; implemented CAPs no longer land in `unsupportedCaps`.
 
+### Orchestrator acceptance (2026-08-10)
+
+- Re-verify: `doctor` / `certify --profile linux_full` / `certify --profile win_cpp` all exit **0**
+- Commits: `ac60e59`, `0f30d73`, `7b91413`
+- **GAP-CLOSE WAVE ACCEPTED**
+- Remaining HANDOFF「要」debt (GB28181 / NVENC-AUTO / plate-match e2e) continues in follow-up wave — not silently closed.
+
 ## A. Missing P0 (reports/06, non-SAM)
 
 | Case | Layer(s) | Evidence |
