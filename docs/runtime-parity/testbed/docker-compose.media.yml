@@ -6,8 +6,8 @@
 #
 # Place MP4 files under testdata/runtime-parity/media/ (see media/README.md).
 # Streams (loop via MediaMTX paths config):
-#   rtsp://127.0.0.1:18554/person_roi  -> media_person_roi_30s.mp4
-#   rtsp://127.0.0.1:18554/static      -> media_static_30s.mp4
+#   rtsp://127.0.0.1:18554/people     -> people-detection.mp4
+#   rtsp://127.0.0.1:18554/one_by_one -> one-by-one-person-detection.mp4
 
 services:
   mediamtx:
@@ -31,5 +31,5 @@ services:
   #   volumes:
   #     - ../../testdata/runtime-parity/media:/media:ro
   #   entrypoint: >
-  #     ffmpeg -re -stream_loop -1 -i /media/media_person_roi_30s.mp4
-  #     -c copy -f rtsp rtsp://mediamtx:8554/person_roi
+  #     ffmpeg -re -stream_loop -1 -i /media/people-detection.mp4
+  #     -c copy -f rtsp rtsp://mediamtx:8554/people

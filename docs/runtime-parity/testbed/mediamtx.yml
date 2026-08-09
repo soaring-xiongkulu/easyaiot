@@ -2,12 +2,12 @@
 # MP4 must exist under testdata/runtime-parity/media/ on the host.
 
 paths:
-  person_roi:
+  people:
     source: publisher
-    runOnDemand: ffmpeg -re -stream_loop -1 -i /media/media_person_roi_30s.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$MTX_PATH
+    runOnDemand: ffmpeg -re -stream_loop -1 -i /media/people-detection.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$MTX_PATH
     runOnDemandRestart: yes
 
-  static:
+  one_by_one:
     source: publisher
-    runOnDemand: ffmpeg -re -stream_loop -1 -i /media/media_static_30s.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$MTX_PATH
+    runOnDemand: ffmpeg -re -stream_loop -1 -i /media/one-by-one-person-detection.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$MTX_PATH
     runOnDemandRestart: yes

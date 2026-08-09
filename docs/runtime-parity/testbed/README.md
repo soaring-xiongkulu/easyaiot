@@ -40,7 +40,8 @@ python docs\runtime-parity\testbed\mock_alert_hook.py --port 18080 --case rt_p0_
 docker compose -f docs\runtime-parity\testbed\docker-compose.media.yml up -d
 ```
 
-- MediaMTX：`rtsp://127.0.0.1:18554/person_roi`（映射 `media_person_roi_30s.mp4`）
+- MediaMTX：`rtsp://127.0.0.1:18554/people`（映射 `people-detection.mp4`）
+- `rtsp://127.0.0.1:18554/one_by_one`（映射 `one-by-one-person-detection.mp4`）
 - 停止：`docker compose -f docs\runtime-parity\testbed\docker-compose.media.yml down`
 
 ### Windows 原生（无 Docker）
@@ -48,8 +49,8 @@ docker compose -f docs\runtime-parity\testbed\docker-compose.media.yml up -d
 ```bat
 REM 方案 A：MediaMTX 独立包 + mediamtx.yml 指向 MP4
 REM 方案 B：ffmpeg 循环推流
-ffmpeg -re -stream_loop -1 -i testdata\runtime-parity\media\media_person_roi_30s.mp4 ^
-  -c copy -f rtsp rtsp://127.0.0.1:18554/person_roi
+ffmpeg -re -stream_loop -1 -i testdata\runtime-parity\media\people-detection.mp4 ^
+  -c copy -f rtsp rtsp://127.0.0.1:18554/people
 ```
 
 需先启动 MediaMTX 或兼容 RTSP 服务端；MP4 路径见 `testdata/runtime-parity/media/README.md`。
@@ -64,8 +65,7 @@ python tools\runtime_parity_gate.py record-python --case rt_p0_heartbeat_lifecyc
 python tools\runtime_parity_gate.py record-python --case rt_p0_alert_hook_roi
 ```
 
-MVP：产出 `testdata/runtime-parity/golden/python/<case>/` 下分层 JSON 骨架。  
-**G-0.3 非 placeholder 路径（无需起 VIDEO）：**
+MVP P0：`record-python` 与 `record-oracle-smoke` 等价，使用 Intel 样例片 + ultralytics/onnx 本地推理写出 `status=recorded`。
 
 ```bat
 python tools\runtime_parity_gate.py record-oracle-smoke
