@@ -1,0 +1,35 @@
+# Runtime parity local RTSP media relay (Phase 0 MVP)
+#
+# Usage:
+#   docker compose -f docs/runtime-parity/testbed/docker-compose.media.yml up -d
+#   docker compose -f docs/runtime-parity/testbed/docker-compose.media.yml down
+#
+# Place MP4 files under testdata/runtime-parity/media/ (see media/README.md).
+# Streams (loop via MediaMTX paths config):
+#   rtsp://127.0.0.1:18554/person_roi  -> media_person_roi_30s.mp4
+#   rtsp://127.0.0.1:18554/static      -> media_static_30s.mp4
+
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: runtime-parity-mediamtx
+    restart: unless-stopped
+    ports:
+      - "18554:8554"
+      - "18888:8888"
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+      - ../../testdata/runtime-parity/media:/media:ro
+    command: ["/mediamtx.yml"]
+
+  # Optional: one-shot ffmpeg relay if MediaMTX path config is insufficient.
+  # Uncomment and set MP4 path when media file is present.
+  # ffmpeg-relay:
+  #   image: jrottenberg/ffmpeg:4.4-alpine
+  #   depends_on:
+  #     - mediamtx
+  #   volumes:
+  #     - ../../testdata/runtime-parity/media:/media:ro
+  #   entrypoint: >
+  #     ffmpeg -re -stream_loop -1 -i /media/media_person_roi_30s.mp4
+  #     -c copy -f rtsp rtsp://mediamtx:8554/person_roi
