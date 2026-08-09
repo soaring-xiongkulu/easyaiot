@@ -57,4 +57,7 @@ python VIDEO/test_runtime_ini_contract.py      # exit 0（Phase 2 回归）
 
 ## Orchestrator acceptance
 
-- Phase 3 实现与单测就绪；建议编排 Agent **过门** 并进入 Phase 4（C++ 帧内红清单驱动）。
+- 验收 [Phase 3](af4450a9-a3b8-407c-a152-aec260ef45b3)：commit `fa180e0`；`test_alert_post_orchestrator` / `test_runtime_ini_contract` 复验 exit 0。
+- **Phase 3：PASS**（2026-08-09 编排）。
+- `vid_p0_face_match_chain` 端到端 certify 为加强项，不挡 Phase 4。
+- 进入 Phase 4（优先 G-4.1 P0 certify）。
