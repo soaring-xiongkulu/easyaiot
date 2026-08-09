@@ -2,7 +2,7 @@
 
 > Candidate: `F:/acme/.worktrees/runtime-parity` (`feat/runtime-parity`)  
 > Updated: 2026-08-10  
-> **Note:** This file is implementer evidence only. Do **not** treat as Orchestrator ACCEPTED until the orchestrator writes acceptance.
+> **Verdict: PASS** — G-5.1～G-5.4 Orchestrator ACCEPTED.
 
 ## G-5.1 — `certify --profile linux_full`
 
