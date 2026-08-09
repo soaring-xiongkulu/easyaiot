@@ -82,6 +82,33 @@ Reference: `tools/runtime_parity/hook_payload_fields.py`, tests `VIDEO/test_hook
 3. **C++** `Detech::start`: 再次 `LOG(WARNING)` 每条 unsupported
 4. **GET `/health`**: `unsupported_caps` JSON 数组
 
+## Hook semantic gaps (python vs cpp)
+
+| Field | Python `run_deploy` | C++ `Detech` | Risk |
+|-------|---------------------|--------------|------|
+| `event` | `task_name` | ini `algorithm_name` ← `model_names` 首段 | 告警事件名不一致 |
+| `correlation_id` | UUID | `{taskId}_{utc_iso}` | 链路关联格式不同 |
+| `time` | 东八区墙钟 | UTC ISO (`formatUtcNow`) | hook 归一化可吸收 |
+| `information` | `object_counts`, `track_id`, `duration`, `frame_number` | `task_id`, `detection_count`, `detections[]` only | 追踪/统计字段缺失 |
+| `region` | 常省略 | 区域名 | 低 |
+
+## Heartbeat JSON (`POST .../heartbeat/realtime|patrol`)
+
+| Field | Python | C++ | Notes |
+|-------|--------|-----|-------|
+| `task_id` | ✅ | ✅ | |
+| `server_ip` | POD_IP / 探测 | `127.0.0.1` | cpp 未探测本机 IP |
+| `port` | `null` | `control_port` | 语义不同 |
+| `process_id` | ✅ | ✅ | |
+| `log_path` | ✅ | ✅ ini `log_path` | |
+| `total_patrols` / `total_detections` | — | patrol 时 ✅ | |
+
+## Contract keys written but not fully parsed by C++
+
+`[matching]` 写入 `face_library_ids`, `plate_library_ids`, `face_matching_threshold`, `matching_business_tags` 等；`ConfigParser` 当前仅读 `face_matching_enabled` / `plate_matching_enabled`（其余 key → `unknown ini key` WARNING）。
+
+`[pose]` / `[post_process]` 多数子 key 同理：契约审计用，C++ 不执行业务。
+
 ## 未映射（刻意 / 编排层）
 
 | Field | Reason |
