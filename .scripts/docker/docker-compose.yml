@@ -71,8 +71,10 @@ services:
     image: postgres:18
     container_name: postgres-server
     restart: always
+    # acme Desktop: host 5432 often taken by local postgres.exe — map 15432 instead.
+    # (compose override cannot remove base ports; they merge/append.)
     ports:
-      - "0.0.0.0:5432:5432"
+      - "0.0.0.0:15432:5432"
     environment:
       - TZ=Asia/Shanghai
       - POSTGRES_USER=postgres
@@ -179,9 +181,12 @@ services:
     image: redis:7.4.8
     container_name: redis-server
     restart: always
+    # acme Desktop: pin amd64 (avoids exec format error on mismatched Hub manifests)
+    # and avoid host 6379 conflicts via 16379.
+    platform: linux/amd64
     # privileged: true
     ports:
-      - "0.0.0.0:6379:6379"
+      - "0.0.0.0:16379:6379"
     environment:
       - TZ=Asia/Shanghai
     command: >

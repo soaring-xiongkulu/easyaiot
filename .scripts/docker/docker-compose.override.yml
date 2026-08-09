@@ -1,0 +1,5 @@
+# acme Desktop notes:
+# Host Postgres/Redis ports are remapped in docker-compose.yml (15432 / 16379)
+# because Compose merges `ports` from override files (append), and cannot drop
+# the base 5432/6379 bindings. Keep this file for future local-only tweaks.
+services: {}

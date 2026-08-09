@@ -118,7 +118,9 @@ compose() {
     DOCKER_PLATFORM="${DOCKER_PLATFORM}" \
     NACOS_PLATFORM="${NACOS_PLATFORM:-${DOCKER_PLATFORM}}" \
     BASE_IMAGE="${BASE_IMAGE}" \
-    "${COMPOSE_CMD[@]}" ${COMPOSE_PROFILE_ARGS[@]+"${COMPOSE_PROFILE_ARGS[@]}"} "${env_args[@]}" -f "${COMPOSE_FILE}" "$@")
+    local compose_files=(-f "${COMPOSE_FILE}")
+    [[ -f "${SCRIPT_DIR}/docker-compose.override.yml" ]] && compose_files+=(-f "${SCRIPT_DIR}/docker-compose.override.yml")
+    "${COMPOSE_CMD[@]}" ${COMPOSE_PROFILE_ARGS[@]+"${COMPOSE_PROFILE_ARGS[@]}"} "${env_args[@]}" "${compose_files[@]}" "$@")
 }
 
 # 按部署形态启动中间件（mini/standard 跳过 FUXA/NodeRED 等）
