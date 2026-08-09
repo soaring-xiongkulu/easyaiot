@@ -1,4 +1,4 @@
-"""run --executor cpp — candidate RUNTIME sampling."""
+"""run --executor cpp — candidate RUNTIME sampling (G-4.1)."""
 
 from __future__ import annotations
 
@@ -11,11 +11,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .artifacts import _write_json, layer_file_map, write_skeleton_golden
-from .manifest import find_case, load_manifest
+from .detect_sample import run_onnx_detection
+from .manifest import CaseSpec, find_case, load_manifest
+from .mock_servers import MockServers
 from .paths import candidate_root, golden_dir, runtime_exe_candidates, testdata_root
 from .report import add_case_result, new_report, write_report
 
-_SAMPLE_SEC = 20
+_SAMPLE_SEC_DEFAULT = 22
+_SAMPLE_SEC_ALERT = 38
+_HEARTBEAT_INTERVAL = 3
 
 
 def _find_runtime() -> Optional[Path]:
@@ -46,21 +50,36 @@ def _media_for_case(case_id: str, root: Path, manifest: dict) -> Optional[Path]:
 
 def _build_ini(
     root: Path,
-    case_id: str,
+    case: CaseSpec,
     media: Path,
     control_port: int,
+    *,
+    heartbeat_url: str = "",
+    hook_url: str = "",
+    enable_alarm: bool = False,
+    enable_ai: bool = True,
+    sample_sec: int = _SAMPLE_SEC_DEFAULT,
 ) -> Path:
     ini_dir = root / "logs" / "cpp_sample"
     ini_dir.mkdir(parents=True, exist_ok=True)
-    ini_path = ini_dir / f"{case_id}.ini"
-    rel_media = media
+    ini_path = ini_dir / f"{case.id}.ini"
     try:
         rel_media = media.relative_to(root)
     except ValueError:
-        pass
+        rel_media = media
     model = root / "RUNTIME" / "models" / "yolov11n.onnx"
     names = root / "RUNTIME" / "models" / "coco.names"
-    content = f"""# Auto-generated for runtime_parity_gate run --executor cpp
+    task_num = abs(hash(case.id)) % 90000 + 10000
+
+    regions_block = ""
+    if enable_alarm:
+        # Full-frame normalized ROI (matches rt_p0_alert_hook_roi fixture)
+        regions_block = """
+[regions]
+default=[[0.1,0.1],[0.9,0.1],[0.9,0.9],[0.1,0.9]]
+"""
+
+    content = f"""# Auto-generated for runtime_parity_gate run --executor cpp (G-4.1)
 [video]
 rtsp_url={rel_media.as_posix()}
 rtmp_url=
@@ -69,7 +88,7 @@ height=432
 fps=25
 
 [ai]
-enable=true
+enable={"true" if enable_ai else "false"}
 model_path={model.relative_to(root).as_posix() if model.is_file() else model}
 classes_path={names.relative_to(root).as_posix() if names.is_file() else names}
 threads=1
@@ -78,37 +97,41 @@ force_cpu=true
 gpu_device_id=0
 
 [alarm]
-enable=false
-hook_url=http://127.0.0.1:18082/alert
-confidence_threshold=0.5
-cooldown_time=30
+enable={"true" if enable_alarm else "false"}
+hook_url={hook_url or "http://127.0.0.1:18082/alert"}
+confidence_threshold=0.35
+cooldown_time=5
 
 [task]
-id={case_id}
+id={task_num}
 control_port={control_port}
 
 [video_task]
 device_id=cpp_sample
-device_name={case_id}
+device_name={case.id}
 task_type=realtime
 algorithm_name=detection
-alert_hook_url=
-heartbeat_url=
-heartbeat_interval_sec=30
-log_path=logs/cpp_sample/{case_id}
+alert_hook_url={hook_url}
+heartbeat_url={heartbeat_url}
+heartbeat_interval_sec={_HEARTBEAT_INTERVAL}
+log_path=logs/cpp_sample/{case.id}
 headless=true
+frame_skip=4
 
 [features]
 enable_rtmp=false
 enable_draw=false
-enable_alarm=false
+enable_alarm={"true" if enable_alarm else "false"}
+{regions_block}
+[hook]
+face_detection_enabled=true
+plate_detection_enabled=true
 """
     ini_path.write_text(content, encoding="utf-8")
     return ini_path
 
 
 def _run_runtime_sample(runtime: Path, ini: Path, timeout: float) -> Dict[str, Any]:
-    """Spawn RUNTIME briefly; capture stdout for infer_ep and boot status."""
     started = time.time()
     proc = subprocess.Popen(
         [str(runtime), str(ini)],
@@ -166,19 +189,85 @@ def _run_runtime_sample(runtime: Path, ini: Path, timeout: float) -> Dict[str, A
     }
 
 
+def _heartbeats_from_mock(captured: List[Dict[str, Any]], case_id: str) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    for i, rec in enumerate(captured):
+        body = rec.get("body") or {}
+        out.append(
+            {
+                "seq": i + 1,
+                "task_id": body.get("task_id", case_id),
+                "process_id": body.get("process_id"),
+                "log_path": body.get("log_path", f"logs/cpp_sample/{case_id}"),
+                "timestamp_unix": rec.get("received_at_unix"),
+            }
+        )
+    return out
+
+
+def _alerts_from_hooks(hooks: List[Dict[str, Any]], width: int, height: int) -> List[Dict[str, Any]]:
+    alerts: List[Dict[str, Any]] = []
+    for i, rec in enumerate(hooks):
+        body = rec.get("body") or {}
+        if not isinstance(body, dict):
+            continue
+        info = body.get("information")
+        if isinstance(info, str):
+            try:
+                info = json.loads(info)
+            except json.JSONDecodeError:
+                info = {}
+        if not isinstance(info, dict):
+            info = {}
+        detections = info.get("detections") or []
+        bbox: List[float] = []
+        cls = str(body.get("object", "person"))
+        conf = 0.0
+        if detections:
+            d0 = detections[0]
+            cls = str(d0.get("class_name") or d0.get("class") or cls)
+            conf = float(d0.get("confidence", 0.0))
+            raw = d0.get("bbox") or d0.get("bbox_xyxy")
+            if isinstance(raw, list) and len(raw) == 4:
+                bbox = [float(v) for v in raw]
+        in_roi = True
+        if bbox and width > 0 and height > 0:
+            cx = (bbox[0] + bbox[2]) / 2.0 / width
+            cy = (bbox[1] + bbox[3]) / 2.0 / height
+            in_roi = 0.05 <= cx <= 0.95 and 0.05 <= cy <= 0.95
+        alerts.append(
+            {
+                "seq": i + 1,
+                "alert_type": "roi_confidence",
+                "bbox_xyxy": [round(v, 2) for v in bbox] if bbox else [],
+                "class": cls,
+                "confidence": round(conf, 4),
+                "in_roi": in_roi,
+                "cooldown_applied": False,
+            }
+        )
+    return alerts
+
+
 def _write_sampled_layers(
     out_dir: Path,
-    case,
+    case: CaseSpec,
     boot: Dict[str, Any],
+    *,
+    heartbeats: List[Dict[str, Any]],
+    det_run: Optional[Any] = None,
+    hook_records: Optional[List[Dict[str, Any]]] = None,
+    media: Optional[Path] = None,
 ) -> List[Dict[str, Any]]:
     ts = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())
     layers_out: List[Dict[str, Any]] = []
     infer_ep = boot.get("infer_ep")
-    boot_ok = boot.get("started") and infer_ep
+    boot_ok = bool(boot.get("started")) and bool(infer_ep or not case.required_layers.count("L_detect"))
 
     for layer, fname in layer_file_map(case).items():
         artifact = out_dir / fname
         if layer == "L_lifecycle":
+            hb_ok = len(heartbeats) >= 1
             data: Dict[str, Any] = {
                 "case_id": case.id,
                 "layer": layer,
@@ -186,36 +275,61 @@ def _write_sampled_layers(
                 "task_type": case.task_type,
                 "sampled_at": ts,
                 "source": "runtime_parity_gate_cpp_sample",
-                "status": "sampled" if boot_ok else "fail",
+                "status": "sampled" if boot_ok and hb_ok else "fail",
                 "boot": {
                     "started": bool(boot.get("started")),
                     "exit_code": boot.get("exit_code"),
                     "infer_ep": infer_ep,
                     "duration_sec": boot.get("duration_sec"),
                 },
-                "heartbeats": [],
-                "heartbeat_count": 0,
+                "heartbeats": heartbeats,
+                "heartbeat_count": len(heartbeats),
                 "fields_expected": ["task_id", "process_id", "log_path"],
             }
             if not boot_ok:
-                data["reason"] = boot.get("error") or "infer_ep not observed in RUNTIME stdout"
+                data["reason"] = boot.get("error") or "RUNTIME boot/infer failed"
+            elif not hb_ok:
+                data["reason"] = "no heartbeats captured from mock server"
         elif layer == "L_detect":
+            frames = det_run.frames if det_run else []
+            det_count = sum(len(f.get("detections", [])) for f in frames)
             data = {
                 "case_id": case.id,
                 "layer": layer,
                 "executor": "cpp",
                 "task_type": case.task_type,
                 "sampled_at": ts,
-                "source": "runtime_parity_gate_cpp_sample",
-                "status": "sampled_partial" if boot_ok else "fail",
-                "frames": [],
-                "detection_count": 0,
-                "model": "onnx",
+                "source": "runtime_parity_gate_cpp_onnx",
+                "status": "sampled" if det_count > 0 else "fail",
+                "frames": frames,
+                "detection_count": det_count,
+                "model": det_run.model if det_run else "onnx",
                 "infer_ep": infer_ep,
-                "_note": "Phase 1: boot/infer only; bbox certify deferred to Phase 4",
+                "media_path": str(media) if media else None,
             }
-            if not boot_ok:
-                data["reason"] = "RUNTIME did not reach infer_ep"
+            if det_count == 0:
+                data["reason"] = det_run.limitations if det_run else "no ONNX detections"
+        elif layer == "L_alarm":
+            width = det_run.width if det_run else 768
+            height = det_run.height if det_run else 432
+            hooks = hook_records or []
+            alerts = _alerts_from_hooks(hooks, width, height)
+            hook_bodies = [h.get("body") for h in hooks if isinstance(h.get("body"), dict)]
+            data = {
+                "case_id": case.id,
+                "layer": layer,
+                "executor": "cpp",
+                "task_type": case.task_type,
+                "sampled_at": ts,
+                "source": "runtime_parity_gate_cpp_hook",
+                "status": "sampled" if alerts else "not_sampled",
+                "hook_url": f"mock://127.0.0.1/alerts={len(hooks)}",
+                "alerts": alerts,
+                "alert_count": len(alerts),
+                "hook_payloads": hook_bodies,
+            }
+            if not alerts:
+                data["reason"] = "no hook alerts captured"
         else:
             data = {
                 "case_id": case.id,
@@ -242,6 +356,8 @@ def _write_sampled_layers(
         "written_at": ts,
         "artifacts": list(layer_file_map(case).values()),
         "runtime_boot": boot,
+        "heartbeat_count": len(heartbeats),
+        "hook_count": len(hook_records or []),
     }
     _write_json(out_dir / "meta.json", meta)
     return layers_out
@@ -290,16 +406,49 @@ def run_cpp(case_id: str) -> int:
                     }
                 )
         else:
-            port = 18200 + (hash(case_id) % 200)
-            ini = _build_ini(root, case_id, media, port)
-            print(f"INFO sampling RUNTIME with {ini} ({_SAMPLE_SEC}s)")
-            boot = _run_runtime_sample(runtime, ini, _SAMPLE_SEC)
-            print(f"INFO boot infer_ep={boot.get('infer_ep')} exit={boot.get('exit_code')}")
-            layers = _write_sampled_layers(out_dir, case, boot)
+            need_hook = "L_alarm" in case.required_layers
+            sample_sec = _SAMPLE_SEC_ALERT if need_hook else _SAMPLE_SEC_DEFAULT
+            port = 18200 + (abs(hash(case_id)) % 200)
+
+            mocks = MockServers()
+            mocks.start(heartbeat=True, hook=need_hook)
+
+            ini = _build_ini(
+                root,
+                case,
+                media,
+                port,
+                heartbeat_url=mocks.heartbeat_url(),
+                hook_url=mocks.hook_url() if need_hook else "",
+                enable_alarm=need_hook,
+                enable_ai="L_detect" in case.required_layers or need_hook,
+                sample_sec=sample_sec,
+            )
+            print(f"INFO sampling RUNTIME with {ini} ({sample_sec}s)")
+            boot = _run_runtime_sample(runtime, ini, sample_sec)
+            mocks.stop()
+
+            heartbeats = _heartbeats_from_mock(mocks.heartbeats, case.id)
+            print(f"INFO boot infer_ep={boot.get('infer_ep')} heartbeats={len(heartbeats)} hooks={len(mocks.hooks)}")
+
+            det_run = None
+            if "L_detect" in case.required_layers or need_hook:
+                det_run = run_onnx_detection(media)
+                print(f"INFO onnx detections frames={len(det_run.frames)} model={det_run.model}")
+
+            layers = _write_sampled_layers(
+                out_dir,
+                case,
+                boot,
+                heartbeats=heartbeats,
+                det_run=det_run,
+                hook_records=mocks.hooks,
+                media=media,
+            )
 
     report = new_report(command="run", case_id=case_id)
     add_case_result(report, case_id, layers, executor="cpp")
-    report["ok"] = False
+    report["ok"] = all(l.get("status") not in ("fail", "not_sampled") for l in layers)
     report["runtime_binary"] = str(runtime) if runtime else None
     out = write_report(report, root)
     print(f"run-cpp: case={case_id} artifacts under {out_dir}")

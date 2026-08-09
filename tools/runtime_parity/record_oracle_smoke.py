@@ -267,7 +267,9 @@ def _ultralytics_frame_detections(frame: Any, model: Any) -> List[Dict[str, Any]
 def _model_paths() -> List[Path]:
     roots = [oracle_root(), candidate_root()]
     rels = [
+        Path("RUNTIME") / "models" / "yolov11n.onnx",
         Path("RUNTIME") / "models" / "yolo11n.onnx",
+        Path("models") / "yolov11n.onnx",
         Path("models") / "yolo11n.onnx",
     ]
     paths: List[Path] = []
@@ -307,73 +309,78 @@ def _pick_best_detection(frames: List[Dict[str, Any]]) -> Tuple[Optional[List[fl
     return best[1], best[2], best[0]
 
 
-def _run_detection(media: Path) -> DetectionRun:
+def _run_detection(media: Path, *, engine: str = "auto") -> DetectionRun:
     samples = _iter_sampled_frames(media)
     if not samples:
         return _synthetic_run(640, 480, reason="media frames unreadable (cv2 missing or empty video)")
 
     _, _, _, w, h = samples[0]
 
-    # 1) ultralytics YOLO
-    yolo_model = None
-    try:
-        from ultralytics import YOLO  # type: ignore
+    use_ultralytics = engine in ("auto", "ultralytics")
+    use_onnx = engine in ("auto", "onnx")
 
-        for candidate in _yolo_pt_candidates():
-            try:
-                yolo_model = YOLO(candidate)
-                break
-            except Exception:
-                continue
-    except ImportError:
+    # 1) ultralytics YOLO (auto path only unless engine=onnx)
+    if use_ultralytics and engine != "onnx":
         yolo_model = None
+        try:
+            from ultralytics import YOLO  # type: ignore
 
-    if yolo_model is not None:
-        recorded: List[Dict[str, Any]] = []
-        for frame_idx, ts_ms, frame, _, _ in samples:
-            dets = _ultralytics_frame_detections(frame, yolo_model)
-            if dets:
-                recorded.append(_frame_payload(frame_idx, ts_ms, dets))
-        if recorded:
-            bbox, cls, conf = _pick_best_detection(recorded)
-            return DetectionRun(
-                frames=recorded[:3],
-                model=f"ultralytics:{getattr(yolo_model, 'model_name', 'yolo')}",
-                source="oracle_smoke_ultralytics",
-                width=w,
-                height=h,
-                best_bbox=bbox,
-                best_class=cls,
-                best_confidence=conf,
-                limitations=(
-                    "Local Intel sample-video inference via ultralytics; not a live oracle "
-                    "VIDEO task capture. Replace with record-python before certify parity claims."
-                ),
-            )
+            for candidate in _yolo_pt_candidates():
+                try:
+                    yolo_model = YOLO(candidate)
+                    break
+                except Exception:
+                    continue
+        except ImportError:
+            yolo_model = None
+
+        if yolo_model is not None:
+            recorded: List[Dict[str, Any]] = []
+            for frame_idx, ts_ms, frame, _, _ in samples:
+                dets = _ultralytics_frame_detections(frame, yolo_model)
+                if dets:
+                    recorded.append(_frame_payload(frame_idx, ts_ms, dets))
+            if recorded:
+                bbox, cls, conf = _pick_best_detection(recorded)
+                return DetectionRun(
+                    frames=recorded[:3],
+                    model=f"ultralytics:{getattr(yolo_model, 'model_name', 'yolo')}",
+                    source="oracle_smoke_ultralytics",
+                    width=w,
+                    height=h,
+                    best_bbox=bbox,
+                    best_class=cls,
+                    best_confidence=conf,
+                    limitations=(
+                        "Local Intel sample-video inference via ultralytics; not a live oracle "
+                        "VIDEO task capture. Replace with record-python before certify parity claims."
+                    ),
+                )
 
     # 2) ONNX
-    for model_path in _model_paths():
-        recorded = []
-        for frame_idx, ts_ms, frame, _, _ in samples:
-            dets = _onnx_frame_detections(frame, model_path)
-            if dets:
-                recorded.append(_frame_payload(frame_idx, ts_ms, dets))
-        if recorded:
-            bbox, cls, conf = _pick_best_detection(recorded)
-            return DetectionRun(
-                frames=recorded[:3],
-                model=str(model_path),
-                source="oracle_smoke_onnx",
-                width=w,
-                height=h,
-                best_bbox=bbox,
-                best_class=cls,
-                best_confidence=conf,
-                limitations=(
-                    "Local Intel sample-video ONNX inference; not a live oracle VIDEO task "
-                    "capture. Replace with record-python before certify parity claims."
-                ),
-            )
+    if use_onnx:
+        for model_path in _model_paths():
+            recorded = []
+            for frame_idx, ts_ms, frame, _, _ in samples:
+                dets = _onnx_frame_detections(frame, model_path)
+                if dets:
+                    recorded.append(_frame_payload(frame_idx, ts_ms, dets))
+            if recorded:
+                bbox, cls, conf = _pick_best_detection(recorded)
+                return DetectionRun(
+                    frames=recorded[:3],
+                    model=str(model_path),
+                    source="oracle_smoke_onnx",
+                    width=w,
+                    height=h,
+                    best_bbox=bbox,
+                    best_class=cls,
+                    best_confidence=conf,
+                    limitations=(
+                        "Local Intel sample-video ONNX inference; not a live oracle VIDEO task "
+                        "capture. Replace with record-python before certify parity claims."
+                    ),
+                )
 
     return _synthetic_run(
         w,
@@ -505,12 +512,12 @@ class CaseRecording:
     det: Optional[DetectionRun] = None
 
 
-def _record_case(case: CaseSpec, root: Path, manifest: Dict[str, Any]) -> CaseRecording:
+def _record_case(case: CaseSpec, root: Path, manifest: Dict[str, Any], *, engine: str = "auto") -> CaseRecording:
     needs_detect = "L_detect" in case.required_layers
     det: Optional[DetectionRun] = None
     if needs_detect:
         media = _media_path(case, root, manifest)
-        det = _run_detection(media)
+        det = _run_detection(media, engine=engine)
         source = det.source
         limitations = det.limitations or ""
     else:
@@ -523,11 +530,11 @@ def _record_case(case: CaseSpec, root: Path, manifest: Dict[str, Any]) -> CaseRe
     return CaseRecording(source=source, limitations=limitations, det=det)
 
 
-def _write_case_golden(case: CaseSpec, root: Path, manifest: Dict[str, Any]) -> List[Path]:
+def _write_case_golden(case: CaseSpec, root: Path, manifest: Dict[str, Any], *, engine: str = "auto") -> List[Path]:
     out_dir = golden_dir("python", case.id, root)
     out_dir.mkdir(parents=True, exist_ok=True)
     written: List[Path] = []
-    rec = _record_case(case, root, manifest)
+    rec = _record_case(case, root, manifest, engine=engine)
 
     def lifecycle() -> Dict[str, Any]:
         return _lifecycle_payload(case, source=rec.source, limitations=rec.limitations)
@@ -581,7 +588,7 @@ def _write_case_golden(case: CaseSpec, root: Path, manifest: Dict[str, Any]) -> 
     return written
 
 
-def run_record_oracle_smoke(case_id: Optional[str] = None) -> int:
+def run_record_oracle_smoke(case_id: Optional[str] = None, *, engine: str = "auto") -> int:
     root = candidate_root()
     manifest = load_manifest(root)
     if case_id:
@@ -597,7 +604,7 @@ def run_record_oracle_smoke(case_id: Optional[str] = None) -> int:
     exit_code = 0
     for case in cases:
         try:
-            paths = _write_case_golden(case, root, manifest)
+            paths = _write_case_golden(case, root, manifest, engine=engine)
             print(f"record-oracle-smoke: case={case.id} executor=python")
             for p in paths:
                 print(f"  wrote {p}")

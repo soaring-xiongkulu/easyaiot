@@ -57,6 +57,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Case id (default: all P0 cases in manifest)",
     )
+    ros.add_argument(
+        "--engine",
+        default="auto",
+        choices=["auto", "onnx", "ultralytics"],
+        help="Detection engine for smoke golden (onnx aligns with cpp RUNTIME)",
+    )
 
     runp = sp.add_parser("run", help="Run candidate executor sampling")
     runp.add_argument("--executor", choices=["cpp"], required=True)
@@ -80,7 +86,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.command == "record-python":
         return run_record_python(args.case)
     if args.command == "record-oracle-smoke":
-        return run_record_oracle_smoke(args.case)
+        return run_record_oracle_smoke(args.case, engine=args.engine)
     if args.command == "run":
         if args.executor != "cpp":
             print("Only --executor cpp is supported in Phase 0", file=sys.stderr)
