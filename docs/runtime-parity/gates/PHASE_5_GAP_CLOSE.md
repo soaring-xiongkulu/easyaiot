@@ -14,6 +14,13 @@
 - Closed: **`POST /stop`**（`rt_p1_control_stop`；保留 `/control/streaming/stop`）
 - Remaining HANDOFF「要」product debt: **CAP-SAM-TASK only** (explicit veto)
 
+### Orchestrator acceptance (2026-08-10)
+
+- Commit: `2f38a9d`
+- Re-verify: `doctor` / `linux_full` / `win_cpp` exit **0** (`rt_p1_control_stop` ok; 27 win_cpp cases)
+- PLAN C++ 必做（detect_conf + POST /stop）闭环
+- **PROGRAM COMPLETE** — only product-vetoed CAP-SAM-TASK remains out of scope
+
 ### Prior follow-up (still accepted)
 
 - Closed: `vid_p1_plate_match_chain`, `rt_p2_gb28181_relay`, `rt_p2_quality_nvenc`
