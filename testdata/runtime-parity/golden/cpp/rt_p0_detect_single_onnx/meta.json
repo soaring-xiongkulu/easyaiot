@@ -1,0 +1,13 @@
+{
+  "case_id": "rt_p0_detect_single_onnx",
+  "executor": "cpp",
+  "required_layers": [
+    "L_lifecycle",
+    "L_detect"
+  ],
+  "written_at": "2026-08-09T13:06:03",
+  "artifacts": [
+    "lifecycle.json",
+    "detect.json"
+  ]
+}

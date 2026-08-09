@@ -1,0 +1,14 @@
+{
+  "case_id": "rt_p0_detect_single_onnx",
+  "layer": "L_detect",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T13:06:03",
+  "source": "runtime_parity_gate_mvp",
+  "status": "not_sampled",
+  "frames": [],
+  "detection_count": 0,
+  "model": "onnx",
+  "_note": "bbox list per frame; IoU diff in certify",
+  "reason": "RUNTIME binary not found"
+}

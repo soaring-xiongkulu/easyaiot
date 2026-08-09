@@ -1,0 +1,22 @@
+{
+  "case_id": "rt_p0_detect_single_onnx",
+  "layer": "L_lifecycle",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T13:06:03",
+  "source": "runtime_parity_gate_mvp",
+  "status": "not_sampled",
+  "boot": {
+    "exit_code": null,
+    "started": false
+  },
+  "heartbeats": [],
+  "heartbeat_count": 0,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ],
+  "_note": "Replace via record-python against oracle VIDEO/RUNTIME",
+  "reason": "RUNTIME binary not found"
+}
