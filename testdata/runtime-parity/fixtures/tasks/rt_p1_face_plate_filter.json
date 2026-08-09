@@ -1,0 +1,1 @@
+{"task_type":"realtime","face_detection_enabled":true,"plate_detection_enabled":false,"alert_class_names":["person"],"description":"face/plate class filter"}

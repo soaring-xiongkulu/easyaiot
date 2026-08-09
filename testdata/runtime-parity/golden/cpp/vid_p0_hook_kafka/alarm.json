@@ -1,0 +1,56 @@
+{
+  "case_id": "vid_p0_hook_kafka",
+  "layer": "L_alarm",
+  "executor": "cpp",
+  "task_type": "video",
+  "sampled_at": "2026-08-09T16:58:55",
+  "source": "platform_sample_mock_kafka",
+  "status": "sampled",
+  "alerts": [
+    {
+      "seq": 1,
+      "alert_type": "roi_confidence",
+      "bbox_xyxy": [
+        100.0,
+        80.0,
+        300.0,
+        280.0
+      ],
+      "class": "person",
+      "confidence": 0.9,
+      "in_roi": true,
+      "cooldown_applied": false
+    }
+  ],
+  "alert_count": 1,
+  "hook_payloads": [
+    {
+      "device_id": "dev_parity",
+      "device_name": "cam_parity",
+      "task_id": "vid_p0_hook_kafka",
+      "event": "detection",
+      "object": "person",
+      "task_type": "realtime",
+      "time": "2026-08-10 00:00:00",
+      "region": "default",
+      "information": {
+        "detections": [
+          {
+            "class_name": "person",
+            "confidence": 0.9,
+            "bbox": [
+              100,
+              80,
+              300,
+              280
+            ]
+          }
+        ]
+      },
+      "image_path": "/tmp/parity_alert.jpg",
+      "face_detection_enabled": true,
+      "plate_detection_enabled": true,
+      "correlation_id": "corr-kafka-1"
+    }
+  ]
+}

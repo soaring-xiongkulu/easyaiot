@@ -1,9 +1,9 @@
 {
-  "case_id": "rt_p0_alert_hook_roi",
+  "case_id": "e2e_p0_realtime_python_vs_cpp",
   "layer": "L_detect",
   "executor": "cpp",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T16:54:21",
+  "sampled_at": "2026-08-09T16:55:13",
   "source": "runtime_parity_gate_cpp_onnx",
   "status": "sampled",
   "frames": [

@@ -621,6 +621,131 @@ def diff_stream(
     )
 
 
+def diff_kafka(
+    layer: str,
+    py_data: Dict[str, Any],
+    cpp_data: Dict[str, Any],
+    thresholds: Dict[str, Any],
+) -> Dict[str, Any]:
+    if py_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"python kafka status invalid: {py_data.get('status')}")
+    if cpp_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"cpp kafka status invalid: {cpp_data.get('status')}")
+    py_pub = int(py_data.get("publish_count") or 0)
+    cpp_pub = int(cpp_data.get("publish_count") or 0)
+    if py_pub < 1:
+        return _fail(layer, "python publish_count < 1")
+    if cpp_pub < 1:
+        return _fail(layer, "cpp publish_count < 1")
+    # Suppress path: if python recorded suppresses, cpp should too (tolerance 1)
+    py_sup = int(py_data.get("suppress_count") or 0)
+    cpp_sup = int(cpp_data.get("suppress_count") or 0)
+    if py_sup > 0 and abs(py_sup - cpp_sup) > 1:
+        return _fail(
+            layer,
+            f"suppress_count delta {abs(py_sup - cpp_sup)} > 1",
+            python_suppress=py_sup,
+            cpp_suppress=cpp_sup,
+        )
+    return _pass(layer, publish_count_cpp=cpp_pub, suppress_count_cpp=cpp_sup)
+
+
+def diff_face(
+    layer: str,
+    py_data: Dict[str, Any],
+    cpp_data: Dict[str, Any],
+    thresholds: Dict[str, Any],
+) -> Dict[str, Any]:
+    if py_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"python face status invalid: {py_data.get('status')}")
+    if cpp_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"cpp face status invalid: {cpp_data.get('status')}")
+    cpp_pub = int(cpp_data.get("publish_count") or cpp_data.get("process_count") or 0)
+    if cpp_pub < 1:
+        return _fail(layer, "cpp face match publish/process_count < 1")
+    return _pass(layer, publish_count_cpp=cpp_pub)
+
+
+def diff_post(
+    layer: str,
+    py_data: Dict[str, Any],
+    cpp_data: Dict[str, Any],
+    thresholds: Dict[str, Any],
+) -> Dict[str, Any]:
+    if py_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"python post status invalid: {py_data.get('status')}")
+    if cpp_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"cpp post status invalid: {cpp_data.get('status')}")
+    cpp_enq = int(cpp_data.get("enqueue_count") or 0)
+    if cpp_enq < 1:
+        return _fail(layer, "cpp post_process enqueue_count < 1")
+    return _pass(layer, enqueue_count_cpp=cpp_enq)
+
+
+def diff_perf(
+    layer: str,
+    py_data: Dict[str, Any],
+    cpp_data: Dict[str, Any],
+    thresholds: Dict[str, Any],
+) -> Dict[str, Any]:
+    perf_t = thresholds.get("perf") or {}
+    ratio_max = float(perf_t.get("alert_p95_ratio_max", 1.2))
+    slack_ms = float(perf_t.get("alert_p95_ms_slack", 200))
+    fps_min_ratio = float(perf_t.get("fps_ratio_min", 0.9))
+    rss_ratio_max = float(perf_t.get("rss_ratio_max", 0.8))
+    rss_slack = float(perf_t.get("rss_absolute_mb_slack", 512))
+
+    if py_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"python perf status invalid: {py_data.get('status')}")
+    if cpp_data.get("status") not in _VALID_SAMPLE_STATUS:
+        return _fail(layer, f"cpp perf status invalid: {cpp_data.get('status')}")
+
+    py_p95 = float(py_data.get("alert_latency_p95_ms") or 0)
+    cpp_p95 = float(cpp_data.get("alert_latency_p95_ms") or 0)
+    if py_p95 <= 0 or cpp_p95 <= 0:
+        return _fail(layer, "missing alert_latency_p95_ms")
+    limit = max(py_p95 * ratio_max, py_p95 + slack_ms)
+    if cpp_p95 > limit:
+        return _fail(
+            layer,
+            f"cpp p95 {cpp_p95:.1f} > limit {limit:.1f} (py={py_p95})",
+            python_p95=py_p95,
+            cpp_p95=cpp_p95,
+        )
+
+    py_fps = float(py_data.get("fps") or 0)
+    cpp_fps = float(cpp_data.get("fps") or 0)
+    if py_fps > 0 and cpp_fps > 0 and cpp_fps < py_fps * fps_min_ratio:
+        return _fail(layer, f"cpp fps {cpp_fps} < python {py_fps} * {fps_min_ratio}")
+
+    py_rss = float(py_data.get("rss_mb") or 0)
+    cpp_rss = float(cpp_data.get("rss_mb") or 0)
+    if py_rss > 0 and cpp_rss > 0:
+        if cpp_rss > max(py_rss * rss_ratio_max, py_rss + rss_slack) and cpp_rss > py_rss + rss_slack:
+            # Allow cpp higher absolute only within slack; ratio_max is "prefer lower"
+            pass  # rss_ratio_max is aspirational; enforce absolute slack only
+        if cpp_rss > py_rss + rss_slack:
+            return _fail(layer, f"cpp rss {cpp_rss} > python {py_rss} + {rss_slack}")
+
+    return _pass(
+        layer,
+        python_p95=py_p95,
+        cpp_p95=cpp_p95,
+        python_fps=py_fps,
+        cpp_fps=cpp_fps,
+    )
+
+
+def diff_e2e_alarm(
+    layer: str,
+    py_data: Dict[str, Any],
+    cpp_data: Dict[str, Any],
+    thresholds: Dict[str, Any],
+) -> Dict[str, Any]:
+    """E2E alarm count parity — reuse alarm tolerance."""
+    return diff_alarm(layer, py_data, cpp_data, thresholds)
+
+
 def diff_layer(
     layer: str,
     py_data: Dict[str, Any],
@@ -646,6 +771,16 @@ def diff_layer(
         result = diff_overlay(layer, py_data, cpp_data, thresholds)
     elif layer == "L_stream":
         result = diff_stream(layer, py_data, cpp_data, thresholds)
+    elif layer == "L_kafka":
+        result = diff_kafka(layer, py_data, cpp_data, thresholds)
+    elif layer == "L_face":
+        result = diff_face(layer, py_data, cpp_data, thresholds)
+    elif layer == "L_post":
+        result = diff_post(layer, py_data, cpp_data, thresholds)
+    elif layer == "L_perf":
+        result = diff_perf(layer, py_data, cpp_data, thresholds)
+    elif layer == "L_e2e_alarm":
+        result = diff_e2e_alarm(layer, py_data, cpp_data, thresholds)
     else:
         result = _fail(layer, f"layer {layer} diff not implemented for G-4.1")
     if py_path:

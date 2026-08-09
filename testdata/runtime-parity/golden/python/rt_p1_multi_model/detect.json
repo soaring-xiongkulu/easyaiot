@@ -1,11 +1,20 @@
 {
-  "case_id": "rt_p0_alert_hook_roi",
+  "case_id": "rt_p1_multi_model",
   "layer": "L_detect",
-  "executor": "cpp",
+  "executor": "python",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T16:54:21",
-  "source": "runtime_parity_gate_cpp_onnx",
-  "status": "sampled",
+  "sampled_at": "2026-08-09T16:48:53",
+  "source": "oracle_smoke_onnx",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Local Intel sample-video ONNX inference; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "media_id": "people-detection",
+  "media_path": "F:\\acme\\.worktrees\\runtime-parity\\testdata\\runtime-parity\\media\\people-detection.mp4",
+  "frame_size": {
+    "width": 768,
+    "height": 432
+  },
+  "model": "F:\\acme\\RUNTIME\\models\\yolov11n.onnx",
   "frames": [
     {
       "frame_index": 30,
@@ -40,8 +49,5 @@
       ]
     }
   ],
-  "detection_count": 2,
-  "model": "F:\\acme\\RUNTIME\\models\\yolov11n.onnx",
-  "infer_ep": "cpu",
-  "media_path": "F:\\acme\\.worktrees\\runtime-parity\\testdata\\runtime-parity\\media\\people-detection.mp4"
+  "detection_count": 2
 }

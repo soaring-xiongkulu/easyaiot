@@ -1,0 +1,54 @@
+{
+  "case_id": "patrol_p1_rotate_order",
+  "executor": "cpp",
+  "required_layers": [
+    "L_lifecycle",
+    "L_schedule"
+  ],
+  "written_at": "2026-08-09T16:58:22",
+  "artifacts": [
+    "lifecycle.json",
+    "schedule.json"
+  ],
+  "runtime_boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": null,
+    "duration_sec": 25.2,
+    "log_tail": [
+      "I20260810 00:58:00.339833 33124 Detech.cpp:468] [CONTROL-THREAD] ✅ Control server ready",
+      "I20260810 00:58:00.339833 33124 Detech.cpp:469] [CONTROL-THREAD] Available endpoints:",
+      "I20260810 00:58:00.339833 33124 Detech.cpp:470] [CONTROL-THREAD]   GET  /health - Health check",
+      "I20260810 00:58:00.339833 33124 Detech.cpp:471] [CONTROL-THREAD]   POST /control/streaming/start - Start streaming",
+      "I20260810 00:58:00.339833 33124 Detech.cpp:472] [CONTROL-THREAD]   POST /control/streaming/stop - Stop streaming",
+      "I20260810 00:58:00.339833 33124 Detech.cpp:473] [CONTROL-THREAD]   GET  /control/streaming/status - Get streaming status",
+      "W20260810 00:58:00.345343 34104 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "I20260810 00:58:00.345343 35500 PatrolScheduler.cpp:96] [PATROL] starting scheduler for 3 device(s) mode=rotate interval=4s pool_size=1 focus=(none)",
+      "I20260810 00:58:00.348858 34356 PatrolScheduler.cpp:262] [PATROL] loop started",
+      "I20260810 00:58:00.348858 34356 PatrolScheduler.cpp:297] [PATROL] rotate device=dev_0",
+      "I20260810 00:58:00.446420 34356 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/patrol_p1_rotate_order\\parity_sample.json",
+      "I20260810 00:58:03.478652 34356 PatrolScheduler.cpp:297] [PATROL] rotate device=dev_1",
+      "I20260810 00:58:03.504513 34356 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/patrol_p1_rotate_order\\parity_sample.json",
+      "W20260810 00:58:03.604075 34104 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "I20260810 00:58:06.538604 34356 PatrolScheduler.cpp:297] [PATROL] rotate device=dev_2",
+      "I20260810 00:58:06.562366 34356 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/patrol_p1_rotate_order\\parity_sample.json",
+      "W20260810 00:58:06.882871 34104 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "I20260810 00:58:09.574841 34356 PatrolScheduler.cpp:297] [PATROL] rotate device=dev_0",
+      "I20260810 00:58:09.599664 34356 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/patrol_p1_rotate_order\\parity_sample.json",
+      "W20260810 00:58:10.151691 34104 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "I20260810 00:58:12.636616 34356 PatrolScheduler.cpp:297] [PATROL] rotate device=dev_1",
+      "I20260810 00:58:12.659818 34356 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/patrol_p1_rotate_order\\parity_sample.json",
+      "W20260810 00:58:13.416682 34104 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "I20260810 00:58:15.685738 34356 PatrolScheduler.cpp:297] [PATROL] rotate device=dev_2",
+      "I20260810 00:58:15.708523 34356 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/patrol_p1_rotate_order\\parity_sample.json",
+      "W20260810 00:58:16.686640 34104 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "I20260810 00:58:18.733371 34356 PatrolScheduler.cpp:297] [PATROL] rotate device=dev_0",
+      "I20260810 00:58:18.756726 34356 ParityRecorder.cpp:259] [PARITY] wrote logs/cpp_sample/patrol_p1_rotate_order\\parity_sample.json",
+      "W20260810 00:58:19.944008 34104 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "I20260810 00:58:21.786901 34356 PatrolScheduler.cpp:297] [PATROL] rotate device=dev_1"
+    ],
+    "ffprobe": null
+  },
+  "heartbeat_count": 6,
+  "hook_count": 0
+}

@@ -1,0 +1,43 @@
+{
+  "case_id": "e2e_p0_realtime_python_vs_cpp",
+  "layer": "L_e2e_alarm",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:55:13",
+  "source": "runtime_parity_gate_cpp_e2e",
+  "status": "sampled",
+  "alerts": [
+    {
+      "seq": 1,
+      "alert_type": "roi_confidence",
+      "bbox_xyxy": [
+        263.0,
+        90.0,
+        374.0,
+        392.0
+      ],
+      "class": "person",
+      "confidence": 0.8801,
+      "in_roi": true,
+      "cooldown_applied": false
+    }
+  ],
+  "alert_count": 1,
+  "hook_payloads": [
+    {
+      "correlation_id": "64957_2026-08-09T16:55:10Z",
+      "device_id": "cpp_sample",
+      "device_name": "e2e_p0_realtime_python_vs_cpp",
+      "event": "detection",
+      "face_detection_enabled": true,
+      "image_path": "logs/cpp_sample/alerts/alert_64957_1786294510429.jpg",
+      "information": "{\"detection_count\":1,\"detections\":[{\"bbox\":[263,90,374,392],\"class_id\":0,\"class_name\":\"person\",\"confidence\":0.88006055355072021}],\"region\":\"default\",\"runtime_ts_ms\":1786294510442,\"task_id\":\"64957\"}",
+      "object": "person",
+      "plate_detection_enabled": true,
+      "region": "default",
+      "task_type": "realtime",
+      "time": "2026-08-09T16:55:10Z"
+    }
+  ],
+  "e2e": true
+}

@@ -1,0 +1,107 @@
+{
+  "case_id": "rt_p1_defense_armed",
+  "layer": "L_lifecycle",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:48:57",
+  "source": "oracle_smoke_onnx",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Local Intel sample-video ONNX inference; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "boot": {
+    "exit_code": 0,
+    "started": true
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": "rt_p1_defense_armed_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_defense_armed/runtime.log",
+      "timestamp_unix": 1786294017.84667
+    },
+    {
+      "seq": 2,
+      "task_id": "rt_p1_defense_armed_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_defense_armed/runtime.log",
+      "timestamp_unix": 1786294027.84667
+    },
+    {
+      "seq": 3,
+      "task_id": "rt_p1_defense_armed_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_defense_armed/runtime.log",
+      "timestamp_unix": 1786294037.84667
+    },
+    {
+      "seq": 4,
+      "task_id": "rt_p1_defense_armed_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_defense_armed/runtime.log",
+      "timestamp_unix": 1786294047.84667
+    },
+    {
+      "seq": 5,
+      "task_id": "rt_p1_defense_armed_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_defense_armed/runtime.log",
+      "timestamp_unix": 1786294057.84667
+    },
+    {
+      "seq": 6,
+      "task_id": "rt_p1_defense_armed_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_defense_armed/runtime.log",
+      "timestamp_unix": 1786294067.84667
+    },
+    {
+      "seq": 7,
+      "task_id": "rt_p1_defense_armed_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_defense_armed/runtime.log",
+      "timestamp_unix": 1786294077.84667
+    },
+    {
+      "seq": 8,
+      "task_id": "rt_p1_defense_armed_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_defense_armed/runtime.log",
+      "timestamp_unix": 1786294087.84667
+    },
+    {
+      "seq": 9,
+      "task_id": "rt_p1_defense_armed_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_defense_armed/runtime.log",
+      "timestamp_unix": 1786294097.84667
+    },
+    {
+      "seq": 10,
+      "task_id": "rt_p1_defense_armed_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_defense_armed/runtime.log",
+      "timestamp_unix": 1786294107.84667
+    },
+    {
+      "seq": 11,
+      "task_id": "rt_p1_defense_armed_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_defense_armed/runtime.log",
+      "timestamp_unix": 1786294117.84667
+    },
+    {
+      "seq": 12,
+      "task_id": "rt_p1_defense_armed_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_defense_armed/runtime.log",
+      "timestamp_unix": 1786294127.84667
+    }
+  ],
+  "heartbeat_count": 12,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

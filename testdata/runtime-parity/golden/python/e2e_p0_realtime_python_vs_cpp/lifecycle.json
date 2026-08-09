@@ -1,0 +1,107 @@
+{
+  "case_id": "e2e_p0_realtime_python_vs_cpp",
+  "layer": "L_lifecycle",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:48:43",
+  "source": "oracle_smoke_onnx",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Local Intel sample-video ONNX inference; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "boot": {
+    "exit_code": 0,
+    "started": true
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": "e2e_p0_realtime_python_vs_cpp_smoke",
+      "process_id": 42420,
+      "log_path": "logs/e2e_p0_realtime_python_vs_cpp/runtime.log",
+      "timestamp_unix": 1786294003.5532098
+    },
+    {
+      "seq": 2,
+      "task_id": "e2e_p0_realtime_python_vs_cpp_smoke",
+      "process_id": 42420,
+      "log_path": "logs/e2e_p0_realtime_python_vs_cpp/runtime.log",
+      "timestamp_unix": 1786294013.5532098
+    },
+    {
+      "seq": 3,
+      "task_id": "e2e_p0_realtime_python_vs_cpp_smoke",
+      "process_id": 42420,
+      "log_path": "logs/e2e_p0_realtime_python_vs_cpp/runtime.log",
+      "timestamp_unix": 1786294023.5532098
+    },
+    {
+      "seq": 4,
+      "task_id": "e2e_p0_realtime_python_vs_cpp_smoke",
+      "process_id": 42420,
+      "log_path": "logs/e2e_p0_realtime_python_vs_cpp/runtime.log",
+      "timestamp_unix": 1786294033.5532098
+    },
+    {
+      "seq": 5,
+      "task_id": "e2e_p0_realtime_python_vs_cpp_smoke",
+      "process_id": 42420,
+      "log_path": "logs/e2e_p0_realtime_python_vs_cpp/runtime.log",
+      "timestamp_unix": 1786294043.5532098
+    },
+    {
+      "seq": 6,
+      "task_id": "e2e_p0_realtime_python_vs_cpp_smoke",
+      "process_id": 42420,
+      "log_path": "logs/e2e_p0_realtime_python_vs_cpp/runtime.log",
+      "timestamp_unix": 1786294053.5532098
+    },
+    {
+      "seq": 7,
+      "task_id": "e2e_p0_realtime_python_vs_cpp_smoke",
+      "process_id": 42420,
+      "log_path": "logs/e2e_p0_realtime_python_vs_cpp/runtime.log",
+      "timestamp_unix": 1786294063.5532098
+    },
+    {
+      "seq": 8,
+      "task_id": "e2e_p0_realtime_python_vs_cpp_smoke",
+      "process_id": 42420,
+      "log_path": "logs/e2e_p0_realtime_python_vs_cpp/runtime.log",
+      "timestamp_unix": 1786294073.5532098
+    },
+    {
+      "seq": 9,
+      "task_id": "e2e_p0_realtime_python_vs_cpp_smoke",
+      "process_id": 42420,
+      "log_path": "logs/e2e_p0_realtime_python_vs_cpp/runtime.log",
+      "timestamp_unix": 1786294083.5532098
+    },
+    {
+      "seq": 10,
+      "task_id": "e2e_p0_realtime_python_vs_cpp_smoke",
+      "process_id": 42420,
+      "log_path": "logs/e2e_p0_realtime_python_vs_cpp/runtime.log",
+      "timestamp_unix": 1786294093.5532098
+    },
+    {
+      "seq": 11,
+      "task_id": "e2e_p0_realtime_python_vs_cpp_smoke",
+      "process_id": 42420,
+      "log_path": "logs/e2e_p0_realtime_python_vs_cpp/runtime.log",
+      "timestamp_unix": 1786294103.5532098
+    },
+    {
+      "seq": 12,
+      "task_id": "e2e_p0_realtime_python_vs_cpp_smoke",
+      "process_id": 42420,
+      "log_path": "logs/e2e_p0_realtime_python_vs_cpp/runtime.log",
+      "timestamp_unix": 1786294113.5532098
+    }
+  ],
+  "heartbeat_count": 12,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

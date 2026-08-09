@@ -1,0 +1,1 @@
+{"task_type":"realtime","extra_model_paths":["RUNTIME/models/yolov11n.onnx"],"description":"multi ONNX chain"}

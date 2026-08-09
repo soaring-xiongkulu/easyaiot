@@ -1,0 +1,20 @@
+{
+  "case_id": "rt_p1_multi_model",
+  "executor": "python",
+  "required_layers": [
+    "L_lifecycle",
+    "L_detect"
+  ],
+  "written_at": "2026-08-09T16:48:53",
+  "recording": "oracle_smoke",
+  "source": "oracle_smoke_onnx",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "artifacts": [
+    "lifecycle.json",
+    "detect.json"
+  ],
+  "limitations": "Local Intel sample-video ONNX inference; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "model": "F:\\acme\\RUNTIME\\models\\yolov11n.onnx",
+  "synthetic": false
+}

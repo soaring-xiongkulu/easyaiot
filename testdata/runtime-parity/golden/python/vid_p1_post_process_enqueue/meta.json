@@ -1,0 +1,12 @@
+{
+  "case_id": "vid_p1_post_process_enqueue",
+  "executor": "python",
+  "required_layers": [
+    "L_post"
+  ],
+  "written_at": "2026-08-09T16:58:56",
+  "artifacts": [
+    "post_process.json"
+  ],
+  "sample_mode": "platform"
+}

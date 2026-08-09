@@ -1,0 +1,14 @@
+{
+  "case_id": "vid_p0_hook_kafka",
+  "executor": "python",
+  "required_layers": [
+    "L_kafka",
+    "L_alarm"
+  ],
+  "written_at": "2026-08-09T16:58:55",
+  "artifacts": [
+    "kafka.json",
+    "alarm.json"
+  ],
+  "sample_mode": "platform"
+}

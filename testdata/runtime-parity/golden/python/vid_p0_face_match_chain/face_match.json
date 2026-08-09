@@ -1,0 +1,21 @@
+{
+  "case_id": "vid_p0_face_match_chain",
+  "layer": "L_face",
+  "executor": "python",
+  "task_type": "video",
+  "sampled_at": "2026-08-09T16:58:56",
+  "source": "platform_sample_orchestrator",
+  "status": "sampled",
+  "publish_count": 1,
+  "process_count": 1,
+  "hit_count": 0,
+  "mock": true,
+  "orchestrator_summary": {
+    "executor": "cpp",
+    "face_matching": true,
+    "plate_matching": false,
+    "post_process": false,
+    "skipped_reason": null
+  },
+  "reason": ""
+}

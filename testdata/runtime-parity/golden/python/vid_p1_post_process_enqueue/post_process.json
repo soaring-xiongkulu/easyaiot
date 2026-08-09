@@ -1,0 +1,19 @@
+{
+  "case_id": "vid_p1_post_process_enqueue",
+  "layer": "L_post",
+  "executor": "python",
+  "task_type": "video",
+  "sampled_at": "2026-08-09T16:58:56",
+  "source": "platform_sample_orchestrator",
+  "status": "sampled",
+  "enqueue_count": 1,
+  "mock": true,
+  "orchestrator_summary": {
+    "executor": "cpp",
+    "face_matching": false,
+    "plate_matching": false,
+    "post_process": true,
+    "skipped_reason": null
+  },
+  "reason": ""
+}

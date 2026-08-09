@@ -1,0 +1,107 @@
+{
+  "case_id": "rt_p1_defense_armed",
+  "layer": "L_lifecycle",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:57:54",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled",
+  "boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": "cpu",
+    "duration_sec": 38.87
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": 59775,
+      "process_id": 8680,
+      "log_path": "logs/cpp_sample/rt_p1_defense_armed",
+      "timestamp_unix": 1786294632.6639924
+    },
+    {
+      "seq": 2,
+      "task_id": 59775,
+      "process_id": 8680,
+      "log_path": "logs/cpp_sample/rt_p1_defense_armed",
+      "timestamp_unix": 1786294635.944576
+    },
+    {
+      "seq": 3,
+      "task_id": 59775,
+      "process_id": 8680,
+      "log_path": "logs/cpp_sample/rt_p1_defense_armed",
+      "timestamp_unix": 1786294639.2110949
+    },
+    {
+      "seq": 4,
+      "task_id": 59775,
+      "process_id": 8680,
+      "log_path": "logs/cpp_sample/rt_p1_defense_armed",
+      "timestamp_unix": 1786294642.5147226
+    },
+    {
+      "seq": 5,
+      "task_id": 59775,
+      "process_id": 8680,
+      "log_path": "logs/cpp_sample/rt_p1_defense_armed",
+      "timestamp_unix": 1786294645.7789004
+    },
+    {
+      "seq": 6,
+      "task_id": 59775,
+      "process_id": 8680,
+      "log_path": "logs/cpp_sample/rt_p1_defense_armed",
+      "timestamp_unix": 1786294649.044735
+    },
+    {
+      "seq": 7,
+      "task_id": 59775,
+      "process_id": 8680,
+      "log_path": "logs/cpp_sample/rt_p1_defense_armed",
+      "timestamp_unix": 1786294652.3205073
+    },
+    {
+      "seq": 8,
+      "task_id": 59775,
+      "process_id": 8680,
+      "log_path": "logs/cpp_sample/rt_p1_defense_armed",
+      "timestamp_unix": 1786294655.5897095
+    },
+    {
+      "seq": 9,
+      "task_id": 59775,
+      "process_id": 8680,
+      "log_path": "logs/cpp_sample/rt_p1_defense_armed",
+      "timestamp_unix": 1786294658.856869
+    },
+    {
+      "seq": 10,
+      "task_id": 59775,
+      "process_id": 8680,
+      "log_path": "logs/cpp_sample/rt_p1_defense_armed",
+      "timestamp_unix": 1786294662.1288507
+    },
+    {
+      "seq": 11,
+      "task_id": 59775,
+      "process_id": 8680,
+      "log_path": "logs/cpp_sample/rt_p1_defense_armed",
+      "timestamp_unix": 1786294665.3905165
+    },
+    {
+      "seq": 12,
+      "task_id": 59775,
+      "process_id": 8680,
+      "log_path": "logs/cpp_sample/rt_p1_defense_armed",
+      "timestamp_unix": 1786294668.6588292
+    }
+  ],
+  "heartbeat_count": 12,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

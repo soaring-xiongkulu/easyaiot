@@ -1,29 +1,25 @@
 {
   "version": 1,
-  "description": "Runtime parity frozen case manifest (Phase 0 MVP + G-4.2/4.3/4.4). SAM algorithm-task cases excluded per HANDOFF.",
+  "description": "Runtime parity frozen case manifest (Phase 0–5 + gap-close P0/P1). SAM algorithm-task cases excluded per HANDOFF.",
   "profiles": {
     "linux_full": {
-      "executors": [
-        "python",
-        "cpp"
-      ],
+      "executors": ["python", "cpp"],
       "case_filter": "P0"
     },
     "win_default": {
-      "executors": [
-        "python"
-      ],
+      "executors": ["python"],
       "case_filter": "P0"
     },
     "win_cpp": {
-      "executors": [
-        "python",
-        "cpp"
-      ],
+      "executors": ["python", "cpp"],
       "case_ids": [
         "rt_p0_detect_single_onnx",
         "rt_p0_heartbeat_lifecycle",
         "rt_p0_alert_hook_roi",
+        "vid_p0_hook_kafka",
+        "vid_p0_face_match_chain",
+        "e2e_p0_realtime_python_vs_cpp",
+        "perf_p0_realtime_latency",
         "rt_p1_motion_gate",
         "rt_p1_tracking_stable",
         "snap_p0_cron_slot",
@@ -31,10 +27,17 @@
         "patrol_p0_pool_interval",
         "patrol_p0_heartbeat_progress",
         "patrol_p1_hybrid_focus",
+        "patrol_p1_rotate_order",
         "rt_p1_overlay_timing",
-        "rt_p1_rtmp_stream"
+        "rt_p1_rtmp_stream",
+        "rt_p1_alert_class",
+        "rt_p1_face_plate_filter",
+        "rt_p1_multi_model",
+        "rt_p1_defense_armed",
+        "snap_p1_snap_space",
+        "vid_p1_post_process_enqueue"
       ],
-      "note": "P0 + G-4.2/4.3/4.4 when RUNTIME.exe is available on Windows"
+      "note": "P0 gap-close + G-4.2/4.3/4.4 + frame CAP P1 when RUNTIME.exe available"
     }
   },
   "media": {
@@ -62,16 +65,10 @@
       "priority": "P0",
       "task_type": "realtime",
       "executor_baseline": "python",
-      "caps": [
-        "CAP-YOLO-INFER",
-        "CAP-ONNX-INFER"
-      ],
+      "caps": ["CAP-YOLO-INFER", "CAP-ONNX-INFER"],
       "media_id": "people-detection",
       "fixture": "fixtures/tasks/rt_p0_detect_single_onnx.json",
-      "required_layers": [
-        "L_lifecycle",
-        "L_detect"
-      ],
+      "required_layers": ["L_lifecycle", "L_detect"],
       "description": "单设备单 ONNX 检测基线；Intel people-detection 样例"
     },
     {
@@ -79,15 +76,10 @@
       "priority": "P0",
       "task_type": "realtime",
       "executor_baseline": "python",
-      "caps": [
-        "CAP-HEARTBEAT",
-        "CAP-TASK-BOOT"
-      ],
+      "caps": ["CAP-HEARTBEAT", "CAP-TASK-BOOT"],
       "media_id": "one-by-one-person-detection",
       "fixture": "fixtures/tasks/rt_p0_heartbeat_lifecycle.json",
-      "required_layers": [
-        "L_lifecycle"
-      ],
+      "required_layers": ["L_lifecycle"],
       "description": "启动心跳生命周期；Intel one-by-one-person 样例拉流"
     },
     {
@@ -95,34 +87,71 @@
       "priority": "P0",
       "task_type": "realtime",
       "executor_baseline": "python",
-      "caps": [
-        "CAP-ALERT-HOOK",
-        "CAP-REGION-FILTER"
-      ],
+      "caps": ["CAP-ALERT-HOOK", "CAP-REGION-FILTER"],
       "media_id": "people-detection",
       "fixture": "fixtures/tasks/rt_p0_alert_hook_roi.json",
-      "required_layers": [
-        "L_lifecycle",
-        "L_detect",
-        "L_alarm"
-      ],
+      "required_layers": ["L_lifecycle", "L_detect", "L_alarm"],
       "mock_hook_port": 18080,
       "description": "区域内置信度告警 + cooldown；Mock hook 比次数与 payload"
+    },
+    {
+      "id": "vid_p0_hook_kafka",
+      "priority": "P0",
+      "task_type": "video",
+      "executor_baseline": "cpp",
+      "sample_mode": "platform",
+      "caps": ["CAP-ALERT-KAFKA", "CAP-ALERT-SUPPRESS"],
+      "media_id": "people-detection",
+      "fixture": "fixtures/tasks/vid_p0_hook_kafka.json",
+      "required_layers": ["L_kafka", "L_alarm"],
+      "description": "L_platform：hook→Kafka 发布 + suppress 窗口"
+    },
+    {
+      "id": "vid_p0_face_match_chain",
+      "priority": "P0",
+      "task_type": "video",
+      "executor_baseline": "cpp",
+      "sample_mode": "platform",
+      "caps": ["CAP-FACE-MATCH"],
+      "media_id": "face-demographics-walking-and-pause",
+      "fixture": "fixtures/tasks/vid_p0_face_match_chain.json",
+      "required_layers": ["L_face"],
+      "description": "仅 cpp 触发链：alert_post_orchestrator 入队人脸匹配（可 mock）"
+    },
+    {
+      "id": "e2e_p0_realtime_python_vs_cpp",
+      "priority": "P0",
+      "task_type": "realtime",
+      "executor_baseline": "python",
+      "sample_mode": "e2e",
+      "caps": ["CAP-YOLO-INFER", "CAP-ALERT-HOOK"],
+      "media_id": "people-detection",
+      "fixture": "fixtures/tasks/e2e_p0_realtime_python_vs_cpp.json",
+      "required_layers": ["L_lifecycle", "L_detect", "L_alarm", "L_e2e_alarm"],
+      "mock_hook_port": 18083,
+      "description": "同 fixture：冻结 python golden vs live cpp（candidate 无 python 热路径）"
+    },
+    {
+      "id": "perf_p0_realtime_latency",
+      "priority": "P0",
+      "task_type": "realtime",
+      "executor_baseline": "python",
+      "sample_mode": "platform",
+      "caps": ["CAP-PERF"],
+      "media_id": "people-detection",
+      "fixture": "fixtures/tasks/perf_p0_realtime_latency.json",
+      "required_layers": ["L_perf"],
+      "description": "L_perf：告警延迟/FPS/RSS 相对 thresholds 不劣于阈值"
     },
     {
       "id": "rt_p1_motion_gate",
       "priority": "P1",
       "task_type": "realtime",
       "executor_baseline": "python",
-      "caps": [
-        "CAP-MOTION-GATE"
-      ],
+      "caps": ["CAP-MOTION-GATE"],
       "media_id": "people-detection",
       "fixture": "fixtures/tasks/rt_p1_motion_gate.json",
-      "required_layers": [
-        "L_lifecycle",
-        "L_motion"
-      ],
+      "required_layers": ["L_lifecycle", "L_motion"],
       "motion_gate_preset": "sensitive",
       "description": "运动门控：无运动降频推理；Intel people-detection 连续运动样例"
     },
@@ -131,15 +160,10 @@
       "priority": "P1",
       "task_type": "realtime",
       "executor_baseline": "python",
-      "caps": [
-        "CAP-TRACKING"
-      ],
+      "caps": ["CAP-TRACKING"],
       "media_id": "one-by-one-person-detection",
       "fixture": "fixtures/tasks/rt_p1_tracking_stable.json",
-      "required_layers": [
-        "L_lifecycle",
-        "L_track"
-      ],
+      "required_layers": ["L_lifecycle", "L_track"],
       "description": "轻量追踪稳定 ID；Intel one-by-one-person 样例"
     },
     {
@@ -147,17 +171,10 @@
       "priority": "P1",
       "task_type": "realtime",
       "executor_baseline": "python",
-      "caps": [
-        "CAP-OVERLAY-DRAW",
-        "CAP-DRAW-OVERLAY"
-      ],
+      "caps": ["CAP-OVERLAY-DRAW", "CAP-DRAW-OVERLAY"],
       "media_id": "people-detection",
       "fixture": "fixtures/tasks/rt_p1_overlay_timing.json",
-      "required_layers": [
-        "L_lifecycle",
-        "L_overlay",
-        "L_detect"
-      ],
+      "required_layers": ["L_lifecycle", "L_overlay", "L_detect"],
       "description": "G-4.4 overlay 可见延迟 P95；不要求双队列 1:1"
     },
     {
@@ -165,32 +182,75 @@
       "priority": "P1",
       "task_type": "realtime",
       "executor_baseline": "python",
-      "caps": [
-        "CAP-RTMP-PUSH",
-        "CAP-FIXED-RATE-PUSH"
-      ],
+      "caps": ["CAP-RTMP-PUSH", "CAP-FIXED-RATE-PUSH"],
       "media_id": "people-detection",
       "fixture": "fixtures/tasks/rt_p1_rtmp_stream.json",
-      "required_layers": [
-        "L_lifecycle",
-        "L_stream"
-      ],
+      "required_layers": ["L_lifecycle", "L_stream"],
       "description": "G-4.4 RTMP 推流；ffprobe 分辨率/fps/码率档位"
+    },
+    {
+      "id": "rt_p1_alert_class",
+      "priority": "P1",
+      "task_type": "realtime",
+      "executor_baseline": "python",
+      "caps": ["CAP-ALERT-CLASS-FILTER"],
+      "media_id": "people-detection",
+      "fixture": "fixtures/tasks/rt_p1_alert_class.json",
+      "required_layers": ["L_lifecycle", "L_alarm"],
+      "mock_hook_port": 18084,
+      "alert_class_names": ["person"],
+      "description": "CAP-ALERT-CLASS-FILTER：仅 person 类可告警"
+    },
+    {
+      "id": "rt_p1_face_plate_filter",
+      "priority": "P1",
+      "task_type": "realtime",
+      "executor_baseline": "python",
+      "caps": ["CAP-FACE-FILTER", "CAP-PLATE-FILTER"],
+      "media_id": "people-detection",
+      "fixture": "fixtures/tasks/rt_p1_face_plate_filter.json",
+      "required_layers": ["L_lifecycle", "L_alarm"],
+      "mock_hook_port": 18085,
+      "face_detection_enabled": true,
+      "plate_detection_enabled": false,
+      "alert_class_names": ["person"],
+      "description": "CAP-FACE/PLATE-FILTER：关闭车牌类；person 告警仍绿"
+    },
+    {
+      "id": "rt_p1_multi_model",
+      "priority": "P1",
+      "task_type": "realtime",
+      "executor_baseline": "python",
+      "caps": ["CAP-MULTI-MODEL"],
+      "media_id": "people-detection",
+      "fixture": "fixtures/tasks/rt_p1_multi_model.json",
+      "required_layers": ["L_lifecycle", "L_detect"],
+      "extra_model_paths": ["RUNTIME/models/yolov11n.onnx"],
+      "description": "CAP-MULTI-MODEL：双 ONNX 串联（同模型二次 merge 证明链路）"
+    },
+    {
+      "id": "rt_p1_defense_armed",
+      "priority": "P1",
+      "task_type": "realtime",
+      "executor_baseline": "python",
+      "caps": ["CAP-DEFENSE"],
+      "media_id": "people-detection",
+      "fixture": "fixtures/tasks/rt_p1_defense_armed.json",
+      "required_layers": ["L_lifecycle", "L_alarm"],
+      "mock_hook_port": 18086,
+      "defense_mode": "half",
+      "defense_schedule_json": {"active": true},
+      "description": "CAP-DEFENSE：布防 active=true 时告警可发（禁止静默假支持）"
     },
     {
       "id": "snap_p0_cron_slot",
       "priority": "P0",
       "task_type": "snap",
       "executor_baseline": "python",
-      "caps": [
-        "CAP-CRON-SNAP"
-      ],
+      "caps": ["CAP-CRON-SNAP"],
       "media_id": "people-detection",
       "fixture": "fixtures/tasks/snap_p0_cron_slot.json",
-      "required_layers": [
-        "L_lifecycle",
-        "L_schedule"
-      ],
+      "required_layers": ["L_lifecycle", "L_schedule"],
       "cron_expression": "*/5 * * * * *",
       "description": "G-4.3 CAP-CRON-SNAP：东八区 6 段秒级 Cron 槽位"
     },
@@ -199,33 +259,35 @@
       "priority": "P0",
       "task_type": "snapshot",
       "executor_baseline": "python",
-      "caps": [
-        "CAP-ALERT-HOOK",
-        "CAP-ALERT-IMAGE"
-      ],
+      "caps": ["CAP-ALERT-HOOK", "CAP-ALERT-IMAGE"],
       "media_id": "people-detection",
       "fixture": "fixtures/tasks/snap_p0_alert_payload.json",
-      "required_layers": [
-        "L_lifecycle",
-        "L_alarm"
-      ],
+      "required_layers": ["L_lifecycle", "L_alarm"],
       "mock_hook_port": 18081,
       "description": "G-4.3 snap 告警 payload：task_type=snapshot"
+    },
+    {
+      "id": "snap_p1_snap_space",
+      "priority": "P1",
+      "task_type": "snap",
+      "executor_baseline": "python",
+      "sample_mode": "platform",
+      "caps": ["CAP-SNAP-SPACE"],
+      "media_id": "people-detection",
+      "fixture": "fixtures/tasks/snap_p1_snap_space.json",
+      "required_layers": ["L_schedule", "L_kafka"],
+      "cron_expression": "*/5 * * * * *",
+      "description": "CAP-SNAP-SPACE：VIDEO 帧后入库计数（不强制 C++ MinIO）"
     },
     {
       "id": "patrol_p0_pool_interval",
       "priority": "P0",
       "task_type": "patrol",
       "executor_baseline": "python",
-      "caps": [
-        "CAP-PATROL-POOL"
-      ],
+      "caps": ["CAP-PATROL-POOL"],
       "media_id": "one-by-one-person-detection",
       "fixture": "fixtures/tasks/patrol_p0_pool_interval.json",
-      "required_layers": [
-        "L_lifecycle",
-        "L_schedule"
-      ],
+      "required_layers": ["L_lifecycle", "L_schedule"],
       "patrol_mode": "pool",
       "patrol_interval_sec": 5,
       "patrol_pool_size": 2,
@@ -237,15 +299,10 @@
       "priority": "P0",
       "task_type": "patrol",
       "executor_baseline": "python",
-      "caps": [
-        "CAP-PATROL-PROGRESS",
-        "CAP-HEARTBEAT"
-      ],
+      "caps": ["CAP-PATROL-PROGRESS", "CAP-HEARTBEAT"],
       "media_id": "one-by-one-person-detection",
       "fixture": "fixtures/tasks/patrol_p0_heartbeat_progress.json",
-      "required_layers": [
-        "L_lifecycle"
-      ],
+      "required_layers": ["L_lifecycle"],
       "patrol_mode": "pool",
       "patrol_interval_sec": 3,
       "patrol_pool_size": 1,
@@ -257,21 +314,43 @@
       "priority": "P1",
       "task_type": "patrol",
       "executor_baseline": "python",
-      "caps": [
-        "CAP-PATROL-HYBRID"
-      ],
+      "caps": ["CAP-PATROL-HYBRID"],
       "media_id": "one-by-one-person-detection",
       "fixture": "fixtures/tasks/patrol_p1_hybrid_focus.json",
-      "required_layers": [
-        "L_lifecycle",
-        "L_schedule"
-      ],
+      "required_layers": ["L_lifecycle", "L_schedule"],
       "patrol_mode": "hybrid",
       "patrol_interval_sec": 6,
       "patrol_pool_size": 2,
       "focus_device_id": "dev_focus",
       "device_count": 3,
       "description": "G-4.3 CAP-PATROL-HYBRID：焦点半间隔 + 背景池"
+    },
+    {
+      "id": "patrol_p1_rotate_order",
+      "priority": "P1",
+      "task_type": "patrol",
+      "executor_baseline": "python",
+      "caps": ["CAP-PATROL-ROTATE"],
+      "media_id": "one-by-one-person-detection",
+      "fixture": "fixtures/tasks/patrol_p1_rotate_order.json",
+      "required_layers": ["L_lifecycle", "L_schedule"],
+      "patrol_mode": "rotate",
+      "patrol_interval_sec": 4,
+      "patrol_pool_size": 1,
+      "device_count": 3,
+      "description": "CAP-PATROL-ROTATE：顺序轮巡"
+    },
+    {
+      "id": "vid_p1_post_process_enqueue",
+      "priority": "P1",
+      "task_type": "video",
+      "executor_baseline": "cpp",
+      "sample_mode": "platform",
+      "caps": ["CAP-POST-PROCESS", "CAP-POSE"],
+      "media_id": "people-detection",
+      "fixture": "fixtures/tasks/vid_p1_post_process_enqueue.json",
+      "required_layers": ["L_post"],
+      "description": "VIDEO 帧后：post_process/pose enqueue（cpp hook 触发）"
     }
   ]
 }

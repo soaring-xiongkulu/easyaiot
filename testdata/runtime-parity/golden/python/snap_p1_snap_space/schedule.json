@@ -1,0 +1,29 @@
+{
+  "case_id": "snap_p1_snap_space",
+  "layer": "L_schedule",
+  "executor": "python",
+  "task_type": "snap",
+  "sampled_at": "2026-08-09T16:58:56",
+  "source": "platform_sample_snap_space",
+  "status": "sampled",
+  "slot_count": 2,
+  "patrol_count": 0,
+  "events": [
+    {
+      "kind": "snap",
+      "device_id": "dev_0",
+      "ts_unix": 1786294726.3679376
+    },
+    {
+      "kind": "snap",
+      "device_id": "dev_0",
+      "ts_unix": 1786294731.3679376
+    }
+  ],
+  "mean_interval_sec": 5.0,
+  "device_intervals": {
+    "dev_0": 5.0
+  },
+  "cron_expression": "*/5 * * * * *",
+  "snap_space_ingest_count": 2
+}

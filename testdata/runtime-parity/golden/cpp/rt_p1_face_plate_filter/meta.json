@@ -1,0 +1,54 @@
+{
+  "case_id": "rt_p1_face_plate_filter",
+  "executor": "cpp",
+  "required_layers": [
+    "L_lifecycle",
+    "L_alarm"
+  ],
+  "written_at": "2026-08-09T16:56:41",
+  "artifacts": [
+    "lifecycle.json",
+    "alarm.json"
+  ],
+  "runtime_boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": "cpu",
+    "duration_sec": 39.11,
+    "log_tail": [
+      "I20260810 00:56:26.180519 17020 Pipeline.cpp:287] [PIPELINE-PULL] reconnect success",
+      "W20260810 00:56:26.364768 34508 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "W20260810 00:56:27.006711 17020 Pipeline.cpp:272] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260810 00:56:27.006711 17020 Pipeline.cpp:278] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260810 00:56:28.019752 17020 Pipeline.cpp:196] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260810 00:56:28.019752 17020 Pipeline.cpp:287] [PIPELINE-PULL] reconnect success",
+      "W20260810 00:56:28.818516 17020 Pipeline.cpp:272] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260810 00:56:28.818516 17020 Pipeline.cpp:278] [PIPELINE-PULL] reconnect sleep 1s",
+      "W20260810 00:56:29.629240 34508 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "I20260810 00:56:29.834316 17020 Pipeline.cpp:196] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260810 00:56:29.834316 17020 Pipeline.cpp:287] [PIPELINE-PULL] reconnect success",
+      "W20260810 00:56:30.648370 17020 Pipeline.cpp:272] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260810 00:56:30.648370 17020 Pipeline.cpp:278] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260810 00:56:31.668409 17020 Pipeline.cpp:196] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260810 00:56:31.669409 17020 Pipeline.cpp:287] [PIPELINE-PULL] reconnect success",
+      "W20260810 00:56:32.908627 17020 Pipeline.cpp:272] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260810 00:56:32.908627 17020 Pipeline.cpp:278] [PIPELINE-PULL] reconnect sleep 1s",
+      "W20260810 00:56:32.936147 34508 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "I20260810 00:56:33.921314 17020 Pipeline.cpp:196] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260810 00:56:33.922333 17020 Pipeline.cpp:287] [PIPELINE-PULL] reconnect success",
+      "W20260810 00:56:34.713975 17020 Pipeline.cpp:272] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260810 00:56:34.715034 17020 Pipeline.cpp:278] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260810 00:56:35.726181 17020 Pipeline.cpp:196] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260810 00:56:35.727313 17020 Pipeline.cpp:287] [PIPELINE-PULL] reconnect success",
+      "W20260810 00:56:36.202493 34508 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "W20260810 00:56:36.519486 17020 Pipeline.cpp:272] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260810 00:56:36.519486 17020 Pipeline.cpp:278] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260810 00:56:37.530982 17020 Pipeline.cpp:196] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260810 00:56:37.531981 17020 Pipeline.cpp:287] [PIPELINE-PULL] reconnect success",
+      "W20260810 00:56:38.367172 17020 Pipeline.cpp:272] [PIPELINE-PULL] EOF, attempting reconnect"
+    ],
+    "ffprobe": null
+  },
+  "heartbeat_count": 12,
+  "hook_count": 1
+}

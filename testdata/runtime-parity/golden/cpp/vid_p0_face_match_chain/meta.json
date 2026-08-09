@@ -1,0 +1,12 @@
+{
+  "case_id": "vid_p0_face_match_chain",
+  "executor": "cpp",
+  "required_layers": [
+    "L_face"
+  ],
+  "written_at": "2026-08-09T16:58:56",
+  "artifacts": [
+    "face_match.json"
+  ],
+  "sample_mode": "platform"
+}

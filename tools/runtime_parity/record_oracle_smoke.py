@@ -29,11 +29,16 @@ P0_CASES = {
     "rt_p0_detect_single_onnx",
     "rt_p0_heartbeat_lifecycle",
     "rt_p0_alert_hook_roi",
+    "e2e_p0_realtime_python_vs_cpp",
 }
 
 P1_G42_CASES = {
     "rt_p1_motion_gate",
     "rt_p1_tracking_stable",
+    "rt_p1_alert_class",
+    "rt_p1_face_plate_filter",
+    "rt_p1_multi_model",
+    "rt_p1_defense_armed",
 }
 
 P0_G43_CASES = {
@@ -42,6 +47,7 @@ P0_G43_CASES = {
     "patrol_p0_pool_interval",
     "patrol_p0_heartbeat_progress",
     "patrol_p1_hybrid_focus",
+    "patrol_p1_rotate_order",
 }
 
 SYNTHETIC_BBOX = [200, 150, 440, 330]
@@ -548,7 +554,11 @@ class CaseRecording:
 
 
 def _record_case(case: CaseSpec, root: Path, manifest: Dict[str, Any], *, engine: str = "auto") -> CaseRecording:
-    needs_detect = "L_detect" in case.required_layers or "L_alarm" in case.required_layers
+    needs_detect = (
+        "L_detect" in case.required_layers
+        or "L_alarm" in case.required_layers
+        or "L_e2e_alarm" in case.required_layers
+    )
     det: Optional[DetectionRun] = None
     if needs_detect:
         media = _media_path(case, root, manifest)
@@ -583,6 +593,12 @@ def _write_case_golden(case: CaseSpec, root: Path, manifest: Dict[str, Any], *, 
         if rec.det is None:
             raise RuntimeError(f"case {case.id} requires detection for alarm layer")
         return _alarm_payload(case, rec.det)
+
+    def e2e_alarm() -> Dict[str, Any]:
+        payload = alarm()
+        payload["layer"] = "L_e2e_alarm"
+        payload["e2e"] = True
+        return payload
 
     def motion() -> Dict[str, Any]:
         media = _media_path(case, root, manifest)
@@ -669,6 +685,7 @@ def _write_case_golden(case: CaseSpec, root: Path, manifest: Dict[str, Any], *, 
         "L_lifecycle": lifecycle,
         "L_detect": detect,
         "L_alarm": alarm,
+        "L_e2e_alarm": e2e_alarm,
         "L_motion": motion,
         "L_track": track,
         "L_schedule": schedule,

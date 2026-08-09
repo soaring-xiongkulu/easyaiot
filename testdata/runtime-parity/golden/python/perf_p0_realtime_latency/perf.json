@@ -1,0 +1,16 @@
+{
+  "case_id": "perf_p0_realtime_latency",
+  "layer": "L_perf",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:58:56",
+  "source": "platform_sample_perf",
+  "status": "sampled",
+  "alert_latency_p50_ms": 40.0,
+  "alert_latency_p95_ms": 90.0,
+  "fps": 22.0,
+  "cpu_percent": 35.0,
+  "rss_mb": 420.0,
+  "gpu_mem_mb": 0.0,
+  "sample_sec": 20
+}

@@ -1,0 +1,24 @@
+{
+  "case_id": "e2e_p0_realtime_python_vs_cpp",
+  "executor": "python",
+  "required_layers": [
+    "L_lifecycle",
+    "L_detect",
+    "L_alarm",
+    "L_e2e_alarm"
+  ],
+  "written_at": "2026-08-09T16:48:43",
+  "recording": "oracle_smoke",
+  "source": "oracle_smoke_onnx",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "artifacts": [
+    "lifecycle.json",
+    "detect.json",
+    "alarm.json",
+    "e2e_alarm.json"
+  ],
+  "limitations": "Local Intel sample-video ONNX inference; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "model": "F:\\acme\\RUNTIME\\models\\yolov11n.onnx",
+  "synthetic": false
+}

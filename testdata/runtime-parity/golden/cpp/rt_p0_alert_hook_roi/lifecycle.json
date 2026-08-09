@@ -3,99 +3,99 @@
   "layer": "L_lifecycle",
   "executor": "cpp",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T14:53:41",
+  "sampled_at": "2026-08-09T16:54:21",
   "source": "runtime_parity_gate_cpp_sample",
   "status": "sampled",
   "boot": {
     "started": true,
     "exit_code": 1,
     "infer_ep": "cpu",
-    "duration_sec": 38.22
+    "duration_sec": 39.31
   },
   "heartbeats": [
     {
       "seq": 1,
-      "task_id": 86056,
-      "process_id": 3776,
+      "task_id": 13399,
+      "process_id": 23620,
       "log_path": "logs/cpp_sample/rt_p0_alert_hook_roi",
-      "timestamp_unix": 1786287180.9373083
+      "timestamp_unix": 1786294419.140803
     },
     {
       "seq": 2,
-      "task_id": 86056,
-      "process_id": 3776,
+      "task_id": 13399,
+      "process_id": 23620,
       "log_path": "logs/cpp_sample/rt_p0_alert_hook_roi",
-      "timestamp_unix": 1786287184.209774
+      "timestamp_unix": 1786294422.413972
     },
     {
       "seq": 3,
-      "task_id": 86056,
-      "process_id": 3776,
+      "task_id": 13399,
+      "process_id": 23620,
       "log_path": "logs/cpp_sample/rt_p0_alert_hook_roi",
-      "timestamp_unix": 1786287187.4977977
+      "timestamp_unix": 1786294425.6934226
     },
     {
       "seq": 4,
-      "task_id": 86056,
-      "process_id": 3776,
+      "task_id": 13399,
+      "process_id": 23620,
       "log_path": "logs/cpp_sample/rt_p0_alert_hook_roi",
-      "timestamp_unix": 1786287190.7614005
+      "timestamp_unix": 1786294428.9664035
     },
     {
       "seq": 5,
-      "task_id": 86056,
-      "process_id": 3776,
+      "task_id": 13399,
+      "process_id": 23620,
       "log_path": "logs/cpp_sample/rt_p0_alert_hook_roi",
-      "timestamp_unix": 1786287194.026568
+      "timestamp_unix": 1786294432.22491
     },
     {
       "seq": 6,
-      "task_id": 86056,
-      "process_id": 3776,
+      "task_id": 13399,
+      "process_id": 23620,
       "log_path": "logs/cpp_sample/rt_p0_alert_hook_roi",
-      "timestamp_unix": 1786287197.2915332
+      "timestamp_unix": 1786294435.569622
     },
     {
       "seq": 7,
-      "task_id": 86056,
-      "process_id": 3776,
+      "task_id": 13399,
+      "process_id": 23620,
       "log_path": "logs/cpp_sample/rt_p0_alert_hook_roi",
-      "timestamp_unix": 1786287200.5632057
+      "timestamp_unix": 1786294438.8431787
     },
     {
       "seq": 8,
-      "task_id": 86056,
-      "process_id": 3776,
+      "task_id": 13399,
+      "process_id": 23620,
       "log_path": "logs/cpp_sample/rt_p0_alert_hook_roi",
-      "timestamp_unix": 1786287203.821986
+      "timestamp_unix": 1786294442.1226099
     },
     {
       "seq": 9,
-      "task_id": 86056,
-      "process_id": 3776,
+      "task_id": 13399,
+      "process_id": 23620,
       "log_path": "logs/cpp_sample/rt_p0_alert_hook_roi",
-      "timestamp_unix": 1786287207.1060035
+      "timestamp_unix": 1786294445.3906984
     },
     {
       "seq": 10,
-      "task_id": 86056,
-      "process_id": 3776,
+      "task_id": 13399,
+      "process_id": 23620,
       "log_path": "logs/cpp_sample/rt_p0_alert_hook_roi",
-      "timestamp_unix": 1786287210.3943746
+      "timestamp_unix": 1786294448.694084
     },
     {
       "seq": 11,
-      "task_id": 86056,
-      "process_id": 3776,
+      "task_id": 13399,
+      "process_id": 23620,
       "log_path": "logs/cpp_sample/rt_p0_alert_hook_roi",
-      "timestamp_unix": 1786287213.6545162
+      "timestamp_unix": 1786294451.9454143
     },
     {
       "seq": 12,
-      "task_id": 86056,
-      "process_id": 3776,
+      "task_id": 13399,
+      "process_id": 23620,
       "log_path": "logs/cpp_sample/rt_p0_alert_hook_roi",
-      "timestamp_unix": 1786287216.9425197
+      "timestamp_unix": 1786294455.2983189
     }
   ],
   "heartbeat_count": 12,

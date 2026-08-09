@@ -129,6 +129,47 @@ def skeleton_for_layer(layer: str, case: CaseSpec, executor: str) -> Dict[str, A
             "ffprobe": {},
             "_note": "RTMP stream profile via encoder meta + ffprobe",
         }
+    if layer == "L_kafka":
+        return {
+            **base,
+            "status": "placeholder",
+            "topic": "",
+            "events": [],
+            "publish_count": 0,
+            "suppress_count": 0,
+        }
+    if layer == "L_face":
+        return {
+            **base,
+            "status": "placeholder",
+            "publish_count": 0,
+            "process_count": 0,
+            "hit_count": 0,
+        }
+    if layer == "L_post":
+        return {
+            **base,
+            "status": "placeholder",
+            "enqueue_count": 0,
+        }
+    if layer == "L_perf":
+        return {
+            **base,
+            "status": "placeholder",
+            "alert_latency_p50_ms": 0.0,
+            "alert_latency_p95_ms": 0.0,
+            "fps": 0.0,
+            "cpu_percent": 0.0,
+            "rss_mb": 0.0,
+        }
+    if layer == "L_e2e_alarm":
+        return {
+            **base,
+            "status": "placeholder",
+            "alerts": [],
+            "alert_count": 0,
+            "e2e": True,
+        }
     return {**base, "status": "placeholder", "_note": f"Layer {layer} MVP skeleton"}
 
 

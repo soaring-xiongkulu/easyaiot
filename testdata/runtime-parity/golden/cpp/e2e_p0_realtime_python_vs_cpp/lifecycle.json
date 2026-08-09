@@ -1,0 +1,107 @@
+{
+  "case_id": "e2e_p0_realtime_python_vs_cpp",
+  "layer": "L_lifecycle",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:55:13",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled",
+  "boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": "cpu",
+    "duration_sec": 39.17
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": 64957,
+      "process_id": 41276,
+      "log_path": "logs/cpp_sample/e2e_p0_realtime_python_vs_cpp",
+      "timestamp_unix": 1786294472.3195856
+    },
+    {
+      "seq": 2,
+      "task_id": 64957,
+      "process_id": 41276,
+      "log_path": "logs/cpp_sample/e2e_p0_realtime_python_vs_cpp",
+      "timestamp_unix": 1786294475.6145594
+    },
+    {
+      "seq": 3,
+      "task_id": 64957,
+      "process_id": 41276,
+      "log_path": "logs/cpp_sample/e2e_p0_realtime_python_vs_cpp",
+      "timestamp_unix": 1786294478.8924587
+    },
+    {
+      "seq": 4,
+      "task_id": 64957,
+      "process_id": 41276,
+      "log_path": "logs/cpp_sample/e2e_p0_realtime_python_vs_cpp",
+      "timestamp_unix": 1786294482.1698909
+    },
+    {
+      "seq": 5,
+      "task_id": 64957,
+      "process_id": 41276,
+      "log_path": "logs/cpp_sample/e2e_p0_realtime_python_vs_cpp",
+      "timestamp_unix": 1786294485.4349003
+    },
+    {
+      "seq": 6,
+      "task_id": 64957,
+      "process_id": 41276,
+      "log_path": "logs/cpp_sample/e2e_p0_realtime_python_vs_cpp",
+      "timestamp_unix": 1786294488.702614
+    },
+    {
+      "seq": 7,
+      "task_id": 64957,
+      "process_id": 41276,
+      "log_path": "logs/cpp_sample/e2e_p0_realtime_python_vs_cpp",
+      "timestamp_unix": 1786294491.9833338
+    },
+    {
+      "seq": 8,
+      "task_id": 64957,
+      "process_id": 41276,
+      "log_path": "logs/cpp_sample/e2e_p0_realtime_python_vs_cpp",
+      "timestamp_unix": 1786294495.251483
+    },
+    {
+      "seq": 9,
+      "task_id": 64957,
+      "process_id": 41276,
+      "log_path": "logs/cpp_sample/e2e_p0_realtime_python_vs_cpp",
+      "timestamp_unix": 1786294498.5358372
+    },
+    {
+      "seq": 10,
+      "task_id": 64957,
+      "process_id": 41276,
+      "log_path": "logs/cpp_sample/e2e_p0_realtime_python_vs_cpp",
+      "timestamp_unix": 1786294501.8100655
+    },
+    {
+      "seq": 11,
+      "task_id": 64957,
+      "process_id": 41276,
+      "log_path": "logs/cpp_sample/e2e_p0_realtime_python_vs_cpp",
+      "timestamp_unix": 1786294505.08951
+    },
+    {
+      "seq": 12,
+      "task_id": 64957,
+      "process_id": 41276,
+      "log_path": "logs/cpp_sample/e2e_p0_realtime_python_vs_cpp",
+      "timestamp_unix": 1786294508.421603
+    }
+  ],
+  "heartbeat_count": 12,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

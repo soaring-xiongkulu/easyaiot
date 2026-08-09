@@ -1,0 +1,12 @@
+{
+  "case_id": "perf_p0_realtime_latency",
+  "executor": "cpp",
+  "required_layers": [
+    "L_perf"
+  ],
+  "written_at": "2026-08-09T16:58:56",
+  "artifacts": [
+    "perf.json"
+  ],
+  "sample_mode": "platform"
+}

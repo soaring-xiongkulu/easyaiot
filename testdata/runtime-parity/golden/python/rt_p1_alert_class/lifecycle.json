@@ -1,0 +1,107 @@
+{
+  "case_id": "rt_p1_alert_class",
+  "layer": "L_lifecycle",
+  "executor": "python",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:48:47",
+  "source": "oracle_smoke_onnx",
+  "status": "recorded",
+  "oracle_root": "F:\\acme",
+  "limitations": "Local Intel sample-video ONNX inference; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "boot": {
+    "exit_code": 0,
+    "started": true
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": "rt_p1_alert_class_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_alert_class/runtime.log",
+      "timestamp_unix": 1786294007.1593368
+    },
+    {
+      "seq": 2,
+      "task_id": "rt_p1_alert_class_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_alert_class/runtime.log",
+      "timestamp_unix": 1786294017.1593368
+    },
+    {
+      "seq": 3,
+      "task_id": "rt_p1_alert_class_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_alert_class/runtime.log",
+      "timestamp_unix": 1786294027.1593368
+    },
+    {
+      "seq": 4,
+      "task_id": "rt_p1_alert_class_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_alert_class/runtime.log",
+      "timestamp_unix": 1786294037.1593368
+    },
+    {
+      "seq": 5,
+      "task_id": "rt_p1_alert_class_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_alert_class/runtime.log",
+      "timestamp_unix": 1786294047.1593368
+    },
+    {
+      "seq": 6,
+      "task_id": "rt_p1_alert_class_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_alert_class/runtime.log",
+      "timestamp_unix": 1786294057.1593368
+    },
+    {
+      "seq": 7,
+      "task_id": "rt_p1_alert_class_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_alert_class/runtime.log",
+      "timestamp_unix": 1786294067.1593368
+    },
+    {
+      "seq": 8,
+      "task_id": "rt_p1_alert_class_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_alert_class/runtime.log",
+      "timestamp_unix": 1786294077.1593368
+    },
+    {
+      "seq": 9,
+      "task_id": "rt_p1_alert_class_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_alert_class/runtime.log",
+      "timestamp_unix": 1786294087.1593368
+    },
+    {
+      "seq": 10,
+      "task_id": "rt_p1_alert_class_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_alert_class/runtime.log",
+      "timestamp_unix": 1786294097.1593368
+    },
+    {
+      "seq": 11,
+      "task_id": "rt_p1_alert_class_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_alert_class/runtime.log",
+      "timestamp_unix": 1786294107.1593368
+    },
+    {
+      "seq": 12,
+      "task_id": "rt_p1_alert_class_smoke",
+      "process_id": 42420,
+      "log_path": "logs/rt_p1_alert_class/runtime.log",
+      "timestamp_unix": 1786294117.1593368
+    }
+  ],
+  "heartbeat_count": 12,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

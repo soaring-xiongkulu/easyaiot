@@ -1,0 +1,76 @@
+{
+  "case_id": "patrol_p1_rotate_order",
+  "layer": "L_schedule",
+  "executor": "cpp",
+  "task_type": "patrol",
+  "sampled_at": "2026-08-09T16:58:22",
+  "source": "runtime_parity_gate_cpp_parity_sample",
+  "status": "sampled",
+  "cron_expression": null,
+  "slot_count": 0,
+  "patrol_count": 8,
+  "events": [
+    {
+      "device_id": "dev_0",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786294680
+    },
+    {
+      "device_id": "dev_1",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786294683
+    },
+    {
+      "device_id": "dev_2",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786294686
+    },
+    {
+      "device_id": "dev_0",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786294689
+    },
+    {
+      "device_id": "dev_1",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786294692
+    },
+    {
+      "device_id": "dev_2",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786294695
+    },
+    {
+      "device_id": "dev_0",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786294698
+    },
+    {
+      "device_id": "dev_1",
+      "kind": "patrol",
+      "slot_key": "",
+      "unix_ts": 1786294701
+    }
+  ],
+  "mean_interval_sec": 9.0,
+  "device_intervals": {
+    "dev_0": [
+      9.0,
+      9.0
+    ],
+    "dev_1": [
+      9.0,
+      9.0
+    ],
+    "dev_2": [
+      9.0
+    ]
+  }
+}

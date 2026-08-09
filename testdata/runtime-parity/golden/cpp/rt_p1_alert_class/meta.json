@@ -1,0 +1,54 @@
+{
+  "case_id": "rt_p1_alert_class",
+  "executor": "cpp",
+  "required_layers": [
+    "L_lifecycle",
+    "L_alarm"
+  ],
+  "written_at": "2026-08-09T16:55:57",
+  "artifacts": [
+    "lifecycle.json",
+    "alarm.json"
+  ],
+  "runtime_boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": "cpu",
+    "duration_sec": 38.95,
+    "log_tail": [
+      "I20260810 00:55:44.419256  5924 Pipeline.cpp:287] [PIPELINE-PULL] reconnect success",
+      "W20260810 00:55:45.251246  5924 Pipeline.cpp:272] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260810 00:55:45.251246  5924 Pipeline.cpp:278] [PIPELINE-PULL] reconnect sleep 1s",
+      "W20260810 00:55:46.079542 25928 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "I20260810 00:55:46.273720  5924 Pipeline.cpp:196] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260810 00:55:46.273720  5924 Pipeline.cpp:287] [PIPELINE-PULL] reconnect success",
+      "W20260810 00:55:47.143177  5924 Pipeline.cpp:272] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260810 00:55:47.144747  5924 Pipeline.cpp:278] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260810 00:55:48.164373  5924 Pipeline.cpp:196] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260810 00:55:48.165371  5924 Pipeline.cpp:287] [PIPELINE-PULL] reconnect success",
+      "W20260810 00:55:49.126273  5924 Pipeline.cpp:272] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260810 00:55:49.126273  5924 Pipeline.cpp:278] [PIPELINE-PULL] reconnect sleep 1s",
+      "W20260810 00:55:49.352622 25928 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "I20260810 00:55:50.139750  5924 Pipeline.cpp:196] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260810 00:55:50.140748  5924 Pipeline.cpp:287] [PIPELINE-PULL] reconnect success",
+      "I20260810 00:55:50.175338 35344 Detech.cpp:1163] [ALARM] Alarm enqueued, queue size: 1",
+      "I20260810 00:55:50.175338 41756 Detech.cpp:913] [ALARM-THREAD] Dequeued alarm, remaining in queue: 0",
+      "I20260810 00:55:50.175338 41756 Detech.cpp:998] [ALARM-THREAD] Sending VIDEO hook to: http://127.0.0.1:63035/alert",
+      "E20260810 00:55:50.177990 41756 Detech.cpp:1003] [ALARM-THREAD] VIDEO hook failed",
+      "E20260810 00:55:50.177990 41756 Detech.cpp:1007]   Network error or timeout",
+      "W20260810 00:55:50.951929  5924 Pipeline.cpp:272] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260810 00:55:50.951929  5924 Pipeline.cpp:278] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260810 00:55:51.960160  5924 Pipeline.cpp:196] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260810 00:55:51.961038  5924 Pipeline.cpp:287] [PIPELINE-PULL] reconnect success",
+      "W20260810 00:55:52.626524 25928 Detech.cpp:1089] [HEARTBEAT] post failed status=-1",
+      "W20260810 00:55:52.763500  5924 Pipeline.cpp:272] [PIPELINE-PULL] EOF, attempting reconnect",
+      "I20260810 00:55:52.764510  5924 Pipeline.cpp:278] [PIPELINE-PULL] reconnect sleep 1s",
+      "I20260810 00:55:53.782423  5924 Pipeline.cpp:196] [PIPELINE] reopened stream 768x432@12fps",
+      "I20260810 00:55:53.782423  5924 Pipeline.cpp:287] [PIPELINE-PULL] reconnect success",
+      "W20260810 00:55:54.588459  5924 Pipeline.cpp:272] [PIPELINE-PULL] EOF, attempting reconnect"
+    ],
+    "ffprobe": null
+  },
+  "heartbeat_count": 12,
+  "hook_count": 1
+}

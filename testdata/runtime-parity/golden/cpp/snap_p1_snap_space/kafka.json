@@ -1,0 +1,27 @@
+{
+  "case_id": "snap_p1_snap_space",
+  "layer": "L_kafka",
+  "executor": "cpp",
+  "task_type": "snap",
+  "sampled_at": "2026-08-09T16:58:56",
+  "source": "platform_sample_snap_space",
+  "status": "sampled",
+  "topic": "snap-space",
+  "events": [
+    {
+      "seq": 1,
+      "device_id": "dev_0",
+      "space_code": "snap_parity",
+      "ingested": true
+    },
+    {
+      "seq": 2,
+      "device_id": "dev_0",
+      "space_code": "snap_parity",
+      "ingested": true
+    }
+  ],
+  "publish_count": 2,
+  "suppress_count": 0,
+  "snap_space_code": "snap_parity"
+}

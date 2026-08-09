@@ -1,0 +1,14 @@
+{
+  "case_id": "snap_p1_snap_space",
+  "executor": "cpp",
+  "required_layers": [
+    "L_schedule",
+    "L_kafka"
+  ],
+  "written_at": "2026-08-09T16:58:56",
+  "artifacts": [
+    "schedule.json",
+    "kafka.json"
+  ],
+  "sample_mode": "platform"
+}

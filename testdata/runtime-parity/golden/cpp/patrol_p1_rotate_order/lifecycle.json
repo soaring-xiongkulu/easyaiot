@@ -1,0 +1,176 @@
+{
+  "case_id": "patrol_p1_rotate_order",
+  "layer": "L_lifecycle",
+  "executor": "cpp",
+  "task_type": "patrol",
+  "sampled_at": "2026-08-09T16:58:22",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled",
+  "boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": null,
+    "duration_sec": 25.2
+  },
+  "heartbeats": [
+    {
+      "seq": 2,
+      "task_id": 84969,
+      "process_id": 21892,
+      "log_path": "logs/cpp_sample/patrol_p1_rotate_order",
+      "timestamp_unix": 1786294683.6035182,
+      "total_patrols": 2,
+      "total_detections": 0,
+      "progress": {
+        "dev_0": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:00Z",
+          "last_result": "ok"
+        },
+        "dev_1": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:03Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 3,
+      "task_id": 84969,
+      "process_id": 21892,
+      "log_path": "logs/cpp_sample/patrol_p1_rotate_order",
+      "timestamp_unix": 1786294686.8822796,
+      "total_patrols": 3,
+      "total_detections": 0,
+      "progress": {
+        "dev_0": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:00Z",
+          "last_result": "ok"
+        },
+        "dev_1": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:03Z",
+          "last_result": "ok"
+        },
+        "dev_2": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:06Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 4,
+      "task_id": 84969,
+      "process_id": 21892,
+      "log_path": "logs/cpp_sample/patrol_p1_rotate_order",
+      "timestamp_unix": 1786294690.1493335,
+      "total_patrols": 4,
+      "total_detections": 0,
+      "progress": {
+        "dev_0": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:09Z",
+          "last_result": "ok"
+        },
+        "dev_1": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:03Z",
+          "last_result": "ok"
+        },
+        "dev_2": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:06Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 5,
+      "task_id": 84969,
+      "process_id": 21892,
+      "log_path": "logs/cpp_sample/patrol_p1_rotate_order",
+      "timestamp_unix": 1786294693.4156754,
+      "total_patrols": 5,
+      "total_detections": 0,
+      "progress": {
+        "dev_0": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:09Z",
+          "last_result": "ok"
+        },
+        "dev_1": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:12Z",
+          "last_result": "ok"
+        },
+        "dev_2": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:06Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 6,
+      "task_id": 84969,
+      "process_id": 21892,
+      "log_path": "logs/cpp_sample/patrol_p1_rotate_order",
+      "timestamp_unix": 1786294696.685616,
+      "total_patrols": 6,
+      "total_detections": 0,
+      "progress": {
+        "dev_0": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:09Z",
+          "last_result": "ok"
+        },
+        "dev_1": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:12Z",
+          "last_result": "ok"
+        },
+        "dev_2": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:15Z",
+          "last_result": "ok"
+        }
+      }
+    },
+    {
+      "seq": 7,
+      "task_id": 84969,
+      "process_id": 21892,
+      "log_path": "logs/cpp_sample/patrol_p1_rotate_order",
+      "timestamp_unix": 1786294699.9440093,
+      "total_patrols": 7,
+      "total_detections": 0,
+      "progress": {
+        "dev_0": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:18Z",
+          "last_result": "ok"
+        },
+        "dev_1": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:12Z",
+          "last_result": "ok"
+        },
+        "dev_2": {
+          "detection_count": "0",
+          "last_patrol_at": "2026-08-09T16:58:15Z",
+          "last_result": "ok"
+        }
+      }
+    }
+  ],
+  "heartbeat_count": 6,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path",
+    "total_patrols",
+    "total_detections"
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "case_id": "rt_p1_alert_class",
+  "layer": "L_lifecycle",
+  "executor": "cpp",
+  "task_type": "realtime",
+  "sampled_at": "2026-08-09T16:55:57",
+  "source": "runtime_parity_gate_cpp_sample",
+  "status": "sampled",
+  "boot": {
+    "started": true,
+    "exit_code": 1,
+    "infer_ep": "cpu",
+    "duration_sec": 38.95
+  },
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": 47983,
+      "process_id": 41508,
+      "log_path": "logs/cpp_sample/rt_p1_alert_class",
+      "timestamp_unix": 1786294516.5012212
+    },
+    {
+      "seq": 2,
+      "task_id": 47983,
+      "process_id": 41508,
+      "log_path": "logs/cpp_sample/rt_p1_alert_class",
+      "timestamp_unix": 1786294519.8418343
+    },
+    {
+      "seq": 3,
+      "task_id": 47983,
+      "process_id": 41508,
+      "log_path": "logs/cpp_sample/rt_p1_alert_class",
+      "timestamp_unix": 1786294523.1515834
+    },
+    {
+      "seq": 4,
+      "task_id": 47983,
+      "process_id": 41508,
+      "log_path": "logs/cpp_sample/rt_p1_alert_class",
+      "timestamp_unix": 1786294526.4209476
+    },
+    {
+      "seq": 5,
+      "task_id": 47983,
+      "process_id": 41508,
+      "log_path": "logs/cpp_sample/rt_p1_alert_class",
+      "timestamp_unix": 1786294529.6839447
+    },
+    {
+      "seq": 6,
+      "task_id": 47983,
+      "process_id": 41508,
+      "log_path": "logs/cpp_sample/rt_p1_alert_class",
+      "timestamp_unix": 1786294532.9663126
+    },
+    {
+      "seq": 7,
+      "task_id": 47983,
+      "process_id": 41508,
+      "log_path": "logs/cpp_sample/rt_p1_alert_class",
+      "timestamp_unix": 1786294536.2283223
+    },
+    {
+      "seq": 8,
+      "task_id": 47983,
+      "process_id": 41508,
+      "log_path": "logs/cpp_sample/rt_p1_alert_class",
+      "timestamp_unix": 1786294539.5079331
+    },
+    {
+      "seq": 9,
+      "task_id": 47983,
+      "process_id": 41508,
+      "log_path": "logs/cpp_sample/rt_p1_alert_class",
+      "timestamp_unix": 1786294542.7936795
+    },
+    {
+      "seq": 10,
+      "task_id": 47983,
+      "process_id": 41508,
+      "log_path": "logs/cpp_sample/rt_p1_alert_class",
+      "timestamp_unix": 1786294546.0795436
+    },
+    {
+      "seq": 11,
+      "task_id": 47983,
+      "process_id": 41508,
+      "log_path": "logs/cpp_sample/rt_p1_alert_class",
+      "timestamp_unix": 1786294549.3524368
+    },
+    {
+      "seq": 12,
+      "task_id": 47983,
+      "process_id": 41508,
+      "log_path": "logs/cpp_sample/rt_p1_alert_class",
+      "timestamp_unix": 1786294552.6265252
+    }
+  ],
+  "heartbeat_count": 12,
+  "fields_expected": [
+    "task_id",
+    "process_id",
+    "log_path"
+  ]
+}

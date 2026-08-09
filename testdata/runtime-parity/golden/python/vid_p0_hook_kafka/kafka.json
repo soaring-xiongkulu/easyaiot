@@ -1,0 +1,46 @@
+{
+  "case_id": "vid_p0_hook_kafka",
+  "layer": "L_kafka",
+  "executor": "python",
+  "task_type": "video",
+  "sampled_at": "2026-08-09T16:58:55",
+  "source": "platform_sample_mock_kafka",
+  "status": "sampled",
+  "topic": "alert-events",
+  "events": [
+    {
+      "seq": 1,
+      "topic": "alert-events",
+      "device_id": "dev_parity",
+      "task_id": "vid_p0_hook_kafka",
+      "suppressed": false,
+      "face_detection_enabled": true,
+      "keys": [
+        "device_id",
+        "task_id",
+        "event",
+        "information",
+        "image_path"
+      ]
+    },
+    {
+      "seq": 2,
+      "topic": "alert-events",
+      "device_id": "dev_parity",
+      "task_id": "vid_p0_hook_kafka",
+      "suppressed": true,
+      "suppress_reason": "alert_event_suppress_interval",
+      "face_detection_enabled": true,
+      "keys": [
+        "device_id",
+        "task_id",
+        "event",
+        "information",
+        "image_path"
+      ]
+    }
+  ],
+  "publish_count": 1,
+  "suppress_count": 1,
+  "faceDetectionEnabled": true
+}

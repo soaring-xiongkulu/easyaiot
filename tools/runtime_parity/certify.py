@@ -82,6 +82,13 @@ def certify_case(case_id: str, profile: Optional[str] = None) -> Dict[str, Any]:
     thresholds_data = load_thresholds(root)
     case = find_case(manifest, case_id)
 
+    # Platform / perf: re-sample before diff (fast mocks; keeps golden fresh)
+    sample_mode = str(case.raw.get("sample_mode") or "")
+    if sample_mode == "platform" or case_id.startswith("vid_") or case_id.startswith("perf_"):
+        from .platform_sample import run_platform_case
+
+        run_platform_case(case)
+
     py_base = golden_dir("python", case_id, root)
     cpp_base = golden_dir("cpp", case_id, root)
 

@@ -1,9 +1,9 @@
 {
-  "case_id": "rt_p0_alert_hook_roi",
+  "case_id": "rt_p1_defense_armed",
   "layer": "L_alarm",
   "executor": "cpp",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T16:54:21",
+  "sampled_at": "2026-08-09T16:57:54",
   "source": "runtime_parity_gate_cpp_hook",
   "status": "sampled",
   "hook_url": "mock://127.0.0.1/alerts=1",
@@ -12,13 +12,13 @@
       "seq": 1,
       "alert_type": "roi_confidence",
       "bbox_xyxy": [
-        152.0,
-        62.0,
-        275.0,
-        271.0
+        128.0,
+        60.0,
+        271.0,
+        263.0
       ],
       "class": "person",
-      "confidence": 0.8867,
+      "confidence": 0.9075,
       "in_roi": true,
       "cooldown_applied": false
     }
@@ -26,18 +26,18 @@
   "alert_count": 1,
   "hook_payloads": [
     {
-      "correlation_id": "13399_2026-08-09T16:54:14Z",
+      "correlation_id": "59775_2026-08-09T16:57:14Z",
       "device_id": "cpp_sample",
-      "device_name": "rt_p0_alert_hook_roi",
+      "device_name": "rt_p1_defense_armed",
       "event": "detection",
       "face_detection_enabled": true,
-      "image_path": "logs/cpp_sample/alerts/alert_13399_1786294454241.jpg",
-      "information": "{\"detection_count\":1,\"detections\":[{\"bbox\":[152,62,275,271],\"class_id\":0,\"class_name\":\"person\",\"confidence\":0.88665306568145752}],\"region\":\"default\",\"runtime_ts_ms\":1786294454251,\"task_id\":\"13399\"}",
+      "image_path": "logs/cpp_sample/alerts/alert_59775_1786294634525.jpg",
+      "information": "{\"detection_count\":1,\"detections\":[{\"bbox\":[128,60,271,263],\"class_id\":0,\"class_name\":\"person\",\"confidence\":0.90748655796051025}],\"region\":\"default\",\"runtime_ts_ms\":1786294634534,\"task_id\":\"59775\"}",
       "object": "person",
       "plate_detection_enabled": true,
       "region": "default",
       "task_type": "realtime",
-      "time": "2026-08-09T16:54:14Z"
+      "time": "2026-08-09T16:57:14Z"
     }
   ]
 }

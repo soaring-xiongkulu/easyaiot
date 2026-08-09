@@ -206,8 +206,8 @@ enable_draw={"true" if enable_draw else "false"}
 enable_alarm={"true" if enable_alarm else "false"}
 {regions_block}
 [hook]
-face_detection_enabled=true
-plate_detection_enabled=true
+face_detection_enabled={str(case.raw.get("face_detection_enabled", True)).lower() if isinstance(case.raw.get("face_detection_enabled", True), bool) else "true"}
+plate_detection_enabled={str(case.raw.get("plate_detection_enabled", True)).lower() if isinstance(case.raw.get("plate_detection_enabled", True), bool) else "true"}
 
 [tracking]
 enabled={"true" if tracking_enabled else "false"}
@@ -219,6 +219,40 @@ smooth_alpha=0.25
 enabled={"true" if motion_gate_enabled else "false"}
 config_json={{"preset": "{motion_gate_preset}"}}
 {patrol_extra}
+"""
+    # Optional CAP blocks from case raw / fixture
+    alert_classes = case.raw.get("alert_class_names")
+    if alert_classes:
+        import json as _json
+        names = alert_classes if isinstance(alert_classes, str) else _json.dumps(alert_classes, ensure_ascii=False)
+        content += f"""
+[alert_filter]
+alert_class_names={names}
+face_detection_enabled={str(bool(case.raw.get("face_detection_enabled", True))).lower()}
+plate_detection_enabled={str(bool(case.raw.get("plate_detection_enabled", True))).lower()}
+"""
+    defense = case.raw.get("defense_schedule_json")
+    if defense:
+        import json as _json
+        sched = defense if isinstance(defense, str) else _json.dumps(defense, ensure_ascii=False)
+        content += f"""
+[defense]
+mode={case.raw.get("defense_mode") or "half"}
+schedule_json={sched}
+"""
+    extra_models = case.raw.get("extra_model_paths")
+    if extra_models:
+        import json as _json
+        # Resolve relative paths against root
+        resolved = []
+        for p in extra_models:
+            pp = Path(p)
+            if not pp.is_absolute():
+                pp = root / p
+            resolved.append(pp.as_posix())
+        content += f"""
+[models]
+extra_paths={_json.dumps(resolved, ensure_ascii=False)}
 """
     ini_path.write_text(content, encoding="utf-8")
     return ini_path
@@ -628,6 +662,28 @@ def _write_sampled_layers(
                     f"stream sample incomplete pushed_ok={st['pushed_ok']} "
                     f"size={width}x{height} ffprobe={'yes' if probe else 'no'}"
                 )
+        elif layer == "L_e2e_alarm":
+            # Mirror L_alarm into e2e envelope for e2e_p0_* cases
+            width = det_run.width if det_run else 768
+            height = det_run.height if det_run else 432
+            hooks = hook_records or []
+            alerts = _alerts_from_hooks(hooks, width, height)
+            hook_bodies = [h.get("body") for h in hooks if isinstance(h.get("body"), dict)]
+            data = {
+                "case_id": case.id,
+                "layer": layer,
+                "executor": "cpp",
+                "task_type": case.task_type,
+                "sampled_at": ts,
+                "source": "runtime_parity_gate_cpp_e2e",
+                "status": "sampled" if alerts else "not_sampled",
+                "alerts": alerts,
+                "alert_count": len(alerts),
+                "hook_payloads": hook_bodies,
+                "e2e": True,
+            }
+            if not alerts:
+                data["reason"] = "no e2e hook alerts captured"
         else:
             data = {
                 "case_id": case.id,
@@ -662,9 +718,26 @@ def _write_sampled_layers(
 
 
 def run_cpp(case_id: str) -> int:
+    from .report import add_case_result, new_report, write_report
+
     root = candidate_root()
     manifest = load_manifest(root)
     case = find_case(manifest, case_id)
+
+    # Platform / perf cases: VIDEO-side or synthetic (no RUNTIME required)
+    sample_mode = str(case.raw.get("sample_mode") or "")
+    if sample_mode == "platform" or case_id.startswith("vid_") or case_id.startswith("perf_"):
+        from .platform_sample import run_platform_case
+
+        code, layers = run_platform_case(case)
+        report = new_report(command="run", profile=None, case_id=case_id)
+        add_case_result(report, case_id, layers, executor="cpp")
+        report["ok"] = code == 0
+        write_report(report, root)
+        return code
+
+    # e2e: reuse realtime alert fixture path but emit L_e2e_alarm
+    e2e_mode = sample_mode == "e2e" or case_id.startswith("e2e_")
 
     runtime = _find_runtime()
     out_dir = golden_dir("cpp", case_id, root)
@@ -704,7 +777,7 @@ def run_cpp(case_id: str) -> int:
                     }
                 )
         else:
-            need_hook = "L_alarm" in case.required_layers
+            need_hook = "L_alarm" in case.required_layers or "L_e2e_alarm" in case.required_layers or e2e_mode
             tracking_enabled = "L_track" in case.required_layers
             motion_gate_enabled = "L_motion" in case.required_layers
             need_schedule = "L_schedule" in case.required_layers
