@@ -7,7 +7,9 @@
   },
   "alarm": {
     "count_tolerance_per_minute": 1,
-    "payload_field_ignore": ["timestamp", "received_at", "image_path", "correlation_id"]
+    "payload_field_ignore": ["timestamp", "received_at", "image_path", "correlation_id"],
+    "smoke_allow_hook_bbox_drift": true,
+    "_smoke_hook_bbox_note": "Oracle smoke alarm bbox is ONNX snapshot; live RUNTIME hook may fire on a different frame. G-4.1 requires hook golden keys + class/roi/count."
   },
   "track": {
     "id_mapping_ratio_min": 0.9,
@@ -29,5 +31,9 @@
     "patrol_interval_seconds": 30,
     "patrol_interval_tolerance_seconds": 3,
     "snap_cron_match_window_seconds": 5
+  },
+  "lifecycle": {
+    "min_heartbeat_count_cpp": 1,
+    "_note": "python golden may use smoke stubs with higher heartbeat_count; cpp must capture >=1 real heartbeat"
   }
 }

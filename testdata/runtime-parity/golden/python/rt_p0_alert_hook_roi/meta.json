@@ -6,9 +6,9 @@
     "L_detect",
     "L_alarm"
   ],
-  "written_at": "2026-08-09T13:24:55",
+  "written_at": "2026-08-09T14:54:54",
   "recording": "oracle_smoke",
-  "source": "oracle_smoke_ultralytics",
+  "source": "oracle_smoke_onnx",
   "status": "recorded",
   "oracle_root": "F:\\acme",
   "artifacts": [
@@ -16,7 +16,7 @@
     "detect.json",
     "alarm.json"
   ],
-  "limitations": "Local Intel sample-video inference via ultralytics; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
-  "model": "ultralytics:F:\\acme\\VIDEO\\yolo11n.pt",
+  "limitations": "Local Intel sample-video ONNX inference; not a live oracle VIDEO task capture. Replace with record-python before certify parity claims.",
+  "model": "F:\\acme\\RUNTIME\\models\\yolov11n.onnx",
   "synthetic": false
 }

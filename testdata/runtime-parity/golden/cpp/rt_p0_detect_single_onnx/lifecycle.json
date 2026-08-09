@@ -3,17 +3,67 @@
   "layer": "L_lifecycle",
   "executor": "cpp",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T14:26:18",
+  "sampled_at": "2026-08-09T14:53:00",
   "source": "runtime_parity_gate_cpp_sample",
   "status": "sampled",
   "boot": {
     "started": true,
     "exit_code": 1,
     "infer_ep": "cpu",
-    "duration_sec": 20.27
+    "duration_sec": 23.03
   },
-  "heartbeats": [],
-  "heartbeat_count": 0,
+  "heartbeats": [
+    {
+      "seq": 1,
+      "task_id": 45909,
+      "process_id": 12708,
+      "log_path": "logs/cpp_sample/rt_p0_detect_single_onnx",
+      "timestamp_unix": 1786287155.3828201
+    },
+    {
+      "seq": 2,
+      "task_id": 45909,
+      "process_id": 12708,
+      "log_path": "logs/cpp_sample/rt_p0_detect_single_onnx",
+      "timestamp_unix": 1786287158.651966
+    },
+    {
+      "seq": 3,
+      "task_id": 45909,
+      "process_id": 12708,
+      "log_path": "logs/cpp_sample/rt_p0_detect_single_onnx",
+      "timestamp_unix": 1786287161.9285936
+    },
+    {
+      "seq": 4,
+      "task_id": 45909,
+      "process_id": 12708,
+      "log_path": "logs/cpp_sample/rt_p0_detect_single_onnx",
+      "timestamp_unix": 1786287165.1949542
+    },
+    {
+      "seq": 5,
+      "task_id": 45909,
+      "process_id": 12708,
+      "log_path": "logs/cpp_sample/rt_p0_detect_single_onnx",
+      "timestamp_unix": 1786287168.4627855
+    },
+    {
+      "seq": 6,
+      "task_id": 45909,
+      "process_id": 12708,
+      "log_path": "logs/cpp_sample/rt_p0_detect_single_onnx",
+      "timestamp_unix": 1786287171.72268
+    },
+    {
+      "seq": 7,
+      "task_id": 45909,
+      "process_id": 12708,
+      "log_path": "logs/cpp_sample/rt_p0_detect_single_onnx",
+      "timestamp_unix": 1786287174.9910436
+    }
+  ],
+  "heartbeat_count": 7,
   "fields_expected": [
     "task_id",
     "process_id",

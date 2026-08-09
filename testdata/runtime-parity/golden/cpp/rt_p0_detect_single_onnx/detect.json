@@ -3,12 +3,45 @@
   "layer": "L_detect",
   "executor": "cpp",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T14:26:18",
-  "source": "runtime_parity_gate_cpp_sample",
-  "status": "sampled_partial",
-  "frames": [],
-  "detection_count": 0,
-  "model": "onnx",
+  "sampled_at": "2026-08-09T14:53:00",
+  "source": "runtime_parity_gate_cpp_onnx",
+  "status": "sampled",
+  "frames": [
+    {
+      "frame_index": 30,
+      "timestamp_ms": 2500,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            289.0,
+            140.0,
+            392.0,
+            398.0
+          ],
+          "class": "person",
+          "confidence": 0.7726
+        }
+      ]
+    },
+    {
+      "frame_index": 45,
+      "timestamp_ms": 3750,
+      "detections": [
+        {
+          "bbox_xyxy": [
+            410.0,
+            86.0,
+            499.0,
+            281.0
+          ],
+          "class": "person",
+          "confidence": 0.6467
+        }
+      ]
+    }
+  ],
+  "detection_count": 2,
+  "model": "F:\\acme\\RUNTIME\\models\\yolov11n.onnx",
   "infer_ep": "cpu",
-  "_note": "Phase 1: boot/infer only; bbox certify deferred to Phase 4"
+  "media_path": "F:\\acme\\.worktrees\\runtime-parity\\testdata\\runtime-parity\\media\\people-detection.mp4"
 }

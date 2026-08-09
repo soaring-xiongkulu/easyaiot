@@ -3,7 +3,7 @@
   "layer": "L_lifecycle",
   "executor": "python",
   "task_type": "realtime",
-  "sampled_at": "2026-08-09T13:24:54",
+  "sampled_at": "2026-08-09T14:54:52",
   "source": "oracle_smoke_local_media",
   "status": "recorded",
   "oracle_root": "F:\\acme",
@@ -18,84 +18,84 @@
       "task_id": "rt_p0_heartbeat_lifecycle_smoke",
       "process_id": 42420,
       "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
-      "timestamp_unix": 1786281774.8553221
+      "timestamp_unix": 1786287172.352737
     },
     {
       "seq": 2,
       "task_id": "rt_p0_heartbeat_lifecycle_smoke",
       "process_id": 42420,
       "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
-      "timestamp_unix": 1786281784.8553221
+      "timestamp_unix": 1786287182.352737
     },
     {
       "seq": 3,
       "task_id": "rt_p0_heartbeat_lifecycle_smoke",
       "process_id": 42420,
       "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
-      "timestamp_unix": 1786281794.8553221
+      "timestamp_unix": 1786287192.352737
     },
     {
       "seq": 4,
       "task_id": "rt_p0_heartbeat_lifecycle_smoke",
       "process_id": 42420,
       "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
-      "timestamp_unix": 1786281804.8553221
+      "timestamp_unix": 1786287202.352737
     },
     {
       "seq": 5,
       "task_id": "rt_p0_heartbeat_lifecycle_smoke",
       "process_id": 42420,
       "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
-      "timestamp_unix": 1786281814.8553221
+      "timestamp_unix": 1786287212.352737
     },
     {
       "seq": 6,
       "task_id": "rt_p0_heartbeat_lifecycle_smoke",
       "process_id": 42420,
       "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
-      "timestamp_unix": 1786281824.8553221
+      "timestamp_unix": 1786287222.352737
     },
     {
       "seq": 7,
       "task_id": "rt_p0_heartbeat_lifecycle_smoke",
       "process_id": 42420,
       "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
-      "timestamp_unix": 1786281834.8553221
+      "timestamp_unix": 1786287232.352737
     },
     {
       "seq": 8,
       "task_id": "rt_p0_heartbeat_lifecycle_smoke",
       "process_id": 42420,
       "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
-      "timestamp_unix": 1786281844.8553221
+      "timestamp_unix": 1786287242.352737
     },
     {
       "seq": 9,
       "task_id": "rt_p0_heartbeat_lifecycle_smoke",
       "process_id": 42420,
       "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
-      "timestamp_unix": 1786281854.8553221
+      "timestamp_unix": 1786287252.352737
     },
     {
       "seq": 10,
       "task_id": "rt_p0_heartbeat_lifecycle_smoke",
       "process_id": 42420,
       "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
-      "timestamp_unix": 1786281864.8553221
+      "timestamp_unix": 1786287262.352737
     },
     {
       "seq": 11,
       "task_id": "rt_p0_heartbeat_lifecycle_smoke",
       "process_id": 42420,
       "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
-      "timestamp_unix": 1786281874.8553221
+      "timestamp_unix": 1786287272.352737
     },
     {
       "seq": 12,
       "task_id": "rt_p0_heartbeat_lifecycle_smoke",
       "process_id": 42420,
       "log_path": "logs/rt_p0_heartbeat_lifecycle/runtime.log",
-      "timestamp_unix": 1786281884.8553221
+      "timestamp_unix": 1786287282.352737
     }
   ],
   "heartbeat_count": 12,
