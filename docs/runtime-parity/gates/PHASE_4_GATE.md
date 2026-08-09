@@ -137,6 +137,12 @@ Report: `logs/runtime_parity_report.json`
 
 Local Docker `srs-server` on `1935` / HTTP-FLV `8080` (shared middleware). Stream name: `parity_rt_p1_rtmp_stream`.
 
-### Orchestrator acceptance
+### Orchestrator acceptance (2026-08-10)
 
-- Pending orchestrator review (implementer does not self-ACCEPT).
+- Commit: `a5b7bba`
+- Re-verify: `certify --profile win_cpp` exit **0** (12/12 including `rt_p1_overlay_timing`, `rt_p1_rtmp_stream`)
+- **G-4.4 ACCEPTED**
+
+## Phase 4 verdict
+
+**PASS** — G-4.1～G-4.4 all ACCEPTED. Enter Phase 5.
