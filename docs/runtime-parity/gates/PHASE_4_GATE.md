@@ -46,8 +46,14 @@ Report: `logs/runtime_parity_report.json`
 
 `WEB/AlgorithmTaskModal.vue` not present in candidate worktree; cpp tracking/motion remain configurable via ini (`[tracking]` / `[motion_gate]`) from `runtime_config_service`. UI re-enable deferred to when WEB subtree is available.
 
-## Not in scope (G-4.3+)
+### Orchestrator acceptance (2026-08-09)
 
-- G-4.3 snap/patrol schedule cases
+- Commit: `3a76bb3`
+- Re-verify: `certify --profile win_cpp` exit **0** (5 cases: 3×P0 + `rt_p1_motion_gate` + `rt_p1_tracking_stable`)
+- **G-4.2 ACCEPTED**
+
+## G-4.3 / G-4.4 — pending
+
+- G-4.3 snap/patrol schedule P0 cases
 - G-4.4 overlay/RTMP thresholds
 - Phase 5 full certify / Python runtime removal
