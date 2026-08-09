@@ -527,7 +527,12 @@ void Pipeline::inferLoop() {
                     enc->width(),
                     enc->height(),
                     enc->fps(),
-                    static_cast<int>(enc->bitRate() / 1000));
+                    static_cast<int>(enc->bitRate() / 1000),
+                    enc->codecName(),
+                    enc->qualityProfile(),
+                    enc->nvencRequested(),
+                    enc->nvencFallback(),
+                    enc->qualityDowngraded());
                 streamMetaLogged = true;
             }
             const bool ok = enc->encodeAndPush(img);

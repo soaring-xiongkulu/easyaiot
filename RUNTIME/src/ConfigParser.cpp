@@ -333,6 +333,26 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
                 }
             }
         }
+        else if (currentSection == "stream_src") {
+            if (key == "gb28181_enabled") {
+                config.gb28181Enabled = parseBool(value);
+            } else if (key == "gb28181_resolved") {
+                config.gb28181Resolved = parseBool(value);
+            } else if (key == "original_source") {
+                config.streamOriginalSource = value;
+            } else if (key == "resolved_url") {
+                config.streamResolvedUrl = value;
+            }
+        }
+        else if (currentSection == "encoder") {
+            if (key == "nvenc_auto") {
+                config.nvencAuto = parseBool(value);
+            } else if (key == "quality_auto_downgrade") {
+                config.qualityAutoDowngrade = parseBool(value);
+            } else if (key == "quality_profile") {
+                config.qualityProfile = value.empty() ? "high" : value;
+            }
+        }
         else if (currentSection == "regions") {
             std::vector<cv::Point> points;
             if (parseRegion(value, points)) {
@@ -361,6 +381,8 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
                 "CAP-PATROL-ROTATE",
                 "CAP-MULTI-MODEL",
                 "CAP-SNAP-SPACE",
+                "CAP-GB28181-SRC",
+                "CAP-NVENC-AUTO",
             };
             bool implemented = false;
             for (const char* known : kImplementedOrVideoOwned) {
@@ -390,6 +412,10 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
     file.close();
 
     // Ensure primary device stream exists
+    if (!config.streamResolvedUrl.empty()) {
+        // Prefer VIDEO-resolved pull URL (CAP-GB28181-SRC / stream adapter)
+        config.rtspUrl = config.streamResolvedUrl;
+    }
     if (config.devices.empty() && !config.rtspUrl.empty()) {
         DeviceStreamConfig d;
         d.deviceId = config.deviceId.empty() ? "device" : config.deviceId;
@@ -401,6 +427,16 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
         config.rtspUrl = config.devices.front().rtspUrl;
         if (config.deviceId.empty()) config.deviceId = config.devices.front().deviceId;
         if (config.deviceName.empty()) config.deviceName = config.devices.front().deviceName;
+    }
+    // Reject silent gb28181:// passthrough into OpenCV/FFmpeg
+    if (config.rtspUrl.size() >= 10) {
+        std::string scheme = config.rtspUrl.substr(0, 10);
+        std::transform(scheme.begin(), scheme.end(), scheme.begin(), ::tolower);
+        if (scheme == "gb28181://") {
+            LOG(ERROR) << "[ERROR] CAP-GB28181-SRC: rtsp_url still gb28181:// — "
+                          "VIDEO must resolve before RUNTIME launch";
+            return false;
+        }
     }
 
     const std::string tt = config.taskType;
@@ -524,9 +560,24 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
         LOG(INFO) << "[CONFIG] CAP-MULTI-MODEL enabled extra_count="
                   << config.extraModelPaths.size();
     }
-    // P2 deferred: parse-aware but not silently "supported"
-    // GB28181 / NVENC auto are accepted as known keys under [stream_src]/[encoder]
-    // when present in unsupported section from VIDEO; otherwise no silent claim.
+    if (config.gb28181Enabled) {
+        if (config.gb28181Resolved && !config.streamResolvedUrl.empty()) {
+            LOG(INFO) << "[CONFIG] CAP-GB28181-SRC enabled original="
+                      << config.streamOriginalSource
+                      << " resolved=" << config.streamResolvedUrl;
+        } else {
+            addCap("CAP-GB28181-SRC");
+            LOG(WARNING) << "[CONFIG] CAP-GB28181-SRC requested but unresolved "
+                            "(no silent success)";
+        }
+    }
+    if (config.nvencAuto || config.qualityAutoDowngrade) {
+        LOG(INFO) << "[CONFIG] CAP-NVENC-AUTO enabled nvenc_auto="
+                  << (config.nvencAuto ? "true" : "false")
+                  << " quality_auto_downgrade="
+                  << (config.qualityAutoDowngrade ? "true" : "false")
+                  << " quality_profile=" << config.qualityProfile;
+    }
     for (const auto& cap : config.unsupportedCaps) {
         LOG(WARNING) << "[CONFIG] unsupported cap=" << cap
                      << " (declared in ini or derived from enabled task fields)";

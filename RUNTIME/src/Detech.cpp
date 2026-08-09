@@ -271,7 +271,10 @@ bool Detech::startStreaming() {
         
         // 创建并初始化RTMP编码器
         _rtmpEncoder = new RTMPEncoder();
-        if (!_rtmpEncoder->init(_config.rtmpUrl, _videoWidth, _videoHeight, _videoFps)) {
+        if (!_rtmpEncoder->init(_config.rtmpUrl, _videoWidth, _videoHeight, _videoFps,
+                            _config.nvencAuto || _config.qualityAutoDowngrade,
+                            _config.qualityProfile,
+                            _config.qualityAutoDowngrade || _config.nvencAuto)) {
             LOG(ERROR) << "[STREAMING] Failed to initialize RTMP encoder";
             delete _rtmpEncoder;
             _rtmpEncoder = nullptr;
@@ -674,7 +677,10 @@ bool Detech::_init_media_pusher() {
     LOG(INFO) << "[INIT] RTMP URL: " << _config.rtmpUrl;
     LOG(INFO) << "[INIT] Video: " << _videoWidth << "x" << _videoHeight << "@" << _videoFps << "fps";
     
-    if (!_rtmpEncoder->init(_config.rtmpUrl, _videoWidth, _videoHeight, _videoFps)) {
+    if (!_rtmpEncoder->init(_config.rtmpUrl, _videoWidth, _videoHeight, _videoFps,
+                            _config.nvencAuto || _config.qualityAutoDowngrade,
+                            _config.qualityProfile,
+                            _config.qualityAutoDowngrade || _config.nvencAuto)) {
         LOG(WARNING) << "[INIT] ⚠️ RTMP encoder initialization failed (ZLMediaKit not running?)";
         LOG(WARNING) << "[INIT] ⚠️ Streaming disabled, but program will continue";
         LOG(WARNING) << "[INIT] ⚠️ You can start streaming later via API when ZLM is ready";

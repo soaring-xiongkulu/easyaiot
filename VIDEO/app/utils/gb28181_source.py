@@ -368,6 +368,42 @@ def resolve_gb28181_alternate_pull_url(
     return None
 
 
+def _fixture_resolve_map() -> Dict[str, str]:
+    """
+    Parity / offline fixture map so CAP-GB28181-SRC can certify without WVP.
+
+    Env GB28181_FIXTURE_MAP:
+      - JSON object: {"gb28181://dev/ch":"rtsp://..."} or file path
+      - or semicolon pairs: gb28181://dev/ch=file://...;gb28181://a/b=rtsp://...
+    """
+    raw = (os.getenv('GB28181_FIXTURE_MAP') or '').strip()
+    if not raw:
+        return {}
+    if raw.startswith('{'):
+        try:
+            import json
+
+            data = json.loads(raw)
+            if isinstance(data, dict):
+                return {
+                    str(k).strip(): str(v).strip()
+                    for k, v in data.items()
+                    if str(k).strip() and str(v).strip()
+                }
+        except Exception:
+            return {}
+    out: Dict[str, str] = {}
+    for part in raw.split(';'):
+        part = part.strip()
+        if not part or '=' not in part:
+            continue
+        key, val = part.split('=', 1)
+        key, val = key.strip(), val.strip()
+        if key and val:
+            out[key] = val
+    return out
+
+
 def resolve_gb28181_source(
     source: Optional[str],
     *,
@@ -379,6 +415,15 @@ def resolve_gb28181_source(
         return source
 
     device_id, channel_id = parsed
+    src = (source or '').strip()
+    fixture = _fixture_resolve_map().get(src)
+    if fixture:
+        log_fn = logger.info if logger else _logger.info
+        log_fn(
+            f'GB28181源解析成功(夹具映射): {device_id}/{channel_id} -> {fixture} | CAP-GB28181-SRC'
+        )
+        return fixture
+
     headers = {}
     jwt_token = (os.getenv('JWT_TOKEN') or '').strip()
     if jwt_token:

@@ -53,12 +53,22 @@ void ParityRecorder::recordOverlaySample(int frameIndex, double latencyMs, int b
     samplesSinceFlush_ += 1;
 }
 
-void ParityRecorder::setStreamMeta(const std::string& rtmpUrl, int width, int height, int fps, int bitrateKbps) {
+void ParityRecorder::setStreamMeta(const std::string& rtmpUrl, int width, int height, int fps, int bitrateKbps,
+                                   const std::string& codecName,
+                                   const std::string& qualityProfile,
+                                   bool nvencRequested,
+                                   bool nvencFallback,
+                                   bool qualityDowngraded) {
     streamRtmpUrl_ = rtmpUrl;
     streamWidth_ = width;
     streamHeight_ = height;
     streamFps_ = fps;
     streamBitrateKbps_ = bitrateKbps;
+    streamCodecName_ = codecName;
+    streamQualityProfile_ = qualityProfile;
+    streamNvencRequested_ = nvencRequested;
+    streamNvencFallback_ = nvencFallback;
+    streamQualityDowngraded_ = qualityDowngraded;
     streamMetaSet_ = true;
     samplesSinceFlush_ += 1;
 }
@@ -245,6 +255,11 @@ bool ParityRecorder::writeToFile(const std::string& logPath) const {
     stream["pushed_fail"] = streamPushedFail_;
     stream["meta_set"] = streamMetaSet_;
     stream["gray_frame_count"] = 0;  // placeholder; ffprobe path may refine
+    stream["codec_name"] = streamCodecName_;
+    stream["quality_profile"] = streamQualityProfile_;
+    stream["nvenc_requested"] = streamNvencRequested_;
+    stream["nvenc_fallback"] = streamNvencFallback_;
+    stream["quality_downgraded"] = streamQualityDowngraded_;
     root["stream"] = stream;
 
     const std::filesystem::path outPath = std::filesystem::path(logPath) / "parity_sample.json";

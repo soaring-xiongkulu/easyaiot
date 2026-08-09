@@ -25,8 +25,13 @@ public:
                              std::time_t unixTs);
     // G-4.4: overlay visible latency (capture → draw) samples
     void recordOverlaySample(int frameIndex, double latencyMs, int boxCount, bool drawn);
-    // G-4.4: RTMP push counters + configured stream meta
-    void setStreamMeta(const std::string& rtmpUrl, int width, int height, int fps, int bitrateKbps);
+    // G-4.4 / CAP-NVENC-AUTO: RTMP push counters + encoder meta
+    void setStreamMeta(const std::string& rtmpUrl, int width, int height, int fps, int bitrateKbps,
+                       const std::string& codecName = "",
+                       const std::string& qualityProfile = "",
+                       bool nvencRequested = false,
+                       bool nvencFallback = false,
+                       bool qualityDowngraded = false);
     void recordStreamPush(bool ok);
     void setInferCounts(int submits, int skipsMotion);
     bool writeToFile(const std::string& logPath) const;
@@ -71,6 +76,11 @@ private:
     int streamPushedOk_{0};
     int streamPushedFail_{0};
     bool streamMetaSet_{false};
+    std::string streamCodecName_;
+    std::string streamQualityProfile_;
+    bool streamNvencRequested_{false};
+    bool streamNvencFallback_{false};
+    bool streamQualityDowngraded_{false};
 
     mutable std::string lastFlushPath_;
     mutable int samplesSinceFlush_{0};

@@ -84,11 +84,79 @@ def _task_devices(task: AlgorithmTask) -> List[Device]:
 
 
 def _resolve_rtsp_url(device: Device) -> str:
+    """Resolve playable pull URL; CAP-GB28181-SRC via resolve_gb28181_source (+ fixture map)."""
+    from app.utils.gb28181_source import is_gb28181_source, resolve_gb28181_source
+
     for attr in ('source', 'rtsp_direct'):
         val = (getattr(device, attr, None) or '').strip()
-        if val.startswith('rtsp://') or val.startswith('rtsps://') or val.startswith('rtmp://'):
+        if not val:
+            continue
+        if is_gb28181_source(val):
+            resolved = resolve_gb28181_source(val, logger=logger)
+            if resolved:
+                logger.info(
+                    'CAP-GB28181-SRC device=%s resolved %s -> %s',
+                    getattr(device, 'id', None),
+                    val,
+                    resolved,
+                )
+                return resolved
+            logger.warning(
+                'CAP-GB28181-SRC device=%s resolve failed for %s',
+                getattr(device, 'id', None),
+                val,
+            )
+            continue
+        if val.startswith(('rtsp://', 'rtsps://', 'rtmp://', 'file://', 'http://', 'https://')):
+            return val
+        # Local path / relative media accepted for parity fixtures
+        if not val.startswith('gb28181://'):
             return val
     return (device.source or '').strip()
+
+
+def _device_source_raw(device: Device) -> str:
+    for attr in ('source', 'rtsp_direct'):
+        val = (getattr(device, attr, None) or '').strip()
+        if val:
+            return val
+    return ''
+
+
+def _stream_src_ini_block(
+    devices: List[Device],
+    *,
+    primary_raw: str,
+    primary_resolved: str,
+    gb28181_ok: bool,
+) -> str:
+    from app.utils.gb28181_source import is_gb28181_source
+
+    requested = bool(primary_raw and is_gb28181_source(primary_raw))
+    for d in devices:
+        if is_gb28181_source(_device_source_raw(d)):
+            requested = True
+            break
+    return f"""
+[stream_src]
+gb28181_enabled={'true' if requested else 'false'}
+gb28181_resolved={'true' if gb28181_ok else 'false'}
+original_source={primary_raw}
+resolved_url={primary_resolved}
+"""
+
+
+def _encoder_ini_block(task: AlgorithmTask) -> str:
+    nvenc_auto = bool(getattr(task, 'nvenc_auto_quality', False)) or bool(
+        getattr(task, 'quality_auto_downgrade', False)
+    )
+    profile = (getattr(task, 'video_quality_profile', None) or 'high').strip() or 'high'
+    return f"""
+[encoder]
+nvenc_auto={'true' if nvenc_auto else 'false'}
+quality_auto_downgrade={'true' if nvenc_auto else 'false'}
+quality_profile={profile}
+"""
 
 
 def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> Tuple[str, str]:
@@ -322,24 +390,15 @@ def _contract_ini_block(task: AlgorithmTask, task_type: str, extra_model_paths: 
     # CAP-DEFENSE implemented in C++ AlertFilters (schedule armed check)
     patrol_mode = (getattr(task, 'patrol_mode', None) or 'pool').strip() or 'pool'
     focus_id = (getattr(task, 'focus_device_id', None) or '').strip()
-    # CAP-PATROL-HYBRID / ROTATE / MULTI-MODEL implemented in C++
-    # P2 deferred caps — explicit unsupported (no silent success)
-    gb28181 = bool(getattr(task, 'gb28181_source_enabled', False)) or bool(
-        getattr(task, 'use_gb28181', False)
-    )
-    if gb28181:
-        unsupported.append('CAP-GB28181-SRC')
-        logger.warning(
-            'task %s: CAP-GB28181-SRC requested but not yet implemented (P2 deferred)',
-            task.id,
-        )
+    # CAP-PATROL-HYBRID / ROTATE / MULTI-MODEL / GB28181 / NVENC implemented — not unsupported
+    # CAP-GB28181-SRC: VIDEO resolves gb28181:// → playable URL into ini [stream_src]
+    # CAP-NVENC-AUTO: C++ RTMPEncoder NVENC try + software fallback + quality downgrade
     nvenc_auto = bool(getattr(task, 'nvenc_auto_quality', False)) or bool(
         getattr(task, 'quality_auto_downgrade', False)
     )
     if nvenc_auto:
-        unsupported.append('CAP-NVENC-AUTO')
-        logger.warning(
-            'task %s: CAP-NVENC-AUTO requested but not yet implemented (P2 deferred)',
+        logger.info(
+            'task %s: CAP-NVENC-AUTO enabled (C++ encoder nvenc_auto / quality downgrade)',
             task.id,
         )
 
@@ -411,7 +470,7 @@ focus_device_id={focus_id}
 
 [models]
 extra_paths={json.dumps(extra_model_paths, ensure_ascii=False).replace(chr(10), '')}
-
+{_encoder_ini_block(task)}
 [unsupported]
 {unsupported_lines}
 """
@@ -424,21 +483,13 @@ def _log_cpp_unsupported_fields(task: AlgorithmTask) -> None:
     # Implemented frame-in or VIDEO-owned: do not WARN as unsupported.
     if bool(getattr(task, 'sam_supplement_enabled', False)):
         gaps.append('sam_supplement_enabled: CAP-SAM-TASK — product cut; must not silent-succeed')
-    if bool(getattr(task, 'gb28181_source_enabled', False)) or bool(
-        getattr(task, 'use_gb28181', False)
-    ):
-        gaps.append('gb28181: CAP-GB28181-SRC — P2 deferred')
-    if bool(getattr(task, 'nvenc_auto_quality', False)) or bool(
-        getattr(task, 'quality_auto_downgrade', False)
-    ):
-        gaps.append('nvenc_auto: CAP-NVENC-AUTO — P2 deferred')
     if gaps:
         logger.warning(
             'executor=cpp unsupported/deferred fields for task_id=%s: %s',
             getattr(task, 'id', None),
             '; '.join(gaps),
         )
-    # INFO for VIDEO-owned frame-post (not a silent claim of cpp support)
+    # INFO for VIDEO-owned frame-post / implemented stream caps
     video_owned = []
     for attr, note in (
         ('face_matching_enabled', 'CAP-FACE-MATCH owned_by=VIDEO'),
@@ -446,12 +497,16 @@ def _log_cpp_unsupported_fields(task: AlgorithmTask) -> None:
         ('post_process_enabled', 'CAP-POST-PROCESS owned_by=VIDEO'),
         ('pose_analysis_enabled', 'CAP-POSE owned_by=VIDEO'),
         ('pose_intent_enabled', 'CAP-POSE owned_by=VIDEO'),
+        ('nvenc_auto_quality', 'CAP-NVENC-AUTO owned_by=C++ RTMPEncoder'),
+        ('quality_auto_downgrade', 'CAP-NVENC-AUTO owned_by=C++ RTMPEncoder'),
+        ('gb28181_source_enabled', 'CAP-GB28181-SRC owned_by=VIDEO resolve → ini'),
+        ('use_gb28181', 'CAP-GB28181-SRC owned_by=VIDEO resolve → ini'),
     ):
         if bool(getattr(task, attr, False)):
             video_owned.append(f'{attr}: {note}')
     if video_owned:
         logger.info(
-            'executor=cpp VIDEO frame-post caps for task_id=%s: %s',
+            'executor=cpp implemented/VIDEO-owned caps for task_id=%s: %s',
             getattr(task, 'id', None),
             '; '.join(video_owned),
         )
@@ -477,13 +532,34 @@ def generate_runtime_ini(
         raise ValueError(f'任务 {task.id} 未绑定设备，无法生成 RUNTIME 配置')
 
     primary = devices[0]
+    from app.utils.gb28181_source import is_gb28181_source
+
+    primary_raw = _device_source_raw(primary)
     rtsp_url = _resolve_rtsp_url(primary)
     if not rtsp_url:
         raise ValueError(f'设备 {primary.id} 无可用 RTSP/source 地址')
+    gb28181_ok = True
+    if is_gb28181_source(primary_raw):
+        # Resolved URL must differ from raw gb28181:// (no silent passthrough)
+        gb28181_ok = bool(rtsp_url) and not is_gb28181_source(rtsp_url)
+        if not gb28181_ok:
+            raise ValueError(
+                f'设备 {primary.id} CAP-GB28181-SRC 解析失败: {primary_raw}'
+            )
+        logger.info(
+            'task %s: CAP-GB28181-SRC primary resolved %s -> %s',
+            task.id,
+            primary_raw,
+            rtsp_url,
+        )
 
     for d in devices:
-        if not _resolve_rtsp_url(d):
+        raw = _device_source_raw(d)
+        resolved = _resolve_rtsp_url(d)
+        if not resolved:
             raise ValueError(f'设备 {d.id} 无可用 RTSP/source 地址')
+        if is_gb28181_source(raw) and is_gb28181_source(resolved):
+            raise ValueError(f'设备 {d.id} CAP-GB28181-SRC 解析失败: {raw}')
 
     model_path, classes_path = _resolve_model_paths(task, prefer_cluster=prefer_cluster_model)
     if write_local and not os.path.isfile(model_path):
@@ -531,6 +607,12 @@ def generate_runtime_ini(
     devices_json_one_line = devices_json.replace('\n', '')
 
     regions_block = _regions_ini_block(devices)
+    stream_src_block = _stream_src_ini_block(
+        devices,
+        primary_raw=primary_raw,
+        primary_resolved=rtsp_url,
+        gb28181_ok=gb28181_ok,
+    )
 
     hook_tt = _hook_task_type(task_type)
     extra_model_paths = _resolve_extra_model_paths(task, model_path)
@@ -626,6 +708,7 @@ enable_alarm={'true' if task.alert_event_enabled else 'false'}
 
 [regions]
 {regions_block}
+{stream_src_block}
 {contract_block}"""
     _log_cpp_unsupported_fields(task)
     if write_local:

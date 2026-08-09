@@ -101,6 +101,17 @@ typedef struct Config {
     // Extra ONNX paths beyond [ai] model_path (CAP-MULTI-MODEL)
     std::vector<std::string> extraModelPaths;
 
+    // [stream_src] — CAP-GB28181-SRC (VIDEO resolves; C++ consumes resolved URL)
+    bool gb28181Enabled{false};
+    bool gb28181Resolved{false};
+    std::string streamOriginalSource;
+    std::string streamResolvedUrl;
+
+    // [encoder] — CAP-NVENC-AUTO (try NVENC → software fallback + quality profile)
+    bool nvencAuto{false};
+    bool qualityAutoDowngrade{false};
+    std::string qualityProfile{"high"};
+
     // Declared in ini [unsupported] or derived at parse time (G-2.3)
     std::vector<std::string> unsupportedCaps;
 } Config;
