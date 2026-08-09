@@ -1,0 +1,14 @@
+{
+  "seq": 1,
+  "case_id": "rt_p0_alert_hook_roi",
+  "received_at": "2026-08-09T13:15:22",
+  "received_at_unix": 1786281322.3487716,
+  "path": "/alert",
+  "headers": {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Microsoft Windows 10.0.22631; zh-CN) PowerShell/7.5.4",
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "test": true
+  }
+}
