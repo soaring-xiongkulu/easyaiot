@@ -13,6 +13,13 @@
 - Closed: `vid_p1_plate_match_chain`, `rt_p2_gb28181_relay`, `rt_p2_quality_nvenc`
 - Remaining HANDOFF「要」product debt: **CAP-SAM-TASK only** (explicit veto)
 
+### Orchestrator acceptance (2026-08-10)
+
+- Commits: `840fa89`, `0de78d8`, `a09a549`
+- Re-verify: `doctor` / `linux_full` / `win_cpp` exit **0** (26 win_cpp cases incl. plate/GB28181/NVENC)
+- CAP-BUSINESS-DECISIONS「要」项均有 certify 覆盖或产品否决（仅 SAM）
+- **FOLLOW-UP DEBT WAVE ACCEPTED — runtime parity program COMPLETE**
+
 ## A. Cases added this wave
 
 | Case | Layer(s) | Evidence |
@@ -39,8 +46,8 @@ Product-vetoed only: CAP-SAM-TASK.
 
 | Profile | Exit | Cases | SHA256 |
 |---------|------|-------|--------|
-| `linux_full` | 0 | 11 | `BC5205904DFA8B9AA54694655C5AF1822319B89801242F2770DC684C72F217CA` |
-| `win_cpp` | 0 | 26 | `1ABB3A4B4CC2B8F4137A8F87F188BD7E19B098F454A4657A3976DF87725C4317` |
+| `linux_full` | 0 | 11 | `543DD829C22466478C675C864E9A8AFF10A951D9CE14D332504CAC54B4537AE2` |
+| `win_cpp` | 0 | 26 | `85BBB013FFD8FE94E488F25EFD5C3C5CD9FBE559BEE68B8C395D2480E18423D0` |
 
 Archives: `logs/certify_linux_full.json`, `logs/certify_win_cpp.json` (gitignored; hashes authoritative).
 

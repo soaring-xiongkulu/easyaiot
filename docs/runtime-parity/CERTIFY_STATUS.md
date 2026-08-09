@@ -20,7 +20,7 @@ Reports under `/logs/` are gitignored; SHA256 below is authoritative. Copies arc
 | Exit code | **0** |
 | `ok` | `true` |
 | Report archive | `logs/certify_linux_full.json` |
-| SHA256 | `BC5205904DFA8B9AA54694655C5AF1822319B89801242F2770DC684C72F217CA` |
+| SHA256 | `543DD829C22466478C675C864E9A8AFF10A951D9CE14D332504CAC54B4537AE2` |
 | Case count | **11** |
 
 P0 set unchanged (plate/GB28181/NVENC are P1/P2 → win_cpp only).
@@ -33,7 +33,7 @@ P0 set unchanged (plate/GB28181/NVENC are P1/P2 → win_cpp only).
 | Exit code | **0** |
 | `ok` | `true` |
 | Report archive | `logs/certify_win_cpp.json` |
-| SHA256 | `1ABB3A4B4CC2B8F4137A8F87F188BD7E19B098F454A4657A3976DF87725C4317` |
+| SHA256 | `85BBB013FFD8FE94E488F25EFD5C3C5CD9FBE559BEE68B8C395D2480E18423D0` |
 | Case count | **26** |
 
 New / newly green:
@@ -50,3 +50,8 @@ New / newly green:
 | win_cpp | `884B6263…EC8298A6` | 23 |
 
 See also [`gates/PHASE_5_GAP_CLOSE.md`](./gates/PHASE_5_GAP_CLOSE.md).
+
+## Orchestrator final re-verify (2026-08-10)
+
+Re-ran `doctor` + both profiles after follow-up wave; updated SHA256 above.  
+**Program complete** relative to HANDOFF / CAP-BUSINESS-DECISIONS（SAM 产品否决除外）.
