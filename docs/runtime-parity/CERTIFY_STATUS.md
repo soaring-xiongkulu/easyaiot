@@ -67,3 +67,11 @@ Cases (all `ok=true`):
 Both planned certify profiles exit **0** with `ok=true`. No product exemption list required for `win_cpp`.
 
 Deletion of Python algorithm services is **not** claimed here — see `gates/PHASE_5_GATE.md` G-5.3 (dry-run only).
+
+## Post-quarantine re-verify (orchestrator, 2026-08-10)
+
+After `safe_fsops` quarantine execute on candidate:
+
+- `certify --profile win_cpp` → exit **0** (12/12)
+- `certify --profile linux_full` → exit **0** (7/7)
+- Oracle Python services left intact under `F:/acme/VIDEO/services/`

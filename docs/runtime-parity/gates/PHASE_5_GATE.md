@@ -72,7 +72,9 @@ Execute must recreate the same allow-roots as the dry-run JSON (`allow_roots` = 
    - src: `F:\acme\.worktrees\runtime-parity\VIDEO\services\patrol_algorithm_service`
    - dst: `F:\acme\.worktrees\runtime-parity\VIDEO\services\_retired\patrol_algorithm_service`
 
-### Suggested execute (orchestrator only — **not run by implementer**)
+### Suggested execute (orchestrator only)
+
+Global flags (`--execute`, `--confirm-token`, `--dryrun-manifest`) must precede the `move` subcommand.
 
 ```powershell
 # IMPORTANT: do NOT set ACME_ORACLE_ROOT for these executes (match dry-run allow_roots)
@@ -80,22 +82,28 @@ $env:ACME_CANDIDATE_ROOT='F:\acme\.worktrees\runtime-parity'
 Remove-Item Env:ACME_ORACLE_ROOT -ErrorAction SilentlyContinue
 
 python tools/runtime_parity/safe_fsops.py --allow-root $env:ACME_CANDIDATE_ROOT `
-  move --src VIDEO/services/realtime_algorithm_service --dst VIDEO/services/_retired/realtime_algorithm_service `
   --execute --confirm-token 74e8da0198727f6d56673a0955cdbe9d `
-  --dryrun-manifest logs/safe_fsops_dryrun_20260810_002757.json
+  --dryrun-manifest logs/safe_fsops_dryrun_20260810_002757.json `
+  move --src VIDEO/services/realtime_algorithm_service --dst VIDEO/services/_retired/realtime_algorithm_service
 
 python tools/runtime_parity/safe_fsops.py --allow-root $env:ACME_CANDIDATE_ROOT `
-  move --src VIDEO/services/snapshot_algorithm_service --dst VIDEO/services/_retired/snapshot_algorithm_service `
   --execute --confirm-token 317addc405fddb58aa54f95a857961fc `
-  --dryrun-manifest logs/safe_fsops_dryrun_20260810_002759.json
+  --dryrun-manifest logs/safe_fsops_dryrun_20260810_002759.json `
+  move --src VIDEO/services/snapshot_algorithm_service --dst VIDEO/services/_retired/snapshot_algorithm_service
 
 python tools/runtime_parity/safe_fsops.py --allow-root $env:ACME_CANDIDATE_ROOT `
-  move --src VIDEO/services/patrol_algorithm_service --dst VIDEO/services/_retired/patrol_algorithm_service `
   --execute --confirm-token 0f4adb03d893d696c92d8914cc67799a `
-  --dryrun-manifest logs/safe_fsops_dryrun_20260810_002801.json
+  --dryrun-manifest logs/safe_fsops_dryrun_20260810_002801.json `
+  move --src VIDEO/services/patrol_algorithm_service --dst VIDEO/services/_retired/patrol_algorithm_service
 ```
 
-**Oracle `F:/acme` services were not touched.** Candidate trees still present (dry-run only).
+### Orchestrator execute (2026-08-10)
+
+- Reviewed three dry-run manifests: candidate-only `allow_roots`, whitelist moves to `_retired/`, oracle untouched.
+- **EXECUTED** all three moves via `safe_fsops.py` (tokens matched).
+- Verified: live paths absent; `VIDEO/services/_retired/{realtime,snapshot,patrol}_algorithm_service` present.
+- Post-execute re-verify: `certify --profile win_cpp` exit **0** (12/12); `certify --profile linux_full` exit **0** (7/7).
+- Oracle `F:/acme/VIDEO/services/*_algorithm_service` **unchanged** (still present).
 
 ## G-5.4 — Default cpp only; drop python selection
 
@@ -121,15 +129,17 @@ Searched `.github/workflows/` and common CI scripts:
 
 ### Suggested commit (G-5.4)
 
-`feat: default cpp executor and drop python selection`
+`feat: default cpp executor and drop python selection` — landed as `4ea3164`.
 
-## Phase 5 implementer verdict
+## Orchestrator acceptance (2026-08-10)
 
-| Gate | Status |
-|------|--------|
-| G-5.1 | Evidence ready (certify green) — await Orchestrator ACCEPTED |
-| G-5.2 | Evidence ready (certify green) — await Orchestrator ACCEPTED |
-| G-5.3 | **Dry-run only** — await orchestrator review + `--execute` |
-| G-5.4 | Code/docs landed — await Orchestrator ACCEPTED |
+| Gate | Verdict |
+|------|---------|
+| G-5.1 | **ACCEPTED** — linux_full green + CERTIFY_STATUS |
+| G-5.2 | **ACCEPTED** — win_cpp green + CERTIFY_STATUS |
+| G-5.3 | **ACCEPTED** — dry-run reviewed; quarantine execute done |
+| G-5.4 | **ACCEPTED** — cpp-only selection + docs |
 
-**Deletion commit deferred** until orchestrator execute succeeds.
+## Phase 5 verdict
+
+**PASS** — Runtime parity Phase 5 complete. Python algorithm hot-path services quarantined under `VIDEO/services/_retired/` on candidate; default executor is cpp-only.

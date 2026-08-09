@@ -270,8 +270,8 @@ manifest → record-python（oracle）→ run-cpp / platform → certify
 
 - [x] 代码路径无法再选 `executor=python`（G-5.4）
 - [x] CI：本仓无独立 python executor job；parity gate 仍为本地 CLI（见 PHASE_5_GATE）
-- [ ] Quarantine/delete 三服务：仅 dry-run 完成，待编排 `--execute` 后再 commit
-- [ ] Commit：`feat: remove python algorithm runtime executors`（execute 后）
+- [x] Quarantine 三服务 → `VIDEO/services/_retired/`（编排审查 dry-run 后 `--execute`）
+- [x] Commit：`feat: remove python algorithm runtime executors`
 
 ---
 
