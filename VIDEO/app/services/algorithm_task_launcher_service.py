@@ -318,53 +318,45 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
 
     video_root_remote = os.getenv('NODE_REMOTE_VIDEO_ROOT', '/opt/easyaiot/VIDEO')
     log_dir = os.path.join(video_root_remote, 'logs', f'task_{task_id}')
-    executor = normalize_executor(getattr(task, 'executor', None) or 'cpp')
+    try:
+        executor = normalize_executor(getattr(task, 'executor', None) or 'cpp')
+    except ValueError as e:
+        logger.error('远程部署拒绝非法 executor task_id=%s: %s', task_id, e)
+        return (False, str(e), False)
     files = None
     work_dir = video_root_remote
 
-    if executor == 'cpp':
-        if task.task_type not in ('realtime', 'snap', 'patrol'):
-            return (False, f'executor=cpp 不支持任务类型: {task.task_type}', False)
-        remote_ini = os.path.join(log_dir, 'runtime.ini')
-        try:
-            ini_path, ini_content = generate_runtime_ini_content(
-                task,
-                log_dir,
-                prefer_cluster_model=True,
-                remote_ini_path=remote_ini,
-            )
-        except Exception as e:
-            logger.error('生成远程 RUNTIME 配置失败: %s', e, exc_info=True)
-            return (False, f'生成远程 RUNTIME 配置失败: {e}', False)
-        command = [REMOTE_RUNTIME_BIN, ini_path]
-        work_dir = '/opt/easyaiot/RUNTIME'
-        env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
-        env['VIDEO_ROOT'] = video_root_remote
-        env['RUNTIME_BIN'] = REMOTE_RUNTIME_BIN
-        env['LD_LIBRARY_PATH'] = REMOTE_RUNTIME_LD_LIBRARY_PATH
-        env['USE_GPU'] = 'true' if getattr(task, 'prefer_gpu', True) else 'false'
-        env['RUNTIME_PREFER_GPU'] = env['USE_GPU']
-        if getattr(task, 'runtime_control_port', None):
-            task.service_port = int(task.runtime_control_port)
-        else:
-            task.service_port = 8000 + (int(task_id) % 1000)
-        files = [{'path': ini_path, 'content': ini_content, 'mode': '0644'}]
+    if executor != 'cpp':
+        msg = f'executor={executor!r} 已停用；远程算法任务仅支持 executor=cpp'
+        logger.error('远程部署拒绝: task_id=%s %s', task_id, msg)
+        return (False, msg, False)
+
+    if task.task_type not in ('realtime', 'snap', 'patrol'):
+        return (False, f'executor=cpp 不支持任务类型: {task.task_type}', False)
+    remote_ini = os.path.join(log_dir, 'runtime.ini')
+    try:
+        ini_path, ini_content = generate_runtime_ini_content(
+            task,
+            log_dir,
+            prefer_cluster_model=True,
+            remote_ini_path=remote_ini,
+        )
+    except Exception as e:
+        logger.error('生成远程 RUNTIME 配置失败: %s', e, exc_info=True)
+        return (False, f'生成远程 RUNTIME 配置失败: {e}', False)
+    command = [REMOTE_RUNTIME_BIN, ini_path]
+    work_dir = '/opt/easyaiot/RUNTIME'
+    env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
+    env['VIDEO_ROOT'] = video_root_remote
+    env['RUNTIME_BIN'] = REMOTE_RUNTIME_BIN
+    env['LD_LIBRARY_PATH'] = REMOTE_RUNTIME_LD_LIBRARY_PATH
+    env['USE_GPU'] = 'true' if getattr(task, 'prefer_gpu', True) else 'false'
+    env['RUNTIME_PREFER_GPU'] = env['USE_GPU']
+    if getattr(task, 'runtime_control_port', None):
+        task.service_port = int(task.runtime_control_port)
     else:
-        service_dir = {
-            'realtime': 'realtime_algorithm_service',
-            'snap': 'snapshot_algorithm_service',
-            'patrol': 'patrol_algorithm_service',
-        }.get(task.task_type, 'realtime_algorithm_service')
-        work_dir = os.path.join(video_root_remote, 'services', service_dir)
-        bundle = {
-            'snap': 'algorithm_snap',
-            'patrol': 'algorithm_patrol',
-        }.get(task.task_type, 'algorithm_realtime')
-        python_exec = resolve_video_bundle_python(bundle, video_root_remote)
-        deploy_script = os.path.join(work_dir, 'run_deploy.py')
-        command = [python_exec, deploy_script]
-        env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
-        env['VIDEO_ROOT'] = video_root_remote
+        task.service_port = 8000 + (int(task_id) % 1000)
+    files = [{'path': ini_path, 'content': ini_content, 'mode': '0644'}]
 
     result = node_client.deploy_workload(
         node_id=node_id,
@@ -914,33 +906,41 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
             _inject_sam_supplement_env(extra_env, task)
             _inject_realtime_sampling_env(extra_env, task)
 
-            executor = (getattr(task, 'executor', None) or 'cpp').strip().lower()
+            executor_raw = (getattr(task, 'executor', None) or 'cpp').strip().lower()
+            try:
+                from .runtime_config_service import normalize_executor
+                executor = normalize_executor(executor_raw)
+            except ValueError as e:
+                logger.error('拒绝启动算法任务 task_id=%s: %s', task_id, e)
+                return (False, str(e), False)
             runtime_bin = None
             runtime_ini = None
-            if executor in ('cpp', 'c++', 'runtime', 'cxx'):
-                executor = 'cpp'
-                if task.task_type not in ('realtime', 'snap', 'patrol'):
-                    return (False, f'executor=cpp 不支持任务类型: {task.task_type}', False)
-                try:
-                    from .runtime_config_service import (
-                        generate_runtime_ini,
-                        ensure_runtime_bin_ready,
-                        runtime_library_path_env,
-                    )
-                    runtime_bin = ensure_runtime_bin_ready(task)
-                    runtime_ini = generate_runtime_ini(task, log_path)
-                    lib_path = runtime_library_path_env()
-                    if lib_path:
-                        extra_env['LD_LIBRARY_PATH'] = lib_path
-                    if getattr(task, 'runtime_control_port', None):
-                        task.service_port = int(task.runtime_control_port)
-                    else:
-                        task.service_port = 8000 + (int(task_id) % 1000)
-                    task.service_log_path = log_path
-                    db.session.commit()
-                except Exception as e:
-                    logger.error('生成 RUNTIME 配置失败: %s', e, exc_info=True)
-                    return (False, f'生成 RUNTIME 配置失败: {e}', False)
+            if executor != 'cpp':
+                msg = f'executor={executor!r} 已停用；仅支持 executor=cpp'
+                logger.error('拒绝启动算法任务 task_id=%s: %s', task_id, msg)
+                return (False, msg, False)
+            if task.task_type not in ('realtime', 'snap', 'patrol'):
+                return (False, f'executor=cpp 不支持任务类型: {task.task_type}', False)
+            try:
+                from .runtime_config_service import (
+                    generate_runtime_ini,
+                    ensure_runtime_bin_ready,
+                    runtime_library_path_env,
+                )
+                runtime_bin = ensure_runtime_bin_ready(task)
+                runtime_ini = generate_runtime_ini(task, log_path)
+                lib_path = runtime_library_path_env()
+                if lib_path:
+                    extra_env['LD_LIBRARY_PATH'] = lib_path
+                if getattr(task, 'runtime_control_port', None):
+                    task.service_port = int(task.runtime_control_port)
+                else:
+                    task.service_port = 8000 + (int(task_id) % 1000)
+                task.service_log_path = log_path
+                db.session.commit()
+            except Exception as e:
+                logger.error('生成 RUNTIME 配置失败: %s', e, exc_info=True)
+                return (False, f'生成 RUNTIME 配置失败: {e}', False)
 
             daemon = None
             old_daemon_to_join = None

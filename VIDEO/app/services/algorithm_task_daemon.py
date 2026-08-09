@@ -48,7 +48,7 @@ class AlgorithmTaskDaemon:
             task_type: 任务类型 ('realtime' 实时算法任务, 'snap' 抓拍算法任务)
             llm_enabled: 是否启用LLM
             extra_env: 启动时注入子进程的额外环境变量（如 SAM 配置，避免守护进程查库）
-            executor: python | cpp
+            executor: python | cpp（G-5.4 起仅 cpp；python 拒绝启动）
             runtime_bin: RUNTIME 二进制路径（executor=cpp）
             runtime_ini: RUNTIME 配置 ini 路径（executor=cpp）
         """
@@ -436,118 +436,17 @@ class AlgorithmTaskDaemon:
             'DEBUG',
         )
 
-        if getattr(self, '_executor', 'python') == 'cpp':
+        executor = (getattr(self, '_executor', None) or 'cpp').strip().lower()
+        if executor in ('cpp', 'c++', 'runtime', 'cxx'):
             return self._get_cpp_deploy_args()
 
-        # 根据任务类型选择服务路径
-        video_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        if self._task_type == 'snap':
-            deploy_service_dir = os.path.join(video_root, 'services', 'snapshot_algorithm_service')
-        elif self._task_type == 'patrol':
-            deploy_service_dir = os.path.join(video_root, 'services', 'patrol_algorithm_service')
-        else:
-            deploy_service_dir = os.path.join(video_root, 'services', 'realtime_algorithm_service')
-        
-        deploy_script = os.path.join(deploy_service_dir, 'run_deploy.py')
-        
-        self._log(f'部署脚本路径: {deploy_script}', 'DEBUG')
-        
-        if not os.path.exists(deploy_script):
-            self._log(f'部署脚本不存在: {deploy_script}', 'ERROR')
-            return None, None, None
-        
-        # 构建启动命令
-        # 优先使用当前运行的 Python 解释器（与 AI 模块保持一致）
-        python_exec = sys.executable
-        # 尝试使用conda环境（如果存在且与当前解释器不同）
-        conda_python = self._get_conda_python()
-        if conda_python and conda_python != python_exec:
-            # 检查 conda Python 是否存在且可执行
-            if os.path.exists(conda_python) and os.access(conda_python, os.X_OK):
-                python_exec = conda_python
-                self._log(f'使用Conda Python: {python_exec}', 'INFO')
-            else:
-                self._log(f'Conda Python 路径无效，使用当前解释器: {python_exec}', 'INFO')
-        else:
-            self._log(f'使用当前Python解释器: {python_exec}', 'INFO')
-        
-        cmds = [python_exec, deploy_script]
-        
-        # 准备环境变量（使用传入的参数）
-        env = os.environ.copy()
-        # 子进程必须继承 VIDEO_ENV，run_deploy 内 load_video_env 会加载 .env.prod
-        video_env = os.getenv('VIDEO_ENV', '').strip()
-        if video_env:
-            env['VIDEO_ENV'] = video_env
-        for key in (
-            'DATABASE_URL', 'GATEWAY_URL', 'GB28181_SERVICE_URL', 'JWT_TOKEN', 'JAVA_BACKEND_URL',
-            'GB28181_HTTP_READ_TIMEOUT', 'GB28181_PLAY_PROTOCOL', 'GB28181_HEVC_RTSP_FIRST',
-            'GB28181_OPENCV_RTMP_FALLBACK_RTSP', 'POD_IP', 'HOST_IP', 'AI_SERVICE_URL',
-            'MINIO_ENDPOINT', 'MINIO_ACCESS_KEY', 'MINIO_SECRET_KEY', 'MINIO_SECURE',
-            'MODEL_DOWNLOAD_BASE_URL',
-            'USE_GPU', 'GPU_IDS', 'GPU_POLICY', 'INFER_GPU_POLICY', 'FFMPEG_GPU_POLICY',
-            'CUDA_VISIBLE_DEVICES', 'NVIDIA_VISIBLE_DEVICES', 'ORT_EXECUTION_PROVIDERS',
-            'KAFKA_BOOTSTRAP_SERVERS', 'SAM_SUPPLEMENT_ENABLED', 'SAM_SUPPLEMENT_CONFIG',
-            'SAM_PIPELINE_MODE', 'SAM_TEXT_PROMPTS', 'SAM_CONF', 'SAM_TRIGGER',
-            'SAM_INTERVAL_FRAMES', 'SAM_MERGE_IOU', 'SAM_RETURN_MASKS',
-            'IOT_SINK_API_URL', 'IOT_SINK_USE_GATEWAY', 'IOT_SINK_HOST', 'IOT_SINK_PORT',
-            'EASYAIOT_DEPLOY_PROFILE', 'ALERT_HOOK_URL', 'ALERT_KEEP_LATEST',
-            'VIDEO_SERVICE_HOST', 'VIDEO_SERVICE_URL', 'VIDEO_API_USE_GATEWAY',
-        ):
-            val = os.getenv(key)
-            if val is not None and val != '':
-                env[key] = val
-        # 重要：设置 PYTHONUNBUFFERED，确保输出实时（与 AI 模块保持一致）
-        env['PYTHONUNBUFFERED'] = '1'
-        env['TASK_ID'] = str(self._task_id)
-        # 确保关键环境变量被传递
-        if 'DATABASE_URL' not in env:
-            self._log('DATABASE_URL环境变量未设置，服务可能无法连接数据库', 'WARNING')
-        if not env.get('GATEWAY_URL') and not env.get('GB28181_SERVICE_URL'):
-            self._log(
-                'GATEWAY_URL / GB28181_SERVICE_URL 未配置，GB28181 虚拟源将仅尝试本机 48088 直连',
-                'WARNING',
-            )
-        
-        video_service_port = os.getenv('FLASK_RUN_PORT', '6000')
-        env['VIDEO_SERVICE_PORT'] = video_service_port
-        gateway = os.getenv('JAVA_BACKEND_URL', os.getenv('GATEWAY_URL', 'http://localhost:48080')).rstrip('/')
-        env['VIDEO_CONTROL_URL'] = f'{gateway}/admin-api/video'
-        # 心跳直连本机 VIDEO 服务（host 网络 / 同机部署），避免经网关鉴权导致 500
-        video_host = (os.getenv('POD_IP') or os.getenv('HOST_IP') or '127.0.0.1').strip()
-        if self._task_type == 'patrol':
-            env['VIDEO_HEARTBEAT_URL'] = f'http://{video_host}:{video_service_port}/video/algorithm/heartbeat/patrol'
-        else:
-            env['VIDEO_HEARTBEAT_URL'] = f'http://{video_host}:{video_service_port}/video/algorithm/heartbeat/realtime'
-        
-        # 重要：realtime_algorithm_service 使用 host 网络模式，必须使用 localhost 访问 Kafka
-        # 如果环境变量中配置了容器名（如 Kafka:9092），需要强制覆盖为 localhost:9092
-        # 这样可以避免在 host 网络模式下尝试解析容器名导致的连接失败
-        kafka_bootstrap_servers = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
-        # 如果配置中包含容器名（Kafka 或 kafka-server），强制使用 localhost
-        if 'Kafka' in kafka_bootstrap_servers or 'kafka-server' in kafka_bootstrap_servers:
-            self._log(f'检测到 Kafka 配置使用容器名，强制覆盖为 localhost:9092（realtime_algorithm_service 使用 host 网络模式）', 'INFO')
-            env['KAFKA_BOOTSTRAP_SERVERS'] = 'localhost:9092'
-        else:
-            # 如果已经是 localhost 或 IP 地址，直接使用
-            env['KAFKA_BOOTSTRAP_SERVERS'] = kafka_bootstrap_servers
-        
-        # 设置日志路径
-        env['LOG_PATH'] = self._log_path
-
-        if self._extra_env:
-            env.update(self._extra_env)
-
+        # G-5.4: python executor path retired — refuse and log (no silent fallback).
         self._log(
-            f'环境变量已设置: TASK_ID={env["TASK_ID"]}, VIDEO_SERVICE_PORT={env["VIDEO_SERVICE_PORT"]}, '
-            f'KAFKA_BOOTSTRAP_SERVERS={env["KAFKA_BOOTSTRAP_SERVERS"]}, '
-            f'USE_GPU={env.get("USE_GPU", "")}, CUDA_VISIBLE_DEVICES={env.get("CUDA_VISIBLE_DEVICES", "")}, '
-            f'GATEWAY_URL={env.get("GATEWAY_URL", "")}, '
-            f'GB28181_SERVICE_URL={env.get("GB28181_SERVICE_URL", "")}',
-            'DEBUG',
+            f'拒绝启动：executor={self._executor!r} 已停用，仅支持 executor=cpp'
+            f'（task_id={self._task_id}, task_type={self._task_type}）',
+            'ERROR',
         )
-        
-        return cmds, deploy_service_dir, env
+        return None, None, None
 
     def _get_cpp_deploy_args(self) -> tuple:
         """拉起 RUNTIME 二进制（executor=cpp）。"""

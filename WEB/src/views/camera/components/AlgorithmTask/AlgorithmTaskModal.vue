@@ -67,27 +67,28 @@ import {
 
 defineOptions({ name: 'AlgorithmTaskModal' });
 
-/** UI 六模式：task_mode ↔ task_type + executor */
+/** UI 任务模式：仅 cpp 执行器（G-5.4）；task_mode ↔ task_type + executor=cpp */
 function baseTaskType(modeOrType?: string): 'realtime' | 'snap' | 'patrol' {
   const raw = String(modeOrType || 'realtime');
   const v = raw.endsWith('_cpp') ? raw.slice(0, -4) : raw;
   if (v === 'snap' || v === 'patrol') return v;
   return 'realtime';
 }
-function toTaskMode(taskType?: string, executor?: string): string {
+function toTaskMode(taskType?: string, _executor?: string): string {
+  // executor 参数保留兼容旧调用；一律映射为 *_cpp
   const base = baseTaskType(taskType);
-  const ex = String(executor || 'python').toLowerCase();
-  return ex === 'cpp' || ex === 'c++' || ex === 'runtime' || ex === 'cxx' ? `${base}_cpp` : base;
+  return `${base}_cpp`;
 }
-function fromTaskMode(mode?: string): { task_type: 'realtime' | 'snap' | 'patrol'; executor: 'python' | 'cpp' } {
-  const m = String(mode || 'realtime');
-  if (m.endsWith('_cpp')) {
-    return { task_type: baseTaskType(m), executor: 'cpp' };
+function fromTaskMode(mode?: string): { task_type: 'realtime' | 'snap' | 'patrol'; executor: 'cpp' } {
+  const m = String(mode || 'realtime_cpp');
+  if (!m.endsWith('_cpp') && (m === 'realtime' || m === 'snap' || m === 'patrol')) {
+    // 旧 python 模式值：强制升级为 cpp
+    console.warn(`[AlgorithmTask] executor=python 已停用，task_mode=${m} 已映射为 ${m}_cpp`);
   }
-  return { task_type: baseTaskType(m), executor: 'python' };
+  return { task_type: baseTaskType(m), executor: 'cpp' };
 }
-function isCppExecutor(values: any): boolean {
-  return String(values?.task_mode || '').endsWith('_cpp');
+function isCppExecutor(_values: any): boolean {
+  return true;
 }
 
 
@@ -575,15 +576,12 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       componentProps: {
         placeholder: '请选择任务类型',
         options: [
-          { label: '实时算法任务（高性能）', value: 'realtime_cpp' },
-          { label: '抓拍算法任务（高性能）', value: 'snap_cpp' },
-          { label: '巡检算法任务（高性能）', value: 'patrol_cpp' },
-          { label: '实时算法任务', value: 'realtime' },
-          { label: '抓拍算法任务', value: 'snap' },
-          { label: '巡检算法任务', value: 'patrol' },
+          { label: '实时算法任务', value: 'realtime_cpp' },
+          { label: '抓拍算法任务', value: 'snap_cpp' },
+          { label: '巡检算法任务', value: 'patrol_cpp' },
         ],
       },
-      helpMessage: '高性能：本机加速推理，适合大路数/低时延；未标注项为完整能力集（人脸/车牌/后处理等）。高性能暂仅支持本机部署',
+      helpMessage: '算法热路径仅支持 C++ RUNTIME（executor=cpp）；本机加速推理，适合大路数/低时延。暂仅支持本机部署',
       defaultValue: 'realtime_cpp',
     },
     {

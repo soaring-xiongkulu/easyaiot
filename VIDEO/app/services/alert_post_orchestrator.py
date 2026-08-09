@@ -117,7 +117,8 @@ def _resolve_task(alert_event_task: Optional[Dict[str, Any]]) -> Optional[Algori
 def _is_cpp_executor(task: Optional[AlgorithmTask]) -> bool:
     if not task:
         return False
-    ex = (getattr(task, 'executor', None) or 'python').strip().lower()
+    # Default cpp (G-5.4); stale DB rows with executor=python still skip here.
+    ex = (getattr(task, 'executor', None) or 'cpp').strip().lower()
     return ex in ('cpp', 'c++', 'runtime', 'cxx')
 
 
@@ -281,7 +282,7 @@ def run_post_alert_orchestration(
         summary['skipped_reason'] = 'no_task'
         return summary
 
-    executor = (getattr(task, 'executor', None) or 'python').strip().lower()
+    executor = (getattr(task, 'executor', None) or 'cpp').strip().lower()
     summary['executor'] = executor
     if not _is_cpp_executor(task):
         summary['skipped_reason'] = 'not_cpp_executor'

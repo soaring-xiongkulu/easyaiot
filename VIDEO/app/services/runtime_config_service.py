@@ -660,14 +660,22 @@ REMOTE_RUNTIME_LD_LIBRARY_PATH = (
 
 
 def normalize_executor(value) -> str:
+    """Normalize algorithm-task executor.
+
+    Phase 5 / G-5.4: only ``cpp`` is supported. Empty/None defaults to cpp.
+    Explicit ``python`` / ``py`` is rejected (do not silently coerce).
+    """
     if value is None or str(value).strip() == '':
         return 'cpp'
     v = str(value).strip().lower()
     if v in ('cpp', 'c++', 'runtime', 'cxx'):
         return 'cpp'
     if v in ('python', 'py'):
-        return 'python'
-    return 'cpp'
+        raise ValueError(
+            'executor=python 已停用；算法热路径仅支持 executor=cpp（C++ RUNTIME）'
+        )
+    # Unknown values: refuse rather than guess python
+    raise ValueError(f'不支持的 executor={value!r}；仅允许 cpp')
 
 
 def runtime_library_path_env() -> str:
