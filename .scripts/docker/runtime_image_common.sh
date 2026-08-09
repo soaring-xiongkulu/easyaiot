@@ -44,8 +44,7 @@ INDEPENDENT_MODULES=(
     "aiot-panel|easyaiot/panel|PANEL"
 )
 
-# SITE 官方网站：仅 site 命令使用，不参与 pull/build-runtime 全量清单
-SITE_MODULE_MAPPING="aiot-site|site-service|SITE"
+# SITE portal removed from acme product tree (see docs/adr/0002-remove-site.md)
 
 # 仅 full 全量形态部署（远程名 ↔ 本地名，与 INDEPENDENT_MODULES 格式相同）
 # 注意：aiot-visualize 已用于 DEVICE 后端 iot-module-visualize-biz，前端用 aiot-visualize-web

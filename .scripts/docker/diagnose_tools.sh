@@ -20,7 +20,7 @@ _print_root_header() {
     echo ""
     echo "  1) 部署 — 安装、启动、停止、更新等服务操作"
     echo "  2) 分析 — 日志、磁盘、状态等问题定位"
-    echo "  3) 官网 — SITE 官方网站独立部署"
+    echo "  3) 官网 — 已从 acme 移除（不可用）"
     echo ""
     echo "  0) 退出"
     echo ""
@@ -29,7 +29,7 @@ _print_root_header() {
 _print_site_header() {
     echo ""
     echo -e "${YELLOW}========================================${NC}"
-    echo -e "${YELLOW}  【官网】SITE 独立部署${NC}"
+    echo -e "${YELLOW}  【官网】已从 acme 移除${NC}"
     echo -e "${YELLOW}========================================${NC}"
     echo ""
     echo "默认端口：http://localhost:8090"
@@ -236,60 +236,10 @@ run_install_root_menu() {
 }
 
 run_site_interactive_menu() {
-    local choice=""
-    while true; do
-        _print_site_header
-        read -r -p "请输入官网选项 [0-9]: " choice || choice=""
-        if [ -z "$choice" ]; then
-            continue
-        fi
-        case "$choice" in
-            1)
-                print_info "即将执行：安装并启动官网 (site install)"
-                easyaiot_run_command site install
-                ;;
-            2)
-                print_info "即将执行：启动官网 (site start)"
-                easyaiot_run_command site start
-                ;;
-            3)
-                print_info "即将执行：停止官网 (site stop)"
-                easyaiot_run_command site stop
-                ;;
-            4)
-                print_info "即将执行：重启官网 (site restart)"
-                easyaiot_run_command site restart
-                ;;
-            5)
-                print_info "即将执行：查看官网状态 (site status)"
-                easyaiot_run_command site status
-                ;;
-            6)
-                print_info "即将执行：查看官网日志 (site logs)"
-                easyaiot_run_command site logs
-                ;;
-            7)
-                print_info "即将执行：构建官网镜像 (site build)"
-                easyaiot_run_command site build
-                ;;
-            8)
-                print_info "即将执行：更新官网 (site update)"
-                easyaiot_run_command site update
-                ;;
-            9)
-                print_info "即将执行：清理官网 (site clean)"
-                easyaiot_run_command site clean
-                ;;
-            0|q|Q|exit|b|B)
-                return 0
-                ;;
-            *)
-                print_error "无效选项: $choice"
-                sleep 1
-                ;;
-        esac
-    done
+    print_error "SITE 官方网站已从 acme 产品树移除（见 docs/adr/0002-remove-site.md）"
+    return 1
 }
+
 
 # 兼容旧命令 diagnose
 run_diagnose_interactive_menu() {

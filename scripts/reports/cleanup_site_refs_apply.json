@@ -1,0 +1,27 @@
+{
+  "mode": "apply",
+  "started_at": "2026-08-09T05:25:06Z",
+  "notes": [
+    "skip README.md (no change)",
+    "skip README_zh.md (no change)",
+    "skip README_ru.md (no change)",
+    "skip README_ko.md (no change)",
+    "skip README_fr.md (no change)",
+    "skip .scripts\\docker\\install_linux.sh (no change)",
+    "skip .scripts\\docker\\install_linux_arm.sh (no change)",
+    "skip .scripts\\docker\\install_linux_kylin.sh (no change)"
+  ],
+  "errors": [],
+  "ops": [
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\README_zh_tw.md",
+      "detail": "updated README SITE mentions; removed 1 SITE prose clause(s)"
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\docs\\status\\foundation.md",
+      "detail": "appended SITE-removed note"
+    }
+  ]
+}

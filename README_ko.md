@@ -42,7 +42,7 @@ EasyAIoT 공식 웹사이트: [http://36.111.47.113:8090/](http://36.111.47.113:
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-플랫폼은 <strong>WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, RUNTIME, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>RTC 소비자급 카메라 P2P 브리지</strong>(go2rtc 기반, <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드 지원 — 매장 Tapo 보완, Tuya 화이트라벨, 해외 Ring/Nest 초인종, Xiaomi 재활용, Wyze 저비용 확장, DoorBird 대화, GoPro 기동 시점, Roborock 청소기 카메라 — Web 원클릭 접속으로 통합 영상·AI 판정), <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간·스냅샷 알고리즘 작업, YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·3단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 합니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
+플랫폼은 <strong>WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, RUNTIME, EDGE, VISUALIZE, TRANSFORM, PANEL</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>RTC 소비자급 카메라 P2P 브리지</strong>(go2rtc 기반, <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드 지원 — 매장 Tapo 보완, Tuya 화이트라벨, 해외 Ring/Nest 초인종, Xiaomi 재활용, Wyze 저비용 확장, DoorBird 대화, GoPro 기동 시점, Roborock 청소기 카메라 — Web 원클릭 접속으로 통합 영상·AI 판정), <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간·스냅샷 알고리즘 작업, YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -387,24 +387,13 @@ EasyAIoT는 현지화 전략에 적극적으로 대응하며, 현지화 하드�
 ## 🧩 프로젝트 구조
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, RUNTIME, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE 등 핵심 모듈로 구성되며, COMPILE 다중 플랫폼 패키징·납품 능력을 함께 제공합니다:
+EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, RUNTIME, EDGE, VISUALIZE, TRANSFORM, PANEL 등 핵심 모듈로 구성되며, COMPILE 다중 플랫폼 패키징·납품 능력을 함께 제공합니다:
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50; width: 20%;">모듈</td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50;">설명</td>
-</tr>
-<tr>
-<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>SITE 모듈</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
-  <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>공식 가치 진입점</strong>: 방문자·통합사·최종 고객을 위한 독립 공식 웹사이트 — 클라우드-엣지-디바이스 통합 가치를 명확히 설명한 뒤 다운로드와 배포로 안내</li>
-    <li><strong>인지 경로 단축</strong>: 제품 특성, 3단계 하드웨어 선택, 설치 패키지, 문서를 한 사이트에서 제공 — 저장소 검색·문의·패키지 찾기 비용 감소</li>
-    <li><strong>선택 의사결정 지원</strong>: mini / standard / full로 엣지 박스, AI 일체형 카메라, 풀스택 일체기 시나리오를 제시해 현장에서 한 번에 맞는 등급을 선택</li>
-    <li><strong>관심에서 설치까지</strong>: 공식 사이트, 데모, 오픈소스 저장소, Releases가 하나의 흐름을 형성 — 이해 → 체험 → 다운로드 → 설치</li>
-  </ul>
-</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>WEB 모듈</strong></td>

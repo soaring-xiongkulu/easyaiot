@@ -1,0 +1,103 @@
+{
+  "mode": "apply",
+  "started_at": "2026-08-09T05:21:06Z",
+  "root": "F:\\acme",
+  "notes": [
+    "SITE tree files=0 bytes=0 (~0.0 MB)",
+    "Out of scope (intentional): WEB siteSetting.ts SITE_URL (external gitee image link); mqttAuthPort 8090; README_zh upstream marketing copy (optional later)."
+  ],
+  "errors": [],
+  "op_counts": {
+    "delete_tree": 1,
+    "delete_file": 1,
+    "patch_file": 9,
+    "write_file": 1
+  },
+  "ops": [
+    {
+      "action": "delete_tree",
+      "path": "F:\\acme\\SITE",
+      "detail": "remove official portal source (0 files)",
+      "risk": "destructive",
+      "bytes_hint": 0
+    },
+    {
+      "action": "delete_file",
+      "path": "F:\\acme\\WEB\\conf\\nginx.site.conf",
+      "detail": "SITE-only nginx conf",
+      "risk": "destructive",
+      "bytes_hint": 0
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\WEB\\docker-compose.yaml",
+      "detail": "removed SITE_PORT mapping and SITE_HTML mount comments",
+      "risk": "edit",
+      "bytes_hint": 3515
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\WEB\\conf\\nginx.conf",
+      "detail": "removed 1 listen-8090 SITE server block(s)",
+      "risk": "edit",
+      "bytes_hint": 28998
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\WEB\\conf\\nginx.mini.conf",
+      "detail": "removed 1 listen-8090 SITE server block(s)",
+      "risk": "edit",
+      "bytes_hint": 31070
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\WEB\\conf\\nginx.prod-server.conf",
+      "detail": "stripped SITE header comments; removed 1 listen-8090 server block(s)",
+      "risk": "edit",
+      "bytes_hint": 13122
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\.scripts\\docker\\runtime_image_common.sh",
+      "detail": "commented out SITE_MODULE_MAPPING",
+      "risk": "edit",
+      "bytes_hint": 64417
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\.scripts\\docker\\install_linux.sh",
+      "detail": "replaced run_site_module (1) + menu/help labels",
+      "risk": "edit",
+      "bytes_hint": 0
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\.scripts\\docker\\install_linux_arm.sh",
+      "detail": "replaced run_site_module (1) + menu/help labels",
+      "risk": "edit",
+      "bytes_hint": 0
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\.scripts\\docker\\install_linux_kylin.sh",
+      "detail": "replaced run_site_module (1) + menu/help labels",
+      "risk": "edit",
+      "bytes_hint": 0
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\.scripts\\docker\\diagnose_tools.sh",
+      "detail": "menu/help patched; run_site_module pattern not found; stubbed run_site_interactive_menu (1)",
+      "risk": "edit",
+      "bytes_hint": 0
+    },
+    {
+      "action": "write_file",
+      "path": "F:\\acme\\docs\\adr\\0002-remove-site.md",
+      "detail": "ADR: SITE removed from product",
+      "risk": "create",
+      "bytes_hint": 0
+    }
+  ],
+  "finished_at": "2026-08-09T05:21:06Z"
+}

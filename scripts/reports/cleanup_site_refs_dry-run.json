@@ -1,0 +1,58 @@
+{
+  "mode": "dry-run",
+  "started_at": "2026-08-09T05:23:12Z",
+  "notes": [],
+  "errors": [],
+  "ops": [
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\README.md",
+      "detail": "stripped SITE from module lists; removed 1 SITE prose clause(s); removed 1 SITE table row(s)"
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\README_zh.md",
+      "detail": "stripped SITE from module lists; removed 1 SITE prose clause(s); removed 1 SITE table row(s)"
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\README_zh_tw.md",
+      "detail": "stripped SITE from module lists; removed 1 SITE table row(s)"
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\README_ru.md",
+      "detail": "stripped SITE from module lists; removed 1 SITE table row(s)"
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\README_ko.md",
+      "detail": "stripped SITE from module lists; removed 1 SITE table row(s)"
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\README_fr.md",
+      "detail": "stripped SITE from module lists; removed 1 SITE prose clause(s); removed 1 SITE table row(s)"
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\.scripts\\docker\\install_linux.sh",
+      "detail": "cleaned SITE help leftovers"
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\.scripts\\docker\\install_linux_arm.sh",
+      "detail": "cleaned SITE help leftovers"
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\.scripts\\docker\\install_linux_kylin.sh",
+      "detail": "cleaned SITE help leftovers"
+    },
+    {
+      "action": "patch_file",
+      "path": "F:\\acme\\docs\\status\\foundation.md",
+      "detail": "appended SITE-removed note"
+    }
+  ]
+}
