@@ -1,0 +1,13 @@
+{
+  "layer": "api",
+  "status": "sampled",
+  "endpoint": "/actuator/health",
+  "http_status": 200,
+  "body": {
+    "status": "UP"
+  },
+  "normalized": {
+    "status": "UP"
+  },
+  "raw": "{\"status\":\"UP\"}"
+}

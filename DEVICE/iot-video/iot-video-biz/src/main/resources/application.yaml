@@ -4,9 +4,6 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ANT_PATH_MATCHER
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 
 management:
   endpoints:
@@ -19,4 +16,11 @@ management:
       show-details: when_authorized
   health:
     db:
-      enabled: false
+      enabled: true
+
+video:
+  alert:
+    use-direct-persist: true
+  runtime:
+    config-dir: ${user.home}/.video-java/runtime-config
+    logs-dir: ${user.home}/.video-java/logs

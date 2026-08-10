@@ -1,0 +1,53 @@
+{
+  "layer": "ini",
+  "status": "sampled",
+  "ini_path": "C:\\Users\\g\\.video-java\\runtime-config\\task_35.ini",
+  "keys": {
+    "video": {
+      "rtsp_url": "file://F:/acme/RUNTIME/testdata/sample.mp4",
+      "rtmp_url": "",
+      "width": "1920",
+      "height": "1080",
+      "fps": "25"
+    },
+    "ai": {
+      "enable": "true",
+      "model_path": "F:/acme/.worktrees/video-java/RUNTIME/models/yolov11n.onnx",
+      "classes_path": "F:/acme/.worktrees/video-java/RUNTIME/models/coco.names",
+      "threads": "2",
+      "frame_skip": "12",
+      "prefer_gpu": "false",
+      "force_cpu": "true",
+      "gpu_device_id": "0"
+    },
+    "alarm": {
+      "enable": "true",
+      "hook_url": "http://127.0.0.1:48096/video/alert/hook",
+      "confidence_threshold": "0.5",
+      "cooldown_time": "5",
+      "image_dir": "C:/Users/g/.video-java/logs/task_35/alerts"
+    },
+    "task": {
+      "id": "35",
+      "control_port": "8035"
+    },
+    "video_task": {
+      "device_id": "vj_p0_device",
+      "device_name": "vj_p0 certify camera",
+      "task_type": "realtime",
+      "algorithm_name": "detection",
+      "alert_hook_url": "http://127.0.0.1:48096/video/alert/hook",
+      "heartbeat_url": "http://127.0.0.1:48096/video/algorithm/heartbeat/realtime",
+      "heartbeat_interval_sec": "10",
+      "log_path": "C:/Users/g/.video-java/logs/task_35/runtime.log",
+      "alert_image_dir": "C:/Users/g/.video-java/logs/task_35/alerts",
+      "headless": "true",
+      "frame_skip": "12"
+    },
+    "features": {
+      "enable_rtmp": "false",
+      "enable_draw": "true",
+      "enable_alarm": "true"
+    }
+  }
+}

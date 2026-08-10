@@ -1,3 +1,12 @@
---- #################### mini profile（无 DB / 无 Nacos） ####################
-
 debug: false
+
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://127.0.0.1:15432/iot-video20?autoReconnect=true&useUnicode=true&characterEncoding=utf8&stringtype=unspecified
+    username: postgres
+    password: iot45722414822
+
+video:
+  alert:
+    use-direct-persist: true

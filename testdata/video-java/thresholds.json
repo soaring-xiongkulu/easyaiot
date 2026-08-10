@@ -1,5 +1,5 @@
 {
-  "_note": "Phase -1 stub; per-layer numeric thresholds filled in Phase 0 certify",
+  "_note": "Phase 0 thresholds; path/timestamp normalization in diff_layers",
   "api": {},
   "lifecycle": {},
   "alarm": {},
