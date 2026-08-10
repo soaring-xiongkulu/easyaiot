@@ -10,7 +10,7 @@
 
 ## Commits
 
-`a09b476` — `docs(video-java): CLOSE-S4 terminal docs sync and final verify`
+`945393e` — `docs(video-java): CLOSE-S4 terminal docs sync and final verify`
 
 ## Doc updates
 

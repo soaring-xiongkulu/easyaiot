@@ -1,7 +1,7 @@
 # Progress — video-java migration
 
 **Status:** COMPLETE  
-**HEAD:** `a09b476`  
+**HEAD:** `945393e`  
 **Date:** 2026-08-10  
 **Stage:** CLOSE-S4 — terminal docs sync + final verify + quality review
 
