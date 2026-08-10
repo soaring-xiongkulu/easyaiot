@@ -15,6 +15,7 @@ public class VideoProperties {
     private final PostProcess postProcess = new PostProcess();
     private final Runtime runtime = new Runtime();
     private final HealthMonitor healthMonitor = new HealthMonitor();
+    private final Media media = new Media();
 
     /**
      * Mirrors Python {@code VIDEO_SKIP_BACKGROUND_TASKS=1} — disables scheduled health recovery
@@ -77,6 +78,20 @@ public class VideoProperties {
 
     /** Optional explicit ffmpeg binary; env FFMPEG_PATH still wins when set. */
     private String ffmpegPath;
+
+    @Data
+    public static class Media {
+        /** Mirrors Python {@code MEDIA_UPLOAD_MODE}: sync | kafka | hybrid. */
+        private String uploadMode = "sync";
+        /** Mirrors {@code MEDIA_SNAP_UPLOAD_MODE}; empty inherits uploadMode. */
+        private String snapUploadMode = "";
+        private String dvrCompletedTopic = "media.dvr.completed";
+        private String dvrDlqTopic = "media.dvr.dlq";
+        private String snapCompletedTopic = "media.snap.completed";
+        private String snapDlqTopic = "media.snap.dlq";
+        /** SRS HTTP API host for on_publish conflict resolution. */
+        private String srsHost = "localhost";
+    }
 
     @Data
     public static class HealthMonitor {

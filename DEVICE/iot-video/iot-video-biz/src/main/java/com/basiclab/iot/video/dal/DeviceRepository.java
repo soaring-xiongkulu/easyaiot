@@ -141,6 +141,15 @@ public class DeviceRepository {
         return count != null && count > 0;
     }
 
+    public Optional<DeviceRow> findFirstByRtmpStreamLike(String pattern) {
+        List<DeviceRow> rows = jdbc.query(
+                "SELECT " + SELECT_COLUMNS + " FROM device WHERE rtmp_stream ILIKE ? LIMIT 1",
+                ROW_MAPPER,
+                "%" + pattern + "%"
+        );
+        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
+    }
+
     public void insert(DeviceRow row) {
         jdbc.update(
                 """

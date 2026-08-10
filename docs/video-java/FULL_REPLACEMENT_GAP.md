@@ -47,7 +47,7 @@
 | 7 | snap | `/video/snap` | 38 | 全量路由 | space/task/region/service/images/storage | **路由切片完成** | `route_inventory` Py=38 Java=38 diff=0；**FR-W2-MEDIA**；MinIO/调度器待 SDK |
 | 8 | record | `/video/record` | 16 | 全量路由 | space/videos/dates/day/resolve-alert | **路由切片完成** | `route_inventory` Py=16 Java=16 diff=0；**FR-W2-MEDIA** |
 | 9 | playback | `/video/playback` | 7 | 全量路由 | list/CRUD/thumbnail/statistics | **路由切片完成** | `route_inventory` Py=7 Java=7 diff=0；**FR-W2-MEDIA** |
-| 10 | media_hook | `/video/media` | 6 | 切片 | hook/snap/completed | **严重不足** | SRS on_dvr/on_publish/on_unpublish、ZLM record hooks 缺 |
+| 10 | media_hook | `/video/media` | 全量路由 | hook/srs + hook/zlm + snap/completed | **路由切片完成** | `route_inventory` Py=6 Java=6 diff=0；**FR-W2-HOOKS**；MinIO DVR 上传待 SDK |
 | 11 | device_detection_region | `/video/device-detection` | 6 | 切片 | regions GET | **严重不足** | POST/PUT/DELETE、cover-image、snapshot 缺 |
 | 12 | patrol | `/video/patrol` | 9 | 几乎无 | 无 `PatrolController`；仅算法任务 list 间接覆盖 | **缺失（会话面）** | **EX-PATROL-SESSION-API** |
 | 13 | audio_talk | `/video/camera/audio/talk` | 5 | 无 | — | **缺失** | **EX-AUDIO-TALK** |
@@ -136,9 +136,10 @@
 
 ### 2.7 `media_hook` / `device_detection_region`
 
-| 域 | 已有 | 仍缺 |
-|----|------|------|
-| media | `POST .../snap/completed` | SRS `on_dvr/on_publish/on_unpublish`；ZLM `on_record_mp4/ts` |
+| 域 | 路由差 | 状态 | 说明 |
+|----|--------|------|------|
+| media_hook | **Py 6 / Java 6 / diff 0** | ✅ 路由 | SRS `on_dvr/on_publish/on_unpublish`；ZLM `on_record_mp4/ts`；`snap/completed` |
+| ❌ 行为 | — | DVR MinIO 上传、Playback/RecordFile 写入、抓拍 Kafka→MinIO 全链路 — mini 形态 ack/DB 桩 |
 | regions | GET regions | POST/PUT/DELETE；cover-image；snapshot |
 
 ### 2.8 整域缺失

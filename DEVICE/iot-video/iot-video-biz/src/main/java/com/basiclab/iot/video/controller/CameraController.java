@@ -13,6 +13,7 @@ import com.basiclab.iot.video.service.camera.CameraLocationService;
 import com.basiclab.iot.video.service.camera.CameraNvrService;
 import com.basiclab.iot.video.service.camera.CameraStreamTicketService;
 import com.basiclab.iot.video.service.camera.CameraTrackService;
+import com.basiclab.iot.video.service.media.CameraPublishCallbackService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,6 +48,7 @@ public class CameraController {
     private final CameraFlighthubService cameraFlighthubService;
     private final CameraStreamTicketService cameraStreamTicketService;
     private final CameraConflictService cameraConflictService;
+    private final CameraPublishCallbackService cameraPublishCallbackService;
 
     @PostMapping("/stream/ticket/sign")
     public ResponseEntity<VideoApiResponse<Map<String, Object>>> signStreamTicket(
@@ -440,6 +442,7 @@ public class CameraController {
 
     @PostMapping("/callback/on_publish")
     public VideoApiResponse<Void> onPublish(@RequestBody(required = false) Map<String, Object> body) {
+        cameraPublishCallbackService.handleOnPublish(body);
         VideoApiResponse<Void> response = new VideoApiResponse<>();
         response.setCode(0);
         response.setMsg(null);
