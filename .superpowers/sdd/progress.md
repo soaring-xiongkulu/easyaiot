@@ -10,6 +10,7 @@
 | FR-W1-KAFKA | DONE | `382e588` |
 | phase0 smoke | DONE | `a339da7` |
 | **FR-W2-CAM** | **DONE_WITH_CONCERNS** | see `fr-w2-cam-report.md` |
+| **FR-W2-MEDIA** | **DONE_WITH_CONCERNS** | see `fr-w2-media-report.md` |
 | FR-W2-MEDIA/SF/HOOKS/PATROL/MATCH | pending | |
 | FR-W3 / FR-W4 | pending | |
 

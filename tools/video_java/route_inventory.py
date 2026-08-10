@@ -27,6 +27,18 @@ BLUEPRINT_SPECS = {
         "file": "camera.py",
         "bp": "camera_bp",
     },
+    "/video/snap": {
+        "file": "snap.py",
+        "bp": "snap_bp",
+    },
+    "/video/record": {
+        "file": "record.py",
+        "bp": "record_bp",
+    },
+    "/video/playback": {
+        "file": "playback.py",
+        "bp": "playback_bp",
+    },
 }
 
 BLUEPRINT_ROUTE = re.compile(
@@ -41,9 +53,11 @@ def repo_root() -> Path:
 
 
 def normalize_path_params(path: str) -> str:
-    """Normalize Flask <int:id> and Spring {id} to a common {param} token."""
-    p = re.sub(r"<(?:int:|string:)?\w+>", "{param}", path)
+    """Normalize Flask <int:id>, <path:name>, Spring {id}, {*name}, /** to {param}."""
+    p = re.sub(r"<(?:int:|string:|path:)?\w+>", "{param}", path)
+    p = re.sub(r"\{\*[^}]+\}", "{param}", p)
     p = re.sub(r"\{[^}]+\}", "{param}", p)
+    p = re.sub(r"/\*\*$", "/{param}", p)
     return p
 
 

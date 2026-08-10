@@ -44,9 +44,9 @@
 | 4 | stream_forward | `/video/stream-forward` | 13 | 切片 | get、start/stop/status | **严重不足** | CRUD、restart、heartbeat、logs、streams、ensure-task 缺 |
 | 5 | face | `/video/face` | 35 | 切片 | matching/publish、matching/process | **严重不足** | 库/人像/entries/auto-enroll/normalize/recognize/model… 全缺 |
 | 6 | plate | `/video/plate` | 26 | 切片 | matching/publish、matching/process | **严重不足** | 同 face，库与识别面缺 |
-| 7 | snap | `/video/snap` | 38 | 切片 | space/list、space POST | **严重不足** | 任务/区域/服务/图片/清理/存储策略等缺 |
-| 8 | record | `/video/record` | 16 | 切片 | space/list | **严重不足** | space CRUD、视频按日/对象、sync/cleanup 缺 |
-| 9 | playback | `/video/playback` | 7 | 切片 | list | **严重不足** | CRUD/thumbnail/statistics 缺；play-url 用 list 替代 |
+| 7 | snap | `/video/snap` | 38 | 全量路由 | space/task/region/service/images/storage | **路由切片完成** | `route_inventory` Py=38 Java=38 diff=0；**FR-W2-MEDIA**；MinIO/调度器待 SDK |
+| 8 | record | `/video/record` | 16 | 全量路由 | space/videos/dates/day/resolve-alert | **路由切片完成** | `route_inventory` Py=16 Java=16 diff=0；**FR-W2-MEDIA** |
+| 9 | playback | `/video/playback` | 7 | 全量路由 | list/CRUD/thumbnail/statistics | **路由切片完成** | `route_inventory` Py=7 Java=7 diff=0；**FR-W2-MEDIA** |
 | 10 | media_hook | `/video/media` | 6 | 切片 | hook/snap/completed | **严重不足** | SRS on_dvr/on_publish/on_unpublish、ZLM record hooks 缺 |
 | 11 | device_detection_region | `/video/device-detection` | 6 | 切片 | regions GET | **严重不足** | POST/PUT/DELETE、cover-image、snapshot 缺 |
 | 12 | patrol | `/video/patrol` | 9 | 几乎无 | 无 `PatrolController`；仅算法任务 list 间接覆盖 | **缺失（会话面）** | **EX-PATROL-SESSION-API** |
@@ -114,13 +114,14 @@
 
 依赖层：Python 还有 InsightFace/ONNX、Milvus、PaddleOCR、Kafka matching consumer —— Java 现多为 **mini mock / stub**，完整替换需 ORT/SDK 或旁路策略产品拍板后落地。
 
-### 2.6 `snap` / `record` / `playback`
+### 2.6 `snap` / `record` / `playback` — FR-W2-MEDIA（路由面 diff=0）
 
-| 域 | 已有 | 仍缺 |
-|----|------|------|
-| snap | space list + create | 空间 CRUD/策略/MinIO sync；**整套 snap task**；region/service；images CRUD/sync/cleanup；device storage |
-| record | space list | 空间 CRUD；videos dates/day/object；sync/cleanup；resolve-alert |
-| playback | list | get/create/update/delete；thumbnail；statistics；真播放 URL（现 list 替代） |
+| 域 | 路由差 | 状态 | 说明 |
+|----|--------|------|------|
+| snap | **Py 38 / Java 38 / diff 0** | ✅ 路由 | space CRUD/策略/sync；task CRUD/start/stop/restart/logs；region/service；images；device storage |
+| record | **Py 16 / Java 16 / diff 0** | ✅ 路由 | space CRUD/策略/sync；videos dates/day/list/object/delete/sync/cleanup；resolve-alert |
+| playback | **Py 7 / Java 7 / diff 0** | ✅ 路由 | list/get/create/update/delete；thumbnail；statistics |
+| ❌ 行为 | — | MinIO 真同步/清理、抓拍 APScheduler、真 play URL 解析 — mini 形态桩/DB 为主 |
 
 ### 2.7 `media_hook` / `device_detection_region`
 
