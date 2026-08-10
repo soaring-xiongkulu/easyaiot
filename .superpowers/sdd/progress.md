@@ -11,6 +11,6 @@ HTTP 面 FR-W* 已齐。行为波次：
 | **FR-B5** face/plate | **DONE** | `34667aa` |
 | FR-B6 camera hardware | DONE | `e1ed889` |
 | FR-B7 ticket + rollback | DONE | |
-| FR-B8 SF cluster health | DONE | |
+| FR-B8 SF cluster health | DONE | `ccd187e` |
 
 COMPLETE 仍禁止，直至行为缺口可勾选或产品签字豁免。
