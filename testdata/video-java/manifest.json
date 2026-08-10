@@ -5,6 +5,9 @@
     {
       "case_id": "vj_p0_health",
       "layers": ["api"],
+      "layer_exemptions": {
+        "api": ["EX-ORACLE-HEALTH-DB"]
+      },
       "oracle_base_url": "http://127.0.0.1:6000",
       "candidate_base_url": "http://127.0.0.1:48096",
       "needs_runtime": false,
