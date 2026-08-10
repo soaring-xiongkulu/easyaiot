@@ -167,6 +167,15 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             } else if (key == "gpu_device_id") {
                 config.gpuDeviceId = parseInt(value);
                 if (config.gpuDeviceId < 0) config.gpuDeviceId = 0;
+            } else if (key == "prefer_hwaccel") {
+                config.preferHwaccel = parseBool(value);
+            } else if (key == "force_soft_av") {
+                config.forceSoftAv = parseBool(value);
+            } else if (key == "hwaccel_device_id") {
+                config.hwaccelDeviceId = parseInt(value);
+                if (config.hwaccelDeviceId < 0) config.hwaccelDeviceId = 0;
+            } else if (key == "nvenc_preset") {
+                if (!value.empty()) config.nvencPreset = value;
             }
         }
         else if (currentSection == "alarm") {
@@ -192,9 +201,14 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             if (key == "id") {
                 config.taskId = value;
             } else if (key == "control_port") {
-                config.controlPort = parseInt(value);
-                if (config.controlPort < 8000 || config.controlPort > 9000) {
+                int port = parseInt(value);
+                if (port < 8000 || port > 9000) {
+                    LOG(ERROR) << "[CONFIG] control_port=" << port
+                               << " 超出允许范围 [8000,9000]（与 VIDEO runtime_control_port 一致），"
+                               << "回退为 8000；请改 ini 或任务端口";
                     config.controlPort = 8000;
+                } else {
+                    config.controlPort = port;
                 }
             }
         }
@@ -344,9 +358,39 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
         config.preferGpu = false;
     }
 
+    // hwaccel defaults to same GPU as ORT unless explicitly set in ini
+    if (config.hwaccelDeviceId < 0) {
+        config.hwaccelDeviceId = config.gpuDeviceId;
+    }
+    if (const char* v = std::getenv("RUNTIME_FORCE_SOFT_AV")) {
+        if (parseBool(v)) {
+            config.forceSoftAv = true;
+            config.preferHwaccel = false;
+        }
+    }
+    if (const char* v = std::getenv("RUNTIME_PREFER_HWACCEL")) {
+        config.preferHwaccel = parseBool(v);
+    }
+    if (const char* v = std::getenv("RUNTIME_NVENC_PRESET")) {
+        std::string s = trim(v);
+        if (!s.empty()) config.nvencPreset = s;
+    }
+    // No GPU for inference → also avoid NVDEC/NVENC contention on CPU-only tasks
+    if (config.forceCpu || !config.preferGpu) {
+        config.forceSoftAv = true;
+        config.preferHwaccel = false;
+    }
+    if (config.forceSoftAv) {
+        config.preferHwaccel = false;
+    }
+
     LOG(INFO) << "[CONFIG] AI prefer_gpu=" << (config.preferGpu ? "true" : "false")
               << " force_cpu=" << (config.forceCpu ? "true" : "false")
-              << " gpu_device_id=" << config.gpuDeviceId;
+              << " gpu_device_id=" << config.gpuDeviceId
+              << " prefer_hwaccel=" << (config.preferHwaccel ? "true" : "false")
+              << " force_soft_av=" << (config.forceSoftAv ? "true" : "false")
+              << " hwaccel_device_id=" << config.hwaccelDeviceId
+              << " nvenc_preset=" << config.nvencPreset;
 
     return true;
 }

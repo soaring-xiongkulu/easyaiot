@@ -72,7 +72,7 @@ if(DEFINED ENV{CONDA_PREFIX})
 endif()
 
 file(GLOB_RECURSE Src_SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
-list(FILTER Src_SOURCES EXCLUDE REGEX ".*Yolov11Engine_Fixed\\.cpp$")
+list(FILTER Src_SOURCES EXCLUDE REGEX ".*YoloEngine_Fixed\\.cpp$")
 
 add_executable(${PROJECT_NAME} ${Src_SOURCES})
 

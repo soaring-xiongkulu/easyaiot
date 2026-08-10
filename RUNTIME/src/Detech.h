@@ -15,6 +15,7 @@
 #include "Config.h"
 #include "RTMPEncoder.h"
 #include "Datatype.h"
+#include "ffmpeg_hw.h"
 #include "core/frame_pool.h"
 #include "pipeline/Pipeline.h"
 #include "pipeline/SnapScheduler.h"
@@ -41,7 +42,7 @@ class Detech {
         const runtime::PipelineMetrics& metrics() const { return _metrics; }
 
     private:
-        bool _init_yolo11_detector();
+        bool _init_yolo_detector();
         bool _init_http_client();
         bool _init_media_player();
         bool _init_media_pusher();
@@ -100,6 +101,7 @@ class Detech {
         AVFormatContext* _ffmpegFormatCtx{nullptr};
         AVCodecContext* _ffmpegCodecCtx{nullptr};
         AVStream* _ffmpegStream{nullptr};
+        runtime::HwDecodeState _hwDecodeState{};
         int _videoIndex = -1;
         int _videoFps = 0;
         int _videoWidth = 0;

@@ -2,8 +2,10 @@
 // Created by basiclab on 25-10-15.
 //
 #include "Detech.h"
-#include "Yolov11ThreadPool.h"
+#include "YoloThreadPool.h"
 #include "Datatype.h"
+#include "ffmpeg_hw.h"
+#include <atomic>
 #include <chrono>
 #include <ctime>
 #include <fstream>
@@ -15,7 +17,10 @@
 #include <opencv2/geometry.hpp>
 #include <unistd.h>
 
-static Yolov11ThreadPool *yolov11_thread_pool = nullptr;
+// Defined in Manage.cpp — request clean process exit on finite-source EOF
+extern std::atomic<int> s_exit;
+
+static YoloThreadPool *yolo_thread_pool = nullptr;
 
 namespace {
 std::string formatUtcNow() {
@@ -97,6 +102,7 @@ Detech::~Detech() {
         delete _httpClient;
         _httpClient = nullptr;
     }
+    runtime::releaseHwDecodeState(&_hwDecodeState);
     LOG(INFO) << "[CLEANUP] Detech cleanup completed successfully";
 }
 
@@ -105,7 +111,7 @@ int Detech::start() {
     const std::string mode = _normalizedTaskType();
     LOG(INFO) << "[INIT] task_type=" << mode;
 
-    if (!_init_yolo11_detector()) {
+    if (!_init_yolo_detector()) {
         LOG(ERROR) << "[INIT] YOLO detector initialization failed!";
         return -1;
     }
@@ -170,6 +176,17 @@ int Detech::stop() {
     return 0;
 }
 
+namespace {
+RtmpEncoderOptions makeRtmpOpts(const Config& cfg) {
+    RtmpEncoderOptions opts;
+    opts.preferHw = cfg.preferHwaccel;
+    opts.forceSoft = cfg.forceSoftAv;
+    opts.gpuDeviceId = cfg.hwaccelDeviceId >= 0 ? cfg.hwaccelDeviceId : cfg.gpuDeviceId;
+    opts.nvencPreset = cfg.nvencPreset.empty() ? "p3" : cfg.nvencPreset;
+    return opts;
+}
+}  // namespace
+
 void Detech::_run_pipeline_loop() {
     _pipeline = std::make_unique<runtime::Pipeline>(
         _config,
@@ -179,7 +196,7 @@ void Detech::_run_pipeline_loop() {
         _videoWidth,
         _videoHeight,
         _videoFps,
-        yolov11_thread_pool,
+        yolo_thread_pool,
         &_rtmpEncoder,
         [this](const std::vector<DetectObject>& dets, const std::string& region, const cv::Mat& snapshot) {
             if (_checkAlarmCooldown()) {
@@ -188,7 +205,8 @@ void Detech::_run_pipeline_loop() {
         },
         [this](int cx, int cy) { return _isInAlarmRegion(cx, cy, _videoWidth, _videoHeight); },
         [this]() { return _streamingEnabled.load(); },
-        &_metrics
+        &_metrics,
+        &_hwDecodeState
     );
     _pipeline->start();
     while (_isRun && _pipeline && _pipeline->isRunning()) {
@@ -198,12 +216,18 @@ void Detech::_run_pipeline_loop() {
         _pipeline->stop();
         _pipeline->join();
     }
+    // Finite file/VOD exhausted: exit process (Manage waits on s_exit)
+    if (_pipeline && _pipeline->endedByEof()) {
+        LOG(INFO) << "[VIDEO] Finite media EOF — requesting process shutdown";
+        _isRun = false;
+        s_exit.store(1, std::memory_order_release);
+    }
 }
 
 void Detech::_run_snap_loop() {
     _snapScheduler = std::make_unique<runtime::SnapScheduler>(
         _config,
-        yolov11_thread_pool,
+        yolo_thread_pool,
         [this](const std::vector<DetectObject>& dets, const std::string& region,
                const std::string& deviceId, const std::string& deviceName, const cv::Mat& frame) {
             if (_checkAlarmCooldown()) {
@@ -224,7 +248,7 @@ void Detech::_run_snap_loop() {
 void Detech::_run_patrol_loop() {
     _patrolScheduler = std::make_unique<runtime::PatrolScheduler>(
         _config,
-        yolov11_thread_pool,
+        yolo_thread_pool,
         [this](const std::vector<DetectObject>& dets, const std::string& region,
                const std::string& deviceId, const std::string& deviceName, const cv::Mat& frame) {
             if (_checkAlarmCooldown()) {
@@ -265,14 +289,16 @@ bool Detech::startStreaming() {
         
         // 创建并初始化RTMP编码器
         _rtmpEncoder = new RTMPEncoder();
-        if (!_rtmpEncoder->init(_config.rtmpUrl, _videoWidth, _videoHeight, _videoFps)) {
+        if (!_rtmpEncoder->init(_config.rtmpUrl, _videoWidth, _videoHeight, _videoFps,
+                                makeRtmpOpts(_config))) {
             LOG(ERROR) << "[STREAMING] Failed to initialize RTMP encoder";
             delete _rtmpEncoder;
             _rtmpEncoder = nullptr;
             return false;
         }
         
-        LOG(INFO) << "[STREAMING] RTMP encoder initialized successfully";
+        LOG(INFO) << "[STREAMING] RTMP encoder initialized successfully encode_ep="
+                  << _rtmpEncoder->encodeEp();
     }
     
     // 启用推流
@@ -394,14 +420,30 @@ void Detech::_controlServerThreadFunc() {
             metrics["alarms_emitted"] = (Json::UInt64)this->_metrics.alarmsEmitted.load();
             metrics["last_latency_ms"] = (Json::UInt64)this->_metrics.lastLatencyMs.load();
             response["metrics"] = metrics;
-            if (yolov11_thread_pool) {
-                response["infer_ep"] = yolov11_thread_pool->inferEp();
+            if (yolo_thread_pool) {
+                response["infer_ep"] = yolo_thread_pool->inferEp();
+                response["model_layout"] = yolo_thread_pool->modelLayout();
             } else {
                 response["infer_ep"] = "none";
+                response["model_layout"] = "none";
+            }
+            if (this->_pipeline) {
+                response["decode_ep"] = this->_pipeline->decodeEp();
+            } else {
+                response["decode_ep"] = this->_hwDecodeState.decodeEp.empty()
+                    ? "none"
+                    : this->_hwDecodeState.decodeEp;
+            }
+            if (this->_rtmpEncoder && this->_rtmpEncoder->isInitialized()) {
+                response["encode_ep"] = this->_rtmpEncoder->encodeEp();
+            } else {
+                response["encode_ep"] = "none";
             }
             response["prefer_gpu"] = this->_config.preferGpu;
             response["force_cpu"] = this->_config.forceCpu;
             response["gpu_device_id"] = this->_config.gpuDeviceId;
+            response["prefer_hwaccel"] = this->_config.preferHwaccel;
+            response["force_soft_av"] = this->_config.forceSoftAv;
             
             Json::StreamWriterBuilder writer;
             res.set_content(Json::writeString(writer, response), "application/json");
@@ -510,15 +552,15 @@ bool Detech::_init_http_client() {
     return true;
 }
 
-bool Detech::_init_yolo11_detector() {
+bool Detech::_init_yolo_detector() {
     // Skip YOLO initialization if AI is disabled
     if (!_config.enableAI) {
         LOG(INFO) << "[INIT] AI inference disabled, skipping YOLO initialization";
         return true;
     }
     
-    if (!yolov11_thread_pool) {
-        yolov11_thread_pool = new Yolov11ThreadPool();
+    if (!yolo_thread_pool) {
+        yolo_thread_pool = new YoloThreadPool();
         
         // Extract first model path and classes from map
         // TODO: Support multiple models in future version
@@ -562,20 +604,24 @@ bool Detech::_init_yolo11_detector() {
                   << " prefer_gpu=" << (_config.preferGpu ? "true" : "false")
                   << " force_cpu=" << (_config.forceCpu ? "true" : "false")
                   << " gpu_device_id=" << _config.gpuDeviceId;
-        int ret = yolov11_thread_pool->setUp(
+        int ret = yolo_thread_pool->setUp(
             modelPath, classes, _config.threadNums,
             _config.preferGpu, _config.forceCpu, _config.gpuDeviceId);
         if (ret) {
             LOG(ERROR) << "[ERROR] YOLO thread pool initialization failed, error code: " << ret;
             return false;
         }
-        LOG(INFO) << "[OK] YOLO thread pool initialized infer_ep=" << yolov11_thread_pool->inferEp();
+        LOG(INFO) << "[OK] YOLO thread pool initialized infer_ep=" << yolo_thread_pool->inferEp()
+                  << " layout=" << yolo_thread_pool->modelLayout();
     }
     return true;
 }
 
 bool Detech::_init_media_player() {
-    LOG(INFO) << "[INIT] Initializing media player";
+    LOG(INFO) << "[INIT] Initializing media player"
+              << " prefer_hwaccel=" << (_config.preferHwaccel ? "true" : "false")
+              << " force_soft_av=" << (_config.forceSoftAv ? "true" : "false")
+              << " hwaccel_device_id=" << _config.hwaccelDeviceId;
     if (!_ffmpegFormatCtx) {
         _ffmpegFormatCtx = avformat_alloc_context();
     }
@@ -597,21 +643,12 @@ bool Detech::_init_media_player() {
     _videoIndex = av_find_best_stream(_ffmpegFormatCtx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
     if (_videoIndex > -1) {
         AVCodecParameters* videoCodecPar = _ffmpegFormatCtx->streams[_videoIndex]->codecpar;
-        const AVCodec* videoCodec = NULL;
-        if (!videoCodec) {
-            videoCodec = avcodec_find_decoder(videoCodecPar->codec_id);
-            if (!videoCodec) {
-                LOG(ERROR) << "avcodec_find_decoder error";
-                return false;
-            }
-        }
-        _ffmpegCodecCtx = avcodec_alloc_context3(videoCodec);
-        if (avcodec_parameters_to_context(_ffmpegCodecCtx, videoCodecPar) != 0) {
-            LOG(ERROR) << "avcodec_parameters_to_context error";
-            return false;
-        }
-        if (avcodec_open2(_ffmpegCodecCtx, videoCodec, nullptr) < 0) {
-            LOG(ERROR) << "avcodec_open2 error";
+        if (!runtime::openVideoDecoder(&_ffmpegCodecCtx, videoCodecPar,
+                                       _config.preferHwaccel,
+                                       _config.forceSoftAv,
+                                       _config.hwaccelDeviceId,
+                                       &_hwDecodeState)) {
+            LOG(ERROR) << "openVideoDecoder error";
             return false;
         }
         _ffmpegStream = _ffmpegFormatCtx->streams[_videoIndex];
@@ -625,6 +662,8 @@ bool Detech::_init_media_player() {
         _videoWidth = _ffmpegCodecCtx->width;
         _videoHeight = _ffmpegCodecCtx->height;
         _videoChannel = 3;
+        LOG(INFO) << "[OK] Media player ready " << _videoWidth << "x" << _videoHeight
+                  << "@" << _videoFps << "fps decode_ep=" << _hwDecodeState.decodeEp;
     }
     return true;
 }
@@ -652,21 +691,22 @@ bool Detech::_init_media_pusher() {
     LOG(INFO) << "[INIT] RTMP URL: " << _config.rtmpUrl;
     LOG(INFO) << "[INIT] Video: " << _videoWidth << "x" << _videoHeight << "@" << _videoFps << "fps";
     
-    if (!_rtmpEncoder->init(_config.rtmpUrl, _videoWidth, _videoHeight, _videoFps)) {
+    if (!_rtmpEncoder->init(_config.rtmpUrl, _videoWidth, _videoHeight, _videoFps,
+                            makeRtmpOpts(_config))) {
         LOG(WARNING) << "[INIT] ⚠️ RTMP encoder initialization failed (ZLMediaKit not running?)";
         LOG(WARNING) << "[INIT] ⚠️ Streaming disabled, but program will continue";
         LOG(WARNING) << "[INIT] ⚠️ You can start streaming later via API when ZLM is ready";
         delete _rtmpEncoder;
         _rtmpEncoder = nullptr;
         _streamingEnabled.store(false);
-        // ✅ 不阻止程序启动
-        return true;
+        return true;  // 不阻止程序启动
     }
     
-    // 初始化成功，自动启用推流
+    // 默认启用推流
     _streamingEnabled.store(true);
-    LOG(INFO) << "[OK] RTMP encoder initialized successfully";
-    LOG(INFO) << "[OK] ✅ Streaming enabled by default (config: enable_rtmp=true)";
+    LOG(INFO) << "[OK] RTMP encoder initialized successfully encode_ep="
+              << _rtmpEncoder->encodeEp();
+    LOG(INFO) << "[OK] Streaming enabled by default (can be controlled via API)";
     
     return true;
 }
@@ -1215,10 +1255,10 @@ void Detech::_display_video_loop() {
         std::vector<DetectObject> detections;
         int detectCount = 0;
         
-        if (_config.enableAI && yolov11_thread_pool) {
+        if (_config.enableAI && yolo_thread_pool) {
             // Submit task every N frames to avoid queue buildup
             if (aiFrameInterval % SUBMIT_INTERVAL == 0) {
-                yolov11_thread_pool->submitTask(img, 0, frameCount);
+                yolo_thread_pool->submitTask(img, 0, frameCount);
                 lastSubmittedFrameId = frameCount;
             }
             aiFrameInterval++;
@@ -1226,7 +1266,7 @@ void Detech::_display_video_loop() {
             // Try to get any available result (non-blocking)
             bool foundNewResult = false;
             for (int checkFrame = lastSubmittedFrameId; checkFrame >= 0 && checkFrame >= lastSubmittedFrameId - 30; checkFrame--) {
-                int ret = yolov11_thread_pool->getTargetResultNonBlock(detections, 0, checkFrame);
+                int ret = yolo_thread_pool->getTargetResultNonBlock(detections, 0, checkFrame);
                 if (ret == 0) {
                     // Successfully got results, cache them
                     lastDetections = detections;

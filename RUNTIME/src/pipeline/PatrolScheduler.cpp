@@ -5,7 +5,7 @@
 #include <glog/logging.h>
 #include <opencv2/geometry.hpp>
 
-#include "Yolov11ThreadPool.h"
+#include "YoloThreadPool.h"
 
 namespace runtime {
 
@@ -59,7 +59,7 @@ bool pointInRegions(const Config& config, int cx, int cy, int width, int height,
 
 }  // namespace
 
-PatrolScheduler::PatrolScheduler(Config& config, Yolov11ThreadPool* pool, AlarmFn alarmFn)
+PatrolScheduler::PatrolScheduler(Config& config, YoloThreadPool* pool, AlarmFn alarmFn)
     : config_(config), pool_(pool), alarmFn_(std::move(alarmFn)) {}
 
 PatrolScheduler::~PatrolScheduler() {

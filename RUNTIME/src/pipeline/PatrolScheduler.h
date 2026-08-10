@@ -13,7 +13,7 @@
 #include "Config.h"
 #include "Datatype.h"
 
-class Yolov11ThreadPool;
+class YoloThreadPool;
 
 namespace runtime {
 
@@ -30,7 +30,7 @@ public:
     std::atomic<uint64_t> totalPatrols{0};
     std::atomic<uint64_t> totalDetections{0};
 
-    PatrolScheduler(Config& config, Yolov11ThreadPool* pool, AlarmFn alarmFn);
+    PatrolScheduler(Config& config, YoloThreadPool* pool, AlarmFn alarmFn);
     ~PatrolScheduler();
 
     void start();
@@ -44,7 +44,7 @@ private:
     void processDevice(const DeviceStreamConfig& device, const cv::Mat& frame);
 
     Config& config_;
-    Yolov11ThreadPool* pool_;
+    YoloThreadPool* pool_;
     AlarmFn alarmFn_;
     std::atomic<bool> running_{false};
     std::thread thread_;

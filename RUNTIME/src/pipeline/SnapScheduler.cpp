@@ -7,7 +7,7 @@
 #include <opencv2/geometry.hpp>
 #include <sstream>
 
-#include "Yolov11ThreadPool.h"
+#include "YoloThreadPool.h"
 
 namespace runtime {
 
@@ -83,7 +83,7 @@ bool parseCronFields(const std::string& expr, std::string& minute, std::string& 
 
 }  // namespace
 
-SnapScheduler::SnapScheduler(Config& config, Yolov11ThreadPool* pool, AlarmFn alarmFn)
+SnapScheduler::SnapScheduler(Config& config, YoloThreadPool* pool, AlarmFn alarmFn)
     : config_(config), pool_(pool), alarmFn_(std::move(alarmFn)) {}
 
 SnapScheduler::~SnapScheduler() {

@@ -13,7 +13,7 @@
 #include "Config.h"
 #include "Datatype.h"
 
-class Yolov11ThreadPool;
+class YoloThreadPool;
 
 namespace runtime {
 
@@ -27,7 +27,7 @@ public:
                                        const std::string& deviceId, const std::string& deviceName,
                                        const cv::Mat& frame)>;
 
-    SnapScheduler(Config& config, Yolov11ThreadPool* pool, AlarmFn alarmFn);
+    SnapScheduler(Config& config, YoloThreadPool* pool, AlarmFn alarmFn);
     ~SnapScheduler();
 
     void start();
@@ -43,7 +43,7 @@ private:
     void processDevice(size_t idx, const cv::Mat& frame);
 
     Config& config_;
-    Yolov11ThreadPool* pool_;
+    YoloThreadPool* pool_;
     AlarmFn alarmFn_;
     std::atomic<bool> running_{false};
     std::thread thread_;

@@ -12,58 +12,55 @@ extern "C" {
 #include "libavutil/imgutils.h"
 }
 
+struct RtmpEncoderOptions {
+    bool preferHw{true};
+    bool forceSoft{false};
+    int gpuDeviceId{0};
+    std::string nvencPreset{"p3"};
+};
+
 /**
  * RTMP推流编码器
  * 功能：将OpenCV Mat图像编码为H.264并推送到RTMP服务器
- * 特性：低延迟配置、自动资源管理
+ * 优先 h264_nvenc，失败回退 libx264
  */
 class RTMPEncoder {
 public:
     RTMPEncoder();
     ~RTMPEncoder();
 
-    /**
-     * 初始化RTMP编码器
-     * @param rtmpUrl RTMP推流地址，例如: rtmp://localhost:1935/live/stream_test
-     * @param width 视频宽度
-     * @param height 视频高度
-     * @param fps 视频帧率
-     * @return 成功返回true，失败返回false
-     */
-    bool init(const std::string& rtmpUrl, int width, int height, int fps);
+    bool init(const std::string& rtmpUrl, int width, int height, int fps,
+              const RtmpEncoderOptions& opts = RtmpEncoderOptions());
 
-    /**
-     * 编码并推送一帧图像
-     * @param frame OpenCV Mat图像（BGR24格式）
-     * @return 成功返回true，失败返回false
-     */
     bool encodeAndPush(const cv::Mat& frame);
 
-    /**
-     * 释放资源
-     */
     void release();
 
-    /**
-     * 检查编码器是否已初始化
-     */
     bool isInitialized() const { return _initialized; }
 
+    /** h264_nvenc | libx264 | none */
+    const std::string& encodeEp() const { return _encodeEp; }
+
 private:
+    bool openEncoder(const AVCodec* codec, bool isNvenc, const RtmpEncoderOptions& opts);
+    static int alignDim(int v, int align = 16);
+
     AVFormatContext* _outputCtx;    // 输出格式上下文
     AVCodecContext* _codecCtx;      // 编码器上下文
     AVStream* _videoStream;         // 视频流
     SwsContext* _swsCtx;            // 颜色空间转换上下文
     AVFrame* _yuvFrame;             // YUV帧
     AVPacket* _packet;              // 编码后的数据包
-    
-    int64_t _frameIndex;            // 当前帧索引（用于PTS计算）
-    int _width;                     // 视频宽度
-    int _height;                    // 视频高度
-    int _fps;                       // 视频帧率
-    std::string _rtmpUrl;           // RTMP推流地址
-    bool _initialized;              // 初始化标志
+
+    int64_t _frameIndex;
+    int _srcWidth;                  // OpenCV 输入宽
+    int _srcHeight;
+    int _encWidth;                  // 编码器宽（NVENC 16 对齐）
+    int _encHeight;
+    int _fps;
+    std::string _rtmpUrl;
+    std::string _encodeEp{"none"};
+    bool _initialized;
 };
 
 #endif // RTMP_ENCODER_H
-

@@ -67,6 +67,12 @@ typedef struct Config {
     bool preferGpu{true};
     bool forceCpu{false};
     int gpuDeviceId{0};
+
+    // FFmpeg NVDEC/NVENC (NVIDIA); soft fallback on failure
+    bool preferHwaccel{true};
+    bool forceSoftAv{false};
+    int hwaccelDeviceId{-1};  // <0 → use gpuDeviceId after parse
+    std::string nvencPreset{"p3"};
 } Config;
 
 #endif //CONFIG_H

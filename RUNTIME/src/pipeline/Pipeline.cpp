@@ -1,12 +1,13 @@
 #include "pipeline/Pipeline.h"
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <glog/logging.h>
 #include <opencv2/opencv.hpp>
 
 #include "RTMPEncoder.h"
-#include "Yolov11ThreadPool.h"
+#include "YoloThreadPool.h"
 
 namespace runtime {
 
@@ -38,12 +39,13 @@ Pipeline::Pipeline(Config& config,
                    int videoWidth,
                    int videoHeight,
                    int videoFps,
-                   Yolov11ThreadPool* yoloPool,
+                   YoloThreadPool* yoloPool,
                    RTMPEncoder** rtmpEncoder,
                    AlarmFn alarmFn,
                    RegionFn regionFn,
                    StreamingEnabledFn streamingFn,
-                   PipelineMetrics* metrics)
+                   PipelineMetrics* metrics,
+                   HwDecodeState* sharedHwState)
     : config_(config),
       rtspUrl_(config.rtspUrl),
       formatCtx_(formatCtx),
@@ -58,21 +60,59 @@ Pipeline::Pipeline(Config& config,
       regionFn_(std::move(regionFn)),
       streamingFn_(std::move(streamingFn)),
       metrics_(metrics),
+      sharedHwState_(sharedHwState),
       frameRing_(8),
       resultRing_(64) {
     framePool_.reset(8, videoWidth_, videoHeight_);
+    if (sharedHwState_) {
+        // Mirror Detech's initial decoder open (hw device stays owned by Detech until reopen)
+        hwState_.usingCuda = sharedHwState_->usingCuda;
+        hwState_.decodeEp = sharedHwState_->decodeEp.empty()
+            ? (sharedHwState_->usingCuda ? "cuda" : "cpu")
+            : sharedHwState_->decodeEp;
+        setDecodeEp(hwState_.decodeEp);
+    } else {
+        setDecodeEp("cpu");
+    }
+    forceSoftSession_ = config_.forceSoftAv || !config_.preferHwaccel;
 }
 
 Pipeline::~Pipeline() {
     stop();
     join();
+    releaseHwDecodeState(&hwState_);
+}
+
+void Pipeline::setDecodeEp(const std::string& ep) {
+    decodeEp_ = ep.empty() ? "cpu" : ep;
+    if (sharedHwState_) {
+        sharedHwState_->decodeEp = decodeEp_;
+        sharedHwState_->usingCuda = (decodeEp_ == "cuda");
+    }
+}
+
+bool Pipeline::isFiniteMediaUrl(const std::string& url) {
+    if (url.empty()) {
+        return false;
+    }
+    // Bare filesystem path → finite VOD/file
+    const auto schemeEnd = url.find("://");
+    if (schemeEnd == std::string::npos) {
+        return true;
+    }
+    std::string scheme = url.substr(0, schemeEnd);
+    for (char& c : scheme) {
+        c = static_cast<char>(::tolower(static_cast<unsigned char>(c)));
+    }
+    // Explicit file URL; everything else treated as live (rtsp/rtmp/udp/http/...)
+    return scheme == "file";
 }
 
 void Pipeline::start() {
     if (running_.exchange(true)) {
         return;
     }
-    LOG(INFO) << "[PIPELINE] Starting pull/decode + infer + emit stages";
+    LOG(INFO) << "[PIPELINE] Starting pull/decode + infer + emit stages decode_ep=" << decodeEp_;
     pullThread_ = std::thread(&Pipeline::pullDecodeLoop, this);
     inferThread_ = std::thread(&Pipeline::inferLoop, this);
     emitThread_ = std::thread(&Pipeline::emitLoop, this);
@@ -94,7 +134,7 @@ void Pipeline::join() {
     }
 }
 
-bool Pipeline::reopenStream() {
+bool Pipeline::reopenStream(bool forceSoft) {
     if (rtspUrl_.empty()) {
         LOG(ERROR) << "[PIPELINE] reopenStream: empty rtsp url";
         return false;
@@ -108,6 +148,7 @@ bool Pipeline::reopenStream() {
         avformat_close_input(&formatCtx_);
         formatCtx_ = nullptr;
     }
+    releaseHwDecodeState(&hwState_);
 
     formatCtx_ = avformat_alloc_context();
     AVDictionary* fmt_options = nullptr;
@@ -142,28 +183,17 @@ bool Pipeline::reopenStream() {
     }
 
     AVCodecParameters* videoCodecPar = formatCtx_->streams[videoIndex_]->codecpar;
-    const AVCodec* videoCodec = avcodec_find_decoder(videoCodecPar->codec_id);
-    if (!videoCodec) {
-        LOG(ERROR) << "[PIPELINE] avcodec_find_decoder failed";
+    const bool soft = forceSoft || forceSoftSession_ || config_.forceSoftAv;
+    if (!openVideoDecoder(&codecCtx_, videoCodecPar,
+                          config_.preferHwaccel && !soft,
+                          soft,
+                          config_.hwaccelDeviceId,
+                          &hwState_)) {
+        LOG(ERROR) << "[PIPELINE] openVideoDecoder failed";
         avformat_close_input(&formatCtx_);
         return false;
     }
-
-    codecCtx_ = avcodec_alloc_context3(videoCodec);
-    if (!codecCtx_ || avcodec_parameters_to_context(codecCtx_, videoCodecPar) != 0) {
-        LOG(ERROR) << "[PIPELINE] codec context setup failed";
-        if (codecCtx_) {
-            avcodec_free_context(&codecCtx_);
-        }
-        avformat_close_input(&formatCtx_);
-        return false;
-    }
-    if (avcodec_open2(codecCtx_, videoCodec, nullptr) < 0) {
-        LOG(ERROR) << "[PIPELINE] avcodec_open2 failed";
-        avcodec_free_context(&codecCtx_);
-        avformat_close_input(&formatCtx_);
-        return false;
-    }
+    setDecodeEp(hwState_.decodeEp);
 
     AVStream* stream = formatCtx_->streams[videoIndex_];
     if (stream->avg_frame_rate.den == 0) {
@@ -174,12 +204,12 @@ bool Pipeline::reopenStream() {
     videoWidth_ = codecCtx_->width;
     videoHeight_ = codecCtx_->height;
     LOG(INFO) << "[PIPELINE] reopened stream " << videoWidth_ << "x" << videoHeight_
-              << "@" << videoFps_ << "fps";
+              << "@" << videoFps_ << "fps decode_ep=" << decodeEp_;
     return true;
 }
 
 void Pipeline::pullDecodeLoop() {
-    LOG(INFO) << "[PIPELINE-PULL] thread started";
+    LOG(INFO) << "[PIPELINE-PULL] thread started decode_ep=" << decodeEp_;
     if (!formatCtx_ || !codecCtx_) {
         LOG(ERROR) << "[PIPELINE-PULL] FFmpeg not ready";
         running_.store(false);
@@ -188,8 +218,9 @@ void Pipeline::pullDecodeLoop() {
 
     AVPacket* packet = av_packet_alloc();
     AVFrame* frame = av_frame_alloc();
+    AVFrame* swFrame = av_frame_alloc();
     AVFrame* frameBGR = av_frame_alloc();
-    if (!packet || !frame || !frameBGR) {
+    if (!packet || !frame || !swFrame || !frameBGR) {
         LOG(ERROR) << "[PIPELINE-PULL] alloc failed";
         running_.store(false);
         return;
@@ -200,15 +231,37 @@ void Pipeline::pullDecodeLoop() {
     av_image_fill_arrays(frameBGR->data, frameBGR->linesize, buffer, AV_PIX_FMT_BGR24,
                          videoWidth_, videoHeight_, 1);
 
+    AVPixelFormat swPixFmt = codecCtx_->pix_fmt;
+    const bool initialCuda = hwState_.usingCuda || decodeEp_ == "cuda" ||
+                             swPixFmt == AV_PIX_FMT_CUDA;
+    if (swPixFmt == AV_PIX_FMT_CUDA || swPixFmt == AV_PIX_FMT_NONE || initialCuda) {
+        // Will be set from first transferred frame; NV12 is common NVDEC download fmt
+        swPixFmt = AV_PIX_FMT_NV12;
+    }
+
     SwsContext* swsCtx = sws_getContext(
-        videoWidth_, videoHeight_, codecCtx_->pix_fmt,
+        videoWidth_, videoHeight_, swPixFmt,
         videoWidth_, videoHeight_, AV_PIX_FMT_BGR24,
         SWS_BILINEAR, nullptr, nullptr, nullptr);
+
+    // Soft path with known host pix_fmt from codec
+    if (!initialCuda && codecCtx_->pix_fmt != AV_PIX_FMT_NONE &&
+        codecCtx_->pix_fmt != AV_PIX_FMT_CUDA) {
+        if (swsCtx) {
+            sws_freeContext(swsCtx);
+        }
+        swPixFmt = codecCtx_->pix_fmt;
+        swsCtx = sws_getContext(
+            videoWidth_, videoHeight_, swPixFmt,
+            videoWidth_, videoHeight_, AV_PIX_FMT_BGR24,
+            SWS_BILINEAR, nullptr, nullptr, nullptr);
+    }
 
     if (!swsCtx) {
         LOG(ERROR) << "[PIPELINE-PULL] sws_getContext failed";
         av_free(buffer);
         av_frame_free(&frameBGR);
+        av_frame_free(&swFrame);
         av_frame_free(&frame);
         av_packet_free(&packet);
         running_.store(false);
@@ -217,8 +270,17 @@ void Pipeline::pullDecodeLoop() {
 
     int reconnectBackoffSec = 1;
     const int kMaxBackoffSec = 30;
+    const int kSustainPacketsToResetBackoff = 50;  // live: only reset after sustained read
+    const int kShortSessionPackets = 25;           // below → treat as rapid EOF
+    int packetsThisSession = 0;
+    int rapidEofStreak = 0;
+    const bool finiteSource = isFiniteMediaUrl(rtspUrl_);
+    if (finiteSource) {
+        LOG(INFO) << "[PIPELINE-PULL] finite media source detected (file/VOD); "
+                     "EOF will end pull loop instead of reconnect storm";
+    }
 
-    auto rebuildConverters = [&]() -> bool {
+    auto rebuildConverters = [&](AVPixelFormat srcFmt) -> bool {
         if (swsCtx) {
             sws_freeContext(swsCtx);
             swsCtx = nullptr;
@@ -231,12 +293,13 @@ void Pipeline::pullDecodeLoop() {
         buffer = static_cast<uint8_t*>(av_malloc(numBytes * sizeof(uint8_t)));
         av_image_fill_arrays(frameBGR->data, frameBGR->linesize, buffer, AV_PIX_FMT_BGR24,
                              videoWidth_, videoHeight_, 1);
+        swPixFmt = srcFmt;
         swsCtx = sws_getContext(
-            videoWidth_, videoHeight_, codecCtx_->pix_fmt,
+            videoWidth_, videoHeight_, swPixFmt,
             videoWidth_, videoHeight_, AV_PIX_FMT_BGR24,
             SWS_BILINEAR, nullptr, nullptr, nullptr);
         if (!swsCtx) {
-            LOG(ERROR) << "[PIPELINE-PULL] sws rebuild failed";
+            LOG(ERROR) << "[PIPELINE-PULL] sws rebuild failed src_fmt=" << srcFmt;
             return false;
         }
         framePool_.reset(8, videoWidth_, videoHeight_);
@@ -248,12 +311,38 @@ void Pipeline::pullDecodeLoop() {
         if (ret < 0) {
             char errbuf[128];
             av_strerror(ret, errbuf, sizeof(errbuf));
-            if (ret == AVERROR_EOF) {
-                LOG(WARNING) << "[PIPELINE-PULL] EOF, attempting reconnect";
-            } else {
-                LOG(WARNING) << "[PIPELINE-PULL] read error: " << errbuf << ", attempting reconnect";
+            const bool isEof = (ret == AVERROR_EOF);
+
+            // Finite file/VOD: stop cleanly — reopen would just EOF again and burn CPU
+            if (isEof && finiteSource) {
+                LOG(INFO) << "[PIPELINE-PULL] EOF on finite source, ending pull loop "
+                             "(packets_this_session=" << packetsThisSession << ")";
+                endedByEof_.store(true);
+                break;
             }
 
+            if (isEof) {
+                LOG(WARNING) << "[PIPELINE-PULL] EOF, attempting reconnect"
+                             << " session_packets=" << packetsThisSession
+                             << " rapid_eof_streak=" << rapidEofStreak;
+            } else {
+                LOG(WARNING) << "[PIPELINE-PULL] read error: " << errbuf
+                             << ", attempting reconnect";
+            }
+
+            // Live: short session ending in EOF → grow backoff (avoid 1s reopen storms)
+            if (isEof && packetsThisSession < kShortSessionPackets) {
+                ++rapidEofStreak;
+                reconnectBackoffSec = std::min(
+                    std::max(reconnectBackoffSec, 1) * 2, kMaxBackoffSec);
+                if (rapidEofStreak >= 3) {
+                    reconnectBackoffSec = std::max(reconnectBackoffSec, 5);
+                }
+                LOG(WARNING) << "[PIPELINE-PULL] rapid EOF (short session), backoff="
+                             << reconnectBackoffSec << "s streak=" << rapidEofStreak;
+            }
+
+            bool reopened = false;
             while (running_.load()) {
                 LOG(INFO) << "[PIPELINE-PULL] reconnect sleep " << reconnectBackoffSec << "s";
                 for (int s = 0; s < reconnectBackoffSec && running_.load(); ++s) {
@@ -262,18 +351,36 @@ void Pipeline::pullDecodeLoop() {
                 if (!running_.load()) {
                     break;
                 }
-                if (reopenStream() && rebuildConverters()) {
-                    reconnectBackoffSec = 1;
-                    LOG(INFO) << "[PIPELINE-PULL] reconnect success";
+                if (reopenStream(forceSoftSession_) &&
+                    rebuildConverters(hwState_.usingCuda ? AV_PIX_FMT_NV12 : codecCtx_->pix_fmt)) {
+                    packetsThisSession = 0;
+                    hwTransferFailStreak_ = 0;
+                    // Do NOT reset backoff here — wait until sustained packets
+                    LOG(INFO) << "[PIPELINE-PULL] reconnect success decode_ep=" << decodeEp_
+                              << " (backoff stays " << reconnectBackoffSec
+                              << "s until sustained read)";
+                    reopened = true;
                     break;
                 }
                 reconnectBackoffSec = std::min(reconnectBackoffSec * 2, kMaxBackoffSec);
                 LOG(WARNING) << "[PIPELINE-PULL] reopen failed, next backoff="
                              << reconnectBackoffSec << "s";
             }
+            if (!reopened) {
+                break;
+            }
             continue;
         }
-        reconnectBackoffSec = 1;
+
+        ++packetsThisSession;
+        if (packetsThisSession >= kSustainPacketsToResetBackoff) {
+            if (reconnectBackoffSec != 1 || rapidEofStreak != 0) {
+                LOG(INFO) << "[PIPELINE-PULL] sustained read (" << packetsThisSession
+                          << " packets), reset reconnect backoff";
+            }
+            reconnectBackoffSec = 1;
+            rapidEofStreak = 0;
+        }
 
         if (metrics_) {
             metrics_->packetsIn.fetch_add(1, std::memory_order_relaxed);
@@ -298,9 +405,35 @@ void Pipeline::pullDecodeLoop() {
                 break;
             }
 
+            AVFrame* srcForSws = ensureSoftwareFrame(frame, swFrame);
+            if (!srcForSws) {
+                ++hwTransferFailStreak_;
+                if (!forceSoftSession_ && hwTransferFailStreak_ >= kHwFailDowngradeThreshold) {
+                    LOG(WARNING) << "[PIPELINE-PULL] NVDEC transfer failed "
+                                 << hwTransferFailStreak_
+                                 << " times, downgrading to software decode";
+                    forceSoftSession_ = true;
+                    if (reopenStream(true) &&
+                        rebuildConverters(codecCtx_ ? codecCtx_->pix_fmt : AV_PIX_FMT_YUV420P)) {
+                        hwTransferFailStreak_ = 0;
+                    }
+                }
+                continue;
+            }
+            hwTransferFailStreak_ = 0;
+
+            if (srcForSws->format != swPixFmt ||
+                srcForSws->width != videoWidth_ ||
+                srcForSws->height != videoHeight_) {
+                videoWidth_ = srcForSws->width > 0 ? srcForSws->width : videoWidth_;
+                videoHeight_ = srcForSws->height > 0 ? srcForSws->height : videoHeight_;
+                if (!rebuildConverters(static_cast<AVPixelFormat>(srcForSws->format))) {
+                    continue;
+                }
+            }
+
             FrameSlot* slot = framePool_.acquire();
             if (!slot) {
-                // Pool exhausted: drop by popping one pending frame index
                 int dropIdx = -1;
                 if (frameRing_.pop(dropIdx)) {
                     framePool_.release(dropIdx);
@@ -314,7 +447,7 @@ void Pipeline::pullDecodeLoop() {
                 }
             }
 
-            sws_scale(swsCtx, frame->data, frame->linesize, 0, videoHeight_,
+            sws_scale(swsCtx, srcForSws->data, srcForSws->linesize, 0, videoHeight_,
                       frameBGR->data, frameBGR->linesize);
             cv::Mat temp(videoHeight_, videoWidth_, CV_8UC3, frameBGR->data[0], frameBGR->linesize[0]);
             temp.copyTo(slot->bgr);
@@ -348,6 +481,7 @@ void Pipeline::pullDecodeLoop() {
         av_free(buffer);
     }
     av_frame_free(&frameBGR);
+    av_frame_free(&swFrame);
     av_frame_free(&frame);
     av_packet_free(&packet);
     running_.store(false);
