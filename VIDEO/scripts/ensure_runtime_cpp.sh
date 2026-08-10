@@ -77,9 +77,29 @@ wire_runtime_override() {
     fi
   fi
 
-  local ld_path="/opt/easyaiot/runtime-conda-lib:/opt/easyaiot/ort-lib"
+  # Only mount a CUDA toolkit dir that contains libcudart.
+  # Never mount generic system lib dirs (e.g. /usr/lib/x86_64-linux-gnu) —
+  # they contain libc and break the container entrypoint.
+  local cuda_host="" cuda_volume_line=""
   if [[ -n "${RUNTIME_CUDA_LIB_HOST:-}" ]]; then
+    local cand
+    IFS=':' read -r -a _cuda_cands <<< "${RUNTIME_CUDA_LIB_HOST}"
+    for cand in "${_cuda_cands[@]}"; do
+      [[ -d "$cand" ]] || continue
+      case "$cand" in
+        /usr/lib|/usr/lib/*|/lib|/lib/*|/usr/lib64|/lib64) continue ;;
+      esac
+      if compgen -G "${cand}/libcudart.so*" >/dev/null 2>&1; then
+        cuda_host="$cand"
+        break
+      fi
+    done
+  fi
+
+  local ld_path="/opt/easyaiot/runtime-conda-lib:/opt/easyaiot/ort-lib"
+  if [[ -n "$cuda_host" ]]; then
     ld_path="${ld_path}:/opt/easyaiot/cuda-lib"
+    cuda_volume_line="      - ${cuda_host}:/opt/easyaiot/cuda-lib:ro"
   fi
 
   _set_env_docker_kv_local "$env_file" RUNTIME_BIN "/opt/easyaiot/RUNTIME/build/RUNTIME"
@@ -89,17 +109,11 @@ wire_runtime_override() {
   _set_env_docker_kv_local "$env_file" RUNTIME_HOST_DIR "${RUNTIME_HOST_DIR}"
   _set_env_docker_kv_local "$env_file" RUNTIME_CONDA_LIB_HOST "${RUNTIME_CONDA_LIB_HOST}"
   _set_env_docker_kv_local "$env_file" RUNTIME_ORT_LIB_HOST "${RUNTIME_ORT_LIB_HOST}"
-  if [[ -n "${RUNTIME_CUDA_LIB_HOST:-}" ]]; then
-    _set_env_docker_kv_local "$env_file" RUNTIME_CUDA_LIB_HOST "${RUNTIME_CUDA_LIB_HOST}"
-  fi
-
-  local cuda_volume_line=""
-  if [[ -n "${RUNTIME_CUDA_LIB_HOST:-}" ]]; then
-    # May contain multiple paths joined by ':'; mount first existing dir
-    local first_cuda="${RUNTIME_CUDA_LIB_HOST%%:*}"
-    if [[ -d "$first_cuda" ]]; then
-      cuda_volume_line="      - ${first_cuda}:/opt/easyaiot/cuda-lib:ro"
-    fi
+  if [[ -n "$cuda_host" ]]; then
+    _set_env_docker_kv_local "$env_file" RUNTIME_CUDA_LIB_HOST "$cuda_host"
+  else
+    # Clear stale unsafe value from earlier installs
+    _set_env_docker_kv_local "$env_file" RUNTIME_CUDA_LIB_HOST ""
   fi
 
   {
