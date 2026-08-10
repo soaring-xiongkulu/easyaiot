@@ -55,6 +55,20 @@ public class DeviceStorageRepository {
         jdbc.update(sql.toString(), args.toArray());
     }
 
+    public void touchLastSnapCleanupTime(String deviceId) {
+        jdbc.update(
+                "UPDATE device_storage_config SET last_snap_cleanup_time = NOW(), updated_at = NOW() WHERE device_id = ?",
+                deviceId
+        );
+    }
+
+    public void touchLastVideoCleanupTime(String deviceId) {
+        jdbc.update(
+                "UPDATE device_storage_config SET last_video_cleanup_time = NOW(), updated_at = NOW() WHERE device_id = ?",
+                deviceId
+        );
+    }
+
     public boolean deviceExists(String deviceId) {
         Long count = jdbc.queryForObject("SELECT COUNT(*) FROM device WHERE id = ?", Long.class, deviceId);
         return count != null && count > 0;

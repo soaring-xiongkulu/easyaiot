@@ -264,6 +264,49 @@ public class VideoMinioService {
         }
     }
 
+    /** Mirrors Python {@code storage_service.cleanup_old_files} — oldest-first delete by ratio. */
+    public record CleanupResult(int deletedCount, long freedSizeBytes) {
+        public static final CleanupResult EMPTY = new CleanupResult(0, 0L);
+    }
+
+    public CleanupResult cleanupOldFiles(String bucketName, String prefix, double cleanupRatio) {
+        if (!isStorageEnabled() || bucketName == null || bucketName.isBlank()) {
+            return CleanupResult.EMPTY;
+        }
+        if (cleanupRatio <= 0.0) {
+            return CleanupResult.EMPTY;
+        }
+        try {
+            List<MinioObjectInfo> objects = listObjects(bucketName, prefix, true);
+            if (objects.isEmpty()) {
+                return CleanupResult.EMPTY;
+            }
+            objects.sort((a, b) -> {
+                java.time.Instant left = a.lastModified() != null ? a.lastModified() : java.time.Instant.EPOCH;
+                java.time.Instant right = b.lastModified() != null ? b.lastModified() : java.time.Instant.EPOCH;
+                return left.compareTo(right);
+            });
+            int deleteCount = Math.max(1, (int) (objects.size() * cleanupRatio));
+            int deleted = 0;
+            long freed = 0L;
+            for (int i = 0; i < deleteCount && i < objects.size(); i++) {
+                MinioObjectInfo file = objects.get(i);
+                try {
+                    removeObject(bucketName, file.objectName());
+                    deleted++;
+                    freed += file.size();
+                } catch (Exception e) {
+                    log.warn("删除文件失败 bucket={} object={} error={}", bucketName, file.objectName(), e.getMessage());
+                }
+            }
+            log.info("清理完成 bucket={} prefix={} deleted={} freed={}", bucketName, prefix, deleted, freed);
+            return new CleanupResult(deleted, freed);
+        } catch (Exception e) {
+            log.warn("清理文件失败 bucket={} prefix={} error={}", bucketName, prefix, e.getMessage());
+            return CleanupResult.EMPTY;
+        }
+    }
+
     private MinioClient requireClient() {
         if (!isStorageEnabled()) {
             throw new VideoBusinessException(503,

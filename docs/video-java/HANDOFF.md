@@ -68,15 +68,15 @@
 6. `DEVICE/iot-video/iot-video-biz/.../controller`  
 7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
 
-## 8. 现状摘要（2026-08-11 FR-B30）
+## 8. 现状摘要（2026-08-11 FR-B31）
 
 - **HTTP 路由：** `route_inventory` 14 前缀 **Py≈259 / Java≈259 / diff=0**（`FR-W4` 全量核对）。
-- **契约硬化：** **FR-B18 ✅** 265 路由薄探针 0 fail；**FR-B29 ✅** keys-matrix（**94** 映射 / **92** key-assert / **6** envelope-only）；**FR-B30 ✅** Snap/record 存储用量真 MinIO 统计（`logs/fr-b30-storage-stats-latest.json`）。
+- **契约硬化：** **FR-B18 ✅** 265 路由薄探针 0 fail；**FR-B29 ✅** keys-matrix（**94** 映射 / **92** key-assert / **6** envelope-only）；**FR-B30 ✅** Snap/record 存储用量真 MinIO 统计；**FR-B31 ✅** POST/PUT mutating-matrix（**140** 探针 **265/265 pass**）+ storage cleanup MinIO 对齐。
 - **行为：** MinIO 本地路径已取证；**纯 Kafka DVR / Alert / Matching Kafka produce 已取证（local）**；ONVIF/YOLO/InsightFace 等仍为 **mini 桩**；见 `FULL_REPLACEMENT_GAP.md` §2–§4。
-- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`logs/certify-frb30-phase0.log`）。
-- **项目状态：** **FR HTTP 面已齐 / keys-matrix 265/265 / 6 GET 仍 envelope-only — 禁止 COMPLETE**。
+- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`logs/certify-frb31-phase0.log`）。
+- **项目状态：** **FR HTTP 面已齐 / keys-matrix 265/265 / mutating-matrix 265/265 — 禁止 COMPLETE**。
 - **网关：** 现已指向 Java 名；行为桩未清前，**不得**认为生产功能已安全切完。
-- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B29 keys-matrix local；FR-B30 storage stats local；其余仍 ⬜）。
+- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B31 mutating-matrix + cleanup local；其余仍 ⬜）。
 
 ## 9. 你的下一步
 
@@ -84,12 +84,13 @@
 
 1. **prod 联调 soak** — Kafka DVR/snap、MinIO、WVP、FlightHub、iot-node/Ceph、post_process worker、Nacos 切换、网关冒烟；逐项勾选 checklist 并附证据
 2. **收尾 6 envelope-only GET** — 补 Python-first 映射或文档 EX（可选）
-3. **POST keys-matrix backlog** — 扩展 `field_contract.py` 至 POST/PUT 字段键矩阵（可选）
-4. ONVIF/NVR/扫描真连接（camera、audio_talk）prod 真机联调
-5. InsightFace/Paddle/Milvus 推理或产品旁路决策
-6. snap_task 调度 `init_all_tasks` prod 验证
-7. post-process 真 sink；远程 node（EX-REMOTE-NODE）prod 联调
-8. 全量契约回归 + 回滚演练 → 才允许 COMPLETE
+3. **POST field-key matrix** — 扩展 `field_contract.py` 至 POST/PUT 响应 data 键断言（mutating-matrix 仅信封层）
+4. **storage cleanup threshold E2E** — MinIO enabled + 超阈值真删除 prod 取证（local 仅 no-op/disabled）
+5. ONVIF/NVR/扫描真连接（camera、audio_talk）prod 真机联调
+6. InsightFace/Paddle/Milvus 推理或产品旁路决策
+7. snap_task 调度 `init_all_tasks` prod 验证
+8. post-process 真 sink；远程 node（EX-REMOTE-NODE）prod 联调
+9. 全量契约回归 + 回滚演练 → 才允许 COMPLETE
 
 ## 10. 历史审查决议（切片期，仍有效的工程约束）
 

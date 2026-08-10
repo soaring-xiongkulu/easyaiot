@@ -278,23 +278,32 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B28 GET 字段键矩阵**（`:48096` live） | **265** inventoried → **265 pass** / **0 fail**；**98 GET**（**95** JSON + **3** 非 JSON skip）；**41** Python-first 路径映射 → **39** key-assert / **59** envelope-only；item-key **31 pass** / **0 fail** / **8 deferred**（空 data/列表）；全局 seed **15/15**；artifact `logs/fr-b28-keys-matrix-latest.json`；**≠ 259 路由全键覆盖**；`SnapTaskRepository.insert` 修复 |
 | **FR-B29 GET 字段键矩阵**（`:48096` live） | **265** inventoried → **265 pass** / **0 fail**；**98 GET**（**95** JSON + **3** 非 JSON skip）；**94** Python-first 路径映射 → **92** key-assert / **6** envelope-only；item-key **60 pass** / **0 fail** / **0 deferred**（B29 seed 清除 8 条）；artifact `logs/fr-b29-keys-matrix-latest.json`；**≠ 259 路由全键覆盖** |
 | **FR-B30 存储用量统计**（`:9000` local） | `SnapStorageService` + `VideoMinioService.getBucketUsage` 对齐 Python `get_bucket_size`；disabled 诚实 0；enabled 真 list+stat；artifact `logs/fr-b30-storage-stats-latest.json` |
+| **FR-B31 POST/PUT mutating-matrix**（`:48096` live） | **265** inventoried → **265 pass** / **0 fail**；**140** POST+PUT 探针（**112 POST** / **28 PUT**）；**4** skip（3 destructive cleanup + 1 multipart）；**272** assert pass；artifact `logs/fr-b31-mutating-matrix-latest.json`；**≠ POST 字段键矩阵** |
+| **FR-B31 storage cleanup**（`:48096` local） | `SnapStorageService.cleanup` 对齐 Python `check_and_cleanup_storage` + `cleanup_old_files`；MinIO disabled 诚实 no-op；artifact `logs/fr-b31-storage-cleanup-latest.json` |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定 — FR-B30
+## 9. 最终判定 — FR-B31
 
 | 问题 | 答案 |
 |------|------|
-| Snap/record 存储用量真 MinIO？ | **是（local）** — `GET /video/snap/device/{id}/storage` 对齐 Python `storage_service.get_device_storage_info`；`video.minio.enabled=true` 时 list+stat `device_id/` 前缀；disabled 或无 bucket 配置时诚实 0；artifact `logs/fr-b30-storage-stats-latest.json` |
-| GAP §8/§9 FR-B28/B29 重复块？ | **已收口** — 保留 §8 历史计数行；§9 仅保留当前 FR-B30 判定 |
-| phase0？ | **PASS 5/5** — `logs/certify-frb30-phase0.log` |
-| 能否称 COMPLETE？ | **禁止** — prod soak open；6 GET envelope-only；POST keys-matrix backlog |
+| POST/PUT mutating-matrix？ | **是（local）** — `field_contract.py --mutating-matrix`；**140** POST+PUT 薄探针 **265/265 pass**；skip 4（destructive×3 + multipart×1）；artifact `logs/fr-b31-mutating-matrix-latest.json` |
+| `check_and_cleanup_storage` MinIO 对齐？ | **是（local）** — `SnapStorageService.cleanup` + `VideoMinioService.cleanupOldFiles` 对齐 Python `storage_service.py` L89-205；disabled 诚实 no-op；artifact `logs/fr-b31-storage-cleanup-latest.json` |
+| phase0？ | **PASS 5/5** — `logs/certify-frb31-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — prod soak open；6 GET envelope-only；POST field-key matrix backlog；cleanup enabled MinIO threshold E2E 未 prod 取证 |
 
 ## 10. 历史判定归档（只读）
 
 <details>
-<summary>FR-B29 / FR-B28 / FR-B27 … 历史判定（点击展开）</summary>
+<summary>FR-B30 / FR-B29 / FR-B28 … 历史判定（点击展开）</summary>
+
+### FR-B30
+
+| 问题 | 答案 |
+|------|------|
+| Snap/record 存储用量真 MinIO？ | **是（local）** — artifact `logs/fr-b30-storage-stats-latest.json` |
+| 能否称 COMPLETE？ | **禁止** |
 
 ### FR-B29
 

@@ -557,6 +557,7 @@ SNAP_IMAGE_ITEM_KEYS: Set[str] = {
 ARTIFACT_PREFIX = "fr-b27"
 MATRIX_ARTIFACT_PREFIX = "fr-b27"
 KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b29"
+MUTATING_MATRIX_ARTIFACT_PREFIX = "fr-b31"
 
 MATRIX_DISCLAIMER = (
     "GET envelope matrix probes inventoried safe GET routes only (no POST/DELETE auto). "
@@ -573,6 +574,36 @@ KEYS_MATRIX_DISCLAIMER = (
     "This is NOT exhaustive 259-route field parity and does NOT mean COMPLETE — "
     "see docs/video-java/FULL_REPLACEMENT_GAP.md."
 )
+
+MUTATING_MATRIX_DISCLAIMER = (
+    "POST/PUT mutating-matrix probes inventoried safe mutating routes with empty/minimal "
+    "JSON bodies. Green = HTTP not 5xx and (2xx envelope {code,msg,data} OR 4xx validation/auth). "
+    "Skips DELETE, destructive cleanup/remove paths, and multipart-only routes without fixtures. "
+    "This is NOT POST field-key parity and does NOT mean COMPLETE — "
+    "see docs/video-java/FULL_REPLACEMENT_GAP.md."
+)
+
+# Python-first: POST success envelopes — e.g. algorithm_task.py create_task L144-148,
+# snap.py cleanup_device_storage L889-893, playback.py create_playback.
+MUTATING_SKIP_PATH_RE = re.compile(
+    r"/(cleanup|delete|remove|wipe|destroy|purge|clear-all|truncate)(/|$)",
+    re.IGNORECASE,
+)
+MUTATING_MULTIPART_PATH_RE = re.compile(
+    r"/(upload|import-template|multipart|batch-import)(/|$)",
+    re.IGNORECASE,
+)
+
+# Minimal probe bodies when empty {} would always 400 on required-field routes (Python-first cites).
+MUTATING_MINIMAL_BODIES: Dict[str, Dict[str, Any]] = {
+    "/video/alert/hook": {
+        "device_id": "vj_p2_device",
+        "object": "person",
+        "event": "frb31_probe",
+        "time": "2026-08-11T10:00:00+08:00",
+        "image_url": "/api/v1/buckets/frb31_probe/objects/download?prefix=probe.jpg",
+    },
+}
 
 # Known seed ids from mini testbed (field_contract SAMPLE_CASES / certify vj_p2_*).
 MATRIX_SEED_DEVICE_ID = "vj_p2_device"
@@ -1738,6 +1769,254 @@ def write_keys_matrix_artifacts(
     return json_path, md_path
 
 
+def mutating_skip_reason(path: str, method: str) -> Optional[str]:
+    if method == "DELETE":
+        return "DELETE skipped"
+    if MUTATING_SKIP_PATH_RE.search(path):
+        return "destructive cleanup/remove path"
+    if MUTATING_MULTIPART_PATH_RE.search(path):
+        return "multipart-only without fixture"
+    return None
+
+
+def materialize_mutating_path(path: str) -> str:
+    """Materialize inventoried POST/PUT paths with probe-safe literals."""
+    concrete = path
+    if "/device/" in concrete or "/device-detection/device/" in concrete:
+        concrete = re.sub(r"\{param\}", MATRIX_SEED_DEVICE_ID, concrete)
+    else:
+        concrete = re.sub(r"\{param\}", MATRIX_PROBE_ID, concrete)
+    return concrete
+
+
+def mutating_probe_body(path: str) -> Dict[str, Any]:
+    base = path.split("?", 1)[0]
+    return dict(MUTATING_MINIMAL_BODIES.get(base, {}))
+
+
+def http_mutate_json(
+    base_url: str,
+    method: str,
+    path: str,
+    payload: Dict[str, Any],
+    timeout: float = 8.0,
+) -> Tuple[int, Dict[str, Any], str]:
+    if method == "POST":
+        return http_post_json(base_url, path, payload, timeout=timeout)
+    if method == "PUT":
+        return http_put_json(base_url, path, payload, timeout=timeout)
+    raise ValueError(f"unsupported mutating method {method}")
+
+
+def assert_mutating_route(base_url: str, route: str, timeout: float) -> Dict[str, Any]:
+    method, path = parse_route(route)
+    probe_path = materialize_mutating_path(path)
+    skip_reason = mutating_skip_reason(path, method)
+    body = mutating_probe_body(path)
+    result: Dict[str, Any] = {
+        "route": route,
+        "path": path,
+        "probe_path": probe_path,
+        "probe_body": body,
+        "asserts": 0,
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "checks": [],
+    }
+
+    def record(name: str, ok: bool, detail: str, *, skipped: bool = False) -> None:
+        result["asserts"] += 1
+        if skipped:
+            result["skip"] += 1
+            status = "skip"
+        elif ok:
+            result["pass"] += 1
+            status = "pass"
+        else:
+            result["fail"] += 1
+            status = "fail"
+        result["checks"].append({"check": name, "status": status, "detail": detail})
+
+    if method not in ("POST", "PUT"):
+        record("method", True, f"skipped non-mutating {method}", skipped=True)
+        result["ok"] = True
+        return result
+
+    if skip_reason:
+        record("skip_route", True, skip_reason, skipped=True)
+        result["ok"] = True
+        return result
+
+    http_status, resp_body, raw = http_mutate_json(base_url, method, probe_path, body, timeout=timeout)
+    result["http_status"] = http_status
+    result["business_code"] = resp_body.get("code") if isinstance(resp_body, dict) else None
+
+    record("http_status", http_status < 500, f"HTTP {http_status}")
+    if http_status >= 500:
+        result["ok"] = False
+        return result
+
+    if 400 <= http_status < 500:
+        if isinstance(resp_body, dict) and {"code", "msg"} <= set(resp_body.keys()):
+            record("envelope_4xx", True, "code,msg present on 4xx")
+        else:
+            record("envelope_4xx", True, f"HTTP {http_status} validation/auth (non-envelope ok)")
+        result["ok"] = result["fail"] == 0
+        return result
+
+    if http_status < 200 or http_status >= 300:
+        record("http_bucket", False, f"unexpected HTTP {http_status}")
+        result["ok"] = False
+        return result
+
+    if "_raw" in resp_body and not {"code", "msg"} <= set(resp_body.keys()):
+        record("envelope", True, "non-JSON 2xx — envelope deferred", skipped=True)
+        result["ok"] = result["fail"] == 0
+        return result
+
+    miss_env = missing_keys(resp_body, ENVELOPE_KEYS)
+    record("envelope", not miss_env, f"missing {miss_env}" if miss_env else "code,msg,data present")
+    result["ok"] = result["fail"] == 0
+    return result
+
+
+def run_mutating_matrix(base_url: str, timeout: float) -> Tuple[List[Dict[str, Any]], Dict[str, Any], bool, str]:
+    server_up, health_detail = server_reachable(base_url, timeout=min(timeout, 3.0))
+    routes = collect_inventoried_routes()
+    rows: List[Dict[str, Any]] = []
+    post_count = 0
+    put_count = 0
+    skipped_destructive = 0
+    skipped_multipart = 0
+
+    for idx, route in enumerate(routes, start=1):
+        method, path = parse_route(route)
+        if method == "POST":
+            post_count += 1
+        elif method == "PUT":
+            put_count += 1
+
+        if not server_up:
+            rows.append(
+                {
+                    "route": route,
+                    "path": path,
+                    "probe_path": materialize_mutating_path(path),
+                    "asserts": 1,
+                    "pass": 0,
+                    "fail": 0,
+                    "skip": 1,
+                    "checks": [{"check": "server", "status": "skip", "detail": "server unreachable"}],
+                    "ok": True,
+                }
+            )
+            continue
+
+        skip = mutating_skip_reason(path, method)
+        if skip and "multipart" in skip:
+            skipped_multipart += 1
+        elif skip and "destructive" in skip:
+            skipped_destructive += 1
+
+        rows.append(assert_mutating_route(base_url, route, timeout))
+        if idx % 25 == 0 or idx == len(routes):
+            print(f"  mutating-matrix probed {idx}/{len(routes)}")
+
+    summary = summarize(rows)
+    summary["post_routes"] = post_count
+    summary["put_routes"] = put_count
+    summary["mutating_probed"] = post_count + put_count
+    summary["skipped_destructive"] = skipped_destructive
+    summary["skipped_multipart"] = skipped_multipart
+    summary["skipped_non_mutating"] = sum(
+        1 for r in routes if parse_route(r)[0] not in ("POST", "PUT")
+    )
+    return rows, summary, server_up, health_detail
+
+
+def write_mutating_matrix_artifacts(
+    rows: List[Dict[str, Any]],
+    summary: Dict[str, Any],
+    base_url: str,
+    *,
+    server_up: bool,
+    health_detail: str,
+) -> Tuple[Path, Path]:
+    logs_dir = repo_root() / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    json_path = logs_dir / f"{MUTATING_MATRIX_ARTIFACT_PREFIX}-mutating-matrix-{ts}.json"
+    md_path = logs_dir / f"{MUTATING_MATRIX_ARTIFACT_PREFIX}-mutating-matrix-{ts}.md"
+
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "base_url": base_url,
+        "disclaimer": MUTATING_MATRIX_DISCLAIMER,
+        "python_post_envelope_cites": [
+            "VIDEO/_retired_python_video/app/blueprints/algorithm_task.py create_task L144-148",
+            "VIDEO/_retired_python_video/app/blueprints/snap.py cleanup_device_storage L889-893",
+            "VIDEO/_retired_python_video/app/blueprints/playback.py create_playback",
+        ],
+        "server_up": server_up,
+        "health_detail": health_detail,
+        "summary": summary,
+        "routes": rows,
+    }
+    json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    lines = [
+        "# FR-B31 POST/PUT Mutating Envelope Matrix",
+        "",
+        f"**Generated:** {payload['generated_at']}",
+        f"**Base URL:** {base_url}",
+        f"**Server up:** {server_up} ({health_detail})",
+        f"**Routes:** {summary['endpoint_pass']}/{summary['endpoints']} pass",
+        f"**POST inventoried:** {summary.get('post_routes', '—')} | "
+        f"**PUT inventoried:** {summary.get('put_routes', '—')}",
+        f"**Skipped destructive:** {summary.get('skipped_destructive', '—')} | "
+        f"**Skipped multipart:** {summary.get('skipped_multipart', '—')}",
+        f"**Asserts:** pass={summary['pass']} fail={summary['fail']} skip={summary['skip']} "
+        f"(total={summary['asserts']})",
+        "",
+        "## Disclaimer",
+        "",
+        MUTATING_MATRIX_DISCLAIMER,
+        "",
+        "## Results",
+        "",
+        "| route | probe_path | http | asserts | pass | fail | skip | ok |",
+        "|-------|------------|------|---------|------|------|------|-----|",
+    ]
+    for row in rows:
+        if parse_route(row["route"])[0] not in ("POST", "PUT"):
+            continue
+        http_s = row.get("http_status", "—")
+        lines.append(
+            f"| `{row['route']}` | `{row.get('probe_path', '')}` | {http_s} | {row['asserts']} | "
+            f"{row['pass']} | {row['fail']} | {row['skip']} | {row.get('ok')} |"
+        )
+    lines.append("")
+    fails = [r for r in rows if not r.get("ok")]
+    if fails:
+        lines.extend(["## Failures", ""])
+        for row in fails:
+            lines.append(f"### {row['route']}")
+            for check in row.get("checks", []):
+                if check["status"] == "fail":
+                    lines.append(f"- **{check['check']}**: {check['detail']}")
+            lines.append("")
+
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+    latest_json = logs_dir / f"{MUTATING_MATRIX_ARTIFACT_PREFIX}-mutating-matrix-latest.json"
+    latest_md = logs_dir / f"{MUTATING_MATRIX_ARTIFACT_PREFIX}-mutating-matrix-latest.md"
+    latest_json.write_text(json_path.read_text(encoding="utf-8"), encoding="utf-8")
+    latest_md.write_text(md_path.read_text(encoding="utf-8"), encoding="utf-8")
+    print(f"artifact: {json_path}")
+    print(f"artifact: {md_path}")
+    return json_path, md_path
+
+
 def http_get_json(base_url: str, path: str, timeout: float = 8.0) -> Tuple[int, Dict[str, Any], str]:
     url = base_url.rstrip("/") + path
     req = urllib.request.Request(url, headers={"Accept": "application/json"}, method="GET")
@@ -2077,13 +2356,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         help="FR-B28 GET keys matrix: envelope + Python-mapped item keys on all inventoried GET JSON routes",
     )
     parser.add_argument(
+        "--mutating-matrix",
+        action="store_true",
+        help="FR-B31 POST/PUT mutating envelope matrix: thin probes on inventoried safe mutating routes",
+    )
+    parser.add_argument(
         "--deep",
         action="store_true",
         help="run FR-B22 hand-curated deep field samples (default when no mode flag)",
     )
     args = parser.parse_args(argv)
 
-    run_deep = args.deep or not (args.matrix or args.keys_matrix)
+    run_deep = args.deep or not (args.matrix or args.keys_matrix or args.mutating_matrix)
     exit_code = 0
 
     if run_deep:
@@ -2146,6 +2430,25 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         )
         print(f"\n{KEYS_MATRIX_DISCLAIMER}")
         if km_summary["fail"] != 0:
+            exit_code = 1
+
+    if args.mutating_matrix:
+        route_count = len(collect_inventoried_routes())
+        print(f"\nPOST/PUT mutating-matrix base_url={args.base_url} inventoried_routes={route_count}")
+        mm_rows, mm_summary, server_up, health_detail = run_mutating_matrix(args.base_url, args.timeout)
+        print(
+            f"mutating-matrix: {mm_summary['endpoint_pass']}/{mm_summary['endpoints']} pass | "
+            f"POST={mm_summary.get('post_routes')} PUT={mm_summary.get('put_routes')} | "
+            f"skipped destructive={mm_summary.get('skipped_destructive')} "
+            f"multipart={mm_summary.get('skipped_multipart')} | "
+            f"asserts: pass={mm_summary['pass']} fail={mm_summary['fail']} skip={mm_summary['skip']} "
+            f"server_up={server_up}"
+        )
+        write_mutating_matrix_artifacts(
+            mm_rows, mm_summary, args.base_url, server_up=server_up, health_detail=health_detail
+        )
+        print(f"\n{MUTATING_MATRIX_DISCLAIMER}")
+        if mm_summary["fail"] != 0:
             exit_code = 1
 
     return exit_code

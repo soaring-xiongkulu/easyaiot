@@ -1,11 +1,8 @@
 package com.basiclab.iot.video.service.snap;
 
 import com.basiclab.iot.video.dal.DeviceStorageRepository;
-import com.basiclab.iot.video.dal.SnapSpaceRepository;
 import com.basiclab.iot.video.exception.VideoBusinessException;
-import com.basiclab.iot.video.service.minio.SpaceFileMetadataService;
 import com.basiclab.iot.video.service.minio.VideoMinioService;
-import com.basiclab.iot.video.support.SpaceSaveTimeSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,9 +14,7 @@ import java.util.Map;
 public class SnapStorageService {
 
     private final DeviceStorageRepository storageRepository;
-    private final SnapSpaceRepository snapSpaceRepository;
     private final VideoMinioService videoMinioService;
-    private final SpaceFileMetadataService spaceFileMetadataService;
 
     public Map<String, Object> getOrCreate(String deviceId) {
         if (!storageRepository.deviceExists(deviceId)) {
@@ -87,29 +82,69 @@ public class SnapStorageService {
         return getOrCreate(deviceId);
     }
 
+    /**
+     * Mirrors Python {@code storage_service.check_and_cleanup_storage}:
+     * threshold-based quota cleanup on MinIO {@code device_id/} prefix when enabled;
+     * honest no-op when MinIO disabled or bucket unset.
+     */
     public Map<String, Object> cleanup(String deviceId) {
         getOrCreate(deviceId);
-        Map<String, Object> space = snapSpaceRepository.findByDeviceId(deviceId)
-                .orElseThrow(() -> new VideoBusinessException(400, "设备 " + deviceId + " 没有关联的抓拍空间"));
-        int saveTimeHours = SpaceSaveTimeSupport.effectiveSaveTimeHours(space);
-        if (saveTimeHours <= 0) {
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("deleted_snap_count", 0);
-            result.put("deleted_video_count", 0);
-            result.put("message", "空间为永久保存，跳过清理");
+        Map<String, Object> config = storageRepository.findByDeviceId(deviceId)
+                .orElseThrow(() -> new VideoBusinessException(500, "获取设备存储配置失败"));
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("snap_cleaned", false);
+        result.put("video_cleaned", false);
+        result.put("snap_deleted_count", 0);
+        result.put("snap_freed_size", 0);
+        result.put("video_deleted_count", 0);
+        result.put("video_freed_size", 0);
+
+        if (!videoMinioService.isStorageEnabled()) {
+            result.put("message", "MinIO 未启用，跳过存储清理");
             return result;
         }
-        Map<String, Object> cleanup = spaceFileMetadataService.cleanupExpiredSnapImages(space, saveTimeHours);
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("deleted_snap_count", cleanup.getOrDefault("deleted_count", 0));
-        result.put("deleted_video_count", 0);
-        result.put("processed_count", cleanup.getOrDefault("processed_count", 0));
-        result.put("error_count", cleanup.getOrDefault("error_count", 0));
-        if (!videoMinioService.isStorageEnabled()) {
-            result.put("message", "MinIO 未启用，仅清理数据库元数据");
-        } else {
-            result.put("message", "存储清理完成");
+
+        String devicePrefix = deviceId + "/";
+
+        String snapBucket = stringField(config.get("snap_storage_bucket"));
+        Long snapMaxSize = toLongOrNull(config.get("snap_storage_max_size"));
+        boolean snapCleanupEnabled = Boolean.TRUE.equals(config.get("snap_storage_cleanup_enabled"));
+        double snapThreshold = toDoubleOrDefault(config.get("snap_storage_cleanup_threshold"), 0.8);
+        double snapRatio = toDoubleOrDefault(config.get("snap_storage_cleanup_ratio"), 0.3);
+
+        if (!snapBucket.isBlank() && snapMaxSize != null && snapMaxSize > 0 && snapCleanupEnabled) {
+            VideoMinioService.BucketUsage snapUsage = videoMinioService.getBucketUsage(snapBucket, devicePrefix);
+            double snapUsageRatio = (double) snapUsage.sizeBytes() / snapMaxSize;
+            if (snapUsageRatio >= snapThreshold) {
+                VideoMinioService.CleanupResult snapCleanup =
+                        videoMinioService.cleanupOldFiles(snapBucket, devicePrefix, snapRatio);
+                result.put("snap_cleaned", true);
+                result.put("snap_deleted_count", snapCleanup.deletedCount());
+                result.put("snap_freed_size", snapCleanup.freedSizeBytes());
+                storageRepository.touchLastSnapCleanupTime(deviceId);
+            }
         }
+
+        String videoBucket = stringField(config.get("video_storage_bucket"));
+        Long videoMaxSize = toLongOrNull(config.get("video_storage_max_size"));
+        boolean videoCleanupEnabled = Boolean.TRUE.equals(config.get("video_storage_cleanup_enabled"));
+        double videoThreshold = toDoubleOrDefault(config.get("video_storage_cleanup_threshold"), 0.8);
+        double videoRatio = toDoubleOrDefault(config.get("video_storage_cleanup_ratio"), 0.3);
+
+        if (!videoBucket.isBlank() && videoMaxSize != null && videoMaxSize > 0 && videoCleanupEnabled) {
+            VideoMinioService.BucketUsage videoUsage = videoMinioService.getBucketUsage(videoBucket, devicePrefix);
+            double videoUsageRatio = (double) videoUsage.sizeBytes() / videoMaxSize;
+            if (videoUsageRatio >= videoThreshold) {
+                VideoMinioService.CleanupResult videoCleanup =
+                        videoMinioService.cleanupOldFiles(videoBucket, devicePrefix, videoRatio);
+                result.put("video_cleaned", true);
+                result.put("video_deleted_count", videoCleanup.deletedCount());
+                result.put("video_freed_size", videoCleanup.freedSizeBytes());
+                storageRepository.touchLastVideoCleanupTime(deviceId);
+            }
+        }
+
         return result;
     }
 
@@ -139,6 +174,24 @@ public class SnapStorageService {
             return Long.parseLong(text);
         } catch (NumberFormatException ignored) {
             return null;
+        }
+    }
+
+    private static double toDoubleOrDefault(Object value, double defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        try {
+            String text = String.valueOf(value).trim();
+            if (text.isEmpty()) {
+                return defaultValue;
+            }
+            return Double.parseDouble(text);
+        } catch (NumberFormatException ignored) {
+            return defaultValue;
         }
     }
 }
