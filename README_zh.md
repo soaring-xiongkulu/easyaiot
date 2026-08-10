@@ -481,7 +481,7 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VIS
     <li><strong>跨端覆盖</strong>：一套建设、多端触达，手机、小程序与 App 均可使用</li>
     <li><strong>能力对齐</strong>：与 PC 管控台业务能力一致，支持多租户切换</li>
     <li><strong>设备管理</strong>：直连摄像头、GB28181、NVR、RTC 消费级摄像头等多协议统一纳管，在线状态与通道浏览，设备详情内一键实时预览</li>
-    <li><strong>推流转发</strong>：推流任务创建、启停、集群节点状态与多路流地址查看</li>
+    <li><strong>推流转发</strong>：推流任务创建、启停、集群节点状态与多路流地址查看；支持高性能 cpp / 兼容 python 引擎切换</li>
     <li><strong>算法任务</strong>：实时 / 抓拍 / 巡检任务列表、启停控制与检测/帧数统计（默认可走 RUNTIME）</li>
     <li><strong>告警中心</strong>：告警事件检索、抓拍图预览、告警录像点播回放</li>
     <li><strong>模型与 AI</strong>：模型列表与部署状态、移动端图片推理工作台、训练任务进度监控与停止</li>
