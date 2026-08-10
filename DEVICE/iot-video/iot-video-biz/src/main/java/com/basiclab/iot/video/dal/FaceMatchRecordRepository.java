@@ -28,13 +28,43 @@ public class FaceMatchRecordRepository {
             String taskType,
             Float threshold
     ) {
+        return insert(
+                taskId, taskName, deviceId, deviceName, libraryId, libraryName, faceImagePath,
+                matched, null, null, null, null, null,
+                correlationId, taskType, threshold, "success", null
+        );
+    }
+
+    public Map<String, Object> insert(
+            Long taskId,
+            String taskName,
+            String deviceId,
+            String deviceName,
+            Integer libraryId,
+            String libraryName,
+            String faceImagePath,
+            boolean matched,
+            String matchedPersonName,
+            String matchedPersonCode,
+            Integer matchedFaceEntryId,
+            Float similarity,
+            Object candidates,
+            String correlationId,
+            String taskType,
+            Float threshold,
+            String status,
+            String errorMessage
+    ) {
         Timestamp now = Timestamp.from(Instant.now());
+        String candidatesJson = candidates == null ? null : String.valueOf(candidates);
         Long id = jdbc.queryForObject(
                 """
                 INSERT INTO face_match_record (
                   task_id, task_name, device_id, device_name, library_id, library_name,
-                  face_image_path, matched, threshold, correlation_id, task_type, status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'success', ?)
+                  face_image_path, matched, matched_person_name, matched_person_code,
+                  matched_face_entry_id, similarity, candidates, threshold,
+                  correlation_id, task_type, status, error_message, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?)
                 RETURNING id
                 """,
                 Long.class,
@@ -46,9 +76,16 @@ public class FaceMatchRecordRepository {
                 libraryName,
                 faceImagePath,
                 matched,
+                matchedPersonName,
+                matchedPersonCode,
+                matchedFaceEntryId,
+                similarity,
+                candidatesJson,
                 threshold,
                 correlationId,
                 taskType,
+                status != null ? status : "success",
+                errorMessage,
                 now
         );
         Map<String, Object> row = new LinkedHashMap<>();
@@ -61,17 +98,17 @@ public class FaceMatchRecordRepository {
         row.put("library_name", libraryName);
         row.put("face_image_path", faceImagePath);
         row.put("matched", matched);
-        row.put("matched_person_name", null);
-        row.put("matched_person_code", null);
-        row.put("matched_face_entry_id", null);
-        row.put("similarity", null);
+        row.put("matched_person_name", matchedPersonName);
+        row.put("matched_person_code", matchedPersonCode);
+        row.put("matched_face_entry_id", matchedFaceEntryId);
+        row.put("similarity", similarity);
         row.put("threshold", threshold);
-        row.put("candidates", null);
+        row.put("candidates", candidates);
         row.put("alert_id", null);
         row.put("correlation_id", correlationId);
         row.put("task_type", taskType);
-        row.put("status", "success");
-        row.put("error_message", null);
+        row.put("status", status != null ? status : "success");
+        row.put("error_message", errorMessage);
         row.put("created_at", now.toInstant().toString());
         return row;
     }

@@ -56,6 +56,10 @@ public class VideoProperties {
          * Mirrors Python mini path documented in P2-S3.
          */
         private boolean useDirectProcess = true;
+        /** Mirrors Python {@code KAFKA_FACE_MATCHING_TOPIC}. */
+        private String faceMatchingTopic = "iot-face-matching";
+        /** Mirrors Python {@code KAFKA_PLATE_MATCHING_TOPIC}. */
+        private String plateMatchingTopic = "iot-plate-matching";
     }
 
     @Data

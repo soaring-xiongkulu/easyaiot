@@ -14,6 +14,11 @@ public class FaceRecognitionService {
 
     private static final String NO_ENGINE_MSG = "InsightFace 未安装或加载失败: Java 端暂未集成人脸推理引擎";
 
+    /** ORT/InsightFace not wired on JVM yet; matching process uses explicit bypass when false. */
+    public boolean isEngineAvailable() {
+        return false;
+    }
+
     public void ensureFaceDetectable(byte[] imageBytes) {
         if (imageBytes == null || imageBytes.length == 0) {
             throw new VideoBusinessException(400, "上传文件不能为空");

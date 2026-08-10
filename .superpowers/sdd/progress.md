@@ -1,18 +1,16 @@
-# Progress — Phase FR（行为对等续作）
+# Progress — Phase FR（行为对等）
 
-HTTP 路由面 FR-W0～W4 已齐（≈259/259）。**COMPLETE 仍禁止。**
+HTTP 面 FR-W* 已齐。行为波次：
 
-## Behavior wave（GAP §3–§4）
+| 包 | Status | Commit |
+|----|--------|--------|
+| FR-B1 post-process sink | DONE | `13c505d` |
+| FR-B2 MinIO | DONE | `09a0051` |
+| FR-B3 snap_task sched | DONE | `57abb40` |
+| FR-B4 remote node | DONE | `3913267` |
+| **FR-B5** face/plate | **DONE** | |
+| FR-B6 camera hardware | pending | |
+| FR-B7 ticket + rollback | pending | |
+| FR-B8 SF cluster health | pending | |
 
-| 包 | Status | 目标 |
-|----|--------|------|
-| **FR-B1** | DONE | Post-process 真 sink（`use-stub-enqueue=false` → HTTP iot-sink） |
-| **FR-B2** | DONE | MinIO 空间同步/清理 + media DVR 上传 |
-| **FR-B3** | DONE | snap_task `init_all_tasks` 调度 |
-| FR-B4 | pending | 远程 node（EX-REMOTE-NODE）或 iot-node 客户端 |
-| FR-B5 | pending | Face/Plate 真 Kafka + 推理/明确旁路 |
-| FR-B6 | pending | Camera ONVIF/PTZ/snapshot/NVR 行为去桩 |
-| FR-B7 | pending | 流票据鉴权 + 全量回滚演练 |
-| FR-B8 | pending | stream_forward 集群健康迁移 |
-
-协作：composer-2.5 · Python-first · 禁止嵌套 · 不中断汇报直至行为缺口可勾选或产品签字豁免。
+COMPLETE 仍禁止，直至行为缺口可勾选或产品签字豁免。

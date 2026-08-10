@@ -62,6 +62,58 @@ public class PlateMatchRecordRepository {
 
     ) {
 
+        return insert(
+
+                taskId, taskName, deviceId, deviceName, libraryId, libraryName,
+
+                plateNo, plateColor, plateImagePath, matched, null, null,
+
+                correlationId, taskType, detectConf, "success", null
+
+        );
+
+    }
+
+
+
+    public Map<String, Object> insert(
+
+            Long taskId,
+
+            String taskName,
+
+            String deviceId,
+
+            String deviceName,
+
+            Integer libraryId,
+
+            String libraryName,
+
+            String plateNo,
+
+            String plateColor,
+
+            String plateImagePath,
+
+            boolean matched,
+
+            Integer matchedPlateEntryId,
+
+            String matchedOwnerName,
+
+            String correlationId,
+
+            String taskType,
+
+            Float detectConf,
+
+            String status,
+
+            String errorMessage
+
+    ) {
+
         Timestamp now = Timestamp.from(Instant.now());
 
         Long id = jdbc.queryForObject(
@@ -72,11 +124,11 @@ public class PlateMatchRecordRepository {
 
                   task_id, task_name, device_id, device_name, library_id, library_name,
 
-                  plate_no, plate_color, plate_image_path, matched, detect_conf,
+                  plate_no, plate_color, plate_image_path, matched, matched_plate_entry_id,
 
-                  correlation_id, task_type, status, created_at
+                  matched_owner_name, detect_conf, correlation_id, task_type, status, error_message, created_at
 
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'success', ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 
                 RETURNING id
 
@@ -104,11 +156,19 @@ public class PlateMatchRecordRepository {
 
                 matched,
 
+                matchedPlateEntryId,
+
+                matchedOwnerName,
+
                 detectConf,
 
                 correlationId,
 
                 taskType,
+
+                status != null ? status : "success",
+
+                errorMessage,
 
                 now
 
@@ -138,9 +198,9 @@ public class PlateMatchRecordRepository {
 
         row.put("matched", matched);
 
-        row.put("matched_plate_entry_id", null);
+        row.put("matched_plate_entry_id", matchedPlateEntryId);
 
-        row.put("matched_owner_name", null);
+        row.put("matched_owner_name", matchedOwnerName);
 
         row.put("detect_conf", detectConf);
 
@@ -150,9 +210,9 @@ public class PlateMatchRecordRepository {
 
         row.put("task_type", taskType);
 
-        row.put("status", "success");
+        row.put("status", status != null ? status : "success");
 
-        row.put("error_message", null);
+        row.put("error_message", errorMessage);
 
         row.put("created_at", now.toInstant().toString());
 

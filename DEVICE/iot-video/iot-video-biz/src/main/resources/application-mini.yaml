@@ -16,6 +16,8 @@ video:
     bootstrap-servers: 127.0.0.1:9092
   matching:
     use-direct-process: true
+    face-matching-topic: iot-face-matching
+    plate-matching-topic: iot-plate-matching
   post-process:
     use-stub-enqueue: true
     workspace-root: ${user.home}/.video-java/post-process-workspaces

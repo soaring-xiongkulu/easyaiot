@@ -184,7 +184,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 |----|--------|------|--------------|
 | Alert → Kafka | 可走 Kafka | `use-direct-persist=false` → Kafka produce（minimal 驼峰消息，deviceId key）；失败 fallback direct_persist；local/mini 默认仍 direct | **resolved by FR-W1-KAFKA**（prod 需 broker + iot-sink 联调） |
 | Post-process → iot-sink | 真 enqueue | `use-stub-enqueue: true`（local） | **resolved by FR-B1**（`use-stub-enqueue=false` → HTTP POST iot-sink；不可达时 `enqueue_ok=false` + warn 日志；local/mini 默认仍 stub） |
-| Face/Plate matching | Kafka + 模型 | publish/process 切片；mini mock | 真 Kafka + 推理/旁路 |
+| Face/Plate matching | Kafka + 模型 | `use-direct-process=true` → mini mock；`false` → Kafka produce（`iot-face-matching` / `iot-plate-matching`）+ 诚实 process（plate 库 DB 匹配；face 显式 bypass，非假成功） | **resolved by FR-B5**（local/mini 默认 mock；prod 需 broker + `use-direct-process=false`） |
 | 远程 node / RUNTIME 分发 | node_client | **FR-B4 ✅** `IotNodeClient` allocate/deploy/stop | prod 集群需 iot-node + Agent + SRS 联调 |
 | ONVIF / NVR / GB28181 / FlightHub | camera 大面 | **无** | 随 camera 域补齐 |
 | MinIO 空间同步/清理 | snap/record 多接口 | **✅ FR-B2** `VideoMinioService` + `SpaceFileMetadataService`；`video.minio.enabled` / `MINIO_ENABLED` 开关；DVR/snap 上传真路径 | mini 默认 `enabled=false`（DB/本地路径）；prod 需 MinIO 联调 |
@@ -233,7 +233,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **P1** | Stream-forward CRUD + auto_start | 推流台 | 视产品 |
 | **P1** | Media hooks SRS/ZLM 全套 | 录制闭环 | 视部署 |
 | **P1** | Patrol session API | 去掉 EX-PATROL-SESSION-API | 视产品 |
-| **P1** | Post-process 真 sink；face/plate 库+识别或旁路 | **✅ FR-B1** post-process sink 代码路径；face/plate 仍 mock | 视产品 |
+| **P1** | Post-process 真 sink；face/plate 库+识别或旁路 | **✅ FR-B1** post-process sink；**✅ FR-B5** Kafka + 诚实 process（plate DB 匹配；face bypass 待 ORT） | 视产品 |
 | **P2** | NVR/扫描/FlightHub/GB28181 目录同步 | camera 长尾 | 视现场 |
 | **P2** | audio_talk | 去掉 EX-AUDIO-TALK | 视产品 |
 | **P2** | scenario_pose | 去掉 EX-SCENARIO-POSE | 视产品 |
@@ -251,7 +251,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 路由缺口（prefix-level） | **0** |
 | inventory 扫描 artifact | `/video/camera` 前缀 Java **+5**（talk 子路径重复计入） |
 | 整域 HTTP 未实现 | **无**（14 前缀均已 diff=0） |
-| 行为桩仍存的域 | camera（ONVIF/NVR/扫描）、face/plate（推理/Milvus）、snap/record/media（MinIO）、patrol（SSE/守护）、audio_talk（ONVIF）、scenario_pose（姿态推理）、algorithm/stream_forward（远程 node） |
+| 行为桩仍存的域 | camera（ONVIF/NVR/扫描）、face（Milvus/ORT 推理）、snap/record/media（MinIO）、patrol（SSE/守护）、audio_talk（ONVIF）、scenario_pose（姿态推理）、algorithm/stream_forward（远程 node） |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 259 路由；仅防回归） |
 
 ---

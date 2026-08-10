@@ -26,6 +26,8 @@ public class FaceMatchingService {
     private final FaceLibraryRepository faceLibraryRepository;
     private final FaceMatchRecordRepository faceMatchRecordRepository;
     private final VideoProperties videoProperties;
+    private final MatchingKafkaProducer matchingKafkaProducer;
+    private final LibraryMatchingProcessor libraryMatchingProcessor;
 
     public Map<String, Object> publish(Map<String, Object> data) {
         if (data == null) {
@@ -84,25 +86,39 @@ public class FaceMatchingService {
         Float threshold = parseFloat(firstNonNull(payload, "threshold", "faceMatchingThreshold", "face_matching_threshold"));
         String libraryName = stringOrNull(firstNonNull(payload, "libraryName", "library_name"));
 
-        // P2-S3: no InsightFace — record unmatched when image missing/unreadable (oracle parity).
-        boolean matched = false;
-        Integer libraryId = null;
-        if (faceImagePath != null && !faceImagePath.isBlank()) {
-            log.debug("face matching skipped (no recognition engine): path={}", faceImagePath);
+        if (videoProperties.getMatching().isUseDirectProcess()) {
+            boolean matched = false;
+            Integer libraryId = null;
+            if (faceImagePath != null && !faceImagePath.isBlank()) {
+                log.debug("face matching mini path (no recognition engine): path={}", faceImagePath);
+            }
+            return faceMatchRecordRepository.insert(
+                    taskId,
+                    taskName,
+                    deviceId,
+                    deviceName,
+                    libraryId,
+                    libraryName,
+                    faceImagePath,
+                    matched,
+                    correlationId,
+                    taskType != null ? taskType : "realtime",
+                    threshold
+            );
         }
 
-        return faceMatchRecordRepository.insert(
+        return libraryMatchingProcessor.processFace(
+                libraries,
+                payload,
                 taskId,
-                taskName,
+                faceImagePath,
                 deviceId,
                 deviceName,
-                libraryId,
-                libraryName,
-                faceImagePath,
-                matched,
-                correlationId,
+                taskName,
                 taskType != null ? taskType : "realtime",
-                threshold
+                correlationId,
+                threshold,
+                libraryName
         );
     }
 
@@ -168,9 +184,6 @@ public class FaceMatchingService {
         return message;
     }
 
-    /**
-     * Mini/local path: mock Kafka producer success (no broker required). Real Kafka can be wired later.
-     */
     private boolean sendToKafka(Map<String, Object> message) {
         if (videoProperties.getMatching().isUseDirectProcess()) {
             log.info(
@@ -181,8 +194,7 @@ public class FaceMatchingService {
             );
             return true;
         }
-        log.warn("Kafka producer not configured for face matching");
-        return false;
+        return matchingKafkaProducer.publishFace(message);
     }
 
     private static Object firstNonNull(Map<String, Object> data, String... keys) {
