@@ -18,6 +18,46 @@ int64_t nowNs() {
         .count();
 }
 
+void drawDetectionOverlay(cv::Mat& img, const DetectObject& det, bool /*inAlarmRegion*/) {
+    // Align with VIDEO draw_detections(); scale stroke/font for output resolution.
+    const int h = img.rows;
+    const int w = img.cols;
+    int x1 = static_cast<int>(det.x1);
+    int y1 = static_cast<int>(det.y1);
+    int x2 = static_cast<int>(det.x2);
+    int y2 = static_cast<int>(det.y2);
+    x1 = std::max(0, std::min(x1, w - 1));
+    y1 = std::max(0, std::min(y1, h - 1));
+    x2 = std::max(x1 + 1, std::min(x2, w));
+    y2 = std::max(y1 + 1, std::min(y2, h));
+
+    const double refH = 1080.0;
+    const double resScale = std::max(0.45, std::min(1.0, h / refH));
+    const cv::Scalar color(0, 255, 0);
+    const int thickness = std::max(1, static_cast<int>(std::lround(2.0 * resScale)));
+    cv::rectangle(img, cv::Point(x1, y1), cv::Point(x2, y2), color, thickness, cv::LINE_AA);
+
+    const std::string& label = det.class_name;
+    if (label.empty()) {
+        return;
+    }
+
+    const double fontScale = 0.8 * resScale;
+    const int fontThickness = std::max(1, static_cast<int>(std::lround(2.0 * resScale)));
+    int baseLine = 0;
+    const cv::Size labelSize = cv::getTextSize(
+        label, cv::FONT_HERSHEY_SIMPLEX, fontScale, fontThickness, &baseLine);
+
+    int textX = std::max(0, std::min(x1, std::max(0, w - labelSize.width)));
+    int textY = std::max(labelSize.height + 5, y1 - 5);
+    textY = std::min(h - std::max(1, baseLine), textY);
+
+    cv::putText(img, label,
+                cv::Point(textX, textY),
+                cv::FONT_HERSHEY_SIMPLEX, fontScale,
+                color, fontThickness, cv::LINE_AA);
+}
+
 cv::Mat makeSnapshot(const cv::Mat& img) {
     if (img.empty()) {
         return {};
@@ -560,10 +600,9 @@ void Pipeline::inferLoop() {
                             alarmDetections.push_back(det);
                         }
                     }
-                    if (config_.enableDrawRtmp) {
-                        cv::Scalar color = inAlarmRegion ? cv::Scalar(0, 0, 255) : cv::Scalar(255, 0, 0);
-                        int thickness = inAlarmRegion ? 3 : 1;
-                        cv::rectangle(img, cv::Point(x1, y1), cv::Point(x2, y2), color, thickness);
+                    if (config_.enableDrawRtmp &&
+                        det.class_score >= config_.alarmConfidenceThreshold) {
+                        drawDetectionOverlay(img, det, inAlarmRegion);
                     }
                 }
 
