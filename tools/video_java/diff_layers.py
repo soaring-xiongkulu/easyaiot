@@ -91,8 +91,21 @@ def _fail(layer: str, reason: str) -> Dict[str, Any]:
     return {"layer": layer, "status": "fail", "reason": reason}
 
 
+def _alarm_hook_status_required(case_id: str, thresholds: Dict[str, Any]) -> Optional[str]:
+    alarm = thresholds.get("alarm") or {}
+    cases = alarm.get("cases") or {}
+    case_thresh = cases.get(case_id) or {}
+    return case_thresh.get("hook_status_required")
+
+
 def diff_layer(
-    layer: str, py_data: Dict[str, Any], java_data: Dict[str, Any], *, case: Dict[str, Any]
+    layer: str,
+    py_data: Dict[str, Any],
+    java_data: Dict[str, Any],
+    *,
+    case: Dict[str, Any],
+    case_id: str = "",
+    thresholds: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     py_status = py_data.get("status", "unknown")
     java_status = java_data.get("status", "unknown")
@@ -151,12 +164,21 @@ def diff_layer(
     else:
         py_norm = normalize_value(py_data.get("snapshot") or py_data)
         java_norm = normalize_value(java_data.get("snapshot") or java_data)
-        if _lifecycle_degenerate(py_norm):
+        if layer == "lifecycle" and _lifecycle_degenerate(py_norm):
             return _fail(
                 layer,
                 "oracle golden degenerate; no parity baseline (do not pass on java-only)",
             )
         reds = _diff_dict(py_norm, java_norm)
+        if layer == "alarm":
+            required = _alarm_hook_status_required(case_id, thresholds or {})
+            if required:
+                for label, snap in (("python", py_norm), ("java", java_norm)):
+                    hook_status = snap.get("hook_status") if isinstance(snap, dict) else None
+                    if hook_status != required:
+                        reds.append(
+                            f"{label} hook_status: {hook_status!r} != required {required!r}"
+                        )
 
     return {
         "layer": layer,
@@ -200,7 +222,7 @@ def _diff_health_api(
 
 
 def diff_case(case_id: str, layers: List[str]) -> Tuple[bool, List[Dict[str, Any]]]:
-    load_thresholds()  # reserved for future numeric thresholds
+    thresholds = load_thresholds()
     manifest = load_manifest()
     case = find_case(manifest, case_id)
     py_base = golden_dir("python", case_id)
@@ -228,7 +250,9 @@ def diff_case(case_id: str, layers: List[str]) -> Tuple[bool, List[Dict[str, Any
             results.append(_fail(layer, f"missing java {fname}"))
             all_ok = False
             continue
-        result = diff_layer(layer, py_data, java_data, case=case)
+        result = diff_layer(
+            layer, py_data, java_data, case=case, case_id=case_id, thresholds=thresholds
+        )
         results.append(result)
         all_ok = all_ok and layer_satisfies(result)
     return all_ok, results

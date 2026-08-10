@@ -23,6 +23,7 @@ from vj_common import (
     load_p1_fixture,
     load_p2_fixture,
     normalize_api_layer,
+    ensure_p0_alert_fixture,
     update_task_runtime_bin,
     write_layer,
 )
@@ -205,6 +206,9 @@ def _record_heartbeat(case: Dict[str, Any], fixture: Dict[str, Any]) -> None:
 def _record_alert_hook(case: Dict[str, Any], fixture: Dict[str, Any]) -> None:
     base = case["oracle_base_url"].rstrip("/")
     out = golden_dir("python", case["case_id"])
+    task_id = int(fixture["task_id"])
+    device_id = str(fixture["device_id"])
+    ensure_p0_alert_fixture(task_id, device_id)
     hook = fixture.get("alert_hook_payload", {})
     payload = dict(hook)
     payload["correlation_id"] = f"vj_p0_py_{uuid.uuid4().hex[:12]}"
@@ -226,6 +230,7 @@ def _record_alert_hook(case: Dict[str, Any], fixture: Dict[str, Any]) -> None:
             "snapshot": {
                 "hook_status": data.get("status") or body.get("msg"),
                 "mode": data.get("mode"),
+                "alert_id_present": bool(data.get("alert_id")),
                 "device_id": payload.get("device_id"),
                 "object": payload.get("object"),
                 "event": payload.get("event"),

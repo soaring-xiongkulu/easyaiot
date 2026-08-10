@@ -5,19 +5,20 @@
   "body": {
     "code": 0,
     "data": {
-      "reason": "alert_event_disabled",
-      "status": "skipped"
+      "alert_id": 4489,
+      "mode": "direct_persist",
+      "status": "success"
     },
-    "message": "告警事件已跳过",
-    "msg": "告警事件已跳过"
+    "message": "告警事件已发送",
+    "msg": "告警事件已发送"
   },
   "normalized": {
     "code": 0,
     "data": {
-      "reason": "alert_event_disabled",
-      "status": "skipped"
+      "alert_id": 4489,
+      "mode": "direct_persist",
+      "status": "success"
     },
-    "message": "告警事件已跳过",
-    "msg": "告警事件已跳过"
+    "msg": "告警事件已发送"
   }
 }

@@ -2,7 +2,13 @@
   "_note": "Phase 0+ thresholds; path/timestamp normalization in diff_layers",
   "api": {},
   "lifecycle": {},
-  "alarm": {},
+  "alarm": {
+    "cases": {
+      "vj_p0_alert_hook": {
+        "hook_status_required": "success"
+      }
+    }
+  },
   "ini": {},
   "media": {
     "stream_status_required": true,

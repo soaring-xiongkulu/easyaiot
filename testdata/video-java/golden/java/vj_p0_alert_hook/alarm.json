@@ -2,8 +2,9 @@
   "layer": "alarm",
   "status": "sampled",
   "snapshot": {
-    "hook_status": "skipped",
-    "mode": null,
+    "hook_status": "success",
+    "mode": "direct_persist",
+    "alert_id_present": true,
     "device_id": "vj_p0_device",
     "object": "person",
     "event": "vj_p0_certify_task"

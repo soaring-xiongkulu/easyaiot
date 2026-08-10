@@ -4,19 +4,21 @@
   "endpoint": "/video/alert/hook",
   "body": {
     "code": 0,
-    "msg": "告警事件已跳过",
-    "message": "告警事件已跳过",
+    "msg": "告警事件已发送",
+    "message": "告警事件已发送",
     "data": {
-      "reason": "alert_event_disabled",
-      "status": "skipped"
+      "mode": "direct_persist",
+      "alert_id": 4490,
+      "status": "success"
     }
   },
   "normalized": {
     "code": 0,
     "data": {
-      "reason": "alert_event_disabled",
-      "status": "skipped"
+      "alert_id": 4490,
+      "mode": "direct_persist",
+      "status": "success"
     },
-    "msg": "告警事件已跳过"
+    "msg": "告警事件已发送"
   }
 }

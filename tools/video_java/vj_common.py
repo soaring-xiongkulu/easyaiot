@@ -86,6 +86,43 @@ def load_p2_fixture() -> Dict[str, Any]:
     return fx
 
 
+def ensure_p0_alert_fixture(task_id: int, device_id: str) -> None:
+    """Test-only: re-enable certify task for alert hook SUCCESS (stop() clears is_enabled)."""
+    try:
+        import os
+
+        import psycopg2
+    except ImportError as exc:
+        raise RuntimeError("psycopg2 required for ensure_p0_alert_fixture") from exc
+    db_url = os.environ.get(
+        "VIDEO_JAVA_DB_URL",
+        "postgresql://postgres:iot45722414822@127.0.0.1:15432/iot-video20",
+    )
+    conn = psycopg2.connect(db_url)
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO algorithm_task_device (task_id, device_id)
+                    VALUES (%s, %s)
+                    ON CONFLICT DO NOTHING
+                    """,
+                    (task_id, device_id),
+                )
+                cur.execute(
+                    """
+                    UPDATE algorithm_task
+                    SET is_enabled = true,
+                        alert_event_enabled = true
+                    WHERE id = %s
+                    """,
+                    (task_id,),
+                )
+    finally:
+        conn.close()
+
+
 def update_task_runtime_bin(task_id: int, runtime_bin_path: str) -> None:
     """Test-only: point fixture task at a specific RUNTIME stub/binary."""
     try:
