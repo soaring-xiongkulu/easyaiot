@@ -1,0 +1,320 @@
+record_python: vj_p0_health
+Traceback (most recent call last):
+  File "F:\anaconda\Lib\urllib\request.py", line 1344, in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+  File "F:\anaconda\Lib\http\client.py", line 1336, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1382, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1331, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1091, in _send_output
+    self.send(msg)
+  File "F:\anaconda\Lib\http\client.py", line 1035, in send
+    self.connect()
+  File "F:\anaconda\Lib\http\client.py", line 1001, in connect
+    self.sock = self._create_connection(
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\socket.py", line 852, in create_connection
+    raise exceptions[0]
+  File "F:\anaconda\Lib\socket.py", line 837, in create_connection
+    sock.connect(sa)
+ConnectionRefusedError: [WinError 10061] 鐢变簬鐩爣璁＄畻鏈虹Н鏋佹嫆缁濓紝鏃犳硶杩炴帴銆?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 893, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 888, in main
+    record_case(cid)
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 834, in record_case
+    _record_health(case)
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 101, in _record_health
+    status, body, raw = http_json("GET", f"{base}/actuator/health")
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\acme\.worktrees\video-java\tools\video_java\vj_common.py", line 229, in http_json
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 215, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 515, in open
+    response = self._open(req, data)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 532, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 492, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 1373, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 1347, in do_open
+    raise URLError(err)
+urllib.error.URLError: <urlopen error [WinError 10061] 鐢变簬鐩爣璁＄畻鏈虹Н鏋佹嫆缁濓紝鏃犳硶杩炴帴銆?
+run_java: vj_p0_health
+Traceback (most recent call last):
+record_python: vj_p0_task_start_stop
+  File "F:\anaconda\Lib\urllib\request.py", line 1344, in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+  File "F:\anaconda\Lib\http\client.py", line 1336, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1382, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1331, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1091, in _send_output
+    self.send(msg)
+  File "F:\anaconda\Lib\http\client.py", line 1035, in send
+    self.connect()
+  File "F:\anaconda\Lib\http\client.py", line 1001, in connect
+    self.sock = self._create_connection(
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\socket.py", line 852, in create_connection
+    raise exceptions[0]
+  File "F:\anaconda\Lib\socket.py", line 837, in create_connection
+    sock.connect(sa)
+ConnectionRefusedError: [WinError 10061] 鐢变簬鐩爣璁＄畻鏈虹Н鏋佹嫆缁濓紝鏃犳硶杩炴帴銆?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 893, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 888, in main
+    record_case(cid)
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 836, in record_case
+    _record_task_start_stop(case, fixture)
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 132, in _record_task_start_stop
+    _ensure_task_stopped(base, task_id)
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 75, in _ensure_task_stopped
+    http_json("POST", f"{base}/video/algorithm/task/{task_id}/stop")
+  File "F:\acme\.worktrees\video-java\tools\video_java\vj_common.py", line 229, in http_json
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 215, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 515, in open
+    response = self._open(req, data)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 532, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 492, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 1373, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 1347, in do_open
+    raise URLError(err)
+urllib.error.URLError: <urlopen error [WinError 10061] 鐢变簬鐩爣璁＄畻鏈虹Н鏋佹嫆缁濓紝鏃犳硶杩炴帴銆?
+run_java: vj_p0_task_start_stop
+record_python: vj_p0_heartbeat
+Traceback (most recent call last):
+  File "F:\anaconda\Lib\urllib\request.py", line 1344, in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+  File "F:\anaconda\Lib\http\client.py", line 1336, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1382, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1331, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1091, in _send_output
+    self.send(msg)
+  File "F:\anaconda\Lib\http\client.py", line 1035, in send
+    self.connect()
+  File "F:\anaconda\Lib\http\client.py", line 1001, in connect
+    self.sock = self._create_connection(
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\socket.py", line 852, in create_connection
+    raise exceptions[0]
+  File "F:\anaconda\Lib\socket.py", line 837, in create_connection
+    sock.connect(sa)
+ConnectionRefusedError: [WinError 10061] 鐢变簬鐩爣璁＄畻鏈虹Н鏋佹嫆缁濓紝鏃犳硶杩炴帴銆?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 893, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 888, in main
+    record_case(cid)
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 838, in record_case
+    _record_heartbeat(case, fixture)
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 184, in _record_heartbeat
+    _ensure_task_stopped(base, task_id)
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 75, in _ensure_task_stopped
+    http_json("POST", f"{base}/video/algorithm/task/{task_id}/stop")
+  File "F:\acme\.worktrees\video-java\tools\video_java\vj_common.py", line 229, in http_json
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 215, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 515, in open
+    response = self._open(req, data)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 532, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 492, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 1373, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 1347, in do_open
+    raise URLError(err)
+urllib.error.URLError: <urlopen error [WinError 10061] 鐢变簬鐩爣璁＄畻鏈虹Н鏋佹嫆缁濓紝鏃犳硶杩炴帴銆?
+run_java: vj_p0_heartbeat
+record_python: vj_p0_alert_hook
+Traceback (most recent call last):
+  File "F:\anaconda\Lib\urllib\request.py", line 1344, in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+  File "F:\anaconda\Lib\http\client.py", line 1336, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1382, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1331, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1091, in _send_output
+    self.send(msg)
+  File "F:\anaconda\Lib\http\client.py", line 1035, in send
+    self.connect()
+  File "F:\anaconda\Lib\http\client.py", line 1001, in connect
+    self.sock = self._create_connection(
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\socket.py", line 852, in create_connection
+    raise exceptions[0]
+  File "F:\anaconda\Lib\socket.py", line 837, in create_connection
+    sock.connect(sa)
+ConnectionRefusedError: [WinError 10061] 鐢变簬鐩爣璁＄畻鏈虹Н鏋佹嫆缁濓紝鏃犳硶杩炴帴銆?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 893, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 888, in main
+    record_case(cid)
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 840, in record_case
+    _record_alert_hook(case, fixture)
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 231, in _record_alert_hook
+    _, body, _ = http_json("POST", f"{base}/video/alert/hook", payload)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\acme\.worktrees\video-java\tools\video_java\vj_common.py", line 229, in http_json
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 215, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 515, in open
+    response = self._open(req, data)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 532, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 492, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 1373, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 1347, in do_open
+    raise URLError(err)
+urllib.error.URLError: <urlopen error [WinError 10061] 鐢变簬鐩爣璁＄畻鏈虹Н鏋佹嫆缁濓紝鏃犳硶杩炴帴銆?
+run_java: vj_p0_alert_hook
+record_python: vj_p0_restart
+Traceback (most recent call last):
+  File "F:\anaconda\Lib\urllib\request.py", line 1344, in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+  File "F:\anaconda\Lib\http\client.py", line 1336, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1382, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1331, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "F:\anaconda\Lib\http\client.py", line 1091, in _send_output
+    self.send(msg)
+  File "F:\anaconda\Lib\http\client.py", line 1035, in send
+    self.connect()
+  File "F:\anaconda\Lib\http\client.py", line 1001, in connect
+    self.sock = self._create_connection(
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\socket.py", line 852, in create_connection
+    raise exceptions[0]
+  File "F:\anaconda\Lib\socket.py", line 837, in create_connection
+    sock.connect(sa)
+ConnectionRefusedError: [WinError 10061] 鐢变簬鐩爣璁＄畻鏈虹Н鏋佹嫆缁濓紝鏃犳硶杩炴帴銆?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 893, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 888, in main
+    record_case(cid)
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 842, in record_case
+    _record_restart(case, fixture)
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 266, in _record_restart
+    _ensure_task_stopped(base, task_id)
+  File "F:\acme\.worktrees\video-java\tools\video_java\record_python.py", line 75, in _ensure_task_stopped
+    http_json("POST", f"{base}/video/algorithm/task/{task_id}/stop")
+  File "F:\acme\.worktrees\video-java\tools\video_java\vj_common.py", line 229, in http_json
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 215, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 515, in open
+    response = self._open(req, data)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 532, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 492, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 1373, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\anaconda\Lib\urllib\request.py", line 1347, in do_open
+    raise URLError(err)
+urllib.error.URLError: <urlopen error [WinError 10061] 鐢变簬鐩爣璁＄畻鏈虹Н鏋佹嫆缁濓紝鏃犳硶杩炴帴銆?
+run_java: vj_p0_restart
++ F:\anaconda\python.exe record_python.py vj_p0_health
+WARN record_python failed for vj_p0_health (rc=1) 鈥?diff may use stale/missing python golden
++ F:\anaconda\python.exe run_java.py vj_p0_health
+certify: vj_p0_health ok=True
+  api: exempt 鈥?EX-ORACLE-HEALTH-DB: java UP; oracle health not UP (env DB probe)
++ F:\anaconda\python.exe record_python.py vj_p0_task_start_stop
+WARN record_python failed for vj_p0_task_start_stop (rc=1) 鈥?diff may use stale/missing python golden
++ F:\anaconda\python.exe run_java.py vj_p0_task_start_stop
+certify: vj_p0_task_start_stop ok=True
+  lifecycle: pass 鈥?ok
+  ini: pass 鈥?ok
++ F:\anaconda\python.exe record_python.py vj_p0_heartbeat
+WARN record_python failed for vj_p0_heartbeat (rc=1) 鈥?diff may use stale/missing python golden
++ F:\anaconda\python.exe run_java.py vj_p0_heartbeat
+certify: vj_p0_heartbeat ok=True
+  lifecycle: pass 鈥?ok
++ F:\anaconda\python.exe record_python.py vj_p0_alert_hook
+WARN record_python failed for vj_p0_alert_hook (rc=1) 鈥?diff may use stale/missing python golden
++ F:\anaconda\python.exe run_java.py vj_p0_alert_hook
+certify: vj_p0_alert_hook ok=True
+  alarm: pass 鈥?ok
++ F:\anaconda\python.exe record_python.py vj_p0_restart
+WARN record_python failed for vj_p0_restart (rc=1) 鈥?diff may use stale/missing python golden
++ F:\anaconda\python.exe run_java.py vj_p0_restart
+certify: vj_p0_restart ok=True
+  lifecycle: pass 鈥?ok
+gate report: F:\acme\.worktrees\video-java\docs\video-java\gates\PHASE_0_GATE.md

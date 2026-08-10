@@ -115,6 +115,12 @@ public class PythonInferenceWorker {
         return run(script, "add_to_library", extra, null, null);
     }
 
+    public WorkerResult faceDeleteByMilvusId(String milvusId) {
+        Path script = requireScript("face_inference_cli.py");
+        List<String> extra = List.of("--milvus-id", milvusId != null ? milvusId : "");
+        return run(script, "delete_by_milvus_id", extra, null, null);
+    }
+
     public WorkerResult plateRecognize(byte[] imageBytes) {
         Path script = requireScript("plate_inference_cli.py");
         return run(script, "recognize", List.of(), null, imageBytes);

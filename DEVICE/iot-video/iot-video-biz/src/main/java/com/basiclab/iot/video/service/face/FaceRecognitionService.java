@@ -96,6 +96,21 @@ public class FaceRecognitionService {
         return milvusId != null ? String.valueOf(milvusId) : null;
     }
 
+    /** Python face_library_service.update_entry L463-467 → delete_by_milvus_id (best-effort). */
+    public void deleteFaceByMilvusId(String milvusId) {
+        if (milvusId == null || milvusId.isBlank()) {
+            return;
+        }
+        try {
+            WorkerResult worker = pythonInferenceWorker.faceDeleteByMilvusId(milvusId);
+            if (!worker.ok()) {
+                log.warn("delete milvus_id {} failed: {}", milvusId, worker.error());
+            }
+        } catch (Exception ex) {
+            log.warn("delete milvus_id {} failed: {}", milvusId, ex.getMessage());
+        }
+    }
+
     public record FaceCropResult(byte[] cropJpegBytes, List<Double> embedding) {}
 
     public Map<String, Object> recognize(byte[] imageBytes, int topK, Integer libraryId, Double threshold) {

@@ -103,6 +103,21 @@ def cmd_extract_crop(args: argparse.Namespace) -> dict:
     }
 
 
+def cmd_delete_by_milvus_id(args: argparse.Namespace) -> dict:
+    """Mirrors face_library_service.update_entry L463-467 delete_by_milvus_id (best-effort)."""
+    bootstrap()
+    from app.services.face_recognition_service import get_face_recognition_service
+
+    if not args.milvus_id:
+        return {"ok": False, "error": "milvus_id required"}
+    svc = get_face_recognition_service()
+    try:
+        svc.delete_by_milvus_id(args.milvus_id)
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True}
+
+
 def cmd_add_to_library(args: argparse.Namespace) -> dict:
     """Mirrors face_library_service.add_entry L362-370 add_face_to_library."""
     import json
@@ -135,7 +150,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="face inference worker")
     parser.add_argument(
         "command",
-        choices=["health", "match", "recognize", "extract_crop", "add_to_library"],
+        choices=["health", "match", "recognize", "extract_crop", "add_to_library", "delete_by_milvus_id"],
     )
     parser.add_argument("--image-path")
     parser.add_argument("--image-base64")
@@ -146,6 +161,7 @@ def main() -> int:
     parser.add_argument("--embedding-json")
     parser.add_argument("--threshold", type=float)
     parser.add_argument("--top-k", type=int, default=3)
+    parser.add_argument("--milvus-id")
     args = parser.parse_args()
     try:
         if args.command == "health":
@@ -165,6 +181,9 @@ def main() -> int:
             return 0
         if args.command == "add_to_library":
             _emit(cmd_add_to_library(args))
+            return 0
+        if args.command == "delete_by_milvus_id":
+            _emit(cmd_delete_by_milvus_id(args))
             return 0
     except Exception as exc:
         _emit({"ok": False, "error": str(exc)})

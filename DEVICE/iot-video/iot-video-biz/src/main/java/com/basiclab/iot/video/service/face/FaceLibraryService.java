@@ -216,6 +216,7 @@ public class FaceLibraryService {
     public Map<String, Object> updateEntry(int entryId, byte[] imageBytes, Map<String, Object> data) {
         Map<String, Object> entry = entryRepository.findById(entryId)
                 .orElseThrow(() -> new VideoBusinessException(400, "人脸条目不存在"));
+        int libraryId = (Integer) entry.get("library_id");
         Map<String, Object> fields = new LinkedHashMap<>();
         if (data.containsKey("person_name")) {
             fields.put("person_name", RequestParams.str(data, "person_name"));
@@ -229,15 +230,39 @@ public class FaceLibraryService {
         if (data.containsKey("is_enabled")) {
             fields.put("is_enabled", RequestParams.bool(data, "is_enabled", true));
         }
+        // Python face_library_service.update_entry L445-476: delete old MinIO, re-extract, Milvus upsert.
         if (imageBytes != null && imageBytes.length > 0) {
-            recognitionService.validateFaceEntryImage(imageBytes);
+            FaceRecognitionService.FaceCropResult cropResult = recognitionService.extractCropForEntry(imageBytes);
+            deleteFaceImageObject((String) entry.get("image_path"));
+            UploadedFaceImage uploaded = uploadFaceImage(libraryId, cropResult.cropJpegBytes());
+            fields.put("image_path", uploaded.objectName());
+            fields.put("image_url", uploaded.imageUrl());
+            String oldMilvusId = (String) entry.get("milvus_id");
+            recognitionService.deleteFaceByMilvusId(oldMilvusId);
+            String personName = fields.containsKey("person_name")
+                    ? (String) fields.get("person_name")
+                    : (String) entry.get("person_name");
+            String personCode = fields.containsKey("person_code")
+                    ? (String) fields.get("person_code")
+                    : (String) entry.get("person_code");
+            String milvusId = recognitionService.addFaceToLibrary(
+                    libraryId,
+                    entryId,
+                    personName,
+                    personCode,
+                    cropResult.embedding()
+            );
+            if (milvusId != null) {
+                fields.put("milvus_id", milvusId);
+            }
         }
         entryRepository.update(entryId, fields);
         Integer personId = (Integer) entry.get("person_id");
         if (personId != null) {
+            syncPersonCoverFields(personId, entryId, data);
             personRepository.refreshFaceCount(personId);
         }
-        libraryRepository.refreshFaceCount((Integer) entry.get("library_id"));
+        libraryRepository.refreshFaceCount(libraryId);
         return entryRepository.findById(entryId).orElseThrow();
     }
 
@@ -372,6 +397,41 @@ public class FaceLibraryService {
         }
         videoMinioService.uploadBytes(bucket, objectName, imageBytes, "image/" + suffix, false);
         return new UploadedFaceImage(objectName, videoMinioService.buildDownloadUrl(bucket, objectName));
+    }
+
+    /** Python face_library_service.update_entry L432-439 → sync person when cover entry. */
+    private void syncPersonCoverFields(int personId, int entryId, Map<String, Object> data) {
+        personRepository.findById(personId).ifPresent(person -> {
+            Integer coverEntryId = (Integer) person.get("cover_entry_id");
+            if (coverEntryId == null || coverEntryId != entryId) {
+                return;
+            }
+            Map<String, Object> personFields = new LinkedHashMap<>();
+            if (data.containsKey("person_name")) {
+                personFields.put("person_name", RequestParams.str(data, "person_name"));
+            }
+            if (data.containsKey("person_code")) {
+                personFields.put("person_code", RequestParams.strOrNull(data, "person_code"));
+            }
+            if (!personFields.isEmpty()) {
+                personRepository.update(personId, personFields);
+            }
+        });
+    }
+
+    /** Python face_library_service._delete_minio_object L71-79 (best-effort). */
+    private void deleteFaceImageObject(String objectName) {
+        if (objectName == null || objectName.isBlank()) {
+            return;
+        }
+        if (!videoMinioService.isStorageEnabled()) {
+            return;
+        }
+        try {
+            videoMinioService.removeObject(faceImageBucket(), objectName);
+        } catch (Exception ex) {
+            // Python _delete_minio_object L78-79: best-effort, log warning only.
+        }
     }
 
     private static String faceImageBucket() {

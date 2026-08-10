@@ -294,11 +294,26 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B39 plate update image**（`:48096` local, MinIO on） | `PUT /video/plate/entries/{id}` multipart → `image_url`（`plate_library_service.update_entry` L311-313）；`PlateController` JSON/multipart consumes 拆分；artifact `logs/fr-b39-multipart-latest.json` |
 | **FR-B40 契约探针 404 假阳性**（`:48096` live） | FR-B39 业务 code=404→HTTP 404 后 39 条探针误报 unmapped；`contract_regression.py` 区分 envelope 404 vs Spring 404 → **265 pass / 0 fail**；artifact `logs/fr-b40-contract-latest.json` |
 | **FR-B41 face entry 成功路径**（`:48096` local） | `face_rec.onnx` 官方 buffalo_l 下载 + worker + Milvus v2.4.15；multipart **code=0** + **12** FaceEntry keys + `image_url` + `milvus_id`；artifact `logs/fr-b41-face-entry-success-latest.json` |
+| **FR-B42 face entry update 带图**（`:48096` local） | `PUT /video/face/entries/{id}` multipart → delete MinIO + re-extract + Milvus re-upsert；**code=0** + 12 keys + `image_url` + `milvus_id` 变更；artifact `logs/fr-b42-face-update-latest.json` |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定 — FR-B41
+## 9. 最终判定 — FR-B42
+
+| 问题 | 答案 |
+|------|------|
+| Face entry update 带图成功？ | **是（local）** — HTTP 200 **code=0** msg=更新成功；12 keys；`image_url` + `milvus_id` 均更新；artifact `logs/fr-b42-face-update-latest.json` |
+| Python-first cites？ | `face_library_service.update_entry` L428-482（delete MinIO → extract_and_crop → delete milvus_id → add_face_to_library）；`add_entry` L303-380 作 setup |
+| phase0？ | **PASS 5/5** — `logs/certify-frb42-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — local-only；`/video/face/health` stub 仍非 prod 绿 |
+
+## 10. 历史判定归档（只读）
+
+<details>
+<summary>FR-B41 / FR-B40 / FR-B38 … 历史判定（点击展开）</summary>
+
+### FR-B41
 
 | 问题 | 答案 |
 |------|------|
@@ -308,7 +323,9 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | phase0？ | **PASS 5/5** — `logs/certify-frb41-phase0.log` |
 | 能否称 COMPLETE？ | **禁止** — local-only；prod Milvus/InsightFace soak 仍 open |
 
-## 10. 历史判定归档（只读）
+</details>
+
+## 11. 更早历史判定归档（只读）
 
 <details>
 <summary>FR-B40 / FR-B38 / FR-B37 … 历史判定（点击展开）</summary>

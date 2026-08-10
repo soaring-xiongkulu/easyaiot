@@ -1,0 +1,68 @@
+{
+  "generated_at": "20260810T223428Z",
+  "base_url": "http://127.0.0.1:48096",
+  "server_up": true,
+  "health_detail": "health HTTP 200",
+  "fixture_image": "testdata\\fr-b41\\face_sample.jpg",
+  "face_rec_onnx": "F:\\acme\\.worktrees\\video-java\\VIDEO\\face_rec.onnx",
+  "probes": [
+    {
+      "id": "face_entry_update_multipart_success",
+      "path": "PUT /video/face/entries/{id}",
+      "python_source": "VIDEO/_retired_python_video/app/services/face_library_service.py update_entry L428-482 → delete MinIO + extract_and_crop + add_face_to_library → VIDEO/_retired_python_video/models.py FaceEntry.to_dict L1327-1341",
+      "model_script": "VIDEO/scripts/download_face_rec_model.sh",
+      "multipart_fields": [
+        "person_name",
+        "file"
+      ],
+      "checks": [
+        {
+          "check": "data_keys",
+          "status": "pass",
+          "detail": "keys ok (12)"
+        },
+        {
+          "check": "image_url_set",
+          "status": "pass",
+          "detail": "/api/v1/buckets/face-library/objects/download?prefix=93%2F940e37b81a4b455f955073aa73e109e0.jpg"
+        },
+        {
+          "check": "milvus_id_set",
+          "status": "pass",
+          "detail": "468294075917271251"
+        },
+        {
+          "check": "person_name_updated",
+          "status": "pass",
+          "detail": "frb42_updated_20260810223352"
+        },
+        {
+          "check": "image_url_changed",
+          "status": "pass",
+          "detail": "new MinIO object"
+        },
+        {
+          "check": "milvus_id_changed",
+          "status": "pass",
+          "detail": "re-upserted"
+        }
+      ],
+      "probe_path": "/video/face/entries/2",
+      "setup_entry_id": 2,
+      "original_image_url": "/api/v1/buckets/face-library/objects/download?prefix=93%2Fded81e8cc3f048b486af9fd5983d31ba.jpg",
+      "original_milvus_id": "468294075917271248",
+      "http_status": 200,
+      "business_code": 0,
+      "msg": "更新成功",
+      "image_url": "/api/v1/buckets/face-library/objects/download?prefix=93%2F940e37b81a4b455f955073aa73e109e0.jpg",
+      "milvus_id": "468294075917271251",
+      "person_name": "frb42_updated_20260810223352",
+      "ok": true
+    }
+  ],
+  "summary": {
+    "pass": 1,
+    "total": 1
+  },
+  "disclaimer": "FR-B42 requires real face_rec.onnx, Python worker health, Milvus, MinIO, and a detectable face fixture. Honest EX documented when deps missing — not COMPLETE."
+}

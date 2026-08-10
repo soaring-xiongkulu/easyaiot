@@ -68,22 +68,23 @@
 6. `DEVICE/iot-video/iot-video-biz/.../controller`  
 7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
 
-## 8. 现状摘要（2026-08-11 FR-B41）
+## 8. 现状摘要（2026-08-11 FR-B42）
 
 - **HTTP 路由：** `route_inventory` 14 前缀 **Py≈259 / Java≈259 / diff=0**（`FR-W4` 全量核对）。
 - **契约硬化：** **FR-B40 ✅** contract_regression **265 pass / 0 fail**；artifact `logs/fr-b40-contract-latest.json`。
-- **Face entry：** **FR-B41 ✅** local multipart **code=0** + 12 keys + `image_url` + `milvus_id`（InsightFace worker + `face_rec.onnx` + Milvus）；artifact `logs/fr-b41-face-entry-success-latest.json`。
+- **Face entry：** **FR-B41 ✅** local multipart **code=0** + 12 keys + `image_url` + `milvus_id`；artifact `logs/fr-b41-face-entry-success-latest.json`。
+- **Face entry update：** **FR-B42 ✅** local `PUT` multipart **code=0** + 12 keys + `image_url`/`milvus_id` 更新；artifact `logs/fr-b42-face-update-latest.json`。
 - **行为：** face no-model → **HTTP 400**（`face.py` L282-283）；业务 404 → HTTP 404 envelope（`patrol.py` L45）。
-- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`logs/certify-frb41-phase0.log`）。
+- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`logs/certify-frb42-phase0.log`）。
 - **项目状态：** **FR HTTP 面已齐 — 禁止 COMPLETE**。
-- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B41 face entry local；其余仍 ⬜）。
+- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B41/B42 face local；其余仍 ⬜）。
 
 ## 9. 你的下一步
 
 按 [`PLAN_FULL_REPLACEMENT.md`](./PLAN_FULL_REPLACEMENT.md) §5 行为/后台 backlog + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)：
 
 1. **prod 联调 soak** — Kafka DVR/snap、MinIO、WVP、FlightHub、iot-node/Ceph、post_process worker、Nacos 切换、网关冒烟；逐项勾选 checklist 并附证据
-2. **face entry prod 取证** — Milvus/InsightFace prod 环境复现 FR-B41 成功路径（local 已取证）
+2. **face entry prod 取证** — Milvus/InsightFace prod 环境复现 FR-B41/B42 成功路径（local 已取证）
 3. **prod cleanup threshold** — MinIO enabled + 超阈值真删除 prod 取证（local 已取证 `logs/fr-b32-cleanup-e2e-latest.json`）
 4. ONVIF/NVR/扫描真连接（camera、audio_talk）prod 真机联调
 5. InsightFace/Paddle/Milvus 推理或产品旁路决策
@@ -96,6 +97,8 @@
 **FR-B40（local）：** `python tools/video_java/contract_regression.py --probe-all --artifact-stem fr-b40-contract` → `logs/fr-b40-contract-latest.*`；**265 pass / 0 fail**。
 
 **FR-B41（local）：** `python tools/video_java/fr_b41_face_entry_success.py` → `logs/fr-b41-face-entry-success-latest.*`；face multipart **code=0** + 12 keys + MinIO `image_url` + Milvus `milvus_id`。
+
+**FR-B42（local）：** `python tools/video_java/fr_b42_face_update_success.py` → `logs/fr-b42-face-update-latest.*`；face `PUT` update multipart **code=0** + 12 keys + `image_url`/`milvus_id` 更新。
 
 ## 10. 历史审查决议（切片期，仍有效的工程约束）
 
