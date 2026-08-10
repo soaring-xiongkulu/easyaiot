@@ -42,7 +42,7 @@ EasyAIoT 官方网站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平台由 <strong>WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时 / 抓拍 / 巡检算法任务、<strong>RUNTIME C++ 高速帧执行器</strong>（统一承接三类算法任务的拉流解码与推理，并新增 <strong>forward-only 原画直通</strong>：推流转发默认可走 codec copy，NVR 多路原画以极低 CPU 上屏；实时任务另默认推带框检测流；支持计算节点<strong>原子模式</strong>只装执行器、告警汇聚中心）、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、可编排业务后处理、联邦算力集群调度，以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、三档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置。
+平台由 <strong>WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时 / 抓拍 / 巡检算法任务、<strong>RUNTIME 高性能视频执行器</strong>（统一加速实时分析、抓拍识别与智能巡检；并让<strong>多路原画预览</strong>也能以极低资源开销稳定上屏，不必「想看图就先烧满 CPU」；实时研判另可同步给出带框画面；支持计算节点<strong>原子模式</strong>只装执行器、告警汇聚中心）、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、可编排业务后处理、联邦算力集群调度，以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、三档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -200,8 +200,8 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
     </ul>
   </li>
   <li><strong>YOLO26 新一代目标检测能力</strong>：平台内置最新一代目标检测能力，开箱即可用于实时画面分析与抓拍识别，在相同硬件条件下可接入更多路摄像头、响应更快、误报更少。支持从数据采集、标注、训练到上线推理的完整闭环，帮助用户以更低成本持续迭代专属检测模型，快速覆盖安全帽佩戴、人员闯入、烟火隐患等各类常见安防与工业场景，让「看得准、算得快、扩得动」成为默认可用能力</li>
-  <li><strong>RUNTIME C++ 高速帧执行器</strong>：把视频热路径从「能跑」推进到「跑得动、扩得开」——独立 <code>RUNTIME</code> 模块以<strong>同一二进制</strong>承接三类算法任务，并覆盖<strong>原画推流转发</strong>：<strong>实时</strong>（长连接拉流 + Pipeline）、<strong>抓拍</strong>（Cron 调度 SnapScheduler）、<strong>巡检</strong>（多设备轮巡 PatrolScheduler）、<strong>forward-only 原画直通</strong>（RTSP→RTMP codec copy，无 YOLO/重编码）。算法共性路径为<strong>拉流/采帧 → 解码 → YOLO 推理 → 告警/心跳回传</strong>；流水线以环形队列解耦（满则丢最旧帧），端到端时延与丢帧可观测。VIDEO 以 <code>executor=cpp</code> 按任务拉起，编排、原画预览与告警落库仍在 VIDEO，<strong>不替代视频平台层</strong>。其中<strong>正式实时任务默认额外推独立 AI 检测流</strong>（SRS <code>ai/{设备}</code>），与推流转发原画 <code>live/</code> 双路分离——值守既能看清原画，又能切到带框图研判；叠框样式与 VIDEO Python 路径对齐（绿色细框、框上类别名），按分辨率自适应线宽，降低「框又粗又糊」带来的研判干扰。抓拍/巡检以结构化结果与告警为主（有地址时亦可推流，但不强制长推）。默认 prefer GPU（失败自动回退 CPU）。需要极致吞吐时一键走 C++ 后端，让「编排归 VIDEO、算力与转发热路径归 RUNTIME」成为可落地的混编加速路径。详见 <a href="RUNTIME/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">RUNTIME/README.md</a></li>
-  <li><strong>高性能推流转发（RUNTIME forward）</strong>：NVR 数十路通道、园区多点位「只要原画、不要每路都开 AI」时，传统 FFmpeg 逐路转码容易把 CPU 打满、延时抬高。推流转发任务默认 <code>executor=cpp</code>，由 RUNTIME <code>task_type=forward</code> 做<strong>编码透传（codec copy）</strong>——一路摄像头约几个百分点 CPU，即可把原画稳推到 SRS <code>live/</code>；需要兼容老环境时仍可选 <code>python</code>（FFmpeg）路径。WEB 创建/编辑任务可切换「高性能 / 兼容模式」，NVR 自动建任务与单摄像头自动建任务默认走高性能。与算法任务可同设备共存：原画走 <code>live/</code>、AI 带框走 <code>ai/</code>，互不抢同一推流地址；算法启停后自动刷新关联转发配置，避免策略变更后仍用旧拉流参数。配套 <code>VIDEO/tools/runtime_stream_viewer</code> 可一键并排对比原画与 AI 延时、叠框效果，缩短联调与验收时间</li>
+  <li><strong>RUNTIME 高性能视频执行器</strong>：把现场视频从「能看、能算」推进到「路数开得起、值守跟得上」——同一套执行能力覆盖<strong>实时研判、定时抓拍、多路巡检</strong>，并同时支撑<strong>多路原画上屏</strong>。业务上可做到：园区 NVR 数十路先保证「看得清、不卡顿」，再按需只对重点通道开 AI；原画预览与带框研判画面可同屏切换，互不拖垮；检测标注清晰易读，减少「框糊、误报抢眼」干扰值班判断。平台侧继续负责设备编排、告警归档与权限管控，执行层专注吞吐与时延，让扩路、加场景不必先换整机。详见 <a href="RUNTIME/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">RUNTIME/README.md</a></li>
+  <li><strong>高性能推流转发</strong>：面向「要先把画面铺满大屏 / 分屏，不必每路都开算法」的真实交付——NVR 批量通道、楼宇多点位可一键建转发任务，默认走高性能模式，让多路原画以更低资源开销稳定上墙；特殊现场仍可切回兼容模式。原画观看与 AI 研判可同设备并行：值守既能看未标注实况，也能切到带框结果；算法启停后转发策略自动跟进，少一次手工改配置、少一轮联调返工。配套并排预览能力，验收时直接对比延时与标注效果，缩短「装完还要对半天画面」的周期</li>
   <li><strong>RUNTIME 原子模式（计算节点轻装部署）</strong>：边缘算力盒 / 集群工作节点可<strong>只装 RUNTIME 执行器</strong>，本机不部署 VIDEO/WEB/DEVICE——装机更轻、故障面更小、扩容更快。节点通过 <code>VIDEO_BASE_URL</code> 把告警与心跳汇聚到中心 VIDEO；中心下发正式算法任务（实时 / 抓拍 / 巡检，<code>executor=cpp</code>）时由同一二进制承接，其中实时任务仍默认推带框检测流到中心/集群 SRS。原子 ≠ 永不推流：原子只表示「本机无业务面」，智能与画面仍回中心统一研判。一键入口：<code>VIDEO_BASE_URL=http://&lt;中心&gt;:6000 bash .scripts/docker/install_linux.sh runtime</code>；亦可经 WEB「业务运行时分发」批量 SSH 安装到节点</li>
   <li><strong>YOLO26 人体姿态分析</strong>：在目标检测能力之上新增人体关键点与骨架姿态分析，开箱即用，支持图片、视频与摄像头实时流三种输入方式。图片模式可同步输出骨架标注与人数统计；视频模式支持进度跟踪与结果下载；摄像头模式可对接 RTSP/RTMP 实时取流，将姿态识别结果叠加推流回显，便于远程盯防与行为研判。模型推理页提供「姿态分析」与「目标检测」一键切换，适用于工地作业规范、健身动作评估、人群聚集态势感知等需要「看清人体结构与动作形态」的场景，让平台从「框出目标」进一步走向「理解姿态」</li>
   <li><strong>多协议摄像头接入支持</strong>：全面支持 GB28181 和 ONVIF 两大主流视频监控协议，实现标准化设备接入与管理。GB28181 作为中国国家标准，完美适配国内主流监控设备；ONVIF 作为国际通用标准，广泛兼容全球主流品牌摄像头。通过双协议支持，平台能够无缝对接现有监控系统，实现设备的即插即用、自动发现与统一管理，大幅降低设备接入门槛，提升系统兼容性与扩展性，为大规模摄像头部署提供坚实的技术基础。此外，新增 NVR 同网段/跨网段批量扫描、注册与统一管控能力，覆盖海康、大华、华为、萤石、小米等主流品牌，支持基于设备原生协议的网段发现、一键登记及通道批量导入；对于米家等原生不支持 RTSP 的消费级摄像头，可通过 <strong>RTC 模块（go2rtc 桥接）</strong>纳入同一平台，进一步降低大规模监控设备的接入与运维成本</li>
@@ -233,10 +233,10 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   </li>
   <li><strong>数据集标注与多格式数据集管理</strong>：内置可视化图像标注工作台，支持矩形框、多边形等标注形态，以及标注类别管理与进度跟踪；全面兼容 YOLO、COCO、ImageFolder 等主流数据集格式的灵活导入与导出，并打通云平台数据集通道，支持云端数据集的一键导入与同步导出，贯通「数据采集—人工标注—模型训练—部署推理」全流程闭环</li>
   <li><strong>多卡训练、断点续训与节点侧部署</strong>：突破「有卡用不上、任务控不住、中断成果丢」的训练瓶颈，打通多卡算力利用、任务可控调度与节点侧部署，让现场 GPU 真正用得上、训练任务真正控得住。平台可自动识别并调度服务器全部 GPU，用户可在训练页按需选择单卡或多卡；兼容多种常见数据集格式，支持大容量本地数据集上传，训练失败后仍可保留原始数据快速重试。训练进度全程可见，任务可停可续，本地与远程训练失败时也能及时回退并给出清晰反馈，让「训练—发布—使用」闭环更顺畅可靠</li>
-  <li><strong>推流转发</strong>：支持在无需启用 AI 的情况下直接观看摄像头实时画面；多路批量推送、NVR 通道自动建任务均可开箱使用。默认走 <strong>RUNTIME forward（codec copy）</strong> 高性能路径，CPU 占用远低于逐路重编码，适合「多路原画上墙、只对少数通道开 AI」的园区与楼宇场景；亦可切回 FFmpeg 兼容模式以适配特殊编码环境</li>
+  <li><strong>推流转发</strong>：支持在不启算法的情况下直接观看摄像头实时画面；多路批量推送、NVR 通道自动建任务开箱可用。默认高性能模式让多路原画更省资源、更易上墙，适合「大屏先铺满、重点通道再开 AI」；特殊环境可切兼容模式，兼顾交付弹性与现场兼容</li>
   <li><strong>GPU 探测、负载分配与多卡协同</strong>：平台具备 GPU 资源探测与智能分配能力，可自动识别可用 GPU 数量，并依据各卡实时负载将视频编解码与算法推理任务动态调度到多卡并行执行，在保障稳定性的前提下提升多路流处理吞吐与算力利用率，实现多卡场景下的画面编解码与模型推理协同</li>
   <li><strong>智能传输协议与拉流高可靠</strong>：在 RTSP 等拉流链路上，系统可按场景自动选择合适的传输方式以兼顾时延与稳定性。当出现灰屏、解码异常或画面停滞时，自动触发重连与链路恢复，降低长时间花屏、卡死对业务的影响</li>
-  <li><strong>观看链路与算法链路分离及分级码率</strong>：将「实时预览/大屏观看」与「算法分析」相互解耦、独立调度。观看侧由推流转发（默认可 RUNTIME forward）推到 SRS <code>live/</code> 原画，优先保障画清晰、少卡顿；算法侧由 RUNTIME（或 Python 执行器）承接实时 / 抓拍 / 巡检，正式实时任务默认把带框检测流推到独立 <code>ai/</code> 应用，避免分析与观看争抢同一通道与同一推流地址，保障「看得清、不卡断」与「算得动、可扩展」兼顾</li>
+  <li><strong>观看与研判双通路</strong>：把「大屏/分屏看原画」与「算法看结果」拆开调度——值守侧优先保证画面清晰、流畅；研判侧独立输出带框结果，两边互不抢路、互不拖垮。同一摄像头可同时保留实况与分析画面，值班切换更自然，扩路时也不必在「看得清」和「算得动」之间二选一</li>
   <li><strong>模型服务集群推理</strong>：支持分布式模型推理服务集群，实现智能负载均衡、故障自动切换与高可用保障，大幅提升推理吞吐量与系统稳定性</li>
   <li><strong>布防时段管理</strong>：支持全防模式和半防模式两种布防策略，可灵活配置不同时段的布防规则，实现精准的时段化智能监控与告警</li>
   <li><strong>OCR与语音识别</strong>：提供高精度文字识别与语音转文本能力，支持多语言识别</li>
@@ -323,7 +323,7 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>跨端覆盖</strong>：手机、小程序与 App 多端可用，运维与管理不必绑在工位前，现场也能即时查看与处置</li>
   <li><strong>能力对齐</strong>：移动端与 PC 管控台业务能力一致，换端不换功，管控体验无缝衔接</li>
   <li><strong>设备管理</strong>：多种接入方式统一纳管，列表与通道一目了然，点开即可实时看图，外出巡检同样心中有数</li>
-  <li><strong>推流转发</strong>：随时创建与启停转发任务，掌握集群节点与各路流状态；默认可走 RUNTIME 高性能原画直通，远程也能调度视频资源</li>
+  <li><strong>推流转发</strong>：随时创建与启停转发任务，掌握节点与各路画面状态；多路原画可高效上屏，外出也能调度视频资源</li>
   <li><strong>算法任务</strong>：实时、抓拍与巡检任务随手启停，检测成效随时掌握，异常发现不必等回办公室</li>
   <li><strong>告警中心</strong>：告警随手检索，抓拍与录像即点即看，移动值守也能快速核实与跟进</li>
   <li><strong>模型管理</strong>：模型上线状态一眼可查，部署进展心中有数</li>
@@ -481,7 +481,7 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VIS
     <li><strong>跨端覆盖</strong>：一套建设、多端触达，手机、小程序与 App 均可使用</li>
     <li><strong>能力对齐</strong>：与 PC 管控台业务能力一致，支持多租户切换</li>
     <li><strong>设备管理</strong>：直连摄像头、GB28181、NVR、RTC 消费级摄像头等多协议统一纳管，在线状态与通道浏览，设备详情内一键实时预览</li>
-    <li><strong>推流转发</strong>：推流任务创建、启停、集群节点状态与多路流地址查看；支持高性能 cpp / 兼容 python 引擎切换</li>
+    <li><strong>推流转发</strong>：推流任务创建、启停、节点状态与多路画面查看；支持高性能 / 兼容模式按现场切换</li>
     <li><strong>算法任务</strong>：实时 / 抓拍 / 巡检任务列表、启停控制与检测/帧数统计（默认可走 RUNTIME）</li>
     <li><strong>告警中心</strong>：告警事件检索、抓拍图预览、告警录像点播回放</li>
     <li><strong>模型与 AI</strong>：模型列表与部署状态、移动端图片推理工作台、训练任务进度监控与停止</li>
@@ -524,12 +524,12 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VIS
     <li><strong>流媒体处理</strong>：支持 RTSP/RTMP 流实时处理与传输</li>
     <li><strong>多协议摄像头接入</strong>：GB28181、ONVIF、NVR 批量扫描、大疆司空直播与 RTC 消费级摄像头统一纳管</li>
     <li><strong>RTC 联动 API</strong>：<code>/register/device/rtc-live</code> 一键完成 go2rtc 流注册与设备入库，删除设备时自动清理 RTC 流</li>
-    <li><strong>算法任务管理</strong>：支持实时 / 抓拍 / 巡检算法任务；三类任务均可默认 <code>executor=cpp</code>（生成 ini 并拉起 RUNTIME），实时任务另默认推 <code>ai/</code> 检测流；亦可选 <code>python</code></li>
-    <li><strong>推流转发编排</strong>：任务默认 <code>executor=cpp</code>，生成 forward ini 并按设备监督 RUNTIME 直通进程；心跳直连 VIDEO，避免网关未就绪时 worker 误退；亦可选 FFmpeg 兼容路径</li>
+    <li><strong>算法任务管理</strong>：支持实时 / 抓拍 / 巡检；默认可走高性能执行路径并输出带框研判画面，亦可按现场切兼容模式</li>
+    <li><strong>推流转发编排</strong>：多路原画批量上屏默认高性能；特殊环境可切兼容模式；任务启停与策略变更可自动跟进，减少手工返工</li>
     <li><strong>抽帧器与排序器</strong>：支持灵活的抽帧策略与结果排序机制，每个算法任务可绑定独立的抽帧器和排序器</li>
     <li><strong>布防时段</strong>：支持全防模式和半防模式的时段化配置</li>
-    <li><strong>与 RUNTIME 分工</strong>：VIDEO 负责编排、原画预览（<code>live/</code>）、告警落库与任务启停；RUNTIME 统一承接实时 / 抓拍 / 巡检的帧侧执行，以及 forward-only 原画直通；实时任务额外推带框检测流（<code>ai/</code>）并 hook 回传</li>
-    <li><strong>联调预览工具</strong>：<code>tools/runtime_stream_viewer</code> 并排对比 <code>live/</code> 与 <code>ai/</code>，便于验收延时与叠框效果</li>
+    <li><strong>编排与执行分工</strong>：VIDEO 管设备编排、原画预览、告警归档与启停；RUNTIME 负责高吞吐分析与多路原画高效上屏——「管得住」与「跑得动」各司其职</li>
+    <li><strong>验收预览</strong>：支持原画与研判画面并排对照，便于现场快速验收延时与标注效果</li>
   </ul>
 </td>
 </tr>
@@ -572,15 +572,15 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VIS
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>RUNTIME模块</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>C++ 帧热路径</strong>：由原 TASK 演进的独立执行器，以同一二进制承接 <strong>realtime / snap / patrol / forward</strong>——算法路径为拉流或调度采帧 → 解码 → YOLO 推理 → 结构化结果回传；转发路径为 RTSP→RTMP codec copy（无推理/重编码）；服务 VIDEO <code>executor=cpp</code>，不替代 VIDEO 编排 / 预览 / 告警面</li>
-    <li><strong>四类任务形态</strong>：实时长连接 Pipeline；抓拍 Cron（SnapScheduler）；巡检多设备轮巡（PatrolScheduler）；原画直通 StreamForwarder——调度策略不同，心跳/告警契约仍回 VIDEO</li>
-    <li><strong>实时默认推带框检测流</strong>：正式 realtime 任务启动即推独立 SRS <code>ai/{设备}</code>，与推流转发原画 <code>live/</code> 双路分离；叠框对齐 VIDEO 绿色细框样式，并应用任务置信度阈值，减少低分误检干扰研判；抓拍/巡检以结果与告警为主（有地址时可推，不强制长推）</li>
-    <li><strong>forward-only 原画直通</strong>：推流转发高性能路径专用；低延迟 RTSP 选项 + copy 推流，NVR 多路场景下 CPU 占用显著低于 FFmpeg 重编码，让「多路看原画、少路跑 AI」可同时成立</li>
-    <li><strong>告警与心跳汇聚</strong>：HTTP 回传 VIDEO alert hook / heartbeat（realtime、snap 走 realtime 心跳口；patrol 走巡检心跳口；forward 走推流转发心跳口），经 Kafka 落库与通知，节点本地不落业务库</li>
-    <li><strong>环形队列流水线</strong>：拉流/解码、推理、回传分阶段线程；帧环满则丢最旧，保障实时优先、解码不被推理拖死</li>
-    <li><strong>GPU 优先、失败回退</strong>：默认 prefer CUDA EP，失败自动 CPU，任务不中断</li>
-    <li><strong>原子模式</strong>：计算节点只装 RUNTIME（不装 VIDEO/WEB），<code>VIDEO_BASE_URL</code> 汇聚中心；正式任务（实时/抓拍/巡检）下发后由同一二进制执行，实时任务仍可推检测流到中心媒体面——节点轻、中心仍看得见、管得住</li>
-    <li><strong>一键分发</strong>：WEB「业务运行时分发」或 iot-node SSH 批量安装到 <code>/opt/easyaiot/RUNTIME</code>；本机 VIDEO 安装入口经 <code>ensure_runtime_cpp.sh</code> 自动编译挂载</li>
+    <li><strong>高性能视频执行</strong>：统一加速实时研判、定时抓拍、多路巡检，并支撑多路原画高效上屏；平台仍负责编排与告警归档，执行层专注吞吐与时延</li>
+    <li><strong>四类现场形态</strong>：实时盯防、定时抓拍、轮巡巡检、纯原画转发——按业务选形态，不必为「只想看图」也付满额算力成本</li>
+    <li><strong>原画与研判双画面</strong>：实时任务可同步给出带框结果，与原画预览分离呈现；标注清晰易读，减少误报抢眼、框糊难辨对值班的干扰</li>
+    <li><strong>多路原画省资源上墙</strong>：推流转发高性能路径专为「大屏先铺满」设计，让 NVR 多通道场景下「多路看原画、少路跑 AI」同时成立</li>
+    <li><strong>告警与状态回传中心</strong>：分析与转发过程的告警、运行状态汇聚回平台统一落库与通知，节点本地不堆业务数据</li>
+    <li><strong>过载时保实时</strong>：算力吃紧时优先保障当前画面与告警时效，避免「越忙越卡、越卡越漏」</li>
+    <li><strong>GPU 优先、失败可续跑</strong>：有加速卡则优先用，不可用时自动降级继续跑，任务不中断</li>
+    <li><strong>原子模式</strong>：边缘节点可只装执行能力、不装完整业务面，结果回中心统一研判——节点轻、中心仍看得见、管得住</li>
+    <li><strong>一键分发</strong>：管控台或节点通道可批量下发执行器；本机安装流程可自动准备运行环境</li>
   </ul>
 </td>
 </tr>
