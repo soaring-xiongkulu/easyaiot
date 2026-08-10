@@ -42,7 +42,7 @@ EasyAIoT 공식 웹사이트: [http://36.111.47.113:8090/](http://36.111.47.113:
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-플랫폼은 <strong>WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, RUNTIME, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>RTC 소비자급 카메라 P2P 브리지</strong>(go2rtc 기반, <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드 지원 — 매장 Tapo 보완, Tuya 화이트라벨, 해외 Ring/Nest 초인종, Xiaomi 재활용, Wyze 저비용 확장, DoorBird 대화, GoPro 기동 시점, Roborock 청소기 카메라 — Web 원클릭 접속으로 통합 영상·AI 판정), <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간 / 스냅샷 / 순찰 알고리즘 작업, <strong>RUNTIME C++ 고속 프레임 실행기</strong>(세 유형을 동일 바이너리로 수용; 실시간은 기본 박스 AI 검출 스트림 푸시; 연산 노드 <strong>원자 모드</strong>로 실행기만 설치·경보 센터 집약), YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·3단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 합니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
+플랫폼은 <strong>WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, RUNTIME, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>RTC 소비자급 카메라 P2P 브리지</strong>(go2rtc 기반, <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드 지원 — 매장 Tapo 보완, Tuya 화이트라벨, 해외 Ring/Nest 초인종, Xiaomi 재활용, Wyze 저비용 확장, DoorBird 대화, GoPro 기동 시점, Roborock 청소기 카메라 — Web 원클릭 접속으로 통합 영상·AI 판정), <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간 / 스냅샷 / 순찰 알고리즘 작업, <strong>RUNTIME 고성능 비디오 실행기</strong>(실시간 분석·스냅샷 인식·지능형 순찰을 가속하고, <strong>다중 원본 미리보기</strong>도 낮은 자원 비용으로 안정적으로 상영 — 화면을 보려면 CPU를 먼저 태울 필요 없음; 실시간 판정은 박스 화면도 동기 제공; 연산 노드는 <strong>원자 모드</strong>로 실행기만 설치·경보 센터 집약), YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·3단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 합니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -137,7 +137,8 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
 #### 🧠 AI 기능
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>RUNTIME C++ 고속 프레임 실행기</strong>: 비디오·알고리즘 핫패스를 「동작」에서 「확장 가능」으로 끌어올립니다 — 독립 <code>RUNTIME</code> 바이너리 하나로 <strong>세 가지</strong> 알고리즘 태스크를 담당합니다: <strong>실시간</strong>(장시간 풀링 + Pipeline), <strong>스냅샷/캡처</strong>(Cron SnapScheduler), <strong>순찰</strong>(다중 장치 PatrolScheduler). 공통 경로: <strong>풀링/채집 → 디코딩 → YOLO 추론 → 경보·하트비트 VIDEO 회신</strong>; 링 큐(가득 차면 최구 프레임 폐기)로 지연·드롭 관측. VIDEO가 <code>executor=cpp</code>로 기동하며, 오케스트레이션·원본 미리보기·경보 저장은 VIDEO에 남깁니다 — <strong>비디오 플랫폼 계층을 대체하지 않습니다</strong>. 정식 <strong>실시간</strong> 태스크는 <strong>기본으로 독립 AI 박스 검출 스트림을 푸시</strong>(SRS <code>ai/{장치}</code>)하여 미리보기 <code>live/</code>와 이중 분리; 캡처/순찰은 구조화 결과·경보 중심(주소가 있으면 푸시 가능, 장시간 푸시 강제 없음). Prefer GPU, 실패 시 CPU. 자세한 내용: <a href="RUNTIME/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">RUNTIME/README.md</a></li>
+  <li><strong>RUNTIME 고성능 비디오 실행기</strong>: 현장 영상을 「볼 수 있고 계산할 수 있음」에서 「채널을 더 띄우고 근무가 따라감」으로 끌어올립니다 — 동일 실행 능력이 <strong>실시간 판정·예약 스냅샷·다중 순찰</strong>을 커버하고, 동시에 <strong>다중 원본 상영</strong>을 지원합니다. 업무적으로는: 단지 NVR 수십 채널을 먼저 「선명하고 끊김 없이」 보장한 뒤 핵심 채널에만 AI를 켜고; 원본 미리보기와 박스 판정 화면을 같은 화면에서 전환하되 서로를 끌어내리지 않으며; 검출 표기를 읽기 쉽게 해 「박스가 흐리고 오경보가 눈을 뺏는」 간섭을 줄입니다. 플랫폼은 장치 오케스트레이션·경보 아카이브·권한 관리를 계속 담당하고, 실행 계층은 처리량과 지연에 집중해 채널·시나리오 확장이 곧바로 장비 교체로 이어지지 않게 합니다. 자세한 내용: <a href="RUNTIME/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">RUNTIME/README.md</a></li>
+  <li><strong>고성능 스트림 전달</strong>: 「먼저 대시보드/분할 화면을 채우고, 모든 채널에 알고리즘을 켤 필요는 없음」이라는 실제 납품 요구에 맞춰 — NVR 일괄 채널·건물 다지점을 원클릭으로 전달 작업화합니다. 기본은 고성능 모드로 다중 원본을 더 낮은 자원 비용으로 안정 상영; 특수 현장은 호환 모드로 전환 가능. 원본 시청과 AI 판정은 동일 장치에서 병행: 미표기 실황을 보거나 박스 결과로 전환; 알고리즘 시작/중지 후 전달 정책이 자동 추종해 수동 설정·합동 조정을 줄입니다. 나란히 미리보기로 지연·표기 품질을 바로 비교해 인수 주기를 단축합니다</li>
   <li><strong>RUNTIME 원자 모드(경량 연산 노드)</strong>: 엣지 박스 / 클러스터 워커는 <strong>RUNTIME 실행기만 설치</strong>할 수 있습니다 — 로컬 VIDEO/WEB/DEVICE 없음. <code>VIDEO_BASE_URL</code>로 경보·하트비트를 센터 VIDEO에 집약; 센터가 실시간 / 캡처 / 순찰(<code>executor=cpp</code>)을 동일 바이너리에 하달하며, 실시간은 여전히 기본으로 박스 검출 스트림을 센터/클러스터 SRS에 푸시. 원자 ≠ 영상 미푸시: 원자는 「로컬 비즈니스 스택 없음」만 의미. 진입점: <code>VIDEO_BASE_URL=http://&lt;센터&gt;:6000 bash .scripts/docker/install_linux.sh runtime</code>; 또는 WEB / iot-node SSH 일괄 설치</li>
   <li><strong>전체 접점에서 플랫폼 이름 및 Logo 사용자 정의</strong>: EasyAIoT를 현장에 배포한 후 사용자가 보는 것은 범용 제품명이 아니라 「자신의 플랫폼」이어야 합니다. 모니터링 대시보드에 시각적 「플랫폼 식별 설정」이 내장되어 있어, 관리자가 UI에서 브랜드를 교체할 수 있습니다 — 관리 콘솔의 플랫폼 이름·Logo(사이드바·브라우저 제목 동기화), 모니터링 대시보드 독립 지휘 타이틀, 로그인 페이지 이름·Logo·폼 제목·밝은/어두운 배경 이미지. 세 접점 시각 통일, 즉시 적용, 저장 및 원클릭 초기화 지원.
     <ul style="margin: 5px 0; padding-left: 20px;">
@@ -177,10 +178,10 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   </li>
   <li><strong>데이터셋 라벨링 및 다중 포맷 데이터셋 관리</strong>: 시각적 이미지 라벨링 작업 공간을 제공하며, 사각형·다각형 등 라벨링 형태와 카테고리 관리, 진행률 추적을 지원합니다. YOLO, COCO, ImageFolder 등 주류 데이터셋 포맷의 유연한 가져오기·내보내기를 전면 지원하고, 클라우드 플랫폼 데이터셋 연동을 통해 클라우드 데이터셋의 원클릭 가져오기 및 동기화 내보내기를 지원하여 데이터 수집, 라벨링, 학습, 배포 추론에 이르는 전 과정을 원활하게 연결합니다.</li>
   <li><strong>멀티 GPU 학습, 체크포인트 이어학습 및 노드 측 배포</strong>: 「GPU는 있는데 쓰지 못하고, 작업은 통제하기 어렵고, 중단되면 성과가 사라지는」 학습 현장의 병목을 뚫고, 멀티 GPU 활용·작업 통제 가능한 스케줄링·노드 측 배포를 체계적으로 연결하여 현장 GPU를 실제로 쓸 수 있게 하고 학습 작업을 정말로 통제할 수 있게 합니다. 플랫폼은 서버의 모든 GPU를 자동 인식·스케줄링하며, 사용자는 학습 페이지에서 필요에 따라 단일/다중 카드를 선택할 수 있어 더 이상 「한 장만 보이는」 제한에 묶이지 않습니다. 일반 데이터셋 형식과 디렉터리 구조를 폭넓게 호환하고 대용량 로컬 데이터셋 업로드를 지원하며, 학습 실패 후에도 원본 데이터를 남겨 빠르게 재시도할 수 있어 데이터 준비와 반복 작업 비용을 크게 줄입니다. 학습 진행 상황이 전 과정에 걸쳐 보이며 작업을 멈추고 이어갈 수 있어, 중단 후 결과 손실이나 「중지를 눌렀는데도 백그라운드에서 계속 도는」 문제를 줄이고, 로컬·원격 스케줄링 실패 시에도 신속히 되돌리며 명확한 피드백을 제공합니다 — 「학습—게시—사용」 루프를 더 원활하고 신뢰성 있게 만듭니다</li>
-  <li><strong>스트림 전달</strong>: AI 분석 기능을 활성화하지 않고도 카메라 실시간 영상을 직접 시청할 수 있습니다. 스트림 전달 작업을 생성하여 여러 카메라를 일괄 전달할 수 있으며, 여러 비디오 스트림의 동기화된 시청을 실현하여 순수 비디오 모니터링 시나리오 요구사항을 충족합니다.</li>
+  <li><strong>스트림 전달</strong>: 알고리즘을 켜지 않고도 카메라 실시간 화면을 시청; 다중 일괄 푸시·NVR 채널 자동 작업 생성이 바로 사용 가능. 기본 고성능 모드로 다중 원본이 더 절약되고 상영하기 쉬워 「대시보드를 먼저 채우고, 핵심 채널에 AI」에 적합; 특수 환경은 호환 모드로 전환</li>
   <li><strong>GPU 탐지, 부하 기반 할당 및 다중 GPU 협업</strong>: 플랫폼은 GPU 자원을 탐지하고 지능형으로 스케줄링합니다. 사용 가능한 GPU 수를 인식한 뒤 GPU별 실시간 부하에 따라 비디오 인코딩/디코딩과 알고리즘 추론 작업을 다중 GPU에 동적으로 분산·병렬 실행하여 다중 스트림 처리량과 자원 활용도를 높이면서 안정성을 유지하며, 다중 GPU 환경에서 화면 처리와 모델 추론을 조화롭게 운용합니다.</li>
   <li><strong>지능형 전송 프로토콜 및 고신뢰 스트림 수신</strong>: RTSP 등 풀(Pull) 경로에서 시나리오에 맞게 전송 방식을 자동 선택하여 지연과 안정성의 균형을 맞춥니다. 회색 화면, 디코딩 오류 또는 화면 정체가 감지되면 자동으로 재연결 및 링크 복구를 수행하여 장시간 화면 깨짐·정지가 업무에 미치는 영향을 줄입니다.</li>
-  <li><strong>시청 체인과 알고리즘 체인 분리 및 계층형 비트레이트</strong>: 「실시간 미리보기/대형 화면」과 「알고리즘 분석」을 분리·독립 스케줄. 시청 측은 SRS <code>live/</code> 원본; 알고리즘 측은 RUNTIME(또는 Python)이 실시간 / 캡처 / 순찰을 담당하며, 정식 실시간은 기본으로 박스 검출 스트림을 독립 <code>ai/</code>로 푸시</li>
+  <li><strong>시청과 판정 이중 경로</strong>: 「대시보드/분할로 원본 보기」와 「알고리즘으로 결과 보기」를 분리 스케줄 — 근무 측은 선명·원활을 우선; 판정 측은 박스 결과를 독립 출력해 서로 대역을 빼앗지 않음. 동일 카메라는 실황과 분석 화면을 동시에 유지해 교대 전환이 자연스럽고, 확장 시 「잘 보기」와 「충분히 계산」 사이 양자택일을 피할 수 있음</li>
   <li><strong>모델 서비스 클러스터 추론</strong>: 분산형 모델 추론 서비스 클러스터를 지원하여 지능형 부하 분산, 장애 자동 전환 및 고가용성 보장을 실현하며, 추론 처리량과 시스템 안정성을 크게 향상시킵니다.</li>
   <li><strong>방어 시간대 관리</strong>: 완전 방어 모드(All-defense)와 반방어 모드(Semi-defense) 두 가지 방어 전략을 지원하며, 다른 시간대의 방어 규칙을 유연하게 구성하여 정밀한 시간대별 지능형 모니터링 및 경보를 실현합니다.</li>
   <li><strong>OCR 및 음성 인식</strong>: 고정밀 문자 인식과 음성-텍스트 변환 기능을 제공하며, 다중 언어 인식을 지원합니다.</li>
@@ -267,7 +268,7 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>멀티 채널 접근</strong>: 스마트폰, 미니 프로그램, App에서 이용 가능 — 운영·관리가 책상에 묶이지 않고, 현장에서도 즉시 확인·조치</li>
   <li><strong>기능 일치</strong>: PC 관리 콘솔과 동일한 업무 기능, 기기를 바꿔도 제어 끊기지 않음</li>
   <li><strong>디바이스 관리</strong>: 다양한 접속 방식을 통합 관리, 목록·채널 한눈에 파악, 탭 한 번으로 실시간 화면 — 외부 순찰도 상황 파악</li>
-  <li><strong>스트림 전달</strong>: 언제든 작업 생성·중지, 클러스터 노드·스트림 상태 파악 — 원격에서도 영상 자원 스케줄링</li>
+  <li><strong>스트림 전달</strong>: 언제든 전달 생성·중지, 노드·채널 상태 파악; 다중 원본을 효율적으로 상영 — 외출 중에도 영상 자원 스케줄링</li>
   <li><strong>알고리즘 작업</strong>: 실시간·스냅샷 작업을 이동 중에도 즉시 시작·중지, 검출 성과 실시간 확인 — 이상 발견을 사무실 복귀까지 미루지 않음</li>
   <li><strong>경보 센터</strong>: 경보 즉시 검색, 캡처·녹화 즉시 확인 — 모바일 근무 중에도 빠른 검증·후속 조치</li>
   <li><strong>모델 관리</strong>: 모델 배포 상태 한눈에 확인, 진행 상황 명확히 파악</li>
@@ -424,7 +425,7 @@ EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, RUNTIME, EDGE, VISUALIZE, TR
     <li><strong>멀티 채널 접근</strong>: 한 번 구축, 여러 단말 — 스마트폰, 미니 프로그램, App</li>
     <li><strong>기능 일치</strong>: PC 관리 콘솔과 동일한 업무 기능, 멀티 테넌트 전환 지원</li>
     <li><strong>디바이스 관리</strong>: 직접 연결 카메라, GB28181, NVR, RTC 소비자급 카메라 등 통합 관리, 온라인 상태·채널 탐색, 상세에서 원터치 실시간 미리보기</li>
-    <li><strong>스트림 전달</strong>: 작업 생성, 시작/중지, 클러스터 노드 상태 및 다중 스트림 URL 조회</li>
+    <li><strong>스트림 전달</strong>: 작업 생성·시작/중지, 노드 상태와 다중 화면 조회; 현장에 따라 고성능/호환 모드 전환</li>
     <li><strong>알고리즘 작업</strong>: 실시간/스냅샷 알고리즘 작업 목록, 시작/중지 제어 및 검출/프레임 통계</li>
     <li><strong>경보 센터</strong>: 경보 이벤트 검색, 스냅샷 미리보기, 경보 녹화 VOD 재생</li>
     <li><strong>모델 & AI</strong>: 모델 목록 및 배포 상태, 모바일 이미지 추론 워크벤치, 훈련 작업 진행률 모니터링 및 중지</li>
@@ -467,11 +468,12 @@ EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, RUNTIME, EDGE, VISUALIZE, TR
     <li><strong>스트리밍 미디어 처리</strong>: RTSP/RTMP 스트림 실시간 처리 및 전송 지원</li>
     <li><strong>다중 프로토콜 카메라 접속</strong>: GB28181, ONVIF, NVR 일괄 스캔, DJI FlightHub 라이브, RTC 소비자급 카메라 통합 관리</li>
     <li><strong>RTC 연동 API</strong>: <code>/register/device/rtc-live</code> 원클릭 go2rtc 스트림 등록·장치 등록; 삭제 시 RTC 스트림 자동 정리</li>
-    <li><strong>알고리즘 태스크 관리</strong>: 실시간 / 캡처 / 순찰 지원; 세 유형 모두 기본 <code>executor=cpp</code>(ini 생성 + RUNTIME 기동); 실시간은 추가로 기본 <code>ai/</code> 검출 스트림 푸시; <code>python</code> 선택 가능</li>
-    <li><strong>RUNTIME과의 역할 분담</strong>: VIDEO는 오케스트레이션·원본 미리보기(<code>live/</code>)·경보 저장; RUNTIME은 실시간 / 캡처 / 순찰의 프레임 실행을 담당하며 실시간은 박스 검출 스트림(<code>ai/</code>)을 추가로 푸시</li>
-    <li><strong>결과면 통일</strong>: Python이든 C++ 실행기든 경보는 본 모듈 <code>/video/alert/hook</code>으로 회신되고, 하트비트는 태스크 서비스 상태에 기록된 뒤 Kafka / 저장 / 알림으로 흐릅니다.</li>
-    <li><strong>프레임 추출기 및 정렬기</strong>: 유연한 프레임 추출 전략과 결과 정렬 메커니즘을 지원하며, 각 알고리즘 태스크는 독립적인 프레임 추출기와 정렬기에 바인딩할 수 있습니다.</li>
+    <li><strong>알고리즘 태스크 관리</strong>: 실시간 / 스냅샷 / 순찰 지원; 기본 고성능 실행 경로로 박스 판정 화면 출력, 현장별로 호환 모드 전환 가능</li>
+    <li><strong>스트림 전달 오케스트레이션</strong>: 다중 원본 일괄 상영은 기본 고성능; 특수 환경은 호환 모드; 작업 시작/중지·정책 변경 자동 추종으로 수동 재작업 감소</li>
+    <li><strong>프레임 추출기 및 정렬기</strong>: 유연한 프레임 추출 전략과 결과 정렬 메커니즘을 지원하며, 각 알고리즘 태스크는 독립적인 프레임 추출기와 정렬기에 바인딩할 수 있습니다</li>
     <li><strong>방범 시간대</strong>: 전체 방범 모드 및 반방범 모드의 시간대별 구성 지원</li>
+    <li><strong>오케스트레이션과 실행 분담</strong>: VIDEO는 장치 오케스트레이션·원본 미리보기·경보 아카이브·시작/중지를 담당; RUNTIME은 고처리량 분석과 다중 원본 효율 상영에 집중 — 「관리」와 「속도」가 각자의 역할</li>
+    <li><strong>인수 미리보기</strong>: 원본과 판정 화면을 나란히 대조해 현장 지연·표기 품질을 빠르게 확인</li>
   </ul>
 </td>
 </tr>
@@ -502,14 +504,15 @@ EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, RUNTIME, EDGE, VISUALIZE, TR
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>RUNTIME 모듈</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
     <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>C++ 프레임 핫패스</strong>: 동일 바이너리로 <strong>realtime / snap / patrol</strong> 담당 — 풀링 또는 스케줄 채집 → 디코딩 → YOLO → 구조화 회신; VIDEO <code>executor=cpp</code> 서비스</li>
-    <li><strong>세 가지 태스크 형태</strong>: 실시간 Pipeline; Cron 스냅; 다중 장치 순찰</li>
-    <li><strong>실시간 기본 AI 푸시</strong>: SRS <code>ai/{장치}</code>, <code>live/</code>와 분리</li>
-    <li><strong>경보·하트비트 집약</strong>: VIDEO hook / heartbeat → Kafka / 저장</li>
-    <li><strong>링 큐 파이프라인</strong>: 가득 차면 최구 프레임 폐기</li>
-    <li><strong>GPU 우선, CPU 폴백</strong></li>
-    <li><strong>원자 모드</strong>: 연산 노드에 RUNTIME만 설치; <code>VIDEO_BASE_URL</code>로 센터 집약</li>
-    <li><strong>원클릭 배포</strong>: WEB / iot-node → <code>/opt/easyaiot/RUNTIME</code></li>
+    <li><strong>고성능 비디오 실행</strong>: 실시간 판정·예약 스냅샷·다중 순찰을 가속하고 다중 원본 효율 상영을 지원; 플랫폼은 오케스트레이션·경보 아카이브를, 실행 계층은 처리량·지연에 집중</li>
+    <li><strong>네 가지 현장 형태</strong>: 실시간 감시, 예약 스냅샷, 순환 순찰, 원본 전용 전달 — 업무에 맞게 선택해 「화면만 보고 싶을 때」도 풀 AI 비용을 내지 않음</li>
+    <li><strong>원본·판정 이중 화면</strong>: 실시간 태스크는 박스 결과를 원본 미리보기와 분리해 제시; 표기가 읽기 쉬워 오경보·흐린 박스 간섭을 줄임</li>
+    <li><strong>다중 원본 절약 상영</strong>: 고성능 전달은 「대시보드를 먼저 채우기」용으로 설계되어 NVR 다채널에서 「다수는 원본, 소수는 AI」가 동시에 성립</li>
+    <li><strong>경보·상태 센터 회신</strong>: 분석·전달 과정의 경보와 상태를 플랫폼으로 모아 저장·알림; 노드는 업무 데이터를 로컬에 쌓지 않음</li>
+    <li><strong>과부하 시 실시간 우선</strong>: 연산이 빠듯할 때 현재 화면과 경보 시의성을 우선해 「바쁠수록 끊기고, 끊길수록 놓침」을 피함</li>
+    <li><strong>가속 우선, 실패 시 지속</strong>: 가속 카드가 있으면 우선 사용, 없으면 자동 폴백해 계속 실행 — 태스크가 중단되지 않음</li>
+    <li><strong>원자 모드</strong>: 엣지 노드는 실행 능력만 설치하고 전체 업무면을 올리지 않아도 됨; 결과는 센터로 돌아와 통합 판정</li>
+    <li><strong>원클릭 배포</strong>: 콘솔 또는 노드 채널로 실행기를 일괄 배포; 로컬 설치가 런타임 환경을 자동 준비</li>
   </ul>
 </td>
 </tr>
