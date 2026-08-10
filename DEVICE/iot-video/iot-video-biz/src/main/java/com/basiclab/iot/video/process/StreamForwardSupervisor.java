@@ -1,5 +1,6 @@
 package com.basiclab.iot.video.process;
 
+import com.basiclab.iot.video.util.PathSegmentSanitizer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -75,7 +76,7 @@ public class StreamForwardSupervisor {
             tasks.put(taskId, managed);
             for (Map.Entry<String, Supplier<List<String>>> entry : deviceCommands.entrySet()) {
                 String deviceId = entry.getKey();
-                Path deviceLogDir = logDir.resolve(deviceId);
+                Path deviceLogDir = logDir.resolve(PathSegmentSanitizer.sanitizeDeviceId(deviceId));
                 Files.createDirectories(deviceLogDir);
                 DeviceWorker worker = new DeviceWorker(deviceId, entry.getValue(), deviceLogDir);
                 managed.workers.add(worker);

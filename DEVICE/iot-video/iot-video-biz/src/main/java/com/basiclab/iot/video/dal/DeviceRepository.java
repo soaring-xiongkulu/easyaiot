@@ -110,6 +110,13 @@ public class DeviceRepository {
         jdbc.update("UPDATE device SET enable_forward = ? WHERE id = ?", enableForward, id);
     }
 
+    public List<DeviceRow> findByEnableForwardTrue() {
+        return jdbc.query(
+                "SELECT " + SELECT_COLUMNS + " FROM device WHERE enable_forward = TRUE ORDER BY id",
+                ROW_MAPPER
+        );
+    }
+
     public long count(String search) {
         String like = search != null && !search.isBlank() ? "%" + search.trim() + "%" : null;
         if (like != null) {

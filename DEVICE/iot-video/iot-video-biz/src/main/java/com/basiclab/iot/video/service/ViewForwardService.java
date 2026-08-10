@@ -6,6 +6,7 @@ import com.basiclab.iot.video.domain.DeviceRow;
 import com.basiclab.iot.video.exception.VideoBusinessException;
 import com.basiclab.iot.video.process.ViewForwardSupervisor;
 import com.basiclab.iot.video.util.FfmpegCompat;
+import com.basiclab.iot.video.util.PathSegmentSanitizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -52,7 +53,11 @@ public class ViewForwardService {
         }
 
         deviceRepository.updateEnableForward(deviceId, true);
-        Path logDir = Path.of(videoProperties.getRuntime().getLogsDir(), "view-forward", deviceId);
+        Path logDir = Path.of(
+                videoProperties.getRuntime().getLogsDir(),
+                "view-forward",
+                PathSegmentSanitizer.sanitizeDeviceId(deviceId)
+        );
         try {
             supervisor.start(deviceId, () -> buildFfmpegCommand(device), logDir);
         } catch (IOException e) {

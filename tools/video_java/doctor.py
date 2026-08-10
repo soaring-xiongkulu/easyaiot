@@ -23,6 +23,45 @@ REQUIRED_CASE_IDS = {
 
 P0_PORTS_DOC = "P0 direct ports: oracle http://127.0.0.1:6000 | candidate http://127.0.0.1:48096"
 
+DEFAULT_EXTERNAL_ORACLE = Path("F:/acme/VIDEO")
+
+
+def resolve_oracle_video_root(root: Path) -> Path | None:
+    """First valid oracle VIDEO root: env, archived in-repo, repo VIDEO/, or external."""
+    candidates: List[Path] = []
+    env = os.environ.get("VIDEO_JAVA_ORACLE_ROOT", "").strip()
+    if env:
+        candidates.append(Path(env))
+    candidates.extend(
+        (
+            root / "VIDEO" / "_retired_python_video",
+            root / "VIDEO",
+            DEFAULT_EXTERNAL_ORACLE,
+        )
+    )
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        resolved = candidate.expanduser().resolve(strict=False)
+        key = str(resolved).lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        if _is_oracle_video_root(resolved):
+            return resolved
+    return None
+
+
+def _is_oracle_video_root(path: Path) -> bool:
+    if not path.is_dir():
+        return False
+    if (path / "run.py").is_file() and (path / "app").is_dir():
+        return True
+    retired = path / "_retired_python_video"
+    if retired.is_dir() and (retired / "run.py").is_file() and (retired / "app").is_dir():
+        return True
+    return (path / "app").is_dir()
+
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
@@ -75,6 +114,16 @@ def run_doctor() -> int:
     lines.append(f"repo root: {root}")
     lines.append(P0_PORTS_DOC)
 
+    oracle_root = resolve_oracle_video_root(root)
+    if oracle_root is not None:
+        lines.append(f"OK  oracle VIDEO tree: {oracle_root}")
+    else:
+        ok = False
+        lines.append(
+            "FAIL oracle VIDEO tree missing "
+            "(checked VIDEO_JAVA_ORACLE_ROOT, VIDEO/_retired_python_video, VIDEO/, F:/acme/VIDEO)"
+        )
+
     structural_checks = [
         check_path(root / "docs" / "video-java", "docs/video-java", directory=True),
         check_path(root / "DEVICE" / "iot-video", "DEVICE/iot-video", directory=True),
@@ -83,7 +132,6 @@ def run_doctor() -> int:
         check_path(root / "testdata" / "video-java" / "fixtures", "fixtures/", directory=True),
         check_path(root / "testdata" / "video-java" / "golden", "golden/", directory=True),
         check_path(root / "testdata" / "video-java" / "media" / "README.md", "media/README.md"),
-        check_path(root / "VIDEO", "oracle VIDEO tree", directory=True),
     ]
     for passed, msg in structural_checks:
         lines.append(msg)
