@@ -1,0 +1,38 @@
+--- #################### mini 形态：本地 gateway smoke，静态路由 video-server ####################
+
+spring:
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+      config:
+        enabled: false
+    discovery:
+      client:
+        simple:
+          enabled: true
+          instances:
+            system-server:
+              - uri: http://127.0.0.1:48099
+                instance-id: system-server-local
+    gateway:
+      routes:
+        - id: video-admin-api
+          uri: http://127.0.0.1:48096
+          order: 0
+          predicates:
+            - Path=/admin-api/video/**
+          filters:
+            - StripPrefix=1
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true

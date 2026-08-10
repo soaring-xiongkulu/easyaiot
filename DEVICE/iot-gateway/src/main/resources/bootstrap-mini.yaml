@@ -1,0 +1,9 @@
+--- #################### mini 形态：不依赖 Nacos 注册/配置中心 ####################
+
+spring:
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+      config:
+        enabled: false
