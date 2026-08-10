@@ -10,6 +10,13 @@
     <a-tabs v-model:activeKey="activeTab">
       <a-tab-pane key="basic" tab="基础配置">
         <div class="basic-config-content">
+          <a-alert
+            v-if="showRuntimeVersionBanner"
+            class="runtime-version-banner mb-3"
+            type="info"
+            show-icon
+            :message="runtimeVersionBanner"
+          />
           <BasicForm @register="registerForm" @field-value-change="handleFieldValueChange" />
           <div class="defense-schedule-wrapper" v-if="!isFullDayDefense">
             <a-divider orientation="left">布防时段配置</a-divider>
@@ -35,6 +42,7 @@ import { Popover, Select, Button as AntButton } from 'ant-design-vue';
 import {
   createAlgorithmTask,
   updateAlgorithmTask,
+  getRuntimeInfo,
   type AlgorithmTask,
 } from '@/api/device/algorithm_task';
 import { listFaceLibraries } from '@/api/device/face_library';
@@ -99,6 +107,41 @@ const activeTab = ref('basic');
 const taskId = ref<number | null>(null);
 const formValues = ref<any>({});
 const confirmLoading = ref(false);
+/** VIDEO 本机 RUNTIME 版本（高性能模式下展示） */
+const runtimeInfo = ref<{ ready?: boolean; version?: string | null; binPath?: string | null } | null>(null);
+const runtimeInfoTaskMode = ref<string>('realtime_cpp');
+
+const showRuntimeVersionBanner = computed(() => {
+  const mode = String(runtimeInfoTaskMode.value || formValues.value?.task_mode || '');
+  return mode.endsWith('_cpp');
+});
+
+const runtimeVersionBanner = computed(() => {
+  const info = runtimeInfo.value;
+  if (!info) {
+    return '本机 RUNTIME：正在查询版本…';
+  }
+  if (info.ready && info.version) {
+    return `本机 RUNTIME 版本：${info.version}${info.binPath ? `（${info.binPath}）` : ''}`;
+  }
+  if (info.ready) {
+    return '本机 RUNTIME 已就绪，但未找到 VERSION 文件（请重新编译以写入版本信息）';
+  }
+  return '本机 RUNTIME 未就绪：高性能任务将触发自动编译，或请先执行 RUNTIME/install_linux.sh';
+});
+
+async function loadRuntimeInfo() {
+  try {
+    const data = await getRuntimeInfo();
+    // defHttp 可能返回 data 本体，也可能保留 { code, data }
+    const info = (data as any)?.data && typeof (data as any).data === 'object'
+      ? (data as any).data
+      : data;
+    runtimeInfo.value = info || { ready: false };
+  } catch {
+    runtimeInfo.value = { ready: false };
+  }
+}
 const isFullDayDefense = ref<boolean>(true);
 const alertNotificationEnabled = ref<boolean>(false); // 告警通知启用状态
 const defenseSchedule = ref<{ mode: string; schedule: number[][] }>({
@@ -1314,6 +1357,8 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   taskId.value = null;
   confirmLoading.value = false;
   resetFields();
+  runtimeInfo.value = null;
+  void loadRuntimeInfo();
 
   // 确保默认模型已初始化（在加载前）
   initDefaultModels();
@@ -1416,9 +1461,11 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       };
     }
 
+    const editTaskMode = toTaskMode(record.task_type, record.executor);
+    runtimeInfoTaskMode.value = editTaskMode;
     await setFieldsValue({
       task_name: record.task_name,
-      task_mode: toTaskMode(record.task_type, record.executor),
+      task_mode: editTaskMode,
       schedule_policy: record.schedule_policy || 'local',
       prefer_gpu: record.prefer_gpu !== false,
       target_node_id: record.target_node_id ?? undefined,
@@ -1566,6 +1613,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       { field: 'is_full_day_defense', componentProps: { disabled: false } },
     ]);
     isFullDayDefense.value = true; // 默认全天布防
+    runtimeInfoTaskMode.value = 'realtime_cpp';
     await setFieldsValue({
       task_mode: 'realtime_cpp',
       schedule_policy: 'local',
@@ -1625,7 +1673,12 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
 
 // 处理表单字段值变化
 const handleFieldValueChange = async (key: string, value: any) => {
-  if (key === 'is_full_day_defense') {
+  if (key === 'task_mode') {
+    runtimeInfoTaskMode.value = String(value || '');
+    if (String(value || '').endsWith('_cpp') && !runtimeInfo.value) {
+      void loadRuntimeInfo();
+    }
+  } else if (key === 'is_full_day_defense') {
     isFullDayDefense.value = value !== undefined ? value : true;
     // 如果切换到非全天布防，默认设置为半防模式并清空表格，让用户自己选择
     if (!value) {
@@ -2097,9 +2150,11 @@ const handleReset = () => {
     const fullDayDefense = record.defense_mode === 'full';
     isFullDayDefense.value = fullDayDefense;
 
+    const viewTaskMode = toTaskMode(record.task_type, record.executor);
+    runtimeInfoTaskMode.value = viewTaskMode;
     setFieldsValue({
       task_name: record.task_name,
-      task_mode: toTaskMode(record.task_type, record.executor),
+      task_mode: viewTaskMode,
       schedule_policy: record.schedule_policy || 'local',
       prefer_gpu: record.prefer_gpu !== false,
       target_node_id: record.target_node_id ?? undefined,
@@ -2167,6 +2222,10 @@ const handleReset = () => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+
+  .runtime-version-banner {
+    margin-bottom: 0;
+  }
 
   .defense-schedule-wrapper {
     margin-top: 8px;

@@ -159,6 +159,26 @@ export const getAlgorithmTask = (task_id: number) => {
   );
 };
 
+/** 本机 VIDEO 侧 RUNTIME 版本与就绪状态 */
+export interface RuntimeInfo {
+  ready?: boolean;
+  binPath?: string | null;
+  version?: string | null;
+  git?: string | null;
+  builtAt?: string | null;
+  arch?: string | null;
+  buildMode?: string | null;
+  ort?: string | null;
+  source?: string | null;
+  versionFile?: string | null;
+}
+
+export const getRuntimeInfo = () => {
+  return commonApi<RuntimeInfo>('get', `${ALGORITHM_PREFIX}/runtime/info`, {
+    errorMessageMode: 'none',
+  });
+};
+
 export const createAlgorithmTask = (data: {
   task_name: string;
   task_type?: 'realtime' | 'snap';

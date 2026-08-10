@@ -710,6 +710,9 @@ export interface WorkloadBundleNodeResult {
   host?: string;
   success?: boolean;
   message?: string;
+  version?: string;
+  controlPlaneVersion?: string;
+  versionMatch?: boolean;
   steps?: MediaDeployStepVO[];
 }
 
@@ -881,6 +884,11 @@ export interface NodeRuntimeCppBatchReq {
 export interface NodeRuntimeCppCheckResult {
   runtimeReady?: boolean;
   runtimePath?: string;
+  version?: string;
+  git?: string;
+  builtAt?: string;
+  controlPlaneVersion?: string;
+  versionMatch?: boolean;
   success?: boolean;
   message?: string;
   steps?: MediaDeployStepVO[];

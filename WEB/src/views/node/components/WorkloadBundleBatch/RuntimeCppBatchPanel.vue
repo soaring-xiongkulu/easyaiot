@@ -3,6 +3,10 @@
     <Alert type="warning" show-icon class="mb-3" :message="WORKLOAD_BUNDLE_COPY.runtimeCppHint" />
     <div class="path-hints mb-3">
       <span class="label">安装路径：</span><code>{{ WORKLOAD_BUNDLE_COPY.runtimeCppPath }}</code>
+      <template v-if="controlPlaneVersion">
+        <span class="label ml">控制面版本：</span>
+        <Tag color="blue">{{ controlPlaneVersion }}</Tag>
+      </template>
     </div>
     <Space wrap class="mb-3">
       <Button :loading="loading === 'check'" :disabled="!canOperate" @click="run('check')">
@@ -18,13 +22,17 @@
     <Alert
       v-if="lastResult"
       class="mb-3"
-      :type="lastResult.success ? 'success' : 'error'"
+      :type="lastResult.success ? (hasVersionMismatch ? 'warning' : 'success') : 'error'"
       show-icon
       :message="lastResult.message"
     />
     <div v-if="nodeResults.length">
       <div v-for="item in nodeResults" :key="item.nodeId" class="node-result-item">
         <Tag :color="item.success ? 'success' : 'error'">{{ item.success ? '成功' : '失败' }}</Tag>
+        <Tag v-if="item.version" :color="item.versionMatch === false ? 'warning' : 'processing'">
+          节点 {{ item.version }}
+        </Tag>
+        <Tag v-if="item.versionMatch === false" color="warning">与控制面不一致</Tag>
         <span>{{ item.nodeName || item.host }} — {{ item.message }}</span>
       </div>
     </div>
@@ -55,6 +63,17 @@ const nodeResults = ref<WorkloadBundleNodeResult[]>([]);
 
 const canOperate = computed(() => props.nodeIds.length > 0);
 
+const controlPlaneVersion = computed(() => {
+  for (const item of nodeResults.value) {
+    if (item.controlPlaneVersion) return item.controlPlaneVersion;
+  }
+  return '';
+});
+
+const hasVersionMismatch = computed(() =>
+  nodeResults.value.some((item) => item.success && item.versionMatch === false),
+);
+
 async function run(action: 'check' | 'deploy' | 'remove') {
   if (!canOperate.value) {
     createMessage.warning('请先选择目标节点');
@@ -73,7 +92,15 @@ async function run(action: 'check' | 'deploy' | 'remove') {
           : await batchRemoveRuntimeCppBySsh(payload);
     nodeResults.value = data?.results || [];
     lastResult.value = { success: !!data?.success, message: data?.message || '' };
-    data?.success ? createMessage.success(data.message || '完成') : createMessage.error(data?.message || '失败');
+    if (data?.success) {
+      if (action === 'check' && hasVersionMismatch.value) {
+        createMessage.warning(data.message || '部分节点 RUNTIME 版本与控制面不一致，建议重新分发');
+      } else {
+        createMessage.success(data.message || '完成');
+      }
+    } else {
+      createMessage.error(data?.message || '失败');
+    }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '请求失败';
     lastResult.value = { success: false, message: msg };
@@ -104,6 +131,10 @@ function confirmRemove() {
 
   .label {
     margin-right: 6px;
+
+    &.ml {
+      margin-left: 16px;
+    }
   }
 
   code {
@@ -117,5 +148,6 @@ function confirmRemove() {
   gap: 8px;
   margin-bottom: 6px;
   font-size: 13px;
+  flex-wrap: wrap;
 }
 </style>
