@@ -279,7 +279,16 @@ Python `run.py` 启动时拉起的能力 vs Java：
 
 ---
 
-## 9. 最终判定 — FR-B26
+## 9. 最终判定 — FR-B27
+
+| 问题 | 答案 |
+|------|------|
+| Matching `use-direct-process=false` produce？ | **是（local-only）** — `POST /video/face/matching/publish` → `iot-face-matching` partition=4 offset=0 key=`frb27_device`；`POST /video/plate/matching/publish` → `iot-plate-matching`；对齐 Python `face_matching_kafka_service.py` / `plate_matching_kafka_service.py`；`logs/fr-b27-matching-kafka-latest.json`；worker 推理 **EX** |
+| 深字段矩阵扩面？ | **是** — `field_contract.py` 深采样 **25→39**（+14，Python `to_dict` 驱动）；`logs/fr-b27-field-contract-latest.json` **39/39 pass**；矩阵 **265/265** |
+| Java 字段修复？ | **是** — `list` 键对齐（face/plate matching records）；`FaceModelService.modelStatus` 键补全；`SnapSpaceRepository.task_count` |
+| 能否称 COMPLETE？ | **禁止** |
+
+## 10. 最终判定 — FR-B26
 
 | 问题 | 答案 |
 |------|------|
@@ -308,8 +317,8 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 问题 | 答案 |
 |------|------|
 | HTTP 路由是否与 Python 对齐？ | **是**（14 inventoried 前缀 `route_inventory` diff=0） |
-| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调（broker 主机名、真机/WVP/iot-node）与**全量**字段级契约仍 open；**HTTP 薄探针 265/265 已绿**（FR-B18）；**深字段抽样 25 端点已执行**（FR-B23：**132 pass / 0 fail / 0 skip**，清除了 FR-B22 的 2 deep skip）；**GET 信封矩阵**仍见 FR-B22 复跑 |
-| 本地 MinIO/Kafka soak？ | **部分** — MinIO put + sync API（`logs/fr-b23-soak-*`）；**FR-B24 ✅** Kafka 宿主机 E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR + Alert Kafka produce（`logs/fr-b26-*`）；`snap_image.updated_at` schema 错位已修 |
+| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调与**全量**字段级契约仍 open；**HTTP 薄探针 265/265 已绿**（FR-B18）；**深字段抽样 39 端点已执行**（FR-B27：**192 pass / 0 fail**）；**GET 信封矩阵 265/265** |
+| 本地 MinIO/Kafka soak？ | **部分** — MinIO put + sync API（`logs/fr-b23-soak-*`）；**FR-B24 ✅** Kafka 宿主机 E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR + Alert Kafka produce（`logs/fr-b26-*`）；**FR-B27 ✅** matching Kafka produce + 深字段 39 端点（`logs/fr-b27-*`）；`snap_image.updated_at` schema 错位已修 |
 | 能否称 COMPLETE / 退役 Python？ | **禁止** |
 | 证据硬化（EVID）能否停？ | **可以停**，转本文件 backlog + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md) |
 | 距完整替换还缺什么？ | **prod 联调 soak**（checklist 大部仍 ⬜）+ **全量 259 路由字段矩阵** + prod 场景回放 + 回滚演练 |

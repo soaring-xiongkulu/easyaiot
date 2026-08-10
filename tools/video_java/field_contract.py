@@ -414,8 +414,141 @@ PLAYBACK_STATISTICS_KEYS: Set[str] = {
     "total_size",
 }
 
-ARTIFACT_PREFIX = "fr-b23"
-MATRIX_ARTIFACT_PREFIX = "fr-b23"
+# Python: models.py FaceMatchRecord.to_dict L1427-1457
+FACE_MATCH_RECORD_KEYS: Set[str] = {
+    "id",
+    "task_id",
+    "task_name",
+    "device_id",
+    "device_name",
+    "library_id",
+    "library_name",
+    "face_image_path",
+    "matched",
+    "matched_person_name",
+    "matched_person_code",
+    "matched_face_entry_id",
+    "similarity",
+    "threshold",
+    "candidates",
+    "alert_id",
+    "correlation_id",
+    "task_type",
+    "status",
+    "error_message",
+    "created_at",
+}
+
+# Python: models.py PlateMatchRecord.to_dict L1614-1636
+PLATE_MATCH_RECORD_KEYS: Set[str] = {
+    "id",
+    "task_id",
+    "task_name",
+    "device_id",
+    "device_name",
+    "library_id",
+    "library_name",
+    "plate_no",
+    "plate_color",
+    "plate_image_path",
+    "matched",
+    "matched_plate_entry_id",
+    "matched_owner_name",
+    "detect_conf",
+    "alert_id",
+    "correlation_id",
+    "task_type",
+    "status",
+    "error_message",
+    "created_at",
+}
+
+# Python: face_model_download.py _build_status_locked L168-180
+FACE_MODEL_STATUS_KEYS: Set[str] = {
+    "exists",
+    "filename",
+    "path",
+    "size_bytes",
+    "downloading",
+    "resumable",
+    "stage",
+    "progress",
+    "downloaded_bytes",
+    "total_bytes",
+    "error",
+}
+
+# Python: camera.py list_device_locations → map item keys (device_id + lat/lng/name)
+CAMERA_LOCATION_ITEM_KEYS: Set[str] = {
+    "device_id",
+    "name",
+    "latitude",
+    "longitude",
+    "directory_id",
+    "online",
+}
+
+# Python: camera.py list_directories tree node L2529-2538
+CAMERA_DIRECTORY_ITEM_KEYS: Set[str] = {
+    "id",
+    "name",
+    "parent_id",
+    "description",
+    "sort_order",
+    "device_count",
+    "children",
+}
+
+# Python: nvr_service.list_nvrs
+NVR_ITEM_KEYS: Set[str] = {
+    "id",
+    "ip",
+    "port",
+    "name",
+    "model",
+    "vendor",
+    "serial_number",
+    "firmware_version",
+    "device_type",
+    "mac",
+    "scheme",
+    "rtsp_url",
+    "source",
+    "web_url",
+}
+
+# Python: models.py DeviceTrackSession.to_dict L147-160
+DEVICE_TRACK_SESSION_KEYS: Set[str] = {
+    "id",
+    "device_id",
+    "title",
+    "started_at",
+    "ended_at",
+    "point_count",
+    "distance_m",
+    "source",
+    "external_key",
+    "created_at",
+    "updated_at",
+}
+
+# Python: models.py SnapImage.to_list_item L487-496
+SNAP_IMAGE_ITEM_KEYS: Set[str] = {
+    "id",
+    "object_name",
+    "filename",
+    "size",
+    "last_modified",
+    "captured_at",
+    "source",
+    "task_id",
+    "url",
+    "etag",
+    "content_type",
+}
+
+ARTIFACT_PREFIX = "fr-b27"
+MATRIX_ARTIFACT_PREFIX = "fr-b27"
 
 MATRIX_DISCLAIMER = (
     "GET envelope matrix probes inventoried safe GET routes only (no POST/DELETE auto). "
@@ -714,6 +847,165 @@ SAMPLE_CASES: List[Dict[str, Any]] = [
         "path": "/video/playback/statistics",
         "python_source": "VIDEO/_retired_python_video/app/blueprints/playback.py get_playback_statistics",
         "data_keys": PLAYBACK_STATISTICS_KEYS,
+    },
+    {
+        "id": "face_matching_records",
+        "path": "/video/face/matching/records?page=1&page_size=1",
+        "python_source": "VIDEO/_retired_python_video/models.py FaceMatchRecord.to_dict + face.py list_face_match_records",
+        "data_keys": {"list", "total"},
+        "list_path": ("data", "list"),
+        "list_item_keys": FACE_MATCH_RECORD_KEYS,
+    },
+    {
+        "id": "plate_matching_records",
+        "path": "/video/plate/matching/records?page=1&page_size=1",
+        "python_source": "VIDEO/_retired_python_video/models.py PlateMatchRecord.to_dict + plate.py list_plate_match_records",
+        "data_keys": {"list", "total"},
+        "list_path": ("data", "list"),
+        "list_item_keys": PLATE_MATCH_RECORD_KEYS,
+    },
+    {
+        "id": "face_model_status",
+        "path": "/video/face/model/status",
+        "python_source": "VIDEO/_retired_python_video/app/utils/face_model_download.py get_face_rec_model_status",
+        "data_keys": FACE_MODEL_STATUS_KEYS,
+    },
+    {
+        "id": "plate_model_status",
+        "path": "/video/plate/model/status",
+        "python_source": "VIDEO/_retired_python_video/app/utils/plate_model_download.py get_plate_model_status",
+        "data_keys": PLATE_HEALTH_KEYS,
+    },
+    {
+        "id": "face_library_get",
+        "path": "/video/face/libraries/1",
+        "path_template": "/video/face/libraries/{id}",
+        "python_source": "VIDEO/_retired_python_video/models.py FaceLibrary.to_dict + face.py get_face_library",
+        "data_keys": FACE_LIBRARY_ITEM_KEYS,
+        "setup": {
+            "method": "POST",
+            "path": "/video/face/libraries",
+            "body": {"name": "field-contract-face-get-probe"},
+            "python_source": "face.py create_face_library POST name",
+        },
+    },
+    {
+        "id": "plate_library_get",
+        "path": "/video/plate/libraries/1",
+        "path_template": "/video/plate/libraries/{id}",
+        "python_source": "VIDEO/_retired_python_video/models.py PlateLibrary.to_dict + plate.py get_plate_library",
+        "data_keys": PLATE_LIBRARY_ITEM_KEYS,
+        "setup": {
+            "method": "POST",
+            "path": "/video/plate/libraries",
+            "body": {"name": "field-contract-plate-get-probe"},
+            "python_source": "plate.py create_plate_library POST name",
+        },
+    },
+    {
+        "id": "camera_locations",
+        "path": "/video/camera/locations",
+        "python_source": "VIDEO/_retired_python_video/app/blueprints/camera.py list_device_locations",
+        "data_list": True,
+        "top_keys": {"total"},
+        "list_item_keys": CAMERA_LOCATION_ITEM_KEYS,
+    },
+    {
+        "id": "camera_directory_list",
+        "path": "/video/camera/directory/list",
+        "python_source": "VIDEO/_retired_python_video/app/blueprints/camera.py list_directories",
+        "data_list": True,
+        "list_item_keys": CAMERA_DIRECTORY_ITEM_KEYS,
+    },
+    {
+        "id": "camera_nvr_list",
+        "path": "/video/camera/nvr/list",
+        "python_source": "VIDEO/_retired_python_video/app/services/nvr_service.py list_nvrs",
+        "data_list": True,
+        "list_item_keys": NVR_ITEM_KEYS,
+    },
+    {
+        "id": "camera_tracks_sessions",
+        "path": "/video/camera/tracks/sessions?device_id=vj_p2_device",
+        "python_source": "VIDEO/_retired_python_video/models.py DeviceTrackSession.to_dict + camera.py tracks/sessions",
+        "data_list": True,
+        "list_item_keys": DEVICE_TRACK_SESSION_KEYS,
+    },
+    {
+        "id": "snap_space_get",
+        "path": "/video/snap/space/1",
+        "path_template": "/video/snap/space/{id}",
+        "python_source": "VIDEO/_retired_python_video/models.py SnapSpace.to_dict + snap.py get_space",
+        "data_keys": SNAP_SPACE_ITEM_KEYS,
+        "setup": {
+            "method": "GET",
+            "path": "/video/snap/space/device/vj_p2_device",
+            "python_source": "snap.py get_space_by_device → extract data.id for path_template",
+        },
+    },
+    {
+        "id": "playback_get",
+        "path": "/video/playback/1",
+        "path_template": "/video/playback/{id}",
+        "python_source": "VIDEO/_retired_python_video/models.py Playback.to_dict + playback.py get_playback",
+        "data_keys": PLAYBACK_ITEM_KEYS,
+        "setup": {
+            "method": "POST",
+            "path": "/video/playback/",
+            "body": {
+                "file_path": "/field-contract/playback-get-probe.mp4",
+                "event_time": "2026-08-11T10:00:00+08:00",
+                "device_id": "vj_p2_device",
+                "device_name": "P2",
+                "duration": 60,
+            },
+            "python_source": "playback.py create_playback POST body",
+        },
+    },
+    {
+        "id": "scenario_pose_library_get",
+        "path": "/video/scenario-pose/libraries/1",
+        "path_template": "/video/scenario-pose/libraries/{id}",
+        "python_source": "VIDEO/_retired_python_video/models.py ScenarioPoseLibrary.to_dict + scenario_pose.py get_library",
+        "data_keys": SCENARIO_POSE_LIBRARY_KEYS,
+        "setup": {
+            "method": "POST",
+            "path": "/video/scenario-pose/libraries",
+            "body": {"name": "field-contract-pose-get-probe"},
+            "python_source": "scenario_pose.py create_library POST name",
+        },
+    },
+    {
+        "id": "stream_forward_task_status",
+        "path": "/video/stream-forward/task/1/status",
+        "path_template": "/video/stream-forward/task/{id}/status",
+        "python_source": "VIDEO/_retired_python_video/app/blueprints/stream_forward.py get_task_status",
+        "data_keys": {
+            "task_id",
+            "task_name",
+            "server_ip",
+            "port",
+            "process_id",
+            "last_heartbeat",
+            "log_path",
+            "status",
+            "total_streams",
+            "schedule_policy",
+            "target_node_id",
+            "node_id",
+            "device_deployments",
+            "deployment_count",
+        },
+        "setup": {
+            "method": "POST",
+            "path": "/video/stream-forward/task",
+            "body": {
+                "task_name": "field-contract-sf-status-probe",
+                "device_ids": ["vj_p2_device"],
+                "is_enabled": False,
+            },
+            "python_source": "stream_forward.py create_task POST task_name + device_ids",
+        },
     },
 ]
 
@@ -1050,7 +1342,16 @@ def assert_case(base_url: str, case: Dict[str, Any], timeout: float) -> Dict[str
     record("http_status", http_status < 500, f"HTTP {http_status}")
 
     miss_env = missing_keys(body, ENVELOPE_KEYS)
-    record("envelope", not miss_env, f"missing {miss_env}" if miss_env else "code,msg,data present")
+    if case.get("flat_envelope"):
+        flat_keys = {"code", "msg"}
+        miss_flat = missing_keys(body, flat_keys)
+        record(
+            "envelope",
+            not miss_flat,
+            "flat code,msg present" if not miss_flat else f"missing {miss_flat}",
+        )
+    else:
+        record("envelope", not miss_env, f"missing {miss_env}" if miss_env else "code,msg,data present")
 
     code = body.get("code")
     record("business_code", code == 0, f"code={code!r}")
@@ -1085,15 +1386,16 @@ def assert_case(base_url: str, case: Dict[str, Any], timeout: float) -> Dict[str
         for part in list_path:
             node = node.get(part) if isinstance(node, dict) else None
         items = node if isinstance(node, list) else []
+        check_name = "nested_list_item_keys" if "data" in list_path else "flat_list_item_keys"
         if items:
             miss = missing_keys(items[0], item_keys)
             record(
-                "nested_list_item_keys",
+                check_name,
                 not miss,
                 f"missing {miss}" if miss else f"{len(item_keys)} keys on first item",
             )
         else:
-            record("nested_list_item_keys", True, "empty list — item keys deferred", skipped=True)
+            record(check_name, True, "empty list — item keys deferred", skipped=True)
 
     result["ok"] = result["fail"] == 0
     return result

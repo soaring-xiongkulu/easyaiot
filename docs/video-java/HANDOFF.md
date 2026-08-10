@@ -68,24 +68,24 @@
 6. `DEVICE/iot-video/iot-video-biz/.../controller`  
 7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
 
-## 8. 现状摘要（2026-08-11 FR-B26）
+## 8. 现状摘要（2026-08-11 FR-B27）
 
 - **HTTP 路由：** `route_inventory` 14 前缀 **Py≈259 / Java≈259 / diff=0**（`FR-W4` 全量核对）。
-- **契约硬化：** **FR-B18 ✅** 265 路由薄探针 0 fail；**FR-B20–B23 ✅** 深字段/信封矩阵；**FR-B24 ✅** 本地 Kafka E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR 成功链 + Alert Kafka produce 取证。
-- **行为：** MinIO 本地路径已取证；**纯 Kafka DVR 路径已取证（local）**；**Alert Kafka produce 已取证（local）**；ONVIF/YOLO/InsightFace 等仍为 **mini 桩**；见 `FULL_REPLACEMENT_GAP.md` §2–§4。
+- **契约硬化：** **FR-B18 ✅** 265 路由薄探针 0 fail；**FR-B20–B23 ✅** 深字段/信封矩阵；**FR-B24 ✅** 本地 Kafka E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR + Alert Kafka produce；**FR-B27 ✅** matching Kafka produce + 深字段 39 端点（+14）。
+- **行为：** MinIO 本地路径已取证；**纯 Kafka DVR / Alert / Matching Kafka produce 已取证（local）**；ONVIF/YOLO/InsightFace 等仍为 **mini 桩**；见 `FULL_REPLACEMENT_GAP.md` §2–§4。
 - **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成。
 - **EVID：** 真 RUNTIME / alert success 等证据已抬升；**EVID 轮次结束**。
 - **Phase 3/CLOSE：** 改名、归档、网关指向 = 运维动作，**≠ 功能完整替换**。
 - **项目状态：** **FR HTTP 面已齐 / 信封+深采样已绿 / 行为桩仍存 — 禁止 COMPLETE**。
 - **网关：** 现已指向 Java 名；行为桩未清前，**不得**认为生产功能已安全切完。
-- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B26 已标 **local-only** §1.1/§1.2 + phase0；其余仍 ⬜）。
+- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B27 已标 **local-only** §1.4 matching Kafka + phase0；§1.1–1.3 FR-B26；其余仍 ⬜）。
 
 ## 9. 你的下一步
 
 按 [`PLAN_FULL_REPLACEMENT.md`](./PLAN_FULL_REPLACEMENT.md) §5 行为/后台 backlog + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)：
 
 1. **prod 联调 soak**（Kafka DVR/snap、MinIO、WVP、FlightHub、iot-node/Ceph、post_process worker、Nacos 切换、网关冒烟）— 逐项勾选 checklist 并附证据
-2. **全量 259 路由字段键矩阵** — FR-B22 深采样 25 端点 ≠ 全量矩阵
+2. **全量 259 路由字段键矩阵** — FR-B27 深采样 39 端点 ≠ 全量矩阵
 3. MinIO 真同步/清理（snap/record/media）
 4. ONVIF/NVR/扫描真连接（camera、audio_talk）
 5. InsightFace/Paddle/Milvus 推理或产品旁路决策

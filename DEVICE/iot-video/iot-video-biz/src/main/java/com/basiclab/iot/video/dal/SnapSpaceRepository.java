@@ -55,7 +55,7 @@ public class SnapSpaceRepository {
 
     public Optional<Map<String, Object>> findById(int spaceId) {
         List<Map<String, Object>> rows = jdbc.query(
-                "SELECT * FROM snap_space WHERE id = ?",
+                "SELECT s.*, (SELECT COUNT(*) FROM snap_task t WHERE t.space_id = s.id) AS task_count FROM snap_space s WHERE s.id = ?",
                 (rs, rowNum) -> spaceDetailRow(rs),
                 spaceId
         );
@@ -64,7 +64,7 @@ public class SnapSpaceRepository {
 
     public Optional<Map<String, Object>> findByDeviceId(String deviceId) {
         List<Map<String, Object>> rows = jdbc.query(
-                "SELECT * FROM snap_space WHERE device_id = ? LIMIT 1",
+                "SELECT s.*, (SELECT COUNT(*) FROM snap_task t WHERE t.space_id = s.id) AS task_count FROM snap_space s WHERE s.device_id = ? LIMIT 1",
                 (rs, rowNum) -> spaceDetailRow(rs),
                 deviceId
         );
@@ -105,6 +105,11 @@ public class SnapSpaceRepository {
         row.put("save_time_custom", rs.getBoolean("save_time_custom"));
         row.put("description", rs.getString("description"));
         row.put("device_id", rs.getString("device_id"));
+        try {
+            row.put("task_count", rs.getInt("task_count"));
+        } catch (java.sql.SQLException ignored) {
+            row.put("task_count", 0);
+        }
         row.put("created_at", rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant().toString() : null);
         row.put("updated_at", rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toInstant().toString() : null);
         return row;

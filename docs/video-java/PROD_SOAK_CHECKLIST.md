@@ -15,7 +15,7 @@
 | 0.1 | Java `video-server` 健康 | Nacos 注册 + `/actuator/health` UP | 截图或 `curl` JSON `status:UP` | ⬜ |
 | 0.2 | 网关路由 | `lb://video-server`（非 Python 遗留名） | `gateway` 路由表导出 | ⬜ |
 | 0.3 | 共享 DB | Java 与 WEB 同库只读冒烟 | 告警/设备 list 200 + 有数据 | ⬜ |
-| 0.4 | Phase 0 薄烟雾 | `python tools/video_java/certify.py --phase 0` | `gates/PHASE_0_GATE.md` PASS | ✅ local-only evidence — FR-B26 复跑 PASS 5/5（mini-safe 恢复后）；`logs/fr-b26-phase0.log` |
+| 0.4 | Phase 0 薄烟雾 | `python tools/video_java/certify.py --phase 0` | `gates/PHASE_0_GATE.md` PASS | ✅ local-only evidence — FR-B27 复跑 PASS 5/5（mini-safe 恢复后）；`logs/fr-b27-phase0.log` |
 
 ---
 
@@ -26,7 +26,7 @@
 | 1.1 | 告警 Kafka 路径 | `video.alert.use-direct-persist=false` | hook → topic `iot-alert-notification` / `iot-snapshot-alert`；iot-sink 消费 | ✅ local-only evidence — FR-B26：`application-fr-b26-soak.yaml` + `use-direct-persist=false`；`POST /video/alert/hook` → `mode=kafka` topic=`iot-alert-notification` partition/offset/key=`frb26_device`；`logs/fr-b26-alert-kafka-latest.json`；iot-sink 消费 **EX**（produce-only 取证）；**非 prod 绿** |
 | 1.2 | DVR 上传 Kafka | `video.media.upload-mode=kafka` 或 `hybrid` | SRS/ZLM `on_dvr` → `media.dvr.completed` → MinIO + DB | ✅ local-only evidence — FR-B26 **纯 kafka**（非 hybrid）：`upload-mode=kafka` hook 仅入队；专用 topic `media.dvr.completed.frb26` + group `upload-worker-dvr-frb26` 避积压；真 mp4 `frb26_device` → consumer `DVR 上传完成` → MinIO+DB `record_path` `/api/v1/buckets/...`；`fr_b26_e2e.py` **8/8 OK**；`logs/fr-b26-pure-kafka-dvr-latest.json`；**非 prod 绿** |
 | 1.3 | Snap 上传 Kafka | `video.media.snap-upload-mode=kafka` 或 `upload-mode` 含 kafka | `media.snap.completed` consumer；retry/DLQ 日志 | ✅ local-only evidence — 同上 FR-B24；`SnapUploadService` 日志 `抓拍文件未就绪`；DLQ topic 已创建；**非 prod 绿** |
-| 1.4 | Face/plate matching Kafka | `video.matching.use-direct-process=false` | matching topic produce + worker 推理 + 命中告警 | ⬜ |
+| 1.4 | Face/plate matching Kafka | `video.matching.use-direct-process=false` | matching topic produce + worker 推理 + 命中告警 | ✅ local-only evidence — FR-B27：`application-fr-b27-soak.yaml` + `use-direct-process=false`；`POST /video/face/matching/publish` → `iot-face-matching` partition/offset/key=`frb27_device`；`POST /video/plate/matching/publish` → `iot-plate-matching`；`fr_b27_e2e.py` produce log OK；worker 推理 **EX**（produce-only 取证）；`logs/fr-b27-matching-kafka-latest.json`；**非 prod 绿** |
 
 **mini 默认：** direct_persist / sync 不经 broker — **本地绿不覆盖上表**。
 
@@ -115,7 +115,7 @@
 
 | 角色 | 姓名 | 日期 | 备注 |
 |------|------|------|------|
-| 开发 | | 2026-08-11 | FR-B26 纯 Kafka DVR + Alert Kafka 本地取证 ≠ prod 绿 |
+| 开发 | | 2026-08-11 | FR-B27 matching Kafka + 字段矩阵扩面 ≠ prod 绿 |
 | 运维 | | | |
 | 产品 | | | 永久豁免项须书面确认 |
 

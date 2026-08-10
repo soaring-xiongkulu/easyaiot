@@ -294,7 +294,7 @@ public class FaceController {
     }
 
     @GetMapping("/matching/records")
-    public Map<String, Object> listMatchRecords(
+    public VideoApiResponse<Map<String, Object>> listMatchRecords(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize,
             @RequestParam(required = false) Integer page_size,
@@ -305,14 +305,8 @@ public class FaceController {
             @RequestParam(required = false) String correlationId) {
         int resolvedSize = page_size != null ? page_size : pageSize;
         String corr = correlation_id != null ? correlation_id : correlationId;
-        Map<String, Object> data = faceLibraryService.listMatchRecords(
-                page, resolvedSize, library_id, device_id, RequestParams.matchedFilter(matched), corr);
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("code", 0);
-        response.put("msg", "success");
-        response.put("message", "success");
-        response.putAll(data);
-        return response;
+        return VideoApiResponse.success(faceLibraryService.listMatchRecords(
+                page, resolvedSize, library_id, device_id, RequestParams.matchedFilter(matched), corr));
     }
 
     @GetMapping("/library")

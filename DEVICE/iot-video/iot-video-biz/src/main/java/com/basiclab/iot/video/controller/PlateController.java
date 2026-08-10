@@ -233,7 +233,7 @@ public class PlateController {
     }
 
     @GetMapping("/matching/records")
-    public Map<String, Object> listMatchRecords(
+    public VideoApiResponse<Map<String, Object>> listMatchRecords(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int page_size,
             @RequestParam(required = false) Integer library_id,
@@ -242,14 +242,8 @@ public class PlateController {
             @RequestParam(required = false) String correlation_id,
             @RequestParam(required = false) String correlationId) {
         String corr = correlation_id != null ? correlation_id : correlationId;
-        Map<String, Object> data = plateLibraryService.listMatchRecords(
-                page, page_size, library_id, device_id, RequestParams.matchedFilter(matched), corr);
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("code", 0);
-        response.put("msg", "success");
-        response.put("message", "success");
-        response.putAll(data);
-        return response;
+        return VideoApiResponse.success(plateLibraryService.listMatchRecords(
+                page, page_size, library_id, device_id, RequestParams.matchedFilter(matched), corr));
     }
 
     @PostMapping("/recognize/image")

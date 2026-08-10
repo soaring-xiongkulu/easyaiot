@@ -254,7 +254,7 @@ public class PlateMatchRecordRepository {
                 .map(this::toApiMap)
                 .toList();
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("data", items);
+        result.put("list", items);
         result.put("total", total != null ? total : 0L);
         result.put("page", page);
         result.put("page_size", pageSize);

@@ -1,0 +1,16 @@
+# FR-B27 local matching Kafka produce evidence overlay.
+# Activate with: --spring.profiles.active=local,fr-b27-soak
+# Restore mini-safe: --spring.profiles.active=local (omit this profile).
+#
+# Python-first refs:
+#   face_matching_kafka_service.py — build_face_matching_message + send_face_matching_to_kafka
+#   plate_matching_kafka_service.py — build_plate_matching_message + send_plate_matching_to_kafka
+#   face.py / plate.py matching/publish — use_direct_process=false → Kafka produce
+
+video:
+  matching:
+    use-direct-process: false
+    face-matching-topic: iot-face-matching
+    plate-matching-topic: iot-plate-matching
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092

@@ -24,9 +24,16 @@ public class FaceModelService {
     public Map<String, Object> modelStatus() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("exists", false);
-        data.put("downloading", false);
+        data.put("filename", "face_rec.onnx");
         data.put("path", "VIDEO/face_rec.onnx");
         data.put("size_bytes", 0);
+        data.put("downloading", false);
+        data.put("resumable", false);
+        data.put("stage", "idle");
+        data.put("progress", 0);
+        data.put("downloaded_bytes", 0);
+        data.put("total_bytes", 0);
+        data.put("error", null);
         return data;
     }
 
