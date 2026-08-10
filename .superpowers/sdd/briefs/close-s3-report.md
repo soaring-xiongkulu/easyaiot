@@ -10,7 +10,7 @@
 
 ## Commits
 
-`d164338` — `feat(video-java): CLOSE-S3 gateway auth smoke and 16m observe evidence`
+`720a37b` — `feat(video-java): CLOSE-S3 gateway auth smoke and 16m observe evidence`
 
 ## Auth smoke
 

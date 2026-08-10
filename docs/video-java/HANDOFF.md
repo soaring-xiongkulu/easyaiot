@@ -15,14 +15,25 @@
 2. 停止注册 Python VIDEO
 3. 归档/删除 Python `VIDEO/` 热路径（另波次，safe_fsops 纪律）
 
+**完成检查清单（CLOSE-S4 终态 — 全部满足）：**
+
+- [x] Phase 0 certify 全绿（或 signed 豁免）→ [`gates/PHASE_0_GATE.md`](./gates/PHASE_0_GATE.md)
+- [x] Phase 1 certify 全绿 → [`gates/PHASE_1_GATE.md`](./gates/PHASE_1_GATE.md)
+- [x] Phase 2 certify 全绿 → [`gates/PHASE_2_GATE.md`](./gates/PHASE_2_GATE.md)
+- [x] Phase 3 gate PASS（切流/回滚/归档/观察）→ [`gates/PHASE_3_GATE.md`](./gates/PHASE_3_GATE.md)
+- [x] 网关默认 `video-admin-api` → `lb://video-server` → CLOSE-S2；见 [`CERTIFY_STATUS.md`](./CERTIFY_STATUS.md)
+- [x] Python `VIDEO/` 热路径已归档 → P3-S3；`VIDEO/_retired_python_video/`
+- [x] 豁免清单已签字、无 pending → [`gates/EXEMPTIONS.md`](./gates/EXEMPTIONS.md)
+- [x] `doctor.py` + certify phases 0/1/2 exit 0 → CLOSE-S4 复核
+
 ## 3. Oracle / Candidate
 
 | | 路径 | 分支 / Tag |
 |--|------|------------|
 | Oracle | `F:/acme/VIDEO`（Python Flask） | `main`；Phase 0 打 tag `video-java-oracle-baseline` |
-| Candidate | `DEVICE/iot-video`（待建） | `feat/video-java` + worktree `F:/acme/.worktrees/video-java` |
+| Candidate | `DEVICE/iot-video/iot-video-api` + `iot-video-biz`（**built**） | `feat/video-java` + worktree `F:/acme/.worktrees/video-java` |
 | 文档 / 门禁 | `docs/video-java/` | 不与 `docs/runtime-parity/gates` 混用 |
-| 工具 | `tools/video_java/`（待建） | 对标 `tools/runtime_parity/` 思想，代码独立 |
+| 工具 | `tools/video_java/` | 对标 `tools/runtime_parity/` 思想，代码独立 |
 
 **当前 oracle tip（Phase -1 tag）：** `bfbe7457ac65c90eb49d59247a1a2706d55c677d` — tag `video-java-oracle-baseline`。
 
@@ -55,19 +66,20 @@
 9. `DEVICE/iot-sink` — face/plate/post-process 回调与 Kafka 主题
 10. `docs/runtime-parity/EXECUTION.md` + `HANDOFF.md` — 方法论参照（**勿复用其门禁目录**）
 
-## 7. 现状摘要（2026-08-10 P3-S3 终态）
+## 7. 现状摘要（2026-08-10 CLOSE-S4 终态）
 
-- **Java `iot-video`**：`DEVICE/iot-video`，Nacos `video-server`，`:48096`，Phase 0/1/2 certify PASS。
+- **Java `iot-video`**：`DEVICE/iot-video`，Nacos `video-server`，`:48096`，Phase -1/0/1/2/3 certify PASS。
 - **网关默认流量**：`video-admin-api` → `lb://video-server`（CLOSE-S2；原 P3-S1 用 `video-server-java`）。
 - **Python VIDEO 热路径**：已归档至 `VIDEO/_retired_python_video/`（P3-S3，safe_fsops）；不再从 `VIDEO/run.py` 对外服务。
 - **外部 oracle**：`F:/acme/VIDEO`（tag `video-java-oracle-baseline`）仍可作 parity 录制；certify 默认 `--no-record` 用 frozen golden。
-- **Phase 3 门禁**：`PHASE_3_GATE` PASS；`CERTIFY_STATUS` Phase 3 PASS。
+- **Phase 3 门禁**：`PHASE_3_GATE` PASS；`CERTIFY_STATUS` 全 Phase PASS；gateway auth smoke + 16m observe（CLOSE-S3）。
+- **项目状态**：**COMPLETE**（CLOSE-S4）— 文档终态同步；doctor + certify 0/1/2 复核绿。
 
 ## 8. 你的下一步
 
-**项目 video-java 迁移主线已完成（Phase 3 PASS）。** 后续仅运维项：
+**项目 video-java 迁移主线已完成（CLOSE-S4 COMPLETE）。** 后续仅运维项：
 
-1. 生产/预发执行 gateway auth smoke（`PHASE_3_GATE` 项 4）与 15–30 min 观察（项 5）。
+1. 生产/预发定期复核 gateway auth（`PHASE_3_GATE` 项 4 证据在 [`gates/GATEWAY_AUTH_SMOKE.md`](./gates/GATEWAY_AUTH_SMOKE.md)）与观察日志（项 5 → [`gates/OBSERVE_LOG.md`](./gates/OBSERVE_LOG.md)）。
 2. ~~视需要将 Java `spring.application.name` 改为 `video-server`~~ — **done (CLOSE-S2)**。
 3. 新 parity 需求：用 archived oracle 或 Java-only smoke；勿恢复 in-repo `VIDEO/app` 热路径除非 rollback runbook。
 

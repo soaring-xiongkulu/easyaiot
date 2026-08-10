@@ -44,7 +44,7 @@
 | `media`（P1+） | 转推存在性 / 码流探测摘要 | `stream.json` |
 | `side_effect`（P1+） | MinIO 对象键前缀、后处理 enqueue 次数 | `effects.json` |
 
-阈值文件：`testdata/video-java/thresholds.json`（待建）。  
+阈值文件：`testdata/video-java/thresholds.json`。  
 报告：`docs/video-java/gates/PHASE_N_GATE.md` + `CERTIFY_STATUS.md`。
 
 ### 1.3 何谓 PASS
@@ -63,18 +63,18 @@
 
 ## 2. 分期与门禁
 
-### Phase -1：基线与纪律（**已批准**；等开工指令）
+### Phase -1：基线与纪律（**PASS** — 2026-08-10）
 
-- [ ] 打 tag `video-java-oracle-baseline`（SHA 写回 HANDOFF）
-- [ ] 创建 worktree + 空 `iot-video` 模块注册进 `DEVICE/pom.xml`
-- [ ] `{code,msg,data}` 对外适配骨架（避免默认 `CommonResult`）
-- [ ] `local`/`mini` profile：无 Nacos 或 soft-fail 可启动
-- [ ] `tools/video_java/doctor.py`（或 .ps1）检查目录/Java/ VIDEO oracle 可达；注明 P0 直连端口
-- [ ] 门禁文件：`gates/PHASE_-1_GATE.md` PASS
+- [x] 打 tag `video-java-oracle-baseline`（SHA 写回 HANDOFF）
+- [x] 创建 worktree + 空 `iot-video` 模块注册进 `DEVICE/pom.xml`
+- [x] `{code,msg,data}` 对外适配骨架（避免默认 `CommonResult`）
+- [x] `local`/`mini` profile：无 Nacos 或 soft-fail 可启动
+- [x] `tools/video_java/doctor.py`（或 .ps1）检查目录/Java/ VIDEO oracle 可达；注明 P0 直连端口
+- [x] 门禁文件：`gates/PHASE_-1_GATE.md` PASS
 
 **Exit：** 能 `mvn -pl DEVICE/iot-video/iot-video-biz -am package` 空壳 + doctor PASS + local profile 无 Nacos 可起。
 
-### Phase 0：最小闭环（替换证明）
+### Phase 0：最小闭环（替换证明）（**PASS** — 2026-08-10）
 
 **范围：**
 
@@ -93,7 +93,7 @@
 **门禁：** `gates/PHASE_0_GATE.md` — certify 用例表全绿。  
 **Exit：** 「Java 能拉起 RUNTIME + hook/心跳双边可比」有报告证据。
 
-### Phase 1：设备观看面 + 推流编排
+### Phase 1：设备观看面 + 推流编排（**PASS** — 2026-08-10）
 
 - Camera 查询/启停观看转推（ffmpeg ProcessBuilder，编码器回退对齐 Python `ffmpeg_compat`）
 - Stream forward 本机路径
@@ -102,7 +102,7 @@
 
 **门禁：** media/lifecycle 层 cases。
 
-### Phase 2：帧后平台面
+### Phase 2：帧后平台面（**PASS** — 2026-08-10）
 
 - Face/Plate matching publish/process 与 sink 契约
 - Post-process enqueue 触发（告警后编排，补吸收面缺口）
@@ -111,7 +111,7 @@
 
 **门禁：** alarm + side_effect + 选定 API 面。
 
-### Phase 3：切流与退役
+### Phase 3：切流与退役（**PASS** — 2026-08-10）
 
 - 网关切到 Java `video-server`；Python 下线 runbook
 - 回滚演练一次（记录耗时与步骤）
@@ -194,28 +194,28 @@
 
 ---
 
-## 8. Phase -1 任务清单（批准；**等开工指令后再做**）
+## 8. Phase -1 任务清单（**PASS** — 2026-08-10）
 
 ### Task A: Oracle tag + worktree
 
-- [ ] `git tag video-java-oracle-baseline`
-- [ ] `git worktree add ... feat/video-java`
+- [x] `git tag video-java-oracle-baseline`
+- [x] `git worktree add ... feat/video-java`
 
 ### Task B: 空模块
 
-- [ ] 创建 `DEVICE/iot-video` api+biz  
-- [ ] 应用名 `video-server-java`，端口 48096  
-- [ ] `/actuator/health` 返回 UP（可先无 DB）  
-- [ ] `{code,msg,data}` 适配层骨架  
-- [ ] `local`/`mini` profile（无 Nacos / soft-fail）
+- [x] 创建 `DEVICE/iot-video` api+biz  
+- [x] 应用名 `video-server`（CLOSE-S2 自 `video-server-java` 更名），端口 48096  
+- [x] `/actuator/health` 返回 UP（可先无 DB）  
+- [x] `{code,msg,data}` 适配层骨架  
+- [x] `local`/`mini` profile（无 Nacos / soft-fail）
 
 ### Task C: 测试场骨架
 
-- [ ] `testdata/video-java/manifest.json` 至少 3 个 P0 case id（base URL 直连端口）  
-- [ ] `tools/video_java/doctor.py`  
-- [ ] `gates/PHASE_-1_GATE.md`
+- [x] `testdata/video-java/manifest.json` 至少 3 个 P0 case id（base URL 直连端口）  
+- [x] `tools/video_java/doctor.py`  
+- [x] `gates/PHASE_-1_GATE.md`
 
-### Task D: 停 — Phase -1 PASS 前不开 Phase 0 业务搬迁
+### Task D: 停 — Phase -1 PASS 前不开 Phase 0 业务搬迁（**已满足**；Phase 0–3 已 PASS）
 
 ---
 
