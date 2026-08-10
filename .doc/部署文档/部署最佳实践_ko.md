@@ -12,6 +12,7 @@
 - [배포 프로필 선택](#배포-프로필-선택)
 - [환경 요구 사항 및 배포 전 점검](#환경-요구-사항-및-배포-전-점검)
 - [원클릭 및 단계별 배포](#원클릭-및-단계별-배포)
+- [RUNTIME 원자 모드(경량 연산 노드)](#runtime-원자-모드경량-연산-노드)
 - [일반 운영](#일반-운영)
 - [사전 빌드 이미지](#사전-빌드-이미지)
 - [GPU 구성](#gpu-구성)
@@ -354,6 +355,28 @@ cd .scripts/docker
 ./install_business_linux.sh update DEVICE WEB
 ./install_business_linux.sh verify
 ```
+
+---
+
+## RUNTIME 원자 모드(경량 연산 노드)
+
+센터 풀스택과 경량 연산 노드를 분리 계획하세요:
+
+| 역할 | 배포 내용 | 진입점 |
+|------|-----------|--------|
+| **센터 / 일체형** | 미들웨어 + DEVICE/AI/VIDEO/WEB…; VIDEO가 RUNTIME 자동 마운트 | `install_linux.sh install` |
+| **연산 노드** | **RUNTIME만** | `VIDEO_BASE_URL=… install_linux.sh runtime` |
+| **다중 노드** | SSH 일괄 배포 | WEB 「업무 런타임 배포」→ RUNTIME(C++) |
+
+```bash
+VIDEO_BASE_URL=http://<센터VIDEO>:6000 \
+  sudo -E bash .scripts/docker/install_linux.sh runtime
+
+./RUNTIME/install_linux.sh status
+source /opt/easyaiot/RUNTIME/env.sh
+```
+
+필수 `VIDEO_BASE_URL`. 원자 ≠ 미푸시. mini/standard/full과 무관 — 연산 박스에서 전체 `install`을 다시 실행하지 마세요. 상세: [`RUNTIME/README.md`](../../RUNTIME/README.md).
 
 ---
 

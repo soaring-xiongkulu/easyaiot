@@ -229,6 +229,8 @@ export EASYAIOT_DEPLOY_PROFILE=full && sudo .../install_linux.sh install  # 비�
 | `check` | Docker 환경 확인 |
 | `update` | 이미지 업데이트 및 재시작 |
 | `pull` | 사전 빌드 이미지 가져오기 |
+| `build` |
+| `runtime` / `runtime-atomic` | **RUNTIME 원자 모드**(실행기만 설치, `VIDEO_BASE_URL` 필요) |
 | `build` | 로컬에서 이미지 재빌드 |
 | `profile` | 배포 프로필 보기 |
 | `analyze-logs` | 다중 모듈 로그 병합 |
@@ -267,6 +269,33 @@ cd .scripts/docker && ./install_middleware_linux.sh install   # 미들웨어만
 cd .scripts/docker && ./install_business_linux.sh install     # 비즈니스 모듈만
 cd AI && ./install_linux.sh install                           # 단일 모듈
 ```
+
+---
+
+---
+
+## RUNTIME 원자 모드(연산 노드)
+
+**엣지 박스 / 클러스터 워커**용: 로컬에 VIDEO / WEB / DEVICE 없이 **C++ 실행기만** 설치. 경보·하트비트는 센터 VIDEO로 집약; 정식 `realtime` 작업은 기본으로 센터/클러스터 SRS `ai/`에 박스 검출 스트림을 푸시.
+
+> **원자 ≠ 영상 미푸시.** 원자는 로컬 비즈니스 스택이 없다는 뜻. 상세: [`RUNTIME/README.md`](../../RUNTIME/README.md).
+
+```bash
+VIDEO_BASE_URL=http://<센터VIDEO>:6000 \
+  bash .scripts/docker/install_linux.sh runtime
+
+VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
+```
+
+| 항목 | 설명 |
+|------|------|
+| 필수 | `VIDEO_BASE_URL` |
+| 설치 경로 | 기본 `/opt/easyaiot/RUNTIME` |
+| 산출물 | `bin/RUNTIME`, `node.env`, `env.sh`, `config/atomic.example.ini` |
+| 정식 작업 | 센터 WEB에서 `executor=cpp` 알고리즘 작업 생성 |
+| 스모크 | `source /opt/easyaiot/RUNTIME/env.sh && $RUNTIME_BIN …/atomic.example.ini` |
+
+전체 스택은 계속 `install`; 로컬 VIDEO 설치의 RUNTIME 마운트와 원자 모드는 별개입니다.
 
 ---
 

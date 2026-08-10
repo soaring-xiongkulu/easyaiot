@@ -230,6 +230,8 @@ Différences de services par profil : [Sélection du profil de déploiement](./�
 | `check` | Vérification de l'environnement Docker |
 | `update` | Mettre à jour les images et redémarrer |
 | `pull` | Télécharger les images préconstruites |
+| `build` |
+| `runtime` / `runtime-atomic` | **Mode atomique RUNTIME** (exécuteur seul ; `VIDEO_BASE_URL`) |
 | `build` | Reconstruire les images localement |
 | `profile` | Afficher le profil de déploiement |
 | `analyze-logs` | Fusion multi-modules des journaux |
@@ -268,6 +270,33 @@ cd .scripts/docker && ./install_middleware_linux.sh install   # Middleware uniqu
 cd .scripts/docker && ./install_business_linux.sh install     # Modules métier uniquement
 cd AI && ./install_linux.sh install                           # Module unique
 ```
+
+---
+
+---
+
+## Mode atomique RUNTIME (nœuds de calcul)
+
+Pour **boîtiers edge / workers** : installer **uniquement** l'exécuteur C++ — pas de VIDEO / WEB / DEVICE locaux. Alertes et heartbeats agrégés vers le VIDEO central ; les tâches `realtime` formelles poussent toujours par défaut le flux à cadres vers SRS `ai/`.
+
+> **Atomique ≠ jamais de push.** Atomique = pas de pile métier locale. Détails : [`RUNTIME/README.md`](../../RUNTIME/README.md).
+
+```bash
+VIDEO_BASE_URL=http://<VIDEO-central>:6000 \
+  bash .scripts/docker/install_linux.sh runtime
+
+VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
+```
+
+| Élément | Notes |
+|---------|-------|
+| Requis | `VIDEO_BASE_URL` |
+| Répertoire | Défaut `/opt/easyaiot/RUNTIME` |
+| Sorties | `bin/RUNTIME`, `node.env`, `env.sh`, `config/atomic.example.ini` |
+| Tâches formelles | Créer des tâches `executor=cpp` sur le WEB central |
+| Smoke | `source /opt/easyaiot/RUNTIME/env.sh && $RUNTIME_BIN …/atomic.example.ini` |
+
+La pile complète du centre utilise toujours `install` ; le montage RUNTIME via VIDEO local est distinct du mode atomique.
 
 ---
 

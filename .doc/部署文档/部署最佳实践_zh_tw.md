@@ -12,6 +12,7 @@
 - [部署規格選型](#部署規格選型)
 - [環境要求與部署前檢查](#環境要求與部署前檢查清單)
 - [一鍵部署與分步部署](#一鍵部署與分步部署)
+- [RUNTIME 原子模式（計算節點輕裝）](#runtime-原子模式計算節點輕裝)
 - [常用運維命令](#常用運維命令)
 - [預建構映像](#預建構映像)
 - [GPU 配置](#gpu-配置)
@@ -355,6 +356,28 @@ cd .scripts/docker
 
 ---
 
+## RUNTIME 原子模式（計算節點輕裝）
+
+完整棧（中心）與輕裝算力節點應分開規劃：
+
+| 角色 | 部署內容 | 入口 |
+|------|----------|------|
+| **中心 / 一體機** | 中介軟體 + DEVICE/AI/VIDEO/WEB…；VIDEO 自動掛載 RUNTIME | `install_linux.sh install` |
+| **計算節點** | **只裝 RUNTIME** | `VIDEO_BASE_URL=… install_linux.sh runtime` |
+| **多節點批量** | 同上，經 SSH 分發 | WEB「業務運行時分發」→ RUNTIME(C++) |
+
+```bash
+VIDEO_BASE_URL=http://<中心VIDEO>:6000 \
+  sudo -E bash .scripts/docker/install_linux.sh runtime
+
+./RUNTIME/install_linux.sh status
+source /opt/easyaiot/RUNTIME/env.sh
+```
+
+要點：必填 `VIDEO_BASE_URL`；原子 ≠ 永不推流；與 mini/standard/full 無關——不要在算力盒上再跑完整 `install`。細則見 [`RUNTIME/README.md`](../../RUNTIME/README.md)。
+
+---
+
 ## 常用運維命令
 
 ### 統一腳本
@@ -363,6 +386,7 @@ cd .scripts/docker
 ./install_linux.sh install | start | stop | restart | status
 ./install_linux.sh logs | logs WEB | verify | check | profile
 ./install_linux.sh build | pull | update | clean
+./install_linux.sh runtime          # 原子模式（需 VIDEO_BASE_URL）
 ./install_linux.sh diagnose | analyze-logs | analyze-disk | help
 ```
 

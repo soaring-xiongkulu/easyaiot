@@ -12,6 +12,7 @@
 - [Выбор профиля развертывания](#выбор-профиля-развертывания)
 - [Требования к окружению и проверки перед развертыванием](#требования-к-окружению-и-проверки-перед-развертыванием)
 - [Развертывание в один клик и поэтапное развертывание](#развертывание-в-один-клик-и-поэтапное-развертывание)
+- [Атомарный режим RUNTIME (лёгкие вычислительные узлы)](#атомарный-режим-runtime-лёгкие-вычислительные-узлы)
 - [Типовые операции](#типовые-операции)
 - [Предварительно собранные образы](#предварительно-собранные-образы)
 - [Настройка GPU](#настройка-gpu)
@@ -354,6 +355,28 @@ cd .scripts/docker
 ./install_business_linux.sh update DEVICE WEB
 ./install_business_linux.sh verify
 ```
+
+---
+
+## Атомарный режим RUNTIME (лёгкие вычислительные узлы)
+
+Планируйте полный стек центра и лёгкие compute-узлы раздельно:
+
+| Роль | Что ставить | Вход |
+|------|-------------|------|
+| **Центр / all-in-one** | Middleware + DEVICE/AI/VIDEO/WEB…; VIDEO монтирует RUNTIME | `install_linux.sh install` |
+| **Вычислительный узел** | **Только RUNTIME** | `VIDEO_BASE_URL=… install_linux.sh runtime` |
+| **Пакет узлов** | То же через SSH | WEB «дистрибуция runtime» → RUNTIME(C++) |
+
+```bash
+VIDEO_BASE_URL=http://<центр-VIDEO>:6000 \
+  sudo -E bash .scripts/docker/install_linux.sh runtime
+
+./RUNTIME/install_linux.sh status
+source /opt/easyaiot/RUNTIME/env.sh
+```
+
+Обязателен `VIDEO_BASE_URL`. Атомарный ≠ никогда не пушить. Не связан с профилями mini/standard/full — не запускайте полный `install` на compute-боксах. Подробности: [`RUNTIME/README.md`](../../RUNTIME/README.md).
 
 ---
 

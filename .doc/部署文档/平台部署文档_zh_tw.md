@@ -12,6 +12,7 @@
 - [macOS / Windows 鏡像部署](#macos--windows-鏡像部署)
 - [部署規格](#部署規格)
 - [腳本命令參考](#腳本命令參考)
+- [RUNTIME 原子模式（計算節點）](#runtime-原子模式計算節點)
 - [服務存取與連接埠](#服務存取與連接埠)
 - [常見問題](#常見問題)
 - [環境要求](#環境要求)
@@ -27,8 +28,9 @@ EasyAIoT 採用 **Docker 容器化 + 統一安裝腳本** 部署，平台由基�
 | 基礎服務 | `.scripts/docker` | Nacos、PostgreSQL、Redis、Kafka、MinIO 等 |
 | DEVICE | `DEVICE/` | 裝置管理與 API 閘道（Java / Spring Cloud） |
 | AI | `AI/` | 模型訓練、推理（Python） |
-| VIDEO | `VIDEO/` | 視訊串流處理、告警、錄影（Python） |
-| WEB | `WEB/` | 管理主控台（Vue 3） |
+| VIDEO | `VIDEO/` | 視訊串流處理、告警、錄影（Python）；算法任務默認可拉起 RUNTIME |
+| RUNTIME | `RUNTIME/` | C++ 高速幀執行器；中心機隨 VIDEO 掛載，計算節點可 **原子模式只裝執行器** |
+| WEB || WEB | `WEB/` | 管理主控台（Vue 3） |
 | APP | `APP/` | 行動端 H5（僅 **full** 規格） |
 
 **統一入口腳本**（下文以 Linux x86 為例）：
@@ -256,6 +258,7 @@ export EASYAIOT_DEPLOY_PROFILE=full && sudo .../install_linux.sh install  # 非�
 | `update` | 更新映像並重啟 |
 | `pull` | 拉取預建構映像 |
 | `build` | 本地重新建構映像 |
+| `runtime` / `runtime-atomic` | **RUNTIME 原子模式**（只裝計算節點執行器，需 `VIDEO_BASE_URL`） |
 | `profile` | 查看部署規格 |
 | `analyze-logs` | 多模組日誌合併 |
 | `analyze-disk` | 磁碟占用分析 |
@@ -293,6 +296,32 @@ cd .scripts/docker && ./install_middleware_linux.sh install   # 僅中介軟體
 cd .scripts/docker && ./install_business_linux.sh install     # 僅業務模組
 cd AI && ./install_linux.sh install                           # 單模組
 ```
+
+---
+
+## RUNTIME 原子模式（計算節點）
+
+適用於**邊緣算力盒 / 集羣計算節點**：本機**只安裝** C++ 執行器，不部署 VIDEO / WEB / DEVICE。告警與心跳匯聚到中心 VIDEO；正式 `realtime` 任務仍默認把帶框檢測流推到中心/集羣 SRS 的 `ai/` 應用。
+
+> **原子 ≠ 永不推流**：原子只表示本機無業務面。詳細步驟見 [`RUNTIME/README.md`](../../RUNTIME/README.md)。
+
+```bash
+VIDEO_BASE_URL=http://<中心VIDEO>:6000 \
+  bash .scripts/docker/install_linux.sh runtime
+
+VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
+```
+
+| 項 | 說明 |
+|----|------|
+| 必填 | `VIDEO_BASE_URL`（或參數傳入） |
+| 安裝目錄 | 默認 `/opt/easyaiot/RUNTIME` |
+| 產出 | `bin/RUNTIME`、`node.env`、`env.sh`、`config/atomic.example.ini` |
+| 正式任務 | 中心 WEB 創建算法任務（`executor=cpp`），由 VIDEO + Agent 下發 |
+| 手工冒煙 | `source /opt/easyaiot/RUNTIME/env.sh && $RUNTIME_BIN …/atomic.example.ini` |
+| 批量分發 | WEB「業務運行時分發」→ RUNTIME(C++) |
+
+中心機完整棧仍用 `install`；本機 VIDEO 安裝會自動編譯掛載 RUNTIME，與原子模式互不替代。
 
 ---
 

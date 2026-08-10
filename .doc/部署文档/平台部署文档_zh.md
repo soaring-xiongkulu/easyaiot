@@ -12,6 +12,7 @@
 - [macOS / Windows 镜像部署](#macos--windows-镜像部署)
 - [部署规格](#部署规格)
 - [脚本命令参考](#脚本命令参考)
+- [RUNTIME 原子模式（计算节点）](#runtime-原子模式计算节点)
 - [服务访问与端口](#服务访问与端口)
 - [常见问题](#常见问题)
 - [环境要求](#环境要求)
@@ -20,14 +21,15 @@
 
 ## 概述
 
-EasyAIoT 采用 **Docker 容器化 + 统一安装脚本** 部署，平台由基础中间件与 DEVICE / AI / VIDEO / WEB / APP 等业务模块组成。
+EasyAIoT 采用 **Docker 容器化 + 统一安装脚本** 部署，平台由基础中间件与 DEVICE / AI / VIDEO / WEB / APP / RUNTIME 等业务模块组成。
 
 | 模块 | 目录 | 说明 |
 |------|------|------|
 | 基础服务 | `.scripts/docker` | Nacos、PostgreSQL、Redis、Kafka、MinIO 等 |
 | DEVICE | `DEVICE/` | 设备管理与 API 网关（Java / Spring Cloud） |
 | AI | `AI/` | 模型训练、推理（Python） |
-| VIDEO | `VIDEO/` | 视频流处理、告警、录像（Python） |
+| VIDEO | `VIDEO/` | 视频流处理、告警、录像（Python）；算法任务默认可拉起 RUNTIME |
+| RUNTIME | `RUNTIME/` | C++ 高速帧执行器；中心机随 VIDEO 挂载，计算节点可 **原子模式只装执行器** |
 | WEB | `WEB/` | 管理控制台（Vue 3） |
 | APP | `APP/` | 移动端 H5（仅 **full** 规格） |
 
@@ -407,6 +409,7 @@ export EASYAIOT_DEPLOY_PROFILE=full && sudo .../install_linux.sh install  # 非�
 | `pull` | 拉取预构建镜像 | ✓ | ✓ |
 | `build` | 本地重新构建镜像 | ✓ | ✗ |
 | `build-runtime` | 构建并推送运行时镜像 | ✓ | ✗ |
+| `runtime` / `runtime-atomic` | **RUNTIME 原子模式**（只装计算节点执行器，需 `VIDEO_BASE_URL`） | ✓ | ✗ |
 | `profile` | 查看部署规格 | ✓ | ✓ |
 | `analyze-logs` | 多模块日志合并 | ✓ | ✓ |
 | `analyze-disk` | 磁盘占用分析 | ✓ | ✓ |
@@ -447,6 +450,38 @@ cd AI && ./install_linux.sh install                           # 单模块
 
 ---
 
+## RUNTIME 原子模式（计算节点）
+
+适用于**边缘算力盒 / 集群计算节点**：本机**只安装** C++ 执行器，不部署 VIDEO / WEB / DEVICE。告警与心跳汇聚到中心 VIDEO；正式 `realtime` 任务仍默认把带框检测流推到中心/集群 SRS 的 `ai/` 应用。
+
+> **原子 ≠ 永不推流**：原子只表示本机无业务面。详细步骤、验收与配置见 [`RUNTIME/README.md`](../../RUNTIME/README.md)。
+
+```bash
+# 顶层入口（推荐）
+VIDEO_BASE_URL=http://<中心VIDEO>:6000 \
+  bash .scripts/docker/install_linux.sh runtime
+
+# 模块入口
+VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
+
+# 可选：安装时写入手工调试用的检测流基址
+# SRS_RTMP_BASE=rtmp://192.168.1.10:1935 VIDEO_BASE_URL=... bash .scripts/docker/install_linux.sh runtime
+```
+
+| 项 | 说明 |
+|----|------|
+| 必填 | `VIDEO_BASE_URL`（或参数传入），如 `http://192.168.1.10:6000` |
+| 安装目录 | 默认 `/opt/easyaiot/RUNTIME`（`EASYAIOT_RUNTIME_INSTALL_DIR` 可改） |
+| 产出 | `bin/RUNTIME`、`node.env`、`env.sh`、`config/atomic.example.ini` |
+| 正式任务 | 中心 WEB 创建「高性能」算法任务，调度选本机 / 自动 / 指定节点；点启动后由 VIDEO + Agent 下发 ini 并拉起 |
+| 手工冒烟 | `source /opt/easyaiot/RUNTIME/env.sh && $RUNTIME_BIN …/atomic.example.ini` |
+| 批量分发 | WEB「业务运行时分发」→ RUNTIME(C++)；或见 `RUNTIME/README.md` 集群分发节 |
+| 无原子节点 | 调度选「本机」即可：中心 VIDEO 安装已挂载本机 RUNTIME，不依赖远程分发 |
+
+中心机完整栈仍用 `install`；本机 VIDEO 安装会经 `ensure_runtime_cpp.sh` 自动编译并挂载 RUNTIME，与原子模式互不替代。
+
+---
+
 ## 服务访问与端口
 
 `verify` 通过后主要访问地址：
@@ -483,6 +518,7 @@ cd AI && ./install_linux.sh install                           # 单模块
 | Compose 版本过低 | `sudo apt install -y docker-compose-plugin` |
 | 端口被占用 | `ss -tlnp \| grep <端口>` |
 | 安装失败 | `tail .scripts/docker/logs/install_linux_*.log`（桌面端对应 `install_mac_*.log` / `install_windows_*.log`） |
+| 计算节点只需算法执行器 | 使用 `runtime` 原子模式，勿在算力盒上再跑完整 `install`；见 [RUNTIME 原子模式](#runtime-原子模式计算节点) |
 | 服务正常但无法访问 | `verify` + 检查防火墙 |
 | 磁盘不足 | `df -h /`，建议预留 ≥ 300 GB |
 | macOS 提示需要 bash 4+ | `brew install bash` 后用 `/opt/homebrew/bin/bash`，或先 `install_mac.sh bootstrap` |

@@ -12,6 +12,7 @@
 - [Deployment Profile Selection](#deployment-profile-selection)
 - [Environment Requirements & Pre-Deployment Checks](#environment-requirements--pre-deployment-checks)
 - [One-Click & Step-by-Step Deployment](#one-click--step-by-step-deployment)
+- [RUNTIME Atomic Mode (Lightweight Compute Nodes)](#runtime-atomic-mode-lightweight-compute-nodes)
 - [Common Operations](#common-operations)
 - [Pre-Built Images](#pre-built-images)
 - [GPU Configuration](#gpu-configuration)
@@ -357,6 +358,41 @@ cd .scripts/docker
 
 ---
 
+## RUNTIME Atomic Mode (Lightweight Compute Nodes)
+
+Plan center full-stack and lightweight compute nodes separately:
+
+| Role | What to install | Entry |
+|------|-----------------|-------|
+| **Center / all-in-one** | Middleware + DEVICE/AI/VIDEO/WEB…; VIDEO auto-mounts RUNTIME | `install_linux.sh install` |
+| **Compute node** | **RUNTIME only** | `VIDEO_BASE_URL=… install_linux.sh runtime` |
+| **Batch nodes** | Same, via SSH | WEB “workload distribute” → RUNTIME(C++) |
+
+```bash
+VIDEO_BASE_URL=http://<center-VIDEO>:6000 \
+  sudo -E bash .scripts/docker/install_linux.sh runtime
+
+./RUNTIME/install_linux.sh status
+source /opt/easyaiot/RUNTIME/env.sh
+```
+
+Notes:
+
+- **Required** `VIDEO_BASE_URL`; optional `SRS_RTMP_BASE` / `AI_RTMP_URL` (example ini only)
+- Default install dir `/opt/easyaiot/RUNTIME`
+- Atomic ≠ never push: formal `executor=cpp` + `realtime` still default-pushes center `ai/{device}`
+- Independent of mini/standard/full profiles—do **not** run full `install` on compute boxes
+- Details: [`RUNTIME/README.md`](../../RUNTIME/README.md)
+
+| Variable | Meaning |
+|----------|---------|
+| `VIDEO_BASE_URL` | Center VIDEO base URL (required for atomic) |
+| `EASYAIOT_RUNTIME_INSTALL_DIR` | Install dir, default `/opt/easyaiot/RUNTIME` |
+| `SRS_RTMP_BASE` / `AI_RTMP_URL` | Optional example-ini detection stream |
+| `EASYAIOT_RUNTIME_BUILD_MODE` | `docker` (default) / `host` |
+
+---
+
 ## Common Operations
 
 ### Unified Script
@@ -365,6 +401,7 @@ cd .scripts/docker
 ./install_linux.sh install | start | stop | restart | status
 ./install_linux.sh logs | logs WEB | verify | check | profile
 ./install_linux.sh build | pull | update | clean
+./install_linux.sh runtime          # atomic mode (needs VIDEO_BASE_URL)
 ./install_linux.sh diagnose | analyze-logs | analyze-disk | help
 ```
 

@@ -229,6 +229,8 @@ export EASYAIOT_DEPLOY_PROFILE=full && sudo .../install_linux.sh install  # Не
 | `check` | Проверка окружения Docker |
 | `update` | Обновление образов и перезапуск |
 | `pull` | Загрузка предсобранных образов |
+| `build` |
+| `runtime` / `runtime-atomic` | **Атомарный режим RUNTIME** (только исполнитель; `VIDEO_BASE_URL`) |
 | `build` | Локальная пересборка образов |
 | `profile` | Просмотр профиля развёртывания |
 | `analyze-logs` | Объединение логов нескольких модулей |
@@ -267,6 +269,33 @@ cd .scripts/docker && ./install_middleware_linux.sh install   # Только mid
 cd .scripts/docker && ./install_business_linux.sh install     # Только бизнес-модули
 cd AI && ./install_linux.sh install                           # Один модуль
 ```
+
+---
+
+---
+
+## Атомарный режим RUNTIME (вычислительные узлы)
+
+Для **edge-боксов / воркеров**: установить **только** C++ исполнитель — без локальных VIDEO / WEB / DEVICE. Оповещения и heartbeat агрегируются в центральный VIDEO; формальные `realtime` задачи по умолчанию пушат поток с рамками на SRS `ai/`.
+
+> **Атомарный ≠ никогда не пушить.** Атомарный = нет локального бизнес-стека. Подробности: [`RUNTIME/README.md`](../../RUNTIME/README.md).
+
+```bash
+VIDEO_BASE_URL=http://<центр-VIDEO>:6000 \
+  bash .scripts/docker/install_linux.sh runtime
+
+VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
+```
+
+| Пункт | Примечание |
+|-------|------------|
+| Обязательно | `VIDEO_BASE_URL` |
+| Каталог | По умолчанию `/opt/easyaiot/RUNTIME` |
+| Результат | `bin/RUNTIME`, `node.env`, `env.sh`, `config/atomic.example.ini` |
+| Формальные задачи | Создать задачи `executor=cpp` в центральном WEB |
+| Smoke | `source /opt/easyaiot/RUNTIME/env.sh && $RUNTIME_BIN …/atomic.example.ini` |
+
+Полный стек центра по-прежнему через `install`; монтирование RUNTIME через локальный VIDEO — отдельный путь.
 
 ---
 

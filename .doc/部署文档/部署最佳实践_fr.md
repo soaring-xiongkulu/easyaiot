@@ -12,6 +12,7 @@
 - [Sélection du profil de déploiement](#sélection-du-profil-de-déploiement)
 - [Exigences d'environnement et vérifications pré-déploiement](#exigences-denvironnement-et-vérifications-pré-déploiement)
 - [Déploiement en un clic et étape par étape](#déploiement-en-un-clic-et-étape-par-étape)
+- [Mode atomique RUNTIME (nœuds de calcul légers)](#mode-atomique-runtime-nœuds-de-calcul-légers)
 - [Opérations courantes](#opérations-courantes)
 - [Images préconstruites](#images-préconstruites)
 - [Configuration GPU](#configuration-gpu)
@@ -354,6 +355,28 @@ cd .scripts/docker
 ./install_business_linux.sh update DEVICE WEB
 ./install_business_linux.sh verify
 ```
+
+---
+
+## Mode atomique RUNTIME (nœuds de calcul légers)
+
+Séparez la pile centrale et les nœuds de calcul légers :
+
+| Rôle | Contenu | Entrée |
+|------|---------|--------|
+| **Centre / tout-en-un** | Middleware + DEVICE/AI/VIDEO/WEB… ; VIDEO monte RUNTIME | `install_linux.sh install` |
+| **Nœud de calcul** | **RUNTIME seul** | `VIDEO_BASE_URL=… install_linux.sh runtime` |
+| **Lots de nœuds** | Idem via SSH | WEB « distribution runtime » → RUNTIME(C++) |
+
+```bash
+VIDEO_BASE_URL=http://<VIDEO-central>:6000 \
+  sudo -E bash .scripts/docker/install_linux.sh runtime
+
+./RUNTIME/install_linux.sh status
+source /opt/easyaiot/RUNTIME/env.sh
+```
+
+`VIDEO_BASE_URL` obligatoire. Atomique ≠ jamais de push. Indépendant des profils mini/standard/full — ne relancez pas `install` complet sur les boîtiers de calcul. Détails : [`RUNTIME/README.md`](../../RUNTIME/README.md).
 
 ---
 
