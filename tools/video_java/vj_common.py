@@ -155,6 +155,10 @@ def normalize_value(value: Any) -> Any:
 def normalize_api_layer(payload: Dict[str, Any]) -> Dict[str, Any]:
     out = normalize_value(payload)
     if isinstance(out, dict):
+        # Java candidate adds duplicate msg alias and nullable total on non-list responses.
+        out.pop("message", None)
+        if out.get("total") is None:
+            out.pop("total", None)
         data = out.get("data")
         if isinstance(data, dict):
             for key in (

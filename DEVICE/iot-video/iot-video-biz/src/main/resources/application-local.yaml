@@ -15,3 +15,5 @@ management:
 video:
   alert:
     use-direct-persist: true
+  runtime:
+    repo-root: F:/acme

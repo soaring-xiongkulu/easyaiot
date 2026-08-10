@@ -289,8 +289,10 @@ def _record_camera_list(case: Dict[str, Any], fixture: Dict[str, Any], *, side: 
     base = case[base_key].rstrip("/")
     device_id = fixture["device_id"]
     out = golden_dir(side, case["case_id"])
+    # Oracle list search matches name/model/serial/manufacturer/ip — not device id.
+    search = fixture.get("list_search", "certify")
     status, body, _ = http_json(
-        "GET", f"{base}/video/camera/list?pageNo=1&pageSize=50&search={device_id}"
+        "GET", f"{base}/video/camera/list?pageNo=1&pageSize=50&search={search}"
     )
     write_layer(
         out / LAYER_FILES["api"],

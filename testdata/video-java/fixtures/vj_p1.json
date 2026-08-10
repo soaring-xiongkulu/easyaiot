@@ -2,6 +2,7 @@
   "description": "Phase 1 certify fixture — dedicated camera device + stream-forward task",
   "device_id": "vj_p1_device",
   "device_name": "vj_p1 certify camera",
+  "list_search": "certify",
   "task_name_prefix": "vj_p1_",
   "stream_forward_task_id": 3,
   "source": "file://F:/acme/RUNTIME/testdata/sample.mp4",
