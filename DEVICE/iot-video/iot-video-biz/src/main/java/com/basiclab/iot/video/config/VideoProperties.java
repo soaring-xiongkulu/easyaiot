@@ -20,6 +20,7 @@ public class VideoProperties {
     private final PlaybackDiskGuard playbackDiskGuard = new PlaybackDiskGuard();
     private final MediaJanitor mediaJanitor = new MediaJanitor();
     private final Minio minio = new Minio();
+    private final SnapTaskScheduler snapTaskScheduler = new SnapTaskScheduler();
 
     /**
      * Mirrors Python {@code VIDEO_SKIP_BACKGROUND_TASKS=1} — disables scheduled health recovery
@@ -169,5 +170,14 @@ public class VideoProperties {
         private int orphanMinAgeMinutes = 10;
         private String snapDir = "";
         private String hostDataRoot = "";
+    }
+
+    @Data
+    public static class SnapTaskScheduler {
+        /**
+         * Mirrors Python snap APScheduler init on startup ({@code init_all_tasks}).
+         * Disabled when {@code video.skip-background-tasks=true}.
+         */
+        private boolean enabled = true;
     }
 }

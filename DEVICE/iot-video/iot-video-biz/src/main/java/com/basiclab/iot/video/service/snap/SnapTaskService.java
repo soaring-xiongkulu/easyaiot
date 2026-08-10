@@ -19,6 +19,7 @@ public class SnapTaskService {
     private final SnapTaskRepository snapTaskRepository;
     private final SnapSpaceRepository snapSpaceRepository;
     private final DeviceRepository deviceRepository;
+    private final SnapTaskSchedulerService snapTaskSchedulerService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public Map<String, Object> list(int pageNo, int pageSize, Integer spaceId, String deviceId,
@@ -52,6 +53,9 @@ public class SnapTaskService {
         deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new VideoBusinessException(400, "设备不存在: " + deviceId));
         int id = snapTaskRepository.insert(data);
+        if (Boolean.TRUE.equals(get(id).get("is_enabled"))) {
+            snapTaskSchedulerService.addTaskToScheduler(id);
+        }
         return get(id);
     }
 
@@ -87,27 +91,33 @@ public class SnapTaskService {
             }
         }
         snapTaskRepository.updateFields(taskId, fields);
+        snapTaskSchedulerService.rescheduleTask(taskId);
         return get(taskId);
     }
 
     public void delete(int taskId) {
         snapTaskRepository.findById(taskId)
                 .orElseThrow(() -> new VideoBusinessException(400, "抓拍任务不存在: ID=" + taskId));
+        snapTaskSchedulerService.removeTaskFromScheduler(taskId);
         snapTaskRepository.delete(taskId);
     }
 
     public Map<String, Object> start(int taskId) {
         snapTaskRepository.setRunState(taskId, true, "running");
+        snapTaskSchedulerService.addTaskToScheduler(taskId);
         return get(taskId);
     }
 
     public Map<String, Object> stop(int taskId) {
         snapTaskRepository.setRunState(taskId, false, "stopped");
+        snapTaskSchedulerService.removeTaskFromScheduler(taskId);
         return get(taskId);
     }
 
     public Map<String, Object> restart(int taskId) {
+        snapTaskSchedulerService.removeTaskFromScheduler(taskId);
         snapTaskRepository.setRunState(taskId, true, "running");
+        snapTaskSchedulerService.addTaskToScheduler(taskId);
         return get(taskId);
     }
 

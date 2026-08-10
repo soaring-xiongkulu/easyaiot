@@ -137,6 +137,52 @@ public class SnapTaskRepository {
         );
     }
 
+    public List<Map<String, Object>> listEnabled() {
+        return jdbc.query(
+                """
+                SELECT t.*, d.name AS device_name, s.space_name
+                FROM snap_task t
+                LEFT JOIN device d ON d.id = t.device_id
+                LEFT JOIN snap_space s ON s.id = t.space_id
+                WHERE t.is_enabled = TRUE
+                ORDER BY t.id
+                """,
+                (rs, rowNum) -> taskRow(rs)
+        );
+    }
+
+    public void recordExecutionResult(int taskId, boolean success, String exceptionReason) {
+        if (success) {
+            jdbc.update(
+                    """
+                    UPDATE snap_task
+                    SET total_captures = COALESCE(total_captures, 0) + 1,
+                        last_capture_time = NOW(),
+                        last_success_time = NOW(),
+                        status = 0,
+                        exception_reason = NULL,
+                        updated_at = NOW()
+                    WHERE id = ?
+                    """,
+                    taskId
+            );
+        } else {
+            jdbc.update(
+                    """
+                    UPDATE snap_task
+                    SET total_captures = COALESCE(total_captures, 0) + 1,
+                        last_capture_time = NOW(),
+                        status = 1,
+                        exception_reason = ?,
+                        updated_at = NOW()
+                    WHERE id = ?
+                    """,
+                    exceptionReason != null ? exceptionReason : "抓拍失败",
+                    taskId
+            );
+        }
+    }
+
     public long countBySpaceId(int spaceId) {
         Long total = jdbc.queryForObject("SELECT COUNT(*) FROM snap_task WHERE space_id = ?", Long.class, spaceId);
         return total != null ? total : 0L;

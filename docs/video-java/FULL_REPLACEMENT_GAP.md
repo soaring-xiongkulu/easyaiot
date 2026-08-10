@@ -18,7 +18,7 @@
 | HTTP `@route` / `@*Mapping` | **≈259**（14 前缀合计） | **≈259** | **diff 0**（`FR-W4` 全量核对） |
 | `app/services` 量级 | **67** 个 py | **40+** Java service + 4 process + 8 scheduler | 编排面已扩；**行为桩仍多** |
 | 独立 worker 目录 | `services/` 下 frame/sorter/pusher/media_*/post_process/stream_forward 等 | **无对等多进程 worker 包**（推流/RUNTIME 用 JVM 内 Supervisor） | 模型不同，能力未对齐 |
-| 启动后台任务 | auto_start 算法/推流/观看、空间清理、janitor、磁盘守护、健康监控、抓拍调度… | FR-W1-BG + FR-W3-OPS：auto_start/健康/空间清理/janitor/磁盘守护；**snap 调度仍缺** | 部分 |
+| 启动后台任务 | auto_start 算法/推流/观看、空间清理、janitor、磁盘守护、健康监控、抓拍调度… | FR-W1-BG + FR-W3-OPS + **FR-B3**：`SnapTaskScheduler` + `init_all_tasks` cron；抓拍执行为结构桩 | 部分 |
 | 门禁自称 | — | Phase 0 薄烟雾绿 + EVID 历史 | **HTTP 齐 ≠ 行为齐** |
 
 **结论一句话（FR-W4）：**  
@@ -136,7 +136,7 @@
 | snap | **Py 38 / Java 38 / diff 0** | ✅ 路由 | space CRUD/策略/sync；task CRUD/start/stop/restart/logs；region/service；images；device storage |
 | record | **Py 16 / Java 16 / diff 0** | ✅ 路由 | space CRUD/策略/sync；videos dates/day/list/object/delete/sync/cleanup；resolve-alert |
 | playback | **Py 7 / Java 7 / diff 0** | ✅ 路由 | list/get/create/update/delete；thumbnail；statistics |
-| ❌ 行为 | — | MinIO 真同步/清理、抓拍 APScheduler、真 play URL 解析 — **FR-B2 ✅** MinIO 同步/清理/DVR 上传代码路径；snap 调度仍缺 |
+| ❌ 行为 | — | MinIO 真同步/清理、真 play URL 解析 — **FR-B2 ✅** MinIO 代码路径；**FR-B3 ✅** snap cron 调度（抓拍执行为桩） |
 
 ### 2.7 `media_hook` / `device_detection_region`
 
@@ -173,7 +173,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | media janitor | ✅ `MediaJanitorScheduler` + `MediaJanitorService`（60s 孤儿重入队 + 磁盘紧急） | FR-W3-OPS 已补 |
 | stream_forward 集群健康迁移 | **缺** | 集群场景必须（`STREAM_FORWARD_HEALTH_*` 仅远程） |
 | algorithm_task 健康监控（60s） | ✅ `AlgorithmTaskHealthRecovery*`（启动即恢复 + 定时；local 以 supervisor 为准） | FR-W1-BG 已对齐 P0 |
-| snap_task 调度器 `init_all_tasks` | **缺** | snap 任务面补齐时必须 |
+| snap_task 调度器 `init_all_tasks` | ✅ `SnapTaskScheduler` + `SnapTaskSchedulerService`（启动加载 enabled 任务 + cron；create/update/start/stop 联动） | FR-B3 已补；抓拍 RTSP/算法执行为桩 |
 | `VIDEO/services/*` 独立进程（upload/janitor/post_process_worker…） | JVM 内或 stub | 完整替换需逐项定：迁入 Java / 保留外部进程 / 废弃 |
 
 ---
