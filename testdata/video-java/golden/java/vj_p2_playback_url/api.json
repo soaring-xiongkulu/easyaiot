@@ -1,5 +1,20 @@
 {
   "layer": "api",
-  "status": "fail",
-  "reason": "candidate Phase 2 endpoints not implemented"
+  "status": "sampled",
+  "endpoint": "/video/playback/list",
+  "http_status": 200,
+  "body": {
+    "code": 0,
+    "msg": "success",
+    "message": "success",
+    "data": [],
+    "total": 0
+  },
+  "normalized": {
+    "code": 0,
+    "data": [],
+    "msg": "success",
+    "total": 0
+  },
+  "notes": "substitute for playback URL — oracle has no stable play-url contract"
 }

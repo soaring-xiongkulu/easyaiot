@@ -31,6 +31,12 @@ from record_python import (  # noqa: E402
     _parse_ini_keys,
     _record_camera_get,
     _record_camera_list,
+    _record_detection_region_get,
+    _record_media_hook,
+    _record_patrol_task_list,
+    _record_playback_url,
+    _record_record_query,
+    _record_snap_list_or_create,
     _record_stream_forward_start_stop,
     _record_view_forward_start_stop,
     _resolve_ini_path,
@@ -237,8 +243,34 @@ def _run_p1_with_failover(case: Dict[str, Any], fixture: Dict[str, Any], recorde
     recorder(case, fixture, side="java")
 
 
+def _run_p2_with_failover(case: Dict[str, Any], fixture: Dict[str, Any], recorder) -> None:
+    """Run P2 recorder against candidate; write honest fail golden if endpoint missing."""
+    cid = case["case_id"]
+    base = case["candidate_base_url"].rstrip("/")
+    probe = {
+        "vj_p2_snap_list_or_create": "/video/snap/space/list?pageNo=1&pageSize=1",
+        "vj_p2_record_query": "/video/record/space/list?pageNo=1&pageSize=1",
+        "vj_p2_playback_url": "/video/playback/list?pageNo=1&pageSize=1",
+        "vj_p2_patrol_task_list": "/video/algorithm/task/list?pageNo=1&pageSize=1&task_type=patrol",
+        "vj_p2_media_hook": "/video/media/hook/snap/completed",
+        "vj_p2_detection_region_get": f"/video/device-detection/device/{fixture['device_id']}/regions",
+    }.get(cid, "/video/snap/space/list?pageNo=1&pageSize=1")
+    if cid == "vj_p2_media_hook":
+        status, _, _ = http_json("POST", f"{base}{probe}", fixture.get("media_hook_payload") or {})
+    else:
+        status, _, _ = http_json("GET", f"{base}{probe}")
+    if status == 404:
+        layers = case.get("layers", ["api"])
+        for layer in layers:
+            _write_java_fail(cid, layer, f"candidate endpoint missing (HTTP {status} on {probe})")
+        if "api" not in layers:
+            _write_java_fail(cid, "api", f"candidate endpoint missing (HTTP {status})")
+        return
+    recorder(case, fixture, side="java")
+
+
 def _run_p2_honest_fail(case: Dict[str, Any]) -> None:
-    """P2 scaffold: Java candidate has no Phase 2 surface yet — write fail goldens."""
+    """P2 scaffold: endpoints not implemented yet — write honest fail goldens."""
     cid = case["case_id"]
     layers = case.get("layers", ["api"])
     reason = "candidate Phase 2 endpoints not implemented"
@@ -284,17 +316,17 @@ def run_case(case_id: str) -> None:
     elif cid == "vj_p2_post_process_enqueue":
         _run_p2_honest_fail(case)
     elif cid == "vj_p2_snap_list_or_create":
-        _run_p2_honest_fail(case)
+        _run_p2_with_failover(case, fixture, _record_snap_list_or_create)
     elif cid == "vj_p2_record_query":
-        _run_p2_honest_fail(case)
+        _run_p2_with_failover(case, fixture, _record_record_query)
     elif cid == "vj_p2_playback_url":
-        _run_p2_honest_fail(case)
+        _run_p2_with_failover(case, fixture, _record_playback_url)
     elif cid == "vj_p2_patrol_task_list":
-        _run_p2_honest_fail(case)
+        _run_p2_with_failover(case, fixture, _record_patrol_task_list)
     elif cid == "vj_p2_media_hook":
-        _run_p2_honest_fail(case)
+        _run_p2_with_failover(case, fixture, _record_media_hook)
     elif cid == "vj_p2_detection_region_get":
-        _run_p2_honest_fail(case)
+        _run_p2_with_failover(case, fixture, _record_detection_region_get)
     else:
         raise ValueError(f"unsupported case {cid}")
 

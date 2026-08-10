@@ -1,6 +1,7 @@
 package com.basiclab.iot.video.dal;
 
 import com.basiclab.iot.video.domain.AlgorithmTaskRow;
+import com.basiclab.iot.video.support.JdbcValues;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -22,6 +23,12 @@ public class AlgorithmTaskRepository {
 
     private final JdbcTemplate jdbc;
 
+    private static final String SELECT_TASK = """
+            SELECT t.*, ss.space_name AS snap_space_name
+            FROM algorithm_task t
+            LEFT JOIN snap_space ss ON ss.id = t.space_id
+            """;
+
     private static final RowMapper<AlgorithmTaskRow> ROW_MAPPER = new RowMapper<>() {
         @Override
         public AlgorithmTaskRow mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -34,33 +41,81 @@ public class AlgorithmTaskRepository {
             row.setIsEnabled(rs.getBoolean("is_enabled"));
             row.setRunStatus(rs.getString("run_status"));
             row.setAlertEventEnabled(rs.getBoolean("alert_event_enabled"));
-            row.setAlertEventSuppressTime(rs.getInt("alert_event_suppress_time"));
-            row.setDetectConf(rs.getFloat("detect_conf"));
+            row.setAlertEventSuppressTime(JdbcValues.getInteger(rs, "alert_event_suppress_time"));
+            row.setDetectConf(JdbcValues.getFloat(rs, "detect_conf"));
             row.setModelNames(rs.getString("model_names"));
             row.setModelIds(rs.getString("model_ids"));
-            int cp = rs.getInt("runtime_control_port");
-            row.setRuntimeControlPort(rs.wasNull() ? null : cp);
+            row.setRuntimeControlPort(JdbcValues.getInteger(rs, "runtime_control_port"));
             row.setRuntimeBinPath(rs.getString("runtime_bin_path"));
             row.setSchedulePolicy(rs.getString("schedule_policy"));
-            row.setPreferGpu(rs.getBoolean("prefer_gpu"));
-            int ei = rs.getInt("extract_interval");
-            row.setExtractInterval(rs.wasNull() ? null : ei);
-            row.setFrameSkip(rs.getInt("frame_skip"));
+            row.setPreferGpu((Boolean) rs.getObject("prefer_gpu"));
+            row.setExtractInterval(JdbcValues.getInteger(rs, "extract_interval"));
+            row.setFrameSkip(JdbcValues.getInteger(rs, "frame_skip"));
             row.setServiceServerIp(rs.getString("service_server_ip"));
-            int sp = rs.getInt("service_port");
-            row.setServicePort(rs.wasNull() ? null : sp);
-            int pid = rs.getInt("service_process_id");
-            row.setServiceProcessId(rs.wasNull() ? null : pid);
-            Timestamp hb = rs.getTimestamp("service_last_heartbeat");
-            row.setServiceLastHeartbeat(hb != null ? hb.toInstant() : null);
+            row.setServicePort(JdbcValues.getInteger(rs, "service_port"));
+            row.setServiceProcessId(JdbcValues.getInteger(rs, "service_process_id"));
+            row.setServiceLastHeartbeat(getInstant(rs, "service_last_heartbeat"));
             row.setServiceLogPath(rs.getString("service_log_path"));
+            row.setRtmpInputUrl(rs.getString("rtmp_input_url"));
+            row.setRtmpOutputUrl(rs.getString("rtmp_output_url"));
+            row.setTrackingEnabled(JdbcValues.getBoolean(rs, "tracking_enabled"));
+            row.setTrackingSimilarityThreshold(JdbcValues.getFloat(rs, "tracking_similarity_threshold"));
+            row.setTrackingMaxAge(JdbcValues.getInteger(rs, "tracking_max_age"));
+            row.setTrackingSmoothAlpha(JdbcValues.getFloat(rs, "tracking_smooth_alpha"));
+            row.setAlertClassNames(rs.getString("alert_class_names"));
+            row.setFaceDetectionEnabled(JdbcValues.getBoolean(rs, "face_detection_enabled"));
+            row.setPlateDetectionEnabled(JdbcValues.getBoolean(rs, "plate_detection_enabled"));
+            row.setFaceMatchingEnabled(JdbcValues.getBoolean(rs, "face_matching_enabled"));
+            row.setFaceLibraryIds(rs.getString("face_library_ids"));
+            row.setFaceMatchingThreshold(JdbcValues.getFloat(rs, "face_matching_threshold"));
+            row.setPlateMatchingEnabled(JdbcValues.getBoolean(rs, "plate_matching_enabled"));
+            row.setPlateLibraryIds(rs.getString("plate_library_ids"));
+            row.setMatchingBusinessTags(rs.getString("matching_business_tags"));
+            row.setAlertNotificationEnabled(JdbcValues.getBoolean(rs, "alert_notification_enabled"));
+            row.setAlertNotificationConfig(rs.getString("alert_notification_config"));
+            row.setAlarmSuppressTime(JdbcValues.getInteger(rs, "alarm_suppress_time"));
+            row.setLastNotifyTime(getInstant(rs, "last_notify_time"));
+            row.setSpaceId(JdbcValues.getInteger(rs, "space_id"));
+            row.setSpaceName(rs.getString("snap_space_name"));
+            row.setCronExpression(rs.getString("cron_expression"));
+            row.setPatrolMode(rs.getString("patrol_mode"));
+            row.setPatrolIntervalSec(JdbcValues.getInteger(rs, "patrol_interval_sec"));
+            row.setPatrolPoolSize(JdbcValues.getInteger(rs, "patrol_pool_size"));
+            row.setFocusDeviceId(rs.getString("focus_device_id"));
+            row.setStatus(JdbcValues.getInteger(rs, "status"));
+            row.setExceptionReason(rs.getString("exception_reason"));
+            row.setTotalFrames(JdbcValues.getInteger(rs, "total_frames"));
+            row.setTotalDetections(JdbcValues.getInteger(rs, "total_detections"));
+            row.setTotalCaptures(JdbcValues.getInteger(rs, "total_captures"));
+            row.setLastProcessTime(getInstant(rs, "last_process_time"));
+            row.setLastSuccessTime(getInstant(rs, "last_success_time"));
+            row.setLastCaptureTime(getInstant(rs, "last_capture_time"));
+            row.setDefenseMode(rs.getString("defense_mode"));
+            row.setDefenseSchedule(rs.getString("defense_schedule"));
+            row.setTargetNodeId(JdbcValues.getLong(rs, "target_node_id"));
+            row.setNodeId(JdbcValues.getLong(rs, "node_id"));
+            row.setSamSupplementEnabled(JdbcValues.getBoolean(rs, "sam_supplement_enabled"));
+            row.setSamSupplementConfig(rs.getString("sam_supplement_config"));
+            row.setMotionGateEnabled(JdbcValues.getBoolean(rs, "motion_gate_enabled"));
+            row.setMotionGateConfig(rs.getString("motion_gate_config"));
+            row.setPoseAnalysisEnabled(JdbcValues.getBoolean(rs, "pose_analysis_enabled"));
+            row.setPoseAnalysisConfig(rs.getString("pose_analysis_config"));
+            row.setPoseIntentEnabled(JdbcValues.getBoolean(rs, "pose_intent_enabled"));
+            row.setPoseLibraryIds(rs.getString("pose_library_ids"));
+            row.setPoseIntentThreshold(JdbcValues.getFloat(rs, "pose_intent_threshold"));
+            row.setPoseIntentConfig(rs.getString("pose_intent_config"));
+            row.setPostProcessEnabled(JdbcValues.getBoolean(rs, "post_process_enabled"));
+            row.setPostProcessScript(rs.getString("post_process_script"));
+            row.setPostProcessReplicas(JdbcValues.getInteger(rs, "post_process_replicas"));
+            row.setCreatedAt(getInstant(rs, "created_at"));
+            row.setUpdatedAt(getInstant(rs, "updated_at"));
             return row;
         }
     };
 
     public Optional<AlgorithmTaskRow> findById(long id) {
         List<AlgorithmTaskRow> rows = jdbc.query(
-                "SELECT * FROM algorithm_task WHERE id = ?",
+                SELECT_TASK + " WHERE t.id = ?",
                 ROW_MAPPER,
                 id
         );
@@ -74,11 +129,10 @@ public class AlgorithmTaskRepository {
 
     public List<AlgorithmTaskRow> findEnabledLocal() {
         List<AlgorithmTaskRow> rows = jdbc.query(
-                """
-                SELECT * FROM algorithm_task
-                WHERE is_enabled = true
-                  AND COALESCE(schedule_policy, 'local') = 'local'
-                ORDER BY id ASC
+                SELECT_TASK + """
+                 WHERE t.is_enabled = true
+                   AND COALESCE(t.schedule_policy, 'local') = 'local'
+                 ORDER BY t.id ASC
                 """,
                 ROW_MAPPER
         );
@@ -86,40 +140,42 @@ public class AlgorithmTaskRepository {
         return rows;
     }
 
-    public List<AlgorithmTaskRow> list(int pageNo, int pageSize, String search) {
+    public List<AlgorithmTaskRow> list(int pageNo, int pageSize, String search, String taskType) {
         int offset = Math.max(0, (pageNo - 1) * pageSize);
         String like = search != null && !search.isBlank() ? "%" + search.trim() + "%" : null;
-        List<AlgorithmTaskRow> rows;
-        if (like != null) {
-            rows = jdbc.query(
-                    "SELECT * FROM algorithm_task WHERE task_name ILIKE ? OR task_code ILIKE ? ORDER BY id DESC LIMIT ? OFFSET ?",
-                    ROW_MAPPER,
-                    like, like, pageSize, offset
-            );
-        } else {
-            rows = jdbc.query(
-                    "SELECT * FROM algorithm_task ORDER BY id DESC LIMIT ? OFFSET ?",
-                    ROW_MAPPER,
-                    pageSize,
-                    offset
-            );
+        StringBuilder sql = new StringBuilder(SELECT_TASK + " WHERE 1=1");
+        List<Object> args = new ArrayList<>();
+        if (taskType != null && !taskType.isBlank()) {
+            sql.append(" AND t.task_type = ?");
+            args.add(taskType.trim());
         }
+        if (like != null) {
+            sql.append(" AND (t.task_name ILIKE ? OR t.task_code ILIKE ?)");
+            args.add(like);
+            args.add(like);
+        }
+        sql.append(" ORDER BY t.id DESC LIMIT ? OFFSET ?");
+        args.add(pageSize);
+        args.add(offset);
+        List<AlgorithmTaskRow> rows = jdbc.query(sql.toString(), ROW_MAPPER, args.toArray());
         rows.forEach(this::attachDevices);
         return rows;
     }
 
-    public long count(String search) {
+    public long count(String search, String taskType) {
         String like = search != null && !search.isBlank() ? "%" + search.trim() + "%" : null;
-        if (like != null) {
-            Long total = jdbc.queryForObject(
-                    "SELECT COUNT(*) FROM algorithm_task WHERE task_name ILIKE ? OR task_code ILIKE ?",
-                    Long.class,
-                    like,
-                    like
-            );
-            return total != null ? total : 0L;
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM algorithm_task t WHERE 1=1");
+        List<Object> args = new ArrayList<>();
+        if (taskType != null && !taskType.isBlank()) {
+            sql.append(" AND t.task_type = ?");
+            args.add(taskType.trim());
         }
-        Long total = jdbc.queryForObject("SELECT COUNT(*) FROM algorithm_task", Long.class);
+        if (like != null) {
+            sql.append(" AND (t.task_name ILIKE ? OR t.task_code ILIKE ?)");
+            args.add(like);
+            args.add(like);
+        }
+        Long total = jdbc.queryForObject(sql.toString(), Long.class, args.toArray());
         return total != null ? total : 0L;
     }
 
@@ -224,5 +280,10 @@ public class AlgorithmTaskRepository {
         out.put("ai_rtmp_stream", r.get("ai_rtmp_stream") != null ? String.valueOf(r.get("ai_rtmp_stream")) : "");
         out.put("rtmp_stream", r.get("rtmp_stream") != null ? String.valueOf(r.get("rtmp_stream")) : "");
         return Optional.of(out);
+    }
+
+    private static Instant getInstant(ResultSet rs, String column) throws SQLException {
+        Timestamp ts = rs.getTimestamp(column);
+        return ts != null ? ts.toInstant() : null;
     }
 }

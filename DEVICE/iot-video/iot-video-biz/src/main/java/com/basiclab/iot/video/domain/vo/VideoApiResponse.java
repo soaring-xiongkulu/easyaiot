@@ -1,5 +1,6 @@
 package com.basiclab.iot.video.domain.vo;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,7 +17,9 @@ public class VideoApiResponse<T> {
     private int code;
     private String msg;
     private String message;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private T data;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Integer total;
 
     public static <T> VideoApiResponse<T> success(T data) {

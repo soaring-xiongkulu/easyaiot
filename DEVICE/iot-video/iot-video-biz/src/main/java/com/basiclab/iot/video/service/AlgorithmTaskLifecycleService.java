@@ -29,11 +29,11 @@ public class AlgorithmTaskLifecycleService {
         return row.toMap();
     }
 
-    public Map<String, Object> listTasks(int pageNo, int pageSize, String search) {
-        var items = taskRepository.list(pageNo, pageSize, search).stream().map(AlgorithmTaskRow::toMap).toList();
+    public Map<String, Object> listTasks(int pageNo, int pageSize, String search, String taskType) {
+        var items = taskRepository.list(pageNo, pageSize, search, taskType).stream().map(AlgorithmTaskRow::toMap).toList();
         return Map.of(
                 "items", items,
-                "total", taskRepository.count(search)
+                "total", taskRepository.count(search, taskType)
         );
     }
 

@@ -1,7 +1,7 @@
 # PHASE 2 Gate — face/plate / snap-record-playback / patrol / regions / media_hook
 
 **Status:** FAIL (scaffold — Java Phase 2 not implemented)
-**Updated:** 2026-08-10 04:16 UTC
+**Updated:** 2026-08-10 04:44 UTC
 
 Gate PASS when every P2 case `ok` — each layer `pass` or signed `exempt`.
 Layers: `api`, `side_effect` (effects.json) for matching publish/process and post-process enqueue.
@@ -34,12 +34,12 @@ python tools/video_java/certify.py --phase 2
 | vj_p2_face_publish_process | False | api:fail, side_effect:fail |
 | vj_p2_plate_publish_process | False | api:fail, side_effect:fail |
 | vj_p2_post_process_enqueue | False | side_effect:fail |
-| vj_p2_snap_list_or_create | False | api:fail |
-| vj_p2_record_query | False | api:fail |
-| vj_p2_playback_url | False | api:fail |
-| vj_p2_patrol_task_list | False | api:fail |
-| vj_p2_media_hook | False | api:fail |
-| vj_p2_detection_region_get | False | api:fail |
+| vj_p2_snap_list_or_create | True | api:pass |
+| vj_p2_record_query | True | api:pass |
+| vj_p2_playback_url | True | api:pass |
+| vj_p2_patrol_task_list | True | api:pass |
+| vj_p2_media_hook | True | api:pass |
+| vj_p2_detection_region_get | True | api:pass |
 
 ## Documented exemptions (this run)
 

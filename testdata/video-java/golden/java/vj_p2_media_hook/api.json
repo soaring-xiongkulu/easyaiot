@@ -1,5 +1,15 @@
 {
   "layer": "api",
-  "status": "fail",
-  "reason": "candidate Phase 2 endpoints not implemented"
+  "status": "sampled",
+  "endpoint": "/video/media/hook/snap/completed",
+  "http_status": 200,
+  "body": {
+    "code": 0,
+    "msg": null,
+    "message": null
+  },
+  "normalized": {
+    "code": 0,
+    "msg": null
+  }
 }

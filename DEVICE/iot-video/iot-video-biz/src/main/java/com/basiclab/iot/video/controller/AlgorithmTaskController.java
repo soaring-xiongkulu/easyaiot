@@ -24,8 +24,9 @@ public class AlgorithmTaskController {
     public VideoApiResponse<List<Map<String, Object>>> list(
             @RequestParam(defaultValue = "1") int pageNo,
             @RequestParam(defaultValue = "10") int pageSize,
-            @RequestParam(required = false) String search) {
-        Map<String, Object> result = lifecycleService.listTasks(pageNo, pageSize, search);
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String task_type) {
+        Map<String, Object> result = lifecycleService.listTasks(pageNo, pageSize, search, task_type);
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         VideoApiResponse<List<Map<String, Object>>> response = VideoApiResponse.success(items);

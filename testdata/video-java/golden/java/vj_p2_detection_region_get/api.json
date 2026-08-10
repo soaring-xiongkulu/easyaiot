@@ -1,5 +1,85 @@
 {
   "layer": "api",
-  "status": "fail",
-  "reason": "candidate Phase 2 endpoints not implemented"
+  "status": "sampled",
+  "endpoint": "/video/device-detection/device/vj_p2_device/regions",
+  "http_status": 200,
+  "body": {
+    "code": 0,
+    "msg": "success",
+    "message": "success",
+    "data": [
+      {
+        "id": 3,
+        "device_id": "vj_p2_device",
+        "region_name": "vj_p2_zone",
+        "region_type": "polygon",
+        "points": [
+          [
+            0.1,
+            0.1
+          ],
+          [
+            0.9,
+            0.1
+          ],
+          [
+            0.9,
+            0.9
+          ],
+          [
+            0.1,
+            0.9
+          ]
+        ],
+        "image_id": null,
+        "image_path": null,
+        "color": "#FF5252",
+        "opacity": 0.3,
+        "is_enabled": true,
+        "sort_order": 0,
+        "model_ids": [],
+        "created_at": null,
+        "updated_at": null
+      }
+    ]
+  },
+  "normalized": {
+    "code": 0,
+    "data": [
+      {
+        "color": "#FF5252",
+        "created_at": "<TIMESTAMP>",
+        "device_id": "vj_p2_device",
+        "id": 3,
+        "image_id": null,
+        "image_path": null,
+        "is_enabled": true,
+        "model_ids": [],
+        "opacity": 0.3,
+        "points": [
+          [
+            0.1,
+            0.1
+          ],
+          [
+            0.9,
+            0.1
+          ],
+          [
+            0.9,
+            0.9
+          ],
+          [
+            0.1,
+            0.9
+          ]
+        ],
+        "region_name": "vj_p2_zone",
+        "region_type": "polygon",
+        "sort_order": 0,
+        "updated_at": "<TIMESTAMP>"
+      }
+    ],
+    "msg": "success"
+  }
 }

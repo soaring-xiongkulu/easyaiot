@@ -1,5 +1,19 @@
 {
   "layer": "api",
-  "status": "fail",
-  "reason": "candidate Phase 2 endpoints not implemented"
+  "status": "sampled",
+  "endpoint": "/video/snap/space/list + /video/snap/space",
+  "http_status": 403,
+  "body": {
+    "code": 403,
+    "msg": "抓拍空间不能手动创建，系统会在创建设备时自动创建抓拍空间",
+    "message": "抓拍空间不能手动创建，系统会在创建设备时自动创建抓拍空间"
+  },
+  "normalized": {
+    "create_code": 403,
+    "create_has_id": false,
+    "create_msg": "抓拍空间不能手动创建，系统会在创建设备时自动创建抓拍空间",
+    "list_code": 0,
+    "list_count": 7,
+    "list_http_status": 200
+  }
 }

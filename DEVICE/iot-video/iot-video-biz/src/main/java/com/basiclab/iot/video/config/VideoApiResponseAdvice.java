@@ -21,6 +21,10 @@ public class VideoApiResponseAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
+        String typeName = returnType.getParameterType().getName();
+        if (typeName.endsWith("SpaceListApiResponse")) {
+            return false;
+        }
         return returnType.getContainingClass().getPackageName().startsWith("com.basiclab.iot.video.controller");
     }
 
@@ -54,6 +58,7 @@ public class VideoApiResponseAdvice implements ResponseBodyAdvice<Object> {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.OK)
     public VideoApiResponse<Void> handleException(Exception ex) {
-        return VideoApiResponse.error(500, ex.getMessage() != null ? ex.getMessage() : "internal error");
+        String msg = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
+        return VideoApiResponse.error(500, msg);
     }
 }
