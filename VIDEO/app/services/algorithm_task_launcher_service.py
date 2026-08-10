@@ -325,6 +325,28 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
     if executor == 'cpp':
         if task.task_type not in ('realtime', 'snap', 'patrol'):
             return (False, f'executor=cpp 不支持任务类型: {task.task_type}', False)
+        # 远程 cpp 依赖节点已分发 RUNTIME；未安装时给出可操作提示
+        try:
+            rt_check = node_client.check_runtime_cpp_ready(int(node_id))
+            ready = bool(rt_check.get('runtimeReady') or rt_check.get('success'))
+            if not ready:
+                detail = (rt_check.get('message') or '').strip() or 'RUNTIME 未安装或不可用'
+                return (
+                    False,
+                    f'节点 {host} 未就绪高性能执行器：{detail}。'
+                    f'请先在 WEB「节点管理 → 业务运行时分发」对该节点「分发 RUNTIME」，'
+                    f'或在该节点执行原子安装：VIDEO_BASE_URL=http://<中心VIDEO>:6000 '
+                    f'bash .scripts/docker/install_linux.sh runtime',
+                    False,
+                )
+        except Exception as e:
+            logger.warning('检测节点 RUNTIME 失败 node_id=%s host=%s: %s', node_id, host, e)
+            return (
+                False,
+                f'无法检测节点 {host} 的 RUNTIME 状态: {e}。'
+                f'请确认节点在线、SSH 可用，并已分发 / 原子安装 RUNTIME',
+                False,
+            )
         remote_ini = os.path.join(log_dir, 'runtime.ini')
         try:
             ini_path, ini_content = generate_runtime_ini_content(
