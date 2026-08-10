@@ -3,6 +3,7 @@ package com.basiclab.iot.video.service.camera;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -17,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CameraStreamTicketService {
@@ -34,7 +36,7 @@ public class CameraStreamTicketService {
             return Map.of("httpStatus", 401, "code", 401, "msg", "unauthorized");
         }
         String path = body.get("path") != null ? String.valueOf(body.get("path")).trim() : "";
-        if (!STREAM_PATH.matcher(path).find()) {
+        if (!STREAM_PATH.matcher(path).lookingAt()) {
             return Map.of("httpStatus", 400, "code", 400, "msg", "invalid stream path");
         }
         String secret = System.getenv("STREAM_TICKET_SECRET");
@@ -67,7 +69,8 @@ public class CameraStreamTicketService {
     }
 
     private boolean checkLogin(String authorization, String tenantId) {
-        if (authorization == null || authorization.isBlank()) {
+        String auth = authorization != null ? authorization.trim() : "";
+        if (auth.isBlank()) {
             return false;
         }
         String base = resolveAuthCheckUrl();
@@ -75,9 +78,10 @@ public class CameraStreamTicketService {
             HttpRequest.Builder builder = HttpRequest.newBuilder()
                     .uri(URI.create(base))
                     .timeout(Duration.ofSeconds(5))
-                    .header("Authorization", authorization);
-            if (tenantId != null && !tenantId.isBlank()) {
-                builder.header("tenant-id", tenantId);
+                    .header("Authorization", auth);
+            String tenant = tenantId != null ? tenantId.trim() : "";
+            if (!tenant.isBlank()) {
+                builder.header("tenant-id", tenant);
             }
             HttpResponse<String> response = httpClient.send(builder.GET().build(), HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
@@ -86,22 +90,48 @@ public class CameraStreamTicketService {
             JsonNode body = objectMapper.readTree(response.body());
             return body.has("code") && body.get("code").asInt() == 0;
         } catch (Exception e) {
+            log.warn("流票据登录校验失败: {}", e.toString());
             return false;
         }
     }
 
+    /**
+     * Mirrors retired Python {@code resolve_java_backend_url()} + {@code _resolve_auth_check_url()}:
+     * AUTH_CHECK_URL → JAVA_BACKEND_URL → GATEWAY_URL → mini profile default.
+     */
     private static String resolveAuthCheckUrl() {
         String explicit = System.getenv("AUTH_CHECK_URL");
         if (explicit != null && !explicit.isBlank()) {
             return explicit.trim();
         }
-        String base = System.getenv("JAVA_BACKEND_URL");
-        if (base == null || base.isBlank()) {
-            base = System.getenv("GATEWAY_URL");
-        }
-        if (base == null || base.isBlank()) {
-            base = "http://127.0.0.1:48099";
-        }
+        String base = resolveJavaBackendUrl();
         return base.replaceAll("/+$", "") + AUTH_CHECK_PATH;
+    }
+
+    private static String resolveJavaBackendUrl() {
+        String explicit = System.getenv("JAVA_BACKEND_URL");
+        if (explicit != null && !explicit.isBlank()) {
+            return explicit.trim().replaceAll("/+$", "");
+        }
+        String gateway = System.getenv("GATEWAY_URL");
+        if (gateway != null && !gateway.isBlank()) {
+            return gateway.trim().replaceAll("/+$", "");
+        }
+        if (isMiniDeployProfile()) {
+            return "http://127.0.0.1:48099";
+        }
+        return "http://127.0.0.1:48080";
+    }
+
+    private static boolean isMiniDeployProfile() {
+        String profile = System.getenv("EASYAIOT_DEPLOY_PROFILE");
+        if (profile == null || profile.isBlank()) {
+            return false;
+        }
+        String normalized = profile.trim().toLowerCase();
+        return normalized.equals("mini")
+                || normalized.equals("1")
+                || normalized.equals("minimal")
+                || normalized.equals("4g");
     }
 }

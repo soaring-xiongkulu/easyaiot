@@ -188,7 +188,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 远程 node / RUNTIME 分发 | node_client | **FR-B4 ✅** `IotNodeClient` allocate/deploy/stop | prod 集群需 iot-node + Agent + SRS 联调 |
 | ONVIF / NVR / GB28181 / FlightHub | camera 大面 | **FR-B6 ✅** ONVIF SOAP + WS-Discovery + ISAPI 扫描/NVR 枚举 + ffmpeg 抓拍 | prod 真机/NVR 联调；GB28181/FlightHub/大华 NVR 全量仍待 |
 | MinIO 空间同步/清理 | snap/record 多接口 | **✅ FR-B2** `VideoMinioService` + `SpaceFileMetadataService`；`video.minio.enabled` / `MINIO_ENABLED` 开关；DVR/snap 上传真路径 | mini 默认 `enabled=false`（DB/本地路径）；prod 需 MinIO 联调 |
-| 鉴权（流票据、网关 token） | 有 | **FR-W1-AUTH ✅** mini gateway + `system-server` token check（invalid Bearer 401；valid Bearer 200）；流票据仍缺 | 生产全量路由 + 流票据待 W2 camera |
+| 鉴权（流票据、网关 token） | 有 | **FR-W1-AUTH ✅** mini gateway + `system-server` token check；**FR-B7 ✅** 流票据签发与 Python 对齐（JWT 自校验 + tenant-id；未登录 401） | 生产全量路由 + 网关切流 ops 演练 |
 | 对外 JSON | `{code,msg,data}` | `VideoApiResponse` 已对齐方向 | 全接口字段级与 WEB 对表 |
 
 ---
@@ -199,7 +199,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 |----|------|--------------|
 | 网关 `lb://video-server` | 已改指向 Java 名 | 全量 API 可用前，**生产流量不应认为已安全切完** |
 | Python 热路径归档 | `_retired_python_video/` | 保留直到 Java 全量绿 |
-| 回滚演练 | 仅 3 文件进出台账级 | **全量** `app/`+`services/`+`run.py` 恢复 + 同名服务拉起 + 网关观察 |
+| 回滚演练 | **FR-B7 ✅** 全量 `app/`+`services/`+`run.py`+`models.py` safe_fsops 恢复→验证→再归档（见 `ROLLBACK_LOG.md` FR-B7） | Nacos 进程切换 + 网关冒烟仍待 ops |
 | Nacos 双跑/切换 | 文档有漂移（仍见 video-server-java 旧述） | 与 CLOSE-S2 现实对齐并做一次真切换演练 |
 | 证据门禁 | EVID 已抬真 RUNTIME/alert success 等 | 完整替换应另建 **全量契约回归**（按本文件域表），不能只靠现有 18 个 vj_* case |
 
