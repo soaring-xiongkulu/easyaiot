@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RUNTIME 原画 / AI 并排预览</title>
+  <style>
+    :root {
+      --bg: #111;
+      --fg: #eee;
+      --muted: #aaa;
+      --err: #f88;
+      --accent: #6cf;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      margin: 16px;
+      line-height: 1.45;
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 8px; }
+    h2 { font-size: 1.05rem; margin: 20px 0 8px; }
+    .meta, .tip { color: var(--muted); font-size: 13px; margin: 4px 0; }
+    .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+    .panel { flex: 1 1 420px; min-width: 280px; }
+    video {
+      width: 100%;
+      max-width: 960px;
+      background: #000;
+      min-height: 220px;
+      display: block;
+    }
+    .err { color: var(--err); font-size: 13px; min-height: 1.2em; margin-top: 4px; word-break: break-all; }
+    .url { color: var(--accent); font-size: 12px; word-break: break-all; }
+    .form {
+      display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 8px;
+      padding: 10px; border: 1px solid #333; border-radius: 6px;
+    }
+    .form label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+    .form input {
+      background: #1a1a1a; border: 1px solid #444; color: var(--fg);
+      padding: 6px 8px; border-radius: 4px; min-width: 180px;
+    }
+    .form button {
+      align-self: flex-end; padding: 7px 14px; border: 0; border-radius: 4px;
+      background: #266CFB; color: #fff; cursor: pointer;
+    }
+    .form button.secondary { background: #333; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js"></script>
+</head>
+<body>
+  <h1>RUNTIME 原画 / AI 并排预览</h1>
+  <p class="tip">对比推流转发 <code>live/</code> 与算法 RUNTIME <code>ai/</code>。播放器已关闭 stash 缓冲，便于观察 OSD 延时。</p>
+
+  <form class="form" id="cfg" onsubmit="return applyForm(event)">
+    <label>SRS HTTP 主机
+      <input id="host" name="host" placeholder="172.16.13.220:8080" />
+    </label>
+    <label>设备 ID
+      <input id="device_id" name="device_id" placeholder="1786351452026243807" />
+    </label>
+    <label>原画 app
+      <input id="live_app" name="live_app" value="live" />
+    </label>
+    <label>AI app
+      <input id="ai_app" name="ai_app" value="ai" />
+    </label>
+    <button type="submit">应用并播放</button>
+    <button type="button" class="secondary" onclick="reloadPlayers()">重新拉流</button>
+  </form>
+
+  <p class="meta" id="meta"></p>
+
+  <div class="row">
+    <div class="panel">
+      <h2>原画 (live)</h2>
+      <div class="url" id="live-url"></div>
+      <video id="live" controls autoplay muted playsinline></video>
+      <div id="live-err" class="err"></div>
+    </div>
+    <div class="panel">
+      <h2>AI 带框 (ai) — RUNTIME</h2>
+      <div class="url" id="ai-url"></div>
+      <video id="ai" controls autoplay muted playsinline></video>
+      <div id="ai-err" class="err"></div>
+    </div>
+  </div>
+
+  <script>
+    const FLV_CFG = {
+      type: 'flv',
+      isLive: true,
+      hasAudio: false,
+      enableStashBuffer: false,
+      stashInitialSize: 0,
+      lazyLoad: false,
+      lazyLoadMaxDuration: 0,
+      lazyLoadRecoverDuration: 0,
+      deferLoadAfterSourceOpen: false,
+      autoCleanupSourceBuffer: true,
+    };
+
+    const players = { live: null, ai: null };
+
+    function qs() {
+      return new URLSearchParams(window.location.search);
+    }
+
+    function defaults() {
+      const p = qs();
+      const host = p.get('host') || location.hostname + ':8080';
+      return {
+        host: host.replace(/^https?:\/\//, ''),
+        device_id: p.get('device_id') || p.get('device') || '',
+        live_app: p.get('live_app') || 'live',
+        ai_app: p.get('ai_app') || 'ai',
+      };
+    }
+
+    function fillForm(cfg) {
+      document.getElementById('host').value = cfg.host;
+      document.getElementById('device_id').value = cfg.device_id;
+      document.getElementById('live_app').value = cfg.live_app;
+      document.getElementById('ai_app').value = cfg.ai_app;
+    }
+
+    function streamUrl(host, app, deviceId) {
+      const h = String(host || '').replace(/\/$/, '');
+      const a = String(app || '').replace(/^\/+|\/+$/g, '');
+      const id = String(deviceId || '').trim();
+      if (!h || !a || !id) return '';
+      return `http://${h}/${a}/${id}.flv`;
+    }
+
+    function destroyPlayer(key) {
+      const p = players[key];
+      if (!p) return;
+      try { p.pause(); } catch (_) {}
+      try { p.unload(); } catch (_) {}
+      try { p.detachMediaElement(); } catch (_) {}
+      try { p.destroy(); } catch (_) {}
+      players[key] = null;
+    }
+
+    function play(key, url, errId, urlId) {
+      destroyPlayer(key);
+      document.getElementById(urlId).textContent = url || '(未配置 device_id)';
+      const err = document.getElementById(errId);
+      err.textContent = '';
+      const video = document.getElementById(key);
+      video.removeAttribute('src');
+      video.load();
+      if (!url) {
+        err.textContent = '请填写 device_id';
+        return;
+      }
+      if (typeof flvjs === 'undefined' || !flvjs.isSupported()) {
+        err.textContent = '浏览器不支持 flv.js（请用 Chrome / Edge）';
+        return;
+      }
+      const player = flvjs.createPlayer({ ...FLV_CFG, url });
+      players[key] = player;
+      player.attachMediaElement(video);
+      player.on(flvjs.Events.ERROR, (type, detail) => {
+        err.textContent = `播放失败: ${type} ${JSON.stringify(detail)}`;
+      });
+      player.load();
+      player.play().catch((e) => { err.textContent = `play(): ${e}`; });
+    }
+
+    function currentCfg() {
+      return {
+        host: document.getElementById('host').value.trim(),
+        device_id: document.getElementById('device_id').value.trim(),
+        live_app: document.getElementById('live_app').value.trim() || 'live',
+        ai_app: document.getElementById('ai_app').value.trim() || 'ai',
+      };
+    }
+
+    function reloadPlayers() {
+      const cfg = currentCfg();
+      const live = streamUrl(cfg.host, cfg.live_app, cfg.device_id);
+      const ai = streamUrl(cfg.host, cfg.ai_app, cfg.device_id);
+      document.getElementById('meta').textContent =
+        `设备 ${cfg.device_id || '-'} · live=${cfg.live_app} · ai=${cfg.ai_app} · SRS=${cfg.host}`;
+      play('live', live, 'live-err', 'live-url');
+      play('ai', ai, 'ai-err', 'ai-url');
+    }
+
+    function applyForm(ev) {
+      if (ev) ev.preventDefault();
+      const cfg = currentCfg();
+      const next = new URL(window.location.href);
+      next.searchParams.set('host', cfg.host);
+      next.searchParams.set('device_id', cfg.device_id);
+      next.searchParams.set('live_app', cfg.live_app);
+      next.searchParams.set('ai_app', cfg.ai_app);
+      history.replaceState(null, '', next.toString());
+      reloadPlayers();
+      return false;
+    }
+
+    fillForm(defaults());
+    reloadPlayers();
+    window.addEventListener('beforeunload', () => {
+      destroyPlayer('live');
+      destroyPlayer('ai');
+    });
+  </script>
+</body>
+</html>
