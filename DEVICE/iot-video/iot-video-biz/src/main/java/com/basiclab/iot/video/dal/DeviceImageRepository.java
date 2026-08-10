@@ -47,4 +47,23 @@ public class DeviceImageRepository {
         Long count = jdbc.queryForObject("SELECT COUNT(*) FROM image WHERE id = ?", Long.class, imageId);
         return count != null && count > 0;
     }
+
+    public int insert(String deviceId, String filename, String originalFilename, String path,
+                      Integer width, Integer height) {
+        Integer id = jdbc.queryForObject(
+                """
+                INSERT INTO image (filename, original_filename, path, width, height, device_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                RETURNING id
+                """,
+                Integer.class,
+                filename,
+                originalFilename,
+                path,
+                width,
+                height,
+                deviceId
+        );
+        return id != null ? id : 0;
+    }
 }

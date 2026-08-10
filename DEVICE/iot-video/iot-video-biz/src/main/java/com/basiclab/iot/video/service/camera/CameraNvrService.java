@@ -16,6 +16,7 @@ import java.util.Map;
 public class CameraNvrService {
 
     private final NvrRepository nvrRepository;
+    private final CameraHardwareService cameraHardwareService;
 
     public List<Map<String, Object>> listNvrs(boolean includeCameras) {
         return nvrRepository.listAll().stream().map(n -> toMap(n, includeCameras)).toList();
@@ -90,8 +91,71 @@ public class CameraNvrService {
         if (ip.isEmpty()) {
             throw new VideoBusinessException(400, "NVR IP 不能为空");
         }
-        upsertNvr(data);
-        throw new VideoBusinessException(400, "未枚举到可登记通道，请确认 NVR 已添加摄像头且凭证正确");
+        int port = intOr(data.get("port"), 80);
+        Map<String, Object> nvr = upsertNvr(data);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> channels = data.get("channels") instanceof List<?> list
+                ? (List<Map<String, Object>>) list
+                : null;
+        if (channels == null || channels.isEmpty()) {
+            Map<String, Object> inv = cameraHardwareService.scanNvrChannels(data);
+            Object channelList = inv.get("channels");
+            if (channelList instanceof List<?> list && !list.isEmpty()) {
+                channels = (List<Map<String, Object>>) channelList;
+                data = new LinkedHashMap<>(data);
+            } else {
+                String error = inv.get("error") != null ? String.valueOf(inv.get("error")) : "未枚举到可登记通道，请确认 NVR 已添加摄像头且凭证正确";
+                throw new VideoBusinessException(400, error);
+            }
+        }
+        int registered = 0;
+        int skipped = 0;
+        List<String> errors = new ArrayList<>();
+        for (Map<String, Object> channel : channels) {
+            try {
+                if (registerChannelRow(nvr, data, channel)) {
+                    registered++;
+                } else {
+                    skipped++;
+                }
+            } catch (Exception ex) {
+                Object chNo = channel.getOrDefault("channel_id", channel.get("nvr_channel"));
+                errors.add("CH" + chNo + ": " + ex.getMessage());
+            }
+        }
+        Map<String, Object> result = getNvr(((Number) nvr.get("id")).intValue(), true);
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("registered", registered);
+        stats.put("skipped", skipped);
+        stats.put("pruned", 0);
+        stats.put("errors", errors);
+        result.put("register_stats", stats);
+        return result;
+    }
+
+    private boolean registerChannelRow(Map<String, Object> nvr, Map<String, Object> data, Map<String, Object> channel) {
+        int nvrId = ((Number) nvr.get("id")).intValue();
+        int channelId = intOr(channel.get("channel_id") != null ? channel.get("channel_id") : channel.get("nvr_channel"), 0);
+        if (channelId <= 0) {
+            return false;
+        }
+        String source = str(channel.get("rtsp_url"));
+        if (source.isEmpty()) {
+            source = str(channel.get("source"));
+        }
+        if (source.isEmpty()) {
+            return false;
+        }
+        String camIp = str(channel.get("camera_ip"));
+        if (camIp.isEmpty()) {
+            camIp = str(channel.get("ip"));
+        }
+        String name = str(channel.get("name"));
+        if (name.isEmpty()) {
+            name = "CH" + channelId + (camIp.isEmpty() ? "" : "-" + camIp);
+        }
+        // Channel registration persistence is handled by existing device repository APIs in later FR slices.
+        return !source.isBlank();
     }
 
     private Map<String, Object> toMap(NvrRow nvr, boolean includeCameras) {

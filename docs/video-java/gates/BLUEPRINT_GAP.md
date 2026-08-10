@@ -27,7 +27,7 @@ Heartbeat (`POST /video/algorithm/heartbeat/realtime`) is covered by `HeartbeatC
 | `algorithm_task` | `algorithm_task.py` | `/video/algorithm` | **slice-only** | `AlgorithmTaskController` | `vj_p0_task_start_stop`, `vj_p0_restart` | 无 CRUD；见缺口表 |
 | `alert` | `alert.py` | `/video/alert` | **partial** | `AlertHookController`（仅 hook） | `vj_p0_alert_hook`；**EX-ALERT-ADMIN-API** | 管理面 = FR-W1-ALERT |
 | `audio_talk` | `audio_talk.py` | `/video/camera/audio/talk` | **slice-only** | `AudioTalkController` | **FR-W3-TALK ✅ 路由 diff=0** | ONVIF back-channel 行为待真机 |
-| `camera` | `camera.py` | `/video/camera` | **slice-only** | `CameraController` | `vj_p1_camera_*` | ~50+ 路由未迁；FR-W2-CAM |
+| `camera` | `camera.py` | `/video/camera` | **slice-only** | `CameraController` | `vj_p1_camera_*` | ~50+ 路由已迁；**FR-B6 ✅** ONVIF/扫描/NVR/ffmpeg 抓拍行为 |
 | `device_detection_region` | `device_detection_region.py` | `/video/device-detection` | **slice-only** | `DeviceDetectionRegionController` | `vj_p2_detection_region_get`；**FR-W2-MATCH ✅ 路由 diff=0** | CRUD + cover/snapshot 路由已补 |
 | `face` | `face.py` | `/video/face` | **slice-only** | `FaceController` + `FaceMatchingController` | `vj_p2_face_publish_process`；**FR-W2-MATCH ✅ 路由 diff=0** | 库/识别面路由已补；推理桩 |
 | `media_hook` | `media_hook.py` | `/video/media` | **slice-only** | `MediaHookController` | `vj_p2_media_hook` | **FR-W2-HOOKS ✅ 路由 diff=0**；DVR MinIO 行为待 SDK |

@@ -18,7 +18,7 @@
 | HTTP `@route` / `@*Mapping` | **≈259**（14 前缀合计） | **≈259** | **diff 0**（`FR-W4` 全量核对） |
 | `app/services` 量级 | **67** 个 py | **40+** Java service + 4 process + 8 scheduler | 编排面已扩；**行为桩仍多** |
 | 独立 worker 目录 | `services/` 下 frame/sorter/pusher/media_*/post_process/stream_forward 等 | **无对等多进程 worker 包**（推流/RUNTIME 用 JVM 内 Supervisor） | 模型不同，能力未对齐 |
-| 启动后台任务 | auto_start 算法/推流/观看、空间清理、janitor、磁盘守护、健康监控、抓拍调度… | FR-W1-BG + FR-W3-OPS + **FR-B3**：`SnapTaskScheduler` + `init_all_tasks` cron；抓拍执行为结构桩 | 部分 |
+| 启动后台任务 | auto_start 算法/推流/观看、空间清理、janitor、磁盘守护、健康监控、抓拍调度… | FR-W1-BG + FR-W3-OPS + **FR-B3** + **FR-B6** snap cron + ffmpeg/ONVIF 抓拍 | 部分 |
 | 门禁自称 | — | Phase 0 薄烟雾绿 + EVID 历史 | **HTTP 齐 ≠ 行为齐** |
 
 **结论一句话（FR-W4）：**  
@@ -41,7 +41,7 @@
 |---|----|-------------|----------:|-----------|----------------------|--------------|----------------|
 | 1 | algorithm_task | `/video/algorithm` | 21 | 管理面 + lifecycle | list/get/CRUD/start/stop/restart/services/status/heartbeat/logs/streams/post-process | **本地切片** | route_inventory `/video/algorithm` Py=21 Java=21 diff=0；**FR-B4 ✅** 远程 node 客户端（prod 需 iot-node + Agent 联调） |
 | 2 | alert | `/video/alert` | 10 | 管理面 + hook | page/count/statistics/correlation/image/record/record/query/clear/clear/all + `POST /hook` | **本地切片** | route_inventory `/video/alert` Py=10 Java=10 diff=0；**EX-ALERT-ADMIN-API resolved**；**EX-KAFKA-HOOK resolved**（`use-direct-persist=false` → Kafka produce + fallback） |
-| 3 | camera | `/video/camera` | **59** | 全量路由 | list/CRUD/stream/目录/NVR/… | **路由切片完成** | `route_inventory` Py=59 Java=59 diff=0；**FR-W2-CAM**；ONVIF/扫描/抓拍行为待 SDK |
+| 3 | camera | `/video/camera` | **59** | 全量路由 | list/CRUD/stream/目录/NVR/… | **路由切片完成** | `route_inventory` Py=59 Java=59 diff=0；**FR-W2-CAM**；**FR-B6 ✅** ONVIF/扫描/NVR/ffmpeg 抓拍行为 |
 | 4 | stream_forward | `/video/stream-forward` | 13 | 全量路由 | list/get/CRUD/start/stop/restart/status/heartbeat/logs/streams/ensure-task | **路由切片完成** | `route_inventory` Py=13 Java=13 diff=0；**FR-W2-SF**；**FR-B4 ✅** 远程 node 客户端（分片/SRS 健康迁移仍待集群联调） |
 | 5 | face | `/video/face` | 35 | 全量路由 | health/model/libraries/persons/entries/auto-enroll/normalize/match/recognize/matching/* | **路由切片完成** | `route_inventory` Py=35 Java=35 diff=0；**FR-W2-MATCH**；InsightFace/Milvus 推理桩 |
 | 6 | plate | `/video/plate` | 26 | 全量路由 | health/model/libraries/entries/auto-enroll/normalize/match/recognize/matching/* | **路由切片完成** | `route_inventory` Py=26 Java=26 diff=0；**FR-W2-MATCH**；PaddleOCR 推理桩 |
@@ -100,7 +100,7 @@
 | ✅ | 流票据、位置/轨迹、注册、CRUD、batch-delete |
 | ✅ | PTZ/ONVIF 预设/RTSP·ONVIF 任务、snapshot、NVR、scan/discovery/refresh |
 | ✅ | SRS 回调、目录树、conflicts、inference-input、ensure-spaces、FlightHub 配置/登记 |
-| ❌ 行为 | ONVIF 真连接、NVR 通道枚举、hiktools 扫描、抓拍抽帧、司空 live、GB28181 全量同步 — 无硬件/SDK 时仅错误结构对齐 |
+| ❌ 行为 | ONVIF 真连接、NVR 通道枚举、hiktools 扫描、抓拍抽帧、司空 live、GB28181 全量同步 — **FR-B6 ✅** ONVIF SOAP/WS-Discovery、ISAPI 扫描/NVR 枚举、ffmpeg 抓拍已落地；无设备时错误结构与 Python 对齐；GB28181/FlightHub/大华 NVR 全量仍待 |
 
 ### 2.4 `stream_forward` — FR-W2-SF（路由面 diff=0）
 
@@ -173,7 +173,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | media janitor | ✅ `MediaJanitorScheduler` + `MediaJanitorService`（60s 孤儿重入队 + 磁盘紧急） | FR-W3-OPS 已补 |
 | stream_forward 集群健康迁移 | **缺** | 集群场景必须（`STREAM_FORWARD_HEALTH_*` 仅远程） |
 | algorithm_task 健康监控（60s） | ✅ `AlgorithmTaskHealthRecovery*`（启动即恢复 + 定时；local 以 supervisor 为准） | FR-W1-BG 已对齐 P0 |
-| snap_task 调度器 `init_all_tasks` | ✅ `SnapTaskScheduler` + `SnapTaskSchedulerService`（启动加载 enabled 任务 + cron；create/update/start/stop 联动） | FR-B3 已补；抓拍 RTSP/算法执行为桩 |
+| snap_task 调度器 `init_all_tasks` | ✅ `SnapTaskScheduler` + `SnapTaskSchedulerService`（启动加载 enabled 任务 + cron；create/update/start/stop 联动） | FR-B3 + **FR-B6 ✅** 抓拍执行为 ffmpeg/ONVIF HTTP 真路径 |
 | `VIDEO/services/*` 独立进程（upload/janitor/post_process_worker…） | JVM 内或 stub | 完整替换需逐项定：迁入 Java / 保留外部进程 / 废弃 |
 
 ---
@@ -186,7 +186,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | Post-process → iot-sink | 真 enqueue | `use-stub-enqueue: true`（local） | **resolved by FR-B1**（`use-stub-enqueue=false` → HTTP POST iot-sink；不可达时 `enqueue_ok=false` + warn 日志；local/mini 默认仍 stub） |
 | Face/Plate matching | Kafka + 模型 | `use-direct-process=true` → mini mock；`false` → Kafka produce（`iot-face-matching` / `iot-plate-matching`）+ 诚实 process（plate 库 DB 匹配；face 显式 bypass，非假成功） | **resolved by FR-B5**（local/mini 默认 mock；prod 需 broker + `use-direct-process=false`） |
 | 远程 node / RUNTIME 分发 | node_client | **FR-B4 ✅** `IotNodeClient` allocate/deploy/stop | prod 集群需 iot-node + Agent + SRS 联调 |
-| ONVIF / NVR / GB28181 / FlightHub | camera 大面 | **无** | 随 camera 域补齐 |
+| ONVIF / NVR / GB28181 / FlightHub | camera 大面 | **FR-B6 ✅** ONVIF SOAP + WS-Discovery + ISAPI 扫描/NVR 枚举 + ffmpeg 抓拍 | prod 真机/NVR 联调；GB28181/FlightHub/大华 NVR 全量仍待 |
 | MinIO 空间同步/清理 | snap/record 多接口 | **✅ FR-B2** `VideoMinioService` + `SpaceFileMetadataService`；`video.minio.enabled` / `MINIO_ENABLED` 开关；DVR/snap 上传真路径 | mini 默认 `enabled=false`（DB/本地路径）；prod 需 MinIO 联调 |
 | 鉴权（流票据、网关 token） | 有 | **FR-W1-AUTH ✅** mini gateway + `system-server` token check（invalid Bearer 401；valid Bearer 200）；流票据仍缺 | 生产全量路由 + 流票据待 W2 camera |
 | 对外 JSON | `{code,msg,data}` | `VideoApiResponse` 已对齐方向 | 全接口字段级与 WEB 对表 |
@@ -251,7 +251,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 路由缺口（prefix-level） | **0** |
 | inventory 扫描 artifact | `/video/camera` 前缀 Java **+5**（talk 子路径重复计入） |
 | 整域 HTTP 未实现 | **无**（14 前缀均已 diff=0） |
-| 行为桩仍存的域 | camera（ONVIF/NVR/扫描）、face（Milvus/ORT 推理）、snap/record/media（MinIO）、patrol（SSE/守护）、audio_talk（ONVIF）、scenario_pose（姿态推理）、algorithm/stream_forward（远程 node） |
+| 行为桩仍存的域 | face（Milvus/ORT 推理）、patrol（SSE/守护）、audio_talk（ONVIF back-channel 真机）、scenario_pose（姿态推理）、algorithm/stream_forward（远程 node 集群健康）；camera ONVIF/NVR **FR-B6 ✅** 代码路径已落地 |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 259 路由；仅防回归） |
 
 ---

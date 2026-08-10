@@ -332,6 +332,79 @@ public class DeviceRepository {
         );
     }
 
+    public Optional<DeviceRow> findByMac(String mac) {
+        if (mac == null || mac.isBlank()) {
+            return Optional.empty();
+        }
+        List<DeviceRow> rows = jdbc.query(
+                "SELECT " + SELECT_COLUMNS + " FROM device WHERE mac = ? LIMIT 1",
+                ROW_MAPPER,
+                mac
+        );
+        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
+    }
+
+    public Optional<DeviceRow> findExistingForRegister(
+            String ip,
+            String mac,
+            String serialNumber,
+            Integer nvrId,
+            int nvrChannel,
+            String source) {
+        if (nvrId != null && nvrChannel > 0) {
+            List<DeviceRow> rows = jdbc.query(
+                    "SELECT " + SELECT_COLUMNS + " FROM device WHERE nvr_id = ? AND nvr_channel = ? LIMIT 1",
+                    ROW_MAPPER,
+                    nvrId,
+                    nvrChannel
+            );
+            if (!rows.isEmpty()) {
+                return Optional.of(rows.get(0));
+            }
+        }
+        if (mac != null && !mac.isBlank()) {
+            Optional<DeviceRow> byMac = findByMac(mac);
+            if (byMac.isPresent()) {
+                return byMac;
+            }
+        }
+        if (serialNumber != null && !serialNumber.isBlank()) {
+            List<DeviceRow> rows = jdbc.query(
+                    "SELECT " + SELECT_COLUMNS + " FROM device WHERE serial_number = ? LIMIT 1",
+                    ROW_MAPPER,
+                    serialNumber
+            );
+            if (!rows.isEmpty()) {
+                return Optional.of(rows.get(0));
+            }
+        }
+        if (source != null && !source.isBlank()) {
+            List<DeviceRow> rows = jdbc.query(
+                    "SELECT " + SELECT_COLUMNS + " FROM device WHERE source = ? LIMIT 1",
+                    ROW_MAPPER,
+                    source
+            );
+            if (!rows.isEmpty()) {
+                return Optional.of(rows.get(0));
+            }
+        }
+        if (ip != null && !ip.isBlank()) {
+            List<DeviceRow> rows = jdbc.query(
+                    "SELECT " + SELECT_COLUMNS + " FROM device WHERE ip = ? LIMIT 1",
+                    ROW_MAPPER,
+                    ip
+            );
+            if (!rows.isEmpty()) {
+                return Optional.of(rows.get(0));
+            }
+        }
+        return Optional.empty();
+    }
+
+    public void updatePassword(String deviceId, String password) {
+        jdbc.update("UPDATE device SET password = ?, updated_at = NOW() WHERE id = ?", password, deviceId);
+    }
+
     public void updateFields(String deviceId, Map<String, Object> fields) {
         if (fields.isEmpty()) {
             return;

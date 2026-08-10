@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +30,7 @@ public class CameraAdminService {
     private final CameraService cameraService;
     private final ViewForwardService viewForwardService;
     private final VideoMinioService videoMinioService;
+    private final CameraHardwareService cameraHardwareService;
 
     public String registerDevice(Map<String, Object> data) {
         String id = data.get("id") != null ? String.valueOf(data.get("id")).trim() : String.valueOf(System.nanoTime());
@@ -84,8 +86,56 @@ public class CameraAdminService {
         if (password == null || password.isBlank()) {
             throw new VideoBusinessException(400, "摄像头密码不能为空");
         }
-        throw new VideoBusinessException(500,
-                "无法连接到设备 " + ip + ":" + port + "：Java 端暂未集成 ONVIF SDK，请使用 /register/device 直接登记 RTSP 地址");
+        if (port <= 0) {
+            throw new VideoBusinessException(400, "摄像头端口必须大于0");
+        }
+        Map<String, Object> info = cameraHardwareService.connectOnvif(ip, port, password, username);
+        String mac = str(info.get("mac"));
+        String source = str(info.get("source"));
+        Optional<DeviceRow> existing = deviceRepository.findExistingForRegister(ip, mac, str(info.get("serial_number")), null, 0, source);
+        if (existing.isPresent()) {
+            String deviceId = existing.get().getId();
+            Map<String, Object> fields = new LinkedHashMap<>();
+            fields.put("ip", ip);
+            fields.put("port", port);
+            fields.put("username", info.get("username"));
+            fields.put("source", source);
+            fields.put("mac", mac);
+            fields.put("manufacturer", info.get("manufacturer"));
+            fields.put("model", info.get("model"));
+            fields.put("firmware_version", info.get("firmware_version"));
+            fields.put("serial_number", info.get("serial_number"));
+            deviceRepository.updateFields(deviceId, fields);
+            deviceRepository.updatePassword(deviceId, password);
+            return deviceId;
+        }
+        String deviceId = String.valueOf(System.nanoTime());
+        String[] streams = defaultStreamUrls(deviceId);
+        DeviceRow row = new DeviceRow();
+        row.setId(deviceId);
+        row.setName(strOrDefault(info.get("model"), "Camera-" + deviceId.substring(0, Math.min(6, deviceId.length()))));
+        row.setSource(source);
+        row.setRtmpStream(streams[0]);
+        row.setHttpStream(streams[1]);
+        row.setAiRtmpStream(streams[2]);
+        row.setAiHttpStream(streams[3]);
+        row.setIp(ip);
+        row.setPort(port);
+        row.setUsername(str(info.get("username")));
+        row.setMac(mac);
+        row.setManufacturer(strOrDefault(info.get("manufacturer"), "EasyAIoT"));
+        row.setModel(strOrDefault(info.get("model"), "Camera-EasyAIoT"));
+        row.setFirmwareVersion(str(info.get("firmware_version")));
+        row.setSerialNumber(str(info.get("serial_number")));
+        row.setHardwareId(str(info.get("hardware_id")));
+        row.setSupportMove(bool(info.get("support_move")));
+        row.setSupportZoom(bool(info.get("support_zoom")));
+        row.setEnableForward(false);
+        row.setDirectoryId(directoryIdForNewDevice(Map.of()));
+        deviceRepository.insert(row);
+        deviceRepository.updatePassword(deviceId, password);
+        ensureSpacesQuiet(deviceId, row.getName());
+        return deviceId;
     }
 
     public void updateDevice(String deviceId, Map<String, Object> data) {

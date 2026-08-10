@@ -14,7 +14,6 @@ import java.util.Optional;
 
 /**
  * Snap task capture pipeline — structural parity with Python {@code capture_image}.
- * RTSP/ONVIF/algorithm paths remain stubs until camera hardware SDK lands (FR-B6).
  */
 @Slf4j
 @Service
@@ -33,7 +32,6 @@ public class SnapTaskCaptureService {
             return false;
         }
         DeviceRow device = deviceOpt.get();
-        Map<String, Object> space = spaceOpt.get();
 
         int captureType = task.get("capture_type") instanceof Number n ? n.intValue() : 0;
         if (captureType == 0) {
@@ -42,8 +40,13 @@ public class SnapTaskCaptureService {
                 log.error("设备 {} 源地址为空", deviceId);
                 return false;
             }
-            log.debug("snap task {} RTSP/RTMP 抽帧尚未在 Java candidate 实现 (device={})", task.get("id"), deviceId);
-            return false;
+            try {
+                cameraHardwareService.captureSnapshot(deviceId);
+                return true;
+            } catch (VideoBusinessException ex) {
+                log.warn("设备 {} RTSP/RTMP 抓拍失败: {}", deviceId, ex.getMessage());
+                return false;
+            }
         }
 
         try {
