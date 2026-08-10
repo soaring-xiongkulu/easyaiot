@@ -191,7 +191,6 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 #### 🧠 AI能力
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>CentOS / RHEL ARM 一键部署</strong>：面向 aarch64 边缘服务器与国产 ARM 算力主机，新增 <code>install_linux_centos_arm.sh</code> 专用入口——自动检测 CentOS/RHEL 系发行版与 ARM 架构，安装/升级 Docker CE、配置国内镜像源并放行 firewalld 常用端口，再转交 <code>install_linux_arm.sh</code> 完成 ARM 业务镜像部署。与 x86 侧 <code>install_linux_centos.sh</code> 命令与交互菜单一致，让「CentOS + ARM」现场不必再手工拼通用 ARM 脚本与 EL 系环境准备，装机路径更短、更稳</li>
   <li><strong>平台名称与 Logo 全触点自定义</strong>：同一套 EasyAIoT 部署到现场后，用户看到的应是「自己的平台」，而不是通用产品名。监控大屏内置可视化「平台标识设置」，管理员在界面中即可完成品牌替换——管理后台可改平台名称与 Logo（同步侧边栏、浏览器标题）；监控大屏可独立设置指挥标题；登录页可自定义名称、Logo、表单标题及浅色/深色背景图，三处视觉统一、即时生效，并支持保存与一键重置。
     <ul style="margin: 5px 0; padding-left: 20px;">
       <li><strong>对系统集成商与方案商</strong>：省去前端改肤、二次开发与发版成本；PoC 演示与正式交付可快速切换为客户品牌，同一套代码支撑多客户项目，缩短回款周期、提高方案复用率</li>
