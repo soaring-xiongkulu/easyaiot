@@ -102,6 +102,15 @@ public class HikScanService {
         result.put("scanned_at", Instant.now().toString());
         result.put("channels", List.of());
 
+        String resolvedVendor = vendor != null ? vendor.trim().toLowerCase(Locale.ROOT) : null;
+        if (resolvedVendor == null || resolvedVendor.isBlank()) {
+            resolvedVendor = DahuaNvrSupport.detectVendor(isapiHttpClient, baseUrl, creds, timeoutSeconds);
+        }
+
+        if ("dahua".equals(resolvedVendor)) {
+            return enumerateDahuaNvr(ip, port, scheme, baseUrl, creds, timeoutSeconds, onlyMounted, result);
+        }
+
         IsapiHttpClient.Result info = isapiHttpClient.get(baseUrl, DEVICE_INFO_PATH, creds, timeoutSeconds);
         if (info.usedCredential() != null) {
             result.put("auth_username", info.usedCredential().username());
@@ -114,11 +123,69 @@ public class HikScanService {
             result.put("nvr_device_type", IsapiHttpClient.xmlText(info.body(), "deviceType"));
             result.put("nvr_vendor", "hikvision");
         } else {
+            Map<String, Object> dahuaResult = enumerateDahuaNvr(ip, port, scheme, baseUrl, creds, timeoutSeconds, onlyMounted, result);
+            if (!((List<?>) dahuaResult.getOrDefault("channels", List.of())).isEmpty()) {
+                return dahuaResult;
+            }
             result.put("error", info.error() != null ? info.error() : "unable to detect NVR vendor (need valid -c credentials)");
             return result;
         }
 
         List<Map<String, Object>> rows = fetchHikvisionChannels(baseUrl, creds, timeoutSeconds);
+        if (onlyMounted) {
+            rows = rows.stream().filter(this::isMountedChannelRow).toList();
+        }
+        result.put("channels", rows);
+        if (rows.isEmpty()) {
+            Map<String, Object> dahuaResult = enumerateDahuaNvr(ip, port, scheme, baseUrl, creds, timeoutSeconds, onlyMounted, new LinkedHashMap<>(result));
+            if (!((List<?>) dahuaResult.getOrDefault("channels", List.of())).isEmpty()) {
+                return dahuaResult;
+            }
+            result.put("error", "未枚举到可登记通道，请确认 NVR 已添加摄像头且凭证正确");
+        }
+        return result;
+    }
+
+    private Map<String, Object> enumerateDahuaNvr(
+            String ip,
+            int port,
+            String scheme,
+            String baseUrl,
+            List<IsapiHttpClient.Credential> creds,
+            double timeoutSeconds,
+            boolean onlyMounted,
+            Map<String, Object> result
+    ) {
+        result.put("nvr_vendor", "dahua");
+        IsapiHttpClient.Result info = isapiHttpClient.get(
+                baseUrl,
+                "/cgi-bin/magicBox.cgi?action=getSystemInfo",
+                creds,
+                timeoutSeconds
+        );
+        if (info.usedCredential() != null) {
+            result.put("auth_username", info.usedCredential().username());
+        }
+        if (info.ok() && info.body() != null) {
+            for (String line : info.body().split("\\R")) {
+                int eq = line.indexOf('=');
+                if (eq <= 0) {
+                    continue;
+                }
+                String key = line.substring(0, eq).trim().toLowerCase(Locale.ROOT);
+                String value = line.substring(eq + 1).trim();
+                switch (key) {
+                    case "devicetype", "device_type" -> result.put("nvr_device_type", value);
+                    case "serialnumber", "serial_number" -> result.put("nvr_serial", value);
+                    case "softwareversion", "firmwareversion" -> result.put("nvr_firmware", value);
+                    case "devicename", "device_name" -> result.put("nvr_device_name", value);
+                    case "model" -> result.put("nvr_model", value);
+                    default -> {
+                    }
+                }
+            }
+        }
+        List<Map<String, Object>> rows = DahuaNvrSupport.fetchChannels(isapiHttpClient, baseUrl, creds, timeoutSeconds);
         if (onlyMounted) {
             rows = rows.stream().filter(this::isMountedChannelRow).toList();
         }

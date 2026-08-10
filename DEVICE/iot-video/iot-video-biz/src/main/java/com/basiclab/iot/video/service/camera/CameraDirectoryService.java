@@ -27,6 +27,7 @@ public class CameraDirectoryService {
     private final DeviceRepository deviceRepository;
     private final CameraService cameraService;
     private final Gb28181SyncService gb28181SyncService;
+    private final DirectoryJsonSyncService directoryJsonSyncService;
 
     public List<Map<String, Object>> listTree() {
         directoryRepository.ensureDefaultDirectory();
@@ -183,15 +184,18 @@ public class CameraDirectoryService {
         return data;
     }
 
-    public void validateDirectoryJson(Map<String, Object> data) {
+    public void validateDirectoryJson(Object data) {
         if (data == null) {
             throw new VideoBusinessException(400, "请求数据不能为空");
         }
+        directoryJsonSyncService.validateTree(directoryJsonSyncService.parsePayload(data));
     }
 
-    public void syncDirectoryJson(Map<String, Object> data) {
-        validateDirectoryJson(data);
-        throw new VideoBusinessException(500, "目录 JSON 同步尚未在 Java 端实现");
+    public void syncDirectoryJson(Object data) {
+        if (data == null) {
+            throw new VideoBusinessException(400, "请求数据不能为空");
+        }
+        directoryJsonSyncService.syncFromJson(directoryJsonSyncService.parsePayload(data));
     }
 
     public SyncGb28181Result syncGb28181(

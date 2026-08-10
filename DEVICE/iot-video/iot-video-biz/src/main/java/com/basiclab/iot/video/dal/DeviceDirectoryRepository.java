@@ -70,6 +70,43 @@ public class DeviceDirectoryRepository {
         return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
     }
 
+    public Optional<DeviceDirectoryRow> findByNameAndParentId(String name, Integer parentId) {
+        if (parentId == null) {
+            List<DeviceDirectoryRow> rows = jdbc.query(
+                    """
+                    SELECT %s FROM device_directory
+                    WHERE name = ? AND parent_id IS NULL
+                    LIMIT 1
+                    """.formatted(SELECT_COLUMNS),
+                    ROW_MAPPER,
+                    name
+            );
+            return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
+        }
+        List<DeviceDirectoryRow> rows = jdbc.query(
+                "SELECT " + SELECT_COLUMNS + " FROM device_directory WHERE name = ? AND parent_id = ? LIMIT 1",
+                ROW_MAPPER,
+                name,
+                parentId
+        );
+        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
+    }
+
+    public List<DeviceDirectoryRow> findAllByName(String name) {
+        return jdbc.query(
+                "SELECT " + SELECT_COLUMNS + " FROM device_directory WHERE name = ? ORDER BY sort_order, id",
+                ROW_MAPPER,
+                name
+        );
+    }
+
+    public List<DeviceDirectoryRow> findAll() {
+        return jdbc.query(
+                "SELECT " + SELECT_COLUMNS + " FROM device_directory ORDER BY sort_order, id",
+                ROW_MAPPER
+        );
+    }
+
     public Optional<DeviceDirectoryRow> findDefaultRoot() {
         List<DeviceDirectoryRow> rows = jdbc.query(
                 """

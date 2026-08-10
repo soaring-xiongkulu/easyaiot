@@ -476,13 +476,13 @@ public class CameraController {
     }
 
     @PostMapping("/directory/validate-json")
-    public VideoApiResponse<Void> validateDirectoryJson(@RequestBody Map<String, Object> body) {
+    public VideoApiResponse<Void> validateDirectoryJson(@RequestBody Object body) {
         cameraDirectoryService.validateDirectoryJson(body);
         return VideoApiResponse.success("校验通过", null);
     }
 
     @PostMapping("/directory/sync-json")
-    public VideoApiResponse<Void> syncDirectoryJson(@RequestBody Map<String, Object> body) {
+    public VideoApiResponse<Void> syncDirectoryJson(@RequestBody Object body) {
         cameraDirectoryService.syncDirectoryJson(body);
         return VideoApiResponse.success("目录同步成功", null);
     }
