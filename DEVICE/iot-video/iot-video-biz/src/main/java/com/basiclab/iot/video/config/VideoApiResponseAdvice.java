@@ -25,6 +25,9 @@ public class VideoApiResponseAdvice implements ResponseBodyAdvice<Object> {
         if (org.springframework.http.ResponseEntity.class.isAssignableFrom(type)) {
             return false;
         }
+        if (org.springframework.web.servlet.mvc.method.annotation.SseEmitter.class.isAssignableFrom(type)) {
+            return false;
+        }
         String typeName = type.getName();
         if (typeName.endsWith("SpaceListApiResponse")) {
             return false;

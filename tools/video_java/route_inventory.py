@@ -47,6 +47,10 @@ BLUEPRINT_SPECS = {
         "file": "media_hook.py",
         "bp": "media_hook_bp",
     },
+    "/video/patrol": {
+        "file": "patrol.py",
+        "bp": "patrol_bp",
+    },
 }
 
 BLUEPRINT_ROUTE = re.compile(

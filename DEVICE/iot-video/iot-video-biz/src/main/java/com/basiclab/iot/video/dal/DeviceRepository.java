@@ -10,6 +10,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -270,6 +272,26 @@ public class DeviceRepository {
                 ROW_MAPPER,
                 directoryId
         );
+    }
+
+    public List<String> listIdsByDirectoryIds(List<Integer> directoryIds) {
+        if (directoryIds == null || directoryIds.isEmpty()) {
+            return List.of();
+        }
+        String placeholders = String.join(",", directoryIds.stream().map(id -> "?").toList());
+        List<String> ids = new ArrayList<>();
+        LinkedHashSet<String> seen = new LinkedHashSet<>();
+        jdbc.query(
+                "SELECT id FROM device WHERE directory_id IN (" + placeholders + ") ORDER BY updated_at DESC",
+                rs -> {
+                    String id = rs.getString("id");
+                    if (id != null && seen.add(id)) {
+                        ids.add(id);
+                    }
+                },
+                directoryIds.toArray()
+        );
+        return ids;
     }
 
     public void updateDirectoryId(String deviceId, Integer directoryId) {

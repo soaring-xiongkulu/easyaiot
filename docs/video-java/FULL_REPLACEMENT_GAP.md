@@ -49,7 +49,7 @@
 | 9 | playback | `/video/playback` | 7 | 全量路由 | list/CRUD/thumbnail/statistics | **路由切片完成** | `route_inventory` Py=7 Java=7 diff=0；**FR-W2-MEDIA** |
 | 10 | media_hook | `/video/media` | 全量路由 | hook/srs + hook/zlm + snap/completed | **路由切片完成** | `route_inventory` Py=6 Java=6 diff=0；**FR-W2-HOOKS**；MinIO DVR 上传待 SDK |
 | 11 | device_detection_region | `/video/device-detection` | 6 | 切片 | regions GET | **严重不足** | POST/PUT/DELETE、cover-image、snapshot 缺 |
-| 12 | patrol | `/video/patrol` | 9 | 几乎无 | 无 `PatrolController`；仅算法任务 list 间接覆盖 | **缺失（会话面）** | **EX-PATROL-SESSION-API** |
+| 12 | patrol | `/video/patrol` | 9 | 全量路由 | session CRUD/start/stop/stats/events/SSE/heartbeat/directory devices | **路由切片完成** | `route_inventory` Py=9 Java=9 diff=0；**FR-W2-PATROL**；守护进程/SSE 行为 mini 桩 |
 | 13 | audio_talk | `/video/camera/audio/talk` | 5 | 无 | — | **缺失** | **EX-AUDIO-TALK** |
 | 14 | scenario_pose | `/video/scenario-pose` | 14 | 无 | — | **缺失** | **EX-SCENARIO-POSE** |
 | — | heartbeat（附属） | `/video/algorithm/heartbeat` | (含在 algorithm) | 切片 | realtime | **不足** | `heartbeat/patrol` 未见 Java 映射 |
@@ -146,9 +146,10 @@
 
 | 域 | 全部路径 | 完整替换动作 |
 |----|----------|--------------|
-| `patrol` | session CRUD/start/stop/stats/events/SSE/heartbeat/directory devices | 新建 `PatrolController` + session 服务（对齐 `patrol_session_service` / progress hub） |
 | `audio_talk` | capabilities/start/stop/send/health | ONVIF back-channel 服务（对齐 `onvif_audio_backchannel`） |
 | `scenario_pose` | libraries/entries/extract/match-test/templates | 姿态库服务（对齐 `scenario_pose_library_service`） |
+
+**已解决（FR-W2-PATROL）：** `patrol` — `PatrolController` + `PatrolSessionService` / `PatrolProgressHub`；`route_inventory /video/patrol` Py=9 Java=9 diff=0；**EX-PATROL-SESSION-API resolved**。
 
 ---
 
