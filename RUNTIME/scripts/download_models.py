@@ -1,191 +1,103 @@
+#!/usr/bin/env python3
+"""Download Ultralytics YOLO weights and export ONNX for RUNTIME.
+
+Canonical names (align VIDEO model_ids -1/-2/-3):
+  yolo11n / yolov8n / yolo26n
+
+Usage:
+  RUNTIME_PYTHON=python python3 RUNTIME/scripts/download_models.py
 """
-YOLO模型下载脚本
-用于下载常用的YOLOv11模型并导出为ONNX格式
-"""
+
+from __future__ import annotations
+
+import os
+import shutil
+from pathlib import Path
 
 from ultralytics import YOLO
-import os
 
-# 模型保存目录
-MODEL_DIR = "F:/models"
-os.makedirs(MODEL_DIR, exist_ok=True)
+ROOT = Path(__file__).resolve().parents[1]
+MODEL_DIR = Path(os.getenv("RUNTIME_MODEL_DIR", str(ROOT / "models")))
+MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
-# 要下载的模型列表
+# name → description
 MODELS = {
-    # 检测模型（推荐）
-    'yolov11n': '最快，实时流推荐',
-    'yolov11s': '平衡性能',
-    'yolov11m': '高精度',
-    
-    # 分割模型
-    # 'yolov11n-seg': '实例分割',
-    
-    # 姿态模型
-    # 'yolov11n-pose': '人体姿态',
+    "yolo11n": "默认 builtin (-1)，classic detect",
+    "yolov8n": "builtin (-2)，classic detect",
+    "yolo26n": "builtin (-3)，end2end [N,6]",
 }
 
-def download_and_export(model_name, description):
-    """下载模型并导出为ONNX"""
-    print(f"\n{'='*60}")
-    print(f"📥 正在处理: {model_name} ({description})")
-    print(f"{'='*60}")
-    
+
+def download_and_export(model_name: str, description: str) -> bool:
+    print(f"\n{'=' * 60}")
+    print(f"处理: {model_name} ({description})")
+    print(f"{'=' * 60}")
     try:
-        # 1. 加载模型（自动下载）
-        print(f"⏬ 下载 {model_name}.pt...")
-        model = YOLO(f'{model_name}.pt')
-        
-        # 2. 导出为ONNX
-        print(f"🔄 导出为ONNX格式...")
-        onnx_path = model.export(
-            format='onnx',
-            imgsz=640,
-            simplify=True,
-            opset=12
+        print(f"加载 {model_name}.pt ...")
+        model = YOLO(f"{model_name}.pt")
+        print("导出 ONNX ...")
+        onnx_path = Path(
+            str(
+                model.export(
+                    format="onnx",
+                    imgsz=640,
+                    simplify=True,
+                    opset=12,
+                )
+            )
         )
-        
-        # 3. 移动到目标目录
-        import shutil
-        target_path = os.path.join(MODEL_DIR, f'{model_name}.onnx')
-        shutil.move(onnx_path, target_path)
-        
-        print(f"✅ 成功！模型保存到: {target_path}")
-        
-        # 4. 显示模型信息
-        file_size = os.path.getsize(target_path) / 1024 / 1024
-        print(f"📦 文件大小: {file_size:.1f} MB")
-        
+        target = MODEL_DIR / f"{model_name}.onnx"
+        if onnx_path.resolve() != target.resolve():
+            shutil.copy2(onnx_path, target)
+        # Keep .pt next to onnx when ultralytics downloaded it locally
+        for cand in (Path(f"{model_name}.pt"), Path.cwd() / f"{model_name}.pt"):
+            if cand.is_file():
+                shutil.copy2(cand, MODEL_DIR / f"{model_name}.pt")
+                break
+        print(f"OK {target} ({target.stat().st_size} bytes)")
+        # Historical alias for YOLO11
+        if model_name == "yolo11n":
+            legacy = MODEL_DIR / "yolov11n.onnx"
+            if not legacy.exists():
+                shutil.copy2(target, legacy)
+                print(f"alias {legacy}")
         return True
-        
-    except Exception as e:
-        print(f"❌ 失败: {str(e)}")
+    except Exception as exc:
+        print(f"FAIL {model_name}: {exc}")
         return False
 
-def download_coco_names():
-    """下载COCO类别文件"""
-    print(f"\n{'='*60}")
-    print(f"📥 下载COCO类别文件...")
-    print(f"{'='*60}")
-    
-    coco_names = """person
-bicycle
-car
-motorcycle
-airplane
-bus
-train
-truck
-boat
-traffic light
-fire hydrant
-stop sign
-parking meter
-bench
-bird
-cat
-dog
-horse
-sheep
-cow
-elephant
-bear
-zebra
-giraffe
-backpack
-umbrella
-handbag
-tie
-suitcase
-frisbee
-skis
-snowboard
-sports ball
-kite
-baseball bat
-baseball glove
-skateboard
-surfboard
-tennis racket
-bottle
-wine glass
-cup
-fork
-knife
-spoon
-bowl
-banana
-apple
-sandwich
-orange
-broccoli
-carrot
-hot dog
-pizza
-donut
-cake
-chair
-couch
-potted plant
-bed
-dining table
-toilet
-tv
-laptop
-mouse
-remote
-keyboard
-cell phone
-microwave
-oven
-toaster
-sink
-refrigerator
-book
-clock
-vase
-scissors
-teddy bear
-hair drier
-toothbrush"""
-    
-    coco_path = os.path.join(MODEL_DIR, 'coco.names')
-    with open(coco_path, 'w', encoding='utf-8') as f:
-        f.write(coco_names)
-    
-    print(f"✅ COCO类别文件已保存: {coco_path}")
 
-def main():
-    print("╔════════════════════════════════════════════════════════╗")
-    print("║         YOLO模型下载和转换工具                        ║")
-    print("╚════════════════════════════════════════════════════════╝")
-    print(f"\n📁 模型保存目录: {MODEL_DIR}\n")
-    
-    # 下载COCO类别文件
-    download_coco_names()
-    
-    # 下载并转换模型
-    success_count = 0
-    total_count = len(MODELS)
-    
-    for model_name, description in MODELS.items():
-        if download_and_export(model_name, description):
-            success_count += 1
-    
-    # 总结
-    print(f"\n{'='*60}")
-    print(f"📊 下载完成!")
-    print(f"✅ 成功: {success_count}/{total_count}")
-    print(f"📁 保存位置: {MODEL_DIR}")
-    print(f"{'='*60}\n")
-    
-    # 显示配置示例
-    print("💡 TASK模块配置示例:")
-    print(f"""
+def ensure_coco_names() -> None:
+    coco = MODEL_DIR / "coco.names"
+    if coco.is_file():
+        print(f"已有 {coco}")
+        return
+    # Prefer ensure_onnx sidecar or minimal stub — full list lives in repo coco.names
+    repo_coco = ROOT / "models" / "coco.names"
+    if repo_coco.is_file() and repo_coco.resolve() != coco.resolve():
+        shutil.copy2(repo_coco, coco)
+        print(f"复制 {coco}")
+        return
+    print(f"请手动放置 coco.names → {coco}")
+
+
+def main() -> None:
+    print("YOLO 模型下载/导出 →", MODEL_DIR)
+    ensure_coco_names()
+    ok = 0
+    for name, desc in MODELS.items():
+        if download_and_export(name, desc):
+            ok += 1
+    print(f"\n完成 {ok}/{len(MODELS)}")
+    print(
+        f"""
 [ai]
-model_path={MODEL_DIR}/yolov11n.onnx
+model_path={MODEL_DIR}/yolo11n.onnx
 classes_path={MODEL_DIR}/coco.names
-threads=3
-""")
+threads=2
+"""
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

@@ -43,8 +43,24 @@ if [[ -n "${CONDA_PREFIX:-}" ]]; then
   export CMAKE_PREFIX_PATH="${CONDA_PREFIX}${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
 fi
 export RUNTIME_BIN="${RUNTIME_BIN:-$_REPO/RUNTIME/build/RUNTIME}"
+export EASYAIOT_ROOT="${EASYAIOT_ROOT:-$_REPO}"
+export RUNTIME_ROOT="${RUNTIME_ROOT:-$_REPO/RUNTIME}"
+# Prefer a Python with ultralytics for .pt→onnx (override as needed)
+if [[ -z "${RUNTIME_PYTHON:-}" ]]; then
+  for _py in \
+    "$HOME/miniconda3/bin/python" \
+    /home/ubuntu/miniconda3/bin/python \
+    "$HOME/anaconda3/bin/python"
+  do
+    if [[ -x "$_py" ]] && "$_py" -c "import ultralytics" >/dev/null 2>&1; then
+      export RUNTIME_PYTHON="$_py"
+      break
+    fi
+  done
+fi
 
 echo "RUNTIME env ready"
 echo "  CONDA_PREFIX=${CONDA_PREFIX:-}"
 echo "  RUNTIME_BIN=$RUNTIME_BIN"
 echo "  ORT_ROOT=$ORT_ROOT"
+echo "  RUNTIME_PYTHON=${RUNTIME_PYTHON:-}"
