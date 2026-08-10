@@ -16,6 +16,7 @@ public class RemoteScheduleSupport {
 
     public static final String WORKLOAD_ALGORITHM = "algorithm_task";
     public static final String WORKLOAD_STREAM_FORWARD = "stream_forward";
+    public static final String WORKLOAD_POST_PROCESS = "post_process";
 
     private final IotNodeClient iotNodeClient;
     private final VideoProperties videoProperties;

@@ -24,6 +24,7 @@ public class AlgorithmTaskLifecycleService {
     private final VideoProperties videoProperties;
     private final RemoteScheduleSupport remoteScheduleSupport;
     private final AlgorithmRemoteDeployService remoteDeployService;
+    private final PostProcessLauncherService postProcessLauncherService;
 
     public Map<String, Object> getTask(long id) {
         AlgorithmTaskRow row = taskRepository.findById(id)
@@ -52,11 +53,17 @@ public class AlgorithmTaskLifecycleService {
         normalizeExecutor(task.getExecutor());
         if (remoteScheduleSupport.shouldUseRemoteDeploy(task)) {
             if (task.getNodeId() != null && remoteDeployService.isRemoteHealthy(task)) {
+                PostProcessLauncherService.LaunchResult pp = postProcessLauncherService.startPostProcessWorkers(task);
+                postProcessLauncherService.ensureRemoteStartSucceeded(pp);
                 Map<String, Object> data = new HashMap<>(task.toMap());
                 data.put("already_running", true);
                 return Map.of("message", "任务已在远程节点运行", "data", data);
             }
-            return remoteDeployService.deploy(task);
+            Map<String, Object> deployResult = remoteDeployService.deploy(task);
+            AlgorithmTaskRow refreshed = taskRepository.findById(id).orElse(task);
+            PostProcessLauncherService.LaunchResult pp = postProcessLauncherService.startPostProcessWorkers(refreshed);
+            postProcessLauncherService.ensureRemoteStartSucceeded(pp);
+            return deployResult;
         }
         if (supervisor.isAlive(id)) {
             Map<String, Object> data = new HashMap<>(task.toMap());
@@ -82,6 +89,10 @@ public class AlgorithmTaskLifecycleService {
         taskRepository.updateRunState(id, true, "running", logDir.toString(), port, pid);
         taskRepository.updateHeartbeat(id, "127.0.0.1", port, pid, logDir.toString(), "running");
         AlgorithmTaskRow updated = taskRepository.findById(id).orElse(task);
+        PostProcessLauncherService.LaunchResult pp = postProcessLauncherService.startPostProcessWorkers(updated);
+        if (!pp.success() && pp.remoteAttempted()) {
+            postProcessLauncherService.ensureRemoteStartSucceeded(pp);
+        }
         Map<String, Object> data = new HashMap<>(updated.toMap());
         data.put("already_running", false);
         return Map.of("message", "启动成功", "data", data);
@@ -93,6 +104,7 @@ public class AlgorithmTaskLifecycleService {
         if (task.getNodeId() != null) {
             remoteDeployService.stopRemote(task);
         }
+        postProcessLauncherService.stopPostProcessWorkers(id, task);
         supervisor.stop(id, true);
         taskRepository.updateRunState(id, false, "stopped", null, null, null);
         AlgorithmTaskRow updated = taskRepository.findById(id)

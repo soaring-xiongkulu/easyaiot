@@ -1,18 +1,21 @@
 package com.basiclab.iot.video.service;
 
+import com.basiclab.iot.video.dal.StreamForwardTaskRepository;
+import com.basiclab.iot.video.domain.StreamForwardTaskRow;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.net.Inet4Address;
 import java.net.NetworkInterface;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Device stream URL resolution — mirrors Python {@code camera_service._default_stream_urls},
- * {@code gb28181_device_stream_urls}, and {@code stream_url_sync_service.build_stream_urls_for_host}.
+ * {@code gb28181_device_stream_urls}, and {@code stream_url_sync_service.resolve_device_stream_urls}.
  */
 @Slf4j
 @Service
@@ -20,6 +23,8 @@ import java.util.Map;
 public class StreamUrlSupport {
 
     private final MediaPoolClient mediaPoolClient;
+    private final StreamForwardTaskRepository streamForwardTaskRepository;
+    private final IotNodeClient iotNodeClient;
 
     public String[] defaultStreamUrls(String deviceId) {
         if (mediaPoolClient.isMediaPoolEnabled()) {
@@ -65,12 +70,113 @@ public class StreamUrlSupport {
                 log.debug("媒体绑定查询失败 device_id={}: {}", deviceId, e.getMessage());
             }
         }
+
+        Map<String, Object> deployment = findStreamForwardDeployment(deviceId);
+        if (deployment != null) {
+            String host = stringOrEmpty(deployment.get("host")).trim();
+            Object nodeId = deployment.get("node_id");
+            Map<String, Object> tags = null;
+            if (nodeId != null) {
+                try {
+                    Map<String, Object> node = iotNodeClient.getNode(Long.parseLong(String.valueOf(nodeId)));
+                    Object tagsObj = node.get("tags");
+                    if (tagsObj instanceof Map<?, ?> rawTags) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> cast = (Map<String, Object>) rawTags;
+                        tags = cast;
+                    }
+                    if (host.isEmpty()) {
+                        host = stringOrEmpty(node.get("host")).trim();
+                    }
+                } catch (Exception e) {
+                    log.debug("查询部署节点失败 node_id={}: {}", nodeId, e.getMessage());
+                }
+            }
+            if (!host.isEmpty()) {
+                return buildStreamUrlsForHost(host, deviceId, tags, null);
+            }
+        }
+
         return new String[]{
                 rtmpFallback != null ? rtmpFallback : "",
                 httpFallback != null ? httpFallback : "",
                 aiRtmpFallback != null ? aiRtmpFallback : "",
                 aiHttpFallback != null ? aiHttpFallback : ""
         };
+    }
+
+    private Map<String, Object> findStreamForwardDeployment(String deviceId) {
+        for (StreamForwardTaskRow task : streamForwardTaskRepository.findEnabled()) {
+            List<Map<String, Object>> deployments = parseDeviceDeployments(task);
+            for (Map<String, Object> dep : deployments) {
+                List<String> deviceIds = stringList(dep.get("device_ids"));
+                if (deviceIds.contains(deviceId)) {
+                    String host = stringOrEmpty(dep.get("host")).trim();
+                    if (!host.isEmpty()) {
+                        return dep;
+                    }
+                }
+            }
+            if (deployments.isEmpty() && task.getServiceServerIp() != null && !task.getServiceServerIp().isBlank()) {
+                List<String> taskDeviceIds = task.getDeviceIds() != null ? task.getDeviceIds() : List.of();
+                if (taskDeviceIds.contains(deviceId)) {
+                    List<String> hosts = splitHosts(task.getServiceServerIp());
+                    if (!hosts.isEmpty()) {
+                        Map<String, Object> dep = new java.util.LinkedHashMap<>();
+                        dep.put("device_ids", new ArrayList<>(taskDeviceIds));
+                        dep.put("host", hosts.get(0));
+                        dep.put("node_id", task.getNodeId());
+                        return dep;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static List<Map<String, Object>> parseDeviceDeployments(StreamForwardTaskRow task) {
+        return task.toMap().get("device_deployments") instanceof List<?> list
+                ? castDeploymentList(list)
+                : List.of();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> castDeploymentList(List<?> list) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Object item : list) {
+            if (item instanceof Map<?, ?> map) {
+                out.add((Map<String, Object>) map);
+            }
+        }
+        return out;
+    }
+
+    private static List<String> stringList(Object raw) {
+        if (!(raw instanceof List<?> list)) {
+            return List.of();
+        }
+        List<String> out = new ArrayList<>();
+        for (Object item : list) {
+            if (item != null) {
+                out.add(String.valueOf(item));
+            }
+        }
+        return out;
+    }
+
+    private static List<String> splitHosts(String serviceServerIp) {
+        List<String> hosts = new ArrayList<>();
+        for (String part : serviceServerIp.split(",")) {
+            String host = part.trim();
+            if (!host.isEmpty()) {
+                hosts.add(host);
+            }
+        }
+        return hosts;
+    }
+
+    private static String stringOrEmpty(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 
     public String[] buildStreamUrlsForHost(

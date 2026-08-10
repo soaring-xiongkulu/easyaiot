@@ -73,6 +73,19 @@ public class StreamForwardTaskRepository {
         }
     };
 
+    public List<StreamForwardTaskRow> findEnabled() {
+        List<StreamForwardTaskRow> rows = jdbc.query(
+                "SELECT " + SELECT_COLUMNS + """
+                 FROM stream_forward_task
+                 WHERE is_enabled = true
+                 ORDER BY id ASC
+                """,
+                ROW_MAPPER
+        );
+        rows.forEach(this::attachDevices);
+        return rows;
+    }
+
     public List<StreamForwardTaskRow> findEnabledLocal() {
         List<StreamForwardTaskRow> rows = jdbc.query(
                 "SELECT " + SELECT_COLUMNS + """

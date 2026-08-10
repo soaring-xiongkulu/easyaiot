@@ -213,11 +213,37 @@ public class CameraAdminService {
         DeviceRow device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new VideoBusinessException(400, "设备不存在: " + deviceId));
         String source = device.getSource() != null ? device.getSource().trim() : "";
+        String rtspDirect = device.getRtspDirect() != null ? device.getRtspDirect().trim() : "";
+        String[] streams = streamUrlSupport.resolveDeviceStreamUrls(
+                deviceId,
+                device.getRtmpStream(),
+                device.getHttpStream(),
+                device.getAiRtmpStream(),
+                device.getAiHttpStream()
+        );
+        String rtmpStream = firstNonBlank(streams[0], device.getRtmpStream());
+        String httpStream = firstNonBlank(streams[1], device.getHttpStream());
+        boolean isGb28181 = source.toLowerCase(Locale.ROOT).startsWith("gb28181://");
+        String resolvedSource = null;
+        if (isGb28181) {
+            resolvedSource = source;
+        } else if (source.toLowerCase(Locale.ROOT).startsWith("rtsp://")
+                || source.toLowerCase(Locale.ROOT).startsWith("rtmp://")) {
+            resolvedSource = source;
+        } else if (rtspDirect.toLowerCase(Locale.ROOT).startsWith("rtsp://")
+                || rtspDirect.toLowerCase(Locale.ROOT).startsWith("rtmp://")) {
+            resolvedSource = rtspDirect;
+        }
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("device_id", deviceId);
-        data.put("source", source);
-        data.put("input_url", source);
-        data.put("kind", source.toLowerCase(Locale.ROOT).startsWith("gb28181://") ? "gb28181" : "direct");
+        data.put("source", source.isEmpty() ? null : source);
+        data.put("rtsp_direct", rtspDirect.isEmpty() ? null : rtspDirect);
+        data.put("rtmp_stream", rtmpStream.isEmpty() ? null : rtmpStream);
+        data.put("http_stream", httpStream.isEmpty() ? null : httpStream);
+        data.put("resolved_source", resolvedSource == null || resolvedSource.isBlank() ? null : resolvedSource.trim());
+        data.put("is_gb28181", isGb28181);
+        data.put("input_url", resolvedSource != null && !resolvedSource.isBlank() ? resolvedSource : source);
+        data.put("kind", isGb28181 ? "gb28181" : "direct");
         return data;
     }
 
@@ -342,5 +368,14 @@ public class CameraAdminService {
     private static Object normalizeModel(Object value) {
         String s = str(value);
         return (s == null || s.isEmpty()) ? "Camera-EasyAIoT" : s;
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return "";
     }
 }

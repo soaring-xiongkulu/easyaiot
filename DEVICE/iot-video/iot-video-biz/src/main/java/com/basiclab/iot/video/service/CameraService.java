@@ -21,6 +21,8 @@ public class CameraService {
 
     private final DeviceRepository deviceRepository;
 
+    private final StreamUrlSupport streamUrlSupport;
+
     public Map<String, Object> listDevices(int pageNo, int pageSize, String search) {
         if (pageNo < 1 || pageSize < 1) {
             throw new VideoBusinessException(400, "参数错误：pageNo和pageSize必须为正整数");
@@ -45,14 +47,21 @@ public class CameraService {
     }
 
     private Map<String, Object> toMap(DeviceRow camera) {
+        String[] streams = streamUrlSupport.resolveDeviceStreamUrls(
+                camera.getId(),
+                camera.getRtmpStream(),
+                camera.getHttpStream(),
+                camera.getAiRtmpStream(),
+                camera.getAiHttpStream()
+        );
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("id", camera.getId());
         payload.put("name", camera.getName());
         payload.put("source", camera.getSource());
-        payload.put("rtmp_stream", camera.getRtmpStream());
-        payload.put("http_stream", camera.getHttpStream());
-        payload.put("ai_rtmp_stream", camera.getAiRtmpStream());
-        payload.put("ai_http_stream", camera.getAiHttpStream());
+        payload.put("rtmp_stream", streams[0]);
+        payload.put("http_stream", streams[1]);
+        payload.put("ai_rtmp_stream", streams[2]);
+        payload.put("ai_http_stream", streams[3]);
         payload.put("enable_forward", camera.getEnableForward());
         payload.put("stream", camera.getStream() != null ? camera.getStream() : 0);
         payload.put("ip", camera.getIp());

@@ -100,7 +100,7 @@
 | ✅ | 流票据、位置/轨迹、注册、CRUD、batch-delete |
 | ✅ | PTZ/ONVIF 预设/RTSP·ONVIF 任务、snapshot、NVR、scan/discovery/refresh |
 | ✅ | SRS 回调、目录树、conflicts、inference-input、ensure-spaces、FlightHub 配置/登记 |
-| ❌ 行为 | ONVIF 真连接、NVR 通道枚举、hiktools 扫描、抓拍抽帧、司空 live、GB28181 全量同步 — **FR-B6 ✅** ONVIF SOAP/WS-Discovery、ISAPI 扫描/NVR 枚举、ffmpeg 抓拍已落地；无设备时错误结构与 Python 对齐；**FR-B11 ✅** GB28181/WVP 目录同步客户端 + 默认分组 patrol/monitor-tree 接线；**FR-B12 ✅** 目录 JSON 同步 + FlightHub OpenAPI live/register + 大华 NVR CGI 通道枚举；**FR-B13 ✅** 媒体节点池客户端 + AI/流地址接线 + Ceph allocate gate（prod 媒体池/iot-node 联调仍待） |
+| ❌ 行为 | ONVIF 真连接、NVR 通道枚举、hiktools 扫描、抓拍抽帧、司空 live、GB28181 全量同步 — **FR-B6 ✅** ONVIF SOAP/WS-Discovery、ISAPI 扫描/NVR 枚举、ffmpeg 抓拍已落地；无设备时错误结构与 Python 对齐；**FR-B11 ✅** GB28181/WVP 目录同步客户端 + 默认分组 patrol/monitor-tree 接线；**FR-B12 ✅** 目录 JSON 同步 + FlightHub OpenAPI live/register + 大华 NVR CGI 通道枚举；**FR-B13 ✅** 媒体节点池客户端 + AI/流地址接线 + Ceph allocate gate（prod 媒体池/iot-node 联调仍待）；**FR-B14 ✅** list/get/monitor-tree/inference-input 只读 `resolveDeviceStreamUrls` 接线（媒体池绑定 + 推流分片 host/tags 回退） |
 
 ### 2.4 `stream_forward` — FR-W2-SF（路由面 diff=0）
 
@@ -184,6 +184,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 |----|--------|------|--------------|
 | Alert → Kafka | 可走 Kafka | `use-direct-persist=false` → Kafka produce（minimal 驼峰消息，deviceId key）；失败 fallback direct_persist；local/mini 默认仍 direct | **resolved by FR-W1-KAFKA**（prod 需 broker + iot-sink 联调） |
 | Post-process → iot-sink | 真 enqueue | `use-stub-enqueue: true`（local） | **resolved by FR-B1**（`use-stub-enqueue=false` → HTTP POST iot-sink；不可达时 `enqueue_ok=false` + warn 日志；local/mini 默认仍 stub） |
+| Post-process worker 集群 | `post_process_launcher_service` 远程/本机副本 | **FR-B14 ✅** `PostProcessLauncherService` allocate/deploy/stop via `IotNodeClient`；`EASYAIOT_ENABLE_POST_PROCESS_WORKER=1` 门控；远程失败 `VideoBusinessException`（非静默） | prod 需 iot-node + `run_worker.py` 联调 |
 | Face/Plate matching | Kafka + 模型 | **FR-B5 ✅** Kafka produce；**FR-B9 ✅** Python worker 推理 + 匹配命中告警链 | prod 需模型/Milvus + `use-direct-process=false` |
 | 远程 node / RUNTIME 分发 | node_client | **FR-B4 ✅** `IotNodeClient` allocate/deploy/stop；**FR-B13 ✅** `requireCephMount` / `ceph_mount_ready` gate | prod 集群需 iot-node + Agent + SRS 联调 |
 | ONVIF / NVR / GB28181 / FlightHub | camera 大面 | **FR-B6 ✅** ONVIF SOAP + WS-Discovery + ISAPI 扫描/NVR 枚举 + ffmpeg 抓拍；**FR-B11 ✅** `Gb28181SyncService` WVP 拉取/前端 payload 同步 + 默认目录 patrol 接线；**FR-B12 ✅** 目录 JSON 同步 + FlightHub OpenAPI live/register + 大华 NVR CGI 通道枚举 | prod 真机/NVR/WVP/司空联调仍待 |
@@ -251,7 +252,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 路由缺口（prefix-level） | **0** |
 | inventory 扫描 artifact | `/video/camera` 前缀 Java **+5**（talk 子路径重复计入） |
 | 整域 HTTP 未实现 | **无**（14 前缀均已 diff=0） |
-| 行为桩仍存的域 | algorithm/stream_forward（远程 node 集群健康）；face/plate/pose **FR-B9 ✅** Python worker（prod 需模型运行时）；patrol/audio_talk/match-image **FR-B10 ✅**（真机/MinIO 联调待 ops）；GB28181 目录同步 **FR-B11 ✅**（prod WVP 联调待 ops）；媒体节点池 **FR-B13 ✅**（prod iot-node 媒体 API 联调待 ops） |
+| 行为桩仍存的域 | algorithm/stream_forward（远程 node 集群健康）；face/plate/pose **FR-B9 ✅** Python worker（prod 需模型运行时）；patrol/audio_talk/match-image **FR-B10 ✅**（真机/MinIO 联调待 ops）；GB28181 目录同步 **FR-B11 ✅**（prod WVP 联调待 ops）；媒体节点池 **FR-B13 ✅**（prod iot-node 媒体 API 联调待 ops）；post-process worker **FR-B14 ✅**（prod 远程副本 + `run_worker.py` 联调待 ops） |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 259 路由；仅防回归） |
 
 ---
