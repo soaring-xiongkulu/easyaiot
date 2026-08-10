@@ -4,10 +4,12 @@
 
 对 **同一夹具**，分别命中：
 
-- Oracle：Python VIDEO（`F:/acme/VIDEO`，`video-server`，端口 6000）
-- Candidate：Java `iot-video-biz`（`video-server-java`，端口 48096）
+- Oracle：Python VIDEO — **P0 直连** `http://127.0.0.1:6000`（Nacos 名 `video-server`）
+- Candidate：Java `iot-video-biz` — **P0 直连** `http://127.0.0.1:48096`（Nacos 名 `video-server-java`）
 
-采集分层产物并 diff；红则只改 Java（或修正夹具 bug，须记录）。
+**P0 不以改 WEB 代理或网关为前置。** 网关 `/admin-api/video-java/**` 仅可选联通。
+
+采集分层产物并 diff；红则只改 Java（或修正夹具 bug，须记录）。Alarm 录制/回放须串行，禁止双边并行双写同一夹具。
 
 ## 2. 目录（待 Phase -1 创建）
 

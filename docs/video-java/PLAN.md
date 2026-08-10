@@ -63,14 +63,16 @@
 
 ## 2. 分期与门禁
 
-### Phase -1：基线与纪律（审查通过后立即）
+### Phase -1：基线与纪律（**已批准**；等开工指令）
 
-- [ ] 打 tag `video-java-oracle-baseline`
+- [ ] 打 tag `video-java-oracle-baseline`（SHA 写回 HANDOFF）
 - [ ] 创建 worktree + 空 `iot-video` 模块注册进 `DEVICE/pom.xml`
-- [ ] `tools/video_java/doctor.py`（或 .ps1）检查目录/Java/ VIDEO oracle 可达
+- [ ] `{code,msg,data}` 对外适配骨架（避免默认 `CommonResult`）
+- [ ] `local`/`mini` profile：无 Nacos 或 soft-fail 可启动
+- [ ] `tools/video_java/doctor.py`（或 .ps1）检查目录/Java/ VIDEO oracle 可达；注明 P0 直连端口
 - [ ] 门禁文件：`gates/PHASE_-1_GATE.md` PASS
 
-**Exit：** 能 `mvn -pl iot-video/iot-video-biz -am package` 空壳 + doctor PASS。
+**Exit：** 能 `mvn -pl DEVICE/iot-video/iot-video-biz -am package` 空壳 + doctor PASS + local profile 无 Nacos 可起。
 
 ### Phase 0：最小闭环（替换证明）
 
@@ -120,22 +122,26 @@
 
 ## 3. 双跑、切流、回滚
 
-### 3.1 双跑
+### 3.1 双跑（审查锁定）
 
 | 项 | 策略 |
 |----|------|
-| 服务名 | Java：`video-server-java`；Python：`video-server` |
-| 网关 | 保留现路由给 Python；新增 `video-java-admin-api` → `lb://video-server-java`（路径可 `/admin-api/video-java/**` 或同源不同 Header/端口仅测试用） |
-| DB | 共用 `iot-video20`；**禁止**双边 auto_start 抢同一 `is_enabled` 任务 — certify 使用专用 task_id / 或一侧关 `VIDEO_SKIP_BACKGROUND_TASKS` |
+| 服务名 | Java：**始终** `video-server-java`；Python：`video-server` — **禁止**双跑期抢同一 Nacos 名 |
+| P0 certify 基址 | **直连** `http://127.0.0.1:48096` 与 Python `http://127.0.0.1:6000`；**不**以改 WEB 代理为 P0 前置 |
+| 网关（可选） | 保留 Python 现路由；可选 `video-java-admin-api` → `lb://video-server-java`（`/admin-api/video-java/**`）— **不阻塞 P0** |
+| DB | 共用 `iot-video20`；**禁止**双边 auto_start 抢同一 `is_enabled` 任务 — 专用 `task_id` / 关一侧后台 / `VIDEO_SKIP_BACKGROUND_TASKS` |
+| Alarm | **禁止**双边并行双写同一 hook 夹具；录制与回放串行或分 case 隔离 |
 | 端口 | Java `48096`；Python `6000` |
+| Profile | **`local`/`mini`：无 Nacos 或 soft-fail**（Phase -1 交付） |
 
-### 3.2 切流
+### 3.2 切流（审查锁定）
 
 1. Phase 2/3 certify 绿  
 2. 停 Python auto_start；Java 接管 enabled 任务  
-3. 改 Java `spring.application.name=video-server`（或改网关 uri）  
-4. 下线 Python 注册  
-5. 观察心跳/告警 15–30min
+3. **优先**改网关 `video-admin-api` → `lb://video-server-java`（观察稳定）  
+4. 再视需要把 Java `spring.application.name` 改为 `video-server` 并下线 Python（避免抢名窗口）  
+5. 鉴权与现网一致（token/`tenant-id`）并已进门禁  
+6. 观察心跳/告警 15–30min  
 
 ### 3.3 回滚
 
@@ -188,7 +194,7 @@
 
 ---
 
-## 8. Phase 0 任务清单（审查通过后执行）
+## 8. Phase -1 任务清单（批准；**等开工指令后再做**）
 
 ### Task A: Oracle tag + worktree
 
@@ -198,16 +204,18 @@
 ### Task B: 空模块
 
 - [ ] 创建 `DEVICE/iot-video` api+biz  
-- [ ] Nacos 名 `video-server-java`，端口 48096  
-- [ ] `/actuator/health` 返回 UP（可先无 DB）
+- [ ] 应用名 `video-server-java`，端口 48096  
+- [ ] `/actuator/health` 返回 UP（可先无 DB）  
+- [ ] `{code,msg,data}` 适配层骨架  
+- [ ] `local`/`mini` profile（无 Nacos / soft-fail）
 
 ### Task C: 测试场骨架
 
-- [ ] `testdata/video-java/manifest.json` 至少 3 个 P0 case id  
+- [ ] `testdata/video-java/manifest.json` 至少 3 个 P0 case id（base URL 直连端口）  
 - [ ] `tools/video_java/doctor.py`  
 - [ ] `gates/PHASE_-1_GATE.md`
 
-### Task D: 停 — 等 Phase -1 PASS 再开 Phase 0 业务代码
+### Task D: 停 — Phase -1 PASS 前不开 Phase 0 业务搬迁
 
 ---
 

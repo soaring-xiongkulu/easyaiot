@@ -98,12 +98,13 @@ DEVICE/
 
 **包名：** `com.basiclab.iot.video`  
 **建议本地端口：** `48096`（避免与 Flask `6000`、其它 iot-* 冲突；双跑时网关按服务名分流）  
-**Nacos：**
+**Nacos / Profile：**
 
-| 阶段 | `spring.application.name` | 网关 |
-|------|---------------------------|------|
-| 双跑 / certify | `video-server-java` | 临时路由 `/admin-api/video-java/**` 或第二 route 权重 0 |
-| 切流后 | `video-server` | 现有 `video-admin-api` → `lb://video-server`；Python 下线 |
+| 阶段 | `spring.application.name` | 网关 / 访问 |
+|------|---------------------------|-------------|
+| 双跑 / certify | **`video-server-java`**（始终独立名，**不与 Python 抢 `video-server`**） | P0 certify **直连** `:48096`；可选临时路由 `/admin-api/video-java/**`（不阻塞 P0） |
+| 切流（推荐） | 仍可暂留 `video-server-java` | **优先改网关** `video-admin-api` → `lb://video-server-java`；稳定后再视需要改名为 `video-server` 并下线 Python |
+| local / mini | 同左或 `video-server-java` | **`local`/`mini` profile：可关 Nacos discovery 或 soft-fail**，对齐现网无 Nacos 开发形态（Phase -1 必须落地） |
 
 ---
 
@@ -174,15 +175,18 @@ flowchart LR
 | Patrol / regions / audio | `/video/patrol|device-detection|camera/audio/**` | P1–P2 |
 | Media hook | `/video/media/**` | P1 |
 
-**响应外壳：** 优先兼容 Python `{code, msg, data}`；若与 `CommonResult` 冲突，**对外兼容 Python**，对内可适配。
+**响应外壳（审查锁定）：** 对外 HTTP **必须**兼容 Python `{code, msg, data}`。与 `iot-common-web` / `CommonResult` 冲突时，用显式 VO + `@ControllerAdvice`（或等价 Filter）做适配——**禁止**默认把 `CommonResult` 直接吐给 WEB/网关客户端。Phase -1 空壳即带该适配骨架。
+
+**鉴权：** 直连 `:48096` 的 P0 certify 可暂宽；经网关或生产切流后必须与现网 token / `tenant-id` 一致，并纳入门禁（流票据等 P1 钉死，切流后不得「Java 裸奔、Python 校验」）。
 
 ---
 
 ## 5. 数据与双跑
 
 - **库：** 首期 **共用 `iot-video20`**（同 schema）。双跑时写路径必须串行或分任务隔离，避免双守护抢同一 `algorithm_task`。
+- **Alarm 夹具：** 禁止 Python/Java **并行**对同一 hook 夹具双写同一告警行——录制与回放**串行**，或分 `case_id` / 时间窗隔离。
 - **迁移：** 不在 P0 做破坏性迁表；缺列用增量 SQL（Flyway/Liquibase 可选，对齐 DEVICE 习惯）。
-- **切流：** 见 PLAN §双跑；回滚 = 网关指回 Python `video-server` + 停 Java 实例。
+- **切流：** 见 PLAN §3（**优先改网关 URI**）；回滚 = 网关指回 Python `lb://video-server` + 停 Java 实例。
 
 ---
 
@@ -224,8 +228,10 @@ flowchart LR
 
 ## 8. 审查检查清单（栈是否可接受）
 
-- [ ] 接受 Java 21 + Boot 2.7.18 + DEVICE Maven 生态（不升 Boot 3）
-- [ ] 接受新建 `DEVICE/iot-video`（api+biz），Nacos 双跑名 `video-server-java` → 切流 `video-server`
-- [ ] 接受 ProcessBuilder 编排 RUNTIME/ffmpeg，不内嵌推理
-- [ ] 接受共用 `iot-video20` 首期策略与抢任务风险缓解写进 PLAN
-- [ ] 接受独立 `docs/video-java` + `tools/video_java` 门禁
+- [x] 接受 Java 21 + Boot 2.7.18 + DEVICE Maven 生态（不升 Boot 3）— **2026-08-10 有条件通过**
+- [x] 接受新建 `DEVICE/iot-video`（api+biz），双跑名 `video-server-java`；切流优先改网关 URI
+- [x] 接受 ProcessBuilder 编排 RUNTIME/ffmpeg，不内嵌推理
+- [x] 接受共用 `iot-video20` + alarm 串行/隔离 + `{code,msg,data}` 适配 + local/mini 无 Nacos
+- [x] 接受独立 `docs/video-java` + `tools/video_java` 门禁
+
+详见 [HANDOFF.md §9](./HANDOFF.md)。

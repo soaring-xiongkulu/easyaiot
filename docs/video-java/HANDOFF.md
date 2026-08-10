@@ -44,7 +44,7 @@
 
 ## 6. 阅读清单（开工前）
 
-1. [STACK.md](./STACK.md) — 技术栈与模块结构（**已锁定草案，待审**）
+1. [STACK.md](./STACK.md) — 技术栈与模块结构（**有条件通过，含 §9.1 约束**）
 2. [PLAN.md](./PLAN.md) — 分期与门禁
 3. [EXECUTION.md](./EXECUTION.md) — 纪律
 4. [testbed/README.md](./testbed/README.md) — 等价场
@@ -62,18 +62,44 @@
 - 网关已转发 video；**无**现成 `iot-video` Java 模块。
 - Java 侧已有：Boot 2.7.18 / Java 21 / Nacos / Kafka / MinIO / iot-node 部署 RUNTIME·ffmpeg / iot-sink 匹配链。
 
-## 8. 你的下一步（审查通过前）
+## 8. 你的下一步
 
-1. 审 [STACK.md](./STACK.md) 选型与模块布局。  
-2. 审 [PLAN.md](./PLAN.md) P0 门禁与双跑切流。  
-3. **批准前不建业务代码骨架以外的大规模实现**（Phase 0 仅允许：打 oracle tag、空模块+health、测试场目录与 doctor 脚本草案）。  
-4. 审查意见回写本 HANDOFF「决议」节。
+1. §9.1 已吸进 STACK/PLAN/testbed（见同日修订）。  
+2. **等待开工指令** → 仅 Phase -1（tag、空模块、doctor、`local`/`mini`、`{code,msg,data}` 骨架）。  
+3. Phase -1 PASS 前 **不开** Phase 0 业务搬迁。
 
 ## 9. 决议（审查填写）
 
+> **审查轮次：** 2026-08-10（side-chat 审 STACK → PLAN → HANDOFF）  
+> **总评：** **有条件通过** — 方法论与边界正确；与 DEVICE BOM 对齐值得肯定。按下列决议修订/执行，即可开 Phase -1。
+
 | 项 | 状态 |
 |----|------|
-| 栈与模块布局 | ⬜ 待审 |
-| P0 范围 | ⬜ 待审 |
-| 双跑服务名 / 切流 | ⬜ 待审 |
-| Oracle tag SHA | ⬜ Phase 0 填写 |
+| 栈与模块布局 | ✅ **通过** — Java 21 + Boot 2.7.18 + Cloud 2021.0.5 + 新建 `DEVICE/iot-video`（api+biz）；不升 Boot 3；ProcessBuilder 编排 RUNTIME/ffmpeg |
+| P0 范围 | ✅ **通过** — health + 任务启停/ini/心跳/alert hook + 进程监督；camera/ffmpeg 转推放 P1；远程 node P0 可豁免并登记 |
+| 双跑服务名 / 切流 | ✅ **通过（附约束）** — 双跑名 `video-server-java` / 端口 `48096`；见下方硬约束 |
+| Oracle tag SHA | ⬜ Phase -1/0 打 tag 时写回（勿沿用写稿时的 `4f93baf` 口头值） |
+| 独立门禁 | ✅ **通过** — `docs/video-java` + `tools/video_java`；禁止混进 runtime-parity gates |
+| 估时 | ✅ **通过** — case 燃尽；禁止「3 小时」类推与空人月 |
+
+### 9.1 硬约束（必须写进 STACK/PLAN 或 Phase -1 门禁，否则易翻车）
+
+1. **对外响应外壳：** 锁定 **兼容 Python `{code,msg,data}`**（STACK §4 已写）。Phase -1 须落地「与 `CommonResult` 冲突时的适配层」设计一句（Filter/Advice/显式 VO），避免第一天就被 iot-common-web 习惯带偏。
+2. **P0 certify 基址：** **默认真连** `http://127.0.0.1:48096`（及 Python `:6000`）；**不依赖**先改 WEB 代理。网关 `/admin-api/video-java/**` 仅作可选联通，不作 P0 阻塞。
+3. **切流优先改网关 URI，而非抢注服务名：** 生产切流推荐 `video-admin-api` → `lb://video-server-java`（或改写 uri），观察稳定后再视需要把 Java 的 `spring.application.name` 改为 `video-server` 并下线 Python。避免双边短暂抢同一个 Nacos 名。
+4. **共用 `iot-video20`：** 同意首期共用；certify **必须**专用 `task_id` / 关一侧 `auto_start` / `VIDEO_SKIP_BACKGROUND_TASKS`（PLAN 已有）。Alarm 层禁止 Python/Java **并行**对同一 hook 夹具双写同一告警行——录制与回放串行或分 case 隔离。
+5. **本地 mini / 无 Nacos：** DEVICE 栈默认 Nacos；Phase -1 须提供 **`local`/`mini` profile**（可关 discovery 或 soft-fail），对齐现网 VIDEO 无 Nacos 仍可跑的开发形态。
+6. **鉴权：** P0 对内直连可暂宽；若走网关必须与现网 token/`tenant-id` 行为对齐。流票据等 P1 再钉，但不得在切流后出现「Java 裸奔、Python 校验」的不一致而不进门禁。
+
+### 9.2 赞同一并保留的设计
+
+- 与 `iot-parent` BOM / `iot-common-*` / sink·node·file 模式对齐（本审查最重要加分项）
+- Oracle/candidate + 红清单 + 独立 certify（同构 runtime-parity）
+- 下游不动：RUNTIME、ffmpeg、SRS/ZLM、AI、匹配算法不进 VIDEO 重写
+- 人脸/车牌：ORT Java 或阶段性旁路，且必须进 video-java 门禁
+
+### 9.3 下一步
+
+**批准进入 Phase -1**（仅）：oracle tag、worktree、`iot-video` 空壳 + health + `{code,msg,data}` 适配 + `local`/`mini` 无 Nacos、`tools/video_java/doctor`、`gates/PHASE_-1_GATE.md`。  
+**Phase -1 PASS 前**不得开始 Phase 0 业务搬迁（任务启停/ini/hook 实装）。  
+**当前：** 文档已吸收 §9.1 → **停，等开工指令。**
