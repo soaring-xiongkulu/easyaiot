@@ -13,7 +13,10 @@ management:
       enabled: false
 
 video:
-  skip-background-tasks: true
+  # local certify needs health recovery for vj_p0_restart (was true → scheduler off → false green risk)
+  skip-background-tasks: false
+  health-monitor:
+    interval-ms: 5000
   alert:
     use-direct-persist: true
   matching:

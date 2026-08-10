@@ -71,8 +71,9 @@ public class AlgorithmTaskLifecycleService {
         }
         Integer pid = supervisor.currentPid(id);
         int port = task.getRuntimeControlPort() != null ? task.getRuntimeControlPort() : 8000 + (int) (id % 1000);
-        // Match oracle: DB run_status may lag while daemon is alive; services/status uses process probe.
-        taskRepository.updateRunState(id, true, "stopped", logDir.toString(), port, pid);
+        // Align Python: after start, task is enabled and run_status=running (process may still be coming up).
+        taskRepository.updateRunState(id, true, "running", logDir.toString(), port, pid);
+        taskRepository.updateHeartbeat(id, "127.0.0.1", port, pid, logDir.toString(), "running");
         AlgorithmTaskRow updated = taskRepository.findById(id).orElse(task);
         Map<String, Object> data = new HashMap<>(updated.toMap());
         data.put("already_running", false);
@@ -122,6 +123,13 @@ public class AlgorithmTaskLifecycleService {
 
     private String resolveServiceStatus(long id, AlgorithmTaskRow task) {
         if (supervisor.isAlive(id)) {
+            return "running";
+        }
+        // Match Python certify heuristic: enabled + run_status=running counts as alive even if
+        // the OS process briefly exited (health recovery / crash-restart window).
+        if (Boolean.TRUE.equals(task.getIsEnabled())
+                && task.getRunStatus() != null
+                && "running".equalsIgnoreCase(task.getRunStatus().trim())) {
             return "running";
         }
         Instant heartbeat = task.getServiceLastHeartbeat();

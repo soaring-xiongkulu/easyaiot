@@ -60,13 +60,10 @@ public class AlgorithmTaskHealthRecoveryService {
 
     boolean isHealthy(AlgorithmTaskRow task) {
         long taskId = task.getId();
+        // Local ProcessBuilder is authoritative: a dead process is unhealthy even if DB
+        // still says run_status=running with a fresh heartbeat (crash/restart window).
         if (supervisor.isAlive(taskId)) {
             return true;
-        }
-        int timeoutSec = Math.max(30, videoProperties.getHealthMonitor().getHeartbeatFailoverSeconds());
-        if (!isHeartbeatStale(task.getServiceLastHeartbeat(), timeoutSec)) {
-            String runStatus = task.getRunStatus() != null ? task.getRunStatus().trim().toLowerCase() : "stopped";
-            return RUNNING_STATUSES.contains(runStatus);
         }
         return false;
     }

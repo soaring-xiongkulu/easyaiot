@@ -268,7 +268,9 @@ def _record_restart(case: Dict[str, Any], fixture: Dict[str, Any]) -> None:
     try:
         http_json("POST", f"{base}/video/algorithm/task/{task_id}/start", timeout=90.0)
         time.sleep(3.0)
-        time.sleep(8.0)
+        if normal_bin:
+            update_task_runtime_bin(task_id, normal_bin)
+        time.sleep(15.0)
         after_svc = _task_service_status(base, task_id)
         after_lc = _lifecycle_from_service(after_svc)
         write_layer(
