@@ -24,6 +24,7 @@ public class VideoProperties {
     private final NodeRemote nodeRemote = new NodeRemote();
     private final StreamForwardHealth streamForwardHealth = new StreamForwardHealth();
     private final Inference inference = new Inference();
+    private final MediaPool mediaPool = new MediaPool();
 
     /**
      * Mirrors Python {@code VIDEO_SKIP_BACKGROUND_TASKS=1} — disables scheduled health recovery
@@ -209,6 +210,14 @@ public class VideoProperties {
         private String workersDir = "";
         /** Subprocess timeout (model cold-start may need 60–120s). */
         private int timeoutSeconds = 120;
+    }
+
+    @Data
+    public static class MediaPool {
+        /** Mirrors {@code MEDIA_NODE_POOL_ENABLED}; env wins when set. */
+        private Boolean enabled;
+        private String region = "";
+        private String httpPlayHost = "";
     }
 
     @Data

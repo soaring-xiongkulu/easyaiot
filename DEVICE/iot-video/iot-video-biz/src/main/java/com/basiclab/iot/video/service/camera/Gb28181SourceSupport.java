@@ -79,11 +79,16 @@ final class Gb28181SourceSupport {
         return roots;
     }
 
-    static String[] gb28181DeviceStreamUrls(String deviceId) {
+  /** Legacy local SRS AI URLs — use {@link com.basiclab.iot.video.service.StreamUrlSupport} when media pool may apply. */
+    static String[] legacyGb28181AiStreamUrls(String deviceId) {
         String host = hostIpForStreamUrls();
         String aiRtmp = "rtmp://" + host + ":1935/ai/" + deviceId;
         String aiHttp = "http://" + host + ":8080/ai/" + deviceId + ".flv";
         return new String[]{"", "", aiRtmp, aiHttp};
+    }
+
+    static String hostIpForStreamUrls() {
+        return detectHostIpv4();
     }
 
     private static void addBase(List<String> ordered, Set<String> seen, String base) {
@@ -112,10 +117,6 @@ final class Gb28181SourceSupport {
                 return ip;
             }
         }
-        return detectHostIpv4();
-    }
-
-    private static String hostIpForStreamUrls() {
         return detectHostIpv4();
     }
 

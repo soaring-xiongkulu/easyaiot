@@ -6,6 +6,7 @@ import com.basiclab.iot.video.dal.DeviceDirectoryRepository;
 import com.basiclab.iot.video.domain.DeviceRow;
 import com.basiclab.iot.video.exception.VideoBusinessException;
 import com.basiclab.iot.video.service.CameraService;
+import com.basiclab.iot.video.service.StreamUrlSupport;
 import com.basiclab.iot.video.service.ViewForwardService;
 import com.basiclab.iot.video.service.minio.VideoMinioService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class CameraAdminService {
     private final ViewForwardService viewForwardService;
     private final VideoMinioService videoMinioService;
     private final CameraHardwareService cameraHardwareService;
+    private final StreamUrlSupport streamUrlSupport;
 
     public String registerDevice(Map<String, Object> data) {
         String id = data.get("id") != null ? String.valueOf(data.get("id")).trim() : String.valueOf(System.nanoTime());
@@ -52,7 +54,7 @@ public class CameraAdminService {
                 model = "Camera-EasyAIoT";
             }
         }
-        String[] streams = defaultStreamUrls(id);
+        String[] streams = streamUrlSupport.defaultStreamUrls(id);
         DeviceRow row = new DeviceRow();
         row.setId(id);
         row.setName(strOrDefault(data.get("name"), "Camera-" + id.substring(0, Math.min(6, id.length()))));
@@ -110,7 +112,7 @@ public class CameraAdminService {
             return deviceId;
         }
         String deviceId = String.valueOf(System.nanoTime());
-        String[] streams = defaultStreamUrls(deviceId);
+        String[] streams = streamUrlSupport.defaultStreamUrls(deviceId);
         DeviceRow row = new DeviceRow();
         row.setId(deviceId);
         row.setName(strOrDefault(info.get("model"), "Camera-" + deviceId.substring(0, Math.min(6, deviceId.length()))));
@@ -246,6 +248,7 @@ public class CameraAdminService {
     }
 
     static String[] defaultStreamUrls(String deviceId) {
+        // Kept for tests; production paths use injected StreamUrlSupport.
         String host = resolveHostIp();
         return new String[]{
                 "rtmp://" + host + ":1935/live/" + deviceId,

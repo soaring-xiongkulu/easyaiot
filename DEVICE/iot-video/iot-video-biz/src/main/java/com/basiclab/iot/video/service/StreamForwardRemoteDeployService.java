@@ -35,6 +35,7 @@ public class StreamForwardRemoteDeployService {
     private final RemoteScheduleSupport remoteScheduleSupport;
     private final StreamForwardTaskRepository taskRepository;
     private final VideoProperties videoProperties;
+    private final StreamUrlSyncService streamUrlSyncService;
 
     public Map<String, Object> deploy(StreamForwardTaskRow task) {
         long taskId = task.getId();
@@ -96,6 +97,11 @@ public class StreamForwardRemoteDeployService {
             );
 
             StreamForwardTaskRow updated = taskRepository.findById(taskId).orElse(task);
+            try {
+                streamUrlSyncService.syncDeviceStreamUrls(deviceIds, host, nodeId);
+            } catch (Exception e) {
+                log.warn("推流转发部署后同步设备流地址失败 task_id={}: {}", taskId, e.getMessage());
+            }
             Map<String, Object> data = new LinkedHashMap<>(updated.toMap());
             data.put("already_running", false);
             return Map.of(
@@ -328,6 +334,12 @@ public class StreamForwardRemoteDeployService {
                 "推流转发分片远程重部署成功 task_id={} workload_id={} node_id={} host={} pid={}",
                 taskId, workloadId, nodeId, host, pid
         );
+
+        try {
+            streamUrlSyncService.syncDeviceStreamUrls(deviceIds, host, nodeId);
+        } catch (Exception e) {
+            log.warn("推流转发分片部署后同步设备流地址失败 task_id={}: {}", taskId, e.getMessage());
+        }
 
         Map<String, Object> deployment = new LinkedHashMap<>();
         deployment.put("device_ids", deviceIds);

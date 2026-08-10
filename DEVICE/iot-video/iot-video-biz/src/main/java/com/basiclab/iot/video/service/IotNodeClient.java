@@ -81,8 +81,33 @@ public class IotNodeClient {
             Long targetNodeId,
             List<Long> excludeNodeIds
     ) {
+        return allocateNode(
+                workloadType, workloadId, capabilities, preferGpu, sticky, targetNodeId, excludeNodeIds, null
+        );
+    }
+
+    /**
+     * Mirrors Python {@code node_client.allocate_node} including cluster-mode {@code require_ceph_mount}.
+     */
+    public Map<String, Object> allocateNode(
+            String workloadType,
+            String workloadId,
+            List<String> capabilities,
+            boolean preferGpu,
+            boolean sticky,
+            Long targetNodeId,
+            List<Long> excludeNodeIds,
+            Boolean requireCephMount
+    ) {
+        boolean requireCeph = requireCephMount != null ? requireCephMount : isClusterMode();
+
         if (targetNodeId != null) {
             Map<String, Object> node = getNode(targetNodeId);
+            if (requireCeph && !isNodeCephMountReady(node)) {
+                throw new NodeClientException(
+                        "指定节点 #" + targetNodeId + " CephFS 未挂载就绪，请先在节点管理部署存储客户端"
+                );
+            }
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("nodeId", targetNodeId);
             out.put("host", node.get("host"));
@@ -98,6 +123,9 @@ public class IotNodeClient {
         requirements.put("preferGpu", preferGpu);
         if (excludeNodeIds != null && !excludeNodeIds.isEmpty()) {
             requirements.put("excludeNodeIds", excludeNodeIds);
+        }
+        if (requireCeph) {
+            requirements.put("requireCephMount", true);
         }
 
         Map<String, Object> payload = new LinkedHashMap<>();
@@ -256,6 +284,42 @@ public class IotNodeClient {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+  /** Mirrors Python {@code _is_cluster_mode}. */
+    private boolean isClusterMode() {
+        String env = trimToNull(System.getenv("CLUSTER_MODE"));
+        if (env != null) {
+            return isTruthy(env);
+        }
+        return false;
+    }
+
+    /** Mirrors Python {@code _node_ceph_mount_ready}. */
+    private boolean isNodeCephMountReady(Map<String, Object> node) {
+        if (node == null) {
+            return false;
+        }
+        Object isPlatform = node.get("isPlatform");
+        if (isPlatform != null && isTruthy(String.valueOf(isPlatform))) {
+            return true;
+        }
+        Object isPlatformSnake = node.get("is_platform");
+        if (isPlatformSnake != null && isTruthy(String.valueOf(isPlatformSnake))) {
+            return true;
+        }
+        Object tags = node.get("tags");
+        if (tags instanceof Map<?, ?> tagMap) {
+            Object ready = tagMap.get("ceph_mount_ready");
+            if (ready != null) {
+                String normalized = String.valueOf(ready).trim().toLowerCase(Locale.ROOT);
+                return normalized.equals("true")
+                        || normalized.equals("1")
+                        || normalized.equals("yes")
+                        || normalized.equals("on");
+            }
+        }
+        return false;
     }
 
     public static class NodeClientException extends RuntimeException {

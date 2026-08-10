@@ -4,6 +4,7 @@ import com.basiclab.iot.video.dal.DeviceDirectoryRepository;
 import com.basiclab.iot.video.dal.DeviceRepository;
 import com.basiclab.iot.video.domain.DeviceRow;
 import com.basiclab.iot.video.exception.VideoBusinessException;
+import com.basiclab.iot.video.service.StreamUrlSupport;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -34,6 +35,7 @@ public class Gb28181SyncService {
 
     private final DeviceRepository deviceRepository;
     private final DeviceDirectoryRepository directoryRepository;
+    private final StreamUrlSupport streamUrlSupport;
     private RestTemplate restTemplate;
 
     @PostConstruct
@@ -254,7 +256,7 @@ public class Gb28181SyncService {
             if (!needAi) {
                 continue;
             }
-            String[] urls = Gb28181SourceSupport.gb28181DeviceStreamUrls(device.getId());
+            String[] urls = streamUrlSupport.gb28181DeviceStreamUrls(device.getId());
             Map<String, Object> fields = new LinkedHashMap<>();
             if (isBlank(device.getAiRtmpStream())) {
                 fields.put("ai_rtmp_stream", urls[2]);
@@ -308,7 +310,7 @@ public class Gb28181SyncService {
     private boolean upsertGbDevice(NormalizedChannel channel, int defaultDirId, Location location) {
         String mappedId = Gb28181SourceSupport.virtualDeviceId(channel.parentId(), channel.channelId());
         String source = Gb28181SourceSupport.buildSource(channel.parentId(), channel.channelId());
-        String[] streams = Gb28181SourceSupport.gb28181DeviceStreamUrls(mappedId);
+        String[] streams = streamUrlSupport.gb28181DeviceStreamUrls(mappedId);
 
         return deviceRepository.findById(mappedId).map(existing -> {
             Map<String, Object> fields = new LinkedHashMap<>();
