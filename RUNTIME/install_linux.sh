@@ -78,13 +78,32 @@ activate_runtime_env() {
     print_info "创建 conda 环境: $CONDA_ENV_NAME"
     conda create -y -n "$CONDA_ENV_NAME" -c conda-forge \
       python=3.11 cmake cxx-compiler pkg-config \
-      opencv ffmpeg glog jsoncpp libcurl \
-      libjpeg-turbo libtiff openexr imath openjph libavif
+      "sysroot_linux-64=2.28" \
+      "opencv=5" ffmpeg glog gflags jsoncpp libcurl \
+      libjpeg-turbo libtiff openexr imath openjph libavif \
+      libxml2 libxml2-16 openh264 libstdcxx-ng libgcc-ng \
+      libdovi vulkan-loader libva libdeflate libpng
   fi
   conda activate "$CONDA_ENV_NAME"
   # 补齐运行期常见缺失库（已存在则 conda 会跳过）
+  # gflags 是 glog CMake package 的 find_dependency；缺了会导致 find_package(glog) 失败
+  # sysroot 2.28：使二进制可在 Ubuntu 22.04（glibc 2.35）VIDEO 容器中运行
+  # opencv=5：RUNTIME 依赖 opencv2/geometry.hpp（OpenCV 4 无此头）
   conda install -y -c conda-forge \
+    "sysroot_linux-64=2.28" \
+    "opencv=5" \
+    glog gflags \
+    libxml2 libxml2-16 openh264 libstdcxx-ng libgcc-ng \
+    libdovi vulkan-loader libva libdeflate libpng \
     libjpeg-turbo libtiff openexr imath openjph libavif >/dev/null 2>&1 || true
+  # conda 的 libstdc++ 常在 gcc 子目录；挂载到容器时需出现在 $CONDA_PREFIX/lib（相对链接）
+  local gcc_rel
+  gcc_rel="$(ls -d "${CONDA_PREFIX}/lib/gcc/"*/*/ 2>/dev/null | tail -1 | sed "s|^${CONDA_PREFIX}/lib/||" || true)"
+  if [[ -n "$gcc_rel" && -f "${CONDA_PREFIX}/lib/${gcc_rel}libstdc++.so.6" ]]; then
+    ln -sfn "${gcc_rel}libstdc++.so.6" "${CONDA_PREFIX}/lib/libstdc++.so.6"
+    [[ -f "${CONDA_PREFIX}/lib/${gcc_rel}libgcc_s.so.1" ]] && \
+      ln -sfn "${gcc_rel}libgcc_s.so.1" "${CONDA_PREFIX}/lib/libgcc_s.so.1"
+  fi
   export PATH="$CONDA_PREFIX/bin:$PATH"
 }
 
@@ -96,20 +115,56 @@ has_nvidia_gpu() {
 }
 
 cuda_lib_paths() {
-  local paths=()
-  local p
-  for p in \
-    /usr/local/cuda/lib64 \
-    /usr/local/cuda/lib \
-    /usr/lib/x86_64-linux-gnu \
-    /usr/lib/aarch64-linux-gnu \
-    /usr/lib64
-  do
-    if [[ -d "$p" ]]; then
+  # Host-side search path for linking/running RUNTIME.
+  # Prefer CUDA toolkit dirs; allow multiarch dirs only when libcudart is present
+  # (driver-only libcuda.so stubs are NOT enough and must not be mounted into
+  # containers — see ensure_runtime_cpp.sh).
+  local paths=() p d
+  _has_cudart() {
+    [[ -d "$1" ]] && compgen -G "${1}/libcudart.so*" >/dev/null 2>&1
+  }
+  for p in /usr/local/cuda/lib64 /usr/local/cuda/lib; do
+    if _has_cudart "$p"; then
       paths+=("$p")
     fi
   done
-  # dedupe join
+  for d in /usr/local/cuda-*/lib64 /usr/local/cuda-*/lib; do
+    if _has_cudart "$d"; then
+      paths+=("$d")
+    fi
+  done
+  for p in /usr/lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu /usr/lib64; do
+    if _has_cudart "$p"; then
+      paths+=("$p")
+    fi
+  done
+  local out="" s
+  for s in "${paths[@]}"; do
+    case ":$out:" in
+      *":$s:"*) ;;
+      *) out="${out:+$out:}$s" ;;
+    esac
+  done
+  echo "$out"
+}
+
+# Paths safe to bind-mount into the VIDEO container as /opt/easyaiot/cuda-lib.
+# Never return generic system lib dirs (they contain libc and break /bin/sh).
+cuda_toolkit_mount_paths() {
+  local paths=() p d
+  _has_cudart() {
+    [[ -d "$1" ]] && compgen -G "${1}/libcudart.so*" >/dev/null 2>&1
+  }
+  for p in /usr/local/cuda/lib64 /usr/local/cuda/lib; do
+    if _has_cudart "$p"; then
+      paths+=("$p")
+    fi
+  done
+  for d in /usr/local/cuda-*/lib64 /usr/local/cuda-*/lib; do
+    if _has_cudart "$d"; then
+      paths+=("$d")
+    fi
+  done
   local out="" s
   for s in "${paths[@]}"; do
     case ":$out:" in
@@ -228,8 +283,10 @@ write_deploy_env() {
   local deploy_env="$ROOT/deploy.env"
   local conda_lib="${CONDA_PREFIX}/lib"
   local ort_lib="${ORT_ROOT}/lib"
-  local cuda_libs
+  local cuda_libs cuda_mount
   cuda_libs="$(cuda_lib_paths)"
+  # Container bind-mount must be toolkit-only (never /usr/lib/*)
+  cuda_mount="$(cuda_toolkit_mount_paths)"
   local ld_path="$conda_lib:$ort_lib"
   if [[ -n "$cuda_libs" ]]; then
     ld_path="$ld_path:$cuda_libs"
@@ -240,7 +297,7 @@ RUNTIME_BIN=$bin
 RUNTIME_HOST_DIR=$ROOT
 RUNTIME_CONDA_LIB_HOST=$conda_lib
 RUNTIME_ORT_LIB_HOST=$ort_lib
-RUNTIME_CUDA_LIB_HOST=$cuda_libs
+RUNTIME_CUDA_LIB_HOST=$cuda_mount
 LD_LIBRARY_PATH=$ld_path
 CONDA_PREFIX=$CONDA_PREFIX
 ORT_ROOT=$ORT_ROOT
