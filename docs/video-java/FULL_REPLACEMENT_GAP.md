@@ -285,18 +285,20 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B33 POST keys-matrix**（`:48096` local） | **16** curated POST 样本 → **16/16 pass** / **0 fail**；**11** success-key（Python to_dict）+ **5** envelope-only 4xx；**67** assert pass；artifact `logs/fr-b33-post-keys-matrix-latest.json`；**≠ 全量 POST 字段键矩阵** |
 | **FR-B34 POST keys-matrix**（`:48096` local） | **42** curated POST 样本 → **42/42 pass** / **0 fail**；**25** success-key + **17** envelope/envelope_success；**13/14** 前缀覆盖；**169** assert pass；artifact `logs/fr-b34-post-keys-matrix-latest.json`；**≠ 全量 POST 字段键矩阵** |
 | **FR-B35 POST keys-matrix**（`:48096` local） | **63** curated POST 样本 → **63/63 pass** / **0 fail**；**32** success-key + **31** envelope/envelope_success；**14/14** 前缀（含 `audio_talk` POST start/stop/send）；**242** assert pass；artifact `logs/fr-b35-post-keys-matrix-latest.json`；**≠ 全量 POST 字段键矩阵** |
+| **FR-B36 POST keys-matrix**（`:48096` local） | **131** curated POST 样本 → **131/131 pass** / **0 fail**；**40** success-key + **91** envelope/envelope_success；**inventoried POST 112 = 109 sampled + 3 destructive skip**；**457** assert pass；coverage 表见 artifact `logs/fr-b36-post-keys-matrix-latest.json`；**≠ 逐字段 POST 全量 parity** |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定 — FR-B34
+## 9. 最终判定 — FR-B36
 
 | 问题 | 答案 |
 |------|------|
-| POST success body 键矩阵？ | **是（local）** — **42** 样本（13/14 前缀；algo/snap/face/plate/sf/playback/pose/patrol/camera/alert/record/media/device-detection + action/heartbeat）；artifact `logs/fr-b34-post-keys-matrix-latest.json` |
-| Java 缺键/500 修复？ | **是** — `DeviceDirectoryRepository.insert`；auto-enroll stop 无任务 400；auto-enroll `to_dict` null 时间戳键 |
-| phase0？ | **PASS 5/5** — `logs/certify-frb34-phase0.log` |
-| 能否称 COMPLETE？ | **禁止** — prod soak open；POST keys-matrix 仅 42 条 curated；~112 POST 未全量；audio/talk POST 未覆盖 |
+| POST inventoried 路由覆盖？ | **是（local）** — **112** inventoried POST → **109** sampled + **3** documented destructive skip；coverage 表 `logs/fr-b36-post-keys-matrix-latest.md` |
+| POST success body 键矩阵？ | **是（local）** — **131** 样本 **131/131**；**40** key-assert pass；artifact `logs/fr-b36-post-keys-matrix-latest.json` |
+| Java 缺键/5xx 修复？ | **是** — face/plate multipart 缺文件 → 400；`persons/batch-delete` 空列表 → 400；scenario-pose re-extract 不存在 → 400 |
+| phase0？ | **PASS 5/5** — `logs/certify-frb36-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — prod soak open；multipart 成功路径 / 真机 ONVIF 未绿；fixture bucket 名 S3 非法致 sync 诚实 500 |
 
 ## 10. 历史判定归档（只读）
 

@@ -558,7 +558,7 @@ ARTIFACT_PREFIX = "fr-b27"
 MATRIX_ARTIFACT_PREFIX = "fr-b27"
 KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b29"
 MUTATING_MATRIX_ARTIFACT_PREFIX = "fr-b31"
-POST_KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b35"
+POST_KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b36"
 
 MATRIX_DISCLAIMER = (
     "GET envelope matrix probes inventoried safe GET routes only (no POST/DELETE auto). "
@@ -585,13 +585,20 @@ MUTATING_MATRIX_DISCLAIMER = (
 )
 
 POST_KEYS_MATRIX_DISCLAIMER = (
-    "POST keys-matrix probes curated high-value POST creates (frb35_* synthetic names) with "
+    "POST keys-matrix probes curated inventoried POST routes (frb36_* synthetic names) with "
     "Python-first to_dict / blueprint success body key asserts on code==0; validation 4xx "
     "assert envelope {code,msg} only; media/hook ack routes may assert code+msg without data. "
-    "Create-then-delete where safe. "
+    "Destructive cleanup POSTs are documented skips. Create-then-delete where safe. "
     "This is NOT exhaustive POST field parity and does NOT mean COMPLETE — "
     "see docs/video-java/FULL_REPLACEMENT_GAP.md."
 )
+
+# Inventoried POST routes intentionally not probed (destructive side effects).
+POST_KEYS_MATRIX_DOCUMENTED_SKIPS: Dict[str, str] = {
+    "/video/snap/device/{param}/storage/cleanup": "destructive storage purge (snap.py cleanup_device_storage)",
+    "/video/snap/space/{param}/images/cleanup": "destructive image purge (snap.py cleanup_space_images)",
+    "/video/record/space/{param}/videos/cleanup": "destructive video purge (record.py cleanup_space_videos)",
+}
 
 # Python-first: POST success envelopes — e.g. algorithm_task.py create_task L144-148,
 # snap.py cleanup_device_storage L889-893, playback.py create_playback.
@@ -2247,12 +2254,15 @@ def assert_post_keys_sample(
 
     prerequisite = sample.get("prerequisite")
     if prerequisite:
-        pre_ok, pre_meta, _ = _apply_post_keys_prerequisite(base_url, prerequisite, body, timeout)
+        pre_ok, pre_meta, pre_captured = _apply_post_keys_prerequisite(base_url, prerequisite, body, timeout)
         result["prerequisite"] = pre_meta
         if not pre_ok:
             record("prerequisite", False, "prerequisite failed")
             result["ok"] = False
             return result
+        if pre_captured is not None and "{id}" in path:
+            path = path.replace("{id}", str(pre_captured))
+            result["probe_path"] = path
 
     result["probe_body"] = body
     if method == "POST":
@@ -2326,8 +2336,55 @@ def assert_post_keys_sample(
     return result
 
 
+def normalize_post_keys_sample_path(path: str) -> str:
+    """Map concrete probe paths to inventoried {param} templates for coverage."""
+    p = path.split("?", 1)[0].rstrip("/")
+    p = re.sub(r"\{id\}", "{param}", p)
+    p = p.replace(MATRIX_SEED_DEVICE_ID, "{param}")
+    p = re.sub(r"/\d+", "/{param}", p)
+    return p
+
+
+def build_post_keys_coverage_table(samples: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Inventoried POST vs sampled vs documented skip."""
+    inventoried: List[str] = []
+    for route in collect_inventoried_routes():
+        method, path = parse_route(route)
+        if method == "POST":
+            inventoried.append(path)
+    inventoried = sorted(set(inventoried))
+
+    sampled_paths: Set[str] = set()
+    for sample in samples:
+        sampled_paths.add(normalize_post_keys_sample_path(str(sample.get("path", ""))))
+
+    rows: List[Dict[str, Any]] = []
+    sampled_count = 0
+    skipped_count = 0
+    uncovered: List[str] = []
+    for path in inventoried:
+        skip_reason = POST_KEYS_MATRIX_DOCUMENTED_SKIPS.get(path)
+        if skip_reason:
+            rows.append({"path": path, "status": "skipped", "reason": skip_reason})
+            skipped_count += 1
+        elif path in sampled_paths:
+            rows.append({"path": path, "status": "sampled"})
+            sampled_count += 1
+        else:
+            rows.append({"path": path, "status": "uncovered"})
+            uncovered.append(path)
+
+    return {
+        "inventoried_post": len(inventoried),
+        "sampled": sampled_count,
+        "skipped": skipped_count,
+        "uncovered": uncovered,
+        "rows": rows,
+    }
+
+
 def run_post_keys_matrix(base_url: str, timeout: float) -> Tuple[List[Dict[str, Any]], Dict[str, Any], bool, str]:
-    from post_keys_matrix_b35_specs import bind_post_keys_matrix_specs
+    from post_keys_matrix_b36_specs import bind_post_keys_matrix_specs
 
     server_up, health_detail = server_reachable(base_url, timeout=min(timeout, 3.0))
     samples = bind_post_keys_matrix_specs(sys.modules[__name__])
@@ -2374,7 +2431,12 @@ def run_post_keys_matrix(base_url: str, timeout: float) -> Tuple[List[Dict[str, 
         for check in row.get("checks", [])
         if check["check"] in ("data_keys", "data_keys_alt") and check["status"] == "fail"
     )
-    return rows, summary, server_up, health_detail, samples
+    coverage = build_post_keys_coverage_table(samples)
+    summary["post_inventoried"] = coverage["inventoried_post"]
+    summary["post_sampled_routes"] = coverage["sampled"]
+    summary["post_skipped_routes"] = coverage["skipped"]
+    summary["post_uncovered_routes"] = coverage["uncovered"]
+    return rows, summary, server_up, health_detail, samples, coverage
 
 
 def write_post_keys_matrix_artifacts(
@@ -2382,6 +2444,7 @@ def write_post_keys_matrix_artifacts(
     summary: Dict[str, Any],
     base_url: str,
     samples: List[Dict[str, Any]],
+    coverage: Dict[str, Any],
     *,
     server_up: bool,
     health_detail: str,
@@ -2411,13 +2474,14 @@ def write_post_keys_matrix_artifacts(
         "server_up": server_up,
         "health_detail": health_detail,
         "summary": summary,
+        "coverage": coverage,
         "mapping_table": mapping_table,
         "samples": rows,
     }
     json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     lines = [
-        "# FR-B35 POST Keys Matrix — Python-first success body keys",
+        "# FR-B36 POST Keys Matrix — Python-first success body keys",
         "",
         f"**Generated:** {payload['generated_at']}",
         f"**Base URL:** {base_url}",
@@ -2427,16 +2491,32 @@ def write_post_keys_matrix_artifacts(
         f"**Key asserts:** pass={summary.get('key_assert_pass', 0)} fail={summary.get('key_assert_fail', 0)}",
         f"**Asserts:** pass={summary['pass']} fail={summary['fail']} skip={summary['skip']} "
         f"(total={summary['asserts']})",
+        f"**POST coverage:** inventoried={coverage.get('inventoried_post')} "
+        f"sampled={coverage.get('sampled')} skipped={coverage.get('skipped')} "
+        f"uncovered={len(coverage.get('uncovered') or [])}",
         "",
         "## Disclaimer",
         "",
         POST_KEYS_MATRIX_DISCLAIMER,
         "",
-        "## Python-first mapping",
+        "## POST route coverage (inventoried vs sampled vs skipped)",
         "",
-        "| id | path | mode | python_source |",
-        "|----|------|------|---------------|",
+        "| path | status | reason |",
+        "|------|--------|--------|",
     ]
+    for crow in coverage.get("rows", []):
+        reason = crow.get("reason") or ""
+        reason_cell = f"{reason[:60]}…" if len(reason) > 60 else reason
+        lines.append(f"| `{crow['path']}` | {crow['status']} | {reason_cell} |")
+    lines.extend(
+        [
+            "",
+            "## Python-first mapping",
+            "",
+            "| id | path | mode | python_source |",
+            "|----|------|------|---------------|",
+        ]
+    )
     for row in mapping_table:
         src = row["python_source"] or ""
         src_cell = f"{src[:70]}…" if len(src) > 70 else src
@@ -2561,6 +2641,9 @@ def http_post_json(
     except urllib.error.HTTPError as exc:
         status = exc.code
         raw = exc.read().decode("utf-8", errors="replace")
+    except (urllib.error.URLError, OSError, TimeoutError) as exc:
+        status = 0
+        raw = str(exc)
     try:
         body = json.loads(raw) if raw.strip() else {}
     except json.JSONDecodeError:
@@ -2923,7 +3006,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.post_keys_matrix:
         print(f"\nPOST keys-matrix base_url={args.base_url}")
-        pk_rows, pk_summary, server_up, health_detail, pk_samples = run_post_keys_matrix(
+        pk_rows, pk_summary, server_up, health_detail, pk_samples, pk_coverage = run_post_keys_matrix(
             args.base_url, args.timeout
         )
         print(
@@ -2931,6 +3014,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             f"samples={pk_summary.get('post_samples')} "
             f"success_keys={pk_summary.get('success_key_samples')} "
             f"envelope_only={pk_summary.get('envelope_only_samples')} | "
+            f"post_routes: inventoried={pk_summary.get('post_inventoried')} "
+            f"sampled={pk_summary.get('post_sampled_routes')} "
+            f"skipped={pk_summary.get('post_skipped_routes')} "
+            f"uncovered={len(pk_summary.get('post_uncovered_routes') or [])} | "
             f"key_asserts: pass={pk_summary.get('key_assert_pass')} "
             f"fail={pk_summary.get('key_assert_fail')} | "
             f"asserts: pass={pk_summary['pass']} fail={pk_summary['fail']} skip={pk_summary['skip']} "
@@ -2941,6 +3028,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             pk_summary,
             args.base_url,
             pk_samples,
+            pk_coverage,
             server_up=server_up,
             health_detail=health_detail,
         )

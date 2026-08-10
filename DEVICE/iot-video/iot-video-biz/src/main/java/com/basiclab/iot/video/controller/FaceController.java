@@ -131,6 +131,9 @@ public class FaceController {
         @SuppressWarnings("unchecked")
         List<Integer> personIds = body != null
                 ? (List<Integer>) (Object) RequestParams.list(body, "person_ids", "personIds") : List.of();
+        if (personIds == null || personIds.isEmpty()) {
+            throw new com.basiclab.iot.video.exception.VideoBusinessException(400, "person_ids 不能为空");
+        }
         return VideoApiResponse.success("删除成功", faceLibraryService.batchDeletePersons(personIds));
     }
 
@@ -156,7 +159,13 @@ public class FaceController {
             @RequestParam(required = false) Integer person_id,
             @RequestParam(required = false) MultipartFile file) throws Exception {
         String personName = person_name != null && !person_name.isBlank() ? person_name : name;
-        byte[] bytes = file != null ? file.getBytes() : new byte[0];
+        if (personName == null || personName.isBlank()) {
+            throw new com.basiclab.iot.video.exception.VideoBusinessException(400, "person_name 不能为空");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new com.basiclab.iot.video.exception.VideoBusinessException(400, "请上传文件字段 file");
+        }
+        byte[] bytes = file.getBytes();
         Integer personId = person_id;
         boolean enabled = is_enabled == null || RequestParams.matchedFilter(is_enabled) == null
                 || RequestParams.matchedFilter(is_enabled);
@@ -317,8 +326,14 @@ public class FaceController {
 
     @PostMapping("/library")
     public VideoApiResponse<Map<String, Object>> addLegacyLibrary(
-            @RequestParam String label,
-            @RequestParam MultipartFile file) throws Exception {
+            @RequestParam(required = false) String label,
+            @RequestParam(required = false) MultipartFile file) throws Exception {
+        if (label == null || label.isBlank()) {
+            throw new com.basiclab.iot.video.exception.VideoBusinessException(400, "label 不能为空");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new com.basiclab.iot.video.exception.VideoBusinessException(400, "请上传人脸图片");
+        }
         return VideoApiResponse.success("录入成功", faceRecognitionService.addLegacyFace(label, file.getBytes()));
     }
 
@@ -339,7 +354,10 @@ public class FaceController {
             @RequestParam(defaultValue = "3") int top_k,
             @RequestParam(required = false) Integer library_id,
             @RequestParam(required = false) String threshold,
-            @RequestParam MultipartFile file) throws Exception {
+            @RequestParam(required = false) MultipartFile file) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new com.basiclab.iot.video.exception.VideoBusinessException(400, "请上传人脸图片");
+        }
         Double th = threshold != null && !threshold.isBlank() ? Double.parseDouble(threshold) : null;
         return VideoApiResponse.success("识别完成",
                 faceRecognitionService.recognize(file.getBytes(), top_k, library_id, th));

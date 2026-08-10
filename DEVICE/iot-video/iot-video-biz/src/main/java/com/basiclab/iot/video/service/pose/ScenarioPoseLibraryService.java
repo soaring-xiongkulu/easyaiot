@@ -225,7 +225,7 @@ public class ScenarioPoseLibraryService {
 
     public Map<String, Object> reExtractEntry(int entryId, double conf) {
         Map<String, Object> entry = entryRepository.findById(entryId)
-                .orElseThrow(() -> new VideoBusinessException(500, "提取失败: 场景姿态条目不存在"));
+                .orElseThrow(() -> new VideoBusinessException(400, "场景姿态条目不存在"));
         String imagePath = (String) entry.get("image_path");
         if (imagePath == null || imagePath.isBlank()) {
             throw new VideoBusinessException(400, "该条目无参考图片");

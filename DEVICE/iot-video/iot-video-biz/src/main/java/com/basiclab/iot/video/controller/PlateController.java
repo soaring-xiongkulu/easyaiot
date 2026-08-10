@@ -247,7 +247,11 @@ public class PlateController {
     }
 
     @PostMapping("/recognize/image")
-    public VideoApiResponse<List<Map<String, Object>>> recognizeImage(@RequestParam MultipartFile file) throws Exception {
+    public VideoApiResponse<List<Map<String, Object>>> recognizeImage(
+            @RequestParam(required = false) MultipartFile file) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new com.basiclab.iot.video.exception.VideoBusinessException(400, "请上传车牌图片");
+        }
         return VideoApiResponse.success("success", plateRecognitionService.recognizePlates(file.getBytes()));
     }
 
