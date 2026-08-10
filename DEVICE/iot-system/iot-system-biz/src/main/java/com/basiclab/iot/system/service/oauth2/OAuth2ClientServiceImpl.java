@@ -101,7 +101,8 @@ public class OAuth2ClientServiceImpl implements OAuth2ClientService {
     }
 
     @Override
-    @Cacheable(cacheNames = RedisKeyConstants.OAUTH_CLIENT, key = "#clientId",
+    // 使用 #p0，避免 IDEA/无 -parameters 编译时 #clientId 解析为 null 导致登录失败
+    @Cacheable(cacheNames = RedisKeyConstants.OAUTH_CLIENT, key = "#p0",
             unless = "#result == null")
     public OAuth2ClientDO getOAuth2ClientFromCache(String clientId) {
         return oauth2ClientMapper.selectByClientId(clientId);
