@@ -23,6 +23,10 @@ BLUEPRINT_SPECS = {
         "file": "algorithm_task.py",
         "bp": "algorithm_task_bp",
     },
+    "/video/camera": {
+        "file": "camera.py",
+        "bp": "camera_bp",
+    },
 }
 
 BLUEPRINT_ROUTE = re.compile(

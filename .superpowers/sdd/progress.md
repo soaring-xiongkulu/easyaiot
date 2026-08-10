@@ -1,14 +1,16 @@
 # Progress — Phase FR
 
-| 工作包 | Status | Notes |
-|--------|--------|-------|
-| FR-W0 | DONE | |
+| 工作包 | Status | Commit |
+|--------|--------|--------|
+| FR-W0 | DONE | docs |
 | FR-W1-ALERT | DONE | `8d4cb90` |
-| FR-W1-ALGO | DONE | `b52c848`；diff 0 on `/video/algorithm` |
-| phase0 smoke fix | DONE | run_status=running + recovery; certify exit 0 |
-| **FR-W1-BG** | **DONE** | auto_start + health recovery parity; `certify --phase 0` exit 0 |
-| FR-W1-AUTH | DONE | gateway + system-server token check; EX-GATEWAY-AUTH-LOCAL resolved |
-| **FR-W1-KAFKA** | **DONE** | Alert hook Kafka produce path; EX-KAFKA-HOOK resolved |
-| FR-W2-* | pending | |
+| FR-W1-ALGO | DONE | `b52c848` |
+| FR-W1-BG | DONE | `fc02169` |
+| FR-W1-AUTH | DONE | `ad530a4` |
+| FR-W1-KAFKA | DONE | `382e588` |
+| phase0 smoke | DONE | `a339da7` |
+| **FR-W2-CAM** | **DONE_WITH_CONCERNS** | see `fr-w2-cam-report.md` |
+| FR-W2-MEDIA/SF/HOOKS/PATROL/MATCH | pending | |
+| FR-W3 / FR-W4 | pending | |
 
-协作：composer-2.5 · Python-first · 禁止嵌套 · 不中断汇报直至 FR 包链完成。
+Python-first · composer-2.5 · 禁止嵌套 · 持续推进至缺口表齐。

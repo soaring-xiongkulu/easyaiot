@@ -40,7 +40,7 @@
 |---|----|-------------|----------:|-----------|----------------------|--------------|----------------|
 | 1 | algorithm_task | `/video/algorithm` | 21 | 管理面 + lifecycle | list/get/CRUD/start/stop/restart/services/status/heartbeat/logs/streams/post-process | **本地切片** | route_inventory `/video/algorithm` Py=21 Java=21 diff=0；远程 node 仍 400（EX-REMOTE-NODE） |
 | 2 | alert | `/video/alert` | 10 | 管理面 + hook | page/count/statistics/correlation/image/record/record/query/clear/clear/all + `POST /hook` | **本地切片** | route_inventory `/video/alert` Py=10 Java=10 diff=0；**EX-ALERT-ADMIN-API resolved**；**EX-KAFKA-HOOK resolved**（`use-direct-persist=false` → Kafka produce + fallback） |
-| 3 | camera | `/video/camera` | **59** | 切片 | list、get、stream start/stop/status | **严重不足** | 注册/ONVIF/NVR/目录/PTZ/扫段/FlightHub/流票据/预设位等约 50+ 路由未迁 |
+| 3 | camera | `/video/camera` | **59** | 全量路由 | list/CRUD/stream/目录/NVR/… | **路由切片完成** | `route_inventory` Py=59 Java=59 diff=0；**FR-W2-CAM**；ONVIF/扫描/抓拍行为待 SDK |
 | 4 | stream_forward | `/video/stream-forward` | 13 | 切片 | get、start/stop/status | **严重不足** | CRUD、restart、heartbeat、logs、streams、ensure-task 缺 |
 | 5 | face | `/video/face` | 35 | 切片 | matching/publish、matching/process | **严重不足** | 库/人像/entries/auto-enroll/normalize/recognize/model… 全缺 |
 | 6 | plate | `/video/plate` | 26 | 切片 | matching/publish、matching/process | **严重不足** | 同 face，库与识别面缺 |
@@ -89,26 +89,16 @@
 | ✅ 路由差 | `/video/alert`：**Py 10 / Java 10 / diff 0**（`tools/video_java/route_inventory.py --prefix /video/alert`） |
 | ✅ 行为 | Kafka 告警路径（`use-direct-persist=false` → produce `iot-alert-notification` / `iot-snapshot-alert`；失败 fallback direct_persist；**resolved by FR-W1-KAFKA**） |
 
-### 2.3 `camera` — 仅 list/get/观看转推（Python 59 个路由中绝大多数缺）
+### 2.3 `camera` — FR-W2-CAM（路由面 diff=0）
 
-**已有：** `/list`，`/device/{id}`，`/device/{id}/stream/{start,stop,status}`
-
-**仍缺（按功能组，完整替换都要）：**
-
-| 功能组 | 代表路径（均未迁） |
-|--------|-------------------|
-| 流票据 | `POST /stream/ticket/sign` |
-| 位置/轨迹 | `/locations*`, `/tracks/*` |
-| 注册 | `/register/device`, `/register/device/onvif`, DJI/FlightHub 系列 |
-| CRUD | `PUT/DELETE /device/{id}`, batch-delete |
-| PTZ / 预设 | `/ptz`, `/onvif/presets*` |
-| RTSP/ONVIF 控制 | `/rtsp/*`, `/onvif/start|stop|status` |
-| 截图 | `/snapshot` |
-| NVR | `/nvr/*` |
-| 扫描/发现 | `/scan/*`, `/discovery`, `/refresh` |
-| SRS 回调 | `/callback/on_publish`, `/callback/on_dvr` |
-| 目录树 | `/directory/*`, GB28181 sync, conflicts |
-| 其它 | `inference-input`, `ensure-spaces` 等 |
+| 状态 | 说明 |
+|------|------|
+| ✅ 路由差 | `/video/camera`：**Py 59 / Java 59 / diff 0**（`route_inventory.py --prefix /video/camera`） |
+| ✅ | `/list`，`/device/{id}`，stream start/stop/status |
+| ✅ | 流票据、位置/轨迹、注册、CRUD、batch-delete |
+| ✅ | PTZ/ONVIF 预设/RTSP·ONVIF 任务、snapshot、NVR、scan/discovery/refresh |
+| ✅ | SRS 回调、目录树、conflicts、inference-input、ensure-spaces、FlightHub 配置/登记 |
+| ❌ 行为 | ONVIF 真连接、NVR 通道枚举、hiktools 扫描、抓拍抽帧、司空 live、GB28181 全量同步 — 无硬件/SDK 时仅错误结构对齐 |
 
 ### 2.4 `stream_forward`
 

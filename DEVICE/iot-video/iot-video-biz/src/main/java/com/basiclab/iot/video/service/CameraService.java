@@ -37,7 +37,11 @@ public class CameraService {
     public Map<String, Object> getDevice(String deviceId) {
         DeviceRow row = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new VideoBusinessException(400, "设备不存在: " + deviceId));
-        return toMap(row);
+        return toDeviceMap(row);
+    }
+
+    public Map<String, Object> toDeviceMap(DeviceRow camera) {
+        return toMap(camera);
     }
 
     private Map<String, Object> toMap(DeviceRow camera) {

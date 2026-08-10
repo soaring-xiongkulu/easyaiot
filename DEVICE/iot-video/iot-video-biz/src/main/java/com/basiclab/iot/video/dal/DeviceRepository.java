@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -133,5 +134,180 @@ public class DeviceRepository {
         }
         Long total = jdbc.queryForObject("SELECT COUNT(*) FROM device", Long.class);
         return total != null ? total : 0L;
+    }
+
+    public boolean existsById(String id) {
+        Long count = jdbc.queryForObject("SELECT COUNT(*) FROM device WHERE id = ?", Long.class, id);
+        return count != null && count > 0;
+    }
+
+    public void insert(DeviceRow row) {
+        jdbc.update(
+                """
+                INSERT INTO device (
+                    id, name, source, rtmp_stream, http_stream, ai_rtmp_stream, ai_http_stream, stream,
+                    ip, port, username, password, mac, manufacturer, model, firmware_version, serial_number,
+                    hardware_id, support_move, support_zoom, nvr_id, nvr_channel, rtsp_direct, channel_online,
+                    connection_status, enable_forward, directory_id, longitude, latitude, altitude, address,
+                    location_source, location_updated_at, heading
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                row.getId(),
+                row.getName(),
+                row.getSource(),
+                row.getRtmpStream(),
+                row.getHttpStream(),
+                row.getAiRtmpStream(),
+                row.getAiHttpStream(),
+                row.getStream(),
+                row.getIp(),
+                row.getPort(),
+                row.getUsername(),
+                null,
+                row.getMac(),
+                row.getManufacturer(),
+                row.getModel(),
+                row.getFirmwareVersion(),
+                row.getSerialNumber(),
+                row.getHardwareId(),
+                row.getSupportMove(),
+                row.getSupportZoom(),
+                row.getNvrId(),
+                row.getNvrChannel(),
+                row.getRtspDirect(),
+                row.getChannelOnline(),
+                row.getConnectionStatus(),
+                row.getEnableForward(),
+                row.getDirectoryId(),
+                row.getLongitude(),
+                row.getLatitude(),
+                row.getAltitude(),
+                row.getAddress(),
+                row.getLocationSource(),
+                row.getLocationUpdatedAt() != null ? Timestamp.from(row.getLocationUpdatedAt()) : null,
+                row.getHeading()
+        );
+    }
+
+    public void delete(String id) {
+        jdbc.update("DELETE FROM device WHERE id = ?", id);
+    }
+
+    public List<DeviceRow> listByDirectory(int directoryId, int pageNo, int pageSize, String search) {
+        int offset = Math.max(0, (pageNo - 1) * pageSize);
+        String like = search != null && !search.isBlank() ? "%" + search.trim() + "%" : null;
+        if (like != null) {
+            return jdbc.query(
+                    """
+                    SELECT %s FROM device
+                    WHERE directory_id = ?
+                      AND (name ILIKE ? OR model ILIKE ? OR serial_number ILIKE ?
+                           OR manufacturer ILIKE ? OR ip ILIKE ?)
+                    ORDER BY updated_at DESC LIMIT ? OFFSET ?
+                    """.formatted(SELECT_COLUMNS),
+                    ROW_MAPPER,
+                    directoryId, like, like, like, like, like, pageSize, offset
+            );
+        }
+        return jdbc.query(
+                "SELECT " + SELECT_COLUMNS + " FROM device WHERE directory_id = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?",
+                ROW_MAPPER,
+                directoryId,
+                pageSize,
+                offset
+        );
+    }
+
+    public long countByDirectory(int directoryId, String search) {
+        String like = search != null && !search.isBlank() ? "%" + search.trim() + "%" : null;
+        if (like != null) {
+            Long total = jdbc.queryForObject(
+                    """
+                    SELECT COUNT(*) FROM device
+                    WHERE directory_id = ?
+                      AND (name ILIKE ? OR model ILIKE ? OR serial_number ILIKE ?
+                           OR manufacturer ILIKE ? OR ip ILIKE ?)
+                    """,
+                    Long.class,
+                    directoryId, like, like, like, like, like
+            );
+            return total != null ? total : 0L;
+        }
+        Long total = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM device WHERE directory_id = ?",
+                Long.class,
+                directoryId
+        );
+        return total != null ? total : 0L;
+    }
+
+    public List<DeviceRow> listForMap(Integer directoryId, boolean hasLocationOnly) {
+        StringBuilder sql = new StringBuilder("SELECT " + SELECT_COLUMNS + " FROM device WHERE 1=1");
+        List<Object> args = new java.util.ArrayList<>();
+        if (directoryId != null) {
+            sql.append(" AND directory_id = ?");
+            args.add(directoryId);
+        }
+        if (hasLocationOnly) {
+            sql.append(" AND longitude IS NOT NULL AND latitude IS NOT NULL");
+        }
+        sql.append(" ORDER BY updated_at DESC");
+        return jdbc.query(sql.toString(), ROW_MAPPER, args.toArray());
+    }
+
+    public List<DeviceRow> listByDirectoryId(int directoryId) {
+        return jdbc.query(
+                "SELECT " + SELECT_COLUMNS + " FROM device WHERE directory_id = ? ORDER BY updated_at DESC",
+                ROW_MAPPER,
+                directoryId
+        );
+    }
+
+    public void updateDirectoryId(String deviceId, Integer directoryId) {
+        jdbc.update("UPDATE device SET directory_id = ?, updated_at = NOW() WHERE id = ?", directoryId, deviceId);
+    }
+
+    public void updateLocation(
+            String deviceId,
+            Double longitude,
+            Double latitude,
+            Double altitude,
+            String address,
+            Double heading,
+            String locationSource
+    ) {
+        jdbc.update(
+                """
+                UPDATE device SET longitude = ?, latitude = ?, altitude = ?, address = ?, heading = ?,
+                                  location_source = ?, location_updated_at = NOW(), updated_at = NOW()
+                WHERE id = ?
+                """,
+                longitude,
+                latitude,
+                altitude,
+                address,
+                heading,
+                locationSource,
+                deviceId
+        );
+    }
+
+    public void updateFields(String deviceId, Map<String, Object> fields) {
+        if (fields.isEmpty()) {
+            return;
+        }
+        StringBuilder sql = new StringBuilder("UPDATE device SET ");
+        List<Object> args = new java.util.ArrayList<>();
+        int i = 0;
+        for (Map.Entry<String, Object> entry : fields.entrySet()) {
+            if (i++ > 0) {
+                sql.append(", ");
+            }
+            sql.append(entry.getKey()).append(" = ?");
+            args.add(entry.getValue());
+        }
+        sql.append(", updated_at = NOW() WHERE id = ?");
+        args.add(deviceId);
+        jdbc.update(sql.toString(), args.toArray());
     }
 }
