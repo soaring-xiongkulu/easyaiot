@@ -67,6 +67,10 @@ BLUEPRINT_SPECS = {
         "file": "audio_talk.py",
         "bp": "audio_talk_bp",
     },
+    "/video/scenario-pose": {
+        "file": "scenario_pose.py",
+        "bp": "scenario_pose_bp",
+    },
 }
 
 BLUEPRINT_ROUTE = re.compile(

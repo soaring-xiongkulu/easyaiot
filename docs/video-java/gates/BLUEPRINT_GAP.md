@@ -14,9 +14,9 @@ Every retired blueprint row has a Java controller mapping, a certify case, or an
 
 | Status | Count | Blueprints |
 |--------|------:|------------|
-| Slice-only（曾有 certify case，域仍严重不足） | 11 | `algorithm_task`, `camera`, `device_detection_region`, `face`, `media_hook`, `patrol`, `plate`, `playback`, `record`, `snap`, `stream_forward` |
+| Slice-only（曾有 certify case，域仍严重不足） | 12 | `algorithm_task`, `camera`, `device_detection_region`, `face`, `media_hook`, `patrol`, `plate`, `playback`, `record`, `scenario_pose`, `snap`, `stream_forward` |
 | Partial slice | 1 | `alert` |
-| Missing（EX = 完整替换 backlog） | 1 | `scenario_pose` |
+| Missing（EX = 完整替换 backlog） | 0 | — |
 
 Heartbeat (`POST /video/algorithm/heartbeat/realtime`) is covered by `HeartbeatController` / `vj_p0_heartbeat`（切片，非完整）。
 
@@ -35,7 +35,7 @@ Heartbeat (`POST /video/algorithm/heartbeat/realtime`) is covered by `HeartbeatC
 | `plate` | `plate.py` | `/video/plate` | **slice-only** | `PlateController` + `PlateMatchingController` | `vj_p2_plate_publish_process`；**FR-W2-MATCH ✅ 路由 diff=0** | 同 face |
 | `playback` | `playback.py` | `/video/playback` | **slice-only** | `PlaybackController` | `vj_p2_playback_url` | 仅 list 级 |
 | `record` | `record.py` | `/video/record` | **slice-only** | `RecordController` | `vj_p2_record_query` | 仅 space list |
-| `scenario_pose` | `scenario_pose.py` | `/video/scenario-pose` | **missing** | — | **EX-SCENARIO-POSE** | FR-W3-POSE |
+| `scenario_pose` | `scenario_pose.py` | `/video/scenario-pose` | **slice-only** | `ScenarioPoseController` | **FR-W3-POSE ✅ 路由 diff=0** | YOLO pose / MinIO 桩 |
 | `snap` | `snap.py` | `/video/snap` | **slice-only** | `SnapController` | `vj_p2_snap_list_or_create` | 任务/图片面缺 |
 | `stream_forward` | `stream_forward.py` | `/video/stream-forward` | **slice-only** | `StreamForwardController` | `vj_p1_stream_forward_start_stop` | CRUD 缺 |
 
