@@ -99,6 +99,7 @@ RUNTIME/cmake-build-orangepi/
 RUNTIME/deploy.env
 RUNTIME/models/*
 !RUNTIME/models/coco.names
+RUNTIME/config/task_*.ini
 RUNTIME/.test-hwaccel/
 RUNTIME/.test-yolo-link/
 RUNTIME/.test-*/
@@ -149,6 +150,8 @@ TRANSFORM/dist/
 TRANSFORM/.env.docker
 TRANSFORM/.idea/
 venv
+# VIDEO 运行日志与告警截图（任务运行时生成）
+VIDEO/logs/
 # VIDEO 人脸模型（大文件由 install 脚本或 WEB 人脸库页下载，不随仓库分发）
 VIDEO/data/models
 VIDEO/face_capture_head_yolov8.onnx
