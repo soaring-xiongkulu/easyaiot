@@ -1856,6 +1856,7 @@ show_help() {
     echo "  check           - 检查 Docker 和 Docker Compose 安装状态"
     echo "  profile         - 显示当前部署形态与服务范围"
     echo "  site [子命令]   - 官方网站 SITE 独立部署（默认 install）"
+    echo "  runtime|runtime-atomic - RUNTIME 原子模式（只装计算节点执行器，需 VIDEO_BASE_URL）"
     echo "  menu            - 打开两层交互引导（部署 / 分析 / 官网）"
     echo "  diagnose        - 进入【分析】子菜单"
     echo "  analyze-logs    - 多模块日志合并分析（各模块约 500 行，带分割线）"
@@ -1884,7 +1885,27 @@ show_help() {
     echo "  EASYAIOT_RUNTIME_BUILD_ARCH  - build-runtime 目标架构: all(默认) | amd64 | arm64"
     echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
     echo "  SITE_PORT                    - 官网宿主机端口（默认 8090）"
+    echo "  VIDEO_BASE_URL               - runtime 原子模式：中心 VIDEO 汇聚地址（如 http://192.168.1.10:6000）"
+    echo "  EASYAIOT_RUNTIME_INSTALL_DIR - runtime 原子模式安装目录（默认 /opt/easyaiot/RUNTIME）"
     echo ""
+}
+
+# RUNTIME 原子模式：只部署计算节点执行器（不装 VIDEO/WEB/DEVICE）
+run_runtime_atomic() {
+    local runtime_script="${PROJECT_ROOT}/RUNTIME/install_linux.sh"
+    if [ ! -f "$runtime_script" ]; then
+        print_error "未找到 RUNTIME 安装脚本: ${runtime_script}"
+        return 1
+    fi
+    print_section "RUNTIME 原子模式（只装执行器）"
+    print_info "本模式不部署 VIDEO/WEB 等业务面；告警/心跳需指向中心 VIDEO_BASE_URL"
+    if [ -z "${VIDEO_BASE_URL:-${EASYAIOT_VIDEO_BASE_URL:-}}" ] && [ -z "${1:-}" ]; then
+        print_error "请提供汇聚面地址，例如:"
+        print_info "  VIDEO_BASE_URL=http://192.168.1.10:6000 $0 runtime"
+        print_info "  $0 runtime http://192.168.1.10:6000"
+        return 1
+    fi
+    bash "$runtime_script" atomic "$@"
 }
 
 # 官方网站 SITE：委托 SITE/install_linux.sh
@@ -1981,6 +2002,9 @@ main() {
             ;;
         site|website|官网)
             run_site_module "${2:-install}"
+            ;;
+        runtime|runtime-atomic|install-runtime|atomic-runtime)
+            run_runtime_atomic "${2:-}"
             ;;
         diagnose|diagnose-tools)
             run_analyze_interactive_menu
