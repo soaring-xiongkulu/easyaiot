@@ -25,6 +25,7 @@ SAMPLES = (
     {
         "name": "people-detection.mp4",
         "url": "https://github.com/intel-iot-devkit/sample-videos/raw/master/people-detection.mp4",
+        "parity_alias": "media_person_roi_30s.mp4",
     },
     {
         "name": "one-by-one-person-detection.mp4",
