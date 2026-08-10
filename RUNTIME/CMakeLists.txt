@@ -23,7 +23,17 @@ message(STATUS "OpenCV version: ${OpenCV_VERSION}")
 find_package(CURL REQUIRED)
 
 find_library(JSONCPP_LIBRARY NAMES jsoncpp REQUIRED)
-find_library(GLOG_LIBRARY NAMES glog REQUIRED)
+# glog >= 0.7 requires the CMake package target so GLOG_USE_GLOG_EXPORT /
+# GLOG_EXPORT are propagated; bare find_library() breaks the public headers.
+find_package(glog CONFIG QUIET)
+if(TARGET glog::glog)
+    set(GLOG_LINK_LIBS glog::glog)
+    message(STATUS "glog: using CMake target glog::glog")
+else()
+    find_library(GLOG_LIBRARY NAMES glog REQUIRED)
+    set(GLOG_LINK_LIBS ${GLOG_LIBRARY})
+    message(STATUS "glog: ${GLOG_LIBRARY} (legacy find_library)")
+endif()
 find_library(AVCODEC_LIBRARY NAMES avcodec REQUIRED)
 find_library(AVFORMAT_LIBRARY NAMES avformat REQUIRED)
 find_library(AVUTIL_LIBRARY NAMES avutil REQUIRED)
@@ -31,7 +41,6 @@ find_library(SWSCALE_LIBRARY NAMES swscale REQUIRED)
 find_library(INIH_LIBRARY NAMES inih)
 find_library(PUGIXML_LIBRARY NAMES pugixml)
 message(STATUS "jsoncpp: ${JSONCPP_LIBRARY}")
-message(STATUS "glog: ${GLOG_LIBRARY}")
 message(STATUS "ffmpeg: ${AVFORMAT_LIBRARY} ${AVCODEC_LIBRARY}")
 
 include_directories(
@@ -96,8 +105,11 @@ target_link_libraries(${PROJECT_NAME}
     CURL::libcurl
     ${OPTIONAL_LIBS}
     ${JSONCPP_LIBRARY}
-    ${GLOG_LIBRARY}
+    ${GLOG_LINK_LIBS}
     onnxruntime
     pthread
     dl
 )
+
+# glog >= 0.7 needs GLOG_USE_GLOG_EXPORT so GLOG_EXPORT is defined; glog 0.6 ignores it.
+target_compile_definitions(${PROJECT_NAME} PRIVATE GLOG_USE_GLOG_EXPORT)
