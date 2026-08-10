@@ -158,3 +158,5 @@ VIDEO/ffmpeg-master-*.tar.xz
 !/WEB/logs/.gitkeep
 *.zip
 # ZLMediaKit 挂载目录（与 docker-compose 中 ../zlmediakit 对应）；运行时数据
+RUNTIME/atomic.env
+RUNTIME/.atomic-test/

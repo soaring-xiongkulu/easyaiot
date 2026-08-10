@@ -33,6 +33,41 @@ EasyAIoT 的 **C++ 帧执行器**（由原 TASK 演进）。负责拉流、解�
 
 安装侧：检测到 `nvidia-smi` 时优先下载 **GPU ORT** 包（如 `onnxruntime-linux-x64-gpu-*`），写入 `deploy.env` 的 CUDA lib 路径；无 GPU / 下载失败则用 CPU 包并告警。
 
+## 原子模式（只部署 RUNTIME · 计算节点）
+
+用于**只装高性能执行器**的机器（边缘算力盒 / 集群计算节点），不部署 VIDEO/WEB/DEVICE。
+
+```bash
+# 顶层入口
+VIDEO_BASE_URL=http://<中心VIDEO主机>:6000 bash .scripts/docker/install_linux.sh runtime
+
+# 或模块入口
+VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
+# 等价：./RUNTIME/install_linux.sh atomic http://192.168.1.10:6000
+```
+
+行为：
+
+1. 同源容器编译 RUNTIME（默认 `EASYAIOT_RUNTIME_BUILD_MODE=docker`）
+2. `export_runtime_cpp.sh` 打离线包
+3. 安装到 `${EASYAIOT_RUNTIME_INSTALL_DIR:-/opt/easyaiot/RUNTIME}`
+4. 写入 `node.env` / `env.sh` / `config/atomic.example.ini`
+
+**汇聚上报（必填）**：`VIDEO_BASE_URL` 指向中心 VIDEO。节点上的告警/心跳 HTTP 回调：
+
+| 类型 | URL |
+|------|-----|
+| 告警 | `${VIDEO_BASE_URL}/video/alert/hook` |
+| 心跳 realtime | `${VIDEO_BASE_URL}/video/algorithm/heartbeat/realtime` |
+| 心跳 patrol | `${VIDEO_BASE_URL}/video/algorithm/heartbeat/patrol` |
+
+本节点**不落库**；正式任务仍由中心 VIDEO + Agent 下发 `task_*.ini` 并拉起二进制。手工调试：
+
+```bash
+source /opt/easyaiot/RUNTIME/env.sh
+$RUNTIME_BIN /opt/easyaiot/RUNTIME/config/atomic.example.ini
+```
+
 ## 集群分发（iot-node · 一键）
 
 **页面只需一步**：WEB「业务运行时分发」→ **高性能算法 · RUNTIME(C++)** →「分发 RUNTIME」  
@@ -79,15 +114,25 @@ VIDEO 各 Linux 安装入口通过共享脚本 [`VIDEO/scripts/ensure_runtime_cp
 
 ## 手动环境 / 编译
 
-系统 apt 无写权限时，使用 Miniconda 环境 `easyaiot-runtime`：
+默认 **方案 1：VIDEO 同源容器编译**（系统 `g++`，与 `video-service` 同 Ubuntu/glibc，无需降级 conda sysroot）：
 
 ```bash
-source RUNTIME/scripts/env.sh
-./RUNTIME/scripts/build_linux.sh
-# 或：./RUNTIME/install_linux.sh build
+./RUNTIME/install_linux.sh build
+# 等价：EASYAIOT_RUNTIME_BUILD_MODE=docker ./RUNTIME/install_linux.sh build
 ```
 
-依赖：cmake、OpenCV 5、FFmpeg、glog、jsoncpp、libcurl，以及官方 ONNX Runtime C++ SDK（有 GPU 时优先 `onnxruntime-linux-*-gpu-1.23.2`，否则 CPU 包；默认下载到仓库根 `.deps/`）。
+- 构建镜像优先：`video-service:latest` → 已缓存的 `pytorch/pytorch:2.9.0-cuda12.8-cudnn9-devel` → `ubuntu:22.04`
+- 覆盖镜像：`EASYAIOT_RUNTIME_BUILD_IMAGE=...`
+- 宿主机 conda `easyaiot-runtime` 只提供 OpenCV5/glog/ffmpeg 等依赖库，并挂进 VIDEO 容器
+
+回退本机编译（新 glibc 主机上产物可能无法进 VIDEO 容器）：
+
+```bash
+EASYAIOT_RUNTIME_BUILD_MODE=host ./RUNTIME/install_linux.sh build
+# 或：source RUNTIME/scripts/env.sh && ./RUNTIME/scripts/build_linux.sh
+```
+
+依赖：OpenCV 5、FFmpeg、glog、jsoncpp、libcurl，以及官方 ONNX Runtime C++ SDK（有 GPU 时优先 `onnxruntime-linux-*-gpu-1.23.2`，否则 CPU 包；默认下载到仓库根 `.deps/`）。
 
 ## 运行
 

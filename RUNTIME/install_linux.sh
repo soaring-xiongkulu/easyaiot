@@ -8,9 +8,16 @@
 #   ./install_linux.sh status       # 检查二进制与依赖
 #
 # 环境变量:
-#   EASYAIOT_RUNTIME_SKIP=1         # 跳过（供上层脚本探测）
-#   EASYAIOT_RUNTIME_REQUIRED=1     # 失败时以非 0 退出（默认失败仅告警式由调用方决定）
-#   ORT_ROOT                        # ONNX Runtime C++ SDK 根目录
+#   EASYAIOT_RUNTIME_SKIP=1              # 跳过（供上层脚本探测）
+#   EASYAIOT_RUNTIME_REQUIRED=1          # 失败时以非 0 退出（由调用方决定）
+#   ORT_ROOT                             # ONNX Runtime C++ SDK 根目录
+#   EASYAIOT_RUNTIME_BUILD_MODE=docker|host
+#       默认 docker：在 VIDEO 同源容器内用系统 g++ 编译（推荐，免 sysroot 降级）
+#       host：本机 conda 编译（新 glibc 主机上产物可能无法进 VIDEO 容器）
+#   EASYAIOT_RUNTIME_BUILD_IMAGE         # 覆盖构建镜像（默认优先 video-service:latest）
+#   VIDEO_BASE_URL / EASYAIOT_VIDEO_BASE_URL
+#       原子模式必填：汇聚面 VIDEO 根地址，如 http://192.168.1.10:6000
+#   EASYAIOT_RUNTIME_INSTALL_DIR         # 原子模式安装目录（默认 /opt/easyaiot/RUNTIME）
 # ============================================
 set -euo pipefail
 
@@ -19,6 +26,7 @@ ROOT="$SCRIPT_DIR"
 REPO="$(cd "$ROOT/.." && pwd)"
 ORT_VERSION="${ORT_VERSION:-1.23.2}"
 CONDA_ENV_NAME="${EASYAIOT_RUNTIME_CONDA_ENV:-easyaiot-runtime}"
+BUILD_MODE="${EASYAIOT_RUNTIME_BUILD_MODE:-docker}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -66,6 +74,7 @@ find_conda_sh() {
   return 1
 }
 
+# 宿主机 conda 仅提供运行/链接依赖（OpenCV5、glog…），不强制使用其 cxx-compiler sysroot
 activate_runtime_env() {
   local conda_sh
   if ! conda_sh="$(find_conda_sh)"; then
@@ -75,10 +84,9 @@ activate_runtime_env() {
   # shellcheck disable=SC1090
   source "$conda_sh"
   if ! conda env list | awk '{print $1}' | grep -qx "$CONDA_ENV_NAME"; then
-    print_info "创建 conda 环境: $CONDA_ENV_NAME"
+    print_info "创建 conda 环境: $CONDA_ENV_NAME（依赖库；编译默认走 VIDEO 同源容器）"
     conda create -y -n "$CONDA_ENV_NAME" -c conda-forge \
-      python=3.11 cmake cxx-compiler pkg-config \
-      "sysroot_linux-64=2.28" \
+      python=3.11 cmake pkg-config \
       "opencv=5" ffmpeg glog gflags jsoncpp libcurl \
       libjpeg-turbo libtiff openexr imath openjph libavif \
       libxml2 libxml2-16 openh264 libstdcxx-ng libgcc-ng \
@@ -86,17 +94,15 @@ activate_runtime_env() {
   fi
   conda activate "$CONDA_ENV_NAME"
   # 补齐运行期常见缺失库（已存在则 conda 会跳过）
-  # gflags 是 glog CMake package 的 find_dependency；缺了会导致 find_package(glog) 失败
-  # sysroot 2.28：使二进制可在 Ubuntu 22.04（glibc 2.35）VIDEO 容器中运行
-  # opencv=5：RUNTIME 依赖 opencv2/geometry.hpp（OpenCV 4 无此头）
+  # gflags：glog CMake package 的 find_dependency
+  # opencv=5：RUNTIME 依赖 opencv2/geometry.hpp
   conda install -y -c conda-forge \
-    "sysroot_linux-64=2.28" \
     "opencv=5" \
     glog gflags \
     libxml2 libxml2-16 openh264 libstdcxx-ng libgcc-ng \
     libdovi vulkan-loader libva libdeflate libpng \
     libjpeg-turbo libtiff openexr imath openjph libavif >/dev/null 2>&1 || true
-  # conda 的 libstdc++ 常在 gcc 子目录；挂载到容器时需出现在 $CONDA_PREFIX/lib（相对链接）
+  # conda 的 libstdc++ 常在 gcc 子目录；挂载到 VIDEO 容器时需出现在 $CONDA_PREFIX/lib（相对链接）
   local gcc_rel
   gcc_rel="$(ls -d "${CONDA_PREFIX}/lib/gcc/"*/*/ 2>/dev/null | tail -1 | sed "s|^${CONDA_PREFIX}/lib/||" || true)"
   if [[ -n "$gcc_rel" && -f "${CONDA_PREFIX}/lib/${gcc_rel}libstdc++.so.6" ]]; then
@@ -193,10 +199,6 @@ ensure_ort_sdk() {
 
   local cpu_root="$REPO/.deps/onnxruntime-linux-${arch}-${ORT_VERSION}"
   local gpu_root="$REPO/.deps/onnxruntime-linux-${arch}-gpu-${ORT_VERSION}"
-  local default_root="$cpu_root"
-  if [[ "$want_gpu" -eq 1 ]]; then
-    default_root="$gpu_root"
-  fi
 
   # Explicit ORT_ROOT wins if valid
   if [[ -n "${ORT_ROOT:-}" && -d "$ORT_ROOT/include" && -d "$ORT_ROOT/lib" ]]; then
@@ -303,13 +305,110 @@ CONDA_PREFIX=$CONDA_PREFIX
 ORT_ROOT=$ORT_ROOT
 RUNTIME_PREFER_GPU=true
 USE_GPU=true
+RUNTIME_BUILD_MODE=$BUILD_MODE
 EOF
   print_success "已写入 $deploy_env"
 }
 
-build_runtime() {
-  activate_runtime_env
-  ensure_ort_sdk
+resolve_build_image() {
+  if [[ -n "${EASYAIOT_RUNTIME_BUILD_IMAGE:-}" ]]; then
+    echo "$EASYAIOT_RUNTIME_BUILD_IMAGE"
+    return 0
+  fi
+  # Prefer local VIDEO runtime image (same Ubuntu/glibc as deploy target)
+  if docker image inspect video-service:latest >/dev/null 2>&1; then
+    echo "video-service:latest"
+    return 0
+  fi
+  # Same base family as VIDEO/Dockerfile
+  if docker image inspect pytorch/pytorch:2.9.0-cuda12.8-cudnn9-devel >/dev/null 2>&1; then
+    echo "pytorch/pytorch:2.9.0-cuda12.8-cudnn9-devel"
+    return 0
+  fi
+  echo "ubuntu:22.04"
+}
+
+docker_available() {
+  command -v docker >/dev/null 2>&1 || return 1
+  docker info >/dev/null 2>&1 || return 1
+}
+
+build_runtime_in_docker() {
+  if ! docker_available; then
+    print_error "docker 不可用，无法使用同源容器编译。可设 EASYAIOT_RUNTIME_BUILD_MODE=host 回退本机编译"
+    return 1
+  fi
+
+  local image
+  image="$(resolve_build_image)"
+  print_info "构建镜像: $image（系统 g++，与 VIDEO 同源 glibc）"
+  if [[ "$image" == "ubuntu:22.04" ]] || [[ "$image" == ubuntu:22.04* ]]; then
+    print_info "拉取/确保基础镜像可用: $image"
+    docker pull "$image" >/dev/null || true
+  fi
+
+  local inner="$ROOT/scripts/build_inside_container.sh"
+  if [[ ! -f "$inner" ]]; then
+    print_error "缺少容器内编译脚本: $inner"
+    return 1
+  fi
+  chmod +x "$inner" || true
+
+  mkdir -p "$ROOT/build"
+  # Prefer workspace TMPDIR (some sandboxes block /tmp)
+  export TMPDIR="${TMPDIR:-$REPO/.tmp}"
+  mkdir -p "$TMPDIR"
+
+  local uid gid
+  uid="$(id -u)"
+  gid="$(id -g)"
+
+  # Avoid NVIDIA CDI/NVML failures on hosts without working driver
+  local -a docker_opts=(
+    --rm
+    --runtime=runc
+    -e NVIDIA_VISIBLE_DEVICES=
+    -e CONDA_PREFIX=/opt/conda-runtime
+    -e ORT_ROOT=/opt/ort
+    -e RUNTIME_SRC=/src/RUNTIME
+    -v "$REPO:/src:rw"
+    -v "$CONDA_PREFIX:/opt/conda-runtime:ro"
+    -v "$ORT_ROOT:/opt/ort:ro"
+    -w /src/RUNTIME
+  )
+
+  # video-service / pytorch images already have g++(+cmake)；用当前用户写出产物
+  # ubuntu:22.04 需 root 装编译器，结束后 chown
+  local use_root=0
+  case "$image" in
+    ubuntu:22.04|ubuntu:22.04*) use_root=1 ;;
+  esac
+
+  if [[ "$use_root" -eq 0 ]]; then
+    docker_opts+=(-u "${uid}:${gid}")
+  fi
+
+  print_info "在容器内编译 RUNTIME..."
+  if ! docker run "${docker_opts[@]}" "$image" bash /src/RUNTIME/scripts/build_inside_container.sh; then
+    print_error "容器内编译失败"
+    return 1
+  fi
+
+  if [[ "$use_root" -eq 1 ]]; then
+    docker run --rm --runtime=runc -e NVIDIA_VISIBLE_DEVICES= \
+      -v "$ROOT:/src/RUNTIME:rw" \
+      "$image" \
+      chown -R "${uid}:${gid}" /src/RUNTIME/build || true
+  fi
+
+  if [[ ! -x "$ROOT/build/RUNTIME" ]]; then
+    print_error "编译完成但未找到可执行文件: $ROOT/build/RUNTIME"
+    return 1
+  fi
+}
+
+build_runtime_on_host() {
+  print_warning "EASYAIOT_RUNTIME_BUILD_MODE=host：本机 conda 编译；新 glibc 主机产物可能无法在 VIDEO(22.04) 容器内运行"
   export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${ORT_ROOT}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
   local cuda_libs
   cuda_libs="$(cuda_lib_paths)"
@@ -318,17 +417,13 @@ build_runtime() {
   fi
   export PKG_CONFIG_PATH="${CONDA_PREFIX}/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
   export CMAKE_PREFIX_PATH="${CONDA_PREFIX}${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
-  # Prefer GPU at runtime by default
-  export RUNTIME_PREFER_GPU="${RUNTIME_PREFER_GPU:-true}"
-  export USE_GPU="${USE_GPU:-true}"
 
   local build_dir="$ROOT/build"
   mkdir -p "$build_dir"
-  # Prefer workspace TMPDIR (some sandboxes block /tmp)
   export TMPDIR="${TMPDIR:-$REPO/.tmp}"
   mkdir -p "$TMPDIR"
 
-  print_info "cmake 配置..."
+  print_info "cmake 配置（host）..."
   cmake "$ROOT" \
     -B "$build_dir" \
     -DCMAKE_BUILD_TYPE=Release \
@@ -344,22 +439,253 @@ build_runtime() {
     print_error "编译完成但未找到可执行文件: $build_dir/RUNTIME"
     return 1
   fi
+}
+
+build_runtime() {
+  activate_runtime_env
+  ensure_ort_sdk
+  # Prefer GPU at runtime by default
+  export RUNTIME_PREFER_GPU="${RUNTIME_PREFER_GPU:-true}"
+  export USE_GPU="${USE_GPU:-true}"
+
+  case "$BUILD_MODE" in
+    docker|container)
+      BUILD_MODE=docker
+      build_runtime_in_docker
+      ;;
+    host|native)
+      BUILD_MODE=host
+      build_runtime_on_host
+      ;;
+    *)
+      print_error "未知 EASYAIOT_RUNTIME_BUILD_MODE=$BUILD_MODE（可选 docker|host）"
+      return 1
+      ;;
+  esac
+
   write_deploy_env
-  print_success "编译成功: $build_dir/RUNTIME"
+  print_success "编译成功: $ROOT/build/RUNTIME (mode=$BUILD_MODE)"
 }
 
 status_runtime() {
   local bin="$ROOT/build/RUNTIME"
+  local install_dir="${EASYAIOT_RUNTIME_INSTALL_DIR:-/opt/easyaiot/RUNTIME}"
   if [[ -x "$bin" ]]; then
-    print_success "二进制存在: $bin"
-    if [[ -f "$ROOT/deploy.env" ]]; then
-      print_info "deploy.env:"
-      cat "$ROOT/deploy.env"
-    fi
-    return 0
+    print_success "编译产物: $bin"
+  elif [[ -x "$install_dir/bin/RUNTIME" ]]; then
+    print_success "原子安装: $install_dir/bin/RUNTIME"
+    bin="$install_dir/bin/RUNTIME"
+  else
+    print_warning "二进制不存在（请运行 ./install_linux.sh 或 ./install_linux.sh atomic）"
+    return 1
   fi
-  print_warning "二进制不存在: $bin（请运行 ./install_linux.sh）"
-  return 1
+  if [[ -f "$ROOT/deploy.env" ]]; then
+    print_info "deploy.env:"
+    cat "$ROOT/deploy.env"
+  fi
+  if [[ -f "$install_dir/node.env" ]]; then
+    print_info "原子节点 node.env:"
+    cat "$install_dir/node.env"
+  fi
+  return 0
+}
+
+normalize_video_base_url() {
+  local raw="${1:-}"
+  raw="${raw%%/}"
+  if [[ -z "$raw" ]]; then
+    return 1
+  fi
+  case "$raw" in
+    http://*|https://*) echo "$raw" ;;
+    *) echo "http://${raw}" ;;
+  esac
+}
+
+resolve_video_base_url() {
+  local raw="${VIDEO_BASE_URL:-${EASYAIOT_VIDEO_BASE_URL:-${1:-}}}"
+  if [[ -z "$raw" ]]; then
+    return 1
+  fi
+  normalize_video_base_url "$raw"
+}
+
+write_atomic_node_env() {
+  local install_dir="$1"
+  local video_base="$2"
+  local node_env="$install_dir/node.env"
+  local alert_hook="${video_base}/video/alert/hook"
+  local hb_realtime="${video_base}/video/algorithm/heartbeat/realtime"
+  local hb_patrol="${video_base}/video/algorithm/heartbeat/patrol"
+
+  cat > "$node_env" <<EOF
+# Auto-generated by RUNTIME atomic mode — compute node aggregation endpoints
+# 本节点只跑 RUNTIME；告警/心跳必须打到中心 VIDEO（汇聚面）
+VIDEO_BASE_URL=${video_base}
+ALERT_HOOK_URL=${alert_hook}
+HEARTBEAT_URL=${hb_realtime}
+HEARTBEAT_URL_PATROL=${hb_patrol}
+RUNTIME_BIN=${install_dir}/bin/RUNTIME
+RUNTIME_PREFER_GPU=true
+USE_GPU=true
+EOF
+
+  # 覆盖/增强 env.sh，供 Agent 或手工 source
+  cat > "$install_dir/env.sh" <<EOF
+#!/usr/bin/env bash
+# Sourced on compute nodes (atomic / iot-node install)
+RUNTIME_ROOT="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+[[ -f "\${RUNTIME_ROOT}/node.env" ]] && set -a && source "\${RUNTIME_ROOT}/node.env" && set +a
+export RUNTIME_BIN="\${RUNTIME_BIN:-\${RUNTIME_ROOT}/bin/RUNTIME}"
+export LD_LIBRARY_PATH="\${RUNTIME_ROOT}/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+for _cuda in /usr/local/cuda/lib64 /usr/local/cuda/lib; do
+  if [[ -d "\$_cuda" ]]; then
+    export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH}:\$_cuda"
+  fi
+done
+export RUNTIME_PREFER_GPU="\${RUNTIME_PREFER_GPU:-true}"
+export USE_GPU="\${USE_GPU:-true}"
+export VIDEO_BASE_URL="\${VIDEO_BASE_URL:-}"
+export ALERT_HOOK_URL="\${ALERT_HOOK_URL:-\${VIDEO_BASE_URL}/video/alert/hook}"
+export HEARTBEAT_URL="\${HEARTBEAT_URL:-\${VIDEO_BASE_URL}/video/algorithm/heartbeat/realtime}"
+EOF
+  chmod +x "$install_dir/env.sh"
+
+  mkdir -p "$install_dir/config"
+  cat > "$install_dir/config/atomic.example.ini" <<EOF
+# 原子节点示例任务配置（手工调试用）
+# 集群正式路径由 VIDEO/Agent 生成 task_*.ini；请保证 hook 指向同一 VIDEO_BASE_URL
+
+[video]
+rtsp_url=rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101
+rtmp_url=
+width=1920
+height=1080
+fps=25
+
+[ai]
+enable=true
+model_path=${install_dir}/models/yolov11n.onnx
+classes_path=${install_dir}/models/coco.names
+threads=2
+prefer_gpu=true
+force_cpu=false
+gpu_device_id=0
+
+[alarm]
+enable=true
+hook_url=${alert_hook}
+confidence_threshold=0.5
+cooldown_time=30
+
+[task]
+id=atomic_demo
+control_port=8123
+
+[video_task]
+device_id=camera_atomic_001
+device_name=atomic-demo
+task_type=realtime
+algorithm_name=detection
+alert_hook_url=${alert_hook}
+heartbeat_url=${hb_realtime}
+heartbeat_interval_sec=10
+log_path=${install_dir}/cache/atomic_demo
+headless=true
+
+[features]
+enable_rtmp=false
+enable_draw=true
+enable_alarm=true
+EOF
+
+  print_success "已写入汇聚面配置: $node_env"
+  print_info "告警: $alert_hook"
+  print_info "心跳: $hb_realtime"
+}
+
+# 原子模式：只部署 RUNTIME 到本机计算节点目录（不装 VIDEO/WEB 等）
+# 用法:
+#   VIDEO_BASE_URL=http://<中心VIDEO>:6000 ./install_linux.sh atomic
+#   ./install_linux.sh atomic http://192.168.1.10:6000
+atomic_install_runtime() {
+  local video_base
+  if ! video_base="$(resolve_video_base_url "${1:-}")"; then
+    print_error "原子模式必须指定汇聚面 VIDEO 地址"
+    print_info "示例: VIDEO_BASE_URL=http://192.168.1.10:6000 $0 atomic"
+    print_info "  或: $0 atomic http://192.168.1.10:6000"
+    print_info "结果上报: alert → \${VIDEO_BASE_URL}/video/alert/hook ；heartbeat → …/video/algorithm/heartbeat/*"
+    return 1
+  fi
+
+  local install_dir="${EASYAIOT_RUNTIME_INSTALL_DIR:-/opt/easyaiot/RUNTIME}"
+  print_info "===== RUNTIME 原子模式 ====="
+  print_info "只安装高性能执行器，不部署 VIDEO/WEB/DEVICE 等业务面"
+  print_info "汇聚面 VIDEO_BASE_URL=$video_base"
+  print_info "安装目录: $install_dir"
+
+  build_runtime
+
+  local export_sh="$ROOT/export_runtime_cpp.sh"
+  if [[ ! -f "$export_sh" ]]; then
+    print_error "缺少 $export_sh"
+    return 1
+  fi
+  print_info "导出离线包..."
+  # 已编译则跳过 export 内二次 install
+  RUNTIME_AUTO_INSTALL=0 bash "$export_sh"
+
+# 检测架构：export 使用 x86_64/arm64；detect_arch 返回 x64/aarch64
+  local bundle_arch
+  case "$(uname -m)" in
+    aarch64|arm64) bundle_arch="arm64" ;;
+    *) bundle_arch="x86_64" ;;
+  esac
+  local tar_path="$ROOT/.bundle-runtime/${bundle_arch}/easyaiot-runtime-${bundle_arch}.tar.gz"
+  if [[ ! -f "$tar_path" ]]; then
+    tar_path="$(find "$ROOT/.bundle-runtime" -name 'easyaiot-runtime-*.tar.gz' 2>/dev/null | head -1 || true)"
+  fi
+  if [[ -z "${tar_path:-}" || ! -f "$tar_path" ]]; then
+    print_error "未找到导出包（export_runtime_cpp.sh 未产出 tar.gz）"
+    return 1
+  fi
+
+  local install_sh="$ROOT/install_runtime_cpp.sh"
+  if [[ ! -f "$install_sh" ]]; then
+    print_error "缺少 $install_sh"
+    return 1
+  fi
+
+  print_info "安装离线包到 $install_dir ..."
+  bash "$install_sh" "$install_dir" "$tar_path"
+
+  if [[ -w "$install_dir" ]]; then
+    write_atomic_node_env "$install_dir" "$video_base"
+  else
+    local tmp_env
+    tmp_env="$(mktemp -d)"
+    write_atomic_node_env "$tmp_env" "$video_base"
+    sudo cp -f "$tmp_env/node.env" "$install_dir/node.env"
+    sudo cp -f "$tmp_env/env.sh" "$install_dir/env.sh"
+    sudo mkdir -p "$install_dir/config"
+    sudo cp -f "$tmp_env/config/atomic.example.ini" "$install_dir/config/atomic.example.ini"
+    sudo chmod +x "$install_dir/env.sh"
+    rm -rf "$tmp_env"
+  fi
+
+  cat > "$ROOT/atomic.env" <<EOF
+# Local pointer after atomic install
+EASYAIOT_RUNTIME_INSTALL_DIR=$install_dir
+VIDEO_BASE_URL=$video_base
+RUNTIME_BIN=$install_dir/bin/RUNTIME
+EOF
+
+  print_success "原子模式部署完成"
+  print_info "二进制: $install_dir/bin/RUNTIME"
+  print_info "汇聚: 告警/心跳 → $video_base （本节点不落库）"
+  print_info "调试: source $install_dir/env.sh && \$RUNTIME_BIN $install_dir/config/atomic.example.ini"
+  print_info "正式任务仍由中心 VIDEO + Agent 下发 ini 并拉起本二进制"
 }
 
 main() {
@@ -373,11 +699,23 @@ main() {
     install|build)
       build_runtime
       ;;
+    atomic|node|runtime-only|atomic-install)
+      shift || true
+      atomic_install_runtime "${1:-}"
+      ;;
     status)
       status_runtime
       ;;
     help|-h|--help)
-      sed -n '2,20p' "$0"
+      sed -n '2,30p' "$0"
+      echo ""
+      echo "命令:"
+      echo "  install|build   - 编译 RUNTIME（默认 docker 同源容器）"
+      echo "  atomic [VIDEO_BASE_URL] - 原子模式：只装 RUNTIME 到计算节点目录"
+      echo "  status          - 查看编译/原子安装状态"
+      echo ""
+      echo "原子模式示例:"
+      echo "  VIDEO_BASE_URL=http://192.168.1.10:6000 $0 atomic"
       ;;
     *)
       print_error "未知命令: $cmd"

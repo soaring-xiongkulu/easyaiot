@@ -119,10 +119,10 @@ main() {
     exit 1
   fi
 
-  local work
-  work="$(mktemp -d)"
-  trap 'rm -rf "$work"' EXIT
-  local staging="$work/easyaiot-runtime-${arch}"
+  # 清理目录必须用全局变量：local 在 main 返回后 EXIT trap 看不到
+  RUNTIME_EXPORT_WORK="$(mktemp -d)"
+  trap 'rm -rf "${RUNTIME_EXPORT_WORK:-}"' EXIT
+  local staging="$RUNTIME_EXPORT_WORK/easyaiot-runtime-${arch}"
   mkdir -p "$staging/bin" "$staging/lib" "$staging/config" "$staging/models"
 
   cp -f "$bin" "$staging/bin/RUNTIME"
@@ -166,7 +166,7 @@ EOF
   local tar_name="easyaiot-runtime-${arch}.tar.gz"
   local tar_path="$cache/$tar_name"
   print_info "打包 $tar_path ..."
-  tar -czf "$tar_path" -C "$work" "easyaiot-runtime-${arch}"
+  tar -czf "$tar_path" -C "$RUNTIME_EXPORT_WORK" "easyaiot-runtime-${arch}"
   date -Iseconds 2>/dev/null || date > "$cache/.ready"
   print_success "已导出: $tar_path ($(du -h "$tar_path" | awk '{print $1}'))"
   echo "RUNTIME_EXPORT_OK=$tar_path"
