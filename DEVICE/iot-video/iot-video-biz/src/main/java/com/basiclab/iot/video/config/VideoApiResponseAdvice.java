@@ -21,7 +21,11 @@ public class VideoApiResponseAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-        String typeName = returnType.getParameterType().getName();
+        Class<?> type = returnType.getParameterType();
+        if (org.springframework.http.ResponseEntity.class.isAssignableFrom(type)) {
+            return false;
+        }
+        String typeName = type.getName();
         if (typeName.endsWith("SpaceListApiResponse")) {
             return false;
         }

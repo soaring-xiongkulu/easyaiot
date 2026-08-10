@@ -75,4 +75,60 @@ public class FaceMatchRecordRepository {
         row.put("created_at", now.toInstant().toString());
         return row;
     }
+
+    public java.util.List<Map<String, Object>> listByCorrelationId(String correlationId) {
+        return jdbc.queryForList(
+                "SELECT * FROM face_match_record WHERE correlation_id = ? ORDER BY id ASC",
+                correlationId
+        ).stream().map(this::toApiMap).toList();
+    }
+
+    private Map<String, Object> toApiMap(Map<String, Object> row) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("id", row.get("id"));
+        out.put("task_id", row.get("task_id"));
+        out.put("task_name", row.get("task_name"));
+        out.put("device_id", row.get("device_id"));
+        out.put("device_name", row.get("device_name"));
+        out.put("library_id", row.get("library_id"));
+        out.put("library_name", row.get("library_name"));
+        out.put("face_image_path", row.get("face_image_path"));
+        out.put("matched", row.get("matched"));
+        out.put("matched_person_name", row.get("matched_person_name"));
+        out.put("matched_person_code", row.get("matched_person_code"));
+        out.put("matched_face_entry_id", row.get("matched_face_entry_id"));
+        out.put("similarity", row.get("similarity"));
+        out.put("threshold", row.get("threshold"));
+        out.put("candidates", parseJsonMaybe(row.get("candidates")));
+        out.put("alert_id", row.get("alert_id"));
+        out.put("correlation_id", row.get("correlation_id"));
+        out.put("task_type", row.get("task_type"));
+        out.put("status", row.get("status"));
+        out.put("error_message", row.get("error_message"));
+        Object createdAt = row.get("created_at");
+        if (createdAt instanceof java.sql.Timestamp ts) {
+            out.put("created_at", ts.toInstant().toString());
+        } else {
+            out.put("created_at", createdAt);
+        }
+        return out;
+    }
+
+    private Object parseJsonMaybe(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        if (!(raw instanceof String s)) {
+            return raw;
+        }
+        String trimmed = s.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().readValue(trimmed, Object.class);
+        } catch (Exception ignored) {
+            return raw;
+        }
+    }
 }
