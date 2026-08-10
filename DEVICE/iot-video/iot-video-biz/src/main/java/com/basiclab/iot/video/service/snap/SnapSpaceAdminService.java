@@ -5,6 +5,7 @@ import com.basiclab.iot.video.dal.SnapImageRepository;
 import com.basiclab.iot.video.dal.SnapTaskRepository;
 import com.basiclab.iot.video.dal.SpaceGroupPolicyRepository;
 import com.basiclab.iot.video.exception.VideoBusinessException;
+import com.basiclab.iot.video.service.minio.VideoMinioService;
 import com.basiclab.iot.video.support.SpaceNodeSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class SnapSpaceAdminService {
     private final SnapTaskRepository snapTaskRepository;
     private final SnapImageRepository snapImageRepository;
     private final SpaceGroupPolicyRepository groupPolicyRepository;
+    private final VideoMinioService videoMinioService;
 
     public Map<String, Object> listSpaces(int pageNo, int pageSize, String search, String parentKey, String scope) {
         List<Map<String, Object>> items = snapSpaceRepository.listRootNodes(pageNo, pageSize);
@@ -78,6 +80,12 @@ public class SnapSpaceAdminService {
         if (images > 0) {
             throw new VideoBusinessException(400, "该空间下还有 " + images + " 张抓拍图片，请先删除所有图片后再删除空间");
         }
+        Map<String, Object> space = snapSpaceRepository.findById(spaceId).orElseThrow();
+        String bucketName = space.get("bucket_name") != null
+                ? String.valueOf(space.get("bucket_name"))
+                : videoMinioService.snapBucket();
+        String deviceId = space.get("device_id") != null ? String.valueOf(space.get("device_id")) : null;
+        videoMinioService.deleteDevicePrefix(bucketName, deviceId);
         snapSpaceRepository.delete(spaceId);
     }
 
@@ -100,12 +108,7 @@ public class SnapSpaceAdminService {
     }
 
     public Map<String, Object> syncSpacesToMinio() {
-        int total = snapSpaceRepository.listAllSpaces().size();
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("total", total);
-        result.put("synced", total);
-        result.put("skipped", 0);
-        result.put("message", "mini 形态跳过 MinIO 同步，仅校验数据库空间记录");
-        return result;
+        List<Map<String, Object>> spaces = snapSpaceRepository.listAllSpaces();
+        return videoMinioService.syncDeviceDirectories(videoMinioService.snapBucket(), spaces, false);
     }
 }

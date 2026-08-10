@@ -7,6 +7,7 @@ import com.basiclab.iot.video.domain.DeviceRow;
 import com.basiclab.iot.video.exception.VideoBusinessException;
 import com.basiclab.iot.video.service.CameraService;
 import com.basiclab.iot.video.service.ViewForwardService;
+import com.basiclab.iot.video.service.minio.VideoMinioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +28,7 @@ public class CameraAdminService {
     private final DeviceSpaceRepository deviceSpaceRepository;
     private final CameraService cameraService;
     private final ViewForwardService viewForwardService;
+    private final VideoMinioService videoMinioService;
 
     public String registerDevice(Map<String, Object> data) {
         String id = data.get("id") != null ? String.valueOf(data.get("id")).trim() : String.valueOf(System.nanoTime());
@@ -179,6 +181,8 @@ public class CameraAdminService {
             if (deviceSpaceRepository.findRecordSpaceByDeviceId(deviceId).isEmpty()) {
                 deviceSpaceRepository.createRecordSpace(deviceId, name);
             }
+            videoMinioService.ensureDeviceDirectoryForSpace(videoMinioService.snapBucket(), deviceId, false);
+            videoMinioService.ensureDeviceDirectoryForSpace(videoMinioService.recordBucket(), deviceId, true);
         } catch (Exception ignored) {
         }
     }

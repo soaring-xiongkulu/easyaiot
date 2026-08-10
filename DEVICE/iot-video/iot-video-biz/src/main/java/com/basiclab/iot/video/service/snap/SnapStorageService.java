@@ -1,7 +1,11 @@
 package com.basiclab.iot.video.service.snap;
 
 import com.basiclab.iot.video.dal.DeviceStorageRepository;
+import com.basiclab.iot.video.dal.SnapSpaceRepository;
 import com.basiclab.iot.video.exception.VideoBusinessException;
+import com.basiclab.iot.video.service.minio.SpaceFileMetadataService;
+import com.basiclab.iot.video.service.minio.VideoMinioService;
+import com.basiclab.iot.video.support.SpaceSaveTimeSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +17,9 @@ import java.util.Map;
 public class SnapStorageService {
 
     private final DeviceStorageRepository storageRepository;
+    private final SnapSpaceRepository snapSpaceRepository;
+    private final VideoMinioService videoMinioService;
+    private final SpaceFileMetadataService spaceFileMetadataService;
 
     public Map<String, Object> getOrCreate(String deviceId) {
         if (!storageRepository.deviceExists(deviceId)) {
@@ -48,10 +55,27 @@ public class SnapStorageService {
 
     public Map<String, Object> cleanup(String deviceId) {
         getOrCreate(deviceId);
+        Map<String, Object> space = snapSpaceRepository.findByDeviceId(deviceId)
+                .orElseThrow(() -> new VideoBusinessException(400, "设备 " + deviceId + " 没有关联的抓拍空间"));
+        int saveTimeHours = SpaceSaveTimeSupport.effectiveSaveTimeHours(space);
+        if (saveTimeHours <= 0) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("deleted_snap_count", 0);
+            result.put("deleted_video_count", 0);
+            result.put("message", "空间为永久保存，跳过清理");
+            return result;
+        }
+        Map<String, Object> cleanup = spaceFileMetadataService.cleanupExpiredSnapImages(space, saveTimeHours);
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("deleted_snap_count", 0);
+        result.put("deleted_snap_count", cleanup.getOrDefault("deleted_count", 0));
         result.put("deleted_video_count", 0);
-        result.put("message", "mini 形态跳过 MinIO 存储清理");
+        result.put("processed_count", cleanup.getOrDefault("processed_count", 0));
+        result.put("error_count", cleanup.getOrDefault("error_count", 0));
+        if (!videoMinioService.isStorageEnabled()) {
+            result.put("message", "MinIO 未启用，仅清理数据库元数据");
+        } else {
+            result.put("message", "存储清理完成");
+        }
         return result;
     }
 }

@@ -1,8 +1,10 @@
 package com.basiclab.iot.video.service.record;
 
 import com.basiclab.iot.video.dal.RecordSpaceRepository;
+import com.basiclab.iot.video.dal.RecordFileRepository;
 import com.basiclab.iot.video.dal.SpaceGroupPolicyRepository;
 import com.basiclab.iot.video.exception.VideoBusinessException;
+import com.basiclab.iot.video.service.minio.VideoMinioService;
 import com.basiclab.iot.video.support.SpaceNodeSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,7 +18,9 @@ import java.util.Map;
 public class RecordSpaceAdminService {
 
     private final RecordSpaceRepository recordSpaceRepository;
+    private final RecordFileRepository recordFileRepository;
     private final SpaceGroupPolicyRepository groupPolicyRepository;
+    private final VideoMinioService videoMinioService;
 
     public Map<String, Object> listSpaces(int pageNo, int pageSize, String search, String parentKey, String scope) {
         List<Map<String, Object>> all = recordSpaceRepository.listRootNodes(1, Integer.MAX_VALUE);
@@ -65,8 +69,17 @@ public class RecordSpaceAdminService {
     }
 
     public void deleteSpace(int spaceId) {
-        recordSpaceRepository.findById(spaceId)
+        Map<String, Object> space = recordSpaceRepository.findById(spaceId)
                 .orElseThrow(() -> new VideoBusinessException(400, "监控录像空间不存在: ID=" + spaceId));
+        long videos = recordFileRepository.count(spaceId, stringField(space.get("device_id")), null, null, null);
+        if (videos > 0) {
+            throw new VideoBusinessException(400, "该空间下还有 " + videos + " 个监控录像，请先删除所有录像后再删除空间");
+        }
+        String bucketName = space.get("bucket_name") != null
+                ? String.valueOf(space.get("bucket_name"))
+                : videoMinioService.recordBucket();
+        String deviceId = space.get("device_id") != null ? String.valueOf(space.get("device_id")) : null;
+        videoMinioService.deleteDevicePrefix(bucketName, deviceId);
         recordSpaceRepository.delete(spaceId);
     }
 
@@ -89,12 +102,11 @@ public class RecordSpaceAdminService {
     }
 
     public Map<String, Object> syncSpacesToMinio() {
-        int total = recordSpaceRepository.listAllSpaces().size();
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("total", total);
-        result.put("synced", total);
-        result.put("skipped", 0);
-        result.put("message", "mini 形态跳过 MinIO 同步，仅校验数据库空间记录");
-        return result;
+        List<Map<String, Object>> spaces = recordSpaceRepository.listAllSpaces();
+        return videoMinioService.syncDeviceDirectories(videoMinioService.recordBucket(), spaces, true);
+    }
+
+    private static String stringField(Object value) {
+        return value == null ? "" : String.valueOf(value).trim();
     }
 }

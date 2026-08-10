@@ -19,6 +19,7 @@ public class VideoProperties {
     private final SpaceCleanup spaceCleanup = new SpaceCleanup();
     private final PlaybackDiskGuard playbackDiskGuard = new PlaybackDiskGuard();
     private final MediaJanitor mediaJanitor = new MediaJanitor();
+    private final Minio minio = new Minio();
 
     /**
      * Mirrors Python {@code VIDEO_SKIP_BACKGROUND_TASKS=1} — disables scheduled health recovery
@@ -137,6 +138,26 @@ public class VideoProperties {
         /** Optional override for SRS playbacks root ({@code MEDIA_RECORD_DIR} / {@code SRS_RECORD_DIR}). */
         private String recordDir = "";
         private String hostDataRoot = "";
+    }
+
+    @Data
+    public static class Minio {
+        /**
+         * mini / local default off — mirrors Python {@code minio_storage_enabled()}.
+         * Override with env {@code MINIO_ENABLED=true} for prod MinIO paths.
+         */
+        private boolean enabled = false;
+        /** MinIO endpoint (http://host:port or host:port). Env MINIO_ENDPOINT wins. */
+        private String endpoint = "http://localhost:9000";
+        private String accessKey = "minioadmin";
+        private String secretKey = "minioadmin";
+        private boolean secure = false;
+        private String snapBucket = "snap-space";
+        private String recordBucket = "record-space";
+        private String snapArchiveBucket = "snap-archive";
+        private String recordArchiveBucket = "record-archive";
+        /** Minimum DVR segment bytes before upload (env SRS_DVR_MIN_FILE_BYTES). */
+        private int dvrMinFileBytes = 8192;
     }
 
     @Data

@@ -97,6 +97,74 @@ public class RecordFileRepository {
         return total != null && total > 0;
     }
 
+    public boolean existsByBucketAndObjectName(String bucketName, String objectName) {
+        Long total = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM record_file WHERE bucket_name = ? AND object_name = ?",
+                Long.class,
+                bucketName,
+                objectName
+        );
+        return total != null && total > 0;
+    }
+
+    public void upsert(int spaceId, String deviceId, String objectName, String bucketName, String filename,
+                       long fileSize, String contentType, String url, String thumbnailUrl, int duration,
+                       Timestamp eventTime, String source) {
+        int updated = jdbc.update(
+                """
+                UPDATE record_file SET space_id = ?, device_id = ?, filename = ?, file_size = ?,
+                    content_type = ?, url = ?, thumbnail_url = ?, duration = ?, event_time = ?,
+                    source = ?, updated_at = NOW()
+                WHERE bucket_name = ? AND object_name = ?
+                """,
+                spaceId, deviceId, filename, fileSize, contentType, url, thumbnailUrl, duration, eventTime,
+                source, bucketName, objectName
+        );
+        if (updated == 0) {
+            jdbc.update(
+                    """
+                    INSERT INTO record_file (space_id, device_id, object_name, bucket_name, filename,
+                        file_size, content_type, url, thumbnail_url, duration, event_time, source, created_at, updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())
+                    """,
+                    spaceId, deviceId, objectName, bucketName, filename, fileSize, contentType, url,
+                    thumbnailUrl, duration, eventTime, source
+            );
+        }
+    }
+
+    public List<Map<String, Object>> listExpiredBefore(int spaceId, String deviceId, Timestamp cutoff) {
+        if (cutoff == null) {
+            return List.of();
+        }
+        if (deviceId != null && !deviceId.isBlank()) {
+            return jdbc.query(
+                    "SELECT * FROM record_file WHERE space_id = ? AND device_id = ? AND event_time < ?",
+                    (rs, rowNum) -> fileRow(rs),
+                    spaceId, deviceId, cutoff
+            );
+        }
+        return jdbc.query(
+                "SELECT * FROM record_file WHERE space_id = ? AND event_time < ?",
+                (rs, rowNum) -> fileRow(rs),
+                spaceId, cutoff
+        );
+    }
+
+    public int deleteByBucketAndObjectNames(String bucketName, List<String> objectNames) {
+        if (objectNames == null || objectNames.isEmpty()) {
+            return 0;
+        }
+        int deleted = 0;
+        for (String objectName : objectNames) {
+            deleted += jdbc.update(
+                    "DELETE FROM record_file WHERE bucket_name = ? AND object_name = ?",
+                    bucketName, objectName
+            );
+        }
+        return deleted;
+    }
+
     public int deleteExpiredBefore(int spaceId, String deviceId, Timestamp cutoff) {
         if (cutoff == null) {
             return 0;

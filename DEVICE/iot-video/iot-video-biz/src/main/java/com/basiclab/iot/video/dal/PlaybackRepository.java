@@ -51,6 +51,30 @@ public class PlaybackRepository {
         return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
     }
 
+    public Optional<Map<String, Object>> findByDeviceAndPaths(String deviceId, String filePathUrl, String objectName) {
+        List<Map<String, Object>> rows = jdbc.query(
+                """
+                SELECT * FROM playback
+                WHERE device_id = ? AND (file_path = ? OR file_path = ?)
+                LIMIT 1
+                """,
+                (rs, rowNum) -> playbackRow(rs),
+                deviceId, filePathUrl, objectName
+        );
+        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
+    }
+
+    public void deleteByFilePaths(List<String> filePaths) {
+        if (filePaths == null || filePaths.isEmpty()) {
+            return;
+        }
+        for (String path : filePaths) {
+            if (path != null && !path.isBlank()) {
+                jdbc.update("DELETE FROM playback WHERE file_path = ?", path);
+            }
+        }
+    }
+
     public int insert(Map<String, Object> fields) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(con -> {

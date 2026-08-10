@@ -3,6 +3,8 @@ package com.basiclab.iot.video.service.snap;
 import com.basiclab.iot.video.dal.SnapImageRepository;
 import com.basiclab.iot.video.dal.SnapSpaceRepository;
 import com.basiclab.iot.video.exception.VideoBusinessException;
+import com.basiclab.iot.video.service.minio.SpaceFileMetadataService;
+import com.basiclab.iot.video.service.minio.VideoMinioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,8 @@ public class SnapImageService {
 
     private final SnapImageRepository snapImageRepository;
     private final SnapSpaceRepository snapSpaceRepository;
+    private final SpaceFileMetadataService spaceFileMetadataService;
+    private final VideoMinioService videoMinioService;
 
     public Map<String, Object> list(int spaceId, String deviceId, int pageNo, int pageSize, String search,
                                     String source, String startTime, String endTime) {
@@ -76,6 +80,14 @@ public class SnapImageService {
         if (objectNames == null || objectNames.isEmpty()) {
             throw new VideoBusinessException(400, "object_names必须是非空数组");
         }
+        Map<String, Object> space = snapSpaceRepository.findById(spaceId)
+                .orElseThrow(() -> new VideoBusinessException(400, "抓拍空间不存在: ID=" + spaceId));
+        String bucketName = space.get("bucket_name") != null
+                ? String.valueOf(space.get("bucket_name"))
+                : videoMinioService.snapBucket();
+        for (String objectName : objectNames) {
+            videoMinioService.removeObject(bucketName, objectName);
+        }
         snapImageRepository.deleteByObjectNames(spaceId, objectNames);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("deleted_count", objectNames.size());
@@ -85,25 +97,18 @@ public class SnapImageService {
     }
 
     public Map<String, Object> syncMetadata(int spaceId) {
-        snapSpaceRepository.findById(spaceId)
+        Map<String, Object> space = snapSpaceRepository.findById(spaceId)
                 .orElseThrow(() -> new VideoBusinessException(400, "抓拍空间不存在: ID=" + spaceId));
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("synced_count", 0);
-        result.put("skipped_count", 0);
-        result.put("message", "mini 形态跳过 MinIO 元数据同步");
-        return result;
+        return spaceFileMetadataService.syncSnapImagesFromMinio(space);
     }
 
     public Map<String, Object> cleanup(int spaceId, int saveTimeHours) {
         if (saveTimeHours <= 0) {
             throw new VideoBusinessException(400, "save_time_hours 必须大于 0");
         }
-        snapSpaceRepository.findById(spaceId)
+        Map<String, Object> space = snapSpaceRepository.findById(spaceId)
                 .orElseThrow(() -> new VideoBusinessException(400, "抓拍空间不存在: ID=" + spaceId));
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("deleted_count", 0);
-        result.put("message", "mini 形态跳过过期图片清理");
-        return result;
+        return spaceFileMetadataService.cleanupExpiredSnapImages(space, saveTimeHours);
     }
 
     private static Timestamp parseDateTime(String value) {

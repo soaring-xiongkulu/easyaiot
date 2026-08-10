@@ -2,12 +2,12 @@ package com.basiclab.iot.video.service.ops;
 
 import com.basiclab.iot.video.dal.RecordFileRepository;
 import com.basiclab.iot.video.dal.RecordSpaceRepository;
+import com.basiclab.iot.video.service.minio.SpaceFileMetadataService;
 import com.basiclab.iot.video.support.SpaceSaveTimeSupport;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.sql.Timestamp;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +22,7 @@ public class RecordSpaceCleanupService {
 
     private final RecordSpaceRepository recordSpaceRepository;
     private final RecordFileRepository recordFileRepository;
+    private final SpaceFileMetadataService spaceFileMetadataService;
 
     public Map<String, Object> cleanupAllSpaces() {
         List<Map<String, Object>> spaces = recordSpaceRepository.listAllSpaces();
@@ -37,9 +38,9 @@ public class RecordSpaceCleanupService {
             int spaceId = ((Number) space.get("id")).intValue();
             String deviceId = space.get("device_id") != null ? String.valueOf(space.get("device_id")) : null;
             try {
-                Timestamp cutoff = SpaceSaveTimeSupport.cutoffBefore(saveTimeHours);
-                int deleted = recordFileRepository.deleteExpiredBefore(spaceId, deviceId, cutoff);
-                totalProcessed += deleted;
+                Map<String, Object> result = spaceFileMetadataService.cleanupExpiredRecordFiles(space, saveTimeHours);
+                int deleted = ((Number) result.getOrDefault("deleted_count", 0)).intValue();
+                totalProcessed += ((Number) result.getOrDefault("processed_count", deleted)).intValue();
                 totalDeleted += deleted;
                 if (deleted > 0) {
                     log.info(

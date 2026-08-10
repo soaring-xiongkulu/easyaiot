@@ -3,6 +3,8 @@ package com.basiclab.iot.video.service.record;
 import com.basiclab.iot.video.dal.RecordFileRepository;
 import com.basiclab.iot.video.dal.RecordSpaceRepository;
 import com.basiclab.iot.video.exception.VideoBusinessException;
+import com.basiclab.iot.video.service.minio.SpaceFileMetadataService;
+import com.basiclab.iot.video.service.minio.VideoMinioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,8 @@ public class RecordVideoService {
 
     private final RecordFileRepository recordFileRepository;
     private final RecordSpaceRepository recordSpaceRepository;
+    private final SpaceFileMetadataService spaceFileMetadataService;
+    private final VideoMinioService videoMinioService;
 
     public List<String> listDates(int spaceId, String deviceId) {
         ensureSpace(spaceId);
@@ -96,6 +100,14 @@ public class RecordVideoService {
         if (objectNames == null || objectNames.isEmpty()) {
             throw new VideoBusinessException(400, "object_names 必须是非空数组");
         }
+        Map<String, Object> space = recordSpaceRepository.findById(spaceId)
+                .orElseThrow(() -> new VideoBusinessException(400, "监控录像空间不存在: ID=" + spaceId));
+        String bucketName = space.get("bucket_name") != null
+                ? String.valueOf(space.get("bucket_name"))
+                : videoMinioService.recordBucket();
+        for (String objectName : objectNames) {
+            videoMinioService.removeObject(bucketName, objectName);
+        }
         recordFileRepository.deleteByObjectNames(spaceId, objectNames);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("deleted_count", objectNames.size());
@@ -105,28 +117,25 @@ public class RecordVideoService {
     }
 
     public Map<String, Object> syncMetadata(int spaceId) {
-        ensureSpace(spaceId);
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("synced_count", 0);
-        result.put("skipped_count", 0);
-        result.put("message", "mini 形态跳过 MinIO 元数据同步");
-        return result;
+        Map<String, Object> space = ensureSpaceMap(spaceId);
+        return spaceFileMetadataService.syncRecordFilesFromMinio(space);
     }
 
     public Map<String, Object> cleanup(int spaceId, int saveTimeHours) {
         if (saveTimeHours <= 0) {
             throw new VideoBusinessException(400, "save_time_hours 必须大于 0");
         }
-        ensureSpace(spaceId);
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("deleted_count", 0);
-        result.put("message", "mini 形态跳过过期录像清理");
-        return result;
+        Map<String, Object> space = ensureSpaceMap(spaceId);
+        return spaceFileMetadataService.cleanupExpiredRecordFiles(space, saveTimeHours);
+    }
+
+    private Map<String, Object> ensureSpaceMap(int spaceId) {
+        return recordSpaceRepository.findById(spaceId)
+                .orElseThrow(() -> new VideoBusinessException(400, "监控录像空间不存在: ID=" + spaceId));
     }
 
     private void ensureSpace(int spaceId) {
-        recordSpaceRepository.findById(spaceId)
-                .orElseThrow(() -> new VideoBusinessException(400, "监控录像空间不存在: ID=" + spaceId));
+        ensureSpaceMap(spaceId);
     }
 
     private static Timestamp parseDateTime(String value) {

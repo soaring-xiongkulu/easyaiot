@@ -136,14 +136,14 @@
 | snap | **Py 38 / Java 38 / diff 0** | ✅ 路由 | space CRUD/策略/sync；task CRUD/start/stop/restart/logs；region/service；images；device storage |
 | record | **Py 16 / Java 16 / diff 0** | ✅ 路由 | space CRUD/策略/sync；videos dates/day/list/object/delete/sync/cleanup；resolve-alert |
 | playback | **Py 7 / Java 7 / diff 0** | ✅ 路由 | list/get/create/update/delete；thumbnail；statistics |
-| ❌ 行为 | — | MinIO 真同步/清理、抓拍 APScheduler、真 play URL 解析 — mini 形态桩/DB 为主 |
+| ❌ 行为 | — | MinIO 真同步/清理、抓拍 APScheduler、真 play URL 解析 — **FR-B2 ✅** MinIO 同步/清理/DVR 上传代码路径；snap 调度仍缺 |
 
 ### 2.7 `media_hook` / `device_detection_region`
 
 | 域 | 路由差 | 状态 | 说明 |
 |----|--------|------|------|
 | media_hook | **Py 6 / Java 6 / diff 0** | ✅ 路由 | SRS `on_dvr/on_publish/on_unpublish`；ZLM `on_record_mp4/ts`；`snap/completed` |
-| ❌ 行为 | — | DVR MinIO 上传、Playback/RecordFile 写入、抓拍 Kafka→MinIO 全链路 — mini 形态 ack/DB 桩 |
+| ❌ 行为 | — | DVR MinIO 上传、Playback/RecordFile 写入、抓拍 Kafka→MinIO 全链路 — **FR-B2 ✅** 代码路径已实现；mini 默认本地路径 |
 | regions | **Py 6 / Java 6 / diff 0** | ✅ 路由 | GET/POST regions；PUT/DELETE region；cover-image；snapshot |
 | ❌ 行为 | — | 抓拍 FFmpeg/GB28181、MinIO 上传 — mini 形态错误结构对齐 |
 
@@ -187,7 +187,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | Face/Plate matching | Kafka + 模型 | publish/process 切片；mini mock | 真 Kafka + 推理/旁路 |
 | 远程 node / RUNTIME 分发 | node_client | EX-REMOTE-NODE 本地拒绝 | 对齐 iot-node API |
 | ONVIF / NVR / GB28181 / FlightHub | camera 大面 | **无** | 随 camera 域补齐 |
-| MinIO 空间同步/清理 | snap/record 多接口 | 基本无 | 随空间域补齐 |
+| MinIO 空间同步/清理 | snap/record 多接口 | **✅ FR-B2** `VideoMinioService` + `SpaceFileMetadataService`；`video.minio.enabled` / `MINIO_ENABLED` 开关；DVR/snap 上传真路径 | mini 默认 `enabled=false`（DB/本地路径）；prod 需 MinIO 联调 |
 | 鉴权（流票据、网关 token） | 有 | **FR-W1-AUTH ✅** mini gateway + `system-server` token check（invalid Bearer 401；valid Bearer 200）；流票据仍缺 | 生产全量路由 + 流票据待 W2 camera |
 | 对外 JSON | `{code,msg,data}` | `VideoApiResponse` 已对齐方向 | 全接口字段级与 WEB 对表 |
 

@@ -380,6 +380,35 @@ public class AlertRepository {
         }
     }
 
+    public int patchAlertsRecord(String deviceId, String eventTime, int duration, String filePath,
+                                 boolean allowLocalPath) {
+        if (deviceId == null || deviceId.isBlank() || eventTime == null || eventTime.isBlank()) {
+            return 0;
+        }
+        if (filePath == null || filePath.isBlank()) {
+            return 0;
+        }
+        boolean minioPath = filePath.startsWith("/api/v1/buckets/") && filePath.contains("/objects/download");
+        if (!minioPath && !allowLocalPath) {
+            return 0;
+        }
+        LocalDateTime begin = LocalDateTime.parse(eventTime.trim(), WALL);
+        LocalDateTime legacyStart = begin.minusSeconds(Math.max(duration, 1));
+        LocalDateTime end = begin.plusSeconds(Math.max(duration, 1));
+        return jdbc.update(
+                """
+                UPDATE alert SET record_path = ?
+                WHERE device_id = ?
+                  AND time >= ? AND time <= ?
+                  AND (record_path IS NULL OR TRIM(record_path) = '')
+                """,
+                filePath,
+                deviceId,
+                Timestamp.valueOf(legacyStart),
+                Timestamp.valueOf(end)
+        );
+    }
+
     private Integer parsePositiveInt(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;
