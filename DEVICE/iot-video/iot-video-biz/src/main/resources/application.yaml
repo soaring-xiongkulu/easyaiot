@@ -82,3 +82,8 @@ video:
     dvr-consumer-group: upload-worker-dvr
     dvr-max-retries: 12
     dvr-poll-timeout-ms: 1000
+    snap-completed-topic: media.snap.completed
+    snap-dlq-topic: media.snap.dlq
+    snap-consumer-group: upload-worker-snap
+    snap-max-retries: 8
+    snap-poll-timeout-ms: 1000

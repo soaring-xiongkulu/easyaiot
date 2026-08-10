@@ -117,6 +117,15 @@ public class VideoProperties {
         private int dvrMaxRetries = 12;
         /** Poll timeout ms for DVR consumer (Python poll timeout_ms=1000). */
         private long dvrPollTimeoutMs = 1_000L;
+        /**
+         * Snap upload consumer group ({@code MEDIA_KAFKA_SNAP_CONSUMER_GROUP}).
+         * Consumer starts when {@link #snapUploadMode} is kafka or inherits kafka/hybrid uploadMode.
+         */
+        private String snapConsumerGroup = "upload-worker-snap";
+        /** Max in-message retries before DLQ (Python snap worker default 8). */
+        private int snapMaxRetries = 8;
+        /** Poll timeout ms for snap consumer (Python poll timeout_ms=1000). */
+        private long snapPollTimeoutMs = 1_000L;
         /** SRS HTTP API host for on_publish conflict resolution. */
         private String srsHost = "localhost";
     }
