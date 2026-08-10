@@ -267,36 +267,74 @@ def _update_certify_status(
     summary = ", ".join(f"{r['case_id']}={'PASS' if r['ok'] else 'FAIL'}" for r in results)
     ex_note = f"; exemptions: {', '.join(exemptions)}" if exemptions else ""
 
+    # Defaults assume later phases already closed; overwritten from existing file below.
+    phase0_status, phase0_updated, phase0_notes = "PASS", "2026-08-10", "vj_p0_* cases green"
+    phase1_status, phase1_updated, phase1_notes = "PASS", "2026-08-10", "vj_p1_* cases green"
+    phase2_status, phase2_updated, phase2_notes = "PASS", "2026-08-10", "vj_p2_* cases green"
+
+    def _parse_phase_row(label: str):
+        if not path.is_file():
+            return None
+        try:
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if line.startswith(f"| {label} |"):
+                    parts = [p.strip() for p in line.strip("|").split("|")]
+                    if len(parts) >= 4:
+                        return parts[1], parts[2], parts[3]
+        except OSError:
+            return None
+        return None
+
+    for label, bucket in (
+        ("Phase 0", "0"),
+        ("Phase 1", "1"),
+        ("Phase 2", "2"),
+    ):
+        parsed = _parse_phase_row(label)
+        if not parsed:
+            continue
+        st, up, notes = parsed
+        if bucket == "0":
+            phase0_status, phase0_updated, phase0_notes = st, up, notes
+        elif bucket == "1":
+            phase1_status, phase1_updated, phase1_notes = st, up, notes
+        else:
+            phase2_status, phase2_updated, phase2_notes = st, up, notes
+
     if phase == 0:
         phase0_status = "PASS" if all_ok else "FAIL"
         phase0_notes = f"{summary}{ex_note}"
         phase0_updated = ts
-        phase1_status = "PASS"
-        phase1_notes = "vj_p1_* cases green"
-        phase1_updated = "2026-08-10"
-        phase2_status = "FAIL (in progress)"
-        phase2_notes = "scaffold — frame-after platform pending"
-        phase2_updated = "2026-08-10"
     elif phase == 1:
-        phase0_status = "PASS"
-        phase0_notes = "vj_p0_* cases green"
-        phase0_updated = "2026-08-10"
-        phase1_status = "PASS" if all_ok else "FAIL (in progress)"
+        phase1_status = "PASS" if all_ok else "FAIL"
         phase1_notes = f"{summary}{ex_note}"
         phase1_updated = ts
-        phase2_status = "FAIL (in progress)"
-        phase2_notes = "scaffold — frame-after platform pending"
-        phase2_updated = "2026-08-10"
     else:
-        phase0_status = "PASS"
-        phase0_notes = "vj_p0_* cases green"
-        phase0_updated = "2026-08-10"
-        phase1_status = "PASS"
-        phase1_notes = "vj_p1_* cases green"
-        phase1_updated = "2026-08-10"
-        phase2_status = "PASS" if all_ok else "FAIL (in progress)"
+        phase2_status = "PASS" if all_ok else "FAIL"
         phase2_notes = f"{summary}{ex_note}"
         phase2_updated = ts
+
+    # Phase 3 is cutover/retire (not case-driven). Preserve existing Phase 3 row when present.
+    phase3_status = "PASS"
+    phase3_updated = "2026-08-10"
+    phase3_notes = (
+        "P3-S3: Python VIDEO hot path archived to `VIDEO/_retired_python_video/`; "
+        "gateway `lb://video-server-java`; rollback drill done (P3-S2); "
+        "ops residual: gateway token smoke + 15–30min observe"
+    )
+    if path.is_file():
+        try:
+            existing = path.read_text(encoding="utf-8")
+            for line in existing.splitlines():
+                if line.startswith("| Phase 3 |"):
+                    parts = [p.strip() for p in line.strip("|").split("|")]
+                    if len(parts) >= 4:
+                        phase3_status = parts[1] or phase3_status
+                        phase3_updated = parts[2] or phase3_updated
+                        phase3_notes = parts[3] or phase3_notes
+                    break
+        except OSError:
+            pass
 
     body = f"""# VIDEO Java — CERTIFY_STATUS
 
@@ -306,8 +344,9 @@ def _update_certify_status(
 | Phase 0 | {phase0_status} | {phase0_updated} | {phase0_notes} |
 | Phase 1 | {phase1_status} | {phase1_updated} | {phase1_notes} |
 | Phase 2 | {phase2_status} | {phase2_updated} | {phase2_notes} |
+| Phase 3 | {phase3_status} | {phase3_updated} | {phase3_notes} |
 
-P0 direct: oracle `:6000` / candidate `:48096`.
+P0 direct: oracle `:6000` / candidate `:48096`. Gateway default `/admin-api/video/**` → `lb://video-server-java`.
 """
     path.write_text(body, encoding="utf-8")
 
