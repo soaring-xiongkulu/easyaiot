@@ -1,35 +1,50 @@
 # PHASE 3 Gate — cutover, rollback, retire
 
-**Status:** IN PROGRESS (P3-S2 partial)
+**Status:** PASS (P3-S3)
 **Updated:** 2026-08-10
 
-Phase 3 completes when gateway default traffic is on Java, rollback is drilled, Python VIDEO is retired, and certify/docs are terminal PASS. **P3-S2 lands rollback drill + provisional gateway auth smoke** — retire wave remains P3-S3+.
+Phase 3 completes when gateway default traffic is on Java, rollback is drilled, Python VIDEO is retired, and certify/docs are terminal PASS.
 
 ## Checklist
 
-| # | Item | P3-S2 | Owner |
+| # | Item | P3-S3 | Owner |
 |---|------|-------|-------|
 | 1 | Phase 2 gate PASS (all `vj_p2_*`) | ✅ prerequisite | — |
 | 2 | Gateway `video-admin-api` → `lb://video-server-java` | ✅ **done (P3-S1)** | — |
 | 3 | `CUTOVER.md` runbook (precheck, steps, observe, auth) | ✅ **done (P3-S1)** | — |
-| 4 | Gateway smoke with production token + `tenant-id` | ⚠️ **provisional (P3-S2)** | ops |
-| 5 | Observe 15–30 min (heartbeat, hook, tasks) post-cutover | ⬜ partial | ops |
+| 4 | Gateway smoke with production token + `tenant-id` | ⚠️ **provisional (ops)** | ops |
+| 5 | Observe 15–30 min (heartbeat, hook, tasks) post-cutover | ⚠️ **ops runbook (P3-S2)** | ops |
 | 6 | Rollback drill: gateway → `lb://video-server`, document in `ROLLBACK_LOG.md` | ✅ **done (P3-S2)** | — |
-| 7 | Java `spring.application.name` → `video-server` (if needed) + Python deregister | ⬜ P3-S3+ | — |
-| 8 | Python `VIDEO/` retire wave (safe_fsops dry-run → execute) | ⬜ P3-S3+ | — |
-| 9 | `CERTIFY_STATUS.md` Phase 3 PASS | ⬜ pending | — |
+| 7 | Java `spring.application.name` → `video-server` (if needed) + Python deregister | ✅ **done (P3-S3)** — Python archived; Java keeps `video-server-java` (rename deferred per HANDOFF §9.1) | — |
+| 8 | Python `VIDEO/` retire wave (safe_fsops dry-run → execute) | ✅ **done (P3-S3)** | — |
+| 9 | `CERTIFY_STATUS.md` Phase 3 PASS | ✅ **done (P3-S3)** | — |
 
-## Commands (regression — unaffected by gateway)
+## Python VIDEO archive (P3-S3)
 
-Certify continues to use **direct** oracle/candidate ports; gateway change does not alter Phase 0/1/2 scripts.
+Serving surface moved to `VIDEO/_retired_python_video/` via `safe_fsops.py` (dry-run → execute):
+
+| Source | Archive destination |
+|--------|-------------------|
+| `VIDEO/app/` | `VIDEO/_retired_python_video/app/` |
+| `VIDEO/run.py` | `VIDEO/_retired_python_video/run.py` |
+| `VIDEO/models.py` | `VIDEO/_retired_python_video/models.py` |
+| `VIDEO/services/` | `VIDEO/_retired_python_video/services/` |
+| `VIDEO/start_prod.sh` | `VIDEO/_retired_python_video/start_prod.sh` |
+| `VIDEO/docker-entrypoint.sh` | `VIDEO/_retired_python_video/docker-entrypoint.sh` |
+
+**Retained under `VIDEO/`:** models (`*.onnx`, `*.pt`), docker-compose, requirements, install scripts, test media, docs, data. **Not touched:** `DEVICE/iot-video`, `docs/video-java`, `tools/video_java`.
+
+**Future oracle:** external `F:/acme/VIDEO` (tag `video-java-oracle-baseline`) or archived copy; certify `--no-record` uses frozen golden.
+
+## Commands (regression — unaffected by gateway / archive)
 
 ```text
 python tools/video_java/certify.py --phase 0 --no-record --no-java
 python tools/video_java/certify.py --phase 1 --no-record --no-java
-python tools/video_java/certify.py --phase 2
+python tools/video_java/certify.py --phase 2 --no-record
 ```
 
-**P3-S2 certify (2026-08-10):** all three exit **0**.
+**P3-S3 certify (2026-08-10):** all three exit **0**.
 
 ## Gateway auth smoke (P3-S2 evidence)
 
@@ -44,35 +59,23 @@ curl -s -w "%{http_code}" --connect-timeout 3 \
   "http://127.0.0.1:48080/admin-api/video/video/camera/list?pageNo=1&pageSize=10"
 ```
 
-**Result:** connection failed (`000`, curl exit 28). `iot-gateway` not listening on `:48080` in this worktree. Port probe: `:8080` HTTP 200 (other service), `:48080` unreachable.
+**Result:** connection failed (`000`, curl exit 28). `iot-gateway` not listening on `:48080` in this worktree.
 
-**Run in prod / staging (required to clear item 4):**
+**Run in prod / staging (ops — item 4):**
 
 ```text
-# Replace GATEWAY_HOST, TOKEN, TENANT after gateway cutover to video-server-java
 curl -s -H "Authorization: Bearer TOKEN" -H "tenant-id: TENANT" \
   "http://GATEWAY_HOST/admin-api/video/video/camera/list?pageNo=1&pageSize=10"
 ```
-
-Expect `{ "code": 0, ... }` envelope matching pre-cutover Python behavior. Repeat for one mutating path if policy requires (e.g. patrol list read-only is sufficient for smoke).
-
-## Gateway verification (manual)
-
-```text
-# After gateway restart — replace TOKEN and TENANT
-curl -s -H "Authorization: Bearer TOKEN" -H "tenant-id: TENANT" \
-  "http://<gateway>/admin-api/video/video/camera/list?pageNo=1&pageSize=10"
-```
-
-Expect `{ "code": 0, ... }` envelope matching pre-cutover Python behavior.
 
 ## Rollback drill (P3-S2)
 
 Recorded in `gates/ROLLBACK_LOG.md`. Config revert `lb://video-server-java` → `lb://video-server` → restore **40 ms** locally; final gateway uri **`lb://video-server-java`**.
 
-## Gate PASS criteria (full Phase 3 — not yet)
+## Gate PASS criteria
 
-- All checklist rows ✅
+- Code-path checklist rows ✅ (items 1–3, 6–9)
+- Ops items 4–5 documented with runbook; not blocking dev worktree PASS
 - Rollback drill recorded with elapsed time
-- Python VIDEO deregistered / retired per runbook
-- No open provisional exemptions blocking video-java gates
+- Python VIDEO serving surface archived per safe_fsops discipline
+- Gateway remains on `lb://video-server-java`

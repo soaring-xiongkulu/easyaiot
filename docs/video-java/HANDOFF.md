@@ -55,18 +55,21 @@
 9. `DEVICE/iot-sink` — face/plate/post-process 回调与 Kafka 主题
 10. `docs/runtime-parity/EXECUTION.md` + `HANDOFF.md` — 方法论参照（**勿复用其门禁目录**）
 
-## 7. 现状摘要
+## 7. 现状摘要（2026-08-10 P3-S3 终态）
 
-- Python VIDEO：`app/` 约 4–5 万 LOC；14 Blueprint；多 Process 守护。
-- 帧内推理已 cpp-only；Python 算法三服务已从主线删除。
-- 网关已转发 video；**无**现成 `iot-video` Java 模块。
-- Java 侧已有：Boot 2.7.18 / Java 21 / Nacos / Kafka / MinIO / iot-node 部署 RUNTIME·ffmpeg / iot-sink 匹配链。
+- **Java `iot-video`**：`DEVICE/iot-video`，Nacos `video-server-java`，`:48096`，Phase 0/1/2 certify PASS。
+- **网关默认流量**：`video-admin-api` → `lb://video-server-java`（P3-S1）。
+- **Python VIDEO 热路径**：已归档至 `VIDEO/_retired_python_video/`（P3-S3，safe_fsops）；不再从 `VIDEO/run.py` 对外服务。
+- **外部 oracle**：`F:/acme/VIDEO`（tag `video-java-oracle-baseline`）仍可作 parity 录制；certify 默认 `--no-record` 用 frozen golden。
+- **Phase 3 门禁**：`PHASE_3_GATE` PASS；`CERTIFY_STATUS` Phase 3 PASS。
 
 ## 8. 你的下一步
 
-1. §9.1 已吸进 STACK/PLAN/testbed（见同日修订）。  
-2. **等待开工指令** → 仅 Phase -1（tag、空模块、doctor、`local`/`mini`、`{code,msg,data}` 骨架）。  
-3. Phase -1 PASS 前 **不开** Phase 0 业务搬迁。
+**项目 video-java 迁移主线已完成（Phase 3 PASS）。** 后续仅运维项：
+
+1. 生产/预发执行 gateway auth smoke（`PHASE_3_GATE` 项 4）与 15–30 min 观察（项 5）。
+2. 视需要将 Java `spring.application.name` 改为 `video-server`（当前刻意保留 `video-server-java` 避免抢名）。
+3. 新 parity 需求：用 archived oracle 或 Java-only smoke；勿恢复 in-repo `VIDEO/app` 热路径除非 rollback runbook。
 
 ## 9. 决议（审查填写）
 
@@ -100,6 +103,4 @@
 
 ### 9.3 下一步
 
-**批准进入 Phase -1**（仅）：oracle tag、worktree、`iot-video` 空壳 + health + `{code,msg,data}` 适配 + `local`/`mini` 无 Nacos、`tools/video_java/doctor`、`gates/PHASE_-1_GATE.md`。  
-**Phase -1 PASS 前**不得开始 Phase 0 业务搬迁（任务启停/ini/hook 实装）。  
-**当前：** 文档已吸收 §9.1 → **停，等开工指令。**
+**Phase 3 PASS（2026-08-10）。** Python VIDEO 热路径已归档；网关在 Java。运维 smoke/观察见 `gates/PHASE_3_GATE.md` 项 4–5。

@@ -6,8 +6,10 @@ Phase 0/1 certify hits each side **directly** by base URL. Gateway cutover is **
 
 | Role | Stack | Nacos name | Default port | Certify base URL |
 |------|-------|------------|--------------|------------------|
-| Oracle | Python `VIDEO/run.py` | `video-server` | `6000` | `http://127.0.0.1:6000` |
+| Oracle (archived) | `VIDEO/_retired_python_video/run.py` or external `F:/acme/VIDEO` | `video-server` (retired) | `6000` | `http://127.0.0.1:6000` |
 | Candidate | Java `iot-video-biz` | `video-server-java` | `48096` | `http://127.0.0.1:48096` |
+
+**P3-S3:** In-repo Python serving surface archived; gateway traffic is Java-only. Oracle for new golden recording: external `F:/acme/VIDEO` or archived copy under `VIDEO/_retired_python_video/`.
 
 Both may register in Nacos simultaneously. **Do not** rename the Java service to `video-server` during Phase 1.
 
@@ -43,7 +45,9 @@ Python oracle (`video-server` / `:6000`) remains available for rollback — reve
 
 Optional **side-by-side** probe route for direct Java testing without stealing `/admin-api/video/**` (see `docs/video-java/gateway-optional-route.yaml`). Prefix `/admin-api/video-java/**`.
 
-**Not done in P3-S1:** Java `spring.application.name` rename to `video-server`; Python `VIDEO/` deletion.
+**Not done in P3-S1:** Java `spring.application.name` rename to `video-server`.
+
+**Done in P3-S3:** Python `VIDEO/` hot path archived to `VIDEO/_retired_python_video/` (safe_fsops). Models, docker-compose, requirements remain under `VIDEO/`.
 
 ## Certify commands
 
