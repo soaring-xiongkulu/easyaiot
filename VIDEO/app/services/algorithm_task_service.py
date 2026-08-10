@@ -1624,6 +1624,13 @@ def start_algorithm_task(task_id: int):
             service_message = f"服务启动异常: {str(e)}"
         
         logger.info(f"启动算法任务成功: task_id={task_id}, message={service_message}, already_running={already_running}")
+        try:
+            from app.services.runtime_config_service import normalize_executor
+            if normalize_executor(task.executor) == 'cpp' and task.task_type == 'realtime':
+                from app.services.stream_forward_service import refresh_stream_forward_rtsp_for_devices
+                refresh_stream_forward_rtsp_for_devices([d.id for d in (task.devices or [])])
+        except Exception as e:
+            logger.warning('启动算法后刷新推流转发 RTSP 失败 task_id=%s: %s', task_id, e)
         return task, service_message, already_running
     except Exception as e:
         db.session.rollback()
@@ -1635,6 +1642,7 @@ def stop_algorithm_task(task_id: int):
     """停止算法任务"""
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
+        device_ids = [d.id for d in (task.devices or [])]
         task.is_enabled = False
         task.run_status = 'stopped'
         task.updated_at = datetime.utcnow()
@@ -1678,6 +1686,14 @@ def stop_algorithm_task(task_id: int):
             daemon=True,
             name=f"stop-task-{task_id}",
         ).start()
+
+        try:
+            from app.services.runtime_config_service import normalize_executor
+            if normalize_executor(task.executor) == 'cpp' and task.task_type == 'realtime':
+                from app.services.stream_forward_service import refresh_stream_forward_rtsp_for_devices
+                refresh_stream_forward_rtsp_for_devices(device_ids)
+        except Exception as e:
+            logger.warning('停止算法后刷新推流转发 RTSP 失败 task_id=%s: %s', task_id, e)
 
         logger.info(f"停止算法任务成功(服务清理已转后台执行): task_id={task_id}")
         return task
