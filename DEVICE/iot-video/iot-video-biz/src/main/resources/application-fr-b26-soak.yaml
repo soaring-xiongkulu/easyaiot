@@ -1,0 +1,28 @@
+# FR-B26 local pure Kafka DVR + Alert Kafka evidence overlay.
+# Activate with: --spring.profiles.active=local,fr-b26-soak
+# Restore mini-safe: --spring.profiles.active=local (omit this profile).
+#
+# Python-first refs:
+#   media_kafka_service.py — upload-mode=kafka enqueue-only (no sync process)
+#   media_hook.py — is_kafka_upload_mode() && !is_hybrid_upload_mode() early return
+#   alert_hook_service.py — use_direct_persist=false → Kafka produce
+
+video:
+  minio:
+    enabled: true
+    endpoint: http://127.0.0.1:9000
+    access-key: minioadmin
+    secret-key: basiclab@iot975248395
+    secure: false
+  alert:
+    use-direct-persist: false
+    alert-notification-topic: iot-alert-notification
+    snapshot-alert-topic: iot-snapshot-alert
+  media:
+    upload-mode: kafka
+    snap-upload-mode: sync
+    # Dedicated 1-partition topic avoids default-group 64-partition backlog (FR-B25 hybrid bypass)
+    dvr-completed-topic: media.dvr.completed.frb26
+    dvr-consumer-group: upload-worker-dvr-frb26
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092

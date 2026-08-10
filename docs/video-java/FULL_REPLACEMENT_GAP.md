@@ -279,7 +279,15 @@ Python `run.py` 启动时拉起的能力 vs Java：
 
 ---
 
-## 9. 最终判定 — FR-B25
+## 9. 最终判定 — FR-B26
+
+| 问题 | 答案 |
+|------|------|
+| 纯 `upload-mode=kafka` DVR 真文件成功？ | **是（local-only）** — `frb26_device` hook 仅入队（对齐 Python `media_hook.py` kafka-only）；专用 topic `media.dvr.completed.frb26` + consumer group `upload-worker-dvr-frb26`；consumer `DVR 上传完成` → MinIO 146128B + DB `record_path` `/api/v1/buckets/...`；`logs/fr-b26-pure-kafka-dvr-latest.json` **8/8** |
+| Alert `use-direct-persist=false` produce？ | **是（local-only）** — `POST /video/alert/hook` → `mode=kafka` topic=`iot-alert-notification` key=`frb26_device`；`logs/fr-b26-alert-kafka-latest.json`；iot-sink 消费 **EX** |
+| 能否称 COMPLETE？ | **禁止** |
+
+## 10. 最终判定 — FR-B25
 
 | 问题 | 答案 |
 |------|------|
@@ -301,7 +309,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 |------|------|
 | HTTP 路由是否与 Python 对齐？ | **是**（14 inventoried 前缀 `route_inventory` diff=0） |
 | 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调（broker 主机名、真机/WVP/iot-node）与**全量**字段级契约仍 open；**HTTP 薄探针 265/265 已绿**（FR-B18）；**深字段抽样 25 端点已执行**（FR-B23：**132 pass / 0 fail / 0 skip**，清除了 FR-B22 的 2 deep skip）；**GET 信封矩阵**仍见 FR-B22 复跑 |
-| 本地 MinIO/Kafka soak？ | **部分** — MinIO put + sync API（`logs/fr-b23-soak-*`）；**FR-B24 ✅** Kafka 宿主机 E2E；**FR-B25 ✅** 真文件 MinIO+DB 成功链（`logs/fr-b25-minio-upload-e2e-*`）；`snap_image.updated_at` schema 错位已修 |
+| 本地 MinIO/Kafka soak？ | **部分** — MinIO put + sync API（`logs/fr-b23-soak-*`）；**FR-B24 ✅** Kafka 宿主机 E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR + Alert Kafka produce（`logs/fr-b26-*`）；`snap_image.updated_at` schema 错位已修 |
 | 能否称 COMPLETE / 退役 Python？ | **禁止** |
 | 证据硬化（EVID）能否停？ | **可以停**，转本文件 backlog + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md) |
 | 距完整替换还缺什么？ | **prod 联调 soak**（checklist 大部仍 ⬜）+ **全量 259 路由字段矩阵** + prod 场景回放 + 回滚演练 |

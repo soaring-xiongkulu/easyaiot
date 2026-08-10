@@ -68,17 +68,17 @@
 6. `DEVICE/iot-video/iot-video-biz/.../controller`  
 7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
 
-## 8. 现状摘要（2026-08-11 FR-B25）
+## 8. 现状摘要（2026-08-11 FR-B26）
 
 - **HTTP 路由：** `route_inventory` 14 前缀 **Py≈259 / Java≈259 / diff=0**（`FR-W4` 全量核对）。
-- **契约硬化：** **FR-B18 ✅** 265 路由薄探针 0 fail；**FR-B20 ✅** 16 端点深字段抽样；**FR-B21 ✅** 98 GET 信封矩阵；**FR-B22 ✅** 扩至 25 深采样；**FR-B23 ✅** 深采样 **132 pass / 0 skip**；**FR-B24 ✅** 本地 Kafka E2E + `save_time_custom` schema 修复；**FR-B25 ✅** 真文件 MinIO+DB 成功链 + `snap_image` schema 修复。
-- **行为：** MinIO 本地路径已取证；**Kafka 宿主机消费已取证**；**真文件 DVR/snap → MinIO+可播放 record_path 已取证（local）**；ONVIF/YOLO/InsightFace 等仍为 **mini 桩**；见 `FULL_REPLACEMENT_GAP.md` §2–§4。
+- **契约硬化：** **FR-B18 ✅** 265 路由薄探针 0 fail；**FR-B20–B23 ✅** 深字段/信封矩阵；**FR-B24 ✅** 本地 Kafka E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR 成功链 + Alert Kafka produce 取证。
+- **行为：** MinIO 本地路径已取证；**纯 Kafka DVR 路径已取证（local）**；**Alert Kafka produce 已取证（local）**；ONVIF/YOLO/InsightFace 等仍为 **mini 桩**；见 `FULL_REPLACEMENT_GAP.md` §2–§4。
 - **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成。
 - **EVID：** 真 RUNTIME / alert success 等证据已抬升；**EVID 轮次结束**。
 - **Phase 3/CLOSE：** 改名、归档、网关指向 = 运维动作，**≠ 功能完整替换**。
 - **项目状态：** **FR HTTP 面已齐 / 信封+深采样已绿 / 行为桩仍存 — 禁止 COMPLETE**。
 - **网关：** 现已指向 Java 名；行为桩未清前，**不得**认为生产功能已安全切完。
-- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B25 已标 **local-only** MinIO 真文件链 §2.4 + phase0；其余仍 ⬜）。
+- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B26 已标 **local-only** §1.1/§1.2 + phase0；其余仍 ⬜）。
 
 ## 9. 你的下一步
 
