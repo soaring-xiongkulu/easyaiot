@@ -4,10 +4,13 @@
   "snapshot": {
     "hook_code": 0,
     "hook_ok": true,
-    "post_process_enabled_before": null,
-    "post_process_enabled_after": null,
-    "workspace_ready_before": null,
-    "workspace_ready_after": null,
-    "enqueue_follow_on": true
+    "post_process_enabled_before": true,
+    "post_process_enabled_after": true,
+    "workspace_ready_before": false,
+    "workspace_ready_after": false,
+    "enqueue_follow_on": true,
+    "enqueue_count": 1,
+    "enqueue_url": "post-process/enqueue",
+    "enqueue_ok": true
   }
 }

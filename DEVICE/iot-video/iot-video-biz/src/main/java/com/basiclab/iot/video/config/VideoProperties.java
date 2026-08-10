@@ -11,6 +11,7 @@ public class VideoProperties {
 
     private final Alert alert = new Alert();
     private final Matching matching = new Matching();
+    private final PostProcess postProcess = new PostProcess();
     private final Runtime runtime = new Runtime();
     private final HealthMonitor healthMonitor = new HealthMonitor();
 
@@ -33,6 +34,20 @@ public class VideoProperties {
          * Mirrors Python mini path documented in P2-S3.
          */
         private boolean useDirectProcess = true;
+    }
+
+    @Data
+    public static class PostProcess {
+        /**
+         * mini / local: stub sink HTTP enqueue (certify-safe when iot-sink unavailable).
+         * Mirrors Python post_process_sink_client mini path in P2-S5.
+         */
+        private boolean useStubEnqueue = true;
+        private String workspaceRoot = System.getProperty("user.home") + "/.video-java/post-process-workspaces";
+        private String sinkHost = "127.0.0.1";
+        private String sinkPort = "48092";
+        /** When set, overrides host/port (e.g. http://127.0.0.1:48092). */
+        private String sinkApiUrl = "";
     }
 
     @Data

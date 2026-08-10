@@ -18,6 +18,9 @@ video:
     use-direct-persist: true
   matching:
     use-direct-process: true
+  post-process:
+    use-stub-enqueue: true
+    workspace-root: ${user.home}/.video-java/post-process-workspaces
   ffmpeg-path: F:/biofactory/ResearchStudioInstall/tools/bin/ffmpeg.cmd
   runtime:
     repo-root: F:/acme

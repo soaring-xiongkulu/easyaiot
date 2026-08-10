@@ -18,6 +18,7 @@ public class AlertHookService {
     private final AlgorithmTaskRepository taskRepository;
     private final AlertRepository alertRepository;
     private final VideoProperties videoProperties;
+    private final AlertPostOrchestratorService alertPostOrchestratorService;
 
     public Map<String, Object> processHook(Map<String, Object> alertData) {
         if (alertData == null || alertData.isEmpty()) {
@@ -32,11 +33,20 @@ public class AlertHookService {
         String deviceId = String.valueOf(alertData.get("device_id"));
         String taskType = alertData.get("task_type") != null ? String.valueOf(alertData.get("task_type")) : "realtime";
         Optional<Map<String, Object>> alertTask = taskRepository.findAlertEventTask(deviceId, taskType);
+        Map<String, Object> taskRow = alertTask.orElse(null);
+        boolean hasExplicitTask = alertData.get("task_id") != null || alertData.get("taskId") != null;
+        if (taskRow != null || hasExplicitTask) {
+            try {
+                alertPostOrchestratorService.schedulePostAlertOrchestration(alertData, taskRow);
+            } catch (Exception ex) {
+                // non-blocking — mirror Python alert hook orchestration
+            }
+        }
         if (alertTask.isEmpty()) {
             return Map.of("status", "skipped", "reason", "alert_event_disabled");
         }
         if (videoProperties.getAlert().isUseDirectPersist()) {
-            Map<String, Object> task = alertTask.get();
+            Map<String, Object> task = taskRow;
             Long taskId = task.get("task_id") != null ? Long.parseLong(String.valueOf(task.get("task_id"))) : null;
             String taskName = task.get("task_name") != null ? String.valueOf(task.get("task_name")) : String.valueOf(alertData.get("event"));
             long alertId = alertRepository.insertAlert(alertData, taskId, taskName);

@@ -226,6 +226,7 @@ def main() -> int:
         device_id=device_id,
         extra_updates=(
             "face_matching_enabled = true, face_library_ids = %s, "
+            "alert_event_enabled = false, "
             "is_enabled = false, run_status = 'stopped'"
         ),
         extra_params=(json.dumps([face_library_id]),),
@@ -238,6 +239,7 @@ def main() -> int:
         device_id=device_id,
         extra_updates=(
             "plate_matching_enabled = true, plate_library_ids = %s, "
+            "alert_event_enabled = false, "
             "is_enabled = false, run_status = 'stopped'"
         ),
         extra_params=(json.dumps([plate_library_id]),),
@@ -250,7 +252,8 @@ def main() -> int:
         device_id=device_id,
         extra_updates=(
             "post_process_enabled = true, post_process_script = %s, "
-            "is_enabled = false, run_status = 'stopped'"
+            "alert_event_enabled = true, "
+            "is_enabled = true, run_status = 'stopped'"
         ),
         extra_params=("post_process.py",),
     )

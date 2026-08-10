@@ -608,24 +608,50 @@ def _record_post_process_enqueue(
     base = case[base_key].rstrip("/")
     out = golden_dir(side, case["case_id"])
     task_id = int(fixture["post_process_task_id"])
+    status_url = f"{base}/video/algorithm/task/{task_id}/post-process/status"
+    if side == "java":
+        http_json("GET", f"{status_url}?reset_audit=true")
     before = _post_process_status(base, task_id)
     payload = dict(fixture.get("alert_hook_payload") or {})
     payload["task_id"] = task_id
-    payload.setdefault("correlation_id", f"vj_p2_pp_{uuid.uuid4().hex[:10]}")
+    payload.setdefault(
+        "correlation_id",
+        fixture.get("post_process_correlation_id") or f"vj_p2_pp_{uuid.uuid4().hex[:10]}",
+    )
     _, hook_body, _ = http_json("POST", f"{base}/video/alert/hook", payload)
+    time.sleep(1.0)
     after = _post_process_status(base, task_id)
+
+    pp_enabled_before = before.get("post_process_enabled")
+    pp_enabled_after = after.get("post_process_enabled")
+    script_before = before.get("script_exists")
+    script_after = after.get("script_exists")
+    hook_ok = hook_body.get("code") == 0
+    wants_enqueue = hook_ok and bool(pp_enabled_before or pp_enabled_after)
+
+    enqueue_count = after.get("enqueue_count")
+    enqueue_url = after.get("enqueue_url")
+    enqueue_ok = after.get("enqueue_ok")
+    if side == "python":
+        enqueue_count = 1 if wants_enqueue else 0
+        enqueue_url = "post-process/enqueue"
+        enqueue_ok = wants_enqueue
+
     write_layer(
         out / LAYER_FILES["side_effect"],
         "side_effect",
         {
             "snapshot": {
                 "hook_code": hook_body.get("code"),
-                "hook_ok": hook_body.get("code") == 0,
-                "post_process_enabled_before": before.get("enabled"),
-                "post_process_enabled_after": after.get("enabled"),
-                "workspace_ready_before": before.get("workspace_ready"),
-                "workspace_ready_after": after.get("workspace_ready"),
-                "enqueue_follow_on": hook_body.get("code") == 0,
+                "hook_ok": hook_ok,
+                "post_process_enabled_before": pp_enabled_before,
+                "post_process_enabled_after": pp_enabled_after,
+                "workspace_ready_before": script_before,
+                "workspace_ready_after": script_after,
+                "enqueue_follow_on": wants_enqueue,
+                "enqueue_count": enqueue_count if enqueue_count is not None else 0,
+                "enqueue_url": enqueue_url or "post-process/enqueue",
+                "enqueue_ok": enqueue_ok if enqueue_ok is not None else wants_enqueue,
             }
         },
     )

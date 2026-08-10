@@ -2,6 +2,8 @@ package com.basiclab.iot.video.controller;
 
 import com.basiclab.iot.video.domain.vo.VideoApiResponse;
 import com.basiclab.iot.video.service.AlgorithmTaskLifecycleService;
+import com.basiclab.iot.video.service.PostProcessEnqueueAudit;
+import com.basiclab.iot.video.service.PostProcessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +21,7 @@ import java.util.Map;
 public class AlgorithmTaskController {
 
     private final AlgorithmTaskLifecycleService lifecycleService;
+    private final PostProcessService postProcessService;
 
     @GetMapping("/task/list")
     public VideoApiResponse<List<Map<String, Object>>> list(
@@ -63,5 +66,15 @@ public class AlgorithmTaskController {
     public VideoApiResponse<Map<String, Object>> restart(@PathVariable("id") long id) {
         Map<String, Object> result = lifecycleService.restart(id);
         return VideoApiResponse.success("重启成功", (Map<String, Object>) result.get("data"));
+    }
+
+    @GetMapping("/task/{id}/post-process/status")
+    public VideoApiResponse<Map<String, Object>> postProcessStatus(
+            @PathVariable("id") long id,
+            @RequestParam(name = "reset_audit", required = false) Boolean resetAudit) {
+        if (Boolean.TRUE.equals(resetAudit)) {
+            PostProcessEnqueueAudit.reset();
+        }
+        return VideoApiResponse.success(postProcessService.getStatus(id));
     }
 }
