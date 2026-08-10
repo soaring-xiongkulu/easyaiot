@@ -96,6 +96,20 @@ NODE/get-pip.py -diff
 # VIDEO 人脸特征模型（体积大，本地/install 下载，不参与 diff）
 VIDEO/face_rec.onnx binary -diff
 
+# VIDEO / AI 内置 YOLO 导出缓存（.pt→onnx，体积大；与 .gitignore 对齐）
+VIDEO/yolo*.onnx binary -diff
+VIDEO/yolov*.onnx binary -diff
+VIDEO/yolo*.names -diff
+VIDEO/yolov*.names -diff
+VIDEO/yolo*.names.json -diff
+VIDEO/yolov*.names.json -diff
+AI/yolo*.onnx binary -diff
+AI/yolov*.onnx binary -diff
+AI/yolo*.names -diff
+AI/yolov*.names -diff
+AI/yolo*.names.json -diff
+AI/yolov*.names.json -diff
+
 # AI 模型权重目录（体积大，ModelScope/本地下载，不参与 diff）
 AI/models/** -diff
 
@@ -104,6 +118,8 @@ RUNTIME/models/** -diff
 RUNTIME/models/**/*.onnx binary -diff
 RUNTIME/models/**/*.pt binary -diff
 RUNTIME/models/**/*.engine binary -diff
+RUNTIME/models/**/*.names -diff
+RUNTIME/models/**/*.names.json -diff
 RUNTIME/.bundle-runtime/** -diff
 RUNTIME/.bundle-runtime/**/*.tar.gz binary -diff
 RUNTIME/build/** -diff
