@@ -13,11 +13,13 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
 import threading
 from pathlib import Path
 from typing import List, Optional, Tuple
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from models import AlgorithmTask, Device, DeviceDetectionRegion
 from app.utils.service_urls import resolve_alert_hook_url, resolve_video_service_base_url
@@ -311,6 +313,110 @@ def _resolve_rtsp_url(device: Device) -> str:
         if val.startswith('rtsp://') or val.startswith('rtsps://') or val.startswith('rtmp://'):
             return val
     return (device.source or '').strip()
+
+
+def _device_has_active_cpp_realtime_algo(device_id: str) -> bool:
+    """设备是否绑定启用的 cpp realtime 算法任务（forward 需改拉子码流）。"""
+    if not device_id:
+        return False
+    try:
+        tasks = (
+            AlgorithmTask.query
+            .filter(
+                AlgorithmTask.is_enabled.is_(True),
+                AlgorithmTask.task_type == 'realtime',
+            )
+            .all()
+        )
+    except Exception as e:
+        logger.warning('query algo for forward substream failed device=%s: %s', device_id, e)
+        return False
+    for task in tasks:
+        if normalize_executor(getattr(task, 'executor', None)) != 'cpp':
+            continue
+        for bound in (getattr(task, 'devices', None) or []):
+            if getattr(bound, 'id', None) == device_id:
+                return True
+    return False
+
+
+def _is_substream_rtsp_url(url: str) -> bool:
+    u = (url or '').strip()
+    if not u:
+        return False
+    m = re.search(r'/Streaming/Channels/(\d+)(?:\?|$)', u, re.I)
+    if m:
+        return int(m.group(1)) % 10 >= 2
+    qs = parse_qs(urlparse(u).query, keep_blank_values=True)
+    for key in ('subtype',):
+        for val in qs.get(key) or []:
+            try:
+                if int(val) >= 1:
+                    return True
+            except (TypeError, ValueError):
+                pass
+    if re.search(r'/\d+/2(?:/|$|\?)', u):
+        return True
+    if re.search(r'/media/video2(?:/|$|\?)', u, re.I):
+        return True
+    if re.search(r'/stream2(?:/|$|&|\?)', u, re.I):
+        return True
+    return False
+
+
+def _derive_substream_rtsp_url(main_url: str) -> Optional[str]:
+    """从主码流 URL 推导子码流 URL；无法识别时返回 None。"""
+    u = (main_url or '').strip()
+    if not u or _is_substream_rtsp_url(u):
+        return u or None
+
+    m = re.search(r'(/Streaming/Channels/)(\d+)(\b)', u, re.I)
+    if m:
+        sid = int(m.group(2))
+        if sid % 10 == 1:
+            return u[:m.start(2)] + str(sid + 1) + u[m.end(2):]
+        return u
+
+    parsed = urlparse(u)
+    qs = parse_qs(parsed.query, keep_blank_values=True)
+    if 'subtype' in qs:
+        try:
+            subtype = int((qs['subtype'] or ['0'])[0])
+        except (TypeError, ValueError):
+            return None
+        if subtype == 0:
+            qs['subtype'] = ['1']
+            pairs = [(k, v) for k, vals in qs.items() for v in vals]
+            return urlunparse(parsed._replace(query=urlencode(pairs)))
+        return u
+
+    m2 = re.search(r'^(rtsp://[^/]+/\d+)/1(\?.*)?$', u, re.I)
+    if m2:
+        return f'{m2.group(1)}/2' + (m2.group(2) or '')
+
+    if re.search(r'/media/video1\b', u, re.I):
+        return re.sub(r'/media/video1\b', '/media/video2', u, flags=re.I)
+
+    if re.search(r'/stream1\b', u, re.I):
+        return re.sub(r'/stream1\b', '/stream2', u, flags=re.I)
+
+    return None
+
+
+def resolve_algo_rtsp_url(device: Device) -> str:
+    """
+    算法 realtime（AI ai/）RTSP：与 VIDEO 一致使用主码流，保证叠框清晰、坐标准确。
+    forward copy 与 AI 解码争用主码流时，NVR 通常可承受单路双连接。
+    """
+    return _resolve_rtsp_url(device)
+
+
+def resolve_forward_rtsp_url(device: Device) -> str:
+    """
+    推流转发（原画 live/）RTSP：始终主码流，保证预览 OSD 最低延迟。
+    有 AI 任务时由算法走子码流，避免双拉主码流。
+    """
+    return _resolve_rtsp_url(device)
 
 
 def _default_builtin_model_name(model_id: int) -> Optional[str]:
@@ -626,7 +732,7 @@ def _regions_ini_block(devices: List[Device]) -> str:
 def _devices_json(devices: List[Device]) -> str:
     items = []
     for d in devices:
-        url = _resolve_rtsp_url(d)
+        url = resolve_algo_rtsp_url(d)
         if not url:
             continue
         items.append({
@@ -742,12 +848,12 @@ def generate_runtime_ini(
         raise ValueError(f'任务 {task.id} 未绑定设备，无法生成 RUNTIME 配置')
 
     primary = devices[0]
-    rtsp_url = _resolve_rtsp_url(primary)
+    rtsp_url = resolve_algo_rtsp_url(primary)
     if not rtsp_url:
         raise ValueError(f'设备 {primary.id} 无可用 RTSP/source 地址')
 
     for d in devices:
-        if not _resolve_rtsp_url(d):
+        if not resolve_algo_rtsp_url(d):
             raise ValueError(f'设备 {d.id} 无可用 RTSP/source 地址')
 
     model_path, classes_path = _resolve_model_paths(task, prefer_cluster=prefer_cluster_model)
@@ -938,6 +1044,103 @@ def generate_runtime_ini_content(
     content = getattr(generate_runtime_ini, 'last_content', '') or ''
     if not content:
         raise ValueError('生成 RUNTIME ini 内容失败')
+    return path, content
+
+
+def _stream_forward_control_port(task_id: int, device_index: int) -> int:
+    port = 8000 + (int(task_id) % 100) * 10 + (int(device_index) % 10)
+    return max(8000, min(9000, port))
+
+
+def _stream_forward_runtime_ini_content(
+    task,
+    device: Device,
+    rtsp_url: str,
+    rtmp_url: str,
+    log_path: str,
+    *,
+    device_index: int = 0,
+) -> str:
+    video_base = resolve_video_service_base_url().rstrip('/')
+    heartbeat = f'{video_base}/video/stream-forward/heartbeat'
+    control_port = _stream_forward_control_port(int(task.id), device_index)
+    log_dir = os.path.dirname(log_path) if log_path else str(runtime_config_dir())
+    device_log = os.path.join(log_dir, f'forward_{device.id}')
+    device_name = (device.name or device.id or '').replace('\n', ' ')
+    return f"""# Auto-generated by VIDEO stream-forward executor=cpp
+[video]
+rtsp_url={rtsp_url}
+rtmp_url={rtmp_url}
+
+[task]
+id={task.id}_{device.id}
+control_port={control_port}
+
+[video_task]
+device_id={device.id}
+device_name={device_name}
+task_type=forward
+heartbeat_url={heartbeat}
+heartbeat_interval_sec=10
+log_path={device_log}
+headless=true
+
+[features]
+enable_rtmp=true
+enable_draw=false
+enable_alarm=false
+
+[ai]
+enable=false
+"""
+
+
+def generate_stream_forward_runtime_ini(
+    task,
+    device: Device,
+    rtsp_url: str,
+    rtmp_url: str,
+    log_path: str,
+    *,
+    device_index: int = 0,
+    write_local: bool = True,
+    remote_ini_path: Optional[str] = None,
+) -> str:
+    """Generate RUNTIME forward-only ini for stream forward task (executor=cpp)."""
+    if not (rtsp_url or '').strip():
+        rtsp_url = resolve_forward_rtsp_url(device)
+    content = _stream_forward_runtime_ini_content(
+        task, device, rtsp_url, rtmp_url, log_path, device_index=device_index,
+    )
+    if remote_ini_path:
+        ini_path = Path(remote_ini_path)
+    else:
+        ini_path = runtime_config_dir() / f'forward_task_{task.id}_{device.id}.ini'
+    if write_local:
+        ini_path.parent.mkdir(parents=True, exist_ok=True)
+        ini_path.write_text(content, encoding='utf-8')
+        os.makedirs(os.path.dirname(log_path) if log_path else str(runtime_config_dir()), exist_ok=True)
+    return str(ini_path)
+
+
+def generate_stream_forward_runtime_ini_content(
+    task,
+    device: Device,
+    rtsp_url: str,
+    rtmp_url: str,
+    log_path: str,
+    *,
+    device_index: int = 0,
+    remote_ini_path: Optional[str] = None,
+) -> Tuple[str, str]:
+    """Return (ini_path, content) for remote node upload."""
+    content = _stream_forward_runtime_ini_content(
+        task, device, rtsp_url, rtmp_url, log_path, device_index=device_index,
+    )
+    if remote_ini_path:
+        path = str(remote_ini_path)
+    else:
+        path = str(runtime_config_dir() / f'forward_task_{task.id}_{device.id}.ini')
     return path, content
 
 
