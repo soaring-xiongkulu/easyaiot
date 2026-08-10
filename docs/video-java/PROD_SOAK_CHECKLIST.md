@@ -15,7 +15,7 @@
 | 0.1 | Java `video-server` 健康 | Nacos 注册 + `/actuator/health` UP | 截图或 `curl` JSON `status:UP` | ⬜ |
 | 0.2 | 网关路由 | `lb://video-server`（非 Python 遗留名） | `gateway` 路由表导出 | ⬜ |
 | 0.3 | 共享 DB | Java 与 WEB 同库只读冒烟 | 告警/设备 list 200 + 有数据 | ⬜ |
-| 0.4 | Phase 0 薄烟雾 | `python tools/video_java/certify.py --phase 0` | `gates/PHASE_0_GATE.md` PASS | ✅ local-only evidence — FR-B24 复跑 PASS 5/5（mini-safe 恢复后）；`logs/fr-b24-phase0.log` |
+| 0.4 | Phase 0 薄烟雾 | `python tools/video_java/certify.py --phase 0` | `gates/PHASE_0_GATE.md` PASS | ✅ local-only evidence — FR-B25 复跑 PASS 5/5（mini-safe 恢复后）；`logs/fr-b25-phase0.log` |
 
 ---
 
@@ -39,7 +39,7 @@
 | 2.1 | MinIO 启用 | `video.minio.enabled=true` / `MINIO_ENABLED=1` | bucket 存在；health 无 5xx | ✅ local-only evidence — `fr_b23_soak.py` put_object `fr-b23-soak/fr-b23/probe-*`；凭据 `VIDEO/.env` `MINIO_SECRET_KEY`；`logs/fr-b23-soak-latest.json` |
 | 2.2 | Snap 空间同步 | `POST /video/snap/space/sync/minio` | 新设备空间 bucket 前缀创建 | ✅ local-only evidence — soak 窗口 `POST` 200 `code=0`（8 spaces, 0 errors）；`logs/fr-b23-soak-latest.json` |
 | 2.3 | Record 空间同步 | `POST /video/record/space/sync/minio` | 同上 | ✅ local-only evidence — 同上 record sync 行 |
-| 2.4 | DVR 对象可播放 | hook 后 `record_path` 为 `/api/v1/buckets/...` | 告警页录像可播 | ⬜ |
+| 2.4 | DVR 对象可播放 | hook 后 `record_path` 为 `/api/v1/buckets/...` | 告警页录像可播 | ✅ local-only evidence — FR-B25：`frb25_device` 真 mp4+jpg → MinIO `record-space`/`snap-space` + DB `record_file`/`snap_image`/`playback`；`record_path` 形如 `/api/v1/buckets/record-space/objects/download?prefix=frb25_device%2F...`；`application-fr-b25-soak.yaml`（hybrid DVR + snap kafka）；`fr_b25_minio_upload_e2e.py` **11/11 OK**；`logs/fr-b25-minio-upload-e2e-latest.json`；**非 prod 绿** |
 | 2.5 | 空间清理 cron | 磁盘超阈 | janitor / space cleanup 日志 + 对象减少 | ⬜ |
 
 ---

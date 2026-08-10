@@ -1,0 +1,16 @@
+# FR-B25 local MinIO upload E2E overlay — hybrid DVR (hook sync + kafka) + snap kafka.
+# Activate with: --spring.profiles.active=local,fr-b25-soak
+# Restore mini-safe: --spring.profiles.active=local (omit this profile).
+
+video:
+  minio:
+    enabled: true
+    endpoint: http://127.0.0.1:9000
+    access-key: minioadmin
+    secret-key: basiclab@iot975248395
+    secure: false
+  media:
+    upload-mode: hybrid
+    snap-upload-mode: kafka
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092

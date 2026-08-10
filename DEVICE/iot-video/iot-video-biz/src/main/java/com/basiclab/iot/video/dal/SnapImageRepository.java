@@ -91,7 +91,7 @@ public class SnapImageRepository {
         int updated = jdbc.update(
                 """
                 UPDATE snap_image SET space_id = ?, device_id = ?, filename = ?, file_size = ?,
-                    content_type = ?, url = ?, captured_at = ?, task_id = ?, source = ?, updated_at = NOW()
+                    content_type = ?, url = ?, captured_at = ?, task_id = ?, source = ?
                 WHERE bucket_name = ? AND object_name = ?
                 """,
                 spaceId, deviceId, filename, fileSize, contentType, url, capturedAt, taskId, source,
@@ -101,8 +101,8 @@ public class SnapImageRepository {
             jdbc.update(
                     """
                     INSERT INTO snap_image (space_id, device_id, object_name, bucket_name, filename,
-                        file_size, content_type, url, captured_at, task_id, source, created_at, updated_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())
+                        file_size, content_type, url, captured_at, task_id, source, created_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,NOW())
                     """,
                     spaceId, deviceId, objectName, bucketName, filename, fileSize, contentType, url,
                     capturedAt, taskId, source
