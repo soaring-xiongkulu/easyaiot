@@ -625,11 +625,21 @@ bool Detech::_init_media_player() {
     if (!_ffmpegFormatCtx) {
         _ffmpegFormatCtx = avformat_alloc_context();
     }
+    // RTSP-only options. For rtmp://, FFmpeg treats "timeout" as listen_timeout and
+    // implies listen mode — that breaks pull from SRS/ZLM.
     AVDictionary* fmt_options = NULL;
-    av_dict_set(&fmt_options, "rtsp_transport", "tcp", 0);
-    av_dict_set(&fmt_options, "stimeout", "3000000", 0);
-    av_dict_set(&fmt_options, "timeout", "5000000", 0);
-    int ret = avformat_open_input(&_ffmpegFormatCtx, _config.rtspUrl.c_str(), NULL, &fmt_options);
+    const std::string& openUrl = _config.rtspUrl;
+    const bool isRtsp = openUrl.rfind("rtsp://", 0) == 0 || openUrl.rfind("rtsps://", 0) == 0;
+    const bool isRtmp = openUrl.rfind("rtmp://", 0) == 0 || openUrl.rfind("rtmps://", 0) == 0;
+    if (isRtsp) {
+        av_dict_set(&fmt_options, "rtsp_transport", "tcp", 0);
+        av_dict_set(&fmt_options, "stimeout", "3000000", 0);
+        av_dict_set(&fmt_options, "timeout", "5000000", 0);
+    } else if (isRtmp) {
+        av_dict_set(&fmt_options, "rtmp_live", "live", 0);
+    }
+    int ret = avformat_open_input(&_ffmpegFormatCtx, openUrl.c_str(), NULL, &fmt_options);
+    av_dict_free(&fmt_options);
     if (ret != 0) {
         LOG(ERROR) << "avformat_open_input error: url=" << _config.rtspUrl.c_str();
         return false;

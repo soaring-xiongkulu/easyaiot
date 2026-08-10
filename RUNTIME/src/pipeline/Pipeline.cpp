@@ -151,10 +151,17 @@ bool Pipeline::reopenStream(bool forceSoft) {
     releaseHwDecodeState(&hwState_);
 
     formatCtx_ = avformat_alloc_context();
+    // RTSP-only options. For rtmp://, FFmpeg "timeout" implies listen mode.
     AVDictionary* fmt_options = nullptr;
-    av_dict_set(&fmt_options, "rtsp_transport", "tcp", 0);
-    av_dict_set(&fmt_options, "stimeout", "3000000", 0);
-    av_dict_set(&fmt_options, "timeout", "5000000", 0);
+    const bool isRtsp = rtspUrl_.rfind("rtsp://", 0) == 0 || rtspUrl_.rfind("rtsps://", 0) == 0;
+    const bool isRtmp = rtspUrl_.rfind("rtmp://", 0) == 0 || rtspUrl_.rfind("rtmps://", 0) == 0;
+    if (isRtsp) {
+        av_dict_set(&fmt_options, "rtsp_transport", "tcp", 0);
+        av_dict_set(&fmt_options, "stimeout", "3000000", 0);
+        av_dict_set(&fmt_options, "timeout", "5000000", 0);
+    } else if (isRtmp) {
+        av_dict_set(&fmt_options, "rtmp_live", "live", 0);
+    }
 
     int ret = avformat_open_input(&formatCtx_, rtspUrl_.c_str(), nullptr, &fmt_options);
     av_dict_free(&fmt_options);
