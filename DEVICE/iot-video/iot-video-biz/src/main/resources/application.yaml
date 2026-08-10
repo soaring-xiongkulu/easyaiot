@@ -24,6 +24,9 @@ video:
     enabled: true
     interval-ms: 60000
     heartbeat-failover-seconds: 90
+  stream-forward-health:
+    enabled: true
+    interval-ms: 60000
   space-cleanup:
     enabled: true
     interval-ms: 1800000

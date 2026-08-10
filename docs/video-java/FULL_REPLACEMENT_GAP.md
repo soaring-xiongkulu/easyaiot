@@ -167,11 +167,11 @@ Python `run.py` 启动时拉起的能力 vs Java：
 |-------------|-----------|----------|
 | `auto_start_streaming`（观看 ffmpeg） | ✅ `ViewForwardAutoResume*`（`enable_forward` + 离线/rtmp 跳过） | FR-W1-BG 已对齐本地语义 |
 | `auto_start_all_tasks`（算法） | ✅ `AlgorithmTaskAutoStart*`（enabled + local + 模型/设备校验） | FR-W1-BG 已补 |
-| `stream_forward` auto_start | ✅ `StreamForwardAutoStart*`（enabled + local） | FR-W1-BG 已补；远程分片仍 ❌ |
+| `stream_forward` auto_start | ✅ `StreamForwardAutoStart*`（enabled + local） | FR-W1-BG 已补；远程分片 **FR-B8 ✅** 健康迁移 |
 | 抓拍/录像空间定时清理（30min） | ✅ `SpaceCleanupScheduler` + `SnapSpaceCleanupService` / `RecordSpaceCleanupService`（DB mini 清理 + 启动即清） | FR-W3-OPS 已补 |
 | playback disk guard | ✅ `PlaybackDiskGuardScheduler` + `PlaybackDiskGuardService`（10min + 启动首次） | FR-W3-OPS 已补 |
 | media janitor | ✅ `MediaJanitorScheduler` + `MediaJanitorService`（60s 孤儿重入队 + 磁盘紧急） | FR-W3-OPS 已补 |
-| stream_forward 集群健康迁移 | **缺** | 集群场景必须（`STREAM_FORWARD_HEALTH_*` 仅远程） |
+| stream_forward 集群健康迁移 | ✅ `StreamForwardHealth*`（`STREAM_FORWARD_HEALTH_*` 仅远程；local no-op） | **FR-B8 ✅** |
 | algorithm_task 健康监控（60s） | ✅ `AlgorithmTaskHealthRecovery*`（启动即恢复 + 定时；local 以 supervisor 为准） | FR-W1-BG 已对齐 P0 |
 | snap_task 调度器 `init_all_tasks` | ✅ `SnapTaskScheduler` + `SnapTaskSchedulerService`（启动加载 enabled 任务 + cron；create/update/start/stop 联动） | FR-B3 + **FR-B6 ✅** 抓拍执行为 ffmpeg/ONVIF HTTP 真路径 |
 | `VIDEO/services/*` 独立进程（upload/janitor/post_process_worker…） | JVM 内或 stub | 完整替换需逐项定：迁入 Java / 保留外部进程 / 废弃 |
@@ -225,7 +225,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 |--------|--------|------|------------|
 | **P0** | Alert 管理面 | page/count/statistics/image/record/clear | **是**（告警台） |
 | **P0** | Algorithm CRUD + patrol heartbeat + logs | 任务可配可管 | **是** |
-| **P0** | auto_start / 健康恢复对等 | 进程重启后业务自愈 | **部分**（FR-W1-BG ✅ 本地；集群/stream_forward health ❌） |
+| **P0** | auto_start / 健康恢复对等 | 进程重启后业务自愈 | **部分**（FR-W1-BG ✅ 本地；**FR-B8 ✅** stream_forward 集群健康） |
 | **P0** | Gateway + system-server 鉴权真通 | **✅ FR-W1-AUTH**（EX-GATEWAY-AUTH-LOCAL resolved） | ~~是~~ 本地已通；生产切流仍需 ops 演练 |
 | **P0** | Alert Kafka 或产品书面确认永久 direct | **✅ FR-W1-KAFKA**（代码路径已实现；local/mini 默认 direct_persist=true） | ~~是~~ 代码已通；prod broker 联调待 ops |
 | **P1** | Camera 主路径 | 注册/CRUD/目录/ONVIF/PTZ/snapshot/流票据 | **是**（设备台） |

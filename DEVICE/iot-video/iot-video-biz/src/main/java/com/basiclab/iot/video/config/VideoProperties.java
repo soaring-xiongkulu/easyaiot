@@ -22,6 +22,7 @@ public class VideoProperties {
     private final Minio minio = new Minio();
     private final SnapTaskScheduler snapTaskScheduler = new SnapTaskScheduler();
     private final NodeRemote nodeRemote = new NodeRemote();
+    private final StreamForwardHealth streamForwardHealth = new StreamForwardHealth();
 
     /**
      * Mirrors Python {@code VIDEO_SKIP_BACKGROUND_TASKS=1} — disables scheduled health recovery
@@ -184,6 +185,14 @@ public class VideoProperties {
          * Disabled when {@code video.skip-background-tasks=true}.
          */
         private boolean enabled = true;
+    }
+
+    @Data
+    public static class StreamForwardHealth {
+        /** Mirrors {@code STREAM_FORWARD_HEALTH_MONITOR_ENABLED} (default on when remote deploy on). */
+        private boolean enabled = true;
+        /** Mirrors {@code STREAM_FORWARD_HEALTH_INTERVAL_SECONDS} (default 60s). */
+        private long intervalMs = 60_000L;
     }
 
     @Data

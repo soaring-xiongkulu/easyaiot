@@ -87,6 +87,21 @@ public class StreamForwardTaskRepository {
         return rows;
     }
 
+    /** Enabled tasks with auto/node schedule (cluster health migration scan set). */
+    public List<StreamForwardTaskRow> findEnabledRemoteCapable() {
+        List<StreamForwardTaskRow> rows = jdbc.query(
+                "SELECT " + SELECT_COLUMNS + """
+                 FROM stream_forward_task
+                 WHERE is_enabled = true
+                   AND COALESCE(schedule_policy, 'local') IN ('auto', 'node')
+                 ORDER BY id ASC
+                """,
+                ROW_MAPPER
+        );
+        rows.forEach(this::attachDevices);
+        return rows;
+    }
+
     public Optional<StreamForwardTaskRow> findById(long id) {
         List<StreamForwardTaskRow> rows = jdbc.query(
                 "SELECT " + SELECT_COLUMNS + " FROM stream_forward_task WHERE id = ?",
@@ -157,7 +172,7 @@ public class StreamForwardTaskRepository {
             boolean enabled,
             String logPath,
             Integer pid,
-            long nodeId,
+            Long nodeId,
             String serverIp,
             String deviceDeployments
     ) {
