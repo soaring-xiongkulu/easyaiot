@@ -24,6 +24,9 @@ from vj_common import (
     load_p2_fixture,
     normalize_api_layer,
     ensure_p0_alert_fixture,
+    ensure_p1_src_feeder,
+    prepare_p1_view_forward,
+    wait_until_view_forward_running,
     update_task_runtime_bin,
     write_layer,
 )
@@ -338,10 +341,8 @@ def _record_view_forward_start_stop(
     device_id = fixture["device_id"]
     out = golden_dir(side, case["case_id"])
 
-    if side == "java":
-        oracle = case["oracle_base_url"].rstrip("/")
-        http_json("POST", f"{oracle}/video/camera/device/{device_id}/stream/stop")
-        time.sleep(5.0)
+    ensure_p1_src_feeder()
+    prepare_p1_view_forward(case, fixture)
 
     http_json("POST", f"{base}/video/camera/device/{device_id}/stream/stop")
     time.sleep(1.0)
@@ -354,11 +355,7 @@ def _record_view_forward_start_stop(
     _, start_body, start_status = http_json(
         "POST", f"{base}/video/camera/device/{device_id}/stream/start"
     )
-    time.sleep(5.0)
-    _, during_body, _ = http_json(
-        "GET", f"{base}/video/camera/device/{device_id}/stream/status"
-    )
-    during_data = during_body.get("data") if isinstance(during_body.get("data"), dict) else {}
+    during_data = wait_until_view_forward_running(base, device_id, timeout=30.0)
     during_media = _media_from_stream_status(during_data)
 
     write_layer(

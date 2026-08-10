@@ -121,6 +121,17 @@ def main() -> int:
     fixture["stream_forward_task_id"] = task_id
     fixture_path.write_text(json.dumps(fixture, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"OK  updated {fixture_path}")
+
+    tools_dir = Path(__file__).resolve().parent
+    if str(tools_dir) not in sys.path:
+        sys.path.insert(0, str(tools_dir))
+    try:
+        from vj_common import ensure_p1_src_feeder
+
+        ensure_p1_src_feeder()
+        print("OK  P1 HTTP-FLV source ready")
+    except Exception as exc:
+        print(f"WARN P1 HTTP-FLV feeder: {exc}")
     return 0
 
 

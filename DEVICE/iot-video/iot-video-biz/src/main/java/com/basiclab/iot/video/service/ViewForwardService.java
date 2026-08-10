@@ -60,6 +60,7 @@ public class ViewForwardService {
         );
         try {
             supervisor.start(deviceId, () -> buildFfmpegCommand(device), logDir);
+            waitUntilAlive(deviceId, 15_000L);
         } catch (IOException e) {
             deviceRepository.updateEnableForward(deviceId, false);
             throw new VideoBusinessException(500, "启动失败: " + e.getMessage());
@@ -71,6 +72,21 @@ public class ViewForwardService {
                 "message", "流媒体转发已启动",
                 "data", data
         );
+    }
+
+    private void waitUntilAlive(String deviceId, long timeoutMs) {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < deadline) {
+            if (supervisor.isAlive(deviceId)) {
+                return;
+            }
+            try {
+                Thread.sleep(200L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
     }
 
     public Map<String, Object> stopStream(String deviceId) {

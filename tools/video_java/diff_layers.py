@@ -98,6 +98,34 @@ def _alarm_hook_status_required(case_id: str, thresholds: Dict[str, Any]) -> Opt
     return case_thresh.get("hook_status_required")
 
 
+def _media_thresholds(thresholds: Dict[str, Any]) -> Dict[str, Any]:
+    return thresholds.get("media") or {}
+
+
+def _absolute_media_reds(
+    snap: Any,
+    label: str,
+    media_thresh: Dict[str, Any],
+    *,
+    lifecycle: bool = False,
+) -> List[str]:
+    reds: List[str] = []
+    if not isinstance(snap, dict):
+        reds.append(f"{label}: snapshot not a dict")
+        return reds
+    if media_thresh.get("ffmpeg_process_alive_required"):
+        alive_key = "process_alive" if lifecycle else "ffmpeg_process_alive"
+        alive = snap.get(alive_key)
+        if alive is not True:
+            reds.append(f"{label} {alive_key}: {alive!r} != required True")
+    if media_thresh.get("stream_status_required"):
+        status_key = "after_stream_status" if lifecycle else "stream_status"
+        status = snap.get(status_key)
+        if status != "running":
+            reds.append(f"{label} {status_key}: {status!r} != required 'running'")
+    return reds
+
+
 def diff_layer(
     layer: str,
     py_data: Dict[str, Any],
@@ -157,6 +185,10 @@ def diff_layer(
                 "oracle media golden degenerate; no parity baseline (do not pass on java-only)",
             )
         reds = _diff_dict(py_norm, java_norm)
+        media_thresh = _media_thresholds(thresholds or {})
+        if media_thresh:
+            reds.extend(_absolute_media_reds(py_norm, "python", media_thresh))
+            reds.extend(_absolute_media_reds(java_norm, "java", media_thresh))
     elif layer == "side_effect":
         py_norm = normalize_value(py_data.get("snapshot") or py_data)
         java_norm = normalize_value(java_data.get("snapshot") or java_data)
@@ -179,6 +211,11 @@ def diff_layer(
                         reds.append(
                             f"{label} hook_status: {hook_status!r} != required {required!r}"
                         )
+        if layer == "lifecycle" and case_id == "vj_p1_view_forward_start_stop":
+            media_thresh = _media_thresholds(thresholds or {})
+            if media_thresh:
+                reds.extend(_absolute_media_reds(py_norm, "python", media_thresh, lifecycle=True))
+                reds.extend(_absolute_media_reds(java_norm, "java", media_thresh, lifecycle=True))
 
     return {
         "layer": layer,

@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import subprocess
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -340,3 +343,110 @@ def resolve_exemption(
     if exemption_id in case_layer_exemption_ids(case, layer):
         return exemption_id
     return None
+
+
+_P1_SRC_FEEDER_PROC: Optional[subprocess.Popen] = None
+
+
+def resolve_ffmpeg_binary() -> str:
+    explicit = (os.environ.get("FFMPEG_PATH") or "").strip().strip('"')
+    if explicit and Path(explicit).is_file():
+        return explicit
+    local_yaml = repo_root() / "DEVICE" / "iot-video" / "iot-video-biz" / "src" / "main" / "resources" / "application-local.yaml"
+    if local_yaml.is_file():
+        for line in local_yaml.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if stripped.startswith("ffmpeg-path:"):
+                candidate = stripped.split(":", 1)[1].strip()
+                if candidate and Path(candidate).is_file():
+                    return candidate
+    return "ffmpeg"
+
+
+def _flv_source_ready(url: str, timeout: float = 3.0) -> bool:
+    try:
+        req = urllib.request.Request(url, headers={"Range": "bytes=0-0"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.status in (200, 206)
+    except urllib.error.HTTPError as exc:
+        return exc.code in (200, 206)
+    except (urllib.error.URLError, OSError, TimeoutError):
+        return False
+
+
+def ensure_p1_src_feeder() -> None:
+    """Start loop publisher to SRS HTTP-FLV source if not already reachable."""
+    global _P1_SRC_FEEDER_PROC
+    fixture = load_json(p1_fixtures_path())
+    flv_url = fixture.get("source") or "http://127.0.0.1:8080/live/vj_p1_src.flv"
+    if _flv_source_ready(flv_url):
+        return
+    if _P1_SRC_FEEDER_PROC is not None and _P1_SRC_FEEDER_PROC.poll() is None:
+        for _ in range(20):
+            if _flv_source_ready(flv_url):
+                return
+            time.sleep(0.5)
+    sample = Path("F:/acme/RUNTIME/testdata/sample.mp4")
+    if not sample.is_file():
+        raise RuntimeError(f"P1 HTTP-FLV source down and sample missing: {sample}")
+    ffmpeg = resolve_ffmpeg_binary()
+    cmd = [
+        ffmpeg,
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-re",
+        "-stream_loop",
+        "-1",
+        "-i",
+        str(sample),
+        "-c",
+        "copy",
+        "-f",
+        "flv",
+        "rtmp://127.0.0.1/live/vj_p1_src",
+    ]
+    _P1_SRC_FEEDER_PROC = subprocess.Popen(cmd)
+    for _ in range(40):
+        if _flv_source_ready(flv_url):
+            return
+        time.sleep(0.5)
+    raise RuntimeError(f"P1 HTTP-FLV source not ready after feeder start: {flv_url}")
+
+
+def prepare_p1_view_forward(case: Dict[str, Any], fixture: Dict[str, Any]) -> None:
+    """Stop view-forward on oracle + candidate so SRS RTMP publish slot is free."""
+    device_id = fixture["device_id"]
+    for key in ("oracle_base_url", "candidate_base_url"):
+        base = (case.get(key) or "").rstrip("/")
+        if not base:
+            continue
+        try:
+            http_json("POST", f"{base}/video/camera/device/{device_id}/stream/stop", timeout=10.0)
+        except (urllib.error.URLError, OSError, TimeoutError):
+            pass
+    time.sleep(6.0)
+
+
+def wait_until_view_forward_running(
+    base: str,
+    device_id: str,
+    *,
+    timeout: float = 30.0,
+    poll: float = 0.5,
+) -> Dict[str, Any]:
+    deadline = time.monotonic() + timeout
+    last: Dict[str, Any] = {}
+    url = f"{base.rstrip('/')}/video/camera/device/{device_id}/stream/status"
+    while time.monotonic() < deadline:
+        try:
+            _, body, _ = http_json("GET", url, timeout=10.0)
+        except (urllib.error.URLError, OSError, TimeoutError):
+            time.sleep(poll)
+            continue
+        data = body.get("data") if isinstance(body.get("data"), dict) else {}
+        last = data
+        if (data.get("status") or "stopped") == "running":
+            return data
+        time.sleep(poll)
+    return last
