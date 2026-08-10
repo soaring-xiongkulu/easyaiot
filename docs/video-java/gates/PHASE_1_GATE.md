@@ -1,7 +1,7 @@
 # PHASE 1 Gate — camera / ffmpeg / stream-forward
 
-**Status:** FAIL (scaffold — Java camera/ffmpeg not implemented)
-**Updated:** 2026-08-10 03:25 UTC
+**Status:** PASS
+**Updated:** 2026-08-10 03:42 UTC
 
 Gate PASS when every P1 case `ok` — each layer `pass` or signed `exempt`.
 Media layer checks: stream status, ffmpeg process alive, codec summary (normalized).
@@ -29,7 +29,7 @@ python tools/video_java/certify.py --phase 1
 | vj_p1_camera_list | True | api:pass |
 | vj_p1_camera_get | True | api:pass |
 | vj_p1_view_forward_start_stop | True | media:pass, lifecycle:pass |
-| vj_p1_stream_forward_start_stop | False | lifecycle:fail, media:fail |
+| vj_p1_stream_forward_start_stop | True | lifecycle:pass, media:pass |
 
 ## Documented exemptions (this run)
 

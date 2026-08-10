@@ -140,6 +140,10 @@ public class ViewForwardService {
         return lower.startsWith("rtsp://") || lower.startsWith("rtmp://") || lower.startsWith("gb28181://");
     }
 
+    public List<String> buildForwardCommand(DeviceRow device) {
+        return buildFfmpegCommand(device);
+    }
+
     private List<String> buildFfmpegCommand(DeviceRow device) {
         int sourceFps = FfmpegCompat.envInt("VIEW_SOURCE_FPS", FfmpegCompat.envInt("SOURCE_FPS", 25));
         int gopSize = FfmpegCompat.envInt(

@@ -1,5 +1,10 @@
 {
   "layer": "lifecycle",
-  "status": "fail",
-  "reason": "candidate endpoint missing (HTTP 404 on /video/stream-forward/task/3/status)"
+  "status": "sampled",
+  "snapshot": {
+    "before_service_status": "stopped",
+    "after_service_status": "running",
+    "process_alive": true,
+    "task_is_enabled": true
+  }
 }

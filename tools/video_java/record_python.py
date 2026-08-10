@@ -395,13 +395,18 @@ def _record_stream_forward_start_stop(
     task_id = int(fixture["stream_forward_task_id"])
     out = golden_dir(side, case["case_id"])
 
+    if side == "java":
+        oracle = case["oracle_base_url"].rstrip("/")
+        http_json("POST", f"{oracle}/video/stream-forward/task/{task_id}/stop")
+        time.sleep(5.0)
+
     http_json("POST", f"{base}/video/stream-forward/task/{task_id}/stop")
     time.sleep(1.0)
     before = _stream_forward_status(base, task_id)
     before_status = before.get("status") or "stopped"
 
     _, start_body, start_status = http_json(
-        "POST", f"{base}/video/stream-forward/task/{task_id}/start"
+        "POST", f"{base}/video/stream-forward/task/{task_id}/start", timeout=120.0
     )
     time.sleep(3.0)
     during = _stream_forward_status(base, task_id)
