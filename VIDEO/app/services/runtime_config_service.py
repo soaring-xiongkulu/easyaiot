@@ -313,17 +313,204 @@ def _resolve_rtsp_url(device: Device) -> str:
     return (device.source or '').strip()
 
 
-def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> Tuple[str, str]:
+def _default_builtin_model_name(model_id: int) -> Optional[str]:
+    """Align with VIDEO realtime defaults: -1 yolo11n, -2 yolov8n, -3 yolo26n."""
+    return {
+        -1: 'yolo11n',
+        -2: 'yolov8n',
+        -3: 'yolo26n',
+    }.get(int(model_id))
+
+
+def _ensure_onnx_script() -> Path:
+    return _repo_root() / 'RUNTIME' / 'scripts' / 'ensure_onnx_model.py'
+
+
+def _python_for_export() -> str:
+    """Prefer a Python that has ultralytics (VIDEO/base conda), not bare system python."""
+    for key in ('RUNTIME_PYTHON', 'EASYAIOT_PYTHON', 'VIDEO_PYTHON'):
+        cand = (os.getenv(key) or '').strip()
+        if cand and Path(cand).is_file():
+            return cand
+    for cand in (
+        '/home/ubuntu/miniconda3/bin/python',
+        str(Path.home() / 'miniconda3' / 'bin' / 'python'),
+        str(Path.home() / 'anaconda3' / 'bin' / 'python'),
+        '/opt/conda/bin/python',
+        sys.executable or '',
+        'python3',
+    ):
+        if not cand:
+            continue
+        p = Path(cand) if cand.startswith('/') else None
+        if p is not None and not p.is_file():
+            continue
+        return cand
+    return 'python3'
+
+
+def _export_pt_to_onnx(pt_path: Path, onnx_path: Path, *, force: bool = False) -> Optional[Path]:
+    """Export Ultralytics .pt → .onnx via RUNTIME/scripts/ensure_onnx_model.py."""
+    script = _ensure_onnx_script()
+    if not script.is_file():
+        logger.warning('ensure_onnx_model.py missing: %s', script)
+        return onnx_path if onnx_path.is_file() else None
+    if onnx_path.is_file() and not force:
+        try:
+            if (not pt_path.is_file()) or onnx_path.stat().st_mtime >= pt_path.stat().st_mtime:
+                return onnx_path
+        except OSError:
+            pass
+    py = _python_for_export()
+    cmd = [
+        py,
+        str(script),
+        '--input', str(pt_path if pt_path.is_file() else pt_path.name),
+        '--output', str(onnx_path),
+    ]
+    if force:
+        cmd.append('--force')
+    logger.info('RUNTIME model export: %s', ' '.join(cmd))
+    try:
+        completed = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=int(os.getenv('RUNTIME_ONNX_EXPORT_TIMEOUT', '600') or '600'),
+            check=False,
+        )
+        if completed.stdout:
+            logger.info('ensure_onnx stdout: %s', completed.stdout.strip()[-2000:])
+        if completed.returncode != 0:
+            logger.error(
+                'ensure_onnx failed rc=%s stderr=%s',
+                completed.returncode,
+                (completed.stderr or '')[-2000:],
+            )
+            return onnx_path if onnx_path.is_file() else None
+    except Exception as e:
+        logger.error('ensure_onnx exception: %s', e)
+        return onnx_path if onnx_path.is_file() else None
+    return onnx_path if onnx_path.is_file() else None
+
+
+def _pick_names(onnx_path: Path, fallback: Path) -> str:
+    sibling = onnx_path.with_suffix('.names')
+    if sibling.is_file():
+        return str(sibling)
+    if fallback.is_file():
+        return str(fallback)
+    remote = Path('/opt/easyaiot/RUNTIME/models/coco.names')
+    if remote.is_file():
+        return str(remote)
+    return str(fallback)
+
+
+def _resolve_builtin_onnx(stem: str) -> Tuple[str, str]:
+    """Resolve built-in yolo11n / yolov8n / yolo26n to onnx (+ names)."""
     root = _repo_root()
-    default_onnx = root / 'RUNTIME' / 'models' / 'yolov11n.onnx'
+    video_root = Path(__file__).resolve().parents[2]
     default_names = root / 'RUNTIME' / 'models' / 'coco.names'
-    # Remote install layout
-    remote_default_onnx = Path('/opt/easyaiot/RUNTIME/models/yolov11n.onnx')
+    search_dirs = [
+        root / 'RUNTIME' / 'models',
+        Path('/opt/easyaiot/RUNTIME/models'),
+        video_root,
+        video_root / 'data' / 'models' / 'builtin',
+    ]
+    # Prefer existing onnx
+    for d in search_dirs:
+        cand = d / f'{stem}.onnx'
+        if cand.is_file():
+            return str(cand), _pick_names(cand, default_names)
+    # Export from .pt if present (or let ultralytics download by name)
+    onnx_out = root / 'RUNTIME' / 'models' / f'{stem}.onnx'
+    onnx_out.parent.mkdir(parents=True, exist_ok=True)
+    pt_candidates = []
+    for d in search_dirs:
+        pt_candidates.append(d / f'{stem}.pt')
+    pt_candidates.append(Path(f'{stem}.pt'))  # bare name → ultralytics download
+    pt_src = next((p for p in pt_candidates if p.is_file()), Path(f'{stem}.pt'))
+    exported = _export_pt_to_onnx(pt_src, onnx_out)
+    if exported and exported.is_file():
+        return str(exported), _pick_names(exported, default_names)
+    # Last resort: historical default
+    legacy = root / 'RUNTIME' / 'models' / 'yolov11n.onnx'
+    if legacy.is_file():
+        logger.warning('builtin %s onnx missing, fallback %s', stem, legacy)
+        return str(legacy), _pick_names(legacy, default_names)
+    raise ValueError(f'无法解析内置模型 {stem} 的 ONNX（请安装 ultralytics 并允许导出）')
+
+
+def _resolve_custom_model_dir(model_id: int, prefer_cluster: bool) -> Optional[Path]:
+    root = _repo_root()
+    video_root = Path(__file__).resolve().parents[2]
+    candidates: List[Path] = []
+    if prefer_cluster:
+        try:
+            lib = str((root / '.scripts' / 'lib').resolve())
+            if lib not in sys.path:
+                sys.path.insert(0, lib)
+            from model_resolver import get_model_cluster_dir  # type: ignore
+            candidates.append(Path(get_model_cluster_dir(model_id)))
+        except Exception as e:
+            logger.debug('cluster model dir unavailable: %s', e)
+    candidates.append(video_root / 'data' / 'models' / str(model_id))
+    candidates.append(Path('/opt/easyaiot/VIDEO/data/models') / str(model_id))
+    for d in candidates:
+        if d.is_dir():
+            return d
+    return candidates[0] if candidates else None
+
+
+def _resolve_dir_to_onnx(model_dir: Path, default_names: Path) -> Optional[Tuple[str, str]]:
+    if not model_dir.is_dir():
+        # Still allow canonical remote path for Agent nodes
+        canonical = model_dir / 'model.onnx'
+        return str(canonical), _pick_names(canonical, default_names)
+
+    onnx_matches = sorted(model_dir.glob('*.onnx')) + sorted(model_dir.glob('*.ONNX'))
+    # Prefer model.onnx
+    preferred = [p for p in onnx_matches if p.name.lower() == 'model.onnx']
+    if preferred:
+        return str(preferred[0]), _pick_names(preferred[0], default_names)
+    if onnx_matches:
+        return str(onnx_matches[0]), _pick_names(onnx_matches[0], default_names)
+
+    pt_matches = sorted(model_dir.glob('*.pt')) + sorted(model_dir.glob('*.PT'))
+    preferred_pt = [p for p in pt_matches if p.name.lower() in ('model.pt', 'best.pt', 'weights.pt')]
+    pt = preferred_pt[0] if preferred_pt else (pt_matches[0] if pt_matches else None)
+    if pt is None:
+        return None
+    onnx_out = model_dir / 'model.onnx'
+    exported = _export_pt_to_onnx(pt, onnx_out)
+    if exported and exported.is_file():
+        return str(exported), _pick_names(exported, default_names)
+    return None
+
+
+def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> Tuple[str, str]:
+    """Resolve task.model_ids → (onnx_path, names_path) for RUNTIME.
+
+    Supports:
+      - builtin ids: -1 yolo11n, -2 yolov8n, -3 yolo26n (.pt auto-exported to onnx)
+      - custom positive ids: cluster/local dir, prefer .onnx else export .pt
+    """
+    root = _repo_root()
+    default_onnx = root / 'RUNTIME' / 'models' / 'yolo11n.onnx'
+    if not default_onnx.is_file():
+        # backward-compatible filename
+        legacy = root / 'RUNTIME' / 'models' / 'yolov11n.onnx'
+        if legacy.is_file():
+            default_onnx = legacy
+    default_names = root / 'RUNTIME' / 'models' / 'coco.names'
+    remote_default_onnx = Path('/opt/easyaiot/RUNTIME/models/yolo11n.onnx')
+    if not remote_default_onnx.is_file():
+        remote_default_onnx = Path('/opt/easyaiot/RUNTIME/models/yolov11n.onnx')
     remote_default_names = Path('/opt/easyaiot/RUNTIME/models/coco.names')
     env_model = (os.getenv('RUNTIME_MODEL_PATH') or '').strip()
     env_names = (os.getenv('RUNTIME_CLASSES_PATH') or '').strip()
 
-    model_ids = []
+    model_ids: list = []
     raw = task.model_ids
     if raw:
         try:
@@ -331,69 +518,67 @@ def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> T
         except Exception:
             model_ids = []
 
-    if prefer_cluster and model_ids:
-        try:
-            import sys
-            lib = str((_repo_root() / '.scripts' / 'lib').resolve())
-            if lib not in sys.path:
-                sys.path.insert(0, lib)
-            from model_resolver import try_resolve_cluster_model_path, get_model_cluster_dir
-        except Exception as e:
-            logger.warning('cluster model resolver unavailable: %s', e)
-            try_resolve_cluster_model_path = None  # type: ignore
-            get_model_cluster_dir = None  # type: ignore
-        else:
-            for mid in model_ids:
-                try:
-                    mid_int = int(mid)
-                except Exception:
-                    continue
-                found = try_resolve_cluster_model_path(mid_int) if try_resolve_cluster_model_path else None
-                if found and str(found).lower().endswith('.onnx'):
-                    names = str(default_names if default_names.is_file() else (
-                        remote_default_names if remote_default_names.is_file() else (env_names or default_names)
-                    ))
-                    # companion .names next to weights if any
-                    sibling = Path(found).with_suffix('.names')
-                    if sibling.is_file():
-                        names = str(sibling)
-                    return str(found), names
-                # Prefer onnx under cluster dir even if resolver returned .pt first
-                if get_model_cluster_dir:
-                    model_dir = Path(get_model_cluster_dir(mid_int))
-                    if model_dir.is_dir():
-                        matches = sorted(model_dir.glob('*.onnx')) + sorted(model_dir.glob('*.ONNX'))
-                        if matches:
-                            names = str(default_names if default_names.is_file() else (
-                                remote_default_names if remote_default_names.is_file() else default_names
-                            ))
-                            return str(matches[0]), names
-                    # Ceph may not be mounted on control plane; still emit canonical remote path
-                    canonical = model_dir / 'model.onnx'
-                    names = str(remote_default_names if remote_default_names.is_file() else (
-                        default_names if default_names.is_file() else remote_default_names
-                    ))
-                    return str(canonical), names
-
-    video_root = Path(__file__).resolve().parents[2]
     for mid in model_ids:
         try:
             mid_int = int(mid)
         except Exception:
             continue
-        model_dir = video_root / 'data' / 'models' / str(mid_int)
-        if model_dir.is_dir():
-            for pattern in ('*.onnx', '*.ONNX'):
-                matches = sorted(model_dir.glob(pattern))
-                if matches:
-                    names = default_names if default_names.is_file() else (env_names or str(default_names))
-                    return str(matches[0]), str(names)
+
+        builtin = _default_builtin_model_name(mid_int)
+        if builtin:
+            try:
+                return _resolve_builtin_onnx(builtin)
+            except Exception as e:
+                logger.warning('builtin model %s resolve failed: %s', builtin, e)
+                continue
+
+        if mid_int <= 0:
+            continue
+
+        # cluster resolver may return a file path directly
+        if prefer_cluster:
+            try:
+                lib = str((root / '.scripts' / 'lib').resolve())
+                if lib not in sys.path:
+                    sys.path.insert(0, lib)
+                from model_resolver import try_resolve_cluster_model_path  # type: ignore
+                found = try_resolve_cluster_model_path(mid_int)
+                if found:
+                    found_p = Path(found)
+                    if found_p.suffix.lower() == '.onnx' and found_p.is_file():
+                        return str(found_p), _pick_names(found_p, default_names)
+                    if found_p.suffix.lower() == '.pt' and found_p.is_file():
+                        onnx_out = found_p.with_suffix('.onnx')
+                        exported = _export_pt_to_onnx(found_p, onnx_out)
+                        if exported and exported.is_file():
+                            return str(exported), _pick_names(exported, default_names)
+            except Exception as e:
+                logger.debug('cluster file resolve skip: %s', e)
+
+        model_dir = _resolve_custom_model_dir(mid_int, prefer_cluster=prefer_cluster)
+        if model_dir is not None:
+            resolved = _resolve_dir_to_onnx(model_dir, default_names)
+            if resolved:
+                return resolved
 
     if prefer_cluster and remote_default_onnx.is_file():
         names = str(remote_default_names if remote_default_names.is_file() else (env_names or remote_default_names))
         return str(remote_default_onnx), names
 
-    onnx = env_model or str(default_onnx)
+    if env_model:
+        p = Path(env_model)
+        if p.suffix.lower() == '.pt':
+            exported = _export_pt_to_onnx(p, p.with_suffix('.onnx'))
+            if exported and exported.is_file():
+                return str(exported), (env_names or _pick_names(exported, default_names))
+        return env_model, (env_names or str(default_names))
+
+    # Final fallback: ensure yolo11n onnx exists
+    try:
+        return _resolve_builtin_onnx('yolo11n')
+    except Exception:
+        pass
+    onnx = str(default_onnx)
     names = env_names or str(default_names)
     return onnx, names
 
@@ -567,10 +752,13 @@ def generate_runtime_ini(
 
     model_path, classes_path = _resolve_model_paths(task, prefer_cluster=prefer_cluster_model)
     if write_local and not os.path.isfile(model_path):
-        raise ValueError(f'ONNX 模型不存在: {model_path}')
+        raise ValueError(f'模型文件不存在: {model_path}（cpp 需要 .onnx；.pt 应已自动导出）')
+    if write_local and not str(model_path).lower().endswith('.onnx'):
+        raise ValueError(f'RUNTIME 最终需要 .onnx，当前为: {model_path}')
     if prefer_cluster_model and not str(model_path).lower().endswith('.onnx'):
         raise ValueError(
-            f'远程 cpp 需要 ONNX 模型，当前解析到: {model_path}。请确保模型已同步至集群且含 .onnx'
+            f'远程 cpp 需要 ONNX 模型，当前解析到: {model_path}。'
+            f'请确保模型已同步至集群，或允许控制面执行 .pt→onnx 导出'
         )
 
     video_base = resolve_video_service_base_url().rstrip('/')
@@ -673,6 +861,10 @@ frame_skip={frame_skip}
 prefer_gpu={'true' if prefer_gpu else 'false'}
 force_cpu={'true' if force_cpu else 'false'}
 gpu_device_id={gpu_device_id}
+prefer_hwaccel={'true' if (prefer_gpu and not force_cpu) else 'false'}
+force_soft_av={'true' if (force_cpu or not prefer_gpu) else 'false'}
+hwaccel_device_id={gpu_device_id}
+nvenc_preset={(os.getenv('RUNTIME_NVENC_PRESET') or os.getenv('REALTIME_NVENC_PRESET') or 'p3').strip() or 'p3'}
 
 [alarm]
 enable={'true' if task.alert_event_enabled else 'false'}
