@@ -28,6 +28,9 @@ def _lifecycle_degenerate(snapshot: Any) -> bool:
     if snapshot.get("heartbeat_ok") is False and snapshot.get("run_status") is None:
         return True
     if snapshot.get("process_alive") is False and snapshot.get("after_run_status") is None:
+        # view-forward lifecycle uses after_stream_status / before_stream_status
+        if snapshot.get("after_stream_status") is not None or snapshot.get("before_stream_status") is not None:
+            return False
         return True
     return False
 

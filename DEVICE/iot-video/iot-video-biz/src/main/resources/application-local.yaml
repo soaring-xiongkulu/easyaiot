@@ -15,5 +15,6 @@ management:
 video:
   alert:
     use-direct-persist: true
+  ffmpeg-path: F:/biofactory/ResearchStudioInstall/tools/bin/ffmpeg.cmd
   runtime:
     repo-root: F:/acme

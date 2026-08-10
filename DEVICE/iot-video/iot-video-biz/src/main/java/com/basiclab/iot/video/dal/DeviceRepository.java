@@ -106,6 +106,10 @@ public class DeviceRepository {
         );
     }
 
+    public void updateEnableForward(String id, boolean enableForward) {
+        jdbc.update("UPDATE device SET enable_forward = ? WHERE id = ?", enableForward, id);
+    }
+
     public long count(String search) {
         String like = search != null && !search.isBlank() ? "%" + search.trim() + "%" : null;
         if (like != null) {

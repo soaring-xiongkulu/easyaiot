@@ -2,18 +2,18 @@
   "layer": "api",
   "status": "sampled",
   "endpoint": "/video/camera/device/vj_p1_device/stream/start",
-  "http_status": "{\"code\":0,\"data\":{\"rtmp_url\":\"rtmp://127.0.0.1/live/vj_p1\"},\"msg\":\"\\u6d41\\u5a92\\u4f53\\u8f6c\\u53d1\\u5df2\\u542f\\u52a8\"}\n",
+  "http_status": "{\"code\":0,\"data\":{\"rtmp_url\":\"rtmp://127.0.0.1/live/vj_p1_certify4\"},\"msg\":\"\\u6d41\\u5a92\\u4f53\\u8f6c\\u53d1\\u5df2\\u542f\\u52a8\"}\n",
   "body": {
     "code": 0,
     "data": {
-      "rtmp_url": "rtmp://127.0.0.1/live/vj_p1"
+      "rtmp_url": "rtmp://127.0.0.1/live/vj_p1_certify4"
     },
     "msg": "流媒体转发已启动"
   },
   "normalized": {
     "code": 0,
     "data": {
-      "rtmp_url": "rtmp://127.0.0.1/live/vj_p1"
+      "rtmp_url": "rtmp://127.0.0.1/live/vj_p1_certify4"
     },
     "msg": "流媒体转发已启动"
   }

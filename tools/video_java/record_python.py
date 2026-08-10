@@ -332,6 +332,11 @@ def _record_view_forward_start_stop(
     device_id = fixture["device_id"]
     out = golden_dir(side, case["case_id"])
 
+    if side == "java":
+        oracle = case["oracle_base_url"].rstrip("/")
+        http_json("POST", f"{oracle}/video/camera/device/{device_id}/stream/stop")
+        time.sleep(5.0)
+
     http_json("POST", f"{base}/video/camera/device/{device_id}/stream/stop")
     time.sleep(1.0)
     _, before_body, _ = http_json(
@@ -343,7 +348,7 @@ def _record_view_forward_start_stop(
     _, start_body, start_status = http_json(
         "POST", f"{base}/video/camera/device/{device_id}/stream/start"
     )
-    time.sleep(3.0)
+    time.sleep(5.0)
     _, during_body, _ = http_json(
         "GET", f"{base}/video/camera/device/{device_id}/stream/status"
     )

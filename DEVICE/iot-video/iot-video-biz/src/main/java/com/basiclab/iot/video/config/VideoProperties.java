@@ -27,4 +27,7 @@ public class VideoProperties {
         /** Repo root for RUNTIME binaries/models; env ACME_ROOT or RUNTIME_ROOT overrides. */
         private String repoRoot;
     }
+
+    /** Optional explicit ffmpeg binary; env FFMPEG_PATH still wins when set. */
+    private String ffmpegPath;
 }
