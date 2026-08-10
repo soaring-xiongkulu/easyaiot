@@ -16,6 +16,21 @@ public class NodeRuntimeCppCheckRespVO {
     @Schema(description = "远程 RUNTIME 二进制路径")
     private String runtimePath;
 
+    @Schema(description = "节点 RUNTIME version 字段")
+    private String version;
+
+    @Schema(description = "节点 git short")
+    private String git;
+
+    @Schema(description = "节点 built_at")
+    private String builtAt;
+
+    @Schema(description = "控制面 VERSION.version")
+    private String controlPlaneVersion;
+
+    @Schema(description = "与控制面版本是否一致（两侧皆有 version 时才判定）")
+    private Boolean versionMatch;
+
     @Schema(description = "是否成功")
     private Boolean success;
 

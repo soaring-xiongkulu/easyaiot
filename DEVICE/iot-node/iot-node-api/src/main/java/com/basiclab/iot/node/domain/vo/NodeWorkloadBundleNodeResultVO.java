@@ -25,6 +25,15 @@ public class NodeWorkloadBundleNodeResultVO {
     @Schema(description = "摘要")
     private String message;
 
+    @Schema(description = "节点 RUNTIME 版本（runtime_cpp 检测时）")
+    private String version;
+
+    @Schema(description = "控制面 RUNTIME 版本（runtime_cpp 检测时）")
+    private String controlPlaneVersion;
+
+    @Schema(description = "与控制面版本是否一致")
+    private Boolean versionMatch;
+
     @Schema(description = "执行步骤")
     private List<NodeMediaRemoteDeployRespVO.DeployStep> steps = new ArrayList<>();
 }

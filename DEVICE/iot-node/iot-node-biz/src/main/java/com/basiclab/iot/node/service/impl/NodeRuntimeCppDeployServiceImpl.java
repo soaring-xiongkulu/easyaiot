@@ -57,11 +57,32 @@ public class NodeRuntimeCppDeployServiceImpl implements NodeRuntimeCppDeployServ
         ComputeNodeDO node = validateNode(nodeId);
         NodeRuntimeCppCheckRespVO resp = new NodeRuntimeCppCheckRespVO();
         resp.setRuntimePath(RuntimeCppDeployUtil.REMOTE_RUNTIME_BIN);
+        String controlPlaneVersion = readControlPlaneVersion();
+        resp.setControlPlaneVersion(controlPlaneVersion);
         try (SshSessionHelper ssh = openSsh(node)) {
             resp.getSteps().add(step("SSH 连接", "success", "已连接 " + node.getHost()));
             probeRuntime(ssh, resp);
             resp.setSuccess(Boolean.TRUE.equals(resp.getRuntimeReady()));
-            resp.setMessage(resp.getSuccess() ? "RUNTIME 已就绪" : "RUNTIME 未安装或不可用");
+            if (Boolean.TRUE.equals(resp.getSuccess())) {
+                String nodeVer = resp.getVersion();
+                if (controlPlaneVersion != null && !controlPlaneVersion.isBlank()
+                        && nodeVer != null && !nodeVer.isBlank()) {
+                    boolean match = controlPlaneVersion.equals(nodeVer);
+                    resp.setVersionMatch(match);
+                    if (match) {
+                        resp.setMessage("RUNTIME 已就绪 · 版本 " + nodeVer + "（与控制面一致）");
+                    } else {
+                        resp.setMessage("RUNTIME 已就绪 · 节点 " + nodeVer
+                                + " ≠ 控制面 " + controlPlaneVersion + "（建议重新分发升级）");
+                    }
+                } else if (nodeVer != null && !nodeVer.isBlank()) {
+                    resp.setMessage("RUNTIME 已就绪 · 版本 " + nodeVer);
+                } else {
+                    resp.setMessage("RUNTIME 已就绪（未检测到 VERSION 文件）");
+                }
+            } else {
+                resp.setMessage("RUNTIME 未安装或不可用");
+            }
         } catch (Exception e) {
             resp.setSuccess(false);
             resp.setRuntimeReady(false);
@@ -146,6 +167,9 @@ public class NodeRuntimeCppDeployServiceImpl implements NodeRuntimeCppDeployServ
         NodeWorkloadBundleNodeResultVO result = baseResult(node);
         result.setSuccess(check.getSuccess());
         result.setMessage(check.getMessage());
+        result.setVersion(check.getVersion());
+        result.setControlPlaneVersion(check.getControlPlaneVersion());
+        result.setVersionMatch(check.getVersionMatch());
         result.setSteps(new ArrayList<>(check.getSteps()));
         return result;
     }
@@ -243,9 +267,62 @@ public class NodeRuntimeCppDeployServiceImpl implements NodeRuntimeCppDeployServ
         String out = result.combinedOutput();
         boolean ok = out.contains("RUNTIME_OK");
         resp.setRuntimeReady(ok);
-        NodeMediaRemoteDeployRespVO.DeployStep s = step("RUNTIME", ok ? "success" : "failed",
-                ok ? trim(out, 2000) : "未找到 " + RuntimeCppDeployUtil.REMOTE_RUNTIME_BIN);
+        if (ok) {
+            String block = RuntimeCppDeployUtil.extractVersionBlock(out);
+            java.util.Map<String, String> meta = RuntimeCppDeployUtil.parseVersionText(block);
+            if (!meta.isEmpty()) {
+                resp.setVersion(meta.get("version"));
+                resp.setGit(meta.get("git"));
+                resp.setBuiltAt(meta.get("built_at"));
+            }
+        }
+        String detail;
+        if (ok) {
+            String ver = resp.getVersion();
+            detail = (ver != null && !ver.isBlank())
+                    ? ("版本 " + ver + (resp.getBuiltAt() != null ? " · built_at=" + resp.getBuiltAt() : ""))
+                    : trim(out, 2000);
+        } else {
+            detail = "未找到 " + RuntimeCppDeployUtil.REMOTE_RUNTIME_BIN;
+        }
+        NodeMediaRemoteDeployRespVO.DeployStep s = step("RUNTIME", ok ? "success" : "failed", detail);
         resp.getSteps().add(s);
+    }
+
+    /** 读取控制面源码树 / 已安装目录 VERSION.version。 */
+    private String readControlPlaneVersion() {
+        try {
+            String sourceRoot = resolveRuntimeSourceRoot();
+            String[] relatives = {"build/VERSION", "VERSION"};
+            for (String rel : relatives) {
+                File f = new File(sourceRoot, rel);
+                if (!f.isFile()) {
+                    continue;
+                }
+                String text = new String(java.nio.file.Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
+                java.util.Map<String, String> meta = RuntimeCppDeployUtil.parseVersionText(text);
+                String ver = meta.get("version");
+                if (ver != null && !ver.isBlank()) {
+                    return ver;
+                }
+            }
+        } catch (Exception e) {
+            log.debug("读取控制面 RUNTIME VERSION 失败: {}", e.getMessage());
+        }
+        try {
+            File installed = new File("/opt/easyaiot/RUNTIME/VERSION");
+            if (installed.isFile()) {
+                String text = new String(java.nio.file.Files.readAllBytes(installed.toPath()), StandardCharsets.UTF_8);
+                java.util.Map<String, String> meta = RuntimeCppDeployUtil.parseVersionText(text);
+                String ver = meta.get("version");
+                if (ver != null && !ver.isBlank()) {
+                    return ver;
+                }
+            }
+        } catch (Exception ignored) {
+            // ignore
+        }
+        return null;
     }
 
     private File ensureLocalTarball(
