@@ -40,5 +40,6 @@ HTTP 面 FR-W* 已齐。行为波次：
 | **FR-B38** plate image_url MinIO + face entry 无模型诚实 400 | **DONE** | (this commit) |
 | **FR-B39** HTTP 400/404 中央映射 + plate update 带图 | **DONE** | (this commit) |
 | **FR-B40** contract_regression 39×404 假阳性收口 | **DONE** | (this commit) |
+| **FR-B41** face_rec.onnx + face entry 成功路径 local | **DONE** | (this commit) |
 
 COMPLETE 仍禁止，直至行为缺口可勾选或产品签字豁免 + **prod** soak checklist 有证据（local-only ≠ prod 绿）。

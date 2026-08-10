@@ -293,23 +293,33 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B39 HTTP 400 对齐**（`:48096` local） | `VideoApiResponseAdvice.businessCodeToHttpStatus`：code 400/404 → HTTP 400/404；code 500 仍 HTTP 200（`camera.py` L1730-1732）；face no-model **HTTP 400**；artifact `logs/fr-b39-multipart-latest.json` |
 | **FR-B39 plate update image**（`:48096` local, MinIO on） | `PUT /video/plate/entries/{id}` multipart → `image_url`（`plate_library_service.update_entry` L311-313）；`PlateController` JSON/multipart consumes 拆分；artifact `logs/fr-b39-multipart-latest.json` |
 | **FR-B40 契约探针 404 假阳性**（`:48096` live） | FR-B39 业务 code=404→HTTP 404 后 39 条探针误报 unmapped；`contract_regression.py` 区分 envelope 404 vs Spring 404 → **265 pass / 0 fail**；artifact `logs/fr-b40-contract-latest.json` |
+| **FR-B41 face entry 成功路径**（`:48096` local） | `face_rec.onnx` 官方 buffalo_l 下载 + worker + Milvus v2.4.15；multipart **code=0** + **12** FaceEntry keys + `image_url` + `milvus_id`；artifact `logs/fr-b41-face-entry-success-latest.json` |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定 — FR-B40
+## 9. 最终判定 — FR-B41
 
 | 问题 | 答案 |
 |------|------|
-| contract_regression 38×404 根因？ | **假阳性** — 路由已映射；FR-B39 `businessCodeToHttpStatus(404)` + probe `id=1` 不存在资源 → envelope HTTP 404（`patrol.py` L45；`face_library_service.py` L184） |
-| contract_regression pass/fail？ | **265 / 0** — `is_video_api_envelope` + `classify_http_status` 修正；artifact `logs/fr-b40-contract-latest.json` |
-| phase0？ | **PASS 5/5** — `logs/certify-frb40-phase0.log` |
-| 能否称 COMPLETE？ | **禁止** — 探针仅验证路径可达；行为 parity / prod soak 仍 open |
+| `face_rec.onnx` 来源？ | **官方** — `VIDEO/scripts/download_face_rec_model.sh` → InsightFace `buffalo_l.zip` / `w600k_r50.onnx` → `VIDEO/face_rec.onnx`（174MB，gitignore）；worker 读 `_retired_python_video/face_rec.onnx` |
+| Face entry multipart 成功？ | **是（local）** — HTTP 200 **code=0** msg=录入成功；12 keys；`image_url` + `milvus_id`；artifact `logs/fr-b41-face-entry-success-latest.json` |
+| Python-first cites？ | `face_library_service.add_entry` L303-380；`face_recognition_service` extract + Milvus；`FaceEntry.to_dict` L1327-1341 |
+| phase0？ | **PASS 5/5** — `logs/certify-frb41-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — local-only；prod Milvus/InsightFace soak 仍 open |
 
 ## 10. 历史判定归档（只读）
 
 <details>
-<summary>FR-B38 / FR-B37 / FR-B36 … 历史判定（点击展开）</summary>
+<summary>FR-B40 / FR-B38 / FR-B37 … 历史判定（点击展开）</summary>
+
+### FR-B40
+
+| 问题 | 答案 |
+|------|------|
+| contract_regression 38×404 根因？ | **假阳性** — 路由已映射；FR-B39 `businessCodeToHttpStatus(404)` + probe `id=1` 不存在资源 → envelope HTTP 404 |
+| contract_regression pass/fail？ | **265 / 0** — artifact `logs/fr-b40-contract-latest.json` |
+| phase0？ | **PASS 5/5** — `logs/certify-frb40-phase0.log` |
 
 ### FR-B38
 

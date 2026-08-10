@@ -1,0 +1,49 @@
+{
+  "generated_at": "20260810T222637Z",
+  "base_url": "http://127.0.0.1:48096",
+  "server_up": true,
+  "health_detail": "health HTTP 200",
+  "fixture_image": "testdata\\fr-b41\\face_sample.jpg",
+  "face_rec_onnx": "F:\\acme\\.worktrees\\video-java\\VIDEO\\face_rec.onnx",
+  "probes": [
+    {
+      "id": "face_entry_multipart_success",
+      "path": "/video/face/libraries/{id}/entries",
+      "python_source": "VIDEO/_retired_python_video/app/services/face_library_service.py add_entry L303-380 → VIDEO/_retired_python_video/app/services/face_recognition_service.py extract_and_crop + add_face_to_library → VIDEO/_retired_python_video/models.py FaceEntry.to_dict L1327-1341",
+      "model_script": "VIDEO/scripts/download_face_rec_model.sh",
+      "multipart_fields": [
+        "person_name",
+        "file"
+      ],
+      "checks": [
+        {
+          "check": "data_keys",
+          "status": "pass",
+          "detail": "keys ok (12)"
+        },
+        {
+          "check": "image_url_set",
+          "status": "pass",
+          "detail": "/api/v1/buckets/face-library/objects/download?prefix=90%2F1e5f1acdc3a4440aa98a4a094d61a9a4.jpg"
+        },
+        {
+          "check": "milvus_id_set",
+          "status": "pass",
+          "detail": "468294075917271246"
+        }
+      ],
+      "probe_path": "/video/face/libraries/90/entries",
+      "http_status": 200,
+      "business_code": 0,
+      "msg": "录入成功",
+      "image_url": "/api/v1/buckets/face-library/objects/download?prefix=90%2F1e5f1acdc3a4440aa98a4a094d61a9a4.jpg",
+      "milvus_id": "468294075917271246",
+      "ok": true
+    }
+  ],
+  "summary": {
+    "pass": 1,
+    "total": 1
+  },
+  "disclaimer": "FR-B41 requires real face_rec.onnx (InsightFace buffalo_l w600k_r50.onnx), Python worker health, Milvus, and a detectable face fixture. Honest EX documented when deps missing — not COMPLETE."
+}

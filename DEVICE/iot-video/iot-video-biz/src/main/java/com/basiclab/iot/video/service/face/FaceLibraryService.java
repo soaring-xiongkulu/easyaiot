@@ -6,6 +6,7 @@ import com.basiclab.iot.video.dal.FaceLibraryRepository;
 import com.basiclab.iot.video.dal.FaceMatchRecordRepository;
 import com.basiclab.iot.video.dal.FacePersonRepository;
 import com.basiclab.iot.video.exception.VideoBusinessException;
+import com.basiclab.iot.video.service.minio.VideoMinioService;
 import com.basiclab.iot.video.support.JsonFields;
 import com.basiclab.iot.video.support.RequestParams;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +29,10 @@ public class FaceLibraryService {
     private final FaceAutoEnrollRepository autoEnrollRepository;
     private final FaceMatchRecordRepository matchRecordRepository;
     private final FaceRecognitionService recognitionService;
+    private final VideoMinioService videoMinioService;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final String DEFAULT_FACE_BUCKET = "face-library";
 
     public List<Map<String, Object>> listLibraries(String search, Boolean isEnabled) {
         return libraryRepository.list(search, isEnabled).stream().map(this::enrichLibrary).toList();
@@ -151,11 +156,33 @@ public class FaceLibraryService {
         if (imageBytes == null || imageBytes.length == 0) {
             throw new VideoBusinessException(400, "请上传文件字段 file");
         }
-        recognitionService.validateFaceEntryImage(imageBytes);
+        // Python face_library_service.add_entry L319-328: extract_and_crop_largest_face hard-fail.
+        FaceRecognitionService.FaceCropResult cropResult = recognitionService.extractCropForEntry(imageBytes);
+        UploadedFaceImage uploaded = uploadFaceImage(libraryId, cropResult.cropJpegBytes());
+
         if (personId == null) {
             personId = personRepository.insert(libraryId, personName, personCode, null, isEnabled);
         }
-        int entryId = entryRepository.insert(libraryId, personId, personName, personCode, null, null, remark, isEnabled);
+        int entryId = entryRepository.insert(
+                libraryId,
+                personId,
+                personName,
+                personCode,
+                uploaded.objectName(),
+                uploaded.imageUrl(),
+                remark,
+                isEnabled
+        );
+        String milvusId = recognitionService.addFaceToLibrary(
+                libraryId,
+                entryId,
+                personName,
+                personCode,
+                cropResult.embedding()
+        );
+        if (milvusId != null) {
+            entryRepository.update(entryId, Map.of("milvus_id", milvusId));
+        }
         personRepository.refreshFaceCount(personId);
         libraryRepository.refreshFaceCount(libraryId);
         return entryRepository.findById(entryId).orElseThrow();
@@ -334,4 +361,23 @@ public class FaceLibraryService {
             return "[]";
         }
     }
+
+    /** Python face_library_service._upload_face_image L62-68 → bucket face-library. */
+    private UploadedFaceImage uploadFaceImage(int libraryId, byte[] imageBytes) {
+        String suffix = "jpg";
+        String objectName = libraryId + "/" + UUID.randomUUID().toString().replace("-", "") + "." + suffix;
+        String bucket = faceImageBucket();
+        if (!videoMinioService.isStorageEnabled()) {
+            return new UploadedFaceImage(null, null);
+        }
+        videoMinioService.uploadBytes(bucket, objectName, imageBytes, "image/" + suffix, false);
+        return new UploadedFaceImage(objectName, videoMinioService.buildDownloadUrl(bucket, objectName));
+    }
+
+    private static String faceImageBucket() {
+        String env = System.getenv("FACE_IMAGE_BUCKET");
+        return env != null && !env.isBlank() ? env.trim() : DEFAULT_FACE_BUCKET;
+    }
+
+    private record UploadedFaceImage(String objectName, String imageUrl) {}
 }

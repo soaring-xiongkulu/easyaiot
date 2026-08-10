@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,55 @@ public class FaceRecognitionService {
             throw new VideoBusinessException(400, FACE_MODEL_MISSING_ENTRY_MSG);
         }
     }
+
+    /**
+     * Python face_library_service.add_entry L322-328 → extract_and_crop_largest_face.
+     * Returns crop JPEG bytes and optional normalized embedding list for Milvus insert.
+     */
+    public FaceCropResult extractCropForEntry(byte[] imageBytes) {
+        validateFaceEntryImage(imageBytes);
+        WorkerResult worker = pythonInferenceWorker.faceExtractCrop(imageBytes);
+        if (!worker.ok()) {
+            String err = worker.error() != null ? worker.error() : "人脸特征提取失败";
+            if (err.contains("face_rec.onnx") || err.contains("未安装")) {
+                throw new VideoBusinessException(400, FACE_MODEL_MISSING_ENTRY_MSG);
+            }
+            if (err.contains("未检测到人脸")) {
+                throw new VideoBusinessException(400, err);
+            }
+            throw new VideoBusinessException(500, "人脸特征提取失败: " + err);
+        }
+        Object cropBase64 = worker.data().get("crop_jpeg_base64");
+        if (cropBase64 == null || String.valueOf(cropBase64).isBlank()) {
+            throw new VideoBusinessException(400, "图片中未检测到人脸，请上传正面清晰的人脸照片");
+        }
+        try {
+            byte[] cropBytes = java.util.Base64.getDecoder().decode(String.valueOf(cropBase64));
+            List<Double> embedding = castEmbeddingList(worker.data().get("embedding"));
+            return new FaceCropResult(cropBytes, embedding);
+        } catch (IllegalArgumentException ex) {
+            throw new VideoBusinessException(500, "人脸特征提取失败: crop decode error");
+        }
+    }
+
+    /** Python face_library_service.add_entry L362-370 → add_face_to_library. */
+    public String addFaceToLibrary(
+            int libraryId,
+            int faceEntryId,
+            String personName,
+            String personCode,
+            List<Double> embedding
+    ) {
+        WorkerResult worker = pythonInferenceWorker.faceAddToLibrary(
+                libraryId, faceEntryId, personName, personCode, embedding);
+        if (!worker.ok()) {
+            throw new VideoBusinessException(500, "Milvus 入库失败: " + worker.error());
+        }
+        Object milvusId = worker.data().get("milvus_id");
+        return milvusId != null ? String.valueOf(milvusId) : null;
+    }
+
+    public record FaceCropResult(byte[] cropJpegBytes, List<Double> embedding) {}
 
     public Map<String, Object> recognize(byte[] imageBytes, int topK, Integer libraryId, Double threshold) {
         if (imageBytes == null || imageBytes.length == 0) {
@@ -179,5 +229,21 @@ public class FaceRecognitionService {
             out.put(String.valueOf(entry.getKey()), entry.getValue());
         }
         return out;
+    }
+
+    private static List<Double> castEmbeddingList(Object raw) {
+        if (raw == null) {
+            return List.of();
+        }
+        if (raw instanceof List<?> list) {
+            List<Double> out = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Number number) {
+                    out.add(number.doubleValue());
+                }
+            }
+            return out;
+        }
+        return List.of();
     }
 }

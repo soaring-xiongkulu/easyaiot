@@ -80,6 +80,41 @@ public class PythonInferenceWorker {
         return run(script, "recognize", extra, null, imageBytes);
     }
 
+    public WorkerResult faceExtractCrop(byte[] imageBytes) {
+        Path script = requireScript("face_inference_cli.py");
+        return run(script, "extract_crop", List.of(), null, imageBytes);
+    }
+
+    public WorkerResult faceAddToLibrary(
+            int libraryId,
+            int faceEntryId,
+            String personName,
+            String personCode,
+            List<Double> embedding
+    ) {
+        Path script = requireScript("face_inference_cli.py");
+        List<String> extra = new ArrayList<>();
+        extra.add("--library-id");
+        extra.add(String.valueOf(libraryId));
+        extra.add("--face-entry-id");
+        extra.add(String.valueOf(faceEntryId));
+        extra.add("--person-name");
+        extra.add(personName != null ? personName : "");
+        if (personCode != null && !personCode.isBlank()) {
+            extra.add("--person-code");
+            extra.add(personCode);
+        }
+        if (embedding != null && !embedding.isEmpty()) {
+            try {
+                extra.add("--embedding-json");
+                extra.add(objectMapper.writeValueAsString(embedding));
+            } catch (Exception ex) {
+                return WorkerResult.fail("embedding serialize failed: " + ex.getMessage());
+            }
+        }
+        return run(script, "add_to_library", extra, null, null);
+    }
+
     public WorkerResult plateRecognize(byte[] imageBytes) {
         Path script = requireScript("plate_inference_cli.py");
         return run(script, "recognize", List.of(), null, imageBytes);
@@ -161,28 +196,34 @@ public class PythonInferenceWorker {
         if (imagePath != null && !imagePath.isBlank()) {
             cmd.add("--image-path");
             cmd.add(imagePath);
-        } else if (imageBytes != null && imageBytes.length > 0) {
-            cmd.add("--image-base64");
-            cmd.add(Base64.getEncoder().encodeToString(imageBytes));
         }
         int timeoutSec = Math.max(5, videoProperties.getInference().getTimeoutSeconds());
+        Path tempImagePath = null;
+        Path outputFile = null;
         try {
+            if (imageBytes != null && imageBytes.length > 0 && (imagePath == null || imagePath.isBlank())) {
+                tempImagePath = writeTempInferenceImage(imageBytes);
+                cmd.add("--image-path");
+                cmd.add(tempImagePath.toString());
+            }
+            outputFile = java.nio.file.Files.createTempFile("video-worker-out-", ".jsonl");
             ProcessBuilder builder = new ProcessBuilder(cmd)
-                    .redirectErrorStream(true);
+                    .redirectErrorStream(true)
+                    .redirectOutput(outputFile.toFile());
             Map<String, String> env = builder.environment();
             String repoRoot = resolveRepoRoot();
             if (repoRoot != null) {
-                env.putIfAbsent("ACME_ROOT", repoRoot);
+                env.put("ACME_ROOT", repoRoot);
             }
+            String pythonExe = resolvePythonExecutable();
+            env.put("VIDEO_PYTHON", pythonExe);
             Process process = builder.start();
             boolean finished = process.waitFor(timeoutSec, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
                 return WorkerResult.fail("python worker timeout after " + timeoutSec + "s");
             }
-            String output = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8)
-            ).readLine();
+            String output = readWorkerJsonLine(outputFile);
             if (output == null || output.isBlank()) {
                 return WorkerResult.fail("python worker empty output (exit=" + process.exitValue() + ")");
             }
@@ -196,7 +237,42 @@ public class PythonInferenceWorker {
         } catch (Exception ex) {
             log.warn("python inference worker failed: script={}, command={}, error={}", script, command, ex.getMessage());
             return WorkerResult.fail(ex.getMessage());
+        } finally {
+            if (tempImagePath != null) {
+                try {
+                    java.nio.file.Files.deleteIfExists(tempImagePath);
+                } catch (Exception ignored) {
+                    // best-effort temp cleanup
+                }
+            }
+            if (outputFile != null) {
+                try {
+                    java.nio.file.Files.deleteIfExists(outputFile);
+                } catch (Exception ignored) {
+                    // best-effort temp cleanup
+                }
+            }
         }
+    }
+
+    private Path writeTempInferenceImage(byte[] imageBytes) throws java.io.IOException {
+        Path tmp = java.nio.file.Files.createTempFile("video-infer-", ".jpg");
+        java.nio.file.Files.write(tmp, imageBytes);
+        return tmp;
+    }
+
+    private String readWorkerJsonLine(Path outputFile) throws java.io.IOException {
+        if (outputFile == null || !java.nio.file.Files.isRegularFile(outputFile)) {
+            return null;
+        }
+        String jsonLine = null;
+        for (String line : java.nio.file.Files.readAllLines(outputFile, StandardCharsets.UTF_8)) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+                jsonLine = trimmed;
+            }
+        }
+        return jsonLine;
     }
 
     private String resolvePythonExecutable() {
