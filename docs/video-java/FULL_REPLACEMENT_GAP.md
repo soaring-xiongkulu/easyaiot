@@ -280,23 +280,33 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B30 存储用量统计**（`:9000` local） | `SnapStorageService` + `VideoMinioService.getBucketUsage` 对齐 Python `get_bucket_size`；disabled 诚实 0；enabled 真 list+stat；artifact `logs/fr-b30-storage-stats-latest.json` |
 | **FR-B31 POST/PUT mutating-matrix**（`:48096` live） | **265** inventoried → **265 pass** / **0 fail**；**140** POST+PUT 探针（**112 POST** / **28 PUT**）；**4** skip（3 destructive cleanup + 1 multipart）；**272** assert pass；artifact `logs/fr-b31-mutating-matrix-latest.json`；**≠ POST 字段键矩阵** |
 | **FR-B31 storage cleanup**（`:48096` local） | `SnapStorageService.cleanup` 对齐 Python `check_and_cleanup_storage` + `cleanup_old_files`；MinIO disabled 诚实 no-op；artifact `logs/fr-b31-storage-cleanup-latest.json` |
+| **FR-B32 cleanup 真删除 E2E**（`:9000` local） | 超配额 `frb32_device` 种子 + MinIO enabled → `POST /storage/cleanup` 真 `remove_object`；before/after object count；artifact `logs/fr-b32-cleanup-e2e-latest.json` |
+| **FR-B32 6 非 JSON GET 探针**（`:48096` local） | content-type pass（非 envelope）：alert/image、alert/record、patrol SSE、playback/thumbnail、record video、snap image；artifact `logs/fr-b32-binary-get-latest.json` |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定 — FR-B31
+## 9. 最终判定 — FR-B32
 
 | 问题 | 答案 |
 |------|------|
-| POST/PUT mutating-matrix？ | **是（local）** — `field_contract.py --mutating-matrix`；**140** POST+PUT 薄探针 **265/265 pass**；skip 4（destructive×3 + multipart×1）；artifact `logs/fr-b31-mutating-matrix-latest.json` |
-| `check_and_cleanup_storage` MinIO 对齐？ | **是（local）** — `SnapStorageService.cleanup` + `VideoMinioService.cleanupOldFiles` 对齐 Python `storage_service.py` L89-205；disabled 诚实 no-op；artifact `logs/fr-b31-storage-cleanup-latest.json` |
-| phase0？ | **PASS 5/5** — `logs/certify-frb31-phase0.log` |
-| 能否称 COMPLETE？ | **禁止** — prod soak open；6 GET envelope-only；POST field-key matrix backlog；cleanup enabled MinIO threshold E2E 未 prod 取证 |
+| MinIO 超配额 cleanup 真删除？ | **是（local）** — `frb32_device` 500B 配额 + 5×100B 对象 → `snap_deleted_count≥1` + MinIO count 下降；artifact `logs/fr-b32-cleanup-e2e-latest.json` |
+| 6 非 JSON GET content-type 探针？ | **是（local）** — `fr_b32_binary_get.py`；分类为 content-type pass（非 keys-matrix envelope）；artifact `logs/fr-b32-binary-get-latest.json` |
+| phase0？ | **PASS 5/5** — `logs/certify-frb32-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — prod soak open；POST field-key matrix backlog；6 路由 prod 二进制/SSE 取证未做 |
 
 ## 10. 历史判定归档（只读）
 
 <details>
-<summary>FR-B30 / FR-B29 / FR-B28 … 历史判定（点击展开）</summary>
+<summary>FR-B31 / FR-B30 / FR-B29 … 历史判定（点击展开）</summary>
+
+### FR-B31
+
+| 问题 | 答案 |
+|------|------|
+| POST/PUT mutating-matrix？ | **是（local）** — artifact `logs/fr-b31-mutating-matrix-latest.json` |
+| `check_and_cleanup_storage` MinIO 对齐？ | **是（local）** — artifact `logs/fr-b31-storage-cleanup-latest.json` |
+| 能否称 COMPLETE？ | **禁止** |
 
 ### FR-B30
 

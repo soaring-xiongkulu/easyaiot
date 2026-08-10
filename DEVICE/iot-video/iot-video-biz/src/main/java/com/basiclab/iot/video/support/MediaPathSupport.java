@@ -81,7 +81,20 @@ public final class MediaPathSupport {
             return "";
         }
         String path = String.valueOf(raw);
-        return path.startsWith("/") ? path.substring(1) : path;
+        path = path.startsWith("/") ? path.substring(1) : path;
+        // When PATH_WITHIN_HANDLER_MAPPING is the full servlet path (Boot 2.7 /** quirk),
+        // recover the trailing segment — mirrors Python snap.py/record.py <path:object_name>.
+        if (path.startsWith("video/")) {
+            int imageIdx = path.indexOf("/image/");
+            if (imageIdx >= 0) {
+                return path.substring(imageIdx + "/image/".length());
+            }
+            int videoIdx = path.indexOf("/video/");
+            if (videoIdx >= 0) {
+                return path.substring(videoIdx + "/video/".length());
+            }
+        }
+        return path;
     }
 
     private static String env(String name) {

@@ -610,6 +610,10 @@ MATRIX_SEED_DEVICE_ID = "vj_p2_device"
 MATRIX_PROBE_ID = "1"
 
 # Non-JSON GET routes: skip envelope assert (binary / SSE).
+# FR-B32: full 6-route content-type probes in fr_b32_binary_get.py (not envelope matrix):
+#   alert/image, alert/record, patrol/session/{id}/events (SSE),
+#   playback/thumbnail/{id} (JSON meta), record/.../video/{obj}, snap/.../image/{obj}.
+# Artifact: logs/fr-b32-binary-get-latest.json — classified as content-type pass, not envelope.
 MATRIX_SKIP_PATHS: Set[str] = {
     "/video/alert/image",
     "/video/alert/record",
