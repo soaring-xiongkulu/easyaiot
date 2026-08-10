@@ -239,7 +239,7 @@ public class CameraHardwareService {
                 return row;
             }).toList();
         } catch (OnvifSoapClient.OnvifException ex) {
-            throw new VideoBusinessException(500, ex.getMessage());
+            throw new VideoBusinessException(400, ex.getMessage());
         }
     }
 
@@ -398,13 +398,13 @@ public class CameraHardwareService {
             throw new VideoBusinessException(400, "设备 " + deviceId + " 的源地址是 RTMP，不需要 ONVIF 连接");
         }
         if (device.getIp() == null || device.getIp().isBlank()) {
-            throw new VideoBusinessException(500, "设备未配置 ONVIF 连接信息或 ONVIF SDK 不可用");
+            throw new VideoBusinessException(400, "设备未配置 ONVIF 连接信息或 ONVIF SDK 不可用");
         }
         int port = device.getPort() != null && device.getPort() > 0 ? device.getPort() : 80;
         String username = device.getUsername() != null ? device.getUsername() : "admin";
         String password = deviceRepository.findPasswordById(deviceId).orElse("");
         if (password.isBlank()) {
-            throw new VideoBusinessException(500, "设备未配置 ONVIF 连接信息或 ONVIF SDK 不可用");
+            throw new VideoBusinessException(400, "设备未配置 ONVIF 连接信息或 ONVIF SDK 不可用");
         }
         return new DeviceCredentials(deviceId, device.getIp(), port, username, password);
     }

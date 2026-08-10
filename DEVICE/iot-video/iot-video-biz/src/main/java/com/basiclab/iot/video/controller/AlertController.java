@@ -129,6 +129,7 @@ public class AlertController {
     private static ResponseEntity<Map<String, Object>> recordError(HttpStatus status, int code, String message) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("code", code);
+        body.put("msg", message);
         body.put("message", message);
         body.put("data", null);
         return ResponseEntity.status(status).body(body);

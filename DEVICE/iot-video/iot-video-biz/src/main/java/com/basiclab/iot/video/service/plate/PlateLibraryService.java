@@ -32,7 +32,7 @@ public class PlateLibraryService {
 
     public Map<String, Object> getLibrary(int libraryId, boolean includeEntries) {
         Map<String, Object> library = libraryRepository.findById(libraryId)
-                .orElseThrow(() -> new VideoBusinessException(500, "查询失败: 车牌库不存在"));
+                .orElseThrow(() -> new VideoBusinessException(404, "查询失败: 车牌库不存在"));
         if (includeEntries) {
             library.put("entries", entryRepository.listByLibrary(libraryId, null, 1, 1000));
         }
@@ -222,7 +222,7 @@ public class PlateLibraryService {
 
     private void requireLibrary(int libraryId) {
         libraryRepository.findById(libraryId)
-                .orElseThrow(() -> new VideoBusinessException(500, "查询失败: 车牌库不存在"));
+                .orElseThrow(() -> new VideoBusinessException(404, "查询失败: 车牌库不存在"));
     }
 
     private String toJsonTags(Object raw) {

@@ -36,7 +36,7 @@ public class FaceLibraryService {
     public Map<String, Object> getLibrary(int libraryId, boolean includeEntries) {
         Map<String, Object> library = libraryRepository.findById(libraryId)
                 .map(this::enrichLibrary)
-                .orElseThrow(() -> new VideoBusinessException(500, "查询失败: 人脸库不存在"));
+                .orElseThrow(() -> new VideoBusinessException(404, "查询失败: 人脸库不存在"));
         if (includeEntries) {
             library.put("entries", entryRepository.listByLibrary(libraryId, null));
         }
@@ -108,7 +108,7 @@ public class FaceLibraryService {
 
     public Map<String, Object> getPerson(int personId, boolean includeEntries) {
         Map<String, Object> person = personRepository.findById(personId)
-                .orElseThrow(() -> new VideoBusinessException(500, "查询失败: 人员不存在"));
+                .orElseThrow(() -> new VideoBusinessException(404, "查询失败: 人员不存在"));
         return personRepository.enrichPerson(person, includeEntries);
     }
 
@@ -311,7 +311,7 @@ public class FaceLibraryService {
 
     private void requireLibrary(int libraryId) {
         libraryRepository.findById(libraryId)
-                .orElseThrow(() -> new VideoBusinessException(500, "查询失败: 人脸库不存在"));
+                .orElseThrow(() -> new VideoBusinessException(404, "查询失败: 人脸库不存在"));
     }
 
     private String toJsonTags(Object raw) {

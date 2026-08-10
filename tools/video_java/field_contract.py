@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -20,6 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
+from contract_regression import collect_inventoried_routes, parse_route, server_reachable
 from route_inventory import repo_root
 
 DISCLAIMER = (
@@ -316,6 +318,37 @@ SCENARIO_POSE_LIBRARY_KEYS: Set[str] = {
 }
 
 ARTIFACT_PREFIX = "fr-b20"
+MATRIX_ARTIFACT_PREFIX = "fr-b21"
+
+MATRIX_DISCLAIMER = (
+    "GET envelope matrix probes inventoried safe GET routes only (no POST/DELETE auto). "
+    "Green = HTTP not 5xx and {code,msg,data} present (data may be null). "
+    "This is NOT the full field-key matrix and does NOT mean COMPLETE — "
+    "see docs/video-java/FULL_REPLACEMENT_GAP.md."
+)
+
+# Known seed ids from mini testbed (field_contract SAMPLE_CASES / certify vj_p2_*).
+MATRIX_SEED_DEVICE_ID = "vj_p2_device"
+MATRIX_PROBE_ID = "1"
+
+# Non-JSON GET routes: skip envelope assert (binary / SSE).
+MATRIX_SKIP_PATHS: Set[str] = {
+    "/video/alert/image",
+    "/video/alert/record",
+}
+
+MATRIX_SKIP_SUFFIXES: Tuple[str, ...] = (
+    "/events",  # patrol SSE text/event-stream
+)
+
+# Optional query suffixes after path materialization (Python-first: required params from blueprints).
+MATRIX_QUERY_SUFFIXES: Dict[str, str] = {
+    "/video/alert/correlation": "?correlation_id=matrix-probe",
+    "/video/alert/record/query": "?device_id=vj_p2_device&alert_time=2026-08-11T10:00:00%2B08:00",
+    "/video/camera/audio/talk/capabilities": "?device_id=vj_p2_device",
+    "/video/camera/tracks/points": "?device_id=vj_p2_device",
+    "/video/record/space/1/videos/day": "?date=2026-08-11",
+}
 
 SAMPLE_CASES: List[Dict[str, Any]] = [
     {
@@ -468,6 +501,187 @@ SAMPLE_CASES: List[Dict[str, Any]] = [
 ]
 
 ENVELOPE_KEYS: Set[str] = {"code", "msg", "data"}
+
+
+def materialize_matrix_path(path: str) -> str:
+    """Replace {param} with probe-safe literals (seed device id where applicable)."""
+    concrete = path
+    if "/device/" in concrete or "/device-detection/device/" in concrete:
+        concrete = re.sub(r"\{param\}", MATRIX_SEED_DEVICE_ID, concrete)
+    else:
+        concrete = re.sub(r"\{param\}", MATRIX_PROBE_ID, concrete)
+    suffix = MATRIX_QUERY_SUFFIXES.get(concrete)
+    if suffix:
+        concrete += suffix
+    return concrete
+
+
+def matrix_skip_reason(path: str) -> Optional[str]:
+    if path in MATRIX_SKIP_PATHS:
+        return "non-JSON binary/stream GET"
+    for suffix in MATRIX_SKIP_SUFFIXES:
+        if path.endswith(suffix):
+            return "non-JSON SSE GET"
+    return None
+
+
+def assert_matrix_route(base_url: str, route: str, timeout: float) -> Dict[str, Any]:
+    method, path = parse_route(route)
+    probe_path = materialize_matrix_path(path)
+    skip_reason = matrix_skip_reason(path)
+    result: Dict[str, Any] = {
+        "route": route,
+        "path": path,
+        "probe_path": probe_path,
+        "asserts": 0,
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "checks": [],
+    }
+
+    def record(name: str, ok: bool, detail: str, *, skipped: bool = False) -> None:
+        result["asserts"] += 1
+        if skipped:
+            result["skip"] += 1
+            status = "skip"
+        elif ok:
+            result["pass"] += 1
+            status = "pass"
+        else:
+            result["fail"] += 1
+            status = "fail"
+        result["checks"].append({"check": name, "status": status, "detail": detail})
+
+    if method != "GET":
+        record("method", True, f"skipped non-GET {method}", skipped=True)
+        result["ok"] = True
+        return result
+
+    if skip_reason:
+        record("non_json", True, skip_reason, skipped=True)
+        result["ok"] = True
+        return result
+
+    http_status, body, _ = http_get_json(base_url, probe_path, timeout=timeout)
+    result["http_status"] = http_status
+    result["business_code"] = body.get("code") if isinstance(body, dict) else None
+
+    record("http_status", http_status < 500, f"HTTP {http_status}")
+
+    if http_status >= 500:
+        result["ok"] = False
+        return result
+
+    miss_env = missing_keys(body, ENVELOPE_KEYS)
+    record("envelope", not miss_env, f"missing {miss_env}" if miss_env else "code,msg,data present")
+
+    result["ok"] = result["fail"] == 0
+    return result
+
+
+def run_matrix(base_url: str, timeout: float) -> Tuple[List[Dict[str, Any]], Dict[str, Any], bool, str]:
+    server_up, health_detail = server_reachable(base_url, timeout=min(timeout, 3.0))
+    routes = collect_inventoried_routes()
+    rows: List[Dict[str, Any]] = []
+    for idx, route in enumerate(routes, start=1):
+        if not server_up:
+            method, path = parse_route(route)
+            rows.append(
+                {
+                    "route": route,
+                    "path": path,
+                    "probe_path": materialize_matrix_path(path),
+                    "asserts": 1,
+                    "pass": 0,
+                    "fail": 0,
+                    "skip": 1,
+                    "checks": [{"check": "server", "status": "skip", "detail": "server unreachable"}],
+                    "ok": True,
+                }
+            )
+            continue
+        rows.append(assert_matrix_route(base_url, route, timeout))
+        if idx % 25 == 0 or idx == len(routes):
+            print(f"  matrix probed {idx}/{len(routes)}")
+    summary = summarize(rows)
+    summary["get_routes"] = sum(1 for r in routes if parse_route(r)[0] == "GET")
+    summary["matrix_skipped"] = sum(1 for row in rows if any(c.get("status") == "skip" for c in row.get("checks", [])))
+    return rows, summary, server_up, health_detail
+
+
+def write_matrix_artifacts(
+    rows: List[Dict[str, Any]],
+    summary: Dict[str, int],
+    base_url: str,
+    *,
+    server_up: bool,
+    health_detail: str,
+) -> Tuple[Path, Path]:
+    logs_dir = repo_root() / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    json_path = logs_dir / f"{MATRIX_ARTIFACT_PREFIX}-field-matrix-{ts}.json"
+    md_path = logs_dir / f"{MATRIX_ARTIFACT_PREFIX}-field-matrix-{ts}.md"
+
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "base_url": base_url,
+        "disclaimer": MATRIX_DISCLAIMER,
+        "server_up": server_up,
+        "health_detail": health_detail,
+        "summary": summary,
+        "routes": rows,
+    }
+    json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    lines = [
+        f"# FR-B21 GET Envelope Matrix — inventoried safe GET routes",
+        "",
+        f"**Generated:** {payload['generated_at']}",
+        f"**Base URL:** {base_url}",
+        f"**Server up:** {server_up} ({health_detail})",
+        f"**Routes:** {summary['endpoint_pass']}/{summary['endpoints']} pass",
+        f"**GET inventoried:** {summary.get('get_routes', '—')}",
+        f"**Asserts:** pass={summary['pass']} fail={summary['fail']} skip={summary['skip']} "
+        f"(total={summary['asserts']})",
+        "",
+        "## Disclaimer",
+        "",
+        MATRIX_DISCLAIMER,
+        "",
+        "## Results",
+        "",
+        "| route | probe_path | http | asserts | pass | fail | skip | ok |",
+        "|-------|------------|------|---------|------|------|------|-----|",
+    ]
+    for row in rows:
+        http_s = row.get("http_status", "—")
+        lines.append(
+            f"| `{row['route']}` | `{row.get('probe_path', '')}` | {http_s} | {row['asserts']} | "
+            f"{row['pass']} | {row['fail']} | {row['skip']} | {row.get('ok')} |"
+        )
+    lines.append("")
+    fails = [r for r in rows if not r.get("ok")]
+    if fails:
+        lines.extend(["## Failures", ""])
+        for row in fails:
+            lines.append(f"### {row['route']}")
+            for check in row.get("checks", []):
+                if check["status"] == "fail":
+                    lines.append(f"- **{check['check']}**: {check['detail']}")
+            lines.append("")
+
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+    latest_json = logs_dir / f"{MATRIX_ARTIFACT_PREFIX}-field-matrix-latest.json"
+    latest_md = logs_dir / f"{MATRIX_ARTIFACT_PREFIX}-field-matrix-latest.md"
+    latest_json.write_text(json_path.read_text(encoding="utf-8"), encoding="utf-8")
+    latest_md.write_text(md_path.read_text(encoding="utf-8"), encoding="utf-8")
+    print(f"artifact: {json_path}")
+    print(f"artifact: {md_path}")
+    return json_path, md_path
+
+
 
 
 def http_get_json(base_url: str, path: str, timeout: float = 8.0) -> Tuple[int, Dict[str, Any], str]:
@@ -699,25 +913,58 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="P0/P1 field-level JSON contract sampling")
     parser.add_argument("--base-url", default="http://127.0.0.1:48096")
     parser.add_argument("--timeout", type=float, default=8.0)
+    parser.add_argument(
+        "--matrix",
+        action="store_true",
+        help="auto GET envelope matrix over inventoried safe GET routes",
+    )
+    parser.add_argument(
+        "--deep",
+        action="store_true",
+        help="run FR-B20 hand-curated deep field samples (default when no mode flag)",
+    )
     args = parser.parse_args(argv)
 
-    rows: List[Dict[str, Any]] = []
-    for case in SAMPLE_CASES:
-        case_copy = dict(case)
-        if case_copy.get("setup"):
-            case_copy["setup_result"] = run_setup(args.base_url, case_copy["setup"], args.timeout)
-        rows.append(assert_case(args.base_url, case_copy, args.timeout))
-    summary = summarize(rows)
-    print(
-        f"endpoints: {summary['endpoint_pass']}/{summary['endpoints']} pass | "
-        f"asserts: pass={summary['pass']} fail={summary['fail']} skip={summary['skip']}"
-    )
-    for row in rows:
-        flag = "OK" if row.get("ok") else "FAIL"
-        print(f"  {row['id']}: {flag} ({row['pass']}/{row['asserts']} asserts)")
-    write_artifacts(rows, summary, args.base_url)
-    print(f"\n{DISCLAIMER}")
-    return 0 if summary["fail"] == 0 else 1
+    run_deep = args.deep or not args.matrix
+    exit_code = 0
+
+    if run_deep:
+        rows: List[Dict[str, Any]] = []
+        for case in SAMPLE_CASES:
+            case_copy = dict(case)
+            if case_copy.get("setup"):
+                case_copy["setup_result"] = run_setup(args.base_url, case_copy["setup"], args.timeout)
+            rows.append(assert_case(args.base_url, case_copy, args.timeout))
+        summary = summarize(rows)
+        print(
+            f"deep endpoints: {summary['endpoint_pass']}/{summary['endpoints']} pass | "
+            f"asserts: pass={summary['pass']} fail={summary['fail']} skip={summary['skip']}"
+        )
+        for row in rows:
+            flag = "OK" if row.get("ok") else "FAIL"
+            print(f"  {row['id']}: {flag} ({row['pass']}/{row['asserts']} asserts)")
+        write_artifacts(rows, summary, args.base_url)
+        print(f"\n{DISCLAIMER}")
+        if summary["fail"] != 0:
+            exit_code = 1
+
+    if args.matrix:
+        route_count = len(collect_inventoried_routes())
+        print(f"\nGET matrix base_url={args.base_url} inventoried_routes={route_count}")
+        matrix_rows, matrix_summary, server_up, health_detail = run_matrix(args.base_url, args.timeout)
+        print(
+            f"matrix: {matrix_summary['endpoint_pass']}/{matrix_summary['endpoints']} pass | "
+            f"asserts: pass={matrix_summary['pass']} fail={matrix_summary['fail']} "
+            f"skip={matrix_summary['skip']} server_up={server_up}"
+        )
+        write_matrix_artifacts(
+            matrix_rows, matrix_summary, args.base_url, server_up=server_up, health_detail=health_detail
+        )
+        print(f"\n{MATRIX_DISCLAIMER}")
+        if matrix_summary["fail"] != 0:
+            exit_code = 1
+
+    return exit_code
 
 
 if __name__ == "__main__":

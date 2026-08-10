@@ -17,7 +17,8 @@ public class VideoApiResponse<T> {
     private int code;
     private String msg;
     private String message;
-    @JsonInclude(JsonInclude.Include.NON_NULL)
+    /** Always serialized (null when absent) — Python {@code api_response} always includes {@code data}. */
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     private T data;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Integer total;

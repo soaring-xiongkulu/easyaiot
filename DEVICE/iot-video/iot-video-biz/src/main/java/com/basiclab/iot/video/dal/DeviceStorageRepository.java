@@ -26,9 +26,17 @@ public class DeviceStorageRepository {
     }
 
     public void insertDefault(String deviceId) {
+        // Python models.DeviceStorageConfig defaults (storage_service.get_or_create_device_storage_config)
         jdbc.update(
-                "INSERT INTO device_storage_config (device_id) VALUES (?) ON CONFLICT (device_id) DO NOTHING",
-                deviceId
+                """
+                INSERT INTO device_storage_config (
+                    device_id,
+                    snap_storage_cleanup_enabled, snap_storage_cleanup_threshold, snap_storage_cleanup_ratio,
+                    video_storage_cleanup_enabled, video_storage_cleanup_threshold, video_storage_cleanup_ratio
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (device_id) DO NOTHING
+                """,
+                deviceId, true, 0.8, 0.3, true, 0.8, 0.3
         );
     }
 
