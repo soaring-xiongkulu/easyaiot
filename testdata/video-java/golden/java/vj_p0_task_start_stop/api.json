@@ -2,7 +2,7 @@
   "layer": "api",
   "status": "sampled",
   "endpoint": "/video/algorithm/task/35/start",
-  "http_status": "{\"code\":0,\"msg\":\"启动成功\",\"message\":\"启动成功\",\"data\":{\"face_library_ids\":[],\"patrol_mode\":\"pool\",\"prefer_gpu\":false,\"pose_analysis_enabled\":false,\"already_running\":false,\"focus_device_id\":null,\"model_ids\":[],\"tracking_similarity_threshold\":0.2,\"tracking_max_age\":25,\"alert_class_names\":[],\"runtime_control_port\":null,\"defense_mode\":\"full\",\"executor\":\"cpp\",\"motion_gate_enabled\":false,\"id\":35,\"target_node_id\":null,\"face_matching_threshold\":null,\"algorithm_services\":[],\"patrol_pool_size\":4,\"sam_supplement_config\":null,\"task_code\":\"vj_p0_9482075d\",\"matching_business_tags\":[],\"total_detections\":0,\"tracking_smooth_alpha\":0.25,\"runtime_bin_path\":\"F:\\\\acme\\\\.worktrees\\\\video-java\\\\RUNTIME\\\\build-win\\\\Release\\\\RUNTIME.exe\",\"motion_gate_config\":null,\"alert_event_suppress_time\":5,\"space_name\":null,\"pose_library_names\":[],\"alert_event_enabled\":true,\"pose_analysis_config\":null,\"post_process_script\":null,\"plate_matching_enabled\":false,\"service_last_heartbeat\":\"2026-08-10T08:08:48.188531Z\",\"pose_intent_config\":null,\"status\":0,\"service_port\":8035,\"task_name\":\"vj_p0_certify\",\"plate_library_ids\":[],\"alert_notification_config\":null,\"defense_schedule\":null,\"last_process_time\":null,\"created_at\":null,\"detect_conf\":0.5,\"exception_reason\":null,\"pose_intent_enabled\":false,\"frame_skip\":25,\"total_frames\":0,\"is_enabled\":true,\"last_success_time\":null,\"device_names\":[\"vj_p0 certify camera\"],\"service_process_id\":14532,\"updated_at\":\"2026-08-10T08:09:22.323287Z\",\"total_captures\":0,\"device_ids\":[\"vj_p0_device\"],\"alert_notification_enabled\":false,\"last_notify_time\":null,\"alarm_suppress_time\":300,\"face_library_names\":[],\"rtmp_output_url\":null,\"pose_library_ids\":[],\"extract_interval\":null,\"pose_intent_threshold\":null,\"service_server_ip\":\"127.0.0.1\",\"sam_supplement_enabled\":false,\"patrol_interval_sec\":10,\"plate_detection_enabled\":false,\"model_names\":null,\"cron_expression\":null,\"plate_library_names\":[],\"rtmp_input_url\":null,\"last_capture_time\":null,\"service_log_path\":\"C:\\\\Users\\\\g\\\\.video-java\\\\logs\\\\task_35\",\"face_matching_enabled\":false,\"post_process_enabled\":false,\"schedule_policy\":\"local\",\"task_type\":\"realtime\",\"face_detection_enabled\":false,\"space_id\":null,\"post_process_replicas\":1,\"tracking_enabled\":false,\"node_id\":null}}",
+  "http_status": "{\"code\":0,\"msg\":\"启动成功\",\"message\":\"启动成功\",\"data\":{\"face_library_ids\":[],\"patrol_mode\":\"pool\",\"prefer_gpu\":false,\"pose_analysis_enabled\":false,\"already_running\":false,\"focus_device_id\":null,\"model_ids\":[],\"tracking_similarity_threshold\":0.2,\"tracking_max_age\":25,\"alert_class_names\":[],\"runtime_control_port\":null,\"defense_mode\":\"full\",\"executor\":\"cpp\",\"motion_gate_enabled\":false,\"id\":35,\"target_node_id\":null,\"face_matching_threshold\":null,\"algorithm_services\":[],\"patrol_pool_size\":4,\"sam_supplement_config\":null,\"task_code\":\"vj_p0_9482075d\",\"matching_business_tags\":[],\"total_detections\":0,\"tracking_smooth_alpha\":0.25,\"runtime_bin_path\":\"F:\\\\acme\\\\.worktrees\\\\video-java\\\\RUNTIME\\\\build-win\\\\Release\\\\RUNTIME.exe\",\"motion_gate_config\":null,\"alert_event_suppress_time\":5,\"space_name\":null,\"pose_library_names\":[],\"alert_event_enabled\":true,\"pose_analysis_config\":null,\"post_process_script\":null,\"plate_matching_enabled\":false,\"service_last_heartbeat\":\"2026-08-10T10:33:38.978493Z\",\"pose_intent_config\":null,\"status\":0,\"service_port\":8035,\"task_name\":\"vj_p0_certify\",\"plate_library_ids\":[],\"alert_notification_config\":null,\"defense_schedule\":null,\"last_process_time\":null,\"created_at\":null,\"detect_conf\":0.5,\"exception_reason\":null,\"pose_intent_enabled\":false,\"frame_skip\":25,\"total_frames\":0,\"is_enabled\":true,\"last_success_time\":null,\"device_names\":[\"vj_p0 certify camera\"],\"service_process_id\":37532,\"updated_at\":\"2026-08-10T10:33:38.978493Z\",\"total_captures\":0,\"device_ids\":[\"vj_p0_device\"],\"alert_notification_enabled\":false,\"last_notify_time\":null,\"alarm_suppress_time\":300,\"face_library_names\":[],\"rtmp_output_url\":null,\"pose_library_ids\":[],\"extract_interval\":null,\"pose_intent_threshold\":null,\"service_server_ip\":\"127.0.0.1\",\"sam_supplement_enabled\":false,\"patrol_interval_sec\":10,\"plate_detection_enabled\":false,\"model_names\":null,\"cron_expression\":null,\"plate_library_names\":[],\"rtmp_input_url\":null,\"last_capture_time\":null,\"service_log_path\":\"C:\\\\Users\\\\g\\\\.video-java\\\\logs\\\\task_35\",\"face_matching_enabled\":false,\"post_process_enabled\":false,\"schedule_policy\":\"local\",\"task_type\":\"realtime\",\"face_detection_enabled\":false,\"space_id\":null,\"post_process_replicas\":1,\"tracking_enabled\":false,\"node_id\":null}}",
   "body": {
     "code": 0,
     "msg": "启动成功",
@@ -41,7 +41,7 @@
       "pose_analysis_config": null,
       "post_process_script": null,
       "plate_matching_enabled": false,
-      "service_last_heartbeat": "2026-08-10T08:08:48.188531Z",
+      "service_last_heartbeat": "2026-08-10T10:33:38.978493Z",
       "pose_intent_config": null,
       "status": 0,
       "service_port": 8035,
@@ -61,8 +61,8 @@
       "device_names": [
         "vj_p0 certify camera"
       ],
-      "service_process_id": 14532,
-      "updated_at": "2026-08-10T08:09:22.323287Z",
+      "service_process_id": 37532,
+      "updated_at": "2026-08-10T10:33:38.978493Z",
       "total_captures": 0,
       "device_ids": [
         "vj_p0_device"

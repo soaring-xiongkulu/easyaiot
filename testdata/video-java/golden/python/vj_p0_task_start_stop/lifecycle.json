@@ -3,7 +3,7 @@
   "status": "sampled",
   "snapshot": {
     "before_run_status": "stopped",
-    "after_run_status": "stopped",
+    "after_run_status": "running",
     "is_enabled": true,
     "process_alive": true,
     "executor": "cpp",

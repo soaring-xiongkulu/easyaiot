@@ -8,11 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Mirrors Python {@code recover_unhealthy_algorithm_tasks} for enabled local tasks.
@@ -21,8 +18,6 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class AlgorithmTaskHealthRecoveryService {
-
-    private static final Set<String> RUNNING_STATUSES = Set.of("running", "restarting");
 
     private final AlgorithmTaskRepository taskRepository;
     private final AlgorithmTaskLifecycleService lifecycleService;
@@ -66,12 +61,5 @@ public class AlgorithmTaskHealthRecoveryService {
             return true;
         }
         return false;
-    }
-
-    private static boolean isHeartbeatStale(Instant lastHeartbeat, int timeoutSec) {
-        if (lastHeartbeat == null) {
-            return true;
-        }
-        return Duration.between(lastHeartbeat, Instant.now()).getSeconds() > timeoutSec;
     }
 }
