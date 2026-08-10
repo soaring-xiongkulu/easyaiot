@@ -63,6 +63,10 @@ BLUEPRINT_SPECS = {
         "file": "device_detection_region.py",
         "bp": "device_detection_region_bp",
     },
+    "/video/camera/audio/talk": {
+        "file": "audio_talk.py",
+        "bp": "audio_talk_bp",
+    },
 }
 
 BLUEPRINT_ROUTE = re.compile(

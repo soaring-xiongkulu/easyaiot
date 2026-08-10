@@ -50,7 +50,7 @@
 | 10 | media_hook | `/video/media` | 全量路由 | hook/srs + hook/zlm + snap/completed | **路由切片完成** | `route_inventory` Py=6 Java=6 diff=0；**FR-W2-HOOKS**；MinIO DVR 上传待 SDK |
 | 11 | device_detection_region | `/video/device-detection` | 6 | 全量路由 | regions CRUD、cover-image、snapshot | **路由切片完成** | `route_inventory` Py=6 Java=6 diff=0；**FR-W2-MATCH**；抓拍/MinIO 行为桩 |
 | 12 | patrol | `/video/patrol` | 9 | 全量路由 | session CRUD/start/stop/stats/events/SSE/heartbeat/directory devices | **路由切片完成** | `route_inventory` Py=9 Java=9 diff=0；**FR-W2-PATROL**；守护进程/SSE 行为 mini 桩 |
-| 13 | audio_talk | `/video/camera/audio/talk` | 5 | 无 | — | **缺失** | **EX-AUDIO-TALK** |
+| 13 | audio_talk | `/video/camera/audio/talk` | 5 | 全量路由 | capabilities/start/stop/send/health | **路由切片完成** | `route_inventory` Py=5 Java=5 diff=0；**FR-W3-TALK**；ONVIF back-channel 真机待验 |
 | 14 | scenario_pose | `/video/scenario-pose` | 14 | 无 | — | **缺失** | **EX-SCENARIO-POSE** |
 | — | heartbeat（附属） | `/video/algorithm/heartbeat` | (含在 algorithm) | 切片 | realtime | **不足** | `heartbeat/patrol` 未见 Java 映射 |
 | — | ping/actuator | `/video/ping`, `/actuator/*` | — | 有 | ping + Boot actuator | 基本可 | — |

@@ -76,6 +76,15 @@ public class DeviceRepository {
         }
     };
 
+    public Optional<String> findPasswordById(String id) {
+        List<String> rows = jdbc.query(
+                "SELECT password FROM device WHERE id = ?",
+                (rs, rowNum) -> rs.getString("password"),
+                id
+        );
+        return rows.isEmpty() ? Optional.empty() : Optional.ofNullable(rows.get(0));
+    }
+
     public Optional<DeviceRow> findById(String id) {
         List<DeviceRow> rows = jdbc.query(
                 "SELECT " + SELECT_COLUMNS + " FROM device WHERE id = ?",
