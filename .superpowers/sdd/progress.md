@@ -14,6 +14,6 @@ HTTP 面 FR-W* 已齐。行为波次：
 | FR-B8 SF cluster health | DONE | `ccd187e` |
 | **FR-B9** inference + match alerts | **DONE** | `59c4d5e` |
 | **FR-B10** patrol/SSE + audio_talk + match MinIO + pose match-test | **DONE** | `6a5ff12` |
-| **FR-B11** GB28181 目录同步 + Nacos 进程切换演练 | **DONE** | |
+| **FR-B11** GB28181 目录同步 + Nacos 进程切换演练 | **DONE** | `430faaa` |
 
 COMPLETE 仍禁止，直至行为缺口可勾选或产品签字豁免。
