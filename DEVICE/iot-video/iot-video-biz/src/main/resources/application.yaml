@@ -26,6 +26,15 @@ video:
     heartbeat-failover-seconds: 90
   alert:
     use-direct-persist: true
+    alert-notification-topic: iot-alert-notification
+    snapshot-alert-topic: iot-snapshot-alert
+  kafka:
+    bootstrap-servers: localhost:9092
+    client-id: video-alert-producer
+    request-timeout-ms: 30000
+    retries: 3
+    max-block-ms: 60000
+    send-timeout-ms: 10000
   runtime:
     config-dir: ${user.home}/.video-java/runtime-config
     logs-dir: ${user.home}/.video-java/logs

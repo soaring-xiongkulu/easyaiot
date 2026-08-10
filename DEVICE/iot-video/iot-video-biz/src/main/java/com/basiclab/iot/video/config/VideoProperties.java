@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 public class VideoProperties {
 
     private final Alert alert = new Alert();
+    private final Kafka kafka = new Kafka();
     private final Matching matching = new Matching();
     private final PostProcess postProcess = new PostProcess();
     private final Runtime runtime = new Runtime();
@@ -25,6 +26,20 @@ public class VideoProperties {
     public static class Alert {
         /** mini / local: persist alerts directly to DB (no Kafka). */
         private boolean useDirectPersist = true;
+        /** Mirrors Python {@code KAFKA_ALERT_NOTIFICATION_TOPIC}. */
+        private String alertNotificationTopic = "iot-alert-notification";
+        /** Mirrors Python {@code KAFKA_SNAPSHOT_ALERT_TOPIC}. */
+        private String snapshotAlertTopic = "iot-snapshot-alert";
+    }
+
+    @Data
+    public static class Kafka {
+        private String bootstrapServers = "localhost:9092";
+        private String clientId = "video-alert-producer";
+        private int requestTimeoutMs = 30_000;
+        private int retries = 3;
+        private long maxBlockMs = 60_000;
+        private long sendTimeoutMs = 10_000;
     }
 
     @Data

@@ -10,3 +10,7 @@ spring:
 video:
   alert:
     use-direct-persist: true
+    alert-notification-topic: iot-alert-notification
+    snapshot-alert-topic: iot-snapshot-alert
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092

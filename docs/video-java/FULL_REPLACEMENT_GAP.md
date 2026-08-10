@@ -39,7 +39,7 @@
 | # | 域 | Python 前缀 | Py 路由数 | Java 现状 | Java 已有映射（摘要） | 完整替换判定 | 关联 EX / 备注 |
 |---|----|-------------|----------:|-----------|----------------------|--------------|----------------|
 | 1 | algorithm_task | `/video/algorithm` | 21 | 管理面 + lifecycle | list/get/CRUD/start/stop/restart/services/status/heartbeat/logs/streams/post-process | **本地切片** | route_inventory `/video/algorithm` Py=21 Java=21 diff=0；远程 node 仍 400（EX-REMOTE-NODE） |
-| 2 | alert | `/video/alert` | 10 | 管理面 + hook | page/count/statistics/correlation/image/record/record/query/clear/clear/all + `POST /hook` | **本地切片** | route_inventory `/video/alert` Py=10 Java=10 diff=0；**EX-ALERT-ADMIN-API resolved**；Kafka 仍 EX-KAFKA-HOOK |
+| 2 | alert | `/video/alert` | 10 | 管理面 + hook | page/count/statistics/correlation/image/record/record/query/clear/clear/all + `POST /hook` | **本地切片** | route_inventory `/video/alert` Py=10 Java=10 diff=0；**EX-ALERT-ADMIN-API resolved**；**EX-KAFKA-HOOK resolved**（`use-direct-persist=false` → Kafka produce + fallback） |
 | 3 | camera | `/video/camera` | **59** | 切片 | list、get、stream start/stop/status | **严重不足** | 注册/ONVIF/NVR/目录/PTZ/扫段/FlightHub/流票据/预设位等约 50+ 路由未迁 |
 | 4 | stream_forward | `/video/stream-forward` | 13 | 切片 | get、start/stop/status | **严重不足** | CRUD、restart、heartbeat、logs、streams、ensure-task 缺 |
 | 5 | face | `/video/face` | 35 | 切片 | matching/publish、matching/process | **严重不足** | 库/人像/entries/auto-enroll/normalize/recognize/model… 全缺 |
@@ -87,7 +87,7 @@
 | ✅ | `GET /page`, `/count`, `/statistics`, `/correlation`, `/image`, `/record`, `/record/query` |
 | ✅ | `DELETE /clear`, `/clear/all` |
 | ✅ 路由差 | `/video/alert`：**Py 10 / Java 10 / diff 0**（`tools/video_java/route_inventory.py --prefix /video/alert`） |
-| ❌ 行为 | Kafka 告警路径（`kafka_path_not_implemented_p0`，EX-KAFKA-HOOK） |
+| ✅ 行为 | Kafka 告警路径（`use-direct-persist=false` → produce `iot-alert-notification` / `iot-snapshot-alert`；失败 fallback direct_persist；**resolved by FR-W1-KAFKA**） |
 
 ### 2.3 `camera` — 仅 list/get/观看转推（Python 59 个路由中绝大多数缺）
 
@@ -172,7 +172,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 
 | 项 | Python | Java | 完整替换要求 |
 |----|--------|------|--------------|
-| Alert → Kafka | 可走 Kafka | `kafka_path_not_implemented_p0`；仅 direct_persist | 实现 Kafka 或产品确认永久直写 DB |
+| Alert → Kafka | 可走 Kafka | `use-direct-persist=false` → Kafka produce（minimal 驼峰消息，deviceId key）；失败 fallback direct_persist；local/mini 默认仍 direct | **resolved by FR-W1-KAFKA**（prod 需 broker + iot-sink 联调） |
 | Post-process → iot-sink | 真 enqueue | `use-stub-enqueue: true`（local） | 关闭 stub，接真 sink |
 | Face/Plate matching | Kafka + 模型 | publish/process 切片；mini mock | 真 Kafka + 推理/旁路 |
 | 远程 node / RUNTIME 分发 | node_client | EX-REMOTE-NODE 本地拒绝 | 对齐 iot-node API |
@@ -217,7 +217,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **P0** | Algorithm CRUD + patrol heartbeat + logs | 任务可配可管 | **是** |
 | **P0** | auto_start / 健康恢复对等 | 进程重启后业务自愈 | **部分**（FR-W1-BG ✅ 本地；集群/stream_forward health ❌） |
 | **P0** | Gateway + system-server 鉴权真通 | **✅ FR-W1-AUTH**（EX-GATEWAY-AUTH-LOCAL resolved） | ~~是~~ 本地已通；生产切流仍需 ops 演练 |
-| **P0** | Alert Kafka 或产品书面确认永久 direct | 去掉或接受 EX-KAFKA-HOOK | **是**（按产品） |
+| **P0** | Alert Kafka 或产品书面确认永久 direct | **✅ FR-W1-KAFKA**（代码路径已实现；local/mini 默认 direct_persist=true） | ~~是~~ 代码已通；prod broker 联调待 ops |
 | **P1** | Camera 主路径 | 注册/CRUD/目录/ONVIF/PTZ/snapshot/流票据 | **是**（设备台） |
 | **P1** | Snap/Record/Playback 主路径 | 空间+文件+任务 | **是** |
 | **P1** | Stream-forward CRUD + auto_start | 推流台 | 视产品 |
