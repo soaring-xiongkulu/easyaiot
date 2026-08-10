@@ -1,6 +1,7 @@
 package com.basiclab.iot.video.service.camera.hardware;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -19,6 +20,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
+@Service
 public final class IsapiHttpClient {
 
     private static final String USER_AGENT = "hiktools/0.1";

@@ -18,7 +18,8 @@ HTTP 面 FR-W* 已齐。行为波次：
 | **FR-B12** 目录 JSON 同步 + FlightHub/大华 NVR | **DONE** | `a1d2997` |
 | **FR-B13** 媒体节点池 + Ceph allocate | **DONE** | `9384f9b` |
 | **FR-B14** resolve 只读接线 + post_process 远程 worker | **DONE** | `012974a` |
-| **FR-B15** DVR Kafka consumer + services 处置表 | **DONE** | `d065546` |
-| **FR-B16** Snap Kafka consumer + 契约回归脚手架 | **DONE** | `b7eaa2c` |
+| **FR-B15** DVR Kafka consumer + services 处置表 | **DONE** | `68f6811` |
+| **FR-B16** Snap Kafka consumer + 契约回归脚手架 | **DONE** | `8b71d4b` |
+| **FR-B17** 全量路由 method-aware 薄契约探针 | **DONE** | |
 
 COMPLETE 仍禁止，直至行为缺口可勾选或产品签字豁免。
