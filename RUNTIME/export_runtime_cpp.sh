@@ -126,7 +126,7 @@ main() {
   RUNTIME_EXPORT_WORK="$(mktemp -d)"
   trap 'rm -rf "${RUNTIME_EXPORT_WORK:-}"' EXIT
   local staging="$RUNTIME_EXPORT_WORK/easyaiot-runtime-${arch}"
-  mkdir -p "$staging/bin" "$staging/lib" "$staging/config" "$staging/models"
+  mkdir -p "$staging/bin" "$staging/lib" "$staging/config" "$staging/models" "$staging/scripts"
 
   cp -f "$bin" "$staging/bin/RUNTIME"
   chmod +x "$staging/bin/RUNTIME"
@@ -134,18 +134,31 @@ main() {
   print_info "收集动态库依赖..."
   collect_libs "$staging/bin/RUNTIME" "$staging/lib"
 
-  # 可选：默认模型（若存在）
-  if [[ -f "$ROOT/models/yolov11n.onnx" ]]; then
-    cp -f "$ROOT/models/yolov11n.onnx" "$staging/models/" || true
+  # .pt → onnx 兜底脚本（节点上若有 ultralytics / RUNTIME_PYTHON 可用）
+  if [[ -f "$ROOT/scripts/ensure_onnx_model.py" ]]; then
+    cp -f "$ROOT/scripts/ensure_onnx_model.py" "$staging/scripts/" || true
   fi
-  if [[ -f "$ROOT/models/coco.names" ]]; then
-    cp -f "$ROOT/models/coco.names" "$staging/models/" || true
+
+  # 内置 ONNX（存在则打入；-L 解引用 yolo11n.onnx → yolov11n.onnx）
+  local model_file
+  for model_file in \
+    yolo11n.onnx yolov11n.onnx \
+    yolov8n.onnx yolo26n.onnx \
+    coco.names yolo11n.names yolov8n.names yolo26n.names; do
+    if [[ -e "$ROOT/models/$model_file" ]]; then
+      cp -L -f "$ROOT/models/$model_file" "$staging/models/" || true
+    fi
+  done
+  # 规范名：仅有历史 yolov11n.onnx 时补一份 yolo11n.onnx
+  if [[ ! -f "$staging/models/yolo11n.onnx" && -f "$staging/models/yolov11n.onnx" ]]; then
+    cp -f "$staging/models/yolov11n.onnx" "$staging/models/yolo11n.onnx" || true
   fi
 
   cat > "$staging/env.sh" <<'EOF'
 #!/usr/bin/env bash
 # Sourced on compute nodes after install_runtime_cpp.sh
 RUNTIME_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export RUNTIME_ROOT
 export RUNTIME_BIN="${RUNTIME_ROOT}/bin/RUNTIME"
 export LD_LIBRARY_PATH="${RUNTIME_ROOT}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 # Prefer host CUDA if present
@@ -156,6 +169,8 @@ for _cuda in /usr/local/cuda/lib64 /usr/local/cuda/lib; do
 done
 export RUNTIME_PREFER_GPU="${RUNTIME_PREFER_GPU:-true}"
 export USE_GPU="${USE_GPU:-true}"
+# .pt→onnx：指向带 ultralytics 的 Python（可选）
+# export RUNTIME_PYTHON=/path/to/python
 EOF
   chmod +x "$staging/env.sh"
 

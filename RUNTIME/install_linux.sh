@@ -582,6 +582,8 @@ EOF
 #!/usr/bin/env bash
 # Sourced on compute nodes (atomic / iot-node install)
 RUNTIME_ROOT="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+export RUNTIME_ROOT
+export EASYAIOT_RUNTIME_INSTALL_DIR="\${EASYAIOT_RUNTIME_INSTALL_DIR:-\$RUNTIME_ROOT}"
 # shellcheck disable=SC1091
 [[ -f "\${RUNTIME_ROOT}/node.env" ]] && set -a && source "\${RUNTIME_ROOT}/node.env" && set +a
 export RUNTIME_BIN="\${RUNTIME_BIN:-\${RUNTIME_ROOT}/bin/RUNTIME}"
@@ -598,6 +600,7 @@ export ALERT_HOOK_URL="\${ALERT_HOOK_URL:-\${VIDEO_BASE_URL}/video/alert/hook}"
 export HEARTBEAT_URL="\${HEARTBEAT_URL:-\${VIDEO_BASE_URL}/video/algorithm/heartbeat/realtime}"
 export SRS_RTMP_BASE="\${SRS_RTMP_BASE:-}"
 export AI_RTMP_URL="\${AI_RTMP_URL:-}"
+# .pt→onnx：有 ultralytics 时设置，例如 export RUNTIME_PYTHON=/usr/bin/python3
 EOF
   chmod +x "$install_dir/env.sh"
 
@@ -616,12 +619,16 @@ fps=25
 
 [ai]
 enable=true
-model_path=${install_dir}/models/yolov11n.onnx
+model_path=${install_dir}/models/yolo11n.onnx
 classes_path=${install_dir}/models/coco.names
 threads=2
 prefer_gpu=true
 force_cpu=false
 gpu_device_id=0
+prefer_hwaccel=true
+force_soft_av=false
+hwaccel_device_id=0
+nvenc_preset=p3
 
 [alarm]
 enable=true

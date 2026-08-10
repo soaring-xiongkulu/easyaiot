@@ -45,7 +45,7 @@ if [[ -z "${inner}" || ! -x "${inner}/bin/RUNTIME" ]]; then
   exit 1
 fi
 
-run_as mkdir -p "${INSTALL_DIR}/bin" "${INSTALL_DIR}/lib" "${INSTALL_DIR}/config" "${INSTALL_DIR}/models" "${INSTALL_DIR}/cache"
+run_as mkdir -p "${INSTALL_DIR}/bin" "${INSTALL_DIR}/lib" "${INSTALL_DIR}/config" "${INSTALL_DIR}/models" "${INSTALL_DIR}/scripts" "${INSTALL_DIR}/cache"
 run_as cp -f "${inner}/bin/RUNTIME" "${INSTALL_DIR}/bin/RUNTIME"
 run_as chmod +x "${INSTALL_DIR}/bin/RUNTIME"
 if [[ -d "${inner}/lib" ]]; then
@@ -57,6 +57,13 @@ if [[ -f "${inner}/env.sh" ]]; then
 fi
 if [[ -d "${inner}/models" ]]; then
   run_as cp -a "${inner}/models/." "${INSTALL_DIR}/models/" 2>/dev/null || true
+fi
+if [[ -d "${inner}/scripts" ]]; then
+  run_as cp -a "${inner}/scripts/." "${INSTALL_DIR}/scripts/" 2>/dev/null || true
+fi
+# 兼容旧包：只有 yolov11n.onnx 时补规范名
+if [[ ! -f "${INSTALL_DIR}/models/yolo11n.onnx" && -f "${INSTALL_DIR}/models/yolov11n.onnx" ]]; then
+  run_as cp -f "${INSTALL_DIR}/models/yolov11n.onnx" "${INSTALL_DIR}/models/yolo11n.onnx" || true
 fi
 if [[ -f "${inner}/VERSION" ]]; then
   run_as cp -f "${inner}/VERSION" "${INSTALL_DIR}/VERSION"
