@@ -284,6 +284,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B32 6 非 JSON GET 探针**（`:48096` local） | content-type pass（非 envelope）：alert/image、alert/record、patrol SSE、playback/thumbnail、record video、snap image；artifact `logs/fr-b32-binary-get-latest.json` |
 | **FR-B33 POST keys-matrix**（`:48096` local） | **16** curated POST 样本 → **16/16 pass** / **0 fail**；**11** success-key（Python to_dict）+ **5** envelope-only 4xx；**67** assert pass；artifact `logs/fr-b33-post-keys-matrix-latest.json`；**≠ 全量 POST 字段键矩阵** |
 | **FR-B34 POST keys-matrix**（`:48096` local） | **42** curated POST 样本 → **42/42 pass** / **0 fail**；**25** success-key + **17** envelope/envelope_success；**13/14** 前缀覆盖；**169** assert pass；artifact `logs/fr-b34-post-keys-matrix-latest.json`；**≠ 全量 POST 字段键矩阵** |
+| **FR-B35 POST keys-matrix**（`:48096` local） | **63** curated POST 样本 → **63/63 pass** / **0 fail**；**32** success-key + **31** envelope/envelope_success；**14/14** 前缀（含 `audio_talk` POST start/stop/send）；**242** assert pass；artifact `logs/fr-b35-post-keys-matrix-latest.json`；**≠ 全量 POST 字段键矩阵** |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
@@ -300,7 +301,17 @@ Python `run.py` 启动时拉起的能力 vs Java：
 ## 10. 历史判定归档（只读）
 
 <details>
-<summary>FR-B33 / FR-B31 / FR-B30 / FR-B29 … 历史判定（点击展开）</summary>
+<summary>FR-B35 / FR-B33 / FR-B31 / FR-B30 / FR-B29 … 历史判定（点击展开）</summary>
+
+### FR-B35
+
+| 问题 | 答案 |
+|------|------|
+| POST keys-matrix ≥60？ | **是（local）** — **63** 样本 **63/63**；artifact `logs/fr-b35-post-keys-matrix-latest.json` |
+| audio_talk POST 覆盖？ | **是** — start/stop/send + 4xx/500；Python `audio_talk.py` L87-176 |
+| Java audio_talk 修复？ | **是** — 无 IP 诚实 500 + `data.success=false`；HTTP 200 信封 |
+| phase0 回归？ | **是** — `logs/certify-frb35-phase0.log` **5/5** |
+| 能否称 COMPLETE？ | **禁止** |
 
 ### FR-B33
 

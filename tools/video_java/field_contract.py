@@ -558,7 +558,7 @@ ARTIFACT_PREFIX = "fr-b27"
 MATRIX_ARTIFACT_PREFIX = "fr-b27"
 KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b29"
 MUTATING_MATRIX_ARTIFACT_PREFIX = "fr-b31"
-POST_KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b34"
+POST_KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b35"
 
 MATRIX_DISCLAIMER = (
     "GET envelope matrix probes inventoried safe GET routes only (no POST/DELETE auto). "
@@ -585,7 +585,7 @@ MUTATING_MATRIX_DISCLAIMER = (
 )
 
 POST_KEYS_MATRIX_DISCLAIMER = (
-    "POST keys-matrix probes curated high-value POST creates (frb34_* synthetic names) with "
+    "POST keys-matrix probes curated high-value POST creates (frb35_* synthetic names) with "
     "Python-first to_dict / blueprint success body key asserts on code==0; validation 4xx "
     "assert envelope {code,msg} only; media/hook ack routes may assert code+msg without data. "
     "Create-then-delete where safe. "
@@ -2327,7 +2327,7 @@ def assert_post_keys_sample(
 
 
 def run_post_keys_matrix(base_url: str, timeout: float) -> Tuple[List[Dict[str, Any]], Dict[str, Any], bool, str]:
-    from post_keys_matrix_b34_specs import bind_post_keys_matrix_specs
+    from post_keys_matrix_b35_specs import bind_post_keys_matrix_specs
 
     server_up, health_detail = server_reachable(base_url, timeout=min(timeout, 3.0))
     samples = bind_post_keys_matrix_specs(sys.modules[__name__])
@@ -2417,7 +2417,7 @@ def write_post_keys_matrix_artifacts(
     json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     lines = [
-        "# FR-B34 POST Keys Matrix — Python-first success body keys",
+        "# FR-B35 POST Keys Matrix — Python-first success body keys",
         "",
         f"**Generated:** {payload['generated_at']}",
         f"**Base URL:** {base_url}",

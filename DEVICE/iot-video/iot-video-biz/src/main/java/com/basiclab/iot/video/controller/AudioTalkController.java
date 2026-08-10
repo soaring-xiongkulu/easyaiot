@@ -62,7 +62,6 @@ public class AudioTalkController {
 
     @SuppressWarnings("unchecked")
     private ResponseEntity<VideoApiResponse<Map<String, Object>>> fromServiceResult(Map<String, Object> result) {
-        int status = ((Number) result.getOrDefault("status", 200)).intValue();
         int code = ((Number) result.getOrDefault("code", 0)).intValue();
         String msg = String.valueOf(result.getOrDefault("msg", ""));
         Map<String, Object> data = (Map<String, Object>) result.get("data");
@@ -71,13 +70,16 @@ public class AudioTalkController {
         body.setMsg(msg);
         body.setMessage(msg);
         body.setData(data);
-        return ResponseEntity.status(HttpStatus.valueOf(status)).body(body);
+        return ResponseEntity.ok(body);
     }
 
     private ResponseEntity<VideoApiResponse<Map<String, Object>>> response(
             int httpStatus, int code, String msg, Map<String, Object> data) {
         VideoApiResponse<Map<String, Object>> body = VideoApiResponse.error(code, msg);
         body.setData(data);
-        return ResponseEntity.status(HttpStatus.valueOf(httpStatus)).body(body);
+        HttpStatus status = httpStatus >= 400 && httpStatus < 600
+                ? HttpStatus.valueOf(httpStatus)
+                : HttpStatus.OK;
+        return ResponseEntity.status(status).body(body);
     }
 }

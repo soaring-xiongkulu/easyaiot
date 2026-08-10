@@ -68,6 +68,14 @@ public class AudioTalkService {
         if (camera == null) {
             return error(404, "设备不存在");
         }
+        if (camera.getIp() == null || camera.getIp().isBlank()) {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("status", 200);
+            payload.put("code", 500);
+            payload.put("msg", "Audio Back Channel 建立失败，设备可能不支持");
+            payload.put("data", Map.of("success", false));
+            return payload;
+        }
         String sessionId = "audio_talk_" + deviceId + "_" + UUID.randomUUID().toString().substring(0, 8);
         int rtspPort = camera.getPort() != null && camera.getPort() > 0 ? camera.getPort() : 554;
         String audioCodec = firstString(body, "audio_codec");
@@ -97,7 +105,7 @@ public class AudioTalkService {
         if (!session.start()) {
             sessions.remove(sessionId);
             Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("status", 500);
+            payload.put("status", 200);
             payload.put("code", 500);
             payload.put("msg", "Audio Back Channel 建立失败，设备可能不支持");
             payload.put("data", Map.of("success", false));
@@ -134,7 +142,7 @@ public class AudioTalkService {
         AudioTalkSession session = sessions.get(sessionId);
         if (session == null || !session.sendAudio(java.util.Base64.getDecoder().decode(audioB64))) {
             Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("status", 500);
+            payload.put("status", 200);
             payload.put("code", 500);
             payload.put("msg", "发送失败");
             payload.put("data", Map.of("success", false));
