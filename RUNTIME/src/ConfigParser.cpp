@@ -298,14 +298,27 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
     }
 
     const std::string tt = config.taskType;
-    const bool needsPersistentRtsp = (tt == "realtime" || tt.empty());
+    const bool isForward = (tt == "forward");
+    const bool needsPersistentRtsp = (tt == "realtime" || tt == "forward" || tt.empty());
     if (needsPersistentRtsp && config.rtspUrl.empty()) {
         LOG(ERROR) << "[ERROR] Missing required config: rtsp_url";
+        return false;
+    }
+    if (isForward && config.rtmpUrl.empty()) {
+        LOG(ERROR) << "[ERROR] forward mode requires rtmp_url";
         return false;
     }
     if ((tt == "snap" || tt == "patrol") && config.devices.empty()) {
         LOG(ERROR) << "[ERROR] snap/patrol requires at least one device stream";
         return false;
+    }
+
+    if (isForward) {
+        config.enableAI = false;
+        config.enableAlarm = false;
+        config.enableDrawRtmp = false;
+        config.enableRtmp = true;
+        LOG(INFO) << "[CONFIG] forward mode: AI/alarm disabled, RTMP copy relay enabled";
     }
 
     if (config.enableAI && config.modelPaths.empty()) {

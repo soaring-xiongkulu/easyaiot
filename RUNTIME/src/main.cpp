@@ -82,6 +82,8 @@ int main(int argc, char* argv[]) {
 
     LOG(INFO) << "[OK] Config file parsed successfully";
     LOG(INFO) << "  - RTSP URL: " << config.rtspUrl;
+    LOG(INFO) << "  - Task type: " << config.taskType;
+    LOG(INFO) << "  - RTMP URL: " << (config.rtmpUrl.empty() ? "N/A" : config.rtmpUrl);
     LOG(INFO) << "  - Alert hook: " << (config.enableAlarm ? config.hookHttpUrl : "Disabled");
     LOG(INFO) << "  - Heartbeat: " << (config.heartbeatUrl.empty() ? "Disabled" : config.heartbeatUrl);
     LOG(INFO) << "  - Device: " << config.deviceId << " / " << config.deviceName;

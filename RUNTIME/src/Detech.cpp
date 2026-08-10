@@ -80,6 +80,10 @@ Detech::~Detech() {
         _pipeline->join();
         _pipeline.reset();
     }
+    if (_streamForwarder) {
+        _streamForwarder->join();
+        _streamForwarder.reset();
+    }
     if (_snapScheduler) {
         _snapScheduler->join();
         _snapScheduler.reset();
@@ -109,26 +113,37 @@ Detech::~Detech() {
 int Detech::start() {
     _isRun = true;
     const std::string mode = _normalizedTaskType();
+    const bool isForward = (mode == "forward");
     LOG(INFO) << "[INIT] task_type=" << mode;
 
-    if (!_init_yolo_detector()) {
+    if (!isForward && !_init_yolo_detector()) {
         LOG(ERROR) << "[INIT] YOLO detector initialization failed!";
         return -1;
     }
 
-    // realtime needs FFmpeg long session; snap/patrol use OpenCV schedulers
+    // realtime needs FFmpeg decode pipeline; forward uses copy relay
     if (mode == "realtime") {
         if (!_init_media_player()) {
             LOG(ERROR) << "[INIT] Media player initialization failed!";
             return -2;
         }
+    } else if (isForward) {
+        if (_config.rtspUrl.empty()) {
+            LOG(ERROR) << "[INIT] forward mode requires rtsp_url";
+            return -2;
+        }
+        if (_config.rtmpUrl.empty()) {
+            LOG(ERROR) << "[INIT] forward mode requires rtmp_url";
+            return -2;
+        }
+        LOG(INFO) << "[INIT] forward-only relay (no AI/decode/encode)";
     }
 
     if (!_init_http_client()) {
         LOG(ERROR) << "[INIT] HTTP client initialization failed!";
         return -3;
     }
-    if (!_init_media_alarmer()) {
+    if (!isForward && !_init_media_alarmer()) {
         return -4;
     }
     if (mode == "realtime") {
@@ -140,11 +155,17 @@ int Detech::start() {
         return -6;
     }
 
-    _startAlarmSenderThread();
+    if (!isForward) {
+        _startAlarmSenderThread();
+    }
     _startControlServer();
     _startHeartbeatThread();
 
-    if (mode == "snap") {
+    if (isForward) {
+        LOG(INFO) << "[VIDEO] Forward-only copy relay mode";
+        _streamingEnabled.store(true);
+        _workerThread = std::thread([this]() { _run_forward_loop(); });
+    } else if (mode == "snap") {
         LOG(INFO) << "[VIDEO] Snap scheduler mode";
         _workerThread = std::thread([this]() { _run_snap_loop(); });
     } else if (mode == "patrol") {
@@ -167,6 +188,9 @@ int Detech::stop() {
     if (_pipeline) {
         _pipeline->stop();
     }
+    if (_streamForwarder) {
+        _streamForwarder->stop();
+    }
     if (_snapScheduler) {
         _snapScheduler->stop();
     }
@@ -186,6 +210,14 @@ RtmpEncoderOptions makeRtmpOpts(const Config& cfg) {
     return opts;
 }
 }  // namespace
+
+void Detech::_run_forward_loop() {
+    _streamForwarder = std::make_unique<runtime::StreamForwarder>(_config, &_metrics);
+    _streamForwarder->start();
+    _streamForwarder->join();
+    _streamForwarder.reset();
+    LOG(INFO) << "[FORWARD] Relay loop exited";
+}
 
 void Detech::_run_pipeline_loop() {
     _pipeline = std::make_unique<runtime::Pipeline>(
@@ -410,6 +442,7 @@ void Detech::_controlServerThreadFunc() {
             response["status"] = "ok";
             response["service"] = "RUNTIME Control Server";
             response["task_id"] = this->_config.taskId;
+            response["task_type"] = this->_config.taskType;
             response["streaming"] = this->isStreaming();
             Json::Value metrics;
             metrics["packets_in"] = (Json::UInt64)this->_metrics.packetsIn.load();
@@ -419,6 +452,9 @@ void Detech::_controlServerThreadFunc() {
             metrics["infer_out"] = (Json::UInt64)this->_metrics.inferOut.load();
             metrics["alarms_emitted"] = (Json::UInt64)this->_metrics.alarmsEmitted.load();
             metrics["last_latency_ms"] = (Json::UInt64)this->_metrics.lastLatencyMs.load();
+            if (this->_streamForwarder) {
+                metrics["packets_remuxed"] = (Json::UInt64)this->_streamForwarder->packetsRemuxed();
+            }
             response["metrics"] = metrics;
             if (yolo_thread_pool) {
                 response["infer_ep"] = yolo_thread_pool->inferEp();
@@ -436,6 +472,8 @@ void Detech::_controlServerThreadFunc() {
             }
             if (this->_rtmpEncoder && this->_rtmpEncoder->isInitialized()) {
                 response["encode_ep"] = this->_rtmpEncoder->encodeEp();
+            } else if (this->_streamForwarder) {
+                response["encode_ep"] = "copy";
             } else {
                 response["encode_ep"] = "none";
             }
@@ -606,7 +644,8 @@ bool Detech::_init_yolo_detector() {
                   << " gpu_device_id=" << _config.gpuDeviceId;
         int ret = yolo_thread_pool->setUp(
             modelPath, classes, _config.threadNums,
-            _config.preferGpu, _config.forceCpu, _config.gpuDeviceId);
+            _config.preferGpu, _config.forceCpu, _config.gpuDeviceId,
+            _config.alarmConfidenceThreshold);
         if (ret) {
             LOG(ERROR) << "[ERROR] YOLO thread pool initialization failed, error code: " << ret;
             return false;

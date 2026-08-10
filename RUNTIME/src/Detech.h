@@ -20,6 +20,7 @@
 #include "pipeline/Pipeline.h"
 #include "pipeline/SnapScheduler.h"
 #include "pipeline/PatrolScheduler.h"
+#include "pipeline/StreamForwarder.h"
 
 extern "C" {
 #include "libavcodec/avcodec.h"
@@ -51,6 +52,7 @@ class Detech {
         uint64_t _get_curtime_stamp_ms();
 
         void _run_pipeline_loop();
+        void _run_forward_loop();
         void _run_snap_loop();
         void _run_patrol_loop();
         void _display_video_loop();  // legacy; unused in headless production path
@@ -132,6 +134,7 @@ class Detech {
 
         runtime::PipelineMetrics _metrics;
         std::unique_ptr<runtime::Pipeline> _pipeline;
+        std::unique_ptr<runtime::StreamForwarder> _streamForwarder;
         std::unique_ptr<runtime::SnapScheduler> _snapScheduler;
         std::unique_ptr<runtime::PatrolScheduler> _patrolScheduler;
         std::thread _workerThread;
