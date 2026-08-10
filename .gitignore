@@ -152,6 +152,8 @@ TRANSFORM/.idea/
 venv
 # VIDEO 运行日志与告警截图（任务运行时生成）
 VIDEO/logs/
+# VIDEO 运行时生成的 RUNTIME/推流转发 ini（含设备凭证，勿提交）
+VIDEO/data/runtime_config/
 # VIDEO 人脸模型（大文件由 install 脚本或 WEB 人脸库页下载，不随仓库分发）
 VIDEO/data/models
 VIDEO/face_capture_head_yolov8.onnx
