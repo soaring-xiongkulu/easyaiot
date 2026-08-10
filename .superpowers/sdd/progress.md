@@ -25,6 +25,6 @@ HTTP 面 FR-W* 已齐。行为波次：
 | **FR-B19** P0/P1 字段级 JSON 契约抽样 | **DONE** | `d995a7f` |
 | **FR-B20** 14 前缀字段抽样扩面 | **DONE** | `ca78c53` |
 | **FR-B21** GET 信封自动矩阵 + 信封缺口修复 | **DONE** | `0649efe` |
-| **FR-B22** 深字段扩面 + HANDOFF/soak checklist | **DONE** | (this commit) |
+| **FR-B22** 深字段扩面 + HANDOFF/soak checklist | **DONE** | `d605e2c` |
 
 COMPLETE 仍禁止，直至行为缺口可勾选或产品签字豁免 + prod soak checklist 有证据。
