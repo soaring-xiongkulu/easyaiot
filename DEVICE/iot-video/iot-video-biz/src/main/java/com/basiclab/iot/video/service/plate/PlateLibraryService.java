@@ -198,6 +198,10 @@ public class PlateLibraryService {
     }
 
     public Map<String, Object> stopAutoEnroll(int libraryId) {
+        Map<String, Object> task = getAutoEnroll(libraryId);
+        if (task == null) {
+            throw new VideoBusinessException(400, "自动录入任务不存在");
+        }
         autoEnrollRepository.updateRunning(libraryId, false);
         return getAutoEnroll(libraryId);
     }

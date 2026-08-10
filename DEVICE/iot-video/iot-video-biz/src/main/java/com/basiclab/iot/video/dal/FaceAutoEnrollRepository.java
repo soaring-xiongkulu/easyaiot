@@ -90,24 +90,19 @@ public class FaceAutoEnrollRepository {
         row.put("capture_interval_sec", rs.getInt("capture_interval_sec"));
         row.put("person_name_prefix", rs.getString("person_name_prefix"));
         row.put("is_running", rs.getBoolean("is_running"));
-        if (rs.getTimestamp("started_at") != null) {
-            row.put("started_at", rs.getTimestamp("started_at").toInstant().toString());
-        }
-        if (rs.getTimestamp("expires_at") != null) {
-            row.put("expires_at", rs.getTimestamp("expires_at").toInstant().toString());
-        }
+        row.put("started_at", tsOrNull(rs, "started_at"));
+        row.put("expires_at", tsOrNull(rs, "expires_at"));
         row.put("enrolled_count", rs.getInt("enrolled_count"));
         row.put("skipped_count", rs.getInt("skipped_count"));
         row.put("last_device_index", rs.getInt("last_device_index"));
-        if (rs.getTimestamp("last_tick_at") != null) {
-            row.put("last_tick_at", rs.getTimestamp("last_tick_at").toInstant().toString());
-        }
-        if (rs.getTimestamp("created_at") != null) {
-            row.put("created_at", rs.getTimestamp("created_at").toInstant().toString());
-        }
-        if (rs.getTimestamp("updated_at") != null) {
-            row.put("updated_at", rs.getTimestamp("updated_at").toInstant().toString());
-        }
+        row.put("last_tick_at", tsOrNull(rs, "last_tick_at"));
+        row.put("created_at", tsOrNull(rs, "created_at"));
+        row.put("updated_at", tsOrNull(rs, "updated_at"));
         return row;
+    }
+
+    private static String tsOrNull(ResultSet rs, String column) throws SQLException {
+        var ts = rs.getTimestamp(column);
+        return ts != null ? ts.toInstant().toString() : null;
     }
 }

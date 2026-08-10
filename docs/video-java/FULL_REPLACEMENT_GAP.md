@@ -283,23 +283,32 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B32 cleanup 真删除 E2E**（`:9000` local） | 超配额 `frb32_device` 种子 + MinIO enabled → `POST /storage/cleanup` 真 `remove_object`；before/after object count；artifact `logs/fr-b32-cleanup-e2e-latest.json` |
 | **FR-B32 6 非 JSON GET 探针**（`:48096` local） | content-type pass（非 envelope）：alert/image、alert/record、patrol SSE、playback/thumbnail、record video、snap image；artifact `logs/fr-b32-binary-get-latest.json` |
 | **FR-B33 POST keys-matrix**（`:48096` local） | **16** curated POST 样本 → **16/16 pass** / **0 fail**；**11** success-key（Python to_dict）+ **5** envelope-only 4xx；**67** assert pass；artifact `logs/fr-b33-post-keys-matrix-latest.json`；**≠ 全量 POST 字段键矩阵** |
+| **FR-B34 POST keys-matrix**（`:48096` local） | **42** curated POST 样本 → **42/42 pass** / **0 fail**；**25** success-key + **17** envelope/envelope_success；**13/14** 前缀覆盖；**169** assert pass；artifact `logs/fr-b34-post-keys-matrix-latest.json`；**≠ 全量 POST 字段键矩阵** |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定 — FR-B33
+## 9. 最终判定 — FR-B34
 
 | 问题 | 答案 |
 |------|------|
-| POST success body 键矩阵？ | **是（local）** — 16 样本（algo/snap/face/plate/sf/playback/pose/patrol/camera/alert×2 + 5×4xx）；Python-first to_dict 映射；artifact `logs/fr-b33-post-keys-matrix-latest.json` |
-| Java 缺键修复？ | **是** — `DeviceRepository.insert` 补 `auto_snap_enabled=false`（对齐 `models.py` Device L81） |
-| phase0？ | **PASS 5/5** — `logs/certify-frb33-phase0.log` |
-| 能否称 COMPLETE？ | **禁止** — prod soak open；POST keys-matrix 仅 16 条 curated 样本；全量 ~112 POST 未覆盖 |
+| POST success body 键矩阵？ | **是（local）** — **42** 样本（13/14 前缀；algo/snap/face/plate/sf/playback/pose/patrol/camera/alert/record/media/device-detection + action/heartbeat）；artifact `logs/fr-b34-post-keys-matrix-latest.json` |
+| Java 缺键/500 修复？ | **是** — `DeviceDirectoryRepository.insert`；auto-enroll stop 无任务 400；auto-enroll `to_dict` null 时间戳键 |
+| phase0？ | **PASS 5/5** — `logs/certify-frb34-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — prod soak open；POST keys-matrix 仅 42 条 curated；~112 POST 未全量；audio/talk POST 未覆盖 |
 
 ## 10. 历史判定归档（只读）
 
 <details>
-<summary>FR-B31 / FR-B30 / FR-B29 … 历史判定（点击展开）</summary>
+<summary>FR-B33 / FR-B31 / FR-B30 / FR-B29 … 历史判定（点击展开）</summary>
+
+### FR-B33
+
+| 问题 | 答案 |
+|------|------|
+| POST success body 键矩阵？ | **是（local）** — 16 样本；artifact `logs/fr-b33-post-keys-matrix-latest.json` |
+| Java 缺键修复？ | **是** — `DeviceRepository.insert` 补 `auto_snap_enabled=false` |
+| 能否称 COMPLETE？ | **禁止** |
 
 ### FR-B31
 

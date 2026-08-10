@@ -15,6 +15,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -142,6 +143,10 @@ public class DeviceDirectoryRepository {
             ps.setInt(6, row.getRecordSaveTime());
             return ps;
         }, keyHolder);
+        Map<String, Object> keys = keyHolder.getKeys();
+        if (keys != null && keys.get("id") != null) {
+            return ((Number) keys.get("id")).intValue();
+        }
         Number key = keyHolder.getKey();
         return key != null ? key.intValue() : 0;
     }

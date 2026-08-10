@@ -107,7 +107,7 @@
 | 8.1 | 薄探针 | `contract_regression.py` @ prod URL | 265 pass / 0 fail | ⬜ |
 | 8.2 | 深字段抽样 | `field_contract.py --deep` @ prod | 25 端点 / 0 fail | ⬜ |
 | 8.3 | GET 信封矩阵 | `field_contract.py --matrix` @ prod | 95 JSON GET 信封 0 fail | ⬜ |
-| 8.4 | POST 成功体键矩阵 | `field_contract.py --post-keys-matrix` @ prod | 16 样本 / 0 fail | ✅ local-only — FR-B33：`logs/fr-b33-post-keys-matrix-latest.json`（11 success-key + 5 envelope-only）；**≠ prod** |
+| 8.4 | POST 成功体键矩阵 | `field_contract.py --post-keys-matrix` @ prod | ≥40 样本 / 0 fail | ✅ local-only — FR-B34：`logs/fr-b34-post-keys-matrix-latest.json`（**42** 样本 / **42/42**）；**≠ prod** |
 | 8.5 | 全量字段矩阵 | **未实现** | 259 路由字段键 — open backlog | ⬜ |
 
 ---

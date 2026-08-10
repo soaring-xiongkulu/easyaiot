@@ -558,7 +558,7 @@ ARTIFACT_PREFIX = "fr-b27"
 MATRIX_ARTIFACT_PREFIX = "fr-b27"
 KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b29"
 MUTATING_MATRIX_ARTIFACT_PREFIX = "fr-b31"
-POST_KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b33"
+POST_KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b34"
 
 MATRIX_DISCLAIMER = (
     "GET envelope matrix probes inventoried safe GET routes only (no POST/DELETE auto). "
@@ -585,9 +585,10 @@ MUTATING_MATRIX_DISCLAIMER = (
 )
 
 POST_KEYS_MATRIX_DISCLAIMER = (
-    "POST keys-matrix probes curated high-value POST creates (frb33_* synthetic names) with "
+    "POST keys-matrix probes curated high-value POST creates (frb34_* synthetic names) with "
     "Python-first to_dict / blueprint success body key asserts on code==0; validation 4xx "
-    "assert envelope {code,msg} only. Create-then-delete where safe. "
+    "assert envelope {code,msg} only; media/hook ack routes may assert code+msg without data. "
+    "Create-then-delete where safe. "
     "This is NOT exhaustive POST field parity and does NOT mean COMPLETE — "
     "see docs/video-java/FULL_REPLACEMENT_GAP.md."
 )
@@ -2092,6 +2093,104 @@ def run_post_cleanup(
     return result
 
 
+def _apply_post_keys_prerequisite(
+    base_url: str,
+    prerequisite: Dict[str, Any],
+    body: Dict[str, Any],
+    timeout: float,
+) -> Tuple[bool, Dict[str, Any], Optional[Any]]:
+    pre_method = str(prerequisite.get("method", "GET")).upper()
+    pre_path = str(prerequisite["path"])
+    if pre_method == "GET":
+        pre_status, pre_body, _ = http_get_json(base_url, pre_path, timeout=timeout)
+    else:
+        pre_status, pre_body, _ = http_post_json(
+            base_url, pre_path, prerequisite.get("body") or {}, timeout=timeout
+        )
+    pre_ok = pre_status < 500 and isinstance(pre_body, dict) and pre_body.get("code") == 0
+    meta = {
+        "method": pre_method,
+        "path": pre_path,
+        "http_status": pre_status,
+        "code": pre_body.get("code") if isinstance(pre_body, dict) else None,
+        "ok": pre_ok,
+    }
+    if not pre_ok:
+        return False, meta, None
+    pre_data = pre_body.get("data") if isinstance(pre_body, dict) else None
+    body_key = prerequisite.get("body_key")
+    data_key = prerequisite.get("data_key", "id")
+    captured = None
+    if isinstance(pre_data, dict) and pre_data.get(data_key) is not None:
+        captured = pre_data[data_key]
+        if body_key:
+            body[body_key] = captured
+    return True, meta, captured
+
+
+def _run_post_keys_setup(
+    base_url: str,
+    setup: Dict[str, Any],
+    timeout: float,
+    *,
+    ts: str,
+) -> Tuple[bool, Dict[str, Any], Optional[Any]]:
+    setup_method = str(setup.get("method", "POST")).upper()
+    setup_path = str(setup["path"])
+    setup_body = materialize_post_sample_body(dict(setup.get("body") or {}), ts)
+    nested_pre = setup.get("prerequisite")
+    if nested_pre:
+        pre_ok, pre_meta, _ = _apply_post_keys_prerequisite(base_url, nested_pre, setup_body, timeout)
+        if not pre_ok:
+            return False, {"prerequisite": pre_meta, "ok": False}, None
+    if setup_method == "POST":
+        st, sb, _ = http_post_json(base_url, setup_path, setup_body, timeout=timeout)
+    elif setup_method == "PUT":
+        st, sb, _ = http_put_json(base_url, setup_path, setup_body, timeout=timeout)
+    else:
+        return False, {"method": setup_method, "ok": False, "detail": "unsupported setup method"}, None
+    ok = st < 500 and isinstance(sb, dict) and sb.get("code") == 0
+    meta: Dict[str, Any] = {
+        "method": setup_method,
+        "path": setup_path,
+        "http_status": st,
+        "code": sb.get("code") if isinstance(sb, dict) else None,
+        "ok": ok,
+    }
+    if nested_pre:
+        meta["prerequisite"] = pre_meta
+    captured = None
+    if ok:
+        data = sb.get("data") if isinstance(sb, dict) else None
+        if isinstance(data, dict) and data.get("id") is not None:
+            captured = data["id"]
+        for follow in setup.get("followups") or []:
+            follow_method = str(follow.get("method", "POST")).upper()
+            follow_path = str(follow["path"])
+            if captured is not None:
+                follow_path = follow_path.replace("{id}", str(captured))
+            follow_body = materialize_post_sample_body(dict(follow.get("body") or {}), ts)
+            if follow_method == "POST":
+                fst, fsb, _ = http_post_json(base_url, follow_path, follow_body, timeout=timeout)
+            elif follow_method == "PUT":
+                fst, fsb, _ = http_put_json(base_url, follow_path, follow_body, timeout=timeout)
+            else:
+                return False, {**meta, "followup": follow_path, "ok": False}, captured
+            follow_ok = fst < 500 and isinstance(fsb, dict) and fsb.get("code") == 0
+            meta.setdefault("followups", []).append(
+                {
+                    "method": follow_method,
+                    "path": follow_path,
+                    "http_status": fst,
+                    "code": fsb.get("code") if isinstance(fsb, dict) else None,
+                    "ok": follow_ok,
+                }
+            )
+            if not follow_ok:
+                return False, meta, captured
+    return ok, meta, captured
+
+
 def assert_post_keys_sample(
     base_url: str,
     sample: Dict[str, Any],
@@ -2103,6 +2202,7 @@ def assert_post_keys_sample(
     path = str(sample["path"])
     body = materialize_post_sample_body(dict(sample.get("body") or {}), ts)
     mode = str(sample.get("mode") or "success_keys")
+    setup_id: Optional[Any] = None
     result: Dict[str, Any] = {
         "id": sample.get("id"),
         "method": method,
@@ -2130,34 +2230,31 @@ def assert_post_keys_sample(
             status = "fail"
         result["checks"].append({"check": name, "status": status, "detail": detail})
 
+    setup = sample.get("setup")
+    if setup:
+        setup_ok, setup_meta, setup_id = _run_post_keys_setup(base_url, setup, timeout, ts=ts)
+        result["setup"] = setup_meta
+        if not setup_ok:
+            record("setup", False, "setup failed")
+            result["ok"] = False
+            return result
+        if setup_id is not None and "{id}" in path:
+            path = path.replace("{id}", str(setup_id))
+            result["probe_path"] = path
+        for body_key, data_key in (sample.get("body_from_setup") or {}).items():
+            if setup_id is not None:
+                body[body_key] = setup_id if data_key == "id" else body.get(body_key)
+
     prerequisite = sample.get("prerequisite")
     if prerequisite:
-        pre_method = str(prerequisite.get("method", "GET")).upper()
-        pre_path = str(prerequisite["path"])
-        if pre_method == "GET":
-            pre_status, pre_body, _ = http_get_json(base_url, pre_path, timeout=timeout)
-        else:
-            pre_status, pre_body, _ = http_post_json(
-                base_url, pre_path, prerequisite.get("body") or {}, timeout=timeout
-            )
-        pre_ok = pre_status < 500 and isinstance(pre_body, dict) and pre_body.get("code") == 0
-        result["prerequisite"] = {
-            "method": pre_method,
-            "path": pre_path,
-            "http_status": pre_status,
-            "code": pre_body.get("code") if isinstance(pre_body, dict) else None,
-            "ok": pre_ok,
-        }
+        pre_ok, pre_meta, _ = _apply_post_keys_prerequisite(base_url, prerequisite, body, timeout)
+        result["prerequisite"] = pre_meta
         if not pre_ok:
             record("prerequisite", False, "prerequisite failed")
             result["ok"] = False
             return result
-        pre_data = pre_body.get("data") if isinstance(pre_body, dict) else None
-        body_key = prerequisite.get("body_key")
-        data_key = prerequisite.get("data_key", "id")
-        if body_key and isinstance(pre_data, dict) and pre_data.get(data_key) is not None:
-            body[body_key] = pre_data[data_key]
 
+    result["probe_body"] = body
     if method == "POST":
         http_status, resp_body, _ = http_post_json(base_url, path, body, timeout=timeout)
     elif method == "PUT":
@@ -2187,6 +2284,14 @@ def assert_post_keys_sample(
         result["ok"] = result["fail"] == 0
         return result
 
+    if mode == "envelope_success":
+        if isinstance(resp_body, dict) and {"code", "msg"} <= set(resp_body.keys()):
+            record("envelope_success", True, "code,msg present on success")
+        else:
+            record("envelope_success", False, "missing code,msg on success")
+        result["ok"] = result["fail"] == 0
+        return result
+
     miss_env = missing_keys(resp_body, ENVELOPE_KEYS)
     record("envelope", not miss_env, f"missing {miss_env}" if miss_env else "code,msg,data present")
 
@@ -2206,8 +2311,15 @@ def assert_post_keys_sample(
 
     result["ok"] = result["fail"] == 0
 
-    if result.get("ok") and sample.get("cleanup") and isinstance(data, dict) and data.get("id") is not None:
-        cleanup = run_post_cleanup(base_url, sample["cleanup"], data["id"], timeout)
+    cleanup_id = None
+    if sample.get("cleanup_use_setup_id") and setup_id is not None:
+        cleanup_id = setup_id
+    elif isinstance(data, dict) and data.get("id") is not None:
+        cleanup_id = data["id"]
+    elif setup_id is not None:
+        cleanup_id = setup_id
+    if result.get("ok") and sample.get("cleanup") and cleanup_id is not None:
+        cleanup = run_post_cleanup(base_url, sample["cleanup"], cleanup_id, timeout)
         result["cleanup"] = cleanup
         record("cleanup", cleanup.get("ok", False), cleanup.get("detail") or cleanup.get("path", ""))
 
@@ -2215,7 +2327,7 @@ def assert_post_keys_sample(
 
 
 def run_post_keys_matrix(base_url: str, timeout: float) -> Tuple[List[Dict[str, Any]], Dict[str, Any], bool, str]:
-    from post_keys_matrix_b33_specs import bind_post_keys_matrix_specs
+    from post_keys_matrix_b34_specs import bind_post_keys_matrix_specs
 
     server_up, health_detail = server_reachable(base_url, timeout=min(timeout, 3.0))
     samples = bind_post_keys_matrix_specs(sys.modules[__name__])
@@ -2244,8 +2356,12 @@ def run_post_keys_matrix(base_url: str, timeout: float) -> Tuple[List[Dict[str, 
 
     summary = summarize(rows)
     summary["post_samples"] = len(samples)
-    summary["success_key_samples"] = sum(1 for s in samples if s.get("mode", "success_keys") != "envelope_only")
-    summary["envelope_only_samples"] = sum(1 for s in samples if s.get("mode") == "envelope_only")
+    summary["success_key_samples"] = sum(
+        1 for s in samples if s.get("mode", "success_keys") not in ("envelope_only", "envelope_success")
+    )
+    summary["envelope_only_samples"] = sum(
+        1 for s in samples if s.get("mode") in ("envelope_only", "envelope_success")
+    )
     summary["key_assert_pass"] = sum(
         1
         for row in rows
@@ -2301,7 +2417,7 @@ def write_post_keys_matrix_artifacts(
     json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     lines = [
-        "# FR-B33 POST Keys Matrix — Python-first success body keys",
+        "# FR-B34 POST Keys Matrix — Python-first success body keys",
         "",
         f"**Generated:** {payload['generated_at']}",
         f"**Base URL:** {base_url}",

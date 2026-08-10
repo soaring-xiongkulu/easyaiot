@@ -33,5 +33,6 @@ HTTP 面 FR-W* 已齐。行为波次：
 | **FR-B31** POST/PUT mutating-matrix + storage cleanup MinIO 对齐 | **DONE** | (see branch) |
 | **FR-B32** cleanup 真删除 E2E + 6 非 JSON GET content-type 探针 | **DONE** | `3692313` |
 | **FR-B33** POST keys-matrix 16 样本 + camera register 缺键修复 | **DONE** | `3e7d48f` |
+| **FR-B34** POST keys-matrix 42 样本 + directory/auto-enroll 修复 | **DONE** | (this commit) |
 
 COMPLETE 仍禁止，直至行为缺口可勾选或产品签字豁免 + **prod** soak checklist 有证据（local-only ≠ prod 绿）。

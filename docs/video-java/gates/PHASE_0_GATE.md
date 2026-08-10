@@ -1,7 +1,7 @@
 # PHASE 0 Gate — VIDEO Java minimal closed loop
 
 **Status:** PASS
-**Updated:** 2026-08-10 21:05 UTC
+**Updated:** 2026-08-10 21:18 UTC
 
 Gate PASS when every case `ok` — each layer `pass` or `exempt` with a **signed** exemption ID (see EXEMPTIONS.md). Provisional exemptions do not satisfy.
 
