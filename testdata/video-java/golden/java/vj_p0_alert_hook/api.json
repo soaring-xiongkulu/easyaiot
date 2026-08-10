@@ -8,14 +8,14 @@
     "message": "告警事件已发送",
     "data": {
       "mode": "direct_persist",
-      "alert_id": 4584,
+      "alert_id": 4592,
       "status": "success"
     }
   },
   "normalized": {
     "code": 0,
     "data": {
-      "alert_id": 4584,
+      "alert_id": 4592,
       "mode": "direct_persist",
       "status": "success"
     },

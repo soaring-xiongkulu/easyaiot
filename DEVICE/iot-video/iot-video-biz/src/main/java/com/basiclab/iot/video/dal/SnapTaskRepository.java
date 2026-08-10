@@ -27,10 +27,11 @@ public class SnapTaskRepository {
     public Optional<Map<String, Object>> findById(int taskId) {
         List<Map<String, Object>> rows = jdbc.query(
                 """
-                SELECT t.*, d.name AS device_name, s.space_name
+                SELECT t.*, d.name AS device_name, s.space_name, p.pusher_name AS pusher_name
                 FROM snap_task t
                 LEFT JOIN device d ON d.id = t.device_id
                 LEFT JOIN snap_space s ON s.id = t.space_id
+                LEFT JOIN pusher p ON p.id = t.pusher_id
                 WHERE t.id = ?
                 """,
                 (rs, rowNum) -> taskRow(rs),
@@ -51,10 +52,11 @@ public class SnapTaskRepository {
         int offset = Math.max(0, (pageNo - 1) * pageSize);
         StringBuilder sql = new StringBuilder(
                 """
-                SELECT t.*, d.name AS device_name, s.space_name
+                SELECT t.*, d.name AS device_name, s.space_name, p.pusher_name AS pusher_name
                 FROM snap_task t
                 LEFT JOIN device d ON d.id = t.device_id
                 LEFT JOIN snap_space s ON s.id = t.space_id
+                LEFT JOIN pusher p ON p.id = t.pusher_id
                 WHERE 1=1
                 """
         );
@@ -242,6 +244,7 @@ public class SnapTaskRepository {
         row.put("exception_reason", rs.getString("exception_reason"));
         row.put("total_captures", JdbcValues.getInteger(rs, "total_captures"));
         row.put("pusher_id", JdbcValues.getInteger(rs, "pusher_id"));
+        row.put("pusher_name", rs.getString("pusher_name"));
         row.put("created_at", formatTs(rs.getTimestamp("created_at")));
         row.put("updated_at", formatTs(rs.getTimestamp("updated_at")));
         row.put("last_capture_time", formatTs(rs.getTimestamp("last_capture_time")));

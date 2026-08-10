@@ -68,17 +68,17 @@
 6. `DEVICE/iot-video/iot-video-biz/.../controller`  
 7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
 
-## 8. 现状摘要（2026-08-11 FR-B22）
+## 8. 现状摘要（2026-08-11 FR-B23）
 
 - **HTTP 路由：** `route_inventory` 14 前缀 **Py≈259 / Java≈259 / diff=0**（`FR-W4` 全量核对）。
-- **契约硬化：** **FR-B18 ✅** 265 路由薄探针 0 fail；**FR-B20 ✅** 16 端点深字段抽样；**FR-B21 ✅** 98 GET 信封矩阵（95 JSON 探针 / 0 fail）；**FR-B22 ✅** 扩至 **25** 深采样端点 / **130** pass assert（`logs/fr-b22-field-contract-latest.json`）。
-- **行为：** MinIO/ONVIF/YOLO/InsightFace/Milvus/SSE 真流等仍为 **mini 桩**；见 `FULL_REPLACEMENT_GAP.md` §2–§4。
+- **契约硬化：** **FR-B18 ✅** 265 路由薄探针 0 fail；**FR-B20 ✅** 16 端点深字段抽样；**FR-B21 ✅** 98 GET 信封矩阵；**FR-B22 ✅** 扩至 25 深采样；**FR-B23 ✅** 深采样 **132 pass / 0 skip**（`snap_task_list`/`record_videos_list` seed + Java 列表键修复）；**本地 MinIO soak** 有证据（`logs/fr-b23-soak-*`）。
+- **行为：** MinIO 本地路径已取证；Kafka consumer 可启动但本地 broker 主机名阻塞端到端；ONVIF/YOLO/InsightFace 等仍为 **mini 桩**；见 `FULL_REPLACEMENT_GAP.md` §2–§4。
 - **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成。
 - **EVID：** 真 RUNTIME / alert success 等证据已抬升；**EVID 轮次结束**。
 - **Phase 3/CLOSE：** 改名、归档、网关指向 = 运维动作，**≠ 功能完整替换**。
 - **项目状态：** **FR HTTP 面已齐 / 信封+深采样已绿 / 行为桩仍存 — 禁止 COMPLETE**。
 - **网关：** 现已指向 Java 名；行为桩未清前，**不得**认为生产功能已安全切完。
-- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（全部 ⬜ 待 ops 证据；禁止假绿）。
+- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B23 已标 **local-only** MinIO/Kafka/phase0 行；其余仍 ⬜）。
 
 ## 9. 你的下一步
 

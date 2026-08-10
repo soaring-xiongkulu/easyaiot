@@ -414,8 +414,8 @@ PLAYBACK_STATISTICS_KEYS: Set[str] = {
     "total_size",
 }
 
-ARTIFACT_PREFIX = "fr-b22"
-MATRIX_ARTIFACT_PREFIX = "fr-b22"
+ARTIFACT_PREFIX = "fr-b23"
+MATRIX_ARTIFACT_PREFIX = "fr-b23"
 
 MATRIX_DISCLAIMER = (
     "GET envelope matrix probes inventoried safe GET routes only (no POST/DELETE auto). "

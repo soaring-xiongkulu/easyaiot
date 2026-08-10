@@ -234,12 +234,19 @@ public class RecordFileRepository {
         row.put("object_name", rs.getString("object_name"));
         row.put("bucket_name", rs.getString("bucket_name"));
         row.put("filename", rs.getString("filename"));
-        row.put("file_size", JdbcValues.getLong(rs, "file_size"));
+        Long fileSize = JdbcValues.getLong(rs, "file_size");
+        row.put("file_size", fileSize);
+        row.put("size", fileSize != null ? fileSize : 0L);
         row.put("content_type", rs.getString("content_type"));
+        String etag = rs.getString("etag");
+        row.put("etag", etag != null ? etag : "");
         row.put("url", rs.getString("url"));
         row.put("thumbnail_url", rs.getString("thumbnail_url"));
         row.put("duration", JdbcValues.getInteger(rs, "duration"));
-        row.put("event_time", rs.getTimestamp("event_time") != null ? rs.getTimestamp("event_time").toInstant().toString() : null);
+        Timestamp eventTime = rs.getTimestamp("event_time");
+        String eventIso = eventTime != null ? eventTime.toInstant().toString() : null;
+        row.put("event_time", eventIso);
+        row.put("last_modified", eventIso);
         row.put("source", rs.getString("source"));
         return row;
     }

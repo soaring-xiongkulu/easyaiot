@@ -279,15 +279,16 @@ Python `run.py` 启动时拉起的能力 vs Java：
 
 ---
 
-## 9. 最终判定 — FR-B22
+## 9. 最终判定 — FR-B23
 
 | 问题 | 答案 |
 |------|------|
 | HTTP 路由是否与 Python 对齐？ | **是**（14 inventoried 前缀 `route_inventory` diff=0） |
-| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调（broker/MinIO/真机/WVP/iot-node）与**全量**字段级契约仍 open；**HTTP 薄探针 265/265 已绿**（FR-B18）；**深字段抽样 25 端点已执行**（FR-B22：130 pass / 0 fail / 2 skip）；**GET 信封矩阵已执行**（FR-B22 复跑：98 GET / 95 JSON 信封探针 / 0 fail，≠ 259 字段键矩阵） |
+| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调（broker 主机名、真机/WVP/iot-node）与**全量**字段级契约仍 open；**HTTP 薄探针 265/265 已绿**（FR-B18）；**深字段抽样 25 端点已执行**（FR-B23：**132 pass / 0 fail / 0 skip**，清除了 FR-B22 的 2 deep skip）；**GET 信封矩阵**仍见 FR-B22 复跑 |
+| 本地 MinIO/Kafka soak？ | **部分** — MinIO put + sync API 有证据（`logs/fr-b23-soak-*`）；Kafka consumer **启动**有证据，但 Docker broker `advertised.listeners=Kafka:9092` 阻塞宿主机客户端 |
 | 能否称 COMPLETE / 退役 Python？ | **禁止** |
 | 证据硬化（EVID）能否停？ | **可以停**，转本文件 backlog + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md) |
-| 距完整替换还缺什么？ | **prod 联调 soak**（见 checklist，全部 ⬜）+ **全量 259 路由字段矩阵** + prod 场景回放 + 回滚演练 |
+| 距完整替换还缺什么？ | **prod 联调 soak**（checklist 大部仍 ⬜）+ **全量 259 路由字段矩阵** + prod 场景回放 + 回滚演练 |
 
 **维护约定：** 每完成一个 FR 工作包，在本文件对应行改为 ✅，更新该域 Py vs Java 路由数，并保留短契约测；**不要**再开 Phase 门禁剧或 EVID/CLOSE 轮次。在全部 P0/P1（及产品未豁免的 P2）勾完前，禁止对外宣称「VIDEO Java 完整替换完成」。
 

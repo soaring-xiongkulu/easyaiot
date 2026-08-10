@@ -15,7 +15,7 @@
 | 0.1 | Java `video-server` 健康 | Nacos 注册 + `/actuator/health` UP | 截图或 `curl` JSON `status:UP` | ⬜ |
 | 0.2 | 网关路由 | `lb://video-server`（非 Python 遗留名） | `gateway` 路由表导出 | ⬜ |
 | 0.3 | 共享 DB | Java 与 WEB 同库只读冒烟 | 告警/设备 list 200 + 有数据 | ⬜ |
-| 0.4 | Phase 0 薄烟雾 | `python tools/video_java/certify.py --phase 0` | `gates/PHASE_0_GATE.md` PASS | ⬜ |
+| 0.4 | Phase 0 薄烟雾 | `python tools/video_java/certify.py --phase 0` | `gates/PHASE_0_GATE.md` PASS | ✅ local-only evidence — FR-B23 复跑 PASS 5/5；`logs/fr-b23-phase0.log` |
 
 ---
 
@@ -24,8 +24,8 @@
 | # | 项 | 配置标志 | 期望证据 | 状态 |
 |---|-----|----------|----------|------|
 | 1.1 | 告警 Kafka 路径 | `video.alert.use-direct-persist=false` | hook → topic `iot-alert-notification` / `iot-snapshot-alert`；iot-sink 消费 | ⬜ |
-| 1.2 | DVR 上传 Kafka | `video.media.upload-mode=kafka` 或 `hybrid` | SRS/ZLM `on_dvr` → `media.dvr.completed` → MinIO + DB | ⬜ |
-| 1.3 | Snap 上传 Kafka | `video.media.snap-upload-mode=kafka` 或 `upload-mode` 含 kafka | `media.snap.completed` consumer；retry/DLQ 日志 | ⬜ |
+| 1.2 | DVR 上传 Kafka | `video.media.upload-mode=kafka` 或 `hybrid` | SRS/ZLM `on_dvr` → `media.dvr.completed` → MinIO + DB | ✅ local-only evidence — soak 窗口 CLI+`application-fr-b23-soak.yaml` 启动 consumer（`logs/fr-b23-java-soak.log` L19-221）；hook `on_dvr` 200；**Python kafka-python / Java consumer 均因 broker `advertised.listeners=Kafka:9092` 无法从宿主机解析** → `logs/fr-b23-soak-latest.json` |
+| 1.3 | Snap 上传 Kafka | `video.media.snap-upload-mode=kafka` 或 `upload-mode` 含 kafka | `media.snap.completed` consumer；retry/DLQ 日志 | ✅ local-only evidence — Snap consumer 启动同上；**端到端消费阻塞于同一 Kafka 主机名解析**；非 prod 绿 |
 | 1.4 | Face/plate matching Kafka | `video.matching.use-direct-process=false` | matching topic produce + worker 推理 + 命中告警 | ⬜ |
 
 **mini 默认：** direct_persist / sync 不经 broker — **本地绿不覆盖上表**。
@@ -36,9 +36,9 @@
 
 | # | 项 | 配置标志 | 期望证据 | 状态 |
 |---|-----|----------|----------|------|
-| 2.1 | MinIO 启用 | `video.minio.enabled=true` / `MINIO_ENABLED=1` | bucket 存在；health 无 5xx | ⬜ |
-| 2.2 | Snap 空间同步 | `POST /video/snap/space/sync/minio` | 新设备空间 bucket 前缀创建 | ⬜ |
-| 2.3 | Record 空间同步 | `POST /video/record/space/sync/minio` | 同上 | ⬜ |
+| 2.1 | MinIO 启用 | `video.minio.enabled=true` / `MINIO_ENABLED=1` | bucket 存在；health 无 5xx | ✅ local-only evidence — `fr_b23_soak.py` put_object `fr-b23-soak/fr-b23/probe-*`；凭据 `VIDEO/.env` `MINIO_SECRET_KEY`；`logs/fr-b23-soak-latest.json` |
+| 2.2 | Snap 空间同步 | `POST /video/snap/space/sync/minio` | 新设备空间 bucket 前缀创建 | ✅ local-only evidence — soak 窗口 `POST` 200 `code=0`（8 spaces, 0 errors）；`logs/fr-b23-soak-latest.json` |
+| 2.3 | Record 空间同步 | `POST /video/record/space/sync/minio` | 同上 | ✅ local-only evidence — 同上 record sync 行 |
 | 2.4 | DVR 对象可播放 | hook 后 `record_path` 为 `/api/v1/buckets/...` | 告警页录像可播 | ⬜ |
 | 2.5 | 空间清理 cron | 磁盘超阈 | janitor / space cleanup 日志 + 对象减少 | ⬜ |
 
@@ -115,7 +115,7 @@
 
 | 角色 | 姓名 | 日期 | 备注 |
 |------|------|------|------|
-| 开发 | | | FR-B22 代码路径已就绪 ≠ 本表完成 |
+| 开发 | | 2026-08-11 | FR-B23 本地 MinIO/Kafka soak 取证 ≠ prod 绿 |
 | 运维 | | | |
 | 产品 | | | 永久豁免项须书面确认 |
 
