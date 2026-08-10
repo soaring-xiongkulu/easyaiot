@@ -69,7 +69,11 @@ C++ RUNTIME：拉流→解码→(motion_gate)→ONNX→track→region→emit / R
 
 ## 4. 工作量提示（给排期）
 
-在「几乎全要 + 已砍算法任务 SAM」前提下，粗估仍约 **2～4 人月**（熟手；含测试场与双端回归）。大头仍是：测试场、Windows、追踪、snap/patrol 精细对齐、匹配上收与全程行为 diff。
+**历史规划粗估（已证伪，勿再用于排期）：** 约 **2～4 人月**（曾写作「两到三个月」量级）。大头原以为是测试场、Windows、追踪、snap/patrol 精细对齐、匹配上收与全程行为 diff。
+
+**实际（2026-08，`feat/runtime-parity`）：** 在「几乎全要 + 已砍算法任务 SAM」范围内，实施到 PROGRAM COMPLETE（certify 绿 + Python 热路径 quarantine）的墙钟约 **3 小时**，不是人月级。
+
+**后续项目请按实际校正：** 用 certify 红项/case 闭环估时；有 C++ RUNTIME 骨架 + VIDEO 吸收面 + 测试场纪律时，不要沿用本节旧的人月数字。细节见 `PLAN.md`「工作量与难度」。
 
 ---
 
@@ -88,11 +92,3 @@ C++ RUNTIME：拉流→解码→(motion_gate)→ONNX→track→region→emit / R
 ## 6. 规划侧收尾声明
 
 本目录调研与方案已按产品拍板修订完毕；**后续编码、测试场落地、certify 与删 Python 由实施负责人按 `PLAN.md` 推进。** 规划对话任务结束。
-
-
-## Local main landing
-
-- Landed eat/runtime-parity onto local main @ 416e218 (fast-forward). **Not pushed** to upstream.
-- Python algorithm hot-path trees hard-deleted via `safe_fsops` (dry-run + execute); leftover `realtime` pycache on main also removed.
-- Default executor remains cpp-only.
-

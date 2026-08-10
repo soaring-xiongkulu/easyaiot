@@ -53,3 +53,9 @@ See also [`gates/PHASE_5_GAP_CLOSE.md`](./gates/PHASE_5_GAP_CLOSE.md).
 `doctor` + both profiles exit **0** after detect_conf / POST /stop wave.  
 Updated SHA256 above from orchestrator re-archive.  
 **PROGRAM COMPLETE**（SAM 产品否决除外）。
+
+### Effort retrospective（排期校正）
+
+- **规划粗估（历史）：** `PLAN.md` / `HANDOFF.md` 曾写约 **2～4 人月**（易被读成两到三个月）——**高估，勿再引用为排期基准**。
+- **本程序实际墙钟：** 约 **3 小时**量级（Phase 门禁推进至 certify 全绿 + quarantine；含后续业务栈冒烟验证）。
+- 原因简述：能力面虽宽，但候选侧已有 RUNTIME/VIDEO/certify 资产，红清单驱动下收敛远快于「从零复刻」假设。
