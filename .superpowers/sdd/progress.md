@@ -16,6 +16,6 @@ HTTP 面 FR-W* 已齐。行为波次：
 | **FR-B10** patrol/SSE + audio_talk + match MinIO + pose match-test | **DONE** | `6a5ff12` |
 | **FR-B11** GB28181 目录同步 + Nacos 进程切换演练 | **DONE** | `430faaa` |
 | **FR-B12** 目录 JSON 同步 + FlightHub/大华 NVR | **DONE** | `a1d2997` |
-| **FR-B13** 媒体节点池 + Ceph allocate | **DONE** | pending |
+| **FR-B13** 媒体节点池 + Ceph allocate | **DONE** | `9384f9b` |
 
 COMPLETE 仍禁止，直至行为缺口可勾选或产品签字豁免。
