@@ -68,24 +68,24 @@
 6. `DEVICE/iot-video/iot-video-biz/.../controller`  
 7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
 
-## 8. 现状摘要（2026-08-11 FR-B27）
+## 8. 现状摘要（2026-08-11 FR-B28）
 
 - **HTTP 路由：** `route_inventory` 14 前缀 **Py≈259 / Java≈259 / diff=0**（`FR-W4` 全量核对）。
-- **契约硬化：** **FR-B18 ✅** 265 路由薄探针 0 fail；**FR-B20–B23 ✅** 深字段/信封矩阵；**FR-B24 ✅** 本地 Kafka E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR + Alert Kafka produce；**FR-B27 ✅** matching Kafka produce + 深字段 39 端点（+14）。
+- **契约硬化：** **FR-B18 ✅** 265 路由薄探针 0 fail；**FR-B20–B23 ✅** 深字段/信封矩阵；**FR-B24 ✅** 本地 Kafka E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR + Alert Kafka produce；**FR-B27 ✅** matching Kafka produce + 深字段 39 端点；**FR-B28 ✅** `field_contract.py --keys-matrix`（265 路由 / 41 映射 / 39 key-assert + 59 envelope-only）。
 - **行为：** MinIO 本地路径已取证；**纯 Kafka DVR / Alert / Matching Kafka produce 已取证（local）**；ONVIF/YOLO/InsightFace 等仍为 **mini 桩**；见 `FULL_REPLACEMENT_GAP.md` §2–§4。
-- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成。
+- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`certify-frb28-phase0.log`）。
 - **EVID：** 真 RUNTIME / alert success 等证据已抬升；**EVID 轮次结束**。
 - **Phase 3/CLOSE：** 改名、归档、网关指向 = 运维动作，**≠ 功能完整替换**。
-- **项目状态：** **FR HTTP 面已齐 / 信封+深采样已绿 / 行为桩仍存 — 禁止 COMPLETE**。
+- **项目状态：** **FR HTTP 面已齐 / 信封+keys-matrix 已绿 / 59 GET 仍 envelope-only — 禁止 COMPLETE**。
 - **网关：** 现已指向 Java 名；行为桩未清前，**不得**认为生产功能已安全切完。
-- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B27 已标 **local-only** §1.4 matching Kafka + phase0；§1.1–1.3 FR-B26；其余仍 ⬜）。
+- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B28 keys-matrix local；§1.4 matching Kafka FR-B27；§1.1–1.3 FR-B26；其余仍 ⬜）。
 
 ## 9. 你的下一步
 
 按 [`PLAN_FULL_REPLACEMENT.md`](./PLAN_FULL_REPLACEMENT.md) §5 行为/后台 backlog + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)：
 
 1. **prod 联调 soak**（Kafka DVR/snap、MinIO、WVP、FlightHub、iot-node/Ceph、post_process worker、Nacos 切换、网关冒烟）— 逐项勾选 checklist 并附证据
-2. **全量 259 路由字段键矩阵** — FR-B27 深采样 39 端点 ≠ 全量矩阵
+2. **扩展 GET 字段键矩阵** — FR-B28 已覆盖 41 映射 / 59 envelope-only；继续补 Python-first 映射 + 种子数据
 3. MinIO 真同步/清理（snap/record/media）
 4. ONVIF/NVR/扫描真连接（camera、audio_talk）
 5. InsightFace/Paddle/Milvus 推理或产品旁路决策

@@ -549,11 +549,21 @@ SNAP_IMAGE_ITEM_KEYS: Set[str] = {
 
 ARTIFACT_PREFIX = "fr-b27"
 MATRIX_ARTIFACT_PREFIX = "fr-b27"
+KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b28"
 
 MATRIX_DISCLAIMER = (
     "GET envelope matrix probes inventoried safe GET routes only (no POST/DELETE auto). "
     "Green = HTTP not 5xx and {code,msg,data} present (data may be null). "
     "This is NOT the full field-key matrix and does NOT mean COMPLETE — "
+    "see docs/video-java/FULL_REPLACEMENT_GAP.md."
+)
+
+KEYS_MATRIX_DISCLAIMER = (
+    "GET keys-matrix probes all inventoried safe GET JSON routes: always envelope "
+    "{code,msg,data}; when a Python to_dict / blueprint mapping exists, asserts "
+    "documented keys on first list item or data object (empty data → key assert "
+    "deferred, not fail). Unmapped routes count envelope-only. "
+    "This is NOT exhaustive 259-route field parity and does NOT mean COMPLETE — "
     "see docs/video-java/FULL_REPLACEMENT_GAP.md."
 )
 
@@ -577,7 +587,43 @@ MATRIX_QUERY_SUFFIXES: Dict[str, str] = {
     "/video/alert/record/query": "?device_id=vj_p2_device&alert_time=2026-08-11T10:00:00%2B08:00",
     "/video/camera/audio/talk/capabilities": "?device_id=vj_p2_device",
     "/video/camera/tracks/points": "?device_id=vj_p2_device",
+    "/video/camera/tracks/sessions": "?device_id=vj_p2_device",
     "/video/record/space/1/videos/day": "?date=2026-08-11",
+}
+
+# Default pagination / filter query strings (from SAMPLE_CASES paths).
+KEYS_MATRIX_DEFAULT_QUERY: Dict[str, str] = {
+    "/video/alert/page": "?pageNo=1&pageSize=1",
+    "/video/algorithm/task/list": "?pageNo=1&pageSize=1",
+    "/video/camera/list": "?pageNo=1&pageSize=1",
+    "/video/snap/space/list": "?pageNo=1&pageSize=1",
+    "/video/record/space/list": "?pageNo=1&pageSize=1",
+    "/video/stream-forward/task/list": "?pageNo=1&pageSize=1",
+    "/video/playback/list": "?pageNo=1&pageSize=1",
+    "/video/snap/task/list": "?pageNo=1&pageSize=1",
+    "/video/record/space/{param}/videos": "?pageNo=1&pageSize=1",
+    "/video/face/matching/records": "?page=1&page_size=1",
+    "/video/plate/matching/records": "?page=1&page_size=1",
+    "/video/scenario-pose/libraries": "",
+}
+
+# Extra path→key specs not covered by SAMPLE_CASES path normalization (Python-first).
+EXTRA_ROUTE_KEY_SPECS: Dict[str, Dict[str, Any]] = {
+    "/video/snap/task/{param}": {
+        "id": "snap_task_get",
+        "python_source": "VIDEO/_retired_python_video/models.py SnapTask.to_dict + snap.py get_task",
+        "data_keys": SNAP_TASK_ITEM_KEYS,
+    },
+    "/video/record/space/{param}": {
+        "id": "record_space_get",
+        "python_source": "VIDEO/_retired_python_video/models.py RecordSpace.to_dict + record.py get_space",
+        "data_keys": RECORD_SPACE_ITEM_KEYS,
+    },
+    "/video/stream-forward/task/{param}": {
+        "id": "stream_forward_task_get_extra",
+        "python_source": "VIDEO/_retired_python_video/models.py StreamForwardTask.to_dict + stream_forward.py get_task",
+        "data_keys": STREAM_FORWARD_TASK_KEYS,
+    },
 }
 
 SAMPLE_CASES: List[Dict[str, Any]] = [
@@ -1191,6 +1237,432 @@ def write_matrix_artifacts(
     return json_path, md_path
 
 
+def normalize_inventory_path(path: str) -> str:
+    """Normalize concrete probe paths to inventoried {param} patterns."""
+    concrete = path.split("?", 1)[0]
+    concrete = re.sub(r"/vj_p2_device\b", "/{param}", concrete)
+    concrete = re.sub(r"/\d+(?=/|$)", "/{param}", concrete)
+    return concrete
+
+
+def build_route_key_specs() -> Dict[str, Dict[str, Any]]:
+    """Build path→key spec map from SAMPLE_CASES + EXTRA_ROUTE_KEY_SPECS (Python-first)."""
+    specs: Dict[str, Dict[str, Any]] = {}
+
+    def ingest(path: str, case: Dict[str, Any]) -> None:
+        spec: Dict[str, Any] = {
+            "id": case.get("id"),
+            "python_source": case.get("python_source"),
+        }
+        if case.get("data_keys"):
+            spec["data_keys"] = set(case["data_keys"])
+        if case.get("data_list"):
+            spec["data_list"] = True
+        if case.get("top_keys"):
+            spec["top_keys"] = set(case["top_keys"])
+        if case.get("list_item_keys"):
+            spec["list_item_keys"] = set(case["list_item_keys"])
+        list_path = case.get("list_path")
+        if list_path:
+            lp = list(list_path)
+            if lp and lp[0] == "data":
+                lp = lp[1:]
+            spec["list_path"] = tuple(lp)
+        specs[path] = spec
+
+    for case in SAMPLE_CASES:
+        template = case.get("path_template")
+        if template:
+            path = template.replace("{id}", "{param}")
+        else:
+            path = normalize_inventory_path(str(case["path"]))
+        ingest(path, case)
+
+    for path, extra in EXTRA_ROUTE_KEY_SPECS.items():
+        merged = dict(extra)
+        if "data_keys" in merged and not isinstance(merged["data_keys"], set):
+            merged["data_keys"] = set(merged["data_keys"])
+        if "list_item_keys" in merged and not isinstance(merged["list_item_keys"], set):
+            merged["list_item_keys"] = set(merged["list_item_keys"])
+        specs[path] = merged
+
+    return specs
+
+
+def materialize_keys_matrix_path(path: str, *, created_ids: Optional[Dict[str, str]] = None) -> str:
+    """Materialize inventoried path + default query suffixes for keys-matrix probes."""
+    concrete = path
+    if created_ids and "{param}" in path and path in created_ids:
+        concrete = path.replace("{param}", created_ids[path], 1)
+    elif "{param}" in concrete:
+        concrete = materialize_matrix_path(path)
+    base = concrete.split("?", 1)[0]
+    if "?" in concrete:
+        return concrete
+    extra = MATRIX_QUERY_SUFFIXES.get(base) or KEYS_MATRIX_DEFAULT_QUERY.get(base) or KEYS_MATRIX_DEFAULT_QUERY.get(path)
+    if extra:
+        return base + extra
+    return concrete
+
+
+def build_setup_id_map(setups: List[Dict[str, Any]]) -> Dict[str, str]:
+    """Map inventoried path templates to entity ids created by SAMPLE_CASES setups."""
+    case_by_id = {c["id"]: c for c in SAMPLE_CASES}
+    id_map: Dict[str, str] = {}
+    for setup in setups:
+        if not setup.get("ok"):
+            continue
+        case = case_by_id.get(setup.get("case_id", ""))
+        if not case:
+            continue
+        template = case.get("path_template")
+        data = setup.get("data")
+        if template and isinstance(data, dict) and data.get("id") is not None:
+            norm = template.replace("{id}", "{param}").split("?", 1)[0]
+            id_map[norm] = str(data["id"])
+    return id_map
+
+
+def run_global_setups(base_url: str, timeout: float) -> List[Dict[str, Any]]:
+    """Run SAMPLE_CASES setup blocks once so list/item key probes have seed data."""
+    results: List[Dict[str, Any]] = []
+    seen: Set[str] = set()
+    for case in SAMPLE_CASES:
+        setup = case.get("setup")
+        if not setup:
+            continue
+        key = json.dumps(setup, sort_keys=True, default=str)
+        if key in seen:
+            continue
+        seen.add(key)
+        result = run_setup(base_url, setup, timeout)
+        result["case_id"] = case.get("id")
+        results.append(result)
+        flag = "OK" if result.get("ok") else "FAIL"
+        print(f"  setup {case.get('id')}: {flag}")
+    return results
+
+
+def assert_keys_matrix_route(
+    base_url: str,
+    route: str,
+    spec: Optional[Dict[str, Any]],
+    timeout: float,
+    *,
+    created_ids: Optional[Dict[str, str]] = None,
+) -> Dict[str, Any]:
+    method, path = parse_route(route)
+    probe_path = materialize_keys_matrix_path(path, created_ids=created_ids)
+    skip_reason = matrix_skip_reason(path)
+    result: Dict[str, Any] = {
+        "route": route,
+        "path": path,
+        "probe_path": probe_path,
+        "mapping_id": spec.get("id") if spec else None,
+        "python_source": spec.get("python_source") if spec else None,
+        "mode": "envelope_only" if not spec else "key_assert",
+        "asserts": 0,
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "checks": [],
+    }
+
+    def record(name: str, ok: bool, detail: str, *, skipped: bool = False) -> None:
+        result["asserts"] += 1
+        if skipped:
+            result["skip"] += 1
+            status = "skip"
+        elif ok:
+            result["pass"] += 1
+            status = "pass"
+        else:
+            result["fail"] += 1
+            status = "fail"
+        result["checks"].append({"check": name, "status": status, "detail": detail})
+
+    if method != "GET":
+        record("method", True, f"skipped non-GET {method}", skipped=True)
+        result["ok"] = True
+        return result
+
+    if skip_reason:
+        record("non_json", True, skip_reason, skipped=True)
+        result["ok"] = True
+        return result
+
+    http_status, body, _ = http_get_json(base_url, probe_path, timeout=timeout)
+    result["http_status"] = http_status
+    result["business_code"] = body.get("code") if isinstance(body, dict) else None
+
+    record("http_status", http_status < 500, f"HTTP {http_status}")
+    if http_status >= 500:
+        result["ok"] = False
+        return result
+
+    miss_env = missing_keys(body, ENVELOPE_KEYS)
+    record("envelope", not miss_env, f"missing {miss_env}" if miss_env else "code,msg,data present")
+
+    if not spec:
+        result["ok"] = result["fail"] == 0
+        return result
+
+    for key in sorted(spec.get("top_keys") or ()):
+        present = key in body
+        record(f"top.{key}", present, f"{'present' if present else 'missing'}")
+
+    data = body.get("data")
+    data_keys = spec.get("data_keys")
+    if data_keys and not spec.get("data_list") and not spec.get("list_path"):
+        if data is None:
+            record("data_keys", True, "data null — keys deferred", skipped=True)
+        else:
+            miss = missing_keys(data, data_keys)
+            record("data_keys", not miss, f"missing {miss}" if miss else f"{len(data_keys)} keys ok")
+
+    if spec.get("data_list"):
+        items: List[Any] = data if isinstance(data, list) else []
+        item_keys = spec.get("list_item_keys") or set()
+        record("data_is_list", isinstance(data, list), f"type={type(data).__name__}")
+        if items and item_keys:
+            miss = missing_keys(items[0], item_keys)
+            record(
+                "list_item_keys",
+                not miss,
+                f"missing {miss}" if miss else f"{len(item_keys)} keys on first item",
+            )
+        elif item_keys:
+            record("list_item_keys", True, "empty list — item keys deferred", skipped=True)
+
+    list_path = spec.get("list_path")
+    item_keys = spec.get("list_item_keys")
+    if list_path and item_keys:
+        node: Any = body
+        for part in list_path:
+            node = node.get(part) if isinstance(node, dict) else None
+        items = node if isinstance(node, list) else []
+        if items:
+            miss = missing_keys(items[0], item_keys)
+            record(
+                "nested_list_item_keys",
+                not miss,
+                f"missing {miss}" if miss else f"{len(item_keys)} keys on first item",
+            )
+        else:
+            record("nested_list_item_keys", True, "empty list — item keys deferred", skipped=True)
+
+    result["ok"] = result["fail"] == 0
+    return result
+
+
+def run_keys_matrix(base_url: str, timeout: float) -> Tuple[List[Dict[str, Any]], Dict[str, Any], bool, str, List[Dict[str, Any]]]:
+    server_up, health_detail = server_reachable(base_url, timeout=min(timeout, 3.0))
+    specs = build_route_key_specs()
+    print(f"  key mappings: {len(specs)} routes (Python-first from SAMPLE_CASES)")
+    setups: List[Dict[str, Any]] = []
+    if server_up:
+        print("  running global setups for seed data...")
+        setups = run_global_setups(base_url, timeout)
+    created_ids = build_setup_id_map(setups)
+
+    routes = collect_inventoried_routes()
+    rows: List[Dict[str, Any]] = []
+    mapped = 0
+    envelope_only = 0
+    key_assert_pass = 0
+    key_assert_fail = 0
+
+    for idx, route in enumerate(routes, start=1):
+        method, path = parse_route(route)
+        if method != "GET":
+            rows.append(
+                {
+                    "route": route,
+                    "path": path,
+                    "probe_path": materialize_keys_matrix_path(path, created_ids=created_ids),
+                    "mode": "non_get_skip",
+                    "asserts": 1,
+                    "pass": 0,
+                    "fail": 0,
+                    "skip": 1,
+                    "checks": [{"check": "method", "status": "skip", "detail": f"skipped {method}"}],
+                    "ok": True,
+                }
+            )
+            continue
+
+        if not server_up:
+            rows.append(
+                {
+                    "route": route,
+                    "path": path,
+                    "probe_path": materialize_keys_matrix_path(path, created_ids=created_ids),
+                    "mode": "server_down",
+                    "asserts": 1,
+                    "pass": 0,
+                    "fail": 0,
+                    "skip": 1,
+                    "checks": [{"check": "server", "status": "skip", "detail": "server unreachable"}],
+                    "ok": True,
+                }
+            )
+            continue
+
+        spec = specs.get(path)
+        if matrix_skip_reason(path):
+            spec = None
+        row = assert_keys_matrix_route(base_url, route, spec, timeout, created_ids=created_ids)
+        rows.append(row)
+        if row.get("mode") == "envelope_only":
+            envelope_only += 1
+        elif row.get("mode") == "key_assert":
+            mapped += 1
+            for check in row.get("checks", []):
+                if check["check"] in ("list_item_keys", "nested_list_item_keys", "data_keys"):
+                    if check["status"] == "pass":
+                        key_assert_pass += 1
+                    elif check["status"] == "fail":
+                        key_assert_fail += 1
+
+        if idx % 25 == 0 or idx == len(routes):
+            print(f"  keys-matrix probed {idx}/{len(routes)}")
+
+    summary = summarize(rows)
+    summary["get_routes"] = sum(1 for r in routes if parse_route(r)[0] == "GET")
+    summary["json_get_routes"] = sum(
+        1 for r in routes if parse_route(r)[0] == "GET" and not matrix_skip_reason(parse_route(r)[1])
+    )
+    summary["mapped_routes"] = mapped
+    summary["envelope_only_routes"] = envelope_only
+    summary["non_json_skipped"] = sum(
+        1 for r in routes if parse_route(r)[0] == "GET" and matrix_skip_reason(parse_route(r)[1])
+    )
+    summary["key_assert_pass"] = key_assert_pass
+    summary["key_assert_fail"] = key_assert_fail
+    summary["mapping_table_size"] = len(specs)
+    summary["setups_run"] = len(setups)
+    summary["setups_ok"] = sum(1 for s in setups if s.get("ok"))
+    return rows, summary, server_up, health_detail, setups
+
+
+def write_keys_matrix_artifacts(
+    rows: List[Dict[str, Any]],
+    summary: Dict[str, Any],
+    base_url: str,
+    specs: Dict[str, Dict[str, Any]],
+    setups: List[Dict[str, Any]],
+    *,
+    server_up: bool,
+    health_detail: str,
+) -> Tuple[Path, Path]:
+    logs_dir = repo_root() / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    json_path = logs_dir / f"{KEYS_MATRIX_ARTIFACT_PREFIX}-keys-matrix-{ts}.json"
+    md_path = logs_dir / f"{KEYS_MATRIX_ARTIFACT_PREFIX}-keys-matrix-{ts}.md"
+
+    mapping_table = [
+        {
+            "path": path,
+            "id": spec.get("id"),
+            "python_source": spec.get("python_source"),
+            "data_keys": sorted(spec["data_keys"]) if spec.get("data_keys") else None,
+            "data_list": bool(spec.get("data_list")),
+            "list_item_keys_count": len(spec["list_item_keys"]) if spec.get("list_item_keys") else 0,
+        }
+        for path, spec in sorted(specs.items())
+    ]
+
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "base_url": base_url,
+        "disclaimer": KEYS_MATRIX_DISCLAIMER,
+        "server_up": server_up,
+        "health_detail": health_detail,
+        "summary": summary,
+        "mapping_table": mapping_table,
+        "setups": setups,
+        "routes": rows,
+    }
+    json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    lines = [
+        "# FR-B28 GET Keys Matrix — inventoried routes (Python-first)",
+        "",
+        f"**Generated:** {payload['generated_at']}",
+        f"**Base URL:** {base_url}",
+        f"**Server up:** {server_up} ({health_detail})",
+        f"**Routes:** {summary['endpoint_pass']}/{summary['endpoints']} pass",
+        f"**GET inventoried:** {summary.get('get_routes', '—')} (JSON GET: {summary.get('json_get_routes', '—')})",
+        f"**Mapped (key assert):** {summary.get('mapped_routes', '—')} | "
+        f"**Envelope-only:** {summary.get('envelope_only_routes', '—')} | "
+        f"**Non-JSON skip:** {summary.get('non_json_skipped', '—')}",
+        f"**Key asserts:** pass={summary.get('key_assert_pass', 0)} fail={summary.get('key_assert_fail', 0)}",
+        f"**Asserts:** pass={summary['pass']} fail={summary['fail']} skip={summary['skip']} "
+        f"(total={summary['asserts']})",
+        f"**Mapping table:** {summary.get('mapping_table_size', '—')} paths",
+        "",
+        "## Disclaimer",
+        "",
+        KEYS_MATRIX_DISCLAIMER,
+        "",
+        "## Python-first mapping table",
+        "",
+        "| path | id | python_source | data_keys | list_keys |",
+        "|------|----|---------------|-----------|-----------|",
+    ]
+    for row in mapping_table:
+        if row["data_keys"]:
+            dk = ", ".join(row["data_keys"][:4])
+            if len(row["data_keys"]) > 4:
+                dk += "…"
+        else:
+            dk = "—"
+        src = row["python_source"] or ""
+        src_cell = f"{src[:60]}…" if len(src) > 60 else src
+        lines.append(
+            f"| `{row['path']}` | {row['id']} | {src_cell} | {dk} | {row['list_item_keys_count'] or '—'} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Results",
+            "",
+            "| route | mode | probe_path | http | key_assert | ok |",
+            "|-------|------|------------|------|------------|-----|",
+        ]
+    )
+    for row in rows:
+        http_s = row.get("http_status", "—")
+        key_checks = [
+            c
+            for c in row.get("checks", [])
+            if c["check"] in ("list_item_keys", "nested_list_item_keys", "data_keys")
+        ]
+        key_status = key_checks[0]["status"] if key_checks else "—"
+        lines.append(
+            f"| `{row['route']}` | {row.get('mode', '—')} | `{row.get('probe_path', '')}` | "
+            f"{http_s} | {key_status} | {row.get('ok')} |"
+        )
+    lines.append("")
+    fails = [r for r in rows if not r.get("ok")]
+    if fails:
+        lines.extend(["## Failures", ""])
+        for row in fails:
+            lines.append(f"### {row['route']}")
+            for check in row.get("checks", []):
+                if check["status"] == "fail":
+                    lines.append(f"- **{check['check']}**: {check['detail']}")
+            lines.append("")
+
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+    latest_json = logs_dir / f"{KEYS_MATRIX_ARTIFACT_PREFIX}-keys-matrix-latest.json"
+    latest_md = logs_dir / f"{KEYS_MATRIX_ARTIFACT_PREFIX}-keys-matrix-latest.md"
+    latest_json.write_text(json_path.read_text(encoding="utf-8"), encoding="utf-8")
+    latest_md.write_text(md_path.read_text(encoding="utf-8"), encoding="utf-8")
+    print(f"artifact: {json_path}")
+    print(f"artifact: {md_path}")
+    return json_path, md_path
 
 
 def http_get_json(base_url: str, path: str, timeout: float = 8.0) -> Tuple[int, Dict[str, Any], str]:
@@ -1481,13 +1953,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         help="auto GET envelope matrix over inventoried safe GET routes",
     )
     parser.add_argument(
+        "--keys-matrix",
+        action="store_true",
+        help="FR-B28 GET keys matrix: envelope + Python-mapped item keys on all inventoried GET JSON routes",
+    )
+    parser.add_argument(
         "--deep",
         action="store_true",
         help="run FR-B22 hand-curated deep field samples (default when no mode flag)",
     )
     args = parser.parse_args(argv)
 
-    run_deep = args.deep or not args.matrix
+    run_deep = args.deep or not (args.matrix or args.keys_matrix)
     exit_code = 0
 
     if run_deep:
@@ -1525,6 +2002,31 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         )
         print(f"\n{MATRIX_DISCLAIMER}")
         if matrix_summary["fail"] != 0:
+            exit_code = 1
+
+    if args.keys_matrix:
+        route_count = len(collect_inventoried_routes())
+        specs = build_route_key_specs()
+        print(f"\nGET keys-matrix base_url={args.base_url} inventoried_routes={route_count}")
+        km_rows, km_summary, server_up, health_detail, setups = run_keys_matrix(args.base_url, args.timeout)
+        print(
+            f"keys-matrix: {km_summary['endpoint_pass']}/{km_summary['endpoints']} pass | "
+            f"mapped={km_summary.get('mapped_routes')} envelope_only={km_summary.get('envelope_only_routes')} | "
+            f"key_asserts: pass={km_summary.get('key_assert_pass')} fail={km_summary.get('key_assert_fail')} | "
+            f"asserts: pass={km_summary['pass']} fail={km_summary['fail']} skip={km_summary['skip']} "
+            f"server_up={server_up}"
+        )
+        write_keys_matrix_artifacts(
+            km_rows,
+            km_summary,
+            args.base_url,
+            specs,
+            setups,
+            server_up=server_up,
+            health_detail=health_detail,
+        )
+        print(f"\n{KEYS_MATRIX_DISCLAIMER}")
+        if km_summary["fail"] != 0:
             exit_code = 1
 
     return exit_code

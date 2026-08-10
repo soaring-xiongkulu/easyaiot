@@ -1,29 +1,31 @@
 # VIDEO Java — Agent Context
 
-- **程序：** VIDEO Python → Java 等价替换  
+- **程序：** VIDEO Python → Java **完整功能替换**（Phase FR）  
 - **文档根：** `docs/video-java/`  
-- **栈与结构：** [STACK.md](./STACK.md)（开题锁定，审查前勿擅自换 Boot 3 / 非 DEVICE 生态）  
-- **计划：** [PLAN.md](./PLAN.md)  
+- **现行方案：** [PLAN_FULL_REPLACEMENT.md](./PLAN_FULL_REPLACEMENT.md)  
+- **唯一进度表：** [FULL_REPLACEMENT_GAP.md](./FULL_REPLACEMENT_GAP.md)  
+- **栈：** [STACK.md](./STACK.md)  
 - **交接：** [HANDOFF.md](./HANDOFF.md)  
 - **纪律：** [EXECUTION.md](./EXECUTION.md)  
-- **测试场：** [testbed/README.md](./testbed/README.md)  
+- **历史切片计划（只读）：** [PLAN.md](./PLAN.md)
 
 ## 环境
 
 | | |
 |--|--|
-| Oracle | `F:/acme` + `VIDEO/`（Python） |
-| Candidate | worktree `feat/video-java`（审查通过后创建） |
-| 参照方法论 | `docs/runtime-parity/`（只读参照，**门禁勿混用**） |
+| Oracle（只读） | `VIDEO/_retired_python_video/`；可选 `F:/acme/VIDEO` |
+| Candidate | worktree `F:/acme/.worktrees/video-java` · `feat/video-java` |
+| 薄烟雾 | `python tools/video_java/certify.py --phase 0` |
 
 ## 硬约束
 
-1. 完成定义 = certify 等价，不是「服务起来」。  
-2. 不重写 RUNTIME / ffmpeg / SRS / ZLM / AI。  
-3. 先测后改；红清单驱动。  
-4. 估时按 case，不类比 runtime-parity 墙钟、不空喊人月。  
+1. 完成定义 = 缺口表域级 ✅，**不是** CERTIFY 全绿 / COMPLETE / 长观察。  
+2. 门禁只留防回归薄烟雾；扩面用契约测 + 路由 diff。  
+3. 禁止再堆 CLOSE/EVID；禁止整域标 migrated（除非缺口表该域全 ✅）。  
+4. 不重写 RUNTIME / ffmpeg / SRS / ZLM / AI。  
+5. KPI = 缩小 ≈265→29 路由差。
 
 ## 当前状态
 
-**有条件通过（2026-08-10）。** §9.1 六条已写入 STACK/PLAN。  
-**停：等开工指令后再做 Phase -1。** Phase -1 绿之前不开 Phase 0 业务搬迁。
+**Phase FR 进行中。** FR-B28 keys-matrix 已绿（41 映射 / 59 envelope-only）；完整替换未完成。  
+下一包：见 HANDOFF §9。

@@ -77,10 +77,10 @@ public class SnapTaskRepository {
                         task_name, task_code, space_id, device_id, capture_type, cron_expression, frame_skip,
                         algorithm_enabled, algorithm_type, algorithm_model_id, algorithm_threshold, algorithm_night_mode,
                         alarm_enabled, alarm_type, phone_number, email, notify_users, notify_methods, alarm_suppress_time,
-                        auto_filename, custom_filename_prefix, is_enabled, status, run_status
+                        auto_filename, custom_filename_prefix, is_enabled, status, run_status, total_captures
                     ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
-                    Statement.RETURN_GENERATED_KEYS
+                    new String[]{"id"}
             );
             int i = 1;
             ps.setString(i++, str(fields.get("task_name")));
@@ -106,7 +106,8 @@ public class SnapTaskRepository {
             ps.setString(i++, str(fields.get("custom_filename_prefix")));
             ps.setBoolean(i++, true);
             ps.setInt(i++, 0);
-            ps.setString(i, "stopped");
+            ps.setString(i++, "stopped");
+            ps.setInt(i++, 0);
             return ps;
         }, keyHolder);
         Number key = keyHolder.getKey();

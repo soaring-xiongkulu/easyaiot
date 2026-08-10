@@ -218,7 +218,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | Python 热路径归档 | `_retired_python_video/` | 保留直到 Java 全量绿 |
 | 回滚演练 | **FR-B7 ✅** 全量 `app/`+`services/`+`run.py`+`models.py` safe_fsops 恢复→验证→再归档（见 `ROLLBACK_LOG.md` FR-B7）；**FR-B11 ✅** Nacos `video-server` 进程切换 dry-run 证据（见 `ROLLBACK_LOG.md` FR-B11） | 生产真切换 + 网关冒烟仍待 ops |
 | Nacos 双跑/切换 | 文档有漂移（仍见 video-server-java 旧述） | **FR-B11 ✅** dry-run 记录；生产真切换仍待 ops |
-| 证据门禁 | EVID 已抬真 RUNTIME/alert success 等 | 完整替换应另建 **全量契约回归**（按本文件域表），不能只靠现有 18 个 vj_* case；**FR-B16 ✅** `tools/video_java/contract_regression.py` 14 前缀 inventory + 可选薄烟雾；**FR-B17 ✅** 265 路由 method-aware 薄探针执行；**FR-B18 ✅** 6 条 fail 收口 → **265 pass / 0 fail**（见 `logs/fr-b17-contract-latest.json`；mapped ≠ COMPLETE）；**FR-B19 ✅** P0/P1 字段级抽样（`tools/video_java/field_contract.py`；12 端点 / 67 assert；artifact `logs/fr-b19-field-contract-latest.json`；≠ 全量 259 字段矩阵）；**FR-B20 ✅** 14 前缀字段抽样扩面 + 空列表 item-key 实测（16 端点 / 88 assert / 0 skip；artifact `logs/fr-b20-field-contract-latest.json`；仍 ≠ 全量矩阵）；**FR-B21 ✅** GET 信封自动矩阵（`field_contract.py --matrix`；98 GET / 95 JSON 信封探针 + 3 非 JSON skip；265 路由 inventoried / 190 pass / 0 fail；artifact `logs/fr-b21-field-matrix-latest.json`；信封 ≠ 字段键矩阵）；**FR-B22 ✅** 深字段扩面 +9 端点（25 端点 / 130 pass / 2 skip 空列表 item-key；artifact `logs/fr-b22-field-contract-latest.json`）+ `PROD_SOAK_CHECKLIST.md`（全部 ⬜ 待 ops） |
+| 证据门禁 | EVID 已抬真 RUNTIME/alert success 等 | 完整替换应另建 **全量契约回归**（按本文件域表），不能只靠现有 18 个 vj_* case；**FR-B16 ✅** `tools/video_java/contract_regression.py` 14 前缀 inventory + 可选薄烟雾；**FR-B17 ✅** 265 路由 method-aware 薄探针执行；**FR-B18 ✅** 6 条 fail 收口 → **265 pass / 0 fail**（见 `logs/fr-b17-contract-latest.json`；mapped ≠ COMPLETE）；**FR-B19 ✅** P0/P1 字段级抽样（`tools/video_java/field_contract.py`；12 端点 / 67 assert；artifact `logs/fr-b19-field-contract-latest.json`；≠ 全量 259 字段矩阵）；**FR-B20 ✅** 14 前缀字段抽样扩面 + 空列表 item-key 实测（16 端点 / 88 assert / 0 skip；artifact `logs/fr-b20-field-contract-latest.json`；仍 ≠ 全量矩阵）；**FR-B21 ✅** GET 信封自动矩阵（`field_contract.py --matrix`；98 GET / 95 JSON 信封探针 + 3 非 JSON skip；265 路由 inventoried / 190 pass / 0 fail；artifact `logs/fr-b21-field-matrix-latest.json`；信封 ≠ 字段键矩阵）；**FR-B22 ✅** 深字段扩面 +9 端点（25 端点 / 130 pass / 2 skip 空列表 item-key；artifact `logs/fr-b22-field-contract-latest.json`）+ `PROD_SOAK_CHECKLIST.md`（全部 ⬜ 待 ops）；**FR-B28 ✅** GET 字段键自动矩阵（`field_contract.py --keys-matrix`；265 路由 / **41** Python-first 映射 / **39** key-assert + **59** envelope-only；**31** item-key pass / **0** fail；artifact `logs/fr-b28-keys-matrix-latest.json`；**59** 未映射路由仍 envelope-only；prod soak 仍 open） |
 
 ---
 
@@ -275,9 +275,19 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B21 GET 信封矩阵**（`:48096` live） | **265** inventoried 路由（**98 GET**）→ **265 pass** / **0 fail** / **170 skip**（167 非 GET 自动 skip + 3 非 JSON：`alert/image`、`alert/record`、patrol SSE `/events`）；**95** JSON GET 信封探针 **190 pass** / **0 fail**；保留 FR-B20 深采样 **16** 端点 / **88** assert；artifact `logs/fr-b21-field-matrix-latest.json`；信封 presence ≠ 字段键矩阵） |
 | **FR-B22 深字段扩面**（`:48096` live） | **25** 端点（+9：algorithm/stream-forward get-by-id、face/plate libraries、alert statistics、snap task list、record space-by-device、record videos list、playback statistics）→ **130 pass** / **0 fail** / **2 skip**（空列表 item-key）；artifact `logs/fr-b22-field-contract-latest.json`；**≠ 全量 259 字段矩阵**；`PROD_SOAK_CHECKLIST.md` 已建（全部 ⬜） |
 | **FR-B22 GET 信封矩阵**（`:48096` live，复跑） | **265** pass / **0 fail**；artifact `logs/fr-b22-field-matrix-latest.json` |
+| **FR-B28 GET 字段键矩阵**（`:48096` live） | **265** inventoried → **265 pass** / **0 fail**；**98 GET**（**95** JSON + **3** 非 JSON skip）；**41** Python-first 路径映射 → **39** key-assert / **59** envelope-only；item-key **31 pass** / **0 fail** / **8 deferred**（空 data/列表）；全局 seed **15/15**；artifact `logs/fr-b28-keys-matrix-latest.json`；**≠ 259 路由全键覆盖**；`SnapTaskRepository.insert` 修复 |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
+
+## 9. 最终判定 — FR-B28
+
+| 问题 | 答案 |
+|------|------|
+| 全量 GET 字段键自动矩阵？ | **部分** — `field_contract.py --keys-matrix` 覆盖 **265** inventoried 路由；**41** Python `to_dict`/blueprint 映射；**39** 路由执行 item/object 键断言；**59** 未映射 envelope-only；artifact `logs/fr-b28-keys-matrix-latest.json` |
+| Java 字段/创建修复？ | **是** — `SnapTaskRepository.insert`：占位符计数、`total_captures=0`、`getKey`→`new String[]{"id"}` |
+| phase0？ | **PASS 5/5** — `certify-frb28-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — 59 路由仍无 Python 键映射；8 item-key deferred；prod soak open |
 
 ## 9. 最终判定 — FR-B27
 
@@ -317,11 +327,11 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 问题 | 答案 |
 |------|------|
 | HTTP 路由是否与 Python 对齐？ | **是**（14 inventoried 前缀 `route_inventory` diff=0） |
-| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调与**全量**字段级契约仍 open；**HTTP 薄探针 265/265 已绿**（FR-B18）；**深字段抽样 39 端点已执行**（FR-B27：**192 pass / 0 fail**）；**GET 信封矩阵 265/265** |
-| 本地 MinIO/Kafka soak？ | **部分** — MinIO put + sync API（`logs/fr-b23-soak-*`）；**FR-B24 ✅** Kafka 宿主机 E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR + Alert Kafka produce（`logs/fr-b26-*`）；**FR-B27 ✅** matching Kafka produce + 深字段 39 端点（`logs/fr-b27-*`）；`snap_image.updated_at` schema 错位已修 |
+| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调与**全量**字段级契约仍 open；**HTTP 薄探针 265/265 已绿**（FR-B18）；**深字段抽样 39 端点已执行**（FR-B27：**192 pass / 0 fail**）；**GET 信封矩阵 265/265**；**GET 字段键矩阵 265/265**（FR-B28：**39** mapped key-assert / **59** envelope-only） |
+| 本地 MinIO/Kafka soak？ | **部分** — MinIO put + sync API（`logs/fr-b23-soak-*`）；**FR-B24 ✅** Kafka 宿主机 E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR + Alert Kafka produce（`logs/fr-b26-*`）；**FR-B27 ✅** matching Kafka produce + 深字段 39 端点（`logs/fr-b27-*`）；**FR-B28 ✅** keys-matrix + SnapTask insert 修复（`logs/fr-b28-*`）；`snap_image.updated_at` schema 错位已修 |
 | 能否称 COMPLETE / 退役 Python？ | **禁止** |
 | 证据硬化（EVID）能否停？ | **可以停**，转本文件 backlog + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md) |
-| 距完整替换还缺什么？ | **prod 联调 soak**（checklist 大部仍 ⬜）+ **全量 259 路由字段矩阵** + prod 场景回放 + 回滚演练 |
+| 距完整替换还缺什么？ | **prod 联调 soak**（checklist 大部仍 ⬜）+ **未映射 59 GET 路由 Python 键矩阵** + 空 data deferred 端点种子 + prod 场景回放 + 回滚演练 |
 
 **维护约定：** 每完成一个 FR 工作包，在本文件对应行改为 ✅，更新该域 Py vs Java 路由数，并保留短契约测；**不要**再开 Phase 门禁剧或 EVID/CLOSE 轮次。在全部 P0/P1（及产品未豁免的 P2）勾完前，禁止对外宣称「VIDEO Java 完整替换完成」。
 
