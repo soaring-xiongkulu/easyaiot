@@ -13,7 +13,7 @@ Ported all **35** `/video/face`, **26** `/video/plate`, and **6** `/video/device
 
 ## Commits
 
-(see `git log -1` after commit)
+- `4e01ae2` feat(video-java): FR-W2-MATCH port face/plate/device-detection routes (67/67)
 
 ## Python files read
 
