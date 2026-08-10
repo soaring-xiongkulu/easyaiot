@@ -110,9 +110,29 @@ def materialize_path(path: str) -> str:
     return re.sub(r"\{param\}", PROBE_PARAM_VALUE, path)
 
 
-def classify_http_status(code: int) -> Tuple[str, str]:
-    """Map HTTP status to probe bucket. 401/403 are pass (auth expected, not fail)."""
+def is_video_api_envelope(body: bytes | None) -> bool:
+    """True when body matches Python/Java VIDEO JSON envelope (code + msg/message)."""
+    if not body:
+        return False
+    try:
+        data = json.loads(body.decode("utf-8", errors="replace"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return False
+    if not isinstance(data, dict):
+        return False
+    return "code" in data and ("msg" in data or "message" in data)
+
+
+def classify_http_status(code: int, body: bytes | None = None) -> Tuple[str, str]:
+    """Map HTTP status to probe bucket. 401/403 are pass (auth expected, not fail).
+
+    HTTP 404 with VIDEO API envelope is pass (mapped route, resource not found) —
+    matches Python patrol.py L45 and FR-B39 businessCodeToHttpStatus(404).
+    Spring unmapped 404 has no envelope (timestamp/status/error/path).
+    """
     if code == 404:
+        if is_video_api_envelope(body):
+            return "pass", "HTTP 404 (mapped, resource not found)"
         return "fail", "unmapped (404)"
     if code >= 500:
         return "fail", f"server error ({code})"
@@ -161,10 +181,12 @@ def probe_route(
     req = urllib.request.Request(url, data=data, method=http_method, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            status, detail = classify_http_status(resp.status)
+            body = resp.read()
+            status, detail = classify_http_status(resp.status, body)
             return status, detail, resp.status
     except urllib.error.HTTPError as exc:
-        status, detail = classify_http_status(exc.code)
+        body = exc.read()
+        status, detail = classify_http_status(exc.code, body)
         return status, detail, exc.code
     except urllib.error.URLError as exc:
         return "skip", f"unreachable: {exc.reason}", None
@@ -383,6 +405,11 @@ def main(argv: List[str] | None = None) -> int:
         default=4.0,
         help="per-route HTTP timeout seconds",
     )
+    parser.add_argument(
+        "--artifact-stem",
+        default=None,
+        help="logs/<stem>-latest.json stem (default: fr-b17-contract for --probe-all)",
+    )
     args = parser.parse_args(argv)
 
     inventory = inventory_all_prefixes()
@@ -422,7 +449,9 @@ def main(argv: List[str] | None = None) -> int:
             for row in fails[:5]:
                 print(f"    {row['route']}: {row['detail']}")
 
-    artifact_stem = "fr-b17-contract" if args.probe_all else "fr-b16-contract-regression"
+    artifact_stem = args.artifact_stem or (
+        "fr-b17-contract" if args.probe_all else "fr-b16-contract-regression"
+    )
     write_artifacts(
         inventory,
         smoke_rows,

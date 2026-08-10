@@ -292,19 +292,19 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B38 face entry 无模型**（`:48096` local） | **code=400** + Python msg（非 500）；**不 soft-save**；artifact `logs/fr-b38-multipart-latest.json` |
 | **FR-B39 HTTP 400 对齐**（`:48096` local） | `VideoApiResponseAdvice.businessCodeToHttpStatus`：code 400/404 → HTTP 400/404；code 500 仍 HTTP 200（`camera.py` L1730-1732）；face no-model **HTTP 400**；artifact `logs/fr-b39-multipart-latest.json` |
 | **FR-B39 plate update image**（`:48096` local, MinIO on） | `PUT /video/plate/entries/{id}` multipart → `image_url`（`plate_library_service.update_entry` L311-313）；`PlateController` JSON/multipart consumes 拆分；artifact `logs/fr-b39-multipart-latest.json` |
+| **FR-B40 契约探针 404 假阳性**（`:48096` live） | FR-B39 业务 code=404→HTTP 404 后 39 条探针误报 unmapped；`contract_regression.py` 区分 envelope 404 vs Spring 404 → **265 pass / 0 fail**；artifact `logs/fr-b40-contract-latest.json` |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定 — FR-B39
+## 9. 最终判定 — FR-B40
 
 | 问题 | 答案 |
 |------|------|
-| Face no-model HTTP 400？ | **是（local）** — `face_entry_no_model_http_400` HTTP **400** + code=400 + `face_rec.onnx` msg；`face.py` L282-283；artifact `logs/fr-b39-multipart-latest.json` |
-| Plate update+image `image_url`？ | **是（local, MinIO on）** — `plate_entry_update_image_url` pass；`plate.py` L190-201 → `update_entry` L311-313；artifact `logs/fr-b39-multipart-latest.json` |
-| contract_regression 400 pass？ | **是** — `classify_http_status` 400→pass；265-route probe 无新增 fail（38×404 为既有 unmapped） |
-| phase0？ | **PASS 5/5** — `logs/certify-frb39-phase0.log` |
-| 能否称 COMPLETE？ | **禁止** — face entry **成功**路径仍待 InsightFace worker + Milvus；code=500 业务错误仍 HTTP 200（camera snapshot 有意保留） |
+| contract_regression 38×404 根因？ | **假阳性** — 路由已映射；FR-B39 `businessCodeToHttpStatus(404)` + probe `id=1` 不存在资源 → envelope HTTP 404（`patrol.py` L45；`face_library_service.py` L184） |
+| contract_regression pass/fail？ | **265 / 0** — `is_video_api_envelope` + `classify_http_status` 修正；artifact `logs/fr-b40-contract-latest.json` |
+| phase0？ | **PASS 5/5** — `logs/certify-frb40-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — 探针仅验证路径可达；行为 parity / prod soak 仍 open |
 
 ## 10. 历史判定归档（只读）
 

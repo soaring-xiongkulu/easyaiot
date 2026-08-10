@@ -68,14 +68,14 @@
 6. `DEVICE/iot-video/iot-video-biz/.../controller`  
 7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
 
-## 8. 现状摘要（2026-08-11 FR-B39）
+## 8. 现状摘要（2026-08-11 FR-B40）
 
 - **HTTP 路由：** `route_inventory` 14 前缀 **Py≈259 / Java≈259 / diff=0**（`FR-W4` 全量核对）。
-- **契约硬化：** **FR-B18 ✅** … **FR-B38 ✅** plate `image_url` + face 无模型 code=400；**FR-B39 ✅** 中央 HTTP 400/404 映射 + plate update 带图 `image_url`；artifact `logs/fr-b39-multipart-latest.json`。
-- **行为：** face no-model → **HTTP 400**（对齐 Python `face.py` L282-283）；plate update multipart → MinIO `image_url`；code=500 仍 HTTP 200（`camera.py` L1730-1732 有意保留）。
-- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`logs/certify-frb39-phase0.log`）。
+- **契约硬化：** **FR-B39 ✅** HTTP 400/404 中央映射 + plate update 带图；**FR-B40 ✅** contract_regression **265 pass / 0 fail**（收口 FR-B39 后 39 条 envelope-404 假阳性）；artifact `logs/fr-b40-contract-latest.json`。
+- **行为：** face no-model → **HTTP 400**（`face.py` L282-283）；业务 404 → HTTP 404 envelope（`patrol.py` L45）；code=500 仍 HTTP 200（`camera.py` L1730-1732）。
+- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`logs/certify-frb40-phase0.log`）。
 - **项目状态：** **FR HTTP 面已齐 — 禁止 COMPLETE**。
-- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B39 local multipart；其余仍 ⬜）。
+- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B39/B40 local；其余仍 ⬜）。
 
 ## 9. 你的下一步
 
@@ -91,6 +91,8 @@
 8. 全量契约回归 + 回滚演练 → 才允许 COMPLETE
 
 **FR-B39（local）：** `python tools/video_java/fr_b39_multipart.py` → `logs/fr-b39-multipart-latest.*`；face HTTP 400 + plate update `image_url`。
+
+**FR-B40（local）：** `python tools/video_java/contract_regression.py --probe-all --artifact-stem fr-b40-contract` → `logs/fr-b40-contract-latest.*`；**265 pass / 0 fail**。
 
 ## 10. 历史审查决议（切片期，仍有效的工程约束）
 
