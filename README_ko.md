@@ -42,7 +42,7 @@ EasyAIoT 공식 웹사이트: [http://36.111.47.113:8090/](http://36.111.47.113:
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-플랫폼은 <strong>WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, RUNTIME, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>RTC 소비자급 카메라 P2P 브리지</strong>(go2rtc 기반, <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드 지원 — 매장 Tapo 보완, Tuya 화이트라벨, 해외 Ring/Nest 초인종, Xiaomi 재활용, Wyze 저비용 확장, DoorBird 대화, GoPro 기동 시점, Roborock 청소기 카메라 — Web 원클릭 접속으로 통합 영상·AI 판정), <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간·스냅샷 알고리즘 작업, YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·3단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 합니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
+플랫폼은 <strong>WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, RUNTIME, EDGE, VISUALIZE, TRANSFORM, PANEL, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>RTC 소비자급 카메라 P2P 브리지</strong>(go2rtc 기반, <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드 지원 — 매장 Tapo 보완, Tuya 화이트라벨, 해외 Ring/Nest 초인종, Xiaomi 재활용, Wyze 저비용 확장, DoorBird 대화, GoPro 기동 시점, Roborock 청소기 카메라 — Web 원클릭 접속으로 통합 영상·AI 판정), <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간 / 스냅샷 / 순찰 알고리즘 작업, <strong>RUNTIME C++ 고속 프레임 실행기</strong>(세 유형을 동일 바이너리로 수용; 실시간은 기본 박스 AI 검출 스트림 푸시; 연산 노드 <strong>원자 모드</strong>로 실행기만 설치·경보 센터 집약), YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·3단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 합니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -137,7 +137,8 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
 #### 🧠 AI 기능
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>RUNTIME C++ 고속 프레임 실행기</strong>: 기존 TASK를 독립 <code>RUNTIME</code> 모듈로 발전시켜 실시간 비디오 핫패스—풀링, 하드/소프트 디코딩, YOLO 추론, 구조화 결과 회신을 전담합니다. 단계 간 링 큐(가득 차면 가장 오래된 프레임 폐기)로 디커플링하며 종단 지연과 드롭을 관측할 수 있습니다. VIDEO가 <code>executor=cpp</code>로 작업별 기동하고, 경보·하트비트는 VIDEO 기존 hook / Kafka 루프를 유지하며, 미리보기 중계와 작업 오케스트레이션은 VIDEO에 남깁니다—<strong>비디오 플랫폼 계층을 대체하거나 우회하지 않습니다</strong>. 기본 <code>executor=python</code>으로 현행 호환을 유지하고, 극한 처리량이 필요할 때 원클릭으로 C++ 백엔드로 전환하여 「오케스트레이션은 VIDEO, 연산은 RUNTIME」을 실제로 쓸 수 있는 혼용 가속 경로로 만듭니다</li>
+  <li><strong>RUNTIME C++ 고속 프레임 실행기</strong>: 비디오·알고리즘 핫패스를 「동작」에서 「확장 가능」으로 끌어올립니다 — 독립 <code>RUNTIME</code> 바이너리 하나로 <strong>세 가지</strong> 알고리즘 태스크를 담당합니다: <strong>실시간</strong>(장시간 풀링 + Pipeline), <strong>스냅샷/캡처</strong>(Cron SnapScheduler), <strong>순찰</strong>(다중 장치 PatrolScheduler). 공통 경로: <strong>풀링/채집 → 디코딩 → YOLO 추론 → 경보·하트비트 VIDEO 회신</strong>; 링 큐(가득 차면 최구 프레임 폐기)로 지연·드롭 관측. VIDEO가 <code>executor=cpp</code>로 기동하며, 오케스트레이션·원본 미리보기·경보 저장은 VIDEO에 남깁니다 — <strong>비디오 플랫폼 계층을 대체하지 않습니다</strong>. 정식 <strong>실시간</strong> 태스크는 <strong>기본으로 독립 AI 박스 검출 스트림을 푸시</strong>(SRS <code>ai/{장치}</code>)하여 미리보기 <code>live/</code>와 이중 분리; 캡처/순찰은 구조화 결과·경보 중심(주소가 있으면 푸시 가능, 장시간 푸시 강제 없음). Prefer GPU, 실패 시 CPU. 자세한 내용: <a href="RUNTIME/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">RUNTIME/README.md</a></li>
+  <li><strong>RUNTIME 원자 모드(경량 연산 노드)</strong>: 엣지 박스 / 클러스터 워커는 <strong>RUNTIME 실행기만 설치</strong>할 수 있습니다 — 로컬 VIDEO/WEB/DEVICE 없음. <code>VIDEO_BASE_URL</code>로 경보·하트비트를 센터 VIDEO에 집약; 센터가 실시간 / 캡처 / 순찰(<code>executor=cpp</code>)을 동일 바이너리에 하달하며, 실시간은 여전히 기본으로 박스 검출 스트림을 센터/클러스터 SRS에 푸시. 원자 ≠ 영상 미푸시: 원자는 「로컬 비즈니스 스택 없음」만 의미. 진입점: <code>VIDEO_BASE_URL=http://&lt;센터&gt;:6000 bash .scripts/docker/install_linux.sh runtime</code>; 또는 WEB / iot-node SSH 일괄 설치</li>
   <li><strong>전체 접점에서 플랫폼 이름 및 Logo 사용자 정의</strong>: EasyAIoT를 현장에 배포한 후 사용자가 보는 것은 범용 제품명이 아니라 「자신의 플랫폼」이어야 합니다. 모니터링 대시보드에 시각적 「플랫폼 식별 설정」이 내장되어 있어, 관리자가 UI에서 브랜드를 교체할 수 있습니다 — 관리 콘솔의 플랫폼 이름·Logo(사이드바·브라우저 제목 동기화), 모니터링 대시보드 독립 지휘 타이틀, 로그인 페이지 이름·Logo·폼 제목·밝은/어두운 배경 이미지. 세 접점 시각 통일, 즉시 적용, 저장 및 원클릭 초기화 지원.
     <ul style="margin: 5px 0; padding-left: 20px;">
       <li><strong>시스템 통합사 및 솔루션 제공사</strong>: 프론트엔드 스킨 변경·맞춤 개발·배포 비용 절감; PoC 시연과 정식 납품 간 고객 브랜드 빠른 전환, 단일 코드베이스로 다고객 프로젝트 지원, 회수 주기 단축 및 솔루션 재사용률 향상</li>
@@ -159,7 +160,7 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>천지도 공간 시각화 및 지도 기반 분석</strong>: 국가 천지도를 연동하여 카메라, 알람, 인·차량 인식 역량을 한 장의 지도에 모았습니다. 감시를 「화면 보기」에서 「전체 보기」로 업그레이드합니다. 스트리밍 미디어와 알람 모듈 모두 「지도 분포」 뷰를 제공하며, 장치 디렉터리 트리와 연동해 구역별로 집중 조회할 수 있어 검문소 배치와 온라인 상태를 한눈에 파악합니다. 지도 클릭, 장소 검색, 좌표 일괄 가져오기를 지원하여 GB 채널, NVR 채널, 직접 연결 카메라를 빠르게 배치할 수 있으며, 모든 영상에 명확한 공간 소속을 부여합니다. 알람 이벤트는 카메라 좌표와 자동 연계되어 지도에 표시되며, 시간·이벤트 유형·작업·업무 태그로 필터링하고 선택하면 스냅샷과 녹화를 바로 확인할 수 있어, 「어디서 발생했는지」에서 신속한 대응으로 이어집니다. 얼굴·번호판 라이브러리 인식과 결합하면 동일 대상의 다중 지점 적중 기록을 공간적 맥락으로 연결할 수 있습니다 — <strong>인물 추적</strong>으로 중점 인물의 출현 경로와 활동 범위를 복원하고, <strong>차량 추적</strong>으로 통과 기록을 연결해 차량 경로와 체류 구역을 빠르게 파악하여, 인·차량 수색, 순찰 배치, 사후 복기에 직관적 단서를 제공합니다. 이동형 장치는 궤적 재생을 지원하여 순찰·이동 경로를 시간축으로 재현합니다. 벡터 지도와 위성 영상을 자유롭게 전환하고 시야를 자동 맞춤하여, 관리자가 지도를 중심으로 이상 징후를 발견하고 목표를 잠금하며 지휘·조정할 수 있습니다</li>
   <li><strong>Qwen / DeepSeek 다중 GPU 배포</strong>: Qwen, DeepSeek 등 대규모 언어 모델을 다중 GPU 병렬 방식으로 배포할 수 있습니다. 클러스터 및 Worker 단위로 GPU 자원을 유연하게 스케줄링하여 모델 인스턴스의 탄력적 확장 및 로드 밸런싱을 실현하고, 고동시성 추론 및 긴 컨텍스트 시나리오에서 안정적인 서비스를 제공합니다</li>
   <li><strong>비전 대규모 모델 지능형 이해</strong>: QwenVL3 비전 대규모 모델을 통합하여 실시간 비디오 프레임에 대한 심층 비전 추론 및 의미론적 이해를 지원하며, 프레임 내용에 대한 지능형 분석 및 장면 이해를 수행할 수 있어 더 풍부한 시각적 인지 능력을 제공하며, 픽셀 수준의 인식에서 의미론적 수준의 이해로의 도약을 실현합니다</li>
-  <li><strong>카메라 실시간 영상 AI 분석</strong>: RTSP/RTMP 실시간 비디오 스트림을 대상으로 스트림 수신·프레임 추출·모델 추론에서 구조화 출력·경보 연동까지 전 과정 분석 역량을 제공하여, 화면 변화를 밀리초 단위로 검색·판단 가능한 구조화된 감지 이벤트로 즉시 전환합니다. 시청 체인과 알고리즘 체인을 서로 독립적으로 운영하여 미리보기 선명도와 고채널 동시 처리량을 모두 확보합니다. 분석 결과는 감지 영역, 방어 시간대, 얼굴/번호판 인식 및 오케스트레이션 가능한 후처리 규칙과 원활하게 연결되어, 기존 「사람이 화면을 주시하고 사후에 확인」하는 감시 모드를 「기계가 24시간 감시, 이상 즉시 푸시, 증거 자동 보관」으로 업그레이드하고, 실시간 영상을 수동 시청에서 능동적 인지와 지능형 판단의 인프라로 전환합니다</li>
+  <li><strong>카메라 실시간 영상 AI 분석</strong>: RTSP/RTMP 실시간 스트림에 대해 풀링·디코딩·모델 추론부터 구조화 출력·경보 연동까지 전 과정 분석; 기본으로 <strong>RUNTIME C++</strong>가 담당(캡처·순찰과 동일 실행기 체계), 밀리초 응답으로 구조화 검출 이벤트를 생성하고 <strong>기본으로 박스 검출 스트림을 푸시</strong>해 근무자가 전환 판정. 시청(원본)과 알고리즘(검출) 체인은 독립; 감지 영역·방어 시간대·얼굴/번호판·후처리 규칙과 연결</li>
   <li><strong>카메라 지능형 순찰</strong>: 카메라 대수는 많지만 인력이 부족한 감시 시나리오를 위해, 플랫폼은 분할 화면 순찰과 장치 디렉터리 일괄 순찰 기능을 제공하여 제한된 동시 연결로 대규모 카메라에 대한 순환식 AI 분석을 수행합니다. 순환·연결 풀·혼합 세 가지 스케줄링 모드를 지원하며, 설정 간격으로 자동 캡처·검출 모델 실행·경보 및 얼굴/번호판 인식 연동이 가능합니다. 혼합 모드에서는 중점 채널을 상시 감시하고 배경 채널은 풀 방식으로 순환하여 중점 배치와 전역 커버를 모두 충족합니다. 순찰 진행 상황을 실시간으로 전송하고 캡처 프레임을 자동 보관하며, 분할 화면 또는 장치 디렉터리에서 수백 대 카메라 순찰 세션을 원클릭으로 시작할 수 있어, 「적은 연결, 넓은 커버, 빠른 발견」으로 기존의 수동 화면 전환 감시를 지능형 자동 순찰로 업그레이드합니다</li>
   <li><strong>클라우드-엣지-디바이스 통합 알고리즘 경보 모니터링 대시보드</strong>: 통일된 클라우드-엣지-디바이스 통합 알고리즘 경보 모니터링 대시보드를 제공하며, 디바이스 상태, 알고리즘 태스크 실행 상황, 경보 이벤트 통계, 비디오 스트림 분석 결과 등 주요 정보를 실시간으로 표시합니다. 다차원 데이터 시각화 표시를 지원하여 클라우드, 엣지, 디바이스 측의 통합 모니터링 및 관리를 실현하며, 의사결정자에게 전역적 관점의 지능형 모니터링 지휘 센터를 제공합니다.</li>
   <li><strong>얼굴 인식 및 얼굴 라이브러리 관리 기능</strong>: 카메라 작업에서 얼굴 인식 기능을 유연하게 활성화할 수 있으며, 얼굴 라이브러리 및 얼굴 특징 관리 체계를 통해 얼굴 샘플/특징의 등록, 조회, 수정, 삭제와 효율적인 검색 기능을 제공합니다. 캡처 프레임에서 고효율 얼굴 비교 및 신원 검색을 지원하고, 매칭 결과, 캡처 이미지, 카메라 위치 정보, 장치 컨텍스트를 완전하게 기록하여 인원 동선 추적, 보안 포렌식, 다차원 통계 분석을 지원합니다.</li>
@@ -169,9 +170,9 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>대규모 카메라 관리</strong>: 수백 대 규모의 카메라 접속을 지원하며, 수집, 라벨링, 학습, 추론, 내보내기, 분석, 경보, 녹화, 저장, 배포 등의 전 과정 서비스를 제공합니다.</li>
   <li><strong>알고리즘 태스크 관리</strong>: 실시간·스냅샷·순찰 유형의 알고리즘 태스크 생성 및 관리를 지원하며, 각 태스크는 프레임 추출기와 정렬기를 유연하게 바인딩하여 정밀한 비디오 프레임 추출 및 결과 정렬을 실현합니다.
     <ul style="margin: 5px 0; padding-left: 20px;">
-      <li><strong>실시간 알고리즘 태스크</strong>: 실시간 영상 분석에 사용되며 RTSP/RTMP 스트림 실시간 처리를 지원합니다. 실행 백엔드는 <code>python</code>(기본, 기존 run_deploy) 또는 <code>cpp</code>(RUNTIME 바이너리 기동)를 선택할 수 있으며, 모니터링·보안 등 실시간 시나리오에 적합합니다.</li>
-      <li><strong>캡처 알고리즘 태스크</strong>: 캡처 이미지 분석에 사용되며, 캡처 이미지에 대한 지능형 식별 및 분석을 수행하여 이벤트 복원, 이미지 검색 등의 시나리오에 적합합니다.</li>
-      <li><strong>순찰 알고리즘 태스크</strong>: 다채널 라운드로빈과 연결 풀 스케줄링으로 「적은 연결, 넓은 커버리지」의 배치 AI 순찰을 수행합니다.</li>
+            <li><strong>실시간 알고리즘 태스크</strong>: RTSP/RTMP 실시간 분석; 기본 백엔드 <code>executor=cpp</code>(RUNTIME 기동, 기본 박스 AI 스트림 푸시 + 경보/하트비트), <code>python</code> 선택 가능</li>
+      <li><strong>캡처 알고리즘 태스크</strong>: 캡처 이미지 분석; 기본으로도 <code>executor=cpp</code>(SnapScheduler / Cron) 사용 가능</li>
+      <li><strong>순찰 알고리즘 태스크</strong>: 다채널 라운드로빈 / 연결 풀; 기본으로도 <code>executor=cpp</code>(PatrolScheduler) 사용 가능</li>
     </ul>
   </li>
   <li><strong>데이터셋 라벨링 및 다중 포맷 데이터셋 관리</strong>: 시각적 이미지 라벨링 작업 공간을 제공하며, 사각형·다각형 등 라벨링 형태와 카테고리 관리, 진행률 추적을 지원합니다. YOLO, COCO, ImageFolder 등 주류 데이터셋 포맷의 유연한 가져오기·내보내기를 전면 지원하고, 클라우드 플랫폼 데이터셋 연동을 통해 클라우드 데이터셋의 원클릭 가져오기 및 동기화 내보내기를 지원하여 데이터 수집, 라벨링, 학습, 배포 추론에 이르는 전 과정을 원활하게 연결합니다.</li>
@@ -179,7 +180,7 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>스트림 전달</strong>: AI 분석 기능을 활성화하지 않고도 카메라 실시간 영상을 직접 시청할 수 있습니다. 스트림 전달 작업을 생성하여 여러 카메라를 일괄 전달할 수 있으며, 여러 비디오 스트림의 동기화된 시청을 실현하여 순수 비디오 모니터링 시나리오 요구사항을 충족합니다.</li>
   <li><strong>GPU 탐지, 부하 기반 할당 및 다중 GPU 협업</strong>: 플랫폼은 GPU 자원을 탐지하고 지능형으로 스케줄링합니다. 사용 가능한 GPU 수를 인식한 뒤 GPU별 실시간 부하에 따라 비디오 인코딩/디코딩과 알고리즘 추론 작업을 다중 GPU에 동적으로 분산·병렬 실행하여 다중 스트림 처리량과 자원 활용도를 높이면서 안정성을 유지하며, 다중 GPU 환경에서 화면 처리와 모델 추론을 조화롭게 운용합니다.</li>
   <li><strong>지능형 전송 프로토콜 및 고신뢰 스트림 수신</strong>: RTSP 등 풀(Pull) 경로에서 시나리오에 맞게 전송 방식을 자동 선택하여 지연과 안정성의 균형을 맞춥니다. 회색 화면, 디코딩 오류 또는 화면 정체가 감지되면 자동으로 재연결 및 링크 복구를 수행하여 장시간 화면 깨짐·정지가 업무에 미치는 영향을 줄입니다.</li>
-  <li><strong>시청 체인과 알고리즘 체인 분리 및 계층형 비트레이트</strong>: 「실시간 미리보기/대형 화면 시청」과 「알고리즘 분석용 프레임 추출」을 서로 분리하여 독립적으로 스케줄링합니다. 시청 측은 화면이 선명하고 끊김이 적도록 우선하고, 알고리즘 측은 검출 정확도와 연산·대역폭 사용의 균형을 맞춥니다 — 분석과 시청이 동일 채널을 두고 경쟁하지 않도록 하여 「선명하게 보기·끊김 없음」과 「연산 가능·확장 가능」을 함께 담보합니다.</li>
+  <li><strong>시청 체인과 알고리즘 체인 분리 및 계층형 비트레이트</strong>: 「실시간 미리보기/대형 화면」과 「알고리즘 분석」을 분리·독립 스케줄. 시청 측은 SRS <code>live/</code> 원본; 알고리즘 측은 RUNTIME(또는 Python)이 실시간 / 캡처 / 순찰을 담당하며, 정식 실시간은 기본으로 박스 검출 스트림을 독립 <code>ai/</code>로 푸시</li>
   <li><strong>모델 서비스 클러스터 추론</strong>: 분산형 모델 추론 서비스 클러스터를 지원하여 지능형 부하 분산, 장애 자동 전환 및 고가용성 보장을 실현하며, 추론 처리량과 시스템 안정성을 크게 향상시킵니다.</li>
   <li><strong>방어 시간대 관리</strong>: 완전 방어 모드(All-defense)와 반방어 모드(Semi-defense) 두 가지 방어 전략을 지원하며, 다른 시간대의 방어 규칙을 유연하게 구성하여 정밀한 시간대별 지능형 모니터링 및 경보를 실현합니다.</li>
   <li><strong>OCR 및 음성 인식</strong>: 고정밀 문자 인식과 음성-텍스트 변환 기능을 제공하며, 다중 언어 인식을 지원합니다.</li>
@@ -466,7 +467,8 @@ EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, RUNTIME, EDGE, VISUALIZE, TR
     <li><strong>스트리밍 미디어 처리</strong>: RTSP/RTMP 스트림 실시간 처리 및 전송 지원</li>
     <li><strong>다중 프로토콜 카메라 접속</strong>: GB28181, ONVIF, NVR 일괄 스캔, DJI FlightHub 라이브, RTC 소비자급 카메라 통합 관리</li>
     <li><strong>RTC 연동 API</strong>: <code>/register/device/rtc-live</code> 원클릭 go2rtc 스트림 등록·장치 등록; 삭제 시 RTC 스트림 자동 정리</li>
-    <li><strong>알고리즘 태스크 관리</strong>: 실시간 / 캡처 / 순찰 알고리즘 태스크를 지원하며, 실시간 태스크는 실행 백엔드 <code>executor=python|cpp</code>를 설정할 수 있습니다(기본 python, cpp일 때 본 모듈이 ini를 생성하고 RUNTIME을 기동).</li>
+    <li><strong>알고리즘 태스크 관리</strong>: 실시간 / 캡처 / 순찰 지원; 세 유형 모두 기본 <code>executor=cpp</code>(ini 생성 + RUNTIME 기동); 실시간은 추가로 기본 <code>ai/</code> 검출 스트림 푸시; <code>python</code> 선택 가능</li>
+    <li><strong>RUNTIME과의 역할 분담</strong>: VIDEO는 오케스트레이션·원본 미리보기(<code>live/</code>)·경보 저장; RUNTIME은 실시간 / 캡처 / 순찰의 프레임 실행을 담당하며 실시간은 박스 검출 스트림(<code>ai/</code>)을 추가로 푸시</li>
     <li><strong>결과면 통일</strong>: Python이든 C++ 실행기든 경보는 본 모듈 <code>/video/alert/hook</code>으로 회신되고, 하트비트는 태스크 서비스 상태에 기록된 뒤 Kafka / 저장 / 알림으로 흐릅니다.</li>
     <li><strong>프레임 추출기 및 정렬기</strong>: 유연한 프레임 추출 전략과 결과 정렬 메커니즘을 지원하며, 각 알고리즘 태스크는 독립적인 프레임 추출기와 정렬기에 바인딩할 수 있습니다.</li>
     <li><strong>방범 시간대</strong>: 전체 방범 모드 및 반방범 모드의 시간대별 구성 지원</li>
@@ -499,11 +501,15 @@ EasyAIoT는 WEB, APP, DEVICE, NODE, VIDEO, RTC, AI, RUNTIME, EDGE, VISUALIZE, TR
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>RUNTIME 모듈</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
-  <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>C++ 프레임 핫패스</strong>: 기존 TASK에서 발전; 풀링 → 디코딩 → YOLO 추론 → 결과 회신에 집중하며 VIDEO <code>executor=cpp</code> 실시간 태스크를 지원(VIDEO 오케스트레이션/미리보기/경보면을 대체하지 않음)</li>
-    <li><strong>링 큐 파이프라인</strong>: Pull/Decode, Infer, Emit 단계별 스레드; 프레임 링이 가득 차면 가장 오래된 것을 폐기하여 실시간 우선과 추론에 의한 디코딩 블로킹 방지</li>
-    <li><strong>VIDEO 계약 연동</strong>: 경보 POST <code>/video/alert/hook</code>, 하트비트 POST <code>/video/algorithm/heartbeat/realtime</code>, <code>/health</code>로 드롭·지연 지표 노출</li>
-    <li><strong>Linux 엣지 친화</strong>: CMake로 독립 바이너리 산출, conda / 시스템 의존성과 함께 배포 가능; 기본 python 실행기로 언제든 롤백</li>
+    <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>C++ 프레임 핫패스</strong>: 동일 바이너리로 <strong>realtime / snap / patrol</strong> 담당 — 풀링 또는 스케줄 채집 → 디코딩 → YOLO → 구조화 회신; VIDEO <code>executor=cpp</code> 서비스</li>
+    <li><strong>세 가지 태스크 형태</strong>: 실시간 Pipeline; Cron 스냅; 다중 장치 순찰</li>
+    <li><strong>실시간 기본 AI 푸시</strong>: SRS <code>ai/{장치}</code>, <code>live/</code>와 분리</li>
+    <li><strong>경보·하트비트 집약</strong>: VIDEO hook / heartbeat → Kafka / 저장</li>
+    <li><strong>링 큐 파이프라인</strong>: 가득 차면 최구 프레임 폐기</li>
+    <li><strong>GPU 우선, CPU 폴백</strong></li>
+    <li><strong>원자 모드</strong>: 연산 노드에 RUNTIME만 설치; <code>VIDEO_BASE_URL</code>로 센터 집약</li>
+    <li><strong>원클릭 배포</strong>: WEB / iot-node → <code>/opt/easyaiot/RUNTIME</code></li>
   </ul>
 </td>
 </tr>
@@ -622,7 +628,7 @@ EasyAIoT는 Linux, Mac, Windows 세 가지 주류 운영체제에서의 배포�
 IoT 디바이스(특히 대량의 카메라)의 효율적인 접속 및 제어 네트워크를 구축했습니다. 우리는 스트리밍 미디어 실시간 전송 기술과 최첨단 인공지능(AI)을 심층적으로 융합하여 통합 서비스 핵심을 구축했습니다. 이 솔루션은 이기종 디바이스의 상호 연결 및 통신을 뚫을 뿐만 아니라 고화질 비디오 스트림과 강력한 AI 해석 엔진을 심층적으로 통합하여 모니터링 시스템에 "지능형 눈"을 부여합니다. 이는 얼굴 인식, 이상 행동 분석, 위험 인원 배치 및 주변 침입 감지를 정확하게 실현합니다.
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
-플랫폼은 실시간·캡처·순찰 유형의 알고리즘 태스크를 지원합니다: 실시간 태스크는 RTSP/RTMP 스트림 실시간 영상 분석에 사용되며, 실행 백엔드는 Python(기본) 또는 C++ RUNTIME(<code>executor=cpp</code>)을 선택해 오케스트레이션·경보 계약을 바꾸지 않고 핫패스 처리량을 극대화합니다. 캡처 태스크는 캡처 이미지의 지능형 분석에 사용되어 이벤트 복원 및 이미지 검색을 지원하며, 순찰 태스크는 다채널 라운드로빈 커버리지를 담당합니다. 알고리즘 태스크 관리를 통해 유연한 프레임 추출 및 정렬 전략을 실현하며, 각 태스크는 독립적인 프레임 추출기와 정렬기에 바인딩할 수 있습니다. 모델 서비스 클러스터 추론 능력과 결합하여 밀리초 단위 응답과 고가용성 보장을 확실히 합니다. 동시에 완전 방어 모드와 반방어 모드 두 가지 방어 전략을 제공하여 다른 시간대에 따라 모니터링 규칙을 유연하게 구성할 수 있으며, 정밀한 시간대별 지능형 모니터링 및 경보를 실현합니다.
+플랫폼은 실시간·캡처·순찰 유형의 알고리즘 태스크를 지원합니다: 세 유형 모두 기본으로 <strong>RUNTIME C++ 고속 실행기</strong>(<code>executor=cpp</code>)를 사용할 수 있습니다 — 실시간은 장시간 풀링·디코딩·YOLO와 함께 <strong>기본 박스 AI 검출 스트림 푸시</strong>; 캡처는 Cron 채집 인식; 순찰은 다채널 라운드로빈. 경보·하트비트는 VIDEO 기존 루프로 회신; Python은 선택 백엔드. 연산 노드는 <strong>RUNTIME 원자 모드</strong>(실행기만 설치, 경보 센터 집약)를 지원합니다. 알고리즘 태스크 관리를 통해 유연한 프레임 추출 및 정렬 전략을 실현하며, 각 태스크는 독립적인 프레임 추출기와 정렬기에 바인딩할 수 있습니다. 모델 서비스 클러스터 추론 능력과 결합하여 밀리초 단위 응답과 고가용성 보장을 확실히 합니다. 동시에 완전 방어 모드와 반방어 모드 두 가지 방어 전략을 제공하여 다른 시간대에 따라 모니터링 규칙을 유연하게 구성할 수 있으며, 정밀한 시간대별 지능형 모니터링 및 경보를 실현합니다.
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
 IoT 디바이스 관리 측면에서 EasyAIoT는 완전한 디바이스 생명주기 관리 능력을 제공하며, 다양한 IoT·산업 프로토콜(MQTT, TCP, HTTP, Modbus-TCP, Modbus-RTU, OPC UA)을 지원하여 디바이스의 빠른 접속, 안전 인증, 실시간 모니터링 및 지능형 제어를 실현합니다. 규칙 엔진을 통해 디바이스 데이터의 지능형 흐름 및 처리를 실현하며, AI 기능과 결합하여 디바이스 데이터를 심층 분석합니다. 이는 디바이스 접속, 데이터 수집, 지능형 분석에서 의사결정 실행에 이르는 전 과정 자동화를 실현하여 진정한 만물 인터넷화, 만물 지능화 제어를 실현합니다.

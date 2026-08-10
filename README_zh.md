@@ -42,7 +42,7 @@ EasyAIoT 官方网站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平台由 <strong>WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时与抓拍算法任务、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、可编排业务后处理、联邦算力集群调度，以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、三档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置。
+平台由 <strong>WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时 / 抓拍 / 巡检算法任务、<strong>RUNTIME C++ 高速帧执行器</strong>（统一承接三类任务的拉流解码与推理；实时任务另默认推带框检测流；支持计算节点<strong>原子模式</strong>只装执行器、告警汇聚中心）、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、可编排业务后处理、联邦算力集群调度，以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、三档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -200,6 +200,8 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
     </ul>
   </li>
   <li><strong>YOLO26 新一代目标检测能力</strong>：平台内置最新一代目标检测能力，开箱即可用于实时画面分析与抓拍识别，在相同硬件条件下可接入更多路摄像头、响应更快、误报更少。支持从数据采集、标注、训练到上线推理的完整闭环，帮助用户以更低成本持续迭代专属检测模型，快速覆盖安全帽佩戴、人员闯入、烟火隐患等各类常见安防与工业场景，让「看得准、算得快、扩得动」成为默认可用能力</li>
+  <li><strong>RUNTIME C++ 高速帧执行器</strong>：把视频算法热路径从「能跑」推进到「跑得动、扩得开」——独立 <code>RUNTIME</code> 模块以<strong>同一二进制</strong>承接三类算法任务：<strong>实时</strong>（长连接拉流 + Pipeline）、<strong>抓拍</strong>（Cron 调度 SnapScheduler）、<strong>巡检</strong>（多设备轮巡 PatrolScheduler）。共性路径为<strong>拉流/采帧 → 解码 → YOLO 推理 → 告警/心跳回传</strong>；流水线以环形队列解耦（满则丢最旧帧），端到端时延与丢帧可观测。VIDEO 以 <code>executor=cpp</code> 按任务拉起，编排、原画预览与告警落库仍在 VIDEO，<strong>不替代视频平台层</strong>。其中<strong>正式实时任务默认额外推独立 AI 检测流</strong>（SRS <code>ai/{设备}</code>），与原画预览 <code>live/</code> 双路分离——值守既能看清原画，又能切到带框图研判；抓拍/巡检以结构化结果与告警为主（有地址时亦可推流，但不强制长推）。默认 prefer GPU（失败自动回退 CPU）。需要极致吞吐时一键走 C++ 后端，让「编排归 VIDEO、算力归 RUNTIME」成为可落地的混编加速路径。详见 <a href="RUNTIME/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">RUNTIME/README.md</a></li>
+  <li><strong>RUNTIME 原子模式（计算节点轻装部署）</strong>：边缘算力盒 / 集群工作节点可<strong>只装 RUNTIME 执行器</strong>，本机不部署 VIDEO/WEB/DEVICE——装机更轻、故障面更小、扩容更快。节点通过 <code>VIDEO_BASE_URL</code> 把告警与心跳汇聚到中心 VIDEO；中心下发正式算法任务（实时 / 抓拍 / 巡检，<code>executor=cpp</code>）时由同一二进制承接，其中实时任务仍默认推带框检测流到中心/集群 SRS。原子 ≠ 永不推流：原子只表示「本机无业务面」，智能与画面仍回中心统一研判。一键入口：<code>VIDEO_BASE_URL=http://&lt;中心&gt;:6000 bash .scripts/docker/install_linux.sh runtime</code>；亦可经 WEB「业务运行时分发」批量 SSH 安装到节点</li>
   <li><strong>YOLO26 人体姿态分析</strong>：在目标检测能力之上新增人体关键点与骨架姿态分析，开箱即用，支持图片、视频与摄像头实时流三种输入方式。图片模式可同步输出骨架标注与人数统计；视频模式支持进度跟踪与结果下载；摄像头模式可对接 RTSP/RTMP 实时取流，将姿态识别结果叠加推流回显，便于远程盯防与行为研判。模型推理页提供「姿态分析」与「目标检测」一键切换，适用于工地作业规范、健身动作评估、人群聚集态势感知等需要「看清人体结构与动作形态」的场景，让平台从「框出目标」进一步走向「理解姿态」</li>
   <li><strong>多协议摄像头接入支持</strong>：全面支持 GB28181 和 ONVIF 两大主流视频监控协议，实现标准化设备接入与管理。GB28181 作为中国国家标准，完美适配国内主流监控设备；ONVIF 作为国际通用标准，广泛兼容全球主流品牌摄像头。通过双协议支持，平台能够无缝对接现有监控系统，实现设备的即插即用、自动发现与统一管理，大幅降低设备接入门槛，提升系统兼容性与扩展性，为大规模摄像头部署提供坚实的技术基础。此外，新增 NVR 同网段/跨网段批量扫描、注册与统一管控能力，覆盖海康、大华、华为、萤石、小米等主流品牌，支持基于设备原生协议的网段发现、一键登记及通道批量导入；对于米家等原生不支持 RTSP 的消费级摄像头，可通过 <strong>RTC 模块（go2rtc 桥接）</strong>纳入同一平台，进一步降低大规模监控设备的接入与运维成本</li>
   <li><strong>大疆机场 / 无人机空中视角接入</strong>：突破固定摄像头「只能看地面、难覆盖广域」的布控局限，将大疆司空体系下的机场与无人机高空画面纳入平台统一视频与 AI 研判闭环。流媒体模块提供「接入大疆直播」能力：支持<strong>司空 API 开启直播</strong>与<strong>手动直播源</strong>两种接入方式——API 模式一键拉起厂家直播流并自动登记设备；手动模式则支持直接填入 RTSP / RTMP / HTTP-FLV / HLS 等直播源。接入后空中画面可与国标/ONVIF 固定点位同屏共管，管理者可像管理固定摄像头一样调阅机场与飞行器实况，并进一步挂接实时 AI 分析、告警联动与证据留存，快速覆盖广域巡查、应急勘察、周界补盲等传统固定点位难以触及的场景，显著缩短「发现异常—锁定现场—联动处置」的响应链条，让智慧安防从平面布控升级到天地一体协同感知</li>
@@ -213,8 +215,8 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>天地图空间可视化与以图研判</strong>：接入国家天地图，将摄像头、告警与人车识别能力汇聚到一张地图，让监控从「看画面」升级为「看全局」。流媒体与告警模块均提供「地图分布」视图，配合设备目录树按区域聚焦，一眼掌握卡口布局与在线状态；支持地图点选、地点搜索与批量导入坐标，国标通道、NVR 通道与直连摄像头均可快速完成布点，让每路画面都有清晰的空间归属。告警事件自动关联摄像头坐标上图展示，可按时间、事件类型、任务与业务标签筛选，选中即可查看抓拍与录像，帮助值守人员从「哪里出事」快速切入处置。结合人脸库与车牌库识别能力，可将同一目标在多个点位上的命中记录串联成空间脉络——<strong>以人寻迹</strong>，还原重点人员在布控范围内的出现路线与活动范围；<strong>以车寻迹</strong>，串联过车记录，快速定位车辆行经路径与停留区域，为寻人找车、巡防布控与事后复盘提供直观线索。移动类设备还支持轨迹回放，按时间轴重现巡逻与行进路线；矢量地图与卫星影像随心切换，自动适应视野，让管理者以地图为纲、以图为媒，更快发现异常、锁定目标、指挥调度</li>
   <li><strong>Qwen / DeepSeek 多卡部署</strong>：支持将 Qwen、DeepSeek 等大语言模型以多卡并行方式部署上线，可按集群灵活调度 GPU 算力，实现模型实例的弹性扩缩与负载均衡，满足高并发推理与长上下文场景下的稳定服务能力</li>
   <li><strong>视觉大模型智能理解</strong>：集成QwenVL3视觉大模型，支持对实时视频画面进行深度视觉推理与语义理解，能够对画面内容进行智能分析与场景理解，提供更丰富的视觉认知能力，实现从像素级感知到语义级理解的跨越</li>
-  <li><strong>摄像头实时画面 AI 分析</strong>：面向 RTSP/RTMP 实时视频流提供从拉流、抽帧、模型推理到结构化出数与告警联动的全链路分析能力，以毫秒级响应将画面变化即时转化为可检索、可研判的结构化检测事件。观看与算法链路相互独立，兼顾预览清晰度与高路数并发吞吐；分析结果可无缝衔接检测区域、布防时段、人脸/车牌识别及可编排后处理规则，将传统「人盯屏、事后翻」的值守模式升级为「机器全时盯、异常秒推送、证据自动留」，让实时视频从被动观看真正变为主动感知与智能研判的基础设施</li>
-  <li><strong>摄像头智能巡检</strong>：面向路数多、值守人力有限的监控场景，提供分屏巡检与设备目录批量巡检能力，对大规模摄像头进行轮巡式 AI 分析。支持轮询、连接池、混合三种调度模式——可按设定间隔自动抓拍、运行检测模型并联动告警与人脸/车牌识别；混合模式下焦点路常驻盯防、背景路轮巡，兼顾重点布控与全域覆盖。巡检进度实时可见，抓拍自动留存，支持从分屏画面或设备目录一键拉起数百路巡检，以「少连接、广覆盖、快发现」的方式，将传统人工逐屏翻看的值守模式升级为智能化自动巡检</li>
+  <li><strong>摄像头实时画面 AI 分析</strong>：面向 RTSP/RTMP 实时视频流提供从拉流、解码、模型推理到结构化出数与告警联动的全链路分析能力；默认可由 <strong>RUNTIME C++</strong> 承接（与抓拍、巡检共用同一执行器体系），以毫秒级响应将画面变化即时转化为可检索、可研判的结构化检测事件，并<strong>默认推送带框检测流</strong>供值守切换研判。观看（原画）与算法（检测画）链路相互独立，兼顾预览清晰度与高路数并发吞吐；分析结果可无缝衔接检测区域、布防时段、人脸/车牌识别及可编排后处理规则，将传统「人盯屏、事后翻」的值守模式升级为「机器全时盯、异常秒推送、证据自动留」，让实时视频从被动观看真正变为主动感知与智能研判的基础设施</li>
+  <li><strong>摄像头智能巡检</strong>：面向路数多、值守人力有限的监控场景，提供分屏巡检与设备目录批量巡检能力，对大规模摄像头进行轮巡式 AI 分析；默认可由 <strong>RUNTIME</strong> 以 <code>task_type=patrol</code> 在计算节点执行。支持轮询、连接池、混合三种调度模式——可按设定间隔自动抓拍、运行检测模型并联动告警与人脸/车牌识别；混合模式下焦点路常驻盯防、背景路轮巡，兼顾重点布控与全域覆盖。巡检进度实时可见，抓拍自动留存，支持从分屏画面或设备目录一键拉起数百路巡检，以「少连接、广覆盖、快发现」的方式，将传统人工逐屏翻看的值守模式升级为智能化自动巡检</li>
   <li><strong>云边端一体算法预警监控大屏</strong>：提供统一的云边端一体化算法预警监控大屏，实时展示设备状态、算法任务运行情况、告警事件统计、视频流分析结果等关键信息，支持多维度数据可视化展示，实现云端、边缘端、设备端的统一监控与管理，为决策者提供全局视角的智能监控指挥中心</li>
   <li><strong>人脸识别与人脸库管理能力</strong>：支持在摄像头任务中灵活开启人脸识别能力，提供人脸库与人脸特征管理体系，支持样本/特征的新增、查询、更新、删除与高效检索。支持对抓拍画面进行人脸比对与身份检索，完整记录匹配结果、抓拍图片、摄像头位置信息与设备上下文，便于后续人员轨迹追溯、安防取证与多维度统计分析</li>
   <li><strong>车牌识别与车牌库管理能力</strong>：支持在监控任务中一键启用车牌识别，自动从过车画面中识别车牌信息，并与自建车牌库实时比对。可灵活维护白名单、黑名单及业务标签，车辆命中规则时即时告警联动，帮助实现出入口通行管控、重点车辆布控、访客与固定车辆分类管理等需求。支持自动收录新出现车牌、完整留存抓拍与匹配记录，便于事后查车、轨迹核对与证据留存；识别过程与原有视频分析并行运行，不影响监控与告警主流程的稳定性和实时性</li>
@@ -223,9 +225,9 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>大规模摄像头管理</strong>：支持百级摄像头接入，提供采集、标注、训练、推理、导出、分析、告警、录像、存储、部署等全流程服务</li>
   <li><strong>算法任务管理</strong>：支持创建和管理实时、抓拍、巡检等类型的算法任务，每个算法任务可灵活绑定抽帧器和排序器，实现精准的视频帧提取与结果排序
     <ul style="margin: 5px 0; padding-left: 20px;">
-      <li><strong>实时算法任务</strong>：用于实时画面分析，支持 RTSP/RTMP 流实时处理，提供毫秒级响应能力，适用于监控、安防等实时场景</li>
-      <li><strong>抓拍算法任务</strong>：用于抓拍图像分析，对抓拍图片进行智能识别与分析，适用于事件回溯、图像检索等场景</li>
-      <li><strong>巡检算法任务</strong>：面向多路轮巡与连接池调度，以「少连接、广覆盖」完成批量 AI 巡检</li>
+      <li><strong>实时算法任务</strong>：用于实时画面分析，支持 RTSP/RTMP 流处理；执行后端默认 <code>executor=cpp</code>（拉起 RUNTIME，默认推带框 AI 流并回传告警/心跳），亦可选 <code>python</code>，适用于监控、安防等实时场景</li>
+      <li><strong>抓拍算法任务</strong>：用于抓拍图像分析；默认亦可走 <code>executor=cpp</code>（RUNTIME SnapScheduler / Cron 调度），对抓拍画面智能识别，适用于事件回溯、图像检索等场景</li>
+      <li><strong>巡检算法任务</strong>：面向多路轮巡与连接池调度；默认亦可走 <code>executor=cpp</code>（RUNTIME PatrolScheduler），以「少连接、广覆盖」完成批量 AI 巡检</li>
     </ul>
   </li>
   <li><strong>数据集标注与多格式数据集管理</strong>：内置可视化图像标注工作台，支持矩形框、多边形等标注形态，以及标注类别管理与进度跟踪；全面兼容 YOLO、COCO、ImageFolder 等主流数据集格式的灵活导入与导出，并打通云平台数据集通道，支持云端数据集的一键导入与同步导出，贯通「数据采集—人工标注—模型训练—部署推理」全流程闭环</li>
@@ -233,7 +235,7 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>推流转发</strong>：支持在无需启用AI分析功能的情况下，直接观看摄像头实时画面。通过创建推流转发任务，可将多路摄像头进行批量推送，实现多路视频流的同步观看，满足纯视频监控场景需求</li>
   <li><strong>GPU 探测、负载分配与多卡协同</strong>：平台具备 GPU 资源探测与智能分配能力，可自动识别可用 GPU 数量，并依据各卡实时负载将视频编解码与算法推理任务动态调度到多卡并行执行，在保障稳定性的前提下提升多路流处理吞吐与算力利用率，实现多卡场景下的画面编解码与模型推理协同</li>
   <li><strong>智能传输协议与拉流高可靠</strong>：在 RTSP 等拉流链路上，系统可按场景自动选择合适的传输方式以兼顾时延与稳定性。当出现灰屏、解码异常或画面停滞时，自动触发重连与链路恢复，降低长时间花屏、卡死对业务的影响</li>
-  <li><strong>观看链路与算法链路分离及分级码率</strong>：将「实时预览/大屏观看」与「算法分析抽帧」相互解耦、独立调度。观看侧优先保障画清晰、少卡顿；算法侧在检测精度与算力/带宽占用之间取得平衡，避免分析任务与观看任务争抢同一通道，保障「看得清、不卡断」与「算得动、可扩展」兼顾</li>
+  <li><strong>观看链路与算法链路分离及分级码率</strong>：将「实时预览/大屏观看」与「算法分析」相互解耦、独立调度。观看侧走 SRS <code>live/</code> 原画，优先保障画清晰、少卡顿；算法侧由 RUNTIME（或 Python 执行器）承接实时 / 抓拍 / 巡检，正式实时任务默认把带框检测流推到独立 <code>ai/</code> 应用，避免分析与观看争抢同一通道，保障「看得清、不卡断」与「算得动、可扩展」兼顾</li>
   <li><strong>模型服务集群推理</strong>：支持分布式模型推理服务集群，实现智能负载均衡、故障自动切换与高可用保障，大幅提升推理吞吐量与系统稳定性</li>
   <li><strong>布防时段管理</strong>：支持全防模式和半防模式两种布防策略，可灵活配置不同时段的布防规则，实现精准的时段化智能监控与告警</li>
   <li><strong>OCR与语音识别</strong>：提供高精度文字识别与语音转文本能力，支持多语言识别</li>
@@ -321,7 +323,7 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>能力对齐</strong>：移动端与 PC 管控台业务能力一致，换端不换功，管控体验无缝衔接</li>
   <li><strong>设备管理</strong>：多种接入方式统一纳管，列表与通道一目了然，点开即可实时看图，外出巡检同样心中有数</li>
   <li><strong>推流转发</strong>：随时创建与启停转发任务，掌握集群节点与各路流状态，远程也能调度视频资源</li>
-  <li><strong>算法任务</strong>：实时与抓拍算法任务随手启停，检测成效随时掌握，异常发现不必等回办公室</li>
+  <li><strong>算法任务</strong>：实时、抓拍与巡检任务随手启停，检测成效随时掌握，异常发现不必等回办公室</li>
   <li><strong>告警中心</strong>：告警随手检索，抓拍与录像即点即看，移动值守也能快速核实与跟进</li>
   <li><strong>模型管理</strong>：模型上线状态一眼可查，部署进展心中有数</li>
   <li><strong>模型推理</strong>：现场传图即得识别结果，临时核验与抽检不必回 PC</li>
@@ -479,7 +481,7 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VIS
     <li><strong>能力对齐</strong>：与 PC 管控台业务能力一致，支持多租户切换</li>
     <li><strong>设备管理</strong>：直连摄像头、GB28181、NVR、RTC 消费级摄像头等多协议统一纳管，在线状态与通道浏览，设备详情内一键实时预览</li>
     <li><strong>推流转发</strong>：推流任务创建、启停、集群节点状态与多路流地址查看</li>
-    <li><strong>算法任务</strong>：实时/抓拍算法任务列表、启停控制与检测/帧数统计</li>
+    <li><strong>算法任务</strong>：实时 / 抓拍 / 巡检任务列表、启停控制与检测/帧数统计（默认可走 RUNTIME）</li>
     <li><strong>告警中心</strong>：告警事件检索、抓拍图预览、告警录像点播回放</li>
     <li><strong>模型与 AI</strong>：模型列表与部署状态、移动端图片推理工作台、训练任务进度监控与停止</li>
     <li><strong>个人中心</strong>：个人资料、账号安全、常见问题、意见反馈与应用设置</li>
@@ -507,9 +509,9 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VIS
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>节点代理</strong>：边缘/远程节点 Agent，一键安装部署后自动接入平台</li>
     <li><strong>状态上报</strong>：周期性心跳，实时上报 CPU、内存、磁盘、GPU 利用率及在运工作负载状态</li>
-    <li><strong>远程工作负载</strong>：接收平台下发的部署/停止指令，在节点本地拉起 AI 模型服务、算法任务、音视频转码等工作负载</li>
+    <li><strong>远程工作负载</strong>：接收平台下发的部署/停止指令，在节点本地拉起 AI 模型服务、算法任务、音视频转码及 <strong>RUNTIME(C++) 执行器</strong>等工作负载</li>
     <li><strong>媒体节点池</strong>：支持在节点上远程部署流媒体能力，实现设备与媒体节点绑定及流地址生成</li>
-    <li><strong>节点角色</strong>：支持算力、媒体、混合三种角色，支撑 AI 推理、算法任务与流媒体业务的跨节点调度与弹性扩容</li>
+    <li><strong>节点角色</strong>：支持算力、媒体、混合三种角色，支撑 AI 推理、算法任务与流媒体业务的跨节点调度与弹性扩容；算力节点可仅装 RUNTIME 原子包，承接中心下发的实时 / 抓拍 / 巡检推理</li>
     <li><strong>离线友好</strong>：支持离线依赖打包与 Agent 热更新，适配无外网或受限网络环境下的批量节点纳管</li>
   </ul>
 </td>
@@ -521,9 +523,10 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VIS
     <li><strong>流媒体处理</strong>：支持 RTSP/RTMP 流实时处理与传输</li>
     <li><strong>多协议摄像头接入</strong>：GB28181、ONVIF、NVR 批量扫描、大疆司空直播与 RTC 消费级摄像头统一纳管</li>
     <li><strong>RTC 联动 API</strong>：<code>/register/device/rtc-live</code> 一键完成 go2rtc 流注册与设备入库，删除设备时自动清理 RTC 流</li>
-    <li><strong>算法任务管理</strong>：支持实时 / 抓拍 / 巡检算法任务，分别用于实时画面分析、抓拍图像分析与多路轮巡</li>
+    <li><strong>算法任务管理</strong>：支持实时 / 抓拍 / 巡检算法任务；三类任务均可默认 <code>executor=cpp</code>（生成 ini 并拉起 RUNTIME），实时任务另默认推 <code>ai/</code> 检测流；亦可选 <code>python</code></li>
     <li><strong>抽帧器与排序器</strong>：支持灵活的抽帧策略与结果排序机制，每个算法任务可绑定独立的抽帧器和排序器</li>
     <li><strong>布防时段</strong>：支持全防模式和半防模式的时段化配置</li>
+    <li><strong>与 RUNTIME 分工</strong>：VIDEO 负责编排、原画预览（<code>live/</code>）、告警落库；RUNTIME 统一承接实时 / 抓拍 / 巡检的帧侧执行，实时任务额外推带框检测流（<code>ai/</code>）并 hook 回传</li>
   </ul>
 </td>
 </tr>
@@ -564,7 +567,18 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、EDGE、VIS
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>RUNTIME模块</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">C++ 侧可选执行器，由 VIDEO 按需拉起，承接实时任务的拉流、解码与推理；编排、预览与告警仍由 VIDEO 统一负责</td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>C++ 帧热路径</strong>：由原 TASK 演进的独立执行器，以同一二进制承接 <strong>realtime / snap / patrol</strong>——拉流或调度采帧 → 解码 → YOLO 推理 → 结构化结果回传；服务 VIDEO <code>executor=cpp</code>，不替代 VIDEO 编排 / 预览 / 告警面</li>
+    <li><strong>三类任务形态</strong>：实时长连接 Pipeline；抓拍 Cron（SnapScheduler）；巡检多设备轮巡（PatrolScheduler）——调度策略不同，告警/心跳契约仍回 VIDEO</li>
+    <li><strong>实时默认推带框检测流</strong>：正式 realtime 任务启动即推独立 SRS <code>ai/{设备}</code>，与原画 <code>live/</code> 双路分离；抓拍/巡检以结果与告警为主（有地址时可推，不强制长推）</li>
+    <li><strong>告警与心跳汇聚</strong>：HTTP 回传 VIDEO alert hook / heartbeat（realtime、snap 走 realtime 心跳口；patrol 走巡检心跳口），经 Kafka 落库与通知，节点本地不落业务库</li>
+    <li><strong>环形队列流水线</strong>：拉流/解码、推理、回传分阶段线程；帧环满则丢最旧，保障实时优先、解码不被推理拖死</li>
+    <li><strong>GPU 优先、失败回退</strong>：默认 prefer CUDA EP，失败自动 CPU，任务不中断</li>
+    <li><strong>原子模式</strong>：计算节点只装 RUNTIME（不装 VIDEO/WEB），<code>VIDEO_BASE_URL</code> 汇聚中心；正式任务（实时/抓拍/巡检）下发后由同一二进制执行，实时任务仍可推检测流到中心媒体面——节点轻、中心仍看得见、管得住</li>
+    <li><strong>一键分发</strong>：WEB「业务运行时分发」或 iot-node SSH 批量安装到 <code>/opt/easyaiot/RUNTIME</code>；本机 VIDEO 安装入口经 <code>ensure_runtime_cpp.sh</code> 自动编译挂载</li>
+  </ul>
+</td>
 </tr>
 <tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>EDGE模块</strong></td>
@@ -681,7 +695,7 @@ EasyAIoT支持在Linux、Mac、Windows三大主流操作系统上部署，为不
 构筑了物联网设备（尤其是海量摄像头）的高效接入与管控网络。我们深度融合流媒体实时传输技术与前沿人工智能（AI），打造一体化服务核心。这套方案不仅打通了异构设备的互联互通，更将高清视频流与强大的AI解析引擎深度集成，赋予监控系统"智能之眼"——精准实现人脸识别、异常行为分析、风险人员布控及周界入侵检测。
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
-平台支持实时、抓拍与巡检等类型的算法任务：实时算法任务用于 RTSP/RTMP 流的实时画面分析，提供毫秒级响应能力；抓拍算法任务用于抓拍图像的智能分析，支持事件回溯与图像检索；巡检任务面向多路轮巡覆盖。通过算法任务管理实现灵活的抽帧与排序策略，每个任务可绑定独立的抽帧器和排序器，结合模型服务集群推理能力，确保毫秒级响应与高可用保障。同时，提供全防模式和半防模式两种布防策略，可根据不同时段灵活配置监控规则，实现精准的时段化智能监控与告警。
+平台支持实时、抓拍与巡检等类型的算法任务：三类任务均可默认走 <strong>RUNTIME C++ 高速执行器</strong>（<code>executor=cpp</code>）——实时任务长连接拉流解码与 YOLO 推理，并<strong>默认推带框 AI 检测流</strong>；抓拍任务按 Cron 调度采帧识别；巡检任务多路轮巡覆盖。告警与心跳统一回 VIDEO 既有闭环；亦可选 Python 后端保持兼容。计算节点支持 <strong>RUNTIME 原子模式</strong>（只装执行器、告警汇聚中心），让边缘算力盒轻装入网、中心统一研判。通过算法任务管理实现灵活的抽帧与排序策略，结合模型服务集群推理能力，确保毫秒级响应与高可用保障。同时，提供全防模式和半防模式两种布防策略，可根据不同时段灵活配置监控规则，实现精准的时段化智能监控与告警。
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
 在物联网设备管理方面，EasyAIoT提供完整的设备生命周期管理能力，支持多种物联网与工业协议（MQTT、TCP、HTTP、Modbus-TCP、Modbus-RTU、OPC UA），实现设备的快速接入、安全认证、实时监控和智能控制。通过规则引擎实现设备数据的智能流转与处理，结合AI能力对设备数据进行深度分析，实现从设备接入、数据采集、智能分析到决策执行的全流程自动化，真正实现万物互联、万物智控。
