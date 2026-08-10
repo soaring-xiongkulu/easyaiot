@@ -59,6 +59,9 @@ video:
     send-timeout-ms: 10000
   matching:
     use-direct-process: true
+  inference:
+    enabled: true
+    timeout-seconds: 120
   post-process:
     use-stub-enqueue: true
     workspace-root: ${user.home}/.video-java/post-process-workspaces

@@ -68,7 +68,7 @@ public class PlateMatchRecordRepository {
 
                 plateNo, plateColor, plateImagePath, matched, null, null,
 
-                correlationId, taskType, detectConf, "success", null
+                correlationId, taskType, detectConf, "success", null, null
 
         );
 
@@ -110,7 +110,9 @@ public class PlateMatchRecordRepository {
 
             String status,
 
-            String errorMessage
+            String errorMessage,
+
+            Long alertId
 
     ) {
 
@@ -126,9 +128,9 @@ public class PlateMatchRecordRepository {
 
                   plate_no, plate_color, plate_image_path, matched, matched_plate_entry_id,
 
-                  matched_owner_name, detect_conf, correlation_id, task_type, status, error_message, created_at
+                  matched_owner_name, detect_conf, correlation_id, task_type, status, error_message, alert_id, created_at
 
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 
                 RETURNING id
 
@@ -170,6 +172,8 @@ public class PlateMatchRecordRepository {
 
                 errorMessage,
 
+                alertId,
+
                 now
 
         );
@@ -204,7 +208,7 @@ public class PlateMatchRecordRepository {
 
         row.put("detect_conf", detectConf);
 
-        row.put("alert_id", null);
+        row.put("alert_id", alertId);
 
         row.put("correlation_id", correlationId);
 

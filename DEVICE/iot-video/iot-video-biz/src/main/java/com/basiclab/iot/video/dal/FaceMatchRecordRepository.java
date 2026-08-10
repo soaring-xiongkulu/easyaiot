@@ -31,7 +31,7 @@ public class FaceMatchRecordRepository {
         return insert(
                 taskId, taskName, deviceId, deviceName, libraryId, libraryName, faceImagePath,
                 matched, null, null, null, null, null,
-                correlationId, taskType, threshold, "success", null
+                correlationId, taskType, threshold, "success", null, null
         );
     }
 
@@ -53,7 +53,8 @@ public class FaceMatchRecordRepository {
             String taskType,
             Float threshold,
             String status,
-            String errorMessage
+            String errorMessage,
+            Long alertId
     ) {
         Timestamp now = Timestamp.from(Instant.now());
         String candidatesJson = candidates == null ? null : String.valueOf(candidates);
@@ -63,8 +64,8 @@ public class FaceMatchRecordRepository {
                   task_id, task_name, device_id, device_name, library_id, library_name,
                   face_image_path, matched, matched_person_name, matched_person_code,
                   matched_face_entry_id, similarity, candidates, threshold,
-                  correlation_id, task_type, status, error_message, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?)
+                  correlation_id, task_type, status, error_message, alert_id, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?)
                 RETURNING id
                 """,
                 Long.class,
@@ -86,6 +87,7 @@ public class FaceMatchRecordRepository {
                 taskType,
                 status != null ? status : "success",
                 errorMessage,
+                alertId,
                 now
         );
         Map<String, Object> row = new LinkedHashMap<>();
@@ -104,7 +106,7 @@ public class FaceMatchRecordRepository {
         row.put("similarity", similarity);
         row.put("threshold", threshold);
         row.put("candidates", candidates);
-        row.put("alert_id", null);
+        row.put("alert_id", alertId);
         row.put("correlation_id", correlationId);
         row.put("task_type", taskType);
         row.put("status", status != null ? status : "success");

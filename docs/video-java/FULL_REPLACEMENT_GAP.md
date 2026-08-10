@@ -125,7 +125,7 @@
 |----|--------|------|------|
 | face | **Py 35 / Java 35 / diff 0** | ✅ 路由 | health/model；libraries/entries/persons CRUD；auto-enroll；normalize；match；recognize；matching/records；legacy `/library` |
 | plate | **Py 26 / Java 26 / diff 0** | ✅ 路由 | health/model；libraries/entries CRUD；auto-enroll；normalize；match；recognize；matching/records |
-| ❌ 行为 | — | InsightFace/ONNX、Milvus、PaddleOCR、Kafka matching consumer — Java 路由存在，推理/Milvus 为 Python 等价错误桩 |
+| ✅ 行为 | — | **FR-B9 ✅** Python worker 桥接（face InsightFace+Milvus / plate PaddleOCR / pose YOLO）；匹配命中 → `face_library_match` / `plate_library_match` 告警；无引擎时诚实 bypass/错误 |
 
 依赖层：Python 还有 InsightFace/ONNX、Milvus、PaddleOCR、Kafka matching consumer —— Java 现多为 **mini mock / stub**，完整替换需 ORT/SDK 或旁路策略产品拍板后落地。
 
@@ -152,7 +152,7 @@
 | 域 | 路由差 | 状态 | 说明 |
 |----|--------|------|------|
 | `audio_talk` | **Py 5 / Java 5 / diff 0** | ✅ 路由 | **FR-W3-TALK**；ONVIF back-channel **行为桩** |
-| `scenario_pose` | **Py 14 / Java 14 / diff 0** | ✅ 路由 | **FR-W3-POSE**；extract/match-test **推理桩** |
+| `scenario_pose` | **Py 14 / Java 14 / diff 0** | ✅ 路由 | **FR-W3-POSE** + **FR-B9 ✅** extract/match-test 经 Python YOLO worker（无引擎时空结果/错误） |
 | `patrol` | **Py 9 / Java 9 / diff 0** | ✅ 路由 | **FR-W2-PATROL**；守护/SSE **mini 桩** |
 
 **14 inventoried 前缀无 HTTP 路由缺口**；剩余为 **行为 / 后台 / 集成**（§3–§4）。
@@ -184,7 +184,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 |----|--------|------|--------------|
 | Alert → Kafka | 可走 Kafka | `use-direct-persist=false` → Kafka produce（minimal 驼峰消息，deviceId key）；失败 fallback direct_persist；local/mini 默认仍 direct | **resolved by FR-W1-KAFKA**（prod 需 broker + iot-sink 联调） |
 | Post-process → iot-sink | 真 enqueue | `use-stub-enqueue: true`（local） | **resolved by FR-B1**（`use-stub-enqueue=false` → HTTP POST iot-sink；不可达时 `enqueue_ok=false` + warn 日志；local/mini 默认仍 stub） |
-| Face/Plate matching | Kafka + 模型 | `use-direct-process=true` → mini mock；`false` → Kafka produce（`iot-face-matching` / `iot-plate-matching`）+ 诚实 process（plate 库 DB 匹配；face 显式 bypass，非假成功） | **resolved by FR-B5**（local/mini 默认 mock；prod 需 broker + `use-direct-process=false`） |
+| Face/Plate matching | Kafka + 模型 | **FR-B5 ✅** Kafka produce；**FR-B9 ✅** Python worker 推理 + 匹配命中告警链 | prod 需模型/Milvus + `use-direct-process=false` |
 | 远程 node / RUNTIME 分发 | node_client | **FR-B4 ✅** `IotNodeClient` allocate/deploy/stop | prod 集群需 iot-node + Agent + SRS 联调 |
 | ONVIF / NVR / GB28181 / FlightHub | camera 大面 | **FR-B6 ✅** ONVIF SOAP + WS-Discovery + ISAPI 扫描/NVR 枚举 + ffmpeg 抓拍 | prod 真机/NVR 联调；GB28181/FlightHub/大华 NVR 全量仍待 |
 | MinIO 空间同步/清理 | snap/record 多接口 | **✅ FR-B2** `VideoMinioService` + `SpaceFileMetadataService`；`video.minio.enabled` / `MINIO_ENABLED` 开关；DVR/snap 上传真路径 | mini 默认 `enabled=false`（DB/本地路径）；prod 需 MinIO 联调 |
@@ -251,7 +251,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 路由缺口（prefix-level） | **0** |
 | inventory 扫描 artifact | `/video/camera` 前缀 Java **+5**（talk 子路径重复计入） |
 | 整域 HTTP 未实现 | **无**（14 前缀均已 diff=0） |
-| 行为桩仍存的域 | face（Milvus/ORT 推理）、patrol（SSE/守护）、audio_talk（ONVIF back-channel 真机）、scenario_pose（姿态推理）、algorithm/stream_forward（远程 node 集群健康）；camera ONVIF/NVR **FR-B6 ✅** 代码路径已落地 |
+| 行为桩仍存的域 | patrol（SSE/守护 mini 桩）、audio_talk（ONVIF back-channel 真机）、algorithm/stream_forward（远程 node 集群健康）；face/plate/pose **FR-B9 ✅** Python worker 路径（prod 需模型运行时） |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 259 路由；仅防回归） |
 
 ---

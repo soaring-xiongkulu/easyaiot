@@ -18,6 +18,9 @@ video:
     use-direct-process: true
     face-matching-topic: iot-face-matching
     plate-matching-topic: iot-plate-matching
+  inference:
+    enabled: true
+    timeout-seconds: 120
   post-process:
     use-stub-enqueue: true
     workspace-root: ${user.home}/.video-java/post-process-workspaces

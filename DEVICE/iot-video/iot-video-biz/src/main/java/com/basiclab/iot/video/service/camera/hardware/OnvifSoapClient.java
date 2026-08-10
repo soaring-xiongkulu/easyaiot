@@ -105,7 +105,7 @@ public final class OnvifSoapClient {
         invoke(session.ptzServiceUrl(), "tptz", "http://www.onvif.org/ver10/ptz/wsdl",
                 "ContinuousMove", payload, username, password, timeoutSeconds, "http://www.onvif.org/ver10/schema");
         try {
-            Thread.sleep((long) (Math.max(Math.abs(x), Math.max(Math.abs(y), Math.abs(z))) * 1000)));
+            Thread.sleep((long) (Math.max(Math.abs(x), Math.max(Math.abs(y), Math.abs(z))) * 1000));
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
         }

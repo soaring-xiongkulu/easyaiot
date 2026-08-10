@@ -27,12 +27,13 @@ public class PlateLibraryRepository {
         String placeholders = String.join(",", ids.stream().map(id -> "?").toList());
         List<Object> args = new ArrayList<>(ids);
         return jdbc.query(
-                "SELECT id, name, code, is_enabled FROM plate_library WHERE id IN (" + placeholders + ") AND is_enabled = true ORDER BY id",
+                "SELECT id, name, code, business_tags, is_enabled FROM plate_library WHERE id IN (" + placeholders + ") AND is_enabled = true ORDER BY id",
                 (rs, rowNum) -> {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("id", rs.getInt("id"));
                     row.put("name", rs.getString("name"));
                     row.put("code", rs.getString("code"));
+                    row.put("business_tags", rs.getString("business_tags"));
                     return row;
                 },
                 args.toArray()

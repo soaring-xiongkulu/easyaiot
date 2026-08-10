@@ -23,6 +23,7 @@ public class VideoProperties {
     private final SnapTaskScheduler snapTaskScheduler = new SnapTaskScheduler();
     private final NodeRemote nodeRemote = new NodeRemote();
     private final StreamForwardHealth streamForwardHealth = new StreamForwardHealth();
+    private final Inference inference = new Inference();
 
     /**
      * Mirrors Python {@code VIDEO_SKIP_BACKGROUND_TASKS=1} — disables scheduled health recovery
@@ -193,6 +194,21 @@ public class VideoProperties {
         private boolean enabled = true;
         /** Mirrors {@code STREAM_FORWARD_HEALTH_INTERVAL_SECONDS} (default 60s). */
         private long intervalMs = 60_000L;
+    }
+
+    @Data
+    public static class Inference {
+        /**
+         * When true, Java delegates face/plate/pose inference to Python CLI workers under
+         * {@code VIDEO/scripts/inference_workers}. Disabled in mini when models unavailable.
+         */
+        private boolean enabled = true;
+        /** Python interpreter; env VIDEO_PYTHON / PYTHON wins when set. */
+        private String pythonExecutable = "";
+        /** Optional override; default {@code $ACME_ROOT/VIDEO/scripts/inference_workers}. */
+        private String workersDir = "";
+        /** Subprocess timeout (model cold-start may need 60–120s). */
+        private int timeoutSeconds = 120;
     }
 
     @Data
