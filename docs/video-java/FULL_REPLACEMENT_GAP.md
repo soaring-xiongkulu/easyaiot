@@ -14,16 +14,17 @@
 
 | 维度 | Python（oracle） | Java（candidate） | 完整替换进度（粗估） |
 |------|------------------|-------------------|----------------------|
-| Blueprint / 域 | **14** | 有控制器触及约 **12** 域，其中 **2** 全缺、**多数仅切片** | ~15–25% 路由面 |
-| HTTP `@route` / `@*Mapping` | **≈265** | **≈29** | **~11%** |
-| `app/services` 量级 | **67** 个 py | **23** 个 Java service + 4 process + 5 scheduler | 编排核心有，周边大缺 |
+| Blueprint / 域 | **14** | **14** 域均有 Controller；`route_inventory` 14 前缀 **diff=0** | **HTTP 路由面 ~100%**（ inventoried 前缀） |
+| HTTP `@route` / `@*Mapping` | **≈259**（14 前缀合计） | **≈259** | **diff 0**（`FR-W4` 全量核对） |
+| `app/services` 量级 | **67** 个 py | **40+** Java service + 4 process + 8 scheduler | 编排面已扩；**行为桩仍多** |
 | 独立 worker 目录 | `services/` 下 frame/sorter/pusher/media_*/post_process/stream_forward 等 | **无对等多进程 worker 包**（推流/RUNTIME 用 JVM 内 Supervisor） | 模型不同，能力未对齐 |
-| 启动后台任务 | auto_start 算法/推流/观看、空间清理、janitor、磁盘守护、健康监控、抓拍调度… | FR-W1-BG + FR-W3-OPS：auto_start/健康/空间清理/janitor/磁盘守护；snap 调度仍缺 | 部分 |
-| 门禁自称 | — | Phase -1～3 PASS + EVID | **切片证据 ≠ 完整替换** |
+| 启动后台任务 | auto_start 算法/推流/观看、空间清理、janitor、磁盘守护、健康监控、抓拍调度… | FR-W1-BG + FR-W3-OPS：auto_start/健康/空间清理/janitor/磁盘守护；**snap 调度仍缺** | 部分 |
+| 门禁自称 | — | Phase 0 薄烟雾绿 + EVID 历史 | **HTTP 齐 ≠ 行为齐** |
 
-**结论一句话：**  
-当前 Java VIDEO 是 **「certify 切片 + 可切网关名」的编排雏形**，距离 **完整替换 Python 全部功能** 仍缺 **约九成 HTTP 面** 以及大量设备/库/空间/媒体/巡检/对讲能力与后台任务。  
-已签字的 `EX-*` / `BLUEPRINT_GAP.md` 只是把缺口记账，**不是已经实现。**
+**结论一句话（FR-W4）：**  
+**14 个 inventoried 前缀 HTTP 路由已与 Python diff=0**；Java VIDEO **HTTP 契约面已齐**。  
+距离 **完整替换** 仍缺：**MinIO/ONVIF/YOLO/InsightFace/Milvus 真行为**、远程 node、snap 任务调度、post-process 真 sink、部分集群健康迁移等。  
+**禁止称 COMPLETE**——行为桩与后台缺口见 §2/§3/§4。
 
 ---
 
@@ -51,11 +52,12 @@
 | 11 | device_detection_region | `/video/device-detection` | 6 | 全量路由 | regions CRUD、cover-image、snapshot | **路由切片完成** | `route_inventory` Py=6 Java=6 diff=0；**FR-W2-MATCH**；抓拍/MinIO 行为桩 |
 | 12 | patrol | `/video/patrol` | 9 | 全量路由 | session CRUD/start/stop/stats/events/SSE/heartbeat/directory devices | **路由切片完成** | `route_inventory` Py=9 Java=9 diff=0；**FR-W2-PATROL**；守护进程/SSE 行为 mini 桩 |
 | 13 | audio_talk | `/video/camera/audio/talk` | 5 | 全量路由 | capabilities/start/stop/send/health | **路由切片完成** | `route_inventory` Py=5 Java=5 diff=0；**FR-W3-TALK**；ONVIF back-channel 真机待验 |
-| 14 | scenario_pose | `/video/scenario-pose` | 14 | 无 | — | **缺失** | **EX-SCENARIO-POSE** |
+| 14 | scenario_pose | `/video/scenario-pose` | 14 | 全量路由 | libraries/entries/extract/match-test/templates | **路由切片完成** | `route_inventory` Py=14 Java=14 diff=0；**FR-W3-POSE**；姿态推理桩 |
 | — | heartbeat（附属） | `/video/algorithm/heartbeat` | (含在 algorithm) | 切片 | realtime | **不足** | `heartbeat/patrol` 未见 Java 映射 |
 | — | ping/actuator | `/video/ping`, `/actuator/*` | — | 有 | ping + Boot actuator | 基本可 | — |
 
-**路由合计：Python ≈265 vs Java ≈29 → 缺口约 236 个 endpoint（数量级）。**
+**路由合计（FR-W4 `route_inventory` 14 前缀）：Python ≈259 vs Java ≈259 → diff 0。**  
+注：`--prefix /video/camera` 扫描时 Java 计 **64**（含 5 条 `/audio/talk` 子路径，与 `/video/camera/audio/talk` 前缀重复计数，非真实缺口）。
 
 ---
 
@@ -145,14 +147,15 @@
 | regions | **Py 6 / Java 6 / diff 0** | ✅ 路由 | GET/POST regions；PUT/DELETE region；cover-image；snapshot |
 | ❌ 行为 | — | 抓拍 FFmpeg/GB28181、MinIO 上传 — mini 形态错误结构对齐 |
 
-### 2.8 整域缺失
+### 2.8 整域 HTTP 路由（FR-W4 收口）
 
-| 域 | 全部路径 | 完整替换动作 |
-|----|----------|--------------|
-| `audio_talk` | capabilities/start/stop/send/health | ONVIF back-channel 服务（对齐 `onvif_audio_backchannel`） |
-| `scenario_pose` | libraries/entries/extract/match-test/templates | 姿态库服务（对齐 `scenario_pose_library_service`） |
+| 域 | 路由差 | 状态 | 说明 |
+|----|--------|------|------|
+| `audio_talk` | **Py 5 / Java 5 / diff 0** | ✅ 路由 | **FR-W3-TALK**；ONVIF back-channel **行为桩** |
+| `scenario_pose` | **Py 14 / Java 14 / diff 0** | ✅ 路由 | **FR-W3-POSE**；extract/match-test **推理桩** |
+| `patrol` | **Py 9 / Java 9 / diff 0** | ✅ 路由 | **FR-W2-PATROL**；守护/SSE **mini 桩** |
 
-**已解决（FR-W2-PATROL）：** `patrol` — `PatrolController` + `PatrolSessionService` / `PatrolProgressHub`；`route_inventory /video/patrol` Py=9 Java=9 diff=0；**EX-PATROL-SESSION-API resolved**。
+**14 inventoried 前缀无 HTTP 路由缺口**；剩余为 **行为 / 后台 / 集成**（§3–§4）。
 
 ---
 
@@ -239,26 +242,29 @@ Python `run.py` 启动时拉起的能力 vs Java：
 
 ---
 
-## 8. 数量摘要（给排期）
+## 8. 数量摘要（给排期）— FR-W4 更新
 
 | 指标 | 数值 |
 |------|------|
-| Python HTTP 路由 | ≈ **265** |
-| Java HTTP 映射 | ≈ **29** |
-| 路由缺口（约） | ≈ **236** |
-| 整域未实现 | **audio_talk, scenario_pose**（+ patrol 会话面实质未实现） |
-| 标「已迁」但仍严重不足的域 | algorithm（管理面）、alert、camera、face、plate、snap、record、playback、media、stream_forward、regions |
-| 现有 vj_* certify cases | ~18（远不够覆盖 265 路由） |
+| Python HTTP 路由（14 前缀） | ≈ **259** |
+| Java HTTP 映射（14 前缀） | ≈ **259** |
+| 路由缺口（prefix-level） | **0** |
+| inventory 扫描 artifact | `/video/camera` 前缀 Java **+5**（talk 子路径重复计入） |
+| 整域 HTTP 未实现 | **无**（14 前缀均已 diff=0） |
+| 行为桩仍存的域 | camera（ONVIF/NVR/扫描）、face/plate（推理/Milvus）、snap/record/media（MinIO）、patrol（SSE/守护）、audio_talk（ONVIF）、scenario_pose（姿态推理）、algorithm/stream_forward（远程 node） |
+| 现有 vj_* certify cases | ~18（**远不够**覆盖 259 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定
+## 9. 最终判定 — FR-W4
 
 | 问题 | 答案 |
 |------|------|
-| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** |
+| HTTP 路由是否与 Python 对齐？ | **是**（14 inventoried 前缀 `route_inventory` diff=0） |
+| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — 行为桩（MinIO/ONVIF/YOLO/推理/Milvus/SSE 真流等）仍大量存在 |
+| 能否称 COMPLETE / 退役 Python？ | **禁止** |
 | 证据硬化（EVID）能否停？ | **可以停**，转本文件 backlog |
-| 距完整替换还缺什么？ | **上表：~90% HTTP 面 + 大部门户后台任务 + 真 Kafka/库/设备栈 + 全量回滚/鉴权** |
+| 距完整替换还缺什么？ | **真设备/库/空间栈行为**、snap 调度、远程 node、post-process 真 sink、全量契约回归 + 回滚演练 |
 
 **维护约定：** 每完成一个 FR 工作包，在本文件对应行改为 ✅，更新该域 Py vs Java 路由数，并保留短契约测；**不要**再开 Phase 门禁剧或 EVID/CLOSE 轮次。在全部 P0/P1（及产品未豁免的 P2）勾完前，禁止对外宣称「VIDEO Java 完整替换完成」。
 

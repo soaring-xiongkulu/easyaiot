@@ -1,118 +1,95 @@
 # VIDEO Python → Java — HANDOFF
 
-> 给后续 Agent / 开发者的编排说明。**先计划审查，再 Phase 0。** 禁止未过门禁就切网关默认流量。
+> 给后续 Agent / 开发者的编排说明。  
+> **现行主线 = 完整功能替换（Phase FR）**，不是切片 certify COMPLETE。
 
 ## 1. 一句话目标
 
-在**不重写 RUNTIME / ffmpeg / 流媒体 / AI**的前提下，用与 **runtime-parity 同构**的 oracle/candidate/红清单/certify 方法，把 Python VIDEO 编排层替换为 Java（`DEVICE/iot-video`），等价全绿后再切流并退役 Python VIDEO。
+在**不重写 RUNTIME / ffmpeg / 流媒体 / AI**的前提下，把 Python VIDEO 编排层 **按功能面** 替换为 Java（`DEVICE/iot-video`），使 WEB/网关使用的 `/admin-api/video/**` 能力与 Python 一致，再退役 Python。
 
 ## 2. 完成定义（不可降级）
 
-**不是**「Java 进程能起来 / 几个 API 200」。  
-**必须是：** 在 `docs/video-java/testbed/` 标准等价场上，Java VIDEO 与 Python VIDEO **分层 diff 全绿**（或**显式豁免清单清空**），才允许：
+**不是：**
 
-1. 网关默认指向 Java `video-server`
-2. 停止注册 Python VIDEO
-3. 归档/删除 Python `VIDEO/` 热路径（另波次，safe_fsops 纪律）
+- Java 进程能起来 / 少数 API 200  
+- Phase 0/1/2/3 CERTIFY 全绿  
+- 15～30 分钟 observe  
+- 服务改名 + Python 归档 + 话术 COMPLETE  
+- `BLUEPRINT_GAP` 标 `migrated`（那只表示曾有切片 case）
 
-**完成检查清单（CLOSE-S4 终态 — 全部满足）：**
+**必须是：**
 
-- [x] Phase 0 certify 全绿（或 signed 豁免）→ [`gates/PHASE_0_GATE.md`](./gates/PHASE_0_GATE.md)
-- [x] Phase 1 certify 全绿 → [`gates/PHASE_1_GATE.md`](./gates/PHASE_1_GATE.md)
-- [x] Phase 2 certify 全绿 → [`gates/PHASE_2_GATE.md`](./gates/PHASE_2_GATE.md)
-- [x] Phase 3 gate PASS（切流/回滚/归档/观察）→ [`gates/PHASE_3_GATE.md`](./gates/PHASE_3_GATE.md)
-- [x] 网关默认 `video-admin-api` → `lb://video-server` → CLOSE-S2；见 [`CERTIFY_STATUS.md`](./CERTIFY_STATUS.md)
-- [x] Python `VIDEO/` 热路径已归档 → P3-S3；`VIDEO/_retired_python_video/`
-- [x] 豁免清单已签字、无 pending → [`gates/EXEMPTIONS.md`](./gates/EXEMPTIONS.md)
-- [x] `doctor.py` + certify phases 0/1/2 exit 0 → CLOSE-S4 复核
+[`FULL_REPLACEMENT_GAP.md`](./FULL_REPLACEMENT_GAP.md) 中 **P0/P1（及产品未永久豁免的 P2）** 域行全部 ✅（路由 + 关键后台任务），路由差收敛；仅此时允许宣布「完整替换完成」并退役 Python。
 
-## 3. Oracle / Candidate
+执行方案：[`PLAN_FULL_REPLACEMENT.md`](./PLAN_FULL_REPLACEMENT.md)。
 
-| | 路径 | 分支 / Tag |
-|--|------|------------|
-| Oracle | `F:/acme/VIDEO`（Python Flask） | `main`；Phase 0 打 tag `video-java-oracle-baseline` |
-| Candidate | `DEVICE/iot-video/iot-video-api` + `iot-video-biz`（**built**） | `feat/video-java` + worktree `F:/acme/.worktrees/video-java` |
-| 文档 / 门禁 | `docs/video-java/` | 不与 `docs/runtime-parity/gates` 混用 |
-| 工具 | `tools/video_java/` | 对标 `tools/runtime_parity/` 思想，代码独立 |
+## 3. 门禁角色（换角色，不整锅端）
 
-**当前 oracle tip（Phase -1 tag）：** `bfbe7457ac65c90eb49d59247a1a2706d55c677d` — tag `video-java-oracle-baseline`。
+| 机制 | 角色 |
+|------|------|
+| 薄烟雾 `certify --phase 0` | **防回归**（health / 真 RUNTIME / hook success）；合入建议跑 |
+| Phase 1/2/3 全绿 | **不作为进度**；历史档案 |
+| 长观察 | **仅切流/预发 runbook**；开发期不算 PASS |
+| 扩面验证 | 契约测试 + 路由清单 diff；**不为每个 API 录双边 golden** |
 
-## 4. 强制工作方式
+## 4. Oracle / Candidate
 
-1. **先测后改：** 每个能力域先有 failing case / 红项，再实现，再双边对比。
-2. **Oracle 只读：** 除录制工具与测试场夹具外，不改 Python VIDEO 业务行为「图方便」。
-3. **Candidate 窄改：** Java VIDEO + 必要网关双跑路由 + 部署脚本；禁止借机大改 RUNTIME/sink/node。
-4. **红清单驱动：** 只修当前红项；不做无关重构。
-5. **估时：** 按 case 面与模块切片；**禁止**用 runtime-parity「约 3 小时」类推；**禁止**空喊数人月却不挂钩门禁（见 runtime-parity 工作量 retrospective）。
+| | 路径 | 说明 |
+|--|------|------|
+| Oracle（只读对照） | `VIDEO/_retired_python_video/` | 按域读 blueprint/service；缺对照可临时恢复，**禁止再归档当完成** |
+| 外部 oracle（可选） | `F:/acme/VIDEO` @ `video-java-oracle-baseline` | 录制/对照备用 |
+| Candidate | `DEVICE/iot-video/` | `feat/video-java` @ worktree `F:/acme/.worktrees/video-java` |
+| 文档 | `docs/video-java/` | 进度只看缺口表 |
+| 工具 | `tools/video_java/` | 薄烟雾 +（待补）路由 diff / 契约抽检 |
 
-## 5. 范围速查
+**Oracle tip：** `bfbe7457ac65c90eb49d59247a1a2706d55c677d` — tag `video-java-oracle-baseline`。
 
-**In：** 对外 `/admin-api/video/**` 契约；任务生命周期与 ini；心跳/告警 hook；设备与媒体编排（调 ffmpeg）；人脸/车牌等平台 API 与 sink 协作；等价测试场。  
+## 5. 强制工作方式
 
-**Out：** C++ RUNTIME 改写成 Java；自研 ffmpeg/SRS/ZLM；自研 InsightFace/Paddle/Milvus 引擎；AI/SAM 训练服务并入；先大重构 Python 再迁移。
+1. **缺口表驱动：** 打开域缺口 → 读 Python → 补 Java 同前缀 → 短契约 → 勾选缺口表。  
+2. **Oracle 只读：** 不为「图方便」改 Python 业务语义。  
+3. **Candidate 按域扩面：** 禁止再用 CLOSE/EVID/长观察堆文档代替路由覆盖。  
+4. **EX-\* = backlog**（完整替换下），除非产品书面永久豁免并改缺口表。  
+5. **估时：** 按域路由数与服务复杂度；禁止用「certify 全绿」冒充燃尽。
 
-细节与栈：见 [STACK.md](./STACK.md)、[PLAN.md](./PLAN.md)。
+## 6. 范围速查
 
-## 6. 阅读清单（开工前）
+**In：** 全部对外 `/video/**`（经网关 `/admin-api/video/**`）契约面；任务/设备/告警/媒体/巡检/对讲等 Python 已有能力；启动后台自愈与清理等关键守护。  
 
-1. [STACK.md](./STACK.md) — 技术栈与模块结构（**有条件通过，含 §9.1 约束**）
-2. [PLAN.md](./PLAN.md) — 分期与门禁
-3. [EXECUTION.md](./EXECUTION.md) — 纪律
-4. [testbed/README.md](./testbed/README.md) — 等价场
-5. `F:/acme/VIDEO/run.py` — 蓝图注册、actuator、后台任务
-6. `VIDEO/app/services/algorithm_task_daemon.py` / `algorithm_task_launcher_service.py` / `runtime_config_service.py` / `alert_hook_service.py`
-7. `docs/runtime-parity/reports/04-video-absorb-surface.md` — VIDEO vs RUNTIME 吸收面
-8. `DEVICE/iot-gateway/.../application.yaml` — `video-admin-api` → `lb://video-server`
-9. `DEVICE/iot-sink` — face/plate/post-process 回调与 Kafka 主题
-10. `docs/runtime-parity/EXECUTION.md` + `HANDOFF.md` — 方法论参照（**勿复用其门禁目录**）
+**Out：** C++ RUNTIME 改写成 Java；自研 ffmpeg/SRS/ZLM；自研 InsightFace/Paddle/Milvus；AI/SAM 训练并入。
 
-## 7. 现状摘要（2026-08-10 CLOSE-S4 终态）
+## 7. 阅读清单（开工前）
 
-- **Java `iot-video`**：`DEVICE/iot-video`，Nacos `video-server`，`:48096`，Phase -1/0/1/2/3 certify PASS。
-- **网关默认流量**：`video-admin-api` → `lb://video-server`（CLOSE-S2；原 P3-S1 用 `video-server-java`）。
-- **Python VIDEO 热路径**：已归档至 `VIDEO/_retired_python_video/`（P3-S3，safe_fsops）；不再从 `VIDEO/run.py` 对外服务。
-- **外部 oracle**：`F:/acme/VIDEO`（tag `video-java-oracle-baseline`）仍可作 parity 录制；certify 默认 `--no-record` 用 frozen golden。
-- **Phase 3 门禁**：`PHASE_3_GATE` PASS；`CERTIFY_STATUS` 全 Phase PASS；gateway auth smoke + 16m observe（CLOSE-S3）。
-- **项目状态**：**COMPLETE**（CLOSE-S4）— 文档终态同步；doctor + certify 0/1/2 复核绿。
+1. [PLAN_FULL_REPLACEMENT.md](./PLAN_FULL_REPLACEMENT.md) — **现行方案**  
+2. [FULL_REPLACEMENT_GAP.md](./FULL_REPLACEMENT_GAP.md) — **唯一进度表**  
+3. [STACK.md](./STACK.md)  
+4. [EXECUTION.md](./EXECUTION.md)  
+5. `VIDEO/_retired_python_video/run.py` + `app/blueprints/` + services  
+6. `DEVICE/iot-video/iot-video-biz/.../controller`  
+7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
 
-## 8. 你的下一步
+## 8. 现状摘要（2026-08-10 FR-W4）
 
-**项目 video-java 迁移主线已完成（CLOSE-S4 COMPLETE）。** 后续仅运维项：
+- **HTTP 路由：** `route_inventory` 14 前缀 **Py≈259 / Java≈259 / diff=0**（`FR-W4` 全量核对）。
+- **行为：** MinIO/ONVIF/YOLO/InsightFace/Milvus/SSE 真流等仍为 **mini 桩**；见 `FULL_REPLACEMENT_GAP.md` §2–§4。
+- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成。
+- **EVID：** 真 RUNTIME / alert success 等证据已抬升；**EVID 轮次结束**。
+- **Phase 3/CLOSE：** 改名、归档、网关指向 = 运维动作，**≠ 功能完整替换**。
+- **项目状态：** **FR HTTP 面已齐 / 行为桩仍存 — 禁止 COMPLETE**。
+- **网关：** 现已指向 Java 名；行为桩未清前，**不得**认为生产功能已安全切完。
 
-1. 生产/预发定期复核 gateway auth（`PHASE_3_GATE` 项 4 证据在 [`gates/GATEWAY_AUTH_SMOKE.md`](./gates/GATEWAY_AUTH_SMOKE.md)）与观察日志（项 5 → [`gates/OBSERVE_LOG.md`](./gates/OBSERVE_LOG.md)）。
-2. ~~视需要将 Java `spring.application.name` 改为 `video-server`~~ — **done (CLOSE-S2)**。
-3. 新 parity 需求：用 archived oracle 或 Java-only smoke；勿恢复 in-repo `VIDEO/app` 热路径除非 rollback runbook。
+## 9. 你的下一步
 
-## 9. 决议（审查填写）
+按 [`PLAN_FULL_REPLACEMENT.md`](./PLAN_FULL_REPLACEMENT.md) §5 行为/后台 backlog：
 
-> **审查轮次：** 2026-08-10（side-chat 审 STACK → PLAN → HANDOFF）  
-> **总评：** **有条件通过** — 方法论与边界正确；与 DEVICE BOM 对齐值得肯定。按下列决议修订/执行，即可开 Phase -1。
+1. MinIO 真同步/清理（snap/record/media）
+2. ONVIF/NVR/扫描真连接（camera、audio_talk）
+3. InsightFace/Paddle/Milvus 推理或产品旁路决策
+4. snap_task 调度 `init_all_tasks`
+5. post-process 真 sink；远程 node（EX-REMOTE-NODE）
+6. 全量契约回归 + 回滚演练 → 才允许 COMPLETE
 
-| 项 | 状态 |
-|----|------|
-| 栈与模块布局 | ✅ **通过** — Java 21 + Boot 2.7.18 + Cloud 2021.0.5 + 新建 `DEVICE/iot-video`（api+biz）；不升 Boot 3；ProcessBuilder 编排 RUNTIME/ffmpeg |
-| P0 范围 | ✅ **通过** — health + 任务启停/ini/心跳/alert hook + 进程监督；camera/ffmpeg 转推放 P1；远程 node P0 可豁免并登记 |
-| 双跑服务名 / 切流 | ✅ **通过（附约束）** — 双跑名 `video-server-java` / 端口 `48096`；见下方硬约束 |
-| Oracle tag SHA | ⬜ Phase -1/0 打 tag 时写回（勿沿用写稿时的 `4f93baf` 口头值） |
-| 独立门禁 | ✅ **通过** — `docs/video-java` + `tools/video_java`；禁止混进 runtime-parity gates |
-| 估时 | ✅ **通过** — case 燃尽；禁止「3 小时」类推与空人月 |
+## 10. 历史审查决议（切片期，仍有效的工程约束）
 
-### 9.1 硬约束（必须写进 STACK/PLAN 或 Phase -1 门禁，否则易翻车）
-
-1. **对外响应外壳：** 锁定 **兼容 Python `{code,msg,data}`**（STACK §4 已写）。Phase -1 须落地「与 `CommonResult` 冲突时的适配层」设计一句（Filter/Advice/显式 VO），避免第一天就被 iot-common-web 习惯带偏。
-2. **P0 certify 基址：** **默认真连** `http://127.0.0.1:48096`（及 Python `:6000`）；**不依赖**先改 WEB 代理。网关 `/admin-api/video-java/**` 仅作可选联通，不作 P0 阻塞。
-3. **切流与生产名：** CLOSE-S2 完成 — Java `spring.application.name` 为 `video-server`，网关 `lb://video-server`；Python 已归档，无 Nacos 抢名风险。
-4. **共用 `iot-video20`：** 同意首期共用；certify **必须**专用 `task_id` / 关一侧 `auto_start` / `VIDEO_SKIP_BACKGROUND_TASKS`（PLAN 已有）。Alarm 层禁止 Python/Java **并行**对同一 hook 夹具双写同一告警行——录制与回放串行或分 case 隔离。
-5. **本地 mini / 无 Nacos：** DEVICE 栈默认 Nacos；Phase -1 须提供 **`local`/`mini` profile**（可关 discovery 或 soft-fail），对齐现网 VIDEO 无 Nacos 仍可跑的开发形态。
-6. **鉴权：** P0 对内直连可暂宽；若走网关必须与现网 token/`tenant-id` 行为对齐。流票据等 P1 再钉，但不得在切流后出现「Java 裸奔、Python 校验」的不一致而不进门禁。
-
-### 9.2 赞同一并保留的设计
-
-- 与 `iot-parent` BOM / `iot-common-*` / sink·node·file 模式对齐（本审查最重要加分项）
-- Oracle/candidate + 红清单 + 独立 certify（同构 runtime-parity）
-- 下游不动：RUNTIME、ffmpeg、SRS/ZLM、AI、匹配算法不进 VIDEO 重写
-- 人脸/车牌：ORT Java 或阶段性旁路，且必须进 video-java 门禁
-
-### 9.3 下一步
-
-**Phase 3 PASS（2026-08-10）。** Python VIDEO 热路径已归档；网关在 Java。运维 smoke/观察见 `gates/PHASE_3_GATE.md` 项 4–5。
+栈、`{code,msg,data}`、共用 DB、不升 Boot 3、独立门禁目录等约束仍有效。  
+**已作废的完成叙事：** CLOSE-S4 COMPLETE、整域 migrated、用 Phase 1/2/3 全绿当进度。
