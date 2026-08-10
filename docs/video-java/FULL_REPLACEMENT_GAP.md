@@ -289,24 +289,36 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B37 multipart 成功探针**（`:48096` local） | **2/3** multipart core pass（plate entry + scenario-pose extract）；face entry **EX** InsightFace worker；fixture `testdata/fr-b37/tiny.jpg`；artifact `logs/fr-b37-multipart-latest.json` |
 | **FR-B37 bucket 命名**（vj_p2 fixture） | `certify-vj_p2_*` → `certify-vj-p2-*`；`snap/record` metadata sync **0** not **500**；`S3BucketNameSupport` 4xx on illegal bucket |
 | **FR-B38 plate image_url**（`:48096` local, MinIO on） | plate entry multipart → `image_url` populated `/api/v1/buckets/plate-library/objects/download?prefix=…`；artifact `logs/fr-b38-multipart-latest.json` |
-| **FR-B38 face entry 无模型**（`:48096` local） | **code=400** + Python msg（非 500）；Java envelope HTTP 200；**不 soft-save**；artifact `logs/fr-b38-multipart-latest.json` |
+| **FR-B38 face entry 无模型**（`:48096` local） | **code=400** + Python msg（非 500）；**不 soft-save**；artifact `logs/fr-b38-multipart-latest.json` |
+| **FR-B39 HTTP 400 对齐**（`:48096` local） | `VideoApiResponseAdvice.businessCodeToHttpStatus`：code 400/404 → HTTP 400/404；code 500 仍 HTTP 200（`camera.py` L1730-1732）；face no-model **HTTP 400**；artifact `logs/fr-b39-multipart-latest.json` |
+| **FR-B39 plate update image**（`:48096` local, MinIO on） | `PUT /video/plate/entries/{id}` multipart → `image_url`（`plate_library_service.update_entry` L311-313）；`PlateController` JSON/multipart consumes 拆分；artifact `logs/fr-b39-multipart-latest.json` |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定 — FR-B38
+## 9. 最终判定 — FR-B39
 
 | 问题 | 答案 |
 |------|------|
-| Plate `image_url` multipart 证据？ | **是（local, MinIO on）** — `plate_entry_image_url` pass；`_upload_plate_image` parity；artifact `logs/fr-b38-multipart-latest.json` |
-| Face entry 无模型路径？ | **是（local）** — `code=400` + `face_rec.onnx` msg（Python `face_library_service.py` L323-326）；Java HTTP 200 envelope；**不 soft-save** |
-| phase0？ | **PASS 5/5** — `logs/certify-frb38-phase0.log` |
-| 能否称 COMPLETE？ | **禁止** — face multipart **成功**路径仍待 InsightFace worker + Milvus；HTTP 状态 Java 200 vs Python 400 信封差 |
+| Face no-model HTTP 400？ | **是（local）** — `face_entry_no_model_http_400` HTTP **400** + code=400 + `face_rec.onnx` msg；`face.py` L282-283；artifact `logs/fr-b39-multipart-latest.json` |
+| Plate update+image `image_url`？ | **是（local, MinIO on）** — `plate_entry_update_image_url` pass；`plate.py` L190-201 → `update_entry` L311-313；artifact `logs/fr-b39-multipart-latest.json` |
+| contract_regression 400 pass？ | **是** — `classify_http_status` 400→pass；265-route probe 无新增 fail（38×404 为既有 unmapped） |
+| phase0？ | **PASS 5/5** — `logs/certify-frb39-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — face entry **成功**路径仍待 InsightFace worker + Milvus；code=500 业务错误仍 HTTP 200（camera snapshot 有意保留） |
 
 ## 10. 历史判定归档（只读）
 
 <details>
-<summary>FR-B37 / FR-B36 / FR-B35 … 历史判定（点击展开）</summary>
+<summary>FR-B38 / FR-B37 / FR-B36 … 历史判定（点击展开）</summary>
+
+### FR-B38
+
+| 问题 | 答案 |
+|------|------|
+| Plate `image_url` multipart 证据？ | **是（local, MinIO on）** — `plate_entry_image_url` pass；`_upload_plate_image` parity；artifact `logs/fr-b38-multipart-latest.json` |
+| Face entry 无模型路径？ | **是（local）** — `code=400` + `face_rec.onnx` msg；**不 soft-save** |
+| phase0？ | **PASS 5/5** — `logs/certify-frb38-phase0.log` |
+| 备注 | HTTP 400 信封差在 **FR-B39** 已修 |
 
 ### FR-B37
 

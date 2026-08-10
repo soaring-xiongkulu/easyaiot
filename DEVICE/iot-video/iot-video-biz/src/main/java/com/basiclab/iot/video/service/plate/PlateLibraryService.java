@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +29,6 @@ public class PlateLibraryService {
     private final PlateEntryRepository entryRepository;
     private final PlateAutoEnrollRepository autoEnrollRepository;
     private final PlateMatchRecordRepository matchRecordRepository;
-    private final PlateRecognitionService recognitionService;
     private final VideoMinioService videoMinioService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -135,8 +136,13 @@ public class PlateLibraryService {
         if (data.containsKey("is_enabled")) {
             fields.put("is_enabled", RequestParams.bool(data, "is_enabled", true));
         }
+        // Python plate_library_service.update_entry L311-313 → _upload_plate_image L103-109 (no OCR gate).
         if (imageBytes != null && imageBytes.length > 0) {
-            recognitionService.ensurePlateEngine();
+            int libraryId = (Integer) entry.get("library_id");
+            deletePlateImageObject((String) entry.get("image_url"));
+            UploadedPlateImage uploaded = uploadPlateImage(libraryId, imageBytes);
+            fields.put("image_path", uploaded.objectName());
+            fields.put("image_url", uploaded.imageUrl());
         }
         entryRepository.update(entryId, fields);
         libraryRepository.refreshPlateCount((Integer) entry.get("library_id"));
@@ -235,6 +241,44 @@ public class PlateLibraryService {
     private void requireLibrary(int libraryId) {
         libraryRepository.findById(libraryId)
                 .orElseThrow(() -> new VideoBusinessException(404, "查询失败: 车牌库不存在"));
+    }
+
+    private void deletePlateImageObject(String imageUrl) {
+        String objectName = objectNameFromImageUrl(imageUrl);
+        if (objectName == null || objectName.isBlank()) {
+            return;
+        }
+        if (!videoMinioService.isStorageEnabled()) {
+            return;
+        }
+        try {
+            videoMinioService.removeObject(plateImageBucket(), objectName);
+        } catch (Exception ex) {
+            // Python _delete_minio_object L119-120: best-effort, log warning only.
+        }
+    }
+
+    private static String objectNameFromImageUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return null;
+        }
+        if (imageUrl.startsWith("/api/v1/buckets/")) {
+            int prefixIdx = imageUrl.indexOf("prefix=");
+            if (prefixIdx >= 0) {
+                String encoded = imageUrl.substring(prefixIdx + "prefix=".length());
+                int amp = encoded.indexOf('&');
+                if (amp >= 0) {
+                    encoded = encoded.substring(0, amp);
+                }
+                return URLDecoder.decode(encoded, StandardCharsets.UTF_8);
+            }
+        }
+        String marker = "/" + DEFAULT_PLATE_BUCKET + "/";
+        int idx = imageUrl.indexOf(marker);
+        if (idx >= 0) {
+            return imageUrl.substring(idx + marker.length());
+        }
+        return null;
     }
 
     private UploadedPlateImage uploadPlateImage(int libraryId, byte[] imageBytes) {

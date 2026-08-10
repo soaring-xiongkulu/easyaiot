@@ -140,14 +140,45 @@ public class PlateController {
                 enabled));
     }
 
-    @PutMapping("/entries/{entryId}")
-    public VideoApiResponse<Map<String, Object>> updateEntry(
+    @PutMapping(value = "/entries/{entryId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public VideoApiResponse<Map<String, Object>> updateEntryJson(
             @PathVariable int entryId,
-            @RequestParam(required = false) MultipartFile file,
-            @RequestBody(required = false) Map<String, Object> body) throws Exception {
-        byte[] bytes = file != null && !file.isEmpty() ? file.getBytes() : null;
+            @RequestBody(required = false) Map<String, Object> body) {
         return VideoApiResponse.success("success",
-                plateLibraryService.updateEntry(entryId, body != null ? body : Map.of(), bytes));
+                plateLibraryService.updateEntry(entryId, body != null ? body : Map.of(), null));
+    }
+
+    @PutMapping(value = "/entries/{entryId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public VideoApiResponse<Map<String, Object>> updateEntryMultipart(
+            @PathVariable int entryId,
+            @RequestParam(required = false) String plate_no,
+            @RequestParam(required = false) String plate_color,
+            @RequestParam(required = false) String owner_name,
+            @RequestParam(required = false) String owner_phone,
+            @RequestParam(required = false) String remark,
+            @RequestParam(required = false) String is_enabled,
+            @RequestParam(required = false) MultipartFile file) throws Exception {
+        Map<String, Object> data = new LinkedHashMap<>();
+        if (plate_no != null) {
+            data.put("plate_no", plate_no);
+        }
+        if (plate_color != null) {
+            data.put("plate_color", plate_color);
+        }
+        if (owner_name != null) {
+            data.put("owner_name", owner_name);
+        }
+        if (owner_phone != null) {
+            data.put("owner_phone", owner_phone);
+        }
+        if (remark != null) {
+            data.put("remark", remark);
+        }
+        if (is_enabled != null) {
+            data.put("is_enabled", is_enabled);
+        }
+        byte[] bytes = file != null && !file.isEmpty() ? file.getBytes() : null;
+        return VideoApiResponse.success("success", plateLibraryService.updateEntry(entryId, data, bytes));
     }
 
     @DeleteMapping("/entries/{entryId}")

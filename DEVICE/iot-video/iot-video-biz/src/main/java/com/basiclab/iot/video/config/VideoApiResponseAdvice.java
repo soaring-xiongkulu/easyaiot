@@ -5,6 +5,7 @@ import com.basiclab.iot.video.exception.VideoBusinessException;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -61,10 +62,25 @@ public class VideoApiResponseAdvice implements ResponseBodyAdvice<Object> {
         return VideoApiResponse.success(body);
     }
 
+  /**
+   * Map business {@code code} → HTTP status (Python-first).
+   * <ul>
+   *   <li>400 / 404 → same HTTP status (face.py / plate.py ValueError handlers)</li>
+   *   <li>500 / other → HTTP 200 envelope (camera.py snapshot L1730-1732 intentional HTTP 200 + code=500)</li>
+   * </ul>
+   */
+    static HttpStatus businessCodeToHttpStatus(int code) {
+        return switch (code) {
+            case 400 -> HttpStatus.BAD_REQUEST;
+            case 404 -> HttpStatus.NOT_FOUND;
+            default -> HttpStatus.OK;
+        };
+    }
+
     @ExceptionHandler(VideoBusinessException.class)
-    @ResponseStatus(HttpStatus.OK)
-    public VideoApiResponse<Void> handleBusiness(VideoBusinessException ex) {
-        return VideoApiResponse.error(ex.getCode(), ex.getMessage());
+    public ResponseEntity<VideoApiResponse<Void>> handleBusiness(VideoBusinessException ex) {
+        HttpStatus status = businessCodeToHttpStatus(ex.getCode());
+        return ResponseEntity.status(status).body(VideoApiResponse.error(ex.getCode(), ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
