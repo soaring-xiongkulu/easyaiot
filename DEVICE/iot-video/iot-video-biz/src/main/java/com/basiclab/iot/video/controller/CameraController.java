@@ -466,9 +466,13 @@ public class CameraController {
 
     @GetMapping("/directory/monitor-tree")
     public VideoApiResponse<Map<String, Object>> monitorTree(
-            @RequestParam(defaultValue = "1") String skip_sync) {
+            @RequestParam(defaultValue = "1") String skip_sync,
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestHeader(value = "X-Authorization", required = false) String xAuthorization) {
         boolean skip = !"false".equalsIgnoreCase(skip_sync) && !"0".equals(skip_sync);
-        return VideoApiResponse.success(cameraDirectoryService.monitorTree(skip));
+        return VideoApiResponse.success(
+                cameraDirectoryService.monitorTree(skip, authorization, xAuthorization)
+        );
     }
 
     @PostMapping("/directory/validate-json")
@@ -484,9 +488,16 @@ public class CameraController {
     }
 
     @PostMapping("/directory/sync-gb28181")
-    public VideoApiResponse<Map<String, Object>> syncGb28181(@RequestBody(required = false) Map<String, Object> body) {
-        Map<String, Object> data = cameraDirectoryService.syncGb28181(body != null ? body : Map.of());
-        return VideoApiResponse.success("未从 WVP 拉取到国标设备，请检查 GATEWAY_URL / GB28181_SERVICE_URL 与 WVP 服务", data);
+    public VideoApiResponse<Map<String, Object>> syncGb28181(
+            @RequestBody(required = false) Map<String, Object> body,
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestHeader(value = "X-Authorization", required = false) String xAuthorization) {
+        CameraDirectoryService.SyncGb28181Result result = cameraDirectoryService.syncGb28181(
+                body != null ? body : Map.of(),
+                authorization,
+                xAuthorization
+        );
+        return VideoApiResponse.success(result.message(), result.data());
     }
 
     @PostMapping("/directory")

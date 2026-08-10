@@ -423,4 +423,34 @@ public class DeviceRepository {
         args.add(deviceId);
         jdbc.update(sql.toString(), args.toArray());
     }
+
+    public long countBySourcePrefix(String prefix) {
+        if (prefix == null || prefix.isBlank()) {
+            return 0L;
+        }
+        Long total = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM device WHERE source ILIKE ?",
+                Long.class,
+                prefix.trim() + "%"
+        );
+        return total != null ? total : 0L;
+    }
+
+    public List<DeviceRow> listBySourcePrefix(String prefix) {
+        if (prefix == null || prefix.isBlank()) {
+            return List.of();
+        }
+        return jdbc.query(
+                "SELECT " + SELECT_COLUMNS + " FROM device WHERE source ILIKE ?",
+                ROW_MAPPER,
+                prefix.trim() + "%"
+        );
+    }
+
+    public int assignUnassignedToDefaultDirectory(int defaultDirectoryId) {
+        return jdbc.update(
+                "UPDATE device SET directory_id = ?, updated_at = NOW() WHERE directory_id IS NULL",
+                defaultDirectoryId
+        );
+    }
 }

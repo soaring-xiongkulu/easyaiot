@@ -26,13 +26,22 @@ public class CameraDirectoryService {
     private final DeviceDirectoryRepository directoryRepository;
     private final DeviceRepository deviceRepository;
     private final CameraService cameraService;
+    private final Gb28181SyncService gb28181SyncService;
 
     public List<Map<String, Object>> listTree() {
         directoryRepository.ensureDefaultDirectory();
         return buildTree(null);
     }
 
-    public Map<String, Object> monitorTree(boolean skipSync) {
+    public Map<String, Object> monitorTree(boolean skipSync, String authorization, String xAuthorization) {
+        gb28181SyncService.ensureDirectoryLayout();
+        if (!skipSync) {
+            try {
+                gb28181SyncService.syncFromWvp(false, authorization, xAuthorization);
+            } catch (Exception e) {
+                gb28181SyncService.ensureDirectoryLayout();
+            }
+        }
         directoryRepository.ensureDefaultDirectory();
         List<Map<String, Object>> tree = buildMonitorTree(null);
         Map<String, Object> data = new LinkedHashMap<>();
@@ -185,15 +194,37 @@ public class CameraDirectoryService {
         throw new VideoBusinessException(500, "目录 JSON 同步尚未在 Java 端实现");
     }
 
-    public Map<String, Object> syncGb28181(Map<String, Object> body) {
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("created", 0);
-        data.put("total_gb_devices", deviceRepository.count(null));
-        data.put("wvp_device_count", 0);
-        data.put("channels_seen", 0);
-        data.put("api_base", null);
-        data.put("upsert_errors", List.of());
-        return data;
+    public SyncGb28181Result syncGb28181(
+            Map<String, Object> body,
+            String authorization,
+            String xAuthorization
+    ) {
+        Map<String, Object> payload = body != null ? body : Map.of();
+        if (payload.containsKey("data") && payload.get("data") instanceof Map<?, ?> inner
+                && ((Map<?, ?>) inner).containsKey("channels")) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> nested = (Map<String, Object>) inner;
+            payload = nested;
+        }
+
+        Object channelsObj = payload.get("channels");
+        Map<String, Object> stats;
+        if (channelsObj instanceof List<?> channels && !channels.isEmpty()) {
+            stats = gb28181SyncService.syncFromPayload(channels, true);
+        } else {
+            stats = gb28181SyncService.syncFromWvp(true, authorization, xAuthorization);
+        }
+        try {
+            gb28181SyncService.backfillAiStreamUrls();
+        } catch (Exception ignored) {
+            // mirrors Python warning-only backfill
+        }
+        String message = gb28181SyncService.buildSyncMessage(stats);
+        Map<String, Object> data = gb28181SyncService.buildSyncResponse(stats);
+        return new SyncGb28181Result(message, data);
+    }
+
+    public record SyncGb28181Result(String message, Map<String, Object> data) {
     }
 
     private List<Map<String, Object>> buildTree(Integer parentId) {

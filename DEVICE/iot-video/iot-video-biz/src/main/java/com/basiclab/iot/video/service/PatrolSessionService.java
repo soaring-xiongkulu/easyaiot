@@ -10,6 +10,7 @@ import com.basiclab.iot.video.domain.DeviceDirectoryRow;
 import com.basiclab.iot.video.domain.PatrolSessionRow;
 import com.basiclab.iot.video.exception.VideoBusinessException;
 import com.basiclab.iot.video.process.PatrolSupervisor;
+import com.basiclab.iot.video.service.camera.Gb28181SyncService;
 import com.basiclab.iot.video.support.JsonFields;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +43,7 @@ public class PatrolSessionService {
     private final PatrolProgressHub progressHub;
     private final PatrolSupervisor supervisor;
     private final VideoProperties videoProperties;
+    private final Gb28181SyncService gb28181SyncService;
 
     public Map<String, Object> createSession(Map<String, Object> data) {
         List<String> deviceIds = validateDevices(extractStringList(data.get("device_ids")));
@@ -198,7 +200,11 @@ public class PatrolSessionService {
                 .orElseThrow(() -> new VideoBusinessException(400, "目录不存在: ID=" + directoryId));
 
         if (isDefaultDirectory(directory)) {
-            log.warn("目录巡检设备列表：默认分组国标同步未在 Java 侧实现，使用当前 DB 设备列表");
+            try {
+                gb28181SyncService.syncFromWvp(false, null, null);
+            } catch (Exception exc) {
+                log.warn("目录巡检设备列表加载前国标同步失败: {}", exc.getMessage());
+            }
         }
 
         List<Integer> dirIds = collectDirectoryIds(directoryId, includeChildren);
