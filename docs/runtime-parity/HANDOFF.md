@@ -88,3 +88,11 @@ C++ RUNTIME：拉流→解码→(motion_gate)→ONNX→track→region→emit / R
 ## 6. 规划侧收尾声明
 
 本目录调研与方案已按产品拍板修订完毕；**后续编码、测试场落地、certify 与删 Python 由实施负责人按 `PLAN.md` 推进。** 规划对话任务结束。
+
+
+## Local main landing
+
+- Landed eat/runtime-parity onto local main @ 416e218 (fast-forward). **Not pushed** to upstream.
+- Python algorithm hot-path trees hard-deleted via `safe_fsops` (dry-run + execute); leftover `realtime` pycache on main also removed.
+- Default executor remains cpp-only.
+
