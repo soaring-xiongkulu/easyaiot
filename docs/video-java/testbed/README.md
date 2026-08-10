@@ -5,7 +5,7 @@
 对 **同一夹具**，分别命中：
 
 - Oracle：Python VIDEO — **P0 直连** `http://127.0.0.1:6000`（Nacos 名 `video-server`）
-- Candidate：Java `iot-video-biz` — **P0 直连** `http://127.0.0.1:48096`（Nacos 名 `video-server-java`）
+- Candidate：Java `iot-video-biz` — **P0 直连** `http://127.0.0.1:48096`（Nacos 名 `video-server`）
 
 **P0 不以改 WEB 代理或网关为前置。** 网关 `/admin-api/video-java/**` 仅可选联通。
 

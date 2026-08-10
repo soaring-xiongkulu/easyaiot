@@ -57,8 +57,8 @@
 
 ## 7. 现状摘要（2026-08-10 P3-S3 终态）
 
-- **Java `iot-video`**：`DEVICE/iot-video`，Nacos `video-server-java`，`:48096`，Phase 0/1/2 certify PASS。
-- **网关默认流量**：`video-admin-api` → `lb://video-server-java`（P3-S1）。
+- **Java `iot-video`**：`DEVICE/iot-video`，Nacos `video-server`，`:48096`，Phase 0/1/2 certify PASS。
+- **网关默认流量**：`video-admin-api` → `lb://video-server`（CLOSE-S2；原 P3-S1 用 `video-server-java`）。
 - **Python VIDEO 热路径**：已归档至 `VIDEO/_retired_python_video/`（P3-S3，safe_fsops）；不再从 `VIDEO/run.py` 对外服务。
 - **外部 oracle**：`F:/acme/VIDEO`（tag `video-java-oracle-baseline`）仍可作 parity 录制；certify 默认 `--no-record` 用 frozen golden。
 - **Phase 3 门禁**：`PHASE_3_GATE` PASS；`CERTIFY_STATUS` Phase 3 PASS。
@@ -68,7 +68,7 @@
 **项目 video-java 迁移主线已完成（Phase 3 PASS）。** 后续仅运维项：
 
 1. 生产/预发执行 gateway auth smoke（`PHASE_3_GATE` 项 4）与 15–30 min 观察（项 5）。
-2. 视需要将 Java `spring.application.name` 改为 `video-server`（当前刻意保留 `video-server-java` 避免抢名）。
+2. ~~视需要将 Java `spring.application.name` 改为 `video-server`~~ — **done (CLOSE-S2)**。
 3. 新 parity 需求：用 archived oracle 或 Java-only smoke；勿恢复 in-repo `VIDEO/app` 热路径除非 rollback runbook。
 
 ## 9. 决议（审查填写）
@@ -89,7 +89,7 @@
 
 1. **对外响应外壳：** 锁定 **兼容 Python `{code,msg,data}`**（STACK §4 已写）。Phase -1 须落地「与 `CommonResult` 冲突时的适配层」设计一句（Filter/Advice/显式 VO），避免第一天就被 iot-common-web 习惯带偏。
 2. **P0 certify 基址：** **默认真连** `http://127.0.0.1:48096`（及 Python `:6000`）；**不依赖**先改 WEB 代理。网关 `/admin-api/video-java/**` 仅作可选联通，不作 P0 阻塞。
-3. **切流优先改网关 URI，而非抢注服务名：** 生产切流推荐 `video-admin-api` → `lb://video-server-java`（或改写 uri），观察稳定后再视需要把 Java 的 `spring.application.name` 改为 `video-server` 并下线 Python。避免双边短暂抢同一个 Nacos 名。
+3. **切流与生产名：** CLOSE-S2 完成 — Java `spring.application.name` 为 `video-server`，网关 `lb://video-server`；Python 已归档，无 Nacos 抢名风险。
 4. **共用 `iot-video20`：** 同意首期共用；certify **必须**专用 `task_id` / 关一侧 `auto_start` / `VIDEO_SKIP_BACKGROUND_TASKS`（PLAN 已有）。Alarm 层禁止 Python/Java **并行**对同一 hook 夹具双写同一告警行——录制与回放串行或分 case 隔离。
 5. **本地 mini / 无 Nacos：** DEVICE 栈默认 Nacos；Phase -1 须提供 **`local`/`mini` profile**（可关 discovery 或 soft-fail），对齐现网 VIDEO 无 Nacos 仍可跑的开发形态。
 6. **鉴权：** P0 对内直连可暂宽；若走网关必须与现网 token/`tenant-id` 行为对齐。流票据等 P1 再钉，但不得在切流后出现「Java 裸奔、Python 校验」的不一致而不进门禁。

@@ -10,7 +10,7 @@
 | # | Criterion | Status | Evidence |
 |---|-----------|--------|----------|
 | 1 | `DEVICE/iot-video` api+biz registered in `DEVICE/pom.xml` | PASS | module tree present |
-| 2 | `spring.application.name=video-server-java`, port `48096` | PASS | `bootstrap.yaml` |
+| 2 | `spring.application.name=video-server`, port `48096` | PASS (CLOSE-S2 rename) | `bootstrap.yaml` |
 | 3 | `local`/`mini` profiles disable Nacos discovery+config | PASS | `bootstrap-local.yaml`, `bootstrap-mini.yaml` |
 | 4 | `/actuator/health` UP without DB | PASS | smoke below |
 | 5 | `{code,msg,message,data}` adapter + demo `/video/ping` | PASS | smoke below |
@@ -41,7 +41,7 @@ java -jar DEVICE/iot-video/iot-video-biz/target/iot-video-biz.jar --spring.profi
 | Endpoint | Profile | Result |
 |----------|---------|--------|
 | `GET /actuator/health` | `local` | `{"status":"UP"}` |
-| `GET /video/ping` | `local` | `code=0`, `msg`/`message`=`success`, `data.service=video-server-java` |
+| `GET /video/ping` | `local` | `code=0`, `msg`/`message`=`success`, `data.service=video-server` (CLOSE-S2; was `video-server-java` at gate time) |
 | `GET /actuator/health` | `mini` | `{"status":"UP"}` |
 
 ## Notes

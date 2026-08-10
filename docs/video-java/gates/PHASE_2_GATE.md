@@ -1,7 +1,7 @@
 # PHASE 2 Gate — face/plate / snap-record-playback / patrol / regions / media_hook
 
 **Status:** PASS
-**Updated:** 2026-08-10 05:56 UTC
+**Updated:** 2026-08-10 06:03 UTC
 
 Gate PASS when every P2 case `ok` — each layer `pass` or signed `exempt`.
 Layers: `api`, `side_effect` (effects.json) for matching publish/process and post-process enqueue.

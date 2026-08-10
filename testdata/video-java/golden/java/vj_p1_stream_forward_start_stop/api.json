@@ -2,7 +2,7 @@
   "layer": "api",
   "status": "sampled",
   "endpoint": "/video/stream-forward/task/3/start",
-  "http_status": "{\"code\":0,\"msg\":\"启动成功\",\"message\":\"启动成功\",\"data\":{\"task_name\":\"vj_p1_certify\",\"prefer_gpu\":false,\"last_process_time\":null,\"description\":null,\"created_at\":null,\"already_running\":false,\"output_bitrate\":null,\"exception_reason\":\"所有推流进程均未运行\",\"output_quality\":\"high\",\"is_enabled\":true,\"last_success_time\":\"2026-08-10T03:42:08.649321Z\",\"device_names\":[\"vj_p1 certify camera\"],\"service_process_id\":null,\"output_format\":\"rtmp\",\"updated_at\":\"2026-08-10T03:42:08.649321Z\",\"id\":3,\"device_ids\":[\"vj_p1_device\"],\"target_node_id\":null,\"total_streams\":1,\"task_code\":\"vj_p1_fc833504\",\"service_server_ip\":\"192.168.1.22\",\"service_last_heartbeat\":\"2026-08-09T19:39:11.421442Z\",\"service_log_path\":\"C:\\\\Users\\\\g\\\\.video-java\\\\logs\\\\stream_forward_task_3\",\"schedule_policy\":\"local\",\"device_deployments\":[],\"status\":0,\"service_port\":6000,\"node_id\":null},\"total\":null}",
+  "http_status": "{\"code\":0,\"msg\":\"启动成功\",\"message\":\"启动成功\",\"data\":{\"task_name\":\"vj_p1_certify\",\"prefer_gpu\":false,\"last_process_time\":null,\"description\":null,\"created_at\":null,\"already_running\":false,\"output_bitrate\":null,\"exception_reason\":\"所有推流进程均未运行\",\"output_quality\":\"high\",\"is_enabled\":true,\"last_success_time\":\"2026-08-10T06:02:51.696013Z\",\"device_names\":[\"vj_p1 certify camera\"],\"service_process_id\":null,\"output_format\":\"rtmp\",\"updated_at\":\"2026-08-10T06:02:51.696013Z\",\"id\":3,\"device_ids\":[\"vj_p1_device\"],\"target_node_id\":null,\"total_streams\":1,\"task_code\":\"vj_p1_fc833504\",\"service_server_ip\":\"192.168.1.22\",\"service_last_heartbeat\":\"2026-08-09T19:39:11.421442Z\",\"service_log_path\":\"C:\\\\Users\\\\g\\\\.video-java\\\\logs\\\\stream_forward_task_3\",\"schedule_policy\":\"local\",\"device_deployments\":[],\"status\":0,\"service_port\":6000,\"node_id\":null}}",
   "body": {
     "code": 0,
     "msg": "启动成功",
@@ -18,13 +18,13 @@
       "exception_reason": "所有推流进程均未运行",
       "output_quality": "high",
       "is_enabled": true,
-      "last_success_time": "2026-08-10T03:42:08.649321Z",
+      "last_success_time": "2026-08-10T06:02:51.696013Z",
       "device_names": [
         "vj_p1 certify camera"
       ],
       "service_process_id": null,
       "output_format": "rtmp",
-      "updated_at": "2026-08-10T03:42:08.649321Z",
+      "updated_at": "2026-08-10T06:02:51.696013Z",
       "id": 3,
       "device_ids": [
         "vj_p1_device"
@@ -40,8 +40,7 @@
       "status": 0,
       "service_port": 6000,
       "node_id": null
-    },
-    "total": null
+    }
   },
   "normalized": {
     "code": 0,

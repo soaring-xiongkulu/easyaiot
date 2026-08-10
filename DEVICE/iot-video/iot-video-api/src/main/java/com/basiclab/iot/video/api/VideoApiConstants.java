@@ -5,7 +5,7 @@ package com.basiclab.iot.video.api;
  */
 public final class VideoApiConstants {
 
-    public static final String SERVICE_NAME = "video-server-java";
+    public static final String SERVICE_NAME = "video-server";
 
     public static final String API_PREFIX = "/video";
 

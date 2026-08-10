@@ -3,7 +3,7 @@
 # Default traffic stays on video-admin-api → lb://video-server (Python).
 
 # - id: video-java-admin-api
-#   uri: lb://video-server-java
+#   uri: lb://video-server
 #   order: -1
 #   predicates:
 #     - Path=/admin-api/video-java/**

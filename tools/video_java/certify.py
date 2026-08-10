@@ -319,7 +319,7 @@ def _update_certify_status(
     phase3_updated = "2026-08-10"
     phase3_notes = (
         "P3-S3: Python VIDEO hot path archived to `VIDEO/_retired_python_video/`; "
-        "gateway `lb://video-server-java`; rollback drill done (P3-S2); "
+        "gateway `lb://video-server` (CLOSE-S2 rename); rollback drill done (P3-S2); "
         "ops residual: gateway token smoke + 15–30min observe"
     )
     if path.is_file():
@@ -346,7 +346,7 @@ def _update_certify_status(
 | Phase 2 | {phase2_status} | {phase2_updated} | {phase2_notes} |
 | Phase 3 | {phase3_status} | {phase3_updated} | {phase3_notes} |
 
-P0 direct: oracle `:6000` / candidate `:48096`. Gateway default `/admin-api/video/**` → `lb://video-server-java`.
+P0 direct: oracle `:6000` / candidate `:48096`. Gateway default `/admin-api/video/**` → `lb://video-server`.
 """
     path.write_text(body, encoding="utf-8")
 

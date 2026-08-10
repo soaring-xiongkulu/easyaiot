@@ -1,6 +1,6 @@
 spring:
   application:
-    name: video-server-java
+    name: video-server
 
   profiles:
     active: local

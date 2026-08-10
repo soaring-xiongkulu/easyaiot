@@ -12,6 +12,6 @@ public class VideoPingController {
 
     @GetMapping("/ping")
     public VideoApiResponse<Map<String, String>> ping() {
-        return VideoApiResponse.success(Map.of("service", "video-server-java", "phase", "0"));
+        return VideoApiResponse.success(Map.of("service", "video-server", "phase", "0"));
     }
 }

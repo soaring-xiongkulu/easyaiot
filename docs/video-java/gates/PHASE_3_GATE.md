@@ -10,12 +10,12 @@ Phase 3 completes when gateway default traffic is on Java, rollback is drilled, 
 | # | Item | P3-S3 | Owner |
 |---|------|-------|-------|
 | 1 | Phase 2 gate PASS (all `vj_p2_*`) | ✅ prerequisite | — |
-| 2 | Gateway `video-admin-api` → `lb://video-server-java` | ✅ **done (P3-S1)** | — |
+| 2 | Gateway `video-admin-api` → `lb://video-server` | ✅ **done (CLOSE-S2)** — renamed from `video-server-java` | — |
 | 3 | `CUTOVER.md` runbook (precheck, steps, observe, auth) | ✅ **done (P3-S1)** | — |
 | 4 | Gateway smoke with production token + `tenant-id` | ⚠️ **provisional (ops)** | ops |
 | 5 | Observe 15–30 min (heartbeat, hook, tasks) post-cutover | ⚠️ **ops runbook (P3-S2)** | ops |
 | 6 | Rollback drill: gateway → `lb://video-server`, document in `ROLLBACK_LOG.md` | ✅ **done (P3-S2)** | — |
-| 7 | Java `spring.application.name` → `video-server` (if needed) + Python deregister | ✅ **done (P3-S3)** — Python archived; Java keeps `video-server-java` (rename deferred per HANDOFF §9.1) | — |
+| 7 | Java `spring.application.name` → `video-server` + Python deregister | ✅ **done (CLOSE-S2)** — Python archived (P3-S3); Java renamed to `video-server` | — |
 | 8 | Python `VIDEO/` retire wave (safe_fsops dry-run → execute) | ✅ **done (P3-S3)** | — |
 | 9 | `CERTIFY_STATUS.md` Phase 3 PASS | ✅ **done (P3-S3)** | — |
 
@@ -70,7 +70,7 @@ curl -s -H "Authorization: Bearer TOKEN" -H "tenant-id: TENANT" \
 
 ## Rollback drill (P3-S2)
 
-Recorded in `gates/ROLLBACK_LOG.md`. Config revert `lb://video-server-java` → `lb://video-server` → restore **40 ms** locally; final gateway uri **`lb://video-server-java`**.
+Recorded in `gates/ROLLBACK_LOG.md`. Config revert `lb://video-server` → archived Python → restore **40 ms** locally; production gateway uri **`lb://video-server`** (Java).
 
 ## Gate PASS criteria
 
@@ -78,4 +78,4 @@ Recorded in `gates/ROLLBACK_LOG.md`. Config revert `lb://video-server-java` → 
 - Ops items 4–5 documented with runbook; not blocking dev worktree PASS
 - Rollback drill recorded with elapsed time
 - Python VIDEO serving surface archived per safe_fsops discipline
-- Gateway remains on `lb://video-server-java`
+- Gateway on `lb://video-server` (Java production name)

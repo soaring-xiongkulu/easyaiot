@@ -7,10 +7,9 @@
     "msg": "心跳接收成功",
     "message": "心跳接收成功",
     "data": {
-      "task_name": "vj_p0_certify",
-      "task_id": 35
-    },
-    "total": null
+      "task_id": 35,
+      "task_name": "vj_p0_certify"
+    }
   },
   "normalized": {
     "code": 0,
@@ -18,8 +17,6 @@
       "task_id": 35,
       "task_name": "vj_p0_certify"
     },
-    "message": "心跳接收成功",
-    "msg": "心跳接收成功",
-    "total": null
+    "msg": "心跳接收成功"
   }
 }

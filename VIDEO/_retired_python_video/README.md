@@ -23,6 +23,6 @@ Models (`*.onnx`, `*.pt`), docker-compose, requirements, install scripts, test m
 | External oracle (tag baseline) | `F:/acme/VIDEO` on `main`, tag `video-java-oracle-baseline` |
 | In-repo archived copy | this directory — run `python run.py` from here if needed |
 | Certify without live oracle | `python tools/video_java/certify.py --phase N --no-record` (uses existing golden) |
-| Java-only smoke | gateway `lb://video-server-java` + direct `:48096` certify |
+| Java-only smoke | gateway `lb://video-server` + direct `:48096` certify |
 
-Gateway default traffic is **Java** (`video-server-java`). Do not re-register Python `video-server` without rollback runbook.
+Gateway default traffic is **Java** (`video-server`). Do not re-register archived Python `video-server` without rollback runbook.

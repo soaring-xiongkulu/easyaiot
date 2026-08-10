@@ -7,11 +7,11 @@ Phase 0/1 certify hits each side **directly** by base URL. Gateway cutover is **
 | Role | Stack | Nacos name | Default port | Certify base URL |
 |------|-------|------------|--------------|------------------|
 | Oracle (archived) | `VIDEO/_retired_python_video/run.py` or external `F:/acme/VIDEO` | `video-server` (retired) | `6000` | `http://127.0.0.1:6000` |
-| Candidate | Java `iot-video-biz` | `video-server-java` | `48096` | `http://127.0.0.1:48096` |
+| Candidate | Java `iot-video-biz` | `video-server` | `48096` | `http://127.0.0.1:48096` |
 
 **P3-S3:** In-repo Python serving surface archived; gateway traffic is Java-only. Oracle for new golden recording: external `F:/acme/VIDEO` or archived copy under `VIDEO/_retired_python_video/`.
 
-Both may register in Nacos simultaneously. **Do not** rename the Java service to `video-server` during Phase 1.
+Both may register in Nacos simultaneously. **CLOSE-S2:** Java production name is `video-server` (Python retired; no Nacos collision).
 
 ## Background tasks / certify safety
 
@@ -36,16 +36,16 @@ Recovery scans **enabled** tasks with `schedule_policy=local` and calls start wh
 ```yaml
 # DEVICE/iot-gateway/.../application.yaml
 - id: video-admin-api
-  uri: lb://video-server-java
+  uri: lb://video-server
   predicates:
     - Path=/admin-api/video/**
 ```
 
-Python oracle (`video-server` / `:6000`) remains available for rollback — revert `uri` to `lb://video-server` per [CUTOVER.md](./CUTOVER.md).
+Python oracle (`video-server` / `:6000`) remains available for rollback — revert `uri` to archived Python per [CUTOVER.md](./CUTOVER.md) rollback runbook.
 
 Optional **side-by-side** probe route for direct Java testing without stealing `/admin-api/video/**` (see `docs/video-java/gateway-optional-route.yaml`). Prefix `/admin-api/video-java/**`.
 
-**Not done in P3-S1:** Java `spring.application.name` rename to `video-server`.
+**Done in CLOSE-S2:** Java `spring.application.name` → `video-server`; gateway `lb://video-server`.
 
 **Done in P3-S3:** Python `VIDEO/` hot path archived to `VIDEO/_retired_python_video/` (safe_fsops). Models, docker-compose, requirements remain under `VIDEO/`.
 
