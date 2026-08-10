@@ -218,7 +218,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | Python 热路径归档 | `_retired_python_video/` | 保留直到 Java 全量绿 |
 | 回滚演练 | **FR-B7 ✅** 全量 `app/`+`services/`+`run.py`+`models.py` safe_fsops 恢复→验证→再归档（见 `ROLLBACK_LOG.md` FR-B7）；**FR-B11 ✅** Nacos `video-server` 进程切换 dry-run 证据（见 `ROLLBACK_LOG.md` FR-B11） | 生产真切换 + 网关冒烟仍待 ops |
 | Nacos 双跑/切换 | 文档有漂移（仍见 video-server-java 旧述） | **FR-B11 ✅** dry-run 记录；生产真切换仍待 ops |
-| 证据门禁 | EVID 已抬真 RUNTIME/alert success 等 | 完整替换应另建 **全量契约回归**（按本文件域表），不能只靠现有 18 个 vj_* case；**FR-B16 ✅** `tools/video_java/contract_regression.py` 14 前缀 inventory + 可选薄烟雾；**FR-B17 ✅** 265 路由 method-aware 薄探针执行；**FR-B18 ✅** 6 条 fail 收口 → **265 pass / 0 fail**（见 `logs/fr-b17-contract-latest.json`；mapped ≠ COMPLETE）；**FR-B19 ✅** P0/P1 字段级抽样（`tools/video_java/field_contract.py`；12 端点 / 67 assert；artifact `logs/fr-b19-field-contract-latest.json`；≠ 全量 259 字段矩阵） |
+| 证据门禁 | EVID 已抬真 RUNTIME/alert success 等 | 完整替换应另建 **全量契约回归**（按本文件域表），不能只靠现有 18 个 vj_* case；**FR-B16 ✅** `tools/video_java/contract_regression.py` 14 前缀 inventory + 可选薄烟雾；**FR-B17 ✅** 265 路由 method-aware 薄探针执行；**FR-B18 ✅** 6 条 fail 收口 → **265 pass / 0 fail**（见 `logs/fr-b17-contract-latest.json`；mapped ≠ COMPLETE）；**FR-B19 ✅** P0/P1 字段级抽样（`tools/video_java/field_contract.py`；12 端点 / 67 assert；artifact `logs/fr-b19-field-contract-latest.json`；≠ 全量 259 字段矩阵）；**FR-B20 ✅** 14 前缀字段抽样扩面 + 空列表 item-key 实测（16 端点 / 88 assert / 0 skip；artifact `logs/fr-b20-field-contract-latest.json`；仍 ≠ 全量矩阵） |
 
 ---
 
@@ -271,6 +271,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 行为桩仍存的域 | algorithm/stream_forward（远程 node 集群健康 prod 联调）；face/plate/pose **FR-B9 ✅** Python worker（prod 需模型运行时）；patrol/audio_talk/match-image **FR-B10 ✅**（真机/MinIO 联调待 ops）；GB28181 **FR-B11 ✅**（prod WVP 联调待）；媒体节点池 **FR-B13 ✅**（prod iot-node 媒体 API 联调待）；post-process worker **FR-B14 ✅**（prod 远程副本联调待）；DVR Kafka consumer **FR-B15 ✅**（prod broker + `upload-mode=kafka` 联调待）；snap Kafka consumer **FR-B16 ✅**（prod broker + `snap-upload-mode=kafka` 联调待） |
 | **FR-B17/FR-B18 契约探针**（`:48096` live） | **265** probed → **265 pass** / **0 fail** / **0 skip**（FR-B18 收口 patrol session HTTP 404×3、playback POST 尾斜杠、record/snap `/**` AntPathMatcher、device-detection smoke 路径；artifact `logs/fr-b17-contract-latest.json`） |
 | **FR-B19 字段级抽样**（`:48096` live） | **12** P0/P1 GET 端点 → **67 pass** / **0 fail** / **2 skip**（空列表 item-key 延后；artifact `logs/fr-b19-field-contract-latest.json`；patrol 无 oracle `GET /session/list`，抽样 `directory/{id}/devices`） |
+| **FR-B20 字段级抽样**（`:48096` live） | **16** 端点覆盖 **14 inventoried 前缀** → **88 pass** / **0 fail** / **0 skip**（`alert_page`/`playback_list` POST seed + item keys；新增 media `/video/ping`、device-detection、audio/talk health、scenario-pose libraries；artifact `logs/fr-b20-field-contract-latest.json`；仍 ≠ 259 字段矩阵） |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
@@ -280,7 +281,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 问题 | 答案 |
 |------|------|
 | HTTP 路由是否与 Python 对齐？ | **是**（14 inventoried 前缀 `route_inventory` diff=0） |
-| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调（broker/MinIO/真机/WVP/iot-node）与**全量**字段级契约仍 open；**HTTP 薄探针 265/265 已绿**（FR-B18）；**P0/P1 字段抽样 12 端点已执行**（FR-B19，≠ 259 字段矩阵） |
+| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调（broker/MinIO/真机/WVP/iot-node）与**全量**字段级契约仍 open；**HTTP 薄探针 265/265 已绿**（FR-B18）；**P0/P1 字段抽样 14 前缀已执行**（FR-B20：16 端点 / 88 assert / 0 skip，≠ 259 字段矩阵） |
 | 能否称 COMPLETE / 退役 Python？ | **禁止** |
 | 证据硬化（EVID）能否停？ | **可以停**，转本文件 backlog |
 | 距完整替换还缺什么？ | **prod 联调**（DVR/snap Kafka broker、MinIO、真设备、远程 node）+ **全量 259 路由字段矩阵** + prod 联调场景回放 + 回滚演练 |

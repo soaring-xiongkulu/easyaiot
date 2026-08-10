@@ -7,7 +7,6 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -84,7 +83,7 @@ public class PlaybackRepository {
                         thumbnail_path, file_size, created_at, updated_at)
                     VALUES (?,?,?,?,?,?,?,NOW(),NOW())
                     """,
-                    Statement.RETURN_GENERATED_KEYS
+                    new String[]{"id"}
             );
             int i = 1;
             ps.setString(i++, str(fields.get("file_path")));

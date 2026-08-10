@@ -268,6 +268,55 @@ PATROL_DIRECTORY_DEVICES_KEYS: Set[str] = {
     "total",
 }
 
+# Python: VideoPingController (Java mini liveness); contract_regression SMOKE for /video/media → /video/ping
+MEDIA_PING_KEYS: Set[str] = {"service", "phase"}
+
+# Python: audio_talk.py health() → data.status, onvif_available, audio_talk_available
+AUDIO_TALK_HEALTH_KEYS: Set[str] = {
+    "status",
+    "onvif_available",
+    "audio_talk_available",
+}
+
+# Python: models.py DeviceDetectionRegion.to_dict (device_detection_region.py list_device_regions)
+DEVICE_DETECTION_ITEM_KEYS: Set[str] = {
+    "id",
+    "device_id",
+    "region_name",
+    "region_type",
+    "points",
+    "image_id",
+    "image_path",
+    "color",
+    "opacity",
+    "is_enabled",
+    "sort_order",
+    "model_ids",
+    "created_at",
+    "updated_at",
+}
+
+# Python: models.py ScenarioPoseLibrary.to_dict + list_libraries entry_count
+SCENARIO_POSE_LIBRARY_KEYS: Set[str] = {
+    "id",
+    "name",
+    "code",
+    "scene_category",
+    "business_tags",
+    "description",
+    "similarity_threshold",
+    "match_mode",
+    "intent_event",
+    "intent_object",
+    "alert_level",
+    "is_enabled",
+    "entry_count",
+    "created_at",
+    "updated_at",
+}
+
+ARTIFACT_PREFIX = "fr-b20"
+
 SAMPLE_CASES: List[Dict[str, Any]] = [
     {
         "id": "alert_count",
@@ -278,10 +327,24 @@ SAMPLE_CASES: List[Dict[str, Any]] = [
     {
         "id": "alert_page",
         "path": "/video/alert/page?pageNo=1&pageSize=1",
-        "python_source": "VIDEO/_retired_python_video/app/services/alert_service.py get_alert_list",
+        "python_source": "VIDEO/_retired_python_video/app/services/alert_service.py get_alert_list + _get_alert_filter_query (image_url required)",
         "data_keys": {"alert_list", "total"},
         "list_path": ("data", "alert_list"),
         "list_item_keys": ALERT_ITEM_KEYS,
+        "setup": {
+            "method": "POST",
+            "path": "/video/alert/hook",
+            "body": {
+                "device_id": "vj_p2_device",
+                "device_name": "P2",
+                "object": "person",
+                "event": "field_contract_probe",
+                "region": "gate",
+                "time": "2026-08-11T10:00:00+08:00",
+                "image_url": "/api/v1/buckets/field-contract/objects/download?prefix=probe.jpg",
+            },
+            "python_source": "alert_service._get_alert_filter_query L192-195 requires non-empty image_url",
+        },
     },
     {
         "id": "algorithm_task_list",
@@ -355,6 +418,52 @@ SAMPLE_CASES: List[Dict[str, Any]] = [
         "data_list": True,
         "top_keys": {"total"},
         "list_item_keys": PLAYBACK_ITEM_KEYS,
+        "setup": {
+            "method": "POST",
+            "path": "/video/playback/",
+            "body": {
+                "file_path": "/field-contract/playback-probe.mp4",
+                "event_time": "2026-08-11T10:00:00+08:00",
+                "device_id": "vj_p2_device",
+                "device_name": "P2",
+                "duration": 60,
+            },
+            "python_source": "playback.py create_playback POST body (required fields L120)",
+        },
+    },
+    {
+        "id": "media_ping",
+        "path": "/video/ping",
+        "python_source": "tools/video_java/contract_regression.py SMOKE_ENDPOINTS[/video/media] → /video/ping; Java VideoPingController",
+        "data_keys": MEDIA_PING_KEYS,
+        "note": "Oracle media_hook blueprint has no GET ping; inventoried media-prefix liveness uses /video/ping.",
+    },
+    {
+        "id": "device_detection_regions",
+        "path": "/video/device-detection/device/vj_p2_device/regions",
+        "python_source": "VIDEO/_retired_python_video/models.py DeviceDetectionRegion.to_dict + device_detection_region.py list_device_regions",
+        "data_list": True,
+        "list_item_keys": DEVICE_DETECTION_ITEM_KEYS,
+    },
+    {
+        "id": "audio_talk_health",
+        "path": "/video/camera/audio/talk/health",
+        "python_source": "VIDEO/_retired_python_video/app/blueprints/audio_talk.py health()",
+        "data_keys": AUDIO_TALK_HEALTH_KEYS,
+    },
+    {
+        "id": "scenario_pose_libraries",
+        "path": "/video/scenario-pose/libraries",
+        "python_source": "VIDEO/_retired_python_video/models.py ScenarioPoseLibrary.to_dict + scenario_pose_library_service.list_libraries",
+        "data_list": True,
+        "top_keys": {"total"},
+        "list_item_keys": SCENARIO_POSE_LIBRARY_KEYS,
+        "setup": {
+            "method": "POST",
+            "path": "/video/scenario-pose/libraries",
+            "body": {"name": "field-contract-probe-lib"},
+            "python_source": "scenario_pose.py create_library POST body name",
+        },
     },
 ]
 
@@ -380,6 +489,52 @@ def http_get_json(base_url: str, path: str, timeout: float = 8.0) -> Tuple[int, 
     return status, body, raw
 
 
+def http_post_json(
+    base_url: str, path: str, payload: Dict[str, Any], timeout: float = 8.0
+) -> Tuple[int, Dict[str, Any], str]:
+    url = base_url.rstrip("/") + path
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Accept": "application/json", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            status = resp.status
+    except urllib.error.HTTPError as exc:
+        status = exc.code
+        raw = exc.read().decode("utf-8", errors="replace")
+    try:
+        body = json.loads(raw) if raw.strip() else {}
+    except json.JSONDecodeError:
+        body = {"_raw": raw}
+    if not isinstance(body, dict):
+        body = {"data": body}
+    return status, body, raw
+
+
+def run_setup(base_url: str, setup: Dict[str, Any], timeout: float) -> Dict[str, Any]:
+    method = str(setup.get("method", "POST")).upper()
+    result: Dict[str, Any] = {
+        "method": method,
+        "path": setup.get("path"),
+        "python_source": setup.get("python_source"),
+        "ok": False,
+    }
+    if method != "POST":
+        result["detail"] = f"unsupported setup method {method}"
+        return result
+    status, body, _ = http_post_json(base_url, str(setup["path"]), setup.get("body") or {}, timeout=timeout)
+    result["http_status"] = status
+    result["code"] = body.get("code")
+    result["ok"] = status < 500 and body.get("code") == 0
+    result["detail"] = body.get("msg") or body.get("message") or ""
+    return result
+
+
 def missing_keys(actual: Any, expected: Set[str]) -> List[str]:
     if not isinstance(actual, dict):
         return sorted(expected)
@@ -399,6 +554,7 @@ def assert_case(base_url: str, case: Dict[str, Any], timeout: float) -> Dict[str
         "skip": 0,
         "checks": [],
         "note": case.get("note"),
+        "setup": case.get("setup_result"),
     }
 
     def record(name: str, ok: bool, detail: str, *, skipped: bool = False) -> None:
@@ -483,8 +639,8 @@ def write_artifacts(rows: List[Dict[str, Any]], summary: Dict[str, int], base_ur
     logs_dir = repo_root() / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    json_path = logs_dir / f"fr-b19-field-contract-{ts}.json"
-    md_path = logs_dir / f"fr-b19-field-contract-{ts}.md"
+    json_path = logs_dir / f"{ARTIFACT_PREFIX}-field-contract-{ts}.json"
+    md_path = logs_dir / f"{ARTIFACT_PREFIX}-field-contract-{ts}.md"
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -496,7 +652,7 @@ def write_artifacts(rows: List[Dict[str, Any]], summary: Dict[str, int], base_ur
     json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     lines = [
-        "# FR-B19 Field Contract — P0/P1 Python-first sampling",
+        f"# FR-B20 Field Contract — 14-prefix P0/P1 Python-first sampling",
         "",
         f"**Generated:** {payload['generated_at']}",
         f"**Base URL:** {base_url}",
@@ -530,8 +686,8 @@ def write_artifacts(rows: List[Dict[str, Any]], summary: Dict[str, int], base_ur
             lines.append("")
 
     md_path.write_text("\n".join(lines), encoding="utf-8")
-    latest_json = logs_dir / "fr-b19-field-contract-latest.json"
-    latest_md = logs_dir / "fr-b19-field-contract-latest.md"
+    latest_json = logs_dir / f"{ARTIFACT_PREFIX}-field-contract-latest.json"
+    latest_md = logs_dir / f"{ARTIFACT_PREFIX}-field-contract-latest.md"
     latest_json.write_text(json_path.read_text(encoding="utf-8"), encoding="utf-8")
     latest_md.write_text(md_path.read_text(encoding="utf-8"), encoding="utf-8")
     print(f"artifact: {json_path}")
@@ -545,7 +701,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--timeout", type=float, default=8.0)
     args = parser.parse_args(argv)
 
-    rows = [assert_case(args.base_url, case, args.timeout) for case in SAMPLE_CASES]
+    rows: List[Dict[str, Any]] = []
+    for case in SAMPLE_CASES:
+        case_copy = dict(case)
+        if case_copy.get("setup"):
+            case_copy["setup_result"] = run_setup(args.base_url, case_copy["setup"], args.timeout)
+        rows.append(assert_case(args.base_url, case_copy, args.timeout))
     summary = summarize(rows)
     print(
         f"endpoints: {summary['endpoint_pass']}/{summary['endpoints']} pass | "
