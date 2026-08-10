@@ -580,7 +580,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
           { label: '巡检算法任务', value: 'patrol' },
         ],
       },
-      helpMessage: '高性能：本机加速推理，适合大路数/低时延；未标注项为完整能力集（人脸/车牌/后处理等）。高性能暂仅支持本机部署',
+      helpMessage: '高性能：RUNTIME C++ 加速推理，适合大路数/低时延。可「本机」跑，或调度到已分发 RUNTIME 的计算节点（原子节点）；未标注项为 Python 完整能力集（人脸/车牌/后处理等）',
       defaultValue: 'realtime_cpp',
     },
     {
@@ -608,7 +608,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         placeholder: '请选择调度策略',
         options: schedulePolicyOptions,
       },
-      helpMessage: '本机：在当前 VIDEO 服务进程部署；自动/指定节点：通过 iot-node 调度到远程 Agent',
+      helpMessage: '本机：当前 VIDEO 所在机拉起 RUNTIME/Python；自动/指定节点：经 iot-node 下发到远程 Agent。高性能(cpp)调度到节点前，请先在「节点管理 → 业务运行时分发」安装 RUNTIME',
     },
     {
       field: 'prefer_gpu',
@@ -1689,10 +1689,6 @@ const handleFieldValueChange = async (key: string, value: any) => {
     formValues.value = { ...currentValues, schedule_policy: value, target_node_id: undefined };
   } else if (key === 'task_mode' && typeof value === 'string' && value.endsWith('_cpp')) {
     const currentValues = await getFieldsValue();
-    if (currentValues.schedule_policy && currentValues.schedule_policy !== 'local') {
-      await setFieldsValue({ schedule_policy: 'local', target_node_id: undefined });
-      createMessage.info('高性能模式暂仅支持本机部署，已切换为本地调度');
-    }
     if (value === 'snap_cpp' && !currentValues.cron_expression?.trim()) {
       await setFieldsValue({ cron_expression: DEFAULT_SNAP_CRON });
     }
@@ -1745,10 +1741,6 @@ const handleSubmit = async () => {
       values.task_type = mapped.task_type;
       values.executor = mapped.executor;
       values.task_mode = toTaskMode(mapped.task_type, mapped.executor);
-      if (mapped.executor === 'cpp') {
-        values.schedule_policy = 'local';
-        values.target_node_id = null;
-      }
     }
 
     // 新建任务时，默认设置为未启用状态（需要通过启动按钮来启动）

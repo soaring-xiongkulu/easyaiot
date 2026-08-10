@@ -443,19 +443,16 @@ async function handleSubmit() {
     executor: mapped.executor,
     device_ids: form.device_ids,
     model_ids: form.model_ids,
-    schedule_policy: mapped.executor === 'cpp' ? 'local' : form.schedule_policy,
+    schedule_policy: form.schedule_policy,
     alert_event_enabled: form.alert_event_enabled,
     is_enabled: false,
   }
 
-  if (mapped.executor === 'cpp') {
-    payload.target_node_id = null
-  }
-  else if (form.schedule_policy === 'auto')
+  if (form.schedule_policy === 'auto')
     payload.prefer_gpu = form.prefer_gpu
-  if (mapped.executor !== 'cpp' && form.schedule_policy === 'node')
+  if (form.schedule_policy === 'node')
     payload.target_node_id = form.target_node_id
-  else if (mapped.executor !== 'cpp')
+  else
     payload.target_node_id = null
 
   if (baseTaskType(form.task_mode) === 'realtime' && form.extract_interval != null)
