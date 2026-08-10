@@ -38,6 +38,62 @@ def fixtures_path() -> Path:
     return repo_root() / "testdata" / "video-java" / "fixtures" / "vj_p0.json"
 
 
+def runtime_exe_path() -> Path:
+    """Release RUNTIME.exe relative to repo root (EVID-S3: real binary, not stub)."""
+    return (repo_root() / "RUNTIME" / "build-win" / "Release" / "RUNTIME.exe").resolve()
+
+
+def is_real_runtime_bin(path: str | Path | None) -> bool:
+    if not path:
+        return False
+    name = Path(str(path)).name.lower()
+    if "stub_runtime" in name:
+        return False
+    return name == "runtime.exe"
+
+
+def windows_process_image_name(pid: int | None) -> str | None:
+    """Best-effort Windows process image name for certify evidence."""
+    if pid is None or int(pid) <= 0:
+        return None
+    try:
+        proc = subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                f"(Get-Process -Id {int(pid)} -ErrorAction SilentlyContinue).ProcessName",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        name = (proc.stdout or "").strip()
+        return name or None
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def runtime_executor_fields(
+    task_data: Dict[str, Any], service_row: Dict[str, Any]
+) -> Dict[str, Optional[str]]:
+    """Lifecycle evidence: configured launcher basename + live process image."""
+    runtime_bin = task_data.get("runtime_bin_path") or service_row.get("runtime_bin_path")
+    executor_bin = Path(str(runtime_bin)).name if runtime_bin else None
+    pid = service_row.get("process_id")
+    if pid is None:
+        pid = task_data.get("service_process_id")
+    try:
+        pid_int = int(pid) if pid is not None else None
+    except (TypeError, ValueError):
+        pid_int = None
+    process_image = windows_process_image_name(pid_int)
+    if process_image and not process_image.lower().endswith(".exe"):
+        process_image = f"{process_image}.exe"
+    return {"executor_bin": executor_bin, "process_image": process_image}
+
+
 def p1_fixtures_path() -> Path:
     return repo_root() / "testdata" / "video-java" / "fixtures" / "vj_p1.json"
 

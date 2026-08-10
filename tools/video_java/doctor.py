@@ -132,6 +132,10 @@ def run_doctor() -> int:
         check_path(root / "testdata" / "video-java" / "fixtures", "fixtures/", directory=True),
         check_path(root / "testdata" / "video-java" / "golden", "golden/", directory=True),
         check_path(root / "testdata" / "video-java" / "media" / "README.md", "media/README.md"),
+        check_path(
+            root / "RUNTIME" / "build-win" / "Release" / "RUNTIME.exe",
+            "RUNTIME.exe (Release build required for P0 certify)",
+        ),
     ]
     for passed, msg in structural_checks:
         lines.append(msg)

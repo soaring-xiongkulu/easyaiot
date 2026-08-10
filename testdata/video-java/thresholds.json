@@ -1,7 +1,18 @@
 {
   "_note": "Phase 0+ thresholds; path/timestamp normalization in diff_layers",
   "api": {},
-  "lifecycle": {},
+  "lifecycle": {
+    "cases": {
+      "vj_p0_task_start_stop": {
+        "process_alive_required": true,
+        "executor_bin_must_contain": "RUNTIME.exe",
+        "reject_stub_launcher": true
+      },
+      "vj_p0_restart": {
+        "process_alive_after_restart_required": true
+      }
+    }
+  },
   "alarm": {
     "cases": {
       "vj_p0_alert_hook": {

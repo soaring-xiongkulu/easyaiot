@@ -1,7 +1,7 @@
 # PHASE 1 Gate — camera / ffmpeg / stream-forward
 
 **Status:** PASS
-**Updated:** 2026-08-10 07:20 UTC
+**Updated:** 2026-08-10 08:10 UTC
 
 Gate PASS when every P1 case `ok` — each layer `pass` or signed `exempt`.
 Media layer checks: stream status, ffmpeg process alive, codec summary (normalized).

@@ -12,7 +12,7 @@ endif()
 # --- platform flags (Linux keeps pthread; MSVC uses default CRT threads) ---
 if(WIN32)
     if(MSVC)
-        add_compile_definitions(WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS GLOG_NO_ABBREVIATED_SEVERITIES)
+        add_compile_definitions(WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS GLOG_NO_ABBREVIATED_SEVERITIES GLOG_USE_GLOG_EXPORT)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /EHsc /W3 /utf-8")
         set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od /Zi")
         set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")

@@ -98,6 +98,48 @@ def _alarm_hook_status_required(case_id: str, thresholds: Dict[str, Any]) -> Opt
     return case_thresh.get("hook_status_required")
 
 
+def _lifecycle_thresholds(thresholds: Dict[str, Any], case_id: str) -> Dict[str, Any]:
+    lifecycle = thresholds.get("lifecycle") or {}
+    cases = lifecycle.get("cases") or {}
+    return cases.get(case_id) or {}
+
+
+def _absolute_lifecycle_reds(
+    snap: Any,
+    label: str,
+    lifecycle_thresh: Dict[str, Any],
+) -> List[str]:
+    reds: List[str] = []
+    if not isinstance(snap, dict):
+        reds.append(f"{label}: snapshot not a dict")
+        return reds
+    if lifecycle_thresh.get("process_alive_required"):
+        alive = snap.get("process_alive")
+        if alive is not True:
+            reds.append(f"{label} process_alive: {alive!r} != required True")
+    if lifecycle_thresh.get("process_alive_after_restart_required"):
+        alive = snap.get("process_alive_after_restart")
+        if alive is not True:
+            reds.append(
+                f"{label} process_alive_after_restart: {alive!r} != required True"
+            )
+    must_contain = lifecycle_thresh.get("executor_bin_must_contain")
+    if must_contain:
+        executor_bin = snap.get("executor_bin")
+        if not isinstance(executor_bin, str) or must_contain.lower() not in executor_bin.lower():
+            reds.append(
+                f"{label} executor_bin: {executor_bin!r} missing required {must_contain!r}"
+            )
+    if lifecycle_thresh.get("reject_stub_launcher"):
+        executor_bin = snap.get("executor_bin")
+        if isinstance(executor_bin, str) and "stub_runtime" in executor_bin.lower():
+            reds.append(f"{label} executor_bin: stub launcher rejected ({executor_bin!r})")
+        process_image = snap.get("process_image")
+        if isinstance(process_image, str) and "stub" in process_image.lower():
+            reds.append(f"{label} process_image: stub launcher rejected ({process_image!r})")
+    return reds
+
+
 def _media_thresholds(thresholds: Dict[str, Any]) -> Dict[str, Any]:
     return thresholds.get("media") or {}
 
@@ -216,6 +258,10 @@ def diff_layer(
             if media_thresh:
                 reds.extend(_absolute_media_reds(py_norm, "python", media_thresh, lifecycle=True))
                 reds.extend(_absolute_media_reds(java_norm, "java", media_thresh, lifecycle=True))
+        lifecycle_thresh = _lifecycle_thresholds(thresholds or {}, case_id)
+        if layer == "lifecycle" and lifecycle_thresh:
+            reds.extend(_absolute_lifecycle_reds(py_norm, "python", lifecycle_thresh))
+            reds.extend(_absolute_lifecycle_reds(java_norm, "java", lifecycle_thresh))
 
     return {
         "layer": layer,

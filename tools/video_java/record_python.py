@@ -28,6 +28,7 @@ from vj_common import (
     prepare_p1_view_forward,
     wait_until_view_forward_running,
     update_task_runtime_bin,
+    runtime_executor_fields,
     write_layer,
 )
 
@@ -112,6 +113,17 @@ def _record_health(case: Dict[str, Any]) -> None:
     )
 
 
+def _wait_until_runtime_running(base: str, task_id: int, *, timeout: float = 30.0) -> Dict[str, Any]:
+    deadline = time.monotonic() + timeout
+    last: Dict[str, Any] = {}
+    while time.monotonic() < deadline:
+        last = _task_service_status(base, task_id)
+        if _lifecycle_from_service(last)["process_alive"]:
+            return last
+        time.sleep(0.5)
+    return last
+
+
 def _record_task_start_stop(case: Dict[str, Any], fixture: Dict[str, Any]) -> None:
     base = case["oracle_base_url"].rstrip("/")
     task_id = int(fixture["task_id"])
@@ -121,13 +133,13 @@ def _record_task_start_stop(case: Dict[str, Any], fixture: Dict[str, Any]) -> No
     before_svc = _task_service_status(base, task_id)
     before_lc = _lifecycle_from_service(before_svc)
     _, start_body, start_status = http_json(
-        "POST", f"{base}/video/algorithm/task/{task_id}/start"
+        "POST", f"{base}/video/algorithm/task/{task_id}/start", timeout=90.0
     )
-    time.sleep(2.0)
+    during_svc = _wait_until_runtime_running(base, task_id)
     during = _task_detail(base, task_id)
     during_data = during.get("data") or {}
-    during_svc = _task_service_status(base, task_id)
     during_lc = _lifecycle_from_service(during_svc)
+    executor_fields = runtime_executor_fields(during_data, during_svc)
     ini_path = _resolve_ini_path(fixture, during_data, task_id)
     ini_keys = _parse_ini_keys(ini_path) if ini_path and ini_path.is_file() else {}
 
@@ -151,6 +163,7 @@ def _record_task_start_stop(case: Dict[str, Any], fixture: Dict[str, Any]) -> No
                 "is_enabled": during_data.get("is_enabled"),
                 "process_alive": during_lc["process_alive"],
                 "executor": during_data.get("executor"),
+                **executor_fields,
             }
         },
     )
@@ -253,7 +266,7 @@ def _record_restart(case: Dict[str, Any], fixture: Dict[str, Any]) -> None:
     _ensure_task_stopped(base, task_id)
     update_task_runtime_bin(task_id, crash_bin)
     try:
-        http_json("POST", f"{base}/video/algorithm/task/{task_id}/start")
+        http_json("POST", f"{base}/video/algorithm/task/{task_id}/start", timeout=90.0)
         time.sleep(3.0)
         time.sleep(8.0)
         after_svc = _task_service_status(base, task_id)

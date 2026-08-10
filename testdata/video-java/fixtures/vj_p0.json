@@ -6,7 +6,7 @@
   "needs_runtime": true,
   "control_port": 8101,
   "log_path": null,
-  "runtime_bin_path": "F:\\acme\\.worktrees\\video-java\\tools\\video_java\\stub_runtime.bat",
+  "runtime_bin_path": "F:\\acme\\.worktrees\\video-java\\RUNTIME\\build-win\\Release\\RUNTIME.exe",
   "crash_runtime_bin_path": "F:\\acme\\.worktrees\\video-java\\tools\\video_java\\stub_runtime_exit.bat",
   "java_ini_path_hint": null,
   "ini_path_hint": null,

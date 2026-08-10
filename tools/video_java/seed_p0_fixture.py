@@ -32,8 +32,14 @@ def load_fixture_path() -> Path:
     return repo_root() / "testdata" / "video-java" / "fixtures" / "vj_p0.json"
 
 
-def stub_runtime_path() -> str:
-    return str((repo_root() / "tools" / "video_java" / "stub_runtime.bat").resolve())
+def runtime_bin_path() -> str:
+    exe = repo_root() / "RUNTIME" / "build-win" / "Release" / "RUNTIME.exe"
+    resolved = exe.resolve()
+    if not resolved.is_file():
+        print(f"FAIL: real RUNTIME.exe missing: {resolved}")
+        print("Build: see docs/runtime-parity/gates/PHASE_1_BUILD_NOTES.md")
+        raise SystemExit(1)
+    return str(resolved)
 
 
 def main() -> int:
@@ -134,14 +140,14 @@ def main() -> int:
             runtime_bin_path = %s
         WHERE id = %s
         """,
-        (stub_runtime_path(), task_id),
+        (runtime_bin_path(), task_id),
     )
     conn.commit()
     cur.close()
     conn.close()
 
     fixture["task_id"] = task_id
-    fixture["runtime_bin_path"] = stub_runtime_path()
+    fixture["runtime_bin_path"] = runtime_bin_path()
     fixture_path.write_text(json.dumps(fixture, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"OK  updated {fixture_path}")
     return 0

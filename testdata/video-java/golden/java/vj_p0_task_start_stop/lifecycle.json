@@ -6,6 +6,8 @@
     "after_run_status": "stopped",
     "is_enabled": true,
     "process_alive": true,
-    "executor": "cpp"
+    "executor": "cpp",
+    "executor_bin": "RUNTIME.exe",
+    "process_image": null
   }
 }
