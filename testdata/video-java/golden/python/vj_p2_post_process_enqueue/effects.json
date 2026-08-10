@@ -1,0 +1,13 @@
+{
+  "layer": "side_effect",
+  "status": "sampled",
+  "snapshot": {
+    "hook_code": 0,
+    "hook_ok": true,
+    "post_process_enabled_before": null,
+    "post_process_enabled_after": null,
+    "workspace_ready_before": null,
+    "workspace_ready_after": null,
+    "enqueue_follow_on": true
+  }
+}

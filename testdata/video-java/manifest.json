@@ -89,6 +89,87 @@
       "needs_ffmpeg": true,
       "priority": "P1",
       "notes": "stream-forward task start/stop/status for dedicated vj_p1 fixture task"
+    },
+    {
+      "case_id": "vj_p2_face_publish_process",
+      "layers": ["api", "side_effect"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "priority": "P2",
+      "notes": "POST /video/face/matching/publish + /matching/process — Kafka publish + match record"
+    },
+    {
+      "case_id": "vj_p2_plate_publish_process",
+      "layers": ["api", "side_effect"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "priority": "P2",
+      "notes": "POST /video/plate/matching/publish + /matching/process"
+    },
+    {
+      "case_id": "vj_p2_post_process_enqueue",
+      "layers": ["side_effect"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "priority": "P2",
+      "notes": "alert hook follow-on — post_process enqueue side effect (no dedicated HTTP write)"
+    },
+    {
+      "case_id": "vj_p2_snap_list_or_create",
+      "layers": ["api"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "priority": "P2",
+      "notes": "GET /video/snap/space/list + POST /video/snap/space (WEB minimal path)"
+    },
+    {
+      "case_id": "vj_p2_record_query",
+      "layers": ["api"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "priority": "P2",
+      "notes": "GET /video/record/space/list"
+    },
+    {
+      "case_id": "vj_p2_playback_url",
+      "layers": ["api"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "priority": "P2",
+      "notes": "SUBSTITUTE: GET /video/playback/list — no stable playback URL contract on oracle yet"
+    },
+    {
+      "case_id": "vj_p2_patrol_task_list",
+      "layers": ["api"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "priority": "P2",
+      "notes": "GET /video/algorithm/task/list?task_type=patrol"
+    },
+    {
+      "case_id": "vj_p2_media_hook",
+      "layers": ["api"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "priority": "P2",
+      "notes": "POST /video/media/hook/snap/completed"
+    },
+    {
+      "case_id": "vj_p2_detection_region_get",
+      "layers": ["api"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "priority": "P2",
+      "notes": "GET /video/device-detection/device/{id}/regions"
     }
   ]
 }

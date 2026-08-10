@@ -1,0 +1,19 @@
+{
+  "layer": "api",
+  "status": "sampled",
+  "endpoint": "/video/playback/list",
+  "http_status": 200,
+  "body": {
+    "code": 0,
+    "data": [],
+    "msg": "success",
+    "total": 0
+  },
+  "normalized": {
+    "code": 0,
+    "data": [],
+    "msg": "success",
+    "total": 0
+  },
+  "notes": "substitute for playback URL — oracle has no stable play-url contract"
+}

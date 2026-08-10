@@ -1,0 +1,14 @@
+{
+  "layer": "api",
+  "status": "sampled",
+  "endpoint": "/video/media/hook/snap/completed",
+  "http_status": 200,
+  "body": {
+    "code": 0,
+    "msg": null
+  },
+  "normalized": {
+    "code": 0,
+    "msg": null
+  }
+}

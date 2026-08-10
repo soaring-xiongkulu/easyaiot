@@ -1,0 +1,5 @@
+{
+  "layer": "api",
+  "status": "fail",
+  "reason": "candidate endpoint missing (HTTP 404)"
+}

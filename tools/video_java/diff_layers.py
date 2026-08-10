@@ -144,6 +144,10 @@ def diff_layer(
                 "oracle media golden degenerate; no parity baseline (do not pass on java-only)",
             )
         reds = _diff_dict(py_norm, java_norm)
+    elif layer == "side_effect":
+        py_norm = normalize_value(py_data.get("snapshot") or py_data)
+        java_norm = normalize_value(java_data.get("snapshot") or java_data)
+        reds = _diff_dict(py_norm, java_norm)
     else:
         py_norm = normalize_value(py_data.get("snapshot") or py_data)
         java_norm = normalize_value(java_data.get("snapshot") or java_data)

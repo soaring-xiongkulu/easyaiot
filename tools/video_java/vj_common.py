@@ -15,6 +15,7 @@ LAYER_FILES = {
     "alarm": "alarm.json",
     "ini": "ini.json",
     "media": "media.json",
+    "side_effect": "effects.json",
 }
 
 
@@ -36,6 +37,10 @@ def fixtures_path() -> Path:
 
 def p1_fixtures_path() -> Path:
     return repo_root() / "testdata" / "video-java" / "fixtures" / "vj_p1.json"
+
+
+def p2_fixtures_path() -> Path:
+    return repo_root() / "testdata" / "video-java" / "fixtures" / "vj_p2.json"
 
 
 def golden_dir(side: str, case_id: str) -> Path:
@@ -68,6 +73,15 @@ def load_p1_fixture() -> Dict[str, Any]:
     if not fx.get("stream_forward_task_id"):
         raise RuntimeError(
             "fixture stream_forward_task_id is null — run: python tools/video_java/seed_p1_fixture.py"
+        )
+    return fx
+
+
+def load_p2_fixture() -> Dict[str, Any]:
+    fx = load_json(p2_fixtures_path())
+    if not fx.get("face_task_id"):
+        raise RuntimeError(
+            "fixture face_task_id is null — run: python tools/video_java/seed_p2_fixture.py"
         )
     return fx
 
@@ -220,6 +234,14 @@ def phase1_case_ids(manifest: Dict[str, Any]) -> List[str]:
         c["case_id"]
         for c in manifest.get("cases", [])
         if c.get("priority") == "P1"
+    ]
+
+
+def phase2_case_ids(manifest: Dict[str, Any]) -> List[str]:
+    return [
+        c["case_id"]
+        for c in manifest.get("cases", [])
+        if c.get("priority") == "P2"
     ]
 
 

@@ -1,0 +1,84 @@
+{
+  "layer": "api",
+  "status": "sampled",
+  "endpoint": "/video/device-detection/device/vj_p2_device/regions",
+  "http_status": 200,
+  "body": {
+    "code": 0,
+    "data": [
+      {
+        "color": "#FF5252",
+        "created_at": null,
+        "device_id": "vj_p2_device",
+        "id": 3,
+        "image_id": null,
+        "image_path": null,
+        "is_enabled": true,
+        "model_ids": [],
+        "opacity": 0.3,
+        "points": [
+          [
+            0.1,
+            0.1
+          ],
+          [
+            0.9,
+            0.1
+          ],
+          [
+            0.9,
+            0.9
+          ],
+          [
+            0.1,
+            0.9
+          ]
+        ],
+        "region_name": "vj_p2_zone",
+        "region_type": "polygon",
+        "sort_order": 0,
+        "updated_at": null
+      }
+    ],
+    "msg": "success"
+  },
+  "normalized": {
+    "code": 0,
+    "data": [
+      {
+        "color": "#FF5252",
+        "created_at": "<TIMESTAMP>",
+        "device_id": "vj_p2_device",
+        "id": 3,
+        "image_id": null,
+        "image_path": null,
+        "is_enabled": true,
+        "model_ids": [],
+        "opacity": 0.3,
+        "points": [
+          [
+            0.1,
+            0.1
+          ],
+          [
+            0.9,
+            0.1
+          ],
+          [
+            0.9,
+            0.9
+          ],
+          [
+            0.1,
+            0.9
+          ]
+        ],
+        "region_name": "vj_p2_zone",
+        "region_type": "polygon",
+        "sort_order": 0,
+        "updated_at": "<TIMESTAMP>"
+      }
+    ],
+    "msg": "success"
+  }
+}

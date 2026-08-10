@@ -18,6 +18,7 @@ from vj_common import (
     load_fixture,
     load_manifest,
     load_p1_fixture,
+    load_p2_fixture,
     normalize_api_layer,
     update_task_runtime_bin,
     write_layer,
@@ -236,11 +237,22 @@ def _run_p1_with_failover(case: Dict[str, Any], fixture: Dict[str, Any], recorde
     recorder(case, fixture, side="java")
 
 
+def _run_p2_honest_fail(case: Dict[str, Any]) -> None:
+    """P2 scaffold: Java candidate has no Phase 2 surface yet — write fail goldens."""
+    cid = case["case_id"]
+    layers = case.get("layers", ["api"])
+    reason = "candidate Phase 2 endpoints not implemented"
+    for layer in layers:
+        _write_java_fail(cid, layer, reason)
+
+
 def run_case(case_id: str) -> None:
     manifest = load_manifest()
     case = find_case(manifest, case_id)
     if case_id.startswith("vj_p1_"):
         fixture = load_p1_fixture()
+    elif case_id.startswith("vj_p2_"):
+        fixture = load_p2_fixture()
     elif case_id != "vj_p0_health":
         fixture = load_fixture()
     else:
@@ -265,6 +277,24 @@ def run_case(case_id: str) -> None:
         _run_p1_with_failover(case, fixture, _record_view_forward_start_stop)
     elif cid == "vj_p1_stream_forward_start_stop":
         _run_p1_with_failover(case, fixture, _record_stream_forward_start_stop)
+    elif cid == "vj_p2_face_publish_process":
+        _run_p2_honest_fail(case)
+    elif cid == "vj_p2_plate_publish_process":
+        _run_p2_honest_fail(case)
+    elif cid == "vj_p2_post_process_enqueue":
+        _run_p2_honest_fail(case)
+    elif cid == "vj_p2_snap_list_or_create":
+        _run_p2_honest_fail(case)
+    elif cid == "vj_p2_record_query":
+        _run_p2_honest_fail(case)
+    elif cid == "vj_p2_playback_url":
+        _run_p2_honest_fail(case)
+    elif cid == "vj_p2_patrol_task_list":
+        _run_p2_honest_fail(case)
+    elif cid == "vj_p2_media_hook":
+        _run_p2_honest_fail(case)
+    elif cid == "vj_p2_detection_region_get":
+        _run_p2_honest_fail(case)
     else:
         raise ValueError(f"unsupported case {cid}")
 
@@ -278,7 +308,7 @@ def main() -> int:
     if args.case_id:
         ids = [args.case_id]
     else:
-        ids = [c["case_id"] for c in manifest.get("cases", []) if c.get("priority") in ("P0", "P1")]
+        ids = [c["case_id"] for c in manifest.get("cases", []) if c.get("priority") in ("P0", "P1", "P2")]
     for cid in ids:
         run_case(cid)
     return 0

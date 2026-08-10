@@ -1,0 +1,41 @@
+{
+  "description": "Phase 2 certify fixture — face/plate/snap/record/playback/patrol/regions/media_hook",
+  "device_id": "vj_p2_device",
+  "device_name": "vj_p2 certify camera",
+  "task_name_prefix": "vj_p2_",
+  "face_library_code": "vj_p2_face_lib",
+  "plate_library_code": "vj_p2_plate_lib",
+  "face_task_id": 48,
+  "plate_task_id": 49,
+  "post_process_task_id": 50,
+  "patrol_task_id": 51,
+  "face_library_id": 6,
+  "plate_library_id": 4,
+  "snap_space_id": 11,
+  "record_space_id": 10,
+  "detection_region_id": 3,
+  "face_image_path": "/tmp/vj_p2_face_certify.jpg",
+  "plate_no": "粤B00001",
+  "plate_image_path": "/tmp/vj_p2_plate_certify.jpg",
+  "snap_space_code": "vj_p2_snap",
+  "record_space_code": "vj_p2_record",
+  "media_hook_payload": {
+    "device_id": "vj_p2_device",
+    "file_path": "/tmp/vj_p2_snap_hook.jpg",
+    "source": "certify",
+    "task_id": 48,
+    "space_id": 11
+  },
+  "alert_hook_payload": {
+    "object": "person",
+    "event": "vj_p2_post_process",
+    "device_id": "vj_p2_device",
+    "device_name": "vj_p2 certify camera",
+    "task_type": "realtime",
+    "region": "zone_a",
+    "information": "{\"detections\":[{\"class_name\":\"person\",\"confidence\":0.9}],\"frame_number\":1}",
+    "time": "2026-08-10 12:00:00",
+    "task_id": 50
+  },
+  "notes": "Run tools/video_java/seed_p2_fixture.py to resolve IDs"
+}
