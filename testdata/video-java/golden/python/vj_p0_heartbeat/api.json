@@ -1,0 +1,21 @@
+{
+  "layer": "api",
+  "status": "sampled",
+  "endpoint": "/video/algorithm/heartbeat/realtime",
+  "body": {
+    "code": 0,
+    "data": {
+      "task_id": 35,
+      "task_name": "vj_p0_certify"
+    },
+    "msg": "心跳接收成功"
+  },
+  "normalized": {
+    "code": 0,
+    "data": {
+      "task_id": 35,
+      "task_name": "vj_p0_certify"
+    },
+    "msg": "心跳接收成功"
+  }
+}

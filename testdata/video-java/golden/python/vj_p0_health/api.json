@@ -1,0 +1,37 @@
+{
+  "layer": "api",
+  "status": "sampled",
+  "endpoint": "/actuator/health",
+  "http_status": 500,
+  "body": {
+    "hostname": "LAPTOP-IMH06J0F",
+    "status": "failure",
+    "timestamp": 1786327611.1442735,
+    "results": [
+      {
+        "checker": "database_available",
+        "output": "'utf-8' codec can't decode byte 0xd6 in position 61: invalid continuation byte",
+        "passed": false,
+        "timestamp": 1786327611.1442735,
+        "expires": 1786327620.1442735,
+        "response_time": 0.074018
+      }
+    ]
+  },
+  "normalized": {
+    "hostname": "LAPTOP-IMH06J0F",
+    "results": [
+      {
+        "checker": "database_available",
+        "expires": 1786327620.1442735,
+        "output": "'utf-8' codec can't decode byte 0xd6 in position 61: invalid continuation byte",
+        "passed": false,
+        "response_time": 0.074018,
+        "timestamp": 1786327611.1442735
+      }
+    ],
+    "status": "failure",
+    "timestamp": 1786327611.1442735
+  },
+  "raw": "{\"hostname\": \"LAPTOP-IMH06J0F\", \"status\": \"failure\", \"timestamp\": 1786327611.1442735, \"results\": [{\"checker\": \"database_available\", \"output\": \"'utf-8' codec can't decode byte 0xd6 in position 61: invalid continuation byte\", \"passed\": false, \"timestamp\": 1786327611.1442735, \"expires\": 1786327620.1442735, \"response_time\": 0.074018}]}"
+}

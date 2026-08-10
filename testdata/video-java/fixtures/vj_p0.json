@@ -1,0 +1,24 @@
+{
+  "description": "Phase 0 certify fixture — dedicated cpp task; do not auto_start on both sides",
+  "task_name_prefix": "vj_p0_",
+  "task_id": 35,
+  "device_id": "vj_p0_device",
+  "needs_runtime": true,
+  "control_port": 8101,
+  "log_path": null,
+  "runtime_bin_path": "F:\\acme\\.worktrees\\video-java\\tools\\video_java\\stub_runtime.bat",
+  "java_ini_path_hint": null,
+  "ini_path_hint": null,
+  "skip_background_env": "VIDEO_SKIP_BACKGROUND_TASKS=1",
+  "alert_hook_payload": {
+    "object": "person",
+    "event": "vj_p0_certify_task",
+    "device_id": "vj_p0_device",
+    "device_name": "vj_p0 certify camera",
+    "task_type": "realtime",
+    "region": "zone_a",
+    "information": "{\"detections\":[]}",
+    "time": "2026-08-10 12:00:00"
+  },
+  "notes": "Run tools/video_java/seed_p0_fixture.py to resolve task_id and device rows"
+}

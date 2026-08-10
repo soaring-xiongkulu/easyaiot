@@ -1,0 +1,11 @@
+{
+  "layer": "alarm",
+  "status": "sampled",
+  "snapshot": {
+    "hook_status": "skipped",
+    "mode": null,
+    "device_id": "vj_p0_device",
+    "object": "person",
+    "event": "vj_p0_certify_task"
+  }
+}

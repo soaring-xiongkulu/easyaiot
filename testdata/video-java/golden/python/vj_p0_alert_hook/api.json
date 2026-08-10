@@ -1,0 +1,23 @@
+{
+  "layer": "api",
+  "status": "sampled",
+  "endpoint": "/video/alert/hook",
+  "body": {
+    "code": 0,
+    "data": {
+      "reason": "alert_event_disabled",
+      "status": "skipped"
+    },
+    "message": "告警事件已跳过",
+    "msg": "告警事件已跳过"
+  },
+  "normalized": {
+    "code": 0,
+    "data": {
+      "reason": "alert_event_disabled",
+      "status": "skipped"
+    },
+    "message": "告警事件已跳过",
+    "msg": "告警事件已跳过"
+  }
+}
