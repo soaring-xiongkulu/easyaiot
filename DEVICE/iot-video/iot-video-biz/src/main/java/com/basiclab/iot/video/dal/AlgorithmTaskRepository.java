@@ -94,6 +94,21 @@ public class AlgorithmTaskRepository {
         return rows;
     }
 
+    public long count(String search) {
+        String like = search != null && !search.isBlank() ? "%" + search.trim() + "%" : null;
+        if (like != null) {
+            Long total = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM algorithm_task WHERE task_name ILIKE ? OR task_code ILIKE ?",
+                    Long.class,
+                    like,
+                    like
+            );
+            return total != null ? total : 0L;
+        }
+        Long total = jdbc.queryForObject("SELECT COUNT(*) FROM algorithm_task", Long.class);
+        return total != null ? total : 0L;
+    }
+
     public void updateRunState(long id, boolean enabled, String runStatus, String logPath, Integer port, Integer pid) {
         jdbc.update(
                 """

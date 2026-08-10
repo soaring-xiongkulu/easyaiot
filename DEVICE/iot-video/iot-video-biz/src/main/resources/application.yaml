@@ -24,3 +24,4 @@ video:
   runtime:
     config-dir: ${user.home}/.video-java/runtime-config
     logs-dir: ${user.home}/.video-java/logs
+    repo-root: ${ACME_ROOT:${RUNTIME_ROOT:}}

@@ -7,9 +7,10 @@
     "msg": "告警事件已跳过",
     "message": "告警事件已跳过",
     "data": {
-      "status": "skipped",
-      "reason": "alert_event_disabled"
-    }
+      "reason": "alert_event_disabled",
+      "status": "skipped"
+    },
+    "total": null
   },
   "normalized": {
     "code": 0,
@@ -18,6 +19,7 @@
       "status": "skipped"
     },
     "message": "告警事件已跳过",
-    "msg": "告警事件已跳过"
+    "msg": "告警事件已跳过",
+    "total": null
   }
 }

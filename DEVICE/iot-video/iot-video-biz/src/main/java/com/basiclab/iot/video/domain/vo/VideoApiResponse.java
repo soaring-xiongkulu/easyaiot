@@ -17,6 +17,7 @@ public class VideoApiResponse<T> {
     private String msg;
     private String message;
     private T data;
+    private Integer total;
 
     public static <T> VideoApiResponse<T> success(T data) {
         return success("success", data);

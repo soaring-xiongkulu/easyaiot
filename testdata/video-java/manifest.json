@@ -40,6 +40,15 @@
       "needs_runtime": false,
       "priority": "P0",
       "notes": "POST /video/alert/hook — Phase 0; alarm recording must be serial across oracle/candidate"
+    },
+    {
+      "case_id": "vj_p0_restart",
+      "layers": ["lifecycle"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": true,
+      "priority": "P0",
+      "notes": "RUNTIME unexpected exit → auto-restart (stub_runtime_exit.bat)"
     }
   ]
 }

@@ -2,7 +2,7 @@
   "layer": "api",
   "status": "sampled",
   "endpoint": "/video/algorithm/task/35/start",
-  "http_status": "{\"code\":0,\"msg\":\"启动成功\",\"message\":\"启动成功\",\"data\":{\"task_name\":\"vj_p0_certify\",\"prefer_gpu\":false,\"already_running\":false,\"detect_conf\":0.5,\"frame_skip\":25,\"model_ids\":null,\"is_enabled\":true,\"runtime_control_port\":null,\"service_process_id\":30760,\"device_names\":[\"vj_p0 certify camera\"],\"executor\":\"cpp\",\"id\":35,\"device_ids\":[\"vj_p0_device\"],\"run_status\":\"stopped\",\"task_code\":\"vj_p0_9482075d\",\"extract_interval\":null,\"service_server_ip\":\"127.0.0.1\",\"runtime_bin_path\":\"F:\\\\acme\\\\.worktrees\\\\video-java\\\\tools\\\\video_java\\\\stub_runtime.bat\",\"model_names\":null,\"alert_event_suppress_time\":5,\"alert_event_enabled\":true,\"service_last_heartbeat\":\"2026-08-10T02:18:46.991277Z\",\"service_log_path\":\"C:\\\\Users\\\\g\\\\.video-java\\\\logs\\\\task_35\",\"schedule_policy\":\"local\",\"task_type\":\"realtime\",\"service_port\":8035}}",
+  "http_status": "{\"code\":0,\"msg\":\"启动成功\",\"message\":\"启动成功\",\"data\":{\"task_name\":\"vj_p0_certify\",\"prefer_gpu\":false,\"already_running\":false,\"detect_conf\":0.5,\"frame_skip\":25,\"model_ids\":null,\"is_enabled\":true,\"runtime_control_port\":null,\"service_process_id\":42720,\"device_names\":[\"vj_p0 certify camera\"],\"executor\":\"cpp\",\"id\":35,\"device_ids\":[\"vj_p0_device\"],\"run_status\":\"stopped\",\"task_code\":\"vj_p0_9482075d\",\"extract_interval\":null,\"service_server_ip\":\"127.0.0.1\",\"runtime_bin_path\":\"F:\\\\acme\\\\.worktrees\\\\video-java\\\\tools\\\\video_java\\\\stub_runtime.bat\",\"model_names\":null,\"alert_event_suppress_time\":5,\"alert_event_enabled\":true,\"service_last_heartbeat\":\"2026-08-10T02:36:09.197006Z\",\"service_log_path\":\"C:\\\\Users\\\\g\\\\.video-java\\\\logs\\\\task_35\",\"schedule_policy\":\"local\",\"task_type\":\"realtime\",\"service_port\":8035},\"total\":null}",
   "body": {
     "code": 0,
     "msg": "启动成功",
@@ -16,7 +16,7 @@
       "model_ids": null,
       "is_enabled": true,
       "runtime_control_port": null,
-      "service_process_id": 30760,
+      "service_process_id": 42720,
       "device_names": [
         "vj_p0 certify camera"
       ],
@@ -33,12 +33,13 @@
       "model_names": null,
       "alert_event_suppress_time": 5,
       "alert_event_enabled": true,
-      "service_last_heartbeat": "2026-08-10T02:18:46.991277Z",
+      "service_last_heartbeat": "2026-08-10T02:36:09.197006Z",
       "service_log_path": "C:\\Users\\g\\.video-java\\logs\\task_35",
       "schedule_policy": "local",
       "task_type": "realtime",
       "service_port": 8035
-    }
+    },
+    "total": null
   },
   "normalized": {
     "code": 0,
@@ -75,6 +76,7 @@
       "task_type": "realtime"
     },
     "message": "启动成功",
-    "msg": "启动成功"
+    "msg": "启动成功",
+    "total": null
   }
 }

@@ -45,6 +45,7 @@ tools/video_java/
 | `vj_p0_task_start_stop` | lifecycle + ini | 启停 cpp 任务；进程在/不在；ini 关键键 |
 | `vj_p0_heartbeat` | lifecycle | RUNTIME（或 mock）POST 心跳 → DB 字段更新 |
 | `vj_p0_alert_hook` | alarm | POST hook → Kafka 和/或 alert 表字段对齐 |
+| `vj_p0_restart` | lifecycle | RUNTIME 意外退出后自动重启（stub_runtime_exit.bat） |
 
 可选 mock：不依赖真摄像机时，用固定 RTSP 环或「仅 hook/心跳注入」模式（在 case 元数据声明 `needs_runtime: true/false`）。
 

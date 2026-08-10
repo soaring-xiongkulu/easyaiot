@@ -21,6 +21,7 @@ from vj_common import (
     load_fixture,
     load_manifest,
     normalize_api_layer,
+    update_task_runtime_bin,
     write_layer,
 )
 
@@ -231,6 +232,39 @@ def _record_alert_hook(case: Dict[str, Any], fixture: Dict[str, Any]) -> None:
     )
 
 
+def _record_restart(case: Dict[str, Any], fixture: Dict[str, Any]) -> None:
+    base = case["oracle_base_url"].rstrip("/")
+    task_id = int(fixture["task_id"])
+    out = golden_dir("python", case["case_id"])
+    crash_bin = fixture.get("crash_runtime_bin_path") or str(
+        Path(__file__).resolve().parent / "stub_runtime_exit.bat"
+    )
+    normal_bin = fixture.get("runtime_bin_path")
+    _ensure_task_stopped(base, task_id)
+    update_task_runtime_bin(task_id, crash_bin)
+    try:
+        http_json("POST", f"{base}/video/algorithm/task/{task_id}/start")
+        time.sleep(3.0)
+        time.sleep(8.0)
+        after_svc = _task_service_status(base, task_id)
+        after_lc = _lifecycle_from_service(after_svc)
+        write_layer(
+            out / LAYER_FILES["lifecycle"],
+            "lifecycle",
+            {
+                "snapshot": {
+                    "process_alive_after_restart": after_lc["process_alive"],
+                    "unexpected_exit_recovered": after_lc["process_alive"],
+                }
+            },
+        )
+    finally:
+        http_json("POST", f"{base}/video/algorithm/task/{task_id}/stop")
+        time.sleep(1.0)
+        if normal_bin:
+            update_task_runtime_bin(task_id, normal_bin)
+
+
 def record_case(case_id: str) -> None:
     manifest = load_manifest()
     case = find_case(manifest, case_id)
@@ -245,6 +279,8 @@ def record_case(case_id: str) -> None:
         _record_heartbeat(case, fixture)
     elif cid == "vj_p0_alert_hook":
         _record_alert_hook(case, fixture)
+    elif cid == "vj_p0_restart":
+        _record_restart(case, fixture)
     else:
         raise ValueError(f"unsupported case {cid}")
 

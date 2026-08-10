@@ -28,7 +28,12 @@ public class AlgorithmTaskController {
         Map<String, Object> result = lifecycleService.listTasks(pageNo, pageSize, search);
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
-        return VideoApiResponse.success(items);
+        VideoApiResponse<List<Map<String, Object>>> response = VideoApiResponse.success(items);
+        Object total = result.get("total");
+        if (total instanceof Number number) {
+            response.setTotal(number.intValue());
+        }
+        return response;
     }
 
     @GetMapping("/task/{id}")

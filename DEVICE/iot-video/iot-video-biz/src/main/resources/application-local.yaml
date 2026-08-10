@@ -7,6 +7,11 @@ spring:
     username: postgres
     password: iot45722414822
 
+management:
+  health:
+    db:
+      enabled: false
+
 video:
   alert:
     use-direct-persist: true

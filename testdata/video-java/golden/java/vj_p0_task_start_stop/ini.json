@@ -12,8 +12,8 @@
     },
     "ai": {
       "enable": "true",
-      "model_path": "F:/acme/.worktrees/video-java/RUNTIME/models/yolov11n.onnx",
-      "classes_path": "F:/acme/.worktrees/video-java/RUNTIME/models/coco.names",
+      "model_path": "F:/acme/RUNTIME/models/yolov11n.onnx",
+      "classes_path": "F:/acme/RUNTIME/models/coco.names",
       "threads": "2",
       "frame_skip": "12",
       "prefer_gpu": "false",

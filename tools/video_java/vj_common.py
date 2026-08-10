@@ -58,6 +58,30 @@ def load_fixture() -> Dict[str, Any]:
     return fx
 
 
+def update_task_runtime_bin(task_id: int, runtime_bin_path: str) -> None:
+    """Test-only: point fixture task at a specific RUNTIME stub/binary."""
+    try:
+        import os
+
+        import psycopg2
+    except ImportError as exc:
+        raise RuntimeError("psycopg2 required for runtime_bin_path updates") from exc
+    db_url = os.environ.get(
+        "VIDEO_JAVA_DB_URL",
+        "postgresql://postgres:iot45722414822@127.0.0.1:15432/iot-video20",
+    )
+    conn = psycopg2.connect(db_url)
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE algorithm_task SET runtime_bin_path = %s WHERE id = %s",
+                    (runtime_bin_path, task_id),
+                )
+    finally:
+        conn.close()
+
+
 def find_case(manifest: Dict[str, Any], case_id: str) -> Dict[str, Any]:
     for case in manifest.get("cases", []):
         if case.get("case_id") == case_id:

@@ -24,5 +24,7 @@ public class VideoProperties {
         private String logsDir = System.getProperty("user.home") + "/.video-java/logs";
         private String hookBaseUrl = "http://127.0.0.1:48096";
         private String heartbeatBaseUrl = "http://127.0.0.1:48096";
+        /** Repo root for RUNTIME binaries/models; env ACME_ROOT or RUNTIME_ROOT overrides. */
+        private String repoRoot;
     }
 }

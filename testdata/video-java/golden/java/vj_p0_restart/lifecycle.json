@@ -1,0 +1,8 @@
+{
+  "layer": "lifecycle",
+  "status": "sampled",
+  "snapshot": {
+    "process_alive_after_restart": true,
+    "unexpected_exit_recovered": true
+  }
+}

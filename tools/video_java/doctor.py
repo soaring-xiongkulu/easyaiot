@@ -18,6 +18,7 @@ REQUIRED_CASE_IDS = {
     "vj_p0_task_start_stop",
     "vj_p0_heartbeat",
     "vj_p0_alert_hook",
+    "vj_p0_restart",
 }
 
 P0_PORTS_DOC = "P0 direct ports: oracle http://127.0.0.1:6000 | candidate http://127.0.0.1:48096"

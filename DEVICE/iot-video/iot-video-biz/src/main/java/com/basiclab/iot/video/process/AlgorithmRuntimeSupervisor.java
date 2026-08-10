@@ -1,11 +1,13 @@
 package com.basiclab.iot.video.process;
 
+import javax.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -19,11 +21,16 @@ public class AlgorithmRuntimeSupervisor {
     private static final long RESTART_BACKOFF_MS = 5000L;
 
     private final Map<Long, ManagedProcess> processes = new ConcurrentHashMap<>();
+    private final Map<Long, Object> taskLocks = new ConcurrentHashMap<>();
     private final ExecutorService logPump = Executors.newCachedThreadPool(r -> {
         Thread t = new Thread(r, "video-runtime-log-pump");
         t.setDaemon(true);
         return t;
     });
+
+    private Object lockFor(long taskId) {
+        return taskLocks.computeIfAbsent(taskId, ignored -> new Object());
+    }
 
     public boolean isAlive(long taskId) {
         ManagedProcess mp = processes.get(taskId);
@@ -31,7 +38,13 @@ public class AlgorithmRuntimeSupervisor {
     }
 
     public void start(long taskId, String runtimeBin, String iniPath, Path logDir) throws IOException {
-        stop(taskId, false);
+        synchronized (lockFor(taskId)) {
+            startUnlocked(taskId, runtimeBin, iniPath, logDir);
+        }
+    }
+
+    private void startUnlocked(long taskId, String runtimeBin, String iniPath, Path logDir) throws IOException {
+        stopUnlocked(taskId, false);
         Files.createDirectories(logDir);
         Path stdoutLog = logDir.resolve("runtime.stdout.log");
         ProcessBuilder pb;
@@ -50,6 +63,12 @@ public class AlgorithmRuntimeSupervisor {
     }
 
     public void stop(long taskId, boolean remove) {
+        synchronized (lockFor(taskId)) {
+            stopUnlocked(taskId, remove);
+        }
+    }
+
+    private void stopUnlocked(long taskId, boolean remove) {
         ManagedProcess mp = processes.get(taskId);
         if (mp == null) {
             return;
@@ -69,8 +88,28 @@ public class AlgorithmRuntimeSupervisor {
         }
         if (remove) {
             processes.remove(taskId);
+            taskLocks.remove(taskId);
         }
         log.info("RUNTIME stopped task_id={}", taskId);
+    }
+
+    @PreDestroy
+    public void shutdownAll() {
+        log.info("RUNTIME supervisor shutting down — stopping all managed children");
+        for (Long taskId : new ArrayList<>(processes.keySet())) {
+            synchronized (lockFor(taskId)) {
+                stopUnlocked(taskId, true);
+            }
+        }
+        logPump.shutdownNow();
+        try {
+            if (!logPump.awaitTermination(10, TimeUnit.SECONDS)) {
+                log.warn("RUNTIME log pump did not terminate within 10s");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        taskLocks.clear();
     }
 
     public Integer currentPid(long taskId) {
@@ -94,7 +133,11 @@ public class AlgorithmRuntimeSupervisor {
                 if (!mp.stopping && processes.get(taskId) == mp) {
                     log.warn("RUNTIME unexpected exit; restarting task_id={}", taskId);
                     try {
-                        start(taskId, mp.runtimeBin, mp.iniPath, mp.logDir);
+                        synchronized (lockFor(taskId)) {
+                            if (!mp.stopping && processes.get(taskId) == mp) {
+                                startUnlocked(taskId, mp.runtimeBin, mp.iniPath, mp.logDir);
+                            }
+                        }
                     } catch (IOException e) {
                         log.error("RUNTIME restart failed task_id={}: {}", taskId, e.getMessage());
                     }

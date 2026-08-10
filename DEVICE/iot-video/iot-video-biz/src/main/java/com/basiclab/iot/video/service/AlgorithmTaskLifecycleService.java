@@ -30,9 +30,10 @@ public class AlgorithmTaskLifecycleService {
     }
 
     public Map<String, Object> listTasks(int pageNo, int pageSize, String search) {
+        var items = taskRepository.list(pageNo, pageSize, search).stream().map(AlgorithmTaskRow::toMap).toList();
         return Map.of(
-                "items", taskRepository.list(pageNo, pageSize, search).stream().map(AlgorithmTaskRow::toMap).toList(),
-                "total", taskRepository.list(pageNo, pageSize, search).size()
+                "items", items,
+                "total", taskRepository.count(search)
         );
     }
 

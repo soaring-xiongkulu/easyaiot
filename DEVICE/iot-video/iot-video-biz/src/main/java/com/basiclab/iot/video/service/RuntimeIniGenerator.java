@@ -185,15 +185,30 @@ public class RuntimeIniGenerator {
     }
 
     private Path repoRoot() {
+        String configured = videoProperties.getRuntime().getRepoRoot();
+        if (configured != null && !configured.isBlank()) {
+            return Path.of(configured.trim());
+        }
+        String envRoot = System.getenv("ACME_ROOT");
+        if (envRoot == null || envRoot.isBlank()) {
+            envRoot = System.getenv("RUNTIME_ROOT");
+        }
+        if (envRoot != null && !envRoot.isBlank()) {
+            Path envPath = Path.of(envRoot.trim());
+            if (Files.isDirectory(envPath.resolve("RUNTIME"))) {
+                return envPath;
+            }
+        }
         Path videoRoot = Path.of(System.getProperty("user.dir"));
         if (Files.isDirectory(videoRoot.resolve("RUNTIME"))) {
             return videoRoot;
         }
-        Path sibling = videoRoot.getParent() != null ? videoRoot.getParent().resolve("RUNTIME") : null;
-        if (sibling != null && Files.isDirectory(sibling)) {
-            return sibling.getParent();
+        Path parent = videoRoot.getParent();
+        if (parent != null && Files.isDirectory(parent.resolve("RUNTIME"))) {
+            return parent;
         }
-        return Path.of("F:/acme");
+        throw new VideoBusinessException(400,
+                "无法定位 RUNTIME 仓库根目录。请设置 video.runtime.repo-root、ACME_ROOT 或 RUNTIME_ROOT");
     }
 
     private String normalizeTaskType(String taskType) {
