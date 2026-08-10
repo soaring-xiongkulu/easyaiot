@@ -19,13 +19,15 @@ int YoloThreadPool::setUp(std::string model_path,
                           int num_threads,
                           bool prefer_gpu,
                           bool force_cpu,
-                          int gpu_device_id) {
+                          int gpu_device_id,
+                          float score_threshold) {
     for (int i = 0; i < num_threads; ++i) {
         auto engine = std::make_shared<YoloEngine>();
         int ret = engine->LoadModel(model_path, model_class, prefer_gpu, force_cpu, gpu_device_id);
         if (ret != 0) {
             return ret;
         }
+        engine->setScoreThreshold(score_threshold);
         engines_.push_back(engine);
     }
     for (int i = 0; i < num_threads; ++i) {

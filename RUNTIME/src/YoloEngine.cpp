@@ -303,8 +303,8 @@ int YoloEngine::LoadModel(std::string model_path,
             }
         }
 
-        // YOLO26 end2end often benefits from slightly lower conf (align VIDEO defaults lightly)
-        if (end2end_) {
+        // YOLO26 end2end: keep slightly lower floor unless setScoreThreshold() raised it
+        if (end2end_ && scoreThreshold_ < 0.20f) {
             scoreThreshold_ = 0.20f;
         }
 
@@ -321,6 +321,12 @@ int YoloEngine::LoadModel(std::string model_path,
         LOG(ERROR) << "[YOLO] Exception loading model: " << e.what();
         inferEp_ = "none";
         return -2;
+    }
+}
+
+void YoloEngine::setScoreThreshold(float threshold) {
+    if (threshold > 0.0f && threshold <= 1.0f) {
+        scoreThreshold_ = threshold;
     }
 }
 

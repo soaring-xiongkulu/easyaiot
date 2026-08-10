@@ -34,7 +34,8 @@ public:
               int num_threads = 3,
               bool prefer_gpu = true,
               bool force_cpu = false,
-              int gpu_device_id = 0);
+              int gpu_device_id = 0,
+              float score_threshold = 0.25f);
     int submitTask(const cv::Mat& img, int input_id, int frame_id);
     int getTargetResult(std::vector<DetectObject>& objects, int input_id, int frame_id);
     int getTargetImgResult(cv::Mat& img, int input_id, int frame_id);

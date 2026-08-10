@@ -34,6 +34,8 @@ public:
     const std::string& modelLayout() const { return modelLayout_; }
     const std::string& loadedOnnxPath() const { return loadedOnnxPath_; }
 
+    void setScoreThreshold(float threshold);
+
 private:
     int Inference(const cv::Mat& image, std::vector<DetectObject>& objects);
     int createSession(const std::string& model_path, bool use_cuda, int gpu_device_id);
