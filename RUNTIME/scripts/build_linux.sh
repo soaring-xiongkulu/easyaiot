@@ -32,17 +32,26 @@ BUILD_DIR="$ROOT/build"
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
+# shellcheck disable=SC1091
+source "$ROOT/scripts/version_meta.sh"
+runtime_resolve_version_meta "$ROOT" "$REPO"
+
 cmake "$ROOT" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
   -DOpenCV_DIR="$CONDA_PREFIX/lib/cmake/opencv5" \
   -DONNXRUNTIME_ROOT="$ORT_ROOT" \
+  -DRUNTIME_VERSION_STR="${RUNTIME_VERSION}" \
   -DCMAKE_CXX_FLAGS="-I$CONDA_PREFIX/include/opencv5"
 
 cmake --build . -j"$(nproc)"
 
+runtime_write_version_file "$BUILD_DIR/VERSION" "local-build" "$BUILD_DIR/RUNTIME" "$ORT_ROOT" "host"
+runtime_write_version_file "$ROOT/VERSION" "local-build" "$BUILD_DIR/RUNTIME" "$ORT_ROOT" "host"
+
 echo ""
-echo "OK: $BUILD_DIR/RUNTIME"
+echo "OK: $BUILD_DIR/RUNTIME (version=${RUNTIME_VERSION})"
 echo "Run with:"
 echo "  export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$ORT_ROOT/lib:\$LD_LIBRARY_PATH"
 echo "  $BUILD_DIR/RUNTIME $ROOT/config/config.example.ini"
+echo "  $BUILD_DIR/RUNTIME --version"

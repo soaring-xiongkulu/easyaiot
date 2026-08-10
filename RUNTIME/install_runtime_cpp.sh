@@ -60,6 +60,14 @@ if [[ -d "${inner}/models" ]]; then
 fi
 if [[ -f "${inner}/VERSION" ]]; then
   run_as cp -f "${inner}/VERSION" "${INSTALL_DIR}/VERSION"
+  # 标记安装来源，保留 version/git 等字段
+  if grep -q '^source=' "${INSTALL_DIR}/VERSION" 2>/dev/null; then
+    run_as sed -i 's/^source=.*/source=atomic-install/' "${INSTALL_DIR}/VERSION" 2>/dev/null \
+      || run_as sed -i '' 's/^source=.*/source=atomic-install/' "${INSTALL_DIR}/VERSION" 2>/dev/null \
+      || true
+  else
+    echo "source=atomic-install" | run_as tee -a "${INSTALL_DIR}/VERSION" >/dev/null
+  fi
 fi
 
 # profile.d 便于交互式调试；工作负载通过 env 注入（无权限则跳过）
@@ -97,4 +105,10 @@ elif [[ -n "${VIDEO_BASE_URL:-${EASYAIOT_VIDEO_BASE_URL:-}}" ]]; then
 fi
 
 echo "RUNTIME_OK: ${INSTALL_DIR}/bin/RUNTIME"
+if [[ -f "${INSTALL_DIR}/VERSION" ]]; then
+  echo "RUNTIME_VERSION_FILE:"
+  cat "${INSTALL_DIR}/VERSION" || true
+  ver_line="$(grep -E '^version=' "${INSTALL_DIR}/VERSION" 2>/dev/null | head -1 || true)"
+  [[ -n "$ver_line" ]] && echo "RUNTIME_VERSION=${ver_line#version=}"
+fi
 ls -la "${INSTALL_DIR}/bin/RUNTIME"

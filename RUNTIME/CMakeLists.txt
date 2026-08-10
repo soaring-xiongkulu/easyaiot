@@ -113,3 +113,10 @@ target_link_libraries(${PROJECT_NAME}
 
 # glog >= 0.7 needs GLOG_USE_GLOG_EXPORT so GLOG_EXPORT is defined; glog 0.6 ignores it.
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLOG_USE_GLOG_EXPORT)
+
+# Version string injected by install/build scripts (e.g. 0.1.0+gabcdef)
+if(NOT DEFINED RUNTIME_VERSION_STR OR RUNTIME_VERSION_STR STREQUAL "")
+    set(RUNTIME_VERSION_STR "unknown")
+endif()
+target_compile_definitions(${PROJECT_NAME} PRIVATE "RUNTIME_VERSION_STR=\"${RUNTIME_VERSION_STR}\"")
+message(STATUS "RUNTIME_VERSION_STR: ${RUNTIME_VERSION_STR}")

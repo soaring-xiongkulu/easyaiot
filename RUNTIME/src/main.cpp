@@ -5,11 +5,16 @@
 
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <csignal>
 #include <glog/logging.h>
 #include "Manage.h"
 #include "Config.h"
 #include "ConfigParser.h"
+
+#ifndef RUNTIME_VERSION_STR
+#define RUNTIME_VERSION_STR "unknown"
+#endif
 
 Server* g_server = nullptr;
 
@@ -20,6 +25,7 @@ void printUsage(const char* program) {
     std::cout << "============================================\n";
     std::cout << "\nUsage:\n";
     std::cout << "  " << program << " <config.ini>\n";
+    std::cout << "  " << program << " --version\n";
     std::cout << "\nExample:\n";
     std::cout << "  " << program << " config/task_123.ini\n";
     std::cout << "\nRefer to: config/config.example.ini\n";
@@ -31,12 +37,19 @@ void printBanner() {
     std::cout << "============================================\n";
     std::cout << "  EasyAIoT RUNTIME\n";
     std::cout << "  C++ frame pipeline for VIDEO executor=cpp\n";
-    std::cout << "  Version 2.0.0\n";
+    std::cout << "  Version " << RUNTIME_VERSION_STR << "\n";
     std::cout << "============================================\n";
     std::cout << "\n";
 }
 
 int main(int argc, char* argv[]) {
+    if (argc >= 2 && (std::strcmp(argv[1], "--version") == 0
+                      || std::strcmp(argv[1], "-V") == 0
+                      || std::strcmp(argv[1], "-v") == 0)) {
+        std::cout << "RUNTIME " << RUNTIME_VERSION_STR << std::endl;
+        return 0;
+    }
+
     printBanner();
 
     if (argc != 2) {
@@ -54,6 +67,7 @@ int main(int argc, char* argv[]) {
 
     LOG(INFO) << "============================================================";
     LOG(INFO) << "[STARTING] RUNTIME module initializing...";
+    LOG(INFO) << "[VERSION] " << RUNTIME_VERSION_STR;
     LOG(INFO) << "[CONFIG] Config file: " << config_file;
     LOG(INFO) << "============================================================";
 

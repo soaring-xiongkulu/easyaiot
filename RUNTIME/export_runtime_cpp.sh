@@ -17,6 +17,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$ROOT/.." && pwd)"
 
+# shellcheck disable=SC1091
+source "$ROOT/scripts/version_meta.sh"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -156,19 +159,29 @@ export USE_GPU="${USE_GPU:-true}"
 EOF
   chmod +x "$staging/env.sh"
 
-  cat > "$staging/VERSION" <<EOF
-arch=${arch}
-built_at=$(date -Iseconds 2>/dev/null || date)
-source_bin=${bin}
-ort=${RUNTIME_ORT_LIB_HOST:-}
-EOF
+  # Prefer existing build VERSION fields; refresh built_at/source for export package
+  runtime_resolve_version_meta "$ROOT" "$REPO"
+  if [[ -f "$ROOT/build/VERSION" ]]; then
+    # Keep version/git from build if present
+    while IFS='=' read -r k v; do
+      case "$k" in
+        version) RUNTIME_VERSION="$v" ;;
+        git) RUNTIME_GIT="$v" ;;
+      esac
+    done < <(grep -E '^(version|git)=' "$ROOT/build/VERSION" 2>/dev/null || true)
+  fi
+  runtime_write_version_file "$staging/VERSION" "export" "$bin" "${RUNTIME_ORT_LIB_HOST:-${ORT_ROOT:-}}" "${RUNTIME_BUILD_MODE:-${BUILD_MODE:-}}"
+  # Also refresh control-plane copy for check UI
+  cp -f "$staging/VERSION" "$ROOT/build/VERSION" 2>/dev/null || true
+  cp -f "$staging/VERSION" "$ROOT/VERSION" 2>/dev/null || true
+  print_info "打包 VERSION: version=${RUNTIME_VERSION} git=${RUNTIME_GIT}"
 
   local tar_name="easyaiot-runtime-${arch}.tar.gz"
   local tar_path="$cache/$tar_name"
   print_info "打包 $tar_path ..."
   tar -czf "$tar_path" -C "$RUNTIME_EXPORT_WORK" "easyaiot-runtime-${arch}"
   date -Iseconds 2>/dev/null || date > "$cache/.ready"
-  print_success "已导出: $tar_path ($(du -h "$tar_path" | awk '{print $1}'))"
+  print_success "已导出: $tar_path ($(du -h "$tar_path" | awk '{print $1}')) version=${RUNTIME_VERSION}"
   echo "RUNTIME_EXPORT_OK=$tar_path"
 }
 

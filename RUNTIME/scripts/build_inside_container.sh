@@ -85,6 +85,8 @@ SYSTEM_LD=/usr/bin/ld
 echo "[RUNTIME/container] CC=$CC CXX=$CXX"
 "$CXX" --version | head -1
 echo "[RUNTIME/container] cmake=$CMAKE_BIN ld=$SYSTEM_LD"
+RUNTIME_VERSION_STR="${RUNTIME_VERSION_STR:-unknown}"
+echo "[RUNTIME/container] version=$RUNTIME_VERSION_STR"
 echo "[RUNTIME/container] cmake 配置..."
 "$CMAKE_BIN" "$RUNTIME_SRC" \
   -B "$BUILD_DIR" \
@@ -95,6 +97,7 @@ echo "[RUNTIME/container] cmake 配置..."
   -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
   -DOpenCV_DIR="$CONDA_PREFIX/lib/cmake/opencv5" \
   -DONNXRUNTIME_ROOT="$ORT_ROOT" \
+  -DRUNTIME_VERSION_STR="${RUNTIME_VERSION_STR}" \
   -DCMAKE_CXX_FLAGS="-I$CONDA_PREFIX/include/opencv5"
 
 echo "[RUNTIME/container] 编译中 (-j$JOBS)..."
@@ -105,4 +108,4 @@ if [[ ! -x "$BUILD_DIR/RUNTIME" ]]; then
   exit 1
 fi
 
-echo "[RUNTIME/container] OK: $BUILD_DIR/RUNTIME"
+echo "[RUNTIME/container] OK: $BUILD_DIR/RUNTIME (version=${RUNTIME_VERSION_STR})"

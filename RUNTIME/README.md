@@ -35,6 +35,7 @@ EasyAIoT 的 **C++ 帧执行器**（由原 TASK 演进）。负责拉流、解�
 - [集群分发（iot-node · 一键）](#集群分发iot-node--一键)
 - [本机 VIDEO 一键挂载（推荐中心机）](#本机-video-一键挂载推荐中心机)
 - [编译与依赖](#编译与依赖)
+- [版本控制](#版本控制)
 - [运行与运维](#运行与运维)
 - [流水线与回调](#流水线与回调)
 - [配置说明](#配置说明)
@@ -50,7 +51,7 @@ EasyAIoT 的 **C++ 帧执行器**（由原 TASK 演进）。负责拉流、解�
 | **中心 / 一体机** | VIDEO（自动编译并挂载 RUNTIME） | `./VIDEO/install_linux.sh install` | 编排 + 预览 + 告警落库 + 本机执行 |
 | **原子计算节点** | **只装 RUNTIME** | `install_linux.sh runtime` 或 `RUNTIME/install_linux.sh atomic` | 边缘算力盒 / 集群 worker，无本地业务面 |
 | **批量节点** | 只装 RUNTIME | WEB「业务运行时分发」→ RUNTIME(C++) | 多机 SSH 一键 |
-| **开发调试** | 源码树编译 | `./RUNTIME/install_linux.sh build` | 改代码、本地跑示例 ini |
+| **开发调试** | 源码树编译 | `./RUNTIME/install_linux.sh build`；或本地启 VIDEO 时自动编译 | 改代码、本地跑示例 ini；VIDEO `run.py`/IDEA 缺二进制时默认 `install` |
 
 拓扑示意（原子节点）：
 
@@ -266,6 +267,50 @@ EASYAIOT_RUNTIME_BUILD_MODE=host ./RUNTIME/install_linux.sh build
 
 ---
 
+## 版本控制
+
+每次成功编译 / 导出会写出统一 `VERSION`（key=value），便于对照升级与维护。
+
+### 标识格式（全自动，无手工版本文件）
+
+- **不维护** `VERSION_BASE` 之类基线文件；版本号编译时由 **git 自动生成**
+- 优先：`git describe --tags --always --dirty`（有 tag 则带上，如 `v1.2.3-5-gabcdef1`）
+- 无 describe 时回退：`g{短哈希}`，工作区有未提交改动则加 `-dirty`
+- 无 git 环境：`unknown`
+- 其它字段：`git` / `built_at` / `arch` / `build_mode` / `ort` / `source`（`local-build` | `export` | `atomic-install`）
+
+| 落点 | 路径 |
+|------|------|
+| 源码树编译产物 | `RUNTIME/build/VERSION`、`RUNTIME/VERSION`（**构建生成**，勿手改）；`deploy.env` 含 `RUNTIME_VERSION` |
+| 节点安装 | `/opt/easyaiot/RUNTIME/VERSION` |
+| 二进制内嵌 | CMake `-DRUNTIME_VERSION_STR=...`；`RUNTIME --version` |
+
+```bash
+# 查看本机编译产物版本
+cat RUNTIME/build/VERSION
+./RUNTIME/build/RUNTIME --version
+
+# 节点
+cat /opt/easyaiot/RUNTIME/VERSION
+```
+
+### 界面哪里看
+
+| 位置 | 内容 |
+|------|------|
+| WEB「节点管理 → 业务运行时分发 → RUNTIME」 | 控制面版本 + 检测结果里的节点版本；不一致标黄，建议重新「分发 RUNTIME」 |
+| WEB「算法任务」选高性能（`*_cpp`） | 展示 VIDEO 本机 RUNTIME 版本（`GET /video/algorithm/runtime/info`） |
+
+### 升级约定
+
+1. 中心/控制面重新编译（或 VIDEO 本地自动编译）→ 新 git 版本写入 `VERSION`
+2. WEB「分发 RUNTIME」覆盖安装到节点（**不会因版本不一致自动强推**）
+3. 远程任务启动时若节点版本 ≠ 本机，VIDEO **仅打 warning 日志**，仍允许启动，避免误伤生产
+
+版本不一致时请在维护窗口重新分发；不强制阻断算法任务。
+
+---
+
 ## 运行与运维
 
 ### 源码树手工跑
@@ -299,7 +344,7 @@ WEB / API 创建算法任务，`executor=cpp` 时由 VIDEO 生成 ini 并拉起�
 | `EASYAIOT_RUNTIME_REQUIRED` | `1` 失败则中止上层 VIDEO 安装 |
 | `RUNTIME_PREFER_GPU` / `RUNTIME_FORCE_CPU` | 推理设备策略 |
 | `RUNTIME_GPU_DEVICE_ID` / `CUDA_VISIBLE_DEVICES` | GPU 选择 |
-| `RUNTIME_AUTO_INSTALL` | `0` 时 export/分发跳过自动编译 |
+| `RUNTIME_AUTO_INSTALL` | `0` 时跳过自动编译（export/分发、以及 VIDEO 本地启动 / 任务拉起） |
 
 ### 健康与控制
 
