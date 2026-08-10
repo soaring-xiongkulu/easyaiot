@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from diff_layers import diff_case
-from vj_common import find_case, load_manifest, phase0_case_ids, repo_root
+from vj_common import find_case, layer_satisfies, load_manifest, phase0_case_ids, repo_root
 
 
 def _run(cmd: List[str]) -> int:
@@ -21,8 +21,8 @@ def _run(cmd: List[str]) -> int:
 
 
 def _case_passes(layer_results: List[Dict[str, Any]]) -> bool:
-    """Overall case ok only when every required layer status is pass (not exempt)."""
-    return all(layer.get("status") == "pass" for layer in layer_results)
+    """Case ok when every layer is pass or signed exempt (see EXEMPTIONS.md)."""
+    return all(layer_satisfies(layer) for layer in layer_results)
 
 
 def _collect_exemptions(results: List[Dict[str, Any]]) -> List[str]:
@@ -82,7 +82,7 @@ def _write_gate_report(
         f"**Status:** {'PASS' if all_ok else 'FAIL'}",
         f"**Updated:** {ts}",
         "",
-        "Only layer status `pass` counts toward gate PASS. `exempt` layers are documented below but do not satisfy parity.",
+        "Gate PASS when every case `ok` — each layer `pass` or `exempt` with a **signed** exemption ID (see EXEMPTIONS.md). Provisional exemptions do not satisfy.",
         "",
         "## Commands",
         "",

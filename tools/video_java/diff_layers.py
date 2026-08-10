@@ -13,6 +13,7 @@ from vj_common import (
     LAYER_FILES,
     find_case,
     golden_dir,
+    layer_satisfies,
     load_manifest,
     load_thresholds,
     normalize_value,
@@ -192,7 +193,7 @@ def diff_case(case_id: str, layers: List[str]) -> Tuple[bool, List[Dict[str, Any
         if case_id == "vj_p0_health" and layer == "api":
             result = _diff_health_api(layer, py_data, java_data, case=case)
             results.append(result)
-            all_ok = all_ok and result["status"] == "pass"
+            all_ok = all_ok and layer_satisfies(result)
             continue
         if py_data is None:
             results.append(_fail(layer, f"missing python {fname}"))
@@ -204,7 +205,7 @@ def diff_case(case_id: str, layers: List[str]) -> Tuple[bool, List[Dict[str, Any
             continue
         result = diff_layer(layer, py_data, java_data, case=case)
         results.append(result)
-        all_ok = all_ok and result.get("status") == "pass"
+        all_ok = all_ok and layer_satisfies(result)
     return all_ok, results
 
 

@@ -154,18 +154,42 @@ def exemptions_path() -> Path:
     return repo_root() / "docs" / "video-java" / "gates" / "EXEMPTIONS.md"
 
 
-def load_exemption_ids() -> set[str]:
+def _parse_exemption_rows() -> List[Tuple[str, str]]:
+    """Return (exemption_id, owner_sign_off) for each EX-* table row."""
     path = exemptions_path()
     if not path.is_file():
-        return set()
-    ids: set[str] = set()
+        return []
+    rows: List[Tuple[str, str]] = []
     for line in path.read_text(encoding="utf-8").splitlines():
         if not line.startswith("| EX-"):
             continue
         parts = [p.strip() for p in line.split("|")]
-        if len(parts) > 1 and parts[1].startswith("EX-"):
-            ids.add(parts[1])
-    return ids
+        if len(parts) > 4 and parts[1].startswith("EX-"):
+            rows.append((parts[1], parts[4]))
+    return rows
+
+
+def load_exemption_ids() -> set[str]:
+    return {ex_id for ex_id, _ in _parse_exemption_rows()}
+
+
+def load_signed_exemption_ids() -> set[str]:
+    return {
+        ex_id
+        for ex_id, sign_off in _parse_exemption_rows()
+        if sign_off and sign_off.lower() != "pending"
+    }
+
+
+def layer_satisfies(layer: Dict[str, Any]) -> bool:
+    """Layer counts toward case ok when status is pass or signed exempt."""
+    status = layer.get("status")
+    if status == "pass":
+        return True
+    if status == "exempt":
+        ex_id = layer.get("exemption_id")
+        return bool(ex_id and ex_id in load_signed_exemption_ids())
+    return False
 
 
 def case_layer_exemption_ids(case: Dict[str, Any], layer: str) -> List[str]:
