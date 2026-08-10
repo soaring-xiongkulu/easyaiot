@@ -28,13 +28,45 @@ public class SnapStorageService {
         storageRepository.insertDefault(deviceId);
         Map<String, Object> config = storageRepository.findByDeviceId(deviceId)
                 .orElseThrow(() -> new VideoBusinessException(500, "获取设备存储配置失败"));
+        return enrichWithStorageStats(config);
+    }
+
+    /**
+     * Mirrors Python {@code storage_service.get_device_storage_info}:
+     * list+stat MinIO objects under {@code device_id/} when bucket configured;
+     * honest zeros when MinIO disabled or bucket unset.
+     */
+    private Map<String, Object> enrichWithStorageStats(Map<String, Object> config) {
         Map<String, Object> result = new LinkedHashMap<>(config);
-        result.put("snap_size", 0L);
-        result.put("snap_count", 0);
-        result.put("snap_usage_ratio", 0.0);
-        result.put("video_size", 0L);
-        result.put("video_count", 0);
-        result.put("video_usage_ratio", 0.0);
+        String deviceId = stringField(config.get("device_id"));
+
+        long snapSize = 0L;
+        int snapCount = 0;
+        String snapBucket = stringField(config.get("snap_storage_bucket"));
+        if (!snapBucket.isBlank()) {
+            VideoMinioService.BucketUsage snapUsage = videoMinioService.getBucketUsage(snapBucket, deviceId + "/");
+            snapSize = snapUsage.sizeBytes();
+            snapCount = snapUsage.objectCount();
+        }
+
+        long videoSize = 0L;
+        int videoCount = 0;
+        String videoBucket = stringField(config.get("video_storage_bucket"));
+        if (!videoBucket.isBlank()) {
+            VideoMinioService.BucketUsage videoUsage = videoMinioService.getBucketUsage(videoBucket, deviceId + "/");
+            videoSize = videoUsage.sizeBytes();
+            videoCount = videoUsage.objectCount();
+        }
+
+        Long snapMaxSize = toLongOrNull(config.get("snap_storage_max_size"));
+        Long videoMaxSize = toLongOrNull(config.get("video_storage_max_size"));
+
+        result.put("snap_size", snapSize);
+        result.put("snap_count", snapCount);
+        result.put("snap_usage_ratio", usageRatio(snapSize, snapMaxSize));
+        result.put("video_size", videoSize);
+        result.put("video_count", videoCount);
+        result.put("video_usage_ratio", usageRatio(videoSize, videoMaxSize));
         return result;
     }
 
@@ -79,5 +111,34 @@ public class SnapStorageService {
             result.put("message", "存储清理完成");
         }
         return result;
+    }
+
+    private static double usageRatio(long size, Long maxSize) {
+        if (maxSize == null || maxSize <= 0L) {
+            return 0.0;
+        }
+        return (double) size / maxSize;
+    }
+
+    private static String stringField(Object value) {
+        return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    private static Long toLongOrNull(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        try {
+            String text = String.valueOf(value).trim();
+            if (text.isEmpty()) {
+                return null;
+            }
+            return Long.parseLong(text);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 }

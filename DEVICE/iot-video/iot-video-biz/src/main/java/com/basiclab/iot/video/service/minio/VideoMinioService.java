@@ -242,6 +242,28 @@ public class VideoMinioService {
     public record MinioObjectInfo(String objectName, long size, java.time.Instant lastModified, String contentType) {
     }
 
+    /** Mirrors Python {@code storage_service.get_bucket_size} — (bytes, object count). */
+    public record BucketUsage(long sizeBytes, int objectCount) {
+        public static final BucketUsage EMPTY = new BucketUsage(0L, 0);
+    }
+
+    public BucketUsage getBucketUsage(String bucketName, String prefix) {
+        if (!isStorageEnabled() || bucketName == null || bucketName.isBlank()) {
+            return BucketUsage.EMPTY;
+        }
+        try {
+            List<MinioObjectInfo> objects = listObjects(bucketName, prefix, true);
+            long totalSize = 0L;
+            for (MinioObjectInfo object : objects) {
+                totalSize += object.size();
+            }
+            return new BucketUsage(totalSize, objects.size());
+        } catch (Exception e) {
+            log.warn("计算 bucket 大小失败 bucket={} prefix={} error={}", bucketName, prefix, e.getMessage());
+            return BucketUsage.EMPTY;
+        }
+    }
+
     private MinioClient requireClient() {
         if (!isStorageEnabled()) {
             throw new VideoBusinessException(503,

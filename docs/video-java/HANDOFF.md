@@ -68,24 +68,24 @@
 6. `DEVICE/iot-video/iot-video-biz/.../controller`  
 7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
 
-## 8. 现状摘要（2026-08-11 FR-B29）
+## 8. 现状摘要（2026-08-11 FR-B30）
 
 - **HTTP 路由：** `route_inventory` 14 前缀 **Py≈259 / Java≈259 / diff=0**（`FR-W4` 全量核对）。
-- **契约硬化：** **FR-B18 ✅** 265 路由薄探针 0 fail；**FR-B28 ✅** keys-matrix 基线（41 映射 / 59 envelope-only / 8 deferred）；**FR-B29 ✅** `field_contract.py --keys-matrix`（**94** 映射 / **92** key-assert / **6** envelope-only / **0** deferred）；artifact `logs/fr-b29-keys-matrix-latest.json`。
+- **契约硬化：** **FR-B18 ✅** 265 路由薄探针 0 fail；**FR-B29 ✅** keys-matrix（**94** 映射 / **92** key-assert / **6** envelope-only）；**FR-B30 ✅** Snap/record 存储用量真 MinIO 统计（`logs/fr-b30-storage-stats-latest.json`）。
 - **行为：** MinIO 本地路径已取证；**纯 Kafka DVR / Alert / Matching Kafka produce 已取证（local）**；ONVIF/YOLO/InsightFace 等仍为 **mini 桩**；见 `FULL_REPLACEMENT_GAP.md` §2–§4。
-- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`logs/certify-frb29-phase0.log`）。
+- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`logs/certify-frb30-phase0.log`）。
 - **项目状态：** **FR HTTP 面已齐 / keys-matrix 265/265 / 6 GET 仍 envelope-only — 禁止 COMPLETE**。
 - **网关：** 现已指向 Java 名；行为桩未清前，**不得**认为生产功能已安全切完。
-- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B29 keys-matrix local；其余仍 ⬜）。
+- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B29 keys-matrix local；FR-B30 storage stats local；其余仍 ⬜）。
 
 ## 9. 你的下一步
 
 按 [`PLAN_FULL_REPLACEMENT.md`](./PLAN_FULL_REPLACEMENT.md) §5 行为/后台 backlog + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)：
 
-1. **prod 联调 soak**（Kafka DVR/snap、MinIO、WVP、FlightHub、iot-node/Ceph、post_process worker、Nacos 切换、网关冒烟）— 逐项勾选 checklist 并附证据
-2. **收尾 6 envelope-only GET** — 补 Python-first 映射或文档 EX
-3. MinIO 真同步/清理（snap/record/media）
-4. ONVIF/NVR/扫描真连接（camera、audio_talk）
+1. **prod 联调 soak** — Kafka DVR/snap、MinIO、WVP、FlightHub、iot-node/Ceph、post_process worker、Nacos 切换、网关冒烟；逐项勾选 checklist 并附证据
+2. **收尾 6 envelope-only GET** — 补 Python-first 映射或文档 EX（可选）
+3. **POST keys-matrix backlog** — 扩展 `field_contract.py` 至 POST/PUT 字段键矩阵（可选）
+4. ONVIF/NVR/扫描真连接（camera、audio_talk）prod 真机联调
 5. InsightFace/Paddle/Milvus 推理或产品旁路决策
 6. snap_task 调度 `init_all_tasks` prod 验证
 7. post-process 真 sink；远程 node（EX-REMOTE-NODE）prod 联调

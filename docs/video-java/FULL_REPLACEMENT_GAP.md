@@ -136,7 +136,7 @@
 | snap | **Py 38 / Java 38 / diff 0** | ✅ 路由 | space CRUD/策略/sync；task CRUD/start/stop/restart/logs；region/service；images；device storage |
 | record | **Py 16 / Java 16 / diff 0** | ✅ 路由 | space CRUD/策略/sync；videos dates/day/list/object/delete/sync/cleanup；resolve-alert |
 | playback | **Py 7 / Java 7 / diff 0** | ✅ 路由 | list/get/create/update/delete；thumbnail；statistics |
-| ❌ 行为 | — | MinIO 真同步/清理、真 play URL 解析 — **FR-B2 ✅** MinIO 代码路径；**FR-B3 ✅** snap cron 调度（抓拍执行为桩） |
+| ❌ 行为 | — | MinIO 真同步/清理、真 play URL 解析 — **FR-B2 ✅** MinIO 代码路径；**FR-B3 ✅** snap cron 调度（抓拍执行为桩）；**FR-B30 ✅** `SnapStorageService` 存储用量对齐 Python `get_bucket_size`（enabled 真统计 / disabled 诚实 0） |
 
 ### 2.7 `media_hook` / `device_detection_region`
 
@@ -204,7 +204,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | Face/Plate matching | Kafka + 模型 | **FR-B5 ✅** Kafka produce；**FR-B9 ✅** Python worker 推理 + 匹配命中告警链 | prod 需模型/Milvus + `use-direct-process=false` |
 | 远程 node / RUNTIME 分发 | node_client | **FR-B4 ✅** `IotNodeClient` allocate/deploy/stop；**FR-B13 ✅** `requireCephMount` / `ceph_mount_ready` gate | prod 集群需 iot-node + Agent + SRS 联调 |
 | ONVIF / NVR / GB28181 / FlightHub | camera 大面 | **FR-B6 ✅** ONVIF SOAP + WS-Discovery + ISAPI 扫描/NVR 枚举 + ffmpeg 抓拍；**FR-B11 ✅** `Gb28181SyncService` WVP 拉取/前端 payload 同步 + 默认目录 patrol 接线；**FR-B12 ✅** 目录 JSON 同步 + FlightHub OpenAPI live/register + 大华 NVR CGI 通道枚举 | prod 真机/NVR/WVP/司空联调仍待 |
-| MinIO 空间同步/清理 | snap/record 多接口 | **✅ FR-B2** `VideoMinioService` + `SpaceFileMetadataService`；`video.minio.enabled` / `MINIO_ENABLED` 开关；DVR/snap 上传真路径 | mini 默认 `enabled=false`（DB/本地路径）；prod 需 MinIO 联调 |
+| MinIO 空间同步/清理 | snap/record 多接口 | **✅ FR-B2** `VideoMinioService` + `SpaceFileMetadataService`；`video.minio.enabled` / `MINIO_ENABLED` 开关；DVR/snap 上传真路径；**FR-B30 ✅** `GET /video/snap/device/{id}/storage` 用量统计对齐 Python `get_device_storage_info` | mini 默认 `enabled=false`（DB/本地路径）；prod 需 MinIO 联调 |
 | 鉴权（流票据、网关 token） | 有 | **FR-W1-AUTH ✅** mini gateway + `system-server` token check；**FR-B7 ✅** 流票据签发与 Python 对齐（JWT 自校验 + tenant-id；未登录 401） | 生产全量路由 + 网关切流 ops 演练 |
 | 对外 JSON | `{code,msg,data}` | `VideoApiResponse` 已对齐方向 | 全接口字段级与 WEB 对表 |
 
@@ -277,37 +277,48 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B22 GET 信封矩阵**（`:48096` live，复跑） | **265** pass / **0 fail**；artifact `logs/fr-b22-field-matrix-latest.json` |
 | **FR-B28 GET 字段键矩阵**（`:48096` live） | **265** inventoried → **265 pass** / **0 fail**；**98 GET**（**95** JSON + **3** 非 JSON skip）；**41** Python-first 路径映射 → **39** key-assert / **59** envelope-only；item-key **31 pass** / **0 fail** / **8 deferred**（空 data/列表）；全局 seed **15/15**；artifact `logs/fr-b28-keys-matrix-latest.json`；**≠ 259 路由全键覆盖**；`SnapTaskRepository.insert` 修复 |
 | **FR-B29 GET 字段键矩阵**（`:48096` live） | **265** inventoried → **265 pass** / **0 fail**；**98 GET**（**95** JSON + **3** 非 JSON skip）；**94** Python-first 路径映射 → **92** key-assert / **6** envelope-only；item-key **60 pass** / **0 fail** / **0 deferred**（B29 seed 清除 8 条）；artifact `logs/fr-b29-keys-matrix-latest.json`；**≠ 259 路由全键覆盖** |
+| **FR-B30 存储用量统计**（`:9000` local） | `SnapStorageService` + `VideoMinioService.getBucketUsage` 对齐 Python `get_bucket_size`；disabled 诚实 0；enabled 真 list+stat；artifact `logs/fr-b30-storage-stats-latest.json` |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定 — FR-B29
+## 9. 最终判定 — FR-B30
 
 | 问题 | 答案 |
 |------|------|
-| 全量 GET 字段键自动矩阵？ | **部分** — `field_contract.py --keys-matrix` 覆盖 **265** inventoried 路由；**94** Python `to_dict`/blueprint 映射（+53 vs FR-B28）；**92** 路由执行 item/object 键断言；**6** 未映射 envelope-only；artifact `logs/fr-b29-keys-matrix-latest.json` |
-| FR-B28 8 deferred 清除？ | **是** — `seed_fr_b29_keys_matrix.py`（alert/location/NVR/track/matching）+ 映射修正 |
-| Java 字段/信封修复？ | **是** — `PostProcessResultRepository` 列对齐；`AlgorithmTaskController.postProcessResults` → `VideoApiResponse`；`FaceController.listPersons` Python 顶栏分页；`VideoApiResponseAdvice` 透传 `{code,msg}` Map；`SnapStorageService` 存储统计键对齐 |
-| phase0？ | **PASS 5/5** — `logs/certify-frb29-phase0.log` |
-| 能否称 COMPLETE？ | **禁止** — 6 路由仍 envelope-only；prod soak open；推理/远程 node 等行为桩 |
+| Snap/record 存储用量真 MinIO？ | **是（local）** — `GET /video/snap/device/{id}/storage` 对齐 Python `storage_service.get_device_storage_info`；`video.minio.enabled=true` 时 list+stat `device_id/` 前缀；disabled 或无 bucket 配置时诚实 0；artifact `logs/fr-b30-storage-stats-latest.json` |
+| GAP §8/§9 FR-B28/B29 重复块？ | **已收口** — 保留 §8 历史计数行；§9 仅保留当前 FR-B30 判定 |
+| phase0？ | **PASS 5/5** — `logs/certify-frb30-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — prod soak open；6 GET envelope-only；POST keys-matrix backlog |
 
-## 9. 最终判定 — FR-B28
+## 10. 历史判定归档（只读）
 
-| 问题 | 答案 |
-|------|------|
-| 全量 GET 字段键自动矩阵？ | **部分** — `field_contract.py --keys-matrix` 覆盖 **265** inventoried 路由；**41** Python `to_dict`/blueprint 映射；**39** 路由执行 item/object 键断言；**59** 未映射 envelope-only；artifact `logs/fr-b28-keys-matrix-latest.json` |
-| Java 字段/创建修复？ | **是** — `SnapTaskRepository.insert`：占位符计数、`total_captures=0`、`getKey`→`new String[]{"id"}` |
-| phase0？ | **PASS 5/5** — `certify-frb28-phase0.log` |
-| 能否称 COMPLETE？ | **禁止** — 59 路由仍无 Python 键映射；8 item-key deferred；prod soak open |
+<details>
+<summary>FR-B29 / FR-B28 / FR-B27 … 历史判定（点击展开）</summary>
 
-## 9. 最终判定 — FR-B27
+### FR-B29
 
 | 问题 | 答案 |
 |------|------|
-| Matching `use-direct-process=false` produce？ | **是（local-only）** — `POST /video/face/matching/publish` → `iot-face-matching` partition=4 offset=0 key=`frb27_device`；`POST /video/plate/matching/publish` → `iot-plate-matching`；对齐 Python `face_matching_kafka_service.py` / `plate_matching_kafka_service.py`；`logs/fr-b27-matching-kafka-latest.json`；worker 推理 **EX** |
-| 深字段矩阵扩面？ | **是** — `field_contract.py` 深采样 **25→39**（+14，Python `to_dict` 驱动）；`logs/fr-b27-field-contract-latest.json` **39/39 pass**；矩阵 **265/265** |
-| Java 字段修复？ | **是** — `list` 键对齐（face/plate matching records）；`FaceModelService.modelStatus` 键补全；`SnapSpaceRepository.task_count` |
+| 全量 GET 字段键自动矩阵？ | **部分** — **94** 映射 / **92** key-assert / **6** envelope-only；artifact `logs/fr-b29-keys-matrix-latest.json` |
+| FR-B28 8 deferred 清除？ | **是** |
 | 能否称 COMPLETE？ | **禁止** |
+
+### FR-B28
+
+| 问题 | 答案 |
+|------|------|
+| 全量 GET 字段键自动矩阵？ | **部分** — **41** 映射 / **39** key-assert / **59** envelope-only |
+| 能否称 COMPLETE？ | **禁止** |
+
+### FR-B27
+
+| 问题 | 答案 |
+|------|------|
+| Matching Kafka produce？ | **是（local-only）** |
+| 能否称 COMPLETE？ | **禁止** |
+
+</details>
 
 ## 10. 最终判定 — FR-B26
 
@@ -339,7 +350,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 |------|------|
 | HTTP 路由是否与 Python 对齐？ | **是**（14 inventoried 前缀 `route_inventory` diff=0） |
 | 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调与**全量**字段级契约仍 open；**HTTP 薄探针 265/265 已绿**（FR-B18）；**深字段抽样 39 端点已执行**（FR-B27：**192 pass / 0 fail**）；**GET 信封矩阵 265/265**；**GET 字段键矩阵 265/265**（FR-B29：**92** mapped key-assert / **6** envelope-only） |
-| 本地 MinIO/Kafka soak？ | **部分** — MinIO put + sync API（`logs/fr-b23-soak-*`）；**FR-B24 ✅** Kafka 宿主机 E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR + Alert Kafka produce（`logs/fr-b26-*`）；**FR-B27 ✅** matching Kafka produce + 深字段 39 端点（`logs/fr-b27-*`）；**FR-B28 ✅** keys-matrix 基线（`logs/fr-b28-*`）；**FR-B29 ✅** keys-matrix 扩面 + deferred 清除（`logs/fr-b29-*`）；`snap_image.updated_at` schema 错位已修 |
+| 本地 MinIO/Kafka soak？ | **部分** — MinIO put + sync API（`logs/fr-b23-soak-*`）；**FR-B24 ✅** Kafka 宿主机 E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR + Alert Kafka produce（`logs/fr-b26-*`）；**FR-B27 ✅** matching Kafka produce + 深字段 39 端点（`logs/fr-b27-*`）；**FR-B28 ✅** keys-matrix 基线（`logs/fr-b28-*`）；**FR-B29 ✅** keys-matrix 扩面 + deferred 清除（`logs/fr-b29-*`）；**FR-B30 ✅** 存储用量统计（`logs/fr-b30-storage-stats-*`）；`snap_image.updated_at` schema 错位已修 |
 | 能否称 COMPLETE / 退役 Python？ | **禁止** |
 | 证据硬化（EVID）能否停？ | **可以停**，转本文件 backlog + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md) |
 | 距完整替换还缺什么？ | **prod 联调 soak**（checklist 大部仍 ⬜）+ **6 GET 路由 Python 键矩阵** + prod 场景回放 + 回滚演练 |
