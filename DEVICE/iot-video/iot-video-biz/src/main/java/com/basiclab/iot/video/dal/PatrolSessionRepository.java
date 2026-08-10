@@ -222,7 +222,11 @@ public class PatrolSessionRepository {
         Map<String, String> nameMap = new java.util.LinkedHashMap<>();
         jdbc.query(
                 "SELECT id, name FROM device WHERE id IN (" + placeholders + ")",
-                rs -> nameMap.put(rs.getString("id"), rs.getString("name")),
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
+                    do {
+                        nameMap.put(rs.getString("id"), rs.getString("name"));
+                    } while (rs.next());
+                },
                 ids.toArray()
         );
         List<String> ordered = new ArrayList<>();

@@ -13,8 +13,9 @@ public class FaceModelService {
     public Map<String, Object> health() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("milvus_uri", "");
-        data.put("collection", "face_vectors");
-        data.put("status", "unavailable");
+        data.put("collection_name", "face_vectors");
+        data.put("collection_exists", false);
+        data.put("error", "Milvus unavailable (mini profile)");
         data.put("recognition_model_loaded", false);
         data.put("recognition_model_downloading", false);
         return data;

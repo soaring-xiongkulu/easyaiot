@@ -22,5 +22,6 @@ HTTP 面 FR-W* 已齐。行为波次：
 | **FR-B16** Snap Kafka consumer + 契约回归脚手架 | **DONE** | `8b71d4b` |
 | **FR-B17** 全量路由 method-aware 薄契约探针 | **DONE** | `1d593bf` |
 | **FR-B18** 收口 FR-B17 六条探针 fail | **DONE** | `db905fd` |
+| **FR-B19** P0/P1 字段级 JSON 契约抽样 | **DONE** | |
 
 COMPLETE 仍禁止，直至行为缺口可勾选或产品签字豁免。
