@@ -15,7 +15,7 @@
 | 0.1 | Java `video-server` 健康 | Nacos 注册 + `/actuator/health` UP | 截图或 `curl` JSON `status:UP` | ⬜ |
 | 0.2 | 网关路由 | `lb://video-server`（非 Python 遗留名） | `gateway` 路由表导出 | ⬜ |
 | 0.3 | 共享 DB | Java 与 WEB 同库只读冒烟 | 告警/设备 list 200 + 有数据 | ⬜ |
-| 0.4 | Phase 0 薄烟雾 | `python tools/video_java/certify.py --phase 0` | `gates/PHASE_0_GATE.md` PASS | ✅ local-only evidence — FR-B23 复跑 PASS 5/5；`logs/fr-b23-phase0.log` |
+| 0.4 | Phase 0 薄烟雾 | `python tools/video_java/certify.py --phase 0` | `gates/PHASE_0_GATE.md` PASS | ✅ local-only evidence — FR-B24 复跑 PASS 5/5（mini-safe 恢复后）；`logs/fr-b24-phase0.log` |
 
 ---
 
@@ -24,8 +24,8 @@
 | # | 项 | 配置标志 | 期望证据 | 状态 |
 |---|-----|----------|----------|------|
 | 1.1 | 告警 Kafka 路径 | `video.alert.use-direct-persist=false` | hook → topic `iot-alert-notification` / `iot-snapshot-alert`；iot-sink 消费 | ⬜ |
-| 1.2 | DVR 上传 Kafka | `video.media.upload-mode=kafka` 或 `hybrid` | SRS/ZLM `on_dvr` → `media.dvr.completed` → MinIO + DB | ✅ local-only evidence — soak 窗口 CLI+`application-fr-b23-soak.yaml` 启动 consumer（`logs/fr-b23-java-soak.log` L19-221）；hook `on_dvr` 200；**Python kafka-python / Java consumer 均因 broker `advertised.listeners=Kafka:9092` 无法从宿主机解析** → `logs/fr-b23-soak-latest.json` |
-| 1.3 | Snap 上传 Kafka | `video.media.snap-upload-mode=kafka` 或 `upload-mode` 含 kafka | `media.snap.completed` consumer；retry/DLQ 日志 | ✅ local-only evidence — Snap consumer 启动同上；**端到端消费阻塞于同一 Kafka 主机名解析**；非 prod 绿 |
+| 1.2 | DVR 上传 Kafka | `video.media.upload-mode=kafka` 或 `hybrid` | SRS/ZLM `on_dvr` → `media.dvr.completed` → MinIO + DB | ✅ local-only evidence — FR-B24：`hosts` 加 `127.0.0.1 Kafka`（`VIDEO/KAFKA_HOST_CLIENTS.md`）+ `application-fr-b24-soak.yaml`；`fr_b24_kafka_e2e.py` 发布缺失文件事件 → `DvrUploadService` 日志 `DVR 文件未就绪`（诚实 retry，非 schema 500）；`logs/fr-b24-kafka-e2e-latest.json` + `logs/fr-b24-java-soak.log` |
+| 1.3 | Snap 上传 Kafka | `video.media.snap-upload-mode=kafka` 或 `upload-mode` 含 kafka | `media.snap.completed` consumer；retry/DLQ 日志 | ✅ local-only evidence — 同上 FR-B24；`SnapUploadService` 日志 `抓拍文件未就绪`；DLQ topic 已创建；**非 prod 绿** |
 | 1.4 | Face/plate matching Kafka | `video.matching.use-direct-process=false` | matching topic produce + worker 推理 + 命中告警 | ⬜ |
 
 **mini 默认：** direct_persist / sync 不经 broker — **本地绿不覆盖上表**。

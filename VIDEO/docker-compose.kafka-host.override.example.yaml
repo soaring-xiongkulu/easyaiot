@@ -1,0 +1,12 @@
+# Optional local-only Kafka override — DO NOT merge into prod DEVICE stack blindly.
+# Use when standing up a fresh broker where host clients need advertised=127.0.0.1:9092.
+#
+# Apply (example):
+#   docker compose -f docker-compose.yml -f VIDEO/docker-compose.kafka-host.override.example.yaml up -d kafka-server
+#
+# Existing stacks: prefer hosts entry `127.0.0.1 Kafka` — see VIDEO/KAFKA_HOST_CLIENTS.md
+
+services:
+  kafka-server:
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://127.0.0.1:9092,EXTERNAL://localhost:9094

@@ -279,13 +279,21 @@ Python `run.py` 启动时拉起的能力 vs Java：
 
 ---
 
-## 9. 最终判定 — FR-B23
+## 9. 最终判定 — FR-B24
+
+| 问题 | 答案 |
+|------|------|
+| 本地 Kafka 宿主机 E2E？ | **是（local-only）** — `127.0.0.1 Kafka` hosts + `fr_b24_kafka_e2e.py`；consumer → `DVR 文件未就绪` / `抓拍文件未就绪`（`logs/fr-b24-kafka-e2e-latest.json`） |
+| `is_custom_save_time` 列错位？ | **已修** — Java `DeviceSpaceRepository` 对齐 Python `RecordSpace.save_time_custom` |
+| 能否称 COMPLETE？ | **禁止** |
+
+## 10. 最终判定 — FR-B23
 
 | 问题 | 答案 |
 |------|------|
 | HTTP 路由是否与 Python 对齐？ | **是**（14 inventoried 前缀 `route_inventory` diff=0） |
 | 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调（broker 主机名、真机/WVP/iot-node）与**全量**字段级契约仍 open；**HTTP 薄探针 265/265 已绿**（FR-B18）；**深字段抽样 25 端点已执行**（FR-B23：**132 pass / 0 fail / 0 skip**，清除了 FR-B22 的 2 deep skip）；**GET 信封矩阵**仍见 FR-B22 复跑 |
-| 本地 MinIO/Kafka soak？ | **部分** — MinIO put + sync API 有证据（`logs/fr-b23-soak-*`）；Kafka consumer **启动**有证据，但 Docker broker `advertised.listeners=Kafka:9092` 阻塞宿主机客户端 |
+| 本地 MinIO/Kafka soak？ | **部分** — MinIO put + sync API 有证据（`logs/fr-b23-soak-*`）；**FR-B24 ✅** Kafka 宿主机 E2E（hosts `127.0.0.1 Kafka` + `logs/fr-b24-kafka-e2e-*`）；`record_space.is_custom_save_time` schema 错位已修（`DeviceSpaceRepository` → `save_time_custom`） |
 | 能否称 COMPLETE / 退役 Python？ | **禁止** |
 | 证据硬化（EVID）能否停？ | **可以停**，转本文件 backlog + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md) |
 | 距完整替换还缺什么？ | **prod 联调 soak**（checklist 大部仍 ⬜）+ **全量 259 路由字段矩阵** + prod 场景回放 + 回滚演练 |

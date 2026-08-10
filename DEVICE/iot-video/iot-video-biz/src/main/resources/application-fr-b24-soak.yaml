@@ -1,0 +1,16 @@
+# FR-B24 local Kafka E2E overlay — enable broker + MinIO paths for evidence only.
+# Activate with: --spring.profiles.active=local,fr-b24-soak
+# Restore mini-safe: --spring.profiles.active=local (omit this profile).
+
+video:
+  minio:
+    enabled: true
+    endpoint: http://127.0.0.1:9000
+    access-key: minioadmin
+    secret-key: basiclab@iot975248395
+    secure: false
+  media:
+    upload-mode: kafka
+    snap-upload-mode: kafka
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092
