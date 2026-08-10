@@ -19,6 +19,11 @@ management:
       enabled: true
 
 video:
+  skip-background-tasks: false
+  health-monitor:
+    enabled: true
+    interval-ms: 60000
+    heartbeat-failover-seconds: 90
   alert:
     use-direct-persist: true
   runtime:

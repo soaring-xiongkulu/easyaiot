@@ -72,6 +72,20 @@ public class AlgorithmTaskRepository {
         return Optional.of(row);
     }
 
+    public List<AlgorithmTaskRow> findEnabledLocal() {
+        List<AlgorithmTaskRow> rows = jdbc.query(
+                """
+                SELECT * FROM algorithm_task
+                WHERE is_enabled = true
+                  AND COALESCE(schedule_policy, 'local') = 'local'
+                ORDER BY id ASC
+                """,
+                ROW_MAPPER
+        );
+        rows.forEach(this::attachDevices);
+        return rows;
+    }
+
     public List<AlgorithmTaskRow> list(int pageNo, int pageSize, String search) {
         int offset = Math.max(0, (pageNo - 1) * pageSize);
         String like = search != null && !search.isBlank() ? "%" + search.trim() + "%" : null;

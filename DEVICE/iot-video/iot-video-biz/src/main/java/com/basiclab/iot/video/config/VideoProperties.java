@@ -11,6 +11,13 @@ public class VideoProperties {
 
     private final Alert alert = new Alert();
     private final Runtime runtime = new Runtime();
+    private final HealthMonitor healthMonitor = new HealthMonitor();
+
+    /**
+     * Mirrors Python {@code VIDEO_SKIP_BACKGROUND_TASKS=1} — disables scheduled health recovery
+     * and other background timers (certify / dual-run safe mode).
+     */
+    private boolean skipBackgroundTasks = false;
 
     @Data
     public static class Alert {
@@ -30,4 +37,14 @@ public class VideoProperties {
 
     /** Optional explicit ffmpeg binary; env FFMPEG_PATH still wins when set. */
     private String ffmpegPath;
+
+    @Data
+    public static class HealthMonitor {
+        /** Mirrors {@code ALGORITHM_HEALTH_MONITOR_ENABLED} (default on). */
+        private boolean enabled = true;
+        /** Mirrors {@code ALGORITHM_HEALTH_INTERVAL_SECONDS} (default 60s). */
+        private long intervalMs = 60_000L;
+        /** Mirrors {@code ALGORITHM_HEARTBEAT_FAILOVER_SECONDS} (default 90s). */
+        private int heartbeatFailoverSeconds = 90;
+    }
 }

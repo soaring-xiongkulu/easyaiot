@@ -1,0 +1,12 @@
+# Optional iot-gateway route — NOT enabled in Phase 1.
+# Append to spring.cloud.gateway.routes when probing Java alongside Python.
+# Default traffic stays on video-admin-api → lb://video-server (Python).
+
+# - id: video-java-admin-api
+#   uri: lb://video-server-java
+#   order: -1
+#   predicates:
+#     - Path=/admin-api/video-java/**
+#   filters:
+#     - StripPrefix=2
+#     # /admin-api/video-java/video/camera/list → /video/camera/list on Java candidate

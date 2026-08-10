@@ -13,6 +13,7 @@ management:
       enabled: false
 
 video:
+  skip-background-tasks: true
   alert:
     use-direct-persist: true
   ffmpeg-path: F:/biofactory/ResearchStudioInstall/tools/bin/ffmpeg.cmd
