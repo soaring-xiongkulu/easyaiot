@@ -108,6 +108,15 @@ public class VideoProperties {
         private String dvrDlqTopic = "media.dvr.dlq";
         private String snapCompletedTopic = "media.snap.completed";
         private String snapDlqTopic = "media.snap.dlq";
+        /**
+         * DVR upload consumer group ({@code MEDIA_KAFKA_DVR_CONSUMER_GROUP}).
+         * Consumer starts only when {@link #uploadMode} is kafka or hybrid.
+         */
+        private String dvrConsumerGroup = "upload-worker-dvr";
+        /** Max in-message retries before DLQ (Python upload worker default 12). */
+        private int dvrMaxRetries = 12;
+        /** Poll timeout ms for DVR consumer (Python poll timeout_ms=1000). */
+        private long dvrPollTimeoutMs = 1_000L;
         /** SRS HTTP API host for on_publish conflict resolution. */
         private String srsHost = "localhost";
     }

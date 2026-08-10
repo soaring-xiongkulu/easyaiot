@@ -143,7 +143,7 @@
 | 域 | 路由差 | 状态 | 说明 |
 |----|--------|------|------|
 | media_hook | **Py 6 / Java 6 / diff 0** | ✅ 路由 | SRS `on_dvr/on_publish/on_unpublish`；ZLM `on_record_mp4/ts`；`snap/completed` |
-| ❌ 行为 | — | DVR MinIO 上传、Playback/RecordFile 写入、抓拍 Kafka→MinIO 全链路 — **FR-B2 ✅** 代码路径已实现；mini 默认本地路径 |
+| ❌ 行为 | — | DVR MinIO 上传、Playback/RecordFile 写入、抓拍 Kafka→MinIO 全链路 — **FR-B2 ✅** 代码路径已实现；**FR-B15 ✅** `media.dvr.completed` Kafka consumer + retry/DLQ（`upload-mode=kafka\|hybrid` 门控；默认 sync 不经 broker）；mini 默认本地路径 |
 | regions | **Py 6 / Java 6 / diff 0** | ✅ 路由 | GET/POST regions；PUT/DELETE region；cover-image；snapshot |
 | ❌ 行为 | — | 抓拍 FFmpeg/GB28181、MinIO 上传 — mini 形态错误结构对齐 |
 
@@ -176,7 +176,22 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | snap_task 调度器 `init_all_tasks` | ✅ `SnapTaskScheduler` + `SnapTaskSchedulerService`（启动加载 enabled 任务 + cron；create/update/start/stop 联动） | FR-B3 + **FR-B6 ✅** 抓拍执行为 ffmpeg/ONVIF HTTP 真路径 |
 | `VIDEO/services/*` 独立进程（upload/janitor/post_process_worker…） | JVM 内或 stub | 完整替换需逐项定：迁入 Java / 保留外部进程 / 废弃 |
 
----
+### 3.1 `VIDEO/services/*` 处置表（FR-B15）
+
+对照 Python `run.py` / launcher 与 Java `feat/video-java` 现状（证据见各 FR 报告与代码路径）：
+
+| Worker 目录 | Python 角色 | Java 处置 | 证据 |
+|-------------|-------------|-----------|------|
+| `media_upload_worker` | 独立进程消费 `media.dvr.completed` → `process_dvr_event`；retry≤12 → DLQ | **迁入 Java** — **FR-B15 ✅** `DvrUploadKafkaConsumerRunner` 调用 `DvrUploadService.processDvrEvent`；`upload-mode=kafka\|hybrid` 门控；默认 `sync` 不启 broker | `run_worker.py` L21–79；`DvrUploadKafkaConsumerRunner.java` |
+| `media_janitor` | 独立进程或 `run.py` APScheduler 周期 `run_janitor_cycle` | **迁入 Java** — **FR-W3-OPS ✅** `MediaJanitorScheduler` + `MediaJanitorService`（JVM 内 60s） | `run_janitor.py`；`MediaJanitorService.java` |
+| `post_process_worker` | HTTP worker 执行用户脚本；由 `post_process_launcher_service` 远程/本机拉起 | **保留外部进程** — **FR-B14 ✅** `PostProcessLauncherService` 仍部署 `run_worker.py`（`EASYAIOT_ENABLE_POST_PROCESS_WORKER=1`） | `post_process_worker/run_worker.py` L1–4；`PostProcessLauncherService.java` |
+| `frame_extractor_service` | 算法任务抽帧子进程（`algorithm_task_launcher_service` → `run_deploy.py`） | **已由 FR-* 覆盖（模型变更）** — Java 用 `AlgorithmRuntimeSupervisor` + RUNTIME 二进制替代 Python 三件套子进程 | `algorithm_task_launcher_service.py`；`AlgorithmRuntimeSupervisor.java` |
+| `pusher_service` | 算法推送子进程 | **已由 FR-* 覆盖（模型变更）** — 同上 RUNTIME 内聚 | 同上 |
+| `sorter_service` | 算法排序子进程 | **已由 FR-* 覆盖（模型变更）** — 同上 RUNTIME 内聚 | 同上 |
+| `stream_forward_service` | 推流转发子进程（`stream_forward_launcher_service`） | **迁入 Java** — **FR-W1-BG / FR-B4 / FR-B8 ✅** `StreamForwardSupervisor` + 远程 `IotNodeClient` deploy `run_deploy.py` 可选 | `stream_forward_service/run_deploy.py`；`StreamForwardSupervisor.java` |
+
+**说明：** `VIDEO/services/` 顶层目录为部署模板；oracle 源码在 `VIDEO/_retired_python_video/services/`。snap Kafka 消费（`media.snap.completed`）仍待后续 FR；DVR 路径 **FR-B15 ✅**。
+
 
 ## 4. 下游集成与行为缺口
 
@@ -252,7 +267,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 路由缺口（prefix-level） | **0** |
 | inventory 扫描 artifact | `/video/camera` 前缀 Java **+5**（talk 子路径重复计入） |
 | 整域 HTTP 未实现 | **无**（14 前缀均已 diff=0） |
-| 行为桩仍存的域 | algorithm/stream_forward（远程 node 集群健康）；face/plate/pose **FR-B9 ✅** Python worker（prod 需模型运行时）；patrol/audio_talk/match-image **FR-B10 ✅**（真机/MinIO 联调待 ops）；GB28181 目录同步 **FR-B11 ✅**（prod WVP 联调待 ops）；媒体节点池 **FR-B13 ✅**（prod iot-node 媒体 API 联调待 ops）；post-process worker **FR-B14 ✅**（prod 远程副本 + `run_worker.py` 联调待 ops） |
+| 行为桩仍存的域 | algorithm/stream_forward（远程 node 集群健康 prod 联调）；face/plate/pose **FR-B9 ✅** Python worker（prod 需模型运行时）；patrol/audio_talk/match-image **FR-B10 ✅**（真机/MinIO 联调待 ops）；GB28181 **FR-B11 ✅**（prod WVP 联调待）；媒体节点池 **FR-B13 ✅**（prod iot-node 媒体 API 联调待）；post-process worker **FR-B14 ✅**（prod 远程副本联调待）；DVR Kafka consumer **FR-B15 ✅**（prod broker + `upload-mode=kafka` 联调待）；snap Kafka consumer 仍缺 |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 259 路由；仅防回归） |
 
 ---
@@ -262,10 +277,10 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 问题 | 答案 |
 |------|------|
 | HTTP 路由是否与 Python 对齐？ | **是**（14 inventoried 前缀 `route_inventory` diff=0） |
-| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — 行为桩（MinIO/ONVIF/YOLO/推理/Milvus/SSE 真流等）仍大量存在 |
+| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调（broker/MinIO/真机/WVP/iot-node）与全量契约回归仍 open |
 | 能否称 COMPLETE / 退役 Python？ | **禁止** |
 | 证据硬化（EVID）能否停？ | **可以停**，转本文件 backlog |
-| 距完整替换还缺什么？ | **真设备/库/空间栈行为**、snap 调度、远程 node、全量契约回归 + 回滚演练 |
+| 距完整替换还缺什么？ | **prod 联调**（DVR Kafka broker、MinIO、真设备、远程 node）、snap Kafka consumer、全量契约回归 + 回滚演练 |
 
 **维护约定：** 每完成一个 FR 工作包，在本文件对应行改为 ✅，更新该域 Py vs Java 路由数，并保留短契约测；**不要**再开 Phase 门禁剧或 EVID/CLOSE 轮次。在全部 P0/P1（及产品未豁免的 P2）勾完前，禁止对外宣称「VIDEO Java 完整替换完成」。
 

@@ -74,3 +74,11 @@ video:
     config-dir: ${user.home}/.video-java/runtime-config
     logs-dir: ${user.home}/.video-java/logs
     repo-root: ${ACME_ROOT:${RUNTIME_ROOT:}}
+  media:
+    # sync | kafka | hybrid — mirrors Python MEDIA_UPLOAD_MODE; sync default (no broker required)
+    upload-mode: sync
+    dvr-completed-topic: media.dvr.completed
+    dvr-dlq-topic: media.dvr.dlq
+    dvr-consumer-group: upload-worker-dvr
+    dvr-max-retries: 12
+    dvr-poll-timeout-ms: 1000
