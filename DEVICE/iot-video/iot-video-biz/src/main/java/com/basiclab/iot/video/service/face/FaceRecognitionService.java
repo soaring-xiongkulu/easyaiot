@@ -19,6 +19,10 @@ public class FaceRecognitionService {
     private static final String NO_ENGINE_MSG =
             "InsightFace 未安装或加载失败: 推理引擎不可用（需 Python worker + face_rec.onnx + Milvus）";
 
+    /** Python face_library_service.add_entry L323-326 → face.py ValueError → HTTP 400. */
+    public static final String FACE_MODEL_MISSING_ENTRY_MSG =
+            "人脸特征模型 face_rec.onnx 未安装，请在人脸库页面下载安装后再录入";
+
     private final PythonInferenceWorker pythonInferenceWorker;
 
     public boolean isEngineAvailable() {
@@ -31,6 +35,16 @@ public class FaceRecognitionService {
         }
         if (!isEngineAvailable()) {
             throw new VideoBusinessException(500, NO_ENGINE_MSG);
+        }
+    }
+
+    /** Entry path: Python hard-fails 400 when model missing — does not soft-save (face.py L282-283). */
+    public void validateFaceEntryImage(byte[] imageBytes) {
+        if (imageBytes == null || imageBytes.length == 0) {
+            throw new VideoBusinessException(400, "请上传人脸照片");
+        }
+        if (!isEngineAvailable()) {
+            throw new VideoBusinessException(400, FACE_MODEL_MISSING_ENTRY_MSG);
         }
     }
 

@@ -288,11 +288,27 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B36 POST keys-matrix**（`:48096` local） | **131** curated POST 样本 → **131/131 pass** / **0 fail**；**40** success-key + **91** envelope/envelope_success；**inventoried POST 112 = 109 sampled + 3 destructive skip**；**457** assert pass；coverage 表见 artifact `logs/fr-b36-post-keys-matrix-latest.json`；**≠ 逐字段 POST 全量 parity** |
 | **FR-B37 multipart 成功探针**（`:48096` local） | **2/3** multipart core pass（plate entry + scenario-pose extract）；face entry **EX** InsightFace worker；fixture `testdata/fr-b37/tiny.jpg`；artifact `logs/fr-b37-multipart-latest.json` |
 | **FR-B37 bucket 命名**（vj_p2 fixture） | `certify-vj_p2_*` → `certify-vj-p2-*`；`snap/record` metadata sync **0** not **500**；`S3BucketNameSupport` 4xx on illegal bucket |
+| **FR-B38 plate image_url**（`:48096` local, MinIO on） | plate entry multipart → `image_url` populated `/api/v1/buckets/plate-library/objects/download?prefix=…`；artifact `logs/fr-b38-multipart-latest.json` |
+| **FR-B38 face entry 无模型**（`:48096` local） | **code=400** + Python msg（非 500）；Java envelope HTTP 200；**不 soft-save**；artifact `logs/fr-b38-multipart-latest.json` |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定 — FR-B37
+## 9. 最终判定 — FR-B38
+
+| 问题 | 答案 |
+|------|------|
+| Plate `image_url` multipart 证据？ | **是（local, MinIO on）** — `plate_entry_image_url` pass；`_upload_plate_image` parity；artifact `logs/fr-b38-multipart-latest.json` |
+| Face entry 无模型路径？ | **是（local）** — `code=400` + `face_rec.onnx` msg（Python `face_library_service.py` L323-326）；Java HTTP 200 envelope；**不 soft-save** |
+| phase0？ | **PASS 5/5** — `logs/certify-frb38-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — face multipart **成功**路径仍待 InsightFace worker + Milvus；HTTP 状态 Java 200 vs Python 400 信封差 |
+
+## 10. 历史判定归档（只读）
+
+<details>
+<summary>FR-B37 / FR-B36 / FR-B35 … 历史判定（点击展开）</summary>
+
+### FR-B37
 
 | 问题 | 答案 |
 |------|------|
@@ -300,12 +316,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | Fixture bucket S3 非法名？ | **已修复** — `seed_p2_fixture` migrate + `certify_bucket_name()`；sync **200 code=0** |
 | Java multipart / MinIO 修复？ | **是** — `PlateController` consumes 拆分；`PlateLibraryService` 去 OCR gate；`S3BucketNameSupport` |
 | phase0？ | **PASS 5/5** — `logs/certify-frb37-phase0.log` |
-| 能否称 COMPLETE？ | **禁止** — face multipart 成功路径待 InsightFace worker；plate 图片 MinIO 上传 parity 未齐 |
-
-## 10. 历史判定归档（只读）
-
-<details>
-<summary>FR-B36 / FR-B35 / FR-B33 … 历史判定（点击展开）</summary>
+| 能否称 COMPLETE？ | **禁止** — face multipart 成功路径待 InsightFace worker；plate 图片 MinIO 上传 parity 未齐（**FR-B38 已修 plate image_url**） |
 
 ### FR-B36
 

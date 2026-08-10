@@ -151,7 +151,7 @@ public class FaceLibraryService {
         if (imageBytes == null || imageBytes.length == 0) {
             throw new VideoBusinessException(400, "请上传文件字段 file");
         }
-        recognitionService.ensureFaceDetectable(imageBytes);
+        recognitionService.validateFaceEntryImage(imageBytes);
         if (personId == null) {
             personId = personRepository.insert(libraryId, personName, personCode, null, isEnabled);
         }
@@ -203,7 +203,7 @@ public class FaceLibraryService {
             fields.put("is_enabled", RequestParams.bool(data, "is_enabled", true));
         }
         if (imageBytes != null && imageBytes.length > 0) {
-            recognitionService.ensureFaceDetectable(imageBytes);
+            recognitionService.validateFaceEntryImage(imageBytes);
         }
         entryRepository.update(entryId, fields);
         Integer personId = (Integer) entry.get("person_id");

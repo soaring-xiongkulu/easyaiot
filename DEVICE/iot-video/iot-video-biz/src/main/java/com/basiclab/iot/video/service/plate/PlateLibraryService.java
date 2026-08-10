@@ -5,6 +5,7 @@ import com.basiclab.iot.video.dal.PlateEntryRepository;
 import com.basiclab.iot.video.dal.PlateLibraryRepository;
 import com.basiclab.iot.video.dal.PlateMatchRecordRepository;
 import com.basiclab.iot.video.exception.VideoBusinessException;
+import com.basiclab.iot.video.service.minio.VideoMinioService;
 import com.basiclab.iot.video.support.JsonFields;
 import com.basiclab.iot.video.support.RequestParams;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,16 +15,20 @@ import org.springframework.stereotype.Service;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class PlateLibraryService {
+
+    private static final String DEFAULT_PLATE_BUCKET = "plate-library";
 
     private final PlateLibraryRepository libraryRepository;
     private final PlateEntryRepository entryRepository;
     private final PlateAutoEnrollRepository autoEnrollRepository;
     private final PlateMatchRecordRepository matchRecordRepository;
     private final PlateRecognitionService recognitionService;
+    private final VideoMinioService videoMinioService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public List<Map<String, Object>> listLibraries(String search, Boolean isEnabled) {
@@ -96,7 +101,12 @@ public class PlateLibraryService {
         }
         String imagePath = null;
         String imageUrl = null;
-        // Python plate_library_service.add_entry uploads image without requiring OCR engine (plate.py L172-182).
+        // Python plate_library_service.add_entry L271-273 → _upload_plate_image L103-109 (no OCR gate).
+        if (imageBytes != null && imageBytes.length > 0) {
+            UploadedPlateImage uploaded = uploadPlateImage(libraryId, imageBytes);
+            imagePath = uploaded.objectName();
+            imageUrl = uploaded.imageUrl();
+        }
         int id = entryRepository.insert(libraryId, plateNo.trim(), plateColor, ownerName, ownerPhone,
                 imagePath, imageUrl, remark, isEnabled);
         libraryRepository.refreshPlateCount(libraryId);
@@ -225,6 +235,25 @@ public class PlateLibraryService {
     private void requireLibrary(int libraryId) {
         libraryRepository.findById(libraryId)
                 .orElseThrow(() -> new VideoBusinessException(404, "查询失败: 车牌库不存在"));
+    }
+
+    private UploadedPlateImage uploadPlateImage(int libraryId, byte[] imageBytes) {
+        String suffix = "jpg";
+        String objectName = libraryId + "/" + UUID.randomUUID().toString().replace("-", "") + "." + suffix;
+        String bucket = plateImageBucket();
+        if (!videoMinioService.isStorageEnabled()) {
+            return new UploadedPlateImage(null, null);
+        }
+        videoMinioService.uploadBytes(bucket, objectName, imageBytes, "image/" + suffix, false);
+        return new UploadedPlateImage(objectName, videoMinioService.buildDownloadUrl(bucket, objectName));
+    }
+
+    private static String plateImageBucket() {
+        String env = System.getenv("PLATE_IMAGE_BUCKET");
+        return env != null && !env.isBlank() ? env.trim() : DEFAULT_PLATE_BUCKET;
+    }
+
+    private record UploadedPlateImage(String objectName, String imageUrl) {
     }
 
     private String toJsonTags(Object raw) {
