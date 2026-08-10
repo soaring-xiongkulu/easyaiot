@@ -2,12 +2,17 @@
 
 EasyAIoT 的 **C++ 帧执行器**（由原 TASK 演进）。负责拉流、解码、AI 推理与结果回传；**不替代 VIDEO**。
 
-## 与 VIDEO 的关系
-
 | 角色 | 模块 | 职责 |
 |------|------|------|
 | 编排 / 预览 / 告警面 | **VIDEO** | 设备流、SRS 转发、任务生命周期、alert hook、Kafka、落库 |
-| 高速执行后端 | **RUNTIME** | 拉流 → 解码 → 推理 → 结构化结果 |
+| 高速执行后端 | **RUNTIME** | 拉流 → 解码 → 推理 → **告警/心跳回传**；`realtime` **默认推带框检测流到 `ai_rtmp`** |
+
+双路媒体（互不占用）：
+
+| 链路 | 谁推 | SRS 路径 | 用途 |
+|------|------|----------|------|
+| 原画预览 | VIDEO 推流转发 | `live/{device_id}` | WEB 实时预览 |
+| AI 检测画 | **RUNTIME**（`enable_rtmp=true`） | `ai/{device_id}` | WEB 看带框图 |
 
 算法任务默认 `executor=cpp`：VIDEO 守护进程生成 `config/task_{id}.ini` 并拉起本二进制；可选 `executor=python`。
 
@@ -15,58 +20,166 @@ EasyAIoT 的 **C++ 帧执行器**（由原 TASK 演进）。负责拉流、解�
 
 | task_type | 行为 |
 |-----------|------|
-| `realtime` | 长连接拉流 + Pipeline（FFmpeg），可配置抽帧 |
-| `snap` | Cron 调度抓拍（SnapScheduler） |
-| `patrol` | 多设备轮巡（PatrolScheduler） |
+| `realtime` | 长连接拉流 + Pipeline（FFmpeg），可配置抽帧；**默认推 `ai/` 带框流** |
+| `snap` | Cron 调度抓拍（SnapScheduler）；以结构化结果/告警为主 |
+| `patrol` | 多设备轮巡（PatrolScheduler）；以结构化结果/告警为主 |
 
-> 本机与集群节点均支持 `executor=cpp`（需先经 iot-node 分发 RUNTIME）。与 `EDGE/runtime/`（Python 边缘运行包）不是同一回事。
+> 本机与集群节点均支持 `executor=cpp`。与 `EDGE/runtime/`（Python 边缘运行包）**不是同一回事**。
 
-## GPU 推理策略（默认）
+---
 
-- 默认 **prefer GPU**：ONNX Runtime 优先挂载 `CUDAExecutionProvider`，Session 创建失败则自动回退 CPU，任务不中断。
-- 配置（`[ai]` / 环境变量）：
-  - `prefer_gpu` / `RUNTIME_PREFER_GPU`（默认 `true`）
-  - `force_cpu` / `RUNTIME_FORCE_CPU`（强制仅 CPU）
-  - `gpu_device_id` / `RUNTIME_GPU_DEVICE_ID` 或 `CUDA_VISIBLE_DEVICES`
-- 日志会出现 `Using CUDA EP` 或 `Using CPU execution (fallback)`；`GET /health` 含 `infer_ep=cuda|cpu`。
-- **本轮不做**：TensorRT EP、FFmpeg NVDEC/NVENC。
+## 目录
 
-安装侧：检测到 `nvidia-smi` 时优先下载 **GPU ORT** 包（如 `onnxruntime-linux-x64-gpu-*`），写入 `deploy.env` 的 CUDA lib 路径；无 GPU / 下载失败则用 CPU 包并告警。
+- [部署场景怎么选](#部署场景怎么选)
+- [原子模式（计算节点只装 RUNTIME）](#原子模式计算节点只装-runtime)
+- [集群分发（iot-node · 一键）](#集群分发iot-node--一键)
+- [本机 VIDEO 一键挂载（推荐中心机）](#本机-video-一键挂载推荐中心机)
+- [编译与依赖](#编译与依赖)
+- [运行与运维](#运行与运维)
+- [流水线与回调](#流水线与回调)
+- [配置说明](#配置说明)
+- [GPU 推理策略](#gpu-推理策略)
+- [常见问题](#常见问题)
 
-## 原子模式（只部署 RUNTIME · 计算节点）
+---
 
-用于**只装高性能执行器**的机器（边缘算力盒 / 集群计算节点），不部署 VIDEO/WEB/DEVICE。
+## 部署场景怎么选
 
-```bash
-# 顶层入口
-VIDEO_BASE_URL=http://<中心VIDEO主机>:6000 bash .scripts/docker/install_linux.sh runtime
+| 场景 | 本机装什么 | 入口 | 适用 |
+|------|------------|------|------|
+| **中心 / 一体机** | VIDEO（自动编译并挂载 RUNTIME） | `./VIDEO/install_linux.sh install` | 编排 + 预览 + 告警落库 + 本机执行 |
+| **原子计算节点** | **只装 RUNTIME** | `install_linux.sh runtime` 或 `RUNTIME/install_linux.sh atomic` | 边缘算力盒 / 集群 worker，无本地业务面 |
+| **批量节点** | 只装 RUNTIME | WEB「业务运行时分发」→ RUNTIME(C++) | 多机 SSH 一键 |
+| **开发调试** | 源码树编译 | `./RUNTIME/install_linux.sh build` | 改代码、本地跑示例 ini |
 
-# 或模块入口
-VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
-# 等价：./RUNTIME/install_linux.sh atomic http://192.168.1.10:6000
+拓扑示意（原子节点）：
+
+```text
+摄像头 ──► 中心 VIDEO（live/ 原画预览、任务编排、告警落库）
+              │
+              │ 下发 task_*.ini + 拉起（Agent / 本机守护）
+              ▼
+         计算节点 RUNTIME ──► alert/heartbeat → 中心 VIDEO
+                           ──► realtime 默认 RTMP → 中心 SRS ai/{device}
 ```
 
-行为：
+---
+
+## 原子模式（计算节点只装 RUNTIME）
+
+用于**只装高性能执行器**的机器（边缘算力盒 / 集群计算节点），**本机不部署** VIDEO / WEB / DEVICE。
+
+> **原子 ≠ 永不推流。** 原子只表示本机无业务面；中心 VIDEO 下发正式 `realtime` 任务时，ini 仍会带独立 `ai_rtmp`，RUNTIME **默认推带框检测流**到中心/集群 SRS。安装阶段不强制本机 SRS。
+
+### 前置条件
+
+- Linux x86_64 或 aarch64；Docker（默认同源容器编译）
+- 能访问中心 VIDEO HTTP 口（默认 `:6000`）；正式推流时还能访问中心/集群 SRS RTMP（默认 `:1935`）
+- 有 GPU 时建议装好驱动 + `nvidia-smi`（可选，失败会回退 CPU）
+
+### 一键安装
+
+```bash
+# 方式 A：仓库顶层入口（与平台部署脚本一致）
+VIDEO_BASE_URL=http://<中心VIDEO主机>:6000 \
+  bash .scripts/docker/install_linux.sh runtime
+
+# 等价别名
+# ... install_linux.sh runtime-atomic
+# ... install_linux.sh atomic-runtime
+
+# 方式 B：模块入口
+VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
+# 或把地址当参数：
+./RUNTIME/install_linux.sh atomic http://192.168.1.10:6000
+
+# 可选：安装时就写好手工调试用的检测流地址（正式任务仍由 VIDEO 下发 ini）
+SRS_RTMP_BASE=rtmp://192.168.1.10:1935 \
+  VIDEO_BASE_URL=http://192.168.1.10:6000 \
+  ./RUNTIME/install_linux.sh atomic
+# 或直接指定完整 AI 地址：
+# AI_RTMP_URL=rtmp://192.168.1.10:1935/ai/my_cam ...
+```
+
+安装目录可用 `EASYAIOT_RUNTIME_INSTALL_DIR` 覆盖（默认 `/opt/easyaiot/RUNTIME`）。
+
+### 安装过程做了什么
 
 1. 同源容器编译 RUNTIME（默认 `EASYAIOT_RUNTIME_BUILD_MODE=docker`）
-2. `export_runtime_cpp.sh` 打离线包
-3. 安装到 `${EASYAIOT_RUNTIME_INSTALL_DIR:-/opt/easyaiot/RUNTIME}`
-4. 写入 `node.env` / `env.sh` / `config/atomic.example.ini`
+2. `export_runtime_cpp.sh` 打离线包 → `.bundle-runtime/<arch>/easyaiot-runtime-*.tar.gz`
+3. `install_runtime_cpp.sh` 安装到 `${EASYAIOT_RUNTIME_INSTALL_DIR:-/opt/easyaiot/RUNTIME}`
+4. 写入节点配置：
 
-**汇聚上报（必填）**：`VIDEO_BASE_URL` 指向中心 VIDEO。节点上的告警/心跳 HTTP 回调：
+| 文件 | 作用 |
+|------|------|
+| `node.env` | `VIDEO_BASE_URL`、告警/心跳 URL、可选 `AI_RTMP_URL` |
+| `env.sh` | `source` 后导出 `RUNTIME_BIN`、`LD_LIBRARY_PATH`、汇聚变量 |
+| `config/atomic.example.ini` | **手工调试**示例任务（非正式生产任务） |
+| 仓库内 `RUNTIME/atomic.env` | 指向本次安装目录的本地指针 |
+
+### 汇聚上报（必填）
+
+`VIDEO_BASE_URL` 必须指向中心 VIDEO。节点上的 HTTP 回调：
 
 | 类型 | URL |
 |------|-----|
 | 告警 | `${VIDEO_BASE_URL}/video/alert/hook` |
-| 心跳 realtime | `${VIDEO_BASE_URL}/video/algorithm/heartbeat/realtime` |
+| 心跳 realtime / snap | `${VIDEO_BASE_URL}/video/algorithm/heartbeat/realtime` |
 | 心跳 patrol | `${VIDEO_BASE_URL}/video/algorithm/heartbeat/patrol` |
 
-本节点**不落库**；正式任务仍由中心 VIDEO + Agent 下发 `task_*.ini` 并拉起二进制。手工调试：
+本节点**不落库**；告警与任务状态由中心 VIDEO 入库 / Kafka。
+
+### 检测推流
+
+| 场景 | 行为 |
+|------|------|
+| VIDEO 下发 `executor=cpp` + `realtime` | 必有独立 `rtmp://…/ai/{device}`，`enable_rtmp=true`，启动即推 |
+| 原子安装待命 / 未设 SRS 变量 | 示例 ini 可不推，仅告警/心跳 |
+| 原子安装且设置了 `SRS_RTMP_BASE` 或 `AI_RTMP_URL` | 示例 ini 打开 `enable_rtmp`，便于手工冒烟 |
+
+### 安装后检查
+
+```bash
+./RUNTIME/install_linux.sh status
+# 或直接看节点目录
+ls -l /opt/easyaiot/RUNTIME/bin/RUNTIME
+cat /opt/easyaiot/RUNTIME/node.env
+```
+
+### 手工调试（冒烟）
+
+1. 编辑 `/opt/easyaiot/RUNTIME/config/atomic.example.ini`：改 `rtsp_url`、模型路径等  
+2. 启动：
 
 ```bash
 source /opt/easyaiot/RUNTIME/env.sh
 $RUNTIME_BIN /opt/easyaiot/RUNTIME/config/atomic.example.ini
 ```
+
+3. 另开终端验证：
+
+```bash
+# 控制口默认 8123（见 ini [task].control_port）
+curl -s http://127.0.0.1:8123/health
+# 中心侧应能看到 heartbeat / alert；若开了 enable_rtmp，SRS 上应有 ai/ 应用
+```
+
+4. 优雅停止：`curl -s -X POST http://127.0.0.1:8123/stop`
+
+### 正式任务怎么跑
+
+原子节点装好后**不必**长期手工跑 `atomic.example.ini`。正式流程：
+
+1. 中心已部署 VIDEO（及 SRS / WEB 等）
+2. 节点已装 RUNTIME（原子安装，或 WEB「节点管理 → 业务运行时分发 → 分发 RUNTIME」），且 Agent 在线
+3. WEB **算法任务** → 新建 → 选「实时/抓拍/巡检算法任务（高性能）」
+4. **调度策略**选「本机」/「自动调度节点」/「指定节点」（指定时选目标原子/计算节点）→ 保存
+5. 列表点 **启动**：中心 VIDEO 生成含 `ai_rtmp` 的 ini，经 iot-node 下发到节点并拉起 `/opt/easyaiot/RUNTIME/bin/RUNTIME`
+6. 告警/心跳回中心；realtime 带框流进中心 `ai/{device}`，原画仍走 `live/`
+
+> 无已分发原子节点时：调度选 **本机** 即可——中心 VIDEO 安装时会经 `ensure_runtime_cpp.sh` 挂载本机 RUNTIME，任务仍可跑。选自动/指定节点但目标机未装 RUNTIME 时，启动会明确失败并提示先分发。
+
+---
 
 ## 集群分发（iot-node · 一键）
 
@@ -76,13 +189,17 @@ $RUNTIME_BIN /opt/easyaiot/RUNTIME/config/atomic.example.ini
 控制面后台自动串联：`install_linux.sh`（若未编译）→ `export_runtime_cpp.sh` → SSH 安装到节点 `/opt/easyaiot/RUNTIME`。
 
 - 节点二进制：`/opt/easyaiot/RUNTIME/bin/RUNTIME`
-- 远程任务：VIDEO 写 ini → Agent 落盘启动；模型走 Ceph
+- 远程任务：VIDEO 写 ini → Agent 落盘启动；模型可走对象存储 / Ceph
 - API：`POST /admin-api/node/workload-bundle/runtime-cpp/batch-deploy-ssh`
 - 关闭自动编译：环境变量 `RUNTIME_AUTO_INSTALL=0`（仅当你要手工控制编译时）
 
-## 一键部署（推荐 · 本机 VIDEO）
+> 批量分发后，各节点仍建议配置可达的中心 `VIDEO_BASE_URL`（原子安装会写 `node.env`；分发场景由 Agent/平台约定工作目录与环境）。
 
-VIDEO 各 Linux 安装入口通过共享脚本 [`VIDEO/scripts/ensure_runtime_cpp.sh`](../VIDEO/scripts/ensure_runtime_cpp.sh) 编译并挂载 RUNTIME：
+---
+
+## 本机 VIDEO 一键挂载（推荐中心机）
+
+VIDEO 各 Linux 安装入口通过 [`VIDEO/scripts/ensure_runtime_cpp.sh`](../VIDEO/scripts/ensure_runtime_cpp.sh) 编译并挂载 RUNTIME：
 
 | 入口 | RUNTIME |
 |------|---------|
@@ -92,14 +209,15 @@ VIDEO 各 Linux 安装入口通过共享脚本 [`VIDEO/scripts/ensure_runtime_cp
 | 顶层 `install_business_linux.sh` / centos / openeuler | 委托 VIDEO，间接覆盖 |
 | `VIDEO/install_mac.sh` | **跳过**并打印说明（非 Linux / 无 CUDA 一键包） |
 | Windows | **本轮不管**；需手工编译或后续 DirectML 专题 |
-| 计算节点（集群） | 走上方 **集群分发**，不是 compose 挂载 |
+| 计算节点（集群） | 走 **原子模式** 或 **集群分发**，不是 compose 挂载 |
 
 ```bash
 # 业务一键部署里包含 VIDEO 时会连带执行
 ./VIDEO/install_linux.sh install
 
-# 或单独安装 RUNTIME
+# 或单独在源码树安装/编译 RUNTIME（供本机挂载，不是原子节点目录）
 ./RUNTIME/install_linux.sh
+./RUNTIME/install_linux.sh build
 ```
 
 产出：
@@ -112,7 +230,9 @@ VIDEO 各 Linux 安装入口通过共享脚本 [`VIDEO/scripts/ensure_runtime_cp
 跳过：`EASYAIOT_RUNTIME_SKIP=1`  
 强制失败中止 VIDEO：`EASYAIOT_RUNTIME_REQUIRED=1`
 
-## 手动环境 / 编译
+---
+
+## 编译与依赖
 
 默认 **方案 1：VIDEO 同源容器编译**（系统 `g++`，与 `video-service` 同 Ubuntu/glibc，无需降级 conda sysroot）：
 
@@ -123,7 +243,7 @@ VIDEO 各 Linux 安装入口通过共享脚本 [`VIDEO/scripts/ensure_runtime_cp
 
 - 构建镜像优先：`video-service:latest` → 已缓存的 `pytorch/pytorch:2.9.0-cuda12.8-cudnn9-devel` → `ubuntu:22.04`
 - 覆盖镜像：`EASYAIOT_RUNTIME_BUILD_IMAGE=...`
-- 宿主机 conda `easyaiot-runtime` 只提供 OpenCV5/glog/ffmpeg 等依赖库，并挂进 VIDEO 容器
+- 宿主机 conda `easyaiot-runtime` 只提供 OpenCV5/glog/ffmpeg 等依赖库，并挂进构建容器
 
 回退本机编译（新 glibc 主机上产物可能无法进 VIDEO 容器）：
 
@@ -134,23 +254,116 @@ EASYAIOT_RUNTIME_BUILD_MODE=host ./RUNTIME/install_linux.sh build
 
 依赖：OpenCV 5、FFmpeg、glog、jsoncpp、libcurl，以及官方 ONNX Runtime C++ SDK（有 GPU 时优先 `onnxruntime-linux-*-gpu-1.23.2`，否则 CPU 包；默认下载到仓库根 `.deps/`）。
 
-## 运行
+模块脚本子命令：
+
+| 命令 | 说明 |
+|------|------|
+| `./install_linux.sh` / `install` | 装依赖并编译（本机开发树） |
+| `build` | 仅编译 |
+| `status` | 检查二进制、`node.env`（若已原子安装） |
+| `atomic [VIDEO_BASE_URL]` | 原子模式：编译 → 导出 → 安装到 `/opt/easyaiot/RUNTIME` |
+| `help` | 帮助 |
+
+---
+
+## 运行与运维
+
+### 源码树手工跑
 
 ```bash
 source RUNTIME/scripts/env.sh
 $RUNTIME_BIN RUNTIME/config/config.example.ini
 ```
 
-VIDEO 侧默认走高性能任务时，启停走原有任务接口即可。强制 CPU 可设 `RUNTIME_FORCE_CPU=1`。
+### 原子节点手工跑
 
-## 流水线
+```bash
+source /opt/easyaiot/RUNTIME/env.sh
+$RUNTIME_BIN /opt/easyaiot/RUNTIME/config/atomic.example.ini
+```
 
-`Pull+Decode → FrameRing(drop-oldest) → Infer → ResultRing → Emit(VIDEO hook)`
+### VIDEO 托管（生产）
+
+WEB / API 创建算法任务，`executor=cpp` 时由 VIDEO 生成 ini 并拉起二进制；启停走原有任务接口即可。强制 CPU：`RUNTIME_FORCE_CPU=1`。
+
+### 常用环境变量
+
+| 变量 | 含义 |
+|------|------|
+| `VIDEO_BASE_URL` / `EASYAIOT_VIDEO_BASE_URL` | 原子模式必填：中心 VIDEO 根地址 |
+| `EASYAIOT_RUNTIME_INSTALL_DIR` | 原子安装目录，默认 `/opt/easyaiot/RUNTIME` |
+| `SRS_RTMP_BASE` / `AI_RTMP_URL` | 原子安装可选：示例 ini 检测流 |
+| `EASYAIOT_RUNTIME_BUILD_MODE` | `docker`（默认）/ `host` |
+| `EASYAIOT_RUNTIME_BUILD_IMAGE` | 覆盖构建镜像 |
+| `EASYAIOT_RUNTIME_SKIP` | `1` 跳过安装 |
+| `EASYAIOT_RUNTIME_REQUIRED` | `1` 失败则中止上层 VIDEO 安装 |
+| `RUNTIME_PREFER_GPU` / `RUNTIME_FORCE_CPU` | 推理设备策略 |
+| `RUNTIME_GPU_DEVICE_ID` / `CUDA_VISIBLE_DEVICES` | GPU 选择 |
+| `RUNTIME_AUTO_INSTALL` | `0` 时 export/分发跳过自动编译 |
+
+### 健康与控制
+
+ini 中 `[task].control_port`（示例 `8123`）：
+
+```bash
+curl -s http://127.0.0.1:8123/health    # 含 infer_ep=cuda|cpu、丢帧/时延等
+curl -s -X POST http://127.0.0.1:8123/stop
+```
+
+---
+
+## 流水线与回调
+
+`Pull+Decode → FrameRing(drop-oldest) → Infer(+draw) → ResultRing → Emit(alert hook) + 可选 RTMP(ai/)`
 
 - 心跳：realtime/snap → `POST /video/algorithm/heartbeat/realtime`；patrol → `.../heartbeat/patrol`
 - 告警：`POST /video/alert/hook`（snap 的 hook `task_type` 为 `snapshot`）
+- 检测流：`realtime` 默认 `enable_rtmp=true`，推到设备独立 `ai_rtmp`（与 `live/` 预览分离）
 - 健康：`GET /health`；控制口可 `POST /stop` 优雅退出
 
-## 配置
+---
 
-见 [config/config.example.ini](config/config.example.ini)。VIDEO 对接段为 `[video_task]`。
+## 配置说明
+
+完整字段见 [config/config.example.ini](config/config.example.ini)。VIDEO 对接段为 `[video_task]`。
+
+关键段：
+
+| 段 | 要点 |
+|----|------|
+| `[video]` | `rtsp_url` 拉流；`rtmp_url` 为检测推流目标（正式 realtime 由 VIDEO 写成 `…/ai/{device}`） |
+| `[ai]` | 模型路径、`prefer_gpu` / `force_cpu` |
+| `[alarm]` / `[video_task]` | `alert_hook_url`、`heartbeat_url`、`task_type` |
+| `[features]` | `enable_rtmp` / `enable_draw` / `enable_alarm` |
+| `[regions]` | 可选报警多边形；不配则全画面 |
+
+原子节点示例由安装脚本生成：`/opt/easyaiot/RUNTIME/config/atomic.example.ini`。
+
+---
+
+## GPU 推理策略
+
+- 默认 **prefer GPU**：ONNX Runtime 优先挂载 `CUDAExecutionProvider`，Session 创建失败则自动回退 CPU，任务不中断。
+- 配置（`[ai]` / 环境变量）：
+  - `prefer_gpu` / `RUNTIME_PREFER_GPU`（默认 `true`）
+  - `force_cpu` / `RUNTIME_FORCE_CPU`（强制仅 CPU）
+  - `gpu_device_id` / `RUNTIME_GPU_DEVICE_ID` 或 `CUDA_VISIBLE_DEVICES`
+- 日志会出现 `Using CUDA EP` 或 `Using CPU execution (fallback)`；`GET /health` 含 `infer_ep=cuda|cpu`。
+- **本轮不做**：TensorRT EP、FFmpeg NVDEC/NVENC。
+
+安装侧：检测到 `nvidia-smi` 时优先下载 **GPU ORT** 包（如 `onnxruntime-linux-x64-gpu-*`），写入 `deploy.env` 的 CUDA lib 路径；无 GPU / 下载失败则用 CPU 包并告警。
+
+---
+
+## 常见问题
+
+| 现象 | 处理 |
+|------|------|
+| 原子安装提示缺少 `VIDEO_BASE_URL` | 安装前导出或作为参数传入中心 VIDEO 地址 |
+| 二进制在 VIDEO 容器内无法运行 | 使用默认 `EASYAIOT_RUNTIME_BUILD_MODE=docker` 同源编译，避免新 glibc 主机 `host` 编译 |
+| realtime 无带框预览 | 确认任务为 `executor=cpp` + `realtime`，ini 中 `enable_rtmp=true` 且 `rtmp_url` 为独立 `ai/` 路径（不要写成 `live/`） |
+| 只有告警没有画面 | 抓拍/巡检默认不以长推流为主；看结构化告警即可。需要画面时给 realtime 或显式配置 `ai_rtmp` |
+| `/health` 显示 `infer_ep=cpu` | 正常回退；检查驱动、`nvidia-smi`、ORT GPU 包与 `LD_LIBRARY_PATH` |
+| 与 EDGE 混淆 | `EDGE/runtime/` 是 Python 边缘包；本模块是 C++ `RUNTIME` 二进制 |
+
+更细的平台级部署步骤见 [`.doc/部署文档/平台部署文档_zh.md`](../.doc/部署文档/平台部署文档_zh.md) 与 [部署最佳实践](../.doc/部署文档/部署最佳实践.md) 中的 **RUNTIME 原子模式** 小节。
